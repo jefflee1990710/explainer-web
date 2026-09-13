@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cartoon Explainer Video Director"
+  short_description: "Turn copy into rich Omni Flash whiteboard-doodle explainer videos"
+  default_prompt: "Use $directing-cartoon-explainer-videos to turn this copy into a one-minute English whiteboard-doodle explainer video prompt package."
