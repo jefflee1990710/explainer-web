@@ -82,7 +82,7 @@ export async function fetchHiggsfieldStatus(statusUrl: string) {
       : undefined,
   });
   if (!response.ok) {
-    throw new Error(`Higgsfield status ${response.status}`);
+    throw new Error(`影片產生狀態查詢失敗（${response.status}）`);
   }
   return response.json() as Promise<{
     status: string;

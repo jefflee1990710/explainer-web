@@ -20,7 +20,7 @@ export function AppShell({
               專案
             </Link>
             <Link href="/app/skills" className="hover:text-foreground">
-              技能
+              風格
             </Link>
             <Link href="/app/billing" className="hover:text-foreground">
               訂閱

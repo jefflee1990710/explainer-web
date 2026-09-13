@@ -34,7 +34,7 @@ export function GenerationProgress({
         <p className="mt-2 text-sm text-red-600">{project.error}</p>
       ) : (
         <p className="mt-2 text-sm text-muted">
-          Higgsfield 正在產角色定裝圖與各段 clips。完成後可連續播放。
+          正在產角色定裝圖與各段 clips。完成後可連續播放。
         </p>
       )}
       <ul className="mt-4 space-y-2 text-sm">

@@ -49,7 +49,7 @@ export async function approveAndGenerateAction(
 
     const skills = await skillsCollection();
     const skill = await skills.findOne({ _id: project.skillId });
-    if (!skill) return { ok: false, error: "找不到技能" };
+    if (!skill) return { ok: false, error: "找不到風格" };
 
     const phaseB = await runPhaseB({
       skill,

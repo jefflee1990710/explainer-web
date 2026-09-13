@@ -39,7 +39,7 @@ Produce a complete Phase A director proposal now.`,
   });
 
   if (!output) {
-    throw new Error("導演提案產生失敗");
+    throw new Error("解說提案產生失敗");
   }
   return output;
 }

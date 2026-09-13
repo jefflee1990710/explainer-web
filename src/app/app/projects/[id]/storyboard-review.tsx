@@ -119,7 +119,7 @@ export function StoryboardReview({
           </form>
           <div className="rounded-2xl border border-line bg-card p-5">
             <p className="text-sm">
-              核准後會消耗 <strong>{project.creditCost} credits</strong>，並開始 Higgsfield 產片。
+              核准後會消耗 <strong>{project.creditCost} credits</strong>，並開始產片。
             </p>
             {!canGenerate ? (
               <p className="mt-2 text-sm text-muted">

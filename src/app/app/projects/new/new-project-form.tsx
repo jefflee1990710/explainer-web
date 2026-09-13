@@ -98,7 +98,7 @@ export function NewProjectForm({ skill }: { skill: PublicSkill }) {
         disabled={pending}
         className="rounded-full bg-accent px-5 py-2 text-sm text-white disabled:opacity-60"
       >
-        {pending ? "導演撰寫分鏡中…" : "產生分鏡提案"}
+        {pending ? "撰寫分鏡中…" : "產生分鏡提案"}
       </button>
     </form>
   );

@@ -41,10 +41,10 @@ async function main() {
     {
       $set: {
         slug: "cartoon-explainer-video-director",
-        title: "Cartoon explainer video director",
-        titleZh: "卡通解說影片導演",
+        title: "Whiteboard concept explainer",
+        titleZh: "白板概念解說",
         description:
-          "把題材變成白板塗鴉卡通 explainer：先核准分鏡，再交給 Higgsfield 產圖產片。",
+          "用白板塗鴉風格把概念講清楚，適合 Reels、行銷與簡報。先核准分鏡，再產出影片。",
         systemPrompt: skillFile.content,
         references: files
           .filter((file) => file.path !== "SKILL.md")

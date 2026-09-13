@@ -33,7 +33,7 @@ export async function createProjectAction(formData: FormData): Promise<
 
     const skills = await skillsCollection();
     const skill = await skills.findOne({ slug: skillSlug, isActive: true });
-    if (!skill) return { ok: false, error: "找不到技能" };
+    if (!skill) return { ok: false, error: "找不到風格" };
 
     const now = new Date();
     const projects = await projectsCollection();
@@ -80,7 +80,7 @@ export async function createProjectAction(formData: FormData): Promise<
         {
           $set: {
             status: "failed",
-            error: error instanceof Error ? error.message : "導演提案失敗",
+            error: error instanceof Error ? error.message : "解說提案失敗",
             updatedAt: new Date(),
           },
         },
@@ -120,7 +120,7 @@ export async function reviseProjectAction(formData: FormData): Promise<
 
     const skills = await skillsCollection();
     const skill = await skills.findOne({ _id: project.skillId });
-    if (!skill) return { ok: false, error: "找不到技能" };
+    if (!skill) return { ok: false, error: "找不到風格" };
 
     await projects.updateOne(
       { _id: project._id },

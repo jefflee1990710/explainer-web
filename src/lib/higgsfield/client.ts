@@ -14,7 +14,7 @@ export function getHiggsfieldCredentials() {
 export function assertHiggsfieldConfigured() {
   const credentials = getHiggsfieldCredentials();
   if (!credentials) {
-    throw new Error("尚未設定 Higgsfield API key");
+    throw new Error("尚未設定影片產生服務 API key");
   }
   if (!configured) {
     config({ credentials });

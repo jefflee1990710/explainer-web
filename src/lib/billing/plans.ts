@@ -16,7 +16,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     nameZh: "入門",
     monthlyCredits: 30,
     amountUsd: 19,
-    blurb: "每月 30 credits，適合試做短片。",
+    blurb: "每月 30 credits，適合試做 Reels 與短解說。",
   },
   pro: {
     id: "pro",
@@ -24,7 +24,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     nameZh: "專業",
     monthlyCredits: 120,
     amountUsd: 49,
-    blurb: "每月 120 credits，適合固定產片。",
+    blurb: "每月 120 credits，適合行銷與簡報固定產出。",
   },
 };
 

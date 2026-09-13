@@ -55,7 +55,7 @@ export default async function DashboardPage() {
 
       <div className="mt-8 grid gap-3">
         {list.length === 0 ? (
-          <p className="text-sm text-muted">還沒有專案。先選一個技能開始。</p>
+          <p className="text-sm text-muted">還沒有專案。先選一種風格開始。</p>
         ) : (
           list.map((project) => {
             const item = toPublicProject(project);

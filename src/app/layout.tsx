@@ -15,8 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Explainer — 卡通解說影片 SaaS",
-  description: "選擇導演技能、核准分鏡，再用 Higgsfield 產出卡通 explainer 影片。",
+  title: "Explainer — 概念解說影片",
+  description:
+    "把概念講清楚，做成 Reels、行銷、簡報與更多用途的 explainer 影片。選風格、核准分鏡、產出 clips。",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
