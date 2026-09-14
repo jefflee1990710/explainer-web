@@ -1,16 +1,23 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Geist_Mono, Noto_Sans_TC } from "next/font/google";
+import { Geist_Mono, Noto_Sans_TC, Syne } from "next/font/google";
 import "./globals.css";
 
 const notoSansTc = Noto_Sans_TC({
-  variable: "--font-geist-sans",
+  variable: "--font-body",
   weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
+const syne = Syne({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
+  display: "swap",
+});
+
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+  variable: "--font-mono",
   subsets: ["latin"],
 });
 
@@ -24,9 +31,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="zh-Hant"
-      className={`${notoSansTc.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${notoSansTc.variable} ${syne.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className={`${notoSansTc.className} min-h-full flex flex-col bg-background text-foreground`}>
+      <body
+        className={`${notoSansTc.className} flex min-h-full flex-col bg-background text-foreground`}
+      >
         <ClerkProvider>{children}</ClerkProvider>
       </body>
     </html>

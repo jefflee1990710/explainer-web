@@ -1,12 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f4ef;
-  --foreground: #171717;
-  --card: #ffffff;
-  --muted: #5e5a53;
-  --line: #e4dfd4;
-  --accent: #111111;
+  /* Marker-studio palette: paper, ink, citrus, coral, teal */
+  --background: #fff6eb;
+  --foreground: #12141c;
+  --card: rgba(255, 255, 255, 0.78);
+  --muted: #5c6170;
+  --line: rgba(18, 20, 28, 0.1);
+  --accent: #ff4d2e;
+  --accent-ink: #12141c;
+  --lime: #c6f24b;
+  --teal: #14b8a6;
+  --sky: #4f8cff;
+  --paper: #fffbf5;
 }
 
 @theme inline {
@@ -16,12 +22,42 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-accent: var(--accent);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-accent-ink: var(--accent-ink);
+  --color-lime: var(--lime);
+  --color-teal: var(--teal);
+  --color-sky: var(--sky);
+  --color-paper: var(--paper);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), "Noto Sans TC", sans-serif;
+}
+
+/* Soft studio grain + wash without flattening the page */
+.studio-canvas {
+  background:
+    radial-gradient(ellipse 80% 55% at 12% -10%, rgba(198, 242, 75, 0.45), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 92% 8%, rgba(255, 77, 46, 0.28), transparent 50%),
+    radial-gradient(ellipse 60% 45% at 70% 95%, rgba(20, 184, 166, 0.22), transparent 55%),
+    linear-gradient(180deg, #fff8ef 0%, #fff3e4 48%, #ffe9d6 100%);
+}
+
+.studio-grid {
+  background-image:
+    linear-gradient(rgba(18, 20, 28, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(18, 20, 28, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.font-display {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+}
+
+.text-balance {
+  text-wrap: balance;
 }

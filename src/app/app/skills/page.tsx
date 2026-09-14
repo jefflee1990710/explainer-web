@@ -8,7 +8,7 @@ export default async function SkillsPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold">風格</h1>
+      <h1 className="font-display text-3xl font-bold">風格</h1>
       <p className="mt-2 text-sm text-muted">
         依用途挑選解說風格。可用於 Reels、行銷、簡報與更多場景，之後會持續新增。
       </p>
