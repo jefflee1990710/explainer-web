@@ -1,7 +1,68 @@
+import type { ObjectId } from "mongodb";
 import { refundCredits } from "@/lib/billing/credits";
 import { charactersCollection } from "@/lib/collections";
 import { persistMedia } from "@/lib/higgsfield/persist";
 import type { GenerationJob, GenerationStatus } from "@/types/generation-job";
+
+// Mark a version failed and refund its credit exactly once. The atomic claim on
+// `creditsCharged: true` is the single refund guard; if the refund itself
+// throws we restore the flag so a later delivery can retry it.
+export async function failCharacterVersion(
+  characterId: ObjectId,
+  versionId: ObjectId,
+  message: string,
+): Promise<void> {
+  const characters = await charactersCollection();
+  const character = await characters.findOne({ _id: characterId, "versions.id": versionId });
+  if (!character) return;
+
+  const now = new Date();
+  const claimed = await characters.updateOne(
+    {
+      _id: characterId,
+      versions: {
+        $elemMatch: { id: versionId, creditsCharged: true },
+      },
+    },
+    {
+      $set: {
+        "versions.$.status": "failed",
+        "versions.$.error": message,
+        "versions.$.creditsCharged": false,
+        updatedAt: now,
+      },
+    },
+  );
+  if (claimed.modifiedCount === 1) {
+    try {
+      await refundCredits(character.clerkUserId, 1);
+    } catch (error) {
+      // Restore the claim so a later delivery can retry the refund.
+      await characters.updateOne(
+        { _id: characterId, "versions.id": versionId },
+        {
+          $set: {
+            "versions.$.creditsCharged": true,
+            updatedAt: new Date(),
+          },
+        },
+      );
+      throw error;
+    }
+    return;
+  }
+  // Credit already refunded (or never charged): only record the failure.
+  await characters.updateOne(
+    { _id: characterId, "versions.id": versionId },
+    {
+      $set: {
+        "versions.$.status": "failed",
+        "versions.$.error": message,
+        updatedAt: now,
+      },
+    },
+  );
+}
 
 // Mirror a character job's status onto the embedded version before the job
 // document is finalized by applyJobStatus.
@@ -24,49 +85,8 @@ export async function syncCharacterJob(
 
   const now = new Date();
   const filter = { _id: job.characterId, "versions.id": job.versionId };
-  const failVersion = async (message: string) => {
-    const claimed = await characters.updateOne(
-      {
-        _id: job.characterId,
-        versions: {
-          $elemMatch: { id: job.versionId, creditsCharged: true },
-        },
-      },
-      {
-        $set: {
-          "versions.$.status": "failed",
-          "versions.$.error": message,
-          "versions.$.creditsCharged": false,
-          updatedAt: now,
-        },
-      },
-    );
-    if (claimed.modifiedCount === 1) {
-      try {
-        await refundCredits(character.clerkUserId, 1);
-      } catch (error) {
-        // Restore the claim so a later delivery can retry the refund.
-        await characters.updateOne(
-          { _id: job.characterId, "versions.id": job.versionId },
-          {
-            $set: {
-              "versions.$.creditsCharged": true,
-              updatedAt: new Date(),
-            },
-          },
-        );
-        throw error;
-      }
-      return;
-    }
-    await characters.updateOne(filter, {
-      $set: {
-        "versions.$.status": "failed",
-        "versions.$.error": message,
-        updatedAt: now,
-      },
-    });
-  };
+  const failVersion = (message: string) =>
+    failCharacterVersion(job.characterId!, job.versionId!, message);
 
   if (status === "completed" && outputUrl) {
     let blueprintUrl: string;

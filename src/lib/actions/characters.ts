@@ -9,6 +9,7 @@ import {
   refundCredits,
 } from "@/lib/billing/credits";
 import { submitCharacterVersion } from "@/lib/characters/generate";
+import { failCharacterVersion } from "@/lib/characters/sync";
 import { canSetDefault } from "@/lib/characters/versions";
 import { charactersCollection, generationJobsCollection } from "@/lib/collections";
 import {
@@ -22,6 +23,8 @@ import type { Character, CharacterVersion } from "@/types/character";
 
 const NAME_MAX = 40;
 const PROMPT_MAX = 1200;
+// gpt-image sheets finish in 1–2 minutes; anything older is treated as lost.
+const STALE_AFTER_MS = 15 * 60 * 1000;
 
 export type CharacterResult =
   | { ok: true; character: PublicCharacter }
@@ -134,6 +137,7 @@ export async function createCharacterAction(
       status: "queued",
       creditsCharged: true,
       createdAt: now,
+      submittedAt: now,
     };
     const characters = await charactersCollection();
     let character: Character;
@@ -196,6 +200,7 @@ export async function editCharacterVersionAction(
       status: "queued",
       creditsCharged: true,
       createdAt: now,
+      submittedAt: now,
     };
     const characters = await charactersCollection();
     try {
@@ -248,6 +253,8 @@ export async function retryCharacterVersionAction(
         $set: {
           "versions.$.status": "queued",
           "versions.$.error": undefined,
+          // Restart the stale-timeout clock for this attempt.
+          "versions.$.submittedAt": new Date(),
           updatedAt: new Date(),
         },
       },
@@ -391,8 +398,31 @@ export async function refreshCharacterAction(
           status: status.status,
           outputUrl: mediaUrlFromResponse(status),
         });
-      } catch {
-        // Transient status failure; the next poll retries.
+      } catch (error) {
+        // Record the failure on the job but leave its status so the next poll retries.
+        await jobs.updateOne(
+          { _id: job._id },
+          {
+            $set: {
+              error: error instanceof Error ? error.message : "status fetch failed",
+              updatedAt: new Date(),
+            },
+          },
+        );
+      }
+    }
+
+    // Time out versions still in flight long past the expected duration.
+    // Re-read: applyJobStatus above may have just finished some of them.
+    const characters = await charactersCollection();
+    const fresh = (await characters.findOne({ _id: character._id })) as Character | null;
+    if (fresh) {
+      const cutoff = Date.now() - STALE_AFTER_MS;
+      for (const version of fresh.versions) {
+        if (version.status !== "queued" && version.status !== "in_progress") continue;
+        const startedAt = version.submittedAt ?? version.createdAt;
+        if (startedAt.getTime() > cutoff) continue;
+        await failCharacterVersion(fresh._id, version.id, "藍圖產生逾時，credit 已退回");
       }
     }
     return reload(character._id);

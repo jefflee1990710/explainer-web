@@ -23,6 +23,8 @@ export type CharacterVersion = {
   error?: string;
   creditsCharged: boolean;
   createdAt: Date;
+  // When the current generation attempt was sent to the provider.
+  submittedAt?: Date;
 };
 
 // Reusable character owned by one user.
