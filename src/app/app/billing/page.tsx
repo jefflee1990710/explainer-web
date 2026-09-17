@@ -4,7 +4,6 @@ import { PLANS } from "@/lib/billing/plans";
 import { EnterpriseCta } from "@/components/pricing/enterprise-cta";
 import { PortalButton } from "./billing-actions";
 import { BillingPlanCard } from "./billing-plan-card";
-import { CreditPacks } from "./credit-packs";
 import { CreditProgress } from "./credit-progress";
 
 export default async function BillingPage({
@@ -32,6 +31,7 @@ export default async function BillingPage({
         monthlyCredits={sub?.monthlyCredits || 0}
         bonusCredits={user.bonusCredits || 0}
         periodEnd={sub?.currentPeriodEnd}
+        subscribed={active}
       />
 
       {active && sub ? (
@@ -48,8 +48,6 @@ export default async function BillingPage({
           </div>
         </section>
       ) : null}
-
-      <CreditPacks subscribed={active} />
 
       <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {Object.values(PLANS).map((plan) => (
