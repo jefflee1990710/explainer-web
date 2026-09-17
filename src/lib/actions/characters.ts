@@ -59,18 +59,51 @@ async function submitOrFail(character: Character, version: CharacterVersion) {
     await submitCharacterVersion(character, version);
   } catch (error) {
     const characters = await charactersCollection();
-    await characters.updateOne(
-      { _id: character._id, "versions.id": version.id },
+    const message = error instanceof Error ? error.message : "藍圖送出失敗";
+    const claimed = await characters.updateOne(
+      {
+        _id: character._id,
+        versions: {
+          $elemMatch: { id: version.id, creditsCharged: true },
+        },
+      },
       {
         $set: {
           "versions.$.status": "failed",
-          "versions.$.error": error instanceof Error ? error.message : "藍圖送出失敗",
+          "versions.$.error": message,
           "versions.$.creditsCharged": false,
           updatedAt: new Date(),
         },
       },
     );
-    await refundCredits(character.clerkUserId, 1);
+    if (claimed.modifiedCount === 1) {
+      try {
+        await refundCredits(character.clerkUserId, 1);
+      } catch (refundError) {
+        // Restore the claim so a later retry can refund again.
+        await characters.updateOne(
+          { _id: character._id, "versions.id": version.id },
+          {
+            $set: {
+              "versions.$.creditsCharged": true,
+              updatedAt: new Date(),
+            },
+          },
+        );
+        throw refundError;
+      }
+      return;
+    }
+    await characters.updateOne(
+      { _id: character._id, "versions.id": version.id },
+      {
+        $set: {
+          "versions.$.status": "failed",
+          "versions.$.error": message,
+          updatedAt: new Date(),
+        },
+      },
+    );
   }
 }
 
@@ -103,16 +136,23 @@ export async function createCharacterAction(
       createdAt: now,
     };
     const characters = await charactersCollection();
-    const insert = await characters.insertOne({
-      userId: user._id,
-      clerkUserId: user.clerkUserId,
-      name,
-      styleId,
-      versions: [version],
-      createdAt: now,
-      updatedAt: now,
-    });
-    const character = (await characters.findOne({ _id: insert.insertedId })) as Character;
+    let character: Character;
+    try {
+      const insert = await characters.insertOne({
+        userId: user._id,
+        clerkUserId: user.clerkUserId,
+        name,
+        styleId,
+        versions: [version],
+        createdAt: now,
+        updatedAt: now,
+      });
+      character = (await characters.findOne({ _id: insert.insertedId })) as Character;
+    } catch (error) {
+      // Refund if the DB write fails after charging.
+      await refundCredits(user.clerkUserId, 1);
+      throw error;
+    }
 
     await submitOrFail(character, version);
     revalidateCharacter(character._id.toHexString());
@@ -158,10 +198,16 @@ export async function editCharacterVersionAction(
       createdAt: now,
     };
     const characters = await charactersCollection();
-    await characters.updateOne(
-      { _id: character._id },
-      { $push: { versions: version }, $set: { updatedAt: now } },
-    );
+    try {
+      await characters.updateOne(
+        { _id: character._id },
+        { $push: { versions: version }, $set: { updatedAt: now } },
+      );
+    } catch (error) {
+      // Refund if the DB write fails after charging.
+      await refundCredits(user.clerkUserId, 1);
+      throw error;
+    }
 
     await submitOrFail(character, version);
     revalidateCharacter(characterId);
@@ -187,23 +233,47 @@ export async function retryCharacterVersionAction(
     if (!version) return { ok: false, error: "版本不存在" };
     if (version.status !== "failed") return { ok: false, error: "只有失敗的版本可以重試" };
 
-    await assertCanSpendCredits(user, 1);
-    await consumeCredits(user.clerkUserId, 1);
-
     const characters = await charactersCollection();
-    const jobs = await generationJobsCollection();
-    await jobs.deleteMany({ characterId: character._id, versionId: version.id });
-    await characters.updateOne(
-      { _id: character._id, "versions.id": version.id },
+    const claimed = await characters.updateOne(
+      {
+        _id: character._id,
+        versions: { $elemMatch: { id: version.id, status: "failed" } },
+      },
       {
         $set: {
           "versions.$.status": "queued",
           "versions.$.error": undefined,
-          "versions.$.creditsCharged": true,
           updatedAt: new Date(),
         },
       },
     );
+    if (claimed.modifiedCount !== 1) {
+      return { ok: false, error: "只有失敗的版本可以重試" };
+    }
+
+    try {
+      await assertCanSpendCredits(user, 1);
+      await consumeCredits(user.clerkUserId, 1);
+    } catch (error) {
+      await characters.updateOne(
+        { _id: character._id, "versions.id": version.id },
+        { $set: { "versions.$.status": "failed", updatedAt: new Date() } },
+      );
+      throw error;
+    }
+
+    const jobs = await generationJobsCollection();
+    try {
+      await characters.updateOne(
+        { _id: character._id, "versions.id": version.id },
+        { $set: { "versions.$.creditsCharged": true, updatedAt: new Date() } },
+      );
+      await jobs.deleteMany({ characterId: character._id, versionId: version.id });
+    } catch (error) {
+      // Refund if the DB write fails after charging.
+      await refundCredits(user.clerkUserId, 1);
+      throw error;
+    }
 
     await submitOrFail(character, { ...version, status: "queued", creditsCharged: true });
     revalidateCharacter(characterId);
