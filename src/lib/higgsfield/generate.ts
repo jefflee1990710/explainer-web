@@ -37,6 +37,10 @@ function imageAspectRatio(model: string, ratio: AspectRatio): string {
 
 // Text-to-image (GPT Image 1.5 etc.). Used for the character still and
 // every storyboard frame; optional references keep the character locked.
+//
+// Higgsfield's `openai/gpt-image-*` endpoint is text-only and silently drops
+// unknown fields, so references must go to `<model>/edit`, whose schema is
+// `prompt` + `image_urls: string[]` + `aspect_ratio` + `quality` (no `resolution`).
 export async function submitImage(input: {
   model: string;
   prompt: string;
@@ -46,13 +50,28 @@ export async function submitImage(input: {
   referenceImageUrls?: Array<string | undefined>;
 }) {
   const client = assertHiggsfieldConfigured();
+  const refs = (input.referenceImageUrls || []).filter(
+    (url): url is string => Boolean(url),
+  );
+  const common = {
+    prompt: input.prompt,
+    aspect_ratio: imageAspectRatio(input.model, input.aspectRatio),
+    quality: input.quality || "low",
+  };
+
+  if (refs.length && /gpt-image/i.test(input.model)) {
+    return client.subscribe(`${input.model}/edit`, {
+      input: { ...common, image_urls: refs },
+      withPolling: false,
+      webhook: webhookOptions(),
+    });
+  }
+
   return client.subscribe(input.model, {
     input: {
-      prompt: input.prompt,
-      aspect_ratio: imageAspectRatio(input.model, input.aspectRatio),
-      quality: input.quality || "low",
+      ...common,
       resolution: input.resolution || "1k",
-      ...imageRefs(input.referenceImageUrls || []),
+      ...imageRefs(refs),
     },
     withPolling: false,
     webhook: webhookOptions(),
