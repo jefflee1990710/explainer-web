@@ -6,7 +6,7 @@ import { LandingSteps } from "./landing-steps";
 
 export default function HomePage() {
   return (
-    <div className="relative min-h-full studio-canvas">
+    <div className="studio-canvas relative flex flex-1 flex-col">
       <StudioBackdrop />
       <div className="relative z-10">
         <SiteHeader />

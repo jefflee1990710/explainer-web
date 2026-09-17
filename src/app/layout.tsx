@@ -34,7 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${notoSansTc.variable} ${syne.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body
-        className={`${notoSansTc.className} flex min-h-full flex-col bg-background text-foreground`}
+        className={`${notoSansTc.className} flex min-h-dvh flex-col bg-background text-foreground`}
       >
         <ClerkProvider>{children}</ClerkProvider>
       </body>

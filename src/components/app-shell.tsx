@@ -14,9 +14,9 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative min-h-full studio-canvas">
+    <div className="studio-canvas relative flex flex-1 flex-col">
       <StudioBackdrop />
-      <div className="relative z-10">
+      <div className="relative z-10 flex flex-1 flex-col">
         <motion.header
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
