@@ -3,8 +3,8 @@ import { charactersCollection } from "@/lib/collections";
 import { persistMedia } from "@/lib/higgsfield/persist";
 import type { GenerationJob, GenerationStatus } from "@/types/generation-job";
 
-// Mirror a character job's status onto the embedded version. Called from
-// applyJobStatus after the job document itself has been updated.
+// Mirror a character job's status onto the embedded version before the job
+// document is finalized by applyJobStatus.
 export async function syncCharacterJob(
   job: GenerationJob,
   status: GenerationStatus,
@@ -22,12 +22,47 @@ export async function syncCharacterJob(
 
   const now = new Date();
   const filter = { _id: job.characterId, "versions.id": job.versionId };
+  const failVersion = async (message: string) => {
+    const claimed = await characters.updateOne(
+      {
+        _id: job.characterId,
+        versions: {
+          $elemMatch: { id: job.versionId, creditsCharged: true },
+        },
+      },
+      {
+        $set: {
+          "versions.$.status": "failed",
+          "versions.$.error": message,
+          "versions.$.creditsCharged": false,
+          updatedAt: now,
+        },
+      },
+    );
+    if (claimed.modifiedCount === 1) {
+      await refundCredits(character.clerkUserId, 1);
+      return;
+    }
+    await characters.updateOne(filter, {
+      $set: {
+        "versions.$.status": "failed",
+        "versions.$.error": message,
+        updatedAt: now,
+      },
+    });
+  };
 
   if (status === "completed" && outputUrl) {
-    const blueprintUrl = await persistMedia(
-      outputUrl,
-      `explainer/characters/${job.characterId.toHexString()}/${job.versionId.toHexString()}`,
-    );
+    let blueprintUrl: string;
+    try {
+      blueprintUrl = await persistMedia(
+        outputUrl,
+        `explainer/characters/${job.characterId.toHexString()}/${job.versionId.toHexString()}`,
+      );
+    } catch {
+      await failVersion("藍圖保存失敗");
+      return;
+    }
     await characters.updateOne(filter, {
       $set: {
         "versions.$.status": "completed",
@@ -42,18 +77,14 @@ export async function syncCharacterJob(
   }
 
   if (status === "failed" || status === "nsfw") {
-    const alreadyFailed = version.status === "failed";
-    await characters.updateOne(filter, {
-      $set: {
-        "versions.$.status": "failed",
-        "versions.$.error": status === "nsfw" ? "內容被判定不適當" : "藍圖產生失敗",
-        "versions.$.creditsCharged": false,
-        updatedAt: now,
-      },
-    });
-    if (!alreadyFailed && version.creditsCharged) {
-      await refundCredits(character.clerkUserId, 1);
-    }
+    await failVersion(
+      status === "nsfw" ? "內容被判定不適當" : "藍圖產生失敗",
+    );
+    return;
+  }
+
+  if (status === "completed") {
+    await failVersion("藍圖產生失敗");
     return;
   }
 

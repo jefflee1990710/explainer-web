@@ -266,6 +266,7 @@ export async function applyJobStatus(input: {
 
   // Character sheets persist and refund in their own sync; no video to touch.
   if (job.kind === "character") {
+    await syncCharacterJob(job, status, input.outputUrl);
     await jobs.updateOne(
       { _id: job._id },
       {
@@ -277,7 +278,6 @@ export async function applyJobStatus(input: {
         },
       },
     );
-    await syncCharacterJob(job, status, input.outputUrl);
     return;
   }
 
