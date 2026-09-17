@@ -40,7 +40,21 @@ export async function syncCharacterJob(
       },
     );
     if (claimed.modifiedCount === 1) {
-      await refundCredits(character.clerkUserId, 1);
+      try {
+        await refundCredits(character.clerkUserId, 1);
+      } catch (error) {
+        // Restore the claim so a later delivery can retry the refund.
+        await characters.updateOne(
+          { _id: job.characterId, "versions.id": job.versionId },
+          {
+            $set: {
+              "versions.$.creditsCharged": true,
+              updatedAt: new Date(),
+            },
+          },
+        );
+        throw error;
+      }
       return;
     }
     await characters.updateOne(filter, {
