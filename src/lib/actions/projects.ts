@@ -115,10 +115,15 @@ export async function createVideoAction(
       formData.get("durationPreset") || "",
     ) as DurationPreset;
     const language = String(formData.get("language") || "en");
-    const characterIds = formData
-      .getAll("characterIds")
-      .map(String)
-      .filter((id) => ObjectId.isValid(id));
+    // Dedupe so a double-posted id doesn't fail the existence check.
+    const characterIds = Array.from(
+      new Set(
+        formData
+          .getAll("characterIds")
+          .map(String)
+          .filter((id) => ObjectId.isValid(id)),
+      ),
+    );
     if (characterIds.length > CAST_MAX) {
       return { ok: false, error: `最多選 ${CAST_MAX} 個角色` };
     }
