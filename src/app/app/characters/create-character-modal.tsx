@@ -81,10 +81,15 @@ export function CreateCharacterModal({
     setError("");
     const data = new FormData();
     data.set("file", file);
-    const result = await uploadCharacterImageAction(data);
-    setUploading(false);
-    if (result.ok) setReferenceImageUrl(result.url);
-    else setError(result.error);
+    try {
+      const result = await uploadCharacterImageAction(data);
+      if (result.ok) setReferenceImageUrl(result.url);
+      else setError(result.error);
+    } catch {
+      setError("上傳失敗，請再試一次");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -96,16 +101,21 @@ export function CreateCharacterModal({
     data.set("styleId", styleId);
     data.set("prompt", prompt);
     if (referenceImageUrl) data.set("referenceImageUrl", referenceImageUrl);
-    const result = await createCharacterAction(data);
-    if (!result.ok) {
-      setSubmitting(false);
-      setError(result.error);
-      if (result.error.includes("訂閱") || result.error.includes("credits 不足")) {
-        router.push("/app/billing");
+    try {
+      const result = await createCharacterAction(data);
+      if (!result.ok) {
+        setSubmitting(false);
+        setError(result.error);
+        if (result.error.includes("訂閱") || result.error.includes("credits 不足")) {
+          router.push("/app/billing");
+        }
+        return;
       }
-      return;
+      router.push(`/app/characters/${result.character.id}`);
+    } catch {
+      setError("建立角色失敗，請再試一次");
+      setSubmitting(false);
     }
-    router.push(`/app/characters/${result.character.id}`);
   }
 
   const canSubmit =
@@ -226,7 +236,11 @@ export function CreateCharacterModal({
             </div>
           </div>
 
-          {error ? <p className="text-sm text-accent">{error}</p> : null}
+          {error ? (
+            <p role="alert" className="text-sm text-accent">
+              {error}
+            </p>
+          ) : null}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-muted">
               {subscribed ? `扣 1 credit（剩餘 ${credits}）` : "需要有效訂閱才能產生藍圖"}
