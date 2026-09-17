@@ -7,9 +7,9 @@ import { motion } from "framer-motion";
 import { BrandMark } from "@/components/brand-mark";
 import { StudioBackdrop } from "@/components/studio-backdrop";
 
-// The folder workspace is a split pane, so it gets a wider canvas than the
-// single-column dashboard, skills, and billing pages.
-const WIDE_ROUTE = /^\/app\/projects\/[^/]+$/;
+// Folder and character workspaces are split panes; they get a wider canvas
+// than the single-column dashboard, library, and billing pages.
+const WIDE_ROUTE = /^\/app\/(projects|characters)\/[^/]+$/;
 
 export function AppShell({
   credits,
@@ -37,8 +37,8 @@ export function AppShell({
               <Link href="/app" className="hover:text-foreground">
                 專案
               </Link>
-              <Link href="/app/skills" className="hover:text-foreground">
-                風格
+              <Link href="/app/characters" className="hover:text-foreground">
+                角色
               </Link>
               <Link href="/app/billing" className="hover:text-foreground">
                 訂閱
