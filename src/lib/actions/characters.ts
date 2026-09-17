@@ -153,8 +153,14 @@ export async function createCharacterAction(
       });
       character = (await characters.findOne({ _id: insert.insertedId })) as Character;
     } catch (error) {
-      // Refund if the DB write fails after charging.
-      await refundCredits(user.clerkUserId, 1);
+      // Refund if the DB write fails after charging. There is no version to
+      // restore a flag on, so the credit is lost only if the refund fails too;
+      // surface that error instead of the write error.
+      try {
+        await refundCredits(user.clerkUserId, 1);
+      } catch (refundError) {
+        throw refundError;
+      }
       throw error;
     }
 
@@ -209,8 +215,14 @@ export async function editCharacterVersionAction(
         { $push: { versions: version }, $set: { updatedAt: now } },
       );
     } catch (error) {
-      // Refund if the DB write fails after charging.
-      await refundCredits(user.clerkUserId, 1);
+      // Refund if the DB write fails after charging. There is no version to
+      // restore a flag on, so the credit is lost only if the refund fails too;
+      // surface that error instead of the write error.
+      try {
+        await refundCredits(user.clerkUserId, 1);
+      } catch (refundError) {
+        throw refundError;
+      }
       throw error;
     }
 
@@ -428,18 +440,5 @@ export async function refreshCharacterAction(
     return reload(character._id);
   } catch (error) {
     return fail(error, "更新進度失敗");
-  }
-}
-
-export async function getCharacterAction(
-  characterId: string,
-): Promise<CharacterResult> {
-  try {
-    const user = await requireAppUser();
-    const character = await ownedCharacter(characterId, user.clerkUserId);
-    if (!character) return { ok: false, error: "角色不存在" };
-    return { ok: true, character: toPublicCharacter(character) };
-  } catch (error) {
-    return fail(error, "讀取角色失敗");
   }
 }
