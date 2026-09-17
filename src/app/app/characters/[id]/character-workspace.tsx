@@ -71,6 +71,7 @@ export function CharacterWorkspace({
   }
 
   async function onEdit(instruction: string) {
+    if (!selected) return;
     const next = await run("edit", () =>
       editCharacterVersionAction(character.id, selected.id, instruction),
     );
@@ -85,6 +86,10 @@ export function CharacterWorkspace({
       return;
     }
     void run("rename", () => renameCharacterAction(character.id, trimmed));
+  }
+
+  if (!selected) {
+    return <p className="text-sm text-muted">這個角色還沒有任何版本。</p>;
   }
 
   return (
@@ -115,6 +120,7 @@ export function CharacterWorkspace({
       <div className="grid gap-6 md:grid-cols-[17.5rem_minmax(0,1fr)] md:items-start">
         <VersionList character={character} selectedId={selected.id} onSelect={select} />
         <VersionDetail
+          key={selected.id}
           character={character}
           version={selected}
           credits={credits}
