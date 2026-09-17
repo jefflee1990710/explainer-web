@@ -1,10 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { BrandMark } from "@/components/brand-mark";
 import { StudioBackdrop } from "@/components/studio-backdrop";
+
+// The folder workspace is a split pane, so it gets a wider canvas than the
+// single-column dashboard, skills, and billing pages.
+const WIDE_ROUTE = /^\/app\/projects\/[^/]+$/;
 
 export function AppShell({
   credits,
@@ -13,6 +18,9 @@ export function AppShell({
   credits: number;
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const wide = WIDE_ROUTE.test(pathname);
+
   return (
     <div className="studio-canvas relative flex flex-1 flex-col">
       <StudioBackdrop />
@@ -48,7 +56,7 @@ export function AppShell({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.05 }}
-          className="mx-auto w-full max-w-5xl px-6 py-10"
+          className={`mx-auto w-full px-6 py-10 ${wide ? "max-w-7xl" : "max-w-5xl"}`}
         >
           {children}
         </motion.main>
