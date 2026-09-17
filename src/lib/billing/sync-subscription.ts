@@ -3,8 +3,9 @@ import {
   getOrCreateStripePrices,
   getStripe,
 } from "@/lib/billing/stripe";
-import { planByPriceId } from "@/lib/billing/plans";
-import { resetMonthlyCredits } from "@/lib/billing/credits";
+import { isPlanId, planByPriceId, PLANS } from "@/lib/billing/plans";
+import { grantPackCredits, resetMonthlyCredits } from "@/lib/billing/credits";
+import { CREDIT_PACKS, isPackId } from "@/lib/billing/packs";
 import {
   subscriptionsCollection,
   usersCollection,
@@ -19,6 +20,15 @@ function periodDates(subscription: Stripe.Subscription) {
     currentPeriodStart: new Date(start * 1000),
     currentPeriodEnd: new Date(end * 1000),
   };
+}
+
+function resolvePlan(
+  subscription: Stripe.Subscription,
+  prices: Awaited<ReturnType<typeof getOrCreateStripePrices>>,
+) {
+  const priceId = subscription.items.data[0]?.price.id || "";
+  const metaPlan = subscription.metadata.planId;
+  return isPlanId(metaPlan) ? PLANS[metaPlan] : planByPriceId(priceId, prices);
 }
 
 export async function syncStripeSubscription(
@@ -51,7 +61,7 @@ export async function syncStripeSubscription(
 
   const prices = await getOrCreateStripePrices();
   const priceId = subscription.items.data[0]?.price.id || "";
-  const plan = planByPriceId(priceId, prices);
+  const plan = resolvePlan(subscription, prices);
   const { currentPeriodStart, currentPeriodEnd } = periodDates(subscription);
   const status = subscription.status as SubscriptionStatus;
 
@@ -103,7 +113,15 @@ export async function grantCreditsFromInvoice(invoice: Stripe.Invoice) {
   await syncStripeSubscription(subscription);
 
   const prices = await getOrCreateStripePrices();
-  const priceId = subscription.items.data[0]?.price.id || "";
-  const plan = planByPriceId(priceId, prices);
+  const plan = resolvePlan(subscription, prices);
   await resetMonthlyCredits(user.clerkUserId, plan.monthlyCredits);
+}
+
+export async function grantPackFromCheckout(session: Stripe.Checkout.Session) {
+  if (session.mode !== "payment") return;
+  if (session.payment_status !== "paid") return;
+  const packId = session.metadata?.packId;
+  const clerkUserId = session.metadata?.clerkUserId;
+  if (!isPackId(packId) || !clerkUserId) return;
+  await grantPackCredits(clerkUserId, CREDIT_PACKS[packId].credits, session.id);
 }

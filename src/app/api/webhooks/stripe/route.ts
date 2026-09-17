@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { getStripe } from "@/lib/billing/stripe";
 import {
   grantCreditsFromInvoice,
+  grantPackFromCheckout,
   syncStripeSubscription,
 } from "@/lib/billing/sync-subscription";
 
@@ -31,6 +32,9 @@ export async function POST(request: Request) {
       break;
     case "invoice.paid":
       await grantCreditsFromInvoice(event.data.object as Stripe.Invoice);
+      break;
+    case "checkout.session.completed":
+      await grantPackFromCheckout(event.data.object as Stripe.Checkout.Session);
       break;
     default:
       break;

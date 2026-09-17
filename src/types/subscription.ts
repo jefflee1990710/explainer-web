@@ -1,6 +1,6 @@
 import type { ObjectId } from "mongodb";
 
-export type PlanId = "starter" | "pro";
+export type PlanId = "starter" | "pro" | "studio" | "scale";
 
 export type SubscriptionStatus =
   | "inactive"

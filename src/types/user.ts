@@ -8,6 +8,11 @@ export type AppUser = {
   name: string;
   stripeCustomerId?: string;
   credits: number;
+  // Unspent one-time packs that survive monthly refill.
+  bonusCredits?: number;
+  // Current period bar denominator (monthly allotment + packs).
+  creditLimit?: number;
+  processedCheckoutIds?: string[];
   createdAt: Date;
   updatedAt: Date;
 };
