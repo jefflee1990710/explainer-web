@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb";
+import { syncCharacterJob } from "@/lib/characters/sync";
 import {
   generationJobsCollection,
   skillsCollection,
@@ -263,13 +264,33 @@ export async function applyJobStatus(input: {
   const nowFailed = status === "failed" || status === "nsfw";
   const wasFailed = job.status === "failed" || job.status === "nsfw";
 
+  // Character sheets persist and refund in their own sync; no video to touch.
+  if (job.kind === "character") {
+    await jobs.updateOne(
+      { _id: job._id },
+      {
+        $set: {
+          status,
+          outputUrl: input.outputUrl,
+          error: nowFailed ? status : undefined,
+          updatedAt: new Date(),
+        },
+      },
+    );
+    await syncCharacterJob(job, status, input.outputUrl);
+    return;
+  }
+
+  if (!job.projectId) return;
+  const projectId = job.projectId;
+
   let blobUrl = job.blobUrl;
   if (input.outputUrl && (status === "completed" || status === "nsfw")) {
     const folder =
       job.kind === "still" ? "stills" : job.kind === "frame" ? "frames" : "clips";
     blobUrl = await persistMedia(
       input.outputUrl,
-      `explainer/${job.projectId.toHexString()}/${folder}/${job.requestId}`,
+      `explainer/${projectId.toHexString()}/${folder}/${job.requestId}`,
     );
   }
 
@@ -289,11 +310,11 @@ export async function applyJobStatus(input: {
   // Each frame is 1 credit; hand it back the moment that frame fails.
   if (job.kind === "frame" && nowFailed && !wasFailed) {
     const projects = await videosCollection();
-    const project = await projects.findOne({ _id: job.projectId });
+    const project = await projects.findOne({ _id: projectId });
     if (project) await refundCredits(project.clerkUserId, 1);
   }
 
-  await syncProjectFromJobs(job.projectId);
+  await syncProjectFromJobs(projectId);
 }
 
 async function syncProjectFromJobs(projectId: ObjectId) {
