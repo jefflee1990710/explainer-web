@@ -429,12 +429,21 @@ export async function refreshCharacterAction(
     const characters = await charactersCollection();
     const fresh = (await characters.findOne({ _id: character._id })) as Character | null;
     if (fresh) {
-      const cutoff = Date.now() - STALE_AFTER_MS;
+      const cutoff = new Date(Date.now() - STALE_AFTER_MS);
       for (const version of fresh.versions) {
+        // In-memory fast path; the DB condition below is the real guard.
         if (version.status !== "queued" && version.status !== "in_progress") continue;
         const startedAt = version.submittedAt ?? version.createdAt;
-        if (startedAt.getTime() > cutoff) continue;
-        await failCharacterVersion(fresh._id, version.id, "藍圖產生逾時，credit 已退回");
+        if (startedAt.getTime() > cutoff.getTime()) continue;
+        // Claim only if the version is still in flight and still stale, so a
+        // concurrent retry (new submittedAt + new charge) is never refunded.
+        await failCharacterVersion(fresh._id, version.id, "藍圖產生逾時，credit 已退回", {
+          onlyIf: {
+            status: { $in: ["queued", "in_progress"] },
+            submittedAt: { $lte: cutoff },
+          },
+          forceStatus: false,
+        });
       }
     }
     return reload(character._id);

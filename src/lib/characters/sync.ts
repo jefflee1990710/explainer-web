@@ -7,10 +7,14 @@ import type { GenerationJob, GenerationStatus } from "@/types/generation-job";
 // Mark a version failed and refund its credit exactly once. The atomic claim on
 // `creditsCharged: true` is the single refund guard; if the refund itself
 // throws we restore the flag so a later delivery can retry it.
+// `onlyIf` adds extra conditions to the claim (e.g. "still in flight and
+// stale") so a concurrent retry cannot be refunded by mistake; `forceStatus:
+// false` skips the fallback status write when nothing was claimed.
 export async function failCharacterVersion(
   characterId: ObjectId,
   versionId: ObjectId,
   message: string,
+  options: { onlyIf?: Record<string, unknown>; forceStatus?: boolean } = {},
 ): Promise<void> {
   const characters = await charactersCollection();
   const character = await characters.findOne({ _id: characterId, "versions.id": versionId });
@@ -21,7 +25,7 @@ export async function failCharacterVersion(
     {
       _id: characterId,
       versions: {
-        $elemMatch: { id: versionId, creditsCharged: true },
+        $elemMatch: { ...options.onlyIf, id: versionId, creditsCharged: true },
       },
     },
     {
@@ -51,7 +55,10 @@ export async function failCharacterVersion(
     }
     return;
   }
-  // Credit already refunded (or never charged): only record the failure.
+  // Nothing claimed: credit already refunded, never charged, or `onlyIf` did
+  // not match (e.g. a retry moved the version on). Only record the failure
+  // when the caller wants the status forced.
+  if (options.forceStatus === false) return;
   await characters.updateOne(
     { _id: characterId, "versions.id": versionId },
     {
@@ -80,8 +87,19 @@ export async function syncCharacterJob(
   if (!character) return;
   const version = character.versions.find((item) => item.id.equals(job.versionId!));
   if (!version) return;
-  // Terminal versions are final: ignore late or out-of-order deliveries.
-  if (version.status === "completed" || version.status === "failed") return;
+  // Completed sheets are final. A failed version only needs attention when an
+  // earlier refund attempt threw and left the charge in place.
+  if (version.status === "completed") return;
+  if (version.status === "failed") {
+    if (version.creditsCharged) {
+      await failCharacterVersion(
+        job.characterId,
+        job.versionId,
+        version.error || "藍圖產生失敗",
+      );
+    }
+    return;
+  }
 
   const now = new Date();
   const filter = { _id: job.characterId, "versions.id": job.versionId };
