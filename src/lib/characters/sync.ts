@@ -19,6 +19,8 @@ export async function syncCharacterJob(
   if (!character) return;
   const version = character.versions.find((item) => item.id.equals(job.versionId!));
   if (!version) return;
+  // Terminal versions are final: ignore late or out-of-order deliveries.
+  if (version.status === "completed" || version.status === "failed") return;
 
   const now = new Date();
   const filter = { _id: job.characterId, "versions.id": job.versionId };
