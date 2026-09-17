@@ -3,7 +3,8 @@ import { verifyWebhook } from "@clerk/nextjs/webhooks";
 import { usersCollection } from "@/lib/collections";
 
 export async function POST(request: NextRequest) {
-  if (!process.env.CLERK_WEBHOOK_SECRET) {
+  // verifyWebhook() reads CLERK_WEBHOOK_SIGNING_SECRET, so guard on the same name.
+  if (!process.env.CLERK_WEBHOOK_SIGNING_SECRET) {
     return NextResponse.json({ error: "Missing Clerk webhook secret" }, { status: 500 });
   }
 
@@ -34,7 +35,9 @@ export async function POST(request: NextRequest) {
       );
     }
     return NextResponse.json({ received: true });
-  } catch {
+  } catch (error) {
+    // Surface the reason in platform logs; silent 400s are hard to diagnose.
+    console.error("Clerk webhook rejected", error);
     return NextResponse.json({ error: "Invalid Clerk webhook" }, { status: 400 });
   }
 }
