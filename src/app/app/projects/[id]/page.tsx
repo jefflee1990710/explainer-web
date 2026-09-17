@@ -4,11 +4,13 @@ import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/lib/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/lib/billing/credits";
 import {
+  charactersCollection,
   projectsCollection,
   skillsCollection,
   videosCollection,
 } from "@/lib/collections";
-import { toPublicFolder, toPublicSkill } from "@/lib/serialize";
+import { toPublicCharacter, toPublicFolder, toPublicSkill } from "@/lib/serialize";
+import type { Character } from "@/types/character";
 import type { Folder } from "@/types/folder";
 import type { Project } from "@/types/project";
 import { ProjectWorkspace } from "./project-workspace";
@@ -44,6 +46,14 @@ export default async function ProjectPage({
     toPublicSkill,
   );
 
+  const charactersCol = await charactersCollection();
+  const characters = (
+    (await charactersCol
+      .find({ clerkUserId: user.clerkUserId })
+      .sort({ updatedAt: -1 })
+      .toArray()) as Character[]
+  ).map(toPublicCharacter);
+
   const sub = await getActiveSubscription(user.clerkUserId);
   const subscribed = isSubscriptionActive(sub);
 
@@ -52,6 +62,7 @@ export default async function ProjectPage({
       <ProjectWorkspace
         folder={publicFolder}
         skills={skills}
+        characters={characters}
         credits={user.credits}
         subscribed={subscribed}
       />

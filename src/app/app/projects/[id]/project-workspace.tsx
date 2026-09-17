@@ -3,18 +3,20 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { NewProjectForm } from "../new/new-project-form";
-import type { PublicFolder, PublicSkill } from "@/lib/serialize";
+import type { PublicCharacter, PublicFolder, PublicSkill } from "@/lib/serialize";
 import { VideoList } from "./video-list";
 
 // Split folder workspace: video list on the left, create/stepper form on the right.
 export function ProjectWorkspace({
   folder,
   skills,
+  characters,
   credits,
   subscribed,
 }: {
   folder: PublicFolder;
   skills: PublicSkill[];
+  characters: PublicCharacter[];
   credits: number;
   subscribed: boolean;
 }) {
@@ -61,6 +63,7 @@ export function ProjectWorkspace({
           key={selectedId ?? "new"}
           projectId={folder.id}
           skills={skills}
+          characters={characters}
           initialVideo={selectedVideo}
           credits={credits}
           subscribed={subscribed}

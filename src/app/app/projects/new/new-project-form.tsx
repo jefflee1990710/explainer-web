@@ -16,17 +16,17 @@ import {
   retryProjectAction,
   reviseProjectAction,
 } from "@/lib/actions/projects";
-import { uploadCharacterImageAction } from "@/lib/actions/upload";
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { failedStepFor } from "@/lib/project-status";
-import type { PublicSkill, PublicVideo } from "@/lib/serialize";
+import type { PublicCharacter, PublicSkill, PublicVideo } from "@/lib/serialize";
 import type {
   AspectRatio,
   DurationPreset,
   FramePosition,
   VoLanguage,
 } from "@/types/project";
+import { CharacterPicker } from "../[id]/character-picker";
 import { SkillPicker } from "../[id]/skill-picker";
 import { AspectRatioPicker } from "./aspect-ratio-picker";
 import { DirectorProgress } from "./director-progress";
@@ -42,12 +42,14 @@ const ease = [0.22, 1, 0.36, 1] as const;
 export function NewProjectForm({
   projectId,
   skills,
+  characters,
   initialVideo = null,
   credits,
   subscribed,
 }: {
   projectId: string;
   skills: PublicSkill[];
+  characters: PublicCharacter[];
   initialVideo?: PublicVideo | null;
   credits: number;
   subscribed: boolean;
@@ -67,10 +69,9 @@ export function NewProjectForm({
   const [durationPreset, setDurationPreset] = useState<DurationPreset>(
     initialVideo?.durationPreset || "punchy",
   );
-  const [characterImageUrl, setCharacterImageUrl] = useState(
-    initialVideo?.characterImageUrl || "",
+  const [characterIds, setCharacterIds] = useState<string[]>(
+    initialVideo?.cast.map((member) => member.characterId) || [],
   );
-  const [uploading, setUploading] = useState(false);
 
   // Flow state — locked when opening an existing video via ?video=.
   const [project, setProject] = useState<PublicVideo | null>(initialVideo);
@@ -84,17 +85,6 @@ export function NewProjectForm({
   }, []);
   const onPollError = useCallback((message: string) => setError(message), []);
   useProjectPoll(project, onPollUpdate, onPollError);
-
-  async function onUpload(file: File) {
-    setUploading(true);
-    setError("");
-    const data = new FormData();
-    data.set("file", file);
-    const result = await uploadCharacterImageAction(data);
-    setUploading(false);
-    if (result.ok) setCharacterImageUrl(result.url);
-    else setError(result.error);
-  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -111,7 +101,7 @@ export function NewProjectForm({
     formData.set("language", language);
     formData.set("aspectRatio", aspectRatio);
     formData.set("durationPreset", durationPreset);
-    if (characterImageUrl) formData.set("characterImageUrl", characterImageUrl);
+    for (const id of characterIds) formData.append("characterIds", id);
 
     const result = await createVideoAction(formData);
     setSubmitting(false);
@@ -201,8 +191,7 @@ export function NewProjectForm({
     source.trim().length > 0 &&
     aspectRatio !== "" &&
     skillSlug !== "" &&
-    !submitting &&
-    !uploading;
+    !submitting;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -277,49 +266,13 @@ export function NewProjectForm({
                 />
               </Section>
 
-              <Section step="06" title="角色參考圖" hint="選填。上傳後所有 clips 會鎖定同一個角色。">
-                <div className="flex flex-wrap items-center gap-4">
-                  <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/15 bg-paper px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent">
-                    {uploading ? <Spinner /> : <UploadIcon />}
-                    {uploading ? "上傳中…" : characterImageUrl ? "更換圖片" : "選擇圖片"}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="sr-only"
-                      disabled={submitting || uploading}
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (file) void onUpload(file);
-                      }}
-                    />
-                  </label>
-                  <AnimatePresence>
-                    {characterImageUrl ? (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="flex items-center gap-3"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={characterImageUrl}
-                          alt="角色參考圖預覽"
-                          width={56}
-                          height={56}
-                          className="h-14 w-14 rounded-xl border border-accent-ink/10 object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setCharacterImageUrl("")}
-                          className="min-h-[44px] cursor-pointer text-sm text-muted underline-offset-4 hover:underline"
-                        >
-                          移除
-                        </button>
-                      </motion.div>
-                    ) : null}
-                  </AnimatePresence>
-                </div>
+              <Section step="06" title="角色" hint="選填。最多 4 個；分鏡與分鏡圖會鎖定這些角色的藍圖。">
+                <CharacterPicker
+                  characters={characters}
+                  value={characterIds}
+                  onChange={setCharacterIds}
+                  disabled={submitting}
+                />
               </Section>
 
               {error ? (
@@ -360,6 +313,12 @@ export function NewProjectForm({
                 <span>{aspectRatio}</span>
                 <Dot />
                 <span>{DURATION_PRESETS[durationPreset].label}</span>
+                {project?.cast.length ? (
+                  <>
+                    <Dot />
+                    <span>{project.cast.map((member) => member.name).join("、")}</span>
+                  </>
+                ) : null}
               </div>
               <button
                 type="button"
@@ -480,18 +439,4 @@ function FailedCard({
 
 function Dot() {
   return <span aria-hidden className="h-1 w-1 rounded-full bg-accent-ink/30" />;
-}
-
-function UploadIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
 }
