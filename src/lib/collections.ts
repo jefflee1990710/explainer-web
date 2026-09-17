@@ -3,6 +3,7 @@ import { getDb } from "@/lib/mongo";
 import type { AppUser } from "@/types/user";
 import type { Subscription } from "@/types/subscription";
 import type { Skill } from "@/types/skill";
+import type { Folder } from "@/types/folder";
 import type { Project } from "@/types/project";
 import type { GenerationJob } from "@/types/generation-job";
 import type { BillingSettings } from "@/types/billing-settings";
@@ -25,10 +26,17 @@ export async function skillsCollection(): Promise<Collection<OptionalId<Skill>>>
 }
 
 export async function projectsCollection(): Promise<
+  Collection<OptionalId<Folder>>
+> {
+  const db = await getDb();
+  return db.collection<OptionalId<Folder>>("projects");
+}
+
+export async function videosCollection(): Promise<
   Collection<OptionalId<Project>>
 > {
   const db = await getDb();
-  return db.collection<OptionalId<Project>>("projects");
+  return db.collection<OptionalId<Project>>("videos");
 }
 
 export async function generationJobsCollection(): Promise<
