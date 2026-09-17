@@ -46,7 +46,7 @@ export function CreateCharacterButton({
   );
 }
 
-// Name + style + description + optional reference; success opens the workspace.
+// Name + style + description and/or reference; success opens the workspace.
 export function CreateCharacterModal({
   credits,
   subscribed,
@@ -119,7 +119,10 @@ export function CreateCharacterModal({
   }
 
   const canSubmit =
-    name.trim().length > 0 && prompt.trim().length > 0 && !submitting && !uploading;
+    name.trim().length > 0 &&
+    (prompt.trim().length > 0 || Boolean(referenceImageUrl)) &&
+    !submitting &&
+    !uploading;
 
   return (
     <div
@@ -137,7 +140,7 @@ export function CreateCharacterModal({
           新增角色
         </h2>
         <p className="mt-2 text-sm text-muted">
-          我們會產生一張角色藍圖（轉身圖、走路循環、表情格）。
+          我們會產生一張角色藍圖（轉身圖、走路循環、表情格）。角色描述與參考圖至少填一項。
         </p>
         <form onSubmit={onSubmit} className="mt-5 space-y-4">
           <label className="block">
@@ -185,9 +188,8 @@ export function CreateCharacterModal({
           </fieldset>
 
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold">角色描述</span>
+            <span className="mb-1.5 block text-sm font-semibold">角色描述（選填）</span>
             <textarea
-              required
               rows={4}
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}

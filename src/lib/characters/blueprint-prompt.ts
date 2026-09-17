@@ -13,18 +13,23 @@ export function buildBlueprintPrompt(input: {
   hasReference: boolean;
   editInstruction?: string;
 }) {
-  const lines = [
-    ...SHEET_LAYOUT,
-    STYLES[input.styleId].promptFragment,
-    `Character: ${input.description.trim()}`,
-  ];
+  const description = input.description.trim();
+  const lines = [...SHEET_LAYOUT, STYLES[input.styleId].promptFragment];
+  if (description) lines.push(`Character: ${description}`);
   if (input.editInstruction) {
     lines.push(
       "Use the reference sheet as the base. Apply only the change below; keep everything else identical, including layout, pose order, and expression order.",
       `Change: ${input.editInstruction.trim()}`,
     );
-  } else if (input.hasReference) {
+  } else if (input.hasReference && description) {
     lines.push("Preserve the appearance of the character in the reference image.");
+  } else if (input.hasReference) {
+    // Image-only create: infer identity from the photo, then redraw in style.
+    lines.push(
+      "Derive the character entirely from the attached reference image.",
+      "Redraw that same person or character as this model sheet in the specified style.",
+      "Keep face, hair, body, clothing, and distinguishing features recognizable. Do not invent a different character.",
+    );
   }
   return lines.join("\n");
 }

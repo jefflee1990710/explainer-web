@@ -26,6 +26,19 @@ test("blueprint prompt asks to preserve the reference when one is attached", () 
   assert.match(prompt, /Preserve the appearance of the character in the reference image/);
 });
 
+test("image-only create infers the character from the reference and style", () => {
+  const prompt = buildBlueprintPrompt({
+    styleId: "doodle",
+    description: "   ",
+    hasReference: true,
+  });
+  assert.doesNotMatch(prompt, /^Character:/m);
+  assert.match(prompt, /Derive the character entirely from the attached reference image/);
+  assert.match(prompt, /specified style/);
+  assert.match(prompt, /bold irregular black marker outlines/i);
+  assert.doesNotMatch(prompt, /Preserve the appearance/);
+});
+
 test("edit mode keeps the sheet identical except for the change", () => {
   const prompt = buildBlueprintPrompt({
     styleId: "doodle",

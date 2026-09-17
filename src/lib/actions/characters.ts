@@ -124,7 +124,9 @@ export async function createCharacterAction(
 
     if (!name) return { ok: false, error: "請輸入角色名稱" };
     if (!isStyleId(styleId)) return { ok: false, error: "請選擇風格" };
-    if (!prompt) return { ok: false, error: "請描述這個角色" };
+    if (!prompt && !referenceImageUrl) {
+      return { ok: false, error: "請描述這個角色，或上傳一張參考圖" };
+    }
 
     await assertCanSpendCredits(user, 1);
     await consumeCredits(user.clerkUserId, 1);

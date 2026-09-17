@@ -74,10 +74,17 @@ export function VersionDetail({
             <dd className="mt-1">{version.editInstruction}</dd>
           </div>
         ) : null}
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">角色描述</dt>
-          <dd className="mt-1 whitespace-pre-wrap text-muted">{version.prompt}</dd>
-        </div>
+        {version.prompt ? (
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">角色描述</dt>
+            <dd className="mt-1 whitespace-pre-wrap text-muted">{version.prompt}</dd>
+          </div>
+        ) : version.referenceImageUrl ? (
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">角色來源</dt>
+            <dd className="mt-1 text-muted">依參考圖與風格產生</dd>
+          </div>
+        ) : null}
       </dl>
 
       {error ? <p role="alert" className="mt-4 text-sm font-medium text-accent">{error}</p> : null}
