@@ -26,6 +26,7 @@ export type PublicVideo = {
   language: NonNullable<Project["language"]>;
   characterImageUrl?: string;
   characterStillUrl?: string;
+  cast: Array<{ characterId: string; name: string; blueprintUrl: string }>;
   status: Project["status"];
   phaseA?: Project["phaseA"];
   frames: NonNullable<Project["frames"]>;
@@ -69,6 +70,11 @@ export function toPublicVideo(video: Project): PublicVideo {
     language: video.language || "en",
     characterImageUrl: video.characterImageUrl,
     characterStillUrl: video.characterStillUrl,
+    cast: (video.cast || []).map((member) => ({
+      characterId: member.characterId.toHexString(),
+      name: member.name,
+      blueprintUrl: member.blueprintUrl,
+    })),
     status: video.status,
     phaseA: video.phaseA,
     frames: video.frames || [],

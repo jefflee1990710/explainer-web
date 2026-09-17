@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/lib/auth";
+import { resolveDefaultVersion } from "@/lib/characters/versions";
 import {
+  charactersCollection,
   generationJobsCollection,
   projectsCollection,
   skillsCollection,
@@ -15,7 +17,10 @@ import { isVoLanguage } from "@/lib/director/languages";
 import { sanitizeFolderName } from "@/lib/folder";
 import { failedStepFor } from "@/lib/project-status";
 import { toPublicVideo, type PublicVideo } from "@/lib/serialize";
+import type { CastMember, Character } from "@/types/character";
 import type { AspectRatio, DurationPreset } from "@/types/project";
+
+const CAST_MAX = 4;
 
 type VideoResult =
   | { ok: true; project: PublicVideo }
@@ -110,8 +115,13 @@ export async function createVideoAction(
       formData.get("durationPreset") || "",
     ) as DurationPreset;
     const language = String(formData.get("language") || "en");
-    const characterImageUrl =
-      String(formData.get("characterImageUrl") || "").trim() || undefined;
+    const characterIds = formData
+      .getAll("characterIds")
+      .map(String)
+      .filter((id) => ObjectId.isValid(id));
+    if (characterIds.length > CAST_MAX) {
+      return { ok: false, error: `最多選 ${CAST_MAX} 個角色` };
+    }
 
     if (!ObjectId.isValid(projectId)) {
       return { ok: false, error: "專案不存在" };
@@ -138,6 +148,35 @@ export async function createVideoAction(
     const skill = await skills.findOne({ slug: skillSlug, isActive: true });
     if (!skill) return { ok: false, error: "找不到風格" };
 
+    let cast: CastMember[] = [];
+    if (characterIds.length > 0) {
+      const characters = await charactersCollection();
+      const docs = (await characters
+        .find({
+          _id: { $in: characterIds.map((id) => new ObjectId(id)) },
+          clerkUserId: user.clerkUserId,
+        })
+        .toArray()) as Character[];
+      if (docs.length !== characterIds.length) {
+        return { ok: false, error: "有角色不存在" };
+      }
+      cast = [];
+      for (const id of characterIds) {
+        const character = docs.find((doc) => doc._id.toHexString() === id)!;
+        const version = resolveDefaultVersion(character);
+        if (!version?.blueprintUrl) {
+          return { ok: false, error: `角色 ${character.name} 尚未有可用藍圖` };
+        }
+        cast.push({
+          characterId: character._id,
+          versionId: version.id,
+          name: character.name,
+          blueprintUrl: version.blueprintUrl,
+          prompt: version.prompt,
+        });
+      }
+    }
+
     const now = new Date();
     const videos = await videosCollection();
     const insert = await videos.insertOne({
@@ -150,7 +189,7 @@ export async function createVideoAction(
       aspectRatio,
       durationPreset,
       language,
-      characterImageUrl,
+      cast,
       status: "phase_a",
       clips: [],
       creditCost: 0,

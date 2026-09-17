@@ -1,9 +1,11 @@
 import { generateText, Output } from "ai";
+import { castBlockForPhaseA } from "@/lib/characters/cast-prompt";
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { skillPromptForPhaseA } from "@/lib/director/load-skill-prompt";
 import { directorModel } from "@/lib/director/model";
 import { phaseASchema } from "@/lib/director/schemas";
+import type { CastMember } from "@/types/character";
 import type {
   AspectRatio,
   DurationPreset,
@@ -19,12 +21,15 @@ export async function runPhaseA(input: {
   durationPreset: DurationPreset;
   language?: VoLanguage;
   characterImageUrl?: string;
+  cast?: CastMember[];
 }): Promise<PhaseAProposal> {
   const preset = DURATION_PRESETS[input.durationPreset];
   const language = LANGUAGE_PRESETS[input.language || "en"];
-  const characterNote = input.characterImageUrl
-    ? `A character reference image is provided at ${input.characterImageUrl}. Extract and lock that character.`
-    : "No character reference image. Use the default locked everyman from the skill.";
+  const characterNote =
+    castBlockForPhaseA(input.cast) ||
+    (input.characterImageUrl
+      ? `A character reference image is provided at ${input.characterImageUrl}. Extract and lock that character.`
+      : "No character reference image. Use the default locked everyman from the skill.");
 
   const { output } = await generateText({
     model: directorModel(),

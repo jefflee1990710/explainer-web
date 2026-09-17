@@ -1,4 +1,5 @@
 import type { ObjectId } from "mongodb";
+import type { CastMember } from "@/types/character";
 
 export type AspectRatio = "16:9" | "9:16" | "1:1";
 export type DurationPreset = "micro" | "short" | "punchy" | "full";
@@ -101,6 +102,8 @@ export type Project = {
   // Optional for legacy documents; defaults to "en" when absent.
   language?: VoLanguage;
   characterImageUrl?: string;
+  // Characters chosen at creation; snapshot of each default blueprint.
+  cast?: CastMember[];
   status: ProjectStatus;
   phaseA?: PhaseAProposal;
   phaseB?: PhaseBPackage;

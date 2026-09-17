@@ -1,8 +1,10 @@
 import { generateText, Output } from "ai";
+import { castLineForPhaseB } from "@/lib/characters/cast-prompt";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { skillPromptForPhaseB } from "@/lib/director/load-skill-prompt";
 import { directorModel } from "@/lib/director/model";
 import { phaseBSchema } from "@/lib/director/schemas";
+import type { CastMember } from "@/types/character";
 import type { PhaseAProposal, PhaseBPackage, VoLanguage } from "@/types/project";
 import type { Skill } from "@/types/skill";
 
@@ -11,6 +13,7 @@ export async function runPhaseB(input: {
   phaseA: PhaseAProposal;
   language?: VoLanguage;
   characterImageUrl?: string;
+  cast?: CastMember[];
 }): Promise<PhaseBPackage> {
   const language = LANGUAGE_PRESETS[input.language || "en"];
   const { output } = await generateText({
@@ -26,7 +29,7 @@ Spoken dialogue in every prompt must be quoted verbatim from the approved englis
 ${JSON.stringify(input.phaseA, null, 2)}
 
 Voiceover language: ${language.label} (${language.sublabel})
-Character reference image: ${input.characterImageUrl || "none"}
+${input.cast && input.cast.length > 0 ? castLineForPhaseB(input.cast) : `Character reference image: ${input.characterImageUrl || "none"}`}
 
 Write the Phase B production package now.`,
   });

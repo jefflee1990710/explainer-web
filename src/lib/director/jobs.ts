@@ -41,6 +41,7 @@ export async function runPhaseAJob(projectId: ObjectId, revisionNote?: string) {
       durationPreset: project.durationPreset,
       language: project.language,
       characterImageUrl: project.characterImageUrl,
+      cast: project.cast,
     });
 
     await projects.updateOne(
@@ -113,6 +114,7 @@ export async function runPhaseBAndGenerateJob(projectId: ObjectId) {
       phaseA: project.phaseA,
       language: project.language,
       characterImageUrl: project.characterImageUrl,
+      cast: project.cast,
     });
 
     await projects.updateOne(

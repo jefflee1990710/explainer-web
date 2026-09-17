@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb";
+import { castReferenceUrls } from "@/lib/characters/cast-prompt";
 import { syncCharacterJob } from "@/lib/characters/sync";
 import {
   generationJobsCollection,
@@ -48,6 +49,23 @@ export async function startFrameGeneration(project: Project) {
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
 
+  await projects.updateOne(
+    { _id: project._id },
+    {
+      $set: {
+        status: "frames_generating",
+        error: undefined,
+        updatedAt: new Date(),
+      },
+    },
+  );
+
+  // With a cast, the blueprints are the lock: skip the still and go straight to frames.
+  if (project.cast && project.cast.length > 0) {
+    await submitFrameJobs(project);
+    return;
+  }
+
   const existingStill = await jobs.findOne({
     projectId: project._id,
     kind: "still",
@@ -75,17 +93,6 @@ export async function startFrameGeneration(project: Project) {
     });
   }
 
-  await projects.updateOne(
-    { _id: project._id },
-    {
-      $set: {
-        status: "frames_generating",
-        error: undefined,
-        updatedAt: new Date(),
-      },
-    },
-  );
-
   // A still from an earlier run may already be done; don't wait on it.
   if (project.characterStillUrl) await submitFrameJobs(project);
 }
@@ -104,7 +111,10 @@ async function submitOneFrame(
     aspectRatio: project.aspectRatio,
     quality: skill.higgsfieldDefaults.imageQuality || "low",
     resolution: skill.higgsfieldDefaults.imageResolution || "1k",
-    referenceImageUrls: [project.characterStillUrl, project.characterImageUrl],
+    referenceImageUrls:
+      project.cast && project.cast.length > 0
+        ? castReferenceUrls(project.cast)
+        : [project.characterStillUrl, project.characterImageUrl],
   });
   await jobs.insertOne({
     projectId: project._id,
@@ -219,7 +229,8 @@ async function submitClipJobs(project: Project) {
   });
   if (existing > 0) return;
 
-  const fallbackRef = project.characterStillUrl || project.characterImageUrl;
+  const fallbackRef =
+    project.cast?.[0]?.blueprintUrl || project.characterStillUrl || project.characterImageUrl;
 
   // Videos are independent; submit them together.
   await Promise.all(

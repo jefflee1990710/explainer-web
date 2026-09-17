@@ -1,3 +1,4 @@
+import { castParagraphForFrames } from "@/lib/characters/cast-prompt";
 import type { ClipFrame, FramePosition, Project } from "@/types/project";
 
 // Deterministic image prompts derived from the approved Phase A storyboard.
@@ -30,6 +31,7 @@ export function buildFramePrompt(
     `Visual world: ${phaseA.visualWorld}`,
     `Palette: ${phaseA.palette}`,
     `Locked character (must look identical in every frame): ${phaseA.characterLock}`,
+    ...castParagraphForFrames(project.cast),
     `Scene: ${row.explainerScene}`,
     `Motion and camera across the clip: ${row.motionCamera}`,
     moment,
