@@ -1,8 +1,8 @@
 import { ObjectId } from "mongodb";
 import {
   generationJobsCollection,
-  projectsCollection,
   skillsCollection,
+  videosCollection,
 } from "@/lib/collections";
 import { refundCredits } from "@/lib/billing/credits";
 import { buildFramePrompt } from "@/lib/higgsfield/frame-prompts";
@@ -45,7 +45,7 @@ export async function startFrameGeneration(project: Project) {
   if (!project.phaseA) throw new Error("尚未有分鏡");
   const skill = await loadSkill(project);
   const jobs = await generationJobsCollection();
-  const projects = await projectsCollection();
+  const projects = await videosCollection();
 
   const existingStill = await jobs.findOne({
     projectId: project._id,
@@ -122,7 +122,7 @@ async function submitOneFrame(
 // All start/end frames go out at once.
 async function submitFrameJobs(project: Project) {
   const skill = await loadSkill(project);
-  const projects = await projectsCollection();
+  const projects = await videosCollection();
 
   // Atomic claim: webhook and poller may both observe the still completing.
   const claimed = await projects.findOneAndUpdate(
@@ -162,7 +162,7 @@ export async function regenerateFrame(
 ) {
   const skill = await loadSkill(project);
   const jobs = await generationJobsCollection();
-  const projects = await projectsCollection();
+  const projects = await videosCollection();
 
   await jobs.deleteMany({
     projectId: project._id,
@@ -186,7 +186,7 @@ export async function startProjectGeneration(project: Project) {
   if (!project.phaseA || !project.phaseB) {
     throw new Error("專案尚未準備好產片");
   }
-  const projects = await projectsCollection();
+  const projects = await videosCollection();
   await projects.updateOne(
     { _id: project._id },
     { $set: { status: "generating", error: undefined, updatedAt: new Date() } },
@@ -288,7 +288,7 @@ export async function applyJobStatus(input: {
 
   // Each frame is 1 credit; hand it back the moment that frame fails.
   if (job.kind === "frame" && nowFailed && !wasFailed) {
-    const projects = await projectsCollection();
+    const projects = await videosCollection();
     const project = await projects.findOne({ _id: job.projectId });
     if (project) await refundCredits(project.clerkUserId, 1);
   }
@@ -297,7 +297,7 @@ export async function applyJobStatus(input: {
 }
 
 async function syncProjectFromJobs(projectId: ObjectId) {
-  const projects = await projectsCollection();
+  const projects = await videosCollection();
   const jobs = await generationJobsCollection();
   const project = await projects.findOne({ _id: projectId });
   if (!project) return;
@@ -419,7 +419,7 @@ async function syncProjectFromJobs(projectId: ObjectId) {
 
 // Still failed before any frame went out: refund the whole frames charge.
 async function failFramesStage(project: Project, error: string) {
-  const projects = await projectsCollection();
+  const projects = await videosCollection();
   if (project.framesCharged && project.framesCreditCost) {
     await refundCredits(project.clerkUserId, project.framesCreditCost);
   }
@@ -437,7 +437,7 @@ async function failFramesStage(project: Project, error: string) {
 }
 
 async function failVideoStage(project: Project, error: string) {
-  const projects = await projectsCollection();
+  const projects = await videosCollection();
   if (project.creditsCharged && project.creditCost > 0) {
     await refundCredits(project.clerkUserId, project.creditCost);
   }

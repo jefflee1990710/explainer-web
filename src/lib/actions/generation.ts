@@ -5,18 +5,18 @@ import { after } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/lib/auth";
 import { assertCanSpendCredits, consumeCredits } from "@/lib/billing/credits";
-import { projectsCollection } from "@/lib/collections";
+import { videosCollection } from "@/lib/collections";
 import {
   runFrameGenerationJob,
   runPhaseBAndGenerateJob,
 } from "@/lib/director/jobs";
 import { initialFrames } from "@/lib/higgsfield/frame-prompts";
 import { refreshProjectJobs, regenerateFrame } from "@/lib/higgsfield/pipeline";
-import { toPublicProject, type PublicProject } from "@/lib/serialize";
+import { toPublicVideo, type PublicVideo } from "@/lib/serialize";
 import type { FramePosition } from "@/types/project";
 
 type ProjectResult =
-  | { ok: true; project: PublicProject }
+  | { ok: true; project: PublicVideo }
   | { ok: false; error: string };
 
 function revalidateProject(projectId: string) {
@@ -36,7 +36,7 @@ export async function approveStoryboardAction(
       return { ok: false, error: "專案不存在" };
     }
 
-    const projects = await projectsCollection();
+    const projects = await videosCollection();
     const project = await projects.findOne({
       _id: new ObjectId(projectId),
       clerkUserId: user.clerkUserId,
@@ -70,7 +70,7 @@ export async function approveStoryboardAction(
 
     const updated = await projects.findOne({ _id: project._id });
     revalidateProject(projectId);
-    return { ok: true, project: toPublicProject(updated!) };
+    return { ok: true, project: toPublicVideo(updated!) };
   } catch (error) {
     return {
       ok: false,
@@ -94,7 +94,7 @@ export async function regenerateFrameAction(
       return { ok: false, error: "無效的分鏡圖位置" };
     }
 
-    const projects = await projectsCollection();
+    const projects = await videosCollection();
     const project = await projects.findOne({
       _id: new ObjectId(projectId),
       clerkUserId: user.clerkUserId,
@@ -124,7 +124,7 @@ export async function regenerateFrameAction(
 
     const updated = await projects.findOne({ _id: project._id });
     revalidateProject(projectId);
-    return { ok: true, project: toPublicProject(updated!) };
+    return { ok: true, project: toPublicVideo(updated!) };
   } catch (error) {
     return {
       ok: false,
@@ -144,7 +144,7 @@ export async function approveAndGenerateAction(
       return { ok: false, error: "專案不存在" };
     }
 
-    const projects = await projectsCollection();
+    const projects = await videosCollection();
     const project = await projects.findOne({
       _id: new ObjectId(projectId),
       clerkUserId: user.clerkUserId,
@@ -181,7 +181,7 @@ export async function approveAndGenerateAction(
 
     const updated = await projects.findOne({ _id: project._id });
     revalidateProject(projectId);
-    return { ok: true, project: toPublicProject(updated!) };
+    return { ok: true, project: toPublicVideo(updated!) };
   } catch (error) {
     return {
       ok: false,
@@ -201,7 +201,7 @@ export async function refreshGenerationAction(
       return { ok: false, error: "專案不存在" };
     }
     const id = new ObjectId(projectId);
-    const projects = await projectsCollection();
+    const projects = await videosCollection();
     const project = await projects.findOne({
       _id: id,
       clerkUserId: user.clerkUserId,
@@ -216,7 +216,7 @@ export async function refreshGenerationAction(
     }
 
     const updated = await projects.findOne({ _id: id });
-    return { ok: true, project: toPublicProject(updated!) };
+    return { ok: true, project: toPublicVideo(updated!) };
   } catch (error) {
     return {
       ok: false,

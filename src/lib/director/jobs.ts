@@ -1,6 +1,6 @@
 import type { ObjectId } from "mongodb";
 import { refundCredits } from "@/lib/billing/credits";
-import { projectsCollection, skillsCollection } from "@/lib/collections";
+import { skillsCollection, videosCollection } from "@/lib/collections";
 import { runPhaseA } from "@/lib/director/run-phase-a";
 import { runPhaseB } from "@/lib/director/run-phase-b";
 import {
@@ -17,7 +17,7 @@ function errorMessage(error: unknown, fallback: string) {
 
 // Phase A: write the storyboard proposal for a freshly created or revised project.
 export async function runPhaseAJob(projectId: ObjectId, revisionNote?: string) {
-  const projects = await projectsCollection();
+  const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
   if (!project) return;
 
@@ -72,7 +72,7 @@ export async function runPhaseAJob(projectId: ObjectId, revisionNote?: string) {
 // Storyboard frames stage: submit the character still, then every start/end
 // frame in parallel. Frame credits were already consumed by the caller.
 export async function runFrameGenerationJob(projectId: ObjectId) {
-  const projects = await projectsCollection();
+  const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
   if (!project?.phaseA) return;
 
@@ -98,7 +98,7 @@ export async function runFrameGenerationJob(projectId: ObjectId) {
 
 // Phase B + submit video jobs. Credits were already consumed by the caller.
 export async function runPhaseBAndGenerateJob(projectId: ObjectId) {
-  const projects = await projectsCollection();
+  const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
   if (!project?.phaseA) return;
 

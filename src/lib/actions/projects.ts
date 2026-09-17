@@ -8,24 +8,101 @@ import {
   generationJobsCollection,
   projectsCollection,
   skillsCollection,
+  videosCollection,
 } from "@/lib/collections";
 import { runPhaseAJob } from "@/lib/director/jobs";
 import { isVoLanguage } from "@/lib/director/languages";
+import { sanitizeFolderName } from "@/lib/folder";
 import { failedStepFor } from "@/lib/project-status";
-import { toPublicProject, type PublicProject } from "@/lib/serialize";
+import { toPublicVideo, type PublicVideo } from "@/lib/serialize";
 import type { AspectRatio, DurationPreset } from "@/types/project";
 
-type ProjectResult =
-  | { ok: true; project: PublicProject }
+type VideoResult =
+  | { ok: true; project: PublicVideo }
   | { ok: false; error: string };
 
-// Create the project row and schedule Phase A after the response is sent.
-// The client polls `getProjectAction` until status leaves "phase_a".
-export async function createProjectAction(
-  formData: FormData,
-): Promise<ProjectResult> {
+type FolderResult =
+  | { ok: true; folder: { id: string; name: string } }
+  | { ok: false; error: string };
+
+function revalidateFolder(folderId: string) {
+  revalidatePath("/app");
+  revalidatePath(`/app/projects/${folderId}`);
+}
+
+function revalidateVideo(videoId: string, folderId?: string) {
+  revalidatePath("/app");
+  revalidatePath(`/app/projects/${folderId || videoId}`);
+}
+
+// Create a named folder (campaign). Videos are added separately.
+export async function createFolderAction(name: string): Promise<FolderResult> {
   try {
     const user = await requireAppUser();
+    const trimmed = sanitizeFolderName(name);
+    if (!trimmed) return { ok: false as const, error: "請輸入專案名稱" };
+    const folders = await projectsCollection();
+    const now = new Date();
+    const insert = await folders.insertOne({
+      userId: user._id,
+      clerkUserId: user.clerkUserId,
+      name: trimmed,
+      createdAt: now,
+      updatedAt: now,
+    });
+    revalidatePath("/app");
+    return {
+      ok: true as const,
+      folder: { id: insert.insertedId.toHexString(), name: trimmed },
+    };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "建立專案失敗",
+    };
+  }
+}
+
+// Rename a folder the signed-in user owns.
+export async function renameFolderAction(
+  folderId: string,
+  name: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const user = await requireAppUser();
+    const trimmed = sanitizeFolderName(name);
+    if (!trimmed) return { ok: false as const, error: "請輸入專案名稱" };
+    if (!ObjectId.isValid(folderId)) {
+      return { ok: false as const, error: "專案不存在" };
+    }
+
+    const folders = await projectsCollection();
+    const result = await folders.updateOne(
+      { _id: new ObjectId(folderId), clerkUserId: user.clerkUserId },
+      { $set: { name: trimmed, updatedAt: new Date() } },
+    );
+    if (result.matchedCount === 0) {
+      return { ok: false as const, error: "專案不存在" };
+    }
+
+    revalidateFolder(folderId);
+    return { ok: true as const };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "重新命名失敗",
+    };
+  }
+}
+
+// Create a video inside an existing folder and schedule Phase A.
+// The client polls `getVideoAction` until status leaves "phase_a".
+export async function createVideoAction(
+  formData: FormData,
+): Promise<VideoResult> {
+  try {
+    const user = await requireAppUser();
+    const projectId = String(formData.get("projectId") || "");
     const skillSlug = String(formData.get("skillSlug") || "");
     const source = String(formData.get("source") || "").trim();
     const aspectRatio = String(formData.get("aspectRatio") || "") as AspectRatio;
@@ -36,6 +113,9 @@ export async function createProjectAction(
     const characterImageUrl =
       String(formData.get("characterImageUrl") || "").trim() || undefined;
 
+    if (!ObjectId.isValid(projectId)) {
+      return { ok: false, error: "專案不存在" };
+    }
     if (!source) return { ok: false, error: "請提供題材或腳本" };
     if (!["16:9", "9:16", "1:1"].includes(aspectRatio)) {
       return { ok: false, error: "請選擇畫面比例" };
@@ -47,13 +127,21 @@ export async function createProjectAction(
       return { ok: false, error: "請選擇旁白語言" };
     }
 
+    const folders = await projectsCollection();
+    const folder = await folders.findOne({
+      _id: new ObjectId(projectId),
+      clerkUserId: user.clerkUserId,
+    });
+    if (!folder) return { ok: false, error: "專案不存在" };
+
     const skills = await skillsCollection();
     const skill = await skills.findOne({ slug: skillSlug, isActive: true });
     if (!skill) return { ok: false, error: "找不到風格" };
 
     const now = new Date();
-    const projects = await projectsCollection();
-    const insert = await projects.insertOne({
+    const videos = await videosCollection();
+    const insert = await videos.insertOne({
+      projectId: folder._id,
       userId: user._id,
       clerkUserId: user.clerkUserId,
       skillId: skill._id,
@@ -72,10 +160,14 @@ export async function createProjectAction(
     });
 
     after(() => runPhaseAJob(insert.insertedId));
+    await folders.updateOne(
+      { _id: folder._id },
+      { $set: { updatedAt: new Date() } },
+    );
 
-    const project = await projects.findOne({ _id: insert.insertedId });
-    revalidatePath("/app");
-    return { ok: true, project: toPublicProject(project!) };
+    const video = await videos.findOne({ _id: insert.insertedId });
+    revalidateFolder(projectId);
+    return { ok: true, project: toPublicVideo(video!) };
   } catch (error) {
     return {
       ok: false,
@@ -84,38 +176,47 @@ export async function createProjectAction(
   }
 }
 
+// Keep the old name until the create form is switched in Task 6.
+export const createProjectAction = createVideoAction;
+
 // Re-run Phase A with user notes; also non-blocking.
 export async function reviseProjectAction(
   formData: FormData,
-): Promise<ProjectResult> {
+): Promise<VideoResult> {
   try {
     const user = await requireAppUser();
-    const projectId = String(formData.get("projectId") || "");
+    const videoId = String(formData.get("projectId") || "");
     const note = String(formData.get("note") || "").trim();
-    if (!ObjectId.isValid(projectId)) {
+    if (!ObjectId.isValid(videoId)) {
       return { ok: false, error: "專案不存在" };
     }
 
-    const projects = await projectsCollection();
-    const project = await projects.findOne({
-      _id: new ObjectId(projectId),
+    const videos = await videosCollection();
+    const video = await videos.findOne({
+      _id: new ObjectId(videoId),
       clerkUserId: user.clerkUserId,
     });
-    if (!project) return { ok: false, error: "專案不存在" };
-    if (project.status !== "awaiting_approval" && project.status !== "failed") {
+    if (!video) return { ok: false, error: "專案不存在" };
+    if (video.status !== "awaiting_approval" && video.status !== "failed") {
       return { ok: false, error: "這個專案目前不能改稿" };
     }
 
-    await projects.updateOne(
-      { _id: project._id },
+    await videos.updateOne(
+      { _id: video._id },
       { $set: { status: "phase_a", error: undefined, updatedAt: new Date() } },
     );
 
-    after(() => runPhaseAJob(project._id, note || undefined));
+    after(() => runPhaseAJob(video._id, note || undefined));
 
-    const updated = await projects.findOne({ _id: project._id });
-    revalidatePath(`/app/projects/${projectId}`);
-    return { ok: true, project: toPublicProject(updated!) };
+    const folders = await projectsCollection();
+    await folders.updateOne(
+      { _id: video.projectId },
+      { $set: { updatedAt: new Date() } },
+    );
+
+    const updated = await videos.findOne({ _id: video._id });
+    revalidateVideo(videoId, video.projectId.toHexString());
+    return { ok: true, project: toPublicVideo(updated!) };
   } catch (error) {
     return {
       ok: false,
@@ -124,48 +225,48 @@ export async function reviseProjectAction(
   }
 }
 
-// Retry a failed project by moving it back to the gate it fell over on.
+// Retry a failed video by moving it back to the gate it fell over on.
 // Credits for the failed stage were already refunded by the pipeline, so
 // no charge happens here; the user re-approves and pays again explicitly.
 export async function retryProjectAction(
   projectId: string,
-): Promise<ProjectResult> {
+): Promise<VideoResult> {
   try {
     const user = await requireAppUser();
     if (!ObjectId.isValid(projectId)) {
       return { ok: false, error: "專案不存在" };
     }
 
-    const projects = await projectsCollection();
-    const project = await projects.findOne({
+    const videos = await videosCollection();
+    const video = await videos.findOne({
       _id: new ObjectId(projectId),
       clerkUserId: user.clerkUserId,
     });
-    if (!project) return { ok: false, error: "專案不存在" };
-    if (project.status !== "failed") {
+    if (!video) return { ok: false, error: "專案不存在" };
+    if (video.status !== "failed") {
       return { ok: false, error: "只有失敗的專案可以重試" };
     }
 
     const jobs = await generationJobsCollection();
-    const step = failedStepFor(project);
+    const step = failedStepFor(video);
 
     if (step === 1) {
       // Storyboard never landed: rerun Phase A in the background.
-      await projects.updateOne(
-        { _id: project._id },
+      await videos.updateOne(
+        { _id: video._id },
         { $set: { status: "phase_a", error: undefined, updatedAt: new Date() } },
       );
-      after(() => runPhaseAJob(project._id));
+      after(() => runPhaseAJob(video._id));
     } else if (step === 2) {
       // Frames stage failed: drop stale still/frame jobs and go back to the
       // storyboard approval gate so frames can be re-ordered.
       await jobs.deleteMany({
-        projectId: project._id,
+        projectId: video._id,
         kind: { $in: ["still", "frame"] },
         status: { $in: ["failed", "nsfw"] },
       });
-      await projects.updateOne(
-        { _id: project._id },
+      await videos.updateOne(
+        { _id: video._id },
         {
           $set: {
             status: "awaiting_approval",
@@ -180,9 +281,9 @@ export async function retryProjectAction(
       );
     } else {
       // Video stage failed: clear video jobs/clips and return to frames gate.
-      await jobs.deleteMany({ projectId: project._id, kind: "video" });
-      await projects.updateOne(
-        { _id: project._id },
+      await jobs.deleteMany({ projectId: video._id, kind: "video" });
+      await videos.updateOne(
+        { _id: video._id },
         {
           $set: {
             status: "frames_ready",
@@ -196,10 +297,15 @@ export async function retryProjectAction(
       );
     }
 
-    const updated = await projects.findOne({ _id: project._id });
-    revalidatePath("/app");
-    revalidatePath(`/app/projects/${projectId}`);
-    return { ok: true, project: toPublicProject(updated!) };
+    const folders = await projectsCollection();
+    await folders.updateOne(
+      { _id: video.projectId },
+      { $set: { updatedAt: new Date() } },
+    );
+
+    const updated = await videos.findOne({ _id: video._id });
+    revalidateVideo(projectId, video.projectId.toHexString());
+    return { ok: true, project: toPublicVideo(updated!) };
   } catch (error) {
     return {
       ok: false,
@@ -209,19 +315,19 @@ export async function retryProjectAction(
 }
 
 // Lightweight read used by the client while a background job is running.
-export async function getProjectAction(projectId: string): Promise<ProjectResult> {
+export async function getVideoAction(videoId: string): Promise<VideoResult> {
   try {
     const user = await requireAppUser();
-    if (!ObjectId.isValid(projectId)) {
+    if (!ObjectId.isValid(videoId)) {
       return { ok: false, error: "專案不存在" };
     }
-    const projects = await projectsCollection();
-    const project = await projects.findOne({
-      _id: new ObjectId(projectId),
+    const videos = await videosCollection();
+    const video = await videos.findOne({
+      _id: new ObjectId(videoId),
       clerkUserId: user.clerkUserId,
     });
-    if (!project) return { ok: false, error: "專案不存在" };
-    return { ok: true, project: toPublicProject(project) };
+    if (!video) return { ok: false, error: "專案不存在" };
+    return { ok: true, project: toPublicVideo(video) };
   } catch (error) {
     return {
       ok: false,
@@ -229,3 +335,6 @@ export async function getProjectAction(projectId: string): Promise<ProjectResult
     };
   }
 }
+
+// Keep the old name until the poll hook is switched.
+export const getProjectAction = getVideoAction;
