@@ -233,11 +233,15 @@ export async function retryCharacterVersionAction(
     if (!version) return { ok: false, error: "版本不存在" };
     if (version.status !== "failed") return { ok: false, error: "只有失敗的版本可以重試" };
 
+    // Capture for nested helpers (TS narrowing doesn't flow into nested functions).
+    const doc = character;
+    const ver = version;
+
     const characters = await charactersCollection();
     const claimed = await characters.updateOne(
       {
-        _id: character._id,
-        versions: { $elemMatch: { id: version.id, status: "failed" } },
+        _id: doc._id,
+        versions: { $elemMatch: { id: ver.id, status: "failed" } },
       },
       {
         $set: {
@@ -251,33 +255,50 @@ export async function retryCharacterVersionAction(
       return { ok: false, error: "只有失敗的版本可以重試" };
     }
 
+    async function revertClaim(extra?: { creditsCharged: false }) {
+      await characters.updateOne(
+        { _id: doc._id, "versions.id": ver.id },
+        {
+          $set: {
+            "versions.$.status": "failed",
+            updatedAt: new Date(),
+            ...(extra ? { "versions.$.creditsCharged": false } : {}),
+          },
+        },
+      );
+    }
+
+    const jobs = await generationJobsCollection();
+    // Remove stale jobs before charging so no old webhook can touch a freshly charged version.
+    try {
+      await jobs.deleteMany({ characterId: doc._id, versionId: ver.id });
+    } catch (error) {
+      await revertClaim();
+      throw error;
+    }
+
     try {
       await assertCanSpendCredits(user, 1);
       await consumeCredits(user.clerkUserId, 1);
     } catch (error) {
-      await characters.updateOne(
-        { _id: character._id, "versions.id": version.id },
-        { $set: { "versions.$.status": "failed", updatedAt: new Date() } },
-      );
+      await revertClaim();
       throw error;
     }
 
-    const jobs = await generationJobsCollection();
     try {
       await characters.updateOne(
-        { _id: character._id, "versions.id": version.id },
+        { _id: doc._id, "versions.id": ver.id },
         { $set: { "versions.$.creditsCharged": true, updatedAt: new Date() } },
       );
-      await jobs.deleteMany({ characterId: character._id, versionId: version.id });
     } catch (error) {
-      // Refund if the DB write fails after charging.
       await refundCredits(user.clerkUserId, 1);
+      await revertClaim({ creditsCharged: false });
       throw error;
     }
 
-    await submitOrFail(character, { ...version, status: "queued", creditsCharged: true });
+    await submitOrFail(doc, { ...ver, status: "queued", creditsCharged: true });
     revalidateCharacter(characterId);
-    return reload(character._id);
+    return reload(doc._id);
   } catch (error) {
     return fail(error, "重試失敗");
   }
