@@ -92,10 +92,13 @@ export async function syncCharacterJob(
   if (version.status === "completed") return;
   if (version.status === "failed") {
     if (version.creditsCharged) {
+      // Claim only while still failed so a concurrent retry's fresh charge is
+      // never refunded; the version is already failed, so no fallback write.
       await failCharacterVersion(
         job.characterId,
         job.versionId,
         version.error || "藍圖產生失敗",
+        { onlyIf: { status: "failed" }, forceStatus: false },
       );
     }
     return;
