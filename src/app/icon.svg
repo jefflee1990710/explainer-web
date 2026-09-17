@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Explainer">
+  <!-- Explainer app icon: marker-studio palette (ink / lime / coral / paper) -->
+  <defs>
+    <clipPath id="tile"><rect x="32" y="32" width="448" height="448" rx="112"/></clipPath>
+  </defs>
+
+  <!-- coral offset shadow (hand-drawn sticker feel) -->
+  <rect x="56" y="56" width="448" height="448" rx="112" fill="#ff4d2e"/>
+  <!-- ink tile -->
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="#12141c"/>
+
+  <g clip-path="url(#tile)">
+    <!-- faint whiteboard grid -->
+    <g stroke="#fffbf5" stroke-opacity="0.07" stroke-width="2">
+      <path d="M32 144H480M32 256H480M32 368H480"/>
+      <path d="M144 32V480M256 32V480M368 32V480"/>
+    </g>
+    <!-- lime wash in the corner -->
+    <circle cx="420" cy="92" r="150" fill="#c6f24b" fill-opacity="0.18"/>
+  </g>
+
+  <!-- speech bubble / whiteboard card (paper) -->
+  <path d="M120 128
+           h272 a40 40 0 0 1 40 40
+           v168 a40 40 0 0 1 -40 40
+           h-142 l-62 58 v-58 h-68 a40 40 0 0 1 -40 -40
+           v-168 a40 40 0 0 1 40 -40 z"
+        fill="#fffbf5"/>
+
+  <!-- marker strokes: hook line, explanation lines -->
+  <path d="M164 192 h120" stroke="#12141c" stroke-width="22" stroke-linecap="round"/>
+  <path d="M164 246 h184" stroke="#12141c" stroke-width="22" stroke-linecap="round" stroke-opacity="0.85"/>
+  <path d="M164 300 h96"  stroke="#12141c" stroke-width="22" stroke-linecap="round" stroke-opacity="0.7"/>
+
+  <!-- play dot: lime with coral core -->
+  <circle cx="376" cy="192" r="28" fill="#c6f24b"/>
+  <path d="M366 178 l22 14 -22 14 z" fill="#12141c"/>
+</svg>

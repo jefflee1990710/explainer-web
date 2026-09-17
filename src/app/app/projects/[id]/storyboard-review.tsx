@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { approveAndGenerateAction } from "@/lib/actions/generation";
+import { approveStoryboardAction } from "@/lib/actions/generation";
 import { reviseProjectAction } from "@/lib/actions/projects";
 import type { PublicProject } from "@/lib/serialize";
 
@@ -29,10 +29,11 @@ export function StoryboardReview({
     else router.refresh();
   }
 
+  // Step 1: approve storyboard → generate start/end frames (1 credit each).
   async function approve() {
     setPending("approve");
     setError("");
-    const result = await approveAndGenerateAction(project.id);
+    const result = await approveStoryboardAction(project.id);
     setPending("");
     if (!result.ok) {
       setError(result.error);
@@ -119,7 +120,9 @@ export function StoryboardReview({
           </form>
           <div className="rounded-2xl border border-line bg-card p-5">
             <p className="text-sm">
-              核准後會消耗 <strong>{project.creditCost} credits</strong>，並開始產片。
+              核准後會先為每段畫起始＋結尾兩張分鏡圖，消耗{" "}
+              <strong>{phaseA.clipCount * 2} credits</strong>
+              ；看過分鏡圖再決定產片（另扣 {phaseA.clipCount} credits）。
             </p>
             {!canGenerate ? (
               <p className="mt-2 text-sm text-muted">
@@ -132,7 +135,7 @@ export function StoryboardReview({
               disabled={pending !== ""}
               className="mt-4 rounded-full bg-accent px-4 py-2 text-sm text-white disabled:opacity-60"
             >
-              {pending === "approve" ? "核准並產片中…" : "核准並產片"}
+              {pending === "approve" ? "送出中…" : "核准並產生分鏡圖"}
             </button>
           </div>
         </div>

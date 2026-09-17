@@ -1,105 +1,463 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { createProjectAction } from "@/lib/actions/projects";
+import { useCallback, useState } from "react";
+import { AnimatePresence, MotionConfig, motion } from "framer-motion";
+import { FramesTimeline } from "@/components/project/frames-timeline";
+import { ProjectStepper } from "@/components/project/project-stepper";
+import { Spinner } from "@/components/spinner";
+import {
+  approveAndGenerateAction,
+  approveStoryboardAction,
+  regenerateFrameAction,
+} from "@/lib/actions/generation";
+import {
+  createProjectAction,
+  retryProjectAction,
+  reviseProjectAction,
+} from "@/lib/actions/projects";
 import { uploadCharacterImageAction } from "@/lib/actions/upload";
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
-import type { PublicSkill } from "@/lib/serialize";
+import { LANGUAGE_PRESETS } from "@/lib/director/languages";
+import { failedStepFor } from "@/lib/project-status";
+import type { PublicProject, PublicSkill } from "@/lib/serialize";
+import type {
+  AspectRatio,
+  DurationPreset,
+  FramePosition,
+  VoLanguage,
+} from "@/types/project";
+import { AspectRatioPicker } from "./aspect-ratio-picker";
+import { DirectorProgress } from "./director-progress";
+import { DurationPicker } from "./duration-picker";
+import { GenerationPanel } from "./generation-panel";
+import { LanguagePicker } from "./language-picker";
+import { StoryboardPreview } from "./storyboard-preview";
+import { useProjectPoll } from "./use-project-poll";
 
-export function NewProjectForm({ skill }: { skill: PublicSkill }) {
+const ease = [0.22, 1, 0.36, 1] as const;
+
+// Whole create → storyboard → approve → generate flow lives on this one page.
+export function NewProjectForm({
+  skill,
+  credits,
+  subscribed,
+}: {
+  skill: PublicSkill;
+  credits: number;
+  subscribed: boolean;
+}) {
   const router = useRouter();
-  const [error, setError] = useState("");
-  const [pending, setPending] = useState(false);
+
+  // Form fields
+  const [source, setSource] = useState("");
+  const [language, setLanguage] = useState<VoLanguage>("en");
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio | "">("");
+  const [durationPreset, setDurationPreset] = useState<DurationPreset>("punchy");
   const [characterImageUrl, setCharacterImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  // Flow state
+  const [project, setProject] = useState<PublicProject | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  // "" | "revise" | "approve" | `frame:${clip}:${position}`
+  const [pending, setPending] = useState("");
+  const [error, setError] = useState("");
+
+  const onPollUpdate = useCallback((next: PublicProject) => {
+    setProject(next);
+  }, []);
+  const onPollError = useCallback((message: string) => setError(message), []);
+  useProjectPoll(project, onPollUpdate, onPollError);
 
   async function onUpload(file: File) {
+    setUploading(true);
+    setError("");
     const data = new FormData();
     data.set("file", file);
     const result = await uploadCharacterImageAction(data);
+    setUploading(false);
     if (result.ok) setCharacterImageUrl(result.url);
     else setError(result.error);
   }
 
-  async function onSubmit(formData: FormData) {
-    setPending(true);
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!aspectRatio) {
+      setError("請選擇畫面比例");
+      return;
+    }
+    setSubmitting(true);
     setError("");
+    const formData = new FormData();
     formData.set("skillSlug", skill.slug);
+    formData.set("source", source);
+    formData.set("language", language);
+    formData.set("aspectRatio", aspectRatio);
+    formData.set("durationPreset", durationPreset);
     if (characterImageUrl) formData.set("characterImageUrl", characterImageUrl);
+
     const result = await createProjectAction(formData);
-    setPending(false);
+    setSubmitting(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
-    router.push(`/app/projects/${result.project.id}`);
+    setProject(result.project);
   }
 
+  async function onRevise(note: string) {
+    if (!project) return;
+    setPending("revise");
+    setError("");
+    const data = new FormData();
+    data.set("projectId", project.id);
+    data.set("note", note);
+    const result = await reviseProjectAction(data);
+    setPending("");
+    if (!result.ok) setError(result.error);
+    else setProject(result.project);
+  }
+
+  // Shared handler for both paid approvals; billing errors bounce to /app/billing.
+  async function runPaid(
+    key: string,
+    action: () => Promise<
+      { ok: true; project: PublicProject } | { ok: false; error: string }
+    >,
+  ) {
+    setPending(key);
+    setError("");
+    const result = await action();
+    setPending("");
+    if (!result.ok) {
+      setError(result.error);
+      if (result.error.includes("訂閱") || result.error.includes("credits 不足")) {
+        router.push("/app/billing");
+      }
+      return;
+    }
+    setProject(result.project);
+    router.refresh();
+  }
+
+  // Step 1: storyboard approved → generate start/end frames.
+  function onApproveStoryboard() {
+    if (!project) return;
+    void runPaid("approve", () => approveStoryboardAction(project.id));
+  }
+
+  // Step 2: frames approved → Phase B + video.
+  function onApproveFrames() {
+    if (!project) return;
+    void runPaid("approve", () => approveAndGenerateAction(project.id));
+  }
+
+  function onRegenerateFrame(clipNumber: number, position: FramePosition) {
+    if (!project) return;
+    void runPaid(`frame:${clipNumber}:${position}`, () =>
+      regenerateFrameAction(project.id, clipNumber, position),
+    );
+  }
+
+  // Failed → move back to the gate it fell over on (no charge).
+  async function onRetry() {
+    if (!project) return;
+    setPending("retry");
+    setError("");
+    const result = await retryProjectAction(project.id);
+    setPending("");
+    if (!result.ok) setError(result.error);
+    else setProject(result.project);
+  }
+
+  function reset() {
+    setProject(null);
+    setError("");
+    setPending("");
+  }
+
+  const locked = project !== null;
+  const canSubmit =
+    source.trim().length > 0 && aspectRatio !== "" && !submitting && !uploading;
+
   return (
-    <form action={onSubmit} className="mt-8 space-y-6 rounded-2xl border border-line bg-card p-6">
-      <label className="block">
-        <span className="text-sm font-medium">題材或腳本</span>
-        <textarea
-          name="source"
-          required
-          rows={8}
-          className="mt-2 w-full rounded-xl border border-line px-3 py-2 text-sm"
-          placeholder="貼上文章、產品說明或你想解釋的主題"
-        />
-      </label>
-
-      <fieldset>
-        <legend className="text-sm font-medium">畫面比例</legend>
-        <div className="mt-2 flex gap-3 text-sm">
-          {["16:9", "9:16", "1:1"].map((ratio) => (
-            <label key={ratio} className="flex items-center gap-2">
-              <input type="radio" name="aspectRatio" value={ratio} required />
-              {ratio}
-            </label>
-          ))}
+    <MotionConfig reducedMotion="user">
+      <div className="mt-8 space-y-6">
+        {/* Step indicator: 題材 → 分鏡 → 分鏡圖 → 影片 */}
+        <div className="rounded-2xl border border-accent-ink/10 bg-paper/70 px-5 py-4">
+          <ProjectStepper
+            status={project?.status ?? "draft"}
+            failedAtStep={project?.status === "failed" ? failedStepFor(project) : undefined}
+          />
         </div>
-      </fieldset>
 
-      <label className="block">
-        <span className="text-sm font-medium">片長</span>
-        <select
-          name="durationPreset"
-          defaultValue="punchy"
-          className="mt-2 w-full rounded-xl border border-line px-3 py-2 text-sm"
-        >
-          {Object.values(DURATION_PRESETS).map((preset) => (
-            <option key={preset.id} value={preset.id}>
-              {preset.label}（{preset.hint}）
-            </option>
-          ))}
-        </select>
-      </label>
+        <AnimatePresence mode="wait" initial={false}>
+          {!locked ? (
+            <motion.form
+              key="form"
+              onSubmit={onSubmit}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10, scale: 0.99, transition: { duration: 0.2 } }}
+              transition={{ duration: 0.4, ease }}
+              className="space-y-7 rounded-[1.75rem] border border-accent-ink/10 bg-paper/85 p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.08)] backdrop-blur sm:p-8"
+            >
+              <Section step="01" title="題材或腳本" hint="貼上文章、產品說明、或你想解釋的概念。">
+                <label htmlFor="source" className="sr-only">
+                  題材或腳本
+                </label>
+                <textarea
+                  id="source"
+                  name="source"
+                  required
+                  rows={7}
+                  value={source}
+                  onChange={(event) => setSource(event.target.value)}
+                  disabled={submitting}
+                  className="w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-base leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+                  placeholder="例如：為什麼複利對年輕人特別重要？用一個簡單的比喻說明，最後給一個行動建議。"
+                />
+                <p className="mt-2 text-right text-xs tabular-nums text-muted">
+                  {source.length.toLocaleString()} 字
+                </p>
+              </Section>
 
-      <label className="block">
-        <span className="text-sm font-medium">角色參考圖（選填）</span>
-        <input
-          type="file"
-          accept="image/*"
-          className="mt-2 block text-sm"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) void onUpload(file);
-          }}
-        />
-        {characterImageUrl ? (
-          <p className="mt-2 text-xs text-muted">已上傳參考圖</p>
-        ) : null}
-      </label>
+              <Section step="02" title="旁白語言" hint="影片會用這個語言配旁白；分鏡說明維持繁體中文。">
+                <LanguagePicker value={language} onChange={setLanguage} disabled={submitting} />
+              </Section>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+              <Section step="03" title="畫面比例" hint="依投放平台選擇。">
+                <AspectRatioPicker
+                  value={aspectRatio}
+                  onChange={setAspectRatio}
+                  disabled={submitting}
+                />
+              </Section>
 
+              <Section step="04" title="片長" hint="影響 clip 數量，也就是核准時要扣的 credits。">
+                <DurationPicker
+                  value={durationPreset}
+                  onChange={setDurationPreset}
+                  disabled={submitting}
+                />
+              </Section>
+
+              <Section step="05" title="角色參考圖" hint="選填。上傳後所有 clips 會鎖定同一個角色。">
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/15 bg-paper px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent">
+                    {uploading ? <Spinner /> : <UploadIcon />}
+                    {uploading ? "上傳中…" : characterImageUrl ? "更換圖片" : "選擇圖片"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      disabled={submitting || uploading}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) void onUpload(file);
+                      }}
+                    />
+                  </label>
+                  <AnimatePresence>
+                    {characterImageUrl ? (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="flex items-center gap-3"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={characterImageUrl}
+                          alt="角色參考圖預覽"
+                          width={56}
+                          height={56}
+                          className="h-14 w-14 rounded-xl border border-accent-ink/10 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setCharacterImageUrl("")}
+                          className="min-h-[44px] cursor-pointer text-sm text-muted underline-offset-4 hover:underline"
+                        >
+                          移除
+                        </button>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
+                </div>
+              </Section>
+
+              {error ? (
+                <p role="alert" className="text-sm font-medium text-accent">
+                  {error}
+                </p>
+              ) : null}
+
+              <div className="flex flex-wrap items-center gap-4 border-t border-accent-ink/10 pt-6">
+                <motion.button
+                  type="submit"
+                  disabled={!canSubmit}
+                  whileTap={{ scale: 0.98 }}
+                  className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                >
+                  {submitting ? <Spinner /> : null}
+                  {submitting ? "送出中…" : "產生分鏡提案"}
+                </motion.button>
+                <p className="text-xs text-muted">
+                  這一步不扣 credits。分鏡出來後你再決定要不要產片。
+                </p>
+              </div>
+            </motion.form>
+          ) : (
+            <motion.div
+              key="summary"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
+              transition={{ duration: 0.35, ease }}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-ink/10 bg-paper/70 px-5 py-4 text-sm"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-display font-bold">{skill.titleZh}</span>
+                <Dot />
+                <span>{LANGUAGE_PRESETS[language].label}</span>
+                <Dot />
+                <span>{aspectRatio}</span>
+                <Dot />
+                <span>{DURATION_PRESETS[durationPreset].label}</span>
+              </div>
+              <button
+                type="button"
+                onClick={reset}
+                className="min-h-[44px] cursor-pointer rounded-full px-3 text-sm font-semibold text-muted transition hover:text-foreground"
+              >
+                建立另一支
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence mode="wait">
+          {project?.status === "phase_a" ? (
+            <DirectorProgress key="phase-a" mode="storyboard" />
+          ) : project?.status === "awaiting_approval" ? (
+            <StoryboardPreview
+              key="storyboard"
+              project={project}
+              credits={credits}
+              subscribed={subscribed}
+              pending={pending === "revise" || pending === "approve" ? pending : ""}
+              error={error}
+              onApprove={onApproveStoryboard}
+              onRevise={(note) => void onRevise(note)}
+            />
+          ) : project?.status === "frames_generating" ||
+            project?.status === "frames_ready" ? (
+            <FramesTimeline
+              key="frames"
+              project={project}
+              credits={credits}
+              subscribed={subscribed}
+              pending={pending}
+              error={error}
+              onApprove={onApproveFrames}
+              onRegenerate={onRegenerateFrame}
+            />
+          ) : project?.status === "approved" ? (
+            <DirectorProgress key="phase-b" mode="production" />
+          ) : project?.status === "generating" || project?.status === "ready" ? (
+            <GenerationPanel key="generation" project={project} />
+          ) : project?.status === "failed" ? (
+            <FailedCard
+              key="failed"
+              project={project}
+              pending={pending}
+              onRetry={() => void onRetry()}
+            />
+          ) : null}
+        </AnimatePresence>
+      </div>
+    </MotionConfig>
+  );
+}
+
+function Section({
+  step,
+  title,
+  hint,
+  children,
+}: {
+  step: string;
+  title: string;
+  hint: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <fieldset className="min-w-0">
+      <legend className="flex items-center gap-3">
+        <span className="font-display rounded-full bg-lime px-2.5 py-0.5 text-xs font-bold">
+          {step}
+        </span>
+        <span className="font-display text-base font-bold">{title}</span>
+      </legend>
+      <p className="mt-1 text-xs text-muted">{hint}</p>
+      <div className="mt-3">{children}</div>
+    </fieldset>
+  );
+}
+
+function FailedCard({
+  project,
+  pending,
+  onRetry,
+}: {
+  project: PublicProject;
+  pending: string;
+  onRetry: () => void;
+}) {
+  // Label the retry by the step it will return to.
+  const step = failedStepFor(project);
+  const label =
+    step === 1 ? "重新產生分鏡" : step === 2 ? "回到分鏡，重畫分鏡圖" : "回到分鏡圖，重新產片";
+  return (
+    <motion.section
+      role="alert"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12, transition: { duration: 0.2 } }}
+      className="rounded-[1.5rem] border border-accent/40 bg-paper/85 p-6 shadow-[6px_6px_0_0_rgba(255,77,46,0.35)]"
+    >
+      <p className="font-display text-lg font-bold text-accent">這次沒有成功</p>
+      <p className="mt-2 text-sm text-muted">{project.error || "請再試一次。"}</p>
       <button
-        type="submit"
-        disabled={pending}
-        className="rounded-full bg-accent px-5 py-2 text-sm text-white disabled:opacity-60"
+        type="button"
+        onClick={onRetry}
+        disabled={pending !== ""}
+        className="mt-4 inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent-ink px-5 py-2 text-sm font-semibold text-lime transition hover:-translate-y-0.5 disabled:opacity-60"
       >
-        {pending ? "撰寫分鏡中…" : "產生分鏡提案"}
+        {pending ? <Spinner /> : null}
+        {label}
       </button>
-    </form>
+      <p className="mt-3 text-xs text-muted">失敗階段的 credits 已自動退回，重試不會重複扣款。</p>
+    </motion.section>
+  );
+}
+
+function Dot() {
+  return <span aria-hidden className="h-1 w-1 rounded-full bg-accent-ink/30" />;
+}
+
+function UploadIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

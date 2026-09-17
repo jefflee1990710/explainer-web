@@ -3,7 +3,7 @@ import { requireAppUser } from "@/lib/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/lib/billing/credits";
 import { projectsCollection } from "@/lib/collections";
 import { toPublicProject } from "@/lib/serialize";
-import { ProjectList } from "./project-list";
+import { ProjectGrid } from "./project-grid";
 
 export default async function DashboardPage() {
   const user = await requireAppUser();
@@ -13,7 +13,7 @@ export default async function DashboardPage() {
   const list = await projects
     .find({ clerkUserId: user.clerkUserId })
     .sort({ createdAt: -1 })
-    .limit(30)
+    .limit(120)
     .toArray();
 
   return (
@@ -45,7 +45,7 @@ export default async function DashboardPage() {
       ) : null}
 
       <div className="mt-8">
-        <ProjectList projects={list.map(toPublicProject)} />
+        <ProjectGrid projects={list.map(toPublicProject)} />
       </div>
     </div>
   );

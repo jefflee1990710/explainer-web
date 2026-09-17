@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
+import type { FramePosition } from "@/types/project";
 
-export type GenerationKind = "still" | "video";
+export type GenerationKind = "still" | "frame" | "video";
 export type GenerationStatus =
   | "queued"
   | "in_progress"
@@ -8,12 +9,14 @@ export type GenerationStatus =
   | "failed"
   | "nsfw";
 
-// One Higgsfield request tied to a project clip or character still.
+// One Higgsfield request tied to a project clip, storyboard frame, or character still.
 export type GenerationJob = {
   _id: ObjectId;
   projectId: ObjectId;
   clipIndex: number;
   kind: GenerationKind;
+  // Only for kind === "frame".
+  framePosition?: FramePosition;
   model: string;
   requestId: string;
   statusUrl?: string;

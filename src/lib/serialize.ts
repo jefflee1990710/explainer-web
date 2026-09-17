@@ -17,10 +17,13 @@ export type PublicProject = {
   source: string;
   aspectRatio: Project["aspectRatio"];
   durationPreset: Project["durationPreset"];
+  language: NonNullable<Project["language"]>;
   characterImageUrl?: string;
   characterStillUrl?: string;
   status: Project["status"];
   phaseA?: Project["phaseA"];
+  frames: NonNullable<Project["frames"]>;
+  framesCreditCost: number;
   clips: Project["clips"];
   creditCost: number;
   error?: string;
@@ -44,10 +47,13 @@ export function toPublicProject(project: Project): PublicProject {
     source: project.source,
     aspectRatio: project.aspectRatio,
     durationPreset: project.durationPreset,
+    language: project.language || "en",
     characterImageUrl: project.characterImageUrl,
     characterStillUrl: project.characterStillUrl,
     status: project.status,
     phaseA: project.phaseA,
+    frames: project.frames || [],
+    framesCreditCost: project.framesCreditCost || 0,
     clips: project.clips,
     creditCost: project.creditCost,
     error: project.error,

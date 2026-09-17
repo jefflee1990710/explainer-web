@@ -5,8 +5,13 @@ import { getActiveSubscription, isSubscriptionActive } from "@/lib/billing/credi
 import { projectsCollection, skillsCollection } from "@/lib/collections";
 import { toPublicProject } from "@/lib/serialize";
 import { ClipPlayer } from "./clip-player";
+import { FramesStep } from "./frames-step";
 import { GenerationProgress } from "./generation-progress";
+import { ProjectHeader } from "./project-header";
 import { StoryboardReview } from "./storyboard-review";
+
+// Revise / approve actions here also run background jobs via after().
+export const maxDuration = 120;
 
 export default async function ProjectPage({
   params,
@@ -28,25 +33,21 @@ export default async function ProjectPage({
   const skill = await skills.findOne({ _id: project.skillId });
 
   const sub = await getActiveSubscription(user.clerkUserId);
-  const canGenerate =
-    isSubscriptionActive(sub) && user.credits >= (project.creditCost || 0);
+  const subscribed = isSubscriptionActive(sub);
+  // Storyboard approval charges 2 frames per clip.
+  const framesCost = (project.phaseA?.clipCount || 0) * 2;
+  const canGenerate = subscribed && user.credits >= framesCost;
   const publicProject = toPublicProject(project);
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm text-muted">{skill?.titleZh || "解說風格"}</p>
-        <h1 className="mt-1 text-3xl font-semibold">
-          {project.phaseA?.localizedTitle || "解說提案"}
-        </h1>
-        <p className="mt-2 text-sm text-muted">
-          {project.aspectRatio} · {project.durationPreset} · 狀態 {project.status}
-        </p>
-      </div>
-      {project.status === "phase_a" ? (
-        <p className="text-sm text-muted">正在撰寫分鏡…</p>
-      ) : null}
+      <ProjectHeader project={publicProject} skillTitle={skill?.titleZh || "解說風格"} />
       <StoryboardReview project={publicProject} canGenerate={canGenerate} />
+      <FramesStep
+        project={publicProject}
+        credits={user.credits}
+        subscribed={subscribed}
+      />
       <GenerationProgress project={publicProject} />
       {project.status === "ready" ? <ClipPlayer project={publicProject} /> : null}
     </div>

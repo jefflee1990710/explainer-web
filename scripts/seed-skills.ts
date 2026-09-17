@@ -55,12 +55,14 @@ async function main() {
           durationPresets: ["micro", "short", "punchy", "full"],
           optionalCharacterImage: true,
         },
-        // Execution layer: ChatGPT Image 2 (low / 1K) + Wan 3 clips.
+        // Execution layer (Higgsfield model slugs from GET /models):
+        // GPT Image 1.5 (low) for stills/frames + Wan 3.0 image-to-video for clips.
+        // ChatGPT Image 2 is not in the Higgsfield catalog yet.
         higgsfieldDefaults: {
-          imageModel: "gpt_image_2",
+          imageModel: "openai/gpt-image-1.5",
           imageQuality: "low",
           imageResolution: "1k",
-          videoModel: "wan3",
+          videoModel: "alibaba/wan-3.0/image-to-video",
         },
         isActive: true,
         sortOrder: 1,
