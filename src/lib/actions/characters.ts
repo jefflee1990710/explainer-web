@@ -238,6 +238,7 @@ export async function retryCharacterVersionAction(
     const ver = version;
 
     const characters = await charactersCollection();
+    const jobs = await generationJobsCollection();
     const claimed = await characters.updateOne(
       {
         _id: doc._id,
@@ -268,7 +269,6 @@ export async function retryCharacterVersionAction(
       );
     }
 
-    const jobs = await generationJobsCollection();
     // Remove stale jobs before charging so no old webhook can touch a freshly charged version.
     try {
       await jobs.deleteMany({ characterId: doc._id, versionId: ver.id });
@@ -291,8 +291,21 @@ export async function retryCharacterVersionAction(
         { $set: { "versions.$.creditsCharged": true, updatedAt: new Date() } },
       );
     } catch (error) {
-      await refundCredits(user.clerkUserId, 1);
       await revertClaim({ creditsCharged: false });
+      try {
+        await refundCredits(user.clerkUserId, 1);
+      } catch (refundError) {
+        await characters.updateOne(
+          { _id: doc._id, "versions.id": ver.id },
+          {
+            $set: {
+              "versions.$.creditsCharged": true,
+              updatedAt: new Date(),
+            },
+          },
+        );
+        throw refundError;
+      }
       throw error;
     }
 
