@@ -18,10 +18,10 @@ export function SkillCard({ skill }: { skill: PublicSkill }) {
       <p className="mt-1 text-sm text-muted">{skill.title}</p>
       <p className="mt-4 text-sm leading-6 text-muted">{skill.description}</p>
       <Link
-        href={`/app/projects/new?skill=${skill.slug}`}
+        href="/app"
         className="mt-6 inline-flex rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c]"
       >
-        使用這個風格
+        到專案裡使用
       </Link>
     </motion.article>
   );

@@ -1,14 +1,17 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/lib/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/lib/billing/credits";
-import { projectsCollection, skillsCollection } from "@/lib/collections";
-import { toPublicProject } from "@/lib/serialize";
-import { ClipPlayer } from "./clip-player";
-import { FramesStep } from "./frames-step";
-import { GenerationProgress } from "./generation-progress";
-import { ProjectHeader } from "./project-header";
-import { StoryboardReview } from "./storyboard-review";
+import {
+  projectsCollection,
+  skillsCollection,
+  videosCollection,
+} from "@/lib/collections";
+import { toPublicFolder, toPublicSkill } from "@/lib/serialize";
+import type { Folder } from "@/types/folder";
+import type { Project } from "@/types/project";
+import { ProjectWorkspace } from "./project-workspace";
 
 // Revise / approve actions here also run background jobs via after().
 export const maxDuration = 120;
@@ -22,34 +25,48 @@ export default async function ProjectPage({
   const user = await requireAppUser();
   if (!ObjectId.isValid(id)) notFound();
 
-  const projects = await projectsCollection();
-  const project = await projects.findOne({
+  const folders = await projectsCollection();
+  const folder = (await folders.findOne({
     _id: new ObjectId(id),
     clerkUserId: user.clerkUserId,
-  });
-  if (!project) notFound();
+  })) as Folder | null;
+  if (!folder?.name) notFound();
 
-  const skills = await skillsCollection();
-  const skill = await skills.findOne({ _id: project.skillId });
+  const videos = await videosCollection();
+  const videoDocs = (await videos
+    .find({ projectId: folder._id })
+    .sort({ createdAt: -1 })
+    .toArray()) as Project[];
+  const publicFolder = toPublicFolder(folder, videoDocs);
+
+  const skillsCol = await skillsCollection();
+  const skills = (await skillsCol.find({ isActive: true }).sort({ sortOrder: 1 }).toArray()).map(
+    toPublicSkill,
+  );
 
   const sub = await getActiveSubscription(user.clerkUserId);
   const subscribed = isSubscriptionActive(sub);
-  // Storyboard approval charges 2 frames per clip.
-  const framesCost = (project.phaseA?.clipCount || 0) * 2;
-  const canGenerate = subscribed && user.credits >= framesCost;
-  const publicProject = toPublicProject(project);
 
   return (
-    <div className="space-y-6">
-      <ProjectHeader project={publicProject} skillTitle={skill?.titleZh || "解說風格"} />
-      <StoryboardReview project={publicProject} canGenerate={canGenerate} />
-      <FramesStep
-        project={publicProject}
+    <Suspense fallback={<WorkspaceFallback />}>
+      <ProjectWorkspace
+        folder={publicFolder}
+        skills={skills}
         credits={user.credits}
         subscribed={subscribed}
       />
-      <GenerationProgress project={publicProject} />
-      {project.status === "ready" ? <ClipPlayer project={publicProject} /> : null}
+    </Suspense>
+  );
+}
+
+function WorkspaceFallback() {
+  return (
+    <div className="space-y-6">
+      <div className="h-16 rounded-2xl bg-accent-ink/5" />
+      <div className="grid gap-6 md:grid-cols-[17.5rem_minmax(0,1fr)]">
+        <div className="h-64 rounded-[1.5rem] bg-accent-ink/5" />
+        <div className="h-64 rounded-[1.75rem] bg-accent-ink/5" />
+      </div>
     </div>
   );
 }

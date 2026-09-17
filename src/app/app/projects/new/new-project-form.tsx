@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { FramesTimeline } from "@/components/project/frames-timeline";
@@ -12,7 +12,7 @@ import {
   regenerateFrameAction,
 } from "@/lib/actions/generation";
 import {
-  createProjectAction,
+  createVideoAction,
   retryProjectAction,
   reviseProjectAction,
 } from "@/lib/actions/projects";
@@ -20,13 +20,14 @@ import { uploadCharacterImageAction } from "@/lib/actions/upload";
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { failedStepFor } from "@/lib/project-status";
-import type { PublicProject, PublicSkill } from "@/lib/serialize";
+import type { PublicSkill, PublicVideo } from "@/lib/serialize";
 import type {
   AspectRatio,
   DurationPreset,
   FramePosition,
   VoLanguage,
 } from "@/types/project";
+import { SkillPicker } from "../[id]/skill-picker";
 import { AspectRatioPicker } from "./aspect-ratio-picker";
 import { DirectorProgress } from "./director-progress";
 import { DurationPicker } from "./duration-picker";
@@ -39,32 +40,46 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 // Whole create → storyboard → approve → generate flow lives on this one page.
 export function NewProjectForm({
-  skill,
+  projectId,
+  skills,
+  initialVideo = null,
   credits,
   subscribed,
 }: {
-  skill: PublicSkill;
+  projectId: string;
+  skills: PublicSkill[];
+  initialVideo?: PublicVideo | null;
   credits: number;
   subscribed: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   // Form fields
-  const [source, setSource] = useState("");
-  const [language, setLanguage] = useState<VoLanguage>("en");
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio | "">("");
-  const [durationPreset, setDurationPreset] = useState<DurationPreset>("punchy");
-  const [characterImageUrl, setCharacterImageUrl] = useState("");
+  const [skillSlug, setSkillSlug] = useState(
+    initialVideo?.skillSlug || skills[0]?.slug || "",
+  );
+  const [source, setSource] = useState(initialVideo?.source || "");
+  const [language, setLanguage] = useState<VoLanguage>(initialVideo?.language || "en");
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio | "">(
+    initialVideo?.aspectRatio || "",
+  );
+  const [durationPreset, setDurationPreset] = useState<DurationPreset>(
+    initialVideo?.durationPreset || "punchy",
+  );
+  const [characterImageUrl, setCharacterImageUrl] = useState(
+    initialVideo?.characterImageUrl || "",
+  );
   const [uploading, setUploading] = useState(false);
 
-  // Flow state
-  const [project, setProject] = useState<PublicProject | null>(null);
+  // Flow state — locked when opening an existing video via ?video=.
+  const [project, setProject] = useState<PublicVideo | null>(initialVideo);
   const [submitting, setSubmitting] = useState(false);
   // "" | "revise" | "approve" | `frame:${clip}:${position}`
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
 
-  const onPollUpdate = useCallback((next: PublicProject) => {
+  const onPollUpdate = useCallback((next: PublicVideo) => {
     setProject(next);
   }, []);
   const onPollError = useCallback((message: string) => setError(message), []);
@@ -90,20 +105,23 @@ export function NewProjectForm({
     setSubmitting(true);
     setError("");
     const formData = new FormData();
-    formData.set("skillSlug", skill.slug);
+    formData.set("projectId", projectId);
+    formData.set("skillSlug", skillSlug);
     formData.set("source", source);
     formData.set("language", language);
     formData.set("aspectRatio", aspectRatio);
     formData.set("durationPreset", durationPreset);
     if (characterImageUrl) formData.set("characterImageUrl", characterImageUrl);
 
-    const result = await createProjectAction(formData);
+    const result = await createVideoAction(formData);
     setSubmitting(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
     setProject(result.project);
+    router.replace(`${pathname}?video=${result.project.id}`);
+    router.refresh();
   }
 
   async function onRevise(note: string) {
@@ -123,7 +141,7 @@ export function NewProjectForm({
   async function runPaid(
     key: string,
     action: () => Promise<
-      { ok: true; project: PublicProject } | { ok: false; error: string }
+      { ok: true; project: PublicVideo } | { ok: false; error: string }
     >,
   ) {
     setPending(key);
@@ -172,18 +190,23 @@ export function NewProjectForm({
   }
 
   function reset() {
-    setProject(null);
-    setError("");
-    setPending("");
+    router.replace(pathname);
   }
 
   const locked = project !== null;
+  const skillTitle =
+    skills.find((item) => item.slug === (project?.skillSlug || skillSlug))?.titleZh ||
+    "解說風格";
   const canSubmit =
-    source.trim().length > 0 && aspectRatio !== "" && !submitting && !uploading;
+    source.trim().length > 0 &&
+    aspectRatio !== "" &&
+    skillSlug !== "" &&
+    !submitting &&
+    !uploading;
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="mt-8 space-y-6">
+      <div className="space-y-6">
         {/* Step indicator: 題材 → 分鏡 → 分鏡圖 → 影片 */}
         <div className="rounded-2xl border border-accent-ink/10 bg-paper/70 px-5 py-4">
           <ProjectStepper
@@ -203,7 +226,18 @@ export function NewProjectForm({
               transition={{ duration: 0.4, ease }}
               className="space-y-7 rounded-[1.75rem] border border-accent-ink/10 bg-paper/85 p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.08)] backdrop-blur sm:p-8"
             >
-              <Section step="01" title="題材或腳本" hint="貼上文章、產品說明、或你想解釋的概念。">
+              <input type="hidden" name="projectId" value={projectId} />
+
+              <Section step="01" title="解說風格" hint="這支影片要用哪一種敘事風格。">
+                <SkillPicker
+                  skills={skills}
+                  value={skillSlug}
+                  onChange={setSkillSlug}
+                  disabled={submitting}
+                />
+              </Section>
+
+              <Section step="02" title="題材或腳本" hint="貼上文章、產品說明、或你想解釋的概念。">
                 <label htmlFor="source" className="sr-only">
                   題材或腳本
                 </label>
@@ -223,11 +257,11 @@ export function NewProjectForm({
                 </p>
               </Section>
 
-              <Section step="02" title="旁白語言" hint="影片會用這個語言配旁白；分鏡說明維持繁體中文。">
+              <Section step="03" title="旁白語言" hint="影片會用這個語言配旁白；分鏡說明維持繁體中文。">
                 <LanguagePicker value={language} onChange={setLanguage} disabled={submitting} />
               </Section>
 
-              <Section step="03" title="畫面比例" hint="依投放平台選擇。">
+              <Section step="04" title="畫面比例" hint="依投放平台選擇。">
                 <AspectRatioPicker
                   value={aspectRatio}
                   onChange={setAspectRatio}
@@ -235,7 +269,7 @@ export function NewProjectForm({
                 />
               </Section>
 
-              <Section step="04" title="片長" hint="影響 clip 數量，也就是核准時要扣的 credits。">
+              <Section step="05" title="片長" hint="影響 clip 數量，也就是核准時要扣的 credits。">
                 <DurationPicker
                   value={durationPreset}
                   onChange={setDurationPreset}
@@ -243,7 +277,7 @@ export function NewProjectForm({
                 />
               </Section>
 
-              <Section step="05" title="角色參考圖" hint="選填。上傳後所有 clips 會鎖定同一個角色。">
+              <Section step="06" title="角色參考圖" hint="選填。上傳後所有 clips 會鎖定同一個角色。">
                 <div className="flex flex-wrap items-center gap-4">
                   <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/15 bg-paper px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent">
                     {uploading ? <Spinner /> : <UploadIcon />}
@@ -319,7 +353,7 @@ export function NewProjectForm({
               className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-ink/10 bg-paper/70 px-5 py-4 text-sm"
             >
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-display font-bold">{skill.titleZh}</span>
+                <span className="font-display font-bold">{skillTitle}</span>
                 <Dot />
                 <span>{LANGUAGE_PRESETS[language].label}</span>
                 <Dot />
@@ -412,7 +446,7 @@ function FailedCard({
   pending,
   onRetry,
 }: {
-  project: PublicProject;
+  project: PublicVideo;
   pending: string;
   onRetry: () => void;
 }) {
