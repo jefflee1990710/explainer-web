@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import {
@@ -8,13 +7,13 @@ import {
   matchesFilter,
   type StatusFilter,
 } from "@/lib/project-status";
-import type { PublicProject } from "@/lib/serialize";
+import type { PublicFolder } from "@/lib/serialize";
+import { CreateFolderButton } from "./create-folder-modal";
 import { ProjectCard } from "./project-card";
 import { ProjectFilters } from "./project-filters";
 
-// Dashboard grid with client-side status filter + keyword search.
-export function ProjectGrid({ projects: initial }: { projects: PublicProject[] }) {
-  const [projects, setProjects] = useState(initial);
+// Dashboard grid with client-side status filter + keyword search over folders.
+export function ProjectGrid({ folders }: { folders: PublicFolder[] }) {
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [query, setQuery] = useState("");
 
@@ -22,47 +21,40 @@ export function ProjectGrid({ projects: initial }: { projects: PublicProject[] }
     const result = Object.fromEntries(
       STATUS_FILTERS.map((item) => [item.id, 0]),
     ) as Record<StatusFilter, number>;
-    for (const project of projects) {
+    for (const folder of folders) {
       for (const item of STATUS_FILTERS) {
-        if (matchesFilter(project.status, item.id)) result[item.id] += 1;
+        if (matchesFilter(folder.status, item.id)) result[item.id] += 1;
       }
     }
     return result;
-  }, [projects]);
+  }, [folders]);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return projects.filter((project) => {
-      if (!matchesFilter(project.status, filter)) return false;
+    return folders.filter((folder) => {
+      if (!matchesFilter(folder.status, filter)) return false;
       if (!needle) return true;
       const haystack = [
-        project.phaseA?.localizedTitle,
-        project.phaseA?.englishTitle,
-        project.phaseA?.coreMessage,
-        project.source,
+        folder.name,
+        ...folder.videos.flatMap((video) => [
+          video.phaseA?.localizedTitle,
+          video.phaseA?.englishTitle,
+          video.source,
+        ]),
       ]
         .filter(Boolean)
         .join("\n")
         .toLowerCase();
       return haystack.includes(needle);
     });
-  }, [projects, filter, query]);
+  }, [folders, filter, query]);
 
-  function onUpdate(next: PublicProject) {
-    setProjects((list) => list.map((item) => (item.id === next.id ? next : item)));
-  }
-
-  if (projects.length === 0) {
+  if (folders.length === 0) {
     return (
       <div className="rounded-[1.5rem] border border-dashed border-accent-ink/20 bg-paper/60 p-10 text-center">
         <p className="font-display text-lg font-bold">還沒有專案</p>
-        <p className="mt-2 text-sm text-muted">先選一種風格，貼上題材，就能拿到第一份分鏡。</p>
-        <Link
-          href="/app/skills"
-          className="mt-5 inline-flex min-h-[44px] items-center rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5"
-        >
-          選擇風格
-        </Link>
+        <p className="mt-2 text-sm text-muted">先幫這次活動取個名字，再進去加影片。</p>
+        <CreateFolderButton className="mt-5 inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5" />
       </div>
     );
   }
@@ -89,8 +81,8 @@ export function ProjectGrid({ projects: initial }: { projects: PublicProject[] }
         ) : (
           <motion.div layout className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence mode="popLayout" initial={false}>
-              {visible.map((project) => (
-                <ProjectCard key={project.id} project={project} onUpdate={onUpdate} />
+              {visible.map((folder) => (
+                <ProjectCard key={folder.id} folder={folder} />
               ))}
             </AnimatePresence>
           </motion.div>

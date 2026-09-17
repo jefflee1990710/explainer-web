@@ -58,13 +58,13 @@ export function ProjectFilters({
       </div>
 
       <label className="relative block md:w-72">
-        <span className="sr-only">搜尋專案</span>
+        <span className="sr-only">搜尋專案名稱或影片題材</span>
         <SearchIcon />
         <input
           type="search"
           value={query}
           onChange={(event) => onQuery(event.target.value)}
-          placeholder="搜尋標題或題材…"
+          placeholder="搜尋專案名稱或題材…"
           className="min-h-[44px] w-full rounded-full border border-accent-ink/10 bg-paper/85 pl-10 pr-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         />
       </label>

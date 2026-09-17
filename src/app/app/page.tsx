@@ -1,20 +1,40 @@
 import Link from "next/link";
 import { requireAppUser } from "@/lib/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/lib/billing/credits";
-import { projectsCollection } from "@/lib/collections";
-import { toPublicProject } from "@/lib/serialize";
+import { projectsCollection, videosCollection } from "@/lib/collections";
+import { toPublicFolder } from "@/lib/serialize";
+import type { Folder } from "@/types/folder";
+import type { Project } from "@/types/project";
+import { CreateFolderButton } from "./create-folder-modal";
 import { ProjectGrid } from "./project-grid";
 
 export default async function DashboardPage() {
   const user = await requireAppUser();
   const sub = await getActiveSubscription(user.clerkUserId);
   const subscribed = isSubscriptionActive(sub);
-  const projects = await projectsCollection();
-  const list = await projects
-    .find({ clerkUserId: user.clerkUserId })
-    .sort({ createdAt: -1 })
+  const folders = await projectsCollection();
+  const videos = await videosCollection();
+  const folderDocs = await folders
+    .find({ clerkUserId: user.clerkUserId, name: { $exists: true } })
+    .sort({ updatedAt: -1 })
     .limit(120)
     .toArray();
+  const videoDocs = await videos.find({ clerkUserId: user.clerkUserId }).toArray();
+  const videosByFolder = new Map<string, Project[]>();
+  for (const video of videoDocs) {
+    // Skip leftover rows that were never wrapped into a folder.
+    if (!video.projectId) continue;
+    const key = video.projectId.toHexString();
+    const list = videosByFolder.get(key) || [];
+    list.push(video as Project);
+    videosByFolder.set(key, list);
+  }
+  const publicFolders = folderDocs.map((folder) =>
+    toPublicFolder(
+      folder as Folder,
+      videosByFolder.get(folder._id!.toHexString()) || [],
+    ),
+  );
 
   return (
     <div>
@@ -27,12 +47,7 @@ export default async function DashboardPage() {
               : "尚未訂閱。你可以先寫分鏡，核准產片前需要方案。"}
           </p>
         </div>
-        <Link
-          href="/app/skills"
-          className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c]"
-        >
-          新增專案
-        </Link>
+        <CreateFolderButton />
       </div>
 
       {!subscribed ? (
@@ -45,7 +60,7 @@ export default async function DashboardPage() {
       ) : null}
 
       <div className="mt-8">
-        <ProjectGrid projects={list.map(toPublicProject)} />
+        <ProjectGrid folders={publicFolders} />
       </div>
     </div>
   );
