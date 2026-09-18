@@ -17,6 +17,7 @@ import { isVoLanguage } from "@/lib/director/languages";
 import { sanitizeFolderName } from "@/lib/folder";
 import { failedStepFor } from "@/lib/project-status";
 import { toPublicVideo, type PublicVideo } from "@/lib/serialize";
+import { isStyleId } from "@/lib/styles";
 import type { CastMember, Character } from "@/types/character";
 import type { AspectRatio, DurationPreset } from "@/types/project";
 
@@ -109,6 +110,7 @@ export async function createVideoAction(
     const user = await requireAppUser();
     const projectId = String(formData.get("projectId") || "");
     const skillSlug = String(formData.get("skillSlug") || "");
+    const styleId = String(formData.get("styleId") || "");
     const source = String(formData.get("source") || "").trim();
     const aspectRatio = String(formData.get("aspectRatio") || "") as AspectRatio;
     const durationPreset = String(
@@ -141,6 +143,9 @@ export async function createVideoAction(
     if (!isVoLanguage(language)) {
       return { ok: false, error: "請選擇旁白語言" };
     }
+    if (!isStyleId(styleId)) {
+      return { ok: false, error: "請選擇視覺風格" };
+    }
 
     const folders = await projectsCollection();
     const folder = await folders.findOne({
@@ -164,6 +169,10 @@ export async function createVideoAction(
         .toArray()) as Character[];
       if (docs.length !== characterIds.length) {
         return { ok: false, error: "有角色不存在" };
+      }
+      // Every cast member must be drawn in the video's visual style.
+      if (docs.some((doc) => doc.styleId !== styleId)) {
+        return { ok: false, error: "角色風格與影片風格不同" };
       }
       cast = [];
       for (const id of characterIds) {
@@ -190,6 +199,7 @@ export async function createVideoAction(
       clerkUserId: user.clerkUserId,
       skillId: skill._id,
       skillSlug: skill.slug,
+      styleId,
       source,
       aspectRatio,
       durationPreset,

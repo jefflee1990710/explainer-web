@@ -5,7 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getProjectAction } from "@/lib/actions/projects";
 import { Spinner } from "@/components/spinner";
-import type { PublicCharacter, PublicFolder, PublicSkill, PublicVideo } from "@/lib/serialize";
+import type {
+  PublicCharacter,
+  PublicFolder,
+  PublicSkill,
+  PublicStyle,
+  PublicVideo,
+} from "@/lib/serialize";
 import { NewProjectForm } from "../new/new-project-form";
 import { VideoList } from "./video-list";
 
@@ -13,12 +19,14 @@ import { VideoList } from "./video-list";
 export function ProjectWorkspace({
   folder,
   skills,
+  styles,
   characters,
   credits,
   subscribed,
 }: {
   folder: PublicFolder;
   skills: PublicSkill[];
+  styles: PublicStyle[];
   characters: PublicCharacter[];
   credits: number;
   subscribed: boolean;
@@ -103,6 +111,7 @@ export function ProjectWorkspace({
             key={videoParam ?? "new"}
             projectId={folder.id}
             skills={skills}
+            styles={styles}
             characters={characters}
             initialVideo={selectedVideo}
             credits={credits}

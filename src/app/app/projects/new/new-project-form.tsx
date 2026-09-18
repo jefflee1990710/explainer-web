@@ -6,6 +6,7 @@ import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { FramesTimeline } from "@/components/project/frames-timeline";
 import { ProjectStepper } from "@/components/project/project-stepper";
 import { Spinner } from "@/components/spinner";
+import { StylePicker } from "@/components/style-picker";
 import {
   approveAndGenerateAction,
   approveStoryboardAction,
@@ -20,7 +21,8 @@ import {
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { failedStepFor } from "@/lib/project-status";
-import type { PublicCharacter, PublicSkill, PublicVideo } from "@/lib/serialize";
+import type { PublicCharacter, PublicSkill, PublicStyle, PublicVideo } from "@/lib/serialize";
+import { DEFAULT_STYLE_ID, type StyleId } from "@/lib/styles";
 import type {
   AspectRatio,
   ClipStoryboardInput,
@@ -45,6 +47,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 export function NewProjectForm({
   projectId,
   skills,
+  styles,
   characters,
   initialVideo = null,
   credits,
@@ -53,6 +56,7 @@ export function NewProjectForm({
 }: {
   projectId: string;
   skills: PublicSkill[];
+  styles: PublicStyle[];
   characters: PublicCharacter[];
   initialVideo?: PublicVideo | null;
   credits: number;
@@ -65,6 +69,10 @@ export function NewProjectForm({
   // Form fields
   const [skillSlug, setSkillSlug] = useState(
     initialVideo?.skillSlug || skills[0]?.slug || "",
+  );
+  // Visual style; the cast must share it, so changing it prunes mismatches.
+  const [styleId, setStyleId] = useState<StyleId>(
+    initialVideo?.styleId || DEFAULT_STYLE_ID,
   );
   const [source, setSource] = useState(initialVideo?.source || "");
   const [language, setLanguage] = useState<VoLanguage>(initialVideo?.language || "en");
@@ -102,6 +110,7 @@ export function NewProjectForm({
     const formData = new FormData();
     formData.set("projectId", projectId);
     formData.set("skillSlug", skillSlug);
+    formData.set("styleId", styleId);
     formData.set("source", source);
     formData.set("language", language);
     formData.set("aspectRatio", aspectRatio);
@@ -205,6 +214,14 @@ export function NewProjectForm({
     else setProject(result.project);
   }
 
+  // Switching style drops selected characters drawn in a different style.
+  function onStyleChange(id: StyleId) {
+    setStyleId(id);
+    setCharacterIds((ids) =>
+      ids.filter((cid) => characters.find((c) => c.id === cid)?.styleId === id),
+    );
+  }
+
   function reset() {
     router.replace(pathname);
   }
@@ -213,6 +230,8 @@ export function NewProjectForm({
   const skillTitle =
     skills.find((item) => item.slug === (project?.skillSlug || skillSlug))?.titleZh ||
     "解說風格";
+  const styleName =
+    styles.find((item) => item.id === (project?.styleId || styleId))?.nameZh || "視覺風格";
   const canSubmit =
     source.trim().length > 0 &&
     aspectRatio !== "" &&
@@ -250,6 +269,19 @@ export function NewProjectForm({
                   onChange={setSkillSlug}
                   disabled={submitting}
                 />
+                {/* Visual style sits under the narrative skill in the same step. */}
+                <p className="mt-5 text-sm font-semibold">視覺風格</p>
+                <p className="mt-1 text-xs text-muted">
+                  分鏡圖與影片的畫風；角色必須是同一種風格。
+                </p>
+                <div className="mt-3">
+                  <StylePicker
+                    styles={styles}
+                    value={styleId}
+                    onChange={onStyleChange}
+                    disabled={locked || submitting}
+                  />
+                </div>
               </Section>
 
               <Section step="02" title="題材或腳本" hint="貼上文章、產品說明、或你想解釋的概念。">
@@ -295,6 +327,7 @@ export function NewProjectForm({
               <Section step="06" title="角色" hint="選填。最多 4 個；分鏡與分鏡圖會鎖定這些角色的藍圖。">
                 <CharacterPicker
                   characters={characters}
+                  styleId={styleId}
                   value={characterIds}
                   onChange={setCharacterIds}
                   disabled={submitting}
@@ -333,6 +366,8 @@ export function NewProjectForm({
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-display font-bold">{skillTitle}</span>
+                <Dot />
+                <span>{styleName}</span>
                 <Dot />
                 <span>{LANGUAGE_PRESETS[language].label}</span>
                 <Dot />

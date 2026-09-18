@@ -10,6 +10,7 @@ import {
   videosCollection,
 } from "@/lib/collections";
 import { toPublicCharacter, toPublicFolder, toPublicSkill } from "@/lib/serialize";
+import { listPublicStyles } from "@/lib/styles/list";
 import type { Character } from "@/types/character";
 import type { Folder } from "@/types/folder";
 import type { Project } from "@/types/project";
@@ -46,6 +47,9 @@ export default async function ProjectPage({
     toPublicSkill,
   );
 
+  // Visual styles in catalog order, with generated preview URLs when seeded.
+  const styles = await listPublicStyles();
+
   const charactersCol = await charactersCollection();
   const characters = (
     (await charactersCol
@@ -62,6 +66,7 @@ export default async function ProjectPage({
       <ProjectWorkspace
         folder={publicFolder}
         skills={skills}
+        styles={styles}
         characters={characters}
         credits={user.credits}
         subscribed={subscribed}
