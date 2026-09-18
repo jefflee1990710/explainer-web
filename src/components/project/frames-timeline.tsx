@@ -2,12 +2,17 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import {
+  ClipEditDialog,
+  type ClipEditPending,
+} from "@/components/project/clip-edit-dialog";
 import { FrameEditDialog } from "@/components/project/frame-edit-dialog";
 import { Spinner } from "@/components/spinner";
 import type { PublicProject } from "@/lib/serialize";
 import type {
   AspectRatio,
   ClipFrame,
+  ClipStoryboardInput,
   FramePosition,
   FrameRevisionInput,
 } from "@/types/project";
@@ -35,6 +40,7 @@ export function FramesTimeline({
   error,
   onApprove,
   onRegenerate,
+  onUpdateClip,
 }: {
   project: PublicProject;
   credits: number;
@@ -48,12 +54,21 @@ export function FramesTimeline({
     position: FramePosition,
     revision?: FrameRevisionInput,
   ) => void;
+  // Rewrite one clip's storyboard text; `regenerate` also redraws its two
+  // frames (2 credits). Resolves true when the update landed.
+  onUpdateClip: (
+    clipNumber: number,
+    input: ClipStoryboardInput,
+    regenerate: boolean,
+  ) => Promise<boolean>;
 }) {
   // Which frame the edit dialog is open for; null when closed.
   const [editing, setEditing] = useState<{
     clipNumber: number;
     position: FramePosition;
   } | null>(null);
+  // Which clip's storyboard text is being edited; null when closed.
+  const [editingClipNumber, setEditingClipNumber] = useState<number | null>(null);
 
   const phaseA = project.phaseA;
   if (!phaseA) return null;
@@ -79,6 +94,19 @@ export function FramesTimeline({
   const editingClip = editing
     ? phaseA.clips.find((row) => row.clipNumber === editing.clipNumber)
     : undefined;
+  // Storyboard row behind the open clip-edit dialog (if any).
+  const editingClipRow =
+    editingClipNumber !== null
+      ? phaseA.clips.find((row) => row.clipNumber === editingClipNumber)
+      : undefined;
+  const clipEditPending: ClipEditPending =
+    editingClipNumber === null
+      ? ""
+      : pending === `clip:${editingClipNumber}`
+        ? "save"
+        : pending === `clip:${editingClipNumber}:regen`
+          ? "regenerate"
+          : "";
 
   return (
     <motion.section
@@ -104,7 +132,7 @@ export function FramesTimeline({
             <p className="mt-1 text-sm text-muted">
               {generating
                 ? "所有畫格同時送出產圖，完成一張就會出現一張。"
-                : "確認角色與畫面銜接沒問題後，再核准產片。點擊畫格可放大、手繪標註並寫備註後重畫（1 credit）。"}
+                : "確認角色與畫面銜接沒問題後，再核准產片。點擊畫格可放大、手繪標註並寫備註後重畫（1 credit）；也可直接編輯這段的分鏡內容，再依新內容重畫。"}
             </p>
           </div>
           {generating ? (
@@ -179,6 +207,23 @@ export function FramesTimeline({
                     {row.explainerScene}
                   </p>
                   <p className="mt-2 line-clamp-2 text-sm font-medium">{row.englishVo}</p>
+                  {/* Rewrite the storyboard text for this clip (and optionally redraw it) */}
+                  {ready ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditingClipNumber(row.clipNumber)}
+                      disabled={busy}
+                      className="mt-3 inline-flex min-h-[34px] cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/15 bg-paper px-3 text-xs font-semibold transition hover:border-accent-ink/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {pending === `clip:${row.clipNumber}` ||
+                      pending === `clip:${row.clipNumber}:regen` ? (
+                        <Spinner className="h-3.5 w-3.5" />
+                      ) : (
+                        <EditIcon />
+                      )}
+                      編輯分鏡內容
+                    </button>
+                  ) : null}
                 </div>
               </motion.li>
             );
@@ -240,6 +285,23 @@ export function FramesTimeline({
           onClose={() => setEditing(null)}
           onRegenerate={(revision) =>
             onRegenerate(editing.clipNumber, editing.position, revision)
+          }
+        />
+      ) : null}
+
+      {/* Clip text editor: save for free, or save + redraw both frames */}
+      {editingClipRow ? (
+        <ClipEditDialog
+          key={editingClipRow.clipNumber}
+          clip={editingClipRow}
+          language={project.language}
+          credits={credits}
+          canRegenerate={ready && !busy}
+          pending={clipEditPending}
+          error={error}
+          onClose={() => setEditingClipNumber(null)}
+          onSave={(input, regenerate) =>
+            onUpdateClip(editingClipRow.clipNumber, input, regenerate)
           }
         />
       ) : null}
@@ -361,6 +423,14 @@ function PencilIcon({ className = "h-6 w-6" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
       <path d="m4 20 4-1 10-10-3-3L5 16l-1 4Zm11-14 3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M4 20h4l10-10-4-4L4 16v4Zm10-14 4 4M4 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

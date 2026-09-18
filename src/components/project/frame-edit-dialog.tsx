@@ -27,21 +27,6 @@ const FALLBACK_SIZE: Record<AspectRatio, { width: number; height: number }> = {
   "1:1": { width: 1024, height: 1024 },
 };
 
-// Marker colours for annotations; the first one is the default.
-const COLORS = [
-  { id: "red", value: "#ff4d2e", label: "紅" },
-  { id: "blue", value: "#2563eb", label: "藍" },
-  { id: "green", value: "#16a34a", label: "綠" },
-  { id: "ink", value: "#12141c", label: "黑" },
-];
-
-// Brush widths in CSS px (scaled to the image resolution inside the canvas).
-const SIZES = [
-  { id: "thin", value: 4, label: "細" },
-  { id: "mid", value: 8, label: "中" },
-  { id: "bold", value: 14, label: "粗" },
-];
-
 const MAX_REMARK_LENGTH = 600;
 
 // Fabric.js touches `window` on import; load the editor in the browser only.
@@ -59,8 +44,8 @@ const AnnotationEditor = dynamic(
 
 // Per-tool guidance shown under the canvas.
 const TOOL_HINT: Record<AnnotationTool, string> = {
-  draw: "把要改的地方圈起來、畫箭頭指出移動方向，效果最好。畫完可切到「選取」調整。",
-  select: "點選物件即可拖曳；拉角落把手縮放、上方把手旋轉；按 Delete 刪除。",
+  draw: "把要改的地方圈起來、畫箭頭指出方向；在圖上連點兩下可加上文字備註。畫完可切到「選取」調整。",
+  select: "點選物件即可拖曳；拉角落把手縮放、上方把手旋轉；按 Delete 刪除。連點兩下空白處可加文字。",
   text: "在圖上點一下放置文字，輸入完點其他地方結束。",
 };
 
@@ -91,8 +76,6 @@ export function FrameEditDialog({
   const src = frame.blobUrl || frame.outputUrl || "";
 
   const [tool, setTool] = useState<AnnotationTool>("draw");
-  const [color, setColor] = useState(COLORS[0].value);
-  const [size, setSize] = useState(SIZES[1].value);
   // Objects on the annotation layer (strokes + texts) and how many are selected.
   const [objectCount, setObjectCount] = useState(0);
   const [selectedCount, setSelectedCount] = useState(0);
@@ -185,42 +168,6 @@ export function FrameEditDialog({
                 </ToggleButton>
               </ToolGroup>
 
-              {/* Colour applies to the brush and to whatever is selected */}
-              <ToolGroup label="顏色">
-                {COLORS.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    aria-label={item.label}
-                    title={item.label}
-                    aria-pressed={color === item.value}
-                    onClick={() => setColor(item.value)}
-                    className={`h-7 w-7 cursor-pointer rounded-full border-2 transition ${
-                      color === item.value
-                        ? "border-accent-ink scale-110"
-                        : "border-transparent hover:scale-105"
-                    }`}
-                    style={{ backgroundColor: item.value }}
-                  />
-                ))}
-              </ToolGroup>
-
-              <ToolGroup label="粗細">
-                {SIZES.map((item) => (
-                  <ToggleButton
-                    key={item.id}
-                    active={size === item.value}
-                    onClick={() => setSize(item.value)}
-                    label={item.label}
-                  >
-                    <span
-                      className="block rounded-full bg-current"
-                      style={{ width: item.value + 2, height: item.value + 2 }}
-                    />
-                  </ToggleButton>
-                ))}
-              </ToolGroup>
-
               <div className="ml-auto flex items-center gap-1.5">
                 <SmallButton
                   onClick={() => editorRef.current?.deleteSelected()}
@@ -266,8 +213,6 @@ export function FrameEditDialog({
                   width={imageSize.width}
                   height={imageSize.height}
                   tool={tool}
-                  color={color}
-                  size={size}
                   onChange={setObjectCount}
                   onSelectionChange={setSelectedCount}
                   onToolChange={setTool}

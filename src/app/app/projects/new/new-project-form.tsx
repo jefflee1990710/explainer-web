@@ -10,6 +10,7 @@ import {
   approveAndGenerateAction,
   approveStoryboardAction,
   regenerateFrameAction,
+  updateClipStoryboardAction,
 } from "@/lib/actions/generation";
 import {
   createVideoAction,
@@ -22,6 +23,7 @@ import { failedStepFor } from "@/lib/project-status";
 import type { PublicCharacter, PublicSkill, PublicVideo } from "@/lib/serialize";
 import type {
   AspectRatio,
+  ClipStoryboardInput,
   DurationPreset,
   FramePosition,
   FrameRevisionInput,
@@ -150,9 +152,10 @@ export function NewProjectForm({
       if (result.error.includes("訂閱") || result.error.includes("credits 不足")) {
         router.push("/app/billing");
       }
-      return;
+      return false;
     }
     setProject(result.project);
+    return true;
   }
 
   // Step 1: storyboard approved → generate start/end frames.
@@ -176,6 +179,18 @@ export function NewProjectForm({
     if (!project) return;
     void runPaid(`frame:${clipNumber}:${position}`, () =>
       regenerateFrameAction(project.id, clipNumber, position, revision),
+    );
+  }
+
+  // Rewrite one clip's storyboard text; optionally redraw its two frames (2 credits).
+  function onUpdateClip(
+    clipNumber: number,
+    input: ClipStoryboardInput,
+    regenerate: boolean,
+  ) {
+    if (!project) return Promise.resolve(false);
+    return runPaid(`clip:${clipNumber}${regenerate ? ":regen" : ""}`, () =>
+      updateClipStoryboardAction(project.id, clipNumber, input, { regenerate }),
     );
   }
 
@@ -367,6 +382,7 @@ export function NewProjectForm({
               error={error}
               onApprove={onApproveFrames}
               onRegenerate={onRegenerateFrame}
+              onUpdateClip={onUpdateClip}
             />
           ) : project?.status === "approved" ? (
             <DirectorProgress key="phase-b" mode="production" />

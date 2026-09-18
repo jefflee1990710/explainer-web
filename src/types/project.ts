@@ -61,6 +61,12 @@ export type StoryboardRow = {
   bgmSfx: string;
 };
 
+// Storyboard fields the user may rewrite per clip while reviewing frames.
+export type ClipStoryboardInput = Pick<
+  StoryboardRow,
+  "explainerScene" | "motionCamera" | "englishVo" | "referenceTranslation"
+>;
+
 export type PhaseAProposal = {
   englishTitle: string;
   localizedTitle: string;

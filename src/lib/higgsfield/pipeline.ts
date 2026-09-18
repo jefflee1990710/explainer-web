@@ -174,31 +174,54 @@ async function submitFrameJobs(project: Project) {
   }
 }
 
-// Re-run one frame (caller already charged 1 credit). Replaces the old job.
-// `revision` carries the director's remark / annotated reference, if any.
-export async function regenerateFrame(
-  project: Project,
-  clipNumber: number,
-  position: FramePosition,
-  revision?: FrameRevision,
-) {
+export type FrameTarget = {
+  clipNumber: number;
+  position: FramePosition;
+  // Director's remark / annotated reference for this redo, if any.
+  revision?: FrameRevision;
+};
+
+// Re-run one or more frames (caller already charged 1 credit each). Each old
+// job is replaced; the project flips back to `frames_generating` until every
+// frame settles again. `project` must carry the storyboard the prompts should
+// be built from (re-fetch after editing a clip).
+export async function regenerateFrames(project: Project, targets: FrameTarget[]) {
+  if (targets.length === 0) return;
   const skill = await loadSkill(project);
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
 
-  await jobs.deleteMany({
-    projectId: project._id,
-    kind: "frame",
-    clipIndex: clipNumber - 1,
-    framePosition: position,
-  });
-  await submitOneFrame(project, skill, clipNumber, position, revision);
+  for (const target of targets) {
+    await jobs.deleteMany({
+      projectId: project._id,
+      kind: "frame",
+      clipIndex: target.clipNumber - 1,
+      framePosition: target.position,
+    });
+    await submitOneFrame(
+      project,
+      skill,
+      target.clipNumber,
+      target.position,
+      target.revision,
+    );
+  }
 
   await projects.updateOne(
     { _id: project._id },
     { $set: { status: "frames_generating", updatedAt: new Date() } },
   );
   await syncProjectFromJobs(project._id);
+}
+
+// Single-frame convenience wrapper.
+export async function regenerateFrame(
+  project: Project,
+  clipNumber: number,
+  position: FramePosition,
+  revision?: FrameRevision,
+) {
+  await regenerateFrames(project, [{ clipNumber, position, revision }]);
 }
 
 // ---------- stage 2: video clips ----------

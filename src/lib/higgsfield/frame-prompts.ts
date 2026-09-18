@@ -6,7 +6,12 @@ import type {
   Project,
 } from "@/types/project";
 
-// Extra prompt lines for a redo driven by the director's remark and/or an
+// The annotation editor draws every marking in this single colour; naming it
+// lets the model separate the user's remarks from the artwork. Keep in sync
+// with `ANNOTATION_COLOR` in `components/annotation-editor.tsx`.
+export const ANNOTATION_COLOR_NAME = "bright red-orange (#ff4d2e)";
+
+// Extra prompt lines for a redo driven by the user's remark and/or an
 // annotated copy of the previous frame (attached as the first reference image).
 export function revisionLines(revision: FrameRevision | undefined) {
   if (!revision) return [];
@@ -14,13 +19,14 @@ export function revisionLines(revision: FrameRevision | undefined) {
   const lines: string[] = [];
   if (revision.annotatedUrl) {
     lines.push(
-      "REVISION: the FIRST attached reference image is the previous version of this exact frame with the director's hand-drawn markings (coloured strokes, circles, arrows, scribbled notes).",
-      "Redraw the frame keeping the same composition and characters, applying the changes the markings point to.",
-      "The markings are instructions only — do NOT reproduce the strokes, arrows or handwriting in the output.",
+      `REVISION: the FIRST attached reference image is the previous version of this exact frame with the USER'S REMARKS drawn on top in ${ANNOTATION_COLOR_NAME}: freehand strokes (circles, arrows, scribbles) and short bold text notes in that same colour.`,
+      `Everything in ${ANNOTATION_COLOR_NAME} is a remark from the user about what to change — it is NOT part of the artwork. Treat the ${ANNOTATION_COLOR_NAME} text as written instructions and apply each one to the area it sits on or points to.`,
+      "Redraw the frame keeping the same composition and characters, applying those changes.",
+      `Do NOT reproduce any ${ANNOTATION_COLOR_NAME} strokes, arrows or notes in the output; the new frame must contain no annotations.`,
     );
   }
   if (remark) {
-    lines.push(`Director's notes for this redo: ${remark}`);
+    lines.push(`User's typed remark for this redo (also an instruction, not on-canvas text): ${remark}`);
   }
   return lines;
 }

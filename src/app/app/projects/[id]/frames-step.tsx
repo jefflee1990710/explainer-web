@@ -6,9 +6,14 @@ import { FramesTimeline } from "@/components/project/frames-timeline";
 import {
   approveAndGenerateAction,
   regenerateFrameAction,
+  updateClipStoryboardAction,
 } from "@/lib/actions/generation";
 import type { PublicProject } from "@/lib/serialize";
-import type { FramePosition, FrameRevisionInput } from "@/types/project";
+import type {
+  ClipStoryboardInput,
+  FramePosition,
+  FrameRevisionInput,
+} from "@/types/project";
 
 // Project-page wrapper around the shared timeline; refreshes the server
 // render after each paid action so status flips on the page.
@@ -29,6 +34,7 @@ export function FramesStep({
     return null;
   }
 
+  // Runs an action under a pending key; resolves true when it succeeded.
   async function run(
     key: string,
     action: () => Promise<
@@ -44,9 +50,10 @@ export function FramesStep({
       if (result.error.includes("訂閱") || result.error.includes("credits 不足")) {
         router.push("/app/billing");
       }
-      return;
+      return false;
     }
     router.refresh();
+    return true;
   }
 
   return (
@@ -64,6 +71,15 @@ export function FramesStep({
       ) =>
         void run(`frame:${clipNumber}:${position}`, () =>
           regenerateFrameAction(project.id, clipNumber, position, revision),
+        )
+      }
+      onUpdateClip={(
+        clipNumber: number,
+        input: ClipStoryboardInput,
+        regenerate: boolean,
+      ) =>
+        run(`clip:${clipNumber}${regenerate ? ":regen" : ""}`, () =>
+          updateClipStoryboardAction(project.id, clipNumber, input, { regenerate }),
         )
       }
     />

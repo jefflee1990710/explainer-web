@@ -12,9 +12,15 @@ import {
 } from "@/lib/director/jobs";
 import { persistFrameAnnotation } from "@/lib/higgsfield/frame-annotation";
 import { buildFramePrompt, initialFrames } from "@/lib/higgsfield/frame-prompts";
-import { refreshProjectJobs, regenerateFrame } from "@/lib/higgsfield/pipeline";
+import {
+  refreshProjectJobs,
+  regenerateFrame,
+  regenerateFrames,
+} from "@/lib/higgsfield/pipeline";
 import { toPublicVideo, type PublicVideo } from "@/lib/serialize";
 import type {
+  ClipFrame,
+  ClipStoryboardInput,
   FramePosition,
   FrameRevision,
   FrameRevisionInput,
@@ -172,6 +178,104 @@ export async function regenerateFrameAction(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "重新產生分鏡圖失敗",
+    };
+  }
+}
+
+// Storyboard text feeds the image prompts; cap each field.
+const MAX_STORYBOARD_FIELD_LENGTH = 1200;
+
+function cleanField(value: unknown) {
+  return typeof value === "string"
+    ? value.trim().slice(0, MAX_STORYBOARD_FIELD_LENGTH)
+    : "";
+}
+
+// Rewrite one clip's storyboard while reviewing frames (free). With
+// `regenerate`, that clip's start + end frames are redrawn from the new text
+// (1 credit each). The previous clip's end-frame prompt is refreshed too since
+// it hands off to this clip's scene, but it is not redrawn automatically.
+export async function updateClipStoryboardAction(
+  projectId: string,
+  clipNumber: number,
+  input: ClipStoryboardInput,
+  options?: { regenerate?: boolean },
+): Promise<ProjectResult> {
+  try {
+    const user = await requireAppUser();
+    if (!ObjectId.isValid(projectId)) {
+      return { ok: false, error: "專案不存在" };
+    }
+
+    const clean: ClipStoryboardInput = {
+      explainerScene: cleanField(input?.explainerScene),
+      motionCamera: cleanField(input?.motionCamera),
+      englishVo: cleanField(input?.englishVo),
+      referenceTranslation: cleanField(input?.referenceTranslation),
+    };
+    if (!clean.explainerScene) return { ok: false, error: "畫面描述不能空白" };
+    if (!clean.englishVo) return { ok: false, error: "旁白不能空白" };
+
+    const projects = await videosCollection();
+    const project = await projects.findOne({
+      _id: new ObjectId(projectId),
+      clerkUserId: user.clerkUserId,
+    });
+    if (!project?.phaseA) return { ok: false, error: "專案不存在" };
+    if (project.status !== "frames_ready") {
+      return { ok: false, error: "請等分鏡圖全部完成後再編輯分鏡" };
+    }
+    const clipIndex = project.phaseA.clips.findIndex(
+      (clip) => clip.clipNumber === clipNumber,
+    );
+    if (clipIndex < 0) return { ok: false, error: "找不到這段分鏡" };
+
+    const regenerate = options?.regenerate === true;
+    const cost = regenerate ? 2 : 0;
+    if (regenerate) await assertCanSpendCredits(user, cost);
+
+    // Apply the edit in memory first so frame prompts are rebuilt from the new text.
+    const clips = project.phaseA.clips.map((clip, index) =>
+      index === clipIndex ? { ...clip, ...clean } : clip,
+    );
+    const nextProject = {
+      ...project,
+      phaseA: { ...project.phaseA, clips },
+    };
+    const frames: ClipFrame[] = (project.frames || []).map((frame) => {
+      const own = frame.clipNumber === clipNumber;
+      const handoff = frame.clipNumber === clipNumber - 1 && frame.position === "end";
+      if (!own && !handoff) return frame;
+      // A redo from new text starts clean: old sketches described the old scene.
+      const next: ClipFrame = { ...frame };
+      if (regenerate && own) delete next.revision;
+      next.prompt = buildFramePrompt(nextProject, frame.clipNumber, frame.position, next.revision);
+      return next;
+    });
+
+    if (regenerate) await consumeCredits(user.clerkUserId, cost);
+    await projects.updateOne(
+      { _id: project._id },
+      {
+        $set: { "phaseA.clips": clips, frames, updatedAt: new Date() },
+        ...(regenerate ? { $inc: { framesCreditCost: cost } } : {}),
+      },
+    );
+
+    if (regenerate) {
+      await regenerateFrames({ ...nextProject, frames }, [
+        { clipNumber, position: "start" },
+        { clipNumber, position: "end" },
+      ]);
+    }
+
+    const updated = await projects.findOne({ _id: project._id });
+    revalidateProject(projectId);
+    return { ok: true, project: toPublicVideo(updated!) };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "更新分鏡失敗",
     };
   }
 }
