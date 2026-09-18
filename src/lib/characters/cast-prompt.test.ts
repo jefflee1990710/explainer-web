@@ -37,6 +37,30 @@ test("phase A cast block names every member and asks for a lock summary", () => 
   assert.equal(castBlockForPhaseA(undefined), null);
 });
 
+test("phase A cast block never lets the director invent looks for an undescribed member", () => {
+  const imageOnly: CastMember[] = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Math Tutor",
+      blueprintUrl: "https://blob/c.png",
+      // Image-only character: no text description was ever written.
+      prompt: "",
+    },
+  ];
+  const block = castBlockForPhaseA(imageOnly)!;
+  assert.match(block, /- Math Tutor: \(appearance defined only by the attached reference sheet\)/);
+  assert.match(block, /Do NOT invent or describe hair, face, clothing, accessories, gender or age/);
+  assert.match(block, /characterLock must only list the cast names/);
+  assert.doesNotMatch(block, /- Math Tutor: $/m);
+});
+
+test("phase A cast block still summarises described members", () => {
+  const block = castBlockForPhaseA(cast)!;
+  assert.match(block, /Write characterLock as a compact summary of the cast above/);
+  assert.doesNotMatch(block, /appearance defined only by the attached reference sheet/);
+});
+
 test("phase B line lists names with blueprint urls or none", () => {
   assert.equal(
     castLineForPhaseB(cast),
@@ -48,6 +72,8 @@ test("phase B line lists names with blueprint urls or none", () => {
 test("frame paragraph and reference urls follow the cast", () => {
   const lines = castParagraphForFrames(cast);
   assert.match(lines[0], /Cast reference sheets are attached/);
+  assert.match(lines[0], /the ONLY source of truth for how each character looks/);
+  assert.match(lines[0], /the reference sheet wins/);
   assert.match(lines[1], /小明, 阿花/);
   assert.deepEqual(castParagraphForFrames(undefined), []);
   assert.deepEqual(castReferenceUrls(cast), ["https://blob/a.png", "https://blob/b.png"]);

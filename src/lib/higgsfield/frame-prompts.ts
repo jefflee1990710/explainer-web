@@ -73,12 +73,18 @@ export function buildFramePrompt(
               : ""
         }`;
 
+  const hasCast = Boolean(project.cast && project.cast.length > 0);
+
   return [
     ...styleLinesForFrame(style),
     `Visual world: ${phaseA.visualWorld}`,
     `Palette: ${phaseA.palette}`,
-    `Locked character (must look identical in every frame): ${phaseA.characterLock}`,
+    // With a cast, the sheet rule comes first and the text lock is demoted to
+    // a staging hint; without one, the text lock is the only identity anchor.
     ...castParagraphForFrames(project.cast),
+    hasCast
+      ? `Locked character (names and staging hint; appearance comes from the attached sheets): ${phaseA.characterLock}`
+      : `Locked character (must look identical in every frame): ${phaseA.characterLock}`,
     `Scene: ${row.explainerScene}`,
     `Motion and camera across the clip: ${row.motionCamera}`,
     moment,
