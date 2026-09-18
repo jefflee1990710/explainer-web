@@ -12,8 +12,10 @@ test("blueprint prompt lays out turnaround, walk cycle, and expression grid", ()
   assert.match(prompt, /walk cycle/i);
   assert.match(prompt, /3 by 4 grid of head-and-shoulders expressions/i);
   assert.match(prompt, /solid white background/i);
-  assert.match(prompt, /generous white padding on all four sides/i);
+  assert.match(prompt, /3:2 landscape canvas/i);
+  assert.match(prompt, /Leave at least 12% blank white space/i);
   assert.match(prompt, /Nothing may touch, clip, or extend beyond the image border/i);
+  assert.match(prompt, /Final check: every drawing must be fully visible/i);
   assert.match(prompt, /bold irregular black marker outlines/i);
   assert.match(prompt, /小男孩/);
   assert.doesNotMatch(prompt, /reference image/i);

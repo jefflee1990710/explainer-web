@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { refundCredits } from "@/lib/billing/credits";
 import { charactersCollection } from "@/lib/collections";
+import { reframeBlueprintBuffer } from "@/lib/characters/blueprint-framing";
 import { persistMedia } from "@/lib/higgsfield/persist";
 import type { GenerationJob, GenerationStatus } from "@/types/generation-job";
 
@@ -115,6 +116,7 @@ export async function syncCharacterJob(
       blueprintUrl = await persistMedia(
         outputUrl,
         `explainer/characters/${job.characterId.toHexString()}/${job.versionId.toHexString()}`,
+        { transform: reframeBlueprintBuffer },
       );
     } catch {
       await failVersion("藍圖保存失敗");
