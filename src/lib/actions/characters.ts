@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/lib/auth";
 import {
@@ -166,8 +167,12 @@ export async function createCharacterAction(
       throw error;
     }
 
-    await submitOrFail(character, version);
-    revalidateCharacter(character._id.toHexString());
+    const characterId = character._id.toHexString();
+    after(async () => {
+      await submitOrFail(character, version);
+      revalidateCharacter(characterId);
+    });
+    revalidateCharacter(characterId);
     return reload(character._id);
   } catch (error) {
     return fail(error, "建立角色失敗");
@@ -228,7 +233,10 @@ export async function editCharacterVersionAction(
       throw error;
     }
 
-    await submitOrFail(character, version);
+    after(async () => {
+      await submitOrFail(character, version);
+      revalidateCharacter(characterId);
+    });
     revalidateCharacter(characterId);
     return reload(character._id);
   } catch (error) {
@@ -330,7 +338,11 @@ export async function retryCharacterVersionAction(
       throw error;
     }
 
-    await submitOrFail(doc, { ...ver, status: "queued", creditsCharged: true });
+    const retryVersion = { ...ver, status: "queued" as const, creditsCharged: true };
+    after(async () => {
+      await submitOrFail(doc, retryVersion);
+      revalidateCharacter(characterId);
+    });
     revalidateCharacter(characterId);
     return reload(doc._id);
   } catch (error) {
@@ -384,6 +396,20 @@ export async function renameCharacterAction(
     return reload(character._id);
   } catch (error) {
     return fail(error, "重新命名失敗");
+  }
+}
+
+// Lightweight read used by the workspace while jobs run in the background.
+export async function getCharacterAction(
+  characterId: string,
+): Promise<CharacterResult> {
+  try {
+    const user = await requireAppUser();
+    const character = await ownedCharacter(characterId, user.clerkUserId);
+    if (!character) return { ok: false, error: "角色不存在" };
+    return { ok: true, character: toPublicCharacter(character) };
+  } catch (error) {
+    return fail(error, "讀取角色失敗");
   }
 }
 

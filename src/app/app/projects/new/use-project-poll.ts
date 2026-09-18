@@ -18,7 +18,7 @@ const NEEDS_JOB_REFRESH = new Set<PublicVideo["status"]>([
   "generating",
 ]);
 
-// Poll the selected video while a background job is running; stops on terminal states.
+// Poll the selected video while a background job is running; first tick is immediate.
 export function useProjectPoll(
   project: PublicVideo | null,
   onUpdate: (project: PublicVideo) => void,
@@ -30,34 +30,32 @@ export function useProjectPoll(
 
   useEffect(() => {
     if (!id || !status || !IN_FLIGHT.has(status)) return;
-    // Storyboard writing is quick; image and video generation are slower.
     const interval =
       status === "generating" ? 4000 : status === "frames_generating" ? 3000 : 2500;
     let cancelled = false;
 
-    const timer = window.setInterval(() => {
-      void (async () => {
-        // Higgsfield jobs only advance when refreshProjectJobs runs.
-        if (NEEDS_JOB_REFRESH.has(status)) {
-          const refreshed = await refreshGenerationAction(id);
-          if (cancelled) return;
-          if (!refreshed.ok) {
-            onError?.(refreshed.error);
-            return;
-          }
-        }
-
-        const result = await getProjectAction(id);
+    async function tick() {
+      if (NEEDS_JOB_REFRESH.has(status!)) {
+        const refreshed = await refreshGenerationAction(id!);
         if (cancelled) return;
-        if (result.ok) {
-          onUpdate(result.project);
-          router.refresh();
-        } else {
-          onError?.(result.error);
+        if (!refreshed.ok) {
+          onError?.(refreshed.error);
+          return;
         }
-      })();
-    }, interval);
+      }
 
+      const result = await getProjectAction(id!);
+      if (cancelled) return;
+      if (result.ok) {
+        onUpdate(result.project);
+        if (!IN_FLIGHT.has(result.project.status)) router.refresh();
+      } else {
+        onError?.(result.error);
+      }
+    }
+
+    void tick();
+    const timer = window.setInterval(() => void tick(), interval);
     return () => {
       cancelled = true;
       window.clearInterval(timer);

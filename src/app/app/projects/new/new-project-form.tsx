@@ -46,6 +46,7 @@ export function NewProjectForm({
   initialVideo = null,
   credits,
   subscribed,
+  onVideoCreated,
 }: {
   projectId: string;
   skills: PublicSkill[];
@@ -53,6 +54,7 @@ export function NewProjectForm({
   initialVideo?: PublicVideo | null;
   credits: number;
   subscribed: boolean;
+  onVideoCreated?: (video: PublicVideo) => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -109,9 +111,10 @@ export function NewProjectForm({
       setError(result.error);
       return;
     }
+    // Switch to the stepper immediately; Phase A runs in the background.
     setProject(result.project);
+    onVideoCreated?.(result.project);
     router.replace(`${pathname}?video=${result.project.id}`);
-    router.refresh();
   }
 
   async function onRevise(note: string) {
@@ -124,7 +127,10 @@ export function NewProjectForm({
     const result = await reviseProjectAction(data);
     setPending("");
     if (!result.ok) setError(result.error);
-    else setProject(result.project);
+    else {
+      // Phase A runs in the background; poll picks up the storyboard.
+      setProject(result.project);
+    }
   }
 
   // Shared handler for both paid approvals; billing errors bounce to /app/billing.
@@ -146,7 +152,6 @@ export function NewProjectForm({
       return;
     }
     setProject(result.project);
-    router.refresh();
   }
 
   // Step 1: storyboard approved → generate start/end frames.

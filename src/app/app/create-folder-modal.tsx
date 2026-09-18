@@ -64,6 +64,7 @@ export function CreateFolderModal({ onClose }: { onClose: () => void }) {
       setError(result.error);
       return;
     }
+    onClose();
     router.push(`/app/projects/${result.folder.id}`);
   }
 

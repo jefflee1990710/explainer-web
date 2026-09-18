@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   editCharacterVersionAction,
+  getCharacterAction,
   renameCharacterAction,
   retryCharacterVersionAction,
   setDefaultVersionAction,
@@ -32,6 +33,19 @@ export function CharacterWorkspace({
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   const [name, setName] = useState(initial.name);
+
+  // SSR gives a first paint; refresh in the background after navigation.
+  useEffect(() => {
+    let cancelled = false;
+    void getCharacterAction(initial.id).then((result) => {
+      if (cancelled) return;
+      if (result.ok) setCharacter(result.character);
+      else setError(result.error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [initial.id]);
 
   const onPoll = useCallback((next: PublicCharacter) => setCharacter(next), []);
   const onPollError = useCallback((message: string) => setError(message), []);
@@ -61,7 +75,6 @@ export function CharacterWorkspace({
         return;
       }
       setCharacter(result.character);
-      router.refresh();
       return result.character;
     } catch {
       setError("操作失敗，請再試一次");

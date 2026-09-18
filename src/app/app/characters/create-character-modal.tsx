@@ -111,6 +111,8 @@ export function CreateCharacterModal({
         }
         return;
       }
+      // DB row exists; Higgsfield submit runs in the background after navigation.
+      onClose();
       router.push(`/app/characters/${result.character.id}`);
     } catch {
       setError("建立角色失敗，請再試一次");

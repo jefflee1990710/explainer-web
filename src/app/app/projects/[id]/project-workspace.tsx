@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { getProjectAction } from "@/lib/actions/projects";
+import { Spinner } from "@/components/spinner";
+import type { PublicCharacter, PublicFolder, PublicSkill, PublicVideo } from "@/lib/serialize";
 import { NewProjectForm } from "../new/new-project-form";
-import type { PublicCharacter, PublicFolder, PublicSkill } from "@/lib/serialize";
 import { VideoList } from "./video-list";
 
 // Split folder workspace: video list on the left, create/stepper form on the right.
@@ -24,10 +27,39 @@ export function ProjectWorkspace({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const videoParam = searchParams.get("video");
-  const selectedVideo = videoParam
-    ? folder.videos.find((video) => video.id === videoParam) || null
+  const listedVideo = videoParam
+    ? folder.videos.find((video) => video.id === videoParam) ?? null
     : null;
-  const selectedId = selectedVideo?.id ?? null;
+  const [loadedVideo, setLoadedVideo] = useState<{
+    param: string;
+    video: PublicVideo;
+  } | null>(null);
+  const [optimisticVideo, setOptimisticVideo] = useState<PublicVideo | null>(null);
+
+  // After create, ?video= may point at a row not yet in the SSR folder list.
+  useEffect(() => {
+    if (!videoParam || listedVideo) return;
+    let cancelled = false;
+    void getProjectAction(videoParam).then((result) => {
+      if (cancelled || !result.ok) return;
+      setLoadedVideo({ param: videoParam, video: result.project });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [videoParam, listedVideo]);
+
+  const selectedVideo =
+    listedVideo ??
+    (optimisticVideo?.id === videoParam ? optimisticVideo : null) ??
+    (loadedVideo?.param === videoParam ? loadedVideo.video : null);
+  const videoLoading = Boolean(videoParam && !selectedVideo);
+  const videos = useMemo(() => {
+    if (!selectedVideo || folder.videos.some((video) => video.id === selectedVideo.id)) {
+      return folder.videos;
+    }
+    return [selectedVideo, ...folder.videos];
+  }, [folder.videos, selectedVideo]);
 
   function onSelect(id: string) {
     router.replace(`${pathname}?video=${id}`);
@@ -54,20 +86,30 @@ export function ProjectWorkspace({
 
       <div className="grid gap-6 md:grid-cols-[17.5rem_minmax(0,1fr)] md:items-start">
         <VideoList
-          videos={folder.videos}
-          selectedId={selectedId}
+          videos={videos}
+          selectedId={videoParam}
           onSelect={onSelect}
           onCreate={onCreate}
         />
-        <NewProjectForm
-          key={selectedId ?? "new"}
-          projectId={folder.id}
-          skills={skills}
-          characters={characters}
-          initialVideo={selectedVideo}
-          credits={credits}
-          subscribed={subscribed}
-        />
+        {videoLoading ? (
+          <div className="grid min-h-[16rem] place-items-center rounded-[1.75rem] border border-accent-ink/10 bg-paper/85 p-6">
+            <p className="inline-flex items-center gap-2 text-sm text-muted">
+              <Spinner />
+              載入影片中…
+            </p>
+          </div>
+        ) : (
+          <NewProjectForm
+            key={videoParam ?? "new"}
+            projectId={folder.id}
+            skills={skills}
+            characters={characters}
+            initialVideo={selectedVideo}
+            credits={credits}
+            subscribed={subscribed}
+            onVideoCreated={setOptimisticVideo}
+          />
+        )}
       </div>
     </div>
   );
