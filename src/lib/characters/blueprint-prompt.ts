@@ -3,8 +3,9 @@ import { STYLES, type StyleId } from "@/lib/styles";
 // Fixed character-sheet layout so every version is comparable side by side.
 const SHEET_LAYOUT = [
   "Character model sheet on a single 16:9 canvas, solid white background, no text, no labels, no drop shadows, consistent scale across all drawings.",
-  "Left two thirds: top row is a full-body turnaround of the same character standing in front, back, left, and right views; bottom row is a 4-pose walk cycle of the same character moving left to right.",
-  "Right third: a 3 by 4 grid of head-and-shoulders expressions in this order: neutral, smile, frown, laugh, angry, surprised, curious, worried, sad, focused, shy, sleepy.",
+  "Framing: scale the whole sheet down so every drawing fits fully inside the canvas with generous white padding on all four sides. Leave at least 8% empty margin on the top, bottom, left, and right. Nothing may touch, clip, or extend beyond the image border — no cropped heads, hair, hands, or feet.",
+  "Left two thirds: top row is a full-body turnaround of the same character standing in front, back, left, and right views; bottom row is a 4-pose walk cycle of the same character moving left to right. Keep each pose small enough that all four turnaround views and all four walk poses are completely visible.",
+  "Right third: a 3 by 4 grid of head-and-shoulders expressions in this order: neutral, smile, frown, laugh, angry, surprised, curious, worried, sad, focused, shy, sleepy. Each expression must fit entirely inside its cell with clear spacing.",
 ];
 
 export function buildBlueprintPrompt(input: {
