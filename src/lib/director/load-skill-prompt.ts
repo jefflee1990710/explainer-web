@@ -1,3 +1,4 @@
+import { styleBlockForDirector, type Style } from "@/lib/styles";
 import type { Skill } from "@/types/skill";
 
 const PHASE_A_REFS = [
@@ -15,10 +16,10 @@ function attachReferences(skill: Skill, paths: string[]) {
   return `${skill.systemPrompt}${extras}`;
 }
 
-export function skillPromptForPhaseA(skill: Skill) {
-  return attachReferences(skill, PHASE_A_REFS);
+export function skillPromptForPhaseA(skill: Skill, style: Style) {
+  return `${attachReferences(skill, PHASE_A_REFS)}\n\n${styleBlockForDirector(style)}`;
 }
 
-export function skillPromptForPhaseB(skill: Skill) {
-  return attachReferences(skill, PHASE_B_REFS);
+export function skillPromptForPhaseB(skill: Skill, style: Style) {
+  return `${attachReferences(skill, PHASE_B_REFS)}\n\n${styleBlockForDirector(style)}`;
 }

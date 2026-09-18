@@ -4,12 +4,14 @@ import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { skillPromptForPhaseB } from "@/lib/director/load-skill-prompt";
 import { directorModel } from "@/lib/director/model";
 import { phaseBSchema } from "@/lib/director/schemas";
+import type { Style } from "@/lib/styles";
 import type { CastMember } from "@/types/character";
 import type { PhaseAProposal, PhaseBPackage, VoLanguage } from "@/types/project";
 import type { Skill } from "@/types/skill";
 
 export async function runPhaseB(input: {
   skill: Skill;
+  style: Style;
   phaseA: PhaseAProposal;
   language?: VoLanguage;
   characterImageUrl?: string;
@@ -19,7 +21,7 @@ export async function runPhaseB(input: {
   const { output } = await generateText({
     model: directorModel(),
     output: Output.object({ schema: phaseBSchema }),
-    system: `${skillPromptForPhaseB(input.skill)}
+    system: `${skillPromptForPhaseB(input.skill, input.style)}
 
 You are executing Phase B only after explicit approval of the current Phase A.
 Return standalone Wan 3 video prompts that follow the skill prompt contract. Do not invent new facts.

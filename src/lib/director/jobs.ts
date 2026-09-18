@@ -7,6 +7,7 @@ import {
   startFrameGeneration,
   startProjectGeneration,
 } from "@/lib/higgsfield/pipeline";
+import { videoStyle } from "@/lib/higgsfield/frame-prompts";
 
 // Background jobs scheduled with next/server `after()` so the UI can poll
 // instead of blocking on the LLM / video provider round-trips.
@@ -34,6 +35,7 @@ export async function runPhaseAJob(projectId: ObjectId, revisionNote?: string) {
   try {
     const phaseA = await runPhaseA({
       skill,
+      style: videoStyle(project),
       source: revisionNote
         ? `${project.source}\n\nRevision notes from user:\n${revisionNote}`
         : project.source,
@@ -111,6 +113,7 @@ export async function runPhaseBAndGenerateJob(projectId: ObjectId) {
 
     const phaseB = await runPhaseB({
       skill,
+      style: videoStyle(project),
       phaseA: project.phaseA,
       language: project.language,
       characterImageUrl: project.characterImageUrl,

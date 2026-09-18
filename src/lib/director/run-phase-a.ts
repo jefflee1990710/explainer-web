@@ -5,6 +5,7 @@ import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { skillPromptForPhaseA } from "@/lib/director/load-skill-prompt";
 import { directorModel } from "@/lib/director/model";
 import { phaseASchema } from "@/lib/director/schemas";
+import type { Style } from "@/lib/styles";
 import type { CastMember } from "@/types/character";
 import type {
   AspectRatio,
@@ -16,6 +17,7 @@ import type { Skill } from "@/types/skill";
 
 export async function runPhaseA(input: {
   skill: Skill;
+  style: Style;
   source: string;
   aspectRatio: AspectRatio;
   durationPreset: DurationPreset;
@@ -34,7 +36,7 @@ export async function runPhaseA(input: {
   const { output } = await generateText({
     model: directorModel(),
     output: Output.object({ schema: phaseASchema }),
-    system: `${skillPromptForPhaseA(input.skill)}
+    system: `${skillPromptForPhaseA(input.skill, input.style)}
 
 You are executing Phase A only. Return structured JSON that matches the schema.
 Planning explanations (narrativeJob, explainerScene, motionCamera, hookStrategy, coreMessage, etc.) must be Traditional Chinese (繁體中文).
