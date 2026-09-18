@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import sharp from "sharp";
 import {
+  canReframeOnCanvas,
   findContentBounds,
   hexToRgb,
   isNearCanvas,
@@ -29,6 +30,21 @@ test("isNearCanvas uses the canvas colour, not white, as background", () => {
 test("hexToRgb parses 6-digit hex", () => {
   assert.deepEqual(hexToRgb(CHALK_HEX), CHALK);
   assert.deepEqual(hexToRgb("#ffffff"), WHITE);
+  assert.deepEqual(hexToRgb("2F4F3F"), CHALK);
+});
+
+test("hexToRgb rejects anything that is not strict #rrggbb", () => {
+  for (const bad of ["#fff", "#2f4f3f00", "white", "#2f4f3g", "", "#2f4f3f "]) {
+    assert.throws(() => hexToRgb(bad), /invalid canvas colour/, bad);
+  }
+});
+
+test("canReframeOnCanvas allows only near-white solid canvases", () => {
+  assert.equal(canReframeOnCanvas("#ffffff"), true);
+  // Watercolor paper: too warm/dark on the blue channel to be trusted.
+  assert.equal(canReframeOnCanvas("#fbf6ea"), false);
+  // Chalkboard: never near white.
+  assert.equal(canReframeOnCanvas("#2f4f3f"), false);
 });
 
 test("findContentBounds ignores white margins around ink", () => {

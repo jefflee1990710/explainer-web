@@ -1,7 +1,10 @@
 import type { ObjectId } from "mongodb";
 import { refundCredits } from "@/lib/billing/credits";
 import { charactersCollection } from "@/lib/collections";
-import { reframeBlueprintBuffer } from "@/lib/characters/blueprint-framing";
+import {
+  canReframeOnCanvas,
+  reframeBlueprintBuffer,
+} from "@/lib/characters/blueprint-framing";
 import { persistMedia } from "@/lib/higgsfield/persist";
 import { resolveStyle } from "@/lib/styles";
 import type { GenerationJob, GenerationStatus } from "@/types/generation-job";
@@ -112,15 +115,21 @@ export async function syncCharacterJob(
     failCharacterVersion(job.characterId!, job.versionId!, message);
 
   if (status === "completed" && outputUrl) {
-    // Reframe against the same canvas colour the blueprint prompt asked for;
-    // a white default would swallow every dark-canvas style as "content".
+    // Reframe only on near-white solid canvases, where the model reliably
+    // paints ~255 and the margin guarantee holds. Textured or dark canvases
+    // (chalkboard, paper, watercolor) never match their hex within tolerance,
+    // so the whole sheet would count as content; trust the prompt's margin
+    // rules there and persist the bytes as-is.
     const canvasColor = resolveStyle(character.styleId).canvasColor;
+    const transform = canReframeOnCanvas(canvasColor)
+      ? (buffer: Buffer) => reframeBlueprintBuffer(buffer, canvasColor)
+      : undefined;
     let blueprintUrl: string;
     try {
       blueprintUrl = await persistMedia(
         outputUrl,
         `explainer/characters/${job.characterId.toHexString()}/${job.versionId.toHexString()}`,
-        { transform: (buffer) => reframeBlueprintBuffer(buffer, canvasColor) },
+        { transform },
       );
     } catch {
       await failVersion("藍圖保存失敗");

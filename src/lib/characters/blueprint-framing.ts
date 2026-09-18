@@ -7,14 +7,24 @@ const DEFAULT_MARGIN_RATIO = 0.12;
 
 export type Rgb = { r: number; g: number; b: number };
 
-// "#rrggbb" -> channel values. Style canvas colours are always 6-digit hex.
+const HEX6 = /^#?[0-9a-f]{6}$/i;
+
+// "#rrggbb" -> channel values. Only strict 6-digit hex is accepted.
 export function hexToRgb(hex: string): Rgb {
-  const clean = hex.replace("#", "");
-  const value = Number.parseInt(clean, 16);
-  if (clean.length !== 6 || Number.isNaN(value)) {
-    throw new Error(`invalid canvas colour: ${hex}`);
+  if (!HEX6.test(hex)) {
+    throw new Error(`invalid canvas colour, expected #rrggbb: ${hex}`);
   }
+  const value = Number.parseInt(hex.replace("#", ""), 16);
   return { r: (value >> 16) & 0xff, g: (value >> 8) & 0xff, b: value & 0xff };
+}
+
+// The reframe safety-net only works when the model reliably paints the canvas
+// as near-white solid pixels. Textured or dark canvases (chalkboard, paper,
+// watercolor) never land within tolerance of their hex, so the whole sheet
+// would read as content; for those we trust the prompt's margin rules.
+export function canReframeOnCanvas(canvasHex: string): boolean {
+  const { r, g, b } = hexToRgb(canvasHex);
+  return isNearCanvas(r, g, b, { r: 255, g: 255, b: 255 });
 }
 
 // True when the pixel is within tolerance of the canvas colour on every channel.
