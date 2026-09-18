@@ -3,27 +3,30 @@
 import Link from "next/link";
 import { Show, SignUpButton } from "@clerk/nextjs";
 import { motion } from "framer-motion";
+import { useI18n } from "@/components/i18n-provider";
 import { MotionReveal } from "@/components/motion-reveal";
 
 // Full-bleed hero: brand, headline, support line, CTAs, storyboard art plane.
 export function LandingHero() {
+  const { t } = useI18n();
+
   return (
     <section className="relative min-h-[88vh] overflow-hidden border-b border-line">
       <div className="relative mx-auto grid max-w-6xl gap-10 px-6 pb-16 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-end lg:pb-20 lg:pt-24">
         <div className="relative z-10">
           <MotionReveal>
             <p className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-accent">
-              Explainer
+              {t("landing.hero.kicker")}
             </p>
           </MotionReveal>
           <MotionReveal delay={0.08}>
             <h1 className="font-display mt-4 max-w-xl text-4xl font-bold leading-[1.08] tracking-tight text-balance sm:text-5xl lg:text-6xl">
-              把概念講清楚，做成 Reels、行銷與簡報影片。
+              {t("landing.hero.title")}
             </h1>
           </MotionReveal>
           <MotionReveal delay={0.16}>
             <p className="mt-5 max-w-lg text-base leading-7 text-muted sm:text-lg">
-              選風格、核准分鏡、輸出 clips——給短影音、產品行銷與簡報使用。
+              {t("landing.hero.subtitle")}
             </p>
           </MotionReveal>
           <MotionReveal delay={0.24} className="mt-8 flex flex-wrap gap-3">
@@ -34,7 +37,7 @@ export function LandingHero() {
                   whileTap={{ scale: 0.98 }}
                   className="rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c]"
                 >
-                  開始使用
+                  {t("landing.hero.ctaStart")}
                 </motion.button>
               </SignUpButton>
             </Show>
@@ -44,7 +47,7 @@ export function LandingHero() {
                   href="/app"
                   className="inline-flex rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c]"
                 >
-                  進入工作台
+                  {t("landing.hero.ctaWorkspace")}
                 </Link>
               </motion.div>
             </Show>
@@ -53,21 +56,21 @@ export function LandingHero() {
                 href="#pricing"
                 className="inline-flex rounded-full border border-accent-ink/15 bg-paper px-6 py-3 text-sm font-semibold shadow-[4px_4px_0_0_rgba(198,242,75,0.9)]"
               >
-                看方案
+                {t("landing.hero.ctaPricing")}
               </Link>
             </motion.div>
           </MotionReveal>
         </div>
 
         <MotionReveal delay={0.18} className="relative z-10">
-          <HeroArt />
+          <HeroArt artLabel={t("landing.hero.artLabel")} />
         </MotionReveal>
       </div>
     </section>
   );
 }
 
-function HeroArt() {
+function HeroArt({ artLabel }: { artLabel: string }) {
   return (
     <div className="relative mx-auto w-full max-w-lg">
       <motion.div
@@ -79,7 +82,7 @@ function HeroArt() {
         viewBox="0 0 520 420"
         className="relative w-full drop-shadow-[0_20px_40px_rgba(18,20,28,0.12)]"
         role="img"
-        aria-label="分鏡與剪輯概念插圖"
+        aria-label={artLabel}
       >
         <rect x="24" y="36" width="472" height="348" rx="28" fill="#fffbf5" stroke="#12141c" strokeWidth="4" />
         <rect x="48" y="68" width="180" height="120" rx="18" fill="#c6f24b" stroke="#12141c" strokeWidth="3" />

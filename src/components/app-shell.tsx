@@ -1,10 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { NavLink } from "@/components/nav-link";
 import { UserButton } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { BrandMark } from "@/components/brand-mark";
+import { useI18n } from "@/components/i18n-provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { StudioBackdrop } from "@/components/studio-backdrop";
 
 // Folder and character workspaces are split panes; they get a wider canvas
@@ -18,6 +20,7 @@ export function AppShell({
   credits: number;
   children: React.ReactNode;
 }) {
+  const { t } = useI18n();
   const pathname = usePathname();
   const wide = WIDE_ROUTE.test(pathname);
 
@@ -34,32 +37,24 @@ export function AppShell({
           <div className="flex items-center gap-6">
             <BrandMark href="/app" />
             <nav className="flex gap-4 text-sm font-medium text-muted">
-              <Link href="/app" className="hover:text-foreground">
-                專案
-              </Link>
-              <Link href="/app/characters" className="hover:text-foreground">
-                角色
-              </Link>
-              <Link href="/app/billing" className="hover:text-foreground">
-                訂閱
-              </Link>
+              <NavLink href="/app">{t("nav.projects")}</NavLink>
+              <NavLink href="/app/characters">{t("nav.characters")}</NavLink>
+              <NavLink href="/app/billing">{t("nav.billing")}</NavLink>
             </nav>
           </div>
           <div className="flex items-center gap-4 text-sm">
+            <LanguageSwitcher />
             <span className="rounded-full border border-accent-ink/10 bg-lime/70 px-3 py-1 font-semibold text-accent-ink">
-              {credits} credits
+              {credits} {t("common.credits")}
             </span>
             <UserButton />
           </div>
         </motion.header>
-        <motion.main
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.05 }}
+        <main
           className={`mx-auto w-full px-6 py-10 ${wide ? "max-w-7xl" : "max-w-5xl"}`}
         >
           {children}
-        </motion.main>
+        </main>
       </div>
     </div>
   );

@@ -1,3 +1,6 @@
+"use client";
+
+import { useI18n } from "@/components/i18n-provider";
 import { creditProgress } from "@/lib/billing/credit-balance";
 import { AddCreditButton } from "./add-credit-modal";
 
@@ -8,6 +11,7 @@ export function CreditProgress({
   bonusCredits,
   periodEnd,
   subscribed,
+  dateLocale,
 }: {
   credits: number;
   creditLimit: number;
@@ -15,17 +19,32 @@ export function CreditProgress({
   bonusCredits: number;
   periodEnd?: Date;
   subscribed: boolean;
+  dateLocale: string;
 }) {
+  const { t } = useI18n();
   const limit = Math.max(creditLimit, monthlyCredits, credits);
   const { remaining, ratio } = creditProgress(credits, limit);
   const percent = Math.round(ratio * 100);
+
+  let summary = t("billing.remainingSummary", { remaining });
+  if (monthlyCredits > 0) {
+    summary += t("billing.monthlyAllowance", { monthly: monthlyCredits });
+  }
+  if (bonusCredits > 0) {
+    summary += t("billing.bonusUnused", { bonus: bonusCredits });
+  }
+  if (periodEnd) {
+    summary += t("billing.periodEnds", {
+      date: periodEnd.toLocaleDateString(dateLocale),
+    });
+  }
 
   return (
     <section className="mt-6 rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-6 shadow-[6px_6px_0_0_rgba(18,20,28,0.08)]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-            本週期 credits
+            {t("billing.periodLabel")}
           </p>
           <p className="font-display mt-2 text-3xl font-bold">
             {remaining}
@@ -37,7 +56,7 @@ export function CreditProgress({
       <div
         className="mt-4 h-3 overflow-hidden rounded-full bg-accent-ink/10"
         role="progressbar"
-        aria-label="剩餘 credits"
+        aria-label={t("billing.remainingAria")}
         aria-valuemin={0}
         aria-valuemax={limit}
         aria-valuenow={remaining}
@@ -47,19 +66,10 @@ export function CreditProgress({
           style={{ width: `${percent}%` }}
         />
       </div>
-      <p className="mt-3 text-sm text-muted">
-        剩餘 {remaining} credits
-        {monthlyCredits > 0 ? ` · 每月額度 ${monthlyCredits}` : ""}
-        {bonusCredits > 0 ? ` · 加購未用 ${bonusCredits}` : ""}
-        {periodEnd
-          ? ` · 週期至 ${periodEnd.toLocaleDateString("zh-Hant")}`
-          : ""}
-      </p>
+      <p className="mt-3 text-sm text-muted">{summary}</p>
       <p className="mt-1 text-xs text-muted">
-        每段 clip 扣 3 credits（分鏡圖 2 + 產片 1）。
-        {subscribed
-          ? "加購未用完的額度會留到下個週期。"
-          : "訂閱方案後才能加購 credits。"}
+        {t("billing.clipCostNote")}
+        {subscribed ? t("billing.bonusRollsOver") : t("billing.subscribeToTopUp")}
       </p>
     </section>
   );

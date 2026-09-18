@@ -1,7 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { STATUS_FILTERS, type StatusFilter } from "@/lib/project-status";
+import { useI18n } from "@/components/i18n-provider";
+import { statusFiltersForUi } from "@/lib/project-status-i18n";
+import type { StatusFilter } from "@/lib/project-status";
 
 // Status chips + keyword search for the dashboard grid.
 export function ProjectFilters({
@@ -17,14 +19,17 @@ export function ProjectFilters({
   onFilter: (value: StatusFilter) => void;
   onQuery: (value: string) => void;
 }) {
+  const { t } = useI18n();
+  const filters = statusFiltersForUi(t);
+
   return (
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div
         role="tablist"
-        aria-label="狀態篩選"
+        aria-label={t("folder.filterLabel")}
         className="flex flex-wrap gap-1 rounded-full border border-accent-ink/10 bg-paper/70 p-1"
       >
-        {STATUS_FILTERS.map((item) => {
+        {filters.map((item) => {
           const active = item.id === filter;
           return (
             <button
@@ -58,13 +63,13 @@ export function ProjectFilters({
       </div>
 
       <label className="relative block md:w-72">
-        <span className="sr-only">搜尋專案名稱或影片題材</span>
+        <span className="sr-only">{t("folder.searchLabel")}</span>
         <SearchIcon />
         <input
           type="search"
           value={query}
           onChange={(event) => onQuery(event.target.value)}
-          placeholder="搜尋專案名稱或題材…"
+          placeholder={t("folder.searchPlaceholder")}
           className="min-h-[44px] w-full rounded-full border border-accent-ink/10 bg-paper/85 pl-10 pr-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         />
       </label>

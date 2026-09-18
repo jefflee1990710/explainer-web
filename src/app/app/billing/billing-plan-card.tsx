@@ -1,9 +1,14 @@
 "use client";
 
-import { CheckoutButton } from "./billing-actions";
+import { useI18n } from "@/components/i18n-provider";
 import type { PlanDefinition } from "@/lib/billing/plans";
+import type { PlanId } from "@/types/subscription";
+import { CheckoutButton } from "./billing-actions";
 
 export function BillingPlanCard({ plan }: { plan: PlanDefinition }) {
+  const { t } = useI18n();
+  const planName = t(`plans.${plan.id as PlanId}.name`);
+
   return (
     <article
       className={`flex flex-col rounded-[1.5rem] border p-6 shadow-[6px_6px_0_0_rgba(18,20,28,0.08)] ${
@@ -14,10 +19,10 @@ export function BillingPlanCard({ plan }: { plan: PlanDefinition }) {
     >
       {plan.highlight ? (
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-lime">
-          最受歡迎
+          {t("common.popular")}
         </p>
       ) : null}
-      <h2 className="font-display mt-1 text-xl font-bold">{plan.nameZh}</h2>
+      <h2 className="font-display mt-1 text-xl font-bold">{planName}</h2>
       <p className="mt-2 font-display text-3xl font-bold">
         ${plan.amountUsd}
         <span
@@ -26,19 +31,22 @@ export function BillingPlanCard({ plan }: { plan: PlanDefinition }) {
           }`}
         >
           {" "}
-          / 月
+          {t("common.perMonth")}
         </span>
       </p>
       <p className={`mt-2 flex-1 text-sm ${plan.highlight ? "text-paper/75" : "text-muted"}`}>
-        {plan.blurb}
+        {t(`plans.${plan.id as PlanId}.blurb`)}
       </p>
       <p className={`mt-2 text-xs ${plan.highlight ? "text-paper/60" : "text-muted"}`}>
-        {plan.monthlyCredits} credits · 約 {Math.floor(plan.monthlyCredits / 3)} 段 clips
+        {t("billing.creditsClips", {
+          credits: plan.monthlyCredits,
+          clips: Math.floor(plan.monthlyCredits / 3),
+        })}
       </p>
       <div className="mt-5">
         <CheckoutButton
           planId={plan.id}
-          label={`訂閱 ${plan.nameZh}`}
+          label={t("billing.subscribePlan", { plan: planName })}
           variant={plan.highlight ? "lime" : "accent"}
         />
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { startCheckoutAction, startPortalAction } from "@/lib/actions/billing";
 import type { PlanId } from "@/types/subscription";
 
@@ -13,6 +14,7 @@ export function CheckoutButton({
   label: string;
   variant?: "accent" | "lime";
 }) {
+  const { t } = useI18n();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -40,7 +42,7 @@ export function CheckoutButton({
             : "bg-accent text-white shadow-[3px_3px_0_0_#12141c]"
         }`}
       >
-        {pending ? "前往付款…" : label}
+        {pending ? t("billing.goingToCheckout") : label}
       </button>
       {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
     </div>
@@ -48,6 +50,7 @@ export function CheckoutButton({
 }
 
 export function PortalButton() {
+  const { t } = useI18n();
   const [error, setError] = useState("");
 
   async function onClick() {
@@ -66,7 +69,7 @@ export function PortalButton() {
         onClick={() => void onClick()}
         className="rounded-full border border-accent-ink/15 bg-paper px-4 py-2 text-sm font-semibold shadow-[3px_3px_0_0_rgba(198,242,75,0.7)]"
       >
-        管理訂閱
+        {t("billing.manageSubscription")}
       </button>
       {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
     </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Geist_Mono, Noto_Sans_TC, Syne } from "next/font/google";
+import { I18nProvider } from "@/components/i18n-provider";
 import "./globals.css";
 
 const notoSansTc = Noto_Sans_TC({
@@ -30,13 +31,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="zh-Hant"
+      lang="en"
       className={`${notoSansTc.variable} ${syne.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body
         className={`${notoSansTc.className} flex min-h-dvh flex-col bg-background text-foreground`}
       >
-        <ClerkProvider>{children}</ClerkProvider>
+        <ClerkProvider>
+          <I18nProvider>{children}</I18nProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

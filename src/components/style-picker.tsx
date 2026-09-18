@@ -1,6 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useI18n } from "@/components/i18n-provider";
+import { localizedStyleDescription, localizedStyleName } from "@/lib/style-i18n";
 import type { PublicStyle } from "@/lib/serialize";
 
 // Radio grid of visual styles with generated preview cards. Shared by the
@@ -11,7 +13,7 @@ export function StylePicker({
   value,
   onChange,
   disabled,
-  label = "視覺風格",
+  label,
 }: {
   styles: PublicStyle[];
   value: string;
@@ -19,10 +21,16 @@ export function StylePicker({
   disabled?: boolean;
   label?: string;
 }) {
+  const { t } = useI18n();
+  const groupLabel = label ?? t("styles.label");
+
   return (
-    <div role="radiogroup" aria-label={label} className="grid gap-3 sm:grid-cols-3">
+    <div role="radiogroup" aria-label={groupLabel} className="grid gap-3 sm:grid-cols-3">
       {styles.map((style) => {
         const active = style.id === value;
+        const styleName = localizedStyleName(t, style.id);
+        const styleDescription = localizedStyleDescription(t, style.id);
+
         return (
           <motion.button
             key={style.id}
@@ -55,14 +63,14 @@ export function StylePicker({
                 />
               ) : (
                 <span className="absolute inset-0 grid place-items-center font-display text-sm font-bold text-accent-ink/60">
-                  {style.nameZh}
+                  {styleName}
                 </span>
               )}
             </div>
             <div className="px-3 py-2.5">
-              <p className="text-sm font-semibold">{style.nameZh}</p>
+              <p className="text-sm font-semibold">{styleName}</p>
               <p className={`mt-0.5 text-xs leading-5 ${active ? "text-paper/75" : "text-muted"}`}>
-                {style.description}
+                {styleDescription}
               </p>
             </div>
           </motion.button>

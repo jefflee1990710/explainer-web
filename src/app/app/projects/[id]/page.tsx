@@ -36,29 +36,23 @@ export default async function ProjectPage({
   if (!folder?.name) notFound();
 
   const videos = await videosCollection();
-  const videoDocs = (await videos
-    .find({ projectId: folder._id })
-    .sort({ createdAt: -1 })
-    .toArray()) as Project[];
-  const publicFolder = toPublicFolder(folder, videoDocs);
-
   const skillsCol = await skillsCollection();
-  const skills = (await skillsCol.find({ isActive: true }).sort({ sortOrder: 1 }).toArray()).map(
-    toPublicSkill,
-  );
-
-  // Visual styles in catalog order, with generated preview URLs when seeded.
-  const styles = await listPublicStyles();
-
   const charactersCol = await charactersCollection();
-  const characters = (
-    (await charactersCol
+
+  const [videoDocs, skillDocs, styles, characterDocs, sub] = await Promise.all([
+    videos.find({ projectId: folder._id }).sort({ createdAt: -1 }).toArray() as Promise<Project[]>,
+    skillsCol.find({ isActive: true }).sort({ sortOrder: 1 }).toArray(),
+    listPublicStyles(),
+    charactersCol
       .find({ clerkUserId: user.clerkUserId })
       .sort({ updatedAt: -1 })
-      .toArray()) as Character[]
-  ).map(toPublicCharacter);
+      .toArray() as Promise<Character[]>,
+    getActiveSubscription(user.clerkUserId),
+  ]);
 
-  const sub = await getActiveSubscription(user.clerkUserId);
+  const publicFolder = toPublicFolder(folder, videoDocs);
+  const skills = skillDocs.map(toPublicSkill);
+  const characters = characterDocs.map(toPublicCharacter);
   const subscribed = isSubscriptionActive(sub);
 
   return (

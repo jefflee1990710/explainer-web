@@ -1,6 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useI18n } from "@/components/i18n-provider";
+import { projectStepLabel } from "@/lib/project-status-i18n";
 import { PROJECT_STEPS, STATUS_META } from "@/lib/project-status";
 import type { ProjectStatus } from "@/types/project";
 
@@ -21,6 +23,7 @@ export function ProjectStepper({
   failedAtStep?: number;
   compact?: boolean;
 }) {
+  const { t } = useI18n();
   const current = currentStepFor(status, failedAtStep);
   const done = status === "ready";
   const failed = status === "failed";
@@ -28,14 +31,14 @@ export function ProjectStepper({
 
   if (compact) {
     return (
-      <ol className="flex items-center gap-1" aria-label="進度">
+      <ol className="flex items-center gap-1" aria-label="Progress">
         {PROJECT_STEPS.map((step, index) => {
           const state =
             done || index < current ? "done" : index === current ? "current" : "todo";
           return (
             <li
               key={step.id}
-              title={step.label}
+              title={projectStepLabel(step.id, t)}
               className={`h-1.5 rounded-full transition-all ${
                 state === "done"
                   ? "w-5 bg-teal"
@@ -53,7 +56,7 @@ export function ProjectStepper({
   }
 
   return (
-    <ol className="flex items-center gap-2 sm:gap-3" aria-label="專案步驟">
+    <ol className="flex items-center gap-2 sm:gap-3" aria-label="Project steps">
       {PROJECT_STEPS.map((step, index) => {
         const state =
           done || index < current ? "done" : index === current ? "current" : "todo";
@@ -95,10 +98,10 @@ export function ProjectStepper({
                     state === "todo" ? "text-muted" : "text-foreground"
                   }`}
                 >
-                  {step.label}
+                  {projectStepLabel(step.id, t)}
                 </span>
                 <span className="font-display text-[10px] uppercase tracking-wider text-muted">
-                  {step.hint}
+                  {step.id}
                 </span>
               </span>
             </div>

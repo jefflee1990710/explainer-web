@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/components/i18n-provider";
 import { createFolderAction } from "@/lib/actions/projects";
 import { Spinner } from "@/components/spinner";
 
@@ -13,12 +14,14 @@ const DEFAULT_BUTTON_CLASS =
 // Header / empty-state trigger that opens the name-only create-folder dialog.
 export function CreateFolderButton({
   className = DEFAULT_BUTTON_CLASS,
-  children = "新增專案",
+  children,
 }: {
   className?: string;
   children?: React.ReactNode;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const label = children ?? t("folder.create");
 
   return (
     <>
@@ -29,7 +32,7 @@ export function CreateFolderButton({
         aria-expanded={open}
         onClick={() => setOpen(true)}
       >
-        {children}
+        {label}
       </button>
       {open ? <CreateFolderModal onClose={() => setOpen(false)} /> : null}
     </>
@@ -38,6 +41,7 @@ export function CreateFolderButton({
 
 // Name-only dialog; success navigates into the new folder workspace.
 export function CreateFolderModal({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n();
   const router = useRouter();
   const titleId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -81,12 +85,12 @@ export function CreateFolderModal({ onClose }: { onClose: () => void }) {
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id={titleId} className="font-display text-2xl font-bold">
-          新增專案
+          {t("folder.createTitle")}
         </h2>
-        <p className="mt-2 text-sm text-muted">先取個名字，進去再加影片。</p>
+        <p className="mt-2 text-sm text-muted">{t("folder.createHint")}</p>
         <form onSubmit={onSubmit} className="mt-5 space-y-4">
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold">專案名稱</span>
+            <span className="mb-1.5 block text-sm font-semibold">{t("folder.nameLabel")}</span>
             <input
               ref={inputRef}
               type="text"
@@ -95,7 +99,7 @@ export function CreateFolderModal({ onClose }: { onClose: () => void }) {
               value={name}
               onChange={(event) => setName(event.target.value)}
               disabled={submitting}
-              placeholder="例如：複利科普系列"
+              placeholder={t("folder.namePlaceholder")}
               className="min-h-[44px] w-full rounded-full border border-accent-ink/15 bg-paper px-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
             />
           </label>
@@ -107,7 +111,7 @@ export function CreateFolderModal({ onClose }: { onClose: () => void }) {
               disabled={submitting}
               className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:opacity-60"
             >
-              取消
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
@@ -115,7 +119,7 @@ export function CreateFolderModal({ onClose }: { onClose: () => void }) {
               className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? <Spinner className="h-4 w-4" /> : null}
-              建立專案
+              {t("folder.createSubmit")}
             </button>
           </div>
         </form>

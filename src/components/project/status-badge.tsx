@@ -1,4 +1,8 @@
+"use client";
+
+import { useI18n } from "@/components/i18n-provider";
 import { Spinner } from "@/components/spinner";
+import { projectStatusLabel } from "@/lib/project-status-i18n";
 import { STATUS_META, type StatusTone } from "@/lib/project-status";
 import type { ProjectStatus } from "@/types/project";
 
@@ -18,6 +22,7 @@ export function StatusBadge({
   status: ProjectStatus;
   className?: string;
 }) {
+  const { t } = useI18n();
   const meta = STATUS_META[status];
   return (
     <span
@@ -39,7 +44,7 @@ export function StatusBadge({
           }`}
         />
       )}
-      {meta.label}
+      {projectStatusLabel(status, t)}
     </span>
   );
 }

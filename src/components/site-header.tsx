@@ -4,8 +4,12 @@ import Link from "next/link";
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { BrandMark } from "@/components/brand-mark";
+import { useI18n } from "@/components/i18n-provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export function SiteHeader() {
+  const { t } = useI18n();
+
   return (
     <motion.header
       initial={{ opacity: 0, y: -8 }}
@@ -19,8 +23,9 @@ export function SiteHeader() {
           href="/#pricing"
           className="font-medium text-muted transition-colors hover:text-foreground"
         >
-          方案
+          {t("nav.pricing")}
         </Link>
+        <LanguageSwitcher />
         <Show when="signed-out">
           <SignInButton mode="modal">
             <motion.button
@@ -28,7 +33,7 @@ export function SiteHeader() {
               whileTap={{ scale: 0.98 }}
               className="rounded-full bg-accent-ink px-4 py-2 font-semibold text-lime"
             >
-              登入
+              {t("nav.signIn")}
             </motion.button>
           </SignInButton>
         </Show>
@@ -37,7 +42,7 @@ export function SiteHeader() {
             href="/app"
             className="font-medium text-muted transition-colors hover:text-foreground"
           >
-            工作台
+            {t("nav.workspace")}
           </Link>
           <UserButton />
         </Show>
