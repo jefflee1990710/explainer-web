@@ -48,7 +48,7 @@ export async function submitImage(input: {
   quality?: "low" | "medium" | "high";
   resolution?: "1k" | "2k" | "4k";
   referenceImageUrls?: Array<string | undefined>;
-}) {
+}, options: { webhook?: boolean } = {}) {
   const client = assertHiggsfieldConfigured();
   const refs = (input.referenceImageUrls || []).filter(
     (url): url is string => Boolean(url),
@@ -64,7 +64,7 @@ export async function submitImage(input: {
     return client.subscribe(`${input.model}/edit`, {
       input: { ...common, image_urls: refs },
       withPolling: false,
-      webhook: webhookOptions(),
+      webhook: options.webhook === false ? undefined : webhookOptions(),
     });
   }
 
@@ -75,7 +75,7 @@ export async function submitImage(input: {
       ...imageRefs(refs),
     },
     withPolling: false,
-    webhook: webhookOptions(),
+    webhook: options.webhook === false ? undefined : webhookOptions(),
   });
 }
 

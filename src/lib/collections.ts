@@ -8,6 +8,7 @@ import type { Project } from "@/types/project";
 import type { GenerationJob } from "@/types/generation-job";
 import type { BillingSettings } from "@/types/billing-settings";
 import type { Character } from "@/types/character";
+import type { StyleDoc } from "@/types/style-doc";
 
 export async function usersCollection(): Promise<Collection<OptionalId<AppUser>>> {
   const db = await getDb();
@@ -59,4 +60,9 @@ export async function charactersCollection(): Promise<
 > {
   const db = await getDb();
   return db.collection<OptionalId<Character>>("characters");
+}
+
+export async function stylesCollection(): Promise<Collection<StyleDoc>> {
+  const db = await getDb();
+  return db.collection<StyleDoc>("styles");
 }

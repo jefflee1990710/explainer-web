@@ -16,6 +16,15 @@ export type PublicSkill = {
   description: string;
 };
 
+export type PublicStyle = {
+  id: StyleId;
+  name: string;
+  nameZh: string;
+  description: string;
+  canvasColor: string;
+  previewUrl?: string;
+};
+
 export type PublicVideo = {
   id: string;
   projectId: string;

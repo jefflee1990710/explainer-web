@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed:skills": "tsx scripts/seed-skills.ts",
+    "seed:styles": "tsx scripts/seed-style-previews.ts",
     "migrate:folders": "tsx scripts/migrate-project-folders.ts"
   },
   "dependencies": {
