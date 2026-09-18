@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import {
-  SketchCanvas,
-  type SketchCanvasHandle,
-  type SketchTool,
-} from "@/components/sketch-canvas";
+import dynamic from "next/dynamic";
+import type {
+  AnnotationEditorHandle,
+  AnnotationTool,
+} from "@/components/annotation-editor";
+import { Spinner } from "@/components/spinner";
 import type {
   AspectRatio,
   ClipFrame,
@@ -43,8 +44,29 @@ const SIZES = [
 
 const MAX_REMARK_LENGTH = 600;
 
-// Modal for reviewing one storyboard frame: draw markings over the image,
-// leave a remark, then send both with a paid redo (1 credit).
+// Fabric.js touches `window` on import; load the editor in the browser only.
+const AnnotationEditor = dynamic(
+  () => import("@/components/annotation-editor").then((mod) => mod.AnnotationEditor),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="absolute inset-0 grid place-items-center text-accent-ink/40">
+        <Spinner className="h-5 w-5" />
+      </div>
+    ),
+  },
+);
+
+// Per-tool guidance shown under the canvas.
+const TOOL_HINT: Record<AnnotationTool, string> = {
+  draw: "把要改的地方圈起來、畫箭頭指出移動方向，效果最好。畫完可切到「選取」調整。",
+  select: "點選物件即可拖曳；拉角落把手縮放、上方把手旋轉；按 Delete 刪除。",
+  text: "在圖上點一下放置文字，輸入完點其他地方結束。",
+};
+
+// Modal for reviewing one storyboard frame: draw markings and text over the
+// image (each one a movable/resizable/rotatable object), leave a remark, then
+// send both with a paid redo (1 credit).
 export function FrameEditDialog({
   frame,
   clip,
@@ -65,13 +87,15 @@ export function FrameEditDialog({
 }) {
   const titleId = useId();
   const remarkId = useId();
-  const canvasRef = useRef<SketchCanvasHandle>(null);
+  const editorRef = useRef<AnnotationEditorHandle>(null);
   const src = frame.blobUrl || frame.outputUrl || "";
 
-  const [tool, setTool] = useState<SketchTool>("pen");
+  const [tool, setTool] = useState<AnnotationTool>("draw");
   const [color, setColor] = useState(COLORS[0].value);
   const [size, setSize] = useState(SIZES[1].value);
-  const [strokeCount, setStrokeCount] = useState(0);
+  // Objects on the annotation layer (strokes + texts) and how many are selected.
+  const [objectCount, setObjectCount] = useState(0);
+  const [selectedCount, setSelectedCount] = useState(0);
   // Prefill with the last remark so the director can iterate on it.
   const [remark, setRemark] = useState(frame.revision?.remark || "");
   const [imageSize, setImageSize] = useState(FALLBACK_SIZE[aspectRatio]);
@@ -85,13 +109,13 @@ export function FrameEditDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const hasChanges = strokeCount > 0 || remark.trim().length > 0;
+  const hasChanges = objectCount > 0 || remark.trim().length > 0;
   const enoughCredits = credits >= 1;
   const canSubmit = canRegenerate && enoughCredits;
 
   function submit() {
     if (!canSubmit) return;
-    const sketchDataUrl = canvasRef.current?.toDataURL() || undefined;
+    const sketchDataUrl = editorRef.current?.toDataURL() || undefined;
     onRegenerate({
       remark: remark.trim() || undefined,
       sketchDataUrl,
@@ -139,34 +163,40 @@ export function FrameEditDialog({
             <div className="flex flex-wrap items-center gap-2">
               <ToolGroup label="工具">
                 <ToggleButton
-                  active={tool === "pen"}
-                  onClick={() => setTool("pen")}
+                  active={tool === "draw"}
+                  onClick={() => setTool("draw")}
                   label="畫筆"
                 >
                   <PenIcon />
                 </ToggleButton>
                 <ToggleButton
-                  active={tool === "eraser"}
-                  onClick={() => setTool("eraser")}
-                  label="橡皮擦"
+                  active={tool === "select"}
+                  onClick={() => setTool("select")}
+                  label="選取"
                 >
-                  <EraserIcon />
+                  <CursorIcon />
+                </ToggleButton>
+                <ToggleButton
+                  active={tool === "text"}
+                  onClick={() => setTool("text")}
+                  label="文字"
+                >
+                  <TextIcon />
                 </ToggleButton>
               </ToolGroup>
 
+              {/* Colour applies to the brush and to whatever is selected */}
               <ToolGroup label="顏色">
                 {COLORS.map((item) => (
                   <button
                     key={item.id}
                     type="button"
                     aria-label={item.label}
+                    title={item.label}
                     aria-pressed={color === item.value}
-                    onClick={() => {
-                      setColor(item.value);
-                      setTool("pen");
-                    }}
+                    onClick={() => setColor(item.value)}
                     className={`h-7 w-7 cursor-pointer rounded-full border-2 transition ${
-                      color === item.value && tool === "pen"
+                      color === item.value
                         ? "border-accent-ink scale-110"
                         : "border-transparent hover:scale-105"
                     }`}
@@ -193,18 +223,18 @@ export function FrameEditDialog({
 
               <div className="ml-auto flex items-center gap-1.5">
                 <SmallButton
-                  onClick={() => canvasRef.current?.undo()}
-                  disabled={strokeCount === 0}
-                >
-                  <UndoIcon />
-                  復原
-                </SmallButton>
-                <SmallButton
-                  onClick={() => canvasRef.current?.clear()}
-                  disabled={strokeCount === 0}
+                  onClick={() => editorRef.current?.deleteSelected()}
+                  disabled={selectedCount === 0}
                 >
                   <TrashIcon />
-                  清除
+                  刪除選取{selectedCount > 1 ? `（${selectedCount}）` : ""}
+                </SmallButton>
+                <SmallButton
+                  onClick={() => editorRef.current?.clear()}
+                  disabled={objectCount === 0}
+                >
+                  <BroomIcon />
+                  全部清除
                 </SmallButton>
               </div>
             </div>
@@ -231,22 +261,26 @@ export function FrameEditDialog({
                   }}
                   className="absolute inset-0 h-full w-full select-none object-fill"
                 />
-                <SketchCanvas
-                  ref={canvasRef}
+                <AnnotationEditor
+                  editorRef={editorRef}
                   width={imageSize.width}
                   height={imageSize.height}
                   tool={tool}
                   color={color}
                   size={size}
-                  onChange={setStrokeCount}
+                  onChange={setObjectCount}
+                  onSelectionChange={setSelectedCount}
+                  onToolChange={setTool}
                   className="absolute inset-0 h-full w-full"
                 />
               </div>
             </div>
             <p className="text-xs text-muted">
-              {strokeCount > 0
-                ? `已畫 ${strokeCount} 筆。重畫時這些標記只作為指示，不會出現在新圖裡。`
-                : "提示：把要改的地方圈起來、畫箭頭指出移動方向，效果最好。"}
+              {objectCount > 0 ? (
+                <span className="mr-1 font-semibold text-foreground">已標註 {objectCount} 個物件。</span>
+              ) : null}
+              {TOOL_HINT[tool]}
+              {objectCount > 0 ? " 這些標記只作為指示，不會出現在新圖裡。" : ""}
             </p>
           </div>
 
@@ -401,18 +435,26 @@ function PenIcon() {
   );
 }
 
-function EraserIcon() {
+function CursorIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="m7 21-4-4a2 2 0 0 1 0-2.8L13.2 4a2 2 0 0 1 2.8 0l5 5a2 2 0 0 1 0 2.8L12 21H7Zm3-8 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 3l14 8-6 2-2 6L5 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-function UndoIcon() {
+function TextIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M5 6V4h14v2M12 4v16m-3 0h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function BroomIcon() {
   return (
     <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M9 14 4 9l5-5M4 9h9a6 6 0 0 1 0 12h-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="m20 4-8.5 8.5M4 20c1-4 3.5-7 7.5-7.5L13 14c-.5 4-3 6-9 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
