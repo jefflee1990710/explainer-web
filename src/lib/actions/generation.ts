@@ -10,14 +10,22 @@ import {
   runFrameGenerationJob,
   runPhaseBAndGenerateJob,
 } from "@/lib/director/jobs";
-import { initialFrames } from "@/lib/higgsfield/frame-prompts";
+import { persistFrameAnnotation } from "@/lib/higgsfield/frame-annotation";
+import { buildFramePrompt, initialFrames } from "@/lib/higgsfield/frame-prompts";
 import { refreshProjectJobs, regenerateFrame } from "@/lib/higgsfield/pipeline";
 import { toPublicVideo, type PublicVideo } from "@/lib/serialize";
-import type { FramePosition } from "@/types/project";
+import type {
+  FramePosition,
+  FrameRevision,
+  FrameRevisionInput,
+} from "@/types/project";
 
 type ProjectResult =
   | { ok: true; project: PublicVideo }
   | { ok: false; error: string };
+
+// Director remarks are appended to the image prompt; keep them short.
+const MAX_REMARK_LENGTH = 600;
 
 function revalidateProject(projectId: string) {
   revalidatePath("/app");
@@ -79,11 +87,15 @@ export async function approveStoryboardAction(
   }
 }
 
-// Redo a single frame for 1 credit while reviewing the timeline.
+// Redo a single frame for 1 credit while reviewing the timeline. The optional
+// revision (director's remark + hand-drawn sketch over the current frame)
+// steers the redo: the sketch is burned onto the frame, stored in Blob, and
+// sent as the first reference image.
 export async function regenerateFrameAction(
   projectId: string,
   clipNumber: number,
   position: FramePosition,
+  revisionInput?: FrameRevisionInput,
 ): Promise<ProjectResult> {
   try {
     const user = await requireAppUser();
@@ -103,10 +115,30 @@ export async function regenerateFrameAction(
     if (project.status !== "frames_ready") {
       return { ok: false, error: "請等分鏡圖全部完成後再重新產生" };
     }
-    const exists = project.frames?.some(
-      (frame) => frame.clipNumber === clipNumber && frame.position === position,
+    const frame = project.frames?.find(
+      (item) => item.clipNumber === clipNumber && item.position === position,
     );
-    if (!exists) return { ok: false, error: "找不到這張分鏡圖" };
+    if (!frame) return { ok: false, error: "找不到這張分鏡圖" };
+
+    // Build the revision before charging so an upload failure costs nothing.
+    const remark = revisionInput?.remark?.trim().slice(0, MAX_REMARK_LENGTH);
+    let revision: FrameRevision | undefined;
+    if (revisionInput?.sketchDataUrl) {
+      const baseImageUrl = frame.blobUrl || frame.outputUrl;
+      if (frame.status !== "completed" || !baseImageUrl) {
+        return { ok: false, error: "這張分鏡圖還沒有可標註的圖片" };
+      }
+      const annotatedUrl = await persistFrameAnnotation({
+        projectId: project._id,
+        clipNumber,
+        position,
+        baseImageUrl,
+        sketchDataUrl: revisionInput.sketchDataUrl,
+      });
+      revision = { remark: remark || undefined, annotatedUrl };
+    } else if (remark) {
+      revision = { remark };
+    }
 
     await assertCanSpendCredits(user, 1);
     await consumeCredits(user.clerkUserId, 1);
@@ -114,13 +146,24 @@ export async function regenerateFrameAction(
       { _id: project._id },
       {
         $inc: { framesCreditCost: 1 },
-        $set: { updatedAt: new Date() },
+        $set: {
+          updatedAt: new Date(),
+          // Keep the prompt/revision actually used on the frame for later review.
+          "frames.$[frame].prompt": buildFramePrompt(project, clipNumber, position, revision),
+          ...(revision
+            ? { "frames.$[frame].revision": revision }
+            : {}),
+        },
+        ...(revision ? {} : { $unset: { "frames.$[frame].revision": "" } }),
+      },
+      {
+        arrayFilters: [{ "frame.clipNumber": clipNumber, "frame.position": position }],
       },
     );
 
     // Submission is a single fast request; run inline so the UI flips to
     // "generating" immediately.
-    await regenerateFrame(project, clipNumber, position);
+    await regenerateFrame(project, clipNumber, position, revision);
 
     const updated = await projects.findOne({ _id: project._id });
     revalidateProject(projectId);

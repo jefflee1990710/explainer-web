@@ -24,6 +24,7 @@ import type {
   AspectRatio,
   DurationPreset,
   FramePosition,
+  FrameRevisionInput,
   VoLanguage,
 } from "@/types/project";
 import { CharacterPicker } from "../[id]/character-picker";
@@ -166,10 +167,15 @@ export function NewProjectForm({
     void runPaid("approve", () => approveAndGenerateAction(project.id));
   }
 
-  function onRegenerateFrame(clipNumber: number, position: FramePosition) {
+  // Redo one frame; `revision` (sketch + remark) comes from the edit dialog.
+  function onRegenerateFrame(
+    clipNumber: number,
+    position: FramePosition,
+    revision?: FrameRevisionInput,
+  ) {
     if (!project) return;
     void runPaid(`frame:${clipNumber}:${position}`, () =>
-      regenerateFrameAction(project.id, clipNumber, position),
+      regenerateFrameAction(project.id, clipNumber, position, revision),
     );
   }
 

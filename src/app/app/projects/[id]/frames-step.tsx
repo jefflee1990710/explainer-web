@@ -8,7 +8,7 @@ import {
   regenerateFrameAction,
 } from "@/lib/actions/generation";
 import type { PublicProject } from "@/lib/serialize";
-import type { FramePosition } from "@/types/project";
+import type { FramePosition, FrameRevisionInput } from "@/types/project";
 
 // Project-page wrapper around the shared timeline; refreshes the server
 // render after each paid action so status flips on the page.
@@ -57,9 +57,13 @@ export function FramesStep({
       pending={pending}
       error={error}
       onApprove={() => void run("approve", () => approveAndGenerateAction(project.id))}
-      onRegenerate={(clipNumber: number, position: FramePosition) =>
+      onRegenerate={(
+        clipNumber: number,
+        position: FramePosition,
+        revision?: FrameRevisionInput,
+      ) =>
         void run(`frame:${clipNumber}:${position}`, () =>
-          regenerateFrameAction(project.id, clipNumber, position),
+          regenerateFrameAction(project.id, clipNumber, position, revision),
         )
       }
     />

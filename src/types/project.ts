@@ -22,6 +22,20 @@ export type ProjectStatus =
 
 export type FramePosition = "start" | "end";
 
+// Director's revision for a frame redo: free-text remark and/or the previous
+// image with hand-drawn markings baked in (uploaded to Blob).
+export type FrameRevision = {
+  remark?: string;
+  annotatedUrl?: string;
+};
+
+// What the edit dialog sends when asking for a redo: the remark plus the
+// transparent sketch layer (PNG data URL) drawn over the current frame.
+export type FrameRevisionInput = {
+  remark?: string;
+  sketchDataUrl?: string;
+};
+
 // One storyboard still (start or end frame) for a clip; 1 credit each.
 export type ClipFrame = {
   clipNumber: number;
@@ -31,6 +45,8 @@ export type ClipFrame = {
   outputUrl?: string;
   blobUrl?: string;
   error?: string;
+  // Revision used for the most recent redo (kept so the dialog can show it).
+  revision?: FrameRevision;
 };
 
 export type StoryboardRow = {

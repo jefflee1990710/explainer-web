@@ -16,7 +16,12 @@ import {
 } from "@/lib/higgsfield/generate";
 import { persistMedia } from "@/lib/higgsfield/persist";
 import type { GenerationJob, GenerationStatus } from "@/types/generation-job";
-import type { ClipFrame, FramePosition, Project } from "@/types/project";
+import type {
+  ClipFrame,
+  FramePosition,
+  FrameRevision,
+  Project,
+} from "@/types/project";
 import type { Skill } from "@/types/skill";
 
 // ---------- prompts ----------
@@ -97,24 +102,28 @@ export async function startFrameGeneration(project: Project) {
   if (project.characterStillUrl) await submitFrameJobs(project);
 }
 
-// Submit a single frame request and record the job.
+// Submit a single frame request and record the job. A revision (redo with
+// director's remark / annotated previous frame) prepends the annotated image
+// as the first reference so the prompt can refer to it.
 async function submitOneFrame(
   project: Project,
   skill: Skill,
   clipNumber: number,
   position: FramePosition,
+  revision?: FrameRevision,
 ) {
   const jobs = await generationJobsCollection();
+  const lockRefs =
+    project.cast && project.cast.length > 0
+      ? castReferenceUrls(project.cast)
+      : [project.characterStillUrl, project.characterImageUrl];
   const submitted = await submitImage({
     model: skill.higgsfieldDefaults.imageModel,
-    prompt: buildFramePrompt(project, clipNumber, position),
+    prompt: buildFramePrompt(project, clipNumber, position, revision),
     aspectRatio: project.aspectRatio,
     quality: skill.higgsfieldDefaults.imageQuality || "low",
     resolution: skill.higgsfieldDefaults.imageResolution || "1k",
-    referenceImageUrls:
-      project.cast && project.cast.length > 0
-        ? castReferenceUrls(project.cast)
-        : [project.characterStillUrl, project.characterImageUrl],
+    referenceImageUrls: [revision?.annotatedUrl, ...lockRefs],
   });
   await jobs.insertOne({
     projectId: project._id,
@@ -166,10 +175,12 @@ async function submitFrameJobs(project: Project) {
 }
 
 // Re-run one frame (caller already charged 1 credit). Replaces the old job.
+// `revision` carries the director's remark / annotated reference, if any.
 export async function regenerateFrame(
   project: Project,
   clipNumber: number,
   position: FramePosition,
+  revision?: FrameRevision,
 ) {
   const skill = await loadSkill(project);
   const jobs = await generationJobsCollection();
@@ -181,7 +192,7 @@ export async function regenerateFrame(
     clipIndex: clipNumber - 1,
     framePosition: position,
   });
-  await submitOneFrame(project, skill, clipNumber, position);
+  await submitOneFrame(project, skill, clipNumber, position, revision);
 
   await projects.updateOne(
     { _id: project._id },

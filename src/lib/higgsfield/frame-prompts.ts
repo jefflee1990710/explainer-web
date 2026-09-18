@@ -1,5 +1,29 @@
 import { castParagraphForFrames } from "@/lib/characters/cast-prompt";
-import type { ClipFrame, FramePosition, Project } from "@/types/project";
+import type {
+  ClipFrame,
+  FramePosition,
+  FrameRevision,
+  Project,
+} from "@/types/project";
+
+// Extra prompt lines for a redo driven by the director's remark and/or an
+// annotated copy of the previous frame (attached as the first reference image).
+export function revisionLines(revision: FrameRevision | undefined) {
+  if (!revision) return [];
+  const remark = revision.remark?.trim();
+  const lines: string[] = [];
+  if (revision.annotatedUrl) {
+    lines.push(
+      "REVISION: the FIRST attached reference image is the previous version of this exact frame with the director's hand-drawn markings (coloured strokes, circles, arrows, scribbled notes).",
+      "Redraw the frame keeping the same composition and characters, applying the changes the markings point to.",
+      "The markings are instructions only — do NOT reproduce the strokes, arrows or handwriting in the output.",
+    );
+  }
+  if (remark) {
+    lines.push(`Director's notes for this redo: ${remark}`);
+  }
+  return lines;
+}
 
 // Deterministic image prompts derived from the approved Phase A storyboard.
 // No extra LLM call: the storyboard rows already describe scene + motion.
@@ -7,6 +31,7 @@ export function buildFramePrompt(
   project: Project,
   clipNumber: number,
   position: FramePosition,
+  revision?: FrameRevision,
 ) {
   const phaseA = project.phaseA;
   if (!phaseA) throw new Error("尚未有分鏡");
@@ -35,6 +60,7 @@ export function buildFramePrompt(
     `Scene: ${row.explainerScene}`,
     `Motion and camera across the clip: ${row.motionCamera}`,
     moment,
+    ...revisionLines(revision),
     "Any on-canvas text must be spelled exactly as written in the scene description.",
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");

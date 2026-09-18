@@ -4,6 +4,13 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  experimental: {
+    serverActions: {
+      // Frame edit dialog posts a transparent sketch PNG (data URL) with the
+      // redo request; the default 1MB cap is too tight for busy annotations.
+      bodySizeLimit: "6mb",
+    },
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "img.clerk.com" },
