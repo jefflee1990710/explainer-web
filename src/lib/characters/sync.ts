@@ -3,6 +3,7 @@ import { refundCredits } from "@/lib/billing/credits";
 import { charactersCollection } from "@/lib/collections";
 import { reframeBlueprintBuffer } from "@/lib/characters/blueprint-framing";
 import { persistMedia } from "@/lib/higgsfield/persist";
+import { resolveStyle } from "@/lib/styles";
 import type { GenerationJob, GenerationStatus } from "@/types/generation-job";
 
 // Mark a version failed and refund its credit exactly once. The atomic claim on
@@ -111,12 +112,15 @@ export async function syncCharacterJob(
     failCharacterVersion(job.characterId!, job.versionId!, message);
 
   if (status === "completed" && outputUrl) {
+    // Reframe against the same canvas colour the blueprint prompt asked for;
+    // a white default would swallow every dark-canvas style as "content".
+    const canvasColor = resolveStyle(character.styleId).canvasColor;
     let blueprintUrl: string;
     try {
       blueprintUrl = await persistMedia(
         outputUrl,
         `explainer/characters/${job.characterId.toHexString()}/${job.versionId.toHexString()}`,
-        { transform: reframeBlueprintBuffer },
+        { transform: (buffer) => reframeBlueprintBuffer(buffer, canvasColor) },
       );
     } catch {
       await failVersion("藍圖保存失敗");

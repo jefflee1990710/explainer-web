@@ -1,10 +1,29 @@
 import sharp from "sharp";
 
-const WHITE_THRESHOLD = 242;
+// Per-channel distance from the canvas colour that still counts as
+// background (the old white-only threshold was 242, i.e. 255 - 13).
+const CANVAS_TOLERANCE = 255 - 242;
 const DEFAULT_MARGIN_RATIO = 0.12;
 
-export function isNearWhite(r: number, g: number, b: number) {
-  return r >= WHITE_THRESHOLD && g >= WHITE_THRESHOLD && b >= WHITE_THRESHOLD;
+export type Rgb = { r: number; g: number; b: number };
+
+// "#rrggbb" -> channel values. Style canvas colours are always 6-digit hex.
+export function hexToRgb(hex: string): Rgb {
+  const clean = hex.replace("#", "");
+  const value = Number.parseInt(clean, 16);
+  if (clean.length !== 6 || Number.isNaN(value)) {
+    throw new Error(`invalid canvas colour: ${hex}`);
+  }
+  return { r: (value >> 16) & 0xff, g: (value >> 8) & 0xff, b: value & 0xff };
+}
+
+// True when the pixel is within tolerance of the canvas colour on every channel.
+export function isNearCanvas(r: number, g: number, b: number, canvas: Rgb) {
+  return (
+    Math.abs(r - canvas.r) <= CANVAS_TOLERANCE &&
+    Math.abs(g - canvas.g) <= CANVAS_TOLERANCE &&
+    Math.abs(b - canvas.b) <= CANVAS_TOLERANCE
+  );
 }
 
 export type ContentBounds = {
@@ -14,12 +33,13 @@ export type ContentBounds = {
   maxY: number;
 };
 
-// Bounding box of every non-white pixel in a raw RGBA buffer.
+// Bounding box of every pixel that is not the canvas colour in a raw buffer.
 export function findContentBounds(
   data: Buffer,
   width: number,
   height: number,
   channels: number,
+  canvas: Rgb,
 ): ContentBounds | null {
   let minX = width;
   let minY = height;
@@ -29,7 +49,7 @@ export function findContentBounds(
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * channels;
-      if (!isNearWhite(data[i], data[i + 1], data[i + 2])) {
+      if (!isNearCanvas(data[i], data[i + 1], data[i + 2], canvas)) {
         minX = Math.min(minX, x);
         maxX = Math.max(maxX, x);
         minY = Math.min(minY, y);
@@ -42,11 +62,15 @@ export function findContentBounds(
   return { minX, minY, maxX, maxY };
 }
 
-// Shrink the detected sheet content onto a white canvas with fixed margins.
+// Shrink the detected sheet content onto the style's canvas colour with fixed
+// margins. `canvasHex` must match the background the blueprint prompt asked
+// for, otherwise the whole sheet reads as content.
 export async function reframeBlueprintBuffer(
   input: Buffer,
+  canvasHex: string,
   marginRatio = DEFAULT_MARGIN_RATIO,
 ): Promise<Buffer> {
+  const canvas = hexToRgb(canvasHex);
   const meta = await sharp(input).metadata();
   const width = meta.width;
   const height = meta.height;
@@ -56,7 +80,7 @@ export async function reframeBlueprintBuffer(
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
-  const bounds = findContentBounds(data, info.width, info.height, info.channels);
+  const bounds = findContentBounds(data, info.width, info.height, info.channels, canvas);
   if (!bounds) return input;
 
   const marginX = Math.round(width * marginRatio);
@@ -89,7 +113,7 @@ export async function reframeBlueprintBuffer(
       width,
       height,
       channels: 3,
-      background: { r: 255, g: 255, b: 255 },
+      background: canvas,
     },
   })
     .composite([{ input: content, left: offsetX, top: offsetY }])
