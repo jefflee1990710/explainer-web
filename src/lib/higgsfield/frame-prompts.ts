@@ -1,4 +1,10 @@
 import { castParagraphForFrames } from "@/lib/characters/cast-prompt";
+import {
+  resolveStyle,
+  styleLetteringLine,
+  styleLinesForFrame,
+  type Style,
+} from "@/lib/styles";
 import type {
   ClipFrame,
   FramePosition,
@@ -31,14 +37,25 @@ export function revisionLines(revision: FrameRevision | undefined) {
   return lines;
 }
 
+export type FramePromptOptions = {
+  revision?: FrameRevision;
+  // Completed sibling frame (other end of the same clip) attached as a style anchor on redo.
+  styleRefUrl?: string;
+};
+
+export function videoStyle(project: Pick<Project, "styleId">): Style {
+  return resolveStyle(project.styleId);
+}
+
 // Deterministic image prompts derived from the approved Phase A storyboard.
 // No extra LLM call: the storyboard rows already describe scene + motion.
 export function buildFramePrompt(
   project: Project,
   clipNumber: number,
   position: FramePosition,
-  revision?: FrameRevision,
+  options: FramePromptOptions = {},
 ) {
+  const style = videoStyle(project);
   const phaseA = project.phaseA;
   if (!phaseA) throw new Error("尚未有分鏡");
   const row = phaseA.clips.find((clip) => clip.clipNumber === clipNumber);
@@ -57,8 +74,7 @@ export function buildFramePrompt(
         }`;
 
   return [
-    "Single storyboard still for a whiteboard-doodle cartoon explainer video.",
-    "Clean solid white canvas, bold irregular black marker outlines, flat marker fills, hand-drawn feel, no photorealism, no chalkboard, no watermark.",
+    ...styleLinesForFrame(style),
     `Visual world: ${phaseA.visualWorld}`,
     `Palette: ${phaseA.palette}`,
     `Locked character (must look identical in every frame): ${phaseA.characterLock}`,
@@ -66,7 +82,11 @@ export function buildFramePrompt(
     `Scene: ${row.explainerScene}`,
     `Motion and camera across the clip: ${row.motionCamera}`,
     moment,
-    ...revisionLines(revision),
+    ...(options.styleRefUrl
+      ? ["A sibling frame from the same clip is attached: match its line weight, character proportions, colouring and lettering exactly."]
+      : []),
+    ...revisionLines(options.revision),
+    styleLetteringLine(style),
     "Any on-canvas text must be spelled exactly as written in the scene description.",
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");

@@ -155,7 +155,9 @@ export async function regenerateFrameAction(
         $set: {
           updatedAt: new Date(),
           // Keep the prompt/revision actually used on the frame for later review.
-          "frames.$[frame].prompt": buildFramePrompt(project, clipNumber, position, revision),
+          "frames.$[frame].prompt": buildFramePrompt(project, clipNumber, position, {
+            revision,
+          }),
           ...(revision
             ? { "frames.$[frame].revision": revision }
             : {}),
@@ -249,7 +251,9 @@ export async function updateClipStoryboardAction(
       // A redo from new text starts clean: old sketches described the old scene.
       const next: ClipFrame = { ...frame };
       if (regenerate && own) delete next.revision;
-      next.prompt = buildFramePrompt(nextProject, frame.clipNumber, frame.position, next.revision);
+      next.prompt = buildFramePrompt(nextProject, frame.clipNumber, frame.position, {
+        revision: next.revision,
+      });
       return next;
     });
 

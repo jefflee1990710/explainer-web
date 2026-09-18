@@ -1,6 +1,6 @@
 import { resolveDefaultVersion, versionNumber } from "@/lib/characters/versions";
 import { folderRollupStatus } from "@/lib/folder";
-import { STYLES, type StyleId } from "@/lib/styles";
+import { resolveStyle, STYLES, type StyleId } from "@/lib/styles";
 import type { AppUser } from "@/types/user";
 import type { Character, CharacterVersionStatus } from "@/types/character";
 import type { Folder } from "@/types/folder";
@@ -23,6 +23,7 @@ export type PublicVideo = {
   source: string;
   aspectRatio: Project["aspectRatio"];
   durationPreset: Project["durationPreset"];
+  styleId: StyleId;
   language: NonNullable<Project["language"]>;
   characterImageUrl?: string;
   characterStillUrl?: string;
@@ -67,6 +68,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     source: video.source,
     aspectRatio: video.aspectRatio,
     durationPreset: video.durationPreset,
+    styleId: resolveStyle(video.styleId).id,
     language: video.language || "en",
     characterImageUrl: video.characterImageUrl,
     characterStillUrl: video.characterStillUrl,

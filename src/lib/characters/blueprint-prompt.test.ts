@@ -11,12 +11,12 @@ test("blueprint prompt lays out turnaround, walk cycle, and expression grid", ()
   assert.match(prompt, /front, back, left, and right/i);
   assert.match(prompt, /walk cycle/i);
   assert.match(prompt, /3 by 4 grid of head-and-shoulders expressions/i);
-  assert.match(prompt, /solid white background/i);
+  assert.match(prompt, /Background: clean solid white canvas/i);
   assert.match(prompt, /3:2 landscape canvas/i);
-  assert.match(prompt, /Leave at least 12% blank white space/i);
+  assert.match(prompt, /Leave at least 12% blank margin/i);
   assert.match(prompt, /Nothing may touch, clip, or extend beyond the image border/i);
   assert.match(prompt, /Final check: every drawing must be fully visible/i);
-  assert.match(prompt, /bold irregular black marker outlines/i);
+  assert.match(prompt, /bold black outlines with slightly irregular organic stroke weight/i);
   assert.match(prompt, /小男孩/);
   assert.doesNotMatch(prompt, /reference image/i);
 });
@@ -39,7 +39,7 @@ test("image-only create infers the character from the reference and style", () =
   assert.doesNotMatch(prompt, /^Character:/m);
   assert.match(prompt, /Derive the character entirely from the attached reference image/);
   assert.match(prompt, /specified style/);
-  assert.match(prompt, /bold irregular black marker outlines/i);
+  assert.match(prompt, /bold black outlines with slightly irregular organic stroke weight/i);
   assert.doesNotMatch(prompt, /Preserve the appearance/);
 });
 
@@ -52,4 +52,14 @@ test("edit mode keeps the sheet identical except for the change", () => {
   });
   assert.match(prompt, /Apply only the change below; keep everything else identical/);
   assert.match(prompt, /把睡衣換成紅色/);
+});
+
+test("chalkboard blueprint sits on a chalkboard, not white", () => {
+  const prompt = buildBlueprintPrompt({
+    styleId: "chalkboard",
+    description: "x",
+    hasReference: false,
+  });
+  assert.match(prompt, /Background: dark green slate chalkboard/);
+  assert.doesNotMatch(prompt, /solid white background/i);
 });

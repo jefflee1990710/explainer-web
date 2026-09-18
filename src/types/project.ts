@@ -1,4 +1,5 @@
 import type { ObjectId } from "mongodb";
+import type { StyleId } from "@/lib/styles";
 import type { CastMember } from "@/types/character";
 
 export type AspectRatio = "16:9" | "9:16" | "1:1";
@@ -121,6 +122,8 @@ export type Project = {
   source: string;
   aspectRatio: AspectRatio;
   durationPreset: DurationPreset;
+  // Visual style; videos created before the registry have none → doodle.
+  styleId?: StyleId;
   // Optional for legacy documents; defaults to "en" when absent.
   language?: VoLanguage;
   characterImageUrl?: string;

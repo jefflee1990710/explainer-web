@@ -7,7 +7,10 @@ import {
   videosCollection,
 } from "@/lib/collections";
 import { refundCredits } from "@/lib/billing/credits";
-import { buildFramePrompt } from "@/lib/higgsfield/frame-prompts";
+import {
+  buildFramePrompt,
+  videoStyle,
+} from "@/lib/higgsfield/frame-prompts";
 import {
   fetchHiggsfieldStatus,
   mediaUrlFromResponse,
@@ -27,8 +30,14 @@ import type { Skill } from "@/types/skill";
 // ---------- prompts ----------
 
 function stillPrompt(project: Project) {
-  const lock = project.phaseA?.characterLock || "default whiteboard everyman";
-  return `Character visual lock still for a whiteboard-doodle cartoon explainer. Clean solid white canvas, bold irregular black outlines, flat marker fills, no photorealism, no chalkboard. Front three-quarter standing pose, identical character: ${lock}. Aspect ratio ${project.aspectRatio}.`;
+  const style = videoStyle(project);
+  const lock = project.phaseA?.characterLock || "default explainer everyman";
+  return [
+    `Character visual lock still for a ${style.name} explainer video.`,
+    `Canvas: ${style.canvas}. Look: ${style.look}. Never: ${style.negatives}.`,
+    `Front three-quarter standing pose, identical character: ${lock}.`,
+    `Aspect ratio ${project.aspectRatio}.`,
+  ].join(" ");
 }
 
 async function loadSkill(project: Project): Promise<Skill> {
@@ -119,7 +128,7 @@ async function submitOneFrame(
       : [project.characterStillUrl, project.characterImageUrl];
   const submitted = await submitImage({
     model: skill.higgsfieldDefaults.imageModel,
-    prompt: buildFramePrompt(project, clipNumber, position, revision),
+    prompt: buildFramePrompt(project, clipNumber, position, { revision }),
     aspectRatio: project.aspectRatio,
     quality: skill.higgsfieldDefaults.imageQuality || "low",
     resolution: skill.higgsfieldDefaults.imageResolution || "1k",
