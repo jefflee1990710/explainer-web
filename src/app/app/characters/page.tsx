@@ -2,6 +2,7 @@ import { requireAppUser } from "@/lib/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/lib/billing/credits";
 import { charactersCollection } from "@/lib/collections";
 import { toPublicCharacter } from "@/lib/serialize";
+import { listPublicStyles } from "@/lib/styles/list";
 import type { Character } from "@/types/character";
 import { CharacterGrid } from "./character-grid";
 import { CreateCharacterButton } from "./create-character-modal";
@@ -16,6 +17,8 @@ export default async function CharactersPage() {
     .sort({ updatedAt: -1 })
     .limit(120)
     .toArray()) as Character[];
+  // Visual styles with preview cards for the create dialog.
+  const styles = await listPublicStyles();
 
   return (
     <div>
@@ -26,13 +29,14 @@ export default async function CharactersPage() {
             建立可重複使用的角色藍圖。每個版本扣 1 credit，可從任一版本再編輯。
           </p>
         </div>
-        <CreateCharacterButton credits={user.credits} subscribed={subscribed} />
+        <CreateCharacterButton credits={user.credits} subscribed={subscribed} styles={styles} />
       </div>
       <div className="mt-8">
         <CharacterGrid
           characters={docs.map(toPublicCharacter)}
           credits={user.credits}
           subscribed={subscribed}
+          styles={styles}
         />
       </div>
     </div>

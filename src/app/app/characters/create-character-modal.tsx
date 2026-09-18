@@ -4,8 +4,10 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCharacterAction } from "@/lib/actions/characters";
 import { uploadCharacterImageAction } from "@/lib/actions/upload";
-import { STYLE_IDS, STYLES, type StyleId } from "@/lib/styles";
+import type { PublicStyle } from "@/lib/serialize";
+import { DEFAULT_STYLE_ID, type StyleId } from "@/lib/styles";
 import { Spinner } from "@/components/spinner";
+import { StylePicker } from "@/components/style-picker";
 
 const NAME_MAX = 40;
 const DEFAULT_BUTTON_CLASS =
@@ -15,11 +17,13 @@ const DEFAULT_BUTTON_CLASS =
 export function CreateCharacterButton({
   credits,
   subscribed,
+  styles,
   className = DEFAULT_BUTTON_CLASS,
   children = "新增角色",
 }: {
   credits: number;
   subscribed: boolean;
+  styles: PublicStyle[];
   className?: string;
   children?: React.ReactNode;
 }) {
@@ -39,6 +43,7 @@ export function CreateCharacterButton({
         <CreateCharacterModal
           credits={credits}
           subscribed={subscribed}
+          styles={styles}
           onClose={() => setOpen(false)}
         />
       ) : null}
@@ -50,17 +55,19 @@ export function CreateCharacterButton({
 export function CreateCharacterModal({
   credits,
   subscribed,
+  styles,
   onClose,
 }: {
   credits: number;
   subscribed: boolean;
+  styles: PublicStyle[];
   onClose: () => void;
 }) {
   const router = useRouter();
   const titleId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
-  const [styleId, setStyleId] = useState<StyleId>("doodle");
+  const [styleId, setStyleId] = useState<StyleId>(DEFAULT_STYLE_ID);
   const [prompt, setPrompt] = useState("");
   const [referenceImageUrl, setReferenceImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -135,7 +142,7 @@ export function CreateCharacterModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full max-w-lg rounded-[1.75rem] border border-accent-ink/10 bg-paper p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.12)] sm:p-7"
+        className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] border border-accent-ink/10 bg-paper p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.12)] sm:p-7"
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id={titleId} className="font-display text-2xl font-bold">
@@ -160,33 +167,16 @@ export function CreateCharacterModal({
             />
           </label>
 
-          <fieldset disabled={submitting}>
+          {/* Shared style cards; the character is drawn and later cast in this style. */}
+          <fieldset>
             <legend className="mb-1.5 text-sm font-semibold">風格</legend>
-            <div role="radiogroup" className="grid gap-2 sm:grid-cols-2">
-              {STYLE_IDS.map((id) => {
-                const style = STYLES[id];
-                const active = id === styleId;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    onClick={() => setStyleId(id)}
-                    className={`flex min-h-[52px] cursor-pointer flex-col items-start justify-center rounded-xl border px-4 py-3 text-left transition-colors ${
-                      active
-                        ? "border-accent-ink bg-accent-ink text-paper"
-                        : "border-accent-ink/10 bg-paper/70 hover:border-accent-ink/30"
-                    }`}
-                  >
-                    <span className="text-sm font-semibold">{style.nameZh}</span>
-                    <span className={`mt-0.5 text-xs ${active ? "text-paper/75" : "text-muted"}`}>
-                      {style.name}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <StylePicker
+              styles={styles}
+              value={styleId}
+              onChange={setStyleId}
+              disabled={submitting}
+              label="風格"
+            />
           </fieldset>
 
           <label className="block">

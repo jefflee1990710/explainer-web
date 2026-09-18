@@ -1,7 +1,7 @@
 "use client";
 
 import { MotionConfig, motion } from "framer-motion";
-import type { PublicCharacter } from "@/lib/serialize";
+import type { PublicCharacter, PublicStyle } from "@/lib/serialize";
 import { CharacterCard } from "./character-card";
 import { CreateCharacterButton } from "./create-character-modal";
 
@@ -9,10 +9,13 @@ export function CharacterGrid({
   characters,
   credits,
   subscribed,
+  styles,
 }: {
   characters: PublicCharacter[];
   credits: number;
   subscribed: boolean;
+  // Passed through to the empty-state create button's style picker.
+  styles: PublicStyle[];
 }) {
   if (characters.length === 0) {
     return (
@@ -24,6 +27,7 @@ export function CharacterGrid({
         <CreateCharacterButton
           credits={credits}
           subscribed={subscribed}
+          styles={styles}
           className="mt-5 inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5"
         />
       </div>
