@@ -7,6 +7,7 @@ import {
   videosCollection,
 } from "@/lib/collections";
 import { refundCredits } from "@/lib/billing/credits";
+import { flattenToCanvas } from "@/lib/higgsfield/flatten";
 import {
   buildFramePrompt,
   videoStyle,
@@ -90,7 +91,7 @@ export async function startFrameGeneration(project: Project) {
       model: skill.higgsfieldDefaults.imageModel,
       prompt: stillPrompt(project),
       aspectRatio: project.aspectRatio,
-      quality: skill.higgsfieldDefaults.imageQuality || "low",
+      quality: skill.higgsfieldDefaults.imageQuality || "medium",
       resolution: skill.higgsfieldDefaults.imageResolution || "1k",
       referenceImageUrls: [project.characterImageUrl],
     });
@@ -130,7 +131,7 @@ async function submitOneFrame(
     model: skill.higgsfieldDefaults.imageModel,
     prompt: buildFramePrompt(project, clipNumber, position, { revision }),
     aspectRatio: project.aspectRatio,
-    quality: skill.higgsfieldDefaults.imageQuality || "low",
+    quality: skill.higgsfieldDefaults.imageQuality || "medium",
     resolution: skill.higgsfieldDefaults.imageResolution || "1k",
     referenceImageUrls: [revision?.annotatedUrl, ...lockRefs],
   });
@@ -337,14 +338,26 @@ export async function applyJobStatus(input: {
 
   if (!job.projectId) return;
   const projectId = job.projectId;
+  const projects = await videosCollection();
+  const project = await projects.findOne({ _id: projectId });
 
   let blobUrl = job.blobUrl;
   if (input.outputUrl && (status === "completed" || status === "nsfw")) {
     const folder =
       job.kind === "still" ? "stills" : job.kind === "frame" ? "frames" : "clips";
+    const transformOptions =
+      project && (job.kind === "still" || job.kind === "frame")
+        ? {
+            transform: (buffer: Buffer) =>
+              flattenToCanvas(buffer, videoStyle(project).canvasColor).catch(
+                () => buffer,
+              ),
+          }
+        : undefined;
     blobUrl = await persistMedia(
       input.outputUrl,
       `explainer/${projectId.toHexString()}/${folder}/${job.requestId}`,
+      transformOptions,
     );
   }
 
@@ -363,8 +376,6 @@ export async function applyJobStatus(input: {
 
   // Each frame is 1 credit; hand it back the moment that frame fails.
   if (job.kind === "frame" && nowFailed && !wasFailed) {
-    const projects = await videosCollection();
-    const project = await projects.findOne({ _id: projectId });
     if (project) await refundCredits(project.clerkUserId, 1);
   }
 

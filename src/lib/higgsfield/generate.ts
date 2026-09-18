@@ -56,7 +56,8 @@ export async function submitImage(input: {
   const common = {
     prompt: input.prompt,
     aspect_ratio: imageAspectRatio(input.model, input.aspectRatio),
-    quality: input.quality || "low",
+    quality: input.quality || "medium",
+    ...(/gpt-image/i.test(input.model) ? { background: "opaque" } : {}),
   };
 
   if (refs.length && /gpt-image/i.test(input.model)) {
