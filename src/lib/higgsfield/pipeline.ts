@@ -356,7 +356,15 @@ export async function applyJobStatus(input: {
         ? {
             transform: (buffer: Buffer) =>
               flattenToCanvas(buffer, videoStyle(project).canvasColor).catch(
-                () => buffer,
+                (error: unknown) => {
+                  // Keep the original bytes rather than failing the job, but
+                  // leave a trace so a broken flatten is not invisible.
+                  console.error(
+                    "[higgsfield] flatten failed; persisting original bytes",
+                    { requestId: job.requestId, error },
+                  );
+                  return buffer;
+                },
               ),
           }
         : undefined;
