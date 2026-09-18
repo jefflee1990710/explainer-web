@@ -112,15 +112,14 @@ export async function startFrameGeneration(project: Project) {
   if (project.characterStillUrl) await submitFrameJobs(project);
 }
 
-// Submit a single frame request and record the job. A revision (redo with
-// director's remark / annotated previous frame) prepends the annotated image
-// as the first reference so the prompt can refer to it.
+// Submit a single frame request and record the job. Redo references precede
+// character locks so the prompt can identify them by attachment order.
 async function submitOneFrame(
   project: Project,
   skill: Skill,
   clipNumber: number,
   position: FramePosition,
-  revision?: FrameRevision,
+  options: { revision?: FrameRevision; styleRefUrl?: string } = {},
 ) {
   const jobs = await generationJobsCollection();
   const lockRefs =
@@ -129,11 +128,15 @@ async function submitOneFrame(
       : [project.characterStillUrl, project.characterImageUrl];
   const submitted = await submitImage({
     model: skill.higgsfieldDefaults.imageModel,
-    prompt: buildFramePrompt(project, clipNumber, position, { revision }),
+    prompt: buildFramePrompt(project, clipNumber, position, options),
     aspectRatio: project.aspectRatio,
     quality: skill.higgsfieldDefaults.imageQuality || "medium",
     resolution: skill.higgsfieldDefaults.imageResolution || "1k",
-    referenceImageUrls: [revision?.annotatedUrl, ...lockRefs],
+    referenceImageUrls: [
+      options.revision?.annotatedUrl,
+      options.styleRefUrl,
+      ...lockRefs,
+    ].filter((url): url is string => Boolean(url)),
   });
   await jobs.insertOne({
     projectId: project._id,
@@ -208,13 +211,16 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
       clipIndex: target.clipNumber - 1,
       framePosition: target.position,
     });
-    await submitOneFrame(
-      project,
-      skill,
-      target.clipNumber,
-      target.position,
-      target.revision,
+    const sibling = project.frames?.find(
+      (frame) =>
+        frame.clipNumber === target.clipNumber &&
+        frame.position !== target.position &&
+        frame.status === "completed",
     );
+    await submitOneFrame(project, skill, target.clipNumber, target.position, {
+      revision: target.revision,
+      styleRefUrl: sibling?.blobUrl || sibling?.outputUrl,
+    });
   }
 
   await projects.updateOne(
