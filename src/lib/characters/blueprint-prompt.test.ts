@@ -61,5 +61,14 @@ test("chalkboard blueprint sits on a chalkboard, not white", () => {
     hasReference: false,
   });
   assert.match(prompt, /Background: dark green slate chalkboard/);
-  assert.doesNotMatch(prompt, /solid white background/i);
+  const layoutInstructions = prompt
+    .split("\n")
+    .filter(
+      (line) =>
+        !["Background:", "Rendering:", "Palette:", "Never:"].some((prefix) =>
+          line.startsWith(prefix),
+        ),
+    )
+    .join("\n");
+  assert.doesNotMatch(layoutInstructions, /white/i);
 });

@@ -11,7 +11,7 @@ const SHEET_LAYOUT = [
   "Framing: zoom out. Draw the entire sheet small and centered with wide empty margins on every side. Leave at least 12% blank margin on the top, bottom, left, and right. Nothing may touch, clip, or extend beyond the image border — no cropped heads, hair, hands, or feet.",
   "Left two thirds: top row is a full-body turnaround of the same character standing in front, back, left, and right views; bottom row is a 4-pose walk cycle of the same character moving left to right. Keep each pose small enough that all four turnaround views and all four walk poses are completely visible.",
   "Right third: a 3 by 4 grid of head-and-shoulders expressions in this order: neutral, smile, frown, laugh, angry, surprised, curious, worried, sad, focused, shy, sleepy. Each expression must fit entirely inside its cell with clear spacing.",
-  "Final check: every drawing must be fully visible with white space between the artwork and all four edges of the canvas.",
+  "Final check: every drawing must be fully visible with an empty margin between the artwork and all four edges of the canvas.",
 ];
 
 export function buildBlueprintPrompt(input: {
