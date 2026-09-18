@@ -9,7 +9,9 @@ import {
   consumeCredits,
   refundCredits,
 } from "@/lib/billing/credits";
+import { deleteExplainerBlobUrls } from "@/lib/blob/delete-urls";
 import { submitCharacterVersion } from "@/lib/characters/generate";
+import { collectCharacterBlobUrls } from "@/lib/characters/storage";
 import { failCharacterVersion } from "@/lib/characters/sync";
 import { canSetDefault } from "@/lib/characters/versions";
 import { charactersCollection, generationJobsCollection } from "@/lib/collections";
@@ -30,6 +32,8 @@ const STALE_AFTER_MS = 15 * 60 * 1000;
 export type CharacterResult =
   | { ok: true; character: PublicCharacter }
   | { ok: false; error: string };
+
+export type DeleteCharacterResult = { ok: true } | { ok: false; error: string };
 
 function revalidateCharacter(characterId: string) {
   revalidatePath("/app/characters");
@@ -396,6 +400,41 @@ export async function renameCharacterAction(
     return reload(character._id);
   } catch (error) {
     return fail(error, "重新命名失敗");
+  }
+}
+
+// Delete a character, its generation jobs, and every stored reference/blueprint.
+export async function deleteCharacterAction(
+  characterId: string,
+): Promise<DeleteCharacterResult> {
+  try {
+    const user = await requireAppUser();
+    const character = await ownedCharacter(characterId, user.clerkUserId);
+    if (!character) return { ok: false, error: "角色不存在" };
+
+    const blobUrls = collectCharacterBlobUrls(character);
+    await deleteExplainerBlobUrls(blobUrls);
+
+    const jobs = await generationJobsCollection();
+    await jobs.deleteMany({ characterId: character._id });
+
+    const characters = await charactersCollection();
+    const removed = await characters.deleteOne({
+      _id: character._id,
+      clerkUserId: user.clerkUserId,
+    });
+    if (removed.deletedCount !== 1) {
+      return { ok: false, error: "角色不存在" };
+    }
+
+    revalidateCharacter(characterId);
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "刪除角色失敗",
+    };
   }
 }
 

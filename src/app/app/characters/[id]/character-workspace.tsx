@@ -13,6 +13,7 @@ import {
 } from "@/lib/actions/characters";
 import type { PublicCharacter } from "@/lib/serialize";
 import { useCharacterPoll } from "./use-character-poll";
+import { DeleteCharacterDialog } from "./delete-character-dialog";
 import { VersionDetail } from "./version-detail";
 import { VersionList } from "./version-list";
 
@@ -33,6 +34,7 @@ export function CharacterWorkspace({
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   const [name, setName] = useState(initial.name);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   // SSR gives a first paint; refresh in the background after navigation.
   useEffect(() => {
@@ -125,10 +127,24 @@ export function CharacterWorkspace({
             className="font-display mt-2 block w-full max-w-md rounded-lg border border-transparent bg-transparent text-3xl font-bold hover:border-accent-ink/15 focus-visible:border-accent-ink/30 focus-visible:outline-none"
           />
         </div>
-        <p className="text-sm text-muted">
-          {character.styleName} · {character.versions.length} 個版本
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-muted">
+            {character.styleName} · {character.versions.length} 個版本
+          </p>
+          <button
+            type="button"
+            onClick={() => setDeleteOpen(true)}
+            disabled={pending !== ""}
+            className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-accent/30 px-4 text-sm font-semibold text-accent transition hover:-translate-y-0.5 disabled:opacity-60"
+          >
+            刪除角色
+          </button>
+        </div>
       </header>
+
+      {deleteOpen ? (
+        <DeleteCharacterDialog character={character} onClose={() => setDeleteOpen(false)} />
+      ) : null}
 
       <div className="grid gap-6 md:grid-cols-[17.5rem_minmax(0,1fr)] md:items-start">
         <VersionList character={character} selectedId={selected.id} onSelect={select} />
