@@ -1,18 +1,19 @@
 import type { Style } from "./catalog";
 
-// Markdown block appended to the director system prompt. It explicitly
-// supersedes SKILL.md's whiteboard "Locked visual world" so one skill can
-// drive every style.
+// Markdown block appended to the director system prompt. It supersedes only
+// the rendering rules of SKILL.md's whiteboard "Locked visual world" so one
+// skill can drive every style; the character-identity lock and the default
+// everyman in that same section still apply.
 export function styleBlockForDirector(style: Style) {
   return [
-    `## Visual style: ${style.name} (overrides the "Locked visual world" section above)`,
+    `## Visual style: ${style.name} (overrides the rendering, palette, lettering and motion rules of the "Locked visual world" section above)`,
     `Canvas: ${style.canvas}.`,
     `Look: ${style.look}.`,
     `Palette: ${style.palette}.`,
     `Typography: ${style.typography}.`,
     `Motion: ${style.motion}.`,
     `Never: ${style.negatives}.`,
-    "Write visualWorld, palette and characterLock in this style. Keep every other rule (hooks, pacing, clip structure, cast lock, narration) unchanged.",
+    "Write visualWorld, palette and characterLock in this style. The character-identity lock and the default everyman character still apply (redrawn in this style) unless a cast is given. Keep every other rule (hooks, pacing, clip structure, cast lock, narration) unchanged.",
   ].join("\n");
 }
 

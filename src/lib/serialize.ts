@@ -1,6 +1,6 @@
 import { resolveDefaultVersion, versionNumber } from "@/lib/characters/versions";
 import { folderRollupStatus } from "@/lib/folder";
-import { resolveStyle, STYLES, type StyleId } from "@/lib/styles";
+import { resolveStyle, type StyleId } from "@/lib/styles";
 import type { AppUser } from "@/types/user";
 import type { Character, CharacterVersionStatus } from "@/types/character";
 import type { Folder } from "@/types/folder";
@@ -205,7 +205,7 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     id: character._id.toHexString(),
     name: character.name,
     styleId: character.styleId,
-    styleName: STYLES[character.styleId].nameZh,
+    styleName: resolveStyle(character.styleId).nameZh,
     defaultVersionId: resolved ? resolved.id.toHexString() : null,
     previewUrl: resolved?.blueprintUrl || null,
     versions,

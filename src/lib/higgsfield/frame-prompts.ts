@@ -82,10 +82,13 @@ export function buildFramePrompt(
     `Scene: ${row.explainerScene}`,
     `Motion and camera across the clip: ${row.motionCamera}`,
     moment,
-    ...(options.styleRefUrl
-      ? ["A sibling frame from the same clip is attached: match its line weight, character proportions, colouring and lettering exactly."]
-      : []),
     ...revisionLines(options.revision),
+    // Sibling line goes after the revision lines: the annotated previous
+    // version is always the FIRST attachment (see pipeline.ts ordering), so
+    // this reference is described position-agnostically.
+    ...(options.styleRefUrl
+      ? ["Also attached (after any annotated previous version): the completed sibling frame from the other end of this clip. Match its line weight, character proportions, colouring and lettering exactly; do not copy its composition."]
+      : []),
     styleLetteringLine(style),
     "Any on-canvas text must be spelled exactly as written in the scene description.",
     `Aspect ratio ${project.aspectRatio}.`,

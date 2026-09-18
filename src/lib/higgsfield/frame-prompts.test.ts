@@ -73,5 +73,18 @@ test("sibling reference line appears only when a styleRefUrl is given", () => {
     styleRefUrl: "https://x/y.png",
   });
   assert.doesNotMatch(without, /sibling frame/);
-  assert.match(withRef, /A sibling frame from the same clip is attached/);
+  assert.match(withRef, /the completed sibling frame from the other end of this clip/);
+});
+
+test("REVISION line precedes the sibling line so 'FIRST attached' stays true", () => {
+  const prompt = buildFramePrompt(project(), 1, "start", {
+    revision: { annotatedUrl: "https://x/annotated.png" },
+    styleRefUrl: "https://x/sibling.png",
+  });
+  const revisionAt = prompt.indexOf("REVISION: the FIRST attached reference image");
+  const siblingAt = prompt.indexOf("the completed sibling frame from the other end of this clip");
+  assert.ok(revisionAt >= 0, "revision line missing");
+  assert.ok(siblingAt >= 0, "sibling line missing");
+  assert.ok(revisionAt < siblingAt, "sibling line must come after the REVISION line");
+  assert.match(prompt, /after any annotated previous version/);
 });
