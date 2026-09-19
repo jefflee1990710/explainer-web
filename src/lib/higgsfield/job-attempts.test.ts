@@ -29,6 +29,11 @@ test("unsubmittedPositions: both fresh → nothing missed", () => {
   assert.deepEqual(unsubmittedPositions(jobs, since), []);
 });
 
+test("unsubmittedPositions: deferred end is not a missed charge", () => {
+  const jobs = [job("start", newer)];
+  assert.deepEqual(unsubmittedPositions(jobs, since, ["end"]), []);
+});
+
 test("hasJobSince: only counts jobs created at or after the attempt", () => {
   assert.equal(hasJobSince([], since), false);
   assert.equal(hasJobSince([{ createdAt: older }], since), false);

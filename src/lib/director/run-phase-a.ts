@@ -54,6 +54,7 @@ export async function runPhaseA(input: {
 
 You are executing Phase A only. Return structured JSON that matches the schema.
 Planning explanations (narrativeJob, explainerScene, motionCamera, hookStrategy, coreMessage, etc.) must be Traditional Chinese (繁體中文).
+Each clip's start and end are the SAME SHOT: explainerScene and motionCamera must describe a modest continuation (pose, props, labels sliding or morphing), not a new camera or a character teleporting across the frame. The next clip's start inherits the previous clip's end environment.
 ${language.skillHint}
 The englishVo field always carries the spoken voiceover line in the chosen voiceover language above, regardless of the field name.
 Leave referenceTranslation empty. Do not invent a translation column.

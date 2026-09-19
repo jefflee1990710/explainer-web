@@ -18,7 +18,13 @@ import {
 } from "@/lib/higgsfield/generate";
 import { jobNeedsRefresh, settleProviderStatus } from "@/lib/higgsfield/job-status";
 import { persistMedia } from "@/lib/higgsfield/persist";
-import { assertClipKeyframes } from "@/lib/higgsfield/clip-keyframes";
+import {
+  assertClipKeyframes,
+  clipFrameAnchor,
+  clipKeyframeUrls,
+  planFrameSubmissions,
+  type FrameAnchorKind,
+} from "@/lib/higgsfield/clip-keyframes";
 import {
   nextProjectStatus,
   reconcileClips,
@@ -117,7 +123,11 @@ async function submitOneFrame(
   skill: Skill,
   clipNumber: number,
   position: FramePosition,
-  options: { revision?: FrameRevision; styleRefUrl?: string } = {},
+  options: {
+    revision?: FrameRevision;
+    styleRefUrl?: string;
+    anchorKind?: FrameAnchorKind;
+  } = {},
 ) {
   const jobs = await generationJobsCollection();
   const lockRefs =
@@ -126,7 +136,11 @@ async function submitOneFrame(
       : [project.characterStillUrl, project.characterImageUrl];
   const submitted = await submitImage({
     model: skill.higgsfieldDefaults.imageModel,
-    prompt: buildFramePrompt(project, clipNumber, position, options),
+    prompt: buildFramePrompt(project, clipNumber, position, {
+      revision: options.revision,
+      styleRefUrl: options.styleRefUrl,
+      anchorKind: options.anchorKind,
+    }),
     aspectRatio: project.aspectRatio,
     quality: skill.higgsfieldDefaults.imageQuality || "medium",
     resolution: skill.higgsfieldDefaults.imageResolution || "1k",
@@ -162,28 +176,25 @@ export type FrameTarget = {
 // `production` until the jobs settle. `project` must carry the storyboard the
 // prompts should be built from (re-fetch after editing a clip).
 export async function regenerateFrames(project: Project, targets: FrameTarget[]) {
-  if (targets.length === 0) return;
+  if (targets.length === 0) return { deferred: [] as FrameTarget[] };
   const skill = await loadSkill(project);
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
   const submittedAt = new Date().toISOString();
+  const { ready, deferred } = planFrameSubmissions(targets, project.frames);
 
-  for (const target of targets) {
+  for (const target of ready) {
     await jobs.deleteMany({
       projectId: project._id,
       kind: "frame",
       clipIndex: target.clipNumber - 1,
       framePosition: target.position,
     });
-    const sibling = project.frames?.find(
-      (frame) =>
-        frame.clipNumber === target.clipNumber &&
-        frame.position !== target.position &&
-        frame.status === "completed",
-    );
+    const anchor = clipFrameAnchor(project.frames, target.clipNumber, target.position);
     await submitOneFrame(project, skill, target.clipNumber, target.position, {
       revision: target.revision,
-      styleRefUrl: sibling?.blobUrl || sibling?.outputUrl,
+      styleRefUrl: anchor?.url,
+      anchorKind: anchor?.kind,
     });
     // A fresh submission has no error yet; `$unset` rather than `$set: undefined`
     // so the previous failure message never lingers as `null`.
@@ -209,6 +220,7 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
     { $set: { status: "production", updatedAt: new Date() } },
   );
   await syncProjectFromJobs(project._id);
+  return { deferred };
 }
 
 // Recovery after a partial submit: frames go out one at a time, so the first
@@ -222,13 +234,14 @@ export async function failUnsubmittedFrames(
   clipNumber: number,
   error: string,
   since: Date,
+  exclude: FramePosition[] = [],
 ): Promise<number> {
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
   const frameJobs = await jobs
     .find({ projectId, kind: "frame", clipIndex: clipNumber - 1 })
     .toArray();
-  const missed = unsubmittedPositions(frameJobs, since);
+  const missed = unsubmittedPositions(frameJobs, since, exclude);
 
   for (const position of missed) {
     await projects.updateOne(
@@ -427,8 +440,132 @@ export async function applyJobStatus(input: {
   if (project && claimedFailure) {
     if (job.kind === "frame") await refundCredits(project.clerkUserId, FRAME_COST);
     if (job.kind === "video") await refundCredits(project.clerkUserId, VIDEO_COST);
+    if (job.kind === "frame" && job.framePosition === "start") {
+      await failDeferredEndIfNeeded(
+        projectId,
+        job.clipIndex + 1,
+        errorMessage || status,
+      );
+    }
   }
 
+  await syncProjectFromJobs(projectId);
+
+  // Start finished first so the end still can lock to those pixels.
+  if (
+    job.kind === "frame" &&
+    job.framePosition === "start" &&
+    status === "completed" &&
+    (blobUrl || outputUrl)
+  ) {
+    await submitDeferredEndIfNeeded(projectId, job.clipIndex + 1);
+  }
+}
+
+// Start failed before the end job existed: fail the waiting end and refund it.
+async function failDeferredEndIfNeeded(
+  projectId: ObjectId,
+  clipNumber: number,
+  error: string,
+) {
+  const projects = await videosCollection();
+  const jobs = await generationJobsCollection();
+  const project = await projects.findOne({ _id: projectId });
+  if (!project) return;
+  const end = project.frames?.find(
+    (frame) => frame.clipNumber === clipNumber && frame.position === "end",
+  );
+  if (!end || end.status === "completed" || end.status === "in_progress") return;
+
+  const claimedAt = end.submittedAt ? Date.parse(end.submittedAt) : NaN;
+  const existing = await jobs.findOne({
+    projectId,
+    kind: "frame",
+    clipIndex: clipNumber - 1,
+    framePosition: "end",
+  });
+  if (
+    existing &&
+    (Number.isNaN(claimedAt) || existing.createdAt.getTime() >= claimedAt)
+  ) {
+    return;
+  }
+
+  const claimed = await projects.findOneAndUpdate(
+    {
+      _id: projectId,
+      frames: {
+        $elemMatch: { clipNumber, position: "end", status: "queued" },
+      },
+    },
+    {
+      $set: {
+        "frames.$.status": "failed",
+        "frames.$.error": error,
+        updatedAt: new Date(),
+      },
+    },
+  );
+  if (claimed) await refundCredits(project.clerkUserId, FRAME_COST);
+}
+
+// After this clip's start file lands, send the waiting end still with that
+// start image attached as the composition lock.
+export async function submitDeferredEndIfNeeded(
+  projectId: ObjectId,
+  clipNumber: number,
+) {
+  const projects = await videosCollection();
+  const jobs = await generationJobsCollection();
+  const project = await projects.findOne({ _id: projectId });
+  if (!project) return;
+
+  const end = project.frames?.find(
+    (frame) => frame.clipNumber === clipNumber && frame.position === "end",
+  );
+  if (!end || end.status === "completed" || end.status === "in_progress") return;
+
+  const claimedAt = end.submittedAt ? Date.parse(end.submittedAt) : NaN;
+  const existing = await jobs.findOne({
+    projectId,
+    kind: "frame",
+    clipIndex: clipNumber - 1,
+    framePosition: "end",
+  });
+  if (
+    existing &&
+    (Number.isNaN(claimedAt) || existing.createdAt.getTime() >= claimedAt)
+  ) {
+    return;
+  }
+
+  const startUrl = clipKeyframeUrls(project.frames, clipNumber).start;
+  if (!startUrl) return;
+
+  const skill = await loadSkill(project);
+  const submittedAt = new Date().toISOString();
+  await jobs.deleteMany({
+    projectId,
+    kind: "frame",
+    clipIndex: clipNumber - 1,
+    framePosition: "end",
+  });
+  await submitOneFrame(project, skill, clipNumber, "end", {
+    revision: end.revision,
+    styleRefUrl: startUrl,
+    anchorKind: "clip-start",
+  });
+  await projects.updateOne(
+    { _id: projectId },
+    {
+      $set: {
+        "frames.$[frame].status": "queued",
+        "frames.$[frame].submittedAt": submittedAt,
+      },
+      $unset: { "frames.$[frame].error": "" },
+    },
+    { arrayFilters: [{ "frame.clipNumber": clipNumber, "frame.position": "end" }] },
+  );
   await syncProjectFromJobs(projectId);
 }
 

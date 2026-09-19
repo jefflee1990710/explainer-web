@@ -1,5 +1,6 @@
 import { generateText, Output } from "ai";
 import { castLineForPhaseB } from "@/lib/characters/cast-prompt";
+import { DUAL_KEYFRAME_MOTION_RULES } from "@/lib/director/dual-keyframe-motion";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { skillPromptForPhaseB } from "@/lib/director/load-skill-prompt";
 import { directorModel } from "@/lib/director/model";
@@ -25,7 +26,7 @@ function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageS
 
 You are executing Phase B only after explicit approval of the current Phase A.
 Return standalone Wan 3 video prompts that follow the skill prompt contract. Do not invent new facts.
-Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. The video MUST open on the start image and MUST resolve onto the end image — do not invent a different final pose, camera, or composition.
+Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. ${DUAL_KEYFRAME_MOTION_RULES} Do not invent a different final pose, camera, or composition.
 Spoken dialogue in every prompt must be quoted verbatim from the approved englishVo lines, which are in ${languageLabel} (${languageSublabel}). Tell the video model explicitly that the narrator speaks ${languageLabel}.`;
 }
 

@@ -17,9 +17,11 @@ const POSITIONS: FramePosition[] = ["start", "end"];
 export function unsubmittedPositions(
   jobs: JobAttempt[],
   since: Date,
+  exclude: FramePosition[] = [],
 ): FramePosition[] {
   return POSITIONS.filter(
     (position) =>
+      !exclude.includes(position) &&
       !jobs.some(
         (job) =>
           job.framePosition === position &&

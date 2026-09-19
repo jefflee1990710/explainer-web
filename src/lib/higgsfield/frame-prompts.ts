@@ -1,4 +1,5 @@
 import { castParagraphForFrames } from "@/lib/characters/cast-prompt";
+import type { FrameAnchorKind } from "@/lib/higgsfield/clip-keyframes";
 import {
   resolveStyle,
   styleLetteringLine,
@@ -39,9 +40,27 @@ export function revisionLines(revision: FrameRevision | undefined) {
 
 export type FramePromptOptions = {
   revision?: FrameRevision;
-  // Completed sibling frame (other end of the same clip) attached as a style anchor on redo.
+  // Completed still this frame must continue from (start, prev-end, or sibling).
   styleRefUrl?: string;
+  anchorKind?: FrameAnchorKind;
 };
+
+function anchorLines(options: FramePromptOptions) {
+  if (!options.styleRefUrl) return [];
+  if (options.anchorKind === "clip-start") {
+    return [
+      "Also attached (after any annotated previous version): THIS CLIP'S START frame. Keep the same camera, character size and screen position. Only apply the described motion as a modest continuation — props and labels may slide or morph. Do not teleport the character or invent a new composition.",
+    ];
+  }
+  if (options.anchorKind === "prev-end") {
+    return [
+      "Also attached (after any annotated previous version): the previous clip's END frame. Inherit that environment and character placement; this opening is the next beat of the same world, not a new shot.",
+    ];
+  }
+  return [
+    "Also attached (after any annotated previous version): the completed sibling frame from the other end of this clip. Match its line weight, character proportions, colouring and lettering exactly; do not copy its composition.",
+  ];
+}
 
 export function videoStyle(project: Pick<Project, "styleId">): Style {
   return resolveStyle(project.styleId);
@@ -64,8 +83,8 @@ export function buildFramePrompt(
 
   const moment =
     position === "start"
-      ? `This is the FIRST frame (t=0s) of clip ${clipNumber}: show the opening state before any motion happens.`
-      : `This is the LAST frame of clip ${clipNumber}: show the resting state after all described motion has completed.${
+      ? `This is the FIRST frame (t=0s) of clip ${clipNumber}: show the opening state before any motion happens. Keep this a single locked camera setup that the end frame will continue.`
+      : `This is the LAST frame of clip ${clipNumber}: the SAME SHOT as the start frame after a modest continuation of the described motion. Keep the same camera, character size, and screen position. Props and labels may slide or morph in or out; do not teleport the character or cut to a new composition.${
           next
             ? ` It must visually hand off to the next clip, which opens with: ${next.explainerScene}`
             : phaseA.loopMode === "infinite"
@@ -92,9 +111,7 @@ export function buildFramePrompt(
     // Sibling line goes after the revision lines: the annotated previous
     // version is always the FIRST attachment (see pipeline.ts ordering), so
     // this reference is described position-agnostically.
-    ...(options.styleRefUrl
-      ? ["Also attached (after any annotated previous version): the completed sibling frame from the other end of this clip. Match its line weight, character proportions, colouring and lettering exactly; do not copy its composition."]
-      : []),
+    ...anchorLines(options),
     styleLetteringLine(style),
     "Any on-canvas text must be spelled exactly as written in the scene description.",
     `Aspect ratio ${project.aspectRatio}.`,

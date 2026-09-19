@@ -67,10 +67,34 @@ test("pixel video gets pixel canvas and lettering", () => {
   assert.match(prompt, /Lettering: blocky monospaced pixel font/);
 });
 
+test("end frame is the same shot as start, not a new composition", () => {
+  const prompt = buildFramePrompt(project(), 1, "end");
+  assert.match(prompt, /SAME SHOT/);
+  assert.match(prompt, /modest continuation/);
+  assert.doesNotMatch(prompt, /resting state after all described motion has completed/);
+});
+
+test("start frame stays an opening state of this shot", () => {
+  const prompt = buildFramePrompt(project(), 1, "start");
+  assert.match(prompt, /FIRST frame/);
+  assert.match(prompt, /opening state/);
+});
+
+test("clip-start anchor tells the model to keep camera and character placement", () => {
+  const prompt = buildFramePrompt(project(), 1, "end", {
+    styleRefUrl: "https://x/start.png",
+    anchorKind: "clip-start",
+  });
+  assert.match(prompt, /THIS CLIP'S START frame/);
+  assert.match(prompt, /same camera/);
+  assert.match(prompt, /Do not teleport/);
+});
+
 test("sibling reference line appears only when a styleRefUrl is given", () => {
   const without = buildFramePrompt(project(), 1, "start");
   const withRef = buildFramePrompt(project(), 1, "start", {
     styleRefUrl: "https://x/y.png",
+    anchorKind: "clip-end",
   });
   assert.doesNotMatch(without, /sibling frame/);
   assert.match(withRef, /the completed sibling frame from the other end of this clip/);

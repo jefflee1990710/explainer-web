@@ -1,3 +1,4 @@
+import { DUAL_KEYFRAME_MOTION_RULES } from "@/lib/director/dual-keyframe-motion";
 import type { PhaseAProposal } from "@/types/project";
 
 // User prompt asking the director for ONE clip's video prompt. The whole
@@ -31,7 +32,7 @@ export function clipPhaseBUserPrompt(input: {
     `Voiceover language: ${input.languageLabel} (${input.languageSublabel})`,
     input.characterLine,
     `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,
-    "The start and end storyboard images for this clip are attached as first/last frames. Motion must land on the end image.",
+    DUAL_KEYFRAME_MOTION_RULES,
     opening,
     closing,
     "Return a single object { clipNumber, durationSeconds, prompt }.",

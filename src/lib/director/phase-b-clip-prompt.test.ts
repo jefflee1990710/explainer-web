@@ -49,6 +49,13 @@ test("middle clip quotes both neighbours and asks for that clip only", () => {
   assert.match(prompt, /Character reference image: none/);
 });
 
+test("video prompt forbids a last-frame snap and asks for element-by-element interpolation", () => {
+  const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
+  assert.match(prompt, /FULL duration/);
+  assert.match(prompt, /element-by-element/);
+  assert.match(prompt, /do not .*snap/i);
+});
+
 test("first clip has no previous neighbour", () => {
   const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 1 });
   assert.match(prompt, /first clip/);

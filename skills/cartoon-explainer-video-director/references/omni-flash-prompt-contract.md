@@ -42,6 +42,10 @@ Use this wording to request density without character drift:
 
 Avoid `rapid style changes`, which can invite model changes to drawing style, facial features, or character design.
 
+## Dual-keyframe interpolation (Wan 3.0)
+
+Start and end storyboard images are the SAME SHOT. The video prompt must interpolate smoothly across the FULL duration: first half stays with the start state; second half slides and morphs element-by-element into the end state. Do not hold the start pose then snap or hard-cut to the end image in the last frames. Keep the character at roughly the same screen position and scale.
+
 ## Timed visual sequence
 
 Translate the approved storyboard row into connected events matching its 3–8 second duration. State where the character begins, what changes, how the camera moves, which yellow tag, handwritten label, box, or arrow carries meaning, and what fills or exits the final frame.

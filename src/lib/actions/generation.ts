@@ -12,6 +12,7 @@ import {
 import { videosCollection } from "@/lib/collections";
 import { runStillJob } from "@/lib/director/jobs";
 import { persistFrameAnnotation } from "@/lib/higgsfield/frame-annotation";
+import { planFrameSubmissions } from "@/lib/higgsfield/clip-keyframes";
 import { buildFramePrompt, framesWithClip } from "@/lib/higgsfield/frame-prompts";
 import {
   failUnsubmittedFrames,
@@ -302,22 +303,26 @@ export async function updateClipStoryboardAction(
       // Anything older than this belongs to a previous attempt and cannot prove
       // that this one reached the provider.
       const attemptStartedAt = new Date();
+      const targets = [
+        { clipNumber, position: "start" as const },
+        { clipNumber, position: "end" as const },
+      ];
+      const { deferred } = planFrameSubmissions(targets, frames);
       try {
-        await regenerateFrames({ ...nextProject, frames }, [
-          { clipNumber, position: "start" },
-          { clipNumber, position: "end" },
-        ]);
+        await regenerateFrames({ ...nextProject, frames }, targets);
       } catch (error) {
         // The two frames go out one at a time, so the first may already have a
         // live job: that one is reconciliation's to finish and refund. Fail and
         // refund only the entries that never reached the provider, otherwise
-        // they would sit `queued` with no job behind them.
+        // they would sit `queued` with no job behind them. A deferred end is
+        // waiting for the start file and is not a lost charge.
         const message = error instanceof Error ? error.message : "分鏡圖送出失敗";
         const missed = await failUnsubmittedFrames(
           project._id,
           clipNumber,
           message,
           attemptStartedAt,
+          deferred.map((target) => target.position),
         );
         if (missed > 0) {
           await refundCredits(user.clerkUserId, missed * FRAME_COST, spendKey);
