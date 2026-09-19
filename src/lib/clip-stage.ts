@@ -79,17 +79,10 @@ export function isProjectBusy(project: ClipStageSource) {
   );
 }
 
-// Every storyboard clip has a completed video.
+// Ready when every storyboard clip is video_ready (not mid frame redraw).
 export function isProjectReady(project: ClipStageSource) {
-  const rows = project.phaseA?.clips || [];
-  return (
-    rows.length > 0 &&
-    rows.every(
-      (row) =>
-        project.clips.find((clip) => clip.clipNumber === row.clipNumber)?.status ===
-        "completed",
-    )
-  );
+  const states = clipStatesFor(project);
+  return states.length > 0 && states.every((state) => state.stage === "video_ready");
 }
 
 // Header counters: clips with both frames done, clips with a video.

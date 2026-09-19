@@ -144,6 +144,45 @@ test("isProjectReady only when every storyboard clip has a completed video", () 
   assert.equal(isProjectReady(project({ phaseA: { clips: [] } })), false);
 });
 
+test("isProjectReady false while a completed clip is redrawing frames", () => {
+  const bothDone = project({
+    frames: [
+      frame(1, "start", "completed"),
+      frame(1, "end", "completed"),
+      frame(2, "start", "completed"),
+      frame(2, "end", "completed"),
+    ],
+    clips: [clip(1, "completed"), clip(2, "completed")],
+  });
+  assert.equal(isProjectReady(bothDone), true);
+
+  assert.equal(
+    isProjectReady(
+      project({
+        frames: [
+          frame(1, "start", "queued"),
+          frame(1, "end", "completed"),
+          frame(2, "start", "completed"),
+          frame(2, "end", "completed"),
+        ],
+        clips: [clip(1, "completed"), clip(2, "completed")],
+      }),
+    ),
+    false,
+  );
+
+  assert.equal(
+    isProjectReady(
+      project({
+        phaseA: { clips: [{ clipNumber: 1 }] },
+        frames: [frame(1, "start", "failed"), frame(1, "end", "completed")],
+        clips: [clip(1, "completed")],
+      }),
+    ),
+    false,
+  );
+});
+
 test("productionCounts", () => {
   const p = project({
     frames: [
