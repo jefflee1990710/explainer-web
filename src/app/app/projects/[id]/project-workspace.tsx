@@ -13,6 +13,7 @@ import type {
   PublicVideo,
 } from "@/lib/serialize";
 import { NewProjectForm } from "../new/new-project-form";
+import { VIDEO_RAIL_COLS } from "./video-rail";
 import { VideoList } from "./video-list";
 
 // Split folder workspace: video list on the left, create/stepper form on the right.
@@ -114,7 +115,7 @@ export function ProjectWorkspace({
         <p className="text-sm text-muted">{folder.videoCount} 支影片</p>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-[17.5rem_minmax(0,1fr)] md:items-start">
+      <div className={`grid gap-6 md:items-start ${VIDEO_RAIL_COLS}`}>
         <VideoList
           videos={videos}
           selectedId={activeVideoId}

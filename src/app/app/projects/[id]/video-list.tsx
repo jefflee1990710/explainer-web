@@ -1,7 +1,7 @@
 "use client";
 
-import { StatusBadge } from "@/components/project/status-badge";
-import { videoPreviewUrl, type PublicVideo } from "@/lib/serialize";
+import { VideoListItem } from "./video-list-item";
+import type { PublicVideo } from "@/lib/serialize";
 
 // Left pane of the folder workspace: pick a video or start a new one.
 export function VideoList({
@@ -16,66 +16,47 @@ export function VideoList({
   onCreate: () => void;
 }) {
   return (
-    <div className="rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-3 shadow-[4px_4px_0_0_rgba(18,20,28,0.06)]">
-      <button
-        type="button"
-        onClick={onCreate}
-        className={`flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-xl border border-dashed px-3 text-sm font-semibold transition ${
-          selectedId === null
-            ? "border-accent-ink bg-accent-ink/5 text-foreground"
-            : "border-accent-ink/20 text-muted hover:border-accent-ink/40 hover:text-foreground"
-        }`}
-      >
-        新增影片
-      </button>
+    <div className="relative z-20 rounded-[1.25rem] border border-accent-ink/10 bg-paper/85 p-1.5 shadow-[4px_4px_0_0_rgba(18,20,28,0.06)]">
+      <div className="flex gap-1.5 overflow-x-auto md:flex-col md:overflow-visible">
+        <div className="group/create relative w-20 shrink-0 md:w-full">
+          <button
+            type="button"
+            onClick={onCreate}
+            aria-label="新增影片"
+            aria-current={selectedId === null ? "true" : undefined}
+            className={`grid aspect-square w-full cursor-pointer place-items-center rounded-xl border border-dashed text-xs font-semibold transition ${
+              selectedId === null
+                ? "border-accent-ink bg-accent-ink/5 text-foreground"
+                : "border-accent-ink/20 text-muted hover:border-accent-ink/40 hover:text-foreground"
+            }`}
+          >
+            <span className="flex flex-col items-center gap-0.5">
+              <span className="font-display text-lg leading-none">+</span>
+              <span>新增</span>
+            </span>
+          </button>
+          <span className="pointer-events-none invisible absolute left-[calc(100%+0.5rem)] top-1/2 z-30 -translate-y-1/2 whitespace-nowrap rounded-lg border border-accent-ink/10 bg-paper px-2.5 py-1 text-xs font-semibold shadow-[4px_4px_0_0_rgba(18,20,28,0.08)] group-focus-within/create:visible [@media(hover:hover)]:group-hover/create:visible">
+            新增影片
+          </span>
+        </div>
 
-      {videos.length === 0 ? (
-        <p className="px-2 py-6 text-center text-xs text-muted">
-          還沒有影片。右邊表單送出後會出現在這裡。
-        </p>
-      ) : (
-        <ul className="mt-2 space-y-1">
-          {videos.map((video) => {
-            const selected = video.id === selectedId;
-            const preview = videoPreviewUrl(video);
-            const title = video.phaseA?.localizedTitle || "未命名影片";
-            return (
-              <li key={video.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(video.id)}
-                  aria-current={selected ? "true" : undefined}
-                  className={`flex min-h-[44px] w-full cursor-pointer items-center gap-3 rounded-xl px-2 py-2 text-left transition ${
-                    selected ? "bg-accent-ink/5" : "hover:bg-accent-ink/5"
-                  }`}
-                >
-                  {preview ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={preview}
-                      alt=""
-                      width={72}
-                      height={40}
-                      className="h-10 w-[72px] shrink-0 rounded-md object-cover"
-                    />
-                  ) : (
-                    <span
-                      aria-hidden
-                      className="grid h-10 w-[72px] shrink-0 place-items-center rounded-md border border-dashed border-accent-ink/20 bg-accent-ink/5"
-                    >
-                      <span className="h-4 w-7 rounded-sm border border-accent-ink/25" />
-                    </span>
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold">{title}</span>
-                    <StatusBadge status={video.status} className="mt-1" />
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+        {videos.length === 0 ? (
+          <p className="flex min-w-[8rem] items-center px-2 text-[11px] leading-snug text-muted md:min-w-0 md:px-1 md:py-4 md:text-center">
+            右邊表單送出後會出現在這裡。
+          </p>
+        ) : (
+          <ul className="flex gap-1.5 md:w-full md:flex-col">
+            {videos.map((video) => (
+              <VideoListItem
+                key={video.id}
+                video={video}
+                selected={video.id === selectedId}
+                onSelect={onSelect}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
