@@ -71,6 +71,8 @@ test("applyPhaseAEdits keeps clip timing and rewrites user-facing fields", () =>
   assert.equal(result.phaseA.clips[0].explainerScene, "巨大警報器砸下");
   assert.equal(result.phaseA.clips[0].timeRange, "0-5s");
   assert.equal(result.phaseA.clips[0].bgmSfx, "alarm");
+  assert.ok(result.phaseA.clips[0].editedAt);
+  assert.equal(result.phaseA.clips[1].editedAt, undefined);
   assert.equal(result.phaseA.englishWordCount, 5);
 });
 

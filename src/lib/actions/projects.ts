@@ -16,12 +16,108 @@ import { runPhaseAJob } from "@/lib/director/jobs";
 import { isVoLanguage } from "@/lib/director/languages";
 import { sanitizeFolderName } from "@/lib/folder";
 import { toPublicVideo, type PublicVideo } from "@/lib/serialize";
-import { isStyleId } from "@/lib/styles";
+import { isStyleId, type StyleId } from "@/lib/styles";
 import type { CastMember, Character } from "@/types/character";
+import { isProjectBusy } from "@/lib/clip-stage";
 import { applyPhaseAEdits } from "@/lib/director/phase-a-edit";
-import type { AspectRatio, DurationPreset, PhaseAEditInput } from "@/types/project";
+import type { AspectRatio, DurationPreset, PhaseAEditInput, VoLanguage } from "@/types/project";
 
 const CAST_MAX = 4;
+
+function canEditStoryboard(status: string) {
+  return (
+    status === "awaiting_approval" ||
+    status === "failed" ||
+    status === "production" ||
+    status === "ready"
+  );
+}
+
+type BriefFields = {
+  skillSlug: string;
+  styleId: StyleId;
+  source: string;
+  aspectRatio: AspectRatio;
+  durationPreset: DurationPreset;
+  language: VoLanguage;
+  characterIds: string[];
+};
+
+function readVideoBrief(
+  formData: FormData,
+): { ok: true; brief: BriefFields } | { ok: false; error: string } {
+  const skillSlug = String(formData.get("skillSlug") || "");
+  const styleId = String(formData.get("styleId") || "");
+  const source = String(formData.get("source") || "").trim();
+  const aspectRatio = String(formData.get("aspectRatio") || "") as AspectRatio;
+  const durationPreset = String(formData.get("durationPreset") || "") as DurationPreset;
+  const language = String(formData.get("language") || "en");
+  const characterIds = Array.from(
+    new Set(
+      formData
+        .getAll("characterIds")
+        .map(String)
+        .filter((id) => ObjectId.isValid(id)),
+    ),
+  );
+  if (characterIds.length > CAST_MAX) {
+    return { ok: false, error: `最多選 ${CAST_MAX} 個角色` };
+  }
+  if (!source) return { ok: false, error: "請提供題材或腳本" };
+  if (!["16:9", "9:16", "1:1"].includes(aspectRatio)) {
+    return { ok: false, error: "請選擇畫面比例" };
+  }
+  if (!["micro", "short", "punchy", "full"].includes(durationPreset)) {
+    return { ok: false, error: "請選擇片長" };
+  }
+  if (!isVoLanguage(language)) {
+    return { ok: false, error: "請選擇旁白語言" };
+  }
+  if (!isStyleId(styleId)) {
+    return { ok: false, error: "請選擇視覺風格" };
+  }
+  return {
+    ok: true,
+    brief: { skillSlug, styleId, source, aspectRatio, durationPreset, language, characterIds },
+  };
+}
+
+async function buildCast(
+  clerkUserId: string,
+  styleId: string,
+  characterIds: string[],
+): Promise<{ ok: true; cast: CastMember[] } | { ok: false; error: string }> {
+  if (characterIds.length === 0) return { ok: true, cast: [] };
+  const characters = await charactersCollection();
+  const docs = (await characters
+    .find({
+      _id: { $in: characterIds.map((id) => new ObjectId(id)) },
+      clerkUserId,
+    })
+    .toArray()) as Character[];
+  if (docs.length !== characterIds.length) {
+    return { ok: false, error: "有角色不存在" };
+  }
+  if (docs.some((doc) => doc.styleId !== styleId)) {
+    return { ok: false, error: "角色風格與影片風格不同" };
+  }
+  const cast: CastMember[] = [];
+  for (const id of characterIds) {
+    const character = docs.find((doc) => doc._id.toHexString() === id)!;
+    const version = resolveDefaultVersion(character);
+    if (!version?.blueprintUrl) {
+      return { ok: false, error: `角色 ${character.name} 尚未有可用藍圖` };
+    }
+    cast.push({
+      characterId: character._id,
+      versionId: version.id,
+      name: character.name,
+      blueprintUrl: version.blueprintUrl,
+      prompt: version.prompt,
+    });
+  }
+  return { ok: true, cast };
+}
 
 type VideoResult =
   | { ok: true; project: PublicVideo }
@@ -109,42 +205,12 @@ export async function createVideoAction(
   try {
     const user = await requireAppUser();
     const projectId = String(formData.get("projectId") || "");
-    const skillSlug = String(formData.get("skillSlug") || "");
-    const styleId = String(formData.get("styleId") || "");
-    const source = String(formData.get("source") || "").trim();
-    const aspectRatio = String(formData.get("aspectRatio") || "") as AspectRatio;
-    const durationPreset = String(
-      formData.get("durationPreset") || "",
-    ) as DurationPreset;
-    const language = String(formData.get("language") || "en");
-    // Dedupe so a double-posted id doesn't fail the existence check.
-    const characterIds = Array.from(
-      new Set(
-        formData
-          .getAll("characterIds")
-          .map(String)
-          .filter((id) => ObjectId.isValid(id)),
-      ),
-    );
-    if (characterIds.length > CAST_MAX) {
-      return { ok: false, error: `最多選 ${CAST_MAX} 個角色` };
-    }
+    const parsed = readVideoBrief(formData);
+    if (!parsed.ok) return parsed;
+    const { brief } = parsed;
 
     if (!ObjectId.isValid(projectId)) {
       return { ok: false, error: "專案不存在" };
-    }
-    if (!source) return { ok: false, error: "請提供題材或腳本" };
-    if (!["16:9", "9:16", "1:1"].includes(aspectRatio)) {
-      return { ok: false, error: "請選擇畫面比例" };
-    }
-    if (!["micro", "short", "punchy", "full"].includes(durationPreset)) {
-      return { ok: false, error: "請選擇片長" };
-    }
-    if (!isVoLanguage(language)) {
-      return { ok: false, error: "請選擇旁白語言" };
-    }
-    if (!isStyleId(styleId)) {
-      return { ok: false, error: "請選擇視覺風格" };
     }
 
     const folders = await projectsCollection();
@@ -155,41 +221,12 @@ export async function createVideoAction(
     if (!folder) return { ok: false, error: "專案不存在" };
 
     const skills = await skillsCollection();
-    const skill = await skills.findOne({ slug: skillSlug, isActive: true });
+    const skill = await skills.findOne({ slug: brief.skillSlug, isActive: true });
     if (!skill) return { ok: false, error: "找不到風格" };
 
-    let cast: CastMember[] = [];
-    if (characterIds.length > 0) {
-      const characters = await charactersCollection();
-      const docs = (await characters
-        .find({
-          _id: { $in: characterIds.map((id) => new ObjectId(id)) },
-          clerkUserId: user.clerkUserId,
-        })
-        .toArray()) as Character[];
-      if (docs.length !== characterIds.length) {
-        return { ok: false, error: "有角色不存在" };
-      }
-      // Every cast member must be drawn in the video's visual style.
-      if (docs.some((doc) => doc.styleId !== styleId)) {
-        return { ok: false, error: "角色風格與影片風格不同" };
-      }
-      cast = [];
-      for (const id of characterIds) {
-        const character = docs.find((doc) => doc._id.toHexString() === id)!;
-        const version = resolveDefaultVersion(character);
-        if (!version?.blueprintUrl) {
-          return { ok: false, error: `角色 ${character.name} 尚未有可用藍圖` };
-        }
-        cast.push({
-          characterId: character._id,
-          versionId: version.id,
-          name: character.name,
-          blueprintUrl: version.blueprintUrl,
-          prompt: version.prompt,
-        });
-      }
-    }
+    const castResult = await buildCast(user.clerkUserId, brief.styleId, brief.characterIds);
+    if (!castResult.ok) return castResult;
+    const { cast } = castResult;
 
     const now = new Date();
     const videos = await videosCollection();
@@ -199,11 +236,11 @@ export async function createVideoAction(
       clerkUserId: user.clerkUserId,
       skillId: skill._id,
       skillSlug: skill.slug,
-      styleId,
-      source,
-      aspectRatio,
-      durationPreset,
-      language,
+      styleId: brief.styleId,
+      source: brief.source,
+      aspectRatio: brief.aspectRatio,
+      durationPreset: brief.durationPreset,
+      language: brief.language,
       cast,
       status: "phase_a",
       clips: [],
@@ -232,6 +269,75 @@ export async function createVideoAction(
 // Keep the old name until the create form is switched in Task 6.
 export const createProjectAction = createVideoAction;
 
+// Rewrite the brief of an existing video and re-run Phase A (back to 分鏡).
+export async function updateVideoBriefAction(
+  formData: FormData,
+): Promise<VideoResult> {
+  try {
+    const user = await requireAppUser();
+    const videoId = String(formData.get("videoId") || "");
+    const parsed = readVideoBrief(formData);
+    if (!parsed.ok) return parsed;
+    const { brief } = parsed;
+    if (!ObjectId.isValid(videoId)) {
+      return { ok: false, error: "專案不存在" };
+    }
+
+    const videos = await videosCollection();
+    const video = await videos.findOne({
+      _id: new ObjectId(videoId),
+      clerkUserId: user.clerkUserId,
+    });
+    if (!video) return { ok: false, error: "專案不存在" };
+    if (video.status === "phase_a" || isProjectBusy(video)) {
+      return { ok: false, error: "請等目前的產生工作結束再改題材" };
+    }
+
+    const skills = await skillsCollection();
+    const skill = await skills.findOne({ slug: brief.skillSlug, isActive: true });
+    if (!skill) return { ok: false, error: "找不到風格" };
+
+    const castResult = await buildCast(user.clerkUserId, brief.styleId, brief.characterIds);
+    if (!castResult.ok) return castResult;
+
+    await videos.updateOne(
+      { _id: video._id },
+      {
+        $set: {
+          skillId: skill._id,
+          skillSlug: skill.slug,
+          styleId: brief.styleId,
+          source: brief.source,
+          aspectRatio: brief.aspectRatio,
+          durationPreset: brief.durationPreset,
+          language: brief.language,
+          cast: castResult.cast,
+          status: "phase_a",
+          updatedAt: new Date(),
+        },
+        $unset: { error: "", stillError: "" },
+      },
+    );
+
+    after(() => runPhaseAJob(video._id));
+
+    const folders = await projectsCollection();
+    await folders.updateOne(
+      { _id: video.projectId },
+      { $set: { updatedAt: new Date() } },
+    );
+
+    const updated = await videos.findOne({ _id: video._id });
+    revalidateVideo(videoId, video.projectId.toHexString());
+    return { ok: true, project: toPublicVideo(updated!) };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "更新題材失敗",
+    };
+  }
+}
+
 // Persist user edits to the Phase A proposal and clip rows (no credits).
 export async function updatePhaseAProposalAction(
   videoId: string,
@@ -249,7 +355,7 @@ export async function updatePhaseAProposalAction(
       clerkUserId: user.clerkUserId,
     });
     if (!video?.phaseA) return { ok: false, error: "專案不存在" };
-    if (video.status !== "awaiting_approval" && video.status !== "failed") {
+    if (!canEditStoryboard(video.status)) {
       return { ok: false, error: "這個專案目前不能編輯分鏡提案" };
     }
 
@@ -303,8 +409,11 @@ export async function reviseProjectAction(
       clerkUserId: user.clerkUserId,
     });
     if (!video) return { ok: false, error: "專案不存在" };
-    if (video.status !== "awaiting_approval" && video.status !== "failed") {
+    if (!canEditStoryboard(video.status)) {
       return { ok: false, error: "這個專案目前不能改稿" };
+    }
+    if (isProjectBusy(video)) {
+      return { ok: false, error: "請等目前的產生工作結束再改稿" };
     }
 
     await videos.updateOne(

@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ClipProduction } from "@/components/project/clip-production";
-import { ProjectStepper } from "@/components/project/project-stepper";
+import { currentStepFor, ProjectStepper } from "@/components/project/project-stepper";
 import { Spinner } from "@/components/spinner";
 import { StylePicker } from "@/components/style-picker";
 import {
@@ -22,6 +22,7 @@ import {
   retryProjectAction,
   reviseProjectAction,
   updatePhaseAProposalAction,
+  updateVideoBriefAction,
 } from "@/lib/actions/projects";
 import { isProjectBusy, productionCounts } from "@/lib/clip-stage";
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
@@ -44,6 +45,7 @@ import { AspectRatioPicker } from "./aspect-ratio-picker";
 import { DirectorProgress } from "./director-progress";
 import { DurationPicker } from "./duration-picker";
 import { LanguagePicker } from "./language-picker";
+import { ReviseStoryboardDialog } from "./revise-storyboard-dialog";
 import { StoryboardPreview } from "./storyboard-preview";
 import { useProjectPoll } from "./use-project-poll";
 
@@ -92,13 +94,20 @@ export function NewProjectForm({
     initialVideo?.cast.map((member) => member.characterId) || [],
   );
 
-  // Flow state — locked when opening an existing video via ?video=.
+  // Flow state. The stepper can jump back to 題材 / 分鏡 after a video exists.
   const [project, setProject] = useState<PublicVideo | null>(initialVideo);
   const [submitting, setSubmitting] = useState(false);
   // "" | "revise" | "approve" | "save" | "retry" | "remaining" | frames:{n}
   // | frame:{n}:{pos} | video:{n} | clip:{n}[:regen]
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
+  // Pinned to the video + status that was current when the user clicked a step.
+  const [viewingOverride, setViewingOverride] = useState<{
+    id: string | null;
+    status: string;
+    step: number;
+  } | null>(null);
+  const [confirmBrief, setConfirmBrief] = useState(false);
 
   const onPollUpdate = useCallback((next: PublicVideo) => {
     setProject(next);
@@ -115,16 +124,26 @@ export function NewProjectForm({
     });
   }, [initialVideo]);
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!aspectRatio) {
-      setError("請選擇畫面比例");
-      return;
-    }
-    setSubmitting(true);
-    setError("");
+  function briefUnchanged() {
+    if (!project) return false;
+    const currentIds = project.cast.map((member) => member.characterId).slice().sort();
+    const nextIds = characterIds.slice().sort();
+    return (
+      project.source === source.trim() &&
+      project.skillSlug === skillSlug &&
+      project.styleId === styleId &&
+      project.language === language &&
+      project.aspectRatio === aspectRatio &&
+      project.durationPreset === durationPreset &&
+      currentIds.length === nextIds.length &&
+      currentIds.every((id, index) => id === nextIds[index])
+    );
+  }
+
+  function briefFormData() {
     const formData = new FormData();
     formData.set("projectId", projectId);
+    if (project) formData.set("videoId", project.id);
     formData.set("skillSlug", skillSlug);
     formData.set("styleId", styleId);
     formData.set("source", source);
@@ -132,9 +151,34 @@ export function NewProjectForm({
     formData.set("aspectRatio", aspectRatio);
     formData.set("durationPreset", durationPreset);
     for (const id of characterIds) formData.append("characterIds", id);
+    return formData;
+  }
 
-    const result = await createVideoAction(formData);
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!aspectRatio) {
+      setError("請選擇畫面比例");
+      return;
+    }
+    if (project && briefUnchanged()) {
+      pinViewingStep(1);
+      return;
+    }
+    if (project?.phaseA) {
+      setConfirmBrief(true);
+      return;
+    }
+    await submitBrief();
+  }
+
+  async function submitBrief() {
+    setSubmitting(true);
+    setError("");
+    const result = project
+      ? await updateVideoBriefAction(briefFormData())
+      : await createVideoAction(briefFormData());
     setSubmitting(false);
+    setConfirmBrief(false);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -283,22 +327,37 @@ export function NewProjectForm({
     router.replace(pathname);
   }
 
-  const locked = project !== null;
   const skillTitle =
     skills.find((item) => item.slug === (project?.skillSlug || skillSlug))?.titleZh ||
     "解說風格";
   const styleName =
     styles.find((item) => item.id === (project?.styleId || styleId))?.nameZh || "視覺風格";
+  const liveStep = currentStepFor(
+    project?.status ?? "draft",
+    project?.status === "failed" ? failedStepFor(project) : undefined,
+  );
+  const liveStatus = project?.status ?? "draft";
+  const liveId = project?.id ?? null;
+  const viewing =
+    viewingOverride &&
+    viewingOverride.id === liveId &&
+    viewingOverride.status === liveStatus
+      ? viewingOverride.step
+      : liveStep;
+
+  function pinViewingStep(step: number) {
+    setViewingOverride({ id: liveId, status: liveStatus, step });
+  }
+  const briefBusy = submitting || Boolean(project && isProjectBusy(project));
+  const approved = project?.status === "production" || project?.status === "ready";
   // Stepper detail for the production step; skipped before the storyboard exists.
   const counts =
-    project && (project.status === "production" || project.status === "ready")
-      ? productionCounts(project)
-      : null;
+    project && approved ? productionCounts(project) : null;
   const canSubmit =
     source.trim().length > 0 &&
     aspectRatio !== "" &&
     skillSlug !== "" &&
-    !submitting;
+    !briefBusy;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -310,11 +369,13 @@ export function NewProjectForm({
             failedAtStep={project?.status === "failed" ? failedStepFor(project) : undefined}
             busy={project ? isProjectBusy(project) : false}
             detail={counts ? `影片 ${counts.videosDone}/${counts.total}` : undefined}
+            viewingStep={viewing}
+            onSelectStep={pinViewingStep}
           />
         </div>
 
         <AnimatePresence mode="wait" initial={false}>
-          {!locked ? (
+          {viewing === 0 ? (
             <motion.form
               key="form"
               onSubmit={onSubmit}
@@ -331,7 +392,7 @@ export function NewProjectForm({
                   skills={skills}
                   value={skillSlug}
                   onChange={setSkillSlug}
-                  disabled={submitting}
+                  disabled={briefBusy}
                 />
                 {/* Visual style sits under the narrative skill in the same step. */}
                 <p className="mt-5 text-sm font-semibold">視覺風格</p>
@@ -343,7 +404,7 @@ export function NewProjectForm({
                     styles={styles}
                     value={styleId}
                     onChange={onStyleChange}
-                    disabled={locked || submitting}
+                    disabled={briefBusy}
                   />
                 </div>
               </Section>
@@ -359,7 +420,7 @@ export function NewProjectForm({
                   rows={7}
                   value={source}
                   onChange={(event) => setSource(event.target.value)}
-                  disabled={submitting}
+                  disabled={briefBusy}
                   className="w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-base leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
                   placeholder="例如：為什麼複利對年輕人特別重要？用一個簡單的比喻說明，最後給一個行動建議。"
                 />
@@ -369,14 +430,14 @@ export function NewProjectForm({
               </Section>
 
               <Section step="03" title="旁白語言" hint="影片會用這個語言配旁白；分鏡說明維持繁體中文。">
-                <LanguagePicker value={language} onChange={setLanguage} disabled={submitting} />
+                <LanguagePicker value={language} onChange={setLanguage} disabled={briefBusy} />
               </Section>
 
               <Section step="04" title="畫面比例" hint="依投放平台選擇。">
                 <AspectRatioPicker
                   value={aspectRatio}
                   onChange={setAspectRatio}
-                  disabled={submitting}
+                  disabled={briefBusy}
                 />
               </Section>
 
@@ -384,7 +445,7 @@ export function NewProjectForm({
                 <DurationPicker
                   value={durationPreset}
                   onChange={setDurationPreset}
-                  disabled={submitting}
+                  disabled={briefBusy}
                 />
               </Section>
 
@@ -394,7 +455,7 @@ export function NewProjectForm({
                   styleId={styleId}
                   value={characterIds}
                   onChange={setCharacterIds}
-                  disabled={submitting}
+                  disabled={briefBusy}
                 />
               </Section>
 
@@ -412,10 +473,25 @@ export function NewProjectForm({
                   className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                 >
                   {submitting ? <Spinner /> : null}
-                  {submitting ? "送出中…" : "產生分鏡提案"}
+                  {submitting
+                    ? "送出中…"
+                    : project
+                      ? "儲存並重新產生分鏡"
+                      : "產生分鏡提案"}
                 </motion.button>
+                {project ? (
+                  <button
+                    type="button"
+                    onClick={reset}
+                    className="min-h-[44px] cursor-pointer rounded-full px-3 text-sm font-semibold text-muted transition hover:text-foreground"
+                  >
+                    建立另一支
+                  </button>
+                ) : null}
                 <p className="text-xs text-muted">
-                  這一步不扣 credits。分鏡出來後你再決定要不要產片。
+                  {project
+                    ? "改題材會重寫分鏡並回到核准前；已產生的畫格與影片會留著，但可能對不上。"
+                    : "這一步不扣 credits。分鏡出來後你再決定要不要產片。"}
                 </p>
               </div>
             </motion.form>
@@ -457,9 +533,9 @@ export function NewProjectForm({
         </AnimatePresence>
 
         <AnimatePresence mode="wait">
-          {project?.status === "phase_a" ? (
+          {viewing === 1 && project?.status === "phase_a" ? (
             <DirectorProgress key="phase-a" />
-          ) : project?.status === "awaiting_approval" ? (
+          ) : viewing === 1 && project?.phaseA ? (
             <StoryboardPreview
               key={`storyboard-${project.id}`}
               project={project}
@@ -474,8 +550,10 @@ export function NewProjectForm({
               onApprove={onApproveStoryboard}
               onRevise={(note, options) => void onRevise(note, options)}
               onSave={onSaveProposal}
+              approved={project.status !== "awaiting_approval"}
+              onBackToProduction={() => pinViewingStep(liveStep === 1 ? 2 : liveStep)}
             />
-          ) : project?.status === "production" || project?.status === "ready" ? (
+          ) : viewing === 2 && (project?.status === "production" || project?.status === "ready") ? (
             <ClipProduction
               key="production"
               project={project}
@@ -489,7 +567,7 @@ export function NewProjectForm({
               onGenerateVideo={onGenerateVideo}
               onFillRemaining={onFillRemaining}
             />
-          ) : project?.status === "failed" ? (
+          ) : project?.status === "failed" && viewing === liveStep ? (
             <FailedCard
               key="failed"
               project={project}
@@ -498,6 +576,21 @@ export function NewProjectForm({
             />
           ) : null}
         </AnimatePresence>
+
+        {confirmBrief ? (
+          <ReviseStoryboardDialog
+            pending={submitting}
+            title="重新產生分鏡？"
+            body="會依這份題材重寫分鏡並回到核准前。已產生的畫格與影片會留著，但可能對不上新分鏡。"
+            confirmLabel="確認重寫"
+            onCancel={() => {
+              if (!submitting) setConfirmBrief(false);
+            }}
+            onConfirm={() => {
+              void submitBrief();
+            }}
+          />
+        ) : null}
       </div>
     </MotionConfig>
   );

@@ -26,6 +26,8 @@ export function StoryboardPreview({
   onApprove,
   onRevise,
   onSave,
+  approved = false,
+  onBackToProduction,
 }: {
   project: PublicProject;
   credits: number;
@@ -35,6 +37,9 @@ export function StoryboardPreview({
   onApprove: () => void;
   onRevise: (note: string, options?: { clipsOnly?: boolean }) => void;
   onSave: (input: PhaseAEditInput) => Promise<boolean>;
+  // Already in production: edit in place, then jump back to 製作.
+  approved?: boolean;
+  onBackToProduction?: () => void;
 }) {
   const [note, setNote] = useState("");
   const [confirmRevise, setConfirmRevise] = useState<false | "all" | "clips">(
@@ -170,31 +175,56 @@ export function StoryboardPreview({
         </form>
 
         <div className="rounded-[1.5rem] border border-accent-ink/10 bg-lime/60 p-5">
-          <p className="font-display text-sm font-bold">核准分鏡，進入逐段製作</p>
-          <p className="mt-2 text-sm">
-            核准不扣 credits。之後每段各自產生：畫格 2 credits、影片 1 credit
-            <span className="text-muted">（剩餘 {credits}）</span>
-          </p>
-          <p className="mt-1 text-xs text-muted">
-            可以先做第 1 段看效果，滿意再做下一段；隨時可回頭重做任何一段。
-          </p>
-          {!subscribed ? (
-            <p className="mt-2 text-xs text-accent">尚未訂閱；製作階段的產生按鈕需要訂閱。</p>
-          ) : null}
-          <motion.button
-            type="button"
-            onClick={() => {
-              void persistIfDirty().then((ok) => {
-                if (ok) onApprove();
-              });
-            }}
-            disabled={busy}
-            whileTap={{ scale: 0.98 }}
-            className="mt-4 inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {pending === "approve" ? <Spinner /> : null}
-            {pending === "approve" ? "送出中…" : "核准分鏡，開始製作"}
-          </motion.button>
+          {approved ? (
+            <>
+              <p className="font-display text-sm font-bold">分鏡已核准，可繼續改稿</p>
+              <p className="mt-2 text-sm">
+                儲存文字會讓對應畫格／影片標成需重做。重寫整份分鏡會回到核准前。
+              </p>
+              <motion.button
+                type="button"
+                onClick={() => {
+                  void persistIfDirty().then((ok) => {
+                    if (ok) onBackToProduction?.();
+                  });
+                }}
+                disabled={busy}
+                whileTap={{ scale: 0.98 }}
+                className="mt-4 inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {pending === "save" ? <Spinner /> : null}
+                儲存並返回
+              </motion.button>
+            </>
+          ) : (
+            <>
+              <p className="font-display text-sm font-bold">核准分鏡，進入逐段製作</p>
+              <p className="mt-2 text-sm">
+                核准不扣 credits。之後每段各自產生：畫格 2 credits、影片 1 credit
+                <span className="text-muted">（剩餘 {credits}）</span>
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                可以先做第 1 段看效果，滿意再做下一段；隨時可回頭重做任何一段。
+              </p>
+              {!subscribed ? (
+                <p className="mt-2 text-xs text-accent">尚未訂閱；製作階段的產生按鈕需要訂閱。</p>
+              ) : null}
+              <motion.button
+                type="button"
+                onClick={() => {
+                  void persistIfDirty().then((ok) => {
+                    if (ok) onApprove();
+                  });
+                }}
+                disabled={busy}
+                whileTap={{ scale: 0.98 }}
+                className="mt-4 inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {pending === "approve" ? <Spinner /> : null}
+                {pending === "approve" ? "送出中…" : "核准分鏡，開始製作"}
+              </motion.button>
+            </>
+          )}
         </div>
       </div>
 

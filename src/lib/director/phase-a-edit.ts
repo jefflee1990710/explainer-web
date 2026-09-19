@@ -76,18 +76,26 @@ export function applyPhaseAEdits(
 
   const byNumber = new Map(input.clips.map((clip) => [clip.clipNumber, clip]));
   const clips: StoryboardRow[] = [];
+  const editedAt = new Date().toISOString();
   for (const row of current.clips) {
     const edit = byNumber.get(row.clipNumber);
     if (!edit) return { ok: false, error: `找不到 clip #${row.clipNumber}` };
     const explainerScene = cleanPhaseAField(edit.explainerScene);
+    const motionCamera = cleanPhaseAField(edit.motionCamera);
     const englishVo = cleanPhaseAField(edit.englishVo);
     if (!explainerScene) return { ok: false, error: `Clip #${row.clipNumber} 的畫面描述不能空白` };
     if (!englishVo) return { ok: false, error: `Clip #${row.clipNumber} 的旁白不能空白` };
+    const clipChanged =
+      explainerScene !== row.explainerScene ||
+      motionCamera !== row.motionCamera ||
+      englishVo !== row.englishVo;
     clips.push({
       ...row,
       explainerScene,
-      motionCamera: cleanPhaseAField(edit.motionCamera),
+      motionCamera,
       englishVo,
+      // Stamp so production treats existing frames/videos as stale.
+      ...(clipChanged ? { editedAt } : {}),
     });
   }
 

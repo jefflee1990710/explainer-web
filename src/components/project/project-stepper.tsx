@@ -13,13 +13,16 @@ export function currentStepFor(status: ProjectStatus, failedAtStep?: number) {
   return STATUS_META[status].step;
 }
 
-// Horizontal stepper: 題材 → 分鏡 → 製作.
+// Horizontal stepper: 題材 → 分鏡 → 製作. Reached steps are buttons so the
+// user can jump back and edit; later steps stay inert until unlocked.
 export function ProjectStepper({
   status,
   failedAtStep,
   compact = false,
   busy,
   detail,
+  viewingStep,
+  onSelectStep,
 }: {
   status: ProjectStatus;
   failedAtStep?: number;
@@ -28,12 +31,17 @@ export function ProjectStepper({
   busy?: boolean;
   // Small text under the current step, e.g. "影片 2/6".
   detail?: string;
+  // Which step the workspace is showing; defaults to the live status step.
+  viewingStep?: number;
+  onSelectStep?: (step: number) => void;
 }) {
   const { t } = useI18n();
   const current = currentStepFor(status, failedAtStep);
+  const viewed = viewingStep ?? current;
   const done = status === "ready";
   const failed = status === "failed";
   const isBusy = busy ?? STATUS_META[status].busy;
+  const maxReachable = done ? PROJECT_STEPS.length - 1 : current;
 
   if (compact) {
     return (
@@ -67,50 +75,48 @@ export function ProjectStepper({
         const state =
           done || index < current ? "done" : index === current ? "current" : "todo";
         const isLast = index === PROJECT_STEPS.length - 1;
+        const isViewing = index === viewed;
+        const clickable = Boolean(onSelectStep) && index <= maxReachable;
+        const label = projectStepLabel(step.id, t);
         return (
           <li key={step.id} className="flex flex-1 items-center gap-2 sm:gap-3">
-            <div className="flex items-center gap-2">
-              <span
-                aria-current={state === "current" ? "step" : undefined}
-                className={`relative grid h-8 w-8 shrink-0 place-items-center rounded-full border font-display text-xs font-bold transition-colors ${
-                  state === "done"
-                    ? "border-teal bg-teal text-white"
-                    : state === "current"
-                      ? failed
-                        ? "border-accent bg-accent text-white"
-                        : "border-accent-ink bg-accent-ink text-lime"
-                      : "border-accent-ink/15 bg-paper text-muted"
+            {clickable ? (
+              <button
+                type="button"
+                onClick={() => onSelectStep?.(index)}
+                aria-current={isViewing ? "step" : undefined}
+                aria-label={`前往${label}`}
+                className={`flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl px-1 text-left transition hover:-translate-y-0.5 ${
+                  isViewing ? "outline outline-2 outline-offset-2 outline-accent-ink" : ""
                 }`}
               >
-                {state === "done" ? (
-                  <CheckIcon />
-                ) : state === "current" && failed ? (
-                  <ExclamationIcon />
-                ) : (
-                  index + 1
-                )}
-                {state === "current" && isBusy ? (
-                  <motion.span
-                    aria-hidden
-                    className="absolute inset-0 rounded-full border-2 border-accent-ink/40"
-                    animate={{ scale: [1, 1.45], opacity: [0.6, 0] }}
-                    transition={{ duration: 1.4, repeat: Infinity, ease: "easeOut" }}
-                  />
-                ) : null}
-              </span>
-              <span className="hidden flex-col leading-tight sm:flex">
-                <span
-                  className={`text-sm font-semibold ${
-                    state === "todo" ? "text-muted" : "text-foreground"
-                  }`}
-                >
-                  {projectStepLabel(step.id, t)}
-                </span>
-                <span className="font-display text-[10px] uppercase tracking-wider text-muted">
-                  {state === "current" && detail ? detail : step.id}
-                </span>
-              </span>
-            </div>
+                <StepGlyph
+                  index={index}
+                  state={state}
+                  failed={failed}
+                  busy={state === "current" && isBusy}
+                />
+                <StepCopy
+                  label={label}
+                  sublabel={state === "current" && detail ? detail : step.id}
+                  muted={state === "todo"}
+                />
+              </button>
+            ) : (
+              <div className="flex min-h-[44px] items-center gap-2 px-1">
+                <StepGlyph
+                  index={index}
+                  state={state}
+                  failed={failed}
+                  busy={state === "current" && isBusy}
+                />
+                <StepCopy
+                  label={label}
+                  sublabel={step.id}
+                  muted
+                />
+              </div>
+            )}
             {!isLast ? (
               <span
                 aria-hidden
@@ -123,6 +129,69 @@ export function ProjectStepper({
         );
       })}
     </ol>
+  );
+}
+
+function StepGlyph({
+  index,
+  state,
+  failed,
+  busy,
+}: {
+  index: number;
+  state: "done" | "current" | "todo";
+  failed: boolean;
+  busy: boolean;
+}) {
+  return (
+    <span
+      className={`relative grid h-8 w-8 shrink-0 place-items-center rounded-full border font-display text-xs font-bold transition-colors ${
+        state === "done"
+          ? "border-teal bg-teal text-white"
+          : state === "current"
+            ? failed
+              ? "border-accent bg-accent text-white"
+              : "border-accent-ink bg-accent-ink text-lime"
+            : "border-accent-ink/15 bg-paper text-muted"
+      }`}
+    >
+      {state === "done" ? (
+        <CheckIcon />
+      ) : state === "current" && failed ? (
+        <ExclamationIcon />
+      ) : (
+        index + 1
+      )}
+      {busy ? (
+        <motion.span
+          aria-hidden
+          className="absolute inset-0 rounded-full border-2 border-accent-ink/40"
+          animate={{ scale: [1, 1.45], opacity: [0.6, 0] }}
+          transition={{ duration: 1.4, repeat: Infinity, ease: "easeOut" }}
+        />
+      ) : null}
+    </span>
+  );
+}
+
+function StepCopy({
+  label,
+  sublabel,
+  muted,
+}: {
+  label: string;
+  sublabel: string;
+  muted?: boolean;
+}) {
+  return (
+    <span className="hidden flex-col leading-tight sm:flex">
+      <span className={`text-sm font-semibold ${muted ? "text-muted" : "text-foreground"}`}>
+        {label}
+      </span>
+      <span className="font-display text-[10px] uppercase tracking-wider text-muted">
+        {sublabel}
+      </span>
+    </span>
   );
 }
 
