@@ -148,7 +148,7 @@ export async function regenerateFrameAction(
     }
 
     await assertCanSpendCredits(user, FRAME_COST);
-    await consumeCredits(user.clerkUserId, FRAME_COST);
+    const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
     await projects.updateOne(
       { _id: project._id },
       {
@@ -175,7 +175,7 @@ export async function regenerateFrameAction(
       await regenerateFrame(project, clipNumber, position, revision);
     } catch (error) {
       // Nothing went out: give the credit back.
-      await refundCredits(user.clerkUserId, FRAME_COST);
+      await refundCredits(user.clerkUserId, FRAME_COST, spendKey);
       throw error;
     }
 
@@ -284,7 +284,9 @@ export async function updateClipStoryboardAction(
           };
         });
 
-    if (regenerate) await consumeCredits(user.clerkUserId, cost);
+    const spendKey = regenerate
+      ? await consumeCredits(user.clerkUserId, cost)
+      : undefined;
     try {
       await projects.updateOne(
         { _id: project._id },
@@ -292,7 +294,7 @@ export async function updateClipStoryboardAction(
       );
     } catch (error) {
       // Write failed before anything went out → give back the full charge.
-      if (regenerate) await refundCredits(user.clerkUserId, cost);
+      if (regenerate && spendKey) await refundCredits(user.clerkUserId, cost, spendKey);
       throw error;
     }
 
@@ -317,7 +319,9 @@ export async function updateClipStoryboardAction(
           message,
           attemptStartedAt,
         );
-        if (missed > 0) await refundCredits(user.clerkUserId, missed * FRAME_COST);
+        if (missed > 0) {
+          await refundCredits(user.clerkUserId, missed * FRAME_COST, spendKey);
+        }
         throw error;
       }
     }

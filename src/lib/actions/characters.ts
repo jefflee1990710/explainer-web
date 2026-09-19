@@ -134,7 +134,7 @@ export async function createCharacterAction(
     }
 
     await assertCanSpendCredits(user, 1);
-    await consumeCredits(user.clerkUserId, 1);
+    const spendKey = await consumeCredits(user.clerkUserId, 1);
 
     const now = new Date();
     const version: CharacterVersion = {
@@ -164,7 +164,7 @@ export async function createCharacterAction(
       // restore a flag on, so the credit is lost only if the refund fails too;
       // surface that error instead of the write error.
       try {
-        await refundCredits(user.clerkUserId, 1);
+        await refundCredits(user.clerkUserId, 1, spendKey);
       } catch (refundError) {
         throw refundError;
       }
@@ -205,7 +205,7 @@ export async function editCharacterVersionAction(
     }
 
     await assertCanSpendCredits(user, 1);
-    await consumeCredits(user.clerkUserId, 1);
+    const spendKey = await consumeCredits(user.clerkUserId, 1);
 
     const now = new Date();
     const version: CharacterVersion = {
@@ -230,7 +230,7 @@ export async function editCharacterVersionAction(
       // restore a flag on, so the credit is lost only if the refund fails too;
       // surface that error instead of the write error.
       try {
-        await refundCredits(user.clerkUserId, 1);
+        await refundCredits(user.clerkUserId, 1, spendKey);
       } catch (refundError) {
         throw refundError;
       }
@@ -310,9 +310,10 @@ export async function retryCharacterVersionAction(
       throw error;
     }
 
+    let spendKey: string;
     try {
       await assertCanSpendCredits(user, 1);
-      await consumeCredits(user.clerkUserId, 1);
+      spendKey = await consumeCredits(user.clerkUserId, 1);
     } catch (error) {
       await revertClaim();
       throw error;
@@ -326,7 +327,7 @@ export async function retryCharacterVersionAction(
     } catch (error) {
       await revertClaim({ creditsCharged: false });
       try {
-        await refundCredits(user.clerkUserId, 1);
+        await refundCredits(user.clerkUserId, 1, spendKey);
       } catch (refundError) {
         await characters.updateOne(
           { _id: doc._id, "versions.id": ver.id },

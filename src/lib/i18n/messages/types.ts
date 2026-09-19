@@ -7,6 +7,8 @@ export type Messages = {
   nav: {
     projects: string;
     characters: string;
+    mcp: string;
+    affiliate: string;
     billing: string;
     pricing: string;
     signIn: string;
@@ -118,6 +120,56 @@ export type Messages = {
     subscribeToTopUp: string;
     creditsClips: string;
     subscribePlan: string;
+  };
+  mcp: {
+    title: string;
+    subtitle: string;
+    installTitle: string;
+    installCursor: string;
+    installClaudeDesktop: string;
+    installClaudeCode: string;
+    keysTitle: string;
+    keysEmpty: string;
+    createKey: string;
+    revokeKey: string;
+    keyOnce: string;
+    keyCopied: string;
+    copyKey: string;
+    lastUsed: string;
+    neverUsed: string;
+    dashboardTitle: string;
+    calls30d: string;
+    credits30d: string;
+    errorRate: string;
+    byTool: string;
+    noUsage: string;
+  };
+  affiliate: {
+    title: string;
+    subtitle: string;
+    codeTitle: string;
+    copyCode: string;
+    copyLink: string;
+    copied: string;
+    walletTitle: string;
+    pending: string;
+    paid: string;
+    thisMonth: string;
+    ratesTitle: string;
+    rateBuy: string;
+    rateConsume: string;
+    rateTotal: string;
+    downlineTitle: string;
+    downlineEmpty: string;
+    colUser: string;
+    colBought: string;
+    colConsumed: string;
+    colEarned: string;
+    payoutTitle: string;
+    payoutHint: string;
+    payoutRequest: string;
+    payoutPending: string;
+    payoutMin: string;
   };
   styles: {
     label: string;

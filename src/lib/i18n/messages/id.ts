@@ -2,7 +2,7 @@ import type { Messages } from "./types";
 
 export const id: Partial<Messages> = {
   meta: { title: "Explainer — Video penjelasan", description: "Ubah konsep menjadi Reels, clips pemasaran, dan video presentasi. Pilih gaya, setujui storyboard, lalu ekspor clips." },
-  nav: { projects: "Proyek", characters: "Karakter", billing: "Tagihan", pricing: "Harga", signIn: "Masuk", workspace: "Ruang kerja", language: "Bahasa" },
+  nav: { projects: "Proyek", characters: "Karakter", mcp: "MCP", affiliate: "Affiliate", billing: "Tagihan", pricing: "Harga", signIn: "Masuk", workspace: "Ruang kerja", language: "Bahasa" },
   common: { credits: "credits", perMonth: "/ bln", cancel: "Batal", save: "Simpan", close: "Tutup", create: "Buat", loading: "Memuat…", popular: "Paling populer", subscribe: "Berlangganan" },
   landing: {
     hero: { kicker: "Explainer", title: "Jelaskan ide dengan gamblang melalui Reels, video pemasaran, dan presentasi.", subtitle: "Pilih gaya, setujui storyboard, lalu ekspor clips untuk video pendek, pemasaran produk, dan presentasi.", ctaStart: "Mulai", ctaWorkspace: "Buka ruang kerja", ctaPricing: "Lihat paket", artLabel: "Ilustrasi konsep storyboard dan penyuntingan" },

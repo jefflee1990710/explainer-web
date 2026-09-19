@@ -39,6 +39,8 @@ export function AppShell({
             <nav className="flex gap-4 text-sm font-medium text-muted">
               <NavLink href="/app">{t("nav.projects")}</NavLink>
               <NavLink href="/app/characters">{t("nav.characters")}</NavLink>
+              <NavLink href="/app/mcp">{t("nav.mcp")}</NavLink>
+              <NavLink href="/app/affiliate">{t("nav.affiliate")}</NavLink>
               <NavLink href="/app/billing">{t("nav.billing")}</NavLink>
             </nav>
           </div>

@@ -2,7 +2,7 @@ import type { Messages } from "./types";
 
 export const ko: Partial<Messages> = {
   meta: { title: "Explainer — 설명 영상", description: "아이디어를 Reels, 마케팅 clips, 프레젠테이션 영상으로 만드세요. 스타일을 고르고 스토리보드를 승인한 뒤 clips 을 내보낼 수 있습니다." },
-  nav: { projects: "프로젝트", characters: "캐릭터", billing: "결제", pricing: "요금제", signIn: "로그인", workspace: "작업 공간", language: "언어" },
+  nav: { projects: "프로젝트", characters: "캐릭터", mcp: "MCP", affiliate: "Affiliate", billing: "결제", pricing: "요금제", signIn: "로그인", workspace: "작업 공간", language: "언어" },
   common: { credits: "credits", perMonth: "/월", cancel: "취소", save: "저장", close: "닫기", create: "만들기", loading: "불러오는 중…", popular: "가장 인기 있음", subscribe: "구독" },
   landing: {
     hero: { kicker: "Explainer", title: "아이디어를 Reels, 마케팅, 프레젠테이션 영상으로 명확하게 설명하세요.", subtitle: "스타일을 고르고 스토리보드를 승인한 뒤 clips 을 내보내세요. 숏폼 영상, 제품 마케팅, 프레젠테이션에 활용할 수 있습니다.", ctaStart: "시작하기", ctaWorkspace: "작업 공간 열기", ctaPricing: "요금제 보기", artLabel: "스토리보드 및 편집 콘셉트 일러스트" },

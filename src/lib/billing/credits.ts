@@ -1,9 +1,14 @@
+import { randomBytes } from "crypto";
 import { subscriptionsCollection, usersCollection } from "@/lib/collections";
 import {
   applyMonthlyRefill,
   applyPackPurchase,
   applySpend,
 } from "@/lib/billing/credit-balance";
+import {
+  recordConsumeCommission,
+  reverseConsumeCommission,
+} from "@/lib/affiliate/engine";
 import type { AppUser } from "@/types/user";
 import type { Subscription } from "@/types/subscription";
 
@@ -45,7 +50,15 @@ function balanceOf(user: Pick<AppUser, "credits" | "bonusCredits" | "creditLimit
   };
 }
 
-export async function consumeCredits(clerkUserId: string, cost: number) {
+function newSpendEventKey(clerkUserId: string) {
+  return `spend:${clerkUserId}:${Date.now()}:${randomBytes(4).toString("hex")}`;
+}
+
+// Deduct credits and pay consume commissions. Returns eventKey for refunds.
+export async function consumeCredits(
+  clerkUserId: string,
+  cost: number,
+): Promise<string> {
   const users = await usersCollection();
   const user = await users.findOne({ clerkUserId, credits: { $gte: cost } });
   if (!user) {
@@ -59,14 +72,36 @@ export async function consumeCredits(clerkUserId: string, cost: number) {
   if (result.modifiedCount !== 1) {
     throw new Error("credits 不足，無法扣款");
   }
+
+  const eventKey = newSpendEventKey(clerkUserId);
+  if (cost > 0) {
+    try {
+      await recordConsumeCommission(clerkUserId, cost, eventKey);
+    } catch (error) {
+      console.error("affiliate consume commission failed", error);
+    }
+  }
+  return eventKey;
 }
 
-export async function refundCredits(clerkUserId: string, cost: number) {
+export async function refundCredits(
+  clerkUserId: string,
+  cost: number,
+  spendEventKey?: string,
+) {
   const users = await usersCollection();
   await users.updateOne(
     { clerkUserId },
     { $inc: { credits: cost }, $set: { updatedAt: new Date() } },
   );
+
+  if (cost > 0 && spendEventKey) {
+    try {
+      await reverseConsumeCommission(clerkUserId, cost, spendEventKey);
+    } catch (error) {
+      console.error("affiliate reverse commission failed", error);
+    }
+  }
 }
 
 export async function resetMonthlyCredits(

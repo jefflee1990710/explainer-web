@@ -1,6 +1,13 @@
+import { cookies } from "next/headers";
 import { cache } from "react";
 import { currentUser } from "@clerk/nextjs/server";
+import {
+  bindReferralOnSignup,
+  ensureAffiliateProfile,
+} from "@/lib/affiliate/engine";
+import { REFERRAL_COOKIE } from "@/lib/affiliate/rates";
 import { usersCollection } from "@/lib/collections";
+import { mcpUserStore } from "@/lib/mcp/api-keys";
 import type { AppUser } from "@/types/user";
 
 // Upsert the Mongo user from the current Clerk session.
@@ -28,13 +35,25 @@ const requireAppUserImpl = cache(async (): Promise<AppUser> => {
   if (existing) {
     // Skip a write on every navigation when Clerk profile is unchanged.
     if (existing.email === email && existing.name === name) {
+      await ensureAffiliateProfile(existing);
       return existing;
     }
     await users.updateOne(
       { clerkUserId: clerkUser.id },
       { $set: { email, name, updatedAt: now } },
     );
-    return { ...existing, email, name, updatedAt: now };
+    const updated = { ...existing, email, name, updatedAt: now };
+    await ensureAffiliateProfile(updated);
+    return updated;
+  }
+
+  // First-touch referral cookie from /r/[code].
+  let referralCode: string | undefined;
+  try {
+    const jar = await cookies();
+    referralCode = jar.get(REFERRAL_COOKIE)?.value;
+  } catch {
+    referralCode = undefined;
   }
 
   await users.updateOne(
@@ -50,13 +69,19 @@ const requireAppUserImpl = cache(async (): Promise<AppUser> => {
     { upsert: true },
   );
 
-  const user = await users.findOne({ clerkUserId: clerkUser.id });
+  let user = await users.findOne({ clerkUserId: clerkUser.id });
   if (!user) {
     throw new Error("無法建立使用者");
   }
+
+  user = await bindReferralOnSignup(user, referralCode);
+  await ensureAffiliateProfile(user);
   return user;
 });
 
 export async function requireAppUser(): Promise<AppUser> {
+  // MCP API-key requests bind the user here so existing actions work unchanged.
+  const mcpUser = mcpUserStore.getStore();
+  if (mcpUser) return mcpUser;
   return requireAppUserImpl();
 }

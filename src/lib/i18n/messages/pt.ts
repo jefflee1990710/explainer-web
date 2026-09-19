@@ -2,7 +2,7 @@ import type { Messages } from "./types";
 
 export const pt: Partial<Messages> = {
   meta: { title: "Explainer — Vídeos explicativos", description: "Transforme conceitos em Reels, clips de marketing e vídeos de apresentação. Escolha um estilo, aprove os storyboards e exporte clips." },
-  nav: { projects: "Projetos", characters: "Personagens", billing: "Faturação", pricing: "Preços", signIn: "Entrar", workspace: "Área de trabalho", language: "Idioma" },
+  nav: { projects: "Projetos", characters: "Personagens", mcp: "MCP", affiliate: "Affiliate", billing: "Faturação", pricing: "Preços", signIn: "Entrar", workspace: "Área de trabalho", language: "Idioma" },
   common: { credits: "credits", perMonth: "/ mês", cancel: "Cancelar", save: "Guardar", close: "Fechar", create: "Criar", loading: "A carregar…", popular: "Mais popular", subscribe: "Subscrever" },
   landing: {
     hero: { kicker: "Explainer", title: "Explique ideias com clareza através de Reels, vídeos de marketing e apresentações.", subtitle: "Escolha um estilo, aprove os storyboards e exporte clips para vídeos curtos, marketing de produto e apresentações.", ctaStart: "Começar", ctaWorkspace: "Abrir área de trabalho", ctaPricing: "Ver planos", artLabel: "Ilustração conceptual de storyboard e edição" },

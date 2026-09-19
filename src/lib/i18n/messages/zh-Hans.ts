@@ -8,6 +8,8 @@ export const zhHans: Partial<Messages> = {
   nav: {
     projects: "项目",
     characters: "角色",
+    mcp: "MCP",
+    affiliate: "Affiliate",
     billing: "账单",
     pricing: "价格方案",
     signIn: "登录",

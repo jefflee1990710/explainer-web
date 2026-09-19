@@ -6,6 +6,7 @@ import {
 import { isPlanId, planByPriceId, PLANS } from "@/lib/billing/plans";
 import { grantPackCredits, resetMonthlyCredits } from "@/lib/billing/credits";
 import { CREDIT_PACKS, isPackId } from "@/lib/billing/packs";
+import { recordPurchaseCommission } from "@/lib/affiliate/engine";
 import {
   subscriptionsCollection,
   usersCollection,
@@ -115,6 +116,21 @@ export async function grantCreditsFromInvoice(invoice: Stripe.Invoice) {
   const prices = await getOrCreateStripePrices();
   const plan = resolvePlan(subscription, prices);
   await resetMonthlyCredits(user.clerkUserId, plan.monthlyCredits);
+
+  // Commission + FIFO lot from the paid invoice amount.
+  const amountPaidCents = invoice.amount_paid || Math.round(plan.amountUsd * 100);
+  await recordPurchaseCommission({
+    buyerClerkUserId: user.clerkUserId,
+    amountPaidCents,
+    credits: plan.monthlyCredits,
+    lot: {
+      source: "subscription",
+      sourceId: invoice.id || `sub:${subscriptionId}:${invoice.created}`,
+      credits: plan.monthlyCredits,
+      amountPaidCents,
+    },
+    eventKey: `invoice:${invoice.id || `${subscriptionId}:${invoice.created}`}`,
+  });
 }
 
 export async function grantPackFromCheckout(session: Stripe.Checkout.Session) {
@@ -123,5 +139,23 @@ export async function grantPackFromCheckout(session: Stripe.Checkout.Session) {
   const packId = session.metadata?.packId;
   const clerkUserId = session.metadata?.clerkUserId;
   if (!isPackId(packId) || !clerkUserId) return;
-  await grantPackCredits(clerkUserId, CREDIT_PACKS[packId].credits, session.id);
+  const pack = CREDIT_PACKS[packId];
+  await grantPackCredits(clerkUserId, pack.credits, session.id);
+
+  const amountPaidCents =
+    typeof session.amount_total === "number"
+      ? session.amount_total
+      : Math.round(pack.amountUsd * 100);
+  await recordPurchaseCommission({
+    buyerClerkUserId: clerkUserId,
+    amountPaidCents,
+    credits: pack.credits,
+    lot: {
+      source: "pack",
+      sourceId: session.id,
+      credits: pack.credits,
+      amountPaidCents,
+    },
+    eventKey: `pack:${session.id}`,
+  });
 }

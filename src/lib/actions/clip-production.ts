@@ -113,7 +113,7 @@ export async function generateClipFramesAction(
     if (blocker) return { ok: false, error: blocker };
 
     await assertCanSpendCredits(user, FRAMES_COST);
-    await consumeCredits(user.clerkUserId, FRAMES_COST);
+    const spendKey = await consumeCredits(user.clerkUserId, FRAMES_COST);
     const frames = framesWithClip(project, clipNumber);
     try {
       await projects.updateOne(
@@ -122,7 +122,7 @@ export async function generateClipFramesAction(
       );
     } catch (error) {
       // Write failed before anything went out → give back the full charge.
-      await refundCredits(user.clerkUserId, FRAMES_COST);
+      await refundCredits(user.clerkUserId, FRAMES_COST, spendKey);
       throw error;
     }
 
@@ -146,7 +146,9 @@ export async function generateClipFramesAction(
         message,
         attemptStartedAt,
       );
-      if (missed > 0) await refundCredits(user.clerkUserId, missed * FRAME_COST);
+      if (missed > 0) {
+        await refundCredits(user.clerkUserId, missed * FRAME_COST, spendKey);
+      }
       throw error;
     }
 

@@ -13,6 +13,9 @@ export type AppUser = {
   // Current period bar denominator (monthly allotment + packs).
   creditLimit?: number;
   processedCheckoutIds?: string[];
+  // Affiliate: direct referrer and upline chain [L1, L2, L3].
+  referredByUserId?: ObjectId;
+  uplineUserIds?: ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 };

@@ -2,7 +2,7 @@ import type { Messages } from "./types";
 
 export const es: Partial<Messages> = {
   meta: { title: "Explainer — Vídeos explicativos", description: "Convierte conceptos en Reels, clips de marketing y vídeos para presentaciones. Elige un estilo, aprueba los guiones gráficos y exporta clips." },
-  nav: { projects: "Proyectos", characters: "Personajes", billing: "Facturación", pricing: "Precios", signIn: "Iniciar sesión", workspace: "Espacio de trabajo", language: "Idioma" },
+  nav: { projects: "Proyectos", characters: "Personajes", mcp: "MCP", affiliate: "Affiliate", billing: "Facturación", pricing: "Precios", signIn: "Iniciar sesión", workspace: "Espacio de trabajo", language: "Idioma" },
   common: { credits: "credits", perMonth: "/ mes", cancel: "Cancelar", save: "Guardar", close: "Cerrar", create: "Crear", loading: "Cargando…", popular: "Más popular", subscribe: "Suscribirse" },
   landing: {
     hero: { kicker: "Explainer", title: "Explica tus ideas con claridad mediante Reels, vídeos de marketing y presentaciones.", subtitle: "Elige un estilo, aprueba los guiones gráficos y exporta clips para vídeos cortos, marketing de producto y presentaciones.", ctaStart: "Empezar", ctaWorkspace: "Abrir espacio de trabajo", ctaPricing: "Ver planes", artLabel: "Ilustración conceptual de guion gráfico y edición" },

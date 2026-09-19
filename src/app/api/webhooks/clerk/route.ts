@@ -1,5 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyWebhook } from "@clerk/nextjs/webhooks";
+import {
+  bindReferralOnSignup,
+  ensureAffiliateProfile,
+} from "@/lib/affiliate/engine";
 import { usersCollection } from "@/lib/collections";
 
 export async function POST(request: NextRequest) {
@@ -21,6 +25,12 @@ export async function POST(request: NextRequest) {
         [user.first_name, user.last_name].filter(Boolean).join(" ") || email;
       const users = await usersCollection();
       const now = new Date();
+      // Referral code may arrive via unsafe_metadata from the signup form.
+      const referralCode =
+        typeof user.unsafe_metadata?.referralCode === "string"
+          ? user.unsafe_metadata.referralCode
+          : undefined;
+
       await users.updateOne(
         { clerkUserId: user.id },
         {
@@ -33,6 +43,15 @@ export async function POST(request: NextRequest) {
         },
         { upsert: true },
       );
+
+      const appUser = await users.findOne({ clerkUserId: user.id });
+      if (appUser) {
+        if (event.type === "user.created") {
+          await bindReferralOnSignup(appUser, referralCode);
+        }
+        const fresh = await users.findOne({ clerkUserId: user.id });
+        if (fresh) await ensureAffiliateProfile(fresh);
+      }
     }
     return NextResponse.json({ received: true });
   } catch (error) {
