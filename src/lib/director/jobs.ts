@@ -140,8 +140,9 @@ export async function runPhaseBAndGenerateJob(projectId: ObjectId) {
     await startProjectGeneration(ready);
   } catch (error) {
     // Give the credits back so a provider outage never charges the user.
-    if (project.creditsCharged && project.creditCost > 0) {
-      await refundCredits(project.clerkUserId, project.creditCost);
+    const creditCost = project.creditCost ?? 0;
+    if (project.creditsCharged && creditCost > 0) {
+      await refundCredits(project.clerkUserId, creditCost);
     }
     await projects.updateOne(
       { _id: projectId },

@@ -538,8 +538,9 @@ async function failFramesStage(project: Project, error: string) {
 
 async function failVideoStage(project: Project, error: string) {
   const projects = await videosCollection();
-  if (project.creditsCharged && project.creditCost > 0) {
-    await refundCredits(project.clerkUserId, project.creditCost);
+  const creditCost = project.creditCost ?? 0;
+  if (project.creditsCharged && creditCost > 0) {
+    await refundCredits(project.clerkUserId, creditCost);
   }
   await projects.updateOne(
     { _id: project._id },
