@@ -18,6 +18,7 @@ import {
 } from "@/lib/higgsfield/generate";
 import { jobNeedsRefresh, settleProviderStatus } from "@/lib/higgsfield/job-status";
 import { persistMedia } from "@/lib/higgsfield/persist";
+import { assertClipKeyframes } from "@/lib/higgsfield/clip-keyframes";
 import {
   nextProjectStatus,
   reconcileClips,
@@ -258,19 +259,6 @@ export async function regenerateFrame(
 
 // ---------- video clips ----------
 
-function frameUrl(
-  frames: ClipFrame[] | undefined,
-  clipNumber: number,
-  position: FramePosition,
-) {
-  const frame = frames?.find(
-    (item) => item.clipNumber === clipNumber && item.position === position,
-  );
-  return frame?.status === "completed"
-    ? frame.blobUrl || frame.outputUrl
-    : undefined;
-}
-
 // Submit one clip's video (caller charged 1 credit and wrote the prompt).
 // Replaces any previous video job for that clip.
 export async function submitClipVideoJob(
@@ -282,18 +270,14 @@ export async function submitClipVideoJob(
   const jobs = await generationJobsCollection();
   await jobs.deleteMany({ projectId: project._id, kind: "video", clipIndex: clipNumber - 1 });
 
-  const fallbackRef =
-    project.cast?.[0]?.blueprintUrl || project.characterStillUrl || project.characterImageUrl;
-  const start = frameUrl(project.frames, clipNumber, "start");
-  const end = frameUrl(project.frames, clipNumber, "end");
+  const { start, end } = assertClipKeyframes(project.frames, clipNumber);
   const submitted = await submitClipVideo({
     model: skill.higgsfieldDefaults.videoModel,
     prompt: prompt.prompt,
     aspectRatio: project.aspectRatio,
     durationSeconds: prompt.durationSeconds,
-    startImageUrl: start || fallbackRef,
+    startImageUrl: start,
     endImageUrl: end,
-    referenceImageUrls: start && end ? [] : [fallbackRef],
   });
   await jobs.insertOne({
     projectId: project._id,

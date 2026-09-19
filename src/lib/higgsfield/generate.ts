@@ -3,6 +3,7 @@ import {
   assertHiggsfieldConfigured,
   mediaUrlFromResponse,
 } from "@/lib/higgsfield/client";
+import { wanClipVideoInput } from "@/lib/higgsfield/clip-keyframes";
 import type { AspectRatio } from "@/types/project";
 
 /** Stored on skills / jobs; `/edit` is chosen automatically when references are present. */
@@ -112,27 +113,20 @@ export async function submitClipVideo(input: {
   prompt: string;
   aspectRatio: AspectRatio;
   durationSeconds: number;
-  // Dual-keyframe: start is the first frame, end is the last frame.
-  startImageUrl?: string;
-  endImageUrl?: string;
-  // Only used when we do not have both keyframes (Wan treats refs as exclusive).
-  referenceImageUrls?: Array<string | undefined>;
+  startImageUrl: string;
+  endImageUrl: string;
 }) {
   const client = assertHiggsfieldConfigured();
-  const duration = Math.min(8, Math.max(3, Math.round(input.durationSeconds)));
-  const dualKeyframe = Boolean(input.startImageUrl && input.endImageUrl);
-  // Wan 3.0 image-to-video: `image_url` + `end_image_url` interpolate start→end.
-  // Extra `image_references` cannot be mixed with first/last frames.
+  // Wan 3.0 last-frame lock is `end_image_url`. Never fall back to start-only
+  // I2V or mix in image_references (exclusive with first/last frames).
   return client.subscribe(input.model, {
-    input: {
+    input: wanClipVideoInput({
       prompt: input.prompt,
-      aspect_ratio: input.aspectRatio,
-      duration,
-      resolution: "720p",
-      ...(input.startImageUrl ? { image_url: input.startImageUrl } : {}),
-      ...(input.endImageUrl ? { end_image_url: input.endImageUrl } : {}),
-      ...(dualKeyframe ? {} : imageRefs(input.referenceImageUrls || [])),
-    },
+      aspectRatio: input.aspectRatio,
+      durationSeconds: input.durationSeconds,
+      startImageUrl: input.startImageUrl,
+      endImageUrl: input.endImageUrl,
+    }),
     withPolling: false,
     webhook: webhookOptions(),
   });

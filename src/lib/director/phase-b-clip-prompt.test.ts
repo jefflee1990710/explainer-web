@@ -43,6 +43,7 @@ const base = {
 test("middle clip quotes both neighbours and asks for that clip only", () => {
   const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
   assert.match(prompt, /clip 2 ONLY/);
+  assert.match(prompt, /first\/last frames/);
   assert.match(prompt, /follows clip 1, which ends on: coin drops/);
   assert.match(prompt, /hands off to clip 3, which opens with: house appears/);
   assert.match(prompt, /Character reference image: none/);

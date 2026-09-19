@@ -13,6 +13,7 @@ import { generationJobsCollection, videosCollection } from "@/lib/collections";
 import { runClipVideoJob } from "@/lib/director/jobs";
 import { framesWithClip } from "@/lib/higgsfield/frame-prompts";
 import { hasJobSince } from "@/lib/higgsfield/job-attempts";
+import { clipKeyframeUrls } from "@/lib/higgsfield/clip-keyframes";
 import {
   failUnsubmittedFrames,
   regenerateFrames,
@@ -178,12 +179,8 @@ export async function generateClipVideoAction(
 
     const row = project.phaseA.clips.find((clip) => clip.clipNumber === clipNumber);
     if (!row) return { ok: false, error: "找不到這段分鏡" };
-    const framesDone = (["start", "end"] as const).every(
-      (position) =>
-        project.frames?.find(
-          (frame) => frame.clipNumber === clipNumber && frame.position === position,
-        )?.status === "completed",
-    );
+    const { start, end } = clipKeyframeUrls(project.frames, clipNumber);
+    const framesDone = Boolean(start && end);
     if (!framesDone) return { ok: false, error: "這段的畫格還沒完成" };
 
     await assertCanSpendCredits(user, VIDEO_COST);
