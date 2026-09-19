@@ -1,6 +1,10 @@
 import type { ObjectId } from "mongodb";
 import { refundCredits } from "@/lib/billing/credits";
-import { skillsCollection, videosCollection } from "@/lib/collections";
+import {
+  generationJobsCollection,
+  skillsCollection,
+  videosCollection,
+} from "@/lib/collections";
 import { keepProposalRegenerateClips } from "@/lib/director/phase-a-edit";
 import { runPhaseA } from "@/lib/director/run-phase-a";
 import { runPhaseBForClip } from "@/lib/director/run-phase-b";
@@ -106,6 +110,12 @@ export async function runClipVideoJob(projectId: ObjectId, clipNumber: number) {
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
   if (!project?.phaseA) return;
+
+  // Drop the clip's previous video job before Phase B runs: otherwise a stale
+  // job stays the newest one and wins reconciliation while we write the prompt,
+  // overwriting the `queued` clip and, on failure, the `failed` marker below.
+  const jobs = await generationJobsCollection();
+  await jobs.deleteMany({ projectId, kind: "video", clipIndex: clipNumber - 1 });
 
   try {
     const skills = await skillsCollection();

@@ -283,7 +283,6 @@ export async function applyJobStatus(input: {
 
   const status = input.status as GenerationStatus;
   const nowFailed = status === "failed" || status === "nsfw";
-  const wasFailed = job.status === "failed" || job.status === "nsfw";
 
   // Character sheets persist and refund in their own sync; no video to touch.
   if (job.kind === "character") {
@@ -335,22 +334,31 @@ export async function applyJobStatus(input: {
     );
   }
 
-  await jobs.updateOne(
-    { _id: job._id },
-    {
-      $set: {
-        status,
-        outputUrl: input.outputUrl,
-        blobUrl,
-        error: nowFailed ? status : undefined,
-        updatedAt: new Date(),
-      },
-    },
-  );
+  const set = {
+    status,
+    outputUrl: input.outputUrl,
+    blobUrl,
+    error: nowFailed ? status : undefined,
+    updatedAt: new Date(),
+  };
 
-  // Each frame is 1 credit and each clip video is 1 credit; hand it back the
-  // moment that job fails (once — `wasFailed` guards repeated webhooks).
-  if (project && nowFailed && !wasFailed) {
+  // The webhook and the poller can deliver the same failure concurrently, so
+  // the flip to failed is an atomic claim: `findOneAndUpdate` only matches for
+  // the caller that finds the job still unfailed, and only that one refunds.
+  const claimedFailure = nowFailed
+    ? Boolean(
+        await jobs.findOneAndUpdate(
+          { _id: job._id, status: { $nin: ["failed", "nsfw"] } },
+          { $set: set },
+        ),
+      )
+    : false;
+  // Lost the claim (or not a failure at all): the fields still have to land.
+  if (!claimedFailure) await jobs.updateOne({ _id: job._id }, { $set: set });
+
+  // Each frame is 1 credit and each clip video is 1 credit; hand it back once,
+  // the moment this caller is the one that marked the job failed.
+  if (project && claimedFailure) {
     if (job.kind === "frame") await refundCredits(project.clerkUserId, FRAME_COST);
     if (job.kind === "video") await refundCredits(project.clerkUserId, VIDEO_COST);
   }

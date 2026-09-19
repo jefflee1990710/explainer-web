@@ -119,6 +119,11 @@ export async function regenerateFrameAction(
       (item) => item.clipNumber === clipNumber && item.position === position,
     );
     if (!frame) return { ok: false, error: "找不到這張分鏡圖" };
+    // A redo deletes the frame's current job, which would strand the credit
+    // already spent on it; make the user wait for it to settle instead.
+    if (frame.status === "queued" || frame.status === "in_progress") {
+      return { ok: false, error: "這張分鏡圖還在產生中，請稍後再重畫" };
+    }
 
     // Build the revision before charging so an upload failure costs nothing.
     const remark = revisionInput?.remark?.trim().slice(0, MAX_REMARK_LENGTH);
@@ -231,6 +236,19 @@ export async function updateClipStoryboardAction(
     if (clipIndex < 0) return { ok: false, error: "找不到這段分鏡" };
 
     const regenerate = options?.regenerate === true;
+    // Same as a single redo: regenerating would delete in-flight frame jobs
+    // whose credits are already spent, so wait for them to settle first.
+    if (
+      regenerate &&
+      (project.frames || []).some(
+        (frame) =>
+          frame.clipNumber === clipNumber &&
+          (frame.status === "queued" || frame.status === "in_progress"),
+      )
+    ) {
+      return { ok: false, error: "這一段的分鏡圖還在產生中，請稍後再重畫" };
+    }
+
     const cost = regenerate ? FRAMES_COST : 0;
     if (regenerate) await assertCanSpendCredits(user, cost);
 
@@ -277,8 +295,22 @@ export async function updateClipStoryboardAction(
           { clipNumber, position: "end" },
         ]);
       } catch (error) {
-        // Nothing went out: give the credits back.
+        // Nothing went out: give the credits back, and fail the two entries we
+        // just queued — they have no job, so reconciliation would never move
+        // them off `queued` and the clip would look stuck forever.
         await refundCredits(user.clerkUserId, cost);
+        await projects.updateOne(
+          { _id: project._id },
+          {
+            $set: {
+              "frames.$[frame].status": "failed",
+              "frames.$[frame].error":
+                error instanceof Error ? error.message : "分鏡圖送出失敗",
+              updatedAt: new Date(),
+            },
+          },
+          { arrayFilters: [{ "frame.clipNumber": clipNumber }] },
+        );
         throw error;
       }
     }
