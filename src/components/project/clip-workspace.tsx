@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { ClipVideoPanel } from "@/components/project/clip-video-panel";
 import { FrameTile } from "@/components/project/frame-tile";
@@ -19,7 +20,6 @@ export function ClipWorkspace({
   project,
   state,
   credits,
-  canAct,
   pending,
   onPrev,
   onNext,
@@ -32,7 +32,6 @@ export function ClipWorkspace({
   project: PublicVideo;
   state: ClipState;
   credits: number;
-  canAct: boolean;
   // Pending key of the running action ("" when idle).
   pending: string;
   onPrev?: () => void;
@@ -55,7 +54,11 @@ export function ClipWorkspace({
   const framesPending = pending === `frames:${n}` || pending === `clip:${n}:regen`;
   const hasFrames = Boolean(start || end);
   const nextHasFrames = project.frames.some((f) => f.clipNumber === n + 1);
-  const framesDisabled = !canAct || framesBusy || pending !== "" || credits < FRAMES_COST;
+  // Not being subscribed no longer disables anything: the action returns a
+  // billing error and the caller redirects to /app/billing.
+  const idle = pending === "";
+  const shortCredits = credits < FRAMES_COST;
+  const framesDisabled = framesBusy || !idle || shortCredits;
 
   return (
     <motion.section
@@ -93,13 +96,6 @@ export function ClipWorkspace({
           </button>
         </div>
       </header>
-
-      {/* Unsubscribed disables every paid button below, so say why once. */}
-      {!canAct ? (
-        <p className="mt-4 rounded-2xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-accent">
-          尚未訂閱，這一段的產生按鈕已停用；可用下方「補齊剩餘」前往訂閱頁。
-        </p>
-      ) : null}
 
       {/* Stale banner: text changed after the media was made. */}
       {state.stale.frames || state.stale.video ? (
@@ -175,7 +171,7 @@ export function ClipWorkspace({
               frame={start}
               position="start"
               aspectRatio={project.aspectRatio}
-              canRegenerate={canAct && !framesBusy && pending === ""}
+              canRegenerate={!framesBusy && idle}
               pending={pending === `frame:${n}:start`}
               stale={state.stale.frames}
               onRegenerate={() => onRegenerateFrame("start")}
@@ -186,7 +182,7 @@ export function ClipWorkspace({
               frame={end}
               position="end"
               aspectRatio={project.aspectRatio}
-              canRegenerate={canAct && !framesBusy && pending === ""}
+              canRegenerate={!framesBusy && idle}
               pending={pending === `frame:${n}:end`}
               stale={state.stale.frames}
               onRegenerate={() => onRegenerateFrame("end")}
@@ -208,13 +204,20 @@ export function ClipWorkspace({
             {hasFrames ? "兩張重畫" : "畫這段畫格"} · {FRAMES_COST}
           </motion.button>
           <p className="mt-1 text-[11px] text-muted">
-            {credits < FRAMES_COST
-              ? "credits 不足"
-              : framesBusy
-                ? "這一段正在生成中，完成後才能重畫"
-                : nextHasFrames
-                  ? `結尾畫格與 #${n + 1} 的起始銜接；重畫後建議看一下 #${n + 1}。`
-                  : "點擊完成的畫格可放大、手繪標註後重畫（1 credit）。"}
+            {shortCredits ? (
+              <>
+                credits 不足，
+                <Link href="/app/billing" className="font-semibold text-accent underline">
+                  升級方案
+                </Link>
+              </>
+            ) : framesBusy ? (
+              "這一段正在生成中，完成後才能重畫"
+            ) : nextHasFrames ? (
+              `結尾畫格與 #${n + 1} 的起始銜接；重畫後建議看一下 #${n + 1}。`
+            ) : (
+              "點擊完成的畫格可放大、手繪標註後重畫（1 credit）。"
+            )}
           </p>
         </div>
 
@@ -224,7 +227,7 @@ export function ClipWorkspace({
           state={state}
           aspectRatio={project.aspectRatio}
           credits={credits}
-          canAct={canAct && pending === ""}
+          canAct={idle}
           pending={pending === `video:${n}`}
           onGenerate={onGenerateVideo}
         />

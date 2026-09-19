@@ -167,7 +167,8 @@ export function NewProjectForm({
     }
   }
 
-  // Shared handler for both paid approvals; billing errors bounce to /app/billing.
+  // Shared handler for every server action behind a paid button; billing errors
+  // bounce to /app/billing.
   async function runPaid(
     key: string,
     action: () => Promise<
@@ -186,6 +187,9 @@ export function NewProjectForm({
       return false;
     }
     setProject(result.project);
+    // Credits were just spent; refresh the server components so the header
+    // balance and every `credits < cost` gate below it stop showing the old one.
+    router.refresh();
     return true;
   }
 
@@ -276,6 +280,11 @@ export function NewProjectForm({
     "解說風格";
   const styleName =
     styles.find((item) => item.id === (project?.styleId || styleId))?.nameZh || "視覺風格";
+  // Stepper detail for the production step; skipped before the storyboard exists.
+  const counts =
+    project && (project.status === "production" || project.status === "ready")
+      ? productionCounts(project)
+      : null;
   const canSubmit =
     source.trim().length > 0 &&
     aspectRatio !== "" &&
@@ -291,11 +300,7 @@ export function NewProjectForm({
             status={project?.status ?? "draft"}
             failedAtStep={project?.status === "failed" ? failedStepFor(project) : undefined}
             busy={project ? isProjectBusy(project) : false}
-            detail={
-              project && (project.status === "production" || project.status === "ready")
-                ? `影片 ${productionCounts(project).videosDone}/${productionCounts(project).total}`
-                : undefined
-            }
+            detail={counts ? `影片 ${counts.videosDone}/${counts.total}` : undefined}
           />
         </div>
 

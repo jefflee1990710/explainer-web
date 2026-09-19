@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { ASPECT_CLASS } from "@/components/project/frame-tile";
 import { RefreshIcon } from "@/components/project/production-icons";
 import { Spinner } from "@/components/spinner";
 import type { ClipState } from "@/lib/clip-stage";
-import { VIDEO_COST } from "@/lib/production-plan";
+import { STUCK_CLAIM_MS, VIDEO_COST } from "@/lib/production-plan";
 import type { AspectRatio, ProjectClip } from "@/types/project";
 
 // Video column of the workspace: empty / generating / ready / failed, with one
@@ -30,20 +32,40 @@ export function ClipVideoPanel({
 }) {
   const src = clip?.blobUrl || clip?.outputUrl;
   const generating = state.stage === "video_generating";
-  const hasVideo = clip?.status === "completed" && src;
+  const hasVideo = Boolean(src) && clip?.status === "completed";
   const failed = clip?.status === "failed";
+  // Old media stays playable through a redo; only a clip that never had a video
+  // falls back to the skeleton.
+  const showVideo = Boolean(src) && (hasVideo || generating);
   const framesReady = ["frames_ready", "video_ready", "video_failed"].includes(state.stage);
 
   // Why the button is disabled, if it is.
+  const shortCredits = credits < VIDEO_COST;
   const reason = !framesReady
     ? "畫格完成後才能產片"
     : state.stale.frames
       ? "畫格是舊版，請先重畫畫格"
-      : credits < VIDEO_COST
+      : shortCredits
         ? "credits 不足"
         : null;
   const disabled = !canAct || generating || pending || reason !== null;
-  const label = hasVideo ? "重產影片" : failed ? "重試" : "產這段影片";
+  const label = hasVideo || showVideo ? "重產影片" : failed ? "重試" : "產這段影片";
+
+  // A claim whose background job was lost leaves the clip queued forever. The
+  // clock is read from a timer rather than during render, so the server and the
+  // first client render agree (0 = not measured yet).
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 5_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const claimedAt = clip?.submittedAt ? Date.parse(clip.submittedAt) : NaN;
+  const stuck =
+    generating &&
+    clip?.status === "queued" &&
+    !Number.isNaN(claimedAt) &&
+    now > 0 &&
+    now - claimedAt > STUCK_CLAIM_MS;
 
   return (
     <div>
@@ -62,11 +84,11 @@ export function ClipVideoPanel({
       <div
         className={`relative mt-2 overflow-hidden rounded-xl border border-accent-ink/10 bg-paper ${ASPECT_CLASS[aspectRatio]}`}
       >
-        {hasVideo ? (
+        {showVideo ? (
           <motion.video
             key={src}
             initial={{ opacity: 0 }}
-            animate={{ opacity: state.stale.video ? 0.6 : 1 }}
+            animate={{ opacity: generating || state.stale.video ? 0.6 : 1 }}
             src={src}
             controls
             className="absolute inset-0 h-full w-full bg-black"
@@ -91,28 +113,49 @@ export function ClipVideoPanel({
             ▶ 畫格 OK 後即可產片
           </div>
         )}
-        {hasVideo && state.stale.video ? (
+        {showVideo && (generating || state.stale.video) ? (
           <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-accent px-2 py-0.5 font-display text-[10px] font-bold text-white">
-            舊版
+            {generating ? "重產中" : "舊版"}
           </span>
         ) : null}
       </div>
+      {stuck ? (
+        <button
+          type="button"
+          onClick={onGenerate}
+          disabled={pending}
+          className="mt-2 inline-flex min-h-[32px] cursor-pointer items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-3 text-[11px] font-semibold text-accent transition hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {pending ? <Spinner className="h-3.5 w-3.5" /> : <RefreshIcon />}
+          看起來卡住了？重試 · {VIDEO_COST}
+        </button>
+      ) : null}
       <motion.button
         type="button"
         onClick={onGenerate}
         disabled={disabled}
         whileTap={{ scale: 0.98 }}
         className={`mt-3 inline-flex min-h-[40px] cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-          hasVideo
+          showVideo
             ? "border border-accent-ink/15 bg-paper hover:border-accent-ink/40"
             : "bg-accent text-white shadow-[3px_3px_0_0_#12141c] hover:-translate-y-0.5 disabled:hover:translate-y-0"
         }`}
       >
-        {pending ? <Spinner className="h-4 w-4" /> : hasVideo ? <RefreshIcon /> : null}
+        {pending ? <Spinner className="h-4 w-4" /> : showVideo ? <RefreshIcon /> : null}
         {label} · {VIDEO_COST}
       </motion.button>
       {reason && !generating ? (
-        <p className="mt-1 text-[11px] text-muted">{reason}</p>
+        <p className="mt-1 text-[11px] text-muted">
+          {reason}
+          {shortCredits ? (
+            <>
+              ，
+              <Link href="/app/billing" className="font-semibold text-accent underline">
+                升級方案
+              </Link>
+            </>
+          ) : null}
+        </p>
       ) : (
         <p className="mt-1 text-[11px] text-muted">會依上面的畫格與文字撰寫 prompt 後送出。</p>
       )}

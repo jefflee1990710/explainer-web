@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { ClipPlayer } from "@/app/app/projects/[id]/clip-player";
 import {
@@ -62,7 +63,6 @@ export function ClipProduction({
   const plan = planRemaining(project);
   const ready = project.status === "ready";
   const busy = isProjectBusy(project);
-  const canAct = subscribed;
 
   // Default to the first clip that still needs work; #1 when everything is done.
   const [selected, setSelected] = useState<number>(
@@ -81,8 +81,11 @@ export function ClipProduction({
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (editingFrame || editingText || confirmFill) return;
-      const tag = (event.target as HTMLElement | null)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      // ← / → belong to the focused control (video scrubbing, select, editor).
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "VIDEO" || tag === "SELECT") return;
+      if (target?.isContentEditable) return;
       if (event.key === "ArrowLeft" && prev) setSelected(prev);
       if (event.key === "ArrowRight" && next) setSelected(next);
     }
@@ -152,7 +155,6 @@ export function ClipProduction({
         project={project}
         state={state}
         credits={credits}
-        canAct={canAct}
         pending={pending}
         onPrev={prev ? () => setSelected(prev) : undefined}
         onNext={next ? () => setSelected(next) : undefined}
@@ -185,7 +187,13 @@ export function ClipProduction({
                     : "目前沒有可一次補齊的段落（生成中或需重做的段落要在工作區處理）。"}
                 </p>
                 {!subscribed ? (
-                  <p className="mt-1 text-xs text-accent">尚未訂閱，按下後將前往訂閱頁。</p>
+                  <p className="mt-1 text-xs text-accent">
+                    尚未訂閱，按下後將前往訂閱頁，或直接
+                    <Link href="/app/billing" className="font-semibold underline">
+                      升級方案
+                    </Link>
+                    。
+                  </p>
                 ) : null}
               </div>
               <motion.button
@@ -219,7 +227,7 @@ export function ClipProduction({
           clip={row}
           aspectRatio={project.aspectRatio}
           credits={credits}
-          canRegenerate={canAct && pending === ""}
+          canRegenerate={pending === ""}
           onClose={() => setEditingFrame(null)}
           onRegenerate={(revision) => {
             onRegenerateFrame(state.clipNumber, editingFrame, revision);
@@ -235,7 +243,7 @@ export function ClipProduction({
           clip={row}
           language={project.language}
           credits={credits}
-          canRegenerate={canAct && pending === ""}
+          canRegenerate={pending === ""}
           pending={clipEditPending}
           error={error}
           onClose={() => setEditingText(false)}

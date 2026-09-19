@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId } from "react";
+import Link from "next/link";
 import { Spinner } from "@/components/spinner";
 import type { ClipState } from "@/lib/clip-stage";
 import { FRAMES_COST, VIDEO_COST, type RemainingPlan } from "@/lib/production-plan";
@@ -91,7 +92,15 @@ export function FillRemainingDialog({
         <p className="mt-3 text-xs leading-5 text-muted">
           不會動到已有畫格或影片，也不會處理標了「需重做」的段落。畫格完成後，那些段落的影片要再按一次。
         </p>
-        {short ? <p className="mt-2 text-xs text-accent">credits 不足，請先升級方案。</p> : null}
+        {short ? (
+          <p className="mt-2 text-xs text-accent">
+            credits 不足，請先
+            <Link href="/app/billing" className="font-semibold underline">
+              升級方案
+            </Link>
+            。
+          </p>
+        ) : null}
         <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
           <button
             type="button"
@@ -104,7 +113,7 @@ export function FillRemainingDialog({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={pending || short}
+            disabled={pending || short || plan.cost === 0}
             className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending ? <Spinner className="h-4 w-4" /> : null}
