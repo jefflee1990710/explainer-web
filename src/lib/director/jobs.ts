@@ -36,14 +36,14 @@ export async function runPhaseAJob(projectId: ObjectId, revisionNote?: string) {
     const phaseA = await runPhaseA({
       skill,
       style: videoStyle(project),
-      source: revisionNote
-        ? `${project.source}\n\nRevision notes from user:\n${revisionNote}`
-        : project.source,
+      source: project.source,
       aspectRatio: project.aspectRatio,
       durationPreset: project.durationPreset,
       language: project.language,
       characterImageUrl: project.characterImageUrl,
       cast: project.cast,
+      currentDraft: project.phaseA,
+      revisionNote,
     });
 
     await projects.updateOne(

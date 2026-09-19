@@ -19,7 +19,8 @@ import { failedStepFor } from "@/lib/project-status";
 import { toPublicVideo, type PublicVideo } from "@/lib/serialize";
 import { isStyleId } from "@/lib/styles";
 import type { CastMember, Character } from "@/types/character";
-import type { AspectRatio, DurationPreset } from "@/types/project";
+import { applyPhaseAEdits } from "@/lib/director/phase-a-edit";
+import type { AspectRatio, DurationPreset, PhaseAEditInput } from "@/types/project";
 
 const CAST_MAX = 4;
 
@@ -232,6 +233,59 @@ export async function createVideoAction(
 
 // Keep the old name until the create form is switched in Task 6.
 export const createProjectAction = createVideoAction;
+
+// Persist user edits to the Phase A proposal and clip rows (no credits).
+export async function updatePhaseAProposalAction(
+  videoId: string,
+  input: PhaseAEditInput,
+): Promise<VideoResult> {
+  try {
+    const user = await requireAppUser();
+    if (!ObjectId.isValid(videoId)) {
+      return { ok: false, error: "專案不存在" };
+    }
+
+    const videos = await videosCollection();
+    const video = await videos.findOne({
+      _id: new ObjectId(videoId),
+      clerkUserId: user.clerkUserId,
+    });
+    if (!video?.phaseA) return { ok: false, error: "專案不存在" };
+    if (video.status !== "awaiting_approval" && video.status !== "failed") {
+      return { ok: false, error: "這個專案目前不能編輯分鏡提案" };
+    }
+
+    const applied = applyPhaseAEdits(video.phaseA, input, video.language);
+    if (!applied.ok) return { ok: false, error: applied.error };
+
+    await videos.updateOne(
+      { _id: video._id },
+      {
+        $set: {
+          phaseA: applied.phaseA,
+          creditCost: applied.phaseA.clipCount,
+          error: undefined,
+          updatedAt: new Date(),
+        },
+      },
+    );
+
+    const folders = await projectsCollection();
+    await folders.updateOne(
+      { _id: video.projectId },
+      { $set: { updatedAt: new Date() } },
+    );
+
+    const updated = await videos.findOne({ _id: video._id });
+    revalidateVideo(videoId, video.projectId.toHexString());
+    return { ok: true, project: toPublicVideo(updated!) };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "儲存分鏡提案失敗",
+    };
+  }
+}
 
 // Re-run Phase A with user notes; also non-blocking.
 export async function reviseProjectAction(

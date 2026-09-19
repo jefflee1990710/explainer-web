@@ -1,10 +1,18 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Spinner } from "@/components/spinner";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
+import {
+  phaseAEditsEqual,
+  phaseAToEditInput,
+} from "@/lib/director/phase-a-edit";
 import type { PublicProject } from "@/lib/serialize";
+import type { PhaseAEditInput } from "@/types/project";
+import { ReviseStoryboardDialog } from "./revise-storyboard-dialog";
+import { StoryboardClipRow } from "./storyboard-clip-row";
+import { StoryboardProposalFields } from "./storyboard-proposal-fields";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -17,24 +25,39 @@ export function StoryboardPreview({
   error,
   onApprove,
   onRevise,
+  onSave,
 }: {
   project: PublicProject;
   credits: number;
   subscribed: boolean;
-  pending: "revise" | "approve" | "";
+  pending: "revise" | "approve" | "save" | "";
   error: string;
   onApprove: () => void;
   onRevise: (note: string) => void;
+  onSave: (input: PhaseAEditInput) => Promise<boolean>;
 }) {
   const [note, setNote] = useState("");
+  const [confirmRevise, setConfirmRevise] = useState(false);
   const phaseA = project.phaseA;
-  if (!phaseA) return null;
+  const saved = useMemo(
+    () => (phaseA ? phaseAToEditInput(phaseA) : null),
+    [phaseA],
+  );
+  const [draft, setDraft] = useState<PhaseAEditInput | null>(() => saved);
+
+  if (!phaseA || !saved || !draft) return null;
+  const currentDraft = draft;
 
   const language = LANGUAGE_PRESETS[project.language];
-  // Approving the storyboard generates a start + end frame per clip, 1 credit each.
   const framesCost = phaseA.clipCount * 2;
   const canGenerate = subscribed && credits >= framesCost;
   const busy = pending !== "";
+  const dirty = !phaseAEditsEqual(currentDraft, saved);
+
+  async function persistIfDirty() {
+    if (!dirty) return true;
+    return onSave(currentDraft);
+  }
 
   return (
     <motion.section
@@ -48,10 +71,9 @@ export function StoryboardPreview({
         <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-accent">
           Phase A · 分鏡提案
         </p>
-        <h2 className="font-display mt-2 text-2xl font-bold">
-          {phaseA.localizedTitle}
-        </h2>
-        <p className="text-sm text-muted">{phaseA.englishTitle}</p>
+        <p className="mt-2 text-sm text-muted">
+          標題、訊息與每一段分鏡都可以直接改。儲存不扣 credits；重寫會依目前草稿再產一次提案。
+        </p>
         <div className="mt-4 flex flex-wrap gap-2 text-xs">
           <Chip>{phaseA.targetDuration}</Chip>
           <Chip>{phaseA.clipCount} 段 clips</Chip>
@@ -59,58 +81,53 @@ export function StoryboardPreview({
           <Chip>{language.label} 旁白</Chip>
           <Chip>{phaseA.loopMode === "infinite" ? "無縫循環" : "線性"}</Chip>
         </div>
-        <dl className="mt-5 grid gap-4 text-sm md:grid-cols-2">
-          <Field label="核心訊息">{phaseA.coreMessage}</Field>
-          <Field label="開場鉤子">{phaseA.hookStrategy}</Field>
-          <Field label="旁白角色">{phaseA.narrator}</Field>
-          <Field label="視覺世界">{phaseA.visualWorld}</Field>
-        </dl>
+        <div className="mt-5">
+          <StoryboardProposalFields draft={currentDraft} disabled={busy} onChange={setDraft} />
+        </div>
       </header>
 
-      <motion.ol
-        className="grid gap-3"
-        initial="hidden"
-        animate="show"
-        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05 } } }}
-      >
-        {phaseA.clips.map((clip) => (
-          <motion.li
-            key={clip.clipNumber}
-            variants={{
-              hidden: { opacity: 0, y: 14 },
-              show: { opacity: 1, y: 0, transition: { duration: 0.35, ease } },
-            }}
-            className="grid gap-3 rounded-2xl border border-accent-ink/10 bg-paper/85 p-4 md:grid-cols-[72px_1fr_1fr]"
-          >
-            <div>
-              <span className="inline-flex rounded-full bg-accent-ink px-2.5 py-1 font-display text-xs font-bold text-lime">
-                #{clip.clipNumber}
-              </span>
-              <p className="mt-2 text-xs text-muted">{clip.timeRange}</p>
-            </div>
-            <div className="text-sm">
-              <p className="font-medium">{clip.explainerScene}</p>
-              <p className="mt-1 text-xs text-muted">{clip.motionCamera}</p>
-            </div>
-            <div className="text-sm">
-              <p className="font-medium">{clip.englishVo}</p>
-              <p className="mt-1 text-xs text-muted">{clip.referenceTranslation}</p>
-            </div>
-          </motion.li>
-        ))}
-      </motion.ol>
+      <div className="space-y-3">
+        <div className="hidden gap-3 px-4 text-xs font-semibold uppercase tracking-[0.14em] text-muted md:grid md:grid-cols-[72px_1fr_1fr]">
+          <p>Clip</p>
+          <p>場景描述</p>
+          <p>旁白（{language.label}）</p>
+        </div>
+        <ol className="grid gap-3">
+          {phaseA.clips.map((clip, index) => (
+            <StoryboardClipRow
+              key={clip.clipNumber}
+              clipNumber={clip.clipNumber}
+              timeRange={clip.timeRange}
+              draft={currentDraft.clips[index]}
+              language={project.language}
+              disabled={busy}
+              onChange={(next) => {
+                setDraft({
+                  ...currentDraft,
+                  clips: currentDraft.clips.map((row, rowIndex) =>
+                    rowIndex === index ? { ...row, ...next } : row,
+                  ),
+                });
+              }}
+            />
+          ))}
+        </ol>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-[1fr_320px]">
         <form
           className="rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-5"
           onSubmit={(event) => {
             event.preventDefault();
-            onRevise(note);
+            if (!busy) setConfirmRevise(true);
           }}
         >
           <label htmlFor="revise-note" className="block text-sm font-semibold">
             想改哪裡？
           </label>
+          <p className="mt-1 text-xs text-muted">
+            可先直接改上方內容並儲存；或寫下意見後重寫整份分鏡提案。
+          </p>
           <textarea
             id="revise-note"
             value={note}
@@ -120,14 +137,25 @@ export function StoryboardPreview({
             className="mt-2 w-full rounded-xl border border-accent-ink/15 bg-paper px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
             placeholder="例如：鉤子再強一點、最後加上 CTA、語氣更輕鬆"
           />
-          <button
-            type="submit"
-            disabled={busy}
-            className="mt-3 inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/15 bg-paper px-5 py-2 text-sm font-semibold shadow-[3px_3px_0_0_rgba(198,242,75,0.9)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {pending === "revise" ? <Spinner /> : null}
-            {pending === "revise" ? "重寫中…" : "重寫分鏡"}
-          </button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy || !dirty}
+              onClick={() => void onSave(currentDraft)}
+              className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/15 bg-paper px-5 py-2 text-sm font-semibold shadow-[3px_3px_0_0_rgba(198,242,75,0.9)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {pending === "save" ? <Spinner /> : null}
+              {pending === "save" ? "儲存中…" : "儲存修改"}
+            </button>
+            <button
+              type="submit"
+              disabled={busy}
+              className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/15 bg-paper px-5 py-2 text-sm font-semibold transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {pending === "revise" ? <Spinner /> : null}
+              {pending === "revise" ? "重寫中…" : "重寫分鏡提案"}
+            </button>
+          </div>
         </form>
 
         <div className="rounded-[1.5rem] border border-accent-ink/10 bg-lime/60 p-5">
@@ -147,7 +175,11 @@ export function StoryboardPreview({
           ) : null}
           <motion.button
             type="button"
-            onClick={onApprove}
+            onClick={() => {
+              void persistIfDirty().then((ok) => {
+                if (ok) onApprove();
+              });
+            }}
             disabled={busy}
             whileTap={{ scale: 0.98 }}
             className="mt-4 inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
@@ -163,6 +195,25 @@ export function StoryboardPreview({
           {error}
         </p>
       ) : null}
+
+      {confirmRevise ? (
+        <ReviseStoryboardDialog
+          pending={pending === "revise" || pending === "save"}
+          onCancel={() => {
+            if (pending === "") setConfirmRevise(false);
+          }}
+          onConfirm={() => {
+            void persistIfDirty().then((ok) => {
+              if (!ok) {
+                setConfirmRevise(false);
+                return;
+              }
+              onRevise(note);
+              setConfirmRevise(false);
+            });
+          }}
+        />
+      ) : null}
     </motion.section>
   );
 }
@@ -172,22 +223,5 @@ function Chip({ children }: { children: React.ReactNode }) {
     <span className="rounded-full border border-accent-ink/10 bg-paper px-2.5 py-1 font-medium">
       {children}
     </span>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <dt className="text-xs font-semibold uppercase tracking-wide text-muted">
-        {label}
-      </dt>
-      <dd className="mt-1 leading-6">{children}</dd>
-    </div>
   );
 }

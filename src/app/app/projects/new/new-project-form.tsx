@@ -17,6 +17,7 @@ import {
   createVideoAction,
   retryProjectAction,
   reviseProjectAction,
+  updatePhaseAProposalAction,
 } from "@/lib/actions/projects";
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
@@ -29,6 +30,7 @@ import type {
   DurationPreset,
   FramePosition,
   FrameRevisionInput,
+  PhaseAEditInput,
   VoLanguage,
 } from "@/types/project";
 import { CharacterPicker } from "../[id]/character-picker";
@@ -127,6 +129,20 @@ export function NewProjectForm({
     setProject(result.project);
     onVideoCreated?.(result.project);
     router.replace(`${pathname}?video=${result.project.id}`);
+  }
+
+  async function onSaveProposal(input: PhaseAEditInput) {
+    if (!project) return false;
+    setPending("save");
+    setError("");
+    const result = await updatePhaseAProposalAction(project.id, input);
+    setPending("");
+    if (!result.ok) {
+      setError(result.error);
+      return false;
+    }
+    setProject(result.project);
+    return true;
   }
 
   async function onRevise(note: string) {
@@ -397,14 +413,19 @@ export function NewProjectForm({
             <DirectorProgress key="phase-a" mode="storyboard" />
           ) : project?.status === "awaiting_approval" ? (
             <StoryboardPreview
-              key="storyboard"
+              key={`storyboard-${project.id}`}
               project={project}
               credits={credits}
               subscribed={subscribed}
-              pending={pending === "revise" || pending === "approve" ? pending : ""}
+              pending={
+                pending === "revise" || pending === "approve" || pending === "save"
+                  ? pending
+                  : ""
+              }
               error={error}
               onApprove={onApproveStoryboard}
               onRevise={(note) => void onRevise(note)}
+              onSave={onSaveProposal}
             />
           ) : project?.status === "frames_generating" ||
             project?.status === "frames_ready" ? (

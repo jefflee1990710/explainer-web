@@ -24,6 +24,9 @@ export async function runPhaseA(input: {
   language?: VoLanguage;
   characterImageUrl?: string;
   cast?: CastMember[];
+  // Existing user-edited draft; regenerate from this instead of inventing anew.
+  currentDraft?: PhaseAProposal;
+  revisionNote?: string;
 }): Promise<PhaseAProposal> {
   const preset = DURATION_PRESETS[input.durationPreset];
   const language = LANGUAGE_PRESETS[input.language || "en"];
@@ -32,6 +35,12 @@ export async function runPhaseA(input: {
     (input.characterImageUrl
       ? `A character reference image is provided at ${input.characterImageUrl}. Extract and lock that character.`
       : "No character reference image. Use the default locked everyman from the skill.");
+  const draftNote = input.currentDraft
+    ? `\nCurrent Phase A draft (the user may have edited this; keep their wording unless the revision notes contradict it):\n${JSON.stringify(input.currentDraft, null, 2)}\n`
+    : "";
+  const revisionNote = input.revisionNote
+    ? `\nRevision notes from user:\n${input.revisionNote}\n`
+    : "";
 
   const { output } = await generateText({
     model: directorModel(),
@@ -52,7 +61,7 @@ Aspect ratio: ${input.aspectRatio}
 Duration preset: ${preset.skillHint}
 Voiceover language: ${language.label} (${language.sublabel})
 ${characterNote}
-
+${draftNote}${revisionNote}
 Produce a complete Phase A director proposal now.`,
   });
 

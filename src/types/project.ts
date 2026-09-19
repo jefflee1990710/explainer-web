@@ -68,6 +68,17 @@ export type ClipStoryboardInput = Pick<
   "explainerScene" | "motionCamera" | "englishVo" | "referenceTranslation"
 >;
 
+// Phase A proposal fields the user can rewrite before approving frames.
+export type PhaseAEditInput = {
+  localizedTitle: string;
+  englishTitle: string;
+  coreMessage: string;
+  hookStrategy: string;
+  narrator: string;
+  visualWorld: string;
+  clips: Array<{ clipNumber: number } & ClipStoryboardInput>;
+};
+
 export type PhaseAProposal = {
   englishTitle: string;
   localizedTitle: string;
