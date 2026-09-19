@@ -3,10 +3,15 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
-import { FramesTimeline } from "@/components/project/frames-timeline";
+import { ClipProduction } from "@/components/project/clip-production";
 import { ProjectStepper } from "@/components/project/project-stepper";
 import { Spinner } from "@/components/spinner";
 import { StylePicker } from "@/components/style-picker";
+import {
+  generateClipFramesAction,
+  generateClipVideoAction,
+  generateRemainingAction,
+} from "@/lib/actions/clip-production";
 import {
   approveStoryboardAction,
   regenerateFrameAction,
@@ -37,7 +42,6 @@ import { SkillPicker } from "../[id]/skill-picker";
 import { AspectRatioPicker } from "./aspect-ratio-picker";
 import { DirectorProgress } from "./director-progress";
 import { DurationPicker } from "./duration-picker";
-import { GenerationPanel } from "./generation-panel";
 import { LanguagePicker } from "./language-picker";
 import { StoryboardPreview } from "./storyboard-preview";
 import { useProjectPoll } from "./use-project-poll";
@@ -90,7 +94,8 @@ export function NewProjectForm({
   // Flow state — locked when opening an existing video via ?video=.
   const [project, setProject] = useState<PublicVideo | null>(initialVideo);
   const [submitting, setSubmitting] = useState(false);
-  // "" | "revise" | "approve" | `frame:${clip}:${position}`
+  // "" | "revise" | "approve" | "save" | "retry" | "remaining" | frames:{n}
+  // | frame:{n}:{pos} | video:{n} | clip:{n}[:regen]
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
 
@@ -183,7 +188,7 @@ export function NewProjectForm({
     return true;
   }
 
-  // Step 1: storyboard approved → generate start/end frames.
+  // Storyboard approved (free) → the project enters per-clip production.
   function onApproveStoryboard() {
     if (!project) return;
     void runPaid("approve", () => approveStoryboardAction(project.id));
@@ -211,6 +216,34 @@ export function NewProjectForm({
     return runPaid(`clip:${clipNumber}${regenerate ? ":regen" : ""}`, () =>
       updateClipStoryboardAction(project.id, clipNumber, input, { regenerate }),
     );
+  }
+
+  // Per-clip production: both frames (2), one video (1), or fill every gap.
+  function onGenerateFrames(clipNumber: number) {
+    if (!project) return;
+    void runPaid(`frames:${clipNumber}`, () =>
+      generateClipFramesAction(project.id, clipNumber),
+    );
+  }
+
+  function onGenerateVideo(clipNumber: number) {
+    if (!project) return;
+    void runPaid(`video:${clipNumber}`, () => generateClipVideoAction(project.id, clipNumber));
+  }
+
+  async function onFillRemaining() {
+    if (!project) return false;
+    const ok = await runPaid("remaining", async () => {
+      const result = await generateRemainingAction(project.id);
+      // Partial success: the project still updated, so surface the gaps only.
+      if (result.ok && result.skipped.length > 0) {
+        setError(
+          `有 ${result.skipped.length} 段沒送出（#${result.skipped.join("、#")}），請到該段工作區重試。`,
+        );
+      }
+      return result;
+    });
+    return ok;
   }
 
   // Failed → move back to the gate it fell over on (no charge).
@@ -251,7 +284,7 @@ export function NewProjectForm({
   return (
     <MotionConfig reducedMotion="user">
       <div className="space-y-6">
-        {/* Step indicator: 題材 → 分鏡 → 分鏡圖 → 影片 */}
+        {/* Step indicator: 題材 → 分鏡 → 製作 */}
         <div className="rounded-2xl border border-accent-ink/10 bg-paper/70 px-5 py-4">
           <ProjectStepper
             status={project?.status ?? "draft"}
@@ -421,23 +454,20 @@ export function NewProjectForm({
               onRevise={(note, options) => void onRevise(note, options)}
               onSave={onSaveProposal}
             />
-          ) : project?.status === "frames_generating" ||
-            project?.status === "frames_ready" ? (
-            <FramesTimeline
-              key="frames"
+          ) : project?.status === "production" || project?.status === "ready" ? (
+            <ClipProduction
+              key="production"
               project={project}
               credits={credits}
               subscribed={subscribed}
               pending={pending}
               error={error}
-              onApprove={() => undefined} // batch approval removed; replaced by ClipProduction in Task 10
-              onRegenerate={onRegenerateFrame}
+              onGenerateFrames={onGenerateFrames}
+              onRegenerateFrame={onRegenerateFrame}
               onUpdateClip={onUpdateClip}
+              onGenerateVideo={onGenerateVideo}
+              onFillRemaining={onFillRemaining}
             />
-          ) : project?.status === "approved" ? (
-            <DirectorProgress key="phase-b" mode="production" />
-          ) : project?.status === "generating" || project?.status === "ready" ? (
-            <GenerationPanel key="generation" project={project} />
           ) : project?.status === "failed" ? (
             <FailedCard
               key="failed"
@@ -486,10 +516,9 @@ function FailedCard({
   pending: string;
   onRetry: () => void;
 }) {
-  // Label the retry by the step it will return to.
-  const step = failedStepFor(project);
-  const label =
-    step === 1 ? "重新產生分鏡" : step === 2 ? "回到分鏡，重畫分鏡圖" : "回到分鏡圖，重新產片";
+  // Only Phase A can fail at project level now; anything further back is a
+  // per-clip failure the user redoes inside the production workspace.
+  const label = project.phaseA ? "回到製作，逐段重做" : "重新產生分鏡";
   return (
     <motion.section
       role="alert"

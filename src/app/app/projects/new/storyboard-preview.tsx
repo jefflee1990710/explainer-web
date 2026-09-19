@@ -51,8 +51,6 @@ export function StoryboardPreview({
   const currentDraft = draft;
 
   const language = LANGUAGE_PRESETS[project.language];
-  const framesCost = phaseA.clipCount * 2;
-  const canGenerate = subscribed && credits >= framesCost;
   const busy = pending !== "";
   const dirty = !phaseAEditsEqual(currentDraft, saved);
 
@@ -172,19 +170,16 @@ export function StoryboardPreview({
         </form>
 
         <div className="rounded-[1.5rem] border border-accent-ink/10 bg-lime/60 p-5">
-          <p className="font-display text-sm font-bold">核准分鏡，先畫分鏡圖</p>
+          <p className="font-display text-sm font-bold">核准分鏡，進入逐段製作</p>
           <p className="mt-2 text-sm">
-            每段產生起始＋結尾兩張畫格，將扣{" "}
-            <strong>{framesCost} credits</strong>
+            核准不扣 credits。之後每段各自產生：畫格 2 credits、影片 1 credit
             <span className="text-muted">（剩餘 {credits}）</span>
           </p>
           <p className="mt-1 text-xs text-muted">
-            看過畫格再決定產片；產片另扣 {phaseA.clipCount} credits。
+            可以先做第 1 段看效果，滿意再做下一段；隨時可回頭重做任何一段。
           </p>
-          {!canGenerate ? (
-            <p className="mt-2 text-xs text-accent">
-              {subscribed ? "credits 不足，請先升級方案。" : "尚未訂閱，按下後將前往訂閱頁。"}
-            </p>
+          {!subscribed ? (
+            <p className="mt-2 text-xs text-accent">尚未訂閱；製作階段的產生按鈕需要訂閱。</p>
           ) : null}
           <motion.button
             type="button"
@@ -198,7 +193,7 @@ export function StoryboardPreview({
             className="mt-4 inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending === "approve" ? <Spinner /> : null}
-            {pending === "approve" ? "送出中…" : "核准並產生分鏡圖"}
+            {pending === "approve" ? "送出中…" : "核准分鏡，開始製作"}
           </motion.button>
         </div>
       </div>
