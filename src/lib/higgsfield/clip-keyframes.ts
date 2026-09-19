@@ -58,12 +58,12 @@ export function clipFrameAnchor(
 
 // End stills wait until this clip's start file exists, so Qwen can lock
 // camera and placement to the real start pixels instead of inventing a new shot.
-export function planFrameSubmissions(
-  targets: FrameSubmitTarget[],
+export function planFrameSubmissions<T extends FrameSubmitTarget>(
+  targets: T[],
   frames: ClipFrame[] | undefined,
 ) {
-  const ready: FrameSubmitTarget[] = [];
-  const deferred: FrameSubmitTarget[] = [];
+  const ready: T[] = [];
+  const deferred: T[] = [];
   for (const target of targets) {
     if (target.position === "end" && !clipKeyframeUrls(frames, target.clipNumber).start) {
       deferred.push(target);
