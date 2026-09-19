@@ -114,6 +114,24 @@ export function initialFrames(project: Project): ClipFrame[] {
   );
 }
 
+// Frames array with a fresh queued start + end entry for one clip (prompt
+// rebuilt from the current storyboard, old sketch revision dropped). Other
+// clips' entries are untouched.
+export function framesWithClip(project: Project, clipNumber: number): ClipFrame[] {
+  const others = (project.frames || []).filter((frame) => frame.clipNumber !== clipNumber);
+  const submittedAt = new Date().toISOString();
+  const own = (["start", "end"] as FramePosition[]).map((position) => ({
+    clipNumber,
+    position,
+    prompt: buildFramePrompt(project, clipNumber, position),
+    status: "queued" as const,
+    submittedAt,
+  }));
+  return [...others, ...own].sort(
+    (a, b) => a.clipNumber - b.clipNumber || (a.position === "start" ? -1 : 1),
+  );
+}
+
 export function frameKey(clipNumber: number, position: FramePosition) {
   return `${clipNumber}:${position}`;
 }

@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FramesTimeline } from "@/components/project/frames-timeline";
 import {
-  approveAndGenerateAction,
   regenerateFrameAction,
   updateClipStoryboardAction,
 } from "@/lib/actions/generation";
@@ -63,7 +62,7 @@ export function FramesStep({
       subscribed={subscribed}
       pending={pending}
       error={error}
-      onApprove={() => void run("approve", () => approveAndGenerateAction(project.id))}
+      onApprove={() => undefined} // batch approval removed; replaced by ClipProduction in Task 10
       onRegenerate={(
         clipNumber: number,
         position: FramePosition,

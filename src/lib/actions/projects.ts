@@ -15,7 +15,6 @@ import {
 import { runPhaseAJob } from "@/lib/director/jobs";
 import { isVoLanguage } from "@/lib/director/languages";
 import { sanitizeFolderName } from "@/lib/folder";
-import { failedStepFor } from "@/lib/project-status";
 import { toPublicVideo, type PublicVideo } from "@/lib/serialize";
 import { isStyleId } from "@/lib/styles";
 import type { CastMember, Character } from "@/types/character";
@@ -208,7 +207,6 @@ export async function createVideoAction(
       cast,
       status: "phase_a",
       clips: [],
-      creditCost: 0,
       creditsCharged: false,
       createdAt: now,
       updatedAt: now,
@@ -263,7 +261,6 @@ export async function updatePhaseAProposalAction(
       {
         $set: {
           phaseA: applied.phaseA,
-          creditCost: applied.phaseA.clipCount,
           error: undefined,
           updatedAt: new Date(),
         },
@@ -336,9 +333,9 @@ export async function reviseProjectAction(
   }
 }
 
-// Retry a failed video by moving it back to the gate it fell over on.
-// Credits for the failed stage were already refunded by the pipeline, so
-// no charge happens here; the user re-approves and pays again explicitly.
+// Retry a failed video: back to Phase A when the storyboard never landed,
+// otherwise straight into per-clip production. Failed frames/videos already
+// refunded their own credits, so nothing is charged here.
 export async function retryProjectAction(
   projectId: string,
 ): Promise<VideoResult> {
@@ -359,51 +356,27 @@ export async function retryProjectAction(
     }
 
     const jobs = await generationJobsCollection();
-    const step = failedStepFor(video);
 
-    if (step === 1) {
+    if (!video.phaseA) {
       // Storyboard never landed: rerun Phase A in the background.
       await videos.updateOne(
         { _id: video._id },
         { $set: { status: "phase_a", error: undefined, updatedAt: new Date() } },
       );
       after(() => runPhaseAJob(video._id));
-    } else if (step === 2) {
-      // Frames stage failed: drop stale still/frame jobs and go back to the
-      // storyboard approval gate so frames can be re-ordered.
+    } else {
+      // Legacy frame/video-stage failures: drop failed still jobs and reopen
+      // per-clip production with whatever frames/clips already exist.
       await jobs.deleteMany({
         projectId: video._id,
-        kind: { $in: ["still", "frame"] },
+        kind: "still",
         status: { $in: ["failed", "nsfw"] },
       });
       await videos.updateOne(
         { _id: video._id },
         {
-          $set: {
-            status: "awaiting_approval",
-            frames: [],
-            framesCreditCost: 0,
-            framesCharged: false,
-            error: undefined,
-            updatedAt: new Date(),
-          },
-          $unset: { framesSubmittedAt: "" },
-        },
-      );
-    } else {
-      // Video stage failed: clear video jobs/clips and return to frames gate.
-      await jobs.deleteMany({ projectId: video._id, kind: "video" });
-      await videos.updateOne(
-        { _id: video._id },
-        {
-          $set: {
-            status: "frames_ready",
-            clips: [],
-            creditsCharged: false,
-            error: undefined,
-            updatedAt: new Date(),
-          },
-          $unset: { phaseB: "" },
+          $set: { status: "production", error: undefined, updatedAt: new Date() },
+          $unset: { stillError: "", framesSubmittedAt: "" },
         },
       );
     }

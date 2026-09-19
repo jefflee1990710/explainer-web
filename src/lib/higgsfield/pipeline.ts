@@ -8,10 +8,7 @@ import {
 } from "@/lib/collections";
 import { refundCredits } from "@/lib/billing/credits";
 import { flattenToCanvas } from "@/lib/higgsfield/flatten";
-import {
-  buildFramePrompt,
-  videoStyle,
-} from "@/lib/higgsfield/frame-prompts";
+import { buildFramePrompt, videoStyle } from "@/lib/higgsfield/frame-prompts";
 import {
   fetchHiggsfieldStatus,
   mediaUrlFromResponse,
@@ -19,11 +16,18 @@ import {
   submitImage,
 } from "@/lib/higgsfield/generate";
 import { persistMedia } from "@/lib/higgsfield/persist";
+import {
+  nextProjectStatus,
+  reconcileClips,
+  reconcileFrames,
+} from "@/lib/higgsfield/reconcile";
+import { FRAME_COST, VIDEO_COST } from "@/lib/production-plan";
 import type { GenerationJob, GenerationStatus } from "@/types/generation-job";
 import type {
   ClipFrame,
   FramePosition,
   FrameRevision,
+  PhaseBPrompt,
   Project,
 } from "@/types/project";
 import type { Skill } from "@/types/skill";
@@ -48,69 +52,60 @@ async function loadSkill(project: Project): Promise<Skill> {
   return skill;
 }
 
-function toFrameStatus(status?: GenerationStatus): ClipFrame["status"] {
-  if (status === "completed") return "completed";
-  if (status === "failed" || status === "nsfw") return "failed";
-  if (status === "in_progress") return "in_progress";
-  return "queued";
-}
+// ---------- character still (free) ----------
 
-// ---------- stage 1: storyboard frames ----------
-
-// Kick off the character still; frames are submitted (in parallel) once it lands.
-export async function startFrameGeneration(project: Project) {
-  if (!project.phaseA) throw new Error("尚未有分鏡");
-  const skill = await loadSkill(project);
+// Projects without a cast lock the character with a generated still. Submit it
+// once; failed attempts are replaced. No-op when a cast or a still already exists.
+export async function submitStillIfNeeded(project: Project) {
+  if (project.cast && project.cast.length > 0) return;
+  if (project.characterStillUrl) return;
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
 
-  await projects.updateOne(
-    { _id: project._id },
-    {
-      $set: {
-        status: "frames_generating",
-        error: undefined,
-        updatedAt: new Date(),
-      },
-    },
-  );
-
-  // With a cast, the blueprints are the lock: skip the still and go straight to frames.
-  if (project.cast && project.cast.length > 0) {
-    await submitFrameJobs(project);
-    return;
-  }
-
-  const existingStill = await jobs.findOne({
+  await jobs.deleteMany({
     projectId: project._id,
     kind: "still",
+    status: { $in: ["failed", "nsfw"] },
   });
+  const existing = await jobs.findOne({ projectId: project._id, kind: "still" });
+  if (existing) return;
 
-  if (!existingStill) {
-    const still = await submitImage({
-      model: skill.higgsfieldDefaults.imageModel,
-      prompt: stillPrompt(project),
-      aspectRatio: project.aspectRatio,
-      quality: skill.higgsfieldDefaults.imageQuality || "medium",
-      resolution: skill.higgsfieldDefaults.imageResolution || "1k",
-      referenceImageUrls: [project.characterImageUrl],
-    });
-    await jobs.insertOne({
-      projectId: project._id,
-      clipIndex: -1,
-      kind: "still",
-      model: skill.higgsfieldDefaults.imageModel,
-      requestId: still.request_id,
-      statusUrl: still.status_url,
-      status: (still.status as GenerationStatus) || "queued",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-  }
-
-  // A still from an earlier run may already be done; don't wait on it.
-  if (project.characterStillUrl) await submitFrameJobs(project);
+  const skill = await loadSkill(project);
+  const still = await submitImage({
+    model: skill.higgsfieldDefaults.imageModel,
+    prompt: stillPrompt(project),
+    aspectRatio: project.aspectRatio,
+    quality: skill.higgsfieldDefaults.imageQuality || "medium",
+    resolution: skill.higgsfieldDefaults.imageResolution || "1k",
+    referenceImageUrls: [project.characterImageUrl],
+  });
+  await jobs.insertOne({
+    projectId: project._id,
+    clipIndex: -1,
+    kind: "still",
+    model: skill.higgsfieldDefaults.imageModel,
+    requestId: still.request_id,
+    statusUrl: still.status_url,
+    status: (still.status as GenerationStatus) || "queued",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  await projects.updateOne(
+    { _id: project._id },
+    { $unset: { stillError: "" }, $set: { updatedAt: new Date() } },
+  );
 }
+
+// Frames need the character lock. Returns a user-facing reason to wait (and
+// kicks the still off) or null when frames may be submitted now.
+export async function stillBlocker(project: Project): Promise<string | null> {
+  if (project.cast && project.cast.length > 0) return null;
+  if (project.characterStillUrl) return null;
+  await submitStillIfNeeded(project);
+  return "角色定裝圖正在產生，請稍候再試";
+}
+
+// ---------- frames ----------
 
 // Submit a single frame request and record the job. Redo references precede
 // character locks so the prompt can identify them by attachment order.
@@ -152,41 +147,6 @@ async function submitOneFrame(
   });
 }
 
-// All start/end frames go out at once.
-async function submitFrameJobs(project: Project) {
-  const skill = await loadSkill(project);
-  const projects = await videosCollection();
-
-  // Atomic claim: webhook and poller may both observe the still completing.
-  const claimed = await projects.findOneAndUpdate(
-    { _id: project._id, framesSubmittedAt: { $exists: false } },
-    { $set: { framesSubmittedAt: new Date() } },
-  );
-  if (!claimed) return;
-
-  const rows = project.phaseA?.clips || [];
-  const results = await Promise.allSettled(
-    rows.flatMap((row) =>
-      (["start", "end"] as FramePosition[]).map((position) =>
-        submitOneFrame(project, skill, row.clipNumber, position),
-      ),
-    ),
-  );
-
-  const rejected = results.filter((r) => r.status === "rejected");
-  if (rejected.length === results.length && results.length > 0) {
-    // Nothing went out: release the claim so a retry can resubmit.
-    await projects.updateOne(
-      { _id: project._id },
-      { $unset: { framesSubmittedAt: "" } },
-    );
-    const first = rejected[0] as PromiseRejectedResult;
-    throw first.reason instanceof Error
-      ? first.reason
-      : new Error("分鏡圖送出失敗");
-  }
-}
-
 export type FrameTarget = {
   clipNumber: number;
   position: FramePosition;
@@ -194,15 +154,16 @@ export type FrameTarget = {
   revision?: FrameRevision;
 };
 
-// Re-run one or more frames (caller already charged 1 credit each). Each old
-// job is replaced; the project flips back to `frames_generating` until every
-// frame settles again. `project` must carry the storyboard the prompts should
-// be built from (re-fetch after editing a clip).
+// Submit one or more frames (caller already charged 1 credit each). Each old
+// job is replaced, the frame is stamped `submittedAt`, and the project sits in
+// `production` until the jobs settle. `project` must carry the storyboard the
+// prompts should be built from (re-fetch after editing a clip).
 export async function regenerateFrames(project: Project, targets: FrameTarget[]) {
   if (targets.length === 0) return;
   const skill = await loadSkill(project);
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
+  const submittedAt = new Date().toISOString();
 
   for (const target of targets) {
     await jobs.deleteMany({
@@ -221,11 +182,28 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
       revision: target.revision,
       styleRefUrl: sibling?.blobUrl || sibling?.outputUrl,
     });
+    // A fresh submission has no error yet; `$unset` rather than `$set: undefined`
+    // so the previous failure message never lingers as `null`.
+    await projects.updateOne(
+      { _id: project._id },
+      {
+        $set: {
+          "frames.$[frame].status": "queued",
+          "frames.$[frame].submittedAt": submittedAt,
+        },
+        $unset: { "frames.$[frame].error": "" },
+      },
+      {
+        arrayFilters: [
+          { "frame.clipNumber": target.clipNumber, "frame.position": target.position },
+        ],
+      },
+    );
   }
 
   await projects.updateOne(
     { _id: project._id },
-    { $set: { status: "frames_generating", updatedAt: new Date() } },
+    { $set: { status: "production", updatedAt: new Date() } },
   );
   await syncProjectFromJobs(project._id);
 }
@@ -240,20 +218,7 @@ export async function regenerateFrame(
   await regenerateFrames(project, [{ clipNumber, position, revision }]);
 }
 
-// ---------- stage 2: video clips ----------
-
-// Called after Phase B with frames approved; submits every clip video.
-export async function startProjectGeneration(project: Project) {
-  if (!project.phaseA || !project.phaseB) {
-    throw new Error("專案尚未準備好產片");
-  }
-  const projects = await videosCollection();
-  await projects.updateOne(
-    { _id: project._id },
-    { $set: { status: "generating", error: undefined, updatedAt: new Date() } },
-  );
-  await submitClipJobs(project);
-}
+// ---------- video clips ----------
 
 function frameUrl(
   frames: ClipFrame[] | undefined,
@@ -268,46 +233,41 @@ function frameUrl(
     : undefined;
 }
 
-async function submitClipJobs(project: Project) {
+// Submit one clip's video (caller charged 1 credit and wrote the prompt).
+// Replaces any previous video job for that clip.
+export async function submitClipVideoJob(
+  project: Project,
+  clipNumber: number,
+  prompt: PhaseBPrompt,
+) {
   const skill = await loadSkill(project);
-  if (!project.phaseB) return;
-
   const jobs = await generationJobsCollection();
-  const existing = await jobs.countDocuments({
-    projectId: project._id,
-    kind: "video",
-  });
-  if (existing > 0) return;
+  await jobs.deleteMany({ projectId: project._id, kind: "video", clipIndex: clipNumber - 1 });
 
   const fallbackRef =
     project.cast?.[0]?.blueprintUrl || project.characterStillUrl || project.characterImageUrl;
-
-  // Videos are independent; submit them together.
-  await Promise.all(
-    project.phaseB.prompts.map(async (prompt) => {
-      const start = frameUrl(project.frames, prompt.clipNumber, "start");
-      const end = frameUrl(project.frames, prompt.clipNumber, "end");
-      const submitted = await submitClipVideo({
-        model: skill.higgsfieldDefaults.videoModel,
-        prompt: prompt.prompt,
-        aspectRatio: project.aspectRatio,
-        durationSeconds: prompt.durationSeconds,
-        startImageUrl: start || fallbackRef,
-        referenceImageUrls: [end, start ? fallbackRef : undefined],
-      });
-      await jobs.insertOne({
-        projectId: project._id,
-        clipIndex: prompt.clipNumber - 1,
-        kind: "video",
-        model: skill.higgsfieldDefaults.videoModel,
-        requestId: submitted.request_id,
-        statusUrl: submitted.status_url,
-        status: (submitted.status as GenerationStatus) || "queued",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    }),
-  );
+  const start = frameUrl(project.frames, clipNumber, "start");
+  const end = frameUrl(project.frames, clipNumber, "end");
+  const submitted = await submitClipVideo({
+    model: skill.higgsfieldDefaults.videoModel,
+    prompt: prompt.prompt,
+    aspectRatio: project.aspectRatio,
+    durationSeconds: prompt.durationSeconds,
+    startImageUrl: start || fallbackRef,
+    referenceImageUrls: [end, start ? fallbackRef : undefined],
+  });
+  await jobs.insertOne({
+    projectId: project._id,
+    clipIndex: clipNumber - 1,
+    kind: "video",
+    model: skill.higgsfieldDefaults.videoModel,
+    requestId: submitted.request_id,
+    statusUrl: submitted.status_url,
+    status: (submitted.status as GenerationStatus) || "queued",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  await syncProjectFromJobs(project._id);
 }
 
 // ---------- status sync ----------
@@ -388,167 +348,52 @@ export async function applyJobStatus(input: {
     },
   );
 
-  // Each frame is 1 credit; hand it back the moment that frame fails.
-  if (job.kind === "frame" && nowFailed && !wasFailed) {
-    if (project) await refundCredits(project.clerkUserId, 1);
+  // Each frame is 1 credit and each clip video is 1 credit; hand it back the
+  // moment that job fails (once — `wasFailed` guards repeated webhooks).
+  if (project && nowFailed && !wasFailed) {
+    if (job.kind === "frame") await refundCredits(project.clerkUserId, FRAME_COST);
+    if (job.kind === "video") await refundCredits(project.clerkUserId, VIDEO_COST);
   }
 
   await syncProjectFromJobs(projectId);
 }
 
-async function syncProjectFromJobs(projectId: ObjectId) {
+// Reconcile every clip from its newest jobs, regardless of project status.
+export async function syncProjectFromJobs(projectId: ObjectId) {
   const projects = await videosCollection();
   const jobs = await generationJobsCollection();
   const project = await projects.findOne({ _id: projectId });
   if (!project) return;
 
   const allJobs = await jobs.find({ projectId }).toArray();
-  const still = allJobs.find((job) => job.kind === "still");
-  const frameJobs = allJobs.filter((job) => job.kind === "frame");
-  const videos = allJobs
-    .filter((job) => job.kind === "video")
-    .sort((a, b) => a.clipIndex - b.clipIndex);
+  const still = allJobs
+    .filter((job) => job.kind === "still")
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
 
-  // Character still → unlock frames.
+  const set: Partial<Pick<Project, "characterStillUrl" | "stillError">> = {};
   const stillUrl = still?.blobUrl || still?.outputUrl;
   if (still?.status === "completed" && stillUrl && !project.characterStillUrl) {
-    await projects.updateOne(
-      { _id: projectId },
-      { $set: { characterStillUrl: stillUrl, updatedAt: new Date() } },
-    );
-    project.characterStillUrl = stillUrl;
+    set.characterStillUrl = stillUrl;
+  } else if (
+    still &&
+    (still.status === "failed" || still.status === "nsfw") &&
+    !project.characterStillUrl
+  ) {
+    set.stillError = "角色定裝圖產生失敗，下次產生畫格時會自動重試";
   }
 
-  if (project.status === "frames_generating") {
-    if (still && (still.status === "failed" || still.status === "nsfw")) {
-      await failFramesStage(project, "角色定裝圖產生失敗");
-      return;
-    }
-    if (still?.status === "completed" && frameJobs.length === 0) {
-      try {
-        await submitFrameJobs(project);
-      } catch (error) {
-        await failFramesStage(
-          project,
-          error instanceof Error ? error.message : "分鏡圖送出失敗",
-        );
-      }
-      return;
-    }
-    if (frameJobs.length === 0) return;
-
-    const frames: ClipFrame[] = (project.frames || []).map((frame) => {
-      const job = frameJobs.find(
-        (item) =>
-          item.clipIndex === frame.clipNumber - 1 &&
-          item.framePosition === frame.position,
-      );
-      return {
-        ...frame,
-        status: toFrameStatus(job?.status),
-        outputUrl: job?.outputUrl,
-        blobUrl: job?.blobUrl,
-        error: job?.error,
-      };
-    });
-
-    const settled = frames.every(
-      (frame) => frame.status === "completed" || frame.status === "failed",
-    );
-    await projects.updateOne(
-      { _id: projectId },
-      {
-        $set: {
-          frames,
-          status: settled ? "frames_ready" : "frames_generating",
-          updatedAt: new Date(),
-        },
-      },
-    );
-    return;
-  }
-
-  if (project.status !== "generating" || videos.length === 0) return;
-
-  const clips = (project.phaseB?.prompts || []).map((prompt) => {
-    const job = videos.find((item) => item.clipIndex === prompt.clipNumber - 1);
-    return {
-      clipNumber: prompt.clipNumber,
-      durationSeconds: prompt.durationSeconds,
-      prompt: prompt.prompt,
-      status:
-        job?.status === "completed"
-          ? ("completed" as const)
-          : job?.status === "failed" || job?.status === "nsfw"
-            ? ("failed" as const)
-            : job?.status === "in_progress"
-              ? ("in_progress" as const)
-              : ("queued" as const),
-      outputUrl: job?.outputUrl,
-      blobUrl: job?.blobUrl,
-      error: job?.error,
-    };
-  });
-
-  const failed = videos.some(
-    (job) => job.status === "failed" || job.status === "nsfw",
-  );
-  const completed =
-    videos.length > 0 && videos.every((job) => job.status === "completed");
-
-  if (failed) {
-    await failVideoStage(project, "有片段產生失敗");
-    await projects.updateOne(
-      { _id: projectId },
-      { $set: { clips, updatedAt: new Date() } },
-    );
-    return;
-  }
+  const frames = reconcileFrames(project.frames || [], allJobs);
+  const clips = reconcileClips(project.clips, allJobs);
+  const next = { ...project, ...set, frames, clips };
 
   await projects.updateOne(
     { _id: projectId },
     {
       $set: {
+        ...set,
+        frames,
         clips,
-        status: completed ? "ready" : "generating",
-        updatedAt: new Date(),
-      },
-    },
-  );
-}
-
-// Still failed before any frame went out: refund the whole frames charge.
-async function failFramesStage(project: Project, error: string) {
-  const projects = await videosCollection();
-  if (project.framesCharged && project.framesCreditCost) {
-    await refundCredits(project.clerkUserId, project.framesCreditCost);
-  }
-  await projects.updateOne(
-    { _id: project._id },
-    {
-      $set: {
-        status: "failed",
-        error,
-        framesCharged: false,
-        updatedAt: new Date(),
-      },
-    },
-  );
-}
-
-async function failVideoStage(project: Project, error: string) {
-  const projects = await videosCollection();
-  const creditCost = project.creditCost ?? 0;
-  if (project.creditsCharged && creditCost > 0) {
-    await refundCredits(project.clerkUserId, creditCost);
-  }
-  await projects.updateOne(
-    { _id: project._id },
-    {
-      $set: {
-        status: "failed",
-        error,
-        creditsCharged: false,
+        status: nextProjectStatus(next),
         updatedAt: new Date(),
       },
     },
@@ -565,7 +410,7 @@ export async function refreshProjectJobs(projectId: ObjectId) {
     .toArray();
 
   // Fetch statuses in parallel, then apply sequentially so the project
-  // sync never races itself (e.g. double-submitting frames).
+  // sync never races itself.
   const results = await Promise.all(
     pending.map(async (job) => {
       if (!job.statusUrl) return null;

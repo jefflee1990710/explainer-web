@@ -8,7 +8,6 @@ import { ProjectStepper } from "@/components/project/project-stepper";
 import { Spinner } from "@/components/spinner";
 import { StylePicker } from "@/components/style-picker";
 import {
-  approveAndGenerateAction,
   approveStoryboardAction,
   regenerateFrameAction,
   updateClipStoryboardAction,
@@ -188,12 +187,6 @@ export function NewProjectForm({
   function onApproveStoryboard() {
     if (!project) return;
     void runPaid("approve", () => approveStoryboardAction(project.id));
-  }
-
-  // Step 2: frames approved → Phase B + video.
-  function onApproveFrames() {
-    if (!project) return;
-    void runPaid("approve", () => approveAndGenerateAction(project.id));
   }
 
   // Redo one frame; `revision` (sketch + remark) comes from the edit dialog.
@@ -437,7 +430,7 @@ export function NewProjectForm({
               subscribed={subscribed}
               pending={pending}
               error={error}
-              onApprove={onApproveFrames}
+              onApprove={() => undefined} // batch approval removed; replaced by ClipProduction in Task 10
               onRegenerate={onRegenerateFrame}
               onUpdateClip={onUpdateClip}
             />

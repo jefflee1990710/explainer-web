@@ -3,12 +3,10 @@ import { refundCredits } from "@/lib/billing/credits";
 import { skillsCollection, videosCollection } from "@/lib/collections";
 import { keepProposalRegenerateClips } from "@/lib/director/phase-a-edit";
 import { runPhaseA } from "@/lib/director/run-phase-a";
-import { runPhaseB } from "@/lib/director/run-phase-b";
-import {
-  startFrameGeneration,
-  startProjectGeneration,
-} from "@/lib/higgsfield/pipeline";
+import { runPhaseBForClip } from "@/lib/director/run-phase-b";
 import { videoStyle } from "@/lib/higgsfield/frame-prompts";
+import { submitClipVideoJob, submitStillIfNeeded } from "@/lib/higgsfield/pipeline";
+import { VIDEO_COST } from "@/lib/production-plan";
 
 // Background jobs scheduled with next/server `after()` so the UI can poll
 // instead of blocking on the LLM / video provider round-trips.
@@ -61,7 +59,6 @@ export async function runPhaseAJob(
       {
         $set: {
           phaseA: nextPhaseA,
-          creditCost: nextPhaseA.clipCount,
           status: "awaiting_approval",
           error: undefined,
           updatedAt: new Date(),
@@ -82,26 +79,20 @@ export async function runPhaseAJob(
   }
 }
 
-// Storyboard frames stage: submit the character still, then every start/end
-// frame in parallel. Frame credits were already consumed by the caller.
-export async function runFrameGenerationJob(projectId: ObjectId) {
+// Character still after approval (free). Failure is recorded on the project
+// and retried by the next frame request, never fatal.
+export async function runStillJob(projectId: ObjectId) {
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
-  if (!project?.phaseA) return;
-
+  if (!project) return;
   try {
-    await startFrameGeneration(project);
+    await submitStillIfNeeded(project);
   } catch (error) {
-    if (project.framesCharged && project.framesCreditCost) {
-      await refundCredits(project.clerkUserId, project.framesCreditCost);
-    }
     await projects.updateOne(
       { _id: projectId },
       {
         $set: {
-          status: "failed",
-          framesCharged: false,
-          error: errorMessage(error, "分鏡圖產生失敗"),
+          stillError: errorMessage(error, "角色定裝圖送出失敗"),
           updatedAt: new Date(),
         },
       },
@@ -109,51 +100,54 @@ export async function runFrameGenerationJob(projectId: ObjectId) {
   }
 }
 
-// Phase B + submit video jobs. Credits were already consumed by the caller.
-export async function runPhaseBAndGenerateJob(projectId: ObjectId) {
+// One clip's video: write its Phase B prompt, then submit. The caller charged
+// VIDEO_COST and marked the clip `queued`; any failure here refunds and marks it failed.
+export async function runClipVideoJob(projectId: ObjectId, clipNumber: number) {
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
   if (!project?.phaseA) return;
 
-  const skills = await skillsCollection();
-  const skill = await skills.findOne({ _id: project.skillId });
-
   try {
+    const skills = await skillsCollection();
+    const skill = await skills.findOne({ _id: project.skillId });
     if (!skill) throw new Error("找不到風格");
 
-    const phaseB = await runPhaseB({
+    const prompt = await runPhaseBForClip({
       skill,
       style: videoStyle(project),
       phaseA: project.phaseA,
+      clipNumber,
       language: project.language,
       characterImageUrl: project.characterImageUrl,
       cast: project.cast,
     });
-
-    await projects.updateOne(
-      { _id: projectId },
-      { $set: { phaseB, updatedAt: new Date() } },
-    );
-
-    const ready = await projects.findOne({ _id: projectId });
-    if (!ready) return;
-    await startProjectGeneration(ready);
-  } catch (error) {
-    // Give the credits back so a provider outage never charges the user.
-    const creditCost = project.creditCost ?? 0;
-    if (project.creditsCharged && creditCost > 0) {
-      await refundCredits(project.clerkUserId, creditCost);
-    }
     await projects.updateOne(
       { _id: projectId },
       {
         $set: {
-          status: "failed",
-          creditsCharged: false,
-          error: errorMessage(error, "產片失敗"),
+          "clips.$[clip].prompt": prompt.prompt,
+          "clips.$[clip].durationSeconds": prompt.durationSeconds,
           updatedAt: new Date(),
         },
       },
+      { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
+    );
+
+    const fresh = await projects.findOne({ _id: projectId });
+    if (!fresh) return;
+    await submitClipVideoJob(fresh, clipNumber, prompt);
+  } catch (error) {
+    await refundCredits(project.clerkUserId, VIDEO_COST);
+    await projects.updateOne(
+      { _id: projectId },
+      {
+        $set: {
+          "clips.$[clip].status": "failed",
+          "clips.$[clip].error": errorMessage(error, "產片失敗"),
+          updatedAt: new Date(),
+        },
+      },
+      { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
     );
   }
 }

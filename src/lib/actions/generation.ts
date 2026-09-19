@@ -4,19 +4,23 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/lib/auth";
-import { assertCanSpendCredits, consumeCredits } from "@/lib/billing/credits";
-import { videosCollection } from "@/lib/collections";
 import {
-  runFrameGenerationJob,
-  runPhaseBAndGenerateJob,
-} from "@/lib/director/jobs";
+  assertCanSpendCredits,
+  consumeCredits,
+  refundCredits,
+} from "@/lib/billing/credits";
+import { videosCollection } from "@/lib/collections";
+import { runStillJob } from "@/lib/director/jobs";
 import { persistFrameAnnotation } from "@/lib/higgsfield/frame-annotation";
-import { buildFramePrompt, initialFrames } from "@/lib/higgsfield/frame-prompts";
+import { buildFramePrompt, framesWithClip } from "@/lib/higgsfield/frame-prompts";
 import {
   refreshProjectJobs,
   regenerateFrame,
   regenerateFrames,
+  stillBlocker,
 } from "@/lib/higgsfield/pipeline";
+import { isProductionLike } from "@/lib/project-status";
+import { FRAMES_COST } from "@/lib/production-plan";
 import { toPublicVideo, type PublicVideo } from "@/lib/serialize";
 import type {
   ClipFrame,
@@ -39,8 +43,7 @@ function revalidateProject(projectId: string) {
   revalidatePath("/app/billing");
 }
 
-// Step 1 approval: storyboard is accepted → generate start/end frames.
-// Cost: 1 credit per image = clipCount × 2.
+// Storyboard approved → enter per-clip production (free).
 export async function approveStoryboardAction(
   projectId: string,
 ): Promise<ProjectResult> {
@@ -60,27 +63,18 @@ export async function approveStoryboardAction(
       return { ok: false, error: "這個專案目前不能產生分鏡圖" };
     }
 
-    const frames = initialFrames(project);
-    const cost = frames.length;
-    await assertCanSpendCredits(user, cost);
-    await consumeCredits(user.clerkUserId, cost);
-
+    // Approval is free: it opens per-clip production. Frames and videos are
+    // charged when each clip is generated.
     await projects.updateOne(
       { _id: project._id },
       {
-        $set: {
-          status: "frames_generating",
-          frames,
-          framesCreditCost: cost,
-          framesCharged: true,
-          error: undefined,
-          updatedAt: new Date(),
-        },
-        $unset: { framesSubmittedAt: "" },
+        $set: { status: "production", error: undefined, updatedAt: new Date() },
+        $unset: { stillError: "" },
       },
     );
-
-    after(() => runFrameGenerationJob(project._id));
+    // Projects without a cast lock the character with a still; start it now so
+    // it is usually ready before the first frame request.
+    after(() => runStillJob(project._id));
 
     const updated = await projects.findOne({ _id: project._id });
     revalidateProject(projectId);
@@ -118,8 +112,8 @@ export async function regenerateFrameAction(
       clerkUserId: user.clerkUserId,
     });
     if (!project?.phaseA) return { ok: false, error: "專案不存在" };
-    if (project.status !== "frames_ready") {
-      return { ok: false, error: "請等分鏡圖全部完成後再重新產生" };
+    if (!isProductionLike(project.status)) {
+      return { ok: false, error: "請先核准分鏡" };
     }
     const frame = project.frames?.find(
       (item) => item.clipNumber === clipNumber && item.position === position,
@@ -151,7 +145,6 @@ export async function regenerateFrameAction(
     await projects.updateOne(
       { _id: project._id },
       {
-        $inc: { framesCreditCost: 1 },
         $set: {
           updatedAt: new Date(),
           // Keep the prompt/revision actually used on the frame for later review.
@@ -223,8 +216,8 @@ export async function updateClipStoryboardAction(
       clerkUserId: user.clerkUserId,
     });
     if (!project?.phaseA) return { ok: false, error: "專案不存在" };
-    if (project.status !== "frames_ready") {
-      return { ok: false, error: "請等分鏡圖全部完成後再編輯分鏡" };
+    if (!isProductionLike(project.status)) {
+      return { ok: false, error: "請先核准分鏡" };
     }
     const clipIndex = project.phaseA.clips.findIndex(
       (clip) => clip.clipNumber === clipNumber,
@@ -232,44 +225,56 @@ export async function updateClipStoryboardAction(
     if (clipIndex < 0) return { ok: false, error: "找不到這段分鏡" };
 
     const regenerate = options?.regenerate === true;
-    const cost = regenerate ? 2 : 0;
+    const cost = regenerate ? FRAMES_COST : 0;
     if (regenerate) await assertCanSpendCredits(user, cost);
 
     // Apply the edit in memory first so frame prompts are rebuilt from the new text.
+    const editedAt = new Date().toISOString();
     const clips = project.phaseA.clips.map((clip, index) =>
-      index === clipIndex ? { ...clip, ...clean } : clip,
+      index === clipIndex ? { ...clip, ...clean, editedAt } : clip,
     );
-    const nextProject = {
-      ...project,
-      phaseA: { ...project.phaseA, clips },
-    };
-    const frames: ClipFrame[] = (project.frames || []).map((frame) => {
-      const own = frame.clipNumber === clipNumber;
-      const handoff = frame.clipNumber === clipNumber - 1 && frame.position === "end";
-      if (!own && !handoff) return frame;
-      // A redo from new text starts clean: old sketches described the old scene.
-      const next: ClipFrame = { ...frame };
-      if (regenerate && own) delete next.revision;
-      next.prompt = buildFramePrompt(nextProject, frame.clipNumber, frame.position, {
-        revision: next.revision,
-      });
-      return next;
-    });
+    const nextProject = { ...project, phaseA: { ...project.phaseA, clips } };
+
+    // Frames need the character lock before they can be redrawn.
+    if (regenerate) {
+      const blocker = await stillBlocker(project);
+      if (blocker) return { ok: false, error: blocker };
+    }
+
+    // With `regenerate`, this clip gets fresh queued entries (old sketches
+    // described the old scene). Otherwise only refresh prompts for this clip
+    // and the previous clip's end frame, which hands off to it.
+    const frames: ClipFrame[] = regenerate
+      ? framesWithClip(nextProject, clipNumber)
+      : (project.frames || []).map((frame) => {
+          const own = frame.clipNumber === clipNumber;
+          const handoff = frame.clipNumber === clipNumber - 1 && frame.position === "end";
+          if (!own && !handoff) return frame;
+          return {
+            ...frame,
+            prompt: buildFramePrompt(nextProject, frame.clipNumber, frame.position, {
+              revision: frame.revision,
+            }),
+          };
+        });
 
     if (regenerate) await consumeCredits(user.clerkUserId, cost);
     await projects.updateOne(
       { _id: project._id },
-      {
-        $set: { "phaseA.clips": clips, frames, updatedAt: new Date() },
-        ...(regenerate ? { $inc: { framesCreditCost: cost } } : {}),
-      },
+      { $set: { "phaseA.clips": clips, frames, updatedAt: new Date() } },
     );
 
     if (regenerate) {
-      await regenerateFrames({ ...nextProject, frames }, [
-        { clipNumber, position: "start" },
-        { clipNumber, position: "end" },
-      ]);
+      try {
+        await regenerateFrames({ ...nextProject, frames }, [
+          { clipNumber, position: "start" },
+          { clipNumber, position: "end" },
+        ]);
+      } catch (error) {
+        // Nothing went out: give the credits back.
+        await refundCredits(user.clerkUserId, cost);
+        throw error;
+      }
     }
 
     const updated = await projects.findOne({ _id: project._id });
@@ -279,63 +284,6 @@ export async function updateClipStoryboardAction(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "更新分鏡失敗",
-    };
-  }
-}
-
-// Step 2 approval: frames accepted → Phase B prompts + video generation.
-// Cost: 1 credit per clip.
-export async function approveAndGenerateAction(
-  projectId: string,
-): Promise<ProjectResult> {
-  try {
-    const user = await requireAppUser();
-    if (!ObjectId.isValid(projectId)) {
-      return { ok: false, error: "專案不存在" };
-    }
-
-    const projects = await videosCollection();
-    const project = await projects.findOne({
-      _id: new ObjectId(projectId),
-      clerkUserId: user.clerkUserId,
-    });
-    if (!project?.phaseA) return { ok: false, error: "尚未有可核准的分鏡" };
-    if (project.status !== "frames_ready") {
-      return { ok: false, error: "請先完成並核准分鏡圖" };
-    }
-    const unfinished = (project.frames || []).some(
-      (frame) => frame.status !== "completed",
-    );
-    if (unfinished) {
-      return { ok: false, error: "還有分鏡圖未完成，請重新產生失敗的那幾張" };
-    }
-
-    const cost = project.phaseA.clipCount;
-    await assertCanSpendCredits(user, cost);
-    await consumeCredits(user.clerkUserId, cost);
-
-    await projects.updateOne(
-      { _id: project._id },
-      {
-        $set: {
-          status: "approved",
-          creditCost: cost,
-          creditsCharged: true,
-          error: undefined,
-          updatedAt: new Date(),
-        },
-      },
-    );
-
-    after(() => runPhaseBAndGenerateJob(project._id));
-
-    const updated = await projects.findOne({ _id: project._id });
-    revalidateProject(projectId);
-    return { ok: true, project: toPublicVideo(updated!) };
-  } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "產片失敗",
     };
   }
 }
@@ -358,10 +306,8 @@ export async function refreshGenerationAction(
     });
     if (!project) return { ok: false, error: "專案不存在" };
 
-    if (
-      project.status === "generating" ||
-      project.status === "frames_generating"
-    ) {
+    // Only pending jobs are polled, so this is cheap when nothing is running.
+    if (isProductionLike(project.status)) {
       await refreshProjectJobs(id);
     }
 
