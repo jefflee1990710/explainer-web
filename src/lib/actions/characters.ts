@@ -26,7 +26,7 @@ import type { Character, CharacterVersion } from "@/types/character";
 
 const NAME_MAX = 40;
 const PROMPT_MAX = 1200;
-// gpt-image sheets finish in 1–2 minutes; anything older is treated as lost.
+// Blueprint sheets usually finish in 1–2 minutes; anything older is treated as lost.
 const STALE_AFTER_MS = 15 * 60 * 1000;
 
 export type CharacterResult =

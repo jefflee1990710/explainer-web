@@ -5,6 +5,14 @@ import {
 } from "@/lib/higgsfield/client";
 import type { AspectRatio } from "@/types/project";
 
+/** Stored on skills / jobs; `/edit` is chosen automatically when references are present. */
+export const QWEN_IMAGE_MODEL = "alibaba/qwen-image-3/text-to-image";
+export const QWEN_IMAGE_EDIT_MODEL = "alibaba/qwen-image-3/edit";
+
+function isQwenImage3(model: string) {
+  return /qwen-image-3/i.test(model);
+}
+
 function webhookOptions() {
   const secret = process.env.HF_WEBHOOK_SECRET;
   if (!secret) return undefined;
@@ -53,6 +61,23 @@ export async function submitImage(input: {
   const refs = (input.referenceImageUrls || []).filter(
     (url): url is string => Boolean(url),
   );
+  const webhook = options.webhook === false ? undefined : webhookOptions();
+
+  // Qwen Image 3: text-to-image vs edit (reference sheets, sibling frames, redos).
+  if (isQwenImage3(input.model)) {
+    const endpoint = refs.length > 0 ? QWEN_IMAGE_EDIT_MODEL : QWEN_IMAGE_MODEL;
+    return client.subscribe(endpoint, {
+      input: {
+        prompt: input.prompt,
+        aspect_ratio: input.aspectRatio,
+        quality: input.quality || "medium",
+        ...(refs.length ? { image_urls: refs } : {}),
+      },
+      withPolling: false,
+      webhook,
+    });
+  }
+
   const common = {
     prompt: input.prompt,
     aspect_ratio: imageAspectRatio(input.model, input.aspectRatio),
@@ -64,7 +89,7 @@ export async function submitImage(input: {
     return client.subscribe(`${input.model}/edit`, {
       input: { ...common, image_urls: refs },
       withPolling: false,
-      webhook: options.webhook === false ? undefined : webhookOptions(),
+      webhook,
     });
   }
 
@@ -75,7 +100,7 @@ export async function submitImage(input: {
       ...imageRefs(refs),
     },
     withPolling: false,
-    webhook: options.webhook === false ? undefined : webhookOptions(),
+    webhook,
   });
 }
 

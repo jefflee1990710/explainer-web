@@ -1,10 +1,10 @@
 import { generationJobsCollection } from "@/lib/collections";
-import { submitImage } from "@/lib/higgsfield/generate";
+import { QWEN_IMAGE_MODEL, submitImage } from "@/lib/higgsfield/generate";
 import { buildBlueprintPrompt } from "@/lib/characters/blueprint-prompt";
 import type { Character, CharacterVersion } from "@/types/character";
 import type { GenerationStatus } from "@/types/generation-job";
 
-export const BLUEPRINT_MODEL = "openai/gpt-image-1.5";
+export const BLUEPRINT_MODEL = QWEN_IMAGE_MODEL;
 
 // Submit one version's sheet to Higgsfield and record the job. Throws if the
 // provider rejects the request; the caller marks the version failed + refunds.

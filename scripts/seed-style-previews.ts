@@ -19,7 +19,7 @@ import {
 
 loadEnvConfig(process.cwd());
 
-const MODEL = "openai/gpt-image-1.5";
+const MODEL = "alibaba/qwen-image-3/text-to-image";
 const QUALITY = "medium" as const;
 const POLL_MS = 3000;
 const TIMEOUT_MS = 5 * 60 * 1000;
