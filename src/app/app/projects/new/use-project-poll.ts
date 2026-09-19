@@ -4,21 +4,14 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { refreshGenerationAction } from "@/lib/actions/generation";
 import { getProjectAction } from "@/lib/actions/projects";
+import { isProjectBusy } from "@/lib/clip-stage";
 import type { PublicVideo } from "@/lib/serialize";
 
-const IN_FLIGHT = new Set<PublicVideo["status"]>([
-  "phase_a",
-  "frames_generating",
-  "approved",
-  "generating",
-]);
+const INTERVAL_MS = 3000;
 
-const NEEDS_JOB_REFRESH = new Set<PublicVideo["status"]>([
-  "frames_generating",
-  "generating",
-]);
-
-// Poll the selected video while a background job is running; first tick is immediate.
+// Poll the selected video while the director writes or any frame/video job is
+// in flight; first tick is immediate. Provider statuses are refreshed too,
+// except during Phase A (no provider jobs yet).
 export function useProjectPoll(
   project: PublicVideo | null,
   onUpdate: (project: PublicVideo) => void,
@@ -27,15 +20,15 @@ export function useProjectPoll(
   const router = useRouter();
   const id = project?.id;
   const status = project?.status;
+  const busy = project ? isProjectBusy(project) : false;
 
   useEffect(() => {
-    if (!id || !status || !IN_FLIGHT.has(status)) return;
-    const interval =
-      status === "generating" ? 4000 : status === "frames_generating" ? 3000 : 2500;
+    if (!id || !busy) return;
+    const needsJobRefresh = status !== "phase_a";
     let cancelled = false;
 
     async function tick() {
-      if (NEEDS_JOB_REFRESH.has(status!)) {
+      if (needsJobRefresh) {
         const refreshed = await refreshGenerationAction(id!);
         if (cancelled) return;
         if (!refreshed.ok) {
@@ -48,21 +41,18 @@ export function useProjectPoll(
       if (cancelled) return;
       if (result.ok) {
         onUpdate(result.project);
-        if (!IN_FLIGHT.has(result.project.status)) router.refresh();
+        // Settled: refresh the server render so lists/badges catch up.
+        if (!isProjectBusy(result.project)) router.refresh();
       } else {
         onError?.(result.error);
       }
     }
 
     void tick();
-    const timer = window.setInterval(() => void tick(), interval);
+    const timer = window.setInterval(() => void tick(), INTERVAL_MS);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [id, status, onUpdate, onError, router]);
-}
-
-export function isInFlight(status: PublicVideo["status"] | undefined) {
-  return Boolean(status && IN_FLIGHT.has(status));
+  }, [id, status, busy, onUpdate, onError, router]);
 }
