@@ -31,7 +31,6 @@ function clipEditOf(row: StoryboardRow) {
     explainerScene: row.explainerScene,
     motionCamera: row.motionCamera,
     englishVo: row.englishVo,
-    referenceTranslation: row.referenceTranslation,
   };
 }
 
@@ -89,7 +88,6 @@ export function applyPhaseAEdits(
       explainerScene,
       motionCamera: cleanPhaseAField(edit.motionCamera),
       englishVo,
-      referenceTranslation: cleanPhaseAField(edit.referenceTranslation),
     });
   }
 
@@ -111,5 +109,26 @@ export function applyPhaseAEdits(
       clips,
       englishWordCount,
     },
+  };
+}
+
+// After a clips-only regenerate, keep the user's proposal fields and take new rows.
+export function keepProposalRegenerateClips(
+  current: PhaseAProposal,
+  generated: PhaseAProposal,
+): PhaseAProposal {
+  return {
+    ...generated,
+    localizedTitle: current.localizedTitle,
+    englishTitle: current.englishTitle,
+    coreMessage: current.coreMessage,
+    hookStrategy: current.hookStrategy,
+    narrator: current.narrator,
+    visualWorld: current.visualWorld,
+    characterLock: current.characterLock,
+    palette: current.palette,
+    aspectRatio: current.aspectRatio,
+    loopMode: current.loopMode,
+    targetDuration: current.targetDuration,
   };
 }

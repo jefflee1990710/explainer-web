@@ -8,7 +8,7 @@ export const storyboardRowSchema = z.object({
   explainerScene: z.string(),
   motionCamera: z.string(),
   englishVo: z.string(),
-  referenceTranslation: z.string(),
+  referenceTranslation: z.string().optional(),
   bgmSfx: z.string(),
 });
 

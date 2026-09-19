@@ -145,13 +145,14 @@ export function NewProjectForm({
     return true;
   }
 
-  async function onRevise(note: string) {
+  async function onRevise(note: string, options?: { clipsOnly?: boolean }) {
     if (!project) return;
     setPending("revise");
     setError("");
     const data = new FormData();
     data.set("projectId", project.id);
     data.set("note", note);
+    if (options?.clipsOnly) data.set("clipsOnly", "1");
     const result = await reviseProjectAction(data);
     setPending("");
     if (!result.ok) setError(result.error);
@@ -424,7 +425,7 @@ export function NewProjectForm({
               }
               error={error}
               onApprove={onApproveStoryboard}
-              onRevise={(note) => void onRevise(note)}
+              onRevise={(note, options) => void onRevise(note, options)}
               onSave={onSaveProposal}
             />
           ) : project?.status === "frames_generating" ||

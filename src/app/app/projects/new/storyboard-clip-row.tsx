@@ -70,22 +70,11 @@ export function StoryboardClipRow({
           <span className="sr-only">旁白（{voLabel}）</span>
           <textarea
             value={draft.englishVo}
-            rows={4}
+            rows={6}
             disabled={disabled}
             onChange={(event) => update("englishVo", event.target.value)}
             placeholder={`${voLabel} 旁白逐字稿。`}
             className={fieldClass}
-          />
-        </label>
-        <label className="block">
-          <span className="sr-only">參考翻譯</span>
-          <textarea
-            value={draft.referenceTranslation}
-            rows={2}
-            disabled={disabled}
-            onChange={(event) => update("referenceTranslation", event.target.value)}
-            placeholder="旁白參考翻譯。"
-            className={`${fieldClass} text-xs text-muted`}
           />
         </label>
       </div>

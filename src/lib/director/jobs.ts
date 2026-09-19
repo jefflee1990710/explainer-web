@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { refundCredits } from "@/lib/billing/credits";
 import { skillsCollection, videosCollection } from "@/lib/collections";
+import { keepProposalRegenerateClips } from "@/lib/director/phase-a-edit";
 import { runPhaseA } from "@/lib/director/run-phase-a";
 import { runPhaseB } from "@/lib/director/run-phase-b";
 import {
@@ -17,7 +18,11 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 // Phase A: write the storyboard proposal for a freshly created or revised project.
-export async function runPhaseAJob(projectId: ObjectId, revisionNote?: string) {
+export async function runPhaseAJob(
+  projectId: ObjectId,
+  revisionNote?: string,
+  options?: { clipsOnly?: boolean },
+) {
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
   if (!project) return;
@@ -44,14 +49,19 @@ export async function runPhaseAJob(projectId: ObjectId, revisionNote?: string) {
       cast: project.cast,
       currentDraft: project.phaseA,
       revisionNote,
+      clipsOnly: options?.clipsOnly,
     });
+    const nextPhaseA =
+      options?.clipsOnly && project.phaseA
+        ? keepProposalRegenerateClips(project.phaseA, phaseA)
+        : phaseA;
 
     await projects.updateOne(
       { _id: projectId },
       {
         $set: {
-          phaseA,
-          creditCost: phaseA.clipCount,
+          phaseA: nextPhaseA,
+          creditCost: nextPhaseA.clipCount,
           status: "awaiting_approval",
           error: undefined,
           updatedAt: new Date(),

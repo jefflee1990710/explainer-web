@@ -295,6 +295,7 @@ export async function reviseProjectAction(
     const user = await requireAppUser();
     const videoId = String(formData.get("projectId") || "");
     const note = String(formData.get("note") || "").trim();
+    const clipsOnly = String(formData.get("clipsOnly") || "") === "1";
     if (!ObjectId.isValid(videoId)) {
       return { ok: false, error: "專案不存在" };
     }
@@ -314,7 +315,9 @@ export async function reviseProjectAction(
       { $set: { status: "phase_a", error: undefined, updatedAt: new Date() } },
     );
 
-    after(() => runPhaseAJob(video._id, note || undefined));
+    after(() =>
+      runPhaseAJob(video._id, note || undefined, { clipsOnly }),
+    );
 
     const folders = await projectsCollection();
     await folders.updateOne(

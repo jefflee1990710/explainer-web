@@ -58,14 +58,15 @@ export type StoryboardRow = {
   explainerScene: string;
   motionCamera: string;
   englishVo: string;
-  referenceTranslation: string;
+  // Legacy; no longer shown or required. Older videos may still have it.
+  referenceTranslation?: string;
   bgmSfx: string;
 };
 
 // Storyboard fields the user may rewrite per clip while reviewing frames.
 export type ClipStoryboardInput = Pick<
   StoryboardRow,
-  "explainerScene" | "motionCamera" | "englishVo" | "referenceTranslation"
+  "explainerScene" | "motionCamera" | "englishVo"
 >;
 
 // Phase A proposal fields the user can rewrite before approving frames.

@@ -3,13 +3,19 @@
 import { useEffect, useId } from "react";
 import { Spinner } from "@/components/spinner";
 
-// Confirm AI rewrite: it replaces the proposal and every clip row below.
+// Confirm AI rewrite: full proposal, or clips only under the current brief.
 export function ReviseStoryboardDialog({
   pending,
+  title,
+  body,
+  confirmLabel,
   onCancel,
   onConfirm,
 }: {
   pending: boolean;
+  title?: string;
+  body?: string;
+  confirmLabel?: string;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -36,10 +42,11 @@ export function ReviseStoryboardDialog({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id={titleId} className="font-display text-2xl font-bold">
-          用 AI 重寫分鏡提案？
+          {title ?? "用 AI 重寫分鏡提案？"}
         </h2>
         <p className="mt-2 text-sm leading-6 text-muted">
-          這會覆蓋下方整份分鏡提案，包括標題、核心訊息、每一段畫面描述與旁白。目前內容無法復原。
+          {body ??
+            "這會覆蓋下方整份分鏡提案，包括標題、核心訊息、每一段畫面描述與旁白。目前內容無法復原。"}
         </p>
         <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
           <button
@@ -57,7 +64,7 @@ export function ReviseStoryboardDialog({
             className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending ? <Spinner className="h-4 w-4" /> : null}
-            {pending ? "重寫中…" : "確認重寫"}
+            {pending ? "重寫中…" : confirmLabel ?? "確認重寫"}
           </button>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { test } from "node:test";
 import type { PhaseAProposal } from "@/types/project";
 import {
   applyPhaseAEdits,
+  keepProposalRegenerateClips,
   phaseAToEditInput,
   spokenUnits,
 } from "./phase-a-edit";
@@ -88,4 +89,26 @@ test("applyPhaseAEdits rejects a blank scene or a changed clip count", () => {
   assert.equal(droppedResult.ok, false);
   if (droppedResult.ok) return;
   assert.match(droppedResult.error, /分鏡段數不能增減/);
+});
+
+test("keepProposalRegenerateClips keeps the proposal and takes new clip rows", () => {
+  const current = proposal();
+  const generated = proposal();
+  generated.localizedTitle = "AI 亂改的標題";
+  generated.coreMessage = "被改掉";
+  generated.clips = [
+    {
+      ...generated.clips[0],
+      explainerScene: "新的開場畫面",
+      englishVo: "New hook.",
+    },
+  ];
+  generated.clipCount = 1;
+
+  const merged = keepProposalRegenerateClips(current, generated);
+  assert.equal(merged.localizedTitle, "為什麼吐司會燒焦");
+  assert.equal(merged.coreMessage, "小心熱度");
+  assert.equal(merged.clipCount, 1);
+  assert.equal(merged.clips[0].explainerScene, "新的開場畫面");
+  assert.equal(merged.clips[0].englishVo, "New hook.");
 });

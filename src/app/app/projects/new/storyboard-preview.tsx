@@ -33,11 +33,13 @@ export function StoryboardPreview({
   pending: "revise" | "approve" | "save" | "";
   error: string;
   onApprove: () => void;
-  onRevise: (note: string) => void;
+  onRevise: (note: string, options?: { clipsOnly?: boolean }) => void;
   onSave: (input: PhaseAEditInput) => Promise<boolean>;
 }) {
   const [note, setNote] = useState("");
-  const [confirmRevise, setConfirmRevise] = useState(false);
+  const [confirmRevise, setConfirmRevise] = useState<false | "all" | "clips">(
+    false,
+  );
   const phaseA = project.phaseA;
   const saved = useMemo(
     () => (phaseA ? phaseAToEditInput(phaseA) : null),
@@ -72,7 +74,7 @@ export function StoryboardPreview({
           Phase A · 分鏡提案
         </p>
         <p className="mt-2 text-sm text-muted">
-          標題、訊息與每一段分鏡都可以直接改。儲存不扣 credits；重寫會依目前草稿再產一次提案。
+          標題、訊息與每一段分鏡都可以直接改。儲存不扣 credits。右下角可依這份提案重新規劃下方分鏡。
         </p>
         <div className="mt-4 flex flex-wrap gap-2 text-xs">
           <Chip>{phaseA.targetDuration}</Chip>
@@ -83,6 +85,17 @@ export function StoryboardPreview({
         </div>
         <div className="mt-5">
           <StoryboardProposalFields draft={currentDraft} disabled={busy} onChange={setDraft} />
+        </div>
+        <div className="mt-5 flex justify-end">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setConfirmRevise("clips")}
+            className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent-ink px-5 py-2 text-sm font-semibold text-lime shadow-[3px_3px_0_0_rgba(198,242,75,0.9)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {pending === "revise" ? <Spinner /> : null}
+            {pending === "revise" ? "規劃中…" : "重新規劃分鏡"}
+          </button>
         </div>
       </header>
 
@@ -119,7 +132,7 @@ export function StoryboardPreview({
           className="rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-5"
           onSubmit={(event) => {
             event.preventDefault();
-            if (!busy) setConfirmRevise(true);
+            if (!busy) setConfirmRevise("all");
           }}
         >
           <label htmlFor="revise-note" className="block text-sm font-semibold">
@@ -199,16 +212,28 @@ export function StoryboardPreview({
       {confirmRevise ? (
         <ReviseStoryboardDialog
           pending={pending === "revise" || pending === "save"}
+          title={
+            confirmRevise === "clips"
+              ? "重新規劃下方分鏡？"
+              : "用 AI 重寫分鏡提案？"
+          }
+          body={
+            confirmRevise === "clips"
+              ? "會依上方分鏡提案重新規劃下方每一段 clip 的畫面與旁白。標題與提案欄位會保留，分鏡內容無法復原。"
+              : undefined
+          }
+          confirmLabel={confirmRevise === "clips" ? "確認規劃" : undefined}
           onCancel={() => {
             if (pending === "") setConfirmRevise(false);
           }}
           onConfirm={() => {
+            const clipsOnly = confirmRevise === "clips";
             void persistIfDirty().then((ok) => {
               if (!ok) {
                 setConfirmRevise(false);
                 return;
               }
-              onRevise(note);
+              onRevise(clipsOnly ? "" : note, { clipsOnly });
               setConfirmRevise(false);
             });
           }}

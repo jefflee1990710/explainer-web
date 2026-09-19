@@ -39,14 +39,12 @@ export function ClipEditDialog({
   const sceneId = useId();
   const cameraId = useId();
   const voId = useId();
-  const translationId = useId();
   const voLabel = LANGUAGE_PRESETS[language].label;
 
   const [draft, setDraft] = useState<ClipStoryboardInput>({
     explainerScene: clip.explainerScene,
     motionCamera: clip.motionCamera,
     englishVo: clip.englishVo,
-    referenceTranslation: clip.referenceTranslation,
   });
   // Set once the user submits so a stale parent error isn't shown on open.
   const [attempted, setAttempted] = useState(false);
@@ -65,8 +63,7 @@ export function ClipEditDialog({
   const dirty =
     draft.explainerScene !== clip.explainerScene ||
     draft.motionCamera !== clip.motionCamera ||
-    draft.englishVo !== clip.englishVo ||
-    draft.referenceTranslation !== clip.referenceTranslation;
+    draft.englishVo !== clip.englishVo;
   const valid = draft.explainerScene.trim().length > 0 && draft.englishVo.trim().length > 0;
   const enoughCredits = credits >= 2;
   const canSave = valid && dirty && !busy;
@@ -85,7 +82,6 @@ export function ClipEditDialog({
         explainerScene: draft.explainerScene.trim(),
         motionCamera: draft.motionCamera.trim(),
         englishVo: draft.englishVo.trim(),
-        referenceTranslation: draft.referenceTranslation.trim(),
       },
       regenerate,
     );
@@ -174,16 +170,6 @@ export function ClipEditDialog({
                 disabled={busy}
                 placeholder="這段旁白要說的話。"
                 onChange={(value) => update("englishVo", value)}
-              />
-              <TextField
-                id={translationId}
-                label="參考翻譯"
-                hint="只給自己看，方便對照旁白內容。"
-                value={draft.referenceTranslation}
-                rows={4}
-                disabled={busy}
-                placeholder="旁白的參考翻譯。"
-                onChange={(value) => update("referenceTranslation", value)}
               />
               {clip.clipNumber > 1 ? (
                 <div className="rounded-[1.25rem] border border-accent-ink/10 bg-paper/85 p-4 text-xs leading-5 text-muted">

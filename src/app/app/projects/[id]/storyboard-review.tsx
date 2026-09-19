@@ -78,8 +78,7 @@ export function StoryboardReview({
             <tr>
               <th className="px-4 py-3">Clip</th>
               <th className="px-4 py-3">場景</th>
-              <th className="px-4 py-3">英文 VO</th>
-              <th className="px-4 py-3">中文對照</th>
+              <th className="px-4 py-3">旁白</th>
             </tr>
           </thead>
           <tbody>
@@ -94,7 +93,6 @@ export function StoryboardReview({
                   <p className="mt-1 text-xs text-muted">{clip.motionCamera}</p>
                 </td>
                 <td className="px-4 py-3">{clip.englishVo}</td>
-                <td className="px-4 py-3">{clip.referenceTranslation}</td>
               </tr>
             ))}
           </tbody>

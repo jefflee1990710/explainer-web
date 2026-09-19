@@ -27,6 +27,8 @@ export async function runPhaseA(input: {
   // Existing user-edited draft; regenerate from this instead of inventing anew.
   currentDraft?: PhaseAProposal;
   revisionNote?: string;
+  // Rewrite clip rows from the locked proposal; do not invent a new brief.
+  clipsOnly?: boolean;
 }): Promise<PhaseAProposal> {
   const preset = DURATION_PRESETS[input.durationPreset];
   const language = LANGUAGE_PRESETS[input.language || "en"];
@@ -41,6 +43,9 @@ export async function runPhaseA(input: {
   const revisionNote = input.revisionNote
     ? `\nRevision notes from user:\n${input.revisionNote}\n`
     : "";
+  const clipsOnlyNote = input.clipsOnly
+    ? `\nRegenerate ONLY the clips array (and clipCount / narrativeArc / englishWordCount / bgmDirection as needed). Copy localizedTitle, englishTitle, coreMessage, hookStrategy, narrator, visualWorld, characterLock, palette, aspectRatio, loopMode, and targetDuration verbatim from the current draft. Do not change the proposal brief.\n`
+    : "";
 
   const { output } = await generateText({
     model: directorModel(),
@@ -51,7 +56,7 @@ You are executing Phase A only. Return structured JSON that matches the schema.
 Planning explanations (narrativeJob, explainerScene, motionCamera, hookStrategy, coreMessage, etc.) must be Traditional Chinese (繁體中文).
 ${language.skillHint}
 The englishVo field always carries the spoken voiceover line in the chosen voiceover language above, regardless of the field name.
-${language.translationHint}
+Leave referenceTranslation empty. Do not invent a translation column.
 The englishWordCount field holds the total spoken unit count (words for English, characters for Chinese/Cantonese).
 Never skip the setup gate values already supplied.`,
     prompt: `Source material:
@@ -61,7 +66,7 @@ Aspect ratio: ${input.aspectRatio}
 Duration preset: ${preset.skillHint}
 Voiceover language: ${language.label} (${language.sublabel})
 ${characterNote}
-${draftNote}${revisionNote}
+${draftNote}${revisionNote}${clipsOnlyNote}
 Produce a complete Phase A director proposal now.`,
   });
 

@@ -213,7 +213,6 @@ export async function updateClipStoryboardAction(
       explainerScene: cleanField(input?.explainerScene),
       motionCamera: cleanField(input?.motionCamera),
       englishVo: cleanField(input?.englishVo),
-      referenceTranslation: cleanField(input?.referenceTranslation),
     };
     if (!clean.explainerScene) return { ok: false, error: "畫面描述不能空白" };
     if (!clean.englishVo) return { ok: false, error: "旁白不能空白" };
