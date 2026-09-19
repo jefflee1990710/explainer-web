@@ -61,7 +61,7 @@ export async function approveStoryboardAction(
     });
     if (!project?.phaseA) return { ok: false, error: "尚未有可核准的分鏡" };
     if (project.status !== "awaiting_approval") {
-      return { ok: false, error: "這個專案目前不能產生分鏡圖" };
+      return { ok: false, error: "這個專案目前不能核准分鏡" };
     }
 
     // Approval is free: it opens per-clip production. Frames and videos are
@@ -69,8 +69,9 @@ export async function approveStoryboardAction(
     await projects.updateOne(
       { _id: project._id },
       {
-        $set: { status: "production", error: undefined, updatedAt: new Date() },
-        $unset: { stillError: "" },
+        $set: { status: "production", updatedAt: new Date() },
+        // `$set: { error: undefined }` would store null; clear the field instead.
+        $unset: { stillError: "", error: "" },
       },
     );
     // Projects without a cast lock the character with a still; start it now so
@@ -83,7 +84,7 @@ export async function approveStoryboardAction(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "產生分鏡圖失敗",
+      error: error instanceof Error ? error.message : "核准分鏡失敗",
     };
   }
 }

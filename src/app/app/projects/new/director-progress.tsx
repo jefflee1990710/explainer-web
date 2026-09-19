@@ -12,30 +12,17 @@ const STORYBOARD_STAGES = [
   "檢查角色鎖與視覺世界…",
 ];
 
-const PRODUCTION_STAGES = [
-  "把分鏡轉成逐段影片 prompt…",
-  "鎖定角色定裝與畫風…",
-  "送出角色定裝圖…",
-  "排入影片生成隊列…",
-];
-
-// Animated "what is the AI doing right now" panel. Stages are illustrative
-// and rotate on a timer; the real completion comes from polling.
-export function DirectorProgress({
-  mode,
-}: {
-  mode: "storyboard" | "production";
-}) {
-  const stages = mode === "storyboard" ? STORYBOARD_STAGES : PRODUCTION_STAGES;
+// Animated "what is the AI doing right now" panel while Phase A runs. Stages
+// are illustrative and rotate on a timer; the real completion comes from polling.
+export function DirectorProgress() {
   const [index, setIndex] = useState(0);
 
-  // Parent keys this component per mode, so index naturally resets on remount.
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setIndex((value) => (value + 1) % stages.length);
+      setIndex((value) => (value + 1) % STORYBOARD_STAGES.length);
     }, 2600);
     return () => window.clearInterval(timer);
-  }, [stages]);
+  }, []);
 
   return (
     <motion.section
@@ -58,9 +45,7 @@ export function DirectorProgress({
           <Spinner className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-display text-lg font-bold">
-            {mode === "storyboard" ? "導演正在寫分鏡" : "正在準備產片"}
-          </p>
+          <p className="font-display text-lg font-bold">導演正在寫分鏡</p>
           <div className="mt-1 h-6 overflow-hidden">
             <AnimatePresence mode="wait" initial={false}>
               <motion.p
@@ -71,7 +56,7 @@ export function DirectorProgress({
                 transition={{ duration: 0.25 }}
                 className="text-sm text-paper/75"
               >
-                {stages[index]}
+                {STORYBOARD_STAGES[index]}
               </motion.p>
             </AnimatePresence>
           </div>

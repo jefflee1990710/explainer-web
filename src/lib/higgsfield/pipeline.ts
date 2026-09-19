@@ -324,16 +324,15 @@ export async function applyJobStatus(input: {
   // Character sheets persist and refund in their own sync; no video to touch.
   if (job.kind === "character") {
     await syncCharacterJob(job, status, input.outputUrl);
+    // `$set: { error: undefined }` would store null; clear the field instead.
     await jobs.updateOne(
       { _id: job._id },
-      {
-        $set: {
-          status,
-          outputUrl: input.outputUrl,
-          error: nowFailed ? status : undefined,
-          updatedAt: new Date(),
-        },
-      },
+      nowFailed
+        ? { $set: { status, outputUrl: input.outputUrl, error: status, updatedAt: new Date() } }
+        : {
+            $set: { status, outputUrl: input.outputUrl, updatedAt: new Date() },
+            $unset: { error: "" },
+          },
     );
     return;
   }
@@ -375,9 +374,12 @@ export async function applyJobStatus(input: {
     status,
     outputUrl: input.outputUrl,
     blobUrl,
-    error: nowFailed ? status : undefined,
     updatedAt: new Date(),
   };
+  // `$set: { error: undefined }` would store null; clear the field instead.
+  const update = nowFailed
+    ? { $set: { ...set, error: status } }
+    : { $set: set, $unset: { error: "" as const } };
 
   // The webhook and the poller can deliver the same failure concurrently, so
   // the flip to failed is an atomic claim: `findOneAndUpdate` only matches for
@@ -386,12 +388,12 @@ export async function applyJobStatus(input: {
     ? Boolean(
         await jobs.findOneAndUpdate(
           { _id: job._id, status: { $nin: ["failed", "nsfw"] } },
-          { $set: set },
+          update,
         ),
       )
     : false;
   // Lost the claim (or not a failure at all): the fields still have to land.
-  if (!claimedFailure) await jobs.updateOne({ _id: job._id }, { $set: set });
+  if (!claimedFailure) await jobs.updateOne({ _id: job._id }, update);
 
   // Each frame is 1 credit and each clip video is 1 credit; hand it back once,
   // the moment this caller is the one that marked the job failed.

@@ -63,12 +63,13 @@ export async function runPhaseAJob(
     await projects.updateOne(
       { _id: projectId },
       {
+        // `$set: { error: undefined }` would store null; clear the field instead.
         $set: {
           phaseA: nextPhaseA,
           status: "awaiting_approval",
-          error: undefined,
           updatedAt: new Date(),
         },
+        $unset: { error: "" },
       },
     );
   } catch (error) {

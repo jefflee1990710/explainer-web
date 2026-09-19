@@ -31,21 +31,6 @@ export const phaseASchema = z.object({
   clips: z.array(storyboardRowSchema).min(1),
 });
 
-export const phaseBSchema = z.object({
-  globalContinuity: z.string(),
-  prompts: z
-    .array(
-      z.object({
-        clipNumber: z.number().int().min(1),
-        durationSeconds: z.number().min(3).max(8),
-        prompt: z.string(),
-      }),
-    )
-    .min(1),
-  stitchingGuide: z.string(),
-  voiceMusicNote: z.string(),
-});
-
 // One clip's video prompt (per-clip Phase B).
 export const phaseBClipSchema = z.object({
   clipNumber: z.number().int().min(1),

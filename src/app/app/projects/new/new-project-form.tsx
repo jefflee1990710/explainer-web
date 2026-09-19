@@ -449,7 +449,7 @@ export function NewProjectForm({
 
         <AnimatePresence mode="wait">
           {project?.status === "phase_a" ? (
-            <DirectorProgress key="phase-a" mode="storyboard" />
+            <DirectorProgress key="phase-a" />
           ) : project?.status === "awaiting_approval" ? (
             <StoryboardPreview
               key={`storyboard-${project.id}`}

@@ -49,7 +49,7 @@ export function ClipVideoPanel({
         ? "credits 不足"
         : null;
   const disabled = !canAct || generating || pending || reason !== null;
-  const label = hasVideo || showVideo ? "重產影片" : failed ? "重試" : "產這段影片";
+  const label = showVideo ? "重產影片" : failed ? "重試" : "產這段影片";
 
   // A claim whose background job was lost leaves the clip queued forever. The
   // clock is read from a timer rather than during render, so the server and the

@@ -4,15 +4,10 @@ import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { skillPromptForPhaseB } from "@/lib/director/load-skill-prompt";
 import { directorModel } from "@/lib/director/model";
 import { clipPhaseBUserPrompt } from "@/lib/director/phase-b-clip-prompt";
-import { phaseBClipSchema, phaseBSchema } from "@/lib/director/schemas";
+import { phaseBClipSchema } from "@/lib/director/schemas";
 import type { Style } from "@/lib/styles";
 import type { CastMember } from "@/types/character";
-import type {
-  PhaseAProposal,
-  PhaseBPackage,
-  PhaseBPrompt,
-  VoLanguage,
-} from "@/types/project";
+import type { PhaseAProposal, PhaseBPrompt, VoLanguage } from "@/types/project";
 import type { Skill } from "@/types/skill";
 
 type PhaseBInput = {
@@ -38,28 +33,6 @@ function characterLine(input: PhaseBInput) {
   return input.cast && input.cast.length > 0
     ? castLineForPhaseB(input.cast)
     : `Character reference image: ${input.characterImageUrl || "none"}`;
-}
-
-// Legacy batch runner: kept for reading old projects; the per-clip flow uses runPhaseBForClip.
-export async function runPhaseB(input: PhaseBInput): Promise<PhaseBPackage> {
-  const language = LANGUAGE_PRESETS[input.language || "en"];
-  const { output } = await generateText({
-    model: directorModel(),
-    output: Output.object({ schema: phaseBSchema }),
-    system: phaseBSystemPrompt(input, language.label, language.sublabel),
-    prompt: `Approved Phase A JSON:
-${JSON.stringify(input.phaseA, null, 2)}
-
-Voiceover language: ${language.label} (${language.sublabel})
-${characterLine(input)}
-
-Write the Phase B production package now.`,
-  });
-
-  if (!output) {
-    throw new Error("產片 prompt 產生失敗");
-  }
-  return output;
 }
 
 // Per-clip Phase B: one video prompt, with the neighbouring clips as hand-off context.

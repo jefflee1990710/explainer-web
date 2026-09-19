@@ -101,19 +101,6 @@ export function buildFramePrompt(
   ].join("\n");
 }
 
-// Initial queued frame list (start + end for every clip) before any job exists.
-export function initialFrames(project: Project): ClipFrame[] {
-  const clips = project.phaseA?.clips || [];
-  return clips.flatMap((row) =>
-    (["start", "end"] as FramePosition[]).map((position) => ({
-      clipNumber: row.clipNumber,
-      position,
-      prompt: buildFramePrompt(project, row.clipNumber, position),
-      status: "queued" as const,
-    })),
-  );
-}
-
 // Frames array with a fresh queued start + end entry for one clip (prompt
 // rebuilt from the current storyboard, old sketch revision dropped). Other
 // clips' entries are untouched.
