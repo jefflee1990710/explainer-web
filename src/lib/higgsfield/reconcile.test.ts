@@ -1,0 +1,72 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { ObjectId } from "mongodb";
+import type { GenerationJob } from "@/types/generation-job";
+import type { ClipFrame, ProjectClip } from "@/types/project";
+import { nextProjectStatus, reconcileClips, reconcileFrames } from "./reconcile";
+
+function job(partial: Partial<GenerationJob> & Pick<GenerationJob, "kind" | "clipIndex" | "status">): GenerationJob {
+  return {
+    _id: new ObjectId(),
+    projectId: new ObjectId(),
+    model: "m",
+    requestId: Math.random().toString(36).slice(2),
+    createdAt: new Date("2026-01-01T00:00:00Z"),
+    updatedAt: new Date("2026-01-01T00:00:00Z"),
+    ...partial,
+  };
+}
+
+const frames: ClipFrame[] = [
+  { clipNumber: 1, position: "start", prompt: "p", status: "queued" },
+  { clipNumber: 1, position: "end", prompt: "p", status: "queued" },
+  { clipNumber: 2, position: "start", prompt: "p", status: "completed", blobUrl: "kept" },
+];
+
+test("reconcileFrames takes status/urls from the matching job and keeps frames without one", () => {
+  const next = reconcileFrames(frames, [
+    job({ kind: "frame", clipIndex: 0, framePosition: "start", status: "completed", blobUrl: "b1", outputUrl: "o1" }),
+    job({ kind: "frame", clipIndex: 0, framePosition: "end", status: "nsfw", error: "nsfw" }),
+    job({ kind: "video", clipIndex: 0, status: "completed", blobUrl: "not-a-frame" }),
+  ]);
+  assert.equal(next[0].status, "completed");
+  assert.equal(next[0].blobUrl, "b1");
+  assert.equal(next[1].status, "failed");
+  assert.equal(next[1].error, "nsfw");
+  assert.equal(next[2].blobUrl, "kept");
+});
+
+test("newest job wins when several exist for one slot", () => {
+  const next = reconcileFrames([frames[0]], [
+    job({ kind: "frame", clipIndex: 0, framePosition: "start", status: "completed", blobUrl: "old", createdAt: new Date("2026-01-01T00:00:00Z") }),
+    job({ kind: "frame", clipIndex: 0, framePosition: "start", status: "in_progress", createdAt: new Date("2026-01-02T00:00:00Z") }),
+  ]);
+  assert.equal(next[0].status, "in_progress");
+  assert.equal(next[0].blobUrl, undefined);
+});
+
+test("reconcileClips maps video jobs per clip and leaves others alone", () => {
+  const clips: ProjectClip[] = [
+    { clipNumber: 1, durationSeconds: 5, prompt: "v", status: "queued" },
+    { clipNumber: 2, durationSeconds: 5, prompt: "v", status: "failed", error: "llm" },
+  ];
+  const next = reconcileClips(clips, [
+    job({ kind: "video", clipIndex: 0, status: "completed", blobUrl: "vid" }),
+  ]);
+  assert.equal(next[0].status, "completed");
+  assert.equal(next[0].blobUrl, "vid");
+  assert.equal(next[1].status, "failed");
+  assert.equal(next[1].error, "llm");
+});
+
+test("nextProjectStatus: production ↔ ready, other statuses untouched", () => {
+  const rows = { clips: [{ clipNumber: 1 }, { clipNumber: 2 }] };
+  const done: ProjectClip = { clipNumber: 1, durationSeconds: 5, prompt: "v", status: "completed" };
+  const done2: ProjectClip = { ...done, clipNumber: 2 };
+  assert.equal(nextProjectStatus({ status: "production", phaseA: rows, clips: [done] }), "production");
+  assert.equal(nextProjectStatus({ status: "production", phaseA: rows, clips: [done, done2] }), "ready");
+  assert.equal(nextProjectStatus({ status: "ready", phaseA: rows, clips: [done, { ...done2, status: "queued" }] }), "production");
+  assert.equal(nextProjectStatus({ status: "generating", phaseA: rows, clips: [] }), "production");
+  assert.equal(nextProjectStatus({ status: "awaiting_approval", phaseA: rows, clips: [] }), "awaiting_approval");
+  assert.equal(nextProjectStatus({ status: "phase_a", clips: [] }), "phase_a");
+});
