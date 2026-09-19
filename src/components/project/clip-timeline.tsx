@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { WarnIcon } from "@/components/project/production-icons";
 import { Spinner } from "@/components/spinner";
 import type { ClipStage, ClipState } from "@/lib/clip-stage";
+import { mediaSrc } from "@/lib/media-src";
 import type { PublicVideo } from "@/lib/serialize";
 
 export const STAGE_LABEL: Record<ClipStage, string> = {
@@ -50,9 +51,9 @@ export function ClipTimeline({
             (frame) =>
               frame.clipNumber === state.clipNumber &&
               frame.position === "start" &&
-              frame.status === "completed",
+              Boolean(mediaSrc(frame)),
           );
-          const src = thumb?.blobUrl || thumb?.outputUrl;
+          const src = mediaSrc(thumb);
           const isSelected = state.clipNumber === selected;
           const stale = state.stale.frames || state.stale.video;
           return (

@@ -7,6 +7,7 @@ import { ASPECT_CLASS } from "@/components/project/frame-tile";
 import { RefreshIcon } from "@/components/project/production-icons";
 import { Spinner } from "@/components/spinner";
 import type { ClipState } from "@/lib/clip-stage";
+import { mediaSrc } from "@/lib/media-src";
 import { STUCK_CLAIM_MS, VIDEO_COST } from "@/lib/production-plan";
 import type { AspectRatio, ProjectClip } from "@/types/project";
 
@@ -30,13 +31,12 @@ export function ClipVideoPanel({
   pending: boolean;
   onGenerate: () => void;
 }) {
-  const src = clip?.blobUrl || clip?.outputUrl;
+  const src = mediaSrc(clip);
   const generating = state.stage === "video_generating";
   const hasVideo = Boolean(src) && clip?.status === "completed";
   const failed = clip?.status === "failed";
-  // Old media stays playable through a redo; only a clip that never had a video
-  // falls back to the skeleton.
-  const showVideo = Boolean(src) && (hasVideo || generating);
+  // Show whatever file we have — success, fail, or a redo in flight.
+  const showVideo = Boolean(src);
   const framesReady = ["frames_ready", "video_ready", "video_failed"].includes(state.stage);
 
   // Why the button is disabled, if it is.
@@ -85,14 +85,21 @@ export function ClipVideoPanel({
         className={`relative mt-2 overflow-hidden rounded-xl border border-accent-ink/10 bg-paper ${ASPECT_CLASS[aspectRatio]}`}
       >
         {showVideo ? (
-          <motion.video
-            key={src}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: generating || state.stale.video ? 0.6 : 1 }}
-            src={src}
-            controls
-            className="absolute inset-0 h-full w-full bg-black"
-          />
+          <>
+            <motion.video
+              key={src}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: generating || state.stale.video || failed ? 0.6 : 1 }}
+              src={src}
+              controls
+              className="absolute inset-0 h-full w-full bg-black"
+            />
+            {failed ? (
+              <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-accent/85 px-2 py-1.5 text-center font-display text-[11px] font-bold text-white">
+                產片失敗{clip?.error ? `：${clip.error}` : ""} · credits 已退回
+              </span>
+            ) : null}
+          </>
         ) : generating ? (
           <div className="absolute inset-0 grid place-items-center bg-accent-ink/5" aria-label="產片中">
             <motion.div

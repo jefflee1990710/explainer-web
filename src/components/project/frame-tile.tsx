@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { PencilIcon, RefreshIcon } from "@/components/project/production-icons";
 import { Spinner } from "@/components/spinner";
+import { mediaSrc } from "@/lib/media-src";
 import type { AspectRatio, ClipFrame, FramePosition } from "@/types/project";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -41,9 +42,11 @@ export function FrameTile({
   onRegenerate: () => void;
   onOpen: () => void;
 }) {
-  const src = frame?.blobUrl || frame?.outputUrl;
-  const completed = frame?.status === "completed" && src;
+  const src = mediaSrc(frame);
+  const completed = frame?.status === "completed" && Boolean(src);
   const failed = frame?.status === "failed";
+  // Show the last file on success, fail, or a redo so a missing status never hides it.
+  const showImage = Boolean(src);
   const label = FRAME_LABEL[position];
 
   return (
@@ -52,14 +55,14 @@ export function FrameTile({
         className={`relative overflow-hidden rounded-xl border border-accent-ink/10 bg-paper ${ASPECT_CLASS[aspectRatio]}`}
       >
         <AnimatePresence mode="wait" initial={false}>
-          {completed ? (
+          {showImage ? (
             <motion.button
               key={src}
               type="button"
               onClick={onOpen}
               aria-label={`放大並標註${label}畫格`}
               initial={{ opacity: 0, scale: 1.04 }}
-              animate={{ opacity: stale ? 0.6 : 1, scale: 1 }}
+              animate={{ opacity: stale || failed ? 0.6 : 1, scale: 1 }}
               transition={{ duration: 0.4, ease }}
               className="group absolute inset-0 block h-full w-full cursor-zoom-in focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
             >
@@ -69,10 +72,16 @@ export function FrameTile({
                 alt={`${label}畫格`}
                 className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
               />
-              <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-gradient-to-t from-accent-ink/70 to-transparent px-2 pb-2 pt-6 font-display text-[11px] font-bold text-paper opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
-                <PencilIcon className="h-3.5 w-3.5" />
-                點擊標註・重畫
-              </span>
+              {failed ? (
+                <span className="absolute inset-x-0 bottom-0 bg-accent/85 px-2 py-1.5 text-center font-display text-[11px] font-bold text-white">
+                  產圖失敗{frame?.error ? `：${frame.error}` : ""}
+                </span>
+              ) : (
+                <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-gradient-to-t from-accent-ink/70 to-transparent px-2 pb-2 pt-6 font-display text-[11px] font-bold text-paper opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
+                  <PencilIcon className="h-3.5 w-3.5" />
+                  點擊標註・重畫
+                </span>
+              )}
             </motion.button>
           ) : failed ? (
             <motion.div
@@ -125,11 +134,11 @@ export function FrameTile({
         <span className="text-[11px] text-muted">
           {!frame
             ? "尚未產生"
-            : completed
-              ? "完成"
-              : failed
-                ? "失敗"
-                : frame.status === "in_progress"
+            : failed
+              ? "失敗"
+              : completed
+                ? "完成"
+                : frame.status === "in_progress" || (frame.status === "completed" && !src)
                   ? "生成中"
                   : "排隊中"}
         </span>

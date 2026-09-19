@@ -10,10 +10,23 @@ function frame(
   status: ClipFrame["status"],
   submittedAt?: string,
 ): ClipFrame {
-  return { clipNumber, position, prompt: "p", status, submittedAt };
+  return {
+    clipNumber,
+    position,
+    prompt: "p",
+    status,
+    submittedAt,
+    ...(status === "completed" ? { blobUrl: `frame-${clipNumber}-${position}` } : {}),
+  };
 }
 function clip(clipNumber: number, status: ProjectClip["status"]): ProjectClip {
-  return { clipNumber, durationSeconds: 5, prompt: "v", status };
+  return {
+    clipNumber,
+    durationSeconds: 5,
+    prompt: "v",
+    status,
+    ...(status === "completed" ? { blobUrl: `clip-${clipNumber}` } : {}),
+  };
 }
 const done = (n: number) => [frame(n, "start", "completed"), frame(n, "end", "completed")];
 

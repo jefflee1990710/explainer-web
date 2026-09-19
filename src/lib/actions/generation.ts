@@ -351,7 +351,7 @@ export async function refreshGenerationAction(
     });
     if (!project) return { ok: false, error: "專案不存在" };
 
-    // Only pending jobs are polled, so this is cheap when nothing is running.
+    // Pending jobs, plus completed ones that never stored a file.
     if (isProductionLike(project.status)) {
       await refreshProjectJobs(id);
     }

@@ -161,12 +161,50 @@ test("reconcileClips keeps the previous video playable while the new job is pend
 
   const failed = reconcileClips(clips, [job({ kind: "video", clipIndex: 0, status: "failed", error: "boom" })]);
   assert.equal(failed[0].status, "failed");
-  assert.equal(failed[0].blobUrl, undefined);
+  assert.equal(failed[0].blobUrl, "old-video");
+});
+
+test("reconcileClips keeps the last video when a completed job has no file", () => {
+  const clips: ProjectClip[] = [
+    { clipNumber: 1, durationSeconds: 5, prompt: "v", status: "completed", blobUrl: "old-video" },
+  ];
+  const next = reconcileClips(clips, [job({ kind: "video", clipIndex: 0, status: "completed" })]);
+  assert.equal(next[0].status, "completed");
+  assert.equal(next[0].blobUrl, "old-video");
+});
+
+test("reconcileFrames keeps the last image while pending, failed, or completed without a file", () => {
+  const frames: ClipFrame[] = [
+    { clipNumber: 1, position: "start", prompt: "p", status: "queued", blobUrl: "old-start" },
+    { clipNumber: 1, position: "end", prompt: "p", status: "queued", blobUrl: "old-end" },
+  ];
+  const pending = reconcileFrames(frames, [
+    job({ kind: "frame", clipIndex: 0, framePosition: "start", status: "in_progress" }),
+  ]);
+  assert.equal(pending[0].blobUrl, "old-start");
+
+  const failed = reconcileFrames(frames, [
+    job({ kind: "frame", clipIndex: 0, framePosition: "end", status: "failed", error: "boom" }),
+  ]);
+  assert.equal(failed[1].status, "failed");
+  assert.equal(failed[1].blobUrl, "old-end");
+
+  const emptyDone = reconcileFrames(frames, [
+    job({ kind: "frame", clipIndex: 0, framePosition: "start", status: "completed" }),
+  ]);
+  assert.equal(emptyDone[0].status, "completed");
+  assert.equal(emptyDone[0].blobUrl, "old-start");
 });
 
 test("nextProjectStatus: production ↔ ready, other statuses untouched", () => {
   const rows = { clips: [{ clipNumber: 1 }, { clipNumber: 2 }] };
-  const done: ProjectClip = { clipNumber: 1, durationSeconds: 5, prompt: "v", status: "completed" };
+  const done: ProjectClip = {
+    clipNumber: 1,
+    durationSeconds: 5,
+    prompt: "v",
+    status: "completed",
+    blobUrl: "vid",
+  };
   const done2: ProjectClip = { ...done, clipNumber: 2 };
   assert.equal(nextProjectStatus({ status: "production", phaseA: rows, clips: [done] }), "production");
   assert.equal(nextProjectStatus({ status: "production", phaseA: rows, clips: [done, done2] }), "ready");
