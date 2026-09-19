@@ -9,9 +9,10 @@ import {
   consumeCredits,
   refundCredits,
 } from "@/lib/billing/credits";
-import { videosCollection } from "@/lib/collections";
+import { generationJobsCollection, videosCollection } from "@/lib/collections";
 import { runClipVideoJob } from "@/lib/director/jobs";
 import { framesWithClip } from "@/lib/higgsfield/frame-prompts";
+import { hasJobSince } from "@/lib/higgsfield/job-attempts";
 import {
   failUnsubmittedFrames,
   regenerateFrames,
@@ -21,11 +22,12 @@ import { isProductionLike } from "@/lib/project-status";
 import {
   FRAME_COST,
   FRAMES_COST,
+  STUCK_CLAIM_MS,
   VIDEO_COST,
   planRemaining,
 } from "@/lib/production-plan";
 import { toPublicVideo, type PublicVideo } from "@/lib/serialize";
-import type { Project } from "@/types/project";
+import type { Project, ProjectClip } from "@/types/project";
 
 type ProjectResult =
   | { ok: true; project: PublicVideo }
@@ -57,6 +59,26 @@ async function loadProduction(
     return { ok: false, error: "請先核准分鏡" };
   }
   return { ok: true, project: project as Project & { phaseA: NonNullable<Project["phaseA"]> } };
+}
+
+const IN_FLIGHT = new Set<ProjectClip["status"]>(["queued", "in_progress"]);
+
+// True when a clip was claimed for video long enough ago that its background
+// job must be gone, and no video job from that claim ever appeared. Such a clip
+// is paid for but frozen, so the user is allowed to claim it again.
+async function isStuckClaim(
+  projectId: ObjectId,
+  clipNumber: number,
+  clip: ProjectClip,
+): Promise<boolean> {
+  if (clip.status !== "queued" || !clip.submittedAt) return false;
+  const claimedAt = Date.parse(clip.submittedAt);
+  if (Number.isNaN(claimedAt) || Date.now() - claimedAt <= STUCK_CLAIM_MS) return false;
+  const jobs = await generationJobsCollection();
+  const videoJobs = await jobs
+    .find({ projectId, kind: "video", clipIndex: clipNumber - 1 })
+    .toArray();
+  return !hasJobSince(videoJobs, new Date(claimedAt));
 }
 
 // Draw (or redraw) both frames of one clip. Cost: FRAMES_COST.
@@ -168,15 +190,25 @@ export async function generateClipVideoAction(
     // existing clip that is not in flight, or insert the clip if it has no entry.
     const submittedAt = new Date().toISOString();
     const existing = project.clips.find((clip) => clip.clipNumber === clipNumber);
+    // A claim whose background job never started (a lost `after()`) would leave
+    // a paid clip `queued` forever with no way back. Re-claiming is allowed once
+    // the claim is old and still has no job behind it; the claim below is pinned
+    // to that exact `submittedAt`, so it stays the single gate against a double
+    // charge.
+    const stuck = existing
+      ? await isStuckClaim(project._id, clipNumber, existing)
+      : false;
+    if (existing && !stuck && IN_FLIGHT.has(existing.status)) {
+      return { ok: false, error: "這段正在生成中" };
+    }
     const claimed = existing
       ? await projects.findOneAndUpdate(
           {
             _id: project._id,
             clips: {
-              $elemMatch: {
-                clipNumber,
-                status: { $nin: ["queued", "in_progress"] },
-              },
+              $elemMatch: stuck
+                ? { clipNumber, status: "queued", submittedAt: existing.submittedAt }
+                : { clipNumber, status: { $nin: ["queued", "in_progress"] } },
             },
           },
           {

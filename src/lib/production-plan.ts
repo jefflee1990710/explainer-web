@@ -5,6 +5,11 @@ export const FRAME_COST = 1;
 export const FRAMES_COST = 2;
 export const VIDEO_COST = 1;
 
+// A clip video is claimed (`queued` + `submittedAt`) before its background job
+// runs. If that job is lost, nothing will ever move the clip, so after this long
+// with no job behind the claim the user may claim it again and retry.
+export const STUCK_CLAIM_MS = 10 * 60 * 1000;
+
 export type RemainingPlan = {
   // Clips that get both frames submitted.
   frames: number[];

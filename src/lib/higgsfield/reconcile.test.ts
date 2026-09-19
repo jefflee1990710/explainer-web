@@ -59,6 +59,111 @@ test("reconcileClips maps video jobs per clip and leaves others alone", () => {
   assert.equal(next[1].error, "llm");
 });
 
+test("reconcileFrames ignores a job older than the frame's claim", () => {
+  const claimed: ClipFrame = {
+    clipNumber: 1,
+    position: "start",
+    prompt: "p",
+    status: "queued",
+    submittedAt: "2026-01-02T00:00:00.000Z",
+  };
+  const old = job({
+    kind: "frame",
+    clipIndex: 0,
+    framePosition: "start",
+    status: "completed",
+    blobUrl: "old",
+    createdAt: new Date("2026-01-01T00:00:00Z"),
+  });
+  assert.deepEqual(reconcileFrames([claimed], [old]), [claimed]);
+
+  const fresh = job({
+    kind: "frame",
+    clipIndex: 0,
+    framePosition: "start",
+    status: "completed",
+    blobUrl: "new",
+    createdAt: new Date("2026-01-03T00:00:00Z"),
+  });
+  const next = reconcileFrames([claimed], [old, fresh]);
+  assert.equal(next[0].status, "completed");
+  assert.equal(next[0].blobUrl, "new");
+});
+
+test("reconcileFrames still applies old jobs to legacy frames without submittedAt", () => {
+  const legacy: ClipFrame = { clipNumber: 1, position: "start", prompt: "p", status: "queued" };
+  const next = reconcileFrames([legacy], [
+    job({
+      kind: "frame",
+      clipIndex: 0,
+      framePosition: "start",
+      status: "completed",
+      blobUrl: "old",
+      createdAt: new Date("2020-01-01T00:00:00Z"),
+    }),
+  ]);
+  assert.equal(next[0].status, "completed");
+  assert.equal(next[0].blobUrl, "old");
+});
+
+test("reconcileClips ignores a job older than the clip's claim", () => {
+  const claimed: ProjectClip = {
+    clipNumber: 1,
+    durationSeconds: 5,
+    prompt: "v",
+    status: "queued",
+    submittedAt: "2026-01-02T00:00:00.000Z",
+    blobUrl: "old-video",
+  };
+  const old = job({
+    kind: "video",
+    clipIndex: 0,
+    status: "completed",
+    blobUrl: "old-video",
+    createdAt: new Date("2026-01-01T00:00:00Z"),
+  });
+  assert.deepEqual(reconcileClips([claimed], [old]), [claimed]);
+
+  const fresh = job({
+    kind: "video",
+    clipIndex: 0,
+    status: "completed",
+    blobUrl: "new-video",
+    createdAt: new Date("2026-01-03T00:00:00Z"),
+  });
+  const next = reconcileClips([claimed], [old, fresh]);
+  assert.equal(next[0].status, "completed");
+  assert.equal(next[0].blobUrl, "new-video");
+});
+
+test("reconcileClips still applies old jobs to legacy clips without submittedAt", () => {
+  const legacy: ProjectClip = { clipNumber: 1, durationSeconds: 5, prompt: "v", status: "queued" };
+  const next = reconcileClips([legacy], [
+    job({
+      kind: "video",
+      clipIndex: 0,
+      status: "completed",
+      blobUrl: "old-video",
+      createdAt: new Date("2020-01-01T00:00:00Z"),
+    }),
+  ]);
+  assert.equal(next[0].status, "completed");
+  assert.equal(next[0].blobUrl, "old-video");
+});
+
+test("reconcileClips keeps the previous video playable while the new job is pending", () => {
+  const clips: ProjectClip[] = [
+    { clipNumber: 1, durationSeconds: 5, prompt: "v", status: "queued", blobUrl: "old-video" },
+  ];
+  const pending = reconcileClips(clips, [job({ kind: "video", clipIndex: 0, status: "in_progress" })]);
+  assert.equal(pending[0].status, "in_progress");
+  assert.equal(pending[0].blobUrl, "old-video");
+
+  const failed = reconcileClips(clips, [job({ kind: "video", clipIndex: 0, status: "failed", error: "boom" })]);
+  assert.equal(failed[0].status, "failed");
+  assert.equal(failed[0].blobUrl, undefined);
+});
+
 test("nextProjectStatus: production ↔ ready, other statuses untouched", () => {
   const rows = { clips: [{ clipNumber: 1 }, { clipNumber: 2 }] };
   const done: ProjectClip = { clipNumber: 1, durationSeconds: 5, prompt: "v", status: "completed" };

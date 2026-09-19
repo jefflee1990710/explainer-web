@@ -20,6 +20,17 @@ function newest(jobs: GenerationJob[]): GenerationJob | undefined {
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
 }
 
+// `submittedAt` is written the moment the user claims a frame or a video, before
+// the new job exists. A job created earlier belongs to the previous attempt:
+// applying it would undo the claim and re-enable the paid button mid-flight.
+// Legacy entries have no `submittedAt` and keep the old, unguarded behaviour.
+function appliesToClaim(job: GenerationJob, submittedAt?: string) {
+  if (!submittedAt) return true;
+  const claimedAt = Date.parse(submittedAt);
+  if (Number.isNaN(claimedAt)) return true;
+  return job.createdAt.getTime() >= claimedAt;
+}
+
 // Copy status/urls from each frame's newest job; frames without a job keep their stored values.
 export function reconcileFrames(frames: ClipFrame[], jobs: GenerationJob[]): ClipFrame[] {
   return frames.map((frame) => {
@@ -31,7 +42,7 @@ export function reconcileFrames(frames: ClipFrame[], jobs: GenerationJob[]): Cli
           item.framePosition === frame.position,
       ),
     );
-    if (!job) return frame;
+    if (!job || !appliesToClaim(job, frame.submittedAt)) return frame;
     return {
       ...frame,
       status: toFrameStatus(job.status),
@@ -48,12 +59,16 @@ export function reconcileClips(clips: ProjectClip[], jobs: GenerationJob[]): Pro
     const job = newest(
       jobs.filter((item) => item.kind === "video" && item.clipIndex === clip.clipNumber - 1),
     );
-    if (!job) return clip;
+    if (!job || !appliesToClaim(job, clip.submittedAt)) return clip;
+    const status = toClipStatus(job.status);
+    const pending = status === "queued" || status === "in_progress";
     return {
       ...clip,
-      status: toClipStatus(job.status),
-      outputUrl: job.outputUrl,
-      blobUrl: job.blobUrl,
+      status,
+      // A fresh job carries no media yet; the previous video stays playable
+      // (the panel dims it and marks it 重產中) until the new one replaces it.
+      outputUrl: pending ? clip.outputUrl ?? job.outputUrl : job.outputUrl,
+      blobUrl: pending ? clip.blobUrl ?? job.blobUrl : job.blobUrl,
       error: job.error,
     };
   });
