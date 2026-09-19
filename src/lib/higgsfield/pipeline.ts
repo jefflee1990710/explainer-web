@@ -292,7 +292,8 @@ export async function submitClipVideoJob(
     aspectRatio: project.aspectRatio,
     durationSeconds: prompt.durationSeconds,
     startImageUrl: start || fallbackRef,
-    referenceImageUrls: [end, start ? fallbackRef : undefined],
+    endImageUrl: end,
+    referenceImageUrls: start && end ? [] : [fallbackRef],
   });
   await jobs.insertOne({
     projectId: project._id,

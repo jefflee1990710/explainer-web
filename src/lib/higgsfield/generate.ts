@@ -112,14 +112,17 @@ export async function submitClipVideo(input: {
   prompt: string;
   aspectRatio: AspectRatio;
   durationSeconds: number;
-  // Approved start frame drives image-to-video; extra refs keep continuity.
+  // Dual-keyframe: start is the first frame, end is the last frame.
   startImageUrl?: string;
+  endImageUrl?: string;
+  // Only used when we do not have both keyframes (Wan treats refs as exclusive).
   referenceImageUrls?: Array<string | undefined>;
 }) {
   const client = assertHiggsfieldConfigured();
   const duration = Math.min(8, Math.max(3, Math.round(input.durationSeconds)));
-  // Wan 3.0 image-to-video (alibaba/wan-3.0/image-to-video): `image_url` is the
-  // required first frame; resolution ∈ 480p/720p/1080p. Extra refs are optional.
+  const dualKeyframe = Boolean(input.startImageUrl && input.endImageUrl);
+  // Wan 3.0 image-to-video: `image_url` + `end_image_url` interpolate start→end.
+  // Extra `image_references` cannot be mixed with first/last frames.
   return client.subscribe(input.model, {
     input: {
       prompt: input.prompt,
@@ -127,7 +130,8 @@ export async function submitClipVideo(input: {
       duration,
       resolution: "720p",
       ...(input.startImageUrl ? { image_url: input.startImageUrl } : {}),
-      ...imageRefs(input.referenceImageUrls || []),
+      ...(input.endImageUrl ? { end_image_url: input.endImageUrl } : {}),
+      ...(dualKeyframe ? {} : imageRefs(input.referenceImageUrls || [])),
     },
     withPolling: false,
     webhook: webhookOptions(),

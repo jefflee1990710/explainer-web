@@ -25,7 +25,7 @@ function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageS
 
 You are executing Phase B only after explicit approval of the current Phase A.
 Return standalone Wan 3 video prompts that follow the skill prompt contract. Do not invent new facts.
-Each clip is image-to-video: the approved START storyboard frame is supplied as the first frame and the END frame as a reference, so describe the motion from the start state to the end state rather than re-describing the static scene.
+Each clip is dual-keyframe image-to-video: the approved START frame is the first frame and the approved END frame is the last frame. Describe the motion that interpolates from the start state to the end state rather than re-describing the static scene.
 Spoken dialogue in every prompt must be quoted verbatim from the approved englishVo lines, which are in ${languageLabel} (${languageSublabel}). Tell the video model explicitly that the narrator speaks ${languageLabel}.`;
 }
 
