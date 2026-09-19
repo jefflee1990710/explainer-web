@@ -6,6 +6,9 @@ import {
   castLineForPhaseB,
   castParagraphForFrames,
   castReferenceUrls,
+  characterReferenceUrls,
+  directorImageParts,
+  phaseASoloCharacterNote,
 } from "./cast-prompt";
 import type { CastMember } from "@/types/character";
 
@@ -33,6 +36,7 @@ test("phase A cast block names every member and asks for a lock summary", () => 
   assert.match(block, /- 小明: 七歲男孩，藍格子睡衣/);
   assert.match(block, /- 阿花: 戴眼鏡的女孩/);
   assert.match(block, /characterLock/);
+  assert.match(block, /You MUST inspect them and follow those exact characters when planning every scene/);
   assert.equal(castBlockForPhaseA([]), null);
   assert.equal(castBlockForPhaseA(undefined), null);
 });
@@ -75,6 +79,38 @@ test("frame paragraph and reference urls follow the cast", () => {
   assert.match(lines[0], /the ONLY source of truth for how each character looks/);
   assert.match(lines[0], /the reference sheet wins/);
   assert.match(lines[1], /小明, 阿花/);
+  assert.match(lines[2], /Plan this scene around these exact characters/);
   assert.deepEqual(castParagraphForFrames(undefined), []);
   assert.deepEqual(castReferenceUrls(cast), ["https://blob/a.png", "https://blob/b.png"]);
+});
+
+test("characterReferenceUrls prefers the selected cast over a still", () => {
+  assert.deepEqual(
+    characterReferenceUrls({
+      cast,
+      characterStillUrl: "https://blob/still.png",
+      characterImageUrl: "https://blob/upload.png",
+    }),
+    ["https://blob/a.png", "https://blob/b.png"],
+  );
+  assert.deepEqual(
+    characterReferenceUrls({
+      characterStillUrl: "https://blob/still.png",
+      characterImageUrl: "https://blob/upload.png",
+    }),
+    ["https://blob/still.png", "https://blob/upload.png"],
+  );
+});
+
+test("directorImageParts keeps valid character urls as image parts", () => {
+  const parts = directorImageParts(["https://blob/a.png", "not-a-url"]);
+  assert.equal(parts.length, 1);
+  assert.equal(parts[0].type, "image");
+  assert.equal(parts[0].image.href, "https://blob/a.png");
+});
+
+test("phase A solo note asks the director to follow an attached image", () => {
+  assert.match(phaseASoloCharacterNote("https://blob/c.png"), /A character reference image is attached/);
+  assert.match(phaseASoloCharacterNote("https://blob/c.png"), /follow it when planning every scene/);
+  assert.match(phaseASoloCharacterNote(), /default locked everyman/);
 });

@@ -35,11 +35,13 @@ export function ClipTimeline({
   project,
   states,
   selected,
+  pending = "",
   onSelect,
 }: {
   project: PublicVideo;
   states: ClipState[];
   selected: number;
+  pending?: string;
   onSelect: (clipNumber: number) => void;
 }) {
   return (
@@ -47,13 +49,18 @@ export function ClipTimeline({
       <ol role="tablist" aria-label="Clip 時間軸" className="flex min-w-max gap-2">
         {states.map((state, index) => {
           const row = project.phaseA?.clips.find((item) => item.clipNumber === state.clipNumber);
-          const thumb = project.frames.find(
+          const start = project.frames.find(
             (frame) =>
               frame.clipNumber === state.clipNumber &&
-              frame.position === "start" &&
-              Boolean(mediaSrc(frame)),
+              frame.position === "start",
           );
-          const src = mediaSrc(thumb);
+          const startBusy =
+            pending === `frames:${state.clipNumber}` ||
+            pending === `clip:${state.clipNumber}:regen` ||
+            pending === `frame:${state.clipNumber}:start` ||
+            start?.status === "queued" ||
+            start?.status === "in_progress";
+          const src = startBusy ? undefined : mediaSrc(start);
           const isSelected = state.clipNumber === selected;
           const stale = state.stale.frames || state.stale.video;
           return (

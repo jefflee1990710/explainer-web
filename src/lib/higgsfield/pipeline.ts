@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { castReferenceUrls } from "@/lib/characters/cast-prompt";
+import { characterReferenceUrls } from "@/lib/characters/cast-prompt";
 import { syncCharacterJob } from "@/lib/characters/sync";
 import {
   generationJobsCollection,
@@ -130,10 +130,7 @@ async function submitOneFrame(
   } = {},
 ) {
   const jobs = await generationJobsCollection();
-  const lockRefs =
-    project.cast && project.cast.length > 0
-      ? castReferenceUrls(project.cast)
-      : [project.characterStillUrl, project.characterImageUrl];
+  const lockRefs = characterReferenceUrls(project);
   const submitted = await submitImage({
     model: skill.higgsfieldDefaults.imageModel,
     prompt: buildFramePrompt(project, clipNumber, position, {
@@ -205,7 +202,11 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
           "frames.$[frame].status": "queued",
           "frames.$[frame].submittedAt": submittedAt,
         },
-        $unset: { "frames.$[frame].error": "" },
+        $unset: {
+          "frames.$[frame].error": "",
+          "frames.$[frame].blobUrl": "",
+          "frames.$[frame].outputUrl": "",
+        },
       },
       {
         arrayFilters: [

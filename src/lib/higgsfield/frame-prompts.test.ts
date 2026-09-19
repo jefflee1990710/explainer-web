@@ -112,13 +112,43 @@ test("with a cast, the reference-sheet rule precedes the text characterLock", ()
     },
   ];
   const prompt = buildFramePrompt(withCast, 1, "start");
-  const sheetAt = prompt.indexOf("Cast reference sheets are attached");
+  const sheetAt = prompt.indexOf("Attached image 1 is the selected character reference");
   const lockAt = prompt.indexOf("Locked character");
   assert.ok(sheetAt >= 0, "cast sheet line missing");
   assert.ok(lockAt >= 0, "characterLock line missing");
   assert.ok(sheetAt < lockAt, "reference-sheet rule must come before the text lock");
   // The text lock is demoted to a hint when a cast exists.
-  assert.match(prompt, /Locked character \(names and staging hint; appearance comes from the attached sheets\): lock/);
+  assert.match(
+    prompt,
+    /Locked character \(names and staging hint; appearance comes from the attached reference\): lock/,
+  );
+  assert.match(prompt, /Plan this scene around these exact characters/);
+});
+
+test("character sheet is numbered after the annotated redo and sibling still", () => {
+  const withCast = project();
+  withCast.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Math Tutor",
+      blueprintUrl: "https://blob/c.png",
+      prompt: "",
+    },
+  ];
+  const prompt = buildFramePrompt(withCast, 1, "start", {
+    revision: { annotatedUrl: "https://x/annotated.png" },
+    styleRefUrl: "https://x/sibling.png",
+  });
+  assert.match(prompt, /Attached image 3 is the selected character reference/);
+});
+
+test("a solo still is attached as the character the scene must follow", () => {
+  const solo = project();
+  solo.characterStillUrl = "https://blob/still.png";
+  const prompt = buildFramePrompt(solo, 1, "start");
+  assert.match(prompt, /Attached image 1 is the selected character reference/);
+  assert.match(prompt, /Plan this scene around that exact character/);
 });
 
 test("without a cast, the text characterLock stays authoritative", () => {

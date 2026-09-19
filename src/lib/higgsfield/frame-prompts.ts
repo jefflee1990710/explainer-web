@@ -1,4 +1,8 @@
-import { castParagraphForFrames } from "@/lib/characters/cast-prompt";
+import {
+  castParagraphForFrames,
+  characterReferenceUrls,
+  soloCharacterParagraphForFrames,
+} from "@/lib/characters/cast-prompt";
 import type { FrameAnchorKind } from "@/lib/higgsfield/clip-keyframes";
 import {
   resolveStyle,
@@ -93,6 +97,10 @@ export function buildFramePrompt(
         }`;
 
   const hasCast = Boolean(project.cast && project.cast.length > 0);
+  const characterUrls = characterReferenceUrls(project);
+  // Same order as pipeline.ts: annotated redo, then start/sibling, then cast.
+  const characterAttachmentStart =
+    (options.revision?.annotatedUrl ? 1 : 0) + (options.styleRefUrl ? 1 : 0) + 1;
 
   return [
     ...styleLinesForFrame(style),
@@ -100,9 +108,16 @@ export function buildFramePrompt(
     `Palette: ${phaseA.palette}`,
     // With a cast, the sheet rule comes first and the text lock is demoted to
     // a staging hint; without one, the text lock is the only identity anchor.
-    ...castParagraphForFrames(project.cast),
-    hasCast
-      ? `Locked character (names and staging hint; appearance comes from the attached sheets): ${phaseA.characterLock}`
+    ...(hasCast
+      ? castParagraphForFrames(project.cast, {
+          start: characterAttachmentStart,
+          count: characterUrls.length,
+        })
+      : characterUrls.length
+        ? soloCharacterParagraphForFrames(characterAttachmentStart)
+        : []),
+    hasCast || characterUrls.length
+      ? `Locked character (names and staging hint; appearance comes from the attached reference): ${phaseA.characterLock}`
       : `Locked character (must look identical in every frame): ${phaseA.characterLock}`,
     `Scene: ${row.explainerScene}`,
     `Motion and camera across the clip: ${row.motionCamera}`,

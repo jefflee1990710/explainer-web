@@ -147,6 +147,7 @@ export function ClipProduction({
             project={project}
             states={states}
             selected={state.clipNumber}
+            pending={pending}
             onSelect={setSelected}
           />
         </div>

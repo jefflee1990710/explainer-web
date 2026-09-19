@@ -1,5 +1,10 @@
 import { generateText, Output } from "ai";
-import { castBlockForPhaseA } from "@/lib/characters/cast-prompt";
+import {
+  castBlockForPhaseA,
+  characterReferenceUrls,
+  directorImageParts,
+  phaseASoloCharacterNote,
+} from "@/lib/characters/cast-prompt";
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { skillPromptForPhaseA } from "@/lib/director/load-skill-prompt";
@@ -33,10 +38,13 @@ export async function runPhaseA(input: {
   const preset = DURATION_PRESETS[input.durationPreset];
   const language = LANGUAGE_PRESETS[input.language || "en"];
   const characterNote =
-    castBlockForPhaseA(input.cast) ||
-    (input.characterImageUrl
-      ? `A character reference image is provided at ${input.characterImageUrl}. Extract and lock that character.`
-      : "No character reference image. Use the default locked everyman from the skill.");
+    castBlockForPhaseA(input.cast) || phaseASoloCharacterNote(input.characterImageUrl);
+  const characterImages = directorImageParts(
+    characterReferenceUrls({
+      cast: input.cast,
+      characterImageUrl: input.characterImageUrl,
+    }),
+  );
   const draftNote = input.currentDraft
     ? `\nCurrent Phase A draft (the user may have edited this; keep their wording unless the revision notes contradict it):\n${JSON.stringify(input.currentDraft, null, 2)}\n`
     : "";
@@ -55,12 +63,23 @@ export async function runPhaseA(input: {
 You are executing Phase A only. Return structured JSON that matches the schema.
 Planning explanations (narrativeJob, explainerScene, motionCamera, hookStrategy, coreMessage, etc.) must be Traditional Chinese (繁體中文).
 Each clip's start and end are the SAME SHOT: explainerScene and motionCamera must describe a modest continuation (pose, props, labels sliding or morphing), not a new camera or a character teleporting across the frame. The next clip's start inherits the previous clip's end environment.
+${
+  characterImages.length
+    ? "Character reference images are attached to the user message. You MUST inspect them and follow those exact characters when writing characterLock and every explainerScene and motionCamera. Plan each scene around those characters as the subject. Do not invent a replacement hero."
+    : ""
+}
 ${language.skillHint}
 The englishVo field always carries the spoken voiceover line in the chosen voiceover language above, regardless of the field name.
 Leave referenceTranslation empty. Do not invent a translation column.
 The englishWordCount field holds the total spoken unit count (words for English, characters for Chinese/Cantonese).
 Never skip the setup gate values already supplied.`,
-    prompt: `Source material:
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `Source material:
 ${input.source}
 
 Aspect ratio: ${input.aspectRatio}
@@ -69,6 +88,11 @@ Voiceover language: ${language.label} (${language.sublabel})
 ${characterNote}
 ${draftNote}${revisionNote}${clipsOnlyNote}
 Produce a complete Phase A director proposal now.`,
+          },
+          ...characterImages,
+        ],
+      },
+    ],
   });
 
   if (!output) {

@@ -173,7 +173,7 @@ test("reconcileClips keeps the last video when a completed job has no file", () 
   assert.equal(next[0].blobUrl, "old-video");
 });
 
-test("reconcileFrames keeps the last image while pending, failed, or completed without a file", () => {
+test("reconcileFrames hides the last image while a new frame job is pending", () => {
   const frames: ClipFrame[] = [
     { clipNumber: 1, position: "start", prompt: "p", status: "queued", blobUrl: "old-start" },
     { clipNumber: 1, position: "end", prompt: "p", status: "queued", blobUrl: "old-end" },
@@ -181,7 +181,8 @@ test("reconcileFrames keeps the last image while pending, failed, or completed w
   const pending = reconcileFrames(frames, [
     job({ kind: "frame", clipIndex: 0, framePosition: "start", status: "in_progress" }),
   ]);
-  assert.equal(pending[0].blobUrl, "old-start");
+  assert.equal(pending[0].status, "in_progress");
+  assert.equal(pending[0].blobUrl, undefined);
 
   const failed = reconcileFrames(frames, [
     job({ kind: "frame", clipIndex: 0, framePosition: "end", status: "failed", error: "boom" }),

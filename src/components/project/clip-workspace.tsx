@@ -172,7 +172,7 @@ export function ClipWorkspace({
               position="start"
               aspectRatio={project.aspectRatio}
               canRegenerate={!framesBusy && idle}
-              pending={pending === `frame:${n}:start`}
+              pending={pending === `frame:${n}:start` || framesPending}
               stale={state.stale.frames}
               onRegenerate={() => onRegenerateFrame("start")}
               onOpen={() => onOpenFrame("start")}
@@ -183,7 +183,7 @@ export function ClipWorkspace({
               position="end"
               aspectRatio={project.aspectRatio}
               canRegenerate={!framesBusy && idle}
-              pending={pending === `frame:${n}:end`}
+              pending={pending === `frame:${n}:end` || framesPending}
               stale={state.stale.frames}
               onRegenerate={() => onRegenerateFrame("end")}
               onOpen={() => onOpenFrame("end")}

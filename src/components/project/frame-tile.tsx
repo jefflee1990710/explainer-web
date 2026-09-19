@@ -19,9 +19,9 @@ export const FRAME_LABEL: Record<FramePosition, string> = {
   end: "結尾",
 };
 
-// One start/end frame: skeleton while generating, image when done (click to
-// annotate + redo), failed state, or an empty "待畫格" placeholder when the
-// clip has no frame entry yet.
+// One start/end frame: skeleton while generating or the moment a redo is
+// clicked, image when done (click to annotate + redo), failed state, or an
+// empty "待畫格" placeholder when the clip has no frame entry yet.
 export function FrameTile({
   frame,
   position,
@@ -45,8 +45,12 @@ export function FrameTile({
   const src = mediaSrc(frame);
   const completed = frame?.status === "completed" && Boolean(src);
   const failed = frame?.status === "failed";
-  // Show the last file on success, fail, or a redo so a missing status never hides it.
-  const showImage = Boolean(src);
+  const inFlight =
+    pending ||
+    frame?.status === "queued" ||
+    frame?.status === "in_progress";
+  // Hide the previous still the moment a redo is clicked or queued.
+  const showImage = Boolean(src) && !inFlight;
   const label = FRAME_LABEL[position];
 
   return (
@@ -115,8 +119,11 @@ export function FrameTile({
                 animate={{ x: ["-100%", "300%"] }}
                 transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
               />
-              <span className="absolute inset-0 grid place-items-center text-accent-ink/40">
-                {pending ? <Spinner className="h-5 w-5" /> : <PencilIcon />}
+              <span className="absolute inset-0 grid place-items-center text-accent-ink/50">
+                <span className="flex flex-col items-center gap-2">
+                  <Spinner className="h-5 w-5" />
+                  <span className="font-display text-[11px] font-bold">生成中</span>
+                </span>
               </span>
             </motion.div>
           )}
@@ -134,15 +141,15 @@ export function FrameTile({
         <span className="text-[11px] text-muted">
           {!frame
             ? "尚未產生"
-            : failed
+            : failed && !inFlight
               ? "失敗"
-              : completed
+              : completed && !inFlight
                 ? "完成"
-                : frame.status === "in_progress" || (frame.status === "completed" && !src)
+                : frame.status === "in_progress" || pending || (frame.status === "completed" && !src)
                   ? "生成中"
                   : "排隊中"}
         </span>
-        {canRegenerate && (completed || failed) ? (
+        {canRegenerate && (completed || failed) && !inFlight ? (
           <button
             type="button"
             onClick={onRegenerate}

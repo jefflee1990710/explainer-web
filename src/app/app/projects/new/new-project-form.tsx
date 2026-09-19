@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ClipProduction } from "@/components/project/clip-production";
 import { currentStepFor, ProjectStepper } from "@/components/project/project-stepper";
@@ -26,6 +26,7 @@ import {
 } from "@/lib/actions/projects";
 import { composeReelAction } from "@/lib/actions/reel";
 import { isProjectBusy, productionCounts } from "@/lib/clip-stage";
+import { mergePolledProject, projectWithClearedFrames } from "@/lib/optimistic-frames";
 import { isReelBusy, isReelCurrent } from "@/lib/reel/fingerprint";
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
@@ -111,19 +112,23 @@ export function NewProjectForm({
     step: number;
   } | null>(null);
   const [confirmBrief, setConfirmBrief] = useState(false);
+  // Previous stills, restored if the redo action never reaches the server.
+  const redoSnapshotRef = useRef<PublicVideo | null>(null);
 
   const onPollUpdate = useCallback((next: PublicVideo) => {
-    setProject(next);
+    setProject((current) => (current ? mergePolledProject(current, next) : next));
   }, []);
   const onPollError = useCallback((message: string) => setError(message), []);
   useProjectPoll(project, onPollUpdate, onPollError);
 
   // Parent may show a list snapshot first, then replace with a fresh fetch.
+  // Keep a newer local frame claim so a stale RSC refresh cannot restore the
+  // previous still while a redo is already on screen as a skeleton.
   useEffect(() => {
     if (!initialVideo) return;
     setProject((current) => {
       if (!current || current.id !== initialVideo.id) return initialVideo;
-      return initialVideo;
+      return mergePolledProject(current, initialVideo);
     });
   }, [initialVideo]);
 
@@ -233,15 +238,27 @@ export function NewProjectForm({
   ) {
     setPending(key);
     setError("");
+    // Hide the old still immediately; the server write lands a moment later.
+    setProject((current) => {
+      if (!current) return current;
+      const next = projectWithClearedFrames(current, key);
+      redoSnapshotRef.current = next === current ? null : current;
+      return next;
+    });
     const result = await action();
     setPending("");
     if (!result.ok) {
+      if (redoSnapshotRef.current) {
+        setProject(redoSnapshotRef.current);
+        redoSnapshotRef.current = null;
+      }
       setError(result.error);
       if (result.error.includes("訂閱") || result.error.includes("credits 不足")) {
         router.push("/app/billing");
       }
       return false;
     }
+    redoSnapshotRef.current = null;
     setProject(result.project);
     // Credits were just spent; refresh the server components so the header
     // balance and every `credits < cost` gate below it stop showing the old one.

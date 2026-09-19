@@ -45,13 +45,14 @@ export function reconcileFrames(frames: ClipFrame[], jobs: GenerationJob[]): Cli
     );
     if (!job || !appliesToClaim(job, frame.submittedAt)) return frame;
     const nextUrl = mediaSrc(job);
+    const pending = job.status === "queued" || job.status === "in_progress";
     return {
       ...frame,
       status: toFrameStatus(job.status),
-      // Keep the last image when the new job has no file yet (pending, failed,
-      // or a completed webhook that omitted the URL).
-      outputUrl: nextUrl ? job.outputUrl : frame.outputUrl ?? job.outputUrl,
-      blobUrl: nextUrl ? job.blobUrl || job.outputUrl : frame.blobUrl ?? job.blobUrl,
+      // Pending redo must clear the previous still so the tile can show
+      // loading. Failed / completed-without-a-file keep the last image.
+      outputUrl: nextUrl ? job.outputUrl : pending ? undefined : frame.outputUrl ?? job.outputUrl,
+      blobUrl: nextUrl ? job.blobUrl || job.outputUrl : pending ? undefined : frame.blobUrl ?? job.blobUrl,
       error: job.error,
     };
   });
