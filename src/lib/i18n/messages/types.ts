@@ -81,6 +81,7 @@ export type Messages = {
       | "draft"
       | "phase_a"
       | "awaiting_approval"
+      | "production"
       | "frames_generating"
       | "frames_ready"
       | "approved"

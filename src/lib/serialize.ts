@@ -1,5 +1,6 @@
 import { resolveDefaultVersion, versionNumber } from "@/lib/characters/versions";
 import { folderRollupStatus } from "@/lib/folder";
+import { normalizeProjectStatus } from "@/lib/project-status";
 import { resolveStyle, type StyleId } from "@/lib/styles";
 import type { AppUser } from "@/types/user";
 import type { Character, CharacterVersionStatus } from "@/types/character";
@@ -36,6 +37,7 @@ export type PublicVideo = {
   language: NonNullable<Project["language"]>;
   characterImageUrl?: string;
   characterStillUrl?: string;
+  stillError?: string;
   cast: Array<{ characterId: string; name: string; blueprintUrl: string }>;
   status: Project["status"];
   phaseA?: Project["phaseA"];
@@ -81,17 +83,18 @@ export function toPublicVideo(video: Project): PublicVideo {
     language: video.language || "en",
     characterImageUrl: video.characterImageUrl,
     characterStillUrl: video.characterStillUrl,
+    stillError: video.stillError,
     cast: (video.cast || []).map((member) => ({
       characterId: member.characterId.toHexString(),
       name: member.name,
       blueprintUrl: member.blueprintUrl,
     })),
-    status: video.status,
+    status: normalizeProjectStatus(video.status),
     phaseA: video.phaseA,
     frames: video.frames || [],
     framesCreditCost: video.framesCreditCost || 0,
     clips: video.clips,
-    creditCost: video.creditCost,
+    creditCost: video.creditCost || 0,
     error: video.error,
     createdAt: video.createdAt.toISOString(),
   };
@@ -102,7 +105,7 @@ export function toPublicFolder(folder: Folder, videos: Project[]): PublicFolder 
     .slice()
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
     .map(toPublicVideo);
-  const statuses = videos.map((video) => video.status);
+  const statuses = videos.map((video) => normalizeProjectStatus(video.status));
   const cover =
     publicVideos.find((video) => previewFromVideo(video)) || publicVideos[0];
   return {

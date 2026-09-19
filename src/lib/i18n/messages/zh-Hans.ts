@@ -77,6 +77,7 @@ export const zhHans: Partial<Messages> = {
       draft: "草稿",
       phase_a: "正在编写分镜",
       awaiting_approval: "审核分镜",
+      production: "制作中",
       frames_generating: "正在渲染画面",
       frames_ready: "审核画面",
       approved: "准备渲染",

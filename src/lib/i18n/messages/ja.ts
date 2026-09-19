@@ -44,7 +44,7 @@ export const ja: Partial<Messages> = {
   },
   project: {
     steps: { input: "入力", scene: "シーン", frames: "フレーム", video: "動画" },
-    status: { draft: "下書き", phase_a: "絵コンテを作成中", awaiting_approval: "絵コンテの確認", frames_generating: "フレームをレンダリング中", frames_ready: "フレームの確認", approved: "レンダリングを準備中", generating: "レンダリング中", ready: "完了", failed: "失敗" },
+    status: { draft: "下書き", phase_a: "絵コンテを作成中", awaiting_approval: "絵コンテの確認", production: "制作中", frames_generating: "フレームをレンダリング中", frames_ready: "フレームの確認", approved: "レンダリングを準備中", generating: "レンダリング中", ready: "完了", failed: "失敗" },
     filters: { all: "すべて", action: "要対応", active: "進行中", ready: "完了", failed: "失敗" },
   },
   characters: { title: "キャラクター", create: "新規キャラクター", empty: "キャラクターはまだありません。" },

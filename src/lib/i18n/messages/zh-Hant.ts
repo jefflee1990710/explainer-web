@@ -83,6 +83,7 @@ export const zhHant: Messages = {
       draft: "草稿",
       phase_a: "撰寫分鏡中",
       awaiting_approval: "待核准分鏡",
+      production: "製作中",
       frames_generating: "畫分鏡圖中",
       frames_ready: "待核准分鏡圖",
       approved: "準備產片",

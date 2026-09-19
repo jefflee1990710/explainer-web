@@ -8,12 +8,18 @@ export type LoopMode = "linear" | "infinite";
 // Voiceover language: American English, Hong Kong Cantonese colloquial, Traditional Chinese (Mandarin).
 export type VoLanguage = "en" | "yue" | "zh";
 
-// Lifecycle:
-// phase_a → awaiting_approval → frames_generating → frames_ready → approved → generating → ready
+// Lifecycle: phase_a → awaiting_approval → production → ready.
+// `production` = storyboard approved; every clip's frames and video are made
+// independently. Frame/video failures live on the clip, so `failed` only ever
+// means Phase A failed.
+// `frames_generating | frames_ready | approved | generating` are legacy values
+// from the pre per-clip pipeline: normalised to `production` on read and
+// removed from this union once nothing writes them.
 export type ProjectStatus =
   | "draft"
   | "phase_a"
   | "awaiting_approval"
+  | "production"
   | "frames_generating"
   | "frames_ready"
   | "approved"
@@ -48,6 +54,8 @@ export type ClipFrame = {
   error?: string;
   // Revision used for the most recent redo (kept so the dialog can show it).
   revision?: FrameRevision;
+  // ISO time the current job was submitted; compared with the row's editedAt.
+  submittedAt?: string;
 };
 
 export type StoryboardRow = {
@@ -61,6 +69,8 @@ export type StoryboardRow = {
   // Legacy; no longer shown or required. Older videos may still have it.
   referenceTranslation?: string;
   bgmSfx: string;
+  // ISO time the user last edited this row; newer than submittedAt ⇒ stale media.
+  editedAt?: string;
 };
 
 // Storyboard fields the user may rewrite per clip while reviewing frames.
@@ -120,6 +130,8 @@ export type ProjectClip = {
   outputUrl?: string;
   blobUrl?: string;
   error?: string;
+  // ISO time the video was requested (Phase B + submit happen in a job).
+  submittedAt?: string;
 };
 
 // One explainer job owned by a signed-in user.
@@ -145,15 +157,18 @@ export type Project = {
   phaseA?: PhaseAProposal;
   phaseB?: PhaseBPackage;
   characterStillUrl?: string;
+  // Character still failed; the next frame request resubmits it.
+  stillError?: string;
   // Storyboard frames generated after storyboard approval.
   frames?: ClipFrame[];
+  // Legacy batch charges (pre per-clip pipeline). No longer written.
   framesCreditCost?: number;
   framesCharged?: boolean;
   // Set once frame jobs have been submitted (guards against double submit).
   framesSubmittedAt?: Date;
   clips: ProjectClip[];
-  // Video credits (charged on final approval).
-  creditCost: number;
+  // Legacy batch charges (pre per-clip pipeline). No longer written.
+  creditCost?: number;
   creditsCharged: boolean;
   error?: string;
   createdAt: Date;

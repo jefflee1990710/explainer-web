@@ -22,7 +22,7 @@ export const ru: Partial<Messages> = {
   },
   project: {
     steps: { input: "Материал", scene: "Сцена", frames: "Кадры", video: "Видео" },
-    status: { draft: "Черновик", phase_a: "Создание раскадровки", awaiting_approval: "Проверка раскадровки", frames_generating: "Рендеринг кадров", frames_ready: "Проверка кадров", approved: "Подготовка рендеринга", generating: "Рендеринг", ready: "Готово", failed: "Ошибка" },
+    status: { draft: "Черновик", phase_a: "Создание раскадровки", awaiting_approval: "Проверка раскадровки", production: "В производстве", frames_generating: "Рендеринг кадров", frames_ready: "Проверка кадров", approved: "Подготовка рендеринга", generating: "Рендеринг", ready: "Готово", failed: "Ошибка" },
     filters: { all: "Все", action: "Требуют внимания", active: "В работе", ready: "Готово", failed: "С ошибками" },
   },
   characters: { title: "Персонажи", create: "Новый персонаж", empty: "Персонажей пока нет." },

@@ -20,6 +20,9 @@ export const STATUS_META: Record<ProjectStatus, StatusMeta> = {
   draft: { tone: "neutral", step: 0, busy: false },
   phase_a: { tone: "working", step: 1, busy: true },
   awaiting_approval: { tone: "action", step: 1, busy: false },
+  // Static `busy` so folder rollups / dashboard filters work from statuses alone;
+  // components with the full project use isProjectBusy() for the precise answer.
+  production: { tone: "working", step: 2, busy: true },
   frames_generating: { tone: "working", step: 2, busy: true },
   frames_ready: { tone: "action", step: 2, busy: false },
   approved: { tone: "working", step: 3, busy: true },
@@ -27,6 +30,24 @@ export const STATUS_META: Record<ProjectStatus, StatusMeta> = {
   ready: { tone: "success", step: 3, busy: false },
   failed: { tone: "danger", step: 0, busy: false },
 };
+
+const LEGACY_PRODUCTION = new Set<ProjectStatus>([
+  "frames_generating",
+  "frames_ready",
+  "approved",
+  "generating",
+]);
+
+// Pre per-clip statuses read as `production`.
+export function normalizeProjectStatus(status: ProjectStatus): ProjectStatus {
+  return LEGACY_PRODUCTION.has(status) ? "production" : status;
+}
+
+// True once the storyboard is approved and clips may be produced/redone.
+export function isProductionLike(status: ProjectStatus) {
+  const normalized = normalizeProjectStatus(status);
+  return normalized === "production" || normalized === "ready";
+}
 
 // Infer which step a failed project fell over on from what it already has.
 export function failedStepFor(project: {

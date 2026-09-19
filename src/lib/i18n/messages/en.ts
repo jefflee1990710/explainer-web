@@ -89,6 +89,7 @@ export const en: Messages = {
       draft: "Draft",
       phase_a: "Writing storyboard",
       awaiting_approval: "Storyboard review",
+      production: "In production",
       frames_generating: "Rendering frames",
       frames_ready: "Frame review",
       approved: "Preparing render",

@@ -22,7 +22,7 @@ export const fr: Partial<Messages> = {
   },
   project: {
     steps: { input: "Contenu", scene: "Scène", frames: "Images", video: "Vidéo" },
-    status: { draft: "Brouillon", phase_a: "Rédaction du storyboard", awaiting_approval: "Validation du storyboard", frames_generating: "Génération des images", frames_ready: "Validation des images", approved: "Préparation du rendu", generating: "Génération en cours", ready: "Terminé", failed: "Échec" },
+    status: { draft: "Brouillon", phase_a: "Rédaction du storyboard", awaiting_approval: "Validation du storyboard", production: "En production", frames_generating: "Génération des images", frames_ready: "Validation des images", approved: "Préparation du rendu", generating: "Génération en cours", ready: "Terminé", failed: "Échec" },
     filters: { all: "Tous", action: "Action requise", active: "En cours", ready: "Terminés", failed: "Échecs" },
   },
   characters: { title: "Personnages", create: "Nouveau personnage", empty: "Aucun personnage pour le moment." },
