@@ -74,9 +74,9 @@ export function ClipTimeline({
               >
                 {src ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={src} alt="" className="h-6 w-10 rounded object-cover" />
+                  <img src={src} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
                 ) : (
-                  <span className="h-6 w-10 rounded border border-dashed border-current/40" aria-hidden />
+                  <span className="h-12 w-12 shrink-0 rounded-lg border border-dashed border-current/40" aria-hidden />
                 )}
                 <span className="flex flex-col leading-tight">
                   <span className="font-display text-xs font-bold">
