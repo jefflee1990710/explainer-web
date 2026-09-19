@@ -296,6 +296,9 @@ export async function updateClipStoryboardAction(
     }
 
     if (regenerate) {
+      // Anything older than this belongs to a previous attempt and cannot prove
+      // that this one reached the provider.
+      const attemptStartedAt = new Date();
       try {
         await regenerateFrames({ ...nextProject, frames }, [
           { clipNumber, position: "start" },
@@ -307,7 +310,12 @@ export async function updateClipStoryboardAction(
         // refund only the entries that never reached the provider, otherwise
         // they would sit `queued` with no job behind them.
         const message = error instanceof Error ? error.message : "分鏡圖送出失敗";
-        const missed = await failUnsubmittedFrames(project._id, clipNumber, message);
+        const missed = await failUnsubmittedFrames(
+          project._id,
+          clipNumber,
+          message,
+          attemptStartedAt,
+        );
         if (missed > 0) await refundCredits(user.clerkUserId, missed * FRAME_COST);
         throw error;
       }

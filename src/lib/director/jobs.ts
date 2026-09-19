@@ -9,8 +9,10 @@ import { keepProposalRegenerateClips } from "@/lib/director/phase-a-edit";
 import { runPhaseA } from "@/lib/director/run-phase-a";
 import { runPhaseBForClip } from "@/lib/director/run-phase-b";
 import { videoStyle } from "@/lib/higgsfield/frame-prompts";
+import { hasJobSince } from "@/lib/higgsfield/job-attempts";
 import { submitClipVideoJob, submitStillIfNeeded } from "@/lib/higgsfield/pipeline";
 import { VIDEO_COST } from "@/lib/production-plan";
+import type { Project } from "@/types/project";
 
 // Background jobs scheduled with next/server `after()` so the UI can poll
 // instead of blocking on the LLM / video provider round-trips.
@@ -104,12 +106,45 @@ export async function runStillJob(projectId: ObjectId) {
   }
 }
 
+// Hand the credit back and mark the clip failed. Used by every exit that leaves
+// the clip with no job to own its outcome, so a charged clip is never stranded
+// `queued` with nothing to move it.
+async function compensateClipVideo(
+  project: Project,
+  clipNumber: number,
+  message: string,
+) {
+  await refundCredits(project.clerkUserId, VIDEO_COST);
+  const projects = await videosCollection();
+  await projects.updateOne(
+    { _id: project._id },
+    {
+      $set: {
+        "clips.$[clip].status": "failed",
+        "clips.$[clip].error": message,
+        updatedAt: new Date(),
+      },
+    },
+    { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
+  );
+}
+
 // One clip's video: write its Phase B prompt, then submit. The caller charged
 // VIDEO_COST and marked the clip `queued`; any failure here refunds and marks it failed.
 export async function runClipVideoJob(projectId: ObjectId, clipNumber: number) {
+  // Jobs older than this are leftovers from a previous attempt.
+  const attemptStartedAt = new Date();
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
-  if (!project?.phaseA) return;
+  if (!project) {
+    // No project, no owner to refund; nothing else can be done here.
+    console.error("[clip-video] project vanished before Phase B", { projectId, clipNumber });
+    return;
+  }
+  if (!project.phaseA) {
+    await compensateClipVideo(project, clipNumber, "找不到分鏡");
+    return;
+  }
 
   try {
     // Drop the clip's previous video job before Phase B runs: otherwise a stale
@@ -145,20 +180,24 @@ export async function runClipVideoJob(projectId: ObjectId, clipNumber: number) {
     );
 
     const fresh = await projects.findOne({ _id: projectId });
-    if (!fresh) return;
+    if (!fresh) throw new Error("專案已不存在");
     await submitClipVideoJob(fresh, clipNumber, prompt);
   } catch (error) {
-    await refundCredits(project.clerkUserId, VIDEO_COST);
-    await projects.updateOne(
-      { _id: projectId },
-      {
-        $set: {
-          "clips.$[clip].status": "failed",
-          "clips.$[clip].error": errorMessage(error, "產片失敗"),
-          updatedAt: new Date(),
-        },
-      },
-      { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
-    );
+    // The submit inserts the job before syncing, so a throw can arrive with a
+    // live job already placed. That job owns the outcome and refunds itself on
+    // failure; refunding here too would hand the credit back twice.
+    const jobs = await generationJobsCollection();
+    const videoJobs = await jobs
+      .find({ projectId, kind: "video", clipIndex: clipNumber - 1 })
+      .toArray();
+    if (hasJobSince(videoJobs, attemptStartedAt)) {
+      console.error("[clip-video] failed after the job was submitted", {
+        projectId,
+        clipNumber,
+        error,
+      });
+      return;
+    }
+    await compensateClipVideo(project, clipNumber, errorMessage(error, "產片失敗"));
   }
 }

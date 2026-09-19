@@ -9,6 +9,7 @@ import {
 import { refundCredits } from "@/lib/billing/credits";
 import { flattenToCanvas } from "@/lib/higgsfield/flatten";
 import { buildFramePrompt, videoStyle } from "@/lib/higgsfield/frame-prompts";
+import { unsubmittedPositions } from "@/lib/higgsfield/job-attempts";
 import {
   fetchHiggsfieldStatus,
   mediaUrlFromResponse,
@@ -209,27 +210,25 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
 }
 
 // Recovery after a partial submit: frames go out one at a time, so the first
-// may have a live job while the second threw. A frame with a job belongs to
-// reconciliation (it completes, or fails and refunds itself); a frame without
-// one would sit `queued` forever with nothing to move it. Mark only those
-// failed and report the count so the caller refunds exactly what never went out.
+// may have a live job while the second threw. A frame submitted by THIS attempt
+// belongs to reconciliation (it completes, or fails and refunds itself); a frame
+// without one would sit `queued` forever with nothing to move it. `since` is the
+// moment the attempt started, so a redo's leftover job from the previous attempt
+// never masks a lost charge. Returns the count the caller must refund.
 export async function failUnsubmittedFrames(
   projectId: ObjectId,
   clipNumber: number,
   error: string,
+  since: Date,
 ): Promise<number> {
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
-  let marked = 0;
+  const frameJobs = await jobs
+    .find({ projectId, kind: "frame", clipIndex: clipNumber - 1 })
+    .toArray();
+  const missed = unsubmittedPositions(frameJobs, since);
 
-  for (const position of ["start", "end"] as FramePosition[]) {
-    const job = await jobs.findOne({
-      projectId,
-      kind: "frame",
-      clipIndex: clipNumber - 1,
-      framePosition: position,
-    });
-    if (job) continue;
+  for (const position of missed) {
     await projects.updateOne(
       { _id: projectId },
       {
@@ -241,10 +240,9 @@ export async function failUnsubmittedFrames(
       },
       { arrayFilters: [{ "frame.clipNumber": clipNumber, "frame.position": position }] },
     );
-    marked += 1;
   }
 
-  return marked;
+  return missed.length;
 }
 
 // Single-frame convenience wrapper.
