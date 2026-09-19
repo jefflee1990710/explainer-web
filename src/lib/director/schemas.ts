@@ -45,3 +45,10 @@ export const phaseBSchema = z.object({
   stitchingGuide: z.string(),
   voiceMusicNote: z.string(),
 });
+
+// One clip's video prompt (per-clip Phase B).
+export const phaseBClipSchema = z.object({
+  clipNumber: z.number().int().min(1),
+  durationSeconds: z.number().min(3).max(8),
+  prompt: z.string(),
+});
