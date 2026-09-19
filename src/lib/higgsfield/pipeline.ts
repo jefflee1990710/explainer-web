@@ -313,24 +313,58 @@ export async function applyJobStatus(input: {
   requestId: string;
   status: string;
   outputUrl?: string;
+  error?: string;
 }) {
   const jobs = await generationJobsCollection();
   const job = await jobs.findOne({ requestId: input.requestId });
   if (!job) return;
 
-  const status = input.status as GenerationStatus;
+  let status = input.status as GenerationStatus;
+  let outputUrl = input.outputUrl;
+  let errorMessage = input.error;
+
+  // Webhooks sometimes omit media URLs or error text; refetch once from status_url.
+  const needsRefetch =
+    job.statusUrl &&
+    (((status === "completed" || status === "nsfw") && !outputUrl) ||
+      ((status === "failed" || status === "nsfw") && !errorMessage));
+  if (needsRefetch) {
+    try {
+      const remote = await fetchHiggsfieldStatus(job.statusUrl);
+      status = remote.status as GenerationStatus;
+      outputUrl = mediaUrlFromResponse(remote) || outputUrl;
+      const remoteError =
+        typeof (remote as { error?: string }).error === "string"
+          ? (remote as { error: string }).error
+          : undefined;
+      if (remoteError) errorMessage = remoteError;
+    } catch (error) {
+      console.error("[higgsfield] status refetch failed", {
+        requestId: input.requestId,
+        error,
+      });
+    }
+  }
+
   const nowFailed = status === "failed" || status === "nsfw";
 
   // Character sheets persist and refund in their own sync; no video to touch.
   if (job.kind === "character") {
-    await syncCharacterJob(job, status, input.outputUrl);
+    await syncCharacterJob(job, status, outputUrl);
     // `$set: { error: undefined }` would store null; clear the field instead.
     await jobs.updateOne(
       { _id: job._id },
       nowFailed
-        ? { $set: { status, outputUrl: input.outputUrl, error: status, updatedAt: new Date() } }
+        ? {
+            $set: {
+              status,
+              outputUrl,
+              error: errorMessage || status,
+              updatedAt: new Date(),
+            },
+          }
         : {
-            $set: { status, outputUrl: input.outputUrl, updatedAt: new Date() },
+            $set: { status, outputUrl, updatedAt: new Date() },
             $unset: { error: "" },
           },
     );
@@ -343,7 +377,7 @@ export async function applyJobStatus(input: {
   const project = await projects.findOne({ _id: projectId });
 
   let blobUrl = job.blobUrl;
-  if (input.outputUrl && (status === "completed" || status === "nsfw")) {
+  if (outputUrl && (status === "completed" || status === "nsfw")) {
     const folder =
       job.kind === "still" ? "stills" : job.kind === "frame" ? "frames" : "clips";
     const transformOptions =
@@ -364,7 +398,7 @@ export async function applyJobStatus(input: {
           }
         : undefined;
     blobUrl = await persistMedia(
-      input.outputUrl,
+      outputUrl,
       `explainer/${projectId.toHexString()}/${folder}/${job.requestId}`,
       transformOptions,
     );
@@ -372,13 +406,14 @@ export async function applyJobStatus(input: {
 
   const set = {
     status,
-    outputUrl: input.outputUrl,
+    outputUrl,
     blobUrl,
     updatedAt: new Date(),
   };
   // `$set: { error: undefined }` would store null; clear the field instead.
+  const failureDetail = errorMessage || status;
   const update = nowFailed
-    ? { $set: { ...set, error: status } }
+    ? { $set: { ...set, error: failureDetail } }
     : { $set: set, $unset: { error: "" as const } };
 
   // The webhook and the poller can deliver the same failure concurrently, so
@@ -484,6 +519,10 @@ export async function refreshProjectJobs(projectId: ObjectId) {
       requestId: result.job.requestId,
       status: result.status.status,
       outputUrl: mediaUrlFromResponse(result.status),
+      error:
+        typeof (result.status as { error?: string }).error === "string"
+          ? (result.status as { error: string }).error
+          : undefined,
     });
   }
 
