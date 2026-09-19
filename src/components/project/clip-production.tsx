@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ClipPlayer } from "@/app/app/projects/[id]/clip-player";
 import {
   ClipEditDialog,
   type ClipEditPending,
@@ -37,6 +36,7 @@ export function ClipProduction({
   onUpdateClip,
   onGenerateVideo,
   onFillRemaining,
+  onGoToExport,
 }: {
   project: PublicVideo;
   credits: number;
@@ -56,6 +56,7 @@ export function ClipProduction({
   ) => Promise<boolean>;
   onGenerateVideo: (clipNumber: number) => void;
   onFillRemaining: () => Promise<boolean>;
+  onGoToExport?: () => void;
 }) {
   const phaseA = project.phaseA;
   const states = clipStatesFor(project);
@@ -169,12 +170,24 @@ export function ClipProduction({
       <div className="rounded-[1.5rem] border border-accent-ink/10 bg-lime/60 p-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           {ready ? (
-            <div>
-              <p className="font-display text-sm font-bold">✓ {counts.total} 段影片全部完成</p>
-              <p className="mt-1 text-sm text-muted">
-                下方可連續預覽；任何一段仍可回頭重做，重做時專案會回到「製作中」。
-              </p>
-            </div>
+            <>
+              <div>
+                <p className="font-display text-sm font-bold">✓ {counts.total} 段影片全部完成</p>
+                <p className="mt-1 text-sm text-muted">
+                  下一步會把各段接成一支成片，可預覽與下載。任何一段仍可回頭重做。
+                </p>
+              </div>
+              {onGoToExport ? (
+                <motion.button
+                  type="button"
+                  onClick={onGoToExport}
+                  whileTap={{ scale: 0.98 }}
+                  className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5"
+                >
+                  下一步：成片
+                </motion.button>
+              ) : null}
+            </>
           ) : (
             <>
               <div>
@@ -216,8 +229,6 @@ export function ClipProduction({
           {error}
         </p>
       ) : null}
-
-      {ready ? <ClipPlayer project={project} /> : null}
 
       {/* Frame annotate + redo */}
       {editingFrame && frame && row ? (

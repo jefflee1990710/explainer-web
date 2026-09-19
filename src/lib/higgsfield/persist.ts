@@ -37,3 +37,21 @@ export async function persistMedia(
   });
   return blob.url;
 }
+
+// Upload an already-fetched buffer (e.g. a concatenated reel) to Blob.
+export async function persistBuffer(
+  buffer: Buffer,
+  pathname: string,
+  contentType: string,
+) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error("尚未設定 BLOB_READ_WRITE_TOKEN，無法保存生成檔案");
+  }
+  const blob = await put(pathname, buffer, {
+    access: "public",
+    contentType,
+    addRandomSuffix: false,
+    allowOverwrite: true,
+  });
+  return blob.url;
+}

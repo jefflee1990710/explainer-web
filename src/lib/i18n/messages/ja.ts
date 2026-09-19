@@ -43,7 +43,7 @@ export const ja: Partial<Messages> = {
     searchPlaceholder: "プロジェクト名またはトピックを検索…", searchLabel: "プロジェクト名またはトピックを検索", filterLabel: "ステータスフィルター",
   },
   project: {
-    steps: { input: "入力", scene: "シーン", production: "制作" },
+    steps: { input: "入力", scene: "シーン", production: "制作", export: "書き出し" },
     status: { draft: "下書き", phase_a: "絵コンテを作成中", awaiting_approval: "絵コンテの確認", production: "制作中", ready: "完了", failed: "失敗" },
     filters: { all: "すべて", action: "要対応", active: "進行中", ready: "完了", failed: "失敗" },
   },

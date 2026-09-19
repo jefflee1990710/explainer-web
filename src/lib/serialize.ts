@@ -43,6 +43,10 @@ export type PublicVideo = {
   phaseA?: Project["phaseA"];
   frames: NonNullable<Project["frames"]>;
   clips: Project["clips"];
+  reelUrl?: string;
+  reelStatus?: Project["reelStatus"];
+  reelFingerprint?: string;
+  reelError?: string;
   error?: string;
   createdAt: string;
 };
@@ -91,6 +95,10 @@ export function toPublicVideo(video: Project): PublicVideo {
     phaseA: video.phaseA,
     frames: video.frames || [],
     clips: video.clips,
+    reelUrl: video.reelUrl,
+    reelStatus: video.reelStatus,
+    reelFingerprint: video.reelFingerprint,
+    reelError: video.reelError,
     error: video.error,
     createdAt: video.createdAt.toISOString(),
   };

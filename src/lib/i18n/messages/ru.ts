@@ -21,7 +21,7 @@ export const ru: Partial<Messages> = {
     searchPlaceholder: "Поиск по названию или теме…", searchLabel: "Поиск по названию или теме", filterLabel: "Фильтр по статусу",
   },
   project: {
-    steps: { input: "Материал", scene: "Сцена", production: "Производство" },
+    steps: { input: "Материал", scene: "Сцена", production: "Производство", export: "Ролик" },
     status: { draft: "Черновик", phase_a: "Создание раскадровки", awaiting_approval: "Проверка раскадровки", production: "В производстве", ready: "Готово", failed: "Ошибка" },
     filters: { all: "Все", action: "Требуют внимания", active: "В работе", ready: "Готово", failed: "С ошибками" },
   },

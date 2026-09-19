@@ -74,7 +74,7 @@ export const zhHans: Partial<Messages> = {
     filterLabel: "状态筛选",
   },
   project: {
-    steps: { input: "输入", scene: "场景", production: "制作" },
+    steps: { input: "输入", scene: "场景", production: "制作", export: "成片" },
     status: {
       draft: "草稿",
       phase_a: "正在编写分镜",

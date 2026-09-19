@@ -77,6 +77,7 @@ export type Messages = {
       input: string;
       scene: string;
       production: string;
+      export: string;
     };
     status: Record<
       | "draft"

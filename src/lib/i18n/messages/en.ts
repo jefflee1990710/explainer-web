@@ -85,6 +85,7 @@ export const en: Messages = {
       input: "Input",
       scene: "Scene",
       production: "Production",
+      export: "Reel",
     },
     status: {
       draft: "Draft",

@@ -21,7 +21,7 @@ export const de: Partial<Messages> = {
     searchPlaceholder: "Projektname oder Thema suchen…", searchLabel: "Projektname oder Thema suchen", filterLabel: "Statusfilter",
   },
   project: {
-    steps: { input: "Eingabe", scene: "Szene", production: "Produktion" },
+    steps: { input: "Eingabe", scene: "Szene", production: "Produktion", export: "Export" },
     status: { draft: "Entwurf", phase_a: "Storyboard wird erstellt", awaiting_approval: "Storyboard-Prüfung", production: "In Produktion", ready: "Fertig", failed: "Fehlgeschlagen" },
     filters: { all: "Alle", action: "Handlungsbedarf", active: "In Bearbeitung", ready: "Fertig", failed: "Fehlgeschlagen" },
   },

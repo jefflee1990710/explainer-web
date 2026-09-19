@@ -135,6 +135,9 @@ export type ProjectClip = {
   submittedAt?: string;
 };
 
+// Concatenated reel of every storyboard clip, produced on the export step.
+export type ReelStatus = "queued" | "in_progress" | "completed" | "failed";
+
 // One explainer job owned by a signed-in user.
 export type Project = {
   _id: ObjectId;
@@ -168,6 +171,11 @@ export type Project = {
   // Set once frame jobs have been submitted (guards against double submit).
   framesSubmittedAt?: Date;
   clips: ProjectClip[];
+  // Concatenated reel (step 4). Fingerprint must match current clip URLs.
+  reelUrl?: string;
+  reelStatus?: ReelStatus;
+  reelFingerprint?: string;
+  reelError?: string;
   // Legacy batch charges (pre per-clip pipeline). No longer written.
   creditCost?: number;
   creditsCharged: boolean;

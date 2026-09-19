@@ -11,7 +11,10 @@ import { runPhaseBForClip } from "@/lib/director/run-phase-b";
 import { videoStyle } from "@/lib/higgsfield/frame-prompts";
 import { hasJobSince } from "@/lib/higgsfield/job-attempts";
 import { submitClipVideoJob, submitStillIfNeeded } from "@/lib/higgsfield/pipeline";
+import { persistBuffer } from "@/lib/higgsfield/persist";
 import { VIDEO_COST } from "@/lib/production-plan";
+import { concatMp4Urls } from "@/lib/reel/concat";
+import { clipReelFingerprint, clipUrlsInOrder } from "@/lib/reel/fingerprint";
 import type { Project } from "@/types/project";
 
 // Background jobs scheduled with next/server `after()` so the UI can poll
@@ -200,5 +203,58 @@ export async function runClipVideoJob(projectId: ObjectId, clipNumber: number) {
       return;
     }
     await compensateClipVideo(project, clipNumber, errorMessage(error, "產片失敗"));
+  }
+}
+
+// Concat every ready clip into one reel. Caller queued the row; we mark
+// in_progress → completed (or failed). A fingerprint mismatch means clips
+// changed mid-job, so we drop the result instead of overwriting a newer reel.
+export async function runReelJob(projectId: ObjectId, fingerprint: string) {
+  const projects = await videosCollection();
+  const claimed = await projects.findOneAndUpdate(
+    { _id: projectId, reelFingerprint: fingerprint, reelStatus: "queued" },
+    { $set: { reelStatus: "in_progress", updatedAt: new Date() } },
+    { returnDocument: "after" },
+  );
+  const project = claimed;
+  if (!project) return;
+
+  try {
+    const urls = clipUrlsInOrder(project);
+    const reelUrl =
+      urls.length === 1
+        ? urls[0]
+        : await persistBuffer(
+            await concatMp4Urls(urls),
+            `explainer/${projectId.toHexString()}/reel/${fingerprint}.mp4`,
+            "video/mp4",
+          );
+
+    const latest = await projects.findOne({ _id: projectId });
+    if (!latest || clipReelFingerprint(latest) !== fingerprint) return;
+
+    await projects.updateOne(
+      { _id: projectId, reelFingerprint: fingerprint },
+      {
+        $set: {
+          reelUrl,
+          reelStatus: "completed",
+          reelFingerprint: fingerprint,
+          updatedAt: new Date(),
+        },
+        $unset: { reelError: "" },
+      },
+    );
+  } catch (error) {
+    await projects.updateOne(
+      { _id: projectId, reelFingerprint: fingerprint },
+      {
+        $set: {
+          reelStatus: "failed",
+          reelError: errorMessage(error, "合成成片失敗"),
+          updatedAt: new Date(),
+        },
+      },
+    );
   }
 }

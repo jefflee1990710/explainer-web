@@ -24,7 +24,9 @@ import {
   updatePhaseAProposalAction,
   updateVideoBriefAction,
 } from "@/lib/actions/projects";
+import { composeReelAction } from "@/lib/actions/reel";
 import { isProjectBusy, productionCounts } from "@/lib/clip-stage";
+import { isReelBusy, isReelCurrent } from "@/lib/reel/fingerprint";
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { failedStepFor } from "@/lib/project-status";
@@ -45,6 +47,7 @@ import { AspectRatioPicker } from "./aspect-ratio-picker";
 import { DirectorProgress } from "./director-progress";
 import { DurationPicker } from "./duration-picker";
 import { LanguagePicker } from "./language-picker";
+import { ReelExport } from "./reel-export";
 import { ReviseStoryboardDialog } from "./revise-storyboard-dialog";
 import { StoryboardPreview } from "./storyboard-preview";
 import { useProjectPoll } from "./use-project-poll";
@@ -97,8 +100,8 @@ export function NewProjectForm({
   // Flow state. The stepper can jump back to 題材 / 分鏡 after a video exists.
   const [project, setProject] = useState<PublicVideo | null>(initialVideo);
   const [submitting, setSubmitting] = useState(false);
-  // "" | "revise" | "approve" | "save" | "retry" | "remaining" | frames:{n}
-  // | frame:{n}:{pos} | video:{n} | clip:{n}[:regen]
+  // "" | "revise" | "approve" | "save" | "retry" | "remaining" | "reel"
+  // | frames:{n} | frame:{n}:{pos} | video:{n} | clip:{n}[:regen]
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   // Pinned to the video + status that was current when the user clicked a step.
@@ -304,6 +307,18 @@ export function NewProjectForm({
     return ok;
   }
 
+  const videoId = project?.id;
+  const onComposeReel = useCallback(() => {
+    if (!videoId) return;
+    setPending("reel");
+    setError("");
+    void composeReelAction(videoId).then((result) => {
+      setPending("");
+      if (!result.ok) setError(result.error);
+      else setProject(result.project);
+    });
+  }, [videoId]);
+
   // Failed → move back to the gate it fell over on (no charge).
   async function onRetry() {
     if (!project) return;
@@ -348,11 +363,23 @@ export function NewProjectForm({
   function pinViewingStep(step: number) {
     setViewingOverride({ id: liveId, status: liveStatus, step });
   }
-  const briefBusy = submitting || Boolean(project && isProjectBusy(project));
+  const briefBusy =
+    submitting || Boolean(project && (isProjectBusy(project) || isReelBusy(project.reelStatus)));
   const approved = project?.status === "production" || project?.status === "ready";
-  // Stepper detail for the production step; skipped before the storyboard exists.
+  const clipsReady = project?.status === "ready";
+  const reelReady = Boolean(project && isReelCurrent(project));
+  // Stepper detail for the live current step; skipped before the storyboard exists.
   const counts =
     project && approved ? productionCounts(project) : null;
+  const stepperDetail = clipsReady
+    ? isReelBusy(project?.reelStatus)
+      ? "合成中"
+      : reelReady
+        ? "可下載"
+        : "待合成"
+    : counts
+      ? `影片 ${counts.videosDone}/${counts.total}`
+      : undefined;
   const canSubmit =
     source.trim().length > 0 &&
     aspectRatio !== "" &&
@@ -362,15 +389,21 @@ export function NewProjectForm({
   return (
     <MotionConfig reducedMotion="user">
       <div className="space-y-6">
-        {/* Step indicator: 題材 → 分鏡 → 製作 */}
+        {/* Step indicator: 題材 → 分鏡 → 製作 → 成片 */}
         <div className="rounded-2xl border border-accent-ink/10 bg-paper/70 px-5 py-4">
           <ProjectStepper
             status={project?.status ?? "draft"}
             failedAtStep={project?.status === "failed" ? failedStepFor(project) : undefined}
-            busy={project ? isProjectBusy(project) : false}
-            detail={counts ? `影片 ${counts.videosDone}/${counts.total}` : undefined}
+            busy={
+              project
+                ? isProjectBusy(project) || isReelBusy(project.reelStatus)
+                : false
+            }
+            detail={stepperDetail}
             viewingStep={viewing}
             onSelectStep={pinViewingStep}
+            clipsReady={clipsReady}
+            reelReady={reelReady}
           />
         </div>
 
@@ -566,6 +599,15 @@ export function NewProjectForm({
               onUpdateClip={onUpdateClip}
               onGenerateVideo={onGenerateVideo}
               onFillRemaining={onFillRemaining}
+              onGoToExport={() => pinViewingStep(3)}
+            />
+          ) : viewing === 3 && project?.status === "ready" ? (
+            <ReelExport
+              key="export"
+              project={project}
+              pending={pending}
+              error={error}
+              onCompose={onComposeReel}
             />
           ) : project?.status === "failed" && viewing === liveStep ? (
             <FailedCard

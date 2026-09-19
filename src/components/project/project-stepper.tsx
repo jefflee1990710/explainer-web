@@ -3,7 +3,12 @@
 import { motion } from "framer-motion";
 import { useI18n } from "@/components/i18n-provider";
 import { projectStepLabel } from "@/lib/project-status-i18n";
-import { PROJECT_STEPS, STATUS_META } from "@/lib/project-status";
+import {
+  maxReachableStep,
+  PROJECT_STEPS,
+  STATUS_META,
+  stepVisualState,
+} from "@/lib/project-status";
 import type { ProjectStatus } from "@/types/project";
 
 // Which step is "current" for a status; failed projects keep the step they
@@ -13,8 +18,8 @@ export function currentStepFor(status: ProjectStatus, failedAtStep?: number) {
   return STATUS_META[status].step;
 }
 
-// Horizontal stepper: 題材 → 分鏡 → 製作. Reached steps are buttons so the
-// user can jump back and edit; later steps stay inert until unlocked.
+// Horizontal stepper: 題材 → 分鏡 → 製作 → 成片. Reached steps are buttons
+// so the user can jump back and edit; later steps stay inert until unlocked.
 export function ProjectStepper({
   status,
   failedAtStep,
@@ -23,6 +28,8 @@ export function ProjectStepper({
   detail,
   viewingStep,
   onSelectStep,
+  clipsReady = false,
+  reelReady = false,
 }: {
   status: ProjectStatus;
   failedAtStep?: number;
@@ -34,21 +41,22 @@ export function ProjectStepper({
   // Which step the workspace is showing; defaults to the live status step.
   viewingStep?: number;
   onSelectStep?: (step: number) => void;
+  // All clips video_ready — unlocks step 4 without auto-advancing.
+  clipsReady?: boolean;
+  reelReady?: boolean;
 }) {
   const { t } = useI18n();
   const current = currentStepFor(status, failedAtStep);
   const viewed = viewingStep ?? current;
-  const done = status === "ready";
   const failed = status === "failed";
   const isBusy = busy ?? STATUS_META[status].busy;
-  const maxReachable = done ? PROJECT_STEPS.length - 1 : current;
+  const maxReachable = maxReachableStep(current, clipsReady);
 
   if (compact) {
     return (
       <ol className="flex items-center gap-1" aria-label="Progress">
         {PROJECT_STEPS.map((step, index) => {
-          const state =
-            done || index < current ? "done" : index === current ? "current" : "todo";
+          const state = stepVisualState(index, current, clipsReady, reelReady);
           return (
             <li
               key={step.id}
@@ -72,8 +80,7 @@ export function ProjectStepper({
   return (
     <ol className="flex items-center gap-2 sm:gap-3" aria-label="Project steps">
       {PROJECT_STEPS.map((step, index) => {
-        const state =
-          done || index < current ? "done" : index === current ? "current" : "todo";
+        const state = stepVisualState(index, current, clipsReady, reelReady);
         const isLast = index === PROJECT_STEPS.length - 1;
         const isViewing = index === viewed;
         const clickable = Boolean(onSelectStep) && index <= maxReachable;

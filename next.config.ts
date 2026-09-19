@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  // Native ffmpeg binary used to concat clips into one reel.
+  serverExternalPackages: ["ffmpeg-static"],
   experimental: {
     serverActions: {
       // Frame edit dialog posts a transparent sketch PNG (data URL) with the

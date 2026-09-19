@@ -5,13 +5,13 @@ import { useEffect } from "react";
 import { refreshGenerationAction } from "@/lib/actions/generation";
 import { getProjectAction } from "@/lib/actions/projects";
 import { isProjectBusy } from "@/lib/clip-stage";
+import { isReelBusy } from "@/lib/reel/fingerprint";
 import type { PublicVideo } from "@/lib/serialize";
 
 const INTERVAL_MS = 3000;
 
-// Poll the selected video while the director writes or any frame/video job is
-// in flight; first tick is immediate. Provider statuses are refreshed too,
-// except during Phase A (no provider jobs yet).
+// Poll while the director writes, a frame/video job is in flight, or the
+// reel is concatenating. Provider refresh is skipped for reel-only waits.
 export function useProjectPoll(
   project: PublicVideo | null,
   onUpdate: (project: PublicVideo) => void,
@@ -20,11 +20,13 @@ export function useProjectPoll(
   const router = useRouter();
   const id = project?.id;
   const status = project?.status;
-  const busy = project ? isProjectBusy(project) : false;
+  const clipBusy = project ? isProjectBusy(project) : false;
+  const reelBusy = project ? isReelBusy(project.reelStatus) : false;
+  const busy = clipBusy || reelBusy;
 
   useEffect(() => {
     if (!id || !busy) return;
-    const needsJobRefresh = status !== "phase_a";
+    const needsJobRefresh = clipBusy && status !== "phase_a";
     let cancelled = false;
 
     async function tick() {
@@ -42,7 +44,9 @@ export function useProjectPoll(
       if (result.ok) {
         onUpdate(result.project);
         // Settled: refresh the server render so lists/badges catch up.
-        if (!isProjectBusy(result.project)) router.refresh();
+        if (!isProjectBusy(result.project) && !isReelBusy(result.project.reelStatus)) {
+          router.refresh();
+        }
       } else {
         onError?.(result.error);
       }
@@ -54,5 +58,5 @@ export function useProjectPoll(
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [id, status, busy, onUpdate, onError, router]);
+  }, [id, status, busy, clipBusy, onUpdate, onError, router]);
 }

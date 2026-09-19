@@ -16,10 +16,35 @@ export type StatusMeta = {
   busy: boolean;
 };
 
-export const PROJECT_STEP_IDS = ["input", "scene", "production"] as const;
+export const PROJECT_STEP_IDS = ["input", "scene", "production", "export"] as const;
 
-// The three user-facing steps shown in the stepper (labels via i18n).
+// 題材 → 分鏡 → 製作 → 成片. Export unlocks after every clip is video_ready.
 export const PROJECT_STEPS = PROJECT_STEP_IDS.map((id) => ({ id }));
+
+export type StepVisualState = "done" | "current" | "todo";
+
+// Production stays current until all clips are ready; export is current once
+// unlocked and not yet concatenated. ready.step stays 2 so Next is required.
+export function stepVisualState(
+  index: number,
+  current: number,
+  clipsReady: boolean,
+  reelReady: boolean,
+): StepVisualState {
+  const exportIndex = PROJECT_STEPS.length - 1;
+  if (index < exportIndex) {
+    if (index < current || (clipsReady && index <= 2)) return "done";
+    if (index === current) return "current";
+    return "todo";
+  }
+  if (reelReady) return "done";
+  if (clipsReady) return "current";
+  return "todo";
+}
+
+export function maxReachableStep(current: number, clipsReady: boolean) {
+  return clipsReady ? PROJECT_STEPS.length - 1 : current;
+}
 
 export const STATUS_META: Record<ProjectStatus, StatusMeta> = {
   draft: { tone: "neutral", step: 0, busy: false },

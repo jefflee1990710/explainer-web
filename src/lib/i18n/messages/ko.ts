@@ -21,7 +21,7 @@ export const ko: Partial<Messages> = {
     searchPlaceholder: "프로젝트 이름 또는 주제 검색…", searchLabel: "프로젝트 이름 또는 주제 검색", filterLabel: "상태 필터",
   },
   project: {
-    steps: { input: "입력", scene: "장면", production: "제작" },
+    steps: { input: "입력", scene: "장면", production: "제작", export: "완성본" },
     status: { draft: "초안", phase_a: "스토리보드 작성 중", awaiting_approval: "스토리보드 검토", production: "제작 중", ready: "완료", failed: "실패" },
     filters: { all: "전체", action: "조치 필요", active: "진행 중", ready: "완료", failed: "실패" },
   },
