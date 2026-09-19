@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ClipProduction } from "@/components/project/clip-production";
 import { ProjectStepper } from "@/components/project/project-stepper";
@@ -105,6 +105,15 @@ export function NewProjectForm({
   }, []);
   const onPollError = useCallback((message: string) => setError(message), []);
   useProjectPoll(project, onPollUpdate, onPollError);
+
+  // Parent may show a list snapshot first, then replace with a fresh fetch.
+  useEffect(() => {
+    if (!initialVideo) return;
+    setProject((current) => {
+      if (!current || current.id !== initialVideo.id) return initialVideo;
+      return initialVideo;
+    });
+  }, [initialVideo]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

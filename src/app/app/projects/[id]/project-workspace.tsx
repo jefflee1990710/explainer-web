@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { getProjectAction } from "@/lib/actions/projects";
 import { Spinner } from "@/components/spinner";
 import type {
@@ -31,37 +31,57 @@ export function ProjectWorkspace({
   credits: number;
   subscribed: boolean;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const videoParam = searchParams.get("video");
-  const listedVideo = videoParam
-    ? folder.videos.find((video) => video.id === videoParam) ?? null
-    : null;
-  const [loadedVideo, setLoadedVideo] = useState<{
-    param: string;
-    video: PublicVideo;
-  } | null>(null);
+  // Client-owned selection so the right pane can flip before any RSC navigation.
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(videoParam);
+  const [freshById, setFreshById] = useState<Record<string, PublicVideo>>({});
+  const [fetchingId, setFetchingId] = useState<string | null>(null);
   const [optimisticVideo, setOptimisticVideo] = useState<PublicVideo | null>(null);
 
-  // After create, ?video= may point at a row not yet in the SSR folder list.
+  // Keep in sync when navigation comes from router (e.g. after createVideo).
   useEffect(() => {
-    if (!videoParam || listedVideo) return;
+    setActiveVideoId(videoParam);
+  }, [videoParam]);
+
+  const replaceVideoQuery = useCallback(
+    (id: string | null) => {
+      const url = id ? `${pathname}?video=${encodeURIComponent(id)}` : pathname;
+      window.history.replaceState(window.history.state, "", url);
+    },
+    [pathname],
+  );
+
+  // Pull the latest row after every switch; list snapshot renders immediately.
+  useEffect(() => {
+    if (!activeVideoId) return;
     let cancelled = false;
-    void getProjectAction(videoParam).then((result) => {
-      if (cancelled || !result.ok) return;
-      setLoadedVideo({ param: videoParam, video: result.project });
+    setFetchingId(activeVideoId);
+    void getProjectAction(activeVideoId).then((result) => {
+      if (cancelled) return;
+      setFetchingId((current) => (current === activeVideoId ? null : current));
+      if (result.ok) {
+        setFreshById((prev) => ({ ...prev, [activeVideoId]: result.project }));
+      }
     });
     return () => {
       cancelled = true;
     };
-  }, [videoParam, listedVideo]);
+  }, [activeVideoId]);
 
-  const selectedVideo =
-    listedVideo ??
-    (optimisticVideo?.id === videoParam ? optimisticVideo : null) ??
-    (loadedVideo?.param === videoParam ? loadedVideo.video : null);
-  const videoLoading = Boolean(videoParam && !selectedVideo);
+  const selectedVideo = useMemo(() => {
+    if (!activeVideoId) return null;
+    return (
+      freshById[activeVideoId] ??
+      folder.videos.find((video) => video.id === activeVideoId) ??
+      (optimisticVideo?.id === activeVideoId ? optimisticVideo : null)
+    );
+  }, [activeVideoId, freshById, folder.videos, optimisticVideo]);
+
+  const videoLoading = Boolean(activeVideoId && !selectedVideo);
+  const videoSyncing = Boolean(activeVideoId && fetchingId === activeVideoId && selectedVideo);
+
   const videos = useMemo(() => {
     if (!selectedVideo || folder.videos.some((video) => video.id === selectedVideo.id)) {
       return folder.videos;
@@ -70,11 +90,13 @@ export function ProjectWorkspace({
   }, [folder.videos, selectedVideo]);
 
   function onSelect(id: string) {
-    router.replace(`${pathname}?video=${id}`);
+    setActiveVideoId(id);
+    replaceVideoQuery(id);
   }
 
   function onCreate() {
-    router.replace(pathname);
+    setActiveVideoId(null);
+    replaceVideoQuery(null);
   }
 
   return (
@@ -95,7 +117,7 @@ export function ProjectWorkspace({
       <div className="grid gap-6 md:grid-cols-[17.5rem_minmax(0,1fr)] md:items-start">
         <VideoList
           videos={videos}
-          selectedId={videoParam}
+          selectedId={activeVideoId}
           onSelect={onSelect}
           onCreate={onCreate}
         />
@@ -107,17 +129,25 @@ export function ProjectWorkspace({
             </p>
           </div>
         ) : (
-          <NewProjectForm
-            key={videoParam ?? "new"}
-            projectId={folder.id}
-            skills={skills}
-            styles={styles}
-            characters={characters}
-            initialVideo={selectedVideo}
-            credits={credits}
-            subscribed={subscribed}
-            onVideoCreated={setOptimisticVideo}
-          />
+          <div className="relative min-w-0">
+            {videoSyncing ? (
+              <p className="pointer-events-none absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-accent-ink/10 bg-paper/95 px-2.5 py-1 text-[11px] font-semibold text-muted shadow-sm">
+                <Spinner className="h-3.5 w-3.5" />
+                同步中
+              </p>
+            ) : null}
+            <NewProjectForm
+              key={activeVideoId ?? "new"}
+              projectId={folder.id}
+              skills={skills}
+              styles={styles}
+              characters={characters}
+              initialVideo={selectedVideo}
+              credits={credits}
+              subscribed={subscribed}
+              onVideoCreated={setOptimisticVideo}
+            />
+          </div>
         )}
       </div>
     </div>
