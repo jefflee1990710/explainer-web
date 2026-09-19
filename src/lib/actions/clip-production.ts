@@ -93,10 +93,16 @@ export async function generateClipFramesAction(
     await assertCanSpendCredits(user, FRAMES_COST);
     await consumeCredits(user.clerkUserId, FRAMES_COST);
     const frames = framesWithClip(project, clipNumber);
-    await projects.updateOne(
-      { _id: project._id },
-      { $set: { frames, status: "production", updatedAt: new Date() } },
-    );
+    try {
+      await projects.updateOne(
+        { _id: project._id },
+        { $set: { frames, status: "production", updatedAt: new Date() } },
+      );
+    } catch (error) {
+      // Write failed before anything went out → give back the full charge.
+      await refundCredits(user.clerkUserId, FRAMES_COST);
+      throw error;
+    }
 
     try {
       await regenerateFrames({ ...project, frames }, [
