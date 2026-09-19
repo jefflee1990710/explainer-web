@@ -14,16 +14,35 @@ function frame(
   position: ClipFrame["position"],
   status: ClipFrame["status"],
   submittedAt?: string,
+  extra?: Partial<ClipFrame>,
 ): ClipFrame {
-  return { clipNumber, position, prompt: "p", status, submittedAt };
+  return {
+    clipNumber,
+    position,
+    prompt: "p",
+    status,
+    submittedAt,
+    // Completed fixtures are "really done" unless the test strips the file.
+    ...(status === "completed" ? { blobUrl: `frame-${clipNumber}-${position}` } : {}),
+    ...extra,
+  };
 }
 
 function clip(
   clipNumber: number,
   status: ProjectClip["status"],
   submittedAt?: string,
+  extra?: Partial<ProjectClip>,
 ): ProjectClip {
-  return { clipNumber, durationSeconds: 5, prompt: "v", status, submittedAt };
+  return {
+    clipNumber,
+    durationSeconds: 5,
+    prompt: "v",
+    status,
+    submittedAt,
+    ...(status === "completed" ? { blobUrl: `clip-${clipNumber}` } : {}),
+    ...extra,
+  };
 }
 
 function project(
@@ -193,4 +212,27 @@ test("productionCounts", () => {
     clips: [clip(1, "completed")],
   });
   assert.deepEqual(productionCounts(p), { total: 2, framesDone: 1, videosDone: 1 });
+});
+
+test("completed frames without a file are still generating, not ready", () => {
+  const p = project({
+    frames: [
+      frame(1, "start", "completed", undefined, { blobUrl: undefined, outputUrl: undefined }),
+      frame(1, "end", "completed", undefined, { blobUrl: undefined, outputUrl: undefined }),
+    ],
+  });
+  assert.equal(clipStateFor(p, 1).stage, "frames_generating");
+  assert.equal(isProjectBusy(p), true);
+  assert.deepEqual(productionCounts(p), { total: 2, framesDone: 0, videosDone: 0 });
+});
+
+test("completed video without a file is still generating, not ready", () => {
+  const p = project({
+    frames: [frame(1, "start", "completed"), frame(1, "end", "completed")],
+    clips: [clip(1, "completed", undefined, { blobUrl: undefined, outputUrl: undefined })],
+  });
+  assert.equal(clipStateFor(p, 1).stage, "video_generating");
+  assert.equal(isProjectBusy(p), true);
+  assert.equal(isProjectReady(p), false);
+  assert.deepEqual(productionCounts(p), { total: 2, framesDone: 1, videosDone: 0 });
 });

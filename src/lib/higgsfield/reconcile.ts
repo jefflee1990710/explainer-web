@@ -1,4 +1,5 @@
 import { isProjectReady, type ClipStageSource } from "@/lib/clip-stage";
+import { mediaSrc } from "@/lib/media-src";
 import { normalizeProjectStatus } from "@/lib/project-status";
 import type { GenerationJob, GenerationStatus } from "@/types/generation-job";
 import type { ClipFrame, ProjectClip, ProjectStatus } from "@/types/project";
@@ -43,11 +44,14 @@ export function reconcileFrames(frames: ClipFrame[], jobs: GenerationJob[]): Cli
       ),
     );
     if (!job || !appliesToClaim(job, frame.submittedAt)) return frame;
+    const nextUrl = mediaSrc(job);
     return {
       ...frame,
       status: toFrameStatus(job.status),
-      outputUrl: job.outputUrl,
-      blobUrl: job.blobUrl,
+      // Keep the last image when the new job has no file yet (pending, failed,
+      // or a completed webhook that omitted the URL).
+      outputUrl: nextUrl ? job.outputUrl : frame.outputUrl ?? job.outputUrl,
+      blobUrl: nextUrl ? job.blobUrl || job.outputUrl : frame.blobUrl ?? job.blobUrl,
       error: job.error,
     };
   });
@@ -61,14 +65,14 @@ export function reconcileClips(clips: ProjectClip[], jobs: GenerationJob[]): Pro
     );
     if (!job || !appliesToClaim(job, clip.submittedAt)) return clip;
     const status = toClipStatus(job.status);
-    const pending = status === "queued" || status === "in_progress";
+    const nextUrl = mediaSrc(job);
     return {
       ...clip,
       status,
       // A fresh job carries no media yet; the previous video stays playable
       // (the panel dims it and marks it 重產中) until the new one replaces it.
-      outputUrl: pending ? clip.outputUrl ?? job.outputUrl : job.outputUrl,
-      blobUrl: pending ? clip.blobUrl ?? job.blobUrl : job.blobUrl,
+      outputUrl: nextUrl ? job.outputUrl : clip.outputUrl ?? job.outputUrl,
+      blobUrl: nextUrl ? job.blobUrl || job.outputUrl : clip.blobUrl ?? job.blobUrl,
       error: job.error,
     };
   });

@@ -16,6 +16,7 @@ import {
   submitClipVideo,
   submitImage,
 } from "@/lib/higgsfield/generate";
+import { jobNeedsRefresh, settleProviderStatus } from "@/lib/higgsfield/job-status";
 import { persistMedia } from "@/lib/higgsfield/persist";
 import {
   nextProjectStatus,
@@ -309,6 +310,12 @@ export async function submitClipVideoJob(
 
 // ---------- status sync ----------
 
+function providerError(payload: unknown) {
+  if (!payload || typeof payload !== "object") return undefined;
+  const error = (payload as { error?: unknown }).error;
+  return typeof error === "string" ? error : undefined;
+}
+
 export async function applyJobStatus(input: {
   requestId: string;
   status: string;
@@ -319,24 +326,24 @@ export async function applyJobStatus(input: {
   const job = await jobs.findOne({ requestId: input.requestId });
   if (!job) return;
 
-  let status = input.status as GenerationStatus;
+  const reported = input.status as GenerationStatus;
   let outputUrl = input.outputUrl;
   let errorMessage = input.error;
+  let status = settleProviderStatus(reported, outputUrl);
 
-  // Webhooks sometimes omit media URLs or error text; refetch once from status_url.
+  // Use the provider's reported status, not the settled one: completed-without-a-
+  // file is rewritten to in_progress, but that is exactly when we must refetch.
+  const statusUrl = job.statusUrl;
   const needsRefetch =
-    job.statusUrl &&
-    (((status === "completed" || status === "nsfw") && !outputUrl) ||
-      ((status === "failed" || status === "nsfw") && !errorMessage));
-  if (needsRefetch) {
+    Boolean(statusUrl) &&
+    (((reported === "completed" || reported === "nsfw") && !outputUrl) ||
+      ((reported === "failed" || reported === "nsfw") && !errorMessage));
+  if (statusUrl && needsRefetch) {
     try {
-      const remote = await fetchHiggsfieldStatus(job.statusUrl);
-      status = remote.status as GenerationStatus;
+      const remote = await fetchHiggsfieldStatus(statusUrl);
       outputUrl = mediaUrlFromResponse(remote) || outputUrl;
-      const remoteError =
-        typeof (remote as { error?: string }).error === "string"
-          ? (remote as { error: string }).error
-          : undefined;
+      status = settleProviderStatus(remote.status as GenerationStatus, outputUrl);
+      const remoteError = providerError(remote);
       if (remoteError) errorMessage = remoteError;
     } catch (error) {
       console.error("[higgsfield] status refetch failed", {
@@ -484,12 +491,13 @@ export async function syncProjectFromJobs(projectId: ObjectId) {
 
 export async function refreshProjectJobs(projectId: ObjectId) {
   const jobs = await generationJobsCollection();
-  const pending = await jobs
+  const candidates = await jobs
     .find({
       projectId,
-      status: { $in: ["queued", "in_progress"] },
+      status: { $in: ["queued", "in_progress", "completed", "nsfw"] },
     })
     .toArray();
+  const pending = candidates.filter(jobNeedsRefresh);
 
   // Fetch statuses in parallel, then apply sequentially so the project
   // sync never races itself.
@@ -519,10 +527,7 @@ export async function refreshProjectJobs(projectId: ObjectId) {
       requestId: result.job.requestId,
       status: result.status.status,
       outputUrl: mediaUrlFromResponse(result.status),
-      error:
-        typeof (result.status as { error?: string }).error === "string"
-          ? (result.status as { error: string }).error
-          : undefined,
+      error: providerError(result.status),
     });
   }
 

@@ -1,3 +1,4 @@
+import { mediaSrc } from "@/lib/media-src";
 import { normalizeProjectStatus } from "@/lib/project-status";
 import type {
   ClipFrame,
@@ -33,6 +34,20 @@ export type ClipStageSource = {
 
 const IN_FLIGHT = new Set<string>(["queued", "in_progress"]);
 
+type MediaItem = { status: string; blobUrl?: string; outputUrl?: string };
+
+// Completed without a stored file is not done: the webhook fired early and the
+// poller still has to fetch the URL. Treat it as in flight so the UI keeps polling.
+function isInFlight(item?: MediaItem) {
+  if (!item) return false;
+  if (IN_FLIGHT.has(item.status)) return true;
+  return item.status === "completed" && !mediaSrc(item);
+}
+
+function isCompleted(item?: MediaItem) {
+  return Boolean(item && item.status === "completed" && mediaSrc(item));
+}
+
 // ISO strings compare lexicographically; missing values never count as later.
 function isLater(a?: string, b?: string) {
   return Boolean(a && b && a > b);
@@ -61,12 +76,12 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
   // > failed video > frames ready > nothing. Frame activity outranks a finished
   // video because the user is redrawing; the panel still shows the old video.
   let stage: ClipStage;
-  if (clip && IN_FLIGHT.has(clip.status)) stage = "video_generating";
-  else if (frames.some((frame) => IN_FLIGHT.has(frame.status))) stage = "frames_generating";
+  if (isInFlight(clip)) stage = "video_generating";
+  else if (frames.some((frame) => isInFlight(frame))) stage = "frames_generating";
   else if (frames.some((frame) => frame.status === "failed")) stage = "frames_failed";
-  else if (clip?.status === "completed") stage = "video_ready";
+  else if (isCompleted(clip)) stage = "video_ready";
   else if (clip?.status === "failed") stage = "video_failed";
-  else if (start?.status === "completed" && end?.status === "completed") stage = "frames_ready";
+  else if (isCompleted(start) && isCompleted(end)) stage = "frames_ready";
   else stage = "no_frames";
 
   return { clipNumber, stage, stale };
@@ -80,8 +95,8 @@ export function clipStatesFor(project: ClipStageSource): ClipState[] {
 export function isProjectBusy(project: ClipStageSource) {
   if (normalizeProjectStatus(project.status) === "phase_a") return true;
   return (
-    (project.frames || []).some((frame) => IN_FLIGHT.has(frame.status)) ||
-    project.clips.some((clip) => IN_FLIGHT.has(clip.status))
+    (project.frames || []).some((frame) => isInFlight(frame)) ||
+    project.clips.some((clip) => isInFlight(clip))
   );
 }
 
