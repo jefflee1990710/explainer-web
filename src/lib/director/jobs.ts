@@ -111,13 +111,14 @@ export async function runClipVideoJob(projectId: ObjectId, clipNumber: number) {
   const project = await projects.findOne({ _id: projectId });
   if (!project?.phaseA) return;
 
-  // Drop the clip's previous video job before Phase B runs: otherwise a stale
-  // job stays the newest one and wins reconciliation while we write the prompt,
-  // overwriting the `queued` clip and, on failure, the `failed` marker below.
-  const jobs = await generationJobsCollection();
-  await jobs.deleteMany({ projectId, kind: "video", clipIndex: clipNumber - 1 });
-
   try {
+    // Drop the clip's previous video job before Phase B runs: otherwise a stale
+    // job stays the newest one and wins reconciliation while we write the
+    // prompt, overwriting the `queued` clip and, on failure, the `failed`
+    // marker below. Inside the try so a failed delete still refunds.
+    const jobs = await generationJobsCollection();
+    await jobs.deleteMany({ projectId, kind: "video", clipIndex: clipNumber - 1 });
+
     const skills = await skillsCollection();
     const skill = await skills.findOne({ _id: project.skillId });
     if (!skill) throw new Error("找不到風格");

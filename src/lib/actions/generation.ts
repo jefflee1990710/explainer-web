@@ -14,6 +14,7 @@ import { runStillJob } from "@/lib/director/jobs";
 import { persistFrameAnnotation } from "@/lib/higgsfield/frame-annotation";
 import { buildFramePrompt, framesWithClip } from "@/lib/higgsfield/frame-prompts";
 import {
+  failUnsubmittedFrames,
   refreshProjectJobs,
   regenerateFrame,
   regenerateFrames,
@@ -295,22 +296,13 @@ export async function updateClipStoryboardAction(
           { clipNumber, position: "end" },
         ]);
       } catch (error) {
-        // Nothing went out: give the credits back, and fail the two entries we
-        // just queued — they have no job, so reconciliation would never move
-        // them off `queued` and the clip would look stuck forever.
-        await refundCredits(user.clerkUserId, cost);
-        await projects.updateOne(
-          { _id: project._id },
-          {
-            $set: {
-              "frames.$[frame].status": "failed",
-              "frames.$[frame].error":
-                error instanceof Error ? error.message : "分鏡圖送出失敗",
-              updatedAt: new Date(),
-            },
-          },
-          { arrayFilters: [{ "frame.clipNumber": clipNumber }] },
-        );
+        // The two frames go out one at a time, so the first may already have a
+        // live job: that one is reconciliation's to finish and refund. Fail and
+        // refund only the entries that never reached the provider, otherwise
+        // they would sit `queued` with no job behind them.
+        const message = error instanceof Error ? error.message : "分鏡圖送出失敗";
+        const missed = await failUnsubmittedFrames(project._id, clipNumber, message);
+        if (missed > 0) await refundCredits(user.clerkUserId, missed * FRAME_COST);
         throw error;
       }
     }

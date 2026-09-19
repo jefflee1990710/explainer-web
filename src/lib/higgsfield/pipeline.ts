@@ -208,6 +208,45 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
   await syncProjectFromJobs(project._id);
 }
 
+// Recovery after a partial submit: frames go out one at a time, so the first
+// may have a live job while the second threw. A frame with a job belongs to
+// reconciliation (it completes, or fails and refunds itself); a frame without
+// one would sit `queued` forever with nothing to move it. Mark only those
+// failed and report the count so the caller refunds exactly what never went out.
+export async function failUnsubmittedFrames(
+  projectId: ObjectId,
+  clipNumber: number,
+  error: string,
+): Promise<number> {
+  const jobs = await generationJobsCollection();
+  const projects = await videosCollection();
+  let marked = 0;
+
+  for (const position of ["start", "end"] as FramePosition[]) {
+    const job = await jobs.findOne({
+      projectId,
+      kind: "frame",
+      clipIndex: clipNumber - 1,
+      framePosition: position,
+    });
+    if (job) continue;
+    await projects.updateOne(
+      { _id: projectId },
+      {
+        $set: {
+          "frames.$[frame].status": "failed",
+          "frames.$[frame].error": error,
+          updatedAt: new Date(),
+        },
+      },
+      { arrayFilters: [{ "frame.clipNumber": clipNumber, "frame.position": position }] },
+    );
+    marked += 1;
+  }
+
+  return marked;
+}
+
 // Single-frame convenience wrapper.
 export async function regenerateFrame(
   project: Project,
