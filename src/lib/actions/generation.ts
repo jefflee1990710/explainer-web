@@ -20,7 +20,7 @@ import {
   stillBlocker,
 } from "@/lib/higgsfield/pipeline";
 import { isProductionLike } from "@/lib/project-status";
-import { FRAMES_COST } from "@/lib/production-plan";
+import { FRAME_COST, FRAMES_COST } from "@/lib/production-plan";
 import { toPublicVideo, type PublicVideo } from "@/lib/serialize";
 import type {
   ClipFrame,
@@ -140,8 +140,8 @@ export async function regenerateFrameAction(
       revision = { remark };
     }
 
-    await assertCanSpendCredits(user, 1);
-    await consumeCredits(user.clerkUserId, 1);
+    await assertCanSpendCredits(user, FRAME_COST);
+    await consumeCredits(user.clerkUserId, FRAME_COST);
     await projects.updateOne(
       { _id: project._id },
       {
@@ -164,7 +164,13 @@ export async function regenerateFrameAction(
 
     // Submission is a single fast request; run inline so the UI flips to
     // "generating" immediately.
-    await regenerateFrame(project, clipNumber, position, revision);
+    try {
+      await regenerateFrame(project, clipNumber, position, revision);
+    } catch (error) {
+      // Nothing went out: give the credit back.
+      await refundCredits(user.clerkUserId, FRAME_COST);
+      throw error;
+    }
 
     const updated = await projects.findOne({ _id: project._id });
     revalidateProject(projectId);
