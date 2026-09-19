@@ -284,10 +284,16 @@ export async function updateClipStoryboardAction(
         });
 
     if (regenerate) await consumeCredits(user.clerkUserId, cost);
-    await projects.updateOne(
-      { _id: project._id },
-      { $set: { "phaseA.clips": clips, frames, updatedAt: new Date() } },
-    );
+    try {
+      await projects.updateOne(
+        { _id: project._id },
+        { $set: { "phaseA.clips": clips, frames, updatedAt: new Date() } },
+      );
+    } catch (error) {
+      // Write failed before anything went out → give back the full charge.
+      if (regenerate) await refundCredits(user.clerkUserId, cost);
+      throw error;
+    }
 
     if (regenerate) {
       try {
