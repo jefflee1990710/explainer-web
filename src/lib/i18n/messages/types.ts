@@ -74,18 +74,13 @@ export type Messages = {
     steps: {
       input: string;
       scene: string;
-      frames: string;
-      video: string;
+      production: string;
     };
     status: Record<
       | "draft"
       | "phase_a"
       | "awaiting_approval"
       | "production"
-      | "frames_generating"
-      | "frames_ready"
-      | "approved"
-      | "generating"
       | "ready"
       | "failed",
       string

@@ -5,7 +5,7 @@ import { resolveStyle, type StyleId } from "@/lib/styles";
 import type { AppUser } from "@/types/user";
 import type { Character, CharacterVersionStatus } from "@/types/character";
 import type { Folder } from "@/types/folder";
-import type { Project } from "@/types/project";
+import type { Project, ProjectStatus } from "@/types/project";
 import type { Skill } from "@/types/skill";
 import type { Subscription } from "@/types/subscription";
 
@@ -39,12 +39,10 @@ export type PublicVideo = {
   characterStillUrl?: string;
   stillError?: string;
   cast: Array<{ characterId: string; name: string; blueprintUrl: string }>;
-  status: Project["status"];
+  status: ProjectStatus;
   phaseA?: Project["phaseA"];
   frames: NonNullable<Project["frames"]>;
-  framesCreditCost: number;
   clips: Project["clips"];
-  creditCost: number;
   error?: string;
   createdAt: string;
 };
@@ -54,7 +52,7 @@ export type PublicProject = PublicVideo; // remove after call sites updated
 export type PublicFolder = {
   id: string;
   name: string;
-  status: Project["status"];
+  status: ProjectStatus;
   videoCount: number;
   previewUrl: string | null;
   createdAt: string;
@@ -92,9 +90,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     status: normalizeProjectStatus(video.status),
     phaseA: video.phaseA,
     frames: video.frames || [],
-    framesCreditCost: video.framesCreditCost || 0,
     clips: video.clips,
-    creditCost: video.creditCost || 0,
     error: video.error,
     createdAt: video.createdAt.toISOString(),
   };

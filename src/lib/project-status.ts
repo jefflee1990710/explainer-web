@@ -1,4 +1,9 @@
-import type { ClipFrame, PhaseAProposal, ProjectStatus } from "@/types/project";
+import type {
+  ClipFrame,
+  LegacyProjectStatus,
+  PhaseAProposal,
+  ProjectStatus,
+} from "@/types/project";
 
 // Visual tone for status badges; maps to Tailwind classes in StatusBadge.
 export type StatusTone = "neutral" | "working" | "action" | "success" | "danger";
@@ -11,9 +16,9 @@ export type StatusMeta = {
   busy: boolean;
 };
 
-export const PROJECT_STEP_IDS = ["input", "scene", "frames", "video"] as const;
+export const PROJECT_STEP_IDS = ["input", "scene", "production"] as const;
 
-// The four user-facing steps shown in the stepper (labels via i18n).
+// The three user-facing steps shown in the stepper (labels via i18n).
 export const PROJECT_STEPS = PROJECT_STEP_IDS.map((id) => ({ id }));
 
 export const STATUS_META: Record<ProjectStatus, StatusMeta> = {
@@ -23,15 +28,11 @@ export const STATUS_META: Record<ProjectStatus, StatusMeta> = {
   // Static `busy` so folder rollups / dashboard filters work from statuses alone;
   // components with the full project use isProjectBusy() for the precise answer.
   production: { tone: "working", step: 2, busy: true },
-  frames_generating: { tone: "working", step: 2, busy: true },
-  frames_ready: { tone: "action", step: 2, busy: false },
-  approved: { tone: "working", step: 3, busy: true },
-  generating: { tone: "working", step: 3, busy: true },
-  ready: { tone: "success", step: 3, busy: false },
+  ready: { tone: "success", step: 2, busy: false },
   failed: { tone: "danger", step: 0, busy: false },
 };
 
-const LEGACY_PRODUCTION = new Set<ProjectStatus>([
+const LEGACY_PRODUCTION = new Set<string>([
   "frames_generating",
   "frames_ready",
   "approved",
@@ -39,26 +40,24 @@ const LEGACY_PRODUCTION = new Set<ProjectStatus>([
 ]);
 
 // Pre per-clip statuses read as `production`.
-export function normalizeProjectStatus(status: ProjectStatus): ProjectStatus {
-  return LEGACY_PRODUCTION.has(status) ? "production" : status;
+export function normalizeProjectStatus(
+  status: ProjectStatus | LegacyProjectStatus,
+): ProjectStatus {
+  return LEGACY_PRODUCTION.has(status) ? "production" : (status as ProjectStatus);
 }
 
 // True once the storyboard is approved and clips may be produced/redone.
-export function isProductionLike(status: ProjectStatus) {
+export function isProductionLike(status: ProjectStatus | LegacyProjectStatus) {
   const normalized = normalizeProjectStatus(status);
   return normalized === "production" || normalized === "ready";
 }
 
-// Infer which step a failed project fell over on from what it already has.
+// A failed project either never got a storyboard (step 1) or failed later (step 2).
 export function failedStepFor(project: {
   phaseA?: PhaseAProposal;
   frames?: ClipFrame[];
 }) {
-  if (!project.phaseA) return 1;
-  const frames = project.frames || [];
-  const framesDone =
-    frames.length > 0 && frames.every((frame) => frame.status === "completed");
-  return framesDone ? 3 : 2;
+  return project.phaseA ? 2 : 1;
 }
 
 // Filter groups used on the dashboard.

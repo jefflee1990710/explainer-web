@@ -23,6 +23,7 @@ import {
   reviseProjectAction,
   updatePhaseAProposalAction,
 } from "@/lib/actions/projects";
+import { isProjectBusy, productionCounts } from "@/lib/clip-stage";
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { failedStepFor } from "@/lib/project-status";
@@ -289,6 +290,12 @@ export function NewProjectForm({
           <ProjectStepper
             status={project?.status ?? "draft"}
             failedAtStep={project?.status === "failed" ? failedStepFor(project) : undefined}
+            busy={project ? isProjectBusy(project) : false}
+            detail={
+              project && (project.status === "production" || project.status === "ready")
+                ? `影片 ${productionCounts(project).videosDone}/${productionCounts(project).total}`
+                : undefined
+            }
           />
         </div>
 

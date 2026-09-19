@@ -21,8 +21,8 @@ export const es: Partial<Messages> = {
     searchPlaceholder: "Buscar por nombre o tema…", searchLabel: "Buscar por nombre o tema", filterLabel: "Filtro de estado",
   },
   project: {
-    steps: { input: "Contenido", scene: "Escena", frames: "Fotogramas", video: "Vídeo" },
-    status: { draft: "Borrador", phase_a: "Redactando el guion gráfico", awaiting_approval: "Revisión del guion gráfico", production: "En producción", frames_generating: "Renderizando fotogramas", frames_ready: "Revisión de fotogramas", approved: "Preparando el renderizado", generating: "Renderizando", ready: "Terminado", failed: "Error" },
+    steps: { input: "Contenido", scene: "Escena", production: "Producción" },
+    status: { draft: "Borrador", phase_a: "Redactando el guion gráfico", awaiting_approval: "Revisión del guion gráfico", production: "En producción", ready: "Terminado", failed: "Error" },
     filters: { all: "Todos", action: "Requiere atención", active: "En curso", ready: "Terminados", failed: "Con errores" },
   },
   characters: { title: "Personajes", create: "Nuevo personaje", empty: "Aún no hay personajes." },

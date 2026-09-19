@@ -21,8 +21,8 @@ export const ko: Partial<Messages> = {
     searchPlaceholder: "프로젝트 이름 또는 주제 검색…", searchLabel: "프로젝트 이름 또는 주제 검색", filterLabel: "상태 필터",
   },
   project: {
-    steps: { input: "입력", scene: "장면", frames: "프레임", video: "영상" },
-    status: { draft: "초안", phase_a: "스토리보드 작성 중", awaiting_approval: "스토리보드 검토", production: "제작 중", frames_generating: "프레임 렌더링 중", frames_ready: "프레임 검토", approved: "렌더링 준비 중", generating: "렌더링 중", ready: "완료", failed: "실패" },
+    steps: { input: "입력", scene: "장면", production: "제작" },
+    status: { draft: "초안", phase_a: "스토리보드 작성 중", awaiting_approval: "스토리보드 검토", production: "제작 중", ready: "완료", failed: "실패" },
     filters: { all: "전체", action: "조치 필요", active: "진행 중", ready: "완료", failed: "실패" },
   },
   characters: { title: "캐릭터", create: "새 캐릭터", empty: "아직 캐릭터가 없습니다." },

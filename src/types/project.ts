@@ -12,20 +12,21 @@ export type VoLanguage = "en" | "yue" | "zh";
 // `production` = storyboard approved; every clip's frames and video are made
 // independently. Frame/video failures live on the clip, so `failed` only ever
 // means Phase A failed.
-// `frames_generating | frames_ready | approved | generating` are legacy values
-// from the pre per-clip pipeline: normalised to `production` on read and
-// removed from this union once nothing writes them.
 export type ProjectStatus =
   | "draft"
   | "phase_a"
   | "awaiting_approval"
   | "production"
+  | "ready"
+  | "failed";
+
+// Written by the pre per-clip pipeline; still present in Mongo. Normalised to
+// `production` by normalizeProjectStatus() on every read.
+export type LegacyProjectStatus =
   | "frames_generating"
   | "frames_ready"
   | "approved"
-  | "generating"
-  | "ready"
-  | "failed";
+  | "generating";
 
 export type FramePosition = "start" | "end";
 
@@ -153,7 +154,7 @@ export type Project = {
   characterImageUrl?: string;
   // Characters chosen at creation; snapshot of each default blueprint.
   cast?: CastMember[];
-  status: ProjectStatus;
+  status: ProjectStatus | LegacyProjectStatus;
   phaseA?: PhaseAProposal;
   phaseB?: PhaseBPackage;
   characterStillUrl?: string;

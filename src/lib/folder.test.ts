@@ -24,7 +24,7 @@ test("folder name prefers localized title and caps at 80 chars", () => {
 test("rollup prefers failed, then busy, then action, then all ready, else draft", () => {
   assert.equal(folderRollupStatus([]), "draft");
   assert.equal(folderRollupStatus(["ready", "failed"]), "failed");
-  assert.equal(folderRollupStatus(["ready", "generating"]), "generating");
+  assert.equal(folderRollupStatus(["ready", "production"]), "production");
   assert.equal(folderRollupStatus(["ready", "awaiting_approval"]), "awaiting_approval");
   assert.equal(folderRollupStatus(["ready", "ready"]), "ready");
 });

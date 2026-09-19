@@ -168,8 +168,8 @@ export async function regenerateFrameAction(
       },
     );
 
-    // Submission is a single fast request; run inline so the UI flips to
-    // "generating" immediately.
+    // Submission is a single fast request; run inline so the frame shows
+    // in-progress feedback immediately.
     try {
       await regenerateFrame(project, clipNumber, position, revision);
     } catch (error) {

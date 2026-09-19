@@ -13,21 +13,27 @@ export function currentStepFor(status: ProjectStatus, failedAtStep?: number) {
   return STATUS_META[status].step;
 }
 
-// Horizontal stepper: 題材 → 分鏡 → 分鏡圖 → 影片.
+// Horizontal stepper: 題材 → 分鏡 → 製作.
 export function ProjectStepper({
   status,
   failedAtStep,
   compact = false,
+  busy,
+  detail,
 }: {
   status: ProjectStatus;
   failedAtStep?: number;
   compact?: boolean;
+  // Overrides STATUS_META.busy when the caller knows (isProjectBusy).
+  busy?: boolean;
+  // Small text under the current step, e.g. "影片 2/6".
+  detail?: string;
 }) {
   const { t } = useI18n();
   const current = currentStepFor(status, failedAtStep);
   const done = status === "ready";
   const failed = status === "failed";
-  const busy = STATUS_META[status].busy;
+  const isBusy = busy ?? STATUS_META[status].busy;
 
   if (compact) {
     return (
@@ -83,7 +89,7 @@ export function ProjectStepper({
                 ) : (
                   index + 1
                 )}
-                {state === "current" && busy ? (
+                {state === "current" && isBusy ? (
                   <motion.span
                     aria-hidden
                     className="absolute inset-0 rounded-full border-2 border-accent-ink/40"
@@ -101,7 +107,7 @@ export function ProjectStepper({
                   {projectStepLabel(step.id, t)}
                 </span>
                 <span className="font-display text-[10px] uppercase tracking-wider text-muted">
-                  {step.id}
+                  {state === "current" && detail ? detail : step.id}
                 </span>
               </span>
             </div>

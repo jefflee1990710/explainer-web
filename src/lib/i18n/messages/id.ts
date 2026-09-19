@@ -21,8 +21,8 @@ export const id: Partial<Messages> = {
     searchPlaceholder: "Cari nama atau topik proyek…", searchLabel: "Cari nama atau topik proyek", filterLabel: "Filter status",
   },
   project: {
-    steps: { input: "Input", scene: "Adegan", frames: "Frame", video: "Video" },
-    status: { draft: "Draf", phase_a: "Menulis storyboard", awaiting_approval: "Peninjauan storyboard", production: "Dalam produksi", frames_generating: "Merender frame", frames_ready: "Peninjauan frame", approved: "Menyiapkan rendering", generating: "Merender", ready: "Selesai", failed: "Gagal" },
+    steps: { input: "Input", scene: "Adegan", production: "Produksi" },
+    status: { draft: "Draf", phase_a: "Menulis storyboard", awaiting_approval: "Peninjauan storyboard", production: "Dalam produksi", ready: "Selesai", failed: "Gagal" },
     filters: { all: "Semua", action: "Perlu tindakan", active: "Sedang berlangsung", ready: "Selesai", failed: "Gagal" },
   },
   characters: { title: "Karakter", create: "Karakter baru", empty: "Belum ada karakter." },

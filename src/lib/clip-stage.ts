@@ -1,4 +1,10 @@
-import type { ClipFrame, ProjectClip, ProjectStatus } from "@/types/project";
+import { normalizeProjectStatus } from "@/lib/project-status";
+import type {
+  ClipFrame,
+  LegacyProjectStatus,
+  ProjectClip,
+  ProjectStatus,
+} from "@/types/project";
 
 // Where one clip is in production. Derived, never stored.
 export type ClipStage =
@@ -19,7 +25,7 @@ export type ClipState = {
 
 // Minimal shape so both the Mongo `Project` and `PublicVideo` fit.
 export type ClipStageSource = {
-  status: ProjectStatus;
+  status: ProjectStatus | LegacyProjectStatus;
   phaseA?: { clips: Array<{ clipNumber: number; editedAt?: string }> };
   frames?: ClipFrame[];
   clips: ProjectClip[];
@@ -72,7 +78,7 @@ export function clipStatesFor(project: ClipStageSource): ClipState[] {
 
 // Poll while the director writes, or while any frame/video job is in flight.
 export function isProjectBusy(project: ClipStageSource) {
-  if (project.status === "phase_a") return true;
+  if (normalizeProjectStatus(project.status) === "phase_a") return true;
   return (
     (project.frames || []).some((frame) => IN_FLIGHT.has(frame.status)) ||
     project.clips.some((clip) => IN_FLIGHT.has(clip.status))

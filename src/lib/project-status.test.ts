@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isProductionLike, normalizeProjectStatus } from "./project-status";
+import { failedStepFor, isProductionLike, normalizeProjectStatus } from "./project-status";
 
 test("legacy middle statuses normalise to production", () => {
   assert.equal(normalizeProjectStatus("frames_generating"), "production");
@@ -23,4 +23,9 @@ test("isProductionLike covers production, ready and legacy middle statuses", () 
   assert.equal(isProductionLike("generating"), true);
   assert.equal(isProductionLike("awaiting_approval"), false);
   assert.equal(isProductionLike("failed"), false);
+});
+
+test("failedStepFor: storyboard missing → 1, present → 2", () => {
+  assert.equal(failedStepFor({}), 1);
+  assert.equal(failedStepFor({ phaseA: { clips: [] } as never }), 2);
 });
