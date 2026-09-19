@@ -106,10 +106,15 @@ export function isProjectBusy(project): boolean;                  // phase_a, or
 export function isProjectReady(project): boolean;                 // every clip video_ready
 ```
 
-Precedence when several conditions hold: `video_generating` > `video_ready` >
-`video_failed` > `frames_generating` > `frames_failed` > `frames_ready` >
-`no_frames`. A clip with a failed video and completed frames is
-`video_failed` (not `frames_ready`) so the UI can show "retry".
+Precedence when several conditions hold: `video_generating` >
+`frames_generating` > `frames_failed` > `video_ready` > `video_failed` >
+`frames_ready` > `no_frames`. Frame activity outranks a finished video because
+the user is actively redrawing; the video panel still shows the stored video
+from `clips[]` regardless of stage. A clip with a failed video and completed
+frames is `video_failed` (not `frames_ready`) so the UI can show "retry".
+
+Timestamps (`editedAt`, `submittedAt`) are stored as ISO-8601 strings so they
+serialise unchanged through `toPublicVideo` and compare lexicographically.
 
 Stale rules:
 
@@ -297,9 +302,10 @@ step label and drop the `frames` one.
 - `src/lib/director/run-phase-b.test.ts` — `runPhaseBForClip` prompt contains
   neighbour context; first and last clips omit the missing neighbour (mocked
   model).
-- `src/lib/higgsfield/pipeline.test.ts` — `syncProjectFromJobs` reconciles a
-  mix of clips with and without video jobs; one failure does not touch other
-  clips; `ready` only when every clip is complete.
+- `src/lib/higgsfield/reconcile.test.ts` — the pure reconciliation behind
+  `syncProjectFromJobs`: a mix of clips with and without video jobs; newest
+  job wins; one failure does not touch other clips; `ready` only when every
+  clip is complete; non-production statuses pass through.
 - Existing `frame-prompts.test.ts`, `phase-a-edit.test.ts`, `folder.test.ts`
   must still pass (folder helpers reference statuses).
 - Manual browser pass: create → approve → frames #1 → video #1 → frames #2 →
