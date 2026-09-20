@@ -1,4 +1,4 @@
-import { getAppUrl } from "@/lib/app-url";
+import { getAppUrl, isPublicHttpUrl } from "@/lib/app-url";
 import {
   assertHiggsfieldConfigured,
   mediaUrlFromResponse,
@@ -17,10 +17,10 @@ function isQwenImage3(model: string) {
 function webhookOptions() {
   const secret = process.env.HF_WEBHOOK_SECRET;
   if (!secret) return undefined;
-  return {
-    url: `${getAppUrl()}/api/webhooks/higgsfield`,
-    secret,
-  };
+  const url = `${getAppUrl()}/api/webhooks/higgsfield`;
+  // Local / private APP_URL is rejected by Higgsfield; poller covers those jobs.
+  if (!isPublicHttpUrl(url)) return undefined;
+  return { url, secret };
 }
 
 function imageRefs(urls: Array<string | undefined>) {
