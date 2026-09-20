@@ -1,6 +1,7 @@
 import { generateText, Output } from "ai";
 import {
   castBlockForPhaseA,
+  characterLockFromCast,
   characterReferenceUrls,
   directorImageParts,
   phaseASoloCharacterNote,
@@ -65,7 +66,7 @@ Planning explanations (narrativeJob, explainerScene, motionCamera, hookStrategy,
 Each clip's start and end are the SAME SHOT: explainerScene and motionCamera must describe a modest continuation (pose, props, labels sliding or morphing), not a new camera or a character teleporting across the frame. The next clip's start inherits the previous clip's end environment.
 ${
   characterImages.length
-    ? "Character reference images are attached to the user message. You MUST inspect them and follow those exact characters when writing characterLock and every explainerScene and motionCamera. Plan each scene around those characters as the subject. Do not invent a replacement hero."
+    ? "Character reference images / blueprints are attached to the user message. You MUST inspect them. characterLock must ONLY name the cast and say appearance follows the attached blueprint — never invent hair, face, clothing, or accessories. In explainerScene and motionCamera describe pose, props, labels, and environment only. Plan each scene around those characters as the subject. Do not invent a replacement hero."
     : ""
 }
 ${language.skillHint}
@@ -97,6 +98,17 @@ Produce a complete Phase A director proposal now.`,
 
   if (!output) {
     throw new Error("解說提案產生失敗");
+  }
+  // Overwrite any invented look text so frame prompts never inherit a wrong outfit.
+  if (input.cast && input.cast.length > 0) {
+    return { ...output, characterLock: characterLockFromCast(input.cast) };
+  }
+  if (input.characterImageUrl) {
+    return {
+      ...output,
+      characterLock:
+        "角色外貌一律以附加參考圖為準；禁止另行描述或改動髮型、臉型、服裝或配件。",
+    };
   }
   return output;
 }

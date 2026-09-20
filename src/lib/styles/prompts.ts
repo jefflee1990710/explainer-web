@@ -13,7 +13,7 @@ export function styleBlockForDirector(style: Style) {
     `Typography: ${style.typography}.`,
     `Motion: ${style.motion}.`,
     `Never: ${style.negatives}.`,
-    "Write visualWorld, palette and characterLock in this style. The character-identity lock and the default everyman character still apply (redrawn in this style) unless a cast is given. Keep every other rule (hooks, pacing, clip structure, cast lock, narration) unchanged.",
+    "Write visualWorld and palette in this style. If a cast or character reference is given, characterLock must only say appearance follows the attached blueprint — never invent clothing or hairstyle from this palette. The default everyman applies only when no cast/reference is given. Keep every other rule (hooks, pacing, clip structure, cast lock, narration) unchanged.",
   ].join("\n");
 }
 

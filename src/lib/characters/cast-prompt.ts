@@ -26,6 +26,13 @@ export function directorImageParts(urls: string[]): Array<{ type: "image"; image
   });
 }
 
+// Deterministic lock when a cast is selected. Never invent clothing/hair —
+// the attached blueprint is the only appearance source.
+export function characterLockFromCast(cast: CastMember[]): string {
+  const names = cast.map((member) => member.name).join("、");
+  return `${names}：外貌、髮型、服裝、配件與比例一律以附加角色藍圖為準；禁止另行描述或改動角色造型。`;
+}
+
 // A member created from an image alone carries no text description.
 function isUndescribed(member: CastMember) {
   return member.prompt.trim().length === 0;
@@ -33,31 +40,31 @@ function isUndescribed(member: CastMember) {
 
 export function castBlockForPhaseA(cast: CastMember[] | undefined) {
   if (!cast || cast.length === 0) return null;
-  const anyUndescribed = cast.some(isUndescribed);
   return [
     "Cast (use these exact names; they are the only recurring characters):",
     ...cast.map((member) =>
       isUndescribed(member)
         ? `- ${member.name}: (appearance defined only by the attached reference sheet)`
-        : `- ${member.name}: ${member.prompt}`,
+        : `- ${member.name}: ${member.prompt} (staging hint only; appearance still follows the attached reference sheet)`,
     ),
-    // The director now sees the attached sheets, but must not invent extra
-    // looks in characterLock that could fight the images later.
-    ...(anyUndescribed
-      ? [
-          "Some cast members have no text description. Do NOT invent or describe hair, face, clothing, accessories, gender or age for them anywhere (characterLock, palette, explainerScene).",
-          "For such members, characterLock must only list the cast names and say their appearance follows the attached reference sheet.",
-        ]
-      : ["Write characterLock as a compact summary of the cast above."]),
+    // Blueprint always wins. characterLock must never invent looks that later
+    // fight the sheet in frame generation.
+    "characterLock MUST only list the cast names and say their appearance follows the attached character blueprint / reference sheet. Do NOT invent or describe hair, face, clothing, accessories, gender, age, or colouring in characterLock, palette, or explainerScene.",
+    "In explainerScene and motionCamera, refer to cast members by name and describe pose, props, labels, and environment only — never invent outfit or hairstyle details.",
     "Reference cast members by name in explainerScene.",
-    "The selected cast's reference images are attached. You MUST inspect them and follow those exact characters when planning every scene (characterLock, explainerScene, motionCamera). Stage each shot around them as the subject. Do not invent a replacement hero.",
+    "The selected cast's reference images are attached. You MUST inspect them and follow those exact characters when planning every scene. Stage each shot around them as the subject. Do not invent a replacement hero.",
   ].join("\n");
 }
 
 // User-message note when there is no named cast.
 export function phaseASoloCharacterNote(characterImageUrl?: string) {
   if (characterImageUrl) {
-    return "A character reference image is attached. You MUST inspect it, lock that exact character, and follow it when planning every scene. Do not invent a replacement hero.";
+    return [
+      "A character reference image is attached. You MUST inspect it.",
+      "characterLock MUST only say appearance follows the attached reference image — do NOT invent hair, face, clothing, or accessories.",
+      "In explainerScene, describe pose and props only; never invent outfit details.",
+      "Do not invent a replacement hero.",
+    ].join(" ");
   }
   return "No character reference image. Use the default locked everyman from the skill.";
 }
@@ -71,8 +78,8 @@ export function castLineForPhaseB(cast: CastMember[] | undefined) {
 
 function attachmentLabel(start?: number, count?: number) {
   if (!start || !count) return "Cast reference sheets are attached; they are";
-  if (count === 1) return `Attached image ${start} is the selected character reference; it is`;
-  return `Attached images ${start}–${start + count - 1} are the selected character references; they are`;
+  if (count === 1) return `Attached image ${start} is the selected character blueprint; it is`;
+  return `Attached images ${start}–${start + count - 1} are the selected character blueprints; they are`;
 }
 
 // Frame prompts: the attached blueprint outranks any text about the character,
@@ -83,21 +90,40 @@ export function castParagraphForFrames(
 ) {
   if (!cast || cast.length === 0) return [];
   return [
-    `${attachmentLabel(attachment?.start, attachment?.count)} the ONLY source of truth for how each character looks. Match each sheet exactly (face, hair, outfit, proportions, gender). If any text below conflicts with a sheet, the reference sheet wins.`,
+    `${attachmentLabel(attachment?.start, attachment?.count)} the ONLY source of truth for how each character looks. Match each blueprint exactly (face, hair, outfit, accessories, proportions, gender).`,
+    "Ignore any clothing, hair, or style wording in the scene text, palette, or locked-character note — the blueprint wins.",
     `Cast names: ${cast.map((member) => member.name).join(", ")}.`,
-    "Plan this scene around these exact characters as the subject. Draw them as they appear on the attached sheets. Do not invent a replacement hero.",
+    "Plan this scene around these exact characters as the subject. Draw them as they appear on the attached blueprints. Do not invent a replacement hero or redesign their outfit.",
   ];
 }
 
 // No named cast: the generated still / uploaded image is still a hard lock.
 export function soloCharacterParagraphForFrames(attachmentStart?: number) {
   const lead = attachmentStart
-    ? `Attached image ${attachmentStart} is the selected character reference; it is`
-    : "The attached character reference is";
+    ? `Attached image ${attachmentStart} is the selected character guideline; it is`
+    : "The attached character guideline is";
   return [
     `${lead} the ONLY source of truth for how the character looks.`,
-    "Plan this scene around that exact character as the subject. Draw them as they appear in the reference. Do not invent a replacement hero.",
+    "Ignore any clothing, hair, or style wording in the scene text — the attached guideline wins.",
+    "Plan this scene around that exact character as the subject. Draw them as they appear in the guideline. Do not invent a replacement hero or redesign their outfit.",
   ];
+}
+
+// When a cast (or still) is attached, never echo Phase A's invented look text.
+export function frameCharacterLockLine(
+  cast: CastMember[] | undefined,
+  hasCharacterImage: boolean,
+  characterLock: string,
+) {
+  if (cast && cast.length > 0) {
+    return `Locked cast (names only; appearance follows the attached blueprint only): ${cast
+      .map((member) => member.name)
+      .join(", ")}.`;
+  }
+  if (hasCharacterImage) {
+    return "Locked character: appearance follows the attached character guideline only. Do not invent outfit or hairstyle from text.";
+  }
+  return `Locked character (must look identical in every frame): ${characterLock}`;
 }
 
 export function castReferenceUrls(cast: CastMember[] | undefined) {

@@ -100,7 +100,7 @@ test("sibling reference line appears only when a styleRefUrl is given", () => {
   assert.match(withRef, /the completed sibling frame from the other end of this clip/);
 });
 
-test("with a cast, the reference-sheet rule precedes the text characterLock", () => {
+test("with a cast, the blueprint rule precedes names-only lock and skips invented looks", () => {
   const withCast = project();
   withCast.cast = [
     {
@@ -111,18 +111,19 @@ test("with a cast, the reference-sheet rule precedes the text characterLock", ()
       prompt: "",
     },
   ];
+  withCast.phaseA!.characterLock = "Math Tutor 穿鼠尾草綠無袖連身裙";
   const prompt = buildFramePrompt(withCast, 1, "start");
-  const sheetAt = prompt.indexOf("Attached image 1 is the selected character reference");
-  const lockAt = prompt.indexOf("Locked character");
+  const sheetAt = prompt.indexOf("Attached image 1 is the selected character blueprint");
+  const lockAt = prompt.indexOf("Locked cast");
   assert.ok(sheetAt >= 0, "cast sheet line missing");
-  assert.ok(lockAt >= 0, "characterLock line missing");
-  assert.ok(sheetAt < lockAt, "reference-sheet rule must come before the text lock");
-  // The text lock is demoted to a hint when a cast exists.
+  assert.ok(lockAt >= 0, "cast lock line missing");
+  assert.ok(sheetAt < lockAt, "blueprint rule must come before the lock line");
   assert.match(
     prompt,
-    /Locked character \(names and staging hint; appearance comes from the attached reference\): lock/,
+    /Locked cast \(names only; appearance follows the attached blueprint only\): Math Tutor\./,
   );
-  assert.match(prompt, /Plan this scene around these exact characters/);
+  assert.doesNotMatch(prompt, /鼠尾草綠無袖連身裙/);
+  assert.match(prompt, /Ignore any clothing, hair, or style wording/);
 });
 
 test("character sheet is numbered after the annotated redo and sibling still", () => {
@@ -140,15 +141,37 @@ test("character sheet is numbered after the annotated redo and sibling still", (
     revision: { annotatedUrl: "https://x/annotated.png" },
     styleRefUrl: "https://x/sibling.png",
   });
-  assert.match(prompt, /Attached image 3 is the selected character reference/);
+  assert.match(prompt, /Attached image 3 is the selected character blueprint/);
+});
+
+test("end-frame anchor keeps camera from start but outfit from blueprint", () => {
+  const withCast = project();
+  withCast.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Lily",
+      blueprintUrl: "https://blob/c.png",
+      prompt: "",
+    },
+  ];
+  const prompt = buildFramePrompt(withCast, 1, "end", {
+    styleRefUrl: "https://x/start.png",
+    anchorKind: "clip-start",
+  });
+  assert.match(prompt, /THIS CLIP'S START frame/);
+  assert.match(prompt, /MUST match the attached character blueprint exactly/);
+  assert.match(prompt, /Do not copy drifted clothing from the start frame/);
 });
 
 test("a solo still is attached as the character the scene must follow", () => {
   const solo = project();
   solo.characterStillUrl = "https://blob/still.png";
+  solo.phaseA!.characterLock = "發明的綠洋裝";
   const prompt = buildFramePrompt(solo, 1, "start");
-  assert.match(prompt, /Attached image 1 is the selected character reference/);
-  assert.match(prompt, /Plan this scene around that exact character/);
+  assert.match(prompt, /Attached image 1 is the selected character guideline/);
+  assert.match(prompt, /attached character guideline only/);
+  assert.doesNotMatch(prompt, /發明的綠洋裝/);
 });
 
 test("without a cast, the text characterLock stays authoritative", () => {

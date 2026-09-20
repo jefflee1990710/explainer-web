@@ -6,8 +6,10 @@ import {
   castLineForPhaseB,
   castParagraphForFrames,
   castReferenceUrls,
+  characterLockFromCast,
   characterReferenceUrls,
   directorImageParts,
+  frameCharacterLockLine,
   phaseASoloCharacterNote,
 } from "./cast-prompt";
 import type { CastMember } from "@/types/character";
@@ -29,14 +31,14 @@ const cast: CastMember[] = [
   },
 ];
 
-test("phase A cast block names every member and asks for a lock summary", () => {
+test("phase A cast block names every member and forbids inventing looks", () => {
   const block = castBlockForPhaseA(cast);
   assert.ok(block);
   assert.match(block, /^Cast \(use these exact names/);
   assert.match(block, /- 小明: 七歲男孩，藍格子睡衣/);
-  assert.match(block, /- 阿花: 戴眼鏡的女孩/);
-  assert.match(block, /characterLock/);
-  assert.match(block, /You MUST inspect them and follow those exact characters when planning every scene/);
+  assert.match(block, /appearance still follows the attached reference sheet/);
+  assert.match(block, /characterLock MUST only list the cast names/);
+  assert.match(block, /never invent outfit or hairstyle details/);
   assert.equal(castBlockForPhaseA([]), null);
   assert.equal(castBlockForPhaseA(undefined), null);
 });
@@ -54,15 +56,16 @@ test("phase A cast block never lets the director invent looks for an undescribed
   ];
   const block = castBlockForPhaseA(imageOnly)!;
   assert.match(block, /- Math Tutor: \(appearance defined only by the attached reference sheet\)/);
-  assert.match(block, /Do NOT invent or describe hair, face, clothing, accessories, gender or age/);
-  assert.match(block, /characterLock must only list the cast names/);
+  assert.match(block, /Do NOT invent or describe hair, face, clothing/);
+  assert.match(block, /characterLock MUST only list the cast names/);
   assert.doesNotMatch(block, /- Math Tutor: $/m);
 });
 
-test("phase A cast block still summarises described members", () => {
-  const block = castBlockForPhaseA(cast)!;
-  assert.match(block, /Write characterLock as a compact summary of the cast above/);
-  assert.doesNotMatch(block, /appearance defined only by the attached reference sheet/);
+test("characterLockFromCast never invents outfit details", () => {
+  const lock = characterLockFromCast(cast);
+  assert.match(lock, /小明、阿花/);
+  assert.match(lock, /角色藍圖為準/);
+  assert.doesNotMatch(lock, /睡衣|眼鏡|連身裙/);
 });
 
 test("phase B line lists names with blueprint urls or none", () => {
@@ -77,11 +80,26 @@ test("frame paragraph and reference urls follow the cast", () => {
   const lines = castParagraphForFrames(cast);
   assert.match(lines[0], /Cast reference sheets are attached/);
   assert.match(lines[0], /the ONLY source of truth for how each character looks/);
-  assert.match(lines[0], /the reference sheet wins/);
-  assert.match(lines[1], /小明, 阿花/);
-  assert.match(lines[2], /Plan this scene around these exact characters/);
+  assert.match(lines[1], /Ignore any clothing, hair, or style wording/);
+  assert.match(lines[2], /小明, 阿花/);
+  assert.match(lines[3], /Do not invent a replacement hero or redesign their outfit/);
   assert.deepEqual(castParagraphForFrames(undefined), []);
   assert.deepEqual(castReferenceUrls(cast), ["https://blob/a.png", "https://blob/b.png"]);
+});
+
+test("frameCharacterLockLine omits invented Phase A look text when cast exists", () => {
+  assert.equal(
+    frameCharacterLockLine(cast, true, "小明穿鼠尾草綠連身裙"),
+    "Locked cast (names only; appearance follows the attached blueprint only): 小明, 阿花.",
+  );
+  assert.match(
+    frameCharacterLockLine(undefined, true, "invented look"),
+    /attached character guideline only/,
+  );
+  assert.match(
+    frameCharacterLockLine(undefined, false, "lock text"),
+    /Locked character \(must look identical in every frame\): lock text/,
+  );
 });
 
 test("characterReferenceUrls prefers the selected cast over a still", () => {
@@ -111,6 +129,6 @@ test("directorImageParts keeps valid character urls as image parts", () => {
 
 test("phase A solo note asks the director to follow an attached image", () => {
   assert.match(phaseASoloCharacterNote("https://blob/c.png"), /A character reference image is attached/);
-  assert.match(phaseASoloCharacterNote("https://blob/c.png"), /follow it when planning every scene/);
+  assert.match(phaseASoloCharacterNote("https://blob/c.png"), /do NOT invent hair/);
   assert.match(phaseASoloCharacterNote(), /default locked everyman/);
 });

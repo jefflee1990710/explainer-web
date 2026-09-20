@@ -1,4 +1,5 @@
 import type { ObjectId } from "mongodb";
+import { characterLockFromCast } from "@/lib/characters/cast-prompt";
 import { refundCredits } from "@/lib/billing/credits";
 import {
   generationJobsCollection,
@@ -62,6 +63,14 @@ export async function runPhaseAJob(
       options?.clipsOnly && project.phaseA
         ? keepProposalRegenerateClips(project.phaseA, phaseA)
         : phaseA;
+    // Always pin characterLock to the cast blueprint rule, including clips-only
+    // regenerations that would otherwise keep a previously invented outfit.
+    if (project.cast && project.cast.length > 0) {
+      nextPhaseA.characterLock = characterLockFromCast(project.cast);
+    } else if (project.characterImageUrl) {
+      nextPhaseA.characterLock =
+        "角色外貌一律以附加參考圖為準；禁止另行描述或改動髮型、臉型、服裝或配件。";
+    }
 
     await projects.updateOne(
       { _id: projectId },

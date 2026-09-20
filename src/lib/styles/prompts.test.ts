@@ -14,9 +14,11 @@ test("every style ships a director block with typography, motion and negatives",
   for (const id of STYLE_IDS) {
     const block = styleBlockForDirector(STYLES[id]);
     assert.match(block, /## Visual style/);
-    // The override is scoped to rendering rules; identity lock + everyman stay.
+    // The override is scoped to rendering rules; identity lock + everyman stay
+    // unless a cast/blueprint is given.
     assert.match(block, /overrides the rendering, palette, lettering and motion rules/);
-    assert.match(block, /default everyman character still apply/);
+    assert.match(block, /default everyman applies only when no cast\/reference is given/);
+    assert.match(block, /appearance follows the attached blueprint/);
     assert.match(block, /Typography:/);
     assert.match(block, /Motion:/);
     assert.match(block, /Never:/);

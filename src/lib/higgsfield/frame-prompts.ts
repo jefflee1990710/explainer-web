@@ -1,6 +1,7 @@
 import {
   castParagraphForFrames,
   characterReferenceUrls,
+  frameCharacterLockLine,
   soloCharacterParagraphForFrames,
 } from "@/lib/characters/cast-prompt";
 import type { FrameAnchorKind } from "@/lib/higgsfield/clip-keyframes";
@@ -54,15 +55,18 @@ function anchorLines(options: FramePromptOptions) {
   if (options.anchorKind === "clip-start") {
     return [
       "Also attached (after any annotated previous version): THIS CLIP'S START frame. Keep the same camera, character size and screen position. Only apply the described motion as a modest continuation — props and labels may slide or morph. Do not teleport the character or invent a new composition.",
+      "Character face, hair, outfit and accessories MUST match the attached character blueprint exactly. Do not copy drifted clothing from the start frame if it conflicts with the blueprint.",
     ];
   }
   if (options.anchorKind === "prev-end") {
     return [
       "Also attached (after any annotated previous version): the previous clip's END frame. Inherit that environment and character placement; this opening is the next beat of the same world, not a new shot.",
+      "Character appearance MUST still match the attached character blueprint exactly.",
     ];
   }
   return [
-    "Also attached (after any annotated previous version): the completed sibling frame from the other end of this clip. Match its line weight, character proportions, colouring and lettering exactly; do not copy its composition.",
+    "Also attached (after any annotated previous version): the completed sibling frame from the other end of this clip. Match its camera language and lettering; do not copy its composition.",
+    "Character face, hair, outfit and accessories MUST match the attached character blueprint exactly.",
   ];
 }
 
@@ -106,8 +110,8 @@ export function buildFramePrompt(
     ...styleLinesForFrame(style),
     `Visual world: ${phaseA.visualWorld}`,
     `Palette: ${phaseA.palette}`,
-    // With a cast, the sheet rule comes first and the text lock is demoted to
-    // a staging hint; without one, the text lock is the only identity anchor.
+    // With a cast/still attached, never echo Phase A's invented look text —
+    // only names + the blueprint/guideline attachment rule.
     ...(hasCast
       ? castParagraphForFrames(project.cast, {
           start: characterAttachmentStart,
@@ -116,9 +120,7 @@ export function buildFramePrompt(
       : characterUrls.length
         ? soloCharacterParagraphForFrames(characterAttachmentStart)
         : []),
-    hasCast || characterUrls.length
-      ? `Locked character (names and staging hint; appearance comes from the attached reference): ${phaseA.characterLock}`
-      : `Locked character (must look identical in every frame): ${phaseA.characterLock}`,
+    frameCharacterLockLine(project.cast, characterUrls.length > 0, phaseA.characterLock),
     `Scene: ${row.explainerScene}`,
     `Motion and camera across the clip: ${row.motionCamera}`,
     moment,
