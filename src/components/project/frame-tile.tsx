@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { PencilIcon, RefreshIcon } from "@/components/project/production-icons";
 import { Spinner } from "@/components/spinner";
+import { userFacingJobError } from "@/lib/higgsfield/job-status";
 import { mediaSrc } from "@/lib/media-src";
 import type { AspectRatio, ClipFrame, FramePosition } from "@/types/project";
 
@@ -45,6 +46,7 @@ export function FrameTile({
   const src = mediaSrc(frame);
   const completed = frame?.status === "completed" && Boolean(src);
   const failed = frame?.status === "failed";
+  const error = failed ? userFacingJobError("failed", frame?.error) : undefined;
   const inFlight =
     pending ||
     frame?.status === "queued" ||
@@ -78,7 +80,7 @@ export function FrameTile({
               />
               {failed ? (
                 <span className="absolute inset-x-0 bottom-0 bg-accent/85 px-2 py-1.5 text-center font-display text-[11px] font-bold text-white">
-                  產圖失敗{frame?.error ? `：${frame.error}` : ""}
+                  產圖失敗{error ? `：${error}` : ""}
                 </span>
               ) : (
                 <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-gradient-to-t from-accent-ink/70 to-transparent px-2 pb-2 pt-6 font-display text-[11px] font-bold text-paper opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
@@ -96,9 +98,9 @@ export function FrameTile({
             >
               <span>
                 產圖失敗
-                {frame?.error ? (
+                {error ? (
                   <span className="mt-1 block font-medium leading-snug text-accent/90">
-                    {frame.error}
+                    {error}
                   </span>
                 ) : null}
               </span>

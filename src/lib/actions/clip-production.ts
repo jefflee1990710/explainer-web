@@ -221,7 +221,11 @@ export async function generateClipVideoAction(
               status: "production",
               updatedAt: new Date(),
             },
-            $unset: { "clips.$.error": "" },
+            $unset: {
+              "clips.$.error": "",
+              "clips.$.blobUrl": "",
+              "clips.$.outputUrl": "",
+            },
           },
         )
       : await projects.findOneAndUpdate(

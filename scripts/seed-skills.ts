@@ -2,13 +2,89 @@ import { loadEnvConfig } from "@next/env";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { skillsCollection } from "../src/lib/collections";
+import type { HiggsfieldDefaults, SkillInputSchema } from "../src/types/skill";
 
 loadEnvConfig(process.cwd());
 
-const SKILL_DIR = path.join(
-  process.cwd(),
-  "skills/cartoon-explainer-video-director",
-);
+// One entry per skill directory under `skills/`. The markdown tree of each
+// directory becomes the director system prompt (SKILL.md) plus references.
+type SkillManifest = {
+  dir: string;
+  slug: string;
+  title: string;
+  titleZh: string;
+  description: string;
+  sortOrder: number;
+  inputSchema?: Partial<SkillInputSchema>;
+};
+
+// Shared execution layer (Higgsfield model slugs from GET /models):
+// Qwen Image 3 for stills/frames (edit when references attached) + Wan 3.0 for clips.
+const HIGGSFIELD_DEFAULTS: HiggsfieldDefaults = {
+  imageModel: "alibaba/qwen-image-3/text-to-image",
+  imageQuality: "medium",
+  imageResolution: "1k",
+  videoModel: "alibaba/wan-3.0/image-to-video",
+};
+
+const INPUT_SCHEMA: SkillInputSchema = {
+  requiresSource: true,
+  aspectRatios: ["16:9", "9:16", "1:1"],
+  durationPresets: ["micro", "short", "punchy", "full"],
+  optionalCharacterImage: true,
+};
+
+const SKILLS: SkillManifest[] = [
+  {
+    dir: "cartoon-explainer-video-director",
+    slug: "cartoon-explainer-video-director",
+    title: "Whiteboard concept explainer",
+    titleZh: "白板概念解說",
+    description:
+      "用白板塗鴉風格把概念講清楚，適合 Reels、行銷與簡報。先核准分鏡，再產出影片。",
+    sortOrder: 1,
+  },
+  {
+    dir: "story-short-director",
+    slug: "story-short-director",
+    title: "Story short",
+    titleZh: "故事短片",
+    description: "主角、目標、阻礙、轉折、結局的三幕短故事，用情緒帶訊息。",
+    sortOrder: 2,
+  },
+  {
+    dir: "product-demo-director",
+    slug: "product-demo-director",
+    title: "Product demo / unboxing",
+    titleZh: "產品 Demo / 開箱",
+    description: "痛點 → 開箱 → 核心功能示範 → 成果，產品外觀全程鎖定一致。",
+    sortOrder: 3,
+  },
+  {
+    dir: "dialogue-qa-director",
+    slug: "dialogue-qa-director",
+    title: "Two-character Q&A",
+    titleZh: "對話式 Q&A",
+    description: "兩個角色一問一答，用提問推進好奇心，用回答交付重點。",
+    sortOrder: 4,
+  },
+  {
+    dir: "listicle-director",
+    slug: "listicle-director",
+    title: "Listicle",
+    titleZh: "清單式",
+    description: "N 個重點逐條快切，每段一項，最有價值的留到最後。",
+    sortOrder: 5,
+  },
+  {
+    dir: "tutorial-director",
+    slug: "tutorial-director",
+    title: "Step-by-step tutorial",
+    titleZh: "教學步驟",
+    description: "先亮成果，再一步一步示範，每段一個步驟，最後回到完成品。",
+    sortOrder: 6,
+  },
+];
 
 async function readMarkdownTree(dir: string, prefix = "") {
   const entries = await readdir(dir, { withFileTypes: true });
@@ -27,52 +103,44 @@ async function readMarkdownTree(dir: string, prefix = "") {
   return files;
 }
 
-async function main() {
-  const files = await readMarkdownTree(SKILL_DIR);
+async function seedSkill(manifest: SkillManifest) {
+  const files = await readMarkdownTree(path.join(process.cwd(), "skills", manifest.dir));
   const skillFile = files.find((file) => file.path === "SKILL.md");
   if (!skillFile) {
-    throw new Error("Missing SKILL.md");
+    throw new Error(`Missing SKILL.md in skills/${manifest.dir}`);
   }
 
   const now = new Date();
   const skills = await skillsCollection();
   await skills.updateOne(
-    { slug: "cartoon-explainer-video-director" },
+    { slug: manifest.slug },
     {
       $set: {
-        slug: "cartoon-explainer-video-director",
-        title: "Whiteboard concept explainer",
-        titleZh: "白板概念解說",
-        description:
-          "用白板塗鴉風格把概念講清楚，適合 Reels、行銷與簡報。先核准分鏡，再產出影片。",
+        slug: manifest.slug,
+        title: manifest.title,
+        titleZh: manifest.titleZh,
+        description: manifest.description,
         systemPrompt: skillFile.content,
         references: files
           .filter((file) => file.path !== "SKILL.md")
           .map((file) => ({ path: file.path, content: file.content })),
-        inputSchema: {
-          requiresSource: true,
-          aspectRatios: ["16:9", "9:16", "1:1"],
-          durationPresets: ["micro", "short", "punchy", "full"],
-          optionalCharacterImage: true,
-        },
-        // Execution layer (Higgsfield model slugs from GET /models):
-        // Qwen Image 3 for stills/frames (edit when references attached) + Wan 3.0 for clips.
-        higgsfieldDefaults: {
-          imageModel: "alibaba/qwen-image-3/text-to-image",
-          imageQuality: "medium",
-          imageResolution: "1k",
-          videoModel: "alibaba/wan-3.0/image-to-video",
-        },
+        inputSchema: { ...INPUT_SCHEMA, ...manifest.inputSchema },
+        higgsfieldDefaults: HIGGSFIELD_DEFAULTS,
         isActive: true,
-        sortOrder: 1,
+        sortOrder: manifest.sortOrder,
         updatedAt: now,
       },
       $setOnInsert: { createdAt: now },
     },
     { upsert: true },
   );
+  console.log(`Seeded skill: ${manifest.slug}`);
+}
 
-  console.log("Seeded skill: cartoon-explainer-video-director");
+async function main() {
+  for (const manifest of SKILLS) {
+    await seedSkill(manifest);
+  }
   process.exit(0);
 }
 

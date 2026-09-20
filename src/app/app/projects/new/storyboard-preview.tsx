@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { Spinner } from "@/components/spinner";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
+import { SCENE_TEXT_PRESETS } from "@/lib/director/scene-text";
 import {
   phaseAEditsEqual,
   phaseAToEditInput,
@@ -84,7 +85,12 @@ export function StoryboardPreview({
           <Chip>{phaseA.clipCount} 段 clips</Chip>
           <Chip>{project.aspectRatio}</Chip>
           <Chip>{language.label} 旁白</Chip>
-          <Chip>{phaseA.loopMode === "infinite" ? "無縫循環" : "線性"}</Chip>
+          <Chip>
+            {project.sceneTextEnabled
+              ? `畫面文字 · ${SCENE_TEXT_PRESETS[project.sceneTextLanguage].label}`
+              : "畫面無字"}
+          </Chip>
+          <Chip>線性結尾</Chip>
         </div>
         <div className="mt-5">
           <StoryboardProposalFields draft={currentDraft} disabled={busy} onChange={setDraft} />

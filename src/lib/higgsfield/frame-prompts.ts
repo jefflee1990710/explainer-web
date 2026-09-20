@@ -5,6 +5,7 @@ import {
   soloCharacterParagraphForFrames,
 } from "@/lib/characters/cast-prompt";
 import type { FrameAnchorKind } from "@/lib/higgsfield/clip-keyframes";
+import { resolveSceneText, sceneTextFrameLines } from "@/lib/director/scene-text";
 import {
   resolveStyle,
   styleLetteringLine,
@@ -95,11 +96,10 @@ export function buildFramePrompt(
       : `This is the LAST frame of clip ${clipNumber}: the SAME SHOT as the start frame after a modest continuation of the described motion. Keep the same camera, character size, and screen position. Props and labels may slide or morph in or out; do not teleport the character or cut to a new composition.${
           next
             ? ` It must visually hand off to the next clip, which opens with: ${next.explainerScene}`
-            : phaseA.loopMode === "infinite"
-              ? ` It must match the very first frame of clip 1 so the video loops seamlessly.`
-              : ""
+            : " It is the final frame of the video: end on a clean resting payoff. Do not match or bridge back to clip 1."
         }`;
 
+  const sceneText = resolveSceneText(project);
   const hasCast = Boolean(project.cast && project.cast.length > 0);
   const characterUrls = characterReferenceUrls(project);
   // Same order as pipeline.ts: annotated redo, then start/sibling, then cast.
@@ -122,6 +122,9 @@ export function buildFramePrompt(
         : []),
     frameCharacterLockLine(project.cast, characterUrls.length > 0, phaseA.characterLock),
     `Scene: ${row.explainerScene}`,
+    // On-canvas labels only when the user turned scene text on.
+    ...(sceneText.enabled ? [styleLetteringLine(style)] : []),
+    ...sceneTextFrameLines(sceneText.enabled, sceneText.language),
     `Motion and camera across the clip: ${row.motionCamera}`,
     moment,
     ...revisionLines(options.revision),
@@ -129,8 +132,6 @@ export function buildFramePrompt(
     // version is always the FIRST attachment (see pipeline.ts ordering), so
     // this reference is described position-agnostically.
     ...anchorLines(options),
-    styleLetteringLine(style),
-    "Any on-canvas text must be spelled exactly as written in the scene description.",
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
 }

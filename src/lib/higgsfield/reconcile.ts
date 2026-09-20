@@ -67,13 +67,14 @@ export function reconcileClips(clips: ProjectClip[], jobs: GenerationJob[]): Pro
     if (!job || !appliesToClaim(job, clip.submittedAt)) return clip;
     const status = toClipStatus(job.status);
     const nextUrl = mediaSrc(job);
+    const pending = job.status === "queued" || job.status === "in_progress";
     return {
       ...clip,
       status,
-      // A fresh job carries no media yet; the previous video stays playable
-      // (the panel dims it and marks it 重產中) until the new one replaces it.
-      outputUrl: nextUrl ? job.outputUrl : clip.outputUrl ?? job.outputUrl,
-      blobUrl: nextUrl ? job.blobUrl || job.outputUrl : clip.blobUrl ?? job.blobUrl,
+      // Pending redo must clear the previous file so the panel can show
+      // loading. Failed / completed-without-a-file keep the last video.
+      outputUrl: nextUrl ? job.outputUrl : pending ? undefined : clip.outputUrl ?? job.outputUrl,
+      blobUrl: nextUrl ? job.blobUrl || job.outputUrl : pending ? undefined : clip.blobUrl ?? job.blobUrl,
       error: job.error,
     };
   });

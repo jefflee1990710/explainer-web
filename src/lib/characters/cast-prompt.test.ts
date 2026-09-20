@@ -130,5 +130,5 @@ test("directorImageParts keeps valid character urls as image parts", () => {
 test("phase A solo note asks the director to follow an attached image", () => {
   assert.match(phaseASoloCharacterNote("https://blob/c.png"), /A character reference image is attached/);
   assert.match(phaseASoloCharacterNote("https://blob/c.png"), /do NOT invent hair/);
-  assert.match(phaseASoloCharacterNote(), /default locked everyman/);
+  assert.match(phaseASoloCharacterNote(), /skill's default character/);
 });

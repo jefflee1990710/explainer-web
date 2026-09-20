@@ -8,10 +8,12 @@ import { isProjectBusy } from "@/lib/clip-stage";
 import { isReelBusy } from "@/lib/reel/fingerprint";
 import type { PublicVideo } from "@/lib/serialize";
 
-const INTERVAL_MS = 3000;
+const INTERVAL_MS = 2500;
 
 // Poll while the director writes, a frame/video job is in flight, or the
 // reel is concatenating. Provider refresh is skipped for reel-only waits.
+// Each tick pushes the freshest project into React state so tiles / timeline
+// flip off "生成中" as soon as webhook or status refresh settles a job.
 export function useProjectPoll(
   project: PublicVideo | null,
   onUpdate: (project: PublicVideo) => void,
@@ -30,6 +32,8 @@ export function useProjectPoll(
     let cancelled = false;
 
     async function tick() {
+      let next: PublicVideo | null = null;
+
       if (needsJobRefresh) {
         const refreshed = await refreshGenerationAction(id!);
         if (cancelled) return;
@@ -37,18 +41,24 @@ export function useProjectPoll(
           onError?.(refreshed.error);
           return;
         }
+        // Prefer the post-refresh snapshot so the UI updates in the same tick
+        // the provider status landed (no extra round-trip before paint).
+        next = refreshed.project;
+      } else {
+        const result = await getProjectAction(id!);
+        if (cancelled) return;
+        if (!result.ok) {
+          onError?.(result.error);
+          return;
+        }
+        next = result.project;
       }
 
-      const result = await getProjectAction(id!);
-      if (cancelled) return;
-      if (result.ok) {
-        onUpdate(result.project);
-        // Settled: refresh the server render so lists/badges catch up.
-        if (!isProjectBusy(result.project) && !isReelBusy(result.project.reelStatus)) {
-          router.refresh();
-        }
-      } else {
-        onError?.(result.error);
+      if (!next) return;
+      onUpdate(next);
+      // Settled: refresh the server render so lists/badges catch up.
+      if (!isProjectBusy(next) && !isReelBusy(next.reelStatus)) {
+        router.refresh();
       }
     }
 

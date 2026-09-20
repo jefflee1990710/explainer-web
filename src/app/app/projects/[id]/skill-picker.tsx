@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import type { PublicSkill } from "@/lib/serialize";
 
-// Style chips for the folder create form; skill is per video, not per folder.
+// Video-type (narrative skill) chips for the create form; skill is per video, not per folder.
 export function SkillPicker({
   skills,
   value,
@@ -16,11 +16,11 @@ export function SkillPicker({
   disabled?: boolean;
 }) {
   if (skills.length === 0) {
-    return <p className="text-sm text-muted">目前沒有可用的解說風格。</p>;
+    return <p className="text-sm text-muted">目前沒有可用的影片類型。</p>;
   }
 
   return (
-    <div role="radiogroup" aria-label="解說風格" className="grid gap-2 sm:grid-cols-2">
+    <div role="radiogroup" aria-label="影片類型" className="grid gap-2 sm:grid-cols-2">
       {skills.map((skill) => {
         const active = skill.slug === value;
         return (

@@ -7,7 +7,7 @@ description: Use when turning copy, notes, articles, or topics into high-retenti
 
 ## Core contract
 
-Turn one source into a confirmed director's proposal (Phase A) and then standalone prompts (Phase B) for Gemini Omni Flash clips. Each clip runs approximately 3–8 seconds (maximum 8 seconds per clip). Clip count is determined dynamically by the content narrative and pacing (e.g., 2–4 clips for 15s quick hacks, 4–6 clips for 30s breakdowns, 8–12 clips for 60s stories, or 1–2 clips for micro-loops). Preserve the source's meaning while engineering high retention, dual hook stacking, and a delayed payoff or seamless loop callback.
+Turn one source into a confirmed director's proposal (Phase A) and then standalone prompts (Phase B) for Gemini Omni Flash clips. Each clip runs approximately 3–8 seconds (maximum 8 seconds per clip). Clip count is determined dynamically by the content narrative and pacing (e.g., 2–4 clips for 15s quick hacks, 4–6 clips for 30s breakdowns, 8–12 clips for 60s stories, or 1–2 clips for micro shorts). Preserve the source's meaning while engineering high retention, dual hook stacking, and a delayed clean payoff — never a seamless loop callback.
 
 ## Setup gate
 
@@ -56,7 +56,7 @@ Topic approval, schedule pressure, or approval of an older draft is not approval
 - Make each model prompt self-contained, specifying 3–8 seconds duration (max 8s), and repeat all critical locks.
 - Treat narration as audio-only. Quote exact dialogue and forbid alteration, repetition, captions, subtitles, or visual transcription of the spoken line.
 - Allow short in-world handwritten all-caps marker labels (headlines, tags, arrows, bin names). Keep them brief and drawn in the same doodle hand. Do not generate photoreal UI type, logos, watermarks, or a full transcript of the voiceover. Put any longer optional overlay in a separate post-production note.
-- Match every clip ending to the next clip opening (or bridge Clip N back to Clip 1 for infinite loops).
+- Match every clip ending to the next clip opening. The final clip must end on a clean resting payoff — never bridge Clip N back to Clip 1 or plan an infinite / seamless loop.
 - Do not invent unsupported facts, statistics, quotations, or product claims.
 
 ## Revision rules

@@ -136,7 +136,7 @@ export function keepProposalRegenerateClips(
     characterLock: current.characterLock,
     palette: current.palette,
     aspectRatio: current.aspectRatio,
-    loopMode: current.loopMode,
+    loopMode: "linear",
     targetDuration: current.targetDuration,
   };
 }

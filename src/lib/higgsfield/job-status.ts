@@ -33,5 +33,12 @@ export function userFacingJobError(status: string, error?: string) {
   if (status === "nsfw" || detail === "nsfw" || detail.includes("nsfw")) {
     return "內容未通過安全檢查，請調整後重試";
   }
+  if (
+    detail.includes("took too long") ||
+    detail.includes("timed out") ||
+    detail.includes("timeout")
+  ) {
+    return "產生逾時，請再試一次";
+  }
   return error || status || "產生失敗";
 }

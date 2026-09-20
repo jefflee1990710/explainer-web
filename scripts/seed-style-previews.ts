@@ -49,10 +49,19 @@ function previewPrompt(id: StyleIdType) {
   ].join("\n");
 }
 
-async function waitForImage(statusUrl: string) {
+async function waitForImage(submitted: {
+  status?: string;
+  status_url?: string;
+  images?: Array<{ url: string }>;
+  video?: { url: string };
+}) {
+  const ready = mediaUrlFromResponse(submitted);
+  if (submitted.status === "completed" && ready) return ready;
+  if (!submitted.status_url) throw new Error("no status url");
+
   const deadline = Date.now() + TIMEOUT_MS;
   while (Date.now() < deadline) {
-    const status = await fetchHiggsfieldStatus(statusUrl);
+    const status = await fetchHiggsfieldStatus(submitted.status_url);
     if (status.status === "completed") {
       const url = mediaUrlFromResponse(status);
       if (!url) throw new Error("completed without image");
@@ -142,7 +151,7 @@ async function generatePreviews() {
         },
         { webhook: false },
       );
-      const url = await waitForImage(submitted.status_url);
+      const url = await waitForImage(submitted);
       // Full-size PNG first, then the picker thumbnail derived from it.
       const previewFullUrl = await persistMedia(
         url,

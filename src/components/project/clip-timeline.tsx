@@ -74,27 +74,30 @@ export function ClipTimeline({
                 type="button"
                 role="tab"
                 aria-selected={isSelected}
+                aria-label={`#${state.clipNumber} ${row?.timeRange || ""} ${STAGE_LABEL[state.stage]}`}
                 onClick={() => onSelect(state.clipNumber)}
-                className={`inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-2xl border px-3 py-1.5 text-left transition ${STAGE_CLASS[state.stage]} ${
+                className={`relative aspect-square w-[4.75rem] cursor-pointer overflow-hidden rounded-md border text-left transition sm:w-[5.25rem] ${STAGE_CLASS[state.stage]} ${
                   isSelected ? "outline outline-2 outline-offset-2 outline-accent-ink" : "hover:-translate-y-0.5"
                 }`}
               >
                 {src ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={src} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+                  <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
                 ) : (
-                  <span className="h-12 w-12 shrink-0 rounded-lg border border-dashed border-current/40" aria-hidden />
+                  <span className="absolute inset-0 bg-current/5" aria-hidden />
                 )}
-                <span className="flex flex-col leading-tight">
-                  <span className="font-display text-xs font-bold">
+                <span className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 bg-gradient-to-t from-accent-ink/85 via-accent-ink/55 to-transparent px-1.5 pb-1.5 pt-6 text-paper">
+                  <span className="font-display text-[11px] font-bold leading-none">
                     #{state.clipNumber}
-                    <span className="ml-1 font-normal text-[10px] text-current/70">{row?.timeRange}</span>
+                    <span className="ml-0.5 font-normal text-[9px] text-paper/80">
+                      {row?.timeRange}
+                    </span>
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold">
-                    {BUSY.has(state.stage) ? <Spinner className="h-3 w-3" /> : null}
-                    {STAGE_LABEL[state.stage]}
+                  <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold leading-none">
+                    {BUSY.has(state.stage) ? <Spinner className="h-2.5 w-2.5 shrink-0" /> : null}
+                    <span className="truncate">{STAGE_LABEL[state.stage]}</span>
                     {stale ? (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">
+                      <span className="inline-flex shrink-0 items-center gap-0.5 rounded-sm bg-accent px-1 text-[9px] font-bold text-white">
                         <WarnIcon />
                         需重做
                       </span>

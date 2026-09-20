@@ -40,7 +40,11 @@ test("jobNeedsRefresh includes completed jobs that never stored a file, not NSFW
 test("userFacingJobError explains NSFW for retry", () => {
   assert.match(userFacingJobError("nsfw"), /安全檢查/);
   assert.match(userFacingJobError("failed", "nsfw"), /安全檢查/);
-  assert.equal(userFacingJobError("failed", "timeout"), "timeout");
+  assert.match(
+    userFacingJobError("failed", "Generation took too long to complete. Please try again later."),
+    /逾時/,
+  );
+  assert.equal(userFacingJobError("failed", "boom"), "boom");
 });
 
 test("mediaUrlFromResponse reads the standard V2 fields and common aliases", () => {

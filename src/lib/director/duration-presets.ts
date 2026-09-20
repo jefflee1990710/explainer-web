@@ -6,9 +6,9 @@ export const DURATION_PRESETS: Record<
 > = {
   micro: {
     id: "micro",
-    label: "4–8 秒微循環",
+    label: "4–8 秒微短片",
     hint: "1–2 段 clips",
-    skillHint: "4–8s Micro Loop: ~10–20 English words (1–2 clips, seamless loop).",
+    skillHint: "4–8s Micro short: ~10–20 English words (1–2 clips). End on a clean resting payoff — never a seamless loop.",
   },
   short: {
     id: "short",

@@ -47,7 +47,7 @@ function stillPrompt(project: Project) {
   const style = videoStyle(project);
   const lock = project.phaseA?.characterLock || "default explainer everyman";
   return [
-    `Character visual lock still for a ${style.name} explainer video.`,
+    `Character visual lock still for a ${style.name} short video.`,
     `Canvas: ${style.canvas}. Look: ${style.look}. Never: ${style.negatives}.`,
     `Front three-quarter standing pose, identical character: ${lock}.`,
     `Aspect ratio ${project.aspectRatio}.`,
@@ -99,6 +99,7 @@ export async function submitStillIfNeeded(project: Project) {
     createdAt: new Date(),
     updatedAt: new Date(),
   });
+  await persistImmediateSubmit(still);
   await projects.updateOne(
     { _id: project._id },
     { $unset: { stillError: "" }, $set: { updatedAt: new Date() } },
@@ -159,6 +160,7 @@ async function submitOneFrame(
     createdAt: new Date(),
     updatedAt: new Date(),
   });
+  await persistImmediateSubmit(submitted);
 }
 
 export type FrameTarget = {
@@ -304,6 +306,7 @@ export async function submitClipVideoJob(
     createdAt: new Date(),
     updatedAt: new Date(),
   });
+  await persistImmediateSubmit(submitted);
   await syncProjectFromJobs(project._id);
 }
 
@@ -312,7 +315,27 @@ export async function submitClipVideoJob(
 function providerError(payload: unknown) {
   if (!payload || typeof payload !== "object") return undefined;
   const error = (payload as { error?: unknown }).error;
-  return typeof error === "string" ? error : undefined;
+  if (typeof error === "string" && error) return error;
+  const message = (payload as { message?: unknown }).message;
+  return typeof message === "string" && message ? message : undefined;
+}
+
+// Sync providers (AliCloud edit) return a file on submit. Persist it now so
+// the poller is not required for that job.
+async function persistImmediateSubmit(submitted: {
+  request_id: string;
+  status?: string;
+  images?: Array<{ url: string }>;
+  video?: { url: string };
+}) {
+  const outputUrl = mediaUrlFromResponse(submitted);
+  if (submitted.status === "completed" && outputUrl) {
+    await applyJobStatus({
+      requestId: submitted.request_id,
+      status: "completed",
+      outputUrl,
+    });
+  }
 }
 
 export async function applyJobStatus(input: {

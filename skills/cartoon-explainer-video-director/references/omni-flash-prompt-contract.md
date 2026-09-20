@@ -8,7 +8,7 @@ Deliver these sections in order:
 
 1. Global continuity block
 2. $N$ standalone English prompts (each 3–8 seconds, max 8s)
-3. Stitching guide (including loop bridge if infinite loop)
+3. Stitching guide (linear assembly only — no loop bridge)
 4. Voice and music continuity note
 
 ## Global continuity block
@@ -29,7 +29,7 @@ Write every prompt in this order:
 8. Exact audio-only English dialogue in quotation marks
 9. Identical narrator description, emotion, and delivery (strictly locked as a warm, engaging adult male voice speaking natural American English)
 10. BGM, synchronized SFX (accent noises like whoosh, pop, ding), and voice-first mixing
-11. Final-frame transition state inherited by the next clip (or loop seam connecting back to Clip 1)
+11. Final-frame transition state inherited by the next clip (or a clean resting payoff on the last clip — never a loop seam back to Clip 1)
 12. Negative constraints, including no voiceover captions, no teal sunburst world, no glasses hero, and no technical color notation
 
 Make each prompt understandable without the global block or any other prompt.
@@ -91,7 +91,7 @@ Forbid:
 
 ## Stitching guide
 
-List all clips in order. For every cut, repeat the exact ending state and matching opening state. Include any trim, short audio crossfade, or match-cut note needed for assembly. For infinite loop mode, detail how the final frame of the last clip aligns with the opening frame of Clip 1.
+List all clips in order. For every cut, repeat the exact ending state and matching opening state. Include any trim, short audio crossfade, or match-cut note needed for assembly. The final clip must end on a clean resting payoff — never detail a loop seam back to Clip 1.
 
 ## Audio continuity note
 
@@ -109,7 +109,7 @@ Independent text-only generations may vary in voice and music. Recommend, in ord
 - Each prompt repeats ratio, locked everyman, white-canvas doodle world, palette, voice, audio, transition, and negative locks.
 - Each prompt has timed beats and enforces the 2-second visual change rule with at least 3–4 relevant visual devices.
 - Clip 1 choreographs stacked hooks (spoken + visual/motion/SFX).
-- Every ending matches the next opening (or bridges back to Clip 1 for loop mode).
+- Every ending matches the next opening. The last clip ends on a clean resting payoff (never bridges back to Clip 1).
 - Dialogue exactly matches the approved narration.
 - Dialogue is explicitly audio-only and is never displayed as captions or subtitles.
 - Standalone prompts contain no hexadecimal, RGB, HSL, Pantone, or other technical color notation.

@@ -28,7 +28,7 @@ test("every style ships a director block with typography, motion and negatives",
 
 test("frame lines name the style, canvas, look and lettering", () => {
   const lines = styleLinesForFrame(STYLES.doodle);
-  assert.match(lines.join("\n"), /Whiteboard doodle explainer video/);
+  assert.match(lines.join("\n"), /Whiteboard doodle short video/);
   assert.match(lines.join("\n"), /Canvas: clean solid white canvas/);
   assert.match(styleLetteringLine(STYLES.doodle), /^Lettering: .*all-caps marker labels/);
   assert.doesNotMatch(lines.join("\n"), HEX);

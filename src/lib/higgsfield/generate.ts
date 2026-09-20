@@ -1,4 +1,10 @@
 import { getAppUrl, isPublicHttpUrl } from "@/lib/app-url";
+import { hasAlicloudKey, isAlicloudStatusUrl } from "@/lib/alicloud/dashscope";
+import {
+  fetchAlicloudStatus,
+  submitAlicloudClipVideo,
+  submitAlicloudImage,
+} from "@/lib/alicloud/generate";
 import {
   assertHiggsfieldConfigured,
   mediaUrlFromResponse,
@@ -58,6 +64,15 @@ export async function submitImage(input: {
   resolution?: "1k" | "2k" | "4k";
   referenceImageUrls?: Array<string | undefined>;
 }, options: { webhook?: boolean } = {}) {
+  // Prefer DashScope when the AliCloud key is present; Higgsfield stays the fallback.
+  if (hasAlicloudKey()) {
+    return submitAlicloudImage({
+      prompt: input.prompt,
+      aspectRatio: input.aspectRatio,
+      referenceImageUrls: input.referenceImageUrls,
+    });
+  }
+
   const client = assertHiggsfieldConfigured();
   const refs = (input.referenceImageUrls || []).filter(
     (url): url is string => Boolean(url),
@@ -116,6 +131,15 @@ export async function submitClipVideo(input: {
   startImageUrl: string;
   endImageUrl: string;
 }) {
+  if (hasAlicloudKey()) {
+    return submitAlicloudClipVideo({
+      prompt: input.prompt,
+      durationSeconds: input.durationSeconds,
+      startImageUrl: input.startImageUrl,
+      endImageUrl: input.endImageUrl,
+    });
+  }
+
   const client = assertHiggsfieldConfigured();
   // Wan 3.0 last-frame lock is `end_image_url`. Never fall back to start-only
   // I2V or mix in image_references (exclusive with first/last frames).
@@ -133,6 +157,10 @@ export async function submitClipVideo(input: {
 }
 
 export async function fetchHiggsfieldStatus(statusUrl: string) {
+  if (isAlicloudStatusUrl(statusUrl)) {
+    return fetchAlicloudStatus(statusUrl);
+  }
+
   const credentials = process.env.HF_CREDENTIALS ||
     (process.env.HF_API_KEY_ID && process.env.HF_API_KEY_SECRET
       ? `${process.env.HF_API_KEY_ID}:${process.env.HF_API_KEY_SECRET}`

@@ -53,6 +53,8 @@ export async function runPhaseAJob(
       aspectRatio: project.aspectRatio,
       durationPreset: project.durationPreset,
       language: project.language,
+      sceneTextEnabled: project.sceneTextEnabled,
+      sceneTextLanguage: project.sceneTextLanguage,
       characterImageUrl: project.characterImageUrl,
       cast: project.cast,
       currentDraft: project.phaseA,

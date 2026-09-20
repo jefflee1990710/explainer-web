@@ -151,13 +151,13 @@ test("reconcileClips still applies old jobs to legacy clips without submittedAt"
   assert.equal(next[0].blobUrl, "old-video");
 });
 
-test("reconcileClips keeps the previous video playable while the new job is pending", () => {
+test("reconcileClips hides the last video while a new job is pending", () => {
   const clips: ProjectClip[] = [
     { clipNumber: 1, durationSeconds: 5, prompt: "v", status: "queued", blobUrl: "old-video" },
   ];
   const pending = reconcileClips(clips, [job({ kind: "video", clipIndex: 0, status: "in_progress" })]);
   assert.equal(pending[0].status, "in_progress");
-  assert.equal(pending[0].blobUrl, "old-video");
+  assert.equal(pending[0].blobUrl, undefined);
 
   const failed = reconcileClips(clips, [job({ kind: "video", clipIndex: 0, status: "failed", error: "boom" })]);
   assert.equal(failed[0].status, "failed");

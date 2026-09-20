@@ -7,6 +7,7 @@ import { ASPECT_CLASS } from "@/components/project/frame-tile";
 import { RefreshIcon } from "@/components/project/production-icons";
 import { Spinner } from "@/components/spinner";
 import type { ClipState } from "@/lib/clip-stage";
+import { userFacingJobError } from "@/lib/higgsfield/job-status";
 import { mediaSrc } from "@/lib/media-src";
 import { STUCK_CLAIM_MS, VIDEO_COST } from "@/lib/production-plan";
 import type { AspectRatio, ProjectClip } from "@/types/project";
@@ -32,11 +33,12 @@ export function ClipVideoPanel({
   onGenerate: () => void;
 }) {
   const src = mediaSrc(clip);
-  const generating = state.stage === "video_generating";
+  const generating = state.stage === "video_generating" || pending;
   const hasVideo = Boolean(src) && clip?.status === "completed";
   const failed = clip?.status === "failed";
-  // Show whatever file we have — success, fail, or a redo in flight.
-  const showVideo = Boolean(src);
+  const error = failed ? userFacingJobError("failed", clip?.error) : undefined;
+  // Hide the previous file the moment a redo is clicked or queued.
+  const showVideo = Boolean(src) && !generating;
   const framesReady = ["frames_ready", "video_ready", "video_failed"].includes(state.stage);
 
   // Why the button is disabled, if it is.
@@ -89,14 +91,14 @@ export function ClipVideoPanel({
             <motion.video
               key={src}
               initial={{ opacity: 0 }}
-              animate={{ opacity: generating || state.stale.video || failed ? 0.6 : 1 }}
+              animate={{ opacity: state.stale.video || failed ? 0.6 : 1 }}
               src={src}
               controls
               className="absolute inset-0 h-full w-full bg-black"
             />
             {failed ? (
               <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-accent/85 px-2 py-1.5 text-center font-display text-[11px] font-bold text-white">
-                產片失敗{clip?.error ? `：${clip.error}` : ""} · credits 已退回
+                產片失敗{error ? `：${error}` : ""} · credits 已退回
               </span>
             ) : null}
           </>
@@ -107,11 +109,14 @@ export function ClipVideoPanel({
               animate={{ x: ["-100%", "300%"] }}
               transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
             />
-            <Spinner className="h-5 w-5 text-accent-ink/50" />
+            <span className="flex flex-col items-center gap-2 text-accent-ink/50">
+              <Spinner className="h-5 w-5" />
+              <span className="font-display text-[11px] font-bold">產片中</span>
+            </span>
           </div>
         ) : failed ? (
           <div className="absolute inset-0 grid place-items-center bg-accent/10 p-3 text-center text-xs font-semibold text-accent">
-            產片失敗{clip?.error ? `：${clip.error}` : ""}
+            產片失敗{error ? `：${error}` : ""}
             <br />
             <span className="font-normal text-muted">credits 已退回</span>
           </div>
@@ -120,9 +125,9 @@ export function ClipVideoPanel({
             ▶ 畫格 OK 後即可產片
           </div>
         )}
-        {showVideo && (generating || state.stale.video) ? (
+        {showVideo && state.stale.video ? (
           <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-accent px-2 py-0.5 font-display text-[10px] font-bold text-white">
-            {generating ? "重產中" : "舊版"}
+            舊版
           </span>
         ) : null}
       </div>

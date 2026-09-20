@@ -74,7 +74,7 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
 
   // Precedence: active video > active frames > failed frames > finished video
   // > failed video > frames ready > nothing. Frame activity outranks a finished
-  // video because the user is redrawing; the panel still shows the old video.
+  // video because the user is redrawing.
   let stage: ClipStage;
   if (isInFlight(clip)) stage = "video_generating";
   else if (frames.some((frame) => isInFlight(frame))) stage = "frames_generating";

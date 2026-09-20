@@ -8,7 +8,7 @@ Create one natural English narration scaled to the chosen duration and pacing:
 - **15–20s Short / Listicle**: ~35–50 English words (~2–4 clips).
 - **30–45s Punchy Breakdown**: ~70–110 English words (~4–6 clips).
 - **50–60s Full Explainer**: ~120–150 English words (~7–10 clips).
-- **4–8s Micro Loop**: ~10–20 English words (1–2 clips, seamless loop).
+- **4–8s Micro short**: ~10–20 English words (1–2 clips). End on a clean resting payoff — never a seamless loop.
 
 Target pacing is ~2.2–2.5 words per second.
 
@@ -27,7 +27,7 @@ Use the user's language for planning explanations. Keep the voiceover in English
 Present these items in order:
 
 1. English title and reference-language title
-2. Target total duration, clip count $N$ (each clip 3–8s, max 8s), and loop mode (Linear or Infinite Loop)
+2. Target total duration, clip count $N$ (each clip 3–8s, max 8s), and loop mode (always Linear — endings always end)
 3. Core message, Opening Hook Stacking strategy (Spoken Hook + Visual Hook Opener from `references/traffic-and-hooks.md`)
 4. Chosen aspect ratio and locked whiteboard-doodle visual world
 5. Narrator identity, speaking pace, English word count, and estimated duration
@@ -97,7 +97,7 @@ Changing ratio requires new staging, camera paths, transition geometry, and over
 
 ## Continuity
 
-End each row with a visible interface that the next row inherits: a pose, moving object, filled frame, travel direction, shape, or camera motion. If using an Infinite Loop, ensure the final row matches seamlessly into Clip 1. Name both sides of every connection in the proposal.
+End each row with a visible interface that the next row inherits: a pose, moving object, filled frame, travel direction, shape, or camera motion. The final row must end on a clean resting payoff — never match seamlessly back into Clip 1. Name both sides of every adjacent connection in the proposal.
 
 ## Confirmation ending
 
@@ -121,6 +121,6 @@ Do not include final model prompts. A global change invalidates approval and req
 - The locked everyman, white-canvas doodle world, and yellow tag accents remain consistent.
 - No technical color notation is present.
 - Any proposed text is clearly separated as a post-production overlay and absent from generated scenes.
-- Every adjacent pair has a named continuity connection (and loops if infinite loop mode).
-- The ending returns to the central message or completes the loop.
+- Every adjacent pair has a named continuity connection.
+- The ending returns to the central message on a clean resting payoff — never a loop bridge back to Clip 1.
 - No unsupported factual detail was added.

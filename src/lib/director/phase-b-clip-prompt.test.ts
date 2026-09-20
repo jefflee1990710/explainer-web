@@ -63,15 +63,14 @@ test("first clip has no previous neighbour", () => {
   assert.match(prompt, /hands off to clip 2/);
 });
 
-test("last clip: linear ends clean, infinite loops back to clip 1", () => {
-  assert.match(
-    clipPhaseBUserPrompt({ ...base, phaseA: proposal("linear"), clipNumber: 3 }),
-    /last clip; end on a clean resting state/,
-  );
-  assert.match(
-    clipPhaseBUserPrompt({ ...base, phaseA: proposal("infinite"), clipNumber: 3 }),
-    /matches clip 1's opening/,
-  );
+test("last clip always ends clean — never loops back to clip 1", () => {
+  const prompt = clipPhaseBUserPrompt({
+    ...base,
+    phaseA: proposal("linear"),
+    clipNumber: 3,
+  });
+  assert.match(prompt, /last clip; end on a clean resting payoff/);
+  assert.doesNotMatch(prompt, /matches clip 1's opening/);
 });
 
 test("unknown clip throws", () => {

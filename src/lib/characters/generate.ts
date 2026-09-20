@@ -1,5 +1,7 @@
 import { generationJobsCollection } from "@/lib/collections";
+import { mediaUrlFromResponse } from "@/lib/higgsfield/client";
 import { QWEN_IMAGE_MODEL, submitImage } from "@/lib/higgsfield/generate";
+import { applyJobStatus } from "@/lib/higgsfield/pipeline";
 import { buildBlueprintPrompt } from "@/lib/characters/blueprint-prompt";
 import type { Character, CharacterVersion } from "@/types/character";
 import type { GenerationStatus } from "@/types/generation-job";
@@ -39,4 +41,13 @@ export async function submitCharacterVersion(
     createdAt: new Date(),
     updatedAt: new Date(),
   });
+
+  const outputUrl = mediaUrlFromResponse(submitted);
+  if (submitted.status === "completed" && outputUrl) {
+    await applyJobStatus({
+      requestId: submitted.request_id,
+      status: "completed",
+      outputUrl,
+    });
+  }
 }

@@ -1,4 +1,5 @@
 import { resolveDefaultVersion, versionNumber } from "@/lib/characters/versions";
+import { resolveSceneText } from "@/lib/director/scene-text";
 import { folderRollupStatus } from "@/lib/folder";
 import { normalizeProjectStatus } from "@/lib/project-status";
 import { resolveStyle, type StyleId } from "@/lib/styles";
@@ -35,6 +36,8 @@ export type PublicVideo = {
   durationPreset: Project["durationPreset"];
   styleId: StyleId;
   language: NonNullable<Project["language"]>;
+  sceneTextEnabled: boolean;
+  sceneTextLanguage: NonNullable<Project["sceneTextLanguage"]>;
   characterImageUrl?: string;
   characterStillUrl?: string;
   stillError?: string;
@@ -74,6 +77,7 @@ export function toPublicSkill(skill: Skill): PublicSkill {
 }
 
 export function toPublicVideo(video: Project): PublicVideo {
+  const sceneText = resolveSceneText(video);
   return {
     id: video._id.toHexString(),
     projectId: video.projectId.toHexString(),
@@ -83,6 +87,8 @@ export function toPublicVideo(video: Project): PublicVideo {
     durationPreset: video.durationPreset,
     styleId: resolveStyle(video.styleId).id,
     language: video.language || "en",
+    sceneTextEnabled: sceneText.enabled,
+    sceneTextLanguage: sceneText.language,
     characterImageUrl: video.characterImageUrl,
     characterStillUrl: video.characterStillUrl,
     stillError: video.stillError,

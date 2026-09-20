@@ -20,7 +20,8 @@ export function styleBlockForDirector(style: Style) {
 // Opening lines of every storyboard-frame / still prompt.
 export function styleLinesForFrame(style: Style) {
   return [
-    `Single storyboard still for a ${style.name} explainer video.`,
+    // Skill-neutral wording: the same still prompt serves explainer, story, demo, etc.
+    `Single storyboard still for a ${style.name} short video.`,
     `Canvas: ${style.canvas}. Look: ${style.look}. Never: ${style.negatives}. No watermark.`,
   ];
 }

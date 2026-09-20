@@ -7,6 +7,8 @@ export type DurationPreset = "micro" | "short" | "punchy" | "full";
 export type LoopMode = "linear" | "infinite";
 // Voiceover language: American English, Hong Kong Cantonese colloquial, Traditional Chinese (Mandarin).
 export type VoLanguage = "en" | "yue" | "zh";
+// On-canvas labels in storyboard stills; independent of voiceover language.
+export type SceneTextLanguage = "en" | "zh-Hant" | "zh-Hans";
 
 // Lifecycle: phase_a → awaiting_approval → production → ready.
 // `production` = storyboard approved; every clip's frames and video are made
@@ -154,6 +156,9 @@ export type Project = {
   styleId?: StyleId;
   // Optional for legacy documents; defaults to "en" when absent.
   language?: VoLanguage;
+  // Missing or false → no on-canvas labels. True + language → labels in that script.
+  sceneTextEnabled?: boolean;
+  sceneTextLanguage?: SceneTextLanguage;
   characterImageUrl?: string;
   // Characters chosen at creation; snapshot of each default blueprint.
   cast?: CastMember[];

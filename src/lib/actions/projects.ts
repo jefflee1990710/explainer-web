@@ -14,13 +14,22 @@ import {
 } from "@/lib/collections";
 import { runPhaseAJob } from "@/lib/director/jobs";
 import { isVoLanguage } from "@/lib/director/languages";
+import { isSceneTextLanguage } from "@/lib/director/scene-text";
 import { sanitizeFolderName } from "@/lib/folder";
+import { deleteExplainerBlobUrls } from "@/lib/blob/delete-urls";
 import { toPublicVideo, type PublicVideo } from "@/lib/serialize";
 import { isStyleId, type StyleId } from "@/lib/styles";
 import type { CastMember, Character } from "@/types/character";
 import { isProjectBusy } from "@/lib/clip-stage";
 import { applyPhaseAEdits } from "@/lib/director/phase-a-edit";
-import type { AspectRatio, DurationPreset, PhaseAEditInput, VoLanguage } from "@/types/project";
+import { collectVideoBlobUrls } from "@/lib/videos/storage";
+import type {
+  AspectRatio,
+  DurationPreset,
+  PhaseAEditInput,
+  SceneTextLanguage,
+  VoLanguage,
+} from "@/types/project";
 
 const CAST_MAX = 4;
 
@@ -40,6 +49,8 @@ type BriefFields = {
   aspectRatio: AspectRatio;
   durationPreset: DurationPreset;
   language: VoLanguage;
+  sceneTextEnabled: boolean;
+  sceneTextLanguage: SceneTextLanguage;
   characterIds: string[];
 };
 
@@ -52,6 +63,8 @@ function readVideoBrief(
   const aspectRatio = String(formData.get("aspectRatio") || "") as AspectRatio;
   const durationPreset = String(formData.get("durationPreset") || "") as DurationPreset;
   const language = String(formData.get("language") || "en");
+  const sceneTextEnabled = String(formData.get("sceneTextEnabled") || "") === "1";
+  const sceneTextLanguage = String(formData.get("sceneTextLanguage") || "en");
   const characterIds = Array.from(
     new Set(
       formData
@@ -73,12 +86,25 @@ function readVideoBrief(
   if (!isVoLanguage(language)) {
     return { ok: false, error: "請選擇旁白語言" };
   }
+  if (sceneTextEnabled && !isSceneTextLanguage(sceneTextLanguage)) {
+    return { ok: false, error: "請選擇畫面文字語言" };
+  }
   if (!isStyleId(styleId)) {
     return { ok: false, error: "請選擇視覺風格" };
   }
   return {
     ok: true,
-    brief: { skillSlug, styleId, source, aspectRatio, durationPreset, language, characterIds },
+    brief: {
+      skillSlug,
+      styleId,
+      source,
+      aspectRatio,
+      durationPreset,
+      language,
+      sceneTextEnabled,
+      sceneTextLanguage: isSceneTextLanguage(sceneTextLanguage) ? sceneTextLanguage : "en",
+      characterIds,
+    },
   };
 }
 
@@ -241,6 +267,8 @@ export async function createVideoAction(
       aspectRatio: brief.aspectRatio,
       durationPreset: brief.durationPreset,
       language: brief.language,
+      sceneTextEnabled: brief.sceneTextEnabled,
+      sceneTextLanguage: brief.sceneTextLanguage,
       cast,
       status: "phase_a",
       clips: [],
@@ -311,6 +339,8 @@ export async function updateVideoBriefAction(
           aspectRatio: brief.aspectRatio,
           durationPreset: brief.durationPreset,
           language: brief.language,
+          sceneTextEnabled: brief.sceneTextEnabled,
+          sceneTextLanguage: brief.sceneTextLanguage,
           cast: castResult.cast,
           status: "phase_a",
           updatedAt: new Date(),
@@ -503,6 +533,54 @@ export async function retryProjectAction(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "重試失敗",
+    };
+  }
+}
+
+export type DeleteVideoResult = { ok: true } | { ok: false; error: string };
+
+// Delete a video, its generation jobs, and every stored frame/clip/reel file.
+export async function deleteVideoAction(
+  videoId: string,
+): Promise<DeleteVideoResult> {
+  try {
+    const user = await requireAppUser();
+    if (!ObjectId.isValid(videoId)) {
+      return { ok: false, error: "影片不存在" };
+    }
+
+    const videos = await videosCollection();
+    const video = await videos.findOne({
+      _id: new ObjectId(videoId),
+      clerkUserId: user.clerkUserId,
+    });
+    if (!video) return { ok: false, error: "影片不存在" };
+
+    const jobs = await generationJobsCollection();
+    const jobDocs = await jobs.find({ projectId: video._id }).toArray();
+    await deleteExplainerBlobUrls(collectVideoBlobUrls(video, jobDocs));
+    await jobs.deleteMany({ projectId: video._id });
+
+    const removed = await videos.deleteOne({
+      _id: video._id,
+      clerkUserId: user.clerkUserId,
+    });
+    if (removed.deletedCount !== 1) {
+      return { ok: false, error: "影片不存在" };
+    }
+
+    const folders = await projectsCollection();
+    await folders.updateOne(
+      { _id: video.projectId },
+      { $set: { updatedAt: new Date() } },
+    );
+
+    revalidateFolder(video.projectId.toHexString());
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "刪除影片失敗",
     };
   }
 }

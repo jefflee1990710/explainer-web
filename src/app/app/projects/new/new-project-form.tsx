@@ -30,6 +30,7 @@ import { mergePolledProject, projectWithClearedFrames } from "@/lib/optimistic-f
 import { isReelBusy, isReelCurrent } from "@/lib/reel/fingerprint";
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
+import { SCENE_TEXT_PRESETS } from "@/lib/director/scene-text";
 import { failedStepFor } from "@/lib/project-status";
 import type { PublicCharacter, PublicSkill, PublicStyle, PublicVideo } from "@/lib/serialize";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/lib/styles";
@@ -40,6 +41,7 @@ import type {
   FramePosition,
   FrameRevisionInput,
   PhaseAEditInput,
+  SceneTextLanguage,
   VoLanguage,
 } from "@/types/project";
 import { CharacterPicker } from "../[id]/character-picker";
@@ -48,6 +50,7 @@ import { AspectRatioPicker } from "./aspect-ratio-picker";
 import { DirectorProgress } from "./director-progress";
 import { DurationPicker } from "./duration-picker";
 import { LanguagePicker } from "./language-picker";
+import { SceneTextPicker } from "./scene-text-picker";
 import { ReelExport } from "./reel-export";
 import { ReviseStoryboardDialog } from "./revise-storyboard-dialog";
 import { StoryboardPreview } from "./storyboard-preview";
@@ -88,6 +91,12 @@ export function NewProjectForm({
   );
   const [source, setSource] = useState(initialVideo?.source || "");
   const [language, setLanguage] = useState<VoLanguage>(initialVideo?.language || "en");
+  const [sceneTextEnabled, setSceneTextEnabled] = useState(
+    initialVideo?.sceneTextEnabled === true,
+  );
+  const [sceneTextLanguage, setSceneTextLanguage] = useState<SceneTextLanguage>(
+    initialVideo?.sceneTextLanguage || "en",
+  );
   const [aspectRatio, setAspectRatio] = useState<AspectRatio | "">(
     initialVideo?.aspectRatio || "",
   );
@@ -141,6 +150,8 @@ export function NewProjectForm({
       project.skillSlug === skillSlug &&
       project.styleId === styleId &&
       project.language === language &&
+      project.sceneTextEnabled === sceneTextEnabled &&
+      project.sceneTextLanguage === sceneTextLanguage &&
       project.aspectRatio === aspectRatio &&
       project.durationPreset === durationPreset &&
       currentIds.length === nextIds.length &&
@@ -156,6 +167,8 @@ export function NewProjectForm({
     formData.set("styleId", styleId);
     formData.set("source", source);
     formData.set("language", language);
+    formData.set("sceneTextEnabled", sceneTextEnabled ? "1" : "0");
+    formData.set("sceneTextLanguage", sceneTextLanguage);
     formData.set("aspectRatio", aspectRatio);
     formData.set("durationPreset", durationPreset);
     for (const id of characterIds) formData.append("characterIds", id);
@@ -238,7 +251,7 @@ export function NewProjectForm({
   ) {
     setPending(key);
     setError("");
-    // Hide the old still immediately; the server write lands a moment later.
+    // Hide the old still/video immediately; the server write lands a moment later.
     setProject((current) => {
       if (!current) return current;
       const next = projectWithClearedFrames(current, key);
@@ -361,7 +374,7 @@ export function NewProjectForm({
 
   const skillTitle =
     skills.find((item) => item.slug === (project?.skillSlug || skillSlug))?.titleZh ||
-    "解說風格";
+    "影片類型";
   const styleName =
     styles.find((item) => item.id === (project?.styleId || styleId))?.nameZh || "視覺風格";
   const liveStep = currentStepFor(
@@ -437,7 +450,7 @@ export function NewProjectForm({
             >
               <input type="hidden" name="projectId" value={projectId} />
 
-              <Section step="01" title="解說風格" hint="這支影片要用哪一種敘事風格。">
+              <Section step="01" title="影片類型" hint="這支影片要用哪一種敘事方式：解說、故事、Demo、Q&A、清單或教學。">
                 <SkillPicker
                   skills={skills}
                   value={skillSlug}
@@ -483,7 +496,21 @@ export function NewProjectForm({
                 <LanguagePicker value={language} onChange={setLanguage} disabled={briefBusy} />
               </Section>
 
-              <Section step="04" title="畫面比例" hint="依投放平台選擇。">
+              <Section
+                step="04"
+                title="畫面文字"
+                hint="開啟後，分鏡圖裡的短標籤會用你選的語言；關閉則畫面完全不寫字。"
+              >
+                <SceneTextPicker
+                  enabled={sceneTextEnabled}
+                  language={sceneTextLanguage}
+                  onEnabledChange={setSceneTextEnabled}
+                  onLanguageChange={setSceneTextLanguage}
+                  disabled={briefBusy}
+                />
+              </Section>
+
+              <Section step="05" title="畫面比例" hint="依投放平台選擇。">
                 <AspectRatioPicker
                   value={aspectRatio}
                   onChange={setAspectRatio}
@@ -491,7 +518,7 @@ export function NewProjectForm({
                 />
               </Section>
 
-              <Section step="05" title="片長" hint="影響 clip 數量，也就是核准時要扣的 credits。">
+              <Section step="06" title="片長" hint="影響 clip 數量，也就是核准時要扣的 credits。">
                 <DurationPicker
                   value={durationPreset}
                   onChange={setDurationPreset}
@@ -499,7 +526,7 @@ export function NewProjectForm({
                 />
               </Section>
 
-              <Section step="06" title="角色" hint="選填。最多 4 個；分鏡與分鏡圖會鎖定這些角色的藍圖。">
+              <Section step="07" title="角色" hint="選填。最多 4 個；分鏡與分鏡圖會鎖定這些角色的藍圖。">
                 <CharacterPicker
                   characters={characters}
                   styleId={styleId}
@@ -560,6 +587,12 @@ export function NewProjectForm({
                 <span>{styleName}</span>
                 <Dot />
                 <span>{LANGUAGE_PRESETS[language].label}</span>
+                <Dot />
+                <span>
+                  {sceneTextEnabled
+                    ? `畫面文字 · ${SCENE_TEXT_PRESETS[sceneTextLanguage].label}`
+                    : "畫面無字"}
+                </span>
                 <Dot />
                 <span>{aspectRatio}</span>
                 <Dot />

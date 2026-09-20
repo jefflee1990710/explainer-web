@@ -23,9 +23,7 @@ export function clipPhaseBUserPrompt(input: {
     : "It is the first clip; open cold on the START frame.";
   const closing = next
     ? `It hands off to clip ${next.clipNumber}, which opens with: ${next.explainerScene}. End on a state that leads into it.`
-    : input.phaseA.loopMode === "infinite"
-      ? "It is the last clip and the video loops: end on a state that matches clip 1's opening."
-      : "It is the last clip; end on a clean resting state.";
+    : "It is the last clip; end on a clean resting payoff. Do not bridge back to clip 1 or plan a seamless loop.";
 
   return [
     `Approved Phase A JSON:\n${JSON.stringify(input.phaseA, null, 2)}`,

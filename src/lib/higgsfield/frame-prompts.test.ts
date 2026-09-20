@@ -55,16 +55,17 @@ function project(styleId?: Project["styleId"]): Project {
 
 test("doodle frame prompt uses catalog text, no hard-coded whiteboard literal", () => {
   const prompt = buildFramePrompt(project(), 1, "start");
-  assert.match(prompt, /Whiteboard doodle explainer video/);
+  assert.match(prompt, /Whiteboard doodle short video/);
   assert.match(prompt, /Canvas: clean solid white canvas/);
-  assert.match(prompt, /Lettering: short handwritten all-caps marker labels/);
+  assert.match(prompt, /No on-canvas text/);
+  assert.doesNotMatch(prompt, /Lettering:/);
   assert.doesNotMatch(prompt, /whiteboard-doodle cartoon explainer video/);
 });
 
-test("pixel video gets pixel canvas and lettering", () => {
+test("pixel video gets pixel canvas and no lettering unless scene text is on", () => {
   const prompt = buildFramePrompt(project("pixel"), 1, "end");
-  assert.match(prompt, /Pixel art explainer video/);
-  assert.match(prompt, /Lettering: blocky monospaced pixel font/);
+  assert.match(prompt, /Pixel art short video/);
+  assert.doesNotMatch(prompt, /Lettering:/);
 });
 
 test("end frame is the same shot as start, not a new composition", () => {
@@ -172,6 +173,25 @@ test("a solo still is attached as the character the scene must follow", () => {
   assert.match(prompt, /Attached image 1 is the selected character guideline/);
   assert.match(prompt, /attached character guideline only/);
   assert.doesNotMatch(prompt, /發明的綠洋裝/);
+});
+
+test("disabled scene text drops lettering and forbids on-canvas words", () => {
+  const off = project();
+  off.sceneTextEnabled = false;
+  const prompt = buildFramePrompt(off, 1, "start");
+  assert.match(prompt, /No on-canvas text/);
+  assert.doesNotMatch(prompt, /Lettering:/);
+});
+
+test("enabled Traditional Chinese scene text keeps lettering and the language rule", () => {
+  const on = project();
+  on.sceneTextEnabled = true;
+  on.sceneTextLanguage = "zh-Hant";
+  const prompt = buildFramePrompt(on, 1, "start");
+  const sceneAt = prompt.indexOf("Scene: scene");
+  const languageAt = prompt.indexOf("Traditional Chinese");
+  assert.match(prompt, /Lettering:/);
+  assert.ok(sceneAt >= 0 && languageAt > sceneAt, "language rule must follow the Scene line");
 });
 
 test("without a cast, the text characterLock stays authoritative", () => {

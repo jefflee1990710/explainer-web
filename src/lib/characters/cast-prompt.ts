@@ -66,7 +66,8 @@ export function phaseASoloCharacterNote(characterImageUrl?: string) {
       "Do not invent a replacement hero.",
     ].join(" ");
   }
-  return "No character reference image. Use the default locked everyman from the skill.";
+  // Skill-neutral: the whiteboard skill has a default everyman; other skills define their own cast in characterLock.
+  return "No character reference image. Use the skill's default character if it defines one; otherwise define a simple locked cast in characterLock and keep it identical in every clip.";
 }
 
 export function castLineForPhaseB(cast: CastMember[] | undefined) {
