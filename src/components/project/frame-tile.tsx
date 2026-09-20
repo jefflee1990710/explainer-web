@@ -94,7 +94,14 @@ export function FrameTile({
               animate={{ opacity: 1 }}
               className="absolute inset-0 grid place-items-center bg-accent/10 p-3 text-center text-xs font-semibold text-accent"
             >
-              產圖失敗
+              <span>
+                產圖失敗
+                {frame?.error ? (
+                  <span className="mt-1 block font-medium leading-snug text-accent/90">
+                    {frame.error}
+                  </span>
+                ) : null}
+              </span>
             </motion.div>
           ) : !frame ? (
             <motion.div

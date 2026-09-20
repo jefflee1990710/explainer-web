@@ -16,7 +16,7 @@ import {
   submitClipVideo,
   submitImage,
 } from "@/lib/higgsfield/generate";
-import { jobNeedsRefresh, settleProviderStatus } from "@/lib/higgsfield/job-status";
+import { jobNeedsRefresh, settleProviderStatus, userFacingJobError } from "@/lib/higgsfield/job-status";
 import { persistMedia } from "@/lib/higgsfield/persist";
 import {
   assertClipKeyframes,
@@ -353,6 +353,10 @@ export async function applyJobStatus(input: {
   }
 
   const nowFailed = status === "failed" || status === "nsfw";
+  // Prefer a clear user-facing reason; raw "nsfw" is not actionable in the UI.
+  if (nowFailed) {
+    errorMessage = userFacingJobError(status, errorMessage);
+  }
 
   // Character sheets persist and refund in their own sync; no video to touch.
   if (job.kind === "character") {
@@ -383,7 +387,8 @@ export async function applyJobStatus(input: {
   const project = await projects.findOne({ _id: projectId });
 
   let blobUrl = job.blobUrl;
-  if (outputUrl && (status === "completed" || status === "nsfw")) {
+  // Persist successful files only. NSFW is a rejection even if a URL sneaks through.
+  if (outputUrl && status === "completed") {
     const folder =
       job.kind === "still" ? "stills" : job.kind === "frame" ? "frames" : "clips";
     const transformOptions =
@@ -476,6 +481,8 @@ async function failDeferredEndIfNeeded(
   const end = project.frames?.find(
     (frame) => frame.clipNumber === clipNumber && frame.position === "end",
   );
+  // Waiting end may be queued with no job yet. Fail anything that has not
+  // already started or finished.
   if (!end || end.status === "completed" || end.status === "in_progress") return;
 
   const claimedAt = end.submittedAt ? Date.parse(end.submittedAt) : NaN;
@@ -485,6 +492,8 @@ async function failDeferredEndIfNeeded(
     clipIndex: clipNumber - 1,
     framePosition: "end",
   });
+  // A job for THIS claim means reconciliation owns it; only fail ends that
+  // never reached the provider (deferred / lost submit).
   if (
     existing &&
     (Number.isNaN(claimedAt) || existing.createdAt.getTime() >= claimedAt)
@@ -502,7 +511,7 @@ async function failDeferredEndIfNeeded(
     {
       $set: {
         "frames.$.status": "failed",
-        "frames.$.error": error,
+        "frames.$.error": userFacingJobError("failed", error),
         updatedAt: new Date(),
       },
     },
@@ -617,7 +626,7 @@ export async function refreshProjectJobs(projectId: ObjectId) {
   const candidates = await jobs
     .find({
       projectId,
-      status: { $in: ["queued", "in_progress", "completed", "nsfw"] },
+      status: { $in: ["queued", "in_progress", "completed"] },
     })
     .toArray();
   const pending = candidates.filter(jobNeedsRefresh);

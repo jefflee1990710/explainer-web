@@ -1,18 +1,23 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { mediaUrlFromResponse } from "./client";
-import { jobNeedsRefresh, settleProviderStatus } from "./job-status";
+import {
+  jobNeedsRefresh,
+  settleProviderStatus,
+  userFacingJobError,
+} from "./job-status";
 
-test("settleProviderStatus does not finalize completed/nsfw without a file", () => {
+test("settleProviderStatus keeps completed-without-file in flight, but NSFW is terminal", () => {
   assert.equal(settleProviderStatus("completed"), "in_progress");
-  assert.equal(settleProviderStatus("nsfw"), "in_progress");
   assert.equal(settleProviderStatus("completed", ""), "in_progress");
+  assert.equal(settleProviderStatus("nsfw"), "nsfw");
+  assert.equal(settleProviderStatus("nsfw", "https://cdn.example/out.png"), "nsfw");
   assert.equal(settleProviderStatus("completed", "https://cdn.example/out.png"), "completed");
   assert.equal(settleProviderStatus("failed"), "failed");
   assert.equal(settleProviderStatus("in_progress"), "in_progress");
 });
 
-test("jobNeedsRefresh includes completed jobs that never stored a file", () => {
+test("jobNeedsRefresh includes completed jobs that never stored a file, not NSFW", () => {
   assert.equal(jobNeedsRefresh({ status: "queued", statusUrl: "https://s" }), true);
   assert.equal(jobNeedsRefresh({ status: "in_progress", statusUrl: "https://s" }), true);
   assert.equal(
@@ -27,8 +32,15 @@ test("jobNeedsRefresh includes completed jobs that never stored a file", () => {
     }),
     false,
   );
+  assert.equal(jobNeedsRefresh({ status: "nsfw", statusUrl: "https://s" }), false);
   assert.equal(jobNeedsRefresh({ status: "completed" }), false);
   assert.equal(jobNeedsRefresh({ status: "failed", statusUrl: "https://s" }), false);
+});
+
+test("userFacingJobError explains NSFW for retry", () => {
+  assert.match(userFacingJobError("nsfw"), /安全檢查/);
+  assert.match(userFacingJobError("failed", "nsfw"), /安全檢查/);
+  assert.equal(userFacingJobError("failed", "timeout"), "timeout");
 });
 
 test("mediaUrlFromResponse reads the standard V2 fields and common aliases", () => {
