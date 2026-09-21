@@ -8,6 +8,7 @@ import {
 } from "@/lib/collections";
 import { refundCredits } from "@/lib/billing/credits";
 import { flattenToCanvas } from "@/lib/higgsfield/flatten";
+import { sceneTextNegativePrompt, resolveSceneText } from "@/lib/director/scene-text";
 import { buildFramePrompt, videoStyle } from "@/lib/higgsfield/frame-prompts";
 import { unsubmittedPositions } from "@/lib/higgsfield/job-attempts";
 import {
@@ -132,16 +133,19 @@ async function submitOneFrame(
 ) {
   const jobs = await generationJobsCollection();
   const lockRefs = characterReferenceUrls(project);
+  const sceneText = resolveSceneText(project);
+  const prompt = buildFramePrompt(project, clipNumber, position, {
+    revision: options.revision,
+    styleRefUrl: options.styleRefUrl,
+    anchorKind: options.anchorKind,
+  });
   const submitted = await submitImage({
     model: skill.higgsfieldDefaults.imageModel,
-    prompt: buildFramePrompt(project, clipNumber, position, {
-      revision: options.revision,
-      styleRefUrl: options.styleRefUrl,
-      anchorKind: options.anchorKind,
-    }),
+    prompt,
     aspectRatio: project.aspectRatio,
     quality: skill.higgsfieldDefaults.imageQuality || "medium",
     resolution: skill.higgsfieldDefaults.imageResolution || "1k",
+    negativePrompt: sceneTextNegativePrompt(sceneText.enabled),
     referenceImageUrls: [
       options.revision?.annotatedUrl,
       options.styleRefUrl,
@@ -161,6 +165,7 @@ async function submitOneFrame(
     updatedAt: new Date(),
   });
   await persistImmediateSubmit(submitted);
+  return prompt;
 }
 
 export type FrameTarget = {
@@ -190,7 +195,7 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
       framePosition: target.position,
     });
     const anchor = clipFrameAnchor(project.frames, target.clipNumber, target.position);
-    await submitOneFrame(project, skill, target.clipNumber, target.position, {
+    const prompt = await submitOneFrame(project, skill, target.clipNumber, target.position, {
       revision: target.revision,
       styleRefUrl: anchor?.url,
       anchorKind: anchor?.kind,
@@ -203,6 +208,7 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
         $set: {
           "frames.$[frame].status": "queued",
           "frames.$[frame].submittedAt": submittedAt,
+          "frames.$[frame].prompt": prompt,
         },
         $unset: {
           "frames.$[frame].error": "",

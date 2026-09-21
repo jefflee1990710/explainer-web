@@ -6,7 +6,9 @@ import type {
   AnnotationEditorHandle,
   AnnotationTool,
 } from "@/components/annotation-editor";
+import { FramePromptPanel } from "@/components/project/frame-prompt-panel";
 import { Spinner } from "@/components/spinner";
+import type { SceneTextLanguage } from "@/types/project";
 import type {
   AspectRatio,
   ClipFrame,
@@ -57,6 +59,8 @@ export function FrameEditDialog({
   clip,
   aspectRatio,
   credits,
+  sceneTextEnabled,
+  sceneTextLanguage,
   canRegenerate,
   onClose,
   onRegenerate,
@@ -65,6 +69,8 @@ export function FrameEditDialog({
   clip: StoryboardRow;
   aspectRatio: AspectRatio;
   credits: number;
+  sceneTextEnabled: boolean;
+  sceneTextLanguage: SceneTextLanguage;
   // False while another action is pending or frames are still generating.
   canRegenerate: boolean;
   onClose: () => void;
@@ -238,6 +244,13 @@ export function FrameEditDialog({
               <p className="mt-2 text-sm leading-6">{clip.explainerScene}</p>
               <p className="mt-2 text-xs leading-5 text-muted">{clip.motionCamera}</p>
             </div>
+
+            <FramePromptPanel
+              sceneTextEnabled={sceneTextEnabled}
+              sceneTextLanguage={sceneTextLanguage}
+              voiceoverLine={clip.englishVo}
+              frames={[frame]}
+            />
 
             <div>
               <label htmlFor={remarkId} className="font-display text-sm font-bold">

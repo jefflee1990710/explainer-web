@@ -34,6 +34,10 @@ export const SCENE_TEXT_PRESETS: Record<SceneTextLanguage, SceneTextPreset> = {
 
 export const SCENE_TEXT_IDS = Object.keys(SCENE_TEXT_PRESETS) as SceneTextLanguage[];
 
+// AliCloud / Qwen: steer away from lettering when scene text is off.
+export const SCENE_TEXT_OFF_NEGATIVE_PROMPT =
+  "text, words, letters, numbers, typography, captions, subtitles, signage, labels, watermark, logo";
+
 export function isSceneTextLanguage(value: string): value is SceneTextLanguage {
   return SCENE_TEXT_IDS.includes(value as SceneTextLanguage);
 }
@@ -94,7 +98,12 @@ export function sceneTextFrameLines(
     "MANDATORY ON-CANVAS TEXT (highest priority — the image is wrong without it):",
     `Draw this voiceover line large, legible, and fully readable on the canvas. ${letterStyle}`,
     `Exact text to render (only writing allowed in the image): "${line}"`,
-    "Spell every character exactly; no other words, letters, numbers, or signage anywhere.",
+    "Spell every character exactly; you may wrap across 2–3 lines but every word must appear.",
+    "No other words, letters, numbers, or signage anywhere.",
     "If the scene description below mentions different words or labels, ignore that writing — only the quoted voiceover line may appear.",
   ];
+}
+
+export function sceneTextNegativePrompt(enabled: boolean) {
+  return enabled ? undefined : SCENE_TEXT_OFF_NEGATIVE_PROMPT;
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ClipVideoPanel } from "@/components/project/clip-video-panel";
+import { FramePromptPanel } from "@/components/project/frame-prompt-panel";
 import { FrameTile } from "@/components/project/frame-tile";
 import { ArrowIcon, EditIcon, RefreshIcon, WarnIcon } from "@/components/project/production-icons";
 import { Spinner } from "@/components/spinner";
@@ -219,6 +220,12 @@ export function ClipWorkspace({
               "點擊完成的畫格可放大、手繪標註後重畫（1 credit）。"
             )}
           </p>
+          <FramePromptPanel
+            sceneTextEnabled={project.sceneTextEnabled}
+            sceneTextLanguage={project.sceneTextLanguage}
+            voiceoverLine={row.englishVo}
+            frames={[start, end]}
+          />
         </div>
 
         {/* Video */}

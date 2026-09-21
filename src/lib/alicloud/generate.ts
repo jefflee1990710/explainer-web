@@ -95,6 +95,7 @@ export async function submitAlicloudImage(input: {
   prompt: string;
   aspectRatio: AspectRatio;
   referenceImageUrls?: Array<string | undefined>;
+  negativePrompt?: string;
 }): Promise<GenerationSubmitResult> {
   const refs = (input.referenceImageUrls || [])
     .filter((url): url is string => Boolean(url))
@@ -124,6 +125,9 @@ export async function submitAlicloudImage(input: {
             size,
             prompt_extend: false,
             watermark: false,
+            ...(input.negativePrompt
+              ? { negative_prompt: input.negativePrompt }
+              : {}),
           },
         }),
       },
@@ -148,6 +152,9 @@ export async function submitAlicloudImage(input: {
           n: 1,
           prompt_extend: false,
           watermark: false,
+          ...(input.negativePrompt
+            ? { negative_prompt: input.negativePrompt }
+            : {}),
         },
       }),
     },

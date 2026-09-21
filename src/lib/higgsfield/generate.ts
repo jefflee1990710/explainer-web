@@ -63,6 +63,7 @@ export async function submitImage(input: {
   quality?: "low" | "medium" | "high";
   resolution?: "1k" | "2k" | "4k";
   referenceImageUrls?: Array<string | undefined>;
+  negativePrompt?: string;
 }, options: { webhook?: boolean } = {}) {
   // Prefer DashScope when the AliCloud key is present; Higgsfield stays the fallback.
   if (hasAlicloudKey()) {
@@ -70,6 +71,7 @@ export async function submitImage(input: {
       prompt: input.prompt,
       aspectRatio: input.aspectRatio,
       referenceImageUrls: input.referenceImageUrls,
+      negativePrompt: input.negativePrompt,
     });
   }
 

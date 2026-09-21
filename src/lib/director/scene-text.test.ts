@@ -4,6 +4,7 @@ import {
   isSceneTextLanguage,
   resolveSceneText,
   sceneTextFrameLines,
+  sceneTextNegativePrompt,
   sceneTextSkillHint,
 } from "./scene-text";
 
@@ -39,4 +40,9 @@ test("enabled scene text quotes the clip narration on canvas", () => {
   assert.match(lines.join("\n"), /你好世界/);
   assert.match(lines.join("\n"), /ignore that writing/i);
   assert.match(sceneTextSkillHint(true, "en"), /englishVo voiceover line/);
+});
+
+test("sceneTextNegativePrompt only when off", () => {
+  assert.equal(sceneTextNegativePrompt(false)?.includes("subtitles"), true);
+  assert.equal(sceneTextNegativePrompt(true), undefined);
 });

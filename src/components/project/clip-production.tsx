@@ -239,6 +239,8 @@ export function ClipProduction({
           clip={row}
           aspectRatio={project.aspectRatio}
           credits={credits}
+          sceneTextEnabled={project.sceneTextEnabled}
+          sceneTextLanguage={project.sceneTextLanguage}
           canRegenerate={pending === ""}
           onClose={() => setEditingFrame(null)}
           onRegenerate={(revision) => {
