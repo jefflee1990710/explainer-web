@@ -59,8 +59,8 @@ export function reconcileFrames(frames: ClipFrame[], jobs: GenerationJob[]): Cli
 }
 
 // Same for clip videos.
-export function reconcileClips(clips: ProjectClip[], jobs: GenerationJob[]): ProjectClip[] {
-  return clips.map((clip) => {
+export function reconcileClips(clips: ProjectClip[] | undefined, jobs: GenerationJob[]): ProjectClip[] {
+  return (clips || []).map((clip) => {
     const job = newest(
       jobs.filter((item) => item.kind === "video" && item.clipIndex === clip.clipNumber - 1),
     );
