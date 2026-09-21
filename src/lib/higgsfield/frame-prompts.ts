@@ -4,6 +4,7 @@ import {
   frameCharacterLockLine,
   soloCharacterParagraphForFrames,
 } from "@/lib/characters/cast-prompt";
+import { frameEndMoment, frameStartMoment } from "@/lib/director/keyframe-delta";
 import type { FrameAnchorKind } from "@/lib/higgsfield/clip-keyframes";
 import {
   resolveSceneText,
@@ -59,7 +60,7 @@ function anchorLines(options: FramePromptOptions) {
   if (!options.styleRefUrl) return [];
   if (options.anchorKind === "clip-start") {
     return [
-      "Also attached (after any annotated previous version): THIS CLIP'S START frame. Keep the same camera, character size and screen position. Only apply the described motion as a modest continuation — props and labels may slide or morph. Do not teleport the character or invent a new composition.",
+      "Also attached (after any annotated previous version): THIS CLIP'S START frame. Keep the same camera, character size and screen position. Apply the full duration-scaled motion from the storyboard so the end is a later moment, not a near-copy. Do not teleport the character or invent a new composition.",
       "Character face, hair, outfit and accessories MUST match the attached character blueprint exactly. Do not copy drifted clothing from the start frame if it conflicts with the blueprint.",
     ];
   }
@@ -114,12 +115,8 @@ export function buildFramePrompt(
 
   const moment =
     position === "start"
-      ? `This is the FIRST frame (t=0s) of clip ${clipNumber}: show the opening state before any motion happens. Keep this a single locked camera setup that the end frame will continue.`
-      : `This is the LAST frame of clip ${clipNumber}: the SAME SHOT as the start frame after a modest continuation of the described motion. Keep the same camera, character size, and screen position. Props and labels may slide or morph in or out; do not teleport the character or cut to a new composition.${
-          next
-            ? ` It must visually hand off to the next clip, which opens with: ${next.explainerScene}`
-            : " It is the final frame of the video: end on a clean resting payoff. Do not match or bridge back to clip 1."
-        }`;
+      ? frameStartMoment(clipNumber, row.durationSeconds)
+      : frameEndMoment(clipNumber, row.durationSeconds, next?.explainerScene);
 
   const sceneText = resolveSceneText(project);
   const hasCast = Boolean(project.cast && project.cast.length > 0);

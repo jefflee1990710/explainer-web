@@ -14,6 +14,7 @@ import {
   sceneTextSkillHint,
 } from "@/lib/director/scene-text";
 import { skillPromptForPhaseA } from "@/lib/director/load-skill-prompt";
+import { keyframeDeltaDirectorBlock } from "@/lib/director/keyframe-delta";
 import { directorModel } from "@/lib/director/model";
 import { phaseASchema } from "@/lib/director/schemas";
 import type { Style } from "@/lib/styles";
@@ -72,11 +73,13 @@ export async function runPhaseA(input: {
 
 You are executing Phase A only. Return structured JSON that matches the schema.
 Planning explanations (narrativeJob, explainerScene, motionCamera, hookStrategy, coreMessage, etc.) must be Traditional Chinese (繁體中文).
-Each clip's start and end are the SAME SHOT: explainerScene and motionCamera must describe a modest continuation (${
+${keyframeDeltaDirectorBlock()}
+${
   sceneText.enabled
-    ? "pose, props, labels sliding or morphing"
-    : "pose and props sliding or morphing — no written labels"
-}), not a new camera or a character teleporting across the frame. The next clip's start inherits the previous clip's end environment.
+    ? "On-canvas text may stay the same line from start to end; motion is pose, props, and lettering placement only."
+    : "Motion is pose and props only — no written labels."
+}
+The next clip's start inherits the previous clip's end environment.
 loopMode MUST always be "linear". The final clip must end on a clean resting payoff — never bridge Clip N back to Clip 1, never plan a seamless loop or infinite cycle.
 ${
   characterImages.length

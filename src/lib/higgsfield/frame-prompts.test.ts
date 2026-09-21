@@ -70,15 +70,15 @@ test("pixel video gets pixel canvas and no lettering unless scene text is on", (
 
 test("end frame is the same shot as start, not a new composition", () => {
   const prompt = buildFramePrompt(project(), 1, "end");
-  assert.match(prompt, /SAME SHOT/);
-  assert.match(prompt, /modest continuation/);
-  assert.doesNotMatch(prompt, /resting state after all described motion has completed/);
+  assert.match(prompt, /SAME locked camera/);
+  assert.match(prompt, /5–6s/);
+  assert.doesNotMatch(prompt, /modest continuation/);
 });
 
 test("start frame stays an opening state of this shot", () => {
   const prompt = buildFramePrompt(project(), 1, "start");
   assert.match(prompt, /FIRST frame/);
-  assert.match(prompt, /opening state/);
+  assert.match(prompt, /Opening at t=0s/);
 });
 
 test("clip-start anchor tells the model to keep camera and character placement", () => {

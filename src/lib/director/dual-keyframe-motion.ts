@@ -3,7 +3,7 @@
 
 export const DUAL_KEYFRAME_MOTION_RULES = [
   "The start and end storyboard images for this clip are the SAME SHOT, attached as first/last frames.",
-  "Interpolate smoothly across the FULL duration — do not hold the start pose then snap or hard-cut to the end image in the last frames.",
-  "Choreograph two beats: the first half stays with the start state (small motion only); the second half slides and morphs element-by-element into the end state.",
-  "Elements from the start slide away one by one; elements of the end slide in one by one. The character keeps roughly the same screen position and scale.",
+  "They differ by a duration-scaled amount (see the clip's durationSeconds): interpolate that travel smoothly across the FULL duration — do not hold the start pose then snap to the end in the last frames.",
+  "Use the seconds: short clips (3–4s) are one beat; longer clips (5–8s) are two beats that finish on the end still.",
+  "Interpolate element-by-element: start elements slide away one by one; end elements slide in. The character keeps roughly the same screen position and scale.",
 ].join(" ");
