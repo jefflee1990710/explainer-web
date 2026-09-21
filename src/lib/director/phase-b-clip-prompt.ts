@@ -1,6 +1,20 @@
 import { DUAL_KEYFRAME_MOTION_RULES } from "@/lib/director/dual-keyframe-motion";
 import type { PhaseAProposal } from "@/types/project";
 
+// Director-only note. Do not pass character sheet URLs — Wan will only
+// receive this clip's first and last frames, and "reference" wording
+// can reroute Wan 3.0 away from first/last-frame lock.
+export function phaseBCharacterLine(input: {
+  cast?: Array<{ name: string }>;
+  characterImageUrl?: string;
+}) {
+  const names = input.cast?.map((member) => member.name).filter(Boolean).join(", ");
+  if (names) {
+    return `Keep ${names} identical to Phase A characterLock. Do not mention reference images or reference sheets in the Wan prompt — Wan only receives this clip's first and last frames.`;
+  }
+  return "Keep the Phase A characterLock. Do not mention reference images in the Wan prompt — Wan only receives this clip's first and last frames.";
+}
+
 // User prompt asking the director for ONE clip's video prompt. The whole
 // approved Phase A is included for context; the neighbouring rows are quoted
 // explicitly so the motion hands off cleanly between independently generated clips.

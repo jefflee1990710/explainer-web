@@ -40,6 +40,15 @@ test("wan3 clip body locks first/last frames and native speech", () => {
     { type: "first_frame", url: "https://start" },
     { type: "last_frame", url: "https://end" },
   ]);
+  assert.equal(
+    body.input.media.every((item) => item.type === "first_frame" || item.type === "last_frame"),
+    true,
+  );
+  assert.doesNotMatch(JSON.stringify(body), /reference_/);
+  assert.match(body.input.prompt, /FIRST FRAME/);
+  assert.match(body.input.prompt, /LAST FRAME/);
+  assert.match(body.input.prompt, /Do not treat them as .*reference/i);
+  assert.match(body.input.prompt, /你好/);
   assert.deepEqual(wanClipVideoParameters(6), {
     resolution: "720P",
     ratio: "adaptive",

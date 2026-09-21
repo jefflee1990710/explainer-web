@@ -1,10 +1,9 @@
 import { generateText, Output } from "ai";
-import { castLineForPhaseB } from "@/lib/characters/cast-prompt";
 import { DUAL_KEYFRAME_MOTION_RULES } from "@/lib/director/dual-keyframe-motion";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { skillPromptForPhaseB } from "@/lib/director/load-skill-prompt";
 import { directorModel } from "@/lib/director/model";
-import { clipPhaseBUserPrompt } from "@/lib/director/phase-b-clip-prompt";
+import { clipPhaseBUserPrompt, phaseBCharacterLine } from "@/lib/director/phase-b-clip-prompt";
 import { phaseBClipSchema } from "@/lib/director/schemas";
 import type { Style } from "@/lib/styles";
 import type { CastMember } from "@/types/character";
@@ -26,14 +25,15 @@ function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageS
 
 You are executing Phase B only after explicit approval of the current Phase A.
 Return standalone Wan 3 video prompts that follow the skill prompt contract. Do not invent new facts.
-Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. ${DUAL_KEYFRAME_MOTION_RULES} Do not invent a different final pose, camera, or composition.
+Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image in the Wan prompt. ${DUAL_KEYFRAME_MOTION_RULES} Do not invent a different final pose, camera, or composition.
 Spoken dialogue in every prompt must be quoted verbatim from the approved englishVo lines, which are in ${languageLabel} (${languageSublabel}). Tell the video model explicitly that the narrator speaks ${languageLabel}.`;
 }
 
 function characterLine(input: PhaseBInput) {
-  return input.cast && input.cast.length > 0
-    ? castLineForPhaseB(input.cast)
-    : `Character reference image: ${input.characterImageUrl || "none"}`;
+  return phaseBCharacterLine({
+    cast: input.cast,
+    characterImageUrl: input.characterImageUrl,
+  });
 }
 
 // Per-clip Phase B: one video prompt, with the neighbouring clips as hand-off context.

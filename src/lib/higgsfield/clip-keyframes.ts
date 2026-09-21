@@ -1,3 +1,4 @@
+import { lockWanVideoPrompt } from "@/lib/generation/wan-video-prompt";
 import { mediaSrc } from "@/lib/media-src";
 import type { AspectRatio, ClipFrame, FramePosition } from "@/types/project";
 
@@ -94,7 +95,7 @@ export function wanClipVideoInput(input: {
   endImageUrl: string;
 }) {
   return {
-    prompt: input.prompt,
+    prompt: lockWanVideoPrompt(input.prompt),
     aspect_ratio: input.aspectRatio,
     duration: Math.min(8, Math.max(3, Math.round(input.durationSeconds))),
     resolution: "720p" as const,

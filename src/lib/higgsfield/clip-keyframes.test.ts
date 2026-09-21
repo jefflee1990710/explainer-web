@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ClipFrame } from "@/types/project";
+import { lockWanVideoPrompt } from "@/lib/generation/wan-video-prompt";
 import {
   assertClipKeyframes,
   clipFrameAnchor,
@@ -124,7 +125,7 @@ test("wanClipVideoInput always sends first + last frame fields", () => {
       endImageUrl: "https://blob/end.png",
     }),
     {
-      prompt: "walk to the box",
+      prompt: lockWanVideoPrompt("walk to the box"),
       aspect_ratio: "9:16",
       duration: 5,
       resolution: "720p",

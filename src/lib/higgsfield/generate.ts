@@ -1,10 +1,7 @@
 import { getAppUrl, isPublicHttpUrl } from "@/lib/app-url";
-import { hasAlicloudKey, isAlicloudStatusUrl } from "@/lib/alicloud/dashscope";
-import {
-  fetchAlicloudStatus,
-  submitAlicloudClipVideo,
-  submitAlicloudImage,
-} from "@/lib/alicloud/generate";
+import { isAlicloudStatusUrl } from "@/lib/alicloud/dashscope";
+import { fetchAlicloudStatus, submitAlicloudImage } from "@/lib/alicloud/generate";
+import { clipVideoProvider } from "@/lib/generation/video-backend";
 import { imageModelForSubmit, resolveImageRoute } from "@/lib/generation/image-backend";
 import {
   assertHiggsfieldConfigured,
@@ -137,18 +134,13 @@ export async function submitClipVideo(input: {
   startImageUrl: string;
   endImageUrl: string;
 }) {
-  if (hasAlicloudKey()) {
-    return submitAlicloudClipVideo({
-      prompt: input.prompt,
-      durationSeconds: input.durationSeconds,
-      startImageUrl: input.startImageUrl,
-      endImageUrl: input.endImageUrl,
-    });
+  if (clipVideoProvider() !== "higgsfield") {
+    throw new Error("clip video must use Higgsfield image_url + end_image_url");
   }
 
   const client = assertHiggsfieldConfigured();
-  // Wan 3.0 last-frame lock is `end_image_url`. Never fall back to start-only
-  // I2V or mix in image_references (exclusive with first/last frames).
+  // Higgsfield Wan 3.0 I2V: `image_url` = first frame, `end_image_url` = last.
+  // Never mix in image_references (exclusive with first/last frames).
   return client.subscribe(input.model, {
     input: wanClipVideoInput({
       prompt: input.prompt,

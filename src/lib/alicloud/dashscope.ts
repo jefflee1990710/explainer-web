@@ -1,3 +1,4 @@
+import { lockWanVideoPrompt } from "@/lib/generation/wan-video-prompt";
 import type { AspectRatio } from "@/types/project";
 import type { GenerationStatus } from "@/types/generation-job";
 
@@ -47,7 +48,7 @@ export function wan3ClipVideoBody(input: {
   return {
     model: ALICLOUD_VIDEO_MODEL,
     input: {
-      prompt: input.prompt,
+      prompt: lockWanVideoPrompt(input.prompt),
       media: [
         { type: "first_frame", url: input.startImageUrl },
         { type: "last_frame", url: input.endImageUrl },
