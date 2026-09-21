@@ -34,7 +34,9 @@ test("sceneTextSkillHint and frame lines ban writing when off", () => {
 });
 
 test("enabled scene text quotes the clip narration on canvas", () => {
-  assert.match(sceneTextFrameLines(true, "zh-Hans", "你好世界")[1], /你好世界/);
-  assert.match(sceneTextFrameLines(true, "zh-Hans", "你好世界")[1], /only writing/);
+  const lines = sceneTextFrameLines(true, "zh-Hans", "你好世界");
+  assert.match(lines.join("\n"), /MANDATORY ON-CANVAS TEXT/);
+  assert.match(lines.join("\n"), /你好世界/);
+  assert.match(lines.join("\n"), /ignore that writing/i);
   assert.match(sceneTextSkillHint(true, "en"), /englishVo voiceover line/);
 });

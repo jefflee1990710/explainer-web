@@ -75,6 +75,22 @@ export function videoStyle(project: Pick<Project, "styleId">): Style {
   return resolveStyle(project.styleId);
 }
 
+// Catalog typography often bans "subtitles"; scene-text mode needs integrated captions.
+function typographyForSceneText(typography: string) {
+  return typography
+    .replace(/;\s*never subtitles or captions\.?/gi, "")
+    .replace(/,?\s*never subtitles or captions\.?/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/;\s*;/g, ";")
+    .replace(/,\s*,/g, ",")
+    .trim();
+}
+
+function styleLetteringLineForSceneText(style: Style) {
+  const typography = typographyForSceneText(style.typography);
+  return `Lettering: ${typography}. Integrated on-canvas voiceover lettering is required (not a separate TV subtitle bar).`;
+}
+
 // Deterministic image prompts derived from the approved Phase A storyboard.
 // No extra LLM call: the storyboard rows already describe scene + motion.
 export function buildFramePrompt(
@@ -121,10 +137,19 @@ export function buildFramePrompt(
         ? soloCharacterParagraphForFrames(characterAttachmentStart)
         : []),
     frameCharacterLockLine(project.cast, characterUrls.length > 0, phaseA.characterLock),
+    // Voiceover lettering before the scene so explainerScene cannot override it.
+    ...(sceneText.enabled
+      ? [
+          styleLetteringLineForSceneText(style),
+          ...sceneTextFrameLines(
+            true,
+            sceneText.language,
+            row.englishVo,
+            typographyForSceneText(style.typography),
+          ),
+        ]
+      : sceneTextFrameLines(false, sceneText.language)),
     `Scene: ${row.explainerScene}`,
-    // On-canvas labels only when the user turned scene text on.
-    ...(sceneText.enabled ? [styleLetteringLine(style)] : []),
-    ...sceneTextFrameLines(sceneText.enabled, sceneText.language, row.englishVo),
     `Motion and camera across the clip: ${row.motionCamera}`,
     moment,
     ...revisionLines(options.revision),

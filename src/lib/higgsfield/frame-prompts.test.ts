@@ -189,8 +189,12 @@ test("enabled scene text puts the voiceover line on canvas with lettering", () =
   on.sceneTextLanguage = "zh-Hant";
   const prompt = buildFramePrompt(on, 1, "start");
   assert.match(prompt, /Lettering:/);
-  assert.match(prompt, /On-canvas text \(the only writing allowed in the image\): "vo"/);
-  assert.match(prompt, /Traditional Chinese/);
+  assert.match(prompt, /MANDATORY ON-CANVAS TEXT/);
+  assert.match(prompt, /Exact text to render \(only writing allowed in the image\): "vo"/);
+  const sceneAt = prompt.indexOf("Scene: scene");
+  const mandatoryAt = prompt.indexOf("MANDATORY ON-CANVAS TEXT");
+  assert.ok(mandatoryAt >= 0 && mandatoryAt < sceneAt, "voiceover text must precede Scene");
+  assert.doesNotMatch(prompt, /never subtitles or captions/i);
 });
 
 test("disabled scene text ignores words mentioned in the scene description", () => {

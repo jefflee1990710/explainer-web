@@ -55,11 +55,18 @@ export function sceneTextSkillHint(enabled: boolean, language: SceneTextLanguage
     return "On-canvas text is OFF. explainerScene, visualWorld, and motionCamera must contain NO written words, labels, numbers, captions, signage, or lettering — not even in quotes. Communicate only with images, props, and composition.";
   }
   return [
+    "When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo voiceover line, spelled character-for-character, large and clearly readable.",
     SCENE_TEXT_PRESETS[language].skillHint,
-    "When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo voiceover line, spelled character-for-character on the canvas.",
     "explainerScene and motionCamera describe visuals and motion only — do not put other quotes, labels, or signage in those fields.",
-    "Do not add separate subtitle bars; the voiceover line is integrated as short on-canvas lettering.",
   ].join(" ");
+}
+
+// Typography locale for lettering style; the quoted voiceover keeps its own script.
+export function sceneTextTypographyHint(language: SceneTextLanguage) {
+  return SCENE_TEXT_PRESETS[language].skillHint.replace(
+    /Every label is .+$/,
+    "Match this locale for hand-drawn caption styling when it fits the quoted line.",
+  );
 }
 
 // Frame prompts: OFF = zero writing; ON = quote the clip narration (englishVo) exactly.
@@ -67,6 +74,7 @@ export function sceneTextFrameLines(
   enabled: boolean,
   language: SceneTextLanguage,
   narration?: string,
+  typography?: string,
 ) {
   if (!enabled) {
     return [
@@ -77,12 +85,16 @@ export function sceneTextFrameLines(
   const line = narration?.trim();
   if (!line) {
     return [
-      SCENE_TEXT_PRESETS[language].skillHint,
+      sceneTextTypographyHint(language),
       "On-canvas text must quote this clip's voiceover line exactly, but none was provided.",
     ];
   }
+  const letterStyle = typography?.trim() || sceneTextTypographyHint(language);
   return [
-    SCENE_TEXT_PRESETS[language].skillHint,
-    `On-canvas text (the only writing allowed in the image): "${line}" — spell exactly, no other words or letters anywhere.`,
+    "MANDATORY ON-CANVAS TEXT (highest priority — the image is wrong without it):",
+    `Draw this voiceover line large, legible, and fully readable on the canvas. ${letterStyle}`,
+    `Exact text to render (only writing allowed in the image): "${line}"`,
+    "Spell every character exactly; no other words, letters, numbers, or signage anywhere.",
+    "If the scene description below mentions different words or labels, ignore that writing — only the quoted voiceover line may appear.",
   ];
 }
