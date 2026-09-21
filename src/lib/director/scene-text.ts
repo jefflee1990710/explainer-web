@@ -14,21 +14,21 @@ export const SCENE_TEXT_PRESETS: Record<SceneTextLanguage, SceneTextPreset> = {
     label: "English",
     sublabel: "英文標籤",
     skillHint:
-      "On-canvas text language: English. Every label is 1–2 short English words, spelled exactly, no other writing system.",
+      "On-canvas text language: English. Caption styling may be English handwriting or mixed-case lettering; never invent extra English titles besides the clip's englishVo.",
   },
   "zh-Hant": {
     id: "zh-Hant",
     label: "繁體中文",
     sublabel: "畫面文字",
     skillHint:
-      "On-canvas text language: Traditional Chinese (繁體中文). Every label is 1–2 Traditional Chinese characters or a short word, spelled exactly, no Simplified Chinese or Latin letters unless the source uses a brand name.",
+      "On-canvas text language: Traditional Chinese (繁體中文). Caption styling may use Traditional Chinese handwriting; never invent extra titles besides the clip's englishVo (keep that line in its own script).",
   },
   "zh-Hans": {
     id: "zh-Hans",
     label: "简体中文",
     sublabel: "画面文字",
     skillHint:
-      "On-canvas text language: Simplified Chinese (简体中文). Every label is 1–2 Simplified Chinese characters or a short word, spelled exactly, no Traditional Chinese or Latin letters unless the source uses a brand name.",
+      "On-canvas text language: Simplified Chinese (简体中文). Caption styling may use Simplified Chinese handwriting; never invent extra titles besides the clip's englishVo (keep that line in its own script).",
   },
 };
 
@@ -56,13 +56,24 @@ export function resolveSceneText(input: {
 
 export function sceneTextSkillHint(enabled: boolean, language: SceneTextLanguage) {
   if (!enabled) {
-    return "On-canvas text is OFF. explainerScene, visualWorld, and motionCamera must contain NO written words, labels, numbers, captions, signage, or lettering — not even in quotes. Communicate only with images, props, and composition.";
+    return "On-canvas text is OFF. explainerScene, visualWorld, and motionCamera must contain NO written words, labels, numbers, captions, signage, or lettering — not even in quotes or 「」. Communicate only with images, props, and composition.";
   }
   return [
-    "When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo voiceover line, spelled character-for-character, large and clearly readable.",
+    "When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo voiceover line as a bottom subtitle, spelled character-for-character.",
+    "explainerScene and motionCamera must describe pose, props, and environment only. Do NOT invent extra titles, quotes, 「Mental Health?」-style labels, signs, or any wording that is not englishVo.",
     SCENE_TEXT_PRESETS[language].skillHint,
-    "explainerScene and motionCamera describe visuals and motion only — do not put other quotes, labels, or signage in those fields.",
   ].join(" ");
+}
+
+// Revision note when the user toggles scene text after Phase A already exists.
+export function sceneTextDirectorRevisionNote(
+  enabled: boolean,
+  language: SceneTextLanguage,
+) {
+  if (!enabled) {
+    return "On-canvas text is now OFF. Rewrite every clip's explainerScene and motionCamera so they contain zero quoted words, labels, signs, or lettering (no 「」 quotes). Keep the same story, characters, and titles. Visuals and motion only.";
+  }
+  return `On-canvas text is now ON (${SCENE_TEXT_PRESETS[language].label}). The ONLY writing in each still is that clip's englishVo as a bottom subtitle. Rewrite every clip's explainerScene and motionCamera: pose, props, environment only — never invent short titles such as 「Mental Health?」 or any other quoted labels. Keep the same story, characters, and proposal titles.`;
 }
 
 // Typography locale for lettering style; the quoted voiceover keeps its own script.
@@ -82,7 +93,7 @@ export function voiceoverLineLooksLatin(line: string) {
 
 export function sceneTextVoLetteringHint(language: SceneTextLanguage, narration: string) {
   if (voiceoverLineLooksLatin(narration)) {
-    return "Hand-letter the FULL English quote below in large, readable mixed-case (same spelling as the quote).";
+    return "Hand-letter the quoted English subtitle in large, readable mixed-case (same spelling as the quote).";
   }
   if (language === "zh-Hant") {
     return "以繁體手寫字幕呈現下方整句旁白，字大清晰。";

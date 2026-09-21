@@ -5,6 +5,7 @@ import {
   resolveSceneText,
   sceneTextFrameLines,
   sceneTextNegativePrompt,
+  sceneTextDirectorRevisionNote,
   sceneTextSkillHint,
   stripStoryboardWriting,
   voiceoverLineLooksLatin,
@@ -60,4 +61,10 @@ test("stripStoryboardWriting removes embedded label quotes", () => {
 test("voiceoverLineLooksLatin detects English narration", () => {
   assert.equal(voiceoverLineLooksLatin("Hello world"), true);
   assert.equal(voiceoverLineLooksLatin("你好"), false);
+});
+
+test("director revision note asks to drop invented labels when toggling", () => {
+  assert.match(sceneTextDirectorRevisionNote(true, "en"), /englishVo/);
+  assert.match(sceneTextDirectorRevisionNote(false, "en"), /OFF/);
+  assert.match(sceneTextSkillHint(true, "en"), /do NOT invent extra titles/i);
 });
