@@ -11,8 +11,8 @@ import {
 } from "./dashscope";
 
 test("imageSizeForRatio maps project ratios to Qwen pixel sizes", () => {
-  assert.equal(imageSizeForRatio("16:9"), "1664*928");
-  assert.equal(imageSizeForRatio("9:16"), "928*1664");
+  assert.equal(imageSizeForRatio("16:9"), "1920*1080");
+  assert.equal(imageSizeForRatio("9:16"), "1080*1920");
   assert.equal(imageSizeForRatio("1:1"), "1328*1328");
 });
 

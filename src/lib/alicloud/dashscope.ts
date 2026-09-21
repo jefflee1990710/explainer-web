@@ -3,8 +3,8 @@ import type { GenerationStatus } from "@/types/generation-job";
 
 const INTL_BASE = "https://dashscope-intl.aliyuncs.com/api/v1";
 
-export const ALICLOUD_IMAGE_MODEL = "qwen-image-plus";
-export const ALICLOUD_IMAGE_EDIT_MODEL = "qwen-image-edit-plus";
+export const ALICLOUD_IMAGE_MODEL = "qwen-image-3.0-pro";
+export const ALICLOUD_IMAGE_EDIT_MODEL = "qwen-image-3.0-pro";
 export const ALICLOUD_VIDEO_MODEL = "wan2.7-i2v";
 
 export function alicloudApiKey() {
@@ -16,9 +16,10 @@ export function hasAlicloudKey() {
 }
 
 export function imageSizeForRatio(ratio: AspectRatio) {
-  if (ratio === "9:16") return "928*1664";
+  // Qwen-Image 3.0: total pixels 512*512–2048*2048.
+  if (ratio === "9:16") return "1080*1920";
   if (ratio === "1:1") return "1328*1328";
-  return "1664*928";
+  return "1920*1080";
 }
 
 export function wanDurationSeconds(durationSeconds: number) {
@@ -110,12 +111,12 @@ async function readJson(response: Response) {
 
 export async function dashscopeRequest(
   path: string,
-  init: RequestInit & { async?: boolean } = {},
+  init: RequestInit & { async?: boolean; timeoutMs?: number } = {},
 ) {
   const key = alicloudApiKey();
   if (!key) throw new Error("尚未設定 AliCloud API key");
 
-  const { async: enableAsync, ...rest } = init;
+  const { async: enableAsync, timeoutMs, ...rest } = init;
   const headers: Record<string, string> = {
     Authorization: `Bearer ${key}`,
     "Content-Type": "application/json",
@@ -125,15 +126,31 @@ export async function dashscopeRequest(
 
   let lastError: Error | undefined;
   for (const base of candidateBases()) {
-    const response = await fetch(`${base}${path}`, { ...rest, headers });
-    const body = await readJson(response).catch(() => ({}) as Record<string, unknown>);
-    if (response.ok) {
-      return { base, body };
-    }
-    const message = dashscopeError(body) || `AliCloud 請求失敗（${response.status}）`;
-    lastError = new Error(message);
-    if (response.status !== 401 && response.status !== 403 && !/apikey|unauthorized|forbidden/i.test(message)) {
-      throw lastError;
+    const attempts = timeoutMs ? 2 : 1;
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        const response = await fetch(`${base}${path}`, {
+          ...rest,
+          headers,
+          ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
+        });
+        const body = await readJson(response).catch(() => ({}) as Record<string, unknown>);
+        if (response.ok) {
+          return { base, body };
+        }
+        const message = dashscopeError(body) || `AliCloud 請求失敗（${response.status}）`;
+        lastError = new Error(message);
+        if (response.status !== 401 && response.status !== 403 && !/apikey|unauthorized|forbidden/i.test(message)) {
+          throw lastError;
+        }
+        break;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        if (attempt < attempts && /fetch failed|aborted|timeout/i.test(lastError.message)) {
+          continue;
+        }
+        throw lastError;
+      }
     }
   }
   throw lastError || new Error("AliCloud 請求失敗");

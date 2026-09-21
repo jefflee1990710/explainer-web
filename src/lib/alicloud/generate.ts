@@ -102,55 +102,31 @@ export async function submitAlicloudImage(input: {
     .slice(0, MAX_EDIT_REFS);
   const size = imageSizeForRatio(input.aspectRatio);
 
-  if (refs.length > 0) {
-    const { base, body } = await dashscopeRequest(
-      "/services/aigc/multimodal-generation/generation",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          model: ALICLOUD_IMAGE_EDIT_MODEL,
-          input: {
-            messages: [
-              {
-                role: "user",
-                content: [
-                  ...refs.map((url) => ({ image: url })),
-                  { text: input.prompt },
-                ],
-              },
-            ],
-          },
-          parameters: {
-            n: 1,
-            size,
-            prompt_extend: false,
-            watermark: false,
-            ...(input.negativePrompt
-              ? { negative_prompt: input.negativePrompt }
-              : {}),
-          },
-        }),
-      },
-    );
-    const output = asRecord(body.output);
-    if (typeof output.task_id === "string" && output.task_id) {
-      return resultFromTask(body, dashscopeTaskUrl(base, output.task_id));
-    }
-    return resultFromSyncImage(body);
-  }
-
+  // 3.0-pro does T2I and I2I on the same multimodal endpoint.
   const { base, body } = await dashscopeRequest(
-    "/services/aigc/text2image/image-synthesis",
+    "/services/aigc/multimodal-generation/generation",
     {
       method: "POST",
-      async: true,
+      timeoutMs: 8 * 60_000,
       body: JSON.stringify({
-        model: ALICLOUD_IMAGE_MODEL,
-        input: { prompt: input.prompt },
+        model: refs.length > 0 ? ALICLOUD_IMAGE_EDIT_MODEL : ALICLOUD_IMAGE_MODEL,
+        input: {
+          messages: [
+            {
+              role: "user",
+              content: [
+                ...refs.map((url) => ({ image: url })),
+                { text: input.prompt },
+              ],
+            },
+          ],
+        },
         parameters: {
-          size,
           n: 1,
+          size,
+          // Keep the director/frame prompt verbatim (exact subtitle spelling).
           prompt_extend: false,
+          enable_thinking: false,
           watermark: false,
           ...(input.negativePrompt
             ? { negative_prompt: input.negativePrompt }
@@ -159,9 +135,11 @@ export async function submitAlicloudImage(input: {
       }),
     },
   );
-  const id = taskIdFrom(body);
-  if (!id) throw new Error(dashscopeError(body) || "AliCloud 未回傳 task_id");
-  return resultFromTask(body, dashscopeTaskUrl(base, id));
+  const output = asRecord(body.output);
+  if (typeof output.task_id === "string" && output.task_id) {
+    return resultFromTask(body, dashscopeTaskUrl(base, output.task_id));
+  }
+  return resultFromSyncImage(body);
 }
 
 export async function submitAlicloudClipVideo(input: {
