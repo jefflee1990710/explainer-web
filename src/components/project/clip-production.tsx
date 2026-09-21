@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ClipTimeline } from "@/components/project/clip-timeline";
 import { ClipWorkspace } from "@/components/project/clip-workspace";
 import { FillRemainingDialog } from "@/components/project/fill-remaining-dialog";
 import { FrameEditDialog } from "@/components/project/frame-edit-dialog";
@@ -20,8 +19,8 @@ import type {
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-// Per-clip production: timeline of clips on top, one clip's workspace below,
-// fill-remaining footer. Shared by the /new form and the project page.
+// All clips stacked top-to-bottom, plus a fill-remaining footer.
+// Shared by the /new form and the project page.
 export function ClipProduction({
   project,
   credits,
@@ -62,40 +61,21 @@ export function ClipProduction({
   const ready = project.status === "ready";
   const busy = isProjectBusy(project);
 
-  // Default to the first clip that still needs work; #1 when everything is done.
-  const [selected, setSelected] = useState<number>(
-    () => states.find((s) => s.stage !== "video_ready")?.clipNumber ?? states[0]?.clipNumber ?? 1,
-  );
-  const [editingFrame, setEditingFrame] = useState<FramePosition | null>(null);
+  const [editingFrame, setEditingFrame] = useState<{
+    clipNumber: number;
+    position: FramePosition;
+  } | null>(null);
   const [confirmFill, setConfirmFill] = useState(false);
 
-  const index = states.findIndex((s) => s.clipNumber === selected);
-  const state = states[index] ?? states[0];
-  const prev = index > 0 ? states[index - 1].clipNumber : undefined;
-  const next = index >= 0 && index < states.length - 1 ? states[index + 1].clipNumber : undefined;
+  if (!phaseA || states.length === 0) return null;
 
-  // ← / → switch clips when no dialog is open and focus is not in a field.
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (editingFrame || confirmFill) return;
-      // ← / → belong to the focused control (video scrubbing, select, editor).
-      const target = event.target as HTMLElement | null;
-      const tag = target?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "VIDEO" || tag === "SELECT") return;
-      if (target?.isContentEditable) return;
-      if (event.key === "ArrowLeft" && prev) setSelected(prev);
-      if (event.key === "ArrowRight" && next) setSelected(next);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [prev, next, editingFrame, confirmFill]);
-
-  if (!phaseA || !state) return null;
-
-  const row = phaseA.clips.find((r) => r.clipNumber === state.clipNumber);
+  const editingRow = editingFrame
+    ? phaseA.clips.find((r) => r.clipNumber === editingFrame.clipNumber)
+    : undefined;
   const frame = editingFrame
     ? project.frames.find(
-        (f) => f.clipNumber === state.clipNumber && f.position === editingFrame,
+        (f) =>
+          f.clipNumber === editingFrame.clipNumber && f.position === editingFrame.position,
       )
     : undefined;
   return (
@@ -116,7 +96,7 @@ export function ClipProduction({
               {ready ? "影片完成" : "逐段製作：畫面 prompt → 畫格 → 影片"}
             </h2>
             <p className="mt-1 text-sm text-muted">
-              左邊可改起始／結尾畫面後重畫。點時間軸切換段落，每段各自扣款。
+              各段由上往下排列。左邊可改起始／結尾畫面後重畫，每段各自扣款。
             </p>
           </div>
           <div className="text-right text-sm">
@@ -131,31 +111,27 @@ export function ClipProduction({
             ) : null}
           </div>
         </div>
-        <div className="mt-5">
-          <ClipTimeline
-            project={project}
-            states={states}
-            selected={state.clipNumber}
-            pending={pending}
-            onSelect={setSelected}
-          />
-        </div>
       </header>
 
-      <ClipWorkspace
-        project={project}
-        state={state}
-        credits={credits}
-        pending={pending}
-        error={error}
-        onPrev={prev ? () => setSelected(prev) : undefined}
-        onNext={next ? () => setSelected(next) : undefined}
-        onGenerateFrames={() => onGenerateFrames(state.clipNumber)}
-        onRegenerateFrame={(position) => onRegenerateFrame(state.clipNumber, position)}
-        onOpenFrame={setEditingFrame}
-        onUpdateClip={(input, regenerate) => onUpdateClip(state.clipNumber, input, regenerate)}
-        onGenerateVideo={() => onGenerateVideo(state.clipNumber)}
-      />
+      {states.map((state) => (
+        <ClipWorkspace
+          key={state.clipNumber}
+          project={project}
+          state={state}
+          credits={credits}
+          pending={pending}
+          error={error}
+          onGenerateFrames={() => onGenerateFrames(state.clipNumber)}
+          onRegenerateFrame={(position) => onRegenerateFrame(state.clipNumber, position)}
+          onOpenFrame={(position) =>
+            setEditingFrame({ clipNumber: state.clipNumber, position })
+          }
+          onUpdateClip={(input, regenerate) =>
+            onUpdateClip(state.clipNumber, input, regenerate)
+          }
+          onGenerateVideo={() => onGenerateVideo(state.clipNumber)}
+        />
+      ))}
 
       {/* Footer: fill the gaps, or celebrate. */}
       <div className="rounded-[1.5rem] border border-accent-ink/10 bg-lime/60 p-5">
@@ -222,11 +198,11 @@ export function ClipProduction({
       ) : null}
 
       {/* Frame annotate + redo */}
-      {editingFrame && frame && row ? (
+      {editingFrame && frame && editingRow ? (
         <FrameEditDialog
-          key={`${state.clipNumber}:${editingFrame}`}
+          key={`${editingFrame.clipNumber}:${editingFrame.position}`}
           frame={frame}
-          clip={row}
+          clip={editingRow}
           aspectRatio={project.aspectRatio}
           credits={credits}
           sceneTextEnabled={project.sceneTextEnabled}
@@ -235,7 +211,7 @@ export function ClipProduction({
           canRegenerate={pending === ""}
           onClose={() => setEditingFrame(null)}
           onRegenerate={(revision) => {
-            onRegenerateFrame(state.clipNumber, editingFrame, revision);
+            onRegenerateFrame(editingFrame.clipNumber, editingFrame.position, revision);
             setEditingFrame(null);
           }}
         />

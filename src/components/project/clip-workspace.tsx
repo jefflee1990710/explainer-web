@@ -19,16 +19,14 @@ import type { ClipStoryboardInput, FramePosition } from "@/types/project";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-// The selected clip: storyboard text | start+end frames | video. Every paid
-// button carries its cost; stale media shows a banner instead of a lock.
+// One clip: storyboard text | start+end frames | video. Every paid button
+// carries its cost; stale media shows a banner instead of a lock.
 export function ClipWorkspace({
   project,
   state,
   credits,
   pending,
   error,
-  onPrev,
-  onNext,
   onGenerateFrames,
   onRegenerateFrame,
   onOpenFrame,
@@ -41,8 +39,6 @@ export function ClipWorkspace({
   // Pending key of the running action ("" when idle).
   pending: string;
   error: string;
-  onPrev?: () => void;
-  onNext?: () => void;
   onGenerateFrames: () => void;
   onRegenerateFrame: (position: FramePosition) => void;
   onOpenFrame: (position: FramePosition) => void;
@@ -76,33 +72,13 @@ export function ClipWorkspace({
       transition={{ duration: 0.3, ease }}
       className="rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-5 shadow-[6px_6px_0_0_rgba(18,20,28,0.08)]"
     >
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex rounded-full bg-accent-ink px-2.5 py-1 font-display text-xs font-bold text-lime">
-            Clip #{n}
-          </span>
-          <span className="text-xs tabular-nums text-muted">
-            {row.timeRange} · {row.durationSeconds} 秒
-          </span>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onPrev}
-            disabled={!onPrev}
-            className="inline-flex min-h-[36px] cursor-pointer items-center rounded-full border border-accent-ink/15 bg-paper px-3 text-xs font-semibold transition hover:border-accent-ink/40 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            ‹ 上一段
-          </button>
-          <button
-            type="button"
-            onClick={onNext}
-            disabled={!onNext}
-            className="inline-flex min-h-[36px] cursor-pointer items-center rounded-full border border-accent-ink/15 bg-paper px-3 text-xs font-semibold transition hover:border-accent-ink/40 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            下一段 ›
-          </button>
-        </div>
+      <header className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex rounded-full bg-accent-ink px-2.5 py-1 font-display text-xs font-bold text-lime">
+          Clip #{n}
+        </span>
+        <span className="text-xs tabular-nums text-muted">
+          {row.timeRange} · {row.durationSeconds} 秒
+        </span>
       </header>
 
       {/* Stale banner: text changed after the media was made. */}
