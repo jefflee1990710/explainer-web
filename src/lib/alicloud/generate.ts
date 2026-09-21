@@ -96,20 +96,23 @@ export async function submitAlicloudImage(input: {
   aspectRatio: AspectRatio;
   referenceImageUrls?: Array<string | undefined>;
   negativePrompt?: string;
+  model?: string;
 }): Promise<GenerationSubmitResult> {
   const refs = (input.referenceImageUrls || [])
     .filter((url): url is string => Boolean(url))
     .slice(0, MAX_EDIT_REFS);
   const size = imageSizeForRatio(input.aspectRatio);
+  const model =
+    input.model ||
+    (refs.length > 0 ? ALICLOUD_IMAGE_EDIT_MODEL : ALICLOUD_IMAGE_MODEL);
 
-  // 3.0-pro does T2I and I2I on the same multimodal endpoint.
   const { base, body } = await dashscopeRequest(
     "/services/aigc/multimodal-generation/generation",
     {
       method: "POST",
       timeoutMs: 8 * 60_000,
       body: JSON.stringify({
-        model: refs.length > 0 ? ALICLOUD_IMAGE_EDIT_MODEL : ALICLOUD_IMAGE_MODEL,
+        model,
         input: {
           messages: [
             {

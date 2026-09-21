@@ -1,25 +1,26 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  IMAGE_BACKEND_BY_SCENE_TEXT,
-  imageBackendForSceneText,
-  imageJobModel,
+  IMAGE_ROUTE_BY_SCENE_TEXT,
+  imageModelForSubmit,
+  imageRouteForSceneText,
 } from "./image-backend";
 
-test("scene-text language maps to one image backend each", () => {
-  assert.equal(IMAGE_BACKEND_BY_SCENE_TEXT.en, "higgsfield");
-  assert.equal(IMAGE_BACKEND_BY_SCENE_TEXT["zh-Hant"], "alicloud");
-  assert.equal(IMAGE_BACKEND_BY_SCENE_TEXT["zh-Hans"], "alicloud");
-  assert.equal(imageBackendForSceneText("en"), "higgsfield");
-  assert.equal(imageBackendForSceneText("zh-Hant"), "alicloud");
-  assert.equal(imageBackendForSceneText("zh-Hans"), "alicloud");
-  assert.equal(imageBackendForSceneText(undefined), "higgsfield");
+test("each scene-text language has backend and model names", () => {
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT.en.backend, "higgsfield");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT.en.model, "alibaba/qwen-image-3/text-to-image");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT.en.editModel, "alibaba/qwen-image-3/edit");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hant"].backend, "alicloud");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hant"].model, "qwen-image-3.0-pro");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hans"].model, "qwen-image-3.0-pro");
 });
 
-test("job model id follows the backend", () => {
-  assert.equal(imageJobModel("alicloud", "alibaba/qwen-image-3/text-to-image"), "qwen-image-3.0-pro");
-  assert.equal(
-    imageJobModel("higgsfield", "alibaba/qwen-image-3/text-to-image"),
-    "alibaba/qwen-image-3/text-to-image",
-  );
+test("generation looks up the route and picks t2i vs edit model", () => {
+  const en = imageRouteForSceneText("en");
+  const hant = imageRouteForSceneText("zh-Hant");
+  assert.equal(imageModelForSubmit(en, false), "alibaba/qwen-image-3/text-to-image");
+  assert.equal(imageModelForSubmit(en, true), "alibaba/qwen-image-3/edit");
+  assert.equal(imageModelForSubmit(hant, false), "qwen-image-3.0-pro");
+  assert.equal(imageModelForSubmit(hant, true), "qwen-image-3.0-pro");
+  assert.equal(imageRouteForSceneText(undefined).backend, "higgsfield");
 });

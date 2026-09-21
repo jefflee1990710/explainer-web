@@ -9,7 +9,7 @@ import {
 import { refundCredits } from "@/lib/billing/credits";
 import { flattenToCanvas } from "@/lib/higgsfield/flatten";
 import { sceneTextNegativePrompt, resolveSceneText } from "@/lib/director/scene-text";
-import { imageJobModel, resolveImageBackend } from "@/lib/generation/image-backend";
+import { imageModelForSubmit, resolveImageRoute } from "@/lib/generation/image-backend";
 import { buildFramePrompt, videoStyle } from "@/lib/higgsfield/frame-prompts";
 import { unsubmittedPositions } from "@/lib/higgsfield/job-attempts";
 import {
@@ -140,29 +140,28 @@ async function submitOneFrame(
     styleRefUrl: options.styleRefUrl,
     anchorKind: options.anchorKind,
   });
+  const refs = [
+    options.revision?.annotatedUrl,
+    options.styleRefUrl,
+    ...lockRefs,
+  ].filter((url): url is string => Boolean(url));
+  const route = resolveImageRoute(sceneText.language);
   const submitted = await submitImage({
-    model: skill.higgsfieldDefaults.imageModel,
+    model: imageModelForSubmit(route, refs.length > 0),
     prompt,
     aspectRatio: project.aspectRatio,
     quality: skill.higgsfieldDefaults.imageQuality || "medium",
     resolution: skill.higgsfieldDefaults.imageResolution || "1k",
     negativePrompt: sceneTextNegativePrompt(sceneText.enabled),
     sceneTextLanguage: sceneText.language,
-    referenceImageUrls: [
-      options.revision?.annotatedUrl,
-      options.styleRefUrl,
-      ...lockRefs,
-    ].filter((url): url is string => Boolean(url)),
+    referenceImageUrls: refs,
   });
   await jobs.insertOne({
     projectId: project._id,
     clipIndex: clipNumber - 1,
     kind: "frame",
     framePosition: position,
-    model: imageJobModel(
-      resolveImageBackend(sceneText.language),
-      skill.higgsfieldDefaults.imageModel,
-    ),
+    model: imageModelForSubmit(route, refs.length > 0),
     requestId: submitted.request_id,
     statusUrl: submitted.status_url,
     status: (submitted.status as GenerationStatus) || "queued",

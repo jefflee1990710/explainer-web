@@ -5,7 +5,7 @@ import {
   submitAlicloudClipVideo,
   submitAlicloudImage,
 } from "@/lib/alicloud/generate";
-import { resolveImageBackend } from "@/lib/generation/image-backend";
+import { imageModelForSubmit, resolveImageRoute } from "@/lib/generation/image-backend";
 import {
   assertHiggsfieldConfigured,
   mediaUrlFromResponse,
@@ -65,11 +65,18 @@ export async function submitImage(input: {
   resolution?: "1k" | "2k" | "4k";
   referenceImageUrls?: Array<string | undefined>;
   negativePrompt?: string;
-  // 畫面文字語系：zh-* → AliCloud 3.0；en / 未傳 → Higgsfield。
+  // 畫面文字語系；model 以 IMAGE_ROUTE_BY_SCENE_TEXT 為準。
   sceneTextLanguage?: SceneTextLanguage;
 }, options: { webhook?: boolean } = {}) {
-  if (resolveImageBackend(input.sceneTextLanguage) === "alicloud") {
+  const route = resolveImageRoute(input.sceneTextLanguage);
+  const refs = (input.referenceImageUrls || []).filter(
+    (url): url is string => Boolean(url),
+  );
+  const model = imageModelForSubmit(route, refs.length > 0);
+
+  if (route.backend === "alicloud") {
     return submitAlicloudImage({
+      model,
       prompt: input.prompt,
       aspectRatio: input.aspectRatio,
       referenceImageUrls: input.referenceImageUrls,
@@ -78,15 +85,10 @@ export async function submitImage(input: {
   }
 
   const client = assertHiggsfieldConfigured();
-  const refs = (input.referenceImageUrls || []).filter(
-    (url): url is string => Boolean(url),
-  );
   const webhook = options.webhook === false ? undefined : webhookOptions();
 
-  // Qwen Image 3: text-to-image vs edit (reference sheets, sibling frames, redos).
-  if (isQwenImage3(input.model)) {
-    const endpoint = refs.length > 0 ? QWEN_IMAGE_EDIT_MODEL : QWEN_IMAGE_MODEL;
-    return client.subscribe(endpoint, {
+  if (isQwenImage3(model)) {
+    return client.subscribe(model, {
       input: {
         prompt: input.prompt,
         aspect_ratio: input.aspectRatio,
@@ -100,20 +102,20 @@ export async function submitImage(input: {
 
   const common = {
     prompt: input.prompt,
-    aspect_ratio: imageAspectRatio(input.model, input.aspectRatio),
+    aspect_ratio: imageAspectRatio(model, input.aspectRatio),
     quality: input.quality || "medium",
-    ...(/gpt-image/i.test(input.model) ? { background: "opaque" } : {}),
+    ...(/gpt-image/i.test(model) ? { background: "opaque" } : {}),
   };
 
-  if (refs.length && /gpt-image/i.test(input.model)) {
-    return client.subscribe(`${input.model}/edit`, {
+  if (refs.length && /gpt-image/i.test(model)) {
+    return client.subscribe(`${model}/edit`, {
       input: { ...common, image_urls: refs },
       withPolling: false,
       webhook,
     });
   }
 
-  return client.subscribe(input.model, {
+  return client.subscribe(model, {
     input: {
       ...common,
       resolution: input.resolution || "1k",
