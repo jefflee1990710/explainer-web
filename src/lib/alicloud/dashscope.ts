@@ -2,7 +2,6 @@ import type { AspectRatio } from "@/types/project";
 import type { GenerationStatus } from "@/types/generation-job";
 
 const INTL_BASE = "https://dashscope-intl.aliyuncs.com/api/v1";
-const CN_BASE = "https://dashscope.aliyuncs.com/api/v1";
 
 export const ALICLOUD_IMAGE_MODEL = "qwen-image-plus";
 export const ALICLOUD_IMAGE_EDIT_MODEL = "qwen-image-edit-plus";
@@ -98,13 +97,11 @@ export function dashscopeError(payload: unknown) {
   return message || code;
 }
 
-let resolvedBase: string | undefined;
-
 function candidateBases() {
   const override = process.env.ALICLOUD_BASE_URL || process.env.DASHSCOPE_BASE_URL;
   if (override) return [override.replace(/\/$/, "")];
-  if (resolvedBase) return [resolvedBase];
-  return [INTL_BASE, CN_BASE];
+  // Singapore Model Studio only; CN / HK keys are not interchangeable.
+  return [INTL_BASE];
 }
 
 async function readJson(response: Response) {
@@ -131,12 +128,10 @@ export async function dashscopeRequest(
     const response = await fetch(`${base}${path}`, { ...rest, headers });
     const body = await readJson(response).catch(() => ({}) as Record<string, unknown>);
     if (response.ok) {
-      resolvedBase = base;
       return { base, body };
     }
     const message = dashscopeError(body) || `AliCloud 請求失敗（${response.status}）`;
     lastError = new Error(message);
-    // Wrong region usually comes back as an auth / invalid-key error.
     if (response.status !== 401 && response.status !== 403 && !/apikey|unauthorized|forbidden/i.test(message)) {
       throw lastError;
     }
