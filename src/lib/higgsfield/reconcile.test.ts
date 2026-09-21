@@ -211,6 +211,7 @@ test("nextProjectStatus: production ↔ ready, other statuses untouched", () => 
   assert.equal(nextProjectStatus({ status: "production", phaseA: rows, clips: [done, done2] }), "ready");
   assert.equal(nextProjectStatus({ status: "ready", phaseA: rows, clips: [done, { ...done2, status: "queued" }] }), "production");
   assert.equal(nextProjectStatus({ status: "generating", phaseA: rows, clips: [] }), "production");
-  assert.equal(nextProjectStatus({ status: "awaiting_approval", phaseA: rows, clips: [] }), "awaiting_approval");
+  // Leftover 核准分鏡 projects enter production as soon as jobs reconcile.
+  assert.equal(nextProjectStatus({ status: "awaiting_approval", phaseA: rows, clips: [] }), "production");
   assert.equal(nextProjectStatus({ status: "phase_a", clips: [] }), "phase_a");
 });

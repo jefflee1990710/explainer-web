@@ -26,7 +26,7 @@ async function waitClip(projectId: ObjectId, clipNumber: number) {
     await refreshProjectJobs(projectId);
     const fresh = (await videos.findOne({ _id: projectId })) as Project;
     const rows = (fresh.frames || []).filter((frame) => frame.clipNumber === clipNumber);
-    const failed = rows.find((frame) => frame.status === "failed" || frame.status === "nsfw");
+    const failed = rows.find((frame) => frame.status === "failed");
     if (failed) throw new Error(`clip ${clipNumber} ${failed.position}: ${failed.error || "失敗"}`);
     const done = (["start", "end"] as FramePosition[]).every((position) => {
       const row = rows.find((frame) => frame.position === position);
@@ -44,6 +44,7 @@ async function main() {
   const videos = await videosCollection();
   let project = (await videos.findOne({ _id: projectId })) as Project | null;
   if (!project?.phaseA?.clips?.length) throw new Error("缺少分鏡");
+  const storyboard = project.phaseA.clips;
 
   if (!project.clips) {
     await videos.updateOne({ _id: projectId }, { $set: { clips: [] } });
@@ -51,7 +52,7 @@ async function main() {
   }
 
   const outputs: Array<Record<string, unknown>> = [];
-  for (const clip of project.phaseA.clips) {
+  for (const clip of storyboard) {
     const frames = framesWithClip(project, clip.clipNumber);
     await videos.updateOne(
       { _id: projectId },

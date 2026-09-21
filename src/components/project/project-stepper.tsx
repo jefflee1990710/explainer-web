@@ -18,7 +18,7 @@ export function currentStepFor(status: ProjectStatus, failedAtStep?: number) {
   return STATUS_META[status].step;
 }
 
-// Horizontal stepper: 題材 → 分鏡 → 製作 → 成片. Reached steps are buttons
+// Horizontal stepper: 題材 → 製作 → 成片. Reached steps are buttons
 // so the user can jump back and edit; later steps stay inert until unlocked.
 export function ProjectStepper({
   status,

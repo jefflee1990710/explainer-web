@@ -2,6 +2,12 @@
 
 import { useEffect, useId, useState } from "react";
 import { Spinner } from "@/components/spinner";
+import {
+  clipEndScene,
+  clipEndVo,
+  clipStartScene,
+  clipStartVo,
+} from "@/lib/director/dual-beat";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import type { ClipStoryboardInput, StoryboardRow, VoLanguage } from "@/types/project";
 
@@ -16,6 +22,7 @@ export type ClipEditPending = "" | "save" | "regenerate";
 export function ClipEditDialog({
   clip,
   language,
+  dualBeat,
   credits,
   canRegenerate,
   pending,
@@ -25,6 +32,7 @@ export function ClipEditDialog({
 }: {
   clip: StoryboardRow;
   language: VoLanguage;
+  dualBeat?: boolean;
   credits: number;
   // False while another action is pending or frames are still generating.
   canRegenerate: boolean;
@@ -45,6 +53,10 @@ export function ClipEditDialog({
     explainerScene: clip.explainerScene,
     motionCamera: clip.motionCamera,
     englishVo: clip.englishVo,
+    startScene: clip.startScene ?? clipStartScene(clip),
+    endScene: clip.endScene ?? clipEndScene(clip),
+    startVo: clip.startVo ?? clipStartVo(clip),
+    endVo: clip.endVo ?? clipEndVo(clip),
   });
   // Set once the user submits so a stale parent error isn't shown on open.
   const [attempted, setAttempted] = useState(false);
@@ -63,8 +75,19 @@ export function ClipEditDialog({
   const dirty =
     draft.explainerScene !== clip.explainerScene ||
     draft.motionCamera !== clip.motionCamera ||
-    draft.englishVo !== clip.englishVo;
-  const valid = draft.explainerScene.trim().length > 0 && draft.englishVo.trim().length > 0;
+    draft.englishVo !== clip.englishVo ||
+    (draft.startScene ?? "") !== (clip.startScene ?? clipStartScene(clip)) ||
+    (draft.endScene ?? "") !== (clip.endScene ?? clipEndScene(clip)) ||
+    (draft.startVo ?? "") !== (clip.startVo ?? clipStartVo(clip)) ||
+    (draft.endVo ?? "") !== (clip.endVo ?? clipEndVo(clip));
+  const valid = dualBeat
+    ? Boolean(
+        draft.startScene?.trim() &&
+          draft.endScene?.trim() &&
+          draft.startVo?.trim() &&
+          draft.endVo?.trim(),
+      )
+    : draft.explainerScene.trim().length > 0 && draft.englishVo.trim().length > 0;
   const enoughCredits = credits >= 2;
   const canSave = valid && dirty && !busy;
   // Redrawing from unchanged text is still allowed (it acts as a plain redo).
@@ -82,6 +105,10 @@ export function ClipEditDialog({
         explainerScene: draft.explainerScene.trim(),
         motionCamera: draft.motionCamera.trim(),
         englishVo: draft.englishVo.trim(),
+        startScene: draft.startScene?.trim(),
+        endScene: draft.endScene?.trim(),
+        startVo: draft.startVo?.trim(),
+        endVo: draft.endVo?.trim(),
       },
       regenerate,
     );
@@ -135,17 +162,44 @@ export function ClipEditDialog({
           <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-6 md:grid-cols-2">
             {/* Left: what the image model draws */}
             <div className="space-y-4">
-              <TextField
-                id={sceneId}
-                label="畫面描述"
-                hint="分鏡圖與影片都依這段畫面來畫，角色請用名字稱呼。"
-                value={draft.explainerScene}
-                rows={7}
-                required
-                disabled={busy}
-                placeholder="這段畫面要出現什麼、誰在做什麼、有哪些道具或文字。"
-                onChange={(value) => update("explainerScene", value)}
-              />
+              {dualBeat ? (
+                <>
+                  <TextField
+                    id={`${sceneId}-start`}
+                    label="起始畫面"
+                    hint="t=0 那張靜態圖。角色請用名字稱呼。"
+                    value={draft.startScene || ""}
+                    rows={5}
+                    required
+                    disabled={busy}
+                    placeholder="起始姿勢、道具、環境。"
+                    onChange={(value) => update("startScene", value)}
+                  />
+                  <TextField
+                    id={`${sceneId}-end`}
+                    label="結尾畫面"
+                    hint="t=N 那張靜態圖。同一鏡頭的後一個 beat。"
+                    value={draft.endScene || ""}
+                    rows={5}
+                    required
+                    disabled={busy}
+                    placeholder="結尾姿勢、道具、環境。"
+                    onChange={(value) => update("endScene", value)}
+                  />
+                </>
+              ) : (
+                <TextField
+                  id={sceneId}
+                  label="畫面描述"
+                  hint="分鏡圖與影片都依這段畫面來畫，角色請用名字稱呼。"
+                  value={draft.explainerScene}
+                  rows={7}
+                  required
+                  disabled={busy}
+                  placeholder="這段畫面要出現什麼、誰在做什麼、有哪些道具或文字。"
+                  onChange={(value) => update("explainerScene", value)}
+                />
+              )}
               <TextField
                 id={cameraId}
                 label="動態與鏡頭"
@@ -160,17 +214,44 @@ export function ClipEditDialog({
 
             {/* Right: what the narrator says */}
             <div className="space-y-4">
-              <TextField
-                id={voId}
-                label={`旁白（${voLabel}）`}
-                hint="影片裡會照這句逐字唸出。"
-                value={draft.englishVo}
-                rows={5}
-                required
-                disabled={busy}
-                placeholder="這段旁白要說的話。"
-                onChange={(value) => update("englishVo", value)}
-              />
+              {dualBeat ? (
+                <>
+                  <TextField
+                    id={`${voId}-start`}
+                    label={`旁白起（${voLabel}）`}
+                    hint="前半句。畫面文字開啟時，起始圖只引用這句。"
+                    value={draft.startVo || ""}
+                    rows={4}
+                    required
+                    disabled={busy}
+                    placeholder="起始 beat 要說的話。"
+                    onChange={(value) => update("startVo", value)}
+                  />
+                  <TextField
+                    id={`${voId}-end`}
+                    label={`旁白終（${voLabel}）`}
+                    hint="後半句。畫面文字開啟時，結尾圖只引用這句。"
+                    value={draft.endVo || ""}
+                    rows={4}
+                    required
+                    disabled={busy}
+                    placeholder="結尾 beat 要說的話。"
+                    onChange={(value) => update("endVo", value)}
+                  />
+                </>
+              ) : (
+                <TextField
+                  id={voId}
+                  label={`旁白（${voLabel}）`}
+                  hint="影片裡會照這句逐字唸出。"
+                  value={draft.englishVo}
+                  rows={5}
+                  required
+                  disabled={busy}
+                  placeholder="這段旁白要說的話。"
+                  onChange={(value) => update("englishVo", value)}
+                />
+              )}
               {clip.clipNumber > 1 ? (
                 <div className="rounded-[1.25rem] border border-accent-ink/10 bg-paper/85 p-4 text-xs leading-5 text-muted">
                   <p className="font-display text-xs font-bold uppercase tracking-[0.14em]">
@@ -190,7 +271,9 @@ export function ClipEditDialog({
               （起始＋結尾各 1 · 剩餘 {credits}）。
             </p>
             {!valid ? (
-              <p className="text-xs font-medium text-accent">畫面描述與旁白不能空白。</p>
+              <p className="text-xs font-medium text-accent">
+                {dualBeat ? "起始／結尾畫面與兩句旁白不能空白。" : "畫面描述與旁白不能空白。"}
+              </p>
             ) : !enoughCredits ? (
               <p className="text-xs font-medium text-accent">credits 不足，仍可儲存文字，但無法重畫。</p>
             ) : !canRegenerate && !busy ? (

@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  ALICLOUD_VIDEO_MODEL,
   dashscopeError,
   dashscopeTaskUrl,
   imageSizeForRatio,
   isAlicloudStatusUrl,
   mapDashscopeStatus,
   mediaUrlFromDashscope,
+  wan3ClipVideoBody,
+  wanClipVideoParameters,
   wanDurationSeconds,
 } from "./dashscope";
 
@@ -16,11 +19,36 @@ test("imageSizeForRatio maps project ratios to Qwen pixel sizes", () => {
   assert.equal(imageSizeForRatio("1:1"), "1328*1328");
 });
 
-test("wanDurationSeconds clamps clip length to Wan 2.7's 2–15s range", () => {
+test("wanDurationSeconds clamps clip length to Wan 3.0's 2–30s range", () => {
   assert.equal(wanDurationSeconds(1), 2);
   assert.equal(wanDurationSeconds(3.4), 3);
   assert.equal(wanDurationSeconds(8), 8);
-  assert.equal(wanDurationSeconds(20), 15);
+  assert.equal(wanDurationSeconds(20), 20);
+  assert.equal(wanDurationSeconds(40), 30);
+});
+
+test("wan3 clip body locks first/last frames and native speech", () => {
+  const body = wan3ClipVideoBody({
+    prompt: 'Dialogue (audio-only): "你好。"',
+    durationSeconds: 6,
+    startImageUrl: "https://start",
+    endImageUrl: "https://end",
+  });
+  assert.equal(ALICLOUD_VIDEO_MODEL, "wan3.0-video");
+  assert.equal(body.model, "wan3.0-video");
+  assert.deepEqual(body.input.media, [
+    { type: "first_frame", url: "https://start" },
+    { type: "last_frame", url: "https://end" },
+  ]);
+  assert.deepEqual(wanClipVideoParameters(6), {
+    resolution: "720P",
+    ratio: "adaptive",
+    duration: 6,
+    audio: true,
+    prompt_extend: false,
+    watermark: false,
+  });
+  assert.equal(body.parameters.audio, true);
 });
 
 test("mapDashscopeStatus follows PENDING → RUNNING → SUCCEEDED/FAILED", () => {

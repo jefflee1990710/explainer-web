@@ -3,16 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import {
-  ClipEditDialog,
-  type ClipEditPending,
-} from "@/components/project/clip-edit-dialog";
 import { ClipTimeline } from "@/components/project/clip-timeline";
 import { ClipWorkspace } from "@/components/project/clip-workspace";
 import { FillRemainingDialog } from "@/components/project/fill-remaining-dialog";
 import { FrameEditDialog } from "@/components/project/frame-edit-dialog";
 import { Spinner } from "@/components/spinner";
 import { clipStatesFor, isProjectBusy, productionCounts } from "@/lib/clip-stage";
+import { isDualBeatSkill } from "@/lib/director/dual-beat";
 import { FRAMES_COST, VIDEO_COST, planRemaining } from "@/lib/production-plan";
 import type { PublicVideo } from "@/lib/serialize";
 import type {
@@ -70,7 +67,6 @@ export function ClipProduction({
     () => states.find((s) => s.stage !== "video_ready")?.clipNumber ?? states[0]?.clipNumber ?? 1,
   );
   const [editingFrame, setEditingFrame] = useState<FramePosition | null>(null);
-  const [editingText, setEditingText] = useState(false);
   const [confirmFill, setConfirmFill] = useState(false);
 
   const index = states.findIndex((s) => s.clipNumber === selected);
@@ -81,7 +77,7 @@ export function ClipProduction({
   // ← / → switch clips when no dialog is open and focus is not in a field.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (editingFrame || editingText || confirmFill) return;
+      if (editingFrame || confirmFill) return;
       // ← / → belong to the focused control (video scrubbing, select, editor).
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName;
@@ -92,7 +88,7 @@ export function ClipProduction({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [prev, next, editingFrame, editingText, confirmFill]);
+  }, [prev, next, editingFrame, confirmFill]);
 
   if (!phaseA || !state) return null;
 
@@ -102,13 +98,6 @@ export function ClipProduction({
         (f) => f.clipNumber === state.clipNumber && f.position === editingFrame,
       )
     : undefined;
-  const clipEditPending: ClipEditPending =
-    pending === `clip:${state.clipNumber}`
-      ? "save"
-      : pending === `clip:${state.clipNumber}:regen`
-        ? "regenerate"
-        : "";
-
   return (
     <motion.section
       initial={{ opacity: 0, y: 20 }}
@@ -124,10 +113,10 @@ export function ClipProduction({
               Phase B · 製作
             </p>
             <h2 className="font-display mt-2 text-2xl font-bold">
-              {ready ? "影片完成" : "逐段製作：畫格 → 影片"}
+              {ready ? "影片完成" : "逐段製作：畫面 prompt → 畫格 → 影片"}
             </h2>
             <p className="mt-1 text-sm text-muted">
-              點時間軸切換段落。每段各自扣款、各自重做，隨時可以回頭。
+              左邊可改起始／結尾畫面後重畫。點時間軸切換段落，每段各自扣款。
             </p>
           </div>
           <div className="text-right text-sm">
@@ -158,12 +147,13 @@ export function ClipProduction({
         state={state}
         credits={credits}
         pending={pending}
+        error={error}
         onPrev={prev ? () => setSelected(prev) : undefined}
         onNext={next ? () => setSelected(next) : undefined}
         onGenerateFrames={() => onGenerateFrames(state.clipNumber)}
         onRegenerateFrame={(position) => onRegenerateFrame(state.clipNumber, position)}
         onOpenFrame={setEditingFrame}
-        onEditText={() => setEditingText(true)}
+        onUpdateClip={(input, regenerate) => onUpdateClip(state.clipNumber, input, regenerate)}
         onGenerateVideo={() => onGenerateVideo(state.clipNumber)}
       />
 
@@ -241,27 +231,13 @@ export function ClipProduction({
           credits={credits}
           sceneTextEnabled={project.sceneTextEnabled}
           sceneTextLanguage={project.sceneTextLanguage}
+          dualBeat={isDualBeatSkill(project.skillSlug)}
           canRegenerate={pending === ""}
           onClose={() => setEditingFrame(null)}
           onRegenerate={(revision) => {
             onRegenerateFrame(state.clipNumber, editingFrame, revision);
             setEditingFrame(null);
           }}
-        />
-      ) : null}
-
-      {/* Storyboard text editor: save free, or save + redraw both frames */}
-      {editingText && row ? (
-        <ClipEditDialog
-          key={row.clipNumber}
-          clip={row}
-          language={project.language}
-          credits={credits}
-          canRegenerate={pending === ""}
-          pending={clipEditPending}
-          error={error}
-          onClose={() => setEditingText(false)}
-          onSave={(input, regenerate) => onUpdateClip(row.clipNumber, input, regenerate)}
         />
       ) : null}
 

@@ -27,6 +27,9 @@ test("director block asks for start and end states scaled by seconds", () => {
   assert.match(block, /3s:/);
   assert.match(block, /7–8s:/);
   assert.match(block, /must NOT look almost identical/);
+  const separate = keyframeDeltaDirectorBlock({ separateStills: true });
+  assert.match(separate, /startScene is the t=0 still/);
+  assert.doesNotMatch(separate, /explainerScene writes both states/);
 });
 
 test("frame moments mention the clip duration and a readable end change", () => {

@@ -54,9 +54,21 @@ export function resolveSceneText(input: {
   return { enabled, language };
 }
 
-export function sceneTextSkillHint(enabled: boolean, language: SceneTextLanguage) {
+export function sceneTextSkillHint(
+  enabled: boolean,
+  language: SceneTextLanguage,
+  options?: { dualBeat?: boolean },
+) {
   if (!enabled) {
     return "On-canvas text is OFF. explainerScene, visualWorld, and motionCamera must contain NO written words, labels, numbers, captions, signage, or lettering — not even in quotes or 「」. Communicate only with images, props, and composition.";
+  }
+  if (options?.dualBeat) {
+    return [
+      "When on-canvas text is ON, the start still quotes ONLY startVo and the end still quotes ONLY endVo as bottom subtitles, spelled character-for-character. Two subtitle beats switch at the midpoint.",
+      "startScene, endScene, and motionCamera must describe pose, props, and environment only. Do NOT invent extra titles besides that beat's voiceover.",
+      "Lettering look follows the selected visual style — do not force whiteboard marker lettering unless that style asks for it.",
+      SCENE_TEXT_PRESETS[language].skillHint,
+    ].join(" ");
   }
   return [
     "When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo voiceover line as a bottom subtitle, spelled character-for-character.",

@@ -1,3 +1,4 @@
+import { hasDualBeatDraft, syncDualBeatFields } from "@/lib/director/dual-beat";
 import type {
   PhaseAEditInput,
   PhaseAProposal,
@@ -31,6 +32,10 @@ function clipEditOf(row: StoryboardRow) {
     explainerScene: row.explainerScene,
     motionCamera: row.motionCamera,
     englishVo: row.englishVo,
+    startScene: row.startScene,
+    endScene: row.endScene,
+    startVo: row.startVo,
+    endVo: row.endVo,
   };
 }
 
@@ -80,20 +85,38 @@ export function applyPhaseAEdits(
   for (const row of current.clips) {
     const edit = byNumber.get(row.clipNumber);
     if (!edit) return { ok: false, error: `找不到 clip #${row.clipNumber}` };
-    const explainerScene = cleanPhaseAField(edit.explainerScene);
-    const motionCamera = cleanPhaseAField(edit.motionCamera);
-    const englishVo = cleanPhaseAField(edit.englishVo);
-    if (!explainerScene) return { ok: false, error: `Clip #${row.clipNumber} 的畫面描述不能空白` };
-    if (!englishVo) return { ok: false, error: `Clip #${row.clipNumber} 的旁白不能空白` };
+    const synced = syncDualBeatFields({
+      explainerScene: cleanPhaseAField(edit.explainerScene),
+      motionCamera: cleanPhaseAField(edit.motionCamera),
+      englishVo: cleanPhaseAField(edit.englishVo),
+      startScene: cleanPhaseAField(edit.startScene),
+      endScene: cleanPhaseAField(edit.endScene),
+      startVo: cleanPhaseAField(edit.startVo),
+      endVo: cleanPhaseAField(edit.endVo),
+    });
+    if (hasDualBeatDraft(synced)) {
+      if (!synced.startScene || !synced.endScene) {
+        return { ok: false, error: `Clip #${row.clipNumber} 的起始與結尾畫面不能空白` };
+      }
+      if (!synced.startVo || !synced.endVo) {
+        return { ok: false, error: `Clip #${row.clipNumber} 的兩句旁白不能空白` };
+      }
+    } else if (!synced.explainerScene) {
+      return { ok: false, error: `Clip #${row.clipNumber} 的畫面描述不能空白` };
+    } else if (!synced.englishVo) {
+      return { ok: false, error: `Clip #${row.clipNumber} 的旁白不能空白` };
+    }
     const clipChanged =
-      explainerScene !== row.explainerScene ||
-      motionCamera !== row.motionCamera ||
-      englishVo !== row.englishVo;
+      synced.explainerScene !== row.explainerScene ||
+      synced.motionCamera !== row.motionCamera ||
+      synced.englishVo !== row.englishVo ||
+      synced.startScene !== row.startScene ||
+      synced.endScene !== row.endScene ||
+      synced.startVo !== row.startVo ||
+      synced.endVo !== row.endVo;
     clips.push({
       ...row,
-      explainerScene,
-      motionCamera,
-      englishVo,
+      ...synced,
       // Stamp so production treats existing frames/videos as stale.
       ...(clipChanged ? { editedAt } : {}),
     });

@@ -5,7 +5,8 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
   // Native ffmpeg binary used to concat clips into one reel.
-  serverExternalPackages: ["ffmpeg-static"],
+  // AI SDK downloads URL images via a runtime require("undici").
+  serverExternalPackages: ["ffmpeg-static", "undici", "@ai-sdk/provider-utils"],
   experimental: {
     serverActions: {
       // Frame edit dialog posts a transparent sketch PNG (data URL) with the

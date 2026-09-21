@@ -26,6 +26,25 @@ export function directorImageParts(urls: string[]): Array<{ type: "image"; image
   });
 }
 
+// Fetch bytes with the runtime `fetch`. Passing a URL lets the AI SDK
+// dynamically require `undici`, which Next.js does not pack into serverless.
+export async function loadDirectorImageParts(
+  urls: string[],
+): Promise<Array<{ type: "image"; image: Uint8Array }>> {
+  const parts: Array<{ type: "image"; image: Uint8Array }> = [];
+  for (const { image } of directorImageParts(urls)) {
+    const response = await fetch(image);
+    if (!response.ok) {
+      throw new Error(`無法下載角色參考圖（${response.status}）`);
+    }
+    parts.push({
+      type: "image",
+      image: new Uint8Array(await response.arrayBuffer()),
+    });
+  }
+  return parts;
+}
+
 // Deterministic lock when a cast is selected. Never invent clothing/hair —
 // the attached blueprint is the only appearance source.
 export function characterLockFromCast(cast: CastMember[]): string {

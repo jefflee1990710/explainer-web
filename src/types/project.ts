@@ -10,10 +10,10 @@ export type VoLanguage = "en" | "yue" | "zh";
 // On-canvas labels in storyboard stills; independent of voiceover language.
 export type SceneTextLanguage = "en" | "zh-Hant" | "zh-Hans";
 
-// Lifecycle: phase_a → awaiting_approval → production → ready.
-// `production` = storyboard approved; every clip's frames and video are made
-// independently. Frame/video failures live on the clip, so `failed` only ever
-// means Phase A failed.
+// Lifecycle: phase_a → production → ready.
+// `awaiting_approval` remains for leftover videos; the UI treats it as production.
+// Every clip's frames and video are made independently. Frame/video failures
+// live on the clip, so `failed` only ever means Phase A failed.
 export type ProjectStatus =
   | "draft"
   | "phase_a"
@@ -69,6 +69,11 @@ export type StoryboardRow = {
   explainerScene: string;
   motionCamera: string;
   englishVo: string;
+  // 白板概念解說 dual-beat: dedicated stills + two spoken lines.
+  startScene?: string;
+  endScene?: string;
+  startVo?: string;
+  endVo?: string;
   // Legacy; no longer shown or required. Older videos may still have it.
   referenceTranslation?: string;
   bgmSfx: string;
@@ -79,7 +84,7 @@ export type StoryboardRow = {
 // Storyboard fields the user may rewrite per clip while reviewing frames.
 export type ClipStoryboardInput = Pick<
   StoryboardRow,
-  "explainerScene" | "motionCamera" | "englishVo"
+  "explainerScene" | "motionCamera" | "englishVo" | "startScene" | "endScene" | "startVo" | "endVo"
 >;
 
 // Phase A proposal fields the user can rewrite before approving frames.

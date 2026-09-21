@@ -45,7 +45,7 @@ async function main() {
     await refreshProjectJobs(projectId);
     const fresh = (await videos.findOne({ _id: projectId })) as Project;
     const rows = (fresh.frames || []).filter((f) => f.clipNumber === CLIP);
-    const failed = rows.find((f) => f.status === "failed" || f.status === "nsfw");
+    const failed = rows.find((f) => f.status === "failed");
     if (failed) throw new Error(failed.error || "失敗");
     const done = (["start", "end"] as const).every((pos) => {
       const row = rows.find((f) => f.position === pos);

@@ -93,6 +93,23 @@ test("applyPhaseAEdits rejects a blank scene or a changed clip count", () => {
   assert.match(droppedResult.error, /分鏡段數不能增減/);
 });
 
+test("applyPhaseAEdits persists dual-beat start/end fields and syncs combined text", () => {
+  const current = proposal();
+  const input = phaseAToEditInput(current);
+  input.clips[0].startScene = "開場拿尺";
+  input.clips[0].endScene = "尺卡位";
+  input.clips[0].startVo = "Start here.";
+  input.clips[0].endVo = "End there.";
+
+  const result = applyPhaseAEdits(current, input, "en");
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.phaseA.clips[0].startScene, "開場拿尺");
+  assert.equal(result.phaseA.clips[0].endVo, "End there.");
+  assert.match(result.phaseA.clips[0].explainerScene, /開場拿尺/);
+  assert.match(result.phaseA.clips[0].englishVo, /Start here/);
+});
+
 test("keepProposalRegenerateClips keeps the proposal and takes new clip rows", () => {
   const current = proposal();
   const generated = proposal();

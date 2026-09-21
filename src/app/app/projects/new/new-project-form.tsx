@@ -13,15 +13,13 @@ import {
   generateRemainingAction,
 } from "@/lib/actions/clip-production";
 import {
-  approveStoryboardAction,
   regenerateFrameAction,
   updateClipStoryboardAction,
 } from "@/lib/actions/generation";
 import {
   createVideoAction,
+  getVideoAction,
   retryProjectAction,
-  reviseProjectAction,
-  updatePhaseAProposalAction,
   updateVideoBriefAction,
 } from "@/lib/actions/projects";
 import { composeReelAction } from "@/lib/actions/reel";
@@ -31,7 +29,7 @@ import { isReelBusy, isReelCurrent } from "@/lib/reel/fingerprint";
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { SCENE_TEXT_PRESETS } from "@/lib/director/scene-text";
-import { failedStepFor } from "@/lib/project-status";
+import { failedStepFor, isProductionLike } from "@/lib/project-status";
 import type { PublicCharacter, PublicSkill, PublicStyle, PublicVideo } from "@/lib/serialize";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/lib/styles";
 import type {
@@ -40,7 +38,6 @@ import type {
   DurationPreset,
   FramePosition,
   FrameRevisionInput,
-  PhaseAEditInput,
   SceneTextLanguage,
   VoLanguage,
 } from "@/types/project";
@@ -53,12 +50,11 @@ import { LanguagePicker } from "./language-picker";
 import { SceneTextPicker } from "./scene-text-picker";
 import { ReelExport } from "./reel-export";
 import { ReviseStoryboardDialog } from "./revise-storyboard-dialog";
-import { StoryboardPreview } from "./storyboard-preview";
 import { useProjectPoll } from "./use-project-poll";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-// Whole create → storyboard → approve → generate flow lives on this one page.
+// Whole create → director → produce → export flow lives on this one page.
 export function NewProjectForm({
   projectId,
   skills,
@@ -107,10 +103,10 @@ export function NewProjectForm({
     initialVideo?.cast.map((member) => member.characterId) || [],
   );
 
-  // Flow state. The stepper can jump back to 題材 / 分鏡 after a video exists.
+  // Flow state. The stepper can jump back to 題材 after a video exists.
   const [project, setProject] = useState<PublicVideo | null>(initialVideo);
   const [submitting, setSubmitting] = useState(false);
-  // "" | "revise" | "approve" | "save" | "retry" | "remaining" | "reel"
+  // "" | "retry" | "remaining" | "reel"
   // | frames:{n} | frame:{n}:{pos} | video:{n} | clip:{n}[:regen]
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
@@ -140,6 +136,19 @@ export function NewProjectForm({
       return mergePolledProject(current, initialVideo);
     });
   }, [initialVideo]);
+
+  // Leftover 核准分鏡 videos enter 製作 the first time this form opens them.
+  useEffect(() => {
+    if (!project || project.status !== "awaiting_approval") return;
+    let cancelled = false;
+    void getVideoAction(project.id).then((result) => {
+      if (cancelled || !result.ok) return;
+      setProject(result.project);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [project?.id, project?.status]);
 
   function briefUnchanged() {
     if (!project) return false;
@@ -210,37 +219,6 @@ export function NewProjectForm({
     router.replace(`${pathname}?video=${result.project.id}`);
   }
 
-  async function onSaveProposal(input: PhaseAEditInput) {
-    if (!project) return false;
-    setPending("save");
-    setError("");
-    const result = await updatePhaseAProposalAction(project.id, input);
-    setPending("");
-    if (!result.ok) {
-      setError(result.error);
-      return false;
-    }
-    setProject(result.project);
-    return true;
-  }
-
-  async function onRevise(note: string, options?: { clipsOnly?: boolean }) {
-    if (!project) return;
-    setPending("revise");
-    setError("");
-    const data = new FormData();
-    data.set("projectId", project.id);
-    data.set("note", note);
-    if (options?.clipsOnly) data.set("clipsOnly", "1");
-    const result = await reviseProjectAction(data);
-    setPending("");
-    if (!result.ok) setError(result.error);
-    else {
-      // Phase A runs in the background; poll picks up the storyboard.
-      setProject(result.project);
-    }
-  }
-
   // Shared handler for every server action behind a paid button; billing errors
   // bounce to /app/billing.
   async function runPaid(
@@ -277,12 +255,6 @@ export function NewProjectForm({
     // balance and every `credits < cost` gate below it stop showing the old one.
     router.refresh();
     return true;
-  }
-
-  // Storyboard approved (free) → the project enters per-clip production.
-  function onApproveStoryboard() {
-    if (!project) return;
-    void runPaid("approve", () => approveStoryboardAction(project.id));
   }
 
   // Redo one frame; `revision` (sketch + remark) comes from the edit dialog.
@@ -395,7 +367,7 @@ export function NewProjectForm({
   }
   const briefBusy =
     submitting || Boolean(project && (isProjectBusy(project) || isReelBusy(project.reelStatus)));
-  const approved = project?.status === "production" || project?.status === "ready";
+  const approved = Boolean(project && isProductionLike(project.status));
   const clipsReady = project?.status === "ready";
   const reelReady = Boolean(project && isReelCurrent(project));
   // Stepper detail for the live current step; skipped before the storyboard exists.
@@ -419,7 +391,7 @@ export function NewProjectForm({
   return (
     <MotionConfig reducedMotion="user">
       <div className="space-y-6">
-        {/* Step indicator: 題材 → 分鏡 → 製作 → 成片 */}
+        {/* Step indicator: 題材 → 製作 → 成片 */}
         <div className="rounded-2xl border border-accent-ink/10 bg-paper/70 px-5 py-4">
           <ProjectStepper
             status={project?.status ?? "draft"}
@@ -518,7 +490,7 @@ export function NewProjectForm({
                 />
               </Section>
 
-              <Section step="06" title="片長" hint="影響 clip 數量，也就是核准時要扣的 credits。">
+              <Section step="06" title="片長" hint="影響 clip 數量，也就是產片時要扣的 credits。">
                 <DurationPicker
                   value={durationPreset}
                   onChange={setDurationPreset}
@@ -554,7 +526,7 @@ export function NewProjectForm({
                     ? "送出中…"
                     : project
                       ? "儲存並重新產生分鏡"
-                      : "產生分鏡提案"}
+                      : "開始製作"}
                 </motion.button>
                 {project ? (
                   <button
@@ -567,8 +539,8 @@ export function NewProjectForm({
                 ) : null}
                 <p className="text-xs text-muted">
                   {project
-                    ? "改題材會重寫分鏡並回到核准前；已產生的畫格與影片會留著，但可能對不上。"
-                    : "這一步不扣 credits。分鏡出來後你再決定要不要產片。"}
+                    ? "改題材會重寫分鏡並回到製作。已產生的畫格與影片會留著，但可能對不上。"
+                    : "這一步不扣 credits。分鏡寫好後會直接進入製作，產畫格與影片才扣款。"}
                 </p>
               </div>
             </motion.form>
@@ -618,25 +590,9 @@ export function NewProjectForm({
         <AnimatePresence mode="wait">
           {viewing === 1 && project?.status === "phase_a" ? (
             <DirectorProgress key="phase-a" />
-          ) : viewing === 1 && project?.phaseA ? (
-            <StoryboardPreview
-              key={`storyboard-${project.id}`}
-              project={project}
-              credits={credits}
-              subscribed={subscribed}
-              pending={
-                pending === "revise" || pending === "approve" || pending === "save"
-                  ? pending
-                  : ""
-              }
-              error={error}
-              onApprove={onApproveStoryboard}
-              onRevise={(note, options) => void onRevise(note, options)}
-              onSave={onSaveProposal}
-              approved={project.status !== "awaiting_approval"}
-              onBackToProduction={() => pinViewingStep(liveStep === 1 ? 2 : liveStep)}
-            />
-          ) : viewing === 2 && (project?.status === "production" || project?.status === "ready") ? (
+          ) : viewing === 1 &&
+            project?.phaseA &&
+            isProductionLike(project.status) ? (
             <ClipProduction
               key="production"
               project={project}
@@ -649,9 +605,9 @@ export function NewProjectForm({
               onUpdateClip={onUpdateClip}
               onGenerateVideo={onGenerateVideo}
               onFillRemaining={onFillRemaining}
-              onGoToExport={() => pinViewingStep(3)}
+              onGoToExport={() => pinViewingStep(2)}
             />
-          ) : viewing === 3 && project?.status === "ready" ? (
+          ) : viewing === 2 && project?.status === "ready" ? (
             <ReelExport
               key="export"
               project={project}
@@ -673,7 +629,7 @@ export function NewProjectForm({
           <ReviseStoryboardDialog
             pending={submitting}
             title="重新產生分鏡？"
-            body="會依這份題材重寫分鏡並回到核准前。已產生的畫格與影片會留著，但可能對不上新分鏡。"
+            body="會依這份題材重寫分鏡並回到製作。已產生的畫格與影片會留著，但可能對不上新分鏡。"
             confirmLabel="確認重寫"
             onCancel={() => {
               if (!submitting) setConfirmBrief(false);

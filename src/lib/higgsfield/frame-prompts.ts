@@ -4,6 +4,13 @@ import {
   frameCharacterLockLine,
   soloCharacterParagraphForFrames,
 } from "@/lib/characters/cast-prompt";
+import {
+  clipEndScene,
+  clipEndVo,
+  clipStartScene,
+  clipStartVo,
+  isDualBeatSkill,
+} from "@/lib/director/dual-beat";
 import { frameEndMoment, frameStartMoment } from "@/lib/director/keyframe-delta";
 import type { FrameAnchorKind } from "@/lib/higgsfield/clip-keyframes";
 import {
@@ -112,11 +119,17 @@ export function buildFramePrompt(
   const row = phaseA.clips.find((clip) => clip.clipNumber === clipNumber);
   if (!row) throw new Error(`找不到 clip ${clipNumber}`);
   const next = phaseA.clips.find((clip) => clip.clipNumber === clipNumber + 1);
+  const dualBeat = isDualBeatSkill(project.skillSlug);
+  const nextOpening = next
+    ? dualBeat
+      ? clipStartScene(next)
+      : next.explainerScene
+    : undefined;
 
   const moment =
     position === "start"
       ? frameStartMoment(clipNumber, row.durationSeconds)
-      : frameEndMoment(clipNumber, row.durationSeconds, next?.explainerScene);
+      : frameEndMoment(clipNumber, row.durationSeconds, nextOpening);
 
   const sceneText = resolveSceneText(project);
   const hasCast = Boolean(project.cast && project.cast.length > 0);
@@ -125,7 +138,14 @@ export function buildFramePrompt(
   const characterAttachmentStart =
     (options.revision?.annotatedUrl ? 1 : 0) + (options.styleRefUrl ? 1 : 0) + 1;
 
-  const sceneDescription = stripStoryboardWriting(row.explainerScene);
+  const sceneForFrame =
+    position === "start" ? clipStartScene(row) : clipEndScene(row);
+  const voForFrame = dualBeat
+    ? position === "start"
+      ? clipStartVo(row)
+      : clipEndVo(row)
+    : row.englishVo;
+  const sceneDescription = stripStoryboardWriting(sceneForFrame);
   const motionDescription = stripStoryboardWriting(row.motionCamera);
   const onCanvasTextBlock = sceneText.enabled
     ? [
@@ -133,7 +153,7 @@ export function buildFramePrompt(
         ...sceneTextFrameLines(
           true,
           sceneText.language,
-          row.englishVo,
+          voForFrame,
           typographyForSceneText(style.typography),
         ),
       ]

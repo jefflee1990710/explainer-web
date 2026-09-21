@@ -57,7 +57,7 @@ async function loadProduction(
   const project = await projects.findOne({ _id: new ObjectId(projectId), clerkUserId });
   if (!project?.phaseA) return { ok: false, error: "專案不存在" };
   if (!isProductionLike(project.status)) {
-    return { ok: false, error: "請先核准分鏡" };
+    return { ok: false, error: "分鏡尚未完成" };
   }
   return { ok: true, project: project as Project & { phaseA: NonNullable<Project["phaseA"]> } };
 }

@@ -12,7 +12,7 @@ import {
   skillsCollection,
   videosCollection,
 } from "@/lib/collections";
-import { runPhaseAJob } from "@/lib/director/jobs";
+import { runPhaseAJob, runStillJob } from "@/lib/director/jobs";
 import { isVoLanguage } from "@/lib/director/languages";
 import { isSceneTextLanguage } from "@/lib/director/scene-text";
 import { sanitizeFolderName } from "@/lib/folder";
@@ -598,6 +598,19 @@ export async function getVideoAction(videoId: string): Promise<VideoResult> {
       clerkUserId: user.clerkUserId,
     });
     if (!video) return { ok: false, error: "專案不存在" };
+    // Leftover 核准分鏡 videos enter 製作 the first time they are opened.
+    if (video.status === "awaiting_approval" && video.phaseA) {
+      await videos.updateOne(
+        { _id: video._id },
+        {
+          $set: { status: "production", updatedAt: new Date() },
+          $unset: { stillError: "", error: "" },
+        },
+      );
+      after(() => runStillJob(video._id));
+      const promoted = await videos.findOne({ _id: video._id });
+      return { ok: true, project: toPublicVideo(promoted!) };
+    }
     return { ok: true, project: toPublicVideo(video) };
   } catch (error) {
     return {

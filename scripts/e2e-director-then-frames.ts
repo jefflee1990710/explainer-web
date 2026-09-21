@@ -44,7 +44,7 @@ async function waitPhaseA(projectId: ObjectId, startedAt: Date) {
   while (Date.now() < deadline) {
     const fresh = (await videos.findOne({ _id: projectId })) as Project | null;
     if (
-      fresh?.status === "awaiting_approval" &&
+      (fresh?.status === "production" || fresh?.status === "awaiting_approval") &&
       fresh.phaseA &&
       fresh.updatedAt &&
       new Date(fresh.updatedAt) >= startedAt
@@ -66,7 +66,7 @@ async function waitFrames(projectId: ObjectId) {
     await refreshProjectJobs(projectId);
     const fresh = (await videos.findOne({ _id: projectId })) as Project;
     const rows = (fresh.frames || []).filter((frame) => frame.clipNumber === CLIP);
-    const failed = rows.find((frame) => frame.status === "failed" || frame.status === "nsfw");
+    const failed = rows.find((frame) => frame.status === "failed");
     if (failed) throw new Error(failed.error || "畫格產生失敗");
     const done = (["start", "end"] as const).every((position) => {
       const row = rows.find((frame) => frame.position === position);

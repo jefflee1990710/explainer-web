@@ -3,7 +3,7 @@ import {
   castBlockForPhaseA,
   characterLockFromCast,
   characterReferenceUrls,
-  directorImageParts,
+  loadDirectorImageParts,
   phaseASoloCharacterNote,
 } from "@/lib/characters/cast-prompt";
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
@@ -15,8 +15,13 @@ import {
 } from "@/lib/director/scene-text";
 import { skillPromptForPhaseA } from "@/lib/director/load-skill-prompt";
 import { keyframeDeltaDirectorBlock } from "@/lib/director/keyframe-delta";
+import {
+  dualBeatDirectorBlock,
+  isDualBeatSkill,
+  normalizeDualBeatRow,
+} from "@/lib/director/dual-beat";
 import { directorModel } from "@/lib/director/model";
-import { phaseASchema } from "@/lib/director/schemas";
+import { cartoonPhaseASchema, phaseASchema } from "@/lib/director/schemas";
 import type { Style } from "@/lib/styles";
 import type { CastMember } from "@/types/character";
 import type {
@@ -50,7 +55,8 @@ export async function runPhaseA(input: {
   const sceneText = resolveSceneText(input);
   const characterNote =
     castBlockForPhaseA(input.cast) || phaseASoloCharacterNote(input.characterImageUrl);
-  const characterImages = directorImageParts(
+  const dualBeat = isDualBeatSkill(input.skill.slug);
+  const characterImages = await loadDirectorImageParts(
     characterReferenceUrls({
       cast: input.cast,
       characterImageUrl: input.characterImageUrl,
@@ -68,15 +74,18 @@ export async function runPhaseA(input: {
 
   const { output } = await generateText({
     model: directorModel(),
-    output: Output.object({ schema: phaseASchema }),
+    output: Output.object({ schema: dualBeat ? cartoonPhaseASchema : phaseASchema }),
     system: `${skillPromptForPhaseA(input.skill, input.style)}
 
 You are executing Phase A only. Return structured JSON that matches the schema.
 Planning explanations (narrativeJob, explainerScene, motionCamera, hookStrategy, coreMessage, etc.) must be Traditional Chinese (繁體中文).
-${keyframeDeltaDirectorBlock()}
+${keyframeDeltaDirectorBlock({ separateStills: dualBeat })}
+${dualBeat ? dualBeatDirectorBlock(sceneText.enabled) : ""}
 ${
   sceneText.enabled
-    ? "On-canvas text may stay the same line from start to end; motion is pose, props, and lettering placement only."
+    ? dualBeat
+      ? "On-canvas text: start still quotes only startVo; end still quotes only endVo."
+      : "On-canvas text may stay the same line from start to end; motion is pose, props, and lettering placement only."
     : "Motion is pose and props only — no written labels."
 }
 The next clip's start inherits the previous clip's end environment.
@@ -87,7 +96,7 @@ ${
     : ""
 }
 ${language.skillHint}
-${sceneTextSkillHint(sceneText.enabled, sceneText.language)}
+${sceneTextSkillHint(sceneText.enabled, sceneText.language, { dualBeat })}
 The englishVo field always carries the spoken voiceover line in the chosen voiceover language above, regardless of the field name.
 Leave referenceTranslation empty. Do not invent a translation column.
 The englishWordCount field holds the total spoken unit count (words for English, characters for Chinese/Cantonese).
@@ -119,7 +128,11 @@ Produce a complete Phase A director proposal now.`,
     throw new Error("解說提案產生失敗");
   }
   // Always linear: finales end cleanly; never invent a loop bridge.
-  let next: PhaseAProposal = { ...output, loopMode: "linear" };
+  let next: PhaseAProposal = {
+    ...output,
+    loopMode: "linear",
+    ...(dualBeat ? { clips: output.clips.map(normalizeDualBeatRow) } : {}),
+  };
   // Overwrite any invented look text so frame prompts never inherit a wrong outfit.
   if (input.cast && input.cast.length > 0) {
     next = { ...next, characterLock: characterLockFromCast(input.cast) };

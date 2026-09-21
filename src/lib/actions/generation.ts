@@ -10,6 +10,7 @@ import {
   refundCredits,
 } from "@/lib/billing/credits";
 import { videosCollection } from "@/lib/collections";
+import { hasDualBeatDraft, syncDualBeatFields } from "@/lib/director/dual-beat";
 import { runStillJob } from "@/lib/director/jobs";
 import { persistFrameAnnotation } from "@/lib/higgsfield/frame-annotation";
 import { planFrameSubmissions } from "@/lib/higgsfield/clip-keyframes";
@@ -116,7 +117,7 @@ export async function regenerateFrameAction(
     });
     if (!project?.phaseA) return { ok: false, error: "專案不存在" };
     if (!isProductionLike(project.status)) {
-      return { ok: false, error: "請先核准分鏡" };
+      return { ok: false, error: "分鏡尚未完成" };
     }
     const frame = project.frames?.find(
       (item) => item.clipNumber === clipNumber && item.position === position,
@@ -216,13 +217,27 @@ export async function updateClipStoryboardAction(
       return { ok: false, error: "專案不存在" };
     }
 
-    const clean: ClipStoryboardInput = {
+    const clean: ClipStoryboardInput = syncDualBeatFields({
       explainerScene: cleanField(input?.explainerScene),
       motionCamera: cleanField(input?.motionCamera),
       englishVo: cleanField(input?.englishVo),
-    };
-    if (!clean.explainerScene) return { ok: false, error: "畫面描述不能空白" };
-    if (!clean.englishVo) return { ok: false, error: "旁白不能空白" };
+      startScene: cleanField(input?.startScene),
+      endScene: cleanField(input?.endScene),
+      startVo: cleanField(input?.startVo),
+      endVo: cleanField(input?.endVo),
+    });
+    if (hasDualBeatDraft(clean)) {
+      if (!clean.startScene || !clean.endScene) {
+        return { ok: false, error: "起始與結尾畫面不能空白" };
+      }
+      if (!clean.startVo || !clean.endVo) {
+        return { ok: false, error: "兩句旁白不能空白" };
+      }
+    } else if (!clean.explainerScene) {
+      return { ok: false, error: "畫面描述不能空白" };
+    } else if (!clean.englishVo) {
+      return { ok: false, error: "旁白不能空白" };
+    }
 
     const projects = await videosCollection();
     const project = await projects.findOne({
@@ -231,7 +246,7 @@ export async function updateClipStoryboardAction(
     });
     if (!project?.phaseA) return { ok: false, error: "專案不存在" };
     if (!isProductionLike(project.status)) {
-      return { ok: false, error: "請先核准分鏡" };
+      return { ok: false, error: "分鏡尚未完成" };
     }
     const clipIndex = project.phaseA.clips.findIndex(
       (clip) => clip.clipNumber === clipNumber,

@@ -5,7 +5,7 @@ const INTL_BASE = "https://dashscope-intl.aliyuncs.com/api/v1";
 
 export const ALICLOUD_IMAGE_MODEL = "qwen-image-3.0-pro";
 export const ALICLOUD_IMAGE_EDIT_MODEL = "qwen-image-3.0-pro";
-export const ALICLOUD_VIDEO_MODEL = "wan2.7-i2v";
+export const ALICLOUD_VIDEO_MODEL = "wan3.0-video";
 
 export function alicloudApiKey() {
   return process.env.ALICLOUD_API_KEY || process.env.DASHSCOPE_API_KEY || "";
@@ -23,7 +23,38 @@ export function imageSizeForRatio(ratio: AspectRatio) {
 }
 
 export function wanDurationSeconds(durationSeconds: number) {
-  return Math.min(15, Math.max(2, Math.round(durationSeconds)));
+  return Math.min(30, Math.max(2, Math.round(durationSeconds)));
+}
+
+// Wan 3.0 first+last frame: native speech when audio is on; adaptive follows the stills.
+export function wanClipVideoParameters(durationSeconds: number) {
+  return {
+    resolution: "720P" as const,
+    ratio: "adaptive" as const,
+    duration: wanDurationSeconds(durationSeconds),
+    audio: true,
+    prompt_extend: false,
+    watermark: false,
+  };
+}
+
+export function wan3ClipVideoBody(input: {
+  prompt: string;
+  durationSeconds: number;
+  startImageUrl: string;
+  endImageUrl: string;
+}) {
+  return {
+    model: ALICLOUD_VIDEO_MODEL,
+    input: {
+      prompt: input.prompt,
+      media: [
+        { type: "first_frame", url: input.startImageUrl },
+        { type: "last_frame", url: input.endImageUrl },
+      ],
+    },
+    parameters: wanClipVideoParameters(input.durationSeconds),
+  };
 }
 
 export function mapDashscopeStatus(status: string): GenerationStatus {

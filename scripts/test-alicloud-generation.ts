@@ -53,7 +53,7 @@ async function waitForFrames(projectId: ObjectId, positions: Array<"start" | "en
     const pending = rows.some(
       (frame) => frame.status === "queued" || frame.status === "in_progress",
     );
-    const failed = rows.find((frame) => frame.status === "failed" || frame.status === "nsfw");
+    const failed = rows.find((frame) => frame.status === "failed");
     if (failed) {
       throw new Error(failed.error || `${failed.position} frame failed`);
     }
@@ -87,7 +87,7 @@ async function waitForVideo(projectId: ObjectId) {
     if (!project) throw new Error("專案消失");
     const clip = project.clips?.find((row) => row.clipNumber === CLIP_NUMBER);
     if (!clip) throw new Error("找不到 clip 1");
-    if (clip.status === "failed" || clip.status === "nsfw") {
+    if (clip.status === "failed") {
       throw new Error(clip.error || "clip video failed");
     }
     if (clip.status === "completed" && mediaSrc(clip)) {
@@ -119,7 +119,7 @@ async function main() {
       {
         phase: "selected",
         projectId: projectId.toHexString(),
-        title: project.title,
+        title: project.phaseA?.localizedTitle,
         status: project.status,
       },
       null,
@@ -154,7 +154,7 @@ async function main() {
       {
         phase: "done",
         projectId: projectId.toHexString(),
-        title: project.title,
+        title: project.phaseA?.localizedTitle,
         timings: {
           frameSubmitMs,
           frameWaitMs: frames.elapsedMs,

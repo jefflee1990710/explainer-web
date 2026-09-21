@@ -68,7 +68,7 @@ export function DirectorProgress() {
             />
           </div>
           <p className="mt-3 text-xs text-paper/60">
-            通常 20–60 秒。你可以留在這頁，完成後會自動顯示。
+            通常 20–60 秒。完成後會自動進入製作，可改起始／結尾畫面再產圖。
           </p>
         </div>
       </div>

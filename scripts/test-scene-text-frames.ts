@@ -60,7 +60,7 @@ async function main() {
     await refreshProjectJobs(projectId);
     const fresh = (await videos.findOne({ _id: projectId })) as Project;
     const rows = (fresh.frames || []).filter((frame) => frame.clipNumber === CLIP);
-    const failed = rows.find((frame) => frame.status === "failed" || frame.status === "nsfw");
+    const failed = rows.find((frame) => frame.status === "failed");
     if (failed) throw new Error(failed.error || "畫格產生失敗");
 
     const done = (["start", "end"] as const).every((position) => {

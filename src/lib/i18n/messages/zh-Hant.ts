@@ -84,7 +84,7 @@ export const zhHant: Messages = {
     status: {
       draft: "草稿",
       phase_a: "撰寫分鏡中",
-      awaiting_approval: "待核准分鏡",
+      awaiting_approval: "待製作",
       production: "製作中",
       ready: "已完成",
       failed: "失敗",

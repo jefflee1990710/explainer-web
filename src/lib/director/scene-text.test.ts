@@ -67,4 +67,6 @@ test("director revision note asks to drop invented labels when toggling", () => 
   assert.match(sceneTextDirectorRevisionNote(true, "en"), /englishVo/);
   assert.match(sceneTextDirectorRevisionNote(false, "en"), /OFF/);
   assert.match(sceneTextSkillHint(true, "en"), /do NOT invent extra titles/i);
+  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /ONLY startVo/);
+  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /visual style/);
 });

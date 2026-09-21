@@ -36,7 +36,7 @@ export async function composeReelAction(videoId: string): Promise<ProjectResult>
     clerkUserId: user.clerkUserId,
   });
   if (!project) return { ok: false, error: "專案不存在" };
-  if (!isProductionLike(project.status)) return { ok: false, error: "請先核准分鏡" };
+  if (!isProductionLike(project.status)) return { ok: false, error: "分鏡尚未完成" };
   if (!isProjectReady(project)) return { ok: false, error: "請先完成所有片段" };
 
   const fingerprint = clipReelFingerprint(project);

@@ -80,12 +80,15 @@ export async function runPhaseAJob(
         // `$set: { error: undefined }` would store null; clear the field instead.
         $set: {
           phaseA: nextPhaseA,
-          status: "awaiting_approval",
+          // Skip the old 核准分鏡 gate — frames and videos start from 製作.
+          status: "production",
           updatedAt: new Date(),
         },
         $unset: { error: "" },
       },
     );
+    // Same as the old approve action: lock the character still before frames.
+    await runStillJob(projectId);
   } catch (error) {
     await projects.updateOne(
       { _id: projectId },

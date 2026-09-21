@@ -42,10 +42,13 @@ const BUDGET: Record<KeyframeDeltaBand, { director: string; start: string; end: 
   },
 };
 
-export function keyframeDeltaDirectorBlock() {
+export function keyframeDeltaDirectorBlock(options?: { separateStills?: boolean }) {
+  const stillRule = options?.separateStills
+    ? "startScene is the t=0 still and endScene is the t=N still (use that clip's durationSeconds). Do not merge them into one paragraph."
+    : "explainerScene writes both states in one paragraph: 「起始：…。結尾（N秒後）：…」 using that clip's durationSeconds.";
   return [
     "Each clip's start and end are the SAME locked camera; the character keeps roughly the same screen size and placement.",
-    "They must NOT look almost identical — under-moving makes the video freeze. explainerScene writes both states in one paragraph: 「起始：…。結尾（N秒後）：…」 using that clip's durationSeconds.",
+    `They must NOT look almost identical — under-moving makes the video freeze. ${stillRule}`,
     "motionCamera names the path and how far things travel so interpolation can fill the seconds.",
     "Change budget by durationSeconds:",
     `- ${BUDGET["3s"].director}`,

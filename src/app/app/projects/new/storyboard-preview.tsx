@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { Spinner } from "@/components/spinner";
+import { isDualBeatSkill } from "@/lib/director/dual-beat";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { SCENE_TEXT_PRESETS } from "@/lib/director/scene-text";
 import {
@@ -122,6 +123,7 @@ export function StoryboardPreview({
               timeRange={clip.timeRange}
               draft={currentDraft.clips[index]}
               language={project.language}
+              dualBeat={isDualBeatSkill(project.skillSlug)}
               disabled={busy}
               onChange={(next) => {
                 setDraft({

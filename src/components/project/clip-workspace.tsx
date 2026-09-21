@@ -3,15 +3,19 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ClipVideoPanel } from "@/components/project/clip-video-panel";
+import {
+  ClipScenePrompts,
+  type ClipScenePending,
+} from "@/components/project/clip-scene-prompts";
 import { FramePromptPanel } from "@/components/project/frame-prompt-panel";
 import { FrameTile } from "@/components/project/frame-tile";
-import { ArrowIcon, EditIcon, RefreshIcon, WarnIcon } from "@/components/project/production-icons";
+import { ArrowIcon, RefreshIcon, WarnIcon } from "@/components/project/production-icons";
 import { Spinner } from "@/components/spinner";
 import type { ClipState } from "@/lib/clip-stage";
-import { LANGUAGE_PRESETS } from "@/lib/director/languages";
+import { isDualBeatSkill } from "@/lib/director/dual-beat";
 import { FRAMES_COST } from "@/lib/production-plan";
 import type { PublicVideo } from "@/lib/serialize";
-import type { FramePosition } from "@/types/project";
+import type { ClipStoryboardInput, FramePosition } from "@/types/project";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -22,12 +26,13 @@ export function ClipWorkspace({
   state,
   credits,
   pending,
+  error,
   onPrev,
   onNext,
   onGenerateFrames,
   onRegenerateFrame,
   onOpenFrame,
-  onEditText,
+  onUpdateClip,
   onGenerateVideo,
 }: {
   project: PublicVideo;
@@ -35,12 +40,13 @@ export function ClipWorkspace({
   credits: number;
   // Pending key of the running action ("" when idle).
   pending: string;
+  error: string;
   onPrev?: () => void;
   onNext?: () => void;
   onGenerateFrames: () => void;
   onRegenerateFrame: (position: FramePosition) => void;
   onOpenFrame: (position: FramePosition) => void;
-  onEditText: () => void;
+  onUpdateClip: (input: ClipStoryboardInput, regenerate: boolean) => Promise<boolean>;
   onGenerateVideo: () => void;
 }) {
   const n = state.clipNumber;
@@ -49,7 +55,8 @@ export function ClipWorkspace({
   const start = project.frames.find((f) => f.clipNumber === n && f.position === "start");
   const end = project.frames.find((f) => f.clipNumber === n && f.position === "end");
   const clip = project.clips.find((c) => c.clipNumber === n);
-  const language = LANGUAGE_PRESETS[project.language];
+  const scenePending: ClipScenePending =
+    pending === `clip:${n}` ? "save" : pending === `clip:${n}:regen` ? "regenerate" : "";
 
   const framesBusy = state.stage === "frames_generating" || state.stage === "video_generating";
   const framesPending = pending === `frames:${n}` || pending === `clip:${n}:regen`;
@@ -125,35 +132,15 @@ export function ClipWorkspace({
       ) : null}
 
       <div className="mt-5 grid gap-6 lg:grid-cols-[1.1fr_1.3fr_1fr]">
-        {/* Storyboard text */}
-        <div>
-          <p className="font-display text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
-            分鏡文字
-          </p>
-          <div className="mt-2 space-y-3 rounded-2xl border border-accent-ink/10 bg-paper p-4 text-sm">
-            <div>
-              <p className="text-[10px] text-muted">畫面</p>
-              <p className="leading-6">{row.explainerScene}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted">運鏡</p>
-              <p className="leading-6">{row.motionCamera}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted">旁白（{language.label}）</p>
-              <p className="font-medium leading-6">{row.englishVo}</p>
-            </div>
-            <button
-              type="button"
-              onClick={onEditText}
-              disabled={pending !== ""}
-              className="inline-flex min-h-[34px] cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/15 bg-paper px-3 text-xs font-semibold transition hover:border-accent-ink/40 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {pending === `clip:${n}` ? <Spinner className="h-3.5 w-3.5" /> : <EditIcon />}
-              編輯文字
-            </button>
-          </div>
-        </div>
+        <ClipScenePrompts
+          clip={row}
+          language={project.language}
+          dualBeat={isDualBeatSkill(project.skillSlug)}
+          credits={credits}
+          pending={scenePending}
+          error={error}
+          onSave={onUpdateClip}
+        />
 
         {/* Frames */}
         <div>

@@ -84,6 +84,9 @@ export function reconcileClips(clips: ProjectClip[] | undefined, jobs: Generatio
 // other status passes through (normalised, so legacy values never get re-written).
 export function nextProjectStatus(project: ClipStageSource): ProjectStatus {
   const status = normalizeProjectStatus(project.status);
-  if (status !== "production" && status !== "ready") return status;
+  // Leftover 核准分鏡 projects produce like production and can become ready.
+  if (status !== "production" && status !== "ready" && status !== "awaiting_approval") {
+    return status;
+  }
   return isProjectReady(project) ? "ready" : "production";
 }

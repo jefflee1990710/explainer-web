@@ -8,6 +8,12 @@ import type {
 } from "@/components/annotation-editor";
 import { FramePromptPanel } from "@/components/project/frame-prompt-panel";
 import { Spinner } from "@/components/spinner";
+import {
+  clipEndScene,
+  clipEndVo,
+  clipStartScene,
+  clipStartVo,
+} from "@/lib/director/dual-beat";
 import type { SceneTextLanguage } from "@/types/project";
 import type {
   AspectRatio,
@@ -61,6 +67,7 @@ export function FrameEditDialog({
   credits,
   sceneTextEnabled,
   sceneTextLanguage,
+  dualBeat,
   canRegenerate,
   onClose,
   onRegenerate,
@@ -71,6 +78,7 @@ export function FrameEditDialog({
   credits: number;
   sceneTextEnabled: boolean;
   sceneTextLanguage: SceneTextLanguage;
+  dualBeat?: boolean;
   // False while another action is pending or frames are still generating.
   canRegenerate: boolean;
   onClose: () => void;
@@ -241,14 +249,26 @@ export function FrameEditDialog({
               <p className="font-display text-xs font-bold uppercase tracking-[0.14em] text-muted">
                 這段的畫面
               </p>
-              <p className="mt-2 text-sm leading-6">{clip.explainerScene}</p>
+              <p className="mt-2 text-sm leading-6">
+                {dualBeat
+                  ? frame.position === "start"
+                    ? clipStartScene(clip)
+                    : clipEndScene(clip)
+                  : clip.explainerScene}
+              </p>
               <p className="mt-2 text-xs leading-5 text-muted">{clip.motionCamera}</p>
             </div>
 
             <FramePromptPanel
               sceneTextEnabled={sceneTextEnabled}
               sceneTextLanguage={sceneTextLanguage}
-              voiceoverLine={clip.englishVo}
+              voiceoverLine={
+                dualBeat
+                  ? frame.position === "start"
+                    ? clipStartVo(clip)
+                    : clipEndVo(clip)
+                  : clip.englishVo
+              }
               frames={[frame]}
             />
 

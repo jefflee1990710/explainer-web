@@ -183,6 +183,44 @@ test("disabled scene text drops lettering and forbids on-canvas words", () => {
   assert.doesNotMatch(prompt, /Lettering:/);
 });
 
+test("whiteboard explainer dual-beat uses start/end scene and VO per still", () => {
+  const dual = project();
+  dual.skillSlug = "cartoon-explainer-video-director";
+  dual.sceneTextEnabled = true;
+  dual.phaseA!.clips[0] = {
+    ...dual.phaseA!.clips[0],
+    startScene: "起點拿尺",
+    endScene: "尺變成回歸線",
+    startVo: "First beat.",
+    endVo: "Second beat.",
+    explainerScene: "起始：起點拿尺。結尾：尺變成回歸線。",
+    englishVo: "First beat. Second beat.",
+  };
+  const start = buildFramePrompt(dual, 1, "start");
+  const end = buildFramePrompt(dual, 1, "end");
+  assert.match(start, /Scene: 起點拿尺/);
+  assert.doesNotMatch(start, /尺變成回歸線/);
+  assert.match(start, /First beat/);
+  assert.doesNotMatch(start, /Second beat/);
+  assert.match(end, /Scene: 尺變成回歸線/);
+  assert.match(end, /Second beat/);
+  assert.doesNotMatch(end, /First beat/);
+});
+
+test("other skills keep a single scene and full voiceover on both stills", () => {
+  const story = project();
+  story.skillSlug = "story-short-director";
+  story.sceneTextEnabled = true;
+  story.phaseA!.clips[0].explainerScene = "整段同一個畫面描述";
+  story.phaseA!.clips[0].englishVo = "Whole line.";
+  const start = buildFramePrompt(story, 1, "start");
+  const end = buildFramePrompt(story, 1, "end");
+  assert.match(start, /Scene: 整段同一個畫面描述/);
+  assert.match(end, /Scene: 整段同一個畫面描述/);
+  assert.match(start, /Whole line/);
+  assert.match(end, /Whole line/);
+});
+
 test("enabled scene text puts the voiceover line on canvas with lettering", () => {
   const on = project();
   on.sceneTextEnabled = true;

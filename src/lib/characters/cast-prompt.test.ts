@@ -9,6 +9,7 @@ import {
   characterLockFromCast,
   characterReferenceUrls,
   directorImageParts,
+  loadDirectorImageParts,
   frameCharacterLockLine,
   phaseASoloCharacterNote,
 } from "./cast-prompt";
@@ -125,6 +126,41 @@ test("directorImageParts keeps valid character urls as image parts", () => {
   assert.equal(parts.length, 1);
   assert.equal(parts[0].type, "image");
   assert.equal(parts[0].image.href, "https://blob/a.png");
+});
+
+test("loadDirectorImageParts fetches bytes so the AI SDK does not require undici", async () => {
+  const bytes = new Uint8Array([137, 80, 78, 71]);
+  const originalFetch = globalThis.fetch;
+  const calls: string[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    calls.push(String(input));
+    return new Response(bytes, {
+      status: 200,
+      headers: { "content-type": "image/png" },
+    });
+  }) as typeof fetch;
+  try {
+    const parts = await loadDirectorImageParts(["https://blob/a.png", "not-a-url"]);
+    assert.deepEqual(calls, ["https://blob/a.png"]);
+    assert.equal(parts.length, 1);
+    assert.equal(parts[0].type, "image");
+    assert.deepEqual(parts[0].image, bytes);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("loadDirectorImageParts fails clearly when a reference image cannot be downloaded", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response("missing", { status: 404 })) as typeof fetch;
+  try {
+    await assert.rejects(
+      () => loadDirectorImageParts(["https://blob/a.png"]),
+      /無法下載角色參考圖/,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("phase A solo note asks the director to follow an attached image", () => {

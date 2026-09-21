@@ -2,7 +2,6 @@ import type { AspectRatio } from "@/types/project";
 import {
   ALICLOUD_IMAGE_EDIT_MODEL,
   ALICLOUD_IMAGE_MODEL,
-  ALICLOUD_VIDEO_MODEL,
   alicloudApiKey,
   dashscopeError,
   dashscopeRequest,
@@ -10,7 +9,7 @@ import {
   imageSizeForRatio,
   mapDashscopeStatus,
   mediaUrlFromDashscope,
-  wanDurationSeconds,
+  wan3ClipVideoBody,
 } from "@/lib/alicloud/dashscope";
 import type { GenerationStatus } from "@/types/generation-job";
 
@@ -156,22 +155,7 @@ export async function submitAlicloudClipVideo(input: {
     {
       method: "POST",
       async: true,
-      body: JSON.stringify({
-        model: ALICLOUD_VIDEO_MODEL,
-        input: {
-          prompt: input.prompt,
-          media: [
-            { type: "first_frame", url: input.startImageUrl },
-            { type: "last_frame", url: input.endImageUrl },
-          ],
-        },
-        parameters: {
-          resolution: "720P",
-          duration: wanDurationSeconds(input.durationSeconds),
-          prompt_extend: false,
-          watermark: false,
-        },
-      }),
+      body: JSON.stringify(wan3ClipVideoBody(input)),
     },
   );
   const id = taskIdFrom(body);

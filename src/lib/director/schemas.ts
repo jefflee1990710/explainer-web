@@ -8,8 +8,19 @@ export const storyboardRowSchema = z.object({
   explainerScene: z.string(),
   motionCamera: z.string(),
   englishVo: z.string(),
+  startScene: z.string().optional(),
+  endScene: z.string().optional(),
+  startVo: z.string().optional(),
+  endVo: z.string().optional(),
   referenceTranslation: z.string().optional(),
   bgmSfx: z.string(),
+});
+
+export const dualBeatStoryboardRowSchema = storyboardRowSchema.extend({
+  startScene: z.string().min(1),
+  endScene: z.string().min(1),
+  startVo: z.string().min(1),
+  endVo: z.string().min(1),
 });
 
 export const phaseASchema = z.object({
@@ -29,6 +40,10 @@ export const phaseASchema = z.object({
   bgmDirection: z.string(),
   narrativeArc: z.string(),
   clips: z.array(storyboardRowSchema).min(1),
+});
+
+export const cartoonPhaseASchema = phaseASchema.extend({
+  clips: z.array(dualBeatStoryboardRowSchema).min(1),
 });
 
 // One clip's video prompt (per-clip Phase B).
