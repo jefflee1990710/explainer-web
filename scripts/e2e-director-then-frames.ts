@@ -99,6 +99,9 @@ async function main() {
       $set: {
         sceneTextEnabled: c.sceneTextEnabled,
         sceneTextLanguage: c.sceneTextLanguage,
+        ...(c.sceneTextEnabled && (c.sceneTextLanguage === "zh-Hant" || c.sceneTextLanguage === "zh-Hans")
+          ? { language: "zh" as const }
+          : {}),
         status: "phase_a",
         updatedAt: new Date(),
       },

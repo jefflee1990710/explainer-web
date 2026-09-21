@@ -73,7 +73,13 @@ export function sceneTextDirectorRevisionNote(
   if (!enabled) {
     return "On-canvas text is now OFF. Rewrite every clip's explainerScene and motionCamera so they contain zero quoted words, labels, signs, or lettering (no 「」 quotes). Keep the same story, characters, and titles. Visuals and motion only.";
   }
-  return `On-canvas text is now ON (${SCENE_TEXT_PRESETS[language].label}). The ONLY writing in each still is that clip's englishVo as a bottom subtitle. Rewrite every clip's explainerScene and motionCamera: pose, props, environment only — never invent short titles such as 「Mental Health?」 or any other quoted labels. Keep the same story, characters, and proposal titles.`;
+  const voScript =
+    language === "zh-Hant"
+      ? "Rewrite every clip's englishVo into Traditional Chinese (繁體中文) — that Chinese line is the bottom subtitle."
+      : language === "zh-Hans"
+        ? "Rewrite every clip's englishVo into Simplified Chinese (简体中文) — that Chinese line is the bottom subtitle."
+        : "Keep each clip's englishVo as the spoken English line; that line is the bottom subtitle.";
+  return `On-canvas text is now ON (${SCENE_TEXT_PRESETS[language].label}). ${voScript} The ONLY writing in each still is that clip's englishVo. Rewrite every clip's explainerScene and motionCamera: pose, props, environment only — never invent short titles such as 「Mental Health?」 or any other quoted labels. Keep the same story, characters, and proposal titles.`;
 }
 
 // Typography locale for lettering style; the quoted voiceover keeps its own script.
