@@ -124,7 +124,7 @@ export function buildFramePrompt(
     `Scene: ${row.explainerScene}`,
     // On-canvas labels only when the user turned scene text on.
     ...(sceneText.enabled ? [styleLetteringLine(style)] : []),
-    ...sceneTextFrameLines(sceneText.enabled, sceneText.language),
+    ...sceneTextFrameLines(sceneText.enabled, sceneText.language, row.englishVo),
     `Motion and camera across the clip: ${row.motionCamera}`,
     moment,
     ...revisionLines(options.revision),

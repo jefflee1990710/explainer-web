@@ -30,5 +30,11 @@ test("isSceneTextLanguage accepts only the three scene-text ids", () => {
 test("sceneTextSkillHint and frame lines ban writing when off", () => {
   assert.match(sceneTextSkillHint(false, "en"), /On-canvas text is OFF/);
   assert.match(sceneTextFrameLines(false, "en")[0], /No on-canvas text/);
-  assert.match(sceneTextFrameLines(true, "zh-Hans")[0], /Simplified Chinese/);
+  assert.match(sceneTextFrameLines(false, "en")[1], /Ignore any mention/);
+});
+
+test("enabled scene text quotes the clip narration on canvas", () => {
+  assert.match(sceneTextFrameLines(true, "zh-Hans", "你好世界")[1], /你好世界/);
+  assert.match(sceneTextFrameLines(true, "zh-Hans", "你好世界")[1], /only writing/);
+  assert.match(sceneTextSkillHint(true, "en"), /englishVo voiceover line/);
 });

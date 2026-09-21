@@ -183,15 +183,23 @@ test("disabled scene text drops lettering and forbids on-canvas words", () => {
   assert.doesNotMatch(prompt, /Lettering:/);
 });
 
-test("enabled Traditional Chinese scene text keeps lettering and the language rule", () => {
+test("enabled scene text puts the voiceover line on canvas with lettering", () => {
   const on = project();
   on.sceneTextEnabled = true;
   on.sceneTextLanguage = "zh-Hant";
   const prompt = buildFramePrompt(on, 1, "start");
-  const sceneAt = prompt.indexOf("Scene: scene");
-  const languageAt = prompt.indexOf("Traditional Chinese");
   assert.match(prompt, /Lettering:/);
-  assert.ok(sceneAt >= 0 && languageAt > sceneAt, "language rule must follow the Scene line");
+  assert.match(prompt, /On-canvas text \(the only writing allowed in the image\): "vo"/);
+  assert.match(prompt, /Traditional Chinese/);
+});
+
+test("disabled scene text ignores words mentioned in the scene description", () => {
+  const off = project();
+  off.sceneTextEnabled = false;
+  off.phaseA!.clips[0].explainerScene = "A sign reads HELLO";
+  const prompt = buildFramePrompt(off, 1, "end");
+  assert.match(prompt, /Ignore any mention of words/);
+  assert.doesNotMatch(prompt, /On-canvas text/);
 });
 
 test("without a cast, the text characterLock stays authoritative", () => {

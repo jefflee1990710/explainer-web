@@ -52,19 +52,37 @@ export function resolveSceneText(input: {
 
 export function sceneTextSkillHint(enabled: boolean, language: SceneTextLanguage) {
   if (!enabled) {
-    return "On-canvas text is OFF. explainerScene, visualWorld, and motionCamera must contain NO written words, labels, numbers, captions, signage, or lettering. Communicate only with images, props, and composition.";
+    return "On-canvas text is OFF. explainerScene, visualWorld, and motionCamera must contain NO written words, labels, numbers, captions, signage, or lettering — not even in quotes. Communicate only with images, props, and composition.";
   }
-  return `${SCENE_TEXT_PRESETS[language].skillHint} No captions or subtitles of the voiceover.`;
+  return [
+    SCENE_TEXT_PRESETS[language].skillHint,
+    "When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo voiceover line, spelled character-for-character on the canvas.",
+    "explainerScene and motionCamera describe visuals and motion only — do not put other quotes, labels, or signage in those fields.",
+    "Do not add separate subtitle bars; the voiceover line is integrated as short on-canvas lettering.",
+  ].join(" ");
 }
 
-export function sceneTextFrameLines(enabled: boolean, language: SceneTextLanguage) {
+// Frame prompts: OFF = zero writing; ON = quote the clip narration (englishVo) exactly.
+export function sceneTextFrameLines(
+  enabled: boolean,
+  language: SceneTextLanguage,
+  narration?: string,
+) {
   if (!enabled) {
     return [
       "No on-canvas text, labels, captions, letters, numbers, or written words of any kind. Communicate only with images, props, and composition.",
+      "Ignore any mention of words, labels, signs, or lettering in the scene description below; do NOT render writing in the image.",
+    ];
+  }
+  const line = narration?.trim();
+  if (!line) {
+    return [
+      SCENE_TEXT_PRESETS[language].skillHint,
+      "On-canvas text must quote this clip's voiceover line exactly, but none was provided.",
     ];
   }
   return [
     SCENE_TEXT_PRESETS[language].skillHint,
-    "Any on-canvas text must be spelled exactly as written in the scene description.",
+    `On-canvas text (the only writing allowed in the image): "${line}" — spell exactly, no other words or letters anywhere.`,
   ];
 }
