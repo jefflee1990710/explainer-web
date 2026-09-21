@@ -15,6 +15,7 @@ import {
 import { runPhaseAJob, runStillJob } from "@/lib/director/jobs";
 import { isVoLanguage } from "@/lib/director/languages";
 import { isSceneTextLanguage } from "@/lib/director/scene-text";
+import { applySkillSceneText, briefSkillError } from "@/lib/director/skill-rules";
 import { sanitizeFolderName } from "@/lib/folder";
 import { deleteExplainerBlobUrls } from "@/lib/blob/delete-urls";
 import { toPublicVideo, type PublicVideo } from "@/lib/serialize";
@@ -249,6 +250,11 @@ export async function createVideoAction(
     const skills = await skillsCollection();
     const skill = await skills.findOne({ slug: brief.skillSlug, isActive: true });
     if (!skill) return { ok: false, error: "找不到風格" };
+    const skillError = briefSkillError({
+      skillSlug: skill.slug,
+      characterIds: brief.characterIds,
+    });
+    if (skillError) return { ok: false, error: skillError };
 
     const castResult = await buildCast(user.clerkUserId, brief.styleId, brief.characterIds);
     if (!castResult.ok) return castResult;
@@ -267,7 +273,7 @@ export async function createVideoAction(
       aspectRatio: brief.aspectRatio,
       durationPreset: brief.durationPreset,
       language: brief.language,
-      sceneTextEnabled: brief.sceneTextEnabled,
+      sceneTextEnabled: applySkillSceneText(skill.slug, brief.sceneTextEnabled),
       sceneTextLanguage: brief.sceneTextLanguage,
       cast,
       status: "phase_a",
@@ -324,6 +330,11 @@ export async function updateVideoBriefAction(
     const skills = await skillsCollection();
     const skill = await skills.findOne({ slug: brief.skillSlug, isActive: true });
     if (!skill) return { ok: false, error: "找不到風格" };
+    const skillError = briefSkillError({
+      skillSlug: skill.slug,
+      characterIds: brief.characterIds,
+    });
+    if (skillError) return { ok: false, error: skillError };
 
     const castResult = await buildCast(user.clerkUserId, brief.styleId, brief.characterIds);
     if (!castResult.ok) return castResult;
@@ -339,7 +350,7 @@ export async function updateVideoBriefAction(
           aspectRatio: brief.aspectRatio,
           durationPreset: brief.durationPreset,
           language: brief.language,
-          sceneTextEnabled: brief.sceneTextEnabled,
+          sceneTextEnabled: applySkillSceneText(skill.slug, brief.sceneTextEnabled),
           sceneTextLanguage: brief.sceneTextLanguage,
           cast: castResult.cast,
           status: "phase_a",

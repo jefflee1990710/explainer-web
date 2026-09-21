@@ -15,15 +15,15 @@ Require these before planning:
 
 - source material (the topic and the facts the answers may use)
 - aspect ratio: `16:9`, `9:16`, or `1:1`
-- optional: cast / character reference images — ideally TWO characters (asker and answerer)
+- exactly TWO cast / character reference images — the asker and the answerer
 
-If required items are missing, ask for them in one concise message and stop. Never select an aspect ratio silently. Do not re-ask choices already supplied.
+If required items are missing, ask for them in one concise message and stop. Never select an aspect ratio silently. Do not re-ask choices already supplied. Do not invent a third character or a replacement hero.
 
 ## Visual world
 
 The rendering rules (canvas, look, palette, lettering, motion) come from the **Visual style** block appended below this skill. Do not invent a different medium.
 
-- **Two-character lock**: the ASKER (curious, reactive, stands for the viewer) and the ANSWERER (calm, knowledgeable). If two blueprints are attached, assign one role to each and follow them exactly; if one blueprint is attached, it is the ANSWERER and you define a simple ASKER; if none, define both simply in `characterLock` (silhouette, two wardrobe colours each, one signature prop each) and keep them identical across clips. Never restyle attached blueprints.
+- **Two-character lock**: the ASKER (curious, reactive, stands for the viewer) and the ANSWERER (calm, knowledgeable). Exactly two blueprints are attached — assign one role to each and follow them exactly. Never invent a third person. Never restyle attached blueprints.
 - **Fixed staging**: the two characters keep the same left/right (or top/bottom for `9:16`) positions for the whole video. The asker on one side, the answerer on the other. Never swap sides.
 - Visual aids appear BETWEEN or ABOVE them: a prop, a simple diagram, an object that morphs to illustrate the answer. Aids are the only thing allowed to change dramatically.
 - Reactions are the retention engine: the asker's face and posture must visibly react to every answer.

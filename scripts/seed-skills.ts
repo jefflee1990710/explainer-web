@@ -47,9 +47,9 @@ const SKILLS: SkillManifest[] = [
   {
     dir: "story-short-director",
     slug: "story-short-director",
-    title: "Story short",
+    title: "Short film",
     titleZh: "故事短片",
-    description: "主角、目標、阻礙、轉折、結局的三幕短故事，用情緒帶訊息。",
+    description: "角色對白推進的短片：有目標、阻礙與轉折，沒有旁白。",
     sortOrder: 2,
   },
   {
@@ -65,7 +65,7 @@ const SKILLS: SkillManifest[] = [
     slug: "dialogue-qa-director",
     title: "Two-character Q&A",
     titleZh: "對話式 Q&A",
-    description: "兩個角色一問一答，用提問推進好奇心，用回答交付重點。",
+    description: "必須選兩個角色一問一答，用提問推進好奇心，用回答交付重點。",
     sortOrder: 4,
   },
   {
@@ -73,7 +73,7 @@ const SKILLS: SkillManifest[] = [
     slug: "listicle-director",
     title: "Listicle",
     titleZh: "清單式",
-    description: "N 個重點逐條快切，每段一項，最有價值的留到最後。",
+    description: "N 個重點逐條快切，每段一項，畫面必須列出清單文字。",
     sortOrder: 5,
   },
   {

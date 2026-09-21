@@ -23,7 +23,7 @@ Spoken words scale with the preset (~2.2–2.5 words/second, minus any silent be
 2. Total duration, clip count N (each 3–8s), loop mode: always Linear (the story ends)
 3. Core message and the hook opener (in-medias-res / striking image + audio/motion device)
 4. Aspect ratio and the one or two locations with anchor props
-5. Narrator identity, tense, tone, spoken-unit count
+5. No narrator — characters speak; spoken-unit count is dialogue only
 6. Cast lock: follow attached blueprints exactly, or the single defined protagonist
 7. Music curve and the six-beat arc mapped to clips
 
@@ -31,7 +31,7 @@ Spoken words scale with the preset (~2.2–2.5 words/second, minus any silent be
 
 Produce N rows of 3–8 seconds:
 
-| Clip # & time | Story beat | Scene at clip start | Motion, camera & handoff | VO / dialogue | BGM / SFX |
+| Clip # & time | Story beat | Scene at clip start | Motion, camera & handoff | Dialogue (no narrator) | BGM / SFX |
 |---|---|---|---|---|---|
 
 Rules per row:

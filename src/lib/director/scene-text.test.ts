@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   isSceneTextLanguage,
+  listicleOnCanvasLines,
   resolveSceneText,
   sceneTextFrameLines,
   sceneTextNegativePrompt,
@@ -21,6 +22,33 @@ test("resolveSceneText defaults to closed; only explicit true enables", () => {
     enabled: true,
     language: "zh-Hans",
   });
+});
+
+test("listicle forces on-canvas text even when the toggle is off", () => {
+  assert.equal(
+    resolveSceneText({
+      skillSlug: "listicle-director",
+      sceneTextEnabled: false,
+      sceneTextLanguage: "en",
+    }).enabled,
+    true,
+  );
+});
+
+test("listicle on-canvas lines list every item and highlight the current one", () => {
+  const lines = listicleOnCanvasLines({
+    clips: [
+      { clipNumber: 1, narrativeJob: "hook", englishVo: "Three morning mistakes." },
+      { clipNumber: 2, narrativeJob: "item 1 of 3", englishVo: "Snooze the alarm." },
+      { clipNumber: 3, narrativeJob: "item 2 of 3", englishVo: "Skip water." },
+    ],
+    clipNumber: 2,
+  });
+  const text = lines.join("\n");
+  assert.match(text, /numbered list/i);
+  assert.match(text, /Snooze the alarm/);
+  assert.match(text, /Skip water/);
+  assert.match(text, /Highlight list item 1/);
 });
 
 test("isSceneTextLanguage accepts only the three scene-text ids", () => {

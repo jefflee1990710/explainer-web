@@ -1,3 +1,4 @@
+import { listicleListEntries, skillForcesSceneText } from "@/lib/director/skill-rules";
 import type { SceneTextLanguage } from "@/types/project";
 
 export type SceneTextPreset = {
@@ -45,20 +46,49 @@ export function isSceneTextLanguage(value: string): value is SceneTextLanguage {
 export function resolveSceneText(input: {
   sceneTextEnabled?: boolean;
   sceneTextLanguage?: SceneTextLanguage;
+  skillSlug?: string;
 }) {
-  // Default closed: only an explicit `true` turns on-canvas labels on.
-  const enabled = input.sceneTextEnabled === true;
   const language = input.sceneTextLanguage && isSceneTextLanguage(input.sceneTextLanguage)
     ? input.sceneTextLanguage
     : "en";
+  // Listicle stills always show the item list; the form toggle cannot turn that off.
+  const enabled = skillForcesSceneText(input.skillSlug) || input.sceneTextEnabled === true;
   return { enabled, language };
+}
+
+export function listicleOnCanvasLines(input: {
+  clips: Array<{ clipNumber: number; narrativeJob: string; englishVo: string }>;
+  clipNumber: number;
+  typography?: string;
+}) {
+  const entries = listicleListEntries(input.clips);
+  const current = entries.find((entry) => entry.clipNumber === input.clipNumber);
+  const listLines = entries.map(
+    (entry) => `List item ${entry.index} (spell exactly): "${entry.title}"`,
+  );
+  return [
+    "On-canvas item list ON — highest priority. The scene MUST show a readable numbered list of these items as a primary graphic, not a tiny subtitle bar.",
+    ...listLines,
+    current
+      ? `Highlight list item ${current.index} as the current beat.`
+      : "Show the full list; this is the hook or outro.",
+    input.typography?.trim() || "",
+    "Only the listed item titles may appear as writing; no other invented labels.",
+  ].filter(Boolean);
 }
 
 export function sceneTextSkillHint(
   enabled: boolean,
   language: SceneTextLanguage,
-  options?: { dualBeat?: boolean },
+  options?: { dualBeat?: boolean; listicle?: boolean },
 ) {
+  if (options?.listicle) {
+    return [
+      "On-canvas text is REQUIRED for this director. Every still must show a readable numbered list of the item titles (each item clip's englishVo).",
+      "Highlight the current item. The list is a primary graphic in the scene, not a tiny subtitle bar.",
+      SCENE_TEXT_PRESETS[language].skillHint,
+    ].join(" ");
+  }
   if (!enabled) {
     return "On-canvas text is OFF. explainerScene, visualWorld, and motionCamera must contain NO written words, labels, numbers, captions, signage, or lettering — not even in quotes or 「」. Communicate only with images, props, and composition.";
   }

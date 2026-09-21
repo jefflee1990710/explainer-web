@@ -7,7 +7,7 @@ description: Use when turning a message, anecdote, brand value, or lesson into a
 
 ## Core contract
 
-Turn one source into a confirmed director's proposal (Phase A) and then standalone per-clip video prompts (Phase B). Each clip runs 3–8 seconds (maximum 8 seconds). Clip count follows the story beats and the duration preset (e.g. 2–3 clips for a 15s vignette, 4–6 clips for a 30–45s arc, 7–10 clips for a 60s story). The story carries the source's message through what happens to a character — never through a lecture.
+Turn one source into a confirmed director's proposal (Phase A) and then standalone per-clip video prompts (Phase B). Direct this as a SHORT FILM: characters speak, there is NO narrator and NO third-person voiceover. Each clip runs 3–8 seconds (maximum 8 seconds). Clip count follows the story beats and the duration preset (e.g. 2–3 clips for a 15s vignette, 4–6 clips for a 30–45s arc, 7–10 clips for a 60s story). The story carries the source's message through what happens to a character — never through a lecture.
 
 ## Setup gate
 
@@ -40,12 +40,12 @@ Every proposal follows a three-act spine, compressed to the duration:
 
 The message is shown, then optionally spoken once in the last clip. Do not speak the moral before the turn.
 
-## Narration and dialogue
+## Dialogue — no narrator
 
-- Default voice: a warm adult narrator in the requested voiceover language, third person, past or present tense — choose one and keep it.
-- Short character lines are allowed as audio-only dialogue (one or two per clip at most), written as `NAME: "line"`. Never mix narrator and dialogue in the same sentence.
-- Allocate ~7–20 spoken words per clip. Silence is allowed for one beat (the turn or the button) — say `(no VO — music only)` in the VO field when used.
-- Narration is audio-only. Never caption, subtitle, or transcribe it on screen. In-world text is limited to short props that belong to the scene (a sign, a letter, a screen), spelled exactly as written.
+- There is NO narrator and NO third-person voiceover. `narrator` must say: `No narrator — characters speak.`
+- All speech is character dialogue, written as `NAME: "line"`. One or two speakers per clip. Never add an unseen storyteller.
+- Allocate ~7–20 spoken words per clip. Silence is allowed for one beat (the turn or the button) — say `(no dialogue)` in the VO field when used.
+- Dialogue is audio-only. Never caption, subtitle, or transcribe it on screen unless the user turned on-canvas text on. In-world text is limited to short props that belong to the scene (a sign, a letter, a screen), spelled exactly as written.
 
 ## Phase A field mapping
 
@@ -54,12 +54,12 @@ The structured output has fixed fields; fill them as follows:
 - `hookStrategy`: the in-medias-res or striking-image opener plus the audio/motion device used in second 0–2.
 - `coreMessage`: the one-sentence lesson the story dramatises.
 - `narrativeArc`: the six beats above mapped to clip numbers.
-- `narrator`: voice identity, tense, tone.
+- `narrator`: always `No narrator — characters speak.`
 - `visualWorld`: the one or two locations with their anchor props.
 - `characterLock`: cast lock statement (see Visual world).
 - `palette`: ordinary colour words only; one accent colour tied to the want/goal object.
 - `bgmDirection`: the emotional curve (e.g. curious → tense → release → warm).
-- Each clip row: `narrativeJob` = which beat; `explainerScene` = what we SEE at the start of the clip (character, pose, props, location); `motionCamera` = the modest continuation within the same shot and the camera; `englishVo` = narration / dialogue in the chosen language; `bgmSfx` = music state + 1–2 synced SFX.
+- Each clip row: `narrativeJob` = which beat; `explainerScene` = what we SEE at the start of the clip (character, pose, props, location); `motionCamera` = the modest continuation within the same shot and the camera; `englishVo` = character dialogue only (`NAME: "line"`) in the chosen language; `bgmSfx` = music state + 1–2 synced SFX.
 
 ## Clip continuity
 

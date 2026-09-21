@@ -14,10 +14,12 @@ import {
 import { frameEndMoment, frameStartMoment } from "@/lib/director/keyframe-delta";
 import type { FrameAnchorKind } from "@/lib/higgsfield/clip-keyframes";
 import {
+  listicleOnCanvasLines,
   resolveSceneText,
   sceneTextFrameLines,
   stripStoryboardWriting,
 } from "@/lib/director/scene-text";
+import { skillForcesSceneText } from "@/lib/director/skill-rules";
 import {
   resolveStyle,
   styleLetteringLine,
@@ -132,6 +134,7 @@ export function buildFramePrompt(
       : frameEndMoment(clipNumber, row.durationSeconds, nextOpening);
 
   const sceneText = resolveSceneText(project);
+  const listicle = skillForcesSceneText(project.skillSlug);
   const hasCast = Boolean(project.cast && project.cast.length > 0);
   const characterUrls = characterReferenceUrls(project);
   // Same order as pipeline.ts: annotated redo, then start/sibling, then cast.
@@ -147,17 +150,26 @@ export function buildFramePrompt(
     : row.englishVo;
   const sceneDescription = stripStoryboardWriting(sceneForFrame);
   const motionDescription = stripStoryboardWriting(row.motionCamera);
-  const onCanvasTextBlock = sceneText.enabled
+  const onCanvasTextBlock = listicle
     ? [
         styleLetteringLineForSceneText(style),
-        ...sceneTextFrameLines(
-          true,
-          sceneText.language,
-          voForFrame,
-          typographyForSceneText(style.typography),
-        ),
+        ...listicleOnCanvasLines({
+          clips: phaseA.clips,
+          clipNumber,
+          typography: typographyForSceneText(style.typography),
+        }),
       ]
-    : [];
+    : sceneText.enabled
+      ? [
+          styleLetteringLineForSceneText(style),
+          ...sceneTextFrameLines(
+            true,
+            sceneText.language,
+            voForFrame,
+            typographyForSceneText(style.typography),
+          ),
+        ]
+      : [];
 
   return [
     ...onCanvasTextBlock,
@@ -175,7 +187,9 @@ export function buildFramePrompt(
         ? soloCharacterParagraphForFrames(characterAttachmentStart)
         : []),
     frameCharacterLockLine(project.cast, characterUrls.length > 0, phaseA.characterLock),
-    ...(sceneText.enabled ? [] : sceneTextFrameLines(false, sceneText.language)),
+    ...(listicle || sceneText.enabled
+      ? []
+      : sceneTextFrameLines(false, sceneText.language)),
     `Scene: ${sceneDescription}`,
     `Motion and camera across the clip: ${motionDescription}`,
     moment,
@@ -184,11 +198,13 @@ export function buildFramePrompt(
     // version is always the FIRST attachment (see pipeline.ts ordering), so
     // this reference is described position-agnostically.
     ...anchorLines(options),
-    ...(sceneText.enabled
-      ? [
-          "Final check: bottom subtitle band only; spelling must match the Subtitle line(s) above.",
-        ]
-      : []),
+    ...(listicle
+      ? ["Final check: the numbered item list is visible and spelled exactly."]
+      : sceneText.enabled
+        ? [
+            "Final check: bottom subtitle band only; spelling must match the Subtitle line(s) above.",
+          ]
+        : []),
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
 }

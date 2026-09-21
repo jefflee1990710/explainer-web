@@ -13,6 +13,7 @@ export function CharacterPicker({
   onChange,
   disabled,
   max = 4,
+  required = 0,
 }: {
   characters: PublicCharacter[];
   styleId?: string;
@@ -20,6 +21,7 @@ export function CharacterPicker({
   onChange: (ids: string[]) => void;
   disabled?: boolean;
   max?: number;
+  required?: number;
 }) {
   const ready = characters.filter((character) => character.previewUrl);
 
@@ -95,7 +97,9 @@ export function CharacterPicker({
         })}
       </div>
       <p className="mt-2 text-xs text-muted">
-        已選 {value.length} / {max}。
+        {required > 0
+          ? `這個導演需要正好 ${required} 個角色。已選 ${value.length} / ${required}。`
+          : `已選 ${value.length} / ${max}。`}
         <Link href="/app/characters" className="ml-1 underline underline-offset-4">
           管理角色
         </Link>

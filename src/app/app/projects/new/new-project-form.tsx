@@ -29,6 +29,11 @@ import { isReelBusy, isReelCurrent } from "@/lib/reel/fingerprint";
 import { DURATION_PRESETS } from "@/lib/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/lib/director/languages";
 import { SCENE_TEXT_PRESETS } from "@/lib/director/scene-text";
+import {
+  requiredCastCount,
+  skillBansNarration,
+  skillForcesSceneText,
+} from "@/lib/director/skill-rules";
 import { failedStepFor, isProductionLike } from "@/lib/project-status";
 import type { PublicCharacter, PublicSkill, PublicStyle, PublicVideo } from "@/lib/serialize";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/lib/styles";
@@ -190,6 +195,10 @@ export function NewProjectForm({
       setError("請選擇畫面比例");
       return;
     }
+    if (castNeed > 0 && characterIds.length !== castNeed) {
+      setError(`這個導演需要正好 ${castNeed} 個角色`);
+      return;
+    }
     if (project && briefUnchanged()) {
       pinViewingStep(1);
       return;
@@ -333,6 +342,20 @@ export function NewProjectForm({
   }
 
   // Switching style drops selected characters drawn in a different style.
+  const castNeed = requiredCastCount(skillSlug);
+  const forceSceneText = skillForcesSceneText(skillSlug);
+  const dialogueOnly = skillBansNarration(skillSlug);
+
+  useEffect(() => {
+    if (forceSceneText) setSceneTextEnabled(true);
+  }, [forceSceneText]);
+
+  useEffect(() => {
+    if (castNeed > 0) {
+      setCharacterIds((ids) => (ids.length > castNeed ? ids.slice(0, castNeed) : ids));
+    }
+  }, [castNeed]);
+
   function onStyleChange(id: StyleId) {
     setStyleId(id);
     setCharacterIds((ids) =>
@@ -386,6 +409,7 @@ export function NewProjectForm({
     source.trim().length > 0 &&
     aspectRatio !== "" &&
     skillSlug !== "" &&
+    (castNeed === 0 || characterIds.length === castNeed) &&
     !briefBusy;
 
   return (
@@ -464,21 +488,34 @@ export function NewProjectForm({
                 </p>
               </Section>
 
-              <Section step="03" title="旁白語言" hint="影片會用這個語言配旁白；分鏡說明維持繁體中文。">
+              <Section
+                step="03"
+                title={dialogueOnly ? "對白語言" : "旁白語言"}
+                hint={
+                  dialogueOnly
+                    ? "角色用這個語言說話；這支短片沒有旁白。分鏡說明維持繁體中文。"
+                    : "影片會用這個語言配旁白；分鏡說明維持繁體中文。"
+                }
+              >
                 <LanguagePicker value={language} onChange={setLanguage} disabled={briefBusy} />
               </Section>
 
               <Section
                 step="04"
                 title="畫面文字"
-                hint="開啟後，分鏡圖裡的短標籤會用你選的語言；關閉則畫面完全不寫字。"
+                hint={
+                  forceSceneText
+                    ? "清單式導演必須在畫面列出項目文字，無法關閉。"
+                    : "開啟後，分鏡圖裡的短標籤會用你選的語言；關閉則畫面完全不寫字。"
+                }
               >
                 <SceneTextPicker
-                  enabled={sceneTextEnabled}
+                  enabled={sceneTextEnabled || forceSceneText}
                   language={sceneTextLanguage}
                   onEnabledChange={setSceneTextEnabled}
                   onLanguageChange={setSceneTextLanguage}
                   disabled={briefBusy}
+                  forcedOn={forceSceneText}
                 />
               </Section>
 
@@ -498,13 +535,23 @@ export function NewProjectForm({
                 />
               </Section>
 
-              <Section step="07" title="角色" hint="選填。最多 4 個；分鏡與分鏡圖會鎖定這些角色的藍圖。">
+              <Section
+                step="07"
+                title="角色"
+                hint={
+                  castNeed === 2
+                    ? "必選正好 2 個角色：提問者與回答者。分鏡與分鏡圖會鎖定這些藍圖。"
+                    : "選填。最多 4 個；分鏡與分鏡圖會鎖定這些角色的藍圖。"
+                }
+              >
                 <CharacterPicker
                   characters={characters}
                   styleId={styleId}
                   value={characterIds}
                   onChange={setCharacterIds}
                   disabled={briefBusy}
+                  max={castNeed > 0 ? castNeed : 4}
+                  required={castNeed}
                 />
               </Section>
 

@@ -33,7 +33,7 @@ Item counts and spoken words per preset (~2.2–2.5 words/second):
 
 Rules per row:
 
-- Exactly one item per item row. The number device shows digits only.
+- Exactly one item per item row. The scene shows the numbered item list; the current title is highlighted.
 - `Scene at clip start` repeats the number device spec and states where the previous item went (slid off, shrunk into the row).
 - The item image is one concrete object or mini-scene; keep scale and placement consistent across items.
 - The last item row has the most vivid image and the longest beat.
@@ -48,7 +48,7 @@ Rules per row:
 ## Palette and text
 
 - Colours in ordinary words only; the accent colour is reserved for the number device.
-- No captions, subtitles, or written item titles. At most one short label inside the item image, spelled exactly.
+- Every still must show a numbered list of the item titles as a primary graphic, spelled exactly from each item clip's VO. Highlight the current item. No extra invented labels.
 
 ## Confirmation ending
 

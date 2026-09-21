@@ -14,6 +14,14 @@ import {
   sceneTextSkillHint,
 } from "@/lib/director/scene-text";
 import { skillPromptForPhaseA } from "@/lib/director/load-skill-prompt";
+import {
+  dialogueQaDirectorBlock,
+  listicleDirectorBlock,
+  requiredCastCount,
+  skillBansNarration,
+  skillForcesSceneText,
+  storyShortDirectorBlock,
+} from "@/lib/director/skill-rules";
 import { keyframeDeltaDirectorBlock } from "@/lib/director/keyframe-delta";
 import {
   dualBeatDirectorBlock,
@@ -52,7 +60,10 @@ export async function runPhaseA(input: {
 }): Promise<PhaseAProposal> {
   const preset = DURATION_PRESETS[input.durationPreset];
   const language = LANGUAGE_PRESETS[input.language || "en"];
-  const sceneText = resolveSceneText(input);
+  const sceneText = resolveSceneText({
+    ...input,
+    skillSlug: input.skill.slug,
+  });
   const characterNote =
     castBlockForPhaseA(input.cast) || phaseASoloCharacterNote(input.characterImageUrl);
   const dualBeat = isDualBeatSkill(input.skill.slug);
@@ -82,11 +93,13 @@ Planning explanations (narrativeJob, explainerScene, motionCamera, hookStrategy,
 ${keyframeDeltaDirectorBlock({ separateStills: dualBeat })}
 ${dualBeat ? dualBeatDirectorBlock(sceneText.enabled) : ""}
 ${
-  sceneText.enabled
-    ? dualBeat
-      ? "On-canvas text: start still quotes only startVo; end still quotes only endVo."
-      : "On-canvas text may stay the same line from start to end; motion is pose, props, and lettering placement only."
-    : "Motion is pose and props only — no written labels."
+  skillForcesSceneText(input.skill.slug)
+    ? "On-canvas text is required: a numbered item list must appear in every still."
+    : sceneText.enabled
+      ? dualBeat
+        ? "On-canvas text: start still quotes only startVo; end still quotes only endVo."
+        : "On-canvas text may stay the same line from start to end; motion is pose, props, and lettering placement only."
+      : "Motion is pose and props only — no written labels."
 }
 The next clip's start inherits the previous clip's end environment.
 loopMode MUST always be "linear". The final clip must end on a clean resting payoff — never bridge Clip N back to Clip 1, never plan a seamless loop or infinite cycle.
@@ -95,9 +108,21 @@ ${
     ? "Character reference images / blueprints are attached to the user message. You MUST inspect them. characterLock must ONLY name the cast and say appearance follows the attached blueprint — never invent hair, face, clothing, or accessories. In explainerScene and motionCamera describe pose, props, labels, and environment only. Plan each scene around those characters as the subject. Do not invent a replacement hero."
     : ""
 }
+${
+  [
+    skillBansNarration(input.skill.slug) ? storyShortDirectorBlock() : "",
+    requiredCastCount(input.skill.slug) ? dialogueQaDirectorBlock() : "",
+    skillForcesSceneText(input.skill.slug) ? listicleDirectorBlock() : "",
+  ]
+    .filter(Boolean)
+    .join("\n")
+}
 ${language.skillHint}
-${sceneTextSkillHint(sceneText.enabled, sceneText.language, { dualBeat })}
-The englishVo field always carries the spoken voiceover line in the chosen voiceover language above, regardless of the field name.
+${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
+  dualBeat,
+  listicle: skillForcesSceneText(input.skill.slug),
+})}
+The englishVo field always carries the spoken line in the chosen language above (character dialogue when this skill bans narration), regardless of the field name.
 Leave referenceTranslation empty. Do not invent a translation column.
 The englishWordCount field holds the total spoken unit count (words for English, characters for Chinese/Cantonese).
 Never skip the setup gate values already supplied.`,

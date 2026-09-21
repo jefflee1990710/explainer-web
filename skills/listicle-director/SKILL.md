@@ -24,7 +24,8 @@ If required items are missing, ask for them in one concise message and stop. Nev
 The rendering rules (canvas, look, palette, lettering, motion) come from the **Visual style** block appended below this skill. Do not invent a different medium.
 
 - **Cast lock**: if character references / blueprints are attached, the host MUST follow them exactly across all clips; say so in `characterLock`, never restyle. If none, define ONE simple host in `characterLock` and keep it identical. The host may be absent from some item clips if the item is better shown as an object.
-- **Item number device**: every item clip carries a short in-world number marker (`1`, `2`, `3` … or `#1`) drawn as a prop in the style (a tag, a card, a badge, a chalk numeral). Same device, same position, every item. Digits only — the item title is spoken, not written.
+- **On-canvas item list (required)**: every still MUST show a readable numbered list of the item titles as a primary graphic in the scene (not a tiny subtitle bar). Spell each title exactly from that item clip's `englishVo`. Highlight the current item. Hook and outro stills show the full list.
+- **Item number device**: every item clip also carries a short in-world number marker (`1`, `2`, `3` … or `#1`) drawn as a prop in the style (a tag, a card, a badge, a chalk numeral). Same device, same position, every item.
 - **Item image**: each item is ONE concrete object or mini-scene that stands for it. Consistent scale and placement clip to clip so the list reads as a set.
 - Keep the setting constant; only the item image and the number change.
 
@@ -41,7 +42,7 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 - Default: an energetic but clear adult host voice in the requested voiceover language, second person.
 - Rhythm: each item line follows the same grammatical shape ("Number one: … . Number two: …" or "Want X? Do Y."). Parallel structure is the listicle's music.
 - ~7–20 spoken words per clip; item lines ≤15 words.
-- Narration is audio-only. Never caption or subtitle it. On-screen text is limited to the number device and, at most, one short label that is part of the item image (one to two words, spelled exactly).
+- Spoken lines are audio-only. The on-canvas numbered list is required in every still and must list the item titles. Do not add captions of the full voiceover on top of that list.
 
 ## Phase A field mapping
 

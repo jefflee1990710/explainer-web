@@ -16,12 +16,14 @@ export function SceneTextPicker({
   onEnabledChange,
   onLanguageChange,
   disabled,
+  forcedOn = false,
 }: {
   enabled: boolean;
   language: SceneTextLanguage;
   onEnabledChange: (value: boolean) => void;
   onLanguageChange: (value: SceneTextLanguage) => void;
   disabled?: boolean;
+  forcedOn?: boolean;
 }) {
   return (
     <div className="space-y-3">
@@ -38,7 +40,7 @@ export function SceneTextPicker({
               type="button"
               role="radio"
               aria-checked={active}
-              disabled={disabled}
+              disabled={disabled || (forcedOn && item.id === false)}
               onClick={() => onEnabledChange(item.id)}
               className={`relative min-h-[56px] cursor-pointer rounded-xl px-3 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60 ${
                 active ? "text-paper" : "text-foreground hover:bg-accent-ink/5"

@@ -251,6 +251,30 @@ test("without a cast, the text characterLock stays authoritative", () => {
   assert.doesNotMatch(prompt, /Cast reference sheets are attached/);
 });
 
+test("listicle stills paint a numbered item list even when scene text is off", () => {
+  const list = project();
+  list.skillSlug = "listicle-director";
+  list.sceneTextEnabled = false;
+  list.phaseA!.clips = [
+    {
+      ...list.phaseA!.clips[0],
+      clipNumber: 1,
+      narrativeJob: "hook",
+      englishVo: "Two money leaks.",
+    },
+    {
+      ...list.phaseA!.clips[0],
+      clipNumber: 2,
+      narrativeJob: "item 1 of 2",
+      englishVo: "Unused subscriptions.",
+    },
+  ];
+  const prompt = buildFramePrompt(list, 2, "start");
+  assert.match(prompt, /numbered list/i);
+  assert.match(prompt, /Unused subscriptions/);
+  assert.doesNotMatch(prompt, /No on-canvas text/);
+});
+
 test("REVISION line precedes the sibling line so 'FIRST attached' stays true", () => {
   const prompt = buildFramePrompt(project(), 1, "start", {
     revision: { annotatedUrl: "https://x/annotated.png" },
