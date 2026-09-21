@@ -189,11 +189,12 @@ test("enabled scene text puts the voiceover line on canvas with lettering", () =
   on.sceneTextLanguage = "zh-Hant";
   const prompt = buildFramePrompt(on, 1, "start");
   assert.match(prompt, /Lettering:/);
-  assert.match(prompt, /MANDATORY ON-CANVAS TEXT/);
-  assert.match(prompt, /Exact text to render \(only writing allowed in the image\): "vo"/);
-  const sceneAt = prompt.indexOf("Scene: scene");
-  const mandatoryAt = prompt.indexOf("MANDATORY ON-CANVAS TEXT");
-  assert.ok(mandatoryAt >= 0 && mandatoryAt < sceneAt, "voiceover text must precede Scene");
+  assert.match(prompt, /subtitles ON/i);
+  assert.match(prompt, /Subtitle \(spell exactly\): "vo"/);
+  const sceneAt = prompt.indexOf("Scene:");
+  const subAt = prompt.indexOf("On-canvas subtitles ON");
+  assert.ok(subAt >= 0 && subAt < sceneAt, "subtitle block must precede Scene");
+  assert.doesNotMatch(prompt, /Mental Health\?/);
   assert.doesNotMatch(prompt, /never subtitles or captions/i);
 });
 

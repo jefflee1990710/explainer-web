@@ -5,7 +5,11 @@ import {
   soloCharacterParagraphForFrames,
 } from "@/lib/characters/cast-prompt";
 import type { FrameAnchorKind } from "@/lib/higgsfield/clip-keyframes";
-import { resolveSceneText, sceneTextFrameLines } from "@/lib/director/scene-text";
+import {
+  resolveSceneText,
+  sceneTextFrameLines,
+  stripStoryboardWriting,
+} from "@/lib/director/scene-text";
 import {
   resolveStyle,
   styleLetteringLine,
@@ -80,6 +84,8 @@ function typographyForSceneText(typography: string) {
   return typography
     .replace(/;\s*never subtitles or captions\.?/gi, "")
     .replace(/,?\s*never subtitles or captions\.?/gi, "")
+    .replace(/;\s*never bold blocky text\.?/gi, "")
+    .replace(/,?\s*never bold blocky text\.?/gi, "")
     .replace(/\s{2,}/g, " ")
     .replace(/;\s*;/g, ";")
     .replace(/,\s*,/g, ",")
@@ -122,7 +128,22 @@ export function buildFramePrompt(
   const characterAttachmentStart =
     (options.revision?.annotatedUrl ? 1 : 0) + (options.styleRefUrl ? 1 : 0) + 1;
 
+  const sceneDescription = stripStoryboardWriting(row.explainerScene);
+  const motionDescription = stripStoryboardWriting(row.motionCamera);
+  const onCanvasTextBlock = sceneText.enabled
+    ? [
+        styleLetteringLineForSceneText(style),
+        ...sceneTextFrameLines(
+          true,
+          sceneText.language,
+          row.englishVo,
+          typographyForSceneText(style.typography),
+        ),
+      ]
+    : [];
+
   return [
+    ...onCanvasTextBlock,
     ...styleLinesForFrame(style),
     `Visual world: ${phaseA.visualWorld}`,
     `Palette: ${phaseA.palette}`,
@@ -137,26 +158,20 @@ export function buildFramePrompt(
         ? soloCharacterParagraphForFrames(characterAttachmentStart)
         : []),
     frameCharacterLockLine(project.cast, characterUrls.length > 0, phaseA.characterLock),
-    // Voiceover lettering before the scene so explainerScene cannot override it.
-    ...(sceneText.enabled
-      ? [
-          styleLetteringLineForSceneText(style),
-          ...sceneTextFrameLines(
-            true,
-            sceneText.language,
-            row.englishVo,
-            typographyForSceneText(style.typography),
-          ),
-        ]
-      : sceneTextFrameLines(false, sceneText.language)),
-    `Scene: ${row.explainerScene}`,
-    `Motion and camera across the clip: ${row.motionCamera}`,
+    ...(sceneText.enabled ? [] : sceneTextFrameLines(false, sceneText.language)),
+    `Scene: ${sceneDescription}`,
+    `Motion and camera across the clip: ${motionDescription}`,
     moment,
     ...revisionLines(options.revision),
     // Sibling line goes after the revision lines: the annotated previous
     // version is always the FIRST attachment (see pipeline.ts ordering), so
     // this reference is described position-agnostically.
     ...anchorLines(options),
+    ...(sceneText.enabled
+      ? [
+          "Final check: bottom subtitle band only; spelling must match the Subtitle line(s) above.",
+        ]
+      : []),
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
 }

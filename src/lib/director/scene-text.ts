@@ -73,6 +73,55 @@ export function sceneTextTypographyHint(language: SceneTextLanguage) {
   );
 }
 
+// Full-sentence voiceover on canvas — not the director's "1–2 word label" rule.
+export function voiceoverLineLooksLatin(line: string) {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  return /[a-zA-Z]/.test(trimmed) && !/[\u4e00-\u9fff]/.test(trimmed);
+}
+
+export function sceneTextVoLetteringHint(language: SceneTextLanguage, narration: string) {
+  if (voiceoverLineLooksLatin(narration)) {
+    return "Hand-letter the FULL English quote below in large, readable mixed-case (same spelling as the quote).";
+  }
+  if (language === "zh-Hant") {
+    return "以繁體手寫字幕呈現下方整句旁白，字大清晰。";
+  }
+  if (language === "zh-Hans") {
+    return "以简体手写字幕呈现下方整句旁白，字大清晰。";
+  }
+  return "Hand-letter the FULL quoted voiceover line large and readable.";
+}
+
+// Phase A often embeds labels like 「Mental Health?」 — models copy those instead of englishVo.
+// Two-line split helps Qwen render long English narration legibly.
+export function formatVoiceoverForCanvas(line: string) {
+  const text = line.trim();
+  if (!text) return { display: "", line1: "", line2: "" };
+  const words = text.split(/\s+/);
+  if (words.length <= 10) {
+    return { display: text, line1: text, line2: "" };
+  }
+  const mid = Math.ceil(words.length / 2);
+  const line1 = words.slice(0, mid).join(" ");
+  const line2 = words.slice(mid).join(" ");
+  return { display: `${line1}\n${line2}`, line1, line2 };
+}
+
+export function stripStoryboardWriting(description: string) {
+  let s = description.trim();
+  // Clauses with Chinese corner quotes (label text).
+  s = s.replace(/[，,、]?[^，,。]*?[「『][^」』]+[」』][^，,。]*?[，,。]?/g, " ");
+  // Common director wording for on-canvas labels in Chinese storyboards.
+  s = s.replace(/[，,、]?[^，,。]*?(手寫字|手写|標籤|标签|字幕|文字| signage)[^，,。]*?[，,。]?/gi, " ");
+  s = s.replace(
+    /\b(sign|label|caption|title|text|lettering|words?)\s*(reads|saying|showing|:)?\s*["'][^"']+["']/gi,
+    " ",
+  );
+  s = s.replace(/\s{2,}/g, " ").replace(/^[，,、\s]+|[，,、\s]+$/g, "").trim();
+  return s || description.trim();
+}
+
 // Frame prompts: OFF = zero writing; ON = quote the clip narration (englishVo) exactly.
 export function sceneTextFrameLines(
   enabled: boolean,
@@ -93,14 +142,27 @@ export function sceneTextFrameLines(
       "On-canvas text must quote this clip's voiceover line exactly, but none was provided.",
     ];
   }
-  const letterStyle = typography?.trim() || sceneTextTypographyHint(language);
+  const formatted = formatVoiceoverForCanvas(line);
+  const letterStyle = [
+    sceneTextVoLetteringHint(language, line),
+    typography?.trim() ? typography.trim() : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const subtitleLines = formatted.line2
+    ? [
+        `Subtitle line 1 (spell exactly): "${formatted.line1}"`,
+        `Subtitle line 2 (spell exactly): "${formatted.line2}"`,
+      ]
+    : [`Subtitle (spell exactly): "${formatted.line1}"`];
+
   return [
-    "MANDATORY ON-CANVAS TEXT (highest priority — the image is wrong without it):",
-    `Draw this voiceover line large, legible, and fully readable on the canvas. ${letterStyle}`,
-    `Exact text to render (only writing allowed in the image): "${line}"`,
-    "Spell every character exactly; you may wrap across 2–3 lines but every word must appear.",
-    "No other words, letters, numbers, or signage anywhere.",
-    "If the scene description below mentions different words or labels, ignore that writing — only the quoted voiceover line may appear.",
+    "On-canvas subtitles ON — highest priority.",
+    "Layout: a semi-opaque white band across the bottom 18% of the frame; dark hand-lettered text centered inside the band (integrated caption, not a tiny corner tag).",
+    ...subtitleLines,
+    letterStyle,
+    "Only the subtitle line(s) above may appear as writing; no other letters, numbers, signs, or labels anywhere in the illustration.",
+    "Ignore any storyboard mention of other wording (e.g. Mental Health); do not paint prompt instructions — only the quoted subtitle strings.",
   ];
 }
 

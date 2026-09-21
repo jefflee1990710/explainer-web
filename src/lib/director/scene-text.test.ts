@@ -6,6 +6,8 @@ import {
   sceneTextFrameLines,
   sceneTextNegativePrompt,
   sceneTextSkillHint,
+  stripStoryboardWriting,
+  voiceoverLineLooksLatin,
 } from "./scene-text";
 
 test("resolveSceneText defaults to closed; only explicit true enables", () => {
@@ -36,13 +38,26 @@ test("sceneTextSkillHint and frame lines ban writing when off", () => {
 
 test("enabled scene text quotes the clip narration on canvas", () => {
   const lines = sceneTextFrameLines(true, "zh-Hans", "你好世界");
-  assert.match(lines.join("\n"), /MANDATORY ON-CANVAS TEXT/);
+  assert.match(lines.join("\n"), /subtitles ON/i);
   assert.match(lines.join("\n"), /你好世界/);
-  assert.match(lines.join("\n"), /ignore that writing/i);
+  assert.match(lines.join("\n"), /Mental Health/);
   assert.match(sceneTextSkillHint(true, "en"), /englishVo voiceover line/);
 });
 
 test("sceneTextNegativePrompt only when off", () => {
   assert.equal(sceneTextNegativePrompt(false)?.includes("subtitles"), true);
   assert.equal(sceneTextNegativePrompt(true), undefined);
+});
+
+test("stripStoryboardWriting removes embedded label quotes", () => {
+  const raw =
+    "Lily 靜立，右上方浮現細緻深褐色墨水手寫字「Mental Health?」。隨著水彩擴散";
+  const stripped = stripStoryboardWriting(raw);
+  assert.doesNotMatch(stripped, /Mental Health/);
+  assert.match(stripped, /Lily/);
+});
+
+test("voiceoverLineLooksLatin detects English narration", () => {
+  assert.equal(voiceoverLineLooksLatin("Hello world"), true);
+  assert.equal(voiceoverLineLooksLatin("你好"), false);
 });
