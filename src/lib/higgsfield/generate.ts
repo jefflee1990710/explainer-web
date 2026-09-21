@@ -5,12 +5,13 @@ import {
   submitAlicloudClipVideo,
   submitAlicloudImage,
 } from "@/lib/alicloud/generate";
+import { resolveImageBackend } from "@/lib/generation/image-backend";
 import {
   assertHiggsfieldConfigured,
   mediaUrlFromResponse,
 } from "@/lib/higgsfield/client";
 import { wanClipVideoInput } from "@/lib/higgsfield/clip-keyframes";
-import type { AspectRatio } from "@/types/project";
+import type { AspectRatio, SceneTextLanguage } from "@/types/project";
 
 /** Stored on skills / jobs; `/edit` is chosen automatically when references are present. */
 export const QWEN_IMAGE_MODEL = "alibaba/qwen-image-3/text-to-image";
@@ -64,9 +65,10 @@ export async function submitImage(input: {
   resolution?: "1k" | "2k" | "4k";
   referenceImageUrls?: Array<string | undefined>;
   negativePrompt?: string;
+  // 畫面文字語系：zh-* → AliCloud 3.0；en / 未傳 → Higgsfield。
+  sceneTextLanguage?: SceneTextLanguage;
 }, options: { webhook?: boolean } = {}) {
-  // Prefer DashScope when the AliCloud key is present; Higgsfield stays the fallback.
-  if (hasAlicloudKey()) {
+  if (resolveImageBackend(input.sceneTextLanguage) === "alicloud") {
     return submitAlicloudImage({
       prompt: input.prompt,
       aspectRatio: input.aspectRatio,
