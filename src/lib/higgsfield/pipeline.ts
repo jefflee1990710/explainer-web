@@ -21,6 +21,7 @@ import {
 import { jobNeedsRefresh, settleProviderStatus, userFacingJobError } from "@/lib/higgsfield/job-status";
 import { persistMedia } from "@/lib/higgsfield/persist";
 import {
+  MINIMAX_H3_VIDEO_MODEL,
   assertClipKeyframes,
   clipFrameAnchor,
   clipKeyframeUrls,
@@ -292,13 +293,11 @@ export async function submitClipVideoJob(
   clipNumber: number,
   prompt: PhaseBPrompt,
 ) {
-  const skill = await loadSkill(project);
   const jobs = await generationJobsCollection();
   await jobs.deleteMany({ projectId: project._id, kind: "video", clipIndex: clipNumber - 1 });
 
   const { start, end } = assertClipKeyframes(project.frames, clipNumber);
   const submitted = await submitClipVideo({
-    model: skill.higgsfieldDefaults.videoModel,
     prompt: prompt.prompt,
     aspectRatio: project.aspectRatio,
     durationSeconds: prompt.durationSeconds,
@@ -309,7 +308,7 @@ export async function submitClipVideoJob(
     projectId: project._id,
     clipIndex: clipNumber - 1,
     kind: "video",
-    model: skill.higgsfieldDefaults.videoModel,
+    model: MINIMAX_H3_VIDEO_MODEL,
     requestId: submitted.request_id,
     statusUrl: submitted.status_url,
     status: (submitted.status as GenerationStatus) || "queued",

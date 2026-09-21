@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ClipFrame } from "@/types/project";
-import { lockWanVideoPrompt } from "@/lib/generation/wan-video-prompt";
 import {
+  MINIMAX_H3_VIDEO_MODEL,
   assertClipKeyframes,
   clipFrameAnchor,
   clipKeyframeUrls,
+  h3ClipVideoInput,
   planFrameSubmissions,
-  wanClipVideoInput,
 } from "./clip-keyframes";
 
 function frame(
@@ -115,9 +115,10 @@ test("planFrameSubmissions sends end immediately when start file is already ther
   assert.deepEqual(plan.deferred, []);
 });
 
-test("wanClipVideoInput always sends first + last frame fields", () => {
+test("h3ClipVideoInput matches Mentalok harness: MiniMax H3 first + last frames", () => {
+  assert.equal(MINIMAX_H3_VIDEO_MODEL, "minimax/h3/image-to-video");
   assert.deepEqual(
-    wanClipVideoInput({
+    h3ClipVideoInput({
       prompt: "walk to the box",
       aspectRatio: "9:16",
       durationSeconds: 5,
@@ -125,13 +126,36 @@ test("wanClipVideoInput always sends first + last frame fields", () => {
       endImageUrl: "https://blob/end.png",
     }),
     {
-      prompt: lockWanVideoPrompt("walk to the box"),
+      prompt: "walk to the box",
       aspect_ratio: "9:16",
       duration: 5,
-      resolution: "720p",
+      resolution: "2K",
       image_url: "https://blob/start.png",
       end_image_url: "https://blob/end.png",
-      generate_audio: true,
+      aigc_watermark: false,
     },
+  );
+});
+
+test("h3ClipVideoInput clamps duration to MiniMax H3 5–15s", () => {
+  assert.equal(
+    h3ClipVideoInput({
+      prompt: "p",
+      aspectRatio: "16:9",
+      durationSeconds: 3,
+      startImageUrl: "https://blob/start.png",
+      endImageUrl: "https://blob/end.png",
+    }).duration,
+    5,
+  );
+  assert.equal(
+    h3ClipVideoInput({
+      prompt: "p",
+      aspectRatio: "16:9",
+      durationSeconds: 20,
+      startImageUrl: "https://blob/start.png",
+      endImageUrl: "https://blob/end.png",
+    }).duration,
+    15,
   );
 });

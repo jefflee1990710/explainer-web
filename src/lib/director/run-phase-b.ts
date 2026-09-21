@@ -24,8 +24,8 @@ function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageS
   return `${skillPromptForPhaseB(input.skill, input.style)}
 
 You are executing Phase B only after explicit approval of the current Phase A.
-Return standalone Wan 3 video prompts that follow the skill prompt contract. Do not invent new facts.
-Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image in the Wan prompt. ${DUAL_KEYFRAME_MOTION_RULES} Do not invent a different final pose, camera, or composition.
+Return standalone MiniMax H3 video prompts that follow the skill prompt contract. Do not invent new facts.
+Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image. ${DUAL_KEYFRAME_MOTION_RULES} Do not invent a different final pose, camera, or composition.
 Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}). ${
     input.skill.slug === "story-short-director"
       ? "There is no narrator. Characters speak those lines."

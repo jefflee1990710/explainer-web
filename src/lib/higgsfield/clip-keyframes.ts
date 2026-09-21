@@ -1,6 +1,9 @@
-import { lockWanVideoPrompt } from "@/lib/generation/wan-video-prompt";
 import { mediaSrc } from "@/lib/media-src";
 import type { AspectRatio, ClipFrame, FramePosition } from "@/types/project";
+
+// Mentalok harness uses Higgsfield MiniMax H3 first+last-frame I2V.
+// Production V2 slug (H3 Max CLI job_type is OAuth-only).
+export const MINIMAX_H3_VIDEO_MODEL = "minimax/h3/image-to-video";
 
 export type FrameAnchorKind = "clip-start" | "prev-end" | "clip-end";
 
@@ -13,8 +16,8 @@ function completedUrl(frame: ClipFrame | undefined) {
   return mediaSrc(frame);
 }
 
-// Higgsfield Wan 3.0 I2V: `image_url` = first frame, `end_image_url` = last
-// frame (console.higgsfield.ai/models/alibaba/wan-3.0/image-to-video).
+// Higgsfield MiniMax H3 I2V: `image_url` = first frame, `end_image_url` = last
+// frame (console.higgsfield.ai/models/minimax/h3/image-to-video).
 
 export function clipKeyframeUrls(
   frames: ClipFrame[] | undefined,
@@ -87,7 +90,12 @@ export function assertClipKeyframes(
   return { start, end };
 }
 
-export function wanClipVideoInput(input: {
+// MiniMax H3 duration is 5–15s; Explainer clips are 3–8s so short ones lift to 5.
+function h3DurationSeconds(seconds: number) {
+  return Math.min(15, Math.max(5, Math.round(seconds)));
+}
+
+export function h3ClipVideoInput(input: {
   prompt: string;
   aspectRatio: AspectRatio;
   durationSeconds: number;
@@ -95,12 +103,12 @@ export function wanClipVideoInput(input: {
   endImageUrl: string;
 }) {
   return {
-    prompt: lockWanVideoPrompt(input.prompt),
+    prompt: input.prompt,
     aspect_ratio: input.aspectRatio,
-    duration: Math.min(8, Math.max(3, Math.round(input.durationSeconds))),
-    resolution: "720p" as const,
+    duration: h3DurationSeconds(input.durationSeconds),
+    resolution: "2K" as const,
     image_url: input.startImageUrl,
     end_image_url: input.endImageUrl,
-    generate_audio: true,
+    aigc_watermark: false,
   };
 }

@@ -2,6 +2,7 @@ import { loadEnvConfig } from "@next/env";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { skillsCollection } from "../src/lib/collections";
+import { MINIMAX_H3_VIDEO_MODEL } from "../src/lib/higgsfield/clip-keyframes";
 import type { HiggsfieldDefaults, SkillInputSchema } from "../src/types/skill";
 
 loadEnvConfig(process.cwd());
@@ -18,13 +19,12 @@ type SkillManifest = {
   inputSchema?: Partial<SkillInputSchema>;
 };
 
-// Shared execution layer (Higgsfield model slugs from GET /models):
-// Qwen Image 3 for stills/frames (edit when references attached) + Wan 3.0 for clips.
+// Shared execution layer: Qwen Image 3 for stills + MiniMax H3 first/last I2V.
 const HIGGSFIELD_DEFAULTS: HiggsfieldDefaults = {
   imageModel: "alibaba/qwen-image-3/text-to-image",
   imageQuality: "medium",
   imageResolution: "1k",
-  videoModel: "alibaba/wan-3.0/image-to-video",
+  videoModel: MINIMAX_H3_VIDEO_MODEL,
 };
 
 const INPUT_SCHEMA: SkillInputSchema = {

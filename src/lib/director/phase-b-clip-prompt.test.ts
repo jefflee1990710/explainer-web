@@ -38,7 +38,7 @@ const base = {
   languageLabel: "English",
   languageSublabel: "American",
   characterLine:
-    "Keep the Phase A characterLock. Do not mention reference images in the Wan prompt — Wan only receives this clip's first and last frames.",
+    "Keep the Phase A characterLock. Do not mention reference images in the MiniMax H3 prompt — MiniMax H3 only receives this clip's first and last frames.",
 };
 
 test("middle clip quotes both neighbours and asks for that clip only", () => {

@@ -7,7 +7,10 @@ import {
   assertHiggsfieldConfigured,
   mediaUrlFromResponse,
 } from "@/lib/higgsfield/client";
-import { wanClipVideoInput } from "@/lib/higgsfield/clip-keyframes";
+import {
+  MINIMAX_H3_VIDEO_MODEL,
+  h3ClipVideoInput,
+} from "@/lib/higgsfield/clip-keyframes";
 import type { AspectRatio, SceneTextLanguage } from "@/types/project";
 
 /** Stored on skills / jobs; `/edit` is chosen automatically when references are present. */
@@ -127,7 +130,6 @@ export async function submitImage(input: {
 export const submitCharacterStill = submitImage;
 
 export async function submitClipVideo(input: {
-  model: string;
   prompt: string;
   aspectRatio: AspectRatio;
   durationSeconds: number;
@@ -135,14 +137,14 @@ export async function submitClipVideo(input: {
   endImageUrl: string;
 }) {
   if (clipVideoProvider() !== "higgsfield") {
-    throw new Error("clip video must use Higgsfield image_url + end_image_url");
+    throw new Error("clip video must use Higgsfield MiniMax H3 image_url + end_image_url");
   }
 
   const client = assertHiggsfieldConfigured();
-  // Higgsfield Wan 3.0 I2V: `image_url` = first frame, `end_image_url` = last.
-  // Never mix in image_references (exclusive with first/last frames).
-  return client.subscribe(input.model, {
-    input: wanClipVideoInput({
+  // Mentalok harness: MiniMax H3 first+last-frame I2V. Always this model,
+  // even if a stored skill still points at Wan 3.0.
+  return client.subscribe(MINIMAX_H3_VIDEO_MODEL, {
+    input: h3ClipVideoInput({
       prompt: input.prompt,
       aspectRatio: input.aspectRatio,
       durationSeconds: input.durationSeconds,
