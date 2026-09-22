@@ -1,21 +1,21 @@
 import { loadEnvConfig } from "@next/env";
 import { createHash } from "node:crypto";
 import sharp from "sharp";
-import { stylesCollection } from "../src/lib/collections";
+import { stylesCollection } from "@/dao";
 import {
   fetchHiggsfieldStatus,
   mediaUrlFromResponse,
   submitImage,
-} from "../src/lib/higgsfield/generate";
-import { flattenToCanvas } from "../src/lib/higgsfield/flatten";
-import { persistMedia } from "../src/lib/higgsfield/persist";
+} from "@/service/higgsfield/generate";
+import { flattenToCanvas } from "@/service/higgsfield/flatten";
+import { persistMedia } from "@/service/higgsfield/persist";
 import {
   STYLE_IDS,
   STYLE_PREVIEW_SCENE,
   STYLES,
   styleLetteringLine,
   styleLinesForFrame,
-} from "../src/lib/styles";
+} from "@/service/style";
 
 loadEnvConfig(process.cwd());
 

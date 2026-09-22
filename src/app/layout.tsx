@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Geist_Mono, Noto_Sans_TC, Syne } from "next/font/google";
-import { I18nProvider } from "@/components/i18n-provider";
+import { I18nProvider } from "@/presentation/components/i18n-provider";
 import "./globals.css";
 
 const notoSansTc = Noto_Sans_TC({

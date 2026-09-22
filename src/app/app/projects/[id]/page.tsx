@@ -1,21 +1,21 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { ObjectId } from "mongodb";
-import { requireAppUser } from "@/lib/auth";
-import { getActiveSubscription, isSubscriptionActive } from "@/lib/billing/credits";
+import { requireAppUser } from "@/service/auth";
+import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import {
   charactersCollection,
   projectsCollection,
   skillsCollection,
   videosCollection,
-} from "@/lib/collections";
-import { toPublicCharacter, toPublicFolder, toPublicSkill } from "@/lib/serialize";
-import { listPublicStyles } from "@/lib/styles/list";
-import type { Character } from "@/types/character";
-import type { Folder } from "@/types/folder";
-import type { Project } from "@/types/project";
-import { VIDEO_RAIL_COLS } from "./video-rail";
-import { ProjectWorkspace } from "./project-workspace";
+} from "@/dao";
+import { toPublicCharacter, toPublicFolder, toPublicSkill } from "@/presentation/serialize";
+import { listPublicStyles } from "@/service/style/list";
+import type { Character } from "@/model/character";
+import type { Folder } from "@/model/folder";
+import type { Project } from "@/model/project";
+import { VIDEO_RAIL_COLS } from "@/presentation/components/app/projects/[id]/video-rail";
+import { ProjectWorkspace } from "@/presentation/components/app/projects/[id]/project-workspace";
 
 // Revise / approve actions here also run background jobs via after().
 export const maxDuration = 120;

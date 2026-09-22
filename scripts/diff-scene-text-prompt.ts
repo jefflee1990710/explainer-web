@@ -7,10 +7,10 @@ import { ObjectId } from "mongodb";
 import {
   sceneTextNegativePrompt,
   sceneTextFrameLines,
-} from "../src/lib/director/scene-text";
-import { buildFramePrompt } from "../src/lib/higgsfield/frame-prompts";
-import { videosCollection } from "../src/lib/collections";
-import type { Project } from "../src/types/project";
+} from "@/service/director/scene-text";
+import { buildFramePrompt } from "@/service/higgsfield/frame-prompts";
+import { videosCollection } from "@/dao";
+import type { Project } from "@/model/project";
 
 loadEnvConfig(process.cwd());
 

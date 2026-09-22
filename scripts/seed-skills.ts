@@ -1,9 +1,9 @@
 import { loadEnvConfig } from "@next/env";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { skillsCollection } from "../src/lib/collections";
-import { MINIMAX_H3_VIDEO_MODEL } from "../src/lib/higgsfield/clip-keyframes";
-import type { HiggsfieldDefaults, SkillInputSchema } from "../src/types/skill";
+import { skillsCollection } from "@/dao";
+import { MINIMAX_H3_VIDEO_MODEL } from "@/service/higgsfield/clip-keyframes";
+import type { HiggsfieldDefaults, SkillInputSchema } from "@/model/skill";
 
 loadEnvConfig(process.cwd());
 

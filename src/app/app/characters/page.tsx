@@ -1,11 +1,11 @@
-import { requireAppUser } from "@/lib/auth";
-import { getActiveSubscription, isSubscriptionActive } from "@/lib/billing/credits";
-import { charactersCollection } from "@/lib/collections";
-import { toPublicCharacter } from "@/lib/serialize";
-import { listPublicStyles } from "@/lib/styles/list";
-import type { Character } from "@/types/character";
-import { CharacterGrid } from "./character-grid";
-import { CharactersHeader } from "./characters-header";
+import { requireAppUser } from "@/service/auth";
+import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
+import { charactersCollection } from "@/dao";
+import { toPublicCharacter } from "@/presentation/serialize";
+import { listPublicStyles } from "@/service/style/list";
+import type { Character } from "@/model/character";
+import { CharacterGrid } from "@/presentation/components/app/characters/character-grid";
+import { CharactersHeader } from "@/presentation/components/app/characters/characters-header";
 
 export default async function CharactersPage() {
   const user = await requireAppUser();

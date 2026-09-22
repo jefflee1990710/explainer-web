@@ -1,8 +1,8 @@
 import { loadEnvConfig } from "@next/env";
 import { ObjectId } from "mongodb";
-import { videosCollection } from "../src/lib/collections";
-import { regenerateFrames } from "../src/lib/higgsfield/pipeline";
-import type { Project } from "../src/types/project";
+import { videosCollection } from "@/dao";
+import { regenerateFrames } from "@/service/higgsfield/pipeline";
+import type { Project } from "@/model/project";
 
 loadEnvConfig(process.cwd());
 

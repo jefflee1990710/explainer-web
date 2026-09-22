@@ -1,6 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { ObjectId } from "mongodb";
-import { videosCollection } from "../src/lib/collections";
+import { videosCollection } from "@/dao";
 
 loadEnvConfig(process.cwd());
 

@@ -1,12 +1,12 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { ObjectId } from "mongodb";
-import { requireAppUser } from "@/lib/auth";
-import { getActiveSubscription, isSubscriptionActive } from "@/lib/billing/credits";
-import { charactersCollection } from "@/lib/collections";
-import { toPublicCharacter } from "@/lib/serialize";
-import type { Character } from "@/types/character";
-import { CharacterWorkspace } from "./character-workspace";
+import { requireAppUser } from "@/service/auth";
+import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
+import { charactersCollection } from "@/dao";
+import { toPublicCharacter } from "@/presentation/serialize";
+import type { Character } from "@/model/character";
+import { CharacterWorkspace } from "@/presentation/components/app/characters/[id]/character-workspace";
 
 export default async function CharacterPage({
   params,

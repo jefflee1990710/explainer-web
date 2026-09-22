@@ -1,10 +1,10 @@
-import { requireAppUser } from "@/lib/auth";
-import { getActiveSubscription, isSubscriptionActive } from "@/lib/billing/credits";
-import { projectsCollection, videosCollection } from "@/lib/collections";
-import { toPublicFolder } from "@/lib/serialize";
-import type { Folder } from "@/types/folder";
-import type { Project } from "@/types/project";
-import { DashboardView } from "./dashboard-view";
+import { requireAppUser } from "@/service/auth";
+import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
+import { projectsCollection, videosCollection } from "@/dao";
+import { toPublicFolder } from "@/presentation/serialize";
+import type { Folder } from "@/model/folder";
+import type { Project } from "@/model/project";
+import { DashboardView } from "@/presentation/components/app/dashboard-view";
 
 export default async function DashboardPage() {
   const user = await requireAppUser();

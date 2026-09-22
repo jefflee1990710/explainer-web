@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
-import { AppShell } from "@/components/app-shell";
-import { requireAppUser } from "@/lib/auth";
+import { AppShell } from "@/presentation/components/app-shell";
+import { requireAppUser } from "@/service/auth";
 
 export default async function AppLayout({
   children,

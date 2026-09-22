@@ -1,8 +1,8 @@
 import { loadEnvConfig } from "@next/env";
-import { projectsCollection, videosCollection } from "../src/lib/collections";
-import { folderNameFromVideo, looksLikeLegacyVideo } from "../src/lib/folder";
-import type { Folder } from "../src/types/folder";
-import type { Project } from "../src/types/project";
+import { projectsCollection, videosCollection } from "@/dao";
+import { folderNameFromVideo, looksLikeLegacyVideo } from "@/service/folder";
+import type { Folder } from "@/model/folder";
+import type { Project } from "@/model/project";
 
 loadEnvConfig(process.cwd());
 

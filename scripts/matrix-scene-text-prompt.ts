@@ -8,11 +8,11 @@ import {
   resolveSceneText,
   sceneTextNegativePrompt,
   sceneTextFrameLines,
-} from "../src/lib/director/scene-text";
-import { buildFramePrompt } from "../src/lib/higgsfield/frame-prompts";
-import { sceneTextPromptSummary } from "../src/components/project/frame-prompt-panel";
-import { videosCollection } from "../src/lib/collections";
-import type { Project, SceneTextLanguage } from "../src/types/project";
+} from "@/service/director/scene-text";
+import { buildFramePrompt } from "@/service/higgsfield/frame-prompts";
+import { sceneTextPromptSummary } from "@/presentation/components/project/frame-prompt-panel";
+import { videosCollection } from "@/dao";
+import type { Project, SceneTextLanguage } from "@/model/project";
 
 loadEnvConfig(process.cwd());
 

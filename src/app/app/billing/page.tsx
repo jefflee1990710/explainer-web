@@ -1,7 +1,7 @@
-import { requireAppUser } from "@/lib/auth";
-import { getActiveSubscription, isSubscriptionActive } from "@/lib/billing/credits";
-import { PLANS } from "@/lib/billing/plans";
-import { BillingView } from "./billing-view";
+import { requireAppUser } from "@/service/auth";
+import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
+import { PLANS } from "@/service/billing/plans";
+import { BillingView } from "@/presentation/components/app/billing/billing-view";
 
 export default async function BillingPage({
   searchParams,

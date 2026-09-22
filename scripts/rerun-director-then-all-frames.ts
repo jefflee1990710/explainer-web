@@ -4,12 +4,12 @@
  */
 import { loadEnvConfig } from "@next/env";
 import { ObjectId } from "mongodb";
-import { videosCollection } from "../src/lib/collections";
-import { runPhaseAJob } from "../src/lib/director/jobs";
-import { framesWithClip } from "../src/lib/higgsfield/frame-prompts";
-import { mediaSrc } from "../src/lib/media-src";
-import { refreshProjectJobs, regenerateFrames } from "../src/lib/higgsfield/pipeline";
-import type { FramePosition, Project } from "../src/types/project";
+import { videosCollection } from "@/dao";
+import { runPhaseAJob } from "@/service/director/jobs";
+import { framesWithClip } from "@/service/higgsfield/frame-prompts";
+import { mediaSrc } from "@/util/media-src";
+import { refreshProjectJobs, regenerateFrames } from "@/service/higgsfield/pipeline";
+import type { FramePosition, Project } from "@/model/project";
 
 loadEnvConfig(process.cwd());
 
@@ -79,6 +79,9 @@ async function main() {
 
   const revision = [
     "Ignore any previous draft. Write a complete new Phase A from the source.",
+    "The attached image is a character BLUEPRINT only — not a scene. Never copy the sheet layout or stage extra clones.",
+    "Every still has exactly ONE instance of each named character. Start and end are two frozen poses of the same figure; put the turn/step in motionCamera only.",
+    "Never write in-between action such as '從側身轉正面' inside startScene or endScene.",
     "Every clip's explainerScene MUST write 起始 and 結尾（N秒後） as two distinct states.",
     "Scale start→end travel by that clip's durationSeconds (3s small beat, 4s beat+follow-through, 5–6s two beats, 7–8s two stronger beats).",
     "Same locked camera; no cut or teleport. motionCamera must name how far things move.",
@@ -130,6 +133,7 @@ async function main() {
       2,
     ),
   );
+  process.exit(0);
 }
 
 main().catch((error) => {

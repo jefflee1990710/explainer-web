@@ -4,11 +4,11 @@
  */
 import { loadEnvConfig } from "@next/env";
 import { ObjectId } from "mongodb";
-import { videosCollection } from "../src/lib/collections";
-import { framesWithClip } from "../src/lib/higgsfield/frame-prompts";
-import { mediaSrc } from "../src/lib/media-src";
-import { refreshProjectJobs, regenerateFrames } from "../src/lib/higgsfield/pipeline";
-import type { Project } from "../src/types/project";
+import { videosCollection } from "@/dao";
+import { framesWithClip } from "@/service/higgsfield/frame-prompts";
+import { mediaSrc } from "@/util/media-src";
+import { refreshProjectJobs, regenerateFrames } from "@/service/higgsfield/pipeline";
+import type { Project } from "@/model/project";
 
 loadEnvConfig(process.cwd());
 

@@ -3,7 +3,7 @@
  * Usage: npx tsx scripts/probe-alicloud-image.ts [model]
  */
 import { loadEnvConfig } from "@next/env";
-import { dashscopeRequest } from "../src/lib/alicloud/dashscope";
+import { dashscopeRequest } from "@/service/alicloud/dashscope";
 
 loadEnvConfig(process.cwd());
 
