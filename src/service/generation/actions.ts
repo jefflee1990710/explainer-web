@@ -327,8 +327,9 @@ export async function updateClipStoryboardAction(
         // The two frames go out one at a time, so the first may already have a
         // live job: that one is reconciliation's to finish and refund. Fail and
         // refund only the entries that never reached the provider, otherwise
-        // they would sit `queued` with no job behind them. A deferred end is
-        // waiting for the start file and is not a lost charge.
+        // they would sit `queued` with no job behind them. A deferred end stays
+        // queued only when the start job exists; if the start never went out,
+        // the end is failed and refunded too.
         const message = error instanceof Error ? error.message : "分鏡圖送出失敗";
         const missed = await failUnsubmittedFrames(
           project._id,

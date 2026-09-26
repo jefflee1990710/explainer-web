@@ -11,7 +11,7 @@ Use only after explicit approval of the current Phase A. Write ONE self-containe
 5. Scene at t=0: the object's inherited state and the hand position (matches the START keyframe).
 6. Timed beats scaled to duration: step marker pops with a soft hit → hand enters and performs the ONE action on the named object → the state change completes element by element, landing on the END keyframe. For the hook clip: finished result in use → slides aside → empty workspace revealed. For the result clip: finished object in the result zone, in use if applicable.
 7. Camera: one modest move (gentle push on the active object). No cuts inside a clip.
-8. Audio: the step line quoted exactly once, audio-only, imperative; steady music; the action SFX synced to the state change.
+8. Audio: the step line quoted exactly once, audio-only, imperative, in the user-selected adult male or female voice; no background music; the action SFX synced to the state change.
 9. Handoff: the object's new state and the workspace the next clip inherits — or, for the last clip, the finished result at rest; no loop.
 10. Negatives: no captions/subtitles/written step text, no wrong step digits, no new tools not in the workspace lock, no object teleporting or resetting, no extra hands or fingers, no style drift, plus the Visual style negatives.
 

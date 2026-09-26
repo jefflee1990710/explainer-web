@@ -87,9 +87,7 @@ export function StoryboardPreview({
           <Chip>{project.aspectRatio}</Chip>
           <Chip>{language.label} 旁白</Chip>
           <Chip>
-            {project.sceneTextEnabled
-              ? `畫面文字 · ${SCENE_TEXT_PRESETS[project.sceneTextLanguage].label}`
-              : "畫面無字"}
+            {`畫面文字 · ${SCENE_TEXT_PRESETS[project.sceneTextLanguage].label}`}
           </Chip>
           <Chip>線性結尾</Chip>
         </div>

@@ -53,6 +53,7 @@ export async function runPhaseAJob(
       aspectRatio: project.aspectRatio,
       durationPreset: project.durationPreset,
       language: project.language,
+      voiceGender: project.voiceGender,
       sceneTextEnabled: project.sceneTextEnabled,
       sceneTextLanguage: project.sceneTextLanguage,
       characterImageUrl: project.characterImageUrl,
@@ -182,6 +183,7 @@ export async function runClipVideoJob(projectId: ObjectId, clipNumber: number) {
       phaseA: project.phaseA,
       clipNumber,
       language: project.language,
+      voiceGender: project.voiceGender,
       characterImageUrl: project.characterImageUrl,
       cast: project.cast,
     });

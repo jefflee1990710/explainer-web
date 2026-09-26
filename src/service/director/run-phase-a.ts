@@ -9,6 +9,7 @@ import {
 } from "@/service/character/cast-prompt";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
+import { phaseAAudioHint, VOICE_PRESETS, resolveVoiceGender } from "@/service/director/voice";
 import {
   resolveSceneText,
   SCENE_TEXT_PRESETS,
@@ -39,6 +40,7 @@ import type {
   PhaseAProposal,
   SceneTextLanguage,
   VoLanguage,
+  VoiceGender,
 } from "@/model/project";
 import type { Skill } from "@/model/skill";
 
@@ -49,6 +51,7 @@ export async function runPhaseA(input: {
   aspectRatio: AspectRatio;
   durationPreset: DurationPreset;
   language?: VoLanguage;
+  voiceGender?: VoiceGender;
   sceneTextEnabled?: boolean;
   sceneTextLanguage?: SceneTextLanguage;
   characterImageUrl?: string;
@@ -92,7 +95,7 @@ export async function runPhaseA(input: {
 You are executing Phase A only. Return structured JSON that matches the schema.
 Planning explanations (narrativeJob, explainerScene, motionCamera, hookStrategy, coreMessage, etc.) must be Traditional Chinese (繁體中文).
 ${keyframeDeltaDirectorBlock({ separateStills: dualBeat })}
-${dualBeat ? dualBeatDirectorBlock(sceneText.enabled) : ""}
+${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels }) : ""}
 ${
   skillForcesSceneText(input.skill.slug)
     ? "On-canvas text is required: a numbered item list must appear in every still."
@@ -100,8 +103,11 @@ ${
       ? dualBeat
         ? "On-canvas text: start still quotes only startVo; end still quotes only endVo."
         : "On-canvas text may stay the same line from start to end; motion is pose, props, and lettering placement only."
-      : "Motion is pose and props only — no written labels."
+      : sceneText.inWorldLabels
+        ? "Motion is pose, props, and short in-world labels / tags popping or snapping in — never a voiceover caption."
+        : "Motion is pose and props only — no written labels."
 }
+visualWorld and palette describe rendering only: canvas, line, fill, and colour roles. Never write a text, label, caption, or subtitle policy into visualWorld — on-canvas text rules are given separately and injected into every still prompt.
 The next clip's start inherits the previous clip's end environment.
 loopMode MUST always be "linear". The final clip must end on a clean resting payoff — never bridge Clip N back to Clip 1, never plan a seamless loop or infinite cycle.
 ${
@@ -124,9 +130,11 @@ ${
     .join("\n")
 }
 ${language.skillHint}
+${phaseAAudioHint(input.voiceGender)}
 ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   dualBeat,
   listicle: skillForcesSceneText(input.skill.slug),
+  inWorldLabels: sceneText.inWorldLabels,
 })}
 The englishVo field always carries the spoken line in the chosen language above (character dialogue when this skill bans narration), regardless of the field name.
 Leave referenceTranslation empty. Do not invent a translation column.
@@ -144,7 +152,15 @@ ${input.source}
 Aspect ratio: ${input.aspectRatio}
 Duration preset: ${preset.skillHint}
 Voiceover language: ${language.label} (${language.sublabel})
-On-canvas text: ${sceneText.enabled ? SCENE_TEXT_PRESETS[sceneText.language].label : "off"}
+Narrator voice: ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].label} (adult ${resolveVoiceGender(input.voiceGender)})
+Audio: no background music. bgmDirection and each clip bgmSfx are SFX-only.
+On-canvas text: ${
+  sceneText.enabled
+    ? SCENE_TEXT_PRESETS[sceneText.language].label
+    : sceneText.inWorldLabels
+      ? "voiceover captions off; short in-world labels allowed"
+      : "off"
+}
 ${characterNote}
 ${draftNote}${revisionNote}${clipsOnlyNote}
 Produce a complete Phase A director proposal now.`,

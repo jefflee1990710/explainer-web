@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { ClipTimeline } from "@/presentation/components/project/clip-timeline";
 import { ClipWorkspace } from "@/presentation/components/project/clip-workspace";
 import { FillRemainingDialog } from "@/presentation/components/project/fill-remaining-dialog";
 import { FrameEditDialog } from "@/presentation/components/project/frame-edit-dialog";
 import { Spinner } from "@/presentation/components/spinner";
-import { clipStatesFor, isProjectBusy, productionCounts } from "@/service/clip-stage";
+import { clipStatesFor, defaultSelectedClip } from "@/service/clip-stage";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { FRAMES_COST, VIDEO_COST, planRemaining } from "@/service/production-plan";
 import type { PublicVideo } from "@/presentation/serialize";
@@ -19,8 +20,7 @@ import type {
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-// All clips stacked top-to-bottom, plus a fill-remaining footer.
-// Shared by the /new form and the project page.
+// Selected clip on top, clip timeline pinned below — like a video editor.
 export function ClipProduction({
   project,
   credits,
@@ -32,7 +32,6 @@ export function ClipProduction({
   onUpdateClip,
   onGenerateVideo,
   onFillRemaining,
-  onGoToExport,
 }: {
   project: PublicVideo;
   credits: number;
@@ -52,20 +51,24 @@ export function ClipProduction({
   ) => Promise<boolean>;
   onGenerateVideo: (clipNumber: number) => void;
   onFillRemaining: () => Promise<boolean>;
-  onGoToExport?: () => void;
 }) {
   const phaseA = project.phaseA;
   const states = clipStatesFor(project);
-  const counts = productionCounts(project);
   const plan = planRemaining(project);
-  const ready = project.status === "ready";
-  const busy = isProjectBusy(project);
 
   const [editingFrame, setEditingFrame] = useState<{
     clipNumber: number;
     position: FramePosition;
   } | null>(null);
   const [confirmFill, setConfirmFill] = useState(false);
+  const [selectedClip, setSelectedClip] = useState(() => defaultSelectedClip(states));
+
+  useEffect(() => {
+    setSelectedClip(defaultSelectedClip(clipStatesFor(project)));
+  }, [project.id]);
+
+  const selectedState =
+    states.find((state) => state.clipNumber === selectedClip) ?? states[0];
 
   if (!phaseA || states.length === 0) return null;
 
@@ -84,79 +87,34 @@ export function ClipProduction({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -12, transition: { duration: 0.2 } }}
       transition={{ duration: 0.45, ease }}
-      className="space-y-5"
+      className="flex min-h-0 flex-1 flex-col"
     >
-      <header className="rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-6 shadow-[6px_6px_0_0_rgba(18,20,28,0.08)]">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-accent">
-              Phase B · 製作
-            </p>
-            <h2 className="font-display mt-2 text-2xl font-bold">
-              {ready ? "影片完成" : "逐段製作：畫面 prompt → 畫格 → 影片"}
-            </h2>
-            <p className="mt-1 text-sm text-muted">
-              各段由上往下排列。左邊可改起始／結尾畫面後重畫，每段各自扣款。
-            </p>
-          </div>
-          <div className="text-right text-sm">
-            <p className="font-display font-bold tabular-nums">
-              畫格 {counts.framesDone}/{counts.total} · 影片 {counts.videosDone}/{counts.total}
-            </p>
-            <p className="text-muted">剩餘 credits：{credits}</p>
-            {busy ? (
-              <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted">
-                <Spinner className="h-3 w-3" /> 生成中，完成會自動更新
-              </p>
-            ) : null}
-          </div>
-        </div>
-      </header>
-
-      {states.map((state) => (
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
+      {selectedState ? (
         <ClipWorkspace
-          key={state.clipNumber}
+          key={selectedState.clipNumber}
           project={project}
-          state={state}
+          state={selectedState}
           credits={credits}
           pending={pending}
           error={error}
-          onGenerateFrames={() => onGenerateFrames(state.clipNumber)}
-          onRegenerateFrame={(position) => onRegenerateFrame(state.clipNumber, position)}
+          onGenerateFrames={() => onGenerateFrames(selectedState.clipNumber)}
+          onRegenerateFrame={(position) =>
+            onRegenerateFrame(selectedState.clipNumber, position)
+          }
           onOpenFrame={(position) =>
-            setEditingFrame({ clipNumber: state.clipNumber, position })
+            setEditingFrame({ clipNumber: selectedState.clipNumber, position })
           }
           onUpdateClip={(input, regenerate) =>
-            onUpdateClip(state.clipNumber, input, regenerate)
+            onUpdateClip(selectedState.clipNumber, input, regenerate)
           }
-          onGenerateVideo={() => onGenerateVideo(state.clipNumber)}
+          onGenerateVideo={() => onGenerateVideo(selectedState.clipNumber)}
         />
-      ))}
+      ) : null}
 
-      {/* Footer: fill the gaps, or celebrate. */}
+      {project.status !== "ready" ? (
       <div className="rounded-[1.5rem] border border-accent-ink/10 bg-lime/60 p-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          {ready ? (
-            <>
-              <div>
-                <p className="font-display text-sm font-bold">✓ {counts.total} 段影片全部完成</p>
-                <p className="mt-1 text-sm text-muted">
-                  下一步會把各段接成一支成片，可預覽與下載。任何一段仍可回頭重做。
-                </p>
-              </div>
-              {onGoToExport ? (
-                <motion.button
-                  type="button"
-                  onClick={onGoToExport}
-                  whileTap={{ scale: 0.98 }}
-                  className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5"
-                >
-                  下一步：成片
-                </motion.button>
-              ) : null}
-            </>
-          ) : (
-            <>
               <div>
                 <p className="font-display text-sm font-bold">
                   還有 {states.filter((s) => s.stage !== "video_ready").length} 段沒完成
@@ -186,16 +144,26 @@ export function ClipProduction({
                 {pending === "remaining" ? <Spinner /> : null}
                 補齊剩餘 · {plan.cost}
               </motion.button>
-            </>
-          )}
         </div>
       </div>
+      ) : null}
 
       {error ? (
         <p role="alert" className="text-sm font-medium text-accent">
           {error}
         </p>
       ) : null}
+      </div>
+
+      <div className="shrink-0 border-t border-accent-ink/10 bg-paper/95 px-4 py-3 sm:px-6">
+        <ClipTimeline
+          project={project}
+          states={states}
+          selected={selectedState?.clipNumber ?? selectedClip}
+          pending={pending}
+          onSelect={setSelectedClip}
+        />
+      </div>
 
       {/* Frame annotate + redo */}
       {editingFrame && frame && editingRow ? (

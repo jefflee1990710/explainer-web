@@ -14,10 +14,14 @@ import type {
 } from "@/presentation/serialize";
 import { NewProjectForm } from "@/presentation/components/app/projects/new/new-project-form";
 import { DeleteVideoDialog } from "@/presentation/components/app/projects/[id]/delete-video-dialog";
-import { VIDEO_RAIL_COLS } from "@/presentation/components/app/projects/[id]/video-rail";
-import { VideoList } from "@/presentation/components/app/projects/[id]/video-list";
+import {
+  EditorStepSwitch,
+  type EditorStepNav,
+} from "@/presentation/components/app/projects/[id]/editor-step-switch";
+import { VideoEditorDialog } from "@/presentation/components/app/projects/[id]/video-editor-dialog";
+import { VideoTable } from "@/presentation/components/app/projects/[id]/video-table";
 
-// Split folder workspace: video list on the left, create/stepper form on the right.
+// Folder page: paged video table; create/edit opens a full-page editor dialog.
 export function ProjectWorkspace({
   folder,
   skills,
@@ -37,17 +41,35 @@ export function ProjectWorkspace({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const videoParam = searchParams.get("video");
-  // Client-owned selection so the right pane can flip before any RSC navigation.
   const [activeVideoId, setActiveVideoId] = useState<string | null>(videoParam);
+  const [editorOpen, setEditorOpen] = useState(() => Boolean(videoParam));
   const [freshById, setFreshById] = useState<Record<string, PublicVideo>>({});
   const [fetchingId, setFetchingId] = useState<string | null>(null);
   const [optimisticVideo, setOptimisticVideo] = useState<PublicVideo | null>(null);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [stepNav, setStepNav] = useState<EditorStepNav | null>(null);
+  const onStepNav = useCallback((nav: EditorStepNav | null) => {
+    setStepNav((current) => {
+      if (current === nav) return current;
+      if (!current || !nav) return nav;
+      if (
+        current.status === nav.status &&
+        current.viewing === nav.viewing &&
+        current.clipsReady === nav.clipsReady &&
+        current.failedAtStep === nav.failedAtStep
+      ) {
+        if (current.onSelectStep === nav.onSelectStep) return current;
+        return { ...current, onSelectStep: nav.onSelectStep };
+      }
+      return nav;
+    });
+  }, []);
 
   // Keep in sync when navigation comes from router (e.g. after createVideo).
   useEffect(() => {
     setActiveVideoId(videoParam);
+    if (videoParam) setEditorOpen(true);
   }, [videoParam]);
 
   const replaceVideoQuery = useCallback(
@@ -99,11 +121,20 @@ export function ProjectWorkspace({
 
   function onSelect(id: string) {
     setActiveVideoId(id);
+    setEditorOpen(true);
     replaceVideoQuery(id);
   }
 
   function onCreate() {
     setActiveVideoId(null);
+    setEditorOpen(true);
+    replaceVideoQuery(null);
+  }
+
+  function onCloseEditor() {
+    setEditorOpen(false);
+    setActiveVideoId(null);
+    setStepNav(null);
     replaceVideoQuery(null);
   }
 
@@ -116,9 +147,11 @@ export function ProjectWorkspace({
     });
     if (optimisticVideo?.id === id) setOptimisticVideo(null);
     setDeleteOpen(false);
-    onCreate();
+    onCloseEditor();
     router.refresh();
   }
+
+  const editorTitle = selectedVideo?.phaseA?.localizedTitle || (activeVideoId ? "影片" : "新增影片");
 
   return (
     <>
@@ -140,57 +173,58 @@ export function ProjectWorkspace({
             </Link>
             <h1 className="font-display mt-2 text-3xl font-bold">{folder.name}</h1>
           </div>
-          <p className="text-sm text-muted">{videos.length} 支影片</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-muted">{videos.length} 支影片</p>
+            <button
+              type="button"
+              onClick={onCreate}
+              className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent-ink px-5 text-sm font-semibold text-lime shadow-[3px_3px_0_0_rgba(198,242,75,0.9)] transition hover:-translate-y-0.5"
+            >
+              新增影片
+            </button>
+          </div>
         </header>
 
-        <div className={`grid gap-6 md:items-start ${VIDEO_RAIL_COLS}`}>
-          <VideoList
-            videos={videos}
-            selectedId={activeVideoId}
-            onSelect={onSelect}
-            onCreate={onCreate}
-          />
+        <VideoTable videos={videos} onSelect={onSelect} />
+      </div>
+
+      {editorOpen ? (
+        <VideoEditorDialog
+          title={editorTitle}
+          nav={stepNav ? <EditorStepSwitch {...stepNav} /> : null}
+          syncing={videoSyncing}
+          canDelete={Boolean(selectedVideo)}
+          onExport={
+            stepNav?.clipsReady && stepNav.viewing !== 2
+              ? () => stepNav.onSelectStep(2)
+              : undefined
+          }
+          onClose={onCloseEditor}
+          onDelete={() => setDeleteOpen(true)}
+        >
           {videoLoading ? (
-            <div className="grid min-h-[16rem] place-items-center rounded-[1.75rem] border border-accent-ink/10 bg-paper/85 p-6">
+            <div className="grid min-h-[16rem] place-items-center p-6">
               <p className="inline-flex items-center gap-2 text-sm text-muted">
                 <Spinner />
                 載入影片中…
               </p>
             </div>
           ) : (
-            <div className="relative min-w-0 space-y-3">
-              {selectedVideo ? (
-                <div className="flex items-center justify-end gap-2">
-                  {videoSyncing ? (
-                    <p className="inline-flex items-center gap-1.5 rounded-full border border-accent-ink/10 bg-paper/95 px-2.5 py-1 text-[11px] font-semibold text-muted">
-                      <Spinner className="h-3.5 w-3.5" />
-                      同步中
-                    </p>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => setDeleteOpen(true)}
-                    className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-accent/30 px-4 text-sm font-semibold text-accent transition hover:-translate-y-0.5"
-                  >
-                    刪除影片
-                  </button>
-                </div>
-              ) : null}
-              <NewProjectForm
-                key={activeVideoId ?? "new"}
-                projectId={folder.id}
-                skills={skills}
-                styles={styles}
-                characters={characters}
-                initialVideo={selectedVideo}
-                credits={credits}
-                subscribed={subscribed}
-                onVideoCreated={setOptimisticVideo}
-              />
-            </div>
+            <NewProjectForm
+              key={activeVideoId ?? "new"}
+              projectId={folder.id}
+              skills={skills}
+              styles={styles}
+              characters={characters}
+              initialVideo={selectedVideo}
+              credits={credits}
+              subscribed={subscribed}
+              onVideoCreated={setOptimisticVideo}
+              onStepNav={onStepNav}
+            />
           )}
-        </div>
-      </div>
+        </VideoEditorDialog>
+      ) : null}
     </>
   );
 }

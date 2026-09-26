@@ -18,6 +18,7 @@ import {
   resolveSceneText,
   sceneTextFrameLines,
   stripStoryboardWriting,
+  stripVisualWorldTextPolicy,
 } from "@/service/director/scene-text";
 import { skillForcesSceneText } from "@/service/director/skill-rules";
 import {
@@ -133,8 +134,16 @@ export function buildFramePrompt(
       ? clipStartVo(row)
       : clipEndVo(row)
     : row.englishVo;
-  const sceneDescription = stripStoryboardWriting(sceneForFrame);
-  const motionDescription = stripStoryboardWriting(row.motionCamera);
+  // In-world-label mode keeps the 「」 tag wording the director wrote into the scene;
+  // every other mode strips it so the model does not paint invented labels.
+  // Cartoon stills keep the prop tags the director wrote into the scene.
+  const keepSceneLabels = !listicle && (sceneText.inWorldLabels || (dualBeat && sceneText.enabled));
+  const sceneDescription = keepSceneLabels
+    ? sceneForFrame.trim()
+    : stripStoryboardWriting(sceneForFrame);
+  const motionDescription = keepSceneLabels
+    ? row.motionCamera.trim()
+    : stripStoryboardWriting(row.motionCamera);
   const onCanvasTextBlock = listicle
     ? [
         styleLetteringLineForSceneText(style),
@@ -152,14 +161,20 @@ export function buildFramePrompt(
             sceneText.language,
             voForFrame,
             typographyForSceneText(style.typography),
+            dualBeat ? { markerSafeZone: true } : undefined,
           ),
         ]
-      : [];
+      : keepSceneLabels
+        ? // Catalog typography already says "never subtitles or captions" — exactly this mode.
+          sceneTextFrameLines(false, sceneText.language, undefined, styleLetteringLine(style), {
+            inWorldLabels: true,
+          })
+        : [];
 
   return [
     ...onCanvasTextBlock,
     ...styleLinesForFrame(style),
-    `Visual world: ${phaseA.visualWorld}`,
+    `Visual world: ${stripVisualWorldTextPolicy(phaseA.visualWorld)}`,
     `Palette: ${phaseA.palette}`,
     // With a cast/still attached, never echo Phase A's invented look text.
     ...castLines,
@@ -168,7 +183,7 @@ export function buildFramePrompt(
       characterUrls.length > 0,
       phaseA.characterLock,
     ),
-    ...(listicle || sceneText.enabled
+    ...(listicle || sceneText.enabled || keepSceneLabels
       ? []
       : sceneTextFrameLines(false, sceneText.language)),
     `Scene: ${sceneDescription}`,
@@ -178,10 +193,18 @@ export function buildFramePrompt(
     ...(listicle
       ? ["Final check: the numbered item list is visible and spelled exactly."]
       : sceneText.enabled
-        ? [
-            "Final check: bottom subtitle band only; spelling must match the Subtitle line(s) above.",
-          ]
-        : []),
+        ? dualBeat
+          ? [
+              "Final check: voiceover lettering is centered at 52%–60% of the frame height, max 2 lines, spelling matches the Marker line(s); no bottom subtitle band.",
+            ]
+          : [
+              "Final check: bottom subtitle band only; spelling must match the Subtitle line(s) above.",
+            ]
+        : keepSceneLabels
+          ? [
+              "Final check: the only lettering is the short in-world label(s) named in the Scene; no subtitle band, no voiceover transcript.",
+            ]
+          : []),
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
 }

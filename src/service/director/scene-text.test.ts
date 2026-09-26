@@ -9,18 +9,25 @@ import {
   sceneTextDirectorRevisionNote,
   sceneTextSkillHint,
   stripStoryboardWriting,
+  stripVisualWorldTextPolicy,
   voiceoverLineLooksLatin,
 } from "@/service/director/scene-text";
 
-test("resolveSceneText defaults to closed; only explicit true enables", () => {
-  assert.deepEqual(resolveSceneText({}), { enabled: false, language: "en" });
+test("resolveSceneText is always on; legacy false and missing still enable", () => {
+  assert.deepEqual(resolveSceneText({}), {
+    enabled: true,
+    language: "en",
+    inWorldLabels: false,
+  });
   assert.deepEqual(resolveSceneText({ sceneTextEnabled: false, sceneTextLanguage: "zh-Hant" }), {
-    enabled: false,
+    enabled: true,
     language: "zh-Hant",
+    inWorldLabels: false,
   });
   assert.deepEqual(resolveSceneText({ sceneTextEnabled: true, sceneTextLanguage: "zh-Hans" }), {
     enabled: true,
     language: "zh-Hans",
+    inWorldLabels: false,
   });
 });
 
@@ -65,12 +72,75 @@ test("sceneTextSkillHint and frame lines ban writing when off", () => {
   assert.match(sceneTextFrameLines(false, "en")[1], /Ignore any mention/);
 });
 
+test("whiteboard explainer legacy captions-off videos now resolve to on-canvas text", () => {
+  const resolved = resolveSceneText({
+    sceneTextEnabled: false,
+    skillSlug: "cartoon-explainer-video-director",
+  });
+  assert.equal(resolved.enabled, true);
+  assert.equal(resolved.inWorldLabels, false);
+});
+
+test("in-world label helpers still describe the captions-off wording", () => {
+  const hint = sceneTextSkillHint(false, "en", { dualBeat: true, inWorldLabels: true });
+  assert.match(hint, /captions are OFF/);
+  assert.match(hint, /yellow tags/);
+  assert.match(hint, /「」/);
+  assert.doesNotMatch(hint, /NO written words/);
+
+  const lines = sceneTextFrameLines(false, "en", undefined, "Lettering: marker.", {
+    inWorldLabels: true,
+  }).join("\n");
+  assert.match(lines, /captions OFF/);
+  assert.match(lines, /ARE allowed/);
+  assert.match(lines, /Lettering: marker\./);
+  assert.doesNotMatch(lines, /No on-canvas text/);
+
+  assert.match(sceneTextNegativePrompt(false, true) || "", /subtitles/);
+  assert.doesNotMatch(sceneTextNegativePrompt(false, true) || "", /\blabels\b/);
+});
+
+test("stripVisualWorldTextPolicy drops text-policy sentences and keeps the look", () => {
+  const raw =
+    "白板塗鴉風格。純白乾淨背景，黑色粗墨水手繪輪廓線條。無任何畫布文字、無任何標籤符號、無任何印刷字體或字幕，完全純靠手繪圖案傳達意象。";
+  const out = stripVisualWorldTextPolicy(raw);
+  assert.match(out, /白板塗鴉風格/);
+  assert.match(out, /黑色粗墨水/);
+  assert.doesNotMatch(out, /無任何畫布文字/);
+  assert.doesNotMatch(out, /字幕/);
+
+  const en = "Clean white canvas. No captions or labels anywhere. Warm yellow tags for highlights.";
+  const enOut = stripVisualWorldTextPolicy(en);
+  assert.equal(enOut, "Clean white canvas. Warm yellow tags for highlights.");
+  // A policy-only visualWorld falls back to the original rather than an empty string.
+  assert.equal(stripVisualWorldTextPolicy("No text at all."), "No text at all.");
+});
+
 test("enabled scene text quotes the clip narration on canvas", () => {
   const lines = sceneTextFrameLines(true, "zh-Hans", "你好世界");
   assert.match(lines.join("\n"), /subtitles ON/i);
   assert.match(lines.join("\n"), /你好世界/);
   assert.match(lines.join("\n"), /Mental Health/);
   assert.match(sceneTextSkillHint(true, "en"), /englishVo voiceover line/);
+});
+
+test("cartoon marker safe zone uppercases English and drops the bottom band", () => {
+  const lines = sceneTextFrameLines(
+    true,
+    "en",
+    "Every quant trader starts with this one tool",
+    undefined,
+    { markerSafeZone: true },
+  );
+  const text = lines.join("\n");
+  assert.match(text, /marker lettering ON/i);
+  assert.match(text, /52% and 60%/);
+  assert.match(text, /EVERY QUANT TRADER STARTS/);
+  assert.match(text, /WITH THIS ONE TOOL/);
+  assert.match(text, /warm-yellow highlight box/);
+  assert.doesNotMatch(text, /bottom 18%/);
+  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /52%/);
+  assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /mixed-case/);
 });
 
 test("sceneTextNegativePrompt only when off", () => {

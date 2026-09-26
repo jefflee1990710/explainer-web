@@ -1,13 +1,15 @@
 import { generateText, Output } from "ai";
 import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
+import { skillBansNarration } from "@/service/director/skill-rules";
+import { finalizePhaseBPrompt, phaseBAudioLock, resolveVoiceGender, VOICE_PRESETS } from "@/service/director/voice";
 import { skillPromptForPhaseB } from "@/service/director/load-skill-prompt";
 import { directorModel } from "@/service/director/model";
 import { clipPhaseBUserPrompt, phaseBCharacterLine } from "@/service/director/phase-b-clip-prompt";
 import { phaseBClipSchema } from "@/model/director";
 import type { Style } from "@/service/style";
 import type { CastMember } from "@/model/character";
-import type { PhaseAProposal, PhaseBPrompt, VoLanguage } from "@/model/project";
+import type { PhaseAProposal, PhaseBPrompt, VoLanguage, VoiceGender } from "@/model/project";
 import type { Skill } from "@/model/skill";
 
 type PhaseBInput = {
@@ -15,6 +17,7 @@ type PhaseBInput = {
   style: Style;
   phaseA: PhaseAProposal;
   language?: VoLanguage;
+  voiceGender?: VoiceGender;
   characterImageUrl?: string;
   cast?: CastMember[];
 };
@@ -27,10 +30,10 @@ You are executing Phase B only after explicit approval of the current Phase A.
 Return standalone MiniMax H3 video prompts that follow the skill prompt contract. Do not invent new facts.
 Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image. ${DUAL_KEYFRAME_MOTION_RULES} Do not invent a different final pose, camera, or composition.
 Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}). ${
-    input.skill.slug === "story-short-director"
+    skillBansNarration(input.skill.slug)
       ? "There is no narrator. Characters speak those lines."
-      : `Tell the video model explicitly that the narrator speaks ${languageLabel}.`
-  }`;
+      : `Tell the video model explicitly that the narrator is an adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice speaking ${languageLabel}.`
+  } Never request background music, BGM, a musical score, or an underscore. Voice and short synced SFX only.`;
 }
 
 function characterLine(input: PhaseBInput) {
@@ -54,6 +57,8 @@ export async function runPhaseBForClip(
       clipNumber: input.clipNumber,
       languageLabel: language.label,
       languageSublabel: language.sublabel,
+      voiceGender: input.voiceGender,
+      bansNarration: skillBansNarration(input.skill.slug),
       characterLine: characterLine(input),
     }),
   });
@@ -61,6 +66,15 @@ export async function runPhaseBForClip(
   if (!output) {
     throw new Error("產片 prompt 產生失敗");
   }
+  const lock = phaseBAudioLock({
+    voiceGender: input.voiceGender,
+    languageLabel: language.label,
+    bansNarration: skillBansNarration(input.skill.slug),
+  });
   // The model may echo a wrong number; trust the caller.
-  return { ...output, clipNumber: input.clipNumber };
+  return {
+    ...output,
+    clipNumber: input.clipNumber,
+    prompt: finalizePhaseBPrompt(output.prompt, lock),
+  };
 }

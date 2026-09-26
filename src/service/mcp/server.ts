@@ -281,8 +281,11 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
         aspectRatio: z.enum(["16:9", "9:16", "1:1"]),
         durationPreset: z.enum(["micro", "short", "punchy", "full"]),
         language: z.string().default("en"),
-        sceneTextEnabled: z.boolean().default(false),
-        sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans"]).default("en"),
+        voiceGender: z.enum(["male", "female"]).default("male"),
+        sceneTextLanguage: z
+          .enum(["en", "zh-Hant", "zh-Hans"])
+          .default("en")
+          .describe("On-canvas text is always on; this picks its script"),
         characterIds: z.array(z.string()).optional(),
       },
     },
@@ -295,7 +298,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
       form.set("aspectRatio", args.aspectRatio);
       form.set("durationPreset", args.durationPreset);
       form.set("language", args.language);
-      form.set("sceneTextEnabled", args.sceneTextEnabled ? "1" : "0");
+      form.set("voiceGender", args.voiceGender);
       form.set("sceneTextLanguage", args.sceneTextLanguage);
       for (const id of args.characterIds || []) form.append("characterIds", id);
       const result = await createVideoAction(form);

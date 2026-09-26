@@ -37,6 +37,7 @@ function proposal(loopMode: PhaseAProposal["loopMode"] = "linear"): PhaseAPropos
 const base = {
   languageLabel: "English",
   languageSublabel: "American",
+  voiceGender: "female" as const,
   characterLine:
     "Keep the Phase A characterLock. Do not mention reference images in the MiniMax H3 prompt — MiniMax H3 only receives this clip's first and last frames.",
 };
@@ -79,6 +80,14 @@ test("last clip always ends clean — never loops back to clip 1", () => {
   });
   assert.match(prompt, /last clip; end on a clean resting payoff/);
   assert.doesNotMatch(prompt, /matches clip 1's opening/);
+});
+
+test("Phase B user prompt locks narrator gender and forbids background music", () => {
+  const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
+  assert.match(prompt, /adult female voice/);
+  assert.match(prompt, /No background music/);
+  assert.match(prompt, /no BGM/i);
+  assert.doesNotMatch(prompt, /driving beat|keep narration dominant over BGM/i);
 });
 
 test("unknown clip throws", () => {

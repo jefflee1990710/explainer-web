@@ -37,6 +37,21 @@ function isWaitingStill(frame: ClipFrame) {
 // Drop the previous still the instant the user clicks redo, so the tile can
 // show a skeleton before the server action returns.
 export function clearFramesForAction(frames: ClipFrame[], key: string): ClipFrame[] {
+  if (key === "all-scenes" || key === "all-clips") {
+    const submittedAt = new Date().toISOString();
+    return frames.map((frame) =>
+      frame.status === "queued" || frame.status === "in_progress"
+        ? frame
+        : {
+            ...frame,
+            status: "queued",
+            submittedAt,
+            blobUrl: undefined,
+            outputUrl: undefined,
+            error: undefined,
+          },
+    );
+  }
   const target = targetsForAction(key);
   if (!target) return frames;
   const submittedAt = new Date().toISOString();

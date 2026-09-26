@@ -11,7 +11,7 @@ Use only after explicit approval of the current Phase A. Write ONE self-containe
 5. Scene at t=0: environment, product state, hand position (matches the START keyframe).
 6. Timed beats scaled to duration: first half — hand approaches / begins the action with small motion; second half — the product responds and the result appears element by element, landing on the END keyframe. Name the visible result explicitly.
 7. Camera: one modest move (slow push toward the product, gentle drift). No cuts inside a clip.
-8. Audio: the spoken line quoted exactly once, audio-only; music state; SFX synced to the product action (click, slide, chime).
+8. Audio: the spoken line quoted exactly once, audio-only, in the user-selected adult male or female voice; no background music; SFX synced to the product action (click, slide, chime).
 9. Handoff: the product's resting state and placement the next clip inherits — or, for the last clip, the product at rest with the outcome visible; no loop.
 10. Negatives: no captions/subtitles/transcribed speech, no floating UI text or price tags unless in the source, no logos beyond the simple mark in the product lock, no product shape/colour drift, no extra hands or fingers, plus the Visual style negatives.
 

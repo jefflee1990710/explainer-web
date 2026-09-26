@@ -1,3 +1,5 @@
+import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
+
 export const STORY_SHORT_SKILL_SLUG = "story-short-director";
 export const DIALOGUE_QA_SKILL_SLUG = "dialogue-qa-director";
 export const LISTICLE_SKILL_SLUG = "listicle-director";
@@ -12,6 +14,12 @@ export function requiredCastCount(skillSlug?: string) {
 
 export function skillForcesSceneText(skillSlug?: string) {
   return skillSlug === LISTICLE_SKILL_SLUG;
+}
+
+// 白板概念解說：畫面文字 OFF 只代表「不做旁白字幕」；場景內的短手寫標籤
+// （黃色 tag、箭頭字、道具名，1–3 個字）是這個風格的核心視覺語彙，仍然允許。
+export function skillAllowsInWorldLabels(skillSlug?: string) {
+  return skillSlug === CARTOON_EXPLAINER_SKILL_SLUG;
 }
 
 export function briefSkillError(input: {

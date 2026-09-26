@@ -57,15 +57,15 @@ test("doodle frame prompt uses catalog text, no hard-coded whiteboard literal", 
   const prompt = buildFramePrompt(project(), 1, "start");
   assert.match(prompt, /Whiteboard doodle short video/);
   assert.match(prompt, /Canvas: clean solid white canvas/);
-  assert.match(prompt, /No on-canvas text/);
-  assert.doesNotMatch(prompt, /Lettering:/);
+  assert.match(prompt, /Lettering:/);
+  assert.doesNotMatch(prompt, /No on-canvas text/);
   assert.doesNotMatch(prompt, /whiteboard-doodle cartoon explainer video/);
 });
 
-test("pixel video gets pixel canvas and no lettering unless scene text is on", () => {
+test("pixel video gets pixel canvas and its own pixel lettering", () => {
   const prompt = buildFramePrompt(project("pixel"), 1, "end");
   assert.match(prompt, /Pixel art short video/);
-  assert.doesNotMatch(prompt, /Lettering:/);
+  assert.match(prompt, /Lettering: blocky monospaced pixel font/);
 });
 
 test("end frame is the same shot as start, not a new composition", () => {
@@ -182,12 +182,13 @@ test("a solo still is attached as the character the scene must follow", () => {
   assert.doesNotMatch(prompt, /發明的綠洋裝/);
 });
 
-test("disabled scene text drops lettering and forbids on-canvas words", () => {
+test("legacy disabled scene text still paints the voiceover lettering", () => {
   const off = project();
   off.sceneTextEnabled = false;
   const prompt = buildFramePrompt(off, 1, "start");
-  assert.match(prompt, /No on-canvas text/);
-  assert.doesNotMatch(prompt, /Lettering:/);
+  assert.match(prompt, /Lettering:/);
+  assert.match(prompt, /Subtitle \(spell exactly\): "vo"/);
+  assert.doesNotMatch(prompt, /No on-canvas text/);
 });
 
 test("whiteboard explainer dual-beat uses start/end scene and VO per still", () => {
@@ -207,11 +208,48 @@ test("whiteboard explainer dual-beat uses start/end scene and VO per still", () 
   const end = buildFramePrompt(dual, 1, "end");
   assert.match(start, /Scene: 起點拿尺/);
   assert.doesNotMatch(start, /尺變成回歸線/);
-  assert.match(start, /First beat/);
-  assert.doesNotMatch(start, /Second beat/);
+  assert.match(start, /52% and 60%/);
+  assert.match(start, /Marker line \(spell exactly, black marker\): "FIRST BEAT\."/);
+  assert.doesNotMatch(start, /bottom 18%/);
+  assert.doesNotMatch(start, /SECOND BEAT/);
   assert.match(end, /Scene: 尺變成回歸線/);
-  assert.match(end, /Second beat/);
-  assert.doesNotMatch(end, /First beat/);
+  assert.match(end, /SECOND BEAT/);
+  assert.doesNotMatch(end, /FIRST BEAT/);
+});
+
+test("legacy captions-off whiteboard video keeps prop labels, paints the marker beat, and strips text policy from visualWorld", () => {
+  const dual = project();
+  dual.skillSlug = "cartoon-explainer-video-director";
+  dual.sceneTextEnabled = false;
+  dual.phaseA!.visualWorld =
+    "白板塗鴉風格。純白背景黑色墨線。無任何畫布文字、無任何標籤符號或字幕，純靠圖案傳達。";
+  dual.phaseA!.clips[0] = {
+    ...dual.phaseA!.clips[0],
+    startScene: "John 舉著巨大黃色木尺，尺上掛著黃色標籤「OLS」，旁邊飄著灰色散點。",
+    endScene: "木尺變成回歸線，上方黃色 tag 寫著「β」。",
+    startVo: "First beat.",
+    endVo: "Second beat.",
+    explainerScene: "起始：…。結尾：…",
+    englishVo: "First beat. Second beat.",
+  };
+  const start = buildFramePrompt(dual, 1, "start");
+  assert.match(start, /「OLS」/);
+  assert.match(start, /FIRST BEAT/);
+  assert.match(start, /52% and 60%/);
+  assert.doesNotMatch(start, /No on-canvas text/);
+  assert.match(start, /Visual world: 白板塗鴉風格。純白背景黑色墨線。/);
+  assert.doesNotMatch(start, /無任何畫布文字/);
+});
+
+test("legacy captions-off story short now paints the dialogue line and strips invented labels", () => {
+  const story = project();
+  story.skillSlug = "story-short-director";
+  story.sceneTextEnabled = false;
+  story.phaseA!.clips[0].explainerScene = "牆上掛著寫有「HELLO」的牌子";
+  const prompt = buildFramePrompt(story, 1, "start");
+  assert.doesNotMatch(prompt, /No on-canvas text/);
+  assert.doesNotMatch(prompt, /HELLO/);
+  assert.match(prompt, /Subtitle \(spell exactly\): "vo"/);
 });
 
 test("other skills keep a single scene and full voiceover on both stills", () => {
@@ -243,13 +281,13 @@ test("enabled scene text puts the voiceover line on canvas with lettering", () =
   assert.doesNotMatch(prompt, /never subtitles or captions/i);
 });
 
-test("disabled scene text ignores words mentioned in the scene description", () => {
+test("legacy disabled scene text limits writing to the subtitle", () => {
   const off = project();
   off.sceneTextEnabled = false;
   off.phaseA!.clips[0].explainerScene = "A sign reads HELLO";
   const prompt = buildFramePrompt(off, 1, "end");
-  assert.match(prompt, /Ignore any mention of words/);
-  assert.doesNotMatch(prompt, /On-canvas text/);
+  assert.match(prompt, /Only the subtitle line\(s\) above may appear as writing/);
+  assert.match(prompt, /subtitles ON/i);
 });
 
 test("without a cast, the text characterLock stays authoritative", () => {

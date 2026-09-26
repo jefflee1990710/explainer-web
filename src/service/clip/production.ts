@@ -1,5 +1,4 @@
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/service/auth";
 import {
@@ -7,11 +6,10 @@ import {
   consumeCredits,
   refundCredits,
 } from "@/service/billing/credits";
-import { generationJobsCollection, videosCollection } from "@/dao";
-import { runClipVideoJob } from "@/service/director/jobs";
+import { videosCollection } from "@/dao";
+import { claimAndStartClipVideo, queueAutoClipVideos } from "@/service/clip/auto-video";
 import { framesWithClip } from "@/service/higgsfield/frame-prompts";
-import { hasJobSince } from "@/service/higgsfield/job-attempts";
-import { clipKeyframeUrls, planFrameSubmissions } from "@/service/higgsfield/clip-keyframes";
+import { planFrameSubmissions } from "@/service/higgsfield/clip-keyframes";
 import {
   failUnsubmittedFrames,
   regenerateFrames,
@@ -21,12 +19,13 @@ import { isProductionLike } from "@/service/project-status";
 import {
   FRAME_COST,
   FRAMES_COST,
-  STUCK_CLAIM_MS,
   VIDEO_COST,
+  planGenerateAllClips,
+  planGenerateAllScenes,
   planRemaining,
 } from "@/service/production-plan";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
-import type { Project, ProjectClip } from "@/model/project";
+import type { Project } from "@/model/project";
 
 type ProjectResult =
   | { ok: true; project: PublicVideo }
@@ -58,26 +57,6 @@ async function loadProduction(
     return { ok: false, error: "分鏡尚未完成" };
   }
   return { ok: true, project: project as Project & { phaseA: NonNullable<Project["phaseA"]> } };
-}
-
-const IN_FLIGHT = new Set<ProjectClip["status"]>(["queued", "in_progress"]);
-
-// True when a clip was claimed for video long enough ago that its background
-// job must be gone, and no video job from that claim ever appeared. Such a clip
-// is paid for but frozen, so the user is allowed to claim it again.
-async function isStuckClaim(
-  projectId: ObjectId,
-  clipNumber: number,
-  clip: ProjectClip,
-): Promise<boolean> {
-  if (clip.status !== "queued" || !clip.submittedAt) return false;
-  const claimedAt = Date.parse(clip.submittedAt);
-  if (Number.isNaN(claimedAt) || Date.now() - claimedAt <= STUCK_CLAIM_MS) return false;
-  const jobs = await generationJobsCollection();
-  const videoJobs = await jobs
-    .find({ projectId, kind: "video", clipIndex: clipNumber - 1 })
-    .toArray();
-  return !hasJobSince(videoJobs, new Date(claimedAt));
 }
 
 // Draw (or redraw) both frames of one clip. Cost: FRAMES_COST.
@@ -139,8 +118,9 @@ export async function generateClipFramesAction(
       // The two frames go out one at a time, so the first may already have a
       // live job: that one is reconciliation's to finish and refund. Fail and
       // refund only the entries that never reached the provider, otherwise
-      // they would sit `queued` with no job behind them. A deferred end is
-      // waiting for the start file and is not a lost charge.
+      // they would sit `queued` with no job behind them. A deferred end stays
+      // queued only when the start job exists; if the start never went out,
+      // the end is failed and refunded too.
       const message = error instanceof Error ? error.message : "分鏡圖送出失敗";
       const missed = await failUnsubmittedFrames(
         project._id,
@@ -181,87 +161,10 @@ export async function generateClipVideoAction(
 
     const row = project.phaseA.clips.find((clip) => clip.clipNumber === clipNumber);
     if (!row) return { ok: false, error: "找不到這段分鏡" };
-    const { start, end } = clipKeyframeUrls(project.frames, clipNumber);
-    const framesDone = Boolean(start && end);
-    if (!framesDone) return { ok: false, error: "這段的畫格還沒完成" };
 
     await assertCanSpendCredits(user, VIDEO_COST);
-
-    // Atomic claim so a double click can never charge twice: either flip an
-    // existing clip that is not in flight, or insert the clip if it has no entry.
-    const submittedAt = new Date().toISOString();
-    const existing = project.clips.find((clip) => clip.clipNumber === clipNumber);
-    // A claim whose background job never started (a lost `after()`) would leave
-    // a paid clip `queued` forever with no way back. Re-claiming is allowed once
-    // the claim is old and still has no job behind it; the claim below is pinned
-    // to that exact `submittedAt`, so it stays the single gate against a double
-    // charge.
-    const stuck = existing
-      ? await isStuckClaim(project._id, clipNumber, existing)
-      : false;
-    if (existing && !stuck && IN_FLIGHT.has(existing.status)) {
-      return { ok: false, error: "這段正在生成中" };
-    }
-    const claimed = existing
-      ? await projects.findOneAndUpdate(
-          {
-            _id: project._id,
-            clips: {
-              $elemMatch: stuck
-                ? { clipNumber, status: "queued", submittedAt: existing.submittedAt }
-                : { clipNumber, status: { $nin: ["queued", "in_progress"] } },
-            },
-          },
-          {
-            $set: {
-              "clips.$.status": "queued",
-              "clips.$.submittedAt": submittedAt,
-              status: "production",
-              updatedAt: new Date(),
-            },
-            $unset: {
-              "clips.$.error": "",
-              "clips.$.blobUrl": "",
-              "clips.$.outputUrl": "",
-            },
-          },
-        )
-      : await projects.findOneAndUpdate(
-          { _id: project._id, "clips.clipNumber": { $ne: clipNumber } },
-          {
-            $push: {
-              clips: {
-                clipNumber,
-                durationSeconds: row.durationSeconds,
-                prompt: "",
-                status: "queued",
-                submittedAt,
-              },
-            },
-            $set: { status: "production", updatedAt: new Date() },
-          },
-        );
-    if (!claimed) return { ok: false, error: "這段正在生成中" };
-
-    try {
-      await consumeCredits(user.clerkUserId, VIDEO_COST);
-    } catch (error) {
-      // Charge failed after the claim: release it.
-      await projects.updateOne(
-        { _id: project._id },
-        {
-          $set: {
-            "clips.$[clip].status": "failed",
-            "clips.$[clip].error": error instanceof Error ? error.message : "扣款失敗",
-            updatedAt: new Date(),
-          },
-        },
-        { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
-      );
-      throw error;
-    }
-
-    after(() => runClipVideoJob(project._id, clipNumber));
+    const started = await claimAndStartClipVideo(user.clerkUserId, project, clipNumber);
+    if (!started.ok) return { ok: false, error: started.error };
 
     const updated = await projects.findOne({ _id: project._id });
     revalidateProject(projectId);
@@ -318,6 +221,99 @@ export async function generateRemainingAction(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "補齊失敗",
+    };
+  }
+}
+
+async function submitSceneImages(
+  projectId: string,
+  clipNumbers: number[],
+) {
+  const skipped: number[] = [];
+  let firstError = "";
+  const submitted: number[] = [];
+  for (const clipNumber of clipNumbers) {
+    const result = await generateClipFramesAction(projectId, clipNumber);
+    if (!result.ok) {
+      skipped.push(clipNumber);
+      firstError ||= result.error;
+    } else {
+      submitted.push(clipNumber);
+    }
+  }
+  return { skipped, firstError, submitted };
+}
+
+// Draw both scene images for every clip that is not already drawing.
+export async function generateAllSceneImagesAction(
+  projectId: string,
+): Promise<RemainingResult> {
+  try {
+    const user = await requireAppUser();
+    const loaded = await loadProduction(projectId, user.clerkUserId);
+    if (!loaded.ok) return loaded;
+
+    const plan = planGenerateAllScenes(loaded.project);
+    if (plan.cost === 0) return { ok: false, error: "沒有可產生的分鏡圖" };
+    await assertCanSpendCredits(user, plan.cost);
+
+    const { skipped, firstError } = await submitSceneImages(projectId, plan.frames);
+    if (skipped.length === plan.frames.length) {
+      return { ok: false, error: firstError || "產生分鏡圖失敗" };
+    }
+
+    const projects = await videosCollection();
+    const updated = await projects.findOne({ _id: loaded.project._id });
+    revalidateProject(projectId);
+    return { ok: true, project: toPublicVideo(updated!), skipped };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "產生分鏡圖失敗",
+    };
+  }
+}
+
+// Draw every scene image, then start each clip video once both stills exist.
+export async function generateAllClipsAction(
+  projectId: string,
+): Promise<RemainingResult> {
+  try {
+    const user = await requireAppUser();
+    const loaded = await loadProduction(projectId, user.clerkUserId);
+    if (!loaded.ok) return loaded;
+
+    const plan = planGenerateAllClips(loaded.project);
+    if (plan.cost === 0) return { ok: false, error: "沒有可產生的段落" };
+    await assertCanSpendCredits(user, plan.cost);
+
+    const { skipped, firstError, submitted } = await submitSceneImages(
+      projectId,
+      plan.frames,
+    );
+    // Videos follow the clips we actually queued, plus clips already drawing
+    // (their stills will unlock the video). Failed submits stay off the list.
+    const autoVideoClips = plan.videos.filter(
+      (clipNumber) => submitted.includes(clipNumber) || !plan.frames.includes(clipNumber),
+    );
+    if (submitted.length === 0 && autoVideoClips.length === 0) {
+      return { ok: false, error: firstError || "產生失敗" };
+    }
+
+    const projects = await videosCollection();
+    await projects.updateOne(
+      { _id: loaded.project._id },
+      { $set: { autoVideoClips, updatedAt: new Date() } },
+    );
+    await queueAutoClipVideos(loaded.project._id);
+
+    const updated = await projects.findOne({ _id: loaded.project._id });
+    revalidateProject(projectId);
+    return { ok: true, project: toPublicVideo(updated!), skipped };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "產生影片失敗",
     };
   }
 }

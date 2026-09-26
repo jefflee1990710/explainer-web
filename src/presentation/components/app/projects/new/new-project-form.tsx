@@ -2,9 +2,10 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ClipProduction } from "@/presentation/components/project/clip-production";
-import { currentStepFor, ProjectStepper } from "@/presentation/components/project/project-stepper";
+import { currentStepFor } from "@/presentation/components/project/project-stepper";
 import { Spinner } from "@/presentation/components/spinner";
 import { StylePicker } from "@/presentation/components/style-picker";
 import {
@@ -23,11 +24,12 @@ import {
   updateVideoBriefAction,
 } from "@/presentation/actions/projects";
 import { composeReelAction } from "@/presentation/actions/reel";
-import { isProjectBusy, productionCounts } from "@/service/clip-stage";
+import { isProjectBusy } from "@/service/clip-stage";
 import { mergePolledProject, projectWithClearedFrames } from "@/util/optimistic-frames";
-import { isReelBusy, isReelCurrent } from "@/service/reel/fingerprint";
+import { isReelBusy } from "@/service/reel/fingerprint";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
+import { DEFAULT_VOICE_GENDER, VOICE_PRESETS } from "@/service/director/voice";
 import { SCENE_TEXT_PRESETS } from "@/service/director/scene-text";
 import {
   requiredCastCount,
@@ -45,6 +47,7 @@ import type {
   FrameRevisionInput,
   SceneTextLanguage,
   VoLanguage,
+  VoiceGender,
 } from "@/model/project";
 import { CharacterPicker } from "@/presentation/components/app/projects/[id]/character-picker";
 import { SkillPicker } from "@/presentation/components/app/projects/[id]/skill-picker";
@@ -52,6 +55,7 @@ import { AspectRatioPicker } from "@/presentation/components/app/projects/new/as
 import { DirectorProgress } from "@/presentation/components/app/projects/new/director-progress";
 import { DurationPicker } from "@/presentation/components/app/projects/new/duration-picker";
 import { LanguagePicker } from "@/presentation/components/app/projects/new/language-picker";
+import { VoicePicker } from "@/presentation/components/app/projects/new/voice-picker";
 import { SceneTextPicker } from "@/presentation/components/app/projects/new/scene-text-picker";
 import { ReelExport } from "@/presentation/components/app/projects/new/reel-export";
 import { ReviseStoryboardDialog } from "@/presentation/components/app/projects/new/revise-storyboard-dialog";
@@ -69,6 +73,7 @@ export function NewProjectForm({
   credits,
   subscribed,
   onVideoCreated,
+  onStepNav,
 }: {
   projectId: string;
   skills: PublicSkill[];
@@ -78,6 +83,7 @@ export function NewProjectForm({
   credits: number;
   subscribed: boolean;
   onVideoCreated?: (video: PublicVideo) => void;
+  onStepNav?: (nav: EditorStepNav | null) => void;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -92,8 +98,8 @@ export function NewProjectForm({
   );
   const [source, setSource] = useState(initialVideo?.source || "");
   const [language, setLanguage] = useState<VoLanguage>(initialVideo?.language || "en");
-  const [sceneTextEnabled, setSceneTextEnabled] = useState(
-    initialVideo?.sceneTextEnabled === true,
+  const [voiceGender, setVoiceGender] = useState<VoiceGender>(
+    initialVideo?.voiceGender || DEFAULT_VOICE_GENDER,
   );
   const [sceneTextLanguage, setSceneTextLanguage] = useState<SceneTextLanguage>(
     initialVideo?.sceneTextLanguage || "en",
@@ -164,7 +170,7 @@ export function NewProjectForm({
       project.skillSlug === skillSlug &&
       project.styleId === styleId &&
       project.language === language &&
-      project.sceneTextEnabled === sceneTextEnabled &&
+      project.voiceGender === voiceGender &&
       project.sceneTextLanguage === sceneTextLanguage &&
       project.aspectRatio === aspectRatio &&
       project.durationPreset === durationPreset &&
@@ -181,7 +187,7 @@ export function NewProjectForm({
     formData.set("styleId", styleId);
     formData.set("source", source);
     formData.set("language", language);
-    formData.set("sceneTextEnabled", sceneTextEnabled ? "1" : "0");
+    formData.set("voiceGender", voiceGender);
     formData.set("sceneTextLanguage", sceneTextLanguage);
     formData.set("aspectRatio", aspectRatio);
     formData.set("durationPreset", durationPreset);
@@ -347,10 +353,6 @@ export function NewProjectForm({
   const dialogueOnly = skillBansNarration(skillSlug);
 
   useEffect(() => {
-    if (forceSceneText) setSceneTextEnabled(true);
-  }, [forceSceneText]);
-
-  useEffect(() => {
     if (castNeed > 0) {
       setCharacterIds((ids) => (ids.length > castNeed ? ids.slice(0, castNeed) : ids));
     }
@@ -361,10 +363,6 @@ export function NewProjectForm({
     setCharacterIds((ids) =>
       ids.filter((cid) => characters.find((c) => c.id === cid)?.styleId === id),
     );
-  }
-
-  function reset() {
-    router.replace(pathname);
   }
 
   const skillTitle =
@@ -385,54 +383,50 @@ export function NewProjectForm({
       ? viewingOverride.step
       : liveStep;
 
-  function pinViewingStep(step: number) {
-    setViewingOverride({ id: liveId, status: liveStatus, step });
-  }
+  const pinViewingStep = useCallback(
+    (step: number) => {
+      setViewingOverride({ id: liveId, status: liveStatus, step });
+    },
+    [liveId, liveStatus],
+  );
   const briefBusy =
     submitting || Boolean(project && (isProjectBusy(project) || isReelBusy(project.reelStatus)));
-  const approved = Boolean(project && isProductionLike(project.status));
   const clipsReady = project?.status === "ready";
-  const reelReady = Boolean(project && isReelCurrent(project));
-  // Stepper detail for the live current step; skipped before the storyboard exists.
-  const counts =
-    project && approved ? productionCounts(project) : null;
-  const stepperDetail = clipsReady
-    ? isReelBusy(project?.reelStatus)
-      ? "合成中"
-      : reelReady
-        ? "可下載"
-        : "待合成"
-    : counts
-      ? `影片 ${counts.videosDone}/${counts.total}`
-      : undefined;
+  const failedAtStep = project?.status === "failed" ? failedStepFor(project) : undefined;
+
+  useEffect(() => {
+    onStepNav?.({
+      status: liveStatus,
+      failedAtStep,
+      viewing,
+      clipsReady,
+      onSelectStep: pinViewingStep,
+    });
+  }, [clipsReady, failedAtStep, liveStatus, onStepNav, pinViewingStep, viewing]);
+
+  useEffect(() => {
+    return () => onStepNav?.(null);
+  }, [onStepNav]);
+
   const canSubmit =
     source.trim().length > 0 &&
     aspectRatio !== "" &&
     skillSlug !== "" &&
     (castNeed === 0 || characterIds.length === castNeed) &&
     !briefBusy;
+  const fillEditor =
+    viewing === 1 && Boolean(project?.phaseA && isProductionLike(project.status));
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="space-y-6">
-        {/* Step indicator: 題材 → 製作 → 成片 */}
-        <div className="rounded-2xl border border-accent-ink/10 bg-paper/70 px-5 py-4">
-          <ProjectStepper
-            status={project?.status ?? "draft"}
-            failedAtStep={project?.status === "failed" ? failedStepFor(project) : undefined}
-            busy={
-              project
-                ? isProjectBusy(project) || isReelBusy(project.reelStatus)
-                : false
-            }
-            detail={stepperDetail}
-            viewingStep={viewing}
-            onSelectStep={pinViewingStep}
-            clipsReady={clipsReady}
-            reelReady={reelReady}
-          />
-        </div>
-
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div
+          className={
+            fillEditor
+              ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+              : "min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-6 sm:px-6"
+          }
+        >
         <AnimatePresence mode="wait" initial={false}>
           {viewing === 0 ? (
             <motion.form
@@ -490,14 +484,23 @@ export function NewProjectForm({
 
               <Section
                 step="03"
-                title={dialogueOnly ? "對白語言" : "旁白語言"}
+                title={dialogueOnly ? "對白語言與聲線" : "旁白語言與聲線"}
                 hint={
                   dialogueOnly
-                    ? "角色用這個語言說話；這支短片沒有旁白。分鏡說明維持繁體中文。"
-                    : "影片會用這個語言配旁白；分鏡說明維持繁體中文。"
+                    ? "角色用這個語言與聲線說話；這支短片沒有旁白。分鏡說明維持繁體中文。"
+                    : "影片會用這個語言與男／女聲配旁白；分鏡說明維持繁體中文。"
                 }
               >
                 <LanguagePicker value={language} onChange={setLanguage} disabled={briefBusy} />
+                <p className="mt-4 text-sm font-semibold">{dialogueOnly ? "對白聲線" : "旁白聲線"}</p>
+                <p className="mt-1 text-xs text-muted">
+                  {dialogueOnly
+                    ? "產片時角色對白會用這個成年聲線。"
+                    : "產片時旁白會鎖定這個成年聲線，全程不換性別。"}
+                </p>
+                <div className="mt-3">
+                  <VoicePicker value={voiceGender} onChange={setVoiceGender} disabled={briefBusy} />
+                </div>
               </Section>
 
               <Section
@@ -505,17 +508,14 @@ export function NewProjectForm({
                 title="畫面文字"
                 hint={
                   forceSceneText
-                    ? "清單式導演必須在畫面列出項目文字，無法關閉。"
-                    : "開啟後，分鏡圖裡的短標籤會用你選的語言；關閉則畫面完全不寫字。"
+                    ? "清單式導演會在畫面列出項目文字，選擇文字語言。"
+                    : "每張分鏡圖都會寫上畫面文字，選擇文字語言。"
                 }
               >
                 <SceneTextPicker
-                  enabled={sceneTextEnabled || forceSceneText}
                   language={sceneTextLanguage}
-                  onEnabledChange={setSceneTextEnabled}
                   onLanguageChange={setSceneTextLanguage}
                   disabled={briefBusy}
-                  forcedOn={forceSceneText}
                 />
               </Section>
 
@@ -575,15 +575,6 @@ export function NewProjectForm({
                       ? "儲存並重新產生分鏡"
                       : "開始製作"}
                 </motion.button>
-                {project ? (
-                  <button
-                    type="button"
-                    onClick={reset}
-                    className="min-h-[44px] cursor-pointer rounded-full px-3 text-sm font-semibold text-muted transition hover:text-foreground"
-                  >
-                    建立另一支
-                  </button>
-                ) : null}
                 <p className="text-xs text-muted">
                   {project
                     ? "改題材會重寫分鏡並回到製作。已產生的畫格與影片會留著，但可能對不上。"
@@ -598,38 +589,31 @@ export function NewProjectForm({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
               transition={{ duration: 0.35, ease }}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-ink/10 bg-paper/70 px-5 py-4 text-sm"
+              className={`flex flex-wrap items-center gap-2 rounded-2xl border border-accent-ink/10 bg-paper/70 px-5 py-4 text-sm ${
+                fillEditor ? "mx-4 mt-4 shrink-0 sm:mx-6" : ""
+              }`}
             >
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-display font-bold">{skillTitle}</span>
-                <Dot />
-                <span>{styleName}</span>
-                <Dot />
-                <span>{LANGUAGE_PRESETS[language].label}</span>
-                <Dot />
-                <span>
-                  {sceneTextEnabled
-                    ? `畫面文字 · ${SCENE_TEXT_PRESETS[sceneTextLanguage].label}`
-                    : "畫面無字"}
-                </span>
-                <Dot />
-                <span>{aspectRatio}</span>
-                <Dot />
-                <span>{DURATION_PRESETS[durationPreset].label}</span>
-                {project?.cast.length ? (
-                  <>
-                    <Dot />
-                    <span>{project.cast.map((member) => member.name).join("、")}</span>
-                  </>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                onClick={reset}
-                className="min-h-[44px] cursor-pointer rounded-full px-3 text-sm font-semibold text-muted transition hover:text-foreground"
-              >
-                建立另一支
-              </button>
+              <span className="font-display font-bold">{skillTitle}</span>
+              <Dot />
+              <span>{styleName}</span>
+              <Dot />
+              <span>{LANGUAGE_PRESETS[language].label}</span>
+              <Dot />
+              <span>{VOICE_PRESETS[voiceGender].label}</span>
+              <Dot />
+              <span>
+                {`畫面文字 · ${SCENE_TEXT_PRESETS[sceneTextLanguage].label}`}
+              </span>
+              <Dot />
+              <span>{aspectRatio}</span>
+              <Dot />
+              <span>{DURATION_PRESETS[durationPreset].label}</span>
+              {project?.cast.length ? (
+                <>
+                  <Dot />
+                  <span>{project.cast.map((member) => member.name).join("、")}</span>
+                </>
+              ) : null}
             </motion.div>
           )}
         </AnimatePresence>
@@ -637,11 +621,9 @@ export function NewProjectForm({
         <AnimatePresence mode="wait">
           {viewing === 1 && project?.status === "phase_a" ? (
             <DirectorProgress key="phase-a" />
-          ) : viewing === 1 &&
-            project?.phaseA &&
-            isProductionLike(project.status) ? (
+          ) : fillEditor && project ? (
+            <div key="production" className="flex min-h-0 flex-1 flex-col">
             <ClipProduction
-              key="production"
               project={project}
               credits={credits}
               subscribed={subscribed}
@@ -652,8 +634,8 @@ export function NewProjectForm({
               onUpdateClip={onUpdateClip}
               onGenerateVideo={onGenerateVideo}
               onFillRemaining={onFillRemaining}
-              onGoToExport={() => pinViewingStep(2)}
             />
+            </div>
           ) : viewing === 2 && project?.status === "ready" ? (
             <ReelExport
               key="export"
@@ -671,6 +653,7 @@ export function NewProjectForm({
             />
           ) : null}
         </AnimatePresence>
+        </div>
 
         {confirmBrief ? (
           <ReviseStoryboardDialog

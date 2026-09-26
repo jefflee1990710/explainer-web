@@ -14,7 +14,6 @@ import { listPublicStyles } from "@/service/style/list";
 import type { Character } from "@/model/character";
 import type { Folder } from "@/model/folder";
 import type { Project } from "@/model/project";
-import { VIDEO_RAIL_COLS } from "@/presentation/components/app/projects/[id]/video-rail";
 import { ProjectWorkspace } from "@/presentation/components/app/projects/[id]/project-workspace";
 
 // Revise / approve actions here also run background jobs via after().
@@ -74,10 +73,7 @@ function WorkspaceFallback() {
   return (
     <div className="space-y-6">
       <div className="h-16 rounded-2xl bg-accent-ink/5" />
-      <div className={`grid gap-6 ${VIDEO_RAIL_COLS}`}>
-        <div className="h-64 rounded-[1.5rem] bg-accent-ink/5" />
-        <div className="h-64 rounded-[1.75rem] bg-accent-ink/5" />
-      </div>
+      <div className="h-80 rounded-[1.5rem] bg-accent-ink/5" />
     </div>
   );
 }

@@ -51,6 +51,27 @@ test("clearFramesForAction drops both stills on two-frame redo", () => {
   assert.equal(next[2].blobUrl, "keep");
 });
 
+test("clearFramesForAction queues every still for generate-all, except ones already drawing", () => {
+  const drawing: ClipFrame[] = [
+    ...frames,
+    {
+      clipNumber: 2,
+      position: "end",
+      prompt: "p",
+      status: "in_progress",
+      blobUrl: "drawing",
+      submittedAt: "2026-01-02T00:00:00.000Z",
+    },
+  ];
+  const next = clearFramesForAction(drawing, "all-scenes");
+  assert.equal(next[0].status, "queued");
+  assert.equal(next[0].blobUrl, undefined);
+  assert.equal(next[2].blobUrl, undefined);
+  assert.equal(next[3].status, "in_progress");
+  assert.equal(next[3].blobUrl, "drawing");
+  assert.equal(clearFramesForAction(drawing, "all-clips")[0].status, "queued");
+});
+
 test("clearFramesForAction also drops both stills after save-and-redraw", () => {
   const next = clearFramesForAction(frames, "clip:1:regen");
   assert.equal(next[0].blobUrl, undefined);

@@ -12,6 +12,7 @@ import {
 } from "@/dao";
 import { runPhaseAJob, runStillJob } from "@/service/director/jobs";
 import { isVoLanguage } from "@/service/director/languages";
+import { isVoiceGender, resolveVoiceGender } from "@/service/director/voice";
 import { isSceneTextLanguage } from "@/service/director/scene-text";
 import { applySkillSceneText, briefSkillError } from "@/service/director/skill-rules";
 import { sanitizeFolderName } from "@/service/folder";
@@ -28,6 +29,7 @@ import type {
   PhaseAEditInput,
   SceneTextLanguage,
   VoLanguage,
+  VoiceGender,
 } from "@/model/project";
 
 const CAST_MAX = 4;
@@ -48,6 +50,7 @@ type BriefFields = {
   aspectRatio: AspectRatio;
   durationPreset: DurationPreset;
   language: VoLanguage;
+  voiceGender: VoiceGender;
   sceneTextEnabled: boolean;
   sceneTextLanguage: SceneTextLanguage;
   characterIds: string[];
@@ -62,7 +65,7 @@ function readVideoBrief(
   const aspectRatio = String(formData.get("aspectRatio") || "") as AspectRatio;
   const durationPreset = String(formData.get("durationPreset") || "") as DurationPreset;
   const language = String(formData.get("language") || "en");
-  const sceneTextEnabled = String(formData.get("sceneTextEnabled") || "") === "1";
+  const voiceGender = String(formData.get("voiceGender") || "male");
   const sceneTextLanguage = String(formData.get("sceneTextLanguage") || "en");
   const characterIds = Array.from(
     new Set(
@@ -85,7 +88,10 @@ function readVideoBrief(
   if (!isVoLanguage(language)) {
     return { ok: false, error: "請選擇旁白語言" };
   }
-  if (sceneTextEnabled && !isSceneTextLanguage(sceneTextLanguage)) {
+  if (!isVoiceGender(voiceGender)) {
+    return { ok: false, error: "請選擇旁白聲線" };
+  }
+  if (!isSceneTextLanguage(sceneTextLanguage)) {
     return { ok: false, error: "請選擇畫面文字語言" };
   }
   if (!isStyleId(styleId)) {
@@ -100,8 +106,10 @@ function readVideoBrief(
       aspectRatio,
       durationPreset,
       language,
-      sceneTextEnabled,
-      sceneTextLanguage: isSceneTextLanguage(sceneTextLanguage) ? sceneTextLanguage : "en",
+      voiceGender: resolveVoiceGender(voiceGender),
+      // 畫面文字永遠開啟，使用者只選語言。
+      sceneTextEnabled: true,
+      sceneTextLanguage,
       characterIds,
     },
   };
@@ -271,6 +279,7 @@ export async function createVideoAction(
       aspectRatio: brief.aspectRatio,
       durationPreset: brief.durationPreset,
       language: brief.language,
+      voiceGender: brief.voiceGender,
       sceneTextEnabled: applySkillSceneText(skill.slug, brief.sceneTextEnabled),
       sceneTextLanguage: brief.sceneTextLanguage,
       cast,
@@ -348,6 +357,7 @@ export async function updateVideoBriefAction(
           aspectRatio: brief.aspectRatio,
           durationPreset: brief.durationPreset,
           language: brief.language,
+          voiceGender: brief.voiceGender,
           sceneTextEnabled: applySkillSceneText(skill.slug, brief.sceneTextEnabled),
           sceneTextLanguage: brief.sceneTextLanguage,
           cast: castResult.cast,

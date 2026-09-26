@@ -9,6 +9,8 @@ export type DurationPreset = "micro" | "short" | "punchy" | "full";
 export type LoopMode = "linear" | "infinite";
 // Voiceover language: American English, Hong Kong Cantonese colloquial, Traditional Chinese (Mandarin).
 export type VoLanguage = "en" | "yue" | "zh";
+// Narrator / spoken-voice gender chosen on the input step.
+export type VoiceGender = "male" | "female";
 // On-canvas labels in storyboard stills; independent of voiceover language.
 export type SceneTextLanguage = "en" | "zh-Hant" | "zh-Hans";
 
@@ -163,6 +165,8 @@ export type Project = {
   styleId?: StyleId;
   // Optional for legacy documents; defaults to "en" when absent.
   language?: VoLanguage;
+  // Optional for legacy documents; defaults to male when absent.
+  voiceGender?: VoiceGender;
   // Missing or false → no on-canvas labels. True + language → labels in that script.
   sceneTextEnabled?: boolean;
   sceneTextLanguage?: SceneTextLanguage;
@@ -183,6 +187,8 @@ export type Project = {
   // Set once frame jobs have been submitted (guards against double submit).
   framesSubmittedAt?: Date;
   clips: ProjectClip[];
+  // Clips that should start a video once both scene images exist.
+  autoVideoClips?: number[];
   // Concatenated reel (step 4). Fingerprint must match current clip URLs.
   reelUrl?: string;
   reelStatus?: ReelStatus;
@@ -252,6 +258,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   durationPreset: z.enum(["micro", "short", "punchy", "full"]),
   styleId: styleIdSchema.optional(),
   language: z.enum(["en", "yue", "zh"]).optional(),
+  voiceGender: z.enum(["male", "female"]).optional(),
   sceneTextEnabled: z.boolean().optional(),
   sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans"]).optional(),
   characterImageUrl: z.string().optional(),

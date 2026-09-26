@@ -11,7 +11,7 @@ Use only after explicit approval of the current Phase A. Write ONE self-containe
 5. Scene at t=0: setting, host pose, number device state, item image state, and where previous items sit (matches the START keyframe).
 6. Timed beats scaled to duration: number pops with an SFX hit → item image appears or morphs element by element → settles on the END keyframe. For the hook clip: count line + slam-in. For the outro: items line up at rest.
 7. Camera: one modest move (punch-in on the number, drift toward the item). No cuts inside a clip.
-8. Audio: the line quoted exactly once, audio-only; driving beat; number-pop SFX synced to the pop.
+8. Audio: the line quoted exactly once, audio-only, in the user-selected adult male or female voice; no background music; number-pop SFX synced to the pop.
 9. Handoff: the resting state the next clip inherits (this item shrinks into the row / slides off as the next number arrives) — or, for the last clip, the set at rest; no loop.
 10. Negatives: no extra invented labels beyond the numbered item list, no wrong numbers, no host restyle, no style drift, no extra limbs, plus the Visual style negatives.
 

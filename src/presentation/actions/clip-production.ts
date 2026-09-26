@@ -19,3 +19,15 @@ export async function generateRemainingAction(
 ) {
   return service.generateRemainingAction(...args);
 }
+
+export async function generateAllSceneImagesAction(
+  ...args: Parameters<typeof service.generateAllSceneImagesAction>
+) {
+  return service.generateAllSceneImagesAction(...args);
+}
+
+export async function generateAllClipsAction(
+  ...args: Parameters<typeof service.generateAllClipsAction>
+) {
+  return service.generateAllClipsAction(...args);
+}

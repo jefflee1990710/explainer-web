@@ -30,7 +30,7 @@ const STAGE_CLASS: Record<ClipStage, string> = {
 
 const BUSY: ReadonlySet<ClipStage> = new Set(["frames_generating", "video_generating"]);
 
-// Horizontal rail of clip chips; the selected one drives the workspace below.
+// Horizontal rail of clip chips; the selected one drives the workspace above.
 export function ClipTimeline({
   project,
   states,

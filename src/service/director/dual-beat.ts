@@ -108,7 +108,12 @@ export function normalizeDualBeatRow(row: StoryboardRow): StoryboardRow {
   };
 }
 
-export function dualBeatDirectorBlock(sceneTextEnabled: boolean) {
+export function dualBeatDirectorBlock(
+  sceneTextEnabled: boolean,
+  options?: { inWorldLabels?: boolean },
+) {
+  // OFF 有兩種：完全無字（其他技能）或「只關字幕、保留場景短標籤」（白板概念解說）。
+  const inWorldLabels = !sceneTextEnabled && Boolean(options?.inWorldLabels);
   return [
     "This skill uses Dual-Keyframe + Dual-Beat (白板概念解說 only).",
     "startScene: the t=0 still only — one frozen pose, props, environment. Not a motion paragraph. Exactly one figure per named character.",
@@ -118,9 +123,17 @@ export function dualBeatDirectorBlock(sceneTextEnabled: boolean) {
     "startVo: first spoken sentence (0s → midpoint). endVo: second spoken sentence (midpoint → end).",
     "englishVo must be exactly startVo then endVo. explainerScene may repeat 起始：…。結尾：… for compatibility.",
     sceneTextEnabled
-      ? "On-canvas text ON: start still quotes ONLY startVo; end still quotes ONLY endVo. Two subtitle beats switch at the midpoint. Never both lines on one still."
-      : "On-canvas text OFF: no writing on either still.",
-    "Lettering look follows the selected visual style catalog — do not force whiteboard marker lettering unless that style asks for it.",
-    "Do not invent extra titles besides the beat voiceover.",
+      ? "On-canvas text ON: start still quotes ONLY startVo; end still quotes ONLY endVo as handwritten marker lettering centered at 52%–60% of the frame height, max 2 lines, generous side margins. Not a bottom subtitle bar. English is all-caps black marker; the second line sits in a warm-yellow highlight box. Two beats switch at the midpoint. Never both voiceover lines on one still."
+      : inWorldLabels
+        ? "Voiceover captions OFF: no subtitle band or title card on either still. Short in-world handwritten labels (yellow tags, arrow labels, box or bin names, 1–3 all-caps words in 「」) ARE allowed and encouraged — they count toward the 3–4 visual devices per still."
+        : "On-canvas text OFF: no writing on either still.",
+    sceneTextEnabled
+      ? "Lettering follows the whiteboard doodle visual style catalog: handwritten marker, never a printed caption or a bottom white band."
+      : "Lettering look follows the selected visual style catalog — do not force whiteboard marker lettering unless that style asks for it.",
+    sceneTextEnabled
+      ? "Short prop labels in 「」 may sit on the object they name. Do not invent a title card besides the beat voiceover."
+      : inWorldLabels
+        ? "Labels must name a prop or concept in the scene; never transcribe the voiceover or add a headline."
+        : "Do not invent extra titles besides the beat voiceover.",
   ].join("\n");
 }

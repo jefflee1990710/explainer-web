@@ -80,7 +80,7 @@ export function FramePromptPanel({
                     ? "禁止畫面文字"
                     : "未辨識畫面文字區塊"}
                 {stale ? (
-                  <span className="ml-1 font-medium text-accent">（與目前開關不一致，請重畫）</span>
+                  <span className="ml-1 font-medium text-accent">（舊畫格沒有畫面文字，請重畫）</span>
                 ) : null}
               </span>
             </summary>

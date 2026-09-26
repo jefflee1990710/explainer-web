@@ -9,7 +9,7 @@ Deliver these sections in order:
 1. Global continuity block
 2. $N$ standalone English prompts (each 3–8 seconds, max 8s)
 3. Stitching guide (linear assembly only — no loop bridge)
-4. Voice and music continuity note
+4. Voice continuity note (no BGM)
 
 ## Global continuity block
 
@@ -27,8 +27,8 @@ Write every prompt in this order:
 6. First-frame state inherited from the previous clip (or opening hook entrance for Clip 1)
 7. Timed visual beats scaled to clip duration (e.g., `[0–3s]`, `[3–6s]`, `[6–8s]` or `[0–2s]`, `[2–4s]`), enforcing a visual change every 1.5–2.5 seconds (micro punch-in, camera push, doodle morph, icon pop, tag snap)
 8. Exact audio-only English dialogue in quotation marks
-9. Identical narrator description, emotion, and delivery (strictly locked as a warm, engaging adult male voice speaking natural American English)
-10. BGM, synchronized SFX (accent noises like whoosh, pop, ding), and voice-first mixing
+9. Identical narrator description, emotion, and delivery (strictly locked as the user-selected adult male or female voice speaking the chosen voiceover language)
+10. No background music / BGM / score. Short synchronized SFX only (whoosh, pop, ding). Voice-only mix.
 11. Final-frame transition state inherited by the next clip (or a clean resting payoff on the last clip — never a loop seam back to Clip 1)
 12. Negative constraints, including no voiceover captions, no teal sunburst world, no glasses hero, and no technical color notation
 
@@ -66,7 +66,7 @@ Describe backgrounds as a clean solid white whiteboard canvas with hand-drawn bl
 
 ## Audio contract
 
-Repeat the same narrator specification in all prompts: strictly lock the narrator as a warm, engaging adult male voice speaking natural American English. Never switch to a female voice. State delivery changes without changing voice identity. Keep narration dominant over BGM and effects.
+Repeat the same narrator specification in all prompts: lock the narrator as a warm, engaging adult voice of the gender the user selected (male or female), speaking the chosen voiceover language. Never switch gender. State delivery changes without changing voice identity. No background music, BGM, score, or underscore — spoken line plus short synced SFX only.
 
 Synchronize effects to visible events such as impacts, transformations, energy releases, steps, wipes, or object movement.
 
@@ -80,7 +80,7 @@ Forbid:
 - noses of any kind when using default everyman (character must strictly remain nose-less)
 - full head of hair, realistic hair, or changing the three twig-like hair tufts when using default everyman (must stay highest, shortest, second highest from left to right)
 - changing clothing, colors, or character appearance from the locked visual guidelines or reference image
-- female narrator voice, voice drift, or changing narrator identity (must strictly remain the locked adult male voice)
+- the opposite narrator gender, voice drift, or changing narrator identity (must remain the user-selected adult voice)
 - missing facial features or missing clothing when the locked everyman is visible
 - extra limbs, malformed anatomy, disconnected body parts, or changed proportions
 - broken or drifting art style across clips
@@ -95,11 +95,11 @@ List all clips in order. For every cut, repeat the exact ending state and matchi
 
 ## Audio continuity note
 
-Independent text-only generations may vary in voice and music. Recommend, in order:
+Independent text-only generations may vary in voice. Recommend, in order:
 
 1. Reuse the same voice or audio reference when the interface supports it.
-2. Repeat the identical narrator description in every prompt.
-3. For maximum consistency, generate synchronized SFX and add one continuous external English voiceover and BGM track during assembly.
+2. Repeat the identical narrator gender and language description in every prompt.
+3. For maximum consistency, generate synchronized SFX only — never add a BGM track during assembly.
 
 ## Phase B checks
 

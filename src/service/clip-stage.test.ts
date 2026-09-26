@@ -3,6 +3,7 @@ import { test } from "node:test";
 import type { ClipFrame, ProjectClip } from "@/model/project";
 import {
   clipStateFor,
+  defaultSelectedClip,
   isProjectBusy,
   isProjectReady,
   productionCounts,
@@ -224,6 +225,25 @@ test("completed frames without a file are still generating, not ready", () => {
   assert.equal(clipStateFor(p, 1).stage, "frames_generating");
   assert.equal(isProjectBusy(p), true);
   assert.deepEqual(productionCounts(p), { total: 2, framesDone: 0, videosDone: 0 });
+});
+
+test("defaultSelectedClip picks the first clip that is not video_ready", () => {
+  const selected = defaultSelectedClip([
+    { clipNumber: 1, stage: "video_ready" },
+    { clipNumber: 2, stage: "frames_ready" },
+    { clipNumber: 3, stage: "no_frames" },
+  ]);
+  assert.equal(selected, 2);
+});
+
+test("defaultSelectedClip falls back to the first clip when all are ready", () => {
+  assert.equal(
+    defaultSelectedClip([
+      { clipNumber: 1, stage: "video_ready" },
+      { clipNumber: 2, stage: "video_ready" },
+    ]),
+    1,
+  );
 });
 
 test("completed video without a file is still generating, not ready", () => {

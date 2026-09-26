@@ -10,7 +10,7 @@ Use only after explicit approval of the current Phase A. Write ONE self-containe
 4. Scene: location and anchor props, protagonist's pose and feeling at t=0 (matches the START keyframe).
 5. Timed beats scaled to duration (e.g. `[0–2s]`, `[2–5s]`, `[5–7s]`): first half stays with the start state (small motion only); second half slides and morphs element by element into the END keyframe. Name the feeling shift in each beat.
 6. Camera: one modest move for the whole clip (slow push, drift, tilt). No cuts inside a clip.
-7. Audio: character dialogue only (`NAME: "line"`) quoted exactly once, marked audio-only. No narrator. Music state; 1–2 SFX synced to visible events. If the clip is a silent beat, say `(no dialogue)`.
+7. Audio: character dialogue only (`NAME: "line"`) quoted exactly once, marked audio-only. No narrator. No background music. 1–2 SFX synced to visible events. If the clip is a silent beat, say `(no dialogue)`.
 8. Handoff: the resting end state the next clip inherits — or, for the last clip, the button: rest on the final image, no loop.
 9. Negatives: no captions/subtitles/transcribed speech, no logos or UI text, no new characters, no style drift, no extra limbs, plus the Visual style negatives.
 

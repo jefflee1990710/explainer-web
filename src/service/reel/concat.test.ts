@@ -5,7 +5,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import ffmpegPath from "ffmpeg-static";
-import { concatMp4Buffers } from "@/service/reel/concat";
+import { buildEdgeFadeFilter, concatMp4Buffers } from "@/service/reel/concat";
+
+test("buildEdgeFadeFilter fades video and audio out then in at every clip edge", () => {
+  const filter = buildEdgeFadeFilter([5, 4, 6], [true, true, true]);
+  assert.match(filter, /\[0:v\]fade=t=out:st=4\.9:d=0\.1\[v0\]/);
+  assert.match(filter, /\[0:a\]afade=t=out:st=4\.9:d=0\.1\[a0\]/);
+  assert.match(filter, /\[1:v\]fade=t=in:st=0:d=0\.1,fade=t=out:st=3\.9:d=0\.1\[v1\]/);
+  assert.match(filter, /\[1:a\]afade=t=in:st=0:d=0\.1,afade=t=out:st=3\.9:d=0\.1\[a1\]/);
+  assert.match(filter, /\[2:v\]fade=t=in:st=0:d=0\.1\[v2\]/);
+  assert.match(filter, /concat=n=3:v=1:a=1/);
+});
 
 function makeClip(dir: string, name: string, color: string) {
   assert.ok(ffmpegPath);

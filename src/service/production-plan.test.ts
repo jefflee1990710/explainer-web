@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ClipFrame, ProjectClip } from "@/model/project";
 import type { ClipStageSource } from "@/service/clip-stage";
-import { planRemaining } from "@/service/production-plan";
+import {
+  autoVideoDecision,
+  planGenerateAllClips,
+  planGenerateAllScenes,
+  planRemaining,
+} from "@/service/production-plan";
 
 function frame(
   clipNumber: number,
@@ -58,6 +63,57 @@ test("skips video for clips whose frames are stale", () => {
     clips: [],
   };
   assert.deepEqual(planRemaining(project), { frames: [], videos: [], cost: 0 });
+});
+
+test("generate all scenes redraws every clip that is not already drawing", () => {
+  const project: ClipStageSource = {
+    status: "production",
+    phaseA: { clips: [1, 2, 3].map((clipNumber) => ({ clipNumber })) },
+    frames: [
+      ...done(1),
+      frame(2, "start", "completed"),
+      frame(2, "end", "in_progress"),
+    ],
+    clips: [clip(1, "completed")],
+  };
+  assert.deepEqual(planGenerateAllScenes(project), { frames: [1, 3], videos: [], cost: 4 });
+});
+
+test("generate all clips reserves a video for every clip and skips in-flight frames", () => {
+  const project: ClipStageSource = {
+    status: "production",
+    phaseA: { clips: [1, 2].map((clipNumber) => ({ clipNumber })) },
+    frames: [frame(2, "start", "queued"), frame(2, "end", "queued")],
+    clips: [],
+  };
+  assert.deepEqual(planGenerateAllClips(project), { frames: [1], videos: [1, 2], cost: 2 + 2 });
+});
+
+test("auto video waits until both stills exist, then starts once", () => {
+  const frames = [
+    frame(1, "start", "completed", "2026-03-01T00:00:00.000Z"),
+    frame(1, "end", "queued", "2026-03-01T00:00:01.000Z"),
+  ];
+  assert.equal(autoVideoDecision(frames, [], 1), "wait");
+  frames[1] = frame(1, "end", "completed", "2026-03-01T00:00:02.000Z");
+  assert.equal(autoVideoDecision(frames, [], 1), "start");
+  assert.equal(
+    autoVideoDecision(frames, [clip(1, "completed")], 1),
+    "start",
+  );
+  const filmed = {
+    ...clip(1, "completed"),
+    submittedAt: "2026-03-01T00:00:03.000Z",
+  };
+  assert.equal(autoVideoDecision(frames, [filmed], 1), "done");
+  assert.equal(
+    autoVideoDecision(
+      [frame(1, "start", "failed"), frame(1, "end", "completed")],
+      [],
+      1,
+    ),
+    "drop",
+  );
 });
 
 test("empty plan when everything is done", () => {

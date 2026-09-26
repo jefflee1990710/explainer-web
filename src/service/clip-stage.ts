@@ -106,6 +106,13 @@ export function isProjectReady(project: ClipStageSource) {
   return states.length > 0 && states.every((state) => state.stage === "video_ready");
 }
 
+// First unfinished clip, or clip 1 when every clip is done / missing.
+export function defaultSelectedClip(
+  states: Array<{ clipNumber: number; stage: ClipStage }>,
+): number {
+  return states.find((state) => state.stage !== "video_ready")?.clipNumber ?? states[0]?.clipNumber ?? 1;
+}
+
 // Header counters: clips with both frames done, clips with a video.
 export function productionCounts(project: ClipStageSource) {
   const states = clipStatesFor(project);

@@ -100,9 +100,23 @@ test("dual-beat director block mentions two VO/subtitle beats and style-specific
   const on = dualBeatDirectorBlock(true);
   assert.match(on, /ONLY startVo/);
   assert.match(on, /ONLY endVo/);
+  assert.match(on, /52%/);
+  assert.match(on, /warm-yellow highlight box/);
   assert.match(on, /visual style catalog/);
   assert.match(on, /one frozen pose/);
   assert.match(on, /landed resting pose/);
   assert.match(on, /motionCamera/);
   assert.match(dualBeatDirectorBlock(false), /no writing/);
+  assert.match(dualBeatDirectorBlock(false), /Do not invent extra titles/);
+});
+
+test("dual-beat director block keeps in-world labels when only captions are off", () => {
+  const block = dualBeatDirectorBlock(false, { inWorldLabels: true });
+  assert.match(block, /captions OFF/);
+  assert.match(block, /yellow tags/);
+  assert.match(block, /3–4 visual devices/);
+  assert.doesNotMatch(block, /no writing on either still/);
+  // ON wins over the option: labels mode only exists when captions are off.
+  assert.match(dualBeatDirectorBlock(true, { inWorldLabels: true }), /ONLY startVo/);
+  assert.doesNotMatch(dualBeatDirectorBlock(true, { inWorldLabels: true }), /captions OFF/);
 });

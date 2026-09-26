@@ -135,7 +135,7 @@ export function ClipScenePrompts({
             <PromptField
               id={`${sceneId}-vo-start`}
               label={`旁白起（${voLabel}）`}
-              hint="前半句。畫面文字開啟時，起始圖只引用這句。"
+              hint="前半句。起始圖的畫面文字只引用這句。"
               value={draft.startVo || ""}
               rows={2}
               disabled={busy}
@@ -145,7 +145,7 @@ export function ClipScenePrompts({
             <PromptField
               id={`${sceneId}-vo-end`}
               label={`旁白終（${voLabel}）`}
-              hint="後半句。畫面文字開啟時，結尾圖只引用這句。"
+              hint="後半句。結尾圖的畫面文字只引用這句。"
               value={draft.endVo || ""}
               rows={2}
               disabled={busy}

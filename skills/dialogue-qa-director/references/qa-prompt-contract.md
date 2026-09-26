@@ -10,7 +10,7 @@ Use only after explicit approval of the current Phase A. Write ONE self-containe
 4. Scene at t=0: setting, both characters' poses and expressions, the visual aid state (matches the START keyframe).
 5. Timed beats scaled to duration: the speaker gestures as they talk; the listener reacts; the aid appears or morphs element by element in the second half, landing on the END keyframe.
 6. Camera: one modest move (slight push toward the speaker, or a static frame with a gentle drift). No cuts inside a clip.
-7. Audio: each line quoted exactly once as `NAME: "line"`, audio-only, with both voice descriptions repeated verbatim; music state; SFX synced to reactions and aid changes.
+7. Audio: each line quoted exactly once as `NAME: "line"`, audio-only, with both voice descriptions repeated verbatim; no background music; SFX synced to reactions and aid changes.
 8. Handoff: both characters' resting poses and the aid state the next clip inherits — or, for the last clip, both at rest after the button; no loop.
 9. Negatives: no captions/subtitles/speech bubbles with text, no third character, no side swap, no style drift, no extra limbs, plus the Visual style negatives.
 

@@ -14,7 +14,7 @@ import { flattenToCanvas } from "@/service/higgsfield/flatten";
 import { sceneTextNegativePrompt, resolveSceneText } from "@/service/director/scene-text";
 import { imageModelForSubmit, resolveImageRoute } from "@/service/generation/image-backend";
 import { buildFramePrompt, videoStyle } from "@/service/higgsfield/frame-prompts";
-import { unsubmittedPositions } from "@/service/higgsfield/job-attempts";
+import { orphanQueuedFrames, positionsToFail } from "@/service/higgsfield/job-attempts";
 import {
   fetchHiggsfieldStatus,
   mediaUrlFromResponse,
@@ -34,7 +34,7 @@ import {
   reconcileClips,
   reconcileFrames,
 } from "@/service/higgsfield/reconcile";
-import { FRAME_COST, VIDEO_COST } from "@/service/production-plan";
+import { FRAME_COST, STUCK_CLAIM_MS, VIDEO_COST } from "@/service/production-plan";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type {
   ClipFrame,
@@ -84,8 +84,9 @@ export async function submitStillIfNeeded(project: Project) {
   if (existing) return;
 
   const skill = await loadSkill(project);
+  const imageModel = imageModelForSubmit(resolveImageRoute(), Boolean(project.characterImageUrl));
   const still = await submitImage({
-    model: skill.higgsfieldDefaults.imageModel,
+    model: imageModel,
     prompt: stillPrompt(project),
     aspectRatio: project.aspectRatio,
     quality: skill.higgsfieldDefaults.imageQuality || "medium",
@@ -96,7 +97,7 @@ export async function submitStillIfNeeded(project: Project) {
     projectId: project._id,
     clipIndex: -1,
     kind: "still",
-    model: skill.higgsfieldDefaults.imageModel,
+    model: imageModel,
     requestId: still.request_id,
     statusUrl: still.status_url,
     status: (still.status as GenerationStatus) || "queued",
@@ -149,7 +150,7 @@ async function submitOneFrame(
     aspectRatio: project.aspectRatio,
     quality: skill.higgsfieldDefaults.imageQuality || "medium",
     resolution: skill.higgsfieldDefaults.imageResolution || "1k",
-    negativePrompt: sceneTextNegativePrompt(sceneText.enabled),
+    negativePrompt: sceneTextNegativePrompt(sceneText.enabled, sceneText.inWorldLabels),
     sceneTextLanguage: sceneText.language,
     referenceImageUrls: refs,
   });
@@ -248,7 +249,7 @@ export async function failUnsubmittedFrames(
   const frameJobs = await jobs
     .find({ projectId, kind: "frame", clipIndex: clipNumber - 1 })
     .toArray();
-  const missed = unsubmittedPositions(frameJobs, since, exclude);
+  const missed = positionsToFail(frameJobs, since, exclude);
 
   for (const position of missed) {
     await projects.updateOne(
@@ -611,6 +612,46 @@ export async function syncProjectFromJobs(projectId: ObjectId) {
   if (!project) return;
 
   const allJobs = await jobs.find({ projectId }).toArray();
+  // A deferred end stays `queued` with no job when its start fails before
+  // submit. Release those so the redraw button is not stuck on "產生中".
+  const orphans = orphanQueuedFrames(
+    project.frames || [],
+    allJobs,
+    Date.now(),
+    STUCK_CLAIM_MS,
+  );
+  for (const orphan of orphans) {
+    const start = project.frames?.find(
+      (frame) => frame.clipNumber === orphan.clipNumber && frame.position === "start",
+    );
+    const error =
+      orphan.position === "end" && start?.status === "failed" && start.error
+        ? start.error
+        : "分鏡圖沒有送出，請再試一次";
+    const claimed = await projects.findOneAndUpdate(
+      {
+        _id: projectId,
+        frames: {
+          $elemMatch: {
+            clipNumber: orphan.clipNumber,
+            position: orphan.position,
+            status: "queued",
+          },
+        },
+      },
+      {
+        $set: {
+          "frames.$.status": "failed",
+          "frames.$.error": error,
+          updatedAt: new Date(),
+        },
+      },
+    );
+    if (claimed) await refundCredits(project.clerkUserId, FRAME_COST);
+  }
+  const current = orphans.length
+    ? (await projects.findOne({ _id: projectId })) || project
+    : project;
   const still = allJobs
     .filter((job) => job.kind === "still")
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
@@ -627,9 +668,9 @@ export async function syncProjectFromJobs(projectId: ObjectId) {
     set.stillError = "角色定裝圖產生失敗，下次產生畫格時會自動重試";
   }
 
-  const frames = reconcileFrames(project.frames || [], allJobs);
-  const clips = reconcileClips(project.clips, allJobs);
-  const next = { ...project, ...set, frames, clips };
+  const frames = reconcileFrames(current.frames || [], allJobs);
+  const clips = reconcileClips(current.clips, allJobs);
+  const next = { ...current, ...set, frames, clips };
 
   await projects.updateOne(
     { _id: projectId },
@@ -643,6 +684,10 @@ export async function syncProjectFromJobs(projectId: ObjectId) {
       },
     },
   );
+
+  // "產生全部影片" waits here until both stills for a clip have files.
+  const { queueAutoClipVideos } = await import("@/service/clip/auto-video");
+  await queueAutoClipVideos(projectId);
 }
 
 export async function refreshProjectJobs(projectId: ObjectId) {
