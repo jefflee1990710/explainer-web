@@ -34,6 +34,7 @@ import {
   reconcileClips,
   reconcileFrames,
 } from "@/service/higgsfield/reconcile";
+import { scheduleGenerationFinishedEmail } from "@/service/notify/generation-email";
 import { FRAME_COST, STUCK_CLAIM_MS, VIDEO_COST } from "@/service/production-plan";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type {
@@ -404,6 +405,9 @@ export async function applyJobStatus(input: {
             $unset: { error: "" },
           },
     );
+    if (status === "completed" && outputUrl) {
+      scheduleGenerationFinishedEmail(job._id);
+    }
     return;
   }
 
@@ -491,6 +495,10 @@ export async function applyJobStatus(input: {
     (blobUrl || outputUrl)
   ) {
     await submitDeferredEndIfNeeded(projectId, job.clipIndex + 1);
+  }
+
+  if (status === "completed" && (blobUrl || outputUrl)) {
+    scheduleGenerationFinishedEmail(job._id);
   }
 }
 
