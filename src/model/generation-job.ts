@@ -30,6 +30,8 @@ export type GenerationJob = {
   outputUrl?: string;
   blobUrl?: string;
   error?: string;
+  // Set after the finish email is claimed so webhook + poller send once.
+  notifiedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -49,6 +51,7 @@ export const generationJobSchema: z.ZodType<GenerationJob> = z.object({
   outputUrl: z.string().optional(),
   blobUrl: z.string().optional(),
   error: z.string().optional(),
+  notifiedAt: z.date().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
