@@ -10,7 +10,7 @@ import { FrameEditDialog } from "@/presentation/components/project/frame-edit-di
 import { ProductionToolbar } from "@/presentation/components/project/production-toolbar";
 import { SelectionBar } from "@/presentation/components/project/selection-bar";
 import { VideoDesk, type SelectClip } from "@/presentation/components/project/video-desk";
-import { clipStatesFor, productionCounts, type ClipState } from "@/service/clip-stage";
+import { clipStatesFor, inFlightCounts, productionCounts, type ClipState } from "@/service/clip-stage";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import type { PublicVideo } from "@/presentation/serialize";
 import type {
@@ -81,6 +81,7 @@ export function ClipProduction({
     : undefined;
 
   const counts = productionCounts(project);
+  const queue = inFlightCounts(project);
   const firstUnfinished = states.find(unfinished)?.clipNumber;
   const idle = pending === "";
 
@@ -131,6 +132,7 @@ export function ClipProduction({
             total={counts.total}
             framesDone={counts.framesDone}
             videosDone={counts.videosDone}
+            queue={queue}
             firstUnfinished={firstUnfinished}
             showDebug={showDebug}
             busy={!idle}

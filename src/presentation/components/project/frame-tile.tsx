@@ -30,6 +30,7 @@ export function FrameTile({
   aspectRatio,
   pending,
   stale = false,
+  compact = false,
   onOpen,
 }: {
   frame?: ClipFrame;
@@ -38,6 +39,8 @@ export function FrameTile({
   pending: boolean;
   // Drawn before the latest text edit; shown dimmed.
   stale?: boolean;
+  // Hide the caption when the tile sits beside a finished video.
+  compact?: boolean;
   onOpen: () => void;
 }) {
   const src = mediaSrc(frame);
@@ -143,6 +146,7 @@ export function FrameTile({
           </span>
         ) : null}
       </div>
+      {compact ? null : (
       <figcaption className="mt-2 flex items-center justify-between gap-2">
         <span className="text-[11px] text-muted">
           {!frame
@@ -159,6 +163,7 @@ export function FrameTile({
           <span className="text-[11px] text-muted">點畫格標註修改</span>
         ) : null}
       </figcaption>
+      )}
     </figure>
   );
 }

@@ -1,12 +1,15 @@
 "use client";
 
+import { ProductionQueue } from "@/presentation/components/project/production-queue";
 import { StudioButton } from "@/presentation/studio/studio-button";
+import type { InFlightCounts } from "@/service/clip-stage";
 
-// Strip above the desk: overall progress, debug toggle, and "全部產生".
+// Strip above the desk: overall progress, live queue, debug toggle, and "全部產生".
 export function ProductionToolbar({
   total,
   framesDone,
   videosDone,
+  queue,
   firstUnfinished,
   showDebug,
   busy,
@@ -17,6 +20,7 @@ export function ProductionToolbar({
   total: number;
   framesDone: number;
   videosDone: number;
+  queue: InFlightCounts;
   // First clip that still needs work; undefined when everything is done.
   firstUnfinished?: number;
   showDebug: boolean;
@@ -42,6 +46,7 @@ export function ProductionToolbar({
           {videosLeft > 0 ? `還有 ${videosLeft} 段未產片 →` : "全部完成，可以成片"}
         </span>
       </button>
+      <ProductionQueue {...queue} />
       <div className="ml-auto flex items-center gap-2">
         <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-[var(--studio-muted)]">
           <input

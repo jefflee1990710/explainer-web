@@ -3,14 +3,26 @@ import { test } from "node:test";
 import { clipNextAction } from "@/service/clip-next-action";
 import type { ClipStage, ClipState } from "@/service/clip-stage";
 
-function state(stage: ClipStage, stale = { frames: false, video: false }): ClipState {
-  return { clipNumber: 1, stage, stale };
+function state(
+  stage: ClipStage,
+  stale = { frames: false, video: false },
+  wait?: ClipState["wait"],
+): ClipState {
+  return { clipNumber: 1, stage, stale, wait };
 }
 
 test("generating stages are busy with no cost", () => {
   assert.equal(clipNextAction(state("frames_generating")).kind, "busy");
   assert.equal(clipNextAction(state("video_generating")).kind, "busy");
   assert.equal(clipNextAction(state("video_generating")).cost, 0);
+});
+
+test("busy hints distinguish queued from running", () => {
+  const fresh = { frames: false, video: false };
+  assert.equal(clipNextAction(state("frames_generating", fresh, "queued")).hint, "已送出，畫格約 30 秒");
+  assert.equal(clipNextAction(state("frames_generating", fresh, "running")).hint, "正在畫，完成後會自動更新");
+  assert.equal(clipNextAction(state("video_generating", fresh, "queued")).hint, "正在寫鏡頭稿，接著會送模型");
+  assert.equal(clipNextAction(state("video_generating", fresh, "running")).hint, "產片中，約 5–6 分鐘");
 });
 
 test("no frames asks to draw both frames", () => {

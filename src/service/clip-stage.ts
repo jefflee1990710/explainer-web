@@ -17,11 +17,15 @@ export type ClipStage =
   | "video_failed"       // 影片失敗（credits 已退）
   | "video_ready";       // 影片完成
 
+// queued = claimed / waiting on the provider; running = the model is working.
+export type ClipWait = "queued" | "running";
+
 export type ClipState = {
   clipNumber: number;
   stage: ClipStage;
   // Media generated before the latest text edit / frame redo.
   stale: { frames: boolean; video: boolean };
+  wait?: ClipWait;
 };
 
 // Minimal shape so both the Mongo `Project` and `PublicVideo` fit.
@@ -84,7 +88,16 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
   else if (isCompleted(start) && isCompleted(end)) stage = "frames_ready";
   else stage = "no_frames";
 
-  return { clipNumber, stage, stale };
+  const waitItems = stage === "video_generating" ? [clip] : stage === "frames_generating" ? frames : [];
+  return { clipNumber, stage, stale, wait: waitKind(waitItems) };
+}
+
+// in_progress (or completed-without-file) means the provider is working.
+function waitKind(items: Array<MediaItem | undefined>): ClipWait | undefined {
+  const flying = items.filter((item): item is MediaItem => Boolean(item && isInFlight(item)));
+  if (flying.length === 0) return undefined;
+  if (flying.some((item) => item.status !== "queued")) return "running";
+  return "queued";
 }
 
 export function clipStatesFor(project: ClipStageSource): ClipState[] {
@@ -121,4 +134,32 @@ export function productionCounts(project: ClipStageSource) {
   ).length;
   const videosDone = states.filter((state) => state.stage === "video_ready").length;
   return { total: states.length, framesDone, videosDone };
+}
+
+export type InFlightCounts = {
+  framesQueued: number;
+  framesGenerating: number;
+  videosQueued: number;
+  videosGenerating: number;
+};
+
+// Header queue: individual stills and clip videos waiting vs already running.
+export function inFlightCounts(project: ClipStageSource): InFlightCounts {
+  const counts: InFlightCounts = {
+    framesQueued: 0,
+    framesGenerating: 0,
+    videosQueued: 0,
+    videosGenerating: 0,
+  };
+  for (const frame of project.frames || []) {
+    if (!isInFlight(frame)) continue;
+    if (frame.status === "queued") counts.framesQueued += 1;
+    else counts.framesGenerating += 1;
+  }
+  for (const clip of project.clips) {
+    if (!isInFlight(clip)) continue;
+    if (clip.status === "queued") counts.videosQueued += 1;
+    else counts.videosGenerating += 1;
+  }
+  return counts;
 }

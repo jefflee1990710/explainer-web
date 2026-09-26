@@ -4,6 +4,7 @@ import type { ClipFrame, ProjectClip } from "@/model/project";
 import {
   clipStateFor,
   defaultSelectedClip,
+  inFlightCounts,
   isProjectBusy,
   isProjectReady,
   productionCounts,
@@ -65,6 +66,12 @@ test("no frames at all → no_frames", () => {
 test("one frame in flight → frames_generating", () => {
   const p = project({ frames: [frame(1, "start", "completed"), frame(1, "end", "in_progress")] });
   assert.equal(clipStateFor(p, 1).stage, "frames_generating");
+  assert.equal(clipStateFor(p, 1).wait, "running");
+});
+
+test("queued frames wait until the provider starts", () => {
+  const p = project({ frames: [frame(1, "start", "queued"), frame(1, "end", "queued")] });
+  assert.equal(clipStateFor(p, 1).wait, "queued");
 });
 
 test("one frame failed and none in flight → frames_failed", () => {
@@ -88,6 +95,7 @@ test("video queued → video_generating, beats everything", () => {
     clips: [clip(1, "queued")],
   });
   assert.equal(clipStateFor(p, 1).stage, "video_generating");
+  assert.equal(clipStateFor(p, 1).wait, "queued");
 });
 
 test("video completed → video_ready; failed → video_failed", () => {
@@ -213,6 +221,52 @@ test("productionCounts", () => {
     clips: [clip(1, "completed")],
   });
   assert.deepEqual(productionCounts(p), { total: 2, framesDone: 1, videosDone: 1 });
+});
+
+test("inFlightCounts splits queued vs generating for frames and videos", () => {
+  const p = project({
+    frames: [
+      frame(1, "start", "queued"),
+      frame(1, "end", "in_progress"),
+      frame(2, "start", "completed"),
+      frame(2, "end", "completed"),
+    ],
+    clips: [clip(1, "queued"), clip(2, "in_progress")],
+  });
+  assert.deepEqual(inFlightCounts(p), {
+    framesQueued: 1,
+    framesGenerating: 1,
+    videosQueued: 1,
+    videosGenerating: 1,
+  });
+});
+
+test("inFlightCounts treats completed-without-file as generating", () => {
+  const p = project({
+    frames: [
+      frame(1, "start", "completed", undefined, { blobUrl: undefined, outputUrl: undefined }),
+    ],
+    clips: [clip(1, "completed", undefined, { blobUrl: undefined, outputUrl: undefined })],
+  });
+  assert.deepEqual(inFlightCounts(p), {
+    framesQueued: 0,
+    framesGenerating: 1,
+    videosQueued: 0,
+    videosGenerating: 1,
+  });
+});
+
+test("inFlightCounts is empty when nothing is in flight", () => {
+  const p = project({
+    frames: [frame(1, "start", "completed"), frame(1, "end", "failed")],
+    clips: [clip(2, "completed")],
+  });
+  assert.deepEqual(inFlightCounts(p), {
+    framesQueued: 0,
+    framesGenerating: 0,
+    videosQueued: 0,
+    videosGenerating: 0,
+  });
 });
 
 test("completed frames without a file are still generating, not ready", () => {

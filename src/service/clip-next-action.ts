@@ -14,10 +14,20 @@ export type ClipNextAction = {
 // `nextUnfinished` is the clip number the "下一段" button jumps to, if any.
 export function clipNextAction(state: ClipState, nextUnfinished?: number): ClipNextAction {
   if (state.stage === "frames_generating") {
-    return { kind: "busy", label: "畫格產生中…", hint: "約 30 秒，完成後會自動更新", cost: 0 };
+    return {
+      kind: "busy",
+      label: state.wait === "running" ? "正在畫…" : "畫格已送出…",
+      hint: state.wait === "running" ? "正在畫，完成後會自動更新" : "已送出，畫格約 30 秒",
+      cost: 0,
+    };
   }
   if (state.stage === "video_generating") {
-    return { kind: "busy", label: "影片產生中…", hint: "約 1–2 分鐘，完成後會自動更新", cost: 0 };
+    return {
+      kind: "busy",
+      label: state.wait === "running" ? "產片中…" : "撰寫鏡頭稿…",
+      hint: state.wait === "running" ? "產片中，約 5–6 分鐘" : "正在寫鏡頭稿，接著會送模型",
+      cost: 0,
+    };
   }
   if (state.stale.frames) {
     return {

@@ -1,14 +1,13 @@
 "use client";
 
 import { ClipPrimaryAction } from "@/presentation/components/project/clip-primary-action";
+import { ClipPreviewStage } from "@/presentation/components/project/clip-preview-stage";
 import { ClipVideoPanel } from "@/presentation/components/project/clip-video-panel";
 import {
   ClipScenePrompts,
   type ClipScenePending,
 } from "@/presentation/components/project/clip-scene-prompts";
 import { FramePromptPanel } from "@/presentation/components/project/frame-prompt-panel";
-import { FrameTile } from "@/presentation/components/project/frame-tile";
-import { ArrowIcon } from "@/presentation/components/project/production-icons";
 import type { ClipState } from "@/service/clip-stage";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import type { PublicVideo } from "@/presentation/serialize";
@@ -63,42 +62,19 @@ export function ClipWorkspace({
 
   if (region === "preview") {
     return (
-      <div className="flex flex-col gap-4 p-4">
-        <div className="flex items-center justify-center gap-3">
-          <div className="w-28 shrink-0 sm:w-40">
-            <FrameTile
-              frame={start}
-              position="start"
-              aspectRatio={project.aspectRatio}
-              pending={pending === `frame:${n}:start` || framesPending}
-              stale={state.stale.frames}
-              onOpen={() => onOpenFrame("start")}
-            />
-          </div>
-          <span className="flex w-16 items-center text-[var(--studio-muted)] sm:w-36" aria-hidden>
-            <span className="h-px flex-1 bg-current" />
-            <ArrowIcon className="h-4 w-4 shrink-0" />
-          </span>
-          <div className="w-28 shrink-0 sm:w-40">
-            <FrameTile
-              frame={end}
-              position="end"
-              aspectRatio={project.aspectRatio}
-              pending={pending === `frame:${n}:end` || framesPending}
-              stale={state.stale.frames}
-              onOpen={() => onOpenFrame("end")}
-            />
-          </div>
-        </div>
-        <ClipVideoPanel
-          clip={clip}
-          state={state}
-          aspectRatio={project.aspectRatio}
-          pending={pending === `video:${n}`}
-          onGenerate={onGenerateVideo}
-          part="player"
-        />
-      </div>
+      <ClipPreviewStage
+        start={start}
+        end={end}
+        clip={clip}
+        state={state}
+        aspectRatio={project.aspectRatio}
+        framesPending={framesPending}
+        startPending={pending === `frame:${n}:start`}
+        endPending={pending === `frame:${n}:end`}
+        videoPending={pending === `video:${n}`}
+        onOpenFrame={onOpenFrame}
+        onGenerateVideo={onGenerateVideo}
+      />
     );
   }
 
