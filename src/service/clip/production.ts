@@ -23,6 +23,7 @@ import {
   planGenerateAllClips,
   planGenerateAllScenes,
   planRemaining,
+  planSelected,
 } from "@/service/production-plan";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import type { Project } from "@/model/project";
@@ -221,6 +222,61 @@ export async function generateRemainingAction(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "補齊失敗",
+    };
+  }
+}
+
+// Filmstrip multi-select: frames or videos for the checked clips only. Each
+// clip charges itself; ineligible or failed clips come back as `skipped`.
+export async function generateSelectedClipsAction(
+  projectId: string,
+  clipNumbers: number[],
+  kind: "frames" | "videos",
+): Promise<RemainingResult> {
+  try {
+    const user = await requireAppUser();
+    const loaded = await loadProduction(projectId, user.clerkUserId);
+    if (!loaded.ok) return loaded;
+
+    // Client input: keep unique integer clip numbers only.
+    const picks = Array.isArray(clipNumbers)
+      ? [...new Set(clipNumbers.filter((n) => Number.isInteger(n)))]
+      : [];
+    if (kind !== "frames" && kind !== "videos") return { ok: false, error: "未知的產生類型" };
+    const plan = planSelected(loaded.project, picks, kind);
+    const targets = kind === "frames" ? plan.frames : plan.videos;
+    if (targets.length === 0) {
+      return {
+        ok: false,
+        error: kind === "frames" ? "選取的段落都在產生中" : "選取的段落都還沒有完成的畫格",
+      };
+    }
+    await assertCanSpendCredits(user, plan.cost);
+
+    const skipped = picks.filter((clipNumber) => !targets.includes(clipNumber));
+    let firstError = "";
+    for (const clipNumber of targets) {
+      const result =
+        kind === "frames"
+          ? await generateClipFramesAction(projectId, clipNumber)
+          : await generateClipVideoAction(projectId, clipNumber);
+      if (!result.ok) {
+        skipped.push(clipNumber);
+        firstError ||= result.error;
+      }
+    }
+    if (skipped.length === picks.length) {
+      return { ok: false, error: firstError || "產生失敗" };
+    }
+
+    const projects = await videosCollection();
+    const updated = await projects.findOne({ _id: loaded.project._id });
+    revalidateProject(projectId);
+    return { ok: true, project: toPublicVideo(updated!), skipped };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "產生失敗",
     };
   }
 }

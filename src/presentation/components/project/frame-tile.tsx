@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { PencilIcon, RefreshIcon } from "@/presentation/components/project/production-icons";
+import { PencilIcon } from "@/presentation/components/project/production-icons";
 import { Spinner } from "@/presentation/components/spinner";
 import { userFacingJobError } from "@/service/higgsfield/job-status";
 import { mediaSrc } from "@/util/media-src";
@@ -22,25 +22,22 @@ export const FRAME_LABEL: Record<FramePosition, string> = {
 
 // One start/end frame: skeleton while generating or the moment a redo is
 // clicked, image when done (click to annotate + redo), failed state, or an
-// empty "待畫格" placeholder when the clip has no frame entry yet.
+// empty "待畫格" placeholder when the clip has no frame entry yet. Single-frame
+// redraws go through the annotate dialog opened by `onOpen`.
 export function FrameTile({
   frame,
   position,
   aspectRatio,
-  canRegenerate,
   pending,
   stale = false,
-  onRegenerate,
   onOpen,
 }: {
   frame?: ClipFrame;
   position: FramePosition;
   aspectRatio: AspectRatio;
-  canRegenerate: boolean;
   pending: boolean;
   // Drawn before the latest text edit; shown dimmed.
   stale?: boolean;
-  onRegenerate: () => void;
   onOpen: () => void;
 }) {
   const src = mediaSrc(frame);
@@ -85,7 +82,7 @@ export function FrameTile({
               ) : (
                 <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-gradient-to-t from-accent-ink/70 to-transparent px-2 pb-2 pt-6 font-display text-[11px] font-bold text-paper opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
                   <PencilIcon className="h-3.5 w-3.5" />
-                  點擊標註・重畫
+                  點擊標註修改
                 </span>
               )}
             </motion.button>
@@ -158,15 +155,8 @@ export function FrameTile({
                   ? "生成中"
                   : "排隊中"}
         </span>
-        {canRegenerate && (completed || failed) && !inFlight ? (
-          <button
-            type="button"
-            onClick={onRegenerate}
-            className="inline-flex min-h-[32px] cursor-pointer items-center gap-1 rounded-full border border-accent-ink/15 bg-paper px-2.5 text-[11px] font-semibold transition hover:border-accent-ink/40"
-          >
-            <RefreshIcon />
-            重畫 · 1
-          </button>
+        {completed && !inFlight ? (
+          <span className="text-[11px] text-muted">點畫格標註修改</span>
         ) : null}
       </figcaption>
     </figure>

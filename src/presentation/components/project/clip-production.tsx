@@ -1,10 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import {
+  BulkGenerateDialog,
+  type BulkMode,
+} from "@/presentation/components/project/bulk-generate-dialog";
 import { ClipWorkspace } from "@/presentation/components/project/clip-workspace";
 import { FrameEditDialog } from "@/presentation/components/project/frame-edit-dialog";
-import { VideoDesk } from "@/presentation/components/project/video-desk";
-import { clipStatesFor } from "@/service/clip-stage";
+import { ProductionToolbar } from "@/presentation/components/project/production-toolbar";
+import { SelectionBar } from "@/presentation/components/project/selection-bar";
+import { VideoDesk, type SelectClip } from "@/presentation/components/project/video-desk";
+import { clipStatesFor, productionCounts, type ClipState } from "@/service/clip-stage";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import type { PublicVideo } from "@/presentation/serialize";
 import type {
@@ -13,7 +19,13 @@ import type {
   FrameRevisionInput,
 } from "@/model/project";
 
-// Selected clip fills the desk: preview, inspector, and the shared filmstrip.
+// Needs work: no finished video yet, or the video is out of date.
+function unfinished(state: ClipState) {
+  return state.stage !== "video_ready" || state.stale.frames || state.stale.video;
+}
+
+// Selected clip fills the desk: toolbar, preview, inspector, and the shared
+// filmstrip with checkboxes for batch runs.
 export function ClipProduction({
   project,
   credits,
@@ -23,6 +35,8 @@ export function ClipProduction({
   onRegenerateFrame,
   onUpdateClip,
   onGenerateVideo,
+  onBulkGenerate,
+  onGenerateSelected,
 }: {
   project: PublicVideo;
   credits: number;
@@ -40,6 +54,8 @@ export function ClipProduction({
     regenerate: boolean,
   ) => Promise<boolean>;
   onGenerateVideo: (clipNumber: number) => void;
+  onBulkGenerate: (mode: BulkMode) => Promise<boolean>;
+  onGenerateSelected: (clipNumbers: number[], kind: "frames" | "videos") => Promise<boolean>;
 }) {
   const phaseA = project.phaseA;
   const states = clipStatesFor(project);
@@ -47,6 +63,9 @@ export function ClipProduction({
     clipNumber: number;
     position: FramePosition;
   } | null>(null);
+  const [checked, setChecked] = useState<string[]>([]);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
   if (!phaseA || states.length === 0) return null;
 
@@ -61,53 +80,97 @@ export function ClipProduction({
       )
     : undefined;
 
+  const counts = productionCounts(project);
+  const firstUnfinished = states.find(unfinished)?.clipNumber;
+  const idle = pending === "";
+
+  // Next clip after `clipNumber` that still needs work, wrapping around.
+  function nextUnfinishedAfter(clipNumber: number) {
+    const index = states.findIndex((state) => state.clipNumber === clipNumber);
+    const ordered = [...states.slice(index + 1), ...states.slice(0, index)];
+    return ordered.find(unfinished)?.clipNumber;
+  }
+
+  function toggleCheck(id: string) {
+    setChecked((ids) => (ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]));
+  }
+
+  async function runSelected(clipNumbers: number[], kind: "frames" | "videos") {
+    if (await onGenerateSelected(clipNumbers, kind)) setChecked([]);
+  }
+
+  function workspace(region: "preview" | "inspector", state: ClipState, select: SelectClip) {
+    return (
+      <ClipWorkspace
+        key={`${region}-${state.clipNumber}`}
+        region={region}
+        project={project}
+        state={state}
+        credits={credits}
+        pending={pending}
+        error={error}
+        nextUnfinished={nextUnfinishedAfter(state.clipNumber)}
+        showDebug={showDebug}
+        onGenerateFrames={() => onGenerateFrames(state.clipNumber)}
+        onOpenFrame={(position) => setEditingFrame({ clipNumber: state.clipNumber, position })}
+        onUpdateClip={(input, regenerate) => onUpdateClip(state.clipNumber, input, regenerate)}
+        onGenerateVideo={() => onGenerateVideo(state.clipNumber)}
+        onSelect={select}
+      />
+    );
+  }
+
   return (
     <>
       <VideoDesk
         key={project.id}
         project={project}
         pending={pending}
-        renderPreview={(state) => (
-          <ClipWorkspace
-            key={`preview-${state.clipNumber}`}
-            region="preview"
-            project={project}
-            state={state}
-            credits={credits}
-            pending={pending}
-            error={error}
-            onGenerateFrames={() => onGenerateFrames(state.clipNumber)}
-            onRegenerateFrame={(position) => onRegenerateFrame(state.clipNumber, position)}
-            onOpenFrame={(position) =>
-              setEditingFrame({ clipNumber: state.clipNumber, position })
-            }
-            onUpdateClip={(input, regenerate) =>
-              onUpdateClip(state.clipNumber, input, regenerate)
-            }
-            onGenerateVideo={() => onGenerateVideo(state.clipNumber)}
+        renderToolbar={(select) => (
+          <ProductionToolbar
+            total={counts.total}
+            framesDone={counts.framesDone}
+            videosDone={counts.videosDone}
+            firstUnfinished={firstUnfinished}
+            showDebug={showDebug}
+            busy={!idle}
+            onJump={select}
+            onToggleDebug={() => setShowDebug((value) => !value)}
+            onBulk={() => setBulkOpen(true)}
           />
         )}
-        renderInspector={(state) => (
-          <ClipWorkspace
-            key={`inspector-${state.clipNumber}`}
-            region="inspector"
-            project={project}
-            state={state}
-            credits={credits}
-            pending={pending}
-            error={error}
-            onGenerateFrames={() => onGenerateFrames(state.clipNumber)}
-            onRegenerateFrame={(position) => onRegenerateFrame(state.clipNumber, position)}
-            onOpenFrame={(position) =>
-              setEditingFrame({ clipNumber: state.clipNumber, position })
-            }
-            onUpdateClip={(input, regenerate) =>
-              onUpdateClip(state.clipNumber, input, regenerate)
-            }
-            onGenerateVideo={() => onGenerateVideo(state.clipNumber)}
-          />
-        )}
+        renderPreview={(state, select) => workspace("preview", state, select)}
+        renderInspector={(state, select) => workspace("inspector", state, select)}
+        checkedIds={checked}
+        onToggleCheck={toggleCheck}
+        timelineBar={
+          checked.length ? (
+            <SelectionBar
+              project={project}
+              clipNumbers={checked.map(Number)}
+              credits={credits}
+              pending={pending === "bulk"}
+              busy={!idle}
+              onFrames={(clipNumbers) => void runSelected(clipNumbers, "frames")}
+              onVideos={(clipNumbers) => void runSelected(clipNumbers, "videos")}
+              onClear={() => setChecked([])}
+            />
+          ) : null
+        }
       />
+      {bulkOpen ? (
+        <BulkGenerateDialog
+          project={project}
+          credits={credits}
+          pending={pending === "bulk"}
+          onCancel={() => setBulkOpen(false)}
+          onConfirm={(mode) => {
+            void onBulkGenerate(mode).then((ok) => {
+              if (ok) setBulkOpen(false);
+            });
+          }}
+        />
+      ) : null}
       {editingFrame && frame && editingRow ? (
         <FrameEditDialog
           key={`${editingFrame.clipNumber}:${editingFrame.position}`}
@@ -118,7 +181,7 @@ export function ClipProduction({
           sceneTextEnabled={project.sceneTextEnabled}
           sceneTextLanguage={project.sceneTextLanguage}
           dualBeat={isDualBeatSkill(project.skillSlug)}
-          canRegenerate={pending === ""}
+          canRegenerate={idle}
           onClose={() => setEditingFrame(null)}
           onRegenerate={(revision) => {
             onRegenerateFrame(editingFrame.clipNumber, editingFrame.position, revision);

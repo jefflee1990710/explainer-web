@@ -1,4 +1,7 @@
-// Shared row for the editor media list and the bottom filmstrip.
+// Progress colour for the filmstrip status band.
+export type StudioClipTone = "idle" | "busy" | "done" | "failed" | "stale";
+
+// Shared row for the bottom filmstrip.
 export type StudioClipItem = {
   id: string;
   title: string;
@@ -7,4 +10,5 @@ export type StudioClipItem = {
   statusLabel: string;
   busy: boolean;
   stale: boolean;
+  tone: StudioClipTone;
 };

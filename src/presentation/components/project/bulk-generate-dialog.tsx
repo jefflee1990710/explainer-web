@@ -1,30 +1,66 @@
 "use client";
 
-import { useEffect, useId } from "react";
+import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { Spinner } from "@/presentation/components/spinner";
-import { FRAMES_COST, VIDEO_COST, type BulkGeneratePlan } from "@/service/production-plan";
+import { StudioButton } from "@/presentation/studio/studio-button";
+import {
+  FRAMES_COST,
+  VIDEO_COST,
+  planGenerateAllClips,
+  planGenerateAllScenes,
+  planRemaining,
+} from "@/service/production-plan";
+import type { PublicVideo } from "@/presentation/serialize";
 
-// Confirm a bulk Phase B run before charging every clip at once.
+export type BulkMode = "remaining" | "scenes" | "clips";
+
+const MODES: Array<{ id: BulkMode; label: string; hint: string; overwrites: boolean }> = [
+  {
+    id: "remaining",
+    label: "補完未完成",
+    hint: "只處理沒畫格、失敗的段落，並替畫格完成的段落產片。已完成的不動。",
+    overwrites: false,
+  },
+  {
+    id: "scenes",
+    label: "只畫畫格",
+    hint: "重畫每一段的起始與結尾畫格。正在畫的段落會略過。",
+    overwrites: true,
+  },
+  {
+    id: "clips",
+    label: "畫格＋影片",
+    hint: "重畫每一段畫格，兩張都完成後自動產片；影片 credits 在那時才扣。",
+    overwrites: true,
+  },
+];
+
+// Confirm a bulk run: pick a mode, see every clip's cost, then charge.
 export function BulkGenerateDialog({
-  mode,
-  plan,
+  project,
   credits,
   pending,
   onCancel,
   onConfirm,
 }: {
-  mode: "scenes" | "clips";
-  plan: BulkGeneratePlan;
+  project: PublicVideo;
   credits: number;
   pending: boolean;
   onCancel: () => void;
-  onConfirm: () => void;
+  onConfirm: (mode: BulkMode) => void;
 }) {
   const titleId = useId();
-  const title = mode === "scenes" ? "產生全部分鏡圖？" : "產生全部分鏡與影片？";
+  const [mode, setMode] = useState<BulkMode>("remaining");
+  const plan =
+    mode === "remaining"
+      ? planRemaining(project)
+      : mode === "scenes"
+        ? planGenerateAllScenes(project)
+        : planGenerateAllClips(project);
   const list = (numbers: number[]) => numbers.map((n) => `#${n}`).join("、");
   const short = credits < plan.cost;
+  const current = MODES.find((item) => item.id === mode)!;
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -36,37 +72,72 @@ export function BulkGenerateDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4"
       onClick={pending ? undefined : onCancel}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full max-w-md rounded-[1.75rem] border border-accent-ink/10 bg-paper p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.12)] sm:p-7"
+        className="studio-app w-full max-w-md rounded-lg border border-[var(--studio-line)] bg-[var(--studio-panel)] p-5 shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 id={titleId} className="font-display text-2xl font-bold">
-          {title}
+        <h2 id={titleId} className="text-lg font-bold">
+          全部產生
         </h2>
-        <p className="mt-2 text-sm leading-6 text-muted">
-          {mode === "scenes"
-            ? "會重畫每一段的起始與結尾分鏡圖。正在畫的段落會略過。"
-            : "會先重畫每一段的分鏡圖。某一段的起始與結尾圖都完成後，才會開始產該段影片。"}
-        </p>
+
+        <fieldset className="mt-4 flex flex-col gap-2" disabled={pending}>
+          <legend className="sr-only">產生範圍</legend>
+          {MODES.map((item) => (
+            <label
+              key={item.id}
+              className={`flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 ${
+                mode === item.id
+                  ? "border-[var(--studio-teal)] bg-[var(--studio-canvas)]"
+                  : "border-[var(--studio-line)]"
+              }`}
+            >
+              <input
+                type="radio"
+                name="bulk-mode"
+                checked={mode === item.id}
+                onChange={() => setMode(item.id)}
+                className="mt-1 accent-[var(--studio-teal)]"
+              />
+              <span className="min-w-0">
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  {item.label}
+                  {item.overwrites ? (
+                    <span className="rounded-sm bg-amber-100 px-1.5 text-[10px] font-bold text-amber-800">
+                      會覆蓋已完成段落
+                    </span>
+                  ) : (
+                    <span className="rounded-sm bg-emerald-100 px-1.5 text-[10px] font-bold text-emerald-800">
+                      建議
+                    </span>
+                  )}
+                </span>
+                <span className="mt-0.5 block text-xs text-[var(--studio-muted)]">{item.hint}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+
         <table className="mt-4 w-full text-sm">
           <tbody>
             {plan.frames.length ? (
-              <tr className="border-b border-dashed border-accent-ink/10">
-                <td className="py-1.5">{list(plan.frames)} 分鏡圖</td>
+              <tr className="border-b border-dashed border-[var(--studio-line)]">
+                <td className="py-1.5">{list(plan.frames)} 畫格</td>
                 <td className="py-1.5 text-right tabular-nums">
                   {plan.frames.length} 段 × {FRAMES_COST} = {plan.frames.length * FRAMES_COST}
                 </td>
               </tr>
             ) : null}
             {plan.videos.length ? (
-              <tr className="border-b border-dashed border-accent-ink/10">
-                <td className="py-1.5">{list(plan.videos)} 影片（畫格完成後才扣）</td>
+              <tr className="border-b border-dashed border-[var(--studio-line)]">
+                <td className="py-1.5">
+                  {list(plan.videos)} 影片{current.id === "clips" ? "（畫格完成後才扣）" : ""}
+                </td>
                 <td className="py-1.5 text-right tabular-nums">
                   {plan.videos.length} 段 × {VIDEO_COST} = {plan.videos.length * VIDEO_COST}
                 </td>
@@ -75,12 +146,15 @@ export function BulkGenerateDialog({
             <tr>
               <td className="py-1.5 font-semibold">合計</td>
               <td className="py-1.5 text-right font-semibold tabular-nums">
-                {plan.cost} credits <span className="font-normal text-muted">（剩餘 {credits}）</span>
+                {plan.cost} credits{" "}
+                <span className="font-normal text-[var(--studio-muted)]">（剩餘 {credits}）</span>
               </td>
             </tr>
           </tbody>
         </table>
-        {short ? (
+        {plan.cost === 0 ? (
+          <p className="mt-2 text-xs text-[var(--studio-muted)]">沒有需要處理的段落。</p>
+        ) : short ? (
           <p className="mt-2 text-xs text-accent">
             credits 不足，請先
             <Link href="/app/billing" className="font-semibold underline">
@@ -89,24 +163,18 @@ export function BulkGenerateDialog({
             。
           </p>
         ) : null}
+
         <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={pending}
-            className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:opacity-60"
-          >
+          <StudioButton variant="ghost" onClick={onCancel} disabled={pending}>
             取消
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
+          </StudioButton>
+          <StudioButton
+            onClick={() => onConfirm(mode)}
             disabled={pending || short || plan.cost === 0}
-            className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending ? <Spinner className="h-4 w-4" /> : null}
             {pending ? "送出中…" : `確認送出 · ${plan.cost}`}
-          </button>
+          </StudioButton>
         </div>
       </div>
     </div>

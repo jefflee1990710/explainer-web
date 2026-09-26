@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { Spinner } from "@/presentation/components/spinner";
+import { StudioButton } from "@/presentation/studio/studio-button";
 import {
   clipEndScene,
   clipEndVo,
@@ -16,14 +17,15 @@ const MAX_FIELD_LENGTH = 1200;
 
 export type ClipScenePending = "" | "save" | "regenerate";
 
-// Inline start/end scene prompts in 製作: save is free, redraw charges both frames.
+// Clip text in three sections: voiceover (open), scene and camera (collapsed).
+// A save bar appears only when something changed. Remount with a new `key`
+// when the saved row changes so the draft resets.
 export function ClipScenePrompts({
   clip,
   language,
   dualBeat,
   credits,
   pending,
-  error,
   onSave,
 }: {
   clip: StoryboardRow;
@@ -31,18 +33,11 @@ export function ClipScenePrompts({
   dualBeat?: boolean;
   credits: number;
   pending: ClipScenePending;
-  error: string;
   onSave: (input: ClipStoryboardInput, regenerate: boolean) => Promise<boolean>;
 }) {
-  const sceneId = useId();
+  const fieldId = useId();
   const voLabel = LANGUAGE_PRESETS[language].label;
   const [draft, setDraft] = useState<ClipStoryboardInput>(() => draftFromClip(clip));
-  const [attempted, setAttempted] = useState(false);
-
-  useEffect(() => {
-    setDraft(draftFromClip(clip));
-    setAttempted(false);
-  }, [clip.clipNumber, clip.editedAt]);
 
   const busy = pending !== "";
   const dirty = isDraftDirty(draft, clip);
@@ -64,7 +59,6 @@ export function ClipScenePrompts({
 
   async function submit(regenerate: boolean) {
     if (regenerate ? !canRedraw : !canSave) return;
-    setAttempted(true);
     await onSave(
       {
         explainerScene: draft.explainerScene.trim(),
@@ -79,127 +73,126 @@ export function ClipScenePrompts({
     );
   }
 
+  const sceneSummary = dualBeat
+    ? `起始：${draft.startScene || "（空白）"}`
+    : draft.explainerScene || "（空白）";
+
   return (
-    <div>
-      <p className="font-display text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
-        畫面 prompt
-      </p>
-      <div className="mt-2 space-y-3 rounded-2xl border border-accent-ink/10 bg-paper p-4">
+    <div className="flex flex-col gap-3">
+      <FormSection title="旁白">
         {dualBeat ? (
           <>
-            <PromptField
-              id={`${sceneId}-start`}
-              label="起始畫面"
-              hint="t=0 靜態圖。改完可只存文字，或重畫兩張畫格。"
+            <TextField
+              id={`${fieldId}-vo-start`}
+              label={`開頭旁白（${voLabel}）`}
+              value={draft.startVo || ""}
+              rows={2}
+              disabled={busy}
+              placeholder="起始 beat 要說的話，也會寫在起始畫格上。"
+              onChange={(value) => update("startVo", value)}
+            />
+            <TextField
+              id={`${fieldId}-vo-end`}
+              label={`結尾旁白（${voLabel}）`}
+              value={draft.endVo || ""}
+              rows={2}
+              disabled={busy}
+              placeholder="結尾 beat 要說的話，也會寫在結尾畫格上。"
+              onChange={(value) => update("endVo", value)}
+            />
+          </>
+        ) : (
+          <TextField
+            id={`${fieldId}-vo`}
+            label={`旁白（${voLabel}）`}
+            value={draft.englishVo}
+            rows={3}
+            disabled={busy}
+            placeholder="影片裡會照這句逐字唸出。"
+            onChange={(value) => update("englishVo", value)}
+          />
+        )}
+      </FormSection>
+
+      <FormSection title="畫面描述" summary={sceneSummary} collapsible>
+        {dualBeat ? (
+          <>
+            <TextField
+              id={`${fieldId}-start`}
+              label="起始畫面描述"
               value={draft.startScene || ""}
-              rows={5}
+              rows={4}
               disabled={busy}
               placeholder="起始姿勢、道具、環境。"
               onChange={(value) => update("startScene", value)}
             />
-            <PromptField
-              id={`${sceneId}-end`}
-              label="結尾畫面"
-              hint="t=N 靜態圖。同一鏡頭的後一個 beat。"
+            <TextField
+              id={`${fieldId}-end`}
+              label="結束畫面描述"
               value={draft.endScene || ""}
-              rows={5}
+              rows={4}
               disabled={busy}
               placeholder="結尾姿勢、道具、環境。"
               onChange={(value) => update("endScene", value)}
             />
           </>
         ) : (
-          <PromptField
-            id={sceneId}
+          <TextField
+            id={`${fieldId}-scene`}
             label="畫面描述"
-            hint="起始與結尾畫格都依這段來畫。"
             value={draft.explainerScene}
-            rows={6}
+            rows={5}
             disabled={busy}
             placeholder="這段畫面要出現什麼、誰在做什麼。"
             onChange={(value) => update("explainerScene", value)}
           />
         )}
-        <PromptField
-          id={`${sceneId}-motion`}
-          label="動態與鏡頭"
-          hint="兩張畫格之間怎麼插值。"
+      </FormSection>
+
+      <FormSection title="鏡頭動作" summary={draft.motionCamera || "（空白）"} collapsible>
+        <TextField
+          id={`${fieldId}-motion`}
+          label="鏡頭動作"
           value={draft.motionCamera}
           rows={3}
           disabled={busy}
           placeholder="例如：鏡頭慢慢推近，角色從左走到右。"
           onChange={(value) => update("motionCamera", value)}
         />
-        {dualBeat ? (
-          <>
-            <PromptField
-              id={`${sceneId}-vo-start`}
-              label={`旁白起（${voLabel}）`}
-              hint="前半句。起始圖的畫面文字只引用這句。"
-              value={draft.startVo || ""}
-              rows={2}
-              disabled={busy}
-              placeholder="起始 beat 要說的話。"
-              onChange={(value) => update("startVo", value)}
-            />
-            <PromptField
-              id={`${sceneId}-vo-end`}
-              label={`旁白終（${voLabel}）`}
-              hint="後半句。結尾圖的畫面文字只引用這句。"
-              value={draft.endVo || ""}
-              rows={2}
-              disabled={busy}
-              placeholder="結尾 beat 要說的話。"
-              onChange={(value) => update("endVo", value)}
-            />
-          </>
-        ) : (
-          <PromptField
-            id={`${sceneId}-vo`}
-            label={`旁白（${voLabel}）`}
-            hint="影片裡會照這句逐字唸出。"
-            value={draft.englishVo}
-            rows={3}
-            disabled={busy}
-            placeholder="這段旁白要說的話。"
-            onChange={(value) => update("englishVo", value)}
-          />
-        )}
+      </FormSection>
 
-        {!valid ? (
-          <p className="text-xs font-medium text-accent">
-            {dualBeat ? "起始／結尾畫面與兩句旁白不能空白。" : "畫面描述與旁白不能空白。"}
-          </p>
-        ) : !enoughCredits ? (
-          <p className="text-xs font-medium text-accent">credits 不足，仍可儲存文字，但無法重畫。</p>
-        ) : null}
-        {attempted && error ? (
-          <p role="alert" className="text-xs font-medium text-accent">
-            {error}
-          </p>
-        ) : null}
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void submit(false)}
-            disabled={!canSave}
-            className="inline-flex min-h-[34px] cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/15 bg-paper px-3 text-xs font-semibold transition hover:border-accent-ink/40 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {pending === "save" ? <Spinner className="h-3.5 w-3.5" /> : null}
-            {pending === "save" ? "儲存中…" : "只儲存文字"}
-          </button>
-          <button
-            type="button"
-            onClick={() => void submit(true)}
-            disabled={!canRedraw}
-            className="inline-flex min-h-[34px] cursor-pointer items-center gap-1.5 rounded-full bg-accent-ink px-3 text-xs font-semibold text-lime transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {pending === "regenerate" ? <Spinner className="h-3.5 w-3.5" /> : <RefreshIcon />}
-            {pending === "regenerate" ? "送出中…" : `儲存並重畫兩張 · ${FRAMES_COST}`}
-          </button>
+      {dirty || busy ? (
+        <div className="sticky bottom-0 -mx-4 flex flex-col gap-2 border-t border-[var(--studio-line)] bg-[var(--studio-panel)] px-4 py-3">
+          {!valid ? (
+            <p className="text-xs font-medium text-accent">
+              {dualBeat ? "起始／結尾畫面與兩句旁白不能空白。" : "畫面描述與旁白不能空白。"}
+            </p>
+          ) : (
+            <p className="text-[11px] text-[var(--studio-muted)]">
+              改過的文字要重畫畫格才會套用到畫面與影片。
+            </p>
+          )}
+          <div className="flex gap-2">
+            <StudioButton
+              variant="ghost"
+              onClick={() => void submit(false)}
+              disabled={!canSave}
+              className="min-h-9 flex-1 px-3 text-xs"
+            >
+              {pending === "save" ? <Spinner className="h-3.5 w-3.5" /> : null}
+              {pending === "save" ? "儲存中…" : "儲存"}
+            </StudioButton>
+            <StudioButton
+              onClick={() => void submit(true)}
+              disabled={!canRedraw}
+              className="min-h-9 flex-[2] px-3 text-xs"
+            >
+              {pending === "regenerate" ? <Spinner className="h-3.5 w-3.5" /> : null}
+              {pending === "regenerate" ? "送出中…" : `儲存並重畫 · ${FRAMES_COST}`}
+            </StudioButton>
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -228,10 +221,45 @@ function isDraftDirty(draft: ClipStoryboardInput, clip: StoryboardRow) {
   );
 }
 
-function PromptField({
+// Section header; collapsible sections show a one-line summary while closed.
+function FormSection({
+  title,
+  summary,
+  collapsible = false,
+  children,
+}: {
+  title: string;
+  summary?: string;
+  collapsible?: boolean;
+  children: React.ReactNode;
+}) {
+  if (!collapsible) {
+    return (
+      <section className="flex flex-col gap-2">
+        <h3 className="text-[11px] font-bold text-[var(--studio-muted)]">{title}</h3>
+        {children}
+      </section>
+    );
+  }
+  return (
+    <details className="group rounded-md border border-[var(--studio-line)]">
+      <summary className="flex cursor-pointer list-none items-start gap-2 px-3 py-2">
+        <span className="mt-0.5 text-[10px] text-[var(--studio-muted)] transition group-open:rotate-90">
+          ▶
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[11px] font-bold text-[var(--studio-muted)]">{title}</span>
+          <span className="block truncate text-xs group-open:hidden">{summary}</span>
+        </span>
+      </summary>
+      <div className="flex flex-col gap-2 px-3 pb-3">{children}</div>
+    </details>
+  );
+}
+
+function TextField({
   id,
   label,
-  hint,
   value,
   rows,
   disabled,
@@ -240,7 +268,6 @@ function PromptField({
 }: {
   id: string;
   label: string;
-  hint: string;
   value: string;
   rows: number;
   disabled?: boolean;
@@ -250,14 +277,13 @@ function PromptField({
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2">
-        <label htmlFor={id} className="text-[10px] text-muted">
+        <label htmlFor={id} className="text-xs font-semibold">
           {label}
         </label>
-        <span className="text-[10px] tabular-nums text-muted">
+        <span className="text-[10px] tabular-nums text-[var(--studio-muted)]">
           {value.length}/{MAX_FIELD_LENGTH}
         </span>
       </div>
-      <p className="mt-0.5 text-[10px] leading-4 text-muted">{hint}</p>
       <textarea
         id={id}
         rows={rows}
@@ -266,22 +292,8 @@ function PromptField({
         disabled={disabled}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 w-full resize-y rounded-xl border border-accent-ink/15 bg-paper px-3 py-2 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+        className="mt-1 w-full resize-y rounded-md border border-[var(--studio-line)] bg-white px-3 py-2 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] disabled:opacity-60"
       />
     </div>
-  );
-}
-
-function RefreshIcon() {
-  return (
-    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

@@ -7,6 +7,7 @@ import {
   planGenerateAllClips,
   planGenerateAllScenes,
   planRemaining,
+  planSelected,
 } from "@/service/production-plan";
 
 function frame(
@@ -114,6 +115,46 @@ test("auto video waits until both stills exist, then starts once", () => {
     ),
     "drop",
   );
+});
+
+test("selected frames skip clips that are already generating", () => {
+  const project: ClipStageSource = {
+    status: "production",
+    phaseA: { clips: [1, 2, 3].map((clipNumber) => ({ clipNumber })) },
+    frames: [...done(1), frame(2, "start", "queued"), frame(2, "end", "queued")],
+    clips: [clip(1, "completed")],
+  };
+  assert.deepEqual(planSelected(project, [1, 2, 3], "frames"), {
+    frames: [1, 3],
+    videos: [],
+    cost: 4,
+  });
+});
+
+test("selected videos need fresh, finished frames", () => {
+  const project: ClipStageSource = {
+    status: "production",
+    phaseA: {
+      clips: [
+        { clipNumber: 1 },
+        { clipNumber: 2 },
+        { clipNumber: 3, editedAt: "2026-02-01T00:00:00.000Z" },
+        { clipNumber: 4 },
+      ],
+    },
+    frames: [
+      ...done(1),
+      ...done(2),
+      frame(3, "start", "completed", "2026-01-01T00:00:00.000Z"),
+      frame(3, "end", "completed", "2026-01-01T00:00:00.000Z"),
+    ],
+    clips: [clip(2, "completed")],
+  };
+  assert.deepEqual(planSelected(project, [1, 2, 3, 4], "videos"), {
+    frames: [],
+    videos: [1, 2],
+    cost: 2,
+  });
 });
 
 test("empty plan when everything is done", () => {

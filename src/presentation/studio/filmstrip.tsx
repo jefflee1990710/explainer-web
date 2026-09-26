@@ -1,17 +1,31 @@
 "use client";
 
 import { Spinner } from "@/presentation/components/spinner";
-import type { StudioClipItem } from "@/presentation/studio/clip-item";
+import type { StudioClipItem, StudioClipTone } from "@/presentation/studio/clip-item";
+
+// Status band colour under each thumbnail.
+const TONE_CLASS: Record<StudioClipTone, string> = {
+  idle: "bg-[var(--studio-line)]",
+  busy: "bg-[var(--studio-teal)] animate-pulse",
+  done: "bg-emerald-500",
+  failed: "bg-[var(--accent)]",
+  stale: "bg-amber-500",
+};
 
 // Bottom filmstrip. The playhead marks the selected clip; it does not scrub.
+// Passing `onToggleCheck` adds a checkbox per clip for batch actions.
 export function Filmstrip({
   items,
   selectedId,
   onSelect,
+  checkedIds = [],
+  onToggleCheck,
 }: {
   items: StudioClipItem[];
   selectedId: string;
   onSelect: (id: string) => void;
+  checkedIds?: string[];
+  onToggleCheck?: (id: string) => void;
 }) {
   if (items.length === 0) {
     return (
@@ -21,12 +35,16 @@ export function Filmstrip({
     );
   }
 
+  // Once anything is checked every checkbox stays visible.
+  const checking = checkedIds.length > 0;
+
   return (
     <ol role="tablist" aria-label="Clip 時間軸" className="flex h-full min-w-max items-stretch gap-2 px-3 py-2">
       {items.map((item) => {
         const selected = item.id === selectedId;
+        const checked = checkedIds.includes(item.id);
         return (
-          <li key={item.id} className="relative h-full">
+          <li key={item.id} className="group relative h-full">
             {selected ? (
               <span
                 aria-hidden
@@ -56,12 +74,30 @@ export function Filmstrip({
                   <span className="absolute inset-0 bg-[var(--studio-canvas)]" aria-hidden />
                 )}
                 {item.stale ? (
-                  <span className="absolute bottom-1 right-1 rounded-sm bg-[var(--accent)] px-1 text-[9px] font-bold text-white">
+                  <span className="absolute bottom-1.5 right-1 rounded-sm bg-[var(--accent)] px-1 text-[9px] font-bold text-white">
                     需重做
                   </span>
                 ) : null}
               </span>
+              <span aria-hidden className={`h-[3px] shrink-0 ${TONE_CLASS[item.tone]}`} />
             </button>
+            {onToggleCheck ? (
+              <label
+                className={`absolute left-1.5 top-6 z-20 grid h-6 w-6 cursor-pointer place-items-center rounded-sm bg-white/90 shadow-sm transition ${
+                  checking || checked
+                    ? "opacity-100"
+                    : "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => onToggleCheck(item.id)}
+                  aria-label={`選取 ${item.title}`}
+                  className="h-4 w-4 cursor-pointer accent-[var(--studio-teal)]"
+                />
+              </label>
+            ) : null}
           </li>
         );
       })}

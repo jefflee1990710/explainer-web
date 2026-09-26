@@ -11,9 +11,14 @@ import { currentStepFor } from "@/presentation/components/project/project-steppe
 import { Spinner } from "@/presentation/components/spinner";
 import { StylePicker } from "@/presentation/components/style-picker";
 import {
+  generateAllClipsAction,
+  generateAllSceneImagesAction,
   generateClipFramesAction,
   generateClipVideoAction,
+  generateRemainingAction,
+  generateSelectedClipsAction,
 } from "@/presentation/actions/clip-production";
+import type { BulkMode } from "@/presentation/components/project/bulk-generate-dialog";
 import {
   regenerateFrameAction,
   updateClipStoryboardAction,
@@ -308,6 +313,24 @@ export function NewProjectForm({
   function onGenerateVideo(clipNumber: number) {
     if (!project) return;
     void runPaid(`video:${clipNumber}`, () => generateClipVideoAction(project.id, clipNumber));
+  }
+
+  // 全部產生: fill gaps, redraw every frame, or redraw + auto video.
+  function onBulkGenerate(mode: BulkMode) {
+    if (!project) return Promise.resolve(false);
+    const action =
+      mode === "remaining"
+        ? generateRemainingAction
+        : mode === "scenes"
+          ? generateAllSceneImagesAction
+          : generateAllClipsAction;
+    return runPaid("bulk", () => action(project.id));
+  }
+
+  // Filmstrip multi-select: frames or videos for the checked clips.
+  function onGenerateSelected(clipNumbers: number[], kind: "frames" | "videos") {
+    if (!project) return Promise.resolve(false);
+    return runPaid("bulk", () => generateSelectedClipsAction(project.id, clipNumbers, kind));
   }
 
   const videoId = project?.id;
@@ -628,6 +651,8 @@ export function NewProjectForm({
               onRegenerateFrame={onRegenerateFrame}
               onUpdateClip={onUpdateClip}
               onGenerateVideo={onGenerateVideo}
+              onBulkGenerate={onBulkGenerate}
+              onGenerateSelected={onGenerateSelected}
             />
             </div>
           ) : reelDesk && project ? (

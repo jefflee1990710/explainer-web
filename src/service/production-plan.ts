@@ -41,6 +41,31 @@ export function planRemaining(project: ClipStageSource): RemainingPlan {
   };
 }
 
+const BUSY_STAGES = new Set(["frames_generating", "video_generating"]);
+const VIDEO_READY_STAGES = new Set(["frames_ready", "video_failed", "video_ready"]);
+
+// Filmstrip multi-select: frames for any idle clip, videos only where both
+// frames are finished and newer than the last text edit.
+export function planSelected(
+  project: ClipStageSource,
+  clipNumbers: number[],
+  kind: "frames" | "videos",
+): RemainingPlan {
+  const picked = clipStatesFor(project).filter((state) =>
+    clipNumbers.includes(state.clipNumber),
+  );
+  if (kind === "frames") {
+    const frames = picked
+      .filter((state) => !BUSY_STAGES.has(state.stage))
+      .map((state) => state.clipNumber);
+    return { frames, videos: [], cost: frames.length * FRAMES_COST };
+  }
+  const videos = picked
+    .filter((state) => VIDEO_READY_STAGES.has(state.stage) && !state.stale.frames)
+    .map((state) => state.clipNumber);
+  return { frames: [], videos, cost: videos.length * VIDEO_COST };
+}
+
 export type BulkGeneratePlan = {
   // Clips that get both scene images submitted now.
   frames: number[];

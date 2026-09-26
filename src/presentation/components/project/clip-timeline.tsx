@@ -1,5 +1,5 @@
 import { formatTimecode } from "@/presentation/studio/format-timecode";
-import type { StudioClipItem } from "@/presentation/studio/clip-item";
+import type { StudioClipItem, StudioClipTone } from "@/presentation/studio/clip-item";
 import type { ClipStage, ClipState } from "@/service/clip-stage";
 import { mediaSrc } from "@/util/media-src";
 import type { PublicVideo } from "@/presentation/serialize";
@@ -33,14 +33,26 @@ export function clipStudioItems(
       pending === `frame:${state.clipNumber}:start` ||
       start?.status === "queued" ||
       start?.status === "in_progress";
+    const busy = BUSY.has(state.stage) || Boolean(startBusy);
+    const stale = state.stale.frames || state.stale.video;
     return {
       id: String(state.clipNumber),
       title: `Clip${state.clipNumber}.mp4`,
       durationLabel: formatTimecode(row?.durationSeconds ?? 0),
       thumbnailUrl: startBusy ? undefined : mediaSrc(start),
       statusLabel: STAGE_LABEL[state.stage],
-      busy: BUSY.has(state.stage) || Boolean(startBusy),
-      stale: state.stale.frames || state.stale.video,
+      busy,
+      stale,
+      tone: clipTone(state.stage, busy, stale),
     };
   });
+}
+
+// Busy wins, then failure, then stale media, then finished video.
+function clipTone(stage: ClipStage, busy: boolean, stale: boolean): StudioClipTone {
+  if (busy) return "busy";
+  if (stage === "frames_failed" || stage === "video_failed") return "failed";
+  if (stale) return "stale";
+  if (stage === "video_ready") return "done";
+  return "idle";
 }

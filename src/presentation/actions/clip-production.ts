@@ -26,6 +26,12 @@ export async function generateAllSceneImagesAction(
   return service.generateAllSceneImagesAction(...args);
 }
 
+export async function generateSelectedClipsAction(
+  ...args: Parameters<typeof service.generateSelectedClipsAction>
+) {
+  return service.generateSelectedClipsAction(...args);
+}
+
 export async function generateAllClipsAction(
   ...args: Parameters<typeof service.generateAllClipsAction>
 ) {
