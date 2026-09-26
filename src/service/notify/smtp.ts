@@ -30,6 +30,8 @@ export async function sendMail(input: {
       pass: process.env.SMTP_PASS,
     },
     requireTLS: true,
+    connectionTimeout: 15_000,
+    socketTimeout: 20_000,
   });
   await transporter.sendMail({
     from: `Explainer <${smtpFrom()}>`,
