@@ -82,9 +82,15 @@ async function main() {
       { webhook: false },
     );
     const started = Date.now();
-    let status = submitted;
+    // submitImage may return Higgsfield V2 or Alicloud; poll only needs status + images.
+    let status: {
+      status: string;
+      status_url?: string;
+      images?: Array<{ url: string }>;
+    } = submitted;
     while (!["completed", "failed", "nsfw"].includes(status.status || "")) {
       if (Date.now() - started > 8 * 60_000) throw new Error(`${language} timeout`);
+      if (!status.status_url) throw new Error(`${language} missing status_url`);
       await sleep(8000);
       status = await fetchHiggsfieldStatus(status.status_url);
       console.log(language, status.status);

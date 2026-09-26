@@ -74,7 +74,7 @@ export function ClipVideoPanel({
     <div
       className={`relative w-full overflow-hidden rounded-md border border-[var(--studio-line)] bg-[var(--studio-canvas)] ${ASPECT_CLASS[aspectRatio]}`}
     >
-      {showVideo ? (
+      {src && showVideo ? (
         <>
           <ClipVideoPlayer src={src} dimmed={state.stale.video || failed} />
           {failed ? (
