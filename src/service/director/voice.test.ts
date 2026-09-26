@@ -32,9 +32,22 @@ test("Phase B audio lock names the voice and forbids background music", () => {
     languageLabel: "English",
   });
   assert.match(lock, /adult female voice speaking English/);
+  assert.match(lock, /mid pitch/);
+  assert.match(lock, /same narrator on every clip/i);
   assert.match(lock, /No background music/);
   assert.match(lock, /no BGM/i);
   assert.match(lock, /no musical score/i);
+});
+
+test("Phase B audio lock is a fixed fingerprint, not rewritten per clip", () => {
+  const a = phaseBAudioLock({ voiceGender: "male", languageLabel: "English" });
+  const b = phaseBAudioLock({ voiceGender: "male", languageLabel: "English" });
+  assert.equal(a, b);
+  assert.match(a, /mid-low pitch/);
+  assert.match(a, /same narrator on every clip/i);
+  const female = phaseBAudioLock({ voiceGender: "female", languageLabel: "日本語" });
+  assert.match(female, /speaking 日本語/);
+  assert.notEqual(a, female);
 });
 
 test("story-short Phase B lock keeps character dialogue and still forbids BGM", () => {

@@ -32,7 +32,7 @@ Each clip is dual-keyframe image-to-video: the approved START image is already a
 Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}). ${
     skillBansNarration(input.skill.slug)
       ? "There is no narrator. Characters speak those lines."
-      : `Tell the video model explicitly that the narrator is an adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice speaking ${languageLabel}.`
+      : `Copy the locked adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice fingerprint verbatim into every clip prompt. Do not invent a new narrator.`
   } Never request background music, BGM, a musical score, or an underscore. Voice and short synced SFX only.`;
 }
 

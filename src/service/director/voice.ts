@@ -8,6 +8,8 @@ export type VoicePreset = {
   sublabel: string;
   en: VoiceGender;
   skillHint: string;
+  // Verbatim timbre lock pasted into every clip prompt. Do not rewrite per clip.
+  fingerprint: string;
 };
 
 export const VOICE_PRESETS: Record<VoiceGender, VoicePreset> = {
@@ -18,6 +20,8 @@ export const VOICE_PRESETS: Record<VoiceGender, VoicePreset> = {
     en: "male",
     skillHint:
       "Narrator voice lock: warm, engaging adult male voice. Never switch to a female voice.",
+    fingerprint:
+      "mid-low pitch, slightly chesty, warm and engaging, clear conversational delivery, moderate pace. Never switch speaker, gender, accent, or age; change only emotion or volume.",
   },
   female: {
     id: "female",
@@ -26,6 +30,8 @@ export const VOICE_PRESETS: Record<VoiceGender, VoicePreset> = {
     en: "female",
     skillHint:
       "Narrator voice lock: warm, engaging adult female voice. Never switch to a male voice.",
+    fingerprint:
+      "mid pitch, warm and engaging, clear conversational delivery, moderate pace. Never switch speaker, gender, accent, or age; change only emotion or volume.",
   },
 };
 
@@ -56,12 +62,12 @@ export function phaseBAudioLock(input: {
 }) {
   const voice = VOICE_PRESETS[resolveVoiceGender(input.voiceGender)];
   const speaker = input.bansNarration
-    ? `Character dialogue uses a natural adult ${voice.en} speaking voice.`
-    : `Narrator is a warm, engaging adult ${voice.en} voice speaking ${input.languageLabel}. Never switch gender.`;
+    ? `Character dialogue uses the same natural adult ${voice.en} speaking voice on every clip: ${voice.fingerprint}`
+    : `Same narrator on every clip: a warm, engaging adult ${voice.en} voice speaking ${input.languageLabel}, ${voice.fingerprint}`;
   return `${speaker} ${NO_BGM_RULE}`;
 }
 
 export function finalizePhaseBPrompt(prompt: string, lock: string) {
   const trimmed = prompt.trim();
-  return trimmed.includes(NO_BGM_RULE) ? trimmed : `${trimmed}\n\n${lock}`;
+  return trimmed.includes(lock) ? trimmed : `${trimmed}\n\n${lock}`;
 }
