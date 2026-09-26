@@ -1,13 +1,13 @@
 import { generationJobsCollection } from "@/dao";
 import { mediaUrlFromResponse } from "@/service/higgsfield/client";
 import { submitImage } from "@/service/higgsfield/generate";
-import { OPENROUTER_IMAGE_MODEL } from "@/service/openrouter/generate";
+import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
 import { applyJobStatus } from "@/service/higgsfield/pipeline";
 import { buildBlueprintPrompt } from "@/service/character/blueprint-prompt";
 import type { Character, CharacterVersion } from "@/model/character";
 import type { GenerationStatus } from "@/model/generation-job";
 
-export const BLUEPRINT_MODEL = OPENROUTER_IMAGE_MODEL;
+export const BLUEPRINT_MODEL = IMAGE_ROUTE_BY_SCENE_TEXT.en.model;
 
 // Submit one version's sheet and record the job. Throws if the
 // provider rejects the request; the caller marks the version failed + refunds.

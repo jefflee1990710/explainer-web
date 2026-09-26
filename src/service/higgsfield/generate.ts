@@ -1,13 +1,13 @@
 import { getAppUrl, isPublicHttpUrl } from "@/util/app-url";
 import { isAlicloudStatusUrl } from "@/service/alicloud/dashscope";
 import { fetchAlicloudStatus, submitAlicloudImage } from "@/service/alicloud/generate";
-import { submitOpenRouterImage } from "@/service/openrouter/generate";
 import { clipVideoProvider } from "@/service/generation/video-backend";
 import { imageModelForSubmit, resolveImageRoute } from "@/service/generation/image-backend";
 import {
   assertHiggsfieldConfigured,
   mediaUrlFromResponse,
 } from "@/service/higgsfield/client";
+import { referenceUrlsForModel } from "@/service/higgsfield/reference-sheet";
 import {
   MINIMAX_H3_VIDEO_MODEL,
   h3ClipVideoInput,
@@ -20,6 +20,10 @@ export const QWEN_IMAGE_EDIT_MODEL = "alibaba/qwen-image-3/edit";
 
 function isQwenImage3(model: string) {
   return /qwen-image-3/i.test(model);
+}
+
+function isMarketingStudio(model: string) {
+  return model.startsWith("marketing-studio/image");
 }
 
 function webhookOptions() {
@@ -74,17 +78,7 @@ export async function submitImage(input: {
     (url): url is string => Boolean(url),
   );
   const model = imageModelForSubmit(route, refs.length > 0);
-
-  if (route.backend === "openrouter") {
-    return submitOpenRouterImage({
-      model,
-      prompt: input.prompt,
-      aspectRatio: input.aspectRatio,
-      quality: input.quality,
-      referenceImageUrls: input.referenceImageUrls,
-      negativePrompt: input.negativePrompt,
-    });
-  }
+  const imageUrls = await referenceUrlsForModel(model, refs);
 
   if (route.backend === "alicloud") {
     return submitAlicloudImage({
@@ -105,7 +99,24 @@ export async function submitImage(input: {
         prompt: input.prompt,
         aspect_ratio: input.aspectRatio,
         quality: input.quality || "medium",
-        ...(refs.length ? { image_urls: refs } : {}),
+        ...(imageUrls.length ? { image_urls: imageUrls } : {}),
+      },
+      withPolling: false,
+      webhook,
+    });
+  }
+
+  // Flare / Sunburst: omit image_urls to generate; pass every blueprint to edit.
+  // enhance_prompt stays off so the storyboard wording is not rewritten.
+  if (isMarketingStudio(model)) {
+    return client.subscribe(model, {
+      input: {
+        prompt: input.prompt,
+        aspect_ratio: input.aspectRatio,
+        quality: input.quality || "medium",
+        resolution: input.resolution || "1k",
+        enhance_prompt: false,
+        ...(imageUrls.length ? { image_urls: imageUrls } : {}),
       },
       withPolling: false,
       webhook,

@@ -219,7 +219,11 @@ export function ProjectWorkspace({
               initialVideo={selectedVideo}
               credits={credits}
               subscribed={subscribed}
-              onVideoCreated={setOptimisticVideo}
+              onVideoCreated={(video) => {
+                setOptimisticVideo(video);
+                setActiveVideoId(video.id);
+                replaceVideoQuery(video.id);
+              }}
               onStepNav={onStepNav}
             />
           )}

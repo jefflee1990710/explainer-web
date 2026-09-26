@@ -6,19 +6,27 @@ import {
   imageRouteForSceneText,
 } from "@/service/generation/image-backend";
 
-test("each scene-text language uses OpenRouter gpt-5.4-image-2", () => {
-  for (const language of ["en", "zh-Hant", "zh-Hans"] as const) {
-    assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT[language].backend, "openrouter");
-    assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT[language].model, "openai/gpt-5.4-image-2");
-    assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT[language].editModel, "openai/gpt-5.4-image-2");
-  }
+test("each scene-text language uses a Higgsfield model that accepts blueprint refs", () => {
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT.en.backend, "higgsfield");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT.en.model, "marketing-studio/image/flare");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT.en.editModel, "marketing-studio/image/flare");
+
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hant"].backend, "higgsfield");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hant"].model, "alibaba/qwen-image-3/text-to-image");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hant"].editModel, "alibaba/qwen-image-3/edit");
+
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hans"].backend, "higgsfield");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hans"].model, "marketing-studio/image/sunburst");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hans"].editModel, "marketing-studio/image/sunburst");
 });
 
-test("generation looks up the route and keeps the same model with references", () => {
+test("generation looks up the route and switches Qwen to edit when references exist", () => {
   const en = imageRouteForSceneText("en");
   const hant = imageRouteForSceneText("zh-Hant");
-  assert.equal(imageModelForSubmit(en, false), "openai/gpt-5.4-image-2");
-  assert.equal(imageModelForSubmit(en, true), "openai/gpt-5.4-image-2");
-  assert.equal(imageModelForSubmit(hant, true), "openai/gpt-5.4-image-2");
-  assert.equal(imageRouteForSceneText(undefined).backend, "openrouter");
+  assert.equal(imageModelForSubmit(en, false), "marketing-studio/image/flare");
+  assert.equal(imageModelForSubmit(en, true), "marketing-studio/image/flare");
+  assert.equal(imageModelForSubmit(hant, false), "alibaba/qwen-image-3/text-to-image");
+  assert.equal(imageModelForSubmit(hant, true), "alibaba/qwen-image-3/edit");
+  assert.equal(imageRouteForSceneText(undefined).model, "marketing-studio/image/flare");
+  assert.equal(imageRouteForSceneText(undefined).backend, "higgsfield");
 });

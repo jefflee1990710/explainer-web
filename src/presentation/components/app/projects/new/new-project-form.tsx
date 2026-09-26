@@ -360,12 +360,14 @@ export function NewProjectForm({
   );
   const liveStatus = project?.status ?? "draft";
   const liveId = project?.id ?? null;
-  const viewing =
+  const requestedViewing =
     viewingOverride &&
     viewingOverride.id === liveId &&
     viewingOverride.status === liveStatus
       ? viewingOverride.step
       : liveStep;
+  // Create stays on the brief. An existing video never returns to Input.
+  const viewing = project ? Math.max(requestedViewing, 1) : 0;
 
   const pinViewingStep = useCallback(
     (step: number) => {
@@ -379,6 +381,10 @@ export function NewProjectForm({
   const failedAtStep = project?.status === "failed" ? failedStepFor(project) : undefined;
 
   useEffect(() => {
+    if (!project) {
+      onStepNav?.(null);
+      return;
+    }
     onStepNav?.({
       status: liveStatus,
       failedAtStep,
@@ -386,7 +392,7 @@ export function NewProjectForm({
       clipsReady,
       onSelectStep: pinViewingStep,
     });
-  }, [clipsReady, failedAtStep, liveStatus, onStepNav, pinViewingStep, viewing]);
+  }, [clipsReady, failedAtStep, liveStatus, onStepNav, pinViewingStep, project, viewing]);
 
   useEffect(() => {
     return () => onStepNav?.(null);

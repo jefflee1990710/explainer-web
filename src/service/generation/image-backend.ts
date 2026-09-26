@@ -1,8 +1,7 @@
 import { hasAlicloudKey } from "@/service/alicloud/dashscope";
-import { openRouterApiKey, OPENROUTER_IMAGE_MODEL } from "@/service/openrouter/generate";
 import type { SceneTextLanguage } from "@/model/project";
 
-export type ImageBackend = "alicloud" | "higgsfield" | "openrouter";
+export type ImageBackend = "alicloud" | "higgsfield";
 
 export type ImageRoute = {
   backend: ImageBackend;
@@ -13,18 +12,28 @@ export type ImageRoute = {
 };
 
 /**
- * 畫面文字語系 → 產圖 backend + model。生成時只讀呢張表。
+ * 畫面文字語系 → Higgsfield 產圖模型。生成時只讀呢張表。
+ * 三支在有角色藍圖時都收 image_urls（多張參考圖）。
+ * en：GPT Image 2.5 Flare，最多 16 張。
+ * zh-Hant：Qwen Image 3 edit，最多 3 張；超過會拼成一張參考表。
+ * zh-Hans：GPT Image 2.5 Sunburst，最多 16 張。
  */
-const OPENROUTER_ROUTE: ImageRoute = {
-  backend: "openrouter",
-  model: OPENROUTER_IMAGE_MODEL,
-  editModel: OPENROUTER_IMAGE_MODEL,
-};
-
 export const IMAGE_ROUTE_BY_SCENE_TEXT: Record<SceneTextLanguage, ImageRoute> = {
-  en: OPENROUTER_ROUTE,
-  "zh-Hant": OPENROUTER_ROUTE,
-  "zh-Hans": OPENROUTER_ROUTE,
+  en: {
+    backend: "higgsfield",
+    model: "marketing-studio/image/flare",
+    editModel: "marketing-studio/image/flare",
+  },
+  "zh-Hant": {
+    backend: "higgsfield",
+    model: "alibaba/qwen-image-3/text-to-image",
+    editModel: "alibaba/qwen-image-3/edit",
+  },
+  "zh-Hans": {
+    backend: "higgsfield",
+    model: "marketing-studio/image/sunburst",
+    editModel: "marketing-studio/image/sunburst",
+  },
 };
 
 const DEFAULT_ROUTE = IMAGE_ROUTE_BY_SCENE_TEXT.en;
@@ -40,9 +49,6 @@ export function resolveImageRoute(language?: SceneTextLanguage): ImageRoute {
   const route = imageRouteForSceneText(language);
   if (route.backend === "alicloud" && !hasAlicloudKey()) {
     throw new Error(`畫面文字為中文時需要 ALICLOUD_API_KEY（${route.model}）`);
-  }
-  if (route.backend === "openrouter" && !openRouterApiKey()) {
-    throw new Error("尚未設定 OPENROUTER_API_KEY");
   }
   return route;
 }

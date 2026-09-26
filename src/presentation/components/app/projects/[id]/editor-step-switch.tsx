@@ -14,7 +14,7 @@ export type EditorStepNav = {
   onSelectStep: (step: number) => void;
 };
 
-// Compact 題材 / 製作 / 成片 switch for the editor dialog header.
+// Production / Reel only. Input lives on the create dialog, not this editor.
 export function EditorStepSwitch({
   status,
   failedAtStep,
@@ -33,6 +33,7 @@ export function EditorStepSwitch({
       className="flex flex-wrap gap-1 rounded-full border border-accent-ink/10 bg-paper p-1"
     >
       {PROJECT_STEPS.map((step, index) => {
+        if (index === 0) return null;
         const label = projectStepLabel(step.id, t);
         const selected = index === viewing;
         const clickable = index <= maxReachable;
