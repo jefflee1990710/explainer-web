@@ -11,7 +11,6 @@ import { StylePicker } from "@/presentation/components/style-picker";
 import {
   generateClipFramesAction,
   generateClipVideoAction,
-  generateRemainingAction,
 } from "@/presentation/actions/clip-production";
 import {
   regenerateFrameAction,
@@ -307,21 +306,6 @@ export function NewProjectForm({
   function onGenerateVideo(clipNumber: number) {
     if (!project) return;
     void runPaid(`video:${clipNumber}`, () => generateClipVideoAction(project.id, clipNumber));
-  }
-
-  async function onFillRemaining() {
-    if (!project) return false;
-    const ok = await runPaid("remaining", async () => {
-      const result = await generateRemainingAction(project.id);
-      // Partial success: the project still updated, so surface the gaps only.
-      if (result.ok && result.skipped.length > 0) {
-        setError(
-          `有 ${result.skipped.length} 段沒送出（#${result.skipped.join("、#")}），請到該段工作區重試。`,
-        );
-      }
-      return result;
-    });
-    return ok;
   }
 
   const videoId = project?.id;
@@ -626,14 +610,12 @@ export function NewProjectForm({
             <ClipProduction
               project={project}
               credits={credits}
-              subscribed={subscribed}
               pending={pending}
               error={error}
               onGenerateFrames={onGenerateFrames}
               onRegenerateFrame={onRegenerateFrame}
               onUpdateClip={onUpdateClip}
               onGenerateVideo={onGenerateVideo}
-              onFillRemaining={onFillRemaining}
             />
             </div>
           ) : viewing === 2 && project?.status === "ready" ? (
