@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ClipProduction } from "@/presentation/components/project/clip-production";
+import { VideoDesk } from "@/presentation/components/project/video-desk";
+import { StudioPanel } from "@/presentation/studio/studio-panel";
 import { currentStepFor } from "@/presentation/components/project/project-stepper";
 import { Spinner } from "@/presentation/components/spinner";
 import { StylePicker } from "@/presentation/components/style-picker";
@@ -406,19 +408,22 @@ export function NewProjectForm({
     !briefBusy;
   const fillEditor =
     viewing === 1 && Boolean(project?.phaseA && isProductionLike(project.status));
+  const reelDesk = viewing === 2 && project?.status === "ready";
+  const desk = fillEditor || reelDesk;
 
   return (
     <MotionConfig reducedMotion="user">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div
           className={
-            fillEditor
+            desk
               ? "flex min-h-0 flex-1 flex-col overflow-hidden"
-              : "min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-6 sm:px-6"
+              : "min-h-0 flex-1 space-y-6 overflow-y-auto"
           }
         >
         <AnimatePresence mode="wait" initial={false}>
           {viewing === 0 ? (
+            <StudioPanel key="form" className="mx-auto w-full max-w-3xl">
             <motion.form
               key="form"
               onSubmit={onSubmit}
@@ -426,7 +431,7 @@ export function NewProjectForm({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10, scale: 0.99, transition: { duration: 0.2 } }}
               transition={{ duration: 0.4, ease }}
-              className="space-y-7 rounded-[1.75rem] border border-accent-ink/10 bg-paper/85 p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.08)] backdrop-blur sm:p-8"
+              className="space-y-7 p-6 sm:p-8"
             >
               <input type="hidden" name="projectId" value={projectId} />
 
@@ -572,6 +577,7 @@ export function NewProjectForm({
                 </p>
               </div>
             </motion.form>
+            </StudioPanel>
           ) : (
             <motion.div
               key="summary"
@@ -579,8 +585,8 @@ export function NewProjectForm({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
               transition={{ duration: 0.35, ease }}
-              className={`flex flex-wrap items-center gap-2 rounded-2xl border border-accent-ink/10 bg-paper/70 px-5 py-4 text-sm ${
-                fillEditor ? "mx-4 mt-4 shrink-0 sm:mx-6" : ""
+              className={`flex flex-wrap items-center gap-2 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-4 py-2 text-xs ${
+                desk ? "shrink-0" : "mx-4 mt-4 rounded-md border sm:mx-6"
               }`}
             >
               <span className="font-display font-bold">{skillTitle}</span>
@@ -624,13 +630,29 @@ export function NewProjectForm({
               onGenerateVideo={onGenerateVideo}
             />
             </div>
-          ) : viewing === 2 && project?.status === "ready" ? (
-            <ReelExport
-              key="export"
+          ) : reelDesk && project ? (
+            <VideoDesk
+              key={project.id}
               project={project}
               pending={pending}
-              error={error}
-              onCompose={onComposeReel}
+              renderPreview={() => (
+                <ReelExport
+                  part="preview"
+                  project={project}
+                  pending={pending}
+                  error={error}
+                  onCompose={onComposeReel}
+                />
+              )}
+              renderInspector={() => (
+                <ReelExport
+                  part="inspector"
+                  project={project}
+                  pending={pending}
+                  error={error}
+                  onCompose={onComposeReel}
+                />
+              )}
             />
           ) : project?.status === "failed" && viewing === liveStep ? (
             <FailedCard

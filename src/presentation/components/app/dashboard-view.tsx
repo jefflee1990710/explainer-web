@@ -20,7 +20,7 @@ export function DashboardView({
 
   return (
     <div>
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold">{t("dashboard.title")}</h1>
           <p className="mt-2 text-sm text-muted">

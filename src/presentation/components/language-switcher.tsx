@@ -15,7 +15,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
         value={locale}
         onChange={(event) => setLocale(event.target.value as LocaleId)}
         aria-label={t("nav.language")}
-        className="min-h-[36px] cursor-pointer rounded-full border border-accent-ink/15 bg-paper/80 py-1 pl-2 pr-7 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="min-h-[36px] max-w-[9rem] cursor-pointer rounded-full border border-accent-ink/15 bg-paper/80 py-1 pl-2 pr-7 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:max-w-none"
       >
         {LOCALE_OPTIONS.map((option) => (
           <option key={option.id} value={option.id}>

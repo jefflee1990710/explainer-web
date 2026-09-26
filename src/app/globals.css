@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../presentation/studio/tokens.css";
 
 :root {
   /* Marker-studio palette: paper, ink, citrus, coral, teal */

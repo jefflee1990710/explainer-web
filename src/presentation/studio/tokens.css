@@ -1,0 +1,11 @@
+/* Light editing-desk tokens. Scoped so marketing pages keep the warm paper canvas. */
+.studio-app {
+  --studio-canvas: #f3f4f6;
+  --studio-panel: #ffffff;
+  --studio-line: #e5e7eb;
+  --studio-ink: var(--accent-ink);
+  --studio-teal: var(--teal);
+  --studio-muted: var(--muted);
+  background: var(--studio-canvas);
+  color: var(--studio-ink);
+}

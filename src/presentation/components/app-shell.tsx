@@ -1,18 +1,11 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { NavLink } from "@/presentation/components/nav-link";
 import { UserButton } from "@clerk/nextjs";
-import { motion } from "framer-motion";
-import { BrandMark } from "@/presentation/components/brand-mark";
-import { useI18n } from "@/presentation/components/i18n-provider";
 import { LanguageSwitcher } from "@/presentation/components/language-switcher";
-import { StudioBackdrop } from "@/presentation/components/studio-backdrop";
+import { useI18n } from "@/presentation/components/i18n-provider";
+import { StudioShell, type StudioNavItem } from "@/presentation/studio/studio-shell";
 
-// Folder and character workspaces are split panes; they get a wider canvas
-// than the single-column dashboard, library, and billing pages.
-const WIDE_ROUTE = /^\/app\/(projects|characters)\/[^/]+$/;
-
+// Logged-in chrome. Page content sits in the studio shell.
 export function AppShell({
   credits,
   children,
@@ -21,43 +14,27 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
-  const pathname = usePathname();
-  const wide = WIDE_ROUTE.test(pathname);
+  const items: StudioNavItem[] = [
+    { href: "/app", label: t("nav.projects"), icon: "projects" },
+    { href: "/app/characters", label: t("nav.characters"), icon: "characters" },
+    { href: "/app/mcp", label: t("nav.mcp"), icon: "mcp" },
+    { href: "/app/affiliate", label: t("nav.affiliate"), icon: "affiliate" },
+    { href: "/app/billing", label: t("nav.billing"), icon: "billing" },
+  ];
 
   return (
-    <div className="studio-canvas relative flex flex-1 flex-col">
-      <StudioBackdrop />
-      <div className="relative z-10 flex flex-1 flex-col">
-        <motion.header
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          className="flex items-center justify-between border-b border-accent-ink/10 bg-paper/70 px-6 py-4 backdrop-blur-md"
-        >
-          <div className="flex items-center gap-6">
-            <BrandMark href="/app" />
-            <nav className="flex gap-4 text-sm font-medium text-muted">
-              <NavLink href="/app">{t("nav.projects")}</NavLink>
-              <NavLink href="/app/characters">{t("nav.characters")}</NavLink>
-              <NavLink href="/app/mcp">{t("nav.mcp")}</NavLink>
-              <NavLink href="/app/affiliate">{t("nav.affiliate")}</NavLink>
-              <NavLink href="/app/billing">{t("nav.billing")}</NavLink>
-            </nav>
-          </div>
-          <div className="flex items-center gap-4 text-sm">
-            <LanguageSwitcher />
-            <span className="rounded-full border border-accent-ink/10 bg-lime/70 px-3 py-1 font-semibold text-accent-ink">
-              {credits} {t("common.credits")}
-            </span>
-            <UserButton />
-          </div>
-        </motion.header>
-        <main
-          className={`mx-auto w-full px-6 py-10 ${wide ? "max-w-7xl" : "max-w-5xl"}`}
-        >
-          {children}
-        </main>
-      </div>
-    </div>
+    <StudioShell
+      items={items}
+      credits={credits}
+      creditsLabel={t("common.credits")}
+      toolbar={
+        <>
+          <LanguageSwitcher />
+          <UserButton />
+        </>
+      }
+    >
+      {children}
+    </StudioShell>
   );
 }

@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { ClipTimeline } from "@/presentation/components/project/clip-timeline";
+import { useState } from "react";
 import { ClipWorkspace } from "@/presentation/components/project/clip-workspace";
 import { FrameEditDialog } from "@/presentation/components/project/frame-edit-dialog";
-import { clipStatesFor, defaultSelectedClip } from "@/service/clip-stage";
+import { VideoDesk } from "@/presentation/components/project/video-desk";
+import { clipStatesFor } from "@/service/clip-stage";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import type { PublicVideo } from "@/presentation/serialize";
 import type {
@@ -14,9 +13,7 @@ import type {
   FrameRevisionInput,
 } from "@/model/project";
 
-const ease = [0.22, 1, 0.36, 1] as const;
-
-// Selected clip on top, clip timeline pinned below — like a video editor.
+// Selected clip fills the desk: preview, inspector, and the shared filmstrip.
 export function ClipProduction({
   project,
   credits,
@@ -46,80 +43,71 @@ export function ClipProduction({
 }) {
   const phaseA = project.phaseA;
   const states = clipStatesFor(project);
-
   const [editingFrame, setEditingFrame] = useState<{
     clipNumber: number;
     position: FramePosition;
   } | null>(null);
-  const [selectedClip, setSelectedClip] = useState(() => defaultSelectedClip(states));
-
-  useEffect(() => {
-    setSelectedClip(defaultSelectedClip(clipStatesFor(project)));
-  }, [project.id]);
-
-  const selectedState =
-    states.find((state) => state.clipNumber === selectedClip) ?? states[0];
 
   if (!phaseA || states.length === 0) return null;
 
   const editingRow = editingFrame
-    ? phaseA.clips.find((r) => r.clipNumber === editingFrame.clipNumber)
+    ? phaseA.clips.find((row) => row.clipNumber === editingFrame.clipNumber)
     : undefined;
   const frame = editingFrame
     ? project.frames.find(
-        (f) =>
-          f.clipNumber === editingFrame.clipNumber && f.position === editingFrame.position,
+        (item) =>
+          item.clipNumber === editingFrame.clipNumber &&
+          item.position === editingFrame.position,
       )
     : undefined;
+
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12, transition: { duration: 0.2 } }}
-      transition={{ duration: 0.45, ease }}
-      className="flex min-h-0 flex-1 flex-col"
-    >
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
-      {selectedState ? (
-        <ClipWorkspace
-          key={selectedState.clipNumber}
-          project={project}
-          state={selectedState}
-          credits={credits}
-          pending={pending}
-          error={error}
-          onGenerateFrames={() => onGenerateFrames(selectedState.clipNumber)}
-          onRegenerateFrame={(position) =>
-            onRegenerateFrame(selectedState.clipNumber, position)
-          }
-          onOpenFrame={(position) =>
-            setEditingFrame({ clipNumber: selectedState.clipNumber, position })
-          }
-          onUpdateClip={(input, regenerate) =>
-            onUpdateClip(selectedState.clipNumber, input, regenerate)
-          }
-          onGenerateVideo={() => onGenerateVideo(selectedState.clipNumber)}
-        />
-      ) : null}
-
-      {error ? (
-        <p role="alert" className="text-sm font-medium text-accent">
-          {error}
-        </p>
-      ) : null}
-      </div>
-
-      <div className="shrink-0 border-t border-accent-ink/10 bg-paper/95 px-4 py-3 sm:px-6">
-        <ClipTimeline
-          project={project}
-          states={states}
-          selected={selectedState?.clipNumber ?? selectedClip}
-          pending={pending}
-          onSelect={setSelectedClip}
-        />
-      </div>
-
-      {/* Frame annotate + redo */}
+    <>
+      <VideoDesk
+        key={project.id}
+        project={project}
+        pending={pending}
+        renderPreview={(state) => (
+          <ClipWorkspace
+            key={`preview-${state.clipNumber}`}
+            region="preview"
+            project={project}
+            state={state}
+            credits={credits}
+            pending={pending}
+            error={error}
+            onGenerateFrames={() => onGenerateFrames(state.clipNumber)}
+            onRegenerateFrame={(position) => onRegenerateFrame(state.clipNumber, position)}
+            onOpenFrame={(position) =>
+              setEditingFrame({ clipNumber: state.clipNumber, position })
+            }
+            onUpdateClip={(input, regenerate) =>
+              onUpdateClip(state.clipNumber, input, regenerate)
+            }
+            onGenerateVideo={() => onGenerateVideo(state.clipNumber)}
+          />
+        )}
+        renderInspector={(state) => (
+          <ClipWorkspace
+            key={`inspector-${state.clipNumber}`}
+            region="inspector"
+            project={project}
+            state={state}
+            credits={credits}
+            pending={pending}
+            error={error}
+            onGenerateFrames={() => onGenerateFrames(state.clipNumber)}
+            onRegenerateFrame={(position) => onRegenerateFrame(state.clipNumber, position)}
+            onOpenFrame={(position) =>
+              setEditingFrame({ clipNumber: state.clipNumber, position })
+            }
+            onUpdateClip={(input, regenerate) =>
+              onUpdateClip(state.clipNumber, input, regenerate)
+            }
+            onGenerateVideo={() => onGenerateVideo(state.clipNumber)}
+          />
+        )}
+      />
       {editingFrame && frame && editingRow ? (
         <FrameEditDialog
           key={`${editingFrame.clipNumber}:${editingFrame.position}`}
@@ -138,6 +126,6 @@ export function ClipProduction({
           }}
         />
       ) : null}
-    </motion.section>
+    </>
   );
 }

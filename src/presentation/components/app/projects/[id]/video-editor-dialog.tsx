@@ -2,6 +2,7 @@
 
 import { useEffect, useId } from "react";
 import { Spinner } from "@/presentation/components/spinner";
+import { StudioButton } from "@/presentation/studio/studio-button";
 
 // Full-page overlay so the existing video editor can fill the workspace.
 export function VideoEditorDialog({
@@ -40,50 +41,36 @@ export function VideoEditorDialog({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex flex-col bg-paper"
+      className="studio-app fixed inset-0 z-40 flex flex-col"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
     >
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-accent-ink/10 bg-paper/95 px-4 py-3 sm:px-6">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-4 py-3">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <h2 id={titleId} className="font-display text-xl font-bold sm:text-2xl">
+          <h2 id={titleId} className="font-display text-xl font-bold">
             {title}
           </h2>
           {nav}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
           {onExport ? (
-            <button
-              type="button"
-              onClick={onExport}
-              className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5"
-            >
-              下一步：成片
-            </button>
+            <StudioButton onClick={onExport}>下一步：成片</StudioButton>
           ) : null}
           {syncing ? (
-            <p className="inline-flex items-center gap-1.5 rounded-full border border-accent-ink/10 bg-paper px-2.5 py-1 text-[11px] font-semibold text-muted">
+            <p className="inline-flex items-center gap-1.5 rounded-md border border-[var(--studio-line)] px-2.5 py-1 text-[11px] font-semibold text-[var(--studio-muted)]">
               <Spinner className="h-3.5 w-3.5" />
               同步中
             </p>
           ) : null}
           {canDelete ? (
-            <button
-              type="button"
-              onClick={onDelete}
-              className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-accent/30 px-4 text-sm font-semibold text-accent transition hover:-translate-y-0.5"
-            >
+            <StudioButton variant="ghost" className="text-accent" onClick={onDelete}>
               刪除影片
-            </button>
+            </StudioButton>
           ) : null}
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-accent-ink/15 px-4 text-sm font-semibold transition hover:-translate-y-0.5"
-          >
+          <StudioButton variant="ghost" onClick={onClose}>
             關閉
-          </button>
+          </StudioButton>
         </div>
       </header>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>

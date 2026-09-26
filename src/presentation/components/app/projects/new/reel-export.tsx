@@ -22,22 +22,81 @@ export function ReelExport({
   pending,
   error,
   onCompose,
+  part = "all",
 }: {
   project: PublicVideo;
   pending: string;
   error: string;
   onCompose: () => void;
+  // Preview is the player; inspector is the status and retry control.
+  part?: "all" | "preview" | "inspector";
 }) {
   const current = isReelCurrent(project);
   const composing = isReelBusy(project.reelStatus) || pending === "reel";
   const failed = project.reelStatus === "failed" && !current;
   const clipCount = project.phaseA?.clips.length || project.clips.length;
 
-  // Auto-start concat the first time this fingerprint has no reel.
   useEffect(() => {
+    if (part === "preview") return;
     if (current || composing || failed) return;
     onCompose();
-  }, [current, composing, failed, onCompose]);
+  }, [current, composing, failed, onCompose, part]);
+
+  const player = current && project.reelUrl ? (
+    <ReelPlayer
+      src={project.reelUrl}
+      aspectRatio={project.aspectRatio}
+      filename={reelFilename(project)}
+    />
+  ) : composing ? (
+    <div className="flex flex-col items-center justify-center gap-3 py-16 text-sm text-muted">
+      <Spinner className="h-6 w-6" />
+      <p>正在把 {clipCount} 段接成一支影片，完成後可預覽與下載。</p>
+    </div>
+  ) : (
+    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-sm text-muted">
+      <p>
+        {failed
+          ? project.reelError || "合成失敗，credits 不會被扣除，可以再試。"
+          : "準備把所有片段合成一支成片。"}
+      </p>
+    </div>
+  );
+
+  const status = (
+    <div className="flex flex-col gap-4 p-4">
+      <header>
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--studio-teal)]">
+          Export · 成片
+        </p>
+        <h2 className="mt-2 text-lg font-bold">
+          {current ? "成片已就緒" : composing ? "正在合成成片" : "合成一支完整影片"}
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          依分鏡順序把 {clipCount} 段接成一支 reel。片段重做後會再合成一次。
+        </p>
+      </header>
+      {!current ? (
+        <button
+          type="button"
+          onClick={onCompose}
+          disabled={pending === "reel" || composing}
+          className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-[var(--studio-ink)] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {pending === "reel" || composing ? <Spinner /> : null}
+          {failed ? "重新合成" : "開始合成"}
+        </button>
+      ) : null}
+      {error ? (
+        <p role="alert" className="text-sm font-medium text-accent">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+
+  if (part === "preview") return <div className="p-4">{player}</div>;
+  if (part === "inspector") return status;
 
   return (
     <motion.section
@@ -47,56 +106,10 @@ export function ReelExport({
       transition={{ duration: 0.45, ease }}
       className="space-y-5"
     >
-      <header className="rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-6 shadow-[6px_6px_0_0_rgba(18,20,28,0.08)]">
-        <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-accent">
-          Export · 成片
-        </p>
-        <h2 className="font-display mt-2 text-2xl font-bold">
-          {current ? "成片已就緒" : composing ? "正在合成成片" : "合成一支完整影片"}
-        </h2>
-        <p className="mt-1 text-sm text-muted">
-          依分鏡順序把 {clipCount} 段接成一支 reel。片段重做後會再合成一次。
-        </p>
-      </header>
-
-      <div className="rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-6">
-        {current && project.reelUrl ? (
-          <ReelPlayer
-            src={project.reelUrl}
-            aspectRatio={project.aspectRatio}
-            filename={reelFilename(project)}
-          />
-        ) : composing ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 text-sm text-muted">
-            <Spinner className="h-6 w-6" />
-            <p>正在把 {clipCount} 段接成一支影片，完成後可預覽與下載。</p>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
-            <p className="text-sm text-muted">
-              {failed
-                ? project.reelError || "合成失敗，credits 不會被扣除，可以再試。"
-                : "準備把所有片段合成一支成片。"}
-            </p>
-            <motion.button
-              type="button"
-              onClick={onCompose}
-              disabled={pending === "reel"}
-              whileTap={{ scale: 0.98 }}
-              className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {pending === "reel" ? <Spinner /> : null}
-              {failed ? "重新合成" : "開始合成"}
-            </motion.button>
-          </div>
-        )}
+      {status}
+      <div className="rounded-md border border-[var(--studio-line)] bg-[var(--studio-panel)] p-4">
+        {player}
       </div>
-
-      {error ? (
-        <p role="alert" className="text-sm font-medium text-accent">
-          {error}
-        </p>
-      ) : null}
     </motion.section>
   );
 }

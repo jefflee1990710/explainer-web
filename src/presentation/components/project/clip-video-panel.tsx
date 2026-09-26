@@ -22,6 +22,7 @@ export function ClipVideoPanel({
   canAct,
   pending,
   onGenerate,
+  part = "all",
 }: {
   clip?: ProjectClip;
   state: ClipState;
@@ -31,10 +32,11 @@ export function ClipVideoPanel({
   canAct: boolean;
   pending: boolean;
   onGenerate: () => void;
+  // Player sits in the preview pane; actions sit in the inspector.
+  part?: "all" | "player" | "actions";
 }) {
   const src = mediaSrc(clip);
   const generating = state.stage === "video_generating" || pending;
-  const hasVideo = Boolean(src) && clip?.status === "completed";
   const failed = clip?.status === "failed";
   const error = failed ? userFacingJobError("failed", clip?.error) : undefined;
   // Hide the previous file the moment a redo is clicked or queued.
@@ -69,22 +71,9 @@ export function ClipVideoPanel({
     now > 0 &&
     now - claimedAt > STUCK_CLAIM_MS;
 
-  return (
-    <div>
-      <p className="font-display text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
-        影片 ·{" "}
-        {generating
-          ? "產片中"
-          : hasVideo
-            ? state.stale.video
-              ? "舊版"
-              : "完成"
-            : failed
-              ? "失敗"
-              : "尚未產片"}
-      </p>
+  const player = (
       <div
-        className={`relative mt-2 overflow-hidden rounded-xl border border-accent-ink/10 bg-paper ${ASPECT_CLASS[aspectRatio]}`}
+        className={`relative overflow-hidden rounded-md border border-[var(--studio-line)] bg-[var(--studio-canvas)] ${ASPECT_CLASS[aspectRatio]}`}
       >
         {showVideo ? (
           <>
@@ -131,31 +120,34 @@ export function ClipVideoPanel({
           </span>
         ) : null}
       </div>
+  );
+
+  const actions = (
+    <div>
       {stuck ? (
         <button
           type="button"
           onClick={onGenerate}
           disabled={pending}
-          className="mt-2 inline-flex min-h-[32px] cursor-pointer items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-3 text-[11px] font-semibold text-accent transition hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-md border border-accent/40 bg-accent/10 px-3 text-[11px] font-semibold text-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           {pending ? <Spinner className="h-3.5 w-3.5" /> : <RefreshIcon />}
           看起來卡住了？重試 · {VIDEO_COST}
         </button>
       ) : null}
-      <motion.button
+      <button
         type="button"
         onClick={onGenerate}
         disabled={disabled}
-        whileTap={{ scale: 0.98 }}
-        className={`mt-3 inline-flex min-h-[40px] cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+        className={`mt-3 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
           showVideo
-            ? "border border-accent-ink/15 bg-paper hover:border-accent-ink/40"
-            : "bg-accent text-white shadow-[3px_3px_0_0_#12141c] hover:-translate-y-0.5 disabled:hover:translate-y-0"
+            ? "border border-[var(--studio-line)] bg-[var(--studio-panel)]"
+            : "bg-[var(--studio-ink)] text-white"
         }`}
       >
         {pending ? <Spinner className="h-4 w-4" /> : showVideo ? <RefreshIcon /> : null}
         {label} · {VIDEO_COST}
-      </motion.button>
+      </button>
       {reason && !generating ? (
         <p className="mt-1 text-[11px] text-muted">
           {reason}
@@ -171,6 +163,15 @@ export function ClipVideoPanel({
       ) : (
         <p className="mt-1 text-[11px] text-muted">會依上面的畫格與文字撰寫 prompt 後送出。</p>
       )}
+    </div>
+  );
+
+  if (part === "player") return player;
+  if (part === "actions") return actions;
+  return (
+    <div>
+      {player}
+      {actions}
     </div>
   );
 }
