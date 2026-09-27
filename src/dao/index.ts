@@ -13,3 +13,4 @@ export { creditLotsCollection } from "@/dao/credit-lots";
 export { payoutRequestsCollection } from "@/dao/payout-requests";
 export { mcpApiKeysCollection } from "@/dao/mcp-api-keys";
 export { mcpToolCallsCollection } from "@/dao/mcp-tool-calls";
+export { videoTemplatesCollection } from "@/dao/video-templates";
