@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ClipProduction } from "@/presentation/components/project/clip-production";
-import { StudioFrame } from "@/presentation/studio/studio-frame";
 import { StudioPanel } from "@/presentation/studio/studio-panel";
 import { currentStepFor } from "@/presentation/components/project/project-stepper";
 import { Spinner } from "@/presentation/components/spinner";
@@ -63,7 +62,7 @@ import { DurationPicker } from "@/presentation/components/app/projects/new/durat
 import { LanguagePicker } from "@/presentation/components/app/projects/new/language-picker";
 import { VoicePicker } from "@/presentation/components/app/projects/new/voice-picker";
 import { SceneTextPicker } from "@/presentation/components/app/projects/new/scene-text-picker";
-import { ReelExport } from "@/presentation/components/app/projects/new/reel-export";
+import { VideoEditDesk } from "@/presentation/components/app/projects/new/video-edit-desk";
 import { ReviseStoryboardDialog } from "@/presentation/components/app/projects/new/revise-storyboard-dialog";
 import { useProjectPoll } from "@/presentation/components/app/projects/new/use-project-poll";
 
@@ -662,14 +661,13 @@ export function NewProjectForm({
             />
             </div>
           ) : reelDesk && project ? (
-            <StudioFrame
+            <VideoEditDesk
               key={project.id}
-              preview={
-                <ReelExport part="preview" project={project} pending={pending} error={error} onCompose={onComposeReel} />
-              }
-              inspector={
-                <ReelExport part="inspector" project={project} pending={pending} error={error} onCompose={onComposeReel} />
-              }
+              project={project}
+              pending={pending}
+              error={error}
+              onComposeReel={onComposeReel}
+              onProjectChange={setProject}
             />
           ) : project?.status === "failed" && viewing === liveStep ? (
             <FailedCard

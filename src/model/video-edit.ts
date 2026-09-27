@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { z } from "zod";
-import { objectIdSchema } from "@/model/primitives";
+
+// Client components import this file, so it must not pull in mongodb at runtime.
 
 // Where a brand layer sits; margin applies to the anchored edges.
 export const BRAND_ANCHORS = ["top-left", "top-right", "bottom-left", "bottom-right", "center"] as const;
@@ -76,15 +77,4 @@ export const videoEditSchema: z.ZodType<VideoEdit> = z.object({
   layers: z.array(brandLayerSchema),
   intro: bookendClipSchema.optional(),
   outro: bookendClipSchema.optional(),
-});
-
-export const videoTemplateSchema: z.ZodType<VideoTemplate> = z.object({
-  _id: objectIdSchema,
-  clerkUserId: z.string(),
-  name: z.string().min(L.templateName.min).max(L.templateName.max),
-  layers: z.array(brandLayerSchema),
-  intro: bookendClipSchema.optional(),
-  outro: bookendClipSchema.optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
 });
