@@ -1,10 +1,12 @@
 import { isReelCurrent } from "@/service/reel/fingerprint";
 import { isFinalCurrent } from "@/service/video-edit/edit-state";
 import { isPublicHttpUrl } from "@/util/app-url";
+import type { VideoShareId } from "@/service/video-share/platforms";
 import type { PublicVideo } from "@/presentation/serialize";
 import type { VideoEdit } from "@/model/video-edit";
 
-export type VideoShareId = "instagram" | "facebook" | "tiktok" | "youtube" | "x";
+export { VIDEO_SHARE_IDS, isVideoShareId } from "@/service/video-share/platforms";
+export type { VideoShareId };
 
 export const VIDEO_SHARE_TARGETS: Array<{
   id: VideoShareId;
@@ -12,7 +14,8 @@ export const VIDEO_SHARE_TARGETS: Array<{
   // Open the site's upload or share page after we have a file / URL.
   kind: "url" | "upload";
 }> = [
-  { id: "instagram", label: "Instagram", kind: "upload" },
+  { id: "instagram_reel", label: "Instagram Reel", kind: "upload" },
+  { id: "instagram_post", label: "Instagram Post", kind: "upload" },
   { id: "facebook", label: "Facebook", kind: "url" },
   { id: "tiktok", label: "TikTok", kind: "upload" },
   { id: "youtube", label: "YouTube", kind: "upload" },
@@ -32,15 +35,19 @@ export function shareableVideoUrl(project: PublicVideo, edit: VideoEdit) {
   return project.finalUrl || project.reelUrl;
 }
 
-export function videoShareHref(id: VideoShareId, videoUrl: string) {
+export function videoShareHref(id: VideoShareId, videoUrl: string, caption?: string) {
   const encoded = encodeURIComponent(videoUrl);
   if (id === "facebook") {
     return `https://www.facebook.com/sharer/sharer.php?u=${encoded}`;
   }
   if (id === "x") {
-    return `https://twitter.com/intent/tweet?url=${encoded}`;
+    const params = new URLSearchParams({ url: videoUrl });
+    const text = caption?.trim();
+    if (text) params.set("text", text);
+    return `https://twitter.com/intent/tweet?${params.toString()}`;
   }
-  if (id === "instagram") return "https://www.instagram.com/";
+  if (id === "instagram_reel") return "https://www.instagram.com/reels/create";
+  if (id === "instagram_post") return "https://www.instagram.com/";
   if (id === "tiktok") return "https://www.tiktok.com/tiktokstudio/upload";
   return "https://www.youtube.com/upload";
 }

@@ -12,13 +12,20 @@ function video(title: string): PublicVideo {
   return { phaseA: { localizedTitle: title } } as PublicVideo;
 }
 
-test("share targets include Instagram Facebook TikTok", () => {
+test("share targets split Instagram reel and post", () => {
   const ids = VIDEO_SHARE_TARGETS.map((item) => item.id);
-  assert.deepEqual(ids, ["instagram", "facebook", "tiktok", "youtube", "x"]);
+  assert.deepEqual(ids, [
+    "instagram_reel",
+    "instagram_post",
+    "facebook",
+    "tiktok",
+    "youtube",
+    "x",
+  ]);
 });
 
 test("file name strips path characters", () => {
-  assert.equal(videoFileName(video('預測/下一個字:part?')), "預測 下一個字 part.mp4");
+  assert.equal(videoFileName(video("預測/下一個字:part?")), "預測 下一個字 part.mp4");
 });
 
 test("facebook and x encode the public video url", () => {
@@ -28,8 +35,15 @@ test("facebook and x encode the public video url", () => {
   assert.match(videoShareHref("x", "https://cdn.example.com/a.mp4"), /twitter.com\/intent/);
 });
 
-test("instagram and tiktok open upload pages", () => {
-  assert.match(videoShareHref("instagram", "https://x"), /instagram.com/);
+test("x intent includes drafted caption text", () => {
+  const href = videoShareHref("x", "https://cdn.example.com/a.mp4", "小心熱度 #toast");
+  assert.match(href, /text=/);
+  assert.match(href, /%23toast|小心熱度/);
+});
+
+test("instagram reel and post open different pages", () => {
+  assert.match(videoShareHref("instagram_reel", "https://x"), /instagram.com\/reels\/create/);
+  assert.match(videoShareHref("instagram_post", "https://x"), /instagram.com\/$/);
   assert.match(videoShareHref("tiktok", "https://x"), /tiktok.com/);
   assert.match(videoShareHref("youtube", "https://x"), /youtube.com\/upload/);
 });
