@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ClipProduction } from "@/presentation/components/project/clip-production";
-import { VideoDesk } from "@/presentation/components/project/video-desk";
+import { StudioFrame } from "@/presentation/studio/studio-frame";
 import { StudioPanel } from "@/presentation/studio/studio-panel";
 import { currentStepFor } from "@/presentation/components/project/project-stepper";
 import { Spinner } from "@/presentation/components/spinner";
@@ -662,28 +662,14 @@ export function NewProjectForm({
             />
             </div>
           ) : reelDesk && project ? (
-            <VideoDesk
+            <StudioFrame
               key={project.id}
-              project={project}
-              pending={pending}
-              renderPreview={() => (
-                <ReelExport
-                  part="preview"
-                  project={project}
-                  pending={pending}
-                  error={error}
-                  onCompose={onComposeReel}
-                />
-              )}
-              renderInspector={() => (
-                <ReelExport
-                  part="inspector"
-                  project={project}
-                  pending={pending}
-                  error={error}
-                  onCompose={onComposeReel}
-                />
-              )}
+              preview={
+                <ReelExport part="preview" project={project} pending={pending} error={error} onCompose={onComposeReel} />
+              }
+              inspector={
+                <ReelExport part="inspector" project={project} pending={pending} error={error} onCompose={onComposeReel} />
+              }
             />
           ) : project?.status === "failed" && viewing === liveStep ? (
             <FailedCard

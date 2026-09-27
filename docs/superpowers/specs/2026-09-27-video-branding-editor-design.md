@@ -120,12 +120,12 @@ Three columns, reusing `StudioFrame` without the `timeline` slot.
   - Intro and outro slots: upload, replace, remove.
   - 「儲存為新樣板」 and, when rule 3 applies, 「更新樣板〈名稱〉」.
 - **Centre: preview.** The current reel plays with each image layer
-  drawn as an absolutely positioned `<img>` using `layerBox`. The
+  drawn as an absolutely positioned `<img>` using `layerPlacement`. The
   selected layer can be dragged and resized; dragging snaps to the
   nearest anchor and stores margin and width as percentages. Intro
   and outro show as small cards before and after the player; clicking
   one previews it.
-- **Right: properties** of the selected item: anchor, margin %,
+- **Left, below the layer list: properties** of the selected item: anchor, margin %,
   width %, opacity; image duration for intro/outro.
 - **Actions.** 「匯出影片」 renders the final MP4. When it is
   current, 「下載」 downloads it. When the edit changed after export,
@@ -148,8 +148,8 @@ All are server functions, no REST routes.
   `overwriteTemplateAction(videoId, templateId)`,
   `renameTemplateAction(templateId, name)`,
   `deleteTemplateAction(templateId)`.
-- `exportFinalVideoAction(videoId)`: if the reel is not current, run
-  the existing reel compose first. Set `finalStatus: "queued"` with
+- `exportFinalVideoAction(videoId)`: 成片未就緒時回傳錯誤「成片合成中，完成後再匯出」，
+  UI 同時停用按鈕。 Set `finalStatus: "queued"` with
   the new fingerprint and run `runFinalJob` in `after()`. Idempotent
   for a fingerprint that is already queued, running, or current.
 
@@ -162,7 +162,7 @@ All are server functions, no REST routes.
    layout. Images use `-loop 1 -t durationSec` with a silent audio
    track. Both use `scale` + `crop` to cover the frame.
 3. **Overlay layers** on the main reel only. For each layer,
-   `layerBox(layer, w, h)` gives pixel `{x, y, w}`; opacity uses
+   `layerPlacement(layer, w, h)` gives `{anchor, w, margin}`; opacity uses
    `format=rgba,colorchannelmixer=aa=<opacity>`.
 4. **Concat** intro, branded main, outro with the existing edge-fade
    concat.
@@ -173,7 +173,8 @@ All are server functions, no REST routes.
 Pure helpers live beside the reel code and are shared by preview and
 render:
 
-- `layerBox(layer, frameW, frameH)` → `{ x, y, w }`.
+- `layerPlacement(layer, frameW, frameH)` → `{ anchor, w, margin }`.
+  底部／置中的 y 由 CSS `bottom` 與 ffmpeg `overlay_h` 決定。
 - `buildFinalFilter(input)` → the `filter_complex` string.
 - `finalFingerprint(video)` and `isEditDirty(edit, template)`.
 
@@ -191,7 +192,7 @@ render:
 
 `node:test` via `npx tsx --test`:
 
-- `layerBox` for all five anchors on 1080×1920 and 1920×1080.
+- `layerPlacement` for all five anchors on 1080×1920 and 1920×1080.
 - `finalFingerprint` changes for layer, intro, outro, or clip changes,
   and is stable for an identical edit.
 - `buildFinalFilter` for: layers only, intro only, intro + outro,

@@ -79,7 +79,7 @@ export const zhHant: Messages = {
       input: "題材",
       scene: "分鏡",
       production: "製作",
-      export: "成片",
+      export: "Video",
     },
     status: {
       draft: "草稿",

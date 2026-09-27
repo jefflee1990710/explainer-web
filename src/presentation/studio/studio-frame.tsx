@@ -1,5 +1,5 @@
-// Editor body: optional toolbar, preview and inspector, with the filmstrip
-// pinned below. `timelineBar` floats batch actions right above the filmstrip.
+// Editor body: optional toolbar, preview and inspector, with an optional filmstrip pinned below.
+// `timelineBar` floats batch actions right above the filmstrip.
 export function StudioFrame({
   preview,
   inspector,
@@ -9,7 +9,7 @@ export function StudioFrame({
 }: {
   preview: React.ReactNode;
   inspector: React.ReactNode;
-  timeline: React.ReactNode;
+  timeline?: React.ReactNode;
   toolbar?: React.ReactNode;
   timelineBar?: React.ReactNode;
 }) {
@@ -41,12 +41,14 @@ export function StudioFrame({
           {timelineBar}
         </div>
       ) : null}
-      <section
-        aria-label="時間軸"
-        className="h-28 shrink-0 overflow-x-auto overflow-y-hidden border-t border-[var(--studio-line)] bg-[var(--studio-canvas)]"
-      >
-        {timeline}
-      </section>
+      {timeline ? (
+        <section
+          aria-label="時間軸"
+          className="h-28 shrink-0 overflow-x-auto overflow-y-hidden border-t border-[var(--studio-line)] bg-[var(--studio-canvas)]"
+        >
+          {timeline}
+        </section>
+      ) : null}
     </div>
   );
 }
