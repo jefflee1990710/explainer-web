@@ -9,6 +9,7 @@ const frameStart = "https://blob/start.webp";
 const annotated = "https://blob/annotated.png";
 const clip = "https://blob/clip.mp4";
 const reel = "https://blob/reel.mp4";
+const final = "https://blob/final.mp4";
 const jobBlob = "https://blob/job.webp";
 
 test("collectVideoBlobUrls gathers frames, clips, reel, and job blobs", () => {
@@ -17,6 +18,7 @@ test("collectVideoBlobUrls gathers frames, clips, reel, and job blobs", () => {
     characterStillUrl: still,
     characterImageUrl: still,
     reelUrl: reel,
+    finalUrl: final,
     frames: [
       { blobUrl: frameStart, revision: { annotatedUrl: annotated } },
       { blobUrl: frameStart },
@@ -26,7 +28,7 @@ test("collectVideoBlobUrls gathers frames, clips, reel, and job blobs", () => {
 
   assert.deepEqual(
     collectVideoBlobUrls(video, [{ blobUrl: jobBlob }, { blobUrl: frameStart }]).sort(),
-    [still, frameStart, annotated, clip, reel, jobBlob].sort(),
+    [still, frameStart, annotated, clip, reel, final, jobBlob].sort(),
   );
 });
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { castMemberSchema, type CastMember } from "@/model/character";
 import { objectIdSchema } from "@/model/primitives";
 import { styleIdSchema, type StyleId } from "@/model/style-id";
+import { videoEditSchema, type VideoEdit } from "@/model/video-edit";
 
 export type AspectRatio = "16:9" | "9:16" | "1:1";
 export type DurationPreset = "micro" | "short" | "punchy" | "full";
@@ -194,6 +195,15 @@ export type Project = {
   reelStatus?: ReelStatus;
   reelFingerprint?: string;
   reelError?: string;
+  // Branding edit for the Video tab (copy, never linked to the template).
+  edit?: VideoEdit;
+  // Template last applied to or saved from this video.
+  editTemplateId?: ObjectId;
+  // Branded export. Fingerprint = reel fingerprint + edit hash.
+  finalUrl?: string;
+  finalStatus?: ReelStatus;
+  finalFingerprint?: string;
+  finalError?: string;
   // Legacy batch charges (pre per-clip pipeline). No longer written.
   creditCost?: number;
   creditsCharged: boolean;
@@ -326,6 +336,12 @@ export const projectSchema: z.ZodType<Project> = z.object({
   reelStatus: z.enum(["queued", "in_progress", "completed", "failed"]).optional(),
   reelFingerprint: z.string().optional(),
   reelError: z.string().optional(),
+  edit: videoEditSchema.optional(),
+  editTemplateId: objectIdSchema.optional(),
+  finalUrl: z.string().optional(),
+  finalStatus: z.enum(["queued", "in_progress", "completed", "failed"]).optional(),
+  finalFingerprint: z.string().optional(),
+  finalError: z.string().optional(),
   creditCost: z.number().optional(),
   creditsCharged: z.boolean(),
   error: z.string().optional(),

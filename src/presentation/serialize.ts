@@ -10,6 +10,7 @@ import type { Folder } from "@/model/folder";
 import type { Project, ProjectStatus } from "@/model/project";
 import type { Skill } from "@/model/skill";
 import type { Subscription } from "@/model/subscription";
+import type { VideoEdit, VideoTemplate } from "@/model/video-edit";
 
 export type PublicSkill = {
   id: string;
@@ -52,6 +53,12 @@ export type PublicVideo = {
   reelStatus?: Project["reelStatus"];
   reelFingerprint?: string;
   reelError?: string;
+  edit?: VideoEdit;
+  editTemplateId?: string;
+  finalUrl?: string;
+  finalStatus?: Project["finalStatus"];
+  finalFingerprint?: string;
+  finalError?: string;
   error?: string;
   createdAt: string;
 };
@@ -108,6 +115,12 @@ export function toPublicVideo(video: Project): PublicVideo {
     reelStatus: video.reelStatus,
     reelFingerprint: video.reelFingerprint,
     reelError: video.reelError,
+    edit: video.edit,
+    editTemplateId: video.editTemplateId?.toHexString(),
+    finalUrl: video.finalUrl,
+    finalStatus: video.finalStatus,
+    finalFingerprint: video.finalFingerprint,
+    finalError: video.finalError,
     error: video.error,
     createdAt: video.createdAt.toISOString(),
   };
@@ -231,5 +244,19 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     failed: newest?.status === "failed",
     createdAt: character.createdAt.toISOString(),
     updatedAt: character.updatedAt.toISOString(),
+  };
+}
+
+// Template row for the Video tab picker.
+export type PublicTemplate = VideoEdit & { id: string; name: string; updatedAt: string };
+
+export function toPublicTemplate(template: VideoTemplate): PublicTemplate {
+  return {
+    id: template._id.toHexString(),
+    name: template.name,
+    layers: template.layers,
+    intro: template.intro,
+    outro: template.outro,
+    updatedAt: template.updatedAt.toISOString(),
   };
 }

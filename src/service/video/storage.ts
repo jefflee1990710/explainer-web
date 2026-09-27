@@ -16,6 +16,7 @@ export function collectVideoBlobUrls(
   add(video.characterImageUrl);
   add(video.characterStillUrl);
   add(video.reelUrl);
+  add(video.finalUrl);
   for (const frame of video.frames || []) {
     add(frame.blobUrl);
     add(frame.revision?.annotatedUrl);
