@@ -35,6 +35,17 @@ async function nameTaken(clerkUserId: string, name: string, exceptId?: ObjectId)
   return Boolean(found);
 }
 
+// The unique index backs up nameTaken when two requests race.
+async function templatesWithNameIndex() {
+  const templates = await videoTemplatesCollection();
+  await templates.createIndex({ clerkUserId: 1, name: 1 }, { unique: true }).catch(() => {});
+  return templates;
+}
+
+function isDuplicateKey(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === 11000;
+}
+
 function revalidateVideo(projectId: ObjectId) {
   revalidatePath(`/app/projects/${projectId.toHexString()}`);
 }
@@ -78,9 +89,15 @@ export async function saveTemplateAction(
   if (await nameTaken(user.clerkUserId, checked.name)) return { ok: false, error: "已有同名樣板" };
 
   const now = new Date();
-  const templates = await videoTemplatesCollection();
+  const templates = await templatesWithNameIndex();
   const doc = { clerkUserId: user.clerkUserId, name: checked.name, ...editOf(video.edit), createdAt: now, updatedAt: now };
-  const inserted = await templates.insertOne(doc);
+  let inserted;
+  try {
+    inserted = await templates.insertOne(doc);
+  } catch (error) {
+    if (isDuplicateKey(error)) return { ok: false, error: "已有同名樣板" };
+    throw error;
+  }
   const videos = await videosCollection();
   await videos.updateOne({ _id: video._id }, { $set: { editTemplateId: inserted.insertedId, updatedAt: now } });
   revalidateVideo(video.projectId);
@@ -129,8 +146,13 @@ export async function renameTemplateAction(
   const template = await ownedTemplate(templateId, user.clerkUserId);
   if (!template) return { ok: false, error: "找不到樣板" };
   if (await nameTaken(user.clerkUserId, checked.name, template._id)) return { ok: false, error: "已有同名樣板" };
-  const templates = await videoTemplatesCollection();
-  await templates.updateOne({ _id: template._id }, { $set: { name: checked.name, updatedAt: new Date() } });
+  const templates = await templatesWithNameIndex();
+  try {
+    await templates.updateOne({ _id: template._id }, { $set: { name: checked.name, updatedAt: new Date() } });
+  } catch (error) {
+    if (isDuplicateKey(error)) return { ok: false, error: "已有同名樣板" };
+    throw error;
+  }
   const updated = await templates.findOne({ _id: template._id });
   return updated ? { ok: true, template: toPublicTemplate(updated) } : { ok: false, error: "找不到樣板" };
 }
