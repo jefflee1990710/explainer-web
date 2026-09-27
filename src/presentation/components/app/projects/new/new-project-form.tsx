@@ -431,6 +431,7 @@ export function NewProjectForm({
   const fillEditor =
     viewing === 1 && Boolean(project?.phaseA && isProductionLike(project.status));
   const reelDesk = viewing === 2 && project?.status === "ready";
+  const directorBusy = viewing === 1 && project?.status === "phase_a";
   const desk = fillEditor || reelDesk;
 
   return (
@@ -438,7 +439,7 @@ export function NewProjectForm({
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div
           className={
-            desk
+            desk || directorBusy
               ? "flex min-h-0 flex-1 flex-col overflow-hidden"
               : "min-h-0 flex-1 space-y-6 overflow-y-auto"
           }
@@ -475,6 +476,23 @@ export function NewProjectForm({
                     value={styleId}
                     onChange={onStyleChange}
                     disabled={briefBusy}
+                  />
+                </div>
+                <p className="mt-5 text-sm font-semibold">角色</p>
+                <p className="mt-1 text-xs text-muted">
+                  {castNeed === 2
+                    ? "必選正好 2 個角色：提問者與回答者。只顯示與上方風格相同的角色。"
+                    : "選填。最多 4 個；只顯示與上方風格相同的角色。"}
+                </p>
+                <div className="mt-3">
+                  <CharacterPicker
+                    characters={characters}
+                    styleId={styleId}
+                    value={characterIds}
+                    onChange={setCharacterIds}
+                    disabled={briefBusy}
+                    max={castNeed > 0 ? castNeed : 4}
+                    required={castNeed}
                   />
                 </div>
               </Section>
@@ -554,26 +572,6 @@ export function NewProjectForm({
                 />
               </Section>
 
-              <Section
-                step="07"
-                title="角色"
-                hint={
-                  castNeed === 2
-                    ? "必選正好 2 個角色：提問者與回答者。分鏡與分鏡圖會鎖定這些藍圖。"
-                    : "選填。最多 4 個；分鏡與分鏡圖會鎖定這些角色的藍圖。"
-                }
-              >
-                <CharacterPicker
-                  characters={characters}
-                  styleId={styleId}
-                  value={characterIds}
-                  onChange={setCharacterIds}
-                  disabled={briefBusy}
-                  max={castNeed > 0 ? castNeed : 4}
-                  required={castNeed}
-                />
-              </Section>
-
               {error ? (
                 <p role="alert" className="text-sm font-medium text-accent">
                   {error}
@@ -643,8 +641,10 @@ export function NewProjectForm({
         </AnimatePresence>
 
         <AnimatePresence mode="wait">
-          {viewing === 1 && project?.status === "phase_a" ? (
-            <DirectorProgress key="phase-a" />
+          {directorBusy ? (
+            <div key="phase-a" className="grid min-h-0 flex-1 place-items-center px-6">
+              <DirectorProgress />
+            </div>
           ) : fillEditor && project ? (
             <div key="production" className="flex min-h-0 flex-1 flex-col">
             <ClipProduction

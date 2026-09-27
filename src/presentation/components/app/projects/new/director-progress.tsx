@@ -32,7 +32,7 @@ export function DirectorProgress() {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -12, transition: { duration: 0.2 } }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="relative overflow-hidden rounded-[1.5rem] border border-accent-ink/10 bg-accent-ink p-6 text-paper shadow-[8px_8px_0_0_rgba(255,77,46,0.9)]"
+      className="relative w-full max-w-xl overflow-hidden rounded-[1.5rem] border border-accent-ink/10 bg-accent-ink p-6 text-paper shadow-[8px_8px_0_0_rgba(255,77,46,0.9)]"
     >
       <motion.div
         aria-hidden
