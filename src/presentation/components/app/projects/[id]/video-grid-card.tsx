@@ -5,7 +5,8 @@ import { StatusBadge } from "@/presentation/components/project/status-badge";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { productionCounts } from "@/service/clip-stage";
-import { videoPreviewUrl, type PublicVideo } from "@/presentation/serialize";
+import { PreviewStrip } from "@/presentation/components/app/preview-strip";
+import { previewUrlsFromVideo, type PublicVideo } from "@/presentation/serialize";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -17,7 +18,7 @@ export function VideoGridCard({
   video: PublicVideo;
   onSelect: (id: string) => void;
 }) {
-  const preview = videoPreviewUrl(video);
+  const previews = previewUrlsFromVideo(video);
   const title = video.phaseA?.localizedTitle || "未命名影片";
   const counts =
     video.status === "production" || video.status === "ready"
@@ -52,13 +53,8 @@ export function VideoGridCard({
         className="flex h-full cursor-pointer flex-col text-left"
       >
         <span className="relative block aspect-video overflow-hidden bg-accent-ink/5">
-          {preview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={preview}
-              alt=""
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-            />
+          {previews.length ? (
+            <PreviewStrip urls={previews} />
           ) : (
             <span className="grid h-full w-full place-items-center">
               <span className="h-9 w-16 rounded-md border-2 border-dashed border-accent-ink/25" />

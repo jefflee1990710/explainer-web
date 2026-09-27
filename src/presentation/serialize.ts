@@ -72,6 +72,8 @@ export type PublicFolder = {
   status: ProjectStatus;
   videoCount: number;
   previewUrl: string | null;
+  // Cover video frames, left to right, so 9:16 stills fit a 16:9 card.
+  previewUrls: string[];
   createdAt: string;
   videos: PublicVideo[];
 };
@@ -135,30 +137,52 @@ export function toPublicFolder(folder: Folder, videos: Project[]): PublicFolder 
     .map(toPublicVideo);
   const statuses = videos.map((video) => normalizeProjectStatus(video.status));
   const cover =
-    publicVideos.find((video) => previewFromVideo(video)) || publicVideos[0];
+    publicVideos.find((video) => previewUrlsFromVideo(video).length > 0) || publicVideos[0];
+  const previewUrls = cover ? previewUrlsFromVideo(cover) : [];
   return {
     id: folder._id.toHexString(),
     name: folder.name,
     status: folderRollupStatus(statuses),
     videoCount: videos.length,
-    previewUrl: cover ? previewFromVideo(cover) : null,
+    previewUrl: previewUrls[0] || null,
+    previewUrls,
     createdAt: folder.createdAt.toISOString(),
     videos: publicVideos,
   };
 }
 
+const PREVIEW_STRIP_MAX = 4;
+
+// Start frames first so the strip reads as a left-to-right scene sequence.
+export function previewUrlsFromVideo(video: PublicVideo, max = PREVIEW_STRIP_MAX) {
+  const completed = video.frames
+    .filter((frame) => frame.status === "completed")
+    .slice()
+    .sort((a, b) => {
+      if (a.clipNumber !== b.clipNumber) return a.clipNumber - b.clipNumber;
+      if (a.position === b.position) return 0;
+      return a.position === "start" ? -1 : 1;
+    });
+
+  const urls: string[] = [];
+  function push(url?: string) {
+    if (!url || urls.includes(url) || urls.length >= max) return;
+    urls.push(url);
+  }
+
+  for (const frame of completed) {
+    if (frame.position === "start") push(frame.blobUrl || frame.outputUrl);
+  }
+  for (const frame of completed) {
+    if (frame.position === "end") push(frame.blobUrl || frame.outputUrl);
+  }
+  push(video.characterStillUrl);
+  push(video.characterImageUrl);
+  return urls;
+}
+
 function previewFromVideo(video: PublicVideo) {
-  const frames = video.frames.filter((frame) => frame.status === "completed");
-  const first =
-    frames.find((frame) => frame.clipNumber === 1 && frame.position === "start") ||
-    frames[0];
-  return (
-    first?.blobUrl ||
-    first?.outputUrl ||
-    video.characterStillUrl ||
-    video.characterImageUrl ||
-    null
-  );
+  return previewUrlsFromVideo(video, 1)[0] || null;
 }
 
 export { previewFromVideo as videoPreviewUrl };

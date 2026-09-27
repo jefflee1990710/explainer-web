@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { PreviewStrip } from "@/presentation/components/app/preview-strip";
 import { StatusBadge } from "@/presentation/components/project/status-badge";
 import type { PublicFolder } from "@/presentation/serialize";
 
@@ -24,14 +25,8 @@ export function ProjectCard({ folder }: { folder: PublicFolder }) {
       }`}
     >
       <Link href={href} className="relative block aspect-video overflow-hidden bg-accent-ink/5">
-        {folder.previewUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={folder.previewUrl}
-            alt={`${folder.name} 預覽`}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-          />
+        {folder.previewUrls.length ? (
+          <PreviewStrip urls={folder.previewUrls} alt={`${folder.name} 預覽`} />
         ) : (
           <Placeholder />
         )}
