@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StudioFrame } from "@/presentation/studio/studio-frame";
 import { VideoEditExport } from "@/presentation/components/app/projects/new/video-edit-export";
+import { VideoSharePanel } from "@/presentation/components/app/projects/new/video-share-panel";
 import { VideoEditLayers } from "@/presentation/components/app/projects/new/video-edit-layers";
 import { VideoEditPreview, type EditSelection } from "@/presentation/components/app/projects/new/video-edit-preview";
 import { VideoEditProperties } from "@/presentation/components/app/projects/new/video-edit-properties";
@@ -206,6 +207,7 @@ export function VideoEditDesk({
               {saving ? "儲存中…" : "加 logo、開頭與結尾，存成樣板下次一鍵套用。"}
             </p>
           </header>
+          <VideoSharePanel project={project} edit={edit} />
           <VideoEditTemplates
             templates={templates}
             edit={edit}
