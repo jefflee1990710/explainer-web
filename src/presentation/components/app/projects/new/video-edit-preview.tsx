@@ -65,6 +65,12 @@ export function VideoEditPreview({
 
   function endDrag() {
     if (!drag || !live) return;
+    // A click without movement must not rewrite placement (rounding / centre margin).
+    if (live.left === drag.left && live.top === drag.top && live.w === drag.w) {
+      setDrag(null);
+      setLive(null);
+      return;
+    }
     const boxH = (drag.h / drag.w) * live.w;
     const patch =
       drag.mode === "move"
