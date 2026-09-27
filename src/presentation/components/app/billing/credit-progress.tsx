@@ -62,7 +62,7 @@ export function CreditProgress({
         aria-valuenow={remaining}
       >
         <div
-          className="h-full rounded-full bg-lime transition-[width] duration-200 motion-reduce:transition-none"
+          className="h-full rounded-full bg-[var(--studio-teal)] transition-[width] duration-200 motion-reduce:transition-none"
           style={{ width: `${percent}%` }}
         />
       </div>

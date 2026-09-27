@@ -33,7 +33,7 @@ export function DashboardView({
       </div>
 
       {!subscribed ? (
-        <div className="mt-6 rounded-[1.25rem] border border-accent-ink/10 bg-paper/85 p-5 text-sm shadow-[4px_4px_0_0_rgba(255,77,46,0.2)]">
+        <div className="mt-6 rounded-lg bg-[var(--studio-cyan-soft)] px-4 py-3 text-sm">
           {t("dashboard.noSubscriptionBanner")}
           <Link href="/app/billing" className="ml-2 font-semibold underline">
             {t("dashboard.goBilling")}

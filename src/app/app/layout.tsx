@@ -9,5 +9,9 @@ export default async function AppLayout({
 }) {
   await auth.protect();
   const user = await requireAppUser();
-  return <AppShell credits={user.credits}>{children}</AppShell>;
+  return (
+    <AppShell credits={user.credits} creditLimit={user.creditLimit || 0}>
+      {children}
+    </AppShell>
+  );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ClipPlaybackProvider } from "@/presentation/components/project/clip-video-player";
 import { clipStudioItems } from "@/presentation/components/project/clip-timeline";
 import { Filmstrip } from "@/presentation/studio/filmstrip";
 import { StudioFrame } from "@/presentation/studio/studio-frame";
@@ -33,30 +34,36 @@ export function VideoDesk({
 }) {
   const states = clipStatesFor(project);
   const [selectedClip, setSelectedClip] = useState(() => defaultSelectedClip(states));
+  // Each filmstrip click asks the preview to play that clip with sound.
+  const [playToken, setPlayToken] = useState(0);
 
   const selected = states.find((state) => state.clipNumber === selectedClip) ?? states[0];
   const items = clipStudioItems(project, states, pending);
 
   function onSelect(id: string) {
     const clipNumber = Number(id);
-    if (Number.isFinite(clipNumber)) setSelectedClip(clipNumber);
+    if (!Number.isFinite(clipNumber)) return;
+    setSelectedClip(clipNumber);
+    setPlayToken((token) => token + 1);
   }
 
   return (
-    <StudioFrame
-      toolbar={renderToolbar?.(setSelectedClip)}
-      preview={selected ? renderPreview(selected, setSelectedClip) : null}
-      inspector={selected ? renderInspector(selected, setSelectedClip) : null}
-      timelineBar={timelineBar}
-      timeline={
-        <Filmstrip
-          items={items}
-          selectedId={selected ? String(selected.clipNumber) : ""}
-          onSelect={onSelect}
-          checkedIds={checkedIds}
-          onToggleCheck={onToggleCheck}
-        />
-      }
-    />
+    <ClipPlaybackProvider token={playToken}>
+      <StudioFrame
+        toolbar={renderToolbar?.(setSelectedClip)}
+        preview={selected ? renderPreview(selected, setSelectedClip) : null}
+        inspector={selected ? renderInspector(selected, setSelectedClip) : null}
+        timelineBar={timelineBar}
+        timeline={
+          <Filmstrip
+            items={items}
+            selectedId={selected ? String(selected.clipNumber) : ""}
+            onSelect={onSelect}
+            checkedIds={checkedIds}
+            onToggleCheck={onToggleCheck}
+          />
+        }
+      />
+    </ClipPlaybackProvider>
   );
 }

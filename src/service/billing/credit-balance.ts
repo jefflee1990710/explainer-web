@@ -40,3 +40,16 @@ export function creditProgress(credits: number, creditLimit: number) {
     ratio: limit === 0 ? 0 : Math.min(1, remaining / limit),
   };
 }
+
+// Header meter: how much of this period's allowance is already spent.
+export function creditsUsed(credits: number, creditLimit: number) {
+  const limit = Math.max(0, creditLimit, credits);
+  const remaining = Math.max(0, Math.min(credits, limit));
+  const used = limit - remaining;
+  return {
+    used,
+    remaining,
+    limit,
+    ratio: limit === 0 ? 0 : used / limit,
+  };
+}

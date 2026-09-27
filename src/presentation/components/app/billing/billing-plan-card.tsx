@@ -18,7 +18,7 @@ export function BillingPlanCard({ plan }: { plan: PlanDefinition }) {
       }`}
     >
       {plan.highlight ? (
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-lime">
+        <p className="text-xs font-semibold text-[var(--studio-teal)]">
           {t("common.popular")}
         </p>
       ) : null}

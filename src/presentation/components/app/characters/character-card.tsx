@@ -16,9 +16,8 @@ export function CharacterCard({ character }: { character: PublicCharacter }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease }}
-      whileHover={{ y: -3 }}
-      className={`group flex flex-col overflow-hidden rounded-[1.25rem] border bg-paper/85 shadow-[4px_4px_0_0_rgba(18,20,28,0.06)] transition-shadow hover:shadow-[6px_6px_0_0_rgba(198,242,75,0.55)] ${
-        character.failed ? "border-accent/40" : "border-accent-ink/10"
+      className={`studio-card group flex flex-col overflow-hidden border ${
+        character.failed ? "border-[#f04444]" : "border-[var(--studio-line)]"
       }`}
     >
       <Link href={href} className="relative block aspect-video overflow-hidden bg-white">
@@ -48,7 +47,7 @@ export function CharacterCard({ character }: { character: PublicCharacter }) {
       </Link>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <Link href={href} className="min-w-0">
-          <h3 className="font-display line-clamp-1 text-base font-bold">{character.name}</h3>
+          <h3 className="line-clamp-1 text-sm font-medium">{character.name}</h3>
         </Link>
         <p className="mt-auto text-xs text-muted">
           {character.styleName} · {character.versions.length} 個版本

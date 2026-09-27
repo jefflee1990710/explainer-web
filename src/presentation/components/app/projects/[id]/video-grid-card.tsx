@@ -44,8 +44,7 @@ export function VideoGridCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease }}
-      whileHover={{ y: -3 }}
-      className="group flex flex-col overflow-hidden rounded-[1.25rem] border border-accent-ink/10 bg-paper/85 shadow-[4px_4px_0_0_rgba(18,20,28,0.06)] transition-shadow hover:shadow-[6px_6px_0_0_rgba(198,242,75,0.55)]"
+      className="studio-card group flex flex-col overflow-hidden border border-[var(--studio-line)]"
     >
       <button
         type="button"
@@ -68,7 +67,7 @@ export function VideoGridCard({
           <StatusBadge status={video.status} className="absolute left-3 top-3 shadow-sm" />
         </span>
         <span className="flex flex-1 flex-col gap-2 p-4">
-          <span className="font-display line-clamp-2 text-base font-bold leading-snug">{title}</span>
+          <span className="line-clamp-2 text-sm font-medium leading-snug">{title}</span>
           {progress ? <span className="text-xs text-muted">{progress}</span> : null}
           <span className="mt-auto text-xs text-muted">
             {video.aspectRatio} · {duration} · {language}

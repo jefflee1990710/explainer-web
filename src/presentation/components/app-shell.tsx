@@ -8,9 +8,11 @@ import { StudioShell, type StudioNavItem } from "@/presentation/studio/studio-sh
 // Logged-in chrome. Page content sits in the studio shell.
 export function AppShell({
   credits,
+  creditLimit,
   children,
 }: {
   credits: number;
+  creditLimit: number;
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
@@ -26,6 +28,7 @@ export function AppShell({
     <StudioShell
       items={items}
       credits={credits}
+      creditLimit={creditLimit}
       creditsLabel={t("common.credits")}
       toolbar={
         <>

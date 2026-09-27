@@ -7,11 +7,11 @@ import { STATUS_META, type StatusTone } from "@/service/project-status";
 import type { ProjectStatus } from "@/model/project";
 
 const TONE_CLASS: Record<StatusTone, string> = {
-  neutral: "bg-accent-ink/5 text-muted border-accent-ink/10",
-  working: "bg-sky/15 text-[#1f4fb8] border-sky/30",
-  action: "bg-lime/70 text-accent-ink border-accent-ink/15",
-  success: "bg-teal/15 text-[#0f766e] border-teal/30",
-  danger: "bg-accent/12 text-accent border-accent/30",
+  neutral: "bg-[var(--studio-fill)] text-[var(--studio-muted)] border-transparent",
+  working: "bg-[#e8f1ff] text-[#1d4ed8] border-transparent",
+  action: "bg-[var(--studio-cyan-soft)] text-[#0e7c86] border-transparent",
+  success: "bg-[#e8f8ef] text-[#15803d] border-transparent",
+  danger: "bg-[#ffecec] text-[#e11d48] border-transparent",
 };
 
 // Colour-coded status pill; icon + text so colour is never the only cue.
@@ -26,7 +26,7 @@ export function StatusBadge({
   const meta = STATUS_META[status];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${TONE_CLASS[meta.tone]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium ${TONE_CLASS[meta.tone]} ${className}`}
     >
       {meta.busy ? (
         <Spinner className="h-3 w-3" />

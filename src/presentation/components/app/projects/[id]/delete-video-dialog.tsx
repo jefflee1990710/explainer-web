@@ -72,6 +72,7 @@ export function DeleteVideoDialog({
             type="button"
             onClick={() => void onConfirm()}
             disabled={deleting}
+            data-intent="danger"
             className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {deleting ? <Spinner className="h-4 w-4" /> : null}

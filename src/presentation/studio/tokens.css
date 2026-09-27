@@ -1,11 +1,141 @@
-/* Light editing-desk tokens. Scoped so marketing pages keep the warm paper canvas. */
+/* CapCut light desk. Scoped to .studio-app so marketing keeps the warm paper canvas.
+   Unlayered rules here beat Tailwind utilities. */
 .studio-app {
-  --studio-canvas: #f3f4f6;
+  --studio-canvas: #f5f6f8;
   --studio-panel: #ffffff;
-  --studio-line: #e5e7eb;
-  --studio-ink: var(--accent-ink);
-  --studio-teal: var(--teal);
-  --studio-muted: var(--muted);
+  --studio-line: #e8e9ed;
+  --studio-ink: #161823;
+  --studio-muted: #8b8e97;
+  --studio-teal: #00c2d1;
+  --studio-teal-hover: #00aebc;
+  --studio-fill: #f2f3f5;
+  --studio-cyan-soft: #e7f8fa;
+  --paper: #ffffff;
+  --lime: #00c2d1;
+  --muted: #8b8e97;
+  --accent-ink: #161823;
+  --line: #e8e9ed;
   background: var(--studio-canvas);
   color: var(--studio-ink);
+}
+
+.studio-app .font-display {
+  font-family: var(--font-body), "Noto Sans TC", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.studio-app h1.font-display {
+  font-size: 1.375rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+}
+
+/* Shared library card. */
+.studio-app .studio-card {
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.studio-app .studio-card:hover {
+  box-shadow: 0 8px 24px rgba(22, 24, 35, 0.08);
+}
+
+/* Cards: flat white, 8px corners, soft lift on hover. */
+.studio-app article[class*="rounded-["]:not(.bg-accent-ink) {
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: none;
+}
+
+.studio-app article[class*="rounded-["]:not(.bg-accent-ink):hover {
+  box-shadow: 0 8px 24px rgba(22, 24, 35, 0.08);
+}
+
+.studio-app article.bg-accent-ink {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.studio-app article.bg-accent-ink .text-lime {
+  color: var(--studio-teal);
+}
+
+.studio-app :is(section, div)[class*="rounded-[1"] {
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+.studio-app [class*="shadow-["] {
+  box-shadow: none;
+}
+
+.studio-app [role="dialog"] {
+  border-radius: 12px;
+  border-color: var(--studio-line);
+  background: #fff;
+  box-shadow: 0 16px 48px rgba(22, 24, 35, 0.16);
+}
+
+/* Primary actions are CapCut cyan. Destructive confirms stay red. */
+.studio-app :is(button, a).bg-accent {
+  border-radius: 8px;
+  background-color: var(--studio-teal);
+  color: #fff;
+  box-shadow: none;
+}
+
+.studio-app :is(button, a).bg-accent:hover {
+  background-color: var(--studio-teal-hover);
+}
+
+.studio-app :is(button, a)[data-intent="danger"].bg-accent,
+.studio-app :is(button, a)[data-intent="danger"].bg-accent:hover {
+  background-color: #f04444;
+}
+
+.studio-app :is(button, a).bg-accent-ink {
+  border-radius: 8px;
+  background-color: var(--studio-ink);
+  color: #fff;
+  box-shadow: none;
+}
+
+.studio-app :is(button, a).bg-lime {
+  border-radius: 8px;
+  background-color: #fff;
+  color: var(--studio-ink);
+  box-shadow: none;
+}
+
+.studio-app :is(button, a)[class*="rounded-full"] {
+  border-radius: 8px;
+}
+
+.studio-app :is(button, a)[class*="min-h-[44px]"],
+.studio-app :is(button, a)[class*="min-h-[48px]"] {
+  min-height: 36px;
+}
+
+.studio-app :is(button, a)[class*="hover:-translate"]:hover {
+  transform: none;
+}
+
+.studio-app button[class*="border"][class*="bg-paper"] {
+  border-radius: 8px;
+  border-color: transparent;
+  background-color: var(--studio-fill);
+  color: var(--studio-ink);
+  box-shadow: none;
+}
+
+.studio-app :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+  border-radius: 8px;
+  border-color: var(--studio-line);
+  background-color: #fff;
+  box-shadow: none;
+}
+
+.studio-app [class*="bg-lime/"] {
+  background-color: var(--studio-cyan-soft);
 }

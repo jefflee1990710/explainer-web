@@ -5,6 +5,7 @@ import {
   applyPackPurchase,
   applySpend,
   creditProgress,
+  creditsUsed,
 } from "@/service/billing/credit-balance";
 
 test("monthly refill keeps leftover bonus and resets unused monthly", () => {
@@ -58,4 +59,15 @@ test("progress uses remaining over limit and clamps ratio", () => {
   });
   assert.equal(creditProgress(0, 0).ratio, 0);
   assert.equal(creditProgress(120, 90).ratio, 1);
+});
+
+test("used credits fill the bar from the period limit", () => {
+  assert.deepEqual(creditsUsed(994, 1000), {
+    used: 6,
+    remaining: 994,
+    limit: 1000,
+    ratio: 0.006,
+  });
+  assert.equal(creditsUsed(0, 0).ratio, 0);
+  assert.equal(creditsUsed(120, 90).used, 0);
 });

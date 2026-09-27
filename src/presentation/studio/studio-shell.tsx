@@ -3,6 +3,7 @@
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandMark } from "@/presentation/components/brand-mark";
+import { CreditMeter } from "@/presentation/studio/credit-meter";
 
 export type StudioNavItem = {
   href: string;
@@ -14,12 +15,14 @@ export type StudioNavItem = {
 export function StudioShell({
   items,
   credits,
+  creditLimit,
   creditsLabel,
   toolbar,
   children,
 }: {
   items: StudioNavItem[];
   credits: number;
+  creditLimit: number;
   creditsLabel: string;
   toolbar: React.ReactNode;
   children: React.ReactNode;
@@ -31,13 +34,11 @@ export function StudioShell({
         <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-3 py-2">
           <BrandMark href="/app" />
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 text-sm">
-            <span className="whitespace-nowrap rounded-md border border-[var(--studio-line)] bg-[var(--studio-panel)] px-2.5 py-1 text-xs font-semibold tabular-nums max-sm:hidden">
-              {credits} {creditsLabel}
-            </span>
+            <CreditMeter credits={credits} creditLimit={creditLimit} creditsLabel={creditsLabel} />
             {toolbar}
           </div>
         </header>
-        <main className="min-h-0 flex-1 overflow-y-auto bg-[var(--studio-panel)] px-6 py-8">
+        <main className="min-h-0 flex-1 overflow-y-auto bg-[var(--studio-canvas)] px-6 py-6">
           {children}
         </main>
       </div>
@@ -71,10 +72,10 @@ function StudioNavLink({ item, active }: { item: StudioNavItem; active: boolean 
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium ${
+      className={`flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium ${
         active
-          ? "bg-[color-mix(in_srgb,var(--studio-teal)_16%,white)] text-[var(--studio-teal)]"
-          : "text-[var(--studio-muted)] hover:bg-[var(--studio-canvas)]"
+          ? "bg-[var(--studio-cyan-soft)] text-[var(--studio-teal)]"
+          : "text-[var(--studio-muted)] hover:bg-[var(--studio-fill)]"
       }`}
     >
       <RailIcon name={item.icon} />

@@ -19,9 +19,8 @@ export function ProjectCard({ folder }: { folder: PublicFolder }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.18 } }}
       transition={{ duration: 0.35, ease }}
-      whileHover={{ y: -3 }}
-      className={`group flex flex-col overflow-hidden rounded-[1.25rem] border bg-paper/85 shadow-[4px_4px_0_0_rgba(18,20,28,0.06)] transition-shadow hover:shadow-[6px_6px_0_0_rgba(198,242,75,0.55)] ${
-        failed ? "border-accent/40" : "border-accent-ink/10"
+      className={`studio-card group flex flex-col overflow-hidden border bg-white ${
+        failed ? "border-[#f04444]" : "border-[var(--studio-line)]"
       }`}
     >
       <Link href={href} className="relative block aspect-video overflow-hidden bg-accent-ink/5">
@@ -41,7 +40,7 @@ export function ProjectCard({ folder }: { folder: PublicFolder }) {
 
       <div className="flex flex-1 flex-col gap-3 p-4">
         <Link href={href} className="min-w-0">
-          <h3 className="font-display line-clamp-2 text-base font-bold leading-snug">
+          <h3 className="line-clamp-2 text-sm font-medium leading-snug">
             {folder.name}
           </h3>
         </Link>

@@ -30,7 +30,7 @@ export function EditorStepSwitch({
     <div
       role="tablist"
       aria-label="編輯步驟"
-      className="flex flex-wrap gap-1 rounded-full border border-accent-ink/10 bg-paper p-1"
+      className="flex flex-wrap gap-0.5 rounded-lg bg-[var(--studio-fill)] p-0.5"
     >
       {PROJECT_STEPS.map((step, index) => {
         if (index === 0) return null;
@@ -45,12 +45,12 @@ export function EditorStepSwitch({
             aria-selected={selected}
             disabled={!clickable}
             onClick={() => onSelectStep(index)}
-            className={`inline-flex min-h-[36px] items-center rounded-full px-3 text-sm font-semibold transition ${
+            className={`inline-flex min-h-8 items-center rounded-md px-3 text-sm font-medium transition ${
               selected
-                ? "bg-accent-ink text-lime"
+                ? "border border-[var(--studio-line)] bg-white text-[var(--studio-ink)]"
                 : clickable
-                  ? "cursor-pointer text-muted hover:text-foreground"
-                  : "cursor-not-allowed text-muted/50"
+                  ? "cursor-pointer text-[var(--studio-muted)] hover:text-[var(--studio-ink)]"
+                  : "cursor-not-allowed text-[var(--studio-muted)]/50"
             }`}
           >
             {label}

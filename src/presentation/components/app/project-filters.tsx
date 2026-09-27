@@ -27,7 +27,7 @@ export function ProjectFilters({
       <div
         role="tablist"
         aria-label={t("folder.filterLabel")}
-        className="flex flex-wrap gap-1 rounded-full border border-accent-ink/10 bg-paper/70 p-1"
+        className="flex flex-wrap gap-0.5 rounded-lg bg-[var(--studio-fill)] p-0.5"
       >
         {filters.map((item) => {
           const active = item.id === filter;
@@ -38,21 +38,21 @@ export function ProjectFilters({
               role="tab"
               aria-selected={active}
               onClick={() => onFilter(item.id)}
-              className={`relative inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                active ? "text-paper" : "text-muted hover:text-foreground"
+              className={`relative inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] ${
+                active ? "text-[var(--studio-ink)]" : "text-[var(--studio-muted)] hover:text-[var(--studio-ink)]"
               }`}
             >
               {active ? (
                 <motion.span
                   layoutId="project-filter-pill"
-                  className="absolute inset-0 rounded-full bg-accent-ink"
+                  className="absolute inset-0 rounded-md border border-[var(--studio-line)] bg-white"
                   transition={{ type: "spring", stiffness: 420, damping: 32 }}
                 />
               ) : null}
               <span className="relative">{item.label}</span>
               <span
-                className={`relative rounded-full px-1.5 text-[11px] tabular-nums ${
-                  active ? "bg-lime text-accent-ink" : "bg-accent-ink/5"
+                className={`relative rounded px-1.5 text-[11px] tabular-nums ${
+                  active ? "bg-[var(--studio-cyan-soft)] text-[var(--studio-teal)]" : "text-[var(--studio-muted)]"
                 }`}
               >
                 {counts[item.id]}
@@ -70,7 +70,7 @@ export function ProjectFilters({
           value={query}
           onChange={(event) => onQuery(event.target.value)}
           placeholder={t("folder.searchPlaceholder")}
-          className="min-h-[44px] w-full rounded-full border border-accent-ink/10 bg-paper/85 pl-10 pr-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="min-h-9 w-full rounded-lg border border-[var(--studio-line)] bg-white pl-10 pr-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)]"
         />
       </label>
     </div>

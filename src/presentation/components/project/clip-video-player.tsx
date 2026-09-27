@@ -1,8 +1,39 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { PlayIcon } from "@/presentation/components/project/production-icons";
+
+// Bumps when the filmstrip clip is clicked, so the preview can start with sound.
+const ClipPlaybackContext = createContext(0);
+
+export function ClipPlaybackProvider({
+  token,
+  children,
+}: {
+  token: number;
+  children: React.ReactNode;
+}) {
+  return <ClipPlaybackContext.Provider value={token}>{children}</ClipPlaybackContext.Provider>;
+}
+
+// Start with sound. If the browser blocks that, play muted and then unmute.
+async function playWithSound(video: HTMLVideoElement) {
+  video.muted = false;
+  video.volume = 1;
+  try {
+    video.currentTime = 0;
+  } catch {
+    // Metadata may not be ready; play() still starts at the beginning.
+  }
+  try {
+    await video.play();
+  } catch {
+    video.muted = true;
+    await video.play();
+    video.muted = false;
+  }
+}
 
 // Completed clip video. A large play button sits on the first frame so a
 // paused 9:16 still does not look like a stuck generation.
@@ -15,14 +46,22 @@ export function ClipVideoPlayer({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
+  const autoplayToken = useContext(ClipPlaybackContext);
+
+  useEffect(() => {
+    if (autoplayToken === 0) return;
+    const video = videoRef.current;
+    if (!video) return;
+    void playWithSound(video).catch(() => {
+      // Native controls can still start playback.
+    });
+  }, [autoplayToken, src]);
 
   async function play() {
     const video = videoRef.current;
     if (!video) return;
-    // Preview starts muted so the first tap is not blocked by autoplay rules.
-    video.muted = true;
     try {
-      await video.play();
+      await playWithSound(video);
     } catch {
       // A second tap or native controls can still start playback.
     }
