@@ -70,6 +70,7 @@ export function storyShortDirectorBlock() {
     "This is a SHORT FILM, not an explainer.",
     'There is NO narrator and NO third-person voiceover. The narrator field must say: "No narrator — characters speak."',
     'englishVo is only character dialogue written as NAME: "line". Multiple speakers are allowed. A silent beat is "(no dialogue)".',
+    "Do not force want → obstacle → turn → resolution. Arrange clips in the order the source already tells; invent beats only when the source has no story of its own.",
   ].join(" ");
 }
 

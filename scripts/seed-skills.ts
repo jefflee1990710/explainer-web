@@ -49,7 +49,7 @@ const SKILLS: SkillManifest[] = [
     slug: "story-short-director",
     title: "Short film",
     titleZh: "故事短片",
-    description: "角色對白推進的短片：有目標、阻礙與轉折，沒有旁白。",
+    description: "角色對白推進的短片：結構跟題材走，沒有旁白。",
     sortOrder: 2,
   },
   {

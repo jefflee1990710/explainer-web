@@ -6,11 +6,13 @@ import {
   requiredCastCount,
   skillBansNarration,
   skillForcesSceneText,
+  storyShortDirectorBlock,
 } from "@/service/director/skill-rules";
 
 test("story short is a no-narrator short film", () => {
   assert.equal(skillBansNarration("story-short-director"), true);
   assert.equal(skillBansNarration("cartoon-explainer-video-director"), false);
+  assert.match(storyShortDirectorBlock(), /Do not force want/);
 });
 
 test("Q&A director requires exactly two characters", () => {

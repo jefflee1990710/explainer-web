@@ -1,6 +1,6 @@
 ---
 name: directing-story-shorts
-description: Use when turning a message, anecdote, brand value, or lesson into a short animated STORY (a protagonist with a goal, an obstacle, a turn, and a resolution) for Reels, TikToks, Shorts, or landing pages.
+description: Use when turning a message, anecdote, brand value, lesson, or already-written story into a short animated STORY whose beats follow the source — not a fixed want/obstacle/turn template — for Reels, TikToks, Shorts, or landing pages.
 ---
 
 # Directing Story Shorts
@@ -29,44 +29,41 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 
 ## Story architecture
 
-Every proposal follows a three-act spine, compressed to the duration:
+Do **not** force want → obstacle → turn → resolution (or any other canned four-beat / six-beat spine). Arrange clips the way the source already tells the story.
 
-1. **Hook (Clip 1, first 2s)**: open in the middle of the action or on a striking image of the want/problem — never on an establishing shot or a greeting.
-2. **Want & obstacle**: make the protagonist's goal visible as an object or destination; put a concrete obstacle between them.
-3. **Escalation**: at least one attempt that fails or backfires; stakes rise.
-4. **Turn**: the insight that maps to the source's message — the protagonist changes approach.
-5. **Resolution**: the goal reached (or reframed) in a single clear image.
-6. **Button**: a final beat that lands the message emotionally — a look, a gesture, a small callback prop. It rests; it never loops back to the opening.
-
-The message is shown, then optionally spoken once in the last clip. Do not speak the moral before the turn.
+- If the source is a scene, anecdote, script, or sequence of events, keep that order. Name each clip's `narrativeJob` in the source's own terms (who does what, what changes).
+- If the source is only a lesson or brand line with no plot, invent the smallest story that makes that line felt — still do not stretch it onto a template the material does not support (vignette, conversation, slice-of-life, and twist endings are all allowed).
+- Open on something worth watching in the first 2s (in the middle of an action or on a striking image). Never open on a greeting or an empty establishing shot unless the source itself starts that way.
+- The last clip rests. It never loops back to Clip 1.
+- Show the message through what happens and what people say. Do not lecture it as a narrator, and do not speak a moral that the source has not earned yet.
 
 ## Dialogue — no narrator
 
 - There is NO narrator and NO third-person voiceover. `narrator` must say: `No narrator — characters speak.`
 - All speech is character dialogue, written as `NAME: "line"`. One or two speakers per clip. Never add an unseen storyteller.
-- Allocate ~7–20 spoken words per clip. Silence is allowed for one beat (the turn or the button) — say `(no dialogue)` in the VO field when used.
+- Allocate ~7–20 spoken words per clip. Silence is allowed — say `(no dialogue)` in the VO field when a beat has no speech.
 - Dialogue is audio-only. Never caption, subtitle, or transcribe it on screen unless the user turned on-canvas text on. In-world text is limited to short props that belong to the scene (a sign, a letter, a screen), spelled exactly as written.
 
 ## Phase A field mapping
 
 The structured output has fixed fields; fill them as follows:
 
-- `hookStrategy`: the in-medias-res or striking-image opener plus the audio/motion device used in second 0–2.
-- `coreMessage`: the one-sentence lesson the story dramatises.
-- `narrativeArc`: the six beats above mapped to clip numbers.
+- `hookStrategy`: how Clip 1 opens in the first 2s (what we see / hear), taken from the source rather than a stock hook.
+- `coreMessage`: the one-sentence point the source is making (or the feeling the anecdote leaves).
+- `narrativeArc`: the clip-by-clip spine in the source's order — not a fixed want/obstacle/turn list.
 - `narrator`: always `No narrator — characters speak.`
 - `visualWorld`: the one or two locations with their anchor props.
 - `characterLock`: cast lock statement (see Visual world).
-- `palette`: ordinary colour words only; one accent colour tied to the want/goal object.
-- `bgmDirection`: the emotional curve (e.g. curious → tense → release → warm).
-- Each clip row: `narrativeJob` = which beat; `explainerScene` = what we SEE at the start of the clip (character, pose, props, location); `motionCamera` = the modest continuation within the same shot and the camera; `englishVo` = character dialogue only (`NAME: "line"`) in the chosen language; `bgmSfx` = music state + 1–2 synced SFX.
+- `palette`: ordinary colour words only; one accent if the source has a goal or motif object.
+- `bgmDirection`: SFX-only reminder (no background music).
+- Each clip row: `narrativeJob` = this clip's job in the source story; `explainerScene` = what we SEE at the start of the clip (character, pose, props, location); `motionCamera` = the modest continuation within the same shot and the camera; `englishVo` = character dialogue only (`NAME: "line"`) in the chosen language; `bgmSfx` = 1–2 synced SFX.
 
 ## Clip continuity
 
 - Each clip's start and end are the SAME SHOT: the end is a modest continuation (pose, prop, expression, small camera move). New locations begin at a clip boundary, not inside a clip.
 - The next clip's opening inherits the previous clip's end state and environment.
 - Every visual beat must change something meaningful every 1.5–2.5 seconds (gesture, prop, camera push) — but in service of the emotion, not spectacle.
-- The final clip ends on the button and rests. Never bridge back to Clip 1; never plan a loop.
+- The final clip ends and rests. Never bridge back to Clip 1; never plan a loop.
 
 ## Workflow
 

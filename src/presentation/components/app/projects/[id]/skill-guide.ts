@@ -32,7 +32,7 @@ const GUIDES: Record<string, SkillGuide> = {
   },
   [STORY_SHORT_SKILL_SLUG]: {
     voice: "角色對白，沒有旁白；產片時依角色自動配聲",
-    structure: "想要 → 受阻 → 轉折 → 收束",
+    structure: "依題材自己排故事，不套固定四段弧",
     picture: "跟所選視覺風格；情緒靠姿勢，少用字幕",
     frames: "每段一條對白，或標成靜音",
   },
