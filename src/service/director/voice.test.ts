@@ -26,6 +26,14 @@ test("Phase A audio hint locks the chosen narrator voice and forbids BGM", () =>
   assert.match(phaseAAudioHint("male"), /bgmDirection/);
 });
 
+test("story-short Phase A audio hint skips narrator gender", () => {
+  const hint = phaseAAudioHint("male", { bansNarration: true });
+  assert.match(hint, /No narrator/);
+  assert.match(hint, /when the clip video is generated/i);
+  assert.doesNotMatch(hint, /adult male voice/);
+  assert.match(hint, /no background music/i);
+});
+
 test("Phase B audio lock names the voice and forbids background music", () => {
   const lock = phaseBAudioLock({
     voiceGender: "female",
@@ -50,14 +58,16 @@ test("Phase B audio lock is a fixed fingerprint, not rewritten per clip", () => 
   assert.notEqual(a, female);
 });
 
-test("story-short Phase B lock keeps character dialogue and still forbids BGM", () => {
+test("story-short Phase B lock infers each speaker and still forbids BGM", () => {
   const lock = phaseBAudioLock({
     voiceGender: "male",
     languageLabel: "English",
     bansNarration: true,
   });
-  assert.match(lock, /Character dialogue/);
-  assert.match(lock, /adult male/);
+  assert.match(lock, /There is no narrator/);
+  assert.match(lock, /start\/end frames/);
+  assert.doesNotMatch(lock, /adult male/);
+  assert.doesNotMatch(lock, /mid-low pitch/);
   assert.match(lock, /No background music/);
 });
 

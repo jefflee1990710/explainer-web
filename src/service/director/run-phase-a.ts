@@ -130,7 +130,7 @@ ${
     .join("\n")
 }
 ${language.skillHint}
-${phaseAAudioHint(input.voiceGender)}
+${phaseAAudioHint(input.voiceGender, { bansNarration: skillBansNarration(input.skill.slug) })}
 ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   dualBeat,
   listicle: skillForcesSceneText(input.skill.slug),
@@ -152,7 +152,11 @@ ${input.source}
 Aspect ratio: ${input.aspectRatio}
 Duration preset: ${preset.skillHint}
 Voiceover language: ${language.label} (${language.sublabel})
-Narrator voice: ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].label} (adult ${resolveVoiceGender(input.voiceGender)})
+${
+  skillBansNarration(input.skill.slug)
+    ? "Character voices: do not pick a narrator gender. MiniMax will match each named speaker when the clip video is generated."
+    : `Narrator voice: ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].label} (adult ${resolveVoiceGender(input.voiceGender)})`
+}
 Audio: no background music. bgmDirection and each clip bgmSfx are SFX-only.
 On-canvas text: ${
   sceneText.enabled

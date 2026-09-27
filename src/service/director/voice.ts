@@ -48,22 +48,30 @@ export function resolveVoiceGender(value?: string): VoiceGender {
   return value && isVoiceGender(value) ? value : DEFAULT_VOICE_GENDER;
 }
 
-// Phase A: lock the chosen voice and keep BGM out of the proposal.
-export function phaseAAudioHint(voiceGender?: string) {
+// Phase A: lock the chosen narrator, or leave character voices for Phase B.
+export function phaseAAudioHint(
+  voiceGender?: string,
+  options?: { bansNarration?: boolean },
+) {
+  if (options?.bansNarration) {
+    return `No narrator and no third-person voiceover. Spoken audio is character dialogue only; each speaker's voice is chosen when the clip video is generated, matching that character. ${NO_BGM_RULE} bgmDirection and every clip bgmSfx must state there is no background music; SFX only.`;
+  }
   const voice = VOICE_PRESETS[resolveVoiceGender(voiceGender)];
   return `${voice.skillHint} ${NO_BGM_RULE} bgmDirection and every clip bgmSfx must state there is no background music; SFX only.`;
 }
 
-// Phase B: the line MiniMax must hear for voice + silence under the VO.
+// Phase B: MiniMax hears this for voice + silence under the spoken line.
 export function phaseBAudioLock(input: {
   voiceGender?: string;
   languageLabel: string;
   bansNarration?: boolean;
 }) {
-  const voice = VOICE_PRESETS[resolveVoiceGender(input.voiceGender)];
   const speaker = input.bansNarration
-    ? `Character dialogue uses the same natural adult ${voice.en} speaking voice on every clip: ${voice.fingerprint}`
-    : `Same narrator on every clip: a warm, engaging adult ${voice.en} voice speaking ${input.languageLabel}, ${voice.fingerprint}`;
+    ? `There is no narrator. Each named speaker uses a distinct natural voice that matches that character's apparent gender, age, and look in the locked start/end frames and in Phase A characterLock. The same NAME keeps the same voice, accent, and age on every clip. Do not invent a shared narrator timbre. Silent beats stay silent.`
+    : (() => {
+        const voice = VOICE_PRESETS[resolveVoiceGender(input.voiceGender)];
+        return `Same narrator on every clip: a warm, engaging adult ${voice.en} voice speaking ${input.languageLabel}, ${voice.fingerprint}`;
+      })();
   return `${speaker} ${NO_BGM_RULE}`;
 }
 

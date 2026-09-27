@@ -31,7 +31,7 @@ Return standalone MiniMax H3 video prompts that follow the skill prompt contract
 Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image. ${DUAL_KEYFRAME_MOTION_RULES} Do not invent a different final pose, camera, or composition.
 Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}). ${
     skillBansNarration(input.skill.slug)
-      ? "There is no narrator. Characters speak those lines."
+      ? "There is no narrator. Characters speak those lines. Do not copy a male/female narrator fingerprint. Infer each NAME's voice from that character in the keyframes."
       : `Copy the locked adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice fingerprint verbatim into every clip prompt. Do not invent a new narrator.`
   } Never request background music, BGM, a musical score, or an underscore. Voice and short synced SFX only.`;
 }

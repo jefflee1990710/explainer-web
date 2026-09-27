@@ -31,7 +31,7 @@ const GUIDES: Record<string, SkillGuide> = {
     frames: "每段兩拍，起始／結尾各一句旁白",
   },
   [STORY_SHORT_SKILL_SLUG]: {
-    voice: "角色對白，沒有旁白；可整段安靜",
+    voice: "角色對白，沒有旁白；產片時依角色自動配聲",
     structure: "想要 → 受阻 → 轉折 → 收束",
     picture: "跟所選視覺風格；情緒靠姿勢，少用字幕",
     frames: "每段一條對白，或標成靜音",

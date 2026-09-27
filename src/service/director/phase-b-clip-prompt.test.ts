@@ -92,6 +92,18 @@ test("Phase B user prompt locks narrator gender and forbids background music", (
   assert.doesNotMatch(prompt, /driving beat|keep narration dominant over BGM/i);
 });
 
+test("story-short Phase B prompt does not lock a narrator gender", () => {
+  const prompt = clipPhaseBUserPrompt({
+    ...base,
+    bansNarration: true,
+    phaseA: proposal(),
+    clipNumber: 2,
+  });
+  assert.match(prompt, /There is no narrator/);
+  assert.doesNotMatch(prompt, /same narrator on every clip/i);
+  assert.doesNotMatch(prompt, /adult female voice/);
+});
+
 test("unknown clip throws", () => {
   assert.throws(() => clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 9 }));
 });

@@ -502,23 +502,25 @@ export function NewProjectForm({
 
               <Section
                 step="03"
-                title={dialogueOnly ? "對白語言與聲線" : "旁白語言與聲線"}
+                title={dialogueOnly ? "對白語言" : "旁白語言與聲線"}
                 hint={
                   dialogueOnly
-                    ? "角色用這個語言與聲線說話；這支短片沒有旁白。分鏡說明維持繁體中文。"
+                    ? "角色用這個語言說話；聲線在產片時依角色外貌自動決定。這支短片沒有旁白。分鏡說明維持繁體中文。"
                     : "影片會用這個語言與男／女聲配旁白；分鏡說明維持繁體中文。"
                 }
               >
                 <LanguagePicker value={language} onChange={setLanguage} disabled={briefBusy} />
-                <p className="mt-4 text-sm font-semibold">{dialogueOnly ? "對白聲線" : "旁白聲線"}</p>
-                <p className="mt-1 text-xs text-muted">
-                  {dialogueOnly
-                    ? "產片時角色對白會用這個成年聲線。"
-                    : "產片時旁白會鎖定這個成年聲線，全程不換性別。"}
-                </p>
-                <div className="mt-3">
-                  <VoicePicker value={voiceGender} onChange={setVoiceGender} disabled={briefBusy} />
-                </div>
+                {dialogueOnly ? null : (
+                  <>
+                    <p className="mt-4 text-sm font-semibold">旁白聲線</p>
+                    <p className="mt-1 text-xs text-muted">
+                      產片時旁白會鎖定這個成年聲線，全程不換性別。
+                    </p>
+                    <div className="mt-3">
+                      <VoicePicker value={voiceGender} onChange={setVoiceGender} disabled={briefBusy} />
+                    </div>
+                  </>
+                )}
               </Section>
 
               <Section
@@ -617,8 +619,12 @@ export function NewProjectForm({
               <span>{styleName}</span>
               <Dot />
               <span>{LANGUAGE_PRESETS[language].label}</span>
-              <Dot />
-              <span>{VOICE_PRESETS[voiceGender].label}</span>
+              {dialogueOnly ? null : (
+                <>
+                  <Dot />
+                  <span>{VOICE_PRESETS[voiceGender].label}</span>
+                </>
+              )}
               <Dot />
               <span>
                 {`畫面文字 · ${SCENE_TEXT_PRESETS[sceneTextLanguage].label}`}
