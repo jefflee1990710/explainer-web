@@ -57,6 +57,18 @@ export function isFinalBusy(status?: ReelStatus) {
   return isReelBusy(status);
 }
 
+// An export older than this is presumed dead (killed function) and may be re-queued.
+export const FINAL_STALE_MS = 6 * 60 * 1000;
+
+// Busy and recent enough to still be running.
+export function isFinalRunning(
+  video: { finalStatus?: ReelStatus; finalQueuedAt?: Date | string },
+  now = Date.now(),
+): boolean {
+  if (!isFinalBusy(video.finalStatus) || !video.finalQueuedAt) return false;
+  return now - new Date(video.finalQueuedAt).getTime() < FINAL_STALE_MS;
+}
+
 export function editAssetUrls(edit: VideoEdit) {
   return [
     ...edit.layers.map((layer) => layer.assetUrl),

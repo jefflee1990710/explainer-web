@@ -16,8 +16,8 @@ import type { Folder } from "@/model/folder";
 import type { Project } from "@/model/project";
 import { ProjectWorkspace } from "@/presentation/components/app/projects/[id]/project-workspace";
 
-// Revise / approve actions here also run background jobs via after().
-export const maxDuration = 120;
+// Revise / approve / export actions run background jobs via after(); export renders with ffmpeg.
+export const maxDuration = 300;
 
 export default async function ProjectPage({
   params,

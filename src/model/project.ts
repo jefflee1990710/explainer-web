@@ -204,6 +204,8 @@ export type Project = {
   finalStatus?: ReelStatus;
   finalFingerprint?: string;
   finalError?: string;
+  // When the current export was queued; a stale one can be re-queued.
+  finalQueuedAt?: Date;
   // Legacy batch charges (pre per-clip pipeline). No longer written.
   creditCost?: number;
   creditsCharged: boolean;
@@ -342,6 +344,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   finalStatus: z.enum(["queued", "in_progress", "completed", "failed"]).optional(),
   finalFingerprint: z.string().optional(),
   finalError: z.string().optional(),
+  finalQueuedAt: z.date().optional(),
   creditCost: z.number().optional(),
   creditsCharged: z.boolean(),
   error: z.string().optional(),

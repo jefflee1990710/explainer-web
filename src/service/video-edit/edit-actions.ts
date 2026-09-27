@@ -14,8 +14,8 @@ import {
   finalFingerprint,
   hasEdit,
   isBrandAssetUrl,
-  isFinalBusy,
   isFinalCurrent,
+  isFinalRunning,
 } from "@/service/video-edit/edit-state";
 import { runFinalJob } from "@/service/video-edit/final-job";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
@@ -73,12 +73,17 @@ export async function exportFinalVideoAction(videoId: string): Promise<ProjectRe
 
   const fingerprint = finalFingerprint(video);
   const videos = await videosCollection();
-  const alreadyRunning = isFinalBusy(video.finalStatus) && video.finalFingerprint === fingerprint;
+  const alreadyRunning = isFinalRunning(video) && video.finalFingerprint === fingerprint;
   if (!isFinalCurrent(video) && !alreadyRunning) {
     await videos.updateOne(
       { _id: video._id },
       {
-        $set: { finalStatus: "queued", finalFingerprint: fingerprint, updatedAt: new Date() },
+        $set: {
+          finalStatus: "queued",
+          finalFingerprint: fingerprint,
+          finalQueuedAt: new Date(),
+          updatedAt: new Date(),
+        },
         $unset: { finalError: "" },
       },
     );

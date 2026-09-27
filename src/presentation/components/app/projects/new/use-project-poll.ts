@@ -6,7 +6,7 @@ import { refreshGenerationAction } from "@/presentation/actions/generation";
 import { getProjectAction } from "@/presentation/actions/projects";
 import { isProjectBusy } from "@/service/clip-stage";
 import { isReelBusy } from "@/service/reel/fingerprint";
-import { isFinalBusy } from "@/service/video-edit/edit-state";
+import { isFinalRunning } from "@/service/video-edit/edit-state";
 import type { PublicVideo } from "@/presentation/serialize";
 
 const INTERVAL_MS = 2500;
@@ -25,7 +25,7 @@ export function useProjectPoll(
   const id = project?.id;
   const status = project?.status;
   const clipBusy = project ? isProjectBusy(project) : false;
-  const reelBusy = project ? isReelBusy(project.reelStatus) || isFinalBusy(project.finalStatus) : false;
+  const reelBusy = project ? isReelBusy(project.reelStatus) || isFinalRunning(project) : false;
   const busy = clipBusy || reelBusy;
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export function useProjectPoll(
       if (!next) return;
       onUpdate(next);
       // Settled: refresh the server render so lists/badges catch up.
-      if (!isProjectBusy(next) && !isReelBusy(next.reelStatus) && !isFinalBusy(next.finalStatus)) {
+      if (!isProjectBusy(next) && !isReelBusy(next.reelStatus) && !isFinalRunning(next)) {
         router.refresh();
       }
     }

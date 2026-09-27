@@ -59,6 +59,7 @@ export type PublicVideo = {
   finalStatus?: Project["finalStatus"];
   finalFingerprint?: string;
   finalError?: string;
+  finalQueuedAt?: string;
   error?: string;
   createdAt: string;
 };
@@ -121,6 +122,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     finalStatus: video.finalStatus,
     finalFingerprint: video.finalFingerprint,
     finalError: video.finalError,
+    finalQueuedAt: video.finalQueuedAt?.toISOString(),
     error: video.error,
     createdAt: video.createdAt.toISOString(),
   };

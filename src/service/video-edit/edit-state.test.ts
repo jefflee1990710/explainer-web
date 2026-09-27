@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  FINAL_STALE_MS,
   blobStoreHost,
   brandAssetPath,
   checkBrandUpload,
@@ -9,6 +10,7 @@ import {
   isBrandAssetUrl,
   isEditDirty,
   isFinalCurrent,
+  isFinalRunning,
   normalizeTemplateName,
 } from "@/service/video-edit/edit-state";
 import type { VideoEdit } from "@/model/video-edit";
@@ -63,6 +65,17 @@ test("isFinalCurrent needs a completed file with the current fingerprint", () =>
   assert.equal(isFinalCurrent({ ...v, finalUrl: "u", finalStatus: "completed", finalFingerprint: fp }), true);
   assert.equal(isFinalCurrent({ ...v, finalUrl: "u", finalStatus: "completed", finalFingerprint: "old" }), false);
   assert.equal(isFinalCurrent({ ...v, finalStatus: "completed", finalFingerprint: fp }), false);
+});
+
+test("isFinalRunning treats a busy export past FINAL_STALE_MS or without queuedAt as dead", () => {
+  const now = Date.UTC(2026, 8, 27, 12);
+  const fresh = new Date(now - 60_000);
+  const stale = new Date(now - FINAL_STALE_MS - 1);
+  assert.equal(isFinalRunning({ finalStatus: "in_progress", finalQueuedAt: fresh }, now), true);
+  assert.equal(isFinalRunning({ finalStatus: "queued", finalQueuedAt: stale }, now), false);
+  assert.equal(isFinalRunning({ finalStatus: "queued" }, now), false);
+  assert.equal(isFinalRunning({ finalStatus: "completed", finalQueuedAt: fresh }, now), false);
+  assert.equal(isFinalRunning({ finalStatus: "queued", finalQueuedAt: fresh.toISOString() }, now), true);
 });
 
 test("isBrandAssetUrl only accepts this user's folder in this project's store", () => {
