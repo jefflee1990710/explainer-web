@@ -115,7 +115,7 @@ async function probeClip(cwd: string, name: string) {
   return { duration, hasAudio: /Audio:/.test(stderr) };
 }
 
-function ffmpegStderr(cwd: string, args: string[]) {
+export function ffmpegStderr(cwd: string, args: string[]) {
   return new Promise<string>((resolve, reject) => {
     if (!ffmpegPath) {
       reject(new Error("找不到 ffmpeg，無法合成成片"));
@@ -131,13 +131,13 @@ function ffmpegStderr(cwd: string, args: string[]) {
   });
 }
 
-async function fetchBuffer(url: string, label: string) {
+export async function fetchBuffer(url: string, label: string) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`無法下載${label}（${response.status}）`);
   return Buffer.from(await response.arrayBuffer());
 }
 
-function runFfmpeg(cwd: string, args: string[]) {
+export function runFfmpeg(cwd: string, args: string[]) {
   return new Promise<void>((resolve, reject) => {
     if (!ffmpegPath) {
       reject(new Error("找不到 ffmpeg，無法合成成片"));
