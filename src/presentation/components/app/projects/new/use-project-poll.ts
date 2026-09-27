@@ -6,12 +6,14 @@ import { refreshGenerationAction } from "@/presentation/actions/generation";
 import { getProjectAction } from "@/presentation/actions/projects";
 import { isProjectBusy } from "@/service/clip-stage";
 import { isReelBusy } from "@/service/reel/fingerprint";
+import { isFinalBusy } from "@/service/video-edit/edit-state";
 import type { PublicVideo } from "@/presentation/serialize";
 
 const INTERVAL_MS = 2500;
 
-// Poll while the director writes, a frame/video job is in flight, or the
-// reel is concatenating. Provider refresh is skipped for reel-only waits.
+// Poll while the director writes, a frame/video job is in flight, the
+// reel is concatenating, or the branded export is rendering. Provider
+// refresh is skipped for reel-only waits.
 // Each tick pushes the freshest project into React state so tiles / timeline
 // flip off "生成中" as soon as webhook or status refresh settles a job.
 export function useProjectPoll(
@@ -23,7 +25,7 @@ export function useProjectPoll(
   const id = project?.id;
   const status = project?.status;
   const clipBusy = project ? isProjectBusy(project) : false;
-  const reelBusy = project ? isReelBusy(project.reelStatus) : false;
+  const reelBusy = project ? isReelBusy(project.reelStatus) || isFinalBusy(project.finalStatus) : false;
   const busy = clipBusy || reelBusy;
 
   useEffect(() => {
@@ -57,7 +59,7 @@ export function useProjectPoll(
       if (!next) return;
       onUpdate(next);
       // Settled: refresh the server render so lists/badges catch up.
-      if (!isProjectBusy(next) && !isReelBusy(next.reelStatus)) {
+      if (!isProjectBusy(next) && !isReelBusy(next.reelStatus) && !isFinalBusy(next.finalStatus)) {
         router.refresh();
       }
     }
