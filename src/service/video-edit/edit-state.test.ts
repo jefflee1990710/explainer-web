@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  blobStoreHost,
   brandAssetPath,
   checkBrandUpload,
   finalFingerprint,
@@ -64,12 +65,27 @@ test("isFinalCurrent needs a completed file with the current fingerprint", () =>
   assert.equal(isFinalCurrent({ ...v, finalStatus: "completed", finalFingerprint: fp }), false);
 });
 
-test("isBrandAssetUrl only accepts this user's blob folder", () => {
-  const ok = `https://x.public.blob.vercel-storage.com/${brandAssetPath("u1", "abc", "png")}`;
-  assert.equal(isBrandAssetUrl(ok, "u1"), true);
-  assert.equal(isBrandAssetUrl(ok, "u2"), false);
-  assert.equal(isBrandAssetUrl("https://evil.example.com/explainer/brand/u1/a.png", "u1"), false);
-  assert.equal(isBrandAssetUrl("not a url", "u1"), false);
+test("isBrandAssetUrl only accepts this user's folder in this project's store", () => {
+  const host = "x.public.blob.vercel-storage.com";
+  const ok = `https://${host}/${brandAssetPath("u1", "abc", "png")}`;
+  assert.equal(isBrandAssetUrl(ok, "u1", host), true);
+  assert.equal(isBrandAssetUrl(ok, "u2", host), false);
+  assert.equal(isBrandAssetUrl("https://evil.example.com/explainer/brand/u1/a.png", "u1", host), false);
+  assert.equal(isBrandAssetUrl("not a url", "u1", host), false);
+  assert.equal(
+    isBrandAssetUrl("https://other.public.blob.vercel-storage.com/explainer/brand/u1/a.png", "u1", host),
+    false,
+  );
+  assert.equal(isBrandAssetUrl(ok, "u1", null), false);
+});
+
+test("blobStoreHost derives the public host from the read-write token", () => {
+  assert.equal(
+    blobStoreHost("vercel_blob_rw_9He1NjomUXtmv8tB_abcDEF123"),
+    "9he1njomuxtmv8tb.public.blob.vercel-storage.com",
+  );
+  assert.equal(blobStoreHost(undefined), null);
+  assert.equal(blobStoreHost("nope"), null);
 });
 
 test("checkBrandUpload enforces type and size", () => {

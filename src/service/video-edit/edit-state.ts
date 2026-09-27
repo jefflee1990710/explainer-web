@@ -69,13 +69,20 @@ export function brandAssetPath(clerkUserId: string, id: string, ext: string) {
   return `explainer/brand/${clerkUserId}/${id}.${ext}`;
 }
 
-// Render downloads these URLs, so only this user's Blob folder is allowed.
-export function isBrandAssetUrl(url: string, clerkUserId: string) {
+// Public host of this project's Blob store, from a `vercel_blob_rw_<storeId>_<secret>` token.
+export function blobStoreHost(token?: string): string | null {
+  const match = token?.match(/^vercel_blob_rw_([A-Za-z0-9]+)_/);
+  return match ? `${match[1].toLowerCase()}.public.blob.vercel-storage.com` : null;
+}
+
+// Render downloads these URLs, so only this user's folder in this project's store is allowed.
+export function isBrandAssetUrl(url: string, clerkUserId: string, storeHost: string | null): boolean {
+  if (!storeHost) return false;
   try {
     const parsed = new URL(url);
     return (
       parsed.protocol === "https:" &&
-      parsed.hostname.endsWith(".public.blob.vercel-storage.com") &&
+      parsed.hostname === storeHost &&
       parsed.pathname.startsWith(`/explainer/brand/${clerkUserId}/`)
     );
   } catch {
