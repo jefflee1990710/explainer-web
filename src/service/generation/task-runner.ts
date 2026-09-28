@@ -136,7 +136,12 @@ export async function drainPendingJobs(limit = SUBMIT_BATCH) {
       attempts: job.attempts,
       lockedUntil: { $lt: now },
     };
-    if (await failJob(job, "送出逾時，credit 已退回", stillStuck)) failed += 1;
+    // One throwing job (e.g. a refund error) must not abort the batch.
+    try {
+      if (await failJob(job, "送出逾時，credit 已退回", stillStuck)) failed += 1;
+    } catch (error) {
+      console.error("[queue] exhausted job fail threw", { jobId: job._id, error });
+    }
   }
 
   let sent = 0;
@@ -144,10 +149,15 @@ export async function drainPendingJobs(limit = SUBMIT_BATCH) {
   for (let index = 0; index < limit; index += 1) {
     const job = await claimNextJob();
     if (!job) break;
-    const outcome = await runClaimedJob(job);
-    if (outcome === "sent") sent += 1;
-    else if (outcome === "retried") retried += 1;
-    else if (outcome === "failed") failed += 1;
+    try {
+      const outcome = await runClaimedJob(job);
+      if (outcome === "sent") sent += 1;
+      else if (outcome === "retried") retried += 1;
+      else if (outcome === "failed") failed += 1;
+    } catch (error) {
+      // Left `submitting`; the lock expires and the job is retried or failed later.
+      console.error("[queue] job run threw", { jobId: job._id, error });
+    }
   }
   return { sent, failed, retried };
 }
