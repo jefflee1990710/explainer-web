@@ -37,6 +37,7 @@ import {
 import { scheduleGenerationFinishedEmail } from "@/service/notify/generation-email";
 import { FRAME_COST, STUCK_CLAIM_MS, VIDEO_COST } from "@/service/production-plan";
 import { toSent, type Sent } from "@/service/generation/sent";
+import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type {
   FramePosition,
@@ -99,19 +100,8 @@ export async function submitStillIfNeeded(project: Project) {
   const existing = await jobs.findOne({ projectId: project._id, kind: "still" });
   if (existing) return;
 
-  const still = await sendStill(project);
-  await jobs.insertOne({
-    projectId: project._id,
-    clipIndex: -1,
-    kind: "still",
-    model: still.model,
-    requestId: still.requestId,
-    statusUrl: still.statusUrl,
-    status: (still.status as GenerationStatus) || "queued",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-  await persistImmediateSubmit(still);
+  const id = await insertPendingJob({ projectId: project._id, clipIndex: -1, kind: "still" });
+  kickJob(id);
   await projects.updateOne(
     { _id: project._id },
     { $unset: { stillError: "" }, $set: { updatedAt: new Date() } },
@@ -129,15 +119,18 @@ export async function stillBlocker(project: Project): Promise<string | null> {
 
 // ---------- frames ----------
 
-// Provider call for one frame. Character blueprints are always attached;
-// annotated redo images precede them when present.
-async function sendFrameWithRevision(
+// Send one frame to the provider. The revision comes from the stored frame so
+// a retry rebuilds exactly what the user asked for. Character blueprints are
+// always attached; annotated redo images precede them. No job write.
+export async function sendFrame(
   project: Project,
-  skill: Skill,
   clipNumber: number,
   position: FramePosition,
-  revision: FrameRevision | undefined,
-) {
+): Promise<Sent> {
+  const skill = await loadSkill(project);
+  const revision = project.frames?.find(
+    (frame) => frame.clipNumber === clipNumber && frame.position === position,
+  )?.revision;
   const sceneText = resolveSceneText(project);
   const prompt = buildFramePrompt(project, clipNumber, position, { revision });
   const refs = sceneImageReferenceUrls({
@@ -155,56 +148,18 @@ async function sendFrameWithRevision(
     sceneTextLanguage: sceneText.language,
     referenceImageUrls: refs,
   });
-  return { sent: toSent(model, submitted), prompt };
+  return toSent(model, submitted);
 }
 
-// Send one frame to the provider. The revision comes from the stored frame so
-// a retry rebuilds exactly what the user asked for. No job write.
-export async function sendFrame(
-  project: Project,
-  clipNumber: number,
-  position: FramePosition,
-): Promise<Sent> {
-  const skill = await loadSkill(project);
-  const revision = project.frames?.find(
-    (frame) => frame.clipNumber === clipNumber && frame.position === position,
-  )?.revision;
-  const { sent } = await sendFrameWithRevision(project, skill, clipNumber, position, revision);
-  return sent;
-}
-
-// Submit a single frame request and record the job.
-async function submitOneFrame(
-  project: Project,
-  skill: Skill,
-  clipNumber: number,
-  position: FramePosition,
-  options: {
-    revision?: FrameRevision;
-  } = {},
-) {
-  const jobs = await generationJobsCollection();
-  const { sent, prompt } = await sendFrameWithRevision(
-    project,
-    skill,
-    clipNumber,
-    position,
-    options.revision,
-  );
-  await jobs.insertOne({
+// Queue one frame; the queue sends it (see task-senders) and refunds on failure.
+async function enqueueFrame(project: Project, clipNumber: number, position: FramePosition) {
+  const id = await insertPendingJob({
     projectId: project._id,
     clipIndex: clipNumber - 1,
     kind: "frame",
     framePosition: position,
-    model: sent.model,
-    requestId: sent.requestId,
-    statusUrl: sent.statusUrl,
-    status: (sent.status as GenerationStatus) || "queued",
-    createdAt: new Date(),
-    updatedAt: new Date(),
   });
-  await persistImmediateSubmit(sent);
-  return prompt;
+  kickJob(id);
 }
 
 export type FrameTarget = {
@@ -214,13 +169,13 @@ export type FrameTarget = {
   revision?: FrameRevision;
 };
 
-// Submit one or more frames (caller already charged 1 credit each). Each old
+// Queue one or more frames (caller already charged 1 credit each). Each old
 // job is replaced, the frame is stamped `submittedAt`, and the project sits in
 // `production` until the jobs settle. `project` must carry the storyboard the
-// prompts should be built from (re-fetch after editing a clip).
+// prompts should be built from, and the DB must hold the same storyboard and
+// revision since the sender rebuilds from it (re-fetch after editing a clip).
 export async function regenerateFrames(project: Project, targets: FrameTarget[]) {
   if (targets.length === 0) return { deferred: [] as FrameTarget[] };
-  const skill = await loadSkill(project);
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
   const submittedAt = new Date().toISOString();
@@ -233,11 +188,12 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
       clipIndex: target.clipNumber - 1,
       framePosition: target.position,
     });
-    const prompt = await submitOneFrame(project, skill, target.clipNumber, target.position, {
+    const prompt = buildFramePrompt(project, target.clipNumber, target.position, {
       revision: target.revision,
     });
-    // A fresh submission has no error yet; `$unset` rather than `$set: undefined`
-    // so the previous failure message never lingers as `null`.
+    // Frame first, then the job: reconcile only trusts jobs created at or after
+    // `submittedAt`. `$unset` rather than `$set: undefined` so the previous
+    // failure message never lingers as `null`.
     await projects.updateOne(
       { _id: project._id },
       {
@@ -258,6 +214,7 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
         ],
       },
     );
+    await enqueueFrame(project, target.clipNumber, target.position);
   }
 
   await projects.updateOne(
@@ -630,7 +587,6 @@ export async function submitDeferredEndIfNeeded(
   const startUrl = clipKeyframeUrls(project.frames, clipNumber).start;
   if (!startUrl) return;
 
-  const skill = await loadSkill(project);
   const submittedAt = new Date().toISOString();
   await jobs.deleteMany({
     projectId,
@@ -638,9 +594,8 @@ export async function submitDeferredEndIfNeeded(
     clipIndex: clipNumber - 1,
     framePosition: "end",
   });
-  const prompt = await submitOneFrame(project, skill, clipNumber, "end", {
-    revision: end.revision,
-  });
+  const prompt = buildFramePrompt(project, clipNumber, "end", { revision: end.revision });
+  // Frame first so the job's `createdAt` is never older than `submittedAt`.
   await projects.updateOne(
     { _id: projectId },
     {
@@ -653,6 +608,7 @@ export async function submitDeferredEndIfNeeded(
     },
     { arrayFilters: [{ "frame.clipNumber": clipNumber, "frame.position": "end" }] },
   );
+  await enqueueFrame(project, clipNumber, "end");
   await syncProjectFromJobs(projectId);
 }
 
