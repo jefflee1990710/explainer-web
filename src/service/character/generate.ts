@@ -38,7 +38,12 @@ export async function enqueueCharacterVersion(
 ) {
   const jobs = await generationJobsCollection();
   // Retry reuses the version id; drop its settled job so the new one is the only one.
-  await jobs.deleteMany({ kind: "character", versionId: version.id });
+  // In-flight jobs stay so their provider request is never orphaned.
+  await jobs.deleteMany({
+    kind: "character",
+    versionId: version.id,
+    status: { $in: ["failed", "nsfw", "completed"] },
+  });
   const id = await insertPendingJob({
     characterId: character._id,
     versionId: version.id,

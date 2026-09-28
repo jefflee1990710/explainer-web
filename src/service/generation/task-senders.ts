@@ -8,7 +8,7 @@ import { PermanentJobError } from "@/service/generation/task-policy";
 import type { Sent } from "@/service/generation/sent";
 import type { Character } from "@/model/character";
 import type { GenerationJob } from "@/model/generation-job";
-import type { PhaseBPrompt, Project } from "@/model/project";
+import type { Project } from "@/model/project";
 
 // Load fresh state and call the provider for one claimed job.
 export async function sendJob(job: GenerationJob): Promise<Sent> {
@@ -39,9 +39,14 @@ async function sendCharacter(job: GenerationJob) {
 // Phase B runs once: a retry reuses the prompt already written to the clip.
 async function sendVideo(project: Project, clipNumber: number) {
   if (!project.phaseA) throw new PermanentJobError("找不到分鏡");
+  // Missing keyframes will not fix themselves; stop before spending a Phase B call.
+  const { start, end } = clipKeyframeUrls(project.frames, clipNumber);
+  if (!start || !end) {
+    throw new PermanentJobError("這段的起點或終點畫格還沒有檔案，無法產片");
+  }
   const clip = project.clips.find((item) => item.clipNumber === clipNumber);
   if (clip?.prompt) {
-    return sendVideoOrStop(project, {
+    return sendClipVideo(project, clipNumber, {
       clipNumber,
       prompt: clip.prompt,
       durationSeconds: clip.durationSeconds,
@@ -73,14 +78,5 @@ async function sendVideo(project: Project, clipNumber: number) {
     },
     { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
   );
-  return sendVideoOrStop(project, prompt);
-}
-
-// Keyframes missing will not fix themselves; do not burn retries on it.
-async function sendVideoOrStop(project: Project, prompt: PhaseBPrompt) {
-  const { start, end } = clipKeyframeUrls(project.frames, prompt.clipNumber);
-  if (!start || !end) {
-    throw new PermanentJobError("這段的起點或終點畫格還沒有檔案，無法產片");
-  }
-  return sendClipVideo(project, prompt.clipNumber, prompt);
+  return sendClipVideo(project, clipNumber, prompt);
 }

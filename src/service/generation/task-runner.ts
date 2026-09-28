@@ -1,17 +1,19 @@
 import type { Filter, ObjectId } from "mongodb";
 import { generationJobsCollection, videosCollection } from "@/dao";
-import { refundCredits } from "@/service/billing/credits";
 import { failCharacterVersion } from "@/service/character/sync";
 import { fetchHiggsfieldStatus, mediaUrlFromResponse } from "@/service/higgsfield/generate";
-import { jobNeedsRefresh, userFacingJobError } from "@/service/higgsfield/job-status";
+import {
+  jobNeedsRefresh,
+  jobNeedsRefreshFilter,
+  userFacingJobError,
+} from "@/service/higgsfield/job-status";
 import {
   applyJobStatus,
-  failDeferredEndIfNeeded,
   persistImmediateSubmit,
   refreshProjectJobs,
+  refundClaimedFailure,
   syncProjectFromJobs,
 } from "@/service/higgsfield/pipeline";
-import { FRAME_COST, VIDEO_COST } from "@/service/production-plan";
 import {
   MAX_SUBMIT_ATTEMPTS,
   PROVIDER_TIMEOUT_MS,
@@ -102,13 +104,7 @@ export async function failJob(
 
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: job.projectId });
-  if (project) {
-    if (job.kind === "frame") await refundCredits(project.clerkUserId, FRAME_COST);
-    if (job.kind === "video") await refundCredits(project.clerkUserId, VIDEO_COST);
-    if (job.kind === "frame" && job.framePosition === "start") {
-      await failDeferredEndIfNeeded(job.projectId, job.clipIndex + 1, error);
-    }
-  }
+  if (project) await refundClaimedFailure(job, project, error);
   await syncProjectFromJobs(job.projectId);
   return true;
 }
@@ -153,8 +149,9 @@ export async function drainPendingJobs(limit = SUBMIT_BATCH) {
 // Cron 2: poll submitted jobs across users, then time out stragglers.
 export async function refreshSubmittedJobs() {
   const jobs = await generationJobsCollection();
+  // Filter before the limit so settled jobs can never crowd out ones still in flight.
   const candidates = await jobs
-    .find({ status: { $in: ["queued", "in_progress", "completed"] } })
+    .find(jobNeedsRefreshFilter())
     .sort({ updatedAt: 1 })
     .limit(200)
     .toArray();

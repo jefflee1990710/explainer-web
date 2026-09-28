@@ -39,7 +39,6 @@ import { FRAME_COST, STUCK_CLAIM_MS, VIDEO_COST } from "@/service/production-pla
 import { toSent, type Sent } from "@/service/generation/sent";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type {
-  ClipFrame,
   FramePosition,
   FrameRevision,
   PhaseBPrompt,
@@ -513,15 +512,7 @@ export async function applyJobStatus(input: {
   // Each frame is 1 credit and each clip video is 1 credit; hand it back once,
   // the moment this caller is the one that marked the job failed.
   if (project && claimedFailure) {
-    if (job.kind === "frame") await refundCredits(project.clerkUserId, FRAME_COST);
-    if (job.kind === "video") await refundCredits(project.clerkUserId, VIDEO_COST);
-    if (job.kind === "frame" && job.framePosition === "start") {
-      await failDeferredEndIfNeeded(
-        projectId,
-        job.clipIndex + 1,
-        errorMessage || status,
-      );
-    }
+    await refundClaimedFailure(job, project, errorMessage || status);
   }
 
   await syncProjectFromJobs(projectId);
@@ -538,6 +529,20 @@ export async function applyJobStatus(input: {
 
   if (status === "completed" && (blobUrl || outputUrl)) {
     scheduleGenerationFinishedEmail(job._id);
+  }
+}
+
+// Call only after winning the atomic flip to failed: refunds the job's credit
+// and releases a deferred end whose start just failed.
+export async function refundClaimedFailure(
+  job: Pick<GenerationJob, "kind" | "framePosition" | "clipIndex">,
+  project: Project,
+  error: string,
+) {
+  if (job.kind === "frame") await refundCredits(project.clerkUserId, FRAME_COST);
+  if (job.kind === "video") await refundCredits(project.clerkUserId, VIDEO_COST);
+  if (job.kind === "frame" && job.framePosition === "start") {
+    await failDeferredEndIfNeeded(project._id, job.clipIndex + 1, error);
   }
 }
 
