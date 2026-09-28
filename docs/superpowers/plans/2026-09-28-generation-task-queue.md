@@ -1699,4 +1699,5 @@ git commit -m "feat(queue): task list page, nav badge, editor task dialog"
 - [ ] All tests: `npx tsx --test $(rg --files -g '*.test.ts' src)`.
 - [ ] `rg "runClipVideoJob|submitClipVideoJob|submitOneFrame|submitCharacterVersion|part=\"stuck\"" src` → no hits.
 - [ ] Manual: frame redo, clip video, 補齊剩餘, character create/edit/retry, new video still — each creates a `pending` job that ends `completed` (Mongo `generationJobs`), credits unchanged on success and refunded exactly once on a forced failure (e.g. temporarily throw in `sendFrame`).
+- [ ] UI-independence: start a frame redo, a clip video, and 產生全部影片, then close the tab immediately. With `HF_WEBHOOK_SECRET` unset locally (no webhook), call only the two cron URLs by curl for a few minutes. Reopen: every task is 完成 (or 失敗 with a refund), and 產生全部影片 went on to queue its videos without the page open.
 - [ ] Remind user: add `CRON_SECRET` to Vercel env before deploying.
