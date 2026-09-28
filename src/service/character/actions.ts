@@ -1,5 +1,4 @@
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/service/auth";
 import {
@@ -8,7 +7,7 @@ import {
   refundCredits,
 } from "@/service/billing/credits";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
-import { submitCharacterVersion } from "@/service/character/generate";
+import { enqueueCharacterVersion } from "@/service/character/generate";
 import { collectCharacterBlobUrls } from "@/service/character/storage";
 import { failCharacterVersion } from "@/service/character/sync";
 import { canSetDefault } from "@/service/character/versions";
@@ -59,57 +58,14 @@ async function reload(characterId: ObjectId): Promise<CharacterResult> {
   return { ok: true, character: toPublicCharacter(character) };
 }
 
-// Submit a queued version; on provider failure mark it failed and refund.
-async function submitOrFail(character: Character, version: CharacterVersion) {
+// Queue a charged version; if the queue write fails, mark it failed and refund now.
+async function enqueueOrFail(character: Character, version: CharacterVersion) {
   try {
-    await submitCharacterVersion(character, version);
+    await enqueueCharacterVersion(character, version);
   } catch (error) {
-    const characters = await charactersCollection();
-    const message = error instanceof Error ? error.message : "藍圖送出失敗";
-    const claimed = await characters.updateOne(
-      {
-        _id: character._id,
-        versions: {
-          $elemMatch: { id: version.id, creditsCharged: true },
-        },
-      },
-      {
-        $set: {
-          "versions.$.status": "failed",
-          "versions.$.error": message,
-          "versions.$.creditsCharged": false,
-          updatedAt: new Date(),
-        },
-      },
-    );
-    if (claimed.modifiedCount === 1) {
-      try {
-        await refundCredits(character.clerkUserId, 1);
-      } catch (refundError) {
-        // Restore the claim so a later retry can refund again.
-        await characters.updateOne(
-          { _id: character._id, "versions.id": version.id },
-          {
-            $set: {
-              "versions.$.creditsCharged": true,
-              updatedAt: new Date(),
-            },
-          },
-        );
-        throw refundError;
-      }
-      return;
-    }
-    await characters.updateOne(
-      { _id: character._id, "versions.id": version.id },
-      {
-        $set: {
-          "versions.$.status": "failed",
-          "versions.$.error": message,
-          updatedAt: new Date(),
-        },
-      },
-    );
+    const message = error instanceof Error ? error.message : "藍圖排程失敗";
+    await failCharacterVersion(character._id, version.id, message);
+    throw error;
   }
 }
 
@@ -170,10 +126,7 @@ export async function createCharacterAction(
     }
 
     const characterId = character._id.toHexString();
-    after(async () => {
-      await submitOrFail(character, version);
-      revalidateCharacter(characterId);
-    });
+    await enqueueOrFail(character, version);
     revalidateCharacter(characterId);
     return reload(character._id);
   } catch (error) {
@@ -235,10 +188,7 @@ export async function editCharacterVersionAction(
       throw error;
     }
 
-    after(async () => {
-      await submitOrFail(character, version);
-      revalidateCharacter(characterId);
-    });
+    await enqueueOrFail(character, version);
     revalidateCharacter(characterId);
     return reload(character._id);
   } catch (error) {
@@ -342,10 +292,7 @@ export async function retryCharacterVersionAction(
     }
 
     const retryVersion = { ...ver, status: "queued" as const, creditsCharged: true };
-    after(async () => {
-      await submitOrFail(doc, retryVersion);
-      revalidateCharacter(characterId);
-    });
+    await enqueueOrFail(doc, retryVersion);
     revalidateCharacter(characterId);
     return reload(doc._id);
   } catch (error) {

@@ -1,12 +1,10 @@
 import { generationJobsCollection } from "@/dao";
 import { submitImage } from "@/service/higgsfield/generate";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
-import { persistImmediateSubmit } from "@/service/higgsfield/pipeline";
 import { buildBlueprintPrompt } from "@/service/character/blueprint-prompt";
 import { toSent, type Sent } from "@/service/generation/sent";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import type { Character, CharacterVersion } from "@/model/character";
-import type { GenerationStatus } from "@/model/generation-job";
 
 export const BLUEPRINT_MODEL = IMAGE_ROUTE_BY_SCENE_TEXT.en.model;
 
@@ -52,29 +50,4 @@ export async function enqueueCharacterVersion(
     model: BLUEPRINT_MODEL,
   });
   kickJob(id);
-}
-
-// Submit one version's sheet and record the job. Throws if the
-// provider rejects the request; the caller marks the version failed + refunds.
-export async function submitCharacterVersion(
-  character: Character,
-  version: CharacterVersion,
-) {
-  const sent = await sendCharacterVersion(character, version);
-
-  const jobs = await generationJobsCollection();
-  await jobs.insertOne({
-    characterId: character._id,
-    versionId: version.id,
-    clipIndex: -1,
-    kind: "character",
-    model: sent.model,
-    requestId: sent.requestId,
-    statusUrl: sent.statusUrl,
-    status: (sent.status as GenerationStatus) || "queued",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-
-  await persistImmediateSubmit(sent);
 }
