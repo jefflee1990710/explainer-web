@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { listTasksOnce } from "@/presentation/components/app/tasks/task-fetch";
+import { subscribeTaskChanges } from "@/presentation/components/app/tasks/task-signal";
 
 const POLL_MS = 5_000;
 
@@ -27,10 +28,9 @@ export function TaskMeter({
   poll?: boolean;
 }) {
   const pathname = usePathname();
-  const [pending, setPending] = useState(initialPending);
-  useEffect(() => {
-    setPending(initialPending);
-  }, [initialPending]);
+  // Own poll result when polling; otherwise the parent's live count wins.
+  const [polled, setPolled] = useState(initialPending);
+  const pending = poll ? polled : initialPending;
   const inFlight = useRef(false);
   const active = !onOpen && (pathname === "/app/tasks" || pathname.startsWith("/app/tasks/"));
   const label = `${tasksLabel}, ${pending} ${pendingLabel}`;
@@ -43,22 +43,34 @@ export function TaskMeter({
   useEffect(() => {
     if (!poll) return;
     let alive = true;
+    // A change signal that arrives mid-request queues one more fetch.
+    let dirty = false;
     async function tick() {
-      if (inFlight.current) return;
+      if (inFlight.current) {
+        dirty = true;
+        return;
+      }
       inFlight.current = true;
       try {
         const result = await listTasksOnce(videoId);
         if (!alive || !result.ok) return;
-        setPending(result.tasks.filter((task) => task.stage !== "done" && task.stage !== "failed").length);
+        setPolled(result.tasks.filter((task) => task.stage !== "done" && task.stage !== "failed").length);
       } finally {
         inFlight.current = false;
+      }
+      if (dirty && alive) {
+        dirty = false;
+        void tick();
       }
     }
     void tick();
     const timer = window.setInterval(tick, POLL_MS);
+    // Refetch right away when a job is queued or settles anywhere on the page.
+    const unsubscribe = subscribeTaskChanges(() => void tick());
     return () => {
       alive = false;
       window.clearInterval(timer);
+      unsubscribe();
     };
   }, [videoId, poll]);
 

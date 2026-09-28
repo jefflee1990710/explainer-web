@@ -48,6 +48,7 @@ import {
   type GenerationTransition,
 } from "@/util/generation-transitions";
 import { ToastStack, useToasts } from "@/presentation/components/toast-stack";
+import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { isReelBusy } from "@/service/reel/fingerprint";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
@@ -180,6 +181,8 @@ export function NewProjectForm({
     if (settledRef.current.size === 0) return;
     const settled = [...settledRef.current.values()];
     settledRef.current.clear();
+    // Finished jobs leave the pending count; refresh the meters right away.
+    notifyTasksChanged();
     for (const item of settled) {
       pushToast({
         tone: item.outcome === "completed" ? "success" : "error",
@@ -324,6 +327,8 @@ export function NewProjectForm({
       return false;
     }
     redoSnapshotRef.current = null;
+    // Jobs are in the queue now: bump the task meters without waiting a tick.
+    notifyTasksChanged();
     const nextProject = paidActionProject(result);
     if (nextProject) {
       setProject(nextProject);

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { readCachedTasks } from "@/presentation/components/app/tasks/task-cache";
 import { listTasksOnce } from "@/presentation/components/app/tasks/task-fetch";
+import { subscribeTaskChanges } from "@/presentation/components/app/tasks/task-signal";
 import type { PublicTask } from "@/service/generation/task-list";
 
 const POLL_MS = 5_000;
@@ -19,8 +20,13 @@ export function useTaskPoll(initial: PublicTask[], videoId?: string, enabled = t
   useEffect(() => {
     if (!enabled) return;
     let alive = true;
+    // A change signal that arrives mid-request queues one more fetch.
+    let dirty = false;
     async function tick() {
-      if (inFlight.current) return;
+      if (inFlight.current) {
+        dirty = true;
+        return;
+      }
       inFlight.current = true;
       try {
         const result = await listTasksOnce(videoId);
@@ -35,12 +41,18 @@ export function useTaskPoll(initial: PublicTask[], videoId?: string, enabled = t
       } finally {
         inFlight.current = false;
       }
+      if (dirty && alive) {
+        dirty = false;
+        void tick();
+      }
     }
     void tick();
     const timer = window.setInterval(tick, POLL_MS);
+    const unsubscribe = subscribeTaskChanges(() => void tick());
     return () => {
       alive = false;
       window.clearInterval(timer);
+      unsubscribe();
     };
   }, [videoId, enabled]);
   return { tasks, error, loaded };
