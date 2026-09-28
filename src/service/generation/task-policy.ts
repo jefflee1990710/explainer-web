@@ -37,6 +37,15 @@ export function shouldRetrySubmit(error: unknown, attempts: number) {
   return attempts < MAX_SUBMIT_ATTEMPTS;
 }
 
+// Status recorded when the provider accepts a submit. Failures are not written
+// here: they go through `applyJobStatus` so the failure claim refunds once.
+export function submittedJobStatus(
+  status: string | undefined,
+): "queued" | "in_progress" | "completed" {
+  if (status === "in_progress" || status === "completed") return status;
+  return "queued";
+}
+
 // Sent to the provider but no result for too long: fail and refund.
 export function providerTimedOut(
   job: Pick<GenerationJob, "status" | "submittedAt" | "createdAt">,

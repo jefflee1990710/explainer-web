@@ -8,7 +8,16 @@ import {
   providerTimedOut,
   retryDelayMs,
   shouldRetrySubmit,
+  submittedJobStatus,
 } from "@/service/generation/task-policy";
+
+test("submit status never records a failure or queue-internal status", () => {
+  assert.equal(submittedJobStatus("in_progress"), "in_progress");
+  assert.equal(submittedJobStatus("completed"), "completed");
+  for (const status of [undefined, "", "queued", "failed", "nsfw", "pending", "weird"]) {
+    assert.equal(submittedJobStatus(status), "queued", String(status));
+  }
+});
 
 test("pending and submitting count as in flight", () => {
   for (const status of ["pending", "submitting", "queued", "in_progress"] as const) {
