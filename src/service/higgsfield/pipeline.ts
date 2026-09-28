@@ -36,6 +36,7 @@ import {
 } from "@/service/higgsfield/reconcile";
 import { scheduleGenerationFinishedEmail } from "@/service/notify/generation-email";
 import { FRAME_COST, STUCK_CLAIM_MS, VIDEO_COST } from "@/service/production-plan";
+import { toSent, type Sent } from "@/service/generation/sent";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type {
   ClipFrame,
@@ -68,6 +69,21 @@ async function loadSkill(project: Project): Promise<Skill> {
 
 // ---------- character still (free) ----------
 
+// Send the character lock still to the provider (free). No job write.
+export async function sendStill(project: Project): Promise<Sent> {
+  const skill = await loadSkill(project);
+  const model = imageModelForSubmit(resolveImageRoute(), Boolean(project.characterImageUrl));
+  const submitted = await submitImage({
+    model,
+    prompt: stillPrompt(project),
+    aspectRatio: project.aspectRatio,
+    quality: skill.higgsfieldDefaults.imageQuality || "medium",
+    resolution: skill.higgsfieldDefaults.imageResolution || "1k",
+    referenceImageUrls: [project.characterImageUrl],
+  });
+  return toSent(model, submitted);
+}
+
 // Projects without a cast lock the character with a generated still. Submit it
 // once; failed attempts are replaced. No-op when a cast or a still already exists.
 export async function submitStillIfNeeded(project: Project) {
@@ -84,23 +100,14 @@ export async function submitStillIfNeeded(project: Project) {
   const existing = await jobs.findOne({ projectId: project._id, kind: "still" });
   if (existing) return;
 
-  const skill = await loadSkill(project);
-  const imageModel = imageModelForSubmit(resolveImageRoute(), Boolean(project.characterImageUrl));
-  const still = await submitImage({
-    model: imageModel,
-    prompt: stillPrompt(project),
-    aspectRatio: project.aspectRatio,
-    quality: skill.higgsfieldDefaults.imageQuality || "medium",
-    resolution: skill.higgsfieldDefaults.imageResolution || "1k",
-    referenceImageUrls: [project.characterImageUrl],
-  });
+  const still = await sendStill(project);
   await jobs.insertOne({
     projectId: project._id,
     clipIndex: -1,
     kind: "still",
-    model: imageModel,
-    requestId: still.request_id,
-    statusUrl: still.status_url,
+    model: still.model,
+    requestId: still.requestId,
+    statusUrl: still.statusUrl,
     status: (still.status as GenerationStatus) || "queued",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -123,8 +130,51 @@ export async function stillBlocker(project: Project): Promise<string | null> {
 
 // ---------- frames ----------
 
-// Submit a single frame request and record the job. Character blueprints are
-// always attached; annotated redo images precede them when present.
+// Provider call for one frame. Character blueprints are always attached;
+// annotated redo images precede them when present.
+async function sendFrameWithRevision(
+  project: Project,
+  skill: Skill,
+  clipNumber: number,
+  position: FramePosition,
+  revision: FrameRevision | undefined,
+) {
+  const sceneText = resolveSceneText(project);
+  const prompt = buildFramePrompt(project, clipNumber, position, { revision });
+  const refs = sceneImageReferenceUrls({
+    annotatedUrl: revision?.annotatedUrl,
+    lockUrls: frameLockReferenceUrls(project),
+  });
+  const model = imageModelForSubmit(resolveImageRoute(sceneText.language), refs.length > 0);
+  const submitted = await submitImage({
+    model,
+    prompt,
+    aspectRatio: project.aspectRatio,
+    quality: skill.higgsfieldDefaults.imageQuality || "medium",
+    resolution: skill.higgsfieldDefaults.imageResolution || "1k",
+    negativePrompt: sceneTextNegativePrompt(sceneText.enabled, sceneText.inWorldLabels),
+    sceneTextLanguage: sceneText.language,
+    referenceImageUrls: refs,
+  });
+  return { sent: toSent(model, submitted), prompt };
+}
+
+// Send one frame to the provider. The revision comes from the stored frame so
+// a retry rebuilds exactly what the user asked for. No job write.
+export async function sendFrame(
+  project: Project,
+  clipNumber: number,
+  position: FramePosition,
+): Promise<Sent> {
+  const skill = await loadSkill(project);
+  const revision = project.frames?.find(
+    (frame) => frame.clipNumber === clipNumber && frame.position === position,
+  )?.revision;
+  const { sent } = await sendFrameWithRevision(project, skill, clipNumber, position, revision);
+  return sent;
+}
+
+// Submit a single frame request and record the job.
 async function submitOneFrame(
   project: Project,
   skill: Skill,
@@ -135,39 +185,26 @@ async function submitOneFrame(
   } = {},
 ) {
   const jobs = await generationJobsCollection();
-  const lockRefs = frameLockReferenceUrls(project);
-  const sceneText = resolveSceneText(project);
-  const prompt = buildFramePrompt(project, clipNumber, position, {
-    revision: options.revision,
-  });
-  const refs = sceneImageReferenceUrls({
-    annotatedUrl: options.revision?.annotatedUrl,
-    lockUrls: lockRefs,
-  });
-  const route = resolveImageRoute(sceneText.language);
-  const submitted = await submitImage({
-    model: imageModelForSubmit(route, refs.length > 0),
-    prompt,
-    aspectRatio: project.aspectRatio,
-    quality: skill.higgsfieldDefaults.imageQuality || "medium",
-    resolution: skill.higgsfieldDefaults.imageResolution || "1k",
-    negativePrompt: sceneTextNegativePrompt(sceneText.enabled, sceneText.inWorldLabels),
-    sceneTextLanguage: sceneText.language,
-    referenceImageUrls: refs,
-  });
+  const { sent, prompt } = await sendFrameWithRevision(
+    project,
+    skill,
+    clipNumber,
+    position,
+    options.revision,
+  );
   await jobs.insertOne({
     projectId: project._id,
     clipIndex: clipNumber - 1,
     kind: "frame",
     framePosition: position,
-    model: imageModelForSubmit(route, refs.length > 0),
-    requestId: submitted.request_id,
-    statusUrl: submitted.status_url,
-    status: (submitted.status as GenerationStatus) || "queued",
+    model: sent.model,
+    requestId: sent.requestId,
+    statusUrl: sent.statusUrl,
+    status: (sent.status as GenerationStatus) || "queued",
     createdAt: new Date(),
     updatedAt: new Date(),
   });
-  await persistImmediateSubmit(submitted);
+  await persistImmediateSubmit(sent);
   return prompt;
 }
 
@@ -281,6 +318,23 @@ export async function regenerateFrame(
 
 // ---------- video clips ----------
 
+// Send one clip video from its two keyframes. No job write.
+export async function sendClipVideo(
+  project: Project,
+  clipNumber: number,
+  prompt: PhaseBPrompt,
+): Promise<Sent> {
+  const { start, end } = assertClipKeyframes(project.frames, clipNumber);
+  const submitted = await submitClipVideo({
+    prompt: prompt.prompt,
+    aspectRatio: project.aspectRatio,
+    durationSeconds: prompt.durationSeconds,
+    startImageUrl: start,
+    endImageUrl: end,
+  });
+  return toSent(MINIMAX_H3_VIDEO_MODEL, submitted);
+}
+
 // Submit one clip's video (caller charged 1 credit and wrote the prompt).
 // Replaces any previous video job for that clip.
 export async function submitClipVideoJob(
@@ -291,26 +345,19 @@ export async function submitClipVideoJob(
   const jobs = await generationJobsCollection();
   await jobs.deleteMany({ projectId: project._id, kind: "video", clipIndex: clipNumber - 1 });
 
-  const { start, end } = assertClipKeyframes(project.frames, clipNumber);
-  const submitted = await submitClipVideo({
-    prompt: prompt.prompt,
-    aspectRatio: project.aspectRatio,
-    durationSeconds: prompt.durationSeconds,
-    startImageUrl: start,
-    endImageUrl: end,
-  });
+  const sent = await sendClipVideo(project, clipNumber, prompt);
   await jobs.insertOne({
     projectId: project._id,
     clipIndex: clipNumber - 1,
     kind: "video",
-    model: MINIMAX_H3_VIDEO_MODEL,
-    requestId: submitted.request_id,
-    statusUrl: submitted.status_url,
-    status: (submitted.status as GenerationStatus) || "queued",
+    model: sent.model,
+    requestId: sent.requestId,
+    statusUrl: sent.statusUrl,
+    status: (sent.status as GenerationStatus) || "queued",
     createdAt: new Date(),
     updatedAt: new Date(),
   });
-  await persistImmediateSubmit(submitted);
+  await persistImmediateSubmit(sent);
   await syncProjectFromJobs(project._id);
 }
 
@@ -326,19 +373,11 @@ function providerError(payload: unknown) {
 
 // Sync providers (AliCloud edit) return a file on submit. Persist it now so
 // the poller is not required for that job.
-async function persistImmediateSubmit(submitted: {
-  request_id: string;
-  status?: string;
-  images?: Array<{ url: string }>;
-  video?: { url: string };
-}) {
-  const outputUrl = mediaUrlFromResponse(submitted);
-  if (submitted.status === "completed" && outputUrl) {
-    await applyJobStatus({
-      requestId: submitted.request_id,
-      status: "completed",
-      outputUrl,
-    });
+export async function persistImmediateSubmit(sent: Sent) {
+  // `Sent` keeps the provider's `images` / `video` keys, which is all this reads.
+  const outputUrl = mediaUrlFromResponse(sent);
+  if (sent.status === "completed" && outputUrl) {
+    await applyJobStatus({ requestId: sent.requestId, status: "completed", outputUrl });
   }
 }
 
@@ -503,7 +542,7 @@ export async function applyJobStatus(input: {
 }
 
 // Start failed before the end job existed: fail the waiting end and refund it.
-async function failDeferredEndIfNeeded(
+export async function failDeferredEndIfNeeded(
   projectId: ObjectId,
   clipNumber: number,
   error: string,
