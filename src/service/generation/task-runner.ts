@@ -26,6 +26,7 @@ import {
   claimFailure,
   claimJobById,
   claimNextJob,
+  ensureGenerationJobIndexes,
   markRetry,
   markSubmitted,
 } from "@/service/generation/task-store";
@@ -111,6 +112,7 @@ export async function failJob(
 
 // Cron 1: send due pending jobs, and fail ones whose runner died on the last attempt.
 export async function drainPendingJobs(limit = SUBMIT_BATCH) {
+  await ensureGenerationJobIndexes();
   const jobs = await generationJobsCollection();
   const now = new Date();
   // Never claimable again (attempt cap reached), so nothing else would settle them.
@@ -148,6 +150,7 @@ export async function drainPendingJobs(limit = SUBMIT_BATCH) {
 
 // Cron 2: poll submitted jobs across users, then time out stragglers.
 export async function refreshSubmittedJobs() {
+  await ensureGenerationJobIndexes();
   const jobs = await generationJobsCollection();
   // Filter before the limit so settled jobs can never crowd out ones still in flight.
   const candidates = await jobs

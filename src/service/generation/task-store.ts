@@ -14,6 +14,27 @@ export type NewJob = Omit<
   "_id" | "status" | "createdAt" | "updatedAt" | "model"
 > & { model?: string };
 
+let indexesReady: Promise<void> | undefined;
+
+// Indexes for the per-minute cron scans and the task list; created once per process.
+export function ensureGenerationJobIndexes() {
+  indexesReady ??= (async () => {
+    const jobs = await generationJobsCollection();
+    await jobs.createIndex({ status: 1, nextAttemptAt: 1 }).catch(() => {});
+    await jobs.createIndex({ status: 1, lockedUntil: 1 }).catch(() => {});
+    await jobs.createIndex({ status: 1, updatedAt: 1 }).catch(() => {});
+    await jobs.createIndex({ projectId: 1, createdAt: -1 }).catch(() => {});
+    await jobs.createIndex({ characterId: 1, createdAt: -1 }).catch(() => {});
+    // Not unique: pending jobs have no requestId yet.
+    await jobs.createIndex({ requestId: 1 }).catch(() => {});
+  })().catch((error) => {
+    // DB unreachable: let the next cron tick try again.
+    indexesReady = undefined;
+    throw error;
+  });
+  return indexesReady;
+}
+
 // Queue a job; the provider is not called here.
 export async function insertPendingJob(job: NewJob): Promise<ObjectId> {
   const jobs = await generationJobsCollection();
