@@ -206,6 +206,7 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
           "frames.$[frame].status": "queued",
           "frames.$[frame].submittedAt": submittedAt,
           "frames.$[frame].prompt": prompt,
+          updatedAt: new Date(),
         },
         $unset: {
           "frames.$[frame].error": "",
@@ -587,6 +588,7 @@ export async function submitDeferredEndIfNeeded(
         "frames.$[frame].status": "queued",
         "frames.$[frame].submittedAt": submittedAt,
         "frames.$[frame].prompt": prompt,
+        updatedAt: new Date(),
       },
       $unset: { "frames.$[frame].error": "" },
     },
@@ -609,12 +611,34 @@ export async function submitDeferredEndIfNeeded(
 
 const ORPHAN_CLIP_ERROR = "影片沒有送出，credit 已退回，請再試一次";
 
+// Reconcile attempts before giving up on a busy project; the next sync
+// (webhook, cron or poll) picks up whatever this one could not land.
+const SYNC_ATTEMPTS = 3;
+
 // Reconcile every clip from its newest jobs, regardless of project status.
 export async function syncProjectFromJobs(projectId: ObjectId) {
+  for (let attempt = 1; attempt <= SYNC_ATTEMPTS; attempt += 1) {
+    const outcome = await syncProjectOnce(projectId);
+    if (outcome === "missing") return;
+    if (outcome === "written") break;
+    if (attempt === SYNC_ATTEMPTS) {
+      console.warn("[sync] project kept changing; sync skipped", { projectId });
+    }
+  }
+
+  // "產生全部影片" waits here until both stills for a clip have files.
+  const { queueAutoClipVideos } = await import("@/service/clip/auto-video");
+  await queueAutoClipVideos(projectId);
+}
+
+// One read-reconcile-write pass. The write is fenced on the `updatedAt` it
+// read, so a concurrent writer's newer frames/clips are never replaced by this
+// snapshot (e.g. a frame just failed and refunded going back to `queued`).
+async function syncProjectOnce(projectId: ObjectId): Promise<"written" | "conflict" | "missing"> {
   const projects = await videosCollection();
   const jobs = await generationJobsCollection();
   const project = await projects.findOne({ _id: projectId });
-  if (!project) return;
+  if (!project) return "missing";
 
   const allJobs = await jobs.find({ projectId }).toArray();
   // A deferred end stays `queued` with no job when its start fails before
@@ -626,13 +650,17 @@ export async function syncProjectFromJobs(projectId: ObjectId) {
     STUCK_CLAIM_MS,
   );
   for (const orphan of orphans) {
+    const frame = project.frames?.find(
+      (item) => item.clipNumber === orphan.clipNumber && item.position === orphan.position,
+    );
     const start = project.frames?.find(
-      (frame) => frame.clipNumber === orphan.clipNumber && frame.position === "start",
+      (item) => item.clipNumber === orphan.clipNumber && item.position === "start",
     );
     const error =
       orphan.position === "end" && start?.status === "failed" && start.error
         ? start.error
         : "分鏡圖沒有送出，請再試一次";
+    // Fenced on the claim so a re-queue since the read is never failed.
     const claimed = await projects.findOneAndUpdate(
       {
         _id: projectId,
@@ -641,6 +669,7 @@ export async function syncProjectFromJobs(projectId: ObjectId) {
             clipNumber: orphan.clipNumber,
             position: orphan.position,
             status: "queued",
+            submittedAt: frame?.submittedAt,
           },
         },
       },
@@ -679,21 +708,23 @@ export async function syncProjectFromJobs(projectId: ObjectId) {
     );
     if (claimed) await refundCredits(project.clerkUserId, VIDEO_COST);
   }
-  const current = orphans.length || orphanClips.length
-    ? (await projects.findOne({ _id: projectId })) || project
-    : project;
+  const current =
+    orphans.length || orphanClips.length
+      ? await projects.findOne({ _id: projectId })
+      : project;
+  if (!current) return "missing";
   const still = allJobs
     .filter((job) => job.kind === "still")
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
 
   const set: Partial<Pick<Project, "characterStillUrl" | "stillError">> = {};
   const stillUrl = still?.blobUrl || still?.outputUrl;
-  if (still?.status === "completed" && stillUrl && !project.characterStillUrl) {
+  if (still?.status === "completed" && stillUrl && !current.characterStillUrl) {
     set.characterStillUrl = stillUrl;
   } else if (
     still &&
     (still.status === "failed" || still.status === "nsfw") &&
-    !project.characterStillUrl
+    !current.characterStillUrl
   ) {
     set.stillError = "角色定裝圖產生失敗，下次產生畫格時會自動重試";
   }
@@ -702,22 +733,22 @@ export async function syncProjectFromJobs(projectId: ObjectId) {
   const clips = reconcileClips(current.clips, allJobs);
   const next = { ...current, ...set, frames, clips };
 
-  await projects.updateOne(
-    { _id: projectId },
+  // Strictly newer than what was read, so a same-millisecond write still
+  // invalidates every other snapshot of that version.
+  const readAt = current.updatedAt?.getTime() ?? 0;
+  const written = await projects.updateOne(
+    { _id: projectId, updatedAt: current.updatedAt ?? null },
     {
       $set: {
         ...set,
         frames,
         clips,
         status: nextProjectStatus(next),
-        updatedAt: new Date(),
+        updatedAt: new Date(Math.max(Date.now(), readAt + 1)),
       },
     },
   );
-
-  // "產生全部影片" waits here until both stills for a clip have files.
-  const { queueAutoClipVideos } = await import("@/service/clip/auto-video");
-  await queueAutoClipVideos(projectId);
+  return written.matchedCount > 0 ? "written" : "conflict";
 }
 
 export async function refreshProjectJobs(projectId: ObjectId) {

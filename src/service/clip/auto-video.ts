@@ -2,6 +2,7 @@ import type { ObjectId } from "mongodb";
 import { generationJobsCollection, videosCollection } from "@/dao";
 import { consumeCredits, refundCredits } from "@/service/billing/credits";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
+import { settledAutoVideoClips } from "@/service/clip/auto-video-list";
 import { hasJobSince } from "@/service/higgsfield/job-attempts";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { autoVideoDecision } from "@/service/production-plan";
@@ -172,12 +173,10 @@ export async function queueAutoClipVideos(projectId: ObjectId) {
     if (!started.ok && started.retry) remaining.push(clipNumber);
   }
 
-  const next = [...new Set(remaining)].sort((a, b) => a - b);
-  const same =
-    next.length === pending.length && next.every((clipNumber, index) => clipNumber === pending[index]);
-  if (same) return;
+  const settled = settledAutoVideoClips(pending, remaining);
+  if (settled.length === 0) return;
   await projects.updateOne(
     { _id: projectId },
-    { $set: { autoVideoClips: next, updatedAt: new Date() } },
+    { $pull: { autoVideoClips: { $in: settled } }, $set: { updatedAt: new Date() } },
   );
 }
