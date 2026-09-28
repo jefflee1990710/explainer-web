@@ -5,6 +5,10 @@ import type { FramePosition } from "@/model/project";
 
 export type GenerationKind = "still" | "frame" | "video" | "character";
 export type GenerationStatus =
+  // Waiting in our queue; not sent to the provider yet.
+  | "pending"
+  // A runner holds the lock and is sending it now.
+  | "submitting"
   | "queued"
   | "in_progress"
   | "completed"
@@ -24,9 +28,18 @@ export type GenerationJob = {
   characterId?: ObjectId;
   versionId?: ObjectId;
   model: string;
-  requestId: string;
+  // Unset until the provider accepts the request.
+  requestId?: string;
   statusUrl?: string;
   status: GenerationStatus;
+  // Submit attempts so far (queue retries stop at MAX_SUBMIT_ATTEMPTS).
+  attempts?: number;
+  // A `submitting` job whose lock expired can be claimed again.
+  lockedUntil?: Date;
+  // Earliest time a `pending` job may be retried.
+  nextAttemptAt?: Date;
+  // When the provider accepted it; drives the provider timeout.
+  submittedAt?: Date;
   outputUrl?: string;
   blobUrl?: string;
   error?: string;
@@ -45,9 +58,21 @@ export const generationJobSchema: z.ZodType<GenerationJob> = z.object({
   characterId: objectIdSchema.optional(),
   versionId: objectIdSchema.optional(),
   model: z.string(),
-  requestId: z.string(),
+  requestId: z.string().optional(),
   statusUrl: z.string().optional(),
-  status: z.enum(["queued", "in_progress", "completed", "failed", "nsfw"]),
+  status: z.enum([
+    "pending",
+    "submitting",
+    "queued",
+    "in_progress",
+    "completed",
+    "failed",
+    "nsfw",
+  ]),
+  attempts: z.number().optional(),
+  lockedUntil: z.date().optional(),
+  nextAttemptAt: z.date().optional(),
+  submittedAt: z.date().optional(),
   outputUrl: z.string().optional(),
   blobUrl: z.string().optional(),
   error: z.string().optional(),

@@ -440,7 +440,7 @@ export async function applyJobStatus(input: {
         : undefined;
     blobUrl = await persistMedia(
       outputUrl,
-      `explainer/${projectId.toHexString()}/${folder}/${job.requestId}`,
+      `explainer/${projectId.toHexString()}/${folder}/${job.requestId ?? job._id.toHexString()}`,
       transformOptions,
     );
   }
@@ -712,9 +712,10 @@ export async function refreshProjectJobs(projectId: ObjectId) {
   // sync never races itself.
   const results = await Promise.all(
     pending.map(async (job) => {
-      if (!job.statusUrl) return null;
+      const { statusUrl, requestId } = job;
+      if (!statusUrl || !requestId) return null;
       try {
-        return { job, status: await fetchHiggsfieldStatus(job.statusUrl) };
+        return { job, requestId, status: await fetchHiggsfieldStatus(statusUrl) };
       } catch (error) {
         await jobs.updateOne(
           { _id: job._id },
@@ -733,7 +734,7 @@ export async function refreshProjectJobs(projectId: ObjectId) {
   for (const result of results) {
     if (!result) continue;
     await applyJobStatus({
-      requestId: result.job.requestId,
+      requestId: result.requestId,
       status: result.status.status,
       outputUrl: mediaUrlFromResponse(result.status),
       error: providerError(result.status),

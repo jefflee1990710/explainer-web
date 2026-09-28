@@ -468,11 +468,12 @@ export async function refreshCharacterAction(
       })
       .toArray();
     for (const job of pending) {
-      if (!job.statusUrl) continue;
+      const { statusUrl, requestId } = job;
+      if (!statusUrl || !requestId) continue;
       try {
-        const status = await fetchHiggsfieldStatus(job.statusUrl);
+        const status = await fetchHiggsfieldStatus(statusUrl);
         await applyJobStatus({
-          requestId: job.requestId,
+          requestId,
           status: status.status,
           outputUrl: mediaUrlFromResponse(status),
         });
