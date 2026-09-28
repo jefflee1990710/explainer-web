@@ -6,7 +6,9 @@
 import { loadEnvConfig } from "@next/env";
 import { ObjectId } from "mongodb";
 import { ALICLOUD_VIDEO_MODEL } from "@/service/alicloud/dashscope";
-import { skillsCollection, videosCollection } from "@/dao";
+import { generationJobsCollection, skillsCollection, videosCollection } from "@/dao";
+import { insertPendingJob } from "@/service/generation/task-store";
+import { runJobById } from "@/service/generation/task-runner";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { runPhaseAJob } from "@/service/director/jobs";
 import { runPhaseBForClip } from "@/service/director/run-phase-b";
@@ -14,10 +16,18 @@ import { imageRouteForSceneText } from "@/service/generation/image-backend";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { framesWithClip, videoStyle } from "@/service/higgsfield/frame-prompts";
 import { mediaSrc } from "@/util/media-src";
-import { refreshProjectJobs, regenerateFrames, submitClipVideoJob } from "@/service/higgsfield/pipeline";
+import { refreshProjectJobs, regenerateFrames } from "@/service/higgsfield/pipeline";
 import type { FramePosition, Project, SceneTextLanguage, VoLanguage } from "@/model/project";
 
 loadEnvConfig(process.cwd());
+
+// Queue the clip's video and send it now; the sender reuses the clip's stored prompt.
+async function sendClipVideoNow(projectId: ObjectId, clipNumber: number) {
+  const jobs = await generationJobsCollection();
+  await jobs.deleteMany({ projectId, kind: "video", clipIndex: clipNumber - 1 });
+  const id = await insertPendingJob({ projectId, clipIndex: clipNumber - 1, kind: "video" });
+  await runJobById(id);
+}
 
 const POLL_MS = 8_000;
 const PHASE_A_TIMEOUT_MS = 8 * 60_000;
@@ -208,8 +218,7 @@ async function generateVideos(project: Project) {
         },
       },
     );
-    const fresh = (await videos.findOne({ _id: project._id })) as Project;
-    await submitClipVideoJob(fresh, row.clipNumber, prompt);
+    await sendClipVideoNow(project._id, row.clipNumber);
     const videoUrl = await waitClipVideo(project._id, row.clipNumber);
     outputs.push({
       clipNumber: row.clipNumber,

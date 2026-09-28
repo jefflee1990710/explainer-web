@@ -5,15 +5,25 @@
 import { loadEnvConfig } from "@next/env";
 import { ObjectId } from "mongodb";
 import { ALICLOUD_VIDEO_MODEL } from "@/service/alicloud/dashscope";
-import { skillsCollection, videosCollection } from "@/dao";
+import { generationJobsCollection, skillsCollection, videosCollection } from "@/dao";
+import { insertPendingJob } from "@/service/generation/task-store";
+import { runJobById } from "@/service/generation/task-runner";
 import { runPhaseBForClip } from "@/service/director/run-phase-b";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { videoStyle } from "@/service/higgsfield/frame-prompts";
 import { mediaSrc } from "@/util/media-src";
-import { refreshProjectJobs, submitClipVideoJob } from "@/service/higgsfield/pipeline";
+import { refreshProjectJobs } from "@/service/higgsfield/pipeline";
 import type { Project } from "@/model/project";
 
 loadEnvConfig(process.cwd());
+
+// Queue the clip's video and send it now; the sender reuses the prompt written above.
+async function sendClipVideoNow(projectId: ObjectId, clipNumber: number) {
+  const jobs = await generationJobsCollection();
+  await jobs.deleteMany({ projectId, kind: "video", clipIndex: clipNumber - 1 });
+  const id = await insertPendingJob({ projectId, clipIndex: clipNumber - 1, kind: "video" });
+  await runJobById(id);
+}
 
 const POLL_MS = 10_000;
 const TIMEOUT_MS = 15 * 60_000;
@@ -99,9 +109,8 @@ async function main() {
     },
   );
 
-  const fresh = (await videos.findOne({ _id: projectId })) as Project;
   const submitStarted = Date.now();
-  await submitClipVideoJob(fresh, clipNumber, prompt);
+  await sendClipVideoNow(projectId, clipNumber);
 
   const deadline = Date.now() + TIMEOUT_MS;
   while (Date.now() < deadline) {

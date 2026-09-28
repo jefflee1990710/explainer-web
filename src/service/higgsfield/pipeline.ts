@@ -291,32 +291,6 @@ export async function sendClipVideo(
   return toSent(MINIMAX_H3_VIDEO_MODEL, submitted);
 }
 
-// Submit one clip's video (caller charged 1 credit and wrote the prompt).
-// Replaces any previous video job for that clip.
-export async function submitClipVideoJob(
-  project: Project,
-  clipNumber: number,
-  prompt: PhaseBPrompt,
-) {
-  const jobs = await generationJobsCollection();
-  await jobs.deleteMany({ projectId: project._id, kind: "video", clipIndex: clipNumber - 1 });
-
-  const sent = await sendClipVideo(project, clipNumber, prompt);
-  await jobs.insertOne({
-    projectId: project._id,
-    clipIndex: clipNumber - 1,
-    kind: "video",
-    model: sent.model,
-    requestId: sent.requestId,
-    statusUrl: sent.statusUrl,
-    status: (sent.status as GenerationStatus) || "queued",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-  await persistImmediateSubmit(sent);
-  await syncProjectFromJobs(project._id);
-}
-
 // ---------- status sync ----------
 
 function providerError(payload: unknown) {
