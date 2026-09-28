@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { listTasksAction } from "@/presentation/actions/tasks";
 import type { PublicTask } from "@/service/generation/task-list";
 
@@ -12,17 +12,25 @@ export function useTaskPoll(initial: PublicTask[], videoId?: string) {
   const [error, setError] = useState("");
   // False until the first server response lands (lets callers show a spinner).
   const [loaded, setLoaded] = useState(initial.length > 0);
+  // True while a request is out; slow responses skip the next tick instead of piling up.
+  const inFlight = useRef(false);
   useEffect(() => {
     let alive = true;
     async function tick() {
-      const result = await listTasksAction(videoId);
-      if (!alive) return;
-      setLoaded(true);
-      if (result.ok) {
-        setTasks(result.tasks);
-        setError("");
-      } else {
-        setError(result.error);
+      if (inFlight.current) return;
+      inFlight.current = true;
+      try {
+        const result = await listTasksAction(videoId);
+        if (!alive) return;
+        setLoaded(true);
+        if (result.ok) {
+          setTasks(result.tasks);
+          setError("");
+        } else {
+          setError(result.error);
+        }
+      } finally {
+        inFlight.current = false;
       }
     }
     void tick();

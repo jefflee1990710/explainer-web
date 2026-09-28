@@ -41,7 +41,11 @@ export function TaskRow({ task }: { task: PublicTask }) {
           {task.title}
         </Link>
         <p className="text-xs text-[var(--studio-muted)]">
-          {task.detail} · {time}
+          {task.detail} ·{" "}
+          {/* Server renders UTC, browser its local zone; let the client text win. */}
+          <time dateTime={task.updatedAt} suppressHydrationWarning>
+            {time}
+          </time>
           {task.stage === "queued" && task.attempts > 0 ? ` · 第 ${task.attempts + 1} 次嘗試` : ""}
         </p>
         {task.error ? <p className="line-clamp-2 text-xs text-accent">{task.error}</p> : null}
