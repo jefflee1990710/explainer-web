@@ -51,6 +51,15 @@ test("clearFramesForAction drops both stills on two-frame redo", () => {
   assert.equal(next[2].blobUrl, "keep");
 });
 
+test("clearFramesForAction inserts queued stills when the clip has never drawn", () => {
+  const next = clearFramesForAction([], "frames:3");
+  assert.equal(next.length, 2);
+  assert.deepEqual(
+    next.map((frame) => `${frame.clipNumber}:${frame.position}:${frame.status}`),
+    ["3:start:queued", "3:end:queued"],
+  );
+});
+
 test("clearFramesForAction queues every still for generate-all, except ones already drawing", () => {
   const drawing: ClipFrame[] = [
     ...frames,
@@ -107,6 +116,29 @@ test("mergePolledFrames keeps the optimistic still until the server claim is new
   ];
   const caughtUp = mergePolledFrames(optimistic, fresh);
   assert.equal(caughtUp[0].status, "in_progress");
+});
+
+test("mergePolledFrames keeps an optimistic still the server has not written yet", () => {
+  const optimistic: ClipFrame[] = [
+    {
+      clipNumber: 3,
+      position: "start",
+      prompt: "",
+      status: "queued",
+      submittedAt: "2026-01-01T00:00:03.000Z",
+    },
+    {
+      clipNumber: 3,
+      position: "end",
+      prompt: "",
+      status: "queued",
+      submittedAt: "2026-01-01T00:00:03.000Z",
+    },
+  ];
+  const next = mergePolledFrames(optimistic, []);
+  assert.equal(next.length, 2);
+  assert.equal(next[0].status, "queued");
+  assert.equal(next[1].clipNumber, 3);
 });
 
 test("mergePolledFrames accepts a completed still once the server claim catches up", () => {

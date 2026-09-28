@@ -30,7 +30,8 @@ test("busy hints distinguish queued from running", () => {
   const fresh = { frames: false, video: false };
   assert.equal(clipNextAction(state("frames_generating", fresh, "queued")).hint, "已送出，畫格約 30 秒");
   assert.equal(clipNextAction(state("frames_generating", fresh, "running")).hint, "正在畫，完成後會自動更新");
-  assert.equal(clipNextAction(state("video_generating", fresh, "queued")).hint, "正在寫鏡頭稿，接著會送模型");
+  assert.equal(clipNextAction(state("video_generating", fresh, "queued")).label, "影片已送出…");
+  assert.equal(clipNextAction(state("video_generating", fresh, "queued")).hint, "已送進佇列，背景產製");
   assert.equal(clipNextAction(state("video_generating", fresh, "running")).hint, "產片中，約 5–6 分鐘");
 });
 

@@ -12,7 +12,7 @@ const TONE_CLASS: Record<StudioClipTone, string> = {
   stale: "bg-amber-500",
 };
 
-// Bottom filmstrip. The playhead marks the selected clip; it does not scrub.
+// Bottom filmstrip. Selected clip uses an ink+teal frame; it does not scrub.
 // Passing `onToggleCheck` adds a checkbox per clip for batch actions.
 export function Filmstrip({
   items,
@@ -44,24 +44,27 @@ export function Filmstrip({
         const selected = item.id === selectedId;
         const checked = checkedIds.includes(item.id);
         return (
-          <li key={item.id} className="group relative h-full">
-            {selected ? (
-              <span
-                aria-hidden
-                className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-0.5 bg-[var(--studio-ink)]"
-              />
-            ) : null}
+          <li key={item.id} className={`group relative h-full ${selected ? "z-10" : ""}`}>
             <button
               type="button"
               role="tab"
               aria-selected={selected}
               aria-label={`${item.title} ${item.durationLabel} ${item.statusLabel}`}
               onClick={() => onSelect(item.id)}
-              className={`flex h-full w-[148px] cursor-pointer flex-col overflow-hidden rounded-sm border bg-white text-left ${
-                selected ? "border-2 border-[var(--studio-teal)]" : "border border-[var(--studio-line)]"
+              className={`flex h-full w-[148px] cursor-pointer flex-col overflow-hidden rounded-sm border bg-white text-left transition ${
+                selected
+                  ? "border-2 border-[var(--studio-ink)] shadow-[0_0_0_3px_var(--studio-teal)]"
+                  : "border border-[var(--studio-line)] opacity-80 hover:opacity-100"
               }`}
             >
-              <span className="flex h-5 shrink-0 items-center gap-1 bg-[var(--studio-teal)] px-1.5 text-[10px] font-semibold leading-none text-white">
+              {/* Only the selected clip keeps the bright teal title bar. */}
+              <span
+                className={`flex h-5 shrink-0 items-center gap-1 px-1.5 text-[10px] font-semibold leading-none ${
+                  selected
+                    ? "bg-[var(--studio-teal)] text-white"
+                    : "bg-[var(--studio-fill)] text-[var(--studio-muted)]"
+                }`}
+              >
                 <span className="min-w-0 flex-1 truncate">{item.title}</span>
                 <span className="shrink-0 tabular-nums">{item.durationLabel}</span>
                 {item.busy ? <Spinner className="h-2.5 w-2.5 shrink-0" /> : null}

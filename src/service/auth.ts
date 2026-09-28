@@ -85,3 +85,12 @@ export async function requireAppUser(): Promise<AppUser> {
   if (mcpUser) return mcpUser;
   return requireAppUserImpl();
 }
+
+// Task list / meters only need the Clerk id — skip affiliate upsert.
+export async function requireClerkUserId(): Promise<string> {
+  const mcpUser = mcpUserStore.getStore();
+  if (mcpUser) return mcpUser.clerkUserId;
+  const clerkUser = await currentUser();
+  if (!clerkUser) throw new Error("請先登入");
+  return clerkUser.id;
+}

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isCurrentTask, RECENT_SETTLED_MS, taskDetail, taskStage } from "@/service/generation/task-list";
+import { ObjectId } from "mongodb";
+import { isCurrentTask, jobListQuery, RECENT_SETTLED_MS, taskDetail, taskStage } from "@/service/generation/task-list";
 
 test("status maps to the five UI stages", () => {
   assert.equal(taskStage("pending"), "queued");
@@ -18,6 +19,13 @@ test("detail names the clip and slot", () => {
   assert.equal(taskDetail({ kind: "video", clipIndex: 2 }), "Clip 3 · 影片");
   assert.equal(taskDetail({ kind: "still", clipIndex: -1 }), "角色定裝圖");
   assert.equal(taskDetail({ kind: "character", clipIndex: -1 }), "角色藍圖");
+});
+
+test("jobListQuery uses a single projectId for one video", () => {
+  const id = new ObjectId();
+  const cutoff = new Date("2026-09-28T00:00:00.000Z");
+  const query = jobListQuery({ videoIds: [id], characterIds: [], cutoff });
+  assert.equal(query?.$and[0].projectId, id);
 });
 
 test("default list keeps pending and fresh settled, drops old history", () => {

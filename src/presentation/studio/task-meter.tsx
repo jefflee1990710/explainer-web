@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { listTasksAction } from "@/presentation/actions/tasks";
+import { listTasksOnce } from "@/presentation/components/app/tasks/task-fetch";
 
 const POLL_MS = 5_000;
 
@@ -14,6 +14,7 @@ export function TaskMeter({
   pendingLabel,
   videoId,
   onOpen,
+  poll = true,
 }: {
   pending: number;
   tasksLabel: string;
@@ -22,9 +23,14 @@ export function TaskMeter({
   videoId?: string;
   // Open a local list instead of navigating to /app/tasks.
   onOpen?: () => void;
+  // False when a parent already polls and passes the live count.
+  poll?: boolean;
 }) {
   const pathname = usePathname();
   const [pending, setPending] = useState(initialPending);
+  useEffect(() => {
+    setPending(initialPending);
+  }, [initialPending]);
   const inFlight = useRef(false);
   const active = !onOpen && (pathname === "/app/tasks" || pathname.startsWith("/app/tasks/"));
   const label = `${tasksLabel}, ${pending} ${pendingLabel}`;
@@ -35,12 +41,13 @@ export function TaskMeter({
   }`;
 
   useEffect(() => {
+    if (!poll) return;
     let alive = true;
     async function tick() {
       if (inFlight.current) return;
       inFlight.current = true;
       try {
-        const result = await listTasksAction(videoId);
+        const result = await listTasksOnce(videoId);
         if (!alive || !result.ok) return;
         setPending(result.tasks.filter((task) => task.stage !== "done" && task.stage !== "failed").length);
       } finally {
@@ -53,7 +60,7 @@ export function TaskMeter({
       alive = false;
       window.clearInterval(timer);
     };
-  }, [videoId]);
+  }, [videoId, poll]);
 
   const body = (
     <>

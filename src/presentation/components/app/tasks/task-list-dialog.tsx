@@ -2,13 +2,32 @@
 
 import { useEffect, useId } from "react";
 import { Spinner } from "@/presentation/components/spinner";
+import { readCachedTasks } from "@/presentation/components/app/tasks/task-cache";
 import { TaskList } from "@/presentation/components/app/tasks/task-list";
 import { useTaskPoll } from "@/presentation/components/app/tasks/use-task-poll";
+import type { PublicTask } from "@/service/generation/task-list";
 
 // This video's tasks, opened from the production queue chip.
-export function TaskListDialog({ videoId, onClose }: { videoId: string; onClose: () => void }) {
+export function TaskListDialog({
+  videoId,
+  onClose,
+  tasks: seededTasks,
+  loaded: seededLoaded,
+  error: seededError,
+}: {
+  videoId: string;
+  onClose: () => void;
+  // Parent already polling — reuse those rows so the dialog does not spin.
+  tasks?: PublicTask[];
+  loaded?: boolean;
+  error?: string;
+}) {
   const titleId = useId();
-  const { tasks, error, loaded } = useTaskPoll([], videoId);
+  const ownPoll = seededTasks === undefined;
+  const polled = useTaskPoll(readCachedTasks(videoId) ?? [], videoId, ownPoll);
+  const tasks = seededTasks ?? polled.tasks;
+  const loaded = seededLoaded ?? polled.loaded;
+  const error = seededError ?? polled.error;
   const pending = tasks.filter((task) => task.stage !== "done" && task.stage !== "failed").length;
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -55,7 +74,7 @@ export function TaskListDialog({ videoId, onClose }: { videoId: string; onClose:
           </p>
         ) : null}
         <div className="mt-4">
-          {loaded ? (
+          {loaded || tasks.length > 0 ? (
             <TaskList tasks={tasks} />
           ) : (
             <div className="grid place-items-center py-8 text-[var(--studio-muted)]">

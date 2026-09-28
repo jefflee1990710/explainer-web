@@ -39,7 +39,7 @@ export function ClipPreviewStage({
           frame={start}
           position="start"
           aspectRatio={aspectRatio}
-          pending={startPending || framesPending}
+          pending={startPending || framesPending || state.stage === "frames_generating"}
           stale={state.stale.frames}
           onOpen={() => onOpenFrame("start")}
         />
@@ -58,7 +58,7 @@ export function ClipPreviewStage({
           frame={end}
           position="end"
           aspectRatio={aspectRatio}
-          pending={endPending || framesPending}
+          pending={endPending || framesPending || state.stage === "frames_generating"}
           stale={state.stale.frames}
           onOpen={() => onOpenFrame("end")}
         />

@@ -1,8 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { FrameTileDrawing } from "@/presentation/components/project/frame-tile-drawing";
+import { frameTileFace } from "@/presentation/components/project/frame-tile-face";
 import { PencilIcon } from "@/presentation/components/project/production-icons";
-import { Spinner } from "@/presentation/components/spinner";
 import { userFacingJobError } from "@/service/higgsfield/job-status";
 import { mediaSrc } from "@/util/media-src";
 import type { AspectRatio, ClipFrame, FramePosition } from "@/model/project";
@@ -51,8 +52,7 @@ export function FrameTile({
     pending ||
     frame?.status === "queued" ||
     frame?.status === "in_progress";
-  // Hide the previous still the moment a redo is clicked or queued.
-  const showImage = Boolean(src) && !inFlight;
+  const face = frameTileFace(frame, pending, Boolean(src));
   const label = FRAME_LABEL[position];
 
   return (
@@ -61,7 +61,7 @@ export function FrameTile({
         className={`relative overflow-hidden rounded-xl border border-accent-ink/10 bg-paper ${ASPECT_CLASS[aspectRatio]}`}
       >
         <AnimatePresence mode="wait" initial={false}>
-          {showImage ? (
+          {face === "image" ? (
             <motion.button
               key={src}
               type="button"
@@ -89,7 +89,9 @@ export function FrameTile({
                 </span>
               )}
             </motion.button>
-          ) : failed ? (
+          ) : face === "drawing" ? (
+            <FrameTileDrawing />
+          ) : face === "failed" ? (
             <motion.div
               key="failed"
               initial={{ opacity: 0 }}
@@ -105,7 +107,7 @@ export function FrameTile({
                 ) : null}
               </span>
             </motion.div>
-          ) : !frame ? (
+          ) : (
             <motion.div
               key="empty"
               initial={{ opacity: 0 }}
@@ -113,27 +115,6 @@ export function FrameTile({
               className="absolute inset-0 grid place-items-center border-2 border-dashed border-accent-ink/15 text-xs font-semibold text-muted"
             >
               待畫格
-            </motion.div>
-          ) : (
-            <motion.div
-              key="skeleton"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 overflow-hidden bg-accent-ink/5"
-              aria-label="產圖中"
-            >
-              <motion.div
-                className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-paper/80 to-transparent"
-                animate={{ x: ["-100%", "300%"] }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <span className="absolute inset-0 grid place-items-center text-accent-ink/50">
-                <span className="flex flex-col items-center gap-2">
-                  <Spinner className="h-5 w-5" />
-                  <span className="font-display text-[11px] font-bold">生成中</span>
-                </span>
-              </span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -149,15 +130,15 @@ export function FrameTile({
       {compact ? null : (
       <figcaption className="mt-2 flex items-center justify-between gap-2">
         <span className="text-[11px] text-muted">
-          {!frame
+          {face === "empty"
             ? "尚未產生"
-            : failed && !inFlight
+            : face === "failed"
               ? "失敗"
-              : completed && !inFlight
+              : face === "image"
                 ? "完成"
-                : frame.status === "in_progress" || pending || (frame.status === "completed" && !src)
-                  ? "生成中"
-                  : "排隊中"}
+                : frame?.status === "queued" && !pending
+                  ? "排隊中"
+                  : "生成中"}
         </span>
         {completed && !inFlight ? (
           <span className="text-[11px] text-muted">點畫格標註修改</span>

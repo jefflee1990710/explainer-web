@@ -55,21 +55,47 @@ export function taskDetail(job: Pick<GenerationJob, "kind" | "clipIndex" | "fram
 // Jobs have no owner field: scope by the user's videos and characters.
 async function ownedScope(clerkUserId: string, videoId?: string) {
   const videos = await videosCollection();
-  const videoFilter = videoId && ObjectId.isValid(videoId)
-    ? { _id: new ObjectId(videoId), clerkUserId }
-    : { clerkUserId };
+  // One video: skip the 200-row scan used by the global list.
+  if (videoId && ObjectId.isValid(videoId)) {
+    const video = await videos.findOne(
+      { _id: new ObjectId(videoId), clerkUserId },
+      { projection: { _id: 1, projectId: 1, "phaseA.localizedTitle": 1 } },
+    );
+    return { videoDocs: video ? [video] : [], characters: [] };
+  }
   const videoDocs = await videos
-    .find(videoFilter, { projection: { _id: 1, projectId: 1, "phaseA.localizedTitle": 1 } })
+    .find({ clerkUserId }, { projection: { _id: 1, projectId: 1, "phaseA.localizedTitle": 1 } })
     .sort({ updatedAt: -1 })
     .limit(200)
     .toArray();
-  const characters = videoId
-    ? []
-    : await (await charactersCollection())
-        .find({ clerkUserId }, { projection: { _id: 1, name: 1 } })
-        .limit(200)
-        .toArray();
+  const characters = await (await charactersCollection())
+    .find({ clerkUserId }, { projection: { _id: 1, name: 1 } })
+    .limit(200)
+    .toArray();
   return { videoDocs, characters };
+}
+
+export function jobListQuery(input: {
+  videoIds: ObjectId[];
+  characterIds: ObjectId[];
+  cutoff: Date;
+}) {
+  const owners: Array<Record<string, unknown>> = [];
+  if (input.videoIds.length === 1) owners.push({ projectId: input.videoIds[0] });
+  else if (input.videoIds.length > 1) owners.push({ projectId: { $in: input.videoIds } });
+  if (input.characterIds.length) owners.push({ characterId: { $in: input.characterIds } });
+  if (owners.length === 0) return null;
+  return {
+    $and: [
+      owners.length === 1 ? owners[0] : { $or: owners },
+      {
+        $or: [
+          { status: { $in: ACTIVE_STATUSES } },
+          { status: { $in: SETTLED_STATUSES }, updatedAt: { $gte: input.cutoff } },
+        ],
+      },
+    ],
+  };
 }
 
 // Newest-first tasks for one user, optionally limited to a single video.
@@ -84,23 +110,14 @@ export async function listTasks(
 
   const jobs = await generationJobsCollection();
   const cutoff = new Date(Date.now() - RECENT_SETTLED_MS);
+  const query = jobListQuery({
+    videoIds: videoDocs.map((doc) => doc._id),
+    characterIds: characters.map((doc) => doc._id),
+    cutoff,
+  });
+  if (!query) return [];
   const docs = await jobs
-    .find({
-      $and: [
-        {
-          $or: [
-            { projectId: { $in: videoDocs.map((doc) => doc._id) } },
-            { characterId: { $in: characters.map((doc) => doc._id) } },
-          ],
-        },
-        {
-          $or: [
-            { status: { $in: ACTIVE_STATUSES } },
-            { status: { $in: SETTLED_STATUSES }, updatedAt: { $gte: cutoff } },
-          ],
-        },
-      ],
-    })
+    .find(query)
     .sort({ updatedAt: -1 })
     .limit(options.limit ?? 100)
     .toArray();

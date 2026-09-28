@@ -55,11 +55,11 @@ export function clearFramesForAction(frames: ClipFrame[], key: string): ClipFram
   const target = targetsForAction(key);
   if (!target) return frames;
   const submittedAt = new Date().toISOString();
-  return frames.map((frame) =>
+  const next = frames.map((frame) =>
     isTarget(frame, target)
       ? {
           ...frame,
-          status: "queued",
+          status: "queued" as const,
           submittedAt,
           blobUrl: undefined,
           outputUrl: undefined,
@@ -67,6 +67,24 @@ export function clearFramesForAction(frames: ClipFrame[], key: string): ClipFram
         }
       : frame,
   );
+  // First "畫這段畫格" has no rows yet; insert them so the button disables now.
+  const positions: FramePosition[] = target.position ? [target.position] : ["start", "end"];
+  const extras = positions
+    .filter(
+      (position) =>
+        !next.some((frame) => frame.clipNumber === target.clipNumber && frame.position === position),
+    )
+    .map((position) => ({
+      clipNumber: target.clipNumber,
+      position,
+      prompt: "",
+      status: "queued" as const,
+      submittedAt,
+    }));
+  if (extras.length === 0 && next.every((frame, index) => frame === frames[index])) {
+    return frames;
+  }
+  return [...next, ...extras];
 }
 
 function isWaitingClip(clip: ProjectClip) {
@@ -129,7 +147,7 @@ export function projectWithClearedFrames(project: PublicVideo, key: string): Pub
 // finished (or failed) result for that same-or-newer claim, or the UI stays on
 // a skeleton after webhook/poll completes.
 export function mergePolledFrames(current: ClipFrame[], incoming: ClipFrame[]): ClipFrame[] {
-  return incoming.map((frame) => {
+  const merged = incoming.map((frame) => {
     const local = current.find(
       (item) => item.clipNumber === frame.clipNumber && item.position === frame.position,
     );
@@ -148,6 +166,15 @@ export function mergePolledFrames(current: ClipFrame[], incoming: ClipFrame[]): 
     }
     return frame;
   });
+  // Keep a local first-draw claim until the server row exists.
+  const extras = current.filter(
+    (local) =>
+      isWaitingStill(local) &&
+      !incoming.some(
+        (frame) => frame.clipNumber === local.clipNumber && frame.position === local.position,
+      ),
+  );
+  return extras.length ? [...merged, ...extras] : merged;
 }
 
 export function mergePolledClips(current: ProjectClip[], incoming: ProjectClip[]): ProjectClip[] {

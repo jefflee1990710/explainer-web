@@ -30,8 +30,8 @@ export function clipNextAction(state: ClipState, nextUnfinished?: number): ClipN
   if (state.stage === "video_generating") {
     return {
       kind: "busy",
-      label: state.wait === "running" ? "產片中…" : "撰寫鏡頭稿…",
-      hint: state.wait === "running" ? "產片中，約 5–6 分鐘" : "正在寫鏡頭稿，接著會送模型",
+      label: state.wait === "running" ? "產片中…" : "影片已送出…",
+      hint: state.wait === "running" ? "產片中，約 5–6 分鐘" : "已送進佇列，背景產製",
       cost: 0,
     };
   }
