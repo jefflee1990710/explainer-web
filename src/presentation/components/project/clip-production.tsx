@@ -165,12 +165,16 @@ export function ClipProduction({
         <BulkGenerateDialog
           project={project}
           credits={credits}
-          pending={pending === "bulk"}
+          pending={
+            pending === "bulk" ||
+            pending === "all-scenes" ||
+            pending === "all-clips" ||
+            pending === "remaining"
+          }
           onCancel={() => setBulkOpen(false)}
           onConfirm={(mode) => {
-            void onBulkGenerate(mode).then((ok) => {
-              if (ok) setBulkOpen(false);
-            });
+            setBulkOpen(false);
+            void onBulkGenerate(mode);
           }}
         />
       ) : null}

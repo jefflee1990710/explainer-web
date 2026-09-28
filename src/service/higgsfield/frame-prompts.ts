@@ -227,6 +227,14 @@ export function framesWithClip(project: Project, clipNumber: number): ClipFrame[
   );
 }
 
+// Rebuild queued start+end rows for many clips in one pass.
+export function framesWithClips(project: Project, clipNumbers: number[]): ClipFrame[] {
+  return clipNumbers.reduce(
+    (frames, clipNumber) => framesWithClip({ ...project, frames }, clipNumber),
+    project.frames || [],
+  );
+}
+
 export function frameKey(clipNumber: number, position: FramePosition) {
   return `${clipNumber}:${position}`;
 }

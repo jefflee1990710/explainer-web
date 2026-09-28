@@ -13,7 +13,7 @@ import { refundCredits } from "@/service/billing/credits";
 import { flattenToCanvas } from "@/service/higgsfield/flatten";
 import { sceneTextNegativePrompt, resolveSceneText } from "@/service/director/scene-text";
 import { imageModelForSubmit, resolveImageRoute } from "@/service/generation/image-backend";
-import { buildFramePrompt, videoStyle } from "@/service/higgsfield/frame-prompts";
+import { buildFramePrompt, framesWithClips, videoStyle } from "@/service/higgsfield/frame-prompts";
 import {
   orphanQueuedClips,
   orphanQueuedFrames,
@@ -42,7 +42,13 @@ import {
 import { scheduleGenerationFinishedEmail } from "@/service/notify/generation-email";
 import { FRAME_COST, STUCK_CLAIM_MS, VIDEO_COST } from "@/service/production-plan";
 import { toSent, type Sent } from "@/service/generation/sent";
-import { insertPendingJob, kickJob } from "@/service/generation/task-store";
+import { frameJobDocs } from "@/service/generation/frame-jobs";
+import {
+  claimFailure,
+  insertPendingJob,
+  insertPendingJobs,
+  kickJob,
+} from "@/service/generation/task-store";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type {
   FramePosition,
@@ -156,23 +162,24 @@ export async function sendFrame(
   return toSent(model, submitted);
 }
 
-// Queue one frame; the queue sends it (see task-senders) and refunds on failure.
-async function enqueueFrame(project: Project, clipNumber: number, position: FramePosition) {
-  const id = await insertPendingJob({
-    projectId: project._id,
-    clipIndex: clipNumber - 1,
-    kind: "frame",
-    framePosition: position,
-  });
-  kickJob(id);
-}
-
 export type FrameTarget = {
   clipNumber: number;
   position: FramePosition;
   // Director's remark / annotated reference for this redo, if any.
   revision?: FrameRevision;
 };
+
+// One insert for a click's frame jobs: ready stills are kicked now, ends
+// without a start file sit `pending` + `awaits: "start"` so the task list
+// shows both tasks and the start's completion releases the end.
+async function insertFrameJobs(
+  project: Project,
+  ready: FrameTarget[],
+  deferred: FrameTarget[],
+) {
+  const ids = await insertPendingJobs(frameJobDocs(project._id, ready, deferred));
+  ids.slice(0, ready.length).forEach((id) => kickJob(id));
+}
 
 // Queue one or more frames (caller already charged 1 credit each). Each old
 // job is replaced, the frame is stamped `submittedAt`, and the project sits in
@@ -186,19 +193,21 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
   const submittedAt = new Date().toISOString();
   const { ready, deferred } = planFrameSubmissions(targets, project.frames);
 
-  for (const target of ready) {
-    await jobs.deleteMany({
-      projectId: project._id,
-      kind: "frame",
+  await jobs.deleteMany({
+    projectId: project._id,
+    kind: "frame",
+    $or: targets.map((target) => ({
       clipIndex: target.clipNumber - 1,
       framePosition: target.position,
-    });
+    })),
+  });
+  // Frames first, then the jobs: reconcile only trusts jobs created at or
+  // after `submittedAt`. `$unset` rather than `$set: undefined` so the
+  // previous failure message never lingers as `null`.
+  for (const target of targets) {
     const prompt = buildFramePrompt(project, target.clipNumber, target.position, {
       revision: target.revision,
     });
-    // Frame first, then the job: reconcile only trusts jobs created at or after
-    // `submittedAt`. `$unset` rather than `$set: undefined` so the previous
-    // failure message never lingers as `null`.
     await projects.updateOne(
       { _id: project._id },
       {
@@ -206,6 +215,7 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
           "frames.$[frame].status": "queued",
           "frames.$[frame].submittedAt": submittedAt,
           "frames.$[frame].prompt": prompt,
+          status: "production",
           updatedAt: new Date(),
         },
         $unset: {
@@ -220,15 +230,35 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
         ],
       },
     );
-    await enqueueFrame(project, target.clipNumber, target.position);
   }
-
-  await projects.updateOne(
-    { _id: project._id },
-    { $set: { status: "production", updatedAt: new Date() } },
-  );
+  await insertFrameJobs(project, ready, deferred);
   // Do not reconcile here: enqueue should return after the jobs are written.
   // Cron / webhook / poll call syncProjectFromJobs once the provider moves.
+  return { deferred };
+}
+
+// Queue every clip's start + end in one frames write and one jobs insert.
+// Ends without a start file are parked (`awaits: "start"`) until it lands.
+export async function enqueueClipFrameJobs(project: Project, clipNumbers: number[]) {
+  if (clipNumbers.length === 0) return { deferred: [] as FrameTarget[] };
+  const frames = framesWithClips(project, clipNumbers);
+  const targets: FrameTarget[] = clipNumbers.flatMap((clipNumber) => [
+    { clipNumber, position: "start" as const },
+    { clipNumber, position: "end" as const },
+  ]);
+  const { ready, deferred } = planFrameSubmissions(targets, frames);
+  const jobs = await generationJobsCollection();
+  const projects = await videosCollection();
+  await projects.updateOne(
+    { _id: project._id },
+    { $set: { frames, status: "production", updatedAt: new Date() } },
+  );
+  await jobs.deleteMany({
+    projectId: project._id,
+    kind: "frame",
+    clipIndex: { $in: clipNumbers.map((clipNumber) => clipNumber - 1) },
+  });
+  await insertFrameJobs(project, ready, deferred);
   return { deferred };
 }
 
@@ -267,7 +297,13 @@ export async function failUnsubmittedFrames(
           updatedAt: new Date(),
         },
       },
-      { arrayFilters: [{ "frame.clipNumber": clipNumber, "frame.position": position }] },
+      // Only a frame this attempt flipped to `queued`; if the frames write
+      // itself failed the old row (maybe completed) must stay untouched.
+      {
+        arrayFilters: [
+          { "frame.clipNumber": clipNumber, "frame.position": position, "frame.status": "queued" },
+        ],
+      },
     );
   }
 
@@ -513,12 +549,21 @@ export async function failDeferredEndIfNeeded(
     clipIndex: clipNumber - 1,
     framePosition: "end",
   });
-  // A job for THIS claim means reconciliation owns it; only fail ends that
-  // never reached the provider (deferred / lost submit).
   if (
     existing &&
     (Number.isNaN(claimedAt) || existing.createdAt.getTime() >= claimedAt)
   ) {
+    // Parked end (never sent): flip it failed, refund, and let reconcile copy
+    // the failure onto the frame. Winning the flip guards the refund.
+    if (existing.status === "pending" && existing.awaits === "start") {
+      const failed = await claimFailure(existing._id, error, "failed", { awaits: "start" });
+      if (failed) {
+        await refundCredits(project.clerkUserId, FRAME_COST);
+        await syncProjectFromJobs(projectId);
+      }
+      return;
+    }
+    // A live job for THIS claim means reconciliation owns it.
     return;
   }
 
@@ -563,14 +608,23 @@ export async function submitDeferredEndIfNeeded(
     clipIndex: clipNumber - 1,
     framePosition: "end",
   });
+  const startUrl = clipKeyframeUrls(project.frames, clipNumber).start;
   if (
     existing &&
     (Number.isNaN(claimedAt) || existing.createdAt.getTime() >= claimedAt)
   ) {
+    // Parked end from the click: make it claimable and send it now. The
+    // sender rebuilds the prompt, so only the schedule changes here.
+    if (existing.status === "pending" && existing.awaits === "start" && startUrl) {
+      const released = await jobs.updateOne(
+        { _id: existing._id, status: "pending", awaits: "start" },
+        { $set: { nextAttemptAt: new Date(), updatedAt: new Date() }, $unset: { awaits: "" } },
+      );
+      if (released.modifiedCount > 0) kickJob(existing._id);
+    }
     return;
   }
 
-  const startUrl = clipKeyframeUrls(project.frames, clipNumber).start;
   if (!startUrl) return;
 
   const submittedAt = new Date().toISOString();
@@ -596,7 +650,7 @@ export async function submitDeferredEndIfNeeded(
     { arrayFilters: [{ "frame.clipNumber": clipNumber, "frame.position": "end" }] },
   );
   try {
-    await enqueueFrame(project, clipNumber, "end");
+    await insertFrameJobs(project, [{ clipNumber, position: "end" }], []);
   } catch (error) {
     // No job owns the queued end: fail and refund it here. Not rethrown, so the
     // start's completion (applyJobStatus) still finishes.

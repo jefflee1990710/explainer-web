@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import type { Project } from "@/model/project";
-import { buildFramePrompt } from "@/service/higgsfield/frame-prompts";
+import { buildFramePrompt, framesWithClips } from "@/service/higgsfield/frame-prompts";
 
 function project(styleId?: Project["styleId"]): Project {
   return {
@@ -318,6 +318,14 @@ test("listicle stills paint a numbered item list even when scene text is off", (
   assert.match(prompt, /numbered list/i);
   assert.match(prompt, /Unused subscriptions/);
   assert.doesNotMatch(prompt, /No on-canvas text/);
+});
+
+test("framesWithClips queues start and end for every clip", () => {
+  const next = framesWithClips(project(), [1]);
+  assert.deepEqual(
+    next.map((frame) => `${frame.clipNumber}:${frame.position}:${frame.status}`),
+    ["1:start:queued", "1:end:queued"],
+  );
 });
 
 test("REVISION line does not attach a sibling or previous still", () => {

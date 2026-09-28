@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { ObjectId } from "mongodb";
-import { requireAppUser } from "@/service/auth";
+import { requireAppUser, requireClerkUserId } from "@/service/auth";
 import {
   assertCanSpendCredits,
   consumeCredits,
@@ -381,16 +381,14 @@ export async function refreshGenerationAction(
   projectId: string,
 ): Promise<ProjectResult> {
   try {
-    const user = await requireAppUser();
+    // Polled every few seconds: Clerk id only, no user/affiliate round-trips.
+    const clerkUserId = await requireClerkUserId();
     if (!ObjectId.isValid(projectId)) {
       return { ok: false, error: "專案不存在" };
     }
     const id = new ObjectId(projectId);
     const projects = await videosCollection();
-    const project = await projects.findOne({
-      _id: id,
-      clerkUserId: user.clerkUserId,
-    });
+    const project = await projects.findOne({ _id: id, clerkUserId });
     if (!project) return { ok: false, error: "專案不存在" };
 
     // Pending jobs, plus completed ones that never stored a file.

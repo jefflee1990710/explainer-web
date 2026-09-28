@@ -31,11 +31,23 @@ import {
 import { composeReelAction } from "@/presentation/actions/reel";
 import { isProjectBusy } from "@/service/clip-stage";
 import {
+  planGenerateAllClips,
+  planGenerateAllScenes,
+  planRemaining,
+} from "@/service/production-plan";
+import {
   costForPaidKey,
   paidActionProject,
   type PaidActionResult,
 } from "@/presentation/components/app/projects/new/paid-action";
 import { mergePolledProject, projectWithClearedFrames } from "@/util/optimistic-frames";
+import {
+  generationTransitions,
+  transitionKey,
+  transitionMessage,
+  type GenerationTransition,
+} from "@/util/generation-transitions";
+import { ToastStack, useToasts } from "@/presentation/components/toast-stack";
 import { isReelBusy } from "@/service/reel/fingerprint";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
@@ -148,9 +160,37 @@ export function NewProjectForm({
     setWalletCredits(credits);
   }, [credits]);
 
+  // Background jobs finish while the user is elsewhere: announce each settled
+  // frame / video with a toast (thumbnail on success) as the poll lands it.
+  const { toasts, push: pushToast, dismiss: dismissToast } = useToasts();
+  // Collected inside the state updater (keyed, so StrictMode's double run is
+  // harmless) and flushed once the merged project has committed.
+  const settledRef = useRef(new Map<string, GenerationTransition>());
   const onPollUpdate = useCallback((next: PublicVideo) => {
-    setProject((current) => (current ? mergePolledProject(current, next) : next));
+    setProject((current) => {
+      if (!current) return next;
+      const merged = mergePolledProject(current, next);
+      for (const item of generationTransitions(current, merged)) {
+        settledRef.current.set(transitionKey(item), item);
+      }
+      return merged;
+    });
   }, []);
+  useEffect(() => {
+    if (settledRef.current.size === 0) return;
+    const settled = [...settledRef.current.values()];
+    settledRef.current.clear();
+    for (const item of settled) {
+      pushToast({
+        tone: item.outcome === "completed" ? "success" : "error",
+        title: transitionMessage(item),
+        media:
+          item.outcome === "completed" && item.mediaUrl
+            ? { kind: item.kind === "video" ? "video" : "image", url: item.mediaUrl }
+            : undefined,
+      });
+    }
+  }, [project, pushToast]);
   const onPollError = useCallback((message: string) => setError(message), []);
   useProjectPoll(project, onPollUpdate, onPollError);
 
@@ -253,11 +293,14 @@ export function NewProjectForm({
 
   // Shared handler for every server action behind a paid button; billing errors
   // bounce to /app/billing.
-  async function runPaid(key: string, action: () => Promise<PaidActionResult>) {
+  async function runPaid(
+    key: string,
+    action: () => Promise<PaidActionResult>,
+    spend = costForPaidKey(key),
+  ) {
     setPending(key);
     setError("");
     creditsSnapshotRef.current = walletCredits;
-    const spend = costForPaidKey(key);
     if (spend > 0) setWalletCredits((current) => current - spend);
     // Hide the old still/video immediately; the server write lands a moment later.
     setProject((current) => {
@@ -336,7 +379,14 @@ export function NewProjectForm({
         : mode === "scenes"
           ? generateAllSceneImagesAction
           : generateAllClipsAction;
-    return runPaid("bulk", () => action(project.id));
+    const key = mode === "remaining" ? "remaining" : mode === "scenes" ? "all-scenes" : "all-clips";
+    const plan =
+      mode === "remaining"
+        ? planRemaining(project)
+        : mode === "scenes"
+          ? planGenerateAllScenes(project)
+          : planGenerateAllClips(project);
+    return runPaid(key, () => action(project.id), plan.cost);
   }
 
   // Filmstrip multi-select: frames or videos for the checked clips.
@@ -707,6 +757,7 @@ export function NewProjectForm({
             }}
           />
         ) : null}
+        <ToastStack toasts={toasts} onDismiss={dismissToast} />
       </div>
     </MotionConfig>
   );

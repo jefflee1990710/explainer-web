@@ -131,7 +131,28 @@ export function clearClipsForAction(clips: ProjectClip[], key: string): ProjectC
 }
 
 export function projectWithClearedFrames(project: PublicVideo, key: string): PublicVideo {
-  const frames = clearFramesForAction(project.frames, key);
+  let frames = clearFramesForAction(project.frames, key);
+  // Generate-all has no per-clip key; add missing start/end so tiles flip now.
+  if (key === "all-scenes" || key === "all-clips") {
+    const submittedAt = new Date().toISOString();
+    const extras = (project.phaseA?.clips ?? []).flatMap((clip) =>
+      (["start", "end"] as const)
+        .filter(
+          (position) =>
+            !frames.some(
+              (frame) => frame.clipNumber === clip.clipNumber && frame.position === position,
+            ),
+        )
+        .map((position) => ({
+          clipNumber: clip.clipNumber,
+          position,
+          prompt: "",
+          status: "queued" as const,
+          submittedAt,
+        })),
+    );
+    if (extras.length) frames = [...frames, ...extras];
+  }
   const clips = clearClipsForAction(project.clips, key);
   if (frames === project.frames && clips === project.clips) return project;
   return {

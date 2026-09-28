@@ -32,8 +32,20 @@ export function useProjectPoll(
     if (!id || !busy) return;
     const needsJobRefresh = clipBusy && status !== "phase_a";
     let cancelled = false;
+    // A slow refresh skips the next tick instead of stacking requests.
+    let inFlight = false;
 
     async function tick() {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        await refresh();
+      } finally {
+        inFlight = false;
+      }
+    }
+
+    async function refresh() {
       let next: PublicVideo | null = null;
 
       if (needsJobRefresh) {

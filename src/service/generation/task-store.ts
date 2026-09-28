@@ -44,11 +44,34 @@ export async function insertPendingJob(job: NewJob): Promise<ObjectId> {
     model: job.model ?? "",
     status: "pending",
     attempts: 0,
-    nextAttemptAt: now,
+    // Callers may park a job (waiting end frame) with a far-future time.
+    nextAttemptAt: job.nextAttemptAt ?? now,
     createdAt: now,
     updatedAt: now,
   } as GenerationJob);
   return insertedId;
+}
+
+// Batch insert so "全部產生" can return after one write.
+export async function insertPendingJobs(jobs: NewJob[]): Promise<ObjectId[]> {
+  if (jobs.length === 0) return [];
+  const col = await generationJobsCollection();
+  const now = new Date();
+  const result = await col.insertMany(
+    jobs.map(
+      (job) =>
+        ({
+          ...job,
+          model: job.model ?? "",
+          status: "pending",
+          attempts: 0,
+          nextAttemptAt: job.nextAttemptAt ?? now,
+          createdAt: now,
+          updatedAt: now,
+        }) as GenerationJob,
+    ),
+  );
+  return Object.values(result.insertedIds);
 }
 
 // Due pending jobs, or submitting jobs whose runner died mid-send.

@@ -8,11 +8,9 @@ import {
 } from "@/service/billing/credits";
 import { videosCollection } from "@/dao";
 import { claimAndStartClipVideo, queueAutoClipVideos } from "@/service/clip/auto-video";
-import { framesWithClip } from "@/service/higgsfield/frame-prompts";
-import { planFrameSubmissions } from "@/service/higgsfield/clip-keyframes";
 import {
+  enqueueClipFrameJobs,
   failUnsubmittedFrames,
-  regenerateFrames,
   stillBlocker,
 } from "@/service/higgsfield/pipeline";
 import { isProductionLike } from "@/service/project-status";
@@ -27,10 +25,6 @@ import {
 } from "@/service/production-plan";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import type { Project } from "@/model/project";
-
-type ProjectResult =
-  | { ok: true; project: PublicVideo }
-  | { ok: false; error: string };
 
 // Enqueue-only: the editor already flipped the clip; poll fills the rest.
 type EnqueueResult = { ok: true } | { ok: false; error: string };
@@ -73,7 +67,6 @@ export async function generateClipFramesAction(
     const loaded = await loadProduction(projectId, user.clerkUserId);
     if (!loaded.ok) return loaded;
     const { project } = loaded;
-    const projects = await videosCollection();
 
     const row = project.phaseA.clips.find((clip) => clip.clipNumber === clipNumber);
     if (!row) return { ok: false, error: "找不到這段分鏡" };
@@ -96,43 +89,19 @@ export async function generateClipFramesAction(
 
     await assertCanSpendCredits(user, FRAMES_COST);
     const spendKey = await consumeCredits(user.clerkUserId, FRAMES_COST);
-    const frames = framesWithClip(project, clipNumber);
-    try {
-      await projects.updateOne(
-        { _id: project._id },
-        { $set: { frames, status: "production", updatedAt: new Date() } },
-      );
-    } catch (error) {
-      // Write failed before anything went out → give back the full charge.
-      await refundCredits(user.clerkUserId, FRAMES_COST, spendKey);
-      throw error;
-    }
 
     // Anything older than this belongs to a previous attempt and cannot prove
     // that this one reached the provider.
     const attemptStartedAt = new Date();
-    const targets = [
-      { clipNumber, position: "start" as const },
-      { clipNumber, position: "end" as const },
-    ];
-    const { deferred } = planFrameSubmissions(targets, frames);
     try {
-      await regenerateFrames({ ...project, frames }, targets);
+      // One frames write + one jobs insert: start goes out now, end is queued
+      // as its own task and released when the start file lands.
+      await enqueueClipFrameJobs(project, [clipNumber]);
     } catch (error) {
-      // The two frames go out one at a time, so the first may already have a
-      // live job: that one is reconciliation's to finish and refund. Fail and
-      // refund only the entries that never reached the provider, otherwise
-      // they would sit `queued` with no job behind them. A deferred end stays
-      // queued only when the start job exists; if the start never went out,
-      // the end is failed and refunded too.
+      // Refund whatever never got a job (a frame with no job would sit
+      // `queued` forever); a frame that did get one is reconciliation's.
       const message = error instanceof Error ? error.message : "分鏡圖送出失敗";
-      const missed = await failUnsubmittedFrames(
-        project._id,
-        clipNumber,
-        message,
-        attemptStartedAt,
-        deferred.map((target) => target.position),
-      );
+      const missed = await failUnsubmittedFrames(project._id, clipNumber, message, attemptStartedAt);
       if (missed > 0) {
         await refundCredits(user.clerkUserId, missed * FRAME_COST, spendKey);
       }
@@ -279,29 +248,11 @@ export async function generateSelectedClipsAction(
   }
 }
 
-async function submitSceneImages(
-  projectId: string,
-  clipNumbers: number[],
-) {
-  const skipped: number[] = [];
-  let firstError = "";
-  const submitted: number[] = [];
-  for (const clipNumber of clipNumbers) {
-    const result = await generateClipFramesAction(projectId, clipNumber);
-    if (!result.ok) {
-      skipped.push(clipNumber);
-      firstError ||= result.error;
-    } else {
-      submitted.push(clipNumber);
-    }
-  }
-  return { skipped, firstError, submitted };
-}
-
 // Draw both scene images for every clip that is not already drawing.
+// Inserts the jobs and returns; provider work runs in the queue.
 export async function generateAllSceneImagesAction(
   projectId: string,
-): Promise<RemainingResult> {
+): Promise<EnqueueResult> {
   try {
     const user = await requireAppUser();
     const loaded = await loadProduction(projectId, user.clerkUserId);
@@ -309,17 +260,17 @@ export async function generateAllSceneImagesAction(
 
     const plan = planGenerateAllScenes(loaded.project);
     if (plan.cost === 0) return { ok: false, error: "沒有可產生的分鏡圖" };
+    const blocker = await stillBlocker(loaded.project);
+    if (blocker) return { ok: false, error: blocker };
     await assertCanSpendCredits(user, plan.cost);
-
-    const { skipped, firstError } = await submitSceneImages(projectId, plan.frames);
-    if (skipped.length === plan.frames.length) {
-      return { ok: false, error: firstError || "產生分鏡圖失敗" };
+    const spendKey = await consumeCredits(user.clerkUserId, plan.cost);
+    try {
+      await enqueueClipFrameJobs(loaded.project, plan.frames);
+    } catch (error) {
+      await refundCredits(user.clerkUserId, plan.cost, spendKey);
+      throw error;
     }
-
-    const projects = await videosCollection();
-    const updated = await projects.findOne({ _id: loaded.project._id });
-    revalidateProject(projectId);
-    return { ok: true, project: toPublicVideo(updated!), skipped };
+    return { ok: true };
   } catch (error) {
     return {
       ok: false,
@@ -331,7 +282,7 @@ export async function generateAllSceneImagesAction(
 // Draw every scene image, then start each clip video once both stills exist.
 export async function generateAllClipsAction(
   projectId: string,
-): Promise<RemainingResult> {
+): Promise<EnqueueResult> {
   try {
     const user = await requireAppUser();
     const loaded = await loadProduction(projectId, user.clerkUserId);
@@ -339,31 +290,27 @@ export async function generateAllClipsAction(
 
     const plan = planGenerateAllClips(loaded.project);
     if (plan.cost === 0) return { ok: false, error: "沒有可產生的段落" };
+    const blocker = await stillBlocker(loaded.project);
+    if (blocker) return { ok: false, error: blocker };
     await assertCanSpendCredits(user, plan.cost);
-
-    const { skipped, firstError, submitted } = await submitSceneImages(
-      projectId,
-      plan.frames,
-    );
-    // Videos follow the clips we actually queued, plus clips already drawing
-    // (their stills will unlock the video). Failed submits stay off the list.
-    const autoVideoClips = plan.videos.filter(
-      (clipNumber) => submitted.includes(clipNumber) || !plan.frames.includes(clipNumber),
-    );
-    if (submitted.length === 0 && autoVideoClips.length === 0) {
-      return { ok: false, error: firstError || "產生失敗" };
+    const frameCost = plan.frames.length * FRAMES_COST;
+    if (frameCost > 0) {
+      const spendKey = await consumeCredits(user.clerkUserId, frameCost);
+      try {
+        await enqueueClipFrameJobs(loaded.project, plan.frames);
+      } catch (error) {
+        await refundCredits(user.clerkUserId, frameCost, spendKey);
+        throw error;
+      }
     }
 
     const projects = await videosCollection();
     await projects.updateOne(
       { _id: loaded.project._id },
-      { $set: { autoVideoClips, updatedAt: new Date() } },
+      { $set: { autoVideoClips: plan.videos, updatedAt: new Date() } },
     );
     await queueAutoClipVideos(loaded.project._id);
-
-    const updated = await projects.findOne({ _id: loaded.project._id });
-    revalidateProject(projectId);
-    return { ok: true, project: toPublicVideo(updated!), skipped };
+    return { ok: true };
   } catch (error) {
     return {
       ok: false,
