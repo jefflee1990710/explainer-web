@@ -4,14 +4,14 @@ import { useState } from "react";
 import { VideoGridCard } from "@/presentation/components/app/projects/[id]/video-grid-card";
 import { VideoTablePager } from "@/presentation/components/app/projects/[id]/video-table-pager";
 import { pageCount, pageSlice } from "@/util/video-page";
-import type { PublicVideo } from "@/presentation/serialize";
+import type { PublicVideoCard } from "@/presentation/serialize";
 
 // Folder video list: paged grid of generated videos.
 export function VideoTable({
   videos,
   onSelect,
 }: {
-  videos: PublicVideo[];
+  videos: PublicVideoCard[];
   onSelect: (id: string) => void;
 }) {
   const [page, setPage] = useState(1);

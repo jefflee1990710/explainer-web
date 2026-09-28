@@ -5,7 +5,9 @@ import type { PublicTask } from "@/service/generation/task-list";
 export function TaskList({ tasks }: { tasks: PublicTask[] }) {
   if (tasks.length === 0) {
     return (
-      <p className="px-3 py-8 text-center text-sm text-[var(--studio-muted)]">目前沒有生成任務。</p>
+      <p className="px-3 py-8 text-center text-sm text-[var(--studio-muted)]">
+        目前沒有進行中或剛完成的任務。
+      </p>
     );
   }
   return (

@@ -1,7 +1,7 @@
 import { requireAppUser } from "@/service/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { projectsCollection, videosCollection } from "@/dao";
-import { toPublicFolder } from "@/presentation/serialize";
+import { toPublicFolder, VIDEO_LIST_PROJECTION } from "@/presentation/serialize";
 import type { Folder } from "@/model/folder";
 import type { Project } from "@/model/project";
 import { DashboardView } from "@/presentation/components/app/dashboard-view";
@@ -17,7 +17,7 @@ export default async function DashboardPage() {
       .sort({ updatedAt: -1 })
       .limit(120)
       .toArray(),
-    videos.find({ clerkUserId: user.clerkUserId }).toArray(),
+    videos.find({ clerkUserId: user.clerkUserId }, { projection: VIDEO_LIST_PROJECTION }).toArray(),
   ]);
   const subscribed = isSubscriptionActive(sub);
   const videosByFolder = new Map<string, Project[]>();

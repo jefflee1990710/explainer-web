@@ -4,9 +4,8 @@ import { motion } from "framer-motion";
 import { StatusBadge } from "@/presentation/components/project/status-badge";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
-import { productionCounts } from "@/service/clip-stage";
 import { PreviewStrip } from "@/presentation/components/app/preview-strip";
-import { previewUrlsFromVideo, type PublicVideo } from "@/presentation/serialize";
+import type { PublicVideoCard } from "@/presentation/serialize";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -15,18 +14,14 @@ export function VideoGridCard({
   video,
   onSelect,
 }: {
-  video: PublicVideo;
+  video: PublicVideoCard;
   onSelect: (id: string) => void;
 }) {
-  const previews = previewUrlsFromVideo(video);
-  const title = video.phaseA?.localizedTitle || "未命名影片";
-  const counts =
-    video.status === "production" || video.status === "ready"
-      ? productionCounts(video)
-      : null;
+  const previews = video.previewUrls;
+  const title = video.title || "未命名影片";
   const progress =
-    counts && counts.total > 0
-      ? `影片 ${counts.videosDone}/${counts.total}`
+    (video.status === "production" || video.status === "ready") && video.videosTotal > 0
+      ? `影片 ${video.videosDone}/${video.videosTotal}`
       : video.status === "failed" && video.error
         ? video.error
         : null;

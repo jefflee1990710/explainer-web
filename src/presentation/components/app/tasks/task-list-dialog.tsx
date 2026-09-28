@@ -9,12 +9,16 @@ import { useTaskPoll } from "@/presentation/components/app/tasks/use-task-poll";
 export function TaskListDialog({ videoId, onClose }: { videoId: string; onClose: () => void }) {
   const titleId = useId();
   const { tasks, error, loaded } = useTaskPoll([], videoId);
+  const pending = tasks.filter((task) => task.stage !== "done" && task.stage !== "failed").length;
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      onClose();
     }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [onClose]);
   return (
     <div
@@ -29,9 +33,14 @@ export function TaskListDialog({ videoId, onClose }: { videoId: string; onClose:
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
-          <h2 id={titleId} className="font-display text-xl font-bold">
-            這支影片的生成任務
-          </h2>
+          <div>
+            <h2 id={titleId} className="font-display text-xl font-bold">
+              這支影片的生成任務
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              {loaded ? (pending > 0 ? `${pending} 個進行中` : "沒有進行中的任務") : "載入中…"}
+            </p>
+          </div>
           <button
             type="button"
             onClick={onClose}

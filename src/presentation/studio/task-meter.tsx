@@ -12,15 +12,27 @@ export function TaskMeter({
   pending: initialPending,
   tasksLabel,
   pendingLabel,
+  videoId,
+  onOpen,
 }: {
   pending: number;
   tasksLabel: string;
   pendingLabel: string;
+  // When set, the count is this video only.
+  videoId?: string;
+  // Open a local list instead of navigating to /app/tasks.
+  onOpen?: () => void;
 }) {
   const pathname = usePathname();
   const [pending, setPending] = useState(initialPending);
   const inFlight = useRef(false);
-  const active = pathname === "/app/tasks" || pathname.startsWith("/app/tasks/");
+  const active = !onOpen && (pathname === "/app/tasks" || pathname.startsWith("/app/tasks/"));
+  const label = `${tasksLabel}, ${pending} ${pendingLabel}`;
+  const className = `flex min-w-28 flex-col gap-1 rounded-md border px-2.5 py-1 ${
+    active
+      ? "border-[var(--studio-teal)]/40 bg-[var(--studio-cyan-soft)]"
+      : "border-[var(--studio-line)] bg-[var(--studio-panel)] hover:bg-[var(--studio-fill)]"
+  }`;
 
   useEffect(() => {
     let alive = true;
@@ -28,7 +40,7 @@ export function TaskMeter({
       if (inFlight.current) return;
       inFlight.current = true;
       try {
-        const result = await listTasksAction();
+        const result = await listTasksAction(videoId);
         if (!alive || !result.ok) return;
         setPending(result.tasks.filter((task) => task.stage !== "done" && task.stage !== "failed").length);
       } finally {
@@ -41,19 +53,10 @@ export function TaskMeter({
       alive = false;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [videoId]);
 
-  return (
-    <Link
-      href="/app/tasks"
-      aria-current={active ? "page" : undefined}
-      aria-label={`${tasksLabel}, ${pending} ${pendingLabel}`}
-      className={`flex min-w-28 flex-col gap-1 rounded-md border px-2.5 py-1 ${
-        active
-          ? "border-[var(--studio-teal)]/40 bg-[var(--studio-cyan-soft)]"
-          : "border-[var(--studio-line)] bg-[var(--studio-panel)] hover:bg-[var(--studio-fill)]"
-      }`}
-    >
+  const body = (
+    <>
       <span className="flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold tabular-nums">
         <TasksIcon />
         {pending} {pendingLabel}
@@ -70,6 +73,20 @@ export function TaskMeter({
           <div className="studio-task-meter-bar h-full w-1/3 rounded-full bg-[var(--studio-teal)]" />
         ) : null}
       </div>
+    </>
+  );
+
+  if (onOpen) {
+    return (
+      <button type="button" onClick={onOpen} aria-label={label} className={`cursor-pointer ${className}`}>
+        {body}
+      </button>
+    );
+  }
+
+  return (
+    <Link href="/app/tasks" aria-current={active ? "page" : undefined} aria-label={label} className={className}>
+      {body}
     </Link>
   );
 }

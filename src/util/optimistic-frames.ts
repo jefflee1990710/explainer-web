@@ -85,6 +85,19 @@ export function clearClipsForAction(clips: ProjectClip[], key: string): ProjectC
   if (!match) return clips;
   const clipNumber = Number(match[1]);
   const submittedAt = new Date().toISOString();
+  // First click has no clip row yet; insert one so the button flips immediately.
+  if (!clips.some((clip) => clip.clipNumber === clipNumber)) {
+    return [
+      ...clips,
+      {
+        clipNumber,
+        durationSeconds: 0,
+        prompt: "",
+        status: "queued",
+        submittedAt,
+      },
+    ];
+  }
   return clips.map((clip) =>
     clip.clipNumber === clipNumber
       ? {

@@ -34,11 +34,7 @@ export function ProjectGrid({ folders }: { folders: PublicFolder[] }) {
       if (!needle) return true;
       const haystack = [
         folder.name,
-        ...folder.videos.flatMap((video) => [
-          video.phaseA?.localizedTitle,
-          video.phaseA?.englishTitle,
-          video.source,
-        ]),
+        ...folder.videos.flatMap((video) => [video.title, video.englishTitle, video.source]),
       ]
         .filter(Boolean)
         .join("\n")

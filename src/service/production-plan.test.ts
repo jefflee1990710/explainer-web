@@ -131,6 +131,20 @@ test("selected frames skip clips that are already generating", () => {
   });
 });
 
+test("selected frames can queue while a video is still pending", () => {
+  const project: ClipStageSource = {
+    status: "production",
+    phaseA: { clips: [{ clipNumber: 1 }, { clipNumber: 2 }] },
+    frames: [...done(1), ...done(2)],
+    clips: [clip(1, "queued")],
+  };
+  assert.deepEqual(planSelected(project, [1, 2], "frames"), {
+    frames: [1, 2],
+    videos: [],
+    cost: 4,
+  });
+});
+
 test("selected videos need fresh, finished frames", () => {
   const project: ClipStageSource = {
     status: "production",

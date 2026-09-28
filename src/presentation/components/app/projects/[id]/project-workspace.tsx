@@ -12,6 +12,7 @@ import type {
   PublicStyle,
   PublicVideo,
 } from "@/presentation/serialize";
+import { toPublicVideoCardFromPublic } from "@/presentation/serialize";
 import { NewProjectForm } from "@/presentation/components/app/projects/new/new-project-form";
 import { DeleteVideoDialog } from "@/presentation/components/app/projects/[id]/delete-video-dialog";
 import {
@@ -80,7 +81,7 @@ export function ProjectWorkspace({
     [pathname],
   );
 
-  // Pull the latest row after every switch; list snapshot renders immediately.
+  // Full document is loaded only when the editor opens.
   useEffect(() => {
     if (!activeVideoId) return;
     let cancelled = false;
@@ -101,23 +102,26 @@ export function ProjectWorkspace({
     if (!activeVideoId || hiddenIds.has(activeVideoId)) return null;
     return (
       freshById[activeVideoId] ??
-      folder.videos.find((video) => video.id === activeVideoId) ??
       (optimisticVideo?.id === activeVideoId ? optimisticVideo : null)
     );
-  }, [activeVideoId, freshById, folder.videos, optimisticVideo, hiddenIds]);
+  }, [activeVideoId, freshById, optimisticVideo, hiddenIds]);
 
   const videoLoading = Boolean(
-    activeVideoId && !selectedVideo && !hiddenIds.has(activeVideoId),
+    editorOpen && activeVideoId && !selectedVideo && !hiddenIds.has(activeVideoId),
   );
   const videoSyncing = Boolean(activeVideoId && fetchingId === activeVideoId && selectedVideo);
 
   const videos = useMemo(() => {
-    const list =
-      !selectedVideo || folder.videos.some((video) => video.id === selectedVideo.id)
-        ? folder.videos
-        : [selectedVideo, ...folder.videos];
-    return list.filter((video) => !hiddenIds.has(video.id));
-  }, [folder.videos, selectedVideo, hiddenIds]);
+    const cards = folder.videos.filter((video) => !hiddenIds.has(video.id));
+    if (
+      optimisticVideo &&
+      !hiddenIds.has(optimisticVideo.id) &&
+      !cards.some((video) => video.id === optimisticVideo.id)
+    ) {
+      return [toPublicVideoCardFromPublic(optimisticVideo), ...cards];
+    }
+    return cards;
+  }, [folder.videos, optimisticVideo, hiddenIds]);
 
   function onSelect(id: string) {
     setActiveVideoId(id);
@@ -151,7 +155,9 @@ export function ProjectWorkspace({
     router.refresh();
   }
 
-  const editorTitle = selectedVideo?.phaseA?.localizedTitle || (activeVideoId ? "影片" : "新增影片");
+  const listTitle = videos.find((video) => video.id === activeVideoId)?.title;
+  const editorTitle =
+    selectedVideo?.phaseA?.localizedTitle || listTitle || (activeVideoId ? "影片" : "新增影片");
 
   return (
     <>
@@ -191,6 +197,7 @@ export function ProjectWorkspace({
       {editorOpen ? (
         <VideoEditorDialog
           title={editorTitle}
+          videoId={selectedVideo?.id ?? activeVideoId ?? undefined}
           nav={stepNav ? <EditorStepSwitch {...stepNav} /> : null}
           syncing={videoSyncing}
           canDelete={Boolean(selectedVideo)}

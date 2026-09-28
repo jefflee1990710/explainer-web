@@ -4,7 +4,7 @@ import { TaskList } from "@/presentation/components/app/tasks/task-list";
 import { useTaskPoll } from "@/presentation/components/app/tasks/use-task-poll";
 import type { PublicTask } from "@/service/generation/task-list";
 
-// /app/tasks: every image / video task, live.
+// /app/tasks: in-flight jobs plus ones that just settled.
 export function TasksView({ initial }: { initial: PublicTask[] }) {
   const { tasks, error } = useTaskPoll(initial);
   const active = tasks.filter((task) => task.stage !== "done" && task.stage !== "failed").length;
@@ -13,7 +13,7 @@ export function TasksView({ initial }: { initial: PublicTask[] }) {
       <div className="min-w-0">
         <h1 className="font-display text-3xl font-bold">生成任務</h1>
         <p className="mt-2 text-sm text-muted">
-          {active > 0 ? `${active} 個任務進行中，每 5 秒更新` : "所有任務都已完成"}
+          {active > 0 ? `${active} 個任務進行中，每 5 秒更新` : "沒有進行中的任務"}
         </p>
       </div>
       {error ? (

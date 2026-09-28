@@ -32,6 +32,9 @@ type ProjectResult =
   | { ok: true; project: PublicVideo }
   | { ok: false; error: string };
 
+// Enqueue-only: the editor already flipped the clip; poll fills the rest.
+type EnqueueResult = { ok: true } | { ok: false; error: string };
+
 type RemainingResult =
   | { ok: true; project: PublicVideo; skipped: number[] }
   | { ok: false; error: string };
@@ -64,7 +67,7 @@ async function loadProduction(
 export async function generateClipFramesAction(
   projectId: string,
   clipNumber: number,
-): Promise<ProjectResult> {
+): Promise<EnqueueResult> {
   try {
     const user = await requireAppUser();
     const loaded = await loadProduction(projectId, user.clerkUserId);
@@ -136,9 +139,7 @@ export async function generateClipFramesAction(
       throw error;
     }
 
-    const updated = await projects.findOne({ _id: project._id });
-    revalidateProject(projectId);
-    return { ok: true, project: toPublicVideo(updated!) };
+    return { ok: true };
   } catch (error) {
     return {
       ok: false,
@@ -152,13 +153,12 @@ export async function generateClipFramesAction(
 export async function generateClipVideoAction(
   projectId: string,
   clipNumber: number,
-): Promise<ProjectResult> {
+): Promise<EnqueueResult> {
   try {
     const user = await requireAppUser();
     const loaded = await loadProduction(projectId, user.clerkUserId);
     if (!loaded.ok) return loaded;
     const { project } = loaded;
-    const projects = await videosCollection();
 
     const row = project.phaseA.clips.find((clip) => clip.clipNumber === clipNumber);
     if (!row) return { ok: false, error: "找不到這段分鏡" };
@@ -167,9 +167,7 @@ export async function generateClipVideoAction(
     const started = await claimAndStartClipVideo(user.clerkUserId, project, clipNumber);
     if (!started.ok) return { ok: false, error: started.error };
 
-    const updated = await projects.findOne({ _id: project._id });
-    revalidateProject(projectId);
-    return { ok: true, project: toPublicVideo(updated!) };
+    return { ok: true };
   } catch (error) {
     return {
       ok: false,

@@ -1,5 +1,7 @@
 import { FRAMES_COST, VIDEO_COST } from "@/service/production-plan";
-import type { ClipState } from "@/service/clip-stage";
+import { canQueueFrames, type ClipState } from "@/service/clip-stage";
+
+export { canQueueFrames };
 
 export type ClipNextKind = "frames" | "video" | "busy" | "next" | "done";
 
@@ -11,7 +13,11 @@ export type ClipNextAction = {
   cost: number;
 };
 
-// `nextUnfinished` is the clip number the "下一段" button jumps to, if any.
+// Quiet "重畫兩張" when the primary button is not already a frame action.
+export function canRedrawFrames(state: ClipState, hasFrames: boolean): boolean {
+  return hasFrames && canQueueFrames(state) && state.stage !== "no_frames" && state.stage !== "frames_failed";
+}
+
 export function clipNextAction(state: ClipState, nextUnfinished?: number): ClipNextAction {
   if (state.stage === "frames_generating") {
     return {

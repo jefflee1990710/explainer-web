@@ -9,7 +9,7 @@ import {
   skillsCollection,
   videosCollection,
 } from "@/dao";
-import { toPublicCharacter, toPublicFolder, toPublicSkill } from "@/presentation/serialize";
+import { toPublicCharacter, toPublicFolder, toPublicSkill, VIDEO_LIST_PROJECTION } from "@/presentation/serialize";
 import { listPublicStyles } from "@/service/style/list";
 import type { Character } from "@/model/character";
 import type { Folder } from "@/model/folder";
@@ -40,7 +40,10 @@ export default async function ProjectPage({
   const charactersCol = await charactersCollection();
 
   const [videoDocs, skillDocs, styles, characterDocs, sub] = await Promise.all([
-    videos.find({ projectId: folder._id }).sort({ createdAt: -1 }).toArray() as Promise<Project[]>,
+    videos
+      .find({ projectId: folder._id }, { projection: VIDEO_LIST_PROJECTION })
+      .sort({ createdAt: -1 })
+      .toArray() as Promise<Project[]>,
     skillsCol.find({ isActive: true }).sort({ sortOrder: 1 }).toArray(),
     listPublicStyles(),
     charactersCol

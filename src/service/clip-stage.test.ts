@@ -89,13 +89,21 @@ test("only one frame completed (other missing) → no_frames", () => {
   assert.equal(clipStateFor(p, 1).stage, "no_frames");
 });
 
-test("video queued → video_generating, beats everything", () => {
+test("video queued → video_generating when frames are settled", () => {
   const p = project({
-    frames: [frame(1, "start", "in_progress"), frame(1, "end", "completed")],
+    frames: [frame(1, "start", "completed"), frame(1, "end", "completed")],
     clips: [clip(1, "queued")],
   });
   assert.equal(clipStateFor(p, 1).stage, "video_generating");
   assert.equal(clipStateFor(p, 1).wait, "queued");
+});
+
+test("frames being redrawn outrank an in-flight video", () => {
+  const p = project({
+    frames: [frame(1, "start", "queued"), frame(1, "end", "completed")],
+    clips: [clip(1, "queued")],
+  });
+  assert.equal(clipStateFor(p, 1).stage, "frames_generating");
 });
 
 test("video completed → video_ready; failed → video_failed", () => {

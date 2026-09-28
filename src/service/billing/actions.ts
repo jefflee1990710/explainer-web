@@ -119,3 +119,20 @@ export async function startPackCheckoutAction(packId: PackId) {
   }
   return { ok: true as const, url: session.url };
 }
+
+export type CreditSnapshotResult =
+  | { ok: true; credits: number; creditLimit: number }
+  | { ok: false; error: string };
+
+// Header meter poll: just the wallet, no page revalidate.
+export async function getCreditSnapshotAction(): Promise<CreditSnapshotResult> {
+  try {
+    const user = await requireAppUser();
+    return { ok: true, credits: user.credits, creditLimit: user.creditLimit || 0 };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "讀取 credits 失敗",
+    };
+  }
+}

@@ -356,7 +356,9 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     wrapTool(user, apiKey, "generate_clip_frames", 2, async (args) => {
       const result = await generateClipFramesAction(args.videoId, args.clipNumber);
       if (!result.ok) throw new Error(result.error);
-      return result.project;
+      const loaded = await getVideoAction(args.videoId);
+      if (!loaded.ok) throw new Error(loaded.error);
+      return loaded.project;
     }),
   );
 
@@ -373,7 +375,9 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     wrapTool(user, apiKey, "generate_clip_video", 1, async (args) => {
       const result = await generateClipVideoAction(args.videoId, args.clipNumber);
       if (!result.ok) throw new Error(result.error);
-      return result.project;
+      const loaded = await getVideoAction(args.videoId);
+      if (!loaded.ok) throw new Error(loaded.error);
+      return loaded.project;
     }),
   );
 

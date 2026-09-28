@@ -1,5 +1,5 @@
 import { mediaSrc } from "@/util/media-src";
-import { clipStatesFor, type ClipStageSource } from "@/service/clip-stage";
+import { canQueueFrames, clipStatesFor, type ClipStageSource } from "@/service/clip-stage";
 import type { ClipFrame, ProjectClip } from "@/model/project";
 
 // Credits per action. Frames are 1 each (start + end), a clip video is 1.
@@ -41,11 +41,10 @@ export function planRemaining(project: ClipStageSource): RemainingPlan {
   };
 }
 
-const BUSY_STAGES = new Set(["frames_generating", "video_generating"]);
 const VIDEO_READY_STAGES = new Set(["frames_ready", "video_failed", "video_ready"]);
 
-// Filmstrip multi-select: frames for any idle clip, videos only where both
-// frames are finished and newer than the last text edit.
+// Filmstrip multi-select: frames unless that pair is already drawing; videos
+// only where both frames are finished and newer than the last text edit.
 export function planSelected(
   project: ClipStageSource,
   clipNumbers: number[],
@@ -56,7 +55,7 @@ export function planSelected(
   );
   if (kind === "frames") {
     const frames = picked
-      .filter((state) => !BUSY_STAGES.has(state.stage))
+      .filter((state) => canQueueFrames(state))
       .map((state) => state.clipNumber);
     return { frames, videos: [], cost: frames.length * FRAMES_COST };
   }

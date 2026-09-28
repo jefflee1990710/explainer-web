@@ -1,7 +1,7 @@
 "use client";
 
 import { VideoListItem } from "@/presentation/components/app/projects/[id]/video-list-item";
-import type { PublicVideo } from "@/presentation/serialize";
+import type { PublicVideoCard } from "@/presentation/serialize";
 
 // Left pane of the folder workspace: pick a video or start a new one.
 export function VideoList({
@@ -10,7 +10,7 @@ export function VideoList({
   onSelect,
   onCreate,
 }: {
-  videos: PublicVideo[];
+  videos: PublicVideoCard[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onCreate: () => void;

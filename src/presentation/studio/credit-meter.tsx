@@ -1,9 +1,15 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { getCreditSnapshotAction } from "@/presentation/actions/billing";
 import { creditsUsed } from "@/service/billing/credit-balance";
+
+const POLL_MS = 5_000;
 
 // Compact header meter. The track fills with credits already spent this period.
 export function CreditMeter({
-  credits,
-  creditLimit,
+  credits: initialCredits,
+  creditLimit: initialLimit,
   creditsLabel,
   className = "min-w-28 max-sm:hidden",
 }: {
@@ -13,6 +19,37 @@ export function CreditMeter({
   // Layout/visibility overrides for where the meter is placed.
   className?: string;
 }) {
+  const [credits, setCredits] = useState(initialCredits);
+  const [creditLimit, setCreditLimit] = useState(initialLimit);
+  const inFlight = useRef(false);
+
+  useEffect(() => {
+    setCredits(initialCredits);
+    setCreditLimit(initialLimit);
+  }, [initialCredits, initialLimit]);
+
+  useEffect(() => {
+    let alive = true;
+    async function tick() {
+      if (inFlight.current) return;
+      inFlight.current = true;
+      try {
+        const result = await getCreditSnapshotAction();
+        if (!alive || !result.ok) return;
+        setCredits(result.credits);
+        setCreditLimit(result.creditLimit);
+      } finally {
+        inFlight.current = false;
+      }
+    }
+    void tick();
+    const timer = window.setInterval(tick, POLL_MS);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
   const { used, limit, ratio } = creditsUsed(credits, creditLimit);
   const percent = Math.round(ratio * 100);
   const hot = ratio >= 0.8;

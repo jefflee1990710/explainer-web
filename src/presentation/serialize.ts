@@ -1,6 +1,7 @@
 import { resolveDefaultVersion, versionNumber } from "@/service/character/versions";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { resolveVoiceGender } from "@/service/director/voice";
+import { productionCounts } from "@/service/clip-stage";
 import { folderRollupStatus } from "@/service/folder";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { resolveStyle, type StyleId } from "@/service/style";
@@ -66,6 +67,23 @@ export type PublicVideo = {
 
 export type PublicProject = PublicVideo; // remove after call sites updated
 
+// Card/list row: no storyboard, edit, or unused frame/clip payloads.
+export type PublicVideoCard = {
+  id: string;
+  title: string;
+  englishTitle: string;
+  source: string;
+  status: ProjectStatus;
+  aspectRatio: Project["aspectRatio"];
+  durationPreset: Project["durationPreset"];
+  language: NonNullable<Project["language"]>;
+  createdAt: string;
+  previewUrls: string[];
+  error?: string;
+  videosDone: number;
+  videosTotal: number;
+};
+
 export type PublicFolder = {
   id: string;
   name: string;
@@ -75,8 +93,35 @@ export type PublicFolder = {
   // Cover video frames, left to right, so 9:16 stills fit a 16:9 card.
   previewUrls: string[];
   createdAt: string;
-  videos: PublicVideo[];
+  videos: PublicVideoCard[];
 };
+
+// Mongo fields for folder/dashboard cards. Editor loads the rest on open.
+export const VIDEO_LIST_PROJECTION = {
+  _id: 1,
+  projectId: 1,
+  status: 1,
+  source: 1,
+  aspectRatio: 1,
+  durationPreset: 1,
+  language: 1,
+  createdAt: 1,
+  error: 1,
+  characterStillUrl: 1,
+  characterImageUrl: 1,
+  "phaseA.localizedTitle": 1,
+  "phaseA.englishTitle": 1,
+  "phaseA.clips.clipNumber": 1,
+  "frames.clipNumber": 1,
+  "frames.position": 1,
+  "frames.status": 1,
+  "frames.blobUrl": 1,
+  "frames.outputUrl": 1,
+  "clips.clipNumber": 1,
+  "clips.status": 1,
+  "clips.blobUrl": 1,
+  "clips.outputUrl": 1,
+} as const;
 
 export function toPublicSkill(skill: Skill): PublicSkill {
   return {
@@ -130,15 +175,60 @@ export function toPublicVideo(video: Project): PublicVideo {
   };
 }
 
+export function toPublicVideoCard(video: Project): PublicVideoCard {
+  const frames = video.frames || [];
+  const clips = video.clips || [];
+  const counts = productionCounts({ ...video, frames, clips });
+  const previewUrls = previewUrlsFromVideo({
+    frames,
+    characterStillUrl: video.characterStillUrl,
+    characterImageUrl: video.characterImageUrl,
+  });
+  return {
+    id: video._id.toHexString(),
+    title: video.phaseA?.localizedTitle || "",
+    englishTitle: video.phaseA?.englishTitle || "",
+    source: video.source,
+    status: normalizeProjectStatus(video.status),
+    aspectRatio: video.aspectRatio,
+    durationPreset: video.durationPreset,
+    language: video.language || "en",
+    createdAt: video.createdAt.toISOString(),
+    previewUrls,
+    error: video.error,
+    videosDone: counts.videosDone,
+    videosTotal: counts.total,
+  };
+}
+
+// Same card shape from an already-serialized editor video (optimistic create).
+export function toPublicVideoCardFromPublic(video: PublicVideo): PublicVideoCard {
+  const counts = productionCounts(video);
+  return {
+    id: video.id,
+    title: video.phaseA?.localizedTitle || "",
+    englishTitle: video.phaseA?.englishTitle || "",
+    source: video.source,
+    status: video.status,
+    aspectRatio: video.aspectRatio,
+    durationPreset: video.durationPreset,
+    language: video.language,
+    createdAt: video.createdAt,
+    previewUrls: previewUrlsFromVideo(video),
+    error: video.error,
+    videosDone: counts.videosDone,
+    videosTotal: counts.total,
+  };
+}
+
 export function toPublicFolder(folder: Folder, videos: Project[]): PublicFolder {
-  const publicVideos = videos
+  const cards = videos
     .slice()
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .map(toPublicVideo);
+    .map(toPublicVideoCard);
   const statuses = videos.map((video) => normalizeProjectStatus(video.status));
-  const cover =
-    publicVideos.find((video) => previewUrlsFromVideo(video).length > 0) || publicVideos[0];
-  const previewUrls = cover ? previewUrlsFromVideo(cover) : [];
+  const cover = cards.find((video) => video.previewUrls.length > 0) || cards[0];
+  const previewUrls = cover?.previewUrls ?? [];
   return {
     id: folder._id.toHexString(),
     name: folder.name,
@@ -147,15 +237,27 @@ export function toPublicFolder(folder: Folder, videos: Project[]): PublicFolder 
     previewUrl: previewUrls[0] || null,
     previewUrls,
     createdAt: folder.createdAt.toISOString(),
-    videos: publicVideos,
+    videos: cards,
   };
 }
 
 const PREVIEW_STRIP_MAX = 4;
 
+export type PreviewMediaSource = {
+  frames?: Array<{
+    clipNumber: number;
+    position: string;
+    status: string;
+    blobUrl?: string;
+    outputUrl?: string;
+  }>;
+  characterStillUrl?: string;
+  characterImageUrl?: string;
+};
+
 // Start frames first so the strip reads as a left-to-right scene sequence.
-export function previewUrlsFromVideo(video: PublicVideo, max = PREVIEW_STRIP_MAX) {
-  const completed = video.frames
+export function previewUrlsFromVideo(video: PreviewMediaSource, max = PREVIEW_STRIP_MAX) {
+  const completed = (video.frames || [])
     .filter((frame) => frame.status === "completed")
     .slice()
     .sort((a, b) => {
@@ -181,7 +283,8 @@ export function previewUrlsFromVideo(video: PublicVideo, max = PREVIEW_STRIP_MAX
   return urls;
 }
 
-function previewFromVideo(video: PublicVideo) {
+function previewFromVideo(video: PreviewMediaSource | Pick<PublicVideoCard, "previewUrls">) {
+  if ("previewUrls" in video) return video.previewUrls[0] || null;
   return previewUrlsFromVideo(video, 1)[0] || null;
 }
 

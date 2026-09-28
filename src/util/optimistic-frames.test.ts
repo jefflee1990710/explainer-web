@@ -162,6 +162,14 @@ test("clearClipsForAction drops the previous video on redo", () => {
   assert.equal(clips, clearClipsForAction(clips, "frame:1:start"));
 });
 
+test("clearClipsForAction inserts a queued clip when that video has never run", () => {
+  const next = clearClipsForAction([], "video:3");
+  assert.equal(next.length, 1);
+  assert.equal(next[0].clipNumber, 3);
+  assert.equal(next[0].status, "queued");
+  assert.equal(next[0].prompt, "");
+});
+
 test("mergePolledClips keeps the optimistic video wait until the server claim is newer", () => {
   const optimistic: ProjectClip[] = [
     {

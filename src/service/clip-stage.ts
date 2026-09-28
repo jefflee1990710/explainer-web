@@ -76,12 +76,12 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
         frames.some((frame) => isLater(frame.submittedAt, clip?.submittedAt))),
   };
 
-  // Precedence: active video > active frames > failed frames > finished video
-  // > failed video > frames ready > nothing. Frame activity outranks a finished
-  // video because the user is redrawing.
+  // Precedence: active frames > active video > failed frames > finished video
+  // > failed video > frames ready > nothing. Frame activity outranks a video
+  // so the user can redraw stills while a clip is still in the video queue.
   let stage: ClipStage;
-  if (isInFlight(clip)) stage = "video_generating";
-  else if (frames.some((frame) => isInFlight(frame))) stage = "frames_generating";
+  if (frames.some((frame) => isInFlight(frame))) stage = "frames_generating";
+  else if (isInFlight(clip)) stage = "video_generating";
   else if (frames.some((frame) => frame.status === "failed")) stage = "frames_failed";
   else if (isCompleted(clip)) stage = "video_ready";
   else if (clip?.status === "failed") stage = "video_failed";
@@ -98,6 +98,11 @@ function waitKind(items: Array<MediaItem | undefined>): ClipWait | undefined {
   if (flying.length === 0) return undefined;
   if (flying.some((item) => item.status !== "queued")) return "running";
   return "queued";
+}
+
+// Frame jobs are independent of a pending video; only an in-flight pair blocks.
+export function canQueueFrames(state: ClipState): boolean {
+  return state.stage !== "frames_generating";
 }
 
 export function clipStatesFor(project: ClipStageSource): ClipState[] {

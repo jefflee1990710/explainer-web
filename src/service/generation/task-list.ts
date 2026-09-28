@@ -5,6 +5,17 @@ import type { GenerationJob, GenerationKind, GenerationStatus } from "@/model/ge
 
 export type TaskStage = "queued" | "sending" | "generating" | "done" | "failed";
 
+const ACTIVE_STATUSES: GenerationStatus[] = ["pending", "submitting", "queued", "in_progress"];
+const SETTLED_STATUSES: GenerationStatus[] = ["completed", "failed", "nsfw"];
+// Finished jobs older than this drop off the default list.
+export const RECENT_SETTLED_MS = 6 * 60 * 60 * 1000;
+
+// Pending always; done/failed only while still fresh.
+export function isCurrentTask(stage: TaskStage, updatedAt: Date | string, now = Date.now()) {
+  if (stage !== "done" && stage !== "failed") return true;
+  return now - new Date(updatedAt).getTime() <= RECENT_SETTLED_MS;
+}
+
 // One generation job shaped for the task list UI.
 export type PublicTask = {
   id: string;
@@ -72,18 +83,29 @@ export async function listTasks(
   const characterById = new Map(characters.map((doc) => [doc._id.toHexString(), doc]));
 
   const jobs = await generationJobsCollection();
+  const cutoff = new Date(Date.now() - RECENT_SETTLED_MS);
   const docs = await jobs
     .find({
-      $or: [
-        { projectId: { $in: videoDocs.map((doc) => doc._id) } },
-        { characterId: { $in: characters.map((doc) => doc._id) } },
+      $and: [
+        {
+          $or: [
+            { projectId: { $in: videoDocs.map((doc) => doc._id) } },
+            { characterId: { $in: characters.map((doc) => doc._id) } },
+          ],
+        },
+        {
+          $or: [
+            { status: { $in: ACTIVE_STATUSES } },
+            { status: { $in: SETTLED_STATUSES }, updatedAt: { $gte: cutoff } },
+          ],
+        },
       ],
     })
-    .sort({ createdAt: -1 })
+    .sort({ updatedAt: -1 })
     .limit(options.limit ?? 100)
     .toArray();
 
-  return docs.map((job) => {
+  const tasks = docs.map((job) => {
     const video = job.projectId ? videoById.get(job.projectId.toHexString()) : undefined;
     const character = job.characterId ? characterById.get(job.characterId.toHexString()) : undefined;
     return {
@@ -102,6 +124,13 @@ export async function listTasks(
       createdAt: job.createdAt.toISOString(),
       updatedAt: job.updatedAt.toISOString(),
     };
+  });
+  // In-flight first, then newest settled.
+  return tasks.sort((left, right) => {
+    const leftDone = left.stage === "done" || left.stage === "failed" ? 1 : 0;
+    const rightDone = right.stage === "done" || right.stage === "failed" ? 1 : 0;
+    if (leftDone !== rightDone) return leftDone - rightDone;
+    return Date.parse(right.updatedAt) - Date.parse(left.updatedAt);
   });
 }
 

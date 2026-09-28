@@ -30,6 +30,11 @@ import {
 } from "@/presentation/actions/projects";
 import { composeReelAction } from "@/presentation/actions/reel";
 import { isProjectBusy } from "@/service/clip-stage";
+import {
+  costForPaidKey,
+  paidActionProject,
+  type PaidActionResult,
+} from "@/presentation/components/app/projects/new/paid-action";
 import { mergePolledProject, projectWithClearedFrames } from "@/util/optimistic-frames";
 import { isReelBusy } from "@/service/reel/fingerprint";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
@@ -133,8 +138,15 @@ export function NewProjectForm({
     step: number;
   } | null>(null);
   const [confirmBrief, setConfirmBrief] = useState(false);
+  // Header RSC credits stay stale until poll; keep a local wallet for gates.
+  const [walletCredits, setWalletCredits] = useState(credits);
   // Previous stills, restored if the redo action never reaches the server.
   const redoSnapshotRef = useRef<PublicVideo | null>(null);
+  const creditsSnapshotRef = useRef(credits);
+
+  useEffect(() => {
+    setWalletCredits(credits);
+  }, [credits]);
 
   const onPollUpdate = useCallback((next: PublicVideo) => {
     setProject((current) => (current ? mergePolledProject(current, next) : next));
@@ -241,14 +253,12 @@ export function NewProjectForm({
 
   // Shared handler for every server action behind a paid button; billing errors
   // bounce to /app/billing.
-  async function runPaid(
-    key: string,
-    action: () => Promise<
-      { ok: true; project: PublicVideo } | { ok: false; error: string }
-    >,
-  ) {
+  async function runPaid(key: string, action: () => Promise<PaidActionResult>) {
     setPending(key);
     setError("");
+    creditsSnapshotRef.current = walletCredits;
+    const spend = costForPaidKey(key);
+    if (spend > 0) setWalletCredits((current) => current - spend);
     // Hide the old still/video immediately; the server write lands a moment later.
     setProject((current) => {
       if (!current) return current;
@@ -259,6 +269,7 @@ export function NewProjectForm({
     const result = await action();
     setPending("");
     if (!result.ok) {
+      setWalletCredits(creditsSnapshotRef.current);
       if (redoSnapshotRef.current) {
         setProject(redoSnapshotRef.current);
         redoSnapshotRef.current = null;
@@ -270,10 +281,12 @@ export function NewProjectForm({
       return false;
     }
     redoSnapshotRef.current = null;
-    setProject(result.project);
-    // Credits were just spent; refresh the server components so the header
-    // balance and every `credits < cost` gate below it stop showing the old one.
-    router.refresh();
+    const nextProject = paidActionProject(result);
+    if (nextProject) {
+      setProject(nextProject);
+      // Bulk / rewrite still return a full snapshot; refresh lists and wallet.
+      router.refresh();
+    }
     return true;
   }
 
@@ -649,7 +662,7 @@ export function NewProjectForm({
             <div key="production" className="flex min-h-0 flex-1 flex-col">
             <ClipProduction
               project={project}
-              credits={credits}
+              credits={walletCredits}
               pending={pending}
               error={error}
               onGenerateFrames={onGenerateFrames}

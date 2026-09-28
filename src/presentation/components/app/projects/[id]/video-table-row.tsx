@@ -4,31 +4,26 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
-import { productionCounts } from "@/service/clip-stage";
 import { projectStatusLabel } from "@/util/project-status-i18n";
 import { STATUS_META } from "@/service/project-status";
-import { videoPreviewUrl, type PublicVideo } from "@/presentation/serialize";
+import { videoPreviewUrl, type PublicVideoCard } from "@/presentation/serialize";
 
 // One generated video as a selectable table row.
 export function VideoTableRow({
   video,
   onSelect,
 }: {
-  video: PublicVideo;
+  video: PublicVideoCard;
   onSelect: (id: string) => void;
 }) {
   const { t } = useI18n();
   const preview = videoPreviewUrl(video);
-  const title = video.phaseA?.localizedTitle || "未命名影片";
+  const title = video.title || "未命名影片";
   const label = projectStatusLabel(video.status, t);
   const meta = STATUS_META[video.status];
-  const counts =
-    video.status === "production" || video.status === "ready"
-      ? productionCounts(video)
-      : null;
   const progress =
-    counts && counts.total > 0
-      ? `影片 ${counts.videosDone}/${counts.total}`
+    (video.status === "production" || video.status === "ready") && video.videosTotal > 0
+      ? `影片 ${video.videosDone}/${video.videosTotal}`
       : video.status === "failed" && video.error
         ? video.error
         : null;

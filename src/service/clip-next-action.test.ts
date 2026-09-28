@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { clipNextAction } from "@/service/clip-next-action";
+import { canQueueFrames, canRedrawFrames, clipNextAction } from "@/service/clip-next-action";
 import type { ClipStage, ClipState } from "@/service/clip-stage";
 
 function state(
@@ -10,6 +10,15 @@ function state(
 ): ClipState {
   return { clipNumber: 1, stage, stale, wait };
 }
+
+test("can queue frames while a video is pending, but not while frames are drawing", () => {
+  assert.equal(canQueueFrames(state("video_generating")), true);
+  assert.equal(canQueueFrames(state("frames_ready")), true);
+  assert.equal(canQueueFrames(state("frames_generating")), false);
+  assert.equal(canRedrawFrames(state("video_generating"), true), true);
+  assert.equal(canRedrawFrames(state("frames_generating"), true), false);
+  assert.equal(canRedrawFrames(state("no_frames"), false), false);
+});
 
 test("generating stages are busy with no cost", () => {
   assert.equal(clipNextAction(state("frames_generating")).kind, "busy");

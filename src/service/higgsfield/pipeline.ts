@@ -227,7 +227,8 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
     { _id: project._id },
     { $set: { status: "production", updatedAt: new Date() } },
   );
-  await syncProjectFromJobs(project._id);
+  // Do not reconcile here: enqueue should return after the jobs are written.
+  // Cron / webhook / poll call syncProjectFromJobs once the provider moves.
   return { deferred };
 }
 

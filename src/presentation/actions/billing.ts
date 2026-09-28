@@ -19,3 +19,9 @@ export async function startPackCheckoutAction(
 ) {
   return service.startPackCheckoutAction(...args);
 }
+
+export async function getCreditSnapshotAction(
+  ...args: Parameters<typeof service.getCreditSnapshotAction>
+) {
+  return service.getCreditSnapshotAction(...args);
+}

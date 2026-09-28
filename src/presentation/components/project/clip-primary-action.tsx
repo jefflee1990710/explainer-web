@@ -4,7 +4,7 @@ import Link from "next/link";
 import { RefreshIcon } from "@/presentation/components/project/production-icons";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
-import { clipNextAction } from "@/service/clip-next-action";
+import { canRedrawFrames, clipNextAction } from "@/service/clip-next-action";
 import { FRAMES_COST } from "@/service/production-plan";
 import type { ClipState } from "@/service/clip-stage";
 
@@ -44,8 +44,8 @@ export function ClipPrimaryAction({
     else if (action.kind === "next" && nextUnfinished !== undefined) onSelect(nextUnfinished);
   }
 
-  // Redraw stays available once frames exist, unless it is already the main action.
-  const showRedraw = hasFrames && action.kind !== "frames" && action.kind !== "busy";
+  // Redraw stays available once frames exist, including while a video is queued.
+  const showRedraw = canRedrawFrames(state, hasFrames) && action.kind !== "frames";
 
   return (
     <div className="flex flex-col gap-2">
