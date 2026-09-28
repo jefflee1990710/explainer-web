@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { ObjectId } from "mongodb";
-import { requireAppUser } from "@/service/auth";
+import { requireAppUser, requireClerkUserId } from "@/service/auth";
 import { resolveDefaultVersion } from "@/service/character/versions";
 import {
   charactersCollection,
@@ -607,14 +607,15 @@ export async function deleteVideoAction(
 // Lightweight read used by the client while a background job is running.
 export async function getVideoAction(videoId: string): Promise<VideoResult> {
   try {
-    const user = await requireAppUser();
+    // Editor open + poll: ownership check only, skip affiliate/user round-trips.
+    const clerkUserId = await requireClerkUserId();
     if (!ObjectId.isValid(videoId)) {
       return { ok: false, error: "專案不存在" };
     }
     const videos = await videosCollection();
     const video = await videos.findOne({
       _id: new ObjectId(videoId),
-      clerkUserId: user.clerkUserId,
+      clerkUserId,
     });
     if (!video) return { ok: false, error: "專案不存在" };
     // Leftover 核准分鏡 videos enter 製作 the first time they are opened.

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getProjectAction } from "@/presentation/actions/projects";
 import { Spinner } from "@/presentation/components/spinner";
@@ -46,6 +46,10 @@ export function ProjectWorkspace({
   const [editorOpen, setEditorOpen] = useState(() => Boolean(videoParam));
   const [freshById, setFreshById] = useState<Record<string, PublicVideo>>({});
   const [fetchingId, setFetchingId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const inflightLoad = useRef<Set<string>>(new Set());
+  const activeVideoIdRef = useRef(activeVideoId);
+  activeVideoIdRef.current = activeVideoId;
   const [optimisticVideo, setOptimisticVideo] = useState<PublicVideo | null>(null);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -81,22 +85,35 @@ export function ProjectWorkspace({
     [pathname],
   );
 
-  // Full document is loaded only when the editor opens.
+  // Full document for the editor; list cards are too light to render the form.
+  const loadVideo = useCallback((id: string) => {
+    if (freshById[id] || inflightLoad.current.has(id)) return;
+    inflightLoad.current.add(id);
+    setFetchingId(id);
+    void getProjectAction(id).then((result) => {
+      inflightLoad.current.delete(id);
+      setFetchingId((current) => (current === id ? null : current));
+      if (result.ok) {
+        setFreshById((prev) => ({ ...prev, [id]: result.project }));
+        if (activeVideoIdRef.current === id) setLoadError("");
+        return;
+      }
+      if (activeVideoIdRef.current === id) setLoadError(result.error);
+    });
+  }, [freshById]);
+
   useEffect(() => {
     if (!activeVideoId) return;
-    let cancelled = false;
-    setFetchingId(activeVideoId);
-    void getProjectAction(activeVideoId).then((result) => {
-      if (cancelled) return;
-      setFetchingId((current) => (current === activeVideoId ? null : current));
-      if (result.ok) {
-        setFreshById((prev) => ({ ...prev, [activeVideoId]: result.project }));
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeVideoId]);
+    setLoadError("");
+    loadVideo(activeVideoId);
+  }, [activeVideoId, loadVideo]);
+
+  const prefetchVideo = useCallback(
+    (id: string) => {
+      loadVideo(id);
+    },
+    [loadVideo],
+  );
 
   const selectedVideo = useMemo(() => {
     if (!activeVideoId || hiddenIds.has(activeVideoId)) return null;
@@ -191,7 +208,7 @@ export function ProjectWorkspace({
           </div>
         </header>
 
-        <VideoTable videos={videos} onSelect={onSelect} />
+        <VideoTable videos={videos} onSelect={onSelect} onPrefetch={prefetchVideo} />
       </div>
 
       {editorOpen ? (
@@ -211,10 +228,29 @@ export function ProjectWorkspace({
         >
           {videoLoading ? (
             <div className="grid min-h-[16rem] place-items-center p-6">
-              <p className="inline-flex items-center gap-2 text-sm text-muted">
-                <Spinner />
-                載入影片中…
-              </p>
+              {loadError ? (
+                <div className="max-w-sm space-y-3 text-center">
+                  <p className="text-sm text-accent" role="alert">
+                    {loadError}
+                  </p>
+                  <button
+                    type="button"
+                    className="cursor-pointer rounded-full border border-[var(--studio-line)] px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-[var(--studio-fill)]"
+                    onClick={() => {
+                      if (!activeVideoId) return;
+                      setLoadError("");
+                      loadVideo(activeVideoId);
+                    }}
+                  >
+                    重試
+                  </button>
+                </div>
+              ) : (
+                <p className="inline-flex items-center gap-2 text-sm text-muted">
+                  <Spinner />
+                  載入影片中…
+                </p>
+              )}
             </div>
           ) : (
             <NewProjectForm

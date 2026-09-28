@@ -13,9 +13,11 @@ const ease = [0.22, 1, 0.36, 1] as const;
 export function VideoGridCard({
   video,
   onSelect,
+  onPrefetch,
 }: {
   video: PublicVideoCard;
   onSelect: (id: string) => void;
+  onPrefetch?: (id: string) => void;
 }) {
   const previews = video.previewUrls;
   const title = video.title || "未命名影片";
@@ -45,6 +47,7 @@ export function VideoGridCard({
       <button
         type="button"
         onClick={() => onSelect(video.id)}
+        onPointerEnter={() => onPrefetch?.(video.id)}
         className="flex h-full cursor-pointer flex-col text-left"
       >
         <span className="relative block aspect-video overflow-hidden bg-accent-ink/5">

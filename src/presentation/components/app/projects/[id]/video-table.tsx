@@ -10,9 +10,12 @@ import type { PublicVideoCard } from "@/presentation/serialize";
 export function VideoTable({
   videos,
   onSelect,
+  onPrefetch,
 }: {
   videos: PublicVideoCard[];
   onSelect: (id: string) => void;
+  // Warm the full document while the pointer rests on a card.
+  onPrefetch?: (id: string) => void;
 }) {
   const [page, setPage] = useState(1);
   const pages = pageCount(videos.length);
@@ -29,7 +32,12 @@ export function VideoTable({
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {rows.map((video) => (
-              <VideoGridCard key={video.id} video={video} onSelect={onSelect} />
+              <VideoGridCard
+                key={video.id}
+                video={video}
+                onSelect={onSelect}
+                onPrefetch={onPrefetch}
+              />
             ))}
           </div>
           <VideoTablePager page={safePage} pages={pages} onPage={setPage} />
