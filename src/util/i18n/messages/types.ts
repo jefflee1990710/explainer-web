@@ -7,6 +7,7 @@ export type Messages = {
   nav: {
     projects: string;
     characters: string;
+    tasks: string;
     mcp: string;
     affiliate: string;
     billing: string;

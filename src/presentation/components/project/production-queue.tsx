@@ -3,21 +3,29 @@
 import type { InFlightCounts } from "@/service/clip-stage";
 
 // Live queue on the production strip: images and videos waiting vs running.
+// Clicking it opens this video's task list.
 export function ProductionQueue({
   framesQueued,
   framesGenerating,
   videosQueued,
   videosGenerating,
-}: InFlightCounts) {
+  onOpen,
+}: InFlightCounts & { onOpen: () => void }) {
   const frames = framesQueued + framesGenerating;
   const videos = videosQueued + videosGenerating;
   if (frames === 0 && videos === 0) return null;
 
   return (
-    <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--studio-ink)]">
+    <button
+      type="button"
+      onClick={onOpen}
+      title="查看生成任務"
+      aria-haspopup="dialog"
+      className="flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--studio-ink)] hover:underline"
+    >
       <QueueKind label="畫格" queued={framesQueued} generating={framesGenerating} />
       <QueueKind label="影片" queued={videosQueued} generating={videosGenerating} />
-    </span>
+    </button>
   );
 }
 

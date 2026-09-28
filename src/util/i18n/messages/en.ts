@@ -9,6 +9,7 @@ export const en: Messages = {
   nav: {
     projects: "Projects",
     characters: "Characters",
+    tasks: "Tasks",
     mcp: "MCP",
     affiliate: "Affiliate",
     billing: "Billing",

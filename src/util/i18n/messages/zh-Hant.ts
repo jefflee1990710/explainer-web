@@ -9,6 +9,7 @@ export const zhHant: Messages = {
   nav: {
     projects: "專案",
     characters: "角色",
+    tasks: "生成任務",
     mcp: "MCP",
     affiliate: "Affiliate",
     billing: "訂閱",
