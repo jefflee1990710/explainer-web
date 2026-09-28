@@ -15,6 +15,7 @@ import { sceneTextNegativePrompt, resolveSceneText } from "@/service/director/sc
 import { imageModelForSubmit, resolveImageRoute } from "@/service/generation/image-backend";
 import { buildFramePrompt, videoStyle } from "@/service/higgsfield/frame-prompts";
 import {
+  orphanQueuedClips,
   orphanQueuedFrames,
   positionsToFail,
   unsubmittedPositions,
@@ -606,6 +607,8 @@ export async function submitDeferredEndIfNeeded(
   await syncProjectFromJobs(projectId);
 }
 
+const ORPHAN_CLIP_ERROR = "影片沒有送出，credit 已退回，請再試一次";
+
 // Reconcile every clip from its newest jobs, regardless of project status.
 export async function syncProjectFromJobs(projectId: ObjectId) {
   const projects = await videosCollection();
@@ -651,7 +654,32 @@ export async function syncProjectFromJobs(projectId: ObjectId) {
     );
     if (claimed) await refundCredits(project.clerkUserId, FRAME_COST);
   }
-  const current = orphans.length
+  // A charged clip video whose job never got inserted (or was lost) has nothing
+  // to send or settle it. Fenced on the claim so a newer attempt is never failed.
+  const orphanClips = orphanQueuedClips(project.clips || [], allJobs, Date.now(), STUCK_CLAIM_MS);
+  for (const orphan of orphanClips) {
+    const claimed = await projects.findOneAndUpdate(
+      {
+        _id: projectId,
+        clips: {
+          $elemMatch: {
+            clipNumber: orphan.clipNumber,
+            status: "queued",
+            submittedAt: orphan.submittedAt,
+          },
+        },
+      },
+      {
+        $set: {
+          "clips.$.status": "failed",
+          "clips.$.error": ORPHAN_CLIP_ERROR,
+          updatedAt: new Date(),
+        },
+      },
+    );
+    if (claimed) await refundCredits(project.clerkUserId, VIDEO_COST);
+  }
+  const current = orphans.length || orphanClips.length
     ? (await projects.findOne({ _id: projectId })) || project
     : project;
   const still = allJobs

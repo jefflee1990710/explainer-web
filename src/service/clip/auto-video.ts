@@ -90,6 +90,8 @@ export async function claimAndStartClipVideo(
         },
       );
   if (!claimed) return { ok: false, error: "這段正在生成中", retry: true };
+  // Taking over a stuck claim settles it: its charge had no job, so hand it back.
+  if (stuck) await refundCredits(clerkUserId, VIDEO_COST);
 
   try {
     await consumeCredits(clerkUserId, VIDEO_COST);

@@ -30,8 +30,12 @@ import {
   markRetry,
   markSubmitted,
 } from "@/service/generation/task-store";
+import { STUCK_CLAIM_MS } from "@/service/production-plan";
 import type { Sent } from "@/service/generation/sent";
 import type { GenerationJob } from "@/model/generation-job";
+
+// Projects per refresh run checked for a stale queued clip claim.
+const STALE_CLIP_SWEEP_LIMIT = 50;
 
 // `lost`: our lock expired and another runner now owns the job.
 type RunOutcome = "sent" | "retried" | "failed" | "lost";
@@ -170,6 +174,25 @@ export async function refreshSubmittedJobs() {
       console.error("[queue] project refresh failed", { projectId, error }),
     );
   }
+  // Projects with no due job still need a sync when a charged clip claim went
+  // stale (e.g. its job was never inserted), so the orphan sweep can refund it.
+  const staleClaimCutoff = new Date(Date.now() - STUCK_CLAIM_MS).toISOString();
+  const projects = await videosCollection();
+  const staleClipProjects = await projects
+    .find(
+      { clips: { $elemMatch: { status: "queued", submittedAt: { $lt: staleClaimCutoff } } } },
+      { projection: { _id: 1 } },
+    )
+    .sort({ updatedAt: 1 })
+    .limit(STALE_CLIP_SWEEP_LIMIT)
+    .toArray();
+  for (const { _id } of staleClipProjects) {
+    if (projectIds.has(_id.toHexString())) continue;
+    await syncProjectFromJobs(_id).catch((error) =>
+      console.error("[queue] stale clip sweep failed", { projectId: _id, error }),
+    );
+  }
+
   for (const job of due.filter((item) => item.kind === "character")) {
     if (!job.statusUrl || !job.requestId) continue;
     try {
@@ -202,5 +225,5 @@ export async function refreshSubmittedJobs() {
     if (!providerTimedOut(job, now)) continue;
     if (await failJob(job, "產生逾時，credit 已退回")) timedOut += 1;
   }
-  return { refreshed: due.length, timedOut };
+  return { refreshed: due.length, timedOut, staleClipProjects: staleClipProjects.length };
 }
