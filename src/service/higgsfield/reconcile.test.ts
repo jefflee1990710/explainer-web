@@ -215,3 +215,37 @@ test("nextProjectStatus: production ↔ ready, other statuses untouched", () => 
   assert.equal(nextProjectStatus({ status: "awaiting_approval", phaseA: rows, clips: [] }), "production");
   assert.equal(nextProjectStatus({ status: "phase_a", clips: [] }), "phase_a");
 });
+
+test("a pending frame job clears the old still and shows queued", () => {
+  const frames: ClipFrame[] = [
+    {
+      clipNumber: 1,
+      position: "start",
+      status: "completed",
+      prompt: "p",
+      blobUrl: "https://old/still.png",
+      submittedAt: "2026-01-01T00:00:00.000Z",
+    },
+  ];
+  const [frame] = reconcileFrames(frames, [
+    job({ kind: "frame", clipIndex: 0, framePosition: "start", status: "pending", requestId: undefined }),
+  ]);
+  assert.equal(frame.status, "queued");
+  assert.equal(frame.blobUrl, undefined);
+});
+
+test("a submitting clip job clears the old video", () => {
+  const clips: ProjectClip[] = [
+    {
+      clipNumber: 1,
+      durationSeconds: 6,
+      prompt: "",
+      status: "completed",
+      blobUrl: "https://old/clip.mp4",
+      submittedAt: "2026-01-01T00:00:00.000Z",
+    },
+  ];
+  const [clip] = reconcileClips(clips, [job({ kind: "video", clipIndex: 0, status: "submitting" })]);
+  assert.equal(clip.status, "queued");
+  assert.equal(clip.blobUrl, undefined);
+});
