@@ -3,7 +3,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 export const ja: Partial<Messages> = {
   meta: { title: "Explainer — 解説動画", description: "アイデアを Reels、マーケティング用 clips、プレゼン動画に変換。スタイルを選び、絵コンテを承認して clips を書き出せます。" },
   nav: { projects: "プロジェクト", characters: "キャラクター", tasks: "タスク", mcp: "MCP", affiliate: "Affiliate", billing: "請求", pricing: "料金", signIn: "ログイン", workspace: "ワークスペース", language: "言語" },
-  common: { credits: "credits", perMonth: "/ 月", cancel: "キャンセル", save: "保存", close: "閉じる", create: "作成", loading: "読み込み中…", popular: "一番人気", subscribe: "登録する" },
+  common: { credits: "credits", pending: "処理中", perMonth: "/ 月", cancel: "キャンセル", save: "保存", close: "閉じる", create: "作成", loading: "読み込み中…", popular: "一番人気", subscribe: "登録する" },
   landing: {
     hero: {
       kicker: "Explainer",

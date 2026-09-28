@@ -20,6 +20,7 @@ export const zhHant: Messages = {
   },
   common: {
     credits: "credits",
+    pending: "進行中",
     perMonth: "/ 月",
     cancel: "取消",
     save: "儲存",

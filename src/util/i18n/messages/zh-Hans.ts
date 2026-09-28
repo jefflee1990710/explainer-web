@@ -19,6 +19,7 @@ export const zhHans: Partial<Messages> = {
   },
   common: {
     credits: "credits",
+    pending: "进行中",
     perMonth: "/ 月",
     cancel: "取消",
     save: "保存",

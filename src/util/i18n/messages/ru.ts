@@ -3,7 +3,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 export const ru: Partial<Messages> = {
   meta: { title: "Explainer — Объясняющие видео", description: "Превращайте идеи в Reels, маркетинговые clips и видео для презентаций. Выберите стиль, утвердите раскадровки и экспортируйте clips." },
   nav: { projects: "Проекты", characters: "Персонажи", tasks: "Задачи", mcp: "MCP", affiliate: "Affiliate", billing: "Оплата", pricing: "Тарифы", signIn: "Войти", workspace: "Рабочая область", language: "Язык" },
-  common: { credits: "credits", perMonth: "/ мес.", cancel: "Отмена", save: "Сохранить", close: "Закрыть", create: "Создать", loading: "Загрузка…", popular: "Самый популярный", subscribe: "Оформить подписку" },
+  common: { credits: "credits", pending: "в очереди", perMonth: "/ мес.", cancel: "Отмена", save: "Сохранить", close: "Закрыть", create: "Создать", loading: "Загрузка…", popular: "Самый популярный", subscribe: "Оформить подписку" },
   landing: {
     hero: { kicker: "Explainer", title: "Объясняйте идеи понятно с помощью Reels, маркетинговых видео и презентаций.", subtitle: "Выберите стиль, утвердите раскадровки и экспортируйте clips для коротких видео, продуктового маркетинга и презентаций.", ctaStart: "Начать", ctaWorkspace: "Открыть рабочую область", ctaPricing: "Посмотреть тарифы", artLabel: "Концептуальная иллюстрация раскадровки и монтажа" },
     steps: {

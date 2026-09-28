@@ -18,6 +18,7 @@ export type Messages = {
   };
   common: {
     credits: string;
+    pending: string;
     perMonth: string;
     cancel: string;
     save: string;

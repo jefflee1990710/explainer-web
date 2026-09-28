@@ -3,7 +3,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 export const fr: Partial<Messages> = {
   meta: { title: "Explainer — Vidéos explicatives", description: "Transformez vos concepts en Reels, clips marketing et vidéos de présentation. Choisissez un style, validez les storyboards et exportez vos clips." },
   nav: { projects: "Projets", characters: "Personnages", tasks: "Tâches", mcp: "MCP", affiliate: "Affiliate", billing: "Facturation", pricing: "Tarifs", signIn: "Se connecter", workspace: "Espace de travail", language: "Langue" },
-  common: { credits: "credits", perMonth: "/ mois", cancel: "Annuler", save: "Enregistrer", close: "Fermer", create: "Créer", loading: "Chargement…", popular: "Le plus populaire", subscribe: "S’abonner" },
+  common: { credits: "credits", pending: "en cours", perMonth: "/ mois", cancel: "Annuler", save: "Enregistrer", close: "Fermer", create: "Créer", loading: "Chargement…", popular: "Le plus populaire", subscribe: "S’abonner" },
   landing: {
     hero: { kicker: "Explainer", title: "Expliquez clairement vos idées avec des Reels, des vidéos marketing et des présentations.", subtitle: "Choisissez un style, validez les storyboards et exportez des clips pour vos vidéos courtes, votre marketing produit et vos présentations.", ctaStart: "Commencer", ctaWorkspace: "Ouvrir l’espace de travail", ctaPricing: "Voir les offres", artLabel: "Illustration conceptuelle du storyboard et du montage" },
     steps: {

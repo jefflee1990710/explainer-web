@@ -20,6 +20,7 @@ export const en: Messages = {
   },
   common: {
     credits: "credits",
+    pending: "pending",
     perMonth: "/ mo",
     cancel: "Cancel",
     save: "Save",

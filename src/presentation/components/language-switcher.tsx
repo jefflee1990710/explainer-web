@@ -4,7 +4,14 @@ import { LOCALE_OPTIONS, type LocaleId } from "@/util/i18n";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 // Compact locale picker; preference persists in localStorage + cookie.
-export function LanguageSwitcher({ className = "" }: { className?: string }) {
+export function LanguageSwitcher({
+  className = "",
+  selectClassName = "max-w-[9rem] sm:max-w-none",
+}: {
+  className?: string;
+  // Width overrides for the select (e.g. fill a sidebar).
+  selectClassName?: string;
+}) {
   const { locale, setLocale, t } = useI18n();
 
   return (
@@ -15,7 +22,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
         value={locale}
         onChange={(event) => setLocale(event.target.value as LocaleId)}
         aria-label={t("nav.language")}
-        className="min-h-[36px] max-w-[9rem] cursor-pointer rounded-full border border-accent-ink/15 bg-paper/80 py-1 pl-2 pr-7 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:max-w-none"
+        className={`min-h-[36px] cursor-pointer rounded-full border border-accent-ink/15 bg-paper/80 py-1 pl-2 pr-7 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${selectClassName}`}
       >
         {LOCALE_OPTIONS.map((option) => (
           <option key={option.id} value={option.id}>

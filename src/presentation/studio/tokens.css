@@ -139,3 +139,24 @@
 .studio-app [class*="bg-lime/"] {
   background-color: var(--studio-cyan-soft);
 }
+
+/* Sliding fill for the header task meter while jobs are still pending. */
+@keyframes studio-task-meter {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+.studio-app .studio-task-meter-bar {
+  animation: studio-task-meter 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-app .studio-task-meter-bar {
+    animation: none;
+    width: 40%;
+  }
+}

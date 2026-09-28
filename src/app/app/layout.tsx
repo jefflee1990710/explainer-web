@@ -3,7 +3,7 @@ import { AppShell } from "@/presentation/components/app-shell";
 import { requireAppUser } from "@/service/auth";
 import { countActiveTasks } from "@/service/generation/task-list";
 
-// Sidebar badge count; a DB hiccup must not take down the whole app shell.
+// Header meter count; a DB hiccup must not take down the whole app shell.
 async function safeCountActiveTasks(clerkUserId: string) {
   try {
     return await countActiveTasks(clerkUserId);

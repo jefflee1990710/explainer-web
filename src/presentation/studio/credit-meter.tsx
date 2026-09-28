@@ -5,17 +5,22 @@ export function CreditMeter({
   credits,
   creditLimit,
   creditsLabel,
+  className = "min-w-28 max-sm:hidden",
 }: {
   credits: number;
   creditLimit: number;
   creditsLabel: string;
+  // Layout/visibility overrides for where the meter is placed.
+  className?: string;
 }) {
   const { used, limit, ratio } = creditsUsed(credits, creditLimit);
   const percent = Math.round(ratio * 100);
   const hot = ratio >= 0.8;
 
   return (
-    <div className="flex min-w-28 flex-col gap-1 rounded-md border border-[var(--studio-line)] bg-[var(--studio-panel)] px-2.5 py-1 max-sm:hidden">
+    <div
+      className={`flex flex-col gap-1 rounded-md border border-[var(--studio-line)] bg-[var(--studio-panel)] px-2.5 py-1 ${className}`}
+    >
       <span className="whitespace-nowrap text-xs font-semibold tabular-nums">
         {credits} {creditsLabel}
       </span>

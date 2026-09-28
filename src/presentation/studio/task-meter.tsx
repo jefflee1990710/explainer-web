@@ -1,0 +1,84 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { listTasksAction } from "@/presentation/actions/tasks";
+
+const POLL_MS = 5_000;
+
+// Header shortcut to /app/tasks: pending count + a live progress track.
+export function TaskMeter({
+  pending: initialPending,
+  tasksLabel,
+  pendingLabel,
+}: {
+  pending: number;
+  tasksLabel: string;
+  pendingLabel: string;
+}) {
+  const pathname = usePathname();
+  const [pending, setPending] = useState(initialPending);
+  const inFlight = useRef(false);
+  const active = pathname === "/app/tasks" || pathname.startsWith("/app/tasks/");
+
+  useEffect(() => {
+    let alive = true;
+    async function tick() {
+      if (inFlight.current) return;
+      inFlight.current = true;
+      try {
+        const result = await listTasksAction();
+        if (!alive || !result.ok) return;
+        setPending(result.tasks.filter((task) => task.stage !== "done" && task.stage !== "failed").length);
+      } finally {
+        inFlight.current = false;
+      }
+    }
+    void tick();
+    const timer = window.setInterval(tick, POLL_MS);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  return (
+    <Link
+      href="/app/tasks"
+      aria-current={active ? "page" : undefined}
+      aria-label={`${tasksLabel}, ${pending} ${pendingLabel}`}
+      className={`flex min-w-28 flex-col gap-1 rounded-md border px-2.5 py-1 ${
+        active
+          ? "border-[var(--studio-teal)]/40 bg-[var(--studio-cyan-soft)]"
+          : "border-[var(--studio-line)] bg-[var(--studio-panel)] hover:bg-[var(--studio-fill)]"
+      }`}
+    >
+      <span className="flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold tabular-nums">
+        <TasksIcon />
+        {pending} {pendingLabel}
+      </span>
+      <div
+        className="h-1.5 overflow-hidden rounded-full bg-[var(--studio-line)]"
+        role="progressbar"
+        aria-label={pendingLabel}
+        aria-valuemin={0}
+        aria-valuenow={pending}
+        aria-busy={pending > 0}
+      >
+        {pending > 0 ? (
+          <div className="studio-task-meter-bar h-full w-1/3 rounded-full bg-[var(--studio-teal)]" />
+        ) : null}
+      </div>
+    </Link>
+  );
+}
+
+function TasksIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <path d="M9 6h11M9 12h11M9 18h11" />
+      <path d="m3.5 6 1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17" />
+    </svg>
+  );
+}
