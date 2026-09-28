@@ -169,13 +169,27 @@ export async function regenerateFrameAction(
       },
     );
 
-    // Submission is a single fast request; run inline so the frame shows
-    // in-progress feedback immediately.
+    // Anything older than this belongs to a previous attempt and cannot prove
+    // that this one was queued.
+    const attemptStartedAt = new Date();
     try {
       await regenerateFrame(project, clipNumber, position, revision);
     } catch (error) {
-      // Nothing went out: give the credit back.
-      await refundCredits(user.clerkUserId, FRAME_COST, spendKey);
+      // A job queued by this attempt owns the credit (it refunds itself on
+      // failure). Only when none exists, fail this frame and refund here; the
+      // clip's other frame was not part of this redo and is never touched.
+      const message = error instanceof Error ? error.message : "分鏡圖送出失敗";
+      const missed = await failUnsubmittedFrames(
+        project._id,
+        clipNumber,
+        message,
+        attemptStartedAt,
+        [position === "start" ? "end" : "start"],
+        { strict: true },
+      );
+      if (missed > 0) {
+        await refundCredits(user.clerkUserId, missed * FRAME_COST, spendKey);
+      }
       throw error;
     }
 

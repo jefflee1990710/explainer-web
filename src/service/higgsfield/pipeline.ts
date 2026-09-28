@@ -14,7 +14,11 @@ import { flattenToCanvas } from "@/service/higgsfield/flatten";
 import { sceneTextNegativePrompt, resolveSceneText } from "@/service/director/scene-text";
 import { imageModelForSubmit, resolveImageRoute } from "@/service/generation/image-backend";
 import { buildFramePrompt, videoStyle } from "@/service/higgsfield/frame-prompts";
-import { orphanQueuedFrames, positionsToFail } from "@/service/higgsfield/job-attempts";
+import {
+  orphanQueuedFrames,
+  positionsToFail,
+  unsubmittedPositions,
+} from "@/service/higgsfield/job-attempts";
 import {
   fetchHiggsfieldStatus,
   mediaUrlFromResponse,
@@ -231,19 +235,24 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
 // without one would sit `queued` forever with nothing to move it. `since` is the
 // moment the attempt started, so a redo's leftover job from the previous attempt
 // never masks a lost charge. Returns the count the caller must refund.
+// `strict` keeps `exclude` as-is: for a single-frame redo the other position
+// was never part of this attempt, so it must not be failed with the start.
 export async function failUnsubmittedFrames(
   projectId: ObjectId,
   clipNumber: number,
   error: string,
   since: Date,
   exclude: FramePosition[] = [],
+  options: { strict?: boolean } = {},
 ): Promise<number> {
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
   const frameJobs = await jobs
     .find({ projectId, kind: "frame", clipIndex: clipNumber - 1 })
     .toArray();
-  const missed = positionsToFail(frameJobs, since, exclude);
+  const missed = options.strict
+    ? unsubmittedPositions(frameJobs, since, exclude)
+    : positionsToFail(frameJobs, since, exclude);
 
   for (const position of missed) {
     await projects.updateOne(
@@ -582,7 +591,18 @@ export async function submitDeferredEndIfNeeded(
     },
     { arrayFilters: [{ "frame.clipNumber": clipNumber, "frame.position": "end" }] },
   );
-  await enqueueFrame(project, clipNumber, "end");
+  try {
+    await enqueueFrame(project, clipNumber, "end");
+  } catch (error) {
+    // No job owns the queued end: fail and refund it here. Not rethrown, so the
+    // start's completion (applyJobStatus) still finishes.
+    console.error("[frames] deferred end enqueue failed", { projectId, clipNumber, error });
+    await failDeferredEndIfNeeded(
+      projectId,
+      clipNumber,
+      error instanceof Error ? error.message : "分鏡圖排程失敗",
+    );
+  }
   await syncProjectFromJobs(projectId);
 }
 

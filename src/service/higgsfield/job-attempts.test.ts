@@ -48,6 +48,12 @@ test("positionsToFail: deferred end stays when the start job exists", () => {
   assert.deepEqual(positionsToFail([job("start", newer)], since, ["end"]), []);
 });
 
+test("unsubmittedPositions: single-frame redo never fails the excluded position", () => {
+  assert.deepEqual(unsubmittedPositions([], since, ["end"]), ["start"]);
+  assert.deepEqual(unsubmittedPositions([job("end", older)], since, ["start"]), ["end"]);
+  assert.deepEqual(unsubmittedPositions([job("start", newer)], since, ["end"]), []);
+});
+
 const stuckMs = 10 * 60 * 1000;
 const now = Date.parse("2026-09-23T04:00:00Z");
 const oldClaim = "2026-09-23T01:44:39.314Z";
