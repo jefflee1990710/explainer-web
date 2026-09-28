@@ -11,7 +11,7 @@ import { videosCollection } from "@/dao";
 import { hasDualBeatDraft, syncDualBeatFields } from "@/service/director/dual-beat";
 import { runStillJob } from "@/service/director/jobs";
 import { persistFrameAnnotation } from "@/service/higgsfield/frame-annotation";
-import { planFrameSubmissions } from "@/service/higgsfield/clip-keyframes";
+import { clipKeyframeUrls, planFrameSubmissions } from "@/service/higgsfield/clip-keyframes";
 import { buildFramePrompt, framesWithClip } from "@/service/higgsfield/frame-prompts";
 import {
   failUnsubmittedFrames,
@@ -126,6 +126,11 @@ export async function regenerateFrameAction(
     if (frame.status === "queued" || frame.status === "in_progress") {
       return { ok: false, error: "這張分鏡圖還在產生中，請稍後再重畫" };
     }
+    // An end redo needs the start file as its lock; without it the end would be
+    // deferred with no job to send it, stranding the credit.
+    if (position === "end" && !clipKeyframeUrls(project.frames, clipNumber).start) {
+      return { ok: false, error: "起始畫格還沒有圖，請先完成起始畫格" };
+    }
 
     // Build the revision before charging so an upload failure costs nothing.
     const remark = revisionInput?.remark?.trim().slice(0, MAX_REMARK_LENGTH);
@@ -149,33 +154,47 @@ export async function regenerateFrameAction(
 
     await assertCanSpendCredits(user, FRAME_COST);
     const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
-    await projects.updateOne(
-      { _id: project._id },
-      {
-        $set: {
-          updatedAt: new Date(),
-          // Keep the prompt/revision actually used on the frame for later review.
-          "frames.$[frame].prompt": buildFramePrompt(project, clipNumber, position, {
-            revision,
-          }),
-          ...(revision
-            ? { "frames.$[frame].revision": revision }
-            : {}),
-        },
-        ...(revision ? {} : { $unset: { "frames.$[frame].revision": "" } }),
-      },
-      {
-        arrayFilters: [{ "frame.clipNumber": clipNumber, "frame.position": position }],
-      },
-    );
 
-    // Submission is a single fast request; run inline so the frame shows
-    // in-progress feedback immediately.
+    // Anything older than this belongs to a previous attempt and cannot prove
+    // that this one was queued.
+    const attemptStartedAt = new Date();
     try {
+      await projects.updateOne(
+        { _id: project._id },
+        {
+          $set: {
+            updatedAt: new Date(),
+            // Keep the prompt/revision actually used on the frame for later review.
+            "frames.$[frame].prompt": buildFramePrompt(project, clipNumber, position, {
+              revision,
+            }),
+            ...(revision
+              ? { "frames.$[frame].revision": revision }
+              : {}),
+          },
+          ...(revision ? {} : { $unset: { "frames.$[frame].revision": "" } }),
+        },
+        {
+          arrayFilters: [{ "frame.clipNumber": clipNumber, "frame.position": position }],
+        },
+      );
       await regenerateFrame(project, clipNumber, position, revision);
     } catch (error) {
-      // Nothing went out: give the credit back.
-      await refundCredits(user.clerkUserId, FRAME_COST, spendKey);
+      // A job queued by this attempt owns the credit (it refunds itself on
+      // failure). Only when none exists, fail this frame and refund here; the
+      // clip's other frame was not part of this redo and is never touched.
+      const message = error instanceof Error ? error.message : "分鏡圖送出失敗";
+      const missed = await failUnsubmittedFrames(
+        project._id,
+        clipNumber,
+        message,
+        attemptStartedAt,
+        [position === "start" ? "end" : "start"],
+        { strict: true },
+      );
+      if (missed > 0) {
+        await refundCredits(user.clerkUserId, missed * FRAME_COST, spendKey);
+      }
       throw error;
     }
 

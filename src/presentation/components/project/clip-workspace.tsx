@@ -2,7 +2,6 @@
 
 import { ClipPrimaryAction } from "@/presentation/components/project/clip-primary-action";
 import { ClipPreviewStage } from "@/presentation/components/project/clip-preview-stage";
-import { ClipVideoPanel } from "@/presentation/components/project/clip-video-panel";
 import {
   ClipScenePrompts,
   type ClipScenePending,
@@ -97,14 +96,6 @@ export function ClipWorkspace({
         onGenerateFrames={onGenerateFrames}
         onGenerateVideo={onGenerateVideo}
         onSelect={onSelect}
-      />
-      <ClipVideoPanel
-        clip={clip}
-        state={state}
-        aspectRatio={project.aspectRatio}
-        pending={pending === `video:${n}`}
-        onGenerate={onGenerateVideo}
-        part="stuck"
       />
 
       {error ? (

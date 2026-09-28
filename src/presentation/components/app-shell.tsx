@@ -9,16 +9,20 @@ import { StudioShell, type StudioNavItem } from "@/presentation/studio/studio-sh
 export function AppShell({
   credits,
   creditLimit,
+  activeTasks,
   children,
 }: {
   credits: number;
   creditLimit: number;
+  // Generation tasks still queued or running (sidebar badge).
+  activeTasks: number;
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
   const items: StudioNavItem[] = [
     { href: "/app", label: t("nav.projects"), icon: "projects" },
     { href: "/app/characters", label: t("nav.characters"), icon: "characters" },
+    { href: "/app/tasks", label: t("nav.tasks"), icon: "tasks", badge: activeTasks },
     { href: "/app/mcp", label: t("nav.mcp"), icon: "mcp" },
     { href: "/app/affiliate", label: t("nav.affiliate"), icon: "affiliate" },
     { href: "/app/billing", label: t("nav.billing"), icon: "billing" },

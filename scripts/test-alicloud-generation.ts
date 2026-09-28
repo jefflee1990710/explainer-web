@@ -4,16 +4,25 @@
  */
 import { loadEnvConfig } from "@next/env";
 import { ObjectId } from "mongodb";
-import { videosCollection } from "@/dao";
+import { generationJobsCollection, videosCollection } from "@/dao";
+import { insertPendingJob } from "@/service/generation/task-store";
+import { runJobById } from "@/service/generation/task-runner";
 import { mediaSrc } from "@/util/media-src";
 import {
   refreshProjectJobs,
   regenerateFrames,
-  submitClipVideoJob,
 } from "@/service/higgsfield/pipeline";
 import type { Project } from "@/model/project";
 
 loadEnvConfig(process.cwd());
+
+// Queue the clip's video and send it now; the sender reuses the clip's stored prompt.
+async function sendClipVideoNow(projectId: ObjectId, clipNumber: number) {
+  const jobs = await generationJobsCollection();
+  await jobs.deleteMany({ projectId, kind: "video", clipIndex: clipNumber - 1 });
+  const id = await insertPendingJob({ projectId, clipIndex: clipNumber - 1, kind: "video" });
+  await runJobById(id);
+}
 
 const POLL_MS = 10_000;
 const FRAME_TIMEOUT_MS = 8 * 60_000;
@@ -138,11 +147,20 @@ async function main() {
   const frames = await waitForFrames(projectId, ["start", "end"]);
   const frameTotalMs = Date.now() - frameWaitStarted;
 
-  const fresh = (await videosCollection()).findOne({ _id: projectId }) as Promise<Project>;
-  const projectAfterFrames = await fresh;
+  // The sender only reuses a prompt stored on the clip; otherwise it reruns Phase B.
+  await (await videosCollection()).updateOne(
+    { _id: projectId },
+    {
+      $set: {
+        "clips.$[clip].prompt": prompt.prompt,
+        "clips.$[clip].durationSeconds": prompt.durationSeconds,
+      },
+    },
+    { arrayFilters: [{ "clip.clipNumber": CLIP_NUMBER }] },
+  );
 
   const videoSubmitStarted = Date.now();
-  await submitClipVideoJob(projectAfterFrames, CLIP_NUMBER, prompt);
+  await sendClipVideoNow(projectId, CLIP_NUMBER);
   const videoSubmitMs = Date.now() - videoSubmitStarted;
 
   const videoWaitStarted = Date.now();

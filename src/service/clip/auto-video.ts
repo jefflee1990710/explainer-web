@@ -1,8 +1,8 @@
-import { after } from "next/server";
 import type { ObjectId } from "mongodb";
 import { generationJobsCollection, videosCollection } from "@/dao";
-import { consumeCredits } from "@/service/billing/credits";
-import { runClipVideoJob } from "@/service/director/jobs";
+import { consumeCredits, refundCredits } from "@/service/billing/credits";
+import { insertPendingJob, kickJob } from "@/service/generation/task-store";
+import { settledAutoVideoClips } from "@/service/clip/auto-video-list";
 import { hasJobSince } from "@/service/higgsfield/job-attempts";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { autoVideoDecision } from "@/service/production-plan";
@@ -28,7 +28,8 @@ async function isStuckClaim(
   return !hasJobSince(videoJobs, new Date(claimedAt));
 }
 
-// Claim one clip and start Phase B. Caller already checked the storyboard exists.
+// Claim one clip, charge it and queue its video job (Phase B runs at send time).
+// Caller already checked the storyboard exists.
 // Video starts only when both scene images have files.
 export async function claimAndStartClipVideo(
   clerkUserId: string,
@@ -62,6 +63,8 @@ export async function claimAndStartClipVideo(
           $set: {
             "clips.$.status": "queued",
             "clips.$.submittedAt": submittedAt,
+            // Empty prompt makes the sender run Phase B for this attempt.
+            "clips.$.prompt": "",
             status: "production",
             updatedAt: new Date(),
           },
@@ -88,6 +91,8 @@ export async function claimAndStartClipVideo(
         },
       );
   if (!claimed) return { ok: false, error: "這段正在生成中", retry: true };
+  // Taking over a stuck claim settles it: its charge had no job, so hand it back.
+  if (stuck) await refundCredits(clerkUserId, VIDEO_COST);
 
   try {
     await consumeCredits(clerkUserId, VIDEO_COST);
@@ -109,8 +114,41 @@ export async function claimAndStartClipVideo(
     };
   }
 
-  after(() => runClipVideoJob(project._id, clipNumber));
+  try {
+    // Old video jobs would outrank the new claim in reconcile; replace them.
+    const jobs = await generationJobsCollection();
+    await jobs.deleteMany({ projectId: project._id, kind: "video", clipIndex: clipNumber - 1 });
+    const id = await insertPendingJob({
+      projectId: project._id,
+      clipIndex: clipNumber - 1,
+      kind: "video",
+    });
+    kickJob(id);
+  } catch (error) {
+    // No job owns the charge: refund it here.
+    const message = error instanceof Error ? error.message : "產片排程失敗";
+    await compensateClipVideo(project, clipNumber, message);
+    return { ok: false, error: message };
+  }
   return { ok: true };
+}
+
+// Hand the credit back and mark the clip failed. For exits that leave the clip
+// with no job to own its outcome, so a charged clip is never stranded `queued`.
+async function compensateClipVideo(project: Project, clipNumber: number, message: string) {
+  await refundCredits(project.clerkUserId, VIDEO_COST);
+  const projects = await videosCollection();
+  await projects.updateOne(
+    { _id: project._id },
+    {
+      $set: {
+        "clips.$[clip].status": "failed",
+        "clips.$[clip].error": message,
+        updatedAt: new Date(),
+      },
+    },
+    { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
+  );
 }
 
 // Start videos for clips flagged by "產生全部影片", once both stills exist.
@@ -135,12 +173,10 @@ export async function queueAutoClipVideos(projectId: ObjectId) {
     if (!started.ok && started.retry) remaining.push(clipNumber);
   }
 
-  const next = [...new Set(remaining)].sort((a, b) => a - b);
-  const same =
-    next.length === pending.length && next.every((clipNumber, index) => clipNumber === pending[index]);
-  if (same) return;
+  const settled = settledAutoVideoClips(pending, remaining);
+  if (settled.length === 0) return;
   await projects.updateOne(
     { _id: projectId },
-    { $set: { autoVideoClips: next, updatedAt: new Date() } },
+    { $pull: { autoVideoClips: { $in: settled } }, $set: { updatedAt: new Date() } },
   );
 }

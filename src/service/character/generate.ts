@@ -1,20 +1,18 @@
 import { generationJobsCollection } from "@/dao";
-import { mediaUrlFromResponse } from "@/service/higgsfield/client";
 import { submitImage } from "@/service/higgsfield/generate";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
-import { applyJobStatus } from "@/service/higgsfield/pipeline";
 import { buildBlueprintPrompt } from "@/service/character/blueprint-prompt";
+import { toSent, type Sent } from "@/service/generation/sent";
+import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import type { Character, CharacterVersion } from "@/model/character";
-import type { GenerationStatus } from "@/model/generation-job";
 
 export const BLUEPRINT_MODEL = IMAGE_ROUTE_BY_SCENE_TEXT.en.model;
 
-// Submit one version's sheet and record the job. Throws if the
-// provider rejects the request; the caller marks the version failed + refunds.
-export async function submitCharacterVersion(
+// Send one version's sheet to the provider. No job write.
+export async function sendCharacterVersion(
   character: Character,
   version: CharacterVersion,
-) {
+): Promise<Sent> {
   const submitted = await submitImage({
     model: BLUEPRINT_MODEL,
     prompt: buildBlueprintPrompt({
@@ -28,27 +26,28 @@ export async function submitCharacterVersion(
     resolution: "1k",
     referenceImageUrls: [version.referenceImageUrl],
   });
+  return toSent(BLUEPRINT_MODEL, submitted);
+}
 
+// Queue one version's sheet; the queue sends it and marks it failed + refunds on error.
+export async function enqueueCharacterVersion(
+  character: Character,
+  version: CharacterVersion,
+) {
   const jobs = await generationJobsCollection();
-  await jobs.insertOne({
+  // Retry reuses the version id; drop its settled job so the new one is the only one.
+  // In-flight jobs stay so their provider request is never orphaned.
+  await jobs.deleteMany({
+    kind: "character",
+    versionId: version.id,
+    status: { $in: ["failed", "nsfw", "completed"] },
+  });
+  const id = await insertPendingJob({
     characterId: character._id,
     versionId: version.id,
     clipIndex: -1,
     kind: "character",
     model: BLUEPRINT_MODEL,
-    requestId: submitted.request_id,
-    statusUrl: submitted.status_url,
-    status: (submitted.status as GenerationStatus) || "queued",
-    createdAt: new Date(),
-    updatedAt: new Date(),
   });
-
-  const outputUrl = mediaUrlFromResponse(submitted);
-  if (submitted.status === "completed" && outputUrl) {
-    await applyJobStatus({
-      requestId: submitted.request_id,
-      status: "completed",
-      outputUrl,
-    });
-  }
+  kickJob(id);
 }

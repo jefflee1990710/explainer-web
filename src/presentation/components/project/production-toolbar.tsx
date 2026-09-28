@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
+import { TaskListDialog } from "@/presentation/components/app/tasks/task-list-dialog";
 import { ProductionQueue } from "@/presentation/components/project/production-queue";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import type { InFlightCounts } from "@/service/clip-stage";
 
-// Strip above the desk: overall progress, live queue, debug toggle, and "全部產生".
+// Strip above the desk: overall progress, live queue (opens this video's task
+// list), debug toggle, and "全部產生".
 export function ProductionToolbar({
+  videoId,
   total,
   framesDone,
   videosDone,
@@ -17,6 +21,7 @@ export function ProductionToolbar({
   onToggleDebug,
   onBulk,
 }: {
+  videoId: string;
   total: number;
   framesDone: number;
   videosDone: number;
@@ -31,6 +36,7 @@ export function ProductionToolbar({
   onBulk: () => void;
 }) {
   const videosLeft = total - videosDone;
+  const [tasksOpen, setTasksOpen] = useState(false);
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2">
       <button
@@ -46,7 +52,8 @@ export function ProductionToolbar({
           {videosLeft > 0 ? `還有 ${videosLeft} 段未產片 →` : "全部完成，可以成片"}
         </span>
       </button>
-      <ProductionQueue {...queue} />
+      <ProductionQueue {...queue} onOpen={() => setTasksOpen(true)} />
+      {tasksOpen ? <TaskListDialog videoId={videoId} onClose={() => setTasksOpen(false)} /> : null}
       <div className="ml-auto flex items-center gap-2">
         <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-[var(--studio-muted)]">
           <input

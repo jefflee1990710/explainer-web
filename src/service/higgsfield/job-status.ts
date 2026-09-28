@@ -1,4 +1,5 @@
-import type { GenerationStatus } from "@/model/generation-job";
+import type { Filter } from "mongodb";
+import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import { mediaSrc } from "@/util/media-src";
 
 // Webhooks often flip to completed before the file is attached. Treat that as
@@ -25,6 +26,20 @@ export function jobNeedsRefresh(job: {
   if (!job.statusUrl) return false;
   if (job.status === "queued" || job.status === "in_progress") return true;
   return job.status === "completed" && !mediaSrc(job);
+}
+
+// Mongo form of `jobNeedsRefresh`, so a limited query only returns jobs that
+// still need polling. `$in: [null, ""]` matches missing, null, and empty.
+// The driver's types reject `null` in `$in` for optional fields, hence the cast.
+export function jobNeedsRefreshFilter(): Filter<GenerationJob> {
+  const noValue = { $in: [null, ""] };
+  return {
+    statusUrl: { $nin: [null, ""] },
+    $or: [
+      { status: { $in: ["queued", "in_progress"] } },
+      { status: "completed", blobUrl: noValue, outputUrl: noValue },
+    ],
+  } as Filter<GenerationJob>;
 }
 
 // User-facing copy for provider failure codes.

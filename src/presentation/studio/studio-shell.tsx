@@ -8,7 +8,9 @@ import { CreditMeter } from "@/presentation/studio/credit-meter";
 export type StudioNavItem = {
   href: string;
   label: string;
-  icon: "projects" | "characters" | "mcp" | "affiliate" | "billing";
+  icon: "projects" | "characters" | "tasks" | "mcp" | "affiliate" | "billing";
+  // Count pill next to the icon; hidden when 0 or missing.
+  badge?: number;
 };
 
 // Logged-in frame: icon rail, top bar, and a scrolling main slot.
@@ -78,10 +80,25 @@ function StudioNavLink({ item, active }: { item: StudioNavItem; active: boolean 
           : "text-[var(--studio-muted)] hover:bg-[var(--studio-fill)]"
       }`}
     >
-      <RailIcon name={item.icon} />
+      <span className="relative shrink-0">
+        <RailIcon name={item.icon} />
+        {item.badge ? <NavBadge count={item.badge} /> : null}
+      </span>
       <span className="hidden truncate lg:inline">{item.label}</span>
       <NavPending />
     </Link>
+  );
+}
+
+// Small teal count pill pinned to the rail icon's corner.
+function NavBadge({ count }: { count: number }) {
+  return (
+    <span
+      aria-label={`${count} 個進行中`}
+      className="absolute -right-2 -top-1.5 min-w-4 rounded-full bg-[var(--studio-teal)] px-1 text-center text-[10px] font-semibold leading-4 text-white tabular-nums"
+    >
+      {count > 99 ? "99+" : count}
+    </span>
   );
 }
 
@@ -112,6 +129,14 @@ function RailIcon({ name }: { name: StudioNavItem["icon"] }) {
       <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
         <circle cx="12" cy="8" r="3.2" />
         <path d="M5.5 19.5c1.2-3 3.4-4.5 6.5-4.5s5.3 1.5 6.5 4.5" />
+      </svg>
+    );
+  }
+  if (name === "tasks") {
+    return (
+      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+        <path d="M9 6h11M9 12h11M9 18h11" />
+        <path d="m3.5 6 1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17" />
       </svg>
     );
   }

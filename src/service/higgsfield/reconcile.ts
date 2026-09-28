@@ -1,6 +1,7 @@
 import { isProjectReady, type ClipStageSource } from "@/service/clip-stage";
 import { mediaSrc } from "@/util/media-src";
 import { normalizeProjectStatus } from "@/service/project-status";
+import { isJobInFlight } from "@/service/generation/task-policy";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type { ClipFrame, ProjectClip, ProjectStatus } from "@/model/project";
 
@@ -45,7 +46,7 @@ export function reconcileFrames(frames: ClipFrame[], jobs: GenerationJob[]): Cli
     );
     if (!job || !appliesToClaim(job, frame.submittedAt)) return frame;
     const nextUrl = mediaSrc(job);
-    const pending = job.status === "queued" || job.status === "in_progress";
+    const pending = isJobInFlight(job.status);
     return {
       ...frame,
       status: toFrameStatus(job.status),
@@ -67,7 +68,7 @@ export function reconcileClips(clips: ProjectClip[] | undefined, jobs: Generatio
     if (!job || !appliesToClaim(job, clip.submittedAt)) return clip;
     const status = toClipStatus(job.status);
     const nextUrl = mediaSrc(job);
-    const pending = job.status === "queued" || job.status === "in_progress";
+    const pending = isJobInFlight(job.status);
     return {
       ...clip,
       status,

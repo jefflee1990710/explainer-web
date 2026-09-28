@@ -129,6 +129,7 @@ export function ClipProduction({
         pending={pending}
         renderToolbar={(select) => (
           <ProductionToolbar
+            videoId={project.id}
             total={counts.total}
             framesDone={counts.framesDone}
             videosDone={counts.videosDone}

@@ -85,6 +85,35 @@ function hasLiveFrameJob(
   });
 }
 
+export type ClaimedClip = {
+  clipNumber: number;
+  status: string;
+  submittedAt?: string;
+};
+
+// Charged clip videos whose claim is old and has no video job from that claim:
+// nothing will ever send or settle them, so the caller fails and refunds them.
+// `submittedAt` is returned so the fail can be fenced on this exact claim.
+export function orphanQueuedClips(
+  clips: ClaimedClip[],
+  jobs: ClaimedFrameJob[],
+  now: number,
+  stuckMs: number,
+): Array<{ clipNumber: number; submittedAt: string }> {
+  return clips
+    .filter((clip): clip is ClaimedClip & { submittedAt: string } => {
+      if (clip.status !== "queued" || !claimIsOld(clip.submittedAt, now, stuckMs)) return false;
+      const claimedAt = Date.parse(clip.submittedAt!);
+      return !jobs.some(
+        (job) =>
+          job.kind === "video" &&
+          job.clipIndex === clip.clipNumber - 1 &&
+          job.createdAt.getTime() >= claimedAt,
+      );
+    })
+    .map((clip) => ({ clipNumber: clip.clipNumber, submittedAt: clip.submittedAt }));
+}
+
 // Queued frames whose claim is old and has no job. A deferred end is kept
 // while its start is still actually running.
 export function orphanQueuedFrames(

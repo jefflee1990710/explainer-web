@@ -51,7 +51,6 @@ export function ClipPreviewStage({
           aspectRatio={aspectRatio}
           pending={videoPending}
           onGenerate={onGenerateVideo}
-          part="player"
         />
       </div>
       <div className="w-36 shrink-0 sm:w-44">

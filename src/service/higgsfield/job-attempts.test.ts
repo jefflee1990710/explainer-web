@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   hasJobSince,
+  orphanQueuedClips,
   orphanQueuedFrames,
   positionsToFail,
   unsubmittedPositions,
@@ -46,6 +47,12 @@ test("positionsToFail: deferred end is failed when the start never went out", ()
 
 test("positionsToFail: deferred end stays when the start job exists", () => {
   assert.deepEqual(positionsToFail([job("start", newer)], since, ["end"]), []);
+});
+
+test("unsubmittedPositions: single-frame redo never fails the excluded position", () => {
+  assert.deepEqual(unsubmittedPositions([], since, ["end"]), ["start"]);
+  assert.deepEqual(unsubmittedPositions([job("end", older)], since, ["start"]), ["end"]);
+  assert.deepEqual(unsubmittedPositions([job("start", newer)], since, ["end"]), []);
 });
 
 const stuckMs = 10 * 60 * 1000;
@@ -97,4 +104,44 @@ test("hasJobSince: only counts jobs created at or after the attempt", () => {
   assert.equal(hasJobSince([{ createdAt: older }], since), false);
   assert.equal(hasJobSince([{ createdAt: since }], since), true);
   assert.equal(hasJobSince([{ createdAt: older }, { createdAt: newer }], since), true);
+});
+
+test("orphanQueuedClips: old queued claim with no video job → orphan", () => {
+  const clips = [{ clipNumber: 1, status: "queued", submittedAt: oldClaim }];
+  assert.deepEqual(orphanQueuedClips(clips, [], now, stuckMs), [
+    { clipNumber: 1, submittedAt: oldClaim },
+  ]);
+});
+
+test("orphanQueuedClips: a fresh claim is left alone", () => {
+  const clips = [{ clipNumber: 1, status: "queued", submittedAt: freshClaim }];
+  assert.deepEqual(orphanQueuedClips(clips, [], now, stuckMs), []);
+});
+
+test("orphanQueuedClips: a video job for this claim owns it", () => {
+  const clips = [{ clipNumber: 2, status: "queued", submittedAt: oldClaim }];
+  const jobs = [{ kind: "video", clipIndex: 1, createdAt: new Date(oldClaim) }];
+  assert.deepEqual(orphanQueuedClips(clips, jobs, now, stuckMs), []);
+});
+
+test("orphanQueuedClips: a job from an earlier claim or another kind proves nothing", () => {
+  const clips = [{ clipNumber: 2, status: "queued", submittedAt: oldClaim }];
+  const jobs = [
+    { kind: "video", clipIndex: 1, createdAt: new Date("2026-01-01T00:00:00Z") },
+    { kind: "frame", clipIndex: 1, framePosition: "start" as const, createdAt: new Date(now) },
+    { kind: "video", clipIndex: 0, createdAt: new Date(now) },
+  ];
+  assert.deepEqual(orphanQueuedClips(clips, jobs, now, stuckMs), [
+    { clipNumber: 2, submittedAt: oldClaim },
+  ]);
+});
+
+test("orphanQueuedClips: non-queued or unstamped clips are skipped", () => {
+  const clips = [
+    { clipNumber: 1, status: "in_progress", submittedAt: oldClaim },
+    { clipNumber: 2, status: "failed", submittedAt: oldClaim },
+    { clipNumber: 3, status: "queued" },
+    { clipNumber: 4, status: "queued", submittedAt: "not a date" },
+  ];
+  assert.deepEqual(orphanQueuedClips(clips, [], now, stuckMs), []);
 });

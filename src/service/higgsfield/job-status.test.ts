@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { mediaUrlFromResponse } from "@/service/higgsfield/client";
 import {
   jobNeedsRefresh,
+  jobNeedsRefreshFilter,
   settleProviderStatus,
   userFacingJobError,
 } from "@/service/higgsfield/job-status";
@@ -70,4 +71,39 @@ test("mediaUrlFromResponse reads the standard V2 fields and common aliases", () 
     "https://nested",
   );
   assert.equal(mediaUrlFromResponse({}), undefined);
+});
+
+// Minimal Mongo matcher for the operators the refresh filter uses; a missing
+// field compares as null, like Mongo's `$in: [null]`.
+type Doc = Record<string, string | undefined>;
+function matches(doc: Doc, filter: Record<string, unknown>): boolean {
+  return Object.entries(filter).every(([key, cond]) => {
+    if (key === "$or") {
+      return (cond as Array<Record<string, unknown>>).some((branch) => matches(doc, branch));
+    }
+    const value = doc[key] ?? null;
+    if (cond && typeof cond === "object" && "$in" in cond) {
+      return (cond as { $in: unknown[] }).$in.includes(value);
+    }
+    if (cond && typeof cond === "object" && "$nin" in cond) {
+      return !(cond as { $nin: unknown[] }).$nin.includes(value);
+    }
+    return value === cond;
+  });
+}
+
+test("jobNeedsRefreshFilter selects exactly what jobNeedsRefresh accepts", () => {
+  const filter = jobNeedsRefreshFilter();
+  const statuses = ["pending", "submitting", "queued", "in_progress", "completed", "failed", "nsfw"];
+  const urls = [undefined, "", "https://x"];
+  for (const status of statuses) {
+    for (const statusUrl of urls) {
+      for (const outputUrl of urls) {
+        for (const blobUrl of urls) {
+          const job = { status, statusUrl, outputUrl, blobUrl };
+          assert.equal(matches(job, filter), jobNeedsRefresh(job), JSON.stringify(job));
+        }
+      }
+    }
+  }
 });
