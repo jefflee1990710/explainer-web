@@ -16,6 +16,7 @@ export const ko: Partial<Messages> = {
     showcase: { title: "결과 보기", subtitle: "같은 플랫폼의 네 가지 조합: 주제, 스타일, 화면 비율.", reel: "릴스", deck: "프레젠테이션", marketing: "마케팅", scro: "Scro 사용법", product: "제품 데모" },
     cast: { eyebrow: "캐릭터", title: "캐릭터는 한 번만 만들고, 모든 영상에 같은 얼굴로.", body: "캐릭터와 스타일을 먼저 정한 뒤, 같은 모습으로 릴스, 마케팅 영상, 설명 영상을 이어서 만듭니다. 제품, 서비스 기능, 가르치고 싶은 지식을 소개할 때 맞습니다.", product: "제품", service: "서비스", knowledge: "지식", cta: "캐릭터 만들기" },
     persona: { eyebrow: "퍼스널 브랜드", title: "카메라 앞에 서지 않아도 됩니다. 가상 캐릭터가 릴스를 맡습니다.", body: "본인 사진을 올리면 Scro가 같은 스타일의 가상 캐릭터로 다시 그리고, 퍼스널 브랜드 영상에 사용합니다.", cta: "사진으로 만들기" },
+    director: { eyebrow: "생성 비용", title: "비싼 것은 영상이 아니라, 다시 만드는 횟수입니다.", body: "AI 영상 비용이 커지는 이유는 빗나갈 때마다 렌더링을 다시 내기 때문입니다. Scro의 AI 디렉터는 아이디어를 먼저 승인할 수 있는 스토리보드로 만듭니다. 몇 번의 테이크로 맞고, 생성 비용은 낮아집니다.", idea: "당신의 아이디어", takes: "적은 테이크", cost: "낮은 비용", cta: "스토리보드부터" },
   },
   dashboard: { title: "프로젝트", subscribed: "현재 요금제로 영상을 렌더링할 수 있습니다. {credits} credits 남음.", notSubscribed: "활성 구독이 없습니다. 스토리보드는 작성할 수 있지만 렌더링하려면 요금제가 필요합니다.", noSubscriptionBanner: "활성 구독이 없습니다.", goBilling: "결제 페이지로 이동" },
   folder: {

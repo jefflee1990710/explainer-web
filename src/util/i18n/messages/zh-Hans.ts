@@ -82,6 +82,15 @@ export const zhHans: Partial<Messages> = {
       body: "上传自己的照片，Scro 会按你的样子做成虚拟角色，并用同一风格帮你做个人品牌短视频。",
       cta: "用照片创建",
     },
+    director: {
+      eyebrow: "生成成本",
+      title: "贵的不是影片，是一次又一次的重试。",
+      body: "生成影片很花钱，是因为做出来不对就要再付一次。Scro 的 AI 导演先把你的想法收成可核准的分镜，几次就对上，把生成成本压到最低。",
+      idea: "你的想法",
+      takes: "少次数",
+      cost: "更低成本",
+      cta: "先写分镜",
+    },
   },
   dashboard: {
     title: "项目",

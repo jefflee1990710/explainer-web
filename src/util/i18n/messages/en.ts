@@ -88,6 +88,15 @@ export const en: Messages = {
       body: "Upload your own photo. Scro redraws you as a virtual character in the same style, then uses that character for personal-branding videos.",
       cta: "Use your photo",
     },
+    director: {
+      eyebrow: "Generation cost",
+      title: "The expensive part is the retries.",
+      body: "AI video bills pile up because each miss is another render. Scro's AI director turns your idea into a storyboard you approve first, so the video matches in a few takes and you spend less on generation.",
+      idea: "Your idea",
+      takes: "A few takes",
+      cost: "Lower cost",
+      cta: "Draft a storyboard",
+    },
   },
   dashboard: {
     title: "Projects",

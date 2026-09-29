@@ -83,6 +83,15 @@ export const zhHant: Messages = {
       body: "上傳自己的照片，Scro 會依你的樣子做成虛擬角色，並用同一風格幫你做個人品牌短影音。",
       cta: "用照片建立",
     },
+    director: {
+      eyebrow: "生成成本",
+      title: "貴的不是影片，是一次又一次的重試。",
+      body: "生成影片很花錢，是因為做出來不對就要再付一次。Scro 的 AI 導演先把你的想法收成可核准的分鏡，幾次就對上，把生成成本壓到最低。",
+      idea: "你的想法",
+      takes: "少次數",
+      cost: "更低成本",
+      cta: "先寫分鏡",
+    },
   },
   dashboard: {
     title: "專案",

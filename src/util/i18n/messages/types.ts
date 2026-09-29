@@ -81,6 +81,15 @@ export type Messages = {
       body: string;
       cta: string;
     };
+    director: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      idea: string;
+      takes: string;
+      cost: string;
+      cta: string;
+    };
   };
   dashboard: {
     title: string;
