@@ -13,6 +13,7 @@ export const zhHant: Messages = {
     mcp: "MCP",
     affiliate: "Affiliate",
     billing: "訂閱",
+    examples: "成果",
     pricing: "方案",
     signIn: "登入",
     workspace: "工作台",
@@ -92,6 +93,39 @@ export const zhHant: Messages = {
       cost: "更低成本",
       cta: "先寫分鏡",
     },
+  },
+  examples: {
+    title: "看看成果",
+    subtitle: "每一種都是不同的工作：畫面比例、風格，以及影片要放在哪裡。",
+    cta: "看看成果",
+    scroReel: {
+      title: "用短影音說明 Scro 怎麼用",
+      body: "直式 9:16 的白板塗鴉，給社群短影音。一個畫面：選風格、貼上分鏡、畫格變成影片。想法要在手機上幾秒內講完時，用這一種。",
+    },
+    scroDeck: {
+      title: "用簡報片段說明 Scro 怎麼用",
+      body: "同一件事做成 16:9 扁平向量，放進投影片。一個鏡頭三步：選風格、核准分鏡、輸出。影片要嵌在簡報裡時，用這一種。",
+    },
+    productMarketing: {
+      title: "給方型貼文的產品示範",
+      body: "1:1 黏土動畫。一個產品、一個瞬間：瓶子從盒子裡拿出來並亮起。動態牆廣告、產品當主角時，用這一種。",
+    },
+    productReel: {
+      title: "寬螢幕的產品短片",
+      body: "同一個產品故事，16:9 像素風。較寬的畫面讓示範有舞台。放在網站主視覺或橫式短片時，用這一種。",
+    },
+  },
+  legal: {
+    terms: "服務條款",
+    privacy: "私隱政策",
+    rights: "© 2026 Scro",
+    acceptTerms: "我已閱讀並同意服務條款。",
+    acceptPrivacy: "我已閱讀並同意私隱政策。",
+    mustAccept: "建立帳號前請先同意兩者。",
+    agree: "同意並繼續",
+    updatedTitle: "請再確認更新後的條款",
+    updatedBody: "服務條款或私隱政策已更新。同意目前版本後才能繼續使用 Scro。",
+    version: "版本 {version}",
   },
   dashboard: {
     title: "專案",

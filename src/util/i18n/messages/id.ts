@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const id: Partial<Messages> = {
   meta: { title: "Scro — Video penjelasan", description: "Ubah konsep menjadi Reels, clips pemasaran, dan video presentasi. Pilih gaya, setujui storyboard, lalu ekspor clips." },
-  nav: { projects: "Proyek", characters: "Karakter", tasks: "Tugas", mcp: "MCP", affiliate: "Affiliate", billing: "Tagihan", pricing: "Harga", signIn: "Masuk", workspace: "Ruang kerja", language: "Bahasa" },
+  nav: { projects: "Proyek", characters: "Karakter", tasks: "Tugas", mcp: "MCP", affiliate: "Affiliate", billing: "Tagihan", examples: "Contoh", pricing: "Harga", signIn: "Masuk", workspace: "Ruang kerja", language: "Bahasa" },
   common: { credits: "credits", pending: "tertunda", perMonth: "/ bln", cancel: "Batal", save: "Simpan", close: "Tutup", create: "Buat", loading: "Memuat…", popular: "Paling populer", subscribe: "Berlangganan" },
   landing: {
     hero: { kicker: "Scro", title: "Jelaskan ide dengan gamblang melalui Reels, video pemasaran, dan presentasi.", subtitle: "Pilih gaya, setujui storyboard, lalu ekspor clips untuk video pendek, pemasaran produk, dan presentasi.", ctaStart: "Mulai", ctaWorkspace: "Buka ruang kerja", ctaPricing: "Lihat paket", artLabel: "Ilustrasi konsep storyboard dan penyuntingan" },
@@ -17,6 +17,15 @@ export const id: Partial<Messages> = {
     cast: { eyebrow: "Karakter", title: "Buat karakternya sekali. Pakai wajah yang sama di setiap video.", body: "Tentukan karakter dan gaya dulu. Lalu buat Reel, klip pemasaran, dan video penjelasan yang konsisten — untuk produk, fitur layanan, atau pengetahuan.", product: "Produk", service: "Layanan", knowledge: "Pengetahuan", cta: "Buat karakter" },
     persona: { eyebrow: "Personal brand", title: "Tidak perlu tampil di kamera. Versi virtualmu yang memandu Reel.", body: "Unggah fotomu. Scro menggambar ulang kamu sebagai karakter virtual dengan gaya yang sama, lalu memakainya untuk video personal brand.", cta: "Pakai fotomu" },
     director: { eyebrow: "Biaya generasi", title: "Yang mahal adalah percobaan ulang.", body: "Video AI membengkak karena setiap meleset berarti render lagi. Sutradara AI Scro mengubah idemu menjadi storyboard yang kamu setujui dulu. Videonya tepat dalam beberapa take, dan biaya generasi tetap rendah.", idea: "Idemu", takes: "Sedikit take", cost: "Biaya lebih rendah", cta: "Tulis storyboard" },
+  },
+  examples: {
+    title: "Lihat hasilnya",
+    subtitle: "Setiap jenis punya pekerjaan sendiri: rasio, gaya, dan di mana videonya diputar.",
+    cta: "Lihat hasilnya",
+    scroReel: { title: "Cara kerja Scro, sebagai Reel", body: "Doodle vertikal 9:16 untuk media sosial. Satu adegan: pilih gaya, sematkan storyboard, frame menjadi video pendek. Saat ide harus sampai dalam beberapa detik di ponsel." },
+    scroDeck: { title: "Cara kerja Scro, untuk presentasi", body: "Cerita yang sama dalam flat vector 16:9 untuk slide. Tiga langkah dalam satu bidikan: gaya, storyboard, ekspor. Saat video hidup di dalam presentasi." },
+    productMarketing: { title: "Demo produk untuk unggahan persegi", body: "Klip claymation 1:1. Satu produk, satu momen: botol keluar dari kotak dan menyala. Untuk iklan feed yang menempatkan produk sebagai tokoh utama." },
+    productReel: { title: "Demo produk sebagai Reel lebar", body: "Cerita produk yang sama dalam pixel art 16:9. Bingkai lebar memberi panggung pada demo. Untuk hero situs atau short horizontal." },
   },
   dashboard: { title: "Proyek", subscribed: "Paket Anda dapat merender video. Tersisa {credits} credits.", notSubscribed: "Tidak ada langganan aktif. Anda dapat menyusun storyboard, tetapi perlu paket sebelum merender.", noSubscriptionBanner: "Tidak ada langganan aktif.", goBilling: "Buka tagihan" },
   folder: {

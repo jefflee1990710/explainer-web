@@ -16,6 +16,12 @@ export function SiteHeader() {
         <BrandMark />
         <nav className="flex min-w-0 items-center gap-2 text-sm sm:gap-4 lg:gap-6">
           <Link
+            href="/examples"
+            className="shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
+          >
+            {t("nav.examples")}
+          </Link>
+          <Link
             href="/#pricing"
             className="shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
           >
@@ -26,7 +32,7 @@ export function SiteHeader() {
             selectClassName="max-w-[5.75rem] text-xs sm:max-w-none sm:text-sm"
           />
           <Show when="signed-out">
-            <SignInButton mode="modal">
+            <SignInButton mode="modal" forceRedirectUrl="/app">
               <button
                 type="button"
                 className="cursor-pointer rounded-full bg-[#12141c] px-3 py-1.5 text-xs font-semibold text-[#c6f24b] transition-colors hover:bg-black sm:px-4 sm:py-2 sm:text-sm"

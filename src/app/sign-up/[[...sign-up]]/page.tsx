@@ -1,9 +1,10 @@
-import { SignUp } from "@clerk/nextjs";
+import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
+import { SignupConsent } from "@/presentation/components/legal/signup-consent";
 
 export default function SignUpPage() {
   return (
-    <div className="flex flex-1 items-center justify-center bg-background p-6">
-      <SignUp />
-    </div>
+    <PolicyLayout>
+      <SignupConsent />
+    </PolicyLayout>
   );
 }

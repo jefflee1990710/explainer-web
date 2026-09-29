@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Show, SignUpButton } from "@clerk/nextjs";
+import { Show } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { LandingHeroArt } from "@/presentation/components/landing-hero-art";
@@ -51,14 +51,12 @@ export function LandingHero() {
           className="mt-8 flex flex-wrap justify-center gap-3"
         >
           <Show when="signed-out">
-            <SignUpButton mode="modal">
-              <button
-                type="button"
-                className="cursor-pointer rounded-full bg-[#12141c] px-8 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black"
-              >
-                {t("landing.hero.ctaStart")}
-              </button>
-            </SignUpButton>
+            <Link
+              href="/sign-up"
+              className="inline-flex rounded-full bg-[#12141c] px-8 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black"
+            >
+              {t("landing.hero.ctaStart")}
+            </Link>
           </Show>
           <Show when="signed-in">
             <Link

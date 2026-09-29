@@ -12,6 +12,7 @@ export const zhHans: Partial<Messages> = {
     mcp: "MCP",
     affiliate: "Affiliate",
     billing: "账单",
+    examples: "成果",
     pricing: "价格方案",
     signIn: "登录",
     workspace: "工作区",
@@ -90,6 +91,27 @@ export const zhHans: Partial<Messages> = {
       takes: "少次数",
       cost: "更低成本",
       cta: "先写分镜",
+    },
+  },
+  examples: {
+    title: "看看成果",
+    subtitle: "每一种都是不同的工作：画面比例、风格，以及视频要放在哪里。",
+    cta: "看看成果",
+    scroReel: {
+      title: "用短视频说明 Scro 怎么用",
+      body: "竖式 9:16 的白板涂鸦，给社交短视频。一个画面：选风格、贴上分镜、画格变成视频。想法要在手机上几秒内讲完时，用这一种。",
+    },
+    scroDeck: {
+      title: "用演示片段说明 Scro 怎么用",
+      body: "同一件事做成 16:9 扁平矢量，放进幻灯片。一个镜头三步：选风格、确认分镜、导出。视频要嵌在演示里时，用这一种。",
+    },
+    productMarketing: {
+      title: "给方形帖子的产品演示",
+      body: "1:1 黏土动画。一个产品、一个瞬间：瓶子从盒子里拿出来并亮起。信息流广告、产品当主角时，用这一种。",
+    },
+    productReel: {
+      title: "宽屏的产品短片",
+      body: "同一个产品故事，16:9 像素风。较宽的画面让演示有舞台。放在网站主视觉或横式短片时，用这一种。",
     },
   },
   dashboard: {

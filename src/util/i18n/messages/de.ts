@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const de: Partial<Messages> = {
   meta: { title: "Scro — Erklärvideos", description: "Verwandle Konzepte in Reels, Marketing-clips und Präsentationsvideos. Wähle einen Stil, gib Storyboards frei und exportiere clips." },
-  nav: { projects: "Projekte", characters: "Figuren", tasks: "Aufgaben", mcp: "MCP", affiliate: "Affiliate", billing: "Abrechnung", pricing: "Preise", signIn: "Anmelden", workspace: "Arbeitsbereich", language: "Sprache" },
+  nav: { projects: "Projekte", characters: "Figuren", tasks: "Aufgaben", mcp: "MCP", affiliate: "Affiliate", billing: "Abrechnung", examples: "Beispiele", pricing: "Preise", signIn: "Anmelden", workspace: "Arbeitsbereich", language: "Sprache" },
   common: { credits: "credits", pending: "ausstehend", perMonth: "/ Monat", cancel: "Abbrechen", save: "Speichern", close: "Schließen", create: "Erstellen", loading: "Wird geladen…", popular: "Am beliebtesten", subscribe: "Abonnieren" },
   landing: {
     hero: { kicker: "Scro", title: "Erkläre Ideen verständlich als Reels, Marketing- und Präsentationsvideos.", subtitle: "Wähle einen Stil, gib Storyboards frei und exportiere clips – für Kurzvideos, Produktmarketing und Präsentationen.", ctaStart: "Jetzt starten", ctaWorkspace: "Arbeitsbereich öffnen", ctaPricing: "Tarife ansehen", artLabel: "Konzeptillustration für Storyboard und Schnitt" },
@@ -17,6 +17,15 @@ export const de: Partial<Messages> = {
     cast: { eyebrow: "Charaktere", title: "Charakter einmal anlegen. In jedem Video derselbe.", body: "Lege zuerst Charakter und Stil fest. Danach entstehen Reels, Marketingclips und Erklärvideos mit demselben Gesicht — für ein Produkt, eine Funktion oder Wissen.", product: "Produkt", service: "Service", knowledge: "Wissen", cta: "Charakter erstellen" },
     persona: { eyebrow: "Personal Brand", title: "Nicht vor die Kamera. Ein virtuelles Ich moderiert das Reel.", body: "Lade dein Foto hoch. Scro zeichnet dich im selben Stil als virtuellen Charakter und nutzt ihn für Personal-Branding-Videos.", cta: "Foto verwenden" },
     director: { eyebrow: "Generierungskosten", title: "Teuer sind die Wiederholungen.", body: "KI-Video summiert sich, weil jeder Fehlversuch ein neues Rendering ist. Scros KI-Regie macht aus deiner Idee zuerst ein Storyboard zum Freigeben. Das Video trifft in wenigen Takes, und die Generierungskosten bleiben niedrig.", idea: "Deine Idee", takes: "Wenige Takes", cost: "Niedrigere Kosten", cta: "Storyboard schreiben" },
+  },
+  examples: {
+    title: "Ergebnisse ansehen",
+    subtitle: "Jeder Typ hat eine Aufgabe: Format, Stil und wo das Video läuft.",
+    cta: "Ergebnisse ansehen",
+    scroReel: { title: "So funktioniert Scro, als Reel", body: "Ein vertikales 9:16-Doodle für Social. Eine Szene: Stil wählen, Storyboard anpinnen, die Bilder werden zum Kurzvideo. Wenn die Idee in wenigen Sekunden auf dem Handy ankommen muss." },
+    scroDeck: { title: "So funktioniert Scro, als Folienclip", body: "Dieselbe Geschichte als 16:9-Flat-Vector für eine Folie. Drei Schritte in einer Einstellung: Stil, Storyboard, Export. Wenn das Video in einer Präsentation steckt." },
+    productMarketing: { title: "Eine Produktdemo für einen quadratischen Post", body: "Ein 1:1-Claymation-Clip. Ein Produkt, ein Moment: die Flasche verlässt die Schachtel und leuchtet. Für Feed-Anzeigen, in denen das Produkt der Held ist." },
+    productReel: { title: "Eine Produktdemo als Breitbild-Reel", body: "Dieselbe Produktgeschichte als 16:9-Pixel-Art. Der breitere Rahmen gibt der Demo eine Bühne. Für einen Website-Hero oder einen Querformat-Short." },
   },
   dashboard: { title: "Projekte", subscribed: "Mit deinem Tarif kannst du Videos rendern. Noch {credits} credits verfügbar.", notSubscribed: "Kein aktives Abonnement. Du kannst Storyboards entwerfen, benötigst aber vor dem Rendering einen Tarif.", noSubscriptionBanner: "Kein aktives Abonnement.", goBilling: "Zur Abrechnung" },
   folder: {

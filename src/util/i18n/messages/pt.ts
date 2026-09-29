@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const pt: Partial<Messages> = {
   meta: { title: "Scro — Vídeos explicativos", description: "Transforme conceitos em Reels, clips de marketing e vídeos de apresentação. Escolha um estilo, aprove os storyboards e exporte clips." },
-  nav: { projects: "Projetos", characters: "Personagens", tasks: "Tarefas", mcp: "MCP", affiliate: "Affiliate", billing: "Faturação", pricing: "Preços", signIn: "Entrar", workspace: "Área de trabalho", language: "Idioma" },
+  nav: { projects: "Projetos", characters: "Personagens", tasks: "Tarefas", mcp: "MCP", affiliate: "Affiliate", billing: "Faturação", examples: "Exemplos", pricing: "Preços", signIn: "Entrar", workspace: "Área de trabalho", language: "Idioma" },
   common: { credits: "credits", pending: "pendentes", perMonth: "/ mês", cancel: "Cancelar", save: "Guardar", close: "Fechar", create: "Criar", loading: "A carregar…", popular: "Mais popular", subscribe: "Subscrever" },
   landing: {
     hero: { kicker: "Scro", title: "Explique ideias com clareza através de Reels, vídeos de marketing e apresentações.", subtitle: "Escolha um estilo, aprove os storyboards e exporte clips para vídeos curtos, marketing de produto e apresentações.", ctaStart: "Começar", ctaWorkspace: "Abrir área de trabalho", ctaPricing: "Ver planos", artLabel: "Ilustração conceptual de storyboard e edição" },
@@ -17,6 +17,15 @@ export const pt: Partial<Messages> = {
     cast: { eyebrow: "Personagens", title: "Crie o personagem uma vez. Mantenha-o em cada vídeo.", body: "Defina primeiro o personagem e o estilo. Depois faça Reels, clips de marketing e vídeos explicativos com o mesmo rosto — para um produto, uma funcionalidade ou um conhecimento.", product: "Produto", service: "Serviço", knowledge: "Conhecimento", cta: "Criar personagem" },
     persona: { eyebrow: "Marca pessoal", title: "Sem aparecer na câmara. Um você virtual apresenta o Reel.", body: "Envie a sua foto. O Scro redesenha-o como personagem virtual no mesmo estilo e usa-o em vídeos de marca pessoal.", cta: "Usar a sua foto" },
     director: { eyebrow: "Custo de geração", title: "O que custa caro são as tentativas.", body: "O vídeo com IA acumula custo porque cada erro é outra renderização. O diretor de IA do Scro transforma a sua ideia num storyboard que aprova primeiro. O vídeo acerta em poucas tomadas e o custo de geração fica baixo.", idea: "A sua ideia", takes: "Poucas tomadas", cost: "Custo menor", cta: "Escrever o storyboard" },
+  },
+  examples: {
+    title: "Ver os resultados",
+    subtitle: "Cada tipo faz um trabalho diferente: o formato, o estilo e onde o vídeo vai passar.",
+    cta: "Ver os resultados",
+    scroReel: { title: "Como o Scro funciona, num Reel", body: "Um doodle vertical 9:16 para redes. Uma cena: escolher um estilo, fixar um storyboard e os fotogramas viram um vídeo curto. Quando a ideia tem de chegar em poucos segundos no telemóvel." },
+    scroDeck: { title: "Como o Scro funciona, para uma apresentação", body: "A mesma história em flat vector 16:9, feita para um slide. Três passos num plano: estilo, storyboard, exportação. Quando o vídeo vive dentro de uma apresentação." },
+    productMarketing: { title: "Uma demo de produto para um post quadrado", body: "Um clip de claymation 1:1. Um produto, um instante: a garrafa sai da caixa e acende. Para anúncios de feed em que o produto é o protagonista." },
+    productReel: { title: "Uma demo de produto num Reel panorâmico", body: "A mesma história de produto em pixel art 16:9. O formato largo dá um palco à demo. Para o hero de um site ou um short horizontal." },
   },
   dashboard: { title: "Projetos", subscribed: "O seu plano permite renderizar vídeos. Restam {credits} credits.", notSubscribed: "Não existe uma subscrição ativa. Pode preparar storyboards, mas precisa de um plano antes de renderizar.", noSubscriptionBanner: "Não existe uma subscrição ativa.", goBilling: "Ir para faturação" },
   folder: {

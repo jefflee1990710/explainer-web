@@ -18,6 +18,12 @@ export type AppUser = {
   // Affiliate: direct referrer and upline chain [L1, L2, L3].
   referredByUserId?: ObjectId;
   uplineUserIds?: ObjectId[];
+  // Versions of Terms and Privacy the user last accepted. Missing or stale blocks the app.
+  legalAcceptance?: {
+    termsVersion: string;
+    privacyVersion: string;
+    acceptedAt: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
 };
@@ -34,6 +40,13 @@ export const appUserSchema: z.ZodType<AppUser> = z.object({
   processedCheckoutIds: z.array(z.string()).optional(),
   referredByUserId: objectIdSchema.optional(),
   uplineUserIds: z.array(objectIdSchema).optional(),
+  legalAcceptance: z
+    .object({
+      termsVersion: z.string(),
+      privacyVersion: z.string(),
+      acceptedAt: z.date(),
+    })
+    .optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const ko: Partial<Messages> = {
   meta: { title: "Scro — 설명 영상", description: "아이디어를 Reels, 마케팅 clips, 프레젠테이션 영상으로 만드세요. 스타일을 고르고 스토리보드를 승인한 뒤 clips 을 내보낼 수 있습니다." },
-  nav: { projects: "프로젝트", characters: "캐릭터", tasks: "작업", mcp: "MCP", affiliate: "Affiliate", billing: "결제", pricing: "요금제", signIn: "로그인", workspace: "작업 공간", language: "언어" },
+  nav: { projects: "프로젝트", characters: "캐릭터", tasks: "작업", mcp: "MCP", affiliate: "Affiliate", billing: "결제", examples: "예시", pricing: "요금제", signIn: "로그인", workspace: "작업 공간", language: "언어" },
   common: { credits: "credits", pending: "진행 중", perMonth: "/월", cancel: "취소", save: "저장", close: "닫기", create: "만들기", loading: "불러오는 중…", popular: "가장 인기 있음", subscribe: "구독" },
   landing: {
     hero: { kicker: "Scro", title: "아이디어를 Reels, 마케팅, 프레젠테이션 영상으로 명확하게 설명하세요.", subtitle: "스타일을 고르고 스토리보드를 승인한 뒤 clips 을 내보내세요. 숏폼 영상, 제품 마케팅, 프레젠테이션에 활용할 수 있습니다.", ctaStart: "시작하기", ctaWorkspace: "작업 공간 열기", ctaPricing: "요금제 보기", artLabel: "스토리보드 및 편집 콘셉트 일러스트" },
@@ -17,6 +17,15 @@ export const ko: Partial<Messages> = {
     cast: { eyebrow: "캐릭터", title: "캐릭터는 한 번만 만들고, 모든 영상에 같은 얼굴로.", body: "캐릭터와 스타일을 먼저 정한 뒤, 같은 모습으로 릴스, 마케팅 영상, 설명 영상을 이어서 만듭니다. 제품, 서비스 기능, 가르치고 싶은 지식을 소개할 때 맞습니다.", product: "제품", service: "서비스", knowledge: "지식", cta: "캐릭터 만들기" },
     persona: { eyebrow: "퍼스널 브랜드", title: "카메라 앞에 서지 않아도 됩니다. 가상 캐릭터가 릴스를 맡습니다.", body: "본인 사진을 올리면 Scro가 같은 스타일의 가상 캐릭터로 다시 그리고, 퍼스널 브랜드 영상에 사용합니다.", cta: "사진으로 만들기" },
     director: { eyebrow: "생성 비용", title: "비싼 것은 영상이 아니라, 다시 만드는 횟수입니다.", body: "AI 영상 비용이 커지는 이유는 빗나갈 때마다 렌더링을 다시 내기 때문입니다. Scro의 AI 디렉터는 아이디어를 먼저 승인할 수 있는 스토리보드로 만듭니다. 몇 번의 테이크로 맞고, 생성 비용은 낮아집니다.", idea: "당신의 아이디어", takes: "적은 테이크", cost: "낮은 비용", cta: "스토리보드부터" },
+  },
+  examples: {
+    title: "결과 보기",
+    subtitle: "유형마다 일이 다릅니다. 화면 비율, 스타일, 그리고 영상을 어디에 둘지입니다.",
+    cta: "결과 보기",
+    scroReel: { title: "릴스로 보는 Scro 사용법", body: "세로 9:16 화이트보드 낙서. 스타일을 고르고 스토리보드를 붙이면 프레임이 짧은 영상이 됩니다. 휴대폰에서 몇 초 안에 전할 때 이 유형입니다." },
+    scroDeck: { title: "프레젠테이션용 Scro 사용법", body: "같은 이야기를 16:9 플랫 벡터로 만듭니다. 슬라이드에 넣기 위한 클립입니다. 스타일 선택, 스토리보드 승인, 내보내기가 한 컷에 있습니다." },
+    productMarketing: { title: "정사각 게시용 제품 데모", body: "1:1 클레이 애니메이션. 제품이 상자에서 나와 켜지는 한 순간. 피드 광고에서 제품이 주인공일 때 이 유형입니다." },
+    productReel: { title: "와이드 화면 제품 릴스", body: "같은 제품 이야기를 16:9 픽셀 아트로 만듭니다. 넓은 화면이 데모의 무대가 됩니다. 사이트 히어로나 가로 숏폼에 둘 때 이 유형입니다." },
   },
   dashboard: { title: "프로젝트", subscribed: "현재 요금제로 영상을 렌더링할 수 있습니다. {credits} credits 남음.", notSubscribed: "활성 구독이 없습니다. 스토리보드는 작성할 수 있지만 렌더링하려면 요금제가 필요합니다.", noSubscriptionBanner: "활성 구독이 없습니다.", goBilling: "결제 페이지로 이동" },
   folder: {

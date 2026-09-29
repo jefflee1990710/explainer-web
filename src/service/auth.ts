@@ -7,6 +7,11 @@ import {
 } from "@/service/affiliate/engine";
 import { REFERRAL_COOKIE } from "@/service/affiliate/rates";
 import { usersCollection } from "@/dao";
+import {
+  LEGAL_CONSENT_COOKIE,
+  consentMatchesCurrent,
+  currentLegalAcceptance,
+} from "@/service/legal/versions";
 import { mcpUserStore } from "@/service/mcp/api-keys";
 import type { AppUser } from "@/model/user";
 
@@ -56,6 +61,17 @@ const requireAppUserImpl = cache(async (): Promise<AppUser> => {
     referralCode = undefined;
   }
 
+  // Signup page sets this only after both boxes are checked, and only for the current versions.
+  let signupConsent: string | undefined;
+  try {
+    signupConsent = (await cookies()).get(LEGAL_CONSENT_COOKIE)?.value;
+  } catch {
+    signupConsent = undefined;
+  }
+  const legalAcceptance = consentMatchesCurrent(signupConsent)
+    ? currentLegalAcceptance(now)
+    : undefined;
+
   await users.updateOne(
     { clerkUserId: clerkUser.id },
     {
@@ -64,6 +80,7 @@ const requireAppUserImpl = cache(async (): Promise<AppUser> => {
         clerkUserId: clerkUser.id,
         credits: 0,
         createdAt: now,
+        ...(legalAcceptance ? { legalAcceptance } : {}),
       },
     },
     { upsert: true },

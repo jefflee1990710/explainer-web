@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const ja: Partial<Messages> = {
   meta: { title: "Scro — 解説動画", description: "アイデアを Reels、マーケティング用 clips、プレゼン動画に変換。スタイルを選び、絵コンテを承認して clips を書き出せます。" },
-  nav: { projects: "プロジェクト", characters: "キャラクター", tasks: "タスク", mcp: "MCP", affiliate: "Affiliate", billing: "請求", pricing: "料金", signIn: "ログイン", workspace: "ワークスペース", language: "言語" },
+  nav: { projects: "プロジェクト", characters: "キャラクター", tasks: "タスク", mcp: "MCP", affiliate: "Affiliate", billing: "請求", examples: "作例", pricing: "料金", signIn: "ログイン", workspace: "ワークスペース", language: "言語" },
   common: { credits: "credits", pending: "処理中", perMonth: "/ 月", cancel: "キャンセル", save: "保存", close: "閉じる", create: "作成", loading: "読み込み中…", popular: "一番人気", subscribe: "登録する" },
   landing: {
     hero: {
@@ -66,6 +66,15 @@ export const ja: Partial<Messages> = {
       cost: "低いコスト",
       cta: "絵コンテから始める",
     },
+  },
+  examples: {
+    title: "結果を見る",
+    subtitle: "種類ごとに仕事が違います。画面比率、スタイル、そして動画を置く場所です。",
+    cta: "結果を見る",
+    scroReel: { title: "Scro の使い方をリールで", body: "縦型 9:16 のホワイトボード落書き。スタイルを選び、絵コンテを貼り、フレームが短い動画になる。スマホで数秒に収めるときにこの種類です。" },
+    scroDeck: { title: "Scro の使い方をプレゼン用クリップで", body: "同じ話を 16:9 のフラットベクターにします。スライドに載せる用です。一つのカットで、スタイル選択、絵コンテ承認、書き出し。プレゼンの中に置くときにこの種類です。" },
+    productMarketing: { title: "正方形投稿の製品デモ", body: "1:1 のクレイアニメ。製品が箱から出て光る、その一瞬。フィード広告で製品を主役にするときにこの種類です。" },
+    productReel: { title: "ワイド画面の製品リール", body: "同じ製品の話を 16:9 のピクセルアートにします。広い画面がデモの舞台になります。サイトのヒーローや横型ショートに置くときにこの種類です。" },
   },
   dashboard: {
     title: "プロジェクト",

@@ -11,6 +11,7 @@ export type Messages = {
     mcp: string;
     affiliate: string;
     billing: string;
+    examples: string;
     pricing: string;
     signIn: string;
     workspace: string;
@@ -90,6 +91,27 @@ export type Messages = {
       cost: string;
       cta: string;
     };
+  };
+  examples: {
+    title: string;
+    subtitle: string;
+    cta: string;
+    scroReel: { title: string; body: string };
+    scroDeck: { title: string; body: string };
+    productMarketing: { title: string; body: string };
+    productReel: { title: string; body: string };
+  };
+  legal: {
+    terms: string;
+    privacy: string;
+    rights: string;
+    acceptTerms: string;
+    acceptPrivacy: string;
+    mustAccept: string;
+    agree: string;
+    updatedTitle: string;
+    updatedBody: string;
+    version: string;
   };
   dashboard: {
     title: string;

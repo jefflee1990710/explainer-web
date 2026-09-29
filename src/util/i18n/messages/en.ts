@@ -13,6 +13,7 @@ export const en: Messages = {
     mcp: "MCP",
     affiliate: "Affiliate",
     billing: "Billing",
+    examples: "Examples",
     pricing: "Pricing",
     signIn: "Sign in",
     workspace: "Workspace",
@@ -97,6 +98,39 @@ export const en: Messages = {
       cost: "Lower cost",
       cta: "Draft a storyboard",
     },
+  },
+  examples: {
+    title: "See the results",
+    subtitle: "Each type is a different job: the frame, the style, and where the video will play.",
+    cta: "See the results",
+    scroReel: {
+      title: "How Scro works, as a Reel",
+      body: "A vertical 9:16 doodle for social. One scene: pick a style, pin a storyboard, and the frames become a short video. Use this type when the idea has to land in a few seconds on a phone.",
+    },
+    scroDeck: {
+      title: "How Scro works, as a deck clip",
+      body: "The same story in 16:9 flat vector, built to sit on a slide. Three beats in one shot: choose a style, approve the storyboard, export. Use this type inside a presentation.",
+    },
+    productMarketing: {
+      title: "A product demo for a square post",
+      body: "A 1:1 claymation clip. One product, one moment: the bottle leaves the box and lights up. Use this type for feed ads where the product is the hero.",
+    },
+    productReel: {
+      title: "A product demo as a widescreen Reel",
+      body: "The same product story in 16:9 pixel art. The wider frame gives the demo a stage. Use this type for a site hero or a landscape short.",
+    },
+  },
+  legal: {
+    terms: "Terms",
+    privacy: "Privacy",
+    rights: "© 2026 Scro",
+    acceptTerms: "I have read and agree to the Terms.",
+    acceptPrivacy: "I have read and agree to the Privacy Policy.",
+    mustAccept: "Accept both before creating an account.",
+    agree: "Agree and continue",
+    updatedTitle: "Review the updated terms",
+    updatedBody: "The Terms or Privacy Policy changed since you last agreed. Accept the current versions to keep using Scro.",
+    version: "Version {version}",
   },
   dashboard: {
     title: "Projects",
