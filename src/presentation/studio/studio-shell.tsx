@@ -87,7 +87,7 @@ function StudioNavLink({ item, active }: { item: StudioNavItem; active: boolean 
       aria-current={active ? "page" : undefined}
       className={`flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium ${
         active
-          ? "bg-[var(--studio-cyan-soft)] text-[var(--studio-teal)]"
+          ? "bg-[var(--studio-cyan-soft)] text-[var(--studio-ink)]"
           : "text-[var(--studio-muted)] hover:bg-[var(--studio-fill)]"
       }`}
     >

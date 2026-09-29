@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const zhHans: Partial<Messages> = {
   meta: {
-    title: "Explainer — 概念讲解视频",
+    title: "Scro — 概念讲解视频",
     description: "将概念清晰地制作成 Reels、营销 clips 和演示视频。选择风格、确认分镜并导出 clips。",
   },
   nav: {
@@ -31,7 +31,7 @@ export const zhHans: Partial<Messages> = {
   },
   landing: {
     hero: {
-      kicker: "Explainer",
+      kicker: "Scro",
       title: "用 Reels、营销和演示视频清晰讲解创意。",
       subtitle: "选择风格、确认分镜并导出 clips，适用于短视频、产品营销和演示。",
       ctaStart: "开始使用",
@@ -52,6 +52,35 @@ export const zhHans: Partial<Messages> = {
       subtitle: "每段 clip 消耗 3 credits（起始帧、结束帧和渲染）。确认前可免费制作分镜。",
       clipsApprox: "段 clips",
       subscribePlan: "订阅 {plan}",
+    },
+    enterprise: {
+      title: "需要比 Scale 更大的用量？",
+      body: "自定义 credits、发票请款、专人支持与用量合约。",
+      cta: "联系我们",
+    },
+    showcase: {
+      title: "看看成果",
+      subtitle: "同一个平台，四种组合：主题、风格、画面比例。",
+      reel: "短视频",
+      deck: "演示文稿",
+      marketing: "营销",
+      scro: "Scro 怎么用",
+      product: "产品演示",
+    },
+    cast: {
+      eyebrow: "角色",
+      title: "先做好角色，之后每支影片都是同一个人。",
+      body: "先建立角色和风格，再用同一个角色连续做短视频、营销片和解说片。适合介绍产品、服务功能，或你想教的知识。",
+      product: "产品",
+      service: "服务",
+      knowledge: "知识",
+      cta: "创建角色",
+    },
+    persona: {
+      eyebrow: "个人品牌",
+      title: "不想出镜，就让虚拟的你来主持。",
+      body: "上传自己的照片，Scro 会按你的样子做成虚拟角色，并用同一风格帮你做个人品牌短视频。",
+      cta: "用照片创建",
     },
   },
   dashboard: {

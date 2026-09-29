@@ -1,17 +1,21 @@
 import type { Messages } from "@/util/i18n/messages/types";
 
 export const id: Partial<Messages> = {
-  meta: { title: "Explainer — Video penjelasan", description: "Ubah konsep menjadi Reels, clips pemasaran, dan video presentasi. Pilih gaya, setujui storyboard, lalu ekspor clips." },
+  meta: { title: "Scro — Video penjelasan", description: "Ubah konsep menjadi Reels, clips pemasaran, dan video presentasi. Pilih gaya, setujui storyboard, lalu ekspor clips." },
   nav: { projects: "Proyek", characters: "Karakter", tasks: "Tugas", mcp: "MCP", affiliate: "Affiliate", billing: "Tagihan", pricing: "Harga", signIn: "Masuk", workspace: "Ruang kerja", language: "Bahasa" },
   common: { credits: "credits", pending: "tertunda", perMonth: "/ bln", cancel: "Batal", save: "Simpan", close: "Tutup", create: "Buat", loading: "Memuat…", popular: "Paling populer", subscribe: "Berlangganan" },
   landing: {
-    hero: { kicker: "Explainer", title: "Jelaskan ide dengan gamblang melalui Reels, video pemasaran, dan presentasi.", subtitle: "Pilih gaya, setujui storyboard, lalu ekspor clips untuk video pendek, pemasaran produk, dan presentasi.", ctaStart: "Mulai", ctaWorkspace: "Buka ruang kerja", ctaPricing: "Lihat paket", artLabel: "Ilustrasi konsep storyboard dan penyuntingan" },
+    hero: { kicker: "Scro", title: "Jelaskan ide dengan gamblang melalui Reels, video pemasaran, dan presentasi.", subtitle: "Pilih gaya, setujui storyboard, lalu ekspor clips untuk video pendek, pemasaran produk, dan presentasi.", ctaStart: "Mulai", ctaWorkspace: "Buka ruang kerja", ctaPricing: "Lihat paket", artLabel: "Ilustrasi konsep storyboard dan penyuntingan" },
     steps: {
       step1Title: "Pilih gaya", step1Body: "Pilih gaya penyutradaraan untuk video pendek, pemasaran, presentasi, dan lainnya.",
       step2Title: "Setujui storyboard", step2Body: "AI mengusulkan judul, kalimat pembuka, adegan, dan sulih suara. Sunting hingga Anda puas.",
       step3Title: "Ekspor video", step3Body: "Setelah disetujui, kami membuat gambar diam karakter dan clips untuk Reels, iklan, dan presentasi.",
     },
     pricing: { title: "Berlangganan untuk merender video", subtitle: "Setiap clip menggunakan 3 credits (frame awal, frame akhir, dan rendering). Storyboard gratis hingga Anda menyetujuinya.", clipsApprox: "clips", subscribePlan: "Berlangganan {plan}" },
+    enterprise: { title: "Butuh lebih dari Scale?", body: "Credits, faktur, dan kontrak khusus untuk tim yang melebihi paket yang tercantum.", cta: "Hubungi kami" },
+    showcase: { title: "Lihat hasil", subtitle: "Empat kombinasi di platform yang sama: topik, gaya, dan rasio.", reel: "Reel", deck: "Presentasi", marketing: "Pemasaran", scro: "Cara kerja Scro", product: "Demo produk" },
+    cast: { eyebrow: "Karakter", title: "Buat karakternya sekali. Pakai wajah yang sama di setiap video.", body: "Tentukan karakter dan gaya dulu. Lalu buat Reel, klip pemasaran, dan video penjelasan yang konsisten — untuk produk, fitur layanan, atau pengetahuan.", product: "Produk", service: "Layanan", knowledge: "Pengetahuan", cta: "Buat karakter" },
+    persona: { eyebrow: "Personal brand", title: "Tidak perlu tampil di kamera. Versi virtualmu yang memandu Reel.", body: "Unggah fotomu. Scro menggambar ulang kamu sebagai karakter virtual dengan gaya yang sama, lalu memakainya untuk video personal brand.", cta: "Pakai fotomu" },
   },
   dashboard: { title: "Proyek", subscribed: "Paket Anda dapat merender video. Tersisa {credits} credits.", notSubscribed: "Tidak ada langganan aktif. Anda dapat menyusun storyboard, tetapi perlu paket sebelum merender.", noSubscriptionBanner: "Tidak ada langganan aktif.", goBilling: "Buka tagihan" },
   folder: {

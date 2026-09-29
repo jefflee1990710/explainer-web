@@ -6,14 +6,21 @@ import { ENTERPRISE, salesMailto } from "@/service/billing/plans";
 export function EnterpriseCta({
   className = "",
   compact = false,
+  imageSrc,
 }: {
   className?: string;
   compact?: boolean;
+  imageSrc?: string;
 }) {
   return (
     <article
-      className={`flex h-full flex-col rounded-[1.75rem] border border-dashed border-accent-ink/25 bg-paper/70 p-7 ${className}`}
+      className={`flex h-full flex-col rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-8 ${className}`}
     >
+      {imageSrc ? (
+        <div className="-mx-8 -mt-8 mb-6 h-44 overflow-hidden rounded-t-2xl bg-white">
+          <img src={imageSrc} alt="" className="h-full w-full object-cover object-center" />
+        </div>
+      ) : null}
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
         Enterprise
       </p>
@@ -24,7 +31,7 @@ export function EnterpriseCta({
       <p className="mt-3 flex-1 text-sm leading-6 text-muted">{ENTERPRISE.blurb}</p>
       <a
         href={salesMailto()}
-        className={`mt-7 inline-flex min-h-[44px] w-fit items-center rounded-full border border-accent-ink/20 bg-paper px-5 text-sm font-semibold shadow-[3px_3px_0_0_rgba(18,20,28,0.08)] transition hover:-translate-y-0.5 ${
+        className={`mt-7 inline-flex min-h-[44px] w-fit items-center rounded-full border border-zinc-300 bg-white px-5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-100 ${
           compact ? "py-2" : "py-2.5"
         }`}
       >

@@ -34,7 +34,7 @@ export async function sendMail(input: {
     socketTimeout: 20_000,
   });
   await transporter.sendMail({
-    from: `Explainer <${smtpFrom()}>`,
+    from: `Scro <${smtpFrom()}>`,
     to: input.to,
     subject: input.subject,
     text: input.text,

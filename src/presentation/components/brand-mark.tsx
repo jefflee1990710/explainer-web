@@ -13,8 +13,8 @@ export function BrandMark({ href = "/" }: { href?: string }) {
         priority
         className="h-8 w-8 transition-transform group-hover:-translate-y-0.5"
       />
-      <span className="font-display text-lg font-bold tracking-tight">
-        Explainer
+      <span className="text-xl font-bold tracking-tight">
+        Scro
       </span>
     </Link>
   );

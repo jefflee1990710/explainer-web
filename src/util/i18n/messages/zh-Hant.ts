@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const zhHant: Messages = {
   meta: {
-    title: "Explainer — 概念解說影片",
+    title: "Scro — 概念解說影片",
     description:
       "把概念講清楚，做成 Reels、行銷、簡報與更多用途的 explainer 影片。選風格、核准分鏡、產出 clips。",
   },
@@ -32,7 +32,7 @@ export const zhHant: Messages = {
   },
   landing: {
     hero: {
-      kicker: "Explainer",
+      kicker: "Scro",
       title: "把概念講清楚，做成 Reels、行銷與簡報影片。",
       subtitle: "選風格、核准分鏡、輸出 clips——給短影音、產品行銷與簡報使用。",
       ctaStart: "開始使用",
@@ -53,6 +53,35 @@ export const zhHant: Messages = {
       subtitle: "每段 clip 扣 3 credits（起迄分鏡圖各 1、產片 1）。可先寫分鏡，核准時才扣。",
       clipsApprox: "段 clips",
       subscribePlan: "訂閱 {plan}",
+    },
+    enterprise: {
+      title: "需要比 Scale 更大的用量？",
+      body: "自訂 credits、發票請款、專人支援與用量合約。",
+      cta: "聯絡我們",
+    },
+    showcase: {
+      title: "看看成果",
+      subtitle: "同一個平台，四種組合：主題、風格、畫面比例。",
+      reel: "短影音",
+      deck: "簡報",
+      marketing: "行銷",
+      scro: "Scro 怎麼用",
+      product: "產品示範",
+    },
+    cast: {
+      eyebrow: "角色",
+      title: "先做好角色，之後每支影片都是同一個人。",
+      body: "先建立角色和風格，再用同一個角色連續做短影音、行銷片和解說片。適合介紹產品、服務功能，或你想教的知識。",
+      product: "產品",
+      service: "服務",
+      knowledge: "知識",
+      cta: "建立角色",
+    },
+    persona: {
+      eyebrow: "個人品牌",
+      title: "不想上鏡，就讓虛擬的你來主持。",
+      body: "上傳自己的照片，Scro 會依你的樣子做成虛擬角色，並用同一風格幫你做個人品牌短影音。",
+      cta: "用照片建立",
     },
   },
   dashboard: {
@@ -128,7 +157,7 @@ export const zhHant: Messages = {
   mcp: {
     title: "MCP",
     subtitle:
-      "用 API key 把 Cursor 或 Claude 接到 Explainer。在 AI 客戶端直接建片與角色。",
+      "用 API key 把 Cursor 或 Claude 接到 Scro。在 AI 客戶端直接建片與角色。",
     installTitle: "安裝說明",
     installCursor: "Cursor — 加到 ~/.cursor/mcp.json",
     installClaudeDesktop: "Claude Desktop — 加到 claude_desktop_config.json",

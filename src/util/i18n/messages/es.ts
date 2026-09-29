@@ -1,17 +1,21 @@
 import type { Messages } from "@/util/i18n/messages/types";
 
 export const es: Partial<Messages> = {
-  meta: { title: "Explainer — Vídeos explicativos", description: "Convierte conceptos en Reels, clips de marketing y vídeos para presentaciones. Elige un estilo, aprueba los guiones gráficos y exporta clips." },
+  meta: { title: "Scro — Vídeos explicativos", description: "Convierte conceptos en Reels, clips de marketing y vídeos para presentaciones. Elige un estilo, aprueba los guiones gráficos y exporta clips." },
   nav: { projects: "Proyectos", characters: "Personajes", tasks: "Tareas", mcp: "MCP", affiliate: "Affiliate", billing: "Facturación", pricing: "Precios", signIn: "Iniciar sesión", workspace: "Espacio de trabajo", language: "Idioma" },
   common: { credits: "credits", pending: "pendientes", perMonth: "/ mes", cancel: "Cancelar", save: "Guardar", close: "Cerrar", create: "Crear", loading: "Cargando…", popular: "Más popular", subscribe: "Suscribirse" },
   landing: {
-    hero: { kicker: "Explainer", title: "Explica tus ideas con claridad mediante Reels, vídeos de marketing y presentaciones.", subtitle: "Elige un estilo, aprueba los guiones gráficos y exporta clips para vídeos cortos, marketing de producto y presentaciones.", ctaStart: "Empezar", ctaWorkspace: "Abrir espacio de trabajo", ctaPricing: "Ver planes", artLabel: "Ilustración conceptual de guion gráfico y edición" },
+    hero: { kicker: "Scro", title: "Explica tus ideas con claridad mediante Reels, vídeos de marketing y presentaciones.", subtitle: "Elige un estilo, aprueba los guiones gráficos y exporta clips para vídeos cortos, marketing de producto y presentaciones.", ctaStart: "Empezar", ctaWorkspace: "Abrir espacio de trabajo", ctaPricing: "Ver planes", artLabel: "Ilustración conceptual de guion gráfico y edición" },
     steps: {
       step1Title: "Elige un estilo", step1Body: "Elige un estilo de dirección para vídeos cortos, marketing, presentaciones y mucho más.",
       step2Title: "Aprueba los guiones gráficos", step2Body: "La IA propone títulos, ganchos, escenas y locución. Edítalos hasta que te convenzan.",
       step3Title: "Exporta el vídeo", step3Body: "Tras la aprobación, generamos imágenes de los personajes y clips para Reels, anuncios y presentaciones.",
     },
     pricing: { title: "Suscríbete para renderizar vídeos", subtitle: "Cada clip cuesta 3 credits (fotograma inicial, fotograma final y renderizado). Los guiones gráficos son gratis hasta que los apruebes.", clipsApprox: "clips", subscribePlan: "Suscribirse a {plan}" },
+    enterprise: { title: "¿Necesitas más que Scale?", body: "Credits, facturación y contrato a medida para equipos que superan los planes publicados.", cta: "Contáctanos" },
+    showcase: { title: "Ver resultados", subtitle: "Cuatro combinaciones en la misma plataforma: tema, estilo y formato.", reel: "Reel", deck: "Presentación", marketing: "Marketing", scro: "Cómo funciona Scro", product: "Demo de producto" },
+    cast: { eyebrow: "Personajes", title: "Crea el personaje una vez. Úsalo en cada vídeo.", body: "Define primero el personaje y el estilo. Luego haz Reels, clips de marketing y vídeos explicativos con la misma cara: para un producto, una función o un conocimiento.", product: "Producto", service: "Servicio", knowledge: "Conocimiento", cta: "Crear personaje" },
+    persona: { eyebrow: "Marca personal", title: "Sin salir a cámara. Que un tú virtual presente el Reel.", body: "Sube tu foto. Scro te redibuja como personaje virtual en el mismo estilo y lo usa en vídeos de marca personal.", cta: "Usar tu foto" },
   },
   dashboard: { title: "Proyectos", subscribed: "Tu plan permite renderizar vídeos. Te quedan {credits} credits.", notSubscribed: "No hay ninguna suscripción activa. Puedes preparar guiones gráficos, pero necesitarás un plan antes de renderizar.", noSubscriptionBanner: "No hay ninguna suscripción activa.", goBilling: "Ir a facturación" },
   folder: {

@@ -1,17 +1,21 @@
 import type { Messages } from "@/util/i18n/messages/types";
 
 export const fr: Partial<Messages> = {
-  meta: { title: "Explainer — Vidéos explicatives", description: "Transformez vos concepts en Reels, clips marketing et vidéos de présentation. Choisissez un style, validez les storyboards et exportez vos clips." },
+  meta: { title: "Scro — Vidéos explicatives", description: "Transformez vos concepts en Reels, clips marketing et vidéos de présentation. Choisissez un style, validez les storyboards et exportez vos clips." },
   nav: { projects: "Projets", characters: "Personnages", tasks: "Tâches", mcp: "MCP", affiliate: "Affiliate", billing: "Facturation", pricing: "Tarifs", signIn: "Se connecter", workspace: "Espace de travail", language: "Langue" },
   common: { credits: "credits", pending: "en cours", perMonth: "/ mois", cancel: "Annuler", save: "Enregistrer", close: "Fermer", create: "Créer", loading: "Chargement…", popular: "Le plus populaire", subscribe: "S’abonner" },
   landing: {
-    hero: { kicker: "Explainer", title: "Expliquez clairement vos idées avec des Reels, des vidéos marketing et des présentations.", subtitle: "Choisissez un style, validez les storyboards et exportez des clips pour vos vidéos courtes, votre marketing produit et vos présentations.", ctaStart: "Commencer", ctaWorkspace: "Ouvrir l’espace de travail", ctaPricing: "Voir les offres", artLabel: "Illustration conceptuelle du storyboard et du montage" },
+    hero: { kicker: "Scro", title: "Expliquez clairement vos idées avec des Reels, des vidéos marketing et des présentations.", subtitle: "Choisissez un style, validez les storyboards et exportez des clips pour vos vidéos courtes, votre marketing produit et vos présentations.", ctaStart: "Commencer", ctaWorkspace: "Ouvrir l’espace de travail", ctaPricing: "Voir les offres", artLabel: "Illustration conceptuelle du storyboard et du montage" },
     steps: {
       step1Title: "Choisissez un style", step1Body: "Choisissez un style de réalisation adapté aux vidéos courtes, au marketing, aux présentations et plus encore.",
       step2Title: "Validez les storyboards", step2Body: "L’IA propose des titres, des accroches, des scènes et une voix off. Modifiez-les jusqu’à obtenir le résultat souhaité.",
       step3Title: "Exportez la vidéo", step3Body: "Après validation, nous générons des images fixes des personnages et des clips pour vos Reels, publicités et présentations.",
     },
     pricing: { title: "Abonnez-vous pour générer des vidéos", subtitle: "Chaque clip coûte 3 credits (image de début, image de fin et rendu). Les storyboards sont gratuits jusqu’à leur validation.", clipsApprox: "clips", subscribePlan: "S’abonner à {plan}" },
+    enterprise: { title: "Besoin de plus que Scale ?", body: "Credits, facturation et contrat sur mesure pour les équipes qui dépassent les offres affichées.", cta: "Nous contacter" },
+    showcase: { title: "Voir les résultats", subtitle: "Quatre combinaisons sur la même plateforme : sujet, style et format.", reel: "Reel", deck: "Présentation", marketing: "Marketing", scro: "Comment marche Scro", product: "Démo produit" },
+    cast: { eyebrow: "Personnages", title: "Créez le personnage une fois. Gardez-le dans chaque vidéo.", body: "Définissez d’abord un personnage et un style. Ensuite, enchaînez Reels, clips marketing et vidéos explicatives avec le même visage — pour un produit, une fonctionnalité, ou un savoir.", product: "Produit", service: "Service", knowledge: "Savoir", cta: "Créer un personnage" },
+    persona: { eyebrow: "Marque personnelle", title: "Restez hors caméra. Laissez un vous virtuel animer le Reel.", body: "Importez votre photo. Scro vous redessine en personnage virtuel dans le même style, puis l’utilise pour vos vidéos de marque personnelle.", cta: "Utiliser votre photo" },
   },
   dashboard: { title: "Projets", subscribed: "Votre offre permet de générer des vidéos. Il vous reste {credits} credits.", notSubscribed: "Aucun abonnement actif. Vous pouvez préparer des storyboards, mais une offre est nécessaire avant le rendu.", noSubscriptionBanner: "Aucun abonnement actif.", goBilling: "Accéder à la facturation" },
   folder: {

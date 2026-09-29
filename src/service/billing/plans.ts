@@ -63,7 +63,7 @@ export function salesEmail() {
 }
 
 export function salesMailto() {
-  const subject = encodeURIComponent("Explainer 企業方案");
+  const subject = encodeURIComponent("Scro 企業方案");
   return `mailto:${salesEmail()}?subject=${subject}`;
 }
 

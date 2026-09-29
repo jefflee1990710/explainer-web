@@ -3,10 +3,18 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { EnterpriseCta } from "@/presentation/components/pricing/enterprise-cta";
-import { MotionItem, MotionReveal, MotionStagger } from "@/presentation/components/motion-reveal";
+import { LandingPricingTrack } from "@/presentation/components/landing-pricing-track";
+import { MotionReveal } from "@/presentation/components/motion-reveal";
 import { PLANS, type PlanDefinition } from "@/service/billing/plans";
 import type { PlanId } from "@/model/subscription";
+
+// Art in /public/pricing. Regenerate in development with GOOGLE_GENERATIVE_AI_API_KEY (Gemini).
+const PLAN_ART: Record<PlanId, string> = {
+  starter: "/pricing/starter.png",
+  pro: "/pricing/pro.png",
+  studio: "/pricing/studio.png",
+  scale: "/pricing/scale.png",
+};
 
 export function LandingPricing() {
   const { t } = useI18n();
@@ -17,24 +25,32 @@ export function LandingPricing() {
   }
 
   return (
-    <section id="pricing" className="mx-auto max-w-6xl px-6 pb-24">
+    <section id="pricing" className="bg-white px-4 py-20 md:px-8">
+      <div className="mx-auto max-w-6xl">
       <MotionReveal>
-        <h2 className="font-display text-3xl font-bold sm:text-4xl">{t("landing.pricing.title")}</h2>
-        <p className="mt-3 max-w-xl text-muted">{t("landing.pricing.subtitle")}</p>
+        <h2 className="text-center text-3xl font-bold text-zinc-900">{t("landing.pricing.title")}</h2>
+        <p className="mx-auto mt-3 max-w-xl text-center text-zinc-600">{t("landing.pricing.subtitle")}</p>
       </MotionReveal>
 
-      <MotionStagger className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <LandingPricingTrack>
         {plans.map((plan) => (
-          <MotionItem key={plan.id}>
             <article
-              className={`flex h-full flex-col rounded-[1.75rem] border p-7 shadow-[8px_8px_0_0_rgba(18,20,28,0.1)] ${
+              key={plan.id}
+              className={`flex w-[min(19rem,78vw)] shrink-0 flex-col rounded-2xl border p-8 shadow-sm ${
                 plan.highlight
-                  ? "border-accent-ink bg-accent-ink text-paper"
-                  : "border-accent-ink/10 bg-paper/90"
+                  ? "border-[#12141c] bg-[#12141c] text-white"
+                  : "border-zinc-200 bg-white"
               }`}
             >
+              <div className="-mx-8 -mt-8 mb-6 h-44 overflow-hidden rounded-t-2xl bg-white">
+                <img
+                  src={PLAN_ART[plan.id]}
+                  alt=""
+                  className="h-full w-full object-cover object-center"
+                />
+              </div>
               {plan.highlight ? (
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-lime">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#c6f24b]">
                   {t("common.popular")}
                 </p>
               ) : null}
@@ -43,7 +59,7 @@ export function LandingPricing() {
                 ${plan.amountUsd}
                 <span
                   className={`text-base font-medium ${
-                    plan.highlight ? "text-paper/70" : "text-muted"
+                    plan.highlight ? "text-white/70" : "text-zinc-500"
                   }`}
                 >
                   {" "}
@@ -52,14 +68,14 @@ export function LandingPricing() {
               </p>
               <p
                 className={`mt-3 flex-1 text-sm leading-6 ${
-                  plan.highlight ? "text-paper/75" : "text-muted"
+                  plan.highlight ? "text-white/80" : "text-zinc-600"
                 }`}
               >
                 {t(`plans.${plan.id as PlanId}.blurb`)}
               </p>
               <p
                 className={`mt-2 text-xs ${
-                  plan.highlight ? "text-paper/55" : "text-muted"
+                  plan.highlight ? "text-white/60" : "text-zinc-500"
                 }`}
               >
                 {plan.monthlyCredits} {t("common.credits")} · {Math.floor(plan.monthlyCredits / 3)}{" "}
@@ -72,22 +88,19 @@ export function LandingPricing() {
               >
                 <Link
                   href="/app/billing"
-                  className={`rounded-full px-5 py-2.5 text-sm font-semibold ${
+                  className={`rounded-full px-5 py-2.5 text-sm font-medium ${
                     plan.highlight
-                      ? "bg-lime text-accent-ink shadow-[3px_3px_0_0_rgba(255,77,46,0.9)]"
-                      : "bg-accent text-white shadow-[3px_3px_0_0_#12141c]"
+                      ? "bg-[#c6f24b] text-[#12141c]"
+                      : "bg-[#12141c] text-[#c6f24b] hover:bg-black"
                   }`}
                 >
                   {t("landing.pricing.subscribePlan", { plan: planName(plan) })}
                 </Link>
               </motion.div>
             </article>
-          </MotionItem>
         ))}
-        <MotionItem>
-          <EnterpriseCta />
-        </MotionItem>
-      </MotionStagger>
+      </LandingPricingTrack>
+      </div>
     </section>
   );
 }

@@ -52,6 +52,35 @@ export type Messages = {
       clipsApprox: string;
       subscribePlan: string;
     };
+    enterprise: {
+      title: string;
+      body: string;
+      cta: string;
+    };
+    showcase: {
+      title: string;
+      subtitle: string;
+      reel: string;
+      deck: string;
+      marketing: string;
+      scro: string;
+      product: string;
+    };
+    cast: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      product: string;
+      service: string;
+      knowledge: string;
+      cta: string;
+    };
+    persona: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      cta: string;
+    };
   };
   dashboard: {
     title: string;

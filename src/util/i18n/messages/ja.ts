@@ -1,12 +1,12 @@
 import type { Messages } from "@/util/i18n/messages/types";
 
 export const ja: Partial<Messages> = {
-  meta: { title: "Explainer — 解説動画", description: "アイデアを Reels、マーケティング用 clips、プレゼン動画に変換。スタイルを選び、絵コンテを承認して clips を書き出せます。" },
+  meta: { title: "Scro — 解説動画", description: "アイデアを Reels、マーケティング用 clips、プレゼン動画に変換。スタイルを選び、絵コンテを承認して clips を書き出せます。" },
   nav: { projects: "プロジェクト", characters: "キャラクター", tasks: "タスク", mcp: "MCP", affiliate: "Affiliate", billing: "請求", pricing: "料金", signIn: "ログイン", workspace: "ワークスペース", language: "言語" },
   common: { credits: "credits", pending: "処理中", perMonth: "/ 月", cancel: "キャンセル", save: "保存", close: "閉じる", create: "作成", loading: "読み込み中…", popular: "一番人気", subscribe: "登録する" },
   landing: {
     hero: {
-      kicker: "Explainer",
+      kicker: "Scro",
       title: "アイデアを Reels、マーケティング、プレゼン動画で分かりやすく。",
       subtitle: "スタイルを選び、絵コンテを承認して clips を書き出すだけ。ショート動画、商品マーケティング、プレゼンに活用できます。",
       ctaStart: "始める",
@@ -27,6 +27,35 @@ export const ja: Partial<Messages> = {
       subtitle: "1 clip につき 3 credits（開始フレーム、終了フレーム、レンダリング）。絵コンテは承認するまで無料です。",
       clipsApprox: "clips",
       subscribePlan: "{plan} に登録",
+    },
+    enterprise: {
+      title: "Scale より大きなプランが必要ですか？",
+      body: "掲載プランを超えるチーム向けに、credits、請求書、契約を個別にご用意します。",
+      cta: "お問い合わせ",
+    },
+    showcase: {
+      title: "仕上がりを見る",
+      subtitle: "同じプラットフォームで、テーマ・スタイル・画面比の四つの組み合わせ。",
+      reel: "リール",
+      deck: "プレゼン",
+      marketing: "マーケ",
+      scro: "Scro の使い方",
+      product: "製品デモ",
+    },
+    cast: {
+      eyebrow: "キャラクター",
+      title: "キャラクターは一度作れば、どの動画でも同じ顔。",
+      body: "先にキャラクターとスタイルを決めて、同じ見た目のままリール、マーケ動画、解説動画を作り続けられます。製品、サービスの機能、教えたい知識の紹介に向いています。",
+      product: "製品",
+      service: "サービス",
+      knowledge: "知識",
+      cta: "キャラクターを作る",
+    },
+    persona: {
+      eyebrow: "パーソナルブランド",
+      title: "カメラに映らなくていい。仮想の自分がリールを担当。",
+      body: "自分の写真をアップロードすると、Scro が同じスタイルの仮想キャラクターに描き直し、パーソナルブランドの動画に使います。",
+      cta: "写真から作る",
     },
   },
   dashboard: {

@@ -1,19 +1,23 @@
 import { SiteHeader } from "@/presentation/components/site-header";
-import { StudioBackdrop } from "@/presentation/components/studio-backdrop";
+import { LandingCast } from "@/presentation/components/landing-cast";
 import { LandingHero } from "@/presentation/components/landing-hero";
+import { LandingEnterprise } from "@/presentation/components/landing-enterprise";
+import { LandingPersona } from "@/presentation/components/landing-persona";
 import { LandingPricing } from "@/presentation/components/landing-pricing";
+import { LandingShowcase } from "@/presentation/components/landing-showcase";
 import { LandingSteps } from "@/presentation/components/landing-steps";
 
 export default function HomePage() {
   return (
-    <div className="studio-canvas relative flex flex-1 flex-col">
-      <StudioBackdrop />
-      <div className="relative z-10">
-        <SiteHeader />
-        <LandingHero />
-        <LandingSteps />
-        <LandingPricing />
-      </div>
+    <div className="flex flex-1 flex-col bg-white text-zinc-900">
+      <SiteHeader />
+      <LandingHero />
+      <LandingSteps />
+      <LandingCast />
+      <LandingPersona />
+      <LandingShowcase />
+      <LandingPricing />
+      <LandingEnterprise />
     </div>
   );
 }

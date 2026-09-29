@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const en: Messages = {
   meta: {
-    title: "Explainer — Explainer videos",
+    title: "Scro — explainer videos",
     description:
       "Turn concepts into Reels, marketing clips, and presentation videos. Pick a style, approve storyboards, export clips.",
   },
@@ -32,7 +32,7 @@ export const en: Messages = {
   },
   landing: {
     hero: {
-      kicker: "Explainer",
+      kicker: "Scro",
       title: "Explain ideas clearly as Reels, marketing, and deck videos.",
       subtitle:
         "Pick a style, approve storyboards, export clips—for short video, product marketing, and presentations.",
@@ -58,6 +58,35 @@ export const en: Messages = {
         "Each clip costs 3 credits (start frame, end frame, render). Storyboards are free until you approve.",
       clipsApprox: "clips",
       subscribePlan: "Subscribe {plan}",
+    },
+    enterprise: {
+      title: "Need more than Scale?",
+      body: "Custom credits, invoicing, and a contract for teams that outgrow the listed plans.",
+      cta: "Contact us",
+    },
+    showcase: {
+      title: "See the results",
+      subtitle: "Four combinations from the same platform: topic, style, and frame.",
+      reel: "Reel",
+      deck: "Deck",
+      marketing: "Marketing",
+      scro: "How Scro works",
+      product: "Product demo",
+    },
+    cast: {
+      eyebrow: "Characters",
+      title: "Create the character once. Keep them in every video.",
+      body: "Design a character and a style first. Then make Reels, marketing clips, and explainers that stay consistent — for a product, a service feature, or something you teach.",
+      product: "Product",
+      service: "Service",
+      knowledge: "Knowledge",
+      cta: "Create a character",
+    },
+    persona: {
+      eyebrow: "Personal brand",
+      title: "Stay off camera. Let a virtual you host the Reel.",
+      body: "Upload your own photo. Scro redraws you as a virtual character in the same style, then uses that character for personal-branding videos.",
+      cta: "Use your photo",
     },
   },
   dashboard: {
@@ -136,7 +165,7 @@ export const en: Messages = {
   mcp: {
     title: "MCP",
     subtitle:
-      "Connect Cursor or Claude to Explainer with an API key. Create videos and characters from your AI client.",
+      "Connect Cursor or Claude to Scro with an API key. Create videos and characters from your AI client.",
     installTitle: "Installation",
     installCursor: "Cursor — add to ~/.cursor/mcp.json",
     installClaudeDesktop: "Claude Desktop — add to claude_desktop_config.json",

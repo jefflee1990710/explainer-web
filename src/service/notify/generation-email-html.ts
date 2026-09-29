@@ -58,7 +58,7 @@ export function generationEmailHtml(copy: GenerationEmailCopy) {
           <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fffbf5;border:1px solid rgba(18,20,28,0.1);border-radius:24px;">
             <tr>
               <td style="padding:28px 28px 8px;">
-                <span style="display:inline-block;background:#c6f24b;color:#12141c;font-family:Syne,'Noto Sans TC',Helvetica,Arial,sans-serif;font-size:12px;font-weight:800;letter-spacing:0.04em;border-radius:999px;padding:4px 12px;">Explainer</span>
+                <span style="display:inline-block;background:#c6f24b;color:#12141c;font-family:Syne,'Noto Sans TC',Helvetica,Arial,sans-serif;font-size:12px;font-weight:800;letter-spacing:0.04em;border-radius:999px;padding:4px 12px;">Scro</span>
               </td>
             </tr>
             <tr>
@@ -78,7 +78,7 @@ export function generationEmailHtml(copy: GenerationEmailCopy) {
             </tr>
             <tr>
               <td style="padding:0 28px 28px;font-size:12px;line-height:1.6;color:#5c6170;">
-                產圖或產片完成時由 Explainer 自動寄出。
+                產圖或產片完成時由 Scro 自動寄出。
               </td>
             </tr>
           </table>

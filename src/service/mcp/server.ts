@@ -109,7 +109,7 @@ function wrapTool<TArgs>(
 
 export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
   const server = new McpServer({
-    name: "explainer",
+    name: "scro",
     version: "1.0.0",
   });
 
@@ -117,7 +117,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     "get_account",
     {
       title: "Get account",
-      description: "Return the authenticated Explainer account credits and subscription.",
+      description: "Return the authenticated Scro account credits and subscription.",
       inputSchema: {},
     },
     wrapTool(user, apiKey, "get_account", 0, async () => {

@@ -1,19 +1,20 @@
-/* CapCut light desk. Scoped to .studio-app so marketing keeps the warm paper canvas.
+/* Logged-in portal. Logo black + lime, on a white desk.
    Unlayered rules here beat Tailwind utilities. */
 .studio-app {
-  --studio-canvas: #f5f6f8;
+  --studio-canvas: #fafafa;
   --studio-panel: #ffffff;
-  --studio-line: #e8e9ed;
-  --studio-ink: #161823;
-  --studio-muted: #8b8e97;
-  --studio-teal: #00c2d1;
-  --studio-teal-hover: #00aebc;
-  --studio-fill: #f2f3f5;
-  --studio-cyan-soft: #e7f8fa;
+  --studio-line: #e4e4e7;
+  --studio-ink: #12141c;
+  --studio-muted: #5c6170;
+  --studio-teal: #c6f24b;
+  --studio-teal-hover: #b6e23a;
+  --studio-fill: #f4f4f5;
+  --studio-cyan-soft: #f4fcd4;
   --paper: #ffffff;
-  --lime: #00c2d1;
-  --muted: #8b8e97;
-  --accent-ink: #161823;
+  --muted: #5c6170;
+  --accent-ink: #12141c;
+  --accent: #12141c;
+  --lime: #c6f24b;
   --line: #e8e9ed;
   background: var(--studio-canvas);
   color: var(--studio-ink);
@@ -32,7 +33,7 @@
 
 /* Shared library card. */
 .studio-app .studio-card {
-  border-radius: 8px;
+  border-radius: 16px;
   background: #fff;
   box-shadow: none;
 }
@@ -43,7 +44,7 @@
 
 /* Cards: flat white, 8px corners, soft lift on hover. */
 .studio-app article[class*="rounded-["]:not(.bg-accent-ink) {
-  border-radius: 8px;
+  border-radius: 16px;
   background-color: #fff;
   box-shadow: none;
 }
@@ -53,7 +54,7 @@
 }
 
 .studio-app article.bg-accent-ink {
-  border-radius: 8px;
+  border-radius: 16px;
   box-shadow: none;
 }
 
@@ -62,7 +63,7 @@
 }
 
 .studio-app :is(section, div)[class*="rounded-[1"] {
-  border-radius: 12px;
+  border-radius: 16px;
   box-shadow: none;
 }
 
@@ -71,22 +72,22 @@
 }
 
 .studio-app [role="dialog"] {
-  border-radius: 12px;
+  border-radius: 16px;
   border-color: var(--studio-line);
   background: #fff;
   box-shadow: 0 16px 48px rgba(22, 24, 35, 0.16);
 }
 
-/* Primary actions are CapCut cyan. Destructive confirms stay red. */
+/* Primary actions: logo black with lime label. Destructive confirms stay red. */
 .studio-app :is(button, a).bg-accent {
-  border-radius: 8px;
-  background-color: var(--studio-teal);
-  color: #fff;
+  border-radius: 999px;
+  background-color: #12141c;
+  color: #c6f24b;
   box-shadow: none;
 }
 
 .studio-app :is(button, a).bg-accent:hover {
-  background-color: var(--studio-teal-hover);
+  background-color: #000;
 }
 
 .studio-app :is(button, a)[data-intent="danger"].bg-accent,
@@ -95,21 +96,21 @@
 }
 
 .studio-app :is(button, a).bg-accent-ink {
-  border-radius: 8px;
+  border-radius: 999px;
   background-color: var(--studio-ink);
   color: #fff;
   box-shadow: none;
 }
 
 .studio-app :is(button, a).bg-lime {
-  border-radius: 8px;
+  border-radius: 999px;
   background-color: #fff;
   color: var(--studio-ink);
   box-shadow: none;
 }
 
 .studio-app :is(button, a)[class*="rounded-full"] {
-  border-radius: 8px;
+  border-radius: 999px;
 }
 
 .studio-app :is(button, a)[class*="min-h-[44px]"],
@@ -122,7 +123,7 @@
 }
 
 .studio-app button[class*="border"][class*="bg-paper"] {
-  border-radius: 8px;
+  border-radius: 999px;
   border-color: transparent;
   background-color: var(--studio-fill);
   color: var(--studio-ink);

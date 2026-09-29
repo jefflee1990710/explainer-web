@@ -50,7 +50,7 @@ async function ensureCreditPackPrices(
     let productId = stored.productId;
     if (!productId) {
       const product = await stripe.products.create({
-        name: `Explainer ${pack.nameZh} ${pack.credits} credits`,
+        name: `Scro ${pack.nameZh} ${pack.credits} credits`,
         metadata: { app: "explainer-web", packId },
       });
       productId = product.id;
@@ -196,7 +196,7 @@ export async function getOrCreateStripePrices(): Promise<BillingSettings> {
     let productId = currentProductId(doc, planId);
     if (!productId) {
       const product = await stripe.products.create({
-        name: `Explainer ${plan.name}`,
+        name: `Scro ${plan.name}`,
         metadata: { app: "explainer-web", planId },
       });
       productId = product.id;

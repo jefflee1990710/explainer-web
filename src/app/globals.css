@@ -2,18 +2,18 @@
 @import "../presentation/studio/tokens.css";
 
 :root {
-  /* Marker-studio palette: paper, ink, citrus, coral, teal */
-  --background: #fff6eb;
+  /* Logo palette: ink black + lime */
+  --background: #ffffff;
   --foreground: #12141c;
-  --card: rgba(255, 255, 255, 0.78);
+  --card: #ffffff;
   --muted: #5c6170;
-  --line: rgba(18, 20, 28, 0.1);
-  --accent: #ff4d2e;
+  --line: #e4e4e7;
+  --accent: #12141c;
   --accent-ink: #12141c;
   --lime: #c6f24b;
-  --teal: #14b8a6;
-  --sky: #4f8cff;
-  --paper: #fffbf5;
+  --teal: #c6f24b;
+  --sky: #c6f24b;
+  --paper: #ffffff;
 }
 
 @theme inline {
@@ -39,13 +39,8 @@ body {
   font-family: var(--font-body), "Noto Sans TC", sans-serif;
 }
 
-/* Soft studio grain + wash without flattening the page */
 .studio-canvas {
-  background:
-    radial-gradient(ellipse 80% 55% at 12% -10%, rgba(198, 242, 75, 0.45), transparent 55%),
-    radial-gradient(ellipse 70% 50% at 92% 8%, rgba(255, 77, 46, 0.28), transparent 50%),
-    radial-gradient(ellipse 60% 45% at 70% 95%, rgba(20, 184, 166, 0.22), transparent 55%),
-    linear-gradient(180deg, #fff8ef 0%, #fff3e4 48%, #ffe9d6 100%);
+  background: #ffffff;
 }
 
 .studio-grid {
@@ -56,9 +51,29 @@ body {
 }
 
 .font-display {
-  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-family: var(--font-body), "Noto Sans TC", sans-serif;
+  letter-spacing: -0.02em;
 }
 
 .text-balance {
   text-wrap: balance;
+}
+
+@keyframes hero-drift {
+  from {
+    transform: scale(1.06) translateX(-1.5%);
+  }
+  to {
+    transform: scale(1.06) translateX(1.5%);
+  }
+}
+
+.hero-drift {
+  animation: hero-drift 22s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-drift {
+    animation: none;
+  }
 }

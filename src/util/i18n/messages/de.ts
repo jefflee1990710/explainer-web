@@ -1,17 +1,21 @@
 import type { Messages } from "@/util/i18n/messages/types";
 
 export const de: Partial<Messages> = {
-  meta: { title: "Explainer — Erklärvideos", description: "Verwandle Konzepte in Reels, Marketing-clips und Präsentationsvideos. Wähle einen Stil, gib Storyboards frei und exportiere clips." },
+  meta: { title: "Scro — Erklärvideos", description: "Verwandle Konzepte in Reels, Marketing-clips und Präsentationsvideos. Wähle einen Stil, gib Storyboards frei und exportiere clips." },
   nav: { projects: "Projekte", characters: "Figuren", tasks: "Aufgaben", mcp: "MCP", affiliate: "Affiliate", billing: "Abrechnung", pricing: "Preise", signIn: "Anmelden", workspace: "Arbeitsbereich", language: "Sprache" },
   common: { credits: "credits", pending: "ausstehend", perMonth: "/ Monat", cancel: "Abbrechen", save: "Speichern", close: "Schließen", create: "Erstellen", loading: "Wird geladen…", popular: "Am beliebtesten", subscribe: "Abonnieren" },
   landing: {
-    hero: { kicker: "Explainer", title: "Erkläre Ideen verständlich als Reels, Marketing- und Präsentationsvideos.", subtitle: "Wähle einen Stil, gib Storyboards frei und exportiere clips – für Kurzvideos, Produktmarketing und Präsentationen.", ctaStart: "Jetzt starten", ctaWorkspace: "Arbeitsbereich öffnen", ctaPricing: "Tarife ansehen", artLabel: "Konzeptillustration für Storyboard und Schnitt" },
+    hero: { kicker: "Scro", title: "Erkläre Ideen verständlich als Reels, Marketing- und Präsentationsvideos.", subtitle: "Wähle einen Stil, gib Storyboards frei und exportiere clips – für Kurzvideos, Produktmarketing und Präsentationen.", ctaStart: "Jetzt starten", ctaWorkspace: "Arbeitsbereich öffnen", ctaPricing: "Tarife ansehen", artLabel: "Konzeptillustration für Storyboard und Schnitt" },
     steps: {
       step1Title: "Stil auswählen", step1Body: "Wähle einen Regiestil für Kurzvideos, Marketing, Präsentationen und mehr.",
       step2Title: "Storyboards freigeben", step2Body: "Die KI schlägt Titel, Aufhänger, Szenen und Sprechertexte vor. Bearbeite alles, bis du zufrieden bist.",
       step3Title: "Video exportieren", step3Body: "Nach der Freigabe erstellen wir Figurenbilder und clips für Reels, Anzeigen und Präsentationen.",
     },
     pricing: { title: "Abonnieren und Videos rendern", subtitle: "Jeder clip kostet 3 credits (Startbild, Endbild und Rendering). Storyboards sind bis zur Freigabe kostenlos.", clipsApprox: "clips", subscribePlan: "{plan} abonnieren" },
+    enterprise: { title: "Mehr als Scale?", body: "Individuelle Credits, Rechnungen und Verträge für Teams, die über die gelisteten Tarife hinauswachsen.", cta: "Kontakt" },
+    showcase: { title: "Ergebnisse ansehen", subtitle: "Vier Kombinationen auf derselben Plattform: Thema, Stil und Format.", reel: "Reel", deck: "Präsentation", marketing: "Marketing", scro: "So funktioniert Scro", product: "Produktdemo" },
+    cast: { eyebrow: "Charaktere", title: "Charakter einmal anlegen. In jedem Video derselbe.", body: "Lege zuerst Charakter und Stil fest. Danach entstehen Reels, Marketingclips und Erklärvideos mit demselben Gesicht — für ein Produkt, eine Funktion oder Wissen.", product: "Produkt", service: "Service", knowledge: "Wissen", cta: "Charakter erstellen" },
+    persona: { eyebrow: "Personal Brand", title: "Nicht vor die Kamera. Ein virtuelles Ich moderiert das Reel.", body: "Lade dein Foto hoch. Scro zeichnet dich im selben Stil als virtuellen Charakter und nutzt ihn für Personal-Branding-Videos.", cta: "Foto verwenden" },
   },
   dashboard: { title: "Projekte", subscribed: "Mit deinem Tarif kannst du Videos rendern. Noch {credits} credits verfügbar.", notSubscribed: "Kein aktives Abonnement. Du kannst Storyboards entwerfen, benötigst aber vor dem Rendering einen Tarif.", noSubscriptionBanner: "Kein aktives Abonnement.", goBilling: "Zur Abrechnung" },
   folder: {
