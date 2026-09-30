@@ -66,6 +66,7 @@ export default async function ProjectPage({
         styles={styles}
         characters={characters}
         credits={user.credits}
+        creditLimit={user.creditLimit || 0}
         subscribed={subscribed}
       />
     </Suspense>

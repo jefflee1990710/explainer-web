@@ -145,6 +145,9 @@ export type Messages = {
     searchPlaceholder: string;
     searchLabel: string;
     filterLabel: string;
+    tablePreview: string;
+    tableName: string;
+    tableVideos: string;
   };
   project: {
     steps: {

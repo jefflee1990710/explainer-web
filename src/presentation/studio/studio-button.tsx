@@ -9,12 +9,14 @@ export function StudioButton({
   type = "button",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "ghost";
+  variant?: "primary" | "ghost" | "danger";
 }) {
   const face =
     variant === "primary"
       ? "bg-[#12141c] text-[#c6f24b] hover:bg-black"
-      : "bg-[var(--studio-fill)] text-[var(--studio-ink)] hover:bg-zinc-100";
+      : variant === "danger"
+        ? "border border-red-200 bg-red-600 text-white hover:bg-red-700"
+        : "bg-[var(--studio-fill)] text-[var(--studio-ink)] hover:bg-zinc-100";
   return (
     <button
       type={type}

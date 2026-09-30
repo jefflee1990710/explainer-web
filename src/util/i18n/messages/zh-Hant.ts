@@ -159,6 +159,9 @@ export const zhHant: Messages = {
     searchPlaceholder: "搜尋專案名稱…",
     searchLabel: "搜尋專案名稱",
     filterLabel: "狀態篩選",
+    tablePreview: "預覽",
+    tableName: "專案",
+    tableVideos: "影片",
   },
   project: {
     steps: {

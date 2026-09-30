@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId } from "react";
-import { VideoEditorTaskQueue } from "@/presentation/components/app/projects/[id]/video-editor-task-queue";
+import { VideoEditorHeaderStatus } from "@/presentation/components/app/projects/[id]/video-editor-header-status";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
 
@@ -15,6 +15,8 @@ export function VideoEditorDialog({
   onClose,
   onDelete,
   videoId,
+  credits,
+  creditLimit,
   children,
 }: {
   title: string;
@@ -24,8 +26,10 @@ export function VideoEditorDialog({
   onExport?: () => void;
   onClose: () => void;
   onDelete?: () => void;
-  // When set, show this video's pending generation count in the header.
+  // When set, show this video's pending tasks and credit meter in the header.
   videoId?: string;
+  credits?: number;
+  creditLimit?: number;
   children: React.ReactNode;
 }) {
   const titleId = useId();
@@ -58,7 +62,9 @@ export function VideoEditorDialog({
           {nav}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {videoId ? <VideoEditorTaskQueue videoId={videoId} /> : null}
+          {credits !== undefined && creditLimit !== undefined ? (
+            <VideoEditorHeaderStatus videoId={videoId} credits={credits} creditLimit={creditLimit} />
+          ) : null}
           {onExport ? (
             <StudioButton onClick={onExport}>下一步：成片</StudioButton>
           ) : null}
@@ -69,7 +75,7 @@ export function VideoEditorDialog({
             </p>
           ) : null}
           {canDelete ? (
-            <StudioButton variant="ghost" className="text-accent" onClick={onDelete}>
+            <StudioButton variant="danger" onClick={onDelete}>
               刪除影片
             </StudioButton>
           ) : null}

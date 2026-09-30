@@ -164,6 +164,9 @@ export const en: Messages = {
     searchPlaceholder: "Search by project name…",
     searchLabel: "Search by project name",
     filterLabel: "Status filter",
+    tablePreview: "Preview",
+    tableName: "Project",
+    tableVideos: "Videos",
   },
   project: {
     steps: {

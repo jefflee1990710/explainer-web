@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { deleteVideoAction } from "@/presentation/actions/projects";
 import { isProjectBusy } from "@/service/clip-stage";
 import { isReelBusy } from "@/service/reel/fingerprint";
@@ -23,6 +24,18 @@ export function DeleteVideoDialog({
   const title = video.phaseA?.localizedTitle || "未命名影片";
   const pending = isProjectBusy(video) || isReelBusy(video.reelStatus);
 
+  useEffect(() => {
+    if (deleting) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      onClose();
+    }
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [deleting, onClose]);
+
   async function onConfirm() {
     setDeleting(true);
     setError("");
@@ -35,9 +48,9 @@ export function DeleteVideoDialog({
     onDeleted();
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-accent-ink/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-accent-ink/40 p-4 backdrop-blur-sm"
       onClick={deleting ? undefined : onClose}
     >
       <div
@@ -72,14 +85,14 @@ export function DeleteVideoDialog({
             type="button"
             onClick={() => void onConfirm()}
             disabled={deleting}
-            data-intent="danger"
-            className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-red-700 bg-red-600 px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {deleting ? <Spinner className="h-4 w-4" /> : null}
             永久刪除
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

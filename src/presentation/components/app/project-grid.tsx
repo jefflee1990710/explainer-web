@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AnimatePresence, MotionConfig, motion } from "framer-motion";
+import { MotionConfig, motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicFolder } from "@/presentation/serialize";
 import { CreateFolderButton } from "@/presentation/components/app/create-folder-modal";
-import { ProjectCard } from "@/presentation/components/app/project-card";
+import { ProjectTable } from "@/presentation/components/app/project-table";
 import { ProjectFilters } from "@/presentation/components/app/project-filters";
 
-// Dashboard grid. Search matches the project name only.
+// Dashboard project list (table). Search matches the project name only.
 export function ProjectGrid({ folders }: { folders: PublicFolder[] }) {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
@@ -43,13 +43,7 @@ export function ProjectGrid({ folders }: { folders: PublicFolder[] }) {
             {t("folder.noMatch")}
           </motion.p>
         ) : (
-          <motion.div layout className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <AnimatePresence mode="popLayout" initial={false}>
-              {visible.map((folder) => (
-                <ProjectCard key={folder.id} folder={folder} />
-              ))}
-            </AnimatePresence>
-          </motion.div>
+          <ProjectTable folders={visible} />
         )}
       </div>
     </MotionConfig>

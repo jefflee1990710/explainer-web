@@ -29,6 +29,7 @@ export function ProjectWorkspace({
   styles,
   characters,
   credits,
+  creditLimit,
   subscribed,
 }: {
   folder: PublicFolder;
@@ -36,6 +37,7 @@ export function ProjectWorkspace({
   styles: PublicStyle[];
   characters: PublicCharacter[];
   credits: number;
+  creditLimit: number;
   subscribed: boolean;
 }) {
   const router = useRouter();
@@ -178,13 +180,6 @@ export function ProjectWorkspace({
 
   return (
     <>
-      {deleteOpen && selectedVideo ? (
-        <DeleteVideoDialog
-          video={selectedVideo}
-          onClose={() => setDeleteOpen(false)}
-          onDeleted={() => onVideoDeleted(selectedVideo.id)}
-        />
-      ) : null}
       <div className="space-y-6">
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -215,6 +210,8 @@ export function ProjectWorkspace({
         <VideoEditorDialog
           title={editorTitle}
           videoId={selectedVideo?.id ?? activeVideoId ?? undefined}
+          credits={credits}
+          creditLimit={creditLimit}
           nav={stepNav ? <EditorStepSwitch {...stepNav} /> : null}
           syncing={videoSyncing}
           canDelete={Boolean(selectedVideo)}
@@ -271,6 +268,13 @@ export function ProjectWorkspace({
             />
           )}
         </VideoEditorDialog>
+      ) : null}
+      {deleteOpen && selectedVideo ? (
+        <DeleteVideoDialog
+          video={selectedVideo}
+          onClose={() => setDeleteOpen(false)}
+          onDeleted={() => onVideoDeleted(selectedVideo.id)}
+        />
       ) : null}
     </>
   );
