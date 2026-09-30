@@ -39,7 +39,8 @@ import {
   planRemaining,
   planSelected,
 } from "@/service/production-plan";
-import { UpgradePlanDialog } from "@/presentation/components/app/projects/new/upgrade-plan-dialog";
+import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
+import { isCreditGateError } from "@/service/billing/credit-gate";
 import {
   costForPaidKey,
   paidActionProject,
@@ -185,10 +186,15 @@ export function NewProjectForm({
     step: number;
   } | null>(null);
   const [confirmBrief, setConfirmBrief] = useState(false);
-  // Video cost shown in the upgrade overlay; set when the wallet cannot pay for it.
-  const [upgradeCost, setUpgradeCost] = useState<number | null>(null);
+  // Shown when the wallet cannot pay; resume is the generate click to retry.
+  const [creditGate, setCreditGate] = useState<{
+    needed: number;
+    resume: () => void;
+  } | null>(null);
   // Header RSC credits stay stale until poll; keep a local wallet for gates.
   const [walletCredits, setWalletCredits] = useState(credits);
+  const [paidSubscribed, setPaidSubscribed] = useState<boolean | null>(null);
+  const walletSubscribed = paidSubscribed ?? subscribed;
   // Previous stills, restored if the redo action never reaches the server.
   const redoSnapshotRef = useRef<PublicVideo | null>(null);
   const creditsSnapshotRef = useRef(credits);
@@ -332,8 +338,12 @@ export function NewProjectForm({
     router.replace(`${pathname}?video=${result.project.id}`);
   }
 
-  // Shared handler for every server action behind a paid button; billing errors
-  // bounce to /app/billing.
+  function openCreditGate(needed: number, resume: () => void) {
+    setCreditGate({ needed: Math.max(needed, 1), resume });
+  }
+
+  // Shared handler for every server action behind a paid button. A short wallet
+  // opens the in-place checkout dialog and retries this same click after pay.
   async function runPaid(
     key: string,
     action: () => Promise<PaidActionResult>,
@@ -379,8 +389,10 @@ export function NewProjectForm({
         }
         setError(result.error);
         notifyTasksChanged();
-        if (result.error.includes("訂閱") || result.error.includes("credits 不足")) {
-          router.push("/app/billing");
+        if (isCreditGateError(result.error)) {
+          openCreditGate(spend || 1, () => {
+            void runPaid(key, action, spend, queueKeys);
+          });
         }
         return false;
       }
@@ -436,7 +448,7 @@ export function NewProjectForm({
     // Billed per second of this clip's storyboard duration.
     const cost = clipVideoCost(project, clipNumber);
     if (needsVideoUpgrade(walletCredits, cost)) {
-      setUpgradeCost(cost);
+      openCreditGate(cost, () => onGenerateVideo(clipNumber));
       return;
     }
     void runPaid(`video:${clipNumber}`, () => generateClipVideoAction(project.id, clipNumber), cost);
@@ -460,7 +472,9 @@ export function NewProjectForm({
           : planGenerateAllClips(project);
     const cheapest = cheapestVideoCost(project, plan.videos);
     if (plan.videos.length > 0 && needsVideoUpgrade(walletCredits, cheapest)) {
-      setUpgradeCost(cheapest);
+      openCreditGate(Math.max(cheapest, plan.cost), () => {
+        void onBulkGenerate(mode);
+      });
       return Promise.resolve(false);
     }
     return runPaid(key, () => action(project.id), plan.cost, queueKeysForPlan(plan));
@@ -472,7 +486,9 @@ export function NewProjectForm({
     if (kind === "videos") {
       const cheapest = cheapestVideoCost(project, planSelected(project, clipNumbers, kind).videos);
       if (needsVideoUpgrade(walletCredits, cheapest)) {
-        setUpgradeCost(cheapest);
+        openCreditGate(cheapest, () => {
+          void onGenerateSelected(clipNumbers, kind);
+        });
         return Promise.resolve(false);
       }
     }
@@ -869,8 +885,19 @@ export function NewProjectForm({
         </AnimatePresence>
         </div>
 
-        {upgradeCost !== null ? (
-          <UpgradePlanDialog videoCost={upgradeCost} onClose={() => setUpgradeCost(null)} />
+        {creditGate ? (
+          <InsufficientCreditsDialog
+            needed={creditGate.needed}
+            subscribed={walletSubscribed}
+            onClose={() => setCreditGate(null)}
+            onPaid={(snap) => {
+              setWalletCredits(snap.credits);
+              setPaidSubscribed(snap.subscribed);
+              const resume = creditGate.resume;
+              setCreditGate(null);
+              resume();
+            }}
+          />
         ) : null}
         {confirmBrief ? (
           <ReviseStoryboardDialog

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import Link from "next/link";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import {
@@ -162,11 +161,7 @@ export function BulkGenerateDialog({
           <p className="mt-2 text-xs text-[var(--studio-muted)]">沒有需要處理的段落。</p>
         ) : short ? (
           <p className="mt-2 text-xs text-accent">
-            credits 不足，請先
-            <Link href="/app/billing" className="font-semibold underline">
-              升級方案
-            </Link>
-            。
+            credits 不足，確認後可加購或升級並繼續產生。
           </p>
         ) : null}
 
@@ -176,7 +171,7 @@ export function BulkGenerateDialog({
           </StudioButton>
           <StudioButton
             onClick={() => onConfirm(mode)}
-            disabled={pending || short || plan.cost === 0}
+            disabled={pending || plan.cost === 0}
           >
             {pending ? <Spinner className="h-4 w-4" /> : null}
             {pending ? "送出中…" : `確認送出 · ${plan.cost}`}

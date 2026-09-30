@@ -92,7 +92,7 @@ export function ClipEditDialog({
   const enoughCredits = credits >= FRAMES_COST;
   const canSave = valid && dirty && !busy;
   // Redrawing from unchanged text is still allowed (it acts as a plain redo).
-  const canRedraw = valid && !busy && canRegenerate && enoughCredits;
+  const canRedraw = valid && !busy && canRegenerate;
 
   function update<K extends keyof ClipStoryboardInput>(key: K, value: string) {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -276,7 +276,7 @@ export function ClipEditDialog({
                 {dualBeat ? "起始／結尾畫面與兩句旁白不能空白。" : "畫面描述與旁白不能空白。"}
               </p>
             ) : !enoughCredits ? (
-              <p className="text-xs font-medium text-accent">credits 不足，仍可儲存文字，但無法重畫。</p>
+              <p className="text-xs font-medium text-accent">credits 不足，仍可儲存文字；重畫會先加購或升級再繼續。</p>
             ) : !canRegenerate && !busy ? (
               <p className="text-xs font-medium text-accent">請等目前的動作完成後再重畫。</p>
             ) : null}

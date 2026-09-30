@@ -109,7 +109,7 @@ export function FrameEditDialog({
 
   const hasChanges = objectCount > 0 || remark.trim().length > 0;
   const enoughCredits = credits >= FRAME_COST;
-  const canSubmit = canRegenerate && enoughCredits;
+  const canSubmit = canRegenerate;
 
   function submit() {
     if (!canSubmit) return;
@@ -308,7 +308,7 @@ export function FrameEditDialog({
                 {!hasChanges ? "；沒有標註或備註時會直接重畫一次。" : "。"}
               </p>
               {!enoughCredits ? (
-                <p className="text-xs font-medium text-accent">credits 不足，請先升級方案。</p>
+                <p className="text-xs font-medium text-accent">credits 不足，點擊後可加購或升級並繼續產生。</p>
               ) : !canRegenerate ? (
                 <p className="text-xs font-medium text-accent">請等目前的動作完成後再重畫。</p>
               ) : null}

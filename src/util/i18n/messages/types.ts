@@ -210,6 +210,17 @@ export type Messages = {
     subscribeToTopUp: string;
     creditsClips: string;
     subscribePlan: string;
+    subscribeTitle: string;
+    subscribeBody: string;
+    subscribeCta: string;
+    topUpTitle: string;
+    topUpBody: string;
+    choosePlan: string;
+    choosePack: string;
+    payPack: string;
+    waitingCheckout: string;
+    popupBlocked: string;
+    checkoutPending: string;
   };
   mcp: {
     title: string;

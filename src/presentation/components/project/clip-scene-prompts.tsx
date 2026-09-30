@@ -51,7 +51,7 @@ export function ClipScenePrompts({
     : draft.explainerScene.trim().length > 0 && draft.englishVo.trim().length > 0;
   const enoughCredits = credits >= FRAMES_COST;
   const canSave = valid && dirty && !busy;
-  const canRedraw = valid && !busy && enoughCredits;
+  const canRedraw = valid && !busy;
 
   function update<K extends keyof ClipStoryboardInput>(key: K, value: string) {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -166,6 +166,10 @@ export function ClipScenePrompts({
           {!valid ? (
             <p className="text-xs font-medium text-accent">
               {dualBeat ? "起始／結尾畫面與兩句旁白不能空白。" : "畫面描述與旁白不能空白。"}
+            </p>
+          ) : !enoughCredits ? (
+            <p className="text-xs font-medium text-accent">
+              credits 不足，重畫會先加購或升級再繼續。
             </p>
           ) : (
             <p className="text-[11px] text-[var(--studio-muted)]">

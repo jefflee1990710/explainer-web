@@ -1,4 +1,5 @@
 import { requireAppUser } from "@/service/auth";
+import { checkoutUrls } from "@/service/billing/checkout-urls";
 import { CREDIT_PACKS, isPackId } from "@/service/billing/packs";
 import { isPlanId, priceIdForPlan } from "@/service/billing/plans";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
@@ -8,7 +9,12 @@ import { usersCollection } from "@/dao";
 import type { PackId } from "@/model/billing-settings";
 import type { PlanId } from "@/model/subscription";
 
-export async function startCheckoutAction(planId: PlanId) {
+export type CheckoutOptions = {
+  // Open Stripe in a popup; success returns to /checkout/done.
+  popup?: boolean;
+};
+
+export async function startCheckoutAction(planId: PlanId, options: CheckoutOptions = {}) {
   const user = await requireAppUser();
   if (!isPlanId(planId)) {
     return { ok: false as const, error: "找不到方案" };
@@ -36,12 +42,13 @@ export async function startCheckoutAction(planId: PlanId) {
     );
   }
 
+  const urls = checkoutUrls({ planId }, options.popup);
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${getAppUrl()}/app/billing?checkout=success&plan=${planId}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${getAppUrl()}/app/billing?checkout=cancel`,
+    success_url: urls.success_url,
+    cancel_url: urls.cancel_url,
     metadata: { clerkUserId: user.clerkUserId, planId },
     subscription_data: {
       metadata: { clerkUserId: user.clerkUserId, planId },
@@ -67,7 +74,7 @@ export async function startPortalAction() {
   return { ok: true as const, url: session.url };
 }
 
-export async function startPackCheckoutAction(packId: PackId) {
+export async function startPackCheckoutAction(packId: PackId, options: CheckoutOptions = {}) {
   const user = await requireAppUser();
   if (!isPackId(packId)) {
     return { ok: false as const, error: "找不到加購包" };
@@ -101,12 +108,13 @@ export async function startPackCheckoutAction(packId: PackId) {
     );
   }
 
+  const urls = checkoutUrls({ packId }, options.popup);
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${getAppUrl()}/app/billing?checkout=success&pack=${packId}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${getAppUrl()}/app/billing?checkout=cancel`,
+    success_url: urls.success_url,
+    cancel_url: urls.cancel_url,
     metadata: {
       clerkUserId: user.clerkUserId,
       packId,
@@ -121,14 +129,20 @@ export async function startPackCheckoutAction(packId: PackId) {
 }
 
 export type CreditSnapshotResult =
-  | { ok: true; credits: number; creditLimit: number }
+  | { ok: true; credits: number; creditLimit: number; subscribed: boolean }
   | { ok: false; error: string };
 
 // Header meter poll: just the wallet, no page revalidate.
 export async function getCreditSnapshotAction(): Promise<CreditSnapshotResult> {
   try {
     const user = await requireAppUser();
-    return { ok: true, credits: user.credits, creditLimit: user.creditLimit || 0 };
+    const sub = await getActiveSubscription(user.clerkUserId);
+    return {
+      ok: true,
+      credits: user.credits,
+      creditLimit: user.creditLimit || 0,
+      subscribed: isSubscriptionActive(sub),
+    };
   } catch (error) {
     return {
       ok: false,

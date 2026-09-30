@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { RefreshIcon } from "@/presentation/components/project/production-icons";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
@@ -37,7 +36,7 @@ export function ClipPrimaryAction({
   const videoUpgrade = action.kind === "video" && needsVideoUpgrade(credits, action.cost);
   const short = action.cost > 0 && credits < action.cost && !videoUpgrade;
   const busy = action.kind === "busy" || pending;
-  const disabled = busy || !idle || short || action.kind === "done";
+  const disabled = busy || !idle || action.kind === "done";
 
   function onClick() {
     if (action.kind === "frames") onGenerateFrames();
@@ -61,22 +60,13 @@ export function ClipPrimaryAction({
         {action.cost > 0 ? ` · ${action.cost}` : ""}
       </StudioButton>
       <p className="text-[11px] leading-4 text-[var(--studio-muted)]">
-        {short ? (
-          <>
-            credits 不足，
-            <Link href="/app/billing" className="font-semibold text-accent underline">
-              升級方案
-            </Link>
-          </>
-        ) : (
-          action.hint
-        )}
+        {short ? "credits 不足，點擊後可加購或升級並繼續產生。" : action.hint}
       </p>
       {showRedraw ? (
         <button
           type="button"
           onClick={onGenerateFrames}
-          disabled={!idle || credits < FRAMES_COST}
+          disabled={!idle}
           className="inline-flex cursor-pointer items-center gap-1 self-start text-[11px] font-semibold text-[var(--studio-muted)] underline-offset-2 hover:text-[var(--studio-ink)] hover:underline disabled:cursor-not-allowed disabled:opacity-50"
         >
           <RefreshIcon />

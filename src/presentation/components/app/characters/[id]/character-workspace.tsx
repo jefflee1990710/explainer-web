@@ -13,6 +13,9 @@ import {
 } from "@/presentation/actions/characters";
 import type { PublicCharacter } from "@/presentation/serialize";
 import { useCharacterPoll } from "@/presentation/components/app/characters/[id]/use-character-poll";
+import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
+import { isCreditGateError } from "@/service/billing/credit-gate";
+import { FRAME_COST } from "@/service/production-plan";
 import { DeleteCharacterDialog } from "@/presentation/components/app/characters/[id]/delete-character-dialog";
 import { VersionDetail } from "@/presentation/components/app/characters/[id]/version-detail";
 import { VersionList } from "@/presentation/components/app/characters/[id]/version-list";
@@ -35,6 +38,13 @@ export function CharacterWorkspace({
   const [error, setError] = useState("");
   const [name, setName] = useState(initial.name);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [creditGate, setCreditGate] = useState<{
+    needed: number;
+    resume: () => void;
+  } | null>(null);
+  const [paidSnap, setPaidSnap] = useState<{ credits: number; subscribed: boolean } | null>(null);
+  const walletCredits = paidSnap?.credits ?? credits;
+  const walletSubscribed = paidSnap?.subscribed ?? subscribed;
 
   // SSR gives a first paint; refresh in the background after navigation.
   useEffect(() => {
@@ -71,8 +81,13 @@ export function CharacterWorkspace({
       setPending("");
       if (!result.ok) {
         setError(result.error);
-        if (result.error.includes("訂閱") || result.error.includes("credits 不足")) {
-          router.push("/app/billing");
+        if (isCreditGateError(result.error)) {
+          setCreditGate({
+            needed: FRAME_COST,
+            resume: () => {
+              void run(key, action);
+            },
+          });
         }
         return;
       }
@@ -152,8 +167,8 @@ export function CharacterWorkspace({
           key={selected.id}
           character={character}
           version={selected}
-          credits={credits}
-          subscribed={subscribed}
+          credits={walletCredits}
+          subscribed={walletSubscribed}
           pending={pending}
           error={error}
           onSetDefault={() =>
@@ -165,6 +180,19 @@ export function CharacterWorkspace({
           }
         />
       </div>
+      {creditGate ? (
+        <InsufficientCreditsDialog
+          needed={creditGate.needed}
+          subscribed={walletSubscribed}
+          onClose={() => setCreditGate(null)}
+          onPaid={(snap) => {
+            setPaidSnap(snap);
+            const resume = creditGate.resume;
+            setCreditGate(null);
+            resume();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

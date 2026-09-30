@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getCreditSnapshotAction } from "@/presentation/actions/billing";
+import { CREDITS_CHANGED_EVENT } from "@/presentation/components/app/billing/credits-changed";
 import { creditProgress } from "@/service/billing/credit-balance";
 
 const POLL_MS = 5_000;
@@ -42,11 +43,16 @@ export function CreditMeter({
         inFlight.current = false;
       }
     }
+    function onCreditsChanged() {
+      void tick();
+    }
     void tick();
     const timer = window.setInterval(tick, POLL_MS);
+    window.addEventListener(CREDITS_CHANGED_EVENT, onCreditsChanged);
     return () => {
       alive = false;
       window.clearInterval(timer);
+      window.removeEventListener(CREDITS_CHANGED_EVENT, onCreditsChanged);
     };
   }, []);
 

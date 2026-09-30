@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCharacterAction } from "@/presentation/actions/characters";
+import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
+import { isCreditGateError } from "@/service/billing/credit-gate";
 import { CreateCharacterReferences } from "@/presentation/components/app/characters/create-character-references";
 import type { PublicStyle } from "@/presentation/serialize";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
@@ -67,21 +69,26 @@ export function CreateCharacterModal({
   const router = useRouter();
   const titleId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [name, setName] = useState("");
   const [styleId, setStyleId] = useState<StyleId>(DEFAULT_STYLE_ID);
   const [prompt, setPrompt] = useState("");
   const [referenceImageUrls, setReferenceImageUrls] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [creditGate, setCreditGate] = useState(false);
+  const [paidSnap, setPaidSnap] = useState<{ credits: number; subscribed: boolean } | null>(null);
+  const walletCredits = paidSnap?.credits ?? credits;
+  const walletSubscribed = paidSnap?.subscribed ?? subscribed;
 
   useEffect(() => {
     inputRef.current?.focus();
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && !creditGate) onClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [creditGate, onClose]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -97,8 +104,8 @@ export function CreateCharacterModal({
       if (!result.ok) {
         setSubmitting(false);
         setError(result.error);
-        if (result.error.includes("訂閱") || result.error.includes("credits 不足")) {
-          router.push("/app/billing");
+        if (isCreditGateError(result.error)) {
+          setCreditGate(true);
         }
         return;
       }
@@ -134,7 +141,7 @@ export function CreateCharacterModal({
         <p className="mt-2 text-sm text-muted">
           我們會產生一張角色藍圖（轉身圖、走路循環、表情格）。角色描述與參考圖至少填一項；多張照片會讓藍圖更像本人。
         </p>
-        <form onSubmit={onSubmit} className="mt-5 space-y-4">
+        <form ref={formRef} onSubmit={onSubmit} className="mt-5 space-y-4">
           <label className="block">
             <span className="mb-1.5 block text-sm font-semibold">角色名稱</span>
             <input
@@ -188,7 +195,9 @@ export function CreateCharacterModal({
           ) : null}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-muted">
-              {subscribed ? `扣 ${FRAME_COST} credits（剩餘 ${credits}）` : "需要有效訂閱才能產生藍圖"}
+              {walletSubscribed
+                ? `扣 ${FRAME_COST} credits（剩餘 ${walletCredits}）`
+                : "需要有效訂閱才能產生藍圖"}
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -211,6 +220,18 @@ export function CreateCharacterModal({
           </div>
         </form>
       </div>
+      {creditGate ? (
+        <InsufficientCreditsDialog
+          needed={FRAME_COST}
+          subscribed={walletSubscribed}
+          onClose={() => setCreditGate(false)}
+          onPaid={(snap) => {
+            setPaidSnap(snap);
+            setCreditGate(false);
+            formRef.current?.requestSubmit();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

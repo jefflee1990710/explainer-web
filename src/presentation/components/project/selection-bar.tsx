@@ -2,7 +2,7 @@
 
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
-import { cheapestVideoCost, needsVideoUpgrade, planSelected } from "@/service/production-plan";
+import { planSelected } from "@/service/production-plan";
 import type { PublicVideo } from "@/presentation/serialize";
 
 // Batch actions for the clips checked on the filmstrip.
@@ -30,13 +30,10 @@ export function SelectionBar({
   const frames = planSelected(project, clipNumbers, "frames");
   const videos = planSelected(project, clipNumbers, "videos");
   const skippedVideos = clipNumbers.length - videos.videos.length;
-  const videoUpgrade =
-    videos.videos.length > 0 &&
-    needsVideoUpgrade(credits, cheapestVideoCost(project, videos.videos));
 
   return (
     <div className="flex flex-wrap items-center gap-2 px-4 py-2 text-xs">
-      <span className="font-semibold">已選 {clipNumbers.length} 段</span>
+      <span className="font-semibold">已選 {clipNumbers.length} 段 · 剩餘 {credits}</span>
       {skippedVideos > 0 ? (
         <span className="text-[var(--studio-muted)]">
           {videos.videos.length} 段可產片，{skippedVideos} 段缺畫格或畫格是舊版
@@ -47,14 +44,14 @@ export function SelectionBar({
         <StudioButton
           variant="ghost"
           onClick={() => onFrames(frames.frames)}
-          disabled={busy || frames.frames.length === 0 || credits < frames.cost}
+          disabled={busy || frames.frames.length === 0}
           className="min-h-9 px-3 text-xs"
         >
           畫格 · {frames.cost}
         </StudioButton>
         <StudioButton
           onClick={() => onVideos(videos.videos)}
-          disabled={busy || videos.videos.length === 0 || (credits < videos.cost && !videoUpgrade)}
+          disabled={busy || videos.videos.length === 0}
           className="min-h-9 px-3 text-xs"
         >
           產片 · {videos.cost}

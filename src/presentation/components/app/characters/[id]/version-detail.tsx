@@ -31,7 +31,7 @@ export function VersionDetail({
   const [instruction, setInstruction] = useState("");
   const isDefault = version.id === character.defaultVersionId;
   const busy = version.status === "queued" || version.status === "in_progress";
-  const canPay = subscribed && credits >= FRAME_COST;
+  const short = !subscribed || credits < FRAME_COST;
 
   function submitEdit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -116,7 +116,7 @@ export function VersionDetail({
           <button
             type="button"
             onClick={onRetry}
-            disabled={pending !== "" || !canPay}
+            disabled={pending !== ""}
             className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent-ink px-4 text-sm font-semibold text-lime transition hover:-translate-y-0.5 disabled:opacity-60"
           >
             {pending === "retry" ? <Spinner className="h-4 w-4" /> : null}
@@ -124,7 +124,11 @@ export function VersionDetail({
           </button>
         ) : null}
         <p className="text-xs text-muted">
-          {subscribed ? `剩餘 ${credits} credits` : "需要有效訂閱才能產生新版本"}
+          {short
+            ? subscribed
+              ? `credits 不足（剩餘 ${credits}），點擊後可加購並繼續。`
+              : "需要有效訂閱才能產生新版本，點擊後可訂閱並繼續。"
+            : `剩餘 ${credits} credits`}
         </p>
       </div>
 
@@ -143,7 +147,7 @@ export function VersionDetail({
           <div className="flex items-center gap-2">
             <button
               type="submit"
-              disabled={!instruction.trim() || pending !== "" || !canPay}
+              disabled={!instruction.trim() || pending !== ""}
               className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {pending === "edit" ? <Spinner className="h-4 w-4" /> : null}
