@@ -1,13 +1,39 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect, useId, useRef, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { localizedStyleDescription, localizedStyleName } from "@/util/style-i18n";
 import type { PublicStyle } from "@/presentation/serialize";
 
-// Radio grid of visual styles with generated preview cards. Shared by the
-// video form and the character modal. A missing preview falls back to a
-// canvas-coloured block so creation is never blocked on the seed.
+// Left thumbnail for a style row (dropdown trigger or option).
+function StylePreviewThumb({
+  style,
+  label,
+  size = "md",
+}: {
+  style: PublicStyle;
+  label: string;
+  size?: "md" | "sm";
+}) {
+  const box = size === "sm" ? "h-9 w-14" : "h-11 w-[4.5rem]";
+  return (
+    <span
+      className={`${box} relative shrink-0 overflow-hidden rounded-md border border-accent-ink/10`}
+      style={{ backgroundColor: style.canvasColor }}
+    >
+      {style.previewUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={style.previewUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+      ) : (
+        <span className="absolute inset-0 grid place-items-center px-0.5 text-center font-display text-[9px] font-bold leading-tight text-accent-ink/60">
+          {label}
+        </span>
+      )}
+    </span>
+  );
+}
+
+// Dropdown of visual styles with a preview thumbnail on the left of each row.
 export function StylePicker({
   styles,
   value,
@@ -23,52 +49,112 @@ export function StylePicker({
 }) {
   const { t } = useI18n();
   const groupLabel = label ?? t("styles.label");
+  const listboxId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+
+  const selected = styles.find((item) => item.id === value) ?? styles[0];
+  const selectedName = selected ? localizedStyleName(t, selected.id) : groupLabel;
+  const selectedDescription = selected ? localizedStyleDescription(t, selected.id) : "";
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  if (styles.length === 0) {
+    return <p className="text-sm text-muted">目前沒有可用的視覺風格。</p>;
+  }
+
+  function pick(id: PublicStyle["id"]) {
+    onChange(id);
+    setOpen(false);
+  }
 
   return (
-    <div role="radiogroup" aria-label={groupLabel} className="grid gap-3 sm:grid-cols-3">
-      {styles.map((style) => {
-        const active = style.id === value;
-        const styleName = localizedStyleName(t, style.id);
-        const styleDescription = localizedStyleDescription(t, style.id);
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        id={`${listboxId}-trigger`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listboxId}
+        disabled={disabled}
+        onClick={() => setOpen((current) => !current)}
+        className="flex w-full min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border border-accent-ink/15 bg-paper/70 px-3 py-2 text-left transition-colors hover:border-accent-ink/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {selected ? <StylePreviewThumb style={selected} label={selectedName} /> : null}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold text-foreground">{selectedName}</span>
+          {selectedDescription ? (
+            <span className="mt-0.5 block truncate text-xs text-muted">{selectedDescription}</span>
+          ) : null}
+        </span>
+        <ChevronIcon open={open} />
+      </button>
 
-        return (
-          <motion.button
-            key={style.id}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            disabled={disabled}
-            onClick={() => onChange(style.id)}
-            whileTap={{ scale: 0.98 }}
-            className={`style-option relative aspect-square cursor-pointer overflow-hidden rounded-2xl border text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60 ${
-              active ? "border-[#12141c]" : "border-transparent"
-            }`}
-          >
-            {/* Square preview. The studio pill rule would otherwise turn this button into a circle. */}
-            <div className="absolute inset-0" style={{ backgroundColor: style.canvasColor }}>
-              {style.previewUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={style.previewUrl}
-                  // Decorative: the card already shows the style name.
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span className="absolute inset-0 grid place-items-center font-display text-sm font-bold text-accent-ink/60">
-                  {styleName}
-                </span>
-              )}
-            </div>
-            <div className="absolute inset-x-0 bottom-0 bg-[#12141c]/80 px-3 py-2">
-              <p className="truncate text-sm font-semibold text-white">{styleName}</p>
-              <p className="mt-0.5 line-clamp-2 text-[11px] leading-4 text-white/75">{styleDescription}</p>
-            </div>
-          </motion.button>
-        );
-      })}
+      {open ? (
+        <ul
+          id={listboxId}
+          role="listbox"
+          aria-label={groupLabel}
+          aria-labelledby={`${listboxId}-trigger`}
+          className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-accent-ink/15 bg-paper p-1 shadow-[4px_4px_0_0_rgba(18,20,28,0.08)]"
+        >
+          {styles.map((style) => {
+            const active = style.id === value;
+            const styleName = localizedStyleName(t, style.id);
+            const styleDescription = localizedStyleDescription(t, style.id);
+            return (
+              <li key={style.id} role="presentation">
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => pick(style.id)}
+                  className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                    active ? "bg-accent-ink text-paper" : "hover:bg-accent-ink/5"
+                  }`}
+                >
+                  <StylePreviewThumb style={style} label={styleName} size="sm" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold">{styleName}</span>
+                    <span
+                      className={`mt-0.5 block truncate text-xs ${active ? "text-paper/75" : "text-muted"}`}
+                    >
+                      {styleDescription}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
     </div>
+  );
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      className={`h-4 w-4 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden
+    >
+      <path d="M5 7.5 10 12.5 15 7.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
   );
 }
