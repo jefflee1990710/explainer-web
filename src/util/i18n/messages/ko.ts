@@ -11,7 +11,7 @@ export const ko: Partial<Messages> = {
       step2Title: "스토리보드 승인", step2Body: "AI가 제목, 도입부, 장면, 내레이션을 제안합니다. 만족할 때까지 편집하세요.",
       step3Title: "영상 내보내기", step3Body: "승인 후 Reels, 광고, 프레젠테이션용 캐릭터 스틸 이미지와 clips 을 생성합니다.",
     },
-    pricing: { title: "구독하고 영상 렌더링하기", subtitle: "clip 하나당 3 credits가 사용됩니다(시작 프레임, 종료 프레임, 렌더링). 스토리보드는 승인 전까지 무료입니다.", clipsApprox: "clips", subscribePlan: "{plan} 구독" },
+    pricing: { title: "구독하고 영상 렌더링하기", subtitle: "Scro를 쓰는 방식에 맞는 요금제를 고르세요.", clipsApprox: "clips", subscribePlan: "{plan} 구독" },
     enterprise: { title: "Scale보다 더 큰 플랜이 필요하신가요?", body: "안내된 플랜을 넘는 팀을 위해 credits, 청구서, 계약을 맞춤 제공합니다.", cta: "문의하기" },
     showcase: { title: "결과 보기", subtitle: "같은 플랫폼의 네 가지 조합: 주제, 스타일, 화면 비율.", reel: "릴스", deck: "프레젠테이션", marketing: "마케팅", scro: "Scro 사용법", product: "제품 데모", story: "짧은 이야기" },
     cast: { eyebrow: "캐릭터", title: "캐릭터는 한 번만 만들고, 모든 영상에 같은 얼굴로.", body: "캐릭터와 스타일을 먼저 정한 뒤, 같은 모습으로 릴스, 마케팅 영상, 설명 영상을 이어서 만듭니다. 제품, 서비스 기능, 가르치고 싶은 지식을 소개할 때 맞습니다.", product: "제품", service: "서비스", knowledge: "지식", cta: "캐릭터 만들기" },
@@ -44,9 +44,9 @@ export const ko: Partial<Messages> = {
   billing: { title: "결제" },
   styles: { doodle: "화이트보드 낙서", "flat-vector": "플랫 벡터", "paper-cutout": "종이 오리기", chalkboard: "칠판", watercolor: "수채화 동화책", clay: "클레이 애니메이션", pixel: "픽셀 아트", "ink-manga": "먹선 만화", realistic: "시네마틱 실사" },
   plans: {
-    starter: { name: "스타터", blurb: "월 30 credits(약 10 clips / 숏폼 영상 2개). Reels 를 시험해 보기에 좋습니다." },
-    pro: { name: "프로", blurb: "월 90 credits(약 30 clips). 마케팅과 프레젠테이션 콘텐츠를 꾸준히 제작하세요." },
-    studio: { name: "스튜디오", blurb: "월 200 credits(약 66 clips). 매주 콘텐츠를 제작하는 소규모 팀에 적합합니다." },
-    scale: { name: "스케일", blurb: "월 400 credits(약 133 clips). 대량 제작에 적합합니다." },
+    starter: { name: "스타터", blurb: "Scro를 시험해 보기에 좋습니다." },
+    pro: { name: "프로", blurb: "자기 사업을 운영하는 사람을 위한 요금제입니다." },
+    studio: { name: "스튜디오", blurb: "Scro로 수익을 내는 사람을 위한 요금제입니다." },
+    scale: { name: "스케일", blurb: "여러 고객의 영상을 만드는 팀과 에이전시를 위한 요금제입니다." },
   },
 } as unknown as Messages;

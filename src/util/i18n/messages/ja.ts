@@ -24,7 +24,7 @@ export const ja: Partial<Messages> = {
     },
     pricing: {
       title: "登録して動画をレンダリング",
-      subtitle: "1 clip につき 3 credits（開始フレーム、終了フレーム、レンダリング）。絵コンテは承認するまで無料です。",
+      subtitle: "Scro の使い方に合うプランを選んでください。",
       clipsApprox: "clips",
       subscribePlan: "{plan} に登録",
     },
@@ -100,9 +100,9 @@ export const ja: Partial<Messages> = {
   billing: { title: "請求" },
   styles: { doodle: "ホワイトボード風落書き", "flat-vector": "フラットベクター", "paper-cutout": "切り絵", chalkboard: "黒板アート", watercolor: "水彩絵本", clay: "クレイアニメ", pixel: "ピクセルアート", "ink-manga": "墨絵漫画", realistic: "シネマティック・リアル" },
   plans: {
-    starter: { name: "スターター", blurb: "月 30 credits（約 10 clips / ショート動画 2 本）。Reels を試すのに最適。" },
-    pro: { name: "プロ", blurb: "月 90 credits（約 30 clips）。マーケティングやプレゼンを継続的に制作。" },
-    studio: { name: "スタジオ", blurb: "月 200 credits（約 66 clips）。毎週制作する小規模チーム向け。" },
-    scale: { name: "スケール", blurb: "月 400 credits（約 133 clips）。大規模な制作向け。" },
+    starter: { name: "スターター", blurb: "Scro を試すのに最適です。" },
+    pro: { name: "プロ", blurb: "自分のビジネスを回している人向け。" },
+    studio: { name: "スタジオ", blurb: "Scro で収入を得ている人向け。" },
+    scale: { name: "スケール", blurb: "多くのクライアント向けに動画を作るチーム向け。" },
   },
 } as unknown as Messages;

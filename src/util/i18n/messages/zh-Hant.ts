@@ -11,7 +11,7 @@ export const zhHant: Messages = {
     characters: "角色",
     tasks: "生成任務",
     mcp: "MCP",
-    affiliate: "Affiliate",
+    affiliate: "聯盟",
     billing: "訂閱",
     examples: "成果",
     pricing: "方案",
@@ -51,7 +51,7 @@ export const zhHant: Messages = {
     },
     pricing: {
       title: "訂閱後才能產片",
-      subtitle: "每段 clip 扣 3 credits（起迄分鏡圖各 1、產片 1）。可先寫分鏡，核准時才扣。",
+      subtitle: "依你怎麼使用 Scro 來選方案。",
       clipsApprox: "段 clips",
       subscribePlan: "訂閱 {plan}",
     },
@@ -225,6 +225,29 @@ export const zhHant: Messages = {
     byTool: "依工具",
     noUsage: "近 30 日尚無 MCP 工具呼叫。",
   },
+  affiliatePage: {
+    eyebrow: "自媒體導師",
+    title: "教 Scro，學生使用就有分潤。",
+    body: "把連結放進課程。學生訂閱或用點數產片時，你就賺佣金。",
+    cta: "取得你的連結",
+    ctaSignedIn: "打開聯盟連結",
+    secondary: "看成果",
+    step1Title: "拿到連結",
+    step1Body: "登入後到聯盟頁，複製你的推薦連結。",
+    step2Title: "教 Scro",
+    step2Body: "教學生把想法做成 Reels、行銷片和簡報影片。",
+    step3Title: "賺佣金",
+    step3Body: "學生訂閱時你有分潤，他們花點數產片時再賺一次。",
+    ratesTitle: "怎麼算",
+    ratesBody: "新學生點你的連結後，{days} 天內都算你的。滿 ${min} 可申請提領。",
+    l1Title: "你的學生",
+    l2Title: "學生再推薦的人",
+    l3Title: "再下一層",
+    levelBody: "他們付費的 {buy}%，加上消耗點數的 {spend}%。",
+    whoTitle: "給正在教人的你",
+    whoBody:
+      "如果你已經在教短影音、行銷或解說影片，Scro 就是學生下課後能自己用的工具。他們繼續做片，你就繼續有分潤。",
+  },
   affiliate: {
     title: "Affiliate",
     subtitle:
@@ -279,19 +302,19 @@ export const zhHant: Messages = {
   plans: {
     starter: {
       name: "入門",
-      blurb: "每月 30 credits，約 10 段 clips／2 支短片。適合試做 Reels。",
+      blurb: "適合先試用 Scro。",
     },
     pro: {
       name: "專業",
-      blurb: "每月 90 credits，約 30 段 clips。行銷與簡報固定產出。",
+      blurb: "適合自己在做生意的人。",
     },
     studio: {
       name: "工作室",
-      blurb: "每月 200 credits，約 66 段 clips。小團隊每週出片。",
+      blurb: "適合用 Scro 接案賺錢的人。",
     },
     scale: {
       name: "規模",
-      blurb: "每月 400 credits，約 133 段 clips。大量產片。",
+      blurb: "適合幫很多客戶做片的團隊。",
     },
   },
   auth: {

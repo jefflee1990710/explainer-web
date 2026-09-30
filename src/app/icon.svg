@@ -1,7 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Scro">
   <rect x="16" y="16" width="480" height="480" rx="108" fill="#12141c"/>
+  <!-- Capital S: top terminal on the right, bottom terminal on the left. -->
   <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M360 152 C248 152 148 160 164 214 C180 268 332 246 344 300 C356 358 172 340 164 396 C156 448 268 456 360 456" stroke="#ffffff" stroke-width="76"/>
-    <path d="M360 152 C248 152 148 160 164 214 C180 268 332 246 344 300 C356 358 172 340 164 396 C156 448 268 456 360 456" stroke="#c6f24b" stroke-width="44"/>
+    <path d="M368 150 C230 138 142 168 158 222 C176 280 350 258 356 318 C364 385 168 360 150 420" stroke="#ffffff" stroke-width="76"/>
+    <path d="M368 150 C230 138 142 168 158 222 C176 280 350 258 356 318 C364 385 168 360 150 420" stroke="#c6f24b" stroke-width="44"/>
   </g>
 </svg>

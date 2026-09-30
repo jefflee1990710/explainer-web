@@ -11,7 +11,7 @@ export const de: Partial<Messages> = {
       step2Title: "Storyboards freigeben", step2Body: "Die KI schlägt Titel, Aufhänger, Szenen und Sprechertexte vor. Bearbeite alles, bis du zufrieden bist.",
       step3Title: "Video exportieren", step3Body: "Nach der Freigabe erstellen wir Figurenbilder und clips für Reels, Anzeigen und Präsentationen.",
     },
-    pricing: { title: "Abonnieren und Videos rendern", subtitle: "Jeder clip kostet 3 credits (Startbild, Endbild und Rendering). Storyboards sind bis zur Freigabe kostenlos.", clipsApprox: "clips", subscribePlan: "{plan} abonnieren" },
+    pricing: { title: "Abonnieren und Videos rendern", subtitle: "Wählen Sie den Plan, der zu Ihrer Nutzung von Scro passt.", clipsApprox: "clips", subscribePlan: "{plan} abonnieren" },
     enterprise: { title: "Mehr als Scale?", body: "Individuelle Credits, Rechnungen und Verträge für Teams, die über die gelisteten Tarife hinauswachsen.", cta: "Kontakt" },
     showcase: { title: "Ergebnisse ansehen", subtitle: "Vier Kombinationen auf derselben Plattform: Thema, Stil und Format.", reel: "Reel", deck: "Präsentation", marketing: "Marketing", scro: "So funktioniert Scro", product: "Produktdemo", story: "Kurzgeschichte" },
     cast: { eyebrow: "Charaktere", title: "Charakter einmal anlegen. In jedem Video derselbe.", body: "Lege zuerst Charakter und Stil fest. Danach entstehen Reels, Marketingclips und Erklärvideos mit demselben Gesicht — für ein Produkt, eine Funktion oder Wissen.", product: "Produkt", service: "Service", knowledge: "Wissen", cta: "Charakter erstellen" },
@@ -44,9 +44,9 @@ export const de: Partial<Messages> = {
   billing: { title: "Abrechnung" },
   styles: { doodle: "Whiteboard-Zeichnung", "flat-vector": "Flache Vektorgrafik", "paper-cutout": "Scherenschnitt", chalkboard: "Kreidetafel", watercolor: "Aquarell-Bilderbuch", clay: "Knetanimation", pixel: "Pixelkunst", "ink-manga": "Tusche-Manga", realistic: "Filmisch-realistisch" },
   plans: {
-    starter: { name: "Starter", blurb: "30 credits/Monat (ca. 10 clips / 2 Kurzvideos). Ideal zum Ausprobieren von Reels." },
-    pro: { name: "Pro", blurb: "90 credits/Monat (ca. 30 clips). Regelmäßige Inhalte für Marketing und Präsentationen." },
-    studio: { name: "Studio", blurb: "200 credits/Monat (ca. 66 clips). Für kleine Teams mit wöchentlicher Produktion." },
-    scale: { name: "Scale", blurb: "400 credits/Monat (ca. 133 clips). Für hohe Produktionsvolumen." },
+    starter: { name: "Starter", blurb: "Perfekt, um Scro auszuprobieren." },
+    pro: { name: "Pro", blurb: "Für alle, die ihr eigenes Business führen." },
+    studio: { name: "Studio", blurb: "Für alle, die mit Scro Geld verdienen." },
+    scale: { name: "Scale", blurb: "Für Agenturen und Teams, die Videos für viele Kunden machen." },
   },
 } as unknown as Messages;

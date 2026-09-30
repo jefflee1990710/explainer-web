@@ -13,7 +13,7 @@ export function BrandMark({ href = "/" }: { href?: string }) {
         priority
         className="h-10 w-10 transition-transform group-hover:-translate-y-0.5"
       />
-      <span className="text-xl font-bold tracking-tight">
+      <span className="hidden text-xl font-bold tracking-tight sm:inline">
         Scro
       </span>
     </Link>

@@ -11,7 +11,7 @@ export const es: Partial<Messages> = {
       step2Title: "Aprueba los guiones gráficos", step2Body: "La IA propone títulos, ganchos, escenas y locución. Edítalos hasta que te convenzan.",
       step3Title: "Exporta el vídeo", step3Body: "Tras la aprobación, generamos imágenes de los personajes y clips para Reels, anuncios y presentaciones.",
     },
-    pricing: { title: "Suscríbete para renderizar vídeos", subtitle: "Cada clip cuesta 3 credits (fotograma inicial, fotograma final y renderizado). Los guiones gráficos son gratis hasta que los apruebes.", clipsApprox: "clips", subscribePlan: "Suscribirse a {plan}" },
+    pricing: { title: "Suscríbete para renderizar vídeos", subtitle: "Elige el plan según cómo uses Scro.", clipsApprox: "clips", subscribePlan: "Suscribirse a {plan}" },
     enterprise: { title: "¿Necesitas más que Scale?", body: "Credits, facturación y contrato a medida para equipos que superan los planes publicados.", cta: "Contáctanos" },
     showcase: { title: "Ver resultados", subtitle: "Cuatro combinaciones en la misma plataforma: tema, estilo y formato.", reel: "Reel", deck: "Presentación", marketing: "Marketing", scro: "Cómo funciona Scro", product: "Demo de producto", story: "Historia corta" },
     cast: { eyebrow: "Personajes", title: "Crea el personaje una vez. Úsalo en cada vídeo.", body: "Define primero el personaje y el estilo. Luego haz Reels, clips de marketing y vídeos explicativos con la misma cara: para un producto, una función o un conocimiento.", product: "Producto", service: "Servicio", knowledge: "Conocimiento", cta: "Crear personaje" },
@@ -44,9 +44,9 @@ export const es: Partial<Messages> = {
   billing: { title: "Facturación" },
   styles: { doodle: "Garabato de pizarra blanca", "flat-vector": "Vector plano", "paper-cutout": "Recortes de papel", chalkboard: "Pizarra", watercolor: "Cuento en acuarela", clay: "Animación con plastilina", pixel: "Pixel art", "ink-manga": "Manga a tinta", realistic: "Realismo cinematográfico" },
   plans: {
-    starter: { name: "Inicial", blurb: "30 credits/mes (unos 10 clips / 2 vídeos cortos). Ideal para probar Reels." },
-    pro: { name: "Pro", blurb: "90 credits/mes (unos 30 clips). Producción constante para marketing y presentaciones." },
-    studio: { name: "Estudio", blurb: "200 credits/mes (unos 66 clips). Para equipos pequeños que publican cada semana." },
-    scale: { name: "Escala", blurb: "400 credits/mes (unos 133 clips). Producción de gran volumen." },
+    starter: { name: "Inicial", blurb: "Perfecto para probar Scro." },
+    pro: { name: "Pro", blurb: "Para quien lleva su propio negocio." },
+    studio: { name: "Estudio", blurb: "Para quien usa Scro para ganar dinero." },
+    scale: { name: "Escala", blurb: "Para agencias y equipos que hacen vídeos para muchos clientes." },
   },
 } as unknown as Messages;

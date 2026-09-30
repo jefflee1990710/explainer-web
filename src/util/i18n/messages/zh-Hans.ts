@@ -50,7 +50,7 @@ export const zhHans: Partial<Messages> = {
     },
     pricing: {
       title: "订阅后即可渲染视频",
-      subtitle: "每段 clip 消耗 3 credits（起始帧、结束帧和渲染）。确认前可免费制作分镜。",
+      subtitle: "按你怎么使用 Scro 来选方案。",
       clipsApprox: "段 clips",
       subscribePlan: "订阅 {plan}",
     },
@@ -163,9 +163,9 @@ export const zhHans: Partial<Messages> = {
     realistic: "电影级写实",
   },
   plans: {
-    starter: { name: "入门版", blurb: "每月 30 credits（约 10 段 clips / 2 个短视频）。适合尝试制作 Reels。" },
-    pro: { name: "专业版", blurb: "每月 90 credits（约 30 段 clips）。稳定产出营销和演示内容。" },
-    studio: { name: "工作室版", blurb: "每月 200 credits（约 66 段 clips）。适合每周发布内容的小型团队。" },
-    scale: { name: "规模版", blurb: "每月 400 credits（约 133 段 clips）。适合大批量制作。" },
+    starter: { name: "入门版", blurb: "适合先试用 Scro。" },
+    pro: { name: "专业版", blurb: "适合自己在做生意的人。" },
+    studio: { name: "工作室版", blurb: "适合用 Scro 接单赚钱的人。" },
+    scale: { name: "规模版", blurb: "适合给很多客户做片的团队。" },
   },
 } as unknown as Messages;

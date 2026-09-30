@@ -211,6 +211,28 @@ export type Messages = {
     byTool: string;
     noUsage: string;
   };
+  affiliatePage: {
+    eyebrow: string;
+    title: string;
+    body: string;
+    cta: string;
+    ctaSignedIn: string;
+    secondary: string;
+    step1Title: string;
+    step1Body: string;
+    step2Title: string;
+    step2Body: string;
+    step3Title: string;
+    step3Body: string;
+    ratesTitle: string;
+    ratesBody: string;
+    l1Title: string;
+    l2Title: string;
+    l3Title: string;
+    levelBody: string;
+    whoTitle: string;
+    whoBody: string;
+  };
   affiliate: {
     title: string;
     subtitle: string;

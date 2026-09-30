@@ -11,7 +11,7 @@ export const id: Partial<Messages> = {
       step2Title: "Setujui storyboard", step2Body: "AI mengusulkan judul, kalimat pembuka, adegan, dan sulih suara. Sunting hingga Anda puas.",
       step3Title: "Ekspor video", step3Body: "Setelah disetujui, kami membuat gambar diam karakter dan clips untuk Reels, iklan, dan presentasi.",
     },
-    pricing: { title: "Berlangganan untuk merender video", subtitle: "Setiap clip menggunakan 3 credits (frame awal, frame akhir, dan rendering). Storyboard gratis hingga Anda menyetujuinya.", clipsApprox: "clips", subscribePlan: "Berlangganan {plan}" },
+    pricing: { title: "Berlangganan untuk merender video", subtitle: "Pilih paket sesuai cara Anda memakai Scro.", clipsApprox: "clips", subscribePlan: "Berlangganan {plan}" },
     enterprise: { title: "Butuh lebih dari Scale?", body: "Credits, faktur, dan kontrak khusus untuk tim yang melebihi paket yang tercantum.", cta: "Hubungi kami" },
     showcase: { title: "Lihat hasil", subtitle: "Empat kombinasi di platform yang sama: topik, gaya, dan rasio.", reel: "Reel", deck: "Presentasi", marketing: "Pemasaran", scro: "Cara kerja Scro", product: "Demo produk", story: "Cerita pendek" },
     cast: { eyebrow: "Karakter", title: "Buat karakternya sekali. Pakai wajah yang sama di setiap video.", body: "Tentukan karakter dan gaya dulu. Lalu buat Reel, klip pemasaran, dan video penjelasan yang konsisten — untuk produk, fitur layanan, atau pengetahuan.", product: "Produk", service: "Layanan", knowledge: "Pengetahuan", cta: "Buat karakter" },
@@ -44,9 +44,9 @@ export const id: Partial<Messages> = {
   billing: { title: "Tagihan" },
   styles: { doodle: "Coretan papan tulis", "flat-vector": "Vektor datar", "paper-cutout": "Guntingan kertas", chalkboard: "Papan kapur", watercolor: "Buku cerita cat air", clay: "Animasi tanah liat", pixel: "Seni piksel", "ink-manga": "Manga tinta", realistic: "Realistis sinematik" },
   plans: {
-    starter: { name: "Pemula", blurb: "30 credits/bln (sekitar 10 clips / 2 video pendek). Cocok untuk mencoba Reels." },
-    pro: { name: "Pro", blurb: "90 credits/bln (sekitar 30 clips). Produksi pemasaran dan presentasi yang konsisten." },
-    studio: { name: "Studio", blurb: "200 credits/bln (sekitar 66 clips). Untuk tim kecil yang menerbitkan konten setiap minggu." },
-    scale: { name: "Skala", blurb: "400 credits/bln (sekitar 133 clips). Untuk produksi bervolume tinggi." },
+    starter: { name: "Pemula", blurb: "Cocok untuk mencoba Scro." },
+    pro: { name: "Pro", blurb: "Untuk orang yang menjalankan bisnis sendiri." },
+    studio: { name: "Studio", blurb: "Untuk orang yang memakai Scro untuk mendapat penghasilan." },
+    scale: { name: "Skala", blurb: "Untuk agensi dan tim yang membuat video bagi banyak klien." },
   },
 } as unknown as Messages;

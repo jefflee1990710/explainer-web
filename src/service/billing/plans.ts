@@ -23,7 +23,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     nameZh: "入門",
     monthlyCredits: 30,
     amountUsd: 59,
-    blurb: "每月 30 credits，約 10 段 clips／2 支短片。適合試做 Reels。",
+    blurb: "適合先試用 Scro。",
   },
   pro: {
     id: "pro",
@@ -31,7 +31,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     nameZh: "專業",
     monthlyCredits: 90,
     amountUsd: 129,
-    blurb: "每月 90 credits，約 30 段 clips。行銷與簡報固定產出。",
+    blurb: "適合自己在做生意的人。",
   },
   studio: {
     id: "studio",
@@ -39,7 +39,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     nameZh: "工作室",
     monthlyCredits: 200,
     amountUsd: 249,
-    blurb: "每月 200 credits，約 66 段 clips。小團隊每週出片。",
+    blurb: "適合用 Scro 接案賺錢的人。",
     highlight: true,
   },
   scale: {
@@ -48,7 +48,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     nameZh: "規模",
     monthlyCredits: 400,
     amountUsd: 399,
-    blurb: "每月 400 credits，約 133 段 clips。量大、多專案並進。",
+    blurb: "適合幫很多客戶做片的團隊。",
   },
 };
 

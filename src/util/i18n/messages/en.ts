@@ -55,8 +55,7 @@ export const en: Messages = {
     },
     pricing: {
       title: "Subscribe to render videos",
-      subtitle:
-        "Each clip costs 3 credits (start frame, end frame, render). Storyboards are free until you approve.",
+      subtitle: "Choose the plan that matches how you use Scro.",
       clipsApprox: "clips",
       subscribePlan: "Subscribe {plan}",
     },
@@ -233,6 +232,29 @@ export const en: Messages = {
     byTool: "By tool",
     noUsage: "No MCP tool calls in the last 30 days.",
   },
+  affiliatePage: {
+    eyebrow: "Creator mentors",
+    title: "Teach Scro. Earn when your students use it.",
+    body: "Share your link in class. When a student subscribes or spends credits on Scro, you earn commission.",
+    cta: "Get your link",
+    ctaSignedIn: "Open your affiliate link",
+    secondary: "See examples",
+    step1Title: "Get a link",
+    step1Body: "Sign in and copy your referral link from Affiliate.",
+    step2Title: "Teach Scro",
+    step2Body: "Show students how to turn an idea into Reels, marketing clips, and deck videos.",
+    step3Title: "Earn commission",
+    step3Body: "You earn when they subscribe, and again when they spend credits to render.",
+    ratesTitle: "What you earn",
+    ratesBody: "Your link stays with a new student for {days} days. Payouts start at ${min}.",
+    l1Title: "Your student",
+    l2Title: "Someone they refer",
+    l3Title: "One level further",
+    levelBody: "{buy}% of what they pay, plus {spend}% when they spend credits.",
+    whoTitle: "Built for people who teach",
+    whoBody:
+      "If you already teach short video, marketing, or explainers, Scro is the tool your students can use after class. You keep earning as they keep making videos.",
+  },
   affiliate: {
     title: "Affiliate",
     subtitle:
@@ -287,19 +309,19 @@ export const en: Messages = {
   plans: {
     starter: {
       name: "Starter",
-      blurb: "30 credits/mo (~10 clips / 2 short videos). Good for trying Reels.",
+      blurb: "Perfect for testing Scro.",
     },
     pro: {
       name: "Pro",
-      blurb: "90 credits/mo (~30 clips). Steady marketing and deck output.",
+      blurb: "For someone running their own business.",
     },
     studio: {
       name: "Studio",
-      blurb: "200 credits/mo (~66 clips). Small teams shipping weekly.",
+      blurb: "For people who use Scro to earn money.",
     },
     scale: {
       name: "Scale",
-      blurb: "400 credits/mo (~133 clips). High-volume production.",
+      blurb: "For agencies and teams making videos for many clients.",
     },
   },
   auth: {

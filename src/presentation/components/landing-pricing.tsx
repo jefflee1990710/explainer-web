@@ -73,14 +73,6 @@ export function LandingPricing() {
               >
                 {t(`plans.${plan.id as PlanId}.blurb`)}
               </p>
-              <p
-                className={`mt-2 text-xs ${
-                  plan.highlight ? "text-white/60" : "text-zinc-500"
-                }`}
-              >
-                {plan.monthlyCredits} {t("common.credits")} · {Math.floor(plan.monthlyCredits / 3)}{" "}
-                {t("landing.pricing.clipsApprox")}
-              </p>
               <motion.div
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}

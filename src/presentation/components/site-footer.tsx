@@ -15,6 +15,9 @@ export function SiteFooter() {
           <Link href="/examples" className="hover:text-[#12141c]">
             {t("nav.examples")}
           </Link>
+          <Link href="/affiliate" className="hover:text-[#12141c]">
+            {t("nav.affiliate")}
+          </Link>
           <Link href="/#pricing" className="hover:text-[#12141c]">
             {t("nav.pricing")}
           </Link>

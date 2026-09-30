@@ -1,2 +1,2 @@
-// Off until the affiliate program is ready to launch.
-export const AFFILIATE_ENABLED = false;
+// Public program: mentors share a link and earn when students subscribe or spend credits.
+export const AFFILIATE_ENABLED = true;
