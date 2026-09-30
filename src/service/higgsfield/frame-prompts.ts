@@ -17,7 +17,9 @@ import {
   listicleOnCanvasLines,
   resolveSceneText,
   sceneTextFrameLines,
+  stripSceneVoiceoverRecap,
   stripStoryboardWriting,
+  stripVisualWorldStyleEcho,
   stripVisualWorldTextPolicy,
 } from "@/service/director/scene-text";
 import { skillForcesSceneText } from "@/service/director/skill-rules";
@@ -62,6 +64,9 @@ export function revisionLines(revision: FrameRevision | undefined) {
 export type FramePromptOptions = {
   revision?: FrameRevision;
 };
+
+// Higgsfield Marketing Studio Flare rejects prompts over this many characters.
+export const IMAGE_PROMPT_MAX_CHARS = 5000;
 
 export function videoStyle(project: Pick<Project, "styleId">): Style {
   return resolveStyle(project.styleId);
@@ -138,29 +143,36 @@ export function buildFramePrompt(
   // every other mode strips it so the model does not paint invented labels.
   // Cartoon stills keep the prop tags the director wrote into the scene.
   const keepSceneLabels = !listicle && (sceneText.inWorldLabels || (dualBeat && sceneText.enabled));
-  const sceneDescription = keepSceneLabels
+  const sceneRaw = keepSceneLabels
     ? sceneForFrame.trim()
     : stripStoryboardWriting(sceneForFrame);
-  const motionDescription = keepSceneLabels
+  const motionRaw = keepSceneLabels
     ? row.motionCamera.trim()
     : stripStoryboardWriting(row.motionCamera);
+  // Marker / subtitle lines already spell the voiceover; do not repeat it in Scene.
+  const sceneDescription = sceneText.enabled
+    ? stripSceneVoiceoverRecap(sceneRaw)
+    : sceneRaw;
+  const motionDescription = sceneText.enabled
+    ? stripSceneVoiceoverRecap(motionRaw)
+    : motionRaw;
   const onCanvasTextBlock = listicle
     ? [
         styleLetteringLineForSceneText(style),
         ...listicleOnCanvasLines({
           clips: phaseA.clips,
           clipNumber,
-          typography: typographyForSceneText(style.typography),
         }),
       ]
     : sceneText.enabled
       ? [
           styleLetteringLineForSceneText(style),
+          // Typography already sits on the Lettering line above.
           ...sceneTextFrameLines(
             true,
             sceneText.language,
             voForFrame,
-            typographyForSceneText(style.typography),
+            undefined,
             dualBeat ? { markerSafeZone: true } : undefined,
           ),
         ]
@@ -171,10 +183,14 @@ export function buildFramePrompt(
           })
         : [];
 
+  const visualWorld = stripVisualWorldStyleEcho(
+    stripVisualWorldTextPolicy(phaseA.visualWorld),
+  );
+
   return [
     ...onCanvasTextBlock,
     ...styleLinesForFrame(style),
-    `Visual world: ${stripVisualWorldTextPolicy(phaseA.visualWorld)}`,
+    ...(visualWorld ? [`Visual world: ${visualWorld}`] : []),
     `Palette: ${phaseA.palette}`,
     // With a cast/still attached, never echo Phase A's invented look text.
     ...castLines,

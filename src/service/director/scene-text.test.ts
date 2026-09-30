@@ -8,7 +8,9 @@ import {
   sceneTextNegativePrompt,
   sceneTextDirectorRevisionNote,
   sceneTextSkillHint,
+  stripSceneVoiceoverRecap,
   stripStoryboardWriting,
+  stripVisualWorldStyleEcho,
   stripVisualWorldTextPolicy,
   voiceoverLineLooksLatin,
 } from "@/service/director/scene-text";
@@ -114,6 +116,24 @@ test("stripVisualWorldTextPolicy drops text-policy sentences and keeps the look"
   assert.equal(enOut, "Clean white canvas. Warm yellow tags for highlights.");
   // A policy-only visualWorld falls back to the original rather than an empty string.
   assert.equal(stripVisualWorldTextPolicy("No text at all."), "No text at all.");
+});
+
+test("stripVisualWorldStyleEcho drops catalog restatements and keeps unique world-building", () => {
+  const echoed =
+    "Canvas: clean solid white canvas, as if sketched with a digital marker. Look: 2D hand-drawn cartoon. Typography: handwritten all-caps marker lettering. Motion: snappy pop. 白板塗鴉風格。純白背景黑色墨線。";
+  assert.equal(stripVisualWorldStyleEcho(echoed), "白板塗鴉風格。純白背景黑色墨線。");
+  assert.equal(
+    stripVisualWorldStyleEcho(
+      "Canvas: clean solid white canvas. Look: 2D cartoon. Typography: marker. Motion: pop.",
+    ),
+    "",
+  );
+});
+
+test("stripSceneVoiceoverRecap drops the lettering recap and keeps the pose", () => {
+  const scene =
+    'Exactly one instance of Scro stands at center. On-canvas handwritten marker text centered at 56% frame height displays: "FOLLOW US RIGHT NOW".';
+  assert.equal(stripSceneVoiceoverRecap(scene), "Exactly one instance of Scro stands at center.");
 });
 
 test("enabled scene text quotes the clip narration on canvas", () => {

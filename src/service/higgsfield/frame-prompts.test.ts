@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import type { Project } from "@/model/project";
-import { buildFramePrompt, framesWithClips } from "@/service/higgsfield/frame-prompts";
+import {
+  IMAGE_PROMPT_MAX_CHARS,
+  buildFramePrompt,
+  framesWithClips,
+} from "@/service/higgsfield/frame-prompts";
 
 function project(styleId?: Project["styleId"]): Project {
   return {
@@ -326,6 +330,79 @@ test("framesWithClips queues start and end for every clip", () => {
     next.map((frame) => `${frame.clipNumber}:${frame.position}:${frame.status}`),
     ["1:start:queued", "1:end:queued"],
   );
+});
+
+test("end frame handoff stays short and does not paste the next clip scene", () => {
+  const dual = project();
+  dual.skillSlug = "cartoon-explainer-video-director";
+  dual.phaseA!.clips = [
+    {
+      ...dual.phaseA!.clips[0],
+      clipNumber: 1,
+      durationSeconds: 6,
+      startScene: "起點拿尺",
+      endScene: "尺變成回歸線",
+      startVo: "First beat.",
+      endVo: "Second beat.",
+    },
+    {
+      ...dual.phaseA!.clips[0],
+      clipNumber: 2,
+      durationSeconds: 5,
+      startScene:
+        'Locked camera, 9:16 vertical composition on clean white canvas. Exactly one instance of Scro holds a box labeled 「SCRO RESULTS」. On-canvas handwritten marker text centered at 56% frame height displays: "FOLLOW US RIGHT NOW"',
+      endScene: "收尾",
+      startVo: "Follow us right now",
+      endVo: "Thanks.",
+    },
+  ];
+  const end = buildFramePrompt(dual, 1, "end");
+  assert.match(end, /hand off to the next clip on the same locked camera/);
+  assert.doesNotMatch(end, /SCRO RESULTS/);
+  assert.doesNotMatch(end, /FOLLOW US RIGHT NOW/);
+});
+
+test("dual-beat stills with a cast stay under the Flare prompt cap", () => {
+  const dual = project();
+  dual.skillSlug = "cartoon-explainer-video-director";
+  dual.aspectRatio = "9:16";
+  dual.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Scro",
+      blueprintUrl: "https://blob/scro.png",
+      prompt: "",
+    },
+  ];
+  dual.phaseA!.visualWorld =
+    "Canvas: clean solid white canvas, as if sketched with a digital marker. Look: 2D hand-drawn cartoon with bold black outlines. Typography: handwritten all-caps marker lettering. Motion: marker-doodle snappy pop.";
+  dual.phaseA!.palette =
+    "White canvas, black ink outlines, warm yellow for tags and highlight containers, green for arrows and confirmation marks, brown for cardboard packages, and gray for UI frames and neutral props.";
+  dual.phaseA!.clips = [1, 2, 3].map((n) => ({
+    ...dual.phaseA!.clips[0],
+    clipNumber: n,
+    durationSeconds: n === 2 ? 6 : 5,
+    startScene:
+      "Same locked camera on solid white canvas. Exactly one instance of Scro stands in a proud resting pose at center, surrounded by three warm-yellow doodle cards with green arrows. On-canvas handwritten marker text centered at 56% frame height displays: \"TO INTRODUCE PRODUCTS, EXPLAIN CONCEPTS,\" with second line \"AND DELIVER ANY MESSAGE.\" in a warm-yellow highlight box.",
+    endScene:
+      "Same locked camera on solid white canvas. Exactly one instance of Scro stands in a proud resting pose at center, surrounded by three warm-yellow doodle cards with green arrows and small icons for a box, a lightbulb, and a message bubble. On-canvas handwritten marker text centered at 56% frame height displays: \"TO INTRODUCE PRODUCTS, EXPLAIN CONCEPTS,\" with second line \"AND DELIVER ANY MESSAGE.\" in a warm-yellow highlight box.",
+    startVo: "To introduce products, explain concepts,",
+    endVo: "and deliver any message.",
+    motionCamera:
+      "固定鏡頭（Locked camera）。中央的數位平板邊框在 0 至 3 秒間向右位移並平滑形變成三枚展開的手繪卡片；Scro 從左側微步移動至中央，雙臂流暢平舉引導視線望向環繞的卡片。",
+    explainerScene: "起始：…。結尾：…",
+    englishVo: "To introduce products, explain concepts, and deliver any message.",
+  }));
+  for (const clipNumber of [1, 2, 3]) {
+    for (const position of ["start", "end"] as const) {
+      const prompt = buildFramePrompt(dual, clipNumber, position);
+      assert.ok(
+        prompt.length <= IMAGE_PROMPT_MAX_CHARS,
+        `clip ${clipNumber} ${position} is ${prompt.length} chars`,
+      );
+    }
+  }
 });
 
 test("REVISION line does not attach a sibling or previous still", () => {

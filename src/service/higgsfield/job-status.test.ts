@@ -46,6 +46,10 @@ test("userFacingJobError explains NSFW for retry", () => {
     /逾時/,
   );
   assert.equal(userFacingJobError("failed", "boom"), "boom");
+  assert.match(
+    userFacingJobError("failed", "prompt: 'Lettering: a very long still prompt' is too long"),
+    /產圖說明過長/,
+  );
 });
 
 test("mediaUrlFromResponse reads the standard V2 fields and common aliases", () => {

@@ -55,5 +55,9 @@ export function userFacingJobError(status: string, error?: string) {
   ) {
     return "產生逾時，請再試一次";
   }
+  // Higgsfield Flare rejects the whole prompt and echoes it back; keep the tile short.
+  if (detail.includes("is too long")) {
+    return "產圖說明過長，請再試一次";
+  }
   return error || status || "產生失敗";
 }

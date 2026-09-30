@@ -132,7 +132,6 @@ function attachmentLabel(start?: number, count?: number) {
 // Multi-pose sheets get copied into the still unless we say they are look-lock only.
 const BLUEPRINT_REFERENCE_ONLY = [
   "That attached image is a character BLUEPRINT / reference sheet only — not a scene to copy.",
-  "The sheet may show many poses, turnarounds, walk cycles, or expression tiles of the SAME person. Use it only to match face, hair, outfit, accessories, and proportions.",
   "The finished still must contain exactly ONE instance of each named cast member. Never copy the sheet layout, never stack or tile the same person, never draw extra clones.",
 ];
 

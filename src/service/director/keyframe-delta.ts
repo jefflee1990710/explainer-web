@@ -73,8 +73,9 @@ export function frameEndMoment(
 ) {
   const seconds = clampClipSeconds(durationSeconds);
   const band = keyframeDeltaBand(seconds);
+  // Do not paste the next clip's full scene — Flare rejects prompts over ~5000 chars.
   const handoff = nextScene
-    ? ` It must visually hand off to the next clip, which opens with: ${nextScene}`
+    ? " It must visually hand off to the next clip on the same locked camera."
     : " It is the final frame of the video: end on a clean resting payoff. Do not match or bridge back to clip 1.";
   return `This is the LAST frame of clip ${clipNumber} (t=${seconds}s). ${BUDGET[band].end} Same camera, character size, and screen position.${handoff}`;
 }

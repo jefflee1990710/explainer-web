@@ -263,6 +263,31 @@ export function stripVisualWorldTextPolicy(visualWorld: string) {
   return out || visualWorld.trim();
 }
 
+// Frame prompts already have Canvas / Look / Typography / Motion from the style
+// catalog. Drop those restated sentences so Visual world only keeps unique world-building.
+export function stripVisualWorldStyleEcho(visualWorld: string) {
+  const echo = /^(Canvas|Look|Typography|Motion|Never|Palette)\s*:/i;
+  const chunks = visualWorld.match(/[^。.!?！？]+[。.!?！？]*\s*/g) || [visualWorld];
+  return chunks
+    .filter((sentence) => {
+      const s = sentence.trim();
+      return Boolean(s) && !echo.test(s);
+    })
+    .join("")
+    .trim();
+}
+
+// Scene rows often repeat the voiceover lettering already spelled in Marker / Subtitle lines.
+export function stripSceneVoiceoverRecap(description: string) {
+  const stripped = description
+    .replace(/[^.。]*On-canvas handwritten marker text[^.。]*[.。]?/gi, " ")
+    .replace(/[^.。]*On-canvas (?:subtitles?|lettering)[^.。]*[.。]?/gi, " ")
+    .replace(/\s{2,}/g, " ")
+    .replace(/^[，,、\s]+|[，,、\s]+$/g, "")
+    .trim();
+  return stripped || description.trim();
+}
+
 // Frame prompts: OFF = zero writing; ON = quote the clip narration (englishVo) exactly.
 // OFF + inWorldLabels = no captions, but keep the short labels named in the scene.
 const MARKER_SAFE_ZONE_LAYOUT =
@@ -298,12 +323,8 @@ export function sceneTextFrameLines(
   }
   const marker = Boolean(options?.markerSafeZone);
   const formatted = marker ? formatVoiceoverForMarker(line) : formatVoiceoverForCanvas(line);
-  const letterStyle = [
-    sceneTextVoLetteringHint(language, line, { markerSafeZone: marker }),
-    typography?.trim() ? typography.trim() : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  // Typography belongs on the separate Lettering line; do not repeat it here.
+  const letterStyle = sceneTextVoLetteringHint(language, line, { markerSafeZone: marker });
   if (marker) {
     const markerLines = formatted.line2
       ? [

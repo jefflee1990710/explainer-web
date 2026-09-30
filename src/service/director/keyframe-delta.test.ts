@@ -37,8 +37,9 @@ test("director block asks for start and end states scaled by seconds", () => {
 test("frame moments mention the clip duration and a readable end change", () => {
   assert.match(frameStartMoment(1, 5), /t=0s/);
   assert.match(frameStartMoment(1, 5), /5–6s/);
-  const end = frameEndMoment(2, 8, "next scene");
+  const end = frameEndMoment(2, 8, "next scene with a very long opening description");
   assert.match(end, /t=8s/);
   assert.match(end, /longer travel/);
-  assert.match(end, /next scene/);
+  assert.match(end, /hand off to the next clip on the same locked camera/);
+  assert.doesNotMatch(end, /very long opening description/);
 });
