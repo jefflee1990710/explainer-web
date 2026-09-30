@@ -7,7 +7,13 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { LanguageSwitcher } from "@/presentation/components/language-switcher";
 
 // Sticky translucent bar, same chrome as mentalok.io.
-export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
+export function SiteHeader({
+  signedIn = false,
+  showAffiliate = false,
+}: {
+  signedIn?: boolean;
+  showAffiliate?: boolean;
+}) {
   const { t } = useI18n();
 
   return (
@@ -27,12 +33,14 @@ export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
           >
             {t("nav.examples")}
           </Link>
-          <Link
-            href="/affiliate"
-            className="shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
-          >
-            {t("nav.affiliate")}
-          </Link>
+          {showAffiliate ? (
+            <Link
+              href="/affiliate"
+              className="shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
+            >
+              {t("nav.affiliate")}
+            </Link>
+          ) : null}
           <Link
             href="/#pricing"
             className="shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"

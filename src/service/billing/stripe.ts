@@ -1,6 +1,11 @@
 import Stripe from "stripe";
 import { billingSettingsCollection } from "@/dao";
-import { CREDIT_PACKS, PACK_IDS } from "@/service/billing/packs";
+import {
+  CREDIT_PACKS,
+  PACK_IDS,
+  packPriceIsCurrent,
+  packProductName,
+} from "@/service/billing/packs";
 import { PLAN_IDS, PLANS } from "@/service/billing/plans";
 import type { BillingSettings } from "@/model/billing-settings";
 import type { PlanId } from "@/model/subscription";
@@ -45,15 +50,18 @@ async function ensureCreditPackPrices(
   for (const packId of PACK_IDS) {
     const pack = CREDIT_PACKS[packId];
     const stored = packs[packId];
-    if (stored.priceId && stored.amountUsd === pack.amountUsd) continue;
+    if (packPriceIsCurrent(stored, pack)) continue;
 
     let productId = stored.productId;
     if (!productId) {
       const product = await stripe.products.create({
-        name: `Scro ${pack.nameZh} ${pack.credits} credits`,
+        name: packProductName(pack),
         metadata: { app: "explainer-web", packId },
       });
       productId = product.id;
+    } else {
+      // Keep the checkout label in step with the new credit amount.
+      await stripe.products.update(productId, { name: packProductName(pack) });
     }
 
     const price = await stripe.prices.create({
@@ -66,10 +74,15 @@ async function ensureCreditPackPrices(
         credits: String(pack.credits),
       },
     });
+    // Open checkout sessions keep working on an archived price; new ones use the new id.
+    if (stored.priceId) {
+      await stripe.prices.update(stored.priceId, { active: false }).catch(() => undefined);
+    }
     packs[packId] = {
       priceId: price.id,
       productId,
       amountUsd: pack.amountUsd,
+      credits: pack.credits,
     };
   }
   return packs;

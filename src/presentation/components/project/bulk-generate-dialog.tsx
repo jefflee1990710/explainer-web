@@ -5,8 +5,10 @@ import Link from "next/link";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import {
+  cheapestVideoCost,
   FRAMES_COST,
-  VIDEO_COST,
+  needsVideoUpgrade,
+  VIDEO_CREDITS_PER_SECOND,
   planGenerateAllClips,
   planGenerateAllScenes,
   planRemaining,
@@ -59,7 +61,11 @@ export function BulkGenerateDialog({
         ? planGenerateAllScenes(project)
         : planGenerateAllClips(project);
   const list = (numbers: number[]) => numbers.map((n) => `#${n}`).join("、");
-  const short = credits < plan.cost;
+  const videoUpgrade =
+    plan.videos.length > 0 && needsVideoUpgrade(credits, cheapestVideoCost(project, plan.videos));
+  // Videos are billed per second, so the row shows the summed clip costs.
+  const videoTotal = plan.cost - plan.frames.length * FRAMES_COST;
+  const short = !videoUpgrade && credits < plan.cost;
   const current = MODES.find((item) => item.id === mode)!;
 
   useEffect(() => {
@@ -139,7 +145,7 @@ export function BulkGenerateDialog({
                   {list(plan.videos)} 影片{current.id === "clips" ? "（畫格完成後才扣）" : ""}
                 </td>
                 <td className="py-1.5 text-right tabular-nums">
-                  {plan.videos.length} 段 × {VIDEO_COST} = {plan.videos.length * VIDEO_COST}
+                  {plan.videos.length} 段 · 每秒 {VIDEO_CREDITS_PER_SECOND} = {videoTotal}
                 </td>
               </tr>
             ) : null}

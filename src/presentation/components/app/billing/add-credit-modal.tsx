@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { startPackCheckoutAction } from "@/presentation/actions/billing";
 import { track } from "@/presentation/components/analytics/track";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { CREDIT_PACKS } from "@/service/billing/packs";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PackId } from "@/model/billing-settings";
@@ -33,6 +34,7 @@ export function AddCreditButton({ disabled = false }: { disabled?: boolean }) {
 
 // Pack picker; submitting hands off to Stripe one-time checkout.
 export function AddCreditModal({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n();
   const titleId = useId();
   const [packId, setPackId] = useState<PackId>(DEFAULT_PACK);
   const [error, setError] = useState("");
@@ -85,6 +87,8 @@ export function AddCreditModal({ onClose }: { onClose: () => void }) {
         <p className="mt-2 text-sm text-muted">
           與每月重置分開計算。一次付清，未用完的加購會留到下個週期。
         </p>
+        {/* Same per-image / per-second rates as the billing page. */}
+        <p className="mt-1 text-xs text-muted">{t("billing.clipCostNote")}</p>
         <form onSubmit={onSubmit} className="mt-5 space-y-4">
           <fieldset disabled={submitting} className="space-y-2">
             <legend className="mb-1.5 text-sm font-semibold">選擇加購包</legend>
@@ -108,9 +112,6 @@ export function AddCreditModal({ onClose }: { onClose: () => void }) {
                 <span className="flex-1">
                   <span className="block text-sm font-semibold">
                     {pack.nameZh} · {pack.credits} credits
-                  </span>
-                  <span className="block text-xs text-muted">
-                    約 {Math.floor(pack.credits / 3)} 段 clips
                   </span>
                 </span>
                 <span className="font-display text-lg font-bold">

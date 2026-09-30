@@ -8,6 +8,7 @@ import type { PublicStyle } from "@/presentation/serialize";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
 import { Spinner } from "@/presentation/components/spinner";
 import { StylePicker } from "@/presentation/components/style-picker";
+import { FRAME_COST } from "@/service/production-plan";
 
 const NAME_MAX = 40;
 const DEFAULT_BUTTON_CLASS =
@@ -237,7 +238,7 @@ export function CreateCharacterModal({
           ) : null}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-muted">
-              {subscribed ? `扣 1 credit（剩餘 ${credits}）` : "需要有效訂閱才能產生藍圖"}
+              {subscribed ? `扣 ${FRAME_COST} credits（剩餘 ${credits}）` : "需要有效訂閱才能產生藍圖"}
             </p>
             <div className="flex items-center gap-2">
               <button

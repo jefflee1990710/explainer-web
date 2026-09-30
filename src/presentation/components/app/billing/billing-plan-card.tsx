@@ -38,10 +38,7 @@ export function BillingPlanCard({ plan }: { plan: PlanDefinition }) {
         {t(`plans.${plan.id as PlanId}.blurb`)}
       </p>
       <p className={`mt-2 text-xs ${plan.highlight ? "text-paper/60" : "text-muted"}`}>
-        {t("billing.creditsClips", {
-          credits: plan.monthlyCredits,
-          clips: Math.floor(plan.monthlyCredits / 3),
-        })}
+        {t("billing.creditsClips", { credits: plan.monthlyCredits })}
       </p>
       <div className="mt-5">
         <CheckoutButton

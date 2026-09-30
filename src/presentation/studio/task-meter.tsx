@@ -8,13 +8,14 @@ import { subscribeTaskChanges } from "@/presentation/components/app/tasks/task-s
 
 const POLL_MS = 5_000;
 
-// Header shortcut to /app/tasks: pending count + a live progress track.
+// Pending count plus a live progress track. The header opens a menu; editors pass onOpen.
 export function TaskMeter({
   pending: initialPending,
   tasksLabel,
   pendingLabel,
   videoId,
   onOpen,
+  ariaExpanded,
   poll = true,
 }: {
   pending: number;
@@ -24,6 +25,7 @@ export function TaskMeter({
   videoId?: string;
   // Open a local list instead of navigating to /app/tasks.
   onOpen?: () => void;
+  ariaExpanded?: boolean;
   // False when a parent already polls and passes the live count.
   poll?: boolean;
 }) {
@@ -97,7 +99,14 @@ export function TaskMeter({
 
   if (onOpen) {
     return (
-      <button type="button" onClick={onOpen} aria-label={label} className={`cursor-pointer ${className}`}>
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-expanded={ariaExpanded}
+        aria-haspopup="menu"
+        aria-label={label}
+        className={`cursor-pointer ${className}`}
+      >
         {body}
       </button>
     );

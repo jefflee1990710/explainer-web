@@ -13,6 +13,7 @@ export const en: Messages = {
     mcp: "MCP",
     affiliate: "Affiliate",
     billing: "Billing",
+    settings: "Settings",
     examples: "Use Case",
     home: "Home",
     pricing: "Pricing",
@@ -99,6 +100,12 @@ export const en: Messages = {
       cost: "Lower cost",
       cta: "Draft a storyboard",
     },
+    freeCredit: {
+      eyebrow: "Free credits",
+      title: "Register and start generating now.",
+      body: "Create an account and redeem free credits to make your first explainer.",
+      cta: "Redeem free credit now",
+    },
   },
   examples: {
     title: "See the results",
@@ -153,9 +160,9 @@ export const en: Messages = {
     namePlaceholder: "e.g. Q4 product launch",
     emptyTitle: "No projects yet",
     emptyBody: "Name this campaign first, then add videos inside.",
-    noMatch: "No projects match. Try another filter or keyword.",
-    searchPlaceholder: "Search project name or topic…",
-    searchLabel: "Search project name or topic",
+    noMatch: "No projects match that name.",
+    searchPlaceholder: "Search by project name…",
+    searchLabel: "Search by project name",
     filterLabel: "Status filter",
   },
   project: {
@@ -184,10 +191,18 @@ export const en: Messages = {
   characters: {
     title: "Characters",
     subtitle:
-      "Build reusable character blueprints. Each version costs 1 credit; edit from any version.",
+      "Build reusable character blueprints. Each version costs 4 credits; edit from any version.",
     create: "New character",
     emptyTitle: "No characters yet",
     emptyBody: "Create a character blueprint to reuse across every video.",
+  },
+  settings: {
+    title: "Settings",
+    languageHint: "Choose the language for this workspace.",
+  },
+  tasksMenu: {
+    title: "Queued tasks",
+    empty: "No queued tasks.",
   },
   billing: {
     title: "Billing & credits",
@@ -203,10 +218,14 @@ export const en: Messages = {
     monthlyAllowance: " · monthly allowance {monthly}",
     bonusUnused: " · unused top-up {bonus}",
     periodEnds: " · period ends {date}",
-    clipCostNote: "Each clip costs 3 credits (2 storyboard frames + 1 render).",
+    clipCostNote: "Each image costs 4 credits. Video costs 9 credits per second (5-second minimum).",
+    videoUpgradeTitle: "Not enough credits for a video",
+    videoUpgradeBody: "A video costs {credits} credits. Upgrade your plan to keep generating.",
+    videoUpgradeCta: "Upgrade plan",
+    videoUpgradeDismiss: "Not now",
     bonusRollsOver: "Unused top-up credits roll over to the next period.",
     subscribeToTopUp: "Subscribe to a plan before topping up credits.",
-    creditsClips: "{credits} credits · ~{clips} clips",
+    creditsClips: "{credits} credits",
     subscribePlan: "Subscribe {plan}",
   },
   mcp: {

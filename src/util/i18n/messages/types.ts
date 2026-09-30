@@ -11,6 +11,7 @@ export type Messages = {
     mcp: string;
     affiliate: string;
     billing: string;
+    settings: string;
     examples: string;
     home: string;
     pricing: string;
@@ -93,6 +94,12 @@ export type Messages = {
       cost: string;
       cta: string;
     };
+    freeCredit: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      cta: string;
+    };
   };
   examples: {
     title: string;
@@ -170,6 +177,14 @@ export type Messages = {
     emptyTitle: string;
     emptyBody: string;
   };
+  settings: {
+    title: string;
+    languageHint: string;
+  };
+  tasksMenu: {
+    title: string;
+    empty: string;
+  };
   billing: {
     title: string;
     checkoutSuccess: string;
@@ -184,6 +199,10 @@ export type Messages = {
     bonusUnused: string;
     periodEnds: string;
     clipCostNote: string;
+    videoUpgradeTitle: string;
+    videoUpgradeBody: string;
+    videoUpgradeCta: string;
+    videoUpgradeDismiss: string;
     bonusRollsOver: string;
     subscribeToTopUp: string;
     creditsClips: string;

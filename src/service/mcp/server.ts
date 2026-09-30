@@ -25,6 +25,14 @@ import {
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { STYLE_IDS, STYLES } from "@/service/style";
 import { mcpToolCallsCollection } from "@/dao";
+import {
+  clipVideoCost,
+  FRAME_COST,
+  FRAMES_COST,
+  MIN_VIDEO_COST,
+  VIDEO_CREDITS_PER_SECOND,
+} from "@/service/production-plan";
+import type { PublicVideo } from "@/presentation/serialize";
 import type { AppUser } from "@/model/user";
 import type { McpApiKey } from "@/model/mcp";
 import type { OptionalId } from "mongodb";
@@ -75,7 +83,8 @@ function wrapTool<TArgs>(
   user: AppUser,
   apiKey: McpApiKey,
   tool: string,
-  creditsCharged: number,
+  // Fixed cost, or one read from the tool result (per-second video pricing).
+  creditsCharged: number | ((result: unknown, args: TArgs) => number),
   fn: (args: TArgs) => Promise<unknown>,
 ) {
   return async (args: TArgs) => {
@@ -88,7 +97,8 @@ function wrapTool<TArgs>(
         tool,
         ok: true,
         latencyMs: Date.now() - started,
-        creditsCharged,
+        creditsCharged:
+          typeof creditsCharged === "function" ? creditsCharged(result, args) : creditsCharged,
       });
       return textResult(result);
     } catch (error) {
@@ -347,13 +357,13 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     "generate_clip_frames",
     {
       title: "Generate clip frames",
-      description: "Generate start/end frames for one clip (costs 2 credits).",
+      description: `Generate start/end frames for one clip (costs ${FRAMES_COST} credits).`,
       inputSchema: {
         videoId: z.string(),
         clipNumber: z.number().int().positive(),
       },
     },
-    wrapTool(user, apiKey, "generate_clip_frames", 2, async (args) => {
+    wrapTool(user, apiKey, "generate_clip_frames", FRAMES_COST, async (args) => {
       const result = await generateClipFramesAction(args.videoId, args.clipNumber);
       if (!result.ok) throw new Error(result.error);
       const loaded = await getVideoAction(args.videoId);
@@ -366,19 +376,25 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     "generate_clip_video",
     {
       title: "Generate clip video",
-      description: "Generate the rendered video for one clip (costs 1 credit).",
+      description: `Generate the rendered video for one clip (costs ${VIDEO_CREDITS_PER_SECOND} credits per second, minimum ${MIN_VIDEO_COST}).`,
       inputSchema: {
         videoId: z.string(),
         clipNumber: z.number().int().positive(),
       },
     },
-    wrapTool(user, apiKey, "generate_clip_video", 1, async (args) => {
-      const result = await generateClipVideoAction(args.videoId, args.clipNumber);
-      if (!result.ok) throw new Error(result.error);
-      const loaded = await getVideoAction(args.videoId);
-      if (!loaded.ok) throw new Error(loaded.error);
-      return loaded.project;
-    }),
+    wrapTool<{ videoId: string; clipNumber: number }>(
+      user,
+      apiKey,
+      "generate_clip_video",
+      (project, args) => clipVideoCost(project as PublicVideo, args.clipNumber),
+      async (args) => {
+        const result = await generateClipVideoAction(args.videoId, args.clipNumber);
+        if (!result.ok) throw new Error(result.error);
+        const loaded = await getVideoAction(args.videoId);
+        if (!loaded.ok) throw new Error(loaded.error);
+        return loaded.project;
+      },
+    ),
   );
 
   server.registerTool(
@@ -399,7 +415,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     "create_character",
     {
       title: "Create character",
-      description: "Create a character blueprint (costs 1 credit).",
+      description: `Create a character blueprint (costs ${FRAME_COST} credits).`,
       inputSchema: {
         name: z.string().min(1).max(40),
         styleId: z.string(),
@@ -407,7 +423,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
         referenceImageUrl: z.string().url().optional(),
       },
     },
-    wrapTool(user, apiKey, "create_character", 1, async (args) => {
+    wrapTool(user, apiKey, "create_character", FRAME_COST, async (args) => {
       const form = new FormData();
       form.set("name", args.name);
       form.set("styleId", args.styleId);

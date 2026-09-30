@@ -9,6 +9,7 @@ import {
   clipStartVo,
 } from "@/service/director/dual-beat";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
+import { FRAME_COST, FRAMES_COST } from "@/service/production-plan";
 import type { ClipStoryboardInput, StoryboardRow, VoLanguage } from "@/model/project";
 
 // Mirrors the server-side cap so the counter matches what gets stored.
@@ -18,7 +19,7 @@ export type ClipEditPending = "" | "save" | "regenerate";
 
 // Modal for rewriting one clip's storyboard text (scene, camera, voiceover)
 // while reviewing frames. Saving is free; "save and redraw" also re-renders the
-// clip's start + end frames from the new text (1 credit each).
+// clip's start + end frames from the new text (FRAME_COST each).
 export function ClipEditDialog({
   clip,
   language,
@@ -88,7 +89,7 @@ export function ClipEditDialog({
           draft.endVo?.trim(),
       )
     : draft.explainerScene.trim().length > 0 && draft.englishVo.trim().length > 0;
-  const enoughCredits = credits >= 2;
+  const enoughCredits = credits >= FRAMES_COST;
   const canSave = valid && dirty && !busy;
   // Redrawing from unchanged text is still allowed (it acts as a plain redo).
   const canRedraw = valid && !busy && canRegenerate && enoughCredits;
@@ -267,8 +268,8 @@ export function ClipEditDialog({
 
           <footer className="space-y-2 border-t border-accent-ink/10 px-6 py-4">
             <p className="text-xs text-muted">
-              儲存並重畫將扣 <strong className="text-foreground">2 credits</strong>
-              （起始＋結尾各 1 · 剩餘 {credits}）。
+              儲存並重畫將扣 <strong className="text-foreground">{FRAMES_COST} credits</strong>
+              （起始＋結尾各 {FRAME_COST} · 剩餘 {credits}）。
             </p>
             {!valid ? (
               <p className="text-xs font-medium text-accent">
@@ -308,7 +309,7 @@ export function ClipEditDialog({
                 className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
               >
                 {pending === "regenerate" ? <Spinner /> : <RefreshIcon />}
-                {pending === "regenerate" ? "送出中…" : "儲存並重畫兩張 · 2 credits"}
+                {pending === "regenerate" ? "送出中…" : `儲存並重畫兩張 · ${FRAMES_COST} credits`}
               </button>
             </div>
           </footer>

@@ -14,14 +14,14 @@ export type PlanDefinition = {
 
 export const PLAN_IDS: PlanId[] = ["starter", "pro", "studio", "scale"];
 
-// List prices target ~90% → ~80% typical gross margin as volume grows.
-// Starter 89.8%, Pro 86.0%, Studio 83.9%, Scale 79.9% on $0.20/credit COGS.
+// Credits are sized so Scale still clears ~35%+ margin after a 20% discount
+// and the full affiliate commission stack (see unit-economics).
 export const PLANS: Record<PlanId, PlanDefinition> = {
   starter: {
     id: "starter",
     name: "Starter",
     nameZh: "入門",
-    monthlyCredits: 30,
+    monthlyCredits: 1000,
     amountUsd: 59,
     blurb: "適合先試用 Scro。",
   },
@@ -29,7 +29,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     id: "pro",
     name: "Pro",
     nameZh: "專業",
-    monthlyCredits: 90,
+    monthlyCredits: 2400,
     amountUsd: 129,
     blurb: "適合自己在做生意的人。",
   },
@@ -37,7 +37,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     id: "studio",
     name: "Studio",
     nameZh: "工作室",
-    monthlyCredits: 200,
+    monthlyCredits: 4800,
     amountUsd: 249,
     blurb: "適合用 Scro 接案賺錢的人。",
     highlight: true,
@@ -46,7 +46,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     id: "scale",
     name: "Scale",
     nameZh: "規模",
-    monthlyCredits: 400,
+    monthlyCredits: 8000,
     amountUsd: 399,
     blurb: "適合幫很多客戶做片的團隊。",
   },

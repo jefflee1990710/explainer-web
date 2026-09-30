@@ -6,6 +6,7 @@ import {
   consumeCredits,
   refundCredits,
 } from "@/service/billing/credits";
+import { FRAME_COST } from "@/service/production-plan";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { enqueueCharacterVersion } from "@/service/character/generate";
 import { collectCharacterBlobUrls } from "@/service/character/storage";
@@ -69,7 +70,7 @@ async function enqueueOrFail(character: Character, version: CharacterVersion) {
   }
 }
 
-// Create a character and its first version (1 credit).
+// Create a character and its first version (FRAME_COST credits).
 export async function createCharacterAction(
   formData: FormData,
 ): Promise<CharacterResult> {
@@ -87,8 +88,8 @@ export async function createCharacterAction(
       return { ok: false, error: "請描述這個角色，或上傳一張參考圖" };
     }
 
-    await assertCanSpendCredits(user, 1);
-    const spendKey = await consumeCredits(user.clerkUserId, 1);
+    await assertCanSpendCredits(user, FRAME_COST);
+    const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
 
     const now = new Date();
     const version: CharacterVersion = {
@@ -134,7 +135,7 @@ export async function createCharacterAction(
   }
 }
 
-// Branch a new version off an existing one with a text edit (1 credit).
+// Branch a new version off an existing one with a text edit (FRAME_COST credits).
 export async function editCharacterVersionAction(
   characterId: string,
   fromVersionId: string,
@@ -155,8 +156,8 @@ export async function editCharacterVersionAction(
       return { ok: false, error: "只能從已完成的版本編輯" };
     }
 
-    await assertCanSpendCredits(user, 1);
-    const spendKey = await consumeCredits(user.clerkUserId, 1);
+    await assertCanSpendCredits(user, FRAME_COST);
+    const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
 
     const now = new Date();
     const version: CharacterVersion = {
@@ -196,7 +197,7 @@ export async function editCharacterVersionAction(
   }
 }
 
-// Re-run a failed version in place (1 credit).
+// Re-run a failed version in place (FRAME_COST credits).
 export async function retryCharacterVersionAction(
   characterId: string,
   versionId: string,
@@ -260,8 +261,8 @@ export async function retryCharacterVersionAction(
 
     let spendKey: string;
     try {
-      await assertCanSpendCredits(user, 1);
-      spendKey = await consumeCredits(user.clerkUserId, 1);
+      await assertCanSpendCredits(user, FRAME_COST);
+      spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
     } catch (error) {
       await revertClaim();
       throw error;

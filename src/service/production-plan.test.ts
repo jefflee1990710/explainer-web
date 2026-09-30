@@ -4,10 +4,14 @@ import type { ClipFrame, ProjectClip } from "@/model/project";
 import type { ClipStageSource } from "@/service/clip-stage";
 import {
   autoVideoDecision,
+  cheapestVideoCost,
+  clipVideoCost,
+  FRAMES_COST,
   planGenerateAllClips,
   planGenerateAllScenes,
   planRemaining,
   planSelected,
+  MIN_VIDEO_COST,
 } from "@/service/production-plan";
 
 function frame(
@@ -50,7 +54,11 @@ test("fills gaps only: frames for empty/failed, video for frames_ready/video_fai
     ],
     clips: [clip(1, "completed"), clip(4, "failed")],
   };
-  assert.deepEqual(planRemaining(project), { frames: [5, 6], videos: [2, 4], cost: 2 * 2 + 2 * 1 });
+  assert.deepEqual(planRemaining(project), {
+    frames: [5, 6],
+    videos: [2, 4],
+    cost: 2 * FRAMES_COST + 2 * MIN_VIDEO_COST,
+  });
 });
 
 test("skips video for clips whose frames are stale", () => {
@@ -77,7 +85,7 @@ test("generate all scenes redraws every clip that is not already drawing", () =>
     ],
     clips: [clip(1, "completed")],
   };
-  assert.deepEqual(planGenerateAllScenes(project), { frames: [1, 3], videos: [], cost: 4 });
+  assert.deepEqual(planGenerateAllScenes(project), { frames: [1, 3], videos: [], cost: 2 * FRAMES_COST });
 });
 
 test("generate all clips reserves a video for every clip and skips in-flight frames", () => {
@@ -87,7 +95,28 @@ test("generate all clips reserves a video for every clip and skips in-flight fra
     frames: [frame(2, "start", "queued"), frame(2, "end", "queued")],
     clips: [],
   };
-  assert.deepEqual(planGenerateAllClips(project), { frames: [1], videos: [1, 2], cost: 2 + 2 });
+  assert.deepEqual(planGenerateAllClips(project), {
+    frames: [1],
+    videos: [1, 2],
+    cost: FRAMES_COST + 2 * MIN_VIDEO_COST,
+  });
+});
+
+test("video cost follows each clip's storyboard duration", () => {
+  const project: ClipStageSource = {
+    status: "production",
+    phaseA: {
+      clips: [
+        { clipNumber: 1, durationSeconds: 3 },
+        { clipNumber: 2, durationSeconds: 8 },
+      ],
+    },
+    frames: [],
+    clips: [],
+  };
+  assert.equal(clipVideoCost(project, 2), 72);
+  assert.equal(cheapestVideoCost(project, [1, 2]), 45);
+  assert.equal(planGenerateAllClips(project).cost, 2 * FRAMES_COST + 45 + 72);
 });
 
 test("auto video waits until both stills exist, then starts once", () => {
@@ -127,7 +156,7 @@ test("selected frames skip clips that are already generating", () => {
   assert.deepEqual(planSelected(project, [1, 2, 3], "frames"), {
     frames: [1, 3],
     videos: [],
-    cost: 4,
+    cost: 2 * FRAMES_COST,
   });
 });
 
@@ -141,7 +170,7 @@ test("selected frames can queue while a video is still pending", () => {
   assert.deepEqual(planSelected(project, [1, 2], "frames"), {
     frames: [1, 2],
     videos: [],
-    cost: 4,
+    cost: 2 * FRAMES_COST,
   });
 });
 
@@ -167,7 +196,7 @@ test("selected videos need fresh, finished frames", () => {
   assert.deepEqual(planSelected(project, [1, 2, 3, 4], "videos"), {
     frames: [],
     videos: [1, 2],
-    cost: 2,
+    cost: 2 * MIN_VIDEO_COST,
   });
 });
 

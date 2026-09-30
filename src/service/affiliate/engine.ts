@@ -11,7 +11,7 @@ import {
   usdPerCreditCents,
   type NewLotInput,
 } from "@/service/affiliate/lots";
-import { AFFILIATE_ENABLED } from "@/service/affiliate/enabled";
+import { AFFILIATE_ENABLED, isAffiliateAccount } from "@/service/affiliate/enabled";
 import {
   BUY_RATES,
   CONSUME_RATES,
@@ -92,7 +92,7 @@ export async function bindReferralOnSignup(
 
   const users = await usersCollection();
   const referrer = await users.findOne({ clerkUserId: affiliate.clerkUserId });
-  if (!referrer) return newUser;
+  if (!referrer || !isAffiliateAccount(referrer)) return newUser;
 
   // Block cycles: refuse if new user id already appears in referrer's upline.
   const upline = buildUplineIds(referrer);
@@ -167,7 +167,7 @@ async function uplineClerkIds(source: AppUser): Promise<
   for (let i = 0; i < Math.min(uplineIds.length, 3); i++) {
     const id = uplineIds[i]!;
     const user = byId.get(id.toHexString());
-    if (!user) continue;
+    if (!user || !isAffiliateAccount(user)) continue;
     if (user.clerkUserId === source.clerkUserId) continue;
     result.push({ tier: (i + 1) as AffiliateTier, clerkUserId: user.clerkUserId });
   }

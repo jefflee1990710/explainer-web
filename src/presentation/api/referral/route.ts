@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { usersCollection } from "@/dao";
 import { findAffiliateByCode } from "@/service/affiliate/engine";
 import { getAppUrl } from "@/util/app-url";
-import { AFFILIATE_ENABLED } from "@/service/affiliate/enabled";
+import { AFFILIATE_ENABLED, isAffiliateAccount } from "@/service/affiliate/enabled";
 import {
   REFERRAL_COOKIE,
   REFERRAL_COOKIE_DAYS,
@@ -13,21 +14,26 @@ export async function GET(
   context: { params: Promise<{ code: string }> },
 ) {
   const { code } = await context.params;
+  const appUrl = getAppUrl();
   if (!AFFILIATE_ENABLED) {
-    return NextResponse.redirect(`${getAppUrl()}/`);
+    return NextResponse.redirect(`${appUrl}/`);
   }
   const affiliate = await findAffiliateByCode(code);
-  const appUrl = getAppUrl();
   const response = NextResponse.redirect(`${appUrl}/app`);
 
   if (affiliate) {
-    response.cookies.set(REFERRAL_COOKIE, affiliate.code, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: REFERRAL_COOKIE_DAYS * 24 * 60 * 60,
-    });
+    const users = await usersCollection();
+    const owner = await users.findOne({ clerkUserId: affiliate.clerkUserId });
+    // A code only counts when that account is allowed to run Affiliate.
+    if (isAffiliateAccount(owner)) {
+      response.cookies.set(REFERRAL_COOKIE, affiliate.code, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: REFERRAL_COOKIE_DAYS * 24 * 60 * 60,
+      });
+    }
   }
 
   return response;

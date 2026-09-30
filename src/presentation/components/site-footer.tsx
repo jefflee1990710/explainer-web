@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 // Site-wide links to pricing, examples, and the legal documents.
-export function SiteFooter() {
+export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean }) {
   const { t } = useI18n();
 
   return (
@@ -15,9 +15,11 @@ export function SiteFooter() {
           <Link href="/examples" className="hover:text-[#12141c]">
             {t("nav.examples")}
           </Link>
-          <Link href="/affiliate" className="hover:text-[#12141c]">
-            {t("nav.affiliate")}
-          </Link>
+          {showAffiliate ? (
+            <Link href="/affiliate" className="hover:text-[#12141c]">
+              {t("nav.affiliate")}
+            </Link>
+          ) : null}
           <Link href="/#pricing" className="hover:text-[#12141c]">
             {t("nav.pricing")}
           </Link>

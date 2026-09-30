@@ -32,8 +32,8 @@ export const id: Partial<Messages> = {
   folder: {
     create: "Proyek baru", createTitle: "Proyek baru", createHint: "Beri nama dulu, lalu tambahkan video.", createSubmit: "Buat proyek", nameLabel: "Nama proyek", namePlaceholder: "mis. peluncuran produk kuartal 4",
     emptyTitle: "Belum ada proyek", emptyBody: "Beri nama kampanye ini terlebih dahulu, lalu tambahkan video di dalamnya.",
-    noMatch: "Tidak ada proyek yang cocok. Coba filter atau kata kunci lain.",
-    searchPlaceholder: "Cari nama atau topik proyek…", searchLabel: "Cari nama atau topik proyek", filterLabel: "Filter status",
+    noMatch: "Tidak ada proyek dengan nama itu.",
+    searchPlaceholder: "Cari berdasarkan nama proyek…", searchLabel: "Cari berdasarkan nama proyek", filterLabel: "Filter status",
   },
   project: {
     steps: { input: "Input", scene: "Adegan", production: "Produksi", export: "Video" },

@@ -7,6 +7,7 @@ import { ASPECT_CLASS } from "@/presentation/components/project/frame-tile";
 import { Spinner } from "@/presentation/components/spinner";
 import { clipNextAction } from "@/service/clip-next-action";
 import type { ClipState } from "@/service/clip-stage";
+import { MIN_VIDEO_COST } from "@/service/credit-costs";
 import { userFacingJobError } from "@/service/higgsfield/job-status";
 import { mediaSrc } from "@/util/media-src";
 import type { AspectRatio, ProjectClip } from "@/model/project";
@@ -59,6 +60,7 @@ export function ClipVideoPanel({
         <ClipVideoPlaceholder
           pending={pending}
           disabled={clipNextAction(state).kind !== "video"}
+          cost={state.videoCost ?? MIN_VIDEO_COST}
           onGenerate={onGenerate}
         />
       )}

@@ -3,15 +3,13 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { PreviewStrip } from "@/presentation/components/app/preview-strip";
-import { StatusBadge } from "@/presentation/components/project/status-badge";
 import type { PublicFolder } from "@/presentation/serialize";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-// Folder card: cover from child preview, roll-up badge, video count.
+// Folder card: cover from child preview and the video count.
 export function ProjectCard({ folder }: { folder: PublicFolder }) {
   const href = `/app/projects/${folder.id}`;
-  const failed = folder.status === "failed";
 
   return (
     <motion.article
@@ -20,9 +18,7 @@ export function ProjectCard({ folder }: { folder: PublicFolder }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.18 } }}
       transition={{ duration: 0.35, ease }}
-      className={`studio-card group flex flex-col overflow-hidden border bg-white ${
-        failed ? "border-[#f04444]" : "border-[var(--studio-line)]"
-      }`}
+      className="studio-card group flex flex-col overflow-hidden border border-[var(--studio-line)] bg-white"
     >
       <Link href={href} className="relative block aspect-video overflow-hidden bg-accent-ink/5">
         {folder.previewUrls.length ? (
@@ -30,7 +26,6 @@ export function ProjectCard({ folder }: { folder: PublicFolder }) {
         ) : (
           <Placeholder />
         )}
-        <StatusBadge status={folder.status} className="absolute left-3 top-3 shadow-sm" />
       </Link>
 
       <div className="flex flex-1 flex-col gap-3 p-4">

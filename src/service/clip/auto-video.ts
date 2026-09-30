@@ -6,7 +6,7 @@ import { settledAutoVideoClips } from "@/service/clip/auto-video-list";
 import { hasJobSince } from "@/service/higgsfield/job-attempts";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { autoVideoDecision } from "@/service/production-plan";
-import { STUCK_CLAIM_MS, VIDEO_COST } from "@/service/production-plan";
+import { chargedVideoCredits, STUCK_CLAIM_MS, videoCost } from "@/service/production-plan";
 import type { Project, ProjectClip } from "@/model/project";
 
 const IN_FLIGHT = new Set<ProjectClip["status"]>(["queued", "in_progress"]);
@@ -43,6 +43,8 @@ export async function claimAndStartClipVideo(
   if (!start || !end) return { ok: false, error: "這段的畫格還沒完成", retry: true };
 
   const submittedAt = new Date().toISOString();
+  // Billed per second of the storyboard duration; stored on the clip for refunds.
+  const cost = videoCost(row.durationSeconds);
   const existing = project.clips.find((clip) => clip.clipNumber === clipNumber);
   const stuck = existing ? await isStuckClaim(project._id, clipNumber, existing) : false;
   if (existing && !stuck && IN_FLIGHT.has(existing.status)) {
@@ -63,6 +65,8 @@ export async function claimAndStartClipVideo(
           $set: {
             "clips.$.status": "queued",
             "clips.$.submittedAt": submittedAt,
+            "clips.$.durationSeconds": row.durationSeconds,
+            "clips.$.creditsCharged": cost,
             // Empty prompt makes the sender run Phase B for this attempt.
             "clips.$.prompt": "",
             status: "production",
@@ -85,6 +89,7 @@ export async function claimAndStartClipVideo(
               prompt: "",
               status: "queued" as const,
               submittedAt,
+              creditsCharged: cost,
             },
           },
           $set: { status: "production", updatedAt: new Date() },
@@ -92,10 +97,10 @@ export async function claimAndStartClipVideo(
       );
   if (!claimed) return { ok: false, error: "這段正在生成中", retry: true };
   // Taking over a stuck claim settles it: its charge had no job, so hand it back.
-  if (stuck) await refundCredits(clerkUserId, VIDEO_COST);
+  if (stuck) await refundCredits(clerkUserId, chargedVideoCredits(existing));
 
   try {
-    await consumeCredits(clerkUserId, VIDEO_COST);
+    await consumeCredits(clerkUserId, cost);
   } catch (error) {
     await projects.updateOne(
       { _id: project._id },
@@ -127,7 +132,7 @@ export async function claimAndStartClipVideo(
   } catch (error) {
     // No job owns the charge: refund it here.
     const message = error instanceof Error ? error.message : "產片排程失敗";
-    await compensateClipVideo(project, clipNumber, message);
+    await compensateClipVideo(project, clipNumber, message, cost);
     return { ok: false, error: message };
   }
   return { ok: true };
@@ -135,8 +140,13 @@ export async function claimAndStartClipVideo(
 
 // Hand the credit back and mark the clip failed. For exits that leave the clip
 // with no job to own its outcome, so a charged clip is never stranded `queued`.
-async function compensateClipVideo(project: Project, clipNumber: number, message: string) {
-  await refundCredits(project.clerkUserId, VIDEO_COST);
+async function compensateClipVideo(
+  project: Project,
+  clipNumber: number,
+  message: string,
+  cost: number,
+) {
+  await refundCredits(project.clerkUserId, cost);
   const projects = await videosCollection();
   await projects.updateOne(
     { _id: project._id },

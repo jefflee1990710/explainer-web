@@ -1,5 +1,6 @@
 import { mediaSrc } from "@/util/media-src";
 import { normalizeProjectStatus } from "@/service/project-status";
+import { MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
 import type {
   ClipFrame,
   LegacyProjectStatus,
@@ -26,12 +27,14 @@ export type ClipState = {
   // Media generated before the latest text edit / frame redo.
   stale: { frames: boolean; video: boolean };
   wait?: ClipWait;
+  // Credits this clip's video costs, from its storyboard duration.
+  videoCost?: number;
 };
 
 // Minimal shape so both the Mongo `Project` and `PublicVideo` fit.
 export type ClipStageSource = {
   status: ProjectStatus | LegacyProjectStatus;
-  phaseA?: { clips: Array<{ clipNumber: number; editedAt?: string }> };
+  phaseA?: { clips: Array<{ clipNumber: number; durationSeconds?: number; editedAt?: string }> };
   frames?: ClipFrame[];
   clips: ProjectClip[];
 };
@@ -89,7 +92,13 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
   else stage = "no_frames";
 
   const waitItems = stage === "video_generating" ? [clip] : stage === "frames_generating" ? frames : [];
-  return { clipNumber, stage, stale, wait: waitKind(waitItems) };
+  return {
+    clipNumber,
+    stage,
+    stale,
+    wait: waitKind(waitItems),
+    videoCost: videoCost(row?.durationSeconds ?? MIN_VIDEO_SECONDS),
+  };
 }
 
 // in_progress (or completed-without-file) means the provider is working.

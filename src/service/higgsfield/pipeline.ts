@@ -40,7 +40,7 @@ import {
   reconcileFrames,
 } from "@/service/higgsfield/reconcile";
 import { scheduleGenerationFinishedEmail } from "@/service/notify/generation-email";
-import { FRAME_COST, STUCK_CLAIM_MS, VIDEO_COST } from "@/service/production-plan";
+import { chargedVideoCredits, FRAME_COST, STUCK_CLAIM_MS } from "@/service/production-plan";
 import { toSent, type Sent } from "@/service/generation/sent";
 import { frameJobDocs } from "@/service/generation/frame-jobs";
 import {
@@ -181,7 +181,7 @@ async function insertFrameJobs(
   ids.slice(0, ready.length).forEach((id) => kickJob(id));
 }
 
-// Queue one or more frames (caller already charged 1 credit each). Each old
+// Queue one or more frames (caller already charged FRAME_COST each). Each old
 // job is replaced, the frame is stamped `submittedAt`, and the project sits in
 // `production` until the jobs settle. `project` must carry the storyboard the
 // prompts should be built from, and the DB must hold the same storyboard and
@@ -488,7 +488,7 @@ export async function applyJobStatus(input: {
   // Lost the claim (or not a failure at all): the fields still have to land.
   if (!claimedFailure) await jobs.updateOne({ _id: job._id }, update);
 
-  // Each frame is 1 credit and each clip video is 1 credit; hand it back once,
+  // Each frame is FRAME_COST; a clip video returns what it was charged. Hand it back once,
   // the moment this caller is the one that marked the job failed.
   if (project && claimedFailure) {
     await refundClaimedFailure(job, project, errorMessage || status);
@@ -519,7 +519,10 @@ export async function refundClaimedFailure(
   error: string,
 ) {
   if (job.kind === "frame") await refundCredits(project.clerkUserId, FRAME_COST);
-  if (job.kind === "video") await refundCredits(project.clerkUserId, VIDEO_COST);
+  if (job.kind === "video") {
+    const clip = project.clips.find((item) => item.clipNumber === job.clipIndex + 1);
+    await refundCredits(project.clerkUserId, chargedVideoCredits(clip));
+  }
   if (job.kind === "frame" && job.framePosition === "start") {
     await failDeferredEndIfNeeded(project._id, job.clipIndex + 1, error);
   }
@@ -761,7 +764,10 @@ async function syncProjectOnce(projectId: ObjectId): Promise<"written" | "confli
         },
       },
     );
-    if (claimed) await refundCredits(project.clerkUserId, VIDEO_COST);
+    if (claimed) {
+      const clip = project.clips.find((item) => item.clipNumber === orphan.clipNumber);
+      await refundCredits(project.clerkUserId, chargedVideoCredits(clip));
+    }
   }
   const current =
     orphans.length || orphanClips.length

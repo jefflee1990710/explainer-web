@@ -32,8 +32,8 @@ export const pt: Partial<Messages> = {
   folder: {
     create: "Novo projeto", createTitle: "Novo projeto", createHint: "Dê um nome primeiro e depois adicione vídeos.", createSubmit: "Criar projeto", nameLabel: "Nome do projeto", namePlaceholder: "por ex., lançamento do produto no 4.º trimestre",
     emptyTitle: "Ainda não há projetos", emptyBody: "Dê primeiro um nome a esta campanha e depois adicione vídeos.",
-    noMatch: "Nenhum projeto corresponde. Experimente outro filtro ou palavra-chave.",
-    searchPlaceholder: "Pesquisar nome ou tema do projeto…", searchLabel: "Pesquisar nome ou tema do projeto", filterLabel: "Filtro de estado",
+    noMatch: "Nenhum projeto corresponde a esse nome.",
+    searchPlaceholder: "Pesquisar pelo nome do projeto…", searchLabel: "Pesquisar pelo nome do projeto", filterLabel: "Filtro de estado",
   },
   project: {
     steps: { input: "Conteúdo", scene: "Cena", production: "Produção", export: "Video" },

@@ -14,12 +14,13 @@ import {
   clipStartScene,
   clipStartVo,
 } from "@/service/director/dual-beat";
-import type { SceneTextLanguage } from "@/model/project";
+import { FRAME_COST } from "@/service/production-plan";
 import type {
   AspectRatio,
   ClipFrame,
   FramePosition,
   FrameRevisionInput,
+  SceneTextLanguage,
   StoryboardRow,
 } from "@/model/project";
 
@@ -59,7 +60,7 @@ const TOOL_HINT: Record<AnnotationTool, string> = {
 
 // Modal for reviewing one storyboard frame: draw markings and text over the
 // image (each one a movable/resizable/rotatable object), leave a remark, then
-// send both with a paid redo (1 credit).
+// send both with a paid redo (FRAME_COST credits).
 export function FrameEditDialog({
   frame,
   clip,
@@ -107,7 +108,7 @@ export function FrameEditDialog({
   }, [onClose]);
 
   const hasChanges = objectCount > 0 || remark.trim().length > 0;
-  const enoughCredits = credits >= 1;
+  const enoughCredits = credits >= FRAME_COST;
   const canSubmit = canRegenerate && enoughCredits;
 
   function submit() {
@@ -303,7 +304,7 @@ export function FrameEditDialog({
 
             <div className="mt-auto space-y-2 border-t border-accent-ink/10 pt-4">
               <p className="text-xs text-muted">
-                重畫將扣 <strong className="text-foreground">1 credit</strong>（剩餘 {credits}）
+                重畫將扣 <strong className="text-foreground">{FRAME_COST} credits</strong>（剩餘 {credits}）
                 {!hasChanges ? "；沒有標註或備註時會直接重畫一次。" : "。"}
               </p>
               {!enoughCredits ? (
@@ -326,7 +327,7 @@ export function FrameEditDialog({
                   className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                 >
                   <RefreshIcon />
-                  重畫 · 1 credit
+                  重畫 · {FRAME_COST} credits
                 </button>
               </div>
             </div>

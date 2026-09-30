@@ -1,4 +1,4 @@
-import { FRAMES_COST, VIDEO_COST } from "@/service/production-plan";
+import { FRAMES_COST, MIN_VIDEO_COST } from "@/service/credit-costs";
 import { canQueueFrames, type ClipState } from "@/service/clip-stage";
 
 export { canQueueFrames };
@@ -19,6 +19,7 @@ export function canRedrawFrames(state: ClipState, hasFrames: boolean): boolean {
 }
 
 export function clipNextAction(state: ClipState, nextUnfinished?: number): ClipNextAction {
+  const videoCredits = state.videoCost ?? MIN_VIDEO_COST;
   if (state.stage === "frames_generating") {
     return {
       kind: "busy",
@@ -59,14 +60,14 @@ export function clipNextAction(state: ClipState, nextUnfinished?: number): ClipN
       kind: "video",
       label: "產這段影片",
       hint: "滿意畫格就產片；不滿意可點畫格標註重畫",
-      cost: VIDEO_COST,
+      cost: videoCredits,
     };
   }
   if (state.stage === "video_failed") {
-    return { kind: "video", label: "重試產片", hint: "產片失敗，credits 已退回", cost: VIDEO_COST };
+    return { kind: "video", label: "重試產片", hint: "產片失敗，credits 已退回", cost: videoCredits };
   }
   if (state.stale.video) {
-    return { kind: "video", label: "重產影片", hint: "畫格重畫過，影片是舊版", cost: VIDEO_COST };
+    return { kind: "video", label: "重產影片", hint: "畫格重畫過，影片是舊版", cost: videoCredits };
   }
   if (nextUnfinished !== undefined) {
     return { kind: "next", label: `下一段 #${nextUnfinished}`, hint: "這段完成了", cost: 0 };

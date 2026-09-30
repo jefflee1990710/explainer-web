@@ -3,45 +3,21 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { STATUS_FILTER_IDS, matchesFilter, type StatusFilter } from "@/service/project-status";
 import type { PublicFolder } from "@/presentation/serialize";
 import { CreateFolderButton } from "@/presentation/components/app/create-folder-modal";
 import { ProjectCard } from "@/presentation/components/app/project-card";
 import { ProjectFilters } from "@/presentation/components/app/project-filters";
 
-// Dashboard grid with client-side status filter + keyword search over folders.
+// Dashboard grid. Search matches the project name only.
 export function ProjectGrid({ folders }: { folders: PublicFolder[] }) {
   const { t } = useI18n();
-  const [filter, setFilter] = useState<StatusFilter>("all");
   const [query, setQuery] = useState("");
-
-  const counts = useMemo(() => {
-    const result = Object.fromEntries(
-      STATUS_FILTER_IDS.map((id) => [id, 0]),
-    ) as Record<StatusFilter, number>;
-    for (const folder of folders) {
-      for (const id of STATUS_FILTER_IDS) {
-        if (matchesFilter(folder.status, id)) result[id] += 1;
-      }
-    }
-    return result;
-  }, [folders]);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return folders.filter((folder) => {
-      if (!matchesFilter(folder.status, filter)) return false;
-      if (!needle) return true;
-      const haystack = [
-        folder.name,
-        ...folder.videos.flatMap((video) => [video.title, video.englishTitle, video.source]),
-      ]
-        .filter(Boolean)
-        .join("\n")
-        .toLowerCase();
-      return haystack.includes(needle);
-    });
-  }, [folders, filter, query]);
+    if (!needle) return folders;
+    return folders.filter((folder) => folder.name.toLowerCase().includes(needle));
+  }, [folders, query]);
 
   if (folders.length === 0) {
     return (
@@ -56,13 +32,7 @@ export function ProjectGrid({ folders }: { folders: PublicFolder[] }) {
   return (
     <MotionConfig reducedMotion="user">
       <div className="space-y-5">
-        <ProjectFilters
-          filter={filter}
-          query={query}
-          counts={counts}
-          onFilter={setFilter}
-          onQuery={setQuery}
-        />
+        <ProjectFilters query={query} onQuery={setQuery} />
 
         {visible.length === 0 ? (
           <motion.p

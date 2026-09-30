@@ -7,6 +7,8 @@ export type CreditPackPrice = {
   priceId: string;
   productId: string;
   amountUsd: number;
+  // Credits last written to Stripe; a change rotates the price and product name.
+  credits?: number;
 };
 
 // Singleton billing config persisted after Stripe products are created.
@@ -32,6 +34,7 @@ const creditPackPriceSchema = z.object({
   priceId: z.string(),
   productId: z.string(),
   amountUsd: z.number(),
+  credits: z.number().optional(),
 });
 
 export const billingSettingsSchema: z.ZodType<BillingSettings> = z.object({

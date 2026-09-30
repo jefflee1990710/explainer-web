@@ -10,7 +10,7 @@ export function SignOutButton({
   label,
   className,
 }: {
-  label: string;
+  label: React.ReactNode;
   className?: string;
 }) {
   async function onClick() {

@@ -2,17 +2,18 @@
 
 import { PlayIcon } from "@/presentation/components/project/production-icons";
 import { Spinner } from "@/presentation/components/spinner";
-import { VIDEO_COST } from "@/service/production-plan";
 
 // Empty 9:16 slot before a clip has video. The whole face is the generate
-// button so "產片後在此播放" is not just a hint.
+// button so "產片後在此播放" is not just a hint. `cost` is this clip's per-second price.
 export function ClipVideoPlaceholder({
   pending,
   disabled = false,
+  cost,
   onGenerate,
 }: {
   pending: boolean;
   disabled?: boolean;
+  cost: number;
   onGenerate: () => void;
 }) {
   return (
@@ -27,7 +28,7 @@ export function ClipVideoPlaceholder({
           {pending ? <Spinner className="h-6 w-6" /> : <PlayIcon className="ml-0.5 h-7 w-7" />}
         </span>
         <span className="font-display text-[13px] font-bold">▶ 產片後在此播放</span>
-        <span className="text-[11px] text-[var(--studio-muted)]">點擊產這段影片 · {VIDEO_COST}</span>
+        <span className="text-[11px] text-[var(--studio-muted)]">點擊產這段影片 · {cost}</span>
       </span>
     </button>
   );

@@ -88,8 +88,8 @@ export const ja: Partial<Messages> = {
   folder: {
     create: "新規プロジェクト", createTitle: "新規プロジェクト", createHint: "まず名前を付けてから、動画を追加します。", createSubmit: "プロジェクトを作成", nameLabel: "プロジェクト名", namePlaceholder: "例：第4四半期の商品発売",
     emptyTitle: "プロジェクトはまだありません", emptyBody: "まずキャンペーン名を付けてから、動画を追加しましょう。",
-    noMatch: "一致するプロジェクトがありません。別のフィルターやキーワードをお試しください。",
-    searchPlaceholder: "プロジェクト名またはトピックを検索…", searchLabel: "プロジェクト名またはトピックを検索", filterLabel: "ステータスフィルター",
+    noMatch: "この名前のプロジェクトはありません。",
+    searchPlaceholder: "プロジェクト名で検索…", searchLabel: "プロジェクト名で検索", filterLabel: "ステータスフィルター",
   },
   project: {
     steps: { input: "入力", scene: "シーン", production: "制作", export: "Video" },

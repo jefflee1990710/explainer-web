@@ -51,7 +51,7 @@ export type FrameRevisionInput = {
   sketchDataUrl?: string;
 };
 
-// One storyboard still (start or end frame) for a clip; 1 credit each.
+// One storyboard still (start or end frame) for a clip; FRAME_COST credits each.
 export type ClipFrame = {
   clipNumber: number;
   position: FramePosition;
@@ -145,6 +145,8 @@ export type ProjectClip = {
   error?: string;
   // ISO time the video was requested (Phase B + submit happen in a job).
   submittedAt?: string;
+  // Credits taken for the current attempt, so a refund returns the same amount.
+  creditsCharged?: number;
 };
 
 // Concatenated reel of every storyboard clip, produced on the export step.
@@ -332,6 +334,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
       blobUrl: z.string().optional(),
       error: z.string().optional(),
       submittedAt: z.string().optional(),
+      creditsCharged: z.number().optional(),
     }),
   ),
   reelUrl: z.string().optional(),

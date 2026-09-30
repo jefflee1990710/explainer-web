@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getCreditSnapshotAction } from "@/presentation/actions/billing";
-import { creditsUsed } from "@/service/billing/credit-balance";
+import { creditProgress } from "@/service/billing/credit-balance";
 
 const POLL_MS = 5_000;
 
-// Compact header meter. The track fills with credits already spent this period.
+// Compact header meter. The track fills with credits still remaining.
 export function CreditMeter({
   credits: initialCredits,
   creditLimit: initialLimit,
@@ -50,9 +50,10 @@ export function CreditMeter({
     };
   }, []);
 
-  const { used, limit, ratio } = creditsUsed(credits, creditLimit);
+  const limit = Math.max(creditLimit, credits);
+  const { remaining, ratio } = creditProgress(credits, limit);
   const percent = Math.round(ratio * 100);
-  const hot = ratio >= 0.8;
+  const low = limit > 0 && ratio <= 0.2;
 
   return (
     <div
@@ -67,14 +68,14 @@ export function CreditMeter({
         aria-label={creditsLabel}
         aria-valuemin={0}
         aria-valuemax={limit}
-        aria-valuenow={used}
-        title={`${used} / ${limit}`}
+        aria-valuenow={remaining}
+        title={`${remaining} / ${limit}`}
       >
         <div
           className={`h-full rounded-full transition-[width] duration-200 motion-reduce:transition-none ${
-            hot ? "bg-[var(--accent)]" : "bg-[var(--studio-teal)]"
+            low ? "bg-[var(--accent)]" : "bg-[var(--studio-teal)]"
           }`}
-          style={{ width: used === 0 ? "0%" : `max(${percent}%, 6px)` }}
+          style={{ width: remaining === 0 ? "0%" : `max(${percent}%, 6px)` }}
         />
       </div>
     </div>

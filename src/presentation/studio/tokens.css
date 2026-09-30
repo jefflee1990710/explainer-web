@@ -130,6 +130,13 @@
   box-shadow: none;
 }
 
+/* Style tiles are rounded squares. The pill rules above match every ink/paper button. */
+.studio-app button.style-option,
+.studio-app button.style-option.bg-accent-ink,
+.studio-app button.style-option[class*="bg-paper"] {
+  border-radius: 16px;
+}
+
 .studio-app :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
   border-radius: 8px;
   border-color: var(--studio-line);

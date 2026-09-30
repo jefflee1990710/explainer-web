@@ -5,8 +5,9 @@ import {
   bindReferralOnSignup,
   ensureAffiliateProfile,
 } from "@/service/affiliate/engine";
-import { AFFILIATE_ENABLED } from "@/service/affiliate/enabled";
+import { AFFILIATE_ENABLED, isAffiliateAccount } from "@/service/affiliate/enabled";
 import { REFERRAL_COOKIE } from "@/service/affiliate/rates";
+import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
 import { usersCollection } from "@/dao";
 import { adminAuth } from "@/service/firebase/admin";
 import { SESSION_COOKIE } from "@/service/firebase/session";
@@ -43,7 +44,7 @@ const requireAppUserImpl = cache(async (): Promise<AppUser> => {
   if (existing) {
     // Skip a write on every navigation when the profile is unchanged.
     if (existing.email === email && existing.name === name) {
-      if (AFFILIATE_ENABLED) await ensureAffiliateProfile(existing);
+      if (isAffiliateAccount(existing)) await ensureAffiliateProfile(existing);
       return existing;
     }
     await users.updateOne(
@@ -51,7 +52,7 @@ const requireAppUserImpl = cache(async (): Promise<AppUser> => {
       { $set: { email, name, updatedAt: now } },
     );
     const updated = { ...existing, email, name, updatedAt: now };
-    if (AFFILIATE_ENABLED) await ensureAffiliateProfile(updated);
+    if (isAffiliateAccount(updated)) await ensureAffiliateProfile(updated);
     return updated;
   }
 
@@ -73,7 +74,7 @@ const requireAppUserImpl = cache(async (): Promise<AppUser> => {
       $set: { email, name, updatedAt: now },
       $setOnInsert: {
         clerkUserId: uid,
-        credits: 0,
+        credits: WELCOME_CREDITS,
         createdAt: now,
       },
     },
@@ -87,7 +88,7 @@ const requireAppUserImpl = cache(async (): Promise<AppUser> => {
 
   if (AFFILIATE_ENABLED) {
     user = await bindReferralOnSignup(user, referralCode);
-    await ensureAffiliateProfile(user);
+    if (isAffiliateAccount(user)) await ensureAffiliateProfile(user);
   }
   return user;
 });

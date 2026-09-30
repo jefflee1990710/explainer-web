@@ -132,9 +132,9 @@ export const zhHans: Partial<Messages> = {
     namePlaceholder: "例如：第四季度产品发布",
     emptyTitle: "还没有项目",
     emptyBody: "先为此次活动命名，再在其中添加视频。",
-    noMatch: "没有匹配的项目。请尝试其他筛选条件或关键词。",
-    searchPlaceholder: "搜索项目名称或主题…",
-    searchLabel: "搜索项目名称或主题",
+    noMatch: "没有符合这个名称的项目。",
+    searchPlaceholder: "搜索项目名称…",
+    searchLabel: "搜索项目名称",
     filterLabel: "状态筛选",
   },
   project: {

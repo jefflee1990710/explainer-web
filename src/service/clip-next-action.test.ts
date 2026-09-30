@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { FRAMES_COST, MIN_VIDEO_COST, videoCost } from "@/service/production-plan";
 import { canQueueFrames, canRedrawFrames, clipNextAction } from "@/service/clip-next-action";
 import type { ClipStage, ClipState } from "@/service/clip-stage";
 
@@ -40,7 +41,7 @@ test("no frames asks to draw both frames", () => {
     kind: "frames",
     label: "畫這段畫格",
     hint: "先畫起始與結束兩張",
-    cost: 2,
+    cost: FRAMES_COST,
   });
 });
 
@@ -56,10 +57,12 @@ test("stale frames outrank a ready video", () => {
   assert.equal(action.label, "重畫畫格");
 });
 
-test("ready frames ask for the video", () => {
+test("ready frames ask for the video at the clip's per-second cost", () => {
   const action = clipNextAction(state("frames_ready"));
   assert.equal(action.kind, "video");
-  assert.equal(action.cost, 1);
+  assert.equal(action.cost, MIN_VIDEO_COST);
+  const eightSeconds = clipNextAction({ ...state("frames_ready"), videoCost: videoCost(8) });
+  assert.equal(eightSeconds.cost, 72);
 });
 
 test("failed video retries the video", () => {

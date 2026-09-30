@@ -16,6 +16,8 @@ export type AppUser = {
   // Current period bar denominator (monthly allotment + packs).
   creditLimit?: number;
   processedCheckoutIds?: string[];
+  // Operator switch. Only true accounts see and use Affiliate.
+  affiliateEnabled?: boolean;
   // Affiliate: direct referrer and upline chain [L1, L2, L3].
   referredByUserId?: ObjectId;
   uplineUserIds?: ObjectId[];
@@ -39,6 +41,7 @@ export const appUserSchema: z.ZodType<AppUser> = z.object({
   bonusCredits: z.number().optional(),
   creditLimit: z.number().optional(),
   processedCheckoutIds: z.array(z.string()).optional(),
+  affiliateEnabled: z.boolean().optional(),
   referredByUserId: objectIdSchema.optional(),
   uplineUserIds: z.array(objectIdSchema).optional(),
   legalAcceptance: z

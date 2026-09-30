@@ -15,9 +15,9 @@ import {
 } from "@/service/higgsfield/pipeline";
 import { isProductionLike } from "@/service/project-status";
 import {
+  clipVideoCost,
   FRAME_COST,
   FRAMES_COST,
-  VIDEO_COST,
   planGenerateAllClips,
   planGenerateAllScenes,
   planRemaining,
@@ -117,7 +117,7 @@ export async function generateClipFramesAction(
   }
 }
 
-// Produce (or reproduce) one clip's video. Cost: VIDEO_COST. Phase B + submit
+// Produce (or reproduce) one clip's video. Cost: clipVideoCost (per second). Phase B + submit
 // run in a background job; the clip is marked `queued` here so the UI flips at once.
 export async function generateClipVideoAction(
   projectId: string,
@@ -132,7 +132,7 @@ export async function generateClipVideoAction(
     const row = project.phaseA.clips.find((clip) => clip.clipNumber === clipNumber);
     if (!row) return { ok: false, error: "找不到這段分鏡" };
 
-    await assertCanSpendCredits(user, VIDEO_COST);
+    await assertCanSpendCredits(user, clipVideoCost(project, clipNumber));
     const started = await claimAndStartClipVideo(user.clerkUserId, project, clipNumber);
     if (!started.ok) return { ok: false, error: started.error };
 

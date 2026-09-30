@@ -2,7 +2,7 @@
 
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
-import { planSelected } from "@/service/production-plan";
+import { cheapestVideoCost, needsVideoUpgrade, planSelected } from "@/service/production-plan";
 import type { PublicVideo } from "@/presentation/serialize";
 
 // Batch actions for the clips checked on the filmstrip.
@@ -30,6 +30,9 @@ export function SelectionBar({
   const frames = planSelected(project, clipNumbers, "frames");
   const videos = planSelected(project, clipNumbers, "videos");
   const skippedVideos = clipNumbers.length - videos.videos.length;
+  const videoUpgrade =
+    videos.videos.length > 0 &&
+    needsVideoUpgrade(credits, cheapestVideoCost(project, videos.videos));
 
   return (
     <div className="flex flex-wrap items-center gap-2 px-4 py-2 text-xs">
@@ -51,7 +54,7 @@ export function SelectionBar({
         </StudioButton>
         <StudioButton
           onClick={() => onVideos(videos.videos)}
-          disabled={busy || videos.videos.length === 0 || credits < videos.cost}
+          disabled={busy || videos.videos.length === 0 || (credits < videos.cost && !videoUpgrade)}
           className="min-h-9 px-3 text-xs"
         >
           產片 · {videos.cost}

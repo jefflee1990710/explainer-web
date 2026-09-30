@@ -1,10 +1,15 @@
-// Provider COGS used to set list prices. Typical clip: 5s Wan 3.0 @ 720p
-// + 2× Qwen Image 3 (~$0.04 each via Higgsfield estimate) + amortized still / Gemini / Blob.
-// Two frames add about $0.08 per clip; video dominates COGS.
-// 3 user credits per finished clip (start frame, end frame, video).
+import { FRAMES_COST, MIN_VIDEO_COST, MIN_VIDEO_SECONDS } from "@/service/credit-costs";
 
-export const TYPICAL_COGS_PER_CREDIT_USD = 0.225;
-export const WORST_COGS_PER_CREDIT_USD = 0.34;
+// Provider COGS used to set list prices (checked 2026-09).
+// Image: Marketing Studio Flare ~$0.075 (Qwen Image 3 is $0.04).
+// Video: MiniMax H3 image-to-video at 2K, $0.13 per second.
+export const IMAGE_COGS_USD = 0.075;
+export const VIDEO_COGS_PER_SECOND_USD = 0.13;
+
+// Typical clip: two Flare frames + a 5s video, spread over its credits.
+export const TYPICAL_COGS_PER_CREDIT_USD =
+  (2 * IMAGE_COGS_USD + MIN_VIDEO_SECONDS * VIDEO_COGS_PER_SECOND_USD) /
+  (FRAMES_COST + MIN_VIDEO_COST);
 
 export function typicalCogsUsd(credits: number) {
   return credits * TYPICAL_COGS_PER_CREDIT_USD;

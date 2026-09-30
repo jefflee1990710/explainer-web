@@ -5,7 +5,7 @@ import { RefreshIcon } from "@/presentation/components/project/production-icons"
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import { canRedrawFrames, clipNextAction } from "@/service/clip-next-action";
-import { FRAMES_COST } from "@/service/production-plan";
+import { FRAMES_COST, needsVideoUpgrade } from "@/service/production-plan";
 import type { ClipState } from "@/service/clip-stage";
 
 // The clip's single "what to do next" button, plus a quiet redraw link.
@@ -34,7 +34,8 @@ export function ClipPrimaryAction({
   onSelect: (clipNumber: number) => void;
 }) {
   const action = clipNextAction(state, nextUnfinished);
-  const short = action.cost > 0 && credits < action.cost;
+  const videoUpgrade = action.kind === "video" && needsVideoUpgrade(credits, action.cost);
+  const short = action.cost > 0 && credits < action.cost && !videoUpgrade;
   const busy = action.kind === "busy" || pending;
   const disabled = busy || !idle || short || action.kind === "done";
 

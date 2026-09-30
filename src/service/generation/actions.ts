@@ -89,7 +89,7 @@ export async function approveStoryboardAction(
   }
 }
 
-// Redo a single frame for 1 credit while reviewing the timeline. The optional
+// Redo a single frame for FRAME_COST credits while reviewing the timeline. The optional
 // revision (director's remark + hand-drawn sketch over the current frame)
 // steers the redo: the sketch is burned onto the frame, stored in Blob, and
 // sent as the first reference image.
@@ -220,7 +220,7 @@ function cleanField(value: unknown) {
 
 // Rewrite one clip's storyboard while reviewing frames (free). With
 // `regenerate`, that clip's start + end frames are redrawn from the new text
-// (1 credit each). The previous clip's end-frame prompt is refreshed too since
+// (FRAME_COST credits each). The previous clip's end-frame prompt is refreshed too since
 // it hands off to this clip's scene, but it is not redrawn automatically.
 export async function updateClipStoryboardAction(
   projectId: string,

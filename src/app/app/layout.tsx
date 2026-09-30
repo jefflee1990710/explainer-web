@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/presentation/components/app-shell";
 import { AcceptPoliciesDialog } from "@/presentation/components/legal/accept-policies-dialog";
+import { isAffiliateAccount } from "@/service/affiliate/enabled";
 import { getAuthSession, requireAppUser } from "@/service/auth";
 import { countActiveTasks } from "@/service/generation/task-list";
 import { needsPolicyAcceptance } from "@/service/legal/versions";
@@ -29,7 +30,15 @@ export default async function AppLayout({
   const activeTasks = await safeCountActiveTasks(user.clerkUserId);
   return (
     <>
-      <AppShell credits={user.credits} creditLimit={user.creditLimit || 0} activeTasks={activeTasks}>
+      <AppShell
+        credits={user.credits}
+        creditLimit={user.creditLimit || 0}
+        activeTasks={activeTasks}
+        email={user.email}
+        name={user.name}
+        avatarUrl={session.picture}
+        affiliateEnabled={isAffiliateAccount(user)}
+      >
         {children}
       </AppShell>
       {needsPolicyAcceptance(user) ? (

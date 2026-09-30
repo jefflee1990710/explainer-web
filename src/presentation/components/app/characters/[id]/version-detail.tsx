@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicCharacter, PublicCharacterVersion } from "@/presentation/serialize";
+import { FRAME_COST } from "@/service/production-plan";
 
 // Right pane: big preview + set-default / edit / retry actions.
 export function VersionDetail({
@@ -30,7 +31,7 @@ export function VersionDetail({
   const [instruction, setInstruction] = useState("");
   const isDefault = version.id === character.defaultVersionId;
   const busy = version.status === "queued" || version.status === "in_progress";
-  const canPay = subscribed && credits >= 1;
+  const canPay = subscribed && credits >= FRAME_COST;
 
   function submitEdit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -119,7 +120,7 @@ export function VersionDetail({
             className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent-ink px-4 text-sm font-semibold text-lime transition hover:-translate-y-0.5 disabled:opacity-60"
           >
             {pending === "retry" ? <Spinner className="h-4 w-4" /> : null}
-            重試・1 credit
+            重試・{FRAME_COST} credits
           </button>
         ) : null}
         <p className="text-xs text-muted">
@@ -146,7 +147,7 @@ export function VersionDetail({
               className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {pending === "edit" ? <Spinner className="h-4 w-4" /> : null}
-              產生新版本・1 credit
+              產生新版本・{FRAME_COST} credits
             </button>
             <button
               type="button"

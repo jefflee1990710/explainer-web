@@ -32,8 +32,8 @@ export const ko: Partial<Messages> = {
   folder: {
     create: "새 프로젝트", createTitle: "새 프로젝트", createHint: "먼저 이름을 정한 다음 영상을 추가하세요.", createSubmit: "프로젝트 만들기", nameLabel: "프로젝트 이름", namePlaceholder: "예: 4분기 제품 출시",
     emptyTitle: "아직 프로젝트가 없습니다", emptyBody: "먼저 캠페인 이름을 정한 다음 영상을 추가하세요.",
-    noMatch: "일치하는 프로젝트가 없습니다. 다른 필터나 키워드를 사용해 보세요.",
-    searchPlaceholder: "프로젝트 이름 또는 주제 검색…", searchLabel: "프로젝트 이름 또는 주제 검색", filterLabel: "상태 필터",
+    noMatch: "이 이름과 일치하는 프로젝트가 없습니다.",
+    searchPlaceholder: "프로젝트 이름으로 검색…", searchLabel: "프로젝트 이름으로 검색", filterLabel: "상태 필터",
   },
   project: {
     steps: { input: "입력", scene: "장면", production: "제작", export: "Video" },

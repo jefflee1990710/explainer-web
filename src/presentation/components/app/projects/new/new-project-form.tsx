@@ -31,10 +31,15 @@ import {
 import { composeReelAction } from "@/presentation/actions/reel";
 import { isProjectBusy } from "@/service/clip-stage";
 import {
+  cheapestVideoCost,
+  clipVideoCost,
+  needsVideoUpgrade,
   planGenerateAllClips,
   planGenerateAllScenes,
   planRemaining,
+  planSelected,
 } from "@/service/production-plan";
+import { UpgradePlanDialog } from "@/presentation/components/app/projects/new/upgrade-plan-dialog";
 import {
   costForPaidKey,
   paidActionProject,
@@ -151,6 +156,8 @@ export function NewProjectForm({
     step: number;
   } | null>(null);
   const [confirmBrief, setConfirmBrief] = useState(false);
+  // Video cost shown in the upgrade overlay; set when the wallet cannot pay for it.
+  const [upgradeCost, setUpgradeCost] = useState<number | null>(null);
   // Header RSC credits stay stale until poll; keep a local wallet for gates.
   const [walletCredits, setWalletCredits] = useState(credits);
   // Previous stills, restored if the redo action never reaches the server.
@@ -350,7 +357,7 @@ export function NewProjectForm({
     );
   }
 
-  // Rewrite one clip's storyboard text; optionally redraw its two frames (2 credits).
+  // Rewrite one clip's storyboard text; optionally redraw its two frames (FRAMES_COST).
   function onUpdateClip(
     clipNumber: number,
     input: ClipStoryboardInput,
@@ -362,7 +369,7 @@ export function NewProjectForm({
     );
   }
 
-  // Per-clip production: both frames (2), one video (1), or fill every gap.
+  // Per-clip production: both frames, one video, or fill every gap.
   function onGenerateFrames(clipNumber: number) {
     if (!project) return;
     void runPaid(`frames:${clipNumber}`, () =>
@@ -372,7 +379,13 @@ export function NewProjectForm({
 
   function onGenerateVideo(clipNumber: number) {
     if (!project) return;
-    void runPaid(`video:${clipNumber}`, () => generateClipVideoAction(project.id, clipNumber));
+    // Billed per second of this clip's storyboard duration.
+    const cost = clipVideoCost(project, clipNumber);
+    if (needsVideoUpgrade(walletCredits, cost)) {
+      setUpgradeCost(cost);
+      return;
+    }
+    void runPaid(`video:${clipNumber}`, () => generateClipVideoAction(project.id, clipNumber), cost);
   }
 
   // 全部產生: fill gaps, redraw every frame, or redraw + auto video.
@@ -391,12 +404,24 @@ export function NewProjectForm({
         : mode === "scenes"
           ? planGenerateAllScenes(project)
           : planGenerateAllClips(project);
+    const cheapest = cheapestVideoCost(project, plan.videos);
+    if (plan.videos.length > 0 && needsVideoUpgrade(walletCredits, cheapest)) {
+      setUpgradeCost(cheapest);
+      return Promise.resolve(false);
+    }
     return runPaid(key, () => action(project.id), plan.cost);
   }
 
   // Filmstrip multi-select: frames or videos for the checked clips.
   function onGenerateSelected(clipNumbers: number[], kind: "frames" | "videos") {
     if (!project) return Promise.resolve(false);
+    if (kind === "videos") {
+      const cheapest = cheapestVideoCost(project, planSelected(project, clipNumbers, kind).videos);
+      if (needsVideoUpgrade(walletCredits, cheapest)) {
+        setUpgradeCost(cheapest);
+        return Promise.resolve(false);
+      }
+    }
     return runPaid("bulk", () => generateSelectedClipsAction(project.id, clipNumbers, kind));
   }
 
@@ -748,6 +773,9 @@ export function NewProjectForm({
         </AnimatePresence>
         </div>
 
+        {upgradeCost !== null ? (
+          <UpgradePlanDialog videoCost={upgradeCost} onClose={() => setUpgradeCost(null)} />
+        ) : null}
         {confirmBrief ? (
           <ReviseStoryboardDialog
             pending={submitting}

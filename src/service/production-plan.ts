@@ -2,10 +2,26 @@ import { mediaSrc } from "@/util/media-src";
 import { canQueueFrames, clipStatesFor, type ClipStageSource } from "@/service/clip-stage";
 import type { ClipFrame, ProjectClip } from "@/model/project";
 
-// Credits per action. Frames are 1 each (start + end), a clip video is 1.
-export const FRAME_COST = 1;
-export const FRAMES_COST = 2;
-export const VIDEO_COST = 1;
+import { FRAMES_COST, MIN_VIDEO_COST, MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
+
+export * from "@/service/credit-costs";
+
+// Video credits for one storyboard clip, from its planned duration.
+export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
+  const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
+  return videoCost(row?.durationSeconds ?? MIN_VIDEO_SECONDS);
+}
+
+// Sum of video credits for these clips.
+function videosCost(project: ClipStageSource, clipNumbers: number[]) {
+  return clipNumbers.reduce((sum, clipNumber) => sum + clipVideoCost(project, clipNumber), 0);
+}
+
+// Cheapest video among these clips, so the upgrade prompt fires only when none fit.
+export function cheapestVideoCost(project: ClipStageSource, clipNumbers: number[]) {
+  if (clipNumbers.length === 0) return MIN_VIDEO_COST;
+  return Math.min(...clipNumbers.map((clipNumber) => clipVideoCost(project, clipNumber)));
+}
 
 // A clip video is claimed (`queued` + `submittedAt`) before its background job
 // runs. If that job is lost, nothing will ever move the clip, so after this long
@@ -37,7 +53,7 @@ export function planRemaining(project: ClipStageSource): RemainingPlan {
   return {
     frames,
     videos,
-    cost: frames.length * FRAMES_COST + videos.length * VIDEO_COST,
+    cost: frames.length * FRAMES_COST + videosCost(project, videos),
   };
 }
 
@@ -62,7 +78,7 @@ export function planSelected(
   const videos = picked
     .filter((state) => VIDEO_READY_STAGES.has(state.stage) && !state.stale.frames)
     .map((state) => state.clipNumber);
-  return { frames: [], videos, cost: videos.length * VIDEO_COST };
+  return { frames: [], videos, cost: videosCost(project, videos) };
 }
 
 export type BulkGeneratePlan = {
@@ -92,7 +108,7 @@ export function planGenerateAllClips(project: ClipStageSource): BulkGeneratePlan
   return {
     frames,
     videos,
-    cost: frames.length * FRAMES_COST + videos.length * VIDEO_COST,
+    cost: frames.length * FRAMES_COST + videosCost(project, videos),
   };
 }
 

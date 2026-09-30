@@ -67,7 +67,7 @@ async function main() {
   const { claimAndStartClipVideo } = await import("@/service/clip/auto-video");
   const { consumeCredits } = await import("@/service/billing/credits");
   const { runJobById } = await import("@/service/generation/task-runner");
-  const { FRAMES_COST, VIDEO_COST } = await import("@/service/production-plan");
+  const { FRAMES_COST, clipVideoCost } = await import("@/service/production-plan");
   const { mediaSrc } = await import("@/util/media-src");
   const { isStyleId } = await import("@/service/style");
 
@@ -223,7 +223,7 @@ async function main() {
       console.error("frames-missing", item.id);
       continue;
     }
-    await consumeCredits(user.clerkUserId, VIDEO_COST);
+    await consumeCredits(user.clerkUserId, clipVideoCost(project, 1));
     const started = await claimAndStartClipVideo(user.clerkUserId, project, 1);
     console.log("video-queued", item.id, started.ok ? "ok" : started.error);
   }

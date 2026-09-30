@@ -1,23 +1,29 @@
 "use client";
 
-import { SignOutButton } from "@/presentation/components/auth/sign-out-button";
-import { LanguageSwitcher } from "@/presentation/components/language-switcher";
+import { SignedInAccount } from "@/presentation/components/auth/signed-in-account";
+import { HeaderTaskMenu } from "@/presentation/components/app/tasks/header-task-menu";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { StudioShell, type StudioNavItem } from "@/presentation/studio/studio-shell";
-import { TaskMeter } from "@/presentation/studio/task-meter";
-import { AFFILIATE_ENABLED } from "@/service/affiliate/enabled";
-
 // Logged-in chrome. Page content sits in the studio shell.
 export function AppShell({
   credits,
   creditLimit,
   activeTasks,
+  email,
+  name,
+  avatarUrl,
+  affiliateEnabled = false,
   children,
 }: {
   credits: number;
   creditLimit: number;
   // Generation tasks still queued or running (header meter).
   activeTasks: number;
+  email: string;
+  name: string;
+  avatarUrl?: string;
+  // Rail item only. The page and actions check the same user flag.
+  affiliateEnabled?: boolean;
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
@@ -27,7 +33,7 @@ export function AppShell({
     { href: "/app/mcp", label: t("nav.mcp"), icon: "mcp" },
     { href: "/app/billing", label: t("nav.billing"), icon: "billing" },
   ];
-  if (AFFILIATE_ENABLED) {
+  if (affiliateEnabled) {
     items.splice(3, 0, { href: "/app/affiliate", label: t("nav.affiliate"), icon: "affiliate" });
   }
 
@@ -37,23 +43,15 @@ export function AppShell({
       credits={credits}
       creditLimit={creditLimit}
       creditsLabel={t("common.credits")}
-      headerEnd={
-        <TaskMeter
-          pending={activeTasks}
-          tasksLabel={t("nav.tasks")}
-          pendingLabel={t("common.pending")}
-        />
-      }
+      headerEnd={<HeaderTaskMenu initialPending={activeTasks} />}
       toolbar={
-        <>
-          <LanguageSwitcher className="w-full" />
-          <div className="flex justify-center lg:justify-start lg:px-1">
-            <SignOutButton
-              label={t("auth.signOut")}
-              className="cursor-pointer rounded-full border border-accent-ink/15 px-3 py-1.5 text-xs font-semibold"
-            />
-          </div>
-        </>
+        <SignedInAccount
+          email={email}
+          name={name}
+          avatarUrl={avatarUrl}
+          signOutLabel={t("auth.signOut")}
+          settingsLabel={t("nav.settings")}
+        />
       }
     >
       {children}

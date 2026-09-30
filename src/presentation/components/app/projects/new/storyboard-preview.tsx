@@ -11,6 +11,7 @@ import {
   phaseAToEditInput,
 } from "@/service/director/phase-a-edit";
 import type { PublicProject } from "@/presentation/serialize";
+import { FRAMES_COST, MIN_VIDEO_COST, VIDEO_CREDITS_PER_SECOND } from "@/service/production-plan";
 import type { PhaseAEditInput } from "@/model/project";
 import { ReviseStoryboardDialog } from "@/presentation/components/app/projects/new/revise-storyboard-dialog";
 import { StoryboardClipRow } from "@/presentation/components/app/projects/new/storyboard-clip-row";
@@ -206,7 +207,7 @@ export function StoryboardPreview({
             <>
               <p className="font-display text-sm font-bold">核准分鏡，進入逐段製作</p>
               <p className="mt-2 text-sm">
-                核准不扣 credits。之後每段各自產生：畫格 2 credits、影片 1 credit
+                核准不扣 credits。之後每段各自產生：畫格 {FRAMES_COST} credits、影片每秒 {VIDEO_CREDITS_PER_SECOND} credits（最少 {MIN_VIDEO_COST}）
                 <span className="text-muted">（剩餘 {credits}）</span>
               </p>
               <p className="mt-1 text-xs text-muted">
