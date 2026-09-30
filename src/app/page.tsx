@@ -1,4 +1,5 @@
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
+import { getAuthSession } from "@/service/auth";
 import { LandingCast } from "@/presentation/components/landing-cast";
 import { LandingHero } from "@/presentation/components/landing-hero";
 import { LandingEnterprise } from "@/presentation/components/landing-enterprise";
@@ -8,10 +9,11 @@ import { LandingDirector } from "@/presentation/components/landing-director";
 import { LandingExamplesLink } from "@/presentation/components/landing-examples-link";
 import { LandingSteps } from "@/presentation/components/landing-steps";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await getAuthSession();
   return (
     <PolicyLayout>
-      <LandingHero />
+      <LandingHero signedIn={Boolean(session)} />
       <LandingSteps />
       <LandingCast />
       <LandingPersona />

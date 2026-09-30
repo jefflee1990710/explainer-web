@@ -7,22 +7,14 @@ type ShowcaseCardProps = {
   poster: string;
   widthClass: string;
   aspectClass: string;
-  useLabel: string;
-  aspect: string;
-  styleLabel: string;
-  topic: string;
 };
 
-// Plays the clip when the file is present. Until then the poster stays up.
+// Soft-edged clip. The poster stays if the file is missing.
 export function LandingShowcaseCard({
   src,
   poster,
   widthClass,
   aspectClass,
-  useLabel,
-  aspect,
-  styleLabel,
-  topic,
 }: ShowcaseCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [play, setPlay] = useState(true);
@@ -36,33 +28,32 @@ export function LandingShowcaseCard({
     return () => video.removeEventListener("error", hide);
   }, []);
 
+  // Fade only the outer rim so the frame stays readable.
+  const edge =
+    "[mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent),linear-gradient(to_bottom,transparent,black_7%,black_93%,transparent)] [mask-composite:intersect] [-webkit-mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent),linear-gradient(to_bottom,transparent,black_7%,black_93%,transparent)] [-webkit-mask-composite:source-in]";
+
   return (
-    <article className={`shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm ${widthClass}`}>
-      <div className="flex flex-col">
-        <div className={`relative bg-zinc-100 ${aspectClass}`}>
-          <img src={poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          {play ? (
-            <video
-              ref={videoRef}
-              src={src}
-              poster={poster}
-              className="absolute inset-0 h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
-              controls
-              onError={() => setPlay(false)}
-            />
-          ) : null}
-        </div>
-        <div className="px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
-            {useLabel} · {aspect}
-          </p>
-          <h3 className="mt-1 font-semibold text-zinc-900">{styleLabel}</h3>
-          <p className="text-sm text-zinc-600">{topic}</p>
-        </div>
+    <article className={`relative shrink-0 ${widthClass}`}>
+      <img
+        src={poster}
+        alt=""
+        className={`absolute inset-0 h-full w-full scale-105 object-cover opacity-50 blur-2xl ${aspectClass}`}
+      />
+      <div className={`relative ${aspectClass} ${edge}`}>
+        <img src={poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        {play ? (
+          <video
+            ref={videoRef}
+            src={src}
+            poster={poster}
+            className="absolute inset-0 h-full w-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            onError={() => setPlay(false)}
+          />
+        ) : null}
       </div>
     </article>
   );

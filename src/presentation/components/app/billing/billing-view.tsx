@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { track } from "@/presentation/components/analytics/track";
 import { EnterpriseCta } from "@/presentation/components/pricing/enterprise-cta";
 import type { PlanDefinition } from "@/service/billing/plans";
 import type { PlanId } from "@/model/subscription";
@@ -19,6 +21,7 @@ export function BillingView({
   activePlanId,
   subscriptionStatus,
   plans,
+  purchase,
 }: {
   checkoutSuccess: boolean;
   credits: number;
@@ -30,8 +33,35 @@ export function BillingView({
   activePlanId?: PlanId;
   subscriptionStatus?: string;
   plans: PlanDefinition[];
+  // Set after Stripe returns, so GA can record the subscribe conversion once.
+  purchase?: {
+    sessionId: string;
+    value: number;
+    itemId: string;
+    itemName: string;
+  };
 }) {
   const { locale, t } = useI18n();
+
+  useEffect(() => {
+    if (!purchase?.sessionId) return;
+    const key = `ga-purchase-${purchase.sessionId}`;
+    if (window.sessionStorage.getItem(key)) return;
+    window.sessionStorage.setItem(key, "1");
+    track("purchase", {
+      transaction_id: purchase.sessionId,
+      currency: "USD",
+      value: purchase.value,
+      items: [{ item_id: purchase.itemId, item_name: purchase.itemName, price: purchase.value, quantity: 1 }],
+    });
+    track("subscribe", {
+      transaction_id: purchase.sessionId,
+      currency: "USD",
+      value: purchase.value,
+      item_id: purchase.itemId,
+      item_name: purchase.itemName,
+    });
+  }, [purchase]);
   const dateLocale =
     locale === "zh-Hant" ? "zh-TW" : locale === "zh-Hans" ? "zh-CN" : locale;
 

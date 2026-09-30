@@ -66,6 +66,7 @@ export type Messages = {
       marketing: string;
       scro: string;
       product: string;
+      story: string;
     };
     cast: {
       eyebrow: string;
@@ -94,6 +95,7 @@ export type Messages = {
   };
   examples: {
     title: string;
+    heroTitle: string;
     subtitle: string;
     cta: string;
     scroReel: { title: string; body: string };
@@ -109,6 +111,8 @@ export type Messages = {
     acceptPrivacy: string;
     mustAccept: string;
     agree: string;
+    firstTitle: string;
+    firstBody: string;
     updatedTitle: string;
     updatedBody: string;
     version: string;
@@ -265,5 +269,25 @@ export type Messages = {
     pro: { name: string; blurb: string };
     studio: { name: string; blurb: string };
     scale: { name: string; blurb: string };
+  };
+  auth: {
+    signInTitle: string;
+    signUpTitle: string;
+    signInSubmit: string;
+    signUpSubmit: string;
+    signOut: string;
+    email: string;
+    password: string;
+    google: string;
+    or: string;
+    needAccount: string;
+    haveAccount: string;
+    emailInUse: string;
+    weakPassword: string;
+    invalidEmail: string;
+    invalidCredential: string;
+    unauthorizedDomain: string;
+    popupBlocked: string;
+    genericError: string;
   };
 };

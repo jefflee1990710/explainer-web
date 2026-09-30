@@ -29,16 +29,12 @@ export function ExampleBand({ item, flip }: { item: ExampleItem; flip: boolean }
             <p className="mt-4 text-sm font-medium text-zinc-800">{localizedStyleName(t, item.styleId)}</p>
           </div>
         </div>
-        <div className={`flex justify-center px-6 py-10 ${flip ? "lg:order-1" : "lg:order-2"}`}>
+        <div className={`flex justify-center px-4 py-8 sm:px-8 ${flip ? "lg:order-1" : "lg:order-2"}`}>
           <LandingShowcaseCard
             src={item.src}
             poster={item.poster}
             widthClass={frame.width}
             aspectClass={frame.aspect}
-            useLabel={t(item.useKey)}
-            aspect={item.aspect}
-            styleLabel={localizedStyleName(t, item.styleId)}
-            topic={t(item.topicKey)}
           />
         </div>
       </div>

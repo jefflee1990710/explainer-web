@@ -7,7 +7,7 @@ export type ExampleItem = {
   styleId: StyleId;
   aspect: "9:16" | "16:9" | "1:1";
   useKey: "landing.showcase.reel" | "landing.showcase.deck" | "landing.showcase.marketing";
-  topicKey: "landing.showcase.scro" | "landing.showcase.product";
+  topicKey: "landing.showcase.scro" | "landing.showcase.product" | "landing.showcase.story";
   titleKey: string;
   bodyKey: string;
 };
@@ -54,14 +54,14 @@ export const EXAMPLE_ITEMS: ExampleItem[] = [
     styleId: "pixel",
     aspect: "16:9",
     useKey: "landing.showcase.reel",
-    topicKey: "landing.showcase.product",
+    topicKey: "landing.showcase.story",
     titleKey: "examples.productReel.title",
     bodyKey: "examples.productReel.body",
   },
 ];
 
 export const EXAMPLE_FRAME: Record<ExampleItem["aspect"], { width: string; aspect: string }> = {
-  "9:16": { width: "w-[min(16rem,70vw)]", aspect: "aspect-[9/16]" },
-  "16:9": { width: "w-[min(28rem,78vw)]", aspect: "aspect-video" },
-  "1:1": { width: "w-[min(18rem,70vw)]", aspect: "aspect-square" },
+  "9:16": { width: "w-[min(28rem,92%)]", aspect: "aspect-[9/16]" },
+  "16:9": { width: "w-full", aspect: "aspect-video" },
+  "1:1": { width: "w-[min(32rem,92%)]", aspect: "aspect-square" },
 };

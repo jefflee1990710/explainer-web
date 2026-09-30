@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { findAffiliateByCode } from "@/service/affiliate/engine";
 import { getAppUrl } from "@/util/app-url";
+import { AFFILIATE_ENABLED } from "@/service/affiliate/enabled";
 import {
   REFERRAL_COOKIE,
   REFERRAL_COOKIE_DAYS,
@@ -12,6 +13,9 @@ export async function GET(
   context: { params: Promise<{ code: string }> },
 ) {
   const { code } = await context.params;
+  if (!AFFILIATE_ENABLED) {
+    return NextResponse.redirect(`${getAppUrl()}/`);
+  }
   const affiliate = await findAffiliateByCode(code);
   const appUrl = getAppUrl();
   const response = NextResponse.redirect(`${appUrl}/app`);

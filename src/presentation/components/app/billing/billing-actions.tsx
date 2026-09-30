@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { startCheckoutAction, startPortalAction } from "@/presentation/actions/billing";
+import { track } from "@/presentation/components/analytics/track";
+import { PLANS } from "@/service/billing/plans";
 import type { PlanId } from "@/model/subscription";
 
 export function CheckoutButton({
@@ -27,6 +29,13 @@ export function CheckoutButton({
       setPending(false);
       return;
     }
+    const plan = PLANS[planId];
+    track("begin_checkout", {
+      currency: "USD",
+      value: plan.amountUsd,
+      item_id: plan.id,
+      item_name: plan.name,
+    });
     window.location.href = result.url;
   }
 

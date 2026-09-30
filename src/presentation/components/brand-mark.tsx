@@ -6,12 +6,12 @@ export function BrandMark({ href = "/" }: { href?: string }) {
   return (
     <Link href={href} className="group inline-flex items-center gap-2">
       <Image
-        src="/logo.svg"
+        src="/logo-mark.png"
         alt=""
-        width={32}
-        height={32}
+        width={160}
+        height={160}
         priority
-        className="h-8 w-8 transition-transform group-hover:-translate-y-0.5"
+        className="h-10 w-10 transition-transform group-hover:-translate-y-0.5"
       />
       <span className="text-xl font-bold tracking-tight">
         Scro

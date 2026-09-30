@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import { BrandMark } from "@/presentation/components/brand-mark";
+import { SignOutButton } from "@/presentation/components/auth/sign-out-button";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { LanguageSwitcher } from "@/presentation/components/language-switcher";
 
 // Sticky translucent bar, same chrome as mentalok.io.
-export function SiteHeader() {
+export function SiteHeader({ signedIn = false }: { signedIn?: boolean }) {
   const { t } = useI18n();
 
   return (
@@ -31,25 +31,27 @@ export function SiteHeader() {
             className="[&_svg]:max-sm:hidden"
             selectClassName="max-w-[5.75rem] text-xs sm:max-w-none sm:text-sm"
           />
-          <Show when="signed-out">
-            <SignInButton mode="modal" forceRedirectUrl="/app">
-              <button
-                type="button"
-                className="cursor-pointer rounded-full bg-[#12141c] px-3 py-1.5 text-xs font-semibold text-[#c6f24b] transition-colors hover:bg-black sm:px-4 sm:py-2 sm:text-sm"
+          {signedIn ? (
+            <>
+              <Link
+                href="/app"
+                className="hidden shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c] min-[420px]:inline"
               >
-                {t("nav.signIn")}
-              </button>
-            </SignInButton>
-          </Show>
-          <Show when="signed-in">
+                {t("nav.workspace")}
+              </Link>
+              <SignOutButton
+                label={t("auth.signOut")}
+                className="cursor-pointer rounded-full border border-[#12141c]/15 px-3 py-1.5 text-xs font-semibold text-[#12141c] transition-colors hover:bg-zinc-50 sm:px-4 sm:py-2 sm:text-sm"
+              />
+            </>
+          ) : (
             <Link
-              href="/app"
-              className="hidden shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c] min-[420px]:inline"
+              href="/sign-in"
+              className="cursor-pointer rounded-full bg-[#12141c] px-3 py-1.5 text-xs font-semibold text-[#c6f24b] transition-colors hover:bg-black sm:px-4 sm:py-2 sm:text-sm"
             >
-              {t("nav.workspace")}
+              {t("nav.signIn")}
             </Link>
-            <UserButton />
-          </Show>
+          )}
         </nav>
       </div>
     </header>

@@ -1,7 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/presentation/components/app-shell";
-import { requireAppUser } from "@/service/auth";
+import { AcceptPoliciesDialog } from "@/presentation/components/legal/accept-policies-dialog";
+import { getAuthSession, requireAppUser } from "@/service/auth";
 import { countActiveTasks } from "@/service/generation/task-list";
 import { needsPolicyAcceptance } from "@/service/legal/versions";
 
@@ -20,13 +20,18 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await auth.protect();
+  const session = await getAuthSession();
+  if (!session) redirect("/sign-in?next=/app");
   const user = await requireAppUser();
-  if (needsPolicyAcceptance(user)) redirect("/legal/accept");
   const activeTasks = await safeCountActiveTasks(user.clerkUserId);
   return (
-    <AppShell credits={user.credits} creditLimit={user.creditLimit || 0} activeTasks={activeTasks}>
-      {children}
-    </AppShell>
+    <>
+      <AppShell credits={user.credits} creditLimit={user.creditLimit || 0} activeTasks={activeTasks}>
+        {children}
+      </AppShell>
+      {needsPolicyAcceptance(user) ? (
+        <AcceptPoliciesDialog firstTime={!user.legalAcceptance} />
+      ) : null}
+    </>
   );
 }

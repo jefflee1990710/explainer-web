@@ -40,7 +40,7 @@ export async function startCheckoutAction(planId: PlanId) {
     mode: "subscription",
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${getAppUrl()}/app/billing?checkout=success`,
+    success_url: `${getAppUrl()}/app/billing?checkout=success&plan=${planId}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${getAppUrl()}/app/billing?checkout=cancel`,
     metadata: { clerkUserId: user.clerkUserId, planId },
     subscription_data: {
@@ -105,7 +105,7 @@ export async function startPackCheckoutAction(packId: PackId) {
     mode: "payment",
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${getAppUrl()}/app/billing?checkout=success`,
+    success_url: `${getAppUrl()}/app/billing?checkout=success&pack=${packId}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${getAppUrl()}/app/billing?checkout=cancel`,
     metadata: {
       clerkUserId: user.clerkUserId,

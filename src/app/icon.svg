@@ -1,17 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Scro">
-  <!-- Scro mark: ink tile, coral sticker offset, lime scroll-S -->
-  <rect x="56" y="56" width="448" height="448" rx="112" fill="#ff4d2e"/>
-  <rect x="32" y="32" width="448" height="448" rx="112" fill="#12141c"/>
-  <!-- S drawn as an unrolled scroll -->
-  <path
-    d="M338 148
-       C338 112 174 108 174 176
-       C174 228 292 214 308 258
-       C328 312 196 300 188 364
-       C180 428 352 424 352 372"
-    fill="none"
-    stroke="#c6f24b"
-    stroke-width="52"
-    stroke-linecap="round"
-  />
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="#12141c"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M360 152 C248 152 148 160 164 214 C180 268 332 246 344 300 C356 358 172 340 164 396 C156 448 268 456 360 456" stroke="#ffffff" stroke-width="76"/>
+    <path d="M360 152 C248 152 148 160 164 214 C180 268 332 246 344 300 C356 358 172 340 164 396 C156 448 268 456 360 456" stroke="#c6f24b" stroke-width="44"/>
+  </g>
 </svg>

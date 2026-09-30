@@ -11,6 +11,7 @@ import {
   usdPerCreditCents,
   type NewLotInput,
 } from "@/service/affiliate/lots";
+import { AFFILIATE_ENABLED } from "@/service/affiliate/enabled";
 import {
   BUY_RATES,
   CONSUME_RATES,
@@ -81,6 +82,7 @@ export async function bindReferralOnSignup(
   newUser: AppUser,
   referralCode: string | undefined | null,
 ): Promise<AppUser> {
+  if (!AFFILIATE_ENABLED) return newUser;
   if (newUser.referredByUserId) return newUser;
   if (!referralCode) return newUser;
 
@@ -180,6 +182,7 @@ export async function recordPurchaseCommission(input: {
   lot: NewLotInput;
   eventKey: string;
 }) {
+  if (!AFFILIATE_ENABLED) return;
   const users = await usersCollection();
   const buyer = await users.findOne({ clerkUserId: input.buyerClerkUserId });
   if (!buyer) return;
@@ -235,6 +238,7 @@ export async function recordConsumeCommission(
   credits: number,
   eventKey: string,
 ) {
+  if (!AFFILIATE_ENABLED) return;
   if (credits <= 0) return;
 
   const users = await usersCollection();
@@ -286,6 +290,7 @@ export async function reverseConsumeCommission(
   credits: number,
   originalEventKey?: string,
 ) {
+  if (!AFFILIATE_ENABLED) return;
   if (credits <= 0) return;
 
   const ledger = await affiliateLedgerCollection();

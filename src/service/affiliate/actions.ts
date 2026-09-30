@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { type OptionalId } from "mongodb";
 import { requireAppUser } from "@/service/auth";
+import { AFFILIATE_ENABLED } from "@/service/affiliate/enabled";
 import { ensureAffiliateProfile } from "@/service/affiliate/engine";
 import { PAYOUT_MIN_CENTS } from "@/service/affiliate/rates";
 import {
@@ -25,6 +26,9 @@ function maskEmail(email: string) {
 }
 
 export async function requestPayoutAction() {
+  if (!AFFILIATE_ENABLED) {
+    return { ok: false as const, error: "Affiliate 尚未開放" };
+  }
   try {
     const user = await requireAppUser();
     const profile = await ensureAffiliateProfile(user);

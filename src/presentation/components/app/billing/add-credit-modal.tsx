@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 import { startPackCheckoutAction } from "@/presentation/actions/billing";
+import { track } from "@/presentation/components/analytics/track";
 import { CREDIT_PACKS } from "@/service/billing/packs";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PackId } from "@/model/billing-settings";
@@ -56,6 +57,13 @@ export function AddCreditModal({ onClose }: { onClose: () => void }) {
       setError(result.error);
       return;
     }
+    const pack = CREDIT_PACKS[packId];
+    track("begin_checkout", {
+      currency: "USD",
+      value: pack.amountUsd,
+      item_id: pack.id,
+      item_name: pack.nameZh,
+    });
     window.location.href = result.url;
   }
 

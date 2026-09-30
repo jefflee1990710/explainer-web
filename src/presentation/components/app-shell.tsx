@@ -1,10 +1,11 @@
 "use client";
 
-import { UserButton } from "@clerk/nextjs";
+import { SignOutButton } from "@/presentation/components/auth/sign-out-button";
 import { LanguageSwitcher } from "@/presentation/components/language-switcher";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { StudioShell, type StudioNavItem } from "@/presentation/studio/studio-shell";
 import { TaskMeter } from "@/presentation/studio/task-meter";
+import { AFFILIATE_ENABLED } from "@/service/affiliate/enabled";
 
 // Logged-in chrome. Page content sits in the studio shell.
 export function AppShell({
@@ -24,9 +25,11 @@ export function AppShell({
     { href: "/app", label: t("nav.projects"), icon: "projects" },
     { href: "/app/characters", label: t("nav.characters"), icon: "characters" },
     { href: "/app/mcp", label: t("nav.mcp"), icon: "mcp" },
-    { href: "/app/affiliate", label: t("nav.affiliate"), icon: "affiliate" },
     { href: "/app/billing", label: t("nav.billing"), icon: "billing" },
   ];
+  if (AFFILIATE_ENABLED) {
+    items.splice(3, 0, { href: "/app/affiliate", label: t("nav.affiliate"), icon: "affiliate" });
+  }
 
   return (
     <StudioShell
@@ -49,7 +52,10 @@ export function AppShell({
             selectClassName="min-w-0 flex-1 max-lg:absolute max-lg:inset-0 max-lg:opacity-0"
           />
           <div className="flex justify-center lg:justify-start lg:px-1">
-            <UserButton />
+            <SignOutButton
+              label={t("auth.signOut")}
+              className="cursor-pointer rounded-full border border-accent-ink/15 px-3 py-1.5 text-xs font-semibold"
+            />
           </div>
         </>
       }

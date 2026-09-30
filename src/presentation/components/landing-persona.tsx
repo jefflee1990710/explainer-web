@@ -10,10 +10,20 @@ export function LandingPersona() {
   return (
     <section id="persona" className="bg-white">
       <div className="grid w-full items-center lg:grid-cols-2">
+        <video
+          src="/landing/character-persona-loop.mp4"
+          poster="/landing/character-persona.png?v=4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          aria-hidden
+          className="order-1 h-72 w-full object-contain sm:h-96 lg:order-1 lg:h-full lg:min-h-[32rem] lg:p-8 motion-reduce:hidden"
+        />
         <img
           src="/landing/character-persona.png?v=4"
           alt=""
-          className="order-1 h-72 w-full object-contain sm:h-96 lg:order-1 lg:h-full lg:min-h-[32rem] lg:p-8"
+          className="order-1 hidden h-72 w-full object-contain motion-reduce:block sm:h-96 lg:order-1 lg:h-full lg:min-h-[32rem] lg:p-8"
         />
         <div className="order-2 px-6 py-12 text-right sm:px-10 sm:py-16 lg:py-24 lg:pl-10 lg:pr-16">
           <div className="mx-auto max-w-lg lg:ml-auto lg:mr-0">

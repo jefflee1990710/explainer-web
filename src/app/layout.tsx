@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Geist_Mono, Noto_Sans_TC } from "next/font/google";
+import { GoogleAnalytics } from "@/presentation/components/analytics/google-analytics";
 import { I18nProvider } from "@/presentation/components/i18n-provider";
 import "./globals.css";
 
@@ -31,9 +31,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body
         className={`${notoSansTc.className} flex min-h-dvh flex-col bg-background text-foreground`}
       >
-        <ClerkProvider>
-          <I18nProvider>{children}</I18nProvider>
-        </ClerkProvider>
+        <GoogleAnalytics />
+        <I18nProvider>{children}</I18nProvider>
       </body>
     </html>
   );

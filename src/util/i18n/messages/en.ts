@@ -73,6 +73,7 @@ export const en: Messages = {
       marketing: "Marketing",
       scro: "How Scro works",
       product: "Product demo",
+      story: "Short story",
     },
     cast: {
       eyebrow: "Characters",
@@ -101,6 +102,7 @@ export const en: Messages = {
   },
   examples: {
     title: "See the results",
+    heroTitle: "See How Scro Work",
     subtitle: "Each type is a different job: the frame, the style, and where the video will play.",
     cta: "See the results",
     scroReel: {
@@ -116,8 +118,8 @@ export const en: Messages = {
       body: "A 1:1 claymation clip. One product, one moment: the bottle leaves the box and lights up. Use this type for feed ads where the product is the hero.",
     },
     productReel: {
-      title: "A product demo as a widescreen Reel",
-      body: "The same product story in 16:9 pixel art. The wider frame gives the demo a stage. Use this type for a site hero or a landscape short.",
+      title: "A pixel short on a wide stage",
+      body: "A 16:9 pixel story. A little robot delivers one glowing note. The wider frame gives the scene a stage. Use this type for a site hero or a landscape short.",
     },
   },
   legal: {
@@ -126,8 +128,10 @@ export const en: Messages = {
     rights: "© 2026 Scro",
     acceptTerms: "I have read and agree to the Terms.",
     acceptPrivacy: "I have read and agree to the Privacy Policy.",
-    mustAccept: "Accept both before creating an account.",
+    mustAccept: "Accept both to continue.",
     agree: "Agree and continue",
+    firstTitle: "Agree to the Terms and Privacy Policy",
+    firstBody: "This is your first time in. Accept both to start using Scro.",
     updatedTitle: "Review the updated terms",
     updatedBody: "The Terms or Privacy Policy changed since you last agreed. Accept the current versions to keep using Scro.",
     version: "Version {version}",
@@ -297,6 +301,26 @@ export const en: Messages = {
       name: "Scale",
       blurb: "400 credits/mo (~133 clips). High-volume production.",
     },
+  },
+  auth: {
+    signInTitle: "Sign in",
+    signUpTitle: "Create account",
+    signInSubmit: "Sign in",
+    signUpSubmit: "Create account",
+    signOut: "Sign out",
+    email: "Email",
+    password: "Password",
+    google: "Continue with Google",
+    or: "or",
+    needAccount: "Create an account",
+    haveAccount: "Already have an account? Sign in",
+    emailInUse: "That email is already registered.",
+    weakPassword: "Use at least 6 characters.",
+    invalidEmail: "Enter a valid email.",
+    invalidCredential: "Email or password is incorrect.",
+    unauthorizedDomain: "This site is not allowed to use Google sign-in yet.",
+    popupBlocked: "The browser blocked the Google window. Allow pop-ups and try again.",
+    genericError: "Could not sign in. Try again.",
   },
 };
 

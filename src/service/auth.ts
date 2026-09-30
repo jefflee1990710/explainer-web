@@ -1,98 +1,94 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
-import { currentUser } from "@clerk/nextjs/server";
 import {
   bindReferralOnSignup,
   ensureAffiliateProfile,
 } from "@/service/affiliate/engine";
+import { AFFILIATE_ENABLED } from "@/service/affiliate/enabled";
 import { REFERRAL_COOKIE } from "@/service/affiliate/rates";
 import { usersCollection } from "@/dao";
-import {
-  LEGAL_CONSENT_COOKIE,
-  consentMatchesCurrent,
-  currentLegalAcceptance,
-} from "@/service/legal/versions";
+import { adminAuth } from "@/service/firebase/admin";
+import { SESSION_COOKIE } from "@/service/firebase/session";
 import { mcpUserStore } from "@/service/mcp/api-keys";
 import type { AppUser } from "@/model/user";
 
-// Upsert the Mongo user from the current Clerk session.
+// Firebase session cookie, or null when the visitor is signed out.
+export const getAuthSession = cache(async () => {
+  try {
+    const session = (await cookies()).get(SESSION_COOKIE)?.value;
+    if (!session) return null;
+    return await adminAuth().verifySessionCookie(session, true);
+  } catch {
+    return null;
+  }
+});
+
+// Upsert the Mongo user from the Firebase session.
+// clerkUserId stores the Firebase uid so existing queries keep working.
 // React cache() dedupes layout + page calls within one navigation request.
 const requireAppUserImpl = cache(async (): Promise<AppUser> => {
-  const clerkUser = await currentUser();
-  if (!clerkUser) {
+  const session = await getAuthSession();
+  if (!session) {
     throw new Error("請先登入");
   }
 
-  const email =
-    clerkUser.primaryEmailAddress?.emailAddress ||
-    clerkUser.emailAddresses[0]?.emailAddress ||
-    "";
-  const name =
-    [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") ||
-    clerkUser.username ||
-    email ||
-    "User";
+  const email = session.email || "";
+  const name = session.name || email.split("@")[0] || "User";
+  const uid = session.uid;
 
   const users = await usersCollection();
-  const existing = await users.findOne({ clerkUserId: clerkUser.id });
+  const existing = await users.findOne({ clerkUserId: uid });
   const now = new Date();
 
   if (existing) {
-    // Skip a write on every navigation when Clerk profile is unchanged.
+    // Skip a write on every navigation when the profile is unchanged.
     if (existing.email === email && existing.name === name) {
-      await ensureAffiliateProfile(existing);
+      if (AFFILIATE_ENABLED) await ensureAffiliateProfile(existing);
       return existing;
     }
     await users.updateOne(
-      { clerkUserId: clerkUser.id },
+      { clerkUserId: uid },
       { $set: { email, name, updatedAt: now } },
     );
     const updated = { ...existing, email, name, updatedAt: now };
-    await ensureAffiliateProfile(updated);
+    if (AFFILIATE_ENABLED) await ensureAffiliateProfile(updated);
     return updated;
   }
 
-  // First-touch referral cookie from /r/[code].
+  // First-touch referral cookie from /r/[code]. Ignored while affiliate is off.
   let referralCode: string | undefined;
-  try {
-    const jar = await cookies();
-    referralCode = jar.get(REFERRAL_COOKIE)?.value;
-  } catch {
-    referralCode = undefined;
+  if (AFFILIATE_ENABLED) {
+    try {
+      const jar = await cookies();
+      referralCode = jar.get(REFERRAL_COOKIE)?.value;
+    } catch {
+      referralCode = undefined;
+    }
   }
 
-  // Signup page sets this only after both boxes are checked, and only for the current versions.
-  let signupConsent: string | undefined;
-  try {
-    signupConsent = (await cookies()).get(LEGAL_CONSENT_COOKIE)?.value;
-  } catch {
-    signupConsent = undefined;
-  }
-  const legalAcceptance = consentMatchesCurrent(signupConsent)
-    ? currentLegalAcceptance(now)
-    : undefined;
-
+  // Terms and privacy are accepted in the first-login dialog, not at account creation.
   await users.updateOne(
-    { clerkUserId: clerkUser.id },
+    { clerkUserId: uid },
     {
       $set: { email, name, updatedAt: now },
       $setOnInsert: {
-        clerkUserId: clerkUser.id,
+        clerkUserId: uid,
         credits: 0,
         createdAt: now,
-        ...(legalAcceptance ? { legalAcceptance } : {}),
       },
     },
     { upsert: true },
   );
 
-  let user = await users.findOne({ clerkUserId: clerkUser.id });
+  let user = await users.findOne({ clerkUserId: uid });
   if (!user) {
     throw new Error("無法建立使用者");
   }
 
-  user = await bindReferralOnSignup(user, referralCode);
-  await ensureAffiliateProfile(user);
+  if (AFFILIATE_ENABLED) {
+    user = await bindReferralOnSignup(user, referralCode);
+    await ensureAffiliateProfile(user);
+  }
   return user;
 });
 
@@ -103,11 +99,11 @@ export async function requireAppUser(): Promise<AppUser> {
   return requireAppUserImpl();
 }
 
-// Task list / meters only need the Clerk id — skip affiliate upsert.
+// Task list / meters only need the auth id — skip affiliate upsert.
 export async function requireClerkUserId(): Promise<string> {
   const mcpUser = mcpUserStore.getStore();
   if (mcpUser) return mcpUser.clerkUserId;
-  const clerkUser = await currentUser();
-  if (!clerkUser) throw new Error("請先登入");
-  return clerkUser.id;
+  const session = await getAuthSession();
+  if (!session) throw new Error("請先登入");
+  return session.uid;
 }

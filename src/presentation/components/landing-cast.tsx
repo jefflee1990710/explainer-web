@@ -42,10 +42,20 @@ export function LandingCast() {
             </Link>
           </div>
         </div>
+        <video
+          src="/landing/character-cast-loop.mp4"
+          poster="/landing/character-cast.png?v=4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          aria-hidden
+          className="h-72 w-full object-contain sm:h-96 lg:h-full lg:min-h-[32rem] lg:p-8 motion-reduce:hidden"
+        />
         <img
           src="/landing/character-cast.png?v=4"
           alt=""
-          className="h-72 w-full object-contain sm:h-96 lg:h-full lg:min-h-[32rem] lg:p-8"
+          className="hidden h-72 w-full object-contain motion-reduce:block sm:h-96 lg:h-full lg:min-h-[32rem] lg:p-8"
         />
       </div>
     </section>

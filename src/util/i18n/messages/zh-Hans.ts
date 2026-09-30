@@ -67,6 +67,7 @@ export const zhHans: Partial<Messages> = {
       marketing: "营销",
       scro: "Scro 怎么用",
       product: "产品演示",
+      story: "短篇故事",
     },
     cast: {
       eyebrow: "角色",
@@ -95,6 +96,7 @@ export const zhHans: Partial<Messages> = {
   },
   examples: {
     title: "看看成果",
+    heroTitle: "看看 Scro 怎么运作",
     subtitle: "每一种都是不同的工作：画面比例、风格，以及视频要放在哪里。",
     cta: "看看成果",
     scroReel: {
@@ -110,8 +112,8 @@ export const zhHans: Partial<Messages> = {
       body: "1:1 黏土动画。一个产品、一个瞬间：瓶子从盒子里拿出来并亮起。信息流广告、产品当主角时，用这一种。",
     },
     productReel: {
-      title: "宽屏的产品短片",
-      body: "同一个产品故事，16:9 像素风。较宽的画面让演示有舞台。放在网站主视觉或横式短片时，用这一种。",
+      title: "宽屏的像素短片",
+      body: "16:9 像素风。小机器人送来一封发亮的短笺。较宽的画面让故事有舞台。放在网站主视觉或横式短片时，用这一种。",
     },
   },
   dashboard: {

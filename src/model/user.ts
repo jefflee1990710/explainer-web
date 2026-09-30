@@ -2,7 +2,8 @@ import type { ObjectId } from "mongodb";
 import { z } from "zod";
 import { objectIdSchema } from "@/model/primitives";
 
-// App user mirrored from Clerk into MongoDB.
+// App user mirrored from Firebase Auth into MongoDB.
+// clerkUserId holds the Firebase uid so older documents and queries stay valid.
 export type AppUser = {
   _id: ObjectId;
   clerkUserId: string;
