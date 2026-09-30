@@ -15,7 +15,7 @@ function StylePreviewThumb({
   label: string;
   size?: "md" | "sm";
 }) {
-  const box = size === "sm" ? "h-9 w-14" : "h-11 w-[4.5rem]";
+  const box = size === "sm" ? "h-14 w-[5.5rem]" : "h-16 w-28";
   return (
     <span
       className={`${box} relative shrink-0 overflow-hidden rounded-md border border-accent-ink/10`}
@@ -92,7 +92,7 @@ export function StylePicker({
         aria-controls={listboxId}
         disabled={disabled}
         onClick={() => setOpen((current) => !current)}
-        className="flex w-full min-h-[52px] cursor-pointer items-center gap-3 rounded-xl border border-accent-ink/15 bg-paper/70 px-3 py-2 text-left transition-colors hover:border-accent-ink/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full min-h-[4.5rem] cursor-pointer items-center gap-3 rounded-xl border border-accent-ink/15 bg-paper/70 px-3 py-2.5 text-left transition-colors hover:border-accent-ink/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
       >
         {selected ? <StylePreviewThumb style={selected} label={selectedName} /> : null}
         <span className="min-w-0 flex-1">

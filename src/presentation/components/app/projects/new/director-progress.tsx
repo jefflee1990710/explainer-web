@@ -32,20 +32,20 @@ export function DirectorProgress() {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -12, transition: { duration: 0.2 } }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="relative w-full max-w-xl overflow-hidden rounded-[1.5rem] border border-accent-ink/10 bg-accent-ink p-6 text-paper shadow-[8px_8px_0_0_rgba(255,77,46,0.9)]"
+      className="relative w-full max-w-xl overflow-hidden rounded-[1.5rem] border border-accent-ink/10 bg-paper p-6 text-foreground shadow-[8px_8px_0_0_rgba(18,20,28,0.12)]"
     >
       <motion.div
         aria-hidden
-        className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-lime/30 blur-3xl"
+        className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-lime/40 blur-3xl"
         animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.9, 0.5] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       />
       <div className="relative flex items-start gap-4">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-lime text-accent-ink">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-accent-ink/10 bg-lime/50 text-accent-ink">
           <Spinner className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-display text-lg font-bold">導演正在寫分鏡</p>
+          <p className="font-display text-lg font-bold text-accent-ink">導演正在寫分鏡</p>
           <div className="mt-1 h-6 overflow-hidden">
             <AnimatePresence mode="wait" initial={false}>
               <motion.p
@@ -54,20 +54,20 @@ export function DirectorProgress() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.25 }}
-                className="text-sm text-paper/75"
+                className="text-sm text-muted"
               >
                 {STORYBOARD_STAGES[index]}
               </motion.p>
             </AnimatePresence>
           </div>
-          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-paper/15">
+          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-accent-ink/10">
             <motion.div
-              className="h-full w-1/3 rounded-full bg-lime"
+              className="h-full w-1/3 rounded-full bg-accent-ink"
               animate={{ x: ["-100%", "300%"] }}
               transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
             />
           </div>
-          <p className="mt-3 text-xs text-paper/60">
+          <p className="mt-3 text-xs text-muted">
             通常 20–60 秒。完成後會自動進入製作，可改起始／結尾畫面再產圖。
           </p>
         </div>
