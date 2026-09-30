@@ -1,8 +1,8 @@
 import type { AppUser } from "@/model/user";
 
 // Bump the matching date when that document changes. Stale acceptances are blocked after login.
-export const TERMS_VERSION = "2026-09-29";
-export const PRIVACY_VERSION = "2026-09-29";
+export const TERMS_VERSION = "2026-09-30";
+export const PRIVACY_VERSION = "2026-09-30";
 
 export const LEGAL_CONSENT_COOKIE = "scro_legal_consent";
 
