@@ -55,6 +55,7 @@ export function InsufficientCreditsDialog({
   const { t } = useI18n();
   const titleId = useId();
   const [currentPlanId, setCurrentPlanId] = useState<PlanId | null>(null);
+  const [planLoading, setPlanLoading] = useState(subscribed);
   const [offer, setOffer] = useState<Offer>(
     subscribed ? { kind: "pack", id: "pack90" } : { kind: "plan", id: "studio" },
   );
@@ -74,9 +75,18 @@ export function InsufficientCreditsDialog({
 
   useEffect(() => {
     if (!subscribed) return;
-    void getCreditSnapshotAction().then((snap) => {
-      if (snap.ok && snap.planId && isPlanId(snap.planId)) setCurrentPlanId(snap.planId);
-    });
+    let cancelled = false;
+    void getCreditSnapshotAction()
+      .then((snap) => {
+        if (cancelled) return;
+        if (snap.ok && snap.planId && isPlanId(snap.planId)) setCurrentPlanId(snap.planId);
+      })
+      .finally(() => {
+        if (!cancelled) setPlanLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [subscribed]);
 
   async function finishPaid(previous: CreditsChangedDetail) {
@@ -228,7 +238,15 @@ export function InsufficientCreditsDialog({
               }))}
             />
           ) : null}
-          {upgrades.length > 0 ? (
+          {subscribed && planLoading ? (
+            <fieldset className="space-y-2">
+              <legend className="mb-1.5 text-sm font-semibold">{t("billing.chooseUpgrade")}</legend>
+              <p className="inline-flex min-h-[44px] items-center gap-2 text-sm text-muted">
+                <Spinner />
+                {t("common.loading")}
+              </p>
+            </fieldset>
+          ) : upgrades.length > 0 ? (
             <div className="space-y-2">
               {subscribed && currentPlanId ? (
                 <p className="text-xs text-muted">
