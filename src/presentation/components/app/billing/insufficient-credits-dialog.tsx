@@ -5,8 +5,10 @@ import {
   getCreditSnapshotAction,
   startCheckoutAction,
   startPackCheckoutAction,
+  startPlanUpgradeAction,
 } from "@/presentation/actions/billing";
 import { track } from "@/presentation/components/analytics/track";
+import { CreditOfferCards } from "@/presentation/components/app/billing/credit-offer-cards";
 import {
   notifyCreditsChanged,
   type CreditsChangedDetail,
@@ -19,12 +21,14 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { creditGrantLanded } from "@/service/billing/credit-gate";
 import { CREDIT_PACKS } from "@/service/billing/packs";
-import { PLANS } from "@/service/billing/plans";
+import { isPlanId, PLANS, upgradeablePlans } from "@/service/billing/plans";
 import type { PackId } from "@/model/billing-settings";
 import type { PlanId } from "@/model/subscription";
 
 const POLL_MS = 1_500;
 const POLL_TRIES = 20;
+
+type Offer = { kind: "pack"; id: PackId } | { kind: "plan"; id: PlanId };
 
 async function waitForGrant(previous: CreditsChangedDetail) {
   for (let i = 0; i < POLL_TRIES; i++) {
@@ -50,8 +54,10 @@ export function InsufficientCreditsDialog({
 }) {
   const { t } = useI18n();
   const titleId = useId();
-  const [planId, setPlanId] = useState<PlanId>("studio");
-  const [packId, setPackId] = useState<PackId>("pack90");
+  const [currentPlanId, setCurrentPlanId] = useState<PlanId | null>(null);
+  const [offer, setOffer] = useState<Offer>(
+    subscribed ? { kind: "pack", id: "pack90" } : { kind: "plan", id: "studio" },
+  );
   const [error, setError] = useState("");
   const [waiting, setWaiting] = useState(false);
 
@@ -65,6 +71,13 @@ export function InsufficientCreditsDialog({
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
   }, [onClose, waiting]);
+
+  useEffect(() => {
+    if (!subscribed) return;
+    void getCreditSnapshotAction().then((snap) => {
+      if (snap.ok && snap.planId && isPlanId(snap.planId)) setCurrentPlanId(snap.planId);
+    });
+  }, [subscribed]);
 
   async function finishPaid(previous: CreditsChangedDetail) {
     const snap = await waitForGrant(previous);
@@ -80,35 +93,57 @@ export function InsufficientCreditsDialog({
     onPaid(snap);
   }
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setWaiting(true);
-    setError("");
-    const previous = await getCreditSnapshotAction();
-    const started = subscribed
-      ? await startPackCheckoutAction(packId, { popup: true })
-      : await startCheckoutAction(planId, { popup: true });
-    if (!started.ok) {
-      setWaiting(false);
-      setError(started.error);
-      return;
+  async function startOffer() {
+    if (offer.kind === "pack") {
+      return startPackCheckoutAction(offer.id, { popup: true });
     }
-    if (subscribed) {
-      const pack = CREDIT_PACKS[packId];
+    if (subscribed) return startPlanUpgradeAction(offer.id, { popup: true });
+    return startCheckoutAction(offer.id, { popup: true });
+  }
+
+  function trackOffer() {
+    if (offer.kind === "pack") {
+      const pack = CREDIT_PACKS[offer.id];
       track("begin_checkout", {
         currency: "USD",
         value: pack.amountUsd,
         item_id: pack.id,
         item_name: pack.nameZh,
       });
-    } else {
-      const plan = PLANS[planId];
-      track("begin_checkout", {
-        currency: "USD",
-        value: plan.amountUsd,
-        item_id: plan.id,
-        item_name: plan.name,
-      });
+      return;
+    }
+    const plan = PLANS[offer.id];
+    track("begin_checkout", {
+      currency: "USD",
+      value: plan.amountUsd,
+      item_id: plan.id,
+      item_name: plan.name,
+    });
+  }
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setWaiting(true);
+    setError("");
+    const previous = await getCreditSnapshotAction();
+    const started = await startOffer();
+    if (!started.ok) {
+      setWaiting(false);
+      setError(started.error);
+      return;
+    }
+    trackOffer();
+    if (!started.url) {
+      if (previous.ok) await finishPaid(previous);
+      else {
+        const snap = await getCreditSnapshotAction();
+        if (snap.ok) {
+          notifyCreditsChanged(snap);
+          onPaid(snap);
+        }
+      }
+      setWaiting(false);
+      return;
     }
     const popup = openCheckoutPopup(started.url);
     if (!popup) {
@@ -141,8 +176,18 @@ export function InsufficientCreditsDialog({
     setWaiting(false);
   }
 
-  const plans = Object.values(PLANS);
-  const packs = Object.values(CREDIT_PACKS);
+  // Wait for the current plan so we do not flash Starter/Pro as upgrades.
+  const upgrades = subscribed
+    ? currentPlanId
+      ? upgradeablePlans(currentPlanId)
+      : []
+    : Object.values(PLANS);
+  const cta =
+    offer.kind === "pack"
+      ? t("billing.payPack")
+      : subscribed
+        ? t("billing.upgradeCta")
+        : t("billing.subscribeCta");
 
   return (
     <div
@@ -168,72 +213,44 @@ export function InsufficientCreditsDialog({
             : t("billing.subscribeBody", { credits: needed })}
         </p>
         <p className="mt-1 text-xs text-muted">{t("billing.clipCostNote")}</p>
-        <form onSubmit={(event) => void onSubmit(event)} className="mt-5 space-y-4">
+        <form onSubmit={(event) => void onSubmit(event)} className="mt-5 space-y-5">
           {subscribed ? (
-            <fieldset disabled={waiting} className="space-y-2">
-              <legend className="mb-1.5 text-sm font-semibold">{t("billing.choosePack")}</legend>
-              {packs.map((pack) => (
-                <label
-                  key={pack.id}
-                  className={`flex cursor-pointer items-center gap-3 rounded-[1.25rem] border px-4 py-3 transition ${
-                    packId === pack.id
-                      ? "border-accent-ink bg-lime/40"
-                      : "border-accent-ink/15 bg-paper hover:border-accent-ink/30"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="packId"
-                    value={pack.id}
-                    checked={packId === pack.id}
-                    onChange={() => setPackId(pack.id)}
-                    className="h-4 w-4 accent-accent"
-                  />
-                  <span className="flex-1">
-                    <span className="block text-sm font-semibold">
-                      {pack.nameZh} · {pack.credits} credits
-                    </span>
-                  </span>
-                  <span className="font-display text-lg font-bold">${pack.amountUsd}</span>
-                </label>
-              ))}
-            </fieldset>
-          ) : (
-            <fieldset disabled={waiting} className="space-y-2">
-              <legend className="mb-1.5 text-sm font-semibold">{t("billing.choosePlan")}</legend>
-              {plans.map((plan) => (
-                <label
-                  key={plan.id}
-                  className={`flex cursor-pointer items-center gap-3 rounded-[1.25rem] border px-4 py-3 transition ${
-                    planId === plan.id
-                      ? "border-accent-ink bg-lime/40"
-                      : "border-accent-ink/15 bg-paper hover:border-accent-ink/30"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="planId"
-                    value={plan.id}
-                    checked={planId === plan.id}
-                    onChange={() => setPlanId(plan.id)}
-                    className="h-4 w-4 accent-accent"
-                  />
-                  <span className="flex-1">
-                    <span className="block text-sm font-semibold">
-                      {t(`plans.${plan.id}.name`)} · {plan.monthlyCredits} credits
-                    </span>
-                    <span className="mt-0.5 block text-xs text-muted">
-                      {t(`plans.${plan.id}.blurb`)}
-                    </span>
-                  </span>
-                  <span className="font-display text-lg font-bold">
-                    ${plan.amountUsd}
-                    <span className="text-xs font-medium text-muted">{t("common.perMonth")}</span>
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-          )}
+            <CreditOfferCards
+              legend={t("billing.choosePack")}
+              name="packId"
+              value={offer.kind === "pack" ? offer.id : null}
+              disabled={waiting}
+              onChange={(id) => setOffer({ kind: "pack", id })}
+              items={Object.values(CREDIT_PACKS).map((pack) => ({
+                id: pack.id,
+                title: `${pack.nameZh} · ${pack.credits} credits`,
+                price: `$${pack.amountUsd}`,
+              }))}
+            />
+          ) : null}
+          {upgrades.length > 0 ? (
+            <div className="space-y-2">
+              {subscribed && currentPlanId ? (
+                <p className="text-xs text-muted">
+                  {t("billing.currentPlanNote", { plan: t(`plans.${currentPlanId}.name`) })}
+                </p>
+              ) : null}
+              <CreditOfferCards
+                legend={subscribed ? t("billing.chooseUpgrade") : t("billing.choosePlan")}
+                name="planId"
+                value={offer.kind === "plan" ? offer.id : null}
+                disabled={waiting}
+                onChange={(id) => setOffer({ kind: "plan", id })}
+                items={upgrades.map((plan) => ({
+                  id: plan.id,
+                  title: `${t(`plans.${plan.id}.name`)} · ${plan.monthlyCredits} credits`,
+                  blurb: t(`plans.${plan.id}.blurb`),
+                  price: `$${plan.amountUsd}`,
+                  priceHint: t("common.perMonth"),
+                }))}
+              />
+            </div>
+          ) : null}
           {waiting ? (
             <p className="text-sm text-muted">{t("billing.waitingCheckout")}</p>
           ) : null}
@@ -253,7 +270,7 @@ export function InsufficientCreditsDialog({
               className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {waiting ? <Spinner className="h-4 w-4" /> : null}
-              {subscribed ? t("billing.payPack") : t("billing.subscribeCta")}
+              {cta}
             </button>
           </div>
         </form>

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { creditGrantLanded, isCreditGateError } from "@/service/billing/credit-gate";
 import { checkoutUrls } from "@/service/billing/checkout-urls";
+import { upgradeablePlans } from "@/service/billing/plans";
 
 test("isCreditGateError matches subscribe and short-wallet copy", () => {
   assert.equal(isCreditGateError("請先訂閱方案才能產片"), true);
@@ -21,8 +22,26 @@ test("creditGrantLanded detects a pack top-up or a new subscription", () => {
     true,
   );
   assert.equal(
+    creditGrantLanded(
+      { credits: 20, subscribed: true, planId: "starter" },
+      { credits: 20, subscribed: true, planId: "pro" },
+    ),
+    true,
+  );
+  assert.equal(
     creditGrantLanded({ credits: 20, subscribed: false }, { credits: 20, subscribed: false }),
     false,
+  );
+});
+
+test("upgradeablePlans lists only higher monthly plans", () => {
+  assert.deepEqual(
+    upgradeablePlans("starter").map((plan) => plan.id),
+    ["pro", "studio", "scale"],
+  );
+  assert.deepEqual(
+    upgradeablePlans("scale").map((plan) => plan.id),
+    [],
   );
 });
 

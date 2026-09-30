@@ -217,6 +217,9 @@ export type Messages = {
     topUpBody: string;
     choosePlan: string;
     choosePack: string;
+    chooseUpgrade: string;
+    currentPlanNote: string;
+    upgradeCta: string;
     payPack: string;
     waitingCheckout: string;
     popupBlocked: string;

@@ -20,6 +20,12 @@ export async function startPackCheckoutAction(
   return service.startPackCheckoutAction(...args);
 }
 
+export async function startPlanUpgradeAction(
+  ...args: Parameters<typeof service.startPlanUpgradeAction>
+) {
+  return service.startPlanUpgradeAction(...args);
+}
+
 export async function getCreditSnapshotAction(
   ...args: Parameters<typeof service.getCreditSnapshotAction>
 ) {

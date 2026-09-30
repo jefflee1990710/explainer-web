@@ -14,6 +14,13 @@ export type PlanDefinition = {
 
 export const PLAN_IDS: PlanId[] = ["starter", "pro", "studio", "scale"];
 
+export const PLAN_RANK: Record<PlanId, number> = {
+  starter: 0,
+  pro: 1,
+  studio: 2,
+  scale: 3,
+};
+
 // Credits are sized so Scale still clears ~35%+ margin after a 20% discount
 // and the full affiliate commission stack (see unit-economics).
 export const PLANS: Record<PlanId, PlanDefinition> = {
@@ -51,6 +58,13 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     blurb: "適合幫很多客戶做片的團隊。",
   },
 };
+
+// Higher monthly plans a subscriber can move to from `current`.
+export function upgradeablePlans(current?: PlanId | null) {
+  if (!current) return Object.values(PLANS);
+  const rank = PLAN_RANK[current];
+  return PLAN_IDS.filter((id) => PLAN_RANK[id] > rank).map((id) => PLANS[id]);
+}
 
 export const ENTERPRISE = {
   name: "Enterprise",

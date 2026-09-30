@@ -1,9 +1,15 @@
+import type Stripe from "stripe";
 import { requireAppUser } from "@/service/auth";
 import { checkoutUrls } from "@/service/billing/checkout-urls";
 import { CREDIT_PACKS, isPackId } from "@/service/billing/packs";
-import { isPlanId, priceIdForPlan } from "@/service/billing/plans";
-import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
+import { isPlanId, PLAN_RANK, PLANS, priceIdForPlan } from "@/service/billing/plans";
+import {
+  getActiveSubscription,
+  isSubscriptionActive,
+  resetMonthlyCredits,
+} from "@/service/billing/credits";
 import { getOrCreateStripePrices, getStripe } from "@/service/billing/stripe";
+import { syncStripeSubscription } from "@/service/billing/sync-subscription";
 import { getAppUrl } from "@/util/app-url";
 import { usersCollection } from "@/dao";
 import type { PackId } from "@/model/billing-settings";
@@ -59,6 +65,62 @@ export async function startCheckoutAction(planId: PlanId, options: CheckoutOptio
     return { ok: false as const, error: "無法建立付款頁" };
   }
   return { ok: true as const, url: session.url };
+}
+
+function invoiceObject(invoice: Stripe.Subscription["latest_invoice"]) {
+  return invoice && typeof invoice !== "string" ? invoice : null;
+}
+
+// Move an existing subscription to a higher plan and invoice the difference.
+export async function startPlanUpgradeAction(planId: PlanId, options: CheckoutOptions = {}) {
+  const user = await requireAppUser();
+  if (!isPlanId(planId)) {
+    return { ok: false as const, error: "找不到方案" };
+  }
+
+  const sub = await getActiveSubscription(user.clerkUserId);
+  if (!sub || !isSubscriptionActive(sub)) {
+    return startCheckoutAction(planId, options);
+  }
+  if (PLAN_RANK[planId] <= PLAN_RANK[sub.planId]) {
+    return { ok: false as const, error: "請選擇更高的方案" };
+  }
+
+  const stripe = getStripe();
+  const prices = await getOrCreateStripePrices();
+  const priceId = priceIdForPlan(planId, prices);
+  if (!priceId) {
+    return { ok: false as const, error: "方案尚未開放訂閱" };
+  }
+
+  const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+  const itemId = stripeSub.items.data[0]?.id;
+  if (!itemId) {
+    return { ok: false as const, error: "找不到訂閱項目" };
+  }
+
+  try {
+    const updated = await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+      items: [{ id: itemId, price: priceId }],
+      metadata: { clerkUserId: user.clerkUserId, planId },
+      proration_behavior: "always_invoice",
+      payment_behavior: "pending_if_incomplete",
+      expand: ["latest_invoice"],
+    });
+    await syncStripeSubscription(updated);
+
+    const invoice = invoiceObject(updated.latest_invoice);
+    if (invoice?.status === "paid") {
+      await resetMonthlyCredits(user.clerkUserId, PLANS[planId].monthlyCredits);
+      return { ok: true as const, url: null };
+    }
+    if (invoice?.hosted_invoice_url) {
+      return { ok: true as const, url: invoice.hosted_invoice_url };
+    }
+    return { ok: false as const, error: "升級尚未完成，請再試一次" };
+  } catch {
+    return { ok: false as const, error: "升級失敗，請再試一次" };
+  }
 }
 
 export async function startPortalAction() {
@@ -129,7 +191,7 @@ export async function startPackCheckoutAction(packId: PackId, options: CheckoutO
 }
 
 export type CreditSnapshotResult =
-  | { ok: true; credits: number; creditLimit: number; subscribed: boolean }
+  | { ok: true; credits: number; creditLimit: number; subscribed: boolean; planId: PlanId | null }
   | { ok: false; error: string };
 
 // Header meter poll: just the wallet, no page revalidate.
@@ -137,11 +199,13 @@ export async function getCreditSnapshotAction(): Promise<CreditSnapshotResult> {
   try {
     const user = await requireAppUser();
     const sub = await getActiveSubscription(user.clerkUserId);
+    const subscribed = isSubscriptionActive(sub);
     return {
       ok: true,
       credits: user.credits,
       creditLimit: user.creditLimit || 0,
-      subscribed: isSubscriptionActive(sub),
+      subscribed,
+      planId: subscribed && sub ? sub.planId : null,
     };
   } catch (error) {
     return {

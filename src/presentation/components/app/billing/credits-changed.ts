@@ -4,6 +4,7 @@ export type CreditsChangedDetail = {
   credits: number;
   creditLimit: number;
   subscribed: boolean;
+  planId?: string | null;
 };
 
 // Header meter and local wallets listen so a dialog payment updates immediately.
