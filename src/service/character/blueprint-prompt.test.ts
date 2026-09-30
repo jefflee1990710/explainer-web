@@ -25,16 +25,27 @@ test("blueprint prompt asks to preserve the reference when one is attached", () 
   const prompt = buildBlueprintPrompt({
     styleId: "doodle",
     description: "x",
-    hasReference: true,
+    referenceCount: 1,
   });
   assert.match(prompt, /Preserve the appearance of the character in the reference image/);
+});
+
+test("blueprint prompt fuses every attached photo into one identity", () => {
+  const prompt = buildBlueprintPrompt({
+    styleId: "doodle",
+    description: "x",
+    referenceCount: 3,
+  });
+  assert.match(prompt, /all attached reference images/i);
+  assert.match(prompt, /same identity/i);
+  assert.doesNotMatch(prompt, /Preserve the appearance of the character in the reference image/);
 });
 
 test("image-only create infers the character from the reference and style", () => {
   const prompt = buildBlueprintPrompt({
     styleId: "doodle",
     description: "   ",
-    hasReference: true,
+    referenceCount: 1,
   });
   assert.doesNotMatch(prompt, /^Character:/m);
   assert.match(prompt, /Derive the character entirely from the attached reference image/);
@@ -47,7 +58,7 @@ test("edit mode keeps the sheet identical except for the change", () => {
   const prompt = buildBlueprintPrompt({
     styleId: "doodle",
     description: "x",
-    hasReference: true,
+    referenceCount: 1,
     editInstruction: "把睡衣換成紅色",
   });
   assert.match(prompt, /Apply only the change below; keep everything else identical/);

@@ -2,6 +2,7 @@ import { generationJobsCollection } from "@/dao";
 import { submitImage } from "@/service/higgsfield/generate";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
 import { buildBlueprintPrompt } from "@/service/character/blueprint-prompt";
+import { characterReferenceUrls } from "@/service/character/reference-urls";
 import { toSent, type Sent } from "@/service/generation/sent";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import type { Character, CharacterVersion } from "@/model/character";
@@ -13,18 +14,19 @@ export async function sendCharacterVersion(
   character: Character,
   version: CharacterVersion,
 ): Promise<Sent> {
+  const refs = characterReferenceUrls(version);
   const submitted = await submitImage({
     model: BLUEPRINT_MODEL,
     prompt: buildBlueprintPrompt({
       styleId: character.styleId,
       description: version.prompt,
-      hasReference: Boolean(version.referenceImageUrl),
+      referenceCount: refs.length,
       editInstruction: version.editInstruction,
     }),
     aspectRatio: "16:9",
     quality: "medium",
     resolution: "1k",
-    referenceImageUrls: [version.referenceImageUrl],
+    referenceImageUrls: refs,
   });
   return toSent(BLUEPRINT_MODEL, submitted);
 }

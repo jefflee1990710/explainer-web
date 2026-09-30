@@ -17,8 +17,10 @@ export type CharacterVersion = {
   // Full effective description used for this generation.
   prompt: string;
   editInstruction?: string;
-  // Uploaded reference (v1) or the parent blueprint (edits).
+  // Uploaded references (v1) or the parent blueprint (edits).
+  // `referenceImageUrl` is the first photo; keep both so older rows still read.
   referenceImageUrl?: string;
+  referenceImageUrls?: string[];
   // Blob URL once the sheet is persisted.
   blueprintUrl?: string;
   status: CharacterVersionStatus;
@@ -64,6 +66,7 @@ export const characterVersionSchema: z.ZodType<CharacterVersion> = z.object({
   prompt: z.string(),
   editInstruction: z.string().optional(),
   referenceImageUrl: z.string().optional(),
+  referenceImageUrls: z.array(z.string()).optional(),
   blueprintUrl: z.string().optional(),
   status: characterVersionStatusSchema,
   error: z.string().optional(),

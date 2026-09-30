@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCharacterAction } from "@/presentation/actions/characters";
-import { uploadCharacterImageAction } from "@/presentation/actions/upload";
+import { CreateCharacterReferences } from "@/presentation/components/app/characters/create-character-references";
 import type { PublicStyle } from "@/presentation/serialize";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
 import { Spinner } from "@/presentation/components/spinner";
@@ -70,8 +70,7 @@ export function CreateCharacterModal({
   const [name, setName] = useState("");
   const [styleId, setStyleId] = useState<StyleId>(DEFAULT_STYLE_ID);
   const [prompt, setPrompt] = useState("");
-  const [referenceImageUrl, setReferenceImageUrl] = useState("");
-  const [uploading, setUploading] = useState(false);
+  const [referenceImageUrls, setReferenceImageUrls] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -84,22 +83,6 @@ export function CreateCharacterModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  async function onUpload(file: File) {
-    setUploading(true);
-    setError("");
-    const data = new FormData();
-    data.set("file", file);
-    try {
-      const result = await uploadCharacterImageAction(data);
-      if (result.ok) setReferenceImageUrl(result.url);
-      else setError(result.error);
-    } catch {
-      setError("上傳失敗，請再試一次");
-    } finally {
-      setUploading(false);
-    }
-  }
-
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
@@ -108,7 +91,7 @@ export function CreateCharacterModal({
     data.set("name", name);
     data.set("styleId", styleId);
     data.set("prompt", prompt);
-    if (referenceImageUrl) data.set("referenceImageUrl", referenceImageUrl);
+    for (const url of referenceImageUrls) data.append("referenceImageUrl", url);
     try {
       const result = await createCharacterAction(data);
       if (!result.ok) {
@@ -130,9 +113,8 @@ export function CreateCharacterModal({
 
   const canSubmit =
     name.trim().length > 0 &&
-    (prompt.trim().length > 0 || Boolean(referenceImageUrl)) &&
-    !submitting &&
-    !uploading;
+    (prompt.trim().length > 0 || referenceImageUrls.length > 0) &&
+    !submitting;
 
   return (
     <div
@@ -150,7 +132,7 @@ export function CreateCharacterModal({
           新增角色
         </h2>
         <p className="mt-2 text-sm text-muted">
-          我們會產生一張角色藍圖（轉身圖、走路循環、表情格）。角色描述與參考圖至少填一項。
+          我們會產生一張角色藍圖（轉身圖、走路循環、表情格）。角色描述與參考圖至少填一項；多張照片會讓藍圖更像本人。
         </p>
         <form onSubmit={onSubmit} className="mt-5 space-y-4">
           <label className="block">
@@ -192,44 +174,12 @@ export function CreateCharacterModal({
             />
           </label>
 
-          <div>
-            <span className="mb-1.5 block text-sm font-semibold">參考圖（選填）</span>
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/15 bg-paper px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5">
-                {uploading ? <Spinner /> : null}
-                {uploading ? "上傳中…" : referenceImageUrl ? "更換圖片" : "選擇圖片"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  disabled={submitting || uploading}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void onUpload(file);
-                  }}
-                />
-              </label>
-              {referenceImageUrl ? (
-                <div className="flex items-center gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={referenceImageUrl}
-                    alt="參考圖預覽"
-                    width={56}
-                    height={56}
-                    className="h-14 w-14 rounded-xl border border-accent-ink/10 object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setReferenceImageUrl("")}
-                    className="min-h-[44px] cursor-pointer text-sm text-muted underline-offset-4 hover:underline"
-                  >
-                    移除
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
+          <CreateCharacterReferences
+            urls={referenceImageUrls}
+            disabled={submitting}
+            onChange={setReferenceImageUrls}
+            onError={setError}
+          />
 
           {error ? (
             <p role="alert" className="text-sm text-accent">

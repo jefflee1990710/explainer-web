@@ -9,6 +9,7 @@ import {
 import { FRAME_COST } from "@/service/production-plan";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { enqueueCharacterVersion } from "@/service/character/generate";
+import { parseReferenceImageUrls } from "@/service/character/reference-urls";
 import { collectCharacterBlobUrls } from "@/service/character/storage";
 import { failCharacterVersion } from "@/service/character/sync";
 import { canSetDefault } from "@/service/character/versions";
@@ -79,13 +80,13 @@ export async function createCharacterAction(
     const name = String(formData.get("name") || "").trim().slice(0, NAME_MAX);
     const styleId = String(formData.get("styleId") || "");
     const prompt = String(formData.get("prompt") || "").trim().slice(0, PROMPT_MAX);
-    const referenceImageUrl =
-      String(formData.get("referenceImageUrl") || "").trim() || undefined;
+    const referenceImageUrls = parseReferenceImageUrls(formData);
+    const referenceImageUrl = referenceImageUrls[0];
 
     if (!name) return { ok: false, error: "請輸入角色名稱" };
     if (!isStyleId(styleId)) return { ok: false, error: "請選擇風格" };
     if (!prompt && !referenceImageUrl) {
-      return { ok: false, error: "請描述這個角色，或上傳一張參考圖" };
+      return { ok: false, error: "請描述這個角色，或上傳參考圖" };
     }
 
     await assertCanSpendCredits(user, FRAME_COST);
@@ -96,6 +97,7 @@ export async function createCharacterAction(
       id: new ObjectId(),
       prompt,
       referenceImageUrl,
+      referenceImageUrls: referenceImageUrls.length ? referenceImageUrls : undefined,
       status: "queued",
       creditsCharged: true,
       createdAt: now,

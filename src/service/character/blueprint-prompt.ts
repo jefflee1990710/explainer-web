@@ -17,10 +17,13 @@ const SHEET_LAYOUT = [
 export function buildBlueprintPrompt(input: {
   styleId: StyleId;
   description: string;
-  hasReference: boolean;
+  hasReference?: boolean;
+  referenceCount?: number;
   editInstruction?: string;
 }) {
   const description = input.description.trim();
+  const referenceCount = input.referenceCount ?? (input.hasReference ? 1 : 0);
+  const hasReference = referenceCount > 0;
   const lines = [
     ...SHEET_LAYOUT,
     ...styleLinesForBlueprint(STYLES[input.styleId]),
@@ -31,9 +34,15 @@ export function buildBlueprintPrompt(input: {
       "Use the reference sheet as the base. Apply only the change below; keep everything else identical, including layout, pose order, and expression order.",
       `Change: ${input.editInstruction.trim()}`,
     );
-  } else if (input.hasReference && description) {
+  } else if (hasReference && referenceCount > 1) {
+    lines.push(
+      "Fuse all attached reference images into one character of the same identity.",
+      "Use face, body, hair, clothing, and distinguishing features from every photo. Prefer clear close-ups for the face and full-body shots for proportions and outfit.",
+      "Redraw that same person as this model sheet in the specified style. Do not invent a different character or average them into a generic look.",
+    );
+  } else if (hasReference && description) {
     lines.push("Preserve the appearance of the character in the reference image.");
-  } else if (input.hasReference) {
+  } else if (hasReference) {
     // Image-only create: infer identity from the photo, then redraw in style.
     lines.push(
       "Derive the character entirely from the attached reference image.",

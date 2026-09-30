@@ -5,6 +5,7 @@ export function collectCharacterBlobUrls(character: Character): string[] {
   const urls = new Set<string>();
   for (const version of character.versions) {
     if (version.referenceImageUrl) urls.add(version.referenceImageUrl);
+    for (const url of version.referenceImageUrls || []) urls.add(url);
     if (version.blueprintUrl) urls.add(version.blueprintUrl);
   }
   return [...urls];

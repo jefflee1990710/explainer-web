@@ -13,14 +13,16 @@ const blobB =
   "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/characters/abc/def";
 
 test("collectCharacterBlobUrls dedupes reference and blueprint urls", () => {
+  const blobC =
+    "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/characters/side.jpg";
   const character = {
     _id: new ObjectId(),
     versions: [
-      { referenceImageUrl: blobA, blueprintUrl: blobB },
+      { referenceImageUrl: blobA, referenceImageUrls: [blobA, blobC], blueprintUrl: blobB },
       { referenceImageUrl: blobB, blueprintUrl: undefined },
     ],
   } as Character;
-  assert.deepEqual(collectCharacterBlobUrls(character).sort(), [blobA, blobB].sort());
+  assert.deepEqual(collectCharacterBlobUrls(character).sort(), [blobA, blobB, blobC].sort());
 });
 
 test("isExplainerBlobUrl accepts only our public blob paths", () => {
