@@ -1,14 +1,17 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { useState } from "react";
 import { FrameTileDrawing } from "@/presentation/components/project/frame-tile-drawing";
 import { frameTileFace } from "@/presentation/components/project/frame-tile-face";
+import { mediaRetrySrc } from "@/util/media-retry-src";
 import { PencilIcon } from "@/presentation/components/project/production-icons";
 import { userFacingJobError } from "@/service/higgsfield/job-status";
 import { mediaSrc } from "@/util/media-src";
 import type { AspectRatio, ClipFrame, FramePosition } from "@/model/project";
 
 const ease = [0.22, 1, 0.36, 1] as const;
+const MAX_SRC_RETRIES = 3;
 
 export const ASPECT_CLASS: Record<AspectRatio, string> = {
   "16:9": "aspect-video",
@@ -45,6 +48,9 @@ export function FrameTile({
   onOpen: () => void;
 }) {
   const src = mediaSrc(frame);
+  const [retryState, setRetryState] = useState({ key: "", n: 0 });
+  const retry = src && retryState.key === src ? retryState.n : 0;
+  const displaySrc = src ? mediaRetrySrc(src, retry) : undefined;
   const completed = frame?.status === "completed" && Boolean(src);
   const failed = frame?.status === "failed";
   const error = failed ? userFacingJobError("failed", frame?.error) : undefined;
@@ -74,9 +80,18 @@ export function FrameTile({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={src}
+                src={displaySrc}
                 alt={`${label}畫格`}
                 className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                onError={() => {
+                  if (!src) return;
+                  window.setTimeout(() => {
+                    setRetryState((prev) => {
+                      const n = prev.key === src ? prev.n : 0;
+                      return { key: src, n: n < MAX_SRC_RETRIES ? n + 1 : n };
+                    });
+                  }, 400 * (retry + 1));
+                }}
               />
               {failed ? (
                 <span className="absolute inset-x-0 bottom-0 bg-accent/85 px-2 py-1.5 text-center font-display text-[11px] font-bold text-white">

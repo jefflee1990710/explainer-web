@@ -53,7 +53,8 @@ export function reconcileFrames(frames: ClipFrame[], jobs: GenerationJob[]): Cli
       // Pending redo must clear the previous still so the tile can show
       // loading. Failed / completed-without-a-file keep the last image.
       outputUrl: nextUrl ? job.outputUrl : pending ? undefined : frame.outputUrl ?? job.outputUrl,
-      blobUrl: nextUrl ? job.blobUrl || job.outputUrl : pending ? undefined : frame.blobUrl ?? job.blobUrl,
+      // Never copy the provider CDN into blobUrl — that stops the poller.
+      blobUrl: nextUrl ? job.blobUrl : pending ? undefined : frame.blobUrl ?? job.blobUrl,
       error: job.error,
     };
   });
@@ -75,7 +76,7 @@ export function reconcileClips(clips: ProjectClip[] | undefined, jobs: Generatio
       // Pending redo must clear the previous file so the panel can show
       // loading. Failed / completed-without-a-file keep the last video.
       outputUrl: nextUrl ? job.outputUrl : pending ? undefined : clip.outputUrl ?? job.outputUrl,
-      blobUrl: nextUrl ? job.blobUrl || job.outputUrl : pending ? undefined : clip.blobUrl ?? job.blobUrl,
+      blobUrl: nextUrl ? job.blobUrl : pending ? undefined : clip.blobUrl ?? job.blobUrl,
       error: job.error,
     };
   });

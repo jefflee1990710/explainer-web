@@ -2,6 +2,7 @@
 
 import { ClipVideoPanel } from "@/presentation/components/project/clip-video-panel";
 import { FrameTile } from "@/presentation/components/project/frame-tile";
+import { isFrameTilePending } from "@/presentation/components/project/frame-tile-face";
 import type { ClipState } from "@/service/clip-stage";
 import type { AspectRatio, ClipFrame, FramePosition, ProjectClip } from "@/model/project";
 
@@ -39,7 +40,7 @@ export function ClipPreviewStage({
           frame={start}
           position="start"
           aspectRatio={aspectRatio}
-          pending={startPending || framesPending || state.stage === "frames_generating"}
+          pending={isFrameTilePending(start, startPending || framesPending)}
           stale={state.stale.frames}
           onOpen={() => onOpenFrame("start")}
         />
@@ -58,7 +59,7 @@ export function ClipPreviewStage({
           frame={end}
           position="end"
           aspectRatio={aspectRatio}
-          pending={endPending || framesPending || state.stage === "frames_generating"}
+          pending={isFrameTilePending(end, endPending || framesPending)}
           stale={state.stale.frames}
           onOpen={() => onOpenFrame("end")}
         />

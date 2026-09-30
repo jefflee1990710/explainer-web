@@ -23,6 +23,24 @@ const frames: ClipFrame[] = [
   { clipNumber: 2, position: "start", prompt: "p", status: "completed", blobUrl: "kept" },
 ];
 
+test("reconcileFrames does not copy a provider CDN URL into blobUrl", () => {
+  const next = reconcileFrames(
+    [{ clipNumber: 1, position: "end", prompt: "p", status: "queued" }],
+    [
+      job({
+        kind: "frame",
+        clipIndex: 0,
+        framePosition: "end",
+        status: "completed",
+        outputUrl: "https://cdn.example/end.png",
+      }),
+    ],
+  );
+  assert.equal(next[0].status, "completed");
+  assert.equal(next[0].outputUrl, "https://cdn.example/end.png");
+  assert.equal(next[0].blobUrl, undefined);
+});
+
 test("reconcileFrames takes status/urls from the matching job and keeps frames without one", () => {
   const next = reconcileFrames(frames, [
     job({ kind: "frame", clipIndex: 0, framePosition: "start", status: "completed", blobUrl: "b1", outputUrl: "o1" }),

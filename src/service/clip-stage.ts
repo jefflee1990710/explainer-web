@@ -55,6 +55,12 @@ function isCompleted(item?: MediaItem) {
   return Boolean(item && item.status === "completed" && mediaSrc(item));
 }
 
+// Persist copies the provider file to Blob after the job flips completed.
+// Keep polling until blobUrl exists so the tile can swap off a flaky CDN URL.
+function needsPersist(item?: MediaItem) {
+  return Boolean(item && item.status === "completed" && !item.blobUrl);
+}
+
 // ISO strings compare lexicographically; missing values never count as later.
 function isLater(a?: string, b?: string) {
   return Boolean(a && b && a > b);
@@ -122,8 +128,8 @@ export function clipStatesFor(project: ClipStageSource): ClipState[] {
 export function isProjectBusy(project: ClipStageSource) {
   if (normalizeProjectStatus(project.status) === "phase_a") return true;
   return (
-    (project.frames || []).some((frame) => isInFlight(frame)) ||
-    project.clips.some((clip) => isInFlight(clip))
+    (project.frames || []).some((frame) => isInFlight(frame) || needsPersist(frame)) ||
+    project.clips.some((clip) => isInFlight(clip) || needsPersist(clip))
   );
 }
 

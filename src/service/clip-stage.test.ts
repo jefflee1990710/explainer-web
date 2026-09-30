@@ -289,6 +289,20 @@ test("completed frames without a file are still generating, not ready", () => {
   assert.deepEqual(productionCounts(p), { total: 2, framesDone: 0, videosDone: 0 });
 });
 
+test("completed end with only a provider URL stays busy until the blob lands", () => {
+  const p = project({
+    frames: [
+      frame(1, "start", "completed"),
+      frame(1, "end", "completed", undefined, {
+        blobUrl: undefined,
+        outputUrl: "https://cdn.example/end.png",
+      }),
+    ],
+  });
+  assert.equal(clipStateFor(p, 1).stage, "frames_ready");
+  assert.equal(isProjectBusy(p), true);
+});
+
 test("defaultSelectedClip picks the first clip that is not video_ready", () => {
   const selected = defaultSelectedClip([
     { clipNumber: 1, stage: "video_ready" },

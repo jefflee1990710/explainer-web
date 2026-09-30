@@ -1,5 +1,31 @@
 import { put } from "@vercel/blob";
 
+export type WaitForPublicUrlOptions = {
+  tries?: number;
+  delayMs?: number;
+  fetch?: typeof fetch;
+};
+
+// put() can return before the object is readable; a first <img> GET 404s
+// and the browser will not retry without a remount or cache-bust.
+export async function waitForPublicUrl(url: string, options?: WaitForPublicUrlOptions) {
+  const tries = options?.tries ?? 5;
+  const delayMs = options?.delayMs ?? 200;
+  const fetchFn = options?.fetch ?? fetch;
+  for (let attempt = 1; attempt <= tries; attempt += 1) {
+    try {
+      const response = await fetchFn(url);
+      if (response.ok) return true;
+    } catch {
+      // Transient 404 / network blip — try again.
+    }
+    if (attempt < tries && delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  return false;
+}
+
 export type PersistMediaOptions = {
   transform?: (buffer: Buffer) => Promise<Buffer>;
   // Overrides the source's content-type header, e.g. when `transform`
@@ -35,6 +61,10 @@ export async function persistMedia(
     addRandomSuffix: false,
     allowOverwrite: true,
   });
+  const ready = await waitForPublicUrl(blob.url);
+  if (!ready) {
+    console.warn("[persist] blob not readable yet", { pathname });
+  }
   return blob.url;
 }
 
@@ -53,5 +83,9 @@ export async function persistBuffer(
     addRandomSuffix: false,
     allowOverwrite: true,
   });
+  const ready = await waitForPublicUrl(blob.url);
+  if (!ready) {
+    console.warn("[persist] blob not readable yet", { pathname });
+  }
   return blob.url;
 }
