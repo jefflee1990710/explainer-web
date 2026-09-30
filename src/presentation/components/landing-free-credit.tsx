@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { ParallaxLayer } from "@/presentation/components/parallax-layer";
 
 // Register-for-credits band. Still and loop are Gemini assets in /public/cta.
 export function LandingFreeCredit({ signedIn = false }: { signedIn?: boolean }) {
@@ -11,21 +12,23 @@ export function LandingFreeCredit({ signedIn = false }: { signedIn?: boolean }) 
     <section className="bg-[#f7fbe8] px-4 py-16 md:px-8 md:py-20">
       <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
-          <video
-            src="/cta/loop.mp4"
-            poster="/cta/still.png"
-            autoPlay
-            muted
-            loop
-            playsInline
-            aria-hidden
-            className="aspect-video w-full object-cover motion-reduce:hidden"
-          />
-          <img
-            src="/cta/still.png"
-            alt=""
-            className="hidden aspect-video w-full object-cover motion-reduce:block"
-          />
+          <ParallaxLayer distance={32}>
+            <video
+              src="/cta/loop.mp4"
+              poster="/cta/still.png"
+              autoPlay
+              muted
+              loop
+              playsInline
+              aria-hidden
+              className="aspect-video w-full scale-110 object-cover motion-reduce:hidden motion-reduce:scale-100"
+            />
+            <img
+              src="/cta/still.png"
+              alt=""
+              className="hidden aspect-video w-full object-cover motion-reduce:block"
+            />
+          </ParallaxLayer>
         </div>
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#12141c]">

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { ParallaxLayer } from "@/presentation/components/parallax-layer";
 
 // Full-width band: copy on the left, rich plan-style art on the right.
 export function LandingCast() {
@@ -42,21 +43,23 @@ export function LandingCast() {
             </Link>
           </div>
         </div>
-        <video
-          src="/landing/character-cast-loop.mp4"
-          poster="/landing/character-cast.png?v=4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          aria-hidden
-          className="h-72 w-full object-contain sm:h-96 lg:h-full lg:min-h-[32rem] lg:p-8 motion-reduce:hidden"
-        />
-        <img
-          src="/landing/character-cast.png?v=4"
-          alt=""
-          className="hidden h-72 w-full object-contain motion-reduce:block sm:h-96 lg:h-full lg:min-h-[32rem] lg:p-8"
-        />
+        <ParallaxLayer distance={40} className="overflow-hidden">
+          <video
+            src="/landing/character-cast-loop.mp4"
+            poster="/landing/character-cast.png?v=4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden
+            className="h-72 w-full object-contain sm:h-96 lg:h-full lg:min-h-[32rem] lg:p-8 motion-reduce:hidden"
+          />
+          <img
+            src="/landing/character-cast.png?v=4"
+            alt=""
+            className="hidden h-72 w-full object-contain motion-reduce:block sm:h-96 lg:h-full lg:min-h-[32rem] lg:p-8"
+          />
+        </ParallaxLayer>
       </div>
     </section>
   );

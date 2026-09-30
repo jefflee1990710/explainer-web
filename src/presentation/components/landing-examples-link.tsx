@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { ParallaxLayer } from "@/presentation/components/parallax-layer";
 
 // Landing entry to the examples page. The clips themselves live on /examples.
 export function LandingExamplesLink() {
@@ -11,16 +12,18 @@ export function LandingExamplesLink() {
     <section className="relative overflow-hidden bg-white text-center">
       {/* Rings are short silent loops. The crop matches each still so the center stays clear for the title. */}
       <div className="relative aspect-[864/1184] w-full overflow-hidden motion-reduce:hidden md:hidden">
-        <video
-          src="/landing/examples-ring-mobile-loop.mp4?v=2"
-          poster="/landing/examples-ring-mobile.png?v=3"
-          autoPlay
-          muted
-          loop
-          playsInline
-          aria-hidden
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        <ParallaxLayer distance={56} className="absolute inset-[-12%]">
+          <video
+            src="/landing/examples-ring-mobile-loop.mp4?v=2"
+            poster="/landing/examples-ring-mobile.png?v=3"
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden
+            className="h-full w-full object-cover"
+          />
+        </ParallaxLayer>
       </div>
       <img
         src="/landing/examples-ring-mobile.png?v=3"
@@ -28,16 +31,18 @@ export function LandingExamplesLink() {
         className="hidden h-auto w-full motion-reduce:block md:hidden"
       />
       <div className="relative mx-auto hidden aspect-[1344/768] w-full max-w-6xl overflow-hidden motion-reduce:hidden md:block">
-        <video
-          src="/landing/examples-ring-loop.mp4?v=2"
-          poster="/landing/examples-ring.png?v=3"
-          autoPlay
-          muted
-          loop
-          playsInline
-          aria-hidden
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        <ParallaxLayer distance={64} className="absolute inset-[-12%]">
+          <video
+            src="/landing/examples-ring-loop.mp4?v=2"
+            poster="/landing/examples-ring.png?v=3"
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden
+            className="h-full w-full object-cover"
+          />
+        </ParallaxLayer>
       </div>
       <img
         src="/landing/examples-ring.png?v=3"
