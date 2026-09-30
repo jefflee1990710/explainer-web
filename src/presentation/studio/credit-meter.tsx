@@ -6,7 +6,7 @@ import { creditProgress } from "@/service/billing/credit-balance";
 
 const POLL_MS = 5_000;
 
-// Compact header meter. The track fills with credits still remaining.
+// Remaining-balance gauge. Number plus a fill track — not a queue chip.
 export function CreditMeter({
   credits: initialCredits,
   creditLimit: initialLimit,
@@ -56,14 +56,16 @@ export function CreditMeter({
   const low = limit > 0 && ratio <= 0.2;
 
   return (
-    <div
-      className={`flex flex-col gap-1 rounded-md border border-[var(--studio-line)] bg-[var(--studio-panel)] px-2.5 py-1 ${className}`}
-    >
-      <span className="whitespace-nowrap text-xs font-semibold tabular-nums">
-        {credits} {creditsLabel}
+    <div className={`flex flex-col gap-1.5 px-0.5 ${className}`}>
+      <span className="flex items-center justify-center gap-1.5 whitespace-nowrap lg:justify-start">
+        <CreditIcon />
+        <span className="text-sm font-bold tabular-nums leading-none">{credits}</span>
+        <span className="hidden text-[10px] font-medium uppercase tracking-wide text-[var(--studio-muted)] lg:inline">
+          {creditsLabel}
+        </span>
       </span>
       <div
-        className="h-1.5 overflow-hidden rounded-full bg-[var(--studio-line)]"
+        className="h-1 overflow-hidden rounded-full bg-[var(--studio-fill)]"
         role="progressbar"
         aria-label={creditsLabel}
         aria-valuemin={0}
@@ -79,5 +81,14 @@ export function CreditMeter({
         />
       </div>
     </div>
+  );
+}
+
+function CreditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 text-[var(--studio-muted)]" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <circle cx="12" cy="12" r="7.5" />
+      <circle cx="12" cy="12" r="3.2" />
+    </svg>
   );
 }

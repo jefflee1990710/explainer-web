@@ -1,7 +1,7 @@
 "use client";
 
 import { SignedInAccount } from "@/presentation/components/auth/signed-in-account";
-import { HeaderTaskMenu } from "@/presentation/components/app/tasks/header-task-menu";
+import { TaskQueueBanner } from "@/presentation/components/app/tasks/task-queue-banner";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { StudioShell, type StudioNavItem } from "@/presentation/studio/studio-shell";
 // Logged-in chrome. Page content sits in the studio shell.
@@ -17,7 +17,7 @@ export function AppShell({
 }: {
   credits: number;
   creditLimit: number;
-  // Generation tasks still queued or running (header meter).
+  // Generation tasks still queued or running (top banner).
   activeTasks: number;
   email: string;
   name: string;
@@ -43,7 +43,7 @@ export function AppShell({
       credits={credits}
       creditLimit={creditLimit}
       creditsLabel={t("common.credits")}
-      headerEnd={<HeaderTaskMenu initialPending={activeTasks} />}
+      headerEnd={<TaskQueueBanner initialPending={activeTasks} />}
       toolbar={
         <SignedInAccount
           email={email}

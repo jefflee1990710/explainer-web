@@ -10,7 +10,7 @@ import { Spinner } from "@/presentation/components/spinner";
 
 const POLL_MS = 5_000;
 
-// Pending count plus a live progress track. The header opens a menu; editors pass onOpen.
+// Queue chip. Opens a menu in the rail; editors pass onOpen.
 export function TaskMeter({
   pending: initialPending,
   tasksLabel,
@@ -20,6 +20,7 @@ export function TaskMeter({
   ariaExpanded,
   poll = true,
   refreshing = false,
+  className: classNameProp,
 }: {
   pending: number;
   tasksLabel: string;
@@ -33,6 +34,7 @@ export function TaskMeter({
   poll?: boolean;
   // Parent is refetching, or a generate click is still landing in the queue.
   refreshing?: boolean;
+  className?: string;
 }) {
   const pathname = usePathname();
   // Own poll result when polling; otherwise the parent's live count wins.
@@ -43,10 +45,14 @@ export function TaskMeter({
   const inFlight = useRef(false);
   const active = !onOpen && (pathname === "/app/tasks" || pathname.startsWith("/app/tasks/"));
   const label = `${tasksLabel}, ${pending} ${pendingLabel}`;
-  const className = `flex min-w-28 flex-col gap-1 rounded-md border px-2.5 py-1 ${
-    active
-      ? "border-[var(--studio-teal)]/40 bg-[var(--studio-cyan-soft)]"
-      : "border-[var(--studio-line)] bg-[var(--studio-panel)] hover:bg-[var(--studio-fill)]"
+  const busy = pending > 0;
+  // Queue chip — not a remaining-balance bar.
+  const className = `inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold tabular-nums ${
+    classNameProp ?? ""
+  } ${
+    busy || active
+      ? "bg-[var(--studio-cyan-soft)] text-[var(--studio-ink)]"
+      : "text-[var(--studio-muted)] hover:bg-[var(--studio-fill)]"
   }`;
 
   useEffect(() => {
@@ -92,22 +98,17 @@ export function TaskMeter({
 
   const body = (
     <>
-      <span className="flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold tabular-nums">
-        {showRefreshing ? <Spinner className="h-3.5 w-3.5" /> : <TasksIcon />}
-        {pending} {pendingLabel}
+      {showRefreshing ? (
+        <Spinner className="h-3.5 w-3.5" />
+      ) : busy ? (
+        <span className="studio-task-dot h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--studio-teal)]" aria-hidden />
+      ) : (
+        <TasksIcon />
+      )}
+      <span className="whitespace-nowrap">
+        {pending}
+        <span className="hidden lg:inline"> {pendingLabel}</span>
       </span>
-      <div
-        className="h-1.5 overflow-hidden rounded-full bg-[var(--studio-line)]"
-        role="progressbar"
-        aria-label={pendingLabel}
-        aria-valuemin={0}
-        aria-valuenow={pending}
-        aria-busy={pending > 0}
-      >
-        {pending > 0 ? (
-          <div className="studio-task-meter-bar h-full w-1/3 rounded-full bg-[var(--studio-teal)]" />
-        ) : null}
-      </div>
     </>
   );
 
@@ -120,6 +121,7 @@ export function TaskMeter({
         aria-haspopup="menu"
         aria-label={label}
         className={`cursor-pointer ${className}`}
+        aria-busy={busy}
       >
         {body}
       </button>
@@ -127,7 +129,7 @@ export function TaskMeter({
   }
 
   return (
-    <Link href="/app/tasks" aria-current={active ? "page" : undefined} aria-label={label} className={className}>
+    <Link href="/app/tasks" aria-current={active ? "page" : undefined} aria-busy={busy} aria-label={label} className={className}>
       {body}
     </Link>
   );

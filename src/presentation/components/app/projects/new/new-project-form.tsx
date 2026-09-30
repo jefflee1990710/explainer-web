@@ -92,6 +92,10 @@ import { DurationPicker } from "@/presentation/components/app/projects/new/durat
 import { LanguagePicker } from "@/presentation/components/app/projects/new/language-picker";
 import { VoicePicker } from "@/presentation/components/app/projects/new/voice-picker";
 import { SpeechPacePicker } from "@/presentation/components/app/projects/new/speech-pace-picker";
+import {
+  readBriefDefaults,
+  writeBriefDefaults,
+} from "@/presentation/components/app/projects/new/brief-defaults";
 import { DEFAULT_SPEECH_PACE, SPEECH_PACE_PRESETS } from "@/service/director/speech-pace";
 import { SceneTextPicker } from "@/presentation/components/app/projects/new/scene-text-picker";
 import { VideoEditDesk } from "@/presentation/components/app/projects/new/video-edit-desk";
@@ -131,34 +135,40 @@ export function NewProjectForm({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  // New-video dialog recalls this folder's last picks; never the script.
+  const lastBrief = initialVideo
+    ? undefined
+    : readBriefDefaults(projectId, { skills, styles, characters });
 
   // Form fields
   const [skillSlug, setSkillSlug] = useState(
-    initialVideo?.skillSlug || skills[0]?.slug || "",
+    initialVideo?.skillSlug || lastBrief?.skillSlug || skills[0]?.slug || "",
   );
   // Visual style; the cast must share it, so changing it prunes mismatches.
   const [styleId, setStyleId] = useState<StyleId>(
-    initialVideo?.styleId || DEFAULT_STYLE_ID,
+    initialVideo?.styleId || lastBrief?.styleId || DEFAULT_STYLE_ID,
   );
   const [source, setSource] = useState(initialVideo?.source || "");
-  const [language, setLanguage] = useState<VoLanguage>(initialVideo?.language || "en");
+  const [language, setLanguage] = useState<VoLanguage>(
+    initialVideo?.language || lastBrief?.language || "en",
+  );
   const [voiceGender, setVoiceGender] = useState<VoiceGender>(
-    initialVideo?.voiceGender || DEFAULT_VOICE_GENDER,
+    initialVideo?.voiceGender || lastBrief?.voiceGender || DEFAULT_VOICE_GENDER,
   );
   const [speechPace, setSpeechPace] = useState<SpeechPace>(
-    initialVideo?.speechPace || DEFAULT_SPEECH_PACE,
+    initialVideo?.speechPace || lastBrief?.speechPace || DEFAULT_SPEECH_PACE,
   );
   const [sceneTextLanguage, setSceneTextLanguage] = useState<SceneTextLanguage>(
-    initialVideo?.sceneTextLanguage || "en",
+    initialVideo?.sceneTextLanguage || lastBrief?.sceneTextLanguage || "en",
   );
   const [aspectRatio, setAspectRatio] = useState<AspectRatio | "">(
-    initialVideo?.aspectRatio || "",
+    initialVideo?.aspectRatio || lastBrief?.aspectRatio || "",
   );
   const [durationPreset, setDurationPreset] = useState<DurationPreset>(
-    initialVideo?.durationPreset || "punchy",
+    initialVideo?.durationPreset || lastBrief?.durationPreset || "punchy",
   );
   const [characterIds, setCharacterIds] = useState<string[]>(
-    initialVideo?.cast.map((member) => member.characterId) || [],
+    initialVideo?.cast.map((member) => member.characterId) || lastBrief?.characterIds || [],
   );
 
   // Flow state. The stepper can jump back to 題材 after a video exists.
@@ -507,6 +517,32 @@ export function NewProjectForm({
       setCharacterIds((ids) => (ids.length > castNeed ? ids.slice(0, castNeed) : ids));
     }
   }, [castNeed]);
+
+  useEffect(() => {
+    if (!skillSlug || !aspectRatio) return;
+    writeBriefDefaults(projectId, {
+      skillSlug,
+      styleId,
+      language,
+      voiceGender,
+      speechPace,
+      sceneTextLanguage,
+      aspectRatio,
+      durationPreset,
+      characterIds,
+    });
+  }, [
+    projectId,
+    skillSlug,
+    styleId,
+    language,
+    voiceGender,
+    speechPace,
+    sceneTextLanguage,
+    aspectRatio,
+    durationPreset,
+    characterIds,
+  ]);
 
   function onStyleChange(id: StyleId) {
     setStyleId(id);
