@@ -20,12 +20,15 @@ export function ClipVideoPanel({
   state,
   aspectRatio,
   pending,
+  boxStyle,
   onGenerate,
 }: {
   clip?: ProjectClip;
   state: ClipState;
   aspectRatio: AspectRatio;
   pending: boolean;
+  // Explicit contain-fit size from the preview stage.
+  boxStyle?: { width: number; height: number };
   onGenerate: () => void;
 }) {
   const src = mediaSrc(clip);
@@ -37,7 +40,10 @@ export function ClipVideoPanel({
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-md border border-[var(--studio-line)] bg-[var(--studio-canvas)] ${ASPECT_CLASS[aspectRatio]}`}
+      className={`relative overflow-hidden rounded-md border border-[var(--studio-line)] bg-[var(--studio-canvas)] ${
+        boxStyle ? "shrink-0" : `w-full ${ASPECT_CLASS[aspectRatio]}`
+      }`}
+      style={boxStyle}
     >
       {src && showVideo ? (
         <>

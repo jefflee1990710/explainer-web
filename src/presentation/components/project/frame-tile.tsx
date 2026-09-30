@@ -35,6 +35,7 @@ export function FrameTile({
   pending,
   stale = false,
   compact = false,
+  boxStyle,
   onOpen,
 }: {
   frame?: ClipFrame;
@@ -45,6 +46,8 @@ export function FrameTile({
   stale?: boolean;
   // Hide the caption when the tile sits beside a finished video.
   compact?: boolean;
+  // Explicit contain-fit size from the preview stage.
+  boxStyle?: { width: number; height: number };
   onOpen: () => void;
 }) {
   const src = mediaSrc(frame);
@@ -62,9 +65,12 @@ export function FrameTile({
   const label = FRAME_LABEL[position];
 
   return (
-    <figure className="min-w-0">
+    <figure className="min-w-0 shrink-0">
       <div
-        className={`relative overflow-hidden rounded-xl border border-accent-ink/10 bg-paper ${ASPECT_CLASS[aspectRatio]}`}
+        className={`relative overflow-hidden rounded-xl border border-accent-ink/10 bg-paper ${
+          boxStyle ? "shrink-0" : `w-full ${ASPECT_CLASS[aspectRatio]}`
+        }`}
+        style={boxStyle}
       >
         <AnimatePresence mode="wait" initial={false}>
           {face === "image" ? (

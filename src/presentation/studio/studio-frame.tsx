@@ -30,7 +30,7 @@ export function StudioFrame({
           </section>
           <section
             aria-label="預覽"
-            className="min-w-0 flex-1 bg-[var(--studio-canvas)] lg:h-full lg:overflow-y-auto"
+            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--studio-canvas)] lg:h-full"
           >
             {preview}
           </section>
