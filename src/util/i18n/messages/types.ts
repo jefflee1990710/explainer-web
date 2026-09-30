@@ -300,7 +300,9 @@ export type Messages = {
     signUpSubmit: string;
     signOut: string;
     email: string;
+    emailPlaceholder: string;
     password: string;
+    passwordPlaceholder: string;
     google: string;
     or: string;
     needAccount: string;

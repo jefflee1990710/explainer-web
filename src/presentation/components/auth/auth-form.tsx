@@ -115,9 +115,10 @@ export function AuthForm({
             type="email"
             autoComplete="email"
             required
+            placeholder={t("auth.emailPlaceholder")}
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 font-normal text-zinc-900 outline-none focus:border-[#12141c]"
+            className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 font-normal text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#12141c]"
           />
         </label>
         <label className="flex flex-col gap-1.5 text-sm font-medium text-[#12141c]">
@@ -127,9 +128,10 @@ export function AuthForm({
             autoComplete={register ? "new-password" : "current-password"}
             required
             minLength={6}
+            placeholder={t("auth.passwordPlaceholder")}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 font-normal text-zinc-900 outline-none focus:border-[#12141c]"
+            className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 font-normal text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#12141c]"
           />
         </label>
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
