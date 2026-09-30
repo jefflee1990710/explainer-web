@@ -36,7 +36,7 @@ export function LandingPricing() {
         {plans.map((plan) => (
             <article
               key={plan.id}
-              className={`flex w-[min(19rem,78vw)] shrink-0 flex-col rounded-2xl border p-8 shadow-sm ${
+              className={`flex flex-col rounded-2xl border p-8 shadow-sm ${
                 plan.highlight
                   ? "border-[#12141c] bg-[#12141c] text-white"
                   : "border-zinc-200 bg-white"

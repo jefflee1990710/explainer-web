@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { cache } from "react";
 import {
   bindReferralOnSignup,
@@ -28,9 +29,8 @@ export const getAuthSession = cache(async () => {
 // React cache() dedupes layout + page calls within one navigation request.
 const requireAppUserImpl = cache(async (): Promise<AppUser> => {
   const session = await getAuthSession();
-  if (!session) {
-    throw new Error("請先登入");
-  }
+  // Missing or expired session. redirect() is control flow, so build prerender does not 500.
+  if (!session) redirect("/sign-in?next=/app");
 
   const email = session.email || "";
   const name = session.name || email.split("@")[0] || "User";
@@ -104,6 +104,6 @@ export async function requireClerkUserId(): Promise<string> {
   const mcpUser = mcpUserStore.getStore();
   if (mcpUser) return mcpUser.clerkUserId;
   const session = await getAuthSession();
-  if (!session) throw new Error("請先登入");
+  if (!session) redirect("/sign-in?next=/app");
   return session.uid;
 }

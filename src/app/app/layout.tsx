@@ -5,6 +5,9 @@ import { getAuthSession, requireAppUser } from "@/service/auth";
 import { countActiveTasks } from "@/service/generation/task-list";
 import { needsPolicyAcceptance } from "@/service/legal/versions";
 
+// Session cookie is only available per request, so do not prerender /app at build time.
+export const dynamic = "force-dynamic";
+
 // Header meter count; a DB hiccup must not take down the whole app shell.
 async function safeCountActiveTasks(clerkUserId: string) {
   try {
