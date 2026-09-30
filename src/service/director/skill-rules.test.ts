@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   briefSkillError,
+  dialogueOnlyDirectorBlock,
+  dialogueQaDirectorBlock,
   listicleListEntries,
   requiredCastCount,
   skillBansNarration,
@@ -13,6 +15,14 @@ test("story short is a no-narrator short film", () => {
   assert.equal(skillBansNarration("story-short-director"), true);
   assert.equal(skillBansNarration("cartoon-explainer-video-director"), false);
   assert.match(storyShortDirectorBlock(), /Do not force want/);
+});
+
+test("Q&A is dialogue-only like story short: no narrator, character lines", () => {
+  assert.equal(skillBansNarration("dialogue-qa-director"), true);
+  assert.match(dialogueOnlyDirectorBlock(), /NO narrator/);
+  assert.match(dialogueOnlyDirectorBlock(), /NAME: "line"/);
+  assert.match(dialogueQaDirectorBlock(), /ASKER/);
+  assert.doesNotMatch(dialogueQaDirectorBlock(), /SHORT FILM/);
 });
 
 test("Q&A director requires exactly two characters", () => {

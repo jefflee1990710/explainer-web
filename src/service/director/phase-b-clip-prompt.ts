@@ -1,6 +1,6 @@
 import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
 import { phaseBAudioLock } from "@/service/director/voice";
-import type { PhaseAProposal, VoiceGender } from "@/model/project";
+import type { PhaseAProposal, SpeechPace, VoiceGender } from "@/model/project";
 
 // Director-only note. Do not pass character sheet URLs — MiniMax H3 only
 // receives this clip's first and last frames.
@@ -24,6 +24,7 @@ export function clipPhaseBUserPrompt(input: {
   languageLabel: string;
   languageSublabel: string;
   voiceGender?: VoiceGender;
+  speechPace?: SpeechPace;
   bansNarration?: boolean;
   characterLine: string;
 }) {
@@ -43,11 +44,12 @@ export function clipPhaseBUserPrompt(input: {
 
   return [
     `Approved Phase A JSON:\n${JSON.stringify(input.phaseA, null, 2)}`,
-    `Voiceover language: ${input.languageLabel} (${input.languageSublabel})`,
+    `${input.bansNarration ? "Dialogue language" : "Voiceover language"}: ${input.languageLabel} (${input.languageSublabel})`,
     phaseBAudioLock({
       voiceGender: input.voiceGender,
       languageLabel: input.languageLabel,
       bansNarration: input.bansNarration,
+      speechPace: input.speechPace,
     }),
     input.characterLine,
     `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,

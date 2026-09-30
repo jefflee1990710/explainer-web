@@ -13,6 +13,7 @@ import {
 import { runPhaseAJob, runStillJob } from "@/service/director/jobs";
 import { isVoLanguage } from "@/service/director/languages";
 import { isVoiceGender, resolveVoiceGender } from "@/service/director/voice";
+import { isSpeechPace } from "@/service/director/speech-pace";
 import { isSceneTextLanguage } from "@/service/director/scene-text";
 import { applySkillSceneText, briefSkillError } from "@/service/director/skill-rules";
 import { sanitizeFolderName } from "@/service/folder";
@@ -28,6 +29,7 @@ import type {
   DurationPreset,
   PhaseAEditInput,
   SceneTextLanguage,
+  SpeechPace,
   VoLanguage,
   VoiceGender,
 } from "@/model/project";
@@ -51,6 +53,7 @@ type BriefFields = {
   durationPreset: DurationPreset;
   language: VoLanguage;
   voiceGender: VoiceGender;
+  speechPace: SpeechPace;
   sceneTextEnabled: boolean;
   sceneTextLanguage: SceneTextLanguage;
   characterIds: string[];
@@ -66,6 +69,7 @@ function readVideoBrief(
   const durationPreset = String(formData.get("durationPreset") || "") as DurationPreset;
   const language = String(formData.get("language") || "en");
   const voiceGender = String(formData.get("voiceGender") || "male");
+  const speechPace = String(formData.get("speechPace") || "medium");
   const sceneTextLanguage = String(formData.get("sceneTextLanguage") || "en");
   const characterIds = Array.from(
     new Set(
@@ -91,6 +95,9 @@ function readVideoBrief(
   if (!isVoiceGender(voiceGender)) {
     return { ok: false, error: "請選擇旁白聲線" };
   }
+  if (!isSpeechPace(speechPace)) {
+    return { ok: false, error: "請選擇語速" };
+  }
   if (!isSceneTextLanguage(sceneTextLanguage)) {
     return { ok: false, error: "請選擇畫面文字語言" };
   }
@@ -107,6 +114,7 @@ function readVideoBrief(
       durationPreset,
       language,
       voiceGender: resolveVoiceGender(voiceGender),
+      speechPace,
       // 畫面文字永遠開啟，使用者只選語言。
       sceneTextEnabled: true,
       sceneTextLanguage,
@@ -280,6 +288,7 @@ export async function createVideoAction(
       durationPreset: brief.durationPreset,
       language: brief.language,
       voiceGender: brief.voiceGender,
+      speechPace: brief.speechPace,
       sceneTextEnabled: applySkillSceneText(skill.slug, brief.sceneTextEnabled),
       sceneTextLanguage: brief.sceneTextLanguage,
       cast,
@@ -358,6 +367,7 @@ export async function updateVideoBriefAction(
           durationPreset: brief.durationPreset,
           language: brief.language,
           voiceGender: brief.voiceGender,
+          speechPace: brief.speechPace,
           sceneTextEnabled: applySkillSceneText(skill.slug, brief.sceneTextEnabled),
           sceneTextLanguage: brief.sceneTextLanguage,
           cast: castResult.cast,

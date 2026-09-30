@@ -9,7 +9,7 @@ Present a readable director's proposal and stop for confirmation before writing 
 - Name every tool/input once in the workspace lock; each step touches at most one or two of them.
 - Track the object's state after each step — the next step starts from it.
 
-Step counts and spoken words per preset (~2.2–2.5 words/second):
+Step counts and spoken words per preset (~2.2–2.5 words/second at medium pace). Slow ≈ 0.8× the words; fast ≈ 1.2×. Clip count and duration stay the same:
 
 - **4–8s micro**: 1 step between a quick result flash and the result; ~10–18 words, 1–2 clips.
 - **15–20s short**: 2–3 steps; ~35–50 words, 3–4 clips.

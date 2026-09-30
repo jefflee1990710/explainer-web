@@ -9,7 +9,7 @@ Present a readable director's proposal and stop for confirmation before writing 
 - Write the product lock spec (shape, relative size, two colours, one distinguishing detail) before writing any clip.
 - Use only claims present in the source.
 
-Spoken words scale with the preset (~2.2–2.5 words/second):
+Spoken words scale with the preset (~2.2–2.5 words/second at medium pace). Slow ≈ 0.8×; fast ≈ 1.2×. Clip count and duration stay the same:
 
 - **4–8s micro**: ~10–18 words, 1–2 clips — reveal → one feature → result.
 - **15–20s short**: ~35–50 words, 2–4 clips.

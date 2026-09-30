@@ -5,8 +5,8 @@ import { FrameTile } from "@/presentation/components/project/frame-tile";
 import type { ClipState } from "@/service/clip-stage";
 import type { AspectRatio, ClipFrame, FramePosition, ProjectClip } from "@/model/project";
 
-// Preview row: start still | clip video | end still. Sizes stay the same
-// whether the clip already has a playable video.
+// Preview row: start still | clip video | end still. Grows with the pane
+// (1 : 2.5 : 1) so wide layouts use horizontal space instead of centering.
 export function ClipPreviewStage({
   start,
   end,
@@ -33,8 +33,8 @@ export function ClipPreviewStage({
   onGenerateVideo: () => void;
 }) {
   return (
-    <div className="flex items-center justify-center gap-4 p-4">
-      <div className="w-36 shrink-0 sm:w-44">
+    <div className="flex w-full min-w-0 items-start gap-4 p-4">
+      <div className="min-w-0 flex-1 basis-36 sm:basis-44">
         <FrameTile
           frame={start}
           position="start"
@@ -44,7 +44,7 @@ export function ClipPreviewStage({
           onOpen={() => onOpenFrame("start")}
         />
       </div>
-      <div className="min-w-0 flex-1 max-w-md">
+      <div className="min-w-0 flex-[2.5]">
         <ClipVideoPanel
           clip={clip}
           state={state}
@@ -53,7 +53,7 @@ export function ClipPreviewStage({
           onGenerate={onGenerateVideo}
         />
       </div>
-      <div className="w-36 shrink-0 sm:w-44">
+      <div className="min-w-0 flex-1 basis-36 sm:basis-44">
         <FrameTile
           frame={end}
           position="end"

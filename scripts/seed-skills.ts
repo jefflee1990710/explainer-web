@@ -65,7 +65,7 @@ const SKILLS: SkillManifest[] = [
     slug: "dialogue-qa-director",
     title: "Two-character Q&A",
     titleZh: "對話式 Q&A",
-    description: "必須選兩個角色一問一答，用提問推進好奇心，用回答交付重點。",
+    description: "必須正好選 2 個角色一問一答，用提問推進好奇心，用回答交付重點。",
     sortOrder: 4,
   },
   {

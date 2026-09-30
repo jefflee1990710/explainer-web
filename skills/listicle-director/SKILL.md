@@ -41,7 +41,7 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 
 - Default: an energetic but clear adult host voice in the requested voiceover language, second person.
 - Rhythm: each item line follows the same grammatical shape ("Number one: … . Number two: …" or "Want X? Do Y."). Parallel structure is the listicle's music.
-- ~7–20 spoken words per clip; item lines ≤15 words.
+- ~7–20 spoken words per clip at medium speaking pace. Slow ≈ 0.8× those words with pauses; fast ≈ 1.2× with fewer pauses. Clip duration stays the same. Item lines ≤15 words at medium.
 - Spoken lines are audio-only. The on-canvas numbered list is required in every still and must list the item titles. Do not add captions of the full voiceover on top of that list.
 
 ## Phase A field mapping

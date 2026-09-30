@@ -17,9 +17,10 @@ export function HeaderTaskMenu({ initialPending }: { initialPending: number }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const { tasks, error, loaded } = useTaskPoll(readCachedTasks() ?? [], undefined, true);
+  const { tasks, error, loaded, refreshing } = useTaskPoll(readCachedTasks() ?? [], undefined, true);
   const queued = tasks.filter(isQueued);
-  const pending = loaded ? queued.length : initialPending;
+  // Click-time rows count even if the first server list has not landed yet.
+  const pending = !loaded && queued.length === 0 ? initialPending : queued.length;
 
   useEffect(() => {
     if (!open) return;
@@ -42,6 +43,7 @@ export function HeaderTaskMenu({ initialPending }: { initialPending: number }) {
       <TaskMeter
         pending={pending}
         poll={false}
+        refreshing={refreshing}
         tasksLabel={t("nav.tasks")}
         pendingLabel={t("common.pending")}
         ariaExpanded={open}
@@ -62,7 +64,7 @@ export function HeaderTaskMenu({ initialPending }: { initialPending: number }) {
           ) : null}
           {queued.length === 0 ? (
             <p className="px-2 py-4 text-center text-sm text-[var(--studio-muted)]">
-              {loaded ? t("tasksMenu.empty") : "…"}
+              {refreshing ? "更新中…" : loaded ? t("tasksMenu.empty") : "…"}
             </p>
           ) : (
             <TaskList tasks={queued} />

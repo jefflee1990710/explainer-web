@@ -9,7 +9,7 @@ Present a readable director's proposal and stop for confirmation before writing 
 - Choose a protagonist the audience recognises (a person like the viewer, or the cast provided).
 - Cut only what the duration cannot hold. Do not cut a beat just because it is not "want" or "turn".
 
-Spoken words scale with the preset (~2.2–2.5 words/second, minus any silent beat):
+Spoken words scale with the preset (~2.2–2.5 words/second at medium pace, minus any silent beat). Slow ≈ 0.8×; fast ≈ 1.2×. Clip count and duration stay the same:
 
 - **4–8s micro**: ~10–15 words, 1–2 clips.
 - **15–20s short**: ~30–45 words, 2–4 clips.

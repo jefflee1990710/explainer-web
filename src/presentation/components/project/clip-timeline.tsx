@@ -27,6 +27,10 @@ export function clipStudioItems(
     const start = project.frames.find(
       (frame) => frame.clipNumber === state.clipNumber && frame.position === "start",
     );
+    const end = project.frames.find(
+      (frame) => frame.clipNumber === state.clipNumber && frame.position === "end",
+    );
+    const clip = project.clips.find((item) => item.clipNumber === state.clipNumber);
     const startBusy =
       pending === `frames:${state.clipNumber}` ||
       pending === `clip:${state.clipNumber}:regen` ||
@@ -44,6 +48,8 @@ export function clipStudioItems(
       busy,
       stale,
       tone: clipTone(state.stage, busy, stale),
+      hasScene: Boolean(mediaSrc(start) && mediaSrc(end)),
+      hasVideo: Boolean(mediaSrc(clip)),
     };
   });
 }

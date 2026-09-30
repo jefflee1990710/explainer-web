@@ -10,6 +10,7 @@ import {
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { phaseAAudioHint, VOICE_PRESETS, resolveVoiceGender } from "@/service/director/voice";
+import { SPEECH_PACE_PRESETS, resolveSpeechPace, speechPaceSkillHint } from "@/service/director/speech-pace";
 import {
   resolveSceneText,
   SCENE_TEXT_PRESETS,
@@ -17,11 +18,13 @@ import {
 } from "@/service/director/scene-text";
 import { skillPromptForPhaseA } from "@/service/director/load-skill-prompt";
 import {
+  dialogueOnlyDirectorBlock,
   dialogueQaDirectorBlock,
   listicleDirectorBlock,
   requiredCastCount,
   skillBansNarration,
   skillForcesSceneText,
+  STORY_SHORT_SKILL_SLUG,
   storyShortDirectorBlock,
 } from "@/service/director/skill-rules";
 import { keyframeDeltaDirectorBlock } from "@/service/director/keyframe-delta";
@@ -39,6 +42,7 @@ import type {
   DurationPreset,
   PhaseAProposal,
   SceneTextLanguage,
+  SpeechPace,
   VoLanguage,
   VoiceGender,
 } from "@/model/project";
@@ -52,6 +56,7 @@ export async function runPhaseA(input: {
   durationPreset: DurationPreset;
   language?: VoLanguage;
   voiceGender?: VoiceGender;
+  speechPace?: SpeechPace;
   sceneTextEnabled?: boolean;
   sceneTextLanguage?: SceneTextLanguage;
   characterImageUrl?: string;
@@ -71,6 +76,7 @@ export async function runPhaseA(input: {
   const characterNote =
     castBlockForPhaseA(input.cast) || phaseASoloCharacterNote(input.characterImageUrl);
   const dualBeat = isDualBeatSkill(input.skill.slug);
+  const dialogueOnly = skillBansNarration(input.skill.slug);
   const characterImages = await loadDirectorImageParts(
     characterReferenceUrls({
       cast: input.cast,
@@ -122,7 +128,8 @@ ${
 }
 ${
   [
-    skillBansNarration(input.skill.slug) ? storyShortDirectorBlock() : "",
+    dialogueOnly ? dialogueOnlyDirectorBlock() : "",
+    input.skill.slug === STORY_SHORT_SKILL_SLUG ? storyShortDirectorBlock() : "",
     requiredCastCount(input.skill.slug) ? dialogueQaDirectorBlock() : "",
     skillForcesSceneText(input.skill.slug) ? listicleDirectorBlock() : "",
   ]
@@ -130,7 +137,8 @@ ${
     .join("\n")
 }
 ${language.skillHint}
-${phaseAAudioHint(input.voiceGender, { bansNarration: skillBansNarration(input.skill.slug) })}
+${speechPaceSkillHint(input.speechPace)}
+${phaseAAudioHint(input.voiceGender, { bansNarration: dialogueOnly })}
 ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   dualBeat,
   listicle: skillForcesSceneText(input.skill.slug),
@@ -151,9 +159,10 @@ ${input.source}
 
 Aspect ratio: ${input.aspectRatio}
 Duration preset: ${preset.skillHint}
-Voiceover language: ${language.label} (${language.sublabel})
+${dialogueOnly ? "Dialogue language" : "Voiceover language"}: ${language.label} (${language.sublabel})
+Speaking pace: ${resolveSpeechPace(input.speechPace)} (${SPEECH_PACE_PRESETS[resolveSpeechPace(input.speechPace)].delivery})
 ${
-  skillBansNarration(input.skill.slug)
+  dialogueOnly
     ? "Character voices: do not pick a narrator gender. MiniMax will match each named speaker when the clip video is generated."
     : `Narrator voice: ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].label} (adult ${resolveVoiceGender(input.voiceGender)})`
 }

@@ -9,7 +9,7 @@ Present a readable director's proposal and stop for confirmation before writing 
 - Order: strong first, weakest middle, best last. State the reasoning in the arc.
 - Give every item the same sentence shape.
 
-Item counts and spoken words per preset (~2.2–2.5 words/second):
+Item counts and spoken words per preset (~2.2–2.5 words/second at medium pace). Slow ≈ 0.8× the words; fast ≈ 1.2×. Clip count and duration stay the same:
 
 - **4–8s micro**: 1 item + hook in the same clip, or 2 items; ~10–18 words, 1–2 clips.
 - **15–20s short**: 3 items; ~35–50 words, 3–4 clips.

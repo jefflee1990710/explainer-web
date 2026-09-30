@@ -47,7 +47,7 @@ Topic approval, schedule pressure, or approval of an older draft is not approval
 
 ## Output rules
 
-- Each clip must target 3–8 seconds (maximum 8 seconds per clip). Allocate approximately 7–20 English VO words per clip (~2.5 words/second).
+- Each clip must target 3–8 seconds (maximum 8 seconds per clip). Allocate approximately 7–20 English VO words per clip (~2.5 words/second) at medium speaking pace. Slow ≈ 0.8× those words with pauses; fast ≈ 1.2× with fewer pauses. Clip duration stays the same.
 - Apply the 2-Second Visual Rule: ensure a noticeable visual change (punch-in, camera shift, doodle morph, icon pop, tag snap) every 1.5–2.5 seconds within each clip.
 - Stack at least 2 hook types simultaneously in Clip 1 (first 1–2 seconds) using visual openers from `references/traffic-and-hooks.md`.
 - Enforce delayed payoff: do not reveal the core punchline in the opening clip; build tension and deliver near the finale.

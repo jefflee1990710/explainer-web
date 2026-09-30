@@ -38,7 +38,7 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 ## Narration
 
 - Default: a calm, clear adult instructor voice in the requested voiceover language, imperative mood ("Cut…", "Tap…", "Add…").
-- Each step line: verb + object + one qualifier, ≤12 words. ~7–20 spoken words per clip.
+- Each step line: verb + object + one qualifier, ≤12 words at medium. ~7–20 spoken words per clip at medium speaking pace. Slow ≈ 0.8× those words with pauses; fast ≈ 1.2× with fewer pauses. Clip duration stays the same.
 - Narration is audio-only. Never caption or subtitle it. On-screen text is limited to the step marker and labels that exist on the objects themselves (a button label, a jar label), one to two words, spelled exactly.
 
 ## Phase A field mapping

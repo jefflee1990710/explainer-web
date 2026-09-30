@@ -83,10 +83,16 @@ test("last clip always ends clean — never loops back to clip 1", () => {
 });
 
 test("Phase B user prompt locks narrator gender and forbids background music", () => {
-  const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
+  const prompt = clipPhaseBUserPrompt({
+    ...base,
+    speechPace: "fast",
+    phaseA: proposal(),
+    clipNumber: 2,
+  });
   assert.match(prompt, /adult female voice/);
   assert.match(prompt, /same narrator on every clip/i);
   assert.match(prompt, /mid pitch/);
+  assert.match(prompt, /brisk, energetic pace/);
   assert.match(prompt, /No background music/);
   assert.match(prompt, /no BGM/i);
   assert.doesNotMatch(prompt, /driving beat|keep narration dominant over BGM/i);

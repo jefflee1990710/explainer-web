@@ -2,6 +2,7 @@
 
 import { Spinner } from "@/presentation/components/spinner";
 import type { StudioClipItem, StudioClipTone } from "@/presentation/studio/clip-item";
+import { FilmstripMediaTags } from "@/presentation/studio/filmstrip-media-tags";
 
 // Status band colour under each thumbnail.
 const TONE_CLASS: Record<StudioClipTone, string> = {
@@ -49,7 +50,7 @@ export function Filmstrip({
               type="button"
               role="tab"
               aria-selected={selected}
-              aria-label={`${item.title} ${item.durationLabel} ${item.statusLabel}`}
+              aria-label={`${item.title} ${item.durationLabel} ${item.statusLabel}${item.hasScene ? " 場景圖已完成" : ""}${item.hasVideo ? " 影片已完成" : ""}`}
               onClick={() => onSelect(item.id)}
               className={`flex h-full w-[148px] cursor-pointer flex-col overflow-hidden rounded-sm border bg-white text-left transition ${
                 selected
@@ -76,6 +77,7 @@ export function Filmstrip({
                 ) : (
                   <span className="absolute inset-0 bg-[var(--studio-canvas)]" aria-hidden />
                 )}
+                <FilmstripMediaTags hasScene={item.hasScene} hasVideo={item.hasVideo} />
                 {item.stale ? (
                   <span className="absolute bottom-1.5 right-1 rounded-sm bg-[var(--accent)] px-1 text-[9px] font-bold text-white">
                     需重做

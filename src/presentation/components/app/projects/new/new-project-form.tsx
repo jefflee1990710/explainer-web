@@ -53,6 +53,12 @@ import {
   type GenerationTransition,
 } from "@/util/generation-transitions";
 import { ToastStack, useToasts } from "@/presentation/components/toast-stack";
+import {
+  holdOptimisticTasks,
+  paidKeyTasks,
+  releaseOptimisticTasks,
+} from "@/presentation/components/app/tasks/optimistic-tasks";
+import { beginTaskRefresh, endTaskRefresh } from "@/presentation/components/app/tasks/task-refresh";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { isReelBusy } from "@/service/reel/fingerprint";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
@@ -74,6 +80,7 @@ import type {
   FramePosition,
   FrameRevisionInput,
   SceneTextLanguage,
+  SpeechPace,
   VoLanguage,
   VoiceGender,
 } from "@/model/project";
@@ -84,6 +91,8 @@ import { DirectorProgress } from "@/presentation/components/app/projects/new/dir
 import { DurationPicker } from "@/presentation/components/app/projects/new/duration-picker";
 import { LanguagePicker } from "@/presentation/components/app/projects/new/language-picker";
 import { VoicePicker } from "@/presentation/components/app/projects/new/voice-picker";
+import { SpeechPacePicker } from "@/presentation/components/app/projects/new/speech-pace-picker";
+import { DEFAULT_SPEECH_PACE, SPEECH_PACE_PRESETS } from "@/service/director/speech-pace";
 import { SceneTextPicker } from "@/presentation/components/app/projects/new/scene-text-picker";
 import { VideoEditDesk } from "@/presentation/components/app/projects/new/video-edit-desk";
 import { ReviseStoryboardDialog } from "@/presentation/components/app/projects/new/revise-storyboard-dialog";
@@ -92,6 +101,13 @@ import { useProjectPoll } from "@/presentation/components/app/projects/new/use-p
 const ease = [0.22, 1, 0.36, 1] as const;
 
 // Whole create → director → produce → export flow lives on this one page.
+function queueKeysForPlan(plan: { frames: number[]; videos: number[] }) {
+  return [
+    ...plan.frames.map((clipNumber) => `frames:${clipNumber}`),
+    ...plan.videos.map((clipNumber) => `video:${clipNumber}`),
+  ];
+}
+
 export function NewProjectForm({
   projectId,
   skills,
@@ -128,6 +144,9 @@ export function NewProjectForm({
   const [language, setLanguage] = useState<VoLanguage>(initialVideo?.language || "en");
   const [voiceGender, setVoiceGender] = useState<VoiceGender>(
     initialVideo?.voiceGender || DEFAULT_VOICE_GENDER,
+  );
+  const [speechPace, setSpeechPace] = useState<SpeechPace>(
+    initialVideo?.speechPace || DEFAULT_SPEECH_PACE,
   );
   const [sceneTextLanguage, setSceneTextLanguage] = useState<SceneTextLanguage>(
     initialVideo?.sceneTextLanguage || "en",
@@ -238,6 +257,7 @@ export function NewProjectForm({
       project.styleId === styleId &&
       project.language === language &&
       project.voiceGender === voiceGender &&
+      project.speechPace === speechPace &&
       project.sceneTextLanguage === sceneTextLanguage &&
       project.aspectRatio === aspectRatio &&
       project.durationPreset === durationPreset &&
@@ -255,6 +275,7 @@ export function NewProjectForm({
     formData.set("source", source);
     formData.set("language", language);
     formData.set("voiceGender", voiceGender);
+    formData.set("speechPace", speechPace);
     formData.set("sceneTextLanguage", sceneTextLanguage);
     formData.set("aspectRatio", aspectRatio);
     formData.set("durationPreset", durationPreset);
@@ -307,42 +328,65 @@ export function NewProjectForm({
     key: string,
     action: () => Promise<PaidActionResult>,
     spend = costForPaidKey(key),
+    queueKeys?: string[],
   ) {
     setPending(key);
     setError("");
     creditsSnapshotRef.current = walletCredits;
     if (spend > 0) setWalletCredits((current) => current - spend);
     // Hide the old still/video immediately; the server write lands a moment later.
+    // Bulk passes one key per clip so the production queue flips with the click.
+    const clearKeys = queueKeys ?? [key];
     setProject((current) => {
       if (!current) return current;
-      const next = projectWithClearedFrames(current, key);
+      let next = current;
+      for (const item of clearKeys) next = projectWithClearedFrames(next, item);
       redoSnapshotRef.current = next === current ? null : current;
       return next;
     });
-    const result = await action();
-    setPending("");
-    if (!result.ok) {
-      setWalletCredits(creditsSnapshotRef.current);
-      if (redoSnapshotRef.current) {
-        setProject(redoSnapshotRef.current);
-        redoSnapshotRef.current = null;
-      }
-      setError(result.error);
-      if (result.error.includes("訂閱") || result.error.includes("credits 不足")) {
-        router.push("/app/billing");
-      }
-      return false;
-    }
-    redoSnapshotRef.current = null;
-    // Jobs are in the queue now: bump the task meters without waiting a tick.
+    // Queue row + spinner before the server action returns.
+    const held = project
+      ? holdOptimisticTasks(
+          paidKeyTasks({
+            videoId: project.id,
+            projectId: project.projectId,
+            title: project.phaseA?.localizedTitle || "未命名影片",
+            keys: queueKeys ?? [key],
+          }),
+        )
+      : [];
+    beginTaskRefresh();
     notifyTasksChanged();
-    const nextProject = paidActionProject(result);
-    if (nextProject) {
-      setProject(nextProject);
-      // Bulk / rewrite still return a full snapshot; refresh lists and wallet.
-      router.refresh();
+    try {
+      const result = await action();
+      setPending("");
+      if (!result.ok) {
+        releaseOptimisticTasks(held);
+        setWalletCredits(creditsSnapshotRef.current);
+        if (redoSnapshotRef.current) {
+          setProject(redoSnapshotRef.current);
+          redoSnapshotRef.current = null;
+        }
+        setError(result.error);
+        notifyTasksChanged();
+        if (result.error.includes("訂閱") || result.error.includes("credits 不足")) {
+          router.push("/app/billing");
+        }
+        return false;
+      }
+      redoSnapshotRef.current = null;
+      // Job rows exist now: replace the click-time queue with the server list.
+      notifyTasksChanged();
+      const nextProject = paidActionProject(result);
+      if (nextProject) {
+        setProject(nextProject);
+        // Bulk / rewrite still return a full snapshot; refresh lists and wallet.
+        router.refresh();
+      }
+      return true;
+    } finally {
+      endTaskRefresh();
     }
-    return true;
   }
 
   // Redo one frame; `revision` (sketch + remark) comes from the edit dialog.
@@ -409,7 +453,7 @@ export function NewProjectForm({
       setUpgradeCost(cheapest);
       return Promise.resolve(false);
     }
-    return runPaid(key, () => action(project.id), plan.cost);
+    return runPaid(key, () => action(project.id), plan.cost, queueKeysForPlan(plan));
   }
 
   // Filmstrip multi-select: frames or videos for the checked clips.
@@ -422,7 +466,12 @@ export function NewProjectForm({
         return Promise.resolve(false);
       }
     }
-    return runPaid("bulk", () => generateSelectedClipsAction(project.id, clipNumbers, kind));
+    return runPaid(
+      "bulk",
+      () => generateSelectedClipsAction(project.id, clipNumbers, kind),
+      0,
+      queueKeysForPlan(planSelected(project, clipNumbers, kind)),
+    );
   }
 
   const videoId = project?.id;
@@ -574,7 +623,7 @@ export function NewProjectForm({
                 <p className="mt-5 text-sm font-semibold">角色</p>
                 <p className="mt-1 text-xs text-muted">
                   {castNeed === 2
-                    ? "必選正好 2 個角色：提問者與回答者。只顯示與上方風格相同的角色。"
+                    ? "必須正好選 2 個角色（提問者與回答者），少一個或多一個都不能開始。只顯示與上方風格相同的角色。"
                     : "選填。最多 4 個；只顯示與上方風格相同的角色。"}
                 </p>
                 <div className="mt-3">
@@ -612,14 +661,21 @@ export function NewProjectForm({
 
               <Section
                 step="03"
-                title={dialogueOnly ? "對白語言" : "旁白語言與聲線"}
+                title={dialogueOnly ? "對白語言與語速" : "旁白語言、語速與聲線"}
                 hint={
                   dialogueOnly
-                    ? "角色用這個語言說話；聲線在產片時依角色外貌自動決定。這支短片沒有旁白。分鏡說明維持繁體中文。"
-                    : "影片會用這個語言與男／女聲配旁白；分鏡說明維持繁體中文。"
+                    ? "角色用這個語言、這個語速說話；聲線在產片時依角色外貌自動決定。這個導演沒有旁白。分鏡說明維持繁體中文。"
+                    : "影片會用這個語言、語速與男／女聲配旁白；分鏡說明維持繁體中文。"
                 }
               >
                 <LanguagePicker value={language} onChange={setLanguage} disabled={briefBusy} />
+                <p className="mt-4 text-sm font-semibold">語速</p>
+                <p className="mt-1 text-xs text-muted">
+                  影響每段講多少字：慢速字數較少、句間有停頓；快速字數較多。
+                </p>
+                <div className="mt-3">
+                  <SpeechPacePicker value={speechPace} onChange={setSpeechPace} disabled={briefBusy} />
+                </div>
                 {dialogueOnly ? null : (
                   <>
                     <p className="mt-4 text-sm font-semibold">旁白聲線</p>
@@ -686,9 +742,11 @@ export function NewProjectForm({
                       : "開始製作"}
                 </motion.button>
                 <p className="text-xs text-muted">
-                  {project
-                    ? "改題材會重寫分鏡並回到製作。已產生的畫格與影片會留著，但可能對不上。"
-                    : "這一步不扣 credits。分鏡寫好後會直接進入製作，產畫格與影片才扣款。"}
+                  {castNeed > 0 && characterIds.length !== castNeed
+                    ? `請先選正好 ${castNeed} 個角色，才能開始。`
+                    : project
+                      ? "改題材會重寫分鏡並回到製作。已產生的畫格與影片會留著，但可能對不上。"
+                      : "這一步不扣 credits。分鏡寫好後會直接進入製作，產畫格與影片才扣款。"}
                 </p>
               </div>
             </motion.form>
@@ -709,6 +767,8 @@ export function NewProjectForm({
               <span>{styleName}</span>
               <Dot />
               <span>{LANGUAGE_PRESETS[language].label}</span>
+              <Dot />
+              <span>{`語速 · ${SPEECH_PACE_PRESETS[speechPace].label}`}</span>
               {dialogueOnly ? null : (
                 <>
                   <Dot />

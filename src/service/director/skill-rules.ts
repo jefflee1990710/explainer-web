@@ -4,8 +4,11 @@ export const STORY_SHORT_SKILL_SLUG = "story-short-director";
 export const DIALOGUE_QA_SKILL_SLUG = "dialogue-qa-director";
 export const LISTICLE_SKILL_SLUG = "listicle-director";
 
+// Directors whose audio is character dialogue only: no narrator, no voice picker.
+const DIALOGUE_ONLY_SKILLS = new Set([STORY_SHORT_SKILL_SLUG, DIALOGUE_QA_SKILL_SLUG]);
+
 export function skillBansNarration(skillSlug?: string) {
-  return skillSlug === STORY_SHORT_SKILL_SLUG;
+  return Boolean(skillSlug && DIALOGUE_ONLY_SKILLS.has(skillSlug));
 }
 
 export function requiredCastCount(skillSlug?: string) {
@@ -65,17 +68,26 @@ export function listicleListEntries(clips: ListicleClip[]) {
   }));
 }
 
+// Shared by every dialogue-only director (story short, Q&A).
+export function dialogueOnlyDirectorBlock() {
+  return [
+    'There is NO narrator and NO third-person voiceover. The narrator field must start with "No narrator — characters speak." and may then describe each speaker\'s voice.',
+    'englishVo is only character dialogue written as NAME: "line", in the chosen dialogue language. Multiple speakers are allowed. A silent beat is "(no dialogue)".',
+  ].join(" ");
+}
+
 export function storyShortDirectorBlock() {
   return [
     "This is a SHORT FILM, not an explainer.",
-    'There is NO narrator and NO third-person voiceover. The narrator field must say: "No narrator — characters speak."',
-    'englishVo is only character dialogue written as NAME: "line". Multiple speakers are allowed. A silent beat is "(no dialogue)".',
     "Do not force want → obstacle → turn → resolution. Arrange clips in the order the source already tells; invent beats only when the source has no story of its own.",
   ].join(" ");
 }
 
 export function dialogueQaDirectorBlock() {
-  return "This director requires exactly two attached character blueprints. Assign one as ASKER and one as ANSWERER. Do not invent a third character or a replacement hero.";
+  return [
+    "This director requires exactly two attached character blueprints. Assign one as ASKER and one as ANSWERER. Do not invent a third character or a replacement hero.",
+    "Use each character's attached name as NAME in every dialogue line. The ASKER speaks the questions; the ANSWERER speaks the answers. No unseen host or narrator explains anything.",
+  ].join(" ");
 }
 
 export function listicleDirectorBlock() {

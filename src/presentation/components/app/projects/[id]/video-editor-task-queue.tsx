@@ -10,7 +10,7 @@ import { TaskMeter } from "@/presentation/studio/task-meter";
 // Pending count for this video, pinned to the editor dialog header.
 export function VideoEditorTaskQueue({ videoId }: { videoId: string }) {
   const { t } = useI18n();
-  const { tasks, error, loaded } = useTaskPoll(readCachedTasks(videoId) ?? [], videoId);
+  const { tasks, error, loaded, refreshing } = useTaskPoll(readCachedTasks(videoId) ?? [], videoId);
   const [open, setOpen] = useState(false);
   const pending = tasks.filter((task) => task.stage !== "done" && task.stage !== "failed").length;
   return (
@@ -18,6 +18,7 @@ export function VideoEditorTaskQueue({ videoId }: { videoId: string }) {
       <TaskMeter
         pending={pending}
         poll={false}
+        refreshing={refreshing}
         videoId={videoId}
         tasksLabel={t("nav.tasks")}
         pendingLabel={t("common.pending")}
@@ -28,6 +29,7 @@ export function VideoEditorTaskQueue({ videoId }: { videoId: string }) {
           videoId={videoId}
           tasks={tasks}
           loaded={loaded}
+          refreshing={refreshing}
           error={error}
           onClose={() => setOpen(false)}
         />

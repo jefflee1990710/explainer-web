@@ -12,6 +12,8 @@ export type LoopMode = "linear" | "infinite";
 export type VoLanguage = "en" | "yue" | "zh";
 // Narrator / spoken-voice gender chosen on the input step.
 export type VoiceGender = "male" | "female";
+// How fast the narrator / characters speak; scales the spoken-word budget.
+export type SpeechPace = "slow" | "medium" | "fast";
 // On-canvas labels in storyboard stills; independent of voiceover language.
 export type SceneTextLanguage = "en" | "zh-Hant" | "zh-Hans";
 
@@ -170,6 +172,8 @@ export type Project = {
   language?: VoLanguage;
   // Optional for legacy documents; defaults to male when absent.
   voiceGender?: VoiceGender;
+  // Optional for legacy documents; defaults to medium when absent.
+  speechPace?: SpeechPace;
   // Missing or false → no on-canvas labels. True + language → labels in that script.
   sceneTextEnabled?: boolean;
   sceneTextLanguage?: SceneTextLanguage;
@@ -273,6 +277,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   styleId: styleIdSchema.optional(),
   language: z.enum(["en", "yue", "zh"]).optional(),
   voiceGender: z.enum(["male", "female"]).optional(),
+  speechPace: z.enum(["slow", "medium", "fast"]).optional(),
   sceneTextEnabled: z.boolean().optional(),
   sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans"]).optional(),
   characterImageUrl: z.string().optional(),

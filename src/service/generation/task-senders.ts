@@ -63,6 +63,7 @@ async function sendVideo(project: Project, clipNumber: number) {
     clipNumber,
     language: project.language,
     voiceGender: project.voiceGender,
+    speechPace: project.speechPace,
     characterImageUrl: project.characterImageUrl,
     cast: project.cast,
   });

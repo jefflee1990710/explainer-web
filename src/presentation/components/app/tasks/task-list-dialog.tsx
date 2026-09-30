@@ -13,6 +13,7 @@ export function TaskListDialog({
   onClose,
   tasks: seededTasks,
   loaded: seededLoaded,
+  refreshing: seededRefreshing,
   error: seededError,
 }: {
   videoId: string;
@@ -20,6 +21,7 @@ export function TaskListDialog({
   // Parent already polling — reuse those rows so the dialog does not spin.
   tasks?: PublicTask[];
   loaded?: boolean;
+  refreshing?: boolean;
   error?: string;
 }) {
   const titleId = useId();
@@ -27,6 +29,7 @@ export function TaskListDialog({
   const polled = useTaskPoll(readCachedTasks(videoId) ?? [], videoId, ownPoll);
   const tasks = seededTasks ?? polled.tasks;
   const loaded = seededLoaded ?? polled.loaded;
+  const refreshing = seededRefreshing ?? polled.refreshing;
   const error = seededError ?? polled.error;
   const pending = tasks.filter((task) => task.stage !== "done" && task.stage !== "failed").length;
   useEffect(() => {
@@ -57,7 +60,15 @@ export function TaskListDialog({
               這支影片的生成任務
             </h2>
             <p className="mt-1 text-sm text-muted">
-              {loaded ? (pending > 0 ? `${pending} 個進行中` : "沒有進行中的任務") : "載入中…"}
+              {refreshing
+                ? pending > 0
+                  ? `更新中… ${pending} 個進行中`
+                  : "更新中…"
+                : loaded
+                  ? pending > 0
+                    ? `${pending} 個進行中`
+                    : "沒有進行中的任務"
+                  : "載入中…"}
             </p>
           </div>
           <button
@@ -75,7 +86,7 @@ export function TaskListDialog({
         ) : null}
         <div className="mt-4">
           {loaded || tasks.length > 0 ? (
-            <TaskList tasks={tasks} />
+            <TaskList tasks={tasks} clock />
           ) : (
             <div className="grid place-items-center py-8 text-[var(--studio-muted)]">
               <Spinner className="h-5 w-5" />

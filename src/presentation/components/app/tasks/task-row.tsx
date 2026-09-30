@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Spinner } from "@/presentation/components/spinner";
+import { TaskClockLabel } from "@/presentation/components/app/tasks/task-clock-label";
 import { TaskStageBadge } from "@/presentation/components/app/tasks/task-stage-badge";
 import type { PublicTask } from "@/service/generation/task-list";
 
 // One generation task: preview, what it is, where it stands.
-export function TaskRow({ task }: { task: PublicTask }) {
+export function TaskRow({ task, clock = false }: { task: PublicTask; clock?: boolean }) {
   const busy = task.stage !== "done" && task.stage !== "failed";
   const time = new Date(task.updatedAt).toLocaleString("zh-Hant", {
     month: "numeric",
@@ -42,10 +43,18 @@ export function TaskRow({ task }: { task: PublicTask }) {
         </Link>
         <p className="text-xs text-[var(--studio-muted)]">
           {task.detail} ·{" "}
-          {/* Server renders UTC, browser its local zone; let the client text win. */}
-          <time dateTime={task.updatedAt} suppressHydrationWarning>
-            {time}
-          </time>
+          {clock ? (
+            <TaskClockLabel
+              createdAt={task.createdAt}
+              updatedAt={task.updatedAt}
+              settled={!busy}
+            />
+          ) : (
+            // Server renders UTC, browser its local zone; let the client text win.
+            <time dateTime={task.updatedAt} suppressHydrationWarning>
+              {time}
+            </time>
+          )}
           {task.stage === "queued" && task.attempts > 0 ? ` · 第 ${task.attempts + 1} 次嘗試` : ""}
         </p>
         {task.error ? <p className="line-clamp-2 text-xs text-accent">{task.error}</p> : null}

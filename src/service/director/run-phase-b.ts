@@ -9,7 +9,8 @@ import { clipPhaseBUserPrompt, phaseBCharacterLine } from "@/service/director/ph
 import { phaseBClipSchema } from "@/model/director";
 import type { Style } from "@/service/style";
 import type { CastMember } from "@/model/character";
-import type { PhaseAProposal, PhaseBPrompt, VoLanguage, VoiceGender } from "@/model/project";
+import type { PhaseAProposal, PhaseBPrompt, SpeechPace, VoLanguage, VoiceGender } from "@/model/project";
+import { speechPaceDelivery } from "@/service/director/speech-pace";
 import type { Skill } from "@/model/skill";
 
 type PhaseBInput = {
@@ -18,6 +19,7 @@ type PhaseBInput = {
   phaseA: PhaseAProposal;
   language?: VoLanguage;
   voiceGender?: VoiceGender;
+  speechPace?: SpeechPace;
   characterImageUrl?: string;
   cast?: CastMember[];
 };
@@ -33,7 +35,7 @@ Spoken lines in every prompt must be quoted verbatim from the approved englishVo
     skillBansNarration(input.skill.slug)
       ? "There is no narrator. Characters speak those lines. Do not copy a male/female narrator fingerprint. Infer each NAME's voice from that character in the keyframes."
       : `Copy the locked adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice fingerprint verbatim into every clip prompt. Do not invent a new narrator.`
-  } Never request background music, BGM, a musical score, or an underscore. Voice and short synced SFX only.`;
+  } Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. Never request background music, BGM, a musical score, or an underscore. Voice and short synced SFX only.`;
 }
 
 function characterLine(input: PhaseBInput) {
@@ -58,6 +60,7 @@ export async function runPhaseBForClip(
       languageLabel: language.label,
       languageSublabel: language.sublabel,
       voiceGender: input.voiceGender,
+      speechPace: input.speechPace,
       bansNarration: skillBansNarration(input.skill.slug),
       characterLine: characterLine(input),
     }),
@@ -70,6 +73,7 @@ export async function runPhaseBForClip(
     voiceGender: input.voiceGender,
     languageLabel: language.label,
     bansNarration: skillBansNarration(input.skill.slug),
+    speechPace: input.speechPace,
   });
   // The model may echo a wrong number; trust the caller.
   return {

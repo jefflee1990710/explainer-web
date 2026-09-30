@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { listTasksOnce } from "@/presentation/components/app/tasks/task-fetch";
+import { isTaskRefreshing, subscribeTaskRefresh } from "@/presentation/components/app/tasks/task-refresh";
 import { subscribeTaskChanges } from "@/presentation/components/app/tasks/task-signal";
+import { Spinner } from "@/presentation/components/spinner";
 
 const POLL_MS = 5_000;
 
@@ -17,6 +19,7 @@ export function TaskMeter({
   onOpen,
   ariaExpanded,
   poll = true,
+  refreshing = false,
 }: {
   pending: number;
   tasksLabel: string;
@@ -28,11 +31,15 @@ export function TaskMeter({
   ariaExpanded?: boolean;
   // False when a parent already polls and passes the live count.
   poll?: boolean;
+  // Parent is refetching, or a generate click is still landing in the queue.
+  refreshing?: boolean;
 }) {
   const pathname = usePathname();
   // Own poll result when polling; otherwise the parent's live count wins.
   const [polled, setPolled] = useState(initialPending);
+  const [selfRefreshing, setSelfRefreshing] = useState(false);
   const pending = poll ? polled : initialPending;
+  const showRefreshing = refreshing || (poll && selfRefreshing);
   const inFlight = useRef(false);
   const active = !onOpen && (pathname === "/app/tasks" || pathname.startsWith("/app/tasks/"));
   const label = `${tasksLabel}, ${pending} ${pendingLabel}`;
@@ -47,14 +54,15 @@ export function TaskMeter({
     let alive = true;
     // A change signal that arrives mid-request queues one more fetch.
     let dirty = false;
-    async function tick() {
+    async function tick(advance: boolean) {
       if (inFlight.current) {
         dirty = true;
         return;
       }
       inFlight.current = true;
+      setSelfRefreshing(true);
       try {
-        const result = await listTasksOnce(videoId);
+        const result = await listTasksOnce(videoId, { advance });
         if (!alive || !result.ok) return;
         setPolled(result.tasks.filter((task) => task.stage !== "done" && task.stage !== "failed").length);
       } finally {
@@ -62,24 +70,30 @@ export function TaskMeter({
       }
       if (dirty && alive) {
         dirty = false;
-        void tick();
+        await tick(advance);
+        return;
       }
+      if (alive) setSelfRefreshing(isTaskRefreshing());
     }
-    void tick();
-    const timer = window.setInterval(tick, POLL_MS);
+    void tick(false);
+    const timer = window.setInterval(() => void tick(true), POLL_MS);
     // Refetch right away when a job is queued or settles anywhere on the page.
-    const unsubscribe = subscribeTaskChanges(() => void tick());
+    const unsubscribe = subscribeTaskChanges(() => void tick(false));
+    const unsubscribeRefresh = subscribeTaskRefresh(() => {
+      setSelfRefreshing(isTaskRefreshing() || inFlight.current);
+    });
     return () => {
       alive = false;
       window.clearInterval(timer);
       unsubscribe();
+      unsubscribeRefresh();
     };
   }, [videoId, poll]);
 
   const body = (
     <>
       <span className="flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold tabular-nums">
-        <TasksIcon />
+        {showRefreshing ? <Spinner className="h-3.5 w-3.5" /> : <TasksIcon />}
         {pending} {pendingLabel}
       </span>
       <div

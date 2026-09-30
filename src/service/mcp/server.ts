@@ -292,11 +292,18 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
         durationPreset: z.enum(["micro", "short", "punchy", "full"]),
         language: z.string().default("en"),
         voiceGender: z.enum(["male", "female"]).default("male"),
+        speechPace: z
+          .enum(["slow", "medium", "fast"])
+          .default("medium")
+          .describe("Speaking speed for narration / dialogue"),
         sceneTextLanguage: z
           .enum(["en", "zh-Hant", "zh-Hans"])
           .default("en")
           .describe("On-canvas text is always on; this picks its script"),
-        characterIds: z.array(z.string()).optional(),
+        characterIds: z
+          .array(z.string())
+          .optional()
+          .describe("Required: exactly 2 ids when skillSlug is dialogue-qa-director"),
       },
     },
     wrapTool(user, apiKey, "create_video", 0, async (args) => {
@@ -309,6 +316,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
       form.set("durationPreset", args.durationPreset);
       form.set("language", args.language);
       form.set("voiceGender", args.voiceGender);
+      form.set("speechPace", args.speechPace);
       form.set("sceneTextLanguage", args.sceneTextLanguage);
       for (const id of args.characterIds || []) form.append("characterIds", id);
       const result = await createVideoAction(form);

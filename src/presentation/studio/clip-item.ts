@@ -11,4 +11,8 @@ export type StudioClipItem = {
   busy: boolean;
   stale: boolean;
   tone: StudioClipTone;
+  // Both scene stills (start + end) already have a file.
+  hasScene: boolean;
+  // This clip's video file already exists.
+  hasVideo: boolean;
 };

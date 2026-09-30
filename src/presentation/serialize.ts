@@ -1,6 +1,7 @@
 import { resolveDefaultVersion, versionNumber } from "@/service/character/versions";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { resolveVoiceGender } from "@/service/director/voice";
+import { resolveSpeechPace } from "@/service/director/speech-pace";
 import { productionCounts } from "@/service/clip-stage";
 import { folderRollupStatus } from "@/service/folder";
 import { normalizeProjectStatus } from "@/service/project-status";
@@ -40,6 +41,7 @@ export type PublicVideo = {
   styleId: StyleId;
   language: NonNullable<Project["language"]>;
   voiceGender: NonNullable<Project["voiceGender"]>;
+  speechPace: NonNullable<Project["speechPace"]>;
   sceneTextEnabled: boolean;
   sceneTextLanguage: NonNullable<Project["sceneTextLanguage"]>;
   characterImageUrl?: string;
@@ -145,6 +147,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     styleId: resolveStyle(video.styleId).id,
     language: video.language || "en",
     voiceGender: resolveVoiceGender(video.voiceGender),
+    speechPace: resolveSpeechPace(video.speechPace),
     sceneTextEnabled: sceneText.enabled,
     sceneTextLanguage: sceneText.language,
     characterImageUrl: video.characterImageUrl,

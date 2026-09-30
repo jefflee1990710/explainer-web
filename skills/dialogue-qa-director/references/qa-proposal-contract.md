@@ -9,7 +9,7 @@ Present a readable director's proposal and stop for confirmation before writing 
 - Put the biggest "aha" in the last third.
 - Assign roles: ASKER (viewer stand-in) and ANSWERER (expert). Fix their screen sides.
 
-Spoken words scale with the preset (~2.2–2.5 words/second):
+Spoken words scale with the preset (~2.2–2.5 words/second at medium pace). Slow ≈ 0.8×; fast ≈ 1.2×. Clip count and duration stay the same:
 
 - **4–8s micro**: ~10–18 words, 1–2 clips — one question, one answer.
 - **15–20s short**: ~35–50 words, 2–4 clips — 1–2 exchanges.
@@ -22,13 +22,13 @@ Spoken words scale with the preset (~2.2–2.5 words/second):
 2. Total duration, clip count N (each 3–8s), loop mode: always Linear
 3. Core answer and the hook question (+ the asker's motion/prop device)
 4. Aspect ratio, setting, fixed staging (who is on which side), aid zone
-5. Both voice identities and total spoken-unit count
+5. Dialogue language, "No narrator — characters speak." plus both voice identities, and total spoken-unit count
 6. Two-character lock: attached blueprints exactly (with role assignment), or the two defined characters
-7. Music direction and the exchange ladder mapped to clips
+7. SFX direction (no background music) and the exchange ladder mapped to clips
 
 ## Storyboard contract
 
-| Clip # & time | Exchange / role | Scene at clip start (both characters + aid) | Gesture, reaction, aid change, camera & handoff | Dialogue (NAME: "line") | BGM / SFX |
+| Clip # & time | Exchange / role | Scene at clip start (both characters + aid) | Gesture, reaction, aid change, camera & handoff | Dialogue (NAME: "line") | SFX |
 |---|---|---|---|---|---|
 
 Rules per row:
@@ -57,6 +57,7 @@ Ask the user to approve, swap a question, change a role assignment, or change a 
 ## Phase A checks
 
 - Roles and fixed sides stated; two-character lock present; no restyling of attached blueprints.
+- No narrator: every spoken line is `NAME: "line"` from the asker or the answerer, in the dialogue language.
 - Every answer traces to the source; no invented facts.
 - Hook is a question mid-gesture, not a greeting.
 - "Aha" lands in the last third; the button rests both characters.

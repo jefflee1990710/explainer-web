@@ -45,6 +45,7 @@ export async function runPhaseAJob(
       durationPreset: project.durationPreset,
       language: project.language,
       voiceGender: project.voiceGender,
+      speechPace: project.speechPace,
       sceneTextEnabled: project.sceneTextEnabled,
       sceneTextLanguage: project.sceneTextLanguage,
       characterImageUrl: project.characterImageUrl,

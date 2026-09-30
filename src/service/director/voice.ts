@@ -1,4 +1,5 @@
 import type { VoiceGender } from "@/model/project";
+import { speechPaceDelivery } from "@/service/director/speech-pace";
 
 export const DEFAULT_VOICE_GENDER: VoiceGender = "male";
 
@@ -21,7 +22,7 @@ export const VOICE_PRESETS: Record<VoiceGender, VoicePreset> = {
     skillHint:
       "Narrator voice lock: warm, engaging adult male voice. Never switch to a female voice.",
     fingerprint:
-      "mid-low pitch, slightly chesty, warm and engaging, clear conversational delivery, moderate pace. Never switch speaker, gender, accent, or age; change only emotion or volume.",
+      "mid-low pitch, slightly chesty, warm and engaging, clear conversational delivery. Never switch speaker, gender, accent, or age; change only emotion or volume.",
   },
   female: {
     id: "female",
@@ -31,7 +32,7 @@ export const VOICE_PRESETS: Record<VoiceGender, VoicePreset> = {
     skillHint:
       "Narrator voice lock: warm, engaging adult female voice. Never switch to a male voice.",
     fingerprint:
-      "mid pitch, warm and engaging, clear conversational delivery, moderate pace. Never switch speaker, gender, accent, or age; change only emotion or volume.",
+      "mid pitch, warm and engaging, clear conversational delivery. Never switch speaker, gender, accent, or age; change only emotion or volume.",
   },
 };
 
@@ -65,14 +66,16 @@ export function phaseBAudioLock(input: {
   voiceGender?: string;
   languageLabel: string;
   bansNarration?: boolean;
+  speechPace?: string;
 }) {
+  const pace = `Speaking pace on every clip: ${speechPaceDelivery(input.speechPace)}.`;
   const speaker = input.bansNarration
     ? `There is no narrator. Each named speaker uses a distinct natural voice that matches that character's apparent gender, age, and look in the locked start/end frames and in Phase A characterLock. The same NAME keeps the same voice, accent, and age on every clip. Do not invent a shared narrator timbre. Silent beats stay silent.`
     : (() => {
         const voice = VOICE_PRESETS[resolveVoiceGender(input.voiceGender)];
         return `Same narrator on every clip: a warm, engaging adult ${voice.en} voice speaking ${input.languageLabel}, ${voice.fingerprint}`;
       })();
-  return `${speaker} ${NO_BGM_RULE}`;
+  return `${speaker} ${pace} ${NO_BGM_RULE}`;
 }
 
 export function finalizePhaseBPrompt(prompt: string, lock: string) {

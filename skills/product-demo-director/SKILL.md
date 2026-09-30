@@ -41,7 +41,7 @@ Order features by desire: the most wanted feature comes last before the result. 
 ## Narration
 
 - Default: a confident, friendly adult presenter voice in the requested voiceover language, second person ("you"). First-person presenter lines are allowed if the cast is the presenter.
-- ~7–20 spoken words per clip; benefit language ("so you can…") over spec language.
+- ~7–20 spoken words per clip at medium speaking pace. Slow ≈ 0.8× those words with pauses; fast ≈ 1.2× with fewer pauses. Clip duration stays the same. Benefit language ("so you can…") over spec language.
 - Narration is audio-only. Never caption or subtitle it. In-world text is allowed only as part of the product or packaging (the product name on the box, a button label) — short, exactly spelled.
 
 ## Phase A field mapping

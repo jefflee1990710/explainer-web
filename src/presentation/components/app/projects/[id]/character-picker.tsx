@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { castPickStatus } from "@/presentation/components/app/projects/[id]/cast-pick-status";
 import type { PublicCharacter } from "@/presentation/serialize";
 
 // Multi-select of characters with a completed default blueprint. When a video
@@ -28,10 +29,14 @@ export function CharacterPicker({
     (character) => character.previewUrl && (!styleId || character.styleId === styleId),
   );
 
-  if (ready.length === 0) {
+  if (ready.length === 0 || (required > 0 && ready.length < required)) {
     return (
-      <p className="text-sm text-muted">
-        {anyReady ? "這個風格還沒有角色。" : "還沒有可用的角色。"}
+      <p className="text-sm font-medium text-accent">
+        {required > 0
+          ? `這個導演必須正好選 ${required} 個角色。這個風格目前只有 ${ready.length} 個可用。`
+          : anyReady
+            ? "這個風格還沒有角色。"
+            : "還沒有可用的角色。"}
         <Link href="/app/characters" className="ml-1 font-semibold underline underline-offset-4">
           先到角色庫建立 →
         </Link>
@@ -49,9 +54,16 @@ export function CharacterPicker({
     }
   }
 
+  const pick = castPickStatus(value.length, required, max);
+
   return (
     <div>
-      <div role="group" aria-label="角色" className="grid gap-2 sm:grid-cols-2">
+      <div
+        role="group"
+        aria-label="角色"
+        aria-required={required > 0}
+        className="grid gap-2 sm:grid-cols-2"
+      >
         {ready.map((character) => {
           const active = value.includes(character.id);
           const full = !active && value.length >= max;
@@ -88,10 +100,8 @@ export function CharacterPicker({
           );
         })}
       </div>
-      <p className="mt-2 text-xs text-muted">
-        {required > 0
-          ? `這個導演需要正好 ${required} 個角色。已選 ${value.length} / ${required}。`
-          : `已選 ${value.length} / ${max}。`}
+      <p className={`mt-2 text-xs ${pick.ok ? "text-muted" : "font-medium text-accent"}`}>
+        {pick.text}
         <Link href="/app/characters" className="ml-1 underline underline-offset-4">
           管理角色
         </Link>

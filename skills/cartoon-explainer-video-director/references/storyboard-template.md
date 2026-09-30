@@ -55,7 +55,7 @@ Produce $N$ approximately 3–8 second rows (maximum 8 seconds per row):
 | Clip # & Time (3–8s) | Narrative & retention job | Explainer scene | Motion, camera (2s visual rule), & transition | English VO | Reference translation | BGM / SFX |
 |---|---|---|---|---|---|---|
 
-Give each row a different narrative job. Allocate approximately 7–20 English words per row depending on clip length (3–8s) while keeping sentence boundaries tight and natural.
+Give each row a different narrative job. Allocate approximately 7–20 English words per row at medium speaking pace depending on clip length (3–8s). Slow ≈ 0.8×; fast ≈ 1.2×. Keep sentence boundaries tight and natural.
 
 ## Visual-density recipe
 
