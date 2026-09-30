@@ -14,6 +14,7 @@ export const zhHant: Messages = {
     affiliate: "聯盟",
     billing: "訂閱",
     examples: "成果",
+    home: "首頁",
     pricing: "方案",
     signIn: "登入",
     workspace: "工作台",

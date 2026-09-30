@@ -46,11 +46,7 @@ export function AppShell({
       }
       toolbar={
         <>
-          {/* Narrow rail: globe icon with an invisible select over it */}
-          <LanguageSwitcher
-            className="relative w-full justify-center lg:justify-start"
-            selectClassName="min-w-0 flex-1 max-lg:absolute max-lg:inset-0 max-lg:opacity-0"
-          />
+          <LanguageSwitcher className="w-full" />
           <div className="flex justify-center lg:justify-start lg:px-1">
             <SignOutButton
               label={t("auth.signOut")}

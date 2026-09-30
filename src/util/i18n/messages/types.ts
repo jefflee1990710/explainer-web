@@ -12,6 +12,7 @@ export type Messages = {
     affiliate: string;
     billing: string;
     examples: string;
+    home: string;
     pricing: string;
     signIn: string;
     workspace: string;
