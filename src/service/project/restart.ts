@@ -38,6 +38,7 @@ export const RESTART_UNSET_FIELDS = {
   reelStatus: "",
   reelFingerprint: "",
   reelError: "",
+  reelAttempts: "",
   finalUrl: "",
   finalStatus: "",
   finalFingerprint: "",

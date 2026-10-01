@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import ffmpegPath from "ffmpeg-static";
+import { REEL_TIMEOUT_MESSAGE } from "@/service/reel/timeout";
 
 export const CLIP_EDGE_FADE_SEC = 0.1;
 
@@ -49,18 +50,34 @@ function roundFade(value: number) {
   return Math.round(value * 1000) / 1000;
 }
 
-// Concat storyboard clips in order with 100ms fades on every clip edge.
-export async function concatMp4Urls(urls: string[]): Promise<Buffer> {
-  if (urls.length === 0) throw new Error("沒有可合成的片段");
-  if (urls.length === 1) return fetchBuffer(urls[0], "片段");
-  const buffers = [];
-  for (let i = 0; i < urls.length; i += 1) {
-    buffers.push(await fetchBuffer(urls[i], `第 ${i + 1} 段`));
+function timeoutError(error: unknown) {
+  if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
+    return new Error(REEL_TIMEOUT_MESSAGE);
   }
-  return concatMp4Buffers(buffers);
+  return error;
 }
 
-export async function concatMp4Buffers(buffers: Buffer[]): Promise<Buffer> {
+function remainingMs(timeoutMs: number | undefined, started: number) {
+  if (timeoutMs == null) return undefined;
+  const left = timeoutMs - (Date.now() - started);
+  if (left <= 0) throw new Error(REEL_TIMEOUT_MESSAGE);
+  return left;
+}
+
+// Concat storyboard clips in order with 100ms fades on every clip edge.
+// timeoutMs covers the whole download plus encode, not each clip separately.
+export async function concatMp4Urls(urls: string[], timeoutMs?: number): Promise<Buffer> {
+  if (urls.length === 0) throw new Error("沒有可合成的片段");
+  const started = Date.now();
+  if (urls.length === 1) return fetchBuffer(urls[0], "片段", remainingMs(timeoutMs, started));
+  const buffers = [];
+  for (let i = 0; i < urls.length; i += 1) {
+    buffers.push(await fetchBuffer(urls[i], `第 ${i + 1} 段`, remainingMs(timeoutMs, started)));
+  }
+  return concatMp4Buffers(buffers, remainingMs(timeoutMs, started));
+}
+
+export async function concatMp4Buffers(buffers: Buffer[], timeoutMs?: number): Promise<Buffer> {
   if (buffers.length === 0) throw new Error("沒有可合成的片段");
   if (buffers.length === 1) return buffers[0];
 
@@ -72,8 +89,9 @@ export async function concatMp4Buffers(buffers: Buffer[]): Promise<Buffer> {
       await writeFile(join(dir, name), buffers[i]);
       names.push(name);
     }
+    const started = Date.now();
     const probes = [];
-    for (const name of names) probes.push(await probeClip(dir, name));
+    for (const name of names) probes.push(await probeClip(dir, name, remainingMs(timeoutMs, started)));
     const filter = buildEdgeFadeFilter(
       probes.map((item) => item.duration),
       probes.map((item) => item.hasAudio),
@@ -99,15 +117,15 @@ export async function concatMp4Buffers(buffers: Buffer[]): Promise<Buffer> {
       "+faststart",
       "reel.mp4",
     );
-    await runFfmpeg(dir, args);
+    await runFfmpeg(dir, args, remainingMs(timeoutMs, started));
     return await readFile(out);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
 }
 
-async function probeClip(cwd: string, name: string) {
-  const stderr = await ffmpegStderr(cwd, ["-i", name]);
+async function probeClip(cwd: string, name: string, timeoutMs?: number) {
+  const stderr = await ffmpegStderr(cwd, ["-i", name], timeoutMs);
   const match = stderr.match(/Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/);
   if (!match) throw new Error(`無法讀取 ${name} 時長`);
   const duration =
@@ -115,7 +133,7 @@ async function probeClip(cwd: string, name: string) {
   return { duration, hasAudio: /Audio:/.test(stderr) };
 }
 
-export function ffmpegStderr(cwd: string, args: string[]) {
+export function ffmpegStderr(cwd: string, args: string[], timeoutMs?: number) {
   return new Promise<string>((resolve, reject) => {
     if (!ffmpegPath) {
       reject(new Error("找不到 ffmpeg，無法合成成片"));
@@ -123,21 +141,33 @@ export function ffmpegStderr(cwd: string, args: string[]) {
     }
     const child = spawn(ffmpegPath, args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
     let stderr = "";
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      fn();
+    };
+    const timer = armFfmpegTimeout(child, timeoutMs, () => finish(() => reject(new Error(REEL_TIMEOUT_MESSAGE))));
     child.stderr.on("data", (chunk: Buffer) => {
       stderr += chunk.toString();
     });
-    child.on("error", reject);
-    child.on("close", () => resolve(stderr));
+    child.on("error", (error) => finish(() => reject(timeoutError(error))));
+    child.on("close", () => finish(() => resolve(stderr)));
   });
 }
 
-export async function fetchBuffer(url: string, label: string) {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`無法下載${label}（${response.status}）`);
-  return Buffer.from(await response.arrayBuffer());
+export async function fetchBuffer(url: string, label: string, timeoutMs?: number) {
+  try {
+    const response = await fetch(url, timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : undefined);
+    if (!response.ok) throw new Error(`無法下載${label}（${response.status}）`);
+    return Buffer.from(await response.arrayBuffer());
+  } catch (error) {
+    throw timeoutError(error);
+  }
 }
 
-export function runFfmpeg(cwd: string, args: string[]) {
+export function runFfmpeg(cwd: string, args: string[], timeoutMs?: number) {
   return new Promise<void>((resolve, reject) => {
     if (!ffmpegPath) {
       reject(new Error("找不到 ffmpeg，無法合成成片"));
@@ -145,16 +175,39 @@ export function runFfmpeg(cwd: string, args: string[]) {
     }
     const child = spawn(ffmpegPath, args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
     let stderr = "";
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      fn();
+    };
+    const timer = armFfmpegTimeout(child, timeoutMs, () => finish(() => reject(new Error(REEL_TIMEOUT_MESSAGE))));
     child.stderr.on("data", (chunk: Buffer) => {
       stderr += chunk.toString();
     });
-    child.on("error", reject);
+    child.on("error", (error) => finish(() => reject(timeoutError(error))));
     child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-        return;
-      }
-      reject(new Error(stderr.trim().split("\n").slice(-3).join(" ") || `ffmpeg 結束碼 ${code}`));
+      finish(() => {
+        if (code === 0) {
+          resolve();
+          return;
+        }
+        reject(new Error(stderr.trim().split("\n").slice(-3).join(" ") || `ffmpeg 結束碼 ${code}`));
+      });
     });
   });
+}
+
+// Kill a hung encode. The close handler no-ops once the timeout already rejected.
+function armFfmpegTimeout(
+  child: ReturnType<typeof spawn>,
+  timeoutMs: number | undefined,
+  onTimeout: () => void,
+) {
+  if (timeoutMs == null) return null;
+  return setTimeout(() => {
+    child.kill("SIGKILL");
+    onTimeout();
+  }, timeoutMs);
 }

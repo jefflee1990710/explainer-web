@@ -3,6 +3,7 @@ import { mediaUrlFromResponse, fetchHiggsfieldStatus } from "@/service/higgsfiel
 import { applyJobStatus, refreshProjectJobs } from "@/service/higgsfield/pipeline";
 import { failJob, runJobById } from "@/service/generation/task-runner";
 import { MAX_SUBMIT_ATTEMPTS, PROVIDER_TIMEOUT_MS, providerTimedOut } from "@/service/generation/task-policy";
+import { recoverStaleReel } from "@/service/reel/enqueue";
 import type { GenerationJob } from "@/model/generation-job";
 
 // One poll should not submit a pile of images.
@@ -28,6 +29,17 @@ export function jobNeedsResend(
 // jobs whose runner died, and time out ones the provider never finished.
 export async function advanceOwnedJobs(clerkUserId: string) {
   const videos = await videosCollection();
+  // Reel concat is local ffmpeg, not a generation job. Retry ones whose worker died.
+  const busyReels = await videos
+    .find({ clerkUserId, reelStatus: { $in: ["queued", "in_progress"] } })
+    .limit(20)
+    .toArray();
+  for (const video of busyReels) {
+    await recoverStaleReel(video).catch((error) => {
+      console.error("[reel] recover failed", { videoId: video._id.toHexString(), error });
+    });
+  }
+
   const videoDocs = await videos
     .find({ clerkUserId }, { projection: { _id: 1 } })
     .sort({ updatedAt: -1 })

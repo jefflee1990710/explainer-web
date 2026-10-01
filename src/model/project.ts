@@ -203,6 +203,8 @@ export type Project = {
   reelStatus?: ReelStatus;
   reelFingerprint?: string;
   reelError?: string;
+  // Compose tries for the current fingerprint. A dead worker retries until the cap.
+  reelAttempts?: number;
   // Branding edit for the Video tab (copy, never linked to the template).
   edit?: VideoEdit;
   // Template last applied to or saved from this video.
@@ -349,6 +351,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   reelStatus: z.enum(["queued", "in_progress", "completed", "failed"]).optional(),
   reelFingerprint: z.string().optional(),
   reelError: z.string().optional(),
+  reelAttempts: z.number().optional(),
   edit: videoEditSchema.optional(),
   editTemplateId: objectIdSchema.optional(),
   finalUrl: z.string().optional(),

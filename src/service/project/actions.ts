@@ -29,6 +29,8 @@ import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { isStyleId, type StyleId } from "@/service/style";
 import type { CastMember, Character } from "@/model/character";
 import { isProjectBusy } from "@/service/clip-stage";
+import { isReelBusy } from "@/service/reel/fingerprint";
+import { recoverStaleReel } from "@/service/reel/enqueue";
 import { applyPhaseAEdits } from "@/service/director/phase-a-edit";
 import { collectVideoBlobUrls } from "@/service/video/storage";
 import {
@@ -685,6 +687,14 @@ export async function getVideoAction(videoId: string): Promise<VideoResult> {
       clerkUserId,
     });
     if (!video) return { ok: false, error: "專案不存在" };
+    // Editor poll: a reel left in_progress after the worker died gets retried here.
+    if (isReelBusy(video.reelStatus)) {
+      const recovered = await recoverStaleReel(video);
+      if (recovered) {
+        const fresh = await videos.findOne({ _id: video._id });
+        if (fresh) return { ok: true, project: toPublicVideo(fresh) };
+      }
+    }
     // Leftover 核准分鏡 videos enter 製作 the first time they are opened.
     if (video.status === "awaiting_approval" && video.phaseA) {
       await videos.updateOne(
