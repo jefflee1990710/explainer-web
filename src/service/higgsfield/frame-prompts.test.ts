@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import type { Project } from "@/model/project";
 import {
+  FRAME_PROMPT_BUDGET,
   IMAGE_PROMPT_MAX_CHARS,
   buildFramePrompt,
   frameSubmitPlan,
@@ -167,15 +168,10 @@ test("with a cast, the blueprint rule precedes names-only lock and skips invente
   ];
   withCast.phaseA!.characterLock = "Math Tutor 穿鼠尾草綠無袖連身裙";
   const prompt = buildFramePrompt(withCast, 1, "start");
-  const sheetAt = prompt.indexOf("Attached image 1 is the selected character blueprint");
-  const lockAt = prompt.indexOf("Locked cast");
-  assert.ok(sheetAt >= 0, "cast sheet line missing");
-  assert.ok(lockAt >= 0, "cast lock line missing");
-  assert.ok(sheetAt < lockAt, "blueprint rule must come before the lock line");
-  assert.match(
-    prompt,
-    /Locked cast \(names only; appearance follows the attached blueprint only\): Math Tutor\./,
-  );
+  assert.match(prompt, /Attached image 1 is the selected character blueprint/);
+  assert.match(prompt, /Cast: Math Tutor\./);
+  // Names already sit in the blueprint line; no separate lock line.
+  assert.doesNotMatch(prompt, /Locked cast/);
   assert.doesNotMatch(prompt, /鼠尾草綠無袖連身裙/);
   assert.match(prompt, /Ignore any clothing, hair, or style wording/);
 });
@@ -239,10 +235,7 @@ test("end-frame prompt still locks look to the attached blueprint", () => {
   assert.match(prompt, /Attached image 1 is the selected character blueprint/);
   assert.match(prompt, /BLUEPRINT \/ reference sheet only/);
   assert.match(prompt, /exactly ONE instance of each named/);
-  assert.match(
-    prompt,
-    /Locked cast \(names only; appearance follows the attached blueprint only\): Lily\./,
-  );
+  assert.match(prompt, /Cast: Lily\./);
   assert.doesNotMatch(prompt, /previous still/);
   assert.doesNotMatch(prompt, /THIS CLIP'S START frame/);
 });
@@ -513,6 +506,62 @@ test("dual-beat stills with a cast stay under the Flare prompt cap", () => {
         `clip ${clipNumber} ${position} is ${prompt.length} chars`,
       );
     }
+  }
+});
+
+test("stills carry only their own motion beat, not the whole timeline", () => {
+  const p = project();
+  p.phaseA!.clips[0].motionCamera = "0–2s: Lily lifts the cup; 2–5s: she sets it down and smiles";
+  const start = buildFramePrompt(p, 1, "start");
+  const end = buildFramePrompt(p, 1, "end");
+  assert.match(start, /Lily lifts the cup/);
+  assert.doesNotMatch(start, /sets it down/);
+  assert.match(end, /sets it down and smiles/);
+  assert.doesNotMatch(end, /lifts the cup/);
+  assert.doesNotMatch(start, /Motion and camera across the clip/);
+});
+
+test("a cast still spends far fewer characters on the character rules", () => {
+  const withCast = project();
+  withCast.cast = [
+    { characterId: new ObjectId(), versionId: new ObjectId(), name: "Lily", blueprintUrl: "https://blob/c.png", prompt: "" },
+  ];
+  const bare = buildFramePrompt(project(), 1, "start").length;
+  const cast = buildFramePrompt(withCast, 1, "start").length;
+  assert.ok(cast - bare <= 900, `cast rules add ${cast - bare} chars`);
+});
+
+test("an oversized storyboard is trimmed under budget, keeping locks and subtitles", () => {
+  const huge = project();
+  huge.skillSlug = "story-short-director";
+  huge.sceneTextEnabled = true;
+  huge.cast = [
+    { characterId: new ObjectId(), versionId: new ObjectId(), name: "Lily", blueprintUrl: "https://blob/c.png", prompt: "" },
+  ];
+  huge.phaseA!.visualWorld = "寒冷的山頂。".repeat(200);
+  huge.phaseA!.palette = "冰川藍、暗岩灰、".repeat(100);
+  const hugeScene =
+    "1) Character: Lily 神情專注，右手握著裝置。2) Set: " + "厚雪與岩石，".repeat(150) +
+    "3) Light: " + "冷光，".repeat(150) + "4) Camera: 中景，角色在畫面右側。";
+  huge.phaseA!.clips[0].startScene = hugeScene;
+  huge.phaseA!.clips[0].endScene = hugeScene;
+  huge.phaseA!.clips[0].motionCamera = "0–3s: " + "走上岩石，".repeat(200) + "; 3–5s: 停下。";
+  huge.phaseA!.clips[0].englishVo = 'Lily: "We made it to the top."';
+  huge.frames = [
+    { clipNumber: 1, position: "start", prompt: "p", status: "completed", blobUrl: "https://blob/s.png" },
+    { clipNumber: 1, position: "end", prompt: "p", status: "queued" },
+  ];
+  for (const position of ["start", "end"] as const) {
+    const prompt = frameSubmitPlan(huge, 1, position, {
+      remark: "請把她的手放低一點。".repeat(80),
+      annotatedUrl: "https://x/a.png",
+    }).prompt;
+    assert.ok(prompt.length <= FRAME_PROMPT_BUDGET, `${position} is ${prompt.length} chars`);
+    assert.match(prompt, /We made it to the top\./);
+    assert.match(prompt, /WARDROBE LOCK/);
+    assert.match(prompt, /1\) Character: Lily 神情專注/);
+    assert.match(prompt, /4\) Camera: 中景/);
+    assert.match(prompt, /Aspect ratio 16:9\./);
   }
 });
 

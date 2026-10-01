@@ -98,6 +98,82 @@ function compositionLockLines(anchor: { kind: FrameAnchorKind } | undefined, ima
 
 // Higgsfield Marketing Studio Flare rejects prompts over this many characters.
 export const IMAGE_PROMPT_MAX_CHARS = 5000;
+// Stills are trimmed to this, leaving headroom under the provider cap.
+export const FRAME_PROMPT_BUDGET = 4800;
+
+// A still freezes one instant, so it only needs the motion beat at that instant:
+// start = first timed beat, end = last timed beat.
+export function motionBeatForFrame(motion: string, position: FramePosition) {
+  const beats = motion
+    .split(/[；;]\s*/)
+    .map((beat) => beat.trim())
+    .filter(Boolean);
+  if (beats.length < 2) return motion.trim();
+  return position === "start" ? beats[0] : beats[beats.length - 1];
+}
+
+// First sentence of a paragraph (a "." only ends a sentence before space/end).
+function firstSentence(text: string) {
+  const match = text.match(/^[\s\S]*?(?:[。！？]|[.!?](?=\s|$))/);
+  return (match ? match[0] : text).trim();
+}
+
+// Shorten to `max` chars, preferring to cut at a clause boundary.
+function clipAt(text: string, max: number) {
+  if (text.length <= max) return text;
+  if (max <= 1) return "";
+  const head = text.slice(0, max - 1);
+  const cut = Math.max(...["，", ",", "、", "；", ";", "。", ". ", " "].map((s) => head.lastIndexOf(s)));
+  return `${cut > max / 2 ? head.slice(0, cut) : head}…`;
+}
+
+// Scene rows follow "1) Character … 2) Set … 3) Light … 4) Camera …".
+// Shrink Set + Light first (or drop them) so Character and Camera survive.
+function trimSceneParts(scene: string, mode: "shorten" | "drop") {
+  const parts = scene.split(/(?=[1-9]\)\s)/);
+  if (parts.length < 2) return scene;
+  return parts
+    .map((part) => {
+      if (!/^[23]\)\s/.test(part)) return part;
+      return mode === "drop" ? "" : `${clipAt(firstSentence(part), 120)} `;
+    })
+    .join("")
+    .trim();
+}
+
+type FrameTrimmable = {
+  visualWorld: string;
+  palette: string;
+  scene: string;
+  motion: string;
+  remark: string;
+};
+
+// Cut the soft sections in priority order until the prompt fits the budget.
+// Subtitles, cast / wardrobe locks, composition lock and aspect ratio never trim.
+function fitFramePrompt(parts: FrameTrimmable, compose: (parts: FrameTrimmable) => string) {
+  const steps: Array<(p: FrameTrimmable) => FrameTrimmable> = [
+    (p) => ({ ...p, visualWorld: clipAt(firstSentence(p.visualWorld), 300) }),
+    (p) => ({ ...p, motion: clipAt(firstSentence(p.motion), 160) }),
+    (p) => ({ ...p, palette: clipAt(p.palette, 160) }),
+    (p) => ({ ...p, remark: clipAt(p.remark, 300) }),
+    (p) => ({ ...p, scene: trimSceneParts(p.scene, "shorten") }),
+    (p) => ({ ...p, scene: trimSceneParts(p.scene, "drop") }),
+    (p) => ({ ...p, visualWorld: "", motion: "" }),
+    (p) => ({ ...p, palette: clipAt(p.palette, 80), remark: clipAt(p.remark, 200) }),
+  ];
+  let current = parts;
+  let prompt = compose(current);
+  for (const step of steps) {
+    if (prompt.length <= FRAME_PROMPT_BUDGET) return prompt;
+    current = step(current);
+    prompt = compose(current);
+  }
+  // Last resort: the scene absorbs whatever is still over.
+  const over = prompt.length - FRAME_PROMPT_BUDGET;
+  if (over <= 0) return prompt;
+  return compose({ ...current, scene: clipAt(current.scene, current.scene.length - over) });
+}
 
 export function videoStyle(project: Pick<Project, "styleId">): Style {
   return resolveStyle(project.styleId);
@@ -223,29 +299,33 @@ export function buildFramePrompt(
     stripVisualWorldTextPolicy(phaseA.visualWorld),
   );
 
-  return [
+  // With a cast/still attached, never echo Phase A's invented look text.
+  const characterLockLine = frameCharacterLockLine(
+    project.cast,
+    characterUrls.length > 0,
+    phaseA.characterLock,
+  );
+  const motionLabel =
+    position === "start" ? "Motion beginning at this frame" : "Motion just completed at this frame";
+
+  const compose = (parts: FrameTrimmable) => [
     ...onCanvasTextBlock,
     ...styleLinesForFrame(style),
-    ...(visualWorld ? [`Visual world: ${visualWorld}`] : []),
-    `Palette: ${phaseA.palette}`,
-    // With a cast/still attached, never echo Phase A's invented look text.
+    ...(parts.visualWorld ? [`Visual world: ${parts.visualWorld}`] : []),
+    `Palette: ${parts.palette}`,
     ...castLines,
-    frameCharacterLockLine(
-      project.cast,
-      characterUrls.length > 0,
-      phaseA.characterLock,
-    ),
+    ...(characterLockLine ? [characterLockLine] : []),
     ...(listicle || sceneText.enabled || keepSceneLabels
       ? []
       : sceneTextFrameLines(false, sceneText.language)),
-    `Scene: ${sceneDescription}`,
-    `Motion and camera across the clip: ${motionDescription}`,
+    `Scene: ${parts.scene}`,
+    ...(parts.motion ? [`${motionLabel}: ${parts.motion}`] : []),
     ...(storyShortCameraLock(project.skillSlug) ? [storyShortCameraLock(project.skillSlug)] : []),
     ...(lockUrls.length ? [FRAME_WARDROBE_LOCK] : []),
     FRAME_RENDER_DETAIL,
     moment,
     ...compositionLockLines(options.anchor, annotatedCount + 1),
-    ...revisionLines(options.revision),
+    ...revisionLines(options.revision && { ...options.revision, remark: parts.remark }),
     ...(listicle
       ? ["Final check: the numbered item list is visible and spelled exactly."]
       : sceneText.enabled
@@ -264,6 +344,17 @@ export function buildFramePrompt(
     ...(lockUrls.length ? [FRAME_WARDROBE_CHECK] : []),
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
+
+  return fitFramePrompt(
+    {
+      visualWorld,
+      palette: phaseA.palette,
+      scene: sceneDescription,
+      motion: motionBeatForFrame(motionDescription, position),
+      remark: options.revision?.remark?.trim() || "",
+    },
+    compose,
+  );
 }
 
 // Prompt + reference URLs for one still submit. End waits until start exists

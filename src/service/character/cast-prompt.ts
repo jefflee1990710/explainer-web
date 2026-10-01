@@ -105,7 +105,7 @@ export function directorBlueprintSceneRules() {
 
 // Image models dress characters for the setting (snow → parka); this beats that.
 export const FRAME_WARDROBE_LOCK =
-  "WARDROBE LOCK: each character wears exactly the outfit on their blueprint — same garments, colours, fabric, shoes, bag, and accessories — whatever the weather, location, or activity. Never add or swap coats, jackets, hoodies, gloves, hats, scarves, backpacks, harnesses, uniforms, or any body-worn gear. Do not dress characters for the environment.";
+  "WARDROBE LOCK: each character wears exactly their blueprint outfit (garments, colours, shoes, bag, accessories) whatever the weather, location, or activity. Never add or swap coats, jackets, hats, scarves, gloves, backpacks, or any worn gear.";
 
 export const FRAME_WARDROBE_CHECK =
   "Final check: each character wears exactly the blueprint outfit, nothing added for the setting.";
@@ -139,24 +139,21 @@ function attachmentLabel(start?: number, count?: number) {
 }
 
 // Multi-pose sheets get copied into the still unless we say they are look-lock only.
-const BLUEPRINT_REFERENCE_ONLY = [
-  "That attached image is a character BLUEPRINT / reference sheet only — not a scene to copy.",
-  "The finished still must contain exactly ONE instance of each named cast member. Never copy the sheet layout, never stack or tile the same person, never draw extra clones.",
-];
+const BLUEPRINT_REFERENCE_ONLY =
+  "BLUEPRINT / reference sheet only — not a scene to copy: draw exactly ONE instance of each named cast member. Never copy the sheet layout or tile the same person.";
 
 // Frame prompts: the attached blueprint outranks any text about the character,
-// so a stale or guessed characterLock cannot redraw the cast.
+// so a stale or guessed characterLock cannot redraw the cast. Kept compact —
+// stills share a ~5000-char cap with the scene text.
 export function castParagraphForFrames(
   cast: CastMember[] | undefined,
   attachment?: { start: number; count: number },
 ) {
   if (!cast || cast.length === 0) return [];
   return [
-    `${attachmentLabel(attachment?.start, attachment?.count)} the ONLY source of truth for how each character looks. Match each blueprint exactly (face, hair, outfit, accessories, proportions, gender).`,
-    ...BLUEPRINT_REFERENCE_ONLY,
-    "Ignore any clothing, hair, or style wording in the scene text, palette, or locked-character note — the blueprint wins.",
-    `Cast names: ${cast.map((member) => member.name).join(", ")}.`,
-    "Plan this scene around these exact characters as the subject. Draw one figure per named character, matching the look on the attached blueprints. Do not invent a replacement hero or redesign their outfit.",
+    `${attachmentLabel(attachment?.start, attachment?.count)} the ONLY source of truth for how each character looks (face, hair, outfit, accessories, proportions, gender). Cast: ${cast.map((member) => member.name).join(", ")}.`,
+    BLUEPRINT_REFERENCE_ONLY,
+    "Ignore any clothing, hair, or style wording in the text — the blueprint wins. Do not invent a replacement hero or redesign their outfit.",
   ];
 }
 
@@ -167,23 +164,19 @@ export function soloCharacterParagraphForFrames(attachmentStart?: number) {
     : "The attached character guideline is";
   return [
     `${lead} the ONLY source of truth for how the character looks.`,
-    ...BLUEPRINT_REFERENCE_ONLY,
-    "Ignore any clothing, hair, or style wording in the scene text — the attached guideline wins.",
-    "Plan this scene around that exact character as the subject. Draw one figure matching the look in the guideline. Do not invent a replacement hero or redesign their outfit.",
+    BLUEPRINT_REFERENCE_ONLY,
+    "Ignore any clothing, hair, or style wording in the text — the attached guideline wins. Do not invent a replacement hero or redesign their outfit.",
   ];
 }
 
 // When a cast (or still) is attached, never echo Phase A's invented look text.
+// Named cast returns null: the cast paragraph already names and locks everyone.
 export function frameCharacterLockLine(
   cast: CastMember[] | undefined,
   hasCharacterImage: boolean,
   characterLock: string,
 ) {
-  if (cast && cast.length > 0) {
-    return `Locked cast (names only; appearance follows the attached blueprint only): ${cast
-      .map((member) => member.name)
-      .join(", ")}.`;
-  }
+  if (cast && cast.length > 0) return null;
   if (hasCharacterImage) {
     return "Locked character: appearance follows the attached character guideline only. Do not invent outfit or hairstyle from text.";
   }

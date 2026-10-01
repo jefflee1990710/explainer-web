@@ -118,16 +118,14 @@ test("frame paragraph says the blueprint is appearance reference only, not a sce
 });
 
 test("frameCharacterLockLine omits invented Phase A look text when cast exists", () => {
-  assert.equal(
-    frameCharacterLockLine(cast, true, "小明穿鼠尾草綠連身裙"),
-    "Locked cast (names only; appearance follows the attached blueprint only): 小明, 阿花.",
-  );
+  // The cast paragraph already names everyone and locks the look.
+  assert.equal(frameCharacterLockLine(cast, true, "小明穿鼠尾草綠連身裙"), null);
   assert.match(
-    frameCharacterLockLine(undefined, true, "invented look"),
+    frameCharacterLockLine(undefined, true, "invented look") ?? "",
     /attached character guideline only/,
   );
   assert.match(
-    frameCharacterLockLine(undefined, false, "lock text"),
+    frameCharacterLockLine(undefined, false, "lock text") ?? "",
     /Locked character \(must look identical in every frame\): lock text/,
   );
 });
