@@ -62,7 +62,7 @@ export const briefEn = {
   section06: {
     title: "Length",
     hint: "Sets clip count and how many credits rendering will use.",
-    hintBookend: "Opening and Ending are always one 2–3 second clip, so length is fixed.",
+    hintBookend: "Opening and Ending are always one 3–4 second clip, so length is fixed.",
   },
   logo: {
     title: "Logo",
@@ -71,6 +71,7 @@ export const briefEn = {
     replace: "Replace logo",
     remove: "Remove",
     alt: "Brand logo",
+    fixedLength: "Fixed length: 1 clip, 3–4 seconds.",
   },
   submit: {
     submitting: "Submitting…",
@@ -90,7 +91,7 @@ export const briefEn = {
   summary: {
     speechPace: "Pace · {label}",
     sceneText: "On-screen text · {label}",
-    bookendLength: "1 clip · 2–3s",
+    bookendLength: "1 clip · 3–4s",
     logo: "Logo",
   },
   confirm: {

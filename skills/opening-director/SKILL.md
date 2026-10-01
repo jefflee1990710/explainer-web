@@ -1,13 +1,13 @@
 ---
 name: directing-opening-stings
-description: Use when making a 2–3 second OPENING brand sting (intro bumper) that plays before a main video — the brand logo arrives and settles in one single clip.
+description: Use when making a 3–4 second OPENING brand sting (intro bumper) that plays before a main video — the brand logo arrives and settles in one single clip.
 ---
 
 # Directing Opening Stings
 
 ## Core contract
 
-Turn the brief into a confirmed director's proposal (Phase A) and then ONE video prompt (Phase B). An opening is exactly **one clip, 2–3 seconds long**. There is no length choice, no story, and no explainer beat: the only job is to introduce the brand before the main video starts.
+Turn the brief into a confirmed director's proposal (Phase A) and then ONE video prompt (Phase B). An opening is exactly **one clip, 3–4 seconds long**. There is no length choice, no story, and no explainer beat: the only job is to introduce the brand before the main video starts.
 
 ## Setup gate
 
@@ -32,7 +32,7 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 ## Opening architecture
 
 1. **Start still**: the logo is not yet complete — hidden behind a prop, small in the distance, drawn on halfway, or assembled from loose shapes.
-2. **One move (2–3s)**: a single reveal — draw-on, pop and settle, shapes snapping together, curtain / wipe, or a slow push-in.
+2. **One move (3–4s)**: a single reveal — draw-on, pop and settle, shapes snapping together, curtain / wipe, or a slow push-in.
 3. **End still**: the full logo, crisp and readable, centered (unless the source asks otherwise), at rest so the main video can cut in.
 
 ## Audio
@@ -42,12 +42,12 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 
 ## Phase A field mapping
 
-- `clipCount`: always 1. `targetDuration`: the clip length (2–3s). `loopMode`: always linear.
+- `clipCount`: always 1. `targetDuration`: the clip length (3–4s). `loopMode`: always linear.
 - `hookStrategy`: the reveal device in one sentence.
 - `coreMessage`: the brand promise in a few words.
 - `narrativeArc`: "hidden → revealed → logo at rest".
 - `visualWorld`: the canvas and the few shapes or props around the logo.
-- The single clip row: `narrativeJob` = "opening sting"; `startScene` / `endScene` follow the architecture above; `motionCamera` = one timed move (`0–2s …; 2–3s settle`); `englishVo` = the short line or `(no dialogue)`; `bgmSfx` = the reveal SFX.
+- The single clip row: `narrativeJob` = "opening sting"; `startScene` / `endScene` follow the architecture above; `motionCamera` = one timed move (`0–3s …; 3–4s settle`); `englishVo` = the short line or `(no dialogue)`; `bgmSfx` = the reveal SFX.
 
 ## Workflow
 
@@ -57,7 +57,7 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 
 ## Output rules
 
-- Exactly one clip, 2–3 seconds.
+- Exactly one clip, 3–4 seconds.
 - Colours in ordinary words only; never hexadecimal, RGB, HSL, or Pantone.
 - No subtitles or captions beyond the logo / title lettering.
 - End on the logo at rest; never loop.

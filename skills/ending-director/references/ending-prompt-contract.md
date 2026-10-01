@@ -4,7 +4,7 @@ Use only after explicit approval of the current Phase A. Write ONE self-containe
 
 ## Prompt order
 
-1. Output spec: duration in seconds (2–3), aspect ratio, synchronized audio.
+1. Output spec: duration in seconds (3–4), aspect ratio, synchronized audio.
 2. Style lock: the canvas, look and negatives from the Visual style block in one sentence.
 3. Logo lock: the logo follows the START and END keyframes exactly — same shapes, colours, lettering. Never redraw or morph it into a different mark.
 4. Scene at t=0: the closing beat in the START keyframe.

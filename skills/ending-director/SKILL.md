@@ -1,13 +1,13 @@
 ---
 name: directing-ending-stings
-description: Use when making a 2–3 second ENDING brand sting (outro bumper) that closes a video — the scene resolves onto the brand logo as the final resting card in one single clip.
+description: Use when making a 3–4 second ENDING brand sting (outro bumper) that closes a video — the scene resolves onto the brand logo as the final resting card in one single clip.
 ---
 
 # Directing Ending Stings
 
 ## Core contract
 
-Turn the brief into a confirmed director's proposal (Phase A) and then ONE video prompt (Phase B). An ending is exactly **one clip, 2–3 seconds long**. There is no length choice, no story, and no explainer beat: the only job is to close the video on the brand.
+Turn the brief into a confirmed director's proposal (Phase A) and then ONE video prompt (Phase B). An ending is exactly **one clip, 3–4 seconds long**. There is no length choice, no story, and no explainer beat: the only job is to close the video on the brand.
 
 ## Setup gate
 
@@ -32,7 +32,7 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 ## Ending architecture
 
 1. **Start still**: the closing beat — props gathering, a mascot finishing a gesture, or shapes converging toward the centre. The logo may be partly visible.
-2. **One move (2–3s)**: everything resolves into the logo — gather and settle, zoom-out to the card, fade of props, or a stamp-in.
+2. **One move (3–4s)**: everything resolves into the logo — gather and settle, zoom-out to the card, fade of props, or a stamp-in.
 3. **End still**: the full logo centered on a calm canvas, optionally with one short CTA line if the source gives one. This is the final frame of the whole video.
 
 ## Audio
@@ -42,12 +42,12 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 
 ## Phase A field mapping
 
-- `clipCount`: always 1. `targetDuration`: the clip length (2–3s). `loopMode`: always linear.
+- `clipCount`: always 1. `targetDuration`: the clip length (3–4s). `loopMode`: always linear.
 - `hookStrategy`: the resolve device in one sentence.
 - `coreMessage`: the sign-off or CTA in a few words.
 - `narrativeArc`: "closing beat → resolve → logo card at rest".
 - `visualWorld`: the canvas and the few shapes or props that resolve into the logo.
-- The single clip row: `narrativeJob` = "ending sting"; `startScene` / `endScene` follow the architecture above; `motionCamera` = one timed move (`0–2s …; 2–3s settle`); `englishVo` = the short line or `(no dialogue)`; `bgmSfx` = the resolve SFX.
+- The single clip row: `narrativeJob` = "ending sting"; `startScene` / `endScene` follow the architecture above; `motionCamera` = one timed move (`0–3s …; 3–4s settle`); `englishVo` = the short line or `(no dialogue)`; `bgmSfx` = the resolve SFX.
 
 ## Workflow
 
@@ -57,7 +57,7 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 
 ## Output rules
 
-- Exactly one clip, 2–3 seconds.
+- Exactly one clip, 3–4 seconds.
 - Colours in ordinary words only; never hexadecimal, RGB, HSL, or Pantone.
 - No subtitles or captions beyond the logo / title lettering and one optional CTA line.
 - End on the logo card at rest; never loop back to the start.

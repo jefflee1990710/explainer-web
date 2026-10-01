@@ -5,7 +5,7 @@ Present a readable director's proposal and stop for confirmation before writing 
 ## Header contract
 
 1. Title in the reference language and in English
-2. Duration (2–3s), clip count 1, loop mode: always Linear
+2. Duration (3–4s), clip count 1, loop mode: always Linear
 3. Brand promise and the reveal device
 4. Aspect ratio, canvas, logo placement and size
 5. Spoken line (or none) and the reveal SFX
@@ -29,11 +29,11 @@ Write `startScene` and `endScene` as four concrete parts, in order:
 
 ## Motion contract (`motionCamera`)
 
-One timed move that fits 2–3 seconds, e.g. `0–2s the logo draws on stroke by stroke from left to right; 2–3s it settles with a small bounce`. Every difference between the start and end still must be caused on camera in that move. No cuts.
+One timed move that fits 3–4 seconds, e.g. `0–3s the logo draws on stroke by stroke from left to right; 3–4s it settles with a small bounce`. Every difference between the start and end still must be caused on camera in that move. No cuts.
 
 ## Phase A checks
 
-- Exactly one clip, 2–3 seconds.
+- Exactly one clip, 3–4 seconds.
 - The end still shows the full logo, readable and at rest.
 - With a logo attached, nothing redraws or invents the logo.
 - No technical colour notation.

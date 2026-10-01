@@ -753,6 +753,7 @@ export function NewProjectForm({
                         disabled={briefBusy}
                       />
                     </div>
+                    <p className="mt-2 text-xs text-muted">{t("brief.logo.fixedLength")}</p>
                   </>
                 ) : null}
                 {/* Visual style sits under the narrative skill in the same step. */}
@@ -866,17 +867,15 @@ export function NewProjectForm({
                 />
               </Section>
 
-              <Section
-                step="06"
-                title={t("brief.section06.title")}
-                hint={bookend ? t("brief.section06.hintBookend") : t("brief.section06.hint")}
-              >
-                <DurationPicker
-                  value={durationPreset}
-                  onChange={setDurationPreset}
-                  disabled={briefBusy || bookend}
-                />
-              </Section>
+              {bookend ? null : (
+                <Section step="06" title={t("brief.section06.title")} hint={t("brief.section06.hint")}>
+                  <DurationPicker
+                    value={durationPreset}
+                    onChange={setDurationPreset}
+                    disabled={briefBusy}
+                  />
+                </Section>
+              )}
 
               {error ? (
                 <p role="alert" className="text-sm font-medium text-accent">

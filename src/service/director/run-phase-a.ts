@@ -212,7 +212,7 @@ Produce a complete Phase A director proposal now.`,
     loopMode: "linear",
     ...(dualBeat ? { clips: output.clips.map(normalizeDualBeatRow) } : {}),
   };
-  // Bookends are always one 2–3s clip, whatever the model returned.
+  // Bookends are always one 3–4s clip, whatever the model returned.
   if (bookend) {
     const clips = normalizeBookendClips(next.clips);
     next = {

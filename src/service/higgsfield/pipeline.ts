@@ -444,7 +444,7 @@ export async function applyJobStatus(input: {
     const transformOptions =
       bookendSeconds
         ? {
-            // Provider renders ≥5s; bookends play at their 2–3s storyboard length.
+            // Provider renders ≥5s; bookends play at their 3–4s storyboard length.
             transform: (buffer: Buffer) =>
               retimeMp4(buffer, bookendSeconds).catch((error: unknown) => {
                 console.error("[higgsfield] bookend retime failed; persisting original", {

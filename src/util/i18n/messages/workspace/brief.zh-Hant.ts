@@ -61,7 +61,7 @@ export const briefZhHant = {
   section06: {
     title: "片長",
     hint: "影響 clip 數量，也就是產片時要扣的 credits。",
-    hintBookend: "開場與結尾固定只有 1 段、2–3 秒，不能選片長。",
+    hintBookend: "開場與結尾固定只有 1 段、3–4 秒，不能選片長。",
   },
   logo: {
     title: "Logo",
@@ -70,6 +70,7 @@ export const briefZhHant = {
     replace: "更換 logo",
     remove: "移除",
     alt: "品牌 logo",
+    fixedLength: "固定片長：1 段、3–4 秒。",
   },
   submit: {
     submitting: "送出中…",
@@ -88,7 +89,7 @@ export const briefZhHant = {
   summary: {
     speechPace: "語速 · {label}",
     sceneText: "畫面文字 · {label}",
-    bookendLength: "1 段 · 2–3 秒",
+    bookendLength: "1 段 · 3–4 秒",
     logo: "Logo",
   },
   confirm: {

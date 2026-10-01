@@ -8,8 +8,8 @@ export const ENDING_SKILL_SLUG = "ending-director";
 
 // Opening / Ending bookends: one short logo clip, no length choice.
 const BOOKEND_SKILLS = new Set([OPENING_SKILL_SLUG, ENDING_SKILL_SLUG]);
-export const BOOKEND_MIN_SECONDS = 2;
-export const BOOKEND_MAX_SECONDS = 3;
+export const BOOKEND_MIN_SECONDS = 3;
+export const BOOKEND_MAX_SECONDS = 4;
 
 export function isBookendSkill(skillSlug?: string) {
   return Boolean(skillSlug && BOOKEND_SKILLS.has(skillSlug));
@@ -21,7 +21,7 @@ export function bookendDurationHint(skillSlug: string) {
   return `Bookend ${role}: EXACTLY 1 clip, clipCount 1, durationSeconds ${BOOKEND_MIN_SECONDS}–${BOOKEND_MAX_SECONDS}. At most one short spoken line (≤ 6 English words / ≤ 10 Chinese characters), or "(no dialogue)".`;
 }
 
-// Clamp a bookend storyboard to its single 2–3s clip.
+// Clamp a bookend storyboard to its single 3–4s clip.
 export function normalizeBookendClips<
   T extends { clipNumber: number; durationSeconds: number; timeRange: string },
 >(clips: T[]): T[] {
@@ -38,8 +38,8 @@ export function bookendDirectorBlock(skillSlug: string, hasLogo: boolean) {
   const opening = skillSlug === OPENING_SKILL_SLUG;
   return [
     opening
-      ? "This is an OPENING bookend: a 2–3 second brand sting that plays before the main video. The logo arrives and settles."
-      : "This is an ENDING bookend: a 2–3 second brand sting that closes the video. The scene resolves onto the logo as the final resting card.",
+      ? "This is an OPENING bookend: a 3–4 second brand sting that plays before the main video. The logo arrives and settles."
+      : "This is an ENDING bookend: a 3–4 second brand sting that closes the video. The scene resolves onto the logo as the final resting card.",
     "Produce exactly ONE clip. Never add a second clip, a story, or an explainer beat.",
     hasLogo
       ? "The brand logo image is attached. It is the hero of both stills: startScene and endScene must name the logo, its placement (centered unless stated), and its size. Never redraw, restyle, translate, or invent a different logo or wordmark."
@@ -47,7 +47,7 @@ export function bookendDirectorBlock(skillSlug: string, hasLogo: boolean) {
     opening
       ? "startScene: the logo is hidden, small, or forming (drawn on, assembled from shapes, revealed behind a prop). endScene: the full logo, crisp and readable, centered."
       : "startScene: the closing beat of the world (character or props wrapping up). endScene: the full logo centered on a calm canvas as the final card.",
-    "motionCamera is one simple move that fits 2–3 seconds (reveal, pop, settle, or slow push-in). No cuts.",
+    "motionCamera is one simple move that fits 3–4 seconds (reveal, pop, settle, or slow push-in). No cuts.",
   ].join(" ");
 }
 

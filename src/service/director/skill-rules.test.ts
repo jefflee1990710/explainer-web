@@ -27,17 +27,17 @@ test("opening and ending are bookend skills with a fixed length", () => {
   assert.equal(applySkillDuration("listicle-director", "full"), "full");
 });
 
-test("bookend storyboards collapse to one 2–3s clip", () => {
+test("bookend storyboards collapse to one 3–4s clip", () => {
   const row = (clipNumber: number, durationSeconds: number) => ({
     clipNumber,
     durationSeconds,
     timeRange: "x",
   });
   assert.deepEqual(normalizeBookendClips([row(1, 6), row(2, 5)]), [
-    { clipNumber: 1, durationSeconds: 3, timeRange: "0–3s" },
+    { clipNumber: 1, durationSeconds: 4, timeRange: "0–4s" },
   ]);
   assert.deepEqual(normalizeBookendClips([row(1, 1)]), [
-    { clipNumber: 1, durationSeconds: 2, timeRange: "0–2s" },
+    { clipNumber: 1, durationSeconds: 3, timeRange: "0–3s" },
   ]);
   assert.deepEqual(normalizeBookendClips([]), []);
 });
