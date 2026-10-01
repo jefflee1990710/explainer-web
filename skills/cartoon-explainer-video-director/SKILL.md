@@ -55,6 +55,9 @@ Topic approval, schedule pressure, or approval of an older draft is not approval
 - Name palette colors only with ordinary descriptive words such as white, black, medium blue, warm yellow, brown, green, or gray. Never place hexadecimal, RGB, HSL, Pantone, or other technical color notation inside a model prompt.
 - Make each model prompt self-contained, specifying 3–8 seconds duration (max 8s), and repeat all critical locks.
 - Treat narration as audio-only. Quote exact dialogue and forbid alteration, repetition, captions, subtitles, or visual transcription of the spoken line.
+- Always narrated: an unseen off-screen narrator speaks every line in the third person. The on-screen character never speaks, never introduces themself, and is never the narrator — no first-person lines in the character's voice ("Hi, I'm Scro", "I am…"). The narrator may name the character or product ("Meet Scro. Scro turns…").
+- The character is a silent demonstrator: no greeting wave or talking to the viewer; mouth closed or reacting. It explains the idea by using props.
+- Prop-rich scenes: every start and end still gives the character at least 3 concrete props it holds, points at, opens, sorts, stacks, or transforms (cardboard boxes, bins, arrows, yellow tags, icons, gauges, morphing objects), each standing for one part of the idea. Never a near-empty canvas with one floating label.
 - Allow short in-world handwritten all-caps marker labels (headlines, tags, arrows, bin names). Keep them brief and drawn in the same doodle hand. Do not generate photoreal UI type, logos, watermarks, or a full transcript of the voiceover. Put any longer optional overlay in a separate post-production note.
 - Match every clip ending to the next clip opening. The final clip must end on a clean resting payoff — never bridge Clip N back to Clip 1 or plan an infinite / seamless loop.
 - Do not invent unsupported facts, statistics, quotations, or product claims.

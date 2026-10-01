@@ -2,7 +2,7 @@ import { generateText, Output } from "ai";
 import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { PHASE_B_DETAIL_RULES } from "@/service/director/scene-detail";
-import { skillBansNarration } from "@/service/director/skill-rules";
+import { cartoonNarratorVideoLock, skillBansNarration } from "@/service/director/skill-rules";
 import { finalizePhaseBPrompt, phaseBAudioLock, resolveVoiceGender, VOICE_PRESETS } from "@/service/director/voice";
 import { skillPromptForPhaseB } from "@/service/director/load-skill-prompt";
 import { directorModel } from "@/service/director/model";
@@ -41,7 +41,7 @@ Spoken lines in every prompt must be quoted verbatim from the approved englishVo
     skillBansNarration(input.skill.slug)
       ? "There is no narrator. Characters speak those lines. Do not copy a male/female narrator fingerprint. Infer each NAME's voice from that character in the keyframes."
       : `Copy the locked adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice fingerprint verbatim into every clip prompt. Do not invent a new narrator.`
-  } Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. Never request background music, BGM, a musical score, or an underscore. Voice and short synced SFX only.`;
+  } ${cartoonNarratorVideoLock(input.skill.slug)} Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. Never request background music, BGM, a musical score, or an underscore. Voice and short synced SFX only.`;
 }
 
 function characterLine(input: PhaseBInput) {
@@ -81,12 +81,18 @@ export async function runPhaseBForClip(
     bansNarration: skillBansNarration(input.skill.slug),
     speechPace: input.speechPace,
   });
-  const wardrobe = phaseBWardrobeLock(input);
-  const prompt = finalizePhaseBPrompt(output.prompt, lock);
+  // Audio, narrator, and wardrobe locks ride on every clip; empty locks are skipped.
+  const prompt = [
+    lock,
+    cartoonNarratorVideoLock(input.skill.slug),
+    phaseBWardrobeLock(input),
+  ]
+    .filter(Boolean)
+    .reduce(finalizePhaseBPrompt, output.prompt);
   // The model may echo a wrong number; trust the caller.
   return {
     ...output,
     clipNumber: input.clipNumber,
-    prompt: wardrobe ? finalizePhaseBPrompt(prompt, wardrobe) : prompt,
+    prompt,
   };
 }

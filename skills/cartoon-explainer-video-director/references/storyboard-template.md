@@ -34,6 +34,8 @@ Present these items in order:
 6. Locked character specifications (extracted from provided reference image guideline, or default everyman) and semantic palette, named in ordinary language
 7. BGM direction, emotional turn, tone, and narrative arc
 
+The narrator is always an unseen off-screen voice speaking in the third person. Never write the voiceover as the on-screen character talking ("Hi, I'm Scro", "I am…"); the character is a silent demonstrator who acts out the idea with props. The narrator may name the character or product ("Meet Scro. Scro turns…").
+
 Lock the narrator voice: always use a warm, engaging adult male voice speaking natural American English. Infer tone from the source when the user did not specify it. Never use a female narrator. Do not invent a new hero, skin tone, wardrobe, or chalkboard inversion.
 
 ## Narrative patterns & archetypes
@@ -78,6 +80,8 @@ Use at least 3–4 relevant devices per row:
 - interaction with another matching-style figure or oversized object
 
 Make every effect clarify or intensify the spoken idea; omit unrelated spectacle.
+
+**Prop-driven explanation**: every start and end still gives the character at least 3 concrete props it holds, points at, opens, sorts, stacks, or transforms (cardboard boxes, bins, arrows, yellow tags, icons, gauges, morphing objects). Each prop stands for one part of the idea. List the props in the Set part and the interaction in the Character part. Never a near-empty canvas with one floating label.
 
 ## Palette and text
 
@@ -130,6 +134,8 @@ Do not include final model prompts. A global change invalidates approval and req
 - Payoff is delayed to sustain viewer retention across clips.
 - Storyboard rows have distinct narrative purposes.
 - Every row contains timed beats, at least 3–4 visual devices, audio, and a transition.
+- The voiceover is a third-person off-screen narrator; no line is the on-screen character speaking or introducing themself.
+- Every start and end still has at least 3 explanatory props that the character actively uses.
 - Visual change occurs approximately every 1.5–2.5 seconds (2-Second Rule).
 - The locked everyman, white-canvas doodle world, and yellow tag accents remain consistent.
 - No technical color notation is present.

@@ -54,7 +54,7 @@ Enforce **The 2-Second Visual Rule**: ensure a visible transformation, camera pu
 
 ## Dialogue and visual text
 
-Quote the approved English VO exactly once as audio-only dialogue. Instruct the model not to add, omit, paraphrase, repeat, reorder, caption, subtitle, or visually transcribe the spoken line.
+The VO is spoken by an unseen off-screen narrator. The on-screen character never speaks or lip-syncs; its mouth stays closed or shows simple reactions while it acts out the idea with the props. Quote the approved English VO exactly once as audio-only dialogue. Instruct the model not to add, omit, paraphrase, repeat, reorder, caption, subtitle, or visually transcribe the spoken line.
 
 Allow short in-world handwritten all-caps marker labels that belong to the scene (headlines, tags, arrows, bin names). Forbid photoreal UI type, logos, watermarks, palette labels, production annotations, and any on-screen transcript of the voiceover. Put longer optional phrases in a separate post-production overlay list outside the prompts.
 

@@ -88,7 +88,7 @@ export function listicleOnCanvasLines(input: {
 export function sceneTextSkillHint(
   enabled: boolean,
   language: SceneTextLanguage,
-  options?: { dualBeat?: boolean; listicle?: boolean; inWorldLabels?: boolean },
+  options?: { dualBeat?: boolean; listicle?: boolean; inWorldLabels?: boolean; reelSafeZone?: boolean },
 ) {
   if (options?.listicle) {
     return [
@@ -114,6 +114,13 @@ export function sceneTextSkillHint(
       "startScene and endScene may also name short prop labels inside 「」 (yellow tags, arrows, bin names) on the object they belong to. Do NOT invent a title card or a second transcript of the spoken line.",
       "Lettering follows the whiteboard doodle visual style: handwritten marker, never a printed caption.",
       markerLanguageHint(language),
+    ].join(" ");
+  }
+  if (options?.reelSafeZone) {
+    return [
+      "When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo as a subtitle inside the vertical reel safe zone: horizontally centered, between 64% and 78% of the frame height, side margins at least 14% of the width, max 2 lines. Keep it out of the top 14% and the bottom 20%. Not a full-width bottom band.",
+      "explainerScene and motionCamera must describe pose, props, and environment only. Do NOT invent extra titles, quotes, 「Mental Health?」-style labels, signs, or any wording that is not englishVo.",
+      SCENE_TEXT_PRESETS[language].skillHint,
     ].join(" ");
   }
   return [
@@ -293,12 +300,16 @@ export function stripSceneVoiceoverRecap(description: string) {
 const MARKER_SAFE_ZONE_LAYOUT =
   "Layout: center the lettering horizontally, strictly between 52% and 60% of the frame height, maximum 2 lines, with side margins of at least 120px on a 1080-wide frame (about 11% of the width). No semi-opaque white band, no bottom caption bar, no corner tag, no printed font.";
 
+// 9:16 Reels / TikTok / Shorts cover the top status bar, the bottom caption, and the side buttons.
+const REEL_SUBTITLE_SAFE_ZONE_LAYOUT =
+  "Layout: vertical reel safe zone. Center the subtitle horizontally between 64% and 78% of the frame height, max 2 lines, with side margins of at least 14% of the width. Keep it out of the top 14% and the bottom 20% (app chrome). No full-width bottom band, no corner tag.";
+
 export function sceneTextFrameLines(
   enabled: boolean,
   language: SceneTextLanguage,
   narration?: string,
   typography?: string,
-  options?: { inWorldLabels?: boolean; markerSafeZone?: boolean },
+  options?: { inWorldLabels?: boolean; markerSafeZone?: boolean; reelSafeZone?: boolean },
 ) {
   if (!enabled && options?.inWorldLabels) {
     return [
@@ -322,6 +333,7 @@ export function sceneTextFrameLines(
     ];
   }
   const marker = Boolean(options?.markerSafeZone);
+  const reel = Boolean(options?.reelSafeZone) && !marker;
   const formatted = marker ? formatVoiceoverForMarker(line) : formatVoiceoverForCanvas(line);
   // Typography belongs on the separate Lettering line; do not repeat it here.
   const letterStyle = sceneTextVoLetteringHint(language, line, { markerSafeZone: marker });
@@ -349,7 +361,9 @@ export function sceneTextFrameLines(
 
   return [
     "On-canvas subtitles ON — highest priority.",
-    "Layout: a semi-opaque white band across the bottom 18% of the frame; dark hand-lettered text centered inside the band (integrated caption, not a tiny corner tag).",
+    reel
+      ? REEL_SUBTITLE_SAFE_ZONE_LAYOUT
+      : "Layout: a semi-opaque white band across the bottom 18% of the frame; dark hand-lettered text centered inside the band (integrated caption, not a tiny corner tag).",
     ...subtitleLines,
     letterStyle,
     "Only the subtitle line(s) above may appear as writing; no other letters, numbers, signs, or labels anywhere in the illustration.",

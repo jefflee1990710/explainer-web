@@ -50,7 +50,7 @@ Do **not** force want → obstacle → turn → resolution (or any other canned 
 - All speech is character dialogue, written as `NAME: "line"`. One or two speakers per clip. Never add an unseen storyteller.
 - Dialogue is addressed to someone in the scene (or said to oneself), never to the viewer. No "you" aimed at the audience, no direct address.
 - Allocate ~7–20 spoken words per clip at medium speaking pace. Slow ≈ 0.8× those words with pauses; fast ≈ 1.2× with fewer pauses. Clip duration stays the same. Silence is allowed — say `(no dialogue)` in the VO field when a beat has no speech.
-- Dialogue is audio-only. Never caption, subtitle, or transcribe it on screen unless the user turned on-canvas text on. In-world text is limited to short props that belong to the scene (a sign, a letter, a screen), spelled exactly as written.
+- Dialogue is audio-only. Never caption, subtitle, or transcribe it on screen unless the user turned on-canvas text on. On a `9:16` reel, that subtitle must sit in the safe zone: horizontally centered between 64% and 78% of the frame height, with side margins of at least 14% of the width, and out of the top 14% and the bottom 20%. In-world text is limited to short props that belong to the scene (a sign, a letter, a screen), spelled exactly as written.
 
 ## Phase A field mapping
 

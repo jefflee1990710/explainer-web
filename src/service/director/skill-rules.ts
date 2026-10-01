@@ -90,6 +90,28 @@ export function storyShortCameraLock(skillSlug?: string) {
   return "Camera: third-person observer camera, as in a film scene. No eye contact with the lens; characters never look at, wave to, or talk to the camera. Eyelines go to other characters, objects, or off into the scene (profile, three-quarter, over-the-shoulder).";
 }
 
+// 白板概念解說：永遠是畫外旁白；角色不說話，用多個道具把概念演出來。
+export function cartoonExplainerDirectorBlock() {
+  return [
+    "This director is ALWAYS narrated: an unseen off-screen narrator speaks every englishVo line in the third person.",
+    "The on-screen character never speaks, never introduces themself, and is never the narrator. No first-person lines in the character's voice (no \"Hi, I'm Scro\", \"I am…\", \"we…\" spoken as the character); the narrator may name the character or product in the third person (\"Meet Scro. Scro turns…\").",
+    "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth closed or reacting, and it acts out the concept with props.",
+    "Every startScene and endScene gives the character at least 3 concrete props it holds, points at, opens, sorts, stacks, or transforms (cardboard boxes, bins, arrows, yellow tags, icons, gauges, morphing objects), each standing for one part of the idea. List them in Set and name the interaction in Character. Never a near-empty canvas with one floating label.",
+  ].join(" ");
+}
+
+// Pasted into whiteboard-explainer stills; empty for every other director.
+export function cartoonNarratorFrameLock(skillSlug?: string) {
+  if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
+  return "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). It actively uses the props to explain the idea — draw every prop named in the Scene, clearly readable.";
+}
+
+// Appended to whiteboard-explainer clip videos; empty for every other director.
+export function cartoonNarratorVideoLock(skillSlug?: string) {
+  if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
+  return "Voice: an unseen off-screen narrator speaks every line. The on-screen character never speaks or lip-syncs — mouth stays closed or shows simple reactions — and acts out the idea with the props.";
+}
+
 export function dialogueQaDirectorBlock() {
   return [
     "This director requires exactly two attached character blueprints. Assign one as ASKER and one as ANSWERER. Do not invent a third character or a replacement hero.",

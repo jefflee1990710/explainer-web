@@ -144,6 +144,19 @@ test("enabled scene text quotes the clip narration on canvas", () => {
   assert.match(sceneTextSkillHint(true, "en"), /englishVo voiceover line/);
 });
 
+test("reel safe zone lifts the subtitle off the bottom chrome", () => {
+  const lines = sceneTextFrameLines(true, "en", "We made it", undefined, { reelSafeZone: true });
+  const text = lines.join("\n");
+  assert.match(text, /64% and 78%/);
+  assert.match(text, /side margins of at least 14%/);
+  assert.match(text, /top 14%/);
+  assert.match(text, /bottom 20%/);
+  assert.match(text, /We made it/);
+  assert.doesNotMatch(text, /bottom 18%/);
+  assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true }), /64% and 78%/);
+  assert.doesNotMatch(sceneTextSkillHint(true, "en", { reelSafeZone: true }), /bottom subtitle/);
+});
+
 test("cartoon marker safe zone uppercases English and drops the bottom band", () => {
   const lines = sceneTextFrameLines(
     true,

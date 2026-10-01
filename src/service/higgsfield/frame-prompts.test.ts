@@ -104,6 +104,37 @@ test("end frame with a start still names it as the composition lock", () => {
   assert.match(prompt, /Do not invent a new room or camera/);
 });
 
+test("whiteboard explainer stills keep the character silent and using the props", () => {
+  const cartoon = project();
+  cartoon.skillSlug = "cartoon-explainer-video-director";
+  assert.match(buildFramePrompt(cartoon, 1, "start"), /Silent demonstrator/);
+  assert.match(buildFramePrompt(cartoon, 1, "end"), /every prop named in the Scene/);
+  assert.doesNotMatch(buildFramePrompt(project(), 1, "start"), /Silent demonstrator/);
+});
+
+test("story-short 9:16 stills place subtitles in the reel safe zone", () => {
+  const story = project();
+  story.skillSlug = "story-short-director";
+  story.aspectRatio = "9:16";
+  story.sceneTextEnabled = true;
+  story.phaseA!.clips[0].englishVo = 'Lily: "We made it."';
+  const prompt = buildFramePrompt(story, 1, "start");
+  assert.match(prompt, /64% and 78%/);
+  assert.match(prompt, /We made it\./);
+  assert.doesNotMatch(prompt, /bottom 18%/);
+  assert.match(prompt, /reel safe zone/);
+
+  story.aspectRatio = "16:9";
+  const wide = buildFramePrompt(story, 1, "start");
+  assert.match(wide, /bottom 18%/);
+  assert.doesNotMatch(wide, /64% and 78%/);
+
+  const other = project();
+  other.aspectRatio = "9:16";
+  other.sceneTextEnabled = true;
+  assert.match(buildFramePrompt(other, 1, "start"), /bottom 18%/);
+});
+
 test("story-short subtitles show only the spoken words, never the speaker name", () => {
   const story = project();
   story.skillSlug = "story-short-director";

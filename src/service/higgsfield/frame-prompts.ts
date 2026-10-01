@@ -30,8 +30,10 @@ import {
   stripVisualWorldTextPolicy,
 } from "@/service/director/scene-text";
 import {
+  cartoonNarratorFrameLock,
   skillBansNarration,
   skillForcesSceneText,
+  STORY_SHORT_SKILL_SLUG,
   storyShortCameraLock,
 } from "@/service/director/skill-rules";
 import { subtitleText } from "@/service/director/spoken-line";
@@ -268,6 +270,9 @@ export function buildFramePrompt(
   const motionDescription = sceneText.enabled
     ? stripSceneVoiceoverRecap(motionRaw)
     : motionRaw;
+  // 9:16 story shorts: subtitles sit above the reel chrome, not in the bottom band.
+  const reelSafeZone =
+    project.skillSlug === STORY_SHORT_SKILL_SLUG && project.aspectRatio === "9:16";
   const onCanvasTextBlock = listicle
     ? [
         styleLetteringLineForSceneText(style),
@@ -285,7 +290,7 @@ export function buildFramePrompt(
             sceneText.language,
             voForFrame,
             undefined,
-            dualBeat ? { markerSafeZone: true } : undefined,
+            dualBeat ? { markerSafeZone: true } : reelSafeZone ? { reelSafeZone: true } : undefined,
           ),
         ]
       : keepSceneLabels
@@ -321,6 +326,7 @@ export function buildFramePrompt(
     `Scene: ${parts.scene}`,
     ...(parts.motion ? [`${motionLabel}: ${parts.motion}`] : []),
     ...(storyShortCameraLock(project.skillSlug) ? [storyShortCameraLock(project.skillSlug)] : []),
+    ...(cartoonNarratorFrameLock(project.skillSlug) ? [cartoonNarratorFrameLock(project.skillSlug)] : []),
     ...(lockUrls.length ? [FRAME_WARDROBE_LOCK] : []),
     FRAME_RENDER_DETAIL,
     moment,
@@ -333,9 +339,13 @@ export function buildFramePrompt(
           ? [
               "Final check: voiceover lettering is centered at 52%–60% of the frame height, max 2 lines, spelling matches the Marker line(s); no bottom subtitle band.",
             ]
-          : [
-              "Final check: bottom subtitle band only; spelling must match the Subtitle line(s) above.",
-            ]
+          : reelSafeZone
+            ? [
+                "Final check: subtitle sits in the reel safe zone (64%–78% of frame height, 14% side margins), spelling matches the Subtitle line(s); not in the top 14% or bottom 20%.",
+              ]
+            : [
+                "Final check: bottom subtitle band only; spelling must match the Subtitle line(s) above.",
+              ]
         : keepSceneLabels
           ? [
               "Final check: the only lettering is the short in-world label(s) named in the Scene; no subtitle band, no voiceover transcript.",

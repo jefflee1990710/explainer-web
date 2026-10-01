@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   briefSkillError,
+  cartoonExplainerDirectorBlock,
+  cartoonNarratorFrameLock,
+  cartoonNarratorVideoLock,
   dialogueOnlyDirectorBlock,
   dialogueQaDirectorBlock,
   listicleListEntries,
@@ -25,6 +28,22 @@ test("story short is filmed third-person: characters never address the camera", 
   assert.match(storyShortCameraLock("story-short-director"), /No eye contact with the lens/);
   assert.equal(storyShortCameraLock("cartoon-explainer-video-director"), "");
   assert.equal(storyShortCameraLock("dialogue-qa-director"), "");
+});
+
+test("whiteboard explainer is always narrated; the character silently explains with props", () => {
+  const block = cartoonExplainerDirectorBlock();
+  assert.match(block, /ALWAYS narrated/);
+  assert.match(block, /never speaks/);
+  assert.match(block, /I'm Scro/);
+  assert.match(block, /at least 3 concrete props/);
+  const still = cartoonNarratorFrameLock("cartoon-explainer-video-director");
+  assert.match(still, /does not talk/);
+  assert.match(still, /every prop named in the Scene/);
+  assert.match(cartoonNarratorVideoLock("cartoon-explainer-video-director"), /off-screen narrator/);
+  assert.match(cartoonNarratorVideoLock("cartoon-explainer-video-director"), /never speaks or lip-syncs/);
+  assert.equal(cartoonNarratorFrameLock("story-short-director"), "");
+  assert.equal(cartoonNarratorVideoLock("story-short-director"), "");
+  assert.equal(skillBansNarration("cartoon-explainer-video-director"), false);
 });
 
 test("Q&A is dialogue-only like story short: no narrator, character lines", () => {

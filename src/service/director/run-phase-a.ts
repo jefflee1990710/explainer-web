@@ -18,6 +18,7 @@ import {
 } from "@/service/director/scene-text";
 import { skillPromptForPhaseA } from "@/service/director/load-skill-prompt";
 import {
+  cartoonExplainerDirectorBlock,
   dialogueOnlyDirectorBlock,
   dialogueQaDirectorBlock,
   listicleDirectorBlock,
@@ -30,6 +31,7 @@ import {
 import { keyframeDeltaDirectorBlock } from "@/service/director/keyframe-delta";
 import { sceneDetailDirectorBlock } from "@/service/director/scene-detail";
 import {
+  CARTOON_EXPLAINER_SKILL_SLUG,
   dualBeatDirectorBlock,
   isDualBeatSkill,
   normalizeDualBeatRow,
@@ -132,6 +134,7 @@ ${
   [
     dialogueOnly ? dialogueOnlyDirectorBlock() : "",
     input.skill.slug === STORY_SHORT_SKILL_SLUG ? storyShortDirectorBlock() : "",
+    input.skill.slug === CARTOON_EXPLAINER_SKILL_SLUG ? cartoonExplainerDirectorBlock() : "",
     requiredCastCount(input.skill.slug) ? dialogueQaDirectorBlock() : "",
     skillForcesSceneText(input.skill.slug) ? listicleDirectorBlock() : "",
   ]
@@ -145,6 +148,7 @@ ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   dualBeat,
   listicle: skillForcesSceneText(input.skill.slug),
   inWorldLabels: sceneText.inWorldLabels,
+  reelSafeZone: input.skill.slug === STORY_SHORT_SKILL_SLUG && input.aspectRatio === "9:16",
 })}
 The englishVo field always carries the spoken line in the chosen language above (character dialogue when this skill bans narration), regardless of the field name.
 Leave referenceTranslation empty. Do not invent a translation column.
