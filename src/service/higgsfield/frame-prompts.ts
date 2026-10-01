@@ -3,8 +3,13 @@ import {
   characterReferenceUrls,
   frameCharacterLockLine,
   frameLockReferenceUrls,
+  sceneImageReferenceUrls,
   soloCharacterParagraphForFrames,
 } from "@/service/character/cast-prompt";
+import {
+  clipFrameAnchor,
+  type FrameAnchorKind,
+} from "@/service/higgsfield/clip-keyframes";
 import {
   clipEndScene,
   clipEndVo,
@@ -63,7 +68,25 @@ export function revisionLines(revision: FrameRevision | undefined) {
 
 export type FramePromptOptions = {
   revision?: FrameRevision;
+  // Completed sibling still attached so the model continues that composition.
+  anchor?: { kind: FrameAnchorKind };
 };
+
+function compositionLockLines(anchor: { kind: FrameAnchorKind } | undefined, imageIndex: number) {
+  if (!anchor) return [];
+  const slot = `attached image ${imageIndex}`;
+  const source =
+    anchor.kind === "clip-start"
+      ? `${slot} is THIS CLIP'S START frame`
+      : anchor.kind === "prev-end"
+        ? `${slot} is the previous clip's END frame`
+        : `${slot} is this clip's END frame`;
+  return [
+    `COMPOSITION LOCK: ${source}.`,
+    "Keep the same camera, set, lighting, character size, and screen position.",
+    "Apply only the Scene changes (pose, props, lettering). Do not invent a new room or camera.",
+  ];
+}
 
 // Higgsfield Marketing Studio Flare rejects prompts over this many characters.
 export const IMAGE_PROMPT_MAX_CHARS = 5000;
@@ -121,8 +144,9 @@ export function buildFramePrompt(
   const hasCast = Boolean(project.cast && project.cast.length > 0);
   const lockUrls = frameLockReferenceUrls(project);
   const characterUrls = characterReferenceUrls(project);
-  const characterAttachmentStart =
-    (options.revision?.annotatedUrl ? 1 : 0) + 1;
+  const annotatedCount = options.revision?.annotatedUrl ? 1 : 0;
+  const anchorCount = options.anchor ? 1 : 0;
+  const characterAttachmentStart = annotatedCount + anchorCount + 1;
   const castLines = hasCast
     ? castParagraphForFrames(project.cast, {
         start: characterAttachmentStart,
@@ -205,6 +229,7 @@ export function buildFramePrompt(
     `Scene: ${sceneDescription}`,
     `Motion and camera across the clip: ${motionDescription}`,
     moment,
+    ...compositionLockLines(options.anchor, annotatedCount + 1),
     ...revisionLines(options.revision),
     ...(listicle
       ? ["Final check: the numbered item list is visible and spelled exactly."]
@@ -223,6 +248,29 @@ export function buildFramePrompt(
           : []),
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
+}
+
+// Prompt + reference URLs for one still submit. End waits until start exists
+// so the start file can lock composition.
+export function frameSubmitPlan(
+  project: Project,
+  clipNumber: number,
+  position: FramePosition,
+  revision?: FrameRevision,
+) {
+  const anchor = clipFrameAnchor(project.frames, clipNumber, position);
+  return {
+    prompt: buildFramePrompt(project, clipNumber, position, {
+      revision,
+      anchor: anchor ? { kind: anchor.kind } : undefined,
+    }),
+    refs: sceneImageReferenceUrls({
+      annotatedUrl: revision?.annotatedUrl,
+      anchorUrl: anchor?.url,
+      lockUrls: frameLockReferenceUrls(project),
+    }),
+    anchor,
+  };
 }
 
 // Frames array with a fresh queued start + end entry for one clip (prompt

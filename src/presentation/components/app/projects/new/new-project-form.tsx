@@ -720,7 +720,12 @@ export function NewProjectForm({
                     : "影片會用這個語言、語速與男／女聲配旁白；分鏡說明維持繁體中文。"
                 }
               >
-                <LanguagePicker value={language} onChange={setLanguage} disabled={briefBusy} />
+                <LanguagePicker
+                  value={language}
+                  onChange={setLanguage}
+                  disabled={briefBusy}
+                  dialogueOnly={dialogueOnly}
+                />
                 <p className="mt-4 text-sm font-semibold">語速</p>
                 <p className="mt-1 text-xs text-muted">
                   影響每段講多少字：慢速字數較少、句間有停頓；快速字數較多。

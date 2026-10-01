@@ -1,8 +1,4 @@
 import { ObjectId } from "mongodb";
-import {
-  frameLockReferenceUrls,
-  sceneImageReferenceUrls,
-} from "@/service/character/cast-prompt";
 import { syncCharacterJob } from "@/service/character/sync";
 import {
   generationJobsCollection,
@@ -13,7 +9,7 @@ import { refundCredits } from "@/service/billing/credits";
 import { flattenToCanvas } from "@/service/higgsfield/flatten";
 import { sceneTextNegativePrompt, resolveSceneText } from "@/service/director/scene-text";
 import { imageModelForSubmit, resolveImageRoute } from "@/service/generation/image-backend";
-import { buildFramePrompt, framesWithClips, videoStyle } from "@/service/higgsfield/frame-prompts";
+import { frameSubmitPlan, framesWithClips, videoStyle } from "@/service/higgsfield/frame-prompts";
 import {
   orphanQueuedClips,
   orphanQueuedFrames,
@@ -41,6 +37,7 @@ import {
 } from "@/service/higgsfield/reconcile";
 import { scheduleGenerationFinishedEmail } from "@/service/notify/generation-email";
 import { chargedVideoCredits, FRAME_COST, STUCK_CLAIM_MS } from "@/service/production-plan";
+import { lockDialogueSpeech } from "@/service/director/spoken-line";
 import { toSent, type Sent } from "@/service/generation/sent";
 import { frameJobDocs } from "@/service/generation/frame-jobs";
 import {
@@ -131,8 +128,8 @@ export async function stillBlocker(project: Project): Promise<string | null> {
 // ---------- frames ----------
 
 // Send one frame to the provider. The revision comes from the stored frame so
-// a retry rebuilds exactly what the user asked for. Character blueprints are
-// always attached; annotated redo images precede them. No job write.
+// a retry rebuilds exactly what the user asked for. End stills attach this
+// clip's start image as the composition lock; blueprints follow. No job write.
 export async function sendFrame(
   project: Project,
   clipNumber: number,
@@ -143,11 +140,7 @@ export async function sendFrame(
     (frame) => frame.clipNumber === clipNumber && frame.position === position,
   )?.revision;
   const sceneText = resolveSceneText(project);
-  const prompt = buildFramePrompt(project, clipNumber, position, { revision });
-  const refs = sceneImageReferenceUrls({
-    annotatedUrl: revision?.annotatedUrl,
-    lockUrls: frameLockReferenceUrls(project),
-  });
+  const { prompt, refs } = frameSubmitPlan(project, clipNumber, position, revision);
   const model = imageModelForSubmit(resolveImageRoute(sceneText.language), refs.length > 0);
   const submitted = await submitImage({
     model,
@@ -205,9 +198,12 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
   // after `submittedAt`. `$unset` rather than `$set: undefined` so the
   // previous failure message never lingers as `null`.
   for (const target of targets) {
-    const prompt = buildFramePrompt(project, target.clipNumber, target.position, {
-      revision: target.revision,
-    });
+    const { prompt } = frameSubmitPlan(
+      project,
+      target.clipNumber,
+      target.position,
+      target.revision,
+    );
     await projects.updateOne(
       { _id: project._id },
       {
@@ -330,7 +326,7 @@ export async function sendClipVideo(
 ): Promise<Sent> {
   const { start, end } = assertClipKeyframes(project.frames, clipNumber);
   const submitted = await submitClipVideo({
-    prompt: prompt.prompt,
+    prompt: lockDialogueSpeech(prompt.prompt, project.skillSlug),
     aspectRatio: project.aspectRatio,
     durationSeconds: prompt.durationSeconds,
     startImageUrl: start,
@@ -588,8 +584,8 @@ export async function failDeferredEndIfNeeded(
   if (claimed) await refundCredits(project.clerkUserId, FRAME_COST);
 }
 
-// After this clip's start file lands, send the waiting end still with that
-// start image attached as the composition lock.
+// After this clip's start file lands, send the waiting end still. sendFrame
+// attaches that start image as the composition lock.
 export async function submitDeferredEndIfNeeded(
   projectId: ObjectId,
   clipNumber: number,
@@ -637,7 +633,7 @@ export async function submitDeferredEndIfNeeded(
     clipIndex: clipNumber - 1,
     framePosition: "end",
   });
-  const prompt = buildFramePrompt(project, clipNumber, "end", { revision: end.revision });
+  const { prompt } = frameSubmitPlan(project, clipNumber, "end", end.revision);
   // Frame first so the job's `createdAt` is never older than `submittedAt`.
   await projects.updateOne(
     { _id: projectId },

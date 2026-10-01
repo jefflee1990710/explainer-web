@@ -165,6 +165,24 @@ test("sceneImageReferenceUrls keeps annotated then lock order", () => {
   );
 });
 
+test("sceneImageReferenceUrls puts the composition-lock still before blueprints", () => {
+  assert.deepEqual(
+    sceneImageReferenceUrls({
+      annotatedUrl: "https://x/ann.png",
+      anchorUrl: "https://blob/start.png",
+      lockUrls: ["https://blob/cast.png"],
+    }),
+    ["https://x/ann.png", "https://blob/start.png", "https://blob/cast.png"],
+  );
+  assert.deepEqual(
+    sceneImageReferenceUrls({
+      anchorUrl: "https://blob/start.png",
+      lockUrls: ["https://blob/cast.png"],
+    }),
+    ["https://blob/start.png", "https://blob/cast.png"],
+  );
+});
+
 test("directorImageParts keeps valid character urls as image parts", () => {
   const parts = directorImageParts(["https://blob/a.png", "not-a-url"]);
   assert.equal(parts.length, 1);

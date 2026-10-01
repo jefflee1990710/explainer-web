@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Spinner } from "@/presentation/components/spinner";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
+import { spokenLineCopy } from "@/service/director/spoken-line";
 import { SCENE_TEXT_PRESETS } from "@/service/director/scene-text";
 import {
   phaseAEditsEqual,
@@ -59,6 +60,7 @@ export function StoryboardPreview({
   const currentDraft = draft;
 
   const language = LANGUAGE_PRESETS[project.language];
+  const spoken = spokenLineCopy(project.skillSlug);
   const busy = pending !== "";
   const dirty = !phaseAEditsEqual(currentDraft, saved);
 
@@ -86,14 +88,19 @@ export function StoryboardPreview({
           <Chip>{phaseA.targetDuration}</Chip>
           <Chip>{phaseA.clipCount} 段 clips</Chip>
           <Chip>{project.aspectRatio}</Chip>
-          <Chip>{language.label} 旁白</Chip>
+          <Chip>{spoken.languageChip(language.label)}</Chip>
           <Chip>
             {`畫面文字 · ${SCENE_TEXT_PRESETS[project.sceneTextLanguage].label}`}
           </Chip>
           <Chip>線性結尾</Chip>
         </div>
         <div className="mt-5">
-          <StoryboardProposalFields draft={currentDraft} disabled={busy} onChange={setDraft} />
+          <StoryboardProposalFields
+            draft={currentDraft}
+            skillSlug={project.skillSlug}
+            disabled={busy}
+            onChange={setDraft}
+          />
         </div>
         <div className="mt-5 flex justify-end">
           <button
@@ -112,7 +119,7 @@ export function StoryboardPreview({
         <div className="hidden gap-3 px-4 text-xs font-semibold uppercase tracking-[0.14em] text-muted md:grid md:grid-cols-[72px_1fr_1fr]">
           <p>Clip</p>
           <p>場景描述</p>
-          <p>旁白（{language.label}）</p>
+          <p>{spoken.field(language.label)}</p>
         </div>
         <ol className="grid gap-3">
           {phaseA.clips.map((clip, index) => (
@@ -123,6 +130,7 @@ export function StoryboardPreview({
               draft={currentDraft.clips[index]}
               language={project.language}
               dualBeat={isDualBeatSkill(project.skillSlug)}
+              skillSlug={project.skillSlug}
               disabled={busy}
               onChange={(next) => {
                 setDraft({

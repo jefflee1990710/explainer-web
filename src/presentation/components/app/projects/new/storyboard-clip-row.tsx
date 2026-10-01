@@ -7,6 +7,7 @@ import {
   clipStartVo,
 } from "@/service/director/dual-beat";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
+import { spokenLineCopy } from "@/service/director/spoken-line";
 import type { ClipStoryboardInput, VoLanguage } from "@/model/project";
 
 const fieldClass =
@@ -18,6 +19,7 @@ export function StoryboardClipRow({
   draft,
   language,
   dualBeat,
+  skillSlug,
   disabled,
   onChange,
 }: {
@@ -27,10 +29,12 @@ export function StoryboardClipRow({
   language: VoLanguage;
   // 白板概念解說: start/end stills + two VO beats.
   dualBeat?: boolean;
+  skillSlug?: string;
   disabled?: boolean;
   onChange: (next: ClipStoryboardInput) => void;
 }) {
   const voLabel = LANGUAGE_PRESETS[language].label;
+  const spoken = spokenLineCopy(skillSlug);
 
   function update<K extends keyof ClipStoryboardInput>(key: K, value: string) {
     onChange({ ...draft, [key]: value });
@@ -106,46 +110,46 @@ export function StoryboardClipRow({
       </div>
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted md:hidden">
-          旁白（{voLabel}）
+          {spoken.field(voLabel)}
         </p>
         {dualBeat ? (
           <>
             <label className="block">
               <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-                旁白（起）
+                {spoken.startField(voLabel)}
               </span>
               <textarea
                 value={draft.startVo ?? clipStartVo(draft)}
                 rows={3}
                 disabled={disabled}
                 onChange={(event) => update("startVo", event.target.value)}
-                placeholder={`${voLabel} 前半句，起始字幕。`}
+                placeholder={spoken.startPlaceholder}
                 className={fieldClass}
               />
             </label>
             <label className="block">
               <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-                旁白（終）
+                {spoken.endField(voLabel)}
               </span>
               <textarea
                 value={draft.endVo ?? clipEndVo(draft)}
                 rows={3}
                 disabled={disabled}
                 onChange={(event) => update("endVo", event.target.value)}
-                placeholder={`${voLabel} 後半句，結尾字幕。`}
+                placeholder={spoken.endPlaceholder}
                 className={fieldClass}
               />
             </label>
           </>
         ) : (
           <label className="block">
-            <span className="sr-only">旁白（{voLabel}）</span>
+            <span className="sr-only">{spoken.field(voLabel)}</span>
             <textarea
               value={draft.englishVo}
               rows={6}
               disabled={disabled}
               onChange={(event) => update("englishVo", event.target.value)}
-              placeholder={`${voLabel} 旁白逐字稿。`}
+              placeholder={spoken.placeholder}
               className={fieldClass}
             />
           </label>

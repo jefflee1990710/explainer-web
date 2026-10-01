@@ -2,9 +2,10 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { pageVideos, pauseOtherVideos } from "@/presentation/components/project/exclusive-video";
 import { PlayIcon } from "@/presentation/components/project/production-icons";
 
-// Bumps when the filmstrip clip is clicked, so the preview can start with sound.
+// Bumps when a clip is selected, so the preview can start with sound.
 const ClipPlaybackContext = createContext(0);
 
 export function ClipPlaybackProvider({
@@ -14,11 +15,22 @@ export function ClipPlaybackProvider({
   token: number;
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    function onPlay(event: Event) {
+      const target = event.target;
+      if (!(target instanceof HTMLVideoElement)) return;
+      pauseOtherVideos(target, pageVideos());
+    }
+    document.addEventListener("play", onPlay, true);
+    return () => document.removeEventListener("play", onPlay, true);
+  }, []);
   return <ClipPlaybackContext.Provider value={token}>{children}</ClipPlaybackContext.Provider>;
 }
 
-// Start with sound. If the browser blocks that, play muted and then unmute.
+// Pause every other <video> on the page, then start with sound.
+// If the browser blocks unmuted play, start muted and unmute.
 async function playWithSound(video: HTMLVideoElement) {
+  pauseOtherVideos(video, pageVideos());
   video.muted = false;
   video.volume = 1;
   try {
@@ -76,7 +88,10 @@ export function ClipVideoPlayer({
         animate={{ opacity: dimmed ? 0.6 : 1 }}
         src={src}
         controls
-        onPlay={() => setPlaying(true)}
+        onPlay={(event) => {
+          pauseOtherVideos(event.currentTarget, pageVideos());
+          setPlaying(true);
+        }}
         onPause={() => setPlaying(false)}
         onEnded={() => setPlaying(false)}
         className="absolute inset-0 h-full w-full bg-black"

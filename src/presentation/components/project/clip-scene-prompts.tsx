@@ -10,6 +10,7 @@ import {
   clipStartVo,
 } from "@/service/director/dual-beat";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
+import { spokenLineCopy } from "@/service/director/spoken-line";
 import { FRAMES_COST } from "@/service/production-plan";
 import type { ClipStoryboardInput, StoryboardRow, VoLanguage } from "@/model/project";
 
@@ -24,6 +25,7 @@ export function ClipScenePrompts({
   clip,
   language,
   dualBeat,
+  skillSlug,
   credits,
   pending,
   onSave,
@@ -31,12 +33,14 @@ export function ClipScenePrompts({
   clip: StoryboardRow;
   language: VoLanguage;
   dualBeat?: boolean;
+  skillSlug?: string;
   credits: number;
   pending: ClipScenePending;
   onSave: (input: ClipStoryboardInput, regenerate: boolean) => Promise<boolean>;
 }) {
   const fieldId = useId();
   const voLabel = LANGUAGE_PRESETS[language].label;
+  const spoken = spokenLineCopy(skillSlug);
   const [draft, setDraft] = useState<ClipStoryboardInput>(() => draftFromClip(clip));
 
   const busy = pending !== "";
@@ -79,36 +83,36 @@ export function ClipScenePrompts({
 
   return (
     <div className="flex flex-col gap-3">
-      <FormSection title="旁白">
+      <FormSection title={spoken.section}>
         {dualBeat ? (
           <>
             <TextField
               id={`${fieldId}-vo-start`}
-              label={`開頭旁白（${voLabel}）`}
+              label={spoken.startField(voLabel)}
               value={draft.startVo || ""}
               rows={2}
               disabled={busy}
-              placeholder="起始 beat 要說的話，也會寫在起始畫格上。"
+              placeholder={spoken.startPlaceholder}
               onChange={(value) => update("startVo", value)}
             />
             <TextField
               id={`${fieldId}-vo-end`}
-              label={`結尾旁白（${voLabel}）`}
+              label={spoken.endField(voLabel)}
               value={draft.endVo || ""}
               rows={2}
               disabled={busy}
-              placeholder="結尾 beat 要說的話，也會寫在結尾畫格上。"
+              placeholder={spoken.endPlaceholder}
               onChange={(value) => update("endVo", value)}
             />
           </>
         ) : (
           <TextField
             id={`${fieldId}-vo`}
-            label={`旁白（${voLabel}）`}
+            label={spoken.field(voLabel)}
             value={draft.englishVo}
             rows={3}
             disabled={busy}
-            placeholder="影片裡會照這句逐字唸出。"
+            placeholder={spoken.placeholder}
             onChange={(value) => update("englishVo", value)}
           />
         )}
@@ -165,7 +169,7 @@ export function ClipScenePrompts({
         <div className="sticky bottom-0 -mx-4 flex flex-col gap-2 border-t border-[var(--studio-line)] bg-[var(--studio-panel)] px-4 py-3">
           {!valid ? (
             <p className="text-xs font-medium text-accent">
-              {dualBeat ? "起始／結尾畫面與兩句旁白不能空白。" : "畫面描述與旁白不能空白。"}
+              {dualBeat ? spoken.dualEmptyError : spoken.emptyError}
             </p>
           ) : !enoughCredits ? (
             <p className="text-xs font-medium text-accent">

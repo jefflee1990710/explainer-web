@@ -9,15 +9,17 @@ export function LanguagePicker({
   value,
   onChange,
   disabled,
+  dialogueOnly = false,
 }: {
   value: VoLanguage;
   onChange: (value: VoLanguage) => void;
   disabled?: boolean;
+  dialogueOnly?: boolean;
 }) {
   return (
     <div
       role="radiogroup"
-      aria-label="旁白語言"
+      aria-label={dialogueOnly ? "對白語言" : "旁白語言"}
       className="grid grid-cols-3 gap-1 rounded-2xl border border-accent-ink/10 bg-paper/70 p-1"
     >
       {LANGUAGE_IDS.map((id) => {

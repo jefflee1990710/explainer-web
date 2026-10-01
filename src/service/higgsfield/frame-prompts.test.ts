@@ -5,6 +5,7 @@ import type { Project } from "@/model/project";
 import {
   IMAGE_PROMPT_MAX_CHARS,
   buildFramePrompt,
+  frameSubmitPlan,
   framesWithClips,
 } from "@/service/higgsfield/frame-prompts";
 
@@ -93,6 +94,32 @@ test("frame prompts never mention an attached previous still", () => {
   assert.doesNotMatch(prompt, /previous still/);
 });
 
+test("end frame with a start still names it as the composition lock", () => {
+  const prompt = buildFramePrompt(project(), 1, "end", {
+    anchor: { kind: "clip-start" },
+  });
+  assert.match(prompt, /COMPOSITION LOCK/);
+  assert.match(prompt, /attached image 1 is THIS CLIP'S START frame/);
+  assert.match(prompt, /Do not invent a new room or camera/);
+});
+
+test("end frame with a start still numbers the blueprint after that still", () => {
+  const withCast = project();
+  withCast.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Lily",
+      blueprintUrl: "https://blob/c.png",
+      prompt: "",
+    },
+  ];
+  const prompt = buildFramePrompt(withCast, 1, "end", {
+    anchor: { kind: "clip-start" },
+  });
+  assert.match(prompt, /Attached image 2 is the selected character blueprint/);
+});
+
 test("with a cast, the blueprint rule precedes names-only lock and skips invented looks", () => {
   const withCast = project();
   withCast.cast = [
@@ -117,6 +144,33 @@ test("with a cast, the blueprint rule precedes names-only lock and skips invente
   );
   assert.doesNotMatch(prompt, /鼠尾草綠無袖連身裙/);
   assert.match(prompt, /Ignore any clothing, hair, or style wording/);
+});
+
+test("frameSubmitPlan attaches this clip's start still when generating the end", () => {
+  const withCast = project();
+  withCast.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Lily",
+      blueprintUrl: "https://blob/c.png",
+      prompt: "",
+    },
+  ];
+  withCast.frames = [
+    {
+      clipNumber: 1,
+      position: "start",
+      prompt: "p",
+      status: "completed",
+      blobUrl: "https://blob/start.png",
+    },
+    { clipNumber: 1, position: "end", prompt: "p", status: "queued" },
+  ];
+  const plan = frameSubmitPlan(withCast, 1, "end");
+  assert.deepEqual(plan.refs, ["https://blob/start.png", "https://blob/c.png"]);
+  assert.equal(plan.anchor?.kind, "clip-start");
+  assert.match(plan.prompt, /THIS CLIP'S START frame/);
 });
 
 test("opening still without a previous frame still numbers the blueprint first", () => {
@@ -394,9 +448,19 @@ test("dual-beat stills with a cast stay under the Flare prompt cap", () => {
     explainerScene: "起始：…。結尾：…",
     englishVo: "To introduce products, explain concepts, and deliver any message.",
   }));
+  dual.frames = [1, 2, 3].flatMap((clipNumber) => [
+    {
+      clipNumber,
+      position: "start" as const,
+      prompt: "p",
+      status: "completed" as const,
+      blobUrl: `https://blob/c${clipNumber}-start.png`,
+    },
+    { clipNumber, position: "end" as const, prompt: "p", status: "queued" as const },
+  ]);
   for (const clipNumber of [1, 2, 3]) {
     for (const position of ["start", "end"] as const) {
-      const prompt = buildFramePrompt(dual, clipNumber, position);
+      const prompt = frameSubmitPlan(dual, clipNumber, position).prompt;
       assert.ok(
         prompt.length <= IMAGE_PROMPT_MAX_CHARS,
         `clip ${clipNumber} ${position} is ${prompt.length} chars`,

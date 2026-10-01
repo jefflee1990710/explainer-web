@@ -66,6 +66,8 @@ test("story-short Phase B lock infers each speaker and still forbids BGM", () =>
   });
   assert.match(lock, /There is no narrator/);
   assert.match(lock, /start\/end frames/);
+  assert.match(lock, /On-screen characters MUST speak/);
+  assert.match(lock, /visible mouth/);
   assert.doesNotMatch(lock, /adult male/);
   assert.doesNotMatch(lock, /mid-low pitch/);
   assert.match(lock, /No background music/);

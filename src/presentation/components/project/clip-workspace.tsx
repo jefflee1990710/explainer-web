@@ -109,6 +109,7 @@ export function ClipWorkspace({
         clip={row}
         language={project.language}
         dualBeat={isDualBeatSkill(project.skillSlug)}
+        skillSlug={project.skillSlug}
         credits={credits}
         pending={scenePending}
         onSave={onUpdateClip}

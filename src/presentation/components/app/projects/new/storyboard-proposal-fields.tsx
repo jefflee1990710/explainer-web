@@ -1,5 +1,6 @@
 "use client";
 
+import { skillBansNarration } from "@/service/director/skill-rules";
 import type { PhaseAEditInput } from "@/model/project";
 
 const fieldClass =
@@ -7,10 +8,12 @@ const fieldClass =
 
 export function StoryboardProposalFields({
   draft,
+  skillSlug,
   disabled,
   onChange,
 }: {
   draft: PhaseAEditInput;
+  skillSlug?: string;
   disabled?: boolean;
   onChange: (next: PhaseAEditInput) => void;
 }) {
@@ -63,7 +66,7 @@ export function StoryboardProposalFields({
           onChange={(value) => update("hookStrategy", value)}
         />
         <EditField
-          label="旁白角色"
+          label={skillBansNarration(skillSlug) ? "角色聲線" : "旁白角色"}
           value={draft.narrator}
           rows={2}
           disabled={disabled}

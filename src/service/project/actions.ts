@@ -15,7 +15,7 @@ import { isVoLanguage } from "@/service/director/languages";
 import { isVoiceGender, resolveVoiceGender } from "@/service/director/voice";
 import { isSpeechPace } from "@/service/director/speech-pace";
 import { isSceneTextLanguage } from "@/service/director/scene-text";
-import { applySkillSceneText, briefSkillError } from "@/service/director/skill-rules";
+import { applySkillSceneText, briefSkillError, skillBansNarration } from "@/service/director/skill-rules";
 import { sanitizeFolderName } from "@/service/folder";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
@@ -90,9 +90,9 @@ function readVideoBrief(
     return { ok: false, error: "請選擇片長" };
   }
   if (!isVoLanguage(language)) {
-    return { ok: false, error: "請選擇旁白語言" };
+    return { ok: false, error: skillBansNarration(skillSlug) ? "請選擇對白語言" : "請選擇旁白語言" };
   }
-  if (!isVoiceGender(voiceGender)) {
+  if (!skillBansNarration(skillSlug) && !isVoiceGender(voiceGender)) {
     return { ok: false, error: "請選擇旁白聲線" };
   }
   if (!isSpeechPace(speechPace)) {
@@ -418,7 +418,7 @@ export async function updatePhaseAProposalAction(
       return { ok: false, error: "這個專案目前不能編輯分鏡提案" };
     }
 
-    const applied = applyPhaseAEdits(video.phaseA, input, video.language);
+    const applied = applyPhaseAEdits(video.phaseA, input, video.language, video.skillSlug);
     if (!applied.ok) return { ok: false, error: applied.error };
 
     await videos.updateOne(

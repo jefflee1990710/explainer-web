@@ -1,4 +1,5 @@
 import { hasDualBeatDraft, syncDualBeatFields } from "@/service/director/dual-beat";
+import { spokenLineCopy } from "@/service/director/spoken-line";
 import type {
   PhaseAEditInput,
   PhaseAProposal,
@@ -60,6 +61,7 @@ export function applyPhaseAEdits(
   current: PhaseAProposal,
   input: PhaseAEditInput,
   language?: VoLanguage,
+  skillSlug?: string,
 ): PhaseAEditResult {
   const localizedTitle = cleanPhaseAField(input.localizedTitle, MAX_PHASE_A_TITLE_LENGTH);
   const englishTitle = cleanPhaseAField(input.englishTitle, MAX_PHASE_A_TITLE_LENGTH);
@@ -72,7 +74,13 @@ export function applyPhaseAEdits(
   if (!englishTitle) return { ok: false, error: "英文標題不能空白" };
   if (!coreMessage) return { ok: false, error: "核心訊息不能空白" };
   if (!hookStrategy) return { ok: false, error: "開場鉤子不能空白" };
-  if (!narrator) return { ok: false, error: "旁白角色不能空白" };
+  const spoken = spokenLineCopy(skillSlug);
+  if (!narrator) {
+    return {
+      ok: false,
+      error: skillSlug && spoken.section === "對白" ? "角色聲線不能空白" : "旁白角色不能空白",
+    };
+  }
   if (!visualWorld) return { ok: false, error: "視覺世界不能空白" };
 
   if (!Array.isArray(input.clips) || input.clips.length !== current.clips.length) {
@@ -99,12 +107,12 @@ export function applyPhaseAEdits(
         return { ok: false, error: `Clip #${row.clipNumber} 的起始與結尾畫面不能空白` };
       }
       if (!synced.startVo || !synced.endVo) {
-        return { ok: false, error: `Clip #${row.clipNumber} 的兩句旁白不能空白` };
+        return { ok: false, error: `Clip #${row.clipNumber} 的兩句${spoken.section}不能空白` };
       }
     } else if (!synced.explainerScene) {
       return { ok: false, error: `Clip #${row.clipNumber} 的畫面描述不能空白` };
     } else if (!synced.englishVo) {
-      return { ok: false, error: `Clip #${row.clipNumber} 的旁白不能空白` };
+      return { ok: false, error: `Clip #${row.clipNumber} 的${spoken.section}不能空白` };
     }
     const clipChanged =
       synced.explainerScene !== row.explainerScene ||

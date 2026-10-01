@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { pageVideos, pauseAllVideos } from "@/presentation/components/project/exclusive-video";
 import { ClipPlaybackProvider } from "@/presentation/components/project/clip-video-player";
 import { clipStudioItems } from "@/presentation/components/project/clip-timeline";
 import { Filmstrip } from "@/presentation/studio/filmstrip";
@@ -34,25 +35,30 @@ export function VideoDesk({
 }) {
   const states = clipStatesFor(project);
   const [selectedClip, setSelectedClip] = useState(() => defaultSelectedClip(states));
-  // Each filmstrip click asks the preview to play that clip with sound.
+  // Each clip select asks the preview to play that clip with sound.
   const [playToken, setPlayToken] = useState(0);
 
   const selected = states.find((state) => state.clipNumber === selectedClip) ?? states[0];
   const items = clipStudioItems(project, states, pending);
 
+  function selectClip(clipNumber: number) {
+    pauseAllVideos(pageVideos());
+    setSelectedClip(clipNumber);
+    setPlayToken((token) => token + 1);
+  }
+
   function onSelect(id: string) {
     const clipNumber = Number(id);
     if (!Number.isFinite(clipNumber)) return;
-    setSelectedClip(clipNumber);
-    setPlayToken((token) => token + 1);
+    selectClip(clipNumber);
   }
 
   return (
     <ClipPlaybackProvider token={playToken}>
       <StudioFrame
-        toolbar={renderToolbar?.(setSelectedClip)}
-        preview={selected ? renderPreview(selected, setSelectedClip) : null}
-        inspector={selected ? renderInspector(selected, setSelectedClip) : null}
+        toolbar={renderToolbar?.(selectClip)}
+        preview={selected ? renderPreview(selected, selectClip) : null}
+        inspector={selected ? renderInspector(selected, selectClip) : null}
         timelineBar={timelineBar}
         timeline={
           <Filmstrip

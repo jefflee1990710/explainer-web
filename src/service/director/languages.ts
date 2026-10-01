@@ -12,7 +12,7 @@ export const LANGUAGE_PRESETS: Record<VoLanguage, LanguagePreset> = {
   en: {
     id: "en",
     label: "English",
-    sublabel: "美式英文旁白",
+    sublabel: "美式英文口語",
     skillHint:
       "Voiceover language: natural American English. Keep the exact word budget from the duration preset.",
   },

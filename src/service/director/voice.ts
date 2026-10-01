@@ -1,4 +1,5 @@
 import type { VoiceGender } from "@/model/project";
+import { DIALOGUE_SPEAK_LOCK } from "@/service/director/spoken-line";
 import { speechPaceDelivery } from "@/service/director/speech-pace";
 
 export const DEFAULT_VOICE_GENDER: VoiceGender = "male";
@@ -70,7 +71,7 @@ export function phaseBAudioLock(input: {
 }) {
   const pace = `Speaking pace on every clip: ${speechPaceDelivery(input.speechPace)}.`;
   const speaker = input.bansNarration
-    ? `There is no narrator. Each named speaker uses a distinct natural voice that matches that character's apparent gender, age, and look in the locked start/end frames and in Phase A characterLock. The same NAME keeps the same voice, accent, and age on every clip. Do not invent a shared narrator timbre. Silent beats stay silent.`
+    ? `There is no narrator. Each named speaker uses a distinct natural voice that matches that character's apparent gender, age, and look in the locked start/end frames and in Phase A characterLock. The same NAME keeps the same voice, accent, and age on every clip. Do not invent a shared narrator timbre. Silent beats stay silent. ${DIALOGUE_SPEAK_LOCK}`
     : (() => {
         const voice = VOICE_PRESETS[resolveVoiceGender(input.voiceGender)];
         return `Same narrator on every clip: a warm, engaging adult ${voice.en} voice speaking ${input.languageLabel}, ${voice.fingerprint}`;

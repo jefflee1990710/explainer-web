@@ -60,8 +60,8 @@ export function clipFrameAnchor(
   return endUrl ? { url: endUrl, kind: "clip-end" } : undefined;
 }
 
-// End stills wait until this clip's start file exists so I2V can pair both
-// keyframes. Image gen always locks appearance to the character blueprint.
+// End stills wait until this clip's start file exists so image gen can lock
+// composition to that still, and I2V can pair both keyframes.
 export function planFrameSubmissions<T extends FrameSubmitTarget>(
   targets: T[],
   frames: ClipFrame[] | undefined,

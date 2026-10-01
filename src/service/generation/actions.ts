@@ -9,6 +9,7 @@ import {
 } from "@/service/billing/credits";
 import { videosCollection } from "@/dao";
 import { hasDualBeatDraft, syncDualBeatFields } from "@/service/director/dual-beat";
+import { spokenLineCopy } from "@/service/director/spoken-line";
 import { runStillJob } from "@/service/director/jobs";
 import { persistFrameAnnotation } from "@/service/higgsfield/frame-annotation";
 import { clipKeyframeUrls, planFrameSubmissions } from "@/service/higgsfield/clip-keyframes";
@@ -247,13 +248,8 @@ export async function updateClipStoryboardAction(
       if (!clean.startScene || !clean.endScene) {
         return { ok: false, error: "起始與結尾畫面不能空白" };
       }
-      if (!clean.startVo || !clean.endVo) {
-        return { ok: false, error: "兩句旁白不能空白" };
-      }
     } else if (!clean.explainerScene) {
       return { ok: false, error: "畫面描述不能空白" };
-    } else if (!clean.englishVo) {
-      return { ok: false, error: "旁白不能空白" };
     }
 
     const projects = await videosCollection();
@@ -262,6 +258,13 @@ export async function updateClipStoryboardAction(
       clerkUserId: user.clerkUserId,
     });
     if (!project?.phaseA) return { ok: false, error: "專案不存在" };
+    const spoken = spokenLineCopy(project.skillSlug);
+    if (hasDualBeatDraft(clean) && (!clean.startVo || !clean.endVo)) {
+      return { ok: false, error: spoken.dualEmptyError };
+    }
+    if (!hasDualBeatDraft(clean) && !clean.englishVo) {
+      return { ok: false, error: spoken.emptyError };
+    }
     if (!isProductionLike(project.status)) {
       return { ok: false, error: "分鏡尚未完成" };
     }

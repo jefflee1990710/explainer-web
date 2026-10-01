@@ -21,12 +21,13 @@ export function frameLockReferenceUrls(source: CharacterLockSource): string[] {
   return characterReferenceUrls(source);
 }
 
-// Same order as pipeline.ts: annotated redo, then lock refs.
+// Same order as pipeline.ts: annotated redo, then the sibling still, then lock refs.
 export function sceneImageReferenceUrls(input: {
   annotatedUrl?: string;
+  anchorUrl?: string;
   lockUrls: string[];
 }): string[] {
-  return [input.annotatedUrl, ...input.lockUrls].filter(
+  return [input.annotatedUrl, input.anchorUrl, ...input.lockUrls].filter(
     (url): url is string => Boolean(url),
   );
 }
