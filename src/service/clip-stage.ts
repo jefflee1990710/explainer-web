@@ -162,7 +162,7 @@ export function productionCounts(project: ClipStageSource) {
 }
 
 export type GenerationTagKind = "scene" | "video";
-export type GenerationTagState = "busy" | "ready" | "failed";
+export type GenerationTagState = "pending" | "busy" | "ready" | "failed";
 
 // One scene-frame pair or clip video, for the project-list tags.
 export type GenerationDetailTag = {
@@ -175,20 +175,20 @@ function mediaBusy(item?: MediaItem) {
   return isInFlight(item) || needsPersist(item);
 }
 
-function sceneTagState(frames: ClipFrame[]): GenerationTagState | null {
+function sceneTagState(frames: ClipFrame[]): GenerationTagState {
   if (frames.some((frame) => mediaBusy(frame))) return "busy";
   const start = frames.find((frame) => frame.position === "start");
   const end = frames.find((frame) => frame.position === "end");
   if (isCompleted(start) && isCompleted(end)) return "ready";
   if (frames.some((frame) => frame.status === "failed")) return "failed";
-  return null;
+  return "pending";
 }
 
-function videoTagState(clip?: ProjectClip): GenerationTagState | null {
+function videoTagState(clip?: ProjectClip): GenerationTagState {
   if (mediaBusy(clip)) return "busy";
   if (isCompleted(clip)) return "ready";
   if (clip?.status === "failed") return "failed";
-  return null;
+  return "pending";
 }
 
 // Furthest outputs on each clip: scene frames, then the clip video.
@@ -201,10 +201,12 @@ export function clipGenerationTags(project: ClipStageSource): GenerationDetailTa
   const tags: GenerationDetailTag[] = [];
   for (const clipNumber of [...numbers].sort((a, b) => a - b)) {
     const frames = (project.frames || []).filter((frame) => frame.clipNumber === clipNumber);
-    const scene = sceneTagState(frames);
-    if (scene) tags.push({ clipNumber, kind: "scene", state: scene });
-    const video = videoTagState(project.clips.find((item) => item.clipNumber === clipNumber));
-    if (video) tags.push({ clipNumber, kind: "video", state: video });
+    tags.push({ clipNumber, kind: "scene", state: sceneTagState(frames) });
+    tags.push({
+      clipNumber,
+      kind: "video",
+      state: videoTagState(project.clips.find((item) => item.clipNumber === clipNumber)),
+    });
   }
   return tags;
 }

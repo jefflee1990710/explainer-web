@@ -1,4 +1,5 @@
-export const VIDEO_PAGE_SIZE = 10;
+// 12 fills a 4-column tablet row and a 6-column desktop row.
+export const VIDEO_PAGE_SIZE = 12;
 
 export function pageCount(total: number, pageSize = VIDEO_PAGE_SIZE): number {
   if (total <= 0) return 0;

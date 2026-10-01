@@ -32,7 +32,7 @@ export function VideoTable({
         </p>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4 xl:grid-cols-6">
             {rows.map((video) => (
               <VideoGridCard
                 key={video.id}

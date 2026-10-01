@@ -339,7 +339,9 @@ test("clip tags show scene progress and a finished video on the same list", () =
     { clipNumber: 1, kind: "scene", state: "ready" },
     { clipNumber: 1, kind: "video", state: "ready" },
     { clipNumber: 2, kind: "scene", state: "ready" },
+    { clipNumber: 2, kind: "video", state: "pending" },
     { clipNumber: 3, kind: "scene", state: "busy" },
+    { clipNumber: 3, kind: "video", state: "pending" },
   ]);
 });
 
@@ -351,11 +353,18 @@ test("a clip can tag a busy scene and a busy video together", () => {
   assert.deepEqual(clipGenerationTags(p), [
     { clipNumber: 1, kind: "scene", state: "busy" },
     { clipNumber: 1, kind: "video", state: "busy" },
+    { clipNumber: 2, kind: "scene", state: "pending" },
+    { clipNumber: 2, kind: "video", state: "pending" },
   ]);
 });
 
-test("clips with nothing generated add no tags", () => {
-  assert.deepEqual(clipGenerationTags(project()), []);
+test("clips with nothing generated stay pending", () => {
+  assert.deepEqual(clipGenerationTags(project()), [
+    { clipNumber: 1, kind: "scene", state: "pending" },
+    { clipNumber: 1, kind: "video", state: "pending" },
+    { clipNumber: 2, kind: "scene", state: "pending" },
+    { clipNumber: 2, kind: "video", state: "pending" },
+  ]);
 });
 
 test("failed scene frames and a failed video are tagged", () => {
@@ -366,6 +375,8 @@ test("failed scene frames and a failed video are tagged", () => {
   });
   assert.deepEqual(clipGenerationTags(p), [
     { clipNumber: 1, kind: "scene", state: "failed" },
+    { clipNumber: 1, kind: "video", state: "pending" },
+    { clipNumber: 2, kind: "scene", state: "pending" },
     { clipNumber: 2, kind: "video", state: "failed" },
   ]);
 });
