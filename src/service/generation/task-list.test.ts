@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
-import { isCurrentTask, jobListQuery, RECENT_SETTLED_MS, taskDetail, taskStage } from "@/service/generation/task-list";
+import { isCurrentTask, jobListQuery, RECENT_SETTLED_MS, reelTask, taskDetail, taskStage } from "@/service/generation/task-list";
 
 test("status maps to the five UI stages", () => {
   assert.equal(taskStage("pending"), "queued");
@@ -19,6 +19,37 @@ test("detail names the clip and slot", () => {
   assert.equal(taskDetail({ kind: "video", clipIndex: 2 }), "Clip 3 · 影片");
   assert.equal(taskDetail({ kind: "still", clipIndex: -1 }), "角色定裝圖");
   assert.equal(taskDetail({ kind: "character", clipIndex: -1 }), "角色藍圖");
+});
+
+test("a reel in progress is a 成片合成 background task", () => {
+  const now = Date.parse("2026-09-28T08:00:00.000Z");
+  const task = reelTask(
+    {
+      videoId: "v1",
+      projectId: "p1",
+      title: "雪山",
+      reelStatus: "in_progress",
+      updatedAt: new Date(now).toISOString(),
+    },
+    now,
+  );
+  assert.equal(task?.detail, "成片合成");
+  assert.equal(task?.stage, "generating");
+  assert.equal(task?.isVideo, true);
+  assert.equal(
+    reelTask(
+      {
+        videoId: "v1",
+        projectId: "p1",
+        title: "雪山",
+        reelStatus: "completed",
+        reelUrl: "https://blob/reel.mp4",
+        updatedAt: new Date(now - RECENT_SETTLED_MS - 1).toISOString(),
+      },
+      now,
+    ),
+    null,
+  );
 });
 
 test("jobListQuery uses a single projectId for one video", () => {

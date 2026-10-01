@@ -1,16 +1,10 @@
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/service/auth";
 import { videosCollection } from "@/dao";
 import { isProjectReady } from "@/service/clip-stage";
-import { runReelJob } from "@/service/director/jobs";
 import { isProductionLike } from "@/service/project-status";
-import {
-  clipReelFingerprint,
-  isReelBusy,
-  isReelCurrent,
-} from "@/service/reel/fingerprint";
+import { markReelQueued, scheduleReel } from "@/service/reel/enqueue";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 
 type ProjectResult =
@@ -37,28 +31,11 @@ export async function composeReelAction(videoId: string): Promise<ProjectResult>
   if (!isProductionLike(project.status)) return { ok: false, error: "分鏡尚未完成" };
   if (!isProjectReady(project)) return { ok: false, error: "請先完成所有片段" };
 
-  const fingerprint = clipReelFingerprint(project);
-  if (isReelCurrent(project)) {
+  const fingerprint = await markReelQueued(project);
+  if (!fingerprint) {
     return { ok: true, project: toPublicVideo(project) };
   }
-  if (isReelBusy(project.reelStatus) && project.reelFingerprint === fingerprint) {
-    return { ok: true, project: toPublicVideo(project) };
-  }
-
-  const now = new Date();
-  await projects.updateOne(
-    { _id: project._id },
-    {
-      $set: {
-        reelStatus: "queued",
-        reelFingerprint: fingerprint,
-        updatedAt: now,
-      },
-      $unset: { reelError: "" },
-    },
-  );
-
-  after(() => runReelJob(project._id, fingerprint));
+  scheduleReel(project._id, fingerprint);
   revalidateProject(project.projectId.toHexString());
 
   const updated = await projects.findOne({ _id: project._id });

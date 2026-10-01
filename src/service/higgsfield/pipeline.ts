@@ -36,6 +36,7 @@ import {
   reconcileFrames,
 } from "@/service/higgsfield/reconcile";
 import { scheduleGenerationFinishedEmail } from "@/service/notify/generation-email";
+import { queueReelIfReady } from "@/service/reel/enqueue";
 import { chargedVideoCredits, FRAME_COST, STUCK_CLAIM_MS } from "@/service/production-plan";
 import { lockDialogueSpeech } from "@/service/director/spoken-line";
 import { toSent, type Sent } from "@/service/generation/sent";
@@ -491,6 +492,11 @@ export async function applyJobStatus(input: {
   }
 
   await syncProjectFromJobs(projectId);
+
+  // Last clip video just landed: queue 成片合成 as a background task.
+  if (job.kind === "video" && status === "completed" && (blobUrl || outputUrl)) {
+    await queueReelIfReady(projectId);
+  }
 
   // Start finished first so the end still can lock to those pixels.
   if (

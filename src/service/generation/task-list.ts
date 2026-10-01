@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import { charactersCollection, generationJobsCollection, videosCollection } from "@/dao";
 import { mediaSrc } from "@/util/media-src";
 import type { GenerationJob, GenerationKind, GenerationStatus } from "@/model/generation-job";
+import type { ReelStatus } from "@/model/project";
 
 export type TaskStage = "queued" | "sending" | "generating" | "done" | "failed";
 
@@ -19,7 +20,7 @@ export function isCurrentTask(stage: TaskStage, updatedAt: Date | string, now = 
 // One generation job shaped for the task list UI.
 export type PublicTask = {
   id: string;
-  kind: GenerationKind;
+  kind: GenerationKind | "reel";
   stage: TaskStage;
   // Video title or character name.
   title: string;
@@ -52,6 +53,50 @@ export function taskDetail(job: Pick<GenerationJob, "kind" | "clipIndex" | "fram
   return `${clip} · ${job.framePosition === "end" ? "結尾畫格" : "起始畫格"}`;
 }
 
+const REEL_PROJECTION = {
+  _id: 1,
+  projectId: 1,
+  "phaseA.localizedTitle": 1,
+  reelStatus: 1,
+  reelUrl: 1,
+  reelError: 1,
+  updatedAt: 1,
+} as const;
+
+// 成片合成 lives on the video, not in generationJobs. Surface it as a task.
+export function reelTask(
+  input: {
+    videoId: string;
+    projectId: string;
+    title: string;
+    reelStatus?: ReelStatus;
+    reelUrl?: string;
+    reelError?: string;
+    updatedAt: string;
+  },
+  now = Date.now(),
+): PublicTask | null {
+  const status = input.reelStatus;
+  if (!status) return null;
+  const stage: TaskStage =
+    status === "queued" ? "queued" : status === "in_progress" ? "generating" : status === "failed" ? "failed" : "done";
+  if (!isCurrentTask(stage, input.updatedAt, now)) return null;
+  return {
+    id: `reel:${input.videoId}`,
+    kind: "reel",
+    stage,
+    title: input.title,
+    detail: "成片合成",
+    previewUrl: stage === "done" ? input.reelUrl : undefined,
+    isVideo: true,
+    href: `/app/projects/${input.projectId}?video=${input.videoId}`,
+    error: stage === "failed" ? input.reelError : undefined,
+    attempts: 0,
+    createdAt: input.updatedAt,
+    updatedAt: input.updatedAt,
+  };
+}
+
 // Jobs have no owner field: scope by the user's videos and characters.
 async function ownedScope(clerkUserId: string, videoId?: string) {
   const videos = await videosCollection();
@@ -59,12 +104,12 @@ async function ownedScope(clerkUserId: string, videoId?: string) {
   if (videoId && ObjectId.isValid(videoId)) {
     const video = await videos.findOne(
       { _id: new ObjectId(videoId), clerkUserId },
-      { projection: { _id: 1, projectId: 1, "phaseA.localizedTitle": 1 } },
+      { projection: REEL_PROJECTION },
     );
     return { videoDocs: video ? [video] : [], characters: [] };
   }
   const videoDocs = await videos
-    .find({ clerkUserId }, { projection: { _id: 1, projectId: 1, "phaseA.localizedTitle": 1 } })
+    .find({ clerkUserId }, { projection: REEL_PROJECTION })
     .sort({ updatedAt: -1 })
     .limit(200)
     .toArray();
@@ -122,7 +167,20 @@ export async function listTasks(
     .limit(options.limit ?? 100)
     .toArray();
 
-  const tasks = docs.map((job) => {
+  const reelTasks = videoDocs.flatMap((video) => {
+    const task = reelTask({
+      videoId: video._id.toHexString(),
+      projectId: video.projectId.toHexString(),
+      title: video.phaseA?.localizedTitle ?? "未命名影片",
+      reelStatus: video.reelStatus,
+      reelUrl: video.reelUrl,
+      reelError: video.reelError,
+      updatedAt: (video.updatedAt ?? new Date(0)).toISOString(),
+    });
+    return task ? [task] : [];
+  });
+
+  const tasks = [...reelTasks, ...docs.map((job) => {
     const video = job.projectId ? videoById.get(job.projectId.toHexString()) : undefined;
     const character = job.characterId ? characterById.get(job.characterId.toHexString()) : undefined;
     return {
@@ -141,7 +199,7 @@ export async function listTasks(
       createdAt: job.createdAt.toISOString(),
       updatedAt: job.updatedAt.toISOString(),
     };
-  });
+  })];
   // In-flight first, then newest settled.
   return tasks.sort((left, right) => {
     const leftDone = left.stage === "done" || left.stage === "failed" ? 1 : 0;
