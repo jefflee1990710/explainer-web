@@ -128,6 +128,81 @@ export const briefEn = {
   duration: { aria: "Target length" },
   aspectRatio: { aria: "Aspect ratio" },
   skill: { empty: "No video types available.", aria: "Video type" },
+  videoTypes: {
+    "cartoon-explainer-video-director": "Whiteboard concept explainer",
+    "story-short-director": "Short film",
+    "product-demo-director": "Product demo / unboxing",
+    "dialogue-qa-director": "Two-character Q&A",
+    "listicle-director": "Listicle",
+    "tutorial-director": "Step-by-step tutorial",
+    "opening-director": "Opening",
+    "ending-director": "Ending",
+    "talking-head-director": "Talking-head read",
+  },
+  skillGuide: {
+    labels: {
+      voice: "Voice",
+      structure: "Structure",
+      picture: "Picture",
+      frames: "Frames",
+    },
+    types: {
+      "cartoon-explainer-video-director": {
+        voice: "Narrator reads the VO (the male or female voice you picked)",
+        structure: "Hook → unpack the idea → delay the payoff",
+        picture: "Whiteboard doodles, morphing icons, handwritten labels",
+        frames: "Two beats per clip: one VO line on the start frame, one on the end",
+      },
+      "story-short-director": {
+        voice: "Character dialogue, no narrator; voices are matched per character when the clip renders",
+        structure: "Story order follows the source — no fixed four-beat arc",
+        picture: "Follows the visual style you picked; emotion through pose, little on-screen text",
+        frames: "One dialogue line per clip, or marked silent",
+      },
+      "product-demo-director": {
+        voice: "Narrator or host, speaking benefits to “you”",
+        structure: "Pain → unbox → feature demo → result",
+        picture: "Product look stays locked; hands and the product lead",
+        frames: "One action per clip, matched to one visible result",
+      },
+      "dialogue-qa-director": {
+        voice: "Two characters talk (ask / answer); no narrator",
+        structure: "Questions build curiosity; answers deliver the point",
+        picture: "Fixed left and right positions; props or diagrams in the middle",
+        frames: "One question or one answer per clip (a short exchange can share a clip)",
+      },
+      "listicle-director": {
+        voice: "Host narration; every item uses the same sentence shape",
+        structure: "Open with N items → one item per clip → best item last",
+        picture: "Every still shows a numbered list with the current item highlighted",
+        frames: "One item per clip: the number pops in, then the image",
+      },
+      "tutorial-director": {
+        voice: "Imperative narration (cut, tap, add)",
+        structure: "Show the finished result → one step per clip → return to the finished piece",
+        picture: "One workspace; step numbers as props",
+        frames: "One action and one state change per clip",
+      },
+      "opening-director": {
+        voice: "At most one brand name or tagline, or no speech",
+        structure: "Exactly 1 clip, 3–4 seconds: the logo arrives and settles",
+        picture: "The uploaded logo is the hero on a clean canvas",
+        frames: "Start: logo still forming → end: full logo centered",
+      },
+      "ending-director": {
+        voice: "At most one sign-off or CTA, or no speech",
+        structure: "Exactly 1 clip, 3–4 seconds: resolve onto the logo card",
+        picture: "The uploaded logo is the hero and the final frame",
+        frames: "Start: closing motion → end: full logo centered",
+      },
+      "talking-head-director": {
+        voice: "The character reads the script to camera (the voice you picked)",
+        structure: "One sentence per clip; length follows the word count, up to 20 clips",
+        picture: "One locked medium close-up, eyes to the lens, one subtitle line at the bottom",
+        frames: "The next clip’s start frame continues the previous end frame",
+      },
+    },
+  },
   castPicker: {
     errorRequiredCount:
       "This director requires exactly {required} characters. Only {ready} are ready in this style.",

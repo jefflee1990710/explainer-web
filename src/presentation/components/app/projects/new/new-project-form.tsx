@@ -100,6 +100,7 @@ import { SceneTextPicker } from "@/presentation/components/app/projects/new/scen
 import { VideoEditDesk } from "@/presentation/components/app/projects/new/video-edit-desk";
 import { ReviseStoryboardDialog } from "@/presentation/components/app/projects/new/revise-storyboard-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { localizedVideoType } from "@/util/video-type-i18n";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import { sceneTextLangLabel, speechPaceLabel } from "@/util/i18n/picker-labels";
 import { useProjectPoll } from "@/presentation/components/app/projects/new/use-project-poll";
@@ -612,9 +613,10 @@ export function NewProjectForm({
     );
   }
 
-  const skillTitle =
-    skills.find((item) => item.slug === (project?.skillSlug || skillSlug))?.titleZh ||
-    t("brief.fallback.videoType");
+  const selectedSkill = skills.find((item) => item.slug === (project?.skillSlug || skillSlug));
+  const skillTitle = selectedSkill
+    ? localizedVideoType(t, selectedSkill.slug, selectedSkill.title)
+    : t("brief.fallback.videoType");
   const styleName =
     styles.find((item) => item.id === (project?.styleId || styleId))?.nameZh || t("brief.fallback.visualStyle");
   const liveStep = currentStepFor(

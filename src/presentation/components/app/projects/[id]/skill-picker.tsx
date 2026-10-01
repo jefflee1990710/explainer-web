@@ -3,8 +3,8 @@
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { SkillGuideRows } from "@/presentation/components/app/projects/[id]/skill-guide-rows";
-import { skillGuideFor } from "@/presentation/components/app/projects/[id]/skill-guide";
 import type { PublicSkill } from "@/presentation/serialize";
+import { localizedVideoType } from "@/util/video-type-i18n";
 
 // Video-type (narrative skill) chips for the create form; skill is per video, not per folder.
 export function SkillPicker({
@@ -23,14 +23,15 @@ export function SkillPicker({
     return <p className="text-sm text-muted">{t("brief.skill.empty")}</p>;
   }
 
-  const selectedGuide = skillGuideFor(value);
-
   return (
     <div className="space-y-3">
-      {selectedGuide ? <SkillGuideRows guide={selectedGuide} /> : null}
+      {value ? <SkillGuideRows slug={value} /> : null}
       <div role="radiogroup" aria-label={t("brief.skill.aria")} className="grid gap-2 sm:grid-cols-2">
         {skills.map((skill) => {
           const active = skill.slug === value;
+          const name = localizedVideoType(t, skill.slug, skill.title);
+          // The other language sits under the locale name so both stay visible.
+          const translation = name === skill.title ? skill.titleZh : skill.title;
           return (
             <motion.button
               key={skill.slug}
@@ -46,10 +47,12 @@ export function SkillPicker({
                   : "border-accent-ink/10 bg-paper/70 hover:border-accent-ink/30"
               }`}
             >
-              <span className="text-sm font-semibold">{skill.titleZh}</span>
-              <span className={`mt-0.5 text-xs ${active ? "text-paper/75" : "text-muted"}`}>
-                {skill.title}
-              </span>
+              <span className="text-sm font-semibold">{name}</span>
+              {translation && translation !== name ? (
+                <span className={`mt-0.5 text-xs ${active ? "text-paper/75" : "text-muted"}`}>
+                  {translation}
+                </span>
+              ) : null}
             </motion.button>
           );
         })}

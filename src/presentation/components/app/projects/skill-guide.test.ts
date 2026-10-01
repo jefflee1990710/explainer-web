@@ -1,23 +1,24 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { SKILL_GUIDE_FIELDS, skillGuideFor } from "@/presentation/components/app/projects/[id]/skill-guide";
+import { briefEn } from "@/util/i18n/messages/workspace/brief.en";
+import { briefZhHant } from "@/util/i18n/messages/workspace/brief.zh-Hant";
 
-const SEEDED = [
-  "cartoon-explainer-video-director",
-  "story-short-director",
-  "product-demo-director",
-  "dialogue-qa-director",
-  "listicle-director",
-  "tutorial-director",
-];
+const FIELDS = ["voice", "structure", "picture", "frames"] as const;
 
-test("every seeded director has 聲音 結構 畫面 畫格 copy", () => {
-  for (const slug of SEEDED) {
-    const guide = skillGuideFor(slug);
-    assert.ok(guide, slug);
-    for (const field of SKILL_GUIDE_FIELDS) {
-      assert.ok(guide![field.key].length > 0, `${slug} ${field.label}`);
+test("every video type has a name and guide in English and Traditional Chinese", () => {
+  const slugs = Object.keys(briefEn.videoTypes);
+  assert.deepEqual(Object.keys(briefZhHant.videoTypes).sort(), [...slugs].sort());
+  for (const slug of slugs) {
+    const enName = briefEn.videoTypes[slug as keyof typeof briefEn.videoTypes];
+    const zhName = briefZhHant.videoTypes[slug as keyof typeof briefZhHant.videoTypes];
+    assert.ok(enName.length > 0, slug);
+    assert.ok(zhName.length > 0, slug);
+    assert.notEqual(enName, zhName, slug);
+    const enGuide = briefEn.skillGuide.types[slug as keyof typeof briefEn.skillGuide.types];
+    const zhGuide = briefZhHant.skillGuide.types[slug as keyof typeof briefZhHant.skillGuide.types];
+    for (const field of FIELDS) {
+      assert.ok(enGuide[field].length > 0, `en ${slug} ${field}`);
+      assert.ok(zhGuide[field].length > 0, `zh ${slug} ${field}`);
     }
   }
-  assert.equal(skillGuideFor("unknown"), undefined);
 });
