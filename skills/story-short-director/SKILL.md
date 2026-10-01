@@ -75,7 +75,7 @@ The structured output has fixed fields; fill them as follows:
 
 ## Workflow
 
-1. Read `references/story-proposal-contract.md` and produce Phase A in the user's language, with the VO in the chosen voiceover language.
+1. Read `references/story-proposal-contract.md` and produce Phase A scene descriptions and the VO in the chosen language setting.
 2. Stop after the director's proposal and request explicit approval.
 3. On a change of ratio, cast, story spine, or narration, recompose Phase A and request approval again.
 4. Only after approval, read `references/story-prompt-contract.md` and produce Phase B per clip.

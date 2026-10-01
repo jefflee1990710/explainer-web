@@ -32,6 +32,9 @@ test("director block asks for start and end states scaled by seconds", () => {
   const separate = keyframeDeltaDirectorBlock({ separateStills: true });
   assert.match(separate, /startScene is the t=0 still/);
   assert.doesNotMatch(separate, /explainerScene writes both states/);
+  const english = keyframeDeltaDirectorBlock({ language: "en" });
+  assert.match(english, /Start:/);
+  assert.doesNotMatch(english, /起始：/);
 });
 
 test("frame moments mention the clip duration and a readable end change", () => {

@@ -10,7 +10,7 @@ import { clipNextAction, clipNextActionText } from "@/service/clip-next-action";
 import type { ClipState } from "@/service/clip-stage";
 import { MIN_VIDEO_COST } from "@/service/credit-costs";
 import { userFacingJobError } from "@/service/higgsfield/job-status";
-import { mediaSrc } from "@/util/media-src";
+import { displayMediaSrc } from "@/util/media-src";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { AspectRatio, ProjectClip } from "@/model/project";
 
@@ -30,7 +30,7 @@ export function ClipVideoPanel({
   onGenerate: () => void;
 }) {
   const { t } = useI18n();
-  const src = mediaSrc(clip);
+  const src = displayMediaSrc(clip);
   const generating = state.stage === "video_generating" || pending;
   const failed = clip?.status === "failed";
   const errorRaw = failed ? userFacingJobError("failed", clip?.error) : undefined;

@@ -12,12 +12,15 @@ export function BrandUploadButton({
   label,
   accept,
   disabled = false,
+  icon = false,
   onUploaded,
   onError,
 }: {
   label: string;
   accept: string;
   disabled?: boolean;
+  // Square icon instead of a text label. Used on intro / outro rows.
+  icon?: boolean;
   onUploaded: (asset: { url: string; kind: "image" | "video" }) => void;
   onError: (message: string) => void;
 }) {
@@ -47,14 +50,27 @@ export function BrandUploadButton({
     <>
       <button
         type="button"
+        aria-label={icon ? (uploading ? t("video.upload.uploading") : label) : undefined}
         disabled={disabled || uploading}
         onClick={() => inputRef.current?.click()}
-        className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-md bg-[var(--studio-fill)] px-2.5 text-xs font-semibold text-[var(--studio-ink)] hover:bg-[#e7e8eb] disabled:cursor-not-allowed disabled:opacity-50"
+        className={
+          icon
+            ? "inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md bg-[var(--studio-fill)] text-[var(--studio-ink)] hover:bg-[#e7e8eb] disabled:cursor-not-allowed disabled:opacity-50"
+            : "inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-md bg-[var(--studio-fill)] px-2.5 text-xs font-semibold text-[var(--studio-ink)] hover:bg-[#e7e8eb] disabled:cursor-not-allowed disabled:opacity-50"
+        }
       >
-        {uploading ? <Spinner className="h-3.5 w-3.5" /> : null}
-        {uploading ? t("video.upload.uploading") : label}
+        {uploading ? <Spinner className="h-3.5 w-3.5" /> : icon ? <UploadIcon /> : null}
+        {icon ? null : uploading ? t("video.upload.uploading") : label}
       </button>
       <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={(event) => void onChange(event)} />
     </>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden>
+      <path d="M12 16V6m0 0-3.5 3.5M12 6l3.5 3.5M5 19h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

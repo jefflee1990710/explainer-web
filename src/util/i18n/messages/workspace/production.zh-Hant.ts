@@ -48,6 +48,10 @@ export const productionZhHant = {
   clip: {
     fileTitle: "Clip{n}.mp4",
     meta: "{timeRange} · {durationSeconds} 秒",
+    prevClip: "上一段，Clip{n}.mp4",
+    nextClip: "下一段，Clip{n}.mp4",
+    noPrevClip: "沒有上一段",
+    noNextClip: "沒有下一段",
   },
   stage: {
     no_frames: "待畫格",

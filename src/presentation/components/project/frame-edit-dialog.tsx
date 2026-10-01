@@ -16,6 +16,7 @@ import {
   clipStartVo,
 } from "@/service/director/dual-beat";
 import { FRAME_COST } from "@/service/production-plan";
+import { displayMediaSrc } from "@/util/media-src";
 import type {
   AspectRatio,
   ClipFrame,
@@ -71,7 +72,7 @@ export function FrameEditDialog({
   const titleId = useId();
   const remarkId = useId();
   const editorRef = useRef<AnnotationEditorHandle>(null);
-  const src = frame.blobUrl || frame.outputUrl || "";
+  const src = displayMediaSrc(frame) || "";
   const positionLabel = t(`production.frame.position.${frame.position}`);
 
   const [tool, setTool] = useState<AnnotationTool>("draw");

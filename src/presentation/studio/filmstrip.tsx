@@ -14,7 +14,7 @@ const TONE_CLASS: Record<StudioClipTone, string> = {
   stale: "bg-amber-500",
 };
 
-// Bottom filmstrip. Selected clip uses an ink+teal frame; it does not scrub.
+// Top filmstrip. Selected clip uses an ink+teal frame; it does not scrub.
 // Passing `onToggleCheck` adds a checkbox per clip for batch actions.
 export function Filmstrip({
   items,
@@ -32,7 +32,7 @@ export function Filmstrip({
   const { t } = useI18n();
   if (items.length === 0) {
     return (
-      <p className="flex h-full items-center px-4 text-sm text-[var(--studio-muted)]">
+      <p className="flex items-center px-4 py-6 text-sm text-[var(--studio-muted)]">
         {t("production.filmstrip.empty")}
       </p>
     );
@@ -42,19 +42,19 @@ export function Filmstrip({
   const checking = checkedIds.length > 0;
 
   return (
-    <ol role="tablist" aria-label={t("production.filmstrip.timelineAria")} className="flex h-full min-w-max items-stretch gap-2 px-3 py-2">
+    <ol role="tablist" aria-label={t("production.filmstrip.timelineAria")} className="flex min-w-max items-stretch gap-2 px-3 py-2">
       {items.map((item) => {
         const selected = item.id === selectedId;
         const checked = checkedIds.includes(item.id);
         return (
-          <li key={item.id} className={`group relative h-full ${selected ? "z-10" : ""}`}>
+          <li key={item.id} className={`group relative ${selected ? "z-10" : ""}`}>
             <button
               type="button"
               role="tab"
               aria-selected={selected}
               aria-label={`${item.title} ${item.durationLabel} ${item.statusLabel}${item.hasScene ? t("production.filmstrip.sceneDoneSuffix") : ""}${item.hasVideo ? t("production.filmstrip.videoDoneSuffix") : ""}`}
               onClick={() => onSelect(item.id)}
-              className={`flex h-full w-[148px] cursor-pointer flex-col overflow-hidden rounded-sm border bg-white text-left transition ${
+              className={`flex w-[148px] cursor-pointer flex-col overflow-hidden rounded-sm border bg-white text-left transition ${
                 selected
                   ? "border-2 border-[var(--studio-ink)] shadow-[0_0_0_3px_var(--studio-teal)]"
                   : "border border-[var(--studio-line)] opacity-80 hover:opacity-100"
@@ -72,7 +72,7 @@ export function Filmstrip({
                 <span className="shrink-0 tabular-nums">{item.durationLabel}</span>
                 {item.busy ? <Spinner className="h-2.5 w-2.5 shrink-0" /> : null}
               </span>
-              <span className="relative min-h-0 flex-1">
+              <span className="relative aspect-square w-full">
                 {item.thumbnailUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={item.thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />

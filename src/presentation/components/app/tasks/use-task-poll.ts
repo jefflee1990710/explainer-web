@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { settledGenerationTasks } from "@/presentation/components/app/tasks/settled-generation-tasks";
+import { settledVideoIds } from "@/presentation/components/app/tasks/settled-video-ids";
 import {
   mergeOptimisticTasks,
   readOptimisticTasks,
@@ -8,7 +10,11 @@ import {
 import { readCachedTasks } from "@/presentation/components/app/tasks/task-cache";
 import { listTasksOnce } from "@/presentation/components/app/tasks/task-fetch";
 import { isTaskRefreshing, subscribeTaskRefresh } from "@/presentation/components/app/tasks/task-refresh";
-import { subscribeTaskChanges } from "@/presentation/components/app/tasks/task-signal";
+import {
+  notifyGenerationSettled,
+  notifyProjectRefresh,
+  subscribeTaskChanges,
+} from "@/presentation/components/app/tasks/task-signal";
 import type { PublicTask } from "@/service/generation/task-list";
 
 const POLL_MS = 5_000;
@@ -25,6 +31,8 @@ export function useTaskPoll(initial: PublicTask[], videoId?: string, enabled = t
   const [refreshing, setRefreshing] = useState(false);
   // True while a request is out; slow responses skip the next tick instead of piling up.
   const inFlight = useRef(false);
+  const tasksRef = useRef(tasks);
+  tasksRef.current = tasks;
 
   useEffect(() => {
     return subscribeTaskRefresh(() => {
@@ -52,7 +60,13 @@ export function useTaskPoll(initial: PublicTask[], videoId?: string, enabled = t
         if (!alive) return;
         setLoaded(true);
         if (result.ok) {
+          const previous = tasksRef.current;
           setTasks(result.tasks);
+          tasksRef.current = result.tasks;
+          for (const settledId of settledVideoIds(previous, result.tasks)) {
+            notifyProjectRefresh(settledId);
+          }
+          notifyGenerationSettled(settledGenerationTasks(previous, result.tasks));
           setError("");
         } else {
           setError(result.error);

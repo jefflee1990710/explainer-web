@@ -1,4 +1,5 @@
-import type { ClipStoryboardInput, StoryboardRow } from "@/model/project";
+import type { ClipStoryboardInput, StoryboardRow, VoLanguage } from "@/model/project";
+import { sceneStateLabels } from "@/service/director/languages";
 
 // 白板概念解說 only: two stills + two spoken/subtitle beats per clip.
 export const CARTOON_EXPLAINER_SKILL_SLUG = "cartoon-explainer-video-director";
@@ -19,7 +20,7 @@ export function splitSceneBeats(explainerScene: string) {
   const text = explainerScene.trim();
   if (!text) return { start: "", end: "" };
   const labeled = text.match(
-    /起始[:：]\s*([\s\S]+?)\s*結尾(?:[（(]\d+秒後[）)])?[:：]\s*([\s\S]+)$/,
+    /(?:起始|Start)[:：]\s*([\s\S]+?)\s*(?:結尾|\bEnd)(?:\s*[（(]\d+\s*(?:秒後|s later)[）)])?\s*[:：]\s*([\s\S]+)$/i,
   );
   if (labeled) {
     return {
@@ -34,8 +35,17 @@ export function joinVoBeats(startVo: string, endVo: string) {
   return [startVo.trim(), endVo.trim()].filter(Boolean).join(" ");
 }
 
-export function joinSceneBeats(startScene: string, endScene: string) {
-  return `起始：${startScene.trim()}。結尾：${endScene.trim()}`;
+export function joinSceneBeats(startScene: string, endScene: string, language?: VoLanguage) {
+  const labels = sceneStateLabels(language ?? sceneLabelLanguage(startScene, endScene));
+  const start = startScene.trim();
+  const end = endScene.trim();
+  if (labels.start === "Start") return `Start: ${start}. End: ${end}`;
+  return `起始：${start}。結尾：${end}`;
+}
+
+// Combined explainerScene keeps the labels of whichever language the stills use.
+function sceneLabelLanguage(startScene: string, endScene: string): VoLanguage {
+  return /[\u4e00-\u9fff]/.test(`${startScene}${endScene}`) ? "zh" : "en";
 }
 
 export function clipStartScene(row: Pick<StoryboardRow, "explainerScene" | "startScene">) {
@@ -110,8 +120,13 @@ export function normalizeDualBeatRow(row: StoryboardRow): StoryboardRow {
 
 export function dualBeatDirectorBlock(
   sceneTextEnabled: boolean,
-  options?: { inWorldLabels?: boolean },
+  options?: { inWorldLabels?: boolean; language?: VoLanguage },
 ) {
+  const labels = sceneStateLabels(options?.language);
+  const sceneCompat =
+    labels.start === "Start"
+      ? 'explainerScene may repeat "Start: …. End: …" for compatibility. Write startScene and endScene in English.'
+      : "explainerScene may repeat 起始：…。結尾：… for compatibility. Write startScene and endScene in the scene description language from the language setting.";
   // OFF 有兩種：完全無字（其他技能）或「只關字幕、保留場景短標籤」（白板概念解說）。
   const inWorldLabels = !sceneTextEnabled && Boolean(options?.inWorldLabels);
   return [
@@ -121,7 +136,7 @@ export function dualBeatDirectorBlock(
     "If the beat is a turn or step: startScene = the first resting pose, endScene = the landed resting pose. The travel itself lives only in motionCamera.",
     "motionCamera: the transition script between those two stills (see the motionCamera contract). Never a still prompt.",
     "startVo: first spoken sentence (0s → midpoint). endVo: second spoken sentence (midpoint → end).",
-    "englishVo must be exactly startVo then endVo. explainerScene may repeat 起始：…。結尾：… for compatibility.",
+    `englishVo must be exactly startVo then endVo. ${sceneCompat}`,
     sceneTextEnabled
       ? "On-canvas text ON: start still quotes ONLY startVo; end still quotes ONLY endVo as handwritten marker lettering centered at 52%–60% of the frame height, max 2 lines, generous side margins. Not a bottom subtitle bar. English is all-caps black marker; the second line sits in a warm-yellow highlight box. Two beats switch at the midpoint. Never both voiceover lines on one still. motionCamera includes a midpoint beat where the startVo lettering wipes off and the endVo lettering writes on in the same spot. Never copy the voiceover lettering into startScene or endScene; the still prompt adds it from startVo / endVo."
       : inWorldLabels

@@ -64,7 +64,7 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 
 ## Workflow
 
-1. Read `references/listicle-proposal-contract.md` and produce Phase A in the user's language, VO in the chosen voiceover language.
+1. Read `references/listicle-proposal-contract.md` and produce Phase A scene descriptions and the VO in the chosen language setting.
 2. Stop and request explicit approval.
 3. On a change of ratio, item set, order, or wording, recompose Phase A and request approval again.
 4. Only after approval, read `references/listicle-prompt-contract.md` and produce Phase B per clip.

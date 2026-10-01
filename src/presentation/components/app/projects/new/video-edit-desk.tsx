@@ -7,22 +7,12 @@ import { VideoSharePanel } from "@/presentation/components/app/projects/new/vide
 import { VideoEditLayers } from "@/presentation/components/app/projects/new/video-edit-layers";
 import { VideoEditPreview, type EditSelection } from "@/presentation/components/app/projects/new/video-edit-preview";
 import { VideoEditProperties } from "@/presentation/components/app/projects/new/video-edit-properties";
-import { VideoEditTemplates } from "@/presentation/components/app/projects/new/video-edit-templates";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import {
-  applyTemplateAction,
-  deleteTemplateAction,
-  exportFinalVideoAction,
-  listTemplatesAction,
-  overwriteTemplateAction,
-  renameTemplateAction,
-  saveTemplateAction,
-  updateVideoEditAction,
-} from "@/presentation/actions/video-edit";
+import { exportFinalVideoAction, updateVideoEditAction } from "@/presentation/actions/video-edit";
 import { isReelBusy, isReelCurrent } from "@/service/reel/fingerprint";
 import { EDIT_LIMITS, emptyEdit, type BookendClip, type BrandLayer, type VideoEdit } from "@/model/video-edit";
 import { translateAppError } from "@/util/i18n/translate-app-error";
-import type { PublicTemplate, PublicVideo } from "@/presentation/serialize";
+import type { PublicVideo } from "@/presentation/serialize";
 
 const SAVE_DELAY_MS = 600;
 
@@ -42,7 +32,6 @@ export function VideoEditDesk({
   const { t } = useI18n();
   const [edit, setEdit] = useState<VideoEdit>(() => project.edit ?? emptyEdit());
   const [selected, setSelected] = useState<EditSelection>("");
-  const [templates, setTemplates] = useState<PublicTemplate[]>([]);
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -60,12 +49,6 @@ export function VideoEditDesk({
     if (reelCurrent || reelBusy || reelFailed) return;
     onComposeReel();
   }, [reelCurrent, reelBusy, reelFailed, onComposeReel]);
-
-  useEffect(() => {
-    void listTemplatesAction().then((result) => {
-      if (result.ok) setTemplates(result.templates);
-    });
-  }, []);
 
   const save = useCallback(async () => {
     if (timer.current) window.clearTimeout(timer.current);
@@ -116,8 +99,12 @@ export function VideoEditDesk({
     });
   }
 
-  function setBookend(slot: "intro" | "outro", asset: { url: string; kind: "image" | "video" }) {
-    const clip: BookendClip = { kind: asset.kind, assetUrl: asset.url, durationSec: EDIT_LIMITS.imageDurationSec.default };
+  function setBookend(slot: "intro" | "outro", asset: { url: string; kind: "image" | "video"; durationSec?: number }) {
+    const durationSec = Math.min(
+      EDIT_LIMITS.imageDurationSec.max,
+      Math.max(EDIT_LIMITS.imageDurationSec.min, Math.round(asset.durationSec ?? EDIT_LIMITS.imageDurationSec.default)),
+    );
+    const clip: BookendClip = { kind: asset.kind, assetUrl: asset.url, durationSec };
     change((current) => ({ ...current, [slot]: clip }));
     setSelected(slot);
   }
@@ -137,44 +124,6 @@ export function VideoEditDesk({
     const result = saved ? await work() : undefined;
     setBusy(false);
     return result;
-  }
-
-  async function applyTemplate(templateId: string) {
-    const result = await run(() => applyTemplateAction(project.id, templateId));
-    if (!result) return;
-    if (!result.ok) return setMessage(result.error);
-    setEdit(result.project.edit ?? emptyEdit());
-    setSelected("");
-    onProjectChange(result.project);
-  }
-
-  async function saveNew(name: string) {
-    const result = await run(() => saveTemplateAction(project.id, name));
-    if (!result) return t("video.edit.saveTemplateFailed");
-    if (!result.ok) return result.error;
-    setTemplates((list) => [result.template, ...list]);
-    onProjectChange(result.project);
-    return "";
-  }
-
-  async function overwrite(templateId: string) {
-    const result = await run(() => overwriteTemplateAction(project.id, templateId));
-    if (!result) return;
-    if (!result.ok) return setMessage(result.error);
-    setTemplates((list) => list.map((item) => (item.id === templateId ? result.template : item)));
-  }
-
-  async function rename(templateId: string, name: string) {
-    const result = await renameTemplateAction(templateId, name);
-    if (!result.ok) return result.error;
-    setTemplates((list) => list.map((item) => (item.id === templateId ? result.template : item)));
-    return "";
-  }
-
-  async function remove(templateId: string) {
-    const result = await deleteTemplateAction(templateId);
-    if (!result.ok) return setMessage(result.error);
-    setTemplates((list) => list.filter((item) => item.id !== templateId));
   }
 
   async function exportVideo() {
@@ -208,17 +157,6 @@ export function VideoEditDesk({
             </p>
           </header>
           <VideoSharePanel project={project} edit={edit} />
-          <VideoEditTemplates
-            templates={templates}
-            edit={edit}
-            editTemplateId={project.editTemplateId}
-            busy={busy}
-            onApply={(id) => void applyTemplate(id)}
-            onSaveNew={saveNew}
-            onOverwrite={(id) => void overwrite(id)}
-            onRename={rename}
-            onDelete={(id) => void remove(id)}
-          />
           <VideoEditLayers
             edit={edit}
             selected={selected}

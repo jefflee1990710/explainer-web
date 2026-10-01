@@ -58,6 +58,8 @@ export function ClipWorkspace({
   const idle = pending === "";
 
   if (region === "preview") {
+    const ordered = [...(project.phaseA?.clips ?? [])].sort((a, b) => a.clipNumber - b.clipNumber);
+    const index = ordered.findIndex((item) => item.clipNumber === n);
     return (
       <ClipPreviewStage
         start={start}
@@ -71,6 +73,9 @@ export function ClipWorkspace({
         videoPending={pending === `video:${n}`}
         onOpenFrame={onOpenFrame}
         onGenerateVideo={onGenerateVideo}
+        prevClip={index > 0 ? ordered[index - 1].clipNumber : undefined}
+        nextClip={index >= 0 && index < ordered.length - 1 ? ordered[index + 1].clipNumber : undefined}
+        onSelect={onSelect}
       />
     );
   }

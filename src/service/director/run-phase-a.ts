@@ -8,7 +8,7 @@ import {
   phaseASoloCharacterNote,
 } from "@/service/character/cast-prompt";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
-import { LANGUAGE_PRESETS } from "@/service/director/languages";
+import { LANGUAGE_PRESETS, sceneDescriptionLanguageLock } from "@/service/director/languages";
 import { phaseAAudioHint, VOICE_PRESETS, resolveVoiceGender } from "@/service/director/voice";
 import { SPEECH_PACE_PRESETS, resolveSpeechPace, speechPaceSkillHint } from "@/service/director/speech-pace";
 import {
@@ -131,9 +131,9 @@ export async function runPhaseA(input: {
 
 You are executing Phase A only. Return structured JSON that matches the schema.
 ${language.planningSkillHint}
-${keyframeDeltaDirectorBlock({ separateStills: dualBeat })}
+${keyframeDeltaDirectorBlock({ separateStills: dualBeat, language: input.language })}
 ${sceneDetailDirectorBlock()}
-${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels }) : ""}
+${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language }) : ""}
 ${
   skillForcesSceneText(input.skill.slug)
     ? "On-canvas text is required: a numbered item list must appear in every still."
@@ -187,7 +187,8 @@ ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
 The englishVo field always carries the spoken line in the chosen language above (character dialogue when this skill bans narration), regardless of the field name.
 Leave referenceTranslation empty. Do not invent a translation column.
 The englishWordCount field holds the total spoken unit count (words for English, characters for Chinese/Cantonese).
-Never skip the setup gate values already supplied.`,
+Never skip the setup gate values already supplied.
+${sceneDescriptionLanguageLock(input.language)}`,
     messages: [
       {
         role: "user",
@@ -200,6 +201,7 @@ ${input.source}
 Aspect ratio: ${input.aspectRatio}
 Duration preset: ${durationHint}
 ${dialogueOnly ? "Dialogue language" : "Voiceover language"}: ${language.label} (${language.sublabel})
+${sceneDescriptionLanguageLock(input.language)}
 Speaking pace: ${resolveSpeechPace(input.speechPace)} (${SPEECH_PACE_PRESETS[resolveSpeechPace(input.speechPace)].delivery})
 ${
   dialogueOnly

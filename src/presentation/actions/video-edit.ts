@@ -9,6 +9,9 @@ export async function updateVideoEditAction(...args: Parameters<typeof edit.upda
 export async function uploadBrandAssetAction(...args: Parameters<typeof edit.uploadBrandAssetAction>) {
   return edit.uploadBrandAssetAction(...args);
 }
+export async function listBookendVideosAction(...args: Parameters<typeof edit.listBookendVideosAction>) {
+  return edit.listBookendVideosAction(...args);
+}
 export async function exportFinalVideoAction(...args: Parameters<typeof edit.exportFinalVideoAction>) {
   return edit.exportFinalVideoAction(...args);
 }

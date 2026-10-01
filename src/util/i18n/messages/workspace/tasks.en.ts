@@ -20,6 +20,8 @@ export const tasksPageEn = {
     clipFrameEnd: "Clip {n} · end frame",
     reel: "Final reel",
   },
+  doneToast: "{detail} is ready",
+  failedToast: "{detail} failed",
   loadFailed: "Could not load tasks",
   clock: {
     started: "Started",

@@ -29,7 +29,7 @@ export function useToasts() {
   return { toasts, push, dismiss };
 }
 
-// Bottom-right notification stack shared by every page; pair with useToasts.
+// Top-right notification stack; pair with useToasts.
 export function ToastStack({
   toasts,
   onDismiss,
@@ -40,7 +40,7 @@ export function ToastStack({
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none fixed bottom-4 right-4 z-[70] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2"
+      className="pointer-events-none fixed top-4 right-4 z-[80] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2"
     >
       <AnimatePresence initial={false}>
         {toasts.map((toast) => (
@@ -64,9 +64,9 @@ function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
     <motion.div
       layout
       role="status"
-      initial={{ opacity: 0, y: 16, scale: 0.98 }}
+      initial={{ opacity: 0, y: -12, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+      exit={{ opacity: 0, y: -8, scale: 0.98 }}
       transition={{ duration: 0.2 }}
       className={`pointer-events-auto flex items-center gap-3 rounded-2xl border border-accent-ink/10 border-l-4 bg-paper p-3 shadow-[6px_6px_0_0_rgba(18,20,28,0.12)] ${edge}`}
     >

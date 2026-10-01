@@ -1,3 +1,6 @@
+import type { VoLanguage } from "@/model/project";
+import { sceneStateLabels } from "@/service/director/languages";
+
 // How far start → end may travel on the same locked camera, scaled by clip seconds.
 // Too little delta and I2V has nothing to animate; too much and it looks like a cut.
 
@@ -42,10 +45,18 @@ const BUDGET: Record<KeyframeDeltaBand, { director: string; start: string; end: 
   },
 };
 
-export function keyframeDeltaDirectorBlock(options?: { separateStills?: boolean }) {
+export function keyframeDeltaDirectorBlock(options?: {
+  separateStills?: boolean;
+  language?: VoLanguage;
+}) {
+  const labels = sceneStateLabels(options?.language);
+  const combined =
+    labels.start === "Start"
+      ? 'explainerScene writes both states in one English paragraph: "Start: …. End (Ns later): …" using that clip\'s durationSeconds.'
+      : "explainerScene writes both states in one paragraph: 「起始：…。結尾（N秒後）：…」 using that clip's durationSeconds. Write that paragraph in the scene description language.";
   const stillRule = options?.separateStills
-    ? "startScene is the t=0 still and endScene is the t=N still (use that clip's durationSeconds). Do not merge them into one paragraph."
-    : "explainerScene writes both states in one paragraph: 「起始：…。結尾（N秒後）：…」 using that clip's durationSeconds.";
+    ? "startScene is the t=0 still and endScene is the t=N still (use that clip's durationSeconds). Do not merge them into one paragraph. Write both in the scene description language."
+    : combined;
   return [
     "Each clip's start and end are the SAME locked camera; the character keeps roughly the same screen size and placement.",
     "Each still shows exactly ONE instance of each named character — two moments of the same figure, never two bodies in one frame.",

@@ -65,7 +65,7 @@ Order features by desire: the most wanted feature comes last before the result. 
 
 ## Workflow
 
-1. Read `references/demo-proposal-contract.md` and produce Phase A in the user's language, VO in the chosen voiceover language.
+1. Read `references/demo-proposal-contract.md` and produce Phase A scene descriptions and the VO in the chosen language setting.
 2. Stop and request explicit approval.
 3. On a change of ratio, product spec, feature order, or narration, recompose Phase A and request approval again.
 4. Only after approval, read `references/demo-prompt-contract.md` and produce Phase B per clip.

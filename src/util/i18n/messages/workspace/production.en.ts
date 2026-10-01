@@ -48,6 +48,10 @@ export const productionEn = {
   clip: {
     fileTitle: "Clip{n}.mp4",
     meta: "{timeRange} · {durationSeconds}s",
+    prevClip: "Previous clip, Clip{n}.mp4",
+    nextClip: "Next clip, Clip{n}.mp4",
+    noPrevClip: "No previous clip",
+    noNextClip: "No next clip",
   },
   stage: {
     no_frames: "Needs frames",

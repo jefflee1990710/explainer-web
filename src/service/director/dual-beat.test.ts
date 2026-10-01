@@ -42,6 +42,10 @@ test("splitSceneBeats reads 起始／結尾 labels", () => {
     start: "拿尺對齊散點",
     end: "尺變成回歸線。",
   });
+  assert.deepEqual(splitSceneBeats("Start: holds a ruler. End (5s later): the ruler becomes a line."), {
+    start: "holds a ruler",
+    end: "the ruler becomes a line.",
+  });
   assert.deepEqual(splitSceneBeats("單一畫面"), {
     start: "單一畫面",
     end: "單一畫面",
@@ -122,4 +126,10 @@ test("dual-beat director block keeps in-world labels when only captions are off"
   // ON wins over the option: labels mode only exists when captions are off.
   assert.match(dualBeatDirectorBlock(true, { inWorldLabels: true }), /ONLY startVo/);
   assert.doesNotMatch(dualBeatDirectorBlock(true, { inWorldLabels: true }), /captions OFF/);
+});
+
+test("English scene descriptions use Start/End labels", () => {
+  assert.equal(joinSceneBeats("holds a ruler", "the ruler is a line", "en"), "Start: holds a ruler. End: the ruler is a line");
+  assert.match(dualBeatDirectorBlock(false, { language: "en" }), /Start: …\. End: …/);
+  assert.doesNotMatch(dualBeatDirectorBlock(false, { language: "en" }), /起始：/);
 });

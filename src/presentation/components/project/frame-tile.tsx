@@ -8,7 +8,7 @@ import { frameTileFace } from "@/presentation/components/project/frame-tile-face
 import { mediaRetrySrc } from "@/util/media-retry-src";
 import { PencilIcon } from "@/presentation/components/project/production-icons";
 import { userFacingJobError } from "@/service/higgsfield/job-status";
-import { mediaSrc } from "@/util/media-src";
+import { displayMediaSrc } from "@/util/media-src";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { AspectRatio, ClipFrame, FramePosition } from "@/model/project";
 
@@ -41,7 +41,7 @@ export function FrameTile({
   onOpen: () => void;
 }) {
   const { t } = useI18n();
-  const src = mediaSrc(frame);
+  const src = displayMediaSrc(frame);
   const [retryState, setRetryState] = useState({ key: "", n: 0 });
   const retry = src && retryState.key === src ? retryState.n : 0;
   const displaySrc = src ? mediaRetrySrc(src, retry) : undefined;

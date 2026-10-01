@@ -20,7 +20,7 @@ Target pacing is ~2.2–2.5 words per second.
 - Simplify wording before increasing speaking speed.
 - Do not invent research, statistics, quotations, product claims, or factual details.
 
-Use the user's language for planning explanations. Keep the voiceover in English and give a reference translation in the user's language.
+Write planning explanations, including every scene description (`explainerScene`, `startScene`, `endScene`, `motionCamera`), in the language setting supplied with the request. Write the voiceover in that same spoken language. Leave the reference translation empty.
 
 ## Header contract
 

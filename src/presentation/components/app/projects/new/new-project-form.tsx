@@ -48,13 +48,7 @@ import {
   type PaidActionResult,
 } from "@/presentation/components/app/projects/new/paid-action";
 import { mergePolledProject, projectWithClearedFrames } from "@/util/optimistic-frames";
-import {
-  generationTransitions,
-  transitionKey,
-  transitionMessage,
-  type GenerationTransition,
-} from "@/util/generation-transitions";
-import { ToastStack, useToasts } from "@/presentation/components/toast-stack";
+import { generationTransitions } from "@/util/generation-transitions";
 import {
   holdOptimisticTasks,
   paidKeyTasks,
@@ -218,39 +212,22 @@ export function NewProjectForm({
     setWalletCredits(credits);
   }, [credits]);
 
-  // Background jobs finish while the user is elsewhere: announce each settled
-  // frame / video with a toast (thumbnail on success) as the poll lands it.
-  const { toasts, push: pushToast, dismiss: dismissToast } = useToasts();
-  // Collected inside the state updater (keyed, so StrictMode's double run is
-  // harmless) and flushed once the merged project has committed.
-  const settledRef = useRef(new Map<string, GenerationTransition>());
+  // A settled frame or clip should refresh the task list immediately so the
+  // app-wide toast can announce it without waiting for the next 5s tick.
+  const settledRef = useRef(false);
   const onPollUpdate = useCallback((next: PublicVideo) => {
     setProject((current) => {
       if (!current) return next;
       const merged = mergePolledProject(current, next);
-      for (const item of generationTransitions(current, merged)) {
-        settledRef.current.set(transitionKey(item), item);
-      }
+      if (generationTransitions(current, merged).length > 0) settledRef.current = true;
       return merged;
     });
   }, []);
   useEffect(() => {
-    if (settledRef.current.size === 0) return;
-    const settled = [...settledRef.current.values()];
-    settledRef.current.clear();
-    // Finished jobs leave the pending count; refresh the meters right away.
+    if (!settledRef.current) return;
+    settledRef.current = false;
     notifyTasksChanged();
-    for (const item of settled) {
-      pushToast({
-        tone: item.outcome === "completed" ? "success" : "error",
-        title: transitionMessage(item),
-        media:
-          item.outcome === "completed" && item.mediaUrl
-            ? { kind: item.kind === "video" ? "video" : "image", url: item.mediaUrl }
-            : undefined,
-      });
-    }
-  }, [project, pushToast]);
+  }, [project]);
   const onPollError = useCallback((message: string) => setError(translateAppError(message, t)), [t]);
   useProjectPoll(project, onPollUpdate, onPollError);
 
@@ -1063,7 +1040,6 @@ export function NewProjectForm({
             }}
           />
         ) : null}
-        <ToastStack toasts={toasts} onDismiss={dismissToast} />
       </div>
     </MotionConfig>
   );

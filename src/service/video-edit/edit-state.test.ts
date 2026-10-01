@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   FINAL_STALE_MS,
   blobStoreHost,
+  bookendPick,
   brandAssetPath,
   checkBrandUpload,
   finalFingerprint,
@@ -108,6 +109,21 @@ test("checkBrandUpload enforces type and size", () => {
   assert.equal(checkBrandUpload({ type: "image/png", size: 6 * 1024 * 1024 }).ok, false);
   assert.equal(checkBrandUpload({ type: "video/mp4", size: 51 * 1024 * 1024 }).ok, false);
   assert.equal(checkBrandUpload({ type: "video/mp4", size: 0 }).ok, false);
+});
+
+test("bookendPick uses a finished clip and its start still", () => {
+  const pick = bookendPick({
+    id: "v1",
+    source: "logo sting",
+    phaseA: { localizedTitle: "開場", englishTitle: "Open" },
+    clips: [{ clipNumber: 1, status: "completed", blobUrl: "https://blob/c1.mp4", durationSeconds: 4 }],
+    frames: [{ position: "start", status: "completed", blobUrl: "https://blob/f.png" }],
+  });
+  assert.equal(pick?.title, "開場");
+  assert.equal(pick?.videoUrl, "https://blob/c1.mp4");
+  assert.equal(pick?.posterUrl, "https://blob/f.png");
+  assert.equal(pick?.durationSec, 4);
+  assert.equal(bookendPick({ id: "v2", source: "pending", clips: [{ clipNumber: 1, status: "queued", durationSeconds: 3 }] }), null);
 });
 
 test("normalizeTemplateName trims and bounds length", () => {

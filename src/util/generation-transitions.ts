@@ -1,6 +1,6 @@
 import type { ClipFrame, FramePosition, ProjectClip } from "@/model/project";
 import type { PublicVideo } from "@/presentation/serialize";
-import { mediaSrc } from "@/util/media-src";
+import { displayMediaSrc } from "@/util/media-src";
 
 // One job that just settled between two polled snapshots; drives toasts.
 export type GenerationTransition = {
@@ -37,7 +37,7 @@ export function generationTransitions(
   for (const frame of next.frames) {
     const before = prevFrames.get(frameKey(frame));
     if (!before || !inFlight(before.status) || !settled(frame.status)) continue;
-    const mediaUrl = mediaSrc(frame);
+    const mediaUrl = displayMediaSrc(frame);
     if (frame.status === "completed" && !mediaUrl) continue;
     out.push({
       kind: "frame",
@@ -52,7 +52,7 @@ export function generationTransitions(
   for (const clip of next.clips) {
     const before = prevClips.get(clip.clipNumber);
     if (!before || !inFlight(before.status) || !settled(clip.status)) continue;
-    const mediaUrl = mediaSrc(clip);
+    const mediaUrl = displayMediaSrc(clip);
     if (clip.status === "completed" && !mediaUrl) continue;
     out.push({
       kind: "video",

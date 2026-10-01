@@ -30,6 +30,8 @@ export type PublicTask = {
   detailParams?: Record<string, string | number>;
   previewUrl?: string;
   isVideo: boolean;
+  // Set for video jobs and reel tasks so the open editor can reload that video.
+  videoId?: string;
   href: string;
   error?: string;
   attempts: number;
@@ -101,6 +103,7 @@ export function reelTask(
     id: `reel:${input.videoId}`,
     kind: "reel",
     stage,
+    videoId: input.videoId,
     title: input.title,
     detail: "成片合成",
     detailKey: "tasksPage.detail.reel",
@@ -209,6 +212,7 @@ export async function listTasks(
       ...taskDetailI18n(job),
       previewUrl: job.status === "completed" ? mediaSrc(job) : undefined,
       isVideo: job.kind === "video",
+      videoId: job.projectId?.toHexString(),
       href: video
         ? `/app/projects/${video.projectId.toHexString()}?video=${video._id.toHexString()}`
         : "/app/characters",

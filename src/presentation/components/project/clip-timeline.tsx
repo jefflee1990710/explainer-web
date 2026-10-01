@@ -1,7 +1,7 @@
 import { formatTimecode } from "@/presentation/studio/format-timecode";
 import type { StudioClipItem, StudioClipTone } from "@/presentation/studio/clip-item";
 import type { ClipStage, ClipState } from "@/service/clip-stage";
-import { mediaSrc } from "@/util/media-src";
+import { displayMediaSrc, mediaSrc } from "@/util/media-src";
 import type { PublicVideo } from "@/presentation/serialize";
 
 const BUSY: ReadonlySet<ClipStage> = new Set(["frames_generating", "video_generating"]);
@@ -38,7 +38,7 @@ export function clipStudioItems(
       id: String(state.clipNumber),
       title: labels?.clipTitle(state.clipNumber) ?? `Clip${state.clipNumber}.mp4`,
       durationLabel: formatTimecode(row?.durationSeconds ?? 0),
-      thumbnailUrl: startBusy ? undefined : mediaSrc(start),
+      thumbnailUrl: startBusy ? undefined : displayMediaSrc(start),
       statusLabel: labels?.stageLabel(state.stage) ?? state.stage,
       busy,
       stale,

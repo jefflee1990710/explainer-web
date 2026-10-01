@@ -20,6 +20,8 @@ export const tasksPageZhHant = {
     clipFrameEnd: "Clip {n} · 結尾畫格",
     reel: "成片合成",
   },
+  doneToast: "{detail} 完成",
+  failedToast: "{detail} 失敗",
   loadFailed: "讀取任務失敗",
   clock: {
     started: "開始",

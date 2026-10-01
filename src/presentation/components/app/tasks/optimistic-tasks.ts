@@ -46,6 +46,7 @@ function queuedRow(input: {
     detailKey,
     detailParams: { n },
     isVideo: kind === "video",
+    videoId: input.videoId,
     href: hrefFor(input.projectId, input.videoId),
     attempts: 0,
     createdAt: input.now,

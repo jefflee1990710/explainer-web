@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ClipPreviewBrowse } from "@/presentation/components/project/clip-preview-browse";
 import { ClipVideoPanel } from "@/presentation/components/project/clip-video-panel";
 import { previewStageFit } from "@/presentation/components/project/clip-preview-fit";
 import { FrameTile } from "@/presentation/components/project/frame-tile";
@@ -25,6 +26,9 @@ export function ClipPreviewStage({
   videoPending,
   onOpenFrame,
   onGenerateVideo,
+  prevClip,
+  nextClip,
+  onSelect,
 }: {
   start?: ClipFrame;
   end?: ClipFrame;
@@ -37,6 +41,9 @@ export function ClipPreviewStage({
   videoPending: boolean;
   onOpenFrame: (position: FramePosition) => void;
   onGenerateVideo: () => void;
+  prevClip?: number;
+  nextClip?: number;
+  onSelect: (clipNumber: number) => void;
 }) {
   const paneRef = useRef<HTMLDivElement>(null);
   const [pane, setPane] = useState({ w: 0, h: 0 });
@@ -64,10 +71,16 @@ export function ClipPreviewStage({
   return (
     <div
       ref={paneRef}
-      className="flex h-full min-h-[24rem] w-full items-center justify-center overflow-hidden p-4 lg:min-h-0"
+      className="relative flex h-full min-h-[24rem] w-full items-center justify-center overflow-hidden px-16 py-4 lg:min-h-0"
     >
+      {prevClip !== undefined || nextClip !== undefined ? (
+        <>
+          <ClipPreviewBrowse direction="prev" clipNumber={prevClip} onSelect={onSelect} />
+          <ClipPreviewBrowse direction="next" clipNumber={nextClip} onSelect={onSelect} />
+        </>
+      ) : null}
       {ready ? (
-        <div className="flex items-start" style={{ gap: GAP }}>
+        <div className="flex items-center" style={{ gap: GAP }}>
           <FrameTile
             frame={start}
             position="start"

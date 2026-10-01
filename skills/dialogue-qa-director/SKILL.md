@@ -66,7 +66,7 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 
 ## Workflow
 
-1. Read `references/qa-proposal-contract.md` and produce Phase A in the user's language, dialogue in the chosen dialogue language.
+1. Read `references/qa-proposal-contract.md` and produce Phase A scene descriptions and the dialogue in the chosen language setting.
 2. Stop and request explicit approval.
 3. On a change of ratio, cast roles, question ladder, or wording, recompose Phase A and request approval again.
 4. Only after approval, read `references/qa-prompt-contract.md` and produce Phase B per clip.

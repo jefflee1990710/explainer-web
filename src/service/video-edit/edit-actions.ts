@@ -6,8 +6,10 @@ import { requireAppUser } from "@/service/auth";
 import { videosCollection } from "@/dao";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { isReelCurrent } from "@/service/reel/fingerprint";
+import { ENDING_SKILL_SLUG, OPENING_SKILL_SLUG } from "@/service/director/skill-rules";
 import {
   blobStoreHost,
+  bookendPick,
   brandAssetPath,
   checkBrandUpload,
   editAssetUrls,
@@ -16,6 +18,7 @@ import {
   isBrandAssetUrl,
   isFinalCurrent,
   isFinalRunning,
+  type BookendPick,
 } from "@/service/video-edit/edit-state";
 import { runFinalJob } from "@/service/video-edit/final-job";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
@@ -23,6 +26,64 @@ import { videoEditSchema } from "@/model/video-edit";
 
 type Fail = { ok: false; error: string };
 type ProjectResult = { ok: true; project: PublicVideo } | Fail;
+
+// Brand uploads, or a finished opening/ending clip this user already owns.
+async function editUrlsAllowed(urls: string[], clerkUserId: string, storeHost: string | null) {
+  const foreign = urls.filter((url) => !isBrandAssetUrl(url, clerkUserId, storeHost));
+  if (foreign.length === 0) return true;
+  const videos = await videosCollection();
+  const owned = await videos
+    .find(
+      { clerkUserId, $or: [{ reelUrl: { $in: foreign } }, { "clips.blobUrl": { $in: foreign } }] },
+      { projection: { reelUrl: 1, "clips.blobUrl": 1 } },
+    )
+    .toArray();
+  const allowed = new Set<string>();
+  for (const video of owned) {
+    if (video.reelUrl) allowed.add(video.reelUrl);
+    for (const clip of video.clips || []) {
+      if (clip.blobUrl) allowed.add(clip.blobUrl);
+    }
+  }
+  return foreign.every((url) => allowed.has(url));
+}
+
+// Finished 開場 or 結尾 clips the Video tab can attach.
+export async function listBookendVideosAction(
+  slot: "intro" | "outro",
+): Promise<{ ok: true; videos: BookendPick[] } | Fail> {
+  const user = await requireAppUser();
+  const videos = await videosCollection();
+  const rows = await videos
+    .find(
+      { clerkUserId: user.clerkUserId, skillSlug: slot === "intro" ? OPENING_SKILL_SLUG : ENDING_SKILL_SLUG },
+      {
+        projection: {
+          source: 1,
+          "phaseA.localizedTitle": 1,
+          "phaseA.englishTitle": 1,
+          "clips.clipNumber": 1,
+          "clips.status": 1,
+          "clips.blobUrl": 1,
+          "clips.durationSeconds": 1,
+          "frames.position": 1,
+          "frames.status": 1,
+          "frames.blobUrl": 1,
+          reelUrl: 1,
+          reelStatus: 1,
+          updatedAt: 1,
+        },
+      },
+    )
+    .sort({ updatedAt: -1 })
+    .limit(40)
+    .toArray();
+  const picks = rows.flatMap((video) => {
+    const pick = bookendPick({ ...video, id: video._id.toHexString() });
+    return pick ? [pick] : [];
+  });
+  return { ok: true, videos: picks };
+}
 
 async function ownedVideo(videoId: string, clerkUserId: string) {
   if (!ObjectId.isValid(videoId)) return null;
@@ -36,7 +97,8 @@ export async function updateVideoEditAction(videoId: string, edit: unknown): Pro
   const parsed = videoEditSchema.safeParse(edit);
   if (!parsed.success) return { ok: false, error: "圖層設定格式錯誤" };
   const storeHost = blobStoreHost(process.env.BLOB_READ_WRITE_TOKEN);
-  if (!editAssetUrls(parsed.data).every((url) => isBrandAssetUrl(url, user.clerkUserId, storeHost))) {
+  const urls = editAssetUrls(parsed.data);
+  if (!(await editUrlsAllowed(urls, user.clerkUserId, storeHost))) {
     return { ok: false, error: "素材網址無效，請重新上傳" };
   }
   const video = await ownedVideo(videoId, user.clerkUserId);

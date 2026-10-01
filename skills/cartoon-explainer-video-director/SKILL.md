@@ -37,7 +37,7 @@ Every Phase A proposal and Phase B prompt must preserve this identical whiteboar
 
 ## Workflow
 
-1. Read `references/traffic-and-hooks.md` and `references/storyboard-template.md` and produce Phase A in the user's language, with English VO and a reference translation.
+1. Read `references/traffic-and-hooks.md` and `references/storyboard-template.md` and produce Phase A in the language setting: scene descriptions and the voiceover both use that language.
 2. Stop after the director's proposal and request explicit approval.
 3. If the user changes ratio, narration, scene structure, or global staging, recompose Phase A and request approval again.
 4. Only after approval of the current Phase A, read `references/omni-flash-prompt-contract.md` and produce Phase B.

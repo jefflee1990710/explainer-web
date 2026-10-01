@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { refreshGenerationAction } from "@/presentation/actions/generation";
 import { getProjectAction } from "@/presentation/actions/projects";
+import { subscribeProjectRefresh } from "@/presentation/components/app/tasks/task-signal";
 import { isProjectBusy } from "@/service/clip-stage";
 import { isReelBusy } from "@/service/reel/fingerprint";
 import { isFinalRunning } from "@/service/video-edit/edit-state";
@@ -83,4 +84,41 @@ export function useProjectPoll(
       window.clearInterval(timer);
     };
   }, [id, status, busy, clipBusy, onUpdate, onError, router]);
+
+  // The task list is what lands a finished file. The editor may already
+  // look idle (old still still on screen), so reload that video when its
+  // background job settles.
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    let inFlight = false;
+    let dirty = false;
+
+    async function pull() {
+      if (inFlight) {
+        dirty = true;
+        return;
+      }
+      inFlight = true;
+      try {
+        const result = await getProjectAction(id!);
+        if (cancelled || !result.ok) return;
+        onUpdate(result.project);
+      } finally {
+        inFlight = false;
+      }
+      if (dirty && !cancelled) {
+        dirty = false;
+        await pull();
+      }
+    }
+
+    const unsubscribe = subscribeProjectRefresh((videoId) => {
+      if (videoId === id) void pull();
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [id, onUpdate]);
 }

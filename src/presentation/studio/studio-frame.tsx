@@ -2,8 +2,8 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 
-// Editor body: optional toolbar, preview and inspector, with an optional filmstrip pinned below.
-// `timelineBar` floats batch actions right above the filmstrip.
+// Editor body: optional filmstrip pinned on top, then toolbar, preview and inspector.
+// `timelineBar` sits directly under the filmstrip for batch actions.
 export function StudioFrame({
   preview,
   inspector,
@@ -20,6 +20,19 @@ export function StudioFrame({
   const { t } = useI18n();
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[var(--studio-canvas)]">
+      {timeline ? (
+        <section
+          aria-label={t("production.shell.timelineAria")}
+          className="shrink-0 overflow-x-auto overflow-y-hidden border-b border-[var(--studio-line)] bg-[var(--studio-canvas)]"
+        >
+          {timeline}
+        </section>
+      ) : null}
+      {timelineBar ? (
+        <div className="shrink-0 border-b border-[var(--studio-line)] bg-[var(--studio-panel)]">
+          {timelineBar}
+        </div>
+      ) : null}
       {toolbar ? (
         <div className="shrink-0 border-b border-[var(--studio-line)] bg-[var(--studio-panel)]">
           {toolbar}
@@ -41,19 +54,6 @@ export function StudioFrame({
           </section>
         </div>
       </div>
-      {timelineBar ? (
-        <div className="shrink-0 border-t border-[var(--studio-line)] bg-[var(--studio-panel)]">
-          {timelineBar}
-        </div>
-      ) : null}
-      {timeline ? (
-        <section
-          aria-label={t("production.shell.timelineAria")}
-          className="h-28 shrink-0 overflow-x-auto overflow-y-hidden border-t border-[var(--studio-line)] bg-[var(--studio-canvas)]"
-        >
-          {timeline}
-        </section>
-      ) : null}
     </div>
   );
 }

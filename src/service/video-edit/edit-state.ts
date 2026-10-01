@@ -69,6 +69,47 @@ export function isFinalRunning(
   return now - new Date(video.finalQueuedAt).getTime() < FINAL_STALE_MS;
 }
 
+export type BookendPick = {
+  id: string;
+  title: string;
+  videoUrl: string;
+  posterUrl?: string;
+  durationSec: number;
+};
+
+type BookendSource = {
+  id: string;
+  source: string;
+  phaseA?: { localizedTitle?: string; englishTitle?: string };
+  clips?: Array<{ clipNumber: number; status: string; blobUrl?: string; durationSeconds: number }>;
+  frames?: Array<{ position: string; status: string; blobUrl?: string }>;
+  reelUrl?: string;
+  reelStatus?: string;
+};
+
+// A finished opening or ending the Video tab can attach as intro or outro.
+export function bookendPick(video: BookendSource): BookendPick | null {
+  const clip = [...(video.clips ?? [])]
+    .sort((a, b) => a.clipNumber - b.clipNumber)
+    .find((item) => item.status === "completed" && item.blobUrl);
+  const videoUrl = clip?.blobUrl || (video.reelStatus === "completed" ? video.reelUrl : undefined);
+  if (!videoUrl) return null;
+  const poster =
+    video.frames?.find((frame) => frame.status === "completed" && frame.blobUrl && frame.position === "start") ||
+    video.frames?.find((frame) => frame.status === "completed" && frame.blobUrl);
+  const raw = clip?.durationSeconds ?? EDIT_LIMITS.imageDurationSec.default;
+  const durationSec = Math.min(
+    EDIT_LIMITS.imageDurationSec.max,
+    Math.max(EDIT_LIMITS.imageDurationSec.min, Math.round(raw)),
+  );
+  const title =
+    video.phaseA?.localizedTitle?.trim() ||
+    video.phaseA?.englishTitle?.trim() ||
+    video.source.trim().slice(0, 48) ||
+    "Video";
+  return { id: video.id, title, videoUrl, posterUrl: poster?.blobUrl, durationSec };
+}
+
 export function editAssetUrls(edit: VideoEdit) {
   return [
     ...edit.layers.map((layer) => layer.assetUrl),
