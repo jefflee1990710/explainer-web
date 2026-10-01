@@ -37,6 +37,8 @@ import {
 } from "@/service/higgsfield/reconcile";
 import { scheduleGenerationFinishedEmail } from "@/service/notify/generation-email";
 import { queueReelIfReady } from "@/service/reel/enqueue";
+import { retimeMp4 } from "@/service/reel/retime";
+import { isBookendSkill } from "@/service/director/skill-rules";
 import { chargedVideoCredits, FRAME_COST, STUCK_CLAIM_MS } from "@/service/production-plan";
 import { lockDialogueSpeech } from "@/service/director/spoken-line";
 import { toSent, type Sent } from "@/service/generation/sent";
@@ -435,8 +437,24 @@ export async function applyJobStatus(input: {
   if (outputUrl && status === "completed") {
     const folder =
       job.kind === "still" ? "stills" : job.kind === "frame" ? "frames" : "clips";
+    const bookendSeconds =
+      project && job.kind === "video" && isBookendSkill(project.skillSlug)
+        ? project.phaseA?.clips.find((row) => row.clipNumber === job.clipIndex + 1)?.durationSeconds
+        : undefined;
     const transformOptions =
-      project && (job.kind === "still" || job.kind === "frame")
+      bookendSeconds
+        ? {
+            // Provider renders ≥5s; bookends play at their 2–3s storyboard length.
+            transform: (buffer: Buffer) =>
+              retimeMp4(buffer, bookendSeconds).catch((error: unknown) => {
+                console.error("[higgsfield] bookend retime failed; persisting original", {
+                  requestId: job.requestId,
+                  error,
+                });
+                return buffer;
+              }),
+          }
+        : project && (job.kind === "still" || job.kind === "frame")
         ? {
             transform: (buffer: Buffer) =>
               flattenToCanvas(buffer, videoStyle(project).canvasColor).catch(

@@ -30,7 +30,9 @@ import {
   stripVisualWorldTextPolicy,
 } from "@/service/director/scene-text";
 import {
+  bookendLogoFrameLines,
   cartoonNarratorFrameLock,
+  isBookendSkill,
   skillBansNarration,
   skillForcesSceneText,
   STORY_SHORT_SKILL_SLUG,
@@ -181,6 +183,11 @@ export function videoStyle(project: Pick<Project, "styleId">): Style {
   return resolveStyle(project.styleId);
 }
 
+// Opening / Ending stills attach the brand logo after the character references.
+export function logoReferenceUrls(project: Pick<Project, "skillSlug" | "logoUrl">): string[] {
+  return isBookendSkill(project.skillSlug) && project.logoUrl ? [project.logoUrl] : [];
+}
+
 // Catalog typography often bans "subtitles"; scene-text mode needs integrated captions.
 function typographyForSceneText(typography: string) {
   return typography
@@ -241,6 +248,9 @@ export function buildFramePrompt(
     : lockUrls.length
       ? soloCharacterParagraphForFrames(characterAttachmentStart)
       : [];
+  const logoLines = logoReferenceUrls(project).length
+    ? bookendLogoFrameLines(characterAttachmentStart + lockUrls.length)
+    : [];
 
   const sceneForFrame =
     position === "start" ? clipStartScene(row) : clipEndScene(row);
@@ -319,6 +329,7 @@ export function buildFramePrompt(
     ...(parts.visualWorld ? [`Visual world: ${parts.visualWorld}`] : []),
     `Palette: ${parts.palette}`,
     ...castLines,
+    ...logoLines,
     ...(characterLockLine ? [characterLockLine] : []),
     ...(listicle || sceneText.enabled || keepSceneLabels
       ? []
@@ -384,7 +395,7 @@ export function frameSubmitPlan(
     refs: sceneImageReferenceUrls({
       annotatedUrl: revision?.annotatedUrl,
       anchorUrl: anchor?.url,
-      lockUrls: frameLockReferenceUrls(project),
+      lockUrls: [...frameLockReferenceUrls(project), ...logoReferenceUrls(project)],
     }),
     anchor,
   };

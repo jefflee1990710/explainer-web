@@ -68,6 +68,7 @@ import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { DEFAULT_VOICE_GENDER, VOICE_PRESETS } from "@/service/director/voice";
 import { SCENE_TEXT_PRESETS } from "@/service/director/scene-text";
 import {
+  isBookendSkill,
   requiredCastCount,
   skillBansNarration,
   skillForcesSceneText,
@@ -91,6 +92,7 @@ import { SkillPicker } from "@/presentation/components/app/projects/[id]/skill-p
 import { AspectRatioPicker } from "@/presentation/components/app/projects/new/aspect-ratio-picker";
 import { DirectorProgress } from "@/presentation/components/app/projects/new/director-progress";
 import { DurationPicker } from "@/presentation/components/app/projects/new/duration-picker";
+import { LogoPicker } from "@/presentation/components/app/projects/new/logo-picker";
 import { LanguagePicker } from "@/presentation/components/app/projects/new/language-picker";
 import { VoicePicker } from "@/presentation/components/app/projects/new/voice-picker";
 import { SpeechPacePicker } from "@/presentation/components/app/projects/new/speech-pace-picker";
@@ -176,6 +178,9 @@ export function NewProjectForm({
   const [characterIds, setCharacterIds] = useState<string[]>(
     initialVideo?.cast.map((member) => member.characterId) || lastBrief?.characterIds || [],
   );
+  // Opening / Ending only: brand logo used in both scene images.
+  const [logoUrl, setLogoUrl] = useState(initialVideo?.logoUrl || "");
+  const bookend = isBookendSkill(skillSlug);
 
   // Flow state. The stepper can jump back to 題材 after a video exists.
   const [project, setProject] = useState<PublicVideo | null>(initialVideo);
@@ -284,7 +289,8 @@ export function NewProjectForm({
       project.speechPace === speechPace &&
       project.sceneTextLanguage === sceneTextLanguage &&
       project.aspectRatio === aspectRatio &&
-      project.durationPreset === durationPreset &&
+      (bookend || project.durationPreset === durationPreset) &&
+      (project.logoUrl || "") === (bookend ? logoUrl : "") &&
       currentIds.length === nextIds.length &&
       currentIds.every((id, index) => id === nextIds[index])
     );
@@ -303,6 +309,7 @@ export function NewProjectForm({
     formData.set("sceneTextLanguage", sceneTextLanguage);
     formData.set("aspectRatio", aspectRatio);
     formData.set("durationPreset", durationPreset);
+    if (bookend && logoUrl) formData.set("logoUrl", logoUrl);
     for (const id of characterIds) formData.append("characterIds", id);
     return formData;
   }
@@ -381,6 +388,7 @@ export function NewProjectForm({
     setAspectRatio(video.aspectRatio);
     setDurationPreset(video.durationPreset);
     setCharacterIds(video.cast.map((member) => member.characterId));
+    setLogoUrl(video.logoUrl || "");
   }
 
   const onRestart = useCallback(() => {
@@ -733,6 +741,20 @@ export function NewProjectForm({
                   onChange={setSkillSlug}
                   disabled={briefBusy}
                 />
+                {bookend ? (
+                  <>
+                    <p className="mt-5 text-sm font-semibold">{t("brief.logo.title")}</p>
+                    <p className="mt-1 text-xs text-muted">{t("brief.logo.hint")}</p>
+                    <div className="mt-3">
+                      <LogoPicker
+                        value={logoUrl}
+                        onChange={setLogoUrl}
+                        onError={setError}
+                        disabled={briefBusy}
+                      />
+                    </div>
+                  </>
+                ) : null}
                 {/* Visual style sits under the narrative skill in the same step. */}
                 <p className="mt-5 text-sm font-semibold">{t("brief.visualStyle.title")}</p>
                 <p className="mt-1 text-xs text-muted">
@@ -844,11 +866,15 @@ export function NewProjectForm({
                 />
               </Section>
 
-              <Section step="06" title={t("brief.section06.title")} hint={t("brief.section06.hint")}>
+              <Section
+                step="06"
+                title={t("brief.section06.title")}
+                hint={bookend ? t("brief.section06.hintBookend") : t("brief.section06.hint")}
+              >
                 <DurationPicker
                   value={durationPreset}
                   onChange={setDurationPreset}
-                  disabled={briefBusy}
+                  disabled={briefBusy || bookend}
                 />
               </Section>
 
@@ -927,7 +953,17 @@ export function NewProjectForm({
               <Dot />
               <span>{aspectRatio}</span>
               <Dot />
-              <span>{DURATION_PRESETS[durationPreset].label}</span>
+              <span>
+                {isBookendSkill(project?.skillSlug || skillSlug)
+                  ? t("brief.summary.bookendLength")
+                  : DURATION_PRESETS[durationPreset].label}
+              </span>
+              {project?.logoUrl ? (
+                <>
+                  <Dot />
+                  <span>{t("brief.summary.logo")}</span>
+                </>
+              ) : null}
               {project?.cast.length ? (
                 <>
                   <Dot />

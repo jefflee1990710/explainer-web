@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { VideoGenerationTags } from "@/presentation/components/app/projects/[id]/video-generation-tags";
 import { StatusBadge } from "@/presentation/components/project/status-badge";
 import { durationPresetLabel, voLanguageLabel } from "@/util/i18n/picker-labels";
 import { PreviewStrip } from "@/presentation/components/app/preview-strip";
@@ -63,6 +64,7 @@ export function VideoGridCard({
         </span>
         <span className="flex flex-1 flex-col gap-2 p-4">
           <span className="line-clamp-2 text-sm font-medium leading-snug">{title}</span>
+          {video.status === "production" ? <VideoGenerationTags tags={video.tags} /> : null}
           {progress ? <span className="text-xs text-muted">{progress}</span> : null}
           <span className="mt-auto text-xs text-muted">
             {video.aspectRatio} · {duration} · {language}

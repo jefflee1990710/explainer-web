@@ -9,7 +9,7 @@ export const videoZhHant = {
     empty: "還沒有影片。按右上角「新增影片」開始。",
   },
   workspace: {
-    backToProjects: "← 回到專案",
+    backToProjects: "← 回到影片",
     videoCount: "{n} 支影片",
     createVideo: "新增影片",
     fallbackVideo: "影片",
@@ -20,6 +20,8 @@ export const videoZhHant = {
   card: {
     unnamed: "未命名影片",
     progress: "影片 {done}/{total}",
+    tagScene: "Clip {n} · 場景",
+    tagVideo: "Clip {n} · 影片",
   },
   pager: {
     page: "第 {page} / {pages} 頁",

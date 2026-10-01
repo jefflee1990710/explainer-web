@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const ja: Partial<Messages> = {
   meta: { title: "Scro — 解説動画", description: "アイデアを Reels、マーケティング用 clips、プレゼン動画に変換。スタイルを選び、絵コンテを承認して clips を書き出せます。" },
-  nav: { projects: "プロジェクト", characters: "キャラクター", tasks: "タスク", mcp: "MCP", affiliate: "Affiliate", billing: "請求", examples: "作例", pricing: "料金", signIn: "ログイン", workspace: "ワークスペース", language: "言語" },
+  nav: { projects: "動画", characters: "キャラクター", tasks: "タスク", mcp: "MCP", affiliate: "Affiliate", billing: "請求", examples: "作例", pricing: "料金", signIn: "ログイン", workspace: "ワークスペース", language: "言語" },
   common: { credits: "credits", pending: "処理中", perMonth: "/ 月", cancel: "キャンセル", save: "保存", close: "閉じる", create: "作成", loading: "読み込み中…", popular: "一番人気", subscribe: "登録する" },
   landing: {
     hero: {
@@ -79,7 +79,7 @@ export const ja: Partial<Messages> = {
     productReel: { title: "ワイド画面のピクセル短編", body: "16:9 のピクセルアート。小さなロボットが光る手紙を届けます。広い画面が物語の舞台になります。サイトのヒーローや横型ショートに置くときにこの種類です。" },
   },
   dashboard: {
-    title: "プロジェクト",
+    title: "動画",
     subscribed: "現在のプランで動画をレンダリングできます。残り {credits} credits。",
     notSubscribed: "有効な登録がありません。絵コンテは作成できますが、レンダリング前にプランへの登録が必要です。",
     noSubscriptionBanner: "有効な登録がありません。",

@@ -178,6 +178,8 @@ export type Project = {
   sceneTextEnabled?: boolean;
   sceneTextLanguage?: SceneTextLanguage;
   characterImageUrl?: string;
+  // Opening / Ending bookends: brand logo used as a reference in every still.
+  logoUrl?: string;
   // Characters chosen at creation; snapshot of each default blueprint.
   cast?: CastMember[];
   status: ProjectStatus | LegacyProjectStatus;
@@ -281,6 +283,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   sceneTextEnabled: z.boolean().optional(),
   sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans"]).optional(),
   characterImageUrl: z.string().optional(),
+  logoUrl: z.string().optional(),
   cast: z.array(castMemberSchema).optional(),
   status: z.enum([
     "draft",

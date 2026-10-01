@@ -10,6 +10,21 @@ import {
   framesWithClips,
 } from "@/service/higgsfield/frame-prompts";
 
+test("bookend stills attach the logo after the character refs and name it", () => {
+  const logo = "https://blob/logo.png";
+  const opening = { ...project(), skillSlug: "opening-director", logoUrl: logo };
+  const plan = frameSubmitPlan(opening, 1, "start");
+  assert.deepEqual(plan.refs, [logo]);
+  assert.match(plan.prompt, /BRAND LOGO: attached image 1 is the brand logo/);
+});
+
+test("non-bookend videos ignore a stray logo", () => {
+  const other = { ...project(), logoUrl: "https://blob/logo.png" };
+  const plan = frameSubmitPlan(other, 1, "start");
+  assert.deepEqual(plan.refs, []);
+  assert.doesNotMatch(plan.prompt, /BRAND LOGO/);
+});
+
 function project(styleId?: Project["styleId"]): Project {
   return {
     _id: new ObjectId(),

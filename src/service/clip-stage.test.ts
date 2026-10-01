@@ -7,6 +7,7 @@ import {
   inFlightCounts,
   isProjectBusy,
   isProjectReady,
+  clipGenerationTags,
   productionCounts,
   type ClipStageSource,
 } from "@/service/clip-stage";
@@ -320,6 +321,53 @@ test("defaultSelectedClip falls back to the first clip when all are ready", () =
     ]),
     1,
   );
+});
+
+test("clip tags show scene progress and a finished video on the same list", () => {
+  const p = project({
+    frames: [
+      frame(1, "start", "completed"),
+      frame(1, "end", "completed"),
+      frame(2, "start", "completed"),
+      frame(2, "end", "completed"),
+      frame(3, "start", "in_progress"),
+    ],
+    clips: [clip(1, "completed")],
+    phaseA: { clips: [{ clipNumber: 1 }, { clipNumber: 2 }, { clipNumber: 3 }] },
+  });
+  assert.deepEqual(clipGenerationTags(p), [
+    { clipNumber: 1, kind: "scene", state: "ready" },
+    { clipNumber: 1, kind: "video", state: "ready" },
+    { clipNumber: 2, kind: "scene", state: "ready" },
+    { clipNumber: 3, kind: "scene", state: "busy" },
+  ]);
+});
+
+test("a clip can tag a busy scene and a busy video together", () => {
+  const p = project({
+    frames: [frame(1, "start", "queued"), frame(1, "end", "completed")],
+    clips: [clip(1, "in_progress")],
+  });
+  assert.deepEqual(clipGenerationTags(p), [
+    { clipNumber: 1, kind: "scene", state: "busy" },
+    { clipNumber: 1, kind: "video", state: "busy" },
+  ]);
+});
+
+test("clips with nothing generated add no tags", () => {
+  assert.deepEqual(clipGenerationTags(project()), []);
+});
+
+test("failed scene frames and a failed video are tagged", () => {
+  const p = project({
+    frames: [frame(1, "start", "completed"), frame(1, "end", "failed")],
+    clips: [clip(2, "failed")],
+    phaseA: { clips: [{ clipNumber: 1 }, { clipNumber: 2 }] },
+  });
+  assert.deepEqual(clipGenerationTags(p), [
+    { clipNumber: 1, kind: "scene", state: "failed" },
+    { clipNumber: 2, kind: "video", state: "failed" },
+  ]);
 });
 
 test("completed video without a file is still generating, not ready", () => {

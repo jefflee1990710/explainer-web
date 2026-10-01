@@ -20,6 +20,7 @@ import {
   type EditorStepNav,
 } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import { VideoEditorDialog } from "@/presentation/components/app/projects/[id]/video-editor-dialog";
+import { useFolderGenerationPoll } from "@/presentation/components/app/projects/[id]/use-folder-generation-poll";
 import { VideoTable } from "@/presentation/components/app/projects/[id]/video-table";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -145,6 +146,9 @@ export function ProjectWorkspace({
     return cards;
   }, [folder.videos, optimisticVideo, hiddenIds]);
 
+  // List stays visible only while the editor is closed; the editor polls on its own.
+  useFolderGenerationPoll(videos, !editorOpen);
+
   function onSelect(id: string) {
     setActiveVideoId(id);
     setEditorOpen(true);
@@ -162,6 +166,7 @@ export function ProjectWorkspace({
     setActiveVideoId(null);
     setStepNav(null);
     replaceVideoQuery(null);
+    router.refresh();
   }
 
   function onVideoDeleted(id: string) {

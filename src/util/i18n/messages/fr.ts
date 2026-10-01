@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const fr: Partial<Messages> = {
   meta: { title: "Scro — Vidéos explicatives", description: "Transformez vos concepts en Reels, clips marketing et vidéos de présentation. Choisissez un style, validez les storyboards et exportez vos clips." },
-  nav: { projects: "Projets", characters: "Personnages", tasks: "Tâches", mcp: "MCP", affiliate: "Affiliate", billing: "Facturation", examples: "Exemples", pricing: "Tarifs", signIn: "Se connecter", workspace: "Espace de travail", language: "Langue" },
+  nav: { projects: "Vidéo", characters: "Personnages", tasks: "Tâches", mcp: "MCP", affiliate: "Affiliate", billing: "Facturation", examples: "Exemples", pricing: "Tarifs", signIn: "Se connecter", workspace: "Espace de travail", language: "Langue" },
   common: { credits: "credits", pending: "en cours", perMonth: "/ mois", cancel: "Annuler", save: "Enregistrer", close: "Fermer", create: "Créer", loading: "Chargement…", popular: "Le plus populaire", subscribe: "S’abonner" },
   landing: {
     hero: { kicker: "Scro", title: "Expliquez clairement vos idées avec des Reels, des vidéos marketing et des présentations.", subtitle: "Choisissez un style, validez les storyboards et exportez des clips pour vos vidéos courtes, votre marketing produit et vos présentations.", ctaStart: "Commencer", ctaWorkspace: "Ouvrir l’espace de travail", ctaPricing: "Voir les offres", artLabel: "Illustration conceptuelle du storyboard et du montage" },
@@ -28,7 +28,7 @@ export const fr: Partial<Messages> = {
     productMarketing: { title: "Une démo produit pour un post carré", body: "Un clip claymation 1:1. Un produit, un instant : la bouteille sort de la boîte et s’allume. Pour une pub de fil où le produit est le héros." },
     productReel: { title: "Un court pixel sur une scène large", body: "Une histoire pixel 16:9. Un petit robot livre un mot lumineux. Le cadre large donne une scène à l’histoire. Pour un hero de site ou un short horizontal." },
   },
-  dashboard: { title: "Projets", subscribed: "Votre offre permet de générer des vidéos. Il vous reste {credits} credits.", notSubscribed: "Aucun abonnement actif. Vous pouvez préparer des storyboards, mais une offre est nécessaire avant le rendu.", noSubscriptionBanner: "Aucun abonnement actif.", goBilling: "Accéder à la facturation" },
+  dashboard: { title: "Vidéo", subscribed: "Votre offre permet de générer des vidéos. Il vous reste {credits} credits.", notSubscribed: "Aucun abonnement actif. Vous pouvez préparer des storyboards, mais une offre est nécessaire avant le rendu.", noSubscriptionBanner: "Aucun abonnement actif.", goBilling: "Accéder à la facturation" },
   folder: {
     create: "Nouveau projet", createTitle: "Nouveau projet", createHint: "Donnez-lui d'abord un nom, puis ajoutez des vidéos.", createSubmit: "Créer le projet", nameLabel: "Nom du projet", namePlaceholder: "Ex. : lancement produit du T4",
     emptyTitle: "Aucun projet pour le moment", emptyBody: "Commencez par nommer cette campagne, puis ajoutez-y des vidéos.",

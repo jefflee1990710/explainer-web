@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  applySkillDuration,
+  bookendDirectorBlock,
+  isBookendSkill,
+  normalizeBookendClips,
   briefSkillError,
   cartoonExplainerDirectorBlock,
   cartoonNarratorFrameLock,
@@ -14,6 +18,35 @@ import {
   storyShortCameraLock,
   storyShortDirectorBlock,
 } from "@/service/director/skill-rules";
+
+test("opening and ending are bookend skills with a fixed length", () => {
+  assert.equal(isBookendSkill("opening-director"), true);
+  assert.equal(isBookendSkill("ending-director"), true);
+  assert.equal(isBookendSkill("listicle-director"), false);
+  assert.equal(applySkillDuration("opening-director", "full"), "micro");
+  assert.equal(applySkillDuration("listicle-director", "full"), "full");
+});
+
+test("bookend storyboards collapse to one 2–3s clip", () => {
+  const row = (clipNumber: number, durationSeconds: number) => ({
+    clipNumber,
+    durationSeconds,
+    timeRange: "x",
+  });
+  assert.deepEqual(normalizeBookendClips([row(1, 6), row(2, 5)]), [
+    { clipNumber: 1, durationSeconds: 3, timeRange: "0–3s" },
+  ]);
+  assert.deepEqual(normalizeBookendClips([row(1, 1)]), [
+    { clipNumber: 1, durationSeconds: 2, timeRange: "0–2s" },
+  ]);
+  assert.deepEqual(normalizeBookendClips([]), []);
+});
+
+test("bookend director block uses the logo only when one is attached", () => {
+  assert.match(bookendDirectorBlock("opening-director", true), /logo image is attached/);
+  assert.match(bookendDirectorBlock("ending-director", false), /No logo image is attached/);
+  assert.match(bookendDirectorBlock("ending-director", true), /ENDING bookend/);
+});
 
 test("story short is a no-narrator short film", () => {
   assert.equal(skillBansNarration("story-short-director"), true);

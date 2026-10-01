@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const ru: Partial<Messages> = {
   meta: { title: "Scro — Объясняющие видео", description: "Превращайте идеи в Reels, маркетинговые clips и видео для презентаций. Выберите стиль, утвердите раскадровки и экспортируйте clips." },
-  nav: { projects: "Проекты", characters: "Персонажи", tasks: "Задачи", mcp: "MCP", affiliate: "Affiliate", billing: "Оплата", examples: "Примеры", pricing: "Тарифы", signIn: "Войти", workspace: "Рабочая область", language: "Язык" },
+  nav: { projects: "Видео", characters: "Персонажи", tasks: "Задачи", mcp: "MCP", affiliate: "Affiliate", billing: "Оплата", examples: "Примеры", pricing: "Тарифы", signIn: "Войти", workspace: "Рабочая область", language: "Язык" },
   common: { credits: "credits", pending: "в очереди", perMonth: "/ мес.", cancel: "Отмена", save: "Сохранить", close: "Закрыть", create: "Создать", loading: "Загрузка…", popular: "Самый популярный", subscribe: "Оформить подписку" },
   landing: {
     hero: { kicker: "Scro", title: "Объясняйте идеи понятно с помощью Reels, маркетинговых видео и презентаций.", subtitle: "Выберите стиль, утвердите раскадровки и экспортируйте clips для коротких видео, продуктового маркетинга и презентаций.", ctaStart: "Начать", ctaWorkspace: "Открыть рабочую область", ctaPricing: "Посмотреть тарифы", artLabel: "Концептуальная иллюстрация раскадровки и монтажа" },
@@ -28,7 +28,7 @@ export const ru: Partial<Messages> = {
     productMarketing: { title: "Демо продукта для квадратного поста", body: "Клип из пластилина 1:1. Один продукт, один момент: бутылка выходит из коробки и загорается. Для рекламы в ленте, где продукт — герой." },
     productReel: { title: "Пиксельный рассказ на широкой сцене", body: "Пиксельная история 16:9. Маленький робот доставляет светящуюся записку. Широкий кадр даёт сцене площадку. Для героя сайта или горизонтального короткого ролика." },
   },
-  dashboard: { title: "Проекты", subscribed: "Ваш тариф позволяет создавать видео. Осталось {credits} credits.", notSubscribed: "Нет активной подписки. Вы можете подготовить раскадровки, но для рендеринга понадобится тариф.", noSubscriptionBanner: "Нет активной подписки.", goBilling: "Перейти к оплате" },
+  dashboard: { title: "Видео", subscribed: "Ваш тариф позволяет создавать видео. Осталось {credits} credits.", notSubscribed: "Нет активной подписки. Вы можете подготовить раскадровки, но для рендеринга понадобится тариф.", noSubscriptionBanner: "Нет активной подписки.", goBilling: "Перейти к оплате" },
   folder: {
     create: "Новый проект", createTitle: "Новый проект", createHint: "Сначала назовите проект, затем добавьте видео.", createSubmit: "Создать проект", nameLabel: "Название проекта", namePlaceholder: "например, запуск продукта в IV квартале",
     emptyTitle: "Проектов пока нет", emptyBody: "Сначала назовите кампанию, а затем добавьте в неё видео.",

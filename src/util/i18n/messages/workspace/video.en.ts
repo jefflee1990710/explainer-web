@@ -9,7 +9,7 @@ export const videoEn = {
     empty: 'No videos yet. Click “New video” at the top right to start.',
   },
   workspace: {
-    backToProjects: "← Back to projects",
+    backToProjects: "← Back to Video",
     videoCount: "{n} videos",
     createVideo: "New video",
     fallbackVideo: "Video",
@@ -20,6 +20,8 @@ export const videoEn = {
   card: {
     unnamed: "Untitled video",
     progress: "Clips {done}/{total}",
+    tagScene: "Clip {n} · scene",
+    tagVideo: "Clip {n} · video",
   },
   pager: {
     page: "Page {page} / {pages}",

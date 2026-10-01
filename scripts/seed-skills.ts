@@ -84,6 +84,24 @@ const SKILLS: SkillManifest[] = [
     description: "先亮成果，再一步一步示範，每段一個步驟，最後回到完成品。",
     sortOrder: 6,
   },
+  {
+    dir: "opening-director",
+    slug: "opening-director",
+    title: "Opening",
+    titleZh: "開場",
+    description: "2–3 秒單段開場：品牌 logo 登場並停住，放在正片前面。",
+    sortOrder: 7,
+    inputSchema: { durationPresets: ["micro"] },
+  },
+  {
+    dir: "ending-director",
+    slug: "ending-director",
+    title: "Ending",
+    titleZh: "結尾",
+    description: "2–3 秒單段結尾：畫面收束到品牌 logo，當作整支影片的最後一格。",
+    sortOrder: 8,
+    inputSchema: { durationPresets: ["micro"] },
+  },
 ];
 
 async function readMarkdownTree(dir: string, prefix = "") {

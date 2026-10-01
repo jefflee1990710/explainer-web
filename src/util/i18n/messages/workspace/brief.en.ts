@@ -62,6 +62,15 @@ export const briefEn = {
   section06: {
     title: "Length",
     hint: "Sets clip count and how many credits rendering will use.",
+    hintBookend: "Opening and Ending are always one 2–3 second clip, so length is fixed.",
+  },
+  logo: {
+    title: "Logo",
+    hint: "Optional. The director builds both scene images around this logo. PNG with a transparent background works best.",
+    upload: "Upload logo",
+    replace: "Replace logo",
+    remove: "Remove",
+    alt: "Brand logo",
   },
   submit: {
     submitting: "Submitting…",
@@ -81,6 +90,8 @@ export const briefEn = {
   summary: {
     speechPace: "Pace · {label}",
     sceneText: "On-screen text · {label}",
+    bookendLength: "1 clip · 2–3s",
+    logo: "Logo",
   },
   confirm: {
     regenerateStoryboard: {

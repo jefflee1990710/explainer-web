@@ -61,6 +61,15 @@ export const briefZhHant = {
   section06: {
     title: "片長",
     hint: "影響 clip 數量，也就是產片時要扣的 credits。",
+    hintBookend: "開場與結尾固定只有 1 段、2–3 秒，不能選片長。",
+  },
+  logo: {
+    title: "Logo",
+    hint: "選填。導演會以這個 logo 為主角產生起始與結尾場景圖；建議用透明背景 PNG。",
+    upload: "上傳 logo",
+    replace: "更換 logo",
+    remove: "移除",
+    alt: "品牌 logo",
   },
   submit: {
     submitting: "送出中…",
@@ -79,6 +88,8 @@ export const briefZhHant = {
   summary: {
     speechPace: "語速 · {label}",
     sceneText: "畫面文字 · {label}",
+    bookendLength: "1 段 · 2–3 秒",
+    logo: "Logo",
   },
   confirm: {
     regenerateStoryboard: {

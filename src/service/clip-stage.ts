@@ -156,6 +156,54 @@ export function productionCounts(project: ClipStageSource) {
   return { total: states.length, framesDone, videosDone };
 }
 
+export type GenerationTagKind = "scene" | "video";
+export type GenerationTagState = "busy" | "ready" | "failed";
+
+// One scene-frame pair or clip video, for the project-list tags.
+export type GenerationDetailTag = {
+  clipNumber: number;
+  kind: GenerationTagKind;
+  state: GenerationTagState;
+};
+
+function mediaBusy(item?: MediaItem) {
+  return isInFlight(item) || needsPersist(item);
+}
+
+function sceneTagState(frames: ClipFrame[]): GenerationTagState | null {
+  if (frames.some((frame) => mediaBusy(frame))) return "busy";
+  const start = frames.find((frame) => frame.position === "start");
+  const end = frames.find((frame) => frame.position === "end");
+  if (isCompleted(start) && isCompleted(end)) return "ready";
+  if (frames.some((frame) => frame.status === "failed")) return "failed";
+  return null;
+}
+
+function videoTagState(clip?: ProjectClip): GenerationTagState | null {
+  if (mediaBusy(clip)) return "busy";
+  if (isCompleted(clip)) return "ready";
+  if (clip?.status === "failed") return "failed";
+  return null;
+}
+
+// Furthest outputs on each clip: scene frames, then the clip video.
+export function clipGenerationTags(project: ClipStageSource): GenerationDetailTag[] {
+  const numbers = new Set<number>();
+  for (const row of project.phaseA?.clips || []) numbers.add(row.clipNumber);
+  for (const frame of project.frames || []) numbers.add(frame.clipNumber);
+  for (const clip of project.clips) numbers.add(clip.clipNumber);
+
+  const tags: GenerationDetailTag[] = [];
+  for (const clipNumber of [...numbers].sort((a, b) => a - b)) {
+    const frames = (project.frames || []).filter((frame) => frame.clipNumber === clipNumber);
+    const scene = sceneTagState(frames);
+    if (scene) tags.push({ clipNumber, kind: "scene", state: scene });
+    const video = videoTagState(project.clips.find((item) => item.clipNumber === clipNumber));
+    if (video) tags.push({ clipNumber, kind: "video", state: video });
+  }
+  return tags;
+}
+
 export type InFlightCounts = {
   framesQueued: number;
   framesGenerating: number;

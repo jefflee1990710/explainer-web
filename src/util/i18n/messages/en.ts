@@ -13,7 +13,7 @@ export const en: Messages = {
       "Turn concepts into Reels, marketing clips, and presentation videos. Pick a style, approve storyboards, export clips.",
   },
   nav: {
-    projects: "Projects",
+    projects: "Video",
     characters: "Characters",
     tasks: "Tasks",
     mcp: "MCP",
@@ -154,7 +154,7 @@ export const en: Messages = {
     version: "Version {version}",
   },
   dashboard: {
-    title: "Projects",
+    title: "Video",
     subscribed: "Your plan can render videos. {credits} credits left.",
     notSubscribed:
       "No active subscription. You can draft storyboards; a plan is required before rendering.",

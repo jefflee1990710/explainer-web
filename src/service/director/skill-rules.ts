@@ -3,6 +3,61 @@ import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 export const STORY_SHORT_SKILL_SLUG = "story-short-director";
 export const DIALOGUE_QA_SKILL_SLUG = "dialogue-qa-director";
 export const LISTICLE_SKILL_SLUG = "listicle-director";
+export const OPENING_SKILL_SLUG = "opening-director";
+export const ENDING_SKILL_SLUG = "ending-director";
+
+// Opening / Ending bookends: one short logo clip, no length choice.
+const BOOKEND_SKILLS = new Set([OPENING_SKILL_SLUG, ENDING_SKILL_SLUG]);
+export const BOOKEND_MIN_SECONDS = 2;
+export const BOOKEND_MAX_SECONDS = 3;
+
+export function isBookendSkill(skillSlug?: string) {
+  return Boolean(skillSlug && BOOKEND_SKILLS.has(skillSlug));
+}
+
+// Duration line sent to Phase A in place of the length preset.
+export function bookendDurationHint(skillSlug: string) {
+  const role = skillSlug === OPENING_SKILL_SLUG ? "opening (intro sting)" : "ending (outro sting)";
+  return `Bookend ${role}: EXACTLY 1 clip, clipCount 1, durationSeconds ${BOOKEND_MIN_SECONDS}–${BOOKEND_MAX_SECONDS}. At most one short spoken line (≤ 6 English words / ≤ 10 Chinese characters), or "(no dialogue)".`;
+}
+
+// Clamp a bookend storyboard to its single 2–3s clip.
+export function normalizeBookendClips<
+  T extends { clipNumber: number; durationSeconds: number; timeRange: string },
+>(clips: T[]): T[] {
+  const first = clips[0];
+  if (!first) return [];
+  const seconds = Math.min(
+    BOOKEND_MAX_SECONDS,
+    Math.max(BOOKEND_MIN_SECONDS, Math.round(first.durationSeconds || BOOKEND_MAX_SECONDS)),
+  );
+  return [{ ...first, clipNumber: 1, durationSeconds: seconds, timeRange: `0–${seconds}s` }];
+}
+
+export function bookendDirectorBlock(skillSlug: string, hasLogo: boolean) {
+  const opening = skillSlug === OPENING_SKILL_SLUG;
+  return [
+    opening
+      ? "This is an OPENING bookend: a 2–3 second brand sting that plays before the main video. The logo arrives and settles."
+      : "This is an ENDING bookend: a 2–3 second brand sting that closes the video. The scene resolves onto the logo as the final resting card.",
+    "Produce exactly ONE clip. Never add a second clip, a story, or an explainer beat.",
+    hasLogo
+      ? "The brand logo image is attached. It is the hero of both stills: startScene and endScene must name the logo, its placement (centered unless stated), and its size. Never redraw, restyle, translate, or invent a different logo or wordmark."
+      : "No logo image is attached: build the sting around the brand or product name from the source as clean title lettering.",
+    opening
+      ? "startScene: the logo is hidden, small, or forming (drawn on, assembled from shapes, revealed behind a prop). endScene: the full logo, crisp and readable, centered."
+      : "startScene: the closing beat of the world (character or props wrapping up). endScene: the full logo centered on a calm canvas as the final card.",
+    "motionCamera is one simple move that fits 2–3 seconds (reveal, pop, settle, or slow push-in). No cuts.",
+  ].join(" ");
+}
+
+// Pasted into bookend stills when a logo is attached.
+export function bookendLogoFrameLines(imageIndex: number) {
+  return [
+    `BRAND LOGO: attached image ${imageIndex} is the brand logo. Reproduce it exactly — same shapes, colours, and lettering; do not redraw, restyle, crop, or invent text.`,
+    "Place the logo as the Scene describes. Keep it sharp and readable on the canvas.",
+  ];
+}
 
 // Directors whose audio is character dialogue only: no narrator, no voice picker.
 const DIALOGUE_ONLY_SKILLS = new Set([STORY_SHORT_SKILL_SLUG, DIALOGUE_QA_SKILL_SLUG]);
@@ -34,6 +89,11 @@ export function briefSkillError(input: {
     return `這個導演需要正好 ${need} 個角色`;
   }
   return undefined;
+}
+
+// Bookends ignore the length picker; the stored preset is the shortest one.
+export function applySkillDuration<T extends string>(skillSlug: string, preset: T): T | "micro" {
+  return isBookendSkill(skillSlug) ? "micro" : preset;
 }
 
 export function applySkillSceneText(skillSlug: string, enabled: boolean) {

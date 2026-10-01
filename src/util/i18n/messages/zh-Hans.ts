@@ -6,7 +6,7 @@ export const zhHans: Partial<Messages> = {
     description: "将概念清晰地制作成 Reels、营销 clips 和演示视频。选择风格、确认分镜并导出 clips。",
   },
   nav: {
-    projects: "项目",
+    projects: "视频",
     characters: "角色",
     tasks: "生成任务",
     mcp: "MCP",
@@ -117,7 +117,7 @@ export const zhHans: Partial<Messages> = {
     },
   },
   dashboard: {
-    title: "项目",
+    title: "视频",
     subscribed: "您的方案可渲染视频。剩余 {credits} credits。",
     notSubscribed: "当前没有有效订阅。您可以先起草分镜，但渲染前需要订阅方案。",
     noSubscriptionBanner: "当前没有有效订阅。",

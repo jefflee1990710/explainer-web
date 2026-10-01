@@ -13,7 +13,7 @@ export const zhHant: Messages = {
       "把概念講清楚，做成 Reels、行銷、簡報與更多用途的 explainer 影片。選風格、核准分鏡、產出 clips。",
   },
   nav: {
-    projects: "專案",
+    projects: "影片",
     characters: "角色",
     tasks: "生成任務",
     mcp: "MCP",
@@ -150,7 +150,7 @@ export const zhHant: Messages = {
     version: "版本 {version}",
   },
   dashboard: {
-    title: "專案",
+    title: "影片",
     subscribed: "目前方案可產片，剩餘 {credits} credits。",
     notSubscribed: "尚未訂閱。你可以先寫分鏡，核准產片前需要方案。",
     noSubscriptionBanner: "還沒有有效訂閱。",

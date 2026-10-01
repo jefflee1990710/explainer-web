@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const ko: Partial<Messages> = {
   meta: { title: "Scro — 설명 영상", description: "아이디어를 Reels, 마케팅 clips, 프레젠테이션 영상으로 만드세요. 스타일을 고르고 스토리보드를 승인한 뒤 clips 을 내보낼 수 있습니다." },
-  nav: { projects: "프로젝트", characters: "캐릭터", tasks: "작업", mcp: "MCP", affiliate: "Affiliate", billing: "결제", examples: "예시", pricing: "요금제", signIn: "로그인", workspace: "작업 공간", language: "언어" },
+  nav: { projects: "동영상", characters: "캐릭터", tasks: "작업", mcp: "MCP", affiliate: "Affiliate", billing: "결제", examples: "예시", pricing: "요금제", signIn: "로그인", workspace: "작업 공간", language: "언어" },
   common: { credits: "credits", pending: "진행 중", perMonth: "/월", cancel: "취소", save: "저장", close: "닫기", create: "만들기", loading: "불러오는 중…", popular: "가장 인기 있음", subscribe: "구독" },
   landing: {
     hero: { kicker: "Scro", title: "아이디어를 Reels, 마케팅, 프레젠테이션 영상으로 명확하게 설명하세요.", subtitle: "스타일을 고르고 스토리보드를 승인한 뒤 clips 을 내보내세요. 숏폼 영상, 제품 마케팅, 프레젠테이션에 활용할 수 있습니다.", ctaStart: "시작하기", ctaWorkspace: "작업 공간 열기", ctaPricing: "요금제 보기", artLabel: "스토리보드 및 편집 콘셉트 일러스트" },
@@ -28,7 +28,7 @@ export const ko: Partial<Messages> = {
     productMarketing: { title: "정사각 게시용 제품 데모", body: "1:1 클레이 애니메이션. 제품이 상자에서 나와 켜지는 한 순간. 피드 광고에서 제품이 주인공일 때 이 유형입니다." },
     productReel: { title: "와이드 화면 픽셀 단편", body: "16:9 픽셀 아트. 작은 로봇이 빛나는 쪽지를 전달합니다. 넓은 화면이 이야기의 무대가 됩니다. 사이트 히어로나 가로 숏폼에 둘 때 이 유형입니다." },
   },
-  dashboard: { title: "프로젝트", subscribed: "현재 요금제로 영상을 렌더링할 수 있습니다. {credits} credits 남음.", notSubscribed: "활성 구독이 없습니다. 스토리보드는 작성할 수 있지만 렌더링하려면 요금제가 필요합니다.", noSubscriptionBanner: "활성 구독이 없습니다.", goBilling: "결제 페이지로 이동" },
+  dashboard: { title: "동영상", subscribed: "현재 요금제로 영상을 렌더링할 수 있습니다. {credits} credits 남음.", notSubscribed: "활성 구독이 없습니다. 스토리보드는 작성할 수 있지만 렌더링하려면 요금제가 필요합니다.", noSubscriptionBanner: "활성 구독이 없습니다.", goBilling: "결제 페이지로 이동" },
   folder: {
     create: "새 프로젝트", createTitle: "새 프로젝트", createHint: "먼저 이름을 정한 다음 영상을 추가하세요.", createSubmit: "프로젝트 만들기", nameLabel: "프로젝트 이름", namePlaceholder: "예: 4분기 제품 출시",
     emptyTitle: "아직 프로젝트가 없습니다", emptyBody: "먼저 캠페인 이름을 정한 다음 영상을 추가하세요.",

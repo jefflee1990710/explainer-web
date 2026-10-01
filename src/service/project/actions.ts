@@ -15,7 +15,14 @@ import { isVoLanguage } from "@/service/director/languages";
 import { isVoiceGender, resolveVoiceGender } from "@/service/director/voice";
 import { isSpeechPace } from "@/service/director/speech-pace";
 import { isSceneTextLanguage } from "@/service/director/scene-text";
-import { applySkillSceneText, briefSkillError, skillBansNarration } from "@/service/director/skill-rules";
+import {
+  applySkillDuration,
+  applySkillSceneText,
+  briefSkillError,
+  isBookendSkill,
+  skillBansNarration,
+} from "@/service/director/skill-rules";
+import { blobStoreHost, isBrandAssetUrl } from "@/service/video-edit/edit-state";
 import { sanitizeFolderName } from "@/service/folder";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
@@ -62,10 +69,13 @@ type BriefFields = {
   sceneTextEnabled: boolean;
   sceneTextLanguage: SceneTextLanguage;
   characterIds: string[];
+  // Bookend skills only; undefined clears it.
+  logoUrl?: string;
 };
 
 function readVideoBrief(
   formData: FormData,
+  clerkUserId: string,
 ): { ok: true; brief: BriefFields } | { ok: false; error: string } {
   const skillSlug = String(formData.get("skillSlug") || "");
   const styleId = String(formData.get("styleId") || "");
@@ -109,6 +119,15 @@ function readVideoBrief(
   if (!isStyleId(styleId)) {
     return { ok: false, error: "請選擇視覺風格" };
   }
+  // Logo is downloaded by image gen, so only this user's brand uploads are allowed.
+  const rawLogo = String(formData.get("logoUrl") || "").trim();
+  const logoUrl = isBookendSkill(skillSlug) && rawLogo ? rawLogo : undefined;
+  if (
+    logoUrl &&
+    !isBrandAssetUrl(logoUrl, clerkUserId, blobStoreHost(process.env.BLOB_READ_WRITE_TOKEN))
+  ) {
+    return { ok: false, error: "Logo 檔案無效，請重新上傳" };
+  }
   return {
     ok: true,
     brief: {
@@ -116,7 +135,8 @@ function readVideoBrief(
       styleId,
       source,
       aspectRatio,
-      durationPreset,
+      durationPreset: applySkillDuration(skillSlug, durationPreset),
+      logoUrl,
       language,
       voiceGender: resolveVoiceGender(voiceGender),
       speechPace,
@@ -251,7 +271,7 @@ export async function createVideoAction(
   try {
     const user = await requireAppUser();
     const projectId = String(formData.get("projectId") || "");
-    const parsed = readVideoBrief(formData);
+    const parsed = readVideoBrief(formData, user.clerkUserId);
     if (!parsed.ok) return parsed;
     const { brief } = parsed;
 
@@ -296,6 +316,7 @@ export async function createVideoAction(
       speechPace: brief.speechPace,
       sceneTextEnabled: applySkillSceneText(skill.slug, brief.sceneTextEnabled),
       sceneTextLanguage: brief.sceneTextLanguage,
+      ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
       cast,
       status: "phase_a",
       clips: [],
@@ -346,7 +367,7 @@ async function rewriteVideoBrief(
   try {
     const user = await requireAppUser();
     const videoId = String(formData.get("videoId") || "");
-    const parsed = readVideoBrief(formData);
+    const parsed = readVideoBrief(formData, user.clerkUserId);
     if (!parsed.ok) return parsed;
     const { brief } = parsed;
     if (!ObjectId.isValid(videoId)) {
@@ -403,10 +424,14 @@ async function rewriteVideoBrief(
           sceneTextEnabled: applySkillSceneText(skill.slug, brief.sceneTextEnabled),
           sceneTextLanguage: brief.sceneTextLanguage,
           cast: castResult.cast,
+          ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
           status: "phase_a",
           updatedAt: new Date(),
         },
-        $unset: options.restart ? RESTART_UNSET_FIELDS : { error: "", stillError: "" },
+        $unset: {
+          ...(options.restart ? RESTART_UNSET_FIELDS : { error: "", stillError: "" }),
+          ...(brief.logoUrl ? {} : { logoUrl: "" }),
+        },
       },
     );
 

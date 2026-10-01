@@ -50,6 +50,7 @@ export async function runPhaseAJob(
       sceneTextLanguage: project.sceneTextLanguage,
       characterImageUrl: project.characterImageUrl,
       cast: project.cast,
+      logoUrl: project.logoUrl,
       currentDraft: project.phaseA,
       revisionNote,
       clipsOnly: options?.clipsOnly,

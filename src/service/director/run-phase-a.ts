@@ -18,6 +18,10 @@ import {
 } from "@/service/director/scene-text";
 import { skillPromptForPhaseA } from "@/service/director/load-skill-prompt";
 import {
+  bookendDirectorBlock,
+  bookendDurationHint,
+  isBookendSkill,
+  normalizeBookendClips,
   cartoonExplainerDirectorBlock,
   dialogueOnlyDirectorBlock,
   dialogueQaDirectorBlock,
@@ -64,13 +68,18 @@ export async function runPhaseA(input: {
   sceneTextLanguage?: SceneTextLanguage;
   characterImageUrl?: string;
   cast?: CastMember[];
+  // Opening / Ending brand logo, attached after the character references.
+  logoUrl?: string;
   // Existing user-edited draft; regenerate from this instead of inventing anew.
   currentDraft?: PhaseAProposal;
   revisionNote?: string;
   // Rewrite clip rows from the locked proposal; do not invent a new brief.
   clipsOnly?: boolean;
 }): Promise<PhaseAProposal> {
-  const preset = DURATION_PRESETS[input.durationPreset];
+  const bookend = isBookendSkill(input.skill.slug);
+  const durationHint = bookend
+    ? bookendDurationHint(input.skill.slug)
+    : DURATION_PRESETS[input.durationPreset].skillHint;
   const language = LANGUAGE_PRESETS[input.language || "en"];
   const sceneText = resolveSceneText({
     ...input,
@@ -86,6 +95,8 @@ export async function runPhaseA(input: {
       characterImageUrl: input.characterImageUrl,
     }),
   );
+  const logoUrl = bookend ? input.logoUrl : undefined;
+  const logoImages = logoUrl ? await loadDirectorImageParts([logoUrl]) : [];
   const draftNote = input.currentDraft
     ? `\nCurrent Phase A draft (the user may have edited this; keep their wording unless the revision notes contradict it):\n${JSON.stringify(input.currentDraft, null, 2)}\n`
     : "";
@@ -137,6 +148,7 @@ ${
     input.skill.slug === CARTOON_EXPLAINER_SKILL_SLUG ? cartoonExplainerDirectorBlock() : "",
     requiredCastCount(input.skill.slug) ? dialogueQaDirectorBlock() : "",
     skillForcesSceneText(input.skill.slug) ? listicleDirectorBlock() : "",
+    bookend ? bookendDirectorBlock(input.skill.slug, logoImages.length > 0) : "",
   ]
     .filter(Boolean)
     .join("\n")
@@ -164,7 +176,7 @@ Never skip the setup gate values already supplied.`,
 ${input.source}
 
 Aspect ratio: ${input.aspectRatio}
-Duration preset: ${preset.skillHint}
+Duration preset: ${durationHint}
 ${dialogueOnly ? "Dialogue language" : "Voiceover language"}: ${language.label} (${language.sublabel})
 Speaking pace: ${resolveSpeechPace(input.speechPace)} (${SPEECH_PACE_PRESETS[resolveSpeechPace(input.speechPace)].delivery})
 ${
@@ -181,10 +193,11 @@ On-canvas text: ${
       : "off"
 }
 ${characterNote}
-${draftNote}${revisionNote}${clipsOnlyNote}
+${logoImages.length ? `Brand logo: the LAST attached image is the brand logo (after any character references). Use it as-is in startScene / endScene.\n` : ""}${draftNote}${revisionNote}${clipsOnlyNote}
 Produce a complete Phase A director proposal now.`,
           },
           ...characterImages,
+          ...logoImages,
         ],
       },
     ],
@@ -199,6 +212,16 @@ Produce a complete Phase A director proposal now.`,
     loopMode: "linear",
     ...(dualBeat ? { clips: output.clips.map(normalizeDualBeatRow) } : {}),
   };
+  // Bookends are always one 2–3s clip, whatever the model returned.
+  if (bookend) {
+    const clips = normalizeBookendClips(next.clips);
+    next = {
+      ...next,
+      clips,
+      clipCount: clips.length,
+      targetDuration: clips[0] ? `${clips[0].durationSeconds}s` : next.targetDuration,
+    };
+  }
   // Overwrite any invented look text so frame prompts never inherit a wrong outfit.
   if (input.cast && input.cast.length > 0) {
     next = { ...next, characterLock: characterLockFromCast(input.cast) };

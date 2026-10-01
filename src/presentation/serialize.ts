@@ -2,7 +2,7 @@ import { resolveDefaultVersion, versionNumber } from "@/service/character/versio
 import { resolveSceneText } from "@/service/director/scene-text";
 import { resolveVoiceGender } from "@/service/director/voice";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
-import { productionCounts } from "@/service/clip-stage";
+import { clipGenerationTags, productionCounts, type GenerationDetailTag } from "@/service/clip-stage";
 import { folderRollupStatus } from "@/service/folder";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { resolveStyle, type StyleId } from "@/service/style";
@@ -47,6 +47,7 @@ export type PublicVideo = {
   characterImageUrl?: string;
   characterStillUrl?: string;
   stillError?: string;
+  logoUrl?: string;
   cast: Array<{ characterId: string; name: string; blueprintUrl: string }>;
   status: ProjectStatus;
   phaseA?: Project["phaseA"];
@@ -84,6 +85,8 @@ export type PublicVideoCard = {
   error?: string;
   videosDone: number;
   videosTotal: number;
+  // Per-clip scene frames and videos, shown while the video is in production.
+  tags: GenerationDetailTag[];
 };
 
 export type PublicFolder = {
@@ -153,6 +156,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     characterImageUrl: video.characterImageUrl,
     characterStillUrl: video.characterStillUrl,
     stillError: video.stillError,
+    logoUrl: video.logoUrl,
     cast: (video.cast || []).map((member) => ({
       characterId: member.characterId.toHexString(),
       name: member.name,
@@ -181,7 +185,8 @@ export function toPublicVideo(video: Project): PublicVideo {
 export function toPublicVideoCard(video: Project): PublicVideoCard {
   const frames = video.frames || [];
   const clips = video.clips || [];
-  const counts = productionCounts({ ...video, frames, clips });
+  const source = { ...video, frames, clips };
+  const counts = productionCounts(source);
   const previewUrls = previewUrlsFromVideo({
     frames,
     characterStillUrl: video.characterStillUrl,
@@ -201,6 +206,7 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
     error: video.error,
     videosDone: counts.videosDone,
     videosTotal: counts.total,
+    tags: clipGenerationTags(source),
   };
 }
 
@@ -221,6 +227,7 @@ export function toPublicVideoCardFromPublic(video: PublicVideo): PublicVideoCard
     error: video.error,
     videosDone: counts.videosDone,
     videosTotal: counts.total,
+    tags: clipGenerationTags(video),
   };
 }
 

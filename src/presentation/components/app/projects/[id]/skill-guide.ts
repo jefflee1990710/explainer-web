@@ -1,7 +1,9 @@
 import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import {
   DIALOGUE_QA_SKILL_SLUG,
+  ENDING_SKILL_SLUG,
   LISTICLE_SKILL_SLUG,
+  OPENING_SKILL_SLUG,
   STORY_SHORT_SKILL_SLUG,
 } from "@/service/director/skill-rules";
 
@@ -59,6 +61,18 @@ const GUIDES: Record<string, SkillGuide> = {
     structure: "先亮成果 → 一步一段 → 回到完成品",
     picture: "同一工作台；步驟數字當道具",
     frames: "每段一個動作、一個狀態變化",
+  },
+  [OPENING_SKILL_SLUG]: {
+    voice: "最多一句品牌名或標語，或不說話",
+    structure: "只有 1 段、2–3 秒：logo 登場並停住",
+    picture: "以上傳的 logo 當場景圖主角，畫面乾淨",
+    frames: "起始 logo 未成形 → 結尾完整 logo 置中",
+  },
+  [ENDING_SKILL_SLUG]: {
+    voice: "最多一句收尾或 CTA，或不說話",
+    structure: "只有 1 段、2–3 秒：收束到 logo 卡",
+    picture: "以上傳的 logo 當場景圖主角，當最後一格",
+    frames: "起始收尾動作 → 結尾完整 logo 置中",
   },
 };
 

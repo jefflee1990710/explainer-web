@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const id: Partial<Messages> = {
   meta: { title: "Scro — Video penjelasan", description: "Ubah konsep menjadi Reels, clips pemasaran, dan video presentasi. Pilih gaya, setujui storyboard, lalu ekspor clips." },
-  nav: { projects: "Proyek", characters: "Karakter", tasks: "Tugas", mcp: "MCP", affiliate: "Affiliate", billing: "Tagihan", examples: "Contoh", pricing: "Harga", signIn: "Masuk", workspace: "Ruang kerja", language: "Bahasa" },
+  nav: { projects: "Video", characters: "Karakter", tasks: "Tugas", mcp: "MCP", affiliate: "Affiliate", billing: "Tagihan", examples: "Contoh", pricing: "Harga", signIn: "Masuk", workspace: "Ruang kerja", language: "Bahasa" },
   common: { credits: "credits", pending: "tertunda", perMonth: "/ bln", cancel: "Batal", save: "Simpan", close: "Tutup", create: "Buat", loading: "Memuat…", popular: "Paling populer", subscribe: "Berlangganan" },
   landing: {
     hero: { kicker: "Scro", title: "Jelaskan ide dengan gamblang melalui Reels, video pemasaran, dan presentasi.", subtitle: "Pilih gaya, setujui storyboard, lalu ekspor clips untuk video pendek, pemasaran produk, dan presentasi.", ctaStart: "Mulai", ctaWorkspace: "Buka ruang kerja", ctaPricing: "Lihat paket", artLabel: "Ilustrasi konsep storyboard dan penyuntingan" },
@@ -28,7 +28,7 @@ export const id: Partial<Messages> = {
     productMarketing: { title: "Demo produk untuk unggahan persegi", body: "Klip claymation 1:1. Satu produk, satu momen: botol keluar dari kotak dan menyala. Untuk iklan feed yang menempatkan produk sebagai tokoh utama." },
     productReel: { title: "Cerita pixel di panggung lebar", body: "Cerita pixel 16:9. Robot kecil mengantar selembar catatan yang menyala. Bingkai lebar memberi panggung pada adegan. Untuk hero situs atau short horizontal." },
   },
-  dashboard: { title: "Proyek", subscribed: "Paket Anda dapat merender video. Tersisa {credits} credits.", notSubscribed: "Tidak ada langganan aktif. Anda dapat menyusun storyboard, tetapi perlu paket sebelum merender.", noSubscriptionBanner: "Tidak ada langganan aktif.", goBilling: "Buka tagihan" },
+  dashboard: { title: "Video", subscribed: "Paket Anda dapat merender video. Tersisa {credits} credits.", notSubscribed: "Tidak ada langganan aktif. Anda dapat menyusun storyboard, tetapi perlu paket sebelum merender.", noSubscriptionBanner: "Tidak ada langganan aktif.", goBilling: "Buka tagihan" },
   folder: {
     create: "Proyek baru", createTitle: "Proyek baru", createHint: "Beri nama dulu, lalu tambahkan video.", createSubmit: "Buat proyek", nameLabel: "Nama proyek", namePlaceholder: "mis. peluncuran produk kuartal 4",
     emptyTitle: "Belum ada proyek", emptyBody: "Beri nama kampanye ini terlebih dahulu, lalu tambahkan video di dalamnya.",
