@@ -99,8 +99,16 @@ export function directorBlueprintSceneRules() {
     "The sheet may show many poses, turnarounds, walk cycles, or expression tiles of the SAME person. Use it only to lock face, hair, outfit, accessories, and proportions.",
     "Every still (start and end) must contain exactly ONE instance of each named cast member. Never stage a turnaround, walk-cycle, or expression grid. Never write two poses of the same person as if they share one frame.",
     "Start and end are two frozen moments of that same single figure. Put the travel (turn, step, look-up) in motionCamera only — still descriptions must be a resting pose, not in-between action like 'turning from side to front'.",
+    "Wardrobe is fixed to the blueprint in every clip, whatever the setting or weather. Never plan a costume change, weather gear (coats, gloves, hats, boots), or body-worn props (backpacks, harnesses, clip-on mics, helmets). Hand-held props are fine. Never put worn items in visualWorld either.",
   ];
 }
+
+// Image models dress characters for the setting (snow → parka); this beats that.
+export const FRAME_WARDROBE_LOCK =
+  "WARDROBE LOCK: each character wears exactly the outfit on their blueprint — same garments, colours, fabric, shoes, bag, and accessories — whatever the weather, location, or activity. Never add or swap coats, jackets, hoodies, gloves, hats, scarves, backpacks, harnesses, uniforms, or any body-worn gear. Do not dress characters for the environment.";
+
+export const FRAME_WARDROBE_CHECK =
+  "Final check: each character wears exactly the blueprint outfit, nothing added for the setting.";
 
 // User-message note when there is no named cast.
 export function phaseASoloCharacterNote(characterImageUrl?: string) {

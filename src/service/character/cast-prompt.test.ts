@@ -101,6 +101,14 @@ test("frame paragraph and reference urls follow the cast", () => {
   assert.deepEqual(castReferenceUrls(cast), ["https://blob/a.png", "https://blob/b.png"]);
 });
 
+test("director rules keep the blueprint outfit in every scene", () => {
+  const rules = directorBlueprintSceneRules().join(" ");
+  assert.match(rules, /Wardrobe is fixed to the blueprint/);
+  assert.match(rules, /Never plan a costume change, weather gear/);
+  assert.match(rules, /body-worn props/);
+  assert.match(rules, /visualWorld/);
+});
+
 test("frame paragraph says the blueprint is appearance reference only, not a scene to copy", () => {
   const text = castParagraphForFrames(cast).join("\n");
   assert.match(text, /BLUEPRINT \/ reference sheet only/);

@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { PhaseAProposal } from "@/model/project";
-import { clipPhaseBUserPrompt, phaseBCharacterLine } from "@/service/director/phase-b-clip-prompt";
+import {
+  clipPhaseBUserPrompt,
+  phaseBCharacterLine,
+  phaseBWardrobeLock,
+} from "@/service/director/phase-b-clip-prompt";
 
 function proposal(loopMode: PhaseAProposal["loopMode"] = "linear"): PhaseAProposal {
   const row = (clipNumber: number, scene: string) => ({
@@ -112,6 +116,13 @@ test("story-short Phase B prompt does not lock a narrator gender", () => {
 
 test("unknown clip throws", () => {
   assert.throws(() => clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 9 }));
+});
+
+test("Phase B with a cast forbids describing or changing clothing", () => {
+  assert.match(phaseBCharacterLine({ cast: [{ name: "Ada" }] }), /Never describe clothing, wardrobe, or gear/);
+  assert.match(phaseBWardrobeLock({ cast: [{ name: "Ada" }] }), /exactly the outfit shown in the first and last frames/);
+  assert.match(phaseBWardrobeLock({ characterImageUrl: "https://blob/hero.png" }), /No added or changed clothing/);
+  assert.equal(phaseBWardrobeLock({}), "");
 });
 
 test("Phase B character line never hands Wan a reference-image URL", () => {

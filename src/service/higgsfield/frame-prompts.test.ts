@@ -103,6 +103,40 @@ test("end frame with a start still names it as the composition lock", () => {
   assert.match(prompt, /Do not invent a new room or camera/);
 });
 
+test("story-short subtitles show only the spoken words, never the speaker name", () => {
+  const story = project();
+  story.skillSlug = "story-short-director";
+  story.sceneTextEnabled = true;
+  story.phaseA!.clips[0].englishVo = 'Scro - Cinematic: "One clone, unlimited environments."';
+  const prompt = buildFramePrompt(story, 1, "start");
+  assert.match(prompt, /One clone,/);
+  assert.doesNotMatch(prompt, /Subtitle[^\n]*Scro - Cinematic/);
+});
+
+test("cast stills lock the blueprint outfit against the setting", () => {
+  const withCast = project();
+  withCast.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Lily",
+      blueprintUrl: "https://blob/c.png",
+      prompt: "",
+    },
+  ];
+  withCast.phaseA!.clips[0].explainerScene = "Lily on a blizzard-swept mountain ridge";
+  const prompt = buildFramePrompt(withCast, 1, "start");
+  assert.match(prompt, /WARDROBE LOCK/);
+  assert.match(prompt, /whatever the weather/);
+  assert.match(prompt, /Never add or swap coats, jackets/);
+  assert.ok(
+    prompt.indexOf("WARDROBE LOCK") > prompt.indexOf("Scene:"),
+    "wardrobe lock must follow the scene text",
+  );
+  assert.match(prompt, /Final check: each character wears exactly the blueprint outfit/);
+  assert.doesNotMatch(buildFramePrompt(project(), 1, "start"), /WARDROBE LOCK/);
+});
+
 test("end frame with a start still numbers the blueprint after that still", () => {
   const withCast = project();
   withCast.cast = [

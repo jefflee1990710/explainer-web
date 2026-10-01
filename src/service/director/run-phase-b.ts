@@ -6,7 +6,11 @@ import { skillBansNarration } from "@/service/director/skill-rules";
 import { finalizePhaseBPrompt, phaseBAudioLock, resolveVoiceGender, VOICE_PRESETS } from "@/service/director/voice";
 import { skillPromptForPhaseB } from "@/service/director/load-skill-prompt";
 import { directorModel } from "@/service/director/model";
-import { clipPhaseBUserPrompt, phaseBCharacterLine } from "@/service/director/phase-b-clip-prompt";
+import {
+  clipPhaseBUserPrompt,
+  phaseBCharacterLine,
+  phaseBWardrobeLock,
+} from "@/service/director/phase-b-clip-prompt";
 import { phaseBClipSchema } from "@/model/director";
 import type { Style } from "@/service/style";
 import type { CastMember } from "@/model/character";
@@ -77,10 +81,12 @@ export async function runPhaseBForClip(
     bansNarration: skillBansNarration(input.skill.slug),
     speechPace: input.speechPace,
   });
+  const wardrobe = phaseBWardrobeLock(input);
+  const prompt = finalizePhaseBPrompt(output.prompt, lock);
   // The model may echo a wrong number; trust the caller.
   return {
     ...output,
     clipNumber: input.clipNumber,
-    prompt: finalizePhaseBPrompt(output.prompt, lock),
+    prompt: wardrobe ? finalizePhaseBPrompt(prompt, wardrobe) : prompt,
   };
 }

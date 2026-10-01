@@ -28,6 +28,7 @@ Quote each spoken line exactly as approved, once, as audio. Forbid paraphrase, r
 - Be exact: which hand, which direction, which prop, how far.
 - Lighting stays constant and matches both keyframes.
 - Never re-describe a character's appearance or outfit; it follows the keyframes.
+- Never name clothing, layers, or gear (no "winter coat", "boots", "backpack"). Say only that each character keeps exactly the outfit in the first and last frames.
 
 ## Phase B checks
 

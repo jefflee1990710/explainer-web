@@ -1,6 +1,8 @@
 import {
   castParagraphForFrames,
   characterReferenceUrls,
+  FRAME_WARDROBE_CHECK,
+  FRAME_WARDROBE_LOCK,
   frameCharacterLockLine,
   frameLockReferenceUrls,
   sceneImageReferenceUrls,
@@ -27,7 +29,12 @@ import {
   stripVisualWorldStyleEcho,
   stripVisualWorldTextPolicy,
 } from "@/service/director/scene-text";
-import { skillForcesSceneText, storyShortCameraLock } from "@/service/director/skill-rules";
+import {
+  skillBansNarration,
+  skillForcesSceneText,
+  storyShortCameraLock,
+} from "@/service/director/skill-rules";
+import { subtitleText } from "@/service/director/spoken-line";
 import { FRAME_RENDER_DETAIL } from "@/service/director/scene-detail";
 import {
   resolveStyle,
@@ -159,11 +166,15 @@ export function buildFramePrompt(
 
   const sceneForFrame =
     position === "start" ? clipStartScene(row) : clipEndScene(row);
-  const voForFrame = dualBeat
+  const spokenForFrame = dualBeat
     ? position === "start"
       ? clipStartVo(row)
       : clipEndVo(row)
     : row.englishVo;
+  // Dialogue skills write NAME: "line"; the subtitle shows only the words.
+  const voForFrame = skillBansNarration(project.skillSlug)
+    ? subtitleText(spokenForFrame)
+    : spokenForFrame;
   // In-world-label mode keeps the 「」 tag wording the director wrote into the scene;
   // every other mode strips it so the model does not paint invented labels.
   // Cartoon stills keep the prop tags the director wrote into the scene.
@@ -230,6 +241,7 @@ export function buildFramePrompt(
     `Scene: ${sceneDescription}`,
     `Motion and camera across the clip: ${motionDescription}`,
     ...(storyShortCameraLock(project.skillSlug) ? [storyShortCameraLock(project.skillSlug)] : []),
+    ...(lockUrls.length ? [FRAME_WARDROBE_LOCK] : []),
     FRAME_RENDER_DETAIL,
     moment,
     ...compositionLockLines(options.anchor, annotatedCount + 1),
@@ -249,6 +261,7 @@ export function buildFramePrompt(
               "Final check: the only lettering is the short in-world label(s) named in the Scene; no subtitle band, no voiceover transcript.",
             ]
           : []),
+    ...(lockUrls.length ? [FRAME_WARDROBE_CHECK] : []),
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
 }

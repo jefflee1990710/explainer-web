@@ -4,6 +4,7 @@ import {
   DIALOGUE_SPEAK_LOCK,
   lockDialogueSpeech,
   spokenLineCopy,
+  subtitleText,
 } from "@/service/director/spoken-line";
 
 test("story-short field copy says 對白, not 旁白", () => {
@@ -38,6 +39,16 @@ test("story-short video prompts speak to each other, not to the camera", () => {
     lockDialogueSpeech("Asker asks.", "dialogue-qa-director"),
     /third-person observer camera/,
   );
+});
+
+test("subtitleText drops speaker names and quotes from dialogue lines", () => {
+  assert.equal(
+    subtitleText('Scro - Cinematic: "One clone, unlimited environments."'),
+    "One clone, unlimited environments.",
+  );
+  assert.equal(subtitleText('阿明：「你來了。」 Mary: "Finally!"'), "你來了。 Finally!");
+  assert.equal(subtitleText("(no dialogue)"), "");
+  assert.equal(subtitleText("Plain line, no speaker."), "Plain line, no speaker.");
 });
 
 test("lockDialogueSpeech leaves explainer prompts unchanged", () => {

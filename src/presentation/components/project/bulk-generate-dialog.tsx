@@ -16,7 +16,13 @@ import type { PublicVideo } from "@/presentation/serialize";
 
 export type BulkMode = "remaining" | "scenes" | "clips";
 
-const MODES: Array<{ id: BulkMode; label: string; hint: string; overwrites: boolean }> = [
+const MODES: Array<{
+  id: BulkMode;
+  label: string;
+  hint: string;
+  overwrites: boolean;
+  recommended?: boolean;
+}> = [
   {
     id: "remaining",
     label: "補完未完成",
@@ -34,6 +40,7 @@ const MODES: Array<{ id: BulkMode; label: string; hint: string; overwrites: bool
     label: "畫格＋影片",
     hint: "重畫每一段畫格，兩張都完成後自動產片；影片 credits 在那時才扣。",
     overwrites: true,
+    recommended: true,
   },
 ];
 
@@ -52,7 +59,7 @@ export function BulkGenerateDialog({
   onConfirm: (mode: BulkMode) => void;
 }) {
   const titleId = useId();
-  const [mode, setMode] = useState<BulkMode>("remaining");
+  const [mode, setMode] = useState<BulkMode>("clips");
   const plan =
     mode === "remaining"
       ? planRemaining(project)
@@ -112,15 +119,16 @@ export function BulkGenerateDialog({
               <span className="min-w-0">
                 <span className="flex items-center gap-2 text-sm font-semibold">
                   {item.label}
+                  {item.recommended ? (
+                    <span className="rounded-sm bg-emerald-100 px-1.5 text-[10px] font-bold text-emerald-800">
+                      建議
+                    </span>
+                  ) : null}
                   {item.overwrites ? (
                     <span className="rounded-sm bg-amber-100 px-1.5 text-[10px] font-bold text-amber-800">
                       會覆蓋已完成段落
                     </span>
-                  ) : (
-                    <span className="rounded-sm bg-emerald-100 px-1.5 text-[10px] font-bold text-emerald-800">
-                      建議
-                    </span>
-                  )}
+                  ) : null}
                 </span>
                 <span className="mt-0.5 block text-xs text-[var(--studio-muted)]">{item.hint}</span>
               </span>

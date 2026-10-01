@@ -37,6 +37,17 @@ export function spokenLineCopy(skillSlug?: string) {
   };
 }
 
+// `NAME: "line"` / `名字：「台詞」` blocks; the name is for voice casting, never on screen.
+const SPEAKER_LINE = /[^:：\n"“「]{1,40}?[:：]\s*["“「]([^"”」]*)["”」]/g;
+
+// On-screen subtitle text: only the spoken words, no speaker labels or quotes.
+export function subtitleText(line: string) {
+  const text = line.trim();
+  if (/^\(?\s*no dialogue\s*\)?$/i.test(text)) return "";
+  const spoken = [...text.matchAll(SPEAKER_LINE)].map((match) => match[1].trim()).filter(Boolean);
+  return spoken.length ? spoken.join(" ") : text;
+}
+
 // Appended when submitting a story-short / Q&A clip so the model cannot skip
 // speech; story shorts also get the third-person camera lock.
 export function lockDialogueSpeech(prompt: string, skillSlug?: string) {

@@ -10,9 +10,18 @@ export function phaseBCharacterLine(input: {
 }) {
   const names = input.cast?.map((member) => member.name).filter(Boolean).join(", ");
   if (names) {
-    return `Keep ${names} identical to Phase A characterLock. Do not mention reference images or reference sheets in the MiniMax H3 prompt — MiniMax H3 only receives this clip's first and last frames.`;
+    return `Keep ${names} identical to Phase A characterLock. Do not mention reference images or reference sheets in the MiniMax H3 prompt — MiniMax H3 only receives this clip's first and last frames. Never describe clothing, wardrobe, or gear (no "winter coat", "boots", "backpack"); say only that the outfit stays exactly as in the first and last frames.`;
   }
   return "Keep the Phase A characterLock. Do not mention reference images in the MiniMax H3 prompt — MiniMax H3 only receives this clip's first and last frames.";
+}
+
+// Appended to every clip video prompt that has a cast or character image.
+export function phaseBWardrobeLock(input: {
+  cast?: Array<{ name: string }>;
+  characterImageUrl?: string;
+}) {
+  if (!input.cast?.length && !input.characterImageUrl) return "";
+  return "Wardrobe: every character keeps exactly the outfit shown in the first and last frames for the whole clip. No added or changed clothing, layers, or gear.";
 }
 
 // User prompt asking the director for ONE clip's video prompt. The whole

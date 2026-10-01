@@ -50,6 +50,8 @@ Write every scene field as four concrete parts, in order:
 
 Write `motionCamera` as timed beats (`0–2s …; 2–5s …`) naming the action, the expression change, and the camera start and end framing. Prefer specific nouns (a chipped blue mug, warm window light from the left) over generic ones.
 
+Wardrobe lock: every character wears exactly their blueprint outfit in every clip, whatever the setting or weather. Never plan a costume change, weather gear (coats, gloves, hats, boots), or body-worn props (backpacks, harnesses, clip-on mics, helmets) — in scenes or in `visualWorld`. Hand-held props are fine. Pick settings that work in that outfit.
+
 ## Composition by aspect ratio
 
 - `16:9`: number device top-left, item image centre-right, host (if present) left; collected items line up along the bottom.
