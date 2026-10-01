@@ -7,6 +7,11 @@ export const videoZhHant = {
     createTooltip: "新增影片",
     emptySidebar: "右邊表單送出後會出現在這裡。",
     empty: "還沒有影片。按右上角「新增影片」開始。",
+    emptyFiltered: "此類型尚無影片。可換其他篩選或新增影片。",
+  },
+  filter: {
+    aria: "依影片類型篩選",
+    all: "全部類型",
   },
   workspace: {
     backToProjects: "← 回到影片",

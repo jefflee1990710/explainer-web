@@ -7,6 +7,11 @@ export const videoEn = {
     createTooltip: "New video",
     emptySidebar: "Videos appear here after you submit the form on the right.",
     empty: 'No videos yet. Click “New video” at the top right to start.',
+    emptyFiltered: "No videos match this type. Try another filter or create a new video.",
+  },
+  filter: {
+    aria: "Filter by video type",
+    all: "All types",
   },
   workspace: {
     backToProjects: "← Back to Video",

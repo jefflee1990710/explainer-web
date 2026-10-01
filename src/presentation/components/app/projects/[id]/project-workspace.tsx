@@ -21,6 +21,7 @@ import {
 } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import { VideoEditorDialog } from "@/presentation/components/app/projects/[id]/video-editor-dialog";
 import { useFolderGenerationPoll } from "@/presentation/components/app/projects/[id]/use-folder-generation-poll";
+import { VideoSkillFilter } from "@/presentation/components/app/projects/[id]/video-skill-filter";
 import { VideoTable } from "@/presentation/components/app/projects/[id]/video-table";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -59,6 +60,7 @@ export function ProjectWorkspace({
   const [optimisticVideo, setOptimisticVideo] = useState<PublicVideo | null>(null);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [skillFilter, setSkillFilter] = useState("");
   const [stepNav, setStepNav] = useState<EditorStepNav | null>(null);
   const onStepNav = useCallback((nav: EditorStepNav | null) => {
     setStepNav((current) => {
@@ -146,6 +148,11 @@ export function ProjectWorkspace({
     return cards;
   }, [folder.videos, optimisticVideo, hiddenIds]);
 
+  const filteredVideos = useMemo(() => {
+    if (!skillFilter) return videos;
+    return videos.filter((video) => video.skillSlug === skillFilter);
+  }, [videos, skillFilter]);
+
   // List stays visible only while the editor is closed; the editor polls on its own.
   useFolderGenerationPoll(videos, !editorOpen);
 
@@ -202,7 +209,7 @@ export function ProjectWorkspace({
             <h1 className="font-display mt-2 text-3xl font-bold">{folder.name}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm text-muted">{t("video.workspace.videoCount", { n: videos.length })}</p>
+            <p className="text-sm text-muted">{t("video.workspace.videoCount", { n: filteredVideos.length })}</p>
             <button
               type="button"
               onClick={onCreate}
@@ -213,7 +220,16 @@ export function ProjectWorkspace({
           </div>
         </header>
 
-        <VideoTable videos={videos} onSelect={onSelect} onPrefetch={prefetchVideo} />
+        {videos.length > 0 ? (
+          <VideoSkillFilter skills={skills} value={skillFilter} onChange={setSkillFilter} />
+        ) : null}
+        <VideoTable
+          key={skillFilter || "all"}
+          videos={filteredVideos}
+          onSelect={onSelect}
+          onPrefetch={prefetchVideo}
+          emptyKey={skillFilter && videos.length > 0 ? "emptyFiltered" : "empty"}
+        />
       </div>
 
       {editorOpen ? (

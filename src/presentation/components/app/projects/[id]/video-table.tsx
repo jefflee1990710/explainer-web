@@ -12,11 +12,13 @@ export function VideoTable({
   videos,
   onSelect,
   onPrefetch,
+  emptyKey = "empty",
 }: {
   videos: PublicVideoCard[];
   onSelect: (id: string) => void;
   // Warm the full document while the pointer rests on a card.
   onPrefetch?: (id: string) => void;
+  emptyKey?: "empty" | "emptyFiltered";
 }) {
   const { t } = useI18n();
   const [page, setPage] = useState(1);
@@ -28,7 +30,7 @@ export function VideoTable({
     <section>
       {videos.length === 0 ? (
         <p className="rounded-[1.5rem] border border-dashed border-accent-ink/20 bg-paper/60 py-10 text-center text-sm text-muted">
-          {t("video.list.empty")}
+          {t(`video.list.${emptyKey}`)}
         </p>
       ) : (
         <>

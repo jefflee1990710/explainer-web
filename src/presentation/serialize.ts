@@ -73,6 +73,7 @@ export type PublicProject = PublicVideo; // remove after call sites updated
 // Card/list row: no storyboard, edit, or unused frame/clip payloads.
 export type PublicVideoCard = {
   id: string;
+  skillSlug: string;
   title: string;
   englishTitle: string;
   source: string;
@@ -105,6 +106,7 @@ export type PublicFolder = {
 export const VIDEO_LIST_PROJECTION = {
   _id: 1,
   projectId: 1,
+  skillSlug: 1,
   status: 1,
   source: 1,
   aspectRatio: 1,
@@ -194,6 +196,7 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
   });
   return {
     id: video._id.toHexString(),
+    skillSlug: video.skillSlug,
     title: video.phaseA?.localizedTitle || "",
     englishTitle: video.phaseA?.englishTitle || "",
     source: video.source,
@@ -215,6 +218,7 @@ export function toPublicVideoCardFromPublic(video: PublicVideo): PublicVideoCard
   const counts = productionCounts(video);
   return {
     id: video.id,
+    skillSlug: video.skillSlug,
     title: video.phaseA?.localizedTitle || "",
     englishTitle: video.phaseA?.englishTitle || "",
     source: video.source,
