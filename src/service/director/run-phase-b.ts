@@ -1,6 +1,7 @@
 import { generateText, Output } from "ai";
 import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
+import { PHASE_B_DETAIL_RULES } from "@/service/director/scene-detail";
 import { skillBansNarration } from "@/service/director/skill-rules";
 import { finalizePhaseBPrompt, phaseBAudioLock, resolveVoiceGender, VOICE_PRESETS } from "@/service/director/voice";
 import { skillPromptForPhaseB } from "@/service/director/load-skill-prompt";
@@ -31,6 +32,7 @@ function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageS
 You are executing Phase B only after explicit approval of the current Phase A.
 Return standalone MiniMax H3 video prompts that follow the skill prompt contract. Do not invent new facts.
 Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image. ${DUAL_KEYFRAME_MOTION_RULES} Do not invent a different final pose, camera, or composition.
+${PHASE_B_DETAIL_RULES}
 Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}). ${
     skillBansNarration(input.skill.slug)
       ? "There is no narrator. Characters speak those lines. Do not copy a male/female narrator fingerprint. Infer each NAME's voice from that character in the keyframes."

@@ -39,6 +39,17 @@ Rules per row:
 - The active object is large and central; the rest of the workspace stays in place.
 - A visible change every 1.5–2.5 seconds.
 
+## Scene detail
+
+Write every scene field as four concrete parts, in order:
+
+1. Character: expression, pose, action, and eyeline of each on-screen character. Never describe appearance, hair, or outfit — that follows the character reference.
+2. Set: location, set dressing, props, foreground / midground / background.
+3. Light: light direction, colour temperature, mood.
+4. Camera: shot size, camera angle, composition, and each character's screen position.
+
+Write `motionCamera` as timed beats (`0–2s …; 2–5s …`) naming the action, the expression change, and the camera start and end framing. Prefer specific nouns (a chipped blue mug, warm window light from the left) over generic ones.
+
 ## Composition by aspect ratio
 
 - `16:9`: inputs along the left, active object centre, result zone right; step marker top-left.

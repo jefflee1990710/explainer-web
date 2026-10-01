@@ -39,7 +39,19 @@ Rules per row:
 - `Scene at clip start` describes exactly what is visible at t=0: protagonist pose, expression, props, location. It is the start keyframe.
 - `Motion, camera & handoff` describes the modest continuation to the end keyframe (same shot), the camera move, and what the next clip inherits.
 - Emotion first: name the character's feeling; choose gesture and framing to show it.
+- Third-person camera: write each character's eyeline (profile, three-quarter, over-the-shoulder, toward a prop or the other character). Nobody looks into the lens or speaks to the viewer.
 - Something meaningful changes every 1.5–2.5 seconds: gesture, prop, camera, expression.
+
+## Scene detail
+
+Write every scene field as four concrete parts, in order:
+
+1. Character: expression, pose, action, and eyeline of each on-screen character. Never describe appearance, hair, or outfit — that follows the character reference.
+2. Set: location, set dressing, props, foreground / midground / background.
+3. Light: light direction, colour temperature, mood.
+4. Camera: shot size, camera angle, composition, and each character's screen position.
+
+Write `motionCamera` as timed beats (`0–2s …; 2–5s …`) naming the action, the expression change, and the camera start and end framing. Prefer specific nouns (a chipped blue mug, warm window light from the left) over generic ones.
 
 ## Composition by aspect ratio
 
@@ -62,5 +74,6 @@ Ask the user to approve the proposal, revise a named beat or line, or change a g
 - No forced want / obstacle / turn / resolution template.
 - Cast lock statement present; no invented restyling of attached blueprints.
 - Every clip 3–8s; start and end are the same shot; the next row inherits the previous end.
+- Every row is third-person: no direct address, no eye contact with the camera.
 - The last row rests and does not loop.
 - No technical colour notation, no captions, no invented facts.

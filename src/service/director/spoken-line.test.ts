@@ -30,6 +30,16 @@ test("lockDialogueSpeech makes story-short video prompts require on-screen speec
   assert.equal(lockDialogueSpeech(locked, "story-short-director"), locked);
 });
 
+test("story-short video prompts speak to each other, not to the camera", () => {
+  const locked = lockDialogueSpeech("Two friends chat.", "story-short-director");
+  assert.match(locked, /third-person observer camera/);
+  assert.equal(lockDialogueSpeech(locked, "story-short-director"), locked);
+  assert.doesNotMatch(
+    lockDialogueSpeech("Asker asks.", "dialogue-qa-director"),
+    /third-person observer camera/,
+  );
+});
+
 test("lockDialogueSpeech leaves explainer prompts unchanged", () => {
   assert.equal(
     lockDialogueSpeech("Narrator reads the line.", "cartoon-explainer-video-director"),

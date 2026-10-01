@@ -220,6 +220,7 @@ export function ProjectWorkspace({
               ? () => stepNav.onSelectStep(2)
               : undefined
           }
+          onRestart={stepNav?.canRestart ? stepNav.onRestart : undefined}
           onClose={onCloseEditor}
           onDelete={() => setDeleteOpen(true)}
         >

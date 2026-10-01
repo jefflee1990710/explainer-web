@@ -8,6 +8,7 @@ import {
   requiredCastCount,
   skillBansNarration,
   skillForcesSceneText,
+  storyShortCameraLock,
   storyShortDirectorBlock,
 } from "@/service/director/skill-rules";
 
@@ -15,6 +16,15 @@ test("story short is a no-narrator short film", () => {
   assert.equal(skillBansNarration("story-short-director"), true);
   assert.equal(skillBansNarration("cartoon-explainer-video-director"), false);
   assert.match(storyShortDirectorBlock(), /Do not force want/);
+});
+
+test("story short is filmed third-person: characters never address the camera", () => {
+  assert.match(storyShortDirectorBlock(), /third-person/);
+  assert.match(storyShortDirectorBlock(), /never look at or talk to the camera/);
+  assert.match(storyShortCameraLock("story-short-director"), /third-person observer camera/);
+  assert.match(storyShortCameraLock("story-short-director"), /No eye contact with the lens/);
+  assert.equal(storyShortCameraLock("cartoon-explainer-video-director"), "");
+  assert.equal(storyShortCameraLock("dialogue-qa-director"), "");
 });
 
 test("Q&A is dialogue-only like story short: no narrator, character lines", () => {

@@ -9,6 +9,7 @@ export function ReviseStoryboardDialog({
   title,
   body,
   confirmLabel,
+  pendingLabel,
   onCancel,
   onConfirm,
 }: {
@@ -16,6 +17,7 @@ export function ReviseStoryboardDialog({
   title?: string;
   body?: string;
   confirmLabel?: string;
+  pendingLabel?: string;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -64,7 +66,7 @@ export function ReviseStoryboardDialog({
             className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending ? <Spinner className="h-4 w-4" /> : null}
-            {pending ? "重寫中…" : confirmLabel ?? "確認重寫"}
+            {pending ? pendingLabel ?? "重寫中…" : confirmLabel ?? "確認重寫"}
           </button>
         </div>
       </div>

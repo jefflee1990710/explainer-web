@@ -12,6 +12,9 @@ export type EditorStepNav = {
   viewing: number;
   clipsReady: boolean;
   onSelectStep: (step: number) => void;
+  // Header 重新開始: reopen the brief form and wipe everything on submit.
+  canRestart: boolean;
+  onRestart: () => void;
 };
 
 // Production / Reel only. Input lives on the create dialog, not this editor.

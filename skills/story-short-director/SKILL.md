@@ -25,6 +25,13 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 
 - **Cast lock**: if character references / blueprints are attached, every character MUST follow them exactly across all clips (face, hair, wardrobe, accessories, proportions). Say so in `characterLock`; never re-describe or restyle them. If no reference is given, define ONE simple protagonist in `characterLock` (silhouette, two wardrobe colours, one signature prop) and keep it identical in every clip.
 - Emotion is carried by pose, gesture, eyes, and staging — not by on-screen text.
+
+## Camera — third-person, never to camera
+
+- Film every clip as a third-person observer camera, like a scene in a film. The audience watches; nobody in the story knows the camera is there.
+- Characters NEVER look into the lens, wave at, or talk to the camera. They speak to each other, to an object, or to themselves.
+- Write the eyeline into each `explainerScene` and `motionCamera`: profile, three-quarter, over-the-shoulder, or looking at a prop. A front-facing character still looks past the lens, never into it.
+- Two speakers face each other (or a shared object), staged as a two-shot, over-the-shoulder, or side profile.
 - Keep environments minimal and reusable: one or two locations, each described with the same three anchor props whenever it returns.
 
 ## Story architecture
@@ -41,6 +48,7 @@ Do **not** force want → obstacle → turn → resolution (or any other canned 
 
 - There is NO narrator and NO third-person voiceover. `narrator` must say: `No narrator — characters speak.`
 - All speech is character dialogue, written as `NAME: "line"`. One or two speakers per clip. Never add an unseen storyteller.
+- Dialogue is addressed to someone in the scene (or said to oneself), never to the viewer. No "you" aimed at the audience, no direct address.
 - Allocate ~7–20 spoken words per clip at medium speaking pace. Slow ≈ 0.8× those words with pauses; fast ≈ 1.2× with fewer pauses. Clip duration stays the same. Silence is allowed — say `(no dialogue)` in the VO field when a beat has no speech.
 - Dialogue is audio-only. Never caption, subtitle, or transcribe it on screen unless the user turned on-canvas text on. In-world text is limited to short props that belong to the scene (a sign, a letter, a screen), spelled exactly as written.
 
@@ -78,4 +86,5 @@ The structured output has fixed fields; fill them as follows:
 - Name colours only with ordinary words; never hexadecimal, RGB, HSL, or Pantone.
 - Do not invent facts, quotes, statistics, or product claims that are not in the source.
 - Do not add on-screen captions, subtitles, logos, watermarks, or UI text.
+- Third-person camera only: no character looks at or speaks to the camera.
 - Never end on a loop; the final clip resolves and rests.

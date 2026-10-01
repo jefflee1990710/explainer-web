@@ -137,8 +137,12 @@ async function seedSkill(manifest: SkillManifest) {
   console.log(`Seeded skill: ${manifest.slug}`);
 }
 
+// Optional slugs (`tsx scripts/seed-skills.ts story-short-director`) seed only those skills.
 async function main() {
-  for (const manifest of SKILLS) {
+  const only = process.argv.slice(2);
+  const unknown = only.filter((slug) => !SKILLS.some((s) => s.slug === slug));
+  if (unknown.length) throw new Error(`Unknown skill slug: ${unknown.join(", ")}`);
+  for (const manifest of SKILLS.filter((s) => !only.length || only.includes(s.slug))) {
     await seedSkill(manifest);
   }
   process.exit(0);

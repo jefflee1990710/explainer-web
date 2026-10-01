@@ -28,6 +28,7 @@ import {
   storyShortDirectorBlock,
 } from "@/service/director/skill-rules";
 import { keyframeDeltaDirectorBlock } from "@/service/director/keyframe-delta";
+import { sceneDetailDirectorBlock } from "@/service/director/scene-detail";
 import {
   dualBeatDirectorBlock,
   isDualBeatSkill,
@@ -101,6 +102,7 @@ export async function runPhaseA(input: {
 You are executing Phase A only. Return structured JSON that matches the schema.
 Planning explanations (narrativeJob, explainerScene, motionCamera, hookStrategy, coreMessage, etc.) must be Traditional Chinese (繁體中文).
 ${keyframeDeltaDirectorBlock({ separateStills: dualBeat })}
+${sceneDetailDirectorBlock()}
 ${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels }) : ""}
 ${
   skillForcesSceneText(input.skill.slug)

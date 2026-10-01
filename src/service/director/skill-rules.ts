@@ -80,7 +80,14 @@ export function storyShortDirectorBlock() {
   return [
     "This is a SHORT FILM, not an explainer.",
     "Do not force want → obstacle → turn → resolution. Arrange clips in the order the source already tells; invent beats only when the source has no story of its own.",
+    "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. They speak to each other, to an object, or to themselves. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder).",
   ].join(" ");
+}
+
+// Pasted into story-short stills and clip videos; empty for every other director.
+export function storyShortCameraLock(skillSlug?: string) {
+  if (skillSlug !== STORY_SHORT_SKILL_SLUG) return "";
+  return "Camera: third-person observer camera, as in a film scene. No eye contact with the lens; characters never look at, wave to, or talk to the camera. Eyelines go to other characters, objects, or off into the scene (profile, three-quarter, over-the-shoulder).";
 }
 
 export function dialogueQaDirectorBlock() {

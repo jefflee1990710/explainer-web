@@ -9,10 +9,10 @@ Use only after explicit approval of the current Phase A. Write ONE self-containe
 3. Cast lock: characters follow the attached start/end keyframes and blueprints exactly — same face, hair, wardrobe, proportions. Never restyle.
 4. Scene: location and anchor props, protagonist's pose and feeling at t=0 (matches the START keyframe).
 5. Timed beats scaled to duration (e.g. `[0–2s]`, `[2–5s]`, `[5–7s]`): first half stays with the start state (small motion only); second half slides and morphs element by element into the END keyframe. Name the feeling shift in each beat.
-6. Camera: one modest move for the whole clip (slow push, drift, tilt). No cuts inside a clip.
-7. Audio: character dialogue only (`NAME: "line"`) quoted exactly once, marked audio-only. No narrator. No background music. 1–2 SFX synced to visible events. If the clip is a silent beat, say `(no dialogue)`.
+6. Camera: third-person observer camera with one modest move for the whole clip (slow push, drift, tilt). No cuts inside a clip. Characters never look into the lens or talk to the camera; state each speaker's eyeline (to the other character, a prop, or off into the scene).
+7. Audio: character dialogue only (`NAME: "line"`) quoted exactly once, marked audio-only, spoken on screen to someone in the scene — never to the viewer. No narrator. No background music. 1–2 SFX synced to visible events. If the clip is a silent beat, say `(no dialogue)`.
 8. Handoff: the resting end state the next clip inherits — or, for the last clip, rest on the final image, no loop.
-9. Negatives: no captions/subtitles/transcribed speech, no logos or UI text, no new characters, no style drift, no extra limbs, plus the Visual style negatives.
+9. Negatives: no eye contact with the camera, no talking to camera, no captions/subtitles/transcribed speech, no logos or UI text, no new characters, no style drift, no extra limbs, plus the Visual style negatives.
 
 ## Dual-keyframe rule
 
@@ -22,10 +22,18 @@ Start and end keyframes are the SAME SHOT. Interpolate across the FULL duration;
 
 Quote each spoken line exactly as approved, once, as audio. Forbid paraphrase, repetition, reordering, captions, or visual transcription. There is no narrator — only named characters speak.
 
+## Motion detail
+
+- Describe the motion as timed beats across the clip (`0–2s …; 2–5s …`). Each beat names the action, the expression change, and the camera start and end framing.
+- Be exact: which hand, which direction, which prop, how far.
+- Lighting stays constant and matches both keyframes.
+- Never re-describe a character's appearance or outfit; it follows the keyframes.
+
 ## Phase B checks
 
 - Exactly N prompts, one per approved row, each 3–8s.
 - Each prompt repeats style lock, cast lock, timed beats, audio, handoff, negatives.
 - Beats show emotion through gesture and framing; no lecturing text.
+- Every prompt keeps the third-person camera: no character looks at or speaks to the lens.
 - Last prompt rests on the final image and does not bridge to Clip 1.
 - No technical colour notation anywhere.

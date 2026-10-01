@@ -101,6 +101,13 @@ Independent text-only generations may vary in voice. Recommend, in order:
 2. Repeat the identical narrator gender and language description in every prompt.
 3. For maximum consistency, generate synchronized SFX only — never add a BGM track during assembly.
 
+## Motion detail
+
+- The timed visual sequence names, per beat, the action, the expression change, and the camera start and end framing.
+- Be exact: which hand, which direction, which prop, how far.
+- Lighting stays constant and matches both keyframes.
+- Never re-describe a character's appearance or outfit; it follows the keyframes.
+
 ## Phase B checks
 
 - The user approved the current Phase A.

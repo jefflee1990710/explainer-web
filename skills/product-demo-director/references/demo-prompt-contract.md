@@ -23,6 +23,13 @@ Start and end keyframes are the SAME SHOT. Interpolate across the FULL duration;
 
 Quote the line exactly as approved, once, as audio. Forbid paraphrase, repetition, captions, or visual transcription. Keep the presenter voice identical in every prompt.
 
+## Motion detail
+
+- Describe the motion as timed beats across the clip (`0–2s …; 2–5s …`). Each beat names the action, the expression change, and the camera start and end framing.
+- Be exact: which hand, which direction, which prop, how far.
+- Lighting stays constant and matches both keyframes.
+- Never re-describe a character's appearance or outfit; it follows the keyframes.
+
 ## Phase B checks
 
 - Exactly N prompts, one per approved row, each 3–8s.

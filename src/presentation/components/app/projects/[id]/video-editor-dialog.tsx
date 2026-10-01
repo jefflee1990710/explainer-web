@@ -12,6 +12,7 @@ export function VideoEditorDialog({
   syncing = false,
   canDelete = false,
   onExport,
+  onRestart,
   onClose,
   onDelete,
   videoId,
@@ -24,6 +25,8 @@ export function VideoEditorDialog({
   syncing?: boolean;
   canDelete?: boolean;
   onExport?: () => void;
+  // Shown only when the video can start over (nothing generating).
+  onRestart?: () => void;
   onClose: () => void;
   onDelete?: () => void;
   // When set, show this video's pending tasks and credit meter in the header.
@@ -64,6 +67,11 @@ export function VideoEditorDialog({
         <div className="flex flex-wrap items-center justify-end gap-2">
           {credits !== undefined && creditLimit !== undefined ? (
             <VideoEditorHeaderStatus videoId={videoId} credits={credits} creditLimit={creditLimit} />
+          ) : null}
+          {onRestart ? (
+            <StudioButton variant="ghost" onClick={onRestart}>
+              重新開始
+            </StudioButton>
           ) : null}
           {onExport ? (
             <StudioButton onClick={onExport}>下一步：成片</StudioButton>

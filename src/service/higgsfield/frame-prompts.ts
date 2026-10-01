@@ -27,7 +27,8 @@ import {
   stripVisualWorldStyleEcho,
   stripVisualWorldTextPolicy,
 } from "@/service/director/scene-text";
-import { skillForcesSceneText } from "@/service/director/skill-rules";
+import { skillForcesSceneText, storyShortCameraLock } from "@/service/director/skill-rules";
+import { FRAME_RENDER_DETAIL } from "@/service/director/scene-detail";
 import {
   resolveStyle,
   styleLetteringLine,
@@ -228,6 +229,8 @@ export function buildFramePrompt(
       : sceneTextFrameLines(false, sceneText.language)),
     `Scene: ${sceneDescription}`,
     `Motion and camera across the clip: ${motionDescription}`,
+    ...(storyShortCameraLock(project.skillSlug) ? [storyShortCameraLock(project.skillSlug)] : []),
+    FRAME_RENDER_DETAIL,
     moment,
     ...compositionLockLines(options.anchor, annotatedCount + 1),
     ...revisionLines(options.revision),

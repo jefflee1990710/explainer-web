@@ -310,6 +310,19 @@ test("legacy captions-off story short now paints the dialogue line and strips in
   assert.match(prompt, /Subtitle \(spell exactly\): "vo"/);
 });
 
+test("every still carries the render detail line", () => {
+  assert.match(buildFramePrompt(project(), 1, "start"), /Render detail:/);
+  assert.match(buildFramePrompt(project(), 1, "end"), /Render detail:/);
+});
+
+test("story-short stills are third-person: no one looks into the camera", () => {
+  const story = project();
+  story.skillSlug = "story-short-director";
+  assert.match(buildFramePrompt(story, 1, "start"), /third-person observer camera/);
+  assert.match(buildFramePrompt(story, 1, "end"), /No eye contact with the lens/);
+  assert.doesNotMatch(buildFramePrompt(project(), 1, "start"), /third-person observer camera/);
+});
+
 test("other skills keep a single scene and full voiceover on both stills", () => {
   const story = project();
   story.skillSlug = "story-short-director";

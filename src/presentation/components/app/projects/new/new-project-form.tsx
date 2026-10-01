@@ -25,6 +25,7 @@ import {
 import {
   createVideoAction,
   getVideoAction,
+  restartVideoAction,
   retryProjectAction,
   updateVideoBriefAction,
 } from "@/presentation/actions/projects";
@@ -186,6 +187,9 @@ export function NewProjectForm({
     step: number;
   } | null>(null);
   const [confirmBrief, setConfirmBrief] = useState(false);
+  // 重新開始: brief form shown again for an existing video; submit wipes and reruns Phase A.
+  const [restarting, setRestarting] = useState(false);
+  const [confirmRestart, setConfirmRestart] = useState(false);
   // Shown when the wallet cannot pay; resume is the generate click to retry.
   const [creditGate, setCreditGate] = useState<{
     needed: number;
@@ -309,6 +313,10 @@ export function NewProjectForm({
       setError(`這個導演需要正好 ${castNeed} 個角色`);
       return;
     }
+    if (restarting) {
+      setConfirmRestart(true);
+      return;
+    }
     if (project && briefUnchanged()) {
       pinViewingStep(1);
       return;
@@ -336,6 +344,52 @@ export function NewProjectForm({
     setProject(result.project);
     onVideoCreated?.(result.project);
     router.replace(`${pathname}?video=${result.project.id}`);
+  }
+
+  // Wipe storyboard, stills, and clip videos, then rerun Phase A from the form.
+  async function submitRestart() {
+    if (!project) return;
+    setSubmitting(true);
+    setError("");
+    const result = await restartVideoAction(briefFormData());
+    setSubmitting(false);
+    setConfirmRestart(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setRestarting(false);
+    setViewingOverride(null);
+    setProject(result.project);
+    onVideoCreated?.(result.project);
+    router.refresh();
+  }
+
+  // Put the form back to this video's saved brief.
+  function resetBriefFromProject(video: PublicVideo) {
+    setSkillSlug(video.skillSlug);
+    setStyleId(video.styleId || DEFAULT_STYLE_ID);
+    setSource(video.source);
+    setLanguage(video.language || "en");
+    setVoiceGender(video.voiceGender || DEFAULT_VOICE_GENDER);
+    setSpeechPace(video.speechPace || DEFAULT_SPEECH_PACE);
+    setSceneTextLanguage(video.sceneTextLanguage || "en");
+    setAspectRatio(video.aspectRatio);
+    setDurationPreset(video.durationPreset);
+    setCharacterIds(video.cast.map((member) => member.characterId));
+  }
+
+  const onRestart = useCallback(() => {
+    if (!project) return;
+    resetBriefFromProject(project);
+    setError("");
+    setRestarting(true);
+  }, [project]);
+
+  function cancelRestart() {
+    if (project) resetBriefFromProject(project);
+    setError("");
+    setRestarting(false);
   }
 
   function openCreditGate(needed: number, resume: () => void) {
@@ -585,7 +639,7 @@ export function NewProjectForm({
       ? viewingOverride.step
       : liveStep;
   // Create stays on the brief. An existing video never returns to Input.
-  const viewing = project ? Math.max(requestedViewing, 1) : 0;
+  const viewing = project && !restarting ? Math.max(requestedViewing, 1) : 0;
 
   const pinViewingStep = useCallback(
     (step: number) => {
@@ -608,9 +662,25 @@ export function NewProjectForm({
       failedAtStep,
       viewing,
       clipsReady,
-      onSelectStep: pinViewingStep,
+      onSelectStep: (step) => {
+        setRestarting(false);
+        pinViewingStep(step);
+      },
+      canRestart: !restarting && !briefBusy,
+      onRestart,
     });
-  }, [clipsReady, failedAtStep, liveStatus, onStepNav, pinViewingStep, project, viewing]);
+  }, [
+    briefBusy,
+    clipsReady,
+    failedAtStep,
+    liveStatus,
+    onRestart,
+    onStepNav,
+    pinViewingStep,
+    project,
+    restarting,
+    viewing,
+  ]);
 
   useEffect(() => {
     return () => onStepNav?.(null);
@@ -794,16 +864,30 @@ export function NewProjectForm({
                   {submitting ? <Spinner /> : null}
                   {submitting
                     ? "送出中…"
-                    : project
-                      ? "儲存並重新產生分鏡"
-                      : "開始製作"}
+                    : restarting
+                      ? "重新產生"
+                      : project
+                        ? "儲存並重新產生分鏡"
+                        : "開始製作"}
                 </motion.button>
+                {restarting ? (
+                  <button
+                    type="button"
+                    onClick={cancelRestart}
+                    disabled={submitting}
+                    className="inline-flex min-h-[48px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:opacity-60"
+                  >
+                    取消
+                  </button>
+                ) : null}
                 <p className="text-xs text-muted">
                   {castNeed > 0 && characterIds.length !== castNeed
                     ? `請先選正好 ${castNeed} 個角色，才能開始。`
-                    : project
-                      ? "改題材會重寫分鏡並回到製作。已產生的畫格與影片會留著，但可能對不上。"
-                      : "這一步不扣 credits。分鏡寫好後會直接進入製作，產畫格與影片才扣款。"}
+                    : restarting
+                      ? "會刪掉這支影片的分鏡、畫格與影片，再依這份題材從頭產生分鏡。已花的 credits 不會退回。"
+                      : project
+                        ? "改題材會重寫分鏡並回到製作。已產生的畫格與影片會留著，但可能對不上。"
+                        : "這一步不扣 credits。分鏡寫好後會直接進入製作，產畫格與影片才扣款。"}
                 </p>
               </div>
             </motion.form>
@@ -915,6 +999,21 @@ export function NewProjectForm({
             }}
             onConfirm={() => {
               void submitBrief();
+            }}
+          />
+        ) : null}
+        {confirmRestart ? (
+          <ReviseStoryboardDialog
+            pending={submitting}
+            title="重新開始這支影片？"
+            body="會永久刪除這支影片目前所有的分鏡、場景圖與 clip 影片，再依表單內容從頭產生分鏡。已花的 credits 不會退回，刪除後無法復原。"
+            confirmLabel="刪除並重新產生"
+            pendingLabel="重新開始中…"
+            onCancel={() => {
+              if (!submitting) setConfirmRestart(false);
+            }}
+            onConfirm={() => {
+              void submitRestart();
             }}
           />
         ) : null}

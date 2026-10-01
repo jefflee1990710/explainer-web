@@ -24,6 +24,11 @@ import type { CastMember, Character } from "@/model/character";
 import { isProjectBusy } from "@/service/clip-stage";
 import { applyPhaseAEdits } from "@/service/director/phase-a-edit";
 import { collectVideoBlobUrls } from "@/service/video/storage";
+import {
+  RESTART_UNSET_FIELDS,
+  restartBlobUrls,
+  restartBlockReason,
+} from "@/service/project/restart";
 import type {
   AspectRatio,
   DurationPreset,
@@ -323,6 +328,21 @@ export const createProjectAction = createVideoAction;
 export async function updateVideoBriefAction(
   formData: FormData,
 ): Promise<VideoResult> {
+  return rewriteVideoBrief(formData, { restart: false });
+}
+
+// Start over: wipe storyboard, stills, clip videos, and exports, then re-run
+// Phase A from the (possibly edited) brief. Spent credits are not refunded.
+export async function restartVideoAction(
+  formData: FormData,
+): Promise<VideoResult> {
+  return rewriteVideoBrief(formData, { restart: true });
+}
+
+async function rewriteVideoBrief(
+  formData: FormData,
+  options: { restart: boolean },
+): Promise<VideoResult> {
   try {
     const user = await requireAppUser();
     const videoId = String(formData.get("videoId") || "");
@@ -339,7 +359,10 @@ export async function updateVideoBriefAction(
       clerkUserId: user.clerkUserId,
     });
     if (!video) return { ok: false, error: "專案不存在" };
-    if (video.status === "phase_a" || isProjectBusy(video)) {
+    if (options.restart) {
+      const blocked = restartBlockReason(video);
+      if (blocked) return { ok: false, error: blocked };
+    } else if (video.status === "phase_a" || isProjectBusy(video)) {
       return { ok: false, error: "請等目前的產生工作結束再改題材" };
     }
 
@@ -355,10 +378,19 @@ export async function updateVideoBriefAction(
     const castResult = await buildCast(user.clerkUserId, brief.styleId, brief.characterIds);
     if (!castResult.ok) return castResult;
 
+    // Restart drops every stored frame / clip / export file and job first.
+    if (options.restart) {
+      const jobs = await generationJobsCollection();
+      const jobDocs = await jobs.find({ projectId: video._id }).toArray();
+      await deleteExplainerBlobUrls(restartBlobUrls(video, jobDocs));
+      await jobs.deleteMany({ projectId: video._id });
+    }
+
     await videos.updateOne(
       { _id: video._id },
       {
         $set: {
+          ...(options.restart ? { clips: [] } : {}),
           skillId: skill._id,
           skillSlug: skill.slug,
           styleId: brief.styleId,
@@ -374,7 +406,7 @@ export async function updateVideoBriefAction(
           status: "phase_a",
           updatedAt: new Date(),
         },
-        $unset: { error: "", stillError: "" },
+        $unset: options.restart ? RESTART_UNSET_FIELDS : { error: "", stillError: "" },
       },
     );
 

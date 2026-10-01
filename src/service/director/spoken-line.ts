@@ -1,4 +1,4 @@
-import { skillBansNarration } from "@/service/director/skill-rules";
+import { skillBansNarration, storyShortCameraLock } from "@/service/director/skill-rules";
 
 // MiniMax must hear on-screen speech, not an off-camera narrator.
 export const DIALOGUE_SPEAK_LOCK =
@@ -37,9 +37,13 @@ export function spokenLineCopy(skillSlug?: string) {
   };
 }
 
-// Appended when submitting a story-short / Q&A clip so the model cannot skip speech.
+// Appended when submitting a story-short / Q&A clip so the model cannot skip
+// speech; story shorts also get the third-person camera lock.
 export function lockDialogueSpeech(prompt: string, skillSlug?: string) {
-  const body = prompt.trim();
+  let body = prompt.trim();
   if (!skillBansNarration(skillSlug)) return body;
-  return body.includes(DIALOGUE_SPEAK_LOCK) ? body : `${body}\n\n${DIALOGUE_SPEAK_LOCK}`;
+  for (const lock of [DIALOGUE_SPEAK_LOCK, storyShortCameraLock(skillSlug)]) {
+    if (lock && !body.includes(lock)) body = `${body}\n\n${lock}`;
+  }
+  return body;
 }
