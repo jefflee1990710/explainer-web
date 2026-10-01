@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import {
   MAX_CHARACTER_REFERENCES,
   imageFilesFromList,
 } from "@/service/character/reference-urls";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 
 // Multi-photo drop zone for the create-character dialog.
 export function CreateCharacterReferences({
@@ -20,6 +22,7 @@ export function CreateCharacterReferences({
   onChange: (urls: string[]) => void;
   onError: (message: string) => void;
 }) {
+  const { t } = useI18n();
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const remaining = MAX_CHARACTER_REFERENCES - urls.length;
@@ -38,14 +41,14 @@ export function CreateCharacterReferences({
         data.set("file", file);
         const result = await uploadCharacterImageAction(data);
         if (!result.ok) {
-          onError(result.error);
+          onError(translateAppError(result.error, t));
           break;
         }
         if (!next.includes(result.url)) next.push(result.url);
       }
       onChange(next);
     } catch {
-      onError("上傳失敗，請再試一次");
+      onError(t("characters.referencesUploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -54,11 +57,9 @@ export function CreateCharacterReferences({
   return (
     <div>
       <span className="mb-1.5 block text-sm font-semibold">
-        參考圖（選填，最多 {MAX_CHARACTER_REFERENCES} 張）
+        {t("characters.referencesTitle", { max: MAX_CHARACTER_REFERENCES })}
       </span>
-      <p className="mb-2 text-xs text-muted">
-        拖放或選擇多張臉、全身、服裝照，藍圖會更像本人。
-      </p>
+      <p className="mb-2 text-xs text-muted">{t("characters.referencesHint")}</p>
       <div
         onDragEnter={(event) => {
           event.preventDefault();
@@ -79,9 +80,7 @@ export function CreateCharacterReferences({
           void addFiles([...event.dataTransfer.files]);
         }}
         className={`rounded-2xl border-2 border-dashed px-4 py-4 transition ${
-          dragOver
-            ? "border-accent bg-accent/5"
-            : "border-accent-ink/15 bg-paper"
+          dragOver ? "border-accent bg-accent/5" : "border-accent-ink/15 bg-paper"
         }`}
       >
         <div className="flex flex-wrap items-center gap-3">
@@ -90,7 +89,7 @@ export function CreateCharacterReferences({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={url}
-                alt={`參考圖 ${index + 1}`}
+                alt={t("characters.referenceAlt", { n: index + 1 })}
                 width={64}
                 height={64}
                 className="h-16 w-16 rounded-xl border border-accent-ink/10 object-cover"
@@ -99,7 +98,7 @@ export function CreateCharacterReferences({
                 type="button"
                 disabled={disabled || uploading}
                 onClick={() => onChange(urls.filter((item) => item !== url))}
-                aria-label={`移除參考圖 ${index + 1}`}
+                aria-label={t("characters.removeReferenceAria", { n: index + 1 })}
                 className="absolute -right-1.5 -top-1.5 grid h-6 w-6 cursor-pointer place-items-center rounded-full bg-accent-ink text-[11px] font-bold text-paper disabled:opacity-60"
               >
                 ×
@@ -109,7 +108,11 @@ export function CreateCharacterReferences({
           {full ? null : (
             <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/15 bg-paper px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5">
               {uploading ? <Spinner /> : null}
-              {uploading ? "上傳中…" : urls.length ? "再加圖片" : "選擇或拖放圖片"}
+              {uploading
+                ? t("video.upload.uploading")
+                : urls.length
+                  ? t("characters.addMorePhotos")
+                  : t("characters.chooseOrDropPhotos")}
               <input
                 type="file"
                 accept="image/*"
@@ -119,7 +122,7 @@ export function CreateCharacterReferences({
                 onChange={(event) => {
                   const files = [...(event.target.files || [])];
                   event.target.value = "";
-                  if (files.length) void addFiles(files);
+                  void addFiles(files);
                 }}
               />
             </label>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, Noto_Sans_TC } from "next/font/google";
 import { GoogleAnalytics } from "@/presentation/components/analytics/google-analytics";
 import { I18nProvider } from "@/presentation/components/i18n-provider";
+import { en } from "@/util/i18n/messages/en";
 import "./globals.css";
 
 const notoSansTc = Noto_Sans_TC({
@@ -16,9 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Scro — 概念解說影片",
-  description:
-    "把概念講清楚，做成 Reels、行銷、簡報與更多用途的 explainer 影片。選風格、核准分鏡、產出 clips。",
+  title: en.meta.title,
+  description: en.meta.description,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -24,8 +24,10 @@ export type PublicTask = {
   stage: TaskStage;
   // Video title or character name.
   title: string;
-  // e.g. "Clip 2 · 起始畫格" / "角色藍圖".
+  // Legacy plain detail (zh); UI should prefer detailKey + detailParams.
   detail: string;
+  detailKey: string;
+  detailParams?: Record<string, string | number>;
   previewUrl?: string;
   isVideo: boolean;
   href: string;
@@ -44,13 +46,27 @@ export function taskStage(status: GenerationStatus): TaskStage {
   return "generating";
 }
 
-// Human label for what the job produces.
+// Human label for what the job produces (legacy zh strings for logs/tests).
 export function taskDetail(job: Pick<GenerationJob, "kind" | "clipIndex" | "framePosition">) {
   if (job.kind === "still") return "角色定裝圖";
   if (job.kind === "character") return "角色藍圖";
   const clip = `Clip ${job.clipIndex + 1}`;
   if (job.kind === "video") return `${clip} · 影片`;
   return `${clip} · ${job.framePosition === "end" ? "結尾畫格" : "起始畫格"}`;
+}
+
+export function taskDetailI18n(job: Pick<GenerationJob, "kind" | "clipIndex" | "framePosition">) {
+  const n = job.clipIndex + 1;
+  if (job.kind === "still") return { detailKey: "tasksPage.detail.characterStill" as const };
+  if (job.kind === "character") return { detailKey: "tasksPage.detail.characterBlueprint" as const };
+  if (job.kind === "video") return { detailKey: "tasksPage.detail.clipVideo" as const, detailParams: { n } };
+  return {
+    detailKey:
+      job.framePosition === "end"
+        ? ("tasksPage.detail.clipFrameEnd" as const)
+        : ("tasksPage.detail.clipFrameStart" as const),
+    detailParams: { n },
+  };
 }
 
 const REEL_PROJECTION = {
@@ -87,6 +103,7 @@ export function reelTask(
     stage,
     title: input.title,
     detail: "成片合成",
+    detailKey: "tasksPage.detail.reel",
     previewUrl: stage === "done" ? input.reelUrl : undefined,
     isVideo: true,
     href: `/app/projects/${input.projectId}?video=${input.videoId}`,
@@ -189,6 +206,7 @@ export async function listTasks(
       stage: taskStage(job.status),
       title: character?.name ?? video?.phaseA?.localizedTitle ?? "未命名影片",
       detail: taskDetail(job),
+      ...taskDetailI18n(job),
       previewUrl: job.status === "completed" ? mediaSrc(job) : undefined,
       isVideo: job.kind === "video",
       href: video

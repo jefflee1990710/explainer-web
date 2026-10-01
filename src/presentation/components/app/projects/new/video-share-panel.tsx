@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import { draftShareCaptionAction } from "@/presentation/actions/video-share";
@@ -15,10 +16,10 @@ import {
   videoShareHref,
   type VideoShareId,
 } from "@/presentation/components/app/projects/new/video-share";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { PublicVideo } from "@/presentation/serialize";
 import type { VideoEdit } from "@/model/video-edit";
 
-// Download the finished reel and open IG / Facebook / TikTok / etc.
 export function VideoSharePanel({
   project,
   edit,
@@ -26,6 +27,7 @@ export function VideoSharePanel({
   project: PublicVideo;
   edit: VideoEdit;
 }) {
+  const { t } = useI18n();
   const src = shareableVideoUrl(project, edit);
   const filename = videoFileName(project);
   const { saving, error, download } = useFileDownload();
@@ -50,7 +52,7 @@ export function VideoSharePanel({
       }
       return true;
     } catch {
-      setHint("複製失敗，請再試一次");
+      setHint(t("video.share.copyFailed"));
       return false;
     }
   }
@@ -74,7 +76,7 @@ export function VideoSharePanel({
       await navigator.share({ title: filename, url: src, text: caption || undefined });
     } catch (caught) {
       if (caught instanceof Error && caught.name === "AbortError") return;
-      setHint("無法開啟系統分享，請改下載後自行上傳。");
+      setHint(t("video.share.nativeFailed"));
     }
   }
 
@@ -116,13 +118,11 @@ export function VideoSharePanel({
     if (target.kind === "upload" || !canPostVideoUrl(src)) {
       await download(src, filename);
       notes.push(
-        target.kind === "upload"
-          ? "檔案已下載，請在開啟的頁面上傳。"
-          : "這個連結不能直接貼到社群，已先下載影片。",
+        target.kind === "upload" ? t("video.share.noteUploadPage") : t("video.share.noteDownloadFirst"),
       );
     }
-    if (draftError) notes.push(draftError);
-    else if (useAi && text) notes.push("文案已複製。");
+    if (draftError) notes.push(translateAppError(draftError, t));
+    else if (useAi && text) notes.push(t("video.share.noteCaptionCopied"));
     setHint(notes.join(" "));
     window.open(videoShareHref(id, src, text), "_blank", "noopener,noreferrer");
   }
@@ -131,12 +131,12 @@ export function VideoSharePanel({
 
   return (
     <section className="space-y-3">
-      <h3 className="text-[11px] font-bold text-[var(--studio-muted)]">下載與分享</h3>
+      <h3 className="text-[11px] font-bold text-[var(--studio-muted)]">{t("video.share.section")}</h3>
       {src ? (
         <>
           <StudioButton className="w-full" disabled={busy} onClick={() => void saveFile()}>
             {saving ? <Spinner className="h-4 w-4" /> : null}
-            下載影片
+            {t("video.share.download")}
           </StudioButton>
           <VideoShareCaption
             checked={useAi}
@@ -165,7 +165,7 @@ export function VideoSharePanel({
                 ) : (
                   <VideoShareIcon id={target.id} />
                 )}
-                {target.label}
+                {t(`video.share.target.${target.id}`)}
               </button>
             ))}
           </div>
@@ -175,7 +175,7 @@ export function VideoSharePanel({
               onClick={() => src && void copyText(src, "link")}
               className="text-[11px] font-semibold text-[var(--studio-muted)] underline-offset-2 hover:underline"
             >
-              {copiedLink ? "已複製連結" : "複製影片連結"}
+              {copiedLink ? t("video.share.linkCopied") : t("video.share.copyLink")}
             </button>
             {typeof navigator !== "undefined" && typeof navigator.share === "function" ? (
               <button
@@ -183,21 +183,19 @@ export function VideoSharePanel({
                 onClick={() => void shareNative()}
                 className="text-[11px] font-semibold text-[var(--studio-muted)] underline-offset-2 hover:underline"
               >
-                系統分享
+                {t("video.share.native")}
               </button>
             ) : null}
           </div>
-          <p className="text-[11px] leading-4 text-[var(--studio-muted)]">
-            Instagram、TikTok、YouTube 無法直接貼上檔案，會先下載再打開上傳頁。
-          </p>
+          <p className="text-[11px] leading-4 text-[var(--studio-muted)]">{t("video.share.platformHint")}</p>
         </>
       ) : (
-        <p className="text-xs text-[var(--studio-muted)]">成片好了才能下載與分享到社群。</p>
+        <p className="text-xs text-[var(--studio-muted)]">{t("video.share.notReady")}</p>
       )}
       {hint ? <p className="text-[11px] text-[var(--studio-ink)]">{hint}</p> : null}
       {error ? (
         <p role="alert" className="text-[11px] text-[#e11d48]">
-          {error}
+          {translateAppError(error, t)}
         </p>
       ) : null}
     </section>

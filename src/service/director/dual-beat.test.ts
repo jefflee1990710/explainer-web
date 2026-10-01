@@ -106,6 +106,9 @@ test("dual-beat director block mentions two VO/subtitle beats and style-specific
   assert.match(on, /one frozen pose/);
   assert.match(on, /landed resting pose/);
   assert.match(on, /motionCamera/);
+  assert.match(on, /startVo lettering wipes off and the endVo lettering writes on/);
+  assert.match(on, /Never copy the voiceover lettering into startScene or endScene/);
+  assert.doesNotMatch(dualBeatDirectorBlock(false), /lettering writes on/);
   assert.match(dualBeatDirectorBlock(false), /no writing/);
   assert.match(dualBeatDirectorBlock(false), /Do not invent extra titles/);
 });

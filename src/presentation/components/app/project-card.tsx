@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { PreviewStrip } from "@/presentation/components/app/preview-strip";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicFolder } from "@/presentation/serialize";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 // Folder card: cover from child preview and the video count.
 export function ProjectCard({ folder }: { folder: PublicFolder }) {
+  const { t } = useI18n();
   const href = `/app/projects/${folder.id}`;
 
   return (
@@ -22,7 +24,7 @@ export function ProjectCard({ folder }: { folder: PublicFolder }) {
     >
       <Link href={href} className="relative block aspect-video overflow-hidden bg-accent-ink/5">
         {folder.previewUrls.length ? (
-          <PreviewStrip urls={folder.previewUrls} alt={`${folder.name} 預覽`} />
+          <PreviewStrip urls={folder.previewUrls} alt={t("folder.previewAlt", { name: folder.name })} />
         ) : (
           <Placeholder />
         )}
@@ -34,7 +36,7 @@ export function ProjectCard({ folder }: { folder: PublicFolder }) {
             {folder.name}
           </h3>
         </Link>
-        <p className="mt-auto text-xs text-muted">{folder.videoCount} 支影片</p>
+        <p className="mt-auto text-xs text-muted">{t("folder.videoCount", { n: folder.videoCount })}</p>
       </div>
     </motion.article>
   );

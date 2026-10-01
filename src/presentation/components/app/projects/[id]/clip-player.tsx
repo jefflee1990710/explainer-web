@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicProject } from "@/presentation/serialize";
 
 export function ClipPlayer({ project }: { project: PublicProject }) {
+  const { t } = useI18n();
   const clips = project.clips.filter((clip) => clip.blobUrl || clip.outputUrl);
   const [index, setIndex] = useState(0);
   const current = clips[index];
@@ -13,9 +15,9 @@ export function ClipPlayer({ project }: { project: PublicProject }) {
   return (
     <section className="rounded-2xl border border-line bg-card p-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">成品播放</h2>
+        <h2 className="text-lg font-semibold">{t("video.clipPlayer.title")}</h2>
         <p className="text-sm text-muted">
-          {index + 1} / {clips.length}
+          {t("video.clipPlayer.index", { current: index + 1, total: clips.length })}
         </p>
       </div>
       <video
@@ -37,14 +39,14 @@ export function ClipPlayer({ project }: { project: PublicProject }) {
                 clipIndex === index ? "bg-accent text-white" : "border border-line"
               }`}
             >
-              Clip {clip.clipNumber}
+              {t("video.clipPlayer.tab", { n: clip.clipNumber })}
             </button>
           );
         })}
       </div>
       {src ? (
         <a href={src} download className="mt-4 inline-block text-sm underline">
-          下載目前片段
+          {t("video.clipPlayer.downloadCurrent")}
         </a>
       ) : null}
     </section>

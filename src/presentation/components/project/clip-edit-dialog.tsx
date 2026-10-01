@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import {
   clipEndScene,
@@ -10,16 +11,13 @@ import {
 } from "@/service/director/dual-beat";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { FRAME_COST, FRAMES_COST } from "@/service/production-plan";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { ClipStoryboardInput, StoryboardRow, VoLanguage } from "@/model/project";
 
-// Mirrors the server-side cap so the counter matches what gets stored.
 const MAX_FIELD_LENGTH = 1200;
 
 export type ClipEditPending = "" | "save" | "regenerate";
 
-// Modal for rewriting one clip's storyboard text (scene, camera, voiceover)
-// while reviewing frames. Saving is free; "save and redraw" also re-renders the
-// clip's start + end frames from the new text (FRAME_COST each).
 export function ClipEditDialog({
   clip,
   language,
@@ -35,15 +33,13 @@ export function ClipEditDialog({
   language: VoLanguage;
   dualBeat?: boolean;
   credits: number;
-  // False while another action is pending or frames are still generating.
   canRegenerate: boolean;
   pending: ClipEditPending;
-  // Latest action error from the parent; only shown after this dialog submits.
   error: string;
   onClose: () => void;
-  // Resolves true when the update landed (dialog closes itself).
   onSave: (input: ClipStoryboardInput, regenerate: boolean) => Promise<boolean>;
 }) {
+  const { t } = useI18n();
   const titleId = useId();
   const sceneId = useId();
   const cameraId = useId();
@@ -59,12 +55,10 @@ export function ClipEditDialog({
     startVo: clip.startVo ?? clipStartVo(clip),
     endVo: clip.endVo ?? clipEndVo(clip),
   });
-  // Set once the user submits so a stale parent error isn't shown on open.
   const [attempted, setAttempted] = useState(false);
 
   const busy = pending !== "";
 
-  // Esc closes, matching the backdrop click (ignored mid-save).
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape" && !busy) onClose();
@@ -91,7 +85,6 @@ export function ClipEditDialog({
     : draft.explainerScene.trim().length > 0 && draft.englishVo.trim().length > 0;
   const enoughCredits = credits >= FRAMES_COST;
   const canSave = valid && dirty && !busy;
-  // Redrawing from unchanged text is still allowed (it acts as a plain redo).
   const canRedraw = valid && !busy && canRegenerate;
 
   function update<K extends keyof ClipStoryboardInput>(key: K, value: string) {
@@ -133,20 +126,18 @@ export function ClipEditDialog({
         <header className="flex items-start justify-between gap-4 border-b border-accent-ink/10 px-6 py-4">
           <div>
             <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-accent">
-              分鏡 · #{clip.clipNumber} · {clip.timeRange}
+              {t("production.clipEdit.kicker", { n: clip.clipNumber, timeRange: clip.timeRange })}
             </p>
             <h2 id={titleId} className="font-display mt-1 text-xl font-bold">
-              編輯這段分鏡內容
+              {t("production.clipEdit.title")}
             </h2>
-            <p className="mt-1 text-xs text-muted">
-              直接改寫畫面、鏡頭與旁白。儲存不扣 credits；要依新內容重畫這段的兩張畫格才會扣款。
-            </p>
+            <p className="mt-1 text-xs text-muted">{t("production.clipEdit.intro")}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             disabled={busy}
-            aria-label="關閉"
+            aria-label={t("production.action.close")}
             className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border border-accent-ink/15 text-muted transition hover:border-accent-ink/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
           >
             <CloseIcon />
@@ -161,105 +152,103 @@ export function ClipEditDialog({
           }}
         >
           <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-6 md:grid-cols-2">
-            {/* Left: what the image model draws */}
             <div className="space-y-4">
               {dualBeat ? (
                 <>
                   <TextField
                     id={`${sceneId}-start`}
-                    label="起始畫面"
-                    hint="t=0 那張靜態圖。角色請用名字稱呼。"
+                    label={t("production.clipEdit.labelStartScene")}
+                    hint={t("production.clipEdit.hintStartScene")}
                     value={draft.startScene || ""}
                     rows={5}
                     required
                     disabled={busy}
-                    placeholder="起始姿勢、道具、環境。"
+                    placeholder={t("production.clipEdit.placeholderStartScene")}
                     onChange={(value) => update("startScene", value)}
                   />
                   <TextField
                     id={`${sceneId}-end`}
-                    label="結尾畫面"
-                    hint="t=N 那張靜態圖。同一鏡頭的後一個 beat。"
+                    label={t("production.clipEdit.labelEndScene")}
+                    hint={t("production.clipEdit.hintEndScene")}
                     value={draft.endScene || ""}
                     rows={5}
                     required
                     disabled={busy}
-                    placeholder="結尾姿勢、道具、環境。"
+                    placeholder={t("production.clipEdit.placeholderEndScene")}
                     onChange={(value) => update("endScene", value)}
                   />
                 </>
               ) : (
                 <TextField
                   id={sceneId}
-                  label="畫面描述"
-                  hint="分鏡圖與影片都依這段畫面來畫，角色請用名字稱呼。"
+                  label={t("production.clipEdit.labelExplainerScene")}
+                  hint={t("production.clipEdit.hintExplainerScene")}
                   value={draft.explainerScene}
                   rows={7}
                   required
                   disabled={busy}
-                  placeholder="這段畫面要出現什麼、誰在做什麼、有哪些道具或文字。"
+                  placeholder={t("production.clipEdit.placeholderExplainerScene")}
                   onChange={(value) => update("explainerScene", value)}
                 />
               )}
               <TextField
                 id={cameraId}
-                label="動態與鏡頭"
-                hint="從起始到結尾的動作、鏡頭運動與轉場。"
+                label={t("production.clipEdit.labelMotion")}
+                hint={t("production.clipEdit.hintMotion")}
                 value={draft.motionCamera}
                 rows={4}
                 disabled={busy}
-                placeholder="例如：鏡頭慢慢推近，角色從左走到右。"
+                placeholder={t("production.clipEdit.placeholderMotion")}
                 onChange={(value) => update("motionCamera", value)}
               />
             </div>
 
-            {/* Right: what the narrator says */}
             <div className="space-y-4">
               {dualBeat ? (
                 <>
                   <TextField
                     id={`${voId}-start`}
-                    label={`旁白起（${voLabel}）`}
-                    hint="前半句。起始圖的畫面文字只引用這句。"
+                    label={t("production.clipEdit.labelVoStart", { lang: voLabel })}
+                    hint={t("production.clipEdit.hintVoStart")}
                     value={draft.startVo || ""}
                     rows={4}
                     required
                     disabled={busy}
-                    placeholder="起始 beat 要說的話。"
+                    placeholder={t("production.clipEdit.placeholderVoStart")}
                     onChange={(value) => update("startVo", value)}
                   />
                   <TextField
                     id={`${voId}-end`}
-                    label={`旁白終（${voLabel}）`}
-                    hint="後半句。結尾圖的畫面文字只引用這句。"
+                    label={t("production.clipEdit.labelVoEnd", { lang: voLabel })}
+                    hint={t("production.clipEdit.hintVoEnd")}
                     value={draft.endVo || ""}
                     rows={4}
                     required
                     disabled={busy}
-                    placeholder="結尾 beat 要說的話。"
+                    placeholder={t("production.clipEdit.placeholderVoEnd")}
                     onChange={(value) => update("endVo", value)}
                   />
                 </>
               ) : (
                 <TextField
                   id={voId}
-                  label={`旁白（${voLabel}）`}
-                  hint="影片裡會照這句逐字唸出。"
+                  label={t("production.clipEdit.labelVo", { lang: voLabel })}
+                  hint={t("production.clipEdit.hintVo")}
                   value={draft.englishVo}
                   rows={5}
                   required
                   disabled={busy}
-                  placeholder="這段旁白要說的話。"
+                  placeholder={t("production.clipEdit.placeholderVo")}
                   onChange={(value) => update("englishVo", value)}
                 />
               )}
               {clip.clipNumber > 1 ? (
                 <div className="rounded-[1.25rem] border border-accent-ink/10 bg-paper/85 p-4 text-xs leading-5 text-muted">
                   <p className="font-display text-xs font-bold uppercase tracking-[0.14em]">
-                    提醒
+                    {t("production.clipEdit.continuityTitle")}
                   </p>
                   <p className="mt-2">
-                    上一段（#{clip.clipNumber - 1}）的結尾畫格是銜接到這段的；如果畫面變動很大，可回到時間軸單獨重畫那一張。
+                    {t("production.clipEdit.continuityBody", { prev: clip.clipNumber - 1 })}
                   </p>
                 </div>
               ) : null}
@@ -268,21 +257,24 @@ export function ClipEditDialog({
 
           <footer className="space-y-2 border-t border-accent-ink/10 px-6 py-4">
             <p className="text-xs text-muted">
-              儲存並重畫將扣 <strong className="text-foreground">{FRAMES_COST} credits</strong>
-              （起始＋結尾各 {FRAME_COST} · 剩餘 {credits}）。
+              {t("production.clipEdit.costNote", {
+                cost: FRAMES_COST,
+                frameCost: FRAME_COST,
+                remaining: credits,
+              })}
             </p>
             {!valid ? (
               <p className="text-xs font-medium text-accent">
-                {dualBeat ? "起始／結尾畫面與兩句旁白不能空白。" : "畫面描述與旁白不能空白。"}
+                {dualBeat ? t("production.clipEdit.validationDualBeat") : t("production.clipEdit.validationSingle")}
               </p>
             ) : !enoughCredits ? (
-              <p className="text-xs font-medium text-accent">credits 不足，仍可儲存文字；重畫會先加購或升級再繼續。</p>
+              <p className="text-xs font-medium text-accent">{t("production.clipEdit.insufficientCreditsSaveOk")}</p>
             ) : !canRegenerate && !busy ? (
-              <p className="text-xs font-medium text-accent">請等目前的動作完成後再重畫。</p>
+              <p className="text-xs font-medium text-accent">{t("production.clipEdit.waitForIdle")}</p>
             ) : null}
             {attempted && error ? (
               <p role="alert" className="text-xs font-medium text-accent">
-                {error}
+                {translateAppError(error, t)}
               </p>
             ) : null}
             <div className="flex flex-wrap items-center justify-end gap-2">
@@ -292,7 +284,7 @@ export function ClipEditDialog({
                 disabled={busy}
                 className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >
-                取消
+                {t("production.action.cancel")}
               </button>
               <button
                 type="submit"
@@ -300,7 +292,7 @@ export function ClipEditDialog({
                 className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/15 bg-paper px-5 text-sm font-semibold shadow-[3px_3px_0_0_rgba(198,242,75,0.9)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
               >
                 {pending === "save" ? <Spinner /> : null}
-                {pending === "save" ? "儲存中…" : "只儲存文字"}
+                {pending === "save" ? t("production.action.saving") : t("production.clipEdit.saveTextOnly")}
               </button>
               <button
                 type="button"
@@ -309,7 +301,9 @@ export function ClipEditDialog({
                 className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
               >
                 {pending === "regenerate" ? <Spinner /> : <RefreshIcon />}
-                {pending === "regenerate" ? "送出中…" : `儲存並重畫兩張 · ${FRAMES_COST} credits`}
+                {pending === "regenerate"
+                  ? t("production.action.submitting")
+                  : t("production.clipEdit.saveAndRedrawBoth", { cost: FRAMES_COST })}
               </button>
             </div>
           </footer>

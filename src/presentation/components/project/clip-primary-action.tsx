@@ -1,13 +1,13 @@
 "use client";
 
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { RefreshIcon } from "@/presentation/components/project/production-icons";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
-import { canRedrawFrames, clipNextAction } from "@/service/clip-next-action";
+import { canRedrawFrames, clipNextAction, clipNextActionText } from "@/service/clip-next-action";
 import { FRAMES_COST, needsVideoUpgrade } from "@/service/production-plan";
 import type { ClipState } from "@/service/clip-stage";
 
-// The clip's single "what to do next" button, plus a quiet redraw link.
 export function ClipPrimaryAction({
   state,
   nextUnfinished,
@@ -20,19 +20,18 @@ export function ClipPrimaryAction({
   onSelect,
 }: {
   state: ClipState;
-  // Clip number "下一段" jumps to; undefined when every other clip is done.
   nextUnfinished?: number;
   credits: number;
   hasFrames: boolean;
-  // Nothing else is running.
   idle: boolean;
-  // This clip's own action is being sent.
   pending: boolean;
   onGenerateFrames: () => void;
   onGenerateVideo: () => void;
   onSelect: (clipNumber: number) => void;
 }) {
+  const { t } = useI18n();
   const action = clipNextAction(state, nextUnfinished);
+  const text = clipNextActionText(t, action);
   const videoUpgrade = action.kind === "video" && needsVideoUpgrade(credits, action.cost);
   const short = action.cost > 0 && credits < action.cost && !videoUpgrade;
   const busy = action.kind === "busy" || pending;
@@ -44,7 +43,6 @@ export function ClipPrimaryAction({
     else if (action.kind === "next" && nextUnfinished !== undefined) onSelect(nextUnfinished);
   }
 
-  // Redraw stays available once frames exist, including while a video is queued.
   const showRedraw = canRedrawFrames(state, hasFrames) && action.kind !== "frames";
 
   return (
@@ -56,11 +54,11 @@ export function ClipPrimaryAction({
         className="w-full justify-center gap-2"
       >
         {busy ? <Spinner className="h-4 w-4" /> : null}
-        {action.label}
+        {text.label}
         {action.cost > 0 ? ` · ${action.cost}` : ""}
       </StudioButton>
       <p className="text-[11px] leading-4 text-[var(--studio-muted)]">
-        {short ? "credits 不足，點擊後可加購或升級並繼續產生。" : action.hint}
+        {short ? t("production.action.insufficientClickToUpgrade") : text.hint}
       </p>
       {showRedraw ? (
         <button
@@ -70,7 +68,7 @@ export function ClipPrimaryAction({
           className="inline-flex cursor-pointer items-center gap-1 self-start text-[11px] font-semibold text-[var(--studio-muted)] underline-offset-2 hover:text-[var(--studio-ink)] hover:underline disabled:cursor-not-allowed disabled:opacity-50"
         >
           <RefreshIcon />
-          重畫兩張畫格 · {FRAMES_COST}
+          {t("production.action.redrawBothFrames", { cost: FRAMES_COST })}
         </button>
       ) : null}
     </div>

@@ -1,3 +1,7 @@
+"use client";
+
+import { useI18n } from "@/presentation/components/i18n-provider";
+
 // Orange scene / blue video marks on a filmstrip clip. Shown only once that
 // output file exists, so a glance tells which clips are still empty.
 export function FilmstripMediaTags({
@@ -7,12 +11,13 @@ export function FilmstripMediaTags({
   hasScene: boolean;
   hasVideo: boolean;
 }) {
+  const { t } = useI18n();
   if (!hasScene && !hasVideo) return null;
   return (
     <span className="absolute bottom-1 left-1 flex items-center gap-0.5">
       {hasScene ? (
         <span
-          title="場景圖已完成"
+          title={t("production.filmstrip.sceneTagTitle")}
           className="grid h-4 w-4 place-items-center rounded-sm bg-orange-500 text-white shadow-sm"
         >
           <SceneIcon />
@@ -20,7 +25,7 @@ export function FilmstripMediaTags({
       ) : null}
       {hasVideo ? (
         <span
-          title="影片已完成"
+          title={t("production.filmstrip.videoTagTitle")}
           className="grid h-4 w-4 place-items-center rounded-sm bg-blue-500 text-white shadow-sm"
         >
           <VideoIcon />

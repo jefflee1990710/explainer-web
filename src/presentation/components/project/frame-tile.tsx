@@ -2,12 +2,14 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { FrameTileDrawing } from "@/presentation/components/project/frame-tile-drawing";
 import { frameTileFace } from "@/presentation/components/project/frame-tile-face";
 import { mediaRetrySrc } from "@/util/media-retry-src";
 import { PencilIcon } from "@/presentation/components/project/production-icons";
 import { userFacingJobError } from "@/service/higgsfield/job-status";
 import { mediaSrc } from "@/util/media-src";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { AspectRatio, ClipFrame, FramePosition } from "@/model/project";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -19,15 +21,6 @@ export const ASPECT_CLASS: Record<AspectRatio, string> = {
   "1:1": "aspect-square",
 };
 
-export const FRAME_LABEL: Record<FramePosition, string> = {
-  start: "起始",
-  end: "結尾",
-};
-
-// One start/end frame: skeleton while generating or the moment a redo is
-// clicked, image when done (click to annotate + redo), failed state, or an
-// empty "待畫格" placeholder when the clip has no frame entry yet. Single-frame
-// redraws go through the annotate dialog opened by `onOpen`.
 export function FrameTile({
   frame,
   position,
@@ -42,27 +35,38 @@ export function FrameTile({
   position: FramePosition;
   aspectRatio: AspectRatio;
   pending: boolean;
-  // Drawn before the latest text edit; shown dimmed.
   stale?: boolean;
-  // Hide the caption when the tile sits beside a finished video.
   compact?: boolean;
-  // Explicit contain-fit size from the preview stage.
   boxStyle?: { width: number; height: number };
   onOpen: () => void;
 }) {
+  const { t } = useI18n();
   const src = mediaSrc(frame);
   const [retryState, setRetryState] = useState({ key: "", n: 0 });
   const retry = src && retryState.key === src ? retryState.n : 0;
   const displaySrc = src ? mediaRetrySrc(src, retry) : undefined;
   const completed = frame?.status === "completed" && Boolean(src);
   const failed = frame?.status === "failed";
-  const error = failed ? userFacingJobError("failed", frame?.error) : undefined;
+  const errorRaw = failed ? userFacingJobError("failed", frame?.error) : undefined;
+  const error = errorRaw ? translateAppError(errorRaw, t) : undefined;
   const inFlight =
     pending ||
     frame?.status === "queued" ||
     frame?.status === "in_progress";
   const face = frameTileFace(frame, pending, Boolean(src));
-  const label = FRAME_LABEL[position];
+  const positionLabel = t(`production.frame.position.${position}`);
+  const label = positionLabel;
+
+  const statusCaption =
+    face === "empty"
+      ? t("production.frame.status.notGenerated")
+      : face === "failed"
+        ? t("production.frame.status.failed")
+        : face === "image"
+          ? t("production.frame.status.done")
+          : frame?.status === "queued" && !pending
+            ? t("production.frame.status.queued")
+            : t("production.frame.status.generating");
 
   return (
     <figure className="min-w-0 shrink-0">
@@ -78,7 +82,7 @@ export function FrameTile({
               key={src}
               type="button"
               onClick={onOpen}
-              aria-label={`放大並標註${label}畫格`}
+              aria-label={t("production.frame.annotateAria", { position: positionLabel })}
               initial={{ opacity: 0, scale: 1.04 }}
               animate={{ opacity: stale || failed ? 0.6 : 1, scale: 1 }}
               transition={{ duration: 0.4, ease }}
@@ -87,7 +91,7 @@ export function FrameTile({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={displaySrc}
-                alt={`${label}畫格`}
+                alt={t("production.frame.alt", { position: positionLabel })}
                 className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                 onError={() => {
                   if (!src) return;
@@ -101,12 +105,13 @@ export function FrameTile({
               />
               {failed ? (
                 <span className="absolute inset-x-0 bottom-0 bg-accent/85 px-2 py-1.5 text-center font-display text-[11px] font-bold text-white">
-                  產圖失敗{error ? `：${error}` : ""}
+                  {t("production.frame.generateFailed")}
+                  {error ? `：${error}` : ""}
                 </span>
               ) : (
                 <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-gradient-to-t from-accent-ink/70 to-transparent px-2 pb-2 pt-6 font-display text-[11px] font-bold text-paper opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
                   <PencilIcon className="h-3.5 w-3.5" />
-                  點擊標註修改
+                  {t("production.frame.clickToAnnotate")}
                 </span>
               )}
             </motion.button>
@@ -120,11 +125,9 @@ export function FrameTile({
               className="absolute inset-0 grid place-items-center bg-accent/10 p-3 text-center text-xs font-semibold text-accent"
             >
               <span>
-                產圖失敗
+                {t("production.frame.generateFailed")}
                 {error ? (
-                  <span className="mt-1 block font-medium leading-snug text-accent/90">
-                    {error}
-                  </span>
+                  <span className="mt-1 block font-medium leading-snug text-accent/90">{error}</span>
                 ) : null}
               </span>
             </motion.div>
@@ -135,7 +138,7 @@ export function FrameTile({
               animate={{ opacity: 1 }}
               className="absolute inset-0 grid place-items-center border-2 border-dashed border-accent-ink/15 text-xs font-semibold text-muted"
             >
-              待畫格
+              {t("production.frame.pending")}
             </motion.div>
           )}
         </AnimatePresence>
@@ -144,27 +147,17 @@ export function FrameTile({
         </span>
         {stale && completed ? (
           <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-accent px-2 py-0.5 font-display text-[10px] font-bold text-white">
-            舊版
+            {t("production.stale.badge")}
           </span>
         ) : null}
       </div>
       {compact ? null : (
-      <figcaption className="mt-2 flex items-center justify-between gap-2">
-        <span className="text-[11px] text-muted">
-          {face === "empty"
-            ? "尚未產生"
-            : face === "failed"
-              ? "失敗"
-              : face === "image"
-                ? "完成"
-                : frame?.status === "queued" && !pending
-                  ? "排隊中"
-                  : "生成中"}
-        </span>
-        {completed && !inFlight ? (
-          <span className="text-[11px] text-muted">點畫格標註修改</span>
-        ) : null}
-      </figcaption>
+        <figcaption className="mt-2 flex items-center justify-between gap-2">
+          <span className="text-[11px] text-muted">{statusCaption}</span>
+          {completed && !inFlight ? (
+            <span className="text-[11px] text-muted">{t("production.frame.hint.annotate")}</span>
+          ) : null}
+        </figcaption>
       )}
     </figure>
   );

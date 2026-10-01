@@ -3,6 +3,7 @@
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandMark } from "@/presentation/components/brand-mark";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { CreditMeter } from "@/presentation/studio/credit-meter";
 
 export type StudioNavItem = {
@@ -54,6 +55,7 @@ export function StudioShell({
 
 // Full-height rail: brand + nav, then credits / account at the bottom.
 function StudioRail({ items, children }: { items: StudioNavItem[]; children: React.ReactNode }) {
+  const { t } = useI18n();
   const pathname = usePathname();
   return (
     <aside className="relative z-20 flex h-full w-[72px] shrink-0 flex-col border-r border-[var(--studio-line)] bg-[var(--studio-panel)] p-2 lg:w-[200px]">
@@ -63,7 +65,7 @@ function StudioRail({ items, children }: { items: StudioNavItem[]; children: Rea
           wordClassName="hidden text-xl font-bold tracking-tight lg:inline"
         />
       </div>
-      <nav aria-label="主選單" className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+      <nav aria-label={t("production.shell.mainNavAria")} className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
         {items.map((item) => (
           <StudioNavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
         ))}

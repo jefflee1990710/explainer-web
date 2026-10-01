@@ -119,11 +119,11 @@ export function dualBeatDirectorBlock(
     "startScene: the t=0 still only — one frozen pose, props, environment. Not a motion paragraph. Exactly one figure per named character.",
     "endScene: the t=N still only — the later frozen pose on the same locked camera, not a near-copy of startScene. Still exactly one figure per named character. Never write a turning/walking action ('從側身轉正面') inside startScene or endScene.",
     "If the beat is a turn or step: startScene = the first resting pose, endScene = the landed resting pose. The travel itself lives only in motionCamera.",
-    "motionCamera: interpolation path and travel distance between those two stills. Never a still prompt.",
+    "motionCamera: the transition script between those two stills (see the motionCamera contract). Never a still prompt.",
     "startVo: first spoken sentence (0s → midpoint). endVo: second spoken sentence (midpoint → end).",
     "englishVo must be exactly startVo then endVo. explainerScene may repeat 起始：…。結尾：… for compatibility.",
     sceneTextEnabled
-      ? "On-canvas text ON: start still quotes ONLY startVo; end still quotes ONLY endVo as handwritten marker lettering centered at 52%–60% of the frame height, max 2 lines, generous side margins. Not a bottom subtitle bar. English is all-caps black marker; the second line sits in a warm-yellow highlight box. Two beats switch at the midpoint. Never both voiceover lines on one still."
+      ? "On-canvas text ON: start still quotes ONLY startVo; end still quotes ONLY endVo as handwritten marker lettering centered at 52%–60% of the frame height, max 2 lines, generous side margins. Not a bottom subtitle bar. English is all-caps black marker; the second line sits in a warm-yellow highlight box. Two beats switch at the midpoint. Never both voiceover lines on one still. motionCamera includes a midpoint beat where the startVo lettering wipes off and the endVo lettering writes on in the same spot. Never copy the voiceover lettering into startScene or endScene; the still prompt adds it from startVo / endVo."
       : inWorldLabels
         ? "Voiceover captions OFF: no subtitle band or title card on either still. Short in-world handwritten labels (yellow tags, arrow labels, box or bin names, 1–3 all-caps words in 「」) ARE allowed and encouraged — they count toward the 3–4 visual devices per still."
         : "On-canvas text OFF: no writing on either still.",

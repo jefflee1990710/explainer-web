@@ -24,10 +24,17 @@ function queuedRow(input: {
   clipNumber: number;
   position: "video" | "start" | "end";
 }): PublicTask {
+  const n = input.clipNumber;
   const detail =
     input.position === "video"
-      ? `Clip ${input.clipNumber} · 影片`
-      : `Clip ${input.clipNumber} · ${input.position === "end" ? "結尾畫格" : "起始畫格"}`;
+      ? `Clip ${n} · 影片`
+      : `Clip ${n} · ${input.position === "end" ? "結尾畫格" : "起始畫格"}`;
+  const detailKey =
+    input.position === "video"
+      ? "tasksPage.detail.clipVideo"
+      : input.position === "end"
+        ? "tasksPage.detail.clipFrameEnd"
+        : "tasksPage.detail.clipFrameStart";
   const kind = input.position === "video" ? "video" : "frame";
   sequence += 1;
   return {
@@ -36,6 +43,8 @@ function queuedRow(input: {
     stage: "queued",
     title: input.title,
     detail,
+    detailKey,
+    detailParams: { n },
     isVideo: kind === "video",
     href: hrefFor(input.projectId, input.videoId),
     attempts: 0,

@@ -102,6 +102,9 @@ import { DEFAULT_SPEECH_PACE, SPEECH_PACE_PRESETS } from "@/service/director/spe
 import { SceneTextPicker } from "@/presentation/components/app/projects/new/scene-text-picker";
 import { VideoEditDesk } from "@/presentation/components/app/projects/new/video-edit-desk";
 import { ReviseStoryboardDialog } from "@/presentation/components/app/projects/new/revise-storyboard-dialog";
+import { useI18n } from "@/presentation/components/i18n-provider";
+import { translateAppError } from "@/util/i18n/translate-app-error";
+import { sceneTextLangLabel, speechPaceLabel } from "@/util/i18n/picker-labels";
 import { useProjectPoll } from "@/presentation/components/app/projects/new/use-project-poll";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -136,6 +139,7 @@ export function NewProjectForm({
   onStepNav?: (nav: EditorStepNav | null) => void;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const pathname = usePathname();
   // New-video dialog recalls this folder's last picks; never the script.
   const lastBrief = initialVideo
@@ -240,7 +244,7 @@ export function NewProjectForm({
       });
     }
   }, [project, pushToast]);
-  const onPollError = useCallback((message: string) => setError(message), []);
+  const onPollError = useCallback((message: string) => setError(translateAppError(message, t)), [t]);
   useProjectPoll(project, onPollUpdate, onPollError);
 
   // Parent may show a list snapshot first, then replace with a fresh fetch.
@@ -306,11 +310,11 @@ export function NewProjectForm({
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!aspectRatio) {
-      setError("請選擇畫面比例");
+      setError(t("brief.error.aspectRatioRequired"));
       return;
     }
     if (castNeed > 0 && characterIds.length !== castNeed) {
-      setError(`這個導演需要正好 ${castNeed} 個角色`);
+      setError(t("brief.error.castCount", { n: castNeed }));
       return;
     }
     if (restarting) {
@@ -337,7 +341,7 @@ export function NewProjectForm({
     setSubmitting(false);
     setConfirmBrief(false);
     if (!result.ok) {
-      setError(result.error);
+      setError(translateAppError(result.error, t));
       return;
     }
     // Switch to the stepper immediately; Phase A runs in the background.
@@ -355,7 +359,7 @@ export function NewProjectForm({
     setSubmitting(false);
     setConfirmRestart(false);
     if (!result.ok) {
-      setError(result.error);
+      setError(translateAppError(result.error, t));
       return;
     }
     setRestarting(false);
@@ -424,7 +428,7 @@ export function NewProjectForm({
           paidKeyTasks({
             videoId: project.id,
             projectId: project.projectId,
-            title: project.phaseA?.localizedTitle || "未命名影片",
+            title: project.phaseA?.localizedTitle || t("brief.fallback.unnamedVideo"),
             keys: queueKeys ?? [key],
           }),
         )
@@ -441,7 +445,7 @@ export function NewProjectForm({
           setProject(redoSnapshotRef.current);
           redoSnapshotRef.current = null;
         }
-        setError(result.error);
+        setError(translateAppError(result.error, t));
         notifyTasksChanged();
         if (isCreditGateError(result.error)) {
           openCreditGate(spend || 1, () => {
@@ -561,7 +565,7 @@ export function NewProjectForm({
     setError("");
     void composeReelAction(videoId).then((result) => {
       setPending("");
-      if (!result.ok) setError(result.error);
+      if (!result.ok) setError(translateAppError(result.error, t));
       else setProject(result.project);
     });
   }, [videoId]);
@@ -573,7 +577,7 @@ export function NewProjectForm({
     setError("");
     const result = await retryProjectAction(project.id);
     setPending("");
-    if (!result.ok) setError(result.error);
+    if (!result.ok) setError(translateAppError(result.error, t));
     else setProject(result.project);
   }
 
@@ -623,9 +627,9 @@ export function NewProjectForm({
 
   const skillTitle =
     skills.find((item) => item.slug === (project?.skillSlug || skillSlug))?.titleZh ||
-    "影片類型";
+    t("brief.fallback.videoType");
   const styleName =
-    styles.find((item) => item.id === (project?.styleId || styleId))?.nameZh || "視覺風格";
+    styles.find((item) => item.id === (project?.styleId || styleId))?.nameZh || t("brief.fallback.visualStyle");
   const liveStep = currentStepFor(
     project?.status ?? "draft",
     project?.status === "failed" ? failedStepFor(project) : undefined,
@@ -722,7 +726,7 @@ export function NewProjectForm({
             >
               <input type="hidden" name="projectId" value={projectId} />
 
-              <Section step="01" title="影片類型" hint="這支影片要用哪一種敘事方式：解說、故事、Demo、Q&A、清單或教學。">
+              <Section step="01" title={t("brief.section01.title")} hint={t("brief.section01.hint")}>
                 <SkillPicker
                   skills={skills}
                   value={skillSlug}
@@ -730,9 +734,9 @@ export function NewProjectForm({
                   disabled={briefBusy}
                 />
                 {/* Visual style sits under the narrative skill in the same step. */}
-                <p className="mt-5 text-sm font-semibold">視覺風格</p>
+                <p className="mt-5 text-sm font-semibold">{t("brief.visualStyle.title")}</p>
                 <p className="mt-1 text-xs text-muted">
-                  分鏡圖與影片的畫風；角色必須是同一種風格。
+                  {t("brief.visualStyle.hint")}
                 </p>
                 <div className="mt-3">
                   <StylePicker
@@ -742,11 +746,11 @@ export function NewProjectForm({
                     disabled={briefBusy}
                   />
                 </div>
-                <p className="mt-5 text-sm font-semibold">角色</p>
+                <p className="mt-5 text-sm font-semibold">{t("brief.cast.title")}</p>
                 <p className="mt-1 text-xs text-muted">
                   {castNeed === 2
-                    ? "必須正好選 2 個角色（提問者與回答者），少一個或多一個都不能開始。只顯示與上方風格相同的角色。"
-                    : "選填。最多 4 個；只顯示與上方風格相同的角色。"}
+                    ? t("brief.cast.hintRequiredTwo")
+                    : t("brief.cast.hintOptional")}
                 </p>
                 <div className="mt-3">
                   <CharacterPicker
@@ -761,9 +765,9 @@ export function NewProjectForm({
                 </div>
               </Section>
 
-              <Section step="02" title="題材或腳本" hint="貼上文章、產品說明、或你想解釋的概念。">
+              <Section step="02" title={t("brief.section02.title")} hint={t("brief.section02.hint")}>
                 <label htmlFor="source" className="sr-only">
-                  題材或腳本
+                  {t("brief.source.label")}
                 </label>
                 <textarea
                   id="source"
@@ -774,20 +778,20 @@ export function NewProjectForm({
                   onChange={(event) => setSource(event.target.value)}
                   disabled={briefBusy}
                   className="w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-base leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-                  placeholder="例如：為什麼複利對年輕人特別重要？用一個簡單的比喻說明，最後給一個行動建議。"
+                  placeholder={t("brief.source.placeholder")}
                 />
                 <p className="mt-2 text-right text-xs tabular-nums text-muted">
-                  {source.length.toLocaleString()} 字
+                  {t("brief.source.charCount", { n: source.length.toLocaleString() })}
                 </p>
               </Section>
 
               <Section
                 step="03"
-                title={dialogueOnly ? "對白語言與語速" : "旁白語言、語速與聲線"}
+                title={dialogueOnly ? t("brief.section03.titleDialogue") : t("brief.section03.titleNarration")}
                 hint={
                   dialogueOnly
-                    ? "角色用這個語言、這個語速說話；聲線在產片時依角色外貌自動決定。這個導演沒有旁白。分鏡說明維持繁體中文。"
-                    : "影片會用這個語言、語速與男／女聲配旁白；分鏡說明維持繁體中文。"
+                    ? t("brief.section03.hintDialogue")
+                    : t("brief.section03.hintNarration")
                 }
               >
                 <LanguagePicker
@@ -796,18 +800,18 @@ export function NewProjectForm({
                   disabled={briefBusy}
                   dialogueOnly={dialogueOnly}
                 />
-                <p className="mt-4 text-sm font-semibold">語速</p>
+                <p className="mt-4 text-sm font-semibold">{t("brief.speechPaceSection.title")}</p>
                 <p className="mt-1 text-xs text-muted">
-                  影響每段講多少字：慢速字數較少、句間有停頓；快速字數較多。
+                  {t("brief.speechPaceSection.hint")}
                 </p>
                 <div className="mt-3">
                   <SpeechPacePicker value={speechPace} onChange={setSpeechPace} disabled={briefBusy} />
                 </div>
                 {dialogueOnly ? null : (
                   <>
-                    <p className="mt-4 text-sm font-semibold">旁白聲線</p>
+                    <p className="mt-4 text-sm font-semibold">{t("brief.voiceSection.title")}</p>
                     <p className="mt-1 text-xs text-muted">
-                      產片時旁白會鎖定這個成年聲線，全程不換性別。
+                      {t("brief.voiceSection.hint")}
                     </p>
                     <div className="mt-3">
                       <VoicePicker value={voiceGender} onChange={setVoiceGender} disabled={briefBusy} />
@@ -818,11 +822,11 @@ export function NewProjectForm({
 
               <Section
                 step="04"
-                title="畫面文字"
+                title={t("brief.section04.title")}
                 hint={
                   forceSceneText
-                    ? "清單式導演會在畫面列出項目文字，選擇文字語言。"
-                    : "每張分鏡圖都會寫上畫面文字，選擇文字語言。"
+                    ? t("brief.section04.hintListicle")
+                    : t("brief.section04.hintDefault")
                 }
               >
                 <SceneTextPicker
@@ -832,7 +836,7 @@ export function NewProjectForm({
                 />
               </Section>
 
-              <Section step="05" title="畫面比例" hint="依投放平台選擇。">
+              <Section step="05" title={t("brief.section05.title")} hint={t("brief.section05.hint")}>
                 <AspectRatioPicker
                   value={aspectRatio}
                   onChange={setAspectRatio}
@@ -840,7 +844,7 @@ export function NewProjectForm({
                 />
               </Section>
 
-              <Section step="06" title="片長" hint="影響 clip 數量，也就是產片時要扣的 credits。">
+              <Section step="06" title={t("brief.section06.title")} hint={t("brief.section06.hint")}>
                 <DurationPicker
                   value={durationPreset}
                   onChange={setDurationPreset}
@@ -850,7 +854,7 @@ export function NewProjectForm({
 
               {error ? (
                 <p role="alert" className="text-sm font-medium text-accent">
-                  {error}
+                  {translateAppError(error, t)}
                 </p>
               ) : null}
 
@@ -863,12 +867,12 @@ export function NewProjectForm({
                 >
                   {submitting ? <Spinner /> : null}
                   {submitting
-                    ? "送出中…"
+                    ? t("brief.submit.submitting")
                     : restarting
-                      ? "重新產生"
+                      ? t("brief.submit.regenerate")
                       : project
-                        ? "儲存並重新產生分鏡"
-                        : "開始製作"}
+                        ? t("brief.submit.saveAndRegenerateStoryboard")
+                        : t("brief.submit.start")}
                 </motion.button>
                 {restarting ? (
                   <button
@@ -877,17 +881,17 @@ export function NewProjectForm({
                     disabled={submitting}
                     className="inline-flex min-h-[48px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:opacity-60"
                   >
-                    取消
+                    {t("common.cancel")}
                   </button>
                 ) : null}
                 <p className="text-xs text-muted">
                   {castNeed > 0 && characterIds.length !== castNeed
-                    ? `請先選正好 ${castNeed} 個角色，才能開始。`
+                    ? t("brief.footer.castRequired", { n: castNeed })
                     : restarting
-                      ? "會刪掉這支影片的分鏡、畫格與影片，再依這份題材從頭產生分鏡。已花的 credits 不會退回。"
+                      ? t("brief.footer.restartWarning")
                       : project
-                        ? "改題材會重寫分鏡並回到製作。已產生的畫格與影片會留著，但可能對不上。"
-                        : "這一步不扣 credits。分鏡寫好後會直接進入製作，產畫格與影片才扣款。"}
+                        ? t("brief.footer.editBriefWarning")
+                        : t("brief.footer.noCharge")}
                 </p>
               </div>
             </motion.form>
@@ -909,7 +913,7 @@ export function NewProjectForm({
               <Dot />
               <span>{LANGUAGE_PRESETS[language].label}</span>
               <Dot />
-              <span>{`語速 · ${SPEECH_PACE_PRESETS[speechPace].label}`}</span>
+              <span>{t("brief.summary.speechPace", { label: speechPaceLabel(t, speechPace).label })}</span>
               {dialogueOnly ? null : (
                 <>
                   <Dot />
@@ -918,7 +922,7 @@ export function NewProjectForm({
               )}
               <Dot />
               <span>
-                {`畫面文字 · ${SCENE_TEXT_PRESETS[sceneTextLanguage].label}`}
+                {t("brief.summary.sceneText", { label: sceneTextLangLabel(t, sceneTextLanguage).label })}
               </span>
               <Dot />
               <span>{aspectRatio}</span>
@@ -991,9 +995,9 @@ export function NewProjectForm({
         {confirmBrief ? (
           <ReviseStoryboardDialog
             pending={submitting}
-            title="重新產生分鏡？"
-            body="會依這份題材重寫分鏡並回到製作。已產生的畫格與影片會留著，但可能對不上新分鏡。"
-            confirmLabel="確認重寫"
+            title={t("brief.confirm.regenerateStoryboard.title")}
+            body={t("brief.confirm.regenerateStoryboard.body")}
+            confirmLabel={t("brief.confirm.regenerateStoryboard.confirm")}
             onCancel={() => {
               if (!submitting) setConfirmBrief(false);
             }}
@@ -1005,10 +1009,10 @@ export function NewProjectForm({
         {confirmRestart ? (
           <ReviseStoryboardDialog
             pending={submitting}
-            title="重新開始這支影片？"
-            body="會永久刪除這支影片目前所有的分鏡、場景圖與 clip 影片，再依表單內容從頭產生分鏡。已花的 credits 不會退回，刪除後無法復原。"
-            confirmLabel="刪除並重新產生"
-            pendingLabel="重新開始中…"
+            title={t("brief.confirm.restart.title")}
+            body={t("brief.confirm.restart.body")}
+            confirmLabel={t("brief.confirm.restart.confirm")}
+            pendingLabel={t("brief.confirm.restart.pending")}
             onCancel={() => {
               if (!submitting) setConfirmRestart(false);
             }}
@@ -1057,9 +1061,10 @@ function FailedCard({
   pending: string;
   onRetry: () => void;
 }) {
+  const { t } = useI18n();
   // Only Phase A can fail at project level now; anything further back is a
   // per-clip failure the user redoes inside the production workspace.
-  const label = project.phaseA ? "回到製作，逐段重做" : "重新產生分鏡";
+  const label = project.phaseA ? t("brief.failed.retryToProduction") : t("brief.failed.retryRegenerateStoryboard");
   return (
     <motion.section
       role="alert"
@@ -1068,8 +1073,8 @@ function FailedCard({
       exit={{ opacity: 0, y: -12, transition: { duration: 0.2 } }}
       className="rounded-[1.5rem] border border-accent/40 bg-paper/85 p-6 shadow-[6px_6px_0_0_rgba(255,77,46,0.35)]"
     >
-      <p className="font-display text-lg font-bold text-accent">這次沒有成功</p>
-      <p className="mt-2 text-sm text-muted">{project.error || "請再試一次。"}</p>
+      <p className="font-display text-lg font-bold text-accent">{t("brief.failed.title")}</p>
+      <p className="mt-2 text-sm text-muted">{translateAppError(project.error || t("brief.failed.retryDefault"), t)}</p>
       <button
         type="button"
         onClick={onRetry}
@@ -1079,7 +1084,7 @@ function FailedCard({
         {pending ? <Spinner /> : null}
         {label}
       </button>
-      <p className="mt-3 text-xs text-muted">失敗階段的 credits 已自動退回，重試不會重複扣款。</p>
+      <p className="mt-3 text-xs text-muted">{t("brief.failed.creditsRefunded")}</p>
     </motion.section>
   );
 }

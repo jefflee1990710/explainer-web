@@ -3,8 +3,10 @@
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteCharacterAction } from "@/presentation/actions/characters";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicCharacter } from "@/presentation/serialize";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 
 // Confirm and delete a character plus all stored images.
 export function DeleteCharacterDialog({
@@ -14,6 +16,7 @@ export function DeleteCharacterDialog({
   character: PublicCharacter;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const titleId = useId();
   const [error, setError] = useState("");
@@ -25,7 +28,7 @@ export function DeleteCharacterDialog({
     const result = await deleteCharacterAction(character.id);
     if (!result.ok) {
       setDeleting(false);
-      setError(result.error);
+      setError(translateAppError(result.error, t));
       return;
     }
     router.push("/app/characters");
@@ -44,11 +47,11 @@ export function DeleteCharacterDialog({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id={titleId} className="font-display text-2xl font-bold">
-          刪除角色
+          {t("characters.deleteTitle")}
         </h2>
         <p className="mt-2 text-sm leading-6 text-muted">
-          確定要刪除「{character.name}」嗎？這會一併刪除所有版本的藍圖、參考圖與相關儲存檔案，且無法復原。
-          {character.pending ? " 目前有版本仍在產生中，刪除後該次產生也會停止。" : null}
+          {t("characters.deleteBody", { name: character.name })}
+          {character.pending ? t("characters.deletePendingNote") : null}
         </p>
         {error ? (
           <p role="alert" className="mt-4 text-sm text-accent">
@@ -62,7 +65,7 @@ export function DeleteCharacterDialog({
             disabled={deleting}
             className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:opacity-60"
           >
-            取消
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -72,7 +75,7 @@ export function DeleteCharacterDialog({
             className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {deleting ? <Spinner className="h-4 w-4" /> : null}
-            永久刪除
+            {t("video.delete.confirm")}
           </button>
         </div>
       </div>

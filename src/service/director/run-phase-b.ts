@@ -9,6 +9,7 @@ import { directorModel } from "@/service/director/model";
 import {
   clipPhaseBUserPrompt,
   phaseBCharacterLine,
+  phaseBLetteringLock,
   phaseBWardrobeLock,
 } from "@/service/director/phase-b-clip-prompt";
 import { phaseBClipSchema } from "@/model/director";
@@ -81,11 +82,16 @@ export async function runPhaseBForClip(
     bansNarration: skillBansNarration(input.skill.slug),
     speechPace: input.speechPace,
   });
-  // Audio, narrator, and wardrobe locks ride on every clip; empty locks are skipped.
+  const row = input.phaseA.clips.find((clip) => clip.clipNumber === input.clipNumber);
+  // Audio, narrator, wardrobe, and lettering locks ride on every clip; empty locks are skipped.
   const prompt = [
     lock,
     cartoonNarratorVideoLock(input.skill.slug),
     phaseBWardrobeLock(input),
+    phaseBLetteringLock({
+      skillSlug: input.skill.slug,
+      durationSeconds: row?.durationSeconds ?? output.durationSeconds,
+    }),
   ]
     .filter(Boolean)
     .reduce(finalizePhaseBPrompt, output.prompt);

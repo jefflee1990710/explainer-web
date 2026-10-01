@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { SkillGuideRows } from "@/presentation/components/app/projects/[id]/skill-guide-rows";
 import { skillGuideFor } from "@/presentation/components/app/projects/[id]/skill-guide";
 import type { PublicSkill } from "@/presentation/serialize";
@@ -17,8 +18,9 @@ export function SkillPicker({
   onChange: (slug: string) => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   if (skills.length === 0) {
-    return <p className="text-sm text-muted">目前沒有可用的影片類型。</p>;
+    return <p className="text-sm text-muted">{t("brief.skill.empty")}</p>;
   }
 
   const selectedGuide = skillGuideFor(value);
@@ -26,7 +28,7 @@ export function SkillPicker({
   return (
     <div className="space-y-3">
       {selectedGuide ? <SkillGuideRows guide={selectedGuide} /> : null}
-      <div role="radiogroup" aria-label="影片類型" className="grid gap-2 sm:grid-cols-2">
+      <div role="radiogroup" aria-label={t("brief.skill.aria")} className="grid gap-2 sm:grid-cols-2">
         {skills.map((skill) => {
           const active = skill.slug === value;
           return (

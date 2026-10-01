@@ -18,7 +18,7 @@ export function VideoListItem({
 }) {
   const { t } = useI18n();
   const preview = videoPreviewUrl(video);
-  const title = video.title || "未命名影片";
+  const title = video.title || t("video.card.unnamed");
   const label = projectStatusLabel(video.status, t);
   const aria = `${title}，${label}`;
 
@@ -85,8 +85,8 @@ function StatusOverlay({ video, compact }: { video: PublicVideoCard; compact: bo
   const detail =
     (video.status === "production" || video.status === "ready") && video.videosTotal > 0
       ? compact
-        ? `影片 ${video.videosDone}/${video.videosTotal}`
-        : `影片 ${video.videosDone}/${video.videosTotal}`
+        ? t("video.card.progress", { done: video.videosDone, total: video.videosTotal })
+        : t("video.card.progress", { done: video.videosDone, total: video.videosTotal })
       : video.status === "failed" && video.error
         ? video.error
         : null;

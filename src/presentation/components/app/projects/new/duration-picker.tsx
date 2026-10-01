@@ -1,7 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
+import { durationPresetLabel } from "@/util/i18n/picker-labels";
 import type { DurationPreset } from "@/model/project";
 
 // Chip list for target length; each chip also states the clip budget.
@@ -14,10 +16,12 @@ export function DurationPicker({
   onChange: (value: DurationPreset) => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   return (
-    <div role="radiogroup" aria-label="片長" className="grid gap-2 sm:grid-cols-2">
+    <div role="radiogroup" aria-label={t("brief.duration.aria")} className="grid gap-2 sm:grid-cols-2">
       {Object.values(DURATION_PRESETS).map((preset) => {
         const active = preset.id === value;
+        const labels = durationPresetLabel(t, preset.id);
         return (
           <motion.button
             key={preset.id}
@@ -33,13 +37,13 @@ export function DurationPicker({
                 : "border-accent-ink/10 bg-paper/70 hover:border-accent-ink/30"
             }`}
           >
-            <span className="text-sm font-semibold">{preset.label}</span>
+            <span className="text-sm font-semibold">{labels.label}</span>
             <span
               className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
                 active ? "bg-lime text-accent-ink" : "bg-accent-ink/5 text-muted"
               }`}
             >
-              {preset.hint}
+              {labels.hint}
             </span>
           </motion.button>
         );

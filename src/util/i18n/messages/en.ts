@@ -1,4 +1,10 @@
 import type { Messages } from "@/util/i18n/messages/types";
+import { briefEn } from "@/util/i18n/messages/workspace/brief.en";
+import { errorsEn } from "@/util/i18n/messages/workspace/errors.en";
+import { pickersEn } from "@/util/i18n/messages/workspace/pickers.en";
+import { productionEn } from "@/util/i18n/messages/workspace/production.en";
+import { tasksPageEn } from "@/util/i18n/messages/workspace/tasks.en";
+import { videoEn } from "@/util/i18n/messages/workspace/video.en";
 
 export const en: Messages = {
   meta: {
@@ -28,6 +34,7 @@ export const en: Messages = {
     cancel: "Cancel",
     save: "Save",
     close: "Close",
+    dismissNotification: "Dismiss notification",
     create: "Create",
     loading: "Loading…",
     popular: "Most popular",
@@ -65,6 +72,9 @@ export const en: Messages = {
       title: "Need more than Scale?",
       body: "Custom credits, invoicing, and a contract for teams that outgrow the listed plans.",
       cta: "Contact us",
+      cardLabel: "Enterprise",
+      nameLine: "{nameLocal} / {name}",
+      quote: "Custom quote",
     },
     showcase: {
       title: "See the results",
@@ -167,6 +177,8 @@ export const en: Messages = {
     tablePreview: "Preview",
     tableName: "Project",
     tableVideos: "Videos",
+    videoCount: "{n} videos",
+    previewAlt: "{name} preview",
   },
   project: {
     steps: {
@@ -198,6 +210,60 @@ export const en: Messages = {
     create: "New character",
     emptyTitle: "No characters yet",
     emptyBody: "Create a character blueprint to reuse across every video.",
+    backToList: "← Back to characters",
+    noVersions: "This character has no versions yet.",
+    nameAria: "Character name",
+    versionCount: "{n} versions",
+    deleteCharacter: "Delete character",
+    modalIntro:
+      "We generate a character blueprint (turnaround, walk cycle, expression sheet). Add a description or at least one reference; more photos improve likeness.",
+    nameLabel: "Character name",
+    namePlaceholder: "e.g. Alex",
+    styleLabel: "Style",
+    describeLabel: "Description (optional)",
+    describePlaceholder:
+      "e.g. Seven-year-old boy, round face, three tufts of hair, blue plaid pajamas and black cloth shoes.",
+    costLine: "Costs {cost} credits ({remaining} left)",
+    subscribeRequired: "An active subscription is required to generate a blueprint.",
+    generateBlueprint: "Generate blueprint",
+    referencesTitle: "Reference photos (optional, up to {max})",
+    referencesHint: "Drop or choose face, full-body, or outfit photos for a closer match.",
+    referenceAlt: "Reference {n}",
+    removeReferenceAria: "Remove reference {n}",
+    addMorePhotos: "Add more photos",
+    chooseOrDropPhotos: "Choose or drop photos",
+    deleteTitle: "Delete character",
+    deleteBody:
+      'Delete “{name}”? This removes all blueprint versions, references, and stored files permanently.',
+    deletePendingNote: " A version is still generating; deleting will stop it.",
+    referencesUploadFailed: "Upload failed. Try again.",
+    cardGenerating: "Generating",
+    cardFailed: "Failed",
+    blueprintAlt: "{name} blueprint",
+    versionsHeading: "Versions",
+    defaultBadge: "Default",
+    editedFromVersion: " · edited from v{n}",
+    versionStatusQueued: "Queued",
+    versionStatusInProgress: "Generating",
+    versionStatusCompleted: "Done",
+    versionStatusFailed: "Failed",
+    versionBlueprintAlt: "{name} v{n} blueprint",
+    blueprintGenerating: "Generating blueprint, about a minute",
+    versionFailedFallback: "This version did not succeed",
+    changeThisRun: "Changes this run",
+    characterDescription: "Character description",
+    characterSource: "Character source",
+    characterFromReferences: "From references and style",
+    setDefault: "Set as default",
+    editFromVersion: "Edit from this version",
+    retryCredits: "Retry · {cost} credits",
+    creditsShortSubscribed:
+      "Not enough credits ({remaining} left). Click to top up and continue.",
+    creditsNeedSubscribe: "An active subscription is required. Click to subscribe and continue.",
+    creditsRemaining: "{remaining} credits left",
+    editWhatLabel: "What should change?",
+    editWhatPlaceholder: "e.g. Red pajamas, add a baseball cap.",
+    generateNewVersion: "New version · {cost} credits",
   },
   settings: {
     title: "Settings",
@@ -211,6 +277,9 @@ export const en: Messages = {
     title: "Billing & credits",
     checkoutSuccess:
       "Payment complete. If credits have not updated yet, wait for the webhook to sync.",
+    checkoutReturningSuccess: "Payment complete. Returning to Scro…",
+    checkoutReturningCancel: "Checkout canceled",
+    checkoutReturningWait: "Returning to Scro…",
     currentPlan: "Current plan: {plan} ({status})",
     periodInfo: "{monthly} credits per month · period ends {date}",
     manageSubscription: "Manage subscription",
@@ -362,6 +431,12 @@ export const en: Messages = {
       blurb: "For agencies and teams making videos for many clients.",
     },
   },
+  brief: briefEn,
+  video: videoEn,
+  production: productionEn,
+  tasksPage: tasksPageEn,
+  pickers: pickersEn,
+  errors: errorsEn,
   auth: {
     signInTitle: "Sign in",
     signUpTitle: "Create account",

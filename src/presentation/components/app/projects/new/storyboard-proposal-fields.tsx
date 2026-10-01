@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { skillBansNarration } from "@/service/director/skill-rules";
 import type { PhaseAEditInput } from "@/model/project";
 
@@ -17,6 +18,7 @@ export function StoryboardProposalFields({
   disabled?: boolean;
   onChange: (next: PhaseAEditInput) => void;
 }) {
+  const { t } = useI18n();
   function update<K extends keyof Omit<PhaseAEditInput, "clips">>(
     key: K,
     value: PhaseAEditInput[K],
@@ -52,28 +54,28 @@ export function StoryboardProposalFields({
       </div>
       <dl className="grid gap-4 text-sm md:grid-cols-2">
         <EditField
-          label="核心訊息"
+          label={t("brief.proposal.coreMessage")}
           value={draft.coreMessage}
           rows={3}
           disabled={disabled}
           onChange={(value) => update("coreMessage", value)}
         />
         <EditField
-          label="開場鉤子"
+          label={t("brief.proposal.hook")}
           value={draft.hookStrategy}
           rows={3}
           disabled={disabled}
           onChange={(value) => update("hookStrategy", value)}
         />
         <EditField
-          label={skillBansNarration(skillSlug) ? "角色聲線" : "旁白角色"}
+          label={skillBansNarration(skillSlug) ? t("brief.proposal.castVoice") : t("brief.proposal.narrator")}
           value={draft.narrator}
           rows={2}
           disabled={disabled}
           onChange={(value) => update("narrator", value)}
         />
         <EditField
-          label="視覺世界"
+          label={t("brief.proposal.visualWorld")}
           value={draft.visualWorld}
           rows={3}
           disabled={disabled}

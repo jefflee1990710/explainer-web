@@ -1,18 +1,26 @@
+"use client";
+
 import Link from "next/link";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { TaskClockLabel } from "@/presentation/components/app/tasks/task-clock-label";
 import { TaskStageBadge } from "@/presentation/components/app/tasks/task-stage-badge";
 import type { PublicTask } from "@/service/generation/task-list";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 
 // One generation task: preview, what it is, where it stands.
 export function TaskRow({ task, clock = false }: { task: PublicTask; clock?: boolean }) {
+  const { t, locale } = useI18n();
   const busy = task.stage !== "done" && task.stage !== "failed";
-  const time = new Date(task.updatedAt).toLocaleString("zh-Hant", {
+  const time = new Date(task.updatedAt).toLocaleString(locale, {
     month: "numeric",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
+  const detail = task.detailKey
+    ? t(task.detailKey, task.detailParams)
+    : task.detail;
   return (
     <li className="flex items-center gap-3 border-b border-[var(--studio-line)] px-3 py-2.5 last:border-b-0">
       <div className="grid h-14 w-20 shrink-0 place-items-center overflow-hidden rounded-md border border-[var(--studio-line)] bg-[var(--studio-canvas)]">
@@ -42,7 +50,7 @@ export function TaskRow({ task, clock = false }: { task: PublicTask; clock?: boo
           {task.title}
         </Link>
         <p className="text-xs text-[var(--studio-muted)]">
-          {task.detail} ·{" "}
+          {detail} ·{" "}
           {clock ? (
             <TaskClockLabel
               createdAt={task.createdAt}
@@ -55,9 +63,13 @@ export function TaskRow({ task, clock = false }: { task: PublicTask; clock?: boo
               {time}
             </time>
           )}
-          {task.stage === "queued" && task.attempts > 0 ? ` · 第 ${task.attempts + 1} 次嘗試` : ""}
+          {task.stage === "queued" && task.attempts > 0
+            ? t("tasksPage.attempt", { n: task.attempts + 1 })
+            : ""}
         </p>
-        {task.error ? <p className="line-clamp-2 text-xs text-accent">{task.error}</p> : null}
+        {task.error ? (
+          <p className="line-clamp-2 text-xs text-accent">{translateAppError(task.error, t)}</p>
+        ) : null}
       </div>
       <TaskStageBadge stage={task.stage} />
     </li>

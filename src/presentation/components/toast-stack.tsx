@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useI18n } from "@/presentation/components/i18n-provider";
 
 export type Toast = {
   id: number;
@@ -51,6 +52,7 @@ export function ToastStack({
 }
 
 function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number) => void }) {
+  const { t } = useI18n();
   // Auto-dismiss timer lives with the card so a re-render never resets it.
   useEffect(() => {
     const timer = setTimeout(() => onDismiss(toast.id), TOAST_MS);
@@ -90,7 +92,7 @@ function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
       </p>
       <button
         type="button"
-        aria-label="關閉通知"
+        aria-label={t("common.dismissNotification")}
         onClick={() => onDismiss(toast.id)}
         className="cursor-pointer text-lg leading-none text-muted transition hover:text-foreground"
       >

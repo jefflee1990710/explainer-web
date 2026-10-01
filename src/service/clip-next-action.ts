@@ -1,17 +1,40 @@
 import { FRAMES_COST, MIN_VIDEO_COST } from "@/service/credit-costs";
 import { canQueueFrames, type ClipState } from "@/service/clip-stage";
+import type { TranslateFn } from "@/util/i18n/translate";
 
 export { canQueueFrames };
 
 export type ClipNextKind = "frames" | "video" | "busy" | "next" | "done";
 
+export type ClipNextActionId =
+  | "busy.framesRunning"
+  | "busy.framesQueued"
+  | "busy.videoRunning"
+  | "busy.videoQueued"
+  | "staleFrames"
+  | "drawFrames"
+  | "retryFrames"
+  | "renderClip"
+  | "retryVideo"
+  | "redoVideo"
+  | "nextClip"
+  | "allDone";
+
 // The one thing a clip needs next; drives the inspector's primary button.
 export type ClipNextAction = {
   kind: ClipNextKind;
-  label: string;
-  hint: string;
+  id: ClipNextActionId;
+  params?: Record<string, string | number>;
   cost: number;
 };
+
+export function clipNextActionText(t: TranslateFn, action: ClipNextAction) {
+  const base = `production.nextAction.${action.id}`;
+  return {
+    label: t(`${base}.label`, action.params),
+    hint: t(`${base}.hint`, action.params),
+  };
+}
 
 // Quiet "重畫兩張" when the primary button is not already a frame action.
 export function canRedrawFrames(state: ClipState, hasFrames: boolean): boolean {
@@ -21,56 +44,33 @@ export function canRedrawFrames(state: ClipState, hasFrames: boolean): boolean {
 export function clipNextAction(state: ClipState, nextUnfinished?: number): ClipNextAction {
   const videoCredits = state.videoCost ?? MIN_VIDEO_COST;
   if (state.stage === "frames_generating") {
-    return {
-      kind: "busy",
-      label: state.wait === "running" ? "正在畫…" : "畫格已送出…",
-      hint: state.wait === "running" ? "正在畫，完成後會自動更新" : "已送出，畫格約 30 秒",
-      cost: 0,
-    };
+    const id = state.wait === "running" ? "busy.framesRunning" : "busy.framesQueued";
+    return { kind: "busy", id, cost: 0 };
   }
   if (state.stage === "video_generating") {
-    return {
-      kind: "busy",
-      label: state.wait === "running" ? "產片中…" : "影片已送出…",
-      hint: state.wait === "running" ? "產片中，約 5–6 分鐘" : "已送進佇列，背景產製",
-      cost: 0,
-    };
+    const id = state.wait === "running" ? "busy.videoRunning" : "busy.videoQueued";
+    return { kind: "busy", id, cost: 0 };
   }
   if (state.stale.frames) {
-    return {
-      kind: "frames",
-      label: "重畫畫格",
-      hint: "文字改過，畫格是舊版",
-      cost: FRAMES_COST,
-    };
+    return { kind: "frames", id: "staleFrames", cost: FRAMES_COST };
   }
   if (state.stage === "no_frames") {
-    return { kind: "frames", label: "畫這段畫格", hint: "先畫起始與結束兩張", cost: FRAMES_COST };
+    return { kind: "frames", id: "drawFrames", cost: FRAMES_COST };
   }
   if (state.stage === "frames_failed") {
-    return {
-      kind: "frames",
-      label: "重試畫格",
-      hint: "有一張畫格失敗，credits 已退回",
-      cost: FRAMES_COST,
-    };
+    return { kind: "frames", id: "retryFrames", cost: FRAMES_COST };
   }
   if (state.stage === "frames_ready") {
-    return {
-      kind: "video",
-      label: "產這段影片",
-      hint: "滿意畫格就產片；不滿意可點畫格標註重畫",
-      cost: videoCredits,
-    };
+    return { kind: "video", id: "renderClip", cost: videoCredits };
   }
   if (state.stage === "video_failed") {
-    return { kind: "video", label: "重試產片", hint: "產片失敗，credits 已退回", cost: videoCredits };
+    return { kind: "video", id: "retryVideo", cost: videoCredits };
   }
   if (state.stale.video) {
-    return { kind: "video", label: "重產影片", hint: "畫格重畫過，影片是舊版", cost: videoCredits };
+    return { kind: "video", id: "redoVideo", cost: videoCredits };
   }
   if (nextUnfinished !== undefined) {
-    return { kind: "next", label: `下一段 #${nextUnfinished}`, hint: "這段完成了", cost: 0 };
+    return { kind: "next", id: "nextClip", params: { n: nextUnfinished }, cost: 0 };
   }
-  return { kind: "done", label: "全部完成", hint: "每一段都有影片了，可以成片", cost: 0 };
+  return { kind: "done", id: "allDone", cost: 0 };
 }

@@ -102,7 +102,7 @@ export async function runPhaseA(input: {
     system: `${skillPromptForPhaseA(input.skill, input.style)}
 
 You are executing Phase A only. Return structured JSON that matches the schema.
-Planning explanations (narrativeJob, explainerScene, motionCamera, hookStrategy, coreMessage, etc.) must be Traditional Chinese (繁體中文).
+${language.planningSkillHint}
 ${keyframeDeltaDirectorBlock({ separateStills: dualBeat })}
 ${sceneDetailDirectorBlock()}
 ${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels }) : ""}

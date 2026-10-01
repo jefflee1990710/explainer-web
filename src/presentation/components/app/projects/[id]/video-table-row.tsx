@@ -2,8 +2,7 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
-import { DURATION_PRESETS } from "@/service/director/duration-presets";
-import { LANGUAGE_PRESETS } from "@/service/director/languages";
+import { durationPresetLabel, voLanguageLabel } from "@/util/i18n/picker-labels";
 import { projectStatusLabel } from "@/util/project-status-i18n";
 import { STATUS_META } from "@/service/project-status";
 import { videoPreviewUrl, type PublicVideoCard } from "@/presentation/serialize";
@@ -16,18 +15,18 @@ export function VideoTableRow({
   video: PublicVideoCard;
   onSelect: (id: string) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const preview = videoPreviewUrl(video);
-  const title = video.title || "未命名影片";
+  const title = video.title || t("video.card.unnamed");
   const label = projectStatusLabel(video.status, t);
   const meta = STATUS_META[video.status];
   const progress =
     (video.status === "production" || video.status === "ready") && video.videosTotal > 0
-      ? `影片 ${video.videosDone}/${video.videosTotal}`
+      ? t("video.card.progress", { done: video.videosDone, total: video.videosTotal })
       : video.status === "failed" && video.error
         ? video.error
         : null;
-  const created = new Date(video.createdAt).toLocaleString("zh-Hant", {
+  const created = new Date(video.createdAt).toLocaleString(locale, {
     month: "numeric",
     day: "numeric",
     hour: "2-digit",
@@ -70,10 +69,10 @@ export function VideoTableRow({
       </td>
       <td className="py-2.5 pr-3 text-sm text-muted">{video.aspectRatio}</td>
       <td className="py-2.5 pr-3 text-sm text-muted">
-        {DURATION_PRESETS[video.durationPreset]?.label ?? video.durationPreset}
+        {durationPresetLabel(t, video.durationPreset).label}
       </td>
       <td className="py-2.5 pr-3 text-sm text-muted">
-        {LANGUAGE_PRESETS[video.language]?.label ?? video.language}
+        {voLanguageLabel(t, video.language).label}
       </td>
       <td className="py-2.5 text-sm text-muted">{created}</td>
     </tr>

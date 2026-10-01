@@ -3,9 +3,11 @@
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { CHECKOUT_MESSAGE_TYPE } from "@/presentation/components/app/billing/checkout-popup";
+import { useI18n } from "@/presentation/components/i18n-provider";
 
 // Popup return from Stripe. Tell the opener and close; fall back to billing.
 export function CheckoutDone() {
+  const { t } = useI18n();
   const params = useSearchParams();
   const status = params.get("checkout") === "cancel" ? "cancel" : "success";
 
@@ -25,7 +27,7 @@ export function CheckoutDone() {
 
   return (
     <div className="grid min-h-dvh place-items-center px-6 text-center text-sm text-muted">
-      {status === "success" ? "付款完成，正在回到 Scro…" : "已取消付款"}
+      {status === "success" ? t("billing.checkoutReturningSuccess") : t("billing.checkoutReturningCancel")}
     </div>
   );
 }

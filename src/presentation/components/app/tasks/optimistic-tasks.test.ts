@@ -23,6 +23,8 @@ function serverTask(detail: string, stage: PublicTask["stage"] = "queued"): Publ
     stage,
     title: "Scro",
     detail,
+    detailKey: detail.includes("影片") ? "tasksPage.detail.clipVideo" : "tasksPage.detail.clipFrameStart",
+    detailParams: { n: 1 },
     isVideo: detail.includes("影片"),
     href: "/app/projects/proj-1?video=vid-1",
     attempts: 0,

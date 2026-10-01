@@ -7,12 +7,13 @@ import {
   type ClipScenePending,
 } from "@/presentation/components/project/clip-scene-prompts";
 import { FramePromptPanel } from "@/presentation/components/project/frame-prompt-panel";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import type { ClipState } from "@/service/clip-stage";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { PublicVideo } from "@/presentation/serialize";
 import type { ClipStoryboardInput, FramePosition } from "@/model/project";
 
-// One clip split across the preview pane and the inspector.
 export function ClipWorkspace({
   project,
   state,
@@ -31,21 +32,18 @@ export function ClipWorkspace({
   project: PublicVideo;
   state: ClipState;
   credits: number;
-  // Pending key of the running action ("" when idle).
   pending: string;
   error: string;
-  // Clip the "下一段" button jumps to.
   nextUnfinished?: number;
-  // Show the frame prompt debug panel.
   showDebug: boolean;
   onGenerateFrames: () => void;
   onOpenFrame: (position: FramePosition) => void;
   onUpdateClip: (input: ClipStoryboardInput, regenerate: boolean) => Promise<boolean>;
   onGenerateVideo: () => void;
   onSelect: (clipNumber: number) => void;
-  // Preview is the right pane; inspector is the left form.
   region: "preview" | "inspector";
 }) {
+  const { t } = useI18n();
   const n = state.clipNumber;
   const row = project.phaseA?.clips.find((item) => item.clipNumber === n);
   if (!row) return null;
@@ -80,9 +78,9 @@ export function ClipWorkspace({
   return (
     <div className="flex flex-col gap-4 p-4">
       <header>
-        <p className="text-sm font-semibold">Clip{n}.mp4</p>
+        <p className="text-sm font-semibold">{t("production.clip.fileTitle", { n })}</p>
         <p className="mt-1 text-xs tabular-nums text-muted">
-          {row.timeRange} · {row.durationSeconds} 秒
+          {t("production.clip.meta", { timeRange: row.timeRange, durationSeconds: row.durationSeconds })}
         </p>
       </header>
 
@@ -100,7 +98,7 @@ export function ClipWorkspace({
 
       {error ? (
         <p role="alert" className="text-sm font-medium text-accent">
-          {error}
+          {translateAppError(error, t)}
         </p>
       ) : null}
 

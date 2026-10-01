@@ -1,7 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { VOICE_IDS, VOICE_PRESETS } from "@/service/director/voice";
+import { useI18n } from "@/presentation/components/i18n-provider";
+import { VOICE_IDS } from "@/service/director/voice";
+import { voiceGenderLabel } from "@/util/i18n/picker-labels";
 import type { VoiceGender } from "@/model/project";
 
 // Segmented control for narrator voice: male or female.
@@ -14,14 +16,15 @@ export function VoicePicker({
   onChange: (value: VoiceGender) => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <div
       role="radiogroup"
-      aria-label="旁白聲線"
+      aria-label={t("brief.voice.aria")}
       className="grid grid-cols-2 gap-1 rounded-2xl border border-accent-ink/10 bg-paper/70 p-1"
     >
       {VOICE_IDS.map((id) => {
-        const preset = VOICE_PRESETS[id];
+        const preset = voiceGenderLabel(t, id);
         const active = id === value;
         return (
           <button
@@ -42,14 +45,8 @@ export function VoicePicker({
                 transition={{ type: "spring", stiffness: 420, damping: 32 }}
               />
             ) : null}
-            <span className="relative block font-display text-sm font-bold">
-              {preset.label}
-            </span>
-            <span
-              className={`relative block text-xs ${
-                active ? "text-paper/75" : "text-muted"
-              }`}
-            >
+            <span className="relative block font-display text-sm font-bold">{preset.label}</span>
+            <span className={`relative block text-xs ${active ? "text-paper/75" : "text-muted"}`}>
               {preset.sublabel}
             </span>
           </button>

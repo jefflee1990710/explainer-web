@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { castPickStatus } from "@/presentation/components/app/projects/[id]/cast-pick-status";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicCharacter } from "@/presentation/serialize";
 
 // Multi-select of characters with a completed default blueprint. When a video
@@ -24,6 +25,7 @@ export function CharacterPicker({
   max?: number;
   required?: number;
 }) {
+  const { t } = useI18n();
   const anyReady = characters.some((character) => character.previewUrl);
   const ready = characters.filter(
     (character) => character.previewUrl && (!styleId || character.styleId === styleId),
@@ -33,12 +35,12 @@ export function CharacterPicker({
     return (
       <p className="text-sm font-medium text-accent">
         {required > 0
-          ? `這個導演必須正好選 ${required} 個角色。這個風格目前只有 ${ready.length} 個可用。`
+          ? t("brief.castPicker.errorRequiredCount", { required, ready: ready.length })
           : anyReady
-            ? "這個風格還沒有角色。"
-            : "還沒有可用的角色。"}
+            ? t("brief.castPicker.errorNoStyleCharacters")
+            : t("brief.castPicker.errorNone")}
         <Link href="/app/characters" className="ml-1 font-semibold underline underline-offset-4">
-          先到角色庫建立 →
+          {t("brief.castPicker.linkCreate")}
         </Link>
       </p>
     );
@@ -54,13 +56,13 @@ export function CharacterPicker({
     }
   }
 
-  const pick = castPickStatus(value.length, required, max);
+  const pick = castPickStatus(value.length, required, max, t);
 
   return (
     <div>
       <div
         role="group"
-        aria-label="角色"
+        aria-label={t("brief.castPicker.aria")}
         aria-required={required > 0}
         className="grid gap-2 sm:grid-cols-2"
       >
@@ -103,7 +105,7 @@ export function CharacterPicker({
       <p className={`mt-2 text-xs ${pick.ok ? "text-muted" : "font-medium text-accent"}`}>
         {pick.text}
         <Link href="/app/characters" className="ml-1 underline underline-offset-4">
-          管理角色
+          {t("brief.castPicker.linkManage")}
         </Link>
       </p>
     </div>

@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { EDIT_LIMITS } from "@/model/video-edit";
 
 // Name prompt for「儲存為新樣板」and rename.
@@ -23,6 +24,7 @@ export function TemplateNameDialog({
   onSubmit: (name: string) => void;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const titleId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(initialName);
@@ -58,13 +60,15 @@ export function TemplateNameDialog({
             value={name}
             maxLength={EDIT_LIMITS.templateName.max}
             onChange={(event) => setName(event.target.value)}
-            placeholder="例如：品牌 A 直式"
+            placeholder={t("video.template.namePlaceholder")}
             disabled={pending}
             className="min-h-9 w-full rounded-lg border border-[var(--studio-line)] px-3 text-sm"
           />
           {error ? <p className="text-xs text-[#e11d48]">{error}</p> : null}
           <div className="flex justify-end gap-2">
-            <StudioButton variant="ghost" onClick={onClose} disabled={pending}>取消</StudioButton>
+            <StudioButton variant="ghost" onClick={onClose} disabled={pending}>
+              {t("common.cancel")}
+            </StudioButton>
             <StudioButton type="submit" disabled={pending || !name.trim()}>
               {pending ? <Spinner className="h-4 w-4" /> : null}
               {submitLabel}

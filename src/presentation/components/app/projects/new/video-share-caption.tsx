@@ -1,6 +1,7 @@
 "use client";
 
-// Opt-in AI caption plus a box to tweak / recopy the last draft.
+import { useI18n } from "@/presentation/components/i18n-provider";
+
 export function VideoShareCaption({
   checked,
   caption,
@@ -16,6 +17,7 @@ export function VideoShareCaption({
   onCaption: (value: string) => void;
   onCopy: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-2">
       <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-4 text-[var(--studio-ink)]">
@@ -26,10 +28,8 @@ export function VideoShareCaption({
           className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[var(--studio-teal)]"
         />
         <span>
-          用 AI 起草文案
-          <span className="mt-0.5 block text-[var(--studio-muted)]">
-            依分鏡標題、對白與畫面，為該平台寫貼文，並複製到剪貼簿。
-          </span>
+          {t("video.share.aiCaption")}
+          <span className="mt-0.5 block text-[var(--studio-muted)]">{t("video.share.aiCaptionHint")}</span>
         </span>
       </label>
       {checked && caption ? (
@@ -45,7 +45,7 @@ export function VideoShareCaption({
             onClick={onCopy}
             className="text-[11px] font-semibold text-[var(--studio-muted)] underline-offset-2 hover:underline"
           >
-            {copied ? "已複製文案" : "複製文案"}
+            {copied ? t("video.share.captionCopied") : t("video.share.copyCaption")}
           </button>
         </div>
       ) : null}

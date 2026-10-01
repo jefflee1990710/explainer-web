@@ -1,19 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { pageVideos, pauseAllVideos } from "@/presentation/components/project/exclusive-video";
 import { ClipPlaybackProvider } from "@/presentation/components/project/clip-video-player";
 import { clipStudioItems } from "@/presentation/components/project/clip-timeline";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { Filmstrip } from "@/presentation/studio/filmstrip";
 import { StudioFrame } from "@/presentation/studio/studio-frame";
 import { clipStatesFor, defaultSelectedClip, type ClipState } from "@/service/clip-stage";
 import type { PublicVideo } from "@/presentation/serialize";
 
-// Jumps the desk to another clip (e.g. "下一段", progress summary).
 export type SelectClip = (clipNumber: number) => void;
 
-// Preview and inspector, with clip selection on the filmstrip. Batch props
-// (`checkedIds` / `onToggleCheck`) add checkboxes to the filmstrip.
 export function VideoDesk({
   project,
   pending = "",
@@ -33,13 +31,20 @@ export function VideoDesk({
   onToggleCheck?: (id: string) => void;
   timelineBar?: React.ReactNode;
 }) {
+  const { t } = useI18n();
   const states = clipStatesFor(project);
   const [selectedClip, setSelectedClip] = useState(() => defaultSelectedClip(states));
-  // Each clip select asks the preview to play that clip with sound.
   const [playToken, setPlayToken] = useState(0);
 
   const selected = states.find((state) => state.clipNumber === selectedClip) ?? states[0];
-  const items = clipStudioItems(project, states, pending);
+  const items = useMemo(
+    () =>
+      clipStudioItems(project, states, pending, {
+        clipTitle: (n) => t("production.filmstrip.clipTitle", { n }),
+        stageLabel: (stage) => t(`production.stage.${stage}`),
+      }),
+    [project, states, pending, t],
+  );
 
   function selectClip(clipNumber: number) {
     pauseAllVideos(pageVideos());

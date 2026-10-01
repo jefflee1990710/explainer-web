@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId } from "react";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 
 // Confirm AI rewrite: full proposal, or clips only under the current brief.
@@ -21,6 +22,7 @@ export function ReviseStoryboardDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const { t } = useI18n();
   const titleId = useId();
 
   useEffect(() => {
@@ -44,11 +46,10 @@ export function ReviseStoryboardDialog({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id={titleId} className="font-display text-2xl font-bold">
-          {title ?? "用 AI 重寫分鏡提案？"}
+          {title ?? t("brief.revise.defaultTitle")}
         </h2>
         <p className="mt-2 text-sm leading-6 text-muted">
-          {body ??
-            "這會覆蓋下方整份分鏡提案，包括標題、核心訊息、每一段畫面描述與旁白。目前內容無法復原。"}
+          {body ?? t("brief.revise.defaultBody")}
         </p>
         <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
           <button
@@ -57,7 +58,7 @@ export function ReviseStoryboardDialog({
             disabled={pending}
             className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:opacity-60"
           >
-            取消
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -66,7 +67,7 @@ export function ReviseStoryboardDialog({
             className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending ? <Spinner className="h-4 w-4" /> : null}
-            {pending ? pendingLabel ?? "重寫中…" : confirmLabel ?? "確認重寫"}
+            {pending ? pendingLabel ?? t("brief.revise.pending") : confirmLabel ?? t("brief.revise.defaultConfirm")}
           </button>
         </div>
       </div>

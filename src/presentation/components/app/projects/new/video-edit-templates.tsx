@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import { TemplateNameDialog } from "@/presentation/components/app/projects/new/template-name-dialog";
 import { hasEdit, isEditDirty } from "@/service/video-edit/edit-state";
@@ -9,7 +10,6 @@ import type { VideoEdit } from "@/model/video-edit";
 
 type Dialog = { mode: "new" } | { mode: "rename"; template: PublicTemplate } | null;
 
-// Template picker, save-as-new, overwrite-source, rename, delete.
 export function VideoEditTemplates({
   templates,
   edit,
@@ -31,6 +31,7 @@ export function VideoEditTemplates({
   onRename: (templateId: string, name: string) => Promise<string>;
   onDelete: (templateId: string) => void;
 }) {
+  const { t } = useI18n();
   const [picked, setPicked] = useState("");
   const [dialog, setDialog] = useState<Dialog>(null);
   const [dialogError, setDialogError] = useState("");
@@ -50,24 +51,30 @@ export function VideoEditTemplates({
 
   function confirmOverwrite() {
     if (!source) return;
-    if (window.confirm(`會覆寫〈${source.name}〉，之前套用過的影片不會變。`)) onOverwrite(source.id);
+    if (window.confirm(t("video.template.confirmOverwrite", { name: source.name }))) onOverwrite(source.id);
   }
 
   return (
     <section className="space-y-2">
-      <h3 className="text-[11px] font-bold text-[var(--studio-muted)]">樣板</h3>
+      <h3 className="text-[11px] font-bold text-[var(--studio-muted)]">{t("video.template.section")}</h3>
       <div className="flex gap-2">
         <select
           value={picked}
           onChange={(event) => setPicked(event.target.value)}
           className="min-h-9 min-w-0 flex-1 rounded-lg border border-[var(--studio-line)] px-2 text-sm"
         >
-          <option value="">{templates.length ? "選擇樣板…" : "還沒有樣板"}</option>
+          <option value="">
+            {templates.length ? t("video.template.selectPlaceholder") : t("video.template.empty")}
+          </option>
           {templates.map((template) => (
-            <option key={template.id} value={template.id}>{template.name}</option>
+            <option key={template.id} value={template.id}>
+              {template.name}
+            </option>
           ))}
         </select>
-        <StudioButton variant="ghost" disabled={!picked || busy} onClick={() => onApply(picked)}>套用</StudioButton>
+        <StudioButton variant="ghost" disabled={!picked || busy} onClick={() => onApply(picked)}>
+          {t("video.template.apply")}
+        </StudioButton>
       </div>
       <div className="flex flex-wrap gap-2">
         <StudioButton
@@ -79,16 +86,20 @@ export function VideoEditTemplates({
             setDialog({ mode: "new" });
           }}
         >
-          儲存為新樣板
+          {t("video.template.saveNew")}
         </StudioButton>
         {canOverwrite && source ? (
           <StudioButton className="min-h-8 text-xs" disabled={busy} onClick={confirmOverwrite}>
-            更新樣板〈{source.name}〉
+            {t("video.template.update", { name: source.name })}
           </StudioButton>
         ) : null}
         {templates.length ? (
-          <button type="button" onClick={() => setManaging((v) => !v)} className="text-xs font-semibold text-[var(--studio-muted)] hover:text-[var(--studio-ink)]">
-            {managing ? "完成" : "管理"}
+          <button
+            type="button"
+            onClick={() => setManaging((v) => !v)}
+            className="text-xs font-semibold text-[var(--studio-muted)] hover:text-[var(--studio-ink)]"
+          >
+            {managing ? t("video.template.manageDone") : t("video.template.manage")}
           </button>
         ) : null}
       </div>
@@ -97,17 +108,36 @@ export function VideoEditTemplates({
           {templates.map((template) => (
             <li key={template.id} className="flex items-center gap-2">
               <span className="min-w-0 flex-1 truncate">{template.name}</span>
-              <button type="button" className="font-semibold text-[var(--studio-muted)] hover:text-[var(--studio-ink)]" onClick={() => { setDialogError(""); setDialog({ mode: "rename", template }); }}>改名</button>
-              <button type="button" className="font-semibold text-[#e11d48]" onClick={() => { if (window.confirm(`刪除〈${template.name}〉？已套用的影片不受影響。`)) onDelete(template.id); }}>刪除</button>
+              <button
+                type="button"
+                className="font-semibold text-[var(--studio-muted)] hover:text-[var(--studio-ink)]"
+                onClick={() => {
+                  setDialogError("");
+                  setDialog({ mode: "rename", template });
+                }}
+              >
+                {t("video.template.rename")}
+              </button>
+              <button
+                type="button"
+                className="font-semibold text-[#e11d48]"
+                onClick={() => {
+                  if (window.confirm(t("video.template.confirmDelete", { name: template.name }))) onDelete(template.id);
+                }}
+              >
+                {t("video.template.delete")}
+              </button>
             </li>
           ))}
         </ul>
       ) : null}
       {dialog ? (
         <TemplateNameDialog
-          title={dialog.mode === "new" ? "儲存為新樣板" : "樣板改名"}
+          title={
+            dialog.mode === "new" ? t("video.template.dialogSaveNewTitle") : t("video.template.dialogRenameTitle")
+          }
           initialName={dialog.mode === "rename" ? dialog.template.name : ""}
-          submitLabel={dialog.mode === "new" ? "儲存" : "改名"}
+          submitLabel={dialog.mode === "new" ? t("video.template.dialogSave") : t("video.template.dialogRenameSubmit")}
           pending={dialogPending}
           error={dialogError}
           onSubmit={(name) => void submitDialog(name)}

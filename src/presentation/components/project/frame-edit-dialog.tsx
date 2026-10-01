@@ -6,6 +6,7 @@ import type {
   AnnotationEditorHandle,
   AnnotationTool,
 } from "@/presentation/components/annotation-editor";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { FramePromptPanel } from "@/presentation/components/project/frame-prompt-panel";
 import { Spinner } from "@/presentation/components/spinner";
 import {
@@ -18,18 +19,11 @@ import { FRAME_COST } from "@/service/production-plan";
 import type {
   AspectRatio,
   ClipFrame,
-  FramePosition,
   FrameRevisionInput,
   SceneTextLanguage,
   StoryboardRow,
 } from "@/model/project";
 
-const FRAME_LABEL: Record<FramePosition, string> = {
-  start: "起始",
-  end: "結尾",
-};
-
-// Intrinsic size guess before the image reports its natural dimensions.
 const FALLBACK_SIZE: Record<AspectRatio, { width: number; height: number }> = {
   "16:9": { width: 1536, height: 1024 },
   "9:16": { width: 1024, height: 1536 },
@@ -38,7 +32,6 @@ const FALLBACK_SIZE: Record<AspectRatio, { width: number; height: number }> = {
 
 const MAX_REMARK_LENGTH = 600;
 
-// Fabric.js touches `window` on import; load the editor in the browser only.
 const AnnotationEditor = dynamic(
   () => import("@/presentation/components/annotation-editor").then((mod) => mod.AnnotationEditor),
   {
@@ -51,16 +44,6 @@ const AnnotationEditor = dynamic(
   },
 );
 
-// Per-tool guidance shown under the canvas.
-const TOOL_HINT: Record<AnnotationTool, string> = {
-  draw: "把要改的地方圈起來、畫箭頭指出方向；在圖上連點兩下可加上文字備註。畫完可切到「選取」調整。",
-  select: "點選物件即可拖曳；拉角落把手縮放、上方把手旋轉；按 Delete 刪除。連點兩下空白處可加文字。",
-  text: "在圖上點一下放置文字，輸入完點其他地方結束。",
-};
-
-// Modal for reviewing one storyboard frame: draw markings and text over the
-// image (each one a movable/resizable/rotatable object), leave a remark, then
-// send both with a paid redo (FRAME_COST credits).
 export function FrameEditDialog({
   frame,
   clip,
@@ -80,25 +63,23 @@ export function FrameEditDialog({
   sceneTextEnabled: boolean;
   sceneTextLanguage: SceneTextLanguage;
   dualBeat?: boolean;
-  // False while another action is pending or frames are still generating.
   canRegenerate: boolean;
   onClose: () => void;
   onRegenerate: (revision: FrameRevisionInput) => void;
 }) {
+  const { t } = useI18n();
   const titleId = useId();
   const remarkId = useId();
   const editorRef = useRef<AnnotationEditorHandle>(null);
   const src = frame.blobUrl || frame.outputUrl || "";
+  const positionLabel = t(`production.frame.position.${frame.position}`);
 
   const [tool, setTool] = useState<AnnotationTool>("draw");
-  // Objects on the annotation layer (strokes + texts) and how many are selected.
   const [objectCount, setObjectCount] = useState(0);
   const [selectedCount, setSelectedCount] = useState(0);
-  // Prefill with the last remark so the director can iterate on it.
   const [remark, setRemark] = useState(frame.revision?.remark || "");
   const [imageSize, setImageSize] = useState(FALLBACK_SIZE[aspectRatio]);
 
-  // Esc closes, matching the backdrop click.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
@@ -110,6 +91,13 @@ export function FrameEditDialog({
   const hasChanges = objectCount > 0 || remark.trim().length > 0;
   const enoughCredits = credits >= FRAME_COST;
   const canSubmit = canRegenerate;
+
+  const toolHint =
+    tool === "draw"
+      ? t("production.frameEdit.hintDraw")
+      : tool === "select"
+        ? t("production.frameEdit.hintSelect")
+        : t("production.frameEdit.hintText");
 
   function submit() {
     if (!canSubmit) return;
@@ -136,19 +124,17 @@ export function FrameEditDialog({
         <header className="flex items-start justify-between gap-4 border-b border-accent-ink/10 px-6 py-4">
           <div>
             <p className="font-display text-xs font-bold uppercase tracking-[0.18em] text-accent">
-              分鏡圖 · #{clip.clipNumber} {FRAME_LABEL[frame.position]}
+              {t("production.frameEdit.kicker", { n: clip.clipNumber, position: positionLabel })}
             </p>
             <h2 id={titleId} className="font-display mt-1 text-xl font-bold">
-              標註並重畫這張分鏡圖
+              {t("production.frameEdit.title")}
             </h2>
-            <p className="mt-1 text-xs text-muted">
-              直接在圖上畫圈、箭頭或塗改，再寫下想改的地方；重畫時會一起交給模型參考。
-            </p>
+            <p className="mt-1 text-xs text-muted">{t("production.frameEdit.intro")}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="關閉"
+            aria-label={t("production.action.close")}
             className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border border-accent-ink/15 text-muted transition hover:border-accent-ink/40 hover:text-foreground"
           >
             <CloseIcon />
@@ -156,28 +142,27 @@ export function FrameEditDialog({
         </header>
 
         <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-          {/* Left: drawing surface */}
           <div className="min-w-0 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <ToolGroup label="工具">
+              <ToolGroup label={t("production.frameEdit.tools")}>
                 <ToggleButton
                   active={tool === "draw"}
                   onClick={() => setTool("draw")}
-                  label="畫筆"
+                  label={t("production.frameEdit.toolDraw")}
                 >
                   <PenIcon />
                 </ToggleButton>
                 <ToggleButton
                   active={tool === "select"}
                   onClick={() => setTool("select")}
-                  label="選取"
+                  label={t("production.frameEdit.toolSelect")}
                 >
                   <CursorIcon />
                 </ToggleButton>
                 <ToggleButton
                   active={tool === "text"}
                   onClick={() => setTool("text")}
-                  label="文字"
+                  label={t("production.frameEdit.toolText")}
                 >
                   <TextIcon />
                 </ToggleButton>
@@ -189,19 +174,18 @@ export function FrameEditDialog({
                   disabled={selectedCount === 0}
                 >
                   <TrashIcon />
-                  刪除選取{selectedCount > 1 ? `（${selectedCount}）` : ""}
+                  {t("production.frameEdit.deleteSelected", { count: selectedCount || 1 })}
                 </SmallButton>
                 <SmallButton
                   onClick={() => editorRef.current?.clear()}
                   disabled={objectCount === 0}
                 >
                   <BroomIcon />
-                  全部清除
+                  {t("production.frameEdit.clearAll")}
                 </SmallButton>
               </div>
             </div>
 
-            {/* Image + transparent sketch layer, sized to the image's own ratio */}
             <div className="flex justify-center rounded-[1.25rem] border border-accent-ink/10 bg-accent-ink/5 p-3">
               <div
                 className="relative overflow-hidden rounded-xl bg-paper shadow-sm"
@@ -213,7 +197,7 @@ export function FrameEditDialog({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={src}
-                  alt={`#${clip.clipNumber} ${FRAME_LABEL[frame.position]}畫格`}
+                  alt={t("production.frame.alt", { position: positionLabel })}
                   draggable={false}
                   onLoad={(event) => {
                     const { naturalWidth, naturalHeight } = event.currentTarget;
@@ -237,18 +221,19 @@ export function FrameEditDialog({
             </div>
             <p className="text-xs text-muted">
               {objectCount > 0 ? (
-                <span className="mr-1 font-semibold text-foreground">已標註 {objectCount} 個物件。</span>
+                <span className="mr-1 font-semibold text-foreground">
+                  {t("production.frameEdit.objectCount", { count: objectCount })}
+                </span>
               ) : null}
-              {TOOL_HINT[tool]}
-              {objectCount > 0 ? " 這些標記只作為指示，不會出現在新圖裡。" : ""}
+              {toolHint}
+              {objectCount > 0 ? ` ${t("production.frameEdit.markersNotInImage")}` : ""}
             </p>
           </div>
 
-          {/* Right: scene context + remark */}
           <aside className="flex min-w-0 flex-col gap-4">
             <div className="rounded-[1.25rem] border border-accent-ink/10 bg-paper/85 p-4">
               <p className="font-display text-xs font-bold uppercase tracking-[0.14em] text-muted">
-                這段的畫面
+                {t("production.frameEdit.sceneContext")}
               </p>
               <p className="mt-2 text-sm leading-6">
                 {dualBeat
@@ -275,7 +260,7 @@ export function FrameEditDialog({
 
             <div>
               <label htmlFor={remarkId} className="font-display text-sm font-bold">
-                修改備註
+                {t("production.frameEdit.remarkLabel")}
               </label>
               <textarea
                 id={remarkId}
@@ -283,7 +268,7 @@ export function FrameEditDialog({
                 maxLength={MAX_REMARK_LENGTH}
                 value={remark}
                 onChange={(event) => setRemark(event.target.value)}
-                placeholder="例如：角色要面向右邊；把左上角的文字改成「複利」；背景保持空白。"
+                placeholder={t("production.frameEdit.remarkPlaceholder")}
                 className="mt-2 w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               />
               <p className="mt-1 text-right text-xs tabular-nums text-muted">
@@ -298,19 +283,19 @@ export function FrameEditDialog({
                 rel="noreferrer"
                 className="text-xs font-semibold text-muted underline-offset-2 hover:underline"
               >
-                查看上次的標註圖 ↗
+                {t("production.frameEdit.viewLastAnnotation")}
               </a>
             ) : null}
 
             <div className="mt-auto space-y-2 border-t border-accent-ink/10 pt-4">
               <p className="text-xs text-muted">
-                重畫將扣 <strong className="text-foreground">{FRAME_COST} credits</strong>（剩餘 {credits}）
-                {!hasChanges ? "；沒有標註或備註時會直接重畫一次。" : "。"}
+                {t("production.frameEdit.redrawCost", { cost: FRAME_COST, remaining: credits })}
+                {!hasChanges ? t("production.frameEdit.redrawNoChangesNote") : ""}
               </p>
               {!enoughCredits ? (
-                <p className="text-xs font-medium text-accent">credits 不足，點擊後可加購或升級並繼續產生。</p>
+                <p className="text-xs font-medium text-accent">{t("production.action.insufficientClickToUpgrade")}</p>
               ) : !canRegenerate ? (
-                <p className="text-xs font-medium text-accent">請等目前的動作完成後再重畫。</p>
+                <p className="text-xs font-medium text-accent">{t("production.frameEdit.waitForIdle")}</p>
               ) : null}
               <div className="flex flex-wrap items-center justify-end gap-2">
                 <button
@@ -318,7 +303,7 @@ export function FrameEditDialog({
                   onClick={onClose}
                   className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground"
                 >
-                  取消
+                  {t("production.action.cancel")}
                 </button>
                 <button
                   type="button"
@@ -327,7 +312,7 @@ export function FrameEditDialog({
                   className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                 >
                   <RefreshIcon />
-                  重畫 · {FRAME_COST} credits
+                  {t("production.frameEdit.redrawButton", { cost: FRAME_COST })}
                 </button>
               </div>
             </div>

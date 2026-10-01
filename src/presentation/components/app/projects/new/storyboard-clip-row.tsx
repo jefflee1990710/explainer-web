@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/presentation/components/i18n-provider";
 import {
   clipEndScene,
   clipEndVo,
@@ -33,6 +34,7 @@ export function StoryboardClipRow({
   disabled?: boolean;
   onChange: (next: ClipStoryboardInput) => void;
 }) {
+  const { t } = useI18n();
   const voLabel = LANGUAGE_PRESETS[language].label;
   const spoken = spokenLineCopy(skillSlug);
 
@@ -50,60 +52,60 @@ export function StoryboardClipRow({
       </div>
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted md:hidden">
-          場景描述
+          {t("brief.clipRow.sceneMobile")}
         </p>
         {dualBeat ? (
           <>
             <label className="block">
               <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-                起始畫面
+                {t("brief.clipRow.startScene")}
               </span>
               <textarea
                 value={draft.startScene ?? clipStartScene(draft)}
                 rows={3}
                 disabled={disabled}
                 onChange={(event) => update("startScene", event.target.value)}
-                placeholder="t=0 靜態畫面：姿勢、道具、環境。"
+                placeholder={t("brief.clipRow.placeholderStartScene")}
                 className={fieldClass}
               />
             </label>
             <label className="block">
               <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-                結尾畫面
+                {t("brief.clipRow.endScene")}
               </span>
               <textarea
                 value={draft.endScene ?? clipEndScene(draft)}
                 rows={3}
                 disabled={disabled}
                 onChange={(event) => update("endScene", event.target.value)}
-                placeholder="t=N 靜態畫面：同一鏡頭的後一個 beat。"
+                placeholder={t("brief.clipRow.placeholderEndScene")}
                 className={fieldClass}
               />
             </label>
           </>
         ) : (
           <label className="block">
-            <span className="sr-only">畫面描述</span>
+            <span className="sr-only">{t("brief.clipRow.explainerScene")}</span>
             <textarea
               value={draft.explainerScene}
               rows={4}
               disabled={disabled}
               onChange={(event) => update("explainerScene", event.target.value)}
-              placeholder="這段畫面要出現什麼。"
+              placeholder={t("brief.clipRow.placeholderExplainerScene")}
               className={fieldClass}
             />
           </label>
         )}
         <label className="block">
           <span className={dualBeat ? "text-[10px] font-semibold uppercase tracking-[0.14em] text-muted" : "sr-only"}>
-            動態與鏡頭
+            {t("brief.clipRow.motion")}
           </span>
           <textarea
             value={draft.motionCamera}
             rows={2}
             disabled={disabled}
             onChange={(event) => update("motionCamera", event.target.value)}
-            placeholder="兩張圖之間的鏡頭與動作。"
+            placeholder={t("brief.clipRow.placeholderMotion")}
             className={`${fieldClass} text-xs text-muted`}
           />
         </label>

@@ -2,6 +2,7 @@
 
 import { useEffect, useImperativeHandle, useRef, type Ref } from "react";
 import { Canvas, IText, PencilBrush, type FabricObject, type Point } from "fabric";
+import { useI18n } from "@/presentation/components/i18n-provider";
 
 export type AnnotationTool = "draw" | "select" | "text";
 
@@ -21,7 +22,6 @@ export const ANNOTATION_COLOR = "#ff4d2e";
 // Brush width / text size in CSS px as seen on screen (scaled into scene units).
 const STROKE_CSS = 6;
 const TEXT_SIZE_CSS = 28;
-const TEXT_PLACEHOLDER = "備註";
 const FONT_FAMILY = "'Helvetica Neue', Helvetica, Arial, 'PingFang TC', 'Noto Sans TC', sans-serif";
 // A double-click in draw mode leaves two tiny dot strokes; drop those created
 // within this window before placing the text.
@@ -70,6 +70,9 @@ export function AnnotationEditor({
   // Editor asks to switch tools (e.g. back to "select" after the text tool places text).
   onToolChange?: (tool: AnnotationTool) => void;
 }) {
+  const { t } = useI18n();
+  const textPlaceholderRef = useRef(t("production.annotation.textPlaceholder"));
+  textPlaceholderRef.current = t("production.annotation.textPlaceholder");
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasElRef = useRef<HTMLCanvasElement>(null);
   const canvasRef = useRef<Canvas | null>(null);
@@ -133,7 +136,7 @@ export function AnnotationEditor({
     // Drop an editable text remark at a scene point and start typing.
     function addText(point: Point) {
       const zoom = zoomRef.current;
-      const text = new IText(TEXT_PLACEHOLDER, {
+      const text = new IText(textPlaceholderRef.current, {
         left: point.x,
         top: point.y,
         fontSize: TEXT_SIZE_CSS / zoom,
@@ -308,7 +311,7 @@ export function AnnotationEditor({
     <div
       ref={hostRef}
       className={`touch-none select-none ${className}`}
-      aria-label="標註圖層"
+      aria-label={t("production.annotation.layerAria")}
     >
       <canvas ref={canvasElRef} />
     </div>

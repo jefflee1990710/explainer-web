@@ -1,7 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { SPEECH_PACE_IDS, SPEECH_PACE_PRESETS } from "@/service/director/speech-pace";
+import { useI18n } from "@/presentation/components/i18n-provider";
+import { SPEECH_PACE_IDS } from "@/service/director/speech-pace";
+import { speechPaceLabel } from "@/util/i18n/picker-labels";
 import type { SpeechPace } from "@/model/project";
 
 // Segmented control for speaking speed: slow, medium, fast.
@@ -14,14 +16,15 @@ export function SpeechPacePicker({
   onChange: (value: SpeechPace) => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <div
       role="radiogroup"
-      aria-label="語速"
+      aria-label={t("brief.speechPace.aria")}
       className="grid grid-cols-3 gap-1 rounded-2xl border border-accent-ink/10 bg-paper/70 p-1"
     >
       {SPEECH_PACE_IDS.map((id) => {
-        const preset = SPEECH_PACE_PRESETS[id];
+        const preset = speechPaceLabel(t, id);
         const active = id === value;
         return (
           <button

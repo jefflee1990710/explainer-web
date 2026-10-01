@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { TaskListDialog } from "@/presentation/components/app/tasks/task-list-dialog";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { ProductionQueue } from "@/presentation/components/project/production-queue";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import type { InFlightCounts } from "@/service/clip-stage";
 
 // Strip above the desk: overall progress, live queue (opens this video's task
-// list), debug toggle, and "全部產生".
+// list), debug toggle, and bulk generate.
 export function ProductionToolbar({
   videoId,
   total,
@@ -26,15 +27,14 @@ export function ProductionToolbar({
   framesDone: number;
   videosDone: number;
   queue: InFlightCounts;
-  // First clip that still needs work; undefined when everything is done.
   firstUnfinished?: number;
   showDebug: boolean;
-  // Another action is running.
   busy: boolean;
   onJump: (clipNumber: number) => void;
   onToggleDebug: () => void;
   onBulk: () => void;
 }) {
+  const { t } = useI18n();
   const videosLeft = total - videosDone;
   const [tasksOpen, setTasksOpen] = useState(false);
   return (
@@ -43,13 +43,19 @@ export function ProductionToolbar({
         type="button"
         onClick={() => firstUnfinished !== undefined && onJump(firstUnfinished)}
         disabled={firstUnfinished === undefined}
-        title={firstUnfinished !== undefined ? `跳到 Clip${firstUnfinished}` : undefined}
+        title={
+          firstUnfinished !== undefined
+            ? t("production.toolbar.jumpToClip", { n: firstUnfinished })
+            : undefined
+        }
         className="flex cursor-pointer items-center gap-3 text-xs disabled:cursor-default"
       >
-        <Progress label="畫格" done={framesDone} total={total} />
-        <Progress label="影片" done={videosDone} total={total} />
+        <Progress label={t("production.toolbar.progressFrames")} done={framesDone} total={total} />
+        <Progress label={t("production.toolbar.progressVideos")} done={videosDone} total={total} />
         <span className="text-[var(--studio-muted)]">
-          {videosLeft > 0 ? `還有 ${videosLeft} 段未產片 →` : "全部完成，可以成片"}
+          {videosLeft > 0
+            ? t("production.toolbar.videosRemaining", { n: videosLeft })
+            : t("production.toolbar.allDone")}
         </span>
       </button>
       <ProductionQueue {...queue} onOpen={() => setTasksOpen(true)} />
@@ -62,17 +68,16 @@ export function ProductionToolbar({
             onChange={onToggleDebug}
             className="h-3.5 w-3.5 accent-[var(--studio-teal)]"
           />
-          技術資訊
+          {t("production.toolbar.debug")}
         </label>
         <StudioButton onClick={onBulk} disabled={busy} className="min-h-9 px-3 text-xs">
-          全部產生
+          {t("production.toolbar.bulkOpen")}
         </StudioButton>
       </div>
     </div>
   );
 }
 
-// "畫格 3/5" with a thin bar.
 function Progress({ label, done, total }: { label: string; done: number; total: number }) {
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
   return (

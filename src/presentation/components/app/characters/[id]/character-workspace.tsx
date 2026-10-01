@@ -17,6 +17,8 @@ import { InsufficientCreditsDialog } from "@/presentation/components/app/billing
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import { FRAME_COST } from "@/service/production-plan";
 import { DeleteCharacterDialog } from "@/presentation/components/app/characters/[id]/delete-character-dialog";
+import { useI18n } from "@/presentation/components/i18n-provider";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 import { VersionDetail } from "@/presentation/components/app/characters/[id]/version-detail";
 import { VersionList } from "@/presentation/components/app/characters/[id]/version-list";
 
@@ -30,6 +32,7 @@ export function CharacterWorkspace({
   credits: number;
   subscribed: boolean;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -52,7 +55,7 @@ export function CharacterWorkspace({
     void getCharacterAction(initial.id).then((result) => {
       if (cancelled) return;
       if (result.ok) setCharacter(result.character);
-      else setError(result.error);
+      else setError(translateAppError(result.error, t));
     });
     return () => {
       cancelled = true;
@@ -60,7 +63,10 @@ export function CharacterWorkspace({
   }, [initial.id]);
 
   const onPoll = useCallback((next: PublicCharacter) => setCharacter(next), []);
-  const onPollError = useCallback((message: string) => setError(message), []);
+  const onPollError = useCallback(
+    (message: string) => setError(translateAppError(message, t)),
+    [t],
+  );
   useCharacterPoll(character, onPoll, onPollError);
 
   const versionParam = searchParams.get("version");
@@ -80,7 +86,7 @@ export function CharacterWorkspace({
       const result = await action();
       setPending("");
       if (!result.ok) {
-        setError(result.error);
+        setError(translateAppError(result.error, t));
         if (isCreditGateError(result.error)) {
           setCreditGate({
             needed: FRAME_COST,
@@ -94,7 +100,7 @@ export function CharacterWorkspace({
       setCharacter(result.character);
       return result.character;
     } catch {
-      setError("操作失敗，請再試一次");
+      setError(t("errors.characterActionFailed"));
       setPending("");
       return undefined;
     }
@@ -119,7 +125,7 @@ export function CharacterWorkspace({
   }
 
   if (!selected) {
-    return <p className="text-sm text-muted">這個角色還沒有任何版本。</p>;
+    return <p className="text-sm text-muted">{t("characters.noVersions")}</p>;
   }
 
   return (
@@ -127,13 +133,13 @@ export function CharacterWorkspace({
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <Link href="/app/characters" className="text-sm font-semibold text-muted transition hover:text-foreground">
-            ← 回到角色
+            {t("characters.backToList")}
           </Link>
           <input
             type="text"
             value={name}
             maxLength={40}
-            aria-label="角色名稱"
+            aria-label={t("characters.nameAria")}
             onChange={(event) => setName(event.target.value)}
             onBlur={onRename}
             onKeyDown={(event) => {
@@ -144,7 +150,7 @@ export function CharacterWorkspace({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-sm text-muted">
-            {character.styleName} · {character.versions.length} 個版本
+            {character.styleName} · {t("characters.versionCount", { n: character.versions.length })}
           </p>
           <button
             type="button"
@@ -152,7 +158,7 @@ export function CharacterWorkspace({
             disabled={pending !== ""}
             className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-accent/30 px-4 text-sm font-semibold text-accent transition hover:-translate-y-0.5 disabled:opacity-60"
           >
-            刪除角色
+            {t("characters.deleteCharacter")}
           </button>
         </div>
       </header>

@@ -1,7 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { SCENE_TEXT_IDS, SCENE_TEXT_PRESETS } from "@/service/director/scene-text";
+import { useI18n } from "@/presentation/components/i18n-provider";
+import { SCENE_TEXT_IDS } from "@/service/director/scene-text";
+import { sceneTextLangLabel } from "@/util/i18n/picker-labels";
 import type { SceneTextLanguage } from "@/model/project";
 
 // On-canvas text is always on; the user only picks its script.
@@ -14,14 +16,15 @@ export function SceneTextPicker({
   onLanguageChange: (value: SceneTextLanguage) => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <div
       role="radiogroup"
-      aria-label="畫面文字語言"
+      aria-label={t("brief.sceneText.aria")}
       className="grid grid-cols-3 gap-1 rounded-2xl border border-accent-ink/10 bg-paper/70 p-1"
     >
       {SCENE_TEXT_IDS.map((id) => {
-        const preset = SCENE_TEXT_PRESETS[id];
+        const preset = sceneTextLangLabel(t, id);
         const active = id === language;
         return (
           <button
@@ -42,9 +45,7 @@ export function SceneTextPicker({
                 transition={{ type: "spring", stiffness: 420, damping: 32 }}
               />
             ) : null}
-            <span className="relative block font-display text-sm font-bold">
-              {preset.label}
-            </span>
+            <span className="relative block font-display text-sm font-bold">{preset.label}</span>
             <span className={`relative block text-xs ${active ? "text-paper/75" : "text-muted"}`}>
               {preset.sublabel}
             </span>

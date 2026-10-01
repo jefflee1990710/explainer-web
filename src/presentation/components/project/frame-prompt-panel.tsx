@@ -1,11 +1,9 @@
 "use client";
 
-import { SCENE_TEXT_PRESETS } from "@/service/director/scene-text";
+import { useI18n } from "@/presentation/components/i18n-provider";
+import { sceneTextLangLabel } from "@/util/i18n/picker-labels";
 import type { ClipFrame, SceneTextLanguage } from "@/model/project";
 
-const POSITION_LABEL = { start: "起始", end: "結尾" } as const;
-
-// Pull the scene-text block from a stored frame prompt for quick inspection.
 export function sceneTextPromptSummary(prompt: string) {
   if (/MANDATORY ON-CANVAS TEXT/.test(prompt)) {
     const match = prompt.match(
@@ -33,39 +31,49 @@ export function FramePromptPanel({
   voiceoverLine?: string;
   frames: Array<ClipFrame | undefined>;
 }) {
+  const { t } = useI18n();
   const rows = frames.filter((frame): frame is ClipFrame => Boolean(frame?.prompt?.trim()));
   if (rows.length === 0) return null;
 
-  const langLabel = SCENE_TEXT_PRESETS[sceneTextLanguage].label;
+  const langLabel = sceneTextLangLabel(t, sceneTextLanguage).label;
 
   return (
     <div className="mt-3 space-y-2 rounded-2xl border border-accent-ink/10 bg-paper/90 p-3">
       <p className="font-display text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
-        產圖 Prompt（畫面文字）
+        {t("production.debug.promptTitle")}
       </p>
       <p className="text-[11px] leading-5 text-muted">
-        專案設定：
+        {t("production.debug.projectSetting")}
         {sceneTextEnabled ? (
           <>
             {" "}
-            <strong className="text-foreground">開啟</strong> · {langLabel}
+            <strong className="text-foreground">{t("production.sceneText.on")}</strong> · {langLabel}
             {voiceoverLine?.trim() ? (
               <>
-                {" "}
-                — 應畫上旁白：「
-                <span className="text-foreground">{voiceoverLine.trim()}</span>」
+                {t("production.sceneText.onWithVo", { line: voiceoverLine.trim() })}
               </>
             ) : null}
           </>
         ) : (
           <>
             {" "}
-            <strong className="text-foreground">關閉</strong> — prompt 要求畫面完全無字
+            <strong className="text-foreground">{t("production.sceneText.off")}</strong>
+            {t("production.sceneText.offHint")}
           </>
         )}
       </p>
       {rows.map((frame) => {
         const summary = sceneTextPromptSummary(frame.prompt);
+        const pos = t(`production.frame.position.${frame.position}`);
+        const quotedShort = summary.quoted
+          ? `${summary.quoted.slice(0, 48)}${summary.quoted.length > 48 ? "…" : ""}`
+          : "";
+        const line =
+          summary.mode === "on"
+            ? t("production.debug.frameSummaryOn", { position: pos, quoted: quotedShort })
+            : summary.mode === "off"
+              ? `${t("production.frame.alt", { position: pos })} · ${t("production.debug.frameSummaryOff")}`
+              : `${t("production.frame.alt", { position: pos })} · ${t("production.debug.frameSummaryUnknown")}`;
         const stale =
           (sceneTextEnabled && summary.mode !== "on") ||
           (!sceneTextEnabled && summary.mode === "on");
@@ -73,14 +81,9 @@ export function FramePromptPanel({
           <details key={`${frame.clipNumber}:${frame.position}`} className="group text-xs">
             <summary className="cursor-pointer list-none font-semibold text-foreground marker:content-none [&::-webkit-details-marker]:hidden">
               <span className="underline-offset-2 group-open:underline">
-                {POSITION_LABEL[frame.position]}畫格 ·{" "}
-                {summary.mode === "on"
-                  ? `含旁白文字${summary.quoted ? `「${summary.quoted.slice(0, 48)}${summary.quoted.length > 48 ? "…" : ""}」` : ""}`
-                  : summary.mode === "off"
-                    ? "禁止畫面文字"
-                    : "未辨識畫面文字區塊"}
+                {line}
                 {stale ? (
-                  <span className="ml-1 font-medium text-accent">（舊畫格沒有畫面文字，請重畫）</span>
+                  <span className="ml-1 font-medium text-accent">{t("production.debug.staleSceneText")}</span>
                 ) : null}
               </span>
             </summary>

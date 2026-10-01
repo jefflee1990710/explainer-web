@@ -10,7 +10,9 @@ import type { PublicStyle } from "@/presentation/serialize";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
 import { Spinner } from "@/presentation/components/spinner";
 import { StylePicker } from "@/presentation/components/style-picker";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { FRAME_COST } from "@/service/production-plan";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 
 const NAME_MAX = 40;
 const DEFAULT_BUTTON_CLASS =
@@ -22,7 +24,7 @@ export function CreateCharacterButton({
   subscribed,
   styles,
   className = DEFAULT_BUTTON_CLASS,
-  children = "新增角色",
+  children,
 }: {
   credits: number;
   subscribed: boolean;
@@ -30,6 +32,8 @@ export function CreateCharacterButton({
   className?: string;
   children?: React.ReactNode;
 }) {
+  const { t } = useI18n();
+  const label = children ?? t("characters.create");
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -40,7 +44,7 @@ export function CreateCharacterButton({
         aria-expanded={open}
         onClick={() => setOpen(true)}
       >
-        {children}
+        {label}
       </button>
       {open ? (
         <CreateCharacterModal
@@ -66,6 +70,7 @@ export function CreateCharacterModal({
   styles: PublicStyle[];
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const titleId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -103,7 +108,7 @@ export function CreateCharacterModal({
       const result = await createCharacterAction(data);
       if (!result.ok) {
         setSubmitting(false);
-        setError(result.error);
+        setError(translateAppError(result.error, t));
         if (isCreditGateError(result.error)) {
           setCreditGate(true);
         }
@@ -113,7 +118,7 @@ export function CreateCharacterModal({
       onClose();
       router.push(`/app/characters/${result.character.id}`);
     } catch {
-      setError("建立角色失敗，請再試一次");
+      setError(t("errors.createCharacterFailed"));
       setSubmitting(false);
     }
   }
@@ -136,14 +141,12 @@ export function CreateCharacterModal({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id={titleId} className="font-display text-2xl font-bold">
-          新增角色
+          {t("characters.create")}
         </h2>
-        <p className="mt-2 text-sm text-muted">
-          我們會產生一張角色藍圖（轉身圖、走路循環、表情格）。角色描述與參考圖至少填一項；多張照片會讓藍圖更像本人。
-        </p>
+        <p className="mt-2 text-sm text-muted">{t("characters.modalIntro")}</p>
         <form ref={formRef} onSubmit={onSubmit} className="mt-5 space-y-4">
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold">角色名稱</span>
+            <span className="mb-1.5 block text-sm font-semibold">{t("characters.nameLabel")}</span>
             <input
               ref={inputRef}
               type="text"
@@ -152,31 +155,31 @@ export function CreateCharacterModal({
               value={name}
               onChange={(event) => setName(event.target.value)}
               disabled={submitting}
-              placeholder="例如：小明"
+              placeholder={t("characters.namePlaceholder")}
               className="min-h-[44px] w-full rounded-full border border-accent-ink/15 bg-paper px-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
             />
           </label>
 
           {/* Shared style cards; the character is drawn and later cast in this style. */}
           <fieldset>
-            <legend className="mb-1.5 text-sm font-semibold">風格</legend>
+            <legend className="mb-1.5 text-sm font-semibold">{t("characters.styleLabel")}</legend>
             <StylePicker
               styles={styles}
               value={styleId}
               onChange={setStyleId}
               disabled={submitting}
-              label="風格"
+              label={t("characters.styleLabel")}
             />
           </fieldset>
 
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold">角色描述（選填）</span>
+            <span className="mb-1.5 block text-sm font-semibold">{t("characters.describeLabel")}</span>
             <textarea
               rows={4}
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               disabled={submitting}
-              placeholder="例如：七歲小男孩，圓臉，頭頂三根呆毛，穿藍色格子睡衣與黑色布鞋。"
+              placeholder={t("characters.describePlaceholder")}
               className="w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
             />
           </label>
@@ -190,14 +193,14 @@ export function CreateCharacterModal({
 
           {error ? (
             <p role="alert" className="text-sm text-accent">
-              {error}
+              {translateAppError(error, t)}
             </p>
           ) : null}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-muted">
               {walletSubscribed
-                ? `扣 ${FRAME_COST} credits（剩餘 ${walletCredits}）`
-                : "需要有效訂閱才能產生藍圖"}
+                ? t("characters.costLine", { cost: FRAME_COST, remaining: walletCredits })
+                : t("characters.subscribeRequired")}
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -206,7 +209,7 @@ export function CreateCharacterModal({
                 disabled={submitting}
                 className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:opacity-60"
               >
-                取消
+                {t("common.cancel")}
               </button>
               <button
                 type="submit"
@@ -214,7 +217,7 @@ export function CreateCharacterModal({
                 className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? <Spinner className="h-4 w-4" /> : null}
-                產生藍圖
+                {t("characters.generateBlueprint")}
               </button>
             </div>
           </div>

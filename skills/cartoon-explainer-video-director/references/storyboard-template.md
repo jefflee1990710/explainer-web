@@ -100,7 +100,22 @@ Write every scene field (`startScene`, `endScene`, `explainerScene`) as four con
 3. Light: light direction, colour temperature, mood.
 4. Camera: shot size, camera angle, composition, and each character's screen position.
 
-Write `motionCamera` as timed beats (`0–2s …; 2–5s …`) naming the action, the expression change, and the camera start and end framing. Prefer specific nouns (a chipped blue mug, warm window light from the left) over generic ones.
+Prefer specific nouns (a chipped blue mug, warm window light from the left) over generic ones.
+
+## Motion contract (`motionCamera` / 鏡頭動作)
+
+`motionCamera` is the transition script from the start still to the end still. The video model only gets those two frames plus this text, so it must explain how one becomes the other.
+
+Write it as timed beats (`0–2s …; 2–5s …`). Each beat states: time window → who or what moves → from where to where → how (picked up, set down, slid in from the frame edge, written on, wiped off) → the expression change and the camera framing.
+
+- Every difference between the start and end still gets a beat that shows its cause on camera: pose, each hand, eyeline, expression, and every prop or label that moves, appears, disappears, or changes state.
+- A prop that is in the end still but not in the start still is either added to the start still, or enters on camera in a beat (placed by a hand, slides in from the frame edge).
+- A prop that is in the start still but not in the end still leaves on camera in a beat (put away, moved off frame, covered).
+- Name each hand by the character's own left or right, and keep the same hand on the same prop from the start still through `motionCamera` to the end still.
+- The start and end still of one clip share the same light and the same camera; a mood change comes from expression and props.
+- When on-canvas voiceover lettering is on, add a midpoint beat where the start line wipes off and the end line writes on in the same spot. Keep that lettering out of the start and end still text; the still prompt adds it from the VO beats.
+
+Before returning, compare each clip's start and end still item by item: every difference appears in `motionCamera`, and every object `motionCamera` touches already exists in the start still or enters in a beat.
 
 Wardrobe lock: every character wears exactly their blueprint outfit in every clip, whatever the setting or weather. Never plan a costume change, weather gear (coats, gloves, hats, boots), or body-worn props (backpacks, harnesses, clip-on mics, helmets) — in scenes or in `visualWorld`. Hand-held props are fine. Pick settings that work in that outfit.
 
@@ -137,6 +152,7 @@ Do not include final model prompts. A global change invalidates approval and req
 - The voiceover is a third-person off-screen narrator; no line is the on-screen character speaking or introducing themself.
 - Every start and end still has at least 3 explanatory props that the character actively uses.
 - Visual change occurs approximately every 1.5–2.5 seconds (2-Second Rule).
+- Every difference between each clip's start and end still has a timed beat in `motionCamera` showing its on-camera cause.
 - The locked everyman, white-canvas doodle world, and yellow tag accents remain consistent.
 - No technical color notation is present.
 - Any proposed text is clearly separated as a post-production overlay and absent from generated scenes.

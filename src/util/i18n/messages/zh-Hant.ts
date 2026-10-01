@@ -1,4 +1,10 @@
 import type { Messages } from "@/util/i18n/messages/types";
+import { briefZhHant } from "@/util/i18n/messages/workspace/brief.zh-Hant";
+import { errorsZhHant } from "@/util/i18n/messages/workspace/errors.zh-Hant";
+import { pickersZhHant } from "@/util/i18n/messages/workspace/pickers.zh-Hant";
+import { productionZhHant } from "@/util/i18n/messages/workspace/production.zh-Hant";
+import { tasksPageZhHant } from "@/util/i18n/messages/workspace/tasks.zh-Hant";
+import { videoZhHant } from "@/util/i18n/messages/workspace/video.zh-Hant";
 
 export const zhHant: Messages = {
   meta: {
@@ -28,6 +34,7 @@ export const zhHant: Messages = {
     cancel: "取消",
     save: "儲存",
     close: "關閉",
+    dismissNotification: "關閉通知",
     create: "建立",
     loading: "載入中…",
     popular: "最受歡迎",
@@ -61,6 +68,9 @@ export const zhHant: Messages = {
       title: "需要比 Scale 更大的用量？",
       body: "自訂 credits、發票請款、專人支援與用量合約。",
       cta: "聯絡我們",
+      cardLabel: "Enterprise",
+      nameLine: "{nameLocal} / {name}",
+      quote: "報價",
     },
     showcase: {
       title: "看看成果",
@@ -162,6 +172,8 @@ export const zhHant: Messages = {
     tablePreview: "預覽",
     tableName: "專案",
     tableVideos: "影片",
+    videoCount: "{n} 支影片",
+    previewAlt: "{name} 預覽",
   },
   project: {
     steps: {
@@ -192,6 +204,59 @@ export const zhHant: Messages = {
     create: "新增角色",
     emptyTitle: "還沒有角色",
     emptyBody: "先建立一個角色藍圖，之後每支影片都能重複使用同一個角色。",
+    backToList: "← 回到角色",
+    noVersions: "這個角色還沒有任何版本。",
+    nameAria: "角色名稱",
+    versionCount: "{n} 個版本",
+    deleteCharacter: "刪除角色",
+    modalIntro:
+      "我們會產生一張角色藍圖（轉身圖、走路循環、表情格）。角色描述與參考圖至少填一項；多張照片會讓藍圖更像本人。",
+    nameLabel: "角色名稱",
+    namePlaceholder: "例如：小明",
+    styleLabel: "風格",
+    describeLabel: "角色描述（選填）",
+    describePlaceholder:
+      "例如：七歲小男孩，圓臉，頭頂三根呆毛，穿藍色格子睡衣與黑色布鞋。",
+    costLine: "扣 {cost} credits（剩餘 {remaining}）",
+    subscribeRequired: "需要有效訂閱才能產生藍圖",
+    generateBlueprint: "產生藍圖",
+    referencesTitle: "參考圖（選填，最多 {max} 張）",
+    referencesHint: "拖放或選擇多張臉、全身、服裝照，藍圖會更像本人。",
+    referenceAlt: "參考圖 {n}",
+    removeReferenceAria: "移除參考圖 {n}",
+    addMorePhotos: "再加圖片",
+    chooseOrDropPhotos: "選擇或拖放圖片",
+    deleteTitle: "刪除角色",
+    deleteBody:
+      "確定要刪除「{name}」嗎？這會一併刪除所有版本的藍圖、參考圖與相關儲存檔案，且無法復原。",
+    deletePendingNote: " 目前有版本仍在產生中，刪除後該次產生也會停止。",
+    referencesUploadFailed: "上傳失敗，請再試一次",
+    cardGenerating: "生成中",
+    cardFailed: "失敗",
+    blueprintAlt: "{name} 藍圖",
+    versionsHeading: "版本",
+    defaultBadge: "預設",
+    editedFromVersion: " · 由 v{n} 編輯",
+    versionStatusQueued: "排隊中",
+    versionStatusInProgress: "生成中",
+    versionStatusCompleted: "完成",
+    versionStatusFailed: "失敗",
+    versionBlueprintAlt: "{name} v{n} 藍圖",
+    blueprintGenerating: "藍圖生成中，約需一分鐘",
+    versionFailedFallback: "這個版本沒有成功",
+    changeThisRun: "這次的變更",
+    characterDescription: "角色描述",
+    characterSource: "角色來源",
+    characterFromReferences: "依參考圖與風格產生",
+    setDefault: "設為預設",
+    editFromVersion: "從此版本編輯",
+    retryCredits: "重試・{cost} credits",
+    creditsShortSubscribed: "credits 不足（剩餘 {remaining}），點擊後可加購並繼續。",
+    creditsNeedSubscribe: "需要有效訂閱才能產生新版本，點擊後可訂閱並繼續。",
+    creditsRemaining: "剩餘 {remaining} credits",
+    editWhatLabel: "要改什麼？",
+    editWhatPlaceholder: "例如：把睡衣換成紅色，加一頂棒球帽。",
+    generateNewVersion: "產生新版本・{cost} credits",
   },
   settings: {
     title: "設定",
@@ -204,6 +269,9 @@ export const zhHant: Messages = {
   billing: {
     title: "訂閱與 credits",
     checkoutSuccess: "付款完成。若 credits 尚未更新，稍等 webhook 同步。",
+    checkoutReturningSuccess: "付款完成，正在回到 Scro…",
+    checkoutReturningCancel: "已取消付款",
+    checkoutReturningWait: "正在回到 Scro…",
     currentPlan: "目前方案：{plan}（{status}）",
     periodInfo: "每月 {monthly} credits，週期至 {date}",
     manageSubscription: "管理訂閱",
@@ -354,6 +422,12 @@ export const zhHant: Messages = {
       blurb: "適合幫很多客戶做片的團隊。",
     },
   },
+  brief: briefZhHant,
+  video: videoZhHant,
+  production: productionZhHant,
+  tasksPage: tasksPageZhHant,
+  pickers: pickersZhHant,
+  errors: errorsZhHant,
   auth: {
     signInTitle: "登入",
     signUpTitle: "建立帳號",

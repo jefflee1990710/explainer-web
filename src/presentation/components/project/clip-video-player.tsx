@@ -2,10 +2,10 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { pageVideos, pauseOtherVideos } from "@/presentation/components/project/exclusive-video";
 import { PlayIcon } from "@/presentation/components/project/production-icons";
 
-// Bumps when a clip is selected, so the preview can start with sound.
 const ClipPlaybackContext = createContext(0);
 
 export function ClipPlaybackProvider({
@@ -27,8 +27,6 @@ export function ClipPlaybackProvider({
   return <ClipPlaybackContext.Provider value={token}>{children}</ClipPlaybackContext.Provider>;
 }
 
-// Pause every other <video> on the page, then start with sound.
-// If the browser blocks unmuted play, start muted and unmute.
 async function playWithSound(video: HTMLVideoElement) {
   pauseOtherVideos(video, pageVideos());
   video.muted = false;
@@ -47,8 +45,6 @@ async function playWithSound(video: HTMLVideoElement) {
   }
 }
 
-// Completed clip video. A large play button sits on the first frame so a
-// paused 9:16 still does not look like a stuck generation.
 export function ClipVideoPlayer({
   src,
   dimmed = false,
@@ -56,6 +52,7 @@ export function ClipVideoPlayer({
   src: string;
   dimmed?: boolean;
 }) {
+  const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const autoplayToken = useContext(ClipPlaybackContext);
@@ -64,9 +61,7 @@ export function ClipVideoPlayer({
     if (autoplayToken === 0) return;
     const video = videoRef.current;
     if (!video) return;
-    void playWithSound(video).catch(() => {
-      // Native controls can still start playback.
-    });
+    void playWithSound(video).catch(() => {});
   }, [autoplayToken, src]);
 
   async function play() {
@@ -100,7 +95,7 @@ export function ClipVideoPlayer({
         <button
           type="button"
           onClick={play}
-          aria-label="播放這段影片"
+          aria-label={t("production.video.playAria")}
           className="absolute inset-0 z-10 grid cursor-pointer place-items-center bg-black/20"
         >
           <span className="grid h-14 w-14 place-items-center rounded-full bg-white/95 text-[var(--studio-ink)] shadow-md">

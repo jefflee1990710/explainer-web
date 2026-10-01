@@ -4,6 +4,7 @@ import type { PhaseAProposal } from "@/model/project";
 import {
   clipPhaseBUserPrompt,
   phaseBCharacterLine,
+  phaseBLetteringLock,
   phaseBWardrobeLock,
 } from "@/service/director/phase-b-clip-prompt";
 
@@ -123,6 +124,15 @@ test("Phase B with a cast forbids describing or changing clothing", () => {
   assert.match(phaseBWardrobeLock({ cast: [{ name: "Ada" }] }), /exactly the outfit shown in the first and last frames/);
   assert.match(phaseBWardrobeLock({ characterImageUrl: "https://blob/hero.png" }), /No added or changed clothing/);
   assert.equal(phaseBWardrobeLock({}), "");
+});
+
+test("dual-beat clips swap the keyframe lettering at the midpoint instead of banning on-screen text", () => {
+  const lock = phaseBLetteringLock({ skillSlug: "cartoon-explainer-video-director", durationSeconds: 5 });
+  assert.match(lock, /about 2\.5s/);
+  assert.match(lock, /wipes off/);
+  assert.match(lock, /writes on in the same spot/);
+  assert.match(lock, /not a caption or subtitle/);
+  assert.equal(phaseBLetteringLock({ skillSlug: "story-short-director", durationSeconds: 5 }), "");
 });
 
 test("Phase B character line never hands Wan a reference-image URL", () => {

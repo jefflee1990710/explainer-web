@@ -8,6 +8,7 @@ import { VideoEditLayers } from "@/presentation/components/app/projects/new/vide
 import { VideoEditPreview, type EditSelection } from "@/presentation/components/app/projects/new/video-edit-preview";
 import { VideoEditProperties } from "@/presentation/components/app/projects/new/video-edit-properties";
 import { VideoEditTemplates } from "@/presentation/components/app/projects/new/video-edit-templates";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import {
   applyTemplateAction,
   deleteTemplateAction,
@@ -20,12 +21,11 @@ import {
 } from "@/presentation/actions/video-edit";
 import { isReelBusy, isReelCurrent } from "@/service/reel/fingerprint";
 import { EDIT_LIMITS, emptyEdit, type BookendClip, type BrandLayer, type VideoEdit } from "@/model/video-edit";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { PublicTemplate, PublicVideo } from "@/presentation/serialize";
 
 const SAVE_DELAY_MS = 600;
 
-// Video tab: local edit state is the source of truth; it autosaves to the
-// video after a short pause and flushes before template or export actions.
 export function VideoEditDesk({
   project,
   pending,
@@ -39,6 +39,7 @@ export function VideoEditDesk({
   onComposeReel: () => void;
   onProjectChange: (project: PublicVideo) => void;
 }) {
+  const { t } = useI18n();
   const [edit, setEdit] = useState<VideoEdit>(() => project.edit ?? emptyEdit());
   const [selected, setSelected] = useState<EditSelection>("");
   const [templates, setTemplates] = useState<PublicTemplate[]>([]);
@@ -52,7 +53,6 @@ export function VideoEditDesk({
     latest.current = edit;
   }, [edit]);
 
-  // Same auto-compose rule the old reel inspector used.
   const reelCurrent = isReelCurrent(project);
   const reelBusy = isReelBusy(project.reelStatus) || pending === "reel";
   const reelFailed = project.reelStatus === "failed" && !reelCurrent;
@@ -131,7 +131,6 @@ export function VideoEditDesk({
     if (selected === slot) setSelected("");
   }
 
-  // Template and export actions run after the pending autosave lands.
   async function run<T>(work: () => Promise<T>) {
     setBusy(true);
     const saved = await save();
@@ -151,7 +150,7 @@ export function VideoEditDesk({
 
   async function saveNew(name: string) {
     const result = await run(() => saveTemplateAction(project.id, name));
-    if (!result) return "儲存失敗，請再試一次";
+    if (!result) return t("video.edit.saveTemplateFailed");
     if (!result.ok) return result.error;
     setTemplates((list) => [result.template, ...list]);
     onProjectChange(result.project);
@@ -162,20 +161,20 @@ export function VideoEditDesk({
     const result = await run(() => overwriteTemplateAction(project.id, templateId));
     if (!result) return;
     if (!result.ok) return setMessage(result.error);
-    setTemplates((list) => list.map((t) => (t.id === templateId ? result.template : t)));
+    setTemplates((list) => list.map((item) => (item.id === templateId ? result.template : item)));
   }
 
   async function rename(templateId: string, name: string) {
     const result = await renameTemplateAction(templateId, name);
     if (!result.ok) return result.error;
-    setTemplates((list) => list.map((t) => (t.id === templateId ? result.template : t)));
+    setTemplates((list) => list.map((item) => (item.id === templateId ? result.template : item)));
     return "";
   }
 
   async function remove(templateId: string) {
     const result = await deleteTemplateAction(templateId);
     if (!result.ok) return setMessage(result.error);
-    setTemplates((list) => list.filter((t) => t.id !== templateId));
+    setTemplates((list) => list.filter((item) => item.id !== templateId));
   }
 
   async function exportVideo() {
@@ -185,7 +184,8 @@ export function VideoEditDesk({
     onProjectChange(result.project);
   }
 
-  const shownError = message || error || (reelFailed ? project.reelError || "成片合成失敗" : "");
+  const shownError =
+    message || error || (reelFailed ? project.reelError || t("video.edit.reelComposeFailed") : "");
 
   return (
     <StudioFrame
@@ -202,9 +202,9 @@ export function VideoEditDesk({
       inspector={
         <div className="flex flex-col gap-5 p-4">
           <header>
-            <p className="text-sm font-semibold">Video</p>
+            <p className="text-sm font-semibold">{t("video.edit.title")}</p>
             <p className="mt-1 text-xs text-[var(--studio-muted)]">
-              {saving ? "儲存中…" : "加 logo、開頭與結尾，存成樣板下次一鍵套用。"}
+              {saving ? t("video.edit.subtitleSaving") : t("video.edit.subtitle")}
             </p>
           </header>
           <VideoSharePanel project={project} edit={edit} />
@@ -244,9 +244,15 @@ export function VideoEditDesk({
           />
           <VideoEditExport project={project} edit={edit} saving={saving || busy} pending={busy} onExport={() => void exportVideo()} />
           {reelFailed ? (
-            <button type="button" onClick={onComposeReel} className="self-start text-xs font-semibold text-[var(--studio-teal)]">重新合成成片</button>
+            <button type="button" onClick={onComposeReel} className="self-start text-xs font-semibold text-[var(--studio-teal)]">
+              {t("video.edit.recompose")}
+            </button>
           ) : null}
-          {shownError ? <p role="alert" className="text-xs font-medium text-[#e11d48]">{shownError}</p> : null}
+          {shownError ? (
+            <p role="alert" className="text-xs font-medium text-[#e11d48]">
+              {translateAppError(shownError, t)}
+            </p>
+          ) : null}
         </div>
       }
     />

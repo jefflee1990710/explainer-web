@@ -1,3 +1,10 @@
+import type { BriefMessages } from "@/util/i18n/messages/workspace/brief.en";
+import type { ErrorsMessages } from "@/util/i18n/messages/workspace/errors.en";
+import type { PickersMessages } from "@/util/i18n/messages/workspace/pickers.en";
+import type { ProductionMessages } from "@/util/i18n/messages/workspace/production.en";
+import type { TasksPageMessages } from "@/util/i18n/messages/workspace/tasks.en";
+import type { VideoMessages } from "@/util/i18n/messages/workspace/video.en";
+
 // Shared message shape — every locale file must satisfy this interface.
 export type Messages = {
   meta: {
@@ -26,6 +33,7 @@ export type Messages = {
     cancel: string;
     save: string;
     close: string;
+    dismissNotification: string;
     create: string;
     loading: string;
     popular: string;
@@ -59,6 +67,9 @@ export type Messages = {
       title: string;
       body: string;
       cta: string;
+      cardLabel: string;
+      nameLine: string;
+      quote: string;
     };
     showcase: {
       title: string;
@@ -148,6 +159,8 @@ export type Messages = {
     tablePreview: string;
     tableName: string;
     tableVideos: string;
+    videoCount: string;
+    previewAlt: string;
   };
   project: {
     steps: {
@@ -179,6 +192,56 @@ export type Messages = {
     create: string;
     emptyTitle: string;
     emptyBody: string;
+    backToList: string;
+    noVersions: string;
+    nameAria: string;
+    versionCount: string;
+    deleteCharacter: string;
+    modalIntro: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    styleLabel: string;
+    describeLabel: string;
+    describePlaceholder: string;
+    costLine: string;
+    subscribeRequired: string;
+    generateBlueprint: string;
+    referencesTitle: string;
+    referencesHint: string;
+    referenceAlt: string;
+    removeReferenceAria: string;
+    addMorePhotos: string;
+    chooseOrDropPhotos: string;
+    deleteTitle: string;
+    deleteBody: string;
+    deletePendingNote: string;
+    referencesUploadFailed: string;
+    cardGenerating: string;
+    cardFailed: string;
+    blueprintAlt: string;
+    versionsHeading: string;
+    defaultBadge: string;
+    editedFromVersion: string;
+    versionStatusQueued: string;
+    versionStatusInProgress: string;
+    versionStatusCompleted: string;
+    versionStatusFailed: string;
+    versionBlueprintAlt: string;
+    blueprintGenerating: string;
+    versionFailedFallback: string;
+    changeThisRun: string;
+    characterDescription: string;
+    characterSource: string;
+    characterFromReferences: string;
+    setDefault: string;
+    editFromVersion: string;
+    retryCredits: string;
+    creditsShortSubscribed: string;
+    creditsNeedSubscribe: string;
+    creditsRemaining: string;
+    editWhatLabel: string;
+    editWhatPlaceholder: string;
+    generateNewVersion: string;
   };
   settings: {
     title: string;
@@ -191,6 +254,9 @@ export type Messages = {
   billing: {
     title: string;
     checkoutSuccess: string;
+    checkoutReturningSuccess: string;
+    checkoutReturningCancel: string;
+    checkoutReturningWait: string;
     currentPlan: string;
     periodInfo: string;
     manageSubscription: string;
@@ -329,6 +395,12 @@ export type Messages = {
     studio: { name: string; blurb: string };
     scale: { name: string; blurb: string };
   };
+  brief: BriefMessages;
+  video: VideoMessages;
+  production: ProductionMessages;
+  tasksPage: TasksPageMessages;
+  pickers: PickersMessages;
+  errors: ErrorsMessages;
   auth: {
     signInTitle: string;
     signUpTitle: string;

@@ -1,0 +1,68 @@
+import type { TranslateFn } from "@/util/i18n/translate";
+
+// Map known server error strings (zh / en) to errors.* message keys.
+const EXACT: Record<string, string> = {
+  "請選擇對白語言": "errors.dialogueLanguageRequired",
+  "請選擇旁白語言": "errors.voiceRequired",
+  "建立專案失敗": "errors.createProjectFailed",
+  "請先同意服務條款與私隱政策": "errors.acceptPolicies",
+  "讀取任務失敗": "errors.loadTasksFailed",
+  "建立角色失敗，請再試一次": "errors.createCharacterFailed",
+  "操作失敗，請再試一次": "errors.characterActionFailed",
+  "下載失敗，請再試一次": "errors.downloadFailed",
+  "請輸入角色名稱": "errors.characterNameRequired",
+  "請選擇風格": "errors.styleRequired",
+  "請描述這個角色，或上傳參考圖": "errors.characterDescribeOrUpload",
+  "角色不存在": "errors.characterNotFound",
+  "版本不存在": "errors.versionNotFound",
+  "只能從已完成的版本編輯": "errors.editFromCompletedOnly",
+  "只有失敗的版本可以重試": "errors.retryFailedVersionOnly",
+  "只有完成的版本可以設為預設": "errors.defaultVersionCompletedOnly",
+  "專案不存在": "errors.projectNotFound",
+  "分鏡尚未完成": "errors.storyboardNotReady",
+  "找不到這段分鏡": "errors.clipNotFound",
+  "這一段的分鏡圖還在產生中，請稍後再重畫": "errors.framesStillGenerating",
+  "沒有需要補齊的段落": "errors.nothingToProcess",
+  "未知的產生類型": "errors.unknownGenerateKind",
+  "沒有可產生的分鏡圖": "errors.noFramesToGenerate",
+  "沒有可產生的段落": "errors.noClipsToGenerate",
+  "找不到影片": "errors.videoNotFound",
+  "成片合成中，完成後再匯出": "errors.reelBusy",
+  "先加入圖層或開頭結尾": "errors.addLayersFirst",
+  "找不到樣板": "errors.templateNotFound",
+  "已有同名樣板": "errors.duplicateTemplateName",
+  "檔案是空的": "errors.fileEmpty",
+  "圖片不可超過 5MB": "errors.imageTooLarge",
+  "影片不可超過 50MB": "errors.videoTooLarge",
+  "只支援 PNG、JPG、WebP 圖片或 MP4、MOV 影片": "errors.unsupportedMedia",
+  "請輸入樣板名稱": "errors.templateNameRequired",
+  "沒有收到檔案": "errors.noFileReceived",
+  "圖層設定格式錯誤": "errors.layerSettingsInvalid",
+  "素材網址無效，請重新上傳": "errors.assetUrlInvalid",
+};
+
+const PATTERNS: Array<{ re: RegExp; key: string; params?: (m: RegExpMatchArray) => Record<string, string | number> }> = [
+  {
+    re: /^這個導演需要正好 (\d+) 個角色$/,
+    key: "errors.castNeedExact",
+    params: (m) => ({ n: m[1] }),
+  },
+  {
+    re: /^樣板名稱最多 (\d+) 字$/,
+    key: "errors.templateNameTooLong",
+    params: (m) => ({ max: m[1] }),
+  },
+];
+
+/** Show server errors in the user's UI locale when we recognize the message. */
+export function translateAppError(message: string, t: TranslateFn): string {
+  const trimmed = message.trim();
+  if (!trimmed) return t("errors.genericRetry");
+  const exact = EXACT[trimmed];
+  if (exact) return t(exact);
+  for (const { re, key, params } of PATTERNS) {
+    const match = trimmed.match(re);
+    if (match) return t(key, params?.(match));
+  }
+  return trimmed;
+}

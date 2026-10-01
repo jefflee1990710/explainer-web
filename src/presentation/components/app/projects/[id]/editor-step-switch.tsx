@@ -32,7 +32,7 @@ export function EditorStepSwitch({
   return (
     <div
       role="tablist"
-      aria-label="編輯步驟"
+      aria-label={t("video.editor.stepsAria")}
       className="flex flex-wrap gap-0.5 rounded-lg bg-[var(--studio-fill)] p-0.5"
     >
       {PROJECT_STEPS.map((step, index) => {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import { planSelected } from "@/service/production-plan";
@@ -19,24 +20,28 @@ export function SelectionBar({
   project: PublicVideo;
   clipNumbers: number[];
   credits: number;
-  // This bar's own action is being sent.
   pending: boolean;
-  // Any action is running.
   busy: boolean;
   onFrames: (clipNumbers: number[]) => void;
   onVideos: (clipNumbers: number[]) => void;
   onClear: () => void;
 }) {
+  const { t } = useI18n();
   const frames = planSelected(project, clipNumbers, "frames");
   const videos = planSelected(project, clipNumbers, "videos");
   const skippedVideos = clipNumbers.length - videos.videos.length;
 
   return (
     <div className="flex flex-wrap items-center gap-2 px-4 py-2 text-xs">
-      <span className="font-semibold">已選 {clipNumbers.length} 段 · 剩餘 {credits}</span>
+      <span className="font-semibold">
+        {t("production.selection.summary", { n: clipNumbers.length, credits })}
+      </span>
       {skippedVideos > 0 ? (
         <span className="text-[var(--studio-muted)]">
-          {videos.videos.length} 段可產片，{skippedVideos} 段缺畫格或畫格是舊版
+          {t("production.selection.videoSkipHint", {
+            ready: videos.videos.length,
+            skipped: skippedVideos,
+          })}
         </span>
       ) : null}
       <div className="ml-auto flex items-center gap-2">
@@ -47,21 +52,21 @@ export function SelectionBar({
           disabled={busy || frames.frames.length === 0}
           className="min-h-9 px-3 text-xs"
         >
-          畫格 · {frames.cost}
+          {t("production.selection.framesButton", { cost: frames.cost })}
         </StudioButton>
         <StudioButton
           onClick={() => onVideos(videos.videos)}
           disabled={busy || videos.videos.length === 0}
           className="min-h-9 px-3 text-xs"
         >
-          產片 · {videos.cost}
+          {t("production.selection.videosButton", { cost: videos.cost })}
         </StudioButton>
         <button
           type="button"
           onClick={onClear}
           className="min-h-9 cursor-pointer px-2 font-semibold text-[var(--studio-muted)] hover:text-[var(--studio-ink)]"
         >
-          取消
+          {t("production.action.cancel")}
         </button>
       </div>
     </div>

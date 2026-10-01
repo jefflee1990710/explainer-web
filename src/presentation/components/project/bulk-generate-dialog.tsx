@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import {
@@ -16,33 +17,7 @@ import type { PublicVideo } from "@/presentation/serialize";
 
 export type BulkMode = "remaining" | "scenes" | "clips";
 
-const MODES: Array<{
-  id: BulkMode;
-  label: string;
-  hint: string;
-  overwrites: boolean;
-  recommended?: boolean;
-}> = [
-  {
-    id: "remaining",
-    label: "補完未完成",
-    hint: "只處理沒畫格、失敗的段落，並替畫格完成的段落產片。已完成的不動。",
-    overwrites: false,
-  },
-  {
-    id: "scenes",
-    label: "只畫畫格",
-    hint: "重畫每一段的起始與結尾畫格。正在畫的段落會略過。",
-    overwrites: true,
-  },
-  {
-    id: "clips",
-    label: "畫格＋影片",
-    hint: "重畫每一段畫格，兩張都完成後自動產片；影片 credits 在那時才扣。",
-    overwrites: true,
-    recommended: true,
-  },
-];
+const MODE_IDS: BulkMode[] = ["remaining", "scenes", "clips"];
 
 // Confirm a bulk run: pick a mode, see every clip's cost, then charge.
 export function BulkGenerateDialog({
@@ -58,8 +33,20 @@ export function BulkGenerateDialog({
   onCancel: () => void;
   onConfirm: (mode: BulkMode) => void;
 }) {
+  const { t } = useI18n();
   const titleId = useId();
   const [mode, setMode] = useState<BulkMode>("clips");
+  const modes = useMemo(
+    () =>
+      MODE_IDS.map((id) => ({
+        id,
+        label: t(`production.bulk.mode.${id}.label`),
+        hint: t(`production.bulk.mode.${id}.hint`),
+        overwrites: id !== "remaining",
+        recommended: id === "clips",
+      })),
+    [t],
+  );
   const plan =
     mode === "remaining"
       ? planRemaining(project)
@@ -69,10 +56,9 @@ export function BulkGenerateDialog({
   const list = (numbers: number[]) => numbers.map((n) => `#${n}`).join("、");
   const videoUpgrade =
     plan.videos.length > 0 && needsVideoUpgrade(credits, cheapestVideoCost(project, plan.videos));
-  // Videos are billed per second, so the row shows the summed clip costs.
   const videoTotal = plan.cost - plan.frames.length * FRAMES_COST;
   const short = !videoUpgrade && credits < plan.cost;
-  const current = MODES.find((item) => item.id === mode)!;
+  const current = modes.find((item) => item.id === mode)!;
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -95,12 +81,12 @@ export function BulkGenerateDialog({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id={titleId} className="text-lg font-bold">
-          全部產生
+          {t("production.bulk.title")}
         </h2>
 
         <fieldset className="mt-4 flex flex-col gap-2" disabled={pending}>
-          <legend className="sr-only">產生範圍</legend>
-          {MODES.map((item) => (
+          <legend className="sr-only">{t("production.bulk.legend")}</legend>
+          {modes.map((item) => (
             <label
               key={item.id}
               className={`flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 ${
@@ -121,12 +107,12 @@ export function BulkGenerateDialog({
                   {item.label}
                   {item.recommended ? (
                     <span className="rounded-sm bg-emerald-100 px-1.5 text-[10px] font-bold text-emerald-800">
-                      建議
+                      {t("production.bulk.badgeRecommended")}
                     </span>
                   ) : null}
                   {item.overwrites ? (
                     <span className="rounded-sm bg-amber-100 px-1.5 text-[10px] font-bold text-amber-800">
-                      會覆蓋已完成段落
+                      {t("production.bulk.badgeOverwrites")}
                     </span>
                   ) : null}
                 </span>
@@ -140,49 +126,57 @@ export function BulkGenerateDialog({
           <tbody>
             {plan.frames.length ? (
               <tr className="border-b border-dashed border-[var(--studio-line)]">
-                <td className="py-1.5">{list(plan.frames)} 畫格</td>
+                <td className="py-1.5">
+                  {t("production.bulk.row.frames", { clips: list(plan.frames) })}
+                </td>
                 <td className="py-1.5 text-right tabular-nums">
-                  {plan.frames.length} 段 × {FRAMES_COST} = {plan.frames.length * FRAMES_COST}
+                  {t("production.bulk.row.framesCost", {
+                    count: plan.frames.length,
+                    cost: FRAMES_COST,
+                    total: plan.frames.length * FRAMES_COST,
+                  })}
                 </td>
               </tr>
             ) : null}
             {plan.videos.length ? (
               <tr className="border-b border-dashed border-[var(--studio-line)]">
                 <td className="py-1.5">
-                  {list(plan.videos)} 影片{current.id === "clips" ? "（畫格完成後才扣）" : ""}
+                  {t("production.bulk.row.videos", { clips: list(plan.videos) })}
+                  {current.id === "clips" ? t("production.bulk.row.videosDeferredNote") : ""}
                 </td>
                 <td className="py-1.5 text-right tabular-nums">
-                  {plan.videos.length} 段 · 每秒 {VIDEO_CREDITS_PER_SECOND} = {videoTotal}
+                  {t("production.bulk.row.videosCost", {
+                    count: plan.videos.length,
+                    rate: VIDEO_CREDITS_PER_SECOND,
+                    total: videoTotal,
+                  })}
                 </td>
               </tr>
             ) : null}
             <tr>
-              <td className="py-1.5 font-semibold">合計</td>
+              <td className="py-1.5 font-semibold">{t("production.bulk.row.total")}</td>
               <td className="py-1.5 text-right font-semibold tabular-nums">
-                {plan.cost} credits{" "}
-                <span className="font-normal text-[var(--studio-muted)]">（剩餘 {credits}）</span>
+                {t("production.bulk.row.totalCredits", { cost: plan.cost })}{" "}
+                <span className="font-normal text-[var(--studio-muted)]">
+                  {t("production.bulk.row.remaining", { remaining: credits })}
+                </span>
               </td>
             </tr>
           </tbody>
         </table>
         {plan.cost === 0 ? (
-          <p className="mt-2 text-xs text-[var(--studio-muted)]">沒有需要處理的段落。</p>
+          <p className="mt-2 text-xs text-[var(--studio-muted)]">{t("production.bulk.empty")}</p>
         ) : short ? (
-          <p className="mt-2 text-xs text-accent">
-            credits 不足，確認後可加購或升級並繼續產生。
-          </p>
+          <p className="mt-2 text-xs text-accent">{t("production.bulk.insufficientCredits")}</p>
         ) : null}
 
         <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
           <StudioButton variant="ghost" onClick={onCancel} disabled={pending}>
-            取消
+            {t("production.action.cancel")}
           </StudioButton>
-          <StudioButton
-            onClick={() => onConfirm(mode)}
-            disabled={pending || plan.cost === 0}
-          >
+          <StudioButton onClick={() => onConfirm(mode)} disabled={pending || plan.cost === 0}>
             {pending ? <Spinner className="h-4 w-4" /> : null}
-            {pending ? "送出中…" : `確認送出 · ${plan.cost}`}
+            {pending ? t("production.action.submitting") : t("production.bulk.confirm", { cost: plan.cost })}
           </StudioButton>
         </div>
       </div>

@@ -1,28 +1,31 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 
-const STORYBOARD_STAGES = [
-  "閱讀題材，找出核心訊息…",
-  "設計開場鉤子與延遲兌現…",
-  "拆解分鏡與時間軸…",
-  "撰寫旁白與對照翻譯…",
-  "檢查角色鎖與視覺世界…",
-];
+const STAGE_KEYS = [
+  "brief.director.stageReadSource",
+  "brief.director.stageHook",
+  "brief.director.stageTimeline",
+  "brief.director.stageVo",
+  "brief.director.stageLocks",
+] as const;
 
 // Animated "what is the AI doing right now" panel while Phase A runs. Stages
 // are illustrative and rotate on a timer; the real completion comes from polling.
 export function DirectorProgress() {
+  const { t } = useI18n();
+  const stages = useMemo(() => STAGE_KEYS.map((key) => t(key)), [t]);
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setIndex((value) => (value + 1) % STORYBOARD_STAGES.length);
+      setIndex((value) => (value + 1) % stages.length);
     }, 2600);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [stages.length]);
 
   return (
     <motion.section
@@ -45,7 +48,7 @@ export function DirectorProgress() {
           <Spinner className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-display text-lg font-bold text-accent-ink">導演正在寫分鏡</p>
+          <p className="font-display text-lg font-bold text-accent-ink">{t("brief.director.title")}</p>
           <div className="mt-1 h-6 overflow-hidden">
             <AnimatePresence mode="wait" initial={false}>
               <motion.p
@@ -56,7 +59,7 @@ export function DirectorProgress() {
                 transition={{ duration: 0.25 }}
                 className="text-sm text-muted"
               >
-                {STORYBOARD_STAGES[index]}
+                {stages[index]}
               </motion.p>
             </AnimatePresence>
           </div>
@@ -67,9 +70,7 @@ export function DirectorProgress() {
               transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
             />
           </div>
-          <p className="mt-3 text-xs text-muted">
-            通常 20–60 秒。完成後會自動進入製作，可改起始／結尾畫面再產圖。
-          </p>
+          <p className="mt-3 text-xs text-muted">{t("brief.director.eta")}</p>
         </div>
       </div>
     </motion.section>

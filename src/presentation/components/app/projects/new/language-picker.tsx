@@ -1,7 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { LANGUAGE_PRESETS, LANGUAGE_IDS } from "@/service/director/languages";
+import { useI18n } from "@/presentation/components/i18n-provider";
+import { LANGUAGE_IDS } from "@/service/director/languages";
+import { voLanguageLabel } from "@/util/i18n/picker-labels";
 import type { VoLanguage } from "@/model/project";
 
 // Segmented control for voiceover language with a sliding highlight.
@@ -16,14 +18,15 @@ export function LanguagePicker({
   disabled?: boolean;
   dialogueOnly?: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <div
       role="radiogroup"
-      aria-label={dialogueOnly ? "對白語言" : "旁白語言"}
+      aria-label={dialogueOnly ? t("brief.language.ariaDialogue") : t("brief.language.ariaNarration")}
       className="grid grid-cols-3 gap-1 rounded-2xl border border-accent-ink/10 bg-paper/70 p-1"
     >
       {LANGUAGE_IDS.map((id) => {
-        const preset = LANGUAGE_PRESETS[id];
+        const preset = voLanguageLabel(t, id);
         const active = id === value;
         return (
           <button
@@ -44,14 +47,8 @@ export function LanguagePicker({
                 transition={{ type: "spring", stiffness: 420, damping: 32 }}
               />
             ) : null}
-            <span className="relative block font-display text-sm font-bold">
-              {preset.label}
-            </span>
-            <span
-              className={`relative block text-xs ${
-                active ? "text-paper/75" : "text-muted"
-              }`}
-            >
+            <span className="relative block font-display text-sm font-bold">{preset.label}</span>
+            <span className={`relative block text-xs ${active ? "text-paper/75" : "text-muted"}`}>
               {preset.sublabel}
             </span>
           </button>

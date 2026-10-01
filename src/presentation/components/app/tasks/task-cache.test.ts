@@ -10,6 +10,8 @@ function task(id: string): PublicTask {
     stage: "queued",
     title: "t",
     detail: "Clip 1 · 影片",
+    detailKey: "tasksPage.detail.clipVideo",
+    detailParams: { n: 1 },
     isVideo: true,
     href: "/app",
     attempts: 0,

@@ -1,4 +1,6 @@
+import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
+import { clampClipSeconds } from "@/service/director/keyframe-delta";
 import { phaseBAudioLock } from "@/service/director/voice";
 import type { PhaseAProposal, SpeechPace, VoiceGender } from "@/model/project";
 
@@ -22,6 +24,14 @@ export function phaseBWardrobeLock(input: {
 }) {
   if (!input.cast?.length && !input.characterImageUrl) return "";
   return "Wardrobe: every character keeps exactly the outfit shown in the first and last frames for the whole clip. No added or changed clothing, layers, or gear.";
+}
+
+// Dual-beat stills always carry startVo / endVo marker lettering, so the video
+// must swap it at the midpoint rather than erase it as a "caption".
+export function phaseBLetteringLock(input: { skillSlug: string; durationSeconds: number }) {
+  if (!isDualBeatSkill(input.skillSlug)) return "";
+  const midpoint = clampClipSeconds(input.durationSeconds) / 2;
+  return `On-canvas lettering: the marker line drawn in the first frame stays until about ${midpoint}s, then wipes off and the marker line drawn in the last frame writes on in the same spot. Keep both lines exactly as the frames show; this is in-scene lettering from the keyframes, not a caption or subtitle.`;
 }
 
 // User prompt asking the director for ONE clip's video prompt. The whole

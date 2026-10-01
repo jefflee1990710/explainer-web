@@ -12,7 +12,18 @@ test("Phase A scene detail asks for four parts and a timed motion beat", () => {
   assert.match(block, /location, set dressing, props, foreground \/ midground \/ background/);
   assert.match(block, /light direction, colour temperature, mood/);
   assert.match(block, /shot size, camera angle, composition/);
-  assert.match(block, /motionCamera as a timed beat list/);
+  assert.match(block, /written as timed beats across the clip/);
+});
+
+test("Phase A motionCamera is a transition script that covers every start → end difference", () => {
+  const block = sceneDetailDirectorBlock();
+  assert.match(block, /motionCamera is the transition script from the start still to the end still/);
+  assert.match(block, /Every difference between the start and end still/);
+  assert.match(block, /in the end still but not in the start still/);
+  assert.match(block, /in the start still but not in the end still/);
+  assert.match(block, /character's own left or right/);
+  assert.match(block, /same light and the same camera/);
+  assert.match(block, /every object motionCamera touches already exists in the start still/);
 });
 
 test("Phase A scene detail never re-describes the character look", () => {

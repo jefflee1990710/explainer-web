@@ -1,3 +1,7 @@
+"use client";
+
+import { useI18n } from "@/presentation/components/i18n-provider";
+
 // Editor body: optional toolbar, preview and inspector, with an optional filmstrip pinned below.
 // `timelineBar` floats batch actions right above the filmstrip.
 export function StudioFrame({
@@ -13,6 +17,7 @@ export function StudioFrame({
   toolbar?: React.ReactNode;
   timelineBar?: React.ReactNode;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[var(--studio-canvas)]">
       {toolbar ? (
@@ -23,13 +28,13 @@ export function StudioFrame({
       <div className="min-h-0 flex-1 overflow-y-auto lg:overflow-hidden">
         <div className="flex min-h-full flex-col lg:h-full lg:min-h-0 lg:flex-row">
           <section
-            aria-label="片段資訊"
+            aria-label={t("production.shell.clipInfoAria")}
             className="shrink-0 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] lg:h-full lg:w-[300px] lg:overflow-y-auto lg:border-b-0 lg:border-r"
           >
             {inspector}
           </section>
           <section
-            aria-label="預覽"
+            aria-label={t("production.shell.previewAria")}
             className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--studio-canvas)] lg:h-full"
           >
             {preview}
@@ -43,7 +48,7 @@ export function StudioFrame({
       ) : null}
       {timeline ? (
         <section
-          aria-label="時間軸"
+          aria-label={t("production.shell.timelineAria")}
           className="h-28 shrink-0 overflow-x-auto overflow-y-hidden border-t border-[var(--studio-line)] bg-[var(--studio-canvas)]"
         >
           {timeline}

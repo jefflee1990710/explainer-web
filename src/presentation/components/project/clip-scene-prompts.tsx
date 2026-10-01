@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import {
@@ -10,7 +11,7 @@ import {
   clipStartVo,
 } from "@/service/director/dual-beat";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
-import { spokenLineCopy } from "@/service/director/spoken-line";
+import { skillBansNarration } from "@/service/director/skill-rules";
 import { FRAMES_COST } from "@/service/production-plan";
 import type { ClipStoryboardInput, StoryboardRow, VoLanguage } from "@/model/project";
 
@@ -18,9 +19,6 @@ const MAX_FIELD_LENGTH = 1200;
 
 export type ClipScenePending = "" | "save" | "regenerate";
 
-// Clip text in three sections: voiceover (open), scene and camera (collapsed).
-// A save bar appears only when something changed. Remount with a new `key`
-// when the saved row changes so the draft resets.
 export function ClipScenePrompts({
   clip,
   language,
@@ -38,9 +36,12 @@ export function ClipScenePrompts({
   pending: ClipScenePending;
   onSave: (input: ClipStoryboardInput, regenerate: boolean) => Promise<boolean>;
 }) {
+  const { t } = useI18n();
   const fieldId = useId();
   const voLabel = LANGUAGE_PRESETS[language].label;
-  const spoken = spokenLineCopy(skillSlug);
+  const spokenKind = skillBansNarration(skillSlug) ? "dialogue" : "narration";
+  const spoken = (key: string, params?: Record<string, string | number>) =>
+    t(`production.spoken.${spokenKind}.${key}`, params);
   const [draft, setDraft] = useState<ClipStoryboardInput>(() => draftFromClip(clip));
 
   const busy = pending !== "";
@@ -78,89 +79,93 @@ export function ClipScenePrompts({
   }
 
   const sceneSummary = dualBeat
-    ? `起始：${draft.startScene || "（空白）"}`
-    : draft.explainerScene || "（空白）";
+    ? t("production.scene.summaryStart", { text: draft.startScene || t("production.scene.empty") })
+    : draft.explainerScene || t("production.scene.empty");
 
   return (
     <div className="flex flex-col gap-3">
-      <FormSection title={spoken.section}>
+      <FormSection title={spoken("section")}>
         {dualBeat ? (
           <>
             <TextField
               id={`${fieldId}-vo-start`}
-              label={spoken.startField(voLabel)}
+              label={spoken("startField", { lang: voLabel })}
               value={draft.startVo || ""}
               rows={2}
               disabled={busy}
-              placeholder={spoken.startPlaceholder}
+              placeholder={spoken("startPlaceholder")}
               onChange={(value) => update("startVo", value)}
             />
             <TextField
               id={`${fieldId}-vo-end`}
-              label={spoken.endField(voLabel)}
+              label={spoken("endField", { lang: voLabel })}
               value={draft.endVo || ""}
               rows={2}
               disabled={busy}
-              placeholder={spoken.endPlaceholder}
+              placeholder={spoken("endPlaceholder")}
               onChange={(value) => update("endVo", value)}
             />
           </>
         ) : (
           <TextField
             id={`${fieldId}-vo`}
-            label={spoken.field(voLabel)}
+            label={spoken("field", { lang: voLabel })}
             value={draft.englishVo}
             rows={3}
             disabled={busy}
-            placeholder={spoken.placeholder}
+            placeholder={spoken("placeholder")}
             onChange={(value) => update("englishVo", value)}
           />
         )}
       </FormSection>
 
-      <FormSection title="畫面描述" summary={sceneSummary} collapsible>
+      <FormSection title={t("production.scene.sectionScene")} summary={sceneSummary} collapsible>
         {dualBeat ? (
           <>
             <TextField
               id={`${fieldId}-start`}
-              label="起始畫面描述"
+              label={t("production.scene.labelStartScene")}
               value={draft.startScene || ""}
               rows={4}
               disabled={busy}
-              placeholder="起始姿勢、道具、環境。"
+              placeholder={t("production.scene.placeholderStartScene")}
               onChange={(value) => update("startScene", value)}
             />
             <TextField
               id={`${fieldId}-end`}
-              label="結束畫面描述"
+              label={t("production.scene.labelEndScene")}
               value={draft.endScene || ""}
               rows={4}
               disabled={busy}
-              placeholder="結尾姿勢、道具、環境。"
+              placeholder={t("production.scene.placeholderEndScene")}
               onChange={(value) => update("endScene", value)}
             />
           </>
         ) : (
           <TextField
             id={`${fieldId}-scene`}
-            label="畫面描述"
+            label={t("production.scene.labelExplainerScene")}
             value={draft.explainerScene}
             rows={5}
             disabled={busy}
-            placeholder="這段畫面要出現什麼、誰在做什麼。"
+            placeholder={t("production.scene.placeholderExplainerScene")}
             onChange={(value) => update("explainerScene", value)}
           />
         )}
       </FormSection>
 
-      <FormSection title="鏡頭動作" summary={draft.motionCamera || "（空白）"} collapsible>
+      <FormSection
+        title={t("production.scene.sectionMotion")}
+        summary={draft.motionCamera || t("production.scene.empty")}
+        collapsible
+      >
         <TextField
           id={`${fieldId}-motion`}
-          label="鏡頭動作"
+          label={t("production.scene.labelMotion")}
           value={draft.motionCamera}
           rows={3}
           disabled={busy}
-          placeholder="例如：鏡頭慢慢推近，角色從左走到右。"
+          placeholder={t("production.scene.placeholderMotion")}
           onChange={(value) => update("motionCamera", value)}
         />
       </FormSection>
@@ -169,16 +174,12 @@ export function ClipScenePrompts({
         <div className="sticky bottom-0 -mx-4 flex flex-col gap-2 border-t border-[var(--studio-line)] bg-[var(--studio-panel)] px-4 py-3">
           {!valid ? (
             <p className="text-xs font-medium text-accent">
-              {dualBeat ? spoken.dualEmptyError : spoken.emptyError}
+              {dualBeat ? spoken("dualEmptyError") : spoken("emptyError")}
             </p>
           ) : !enoughCredits ? (
-            <p className="text-xs font-medium text-accent">
-              credits 不足，重畫會先加購或升級再繼續。
-            </p>
+            <p className="text-xs font-medium text-accent">{t("production.scene.insufficientCreditsRedraw")}</p>
           ) : (
-            <p className="text-[11px] text-[var(--studio-muted)]">
-              改過的文字要重畫畫格才會套用到畫面與影片。
-            </p>
+            <p className="text-[11px] text-[var(--studio-muted)]">{t("production.scene.redrawHint")}</p>
           )}
           <div className="flex gap-2">
             <StudioButton
@@ -188,7 +189,7 @@ export function ClipScenePrompts({
               className="min-h-9 flex-1 px-3 text-xs"
             >
               {pending === "save" ? <Spinner className="h-3.5 w-3.5" /> : null}
-              {pending === "save" ? "儲存中…" : "儲存"}
+              {pending === "save" ? t("production.action.saving") : t("production.action.save")}
             </StudioButton>
             <StudioButton
               onClick={() => void submit(true)}
@@ -196,7 +197,9 @@ export function ClipScenePrompts({
               className="min-h-9 flex-[2] px-3 text-xs"
             >
               {pending === "regenerate" ? <Spinner className="h-3.5 w-3.5" /> : null}
-              {pending === "regenerate" ? "送出中…" : `儲存並重畫 · ${FRAMES_COST}`}
+              {pending === "regenerate"
+                ? t("production.action.submitting")
+                : t("production.action.saveAndRedraw", { cost: FRAMES_COST })}
             </StudioButton>
           </div>
         </div>
@@ -229,7 +232,6 @@ function isDraftDirty(draft: ClipStoryboardInput, clip: StoryboardRow) {
   );
 }
 
-// Section header; collapsible sections show a one-line summary while closed.
 function FormSection({
   title,
   summary,

@@ -2,6 +2,7 @@
 
 import { useEffect, useId } from "react";
 import { VideoEditorHeaderStatus } from "@/presentation/components/app/projects/[id]/video-editor-header-status";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
 
@@ -35,6 +36,7 @@ export function VideoEditorDialog({
   creditLimit?: number;
   children: React.ReactNode;
 }) {
+  const { t } = useI18n();
   const titleId = useId();
 
   useEffect(() => {
@@ -70,25 +72,25 @@ export function VideoEditorDialog({
           ) : null}
           {onRestart ? (
             <StudioButton variant="ghost" onClick={onRestart}>
-              重新開始
+              {t("video.editor.restart")}
             </StudioButton>
           ) : null}
           {onExport ? (
-            <StudioButton onClick={onExport}>下一步：成片</StudioButton>
+            <StudioButton onClick={onExport}>{t("video.editor.nextExport")}</StudioButton>
           ) : null}
           {syncing ? (
             <p className="inline-flex items-center gap-1.5 rounded-md border border-[var(--studio-line)] px-2.5 py-1 text-[11px] font-semibold text-[var(--studio-muted)]">
               <Spinner className="h-3.5 w-3.5" />
-              同步中
+              {t("video.editor.syncing")}
             </p>
           ) : null}
           {canDelete ? (
             <StudioButton variant="danger" onClick={onDelete}>
-              刪除影片
+              {t("video.editor.deleteVideo")}
             </StudioButton>
           ) : null}
           <StudioButton variant="ghost" onClick={onClose}>
-            關閉
+            {t("video.editor.close")}
           </StudioButton>
         </div>
       </header>

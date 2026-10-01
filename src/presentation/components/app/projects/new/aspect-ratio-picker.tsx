@@ -1,19 +1,18 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import type { AspectRatio } from "@/model/project";
 
 const RATIOS: Array<{
   id: AspectRatio;
-  label: string;
-  hint: string;
-  // Preview box dimensions in px (kept small, same visual weight).
+  hintKey: "9_16" | "16_9" | "1_1";
   w: number;
   h: number;
 }> = [
-  { id: "9:16", label: "9:16", hint: "Reels / Shorts", w: 22, h: 38 },
-  { id: "16:9", label: "16:9", hint: "YouTube / 簡報", w: 38, h: 22 },
-  { id: "1:1", label: "1:1", hint: "IG / 廣告", w: 30, h: 30 },
+  { id: "9:16", hintKey: "9_16", w: 22, h: 38 },
+  { id: "16:9", hintKey: "16_9", w: 38, h: 22 },
+  { id: "1:1", hintKey: "1_1", w: 30, h: 30 },
 ];
 
 // Visual ratio cards so users pick by shape, not by numbers alone.
@@ -26,8 +25,9 @@ export function AspectRatioPicker({
   onChange: (value: AspectRatio) => void;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   return (
-    <div role="radiogroup" aria-label="畫面比例" className="grid grid-cols-3 gap-3">
+    <div role="radiogroup" aria-label={t("brief.aspectRatio.aria")} className="grid grid-cols-3 gap-3">
       {RATIOS.map((ratio) => {
         const active = ratio.id === value;
         return (
@@ -52,8 +52,8 @@ export function AspectRatioPicker({
               }`}
               style={{ width: ratio.w, height: ratio.h }}
             />
-            <span className="font-display text-sm font-bold">{ratio.label}</span>
-            <span className="text-xs text-muted">{ratio.hint}</span>
+            <span className="font-display text-sm font-bold">{ratio.id}</span>
+            <span className="text-xs text-muted">{t(`brief.aspectRatioHints.${ratio.hintKey}`)}</span>
           </motion.button>
         );
       })}

@@ -50,7 +50,7 @@ export function keyframeDeltaDirectorBlock(options?: { separateStills?: boolean 
     "Each clip's start and end are the SAME locked camera; the character keeps roughly the same screen size and placement.",
     "Each still shows exactly ONE instance of each named character — two moments of the same figure, never two bodies in one frame.",
     `They must NOT look almost identical — under-moving makes the video freeze. ${stillRule}`,
-    "motionCamera names the path and how far things travel so interpolation can fill the seconds. Do not put the in-between action inside start or end still text.",
+    "motionCamera names the path and how far things travel so interpolation can fill the seconds (see the motionCamera contract). Do not put the in-between action inside start or end still text.",
     "Change budget by durationSeconds:",
     `- ${BUDGET["3s"].director}`,
     `- ${BUDGET["4s"].director}`,

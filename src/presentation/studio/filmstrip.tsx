@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { StudioClipItem, StudioClipTone } from "@/presentation/studio/clip-item";
 import { FilmstripMediaTags } from "@/presentation/studio/filmstrip-media-tags";
@@ -28,10 +29,11 @@ export function Filmstrip({
   checkedIds?: string[];
   onToggleCheck?: (id: string) => void;
 }) {
+  const { t } = useI18n();
   if (items.length === 0) {
     return (
       <p className="flex h-full items-center px-4 text-sm text-[var(--studio-muted)]">
-        尚未有片段
+        {t("production.filmstrip.empty")}
       </p>
     );
   }
@@ -40,7 +42,7 @@ export function Filmstrip({
   const checking = checkedIds.length > 0;
 
   return (
-    <ol role="tablist" aria-label="Clip 時間軸" className="flex h-full min-w-max items-stretch gap-2 px-3 py-2">
+    <ol role="tablist" aria-label={t("production.filmstrip.timelineAria")} className="flex h-full min-w-max items-stretch gap-2 px-3 py-2">
       {items.map((item) => {
         const selected = item.id === selectedId;
         const checked = checkedIds.includes(item.id);
@@ -50,7 +52,7 @@ export function Filmstrip({
               type="button"
               role="tab"
               aria-selected={selected}
-              aria-label={`${item.title} ${item.durationLabel} ${item.statusLabel}${item.hasScene ? " 場景圖已完成" : ""}${item.hasVideo ? " 影片已完成" : ""}`}
+              aria-label={`${item.title} ${item.durationLabel} ${item.statusLabel}${item.hasScene ? t("production.filmstrip.sceneDoneSuffix") : ""}${item.hasVideo ? t("production.filmstrip.videoDoneSuffix") : ""}`}
               onClick={() => onSelect(item.id)}
               className={`flex h-full w-[148px] cursor-pointer flex-col overflow-hidden rounded-sm border bg-white text-left transition ${
                 selected
@@ -80,7 +82,7 @@ export function Filmstrip({
                 <FilmstripMediaTags hasScene={item.hasScene} hasVideo={item.hasVideo} />
                 {item.stale ? (
                   <span className="absolute bottom-1.5 right-1 rounded-sm bg-[var(--accent)] px-1 text-[9px] font-bold text-white">
-                    需重做
+                    {t("production.filmstrip.needsRedo")}
                   </span>
                 ) : null}
               </span>
@@ -98,7 +100,7 @@ export function Filmstrip({
                   type="checkbox"
                   checked={checked}
                   onChange={() => onToggleCheck(item.id)}
-                  aria-label={`選取 ${item.title}`}
+                  aria-label={t("production.filmstrip.selectClip", { title: item.title })}
                   className="h-4 w-4 cursor-pointer accent-[var(--studio-teal)]"
                 />
               </label>

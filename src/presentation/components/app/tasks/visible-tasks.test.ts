@@ -10,6 +10,8 @@ function task(id: string, stage: PublicTask["stage"], updatedAt: string): Public
     stage,
     title: "t",
     detail: id,
+    detailKey: "tasksPage.detail.clipVideo",
+    detailParams: { n: 1 },
     isVideo: true,
     href: "/app",
     attempts: 0,

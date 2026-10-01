@@ -29,18 +29,16 @@ test("generating stages are busy with no cost", () => {
 
 test("busy hints distinguish queued from running", () => {
   const fresh = { frames: false, video: false };
-  assert.equal(clipNextAction(state("frames_generating", fresh, "queued")).hint, "已送出，畫格約 30 秒");
-  assert.equal(clipNextAction(state("frames_generating", fresh, "running")).hint, "正在畫，完成後會自動更新");
-  assert.equal(clipNextAction(state("video_generating", fresh, "queued")).label, "影片已送出…");
-  assert.equal(clipNextAction(state("video_generating", fresh, "queued")).hint, "已送進佇列，背景產製");
-  assert.equal(clipNextAction(state("video_generating", fresh, "running")).hint, "產片中，約 5–6 分鐘");
+  assert.equal(clipNextAction(state("frames_generating", fresh, "queued")).id, "busy.framesQueued");
+  assert.equal(clipNextAction(state("frames_generating", fresh, "running")).id, "busy.framesRunning");
+  assert.equal(clipNextAction(state("video_generating", fresh, "queued")).id, "busy.videoQueued");
+  assert.equal(clipNextAction(state("video_generating", fresh, "running")).id, "busy.videoRunning");
 });
 
 test("no frames asks to draw both frames", () => {
   assert.deepEqual(clipNextAction(state("no_frames")), {
     kind: "frames",
-    label: "畫這段畫格",
-    hint: "先畫起始與結束兩張",
+    id: "drawFrames",
     cost: FRAMES_COST,
   });
 });
@@ -48,13 +46,13 @@ test("no frames asks to draw both frames", () => {
 test("failed frames retry the frames", () => {
   const action = clipNextAction(state("frames_failed"));
   assert.equal(action.kind, "frames");
-  assert.equal(action.label, "重試畫格");
+  assert.equal(action.id, "retryFrames");
 });
 
 test("stale frames outrank a ready video", () => {
   const action = clipNextAction(state("video_ready", { frames: true, video: true }));
   assert.equal(action.kind, "frames");
-  assert.equal(action.label, "重畫畫格");
+  assert.equal(action.id, "staleFrames");
 });
 
 test("ready frames ask for the video at the clip's per-second cost", () => {
@@ -66,17 +64,18 @@ test("ready frames ask for the video at the clip's per-second cost", () => {
 });
 
 test("failed video retries the video", () => {
-  assert.equal(clipNextAction(state("video_failed")).label, "重試產片");
+  assert.equal(clipNextAction(state("video_failed")).id, "retryVideo");
 });
 
 test("stale video asks to redo the video", () => {
   const action = clipNextAction(state("video_ready", { frames: false, video: true }));
   assert.equal(action.kind, "video");
-  assert.equal(action.label, "重產影片");
+  assert.equal(action.id, "redoVideo");
 });
 
 test("finished clip moves to the next unfinished clip, or is done", () => {
   assert.equal(clipNextAction(state("video_ready"), 3).kind, "next");
-  assert.equal(clipNextAction(state("video_ready"), 3).label, "下一段 #3");
+  assert.equal(clipNextAction(state("video_ready"), 3).id, "nextClip");
+  assert.equal(clipNextAction(state("video_ready"), 3).params?.n, 3);
   assert.equal(clipNextAction(state("video_ready")).kind, "done");
 });

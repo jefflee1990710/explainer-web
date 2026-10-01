@@ -5,8 +5,10 @@ import { createPortal } from "react-dom";
 import { deleteVideoAction } from "@/presentation/actions/projects";
 import { isProjectBusy } from "@/service/clip-stage";
 import { isReelBusy } from "@/service/reel/fingerprint";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicVideo } from "@/presentation/serialize";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 
 // Confirm and delete a video plus stored frames, clips, and reel files.
 export function DeleteVideoDialog({
@@ -18,10 +20,11 @@ export function DeleteVideoDialog({
   onClose: () => void;
   onDeleted: () => void;
 }) {
+  const { t } = useI18n();
   const titleId = useId();
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
-  const title = video.phaseA?.localizedTitle || "未命名影片";
+  const title = video.phaseA?.localizedTitle || t("video.card.unnamed");
   const pending = isProjectBusy(video) || isReelBusy(video.reelStatus);
 
   useEffect(() => {
@@ -42,7 +45,7 @@ export function DeleteVideoDialog({
     const result = await deleteVideoAction(video.id);
     if (!result.ok) {
       setDeleting(false);
-      setError(result.error);
+      setError(translateAppError(result.error, t));
       return;
     }
     onDeleted();
@@ -61,11 +64,11 @@ export function DeleteVideoDialog({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id={titleId} className="font-display text-2xl font-bold">
-          刪除影片
+          {t("video.delete.title")}
         </h2>
         <p className="mt-2 text-sm leading-6 text-muted">
-          確定要刪除「{title}」嗎？這會一併刪除分鏡、畫格、影片檔與相關儲存檔案，且無法復原。
-          {pending ? " 目前仍在產生中，刪除後該次產生也會停止。" : null}
+          {t("video.delete.body", { title })}
+          {pending ? ` ${t("video.delete.pendingGenerationNote")}` : null}
         </p>
         {error ? (
           <p role="alert" className="mt-4 text-sm text-accent">
@@ -79,7 +82,7 @@ export function DeleteVideoDialog({
             disabled={deleting}
             className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:opacity-60"
           >
-            取消
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -88,7 +91,7 @@ export function DeleteVideoDialog({
             className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-red-700 bg-red-600 px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {deleting ? <Spinner className="h-4 w-4" /> : null}
-            永久刪除
+            {t("video.delete.confirm")}
           </button>
         </div>
       </div>

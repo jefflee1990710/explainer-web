@@ -1,9 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { StatusBadge } from "@/presentation/components/project/status-badge";
-import { DURATION_PRESETS } from "@/service/director/duration-presets";
-import { LANGUAGE_PRESETS } from "@/service/director/languages";
+import { durationPresetLabel, voLanguageLabel } from "@/util/i18n/picker-labels";
 import { PreviewStrip } from "@/presentation/components/app/preview-strip";
 import type { PublicVideoCard } from "@/presentation/serialize";
 
@@ -19,17 +19,18 @@ export function VideoGridCard({
   onSelect: (id: string) => void;
   onPrefetch?: (id: string) => void;
 }) {
+  const { t, locale } = useI18n();
   const previews = video.previewUrls;
-  const title = video.title || "未命名影片";
+  const title = video.title || t("video.card.unnamed");
   const progress =
     (video.status === "production" || video.status === "ready") && video.videosTotal > 0
-      ? `影片 ${video.videosDone}/${video.videosTotal}`
+      ? t("video.card.progress", { done: video.videosDone, total: video.videosTotal })
       : video.status === "failed" && video.error
         ? video.error
         : null;
-  const duration = DURATION_PRESETS[video.durationPreset]?.label ?? video.durationPreset;
-  const language = LANGUAGE_PRESETS[video.language]?.label ?? video.language;
-  const created = new Date(video.createdAt).toLocaleString("zh-Hant", {
+  const duration = durationPresetLabel(t, video.durationPreset).label;
+  const language = voLanguageLabel(t, video.language).label;
+  const created = new Date(video.createdAt).toLocaleString(locale, {
     month: "numeric",
     day: "numeric",
     hour: "2-digit",

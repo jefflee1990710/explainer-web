@@ -21,6 +21,8 @@ import {
 } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import { VideoEditorDialog } from "@/presentation/components/app/projects/[id]/video-editor-dialog";
 import { VideoTable } from "@/presentation/components/app/projects/[id]/video-table";
+import { useI18n } from "@/presentation/components/i18n-provider";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 
 // Folder page: paged video table; create/edit opens a full-page editor dialog.
 export function ProjectWorkspace({
@@ -40,6 +42,7 @@ export function ProjectWorkspace({
   creditLimit: number;
   subscribed: boolean;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -176,7 +179,9 @@ export function ProjectWorkspace({
 
   const listTitle = videos.find((video) => video.id === activeVideoId)?.title;
   const editorTitle =
-    selectedVideo?.phaseA?.localizedTitle || listTitle || (activeVideoId ? "影片" : "新增影片");
+    selectedVideo?.phaseA?.localizedTitle ||
+    listTitle ||
+    (activeVideoId ? t("video.workspace.fallbackVideo") : t("video.workspace.fallbackNewVideo"));
 
   return (
     <>
@@ -187,18 +192,18 @@ export function ProjectWorkspace({
               href="/app"
               className="text-sm font-semibold text-muted transition hover:text-foreground"
             >
-              ← 回到專案
+              {t("video.workspace.backToProjects")}
             </Link>
             <h1 className="font-display mt-2 text-3xl font-bold">{folder.name}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm text-muted">{videos.length} 支影片</p>
+            <p className="text-sm text-muted">{t("video.workspace.videoCount", { n: videos.length })}</p>
             <button
               type="button"
               onClick={onCreate}
               className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent-ink px-5 text-sm font-semibold text-lime shadow-[3px_3px_0_0_rgba(198,242,75,0.9)] transition hover:-translate-y-0.5"
             >
-              新增影片
+              {t("video.workspace.createVideo")}
             </button>
           </div>
         </header>
@@ -229,7 +234,7 @@ export function ProjectWorkspace({
               {loadError ? (
                 <div className="max-w-sm space-y-3 text-center">
                   <p className="text-sm text-accent" role="alert">
-                    {loadError}
+                    {translateAppError(loadError, t)}
                   </p>
                   <button
                     type="button"
@@ -240,13 +245,13 @@ export function ProjectWorkspace({
                       loadVideo(activeVideoId);
                     }}
                   >
-                    重試
+                    {t("video.workspace.retry")}
                   </button>
                 </div>
               ) : (
                 <p className="inline-flex items-center gap-2 text-sm text-muted">
                   <Spinner />
-                  載入影片中…
+                  {t("video.workspace.loading")}
                 </p>
               )}
             </div>

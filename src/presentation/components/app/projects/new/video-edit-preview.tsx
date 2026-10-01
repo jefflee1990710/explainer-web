@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import { ASPECT_CLASS } from "@/presentation/components/project/frame-tile";
 import { useElementSize } from "@/presentation/components/app/projects/new/use-element-size";
 import {
@@ -16,8 +17,6 @@ export type EditSelection = "" | "intro" | "outro" | string;
 
 type Drag = { id: string; mode: "move" | "resize"; startX: number; startY: number; left: number; top: number; w: number; h: number };
 
-// Reel player with brand layers drawn on top. The selected layer drags to a
-// corner and resizes from its bottom-right handle; values save as percentages.
 export function VideoEditPreview({
   reelUrl,
   aspectRatio,
@@ -33,6 +32,7 @@ export function VideoEditPreview({
   onSelect: (id: EditSelection) => void;
   onLayerChange: (id: string, patch: Partial<BrandLayer>) => void;
 }) {
+  const { t } = useI18n();
   const [frameRef, frame] = useElementSize<HTMLDivElement>();
   const [drag, setDrag] = useState<Drag | null>(null);
   const [live, setLive] = useState<{ left: number; top: number; w: number } | null>(null);
@@ -65,7 +65,6 @@ export function VideoEditPreview({
 
   function endDrag() {
     if (!drag || !live) return;
-    // A click without movement must not rewrite placement (rounding / centre margin).
     if (live.left === drag.left && live.top === drag.top && live.w === drag.w) {
       setDrag(null);
       setLive(null);
@@ -95,7 +94,7 @@ export function VideoEditPreview({
         ) : reelUrl ? (
           <video key={reelUrl} src={reelUrl} controls className="absolute inset-0 h-full w-full object-contain" />
         ) : (
-          <p className="absolute inset-0 grid place-items-center text-sm text-white/70">成片合成中…</p>
+          <p className="absolute inset-0 grid place-items-center text-sm text-white/70">{t("video.preview.composing")}</p>
         )}
         {showing || !frame.width
           ? null
@@ -126,7 +125,7 @@ export function VideoEditPreview({
                   />
                   {active ? (
                     <span
-                      aria-label="調整大小"
+                      aria-label={t("video.preview.resizeAria")}
                       onPointerDown={(event) => startDrag(event, layer, "resize")}
                       className="absolute -bottom-1.5 -right-1.5 h-3 w-3 cursor-nwse-resize rounded-sm border border-white bg-[var(--studio-teal)]"
                     />
@@ -136,9 +135,23 @@ export function VideoEditPreview({
             })}
       </div>
       <div className="flex gap-3">
-        <BookendCard label="開頭" clip={edit.intro} active={selected === "intro"} onClick={() => onSelect(selected === "intro" ? "" : "intro")} />
-        <BookendCard label="正片" active={!showing} onClick={() => onSelect("")} />
-        <BookendCard label="結尾" clip={edit.outro} active={selected === "outro"} onClick={() => onSelect(selected === "outro" ? "" : "outro")} />
+        <BookendCard
+          label={t("video.preview.intro")}
+          clip={edit.intro}
+          active={selected === "intro"}
+          onClick={() => onSelect(selected === "intro" ? "" : "intro")}
+        />
+        <BookendCard
+          label={t("video.preview.main")}
+          active={!showing}
+          onClick={() => onSelect("")}
+        />
+        <BookendCard
+          label={t("video.preview.outro")}
+          clip={edit.outro}
+          active={selected === "outro"}
+          onClick={() => onSelect(selected === "outro" ? "" : "outro")}
+        />
       </div>
     </div>
   );

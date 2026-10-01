@@ -5,7 +5,9 @@ import { Spinner } from "@/presentation/components/spinner";
 import { readCachedTasks } from "@/presentation/components/app/tasks/task-cache";
 import { TaskList } from "@/presentation/components/app/tasks/task-list";
 import { useTaskPoll } from "@/presentation/components/app/tasks/use-task-poll";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicTask } from "@/service/generation/task-list";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 
 // This video's tasks, opened from the production queue chip.
 export function TaskListDialog({
@@ -24,6 +26,7 @@ export function TaskListDialog({
   refreshing?: boolean;
   error?: string;
 }) {
+  const { t } = useI18n();
   const titleId = useId();
   const ownPoll = seededTasks === undefined;
   const polled = useTaskPoll(readCachedTasks(videoId) ?? [], videoId, ownPoll);
@@ -57,18 +60,18 @@ export function TaskListDialog({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 id={titleId} className="font-display text-xl font-bold">
-              這支影片的生成任務
+              {t("tasksPage.videoDialog.title")}
             </h2>
             <p className="mt-1 text-sm text-muted">
               {refreshing
                 ? pending > 0
-                  ? `更新中… ${pending} 個進行中`
-                  : "更新中…"
+                  ? t("tasksPage.videoDialog.refreshingPending", { n: pending })
+                  : t("tasksPage.videoDialog.refreshing")
                 : loaded
                   ? pending > 0
-                    ? `${pending} 個進行中`
-                    : "沒有進行中的任務"
-                  : "載入中…"}
+                    ? t("tasksPage.videoDialog.pending", { n: pending })
+                    : t("tasksPage.videoDialog.idle")
+                  : t("tasksPage.videoDialog.loading")}
             </p>
           </div>
           <button
@@ -76,12 +79,12 @@ export function TaskListDialog({
             onClick={onClose}
             className="cursor-pointer text-sm font-semibold text-muted transition hover:text-foreground"
           >
-            關閉
+            {t("common.close")}
           </button>
         </div>
         {error ? (
           <p role="alert" className="mt-2 text-sm text-accent">
-            {error}
+            {translateAppError(error, t)}
           </p>
         ) : null}
         <div className="mt-4">

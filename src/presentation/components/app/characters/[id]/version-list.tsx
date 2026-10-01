@@ -1,14 +1,24 @@
 "use client";
 
 import { Spinner } from "@/presentation/components/spinner";
+import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicCharacter, PublicCharacterVersion } from "@/presentation/serialize";
 
-const STATUS_LABEL: Record<PublicCharacterVersion["status"], string> = {
-  queued: "排隊中",
-  in_progress: "生成中",
-  completed: "完成",
-  failed: "失敗",
-};
+function versionStatusLabel(
+  status: PublicCharacterVersion["status"],
+  t: ReturnType<typeof useI18n>["t"],
+) {
+  switch (status) {
+    case "queued":
+      return t("characters.versionStatusQueued");
+    case "in_progress":
+      return t("characters.versionStatusInProgress");
+    case "completed":
+      return t("characters.versionStatusCompleted");
+    case "failed":
+      return t("characters.versionStatusFailed");
+  }
+}
 
 // Left pane: every version newest first; the default is badged.
 export function VersionList({
@@ -20,10 +30,11 @@ export function VersionList({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-3 shadow-[4px_4px_0_0_rgba(18,20,28,0.06)]">
       <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-        版本
+        {t("characters.versionsHeading")}
       </p>
       <ul className="space-y-1">
         {character.versions.map((version) => {
@@ -62,7 +73,7 @@ export function VersionList({
                     v{version.number}
                     {isDefault ? (
                       <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-bold">
-                        預設
+                        {t("characters.defaultBadge")}
                       </span>
                     ) : null}
                   </span>
@@ -71,8 +82,10 @@ export function VersionList({
                       version.status === "failed" ? "text-accent" : "text-muted"
                     }`}
                   >
-                    {STATUS_LABEL[version.status]}
-                    {version.parentNumber ? ` · 由 v${version.parentNumber} 編輯` : ""}
+                    {versionStatusLabel(version.status, t)}
+                    {version.parentNumber
+                      ? t("characters.editedFromVersion", { n: version.parentNumber })
+                      : ""}
                   </span>
                 </span>
               </button>
