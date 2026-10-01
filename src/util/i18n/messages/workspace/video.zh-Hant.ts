@@ -22,6 +22,8 @@ export const videoZhHant = {
     progress: "影片 {done}/{total}",
     tagScene: "Clip {n} · 場景",
     tagVideo: "Clip {n} · 影片",
+    generationProgress: "{done}/{total} 步",
+    generationProgressBusy: "{done}/{total} 步，正在處理{step}",
   },
   pager: {
     page: "第 {page} / {pages} 頁",

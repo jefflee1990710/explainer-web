@@ -22,6 +22,8 @@ export const videoEn = {
     progress: "Clips {done}/{total}",
     tagScene: "Clip {n} · scene",
     tagVideo: "Clip {n} · video",
+    generationProgress: "{done} of {total} steps",
+    generationProgressBusy: "{done} of {total} steps, working on {step}",
   },
   pager: {
     page: "Page {page} / {pages}",

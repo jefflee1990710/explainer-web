@@ -2,8 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { VideoGenerationTags } from "@/presentation/components/app/projects/[id]/video-generation-tags";
-import { StatusBadge } from "@/presentation/components/project/status-badge";
+import { VideoGenerationProgress } from "@/presentation/components/app/projects/[id]/video-generation-progress";
 import { durationPresetLabel, voLanguageLabel } from "@/util/i18n/picker-labels";
 import { PreviewStrip } from "@/presentation/components/app/preview-strip";
 import type { PublicVideoCard } from "@/presentation/serialize";
@@ -60,11 +59,10 @@ export function VideoGridCard({
               <span className="h-9 w-16 rounded-md border-2 border-dashed border-accent-ink/25" />
             </span>
           )}
-          <StatusBadge status={video.status} className="absolute left-2 top-2 shadow-sm" />
+          <VideoGenerationProgress tags={video.tags} status={video.status} />
         </span>
         <span className="flex flex-1 flex-col gap-1.5 p-2.5">
           <span className="line-clamp-2 text-xs font-medium leading-snug">{title}</span>
-          {video.tags.length ? <VideoGenerationTags tags={video.tags} /> : null}
           {progress ? <span className="text-[11px] leading-snug text-muted">{progress}</span> : null}
           <span className="mt-auto text-[11px] leading-snug text-muted">
             {video.aspectRatio} · {duration} · {language}

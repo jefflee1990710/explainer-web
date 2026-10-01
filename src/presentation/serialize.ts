@@ -85,7 +85,7 @@ export type PublicVideoCard = {
   error?: string;
   videosDone: number;
   videosTotal: number;
-  // Per-clip scene frames and videos, shown while the video is in production.
+  // Per-clip scene and video steps for the card progress bar.
   tags: GenerationDetailTag[];
 };
 
