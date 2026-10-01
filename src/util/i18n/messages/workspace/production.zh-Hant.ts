@@ -36,6 +36,7 @@ export const productionZhHant = {
     row: {
       frames: "{clips} 畫格",
       framesCost: "{count} 段 × {cost} = {total}",
+      framesCostMixed: "{total} credits",
       videos: "{clips} 影片",
       videosDeferredNote: "（畫格完成後才扣）",
       videosCost: "{count} 段 · 每秒 {rate} = {total}",

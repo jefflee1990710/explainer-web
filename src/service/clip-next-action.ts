@@ -43,6 +43,7 @@ export function canRedrawFrames(state: ClipState, hasFrames: boolean): boolean {
 
 export function clipNextAction(state: ClipState, nextUnfinished?: number): ClipNextAction {
   const videoCredits = state.videoCost ?? MIN_VIDEO_COST;
+  const frameCredits = state.frameCost ?? FRAMES_COST;
   if (state.stage === "frames_generating") {
     const id = state.wait === "running" ? "busy.framesRunning" : "busy.framesQueued";
     return { kind: "busy", id, cost: 0 };
@@ -52,13 +53,13 @@ export function clipNextAction(state: ClipState, nextUnfinished?: number): ClipN
     return { kind: "busy", id, cost: 0 };
   }
   if (state.stale.frames) {
-    return { kind: "frames", id: "staleFrames", cost: FRAMES_COST };
+    return { kind: "frames", id: "staleFrames", cost: frameCredits };
   }
   if (state.stage === "no_frames") {
-    return { kind: "frames", id: "drawFrames", cost: FRAMES_COST };
+    return { kind: "frames", id: "drawFrames", cost: frameCredits };
   }
   if (state.stage === "frames_failed") {
-    return { kind: "frames", id: "retryFrames", cost: FRAMES_COST };
+    return { kind: "frames", id: "retryFrames", cost: frameCredits };
   }
   if (state.stage === "frames_ready") {
     return { kind: "video", id: "renderClip", cost: videoCredits };

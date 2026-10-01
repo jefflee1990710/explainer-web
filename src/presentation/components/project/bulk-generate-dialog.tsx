@@ -7,6 +7,7 @@ import { StudioButton } from "@/presentation/studio/studio-button";
 import {
   cheapestVideoCost,
   FRAMES_COST,
+  sceneImageCost,
   needsVideoUpgrade,
   VIDEO_CREDITS_PER_SECOND,
   planGenerateAllClips,
@@ -56,7 +57,8 @@ export function BulkGenerateDialog({
   const list = (numbers: number[]) => numbers.map((n) => `#${n}`).join("、");
   const videoUpgrade =
     plan.videos.length > 0 && needsVideoUpgrade(credits, cheapestVideoCost(project, plan.videos));
-  const videoTotal = plan.cost - plan.frames.length * FRAMES_COST;
+  const framesTotal = sceneImageCost(project, plan.frames);
+  const videoTotal = plan.cost - framesTotal;
   const short = !videoUpgrade && credits < plan.cost;
   const current = modes.find((item) => item.id === mode)!;
 
@@ -130,11 +132,13 @@ export function BulkGenerateDialog({
                   {t("production.bulk.row.frames", { clips: list(plan.frames) })}
                 </td>
                 <td className="py-1.5 text-right tabular-nums">
-                  {t("production.bulk.row.framesCost", {
-                    count: plan.frames.length,
-                    cost: FRAMES_COST,
-                    total: plan.frames.length * FRAMES_COST,
-                  })}
+                  {framesTotal === plan.frames.length * FRAMES_COST
+                    ? t("production.bulk.row.framesCost", {
+                        count: plan.frames.length,
+                        cost: FRAMES_COST,
+                        total: framesTotal,
+                      })
+                    : t("production.bulk.row.framesCostMixed", { total: framesTotal })}
                 </td>
               </tr>
             ) : null}

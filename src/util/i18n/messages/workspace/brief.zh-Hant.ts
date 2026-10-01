@@ -72,6 +72,9 @@ export const briefZhHant = {
     alt: "品牌 logo",
     fixedLength: "固定片長：1 段、3–4 秒。",
   },
+  talkingHead: {
+    hint: "一句一段。秒數跟字數計（最多 20 段）。一句超過 12 秒要改短，系統唔會自動拆開。",
+  },
   submit: {
     submitting: "送出中…",
     regenerate: "重新產生",
@@ -90,6 +93,7 @@ export const briefZhHant = {
     speechPace: "語速 · {label}",
     sceneText: "畫面文字 · {label}",
     bookendLength: "1 段 · 3–4 秒",
+    talkingHeadLength: "一句一段 · 最多 20 段",
     logo: "Logo",
   },
   confirm: {

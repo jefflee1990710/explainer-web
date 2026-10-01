@@ -17,12 +17,13 @@ import { isProductionLike } from "@/service/project-status";
 import {
   clipVideoCost,
   FRAME_COST,
-  FRAMES_COST,
   planGenerateAllClips,
   planGenerateAllScenes,
   planRemaining,
   planSelected,
+  sceneImageCost,
 } from "@/service/production-plan";
+import { isInheritedTalkingHeadStart, talkingHeadFramesCost } from "@/service/director/talking-head";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import type { Project } from "@/model/project";
 
@@ -87,8 +88,9 @@ export async function generateClipFramesAction(
     const blocker = await stillBlocker(project);
     if (blocker) return { ok: false, error: blocker };
 
-    await assertCanSpendCredits(user, FRAMES_COST);
-    const spendKey = await consumeCredits(user.clerkUserId, FRAMES_COST);
+    const frameCost = talkingHeadFramesCost(project.skillSlug, clipNumber);
+    await assertCanSpendCredits(user, frameCost);
+    const spendKey = await consumeCredits(user.clerkUserId, frameCost);
 
     // Anything older than this belongs to a previous attempt and cannot prove
     // that this one reached the provider.
@@ -101,7 +103,14 @@ export async function generateClipFramesAction(
       // Refund whatever never got a job (a frame with no job would sit
       // `queued` forever); a frame that did get one is reconciliation's.
       const message = error instanceof Error ? error.message : "分鏡圖送出失敗";
-      const missed = await failUnsubmittedFrames(project._id, clipNumber, message, attemptStartedAt);
+      const inherited = isInheritedTalkingHeadStart(project.skillSlug, clipNumber, "start");
+      const missed = await failUnsubmittedFrames(
+        project._id,
+        clipNumber,
+        message,
+        attemptStartedAt,
+        inherited ? ["start"] : [],
+      );
       if (missed > 0) {
         await refundCredits(user.clerkUserId, missed * FRAME_COST, spendKey);
       }
@@ -293,7 +302,7 @@ export async function generateAllClipsAction(
     const blocker = await stillBlocker(loaded.project);
     if (blocker) return { ok: false, error: blocker };
     await assertCanSpendCredits(user, plan.cost);
-    const frameCost = plan.frames.length * FRAMES_COST;
+    const frameCost = sceneImageCost(loaded.project, plan.frames);
     if (frameCost > 0) {
       const spendKey = await consumeCredits(user.clerkUserId, frameCost);
       try {

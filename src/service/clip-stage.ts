@@ -1,6 +1,7 @@
 import { mediaSrc } from "@/util/media-src";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
+import { talkingHeadFramesCost } from "@/service/director/talking-head";
 import type {
   ClipFrame,
   LegacyProjectStatus,
@@ -29,11 +30,14 @@ export type ClipState = {
   wait?: ClipWait;
   // Credits this clip's video costs, from its storyboard duration.
   videoCost?: number;
+  // Credits to draw this clip's stills. Talking-head clip 2+ draws only the end.
+  frameCost?: number;
 };
 
 // Minimal shape so both the Mongo `Project` and `PublicVideo` fit.
 export type ClipStageSource = {
   status: ProjectStatus | LegacyProjectStatus;
+  skillSlug?: string;
   phaseA?: { clips: Array<{ clipNumber: number; durationSeconds?: number; editedAt?: string }> };
   frames?: ClipFrame[];
   clips: ProjectClip[];
@@ -104,6 +108,7 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
     stale,
     wait: waitKind(waitItems),
     videoCost: videoCost(row?.durationSeconds ?? MIN_VIDEO_SECONDS),
+    frameCost: talkingHeadFramesCost(project.skillSlug, clipNumber),
   };
 }
 

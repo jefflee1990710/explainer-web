@@ -41,7 +41,15 @@ import {
   normalizeDualBeatRow,
 } from "@/service/director/dual-beat";
 import { directorModel } from "@/service/director/model";
-import { cartoonPhaseASchema, phaseASchema } from "@/model/director";
+import { cartoonPhaseASchema, phaseASchema, talkingHeadPhaseASchema } from "@/model/director";
+import {
+  isTalkingHeadSkill,
+  planTalkingHeadClips,
+  spokenUnits,
+  talkingHeadDirectorBlock,
+  talkingHeadDurationHint,
+  talkingHeadPlanError,
+} from "@/service/director/talking-head";
 import type { Style } from "@/service/style";
 import type { CastMember } from "@/model/character";
 import type {
@@ -77,9 +85,16 @@ export async function runPhaseA(input: {
   clipsOnly?: boolean;
 }): Promise<PhaseAProposal> {
   const bookend = isBookendSkill(input.skill.slug);
-  const durationHint = bookend
-    ? bookendDurationHint(input.skill.slug)
-    : DURATION_PRESETS[input.durationPreset].skillHint;
+  const talkingHead = isTalkingHeadSkill(input.skill.slug);
+  if (talkingHead) {
+    const planError = talkingHeadPlanError(input.source, input.speechPace);
+    if (planError) throw new Error(planError);
+  }
+  const durationHint = talkingHead
+    ? talkingHeadDurationHint(input.speechPace)
+    : bookend
+      ? bookendDurationHint(input.skill.slug)
+      : DURATION_PRESETS[input.durationPreset].skillHint;
   const language = LANGUAGE_PRESETS[input.language || "en"];
   const sceneText = resolveSceneText({
     ...input,
@@ -109,7 +124,9 @@ export async function runPhaseA(input: {
 
   const { output } = await generateText({
     model: directorModel(),
-    output: Output.object({ schema: dualBeat ? cartoonPhaseASchema : phaseASchema }),
+    output: Output.object({
+      schema: dualBeat ? cartoonPhaseASchema : talkingHead ? talkingHeadPhaseASchema : phaseASchema,
+    }),
     system: `${skillPromptForPhaseA(input.skill, input.style)}
 
 You are executing Phase A only. Return structured JSON that matches the schema.
@@ -149,12 +166,17 @@ ${
     requiredCastCount(input.skill.slug) ? dialogueQaDirectorBlock() : "",
     skillForcesSceneText(input.skill.slug) ? listicleDirectorBlock() : "",
     bookend ? bookendDirectorBlock(input.skill.slug, logoImages.length > 0) : "",
+    talkingHead ? talkingHeadDirectorBlock() : "",
   ]
     .filter(Boolean)
     .join("\n")
 }
 ${language.skillHint}
-${speechPaceSkillHint(input.speechPace)}
+${
+  talkingHead
+    ? "Speaking pace changes each sentence's durationSeconds. Do not keep a fixed clip length."
+    : speechPaceSkillHint(input.speechPace)
+}
 ${phaseAAudioHint(input.voiceGender, { bansNarration: dialogueOnly })}
 ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   dualBeat,
@@ -220,6 +242,26 @@ Produce a complete Phase A director proposal now.`,
       clips,
       clipCount: clips.length,
       targetDuration: clips[0] ? `${clips[0].durationSeconds}s` : next.targetDuration,
+    };
+  }
+  // Talking-head clip count, lines, and seconds come from the script, not the model.
+  if (talkingHead) {
+    const clips = planTalkingHeadClips({
+      source: input.source,
+      pace: input.speechPace,
+      language: input.language,
+    });
+    const spoken = clips.reduce((sum, clip) => {
+      const units = spokenUnits(clip.englishVo);
+      return sum + units.cjk + units.words;
+    }, 0);
+    const totalSeconds = clips.reduce((sum, clip) => sum + clip.durationSeconds, 0);
+    next = {
+      ...next,
+      clips,
+      clipCount: clips.length,
+      englishWordCount: Math.max(1, spoken),
+      targetDuration: `${totalSeconds}s`,
     };
   }
   // Overwrite any invented look text so frame prompts never inherit a wrong outfit.

@@ -87,12 +87,19 @@ export type FramePromptOptions = {
 function compositionLockLines(anchor: { kind: FrameAnchorKind } | undefined, imageIndex: number) {
   if (!anchor) return [];
   const slot = `attached image ${imageIndex}`;
+  // Next clip's opening uses the previous end as a place reference, not a copy.
+  if (anchor.kind === "prev-end") {
+    return [
+      `ENVIRONMENT REFERENCE: ${slot} is the previous clip's END frame.`,
+      "Stay in that same place: same location, set dressing, time of day, and character identity.",
+      "Camera angle, shot size, and where people stand MAY change to match the Scene. Do not copy the previous framing.",
+      "Do not invent a new room, a new background, or a different world.",
+    ];
+  }
   const source =
     anchor.kind === "clip-start"
       ? `${slot} is THIS CLIP'S START frame`
-      : anchor.kind === "prev-end"
-        ? `${slot} is the previous clip's END frame`
-        : `${slot} is this clip's END frame`;
+      : `${slot} is this clip's END frame`;
   return [
     `COMPOSITION LOCK: ${source}.`,
     "Keep the same camera, set, lighting, character size, and screen position.",

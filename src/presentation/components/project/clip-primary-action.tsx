@@ -68,7 +68,7 @@ export function ClipPrimaryAction({
           className="inline-flex cursor-pointer items-center gap-1 self-start text-[11px] font-semibold text-[var(--studio-muted)] underline-offset-2 hover:text-[var(--studio-ink)] hover:underline disabled:cursor-not-allowed disabled:opacity-50"
         >
           <RefreshIcon />
-          {t("production.action.redrawBothFrames", { cost: FRAMES_COST })}
+          {t("production.action.redrawBothFrames", { cost: state.frameCost ?? FRAMES_COST })}
         </button>
       ) : null}
     </div>

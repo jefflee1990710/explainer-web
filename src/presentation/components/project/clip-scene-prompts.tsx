@@ -12,7 +12,7 @@ import {
 } from "@/service/director/dual-beat";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { skillBansNarration } from "@/service/director/skill-rules";
-import { FRAMES_COST } from "@/service/production-plan";
+import { talkingHeadFramesCost } from "@/service/director/talking-head";
 import type { ClipStoryboardInput, StoryboardRow, VoLanguage } from "@/model/project";
 
 const MAX_FIELD_LENGTH = 1200;
@@ -54,7 +54,8 @@ export function ClipScenePrompts({
           draft.endVo?.trim(),
       )
     : draft.explainerScene.trim().length > 0 && draft.englishVo.trim().length > 0;
-  const enoughCredits = credits >= FRAMES_COST;
+  const frameCost = talkingHeadFramesCost(skillSlug, clip.clipNumber);
+  const enoughCredits = credits >= frameCost;
   const canSave = valid && dirty && !busy;
   const canRedraw = valid && !busy;
 
@@ -199,7 +200,7 @@ export function ClipScenePrompts({
               {pending === "regenerate" ? <Spinner className="h-3.5 w-3.5" /> : null}
               {pending === "regenerate"
                 ? t("production.action.submitting")
-                : t("production.action.saveAndRedraw", { cost: FRAMES_COST })}
+                : t("production.action.saveAndRedraw", { cost: frameCost })}
             </StudioButton>
           </div>
         </div>

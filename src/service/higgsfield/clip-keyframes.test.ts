@@ -102,6 +102,45 @@ test("planFrameSubmissions defers end until this clip's start file exists", () =
   );
 });
 
+test("planFrameSubmissions holds the next start until the previous end is in this batch", () => {
+  const frames = [
+    frame("start", { clipNumber: 1, status: "queued" }),
+    frame("end", { clipNumber: 1, status: "queued" }),
+    frame("start", { clipNumber: 2, status: "queued" }),
+    frame("end", { clipNumber: 2, status: "queued" }),
+  ];
+  const plan = planFrameSubmissions(
+    [
+      { clipNumber: 1, position: "start" },
+      { clipNumber: 1, position: "end" },
+      { clipNumber: 2, position: "start" },
+      { clipNumber: 2, position: "end" },
+    ],
+    frames,
+  );
+  assert.deepEqual(
+    plan.ready.map((target) => `${target.clipNumber}:${target.position}`),
+    ["1:start"],
+  );
+  assert.deepEqual(
+    plan.deferred.map((target) => `${target.clipNumber}:${target.position}`),
+    ["1:end", "2:start", "2:end"],
+  );
+});
+
+test("planFrameSubmissions sends the next start once the previous end file exists", () => {
+  const frames = [
+    frame("end", { clipNumber: 1, blobUrl: "prev-end" }),
+    frame("start", { clipNumber: 2, status: "queued" }),
+  ];
+  const plan = planFrameSubmissions([{ clipNumber: 2, position: "start" }], frames);
+  assert.deepEqual(
+    plan.ready.map((target) => target.position),
+    ["start"],
+  );
+  assert.deepEqual(plan.deferred, []);
+});
+
 test("planFrameSubmissions sends end immediately when start file is already there", () => {
   const frames = [
     frame("start", { blobUrl: "start-blob" }),

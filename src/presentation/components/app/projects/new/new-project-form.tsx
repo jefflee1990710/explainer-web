@@ -73,6 +73,7 @@ import {
   skillBansNarration,
   skillForcesSceneText,
 } from "@/service/director/skill-rules";
+import { isTalkingHeadSkill } from "@/service/director/talking-head";
 import { failedStepFor, isProductionLike } from "@/service/project-status";
 import type { PublicCharacter, PublicSkill, PublicStyle, PublicVideo } from "@/presentation/serialize";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
@@ -181,6 +182,7 @@ export function NewProjectForm({
   // Opening / Ending only: brand logo used in both scene images.
   const [logoUrl, setLogoUrl] = useState(initialVideo?.logoUrl || "");
   const bookend = isBookendSkill(skillSlug);
+  const talkingHead = isTalkingHeadSkill(skillSlug);
 
   // Flow state. The stepper can jump back to 題材 after a video exists.
   const [project, setProject] = useState<PublicVideo | null>(initialVideo);
@@ -756,6 +758,9 @@ export function NewProjectForm({
                     <p className="mt-2 text-xs text-muted">{t("brief.logo.fixedLength")}</p>
                   </>
                 ) : null}
+                {talkingHead ? (
+                  <p className="mt-3 text-xs text-muted">{t("brief.talkingHead.hint")}</p>
+                ) : null}
                 {/* Visual style sits under the narrative skill in the same step. */}
                 <p className="mt-5 text-sm font-semibold">{t("brief.visualStyle.title")}</p>
                 <p className="mt-1 text-xs text-muted">
@@ -867,7 +872,7 @@ export function NewProjectForm({
                 />
               </Section>
 
-              {bookend ? null : (
+              {bookend || talkingHead ? null : (
                 <Section step="06" title={t("brief.section06.title")} hint={t("brief.section06.hint")}>
                   <DurationPicker
                     value={durationPreset}
@@ -955,7 +960,9 @@ export function NewProjectForm({
               <span>
                 {isBookendSkill(project?.skillSlug || skillSlug)
                   ? t("brief.summary.bookendLength")
-                  : DURATION_PRESETS[durationPreset].label}
+                  : isTalkingHeadSkill(project?.skillSlug || skillSlug)
+                    ? t("brief.summary.talkingHeadLength")
+                    : DURATION_PRESETS[durationPreset].label}
               </span>
               {project?.logoUrl ? (
                 <>

@@ -38,8 +38,8 @@ export type GenerationJob = {
   lockedUntil?: Date;
   // Earliest time a `pending` job may be retried.
   nextAttemptAt?: Date;
-  // End frame queued at click but parked until this clip's start file exists.
-  awaits?: "start";
+  // Parked until the still it depends on exists: this clip's start, or the previous end.
+  awaits?: "start" | "prev-end";
   // When the provider accepted it; drives the provider timeout.
   submittedAt?: Date;
   outputUrl?: string;
@@ -74,7 +74,7 @@ export const generationJobSchema: z.ZodType<GenerationJob> = z.object({
   attempts: z.number().optional(),
   lockedUntil: z.date().optional(),
   nextAttemptAt: z.date().optional(),
-  awaits: z.literal("start").optional(),
+  awaits: z.enum(["start", "prev-end"]).optional(),
   submittedAt: z.date().optional(),
   outputUrl: z.string().optional(),
   blobUrl: z.string().optional(),

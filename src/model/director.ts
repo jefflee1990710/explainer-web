@@ -46,6 +46,11 @@ export const cartoonPhaseASchema = phaseASchema.extend({
   clips: z.array(dualBeatStoryboardRowSchema).min(1),
 });
 
+// Talking-head clips are one sentence each: 1–12s, at most 20.
+export const talkingHeadPhaseASchema = phaseASchema.extend({
+  clips: z.array(storyboardRowSchema.extend({ durationSeconds: z.number().min(1).max(12) })).min(1).max(20),
+});
+
 // One clip's video prompt (per-clip Phase B).
 export const phaseBClipSchema = z.object({
   clipNumber: z.number().int().min(1),

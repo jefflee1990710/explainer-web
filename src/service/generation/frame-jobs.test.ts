@@ -21,6 +21,21 @@ test("frameJobDocs queues the start now and parks the end until the start lands"
   assert.equal(docs[1].nextAttemptAt, WAIT_FOR_START);
 });
 
+test("frameJobDocs parks a later start until the previous end lands", () => {
+  const docs = frameJobDocs(
+    new ObjectId(),
+    [{ clipNumber: 1, position: "start" }],
+    [
+      { clipNumber: 1, position: "end" },
+      { clipNumber: 2, position: "start" },
+    ],
+  );
+  assert.deepEqual(
+    docs.map((doc) => `${doc.clipIndex}:${doc.framePosition}:${doc.awaits ?? "-"}`),
+    ["0:start:-", "0:end:start", "1:start:prev-end"],
+  );
+});
+
 test("frameJobDocs with a start file already present sends both immediately", () => {
   const docs = frameJobDocs(
     new ObjectId(),

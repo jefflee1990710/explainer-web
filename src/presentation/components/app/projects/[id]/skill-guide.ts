@@ -6,6 +6,7 @@ import {
   OPENING_SKILL_SLUG,
   STORY_SHORT_SKILL_SLUG,
 } from "@/service/director/skill-rules";
+import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 
 export type SkillGuide = {
   voice: string;
@@ -73,6 +74,12 @@ const GUIDES: Record<string, SkillGuide> = {
     structure: "只有 1 段、3–4 秒：收束到 logo 卡",
     picture: "以上傳的 logo 當場景圖主角，當最後一格",
     frames: "起始收尾動作 → 結尾完整 logo 置中",
+  },
+  [TALKING_HEAD_SKILL_SLUG]: {
+    voice: "角色對住鏡頭讀稿（你選的聲）",
+    structure: "一句一段，秒數跟字數，最多 20 段",
+    picture: "同一中近景，望住鏡頭，底部一行字幕",
+    frames: "下一段起始圖接上一段結尾",
   },
 };
 

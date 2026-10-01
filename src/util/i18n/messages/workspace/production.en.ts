@@ -36,6 +36,7 @@ export const productionEn = {
     row: {
       frames: "{clips} frames",
       framesCost: "{count} clips × {cost} = {total}",
+      framesCostMixed: "{total} credits",
       videos: "{clips} videos",
       videosDeferredNote: "(video credits when frames finish)",
       videosCost: "{count} clips · {rate}/s = {total}",

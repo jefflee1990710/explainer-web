@@ -24,7 +24,8 @@ export function frameJobDocs(
     ...ready.map((target) => ({ ...base(target), nextAttemptAt: now })),
     ...deferred.map((target) => ({
       ...base(target),
-      awaits: "start" as const,
+      // A later start waits for the previous end; an end waits for this clip's start.
+      awaits: target.position === "start" ? ("prev-end" as const) : ("start" as const),
       nextAttemptAt: WAIT_FOR_START,
     })),
   ];

@@ -60,8 +60,15 @@ export function clipFrameAnchor(
   return endUrl ? { url: endUrl, kind: "clip-end" } : undefined;
 }
 
-// End stills wait until this clip's start file exists so image gen can lock
-// composition to that still, and I2V can pair both keyframes.
+function previousEndStillRunning(frames: ClipFrame[] | undefined, clipNumber: number) {
+  const prev = frames?.find(
+    (frame) => frame.clipNumber === clipNumber && frame.position === "end",
+  );
+  return prev?.status === "queued" || prev?.status === "in_progress";
+}
+
+// End stills wait until this clip's start file exists. Later start stills wait
+// until the previous clip's end file exists, so the new shot can keep that place.
 export function planFrameSubmissions<T extends FrameSubmitTarget>(
   targets: T[],
   frames: ClipFrame[] | undefined,
@@ -70,6 +77,19 @@ export function planFrameSubmissions<T extends FrameSubmitTarget>(
   const deferred: T[] = [];
   for (const target of targets) {
     if (target.position === "end" && !clipKeyframeUrls(frames, target.clipNumber).start) {
+      deferred.push(target);
+      continue;
+    }
+    const prevClip = target.clipNumber - 1;
+    const prevEndInBatch = targets.some(
+      (item) => item.clipNumber === prevClip && item.position === "end",
+    );
+    if (
+      target.position === "start" &&
+      prevClip >= 1 &&
+      !clipKeyframeUrls(frames, prevClip).end &&
+      (prevEndInBatch || previousEndStillRunning(frames, prevClip))
+    ) {
       deferred.push(target);
       continue;
     }

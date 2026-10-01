@@ -38,7 +38,13 @@ import {
 import { scheduleGenerationFinishedEmail } from "@/service/notify/generation-email";
 import { queueReelIfReady } from "@/service/reel/enqueue";
 import { retimeMp4 } from "@/service/reel/retime";
+import { mediaSrc } from "@/util/media-src";
 import { isBookendSkill } from "@/service/director/skill-rules";
+import {
+  isInheritedTalkingHeadStart,
+  isTalkingHeadSkill,
+  withInheritedTalkingHeadStarts,
+} from "@/service/director/talking-head";
 import { chargedVideoCredits, FRAME_COST, STUCK_CLAIM_MS } from "@/service/production-plan";
 import { lockDialogueSpeech } from "@/service/director/spoken-line";
 import { toSent, type Sent } from "@/service/generation/sent";
@@ -183,7 +189,11 @@ async function insertFrameJobs(
 // prompts should be built from, and the DB must hold the same storyboard and
 // revision since the sender rebuilds from it (re-fetch after editing a clip).
 export async function regenerateFrames(project: Project, targets: FrameTarget[]) {
-  if (targets.length === 0) return { deferred: [] as FrameTarget[] };
+  const drawable = targets.filter(
+    (target) => !isInheritedTalkingHeadStart(project.skillSlug, target.clipNumber, target.position),
+  );
+  if (drawable.length === 0) return { deferred: [] as FrameTarget[] };
+  targets = drawable;
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
   const submittedAt = new Date().toISOString();
@@ -240,11 +250,16 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
 // Ends without a start file are parked (`awaits: "start"`) until it lands.
 export async function enqueueClipFrameJobs(project: Project, clipNumbers: number[]) {
   if (clipNumbers.length === 0) return { deferred: [] as FrameTarget[] };
-  const frames = framesWithClips(project, clipNumbers);
-  const targets: FrameTarget[] = clipNumbers.flatMap((clipNumber) => [
-    { clipNumber, position: "start" as const },
-    { clipNumber, position: "end" as const },
-  ]);
+  const frames = withInheritedTalkingHeadStarts(
+    framesWithClips(project, clipNumbers),
+    project.skillSlug,
+  );
+  // Talking-head clip 2+ starts are copied from the previous end, never submitted.
+  const targets: FrameTarget[] = clipNumbers.flatMap((clipNumber) =>
+    (["start", "end"] as const)
+      .filter((position) => !isInheritedTalkingHeadStart(project.skillSlug, clipNumber, position))
+      .map((position) => ({ clipNumber, position })),
+  );
   const { ready, deferred } = planFrameSubmissions(targets, frames);
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
@@ -437,9 +452,18 @@ export async function applyJobStatus(input: {
   if (outputUrl && status === "completed") {
     const folder =
       job.kind === "still" ? "stills" : job.kind === "frame" ? "frames" : "clips";
-    const bookendSeconds =
-      project && job.kind === "video" && isBookendSkill(project.skillSlug)
+    const storyboardSeconds =
+      project && job.kind === "video"
         ? project.phaseA?.clips.find((row) => row.clipNumber === job.clipIndex + 1)?.durationSeconds
+        : undefined;
+    // Bookends always play at 3–4s. Talking-head sentences under 5s are sped up
+    // after the provider's 5s minimum render.
+    const bookendSeconds =
+      project &&
+      storyboardSeconds &&
+      (isBookendSkill(project.skillSlug) ||
+        (isTalkingHeadSkill(project.skillSlug) && storyboardSeconds < 5))
+        ? storyboardSeconds
         : undefined;
     const transformOptions =
       bookendSeconds
@@ -526,6 +550,16 @@ export async function applyJobStatus(input: {
     await submitDeferredEndIfNeeded(projectId, job.clipIndex + 1);
   }
 
+  // Previous end landed, so the next clip's start can use it as the place reference.
+  if (
+    job.kind === "frame" &&
+    job.framePosition === "end" &&
+    status === "completed" &&
+    (blobUrl || outputUrl)
+  ) {
+    await submitDeferredNextStartIfNeeded(projectId, job.clipIndex + 1);
+  }
+
   if (status === "completed" && (blobUrl || outputUrl)) {
     scheduleGenerationFinishedEmail(job._id);
   }
@@ -545,6 +579,9 @@ export async function refundClaimedFailure(
   }
   if (job.kind === "frame" && job.framePosition === "start") {
     await failDeferredEndIfNeeded(project._id, job.clipIndex + 1, error);
+  }
+  if (job.kind === "frame" && job.framePosition === "end") {
+    await failDeferredNextStartIfNeeded(project._id, job.clipIndex + 1, error);
   }
 }
 
@@ -613,6 +650,7 @@ export async function failDeferredEndIfNeeded(
 export async function submitDeferredEndIfNeeded(
   projectId: ObjectId,
   clipNumber: number,
+  options: { resync?: boolean } = {},
 ) {
   const projects = await videosCollection();
   const jobs = await generationJobsCollection();
@@ -684,7 +722,58 @@ export async function submitDeferredEndIfNeeded(
       error instanceof Error ? error.message : "分鏡圖排程失敗",
     );
   }
-  await syncProjectFromJobs(projectId);
+  if (options.resync !== false) await syncProjectFromJobs(projectId);
+}
+
+// After the previous clip's end file lands, send the next clip's waiting start.
+export async function submitDeferredNextStartIfNeeded(projectId: ObjectId, clipNumber: number) {
+  const nextClip = clipNumber + 1;
+  const jobs = await generationJobsCollection();
+  const projects = await videosCollection();
+  const endUrl = clipKeyframeUrls(
+    (await projects.findOne({ _id: projectId }))?.frames,
+    clipNumber,
+  ).end;
+  if (!endUrl) return;
+  const existing = await jobs.findOne({
+    projectId,
+    kind: "frame",
+    clipIndex: nextClip - 1,
+    framePosition: "start",
+  });
+  if (existing?.status === "pending" && existing.awaits === "prev-end") {
+    const released = await jobs.updateOne(
+      { _id: existing._id, status: "pending", awaits: "prev-end" },
+      { $set: { nextAttemptAt: new Date(), updatedAt: new Date() }, $unset: { awaits: "" } },
+    );
+    if (released.modifiedCount > 0) kickJob(existing._id);
+  }
+}
+
+// Previous end failed: the next start was waiting on it, so fail and refund that still.
+export async function failDeferredNextStartIfNeeded(
+  projectId: ObjectId,
+  clipNumber: number,
+  error: string,
+) {
+  const nextClip = clipNumber + 1;
+  const jobs = await generationJobsCollection();
+  const projects = await videosCollection();
+  const project = await projects.findOne({ _id: projectId });
+  if (!project) return;
+  const existing = await jobs.findOne({
+    projectId,
+    kind: "frame",
+    clipIndex: nextClip - 1,
+    framePosition: "start",
+  });
+  if (existing?.status === "pending" && existing.awaits === "prev-end") {
+    const failed = await claimFailure(existing._id, error, "failed", { awaits: "prev-end" });
+    if (failed) {
+      await refundCredits(project.clerkUserId, FRAME_COST);
+      await syncProjectFromJobs(projectId);
+    }
+  }
 }
 
 const ORPHAN_CLIP_ERROR = "影片沒有送出，credit 已退回，請再試一次";
@@ -704,9 +793,46 @@ export async function syncProjectFromJobs(projectId: ObjectId) {
     }
   }
 
+  await inheritTalkingHeadStarts(projectId);
+
   // "產生全部影片" waits here until both stills for a clip have files.
   const { queueAutoClipVideos } = await import("@/service/clip/auto-video");
   await queueAutoClipVideos(projectId);
+}
+
+// Copy each finished talking-head end still onto the next clip's start, then
+// let that clip's end still generate against the copied file.
+async function inheritTalkingHeadStarts(projectId: ObjectId) {
+  const projects = await videosCollection();
+  const project = await projects.findOne({ _id: projectId });
+  if (!project || !isTalkingHeadSkill(project.skillSlug)) return;
+  const frames = project.frames || [];
+  const copied = withInheritedTalkingHeadStarts(frames, project.skillSlug);
+  for (const frame of copied) {
+    if (!isInheritedTalkingHeadStart(project.skillSlug, frame.clipNumber, frame.position)) continue;
+    const current = frames.find(
+      (item) => item.clipNumber === frame.clipNumber && item.position === "start",
+    );
+    if (!current || (current.status === "completed" && mediaSrc(current) === mediaSrc(frame))) {
+      continue;
+    }
+    if (frame.status !== "completed" || !mediaSrc(frame)) continue;
+    await projects.updateOne(
+      { _id: projectId },
+      {
+        $set: {
+          "frames.$[frame].status": "completed",
+          "frames.$[frame].blobUrl": frame.blobUrl,
+          "frames.$[frame].outputUrl": frame.outputUrl,
+          "frames.$[frame].submittedAt": frame.submittedAt,
+          updatedAt: new Date(),
+        },
+        $unset: { "frames.$[frame].error": "" },
+      },
+      { arrayFilters: [{ "frame.clipNumber": frame.clipNumber, "frame.position": "start" }] },
+    );
+    await submitDeferredEndIfNeeded(projectId, frame.clipNumber, { resync: false });
+  }
 }
 
 // One read-reconcile-write pass. The write is fenced on the `updatedAt` it
@@ -728,6 +854,33 @@ async function syncProjectOnce(projectId: ObjectId): Promise<"written" | "confli
     STUCK_CLAIM_MS,
   );
   for (const orphan of orphans) {
+    if (isInheritedTalkingHeadStart(project.skillSlug, orphan.clipNumber, orphan.position)) {
+      const prevEnd = project.frames?.find(
+        (item) => item.clipNumber === orphan.clipNumber - 1 && item.position === "end",
+      );
+      // Waiting on the previous end is not a lost job, and it was not charged.
+      if (prevEnd?.status !== "failed") continue;
+      await projects.updateOne(
+        {
+          _id: projectId,
+          frames: {
+            $elemMatch: {
+              clipNumber: orphan.clipNumber,
+              position: "start",
+              status: "queued",
+            },
+          },
+        },
+        {
+          $set: {
+            "frames.$.status": "failed",
+            "frames.$.error": prevEnd.error || "上一段結尾圖失敗，起始圖無法沿用",
+            updatedAt: new Date(),
+          },
+        },
+      );
+      continue;
+    }
     const frame = project.frames?.find(
       (item) => item.clipNumber === orphan.clipNumber && item.position === orphan.position,
     );

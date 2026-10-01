@@ -1,4 +1,5 @@
 import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
+import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 
 export const STORY_SHORT_SKILL_SLUG = "story-short-director";
 export const DIALOGUE_QA_SKILL_SLUG = "dialogue-qa-director";
@@ -67,7 +68,9 @@ export function skillBansNarration(skillSlug?: string) {
 }
 
 export function requiredCastCount(skillSlug?: string) {
-  return skillSlug === DIALOGUE_QA_SKILL_SLUG ? 2 : 0;
+  if (skillSlug === DIALOGUE_QA_SKILL_SLUG) return 2;
+  if (skillSlug === TALKING_HEAD_SKILL_SLUG) return 1;
+  return 0;
 }
 
 export function skillForcesSceneText(skillSlug?: string) {

@@ -102,6 +102,15 @@ const SKILLS: SkillManifest[] = [
     sortOrder: 8,
     inputSchema: { durationPresets: ["micro"] },
   },
+  {
+    dir: "talking-head-director",
+    slug: "talking-head-director",
+    title: "Talking-head read",
+    titleZh: "對鏡讀稿",
+    description: "一個角色對住鏡頭讀稿：一句一段，秒數跟字數，最多 20 段，底部字幕。",
+    sortOrder: 9,
+    inputSchema: { durationPresets: ["micro"] },
+  },
 ];
 
 async function readMarkdownTree(dir: string, prefix = "") {

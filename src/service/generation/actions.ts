@@ -22,6 +22,7 @@ import {
   stillBlocker,
 } from "@/service/higgsfield/pipeline";
 import { isProductionLike } from "@/service/project-status";
+import { isInheritedTalkingHeadStart, talkingHeadFramesCost, withInheritedTalkingHeadStarts } from "@/service/director/talking-head";
 import { FRAME_COST, FRAMES_COST } from "@/service/production-plan";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import type {
@@ -131,6 +132,9 @@ export async function regenerateFrameAction(
     // deferred with no job to send it, stranding the credit.
     if (position === "end" && !clipKeyframeUrls(project.frames, clipNumber).start) {
       return { ok: false, error: "起始畫格還沒有圖，請先完成起始畫格" };
+    }
+    if (isInheritedTalkingHeadStart(project.skillSlug, clipNumber, position)) {
+      return { ok: false, error: "這張起始圖沿用上一段的結尾，請重畫上一段的結尾圖。" };
     }
 
     // Build the revision before charging so an upload failure costs nothing.
@@ -287,7 +291,7 @@ export async function updateClipStoryboardAction(
       return { ok: false, error: "這一段的分鏡圖還在產生中，請稍後再重畫" };
     }
 
-    const cost = regenerate ? FRAMES_COST : 0;
+    const cost = regenerate ? talkingHeadFramesCost(project.skillSlug, clipNumber) : 0;
     if (regenerate) await assertCanSpendCredits(user, cost);
 
     // Apply the edit in memory first so frame prompts are rebuilt from the new text.
@@ -307,7 +311,7 @@ export async function updateClipStoryboardAction(
     // described the old scene). Otherwise only refresh prompts for this clip
     // and the previous clip's end frame, which hands off to it.
     const frames: ClipFrame[] = regenerate
-      ? framesWithClip(nextProject, clipNumber)
+      ? withInheritedTalkingHeadStarts(framesWithClip(nextProject, clipNumber), project.skillSlug)
       : (project.frames || []).map((frame) => {
           const own = frame.clipNumber === clipNumber;
           const handoff = frame.clipNumber === clipNumber - 1 && frame.position === "end";
@@ -358,7 +362,12 @@ export async function updateClipStoryboardAction(
           clipNumber,
           message,
           attemptStartedAt,
-          deferred.map((target) => target.position),
+          [
+            ...deferred.map((target) => target.position),
+            ...(isInheritedTalkingHeadStart(project.skillSlug, clipNumber, "start")
+              ? ["start" as const]
+              : []),
+          ],
         );
         if (missed > 0) {
           await refundCredits(user.clerkUserId, missed * FRAME_COST, spendKey);

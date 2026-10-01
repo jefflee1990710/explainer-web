@@ -2,7 +2,8 @@ import { mediaSrc } from "@/util/media-src";
 import { canQueueFrames, clipStatesFor, type ClipStageSource } from "@/service/clip-stage";
 import type { ClipFrame, ProjectClip } from "@/model/project";
 
-import { FRAMES_COST, MIN_VIDEO_COST, MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
+import { MIN_VIDEO_COST, MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
+import { talkingHeadFramesCost } from "@/service/director/talking-head";
 
 export * from "@/service/credit-costs";
 
@@ -10,6 +11,14 @@ export * from "@/service/credit-costs";
 export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
   const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
   return videoCost(row?.durationSeconds ?? MIN_VIDEO_SECONDS);
+}
+
+// Scene-image credits. Talking-head clip 2+ pays for the end still only.
+export function sceneImageCost(project: ClipStageSource, clipNumbers: number[]) {
+  return clipNumbers.reduce(
+    (sum, clipNumber) => sum + talkingHeadFramesCost(project.skillSlug, clipNumber),
+    0,
+  );
 }
 
 // Sum of video credits for these clips.
@@ -53,7 +62,7 @@ export function planRemaining(project: ClipStageSource): RemainingPlan {
   return {
     frames,
     videos,
-    cost: frames.length * FRAMES_COST + videosCost(project, videos),
+    cost: sceneImageCost(project, frames) + videosCost(project, videos),
   };
 }
 
@@ -73,7 +82,7 @@ export function planSelected(
     const frames = picked
       .filter((state) => canQueueFrames(state))
       .map((state) => state.clipNumber);
-    return { frames, videos: [], cost: frames.length * FRAMES_COST };
+    return { frames, videos: [], cost: sceneImageCost(project, frames) };
   }
   const videos = picked
     .filter((state) => VIDEO_READY_STAGES.has(state.stage) && !state.stale.frames)
@@ -94,7 +103,7 @@ export function planGenerateAllScenes(project: ClipStageSource): BulkGeneratePla
   const frames = clipStatesFor(project)
     .filter((state) => state.stage !== "frames_generating")
     .map((state) => state.clipNumber);
-  return { frames, videos: [], cost: frames.length * FRAMES_COST };
+  return { frames, videos: [], cost: sceneImageCost(project, frames) };
 }
 
 // Scene images for every clip not already drawing, plus a video for every clip.
@@ -108,7 +117,7 @@ export function planGenerateAllClips(project: ClipStageSource): BulkGeneratePlan
   return {
     frames,
     videos,
-    cost: frames.length * FRAMES_COST + videosCost(project, videos),
+    cost: sceneImageCost(project, frames) + videosCost(project, videos),
   };
 }
 

@@ -110,6 +110,17 @@ test("frame prompts never mention an attached previous still", () => {
   assert.doesNotMatch(prompt, /previous still/);
 });
 
+test("next start uses the previous end as a place reference, not the same camera", () => {
+  const prompt = buildFramePrompt(project(), 1, "start", {
+    anchor: { kind: "prev-end" },
+  });
+  assert.match(prompt, /ENVIRONMENT REFERENCE/);
+  assert.match(prompt, /previous clip's END frame/);
+  assert.match(prompt, /MAY change/);
+  assert.doesNotMatch(prompt, /COMPOSITION LOCK/);
+  assert.doesNotMatch(prompt, /Do not invent a new room or camera/);
+});
+
 test("end frame with a start still names it as the composition lock", () => {
   const prompt = buildFramePrompt(project(), 1, "end", {
     anchor: { kind: "clip-start" },

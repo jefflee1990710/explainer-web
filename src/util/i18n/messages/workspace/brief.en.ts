@@ -73,6 +73,9 @@ export const briefEn = {
     alt: "Brand logo",
     fixedLength: "Fixed length: 1 clip, 3–4 seconds.",
   },
+  talkingHead: {
+    hint: "One sentence is one clip. Length follows the word count (up to 20 clips). A sentence over 12 seconds must be shortened — it will not be split.",
+  },
   submit: {
     submitting: "Submitting…",
     regenerate: "Generate again",
@@ -92,6 +95,7 @@ export const briefEn = {
     speechPace: "Pace · {label}",
     sceneText: "On-screen text · {label}",
     bookendLength: "1 clip · 3–4s",
+    talkingHeadLength: "1 sentence · 1 clip · up to 20",
     logo: "Logo",
   },
   confirm: {
