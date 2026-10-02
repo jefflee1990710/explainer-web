@@ -15,7 +15,7 @@ function baseName(project: PublicVideo, fallback: string) {
   return raw.replace(/[\\/:*?"<>|]+/g, " ").trim() || fallback;
 }
 
-// Export / download state for the branded file, with the plain reel as fallback.
+// One export action: download the finished file, or queue a branded render first.
 export function VideoEditExport({
   project,
   edit,
@@ -33,27 +33,30 @@ export function VideoEditExport({
   const { saving: downloading, error, download } = useFileDownload();
   const reelReady = isReelCurrent(project);
   const withEdit = { ...project, edit };
+  const edited = hasEdit(edit);
   const current = isFinalCurrent(withEdit);
   const busy = isFinalRunning(project) || pending;
-  const failed = project.finalStatus === "failed" && !busy;
-  const stale = Boolean(project.finalUrl) && !current;
-  const edited = hasEdit(edit);
+  const failed = project.finalStatus === "failed" && !busy && !current;
+  const stale = Boolean(project.finalUrl) && !current && edited;
+  // Branded file when it matches the edit; otherwise the plain reel is the final cut.
+  const fileUrl = current ? project.finalUrl : !edited && reelReady ? project.reelUrl : undefined;
   const basename = baseName(project, t("video.export.fallbackBasename"));
+
+  function saveFinal() {
+    if (fileUrl) void download(fileUrl, `${basename}.mp4`);
+    else onExport();
+  }
 
   return (
     <section className="space-y-2 border-t border-[var(--studio-line)] pt-4">
-      {edited ? (
-        <StudioButton className="w-full" disabled={!reelReady || busy || saving || current} onClick={onExport}>
-          {busy ? <Spinner className="h-4 w-4" /> : null}
-          {busy
-            ? t("video.export.exporting")
-            : current
-              ? t("video.export.upToDate")
-              : failed
-                ? t("video.export.retry")
-                : t("video.export.export")}
-        </StudioButton>
-      ) : null}
+      <StudioButton className="w-full" disabled={!reelReady || busy || saving || downloading} onClick={saveFinal}>
+        {busy || downloading ? <Spinner className="h-4 w-4" /> : null}
+        {busy
+          ? t("video.export.exporting")
+          : failed
+            ? t("video.export.retry")
+            : t("video.export.export")}
+      </StudioButton>
       {!reelReady ? (
         <p className="text-[11px] text-[var(--studio-muted)]">{t("video.export.waitForReel")}</p>
       ) : null}
@@ -62,29 +65,8 @@ export function VideoEditExport({
           {translateAppError(project.finalError, t)}
         </p>
       ) : null}
-      {edited && project.finalUrl ? (
-        <StudioButton
-          variant="ghost"
-          className="w-full"
-          disabled={downloading}
-          onClick={() => void download(project.finalUrl!, `${basename}.mp4`)}
-        >
-          {downloading ? <Spinner className="h-4 w-4" /> : null}
-          {stale ? t("video.export.downloadStale") : t("video.export.download")}
-        </StudioButton>
-      ) : null}
       {stale && !busy ? (
         <p className="text-[11px] text-[var(--studio-muted)]">{t("video.export.staleHint")}</p>
-      ) : null}
-      {project.reelUrl && reelReady ? (
-        <button
-          type="button"
-          disabled={downloading}
-          onClick={() => void download(project.reelUrl!, `${basename}${t("video.export.plainReelSuffix")}`)}
-          className="text-[11px] font-semibold text-[var(--studio-muted)] underline-offset-2 hover:underline"
-        >
-          {t("video.export.downloadPlainReel")}
-        </button>
       ) : null}
       {error ? (
         <p role="alert" className="text-[11px] text-[#e11d48]">

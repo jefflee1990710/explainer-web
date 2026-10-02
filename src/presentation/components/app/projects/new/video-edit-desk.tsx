@@ -12,6 +12,7 @@ import { exportFinalVideoAction, updateVideoEditAction } from "@/presentation/ac
 import { isReelBusy, isReelCurrent } from "@/service/reel/fingerprint";
 import { EDIT_LIMITS, emptyEdit, type BookendClip, type BrandLayer, type VideoEdit } from "@/model/video-edit";
 import { translateAppError } from "@/util/i18n/translate-app-error";
+import { displayMediaSrc } from "@/util/media-src";
 import type { PublicVideo } from "@/presentation/serialize";
 
 const SAVE_DELAY_MS = 600;
@@ -141,6 +142,7 @@ export function VideoEditDesk({
       preview={
         <VideoEditPreview
           reelUrl={reelCurrent ? project.reelUrl : undefined}
+          mainThumbnail={startSceneThumbnail(project)}
           aspectRatio={project.aspectRatio}
           edit={edit}
           selected={selected}
@@ -195,4 +197,13 @@ export function VideoEditDesk({
       }
     />
   );
+}
+
+// First clip's start still, used as the Main thumbnail.
+function startSceneThumbnail(project: PublicVideo) {
+  const frame = [...project.frames]
+    .filter((item) => item.position === "start")
+    .sort((a, b) => a.clipNumber - b.clipNumber)
+    .find((item) => displayMediaSrc(item));
+  return frame ? displayMediaSrc(frame) : undefined;
 }

@@ -19,6 +19,7 @@ type Drag = { id: string; mode: "move" | "resize"; startX: number; startY: numbe
 
 export function VideoEditPreview({
   reelUrl,
+  mainThumbnail,
   aspectRatio,
   edit,
   selected,
@@ -26,6 +27,8 @@ export function VideoEditPreview({
   onLayerChange,
 }: {
   reelUrl?: string;
+  // First clip's start still, shown on the Main chip.
+  mainThumbnail?: string;
   aspectRatio: AspectRatio;
   edit: VideoEdit;
   selected: EditSelection;
@@ -92,7 +95,16 @@ export function VideoEditPreview({
         {showing ? (
           <BookendMedia clip={showing} />
         ) : reelUrl ? (
-          <video key={reelUrl} src={reelUrl} controls className="absolute inset-0 h-full w-full object-contain" />
+          <video
+            key={reelUrl}
+            src={reelUrl}
+            poster={mainThumbnail}
+            controls
+            className="absolute inset-0 h-full w-full object-contain"
+          />
+        ) : mainThumbnail ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={mainThumbnail} alt="" className="absolute inset-0 h-full w-full object-contain" />
         ) : (
           <p className="absolute inset-0 grid place-items-center text-sm text-white/70">{t("video.preview.composing")}</p>
         )}
@@ -143,6 +155,7 @@ export function VideoEditPreview({
         />
         <BookendCard
           label={t("video.preview.main")}
+          thumbnail={mainThumbnail}
           active={!showing}
           onClick={() => onSelect("")}
         />
@@ -166,7 +179,19 @@ function BookendMedia({ clip }: { clip: BookendClip }) {
   );
 }
 
-function BookendCard({ label, clip, active, onClick }: { label: string; clip?: BookendClip; active: boolean; onClick: () => void }) {
+function BookendCard({
+  label,
+  clip,
+  thumbnail,
+  active,
+  onClick,
+}: {
+  label: string;
+  clip?: BookendClip;
+  thumbnail?: string;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -174,14 +199,34 @@ function BookendCard({ label, clip, active, onClick }: { label: string; clip?: B
       className={`flex w-20 flex-col overflow-hidden rounded-md border text-left text-[11px] font-semibold ${active ? "border-2 border-[var(--studio-teal)]" : "border-[var(--studio-line)]"}`}
     >
       <span className="relative block aspect-video bg-[var(--studio-fill)]">
-        {clip?.kind === "image" ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={clip.assetUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        ) : clip?.kind === "video" ? (
-          <video src={clip.assetUrl} muted className="absolute inset-0 h-full w-full object-cover" />
-        ) : null}
+        <CardThumb clip={clip} thumbnail={thumbnail} />
       </span>
       <span className="bg-white px-1.5 py-1">{label}</span>
     </button>
+  );
+}
+
+// Still for a chosen clip, or a dashed slot when intro / outro is empty.
+function CardThumb({ clip, thumbnail }: { clip?: BookendClip; thumbnail?: string }) {
+  const { t } = useI18n();
+  if (clip?.kind === "video") {
+    return <video src={clip.assetUrl} muted playsInline className="absolute inset-0 h-full w-full object-cover" />;
+  }
+  const src = clip?.kind === "image" ? clip.assetUrl : thumbnail;
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+    );
+  }
+  return (
+    <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 border border-dashed border-[var(--studio-muted)] bg-[var(--studio-panel)] text-[9px] font-semibold leading-none text-[var(--studio-muted)]">
+      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <circle cx="9" cy="10" r="1.4" />
+        <path d="M7 16l3.2-3.2L13 15l2-2 3 3" />
+      </svg>
+      {t("video.layers.unset")}
+    </span>
   );
 }

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
-import { StudioButton } from "@/presentation/studio/studio-button";
 import { draftShareCaptionAction } from "@/presentation/actions/video-share";
 import { useFileDownload } from "@/presentation/components/app/projects/new/use-file-download";
 import { VideoShareCaption } from "@/presentation/components/app/projects/new/video-share-caption";
@@ -55,11 +54,6 @@ export function VideoSharePanel({
       setHint(t("video.share.copyFailed"));
       return false;
     }
-  }
-
-  async function saveFile() {
-    if (!src) return;
-    await download(src, filename);
   }
 
   async function shareNative() {
@@ -134,10 +128,6 @@ export function VideoSharePanel({
       <h3 className="text-[11px] font-bold text-[var(--studio-muted)]">{t("video.share.section")}</h3>
       {src ? (
         <>
-          <StudioButton className="w-full" disabled={busy} onClick={() => void saveFile()}>
-            {saving ? <Spinner className="h-4 w-4" /> : null}
-            {t("video.share.download")}
-          </StudioButton>
           <VideoShareCaption
             checked={useAi}
             caption={caption}
