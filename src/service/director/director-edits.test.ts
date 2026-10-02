@@ -1,95 +1,88 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  DIRECTOR_FILE_MAX,
-  SKILL_PATH,
+  DRAFT_FIELDS,
   applyDirectorEdits,
-  changedDraftPaths,
-  draftPaths,
+  changedDraftFields,
+  draftFieldValue,
+  parseDraft,
   type DirectorDraft,
 } from "@/service/director/director-edits";
+import { emptyProfile } from "@/service/director/profile";
 
-// Draft with SKILL.md plus two reference files.
 function baseDraft(): DirectorDraft {
-  return {
-    systemPrompt: "# Skill",
-    references: [
-      { path: "references/style.md", content: "style" },
-      { path: "references/pace.md", content: "pace" },
-    ],
-  };
+  return { customProfile: { ...emptyProfile(), hook: "question", rules: "calm" }, extraInstructions: "logo last" };
 }
 
-test("draftPaths lists SKILL.md first then references", () => {
-  assert.deepEqual(draftPaths(baseDraft()), [SKILL_PATH, "references/style.md", "references/pace.md"]);
+test("DRAFT_FIELDS lists the profile keys then extraInstructions", () => {
+  assert.deepEqual(DRAFT_FIELDS, ["bestFor", "structure", "hook", "arc", "narrator", "visual", "audio", "rules", "extraInstructions"]);
 });
 
-test("applyDirectorEdits replaces SKILL.md", () => {
+test("applyDirectorEdits replaces a profile field without mutating the input", () => {
   const draft = baseDraft();
-  const result = applyDirectorEdits(draft, [{ path: SKILL_PATH, content: "# New" }]);
+  const result = applyDirectorEdits(draft, [{ field: "hook", content: "bold claim" }]);
   assert.ok(result.ok);
-  assert.equal(result.draft.systemPrompt, "# New");
-  assert.deepEqual(result.changedPaths, [SKILL_PATH]);
-  assert.equal(draft.systemPrompt, "# Skill");
+  assert.equal(result.draft.customProfile.hook, "bold claim");
+  assert.equal(result.draft.customProfile.rules, "calm");
+  assert.deepEqual(result.changedFields, ["hook"]);
+  assert.equal(draft.customProfile.hook, "question");
 });
 
-test("applyDirectorEdits replaces one reference and leaves others identical", () => {
-  const draft = baseDraft();
-  const result = applyDirectorEdits(draft, [{ path: "references/pace.md", content: "faster" }]);
+test("applyDirectorEdits replaces extra instructions", () => {
+  const result = applyDirectorEdits(baseDraft(), [{ field: "extraInstructions", content: "no music" }]);
   assert.ok(result.ok);
-  assert.deepEqual(result.draft.references, [
-    { path: "references/style.md", content: "style" },
-    { path: "references/pace.md", content: "faster" },
-  ]);
-  assert.equal(result.draft.systemPrompt, "# Skill");
-  assert.deepEqual(result.changedPaths, ["references/pace.md"]);
-  assert.equal(draft.references[1].content, "pace");
+  assert.equal(result.draft.extraInstructions, "no music");
+  assert.deepEqual(result.changedFields, ["extraInstructions"]);
 });
 
-test("applyDirectorEdits rejects unknown paths", () => {
-  const result = applyDirectorEdits(baseDraft(), [{ path: "references/missing.md", content: "x" }]);
-  assert.deepEqual(result, { ok: false, error: "AI 修改了不存在的檔案" });
-});
-
-test("applyDirectorEdits rejects files over the size limit", () => {
-  assert.equal(DIRECTOR_FILE_MAX, 60_000);
-  const result = applyDirectorEdits(baseDraft(), [{ path: SKILL_PATH, content: "a".repeat(60_001) }]);
-  assert.deepEqual(result, { ok: false, error: "檔案內容過長" });
-});
-
-test("applyDirectorEdits accepts content exactly at the size limit", () => {
-  const result = applyDirectorEdits(baseDraft(), [{ path: SKILL_PATH, content: "a".repeat(60_000) }]);
-  assert.ok(result.ok);
-});
-
-test("applyDirectorEdits omits identical content from changedPaths", () => {
+test("applyDirectorEdits rejects unknown fields atomically", () => {
   const result = applyDirectorEdits(baseDraft(), [
-    { path: SKILL_PATH, content: "# Skill" },
-    { path: "references/style.md", content: "new style" },
+    { field: "hook", content: "x" },
+    { field: "SKILL.md", content: "y" },
   ]);
-  assert.ok(result.ok);
-  assert.deepEqual(result.changedPaths, ["references/style.md"]);
+  assert.deepEqual(result, { ok: false, error: "AI 修改了不存在的欄位" });
 });
 
-test("applyDirectorEdits uses the last edit when a path repeats", () => {
+test("applyDirectorEdits enforces field limits", () => {
+  assert.deepEqual(applyDirectorEdits(baseDraft(), [{ field: "arc", content: "a".repeat(601) }]), {
+    ok: false,
+    error: "欄位內容過長",
+  });
+  assert.ok(applyDirectorEdits(baseDraft(), [{ field: "arc", content: "a".repeat(600) }]).ok);
+  assert.ok(applyDirectorEdits(baseDraft(), [{ field: "extraInstructions", content: "a".repeat(4000) }]).ok);
+  assert.equal(applyDirectorEdits(baseDraft(), [{ field: "extraInstructions", content: "a".repeat(4001) }]).ok, false);
+});
+
+test("applyDirectorEdits drops no-op edits and keeps the last repeat", () => {
   const result = applyDirectorEdits(baseDraft(), [
-    { path: "references/style.md", content: "first" },
-    { path: "references/style.md", content: "second" },
+    { field: "hook", content: "question" },
+    { field: "rules", content: "first" },
+    { field: "rules", content: "second" },
   ]);
   assert.ok(result.ok);
-  assert.equal(result.draft.references[0].content, "second");
-  assert.deepEqual(result.changedPaths, ["references/style.md"]);
+  assert.equal(result.draft.customProfile.rules, "second");
+  assert.deepEqual(result.changedFields, ["rules"]);
 });
 
-test("changedDraftPaths lists only differing paths", () => {
+test("changedDraftFields and draftFieldValue", () => {
   const saved = baseDraft();
-  const draft: DirectorDraft = {
-    systemPrompt: "# Edited",
-    references: [
-      { path: "references/style.md", content: "style" },
-      { path: "references/pace.md", content: "slow" },
-    ],
-  };
-  assert.deepEqual(changedDraftPaths(saved, draft), [SKILL_PATH, "references/pace.md"]);
-  assert.deepEqual(changedDraftPaths(saved, baseDraft()), []);
+  const draft = { customProfile: { ...saved.customProfile, visual: "neon" }, extraInstructions: "" };
+  assert.deepEqual(changedDraftFields(saved, draft), ["visual", "extraInstructions"]);
+  assert.deepEqual(changedDraftFields(saved, baseDraft()), []);
+  assert.equal(draftFieldValue(draft, "visual"), "neon");
+  assert.equal(draftFieldValue(draft, "extraInstructions"), "");
+});
+
+test("parseDraft coerces input and enforces limits", () => {
+  const ok = parseDraft({ customProfile: { hook: "h", junk: "j" }, extraInstructions: 5 });
+  assert.ok(ok.ok);
+  assert.equal(ok.draft.customProfile.hook, "h");
+  assert.equal(ok.draft.customProfile.bestFor, "");
+  assert.equal(ok.draft.extraInstructions, "5");
+  assert.equal("junk" in ok.draft.customProfile, false);
+  assert.deepEqual(parseDraft({ customProfile: {}, extraInstructions: "a".repeat(4001) }), {
+    ok: false,
+    error: "欄位內容過長",
+  });
+  assert.ok(parseDraft(null).ok);
 });

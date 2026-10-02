@@ -1,49 +1,53 @@
-import type { SkillReference } from "@/model/skill";
+import { PROFILE_KEYS, type DirectorProfile } from "@/model/skill";
+import { EXTRA_INSTRUCTIONS_MAX, PROFILE_FIELD_MAX, parseProfile } from "@/service/director/profile";
 
-// Editable director files: SKILL.md body plus reference markdown files.
-export type DirectorDraft = { systemPrompt: string; references: SkillReference[] };
+// Editable custom-director fields: 8 profile fields plus extra instructions.
+export const DRAFT_FIELDS = [...PROFILE_KEYS, "extraInstructions"] as const;
+export type DraftField = (typeof DRAFT_FIELDS)[number];
+export type DirectorDraft = { customProfile: DirectorProfile; extraInstructions: string };
 
-// One full-file replacement proposed by the AI.
-export type DirectorEdit = { path: string; content: string };
+// One full-field replacement proposed by the AI.
+export type DirectorEdit = { field: string; content: string };
 
-export const SKILL_PATH = "SKILL.md";
-
-// Max characters allowed in a single director file.
-export const DIRECTOR_FILE_MAX = 60_000;
-
-// All file paths in a draft, SKILL.md first.
-export function draftPaths(draft: DirectorDraft): string[] {
-  return [SKILL_PATH, ...draft.references.map((r) => r.path)];
+function isDraftField(field: string): field is DraftField {
+  return (DRAFT_FIELDS as readonly string[]).includes(field);
 }
 
-// Content of one file in a draft, or undefined when the path does not exist.
-function fileContent(draft: DirectorDraft, path: string): string | undefined {
-  if (path === SKILL_PATH) return draft.systemPrompt;
-  return draft.references.find((r) => r.path === path)?.content;
+function fieldMax(field: DraftField) {
+  return field === "extraInstructions" ? EXTRA_INSTRUCTIONS_MAX : PROFILE_FIELD_MAX;
 }
 
-// Applies full-file edits to a copy of the draft; rejects unknown paths and oversized files.
+export function draftFieldValue(draft: DirectorDraft, field: DraftField): string {
+  return field === "extraInstructions" ? draft.extraInstructions : draft.customProfile[field];
+}
+
+// Applies field edits to a copy of the draft; rejects unknown fields and over-long content.
 export function applyDirectorEdits(
   draft: DirectorDraft,
   edits: DirectorEdit[],
-): { ok: true; draft: DirectorDraft; changedPaths: string[] } | { ok: false; error: string } {
-  const known = new Set(draftPaths(draft));
-  // Later edits to the same path overwrite earlier ones.
-  const byPath = new Map<string, string>();
+): { ok: true; draft: DirectorDraft; changedFields: DraftField[] } | { ok: false; error: string } {
+  const next: DirectorDraft = { customProfile: { ...draft.customProfile }, extraInstructions: draft.extraInstructions };
   for (const edit of edits) {
-    if (!known.has(edit.path)) return { ok: false, error: "AI 修改了不存在的檔案" };
-    if (edit.content.length > DIRECTOR_FILE_MAX) return { ok: false, error: "檔案內容過長" };
-    byPath.set(edit.path, edit.content);
+    if (!isDraftField(edit.field)) return { ok: false, error: "AI 修改了不存在的欄位" };
+    if (edit.content.length > fieldMax(edit.field)) return { ok: false, error: "欄位內容過長" };
+    if (edit.field === "extraInstructions") next.extraInstructions = edit.content;
+    else next.customProfile[edit.field] = edit.content;
   }
-
-  const next: DirectorDraft = {
-    systemPrompt: byPath.get(SKILL_PATH) ?? draft.systemPrompt,
-    references: draft.references.map((r) => ({ path: r.path, content: byPath.get(r.path) ?? r.content })),
-  };
-  return { ok: true, draft: next, changedPaths: changedDraftPaths(draft, next) };
+  return { ok: true, draft: next, changedFields: changedDraftFields(draft, next) };
 }
 
-// Paths whose content differs between the saved draft and the working draft.
-export function changedDraftPaths(saved: DirectorDraft, draft: DirectorDraft): string[] {
-  return draftPaths(draft).filter((path) => fileContent(saved, path) !== fileContent(draft, path));
+// Fields whose value differs between the saved draft and the working draft.
+export function changedDraftFields(saved: DirectorDraft, draft: DirectorDraft): DraftField[] {
+  return DRAFT_FIELDS.filter((field) => draftFieldValue(saved, field) !== draftFieldValue(draft, field));
+}
+
+// Untrusted client draft → typed draft within limits.
+export function parseDraft(raw: unknown): { ok: true; draft: DirectorDraft } | { ok: false; error: string } {
+  const source = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const profile = parseProfile(source.customProfile);
+  if (!profile.ok) return profile;
+  const extra = source.extraInstructions;
+  const extraInstructions = extra === undefined || extra === null ? "" : String(extra);
+  if (extraInstructions.length > EXTRA_INSTRUCTIONS_MAX) return { ok: false, error: "欄位內容過長" };
+  return { ok: true, draft: { customProfile: profile.profile, extraInstructions } };
 }
