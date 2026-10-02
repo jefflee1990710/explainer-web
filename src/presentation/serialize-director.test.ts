@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
-import { PROFILE_KEYS, type Skill } from "@/model/skill";
+import { PROFILE_KEYS } from "@/model/director-profile";
+import type { Skill } from "@/model/skill";
 import { toPublicDirector } from "@/presentation/serialize";
 import { emptyProfile } from "@/service/director/profile";
 

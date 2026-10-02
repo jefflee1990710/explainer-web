@@ -12,7 +12,8 @@ import type { AppUser } from "@/model/user";
 import type { Character, CharacterVersionStatus } from "@/model/character";
 import type { Folder } from "@/model/folder";
 import type { Project, ProjectStatus } from "@/model/project";
-import type { DirectorChatMessage, DirectorProfile, Skill, SystemProfile } from "@/model/skill";
+import type { DirectorProfile, SystemProfile } from "@/model/director-profile";
+import type { DirectorChatMessage, Skill } from "@/model/skill";
 import type { Subscription } from "@/model/subscription";
 import type { VideoEdit, VideoTemplate } from "@/model/video-edit";
 

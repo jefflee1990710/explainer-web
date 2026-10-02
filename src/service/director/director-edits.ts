@@ -1,4 +1,4 @@
-import { PROFILE_KEYS, type DirectorProfile } from "@/model/skill";
+import { PROFILE_KEYS, type DirectorProfile } from "@/model/director-profile";
 import { EXTRA_INSTRUCTIONS_MAX, PROFILE_FIELD_MAX, parseProfile } from "@/service/director/profile";
 
 // Editable custom-director fields: 8 profile fields plus extra instructions.

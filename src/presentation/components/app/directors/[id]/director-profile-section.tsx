@@ -3,7 +3,7 @@
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicDirector } from "@/presentation/serialize";
 import { DirectorProfileField } from "@/presentation/components/app/directors/[id]/director-profile-field";
-import { PROFILE_KEYS } from "@/model/skill";
+import { PROFILE_KEYS } from "@/model/director-profile";
 import type { DirectorDraft, DraftField } from "@/service/director/director-edits";
 import { EXTRA_INSTRUCTIONS_MAX, PROFILE_FIELD_MAX, emptyProfile, profileLocale } from "@/service/director/profile";
 

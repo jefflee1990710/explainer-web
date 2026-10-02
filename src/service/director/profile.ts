@@ -1,4 +1,4 @@
-import { PROFILE_KEYS, type DirectorProfile, type ProfileLocale, type SystemProfile } from "@/model/skill";
+import { PROFILE_KEYS, type DirectorProfile, type ProfileLocale, type SystemProfile } from "@/model/director-profile";
 
 // Character limits for one profile field and for a custom director's extra instructions.
 export const PROFILE_FIELD_MAX = 600;

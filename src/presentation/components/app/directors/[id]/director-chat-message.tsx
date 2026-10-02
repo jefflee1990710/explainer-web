@@ -1,6 +1,6 @@
 "use client";
 
-import { PROFILE_KEYS } from "@/model/skill";
+import { PROFILE_KEYS } from "@/model/director-profile";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 
