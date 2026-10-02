@@ -40,7 +40,12 @@ import {
   isDualBeatSkill,
   normalizeDualBeatRow,
 } from "@/service/director/dual-beat";
+import { loadReferenceImageContent } from "@/service/director/reference-image-content";
 import { directorModel } from "@/service/director/model";
+import {
+  phaseAReferenceImageRules,
+  sanitizeClipReferenceIds,
+} from "@/service/project/reference-images";
 import { cartoonPhaseASchema, phaseASchema, talkingHeadPhaseASchema } from "@/model/director";
 import {
   isTalkingHeadSkill,
@@ -55,6 +60,7 @@ import type {
   AspectRatio,
   DurationPreset,
   PhaseAProposal,
+  ReferenceImage,
   SceneTextLanguage,
   SpeechPace,
   VoLanguage,
@@ -77,6 +83,8 @@ export async function runPhaseA(input: {
   cast?: CastMember[];
   // Opening / Ending brand logo, attached after the character references.
   logoUrl?: string;
+  // Brief scene references; the director tags clips with their ids.
+  referenceImages?: ReferenceImage[];
   // Existing user-edited draft; regenerate from this instead of inventing anew.
   currentDraft?: PhaseAProposal;
   revisionNote?: string;
@@ -112,6 +120,7 @@ export async function runPhaseA(input: {
   );
   const logoUrl = bookend ? input.logoUrl : undefined;
   const logoImages = logoUrl ? await loadDirectorImageParts([logoUrl]) : [];
+  const references = await loadReferenceImageContent(input.referenceImages);
   const draftNote = input.currentDraft
     ? `\nCurrent Phase A draft (the user may have edited this; keep their wording unless the revision notes contradict it):\n${JSON.stringify(input.currentDraft, null, 2)}\n`
     : "";
@@ -158,6 +167,7 @@ ${
       ].join(" ")
     : ""
 }
+${phaseAReferenceImageRules(references.attached)}
 ${
   [
     dialogueOnly ? dialogueOnlyDirectorBlock() : "",
@@ -197,7 +207,7 @@ ${sceneDescriptionLanguageLock(input.language)}`,
         content: [
           {
             type: "text",
-            text: `Source material:
+            text: `Director instruction (may contain the topic, an outline, or a full script — follow it):
 ${input.source}
 
 Aspect ratio: ${input.aspectRatio}
@@ -222,6 +232,7 @@ ${characterNote}
 ${logoImages.length ? `Brand logo: the LAST attached image is the brand logo (after any character references). Use it as-is in startScene / endScene.\n` : ""}${draftNote}${revisionNote}${clipsOnlyNote}
 Produce a complete Phase A director proposal now.`,
           },
+          ...references.parts,
           ...characterImages,
           ...logoImages,
         ],
@@ -236,7 +247,10 @@ Produce a complete Phase A director proposal now.`,
   let next: PhaseAProposal = {
     ...output,
     loopMode: "linear",
-    ...(dualBeat ? { clips: output.clips.map(normalizeDualBeatRow) } : {}),
+    clips: sanitizeClipReferenceIds(
+      dualBeat ? output.clips.map(normalizeDualBeatRow) : output.clips,
+      references.attached,
+    ),
   };
   // Auto bookends stay one 3–4s clip. A chosen length is left as the model planned it.
   if (lockBookendLength) {
