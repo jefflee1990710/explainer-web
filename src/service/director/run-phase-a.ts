@@ -51,8 +51,11 @@ import {
   isTalkingHeadSkill,
   planTalkingHeadClips,
   spokenUnits,
+  talkingHeadCopiedBriefError,
   talkingHeadDirectorBlock,
   talkingHeadPlanError,
+  talkingHeadScriptFromClips,
+  talkingHeadSourceError,
 } from "@/service/director/talking-head";
 import type { Style } from "@/service/style";
 import type { CastMember } from "@/model/character";
@@ -94,8 +97,8 @@ export async function runPhaseA(input: {
   const bookend = isBookendSkill(input.skill.slug);
   const talkingHead = isTalkingHeadSkill(input.skill.slug);
   if (talkingHead) {
-    const planError = talkingHeadPlanError(input.source, input.speechPace);
-    if (planError) throw new Error(planError);
+    const sourceError = talkingHeadSourceError(input.source);
+    if (sourceError) throw new Error(sourceError);
   }
   const durationHint = phaseADurationHint({
     skillSlug: input.skill.slug,
@@ -275,10 +278,15 @@ Produce a complete Phase A director proposal now.`,
       targetDuration: clips[0] ? `${clips[0].durationSeconds}s` : next.targetDuration,
     };
   }
-  // Talking-head clip count, lines, and seconds come from the script, not the model.
+  // Talking-head timing is deterministic; spoken lines come from the planned script, not the brief.
   if (talkingHead) {
+    const script = talkingHeadScriptFromClips(next.clips);
+    const copiedBrief = talkingHeadCopiedBriefError(input.source, script);
+    if (copiedBrief) throw new Error(copiedBrief);
+    const planError = talkingHeadPlanError(script, input.speechPace);
+    if (planError) throw new Error(planError);
     const clips = planTalkingHeadClips({
-      source: input.source,
+      source: script,
       pace: input.speechPace,
       language: input.language,
     });

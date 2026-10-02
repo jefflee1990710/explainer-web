@@ -84,7 +84,7 @@ export const briefZhHant = {
     fixedLength: "選自動時，導演會規劃成 1 段、3–4 秒。",
   },
   talkingHead: {
-    hint: "一句一段。秒數跟字數計（最多 20 段）。一句超過 12 秒要改短，系統唔會自動拆開。",
+    hint: "寫導演指示，由導演規劃整段對鏡講稿。講出口的一句即一段（最多 20 段）。超過 12 秒的句子會改短。",
   },
   submit: {
     submitting: "送出中…",
@@ -205,8 +205,8 @@ export const briefZhHant = {
         frames: "起始收尾動作 → 結尾完整 logo 置中",
       },
       "talking-head-director": {
-        voice: "角色對住鏡頭讀稿（你選的聲）",
-        structure: "一句一段，秒數跟字數，最多 20 段",
+        voice: "角色對住鏡頭讀導演寫好的講稿（你選的聲）",
+        structure: "導演先寫講稿；講出口的一句一段，最多 20 段",
         picture: "同一中近景，望住鏡頭，底部一行字幕",
         frames: "下一段起始圖接上一段結尾",
       },

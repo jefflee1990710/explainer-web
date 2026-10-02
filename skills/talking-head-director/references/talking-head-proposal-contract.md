@@ -4,10 +4,12 @@ Present a readable director's proposal and stop for confirmation before writing 
 
 ## Script contract
 
-- Split the source into sentences. One sentence is one clip.
-- Do not rewrite the words.
-- 1–20 clips. More than 20: stop and ask the user to cut sentences.
-- A sentence whose spoken length exceeds 12 seconds: stop and ask the user to shorten it. Do not break it into two clips.
+- The source is a director instruction. Plan a spoken script the character will read.
+- If the source is already a complete camera-ready script, copy each sentence verbatim. If it is a brief or topic, write the script.
+- Never put briefing language into `englishVo`.
+- Split the spoken script into sentences. One spoken sentence is one clip.
+- 1–20 clips. More than 20 spoken sentences: shorten the script.
+- A sentence whose spoken length exceeds 12 seconds: rewrite that line shorter. Do not leave it over 12 seconds.
 
 ## Header contract
 

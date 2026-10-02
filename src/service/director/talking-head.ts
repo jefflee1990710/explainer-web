@@ -98,10 +98,33 @@ export function talkingHeadSeconds(sentence: string, pace?: SpeechPace) {
   return Math.max(1, Math.round(raw / divisor));
 }
 
-// Stop Phase A before the model call when the script cannot be one-sentence clips.
+// Spoken script the character will read — one englishVo line per planned clip.
+export function talkingHeadScriptFromClips(clips: { englishVo?: string }[]) {
+  return clips
+    .map((clip) => clip.englishVo?.trim() ?? "")
+    .filter(Boolean)
+    .join("\n");
+}
+
+// Instruction field must exist; the spoken script is planned later.
+export function talkingHeadSourceError(source: string) {
+  return source.replace(/\s+/g, "").length === 0 ? "請輸入導演指示。" : undefined;
+}
+
+// Model copied the brief into VO instead of writing a spoken script.
+export function talkingHeadCopiedBriefError(instruction: string, script: string) {
+  const norm = (text: string) => text.replace(/\s+/g, " ").trim().toLowerCase();
+  if (norm(instruction) !== norm(script)) return undefined;
+  if (!/plan the content|you plan|create a reel|create a video|幫我規劃|幫我寫|寫腳本|你來規劃/i.test(instruction)) {
+    return undefined;
+  }
+  return "導演把指示當成對白。請再試一次。";
+}
+
+// Stop when the planned spoken script cannot be one-sentence clips.
 export function talkingHeadPlanError(source: string, pace?: SpeechPace) {
   const sentences = splitTalkingHeadSentences(source);
-  if (sentences.length === 0) return "請輸入要講的稿，一句一段。";
+  if (sentences.length === 0) return "導演未寫出對白稿。請再試一次。";
   if (sentences.length > TALKING_HEAD_MAX_CLIPS) {
     return `呢段稿有 ${sentences.length} 句，對鏡讀稿最多 ${TALKING_HEAD_MAX_CLIPS} 段。請刪走句子或改標點後再試。`;
   }
@@ -161,9 +184,10 @@ export function planTalkingHeadClips(input: {
 export function talkingHeadDurationHint(pace?: SpeechPace) {
   return [
     "Talking-head read: ignore the duration preset.",
-    "ONE sentence = ONE clip. Split only on newlines and sentence enders (。！？. ! ?). Never merge or rewrite a sentence.",
-    `Clip count = sentence count, from 1 to ${TALKING_HEAD_MAX_CLIPS}.`,
-    `durationSeconds = round(Chinese characters / ${CJK_CHARS_PER_SECOND} + English words / ${ENGLISH_WORDS_PER_SECOND}), then ${paceNote(pace)}. Minimum 1s. If any sentence would exceed ${TALKING_HEAD_MAX_SECONDS}s, stop and ask the user to shorten it. Do not split that sentence.`,
+    "The user text is a DIRECTOR INSTRUCTION. Write a spoken script first (or copy a ready-made script), then ONE spoken sentence = ONE clip.",
+    "Split the spoken script only on newlines and sentence enders (。！？. ! ?). Never merge two spoken sentences.",
+    `Clip count = spoken sentence count, from 1 to ${TALKING_HEAD_MAX_CLIPS}.`,
+    `durationSeconds = round(Chinese characters / ${CJK_CHARS_PER_SECOND} + English words / ${ENGLISH_WORDS_PER_SECOND}), then ${paceNote(pace)}. Minimum 1s. If any sentence would exceed ${TALKING_HEAD_MAX_SECONDS}s, shorten that spoken line. Do not leave a 12s+ sentence.`,
     "Same locked medium close-up for every clip. The character looks into the lens the whole time.",
     "Clip 2+ startScene must copy the previous clip's endScene. Motion is mouth and a small nod only. One bottom subtitle equal to that clip's spoken line, same on the start and end still.",
   ].join(" ");
@@ -171,8 +195,11 @@ export function talkingHeadDurationHint(pace?: SpeechPace) {
 
 export function talkingHeadDirectorBlock() {
   return [
-    "This is a TALKING-HEAD READ. The on-screen character faces the camera and speaks the user's script. There is no story, no cutaway, and no second character.",
-    "Do not paraphrase the script. Each clip's englishVo is exactly one source sentence.",
+    "This is a TALKING-HEAD READ. The on-screen character faces the camera and speaks. There is no cutaway and no second character.",
+    "The user message is a DIRECTOR INSTRUCTION for you to plan the whole read (hook, points, close). It is NOT the spoken line unless it is already a complete camera-ready script.",
+    "Write englishVo as the words the character will say. Each clip is exactly one spoken sentence in the chosen language.",
+    "Never copy briefing language into englishVo (for example 'create a reel', 'you plan the content', '幫我規劃').",
+    "If the instruction is already a complete script, copy each sentence verbatim. If it is a topic or brief, invent the spoken script yourself.",
     "Camera, set, and light stay identical across every clip. Clip 2 and after open on the previous clip's end still.",
     "Bottom subtitle only: the spoken sentence, nothing else written in the frame.",
   ].join(" ");

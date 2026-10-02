@@ -85,7 +85,7 @@ export const briefEn = {
     fixedLength: "Auto: the director plans one 3–4 second clip.",
   },
   talkingHead: {
-    hint: "One sentence is one clip. Length follows the word count (up to 20 clips). A sentence over 12 seconds must be shortened — it will not be split.",
+    hint: "Tell the director what to cover; they write the on-camera script. One spoken sentence is one clip (up to 20). A line over 12 seconds will be shortened.",
   },
   submit: {
     submitting: "Submitting…",
@@ -207,8 +207,8 @@ export const briefEn = {
         frames: "Start: closing motion → end: full logo centered",
       },
       "talking-head-director": {
-        voice: "The character reads the script to camera (the voice you picked)",
-        structure: "One sentence per clip; length follows the word count, up to 20 clips",
+        voice: "The character reads the planned script to camera (the voice you picked)",
+        structure: "Director writes the read; one spoken sentence per clip, up to 20",
         picture: "One locked medium close-up, eyes to the lens, one subtitle line at the bottom",
         frames: "The next clip’s start frame continues the previous end frame",
       },

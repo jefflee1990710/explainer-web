@@ -3,9 +3,13 @@ import { test } from "node:test";
 import {
   planTalkingHeadClips,
   splitTalkingHeadSentences,
+  talkingHeadCopiedBriefError,
+  talkingHeadDirectorBlock,
   talkingHeadFramesCost,
   talkingHeadPlanError,
+  talkingHeadScriptFromClips,
   talkingHeadSeconds,
+  talkingHeadSourceError,
   withInheritedTalkingHeadStarts,
 } from "@/service/director/talking-head";
 import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
@@ -43,6 +47,23 @@ test("talking-head refuses more than 20 sentences or a sentence over 12 seconds"
   const long = "甲".repeat(60) + "。";
   assert.match(talkingHeadPlanError(long, "medium") || "", /超過 12 秒/);
   assert.equal(talkingHeadPlanError(SCRIPT, "medium"), undefined);
+});
+
+test("talking-head plans clips from the director's spoken lines, not the brief", () => {
+  assert.equal(talkingHeadSourceError("   "), "請輸入導演指示。");
+  assert.equal(talkingHeadSourceError("Create a reel, you plan the content"), undefined);
+  const script = talkingHeadScriptFromClips([
+    { englishVo: "Video makes a product feel real." },
+    { englishVo: "Show the problem, then the fix." },
+  ]);
+  assert.equal(script, "Video makes a product feel real.\nShow the problem, then the fix.");
+  const clips = planTalkingHeadClips({ source: script, pace: "medium", language: "en" });
+  assert.equal(clips.length, 2);
+  assert.equal(clips[0].englishVo, "Video makes a product feel real.");
+  assert.match(talkingHeadDirectorBlock(), /DIRECTOR INSTRUCTION/);
+  const brief = "Create a reel Explain why video is so important, you plan the content for me";
+  assert.match(talkingHeadCopiedBriefError(brief, brief) || "", /當成對白/);
+  assert.equal(talkingHeadCopiedBriefError(brief, "Video makes ideas land."), undefined);
 });
 
 test("clip 2 starts on clip 1's end still", () => {
