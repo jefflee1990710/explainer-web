@@ -4,8 +4,8 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicDirector } from "@/presentation/serialize";
 import { CreateDirectorButton } from "@/presentation/components/app/directors/create-director-modal";
-import { DirectorFileSection } from "@/presentation/components/app/directors/[id]/director-file-section";
-import { SKILL_PATH, type DirectorDraft } from "@/service/director/director-edits";
+import { DirectorProfileSection } from "@/presentation/components/app/directors/[id]/director-profile-section";
+import { type DirectorDraft, type DraftField } from "@/service/director/director-edits";
 import { localizedVideoType } from "@/util/video-type-i18n";
 
 const NAME_MAX = 60;
@@ -14,11 +14,11 @@ const DESCRIPTION_MAX = 300;
 // Editable director fields held by the workspace.
 export type DirectorForm = DirectorDraft & { title: string; description: string };
 
-// Left pane: name, description, template badge, files, and Save / Discard / Delete.
+// Left pane: name, description, template badge, profile, and Save / Discard / Delete.
 export function DirectorInfoPanel({
   director,
   draft,
-  changedPaths,
+  changedFields,
   dirty,
   saving,
   status,
@@ -30,7 +30,7 @@ export function DirectorInfoPanel({
 }: {
   director: PublicDirector;
   draft: DirectorForm;
-  changedPaths: string[];
+  changedFields: DraftField[];
   dirty: boolean;
   saving: boolean;
   status: string;
@@ -43,13 +43,6 @@ export function DirectorInfoPanel({
   const { t } = useI18n();
   const editable = director.isCustom;
   const templateName = localizedVideoType(t, director.behaviorSlug, "") || director.baseSlug || director.behaviorSlug;
-
-  function setReference(path: string, content: string) {
-    onChange({
-      ...draft,
-      references: draft.references.map((ref) => (ref.path === path ? { ...ref, content } : ref)),
-    });
-  }
 
   return (
     <section className="min-w-0 rounded-[1.75rem] border border-accent-ink/10 bg-paper/85 p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.08)]">
@@ -101,29 +94,12 @@ export function DirectorInfoPanel({
         <p className="mt-4 text-sm leading-6 text-muted">{director.description}</p>
       ) : null}
 
-      <h2 className="mt-6 text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-        {t("directors.filesTitle")}
-      </h2>
-      <div className="mt-3 space-y-3">
-        <DirectorFileSection
-          path={SKILL_PATH}
-          content={draft.systemPrompt}
-          editable={editable}
-          modified={changedPaths.includes(SKILL_PATH)}
-          defaultOpen
-          onChange={(systemPrompt) => onChange({ ...draft, systemPrompt })}
-        />
-        {draft.references.map((ref) => (
-          <DirectorFileSection
-            key={ref.path}
-            path={ref.path}
-            content={ref.content}
-            editable={editable}
-            modified={changedPaths.includes(ref.path)}
-            onChange={(content) => setReference(ref.path, content)}
-          />
-        ))}
-      </div>
+      <DirectorProfileSection
+        director={director}
+        draft={draft}
+        changedFields={changedFields}
+        onChange={(next) => onChange({ ...draft, ...next })}
+      />
 
       {editable ? (
         <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-accent-ink/10 pt-5">

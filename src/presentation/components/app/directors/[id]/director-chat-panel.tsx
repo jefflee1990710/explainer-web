@@ -48,8 +48,8 @@ export function DirectorChatPanel({
   async function send() {
     const message = input.trim();
     if (!canSend) return;
-    // Snapshot the draft the AI sees so its edits are validated against the same file set.
-    const sent: DirectorDraft = { systemPrompt: draft.systemPrompt, references: draft.references };
+    // Snapshot the draft the AI sees so its edits are validated against the same values.
+    const sent: DirectorDraft = { customProfile: draft.customProfile, extraInstructions: draft.extraInstructions };
     setPendingMessage(message);
     setInput("");
     setError("");

@@ -1,5 +1,6 @@
 "use client";
 
+import { PROFILE_KEYS } from "@/model/skill";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 
@@ -16,6 +17,12 @@ export function DirectorChatMessage({
   variant?: "normal" | "pending" | "error";
 }) {
   const { t } = useI18n();
+  // Field keys → UI labels; unknown keys are shown as-is.
+  function fieldLabel(field: string) {
+    if (field === "extraInstructions") return t("directors.extraInstructions");
+    if ((PROFILE_KEYS as readonly string[]).includes(field)) return t(`directors.profileLabels.${field}`);
+    return field;
+  }
 
   if (role === "user") {
     return (
@@ -44,8 +51,8 @@ export function DirectorChatMessage({
         </p>
       )}
       {changedPaths && changedPaths.length > 0 ? (
-        <p className="max-w-[85%] px-1 font-mono text-xs text-muted">
-          {t("directors.chatChanged", { files: changedPaths.join(", ") })}
+        <p className="max-w-[85%] px-1 text-xs text-muted">
+          {t("directors.chatChanged", { fields: changedPaths.map(fieldLabel).join("、") })}
         </p>
       ) : null}
     </div>

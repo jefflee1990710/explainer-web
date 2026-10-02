@@ -51,7 +51,7 @@ export function CreateDirectorModal({
   template: PublicSkill;
   onClose: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const titleId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -79,6 +79,7 @@ export function CreateDirectorModal({
         templateSlug: template.slug,
         title: name,
         description,
+        locale,
       });
       if (!result.ok) {
         setSubmitting(false);

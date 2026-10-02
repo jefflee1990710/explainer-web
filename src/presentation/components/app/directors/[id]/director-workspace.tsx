@@ -14,9 +14,10 @@ import { DeleteDirectorDialog } from "@/presentation/components/app/directors/[i
 import { useUnsavedWarning } from "@/presentation/components/app/directors/[id]/use-unsaved-warning";
 import {
   applyDirectorEdits,
-  changedDraftPaths,
+  changedDraftFields,
   type DirectorEdit,
 } from "@/service/director/director-edits";
+import { emptyProfile } from "@/service/director/profile";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import { localizedVideoType } from "@/util/video-type-i18n";
 
@@ -26,12 +27,12 @@ function formFromDirector(director: PublicDirector): DirectorForm {
   return {
     title: director.title,
     description: director.description,
-    systemPrompt: director.systemPrompt,
-    references: director.references,
+    customProfile: director.customProfile ?? emptyProfile(),
+    extraInstructions: director.extraInstructions ?? "",
   };
 }
 
-// Director detail: files on the left; custom directors also get the AI chat on the right.
+// Director detail: profile on the left; custom directors also get the AI chat on the right.
 // State is seeded from props once so revalidation never wipes an unsaved AI draft.
 export function DirectorWorkspace({
   director: initial,
@@ -49,9 +50,9 @@ export function DirectorWorkspace({
   const [error, setError] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const changedPaths = changedDraftPaths(saved, draft);
+  const changedFields = changedDraftFields(saved, draft);
   const dirty =
-    changedPaths.length > 0 || draft.title !== saved.title || draft.description !== saved.description;
+    changedFields.length > 0 || draft.title !== saved.title || draft.description !== saved.description;
   useUnsavedWarning(dirty);
 
   // Hide the brief "saved" status after a moment.
@@ -134,7 +135,7 @@ export function DirectorWorkspace({
         <DirectorInfoPanel
           director={director}
           draft={draft}
-          changedPaths={changedPaths}
+          changedFields={changedFields}
           dirty={dirty}
           saving={saving}
           status={savedFlash ? t("directors.saved") : ""}
