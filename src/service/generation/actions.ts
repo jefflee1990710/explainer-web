@@ -14,6 +14,7 @@ import { runStillJob } from "@/service/director/jobs";
 import { persistFrameAnnotation } from "@/service/higgsfield/frame-annotation";
 import { clipKeyframeUrls, planFrameSubmissions } from "@/service/higgsfield/clip-keyframes";
 import { buildFramePrompt, framesWithClip } from "@/service/higgsfield/frame-prompts";
+import { hydrateStyles } from "@/service/style/load-style";
 import {
   failUnsubmittedFrames,
   refreshProjectJobs,
@@ -116,6 +117,7 @@ export async function regenerateFrameAction(
       clerkUserId: user.clerkUserId,
     });
     if (!project?.phaseA) return { ok: false, error: "專案不存在" };
+    await hydrateStyles();
     if (!isProductionLike(project.status)) {
       return { ok: false, error: "分鏡尚未完成" };
     }
@@ -262,6 +264,7 @@ export async function updateClipStoryboardAction(
       clerkUserId: user.clerkUserId,
     });
     if (!project?.phaseA) return { ok: false, error: "專案不存在" };
+    await hydrateStyles();
     const spoken = spokenLineCopy(project.skillSlug);
     if (hasDualBeatDraft(clean) && (!clean.startVo || !clean.endVo)) {
       return { ok: false, error: spoken.dualEmptyError };

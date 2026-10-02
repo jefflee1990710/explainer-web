@@ -20,6 +20,7 @@ import {
 import { emptyProfile } from "@/service/director/profile";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import { localizedVideoType } from "@/util/video-type-i18n";
+import { DirectorPreviewThumb } from "@/presentation/components/director-preview-thumb";
 
 const SAVED_STATUS_MS = 2500;
 
@@ -121,6 +122,11 @@ export function DirectorWorkspace({
           {t("directors.backToList")}
         </Link>
         <h1 className="font-display mt-2 text-3xl font-bold">{name}</h1>
+        {director.previewUrl ? (
+          <div className="mt-5 max-w-xl overflow-hidden rounded-2xl border border-accent-ink/10">
+            <DirectorPreviewThumb previewUrl={director.previewUrl} label={name} size="cover" />
+          </div>
+        ) : null}
       </header>
 
       {deleteOpen ? (

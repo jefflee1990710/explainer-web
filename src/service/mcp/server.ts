@@ -24,7 +24,7 @@ import {
   videosCollection,
 } from "@/dao";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
-import { STYLE_IDS, STYLES } from "@/service/style";
+import { listPublicStyles } from "@/service/style/list";
 import { mcpToolCallsCollection } from "@/dao";
 import {
   clipVideoCost,
@@ -256,11 +256,8 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
       inputSchema: {},
     },
     wrapTool(user, apiKey, "list_styles", 0, async () => {
-      return STYLE_IDS.map((id) => ({
-        id,
-        name: STYLES[id].name,
-        nameZh: STYLES[id].nameZh,
-      }));
+      const styles = await listPublicStyles();
+      return styles.map(({ id, name, nameZh }) => ({ id, name, nameZh }));
     }),
   );
 

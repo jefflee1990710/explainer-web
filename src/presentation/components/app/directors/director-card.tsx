@@ -6,6 +6,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicSkill } from "@/presentation/serialize";
 import { localizedVideoType } from "@/util/video-type-i18n";
 import { CreateDirectorButton } from "@/presentation/components/app/directors/create-director-modal";
+import { DirectorPreviewThumb } from "@/presentation/components/director-preview-thumb";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -31,17 +32,20 @@ export function DirectorCard({ director }: { director: PublicSkill }) {
     >
       <Link
         href={href}
-        className="flex flex-1 flex-col gap-1 p-4 transition-colors hover:bg-accent-ink/[0.03] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+        className="flex flex-1 flex-col transition-colors hover:bg-accent-ink/[0.03] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
       >
-        <h3 className="line-clamp-1 text-sm font-semibold">{name}</h3>
-        {director.isCustom ? (
-          <p className="line-clamp-1 text-xs text-muted">{t("directors.templateBadge", { name: subtitle })}</p>
-        ) : subtitle && subtitle !== name ? (
-          <p className="line-clamp-1 text-xs text-muted">{subtitle}</p>
-        ) : null}
-        {director.description ? (
-          <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted">{director.description}</p>
-        ) : null}
+        <DirectorPreviewThumb previewUrl={director.previewUrl} label={name} size="cover" />
+        <div className="flex flex-1 flex-col gap-1 p-4">
+          <h3 className="line-clamp-1 text-sm font-semibold">{name}</h3>
+          {director.isCustom ? (
+            <p className="line-clamp-1 text-xs text-muted">{t("directors.templateBadge", { name: subtitle })}</p>
+          ) : subtitle && subtitle !== name ? (
+            <p className="line-clamp-1 text-xs text-muted">{subtitle}</p>
+          ) : null}
+          {director.description ? (
+            <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted">{director.description}</p>
+          ) : null}
+        </div>
       </Link>
       <div className="flex items-center justify-between gap-2 border-t border-[var(--studio-line)] px-4 py-3">
         {director.isCustom ? (

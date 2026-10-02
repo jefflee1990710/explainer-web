@@ -1,12 +1,12 @@
 import { requireAppUser } from "@/service/auth";
 import { listSelectableSkills } from "@/service/director/selectable-skills";
-import { toPublicSkill } from "@/presentation/serialize";
+import { toPublicSkills } from "@/presentation/serialize";
 import { DirectorGrid } from "@/presentation/components/app/directors/director-grid";
 import { DirectorsHeader } from "@/presentation/components/app/directors/directors-header";
 
 export default async function DirectorsPage() {
   const user = await requireAppUser();
-  const skills = (await listSelectableSkills(user.clerkUserId)).map(toPublicSkill);
+  const skills = toPublicSkills(await listSelectableSkills(user.clerkUserId));
   const system = skills.filter((skill) => !skill.isCustom);
   const mine = skills.filter((skill) => skill.isCustom);
 

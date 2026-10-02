@@ -1,8 +1,5 @@
-import {
-  STYLES,
-  styleLinesForBlueprint,
-  type StyleId,
-} from "@/service/style";
+import { styleLinesForBlueprint, type StyleId } from "@/service/style";
+import { resolvedStyle } from "@/service/style/load-style";
 
 // Fixed character-sheet layout so every version is comparable side by side.
 // GPT Image maps 16:9 requests to a 3:2 frame; keep the prompt aligned with that.
@@ -26,7 +23,7 @@ export function buildBlueprintPrompt(input: {
   const hasReference = referenceCount > 0;
   const lines = [
     ...SHEET_LAYOUT,
-    ...styleLinesForBlueprint(STYLES[input.styleId]),
+    ...styleLinesForBlueprint(resolvedStyle(input.styleId)),
   ];
   if (description) lines.push(`Character: ${description}`);
   if (input.editInstruction) {

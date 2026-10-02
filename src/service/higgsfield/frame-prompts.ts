@@ -44,11 +44,11 @@ import { imageRouteForSceneText } from "@/service/generation/image-backend";
 import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
 import { FRAME_RENDER_DETAIL } from "@/service/director/scene-detail";
 import {
-  resolveStyle,
   styleLetteringLine,
   styleLinesForFrame,
   type Style,
 } from "@/service/style";
+import { resolvedStyle } from "@/service/style/load-style";
 import type {
   ClipFrame,
   FramePosition,
@@ -202,7 +202,7 @@ function fitFramePrompt(parts: FrameTrimmable, compose: (parts: FrameTrimmable) 
 }
 
 export function videoStyle(project: Pick<Project, "styleId">): Style {
-  return resolveStyle(project.styleId);
+  return resolvedStyle(project.styleId);
 }
 
 // Opening / Ending stills attach the brand logo after the character references.

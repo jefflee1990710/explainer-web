@@ -5,7 +5,7 @@ import { requireAppUser } from "@/service/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { charactersCollection, projectsCollection, videosCollection } from "@/dao";
 import { listSelectableSkills } from "@/service/director/selectable-skills";
-import { toPublicCharacter, toPublicFolder, toPublicSkill, VIDEO_LIST_PROJECTION } from "@/presentation/serialize";
+import { toPublicCharacter, toPublicFolder, toPublicSkills, VIDEO_LIST_PROJECTION } from "@/presentation/serialize";
 import { listPublicStyles } from "@/service/style/list";
 import type { Character } from "@/model/character";
 import type { Folder } from "@/model/folder";
@@ -49,7 +49,7 @@ export default async function ProjectPage({
   ]);
 
   const publicFolder = toPublicFolder(folder, videoDocs);
-  const skills = skillDocs.map(toPublicSkill);
+  const skills = toPublicSkills(skillDocs);
   const characters = characterDocs.map(toPublicCharacter);
   const subscribed = isSubscriptionActive(sub);
 

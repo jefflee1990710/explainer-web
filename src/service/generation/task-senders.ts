@@ -4,6 +4,7 @@ import { runPhaseBForClip } from "@/service/director/run-phase-b";
 import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { videoStyle } from "@/service/higgsfield/frame-prompts";
+import { hydrateStyles } from "@/service/style/load-style";
 import { sendClipVideo, sendFrame, sendStill } from "@/service/higgsfield/pipeline";
 import { PermanentJobError } from "@/service/generation/task-policy";
 import type { Sent } from "@/service/generation/sent";
@@ -13,6 +14,7 @@ import type { Project } from "@/model/project";
 
 // Load fresh state and call the provider for one claimed job.
 export async function sendJob(job: GenerationJob): Promise<Sent> {
+  await hydrateStyles();
   if (job.kind === "character") return sendCharacter(job);
 
   if (!job.projectId) throw new PermanentJobError("任務缺少影片");

@@ -10,6 +10,7 @@ import { flattenToCanvas } from "@/service/higgsfield/flatten";
 import { sceneTextNegativePrompt, resolveSceneText } from "@/service/director/scene-text";
 import { imageModelForSubmit, resolveImageRoute } from "@/service/generation/image-backend";
 import { frameSubmitPlan, framesWithClips, videoStyle } from "@/service/higgsfield/frame-prompts";
+import { hydrateStyles } from "@/service/style/load-style";
 import {
   orphanQueuedClips,
   orphanQueuedFrames,
@@ -89,6 +90,7 @@ async function loadSkill(project: Project): Promise<Skill> {
 
 // Send the character lock still to the provider (free). No job write.
 export async function sendStill(project: Project): Promise<Sent> {
+  await hydrateStyles();
   const skill = await loadSkill(project);
   const model = imageModelForSubmit(resolveImageRoute(), Boolean(project.characterImageUrl));
   const submitted = await submitImage({
@@ -145,6 +147,7 @@ export async function sendFrame(
   clipNumber: number,
   position: FramePosition,
 ): Promise<Sent> {
+  await hydrateStyles();
   const skill = await loadSkill(project);
   const revision = project.frames?.find(
     (frame) => frame.clipNumber === clipNumber && frame.position === position,
@@ -447,6 +450,7 @@ export async function applyJobStatus(input: {
   const projectId = job.projectId;
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
+  if (project) await hydrateStyles();
 
   let blobUrl = job.blobUrl;
   // Persist successful files only. NSFW is a rejection even if a URL sneaks through.

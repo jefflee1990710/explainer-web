@@ -26,6 +26,7 @@ export type PublicSkill = {
   // Template slug for custom directors; drives skill-specific form rules.
   behaviorSlug: string;
   isCustom: boolean;
+  previewUrl?: string;
   updatedAt: string;
 };
 
@@ -138,7 +139,7 @@ export const VIDEO_LIST_PROJECTION = {
   "clips.outputUrl": 1,
 } as const;
 
-export function toPublicSkill(skill: Skill): PublicSkill {
+export function toPublicSkill(skill: Skill, inheritedPreviewUrl?: string): PublicSkill {
   return {
     id: skill._id.toHexString(),
     slug: skill.slug,
@@ -147,8 +148,24 @@ export function toPublicSkill(skill: Skill): PublicSkill {
     description: skill.description,
     behaviorSlug: behaviorSlug(skill),
     isCustom: isCustomSkill(skill),
+    previewUrl: skill.previewUrl || inheritedPreviewUrl,
     updatedAt: skill.updatedAt.toISOString(),
   };
+}
+
+// Custom directors reuse the system template's card still.
+export function toPublicSkills(skills: Skill[]): PublicSkill[] {
+  const published = skills.map((skill) => toPublicSkill(skill));
+  const systemPreview = new Map(
+    published
+      .filter((skill) => !skill.isCustom && skill.previewUrl)
+      .map((skill) => [skill.slug, skill.previewUrl!]),
+  );
+  return published.map((skill) => {
+    if (skill.previewUrl || !skill.isCustom) return skill;
+    const inherited = systemPreview.get(skill.behaviorSlug);
+    return inherited ? { ...skill, previewUrl: inherited } : skill;
+  });
 }
 
 // Director detail payload: public profile fields and the AI chat — never the skill prompt.
@@ -174,10 +191,10 @@ export function toPublicDirectorChat(chat: DirectorChatMessage[]): PublicDirecto
   }));
 }
 
-export function toPublicDirector(skill: Skill): PublicDirector {
+export function toPublicDirector(skill: Skill, inheritedPreviewUrl?: string): PublicDirector {
   const custom = isCustomSkill(skill);
   return {
-    ...toPublicSkill(skill),
+    ...toPublicSkill(skill, inheritedPreviewUrl),
     baseSlug: skill.baseSlug,
     profile: custom ? undefined : skill.profile,
     customProfile: custom ? { ...emptyProfile(), ...skill.customProfile } : undefined,

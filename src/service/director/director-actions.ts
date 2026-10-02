@@ -100,6 +100,17 @@ export async function loadDirectorForUser(clerkUserId: string, id: string): Prom
   })) as Skill | null;
 }
 
+// Custom directors reuse the system template still.
+export async function toPublicDirectorWithPreview(skill: Skill): Promise<PublicDirector> {
+  if (skill.previewUrl || !skill.baseSlug) return toPublicDirector(skill);
+  const skills = await skillsCollection();
+  const template = await skills.findOne({
+    slug: skill.baseSlug,
+    ownerClerkUserId: { $exists: false },
+  });
+  return toPublicDirector(skill, template?.previewUrl);
+}
+
 // Fork a system skill into a new custom director owned by the user.
 export async function createDirectorAction(input: {
   templateSlug: string;
@@ -187,7 +198,7 @@ export async function saveDirectorAction(input: {
     if (!updated) return { ok: false, error: "找不到 Director" };
 
     revalidateDirector(input.id);
-    return { ok: true, director: toPublicDirector(updated) };
+    return { ok: true, director: await toPublicDirectorWithPreview(updated) };
   } catch (error) {
     return fail(error, "儲存 Director 失敗");
   }

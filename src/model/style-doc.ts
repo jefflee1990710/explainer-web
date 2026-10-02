@@ -1,9 +1,19 @@
 import { z } from "zod";
 import { styleIdSchema, type StyleId } from "@/model/style-id";
 
-// Generated state only; definitions live in src/service/style/catalog.ts.
+// Style row in Mongo. Prompt fields are seeded from catalog.ts; previews stay optional.
 export type StyleDoc = {
   _id: StyleId;
+  name?: string;
+  nameZh?: string;
+  description?: string;
+  canvas?: string;
+  canvasColor?: string;
+  look?: string;
+  palette?: string;
+  typography?: string;
+  motion?: string;
+  negatives?: string;
   // Picker thumbnail (768px WebP).
   previewUrl?: string;
   // Original full-size PNG the thumbnail was built from.
@@ -13,11 +23,23 @@ export type StyleDoc = {
   updatedAt: Date;
 };
 
+const optionalString = z.string().optional();
+
 export const styleDocSchema: z.ZodType<StyleDoc> = z.object({
   _id: styleIdSchema,
-  previewUrl: z.string().optional(),
-  previewFullUrl: z.string().optional(),
-  previewHash: z.string().optional(),
-  previewRequestId: z.string().optional(),
+  name: optionalString,
+  nameZh: optionalString,
+  description: optionalString,
+  canvas: optionalString,
+  canvasColor: optionalString,
+  look: optionalString,
+  palette: optionalString,
+  typography: optionalString,
+  motion: optionalString,
+  negatives: optionalString,
+  previewUrl: optionalString,
+  previewFullUrl: optionalString,
+  previewHash: optionalString,
+  previewRequestId: optionalString,
   updatedAt: z.date(),
 });

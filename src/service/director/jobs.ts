@@ -5,6 +5,7 @@ import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-sk
 import { keepProposalRegenerateClips } from "@/service/director/phase-a-edit";
 import { runPhaseA } from "@/service/director/run-phase-a";
 import { videoStyle } from "@/service/higgsfield/frame-prompts";
+import { hydrateStyles } from "@/service/style/load-style";
 import { submitStillIfNeeded } from "@/service/higgsfield/pipeline";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { concatMp4Urls } from "@/service/reel/concat";
@@ -34,6 +35,8 @@ export async function runPhaseAJob(
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
   if (!project) return;
+  // Prefer Mongo style fields over the repo catalog for this run.
+  await hydrateStyles();
 
   const skills = await skillsCollection();
   const found = await skills.findOne({ _id: project.skillId });

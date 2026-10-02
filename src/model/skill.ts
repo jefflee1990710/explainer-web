@@ -59,6 +59,9 @@ export type Skill = {
   profile?: SystemProfile;
   customProfile?: DirectorProfile;
   extraInstructions?: string;
+  // System-director card still. Custom directors inherit the template's url at serialize time.
+  previewUrl?: string;
+  previewHash?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -107,6 +110,8 @@ export const skillSchema: z.ZodType<Skill> = z.object({
   profile: z.object({ en: profileSchema, "zh-Hant": profileSchema }).optional(),
   customProfile: profileSchema.optional(),
   extraInstructions: z.string().optional(),
+  previewUrl: z.string().optional(),
+  previewHash: z.string().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

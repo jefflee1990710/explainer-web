@@ -6,7 +6,7 @@ import {
   reframeBlueprintBuffer,
 } from "@/service/character/blueprint-framing";
 import { persistMedia } from "@/service/higgsfield/persist";
-import { resolveStyle } from "@/service/style";
+import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 
 // Mark a version failed and refund its credit exactly once. The atomic claim on
@@ -120,7 +120,8 @@ export async function syncCharacterJob(
     // (chalkboard, paper, watercolor) never match their hex within tolerance,
     // so the whole sheet would count as content; trust the prompt's margin
     // rules there and persist the bytes as-is.
-    const canvasColor = resolveStyle(character.styleId).canvasColor;
+    await hydrateStyles();
+    const canvasColor = resolvedStyle(character.styleId).canvasColor;
     const transform = canReframeOnCanvas(canvasColor)
       ? (buffer: Buffer) => reframeBlueprintBuffer(buffer, canvasColor)
       : undefined;

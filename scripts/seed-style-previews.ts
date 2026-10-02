@@ -16,6 +16,7 @@ import {
   styleLetteringLine,
   styleLinesForFrame,
 } from "@/service/style";
+import { catalogStyleFields } from "@/service/style/load-style";
 
 loadEnvConfig(process.cwd());
 
@@ -166,6 +167,7 @@ async function generatePreviews() {
         { _id: id },
         {
           $set: {
+            ...catalogStyleFields(STYLES[id]),
             previewFullUrl,
             previewUrl,
             previewHash: hash,

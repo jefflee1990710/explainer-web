@@ -2,8 +2,7 @@ import { notFound } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/service/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
-import { loadDirectorForUser } from "@/service/director/director-actions";
-import { toPublicDirector } from "@/presentation/serialize";
+import { loadDirectorForUser, toPublicDirectorWithPreview } from "@/service/director/director-actions";
 import { DirectorWorkspace } from "@/presentation/components/app/directors/[id]/director-workspace";
 
 export default async function DirectorPage({
@@ -22,6 +21,6 @@ export default async function DirectorPage({
   const sub = await getActiveSubscription(user.clerkUserId);
 
   return (
-    <DirectorWorkspace director={toPublicDirector(skill)} subscribed={isSubscriptionActive(sub)} />
+    <DirectorWorkspace director={await toPublicDirectorWithPreview(skill)} subscribed={isSubscriptionActive(sub)} />
   );
 }
