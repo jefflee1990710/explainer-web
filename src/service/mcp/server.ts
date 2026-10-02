@@ -294,7 +294,12 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
           .array(
             z.object({
               url: z.string().url().describe("Public PNG/JPG/WebP image, ≤ 5MB"),
-              description: z.string().min(1).max(300).describe("What it shows and how the director should use it"),
+              description: z
+                .string()
+                .trim()
+                .min(1)
+                .max(300)
+                .describe("What it shows and how the director should use it"),
             }),
           )
           .max(4)
