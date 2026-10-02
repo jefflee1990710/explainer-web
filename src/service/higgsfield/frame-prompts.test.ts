@@ -630,3 +630,33 @@ test("REVISION line does not attach a sibling or previous still", () => {
   assert.doesNotMatch(prompt, /sibling frame/);
   assert.doesNotMatch(prompt, /previous still/);
 });
+
+test("assigned scene references sit after the anchor and before the cast", () => {
+  const video = project();
+  video.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Lily",
+      blueprintUrl: "https://blob/c.png",
+      prompt: "",
+    },
+  ];
+  video.referenceImages = [
+    { id: "R1", url: "https://blob/r1.png", description: "shop" },
+    { id: "R2", url: "https://blob/r2.png", description: "menu" },
+  ];
+  video.phaseA!.clips[0].referenceImageIds = ["R2"];
+  const plan = frameSubmitPlan(video, 1, "start");
+  assert.deepEqual(plan.refs, ["https://blob/r2.png", "https://blob/c.png"]);
+  assert.match(plan.prompt, /SCENE REFERENCE: attached image 1 shows/);
+  assert.match(plan.prompt, /Attached image 2/);
+});
+
+test("clips without assigned references attach none", () => {
+  const video = project();
+  video.referenceImages = [{ id: "R1", url: "https://blob/r1.png", description: "shop" }];
+  const plan = frameSubmitPlan(video, 1, "start");
+  assert.deepEqual(plan.refs, []);
+  assert.doesNotMatch(plan.prompt, /SCENE REFERENCE/);
+});

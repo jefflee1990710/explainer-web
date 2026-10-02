@@ -39,6 +39,7 @@ import {
   storyShortCameraLock,
 } from "@/service/director/skill-rules";
 import { subtitleText } from "@/service/director/spoken-line";
+import { clipReferenceImageUrls } from "@/service/project/reference-images";
 import { FRAME_RENDER_DETAIL } from "@/service/director/scene-detail";
 import {
   resolveStyle,
@@ -195,6 +196,13 @@ export function logoReferenceUrls(project: Pick<Project, "skillSlug" | "logoUrl"
   return isBookendSkill(project.skillSlug) && project.logoUrl ? [project.logoUrl] : [];
 }
 
+// Brief reference images the director assigned to this clip; they guide layout, not cast looks.
+export function sceneReferenceFrameLine(start: number, count: number) {
+  const which =
+    count === 1 ? `attached image ${start} shows` : `attached images ${start}–${start + count - 1} show`;
+  return `SCENE REFERENCE: ${which} the intended layout, subject, and setting for this scene — follow their composition; keep cast identity from the character references.`;
+}
+
 // Catalog typography often bans "subtitles"; scene-text mode needs integrated captions.
 function typographyForSceneText(typography: string) {
   return typography
@@ -246,7 +254,12 @@ export function buildFramePrompt(
   const characterUrls = characterReferenceUrls(project);
   const annotatedCount = options.revision?.annotatedUrl ? 1 : 0;
   const anchorCount = options.anchor ? 1 : 0;
-  const characterAttachmentStart = annotatedCount + anchorCount + 1;
+  const sceneRefUrls = clipReferenceImageUrls(project, clipNumber);
+  const sceneRefStart = annotatedCount + anchorCount + 1;
+  const characterAttachmentStart = sceneRefStart + sceneRefUrls.length;
+  const sceneRefLines = sceneRefUrls.length
+    ? [sceneReferenceFrameLine(sceneRefStart, sceneRefUrls.length)]
+    : [];
   const castLines = hasCast
     ? castParagraphForFrames(project.cast, {
         start: characterAttachmentStart,
@@ -335,6 +348,7 @@ export function buildFramePrompt(
     ...styleLinesForFrame(style),
     ...(parts.visualWorld ? [`Visual world: ${parts.visualWorld}`] : []),
     `Palette: ${parts.palette}`,
+    ...sceneRefLines,
     ...castLines,
     ...logoLines,
     ...(characterLockLine ? [characterLockLine] : []),
@@ -402,7 +416,11 @@ export function frameSubmitPlan(
     refs: sceneImageReferenceUrls({
       annotatedUrl: revision?.annotatedUrl,
       anchorUrl: anchor?.url,
-      lockUrls: [...frameLockReferenceUrls(project), ...logoReferenceUrls(project)],
+      lockUrls: [
+        ...clipReferenceImageUrls(project, clipNumber),
+        ...frameLockReferenceUrls(project),
+        ...logoReferenceUrls(project),
+      ],
     }),
     anchor,
   };
