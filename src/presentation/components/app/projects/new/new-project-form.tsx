@@ -57,7 +57,7 @@ import {
 import { beginTaskRefresh, endTaskRefresh } from "@/presentation/components/app/tasks/task-refresh";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { isReelBusy } from "@/service/reel/fingerprint";
-import { DURATION_PRESETS } from "@/service/director/duration-presets";
+import { durationPresetLabel } from "@/util/i18n/picker-labels";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { DEFAULT_VOICE_GENDER, VOICE_PRESETS } from "@/service/director/voice";
 import { SCENE_TEXT_PRESETS } from "@/service/director/scene-text";
@@ -168,8 +168,9 @@ export function NewProjectForm({
   const [aspectRatio, setAspectRatio] = useState<AspectRatio | "">(
     initialVideo?.aspectRatio || lastBrief?.aspectRatio || "",
   );
+  // New videos start on Auto. A saved video keeps the length it was created with.
   const [durationPreset, setDurationPreset] = useState<DurationPreset>(
-    initialVideo?.durationPreset || lastBrief?.durationPreset || "punchy",
+    initialVideo?.durationPreset || "auto",
   );
   const [characterIds, setCharacterIds] = useState<string[]>(
     initialVideo?.cast.map((member) => member.characterId) || lastBrief?.characterIds || [],
@@ -269,7 +270,7 @@ export function NewProjectForm({
       project.speechPace === speechPace &&
       project.sceneTextLanguage === sceneTextLanguage &&
       project.aspectRatio === aspectRatio &&
-      (bookend || project.durationPreset === durationPreset) &&
+      project.durationPreset === durationPreset &&
       (project.logoUrl || "") === (bookend ? logoUrl : "") &&
       currentIds.length === nextIds.length &&
       currentIds.every((id, index) => id === nextIds[index])
@@ -734,7 +735,9 @@ export function NewProjectForm({
                         disabled={briefBusy}
                       />
                     </div>
-                    <p className="mt-2 text-xs text-muted">{t("brief.logo.fixedLength")}</p>
+                    {durationPreset === "auto" ? (
+                      <p className="mt-2 text-xs text-muted">{t("brief.logo.fixedLength")}</p>
+                    ) : null}
                   </>
                 ) : null}
                 {talkingHead ? (
@@ -851,7 +854,7 @@ export function NewProjectForm({
                 />
               </Section>
 
-              {bookend || talkingHead ? null : (
+              {talkingHead ? null : (
                 <Section step="06" title={t("brief.section06.title")} hint={t("brief.section06.hint")}>
                   <DurationPicker
                     value={durationPreset}
@@ -937,11 +940,11 @@ export function NewProjectForm({
               <span>{aspectRatio}</span>
               <Dot />
               <span>
-                {isBookendSkill(project?.skillSlug || skillSlug)
-                  ? t("brief.summary.bookendLength")
-                  : isTalkingHeadSkill(project?.skillSlug || skillSlug)
-                    ? t("brief.summary.talkingHeadLength")
-                    : DURATION_PRESETS[durationPreset].label}
+                {isTalkingHeadSkill(project?.skillSlug || skillSlug)
+                  ? t("brief.summary.talkingHeadLength")
+                  : isBookendSkill(project?.skillSlug || skillSlug) && durationPreset === "auto"
+                    ? t("brief.summary.bookendLength")
+                    : durationPresetLabel(t, durationPreset).label}
               </span>
               {project?.logoUrl ? (
                 <>

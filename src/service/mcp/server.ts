@@ -289,7 +289,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
         skillSlug: z.string().default("cartoon-explainer"),
         styleId: z.string(),
         aspectRatio: z.enum(["16:9", "9:16", "1:1"]),
-        durationPreset: z.enum(["micro", "short", "punchy", "full"]),
+        durationPreset: z.enum(["auto", "micro", "short", "punchy", "full"]),
         language: z.string().default("en"),
         voiceGender: z.enum(["male", "female"]).default("male"),
         speechPace: z

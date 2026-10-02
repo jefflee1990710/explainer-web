@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  applySkillDuration,
   bookendDirectorBlock,
+  bookendLocksLength,
   isBookendSkill,
   normalizeBookendClips,
+  phaseADurationHint,
   briefSkillError,
   cartoonExplainerDirectorBlock,
   cartoonNarratorFrameLock,
@@ -19,12 +20,37 @@ import {
   storyShortDirectorBlock,
 } from "@/service/director/skill-rules";
 
-test("opening and ending are bookend skills with a fixed length", () => {
+test("opening and ending are bookend skills", () => {
   assert.equal(isBookendSkill("opening-director"), true);
   assert.equal(isBookendSkill("ending-director"), true);
   assert.equal(isBookendSkill("listicle-director"), false);
-  assert.equal(applySkillDuration("opening-director", "full"), "micro");
-  assert.equal(applySkillDuration("listicle-director", "full"), "full");
+});
+
+test("auto leaves length to the director; a chosen preset keeps its clip budget", () => {
+  assert.equal(bookendLocksLength("opening-director", "auto"), true);
+  assert.equal(bookendLocksLength("ending-director", "full"), false);
+  assert.equal(bookendLocksLength("listicle-director", "auto"), false);
+  assert.match(
+    phaseADurationHint({ skillSlug: "cartoon-explainer-video-director", durationPreset: "auto" }),
+    /AUTO length/,
+  );
+  assert.match(
+    phaseADurationHint({ skillSlug: "cartoon-explainer-video-director", durationPreset: "punchy" }),
+    /4–6 clips/,
+  );
+  assert.match(
+    phaseADurationHint({ skillSlug: "opening-director", durationPreset: "auto" }),
+    /EXACTLY 1 clip/,
+  );
+  assert.match(
+    phaseADurationHint({ skillSlug: "opening-director", durationPreset: "full" }),
+    /7–10 clips/,
+  );
+  const locked = bookendDirectorBlock("opening-director", false);
+  assert.match(locked, /exactly ONE clip/);
+  const open = bookendDirectorBlock("opening-director", false, { lockLength: false });
+  assert.doesNotMatch(open, /exactly ONE clip/);
+  assert.match(open, /duration preset/);
 });
 
 test("bookend storyboards collapse to one 3–4s clip", () => {

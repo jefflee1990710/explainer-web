@@ -21,6 +21,7 @@ export const pickersEn = {
     female: { label: "Female", sublabel: "Adult female narrator" },
   },
   duration: {
+    auto: { label: "Auto", hint: "Director decides" },
     micro: { label: "4–8s micro", hint: "1–2 clips" },
     short: { label: "15–20s short", hint: "2–4 clips" },
     punchy: { label: "30–45s breakdown", hint: "4–6 clips" },

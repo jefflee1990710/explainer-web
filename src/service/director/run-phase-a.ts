@@ -7,7 +7,6 @@ import {
   loadDirectorImageParts,
   phaseASoloCharacterNote,
 } from "@/service/character/cast-prompt";
-import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { LANGUAGE_PRESETS, sceneDescriptionLanguageLock } from "@/service/director/languages";
 import { phaseAAudioHint, VOICE_PRESETS, resolveVoiceGender } from "@/service/director/voice";
 import { SPEECH_PACE_PRESETS, resolveSpeechPace, speechPaceSkillHint } from "@/service/director/speech-pace";
@@ -19,9 +18,10 @@ import {
 import { skillPromptForPhaseA } from "@/service/director/load-skill-prompt";
 import {
   bookendDirectorBlock,
-  bookendDurationHint,
+  bookendLocksLength,
   isBookendSkill,
   normalizeBookendClips,
+  phaseADurationHint,
   cartoonExplainerDirectorBlock,
   dialogueOnlyDirectorBlock,
   dialogueQaDirectorBlock,
@@ -47,7 +47,6 @@ import {
   planTalkingHeadClips,
   spokenUnits,
   talkingHeadDirectorBlock,
-  talkingHeadDurationHint,
   talkingHeadPlanError,
 } from "@/service/director/talking-head";
 import type { Style } from "@/service/style";
@@ -90,11 +89,12 @@ export async function runPhaseA(input: {
     const planError = talkingHeadPlanError(input.source, input.speechPace);
     if (planError) throw new Error(planError);
   }
-  const durationHint = talkingHead
-    ? talkingHeadDurationHint(input.speechPace)
-    : bookend
-      ? bookendDurationHint(input.skill.slug)
-      : DURATION_PRESETS[input.durationPreset].skillHint;
+  const durationHint = phaseADurationHint({
+    skillSlug: input.skill.slug,
+    durationPreset: input.durationPreset,
+    speechPace: input.speechPace,
+  });
+  const lockBookendLength = bookendLocksLength(input.skill.slug, input.durationPreset);
   const language = LANGUAGE_PRESETS[input.language || "en"];
   const sceneText = resolveSceneText({
     ...input,
@@ -165,7 +165,9 @@ ${
     input.skill.slug === CARTOON_EXPLAINER_SKILL_SLUG ? cartoonExplainerDirectorBlock() : "",
     requiredCastCount(input.skill.slug) ? dialogueQaDirectorBlock() : "",
     skillForcesSceneText(input.skill.slug) ? listicleDirectorBlock() : "",
-    bookend ? bookendDirectorBlock(input.skill.slug, logoImages.length > 0) : "",
+    bookend
+      ? bookendDirectorBlock(input.skill.slug, logoImages.length > 0, { lockLength: lockBookendLength })
+      : "",
     talkingHead ? talkingHeadDirectorBlock() : "",
   ]
     .filter(Boolean)
@@ -236,8 +238,8 @@ Produce a complete Phase A director proposal now.`,
     loopMode: "linear",
     ...(dualBeat ? { clips: output.clips.map(normalizeDualBeatRow) } : {}),
   };
-  // Bookends are always one 3–4s clip, whatever the model returned.
-  if (bookend) {
+  // Auto bookends stay one 3–4s clip. A chosen length is left as the model planned it.
+  if (lockBookendLength) {
     const clips = normalizeBookendClips(next.clips);
     next = {
       ...next,

@@ -6,7 +6,9 @@ import { styleIdSchema, type StyleId } from "@/model/style-id";
 import { videoEditSchema, type VideoEdit } from "@/model/video-edit";
 
 export type AspectRatio = "16:9" | "9:16" | "1:1";
-export type DurationPreset = "micro" | "short" | "punchy" | "full";
+// auto: Phase A picks length and clip count. The others are fixed clip budgets.
+export const DURATION_PRESET_IDS = ["auto", "micro", "short", "punchy", "full"] as const;
+export type DurationPreset = (typeof DURATION_PRESET_IDS)[number];
 export type LoopMode = "linear" | "infinite";
 // Voiceover language: American English, Hong Kong Cantonese colloquial, Traditional Chinese (Mandarin).
 export type VoLanguage = "en" | "yue" | "zh";
@@ -277,7 +279,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   skillSlug: z.string(),
   source: z.string(),
   aspectRatio: aspectRatioSchema,
-  durationPreset: z.enum(["micro", "short", "punchy", "full"]),
+  durationPreset: z.enum(DURATION_PRESET_IDS),
   styleId: styleIdSchema.optional(),
   language: z.enum(["en", "yue", "zh"]).optional(),
   voiceGender: z.enum(["male", "female"]).optional(),

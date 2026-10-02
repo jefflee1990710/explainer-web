@@ -1,9 +1,21 @@
 import type { DurationPreset } from "@/model/project";
 
+export function isDurationPreset(value: string): value is DurationPreset {
+  return Object.prototype.hasOwnProperty.call(DURATION_PRESETS, value);
+}
+
 export const DURATION_PRESETS: Record<
   DurationPreset,
   { id: DurationPreset; label: string; hint: string; skillHint: string }
 > = {
+  // No word-count or clip-count budget; Phase A decides from the source.
+  auto: {
+    id: "auto",
+    label: "Auto",
+    hint: "Director decides",
+    skillHint:
+      "AUTO length: Choose targetDuration, clipCount, and each clip's durationSeconds from the source and this director's planning. Do not assume a fixed total length or a fixed clip count. Stay inside this skill's per-clip duration limits. End on a clean resting payoff — never a seamless loop.",
+  },
   micro: {
     id: "micro",
     label: "4–8 秒微短片",

@@ -60,8 +60,8 @@ export const briefZhHant = {
   },
   section06: {
     title: "片長",
-    hint: "影響 clip 數量，也就是產片時要扣的 credits。",
-    hintBookend: "開場與結尾固定只有 1 段、3–4 秒，不能選片長。",
+    hint: "選自動時，片長與鏡數由導演依內容規劃。選固定片長會鎖定鏡數，也影響產片 credits。",
+    hintBookend: "選自動時，依這個導演自己的 3–4 秒規劃。選了片長就改跟該鏡數。",
   },
   logo: {
     title: "Logo",
@@ -70,7 +70,7 @@ export const briefZhHant = {
     replace: "更換 logo",
     remove: "移除",
     alt: "品牌 logo",
-    fixedLength: "固定片長：1 段、3–4 秒。",
+    fixedLength: "選自動時，導演會規劃成 1 段、3–4 秒。",
   },
   talkingHead: {
     hint: "一句一段。秒數跟字數計（最多 20 段）。一句超過 12 秒要改短，系統唔會自動拆開。",
@@ -183,13 +183,13 @@ export const briefZhHant = {
       },
       "opening-director": {
         voice: "最多一句品牌名或標語，或不說話",
-        structure: "只有 1 段、3–4 秒：logo 登場並停住",
+        structure: "自動是 1 段 3–4 秒；選了片長就跟該鏡數。logo 登場並停住",
         picture: "以上傳的 logo 當場景圖主角，畫面乾淨",
         frames: "起始 logo 未成形 → 結尾完整 logo 置中",
       },
       "ending-director": {
         voice: "最多一句收尾或 CTA，或不說話",
-        structure: "只有 1 段、3–4 秒：收束到 logo 卡",
+        structure: "自動是 1 段 3–4 秒；選了片長就跟該鏡數。收束到 logo 卡",
         picture: "以上傳的 logo 當場景圖主角，當最後一格",
         frames: "起始收尾動作 → 結尾完整 logo 置中",
       },

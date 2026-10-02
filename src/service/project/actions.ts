@@ -15,8 +15,8 @@ import { isVoLanguage } from "@/service/director/languages";
 import { isVoiceGender, resolveVoiceGender } from "@/service/director/voice";
 import { isSpeechPace } from "@/service/director/speech-pace";
 import { isSceneTextLanguage } from "@/service/director/scene-text";
+import { isDurationPreset } from "@/service/director/duration-presets";
 import {
-  applySkillDuration,
   applySkillSceneText,
   briefSkillError,
   isBookendSkill,
@@ -103,7 +103,7 @@ function readVideoBrief(
   if (!["16:9", "9:16", "1:1"].includes(aspectRatio)) {
     return { ok: false, error: "請選擇畫面比例" };
   }
-  if (!["micro", "short", "punchy", "full"].includes(durationPreset)) {
+  if (!isDurationPreset(durationPreset)) {
     return { ok: false, error: "請選擇片長" };
   }
   if (!isVoLanguage(language)) {
@@ -137,7 +137,7 @@ function readVideoBrief(
       styleId,
       source,
       aspectRatio,
-      durationPreset: applySkillDuration(skillSlug, durationPreset),
+      durationPreset,
       logoUrl,
       language,
       voiceGender: resolveVoiceGender(voiceGender),

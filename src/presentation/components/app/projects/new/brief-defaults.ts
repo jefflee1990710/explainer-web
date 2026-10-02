@@ -1,3 +1,4 @@
+import { isDurationPreset } from "@/service/director/duration-presets";
 import { isVoLanguage } from "@/service/director/languages";
 import { isSceneTextLanguage } from "@/service/director/scene-text";
 import { isSpeechPace } from "@/service/director/speech-pace";
@@ -32,7 +33,6 @@ type Catalog = {
 };
 
 const RATIOS = new Set<AspectRatio>(["16:9", "9:16", "1:1"]);
-const DURATIONS = new Set<DurationPreset>(["micro", "short", "punchy", "full"]);
 
 function storageKey(projectId: string) {
   return `explainer:brief-defaults:${projectId}`;
@@ -70,9 +70,9 @@ export function sanitizeBriefDefaults(
       ? (input.aspectRatio as AspectRatio)
       : undefined;
   const durationPreset =
-    typeof input.durationPreset === "string" && DURATIONS.has(input.durationPreset as DurationPreset)
-      ? (input.durationPreset as DurationPreset)
-      : "punchy";
+    typeof input.durationPreset === "string" && isDurationPreset(input.durationPreset)
+      ? input.durationPreset
+      : "auto";
   if (!aspectRatio) return undefined;
   const need = requiredCastCount(skillSlug);
   const characterIds = (Array.isArray(input.characterIds) ? input.characterIds : [])

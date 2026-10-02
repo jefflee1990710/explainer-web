@@ -21,6 +21,7 @@ export const pickersZhHant = {
     female: { label: "女聲", sublabel: "成年女聲旁白" },
   },
   duration: {
+    auto: { label: "自動", hint: "導演決定" },
     micro: { label: "4–8 秒微短片", hint: "1–2 段 clips" },
     short: { label: "15–20 秒短片", hint: "2–4 段 clips" },
     punchy: { label: "30–45 秒拆解", hint: "4–6 段 clips" },

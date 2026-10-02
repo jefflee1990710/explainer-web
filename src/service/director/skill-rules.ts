@@ -1,5 +1,7 @@
+import type { DurationPreset, SpeechPace } from "@/model/project";
+import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
-import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
+import { talkingHeadDurationHint, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 
 export const STORY_SHORT_SKILL_SLUG = "story-short-director";
 export const DIALOGUE_QA_SKILL_SLUG = "dialogue-qa-director";
@@ -7,7 +9,7 @@ export const LISTICLE_SKILL_SLUG = "listicle-director";
 export const OPENING_SKILL_SLUG = "opening-director";
 export const ENDING_SKILL_SLUG = "ending-director";
 
-// Opening / Ending bookends: one short logo clip, no length choice.
+// Opening / Ending bookends. Auto keeps the skill's 1×3–4s sting; a chosen length does not.
 const BOOKEND_SKILLS = new Set([OPENING_SKILL_SLUG, ENDING_SKILL_SLUG]);
 export const BOOKEND_MIN_SECONDS = 3;
 export const BOOKEND_MAX_SECONDS = 4;
@@ -16,7 +18,25 @@ export function isBookendSkill(skillSlug?: string) {
   return Boolean(skillSlug && BOOKEND_SKILLS.has(skillSlug));
 }
 
-// Duration line sent to Phase A in place of the length preset.
+// Auto on a bookend still follows that director's own short-sting plan.
+export function bookendLocksLength(skillSlug: string | undefined, durationPreset: DurationPreset) {
+  return isBookendSkill(skillSlug) && durationPreset === "auto";
+}
+
+// Phase A length line: Auto has no fixed budget, except a bookend's own sting plan.
+export function phaseADurationHint(input: {
+  skillSlug: string;
+  durationPreset: DurationPreset;
+  speechPace?: SpeechPace;
+}) {
+  if (input.skillSlug === TALKING_HEAD_SKILL_SLUG) return talkingHeadDurationHint(input.speechPace);
+  if (bookendLocksLength(input.skillSlug, input.durationPreset)) {
+    return bookendDurationHint(input.skillSlug);
+  }
+  return DURATION_PRESETS[input.durationPreset].skillHint;
+}
+
+// Duration line sent to Phase A when a bookend stays on Auto.
 export function bookendDurationHint(skillSlug: string) {
   const role = skillSlug === OPENING_SKILL_SLUG ? "opening (intro sting)" : "ending (outro sting)";
   return `Bookend ${role}: EXACTLY 1 clip, clipCount 1, durationSeconds ${BOOKEND_MIN_SECONDS}–${BOOKEND_MAX_SECONDS}. At most one short spoken line (≤ 6 English words / ≤ 10 Chinese characters), or "(no dialogue)".`;
@@ -35,20 +55,34 @@ export function normalizeBookendClips<
   return [{ ...first, clipNumber: 1, durationSeconds: seconds, timeRange: `0–${seconds}s` }];
 }
 
-export function bookendDirectorBlock(skillSlug: string, hasLogo: boolean) {
+export function bookendDirectorBlock(
+  skillSlug: string,
+  hasLogo: boolean,
+  options?: { lockLength?: boolean },
+) {
   const opening = skillSlug === OPENING_SKILL_SLUG;
+  // Auto keeps the one-clip sting. A chosen length follows that preset instead.
+  const lockLength = options?.lockLength !== false;
   return [
     opening
-      ? "This is an OPENING bookend: a 3–4 second brand sting that plays before the main video. The logo arrives and settles."
-      : "This is an ENDING bookend: a 3–4 second brand sting that closes the video. The scene resolves onto the logo as the final resting card.",
-    "Produce exactly ONE clip. Never add a second clip, a story, or an explainer beat.",
+      ? lockLength
+        ? "This is an OPENING bookend: a 3–4 second brand sting that plays before the main video. The logo arrives and settles."
+        : "This is an OPENING bookend: a brand sting that plays before the main video. The logo arrives and settles."
+      : lockLength
+        ? "This is an ENDING bookend: a 3–4 second brand sting that closes the video. The scene resolves onto the logo as the final resting card."
+        : "This is an ENDING bookend: a brand sting that closes the video. The scene resolves onto the logo as the final resting card.",
+    lockLength
+      ? "Produce exactly ONE clip. Never add a second clip, a story, or an explainer beat."
+      : "Follow the duration preset for clip count and each clip's length. This remains a brand sting, not a full explainer story.",
     hasLogo
       ? "The brand logo image is attached. It is the hero of both stills: startScene and endScene must name the logo, its placement (centered unless stated), and its size. Never redraw, restyle, translate, or invent a different logo or wordmark."
       : "No logo image is attached: build the sting around the brand or product name from the source as clean title lettering.",
     opening
       ? "startScene: the logo is hidden, small, or forming (drawn on, assembled from shapes, revealed behind a prop). endScene: the full logo, crisp and readable, centered."
       : "startScene: the closing beat of the world (character or props wrapping up). endScene: the full logo centered on a calm canvas as the final card.",
-    "motionCamera is one simple move that fits 3–4 seconds (reveal, pop, settle, or slow push-in). No cuts.",
+    lockLength
+      ? "motionCamera is one simple move that fits 3–4 seconds (reveal, pop, settle, or slow push-in). No cuts."
+      : "motionCamera is one simple move that fits the clip length (reveal, pop, settle, or slow push-in). No cuts.",
   ].join(" ");
 }
 
@@ -92,11 +126,6 @@ export function briefSkillError(input: {
     return `這個導演需要正好 ${need} 個角色`;
   }
   return undefined;
-}
-
-// Bookends ignore the length picker; the stored preset is the shortest one.
-export function applySkillDuration<T extends string>(skillSlug: string, preset: T): T | "micro" {
-  return isBookendSkill(skillSlug) ? "micro" : preset;
 }
 
 export function applySkillSceneText(skillSlug: string, enabled: boolean) {

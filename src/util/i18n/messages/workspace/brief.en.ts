@@ -61,8 +61,8 @@ export const briefEn = {
   },
   section06: {
     title: "Length",
-    hint: "Sets clip count and how many credits rendering will use.",
-    hintBookend: "Opening and Ending are always one 3–4 second clip, so length is fixed.",
+    hint: "Auto lets the director choose length and clip count from the content. A fixed length sets the clip budget and credit cost.",
+    hintBookend: "Auto follows this director’s own 3–4 second sting. Pick a length to set the clip budget instead.",
   },
   logo: {
     title: "Logo",
@@ -71,7 +71,7 @@ export const briefEn = {
     replace: "Replace logo",
     remove: "Remove",
     alt: "Brand logo",
-    fixedLength: "Fixed length: 1 clip, 3–4 seconds.",
+    fixedLength: "Auto: the director plans one 3–4 second clip.",
   },
   talkingHead: {
     hint: "One sentence is one clip. Length follows the word count (up to 20 clips). A sentence over 12 seconds must be shortened — it will not be split.",
@@ -185,13 +185,13 @@ export const briefEn = {
       },
       "opening-director": {
         voice: "At most one brand name or tagline, or no speech",
-        structure: "Exactly 1 clip, 3–4 seconds: the logo arrives and settles",
+        structure: "Auto is one 3–4s clip; a chosen length sets the clip budget. The logo arrives and settles",
         picture: "The uploaded logo is the hero on a clean canvas",
         frames: "Start: logo still forming → end: full logo centered",
       },
       "ending-director": {
         voice: "At most one sign-off or CTA, or no speech",
-        structure: "Exactly 1 clip, 3–4 seconds: resolve onto the logo card",
+        structure: "Auto is one 3–4s clip; a chosen length sets the clip budget. Resolve onto the logo card",
         picture: "The uploaded logo is the hero and the final frame",
         frames: "Start: closing motion → end: full logo centered",
       },
