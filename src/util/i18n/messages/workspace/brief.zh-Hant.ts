@@ -25,13 +25,24 @@ export const briefZhHant = {
     hintOptional: "選填。最多 4 個；只顯示與上方風格相同的角色。",
   },
   section02: {
-    title: "題材或腳本",
-    hint: "貼上文章、產品說明、或你想解釋的概念。",
+    title: "導演指示",
+    hint: "告訴導演這支影片要怎麼規劃：要講什麼、語氣、結構、必要的畫面。也可以直接貼上完整腳本或文章。",
   },
   source: {
-    label: "題材或腳本",
-    placeholder: "例如：為什麼複利對年輕人特別重要？用一個簡單的比喻說明，最後給一個行動建議。",
+    label: "導演指示",
+    placeholder: "例如：解釋為什麼複利對年輕人特別重要。開場用一個驚人的數字，用一個簡單比喻說明，最後給一個行動建議。",
     charCount: "{n} 字",
+  },
+  references: {
+    title: "參考圖",
+    hint: "選填，最多 {max} 張。替每張圖寫說明；導演會決定用在哪些場景，並在產生那些場景圖時當參考。",
+    add: "加入參考圖",
+    remove: "移除",
+    alt: "參考圖 {id}",
+    descriptionLabel: "{id} 的說明",
+    descriptionPlaceholder: "這張圖是什麼、要怎麼用，例如：我們的店面，用在開場。",
+    descriptionCount: "{n}/{max}",
+    descriptionRequired: "請為每張參考圖填寫說明。",
   },
   section03: {
     titleDialogue: "對白語言與語速",
@@ -86,7 +97,7 @@ export const briefZhHant = {
     restartWarning:
       "會刪掉這支影片的分鏡、畫格與影片，再依這份題材從頭產生分鏡。已花的 credits 不會退回。",
     editBriefWarning:
-      "改題材會重寫分鏡並回到製作。已產生的畫格與影片會留著，但可能對不上。",
+      "改導演指示會重寫分鏡並回到製作。已產生的畫格與影片會留著，但可能對不上。",
     noCharge: "這一步不扣 credits。分鏡寫好後會直接進入製作，產畫格與影片才扣款。",
   },
   summary: {

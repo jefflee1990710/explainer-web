@@ -104,6 +104,10 @@ import { localizedVideoType } from "@/util/video-type-i18n";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import { sceneTextLangLabel, speechPaceLabel } from "@/util/i18n/picker-labels";
 import { useProjectPoll } from "@/presentation/components/app/projects/new/use-project-poll";
+import {
+  ReferenceImagesField,
+  type ReferenceImageDraft,
+} from "@/presentation/components/app/projects/new/reference-images-field";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -177,6 +181,9 @@ export function NewProjectForm({
   );
   // Opening / Ending only: brand logo used in both scene images.
   const [logoUrl, setLogoUrl] = useState(initialVideo?.logoUrl || "");
+  const [referenceImages, setReferenceImages] = useState<ReferenceImageDraft[]>(
+    () => toReferenceDrafts(initialVideo?.referenceImages),
+  );
   const bookend = isBookendSkill(skillSlug);
   const talkingHead = isTalkingHeadSkill(skillSlug);
 
@@ -272,6 +279,8 @@ export function NewProjectForm({
       project.aspectRatio === aspectRatio &&
       project.durationPreset === durationPreset &&
       (project.logoUrl || "") === (bookend ? logoUrl : "") &&
+      JSON.stringify(toReferenceDrafts(project.referenceImages)) ===
+        JSON.stringify(referenceImages.map((item) => ({ ...item, description: item.description.trim() }))) &&
       currentIds.length === nextIds.length &&
       currentIds.every((id, index) => id === nextIds[index])
     );
@@ -291,6 +300,7 @@ export function NewProjectForm({
     formData.set("aspectRatio", aspectRatio);
     formData.set("durationPreset", durationPreset);
     if (bookend && logoUrl) formData.set("logoUrl", logoUrl);
+    formData.set("referenceImages", JSON.stringify(referenceImages));
     for (const id of characterIds) formData.append("characterIds", id);
     return formData;
   }
@@ -370,6 +380,7 @@ export function NewProjectForm({
     setDurationPreset(video.durationPreset);
     setCharacterIds(video.cast.map((member) => member.characterId));
     setLogoUrl(video.logoUrl || "");
+    setReferenceImages(toReferenceDrafts(video.referenceImages));
   }
 
   const onRestart = useCallback(() => {
@@ -685,6 +696,7 @@ export function NewProjectForm({
     aspectRatio !== "" &&
     skillSlug !== "" &&
     (castNeed === 0 || characterIds.length === castNeed) &&
+    referenceImages.every((item) => item.description.trim().length > 0) &&
     !briefBusy;
   const fillEditor =
     viewing === 1 && Boolean(project?.phaseA && isProductionLike(project.status));
@@ -793,6 +805,15 @@ export function NewProjectForm({
                 <p className="mt-2 text-right text-xs tabular-nums text-muted">
                   {t("brief.source.charCount", { n: source.length.toLocaleString() })}
                 </p>
+                <ReferenceImagesField
+                  value={referenceImages}
+                  onChange={setReferenceImages}
+                  onError={setError}
+                  disabled={briefBusy}
+                />
+                {referenceImages.some((item) => !item.description.trim()) ? (
+                  <p className="mt-2 text-xs text-muted">{t("brief.references.descriptionRequired")}</p>
+                ) : null}
               </Section>
 
               <Section
@@ -1048,6 +1069,11 @@ export function NewProjectForm({
       </div>
     </MotionConfig>
   );
+}
+
+// Saved images → editable rows (ids are reassigned server-side).
+function toReferenceDrafts(images: PublicVideo["referenceImages"] | undefined): ReferenceImageDraft[] {
+  return (images || []).map((image) => ({ url: image.url, description: image.description }));
 }
 
 function Section({

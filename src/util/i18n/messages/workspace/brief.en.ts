@@ -25,14 +25,25 @@ export const briefEn = {
     hintOptional: "Optional. Up to 4; only characters in the style above are shown.",
   },
   section02: {
-    title: "Topic or script",
-    hint: "Paste an article, product copy, or the idea you want to explain.",
+    title: "Instruction",
+    hint: "Tell the director how to plan this video: what to cover, tone, structure, must-have shots. You can also paste a full script or article.",
   },
   source: {
-    label: "Topic or script",
+    label: "Instruction",
     placeholder:
-      "For example: Why compound interest matters for young adults — explain with a simple metaphor and one action step.",
+      "For example: Explain why compound interest matters for young adults. Open with a surprising number, use one simple metaphor, end with one action step.",
     charCount: "{n} characters",
+  },
+  references: {
+    title: "Reference images",
+    hint: "Optional, up to {max}. Describe each image; the director decides which scenes use it and reuses it when drawing those scenes.",
+    add: "Add reference image",
+    remove: "Remove",
+    alt: "Reference image {id}",
+    descriptionLabel: "Description of {id}",
+    descriptionPlaceholder: "What this shows and how to use it, e.g. our shop front — use for the opening scene.",
+    descriptionCount: "{n}/{max}",
+    descriptionRequired: "Add a description for every reference image.",
   },
   section03: {
     titleDialogue: "Dialogue language & pace",
@@ -87,7 +98,7 @@ export const briefEn = {
     restartWarning:
       "This deletes the storyboard, frames, and clips for this video, then runs Phase A again. Spent credits are not refunded.",
     editBriefWarning:
-      "Changing the topic rewrites the storyboard and returns to production. Existing frames and clips may no longer match.",
+      "Changing the instruction rewrites the storyboard and returns to production. Existing frames and clips may no longer match.",
     noCharge:
       "This step does not spend credits. After the storyboard is ready you go straight to production; frames and clips charge then.",
   },
