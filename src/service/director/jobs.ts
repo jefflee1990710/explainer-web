@@ -49,6 +49,7 @@ export async function runPhaseAJob(
       skill,
       style: videoStyle(project),
       source: project.source,
+      spokenScript: project.spokenScript,
       aspectRatio: project.aspectRatio,
       durationPreset: project.durationPreset,
       language: project.language,

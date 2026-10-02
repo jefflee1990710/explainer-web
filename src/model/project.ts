@@ -175,6 +175,8 @@ export type Project = {
   skillId: ObjectId;
   skillSlug: string;
   source: string;
+  // Talking-head: words the character reads. Other skills omit this.
+  spokenScript?: string;
   aspectRatio: AspectRatio;
   durationPreset: DurationPreset;
   // Visual style; videos created before the registry have none → doodle.
@@ -290,6 +292,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   skillId: objectIdSchema,
   skillSlug: z.string(),
   source: z.string(),
+  spokenScript: z.string().optional(),
   aspectRatio: aspectRatioSchema,
   durationPreset: z.enum(DURATION_PRESET_IDS),
   styleId: styleIdSchema.optional(),

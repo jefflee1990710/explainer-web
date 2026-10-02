@@ -85,7 +85,12 @@ export const briefEn = {
     fixedLength: "Auto: the director plans one 3–4 second clip.",
   },
   talkingHead: {
-    hint: "Tell the director what to cover; they write the on-camera script. One spoken sentence is one clip (up to 20). A line over 12 seconds will be shortened.",
+    hint: "Instruction is for the director. Add the script the character will read in the field below.",
+    scriptTitle: "Script to read",
+    scriptHint:
+      "The character reads this aloud. One sentence is one clip (up to 20). A line over 12 seconds must be shortened.",
+    scriptLabel: "Script to read",
+    scriptPlaceholder: "Hello. This product saves you an hour every week.\nTry it today.",
   },
   submit: {
     submitting: "Submitting…",
@@ -207,8 +212,8 @@ export const briefEn = {
         frames: "Start: closing motion → end: full logo centered",
       },
       "talking-head-director": {
-        voice: "The character reads the planned script to camera (the voice you picked)",
-        structure: "Director writes the read; one spoken sentence per clip, up to 20",
+        voice: "The character reads your script to camera (the voice you picked)",
+        structure: "Your spoken script; one sentence per clip, up to 20",
         picture: "One locked medium close-up, eyes to the lens, one subtitle line at the bottom",
         frames: "The next clip’s start frame continues the previous end frame",
       },

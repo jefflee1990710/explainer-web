@@ -1,25 +1,26 @@
 ---
 name: directing-talking-head-reads
-description: Use when a character faces the camera and reads the user's script aloud, one sentence per clip, with a bottom subtitle.
+description: Use when a character faces the camera and reads the user's spoken script aloud, one sentence per clip, with a bottom subtitle.
 ---
 
 # Directing Talking-Head Reads
 
 ## Core contract
 
-Turn the user's **director instruction** into a spoken script, then a confirmed proposal (Phase A) and one video prompt per sentence (Phase B). The character looks into the lens and reads. There is no length preset and no story.
+Turn a director instruction plus a locked spoken script into a confirmed proposal (Phase A) and one video prompt per sentence (Phase B). The character looks into the lens and reads. There is no length preset and no story.
 
-- **Instruction is for planning.** Write the full on-camera read (hook, points, close) in the chosen language. Never put briefing language into `englishVo` ("create a reel", "you plan the content", "幫我規劃").
-- **Ready-made script:** if the instruction is already a complete camera-ready script, copy each sentence verbatim. If it is a topic or brief, invent the spoken script.
-- **One spoken sentence = one clip.** Split the spoken script on newlines and on 。！？. ! ? only. Do not merge two spoken sentences.
+- **Instruction is for planning.** Use it for tone, emphasis, and must-have looks. Never put briefing language into `englishVo`.
+- **Spoken script is locked.** Copy each sentence verbatim into `englishVo`. Do not merge, rewrite, or invent lines.
+- **One spoken sentence = one clip.** Split the spoken script on newlines and on 。！？. ! ? only.
 - **Seconds follow the sentence.** Medium pace: Chinese characters ÷ 4, plus English words ÷ 2.4. Slow ÷ 0.8 (longer). Fast ÷ 1.2 (shorter). Round to whole seconds, minimum 1.
-- **Clip count = spoken sentence count**, from 1 to 20. If a spoken sentence would run over 12 seconds, shorten that line. Never leave a 12s+ sentence.
+- **Clip count = spoken sentence count**, from 1 to 20. If a spoken sentence would run over 12 seconds, stop and ask the user to shorten that sentence. Never auto-split it.
 
 ## Setup gate
 
 Require these before planning:
 
-- source material: a director instruction (brief, topic, or a full script)
+- source material: a director instruction
+- spoken script: the words the character will read
 - aspect ratio: `16:9`, `9:16`, or `1:1`
 - exactly one character blueprint (the face that reads)
 
@@ -35,7 +36,7 @@ The rendering rules come from the **Visual style** block appended below. Do not 
 
 ## Audio and subtitles
 
-- `englishVo` is one spoken sentence the character will say, in the chosen spoken language.
+- `englishVo` is that sentence verbatim, in the chosen spoken language.
 - The character speaks it. No second narrator line.
 - No background music.
 - One subtitle at the bottom of both stills, spelled exactly like the spoken sentence. No other writing.
@@ -43,7 +44,7 @@ The rendering rules come from the **Visual style** block appended below. Do not 
 ## Phase A field mapping
 
 - `clipCount`: sentence count. `targetDuration`: the sum of the clip lengths. `loopMode`: always linear.
-- Each row: `narrativeJob` = sentence k of N; `startScene` / `endScene` = the locked shot plus that sentence's subtitle; `motionCamera` = mouth and a small nod across that clip's own seconds; `englishVo` = the planned spoken sentence.
+- Each row: `narrativeJob` = sentence k of N; `startScene` / `endScene` = the locked shot plus that sentence's subtitle; `motionCamera` = mouth and a small nod across that clip's own seconds; `englishVo` = the spoken sentence.
 
 ## Workflow
 

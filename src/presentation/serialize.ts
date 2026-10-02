@@ -36,6 +36,7 @@ export type PublicVideo = {
   projectId: string;
   skillSlug: string;
   source: string;
+  spokenScript?: string;
   aspectRatio: Project["aspectRatio"];
   durationPreset: Project["durationPreset"];
   styleId: StyleId;
@@ -146,6 +147,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     projectId: video.projectId.toHexString(),
     skillSlug: video.skillSlug,
     source: video.source,
+    spokenScript: video.spokenScript,
     aspectRatio: video.aspectRatio,
     durationPreset: video.durationPreset,
     styleId: resolveStyle(video.styleId).id,

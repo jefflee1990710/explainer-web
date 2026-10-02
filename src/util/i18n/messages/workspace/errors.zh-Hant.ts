@@ -42,4 +42,6 @@ export const errorsZhHant = {
   noFileReceived: "沒有收到檔案",
   layerSettingsInvalid: "圖層設定格式錯誤",
   assetUrlInvalid: "素材網址無效，請重新上傳",
+  instructionRequired: "請提供導演指示",
+  spokenScriptRequired: "請輸入角色要讀的講稿。",
 } satisfies ErrorsMessages;

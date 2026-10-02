@@ -16,6 +16,7 @@ import { isVoiceGender, resolveVoiceGender } from "@/service/director/voice";
 import { isSpeechPace } from "@/service/director/speech-pace";
 import { isSceneTextLanguage } from "@/service/director/scene-text";
 import { isDurationPreset } from "@/service/director/duration-presets";
+import { isTalkingHeadSkill } from "@/service/director/talking-head";
 import {
   applySkillSceneText,
   briefSkillError,
@@ -65,6 +66,7 @@ type BriefFields = {
   skillSlug: string;
   styleId: StyleId;
   source: string;
+  spokenScript?: string;
   aspectRatio: AspectRatio;
   durationPreset: DurationPreset;
   language: VoLanguage;
@@ -86,6 +88,7 @@ function readVideoBrief(
   const skillSlug = String(formData.get("skillSlug") || "");
   const styleId = String(formData.get("styleId") || "");
   const source = String(formData.get("source") || "").trim();
+  const spokenScript = String(formData.get("spokenScript") || "").trim();
   const aspectRatio = String(formData.get("aspectRatio") || "") as AspectRatio;
   const durationPreset = String(formData.get("durationPreset") || "") as DurationPreset;
   const language = String(formData.get("language") || "en");
@@ -104,6 +107,9 @@ function readVideoBrief(
     return { ok: false, error: `最多選 ${CAST_MAX} 個角色` };
   }
   if (!source) return { ok: false, error: "請提供導演指示" };
+  if (isTalkingHeadSkill(skillSlug) && !spokenScript) {
+    return { ok: false, error: "請輸入角色要讀的講稿。" };
+  }
   if (!["16:9", "9:16", "1:1"].includes(aspectRatio)) {
     return { ok: false, error: "請選擇畫面比例" };
   }
@@ -143,6 +149,7 @@ function readVideoBrief(
       skillSlug,
       styleId,
       source,
+      ...(isTalkingHeadSkill(skillSlug) ? { spokenScript } : {}),
       aspectRatio,
       durationPreset,
       logoUrl,
@@ -319,6 +326,7 @@ export async function createVideoAction(
       skillSlug: skill.slug,
       styleId: brief.styleId,
       source: brief.source,
+      ...(brief.spokenScript ? { spokenScript: brief.spokenScript } : {}),
       aspectRatio: brief.aspectRatio,
       durationPreset: brief.durationPreset,
       language: brief.language,
@@ -427,6 +435,7 @@ async function rewriteVideoBrief(
           skillSlug: skill.slug,
           styleId: brief.styleId,
           source: brief.source,
+          ...(brief.spokenScript ? { spokenScript: brief.spokenScript } : {}),
           aspectRatio: brief.aspectRatio,
           durationPreset: brief.durationPreset,
           language: brief.language,
@@ -444,6 +453,7 @@ async function rewriteVideoBrief(
           ...(options.restart ? RESTART_UNSET_FIELDS : { error: "", stillError: "" }),
           ...(brief.logoUrl ? {} : { logoUrl: "" }),
           ...(brief.referenceImages.length ? {} : { referenceImages: "" }),
+          ...(brief.spokenScript ? {} : { spokenScript: "" }),
         },
       },
     );

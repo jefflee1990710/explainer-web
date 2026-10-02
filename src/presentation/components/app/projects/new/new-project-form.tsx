@@ -67,7 +67,8 @@ import {
   skillBansNarration,
   skillForcesSceneText,
 } from "@/service/director/skill-rules";
-import { isTalkingHeadSkill } from "@/service/director/talking-head";
+import { isTalkingHeadSkill, talkingHeadScriptFromClips } from "@/service/director/talking-head";
+import { TalkingHeadScriptField } from "@/presentation/components/app/projects/new/talking-head-script-field";
 import { failedStepFor, isProductionLike } from "@/service/project-status";
 import type { PublicCharacter, PublicSkill, PublicStyle, PublicVideo } from "@/presentation/serialize";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
@@ -157,6 +158,12 @@ export function NewProjectForm({
     initialVideo?.styleId || lastBrief?.styleId || DEFAULT_STYLE_ID,
   );
   const [source, setSource] = useState(initialVideo?.source || "");
+  const [spokenScript, setSpokenScript] = useState(
+    initialVideo?.spokenScript ||
+      (isTalkingHeadSkill(initialVideo?.skillSlug)
+        ? talkingHeadScriptFromClips(initialVideo?.phaseA?.clips || [])
+        : ""),
+  );
   const [language, setLanguage] = useState<VoLanguage>(
     initialVideo?.language || lastBrief?.language || "en",
   );
@@ -270,6 +277,7 @@ export function NewProjectForm({
     const nextIds = characterIds.slice().sort();
     return (
       project.source === source.trim() &&
+      (project.spokenScript || "") === (talkingHead ? spokenScript.trim() : "") &&
       project.skillSlug === skillSlug &&
       project.styleId === styleId &&
       project.language === language &&
@@ -293,6 +301,7 @@ export function NewProjectForm({
     formData.set("skillSlug", skillSlug);
     formData.set("styleId", styleId);
     formData.set("source", source);
+    if (talkingHead) formData.set("spokenScript", spokenScript);
     formData.set("language", language);
     formData.set("voiceGender", voiceGender);
     formData.set("speechPace", speechPace);
@@ -372,6 +381,12 @@ export function NewProjectForm({
     setSkillSlug(video.skillSlug);
     setStyleId(video.styleId || DEFAULT_STYLE_ID);
     setSource(video.source);
+    setSpokenScript(
+      video.spokenScript ||
+        (isTalkingHeadSkill(video.skillSlug)
+          ? talkingHeadScriptFromClips(video.phaseA?.clips || [])
+          : ""),
+    );
     setLanguage(video.language || "en");
     setVoiceGender(video.voiceGender || DEFAULT_VOICE_GENDER);
     setSpeechPace(video.speechPace || DEFAULT_SPEECH_PACE);
@@ -693,6 +708,7 @@ export function NewProjectForm({
 
   const canSubmit =
     source.trim().length > 0 &&
+    (!talkingHead || spokenScript.trim().length > 0) &&
     aspectRatio !== "" &&
     skillSlug !== "" &&
     (castNeed === 0 || characterIds.length === castNeed) &&
@@ -805,6 +821,13 @@ export function NewProjectForm({
                 <p className="mt-2 text-right text-xs tabular-nums text-muted">
                   {t("brief.source.charCount", { n: source.length.toLocaleString() })}
                 </p>
+                {talkingHead ? (
+                  <TalkingHeadScriptField
+                    value={spokenScript}
+                    onChange={setSpokenScript}
+                    disabled={briefBusy}
+                  />
+                ) : null}
                 <ReferenceImagesField
                   value={referenceImages}
                   onChange={setReferenceImages}

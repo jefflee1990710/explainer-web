@@ -42,6 +42,8 @@ export const errorsEn = {
   noFileReceived: "No file received",
   layerSettingsInvalid: "Invalid layer settings",
   assetUrlInvalid: "Invalid asset URL — upload again",
+  instructionRequired: "Enter a director instruction",
+  spokenScriptRequired: "Enter the script the character will read",
 } as const;
 
 

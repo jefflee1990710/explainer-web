@@ -2,6 +2,9 @@ import type { TranslateFn } from "@/util/i18n/translate";
 
 // Map known server error strings (zh / en) to errors.* message keys.
 const EXACT: Record<string, string> = {
+  "請提供導演指示": "errors.instructionRequired",
+  "請輸入導演指示。": "errors.instructionRequired",
+  "請輸入角色要讀的講稿。": "errors.spokenScriptRequired",
   "請選擇對白語言": "errors.dialogueLanguageRequired",
   "請選擇旁白語言": "errors.voiceRequired",
   "建立專案失敗": "errors.createProjectFailed",

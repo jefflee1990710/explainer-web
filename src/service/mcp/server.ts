@@ -290,6 +290,12 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
           .string()
           .min(1)
           .describe("Director instruction: how to plan the video; may include the topic or a full script"),
+        spokenScript: z
+          .string()
+          .optional()
+          .describe(
+            "Talking-head only: exact words the character reads. Required when skillSlug is talking-head-director.",
+          ),
         referenceImages: z
           .array(
             z.object({
@@ -329,6 +335,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
       const form = new FormData();
       form.set("projectId", args.folderId);
       form.set("source", args.source);
+      if (args.spokenScript) form.set("spokenScript", args.spokenScript);
       form.set("skillSlug", args.skillSlug);
       form.set("styleId", args.styleId);
       form.set("aspectRatio", args.aspectRatio);

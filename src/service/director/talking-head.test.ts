@@ -3,13 +3,13 @@ import { test } from "node:test";
 import {
   planTalkingHeadClips,
   splitTalkingHeadSentences,
-  talkingHeadCopiedBriefError,
   talkingHeadDirectorBlock,
   talkingHeadFramesCost,
   talkingHeadPlanError,
   talkingHeadScriptFromClips,
   talkingHeadSeconds,
   talkingHeadSourceError,
+  talkingHeadSpokenError,
   withInheritedTalkingHeadStarts,
 } from "@/service/director/talking-head";
 import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
@@ -49,9 +49,11 @@ test("talking-head refuses more than 20 sentences or a sentence over 12 seconds"
   assert.equal(talkingHeadPlanError(SCRIPT, "medium"), undefined);
 });
 
-test("talking-head plans clips from the director's spoken lines, not the brief", () => {
+test("talking-head keeps instruction and spoken script as separate fields", () => {
   assert.equal(talkingHeadSourceError("   "), "請輸入導演指示。");
-  assert.equal(talkingHeadSourceError("Create a reel, you plan the content"), undefined);
+  assert.equal(talkingHeadSourceError("Keep it punchy and look at the lens"), undefined);
+  assert.equal(talkingHeadSpokenError("   "), "請輸入角色要讀的講稿。");
+  assert.equal(talkingHeadSpokenError(SCRIPT, "medium"), undefined);
   const script = talkingHeadScriptFromClips([
     { englishVo: "Video makes a product feel real." },
     { englishVo: "Show the problem, then the fix." },
@@ -60,10 +62,7 @@ test("talking-head plans clips from the director's spoken lines, not the brief",
   const clips = planTalkingHeadClips({ source: script, pace: "medium", language: "en" });
   assert.equal(clips.length, 2);
   assert.equal(clips[0].englishVo, "Video makes a product feel real.");
-  assert.match(talkingHeadDirectorBlock(), /DIRECTOR INSTRUCTION/);
-  const brief = "Create a reel Explain why video is so important, you plan the content for me";
-  assert.match(talkingHeadCopiedBriefError(brief, brief) || "", /當成對白/);
-  assert.equal(talkingHeadCopiedBriefError(brief, "Video makes ideas land."), undefined);
+  assert.match(talkingHeadDirectorBlock(), /spoken script is locked/i);
 });
 
 test("clip 2 starts on clip 1's end still", () => {

@@ -51,10 +51,8 @@ import {
   isTalkingHeadSkill,
   planTalkingHeadClips,
   spokenUnits,
-  talkingHeadCopiedBriefError,
   talkingHeadDirectorBlock,
-  talkingHeadPlanError,
-  talkingHeadScriptFromClips,
+  talkingHeadSpokenError,
   talkingHeadSourceError,
 } from "@/service/director/talking-head";
 import type { Style } from "@/service/style";
@@ -75,6 +73,8 @@ export async function runPhaseA(input: {
   skill: Skill;
   style: Style;
   source: string;
+  // Talking-head: exact words the character reads. Ignored for other skills.
+  spokenScript?: string;
   aspectRatio: AspectRatio;
   durationPreset: DurationPreset;
   language?: VoLanguage;
@@ -99,6 +99,8 @@ export async function runPhaseA(input: {
   if (talkingHead) {
     const sourceError = talkingHeadSourceError(input.source);
     if (sourceError) throw new Error(sourceError);
+    const spokenError = talkingHeadSpokenError(input.spokenScript || "", input.speechPace);
+    if (spokenError) throw new Error(spokenError);
   }
   const durationHint = phaseADurationHint({
     skillSlug: input.skill.slug,
@@ -220,9 +222,13 @@ ${sceneDescriptionLanguageLock(input.language)}`,
         content: [
           {
             type: "text",
-            text: `Director instruction (may contain the topic, an outline, or a full script — follow it):
+            text: `Director instruction (planning notes — not spoken unless this skill has no separate script):
 ${input.source}
-
+${
+  talkingHead
+    ? `\nSpoken script the character must read verbatim (one sentence = one clip):\n${input.spokenScript}\n`
+    : ""
+}
 Aspect ratio: ${input.aspectRatio}
 Duration preset: ${durationHint}
 ${dialogueOnly ? "Dialogue language" : "Voiceover language"}: ${language.label} (${language.sublabel})
@@ -278,15 +284,10 @@ Produce a complete Phase A director proposal now.`,
       targetDuration: clips[0] ? `${clips[0].durationSeconds}s` : next.targetDuration,
     };
   }
-  // Talking-head timing is deterministic; spoken lines come from the planned script, not the brief.
+  // Talking-head timing is deterministic; spoken lines come from spokenScript.
   if (talkingHead) {
-    const script = talkingHeadScriptFromClips(next.clips);
-    const copiedBrief = talkingHeadCopiedBriefError(input.source, script);
-    if (copiedBrief) throw new Error(copiedBrief);
-    const planError = talkingHeadPlanError(script, input.speechPace);
-    if (planError) throw new Error(planError);
     const clips = planTalkingHeadClips({
-      source: script,
+      source: input.spokenScript || "",
       pace: input.speechPace,
       language: input.language,
     });
