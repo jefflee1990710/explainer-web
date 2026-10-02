@@ -139,6 +139,12 @@ export const VIDEO_LIST_PROJECTION = {
   "clips.outputUrl": 1,
 } as const;
 
+function publicPreviewUrl(url?: string, hash?: string) {
+  if (!url) return undefined;
+  if (!hash) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}h=${hash.slice(0, 10)}`;
+}
+
 export function toPublicSkill(skill: Skill, inheritedPreviewUrl?: string): PublicSkill {
   return {
     id: skill._id.toHexString(),
@@ -148,7 +154,7 @@ export function toPublicSkill(skill: Skill, inheritedPreviewUrl?: string): Publi
     description: skill.description,
     behaviorSlug: behaviorSlug(skill),
     isCustom: isCustomSkill(skill),
-    previewUrl: skill.previewUrl || inheritedPreviewUrl,
+    previewUrl: publicPreviewUrl(skill.previewUrl || inheritedPreviewUrl, skill.previewHash),
     updatedAt: skill.updatedAt.toISOString(),
   };
 }
