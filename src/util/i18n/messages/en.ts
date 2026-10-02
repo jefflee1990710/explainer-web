@@ -1,5 +1,6 @@
 import type { Messages } from "@/util/i18n/messages/types";
 import { briefEn } from "@/util/i18n/messages/workspace/brief.en";
+import { directorsEn } from "@/util/i18n/messages/workspace/directors.en";
 import { errorsEn } from "@/util/i18n/messages/workspace/errors.en";
 import { pickersEn } from "@/util/i18n/messages/workspace/pickers.en";
 import { productionEn } from "@/util/i18n/messages/workspace/production.en";
@@ -14,6 +15,7 @@ export const en: Messages = {
   },
   nav: {
     projects: "Video",
+    directors: "Director",
     characters: "Characters",
     tasks: "Tasks",
     mcp: "MCP",
@@ -437,6 +439,7 @@ export const en: Messages = {
   tasksPage: tasksPageEn,
   pickers: pickersEn,
   errors: errorsEn,
+  directors: directorsEn,
   auth: {
     signInTitle: "Sign in",
     signUpTitle: "Create account",

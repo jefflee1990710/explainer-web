@@ -1,4 +1,5 @@
 import type { BriefMessages } from "@/util/i18n/messages/workspace/brief.en";
+import type { DirectorsMessages } from "@/util/i18n/messages/workspace/directors.en";
 import type { ErrorsMessages } from "@/util/i18n/messages/workspace/errors.en";
 import type { PickersMessages } from "@/util/i18n/messages/workspace/pickers.en";
 import type { ProductionMessages } from "@/util/i18n/messages/workspace/production.en";
@@ -13,6 +14,7 @@ export type Messages = {
   };
   nav: {
     projects: string;
+    directors: string;
     characters: string;
     tasks: string;
     mcp: string;
@@ -401,6 +403,7 @@ export type Messages = {
   tasksPage: TasksPageMessages;
   pickers: PickersMessages;
   errors: ErrorsMessages;
+  directors: DirectorsMessages;
   auth: {
     signInTitle: string;
     signUpTitle: string;

@@ -1,5 +1,6 @@
 import type { Messages } from "@/util/i18n/messages/types";
 import { briefZhHant } from "@/util/i18n/messages/workspace/brief.zh-Hant";
+import { directorsZhHant } from "@/util/i18n/messages/workspace/directors.zh-Hant";
 import { errorsZhHant } from "@/util/i18n/messages/workspace/errors.zh-Hant";
 import { pickersZhHant } from "@/util/i18n/messages/workspace/pickers.zh-Hant";
 import { productionZhHant } from "@/util/i18n/messages/workspace/production.zh-Hant";
@@ -14,6 +15,7 @@ export const zhHant: Messages = {
   },
   nav: {
     projects: "影片",
+    directors: "Director",
     characters: "角色",
     tasks: "生成任務",
     mcp: "MCP",
@@ -428,6 +430,7 @@ export const zhHant: Messages = {
   tasksPage: tasksPageZhHant,
   pickers: pickersZhHant,
   errors: errorsZhHant,
+  directors: directorsZhHant,
   auth: {
     signInTitle: "登入",
     signUpTitle: "建立帳號",

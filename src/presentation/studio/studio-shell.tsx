@@ -9,7 +9,7 @@ import { CreditMeter } from "@/presentation/studio/credit-meter";
 export type StudioNavItem = {
   href: string;
   label: string;
-  icon: "projects" | "characters" | "mcp" | "affiliate" | "billing" | "settings";
+  icon: "projects" | "directors" | "characters" | "mcp" | "affiliate" | "billing" | "settings";
 };
 
 // Logged-in frame: full-height icon rail and a scrolling main slot.
@@ -121,6 +121,16 @@ function RailIcon({ name }: { name: StudioNavItem["icon"] }) {
       <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
         <path d="M3 7.5h7l2 2H21V19a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19V7.5Z" />
         <path d="M3 7.5V6A1.5 1.5 0 0 1 4.5 4.5H10l2 2" />
+      </svg>
+    );
+  }
+  if (name === "directors") {
+    // Clapperboard.
+    return (
+      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+        <path d="M4 10h16v8.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5V10Z" />
+        <path d="m4 10-.6-2.9a1.5 1.5 0 0 1 1.2-1.8l12.7-2.4a1.5 1.5 0 0 1 1.8 1.2l.5 2.4L4 10Z" />
+        <path d="m8.5 5.6 2 3.4M13.5 4.7l2 3.4" />
       </svg>
     );
   }
