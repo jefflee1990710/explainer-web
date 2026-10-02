@@ -70,6 +70,13 @@ export type ClipFrame = {
   submittedAt?: string;
 };
 
+// User-supplied scene reference for the director. Max 4 per video, ids R1..R4.
+export type ReferenceImage = {
+  id: string;
+  url: string;
+  description: string;
+};
+
 export type StoryboardRow = {
   clipNumber: number;
   timeRange: string;
@@ -86,6 +93,8 @@ export type StoryboardRow = {
   // Legacy; no longer shown or required. Older videos may still have it.
   referenceTranslation?: string;
   bgmSfx: string;
+  // Reference images (R1..R4) the director assigned to this clip's stills.
+  referenceImageIds?: string[];
   // ISO time the user last edited this row; newer than submittedAt ⇒ stale media.
   editedAt?: string;
 };
@@ -182,6 +191,8 @@ export type Project = {
   characterImageUrl?: string;
   // Opening / Ending bookends: brand logo used as a reference in every still.
   logoUrl?: string;
+  // Scene references from the brief; the director assigns them per clip.
+  referenceImages?: ReferenceImage[];
   // Characters chosen at creation; snapshot of each default blueprint.
   cast?: CastMember[];
   status: ProjectStatus | LegacyProjectStatus;
@@ -248,6 +259,7 @@ const storyboardRowSchema = z.object({
   endVo: z.string().optional(),
   referenceTranslation: z.string().optional(),
   bgmSfx: z.string(),
+  referenceImageIds: z.array(z.string()).optional(),
   editedAt: z.string().optional(),
 });
 
@@ -288,6 +300,9 @@ export const projectSchema: z.ZodType<Project> = z.object({
   sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans"]).optional(),
   characterImageUrl: z.string().optional(),
   logoUrl: z.string().optional(),
+  referenceImages: z
+    .array(z.object({ id: z.string(), url: z.string(), description: z.string() }))
+    .optional(),
   cast: z.array(castMemberSchema).optional(),
   status: z.enum([
     "draft",

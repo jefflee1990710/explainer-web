@@ -13,6 +13,7 @@ export const storyboardRowSchema = z.object({
   startVo: z.string().optional(),
   endVo: z.string().optional(),
   referenceTranslation: z.string().optional(),
+  referenceImageIds: z.array(z.string()).optional(),
   bgmSfx: z.string(),
 });
 
