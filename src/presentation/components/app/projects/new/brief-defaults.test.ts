@@ -55,6 +55,19 @@ test("sanitize keeps Q&A to exactly two matching-style characters", () => {
   assert.deepEqual(next?.characterIds, ["a", "b"]);
 });
 
+test("sanitize caps cast by a custom director's template behaviour", () => {
+  const next = sanitizeBriefDefaults(
+    raw({ skillSlug: "custom-abc", characterIds: ["a", "b"] }),
+    {
+      skills: [...skills, { slug: "custom-abc", behaviorSlug: "talking-head-director" }],
+      styles,
+      characters,
+    },
+  );
+  assert.equal(next?.skillSlug, "custom-abc");
+  assert.deepEqual(next?.characterIds, ["a"]);
+});
+
 test("sanitize ignores junk and never stores source", () => {
   assert.equal(sanitizeBriefDefaults(null, { skills, styles, characters }), undefined);
   assert.equal(sanitizeBriefDefaults({ source: "secret" }, { skills, styles, characters }), undefined);

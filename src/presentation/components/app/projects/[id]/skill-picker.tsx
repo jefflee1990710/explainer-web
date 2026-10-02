@@ -1,12 +1,11 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { SkillGuideRows } from "@/presentation/components/app/projects/[id]/skill-guide-rows";
 import type { PublicSkill } from "@/presentation/serialize";
 import { localizedVideoType } from "@/util/video-type-i18n";
 
-// Video-type (narrative skill) chips for the create form; skill is per video, not per folder.
+// Director (video type) dropdown for the create form: system directors, then the user's own.
 export function SkillPicker({
   skills,
   value,
@@ -23,40 +22,52 @@ export function SkillPicker({
     return <p className="text-sm text-muted">{t("brief.skill.empty")}</p>;
   }
 
+  const system = skills.filter((skill) => !skill.isCustom);
+  const mine = skills.filter((skill) => skill.isCustom);
+  const selected = skills.find((skill) => skill.slug === value);
+  const systemName = (skill: PublicSkill) => localizedVideoType(t, skill.slug, skill.title);
+
+  // Custom: template badge. System: the other language under the locale name.
+  let subtitle = "";
+  if (selected?.isCustom) {
+    const template = system.find((skill) => skill.slug === selected.behaviorSlug);
+    const templateName = localizedVideoType(t, selected.behaviorSlug, template?.title || selected.behaviorSlug);
+    subtitle = t("directors.templateBadge", { name: templateName });
+  } else if (selected) {
+    const name = systemName(selected);
+    const translation = name === selected.title ? selected.titleZh : selected.title;
+    subtitle = translation && translation !== name ? translation : "";
+  }
+
   return (
     <div className="space-y-3">
-      {value ? <SkillGuideRows slug={value} /> : null}
-      <div role="radiogroup" aria-label={t("brief.skill.aria")} className="grid gap-2 sm:grid-cols-2">
-        {skills.map((skill) => {
-          const active = skill.slug === value;
-          const name = localizedVideoType(t, skill.slug, skill.title);
-          // The other language sits under the locale name so both stay visible.
-          const translation = name === skill.title ? skill.titleZh : skill.title;
-          return (
-            <motion.button
-              key={skill.slug}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              disabled={disabled}
-              onClick={() => onChange(skill.slug)}
-              whileTap={{ scale: 0.98 }}
-              className={`flex min-h-[52px] cursor-pointer flex-col items-start justify-center rounded-xl border px-4 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60 ${
-                active
-                  ? "border-accent-ink bg-accent-ink text-paper"
-                  : "border-accent-ink/10 bg-paper/70 hover:border-accent-ink/30"
-              }`}
-            >
-              <span className="text-sm font-semibold">{name}</span>
-              {translation && translation !== name ? (
-                <span className={`mt-0.5 text-xs ${active ? "text-paper/75" : "text-muted"}`}>
-                  {translation}
-                </span>
-              ) : null}
-            </motion.button>
-          );
-        })}
-      </div>
+      <select
+        aria-label={t("brief.skill.aria")}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        className="min-h-[44px] w-full cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {selected ? null : <option value="" disabled />}
+        <optgroup label={t("directors.systemSection")}>
+          {system.map((skill) => (
+            <option key={skill.slug} value={skill.slug}>
+              {systemName(skill)}
+            </option>
+          ))}
+        </optgroup>
+        {mine.length > 0 ? (
+          <optgroup label={t("directors.mineSection")}>
+            {mine.map((skill) => (
+              <option key={skill.slug} value={skill.slug}>
+                {skill.title}
+              </option>
+            ))}
+          </optgroup>
+        ) : null}
+      </select>
+      {subtitle ? <p className="px-4 text-xs text-muted">{subtitle}</p> : null}
+      {selected ? <SkillGuideRows slug={selected.behaviorSlug} /> : null}
     </div>
   );
 }

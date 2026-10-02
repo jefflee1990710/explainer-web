@@ -106,6 +106,10 @@ import { translateAppError } from "@/util/i18n/translate-app-error";
 import { sceneTextLangLabel, speechPaceLabel } from "@/util/i18n/picker-labels";
 import { useProjectPoll } from "@/presentation/components/app/projects/new/use-project-poll";
 import {
+  ruleSlugFor,
+  selectedSkillSlugFor,
+} from "@/presentation/components/app/projects/new/skill-selection";
+import {
   ReferenceImagesField,
   type ReferenceImageDraft,
 } from "@/presentation/components/app/projects/new/reference-images-field";
@@ -151,8 +155,14 @@ export function NewProjectForm({
 
   // Form fields
   const [skillSlug, setSkillSlug] = useState(
-    initialVideo?.skillSlug || lastBrief?.skillSlug || skills[0]?.slug || "",
+    (initialVideo && selectedSkillSlugFor(initialVideo, skills)) ||
+      lastBrief?.skillSlug ||
+      skills[0]?.slug ||
+      "",
   );
+  // Picked director; form rules follow its behaviour (template) slug.
+  const selectedSkill = skills.find((item) => item.slug === skillSlug);
+  const ruleSlug = ruleSlugFor(skillSlug, skills);
   // Visual style; the cast must share it, so changing it prunes mismatches.
   const [styleId, setStyleId] = useState<StyleId>(
     initialVideo?.styleId || lastBrief?.styleId || DEFAULT_STYLE_ID,
@@ -191,8 +201,8 @@ export function NewProjectForm({
   const [referenceImages, setReferenceImages] = useState<ReferenceImageDraft[]>(
     () => toReferenceDrafts(initialVideo?.referenceImages),
   );
-  const bookend = isBookendSkill(skillSlug);
-  const talkingHead = isTalkingHeadSkill(skillSlug);
+  const bookend = isBookendSkill(ruleSlug);
+  const talkingHead = isTalkingHeadSkill(ruleSlug);
 
   // Flow state. The stepper can jump back to 題材 after a video exists.
   const [project, setProject] = useState<PublicVideo | null>(initialVideo);
@@ -278,7 +288,7 @@ export function NewProjectForm({
     return (
       project.source === source.trim() &&
       (project.spokenScript || "") === (talkingHead ? spokenScript.trim() : "") &&
-      project.skillSlug === skillSlug &&
+      project.skillId === selectedSkill?.id &&
       project.styleId === styleId &&
       project.language === language &&
       project.voiceGender === voiceGender &&
@@ -377,8 +387,8 @@ export function NewProjectForm({
   }
 
   // Put the form back to this video's saved brief.
-  function resetBriefFromProject(video: PublicVideo) {
-    setSkillSlug(video.skillSlug);
+  function resetBriefFromProject(video: PublicVideo, options: PublicSkill[]) {
+    setSkillSlug(selectedSkillSlugFor(video, options));
     setStyleId(video.styleId || DEFAULT_STYLE_ID);
     setSource(video.source);
     setSpokenScript(
@@ -400,13 +410,13 @@ export function NewProjectForm({
 
   const onRestart = useCallback(() => {
     if (!project) return;
-    resetBriefFromProject(project);
+    resetBriefFromProject(project, skills);
     setError("");
     setRestarting(true);
-  }, [project]);
+  }, [project, skills]);
 
   function cancelRestart() {
-    if (project) resetBriefFromProject(project);
+    if (project) resetBriefFromProject(project, skills);
     setError("");
     setRestarting(false);
   }
@@ -597,9 +607,9 @@ export function NewProjectForm({
   }
 
   // Switching style drops selected characters drawn in a different style.
-  const castNeed = requiredCastCount(skillSlug);
-  const forceSceneText = skillForcesSceneText(skillSlug);
-  const dialogueOnly = skillBansNarration(skillSlug);
+  const castNeed = requiredCastCount(ruleSlug);
+  const forceSceneText = skillForcesSceneText(ruleSlug);
+  const dialogueOnly = skillBansNarration(ruleSlug);
 
   useEffect(() => {
     if (castNeed > 0) {
@@ -640,9 +650,11 @@ export function NewProjectForm({
     );
   }
 
-  const selectedSkill = skills.find((item) => item.slug === (project?.skillSlug || skillSlug));
-  const skillTitle = selectedSkill
-    ? localizedVideoType(t, selectedSkill.slug, selectedSkill.title)
+  const summarySkill = skills.find((item) => item.id === project?.skillId) ?? selectedSkill;
+  const skillTitle = summarySkill
+    ? summarySkill.isCustom
+      ? summarySkill.title
+      : localizedVideoType(t, summarySkill.slug, summarySkill.title)
     : t("brief.fallback.videoType");
   const styleName =
     styles.find((item) => item.id === (project?.styleId || styleId))?.nameZh || t("brief.fallback.visualStyle");
@@ -984,9 +996,9 @@ export function NewProjectForm({
               <span>{aspectRatio}</span>
               <Dot />
               <span>
-                {isTalkingHeadSkill(project?.skillSlug || skillSlug)
+                {isTalkingHeadSkill(project?.skillSlug || ruleSlug)
                   ? t("brief.summary.talkingHeadLength")
-                  : isBookendSkill(project?.skillSlug || skillSlug) && durationPreset === "auto"
+                  : isBookendSkill(project?.skillSlug || ruleSlug) && durationPreset === "auto"
                     ? t("brief.summary.bookendLength")
                     : durationPresetLabel(t, durationPreset).label}
               </span>

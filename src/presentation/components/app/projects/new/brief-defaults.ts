@@ -27,7 +27,7 @@ export type BriefDefaults = {
 };
 
 type Catalog = {
-  skills: Array<{ slug: string }>;
+  skills: Array<{ slug: string; behaviorSlug?: string }>;
   styles: Array<{ id: StyleId }>;
   characters: Array<{ id: string; styleId: StyleId }>;
 };
@@ -74,7 +74,8 @@ export function sanitizeBriefDefaults(
       ? input.durationPreset
       : "auto";
   if (!aspectRatio) return undefined;
-  const need = requiredCastCount(skillSlug);
+  const behavior = catalog.skills.find((skill) => skill.slug === skillSlug)?.behaviorSlug || skillSlug;
+  const need = requiredCastCount(behavior);
   const characterIds = (Array.isArray(input.characterIds) ? input.characterIds : [])
     .filter((id): id is string => typeof id === "string")
     .filter((id) => catalog.characters.some((character) => character.id === id && character.styleId === styleId));
