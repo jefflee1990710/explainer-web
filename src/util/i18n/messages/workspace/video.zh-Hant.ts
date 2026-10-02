@@ -35,6 +35,7 @@ export const videoZhHant = {
     nextExport: "下一步：成片",
     syncing: "同步中",
     deleteVideo: "刪除影片",
+    moreAria: "更多操作",
     close: "關閉",
     stepsAria: "編輯步驟",
   },

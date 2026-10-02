@@ -2,6 +2,7 @@
 
 import { useEffect, useId } from "react";
 import { VideoEditorHeaderStatus } from "@/presentation/components/app/projects/[id]/video-editor-header-status";
+import { VideoEditorMoreMenu } from "@/presentation/components/app/projects/[id]/video-editor-more-menu";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
@@ -84,11 +85,7 @@ export function VideoEditorDialog({
               {t("video.editor.syncing")}
             </p>
           ) : null}
-          {canDelete ? (
-            <StudioButton variant="danger" onClick={onDelete}>
-              {t("video.editor.deleteVideo")}
-            </StudioButton>
-          ) : null}
+          {canDelete && onDelete ? <VideoEditorMoreMenu onDelete={onDelete} /> : null}
           <StudioButton variant="ghost" onClick={onClose}>
             {t("video.editor.close")}
           </StudioButton>

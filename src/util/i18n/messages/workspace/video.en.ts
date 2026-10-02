@@ -35,6 +35,7 @@ export const videoEn = {
     nextExport: "Next: final video",
     syncing: "Syncing",
     deleteVideo: "Delete video",
+    moreAria: "More actions",
     close: "Close",
     stepsAria: "Editor steps",
   },
