@@ -73,6 +73,7 @@ export const videoEn = {
     retry: "Export again",
     export: "Export video",
     waitForReel: "Wait for the final reel before exporting.",
+    waitForClips: "Export when every clip is ready.",
     downloadStale: "Download (outdated)",
     download: "Download video",
     staleHint: "Layers changed — export again to apply.",
@@ -126,6 +127,9 @@ export const videoEn = {
     resizeAria: "Resize",
     intro: "Intro",
     main: "Main",
+    clip: "Clip {n}",
+    clipPending: "This clip is not ready yet.",
+    slotEmpty: "Not set",
     outro: "Outro",
   },
   share: {

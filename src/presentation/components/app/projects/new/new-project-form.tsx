@@ -29,7 +29,6 @@ import {
   retryProjectAction,
   updateVideoBriefAction,
 } from "@/presentation/actions/projects";
-import { composeReelAction } from "@/presentation/actions/reel";
 import { isProjectBusy } from "@/service/clip-stage";
 import {
   cheapestVideoCost,
@@ -583,18 +582,6 @@ export function NewProjectForm({
     );
   }
 
-  const videoId = project?.id;
-  const onComposeReel = useCallback(() => {
-    if (!videoId) return;
-    setPending("reel");
-    setError("");
-    void composeReelAction(videoId).then((result) => {
-      setPending("");
-      if (!result.ok) setError(translateAppError(result.error, t));
-      else setProject(result.project);
-    });
-  }, [videoId]);
-
   // Failed → move back to the gate it fell over on (no charge).
   async function onRetry() {
     if (!project) return;
@@ -1042,9 +1029,7 @@ export function NewProjectForm({
             <VideoEditDesk
               key={project.id}
               project={project}
-              pending={pending}
               error={error}
-              onComposeReel={onComposeReel}
               onProjectChange={setProject}
             />
           ) : project?.status === "failed" && viewing === liveStep ? (

@@ -3,7 +3,7 @@
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
-import { isReelCurrent } from "@/service/reel/fingerprint";
+import { isProjectReady } from "@/service/clip-stage";
 import { hasEdit, isFinalCurrent, isFinalRunning } from "@/service/video-edit/edit-state";
 import type { PublicVideo } from "@/presentation/serialize";
 import type { VideoEdit } from "@/model/video-edit";
@@ -29,15 +29,15 @@ export function VideoEditExport({
   onExport: (existingUrl: string | undefined, filename: string) => void;
 }) {
   const { t } = useI18n();
-  const reelReady = isReelCurrent(project);
+  const clipsReady = isProjectReady(project);
   const withEdit = { ...project, edit };
   const edited = hasEdit(edit);
   const current = isFinalCurrent(withEdit);
   const busy = isFinalRunning(project) || pending;
   const failed = project.finalStatus === "failed" && !busy && !current;
   const stale = Boolean(project.finalUrl) && !current && edited;
-  // Branded file when it matches the edit; otherwise the plain reel is the final cut.
-  const fileUrl = current ? project.finalUrl : !edited && reelReady ? project.reelUrl : undefined;
+  // Only reuse a branded file that already matches this edit.
+  const fileUrl = current ? project.finalUrl : undefined;
   const basename = baseName(project, t("video.export.fallbackBasename"));
 
   function saveFinal() {
@@ -46,7 +46,7 @@ export function VideoEditExport({
 
   return (
     <section className="space-y-2 border-t border-[var(--studio-line)] pt-4">
-      <StudioButton className="w-full" disabled={!reelReady || busy || saving} onClick={saveFinal}>
+      <StudioButton className="w-full" disabled={!clipsReady || busy || saving} onClick={saveFinal}>
         {busy ? <Spinner className="h-4 w-4" /> : null}
         {busy
           ? t("video.export.exporting")
@@ -54,8 +54,8 @@ export function VideoEditExport({
             ? t("video.export.retry")
             : t("video.export.export")}
       </StudioButton>
-      {!reelReady ? (
-        <p className="text-[11px] text-[var(--studio-muted)]">{t("video.export.waitForReel")}</p>
+      {!clipsReady ? (
+        <p className="text-[11px] text-[var(--studio-muted)]">{t("video.export.waitForClips")}</p>
       ) : null}
       {failed && project.finalError ? (
         <p role="alert" className="text-[11px] text-[#e11d48]">

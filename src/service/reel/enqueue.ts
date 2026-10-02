@@ -3,23 +3,13 @@ import type { ObjectId } from "mongodb";
 import { videosCollection } from "@/dao";
 import { isProjectReady, type ClipStageSource } from "@/service/clip-stage";
 import { isProductionLike } from "@/service/project-status";
-import {
-  clipReelFingerprint,
-  isReelBusy,
-  isReelCurrent,
-  type ReelRecord,
-} from "@/service/reel/fingerprint";
+import { clipReelFingerprint, type ReelRecord } from "@/service/reel/fingerprint";
 import { REEL_TIMEOUT_MESSAGE, reelRecovery } from "@/service/reel/timeout";
 import type { Project } from "@/model/project";
 
-// Every clip is done, and no reel for this exact playlist is already running.
-export function shouldQueueReel(project: ClipStageSource & ReelRecord) {
-  if (!isProductionLike(project.status)) return false;
-  if (!isProjectReady(project)) return false;
-  if (isReelCurrent(project)) return false;
-  const fingerprint = clipReelFingerprint(project);
-  if (isReelBusy(project.reelStatus) && project.reelFingerprint === fingerprint) return false;
-  return true;
+// Concat happens in the browser on Export — never auto-queue after the last clip.
+export function shouldQueueReel(_project: ClipStageSource & ReelRecord) {
+  return false;
 }
 
 // Idempotent write. Returns the fingerprint when this call queued the reel.

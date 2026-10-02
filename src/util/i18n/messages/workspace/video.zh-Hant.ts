@@ -73,6 +73,7 @@ export const videoZhHant = {
     retry: "重新匯出",
     export: "匯出影片",
     waitForReel: "成片合成中，完成後再匯出。",
+    waitForClips: "所有片段完成後即可匯出。",
     downloadStale: "下載（舊版）",
     download: "下載影片",
     staleHint: "圖層改過了，重新匯出才會套用。",
@@ -126,6 +127,9 @@ export const videoZhHant = {
     resizeAria: "調整大小",
     intro: "開頭",
     main: "正片",
+    clip: "Clip {n}",
+    clipPending: "這個片段還沒好。",
+    slotEmpty: "尚未設定",
     outro: "結尾",
   },
   share: {

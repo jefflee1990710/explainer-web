@@ -1,34 +1,41 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { ASPECT_CLASS } from "@/presentation/components/project/frame-tile";
 import { useElementSize } from "@/presentation/components/app/projects/new/use-element-size";
+import { VideoEditTimeline } from "@/presentation/components/app/projects/new/video-edit-timeline";
 import {
   layerPlacement,
   placementFromDrag,
   placementStyle,
   widthPctFromBox,
 } from "@/service/video-edit/layer-placement";
+import {
+  buildEditTimeline,
+  defaultTimelineId,
+  isTimelineBookend,
+  nextPlayableTimelineId,
+  type EditTimelineItem,
+} from "@/service/video-edit/edit-timeline";
 import type { AspectRatio } from "@/model/project";
-import type { BookendClip, BrandLayer, VideoEdit } from "@/model/video-edit";
+import type { BrandLayer, VideoEdit } from "@/model/video-edit";
 
 export type EditSelection = "" | "intro" | "outro" | string;
 
 type Drag = { id: string; mode: "move" | "resize"; startX: number; startY: number; left: number; top: number; w: number; h: number };
 
 export function VideoEditPreview({
-  reelUrl,
-  mainThumbnail,
+  clips,
+  posters,
   aspectRatio,
   edit,
   selected,
   onSelect,
   onLayerChange,
 }: {
-  reelUrl?: string;
-  // First clip's start still, shown on the Main chip.
-  mainThumbnail?: string;
+  clips: Array<{ clipNumber: number; blobUrl?: string; outputUrl?: string }>;
+  posters?: Array<{ clipNumber: number; src?: string }>;
   aspectRatio: AspectRatio;
   edit: VideoEdit;
   selected: EditSelection;
@@ -36,11 +43,58 @@ export function VideoEditPreview({
   onLayerChange: (id: string, patch: Partial<BrandLayer>) => void;
 }) {
   const { t } = useI18n();
+  const items = buildEditTimeline({ intro: edit.intro, outro: edit.outro, clips, posters });
+  const [previewId, setPreviewId] = useState(() => defaultTimelineId(items));
+  const [advancing, setAdvancing] = useState(false);
   const [frameRef, frame] = useElementSize<HTMLDivElement>();
   const [drag, setDrag] = useState<Drag | null>(null);
   const [live, setLive] = useState<{ left: number; top: number; w: number } | null>(null);
   const boxes = useRef(new Map<string, HTMLImageElement>());
-  const showing = selected === "intro" || selected === "outro" ? edit[selected] : undefined;
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const current = items.find((item) => item.id === previewId) ?? items.find((item) => item.id === defaultTimelineId(items));
+  const showingBookend = current && isTimelineBookend(current.id) ? current : undefined;
+
+  useEffect(() => {
+    if (items.some((item) => item.id === previewId)) return;
+    setPreviewId(defaultTimelineId(items));
+  }, [items, previewId]);
+
+  useEffect(() => {
+    if (selected === "intro" || selected === "outro") setPreviewId(selected);
+  }, [selected]);
+
+  function playFrom(id: string) {
+    const item = items.find((row) => row.id === id);
+    onSelect(id);
+    setPreviewId(id);
+    setAdvancing(Boolean(item?.src));
+    if (item?.mediaKind === "video") {
+      requestAnimationFrame(() => void videoRef.current?.play());
+    }
+  }
+
+  function advance() {
+    const nextId = nextPlayableTimelineId(items, previewId);
+    if (!nextId) {
+      setAdvancing(false);
+      return;
+    }
+    onSelect(nextId);
+    setPreviewId(nextId);
+  }
+
+  useEffect(() => {
+    if (!advancing || current?.mediaKind !== "video") return;
+    void videoRef.current?.play();
+  }, [advancing, current?.id, current?.src, current?.mediaKind]);
+
+  useEffect(() => {
+    if (!advancing || current?.mediaKind !== "image" || !current.src) return;
+    const timer = window.setTimeout(advance, (current.durationSec ?? 2) * 1000);
+    return () => window.clearTimeout(timer);
+    // advance closes over the latest previewId via current.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [advancing, current?.id, current?.mediaKind, current?.src, current?.durationSec]);
 
   function startDrag(event: React.PointerEvent, layer: BrandLayer, mode: Drag["mode"]) {
     const img = boxes.current.get(layer.id);
@@ -89,26 +143,17 @@ export function VideoEditPreview({
         ref={frameRef}
         onPointerMove={moveDrag}
         onPointerUp={endDrag}
-        onClick={() => onSelect("")}
+        onClick={() => onSelect(previewId)}
         className={`relative w-full overflow-hidden rounded-lg bg-black ${aspectRatio === "9:16" ? "max-w-[22rem]" : "max-w-3xl"} ${ASPECT_CLASS[aspectRatio]}`}
       >
-        {showing ? (
-          <BookendMedia clip={showing} />
-        ) : reelUrl ? (
-          <video
-            key={reelUrl}
-            src={reelUrl}
-            poster={mainThumbnail}
-            controls
-            className="absolute inset-0 h-full w-full object-contain"
-          />
-        ) : mainThumbnail ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={mainThumbnail} alt="" className="absolute inset-0 h-full w-full object-contain" />
-        ) : (
-          <p className="absolute inset-0 grid place-items-center text-sm text-white/70">{t("video.preview.composing")}</p>
-        )}
-        {showing || !frame.width
+        <TimelineMedia
+          item={current}
+          videoRef={videoRef}
+          emptyLabel={t(current?.kind === "clip" ? "video.preview.clipPending" : "video.preview.slotEmpty")}
+          onPlay={() => setAdvancing(true)}
+          onEnded={advance}
+        />
+        {showingBookend || !frame.width
           ? null
           : edit.layers.map((layer) => {
               const dragging = drag?.id === layer.id ? live : null;
@@ -146,87 +191,49 @@ export function VideoEditPreview({
               );
             })}
       </div>
-      <div className="flex gap-3">
-        <BookendCard
-          label={t("video.preview.intro")}
-          clip={edit.intro}
-          active={selected === "intro"}
-          onClick={() => onSelect(selected === "intro" ? "" : "intro")}
-        />
-        <BookendCard
-          label={t("video.preview.main")}
-          thumbnail={mainThumbnail}
-          active={!showing}
-          onClick={() => onSelect("")}
-        />
-        <BookendCard
-          label={t("video.preview.outro")}
-          clip={edit.outro}
-          active={selected === "outro"}
-          onClick={() => onSelect(selected === "outro" ? "" : "outro")}
-        />
-      </div>
+      <VideoEditTimeline items={items} activeId={previewId} onPlayFrom={playFrom} />
     </div>
   );
 }
 
-function BookendMedia({ clip }: { clip: BookendClip }) {
-  return clip.kind === "video" ? (
-    <video key={clip.assetUrl} src={clip.assetUrl} controls autoPlay className="absolute inset-0 h-full w-full object-cover" />
-  ) : (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={clip.assetUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
-  );
-}
-
-function BookendCard({
-  label,
-  clip,
-  thumbnail,
-  active,
-  onClick,
+function TimelineMedia({
+  item,
+  videoRef,
+  emptyLabel,
+  onPlay,
+  onEnded,
 }: {
-  label: string;
-  clip?: BookendClip;
-  thumbnail?: string;
-  active: boolean;
-  onClick: () => void;
+  item?: EditTimelineItem;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  emptyLabel: string;
+  onPlay: () => void;
+  onEnded: () => void;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex w-20 flex-col overflow-hidden rounded-md border text-left text-[11px] font-semibold ${active ? "border-2 border-[var(--studio-teal)]" : "border-[var(--studio-line)]"}`}
-    >
-      <span className="relative block aspect-video bg-[var(--studio-fill)]">
-        <CardThumb clip={clip} thumbnail={thumbnail} />
-      </span>
-      <span className="bg-white px-1.5 py-1">{label}</span>
-    </button>
-  );
-}
-
-// Still for a chosen clip, or a dashed slot when intro / outro is empty.
-function CardThumb({ clip, thumbnail }: { clip?: BookendClip; thumbnail?: string }) {
-  const { t } = useI18n();
-  if (clip?.kind === "video") {
-    return <video src={clip.assetUrl} muted playsInline className="absolute inset-0 h-full w-full object-cover" />;
-  }
-  const src = clip?.kind === "image" ? clip.assetUrl : thumbnail;
-  if (src) {
+  if (item?.mediaKind === "video" && item.src) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <video
+        ref={videoRef}
+        src={item.src}
+        poster={item.poster}
+        controls
+        playsInline
+        onPlay={onPlay}
+        onEnded={onEnded}
+        className="absolute inset-0 h-full w-full object-contain"
+      />
     );
   }
-  return (
-    <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 border border-dashed border-[var(--studio-muted)] bg-[var(--studio-panel)] text-[9px] font-semibold leading-none text-[var(--studio-muted)]">
-      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-        <rect x="3" y="5" width="18" height="14" rx="2" />
-        <circle cx="9" cy="10" r="1.4" />
-        <path d="M7 16l3.2-3.2L13 15l2-2 3 3" />
-      </svg>
-      {t("video.layers.unset")}
-    </span>
-  );
+  if (item?.mediaKind === "image" && item.src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={item.src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+    );
+  }
+  if (item?.poster) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={item.poster} alt="" className="absolute inset-0 h-full w-full object-contain" />
+    );
+  }
+  return <p className="absolute inset-0 grid place-items-center text-sm text-white/70">{emptyLabel}</p>;
 }

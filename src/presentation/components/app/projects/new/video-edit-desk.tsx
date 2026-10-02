@@ -16,7 +16,7 @@ import {
   type ExportJob,
 } from "@/presentation/components/app/projects/new/browser-video-export";
 import { ExportProgressOverlay } from "@/presentation/components/app/projects/new/export-progress-overlay";
-import { isReelBusy, isReelCurrent } from "@/service/reel/fingerprint";
+import { clipUrlsForExport, timelineClips } from "@/service/video-edit/edit-timeline";
 import { EDIT_LIMITS, emptyEdit, type BookendClip, type BrandLayer, type VideoEdit } from "@/model/video-edit";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import { displayMediaSrc } from "@/util/media-src";
@@ -26,20 +26,16 @@ const SAVE_DELAY_MS = 600;
 
 export function VideoEditDesk({
   project,
-  pending,
   error,
-  onComposeReel,
   onProjectChange,
 }: {
   project: PublicVideo;
-  pending: string;
   error: string;
-  onComposeReel: () => void;
   onProjectChange: (project: PublicVideo) => void;
 }) {
   const { t } = useI18n();
   const [edit, setEdit] = useState<VideoEdit>(() => project.edit ?? emptyEdit());
-  const [selected, setSelected] = useState<EditSelection>("");
+  const [selected, setSelected] = useState<EditSelection>("clip-1");
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -51,14 +47,6 @@ export function VideoEditDesk({
   useEffect(() => {
     latest.current = edit;
   }, [edit]);
-
-  const reelCurrent = isReelCurrent(project);
-  const reelBusy = isReelBusy(project.reelStatus) || pending === "reel";
-  const reelFailed = project.reelStatus === "failed" && !reelCurrent;
-  useEffect(() => {
-    if (reelCurrent || reelBusy || reelFailed) return;
-    onComposeReel();
-  }, [reelCurrent, reelBusy, reelFailed, onComposeReel]);
 
   const save = useCallback(async () => {
     if (timer.current) window.clearTimeout(timer.current);
@@ -125,15 +113,7 @@ export function VideoEditDesk({
       delete next[slot];
       return next;
     });
-    if (selected === slot) setSelected("");
-  }
-
-  async function run<T>(work: () => Promise<T>) {
-    setBusy(true);
-    const saved = await save();
-    const result = saved ? await work() : undefined;
-    setBusy(false);
-    return result;
+    if (selected === slot) setSelected("clip-1");
   }
 
   async function exportVideo(existingUrl: string | undefined, filename: string) {
@@ -152,10 +132,13 @@ export function VideoEditDesk({
       if (!saved || controller.signal.aborted) return;
       if (existingUrl) {
         await downloadVideoFile(existingUrl, filename, setExportJob, controller.signal);
-      } else if (project.reelUrl) {
-        await renderVideoInBrowser(project.reelUrl, edit, filename, setExportJob, controller.signal);
       } else {
-        setMessage(t("video.export.failed"));
+        const clipUrls = clipUrlsForExport(project.clips);
+        if (clipUrls.length === 0) {
+          setMessage(t("video.export.failed"));
+          return;
+        }
+        await renderVideoInBrowser(clipUrls, edit, filename, setExportJob, controller.signal);
       }
     } catch (error) {
       if (!(error instanceof ExportCancelled)) setMessage(t("video.export.failed"));
@@ -170,16 +153,15 @@ export function VideoEditDesk({
     exportAbort.current?.abort();
   }
 
-  const shownError =
-    message || error || (reelFailed ? project.reelError || t("video.edit.reelComposeFailed") : "");
+  const shownError = message || error;
 
   return (
     <>
     <StudioFrame
       preview={
         <VideoEditPreview
-          reelUrl={reelCurrent ? project.reelUrl : undefined}
-          mainThumbnail={startSceneThumbnail(project)}
+          clips={timelineClips(project)}
+          posters={clipPosters(project)}
           aspectRatio={project.aspectRatio}
           edit={edit}
           selected={selected}
@@ -220,11 +202,6 @@ export function VideoEditDesk({
             }
           />
           <VideoEditExport project={project} edit={edit} saving={saving || busy} pending={busy} onExport={(url, filename) => void exportVideo(url, filename)} />
-          {reelFailed ? (
-            <button type="button" onClick={onComposeReel} className="self-start text-xs font-semibold text-[var(--studio-teal)]">
-              {t("video.edit.recompose")}
-            </button>
-          ) : null}
           {shownError ? (
             <p role="alert" className="text-xs font-medium text-[#e11d48]">
               {translateAppError(shownError, t)}
@@ -238,11 +215,10 @@ export function VideoEditDesk({
   );
 }
 
-// First clip's start still, used as the Main thumbnail.
-function startSceneThumbnail(project: PublicVideo) {
-  const frame = [...project.frames]
+// Start still per clip, used as timeline posters.
+function clipPosters(project: PublicVideo) {
+  return project.frames
     .filter((item) => item.position === "start")
-    .sort((a, b) => a.clipNumber - b.clipNumber)
-    .find((item) => displayMediaSrc(item));
-  return frame ? displayMediaSrc(frame) : undefined;
+    .map((item) => ({ clipNumber: item.clipNumber, src: displayMediaSrc(item) }))
+    .filter((item): item is { clipNumber: number; src: string } => Boolean(item.src));
 }

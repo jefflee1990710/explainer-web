@@ -3,6 +3,7 @@
 import type { FFmpeg } from "@ffmpeg/ffmpeg";
 import type { VideoEdit } from "@/model/video-edit";
 import { stableEditString } from "@/service/video-edit/edit-state";
+import { buildClipConcatFilter } from "@/service/video-edit/clip-concat-filter";
 import { buildFinalFilter } from "@/service/video-edit/final-filter";
 import { layerPlacement } from "@/service/video-edit/layer-placement";
 import { parseProbe } from "@/service/video-edit/probe";
@@ -182,16 +183,17 @@ export async function downloadVideoFile(
   saveBlob(bytes, filename);
 }
 
-// Burn layers and bookends in the browser, then save the mp4 locally.
+// Concat clips, then burn layers and bookends in the browser, then save locally.
 export async function renderVideoInBrowser(
-  reelUrl: string,
+  clipUrls: string[],
   edit: VideoEdit,
   filename: string,
   onProgress: (job: ExportJob) => void,
   signal: AbortSignal,
 ) {
+  if (clipUrls.length === 0) throw new Error("clips");
   const phases: ExportPhase[] = ["encoder", "download", "encode", "save"];
-  const key = `${reelUrl}#${stableEditString(edit)}`;
+  const key = `${clipUrls.join("|")}#${stableEditString(edit)}`;
   const cached = rendered.get(key);
   if (cached) {
     onProgress({ phase: "save", ratio: 1, phases });
@@ -202,7 +204,11 @@ export async function renderVideoInBrowser(
   const ffmpeg = await loadEncoder((ratio) => onProgress({ phase: "encoder", ratio, phases }), signal);
   throwIfAborted(signal);
 
-  const files: Array<{ name: string; url: string }> = [{ name: "main.mp4", url: reelUrl }];
+  const clipFiles = clipUrls.map((url, index) => ({
+    name: clipUrls.length === 1 ? "main.mp4" : `clip${index}.mp4`,
+    url,
+  }));
+  const files: Array<{ name: string; url: string }> = [...clipFiles];
   edit.layers.forEach((layer, index) => {
     files.push({ name: `layer${index}.${extOf(layer.assetUrl)}`, url: layer.assetUrl });
   });
@@ -218,6 +224,10 @@ export async function renderVideoInBrowser(
         signal,
       );
       await ffmpeg.writeFile(file.name, bytes);
+    }
+
+    if (clipUrls.length > 1) {
+      await concatClipsToMain(ffmpeg, clipUrls.length, signal);
     }
 
     const main = await probeFile(ffmpeg, "main.mp4");
@@ -243,7 +253,7 @@ export async function renderVideoInBrowser(
     const intro = await addBookend("intro", edit.intro);
     const layers = [];
     for (let index = 0; index < edit.layers.length; index += 1) {
-      args.push("-i", files[1 + index].name);
+      args.push("-i", `layer${index}.${extOf(edit.layers[index].assetUrl)}`);
       layers.push({
         index: nextIndex++,
         placement: layerPlacement(edit.layers[index], main.width, main.height),
@@ -295,6 +305,27 @@ export async function renderVideoInBrowser(
     saveBlob(bytes, filename);
   } finally {
     for (const file of files) await forget(ffmpeg, file.name);
+    await forget(ffmpeg, "main.mp4");
     await forget(ffmpeg, "final.mp4");
   }
+}
+
+// Join clip0…N into main.mp4 before the branding filter runs.
+async function concatClipsToMain(ffmpeg: FFmpeg, count: number, signal: AbortSignal) {
+  const probes = [];
+  for (let i = 0; i < count; i += 1) {
+    probes.push(await probeFile(ffmpeg, `clip${i}.mp4`));
+  }
+  const hasAudio = probes.every((probe) => probe.hasAudio);
+  const filter = buildClipConcatFilter(count, hasAudio);
+  const args = probes.flatMap((_, i) => ["-i", `clip${i}.mp4`]);
+  args.push("-filter_complex", filter, "-map", "[v]");
+  if (hasAudio) args.push("-map", "[a]", "-c:a", "aac", "-ac", "2");
+  args.push("-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", "main.mp4");
+  const code = await ffmpeg.exec(args, undefined, { signal });
+  if (signal.aborted) {
+    resetEncoder();
+    throw new ExportCancelled();
+  }
+  if (code !== 0) throw new Error("concat");
 }

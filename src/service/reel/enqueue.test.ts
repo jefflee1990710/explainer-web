@@ -24,8 +24,8 @@ function ready(overrides: Partial<ReelRecord> = {}): ClipStageSource & ReelRecor
   };
 }
 
-test("a finished clip with no reel queues 成片合成", () => {
-  assert.equal(shouldQueueReel(ready()), true);
+test("a finished clip with no reel does not auto-queue 成片合成", () => {
+  assert.equal(shouldQueueReel(ready()), false);
 });
 
 test("an unfinished clip does not queue a reel", () => {
@@ -41,5 +41,5 @@ test("a reel already running or already current is not queued again", () => {
     shouldQueueReel(ready({ reelStatus: "completed", reelFingerprint: fingerprint, reelUrl: "https://blob/reel.mp4" })),
     false,
   );
-  assert.equal(shouldQueueReel(ready({ reelStatus: "completed", reelFingerprint: "old", reelUrl: "https://blob/old.mp4" })), true);
+  assert.equal(shouldQueueReel(ready({ reelStatus: "completed", reelFingerprint: "old", reelUrl: "https://blob/old.mp4" })), false);
 });
