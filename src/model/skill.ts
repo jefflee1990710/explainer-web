@@ -21,7 +21,16 @@ export type HiggsfieldDefaults = {
   videoModel: string;
 };
 
+// One turn of the chat used to edit a custom director.
+export type DirectorChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  changedPaths?: string[];
+  createdAt: Date;
+};
+
 // Selectable generation skill stored in Mongo and seeded from repo markdown.
+// Custom directors are user forks: they carry an owner and the template slug.
 export type Skill = {
   _id: ObjectId;
   slug: string;
@@ -34,6 +43,9 @@ export type Skill = {
   higgsfieldDefaults: HiggsfieldDefaults;
   isActive: boolean;
   sortOrder: number;
+  ownerClerkUserId?: string;
+  baseSlug?: string;
+  chat?: DirectorChatMessage[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -62,6 +74,18 @@ export const skillSchema: z.ZodType<Skill> = z.object({
   }),
   isActive: z.boolean(),
   sortOrder: z.number(),
+  ownerClerkUserId: z.string().optional(),
+  baseSlug: z.string().optional(),
+  chat: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string(),
+        changedPaths: z.array(z.string()).optional(),
+        createdAt: z.date(),
+      }),
+    )
+    .optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { characterLockFromCast } from "@/service/character/cast-prompt";
 import { skillsCollection, videosCollection } from "@/dao";
+import { asRunSkill } from "@/service/director/behavior-slug";
 import { keepProposalRegenerateClips } from "@/service/director/phase-a-edit";
 import { runPhaseA } from "@/service/director/run-phase-a";
 import { videoStyle } from "@/service/higgsfield/frame-prompts";
@@ -35,14 +36,15 @@ export async function runPhaseAJob(
   if (!project) return;
 
   const skills = await skillsCollection();
-  const skill = await skills.findOne({ _id: project.skillId });
-  if (!skill) {
+  const found = await skills.findOne({ _id: project.skillId });
+  if (!found) {
     await projects.updateOne(
       { _id: projectId },
       { $set: { status: "failed", error: "找不到風格", updatedAt: new Date() } },
     );
     return;
   }
+  const skill = asRunSkill(found);
 
   try {
     const phaseA = await runPhaseA({
