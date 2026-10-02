@@ -56,6 +56,7 @@ export const errorsEn = {
   directorChatSubscribe: "Subscribe to use AI editing",
   directorChatFailed: "AI edit failed. Try again.",
   directorChatNoEdits: "AI did not change any file",
+  directorChatRateLimited: "Too many AI edits. Try again later.",
   directorCreateFailed: "Could not create director",
   directorSaveFailed: "Could not save director",
   directorDeleteFailed: "Could not delete director",

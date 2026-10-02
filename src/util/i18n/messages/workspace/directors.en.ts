@@ -24,7 +24,7 @@ export const directorsEn = {
   discard: "Discard",
   delete: "Delete",
   deleteTitle: "Delete this director?",
-  deleteBody: "This cannot be undone. Videos that use this director will fail at their next step.",
+  deleteBody: "This director will be removed from your list. Videos already made with it keep working.",
   chatTitle: "Edit with AI",
   chatPlaceholder: "Describe what to change…",
   chatSend: "Send",

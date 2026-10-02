@@ -52,6 +52,7 @@ const EXACT: Record<string, string> = {
   "需要訂閱才能使用 AI 修改": "errors.directorChatSubscribe",
   "AI 修改失敗，請再試一次": "errors.directorChatFailed",
   "AI 沒有修改任何檔案": "errors.directorChatNoEdits",
+  "AI 修改太頻繁，請稍後再試": "errors.directorChatRateLimited",
   "建立 Director 失敗": "errors.directorCreateFailed",
   "儲存 Director 失敗": "errors.directorSaveFailed",
   "刪除 Director 失敗": "errors.directorDeleteFailed",

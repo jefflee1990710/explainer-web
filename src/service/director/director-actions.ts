@@ -8,7 +8,12 @@ import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/c
 import { customSkillSlug } from "@/service/director/behavior-slug";
 import { selectableSkillFilter } from "@/service/director/selectable-skills";
 import { directorModel } from "@/service/director/model";
-import { directorChatSystemPrompt, directorChatUserPrompt } from "@/service/director/director-chat-prompt";
+import { chatRateLimited } from "@/service/director/chat-rate-limit";
+import {
+  directorChatSystemPrompt,
+  directorChatUserPrompt,
+  normalizeChatSummary,
+} from "@/service/director/director-chat-prompt";
 import {
   applyDirectorEdits,
   DIRECTOR_FILE_MAX,
@@ -109,13 +114,14 @@ function parseDraft(
   };
 }
 
-// Custom director owned by this user, or null for invalid / missing / not-owned ids.
+// Active custom director owned by this user, or null for invalid / missing / not-owned / deleted ids.
 async function ownedDirector(id: string, clerkUserId: string): Promise<Skill | null> {
   if (!ObjectId.isValid(id)) return null;
   const skills = await skillsCollection();
   return (await skills.findOne({
     _id: new ObjectId(id),
     ownerClerkUserId: clerkUserId,
+    isActive: true,
   })) as Skill | null;
 }
 
@@ -196,7 +202,7 @@ export async function saveDirectorAction(input: {
 
     const skills = await skillsCollection();
     const updated = (await skills.findOneAndUpdate(
-      { _id: skill._id, ownerClerkUserId: user.clerkUserId },
+      { _id: skill._id, ownerClerkUserId: user.clerkUserId, isActive: true },
       {
         $set: {
           title: meta.title,
@@ -218,17 +224,18 @@ export async function saveDirectorAction(input: {
   }
 }
 
-// Delete a custom director; existing videos keep their skillId.
+// Soft-delete a custom director; videos loading it by skillId keep working.
 export async function deleteDirectorAction(id: string): Promise<DeleteDirectorResult> {
   try {
     const user = await requireAppUser();
     if (!ObjectId.isValid(id)) return { ok: false, error: "找不到 Director" };
     const skills = await skillsCollection();
-    const removed = await skills.deleteOne({
-      _id: new ObjectId(id),
-      ownerClerkUserId: user.clerkUserId,
-    });
-    if (removed.deletedCount !== 1) return { ok: false, error: "找不到 Director" };
+    const now = new Date();
+    const removed = await skills.updateOne(
+      { _id: new ObjectId(id), ownerClerkUserId: user.clerkUserId, isActive: true },
+      { $set: { isActive: false, deletedAt: now, updatedAt: now } },
+    );
+    if (removed.matchedCount !== 1) return { ok: false, error: "找不到 Director" };
 
     revalidateDirector(id);
     return { ok: true };
@@ -260,6 +267,8 @@ export async function sendDirectorChatAction(input: {
     });
     if (!parsed.ok) return parsed;
     const draft = parsed.draft;
+
+    if (chatRateLimited(skill.chat, new Date())) return { ok: false, error: "AI 修改太頻繁，請稍後再試" };
 
     let output: z.infer<typeof directorChatSchema>;
     try {
@@ -294,14 +303,14 @@ export async function sendDirectorChatAction(input: {
     const userMsg: DirectorChatMessage = { role: "user", content: message, createdAt: now };
     const assistantMsg: DirectorChatMessage = {
       role: "assistant",
-      content: output.summary.trim(),
+      content: normalizeChatSummary(output.summary, applied.changedPaths.length),
       changedPaths: applied.changedPaths,
       createdAt: now,
     };
 
     const skills = await skillsCollection();
     const pushed = await skills.updateOne(
-      { _id: skill._id, ownerClerkUserId: user.clerkUserId },
+      { _id: skill._id, ownerClerkUserId: user.clerkUserId, isActive: true },
       { $push: { chat: { $each: [userMsg, assistantMsg], $slice: -CHAT_KEPT } } },
     );
     if (pushed.matchedCount !== 1) return { ok: false, error: "找不到 Director" };

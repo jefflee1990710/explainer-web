@@ -17,6 +17,14 @@ Rules:
 - summary: one or two short sentences describing what you changed, written in the same language as the user's request.`;
 }
 
+export const CHAT_SUMMARY_MAX = 500;
+
+// AI summary trimmed and capped; falls back to a changed-file count when empty.
+export function normalizeChatSummary(summary: string, changedCount: number): string {
+  const trimmed = summary.trim().slice(0, CHAT_SUMMARY_MAX).trim();
+  return trimmed || `已更新 ${changedCount} 個檔案`;
+}
+
 // Every draft file, SKILL.md first.
 function draftFiles(draft: DirectorDraft): Array<{ path: string; content: string }> {
   return [{ path: SKILL_PATH, content: draft.systemPrompt }, ...draft.references];

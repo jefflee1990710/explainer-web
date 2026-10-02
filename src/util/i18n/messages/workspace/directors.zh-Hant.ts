@@ -24,7 +24,7 @@ export const directorsZhHant = {
   discard: "放棄修改",
   delete: "刪除",
   deleteTitle: "刪除這個 Director？",
-  deleteBody: "刪除後無法復原。使用這個 Director 的影片在下一步會失敗。",
+  deleteBody: "這個 Director 會從列表移除，已用它建立的影片不受影響。",
   chatTitle: "用 AI 修改",
   chatPlaceholder: "描述想怎樣修改…",
   chatSend: "送出",

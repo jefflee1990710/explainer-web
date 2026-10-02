@@ -46,6 +46,7 @@ export type Skill = {
   ownerClerkUserId?: string;
   baseSlug?: string;
   chat?: DirectorChatMessage[];
+  deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -86,6 +87,7 @@ export const skillSchema: z.ZodType<Skill> = z.object({
       }),
     )
     .optional(),
+  deletedAt: z.date().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

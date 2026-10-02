@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { directorChatSystemPrompt, directorChatUserPrompt } from "@/service/director/director-chat-prompt";
+import {
+  CHAT_SUMMARY_MAX,
+  directorChatSystemPrompt,
+  directorChatUserPrompt,
+  normalizeChatSummary,
+} from "@/service/director/director-chat-prompt";
 
 test("system prompt explains phase routing and edit rules", () => {
   const system = directorChatSystemPrompt();
@@ -40,4 +45,19 @@ test("user prompt notes empty history", () => {
     message: "hi",
   });
   assert.match(prompt, /\(none\)/);
+});
+
+test("summary is trimmed", () => {
+  assert.equal(normalizeChatSummary("  Shortened hooks \n", 1), "Shortened hooks");
+});
+
+test("summary is capped at 500 characters", () => {
+  assert.equal(CHAT_SUMMARY_MAX, 500);
+  const summary = normalizeChatSummary(` ${"a".repeat(800)} `, 1);
+  assert.equal(summary, "a".repeat(500));
+});
+
+test("empty summary falls back to the changed file count", () => {
+  assert.equal(normalizeChatSummary("   ", 3), "已更新 3 個檔案");
+  assert.equal(normalizeChatSummary("", 1), "已更新 1 個檔案");
 });
