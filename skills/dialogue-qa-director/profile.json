@@ -1,0 +1,22 @@
+{
+  "en": {
+    "bestFor": "Turning an FAQ, article or explainer topic into a two-character conversation for Reels, Shorts, onboarding or support content, where viewers learn by overhearing.",
+    "structure": "Each clip runs 3–8 seconds and carries one question, one answer, or a quick question with its reply: about 1–2 clips for micro (one exchange), 2–4 for 15–20s, 4–6 for 30–45s, and 7–10 for 50–60s (up to five exchanges).",
+    "hook": "The asker kicks off with the most surprising or relatable question while already moving or holding the object in question — no greetings or introductions.",
+    "arc": "A ladder of questions that keeps getting sharper (\"but what if…\", \"then why…\"); each answer reveals one idea and sets up the next question. The biggest \"aha\" lands in the last third, followed by a satisfied reaction and one short closing line.",
+    "narrator": "No narrator. You must pick exactly 2 characters: an asker who stands in for the viewer and a calm, knowledgeable answerer. Each keeps a distinct voice that stays the same all the way through.",
+    "visual": "Look and palette come from the chosen visual style. The two characters keep fixed sides for the whole video; props or simple diagrams between them illustrate each answer, and the asker visibly reacts every time.",
+    "audio": "No background music — reaction and prop sound effects only, with a lift at the \"aha\" moment. Dialogue is audio only, never shown as subtitles or speech bubbles.",
+    "rules": "Exactly two character images are required. Answers only use facts from your source; questions the source can't answer are dropped. The characters never swap sides and no third person appears."
+  },
+  "zh-Hant": {
+    "bestFor": "把 FAQ、文章或解說題目變成兩個角色的對話，適合 Reels、Shorts、新手教學或客服內容，觀眾在旁邊「聽」就學到重點。",
+    "structure": "每段 3–8 秒，內容是一條問題、一個答案，或一問一答：微短片約 1–2 段（一問一答），15–20 秒約 2–4 段，30–45 秒約 4–6 段，50–60 秒約 7–10 段（最多五輪問答）。",
+    "hook": "提問者一開口就問最意想不到或最有共鳴的問題，而且已經在做動作或拿著問題道具；不打招呼、不做開場介紹。",
+    "arc": "問題一級一級追問得更尖銳（「但如果……」「那為甚麼……」），每個答案講清一個重點，再自然帶出下一條問題。最大的「原來如此」放在最後三分之一，然後以滿意的反應和一句簡短收尾作結。",
+    "narrator": "沒有旁白。必須正好選 2 個角色：一個代表觀眾發問的提問者，一個冷靜、有知識的回答者。兩人各有固定聲線，全片不變。",
+    "visual": "畫風和配色跟你選的視覺風格。兩個角色全片固定站在各自一邊；他們之間用道具或簡單圖解說明答案，提問者每次都會有明顯反應。",
+    "audio": "沒有背景音樂，只有反應和道具音效，在「原來如此」那一刻加強。對白只有聲音，不會變成字幕或對話框。",
+    "rules": "一定要上載正好兩個角色。答案只用素材裡的事實，素材答不到的問題會換掉。兩個角色不會互換位置，也不會出現第三個人。"
+  }
+}

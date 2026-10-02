@@ -1,0 +1,22 @@
+{
+  "en": {
+    "bestFor": "Having one character face the camera and read your own script — announcements, quick updates or presenter-style messages.",
+    "structure": "One clip per spoken sentence, from 1 to 20 clips. Each clip's length follows its sentence (about 4 Chinese characters or 2.4 English words per second at medium pace), up to 12 seconds.",
+    "hook": "No separate hook is added — the video opens straight on the character saying your first sentence, so lead with your strongest line.",
+    "arc": "Follows your script sentence by sentence in order; each clip carries straight on from the previous one without restaging.",
+    "narrator": "Exactly one character reads every line aloud to camera. Your script is used word for word; your separate instruction only guides tone and emphasis and is never spoken.",
+    "visual": "Look and palette come from the chosen visual style. One locked medium close-up with the character centred and looking into the lens; the same background, light and camera throughout, with only the mouth and small nods moving.",
+    "audio": "No background music — just the character's voice, with a bottom subtitle that matches each sentence exactly.",
+    "rules": "Needs a script, one character image and an aspect ratio. Lines are never rewritten, merged or split; if there are more than 20 sentences or one runs over 12 seconds, you'll be asked to shorten it."
+  },
+  "zh-Hant": {
+    "bestFor": "讓一個角色對住鏡頭讀出你自己的稿，適合公告、簡短更新或主持人式訊息。",
+    "structure": "一句一段，共 1 至 20 段。每段秒數跟句子長度走（正常語速約每秒 4 個中文字或 2.4 個英文字），最長 12 秒。",
+    "hook": "不會另外加開場，影片一開始就是角色讀出你的第一句，所以最有力的一句應該放最前。",
+    "arc": "按你的稿逐句順序讀出；每段直接接上一段，不會重新佈置畫面。",
+    "narrator": "正好一個角色對鏡頭讀出每一句。稿件一字不改照讀；你另外寫的指示只用來決定語氣和重點，不會讀出來。",
+    "visual": "畫風和配色跟你選的視覺風格。固定中近景，角色置中、眼望鏡頭；背景、燈光和鏡頭全程不變，只有嘴巴和輕輕點頭在動。",
+    "audio": "沒有背景音樂，只有角色的聲音，畫面底部字幕與每句完全一致。",
+    "rules": "需要稿件、一個角色和畫面比例。句子不會被改寫、合併或拆開；超過 20 句或某句超過 12 秒，會請你自行刪短。"
+  }
+}

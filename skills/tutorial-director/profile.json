@@ -1,0 +1,22 @@
+{
+  "en": {
+    "bestFor": "How-tos, recipes, setup guides and workflows — step-by-step tutorials for Reels, Shorts, onboarding or help centres that viewers can follow even with the sound off.",
+    "structure": "Each clip runs 3–8 seconds: one result-first opening, one clip per step, and one finished-result clip. About 2–3 steps for 15–20s, 3–5 for 30–45s and 5–8 for 50–60s; a micro version fits a single step.",
+    "hook": "Opens on the finished result in action with a promise line (\"How to … in N steps\"), then reveals the empty workspace with everything laid out.",
+    "arc": "Result first → steps in the source's order, each one hand action with one visible change → an optional common-mistake clip (only if the source mentions one) → the finished result at rest with a closing line.",
+    "narrator": "A calm, clear instructor giving short instructions in the imperative (\"Cut…\", \"Tap…\", \"Add…\"), one action and object per step.",
+    "visual": "Look and palette come from the chosen visual style. One fixed workspace with the tools laid out and an area for the result; a step number appears in the same spot each time, and the object's progress carries over from step to step.",
+    "audio": "Steady, unobtrusive background music with a soft hit on each step number and a warm resolve at the finished result.",
+    "rules": "Steps, tools and quantities come only from your source — nothing invented. Each step is one action; a step with two actions gets split. No captions; the only on-screen text is the step number and labels already printed on the objects."
+  },
+  "zh-Hant": {
+    "bestFor": "教學、食譜、設定指南和工作流程：一步一步的教學片，適合 Reels、Shorts、新手教學或說明中心，觀眾就算靜音也跟得到。",
+    "structure": "每段 3–8 秒：一段先亮成果的開場、每個步驟一段，再加一段完成品。15–20 秒約 2–3 步，30–45 秒約 3–5 步，50–60 秒約 5–8 步；微短片放一個步驟。",
+    "hook": "開場先展示完成品實際運作，配一句承諾（「教你用 N 步做到……」），然後拉出擺好所有材料和工具的空工作枱。",
+    "arc": "先亮成果 → 按素材次序逐步示範，每步一個手部動作加一個看得見的變化 → 可選的常見錯誤示範（只限素材有提到）→ 完成品停在畫面，加一句收尾。",
+    "narrator": "冷靜、清晰的導師聲線，用簡短的指令句（「切……」「按……」「加……」），每步一個動作和一件物件。",
+    "visual": "畫風和配色跟你選的視覺風格。全片同一個工作枱，工具擺好，另有放成品的位置；步驟編號每次在同一位置出現，物件的進度一步接一步延續。",
+    "audio": "平穩、不搶戲的背景音樂，每個步驟編號出現時有輕輕一拍，完成品出現時溫暖收結。",
+    "rules": "步驟、工具和份量只來自你的素材，不會自行加插。每步只做一個動作，兩個動作的步驟會拆開。不加字幕，畫面文字只有步驟編號和物件本身的標籤。"
+  }
+}

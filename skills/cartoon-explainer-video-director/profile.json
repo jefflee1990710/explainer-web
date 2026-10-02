@@ -1,0 +1,22 @@
+{
+  "en": {
+    "bestFor": "Turning an idea, article or set of notes into a clear concept explainer for Reels, Shorts, marketing or presentations — especially abstract topics that need a simple visual metaphor.",
+    "structure": "Each clip runs 3–8 seconds and the count follows the content: about 1–2 clips for a micro short, 2–4 for 15–20s, 4–6 for 30–45s, and 7–10 for a full 50–60s explainer.",
+    "hook": "The first one to two seconds stack at least two hooks at once — a punchy spoken line plus a visual or sound opener, such as the character sliding into frame, an oversized prop popping up, or a sudden whoosh.",
+    "arc": "Picks the pattern that suits the source, e.g. surprise → setup → how it works → consequence → takeaway for education, or pain point → reveal → proof → call to action for products. The main answer is held back until near the end, and the video finishes on a clean resting payoff rather than looping.",
+    "narrator": "A warm adult male voice narrates every line from off-screen, in the third person. The character on screen stays silent and demonstrates each point by handling props; the narrator may call it by name.",
+    "visual": "A fixed whiteboard-doodle look: bold, slightly wobbly black lines with flat marker-style colour fills on a white canvas, starring a round-headed everyman (or your uploaded character). Ideas are shown with boxes, bins, arrows, tags and short handwritten labels, and something on screen changes every couple of seconds.",
+    "audio": "Background music follows the emotional turn of the script, with quick sound effects (pops, whooshes, dings) timed to visual changes. Narration is voice only and never appears as subtitles.",
+    "rules": "You must pick an aspect ratio. The source's meaning is kept and no facts or figures are invented. The whiteboard style and character design stay locked — no chalkboard version or replacement hero. You approve the storyboard before any video is made."
+  },
+  "zh-Hant": {
+    "bestFor": "把一個概念、文章或筆記變成清楚易明的解說片，適合 Reels、Shorts、行銷與簡報；特別適合需要用簡單比喻講解的抽象題目。",
+    "structure": "每段 3–8 秒，段數跟內容走：微短片約 1–2 段，15–20 秒約 2–4 段，30–45 秒約 4–6 段，50–60 秒完整解說約 7–10 段。",
+    "hook": "頭一兩秒同時疊加至少兩種吸睛手法：一句有力的開場白，加上畫面或聲效，例如角色滑入鏡頭、超大道具彈出，或一下「咻」聲。",
+    "arc": "按素材揀合適的結構，例如教學類用「驚喜 → 背景 → 原理 → 後果 → 重點」，產品類用「痛點 → 揭曉 → 證明 → 行動呼籲」。答案留到接近結尾才揭曉，最後乾淨收結，不會首尾循環。",
+    "narrator": "由一把溫暖的成年男聲在鏡頭外以第三人稱講解每一句。畫面上的角色從不開口，只用道具默默示範，旁白可以直接叫出角色名字。",
+    "visual": "固定的白板塗鴉風格：白色畫布、手繪黑色線條、平塗馬克筆顏色，主角是圓頭小人（或你上載的角色）。用紙箱、箱子、箭咀、標籤和簡短手寫字表達概念，大約每兩秒畫面就有變化。",
+    "audio": "背景音樂跟住劇本的情緒轉折，配合畫面變化加入短促音效（啵、咻、叮）。旁白只有聲音，不會變成字幕。",
+    "rules": "一定要選畫面比例。保留素材原意，不會加入虛構事實或數據。白板風格和角色造型鎖定，不會轉成黑板版或換主角。分鏡核准後才開始產出影片。"
+  }
+}

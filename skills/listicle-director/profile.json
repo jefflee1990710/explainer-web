@@ -1,0 +1,22 @@
+{
+  "en": {
+    "bestFor": "Lists of tips, tools, mistakes or reasons — \"N things…\" videos for Reels, Shorts, or carousels turned into video.",
+    "structure": "Each clip runs 3–8 seconds: an opening hook, one clip per item, and an optional short outro. About 3 items for 15–20s, 4–5 for 30–45s and 6–8 for 50–60s; a micro version fits 1–2 items.",
+    "hook": "States the count and the promise (\"5 things…\", \"3 mistakes…\") while the first number or item slams in, sometimes teasing the final item.",
+    "arc": "Strong item first, weakest in the middle, best saved for last with the most vivid image. Long lists may switch camera or scale once mid-way to reset attention; the outro shows the whole set together and rests.",
+    "narrator": "An energetic, clear host talking to the viewer, with every item line in the same parallel shape (e.g. \"Number one: …\" or \"Want X? Do Y.\").",
+    "visual": "Look and palette come from the chosen visual style. Every frame shows a numbered list of the item titles, clearly readable, with the current one highlighted, plus a matching number badge and one concrete image per item in a constant setting.",
+    "audio": "A driving beat that hits each time a number pops in and builds up on the final item.",
+    "rules": "Items come only from your source — the list is never padded. Each item needs a concrete visual stand-in. The narration isn't captioned; the numbered list is the on-screen text."
+  },
+  "zh-Hant": {
+    "bestFor": "整理貼士、工具、常見錯誤或理由的清單片，即是「N 件事……」類型，適合 Reels、Shorts，或把圖文輪播變成影片。",
+    "structure": "每段 3–8 秒：一段開場、每個項目一段，再加可選的簡短結尾。15–20 秒約 3 項，30–45 秒約 4–5 項，50–60 秒約 6–8 項；微短片放 1–2 項。",
+    "hook": "開場直接講出數量和好處（「5 件事……」「3 個錯誤……」），同時第一個數字或項目衝入畫面，有時會先預告最後一項。",
+    "arc": "強的項目放第一，較弱的放中間，最好的留到最後並配最搶眼的畫面。項目多的話，中途會轉一次鏡頭或比例重新抓住注意力；結尾一次過展示全部項目並停住。",
+    "narrator": "有活力、清晰的主持聲線，直接對觀眾說，每項都用同一個句式（例如「第一：……」或「想要 X？就做 Y。」）。",
+    "visual": "畫風和配色跟你選的視覺風格。每個畫面都有清楚的編號清單，列出各項標題並標示目前這一項；另有統一的數字標記，每項配一個具體圖像，場景全程不變。",
+    "audio": "有推進感的節拍，每個數字彈出時有重拍，最後一項音樂再推高。",
+    "rules": "項目只來自你的素材，不會湊數。每項都要有具體畫面代表。旁白不加字幕，畫面上的文字就是那張編號清單。"
+  }
+}

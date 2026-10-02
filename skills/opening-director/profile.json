@@ -1,0 +1,22 @@
+{
+  "en": {
+    "bestFor": "A short brand intro bumper that plays before your main video and introduces the brand or product name.",
+    "structure": "Always a single 3–4 second clip. The length can't be changed and there is no story.",
+    "hook": "One single reveal move: the logo draws on, pops in and settles, snaps together from loose shapes, is uncovered by a wipe, or the camera slowly pushes in.",
+    "arc": "Logo hidden or incomplete → one reveal → full logo at rest, ready for the main video to begin.",
+    "narrator": "Usually no voice; at most one very short spoken line, e.g. the brand name or a tagline. An attached mascot may present the logo.",
+    "visual": "Look and palette come from the chosen visual style. A calm canvas with few elements and plenty of space around the logo. An attached logo is reproduced exactly; without one, the brand name appears as title lettering.",
+    "audio": "No background music — one whoosh, pop or chime synced to the reveal.",
+    "rules": "Exactly one 3–4 second clip. An attached logo is never redrawn, restyled or cropped. No subtitles beyond the logo or title, and it ends on the logo at rest without looping."
+  },
+  "zh-Hant": {
+    "bestFor": "放在正片前面的簡短品牌開場，介紹品牌或產品名稱。",
+    "structure": "永遠只有一段，長 3–4 秒。不能選長度，也沒有故事。",
+    "hook": "只用一個揭曉動作：logo 一筆一筆畫出、彈出後停穩、由散開的形狀拼合、被一抹掀開，或鏡頭慢慢推近。",
+    "arc": "logo 隱藏或未完整 → 一次揭曉 → 完整 logo 停住，讓正片可以直接接上。",
+    "narrator": "通常沒有聲音；最多一句很短的口白，例如品牌名或標語。有上載吉祥物的話，可以由它帶出 logo。",
+    "visual": "畫風和配色跟你選的視覺風格。畫面簡潔、元素少，logo 四周留白充足。有上載 logo 就完全照原樣呈現；沒有的話，用標題字體顯示品牌名。",
+    "audio": "沒有背景音樂，只配一下跟揭曉同步的「咻」、「啵」或鈴聲。",
+    "rules": "只有一段 3–4 秒。上載的 logo 絕不重畫、改風格或裁切。除了 logo 或標題外不加字幕，最後停在 logo 上，不會循環。"
+  }
+}

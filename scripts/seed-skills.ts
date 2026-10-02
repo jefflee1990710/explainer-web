@@ -2,6 +2,7 @@ import { loadEnvConfig } from "@next/env";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { skillsCollection } from "@/dao";
+import { parseSystemProfile } from "@/service/director/profile";
 import { MINIMAX_H3_VIDEO_MODEL } from "@/service/higgsfield/clip-keyframes";
 import type { HiggsfieldDefaults, SkillInputSchema } from "@/model/skill";
 
@@ -136,6 +137,10 @@ async function seedSkill(manifest: SkillManifest) {
   if (!skillFile) {
     throw new Error(`Missing SKILL.md in skills/${manifest.dir}`);
   }
+  // Public 8-field summary shown instead of the prompt; required for every system skill.
+  const profile = parseSystemProfile(
+    JSON.parse(await readFile(path.join(process.cwd(), "skills", manifest.dir, "profile.json"), "utf8")),
+  );
 
   const now = new Date();
   const skills = await skillsCollection();
@@ -147,6 +152,7 @@ async function seedSkill(manifest: SkillManifest) {
         title: manifest.title,
         titleZh: manifest.titleZh,
         description: manifest.description,
+        profile,
         systemPrompt: skillFile.content,
         references: files
           .filter((file) => file.path !== "SKILL.md")

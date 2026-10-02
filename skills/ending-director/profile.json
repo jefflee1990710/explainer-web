@@ -1,0 +1,22 @@
+{
+  "en": {
+    "bestFor": "A short brand outro that closes your video on the brand logo, optionally with a call to action or sign-off.",
+    "structure": "Always a single 3–4 second clip. The length can't be changed and there is no story.",
+    "hook": "One single resolving move: props gather and settle into the logo, the camera zooms out to the logo card, props fade away, or the logo stamps in.",
+    "arc": "Closing beat (props converging or a mascot finishing a gesture) → everything resolves → the logo card holds as the very last frame of your video.",
+    "narrator": "Usually no voice; at most one very short spoken sign-off or call to action. An attached mascot can wave goodbye or move aside to make room for the logo.",
+    "visual": "Look and palette come from the chosen visual style. A calm canvas with few elements, clean enough to hold as the last frame. An attached logo is reproduced exactly; without one, the brand name appears as title lettering, with one optional short CTA line.",
+    "audio": "No background music — one soft resolving sound (chime, pop or stamp) synced to the logo landing.",
+    "rules": "Exactly one 3–4 second clip. An attached logo is never redrawn, restyled or cropped. No subtitles beyond the logo or title and one optional CTA line, and it ends on the logo card without looping back."
+  },
+  "zh-Hant": {
+    "bestFor": "為影片收尾的簡短品牌結尾，畫面最後停在品牌 logo，可以加一句行動呼籲或道別語。",
+    "structure": "永遠只有一段，長 3–4 秒。不能選長度，也沒有故事。",
+    "hook": "只用一個收束動作：道具聚攏成 logo 並停穩、鏡頭拉遠到 logo 卡、道具淡出，或 logo 像蓋印一樣落下。",
+    "arc": "收尾片刻（道具向中間聚攏，或吉祥物做完最後一個動作）→ 全部收束 → logo 卡停住，成為整支影片的最後一格。",
+    "narrator": "通常沒有聲音；最多一句很短的道別語或行動呼籲。有上載吉祥物的話，可以揮手道別或讓位給 logo。",
+    "visual": "畫風和配色跟你選的視覺風格。畫面簡潔、元素少，乾淨到可以當最後一格停住。有上載 logo 就完全照原樣呈現；沒有的話，用標題字體顯示品牌名，可再加一句簡短 CTA。",
+    "audio": "沒有背景音樂，只配一下跟 logo 落定同步的柔和收結聲（鈴聲、「啵」或蓋印聲）。",
+    "rules": "只有一段 3–4 秒。上載的 logo 絕不重畫、改風格或裁切。除了 logo、標題和一句可選 CTA 外不加字幕，最後停在 logo 卡上，不會循環回開頭。"
+  }
+}
