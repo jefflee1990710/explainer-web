@@ -101,7 +101,12 @@ async function loadEncoder(onRatio: (ratio: number) => void, signal: AbortSignal
         (ratio) => onRatio(0.05 + ratio * 0.95),
         signal,
       );
-      await ffmpeg.load({ coreURL, wasmURL });
+      // The bundled worker rewrites dynamic import() into a hard error.
+      // public/ffmpeg is the original worker, so it can still import the core blob.
+      // Absolute URL: import.meta.url is a file:// path in dev, which would
+      // otherwise resolve "/ffmpeg/worker.js" off the filesystem.
+      const classWorkerURL = new URL("/ffmpeg/worker.js", window.location.href).href;
+      await ffmpeg.load({ classWorkerURL, coreURL, wasmURL });
       return ffmpeg;
     })().catch((error) => {
       resetEncoder();
