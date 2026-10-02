@@ -16,12 +16,14 @@ import {
 } from "@/service/director/director-chat-prompt";
 import {
   applyDirectorEdits,
-  DIRECTOR_FILE_MAX,
-  draftPaths,
-  SKILL_PATH,
+  DRAFT_FIELDS,
+  draftFieldValue,
+  parseDraft,
   type DirectorDraft,
   type DirectorEdit,
+  type DraftField,
 } from "@/service/director/director-edits";
+import { profileLocale } from "@/service/director/profile";
 import {
   toPublicDirector,
   toPublicDirectorChat,
@@ -37,7 +39,7 @@ const CHAT_KEPT = 100;
 
 const directorChatSchema = z.object({
   summary: z.string(),
-  edits: z.array(z.object({ path: z.string(), content: z.string() })),
+  edits: z.array(z.object({ field: z.enum(DRAFT_FIELDS), content: z.string() })),
 });
 
 export type CreateDirectorResult = { ok: true; id: string } | { ok: false; error: string };
@@ -48,7 +50,7 @@ export type DirectorChatResult =
       ok: true;
       summary: string;
       edits: DirectorEdit[];
-      changedPaths: string[];
+      changedFields: DraftField[];
       chat: PublicDirector["chat"];
     }
   | { ok: false; error: string };
@@ -77,43 +79,6 @@ function parseMeta(
   return { ok: true, title, description };
 }
 
-// Client draft coerced to strings and checked against the stored file set and size limit.
-function parseDraft(
-  skill: Skill,
-  raw: { systemPrompt: unknown; references: unknown },
-): { ok: true; draft: DirectorDraft } | { ok: false; error: string } {
-  const references = Array.isArray(raw.references)
-    ? raw.references.map((ref) => ({
-        path: String(ref?.path ?? ""),
-        content: String(ref?.content ?? ""),
-      }))
-    : [];
-  const draft: DirectorDraft = { systemPrompt: String(raw.systemPrompt ?? ""), references };
-
-  const stored = new Set(draftPaths(skill));
-  const incoming = draftPaths(draft);
-  const sameSet =
-    incoming.length === stored.size &&
-    new Set(incoming).size === incoming.length &&
-    incoming.every((path) => stored.has(path));
-  if (!sameSet) return { ok: false, error: "不可新增或刪除檔案" };
-
-  const tooLong =
-    draft.systemPrompt.length > DIRECTOR_FILE_MAX ||
-    references.some((ref) => ref.content.length > DIRECTOR_FILE_MAX);
-  if (tooLong) return { ok: false, error: "檔案內容過長" };
-
-  // Keep references in the stored order.
-  const byPath = new Map(references.map((ref) => [ref.path, ref.content]));
-  return {
-    ok: true,
-    draft: {
-      systemPrompt: draft.systemPrompt,
-      references: skill.references.map((ref) => ({ path: ref.path, content: byPath.get(ref.path) ?? "" })),
-    },
-  };
-}
-
 // Active custom director owned by this user, or null for invalid / missing / not-owned / deleted ids.
 async function ownedDirector(id: string, clerkUserId: string): Promise<Skill | null> {
   if (!ObjectId.isValid(id)) return null;
@@ -140,6 +105,7 @@ export async function createDirectorAction(input: {
   templateSlug: string;
   title: string;
   description: string;
+  locale: string;
 }): Promise<CreateDirectorResult> {
   try {
     const user = await requireAppUser();
@@ -152,7 +118,7 @@ export async function createDirectorAction(input: {
       ownerClerkUserId: { $exists: false },
       isActive: true,
     })) as Skill | null;
-    if (!template) return { ok: false, error: "找不到模板" };
+    if (!template?.profile) return { ok: false, error: "找不到模板" };
 
     const _id = new ObjectId();
     const now = new Date();
@@ -162,8 +128,11 @@ export async function createDirectorAction(input: {
       title: meta.title,
       titleZh: meta.title,
       description: meta.description,
-      systemPrompt: template.systemPrompt,
-      references: template.references.map((ref) => ({ path: ref.path, content: ref.content })),
+      // Custom directors never hold prompt text; they run on the template via baseSlug.
+      systemPrompt: "",
+      references: [],
+      customProfile: { ...template.profile[profileLocale(String(input?.locale ?? ""))] },
+      extraInstructions: "",
       inputSchema: template.inputSchema,
       higgsfieldDefaults: template.higgsfieldDefaults,
       isActive: true,
@@ -183,13 +152,13 @@ export async function createDirectorAction(input: {
   }
 }
 
-// Save name, description, and file contents of a custom director.
+// Save name, description, profile fields, and extra instructions of a custom director.
 export async function saveDirectorAction(input: {
   id: string;
   title: string;
   description: string;
-  systemPrompt: string;
-  references: DirectorDraft["references"];
+  customProfile: DirectorDraft["customProfile"];
+  extraInstructions: string;
 }): Promise<SaveDirectorResult> {
   try {
     const user = await requireAppUser();
@@ -197,7 +166,7 @@ export async function saveDirectorAction(input: {
     if (!skill) return { ok: false, error: "找不到 Director" };
     const meta = parseMeta(input.title, input.description);
     if (!meta.ok) return meta;
-    const parsed = parseDraft(skill, input);
+    const parsed = parseDraft({ customProfile: input.customProfile, extraInstructions: input.extraInstructions });
     if (!parsed.ok) return parsed;
 
     const skills = await skillsCollection();
@@ -208,8 +177,8 @@ export async function saveDirectorAction(input: {
           title: meta.title,
           titleZh: meta.title,
           description: meta.description,
-          systemPrompt: parsed.draft.systemPrompt,
-          references: parsed.draft.references,
+          customProfile: parsed.draft.customProfile,
+          extraInstructions: parsed.draft.extraInstructions,
           updatedAt: new Date(),
         },
       },
@@ -261,10 +230,7 @@ export async function sendDirectorChatAction(input: {
     const message = String(input.message ?? "").trim();
     if (!message || message.length > MESSAGE_MAX) return { ok: false, error: "訊息過長" };
 
-    const parsed = parseDraft(skill, {
-      systemPrompt: input.draft?.systemPrompt,
-      references: input.draft?.references,
-    });
+    const parsed = parseDraft(input?.draft);
     if (!parsed.ok) return parsed;
     const draft = parsed.draft;
 
@@ -289,22 +255,19 @@ export async function sendDirectorChatAction(input: {
 
     const applied = applyDirectorEdits(draft, output.edits);
     if (!applied.ok) return applied;
-    if (applied.changedPaths.length === 0) return { ok: false, error: "AI 沒有修改任何檔案" };
+    if (applied.changedFields.length === 0) return { ok: false, error: "AI 沒有修改任何欄位" };
 
-    // One final edit per changed file (duplicates and no-op edits dropped).
-    const edits: DirectorEdit[] = applied.changedPaths.map((path) => ({
-      path,
-      content:
-        path === SKILL_PATH
-          ? applied.draft.systemPrompt
-          : applied.draft.references.find((ref) => ref.path === path)?.content ?? "",
+    // One final edit per changed field (duplicates and no-op edits dropped).
+    const edits: DirectorEdit[] = applied.changedFields.map((field) => ({
+      field,
+      content: draftFieldValue(applied.draft, field),
     }));
     const now = new Date();
     const userMsg: DirectorChatMessage = { role: "user", content: message, createdAt: now };
     const assistantMsg: DirectorChatMessage = {
       role: "assistant",
-      content: normalizeChatSummary(output.summary, applied.changedPaths.length),
-      changedPaths: applied.changedPaths,
+      content: normalizeChatSummary(output.summary, applied.changedFields.length),
+      changedPaths: applied.changedFields,
       createdAt: now,
     };
 
@@ -321,7 +284,7 @@ export async function sendDirectorChatAction(input: {
       ok: true,
       summary: assistantMsg.content,
       edits,
-      changedPaths: applied.changedPaths,
+      changedFields: applied.changedFields,
       chat: toPublicDirectorChat(chat),
     };
   } catch (error) {

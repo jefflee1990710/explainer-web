@@ -1,5 +1,6 @@
 import { resolveDefaultVersion, versionNumber } from "@/service/character/versions";
 import { behaviorSlug, isCustomSkill } from "@/service/director/behavior-slug";
+import { emptyProfile } from "@/service/director/profile";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { resolveVoiceGender } from "@/service/director/voice";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
@@ -11,7 +12,7 @@ import type { AppUser } from "@/model/user";
 import type { Character, CharacterVersionStatus } from "@/model/character";
 import type { Folder } from "@/model/folder";
 import type { Project, ProjectStatus } from "@/model/project";
-import type { DirectorChatMessage, Skill, SkillReference } from "@/model/skill";
+import type { DirectorChatMessage, DirectorProfile, Skill, SystemProfile } from "@/model/skill";
 import type { Subscription } from "@/model/subscription";
 import type { VideoEdit, VideoTemplate } from "@/model/video-edit";
 
@@ -149,11 +150,12 @@ export function toPublicSkill(skill: Skill): PublicSkill {
   };
 }
 
-// Director detail payload: editable files plus the persisted AI chat.
+// Director detail payload: public profile fields and the AI chat — never the skill prompt.
 export type PublicDirector = PublicSkill & {
   baseSlug?: string;
-  systemPrompt: string;
-  references: SkillReference[];
+  profile?: SystemProfile;
+  customProfile?: DirectorProfile;
+  extraInstructions?: string;
   chat: Array<{
     role: DirectorChatMessage["role"];
     content: string;
@@ -172,11 +174,13 @@ export function toPublicDirectorChat(chat: DirectorChatMessage[]): PublicDirecto
 }
 
 export function toPublicDirector(skill: Skill): PublicDirector {
+  const custom = isCustomSkill(skill);
   return {
     ...toPublicSkill(skill),
     baseSlug: skill.baseSlug,
-    systemPrompt: skill.systemPrompt,
-    references: skill.references.map((ref) => ({ path: ref.path, content: ref.content })),
+    profile: custom ? undefined : skill.profile,
+    customProfile: custom ? { ...emptyProfile(), ...skill.customProfile } : undefined,
+    extraInstructions: custom ? skill.extraInstructions ?? "" : undefined,
     chat: toPublicDirectorChat(skill.chat || []),
   };
 }
