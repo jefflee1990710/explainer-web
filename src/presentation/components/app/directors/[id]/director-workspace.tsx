@@ -80,10 +80,11 @@ export function DirectorWorkspace({
   }
 
   async function onSave() {
+    const sentDraft = draft;
     setSaving(true);
     setError("");
     try {
-      const result = await saveDirectorAction({ id: director.id, ...draft });
+      const result = await saveDirectorAction({ id: director.id, ...sentDraft });
       if (!result.ok) {
         setError(translateAppError(result.error, t));
         return;
@@ -91,7 +92,8 @@ export function DirectorWorkspace({
       const next = formFromDirector(result.director);
       setDirector(result.director);
       setSaved(next);
-      setDraft(next);
+      // Keep edits (typed or AI-merged) made while the save was in flight.
+      setDraft((current) => (current === sentDraft ? next : current));
       setSavedFlash(true);
     } catch {
       setError(t("errors.directorSaveFailed"));
