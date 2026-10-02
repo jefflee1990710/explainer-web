@@ -34,4 +34,5 @@ export const directorsZhHant = {
   chatChanged: "已修改：{files}",
   unsavedWarning: "有未儲存的修改，確定要離開？",
   updated: "更新於 {date}",
+  backToList: "← 回到 Director",
 } satisfies DirectorsMessages;

@@ -34,6 +34,7 @@ export const directorsEn = {
   chatChanged: "Changed: {files}",
   unsavedWarning: "You have unsaved changes. Leave anyway?",
   updated: "Updated {date}",
+  backToList: "← Back to directors",
 } as const;
 
 export type DirectorsMessages = MessageShape<typeof directorsEn>;
