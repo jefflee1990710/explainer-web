@@ -40,7 +40,7 @@ import { queueReelIfReady } from "@/service/reel/enqueue";
 import { retimeMp4 } from "@/service/reel/retime";
 import { mediaSrc } from "@/util/media-src";
 import { isBookendSkill } from "@/service/director/skill-rules";
-import { asRunSkill } from "@/service/director/behavior-slug";
+import { resolveRunSkill } from "@/service/director/run-skill";
 import {
   isInheritedTalkingHeadStart,
   isTalkingHeadSkill,
@@ -82,7 +82,7 @@ async function loadSkill(project: Project): Promise<Skill> {
   const skills = await skillsCollection();
   const skill = await skills.findOne({ _id: project.skillId });
   if (!skill) throw new Error("找不到風格");
-  return asRunSkill(skill);
+  return resolveRunSkill(skill);
 }
 
 // ---------- character still (free) ----------

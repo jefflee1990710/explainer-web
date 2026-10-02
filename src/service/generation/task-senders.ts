@@ -1,7 +1,7 @@
 import { charactersCollection, skillsCollection, videosCollection } from "@/dao";
 import { sendCharacterVersion } from "@/service/character/generate";
 import { runPhaseBForClip } from "@/service/director/run-phase-b";
-import { asRunSkill } from "@/service/director/behavior-slug";
+import { resolveRunSkill } from "@/service/director/run-skill";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { videoStyle } from "@/service/higgsfield/frame-prompts";
 import { sendClipVideo, sendFrame, sendStill } from "@/service/higgsfield/pipeline";
@@ -58,7 +58,9 @@ async function sendVideo(project: Project, clipNumber: number) {
   const skill = await skills.findOne({ _id: project.skillId });
   if (!skill) throw new PermanentJobError("找不到風格");
   const prompt = await runPhaseBForClip({
-    skill: asRunSkill(skill),
+    skill: await resolveRunSkill(skill).catch((error: unknown) => {
+      throw new PermanentJobError(error instanceof Error ? error.message : "找不到風格");
+    }),
     style: videoStyle(project),
     phaseA: project.phaseA,
     clipNumber,
