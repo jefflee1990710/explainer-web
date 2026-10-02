@@ -12,7 +12,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 // Library card: name, subtitle, description; system cards add the fork button.
 // No transform on the article itself, so the fixed-position modal stays viewport-anchored.
 export function DirectorCard({ director }: { director: PublicSkill }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const href = `/app/directors/${director.id}`;
   const name = director.isCustom ? director.title : localizedVideoType(t, director.behaviorSlug, director.title);
   // System: the other language under the locale name. Custom: the template it was forked from.
@@ -34,10 +34,10 @@ export function DirectorCard({ director }: { director: PublicSkill }) {
         className="flex flex-1 flex-col gap-1 p-4 transition-colors hover:bg-accent-ink/[0.03] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
       >
         <h3 className="line-clamp-1 text-sm font-semibold">{name}</h3>
-        {subtitle && subtitle !== name ? (
-          <p className="line-clamp-1 text-xs text-muted">
-            {director.isCustom ? t("directors.templateBadge", { name: subtitle }) : subtitle}
-          </p>
+        {director.isCustom ? (
+          <p className="line-clamp-1 text-xs text-muted">{t("directors.templateBadge", { name: subtitle })}</p>
+        ) : subtitle && subtitle !== name ? (
+          <p className="line-clamp-1 text-xs text-muted">{subtitle}</p>
         ) : null}
         {director.description ? (
           <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted">{director.description}</p>
@@ -46,7 +46,7 @@ export function DirectorCard({ director }: { director: PublicSkill }) {
       <div className="flex items-center justify-between gap-2 border-t border-[var(--studio-line)] px-4 py-3">
         {director.isCustom ? (
           <p className="text-xs text-muted">
-            {t("directors.updated", { date: new Date(director.updatedAt).toLocaleDateString() })}
+            {t("directors.updated", { date: new Date(director.updatedAt).toLocaleDateString(locale) })}
           </p>
         ) : (
           <>
