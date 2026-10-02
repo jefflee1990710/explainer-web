@@ -1,7 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { characterLockFromCast } from "@/service/character/cast-prompt";
 import { skillsCollection, videosCollection } from "@/dao";
-import { resolveRunSkill } from "@/service/director/run-skill";
+import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
 import { keepProposalRegenerateClips } from "@/service/director/phase-a-edit";
 import { runPhaseA } from "@/service/director/run-phase-a";
 import { videoStyle } from "@/service/higgsfield/frame-prompts";
@@ -37,7 +37,12 @@ export async function runPhaseAJob(
 
   const skills = await skillsCollection();
   const found = await skills.findOne({ _id: project.skillId });
-  const skill = found ? await resolveRunSkill(found).catch(() => null) : null;
+  const skill = found
+    ? await resolveRunSkill(found).catch((error: unknown) => {
+        if (error instanceof MissingTemplateError) return null;
+        throw error;
+      })
+    : null;
   if (!skill) {
     await projects.updateOne(
       { _id: projectId },

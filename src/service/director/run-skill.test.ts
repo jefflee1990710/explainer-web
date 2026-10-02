@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import type { Skill } from "@/model/skill";
 import { emptyProfile } from "@/service/director/profile";
-import { customDirectorBlock, resolveRunSkill } from "@/service/director/run-skill";
+import { MissingTemplateError, customDirectorBlock, resolveRunSkill } from "@/service/director/run-skill";
 
 function skill(overrides: Partial<Skill>): Skill {
   return {
@@ -79,5 +79,21 @@ test("custom skill runs on the template prompt plus its adjustments", async () =
 
 test("custom skill without a template fails with the skill-missing error", async () => {
   const custom = skill({ slug: "custom-1", baseSlug: "gone", ownerClerkUserId: "u1" });
-  await assert.rejects(resolveRunSkill(custom, async () => null), /找不到風格/);
+  await assert.rejects(resolveRunSkill(custom, async () => null), (error: unknown) => {
+    assert.ok(error instanceof MissingTemplateError);
+    assert.match(error.message, /找不到風格/);
+    return true;
+  });
+});
+
+test("custom skill without a baseSlug fails without calling the loader", async () => {
+  for (const baseSlug of [undefined, ""]) {
+    const custom = skill({ slug: "custom-1", baseSlug, ownerClerkUserId: "u1" });
+    await assert.rejects(
+      resolveRunSkill(custom, async () => {
+        throw new Error("must not load");
+      }),
+      MissingTemplateError,
+    );
+  }
 });

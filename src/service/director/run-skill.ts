@@ -3,6 +3,14 @@ import { PROFILE_KEYS, type DirectorProfile, type Skill } from "@/model/skill";
 import { asRunSkill, isCustomSkill } from "@/service/director/behavior-slug";
 import { PROFILE_LABELS_EN } from "@/service/director/profile";
 
+// The custom director's system template no longer exists; callers treat it as a missing skill.
+export class MissingTemplateError extends Error {
+  constructor() {
+    super("找不到風格");
+    this.name = "MissingTemplateError";
+  }
+}
+
 // Prompt section appended to the template for a custom director; empty when nothing is set.
 export function customDirectorBlock(profile: DirectorProfile | undefined, extra: string | undefined): string {
   const sections = PROFILE_KEYS.filter((key) => profile?.[key]?.trim()).map(
@@ -27,7 +35,7 @@ export async function resolveRunSkill(
   if (!isCustomSkill(skill)) return asRunSkill(skill);
   const baseSlug = skill.baseSlug || "";
   const template = baseSlug ? await loadTemplate(baseSlug) : null;
-  if (!template) throw new Error("找不到風格");
+  if (!template) throw new MissingTemplateError();
   return {
     ...skill,
     slug: baseSlug,
