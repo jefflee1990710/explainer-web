@@ -1,4 +1,4 @@
-import { CLIP_EDGE_FADE_SEC } from "@/service/reel/concat";
+import { CLIP_EDGE_FADE_SEC } from "@/service/reel/fade";
 import { overlayPosition, type LayerPlacement } from "@/service/video-edit/layer-placement";
 
 export type FinalSegmentInput = {

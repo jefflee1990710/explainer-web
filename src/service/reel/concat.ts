@@ -3,9 +3,10 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import ffmpegPath from "ffmpeg-static";
+import { CLIP_EDGE_FADE_SEC } from "@/service/reel/fade";
 import { REEL_TIMEOUT_MESSAGE } from "@/service/reel/timeout";
 
-export const CLIP_EDGE_FADE_SEC = 0.1;
+export { CLIP_EDGE_FADE_SEC };
 
 // Fade video + audio out at the end of clip N and in at the start of clip N+1.
 export function buildEdgeFadeFilter(

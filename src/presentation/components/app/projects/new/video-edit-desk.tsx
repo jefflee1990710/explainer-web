@@ -8,7 +8,14 @@ import { VideoEditLayers } from "@/presentation/components/app/projects/new/vide
 import { VideoEditPreview, type EditSelection } from "@/presentation/components/app/projects/new/video-edit-preview";
 import { VideoEditProperties } from "@/presentation/components/app/projects/new/video-edit-properties";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { exportFinalVideoAction, updateVideoEditAction } from "@/presentation/actions/video-edit";
+import { updateVideoEditAction } from "@/presentation/actions/video-edit";
+import {
+  downloadVideoFile,
+  ExportCancelled,
+  renderVideoInBrowser,
+  type ExportJob,
+} from "@/presentation/components/app/projects/new/browser-video-export";
+import { ExportProgressOverlay } from "@/presentation/components/app/projects/new/export-progress-overlay";
 import { isReelBusy, isReelCurrent } from "@/service/reel/fingerprint";
 import { EDIT_LIMITS, emptyEdit, type BookendClip, type BrandLayer, type VideoEdit } from "@/model/video-edit";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -36,6 +43,8 @@ export function VideoEditDesk({
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [exportJob, setExportJob] = useState<ExportJob | null>(null);
+  const exportAbort = useRef<AbortController | null>(null);
   const timer = useRef<number | null>(null);
   const dirty = useRef(false);
   const latest = useRef(edit);
@@ -127,17 +136,45 @@ export function VideoEditDesk({
     return result;
   }
 
-  async function exportVideo() {
-    const result = await run(() => exportFinalVideoAction(project.id));
-    if (!result) return;
-    if (!result.ok) return setMessage(result.error);
-    onProjectChange(result.project);
+  async function exportVideo(existingUrl: string | undefined, filename: string) {
+    if (exportAbort.current) return;
+    const controller = new AbortController();
+    exportAbort.current = controller;
+    setBusy(true);
+    setMessage("");
+    setExportJob({
+      phase: existingUrl ? "download" : "encoder",
+      ratio: 0,
+      phases: existingUrl ? ["download", "save"] : ["encoder", "download", "encode", "save"],
+    });
+    try {
+      const saved = await save();
+      if (!saved || controller.signal.aborted) return;
+      if (existingUrl) {
+        await downloadVideoFile(existingUrl, filename, setExportJob, controller.signal);
+      } else if (project.reelUrl) {
+        await renderVideoInBrowser(project.reelUrl, edit, filename, setExportJob, controller.signal);
+      } else {
+        setMessage(t("video.export.failed"));
+      }
+    } catch (error) {
+      if (!(error instanceof ExportCancelled)) setMessage(t("video.export.failed"));
+    } finally {
+      setBusy(false);
+      setExportJob(null);
+      exportAbort.current = null;
+    }
+  }
+
+  function cancelExport() {
+    exportAbort.current?.abort();
   }
 
   const shownError =
     message || error || (reelFailed ? project.reelError || t("video.edit.reelComposeFailed") : "");
 
   return (
+    <>
     <StudioFrame
       preview={
         <VideoEditPreview
@@ -182,7 +219,7 @@ export function VideoEditDesk({
               change((current) => (current[slot] ? { ...current, [slot]: { ...current[slot]!, ...patch } } : current))
             }
           />
-          <VideoEditExport project={project} edit={edit} saving={saving || busy} pending={busy} onExport={() => void exportVideo()} />
+          <VideoEditExport project={project} edit={edit} saving={saving || busy} pending={busy} onExport={(url, filename) => void exportVideo(url, filename)} />
           {reelFailed ? (
             <button type="button" onClick={onComposeReel} className="self-start text-xs font-semibold text-[var(--studio-teal)]">
               {t("video.edit.recompose")}
@@ -196,6 +233,8 @@ export function VideoEditDesk({
         </div>
       }
     />
+    {exportJob ? <ExportProgressOverlay job={exportJob} onCancel={cancelExport} /> : null}
+    </>
   );
 }
 

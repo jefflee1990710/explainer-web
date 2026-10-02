@@ -20,6 +20,7 @@ import {
   type EditorStepNav,
 } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import { VideoEditorDialog } from "@/presentation/components/app/projects/[id]/video-editor-dialog";
+import { VideoEditorShell } from "@/presentation/components/app/projects/[id]/video-editor-shell";
 import { useFolderGenerationPoll } from "@/presentation/components/app/projects/[id]/use-folder-generation-poll";
 import { VideoTable } from "@/presentation/components/app/projects/[id]/video-table";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -182,7 +183,8 @@ export function ProjectWorkspace({
     router.refresh();
   }
 
-  const listTitle = videos.find((video) => video.id === activeVideoId)?.title;
+  const activeCard = videos.find((video) => video.id === activeVideoId) ?? null;
+  const listTitle = activeCard?.title;
   const editorTitle =
     selectedVideo?.phaseA?.localizedTitle ||
     listTitle ||
@@ -219,7 +221,9 @@ export function ProjectWorkspace({
       {editorOpen ? (
         <VideoEditorDialog
           title={editorTitle}
-          videoId={selectedVideo?.id ?? activeVideoId ?? undefined}
+          // Omit until the document arrives so the header task poll does not
+          // take the server-action queue ahead of this open.
+          videoId={selectedVideo?.id}
           credits={credits}
           creditLimit={creditLimit}
           nav={stepNav ? <EditorStepSwitch {...stepNav} /> : null}
@@ -253,6 +257,8 @@ export function ProjectWorkspace({
                     {t("video.workspace.retry")}
                   </button>
                 </div>
+              ) : activeCard ? (
+                <VideoEditorShell video={activeCard} />
               ) : (
                 <p className="inline-flex items-center gap-2 text-sm text-muted">
                   <Spinner />
