@@ -95,7 +95,7 @@ export const briefZhHant = {
   footer: {
     castRequired: "請先選正好 {n} 個角色，才能開始。",
     restartWarning:
-      "會刪掉這支影片的分鏡、畫格與影片，再依這份題材從頭產生分鏡。已花的 credits 不會退回。",
+      "會刪掉這支影片的分鏡、畫格與影片，再依這份導演指示從頭產生分鏡。已花的 credits 不會退回。",
     editBriefWarning:
       "改導演指示會重寫分鏡並回到製作。已產生的畫格與影片會留著，但可能對不上。",
     noCharge: "這一步不扣 credits。分鏡寫好後會直接進入製作，產畫格與影片才扣款。",
@@ -110,7 +110,7 @@ export const briefZhHant = {
   confirm: {
     regenerateStoryboard: {
       title: "重新產生分鏡？",
-      body: "會依這份題材重寫分鏡並回到製作。已產生的畫格與影片會留著，但可能對不上新分鏡。",
+      body: "會依這份導演指示重寫分鏡並回到製作。已產生的畫格與影片會留著，但可能對不上新分鏡。",
       confirm: "確認重寫",
     },
     restart: {
@@ -284,7 +284,7 @@ export const briefZhHant = {
   },
   director: {
     title: "導演正在寫分鏡",
-    stageReadSource: "閱讀題材，找出核心訊息…",
+    stageReadSource: "閱讀導演指示，找出核心訊息…",
     stageHook: "設計開場鉤子與延遲兌現…",
     stageTimeline: "拆解分鏡與時間軸…",
     stageVo: "撰寫旁白與對照翻譯…",

@@ -40,6 +40,8 @@ import {
 } from "@/service/director/skill-rules";
 import { subtitleText } from "@/service/director/spoken-line";
 import { clipReferenceImageUrls } from "@/service/project/reference-images";
+import { imageRouteForSceneText } from "@/service/generation/image-backend";
+import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
 import { FRAME_RENDER_DETAIL } from "@/service/director/scene-detail";
 import {
   resolveStyle,
@@ -85,9 +87,21 @@ export type FramePromptOptions = {
   anchor?: { kind: FrameAnchorKind };
 };
 
-function compositionLockLines(anchor: { kind: FrameAnchorKind } | undefined, imageIndex: number) {
+function compositionLockLines(
+  anchor: { kind: FrameAnchorKind } | undefined,
+  imageIndex: number,
+  hasSceneRefs = false,
+) {
   if (!anchor) return [];
   const slot = `attached image ${imageIndex}`;
+  // A clip with its own scene reference may move somewhere new; carry over only look and cast.
+  if (anchor.kind === "prev-end" && hasSceneRefs) {
+    return [
+      `CONTINUITY REFERENCE: ${slot} is the previous clip's END frame.`,
+      "Keep character identity, lighting mood, and art style from it.",
+      "Location and layout come from the SCENE REFERENCE, not from this frame.",
+    ];
+  }
   // Next clip's opening uses the previous end as a place reference, not a copy.
   if (anchor.kind === "prev-end") {
     return [
@@ -196,11 +210,29 @@ export function logoReferenceUrls(project: Pick<Project, "skillSlug" | "logoUrl"
   return isBookendSkill(project.skillSlug) && project.logoUrl ? [project.logoUrl] : [];
 }
 
+// Brief reference images assigned to this clip, capped to the free slots of the
+// edit model. Past its URL limit every ref is stacked into one sheet, which
+// breaks the "attached image N" numbering and the composition lock.
+export function frameSceneReferenceUrls(
+  project: Project,
+  clipNumber: number,
+  otherRefCount: number,
+) {
+  const urls = clipReferenceImageUrls(project, clipNumber);
+  const route = imageRouteForSceneText(resolveSceneText(project).language);
+  const room = referenceLimitForModel(route.editModel) - otherRefCount;
+  return urls.slice(0, Math.max(0, room));
+}
+
 // Brief reference images the director assigned to this clip; they guide layout, not cast looks.
-export function sceneReferenceFrameLine(start: number, count: number) {
+// With a COMPOSITION LOCK (end frame / redo) the lock wins; otherwise the reference sets the place.
+export function sceneReferenceFrameLine(start: number, count: number, locked = false) {
   const which =
     count === 1 ? `attached image ${start} shows` : `attached images ${start}–${start + count - 1} show`;
-  return `SCENE REFERENCE: ${which} the intended layout, subject, and setting for this scene — follow their composition; keep cast identity from the character references.`;
+  const follow = locked
+    ? "keep the COMPOSITION LOCK framing and use them only for subject and set details"
+    : "follow their composition, location, and setting";
+  return `SCENE REFERENCE: ${which} the intended layout, subject, and setting for this scene — ${follow}; keep cast identity from the character references.`;
 }
 
 // Catalog typography often bans "subtitles"; scene-text mode needs integrated captions.
@@ -254,11 +286,17 @@ export function buildFramePrompt(
   const characterUrls = characterReferenceUrls(project);
   const annotatedCount = options.revision?.annotatedUrl ? 1 : 0;
   const anchorCount = options.anchor ? 1 : 0;
-  const sceneRefUrls = clipReferenceImageUrls(project, clipNumber);
+  const logoUrls = logoReferenceUrls(project);
+  const sceneRefUrls = frameSceneReferenceUrls(
+    project,
+    clipNumber,
+    annotatedCount + anchorCount + lockUrls.length + logoUrls.length,
+  );
   const sceneRefStart = annotatedCount + anchorCount + 1;
   const characterAttachmentStart = sceneRefStart + sceneRefUrls.length;
+  const compositionLocked = Boolean(options.anchor && options.anchor.kind !== "prev-end");
   const sceneRefLines = sceneRefUrls.length
-    ? [sceneReferenceFrameLine(sceneRefStart, sceneRefUrls.length)]
+    ? [sceneReferenceFrameLine(sceneRefStart, sceneRefUrls.length, compositionLocked)]
     : [];
   const castLines = hasCast
     ? castParagraphForFrames(project.cast, {
@@ -268,7 +306,7 @@ export function buildFramePrompt(
     : lockUrls.length
       ? soloCharacterParagraphForFrames(characterAttachmentStart)
       : [];
-  const logoLines = logoReferenceUrls(project).length
+  const logoLines = logoUrls.length
     ? bookendLogoFrameLines(characterAttachmentStart + lockUrls.length)
     : [];
 
@@ -362,7 +400,7 @@ export function buildFramePrompt(
     ...(lockUrls.length ? [FRAME_WARDROBE_LOCK] : []),
     FRAME_RENDER_DETAIL,
     moment,
-    ...compositionLockLines(options.anchor, annotatedCount + 1),
+    ...compositionLockLines(options.anchor, annotatedCount + 1, sceneRefUrls.length > 0),
     ...revisionLines(options.revision && { ...options.revision, remark: parts.remark }),
     ...(listicle
       ? ["Final check: the numbered item list is visible and spelled exactly."]
@@ -408,6 +446,14 @@ export function frameSubmitPlan(
   revision?: FrameRevision,
 ) {
   const anchor = clipFrameAnchor(project.frames, clipNumber, position);
+  const castUrls = frameLockReferenceUrls(project);
+  const logoUrls = logoReferenceUrls(project);
+  // Same cap as buildFramePrompt so the URL order matches the prompt's numbering.
+  const sceneRefUrls = frameSceneReferenceUrls(
+    project,
+    clipNumber,
+    (revision?.annotatedUrl ? 1 : 0) + (anchor ? 1 : 0) + castUrls.length + logoUrls.length,
+  );
   return {
     prompt: buildFramePrompt(project, clipNumber, position, {
       revision,
@@ -416,11 +462,7 @@ export function frameSubmitPlan(
     refs: sceneImageReferenceUrls({
       annotatedUrl: revision?.annotatedUrl,
       anchorUrl: anchor?.url,
-      lockUrls: [
-        ...clipReferenceImageUrls(project, clipNumber),
-        ...frameLockReferenceUrls(project),
-        ...logoReferenceUrls(project),
-      ],
+      lockUrls: [...sceneRefUrls, ...castUrls, ...logoUrls],
     }),
     anchor,
   };

@@ -121,8 +121,18 @@ export async function runPhaseA(input: {
   const logoUrl = bookend ? input.logoUrl : undefined;
   const logoImages = logoUrl ? await loadDirectorImageParts([logoUrl]) : [];
   const references = await loadReferenceImageContent(input.referenceImages);
-  const draftNote = input.currentDraft
-    ? `\nCurrent Phase A draft (the user may have edited this; keep their wording unless the revision notes contradict it):\n${JSON.stringify(input.currentDraft, null, 2)}\n`
+  // R ids are positional, so ids from an older draft may now name a different image;
+  // drop them and let the director assign against the current list.
+  const draftForPrompt = input.currentDraft && {
+    ...input.currentDraft,
+    clips: input.currentDraft.clips.map((clip) => {
+      const { referenceImageIds: _ids, ...rest } = clip;
+      void _ids;
+      return rest;
+    }),
+  };
+  const draftNote = draftForPrompt
+    ? `\nCurrent Phase A draft (the user may have edited this; keep their wording unless the revision notes contradict it):\n${JSON.stringify(draftForPrompt, null, 2)}\n`
     : "";
   const revisionNote = input.revisionNote
     ? `\nRevision notes from user:\n${input.revisionNote}\n`
@@ -229,10 +239,13 @@ On-canvas text: ${
       : "off"
 }
 ${characterNote}
-${logoImages.length ? `Brand logo: the LAST attached image is the brand logo (after any character references). Use it as-is in startScene / endScene.\n` : ""}${draftNote}${revisionNote}${clipsOnlyNote}
+${logoImages.length ? `Brand logo: the LAST attached image is the brand logo (after any scene and character references). Use it as-is in startScene / endScene.\n` : ""}${draftNote}${revisionNote}${clipsOnlyNote}
 Produce a complete Phase A director proposal now.`,
           },
           ...references.parts,
+          ...(references.parts.length && characterImages.length
+            ? [{ type: "text" as const, text: "Character blueprints follow (not scene references):" }]
+            : []),
           ...characterImages,
           ...logoImages,
         ],

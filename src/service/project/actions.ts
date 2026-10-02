@@ -462,7 +462,7 @@ async function rewriteVideoBrief(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "更新題材失敗",
+      error: error instanceof Error ? error.message : "更新導演指示失敗",
     };
   }
 }

@@ -653,6 +653,66 @@ test("assigned scene references sit after the anchor and before the cast", () =>
   assert.match(plan.prompt, /Attached image 2/);
 });
 
+// Two-blueprint end frame on the 3-slot zh-Hant edit model: anchor + cast fill
+// all but one slot, so only R1 fits and numbering stays one URL per image.
+test("scene references are capped to the edit model's free slots", () => {
+  const video = project();
+  video.sceneTextLanguage = "zh-Hant";
+  video.cast = ["Lily", "Max"].map((name) => ({
+    characterId: new ObjectId(),
+    versionId: new ObjectId(),
+    name,
+    blueprintUrl: `https://blob/${name}.png`,
+    prompt: "",
+  }));
+  video.referenceImages = [
+    { id: "R1", url: "https://blob/r1.png", description: "shop" },
+    { id: "R2", url: "https://blob/r2.png", description: "menu" },
+  ];
+  video.phaseA!.clips[0].referenceImageIds = ["R1", "R2"];
+  video.frames = [
+    { clipNumber: 1, position: "start", prompt: "p", status: "completed", blobUrl: "https://blob/start.png" },
+    { clipNumber: 1, position: "end", prompt: "p", status: "queued" },
+  ];
+  const end = frameSubmitPlan(video, 1, "end");
+  assert.deepEqual(end.refs, ["https://blob/start.png", "https://blob/Lily.png", "https://blob/Max.png"]);
+  assert.doesNotMatch(end.prompt, /SCENE REFERENCE/);
+
+  const start = frameSubmitPlan(video, 1, "start");
+  assert.deepEqual(start.refs, ["https://blob/r1.png", "https://blob/Lily.png", "https://blob/Max.png"]);
+  assert.match(start.prompt, /SCENE REFERENCE: attached image 1 shows/);
+});
+
+test("end frame with a composition lock keeps the lock framing over the scene reference", () => {
+  const video = project();
+  video.referenceImages = [{ id: "R1", url: "https://blob/r1.png", description: "shop" }];
+  video.phaseA!.clips[0].referenceImageIds = ["R1"];
+  video.frames = [
+    { clipNumber: 1, position: "start", prompt: "p", status: "completed", blobUrl: "https://blob/start.png" },
+    { clipNumber: 1, position: "end", prompt: "p", status: "queued" },
+  ];
+  const plan = frameSubmitPlan(video, 1, "end");
+  assert.deepEqual(plan.refs, ["https://blob/start.png", "https://blob/r1.png"]);
+  assert.match(plan.prompt, /SCENE REFERENCE: attached image 2 shows .* keep the COMPOSITION LOCK framing/);
+});
+
+test("next clip's opening with a scene reference drops the same-place rule", () => {
+  const prompt = buildFramePrompt(
+    (() => {
+      const video = project();
+      video.referenceImages = [{ id: "R1", url: "https://blob/r1.png", description: "menu" }];
+      video.phaseA!.clips[0].referenceImageIds = ["R1"];
+      return video;
+    })(),
+    1,
+    "start",
+    { anchor: { kind: "prev-end" } },
+  );
+  assert.match(prompt, /CONTINUITY REFERENCE: attached image 1/);
+  assert.match(prompt, /SCENE REFERENCE: attached image 2 shows .* follow their composition/);
+  assert.doesNotMatch(prompt, /Do not invent a new room/);
+});
+
 test("clips without assigned references attach none", () => {
   const video = project();
   video.referenceImages = [{ id: "R1", url: "https://blob/r1.png", description: "shop" }];

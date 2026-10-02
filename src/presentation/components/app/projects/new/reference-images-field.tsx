@@ -1,5 +1,6 @@
 "use client";
 
+import type { Dispatch, SetStateAction } from "react";
 import { BrandUploadButton } from "@/presentation/components/app/projects/new/brand-upload-button";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import {
@@ -19,7 +20,8 @@ export function ReferenceImagesField({
   disabled,
 }: {
   value: ReferenceImageDraft[];
-  onChange: (next: ReferenceImageDraft[]) => void;
+  // Accepts an updater so a finished upload appends to the latest rows, not the ones at upload start.
+  onChange: Dispatch<SetStateAction<ReferenceImageDraft[]>>;
   onError: (message: string) => void;
   disabled?: boolean;
 }) {
@@ -39,7 +41,7 @@ export function ReferenceImagesField({
         {value.map((item, index) => {
           const id = `R${index + 1}`;
           return (
-            <li key={item.url} className="flex gap-3 rounded-2xl border border-accent-ink/10 bg-paper p-3">
+            <li key={`${index}-${item.url}`} className="flex gap-3 rounded-2xl border border-accent-ink/10 bg-paper p-3">
               <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[var(--studio-fill)]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={item.url} alt={t("brief.references.alt", { id })} className="h-full w-full object-cover" />
@@ -90,7 +92,12 @@ export function ReferenceImagesField({
             accept={REFERENCE_ACCEPT}
             disabled={disabled}
             onUploaded={(asset) => {
-              if (asset.kind === "image") onChange([...value, { url: asset.url, description: "" }]);
+              if (asset.kind !== "image") return;
+              onChange((prev) =>
+                prev.length >= MAX_REFERENCE_IMAGES
+                  ? prev
+                  : [...prev, { url: asset.url, description: "" }],
+              );
             }}
             onError={onError}
           />
