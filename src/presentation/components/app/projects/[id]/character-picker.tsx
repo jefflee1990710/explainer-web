@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { castPickStatus } from "@/presentation/components/app/projects/[id]/cast-pick-status";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicCharacter } from "@/presentation/serialize";
+import { localizedStyleName } from "@/util/style-i18n";
 
 // Multi-select of characters with a completed default blueprint. When a video
 // `styleId` is given, characters drawn in another style are hidden.
@@ -95,7 +96,7 @@ export function CharacterPicker({
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold">{character.name}</span>
                 <span className={`block text-xs ${active ? "text-paper/75" : "text-muted"}`}>
-                  {character.styleName}
+                  {localizedStyleName(t, character.styleId)}
                 </span>
               </span>
             </motion.button>

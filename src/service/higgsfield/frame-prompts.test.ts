@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { after, before, test } from "node:test";
 import { ObjectId } from "mongodb";
 import type { Project } from "@/model/project";
 import {
@@ -9,6 +9,10 @@ import {
   frameSubmitPlan,
   framesWithClips,
 } from "@/service/higgsfield/frame-prompts";
+import { installTestStyles, uninstallTestStyles } from "@/service/style/test-styles";
+
+before(() => installTestStyles());
+after(() => uninstallTestStyles());
 
 test("bookend stills attach the logo after the character refs and name it", () => {
   const logo = "https://blob/logo.png";
@@ -74,10 +78,10 @@ function project(styleId?: Project["styleId"]): Project {
   };
 }
 
-test("doodle frame prompt uses catalog text, no hard-coded whiteboard literal", () => {
+test("doodle frame prompt uses the loaded style, no hard-coded whiteboard literal", () => {
   const prompt = buildFramePrompt(project(), 1, "start");
-  assert.match(prompt, /Whiteboard doodle short video/);
-  assert.match(prompt, /Canvas: clean solid white canvas/);
+  assert.match(prompt, /doodle name short video/);
+  assert.match(prompt, /Canvas: doodle canvas/);
   assert.match(prompt, /Lettering:/);
   assert.doesNotMatch(prompt, /No on-canvas text/);
   assert.doesNotMatch(prompt, /whiteboard-doodle cartoon explainer video/);
@@ -85,8 +89,8 @@ test("doodle frame prompt uses catalog text, no hard-coded whiteboard literal", 
 
 test("pixel video gets pixel canvas and its own pixel lettering", () => {
   const prompt = buildFramePrompt(project("pixel"), 1, "end");
-  assert.match(prompt, /Pixel art short video/);
-  assert.match(prompt, /Lettering: blocky monospaced pixel font/);
+  assert.match(prompt, /pixel name short video/);
+  assert.match(prompt, /Lettering: pixel typography/);
 });
 
 test("end frame is the same shot as start, not a new composition", () => {

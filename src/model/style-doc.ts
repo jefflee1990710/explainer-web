@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { styleIdSchema, type StyleId } from "@/model/style-id";
 
-// Style row in Mongo. Prompt fields are seeded from catalog.ts; previews stay optional.
+// Style row in Mongo. Prompt fields are the source of truth; previews stay optional.
 export type StyleDoc = {
   _id: StyleId;
   name?: string;

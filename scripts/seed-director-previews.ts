@@ -6,7 +6,12 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { skillsCollection } from "@/dao";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { isCustomSkill } from "@/service/director/behavior-slug";
-import { directorPreviewPrompt } from "@/service/director/preview-prompt";
+import {
+  directorPreviewPrompt,
+  directorPreviewStyleNames,
+} from "@/service/director/preview-prompt";
+import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
+import { STYLE_IDS } from "@/model/style-id";
 import type { Skill } from "@/model/skill";
 
 loadEnvConfig(process.cwd());
@@ -28,9 +33,13 @@ function googleImage() {
 }
 
 // Gemini still → WebP on Blob. Never touches prompt / profile fields.
-async function seedDirector(skill: Skill) {
+async function seedDirector(skill: Skill, styleNames: string[]) {
   const visual = skill.profile?.en.visual?.trim() || skill.description;
-  const prompt = directorPreviewPrompt({ title: skill.title, visual });
+  const prompt = directorPreviewPrompt({
+    title: skill.title,
+    visual,
+    styleNames,
+  });
   const hash = createHash("sha256").update(`${prompt}|${MODEL}`).digest("hex");
   if (!force && skill.previewUrl && skill.previewHash === hash) {
     console.log(`skip ${skill.slug} (up to date)`);
@@ -66,12 +75,15 @@ async function main() {
   const unknown = (only ?? []).filter((slug) => !docs.some((doc) => doc.slug === slug));
   if (unknown.length) throw new Error(`Unknown system director: ${unknown.join(", ")}`);
 
+  await hydrateStyles();
+  const styleNames = directorPreviewStyleNames(STYLE_IDS.map((id) => resolvedStyle(id)));
+
   let failed = 0;
   for (const skill of docs) {
     if (only && !only.includes(skill.slug)) continue;
     if (isCustomSkill(skill)) continue;
     try {
-      await seedDirector(skill);
+      await seedDirector(skill, styleNames);
     } catch (error) {
       failed += 1;
       console.error(`  ✗ ${skill.slug}:`, error instanceof Error ? error.message : error);

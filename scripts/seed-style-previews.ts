@@ -9,14 +9,10 @@ import {
 } from "@/service/higgsfield/generate";
 import { flattenToCanvas } from "@/service/higgsfield/flatten";
 import { persistMedia } from "@/service/higgsfield/persist";
-import {
-  STYLE_IDS,
-  STYLE_PREVIEW_SCENE,
-  STYLES,
-  styleLetteringLine,
-  styleLinesForFrame,
-} from "@/service/style";
-import { catalogStyleFields } from "@/service/style/load-style";
+import { STYLE_IDS } from "@/model/style-id";
+import { styleLetteringLine, styleLinesForFrame } from "@/service/style";
+import { styleFromDoc } from "@/service/style/load-style";
+import type { Style } from "@/service/style/types";
 
 loadEnvConfig(process.cwd());
 
@@ -30,6 +26,10 @@ const THUMB_QUALITY = 82;
 
 type StyleIdType = (typeof STYLE_IDS)[number];
 
+// Shared preview scene: identical composition so the nine cards compare directly.
+const STYLE_PREVIEW_SCENE =
+  "Scene: a friendly explainer character stands at the left third, pointing up at a large light bulb floating at the right third; the bulb carries the label IDEA; one arrow curves from the character's hand to the bulb. Wide margins on every side. Showcase this style's canvas, look and lettering.";
+
 const force = process.argv.includes("--force");
 // `--thumbs`: rebuild only the WebP thumbnails from stored full images.
 // No image generation, no credits.
@@ -39,8 +39,14 @@ const only = process.argv
   ?.slice(7)
   .split(",");
 
-function previewPrompt(id: StyleIdType) {
-  const style = STYLES[id];
+async function requireStyle(id: StyleIdType): Promise<Style> {
+  const styles = await stylesCollection();
+  const style = styleFromDoc(await styles.findOne({ _id: id }));
+  if (!style) throw new Error(`Style "${id}" is missing from Mongo`);
+  return style;
+}
+
+function previewPrompt(style: Style) {
   return [
     ...styleLinesForFrame(style),
     STYLE_PREVIEW_SCENE,
@@ -131,16 +137,17 @@ async function generatePreviews() {
   let failed = 0;
   for (const id of STYLE_IDS) {
     if (only && !only.includes(id)) continue;
-    const prompt = previewPrompt(id);
-    const hash = createHash("sha256")
-      .update(`${prompt}|${MODEL}|${QUALITY}`)
-      .digest("hex");
-    const existing = await styles.findOne({ _id: id });
-    if (!force && existing?.previewUrl && existing.previewHash === hash) {
-      console.log(`skip ${id} (up to date)`);
-      continue;
-    }
     try {
+      const style = await requireStyle(id);
+      const prompt = previewPrompt(style);
+      const hash = createHash("sha256")
+        .update(`${prompt}|${MODEL}|${QUALITY}`)
+        .digest("hex");
+      const existing = await styles.findOne({ _id: id });
+      if (!force && existing?.previewUrl && existing.previewHash === hash) {
+        console.log(`skip ${id} (up to date)`);
+        continue;
+      }
       console.log(`generate ${id}…`);
       const submitted = await submitImage(
         {
@@ -159,7 +166,7 @@ async function generatePreviews() {
         `explainer/styles/${id}`,
         {
           transform: (buffer) =>
-            flattenToCanvas(buffer, STYLES[id].canvasColor),
+            flattenToCanvas(buffer, style.canvasColor),
         },
       );
       const previewUrl = await persistThumbnail(id, previewFullUrl);
@@ -167,7 +174,6 @@ async function generatePreviews() {
         { _id: id },
         {
           $set: {
-            ...catalogStyleFields(STYLES[id]),
             previewFullUrl,
             previewUrl,
             previewHash: hash,
@@ -175,7 +181,6 @@ async function generatePreviews() {
             updatedAt: new Date(),
           },
         },
-        { upsert: true },
       );
       console.log(`  ✓ ${previewUrl}`);
     } catch (error) {

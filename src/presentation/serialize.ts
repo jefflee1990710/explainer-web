@@ -7,7 +7,7 @@ import { resolveSpeechPace } from "@/service/director/speech-pace";
 import { clipGenerationTags, productionCounts, type GenerationDetailTag } from "@/service/clip-stage";
 import { folderRollupStatus } from "@/service/folder";
 import { normalizeProjectStatus } from "@/service/project-status";
-import { resolveStyle, type StyleId } from "@/service/style";
+import { resolveStyleId, type StyleId } from "@/service/style";
 import type { AppUser } from "@/model/user";
 import type { Character, CharacterVersionStatus } from "@/model/character";
 import type { Folder } from "@/model/folder";
@@ -220,7 +220,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     spokenScript: video.spokenScript,
     aspectRatio: video.aspectRatio,
     durationPreset: video.durationPreset,
-    styleId: resolveStyle(video.styleId).id,
+    styleId: resolveStyleId(video.styleId),
     language: video.language || "en",
     voiceGender: resolveVoiceGender(video.voiceGender),
     speechPace: resolveSpeechPace(video.speechPace),
@@ -447,7 +447,7 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     id: character._id.toHexString(),
     name: character.name,
     styleId: character.styleId,
-    styleName: resolveStyle(character.styleId).nameZh,
+    styleName: resolveStyleId(character.styleId),
     defaultVersionId: resolved ? resolved.id.toHexString() : null,
     previewUrl: resolved?.blueprintUrl || null,
     versions,

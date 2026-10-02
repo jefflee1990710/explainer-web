@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Spinner } from "@/presentation/components/spinner";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicCharacter } from "@/presentation/serialize";
+import { localizedStyleName } from "@/util/style-i18n";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -52,7 +53,7 @@ export function CharacterCard({ character }: { character: PublicCharacter }) {
           <h3 className="line-clamp-1 text-sm font-medium">{character.name}</h3>
         </Link>
         <p className="mt-auto text-xs text-muted">
-          {character.styleName} · {t("characters.versionCount", { n: character.versions.length })}
+          {localizedStyleName(t, character.styleId)} · {t("characters.versionCount", { n: character.versions.length })}
         </p>
       </div>
     </motion.article>

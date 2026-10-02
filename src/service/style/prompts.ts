@@ -1,4 +1,4 @@
-import type { Style } from "@/service/style/catalog";
+import type { Style } from "@/service/style/types";
 
 // Markdown block appended to the director system prompt. It supersedes only
 // the rendering rules of SKILL.md's whiteboard "Locked visual world" so one

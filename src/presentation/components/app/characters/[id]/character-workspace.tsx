@@ -19,6 +19,7 @@ import { FRAME_COST } from "@/service/production-plan";
 import { DeleteCharacterDialog } from "@/presentation/components/app/characters/[id]/delete-character-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { translateAppError } from "@/util/i18n/translate-app-error";
+import { localizedStyleName } from "@/util/style-i18n";
 import { VersionDetail } from "@/presentation/components/app/characters/[id]/version-detail";
 import { VersionList } from "@/presentation/components/app/characters/[id]/version-list";
 
@@ -150,7 +151,7 @@ export function CharacterWorkspace({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-sm text-muted">
-            {character.styleName} · {t("characters.versionCount", { n: character.versions.length })}
+            {localizedStyleName(t, character.styleId)} · {t("characters.versionCount", { n: character.versions.length })}
           </p>
           <button
             type="button"
