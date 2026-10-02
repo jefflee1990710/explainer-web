@@ -42,6 +42,19 @@ const EXACT: Record<string, string> = {
   "沒有收到檔案": "errors.noFileReceived",
   "圖層設定格式錯誤": "errors.layerSettingsInvalid",
   "素材網址無效，請重新上傳": "errors.assetUrlInvalid",
+  "找不到 Director": "errors.directorNotFound",
+  "請輸入 Director 名稱": "errors.directorNameRequired",
+  "找不到模板": "errors.directorTemplateNotFound",
+  "不可新增或刪除檔案": "errors.directorFilesLocked",
+  "檔案內容過長": "errors.directorFileTooLong",
+  "AI 修改了不存在的檔案": "errors.directorUnknownFile",
+  "訊息過長": "errors.directorChatTooLong",
+  "需要訂閱才能使用 AI 修改": "errors.directorChatSubscribe",
+  "AI 修改失敗，請再試一次": "errors.directorChatFailed",
+  "AI 沒有修改任何檔案": "errors.directorChatNoEdits",
+  "建立 Director 失敗": "errors.directorCreateFailed",
+  "儲存 Director 失敗": "errors.directorSaveFailed",
+  "刪除 Director 失敗": "errors.directorDeleteFailed",
 };
 
 const PATTERNS: Array<{ re: RegExp; key: string; params?: (m: RegExpMatchArray) => Record<string, string | number> }> = [
@@ -53,6 +66,16 @@ const PATTERNS: Array<{ re: RegExp; key: string; params?: (m: RegExpMatchArray) 
   {
     re: /^樣板名稱最多 (\d+) 字$/,
     key: "errors.templateNameTooLong",
+    params: (m) => ({ max: m[1] }),
+  },
+  {
+    re: /^Director 名稱最多 (\d+) 字$/,
+    key: "errors.directorNameTooLong",
+    params: (m) => ({ max: m[1] }),
+  },
+  {
+    re: /^Director 描述最多 (\d+) 字$/,
+    key: "errors.directorDescriptionTooLong",
     params: (m) => ({ max: m[1] }),
   },
 ];

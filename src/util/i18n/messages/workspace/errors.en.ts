@@ -44,6 +44,21 @@ export const errorsEn = {
   assetUrlInvalid: "Invalid asset URL — upload again",
   instructionRequired: "Enter a director instruction",
   spokenScriptRequired: "Enter the script the character will read",
+  directorNotFound: "Director not found",
+  directorNameRequired: "Enter a director name",
+  directorNameTooLong: "Director name is too long ({max} max)",
+  directorDescriptionTooLong: "Description is too long ({max} max)",
+  directorTemplateNotFound: "Template not found",
+  directorFilesLocked: "Files cannot be added or removed",
+  directorFileTooLong: "File content is too long",
+  directorUnknownFile: "AI edited a file that does not exist",
+  directorChatTooLong: "Message is too long",
+  directorChatSubscribe: "Subscribe to use AI editing",
+  directorChatFailed: "AI edit failed. Try again.",
+  directorChatNoEdits: "AI did not change any file",
+  directorCreateFailed: "Could not create director",
+  directorSaveFailed: "Could not save director",
+  directorDeleteFailed: "Could not delete director",
 } as const;
 
 

@@ -11,7 +11,7 @@ import type { AppUser } from "@/model/user";
 import type { Character, CharacterVersionStatus } from "@/model/character";
 import type { Folder } from "@/model/folder";
 import type { Project, ProjectStatus } from "@/model/project";
-import type { Skill } from "@/model/skill";
+import type { DirectorChatMessage, Skill, SkillReference } from "@/model/skill";
 import type { Subscription } from "@/model/subscription";
 import type { VideoEdit, VideoTemplate } from "@/model/video-edit";
 
@@ -146,6 +146,38 @@ export function toPublicSkill(skill: Skill): PublicSkill {
     behaviorSlug: behaviorSlug(skill),
     isCustom: isCustomSkill(skill),
     updatedAt: skill.updatedAt.toISOString(),
+  };
+}
+
+// Director detail payload: editable files plus the persisted AI chat.
+export type PublicDirector = PublicSkill & {
+  baseSlug?: string;
+  systemPrompt: string;
+  references: SkillReference[];
+  chat: Array<{
+    role: DirectorChatMessage["role"];
+    content: string;
+    changedPaths?: string[];
+    createdAt: string;
+  }>;
+};
+
+export function toPublicDirectorChat(chat: DirectorChatMessage[]): PublicDirector["chat"] {
+  return chat.map((item) => ({
+    role: item.role,
+    content: item.content,
+    changedPaths: item.changedPaths,
+    createdAt: item.createdAt.toISOString(),
+  }));
+}
+
+export function toPublicDirector(skill: Skill): PublicDirector {
+  return {
+    ...toPublicSkill(skill),
+    baseSlug: skill.baseSlug,
+    systemPrompt: skill.systemPrompt,
+    references: skill.references.map((ref) => ({ path: ref.path, content: ref.content })),
+    chat: toPublicDirectorChat(skill.chat || []),
   };
 }
 
