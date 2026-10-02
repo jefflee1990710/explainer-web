@@ -42,11 +42,13 @@ import type {
   AspectRatio,
   DurationPreset,
   PhaseAEditInput,
+  ReferenceImage,
   SceneTextLanguage,
   SpeechPace,
   VoLanguage,
   VoiceGender,
 } from "@/model/project";
+import { parseReferenceImages } from "@/service/project/reference-images";
 
 const CAST_MAX = 4;
 
@@ -73,6 +75,8 @@ type BriefFields = {
   characterIds: string[];
   // Bookend skills only; undefined clears it.
   logoUrl?: string;
+  // Up to 4 described scene references, ids R1..Rn.
+  referenceImages: ReferenceImage[];
 };
 
 function readVideoBrief(
@@ -99,7 +103,7 @@ function readVideoBrief(
   if (characterIds.length > CAST_MAX) {
     return { ok: false, error: `最多選 ${CAST_MAX} 個角色` };
   }
-  if (!source) return { ok: false, error: "請提供題材或腳本" };
+  if (!source) return { ok: false, error: "請提供導演指示" };
   if (!["16:9", "9:16", "1:1"].includes(aspectRatio)) {
     return { ok: false, error: "請選擇畫面比例" };
   }
@@ -122,14 +126,17 @@ function readVideoBrief(
     return { ok: false, error: "請選擇視覺風格" };
   }
   // Logo is downloaded by image gen, so only this user's brand uploads are allowed.
+  const storeHost = blobStoreHost(process.env.BLOB_READ_WRITE_TOKEN);
   const rawLogo = String(formData.get("logoUrl") || "").trim();
   const logoUrl = isBookendSkill(skillSlug) && rawLogo ? rawLogo : undefined;
-  if (
-    logoUrl &&
-    !isBrandAssetUrl(logoUrl, clerkUserId, blobStoreHost(process.env.BLOB_READ_WRITE_TOKEN))
-  ) {
+  if (logoUrl && !isBrandAssetUrl(logoUrl, clerkUserId, storeHost)) {
     return { ok: false, error: "Logo 檔案無效，請重新上傳" };
   }
+  // Image gen downloads these too, so only this user's brand uploads are allowed.
+  const references = parseReferenceImages(String(formData.get("referenceImages") || ""), (url) =>
+    isBrandAssetUrl(url, clerkUserId, storeHost),
+  );
+  if (!references.ok) return references;
   return {
     ok: true,
     brief: {
@@ -139,6 +146,7 @@ function readVideoBrief(
       aspectRatio,
       durationPreset,
       logoUrl,
+      referenceImages: references.images,
       language,
       voiceGender: resolveVoiceGender(voiceGender),
       speechPace,
@@ -319,6 +327,7 @@ export async function createVideoAction(
       sceneTextEnabled: applySkillSceneText(skill.slug, brief.sceneTextEnabled),
       sceneTextLanguage: brief.sceneTextLanguage,
       ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
+      ...(brief.referenceImages.length ? { referenceImages: brief.referenceImages } : {}),
       cast,
       status: "phase_a",
       clips: [],
@@ -386,7 +395,7 @@ async function rewriteVideoBrief(
       const blocked = restartBlockReason(video);
       if (blocked) return { ok: false, error: blocked };
     } else if (video.status === "phase_a" || isProjectBusy(video)) {
-      return { ok: false, error: "請等目前的產生工作結束再改題材" };
+      return { ok: false, error: "請等目前的產生工作結束再改導演指示" };
     }
 
     const skills = await skillsCollection();
@@ -427,12 +436,14 @@ async function rewriteVideoBrief(
           sceneTextLanguage: brief.sceneTextLanguage,
           cast: castResult.cast,
           ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
+          ...(brief.referenceImages.length ? { referenceImages: brief.referenceImages } : {}),
           status: "phase_a",
           updatedAt: new Date(),
         },
         $unset: {
           ...(options.restart ? RESTART_UNSET_FIELDS : { error: "", stillError: "" }),
           ...(brief.logoUrl ? {} : { logoUrl: "" }),
+          ...(brief.referenceImages.length ? {} : { referenceImages: "" }),
         },
       },
     );

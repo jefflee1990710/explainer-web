@@ -48,6 +48,7 @@ export type PublicVideo = {
   characterStillUrl?: string;
   stillError?: string;
   logoUrl?: string;
+  referenceImages: NonNullable<Project["referenceImages"]>;
   cast: Array<{ characterId: string; name: string; blueprintUrl: string }>;
   status: ProjectStatus;
   phaseA?: Project["phaseA"];
@@ -157,6 +158,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     characterStillUrl: video.characterStillUrl,
     stillError: video.stillError,
     logoUrl: video.logoUrl,
+    referenceImages: video.referenceImages || [],
     cast: (video.cast || []).map((member) => ({
       characterId: member.characterId.toHexString(),
       name: member.name,
