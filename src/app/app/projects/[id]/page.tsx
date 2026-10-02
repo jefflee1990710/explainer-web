@@ -3,12 +3,8 @@ import { notFound } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/service/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
-import {
-  charactersCollection,
-  projectsCollection,
-  skillsCollection,
-  videosCollection,
-} from "@/dao";
+import { charactersCollection, projectsCollection, videosCollection } from "@/dao";
+import { listSelectableSkills } from "@/service/director/selectable-skills";
 import { toPublicCharacter, toPublicFolder, toPublicSkill, VIDEO_LIST_PROJECTION } from "@/presentation/serialize";
 import { listPublicStyles } from "@/service/style/list";
 import type { Character } from "@/model/character";
@@ -36,7 +32,6 @@ export default async function ProjectPage({
   if (!folder?.name) notFound();
 
   const videos = await videosCollection();
-  const skillsCol = await skillsCollection();
   const charactersCol = await charactersCollection();
 
   const [videoDocs, skillDocs, styles, characterDocs, sub] = await Promise.all([
@@ -44,7 +39,7 @@ export default async function ProjectPage({
       .find({ projectId: folder._id }, { projection: VIDEO_LIST_PROJECTION })
       .sort({ createdAt: -1 })
       .toArray() as Promise<Project[]>,
-    skillsCol.find({ isActive: true }).sort({ sortOrder: 1 }).toArray(),
+    listSelectableSkills(user.clerkUserId),
     listPublicStyles(),
     charactersCol
       .find({ clerkUserId: user.clerkUserId })

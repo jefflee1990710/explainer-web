@@ -1,4 +1,5 @@
 import { resolveDefaultVersion, versionNumber } from "@/service/character/versions";
+import { behaviorSlug, isCustomSkill } from "@/service/director/behavior-slug";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { resolveVoiceGender } from "@/service/director/voice";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
@@ -20,6 +21,10 @@ export type PublicSkill = {
   title: string;
   titleZh: string;
   description: string;
+  // Template slug for custom directors; drives skill-specific form rules.
+  behaviorSlug: string;
+  isCustom: boolean;
+  updatedAt: string;
 };
 
 export type PublicStyle = {
@@ -34,6 +39,7 @@ export type PublicStyle = {
 export type PublicVideo = {
   id: string;
   projectId: string;
+  skillId: string;
   skillSlug: string;
   source: string;
   spokenScript?: string;
@@ -137,6 +143,9 @@ export function toPublicSkill(skill: Skill): PublicSkill {
     title: skill.title,
     titleZh: skill.titleZh,
     description: skill.description,
+    behaviorSlug: behaviorSlug(skill),
+    isCustom: isCustomSkill(skill),
+    updatedAt: skill.updatedAt.toISOString(),
   };
 }
 
@@ -145,6 +154,7 @@ export function toPublicVideo(video: Project): PublicVideo {
   return {
     id: video._id.toHexString(),
     projectId: video.projectId.toHexString(),
+    skillId: video.skillId.toHexString(),
     skillSlug: video.skillSlug,
     source: video.source,
     spokenScript: video.spokenScript,

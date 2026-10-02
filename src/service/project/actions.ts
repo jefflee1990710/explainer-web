@@ -7,10 +7,11 @@ import {
   charactersCollection,
   generationJobsCollection,
   projectsCollection,
-  skillsCollection,
   videosCollection,
 } from "@/dao";
 import { runPhaseAJob, runStillJob } from "@/service/director/jobs";
+import { behaviorSlug } from "@/service/director/behavior-slug";
+import { findSelectableSkill } from "@/service/director/selectable-skills";
 import { isVoLanguage } from "@/service/director/languages";
 import { isVoiceGender, resolveVoiceGender } from "@/service/director/voice";
 import { isSpeechPace } from "@/service/director/speech-pace";
@@ -81,9 +82,11 @@ type BriefFields = {
   referenceImages: ReferenceImage[];
 };
 
+// `ruleSlug` is the behaviour slug; custom directors follow their template's rules.
 function readVideoBrief(
   formData: FormData,
   clerkUserId: string,
+  ruleSlug: string,
 ): { ok: true; brief: BriefFields } | { ok: false; error: string } {
   const skillSlug = String(formData.get("skillSlug") || "");
   const styleId = String(formData.get("styleId") || "");
@@ -107,7 +110,7 @@ function readVideoBrief(
     return { ok: false, error: `最多選 ${CAST_MAX} 個角色` };
   }
   if (!source) return { ok: false, error: "請提供導演指示" };
-  if (isTalkingHeadSkill(skillSlug) && !spokenScript) {
+  if (isTalkingHeadSkill(ruleSlug) && !spokenScript) {
     return { ok: false, error: "請輸入角色要讀的講稿。" };
   }
   if (!["16:9", "9:16", "1:1"].includes(aspectRatio)) {
@@ -117,9 +120,9 @@ function readVideoBrief(
     return { ok: false, error: "請選擇片長" };
   }
   if (!isVoLanguage(language)) {
-    return { ok: false, error: skillBansNarration(skillSlug) ? "請選擇對白語言" : "請選擇旁白語言" };
+    return { ok: false, error: skillBansNarration(ruleSlug) ? "請選擇對白語言" : "請選擇旁白語言" };
   }
-  if (!skillBansNarration(skillSlug) && !isVoiceGender(voiceGender)) {
+  if (!skillBansNarration(ruleSlug) && !isVoiceGender(voiceGender)) {
     return { ok: false, error: "請選擇旁白聲線" };
   }
   if (!isSpeechPace(speechPace)) {
@@ -134,7 +137,7 @@ function readVideoBrief(
   // Logo is downloaded by image gen, so only this user's brand uploads are allowed.
   const storeHost = blobStoreHost(process.env.BLOB_READ_WRITE_TOKEN);
   const rawLogo = String(formData.get("logoUrl") || "").trim();
-  const logoUrl = isBookendSkill(skillSlug) && rawLogo ? rawLogo : undefined;
+  const logoUrl = isBookendSkill(ruleSlug) && rawLogo ? rawLogo : undefined;
   if (logoUrl && !isBrandAssetUrl(logoUrl, clerkUserId, storeHost)) {
     return { ok: false, error: "Logo 檔案無效，請重新上傳" };
   }
@@ -149,7 +152,7 @@ function readVideoBrief(
       skillSlug,
       styleId,
       source,
-      ...(isTalkingHeadSkill(skillSlug) ? { spokenScript } : {}),
+      ...(isTalkingHeadSkill(ruleSlug) ? { spokenScript } : {}),
       aspectRatio,
       durationPreset,
       logoUrl,
@@ -288,7 +291,13 @@ export async function createVideoAction(
   try {
     const user = await requireAppUser();
     const projectId = String(formData.get("projectId") || "");
-    const parsed = readVideoBrief(formData, user.clerkUserId);
+    const skill = await findSelectableSkill(
+      user.clerkUserId,
+      String(formData.get("skillSlug") || ""),
+    );
+    if (!skill) return { ok: false, error: "找不到風格" };
+    const ruleSlug = behaviorSlug(skill);
+    const parsed = readVideoBrief(formData, user.clerkUserId, ruleSlug);
     if (!parsed.ok) return parsed;
     const { brief } = parsed;
 
@@ -303,11 +312,8 @@ export async function createVideoAction(
     });
     if (!folder) return { ok: false, error: "專案不存在" };
 
-    const skills = await skillsCollection();
-    const skill = await skills.findOne({ slug: brief.skillSlug, isActive: true });
-    if (!skill) return { ok: false, error: "找不到風格" };
     const skillError = briefSkillError({
-      skillSlug: skill.slug,
+      skillSlug: ruleSlug,
       characterIds: brief.characterIds,
     });
     if (skillError) return { ok: false, error: skillError };
@@ -323,7 +329,7 @@ export async function createVideoAction(
       userId: user._id,
       clerkUserId: user.clerkUserId,
       skillId: skill._id,
-      skillSlug: skill.slug,
+      skillSlug: ruleSlug,
       styleId: brief.styleId,
       source: brief.source,
       ...(brief.spokenScript ? { spokenScript: brief.spokenScript } : {}),
@@ -332,7 +338,7 @@ export async function createVideoAction(
       language: brief.language,
       voiceGender: brief.voiceGender,
       speechPace: brief.speechPace,
-      sceneTextEnabled: applySkillSceneText(skill.slug, brief.sceneTextEnabled),
+      sceneTextEnabled: applySkillSceneText(ruleSlug, brief.sceneTextEnabled),
       sceneTextLanguage: brief.sceneTextLanguage,
       ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
       ...(brief.referenceImages.length ? { referenceImages: brief.referenceImages } : {}),
@@ -386,7 +392,13 @@ async function rewriteVideoBrief(
   try {
     const user = await requireAppUser();
     const videoId = String(formData.get("videoId") || "");
-    const parsed = readVideoBrief(formData, user.clerkUserId);
+    const skill = await findSelectableSkill(
+      user.clerkUserId,
+      String(formData.get("skillSlug") || ""),
+    );
+    if (!skill) return { ok: false, error: "找不到風格" };
+    const ruleSlug = behaviorSlug(skill);
+    const parsed = readVideoBrief(formData, user.clerkUserId, ruleSlug);
     if (!parsed.ok) return parsed;
     const { brief } = parsed;
     if (!ObjectId.isValid(videoId)) {
@@ -406,11 +418,8 @@ async function rewriteVideoBrief(
       return { ok: false, error: "請等目前的產生工作結束再改導演指示" };
     }
 
-    const skills = await skillsCollection();
-    const skill = await skills.findOne({ slug: brief.skillSlug, isActive: true });
-    if (!skill) return { ok: false, error: "找不到風格" };
     const skillError = briefSkillError({
-      skillSlug: skill.slug,
+      skillSlug: ruleSlug,
       characterIds: brief.characterIds,
     });
     if (skillError) return { ok: false, error: skillError };
@@ -432,7 +441,7 @@ async function rewriteVideoBrief(
         $set: {
           ...(options.restart ? { clips: [] } : {}),
           skillId: skill._id,
-          skillSlug: skill.slug,
+          skillSlug: ruleSlug,
           styleId: brief.styleId,
           source: brief.source,
           ...(brief.spokenScript ? { spokenScript: brief.spokenScript } : {}),
@@ -441,7 +450,7 @@ async function rewriteVideoBrief(
           language: brief.language,
           voiceGender: brief.voiceGender,
           speechPace: brief.speechPace,
-          sceneTextEnabled: applySkillSceneText(skill.slug, brief.sceneTextEnabled),
+          sceneTextEnabled: applySkillSceneText(ruleSlug, brief.sceneTextEnabled),
           sceneTextLanguage: brief.sceneTextLanguage,
           cast: castResult.cast,
           ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
