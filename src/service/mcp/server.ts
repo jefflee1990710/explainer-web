@@ -7,6 +7,7 @@ import {
   getVideoAction,
   reviseProjectAction,
 } from "@/service/project/actions";
+import { importReferenceImage } from "@/service/project/reference-image-import";
 import { approveStoryboardAction } from "@/service/generation/actions";
 import {
   generateClipFramesAction,
@@ -285,7 +286,20 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
         "Create a video inside a folder and start storyboard generation. skillSlug is the director skill.",
       inputSchema: {
         folderId: z.string(),
-        source: z.string().min(1).describe("Topic or script"),
+        source: z
+          .string()
+          .min(1)
+          .describe("Director instruction: how to plan the video; may include the topic or a full script"),
+        referenceImages: z
+          .array(
+            z.object({
+              url: z.string().url().describe("Public PNG/JPG/WebP image, ≤ 5MB"),
+              description: z.string().min(1).max(300).describe("What it shows and how the director should use it"),
+            }),
+          )
+          .max(4)
+          .optional()
+          .describe("Scene references; the director assigns them to clips and reuses them for scene stills"),
         skillSlug: z.string().default("cartoon-explainer"),
         styleId: z.string(),
         aspectRatio: z.enum(["16:9", "9:16", "1:1"]),
@@ -319,6 +333,14 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
       form.set("speechPace", args.speechPace);
       form.set("sceneTextLanguage", args.sceneTextLanguage);
       for (const id of args.characterIds || []) form.append("characterIds", id);
+      const references: Array<{ url: string; description: string }> = [];
+      for (const item of args.referenceImages || []) {
+        references.push({
+          url: await importReferenceImage(item.url, user.clerkUserId),
+          description: item.description,
+        });
+      }
+      if (references.length) form.set("referenceImages", JSON.stringify(references));
       const result = await createVideoAction(form);
       if (!result.ok) throw new Error(result.error);
       return result.project;
