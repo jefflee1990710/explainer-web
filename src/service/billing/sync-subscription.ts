@@ -7,6 +7,8 @@ import { isPlanId, planByPriceId, PLANS } from "@/service/billing/plans";
 import { grantPackCredits, resetMonthlyCredits } from "@/service/billing/credits";
 import { CREDIT_PACKS, isPackId } from "@/service/billing/packs";
 import { recordPurchaseCommission } from "@/service/affiliate/engine";
+import { scheduleOperatorSubscriptionEmail } from "@/service/notify/operator-email";
+import { paidPlanNotice } from "@/service/notify/operator-notice";
 import {
   subscriptionsCollection,
   usersCollection,
@@ -67,6 +69,7 @@ export async function syncStripeSubscription(
   const status = subscription.status as SubscriptionStatus;
 
   const subscriptions = await subscriptionsCollection();
+  const previous = await subscriptions.findOne({ stripeSubscriptionId: subscription.id });
   await subscriptions.updateOne(
     { stripeSubscriptionId: subscription.id },
     {
@@ -87,6 +90,36 @@ export async function syncStripeSubscription(
     },
     { upsert: true },
   );
+
+  const notice = paidPlanNotice({
+    status,
+    planId: plan.id,
+    notifiedPlanId: previous?.operatorNotifiedPlanId,
+  });
+  if (notice.action === "clear") {
+    await subscriptions.updateOne(
+      { stripeSubscriptionId: subscription.id },
+      { $unset: { operatorNotifiedPlanId: "" } },
+    );
+  } else if (notice.action === "notify" && user.email) {
+    // Claim this plan so a webhook retry or the paid invoice does not send twice.
+    const claimed = await subscriptions.findOneAndUpdate(
+      { stripeSubscriptionId: subscription.id, operatorNotifiedPlanId: { $ne: plan.id } },
+      { $set: { operatorNotifiedPlanId: plan.id } },
+    );
+    if (claimed) {
+      scheduleOperatorSubscriptionEmail({
+        name: user.name,
+        email: user.email,
+        planName: plan.name,
+        planNameZh: plan.nameZh,
+        amountUsd: plan.amountUsd,
+        monthlyCredits: plan.monthlyCredits,
+        status,
+        at: new Date(),
+      });
+    }
+  }
 
   if (status === "active" || status === "trialing") {
     const current = await users.findOne({ _id: user._id });

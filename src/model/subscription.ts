@@ -27,6 +27,8 @@ export type Subscription = {
   currentPeriodEnd: Date;
   createdAt: Date;
   updatedAt: Date;
+  // Last paid plan we already emailed the operator about. Cleared on cancel.
+  operatorNotifiedPlanId?: PlanId;
 };
 
 export const planIdSchema = z.enum(["starter", "pro", "studio", "scale"]);
@@ -53,4 +55,5 @@ export const subscriptionSchema: z.ZodType<Subscription> = z.object({
   currentPeriodEnd: z.date(),
   createdAt: z.date(),
   updatedAt: z.date(),
+  operatorNotifiedPlanId: planIdSchema.optional(),
 });
