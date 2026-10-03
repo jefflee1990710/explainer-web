@@ -8,7 +8,9 @@ import {
   buildFramePrompt,
   frameSubmitPlan,
   framesWithClips,
+  framesWithClipsReady,
 } from "@/service/higgsfield/frame-prompts";
+import { resetStyleOverlay } from "@/service/style/load-style";
 import { installTestStyles, uninstallTestStyles } from "@/service/style/test-styles";
 
 before(() => installTestStyles());
@@ -482,6 +484,17 @@ test("listicle stills paint a numbered item list even when scene text is off", (
 
 test("framesWithClips queues start and end for every clip", () => {
   const next = framesWithClips(project(), [1]);
+  assert.deepEqual(
+    next.map((frame) => `${frame.clipNumber}:${frame.position}:${frame.status}`),
+    ["1:start:queued", "1:end:queued"],
+  );
+});
+
+test("framesWithClipsReady hydrates styles before queueing prompts", async () => {
+  resetStyleOverlay();
+  const next = await framesWithClipsReady(project(), [1], async () => {
+    installTestStyles();
+  });
   assert.deepEqual(
     next.map((frame) => `${frame.clipNumber}:${frame.position}:${frame.status}`),
     ["1:start:queued", "1:end:queued"],

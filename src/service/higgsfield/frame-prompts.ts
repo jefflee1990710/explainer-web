@@ -48,7 +48,7 @@ import {
   styleLinesForFrame,
   type Style,
 } from "@/service/style";
-import { resolvedStyle } from "@/service/style/load-style";
+import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
 import type {
   ClipFrame,
   FramePosition,
@@ -492,6 +492,16 @@ export function framesWithClips(project: Project, clipNumbers: number[]): ClipFr
     (frames, clipNumber) => framesWithClip({ ...project, frames }, clipNumber),
     project.frames || [],
   );
+}
+
+// Draw-frames click path: hydrate first or resolvedStyle throws on a cold instance.
+export async function framesWithClipsReady(
+  project: Project,
+  clipNumbers: number[],
+  hydrate: () => Promise<void> = hydrateStyles,
+) {
+  await hydrate();
+  return framesWithClips(project, clipNumbers);
 }
 
 export function frameKey(clipNumber: number, position: FramePosition) {

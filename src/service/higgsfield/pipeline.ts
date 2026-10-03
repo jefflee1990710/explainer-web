@@ -9,7 +9,7 @@ import { refundCredits } from "@/service/billing/credits";
 import { flattenToCanvas } from "@/service/higgsfield/flatten";
 import { sceneTextNegativePrompt, resolveSceneText } from "@/service/director/scene-text";
 import { imageModelForSubmit, resolveImageRoute } from "@/service/generation/image-backend";
-import { frameSubmitPlan, framesWithClips, videoStyle } from "@/service/higgsfield/frame-prompts";
+import { frameSubmitPlan, framesWithClipsReady, videoStyle } from "@/service/higgsfield/frame-prompts";
 import { hydrateStyles } from "@/service/style/load-style";
 import {
   orphanQueuedClips,
@@ -255,7 +255,7 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
 export async function enqueueClipFrameJobs(project: Project, clipNumbers: number[]) {
   if (clipNumbers.length === 0) return { deferred: [] as FrameTarget[] };
   const frames = withInheritedTalkingHeadStarts(
-    framesWithClips(project, clipNumbers),
+    await framesWithClipsReady(project, clipNumbers),
     project.skillSlug,
   );
   // Talking-head clip 2+ starts are copied from the previous end, never submitted.
