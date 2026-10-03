@@ -8,6 +8,8 @@ const EXACT: Record<string, string> = {
   "請選擇對白語言": "errors.dialogueLanguageRequired",
   "請選擇旁白語言": "errors.voiceRequired",
   "建立專案失敗": "errors.createProjectFailed",
+  "請輸入專案名稱": "errors.folderNameRequired",
+  "重新命名失敗": "errors.genericRetry",
   "請先同意服務條款與私隱政策": "errors.acceptPolicies",
   "讀取任務失敗": "errors.loadTasksFailed",
   "建立角色失敗，請再試一次": "errors.createCharacterFailed",

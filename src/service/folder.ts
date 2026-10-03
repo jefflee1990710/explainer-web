@@ -20,6 +20,13 @@ export function sanitizeFolderName(input: string) {
   return name || "";
 }
 
+// Null when the draft should not be saved (blank or same as the current name).
+export function committedFolderName(current: string, draft: string) {
+  const next = sanitizeFolderName(draft);
+  if (!next || next === current) return null;
+  return next;
+}
+
 export function folderRollupStatus(statuses: ProjectStatus[]): ProjectStatus {
   if (statuses.length === 0) return "draft";
   if (statuses.some((status) => status === "failed")) return "failed";

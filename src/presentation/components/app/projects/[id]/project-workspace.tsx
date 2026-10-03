@@ -22,6 +22,7 @@ import {
 import { VideoEditorDialog } from "@/presentation/components/app/projects/[id]/video-editor-dialog";
 import { VideoEditorShell } from "@/presentation/components/app/projects/[id]/video-editor-shell";
 import { useFolderGenerationPoll } from "@/presentation/components/app/projects/[id]/use-folder-generation-poll";
+import { FolderNameField } from "@/presentation/components/app/projects/[id]/folder-name-field";
 import { VideoTable } from "@/presentation/components/app/projects/[id]/video-table";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -201,7 +202,7 @@ export function ProjectWorkspace({
             >
               {t("video.workspace.backToProjects")}
             </Link>
-            <h1 className="font-display mt-2 text-3xl font-bold">{folder.name}</h1>
+            <FolderNameField folderId={folder.id} name={folder.name} />
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-sm text-muted">{t("video.workspace.videoCount", { n: videos.length })}</p>
