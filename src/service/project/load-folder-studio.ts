@@ -43,7 +43,7 @@ export async function loadFolderVideoCards(folder: Folder) {
   const videos = await videosCollection();
   const videoDocs = (await videos
     .find({ projectId: folder._id }, { projection: VIDEO_LIST_PROJECTION })
-    .sort({ createdAt: -1 })
+    .sort({ updatedAt: -1, createdAt: -1 })
     .toArray()) as Project[];
   return toPublicFolder(folder, videoDocs);
 }

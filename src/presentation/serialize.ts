@@ -120,6 +120,7 @@ export const VIDEO_LIST_PROJECTION = {
   durationPreset: 1,
   language: 1,
   createdAt: 1,
+  updatedAt: 1,
   error: 1,
   characterStillUrl: 1,
   characterImageUrl: 1,
@@ -302,10 +303,14 @@ export function toPublicVideoCardFromPublic(video: PublicVideo): PublicVideoCard
   };
 }
 
+function videoRecencyMs(video: Pick<Project, "createdAt" | "updatedAt">) {
+  return (video.updatedAt ?? video.createdAt).getTime();
+}
+
 export function toPublicFolder(folder: Folder, videos: Project[]): PublicFolder {
   const cards = videos
     .slice()
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .sort((a, b) => videoRecencyMs(b) - videoRecencyMs(a))
     .map(toPublicVideoCard);
   const statuses = videos.map((video) => normalizeProjectStatus(video.status));
   const cover = cards.find((video) => video.previewUrls.length > 0) || cards[0];
