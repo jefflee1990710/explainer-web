@@ -96,13 +96,15 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(block, /I'm Scro/);
   assert.match(block, /explanation graph/);
   assert.match(block, /every topic/);
-  assert.match(block, /STEP N/);
+  assert.match(block, /beat title/);
+  assert.doesNotMatch(block, /STEP N|STEP 1/);
   assert.doesNotMatch(block, /at least 3 concrete props/);
   assert.doesNotMatch(block, /SYSTOLIC|TPU|walk-forward/i);
   const still = cartoonNarratorFrameLock("cartoon-explainer-video-director");
   assert.match(still, /does not talk/);
   assert.match(still, /explanation graph/);
-  assert.match(still, /step title/);
+  assert.match(still, /beat title/);
+  assert.doesNotMatch(still, /STEP N|STEP 1/);
   assert.match(cartoonNarratorVideoLock("cartoon-explainer-video-director"), /off-screen narrator/);
   assert.match(cartoonNarratorVideoLock("cartoon-explainer-video-director"), /never speaks or lip-syncs/);
   assert.equal(cartoonNarratorFrameLock("story-short-director"), "");

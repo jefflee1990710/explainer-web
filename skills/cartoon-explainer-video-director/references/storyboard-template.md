@@ -90,7 +90,7 @@ Keep the character strictly locked across all rows: if a character reference ima
 
 Name colors only with ordinary descriptive language. Do not use hexadecimal, RGB, HSL, Pantone, or other technical color notation anywhere in the proposal or production prompts.
 
-Allow on-canvas step text: one short STEP N / beat title that names this clip's idea, plus diagram labels, node names, and arrow names, each spelled inside 「」 in startScene and endScene. Do not dump the full voiceover into those fields — the still prompt adds startVo / endVo lettering separately. After the storyboard, optionally list longer two-to-five-word English overlays for post-production, including their target clips and safe placement; never carry those longer overlays into the video-generation prompts.
+Allow on-canvas beat text: one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names, each spelled inside 「」 in startScene and endScene. Do not dump the full voiceover into those fields — the still prompt adds startVo / endVo lettering separately. After the storyboard, optionally list longer two-to-five-word English overlays for post-production, including their target clips and safe placement; never carry those longer overlays into the video-generation prompts.
 
 ## Scene detail
 

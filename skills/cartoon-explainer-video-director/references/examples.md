@@ -80,7 +80,7 @@ The moment you move, fear loses power. Stop waiting to feel ready. Try, make mis
 - Warm, engaging adult male narrator with natural American English.
 - Stage action across left, center, and right; use lateral tracking, horizontal match cuts, and deliberate negative space.
 - Use rapid scene changes, kinetic doodle transformations, and frequent visual events, while preserving an identical whiteboard everyman, the same three sprouting hair tufts (tallest, shortest, second highest from left to right) on a bald round head, dot eyes, nose-less face, casual light blue square-pattern pyjamas, black hand-drawn outlines, filled body proportions, and strict temporal consistency.
-- Allow a short step title plus diagram labels in-world. Do not dump a second full transcript of the voiceover into the prompt. Add the longer CTA in post-production.
+- Allow a short beat title plus diagram labels in-world. Do not dump a second full transcript of the voiceover into the prompt. Add the longer CTA in post-production.
 
 ### Clip 1 — Thought storm
 

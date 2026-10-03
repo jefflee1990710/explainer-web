@@ -56,7 +56,7 @@ Enforce **The 2-Second Visual Rule**: ensure a visible transformation, camera pu
 
 The VO is spoken by an unseen off-screen narrator. The on-screen character never speaks or lip-syncs; its mouth stays closed or shows simple reactions while it reacts to the diagram or props. Quote the approved English VO exactly once as audio-only dialogue. Instruct the model not to add, omit, paraphrase, repeat, or reorder the spoken line. Beat lettering is added by the still prompt — do not dump a second full transcript into the video prompt.
 
-Allow on-canvas step titles, diagram labels, node names, and arrow names already named in the storyboard. Forbid photoreal UI type, logos, watermarks, palette labels, and production annotations. Put longer optional phrases in a separate post-production overlay list outside the prompts.
+Allow on-canvas beat titles, diagram labels, node names, and arrow names already named in the storyboard. Forbid photoreal UI type, logos, watermarks, palette labels, and production annotations. Put longer optional phrases in a separate post-production overlay list outside the prompts.
 
 ## Palette notation
 
@@ -119,7 +119,7 @@ Independent text-only generations may vary in voice. Recommend, in order:
 - Clip 1 choreographs stacked hooks (spoken + visual/motion/SFX).
 - Every ending matches the next opening. The last clip ends on a clean resting payoff (never bridges back to Clip 1).
 - Dialogue exactly matches the approved narration.
-- Dialogue matches the approved narration as audio. Do not add a second subtitle band; beat lettering comes from the stills. Step titles and diagram labels named in the storyboard stay.
+- Dialogue matches the approved narration as audio. Do not add a second subtitle band; beat lettering comes from the stills. Beat titles and diagram labels named in the storyboard stay.
 - Standalone prompts contain no hexadecimal, RGB, HSL, Pantone, or other technical color notation.
-- In-world text may include a short step title plus diagram labels, node names, and arrow names; longer overlay phrases are listed separately for post-production.
+- In-world text may include a short beat title plus diagram labels, node names, and arrow names; longer overlay phrases are listed separately for post-production.
 - No prompt requests a teal sunburst world, glasses hero, or chalkboard inversion.

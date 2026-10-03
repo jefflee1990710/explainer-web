@@ -141,7 +141,8 @@ test("whiteboard explainer stills keep the character silent and draw the mechani
   cartoon.skillSlug = "cartoon-explainer-video-director";
   assert.match(buildFramePrompt(cartoon, 1, "start"), /Silent demonstrator/);
   assert.match(buildFramePrompt(cartoon, 1, "end"), /explanation graph/);
-  assert.match(buildFramePrompt(cartoon, 1, "end"), /step title/);
+  assert.match(buildFramePrompt(cartoon, 1, "end"), /beat title/);
+  assert.doesNotMatch(buildFramePrompt(cartoon, 1, "end"), /STEP N|STEP 1/);
   assert.doesNotMatch(buildFramePrompt(project(), 1, "start"), /Silent demonstrator/);
 });
 

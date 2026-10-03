@@ -189,14 +189,14 @@ export function cartoonExplainerDirectorBlock() {
     "The on-screen character never speaks, never introduces themself, and is never the narrator. No first-person lines in the character's voice (no \"Hi, I'm Scro\", \"I am…\", \"we…\" spoken as the character); the narrator may name the character or product in the third person (\"Meet Scro. Scro turns…\").",
     "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth closed or reacting. It may point at a diagram, stand aside reacting, or handle props — it does not have to hold three props.",
     "For every topic, make an explanation graph the main subject of the canvas — not a character holding metaphor props. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts of a whole, flow or cycle, or a simple chart. Topic does not matter: food, money, health, product, habit, or science all get a graph. Metaphor props (boxes, bins, arrows, yellow tags) are only a fallback when a graph would hide the idea. Density is the graph — never a three-prop quota. Never a near-empty canvas with one floating label.",
-    "On-canvas step text is allowed: write one short STEP N / beat title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 in startScene and endScene. Do not dump the full voiceover into those fields; the still prompt adds startVo / endVo lettering separately.",
+    "On-canvas beat text is allowed: write one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 in startScene and endScene. Do not dump the full voiceover into those fields; the still prompt adds startVo / endVo lettering separately.",
   ].join(" ");
 }
 
 // Pasted into whiteboard-explainer stills; empty for every other director.
 export function cartoonNarratorFrameLock(skillSlug?: string) {
   if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
-  return "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every step title or diagram label written in 「」, clearly readable.";
+  return "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」, clearly readable.";
 }
 
 // Appended to whiteboard-explainer clip videos; empty for every other director.
