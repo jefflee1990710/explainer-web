@@ -1,19 +1,25 @@
 import { charactersCollection, skillsCollection, videosCollection } from "@/dao";
+import { userStylesCollection } from "@/dao/user-styles";
 import { sendCharacterVersion } from "@/service/character/generate";
 import { runPhaseBForClip } from "@/service/director/run-phase-b";
 import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { videoStyle } from "@/service/higgsfield/frame-prompts";
+import { submitImage } from "@/service/higgsfield/generate";
 import { hydrateStyles } from "@/service/style/load-style";
+import { renderableFromUserStyle } from "@/service/style/renderable-style";
+import { stylePreviewPrompt } from "@/service/style/user-style-preview";
 import { sendClipVideo, sendFrame, sendStill } from "@/service/higgsfield/pipeline";
+import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
 import { PermanentJobError } from "@/service/generation/task-policy";
-import type { Sent } from "@/service/generation/sent";
+import { toSent, type Sent } from "@/service/generation/sent";
 import type { Character } from "@/model/character";
 import type { GenerationJob } from "@/model/generation-job";
 import type { Project } from "@/model/project";
 
 // Load fresh state and call the provider for one claimed job.
 export async function sendJob(job: GenerationJob): Promise<Sent> {
+  if (job.kind === "stylePreview") return sendStylePreview(job);
   await hydrateStyles();
   if (job.kind === "character") return sendCharacter(job);
 
@@ -29,6 +35,23 @@ export async function sendJob(job: GenerationJob): Promise<Sent> {
     return sendFrame(project, clipNumber, job.framePosition);
   }
   return sendVideo(project, clipNumber);
+}
+
+// Load the user style by id, including a soft-deleted row, and send its preview still.
+async function sendStylePreview(job: GenerationJob): Promise<Sent> {
+  if (!job.userStyleId) throw new PermanentJobError("找不到 Style");
+  const styles = await userStylesCollection();
+  const doc = await styles.findOne({ _id: job.userStyleId });
+  if (!doc) throw new PermanentJobError("找不到 Style");
+  const model = IMAGE_ROUTE_BY_SCENE_TEXT.en.model;
+  const submitted = await submitImage({
+    model,
+    prompt: stylePreviewPrompt(renderableFromUserStyle(doc)),
+    aspectRatio: "16:9",
+    quality: "medium",
+    resolution: "1k",
+  });
+  return toSent(model, submitted);
 }
 
 async function sendCharacter(job: GenerationJob) {

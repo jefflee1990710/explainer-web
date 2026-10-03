@@ -7,6 +7,7 @@ export type {
   SaveUserStyleResult,
   DeleteUserStyleResult,
   UserStyleChatResult,
+  GenerateUserStylePreviewResult,
 } from "@/service/style/user-style-actions";
 
 export async function createUserStyleAction(
@@ -31,4 +32,10 @@ export async function sendUserStyleChatAction(
   ...args: Parameters<typeof service.sendUserStyleChatAction>
 ) {
   return service.sendUserStyleChatAction(...args);
+}
+
+export async function generateUserStylePreviewAction(
+  ...args: Parameters<typeof service.generateUserStylePreviewAction>
+) {
+  return service.generateUserStylePreviewAction(...args);
 }

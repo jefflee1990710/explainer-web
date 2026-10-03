@@ -25,6 +25,7 @@ export function ensureGenerationJobIndexes() {
     await jobs.createIndex({ status: 1, updatedAt: 1 }).catch(() => {});
     await jobs.createIndex({ projectId: 1, createdAt: -1 }).catch(() => {});
     await jobs.createIndex({ characterId: 1, createdAt: -1 }).catch(() => {});
+    await jobs.createIndex({ userStyleId: 1, createdAt: -1 }).catch(() => {});
     // Not unique: pending jobs have no requestId yet.
     await jobs.createIndex({ requestId: 1 }).catch(() => {});
   })().catch((error) => {

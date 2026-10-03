@@ -12,6 +12,7 @@ import { persistMedia } from "@/service/higgsfield/persist";
 import { STYLE_IDS } from "@/model/style-id";
 import { styleLetteringLine, styleLinesForFrame } from "@/service/style";
 import { styleFromDoc } from "@/service/style/load-style";
+import { STYLE_PREVIEW_SCENE } from "@/service/style/preview-scene";
 import type { Style } from "@/service/style/types";
 
 loadEnvConfig(process.cwd());
@@ -25,10 +26,6 @@ const THUMB_WIDTH = 768;
 const THUMB_QUALITY = 82;
 
 type StyleIdType = (typeof STYLE_IDS)[number];
-
-// Shared preview scene: identical composition so the nine cards compare directly.
-const STYLE_PREVIEW_SCENE =
-  "Scene: a friendly explainer character stands at the left third, pointing up at a large light bulb floating at the right third; the bulb carries the label IDEA; one arrow curves from the character's hand to the bulb. Wide margins on every side. Showcase this style's canvas, look and lettering.";
 
 const force = process.argv.includes("--force");
 // `--thumbs`: rebuild only the WebP thumbnails from stored full images.

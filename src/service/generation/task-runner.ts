@@ -1,6 +1,7 @@
 import type { Filter, ObjectId } from "mongodb";
 import { generationJobsCollection, videosCollection } from "@/dao";
 import { failCharacterVersion } from "@/service/character/sync";
+import { syncStylePreviewJob } from "@/service/style/user-style-preview";
 import { fetchHiggsfieldStatus, mediaUrlFromResponse } from "@/service/higgsfield/generate";
 import {
   jobNeedsRefresh,
@@ -105,6 +106,10 @@ export async function failJob(
     }
     return true;
   }
+  if (job.kind === "stylePreview") {
+    await syncStylePreviewJob(job, "failed");
+    return true;
+  }
   if (!job.projectId) return true;
 
   const projects = await videosCollection();
@@ -203,7 +208,7 @@ export async function refreshSubmittedJobs() {
     );
   }
 
-  for (const job of due.filter((item) => item.kind === "character")) {
+  for (const job of due.filter((item) => item.kind === "character" || item.kind === "stylePreview")) {
     if (!job.statusUrl || !job.requestId) continue;
     try {
       const remote = await fetchHiggsfieldStatus(job.statusUrl);
@@ -213,7 +218,7 @@ export async function refreshSubmittedJobs() {
         outputUrl: mediaUrlFromResponse(remote),
       });
     } catch (error) {
-      console.error("[queue] character refresh failed", { jobId: job._id, error });
+      console.error("[queue] job refresh failed", { jobId: job._id, kind: job.kind, error });
     }
   }
 

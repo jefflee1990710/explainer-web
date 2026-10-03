@@ -41,6 +41,9 @@ export type UserStyleChatResult =
   | { ok: true; summary: string; fields: UserStyleFields; changedFields: UserStyleVisualKey[] }
   | { ok: false; error: string };
 
+export type { GenerateUserStylePreviewResult } from "@/service/style/user-style-preview";
+export { generateUserStylePreviewAction } from "@/service/style/user-style-preview";
+
 function fail(error: unknown, fallback: string): { ok: false; error: string } {
   return { ok: false, error: error instanceof Error ? error.message : fallback };
 }

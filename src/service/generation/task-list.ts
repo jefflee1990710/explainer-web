@@ -53,6 +53,7 @@ export function taskStage(status: GenerationStatus): TaskStage {
 export function taskDetail(job: Pick<GenerationJob, "kind" | "clipIndex" | "framePosition">) {
   if (job.kind === "still") return "角色定裝圖";
   if (job.kind === "character") return "角色藍圖";
+  if (job.kind === "stylePreview") return "風格預覽";
   const clip = `Clip ${job.clipIndex + 1}`;
   if (job.kind === "video") return `${clip} · 影片`;
   return `${clip} · ${job.framePosition === "end" ? "結尾畫格" : "起始畫格"}`;
@@ -62,6 +63,7 @@ export function taskDetailI18n(job: Pick<GenerationJob, "kind" | "clipIndex" | "
   const n = job.clipIndex + 1;
   if (job.kind === "still") return { detailKey: "tasksPage.detail.characterStill" as const };
   if (job.kind === "character") return { detailKey: "tasksPage.detail.characterBlueprint" as const };
+  if (job.kind === "stylePreview") return { detailKey: "tasksPage.detail.stylePreview" as const };
   if (job.kind === "video") return { detailKey: "tasksPage.detail.clipVideo" as const, detailParams: { n } };
   return {
     detailKey:
