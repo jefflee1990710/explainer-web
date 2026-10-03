@@ -4,7 +4,7 @@ import { isSceneTextLanguage } from "@/service/director/scene-text";
 import { isSpeechPace } from "@/service/director/speech-pace";
 import { requiredCastCount } from "@/service/director/skill-rules";
 import { isVoiceGender } from "@/service/director/voice";
-import { DEFAULT_STYLE_ID, isStyleId, type StyleId } from "@/service/style";
+import { DEFAULT_STYLE_ID } from "@/service/style";
 import type {
   AspectRatio,
   DurationPreset,
@@ -28,7 +28,7 @@ export type BriefDefaults = {
 
 type Catalog = {
   skills: Array<{ slug: string; behaviorSlug?: string }>;
-  styles: Array<{ id: StyleId }>;
+  styles: Array<{ id: string }>;
   characters: Array<{ id: string; styleId: string }>;
 };
 
@@ -51,9 +51,7 @@ export function sanitizeBriefDefaults(
       : catalog.skills[0]?.slug;
   if (!skillSlug) return undefined;
   const styleId =
-    typeof input.styleId === "string" &&
-    isStyleId(input.styleId) &&
-    catalog.styles.some((style) => style.id === input.styleId)
+    typeof input.styleId === "string" && catalog.styles.some((style) => style.id === input.styleId)
       ? input.styleId
       : catalog.styles[0]?.id || DEFAULT_STYLE_ID;
   const language = typeof input.language === "string" && isVoLanguage(input.language) ? input.language : "en";

@@ -3,6 +3,13 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicStyle } from "@/presentation/serialize";
+import type { StyleId } from "@/model/style-id";
+import { localizedStyleName } from "@/util/style-i18n";
+
+// System styles use the catalog label. A custom style keeps the name the user wrote.
+function styleLabel(style: PublicStyle): string {
+  return style.isCustom ? style.name : localizedStyleName(style.id as StyleId);
+}
 
 // Left thumbnail for a style row (dropdown trigger or option).
 function StylePreviewThumb({
@@ -53,8 +60,11 @@ export function StylePicker({
   const [open, setOpen] = useState(false);
 
   const selected = styles.find((item) => item.id === value) ?? styles[0];
-  const selectedName = selected?.name || groupLabel;
+  const selectedName = selected ? styleLabel(selected) : groupLabel;
   const selectedDescription = selected?.description || "";
+  const grouped = styles.some((style) => style.isCustom);
+  const systemStyles = styles.filter((style) => !style.isCustom);
+  const mineStyles = styles.filter((style) => style.isCustom);
 
   useEffect(() => {
     if (!open) return;
@@ -79,6 +89,45 @@ export function StylePicker({
   function pick(id: PublicStyle["id"]) {
     onChange(id);
     setOpen(false);
+  }
+
+  function renderOption(style: PublicStyle) {
+    const active = style.id === value;
+    const name = styleLabel(style);
+    return (
+      <li key={style.id} role="presentation">
+        <button
+          type="button"
+          role="option"
+          aria-selected={active}
+          onClick={() => pick(style.id)}
+          className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+            active ? "bg-accent-ink text-paper" : "hover:bg-accent-ink/5"
+          }`}
+        >
+          <StylePreviewThumb style={style} label={name} size="sm" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold">{name}</span>
+            <span className={`mt-0.5 block truncate text-xs ${active ? "text-paper/75" : "text-muted"}`}>
+              {style.description}
+            </span>
+          </span>
+        </button>
+      </li>
+    );
+  }
+
+  // Same section labels as the director picker until styles get their own keys.
+  function renderGroup(label: string, rows: PublicStyle[]) {
+    if (rows.length === 0) return null;
+    return (
+      <li role="presentation">
+        <p className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
+        <ul role="group" aria-label={label}>
+          {rows.map((style) => renderOption(style))}
+        </ul>
+      </li>
+    );
   }
 
   return (
@@ -111,34 +160,14 @@ export function StylePicker({
           aria-labelledby={`${listboxId}-trigger`}
           className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-accent-ink/15 bg-paper p-1 shadow-[4px_4px_0_0_rgba(18,20,28,0.08)]"
         >
-          {styles.map((style) => {
-            const active = style.id === value;
-            const styleName = style.name;
-            const styleDescription = style.description;
-            return (
-              <li key={style.id} role="presentation">
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={active}
-                  onClick={() => pick(style.id)}
-                  className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                    active ? "bg-accent-ink text-paper" : "hover:bg-accent-ink/5"
-                  }`}
-                >
-                  <StylePreviewThumb style={style} label={styleName} size="sm" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold">{styleName}</span>
-                    <span
-                      className={`mt-0.5 block truncate text-xs ${active ? "text-paper/75" : "text-muted"}`}
-                    >
-                      {styleDescription}
-                    </span>
-                  </span>
-                </button>
-              </li>
-            );
-          })}
+          {grouped ? (
+            <>
+              {renderGroup(t("directors.systemSection"), systemStyles)}
+              {renderGroup(t("directors.mineSection"), mineStyles)}
+            </>
+          ) : (
+            styles.map((style) => renderOption(style))
+          )}
         </ul>
       ) : null}
     </div>

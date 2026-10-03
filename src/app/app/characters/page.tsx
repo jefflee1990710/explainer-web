@@ -2,7 +2,7 @@ import { requireAppUser } from "@/service/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { charactersCollection } from "@/dao";
 import { toPublicCharacter } from "@/presentation/serialize";
-import { listPublicStyles } from "@/service/style/list";
+import { listSelectableStyles } from "@/service/style/list";
 import type { Character } from "@/model/character";
 import { CharacterGrid } from "@/presentation/components/app/characters/character-grid";
 import { CharactersHeader } from "@/presentation/components/app/characters/characters-header";
@@ -10,15 +10,16 @@ import { CharactersHeader } from "@/presentation/components/app/characters/chara
 export default async function CharactersPage() {
   const user = await requireAppUser();
   const characters = await charactersCollection();
-  const [sub, docs, styles] = await Promise.all([
+  const [sub, docs, selectableStyles] = await Promise.all([
     getActiveSubscription(user.clerkUserId),
     characters
       .find({ clerkUserId: user.clerkUserId })
       .sort({ updatedAt: -1 })
       .limit(120)
       .toArray() as Promise<Character[]>,
-    listPublicStyles(),
+    listSelectableStyles(user.clerkUserId),
   ]);
+  const styles = [...selectableStyles.system, ...selectableStyles.mine];
   const subscribed = isSubscriptionActive(sub);
 
   return (

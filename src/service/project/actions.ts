@@ -29,7 +29,7 @@ import { applyReusableEdit, hasReusableEdit } from "@/service/video-edit/edit-tr
 import { sanitizeFolderName } from "@/service/folder";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
-import { isStyleId, type StyleId } from "@/service/style";
+import { isListedStyleId } from "@/service/style/list-selectable";
 import type { CastMember, Character } from "@/model/character";
 import { isProjectBusy } from "@/service/clip-stage";
 import { isReelBusy } from "@/service/reel/fingerprint";
@@ -66,7 +66,7 @@ function canEditStoryboard(status: string) {
 
 type BriefFields = {
   skillSlug: string;
-  styleId: StyleId;
+  styleId: string;
   source: string;
   spokenScript?: string;
   aspectRatio: AspectRatio;
@@ -132,7 +132,8 @@ function readVideoBrief(
   if (!isSceneTextLanguage(sceneTextLanguage)) {
     return { ok: false, error: "請選擇畫面文字語言" };
   }
-  if (!isStyleId(styleId)) {
+  // Catalog ids and user-style ObjectId hex strings. Unknown strings are rejected, never doodle.
+  if (!isListedStyleId(styleId)) {
     return { ok: false, error: "請選擇視覺風格" };
   }
   // Logo is downloaded by image gen, so only this user's brand uploads are allowed.

@@ -30,11 +30,14 @@ export type PublicSkill = {
 };
 
 export type PublicStyle = {
-  id: StyleId;
+  id: string;
   name: string;
   description: string;
   canvasColor: string;
   previewUrl?: string;
+  isCustom: boolean;
+  baseStyleId?: StyleId;
+  templateName?: string;
 };
 
 export type PublicVideo = {

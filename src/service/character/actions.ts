@@ -20,7 +20,7 @@ import {
 } from "@/service/higgsfield/generate";
 import { applyJobStatus } from "@/service/higgsfield/pipeline";
 import { toPublicCharacter, type PublicCharacter } from "@/presentation/serialize";
-import { isStyleId } from "@/service/style";
+import { isListedStyleId } from "@/service/style/list-selectable";
 import type { Character, CharacterVersion } from "@/model/character";
 
 const NAME_MAX = 40;
@@ -84,7 +84,7 @@ export async function createCharacterAction(
     const referenceImageUrl = referenceImageUrls[0];
 
     if (!name) return { ok: false, error: "請輸入角色名稱" };
-    if (!isStyleId(styleId)) return { ok: false, error: "請選擇風格" };
+    if (!isListedStyleId(styleId)) return { ok: false, error: "請選擇風格" };
     if (!prompt && !referenceImageUrl) {
       return { ok: false, error: "請描述這個角色，或上傳參考圖" };
     }

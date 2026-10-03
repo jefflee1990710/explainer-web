@@ -71,7 +71,7 @@ import { isTalkingHeadSkill, talkingHeadScriptFromClips } from "@/service/direct
 import { TalkingHeadScriptField } from "@/presentation/components/app/projects/new/talking-head-script-field";
 import { failedStepFor, isProductionLike } from "@/service/project-status";
 import type { PublicCharacter, PublicSkill, PublicStyle, PublicVideo } from "@/presentation/serialize";
-import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
+import { DEFAULT_STYLE_ID } from "@/service/style";
 import type {
   AspectRatio,
   ClipStoryboardInput,
@@ -102,6 +102,7 @@ import { VideoEditDesk } from "@/presentation/components/app/projects/new/video-
 import { ReviseStoryboardDialog } from "@/presentation/components/app/projects/new/revise-storyboard-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { localizedVideoType } from "@/util/video-type-i18n";
+import { localizedStyleName } from "@/util/style-i18n";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import { sceneTextLangLabel, speechPaceLabel } from "@/util/i18n/picker-labels";
 import { useProjectPoll } from "@/presentation/components/app/projects/new/use-project-poll";
@@ -630,7 +631,7 @@ export function NewProjectForm({
     characterIds,
   ]);
 
-  function onStyleChange(id: StyleId) {
+  function onStyleChange(id: string) {
     setStyleId(id);
     setCharacterIds((ids) =>
       ids.filter((cid) => characters.find((c) => c.id === cid)?.styleId === id),
@@ -643,8 +644,12 @@ export function NewProjectForm({
       ? summarySkill.title
       : localizedVideoType(summarySkill.slug, summarySkill.title)
     : t("brief.fallback.videoType");
-  const styleName =
-    styles.find((item) => item.id === (project?.styleId || styleId))?.name || t("brief.fallback.visualStyle");
+  const selectedStyle = styles.find((item) => item.id === (project?.styleId || styleId));
+  const styleName = selectedStyle
+    ? selectedStyle.isCustom
+      ? selectedStyle.name
+      : localizedStyleName(selectedStyle.id)
+    : t("brief.fallback.visualStyle");
   const liveStep = currentStepFor(
     project?.status ?? "draft",
     project?.status === "failed" ? failedStepFor(project) : undefined,

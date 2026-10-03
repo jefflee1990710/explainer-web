@@ -7,7 +7,7 @@ import { InsufficientCreditsDialog } from "@/presentation/components/app/billing
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import { CreateCharacterReferences } from "@/presentation/components/app/characters/create-character-references";
 import type { PublicStyle } from "@/presentation/serialize";
-import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
+import { DEFAULT_STYLE_ID } from "@/service/style";
 import { Spinner } from "@/presentation/components/spinner";
 import { StylePicker } from "@/presentation/components/style-picker";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -76,7 +76,7 @@ export function CreateCharacterModal({
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const [name, setName] = useState("");
-  const [styleId, setStyleId] = useState<StyleId>(DEFAULT_STYLE_ID);
+  const [styleId, setStyleId] = useState<string>(DEFAULT_STYLE_ID);
   const [prompt, setPrompt] = useState("");
   const [referenceImageUrls, setReferenceImageUrls] = useState<string[]>([]);
   const [error, setError] = useState("");

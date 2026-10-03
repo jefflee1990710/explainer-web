@@ -6,7 +6,7 @@ import type { Folder } from "@/model/folder";
 import type { Project } from "@/model/project";
 import { listSelectableSkills } from "@/service/director/selectable-skills";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
-import { listPublicStyles } from "@/service/style/list";
+import { listSelectableStyles } from "@/service/style/list";
 import { toPublicCharacter, toPublicFolder, toPublicSkills, VIDEO_LIST_PROJECTION } from "@/presentation/serialize";
 
 export async function loadOwnedFolder(folderId: string, clerkUserId: string) {
@@ -22,9 +22,9 @@ export async function loadOwnedFolder(folderId: string, clerkUserId: string) {
 
 export async function loadStudioPickers(user: AppUser) {
   const charactersCol = await charactersCollection();
-  const [skillDocs, styles, characterDocs, sub] = await Promise.all([
+  const [skillDocs, selectableStyles, characterDocs, sub] = await Promise.all([
     listSelectableSkills(user.clerkUserId),
-    listPublicStyles(),
+    listSelectableStyles(user.clerkUserId),
     charactersCol
       .find({ clerkUserId: user.clerkUserId })
       .sort({ updatedAt: -1 })
@@ -33,7 +33,7 @@ export async function loadStudioPickers(user: AppUser) {
   ]);
   return {
     skills: toPublicSkills(skillDocs),
-    styles,
+    styles: [...selectableStyles.system, ...selectableStyles.mine],
     characters: characterDocs.map(toPublicCharacter),
     subscribed: isSubscriptionActive(sub),
   };
