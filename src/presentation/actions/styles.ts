@@ -6,6 +6,7 @@ export type {
   CreateUserStyleResult,
   SaveUserStyleResult,
   DeleteUserStyleResult,
+  UserStyleChatResult,
 } from "@/service/style/user-style-actions";
 
 export async function createUserStyleAction(
@@ -24,4 +25,10 @@ export async function deleteUserStyleAction(
   ...args: Parameters<typeof service.deleteUserStyleAction>
 ) {
   return service.deleteUserStyleAction(...args);
+}
+
+export async function sendUserStyleChatAction(
+  ...args: Parameters<typeof service.sendUserStyleChatAction>
+) {
+  return service.sendUserStyleChatAction(...args);
 }

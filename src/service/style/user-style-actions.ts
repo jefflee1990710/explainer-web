@@ -1,20 +1,45 @@
 import { ObjectId } from "mongodb";
+import { generateText, Output } from "ai";
+import { z } from "zod";
 import { stylesCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
 import { isStyleId, type StyleId } from "@/model/style-id";
-import type { UserStyleDoc } from "@/model/user-style";
+import type { StyleChatMessage, UserStyleDoc } from "@/model/user-style";
 import { requireAppUser } from "@/service/auth";
+import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
+import { chatRateLimited } from "@/service/director/chat-rate-limit";
+import { directorModel } from "@/service/director/model";
+import { normalizeChatSummary } from "@/service/director/director-chat-prompt";
 import { styleFromDoc } from "@/service/style/load-style";
 import {
   copyUserStyleFields,
   parseUserStyleFields,
   parseUserStyleMeta,
+  type UserStyleFields,
+  type UserStyleVisualKey,
 } from "@/service/style/user-style-fields";
+import {
+  userStyleChatSystemPrompt,
+  userStyleChatUserPrompt,
+} from "@/service/style/user-style-chat-prompt";
+import { applyUserStyleEdits } from "@/service/style/user-style-edits";
 import type { Style } from "@/service/style/types";
+
+const MESSAGE_MAX = 2000;
+const HISTORY_SENT = 20;
+const CHAT_KEPT = 100;
+
+const userStyleChatSchema = z.object({
+  summary: z.string(),
+  edits: z.array(z.object({ field: z.string(), content: z.string() })),
+});
 
 export type CreateUserStyleResult = { ok: true; id: string } | { ok: false; error: string };
 export type SaveUserStyleResult = { ok: true } | { ok: false; error: string };
 export type DeleteUserStyleResult = { ok: true } | { ok: false; error: string };
+export type UserStyleChatResult =
+  | { ok: true; summary: string; fields: UserStyleFields; changedFields: UserStyleVisualKey[] }
+  | { ok: false; error: string };
 
 function fail(error: unknown, fallback: string): { ok: false; error: string } {
   return { ok: false, error: error instanceof Error ? error.message : fallback };
@@ -148,5 +173,75 @@ export async function deleteUserStyleAction(input: { id: string }): Promise<Dele
     return { ok: true };
   } catch (error) {
     return fail(error, "刪除 Style 失敗");
+  }
+}
+
+// Ask the AI to edit the current visual draft; persists chat only, never the draft fields.
+export async function sendUserStyleChatAction(input: {
+  id: string;
+  message: string;
+  draft: unknown;
+}): Promise<UserStyleChatResult> {
+  try {
+    const user = await requireAppUser();
+    const doc = await ownedUserStyle(String(input?.id ?? ""), user.clerkUserId);
+    if (!doc) return { ok: false, error: "找不到 Style" };
+
+    const sub = await getActiveSubscription(user.clerkUserId);
+    if (!isSubscriptionActive(sub)) return { ok: false, error: "需要訂閱才能使用 AI 修改" };
+
+    const message = String(input.message ?? "").trim();
+    if (!message || message.length > MESSAGE_MAX) return { ok: false, error: "訊息過長" };
+
+    const parsed = parseUserStyleFields(input?.draft);
+    if (!parsed.ok) return parsed;
+    const fields = parsed.fields;
+
+    if (chatRateLimited(doc.chat, new Date())) return { ok: false, error: "AI 修改太頻繁，請稍後再試" };
+
+    let output: z.infer<typeof userStyleChatSchema>;
+    try {
+      ({ output } = await generateText({
+        model: directorModel(),
+        output: Output.object({ schema: userStyleChatSchema }),
+        system: userStyleChatSystemPrompt(),
+        prompt: userStyleChatUserPrompt({
+          fields,
+          history: (doc.chat || []).slice(-HISTORY_SENT),
+          message,
+        }),
+      }));
+    } catch (error) {
+      console.error("user style chat failed", error);
+      return { ok: false, error: "AI 修改失敗，請再試一次" };
+    }
+
+    const applied = applyUserStyleEdits(fields, output.edits);
+    if (!applied.ok) return applied;
+
+    const now = new Date();
+    const userMsg: StyleChatMessage = { role: "user", content: message, createdAt: now };
+    const assistantMsg: StyleChatMessage = {
+      role: "assistant",
+      content: normalizeChatSummary(output.summary, applied.changedFields.length),
+      changedPaths: applied.changedFields,
+      createdAt: now,
+    };
+
+    const collection = await userStylesCollection();
+    const pushed = await collection.updateOne(
+      { _id: doc._id, ownerClerkUserId: user.clerkUserId, deletedAt: { $exists: false } },
+      { $push: { chat: { $each: [userMsg, assistantMsg], $slice: -CHAT_KEPT } } },
+    );
+    if (pushed.matchedCount !== 1) return { ok: false, error: "找不到 Style" };
+
+    return {
+      ok: true,
+      summary: assistantMsg.content,
+      fields: applied.fields,
+      changedFields: applied.changedFields,
+    };
+  } catch (error) {
+    return fail(error, "AI 修改失敗，請再試一次");
   }
 }
