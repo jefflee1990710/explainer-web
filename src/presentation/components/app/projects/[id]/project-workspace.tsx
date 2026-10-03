@@ -8,7 +8,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicFolder } from "@/presentation/serialize";
 import { folderVideoPath } from "@/service/folder-video-path";
 
-// Folder page: paged video table. Create/edit open a new browser tab.
+// Folder page: paged video table. Create/edit open the editor in this tab.
 export function ProjectWorkspace({ folder }: { folder: PublicFolder }) {
   const { t } = useI18n();
   useFolderGenerationPoll(folder.videos, true);
@@ -29,8 +29,6 @@ export function ProjectWorkspace({ folder }: { folder: PublicFolder }) {
           <p className="text-sm text-muted">{t("video.workspace.videoCount", { n: folder.videos.length })}</p>
           <Link
             href={folderVideoPath(folder.id)}
-            target="_blank"
-            rel="noopener noreferrer"
             className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent-ink px-5 text-sm font-semibold text-lime shadow-[3px_3px_0_0_rgba(198,242,75,0.9)] transition hover:-translate-y-0.5"
           >
             {t("video.workspace.createVideo")}

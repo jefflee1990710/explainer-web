@@ -1,8 +1,12 @@
-// Dedicated editor routes. The folder list opens these in a new tab.
+// Folder list and the dedicated editor routes on that folder.
+
+export function folderPath(folderId: string) {
+  return `/app/projects/${folderId}`;
+}
 
 export function folderVideoPath(folderId: string, videoId?: string) {
-  if (!videoId) return `/app/projects/${folderId}/videos/new`;
-  return `/app/projects/${folderId}/videos/${videoId}`;
+  if (!videoId) return `${folderPath(folderId)}/videos/new`;
+  return `${folderPath(folderId)}/videos/${videoId}`;
 }
 
 export function folderVideoRedirectFromQuery(folderId: string, videoId?: string | null) {

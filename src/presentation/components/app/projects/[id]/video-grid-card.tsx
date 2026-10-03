@@ -11,7 +11,7 @@ import { folderVideoPath } from "@/service/folder-video-path";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-// One video in the folder grid. Click opens the editor in a new tab.
+// One video in the folder grid. Click opens the editor in this tab.
 export function VideoGridCard({
   folderId,
   video,
@@ -47,8 +47,6 @@ export function VideoGridCard({
     >
       <Link
         href={folderVideoPath(folderId, video.id)}
-        target="_blank"
-        rel="noopener noreferrer"
         className="flex h-full cursor-pointer flex-col text-left"
       >
         <span className="relative block aspect-video overflow-hidden bg-accent-ink/5">

@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  folderPath,
   folderVideoMatchesTask,
   folderVideoPath,
   folderVideoRedirectFromQuery,
 } from "@/service/folder-video-path";
+
+test("folder path is the project video list", () => {
+  assert.equal(folderPath("f1"), "/app/projects/f1");
+});
 
 test("folder video path is a dedicated editor route", () => {
   assert.equal(folderVideoPath("f1"), "/app/projects/f1/videos/new");

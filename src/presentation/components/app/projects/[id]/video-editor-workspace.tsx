@@ -16,9 +16,9 @@ import type {
   PublicStyle,
   PublicVideo,
 } from "@/presentation/serialize";
-import { folderVideoPath } from "@/service/folder-video-path";
+import { folderPath, folderVideoPath } from "@/service/folder-video-path";
 
-// Dedicated editor page. Opened in a new tab from the folder list.
+// Dedicated editor page. Same-tab from the folder list.
 export function VideoEditorWorkspace({
   folderId,
   skills,
@@ -65,9 +65,8 @@ export function VideoEditorWorkspace({
     });
   }, []);
 
-  function onClose() {
-    if (window.history.length <= 1) window.close();
-    router.push(`/app/projects/${folderId}`);
+  function goToFolder() {
+    router.push(folderPath(folderId));
   }
 
   const editorTitle =
@@ -77,6 +76,7 @@ export function VideoEditorWorkspace({
   return (
     <>
       <VideoEditorDialog
+        folderId={folderId}
         title={editorTitle}
         videoId={video?.id}
         credits={credits}
@@ -89,7 +89,6 @@ export function VideoEditorWorkspace({
             : undefined
         }
         onRestart={stepNav?.canRestart ? stepNav.onRestart : undefined}
-        onClose={onClose}
         onDelete={() => setDeleteOpen(true)}
       >
         <NewProjectForm
@@ -114,7 +113,7 @@ export function VideoEditorWorkspace({
           onClose={() => setDeleteOpen(false)}
           onDeleted={() => {
             setDeleteOpen(false);
-            onClose();
+            goToFolder();
           }}
         />
       ) : null}
