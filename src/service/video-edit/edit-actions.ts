@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/service/auth";
-import { videosCollection } from "@/dao";
+import { projectsCollection, videosCollection } from "@/dao";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { isReelCurrent } from "@/service/reel/fingerprint";
 import { ENDING_SKILL_SLUG, OPENING_SKILL_SLUG } from "@/service/director/skill-rules";
@@ -23,6 +23,7 @@ import {
 import { runFinalJob } from "@/service/video-edit/final-job";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { videoEditSchema } from "@/model/video-edit";
+import { hasReusableEdit, pickReusableEdit } from "@/service/video-edit/edit-transition";
 
 type Fail = { ok: false; error: string };
 type ProjectResult = { ok: true; project: PublicVideo } | Fail;
@@ -105,6 +106,14 @@ export async function updateVideoEditAction(videoId: string, edit: unknown): Pro
   if (!video) return { ok: false, error: "找不到影片" };
   const videos = await videosCollection();
   await videos.updateOne({ _id: video._id }, { $set: { edit: parsed.data, updatedAt: new Date() } });
+  const reusable = pickReusableEdit(parsed.data);
+  const folders = await projectsCollection();
+  await folders.updateOne(
+    { _id: video.projectId, clerkUserId: user.clerkUserId },
+    hasReusableEdit(reusable)
+      ? { $set: { editDefaults: reusable, updatedAt: new Date() } }
+      : { $unset: { editDefaults: "" }, $set: { updatedAt: new Date() } },
+  );
   const updated = await videos.findOne({ _id: video._id });
   return updated ? { ok: true, project: toPublicVideo(updated) } : { ok: false, error: "找不到影片" };
 }

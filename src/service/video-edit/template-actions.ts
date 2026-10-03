@@ -14,6 +14,8 @@ function editOf(source: VideoEdit): VideoEdit {
     layers: source.layers.map((layer) => ({ ...layer })),
     ...(source.intro ? { intro: { ...source.intro } } : {}),
     ...(source.outro ? { outro: { ...source.outro } } : {}),
+    ...(source.defaultTransition ? { defaultTransition: { ...source.defaultTransition } } : {}),
+    ...(source.transitions ? { transitions: { ...source.transitions } } : {}),
   };
 }
 

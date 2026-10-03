@@ -53,7 +53,7 @@ export function CharacterCard({ character }: { character: PublicCharacter }) {
           <h3 className="line-clamp-1 text-sm font-medium">{character.name}</h3>
         </Link>
         <p className="mt-auto text-xs text-muted">
-          {localizedStyleName(t, character.styleId)} · {t("characters.versionCount", { n: character.versions.length })}
+          {localizedStyleName(character.styleId)} · {t("characters.versionCount", { n: character.versions.length })}
         </p>
       </div>
     </motion.article>

@@ -8,7 +8,6 @@ import {
   emptyProfile,
   parseProfile,
   parseSystemProfile,
-  profileLocale,
 } from "@/service/director/profile";
 
 function fullProfile(value = "x") {
@@ -19,14 +18,6 @@ test("limits and labels", () => {
   assert.equal(PROFILE_FIELD_MAX, 600);
   assert.equal(EXTRA_INSTRUCTIONS_MAX, 4000);
   assert.deepEqual(Object.keys(PROFILE_LABELS_EN), [...PROFILE_KEYS]);
-});
-
-test("profileLocale maps zh-* to zh-Hant and everything else to en", () => {
-  assert.equal(profileLocale("zh-Hant"), "zh-Hant");
-  assert.equal(profileLocale("zh-Hans"), "zh-Hant");
-  assert.equal(profileLocale("en"), "en");
-  assert.equal(profileLocale("ja"), "en");
-  assert.equal(profileLocale(""), "en");
 });
 
 test("emptyProfile has every key empty", () => {
@@ -47,17 +38,20 @@ test("parseProfile rejects a field over the limit", () => {
   assert.ok(parseProfile({ arc: "a".repeat(600) }).ok);
 });
 
-test("parseSystemProfile accepts both languages with every key non-empty", () => {
+test("parseSystemProfile reads English fields and ignores zh-Hant", () => {
   const profile = parseSystemProfile({ en: fullProfile("e"), "zh-Hant": fullProfile("z") });
-  assert.equal(profile.en.bestFor, "e");
-  assert.equal(profile["zh-Hant"].rules, "z");
+  assert.equal(profile.bestFor, "e");
+  assert.equal(profile.rules, "e");
+  assert.equal("en" in profile, false);
+  assert.equal("zh-Hant" in profile, false);
 });
 
-test("parseSystemProfile throws on a missing language, empty field or long field", () => {
-  assert.throws(() => parseSystemProfile({ en: fullProfile() }), /zh-Hant/);
-  assert.throws(() => parseSystemProfile({ en: { ...fullProfile(), hook: " " }, "zh-Hant": fullProfile() }), /en\.hook/);
-  assert.throws(
-    () => parseSystemProfile({ en: fullProfile(), "zh-Hant": { ...fullProfile(), arc: "a".repeat(601) } }),
-    /zh-Hant\.arc/,
-  );
+test("parseSystemProfile also accepts a flat English profile", () => {
+  const profile = parseSystemProfile(fullProfile("flat"));
+  assert.equal(profile.hook, "flat");
+});
+
+test("parseSystemProfile throws on an empty or long English field", () => {
+  assert.throws(() => parseSystemProfile({ en: { ...fullProfile(), hook: " " } }), /hook/);
+  assert.throws(() => parseSystemProfile({ ...fullProfile(), arc: "a".repeat(601) }), /arc/);
 });

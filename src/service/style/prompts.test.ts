@@ -13,7 +13,6 @@ const HEX = /#[0-9a-f]{3,8}\b/i;
 const doodle: Style = {
   id: "doodle",
   name: "Whiteboard doodle",
-  nameZh: "白板塗鴉手繪",
   description: "desc",
   canvas: "clean solid white canvas, as if sketched with a digital marker",
   canvasColor: "#ffffff",

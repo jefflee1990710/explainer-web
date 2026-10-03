@@ -1,37 +1,101 @@
 "use client";
 
+import { useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { VideoEditTransitionDialog } from "@/presentation/components/app/projects/new/video-edit-transition-dialog";
 import type { EditTimelineItem } from "@/service/video-edit/edit-timeline";
+import { resolveTransition, timelineGaps, type TimelineGap } from "@/service/video-edit/edit-transition";
+import type { EditTransition, VideoEdit } from "@/model/video-edit";
 
 export function VideoEditTimeline({
   items,
+  edit,
   activeId,
   onPlayFrom,
+  onTransitionChange,
 }: {
   items: EditTimelineItem[];
+  edit: VideoEdit;
   activeId: string;
   onPlayFrom: (id: string) => void;
+  onTransitionChange: (fromId: string, toId: string, transition: EditTransition) => void;
 }) {
   const { t } = useI18n();
+  const gaps = timelineGaps(items);
+  const [editing, setEditing] = useState<TimelineGap | null>(null);
+
+  function itemLabel(id: string) {
+    const item = items.find((row) => row.id === id);
+    if (item?.kind === "clip") return t("video.preview.clip", { n: item.clipNumber ?? 0 });
+    if (id === "intro") return t("video.preview.intro");
+    return t("video.preview.outro");
+  }
+
   return (
-    <div className="flex w-full max-w-3xl items-start justify-center overflow-x-auto px-1">
-      {items.map((item, index) => (
-        <div key={item.id} className="flex items-start">
-          {index > 0 ? (
-            <span className="mt-6 h-px w-3 shrink-0 bg-[var(--studio-line)]" aria-hidden />
-          ) : null}
-          <TimelineCard
-            label={
-              item.kind === "clip"
-                ? t("video.preview.clip", { n: item.clipNumber ?? index })
-                : t(item.kind === "intro" ? "video.preview.intro" : "video.preview.outro")
-            }
-            item={item}
-            active={activeId === item.id}
-            onClick={() => onPlayFrom(item.id)}
-          />
-        </div>
-      ))}
+    <>
+      <div className="flex w-full max-w-3xl items-start justify-center overflow-x-auto px-1">
+        {items.map((item, index) => {
+          const gap = index > 0 ? gaps[index - 1] : undefined;
+          const transition = gap ? resolveTransition(edit, gap.fromId, gap.toId) : undefined;
+          return (
+            <div key={item.id} className="flex items-start">
+              {gap ? (
+                <TransitionButton
+                  active={transition?.effect !== "none"}
+                  label={t("video.transition.aria")}
+                  onClick={() => setEditing(gap)}
+                />
+              ) : null}
+              <TimelineCard
+                label={
+                  item.kind === "clip"
+                    ? t("video.preview.clip", { n: item.clipNumber ?? index })
+                    : t(item.kind === "intro" ? "video.preview.intro" : "video.preview.outro")
+                }
+                item={item}
+                active={activeId === item.id}
+                onClick={() => onPlayFrom(item.id)}
+              />
+            </div>
+          );
+        })}
+      </div>
+      {editing ? (
+        <VideoEditTransitionDialog
+          fromLabel={itemLabel(editing.fromId)}
+          toLabel={itemLabel(editing.toId)}
+          value={resolveTransition(edit, editing.fromId, editing.toId)}
+          onSave={(transition) => onTransitionChange(editing.fromId, editing.toId, transition)}
+          onClose={() => setEditing(null)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function TransitionButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <div className="flex w-8 shrink-0 flex-col items-center pt-5">
+      <button
+        type="button"
+        aria-label={label}
+        onClick={onClick}
+        className={`grid h-6 w-6 place-items-center rounded-full border text-[9px] font-bold ${
+          active
+            ? "border-[var(--studio-teal)] bg-[var(--studio-teal)] text-[#12141c]"
+            : "border-[var(--studio-line)] bg-white text-[var(--studio-muted)]"
+        }`}
+      >
+        FX
+      </button>
     </div>
   );
 }

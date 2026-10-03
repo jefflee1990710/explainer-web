@@ -5,7 +5,6 @@ import { styleIdSchema, type StyleId } from "@/model/style-id";
 export type StyleDoc = {
   _id: StyleId;
   name?: string;
-  nameZh?: string;
   description?: string;
   canvas?: string;
   canvasColor?: string;
@@ -28,7 +27,6 @@ const optionalString = z.string().optional();
 export const styleDocSchema: z.ZodType<StyleDoc> = z.object({
   _id: styleIdSchema,
   name: optionalString,
-  nameZh: optionalString,
   description: optionalString,
   canvas: optionalString,
   canvasColor: optionalString,

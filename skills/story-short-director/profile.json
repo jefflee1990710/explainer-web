@@ -8,15 +8,5 @@
     "visual": "Look and palette come from the visual style you choose. Shot like a film scene from an observer's camera — characters never look into the lens. One or two reusable locations; emotion shows through pose, gesture and staging, and the cast stays consistent.",
     "audio": "No background music — one or two sound effects per clip synced to the action. Dialogue is audio only, with no subtitles unless on-screen text is turned on.",
     "rules": "Choose an aspect ratio. Attached characters are followed exactly; otherwise one simple protagonist is defined and kept throughout. No invented facts, no captions, and no moral spoken that the story hasn't earned."
-  },
-  "zh-Hant": {
-    "bestFor": "把一個訊息、小故事、品牌價值、道理或現成劇本變成動畫短片，讓觀眾從發生的事感受重點，而不是聽人講道理。",
-    "structure": "每段 3–8 秒，段數跟故事節奏走：微短片約 1–2 段，15–20 秒約 2–4 段，30–45 秒約 4–6 段，50–60 秒約 7–10 段。",
-    "hook": "直接由一個動作中途或一個搶眼畫面開始，取材自素材本身；不用套路式開場、打招呼或空鏡。",
-    "arc": "不套固定公式，按素材原本的次序推進。如果素材只是一個道理，導演會編一個最精簡的故事去表達，例如一個小片段、一段對話或一個反轉。最後一段收結並停住。",
-    "narrator": "沒有旁白。全靠角色之間的對白或自言自語推進，每段一至兩人說話，也可以有無聲的片段。角色不會對觀眾說話。",
-    "visual": "畫風和配色跟你選的視覺風格。用旁觀者的鏡頭拍，像電影場景一樣，角色從不望鏡頭。只用一至兩個重複出現的場景，情緒靠姿勢、動作和走位表達，角色造型全程一致。",
-    "audio": "沒有背景音樂，每段配一至兩個跟動作同步的音效。對白只有聲音，除非開啟畫面文字，否則不加字幕。",
-    "rules": "需要選畫面比例。有上載角色就完全照跟；沒有就設定一個簡單主角並全程保持。不加虛構事實、不加字幕，也不會說出故事未鋪墊到的大道理。"
   }
 }

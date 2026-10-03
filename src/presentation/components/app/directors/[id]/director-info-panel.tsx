@@ -42,7 +42,7 @@ export function DirectorInfoPanel({
 }) {
   const { t } = useI18n();
   const editable = director.isCustom;
-  const templateName = localizedVideoType(t, director.behaviorSlug, "") || director.baseSlug || director.behaviorSlug;
+  const templateName = localizedVideoType(director.behaviorSlug, director.baseSlug || director.behaviorSlug);
 
   return (
     <section className="min-w-0 rounded-[1.75rem] border border-accent-ink/10 bg-paper/85 p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.08)]">

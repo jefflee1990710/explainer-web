@@ -10,7 +10,6 @@ import type { Style } from "@/service/style/types";
 // Prompt-driving fields stored on Mongo `styles` (previews stay separate).
 export const STYLE_PROMPT_KEYS = [
   "name",
-  "nameZh",
   "description",
   "canvas",
   "canvasColor",
@@ -27,7 +26,6 @@ export type StylePromptFields = Pick<Style, (typeof STYLE_PROMPT_KEYS)[number]>;
 export function stylePromptFields(style: StylePromptFields): StylePromptFields {
   return {
     name: style.name,
-    nameZh: style.nameZh,
     description: style.description,
     canvas: style.canvas,
     canvasColor: style.canvasColor,

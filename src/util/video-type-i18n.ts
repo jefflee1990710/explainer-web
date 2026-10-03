@@ -1,8 +1,7 @@
-import type { TranslateFn } from "@/util/i18n";
+import { en } from "@/util/i18n/messages/en";
 
-// Video-type label for the current UI locale. Falls back when the slug has no message.
-export function localizedVideoType(t: TranslateFn, slug: string, fallback: string): string {
-  const key = `brief.videoTypes.${slug}`;
-  const value = t(key);
-  return value === key ? fallback : value;
+// Director type labels stay English in every locale.
+export function localizedVideoType(slug: string, fallback = ""): string {
+  const names = en.brief.videoTypes as Record<string, string>;
+  return names[slug] || fallback;
 }

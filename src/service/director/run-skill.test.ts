@@ -10,7 +10,6 @@ function skill(overrides: Partial<Skill>): Skill {
     _id: new ObjectId(),
     slug: "talking-head-director",
     title: "T",
-    titleZh: "T",
     description: "",
     systemPrompt: "TEMPLATE PROMPT",
     references: [{ path: "references/a-prompt-contract.md", content: "REF" }],

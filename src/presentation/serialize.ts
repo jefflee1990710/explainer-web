@@ -1,6 +1,6 @@
 import { resolveDefaultVersion, versionNumber } from "@/service/character/versions";
 import { behaviorSlug, isCustomSkill } from "@/service/director/behavior-slug";
-import { emptyProfile } from "@/service/director/profile";
+import { emptyProfile, parseSystemProfile } from "@/service/director/profile";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { resolveVoiceGender } from "@/service/director/voice";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
@@ -21,7 +21,6 @@ export type PublicSkill = {
   id: string;
   slug: string;
   title: string;
-  titleZh: string;
   description: string;
   // Template slug for custom directors; drives skill-specific form rules.
   behaviorSlug: string;
@@ -33,7 +32,6 @@ export type PublicSkill = {
 export type PublicStyle = {
   id: StyleId;
   name: string;
-  nameZh: string;
   description: string;
   canvasColor: string;
   previewUrl?: string;
@@ -150,7 +148,6 @@ export function toPublicSkill(skill: Skill, inheritedPreviewUrl?: string): Publi
     id: skill._id.toHexString(),
     slug: skill.slug,
     title: skill.title,
-    titleZh: skill.titleZh,
     description: skill.description,
     behaviorSlug: behaviorSlug(skill),
     isCustom: isCustomSkill(skill),
@@ -202,7 +199,7 @@ export function toPublicDirector(skill: Skill, inheritedPreviewUrl?: string): Pu
   return {
     ...toPublicSkill(skill, inheritedPreviewUrl),
     baseSlug: skill.baseSlug,
-    profile: custom ? undefined : skill.profile,
+    profile: custom || !skill.profile ? undefined : parseSystemProfile(skill.profile),
     customProfile: custom ? { ...emptyProfile(), ...skill.customProfile } : undefined,
     extraInstructions: custom ? skill.extraInstructions ?? "" : undefined,
     chat: toPublicDirectorChat(skill.chat || []),

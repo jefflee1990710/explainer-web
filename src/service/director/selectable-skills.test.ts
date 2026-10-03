@@ -10,7 +10,6 @@ function skill(slug: string, sortOrder: number, updatedAt: Date, ownerClerkUserI
     _id: new ObjectId(),
     slug,
     title: slug,
-    titleZh: slug,
     description: "",
     systemPrompt: "",
     references: [],

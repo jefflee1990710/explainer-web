@@ -5,9 +5,9 @@ import type { PublicDirector } from "@/presentation/serialize";
 import { DirectorProfileField } from "@/presentation/components/app/directors/[id]/director-profile-field";
 import { PROFILE_KEYS } from "@/model/director-profile";
 import type { DirectorDraft, DraftField } from "@/service/director/director-edits";
-import { EXTRA_INSTRUCTIONS_MAX, PROFILE_FIELD_MAX, emptyProfile, profileLocale } from "@/service/director/profile";
+import { EXTRA_INSTRUCTIONS_MAX, PROFILE_FIELD_MAX, emptyProfile } from "@/service/director/profile";
 
-// Profile cards: system directors show their localized profile, custom ones edit the draft.
+// Profile cards: system directors show the English profile, custom ones edit the draft.
 export function DirectorProfileSection({
   director,
   draft,
@@ -19,9 +19,9 @@ export function DirectorProfileSection({
   changedFields: DraftField[];
   onChange: (next: DirectorDraft) => void;
 }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const editable = director.isCustom;
-  const profile = editable ? draft.customProfile : director.profile?.[profileLocale(locale)] ?? emptyProfile();
+  const profile = editable ? draft.customProfile : director.profile ?? emptyProfile();
 
   return (
     <>

@@ -1,12 +1,9 @@
 import type { PublicStyle } from "@/presentation/serialize";
-import type { TranslateFn } from "@/util/i18n";
+import { en } from "@/util/i18n/messages/en";
 
 type StyleId = PublicStyle["id"];
 
-export function localizedStyleName(t: TranslateFn, styleId: StyleId): string {
-  return t(`styles.${styleId}`);
-}
-
-export function localizedStyleDescription(t: TranslateFn, styleId: StyleId): string {
-  return t(`styleDescriptions.${styleId}`);
+// Style labels stay English in every locale.
+export function localizedStyleName(styleId: StyleId): string {
+  return en.styles[styleId];
 }

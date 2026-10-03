@@ -25,6 +25,7 @@ import {
   skillBansNarration,
 } from "@/service/director/skill-rules";
 import { blobStoreHost, isBrandAssetUrl } from "@/service/video-edit/edit-state";
+import { applyReusableEdit, hasReusableEdit } from "@/service/video-edit/edit-transition";
 import { sanitizeFolderName } from "@/service/folder";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
@@ -324,6 +325,7 @@ export async function createVideoAction(
 
     const now = new Date();
     const videos = await videosCollection();
+    const inheritedEdit = applyReusableEdit(folder.editDefaults);
     const insert = await videos.insertOne({
       projectId: folder._id,
       userId: user._id,
@@ -345,6 +347,7 @@ export async function createVideoAction(
       cast,
       status: "phase_a",
       clips: [],
+      ...(hasReusableEdit(folder.editDefaults) ? { edit: inheritedEdit } : {}),
       creditsCharged: false,
       createdAt: now,
       updatedAt: now,

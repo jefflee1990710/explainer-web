@@ -1,4 +1,4 @@
-import { PROFILE_KEYS, type DirectorProfile, type ProfileLocale, type SystemProfile } from "@/model/director-profile";
+import { PROFILE_KEYS, type DirectorProfile, type SystemProfile } from "@/model/director-profile";
 
 // Character limits for one profile field and for a custom director's extra instructions.
 export const PROFILE_FIELD_MAX = 600;
@@ -15,11 +15,6 @@ export const PROFILE_LABELS_EN: Record<(typeof PROFILE_KEYS)[number], string> = 
   audio: "Music & sound",
   rules: "Key rules",
 };
-
-// Which system profile language a UI locale reads.
-export function profileLocale(locale: string): ProfileLocale {
-  return locale.startsWith("zh") ? "zh-Hant" : "en";
-}
 
 // Profile with every field present and blank.
 export function emptyProfile(): DirectorProfile {
@@ -40,22 +35,16 @@ export function parseProfile(
   return { ok: true, profile };
 }
 
-// Seed-time check for skills/<dir>/profile.json: both languages, every field filled and in limit.
+// Seed / Mongo: `{ en: fields }` or a flat English profile. zh-Hant is ignored.
 export function parseSystemProfile(raw: unknown): SystemProfile {
   const source = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  const result = {} as SystemProfile;
-  for (const locale of ["en", "zh-Hant"] as const) {
-    const block = source[locale];
-    if (!block || typeof block !== "object") throw new Error(`profile missing ${locale}`);
-    const fields = block as Record<string, unknown>;
-    const profile = emptyProfile();
-    for (const key of PROFILE_KEYS) {
-      const value = fields[key];
-      if (typeof value !== "string" || !value.trim()) throw new Error(`profile ${locale}.${key} is empty`);
-      if (value.length > PROFILE_FIELD_MAX) throw new Error(`profile ${locale}.${key} is too long`);
-      profile[key] = value;
-    }
-    result[locale] = profile;
+  const block = (source.en && typeof source.en === "object" ? source.en : source) as Record<string, unknown>;
+  const profile = emptyProfile();
+  for (const key of PROFILE_KEYS) {
+    const value = block[key];
+    if (typeof value !== "string" || !value.trim()) throw new Error(`profile ${key} is empty`);
+    if (value.length > PROFILE_FIELD_MAX) throw new Error(`profile ${key} is too long`);
+    profile[key] = value;
   }
-  return result;
+  return profile;
 }

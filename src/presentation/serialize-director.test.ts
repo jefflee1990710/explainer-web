@@ -13,7 +13,6 @@ function base(overrides: Partial<Skill>): Skill {
     _id: new ObjectId(),
     slug: "opening-director",
     title: "Opening",
-    titleZh: "開場",
     description: "d",
     systemPrompt: SECRET,
     references: [{ path: "references/x.md", content: SECRET }],
@@ -29,14 +28,16 @@ function base(overrides: Partial<Skill>): Skill {
 
 const full = Object.fromEntries(PROFILE_KEYS.map((key) => [key, key])) as ReturnType<typeof emptyProfile>;
 
-test("system director exposes the bilingual profile but never the prompt", () => {
-  const director = toPublicDirector(base({ profile: { en: full, "zh-Hant": full } }));
+test("system director exposes the English profile but never the prompt", () => {
+  const director = toPublicDirector(base({ profile: full }));
   assert.equal("systemPrompt" in director, false);
   assert.equal("references" in director, false);
   assert.equal(JSON.stringify(director).includes(SECRET), false);
-  assert.deepEqual(director.profile?.en, full);
+  assert.deepEqual(director.profile, full);
   assert.equal(director.customProfile, undefined);
+  assert.equal("titleZh" in director, false);
 });
+
 
 test("custom director exposes its own profile and extra instructions", () => {
   const director = toPublicDirector(

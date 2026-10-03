@@ -257,7 +257,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     },
     wrapTool(user, apiKey, "list_styles", 0, async () => {
       const styles = await listPublicStyles();
-      return styles.map(({ id, name, nameZh }) => ({ id, name, nameZh }));
+      return styles.map(({ id, name }) => ({ id, name }));
     }),
   );
 

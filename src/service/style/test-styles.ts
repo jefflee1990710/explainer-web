@@ -6,7 +6,6 @@ export function testStyle(id: StyleId, overrides: Partial<Style> = {}): Style {
   return {
     id,
     name: `${id} name`,
-    nameZh: `${id} zh`,
     description: "desc",
     canvas: `${id} canvas`,
     canvasColor: "#ffffff",

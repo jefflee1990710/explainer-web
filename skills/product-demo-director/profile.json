@@ -8,15 +8,5 @@
     "visual": "Look and palette come from the chosen visual style. The product's shape, size and two colours are locked and stay identical in every clip, framed large together with the hands, on one clean surface reused throughout.",
     "audio": "Upbeat, clean background music with a hit at the reveal and a resolving finish, plus sound effects synced to each product action.",
     "rules": "Only features and claims from your source are used — no invented specs, prices, awards or reviews. If the product's look isn't described, a placeholder design is proposed for you to confirm. No captions; on-screen text appears only on the product or box."
-  },
-  "zh-Hant": {
-    "bestFor": "產品發佈、廣告、產品頁和開箱片：把產品文案、功能清單或 landing page 變成短片，直接示範產品怎樣幫用家做事。",
-    "structure": "每段 3–8 秒，通常一個功能一段：微短片約 1–2 段，15–20 秒約 2–4 段，30–45 秒約 4–6 段，50–60 秒完整介紹約 7–10 段。",
-    "hook": "頭兩秒用一個看得見的痛點，或產品盒配合動作和聲效衝入畫面；絕不用 logo 卡開場。",
-    "arc": "痛點 → 揭曉 / 開箱（在這裡說出產品名）→ 1–4 個功能，每個都是一個手部動作加即時可見的效果 → 證明或前後對比 → 用家享受成果，加一句口講的行動呼籲。最想要的功能放最後。",
-    "narrator": "自信、友善的介紹人聲線，用「你」直接對觀眾說，講好處而不是規格。如果上載的角色就是介紹人，也可以用第一人稱。",
-    "visual": "畫風和配色跟你選的視覺風格。產品的形狀、大小和兩種顏色全程鎖定，每段都一模一樣；產品和雙手佔畫面大部分，全片用同一個乾淨枱面。",
-    "audio": "輕快、乾淨的背景音樂，揭曉時有重拍，結尾收得圓滿；每個產品動作配同步音效。",
-    "rules": "只用素材裡有的功能和說法，不會虛構規格、價錢、獎項或評價。如果素材沒描述產品外觀，會先提出一個暫定設計讓你確認。不加字幕，畫面文字只會出現在產品或包裝上。"
   }
 }

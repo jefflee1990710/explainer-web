@@ -14,7 +14,6 @@ type SkillManifest = {
   dir: string;
   slug: string;
   title: string;
-  titleZh: string;
   description: string;
   sortOrder: number;
   inputSchema?: Partial<SkillInputSchema>;
@@ -40,57 +39,50 @@ const SKILLS: SkillManifest[] = [
     dir: "cartoon-explainer-video-director",
     slug: "cartoon-explainer-video-director",
     title: "Whiteboard concept explainer",
-    titleZh: "白板概念解說",
     description:
-      "用白板塗鴉風格把概念講清楚，適合 Reels、行銷與簡報。先核准分鏡，再產出影片。",
+      "Turn a concept into a whiteboard doodle explainer for Reels, marketing, and decks. Approve the storyboard, then export the clips.",
     sortOrder: 1,
   },
   {
     dir: "story-short-director",
     slug: "story-short-director",
     title: "Short film",
-    titleZh: "故事短片",
-    description: "角色對白推進的短片：結構跟題材走，沒有旁白。",
+    description: "A short film driven by character dialogue. Structure follows the source — no narrator.",
     sortOrder: 2,
   },
   {
     dir: "product-demo-director",
     slug: "product-demo-director",
     title: "Product demo / unboxing",
-    titleZh: "產品 Demo / 開箱",
-    description: "痛點 → 開箱 → 核心功能示範 → 成果，產品外觀全程鎖定一致。",
+    description: "Pain → unbox → feature demo → result, with the product look locked throughout.",
     sortOrder: 3,
   },
   {
     dir: "dialogue-qa-director",
     slug: "dialogue-qa-director",
     title: "Two-character Q&A",
-    titleZh: "對話式 Q&A",
-    description: "必須正好選 2 個角色一問一答，用提問推進好奇心，用回答交付重點。",
+    description: "Exactly two characters ask and answer. Questions build curiosity; answers deliver the point.",
     sortOrder: 4,
   },
   {
     dir: "listicle-director",
     slug: "listicle-director",
     title: "Listicle",
-    titleZh: "清單式",
-    description: "N 個重點逐條快切，每段一項，畫面必須列出清單文字。",
+    description: "N items, one per clip, fast cuts. Every still must show the list text.",
     sortOrder: 5,
   },
   {
     dir: "tutorial-director",
     slug: "tutorial-director",
     title: "Step-by-step tutorial",
-    titleZh: "教學步驟",
-    description: "先亮成果，再一步一步示範，每段一個步驟，最後回到完成品。",
+    description: "Show the finished result, then one step per clip, and return to the finished piece.",
     sortOrder: 6,
   },
   {
     dir: "opening-director",
     slug: "opening-director",
     title: "Opening",
-    titleZh: "開場",
-    description: "3–4 秒單段開場：品牌 logo 登場並停住，放在正片前面。",
+    description: "A single 3–4 second bumper: the brand logo enters and holds, placed before the main video.",
     sortOrder: 7,
     inputSchema: { durationPresets: ["micro"] },
   },
@@ -98,8 +90,7 @@ const SKILLS: SkillManifest[] = [
     dir: "ending-director",
     slug: "ending-director",
     title: "Ending",
-    titleZh: "結尾",
-    description: "3–4 秒單段結尾：畫面收束到品牌 logo，當作整支影片的最後一格。",
+    description: "A single 3–4 second closer: the frame settles on the brand logo as the last beat.",
     sortOrder: 8,
     inputSchema: { durationPresets: ["micro"] },
   },
@@ -107,8 +98,7 @@ const SKILLS: SkillManifest[] = [
     dir: "talking-head-director",
     slug: "talking-head-director",
     title: "Talking-head read",
-    titleZh: "對鏡讀稿",
-    description: "一個角色對住鏡頭讀稿：一句一段，秒數跟字數，最多 20 段，底部字幕。",
+    description: "One character reads to camera: one line per clip, timed to word count, up to 20 clips, with bottom subtitles.",
     sortOrder: 9,
     inputSchema: { durationPresets: ["micro"] },
   },
@@ -150,7 +140,6 @@ async function seedSkill(manifest: SkillManifest) {
       $set: {
         slug: manifest.slug,
         title: manifest.title,
-        titleZh: manifest.titleZh,
         description: manifest.description,
         profile,
         systemPrompt: skillFile.content,
@@ -163,6 +152,7 @@ async function seedSkill(manifest: SkillManifest) {
         sortOrder: manifest.sortOrder,
         updatedAt: now,
       },
+      $unset: { titleZh: "" },
       $setOnInsert: { createdAt: now },
     },
     { upsert: true },

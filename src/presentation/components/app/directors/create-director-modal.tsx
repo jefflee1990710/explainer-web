@@ -7,8 +7,6 @@ import { Spinner } from "@/presentation/components/spinner";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicSkill } from "@/presentation/serialize";
 import { translateAppError } from "@/util/i18n/translate-app-error";
-import { localizedVideoType } from "@/util/video-type-i18n";
-
 const NAME_MAX = 60;
 const DESCRIPTION_MAX = 300;
 const DEFAULT_BUTTON_CLASS =
@@ -51,11 +49,11 @@ export function CreateDirectorModal({
   template: PublicSkill;
   onClose: () => void;
 }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const router = useRouter();
   const titleId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
-  const templateName = localizedVideoType(t, template.behaviorSlug, template.title);
+  const templateName = template.title;
   const [name, setName] = useState(() => templateName.slice(0, NAME_MAX));
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
@@ -79,7 +77,6 @@ export function CreateDirectorModal({
         templateSlug: template.slug,
         title: name,
         description,
-        locale,
       });
       if (!result.ok) {
         setSubmitting(false);

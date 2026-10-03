@@ -30,6 +30,8 @@ export function stableEditString(edit?: VideoEdit) {
     layers: edit.layers.map((l) => [l.assetUrl, l.anchor, l.marginPct, l.widthPct, l.opacity]),
     intro: bookendKey(edit.intro),
     outro: bookendKey(edit.outro),
+    defaultTransition: edit.defaultTransition ?? null,
+    transitions: edit.transitions ?? null,
   });
 }
 

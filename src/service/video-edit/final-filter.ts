@@ -1,5 +1,6 @@
 import { CLIP_EDGE_FADE_SEC } from "@/service/reel/fade";
 import { overlayPosition, type LayerPlacement } from "@/service/video-edit/layer-placement";
+import type { EditTransition } from "@/model/video-edit";
 
 export type FinalSegmentInput = {
   index: number;
@@ -16,6 +17,8 @@ export type FinalFilterInput = {
   intro?: FinalSegmentInput;
   outro?: FinalSegmentInput;
   layers: FinalLayerInput[];
+  introTransition?: EditTransition;
+  outroTransition?: EditTransition;
 };
 
 const AUDIO_FORMAT = "aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo";
@@ -43,7 +46,7 @@ export function buildFinalFilter(input: FinalFilterInput) {
     mainLabel = `m${i + 1}`;
   });
 
-  type Segment = { v: string; a?: string; duration: number };
+  type Segment = { v: string; a?: string; duration: number; role: "intro" | "main" | "outro" };
   const segments: Segment[] = [];
 
   function audioFor(index: number, present: boolean, duration: number, label: string) {
@@ -56,7 +59,7 @@ export function buildFinalFilter(input: FinalFilterInput) {
     return label;
   }
 
-  function bookend(seg: FinalSegmentInput, key: string): Segment {
+  function bookend(seg: FinalSegmentInput, key: "intro" | "outro"): Segment {
     parts.push(
       `[${seg.index}:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=${fps},format=yuv420p[${key}v]`,
     );
@@ -64,6 +67,7 @@ export function buildFinalFilter(input: FinalFilterInput) {
       v: `${key}v`,
       a: audioFor(seg.index, seg.hasAudio, seg.durationSec, `${key}a`),
       duration: seg.durationSec,
+      role: key,
     };
   }
 
@@ -73,8 +77,52 @@ export function buildFinalFilter(input: FinalFilterInput) {
     v: "mainv",
     a: audioFor(0, input.main.hasAudio, input.main.durationSec, "maina"),
     duration: input.main.durationSec,
+    role: "main",
   });
   if (input.outro) segments.push(bookend(input.outro, "outro"));
+
+  const pairTransition = (right: Segment): EditTransition | undefined => {
+    if (right.role === "main") return input.introTransition;
+    if (right.role === "outro") return input.outroTransition;
+    return undefined;
+  };
+  const usesXfade = segments.some((seg, i) => i > 0 && pairTransition(seg)?.effect && pairTransition(seg)?.effect !== "none");
+
+  if (usesXfade) {
+    let video = segments[0].v;
+    let audio = segments[0].a;
+    let timeline = segments[0].duration;
+    for (let i = 1; i < segments.length; i += 1) {
+      const next = segments[i];
+      const transition = pairTransition(next);
+      const fade =
+        transition && transition.effect !== "none"
+          ? Math.min(transition.durationSec, timeline / 2, next.duration / 2)
+          : 0;
+      const outV = i === segments.length - 1 ? "v" : `xv${i}`;
+      const outA = i === segments.length - 1 ? "a" : `xa${i}`;
+      if (fade > 0 && transition) {
+        parts.push(
+          `[${video}][${next.v}]xfade=transition=${transition.effect}:duration=${num(fade)}:offset=${num(timeline - fade)}[${outV}]`,
+        );
+        if (hasAudio && audio && next.a) {
+          parts.push(`[${audio}][${next.a}]acrossfade=d=${num(fade)}[${outA}]`);
+        }
+        timeline = timeline - fade + next.duration;
+      } else {
+        const pads = hasAudio && audio && next.a ? `[${video}][${audio}][${next.v}][${next.a}]` : `[${video}][${next.v}]`;
+        parts.push(
+          `${pads}concat=n=2:v=1:a=${hasAudio && audio && next.a ? 1 : 0}${
+            hasAudio && audio && next.a ? `[${outV}][${outA}]` : `[${outV}]`
+          }`,
+        );
+        timeline += next.duration;
+      }
+      video = outV;
+      audio = outA;
+    }
+    return { filter: parts.join(";"), hasAudio };
+  }
 
   // Edge fades, same rule as the reel concat.
   const pads: string[] = [];

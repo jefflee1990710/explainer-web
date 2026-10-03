@@ -16,3 +16,9 @@ test("two clips concat video and audio", () => {
 test("clips without audio concat video only", () => {
   assert.match(buildClipConcatFilter(3, false), /concat=n=3:v=1:a=0\[v\]/);
 });
+
+test("fade between clips uses xfade with the overlap offset", () => {
+  const filter = buildClipConcatFilter(2, true, [5, 4], [{ effect: "fade", durationSec: 0.5 }]);
+  assert.match(filter, /xfade=transition=fade:duration=0\.5:offset=4\.5/);
+  assert.match(filter, /acrossfade=d=0\.5/);
+});

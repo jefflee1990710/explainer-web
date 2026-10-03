@@ -641,10 +641,10 @@ export function NewProjectForm({
   const skillTitle = summarySkill
     ? summarySkill.isCustom
       ? summarySkill.title
-      : localizedVideoType(t, summarySkill.slug, summarySkill.title)
+      : localizedVideoType(summarySkill.slug, summarySkill.title)
     : t("brief.fallback.videoType");
   const styleName =
-    styles.find((item) => item.id === (project?.styleId || styleId))?.nameZh || t("brief.fallback.visualStyle");
+    styles.find((item) => item.id === (project?.styleId || styleId))?.name || t("brief.fallback.visualStyle");
   const liveStep = currentStepFor(
     project?.status ?? "draft",
     project?.status === "failed" ? failedStepFor(project) : undefined,

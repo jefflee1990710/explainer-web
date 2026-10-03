@@ -15,13 +15,10 @@ const ease = [0.22, 1, 0.36, 1] as const;
 export function DirectorCard({ director }: { director: PublicSkill }) {
   const { t, locale } = useI18n();
   const href = `/app/directors/${director.id}`;
-  const name = director.isCustom ? director.title : localizedVideoType(t, director.behaviorSlug, director.title);
-  // System: the other language under the locale name. Custom: the template it was forked from.
+  const name = director.title;
   const subtitle = director.isCustom
-    ? localizedVideoType(t, director.behaviorSlug, "") || director.behaviorSlug
-    : name === director.title
-      ? director.titleZh
-      : director.title;
+    ? localizedVideoType(director.behaviorSlug, director.behaviorSlug)
+    : "";
 
   return (
     <motion.article

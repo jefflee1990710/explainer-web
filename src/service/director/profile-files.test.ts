@@ -17,9 +17,11 @@ const DIRS = [
 ];
 
 for (const dir of DIRS) {
-  test(`${dir} has a valid bilingual profile.json`, () => {
+  test(`${dir} has a valid English profile.json`, () => {
     const file = path.join(process.cwd(), "skills", dir, "profile.json");
-    const profile = parseSystemProfile(JSON.parse(readFileSync(file, "utf8")));
-    assert.ok(profile.en.bestFor && profile["zh-Hant"].bestFor);
+    const raw = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
+    assert.equal("zh-Hant" in raw, false);
+    const profile = parseSystemProfile(raw);
+    assert.ok(profile.bestFor);
   });
 }

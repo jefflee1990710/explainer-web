@@ -96,7 +96,7 @@ export function CharacterPicker({
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold">{character.name}</span>
                 <span className={`block text-xs ${active ? "text-paper/75" : "text-muted"}`}>
-                  {localizedStyleName(t, character.styleId)}
+                  {localizedStyleName(character.styleId)}
                 </span>
               </span>
             </motion.button>

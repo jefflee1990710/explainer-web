@@ -7,7 +7,6 @@ export {
   PROFILE_KEYS,
   type DirectorProfile,
   type ProfileKey,
-  type ProfileLocale,
   type SystemProfile,
 } from "@/model/director-profile";
 
@@ -44,7 +43,6 @@ export type Skill = {
   _id: ObjectId;
   slug: string;
   title: string;
-  titleZh: string;
   description: string;
   systemPrompt: string;
   references: SkillReference[];
@@ -76,7 +74,6 @@ export const skillSchema: z.ZodType<Skill> = z.object({
   _id: objectIdSchema,
   slug: z.string(),
   title: z.string(),
-  titleZh: z.string(),
   description: z.string(),
   systemPrompt: z.string(),
   references: z.array(z.object({ path: z.string(), content: z.string() })),
@@ -107,7 +104,7 @@ export const skillSchema: z.ZodType<Skill> = z.object({
     )
     .optional(),
   deletedAt: z.date().optional(),
-  profile: z.object({ en: profileSchema, "zh-Hant": profileSchema }).optional(),
+  profile: profileSchema.optional(),
   customProfile: profileSchema.optional(),
   extraInstructions: z.string().optional(),
   previewUrl: z.string().optional(),

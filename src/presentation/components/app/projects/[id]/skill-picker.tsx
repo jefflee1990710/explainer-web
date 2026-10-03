@@ -27,19 +27,13 @@ export function SkillPicker({
   const system = skills.filter((skill) => !skill.isCustom);
   const mine = skills.filter((skill) => skill.isCustom);
   const selected = skills.find((skill) => skill.slug === value);
-  const systemName = (skill: PublicSkill) => localizedVideoType(t, skill.slug, skill.title);
-  const optionName = (skill: PublicSkill) => (skill.isCustom ? skill.title : systemName(skill));
+  const optionName = (skill: PublicSkill) => skill.title;
 
-  // Custom: template badge. System: the other language under the locale name.
   let subtitle = "";
   if (selected?.isCustom) {
     const template = system.find((skill) => skill.slug === selected.behaviorSlug);
-    const templateName = localizedVideoType(t, selected.behaviorSlug, template?.title || selected.behaviorSlug);
+    const templateName = localizedVideoType(selected.behaviorSlug, template?.title || selected.behaviorSlug);
     subtitle = t("directors.templateBadge", { name: templateName });
-  } else if (selected) {
-    const name = systemName(selected);
-    const translation = name === selected.title ? selected.titleZh : selected.title;
-    subtitle = translation && translation !== name ? translation : "";
   }
 
   useEffect(() => {

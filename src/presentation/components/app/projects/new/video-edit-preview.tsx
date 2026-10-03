@@ -19,7 +19,7 @@ import {
   type EditTimelineItem,
 } from "@/service/video-edit/edit-timeline";
 import type { AspectRatio } from "@/model/project";
-import type { BrandLayer, VideoEdit } from "@/model/video-edit";
+import type { BrandLayer, EditTransition, VideoEdit } from "@/model/video-edit";
 
 export type EditSelection = "" | "intro" | "outro" | string;
 
@@ -33,6 +33,7 @@ export function VideoEditPreview({
   selected,
   onSelect,
   onLayerChange,
+  onTransitionChange,
 }: {
   clips: Array<{ clipNumber: number; blobUrl?: string; outputUrl?: string }>;
   posters?: Array<{ clipNumber: number; src?: string }>;
@@ -41,6 +42,7 @@ export function VideoEditPreview({
   selected: EditSelection;
   onSelect: (id: EditSelection) => void;
   onLayerChange: (id: string, patch: Partial<BrandLayer>) => void;
+  onTransitionChange: (fromId: string, toId: string, transition: EditTransition) => void;
 }) {
   const { t } = useI18n();
   const items = buildEditTimeline({ intro: edit.intro, outro: edit.outro, clips, posters });
@@ -191,7 +193,13 @@ export function VideoEditPreview({
               );
             })}
       </div>
-      <VideoEditTimeline items={items} activeId={previewId} onPlayFrom={playFrom} />
+      <VideoEditTimeline
+        items={items}
+        edit={edit}
+        activeId={previewId}
+        onPlayFrom={playFrom}
+        onTransitionChange={onTransitionChange}
+      />
     </div>
   );
 }

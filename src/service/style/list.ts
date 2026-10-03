@@ -14,7 +14,6 @@ export async function listPublicStyles(): Promise<PublicStyle[]> {
     return [{
       id,
       name: style.name,
-      nameZh: style.nameZh,
       description: style.description,
       canvasColor: style.canvasColor,
       previewUrl: doc?.previewUrl,

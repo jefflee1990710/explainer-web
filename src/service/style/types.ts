@@ -7,7 +7,6 @@ export type { StyleId };
 export type Style = {
   id: StyleId;
   name: string;
-  nameZh: string;
   description: string;
   canvas: string;
   canvasColor: string;

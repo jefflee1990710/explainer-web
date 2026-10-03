@@ -4,6 +4,8 @@ import type { FFmpeg } from "@ffmpeg/ffmpeg";
 import type { VideoEdit } from "@/model/video-edit";
 import { stableEditString } from "@/service/video-edit/edit-state";
 import { buildClipConcatFilter } from "@/service/video-edit/clip-concat-filter";
+import { clipPairTransitions, resolveTransition } from "@/service/video-edit/edit-transition";
+import { clipTimelineId } from "@/service/video-edit/edit-timeline";
 import { buildFinalFilter } from "@/service/video-edit/final-filter";
 import { layerPlacement } from "@/service/video-edit/layer-placement";
 import { parseProbe } from "@/service/video-edit/probe";
@@ -190,6 +192,7 @@ export async function renderVideoInBrowser(
   filename: string,
   onProgress: (job: ExportJob) => void,
   signal: AbortSignal,
+  clipNumbers: number[] = clipUrls.map((_, index) => index + 1),
 ) {
   if (clipUrls.length === 0) throw new Error("clips");
   const phases: ExportPhase[] = ["encoder", "download", "encode", "save"];
@@ -227,7 +230,7 @@ export async function renderVideoInBrowser(
     }
 
     if (clipUrls.length > 1) {
-      await concatClipsToMain(ffmpeg, clipUrls.length, signal);
+      await concatClipsToMain(ffmpeg, clipUrls.length, edit, clipNumbers, signal);
     }
 
     const main = await probeFile(ffmpeg, "main.mp4");
@@ -261,6 +264,8 @@ export async function renderVideoInBrowser(
       });
     }
     const outro = await addBookend("outro", edit.outro);
+    const firstClip = clipNumbers[0] ?? 1;
+    const lastClip = clipNumbers[clipNumbers.length - 1] ?? firstClip;
     const { filter, hasAudio } = buildFinalFilter({
       width: main.width,
       height: main.height,
@@ -269,6 +274,8 @@ export async function renderVideoInBrowser(
       intro,
       outro,
       layers,
+      introTransition: resolveTransition(edit, "intro", clipTimelineId(firstClip)),
+      outroTransition: resolveTransition(edit, clipTimelineId(lastClip), "outro"),
     });
     args.push("-filter_complex", filter, "-map", "[v]");
     if (hasAudio) args.push("-map", "[a]", "-c:a", "aac", "-ac", "2");
@@ -311,13 +318,20 @@ export async function renderVideoInBrowser(
 }
 
 // Join clip0…N into main.mp4 before the branding filter runs.
-async function concatClipsToMain(ffmpeg: FFmpeg, count: number, signal: AbortSignal) {
+async function concatClipsToMain(
+  ffmpeg: FFmpeg,
+  count: number,
+  edit: VideoEdit,
+  clipNumbers: number[],
+  signal: AbortSignal,
+) {
   const probes = [];
   for (let i = 0; i < count; i += 1) {
     probes.push(await probeFile(ffmpeg, `clip${i}.mp4`));
   }
   const hasAudio = probes.every((probe) => probe.hasAudio);
-  const filter = buildClipConcatFilter(count, hasAudio);
+  const durations = probes.map((probe) => probe.durationSec || 0);
+  const filter = buildClipConcatFilter(count, hasAudio, durations, clipPairTransitions(edit, clipNumbers));
   const args = probes.flatMap((_, i) => ["-i", `clip${i}.mp4`]);
   args.push("-filter_complex", filter, "-map", "[v]");
   if (hasAudio) args.push("-map", "[a]", "-c:a", "aac", "-ac", "2");

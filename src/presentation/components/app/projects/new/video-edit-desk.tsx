@@ -17,6 +17,7 @@ import {
 } from "@/presentation/components/app/projects/new/browser-video-export";
 import { ExportProgressOverlay } from "@/presentation/components/app/projects/new/export-progress-overlay";
 import { clipUrlsForExport, timelineClips } from "@/service/video-edit/edit-timeline";
+import { setTransition } from "@/service/video-edit/edit-transition";
 import { EDIT_LIMITS, emptyEdit, type BookendClip, type BrandLayer, type VideoEdit } from "@/model/video-edit";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import { displayMediaSrc } from "@/util/media-src";
@@ -133,12 +134,22 @@ export function VideoEditDesk({
       if (existingUrl) {
         await downloadVideoFile(existingUrl, filename, setExportJob, controller.signal);
       } else {
-        const clipUrls = clipUrlsForExport(project.clips);
+        const exportClips = [...project.clips]
+          .sort((a, b) => a.clipNumber - b.clipNumber)
+          .filter((clip) => clip.blobUrl || clip.outputUrl);
+        const clipUrls = clipUrlsForExport(exportClips);
         if (clipUrls.length === 0) {
           setMessage(t("video.export.failed"));
           return;
         }
-        await renderVideoInBrowser(clipUrls, edit, filename, setExportJob, controller.signal);
+        await renderVideoInBrowser(
+          clipUrls,
+          edit,
+          filename,
+          setExportJob,
+          controller.signal,
+          exportClips.map((clip) => clip.clipNumber),
+        );
       }
     } catch (error) {
       if (!(error instanceof ExportCancelled)) setMessage(t("video.export.failed"));
@@ -167,6 +178,9 @@ export function VideoEditDesk({
           selected={selected}
           onSelect={setSelected}
           onLayerChange={patchLayer}
+          onTransitionChange={(fromId, toId, transition) =>
+            change((current) => setTransition(current, fromId, toId, transition))
+          }
         />
       }
       inspector={

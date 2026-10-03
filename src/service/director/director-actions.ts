@@ -23,7 +23,7 @@ import {
   type DirectorEdit,
   type DraftField,
 } from "@/service/director/director-edits";
-import { profileLocale } from "@/service/director/profile";
+import { parseSystemProfile } from "@/service/director/profile";
 import {
   toPublicDirector,
   toPublicDirectorChat,
@@ -116,7 +116,6 @@ export async function createDirectorAction(input: {
   templateSlug: string;
   title: string;
   description: string;
-  locale: string;
 }): Promise<CreateDirectorResult> {
   try {
     const user = await requireAppUser();
@@ -137,12 +136,11 @@ export async function createDirectorAction(input: {
       _id,
       slug: customSkillSlug(_id),
       title: meta.title,
-      titleZh: meta.title,
       description: meta.description,
       // Custom directors never hold prompt text; they run on the template via baseSlug.
       systemPrompt: "",
       references: [],
-      customProfile: { ...template.profile[profileLocale(String(input?.locale ?? ""))] },
+      customProfile: { ...parseSystemProfile(template.profile) },
       extraInstructions: "",
       inputSchema: template.inputSchema,
       higgsfieldDefaults: template.higgsfieldDefaults,
@@ -186,7 +184,6 @@ export async function saveDirectorAction(input: {
       {
         $set: {
           title: meta.title,
-          titleZh: meta.title,
           description: meta.description,
           customProfile: parsed.draft.customProfile,
           extraInstructions: parsed.draft.extraInstructions,

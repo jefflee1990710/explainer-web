@@ -26,7 +26,7 @@ export function ExampleBand({ item, flip }: { item: ExampleItem; flip: boolean }
               {t(item.titleKey)}
             </h2>
             <p className="mt-4 text-base text-zinc-600">{t(item.bodyKey)}</p>
-            <p className="mt-4 text-sm font-medium text-zinc-800">{localizedStyleName(t, item.styleId)}</p>
+            <p className="mt-4 text-sm font-medium text-zinc-800">{localizedStyleName(item.styleId)}</p>
           </div>
         </div>
         <div className={`flex justify-center px-4 py-8 sm:px-8 ${flip ? "lg:order-1" : "lg:order-2"}`}>

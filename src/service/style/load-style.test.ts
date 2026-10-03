@@ -14,7 +14,6 @@ function sampleStyle(id: Style["id"], overrides: Partial<Style> = {}): Style {
   return {
     id,
     name: `${id} name`,
-    nameZh: `${id} zh`,
     description: "desc",
     canvas: "canvas",
     canvasColor: "#ffffff",
@@ -33,6 +32,7 @@ test("stylePromptFields copies prompt fields only", () => {
   assert.equal(fields.name, style.name);
   assert.equal(fields.look, "marker look");
   assert.equal("id" in fields, false);
+  assert.equal("nameZh" in fields, false);
   assert.equal("previewUrl" in fields, false);
 });
 

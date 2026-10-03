@@ -11,6 +11,7 @@ import {
   directorPreviewStyleNames,
 } from "@/service/director/preview-prompt";
 import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
+import { parseSystemProfile } from "@/service/director/profile";
 import { STYLE_IDS } from "@/model/style-id";
 import type { Skill } from "@/model/skill";
 
@@ -34,7 +35,7 @@ function googleImage() {
 
 // Gemini still → WebP on Blob. Never touches prompt / profile fields.
 async function seedDirector(skill: Skill, styleNames: string[]) {
-  const visual = skill.profile?.en.visual?.trim() || skill.description;
+  const visual = (skill.profile ? parseSystemProfile(skill.profile).visual.trim() : "") || skill.description;
   const prompt = directorPreviewPrompt({
     title: skill.title,
     visual,

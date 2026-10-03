@@ -2,7 +2,6 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { localizedStyleDescription, localizedStyleName } from "@/util/style-i18n";
 import type { PublicStyle } from "@/presentation/serialize";
 
 // Left thumbnail for a style row (dropdown trigger or option).
@@ -54,8 +53,8 @@ export function StylePicker({
   const [open, setOpen] = useState(false);
 
   const selected = styles.find((item) => item.id === value) ?? styles[0];
-  const selectedName = selected ? localizedStyleName(t, selected.id) : groupLabel;
-  const selectedDescription = selected ? localizedStyleDescription(t, selected.id) : "";
+  const selectedName = selected?.name || groupLabel;
+  const selectedDescription = selected?.description || "";
 
   useEffect(() => {
     if (!open) return;
@@ -114,8 +113,8 @@ export function StylePicker({
         >
           {styles.map((style) => {
             const active = style.id === value;
-            const styleName = localizedStyleName(t, style.id);
-            const styleDescription = localizedStyleDescription(t, style.id);
+            const styleName = style.name;
+            const styleDescription = style.description;
             return (
               <li key={style.id} role="presentation">
                 <button

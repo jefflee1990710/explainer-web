@@ -19,7 +19,6 @@ import {
 } from "@/service/director/director-edits";
 import { emptyProfile } from "@/service/director/profile";
 import { translateAppError } from "@/util/i18n/translate-app-error";
-import { localizedVideoType } from "@/util/video-type-i18n";
 import { DirectorPreviewThumb } from "@/presentation/components/director-preview-thumb";
 
 const SAVED_STATUS_MS = 2500;
@@ -63,9 +62,7 @@ export function DirectorWorkspace({
     return () => window.clearTimeout(timer);
   }, [savedFlash]);
 
-  const name = director.isCustom
-    ? director.title
-    : localizedVideoType(t, director.behaviorSlug, director.title);
+  const name = director.title;
 
   function onChange(next: DirectorForm) {
     setDraft(next);
