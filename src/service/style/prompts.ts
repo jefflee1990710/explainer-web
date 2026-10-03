@@ -1,10 +1,15 @@
 import type { Style } from "@/service/style/types";
 
+type StylePromptSlice = Pick<
+  Style,
+  "name" | "canvas" | "look" | "palette" | "typography" | "motion" | "negatives"
+>;
+
 // Markdown block appended to the director system prompt. It supersedes only
 // the rendering rules of SKILL.md's whiteboard "Locked visual world" so one
 // skill can drive every style; the character-identity lock and the default
 // everyman in that same section still apply.
-export function styleBlockForDirector(style: Style) {
+export function styleBlockForDirector(style: StylePromptSlice) {
   return [
     `## Visual style: ${style.name} (overrides the rendering, palette, lettering and motion rules of the "Locked visual world" section above)`,
     `Canvas: ${style.canvas}.`,
@@ -18,7 +23,7 @@ export function styleBlockForDirector(style: Style) {
 }
 
 // Opening lines of every storyboard-frame / still prompt.
-export function styleLinesForFrame(style: Style) {
+export function styleLinesForFrame(style: StylePromptSlice) {
   return [
     // Skill-neutral wording: the same still prompt serves explainer, story, demo, etc.
     `Single storyboard still for a ${style.name} short video.`,
@@ -27,12 +32,12 @@ export function styleLinesForFrame(style: Style) {
 }
 
 // Placed next to the spelling rule so lettering and spelling travel together.
-export function styleLetteringLine(style: Style) {
+export function styleLetteringLine(style: StylePromptSlice) {
   return `Lettering: ${style.typography}.`;
 }
 
 // Character model-sheet rendering rules; the layout lines stay in blueprint-prompt.ts.
-export function styleLinesForBlueprint(style: Style) {
+export function styleLinesForBlueprint(style: StylePromptSlice) {
   return [
     `Background: ${style.canvas}.`,
     `Rendering: ${style.look}.`,
