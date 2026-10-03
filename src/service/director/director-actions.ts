@@ -2,11 +2,11 @@ import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
 import { generateText, Output } from "ai";
 import { z } from "zod";
-import { skillsCollection } from "@/dao";
+import { skillsCollection, userDirectorsCollection } from "@/dao";
 import { requireAppUser } from "@/service/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { customSkillSlug } from "@/service/director/behavior-slug";
-import { selectableSkillFilter } from "@/service/director/selectable-skills";
+import { customSelectableFilter, systemSelectableFilter } from "@/service/director/selectable-skills";
 import { directorModel } from "@/service/director/model";
 import { chatRateLimited } from "@/service/director/chat-rate-limit";
 import {
@@ -82,21 +82,27 @@ function parseMeta(
 // Active custom director owned by this user, or null for invalid / missing / not-owned / deleted ids.
 async function ownedDirector(id: string, clerkUserId: string): Promise<Skill | null> {
   if (!ObjectId.isValid(id)) return null;
-  const skills = await skillsCollection();
-  return (await skills.findOne({
+  const directors = await userDirectorsCollection();
+  return (await directors.findOne({
     _id: new ObjectId(id),
-    ownerClerkUserId: clerkUserId,
-    isActive: true,
+    ...customSelectableFilter(clerkUserId),
   })) as Skill | null;
 }
 
 // Detail-page read: a system skill or one of the user's own directors.
 export async function loadDirectorForUser(clerkUserId: string, id: string): Promise<Skill | null> {
   if (!ObjectId.isValid(id)) return null;
+  const oid = new ObjectId(id);
   const skills = await skillsCollection();
-  return (await skills.findOne({
-    ...selectableSkillFilter(clerkUserId),
-    _id: new ObjectId(id),
+  const system = (await skills.findOne({
+    ...systemSelectableFilter(),
+    _id: oid,
+  })) as Skill | null;
+  if (system) return system;
+  const directors = await userDirectorsCollection();
+  return (await directors.findOne({
+    ...customSelectableFilter(clerkUserId),
+    _id: oid,
   })) as Skill | null;
 }
 
@@ -132,7 +138,8 @@ export async function createDirectorAction(input: {
 
     const _id = new ObjectId();
     const now = new Date();
-    await skills.insertOne({
+    const directors = await userDirectorsCollection();
+    await directors.insertOne({
       _id,
       slug: customSkillSlug(_id),
       title: meta.title,
@@ -178,8 +185,8 @@ export async function saveDirectorAction(input: {
     const parsed = parseDraft({ customProfile: input.customProfile, extraInstructions: input.extraInstructions });
     if (!parsed.ok) return parsed;
 
-    const skills = await skillsCollection();
-    const updated = (await skills.findOneAndUpdate(
+    const directors = await userDirectorsCollection();
+    const updated = (await directors.findOneAndUpdate(
       { _id: skill._id, ownerClerkUserId: user.clerkUserId, isActive: true },
       {
         $set: {
@@ -206,9 +213,9 @@ export async function deleteDirectorAction(id: string): Promise<DeleteDirectorRe
   try {
     const user = await requireAppUser();
     if (!ObjectId.isValid(id)) return { ok: false, error: "找不到 Director" };
-    const skills = await skillsCollection();
+    const directors = await userDirectorsCollection();
     const now = new Date();
-    const removed = await skills.updateOne(
+    const removed = await directors.updateOne(
       { _id: new ObjectId(id), ownerClerkUserId: user.clerkUserId, isActive: true },
       { $set: { isActive: false, deletedAt: now, updatedAt: now } },
     );
@@ -279,8 +286,8 @@ export async function sendDirectorChatAction(input: {
       createdAt: now,
     };
 
-    const skills = await skillsCollection();
-    const pushed = await skills.updateOne(
+    const directors = await userDirectorsCollection();
+    const pushed = await directors.updateOne(
       { _id: skill._id, ownerClerkUserId: user.clerkUserId, isActive: true },
       { $push: { chat: { $each: [userMsg, assistantMsg], $slice: -CHAT_KEPT } } },
     );

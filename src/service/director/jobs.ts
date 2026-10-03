@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { characterLockFromCast } from "@/service/character/cast-prompt";
-import { skillsCollection, videosCollection } from "@/dao";
+import { videosCollection } from "@/dao";
+import { loadStoredSkill } from "@/service/director/load-skill";
 import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
 import { keepProposalRegenerateClips } from "@/service/director/phase-a-edit";
 import { runPhaseA } from "@/service/director/run-phase-a";
@@ -38,8 +39,7 @@ export async function runPhaseAJob(
   // Prefer Mongo style fields over the repo catalog for this run.
   await hydrateStyles();
 
-  const skills = await skillsCollection();
-  const found = await skills.findOne({ _id: project.skillId });
+  const found = await loadStoredSkill(project.skillId);
   const skill = found
     ? await resolveRunSkill(found).catch((error: unknown) => {
         if (error instanceof MissingTemplateError) return null;

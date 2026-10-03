@@ -1,12 +1,20 @@
-import { skillsCollection } from "@/dao";
+import { skillsCollection, userDirectorsCollection } from "@/dao";
 import type { Skill } from "@/model/skill";
 import { isCustomSkill } from "@/service/director/behavior-slug";
 
-// Active skills a user may pick: every system skill plus their own directors.
-export function selectableSkillFilter(clerkUserId: string) {
+// Active system skills. Custom directors live in `userDirectors`.
+export function systemSelectableFilter() {
   return {
     isActive: true,
-    $or: [{ ownerClerkUserId: { $exists: false } }, { ownerClerkUserId: clerkUserId }],
+    ownerClerkUserId: { $exists: false },
+  };
+}
+
+// Active custom directors owned by this user. Soft-deleted rows stay out of the picker.
+export function customSelectableFilter(clerkUserId: string) {
+  return {
+    isActive: true,
+    ownerClerkUserId: clerkUserId,
   };
 }
 
@@ -22,13 +30,20 @@ export function sortSelectableSkills(skills: Skill[]): Skill[] {
 // Picker list for the signed-in user.
 export async function listSelectableSkills(clerkUserId: string): Promise<Skill[]> {
   const skills = await skillsCollection();
-  const docs = (await skills.find(selectableSkillFilter(clerkUserId)).toArray()) as Skill[];
-  return sortSelectableSkills(docs);
+  const directors = await userDirectorsCollection();
+  const [system, custom] = await Promise.all([
+    skills.find(systemSelectableFilter()).toArray(),
+    directors.find(customSelectableFilter(clerkUserId)).toArray(),
+  ]);
+  return sortSelectableSkills([...(system as Skill[]), ...(custom as Skill[])]);
 }
 
 // One skill by slug, only if this user may pick it.
 export async function findSelectableSkill(clerkUserId: string, slug: string): Promise<Skill | null> {
   if (!slug) return null;
   const skills = await skillsCollection();
-  return (await skills.findOne({ ...selectableSkillFilter(clerkUserId), slug })) as Skill | null;
+  const system = (await skills.findOne({ ...systemSelectableFilter(), slug })) as Skill | null;
+  if (system) return system;
+  const directors = await userDirectorsCollection();
+  return (await directors.findOne({ ...customSelectableFilter(clerkUserId), slug })) as Skill | null;
 }

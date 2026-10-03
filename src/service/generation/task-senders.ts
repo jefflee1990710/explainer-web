@@ -1,7 +1,8 @@
-import { charactersCollection, skillsCollection, videosCollection } from "@/dao";
+import { charactersCollection, videosCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
 import { sendCharacterVersion } from "@/service/character/generate";
 import { runPhaseBForClip } from "@/service/director/run-phase-b";
+import { loadStoredSkill } from "@/service/director/load-skill";
 import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { videoStyle } from "@/service/higgsfield/frame-prompts";
@@ -79,8 +80,7 @@ async function sendVideo(project: Project, clipNumber: number) {
     });
   }
 
-  const skills = await skillsCollection();
-  const skill = await skills.findOne({ _id: project.skillId });
+  const skill = await loadStoredSkill(project.skillId);
   if (!skill) throw new PermanentJobError("找不到風格");
   const prompt = await runPhaseBForClip({
     skill: await resolveRunSkill(skill).catch((error: unknown) => {

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import type { Skill } from "@/model/skill";
-import { selectableSkillFilter, sortSelectableSkills } from "@/service/director/selectable-skills";
+import { customSelectableFilter, sortSelectableSkills, systemSelectableFilter } from "@/service/director/selectable-skills";
 
 // Minimal skill doc for ordering checks.
 function skill(slug: string, sortOrder: number, updatedAt: Date, ownerClerkUserId?: string): Skill {
@@ -23,10 +23,14 @@ function skill(slug: string, sortOrder: number, updatedAt: Date, ownerClerkUserI
   };
 }
 
-test("filter selects active system skills plus the owner's directors", () => {
-  assert.deepEqual(selectableSkillFilter("user_1"), {
+test("filters keep system skills and the owner's directors in separate collections", () => {
+  assert.deepEqual(systemSelectableFilter(), {
     isActive: true,
-    $or: [{ ownerClerkUserId: { $exists: false } }, { ownerClerkUserId: "user_1" }],
+    ownerClerkUserId: { $exists: false },
+  });
+  assert.deepEqual(customSelectableFilter("user_1"), {
+    isActive: true,
+    ownerClerkUserId: "user_1",
   });
 });
 

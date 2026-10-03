@@ -5,7 +5,8 @@
 import { loadEnvConfig } from "@next/env";
 import { ObjectId } from "mongodb";
 import { ALICLOUD_VIDEO_MODEL } from "@/service/alicloud/dashscope";
-import { generationJobsCollection, skillsCollection, videosCollection } from "@/dao";
+import { generationJobsCollection, videosCollection } from "@/dao";
+import { loadStoredSkill } from "@/service/director/load-skill";
 import { insertPendingJob } from "@/service/generation/task-store";
 import { runJobById } from "@/service/generation/task-runner";
 import { runPhaseBForClip } from "@/service/director/run-phase-b";
@@ -45,8 +46,7 @@ async function main() {
   const keys = clipKeyframeUrls(project.frames, clipNumber);
   if (!keys.start || !keys.end) throw new Error("這段的起點或終點畫格還沒有檔案");
 
-  const skills = await skillsCollection();
-  const skill = await skills.findOne({ _id: project.skillId });
+  const skill = await loadStoredSkill(project.skillId);
   if (!skill) throw new Error("找不到風格");
 
   const submittedAt = new Date().toISOString();

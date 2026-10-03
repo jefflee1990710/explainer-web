@@ -6,7 +6,8 @@
 import { loadEnvConfig } from "@next/env";
 import { ObjectId } from "mongodb";
 import { ALICLOUD_VIDEO_MODEL } from "@/service/alicloud/dashscope";
-import { generationJobsCollection, skillsCollection, videosCollection } from "@/dao";
+import { generationJobsCollection, videosCollection } from "@/dao";
+import { loadStoredSkill } from "@/service/director/load-skill";
 import { insertPendingJob } from "@/service/generation/task-store";
 import { runJobById } from "@/service/generation/task-runner";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
@@ -173,8 +174,7 @@ async function generateFrames(project: Project) {
 
 async function generateVideos(project: Project) {
   const videos = await videosCollection();
-  const skills = await skillsCollection();
-  const skill = await skills.findOne({ _id: project.skillId });
+  const skill = await loadStoredSkill(project.skillId);
   if (!skill) throw new Error("找不到風格");
 
   const outputs: Array<Record<string, unknown>> = [];

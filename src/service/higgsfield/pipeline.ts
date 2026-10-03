@@ -3,7 +3,6 @@ import { syncCharacterJob } from "@/service/character/sync";
 import { syncStylePreviewJob } from "@/service/style/user-style-preview";
 import {
   generationJobsCollection,
-  skillsCollection,
   videosCollection,
 } from "@/dao";
 import { refundCredits } from "@/service/billing/credits";
@@ -43,6 +42,7 @@ import { retimeMp4 } from "@/service/reel/retime";
 import { mediaSrc } from "@/util/media-src";
 import { isBookendSkill } from "@/service/director/skill-rules";
 import { resolveRunSkill } from "@/service/director/run-skill";
+import { loadStoredSkill } from "@/service/director/load-skill";
 import {
   isInheritedTalkingHeadStart,
   isTalkingHeadSkill,
@@ -81,8 +81,7 @@ function stillPrompt(project: Project) {
 }
 
 async function loadSkill(project: Project): Promise<Skill> {
-  const skills = await skillsCollection();
-  const skill = await skills.findOne({ _id: project.skillId });
+  const skill = await loadStoredSkill(project.skillId);
   if (!skill) throw new Error("找不到風格");
   return resolveRunSkill(skill);
 }
