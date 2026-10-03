@@ -16,7 +16,7 @@ import type {
 
 export type BriefDefaults = {
   skillSlug: string;
-  styleId: StyleId;
+  styleId: string;
   language: VoLanguage;
   voiceGender: VoiceGender;
   speechPace: SpeechPace;
@@ -29,7 +29,7 @@ export type BriefDefaults = {
 type Catalog = {
   skills: Array<{ slug: string; behaviorSlug?: string }>;
   styles: Array<{ id: StyleId }>;
-  characters: Array<{ id: string; styleId: StyleId }>;
+  characters: Array<{ id: string; styleId: string }>;
 };
 
 const RATIOS = new Set<AspectRatio>(["16:9", "9:16", "1:1"]);

@@ -1,6 +1,6 @@
 import type { Style } from "@/service/style/types";
 
-type StylePromptSlice = Pick<
+export type StylePromptSlice = Pick<
   Style,
   "name" | "canvas" | "look" | "palette" | "typography" | "motion" | "negatives"
 >;

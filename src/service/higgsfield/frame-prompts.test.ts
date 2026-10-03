@@ -12,6 +12,7 @@ import {
 } from "@/service/higgsfield/frame-prompts";
 import { STYLE_IDS } from "@/model/style-id";
 import { resetStyleOverlay } from "@/service/style/load-style";
+import { renderableFromSystem } from "@/service/style/renderable-style";
 import { installTestStyles, testStyle, uninstallTestStyles } from "@/service/style/test-styles";
 
 before(() => installTestStyles());
@@ -773,6 +774,22 @@ test("next clip's opening with a scene reference drops the same-place rule", () 
   assert.match(prompt, /CONTINUITY REFERENCE: attached image 1/);
   assert.match(prompt, /SCENE REFERENCE: attached image 2 shows .* follow their composition/);
   assert.doesNotMatch(prompt, /Do not invent a new room/);
+});
+
+test("a preloaded user style supplies look and lettering", () => {
+  const custom = renderableFromSystem(testStyle("paper-cutout", {
+    look: "torn kraft edges",
+    letteringLayout: "Layout: cut-paper VO at 40% height.",
+    letteringLine1: "Line 1 is torn dark-ink paper.",
+  }));
+  custom.id = new ObjectId().toHexString();
+  const video = project();
+  video.styleId = custom.id;
+  video.skillSlug = "cartoon-explainer-video-director";
+  const prompt = buildFramePrompt(video, 1, "start", { style: custom });
+  assert.match(prompt, /torn kraft edges/);
+  assert.match(prompt, /torn dark-ink paper/);
+  assert.match(prompt, /40% height/);
 });
 
 test("clips without assigned references attach none", () => {

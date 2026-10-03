@@ -14,7 +14,7 @@ import { runStillJob } from "@/service/director/jobs";
 import { persistFrameAnnotation } from "@/service/higgsfield/frame-annotation";
 import { clipKeyframeUrls, planFrameSubmissions } from "@/service/higgsfield/clip-keyframes";
 import { buildFramePrompt, framesWithClip } from "@/service/higgsfield/frame-prompts";
-import { hydrateStyles } from "@/service/style/load-style";
+import { loadRenderableStyle } from "@/service/style/renderable-style";
 import {
   failUnsubmittedFrames,
   refreshProjectJobs,
@@ -117,7 +117,10 @@ export async function regenerateFrameAction(
       clerkUserId: user.clerkUserId,
     });
     if (!project?.phaseA) return { ok: false, error: "專案不存在" };
-    await hydrateStyles();
+    const style = await loadRenderableStyle({
+      styleId: project.styleId,
+      ownerClerkUserId: project.clerkUserId,
+    });
     if (!isProductionLike(project.status)) {
       return { ok: false, error: "分鏡尚未完成" };
     }
@@ -174,6 +177,7 @@ export async function regenerateFrameAction(
             // Keep the prompt/revision actually used on the frame for later review.
             "frames.$[frame].prompt": buildFramePrompt(project, clipNumber, position, {
               revision,
+              style,
             }),
             ...(revision
               ? { "frames.$[frame].revision": revision }
@@ -264,7 +268,10 @@ export async function updateClipStoryboardAction(
       clerkUserId: user.clerkUserId,
     });
     if (!project?.phaseA) return { ok: false, error: "專案不存在" };
-    await hydrateStyles();
+    const style = await loadRenderableStyle({
+      styleId: project.styleId,
+      ownerClerkUserId: project.clerkUserId,
+    });
     const spoken = spokenLineCopy(project.skillSlug);
     if (hasDualBeatDraft(clean) && (!clean.startVo || !clean.endVo)) {
       return { ok: false, error: spoken.dualEmptyError };
@@ -314,7 +321,7 @@ export async function updateClipStoryboardAction(
     // described the old scene). Otherwise only refresh prompts for this clip
     // and the previous clip's end frame, which hands off to it.
     const frames: ClipFrame[] = regenerate
-      ? withInheritedTalkingHeadStarts(framesWithClip(nextProject, clipNumber), project.skillSlug)
+      ? withInheritedTalkingHeadStarts(framesWithClip(nextProject, clipNumber, style), project.skillSlug)
       : (project.frames || []).map((frame) => {
           const own = frame.clipNumber === clipNumber;
           const handoff = frame.clipNumber === clipNumber - 1 && frame.position === "end";
@@ -323,6 +330,7 @@ export async function updateClipStoryboardAction(
             ...frame,
             prompt: buildFramePrompt(nextProject, frame.clipNumber, frame.position, {
               revision: frame.revision,
+              style,
             }),
           };
         });

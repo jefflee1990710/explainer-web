@@ -7,7 +7,7 @@ import { resolveSpeechPace } from "@/service/director/speech-pace";
 import { clipGenerationTags, productionCounts, type GenerationDetailTag } from "@/service/clip-stage";
 import { folderRollupStatus } from "@/service/folder";
 import { normalizeProjectStatus } from "@/service/project-status";
-import { resolveStyleId, type StyleId } from "@/service/style";
+import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
 import type { AppUser } from "@/model/user";
 import type { Character, CharacterVersionStatus } from "@/model/character";
 import type { Folder } from "@/model/folder";
@@ -46,7 +46,7 @@ export type PublicVideo = {
   spokenScript?: string;
   aspectRatio: Project["aspectRatio"];
   durationPreset: Project["durationPreset"];
-  styleId: StyleId;
+  styleId: string;
   language: NonNullable<Project["language"]>;
   voiceGender: NonNullable<Project["voiceGender"]>;
   speechPace: NonNullable<Project["speechPace"]>;
@@ -218,7 +218,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     spokenScript: video.spokenScript,
     aspectRatio: video.aspectRatio,
     durationPreset: video.durationPreset,
-    styleId: resolveStyleId(video.styleId),
+    styleId: video.styleId || DEFAULT_STYLE_ID,
     language: video.language || "en",
     voiceGender: resolveVoiceGender(video.voiceGender),
     speechPace: resolveSpeechPace(video.speechPace),
@@ -412,7 +412,7 @@ export type PublicCharacterVersion = {
 export type PublicCharacter = {
   id: string;
   name: string;
-  styleId: StyleId;
+  styleId: string;
   styleName: string;
   defaultVersionId: string | null;
   // Default sheet, or null when nothing has completed yet.
@@ -449,7 +449,7 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     id: character._id.toHexString(),
     name: character.name,
     styleId: character.styleId,
-    styleName: resolveStyleId(character.styleId),
+    styleName: character.styleId,
     defaultVersionId: resolved ? resolved.id.toHexString() : null,
     previewUrl: resolved?.blueprintUrl || null,
     versions,

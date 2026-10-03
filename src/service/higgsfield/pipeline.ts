@@ -9,8 +9,10 @@ import { refundCredits } from "@/service/billing/credits";
 import { flattenToCanvas } from "@/service/higgsfield/flatten";
 import { sceneTextNegativePrompt, resolveSceneText } from "@/service/director/scene-text";
 import { imageModelForSubmit, resolveImageRoute } from "@/service/generation/image-backend";
-import { frameSubmitPlan, framesWithClipsReady, videoStyle } from "@/service/higgsfield/frame-prompts";
+import { frameSubmitPlan, framesWithClipsReady } from "@/service/higgsfield/frame-prompts";
 import { hydrateStyles } from "@/service/style/load-style";
+import { loadRenderableStyle } from "@/service/style/renderable-style";
+import type { StylePromptSlice } from "@/service/style";
 import {
   orphanQueuedClips,
   orphanQueuedFrames,
@@ -69,8 +71,7 @@ import type { Skill } from "@/model/skill";
 
 // ---------- prompts ----------
 
-function stillPrompt(project: Project) {
-  const style = videoStyle(project);
+function stillPrompt(project: Project, style: StylePromptSlice) {
   const lock = project.phaseA?.characterLock || "default explainer everyman";
   return [
     `Character visual lock still for a ${style.name} short video.`,
@@ -90,12 +91,15 @@ async function loadSkill(project: Project): Promise<Skill> {
 
 // Send the character lock still to the provider (free). No job write.
 export async function sendStill(project: Project): Promise<Sent> {
-  await hydrateStyles();
+  const style = await loadRenderableStyle({
+    styleId: project.styleId,
+    ownerClerkUserId: project.clerkUserId,
+  });
   const skill = await loadSkill(project);
   const model = imageModelForSubmit(resolveImageRoute(), Boolean(project.characterImageUrl));
   const submitted = await submitImage({
     model,
-    prompt: stillPrompt(project),
+    prompt: stillPrompt(project, style),
     aspectRatio: project.aspectRatio,
     quality: skill.higgsfieldDefaults.imageQuality || "medium",
     resolution: skill.higgsfieldDefaults.imageResolution || "1k",
@@ -147,13 +151,16 @@ export async function sendFrame(
   clipNumber: number,
   position: FramePosition,
 ): Promise<Sent> {
-  await hydrateStyles();
+  const style = await loadRenderableStyle({
+    styleId: project.styleId,
+    ownerClerkUserId: project.clerkUserId,
+  });
   const skill = await loadSkill(project);
   const revision = project.frames?.find(
     (frame) => frame.clipNumber === clipNumber && frame.position === position,
   )?.revision;
   const sceneText = resolveSceneText(project);
-  const { prompt, refs } = frameSubmitPlan(project, clipNumber, position, revision);
+  const { prompt, refs } = frameSubmitPlan(project, clipNumber, position, revision, style);
   const model = imageModelForSubmit(resolveImageRoute(sceneText.language), refs.length > 0);
   const submitted = await submitImage({
     model,
@@ -202,6 +209,10 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
   const projects = await videosCollection();
   const submittedAt = new Date().toISOString();
   const { ready, deferred } = planFrameSubmissions(targets, project.frames);
+  const style = await loadRenderableStyle({
+    styleId: project.styleId,
+    ownerClerkUserId: project.clerkUserId,
+  });
 
   await jobs.deleteMany({
     projectId: project._id,
@@ -220,6 +231,7 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
       target.clipNumber,
       target.position,
       target.revision,
+      style,
     );
     await projects.updateOne(
       { _id: project._id },
@@ -492,6 +504,15 @@ export async function applyJobStatus(input: {
         (isTalkingHeadSkill(project.skillSlug) && storyboardSeconds < 5))
         ? storyboardSeconds
         : undefined;
+    const canvasColor =
+      project && !bookendSeconds && (job.kind === "still" || job.kind === "frame")
+        ? (
+            await loadRenderableStyle({
+              styleId: project.styleId,
+              ownerClerkUserId: project.clerkUserId,
+            })
+          ).canvasColor
+        : undefined;
     const transformOptions =
       bookendSeconds
         ? {
@@ -505,10 +526,10 @@ export async function applyJobStatus(input: {
                 return buffer;
               }),
           }
-        : project && (job.kind === "still" || job.kind === "frame")
+        : canvasColor
         ? {
             transform: (buffer: Buffer) =>
-              flattenToCanvas(buffer, videoStyle(project).canvasColor).catch(
+              flattenToCanvas(buffer, canvasColor).catch(
                 (error: unknown) => {
                   // Keep the original bytes rather than failing the job, but
                   // leave a trace so a broken flatten is not invisible.
@@ -722,7 +743,11 @@ export async function submitDeferredEndIfNeeded(
     clipIndex: clipNumber - 1,
     framePosition: "end",
   });
-  const { prompt } = frameSubmitPlan(project, clipNumber, "end", end.revision);
+  const style = await loadRenderableStyle({
+    styleId: project.styleId,
+    ownerClerkUserId: project.clerkUserId,
+  });
+  const { prompt } = frameSubmitPlan(project, clipNumber, "end", end.revision, style);
   // Frame first so the job's `createdAt` is never older than `submittedAt`.
   await projects.updateOne(
     { _id: projectId },

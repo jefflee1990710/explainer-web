@@ -5,7 +5,7 @@ import { runPhaseBForClip } from "@/service/director/run-phase-b";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
-import { videoStyle } from "@/service/higgsfield/frame-prompts";
+import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { submitImage } from "@/service/higgsfield/generate";
 import { hydrateStyles } from "@/service/style/load-style";
 import { renderableFromUserStyle } from "@/service/style/renderable-style";
@@ -82,12 +82,16 @@ async function sendVideo(project: Project, clipNumber: number) {
 
   const skill = await loadStoredSkill(project.skillId);
   if (!skill) throw new PermanentJobError("找不到風格");
+  const style = await loadRenderableStyle({
+    styleId: project.styleId,
+    ownerClerkUserId: project.clerkUserId,
+  });
   const prompt = await runPhaseBForClip({
     skill: await resolveRunSkill(skill).catch((error: unknown) => {
       if (error instanceof MissingTemplateError) throw new PermanentJobError(error.message);
       throw error;
     }),
-    style: videoStyle(project),
+    style,
     phaseA: project.phaseA,
     clipNumber,
     language: project.language,

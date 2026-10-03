@@ -1,7 +1,6 @@
 import type { ObjectId } from "mongodb";
 import { z } from "zod";
 import { objectIdSchema } from "@/model/primitives";
-import { styleIdSchema, type StyleId } from "@/model/style-id";
 
 export type CharacterVersionStatus =
   | "queued"
@@ -37,7 +36,7 @@ export type Character = {
   userId: ObjectId;
   clerkUserId: string;
   name: string;
-  styleId: StyleId;
+  styleId: string;
   defaultVersionId?: ObjectId;
   versions: CharacterVersion[];
   createdAt: Date;
@@ -80,7 +79,7 @@ export const characterSchema: z.ZodType<Character> = z.object({
   userId: objectIdSchema,
   clerkUserId: z.string(),
   name: z.string(),
-  styleId: styleIdSchema,
+  styleId: z.string(),
   defaultVersionId: objectIdSchema.optional(),
   versions: z.array(characterVersionSchema),
   createdAt: z.date(),

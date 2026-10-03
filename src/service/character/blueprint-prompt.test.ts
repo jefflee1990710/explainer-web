@@ -1,14 +1,21 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
+import { ObjectId } from "mongodb";
 import { buildBlueprintPrompt } from "@/service/character/blueprint-prompt";
-import { installTestStyles, uninstallTestStyles } from "@/service/style/test-styles";
+import { resetStyleOverlay, resolvedStyle } from "@/service/style/load-style";
+import { renderableFromSystem } from "@/service/style/renderable-style";
+import { installTestStyles, testStyle, uninstallTestStyles } from "@/service/style/test-styles";
 
 before(() => installTestStyles());
 after(() => uninstallTestStyles());
 
+function loadedStyle(id: "doodle" | "chalkboard") {
+  return renderableFromSystem(resolvedStyle(id));
+}
+
 test("blueprint prompt lays out turnaround, walk cycle, and expression grid", () => {
   const prompt = buildBlueprintPrompt({
-    styleId: "doodle",
+    style: loadedStyle("doodle"),
     description: "一個穿藍色格子睡衣的小男孩，頭上有三根呆毛",
     hasReference: false,
   });
@@ -27,7 +34,7 @@ test("blueprint prompt lays out turnaround, walk cycle, and expression grid", ()
 
 test("blueprint prompt asks to preserve the reference when one is attached", () => {
   const prompt = buildBlueprintPrompt({
-    styleId: "doodle",
+    style: loadedStyle("doodle"),
     description: "x",
     referenceCount: 1,
   });
@@ -36,7 +43,7 @@ test("blueprint prompt asks to preserve the reference when one is attached", () 
 
 test("blueprint prompt fuses every attached photo into one identity", () => {
   const prompt = buildBlueprintPrompt({
-    styleId: "doodle",
+    style: loadedStyle("doodle"),
     description: "x",
     referenceCount: 3,
   });
@@ -47,7 +54,7 @@ test("blueprint prompt fuses every attached photo into one identity", () => {
 
 test("image-only create infers the character from the reference and style", () => {
   const prompt = buildBlueprintPrompt({
-    styleId: "doodle",
+    style: loadedStyle("doodle"),
     description: "   ",
     referenceCount: 1,
   });
@@ -60,7 +67,7 @@ test("image-only create infers the character from the reference and style", () =
 
 test("edit mode keeps the sheet identical except for the change", () => {
   const prompt = buildBlueprintPrompt({
-    styleId: "doodle",
+    style: loadedStyle("doodle"),
     description: "x",
     referenceCount: 1,
     editInstruction: "把睡衣換成紅色",
@@ -69,9 +76,24 @@ test("edit mode keeps the sheet identical except for the change", () => {
   assert.match(prompt, /把睡衣換成紅色/);
 });
 
+test("a preloaded user style supplies look and does not resolve that id", () => {
+  const custom = renderableFromSystem(testStyle("paper-cutout", {
+    look: "torn kraft edges",
+  }));
+  custom.id = new ObjectId().toHexString();
+  resetStyleOverlay();
+  try {
+    const prompt = buildBlueprintPrompt({ style: custom, description: "a hero" });
+    assert.match(prompt, /torn kraft edges/);
+    assert.match(prompt, /a hero/);
+  } finally {
+    installTestStyles();
+  }
+});
+
 test("chalkboard blueprint sits on a chalkboard, not white", () => {
   const prompt = buildBlueprintPrompt({
-    styleId: "chalkboard",
+    style: loadedStyle("chalkboard"),
     description: "x",
     hasReference: false,
   });

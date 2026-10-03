@@ -1,4 +1,4 @@
-import { styleBlockForDirector, type Style } from "@/service/style";
+import { styleBlockForDirector, type StylePromptSlice } from "@/service/style";
 import type { Skill, SkillReference } from "@/model/skill";
 
 // Reference routing by filename convention (shared by every skill directory):
@@ -21,7 +21,7 @@ function attachReferences(skill: Skill, keep: (ref: SkillReference) => boolean) 
   return `${skill.systemPrompt}${extras}`;
 }
 
-export function skillPromptForPhaseA(skill: Skill, style: Style) {
+export function skillPromptForPhaseA(skill: Skill, style: StylePromptSlice) {
   const prompt = attachReferences(
     skill,
     (ref) => !isPhaseBRef(ref) && !isExampleRef(ref),
@@ -29,6 +29,6 @@ export function skillPromptForPhaseA(skill: Skill, style: Style) {
   return `${prompt}\n\n${styleBlockForDirector(style)}`;
 }
 
-export function skillPromptForPhaseB(skill: Skill, style: Style) {
+export function skillPromptForPhaseB(skill: Skill, style: StylePromptSlice) {
   return `${attachReferences(skill, isPhaseBRef)}\n\n${styleBlockForDirector(style)}`;
 }

@@ -13,7 +13,7 @@ import {
   phaseBWardrobeLock,
 } from "@/service/director/phase-b-clip-prompt";
 import { phaseBClipSchema } from "@/model/director";
-import type { Style } from "@/service/style";
+import type { StylePromptSlice } from "@/service/style";
 import type { CastMember } from "@/model/character";
 import type { PhaseAProposal, PhaseBPrompt, SpeechPace, VoLanguage, VoiceGender } from "@/model/project";
 import { speechPaceDelivery } from "@/service/director/speech-pace";
@@ -21,7 +21,7 @@ import type { Skill } from "@/model/skill";
 
 type PhaseBInput = {
   skill: Skill;
-  style: Style;
+  style: StylePromptSlice;
   phaseA: PhaseAProposal;
   language?: VoLanguage;
   voiceGender?: VoiceGender;

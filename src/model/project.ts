@@ -2,7 +2,6 @@ import type { ObjectId } from "mongodb";
 import { z } from "zod";
 import { castMemberSchema, type CastMember } from "@/model/character";
 import { objectIdSchema } from "@/model/primitives";
-import { styleIdSchema, type StyleId } from "@/model/style-id";
 import { videoEditSchema, type VideoEdit } from "@/model/video-edit";
 
 export type AspectRatio = "16:9" | "9:16" | "1:1";
@@ -179,8 +178,8 @@ export type Project = {
   spokenScript?: string;
   aspectRatio: AspectRatio;
   durationPreset: DurationPreset;
-  // Visual style; videos created before the registry have none → doodle.
-  styleId?: StyleId;
+  // Visual style. Missing or empty resolves to doodle; a user ObjectId names that user's style.
+  styleId?: string;
   // Optional for legacy documents; defaults to "en" when absent.
   language?: VoLanguage;
   // Optional for legacy documents; defaults to male when absent.
@@ -295,7 +294,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   spokenScript: z.string().optional(),
   aspectRatio: aspectRatioSchema,
   durationPreset: z.enum(DURATION_PRESET_IDS),
-  styleId: styleIdSchema.optional(),
+  styleId: z.string().optional(),
   language: z.enum(["en", "yue", "zh"]).optional(),
   voiceGender: z.enum(["male", "female"]).optional(),
   speechPace: z.enum(["slow", "medium", "fast"]).optional(),

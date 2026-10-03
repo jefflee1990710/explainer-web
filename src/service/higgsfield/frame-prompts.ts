@@ -49,7 +49,9 @@ import {
   type Style,
 } from "@/service/style";
 import { resolveStyleLettering } from "@/service/style/lettering";
+import { isStyleId } from "@/model/style-id";
 import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
+import { loadRenderableStyle, type RenderableStyle } from "@/service/style/renderable-style";
 import type {
   ClipFrame,
   FramePosition,
@@ -86,6 +88,8 @@ export type FramePromptOptions = {
   revision?: FrameRevision;
   // Completed sibling still attached so the model continues that composition.
   anchor?: { kind: FrameAnchorKind };
+  // Preloaded user or system style. Omit only for catalog ids.
+  style?: RenderableStyle;
 };
 
 function compositionLockLines(
@@ -202,8 +206,15 @@ function fitFramePrompt(parts: FrameTrimmable, compose: (parts: FrameTrimmable) 
   return compose({ ...current, scene: clipAt(current.scene, current.scene.length - over) });
 }
 
+// Catalog styles only. A user id must be loaded and passed in; it must not become doodle.
+export function systemStyle(project: Pick<Project, "styleId">): Style {
+  const id = project.styleId;
+  if (!id || isStyleId(id)) return resolvedStyle(id);
+  throw new Error(`Style "${id}" must be loaded`);
+}
+
 export function videoStyle(project: Pick<Project, "styleId">): Style {
-  return resolvedStyle(project.styleId);
+  return systemStyle(project);
 }
 
 // Opening / Ending stills attach the brand logo after the character references.
@@ -249,7 +260,7 @@ function typographyForSceneText(typography: string) {
     .trim();
 }
 
-function styleLetteringLineForSceneText(style: Style) {
+function styleLetteringLineForSceneText(style: Pick<Style, "typography">) {
   const typography = typographyForSceneText(style.typography);
   return `Lettering: ${typography}. Integrated on-canvas voiceover lettering is required (not a separate TV subtitle bar).`;
 }
@@ -262,7 +273,7 @@ export function buildFramePrompt(
   position: FramePosition,
   options: FramePromptOptions = {},
 ) {
-  const style = videoStyle(project);
+  const style = options.style ?? systemStyle(project);
   const lettering = resolveStyleLettering(style);
   const phaseA = project.phaseA;
   if (!phaseA) throw new Error("尚未有分鏡");
@@ -450,6 +461,7 @@ export function frameSubmitPlan(
   clipNumber: number,
   position: FramePosition,
   revision?: FrameRevision,
+  style?: RenderableStyle,
 ) {
   const anchor = clipFrameAnchor(project.frames, clipNumber, position);
   const castUrls = frameLockReferenceUrls(project);
@@ -464,6 +476,7 @@ export function frameSubmitPlan(
     prompt: buildFramePrompt(project, clipNumber, position, {
       revision,
       anchor: anchor ? { kind: anchor.kind } : undefined,
+      style,
     }),
     refs: sceneImageReferenceUrls({
       annotatedUrl: revision?.annotatedUrl,
@@ -477,13 +490,17 @@ export function frameSubmitPlan(
 // Frames array with a fresh queued start + end entry for one clip (prompt
 // rebuilt from the current storyboard, old sketch revision dropped). Other
 // clips' entries are untouched.
-export function framesWithClip(project: Project, clipNumber: number): ClipFrame[] {
+export function framesWithClip(
+  project: Project,
+  clipNumber: number,
+  style?: RenderableStyle,
+): ClipFrame[] {
   const others = (project.frames || []).filter((frame) => frame.clipNumber !== clipNumber);
   const submittedAt = new Date().toISOString();
   const own = (["start", "end"] as FramePosition[]).map((position) => ({
     clipNumber,
     position,
-    prompt: buildFramePrompt(project, clipNumber, position),
+    prompt: buildFramePrompt(project, clipNumber, position, { style }),
     status: "queued" as const,
     submittedAt,
   }));
@@ -493,21 +510,29 @@ export function framesWithClip(project: Project, clipNumber: number): ClipFrame[
 }
 
 // Rebuild queued start+end rows for many clips in one pass.
-export function framesWithClips(project: Project, clipNumbers: number[]): ClipFrame[] {
+export function framesWithClips(
+  project: Project,
+  clipNumbers: number[],
+  style?: RenderableStyle,
+): ClipFrame[] {
   return clipNumbers.reduce(
-    (frames, clipNumber) => framesWithClip({ ...project, frames }, clipNumber),
+    (frames, clipNumber) => framesWithClip({ ...project, frames }, clipNumber, style),
     project.frames || [],
   );
 }
 
-// Draw-frames click path: hydrate first or resolvedStyle throws on a cold instance.
+// Draw-frames click path: load the resolved style before queueing prompts.
 export async function framesWithClipsReady(
   project: Project,
   clipNumbers: number[],
   hydrate: () => Promise<void> = hydrateStyles,
 ) {
   await hydrate();
-  return framesWithClips(project, clipNumbers);
+  const style = await loadRenderableStyle({
+    styleId: project.styleId,
+    ownerClerkUserId: project.clerkUserId,
+  });
+  return framesWithClips(project, clipNumbers, style);
 }
 
 export function frameKey(clipNumber: number, position: FramePosition) {

@@ -163,7 +163,7 @@ export function NewProjectForm({
   const selectedSkill = skills.find((item) => item.slug === skillSlug);
   const ruleSlug = ruleSlugFor(skillSlug, skills);
   // Visual style; the cast must share it, so changing it prunes mismatches.
-  const [styleId, setStyleId] = useState<StyleId>(
+  const [styleId, setStyleId] = useState<string>(
     initialVideo?.styleId || lastBrief?.styleId || DEFAULT_STYLE_ID,
   );
   const [source, setSource] = useState(initialVideo?.source || "");
