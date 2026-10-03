@@ -1,8 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { ObjectId } from "mongodb";
 import { renderableFromSystem } from "@/service/style/renderable-style";
 import { testStyle } from "@/service/style/test-styles";
-import { stylePreviewPrompt, stylePreviewInFlight } from "@/service/style/user-style-preview";
+import {
+  ownedPreviewFilter,
+  previewClaimFilter,
+  previewSlotAvailable,
+  shouldChargeAfterClaim,
+  shouldClearPreviewCharge,
+  shouldRefundUnqueuedSpend,
+  stylePreviewInFlight,
+  stylePreviewPrompt,
+} from "@/service/style/user-style-preview";
 
 test("stylePreviewPrompt uses the saved look and the shared IDEA scene", () => {
   const prompt = stylePreviewPrompt(renderableFromSystem(testStyle("paper-cutout", {
@@ -21,4 +31,72 @@ test("stylePreviewInFlight is true only for a generating preview younger than 15
   assert.equal(stylePreviewInFlight(base, now), true);
   assert.equal(stylePreviewInFlight({ ...base, previewStartedAt: new Date("2026-10-03T00:40:00Z") }, now), false);
   assert.equal(stylePreviewInFlight({ previewStatus: "idle" }, now), false);
+});
+
+test("a second overlapping claim that loses the conditional update does not charge", () => {
+  const now = new Date("2026-10-03T01:00:00Z");
+  const young = new Date("2026-10-03T00:50:00Z");
+  assert.equal(
+    previewSlotAvailable({ previewStatus: "generating", previewStartedAt: young }, now),
+    false,
+  );
+  assert.equal(shouldChargeAfterClaim(0), false);
+
+  const filter = previewClaimFilter({
+    styleId: new ObjectId(),
+    ownerClerkUserId: "user_1",
+    now,
+  });
+  const staleAt = new Date(now.getTime() - 15 * 60 * 1000);
+  const staleClause = filter.$or.find(
+    (clause) =>
+      "previewStartedAt" in clause &&
+      clause.previewStartedAt != null &&
+      typeof clause.previewStartedAt === "object" &&
+      "$lte" in clause.previewStartedAt,
+  );
+  assert.ok(staleClause && "previewStartedAt" in staleClause);
+  const bound = staleClause.previewStartedAt as { $lte: Date };
+  assert.equal(bound.$lte.getTime(), staleAt.getTime());
+  assert.ok(young.getTime() > bound.$lte.getTime());
+});
+
+test("an insert failure still requests one refund when the status reset throws", () => {
+  assert.equal(
+    shouldRefundUnqueuedSpend({
+      spendCaptured: true,
+      jobQueued: false,
+      writeThrew: true,
+      resetMatchedCount: 0,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldRefundUnqueuedSpend({
+      spendCaptured: true,
+      jobQueued: false,
+      writeThrew: false,
+      resetMatchedCount: 0,
+    }),
+    false,
+  );
+  assert.equal(
+    shouldRefundUnqueuedSpend({
+      spendCaptured: true,
+      jobQueued: true,
+      writeThrew: true,
+      resetMatchedCount: 0,
+    }),
+    false,
+  );
+});
+
+test("a completion update whose previewStartedAt no longer matches does not clear previewCreditsCharged", () => {
+  const started = new Date("2026-10-03T00:50:00Z");
+  const newer = new Date("2026-10-03T01:00:00Z");
+  const filter = ownedPreviewFilter(new ObjectId(), started);
+  assert.equal(filter.previewStartedAt.getTime(), started.getTime());
+  assert.notEqual(filter.previewStartedAt.getTime(), newer.getTime());
+  assert.equal(shouldClearPreviewCharge(0), false);
+  assert.equal(shouldClearPreviewCharge(1), true);
 });

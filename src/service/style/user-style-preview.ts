@@ -45,6 +45,68 @@ export function stylePreviewInFlight(doc: PreviewFlight, now: Date): boolean {
   return now.getTime() - doc.previewStartedAt.getTime() < PREVIEW_IN_FLIGHT_MS;
 }
 
+// The slot can be claimed when it is not inside the 15-minute generating window.
+export function previewSlotAvailable(doc: PreviewFlight, now: Date): boolean {
+  return !stylePreviewInFlight(doc, now);
+}
+
+type PreviewClaimClause =
+  | { previewStatus: { $ne: "generating" } }
+  | { previewStartedAt: { $exists: false } }
+  | { previewStartedAt: { $lte: Date } };
+
+// Owned, not deleted, and free: status is not generating, the start time is missing, or it is at least 15 minutes old.
+export function previewClaimFilter(input: {
+  styleId: ObjectId;
+  ownerClerkUserId: string;
+  now: Date;
+}): {
+  _id: ObjectId;
+  ownerClerkUserId: string;
+  deletedAt: { $exists: false };
+  $or: PreviewClaimClause[];
+} {
+  const staleAt = new Date(input.now.getTime() - PREVIEW_IN_FLIGHT_MS);
+  return {
+    _id: input.styleId,
+    ownerClerkUserId: input.ownerClerkUserId,
+    deletedAt: { $exists: false },
+    $or: [
+      { previewStatus: { $ne: "generating" } },
+      { previewStartedAt: { $exists: false } },
+      { previewStartedAt: { $lte: staleAt } },
+    ],
+  };
+}
+
+// A lost conditional claim must not spend credits.
+export function shouldChargeAfterClaim(matchedCount: number): boolean {
+  return matchedCount === 1;
+}
+
+// Refund an unqueued spend when the reset throws, or when this attempt still owns the slot.
+// A reset that matches nothing must not refund a newer preview's charge.
+export function shouldRefundUnqueuedSpend(input: {
+  spendCaptured: boolean;
+  jobQueued: boolean;
+  writeThrew: boolean;
+  resetMatchedCount: number;
+}): boolean {
+  if (!input.spendCaptured || input.jobQueued) return false;
+  if (input.writeThrew) return true;
+  return input.resetMatchedCount === 1;
+}
+
+// Later writes name the previewStartedAt this attempt stored, so a newer claim does not match.
+export function ownedPreviewFilter(styleId: ObjectId, previewStartedAt: Date) {
+  return { _id: styleId, previewStartedAt };
+}
+
+// matchedCount 0 means the update did not apply, so previewCreditsCharged stays as it is.
+export function shouldClearPreviewCharge(matchedCount: number): boolean {
+  return matchedCount === 1;
+}
+
 // Active custom style owned by this user. Deleted rows are not previewable from the action.
 async function ownedActiveStyle(id: string, clerkUserId: string) {
   if (!ObjectId.isValid(id)) return null;
@@ -56,34 +118,106 @@ async function ownedActiveStyle(id: string, clerkUserId: string) {
   });
 }
 
-// Charge four credits and queue one stylePreview image. Insert failure refunds once.
+// Clear this attempt's slot and refund once. A thrown reset cannot skip the refund.
+async function releaseUnqueuedSpend(input: {
+  styleId: ObjectId;
+  previewStartedAt: Date;
+  ownerClerkUserId: string;
+  spendKey: string;
+  writeThrew: boolean;
+}) {
+  const collection = await userStylesCollection();
+  let resetThrew = false;
+  let resetMatchedCount = 0;
+  try {
+    const reset = await collection.updateOne(ownedPreviewFilter(input.styleId, input.previewStartedAt), {
+      $set: {
+        previewStatus: "idle",
+        previewCreditsCharged: false,
+        updatedAt: new Date(),
+      },
+    });
+    resetMatchedCount = reset.matchedCount;
+  } catch {
+    resetThrew = true;
+  }
+  if (
+    !shouldRefundUnqueuedSpend({
+      spendCaptured: true,
+      jobQueued: false,
+      writeThrew: input.writeThrew || resetThrew,
+      resetMatchedCount,
+    })
+  ) {
+    return;
+  }
+  try {
+    await refundCredits(input.ownerClerkUserId, FRAME_COST, input.spendKey);
+  } catch (error) {
+    if (resetMatchedCount === 1) {
+      await collection.updateOne(ownedPreviewFilter(input.styleId, input.previewStartedAt), {
+        $set: { previewCreditsCharged: true, updatedAt: new Date() },
+      });
+    }
+    throw error;
+  }
+}
+
+// Claim the 15-minute slot before charging, then queue one stylePreview image.
 export async function generateUserStylePreviewAction(input: {
   id: string;
 }): Promise<GenerateUserStylePreviewResult> {
+  let spendKey: string | undefined;
+  let jobQueued = false;
+  let insertFailed = false;
+  let styleId: ObjectId | undefined;
+  let previewStartedAt: Date | undefined;
+  let ownerClerkUserId = "";
+
   try {
     const user = await requireAppUser();
+    ownerClerkUserId = user.clerkUserId;
     const doc = await ownedActiveStyle(String(input?.id ?? ""), user.clerkUserId);
     if (!doc) return { ok: false, error: "找不到 Style" };
-    if (stylePreviewInFlight(doc, new Date())) return { ok: false, error: "預覽生成中" };
 
-    await assertCanSpendCredits(user, FRAME_COST);
-    const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
     const now = new Date();
+    styleId = doc._id;
+    previewStartedAt = now;
     const collection = await userStylesCollection();
-    const marked = await collection.updateOne(
-      { _id: doc._id, ownerClerkUserId: user.clerkUserId, deletedAt: { $exists: false } },
+    const claimed = await collection.updateOne(
+      previewClaimFilter({
+        styleId: doc._id,
+        ownerClerkUserId: user.clerkUserId,
+        now,
+      }),
       {
         $set: {
           previewStatus: "generating",
           previewStartedAt: now,
-          previewCreditsCharged: true,
           updatedAt: now,
         },
       },
     );
-    if (marked.matchedCount !== 1) {
-      await refundCredits(user.clerkUserId, FRAME_COST, spendKey);
-      return { ok: false, error: "找不到 Style" };
+    if (!shouldChargeAfterClaim(claimed.matchedCount)) {
+      return { ok: false, error: "預覽生成中" };
+    }
+
+    try {
+      await assertCanSpendCredits(user, FRAME_COST);
+      spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    } catch (error) {
+      await collection.updateOne(ownedPreviewFilter(doc._id, now), {
+        $set: { previewStatus: "idle", updatedAt: new Date() },
+      });
+      return fail(error, "預覽生成失敗");
+    }
+
+    const charged = await collection.updateOne(ownedPreviewFilter(doc._id, now), {
+      $set: { previewCreditsCharged: true, updatedAt: new Date() },
+    });
+    // A newer attempt replaced this start time. Do not refund or overwrite its charge.
+    if (!shouldClearPreviewCharge(charged.matchedCount)) {
+      return { ok: false, error: "預覽生成中" };
     }
 
     let jobId: ObjectId;
@@ -95,41 +229,42 @@ export async function generateUserStylePreviewAction(input: {
         model: IMAGE_ROUTE_BY_SCENE_TEXT.en.model,
       });
     } catch (error) {
-      // Drop the charge flag before refunding so a later failure cannot refund again.
-      await collection.updateOne(
-        { _id: doc._id },
-        {
-          $set: {
-            previewStatus: "idle",
-            previewCreditsCharged: false,
-            updatedAt: new Date(),
-          },
-        },
-      );
-      try {
-        await refundCredits(user.clerkUserId, FRAME_COST, spendKey);
-      } catch (refundError) {
-        await collection.updateOne(
-          { _id: doc._id },
-          { $set: { previewCreditsCharged: true, updatedAt: new Date() } },
-        );
-        return fail(refundError, "預覽排隊失敗");
-      }
-      return fail(error, "預覽排隊失敗");
+      insertFailed = true;
+      throw error;
     }
+    jobQueued = true;
     kickJob(jobId);
 
     return { ok: true };
   } catch (error) {
+    // A thrown write after consume still refunds once. Insert failure lets the
+    // reset result decide, unless that reset itself throws.
+    if (spendKey && !jobQueued && styleId && previewStartedAt) {
+      try {
+        await releaseUnqueuedSpend({
+          styleId,
+          previewStartedAt,
+          ownerClerkUserId,
+          spendKey,
+          writeThrew: !insertFailed,
+        });
+      } catch (refundError) {
+        return fail(refundError, "預覽排隊失敗");
+      }
+    }
     return fail(error, "預覽生成失敗");
   }
 }
 
-// Claim a charged preview so a failure refunds exactly once.
-async function claimPreviewRefund(styleId: ObjectId, ownerClerkUserId: string) {
+// Claim a charged preview so a failure refunds exactly once, and only for this attempt's start time.
+async function claimPreviewRefund(
+  styleId: ObjectId,
+  ownerClerkUserId: string,
+  previewStartedAt: Date,
+) {
   const styles = await userStylesCollection();
   const claimed = await styles.updateOne(
-    { _id: styleId, previewCreditsCharged: true },
+    { ...ownedPreviewFilter(styleId, previewStartedAt), previewCreditsCharged: true },
     {
       $set: {
         previewStatus: "failed",
@@ -138,15 +273,14 @@ async function claimPreviewRefund(styleId: ObjectId, ownerClerkUserId: string) {
       },
     },
   );
-  if (claimed.matchedCount === 0) return;
+  if (!shouldClearPreviewCharge(claimed.matchedCount)) return;
   try {
     await refundCredits(ownerClerkUserId, FRAME_COST);
   } catch (error) {
     // Restore the claim so a later delivery can retry the refund.
-    await styles.updateOne(
-      { _id: styleId },
-      { $set: { previewCreditsCharged: true, updatedAt: new Date() } },
-    );
+    await styles.updateOne(ownedPreviewFilter(styleId, previewStartedAt), {
+      $set: { previewCreditsCharged: true, updatedAt: new Date() },
+    });
     throw error;
   }
 }
@@ -166,34 +300,31 @@ export async function syncStylePreviewJob(
   if (!job.userStyleId) return;
   const styles = await userStylesCollection();
   const doc = await styles.findOne({ _id: job.userStyleId });
-  if (!doc) return;
-  // A newer preview owns the charge flag. This job must not refund it or overwrite its image.
-  if (!isCurrentPreview(doc, job)) return;
+  if (!doc?.previewStartedAt || !isCurrentPreview(doc, job)) return;
+  const startedAt = doc.previewStartedAt;
 
   if (status === "completed" && outputUrl) {
     const prompt = stylePreviewPrompt(renderableFromUserStyle(doc));
     const previewHash = createHash("sha256").update(prompt).digest("hex");
     const stored = await persistMedia(
       outputUrl,
-      `explainer/style-previews/${doc._id.toHexString()}`,
+      `explainer/style-previews/${doc._id.toHexString()}/${job._id.toHexString()}`,
     );
-    await styles.updateOne(
-      { _id: doc._id },
-      {
-        $set: {
-          previewUrl: stored,
-          previewFullUrl: stored,
-          previewHash,
-          previewStatus: "idle",
-          previewCreditsCharged: false,
-          updatedAt: new Date(),
-        },
+    const updated = await styles.updateOne(ownedPreviewFilter(doc._id, startedAt), {
+      $set: {
+        previewUrl: stored,
+        previewFullUrl: stored,
+        previewHash,
+        previewStatus: "idle",
+        previewCreditsCharged: false,
+        updatedAt: new Date(),
       },
-    );
+    });
+    if (!shouldClearPreviewCharge(updated.matchedCount)) return;
     return;
   }
 
   if (status === "failed" || status === "nsfw") {
-    await claimPreviewRefund(doc._id, doc.ownerClerkUserId);
+    await claimPreviewRefund(doc._id, doc.ownerClerkUserId, startedAt);
   }
 }
