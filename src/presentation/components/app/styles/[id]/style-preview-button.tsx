@@ -15,13 +15,11 @@ const POLL_MS = 4000;
 export function StylePreviewButton({
   styleId,
   dirty,
-  needsSave,
   previewStatus,
   onGenerating,
 }: {
   styleId: string;
   dirty: boolean;
-  needsSave: boolean;
   previewStatus: PreviewStatus;
   onGenerating: () => void;
 }) {
@@ -30,7 +28,7 @@ export function StylePreviewButton({
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const generating = previewStatus === "generating" || pending;
-  const disabled = dirty || needsSave || generating;
+  const disabled = dirty || generating;
 
   // Same cadence as use-character-poll: refresh immediately, then every 4 seconds.
   useEffect(() => {
@@ -82,7 +80,7 @@ export function StylePreviewButton({
         {generating ? <Spinner className="h-4 w-4" /> : null}
         {label}
       </button>
-      {dirty || needsSave ? <p className="text-sm text-muted">{t("styles.generateNeedsSave")}</p> : null}
+      {dirty ? <p className="text-sm text-muted">{t("styles.generateNeedsSave")}</p> : null}
       {previewStatus === "failed" && !generating ? (
         <p role="alert" className="text-sm font-medium text-accent">
           {t("styles.previewFailed")}

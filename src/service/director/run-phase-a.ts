@@ -57,6 +57,7 @@ import {
 } from "@/service/director/talking-head";
 import type { Style } from "@/service/style";
 import { resolveStyleLettering } from "@/service/style/lettering";
+import type { RenderableStyle } from "@/service/style/renderable-style";
 import type { CastMember } from "@/model/character";
 import type {
   AspectRatio,
@@ -72,7 +73,8 @@ import type { Skill } from "@/model/skill";
 
 export async function runPhaseA(input: {
   skill: Skill;
-  style: Style;
+  // System styles and user forks. Style.id is a catalog id, so a user hex cannot be Style.
+  style: Style | RenderableStyle;
   source: string;
   // Talking-head: exact words the character reads. Ignored for other skills.
   spokenScript?: string;

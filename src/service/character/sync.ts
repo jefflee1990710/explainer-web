@@ -6,7 +6,8 @@ import {
   reframeBlueprintBuffer,
 } from "@/service/character/blueprint-framing";
 import { persistMedia } from "@/service/higgsfield/persist";
-import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
+import { hydrateStyles } from "@/service/style/load-style";
+import { loadRenderableStyle } from "@/service/style/renderable-style";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 
 // Mark a version failed and refund its credit exactly once. The atomic claim on
@@ -121,7 +122,18 @@ export async function syncCharacterJob(
     // so the whole sheet would count as content; trust the prompt's margin
     // rules there and persist the bytes as-is.
     await hydrateStyles();
-    const canvasColor = resolvedStyle(character.styleId).canvasColor;
+    // Crop with the selected style's canvas, including a custom style.
+    let canvasColor: string;
+    try {
+      const loaded = await loadRenderableStyle({
+        styleId: character.styleId,
+        ownerClerkUserId: character.clerkUserId,
+      });
+      canvasColor = loaded.canvasColor;
+    } catch (error) {
+      await failVersion(error instanceof Error ? error.message : "藍圖保存失敗");
+      return;
+    }
     const transform = canReframeOnCanvas(canvasColor)
       ? (buffer: Buffer) => reframeBlueprintBuffer(buffer, canvasColor)
       : undefined;

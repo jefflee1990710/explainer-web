@@ -5,8 +5,8 @@ import { loadStoredSkill } from "@/service/director/load-skill";
 import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
 import { keepProposalRegenerateClips } from "@/service/director/phase-a-edit";
 import { runPhaseA } from "@/service/director/run-phase-a";
-import { videoStyle } from "@/service/higgsfield/frame-prompts";
 import { hydrateStyles } from "@/service/style/load-style";
+import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { submitStillIfNeeded } from "@/service/higgsfield/pipeline";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { concatMp4Urls } from "@/service/reel/concat";
@@ -55,9 +55,15 @@ export async function runPhaseAJob(
   }
 
   try {
+    // Catalog ids and user style ids both resolve here. A missing id stays doodle;
+    // an unknown id throws instead of being rewritten to doodle.
+    const style = await loadRenderableStyle({
+      styleId: project.styleId,
+      ownerClerkUserId: project.clerkUserId,
+    });
     const phaseA = await runPhaseA({
       skill,
-      style: videoStyle(project),
+      style,
       source: project.source,
       spokenScript: project.spokenScript,
       aspectRatio: project.aspectRatio,

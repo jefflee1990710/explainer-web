@@ -39,10 +39,6 @@ export function StyleWorkspace({
   const [savedFlash, setSavedFlash] = useState(false);
   const [error, setError] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
-  // A new fork matches the server copy, but Generate stays off until this page saves once.
-  const [needsSave, setNeedsSave] = useState(
-    () => initial.isCustom && !initial.hasOwnPreview && initial.previewStatus === "idle",
-  );
   // Optimistic "generating" only applies to the server snapshot that was current when the click happened.
   const serverPreviewKey = `${initial.previewStatus}|${initial.previewUrl ?? ""}|${String(initial.hasOwnPreview)}`;
   const [previewOverride, setPreviewOverride] = useState<{ key: string; status: StyleDetail["previewStatus"] } | null>(
@@ -62,7 +58,7 @@ export function StyleWorkspace({
 
   const name = style.isCustom ? draft.name || style.name : catalogStyleLabel(t, style.id, style.name);
   const colorOk = CANVAS_COLOR_RE.test(draft.canvasColor);
-  const canSave = style.isCustom && !saving && draft.name.trim().length > 0 && colorOk && (dirty || needsSave);
+  const canSave = style.isCustom && !saving && draft.name.trim().length > 0 && colorOk && dirty;
 
   function onChange(next: UserStyleFields) {
     setDraft(next);
@@ -97,7 +93,6 @@ export function StyleWorkspace({
       setSaved(payload);
       setDraft((current) => (current === sentDraft ? payload : current));
       setStyle((current) => ({ ...current, ...payload }));
-      setNeedsSave(false);
       setSavedFlash(true);
     } catch {
       setError(t("errors.styleSaveFailed"));
@@ -146,7 +141,6 @@ export function StyleWorkspace({
           <StylePreviewButton
             styleId={style.id}
             dirty={dirty}
-            needsSave={needsSave}
             previewStatus={previewStatus}
             onGenerating={() => setPreviewOverride({ key: serverPreviewKey, status: "generating" })}
           />
