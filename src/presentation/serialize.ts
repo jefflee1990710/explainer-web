@@ -38,6 +38,7 @@ export type PublicStyle = {
   isCustom: boolean;
   baseStyleId?: StyleId;
   templateName?: string;
+  updatedAt?: string;
 };
 
 export type PublicVideo = {

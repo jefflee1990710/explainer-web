@@ -1,6 +1,7 @@
 import type { Messages } from "@/util/i18n/messages/types";
 import { briefZhHant } from "@/util/i18n/messages/workspace/brief.zh-Hant";
 import { directorsZhHant } from "@/util/i18n/messages/workspace/directors.zh-Hant";
+import { stylesZhHant } from "@/util/i18n/messages/workspace/styles.zh-Hant";
 import { errorsZhHant } from "@/util/i18n/messages/workspace/errors.zh-Hant";
 import { pickersZhHant } from "@/util/i18n/messages/workspace/pickers.zh-Hant";
 import { productionZhHant } from "@/util/i18n/messages/workspace/production.zh-Hant";
@@ -16,6 +17,7 @@ export const zhHant: Messages = {
   nav: {
     projects: "影片",
     directors: "Director",
+    styles: "風格",
     characters: "角色",
     tasks: "生成任務",
     mcp: "MCP",
@@ -383,18 +385,7 @@ export const zhHant: Messages = {
     payoutPending: "已提出提領申請，我們會盡快處理。",
     payoutMin: "最低提領 $50（目前 {amount}）。",
   },
-  styles: {
-    label: "視覺風格",
-    doodle: "白板塗鴉手繪",
-    "flat-vector": "扁平向量插畫",
-    "paper-cutout": "剪紙拼貼",
-    chalkboard: "粉筆黑板",
-    watercolor: "水彩繪本",
-    clay: "3D 黏土動畫",
-    pixel: "像素風",
-    "ink-manga": "黑白漫畫線稿",
-    realistic: "寫實電影感",
-  },
+  styles: stylesZhHant,
   styleDescriptions: {
     doodle: "黑色馬克筆線條、扁平上色，白板解說感。",
     "flat-vector": "無外框幾何造型、企業風配色，乾淨俐落。",

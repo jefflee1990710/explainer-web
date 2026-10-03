@@ -117,7 +117,6 @@ export function StylePicker({
     );
   }
 
-  // Same section labels as the director picker until styles get their own keys.
   function renderGroup(label: string, rows: PublicStyle[]) {
     if (rows.length === 0) return null;
     return (
@@ -162,8 +161,8 @@ export function StylePicker({
         >
           {grouped ? (
             <>
-              {renderGroup(t("directors.systemSection"), systemStyles)}
-              {renderGroup(t("directors.mineSection"), mineStyles)}
+              {renderGroup(t("styles.systemSection"), systemStyles)}
+              {renderGroup(t("styles.mineSection"), mineStyles)}
             </>
           ) : (
             styles.map((style) => renderOption(style))

@@ -59,6 +59,15 @@ export const errorsEn = {
   directorCreateFailed: "Could not create director",
   directorSaveFailed: "Could not save director",
   directorDeleteFailed: "Could not delete director",
+  styleNotFound: "Style not found",
+  styleNameInvalid: "Enter a style name (60 characters max)",
+  styleDescriptionInvalid: "Description is too long (300 characters max)",
+  styleCanvasColorInvalid: "Canvas color must be a hex color like #112233",
+  styleCreateFailed: "Could not create style",
+  styleSaveFailed: "Could not save style",
+  styleDeleteFailed: "Could not delete style",
+  stylePreviewFailed: "Could not generate preview",
+  stylePreviewBusy: "A preview is already generating",
 } as const;
 
 

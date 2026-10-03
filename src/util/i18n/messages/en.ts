@@ -1,6 +1,7 @@
 import type { Messages } from "@/util/i18n/messages/types";
 import { briefEn } from "@/util/i18n/messages/workspace/brief.en";
 import { directorsEn } from "@/util/i18n/messages/workspace/directors.en";
+import { stylesEn } from "@/util/i18n/messages/workspace/styles.en";
 import { errorsEn } from "@/util/i18n/messages/workspace/errors.en";
 import { pickersEn } from "@/util/i18n/messages/workspace/pickers.en";
 import { productionEn } from "@/util/i18n/messages/workspace/production.en";
@@ -16,6 +17,7 @@ export const en: Messages = {
   nav: {
     projects: "Video",
     directors: "Director",
+    styles: "Style",
     characters: "Characters",
     tasks: "Tasks",
     mcp: "MCP",
@@ -392,18 +394,7 @@ export const en: Messages = {
     payoutPending: "Payout requested — we will process it soon.",
     payoutMin: "Minimum payout is $50 (you have {amount}).",
   },
-  styles: {
-    label: "Visual style",
-    doodle: "Whiteboard doodle",
-    "flat-vector": "Flat vector",
-    "paper-cutout": "Paper cut-out",
-    chalkboard: "Chalkboard",
-    watercolor: "Watercolour storybook",
-    clay: "Claymation",
-    pixel: "Pixel art",
-    "ink-manga": "Ink manga",
-    realistic: "Cinematic realistic",
-  },
+  styles: stylesEn,
   styleDescriptions: {
     doodle: "Black marker lines and flat colour — whiteboard explainer feel.",
     "flat-vector": "Borderless geometric shapes and corporate palette — clean and crisp.",

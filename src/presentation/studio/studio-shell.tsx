@@ -9,7 +9,7 @@ import { CreditMeter } from "@/presentation/studio/credit-meter";
 export type StudioNavItem = {
   href: string;
   label: string;
-  icon: "projects" | "directors" | "characters" | "mcp" | "affiliate" | "billing" | "settings";
+  icon: "projects" | "directors" | "styles" | "characters" | "mcp" | "affiliate" | "billing" | "settings";
 };
 
 // Logged-in frame: full-height icon rail and a scrolling main slot.
@@ -131,6 +131,17 @@ function RailIcon({ name }: { name: StudioNavItem["icon"] }) {
         <path d="M4 10h16v8.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5V10Z" />
         <path d="m4 10-.6-2.9a1.5 1.5 0 0 1 1.2-1.8l12.7-2.4a1.5 1.5 0 0 1 1.8 1.2l.5 2.4L4 10Z" />
         <path d="m8.5 5.6 2 3.4M13.5 4.7l2 3.4" />
+      </svg>
+    );
+  }
+  if (name === "styles") {
+    // Four rounded squares: a swatch for the style library.
+    return (
+      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+        <rect x="3.5" y="3.5" width="7" height="7" rx="1.75" />
+        <rect x="13.5" y="3.5" width="7" height="7" rx="1.75" />
+        <rect x="3.5" y="13.5" width="7" height="7" rx="1.75" />
+        <rect x="13.5" y="13.5" width="7" height="7" rx="1.75" />
       </svg>
     );
   }

@@ -31,12 +31,13 @@ export function AppShell({
   const items: StudioNavItem[] = [
     { href: "/app", label: t("nav.projects"), icon: "projects" },
     { href: "/app/directors", label: t("nav.directors"), icon: "directors" },
+    { href: "/app/styles", label: t("nav.styles"), icon: "styles" },
     { href: "/app/characters", label: t("nav.characters"), icon: "characters" },
     { href: "/app/mcp", label: t("nav.mcp"), icon: "mcp" },
     { href: "/app/billing", label: t("nav.billing"), icon: "billing" },
   ];
   if (affiliateEnabled) {
-    items.splice(4, 0, { href: "/app/affiliate", label: t("nav.affiliate"), icon: "affiliate" });
+    items.splice(5, 0, { href: "/app/affiliate", label: t("nav.affiliate"), icon: "affiliate" });
   }
 
   return (

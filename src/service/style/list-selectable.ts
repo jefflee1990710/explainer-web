@@ -32,5 +32,6 @@ export function toPublicUserStyle(
     isCustom: true,
     baseStyleId: doc.baseStyleId,
     templateName,
+    updatedAt: doc.updatedAt?.toISOString(),
   };
 }

@@ -59,4 +59,13 @@ export const errorsZhHant = {
   directorCreateFailed: "建立 Director 失敗",
   directorSaveFailed: "儲存 Director 失敗",
   directorDeleteFailed: "刪除 Director 失敗",
+  styleNotFound: "找不到風格",
+  styleNameInvalid: "請輸入風格名稱（最多 60 字）",
+  styleDescriptionInvalid: "描述最多 300 字",
+  styleCanvasColorInvalid: "畫布顏色必須是 #112233 這種十六進位色碼",
+  styleCreateFailed: "建立風格失敗",
+  styleSaveFailed: "儲存風格失敗",
+  styleDeleteFailed: "刪除風格失敗",
+  stylePreviewFailed: "產生預覽失敗",
+  stylePreviewBusy: "預覽正在產生中",
 } satisfies ErrorsMessages;

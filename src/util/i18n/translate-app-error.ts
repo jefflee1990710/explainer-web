@@ -57,6 +57,16 @@ const EXACT: Record<string, string> = {
   "建立 Director 失敗": "errors.directorCreateFailed",
   "儲存 Director 失敗": "errors.directorSaveFailed",
   "刪除 Director 失敗": "errors.directorDeleteFailed",
+  "找不到 Style": "errors.styleNotFound",
+  "invalid name": "errors.styleNameInvalid",
+  "invalid description": "errors.styleDescriptionInvalid",
+  "invalid canvasColor": "errors.styleCanvasColorInvalid",
+  "建立 Style 失敗": "errors.styleCreateFailed",
+  "儲存 Style 失敗": "errors.styleSaveFailed",
+  "刪除 Style 失敗": "errors.styleDeleteFailed",
+  "預覽生成失敗": "errors.stylePreviewFailed",
+  "預覽排隊失敗": "errors.stylePreviewFailed",
+  "預覽生成中": "errors.stylePreviewBusy",
 };
 
 const PATTERNS: Array<{ re: RegExp; key: string; params?: (m: RegExpMatchArray) => Record<string, string | number> }> = [

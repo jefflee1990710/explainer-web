@@ -3,6 +3,7 @@ import type { DirectorsMessages } from "@/util/i18n/messages/workspace/directors
 import type { ErrorsMessages } from "@/util/i18n/messages/workspace/errors.en";
 import type { PickersMessages } from "@/util/i18n/messages/workspace/pickers.en";
 import type { ProductionMessages } from "@/util/i18n/messages/workspace/production.en";
+import type { StylesMessages } from "@/util/i18n/messages/workspace/styles.en";
 import type { TasksPageMessages } from "@/util/i18n/messages/workspace/tasks.en";
 import type { VideoMessages } from "@/util/i18n/messages/workspace/video.en";
 
@@ -15,6 +16,7 @@ export type Messages = {
   nav: {
     projects: string;
     directors: string;
+    styles: string;
     characters: string;
     tasks: string;
     mcp: string;
@@ -365,20 +367,7 @@ export type Messages = {
     payoutPending: string;
     payoutMin: string;
   };
-  styles: {
-    label: string;
-  } & Record<
-    | "doodle"
-    | "flat-vector"
-    | "paper-cutout"
-    | "chalkboard"
-    | "watercolor"
-    | "clay"
-    | "pixel"
-    | "ink-manga"
-    | "realistic",
-    string
-  >;
+  styles: StylesMessages;
   styleDescriptions: Record<
     | "doodle"
     | "flat-vector"
