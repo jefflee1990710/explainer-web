@@ -112,6 +112,10 @@ test("dual-beat director block mentions two VO/subtitle beats and style-specific
   assert.match(on, /motionCamera/);
   assert.match(on, /startVo lettering wipes off and the endVo lettering writes on/);
   assert.match(on, /Never copy the voiceover lettering into startScene or endScene/);
+  assert.match(on, /step title/);
+  assert.match(on, /diagram labels/);
+  assert.doesNotMatch(on, /SYSTOLIC|TPU/i);
+  assert.doesNotMatch(on, /Do not invent a title card besides the beat voiceover/);
   assert.doesNotMatch(dualBeatDirectorBlock(false), /lettering writes on/);
   assert.match(dualBeatDirectorBlock(false), /no writing/);
   assert.match(dualBeatDirectorBlock(false), /Do not invent extra titles/);
@@ -121,6 +125,7 @@ test("dual-beat director block keeps in-world labels when only captions are off"
   const block = dualBeatDirectorBlock(false, { inWorldLabels: true });
   assert.match(block, /captions OFF/);
   assert.match(block, /yellow tags/);
+  assert.match(block, /step title/);
   assert.match(block, /3–4 visual devices/);
   assert.doesNotMatch(block, /no writing on either still/);
   // ON wins over the option: labels mode only exists when captions are off.

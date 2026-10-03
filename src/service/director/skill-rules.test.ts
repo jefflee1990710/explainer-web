@@ -89,15 +89,20 @@ test("story short is filmed third-person: characters never address the camera", 
   assert.equal(storyShortCameraLock("dialogue-qa-director"), "");
 });
 
-test("whiteboard explainer is always narrated; the character silently explains with props", () => {
+test("whiteboard explainer is always narrated; every topic uses an explanation graph", () => {
   const block = cartoonExplainerDirectorBlock();
   assert.match(block, /ALWAYS narrated/);
   assert.match(block, /never speaks/);
   assert.match(block, /I'm Scro/);
-  assert.match(block, /at least 3 concrete props/);
+  assert.match(block, /explanation graph/);
+  assert.match(block, /every topic/);
+  assert.match(block, /STEP N/);
+  assert.doesNotMatch(block, /at least 3 concrete props/);
+  assert.doesNotMatch(block, /SYSTOLIC|TPU|walk-forward/i);
   const still = cartoonNarratorFrameLock("cartoon-explainer-video-director");
   assert.match(still, /does not talk/);
-  assert.match(still, /every prop named in the Scene/);
+  assert.match(still, /explanation graph/);
+  assert.match(still, /step title/);
   assert.match(cartoonNarratorVideoLock("cartoon-explainer-video-director"), /off-screen narrator/);
   assert.match(cartoonNarratorVideoLock("cartoon-explainer-video-director"), /never speaks or lip-syncs/);
   assert.equal(cartoonNarratorFrameLock("story-short-director"), "");

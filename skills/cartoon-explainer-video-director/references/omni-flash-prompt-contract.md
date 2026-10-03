@@ -48,15 +48,15 @@ Start and end storyboard images are the SAME SHOT. The video prompt must interpo
 
 ## Timed visual sequence
 
-Translate the approved storyboard row into connected events matching its 3–8 second duration. State where the character begins, what changes, how the camera moves, which yellow tag, handwritten label, box, or arrow carries meaning, and what fills or exits the final frame.
+Translate the approved storyboard row into connected events matching its 3–8 second duration. State where the character begins, what the explanation graph shows, which nodes / arrows / labels change, how the camera moves, and what fills or exits the final frame. Slide or light the graph's parts element-by-element rather than only moving handheld props.
 
 Enforce **The 2-Second Visual Rule**: ensure a visible transformation, camera punch, or graphic event occurs roughly every 2 seconds. Use at least 3–4 content-relevant visual devices per prompt. In Clip 1, explicitly choreograph the stacked hook opener (e.g. walk-up reveal, off-camera slide, or sudden prop reveal). Do not introduce new narrative claims during prompt expansion.
 
 ## Dialogue and visual text
 
-The VO is spoken by an unseen off-screen narrator. The on-screen character never speaks or lip-syncs; its mouth stays closed or shows simple reactions while it acts out the idea with the props. Quote the approved English VO exactly once as audio-only dialogue. Instruct the model not to add, omit, paraphrase, repeat, reorder, caption, subtitle, or visually transcribe the spoken line.
+The VO is spoken by an unseen off-screen narrator. The on-screen character never speaks or lip-syncs; its mouth stays closed or shows simple reactions while it reacts to the diagram or props. Quote the approved English VO exactly once as audio-only dialogue. Instruct the model not to add, omit, paraphrase, repeat, or reorder the spoken line. Beat lettering is added by the still prompt — do not dump a second full transcript into the video prompt.
 
-Allow short in-world handwritten all-caps marker labels that belong to the scene (headlines, tags, arrows, bin names). Forbid photoreal UI type, logos, watermarks, palette labels, production annotations, and any on-screen transcript of the voiceover. Put longer optional phrases in a separate post-production overlay list outside the prompts.
+Allow on-canvas step titles, diagram labels, node names, and arrow names already named in the storyboard. Forbid photoreal UI type, logos, watermarks, palette labels, and production annotations. Put longer optional phrases in a separate post-production overlay list outside the prompts.
 
 ## Palette notation
 
@@ -86,7 +86,7 @@ Forbid:
 - broken or drifting art style across clips
 - unexplained colors outside the white / black / light blue / yellow / brown / green / gray doodle world
 - unintended characters or irrelevant spectacle
-- voiceover captions, subtitles, photoreal UI type, technical color notation, palette labels, logos, or watermarks
+- extra subtitle bands, photoreal UI type, technical color notation, palette labels, logos, or watermarks
 - altered, omitted, repeated, reordered, or added dialogue
 
 ## Stitching guide
@@ -104,7 +104,7 @@ Independent text-only generations may vary in voice. Recommend, in order:
 ## Motion detail
 
 - The timed visual sequence names, per beat, the action, the expression change, and the camera start and end framing.
-- Be exact: which hand, which direction, which prop, how far.
+- Be exact: which hand, which direction, which prop or diagram cell, how far.
 - Lighting stays constant and matches both keyframes.
 - Never re-describe a character's appearance or outfit; it follows the keyframes.
 - Never name clothing, layers, or gear (no "winter coat", "boots", "backpack"). Say only that each character keeps exactly the outfit in the first and last frames.
@@ -119,7 +119,7 @@ Independent text-only generations may vary in voice. Recommend, in order:
 - Clip 1 choreographs stacked hooks (spoken + visual/motion/SFX).
 - Every ending matches the next opening. The last clip ends on a clean resting payoff (never bridges back to Clip 1).
 - Dialogue exactly matches the approved narration.
-- Dialogue is explicitly audio-only and is never displayed as captions or subtitles.
+- Dialogue matches the approved narration as audio. Do not add a second subtitle band; beat lettering comes from the stills. Step titles and diagram labels named in the storyboard stay.
 - Standalone prompts contain no hexadecimal, RGB, HSL, Pantone, or other technical color notation.
-- In-world text is limited to short handwritten all-caps marker labels; longer overlay phrases are listed separately for post-production.
+- In-world text may include a short step title plus diagram labels, node names, and arrow names; longer overlay phrases are listed separately for post-production.
 - No prompt requests a teal sunburst world, glasses hero, or chalkboard inversion.

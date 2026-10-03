@@ -140,15 +140,15 @@ export function dualBeatDirectorBlock(
     sceneTextEnabled
       ? "On-canvas text ON: start still quotes ONLY startVo; end still quotes ONLY endVo as handwritten marker lettering centered at 52%–60% of the frame height, max 2 lines, generous side margins. Not a bottom subtitle bar. English is all-caps black marker; the second line sits in a warm-yellow highlight box. Two beats switch at the midpoint. Never both voiceover lines on one still. motionCamera includes a midpoint beat where the startVo lettering wipes off and the endVo lettering writes on in the same spot. Never copy the voiceover lettering into startScene or endScene; the still prompt adds it from startVo / endVo."
       : inWorldLabels
-        ? "Voiceover captions OFF: no subtitle band or title card on either still. Short in-world handwritten labels (yellow tags, arrow labels, box or bin names, 1–3 all-caps words in 「」) ARE allowed and encouraged — they count toward the 3–4 visual devices per still."
+        ? "Voiceover captions OFF: no subtitle band on either still. A short step title, diagram labels, and in-world handwritten labels (yellow tags, arrow labels, box or bin names, cell numbers in 「」) ARE allowed and encouraged — they count toward the 3–4 visual devices per still."
         : "On-canvas text OFF: no writing on either still.",
     sceneTextEnabled
       ? "Lettering follows the whiteboard doodle visual style catalog: handwritten marker, never a printed caption or a bottom white band."
       : "Lettering look follows the selected visual style catalog — do not force whiteboard marker lettering unless that style asks for it.",
     sceneTextEnabled
-      ? "Short prop labels in 「」 may sit on the object they name. Do not invent a title card besides the beat voiceover."
+      ? "Also write one short step title that names this clip's idea in the title safe zone, plus diagram labels / node names / arrow names inside 「」 on the graph they belong to. Do not dump the full voiceover into startScene or endScene."
       : inWorldLabels
-        ? "Labels must name a prop or concept in the scene; never transcribe the voiceover or add a headline."
+        ? "Labels must name a step, mechanism, or part of the diagram; never transcribe the voiceover."
         : "Do not invent extra titles besides the beat voiceover.",
   ].join("\n");
 }

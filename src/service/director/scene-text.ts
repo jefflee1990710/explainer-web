@@ -62,7 +62,7 @@ export function resolveSceneText(input: {
 
 // Shared wording for the "captions off, short in-world labels on" mode.
 const IN_WORLD_LABELS_RULE =
-  "Short in-world handwritten labels that belong to the scene ARE allowed and encouraged: yellow tags, arrow labels, bin or box names, 1–3 all-caps words each. They must name a prop or concept in the scene — never a title card, never a transcript of the voiceover.";
+  "In-world handwritten labels that belong to the scene ARE allowed and encouraged: one short step title, diagram labels, node names, arrow names, yellow tags, and bin or box names. They must name a step or part of the diagram — never a transcript of the voiceover.";
 
 export function listicleOnCanvasLines(input: {
   clips: Array<{ clipNumber: number; narrativeJob: string; englishVo: string }>;
@@ -99,9 +99,9 @@ export function sceneTextSkillHint(
   }
   if (!enabled && options?.inWorldLabels) {
     return [
-      "Voiceover captions are OFF: never quote, transcribe, or subtitle the spoken line on canvas, and never add a title card.",
+      "Voiceover captions are OFF: never quote, transcribe, or subtitle the spoken line on canvas.",
       IN_WORLD_LABELS_RULE,
-      "Write each label's exact wording inside 「」 in startScene / endScene so the still prompt can spell it; count labels, tags, and arrows toward the 3–4 visual devices per still.",
+      "Write each step title and diagram label's exact wording inside 「」 in startScene / endScene so the still prompt can spell it; count the graph, labels, tags, and arrows toward the 3–4 visual devices per still.",
       `Label language: ${SCENE_TEXT_PRESETS[language].label}.`,
     ].join(" ");
   }
@@ -111,7 +111,7 @@ export function sceneTextSkillHint(
   if (options?.dualBeat) {
     return [
       "When on-canvas text is ON, the start still quotes ONLY startVo and the end still quotes ONLY endVo as handwritten marker lettering centered at 52%–60% of the frame height (max 2 lines, generous side margins, not a bottom subtitle band). English is all-caps black marker; line 2 sits in a warm-yellow highlight box. Two beats switch at the midpoint.",
-      "startScene and endScene may also name short prop labels inside 「」 (yellow tags, arrows, bin names) on the object they belong to. Do NOT invent a title card or a second transcript of the spoken line.",
+      "startScene and endScene may also name one short step title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 on the graph they belong to. Do not dump a second transcript of the spoken line into those fields.",
       "Lettering follows the whiteboard doodle visual style: handwritten marker, never a printed caption.",
       markerLanguageHint(language),
     ].join(" ");
@@ -235,7 +235,7 @@ function markerLanguageHint(language: SceneTextLanguage) {
   if (language === "zh-Hans") {
     return "On-canvas text language: Simplified Chinese (简体中文). Handwrite that beat's line; do not transliterate it into English all-caps.";
   }
-  return "On-canvas text language: English. Render the beat as handwritten all-caps marker lettering; never invent extra English titles besides that beat and short prop labels.";
+  return "On-canvas text language: English. Render the beat as handwritten all-caps marker lettering. One short step title and diagram labels named in the Scene are also allowed.";
 }
 
 export function stripStoryboardWriting(description: string) {
@@ -313,7 +313,7 @@ export function sceneTextFrameLines(
 ) {
   if (!enabled && options?.inWorldLabels) {
     return [
-      "Voiceover captions OFF: no subtitle band, no title card, no transcript of the spoken line anywhere in the image.",
+      "Voiceover captions OFF: no subtitle band, no transcript of the spoken line anywhere in the image.",
       IN_WORLD_LABELS_RULE,
       "Render ONLY the label words written in the Scene below (inside 「」 or quotes), spelled exactly; add no other writing.",
       typography?.trim() ? typography.trim() : "",
@@ -349,7 +349,7 @@ export function sceneTextFrameLines(
       MARKER_SAFE_ZONE_LAYOUT,
       ...markerLines,
       letterStyle,
-      "These quoted line(s) are the only voiceover lettering. Short prop labels already written in the Scene inside 「」 may stay on that prop. No title card, no bottom subtitle band, and no other writing.",
+      "These quoted line(s) are the voiceover lettering. Also draw one short step title and the diagram labels already written in the Scene inside 「」 (node names, arrow names, beat titles). Place the step title in the title safe zone near 22%–26% of the frame height. No bottom subtitle band.",
     ];
   }
   const subtitleLines = formatted.line2

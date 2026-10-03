@@ -174,6 +174,13 @@ test("cartoon marker safe zone uppercases English and drops the bottom band", ()
   assert.doesNotMatch(text, /bottom 18%/);
   assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /52%/);
   assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /mixed-case/);
+  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /step title/);
+  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /diagram/);
+  assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /SYSTOLIC|TPU/i);
+  assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /Do NOT invent a title card/);
+  assert.match(text, /step title/);
+  assert.match(text, /diagram labels/);
+  assert.doesNotMatch(text, /No title card/);
 });
 
 test("sceneTextNegativePrompt only when off", () => {

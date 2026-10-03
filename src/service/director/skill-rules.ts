@@ -182,26 +182,27 @@ export function storyShortCameraLock(skillSlug?: string) {
   return "Camera: third-person observer camera, as in a film scene. No eye contact with the lens; characters never look at, wave to, or talk to the camera. Eyelines go to other characters, objects, or off into the scene (profile, three-quarter, over-the-shoulder).";
 }
 
-// 白板概念解說：永遠是畫外旁白；角色不說話，用多個道具把概念演出來。
+// 白板概念解說：永遠是畫外旁白；角色不說話；機制圖可當主體。
 export function cartoonExplainerDirectorBlock() {
   return [
     "This director is ALWAYS narrated: an unseen off-screen narrator speaks every englishVo line in the third person.",
     "The on-screen character never speaks, never introduces themself, and is never the narrator. No first-person lines in the character's voice (no \"Hi, I'm Scro\", \"I am…\", \"we…\" spoken as the character); the narrator may name the character or product in the third person (\"Meet Scro. Scro turns…\").",
-    "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth closed or reacting, and it acts out the concept with props.",
-    "Every startScene and endScene gives the character at least 3 concrete props it holds, points at, opens, sorts, stacks, or transforms (cardboard boxes, bins, arrows, yellow tags, icons, gauges, morphing objects), each standing for one part of the idea. List them in Set and name the interaction in Character. Never a near-empty canvas with one floating label.",
+    "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth closed or reacting. It may point at a diagram, stand aside reacting, or handle props — it does not have to hold three props.",
+    "For every topic, make an explanation graph the main subject of the canvas — not a character holding metaphor props. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts of a whole, flow or cycle, or a simple chart. Topic does not matter: food, money, health, product, habit, or science all get a graph. Metaphor props (boxes, bins, arrows, yellow tags) are only a fallback when a graph would hide the idea. Density is the graph — never a three-prop quota. Never a near-empty canvas with one floating label.",
+    "On-canvas step text is allowed: write one short STEP N / beat title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 in startScene and endScene. Do not dump the full voiceover into those fields; the still prompt adds startVo / endVo lettering separately.",
   ].join(" ");
 }
 
 // Pasted into whiteboard-explainer stills; empty for every other director.
 export function cartoonNarratorFrameLock(skillSlug?: string) {
   if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
-  return "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). It actively uses the props to explain the idea — draw every prop named in the Scene, clearly readable.";
+  return "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every step title or diagram label written in 「」, clearly readable.";
 }
 
 // Appended to whiteboard-explainer clip videos; empty for every other director.
 export function cartoonNarratorVideoLock(skillSlug?: string) {
   if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
-  return "Voice: an unseen off-screen narrator speaks every line. The on-screen character never speaks or lip-syncs — mouth stays closed or shows simple reactions — and acts out the idea with the props.";
+  return "Voice: an unseen off-screen narrator speaks every line. The on-screen character never speaks or lip-syncs — mouth stays closed or shows simple reactions — and reacts to the diagram or props.";
 }
 
 export function dialogueQaDirectorBlock() {

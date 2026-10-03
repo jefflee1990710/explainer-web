@@ -166,7 +166,7 @@ export const briefEn = {
       "cartoon-explainer-video-director": {
         voice: "Narrator reads the VO (the male or female voice you picked)",
         structure: "Hook → unpack the idea → delay the payoff",
-        picture: "Whiteboard doodles, morphing icons, handwritten labels",
+        picture: "Whiteboard doodles, explanation graphs, handwritten step labels",
         frames: "Two beats per clip: one VO line on the start frame, one on the end",
       },
       "story-short-director": {

@@ -34,7 +34,7 @@ Present these items in order:
 6. Locked character specifications (extracted from provided reference image guideline, or default everyman) and semantic palette, named in ordinary language
 7. BGM direction, emotional turn, tone, and narrative arc
 
-The narrator is always an unseen off-screen voice speaking in the third person. Never write the voiceover as the on-screen character talking ("Hi, I'm Scro", "I am…"); the character is a silent demonstrator who acts out the idea with props. The narrator may name the character or product ("Meet Scro. Scro turns…").
+The narrator is always an unseen off-screen voice speaking in the third person. Never write the voiceover as the on-screen character talking ("Hi, I'm Scro", "I am…"); the character is a silent demonstrator who reacts to a diagram or props. The narrator may name the character or product ("Meet Scro. Scro turns…").
 
 Lock the narrator voice: always use a warm, engaging adult male voice speaking natural American English. Infer tone from the source when the user did not specify it. Never use a female narrator. Do not invent a new hero, skin tone, wardrobe, or chalkboard inversion.
 
@@ -70,9 +70,10 @@ Enforce **The 2-Second Visual Rule**: guarantee a perceptible visual change (mic
 Use at least 3–4 relevant devices per row:
 
 - expressive doodle performance with face, floating `!?` / `?`, and simple body language
+- an explanation graph as the primary graphic for every topic (comparison, before/after, cause→effect, numbered steps, labeled parts, flow, chart)
 - environmental transformation on the white canvas (boxes, bins, arrows, floating props)
 - concrete visual metaphor such as yellow tags, handwritten labels, cardboard boxes, or morphing objects
-- diagram, arrow, sparkle, or price-style tag
+- diagram labels, node names, arrows, sparkle, or price-style tag
 - particles, glow, scribble burst, or light
 - camera push, pull, pan, orbit, shake, or tracking move
 - foreground wipe or object crossing the lens
@@ -81,7 +82,7 @@ Use at least 3–4 relevant devices per row:
 
 Make every effect clarify or intensify the spoken idea; omit unrelated spectacle.
 
-**Prop-driven explanation**: every start and end still gives the character at least 3 concrete props it holds, points at, opens, sorts, stacks, or transforms (cardboard boxes, bins, arrows, yellow tags, icons, gauges, morphing objects). Each prop stands for one part of the idea. List the props in the Set part and the interaction in the Character part. Never a near-empty canvas with one floating label.
+**Diagram-first explanation**: for every topic, the canvas is an explanation graph — not a character holding three props. List the graph in Set (what nodes, arrows, labels, and numbers are visible) and the character's reaction in Character (pointing, standing aside, or handling a prop). Metaphor props (boxes, bins, arrows, yellow tags) are only a fallback. Density is the graph, never a three-prop quota. Never a near-empty canvas with one floating label.
 
 ## Palette and text
 
@@ -89,14 +90,14 @@ Keep the character strictly locked across all rows: if a character reference ima
 
 Name colors only with ordinary descriptive language. Do not use hexadecimal, RGB, HSL, Pantone, or other technical color notation anywhere in the proposal or production prompts.
 
-Allow short in-world handwritten all-caps marker labels that belong to the scene (headlines, tags, arrows, bin names). Never transcribe the voiceover as captions or subtitles. After the storyboard, optionally list longer two-to-five-word English overlays for post-production, including their target clips and safe placement; never carry those longer overlays into the video-generation prompts.
+Allow on-canvas step text: one short STEP N / beat title that names this clip's idea, plus diagram labels, node names, and arrow names, each spelled inside 「」 in startScene and endScene. Do not dump the full voiceover into those fields — the still prompt adds startVo / endVo lettering separately. After the storyboard, optionally list longer two-to-five-word English overlays for post-production, including their target clips and safe placement; never carry those longer overlays into the video-generation prompts.
 
 ## Scene detail
 
 Write every scene field (`startScene`, `endScene`, `explainerScene`) as four concrete parts, in order:
 
 1. Character: expression, pose, action, and eyeline of each on-screen character. Never describe appearance, hair, or outfit — that follows the character reference.
-2. Set: location, set dressing, props, foreground / midground / background.
+2. Set: location, the explanation graph as the main subject (nodes, arrows, labels, numbers), plus any props, foreground / midground / background.
 3. Light: light direction, colour temperature, mood.
 4. Camera: shot size, camera angle, composition, and each character's screen position.
 

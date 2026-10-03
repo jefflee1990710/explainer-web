@@ -163,7 +163,7 @@ export const briefZhHant = {
       "cartoon-explainer-video-director": {
         voice: "旁白講 VO（你選的男／女聲）",
         structure: "鉤子 → 拆解概念 → 延後亮點",
-        picture: "白板塗鴉、圖示變身、手寫標籤",
+        picture: "白板塗鴉、說明圖、手寫步驟標籤",
         frames: "每段兩拍，起始／結尾各一句旁白",
       },
       "story-short-director": {

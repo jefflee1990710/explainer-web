@@ -134,11 +134,12 @@ test("end frame with a start still names it as the composition lock", () => {
   assert.match(prompt, /Do not invent a new room or camera/);
 });
 
-test("whiteboard explainer stills keep the character silent and using the props", () => {
+test("whiteboard explainer stills keep the character silent and draw the mechanism graph", () => {
   const cartoon = project();
   cartoon.skillSlug = "cartoon-explainer-video-director";
   assert.match(buildFramePrompt(cartoon, 1, "start"), /Silent demonstrator/);
-  assert.match(buildFramePrompt(cartoon, 1, "end"), /every prop named in the Scene/);
+  assert.match(buildFramePrompt(cartoon, 1, "end"), /explanation graph/);
+  assert.match(buildFramePrompt(cartoon, 1, "end"), /step title/);
   assert.doesNotMatch(buildFramePrompt(project(), 1, "start"), /Silent demonstrator/);
 });
 
