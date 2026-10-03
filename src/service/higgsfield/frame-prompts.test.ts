@@ -10,8 +10,9 @@ import {
   framesWithClips,
   framesWithClipsReady,
 } from "@/service/higgsfield/frame-prompts";
+import { STYLE_IDS } from "@/model/style-id";
 import { resetStyleOverlay } from "@/service/style/load-style";
-import { installTestStyles, uninstallTestStyles } from "@/service/style/test-styles";
+import { installTestStyles, testStyle, uninstallTestStyles } from "@/service/style/test-styles";
 
 before(() => installTestStyles());
 after(() => uninstallTestStyles());
@@ -153,10 +154,9 @@ test("story-short 9:16 stills place subtitles in the reel safe zone", () => {
   story.sceneTextEnabled = true;
   story.phaseA!.clips[0].englishVo = 'Lily: "We made it."';
   const prompt = buildFramePrompt(story, 1, "start");
-  assert.match(prompt, /64% and 78%/);
+  assert.doesNotMatch(prompt, /64% and 78%/);
   assert.match(prompt, /We made it\./);
   assert.doesNotMatch(prompt, /bottom 18%/);
-  assert.match(prompt, /reel safe zone/);
 
   story.aspectRatio = "16:9";
   const wide = buildFramePrompt(story, 1, "start");
@@ -167,6 +167,19 @@ test("story-short 9:16 stills place subtitles in the reel safe zone", () => {
   other.aspectRatio = "9:16";
   other.sceneTextEnabled = true;
   assert.match(buildFramePrompt(other, 1, "start"), /bottom 18%/);
+
+  installTestStyles(
+    STYLE_IDS.map((id) =>
+      id === "doodle"
+        ? testStyle(id, { reelLayout: "Reel cut-paper captions at 70%." })
+        : testStyle(id),
+    ),
+  );
+  story.aspectRatio = "9:16";
+  const styled = buildFramePrompt(story, 1, "start");
+  assert.match(styled, /70%/);
+  assert.doesNotMatch(styled, /bottom 18%/);
+  installTestStyles();
 });
 
 test("story-short subtitles show only the spoken words, never the speaker name", () => {
@@ -358,13 +371,43 @@ test("whiteboard explainer dual-beat uses start/end scene and VO per still", () 
   const end = buildFramePrompt(dual, 1, "end");
   assert.match(start, /Scene: 起點拿尺/);
   assert.doesNotMatch(start, /尺變成回歸線/);
-  assert.match(start, /52% and 60%/);
-  assert.match(start, /Marker line \(spell exactly, black marker\): "FIRST BEAT\."/);
+  assert.doesNotMatch(start, /52% and 60%/);
+  assert.match(start, /Marker line \(spell exactly\): "FIRST BEAT\."/);
   assert.doesNotMatch(start, /bottom 18%/);
   assert.doesNotMatch(start, /SECOND BEAT/);
   assert.match(end, /Scene: 尺變成回歸線/);
   assert.match(end, /SECOND BEAT/);
   assert.doesNotMatch(end, /FIRST BEAT/);
+});
+
+test("whiteboard stills use the video style lettering instead of doodle defaults", () => {
+  installTestStyles(
+    STYLE_IDS.map((id) =>
+      id === "paper-cutout"
+        ? testStyle(id, {
+            letteringLayout: "Layout: cut-paper VO at 40% height.",
+            letteringLine1: "Line 1 is torn dark-ink paper.",
+            letteringLine2: "Line 2 is a sunflower paper strip.",
+            beatTitleLayout: "Beat title on a kraft tag at 20%.",
+            reelLayout: "Reel cut-paper captions at 70%.",
+          })
+        : testStyle(id),
+    ),
+  );
+  const dual = project("paper-cutout");
+  dual.skillSlug = "cartoon-explainer-video-director";
+  dual.phaseA!.clips[0] = {
+    ...dual.phaseA!.clips[0],
+    startVo: "First beat.",
+    endVo: "Second beat.",
+    englishVo: "First beat. Second beat.",
+  };
+  const start = buildFramePrompt(dual, 1, "start");
+  assert.match(start, /40% height/);
+  assert.match(start, /torn dark-ink paper/);
+  assert.doesNotMatch(start, /52% and 60%/);
+  assert.doesNotMatch(start, /hand-drawn all-caps marker/);
+  installTestStyles();
 });
 
 test("legacy captions-off whiteboard video keeps prop labels, paints the marker beat, and strips text policy from visualWorld", () => {
@@ -385,7 +428,7 @@ test("legacy captions-off whiteboard video keeps prop labels, paints the marker 
   const start = buildFramePrompt(dual, 1, "start");
   assert.match(start, /「OLS」/);
   assert.match(start, /FIRST BEAT/);
-  assert.match(start, /52% and 60%/);
+  assert.doesNotMatch(start, /52% and 60%/);
   assert.doesNotMatch(start, /No on-canvas text/);
   assert.match(start, /Visual world: 白板塗鴉風格。純白背景黑色墨線。/);
   assert.doesNotMatch(start, /無任何畫布文字/);

@@ -56,6 +56,7 @@ import {
   talkingHeadSourceError,
 } from "@/service/director/talking-head";
 import type { Style } from "@/service/style";
+import { resolveStyleLettering } from "@/service/style/lettering";
 import type { CastMember } from "@/model/character";
 import type {
   AspectRatio,
@@ -115,6 +116,7 @@ export async function runPhaseA(input: {
   });
   const characterNote =
     castBlockForPhaseA(input.cast) || phaseASoloCharacterNote(input.characterImageUrl);
+  const lettering = resolveStyleLettering(input.style);
   const dualBeat = isDualBeatSkill(input.skill.slug);
   const dialogueOnly = skillBansNarration(input.skill.slug);
   const characterImages = await loadDirectorImageParts(
@@ -157,7 +159,7 @@ You are executing Phase A only. Return structured JSON that matches the schema.
 ${language.planningSkillHint}
 ${keyframeDeltaDirectorBlock({ separateStills: dualBeat, language: input.language })}
 ${sceneDetailDirectorBlock()}
-${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language }) : ""}
+${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, lettering }) : ""}
 ${
   skillForcesSceneText(input.skill.slug)
     ? "On-canvas text is required: a numbered item list must appear in every still."
@@ -210,6 +212,7 @@ ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   listicle: skillForcesSceneText(input.skill.slug),
   inWorldLabels: sceneText.inWorldLabels,
   reelSafeZone: input.skill.slug === STORY_SHORT_SKILL_SLUG && input.aspectRatio === "9:16",
+  lettering,
 })}
 The englishVo field always carries the spoken line in the chosen language above (character dialogue when this skill bans narration), regardless of the field name.
 Leave referenceTranslation empty. Do not invent a translation column.

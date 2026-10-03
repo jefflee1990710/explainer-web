@@ -1,5 +1,9 @@
 import { listicleListEntries } from "@/service/director/skill-rules";
 import type { SceneTextLanguage } from "@/model/project";
+import {
+  resolveStyleLettering,
+  type StyleLettering,
+} from "@/service/style/lettering";
 
 export type SceneTextPreset = {
   id: SceneTextLanguage;
@@ -88,8 +92,15 @@ export function listicleOnCanvasLines(input: {
 export function sceneTextSkillHint(
   enabled: boolean,
   language: SceneTextLanguage,
-  options?: { dualBeat?: boolean; listicle?: boolean; inWorldLabels?: boolean; reelSafeZone?: boolean },
+  options?: {
+    dualBeat?: boolean;
+    listicle?: boolean;
+    inWorldLabels?: boolean;
+    reelSafeZone?: boolean;
+    lettering?: StyleLettering;
+  },
 ) {
+  const lettering = resolveStyleLettering(options?.lettering);
   if (options?.listicle) {
     return [
       "On-canvas text is REQUIRED for this director. Every still must show a readable numbered list of the item titles (each item clip's englishVo).",
@@ -109,16 +120,19 @@ export function sceneTextSkillHint(
     return "On-canvas text is OFF. explainerScene, visualWorld, and motionCamera must contain NO written words, labels, numbers, captions, signage, or lettering — not even in quotes or 「」. Communicate only with images, props, and composition.";
   }
   if (options?.dualBeat) {
+    const look = [lettering.letteringLayout, lettering.letteringLine1, lettering.letteringLine2]
+      .filter(Boolean)
+      .join(" ");
     return [
-      "When on-canvas text is ON, the start still quotes ONLY startVo and the end still quotes ONLY endVo as handwritten marker lettering centered at 52%–60% of the frame height (max 2 lines, generous side margins, not a bottom subtitle band). English is all-caps black marker; line 2 sits in a warm-yellow highlight box. Two beats switch at the midpoint.",
+      `When on-canvas text is ON, the start still quotes ONLY startVo and the end still quotes ONLY endVo as handwritten marker lettering.${look ? ` ${look}` : ""} English is all-caps. Two beats switch at the midpoint.`,
       "startScene and endScene may also name one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 on the graph they belong to. Do not dump a second transcript of the spoken line into those fields.",
-      "Lettering follows the whiteboard doodle visual style: handwritten marker, never a printed caption.",
+      "Lettering follows the selected visual style — never a printed caption.",
       markerLanguageHint(language),
     ].join(" ");
   }
   if (options?.reelSafeZone) {
     return [
-      "When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo as a subtitle inside the vertical reel safe zone: horizontally centered, between 64% and 78% of the frame height, side margins at least 14% of the width, max 2 lines. Keep it out of the top 14% and the bottom 20%. Not a full-width bottom band.",
+      `When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo as a subtitle.${lettering.reelLayout ? ` ${lettering.reelLayout}` : ""}`,
       "explainerScene and motionCamera must describe pose, props, and environment only. Do NOT invent extra titles, quotes, 「Mental Health?」-style labels, signs, or any wording that is not englishVo.",
       SCENE_TEXT_PRESETS[language].skillHint,
     ].join(" ");
@@ -165,18 +179,15 @@ export function voiceoverLineLooksLatin(line: string) {
 export function sceneTextVoLetteringHint(
   language: SceneTextLanguage,
   narration: string,
-  options?: { markerSafeZone?: boolean },
+  options?: { markerSafeZone?: boolean; lettering?: StyleLettering },
 ) {
+  const lettering = resolveStyleLettering(options?.lettering);
   if (options?.markerSafeZone) {
-    if (voiceoverLineLooksLatin(narration)) {
-      return "Line 1 is bold black hand-drawn all-caps marker, same stroke weight as the outlines, slightly wobbly baseline. When line 2 exists, draw it as bold all-caps inside a warm-yellow rounded highlight box with a black outline. No printed font.";
-    }
-    if (language === "zh-Hant") {
-      return "以繁體手寫馬克筆置中呈現，筆觸與外框同粗、略帶手繪晃動。若有第二行，放進暖黃色圓角標示框，黑框。不要印刷字體。";
-    }
-    if (language === "zh-Hans") {
-      return "以简体手写马克笔居中呈现，笔触与外框同粗、略带手绘晃动。若有第二行，放进暖黄色圆角标示框，黑框。不要印刷字体。";
-    }
+    const look = [lettering.letteringLine1, lettering.letteringLine2].filter(Boolean).join(" ");
+    if (look) return look;
+    if (language === "zh-Hant") return "以繁體手寫呈現這句旁白。";
+    if (language === "zh-Hans") return "以简体手写呈现这句旁白。";
+    return "Hand-letter the quoted line.";
   }
   if (voiceoverLineLooksLatin(narration)) {
     return "Hand-letter the quoted English subtitle in large, readable mixed-case (same spelling as the quote).";
@@ -297,20 +308,19 @@ export function stripSceneVoiceoverRecap(description: string) {
 
 // Frame prompts: OFF = zero writing; ON = quote the clip narration (englishVo) exactly.
 // OFF + inWorldLabels = no captions, but keep the short labels named in the scene.
-const MARKER_SAFE_ZONE_LAYOUT =
-  "Layout: center the lettering horizontally, strictly between 52% and 60% of the frame height, maximum 2 lines, with side margins of at least 120px on a 1080-wide frame (about 11% of the width). No semi-opaque white band, no bottom caption bar, no corner tag, no printed font.";
-
-// 9:16 Reels / TikTok / Shorts cover the top status bar, the bottom caption, and the side buttons.
-const REEL_SUBTITLE_SAFE_ZONE_LAYOUT =
-  "Layout: vertical reel safe zone. Center the subtitle horizontally between 64% and 78% of the frame height, max 2 lines, with side margins of at least 14% of the width. Keep it out of the top 14% and the bottom 20% (app chrome). No full-width bottom band, no corner tag.";
-
 export function sceneTextFrameLines(
   enabled: boolean,
   language: SceneTextLanguage,
   narration?: string,
   typography?: string,
-  options?: { inWorldLabels?: boolean; markerSafeZone?: boolean; reelSafeZone?: boolean },
+  options?: {
+    inWorldLabels?: boolean;
+    markerSafeZone?: boolean;
+    reelSafeZone?: boolean;
+    lettering?: StyleLettering;
+  },
 ) {
+  const lettering = resolveStyleLettering(options?.lettering);
   if (!enabled && options?.inWorldLabels) {
     return [
       "Voiceover captions OFF: no subtitle band, no transcript of the spoken line anywhere in the image.",
@@ -336,21 +346,24 @@ export function sceneTextFrameLines(
   const reel = Boolean(options?.reelSafeZone) && !marker;
   const formatted = marker ? formatVoiceoverForMarker(line) : formatVoiceoverForCanvas(line);
   // Typography belongs on the separate Lettering line; do not repeat it here.
-  const letterStyle = sceneTextVoLetteringHint(language, line, { markerSafeZone: marker });
+  const letterStyle = sceneTextVoLetteringHint(language, line, {
+    markerSafeZone: marker,
+    lettering,
+  });
   if (marker) {
     const markerLines = formatted.line2
       ? [
-          `Marker line 1 (spell exactly, black marker): "${formatted.line1}"`,
-          `Marker line 2 (spell exactly, warm-yellow highlight box): "${formatted.line2}"`,
+          `Marker line 1 (spell exactly): "${formatted.line1}"`,
+          `Marker line 2 (spell exactly): "${formatted.line2}"`,
         ]
-      : [`Marker line (spell exactly, black marker): "${formatted.line1}"`];
+      : [`Marker line (spell exactly): "${formatted.line1}"`];
     return [
       "On-canvas marker lettering ON — highest priority.",
-      MARKER_SAFE_ZONE_LAYOUT,
+      lettering.letteringLayout,
       ...markerLines,
       letterStyle,
-      "These quoted line(s) are the voiceover lettering. Also draw a short beat title only if the Scene already writes one inside 「」. Place a named beat title in the title safe zone near 22%–26% of the frame height. Draw the diagram labels already written in the Scene inside 「」 (node names, arrow names). No bottom subtitle band.",
-    ];
+      `These quoted line(s) are the voiceover lettering. Also draw a short beat title only if the Scene already writes one inside 「」.${lettering.beatTitleLayout ? ` ${lettering.beatTitleLayout}` : ""} Draw the diagram labels already written in the Scene inside 「」 (node names, arrow names). No bottom subtitle band.`,
+    ].filter(Boolean);
   }
   const subtitleLines = formatted.line2
     ? [
@@ -362,13 +375,13 @@ export function sceneTextFrameLines(
   return [
     "On-canvas subtitles ON — highest priority.",
     reel
-      ? REEL_SUBTITLE_SAFE_ZONE_LAYOUT
+      ? lettering.reelLayout
       : "Layout: a semi-opaque white band across the bottom 18% of the frame; dark hand-lettered text centered inside the band (integrated caption, not a tiny corner tag).",
     ...subtitleLines,
     letterStyle,
     "Only the subtitle line(s) above may appear as writing; no other letters, numbers, signs, or labels anywhere in the illustration.",
     "Ignore any storyboard mention of other wording (e.g. Mental Health); do not paint prompt instructions — only the quoted subtitle strings.",
-  ];
+  ].filter(Boolean);
 }
 
 export function sceneTextNegativePrompt(enabled: boolean, inWorldLabels = false) {

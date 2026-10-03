@@ -13,6 +13,11 @@ export type StyleDoc = {
   typography?: string;
   motion?: string;
   negatives?: string;
+  letteringLayout?: string;
+  letteringLine1?: string;
+  letteringLine2?: string;
+  beatTitleLayout?: string;
+  reelLayout?: string;
   // Picker thumbnail (768px WebP).
   previewUrl?: string;
   // Original full-size PNG the thumbnail was built from.
@@ -35,6 +40,11 @@ export const styleDocSchema: z.ZodType<StyleDoc> = z.object({
   typography: optionalString,
   motion: optionalString,
   negatives: optionalString,
+  letteringLayout: optionalString,
+  letteringLine1: optionalString,
+  letteringLine2: optionalString,
+  beatTitleLayout: optionalString,
+  reelLayout: optionalString,
   previewUrl: optionalString,
   previewFullUrl: optionalString,
   previewHash: optionalString,

@@ -5,6 +5,7 @@ import {
   type StyleId,
 } from "@/model/style-id";
 import type { StyleDoc } from "@/model/style-doc";
+import { LETTERING_KEYS } from "@/service/style/lettering";
 import type { Style } from "@/service/style/types";
 
 // Prompt-driving fields stored on Mongo `styles` (previews stay separate).
@@ -37,6 +38,15 @@ export function stylePromptFields(style: StylePromptFields): StylePromptFields {
   };
 }
 
+function optionalLettering(style: Partial<Style> | StyleDoc): Pick<Style, (typeof LETTERING_KEYS)[number]> {
+  const next: Pick<Style, (typeof LETTERING_KEYS)[number]> = {};
+  for (const key of LETTERING_KEYS) {
+    const value = style[key];
+    if (typeof value === "string" && value.trim()) next[key] = value.trim();
+  }
+  return next;
+}
+
 // Complete Mongo style → runtime Style; incomplete docs are not usable.
 export function styleFromDoc(doc: StyleDoc | null | undefined): Style | null {
   if (!doc || !isStyleId(doc._id)) return null;
@@ -46,6 +56,7 @@ export function styleFromDoc(doc: StyleDoc | null | undefined): Style | null {
   return {
     id: doc._id,
     ...stylePromptFields(doc as StyleDoc & StylePromptFields),
+    ...optionalLettering(doc),
   };
 }
 

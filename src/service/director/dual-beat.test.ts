@@ -100,12 +100,12 @@ test("normalizeDualBeatRow fills missing dedicated fields from combined text", (
   assert.equal(row.endVo, "Two.");
 });
 
-test("dual-beat director block mentions two VO/subtitle beats and style-specific lettering", () => {
+test("dual-beat director block mentions two VO beats and does not invent lettering copy", () => {
   const on = dualBeatDirectorBlock(true);
   assert.match(on, /ONLY startVo/);
   assert.match(on, /ONLY endVo/);
-  assert.match(on, /52%/);
-  assert.match(on, /warm-yellow highlight box/);
+  assert.doesNotMatch(on, /52%/);
+  assert.doesNotMatch(on, /warm-yellow/);
   assert.match(on, /visual style catalog/);
   assert.match(on, /one frozen pose/);
   assert.match(on, /landed resting pose/);
@@ -120,6 +120,23 @@ test("dual-beat director block mentions two VO/subtitle beats and style-specific
   assert.doesNotMatch(dualBeatDirectorBlock(false), /lettering writes on/);
   assert.match(dualBeatDirectorBlock(false), /no writing/);
   assert.match(dualBeatDirectorBlock(false), /Do not invent extra titles/);
+});
+
+test("dual-beat director block uses style lettering when provided", () => {
+  const on = dualBeatDirectorBlock(true, {
+    lettering: {
+      letteringLayout: "Layout: cut-paper VO at 40% height.",
+      letteringLine1: "Line 1 is torn dark-ink paper.",
+      letteringLine2: "Line 2 is a sunflower paper strip.",
+      beatTitleLayout: "Beat title on a kraft tag at 20%.",
+      reelLayout: "Reel cut-paper captions at 70%.",
+    },
+  });
+  assert.match(on, /40% height/);
+  assert.match(on, /torn dark-ink paper/);
+  assert.match(on, /kraft tag at 20%/);
+  assert.doesNotMatch(on, /52%/);
+  assert.doesNotMatch(on, /hand-drawn all-caps marker/);
 });
 
 test("dual-beat director block keeps in-world labels when only captions are off", () => {

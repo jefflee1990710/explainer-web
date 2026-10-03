@@ -15,4 +15,10 @@ export type Style = {
   typography: string;
   motion: string;
   negatives: string;
+  // On-canvas VO layout from Mongo. Empty when the style doc omits the field.
+  letteringLayout?: string;
+  letteringLine1?: string;
+  letteringLine2?: string;
+  beatTitleLayout?: string;
+  reelLayout?: string;
 };

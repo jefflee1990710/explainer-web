@@ -62,6 +62,21 @@ test("styleFromDoc returns a Style when every prompt field is filled", () => {
   assert.equal(style.id, "pixel");
   assert.equal(style.look, "16-bit pixels");
   assert.equal("previewUrl" in style, false);
+  assert.equal(style.letteringLayout, undefined);
+});
+
+test("styleFromDoc copies optional lettering fields when present", () => {
+  const style = styleFromDoc({
+    _id: "paper-cutout",
+    ...stylePromptFields(sampleStyle("paper-cutout")),
+    letteringLine1: "torn dark-ink paper",
+    letteringLayout: "  cut-paper VO at 40%  ",
+    updatedAt: new Date(),
+  });
+  assert.ok(style);
+  assert.equal(style.letteringLine1, "torn dark-ink paper");
+  assert.equal(style.letteringLayout, "cut-paper VO at 40%");
+  assert.equal(style.letteringLine2, undefined);
 });
 
 test("resolvedStyle throws when Mongo overlay is missing", () => {

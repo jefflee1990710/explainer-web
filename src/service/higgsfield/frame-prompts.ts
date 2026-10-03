@@ -48,6 +48,7 @@ import {
   styleLinesForFrame,
   type Style,
 } from "@/service/style";
+import { resolveStyleLettering } from "@/service/style/lettering";
 import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
 import type {
   ClipFrame,
@@ -262,6 +263,7 @@ export function buildFramePrompt(
   options: FramePromptOptions = {},
 ) {
   const style = videoStyle(project);
+  const lettering = resolveStyleLettering(style);
   const phaseA = project.phaseA;
   if (!phaseA) throw new Error("尚未有分鏡");
   const row = phaseA.clips.find((clip) => clip.clipNumber === clipNumber);
@@ -358,7 +360,11 @@ export function buildFramePrompt(
             sceneText.language,
             voForFrame,
             undefined,
-            dualBeat ? { markerSafeZone: true } : reelSafeZone ? { reelSafeZone: true } : undefined,
+            dualBeat
+              ? { markerSafeZone: true, lettering }
+              : reelSafeZone
+                ? { reelSafeZone: true, lettering }
+                : { lettering },
           ),
         ]
       : keepSceneLabels
@@ -407,11 +413,11 @@ export function buildFramePrompt(
       : sceneText.enabled
         ? dualBeat
           ? [
-              "Final check: voiceover lettering is centered at 52%–60% of the frame height, max 2 lines, spelling matches the Marker line(s); no bottom subtitle band.",
+              `Final check: spelling matches the Marker line(s); no bottom subtitle band.${lettering.letteringLayout ? ` Voiceover lettering follows ${lettering.letteringLayout}` : ""}`,
             ]
           : reelSafeZone
             ? [
-                "Final check: subtitle sits in the reel safe zone (64%–78% of frame height, 14% side margins), spelling matches the Subtitle line(s); not in the top 14% or bottom 20%.",
+                `Final check: spelling matches the Subtitle line(s).${lettering.reelLayout ? ` Subtitle follows ${lettering.reelLayout}` : ""}`,
               ]
             : [
                 "Final check: bottom subtitle band only; spelling must match the Subtitle line(s) above.",

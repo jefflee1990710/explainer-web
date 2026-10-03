@@ -144,17 +144,27 @@ test("enabled scene text quotes the clip narration on canvas", () => {
   assert.match(sceneTextSkillHint(true, "en"), /englishVo voiceover line/);
 });
 
-test("reel safe zone lifts the subtitle off the bottom chrome", () => {
-  const lines = sceneTextFrameLines(true, "en", "We made it", undefined, { reelSafeZone: true });
+test("reel safe zone uses the style reel layout and drops the bottom band", () => {
+  const lettering = {
+    letteringLayout: "",
+    letteringLine1: "",
+    letteringLine2: "",
+    beatTitleLayout: "",
+    reelLayout: "Reel cut-paper captions at 70%.",
+  };
+  const lines = sceneTextFrameLines(true, "en", "We made it", undefined, {
+    reelSafeZone: true,
+    lettering,
+  });
   const text = lines.join("\n");
-  assert.match(text, /64% and 78%/);
-  assert.match(text, /side margins of at least 14%/);
-  assert.match(text, /top 14%/);
-  assert.match(text, /bottom 20%/);
+  assert.match(text, /70%/);
   assert.match(text, /We made it/);
   assert.doesNotMatch(text, /bottom 18%/);
-  assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true }), /64% and 78%/);
-  assert.doesNotMatch(sceneTextSkillHint(true, "en", { reelSafeZone: true }), /bottom subtitle/);
+  assert.doesNotMatch(text, /64% and 78%/);
+  assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true, lettering }), /70%/);
+  const bare = sceneTextFrameLines(true, "en", "We made it", undefined, { reelSafeZone: true }).join("\n");
+  assert.doesNotMatch(bare, /64% and 78%/);
+  assert.doesNotMatch(bare, /bottom 18%/);
 });
 
 test("cartoon marker safe zone uppercases English and drops the bottom band", () => {
@@ -167,12 +177,12 @@ test("cartoon marker safe zone uppercases English and drops the bottom band", ()
   );
   const text = lines.join("\n");
   assert.match(text, /marker lettering ON/i);
-  assert.match(text, /52% and 60%/);
+  assert.doesNotMatch(text, /52% and 60%/);
   assert.match(text, /EVERY QUANT TRADER STARTS/);
   assert.match(text, /WITH THIS ONE TOOL/);
-  assert.match(text, /warm-yellow highlight box/);
+  assert.doesNotMatch(text, /warm-yellow/);
   assert.doesNotMatch(text, /bottom 18%/);
-  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /52%/);
+  assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /52%/);
   assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /mixed-case/);
   assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /beat title/);
   assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /STEP N|STEP 1/);
@@ -201,6 +211,26 @@ test("stripStoryboardWriting removes embedded label quotes", () => {
 test("voiceoverLineLooksLatin detects English narration", () => {
   assert.equal(voiceoverLineLooksLatin("Hello world"), true);
   assert.equal(voiceoverLineLooksLatin("你好"), false);
+});
+
+test("scene text uses the style lettering override when provided", () => {
+  const lettering = {
+    letteringLayout: "Layout: cut-paper VO at 40% height.",
+    letteringLine1: "Line 1 is torn dark-ink paper.",
+    letteringLine2: "Line 2 is a sunflower paper strip.",
+    beatTitleLayout: "Beat title on a kraft tag at 20%.",
+    reelLayout: "Reel cut-paper captions at 70%.",
+  };
+  const marker = sceneTextFrameLines(true, "en", "Hello world now", undefined, {
+    markerSafeZone: true,
+    lettering,
+  }).join("\n");
+  assert.match(marker, /40% height/);
+  assert.match(marker, /torn dark-ink paper/);
+  assert.doesNotMatch(marker, /52% and 60%/);
+  assert.doesNotMatch(marker, /hand-drawn all-caps marker/);
+  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true, lettering }), /40% height/);
+  assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true, lettering }), /70%/);
 });
 
 test("director revision note asks to drop invented labels when toggling", () => {
