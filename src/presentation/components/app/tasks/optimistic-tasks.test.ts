@@ -26,7 +26,7 @@ function serverTask(detail: string, stage: PublicTask["stage"] = "queued"): Publ
     detailKey: detail.includes("影片") ? "tasksPage.detail.clipVideo" : "tasksPage.detail.clipFrameStart",
     detailParams: { n: 1 },
     isVideo: detail.includes("影片"),
-    href: "/app/projects/proj-1?video=vid-1",
+    href: "/app/projects/proj-1/videos/vid-1",
     attempts: 0,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:01.000Z",

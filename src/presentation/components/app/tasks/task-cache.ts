@@ -1,4 +1,5 @@
 import type { PublicTask } from "@/service/generation/task-list";
+import { folderVideoMatchesTask } from "@/service/folder-video-path";
 
 const cache = new Map<string, PublicTask[]>();
 
@@ -19,5 +20,5 @@ export function readCachedTasks(videoId?: string): PublicTask[] | undefined {
   // Header meter already fetched the global list — paint this video's rows now.
   const all = cache.get("*");
   if (!all) return undefined;
-  return all.filter((task) => task.href.includes(`video=${videoId}`));
+  return all.filter((task) => folderVideoMatchesTask(task.href, videoId));
 }

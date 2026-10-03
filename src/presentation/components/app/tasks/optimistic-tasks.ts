@@ -1,4 +1,5 @@
 import type { PublicTask } from "@/service/generation/task-list";
+import { folderVideoMatchesTask, folderVideoPath } from "@/service/folder-video-path";
 
 const OPTIMISTIC_PREFIX = "optimistic:";
 
@@ -13,7 +14,7 @@ const FRAME_KEY = /^frame:(\d+):(start|end)$/;
 const REGEN_KEY = /^clip:(\d+):regen$/;
 
 function hrefFor(projectId: string, videoId: string) {
-  return `/app/projects/${projectId}?video=${videoId}`;
+  return folderVideoPath(projectId, videoId);
 }
 
 function queuedRow(input: {
@@ -120,8 +121,7 @@ export function holdOptimisticTasks(tasks: PublicTask[]) {
 export function readOptimisticTasks(videoId?: string) {
   const tasks = [...store.values()];
   if (!videoId) return tasks;
-  const needle = `video=${videoId}`;
-  return tasks.filter((task) => task.href.includes(needle));
+  return tasks.filter((task) => folderVideoMatchesTask(task.href, videoId));
 }
 
 export function releaseOptimisticTasks(ids: string[]) {

@@ -1,23 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { VideoGenerationProgress } from "@/presentation/components/app/projects/[id]/video-generation-progress";
 import { durationPresetLabel, voLanguageLabel } from "@/util/i18n/picker-labels";
 import { PreviewStrip } from "@/presentation/components/app/preview-strip";
 import type { PublicVideoCard } from "@/presentation/serialize";
+import { folderVideoPath } from "@/service/folder-video-path";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-// One video in the folder grid. Click opens the editor.
+// One video in the folder grid. Click opens the editor in a new tab.
 export function VideoGridCard({
+  folderId,
   video,
-  onSelect,
-  onPrefetch,
 }: {
+  folderId: string;
   video: PublicVideoCard;
-  onSelect: (id: string) => void;
-  onPrefetch?: (id: string) => void;
 }) {
   const { t, locale } = useI18n();
   const previews = video.previewUrls;
@@ -45,10 +45,10 @@ export function VideoGridCard({
       transition={{ duration: 0.3, ease }}
       className="studio-card group flex flex-col overflow-hidden border border-[var(--studio-line)]"
     >
-      <button
-        type="button"
-        onClick={() => onSelect(video.id)}
-        onPointerEnter={() => onPrefetch?.(video.id)}
+      <Link
+        href={folderVideoPath(folderId, video.id)}
+        target="_blank"
+        rel="noopener noreferrer"
         className="flex h-full cursor-pointer flex-col text-left"
       >
         <span className="relative block aspect-video overflow-hidden bg-accent-ink/5">
@@ -69,7 +69,7 @@ export function VideoGridCard({
           </span>
           <span className="text-[11px] text-muted">{created}</span>
         </span>
-      </button>
+      </Link>
     </motion.article>
   );
 }

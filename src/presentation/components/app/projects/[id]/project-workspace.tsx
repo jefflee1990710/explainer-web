@@ -1,299 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { getProjectAction } from "@/presentation/actions/projects";
-import { Spinner } from "@/presentation/components/spinner";
-import type {
-  PublicCharacter,
-  PublicFolder,
-  PublicSkill,
-  PublicStyle,
-  PublicVideo,
-} from "@/presentation/serialize";
-import { toPublicVideoCardFromPublic } from "@/presentation/serialize";
-import { NewProjectForm } from "@/presentation/components/app/projects/new/new-project-form";
-import { DeleteVideoDialog } from "@/presentation/components/app/projects/[id]/delete-video-dialog";
-import {
-  EditorStepSwitch,
-  type EditorStepNav,
-} from "@/presentation/components/app/projects/[id]/editor-step-switch";
-import { VideoEditorDialog } from "@/presentation/components/app/projects/[id]/video-editor-dialog";
-import { VideoEditorShell } from "@/presentation/components/app/projects/[id]/video-editor-shell";
-import { useFolderGenerationPoll } from "@/presentation/components/app/projects/[id]/use-folder-generation-poll";
 import { FolderNameField } from "@/presentation/components/app/projects/[id]/folder-name-field";
 import { VideoTable } from "@/presentation/components/app/projects/[id]/video-table";
+import { useFolderGenerationPoll } from "@/presentation/components/app/projects/[id]/use-folder-generation-poll";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { translateAppError } from "@/util/i18n/translate-app-error";
+import type { PublicFolder } from "@/presentation/serialize";
+import { folderVideoPath } from "@/service/folder-video-path";
 
-// Folder page: paged video table; create/edit opens a full-page editor dialog.
-export function ProjectWorkspace({
-  folder,
-  skills,
-  styles,
-  characters,
-  credits,
-  creditLimit,
-  subscribed,
-}: {
-  folder: PublicFolder;
-  skills: PublicSkill[];
-  styles: PublicStyle[];
-  characters: PublicCharacter[];
-  credits: number;
-  creditLimit: number;
-  subscribed: boolean;
-}) {
+// Folder page: paged video table. Create/edit open a new browser tab.
+export function ProjectWorkspace({ folder }: { folder: PublicFolder }) {
   const { t } = useI18n();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const videoParam = searchParams.get("video");
-  const [activeVideoId, setActiveVideoId] = useState<string | null>(videoParam);
-  const [editorOpen, setEditorOpen] = useState(() => Boolean(videoParam));
-  const [freshById, setFreshById] = useState<Record<string, PublicVideo>>({});
-  const [fetchingId, setFetchingId] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState("");
-  const inflightLoad = useRef<Set<string>>(new Set());
-  const activeVideoIdRef = useRef(activeVideoId);
-  activeVideoIdRef.current = activeVideoId;
-  const [optimisticVideo, setOptimisticVideo] = useState<PublicVideo | null>(null);
-  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [stepNav, setStepNav] = useState<EditorStepNav | null>(null);
-  const onStepNav = useCallback((nav: EditorStepNav | null) => {
-    setStepNav((current) => {
-      if (current === nav) return current;
-      if (!current || !nav) return nav;
-      if (
-        current.status === nav.status &&
-        current.viewing === nav.viewing &&
-        current.clipsReady === nav.clipsReady &&
-        current.failedAtStep === nav.failedAtStep
-      ) {
-        if (current.onSelectStep === nav.onSelectStep) return current;
-        return { ...current, onSelectStep: nav.onSelectStep };
-      }
-      return nav;
-    });
-  }, []);
-
-  // Keep in sync when navigation comes from router (e.g. after createVideo).
-  useEffect(() => {
-    setActiveVideoId(videoParam);
-    if (videoParam) setEditorOpen(true);
-  }, [videoParam]);
-
-  const replaceVideoQuery = useCallback(
-    (id: string | null) => {
-      const url = id ? `${pathname}?video=${encodeURIComponent(id)}` : pathname;
-      window.history.replaceState(window.history.state, "", url);
-    },
-    [pathname],
-  );
-
-  // Full document for the editor; list cards are too light to render the form.
-  const loadVideo = useCallback((id: string) => {
-    if (freshById[id] || inflightLoad.current.has(id)) return;
-    inflightLoad.current.add(id);
-    setFetchingId(id);
-    void getProjectAction(id).then((result) => {
-      inflightLoad.current.delete(id);
-      setFetchingId((current) => (current === id ? null : current));
-      if (result.ok) {
-        setFreshById((prev) => ({ ...prev, [id]: result.project }));
-        if (activeVideoIdRef.current === id) setLoadError("");
-        return;
-      }
-      if (activeVideoIdRef.current === id) setLoadError(result.error);
-    });
-  }, [freshById]);
-
-  useEffect(() => {
-    if (!activeVideoId) return;
-    setLoadError("");
-    loadVideo(activeVideoId);
-  }, [activeVideoId, loadVideo]);
-
-  const prefetchVideo = useCallback(
-    (id: string) => {
-      loadVideo(id);
-    },
-    [loadVideo],
-  );
-
-  const selectedVideo = useMemo(() => {
-    if (!activeVideoId || hiddenIds.has(activeVideoId)) return null;
-    return (
-      freshById[activeVideoId] ??
-      (optimisticVideo?.id === activeVideoId ? optimisticVideo : null)
-    );
-  }, [activeVideoId, freshById, optimisticVideo, hiddenIds]);
-
-  const videoLoading = Boolean(
-    editorOpen && activeVideoId && !selectedVideo && !hiddenIds.has(activeVideoId),
-  );
-  const videoSyncing = Boolean(activeVideoId && fetchingId === activeVideoId && selectedVideo);
-
-  const videos = useMemo(() => {
-    const cards = folder.videos.filter((video) => !hiddenIds.has(video.id));
-    if (
-      optimisticVideo &&
-      !hiddenIds.has(optimisticVideo.id) &&
-      !cards.some((video) => video.id === optimisticVideo.id)
-    ) {
-      return [toPublicVideoCardFromPublic(optimisticVideo), ...cards];
-    }
-    return cards;
-  }, [folder.videos, optimisticVideo, hiddenIds]);
-
-  // List stays visible only while the editor is closed; the editor polls on its own.
-  useFolderGenerationPoll(videos, !editorOpen);
-
-  function onSelect(id: string) {
-    setActiveVideoId(id);
-    setEditorOpen(true);
-    replaceVideoQuery(id);
-  }
-
-  function onCreate() {
-    setActiveVideoId(null);
-    setEditorOpen(true);
-    replaceVideoQuery(null);
-  }
-
-  function onCloseEditor() {
-    setEditorOpen(false);
-    setActiveVideoId(null);
-    setStepNav(null);
-    replaceVideoQuery(null);
-    router.refresh();
-  }
-
-  function onVideoDeleted(id: string) {
-    setHiddenIds((prev) => new Set(prev).add(id));
-    setFreshById((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
-    if (optimisticVideo?.id === id) setOptimisticVideo(null);
-    setDeleteOpen(false);
-    onCloseEditor();
-    router.refresh();
-  }
-
-  const activeCard = videos.find((video) => video.id === activeVideoId) ?? null;
-  const listTitle = activeCard?.title;
-  const editorTitle =
-    selectedVideo?.phaseA?.localizedTitle ||
-    listTitle ||
-    (activeVideoId ? t("video.workspace.fallbackVideo") : t("video.workspace.fallbackNewVideo"));
+  useFolderGenerationPoll(folder.videos, true);
 
   return (
-    <>
-      <div className="space-y-6">
-        <header className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <Link
-              href="/app"
-              className="text-sm font-semibold text-muted transition hover:text-foreground"
-            >
-              {t("video.workspace.backToProjects")}
-            </Link>
-            <FolderNameField folderId={folder.id} name={folder.name} />
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm text-muted">{t("video.workspace.videoCount", { n: videos.length })}</p>
-            <button
-              type="button"
-              onClick={onCreate}
-              className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent-ink px-5 text-sm font-semibold text-lime shadow-[3px_3px_0_0_rgba(198,242,75,0.9)] transition hover:-translate-y-0.5"
-            >
-              {t("video.workspace.createVideo")}
-            </button>
-          </div>
-        </header>
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <Link
+            href="/app"
+            className="text-sm font-semibold text-muted transition hover:text-foreground"
+          >
+            {t("video.workspace.backToProjects")}
+          </Link>
+          <FolderNameField folderId={folder.id} name={folder.name} />
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-muted">{t("video.workspace.videoCount", { n: folder.videos.length })}</p>
+          <Link
+            href={folderVideoPath(folder.id)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent-ink px-5 text-sm font-semibold text-lime shadow-[3px_3px_0_0_rgba(198,242,75,0.9)] transition hover:-translate-y-0.5"
+          >
+            {t("video.workspace.createVideo")}
+          </Link>
+        </div>
+      </header>
 
-        <VideoTable videos={videos} onSelect={onSelect} onPrefetch={prefetchVideo} />
-      </div>
-
-      {editorOpen ? (
-        <VideoEditorDialog
-          title={editorTitle}
-          // Omit until the document arrives so the header task poll does not
-          // take the server-action queue ahead of this open.
-          videoId={selectedVideo?.id}
-          credits={credits}
-          creditLimit={creditLimit}
-          nav={stepNav ? <EditorStepSwitch {...stepNav} /> : null}
-          syncing={videoSyncing}
-          canDelete={Boolean(selectedVideo)}
-          onExport={
-            stepNav?.clipsReady && stepNav.viewing !== 2
-              ? () => stepNav.onSelectStep(2)
-              : undefined
-          }
-          onRestart={stepNav?.canRestart ? stepNav.onRestart : undefined}
-          onClose={onCloseEditor}
-          onDelete={() => setDeleteOpen(true)}
-        >
-          {videoLoading ? (
-            <div className="grid min-h-[16rem] place-items-center p-6">
-              {loadError ? (
-                <div className="max-w-sm space-y-3 text-center">
-                  <p className="text-sm text-accent" role="alert">
-                    {translateAppError(loadError, t)}
-                  </p>
-                  <button
-                    type="button"
-                    className="cursor-pointer rounded-full border border-[var(--studio-line)] px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-[var(--studio-fill)]"
-                    onClick={() => {
-                      if (!activeVideoId) return;
-                      setLoadError("");
-                      loadVideo(activeVideoId);
-                    }}
-                  >
-                    {t("video.workspace.retry")}
-                  </button>
-                </div>
-              ) : activeCard ? (
-                <VideoEditorShell video={activeCard} />
-              ) : (
-                <p className="inline-flex items-center gap-2 text-sm text-muted">
-                  <Spinner />
-                  {t("video.workspace.loading")}
-                </p>
-              )}
-            </div>
-          ) : (
-            <NewProjectForm
-              key={activeVideoId ?? "new"}
-              projectId={folder.id}
-              skills={skills}
-              styles={styles}
-              characters={characters}
-              initialVideo={selectedVideo}
-              credits={credits}
-              subscribed={subscribed}
-              onVideoCreated={(video) => {
-                setOptimisticVideo(video);
-                setActiveVideoId(video.id);
-                replaceVideoQuery(video.id);
-              }}
-              onStepNav={onStepNav}
-            />
-          )}
-        </VideoEditorDialog>
-      ) : null}
-      {deleteOpen && selectedVideo ? (
-        <DeleteVideoDialog
-          video={selectedVideo}
-          onClose={() => setDeleteOpen(false)}
-          onDeleted={() => onVideoDeleted(selectedVideo.id)}
-        />
-      ) : null}
-    </>
+      <VideoTable folderId={folder.id} videos={folder.videos} />
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { charactersCollection, generationJobsCollection, videosCollection } from "@/dao";
+import { folderVideoPath } from "@/service/folder-video-path";
 import { mediaSrc } from "@/util/media-src";
 import type { GenerationJob, GenerationKind, GenerationStatus } from "@/model/generation-job";
 import type { ReelStatus } from "@/model/project";
@@ -109,7 +110,7 @@ export function reelTask(
     detailKey: "tasksPage.detail.reel",
     previewUrl: stage === "done" ? input.reelUrl : undefined,
     isVideo: true,
-    href: `/app/projects/${input.projectId}?video=${input.videoId}`,
+    href: folderVideoPath(input.projectId, input.videoId),
     error: stage === "failed" ? input.reelError : undefined,
     attempts: 0,
     createdAt: input.updatedAt,
@@ -214,7 +215,7 @@ export async function listTasks(
       isVideo: job.kind === "video",
       videoId: job.projectId?.toHexString(),
       href: video
-        ? `/app/projects/${video.projectId.toHexString()}?video=${video._id.toHexString()}`
+        ? folderVideoPath(video.projectId.toHexString(), video._id.toHexString())
         : "/app/characters",
       error: job.status === "failed" || job.status === "nsfw" ? job.error : undefined,
       attempts: job.attempts ?? 0,

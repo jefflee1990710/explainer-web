@@ -11,7 +11,7 @@ test("video mail names the clip and keeps the studio link", () => {
   const copy = {
     kind: "video" as const,
     title: "預測下一個字",
-    href: "https://explainer.io/app/projects/folder?video=vid",
+    href: "https://explainer.io/app/projects/folder/videos/vid",
     clipNumber: 1,
   };
   assert.equal(generationEmailSubject(copy), "影片完成 · 預測下一個字 · Clip 1");
@@ -21,14 +21,14 @@ test("video mail names the clip and keeps the studio link", () => {
   assert.match(html, /#c6f24b/);
   assert.match(html, /#12141c/);
   assert.match(html, /打開工作室/);
-  assert.match(html, /folder\?video=vid/);
+  assert.match(html, /folder\/videos\/vid/);
 });
 
 test("frame mail waits for the pair copy, not a single still", () => {
   const copy = {
     kind: "frames" as const,
     title: "預測下一個字",
-    href: "https://explainer.io/app/projects/folder?video=vid",
+    href: "https://explainer.io/app/projects/folder/videos/vid",
     clipNumber: 2,
   };
   assert.equal(generationEmailSubject(copy), "畫格完成 · 預測下一個字 · Clip 2");

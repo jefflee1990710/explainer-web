@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { folderVideoPath } from "@/service/folder-video-path";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
@@ -146,7 +147,6 @@ export function NewProjectForm({
 }) {
   const router = useRouter();
   const { t } = useI18n();
-  const pathname = usePathname();
   // New-video dialog recalls this folder's last picks; never the script.
   const lastBrief = initialVideo
     ? undefined
@@ -363,7 +363,7 @@ export function NewProjectForm({
     // Switch to the stepper immediately; Phase A runs in the background.
     setProject(result.project);
     onVideoCreated?.(result.project);
-    router.replace(`${pathname}?video=${result.project.id}`);
+    router.replace(folderVideoPath(projectId, result.project.id));
   }
 
   // Wipe storyboard, stills, and clip videos, then rerun Phase A from the form.
