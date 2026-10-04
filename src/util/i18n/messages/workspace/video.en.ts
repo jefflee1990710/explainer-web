@@ -121,7 +121,7 @@ export const videoEn = {
     empty: "No cover yet.",
     current: "Current cover",
     safeAreaLabel: "Safe area",
-    safeAreaHint: "Optional. Checked apps get padding so the whole cover still shows after they crop it.",
+    safeAreaHint: "Optional. The cover is recomposed in this video's character and style so the subject stays readable after the app crops it.",
     safeAreas: {
       igReel: {
         label: "Instagram Reels",

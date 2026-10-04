@@ -121,7 +121,7 @@ export const videoZhHant = {
     empty: "還沒有封面。",
     current: "目前封面",
     safeAreaLabel: "安全區",
-    safeAreaHint: "選填。勾選的平台會留白，裁切後仍看得到完整封面。",
+    safeAreaHint: "選填。封面會依這支影片的角色與風格重排，裁切後主體仍看得到。",
     safeAreas: {
       igReel: {
         label: "Instagram Reels",

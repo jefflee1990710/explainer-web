@@ -214,6 +214,7 @@ export function VideoEditPreview({
         activeId={previewId}
         coverUrl={coverUrl}
         coverBusy={coverBusy}
+        aspectRatio={aspectRatio}
         onPlayFrom={playFrom}
         onTransitionChange={onTransitionChange}
         onOpenSlot={openSlot}

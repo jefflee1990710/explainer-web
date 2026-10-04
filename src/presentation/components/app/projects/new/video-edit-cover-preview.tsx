@@ -19,11 +19,7 @@ export function VideoEditCoverPreview({
     <div className="flex h-full min-h-72 items-center justify-center border-t border-[var(--studio-line)] bg-[var(--studio-canvas)] p-6 lg:border-l lg:border-t-0">
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt={label}
-          className="max-h-[min(70vh,36rem)] max-w-full object-contain"
-        />
+        <img src={src} alt={label} className="max-h-[min(70vh,36rem)] max-w-full object-contain" />
       ) : (
         <p
           className={`grid w-full max-w-[16rem] place-items-center border border-dashed border-[var(--studio-line)] bg-[var(--studio-fill)] px-3 text-center text-xs text-[var(--studio-muted)] ${ASPECT_CLASS[aspectRatio]}`}

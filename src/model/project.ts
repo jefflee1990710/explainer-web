@@ -235,6 +235,8 @@ export type Project = {
   coverPrompt?: string;
   // Social apps whose crop the last cover was composed to survive.
   coverSafeAreas?: CoverSafeArea[];
+  // True once those margins are scaled into the saved still, not only written into the prompt.
+  coverInset?: boolean;
   // Template last applied to or saved from this video.
   editTemplateId?: ObjectId;
   // Branded export. Fingerprint = reel fingerprint + edit hash.
@@ -392,6 +394,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   coverCreditsCharged: z.boolean().optional(),
   coverPrompt: z.string().optional(),
   coverSafeAreas: z.array(z.enum(COVER_SAFE_AREA_IDS)).optional(),
+  coverInset: z.boolean().optional(),
   editTemplateId: objectIdSchema.optional(),
   finalUrl: z.string().optional(),
   finalStatus: z.enum(["queued", "in_progress", "completed", "failed"]).optional(),

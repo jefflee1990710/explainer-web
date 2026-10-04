@@ -14,6 +14,8 @@ import { resolveSceneText } from "@/service/director/scene-text";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { styleLetteringLine, styleLinesForFrame } from "@/service/style/prompts";
 import { captionBrief } from "@/service/video-share/caption-brief";
+import { frameLockReferenceUrls } from "@/service/character/cast-prompt";
+import { logoReferenceUrls } from "@/service/higgsfield/frame-prompts";
 import { coverSafeAreaPrompt, parseCoverSafeAreas } from "@/service/video-edit/cover-safe-area";
 import type { CoverSafeArea } from "@/model/project";
 import { mediaSrc } from "@/util/media-src";
@@ -38,6 +40,46 @@ export function parseCoverPrompt(raw: unknown): { ok: true; prompt: string } | {
   return { ok: true, prompt };
 }
 
+// Character and setting from the storyboard, so the cover stays this video.
+function coverContinuity(project: Project): string {
+  const phase = project.phaseA;
+  const cast = project.cast ?? [];
+  const character = cast.length
+    ? `${cast.map((member) => member.name).join(", ")}. Keep this exact character. Appearance follows the attached blueprint.`
+    : phase?.characterLock?.trim();
+  return [
+    phase?.visualWorld?.trim() && `Setting: ${phase.visualWorld.trim()}`,
+    phase?.palette?.trim() && `Palette: ${phase.palette.trim()}`,
+    character && `Character: ${character}`,
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
+}
+
+// Which attached image locks the still, the character, and the logo.
+export function coverReferenceNote(counts: { still: number; character: number; logo: number }) {
+  const lines: string[] = [];
+  let index = 1;
+  if (counts.still) {
+    lines.push(
+      `Attached image ${index} is a still from this video. Match its character, setting, palette, and style. Do not copy its framing or where the title sits.`,
+    );
+    index += counts.still;
+  }
+  if (counts.character) {
+    const end = index + counts.character - 1;
+    const label = counts.character === 1 ? `Attached image ${index}` : `Attached images ${index}–${end}`;
+    lines.push(
+      `${label} lock how the character looks. Draw one instance of that character. Do not copy the sheet layout.`,
+    );
+    index = end + 1;
+  }
+  if (counts.logo) {
+    lines.push(`Attached image ${index} is the brand logo. Keep it intact and place it with the title.`);
+  }
+  return lines.join("\n");
+}
+
 // Title, message, hook, and clip lines plus the video's visual style.
 export function reelCoverPrompt(project: Project): string {
   const brief = captionBrief({ source: project.source, phaseA: project.phaseA });
@@ -48,6 +90,7 @@ export function reelCoverPrompt(project: Project): string {
     "No device chrome, no play button, no UI mockup.",
     `Aspect ratio ${project.aspectRatio}.`,
     brief,
+    coverContinuity(project),
     safeArea,
     extra ? `Extra requirement: ${extra}` : "",
   ]
@@ -205,6 +248,9 @@ export async function sendReelCover(project: Project) {
   });
   const sceneText = resolveSceneText(project);
   const startFrame = project.frames?.find((frame) => frame.position === "start" && (frame.blobUrl || frame.outputUrl));
+  const stillUrl = startFrame ? mediaSrc(startFrame) : "";
+  const characterUrls = frameLockReferenceUrls(project);
+  const logoUrls = logoReferenceUrls(project);
   const model = IMAGE_ROUTE_BY_SCENE_TEXT[sceneText.language].model;
   const submitted = await submitImage({
     model,
@@ -212,12 +258,17 @@ export async function sendReelCover(project: Project) {
       ...styleLinesForFrame(style),
       styleLetteringLine(style),
       reelCoverPrompt(project),
+      coverReferenceNote({
+        still: stillUrl ? 1 : 0,
+        character: characterUrls.length,
+        logo: logoUrls.length,
+      }),
     ].join("\n"),
     aspectRatio: project.aspectRatio,
     quality: "medium",
     resolution: "1k",
     sceneTextLanguage: sceneText.language,
-    referenceImageUrls: startFrame ? [mediaSrc(startFrame)].filter(Boolean) : undefined,
+    referenceImageUrls: [stillUrl, ...characterUrls, ...logoUrls],
   });
   return toSent(model, submitted);
 }
@@ -247,6 +298,7 @@ export async function syncReelCoverJob(job: GenerationJob, status: GenerationSta
         coverCreditsCharged: false,
         updatedAt: new Date(),
       },
+      $unset: { coverInset: "" as const },
     });
     return;
   }

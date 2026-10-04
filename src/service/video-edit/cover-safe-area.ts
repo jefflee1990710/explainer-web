@@ -1,14 +1,19 @@
 import { COVER_SAFE_AREA_IDS, type CoverSafeArea } from "@/model/project";
+import { strictestCoverInsets } from "@/service/video-edit/cover-safe-insets";
 
-// Padding that keeps the subject inside each app's crop. Percentages of the frame.
+// What each app covers. The picture stays full-bleed; only the subject moves.
 const SAFE_AREA_LINE: Record<CoverSafeArea, string> = {
   "ig-reel":
-    "Instagram Reels safe area: keep the entire subject, face, title, and logo inside the center so the whole picture still reads after cropping. Leave plain background padding of about 14% at the top, 25% at the bottom, 6% on the left, and 18% on the right. The profile grid crops a 9:16 cover down to the center 3:4, and the Reels list covers the top bar, the bottom caption, and the buttons on the right. Do not place the face, title, or logo in those margins.",
+    "Instagram Reels: the profile grid crops a 9:16 cover down to the center 3:4, and the Reels list covers the top bar, the bottom caption, and the buttons on the right. Those bands may show the scene background only.",
   tiktok:
-    "TikTok safe area: keep the entire subject, face, title, and logo inside the center. Leave plain background padding of about 12% at the top, 22% at the bottom, 6% on the left, and 16% on the right. The profile grid crops toward the center, and the For You page covers the bottom caption and the buttons on the right. Do not place the face, title, or logo in those margins.",
+    "TikTok: the profile grid crops toward the center, and the For You page covers the bottom caption and the buttons on the right. Those bands may show the scene background only.",
   "youtube-shorts":
-    "YouTube Shorts safe area: keep the entire subject, face, title, and logo inside the center. Leave plain background padding of about 12% at the top, 20% at the bottom, and 8% on each side. The Shorts shelf and player crop the edges and cover the bottom title. Do not place the face, title, or logo in those margins.",
+    "YouTube Shorts: the Shorts shelf and player crop the edges and cover the bottom title. Those bands may show the scene background only.",
 };
+
+function percent(fraction: number) {
+  return `${Math.round(fraction * 100)}%`;
+}
 
 export function parseCoverSafeAreas(
   raw: unknown,
@@ -25,14 +30,21 @@ export function parseCoverSafeAreas(
   return { ok: true, areas: COVER_SAFE_AREA_IDS.filter((id) => picked.has(id)) };
 }
 
-// One paragraph per checked app, plus a line to satisfy all of them together.
+// Tell the image model to recompose the same scene, not to matte it.
 export function coverSafeAreaPrompt(areas: CoverSafeArea[] | undefined) {
   const parsed = parseCoverSafeAreas(areas ?? []);
   if (!parsed.ok || parsed.areas.length === 0) return "";
-  const lines = parsed.areas.map((id) => SAFE_AREA_LINE[id]);
+  const box = strictestCoverInsets(parsed.areas);
+  if (!box) return "";
+  const lines = [
+    "Rearrange this cover. Keep the same character, wardrobe, face, setting, palette, and style. Do not invent a new look and do not copy the reference framing.",
+    "Paint the scene edge to edge in that same style. The outer bands are more of the same background and setting. Do not add a white border, letterbox, matte, or empty padding, and do not shrink the picture onto a blank field.",
+    `Place the character, face, title, and logo entirely inside the inner rectangle: ${percent(box.top)} down from the top, ${percent(box.bottom)} up from the bottom, ${percent(box.left)} in from the left, and ${percent(box.right)} in from the right.`,
+    ...parsed.areas.map((id) => SAFE_AREA_LINE[id]),
+  ];
   if (parsed.areas.length > 1) {
     lines.push(
-      "Satisfy every selected safe area at once: use the largest padding on each edge so one cover stays fully readable on all of them.",
+      "Satisfy every selected safe area at once: keep the subject inside the strictest inner rectangle so one cover stays readable on all of them.",
     );
   }
   return lines.join("\n");
