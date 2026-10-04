@@ -5,29 +5,36 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import { generateReelCoverAction } from "@/presentation/actions/video-edit";
-import { getProjectAction } from "@/presentation/actions/projects";
+import {
+  holdOptimisticTasks,
+  paidKeyTasks,
+  releaseOptimisticTasks,
+} from "@/presentation/components/app/tasks/optimistic-tasks";
+import { beginTaskRefresh, endTaskRefresh } from "@/presentation/components/app/tasks/task-refresh";
+import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { FRAME_COST } from "@/service/credit-costs";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { PublicVideo } from "@/presentation/serialize";
 
-const POLL_MS = 4000;
-
-// Generate a reel thumbnail from the saved storyboard and style.
+// Queue a reel thumbnail, then close. The shared task poller finishes it.
 export function VideoEditCoverDialog({
   project,
   credits,
   onProjectChange,
+  onCreditsChange,
   onClose,
 }: {
   project: PublicVideo;
   credits: number;
   onProjectChange: (project: PublicVideo) => void;
+  onCreditsChange?: (delta: number) => void;
   onClose: () => void;
 }) {
   const { t } = useI18n();
   const titleId = useId();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [extraPrompt, setExtraPrompt] = useState(project.coverPrompt ?? "");
   const generating = project.coverStatus === "generating" || pending;
   const enough = credits >= FRAME_COST;
 
@@ -39,36 +46,38 @@ export function VideoEditCoverDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  useEffect(() => {
-    if (project.coverStatus !== "generating") return;
-    let cancelled = false;
-    async function tick() {
-      const result = await getProjectAction(project.id);
-      if (cancelled || !result.ok) return;
-      onProjectChange(result.project);
-    }
-    void tick();
-    const timer = window.setInterval(() => void tick(), POLL_MS);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [project.coverStatus, project.id, onProjectChange]);
-
   async function generate() {
     if (generating || !enough) return;
     setError("");
     setPending(true);
+    const held = holdOptimisticTasks(
+      paidKeyTasks({
+        videoId: project.id,
+        projectId: project.projectId,
+        title: project.phaseA?.localizedTitle || t("brief.fallback.unnamedVideo"),
+        keys: ["cover"],
+      }),
+    );
+    beginTaskRefresh();
+    notifyTasksChanged();
     try {
-      const result = await generateReelCoverAction(project.id);
+      const result = await generateReelCoverAction(project.id, extraPrompt);
       if (!result.ok) {
+        releaseOptimisticTasks(held);
+        notifyTasksChanged();
         setError(translateAppError(result.error, t));
         return;
       }
       onProjectChange(result.project);
+      onCreditsChange?.(-FRAME_COST);
+      notifyTasksChanged();
+      onClose();
     } catch {
+      releaseOptimisticTasks(held);
+      notifyTasksChanged();
       setError(t("errors.coverFailed"));
     } finally {
+      endTaskRefresh();
       setPending(false);
     }
   }
@@ -86,6 +95,18 @@ export function VideoEditCoverDialog({
           {t("video.cover.title")}
         </h2>
         <p className="mt-1 text-xs text-[var(--studio-muted)]">{t("video.cover.body")}</p>
+        <label className="mt-3 block">
+          <span className="text-xs font-semibold">{t("video.cover.promptLabel")}</span>
+          <span className="mt-0.5 block text-[11px] text-[var(--studio-muted)]">{t("video.cover.promptHint")}</span>
+          <textarea
+            value={extraPrompt}
+            rows={3}
+            disabled={generating}
+            placeholder={t("video.cover.promptPlaceholder")}
+            onChange={(event) => setExtraPrompt(event.target.value)}
+            className="mt-1.5 w-full resize-y rounded-lg border border-[var(--studio-line)] bg-white px-2 py-1.5 text-xs leading-5 text-[var(--studio-ink)] disabled:opacity-60"
+          />
+        </label>
         <div className="mt-3 overflow-hidden rounded-lg border border-[var(--studio-line)] bg-[var(--studio-fill)]">
           {project.coverUrl ? (
             // eslint-disable-next-line @next/next/no-img-element

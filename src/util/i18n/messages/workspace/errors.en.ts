@@ -70,6 +70,7 @@ export const errorsEn = {
   stylePreviewBusy: "A preview is already generating",
   coverFailed: "Could not generate the cover",
   coverBusy: "A cover is already generating",
+  coverPromptTooLong: "Cover extra requirement is too long",
 } as const;
 
 

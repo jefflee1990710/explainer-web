@@ -73,6 +73,7 @@ export type PublicVideo = {
   edit?: VideoEdit;
   coverUrl?: string;
   coverStatus?: Project["coverStatus"];
+  coverPrompt?: string;
   editTemplateId?: string;
   finalUrl?: string;
   finalStatus?: Project["finalStatus"];
@@ -251,6 +252,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     edit: video.edit,
     coverUrl: video.coverUrl,
     coverStatus: video.coverStatus,
+    coverPrompt: video.coverPrompt,
     editTemplateId: video.editTemplateId?.toHexString(),
     finalUrl: video.finalUrl,
     finalStatus: video.finalStatus,

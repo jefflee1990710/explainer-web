@@ -9,7 +9,7 @@ import { VideoSharePanel } from "@/presentation/components/app/projects/new/vide
 import { VideoEditLayers } from "@/presentation/components/app/projects/new/video-edit-layers";
 import { VideoEditPreview, type EditSelection } from "@/presentation/components/app/projects/new/video-edit-preview";
 import { VideoEditProperties } from "@/presentation/components/app/projects/new/video-edit-properties";
-import type { EditSlot } from "@/presentation/components/app/projects/new/video-edit-slot-bar";
+import type { EditSlot } from "@/presentation/components/app/projects/new/video-edit-timeline";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { updateVideoEditAction } from "@/presentation/actions/video-edit";
 import {
@@ -33,11 +33,13 @@ export function VideoEditDesk({
   credits,
   error,
   onProjectChange,
+  onCreditsChange,
 }: {
   project: PublicVideo;
   credits: number;
   error: string;
   onProjectChange: (project: PublicVideo) => void;
+  onCreditsChange?: (delta: number) => void;
 }) {
   const { t } = useI18n();
   const [edit, setEdit] = useState<VideoEdit>(() => project.edit ?? emptyEdit());
@@ -237,6 +239,7 @@ export function VideoEditDesk({
         project={project}
         credits={credits}
         onProjectChange={onProjectChange}
+        onCreditsChange={onCreditsChange}
         onClose={() => setSlotDialog(null)}
       />
     ) : null}

@@ -12,7 +12,7 @@ import type { PublicVideo } from "@/presentation/serialize";
 
 const INTERVAL_MS = 2500;
 
-// Poll while the director writes, a frame/video job is in flight, the
+// Poll while the director writes, a frame/video/cover job is in flight, the
 // reel is concatenating, or the branded export is rendering. Provider
 // refresh is skipped for reel-only waits.
 // Each tick pushes the freshest project into React state so tiles / timeline
@@ -27,11 +27,12 @@ export function useProjectPoll(
   const status = project?.status;
   const clipBusy = project ? isProjectBusy(project) : false;
   const reelBusy = project ? isReelBusy(project.reelStatus) || isFinalRunning(project) : false;
-  const busy = clipBusy || reelBusy;
+  const coverBusy = project?.coverStatus === "generating";
+  const busy = clipBusy || reelBusy || coverBusy;
 
   useEffect(() => {
     if (!id || !busy) return;
-    const needsJobRefresh = clipBusy && status !== "phase_a";
+    const needsJobRefresh = (clipBusy && status !== "phase_a") || coverBusy;
     let cancelled = false;
     // A slow refresh skips the next tick instead of stacking requests.
     let inFlight = false;
@@ -72,7 +73,7 @@ export function useProjectPoll(
       if (!next) return;
       onUpdate(next);
       // Settled: refresh the server render so lists/badges catch up.
-      if (!isProjectBusy(next) && !isReelBusy(next.reelStatus) && !isFinalRunning(next)) {
+      if (!isProjectBusy(next) && !isReelBusy(next.reelStatus) && !isFinalRunning(next) && next.coverStatus !== "generating") {
         router.refresh();
       }
     }
@@ -83,7 +84,7 @@ export function useProjectPoll(
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [id, status, busy, clipBusy, onUpdate, onError, router]);
+  }, [id, status, busy, clipBusy, coverBusy, onUpdate, onError, router]);
 
   // The task list is what lands a finished file. The editor may already
   // look idle (old still still on screen), so reload that video when its

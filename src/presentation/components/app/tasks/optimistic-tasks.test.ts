@@ -36,14 +36,15 @@ function serverTask(detail: string, stage: PublicTask["stage"] = "queued"): Publ
 test("paidKeyTasks turns a generate click into queued rows before the job exists", () => {
   const tasks = paidKeyTasks({
     ...video,
-    keys: ["video:3", "frames:2", "frame:1:end", "clip:4"],
+    keys: ["video:3", "frames:2", "frame:1:end", "clip:4", "cover"],
     now: "2026-09-30T12:00:00.000Z",
   });
   assert.deepEqual(
     tasks.map((task) => task.detail),
-    ["Clip 3 · 影片", "Clip 2 · 起始畫格", "Clip 2 · 結尾畫格", "Clip 1 · 結尾畫格"],
+    ["Clip 3 · 影片", "Clip 2 · 起始畫格", "Clip 2 · 結尾畫格", "Clip 1 · 結尾畫格", "影片封面"],
   );
   assert.equal(tasks.every((task) => task.stage === "queued" && task.id.startsWith("optimistic:")), true);
+  assert.equal(tasks.at(-1)?.kind, "reelCover");
 });
 
 test("merge keeps optimistic rows until a matching active server job arrives", () => {

@@ -1037,6 +1037,7 @@ export function NewProjectForm({
               credits={walletCredits}
               error={error}
               onProjectChange={setProject}
+              onCreditsChange={(delta) => setWalletCredits((current) => current + delta)}
             />
           ) : project?.status === "failed" && viewing === liveStep ? (
             <FailedCard

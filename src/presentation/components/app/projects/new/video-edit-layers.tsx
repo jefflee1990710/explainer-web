@@ -7,7 +7,7 @@ import type { VideoEdit } from "@/model/video-edit";
 
 const IMAGE_ACCEPT = "image/png,image/jpeg,image/webp";
 
-// Layer list only. Intro / outro are set from the timeline slot bar.
+// Layer list only. Cover / intro / outro are set from the timeline cards.
 export function VideoEditLayers({
   edit,
   selected,

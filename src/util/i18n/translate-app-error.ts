@@ -71,6 +71,7 @@ const EXACT: Record<string, string> = {
   "封面排隊失敗": "errors.coverFailed",
   "封面生成中": "errors.coverBusy",
   "還沒有分鏡內容，無法產生封面": "errors.coverFailed",
+  "封面補充需求最多 500 字": "errors.coverPromptTooLong",
 };
 
 const PATTERNS: Array<{ re: RegExp; key: string; params?: (m: RegExpMatchArray) => Record<string, string | number> }> = [

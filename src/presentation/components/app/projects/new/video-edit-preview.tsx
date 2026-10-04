@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { ASPECT_CLASS } from "@/presentation/components/project/frame-tile";
 import { useElementSize } from "@/presentation/components/app/projects/new/use-element-size";
-import { VideoEditSlotBar, type EditSlot } from "@/presentation/components/app/projects/new/video-edit-slot-bar";
-import { VideoEditTimeline } from "@/presentation/components/app/projects/new/video-edit-timeline";
+import { VideoEditTimeline, type EditSlot } from "@/presentation/components/app/projects/new/video-edit-timeline";
 import {
   layerPlacement,
   placementFromDrag,
@@ -80,6 +79,15 @@ export function VideoEditPreview({
     if (item?.mediaKind === "video") {
       requestAnimationFrame(() => void videoRef.current?.play());
     }
+  }
+
+  function openSlot(slot: EditSlot) {
+    if (slot === "intro" || slot === "outro") {
+      onSelect(slot);
+      setPreviewId(slot);
+      setAdvancing(false);
+    }
+    onOpenSlot(slot);
   }
 
   function advance() {
@@ -204,15 +212,11 @@ export function VideoEditPreview({
         items={items}
         edit={edit}
         activeId={previewId}
-        onPlayFrom={playFrom}
-        onTransitionChange={onTransitionChange}
-      />
-      <VideoEditSlotBar
         coverUrl={coverUrl}
         coverBusy={coverBusy}
-        intro={edit.intro}
-        outro={edit.outro}
-        onOpen={onOpenSlot}
+        onPlayFrom={playFrom}
+        onTransitionChange={onTransitionChange}
+        onOpenSlot={openSlot}
       />
     </div>
   );

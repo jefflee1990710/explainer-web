@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { reelCoverInFlight, reelCoverPrompt } from "@/service/video-edit/reel-cover";
+import { isCoverRunning, parseCoverPrompt, reelCoverInFlight, reelCoverPrompt } from "@/service/video-edit/reel-cover";
 import type { Project } from "@/model/project";
 
 function project(partial: Partial<Project> = {}): Project {
@@ -35,6 +35,17 @@ test("reelCoverPrompt uses the storyboard and aspect ratio", () => {
   assert.match(prompt, /Missed sleep adds up/);
   assert.match(prompt, /You cannot bank sleep/);
   assert.match(prompt, /cover still/i);
+  assert.doesNotMatch(prompt, /Extra requirement/);
+});
+
+test("reelCoverPrompt appends a trimmed extra requirement", () => {
+  const prompt = reelCoverPrompt(project({ coverPrompt: "  big title, no extra faces  " }));
+  assert.match(prompt, /Extra requirement: big title, no extra faces/);
+});
+
+test("parseCoverPrompt trims and rejects a long extra requirement", () => {
+  assert.deepEqual(parseCoverPrompt("  keep the title  "), { ok: true, prompt: "keep the title" });
+  assert.equal(parseCoverPrompt("x".repeat(501)).ok, false);
 });
 
 test("reelCoverInFlight is true only while generating and younger than 15 minutes", () => {
@@ -48,4 +59,10 @@ test("reelCoverInFlight is true only while generating and younger than 15 minute
     false,
   );
   assert.equal(reelCoverInFlight({ coverStatus: "idle" }, now), false);
+});
+
+test("isCoverRunning is true only while the cover job is generating", () => {
+  assert.equal(isCoverRunning({ coverStatus: "generating" }), true);
+  assert.equal(isCoverRunning({ coverStatus: "idle" }), false);
+  assert.equal(isCoverRunning({}), false);
 });

@@ -110,8 +110,11 @@ export const videoEn = {
     outro: "Outro",
   },
   cover: {
-    title: "Reel cover",
-    body: "Generate a still from this reel’s title, scenes, and style. Use it as the thumbnail when you share.",
+    title: "Video cover",
+    body: "Generate a still from this video’s title, scenes, and style. Use it as the thumbnail when you share.",
+    promptLabel: "Extra requirement",
+    promptHint: "Optional. Added on top of the video title, scenes, and style.",
+    promptPlaceholder: "e.g. Keep the title large. No extra characters.",
     generate: "Generate cover · {credits} credits",
     generating: "Generating cover…",
     failed: "Cover generation failed. Try again.",

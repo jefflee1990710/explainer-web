@@ -110,8 +110,11 @@ export const videoZhHant = {
     outro: "結尾",
   },
   cover: {
-    title: "成片封面",
-    body: "依這支成片的標題、分鏡與風格產生一張靜態封面，分享時可當縮圖。",
+    title: "影片封面",
+    body: "依這支影片的標題、分鏡與風格產生一張靜態封面，分享時可當縮圖。",
+    promptLabel: "補充需求",
+    promptHint: "選填。會加在標題、分鏡與風格之上。",
+    promptPlaceholder: "例如：標題放大、不要加額外角色。",
     generate: "產生封面 · {credits} 點",
     generating: "正在產生封面…",
     failed: "封面產生失敗，請再試一次。",

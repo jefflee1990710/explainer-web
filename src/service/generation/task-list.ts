@@ -54,7 +54,7 @@ export function taskDetail(job: Pick<GenerationJob, "kind" | "clipIndex" | "fram
   if (job.kind === "still") return "角色定裝圖";
   if (job.kind === "character") return "角色藍圖";
   if (job.kind === "stylePreview") return "風格預覽";
-  if (job.kind === "reelCover") return "成片封面";
+  if (job.kind === "reelCover") return "影片封面";
   const clip = `Clip ${job.clipIndex + 1}`;
   if (job.kind === "video") return `${clip} · 影片`;
   return `${clip} · ${job.framePosition === "end" ? "結尾畫格" : "起始畫格"}`;

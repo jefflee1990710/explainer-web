@@ -18,6 +18,7 @@ import { mediaSrc } from "@/util/media-src";
 import { toPublicVideo } from "@/presentation/serialize";
 
 const COVER_IN_FLIGHT_MS = 15 * 60 * 1000;
+export const COVER_PROMPT_MAX = 500;
 
 export type GenerateReelCoverResult =
   | { ok: true; project: ReturnType<typeof toPublicVideo> }
@@ -29,14 +30,22 @@ function fail(error: unknown, fallback: string): { ok: false; error: string } {
   return { ok: false, error: error instanceof Error ? error.message : fallback };
 }
 
+export function parseCoverPrompt(raw: unknown): { ok: true; prompt: string } | { ok: false; error: string } {
+  const prompt = typeof raw === "string" ? raw.trim() : "";
+  if (prompt.length > COVER_PROMPT_MAX) return { ok: false, error: "封面補充需求最多 500 字" };
+  return { ok: true, prompt };
+}
+
 // Title, message, hook, and clip lines plus the video's visual style.
 export function reelCoverPrompt(project: Project): string {
   const brief = captionBrief({ source: project.source, phaseA: project.phaseA });
+  const extra = project.coverPrompt?.trim() ?? "";
   return [
     "Single cover still for a finished explainer reel.",
     "No device chrome, no play button, no UI mockup.",
     `Aspect ratio ${project.aspectRatio}.`,
     brief,
+    extra ? `Extra requirement: ${extra}` : "",
   ]
     .filter((line) => line.trim().length > 0)
     .join("\n");
@@ -45,6 +54,11 @@ export function reelCoverPrompt(project: Project): string {
 export function reelCoverInFlight(doc: CoverFlight, now: Date): boolean {
   if (doc.coverStatus !== "generating" || !doc.coverStartedAt) return false;
   return now.getTime() - doc.coverStartedAt.getTime() < COVER_IN_FLIGHT_MS;
+}
+
+// Video-tab poller: cover jobs live in generationJobs, same as frames.
+export function isCoverRunning(project: { coverStatus?: CoverStatus }) {
+  return project.coverStatus === "generating";
 }
 
 function coverClaimFilter(input: { videoId: ObjectId; clerkUserId: string; now: Date }): Filter<Project> {
@@ -88,7 +102,7 @@ async function claimCoverRefund(videoId: ObjectId, clerkUserId: string, coverSta
 }
 
 // Claim the slot, charge once, then queue a reelCover still.
-export async function generateReelCoverAction(videoId: string): Promise<GenerateReelCoverResult> {
+export async function generateReelCoverAction(videoId: string, extraPrompt?: string): Promise<GenerateReelCoverResult> {
   let spendKey: string | undefined;
   let jobQueued = false;
   let id: ObjectId | undefined;
@@ -105,11 +119,20 @@ export async function generateReelCoverAction(videoId: string): Promise<Generate
     if (!video) return { ok: false, error: "找不到影片" };
     if (!video.phaseA) return { ok: false, error: "還沒有分鏡內容，無法產生封面" };
 
+    const parsed = parseCoverPrompt(extraPrompt);
+    if (!parsed.ok) return parsed;
+
     const now = new Date();
     id = video._id;
     coverStartedAt = now;
     const claimed = await videos.updateOne(coverClaimFilter({ videoId: video._id, clerkUserId: user.clerkUserId, now }), {
-      $set: { coverStatus: "generating", coverStartedAt: now, updatedAt: now },
+      $set: {
+        coverStatus: "generating",
+        coverStartedAt: now,
+        updatedAt: now,
+        ...(parsed.prompt ? { coverPrompt: parsed.prompt } : {}),
+      },
+      ...(parsed.prompt ? {} : { $unset: { coverPrompt: "" } }),
     });
     if (claimed.matchedCount !== 1) return { ok: false, error: "封面生成中" };
 

@@ -228,6 +228,8 @@ export type Project = {
   coverStatus?: CoverStatus;
   coverStartedAt?: Date;
   coverCreditsCharged?: boolean;
+  // Optional extra requirement for the last cover generate.
+  coverPrompt?: string;
   // Template last applied to or saved from this video.
   editTemplateId?: ObjectId;
   // Branded export. Fingerprint = reel fingerprint + edit hash.
@@ -383,6 +385,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   coverStatus: z.enum(["idle", "generating", "failed"]).optional(),
   coverStartedAt: z.date().optional(),
   coverCreditsCharged: z.boolean().optional(),
+  coverPrompt: z.string().optional(),
   editTemplateId: objectIdSchema.optional(),
   finalUrl: z.string().optional(),
   finalStatus: z.enum(["queued", "in_progress", "completed", "failed"]).optional(),

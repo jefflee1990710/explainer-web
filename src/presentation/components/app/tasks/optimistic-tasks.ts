@@ -12,6 +12,7 @@ const VIDEO_KEY = /^video:(\d+)$/;
 const FRAMES_KEY = /^frames:(\d+)$/;
 const FRAME_KEY = /^frame:(\d+):(start|end)$/;
 const REGEN_KEY = /^clip:(\d+):regen$/;
+const COVER_KEY = /^cover$/;
 
 function hrefFor(projectId: string, videoId: string) {
   return folderVideoPath(projectId, videoId);
@@ -89,6 +90,24 @@ export function paidKeyTasks(input: {
           position: frame[2] === "end" ? "end" : "start",
         }),
       );
+      continue;
+    }
+    if (COVER_KEY.test(key)) {
+      sequence += 1;
+      tasks.push({
+        id: `${OPTIMISTIC_PREFIX}${sequence}:影片封面`,
+        kind: "reelCover",
+        stage: "queued",
+        title: input.title,
+        detail: "影片封面",
+        detailKey: "tasksPage.detail.reelCover",
+        isVideo: false,
+        videoId: input.videoId,
+        href: hrefFor(input.projectId, input.videoId),
+        attempts: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
     }
   }
   return tasks;
