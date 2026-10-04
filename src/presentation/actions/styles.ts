@@ -1,6 +1,7 @@
 "use server";
 
 import * as service from "@/service/style/user-style-actions";
+import * as chatImage from "@/service/style/chat-image-upload";
 
 export type {
   CreateUserStyleResult,
@@ -38,4 +39,10 @@ export async function generateUserStylePreviewAction(
   ...args: Parameters<typeof service.generateUserStylePreviewAction>
 ) {
   return service.generateUserStylePreviewAction(...args);
+}
+
+export async function uploadStyleChatImageAction(
+  ...args: Parameters<typeof chatImage.uploadStyleChatImageAction>
+) {
+  return chatImage.uploadStyleChatImageAction(...args);
 }

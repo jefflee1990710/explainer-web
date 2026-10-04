@@ -7,6 +7,7 @@ import { isStyleId, type StyleId } from "@/model/style-id";
 import type { StyleChatMessage, UserStyleDoc } from "@/model/user-style";
 import { requireAppUser } from "@/service/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
+import { loadDirectorImageParts } from "@/service/character/cast-prompt";
 import { chatRateLimited } from "@/service/director/chat-rate-limit";
 import { directorModel } from "@/service/director/model";
 import { normalizeChatSummary } from "@/service/director/director-chat-prompt";
@@ -38,7 +39,14 @@ export type CreateUserStyleResult = { ok: true; id: string } | { ok: false; erro
 export type SaveUserStyleResult = { ok: true } | { ok: false; error: string };
 export type DeleteUserStyleResult = { ok: true } | { ok: false; error: string };
 export type UserStyleChatResult =
-  | { ok: true; summary: string; fields: UserStyleFields; changedFields: UserStyleVisualKey[] }
+  | {
+      ok: true;
+      summary: string;
+      fields: UserStyleFields;
+      changedFields: UserStyleVisualKey[];
+      createdAt: string;
+      previewUrl?: string;
+    }
   | { ok: false; error: string };
 
 export type { GenerateUserStylePreviewResult } from "@/service/style/user-style-preview";
@@ -180,9 +188,22 @@ export async function deleteUserStyleAction(input: { id: string }): Promise<Dele
 }
 
 // Ask the AI to edit the current visual draft; persists chat only, never the draft fields.
+function parseChatImageUrl(value: unknown): string | undefined {
+  const raw = String(value ?? "").trim();
+  if (!raw) return undefined;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== "https:") return undefined;
+    return parsed.toString();
+  } catch {
+    return undefined;
+  }
+}
+
 export async function sendUserStyleChatAction(input: {
   id: string;
   message: string;
+  imageUrl?: string;
   draft: unknown;
 }): Promise<UserStyleChatResult> {
   try {
@@ -194,7 +215,10 @@ export async function sendUserStyleChatAction(input: {
     if (!isSubscriptionActive(sub)) return { ok: false, error: "需要訂閱才能使用 AI 修改" };
 
     const message = String(input.message ?? "").trim();
-    if (!message || message.length > MESSAGE_MAX) return { ok: false, error: "訊息過長" };
+    const imageUrl = parseChatImageUrl(input.imageUrl);
+    if (message.length > MESSAGE_MAX) return { ok: false, error: "訊息過長" };
+    if (!message && !imageUrl) return { ok: false, error: "請輸入訊息" };
+    const promptMessage = message || "Match the attached reference image.";
 
     const parsed = parseUserStyleFields(input?.draft);
     if (!parsed.ok) return parsed;
@@ -202,17 +226,39 @@ export async function sendUserStyleChatAction(input: {
 
     if (chatRateLimited(doc.chat, new Date())) return { ok: false, error: "AI 修改太頻繁，請稍後再試" };
 
+    const promptText = userStyleChatUserPrompt({
+      fields,
+      history: (doc.chat || []).slice(-HISTORY_SENT),
+      message: promptMessage,
+      hasImage: Boolean(imageUrl),
+    });
+
+    let imageParts: Awaited<ReturnType<typeof loadDirectorImageParts>> = [];
+    if (imageUrl) {
+      try {
+        imageParts = await loadDirectorImageParts([imageUrl]);
+      } catch (error) {
+        console.error("style chat image fetch failed", error);
+        return { ok: false, error: "素材網址無效，請重新上傳" };
+      }
+    }
+
     let output: z.infer<typeof userStyleChatSchema>;
     try {
       ({ output } = await generateText({
         model: directorModel(),
         output: Output.object({ schema: userStyleChatSchema }),
         system: userStyleChatSystemPrompt(),
-        prompt: userStyleChatUserPrompt({
-          fields,
-          history: (doc.chat || []).slice(-HISTORY_SENT),
-          message,
-        }),
+        ...(imageParts.length
+          ? {
+              messages: [
+                {
+                  role: "user" as const,
+                  content: [{ type: "text" as const, text: promptText }, ...imageParts],
+                },
+              ],
+            }
+          : { prompt: promptText }),
       }));
     } catch (error) {
       console.error("user style chat failed", error);
@@ -223,7 +269,12 @@ export async function sendUserStyleChatAction(input: {
     if (!applied.ok) return applied;
 
     const now = new Date();
-    const userMsg: StyleChatMessage = { role: "user", content: message, createdAt: now };
+    const userMsg: StyleChatMessage = {
+      role: "user",
+      content: message,
+      ...(imageUrl ? { imageUrl } : {}),
+      createdAt: now,
+    };
     const assistantMsg: StyleChatMessage = {
       role: "assistant",
       content: normalizeChatSummary(output.summary, applied.changedFields.length),
@@ -243,6 +294,8 @@ export async function sendUserStyleChatAction(input: {
       summary: assistantMsg.content,
       fields: applied.fields,
       changedFields: applied.changedFields,
+      createdAt: now.toISOString(),
+      previewUrl: assistantMsg.previewUrl,
     };
   } catch (error) {
     return fail(error, "AI 修改失敗，請再試一次");

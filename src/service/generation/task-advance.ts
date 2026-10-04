@@ -1,4 +1,5 @@
 import { charactersCollection, generationJobsCollection, videosCollection } from "@/dao";
+import { userStylesCollection } from "@/dao/user-styles";
 import { mediaUrlFromResponse, fetchHiggsfieldStatus } from "@/service/higgsfield/generate";
 import { applyJobStatus, refreshProjectJobs } from "@/service/higgsfield/pipeline";
 import { failJob, runJobById } from "@/service/generation/task-runner";
@@ -51,13 +52,19 @@ export async function advanceOwnedJobs(clerkUserId: string) {
     .find({ clerkUserId }, { projection: { _id: 1 } })
     .limit(200)
     .toArray();
+  const styles = await (await userStylesCollection())
+    .find({ ownerClerkUserId: clerkUserId }, { projection: { _id: 1 } })
+    .limit(200)
+    .toArray();
   const projectIds = videoDocs.map((doc) => doc._id);
   const characterIds = characters.map((doc) => doc._id);
-  if (projectIds.length === 0 && characterIds.length === 0) return;
+  const styleIds = styles.map((doc) => doc._id);
+  if (projectIds.length === 0 && characterIds.length === 0 && styleIds.length === 0) return;
 
   const owners: Array<Record<string, unknown>> = [];
   if (projectIds.length) owners.push({ projectId: { $in: projectIds } });
   if (characterIds.length) owners.push({ characterId: { $in: characterIds } });
+  if (styleIds.length) owners.push({ userStyleId: { $in: styleIds } });
 
   const jobs = await generationJobsCollection();
   const active = await jobs
@@ -85,7 +92,7 @@ export async function advanceOwnedJobs(clerkUserId: string) {
   }
 
   for (const job of active) {
-    if (job.kind !== "character") continue;
+    if (job.kind !== "character" && job.kind !== "stylePreview") continue;
     if (!job.statusUrl || !job.requestId) continue;
     if (job.status !== "queued" && job.status !== "in_progress") continue;
     try {
@@ -96,7 +103,7 @@ export async function advanceOwnedJobs(clerkUserId: string) {
         outputUrl: mediaUrlFromResponse(remote),
       });
     } catch (error) {
-      console.error("[tasks] character refresh failed", { jobId: job._id, error });
+      console.error("[tasks] job refresh failed", { jobId: job._id, kind: job.kind, error });
     }
   }
 

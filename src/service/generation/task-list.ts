@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { charactersCollection, generationJobsCollection, videosCollection } from "@/dao";
+import { userStylesCollection } from "@/dao/user-styles";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { mediaSrc } from "@/util/media-src";
 import type { GenerationJob, GenerationKind, GenerationStatus } from "@/model/generation-job";
@@ -23,7 +24,7 @@ export type PublicTask = {
   id: string;
   kind: GenerationKind | "reel";
   stage: TaskStage;
-  // Video title or character name.
+  // Video title, character name, or custom style name.
   title: string;
   // Legacy plain detail (zh); UI should prefer detailKey + detailParams.
   detail: string;
@@ -122,7 +123,7 @@ export function reelTask(
   };
 }
 
-// Jobs have no owner field: scope by the user's videos and characters.
+// Jobs have no owner field: scope by the user's videos, characters, and styles.
 async function ownedScope(clerkUserId: string, videoId?: string) {
   const videos = await videosCollection();
   // One video: skip the 200-row scan used by the global list.
@@ -131,7 +132,7 @@ async function ownedScope(clerkUserId: string, videoId?: string) {
       { _id: new ObjectId(videoId), clerkUserId },
       { projection: REEL_PROJECTION },
     );
-    return { videoDocs: video ? [video] : [], characters: [] };
+    return { videoDocs: video ? [video] : [], characters: [], styles: [] };
   }
   const videoDocs = await videos
     .find({ clerkUserId }, { projection: REEL_PROJECTION })
@@ -142,18 +143,26 @@ async function ownedScope(clerkUserId: string, videoId?: string) {
     .find({ clerkUserId }, { projection: { _id: 1, name: 1 } })
     .limit(200)
     .toArray();
-  return { videoDocs, characters };
+  const styles = await (await userStylesCollection())
+    .find({ ownerClerkUserId: clerkUserId }, { projection: { _id: 1, name: 1 } })
+    .limit(200)
+    .toArray();
+  return { videoDocs, characters, styles };
 }
 
 export function jobListQuery(input: {
   videoIds: ObjectId[];
   characterIds: ObjectId[];
+  userStyleIds?: ObjectId[];
   cutoff: Date;
 }) {
+  const userStyleIds = input.userStyleIds ?? [];
   const owners: Array<Record<string, unknown>> = [];
   if (input.videoIds.length === 1) owners.push({ projectId: input.videoIds[0] });
   else if (input.videoIds.length > 1) owners.push({ projectId: { $in: input.videoIds } });
   if (input.characterIds.length) owners.push({ characterId: { $in: input.characterIds } });
+  if (userStyleIds.length === 1) owners.push({ userStyleId: userStyleIds[0] });
+  else if (userStyleIds.length > 1) owners.push({ userStyleId: { $in: userStyleIds } });
   if (owners.length === 0) return null;
   return {
     $and: [
@@ -173,16 +182,18 @@ export async function listTasks(
   clerkUserId: string,
   options: { videoId?: string; limit?: number } = {},
 ): Promise<PublicTask[]> {
-  const { videoDocs, characters } = await ownedScope(clerkUserId, options.videoId);
-  if (videoDocs.length === 0 && characters.length === 0) return [];
+  const { videoDocs, characters, styles } = await ownedScope(clerkUserId, options.videoId);
+  if (videoDocs.length === 0 && characters.length === 0 && styles.length === 0) return [];
   const videoById = new Map(videoDocs.map((doc) => [doc._id.toHexString(), doc]));
   const characterById = new Map(characters.map((doc) => [doc._id.toHexString(), doc]));
+  const styleById = new Map(styles.map((doc) => [doc._id.toHexString(), doc]));
 
   const jobs = await generationJobsCollection();
   const cutoff = new Date(Date.now() - RECENT_SETTLED_MS);
   const query = jobListQuery({
     videoIds: videoDocs.map((doc) => doc._id),
     characterIds: characters.map((doc) => doc._id),
+    userStyleIds: styles.map((doc) => doc._id),
     cutoff,
   });
   if (!query) return [];
@@ -208,11 +219,16 @@ export async function listTasks(
   const tasks = [...reelTasks, ...docs.map((job) => {
     const video = job.projectId ? videoById.get(job.projectId.toHexString()) : undefined;
     const character = job.characterId ? characterById.get(job.characterId.toHexString()) : undefined;
+    const style = job.userStyleId ? styleById.get(job.userStyleId.toHexString()) : undefined;
     return {
       id: job._id.toHexString(),
       kind: job.kind,
       stage: taskStage(job.status),
-      title: character?.name ?? video?.phaseA?.localizedTitle ?? "未命名影片",
+      title:
+        style?.name ??
+        character?.name ??
+        video?.phaseA?.localizedTitle ??
+        (job.kind === "stylePreview" ? "未命名風格" : "未命名影片"),
       detail: taskDetail(job),
       ...taskDetailI18n(job),
       previewUrl: job.status === "completed" ? mediaSrc(job) : undefined,
@@ -220,7 +236,9 @@ export async function listTasks(
       videoId: job.projectId?.toHexString(),
       href: video
         ? folderVideoPath(video.projectId.toHexString(), video._id.toHexString())
-        : "/app/characters",
+        : style
+          ? `/app/styles/${style._id.toHexString()}`
+          : "/app/characters",
       error: job.status === "failed" || job.status === "nsfw" ? job.error : undefined,
       attempts: job.attempts ?? 0,
       createdAt: job.createdAt.toISOString(),

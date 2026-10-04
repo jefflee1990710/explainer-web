@@ -30,3 +30,22 @@ test("user prompt includes current look and the latest user message", () => {
   assert.match(prompt, /marker strokes on paper/);
   assert.match(prompt, /Make the look feel more torn/);
 });
+
+test("user prompt notes an attached reference image", () => {
+  const fields = copyUserStyleFields(testStyle("doodle"));
+  const prompt = userStyleChatUserPrompt({
+    fields,
+    history: [
+      {
+        role: "user",
+        content: "older ask",
+        imageUrl: "https://example.com/ref.png",
+        createdAt: new Date(),
+      },
+    ],
+    message: "Match the attached reference image.",
+    hasImage: true,
+  });
+  assert.match(prompt, /image attached/);
+  assert.match(prompt, /reference image is attached/i);
+});

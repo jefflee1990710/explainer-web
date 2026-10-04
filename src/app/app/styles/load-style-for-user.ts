@@ -18,10 +18,23 @@ function letteringFields(style: Partial<Style>) {
   };
 }
 
-function chatItems(chat: { role: "user" | "assistant"; content: string; changedPaths?: string[]; createdAt: Date }[] | undefined): StyleChatItem[] {
+function chatItems(
+  chat:
+    | {
+        role: "user" | "assistant";
+        content: string;
+        imageUrl?: string;
+        previewUrl?: string;
+        changedPaths?: string[];
+        createdAt: Date;
+      }[]
+    | undefined,
+): StyleChatItem[] {
   return (chat ?? []).map((message) => ({
     role: message.role,
     content: message.content,
+    imageUrl: message.imageUrl,
+    previewUrl: message.previewUrl,
     changedPaths: message.changedPaths,
     createdAt: message.createdAt.toISOString(),
   }));

@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { sendUserStyleChatAction } from "@/presentation/actions/styles";
+import { useRouter } from "next/navigation";
+import { generateUserStylePreviewAction, sendUserStyleChatAction } from "@/presentation/actions/styles";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { Spinner } from "@/presentation/components/spinner";
+import type { StyleChatUser } from "@/presentation/components/app/styles/[id]/style-chat-avatar";
+import { StyleChatComposer } from "@/presentation/components/app/styles/[id]/style-chat-composer";
+import { StyleChatEmpty } from "@/presentation/components/app/styles/[id]/style-chat-empty";
 import { StyleChatMessage } from "@/presentation/components/app/styles/[id]/style-chat-message";
 import type { StyleChatItem } from "@/presentation/components/app/styles/style-detail";
+import type { PreviewStatus } from "@/model/user-style";
 import type { UserStyleFields } from "@/service/style/user-style-fields";
 import { translateAppError } from "@/util/i18n/translate-app-error";
-
-const MESSAGE_MAX = 2000;
 
 // Right pane: AI chat whose visual edits land in the local draft. Save writes them.
 export function StyleChatPanel({
@@ -18,125 +20,184 @@ export function StyleChatPanel({
   initialChat,
   draft,
   subscribed,
+  user,
+  previewUrl,
+  previewStatus,
   onApplyFields,
+  onSaveDraft,
+  onGenerating,
 }: {
   styleId: string;
   initialChat: StyleChatItem[];
   draft: UserStyleFields;
   subscribed: boolean;
+  user: StyleChatUser;
+  previewUrl?: string;
+  previewStatus: PreviewStatus;
   onApplyFields: (fields: UserStyleFields) => void;
+  onSaveDraft: () => Promise<boolean>;
+  onGenerating: () => void;
 }) {
   const { t } = useI18n();
+  const router = useRouter();
   const [chat, setChat] = useState(initialChat);
-  const [input, setInput] = useState("");
-  const [pendingMessage, setPendingMessage] = useState("");
+  const [pending, setPending] = useState<{ message: string; imageUrl?: string } | null>(null);
   const [error, setError] = useState("");
+  const [previewError, setPreviewError] = useState("");
+  const [pendingPreviewAt, setPendingPreviewAt] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const sending = pendingMessage !== "";
-  const canSend = subscribed && !sending && input.trim().length > 0;
+  const sawGenerating = useRef(false);
+  const sending = pending !== null;
+  const generating = previewStatus === "generating" || pendingPreviewAt !== null;
 
   useEffect(() => {
     const list = listRef.current;
     if (list) list.scrollTop = list.scrollHeight;
-  }, [chat.length, pendingMessage, error]);
+  }, [chat.length, pending, error, previewError]);
 
-  async function send() {
-    const message = input.trim();
-    if (!canSend) return;
+  useEffect(() => {
+    setChat((current) => {
+      if (current.length === 0) return initialChat;
+      return current.map((message) => {
+        const server = initialChat.find(
+          (item) => item.role === message.role && item.createdAt === message.createdAt,
+        );
+        return server?.previewUrl && server.previewUrl !== message.previewUrl
+          ? { ...message, previewUrl: server.previewUrl }
+          : message;
+      });
+    });
+  }, [initialChat]);
+
+  useEffect(() => {
+    if (previewStatus === "generating") sawGenerating.current = true;
+  }, [previewStatus]);
+
+  useEffect(() => {
+    if (!pendingPreviewAt) return;
+    if (previewStatus === "failed") {
+      sawGenerating.current = false;
+      setPendingPreviewAt(null);
+      return;
+    }
+    if (previewStatus !== "idle" || !sawGenerating.current) return;
+    const createdAt = pendingPreviewAt;
+    setChat((current) =>
+      current.map((message) =>
+        message.role === "assistant" && message.createdAt === createdAt
+          ? { ...message, previewUrl: previewUrl || message.previewUrl }
+          : message,
+      ),
+    );
+    sawGenerating.current = false;
+    setPendingPreviewAt(null);
+  }, [pendingPreviewAt, previewStatus, previewUrl]);
+
+  async function send(input: { message: string; imageUrl?: string }) {
+    if (sending) return;
     const sent: UserStyleFields = { ...draft };
-    setPendingMessage(message);
-    setInput("");
+    setPending(input);
     setError("");
+    setPreviewError("");
     try {
-      const result = await sendUserStyleChatAction({ id: styleId, message, draft: sent });
+      const result = await sendUserStyleChatAction({
+        id: styleId,
+        message: input.message,
+        imageUrl: input.imageUrl,
+        draft: sent,
+      });
       if (!result.ok) {
         setError(translateAppError(result.error, t));
-        setInput(message);
         return;
       }
       onApplyFields(result.fields);
       const now = new Date().toISOString();
       setChat((current) => [
         ...current,
-        { role: "user", content: message, createdAt: now },
+        { role: "user", content: input.message, imageUrl: input.imageUrl, createdAt: now },
         {
           role: "assistant",
           content: result.summary,
           changedPaths: result.changedFields,
-          createdAt: now,
+          createdAt: result.createdAt,
+          previewUrl: result.previewUrl,
         },
       ]);
     } catch {
       setError(t("errors.directorChatFailed"));
-      setInput(message);
     } finally {
-      setPendingMessage("");
+      setPending(null);
     }
   }
 
+  async function generatePreview(createdAt: string) {
+    if (generating) return;
+    setPreviewError("");
+    setPendingPreviewAt(createdAt);
+    const saved = await onSaveDraft();
+    if (!saved) {
+      setPendingPreviewAt(null);
+      return;
+    }
+    try {
+      const result = await generateUserStylePreviewAction({ id: styleId, chatCreatedAt: createdAt });
+      if (!result.ok) {
+        setPreviewError(translateAppError(result.error, t));
+        setPendingPreviewAt(null);
+        return;
+      }
+      onGenerating();
+      router.refresh();
+    } catch {
+      setPreviewError(t("errors.stylePreviewFailed"));
+      setPendingPreviewAt(null);
+    }
+  }
+
+  const empty = chat.length === 0 && !sending && !error;
+  const lastAssistantAt = [...chat].reverse().find((message) => message.role === "assistant")?.createdAt;
+
   return (
-    <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-accent-ink/10 bg-paper/85">
-      <h2 className="shrink-0 border-b border-accent-ink/10 px-3 py-2 font-display text-sm font-bold">
+    <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-accent-ink/10 bg-paper/85 max-lg:rounded-none max-lg:rounded-l-xl">
+      <h2 className="shrink-0 border-b border-accent-ink/10 px-3 py-2 pr-14 font-display text-sm font-bold lg:pr-3">
         {t("styles.chatTitle")}
       </h2>
 
       <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-2" aria-live="polite">
-        {chat.length === 0 && !sending && !error ? (
-          <p className="text-sm leading-6 text-muted">{t("styles.chatEmpty")}</p>
-        ) : null}
-        {chat.map((message, index) => (
-          <StyleChatMessage
-            key={`${message.createdAt}-${index}`}
-            role={message.role}
-            content={message.content}
-            changedPaths={message.changedPaths}
-          />
-        ))}
-        {sending ? (
+        {empty ? <StyleChatEmpty /> : null}
+        {chat.map((message, index) => {
+          const isLatestAssistant = message.role === "assistant" && message.createdAt === lastAssistantAt;
+          const cardBusy = generating && (pendingPreviewAt === message.createdAt || (!pendingPreviewAt && isLatestAssistant));
+          return (
+            <StyleChatMessage
+              key={`${message.createdAt}-${index}`}
+              role={message.role}
+              content={message.content}
+              imageUrl={message.imageUrl}
+              previewUrl={message.previewUrl}
+              changedPaths={message.changedPaths}
+              user={user}
+              previewBusy={message.role === "assistant" ? cardBusy : false}
+              previewDisabled={generating}
+              onGeneratePreview={
+                message.role === "assistant" ? () => void generatePreview(message.createdAt) : undefined
+              }
+            />
+          );
+        })}
+        {pending ? (
           <>
-            <StyleChatMessage role="user" content={pendingMessage} />
+            <StyleChatMessage role="user" content={pending.message} imageUrl={pending.imageUrl} user={user} />
             <StyleChatMessage role="assistant" variant="pending" />
           </>
         ) : null}
         {error ? <StyleChatMessage role="assistant" variant="error" content={error} /> : null}
+        {previewError ? <StyleChatMessage role="assistant" variant="error" content={previewError} /> : null}
       </div>
 
       <div className="shrink-0 border-t border-accent-ink/10 p-2.5">
         {subscribed ? (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void send();
-            }}
-            className="space-y-2"
-          >
-            <textarea
-              rows={2}
-              maxLength={MESSAGE_MAX}
-              value={input}
-              disabled={sending}
-              aria-label={t("styles.chatPlaceholder")}
-              placeholder={t("styles.chatPlaceholder")}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-                  event.preventDefault();
-                  void send();
-                }
-              }}
-              className="w-full resize-none rounded-xl border border-accent-ink/15 bg-paper px-3 py-2 text-xs leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-            />
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={!canSend}
-                className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-accent px-3 text-xs font-semibold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {sending ? <Spinner className="h-3.5 w-3.5" /> : null}
-                {t("styles.chatSend")}
-              </button>
-            </div>
-          </form>
+          <StyleChatComposer disabled={!subscribed} sending={sending} onSend={(next) => void send(next)} onError={setError} />
         ) : (
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted">{t("styles.chatLocked")}</p>

@@ -12,6 +12,8 @@ import type { StyleId } from "@/model/style-id";
 export type StyleChatItem = {
   role: "user" | "assistant";
   content: string;
+  imageUrl?: string;
+  previewUrl?: string;
   changedPaths?: string[];
   createdAt: string;
 };

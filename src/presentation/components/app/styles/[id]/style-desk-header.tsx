@@ -15,13 +15,11 @@ export function StyleDeskHeader({
   name,
   dirty,
   saving,
-  canSave,
   status,
   error,
   previewStatus,
   onBack,
-  onSave,
-  onDiscard,
+  onEnsureSaved,
   onDelete,
   onGenerating,
 }: {
@@ -29,13 +27,11 @@ export function StyleDeskHeader({
   name: string;
   dirty: boolean;
   saving: boolean;
-  canSave: boolean;
   status: string;
   error: string;
   previewStatus: PreviewStatus;
   onBack: (event: React.MouseEvent<HTMLAnchorElement>) => void;
-  onSave: () => void;
-  onDiscard: () => void;
+  onEnsureSaved: () => Promise<boolean>;
   onDelete: () => void;
   onGenerating: () => void;
 }) {
@@ -83,25 +79,15 @@ export function StyleDeskHeader({
               dirty={dirty}
               previewStatus={previewStatus}
               compact
+              onEnsureSaved={onEnsureSaved}
               onGenerating={onGenerating}
             />
-            <button
-              type="button"
-              onClick={onSave}
-              disabled={!canSave}
-              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-accent px-3 text-xs font-semibold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {saving ? <Spinner className="h-3.5 w-3.5" /> : null}
-              {t("styles.save")}
-            </button>
-            <button
-              type="button"
-              onClick={onDiscard}
-              disabled={!dirty || saving}
-              className="inline-flex h-8 cursor-pointer items-center rounded-full border border-accent-ink/15 bg-paper px-3 text-xs font-semibold transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {t("styles.discard")}
-            </button>
+            {status ? (
+              <p role="status" className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted">
+                {saving ? <Spinner className="h-3.5 w-3.5" /> : null}
+                {status}
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={onDelete}
@@ -117,11 +103,6 @@ export function StyleDeskHeader({
             className="inline-flex h-8 cursor-pointer items-center rounded-full bg-accent px-3 text-xs font-semibold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5"
           />
         )}
-        {status ? (
-          <p role="status" className="text-xs font-semibold text-muted">
-            {status}
-          </p>
-        ) : null}
         {error ? (
           <p role="alert" className="text-xs font-medium text-accent">
             {error}

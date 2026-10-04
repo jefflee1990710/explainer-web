@@ -16,6 +16,7 @@ Rules:
 - Write plain text, short and concrete. Each field stays under 2000 characters.
 - Return each changed field with its full new content in edits, using the exact field key. Do not include unchanged fields.
 - Return JSON with summary and edits: { summary, edits: { field, content }[] }.
+- If a reference image is attached, use it as the visual source for look, palette, typography, and canvas. Change only the fields the user asks about, or the fields implied by matching that image.
 - summary: one short sentence describing what you changed, written in the same language as the user's request.`;
 }
 
@@ -24,6 +25,7 @@ export function userStyleChatUserPrompt(input: {
   fields: UserStyleFields;
   history: StyleChatMessage[];
   message: string;
+  hasImage?: boolean;
 }): string {
   const fieldBlocks = USER_STYLE_VISUAL_KEYS.map(
     (key) => `### FIELD: ${key}\n${input.fields[key].trim() || "(empty)"}`,
@@ -32,9 +34,13 @@ export function userStyleChatUserPrompt(input: {
     ? input.history
         .map((item) => {
           const changed = item.changedPaths?.length ? ` (changed: ${item.changedPaths.join(", ")})` : "";
-          return `${item.role}: ${item.content}${changed}`;
+          const image = item.imageUrl ? " (image attached)" : "";
+          return `${item.role}: ${item.content}${image}${changed}`;
         })
         .join("\n")
     : "(none)";
-  return `Current style fields:\n\n${fieldBlocks}\n\nRecent conversation:\n${history}\n\nUser request:\n${input.message}`;
+  const imageNote = input.hasImage
+    ? "\nA reference image is attached. Infer visual details from it.\n"
+    : "";
+  return `Current style fields:\n\n${fieldBlocks}\n\nRecent conversation:\n${history}\n${imageNote}\nUser request:\n${input.message}`;
 }

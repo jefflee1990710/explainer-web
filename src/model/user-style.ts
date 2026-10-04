@@ -7,6 +7,8 @@ export type PreviewStatus = "idle" | "generating" | "failed";
 export type StyleChatMessage = {
   role: "user" | "assistant";
   content: string;
+  imageUrl?: string;
+  previewUrl?: string;
   changedPaths?: string[];
   createdAt: Date;
 };
@@ -39,6 +41,8 @@ export type UserStyleDoc = {
   previewCreditsCharged?: boolean;
   /** When the in-flight preview job started (for stale-job detection). */
   previewStartedAt?: Date;
+  /** Assistant chat turn that requested this preview, if any. */
+  previewChatCreatedAt?: Date;
   deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;

@@ -20,6 +20,7 @@ test("detail names the clip and slot", () => {
   assert.equal(taskDetail({ kind: "still", clipIndex: -1 }), "角色定裝圖");
   assert.equal(taskDetail({ kind: "character", clipIndex: -1 }), "角色藍圖");
   assert.equal(taskDetail({ kind: "reelCover", clipIndex: 0 }), "影片封面");
+  assert.equal(taskDetail({ kind: "stylePreview", clipIndex: 0 }), "風格預覽");
 });
 
 test("a reel in progress is a 成片合成 background task", () => {
@@ -58,6 +59,13 @@ test("jobListQuery uses a single projectId for one video", () => {
   const cutoff = new Date("2026-09-28T00:00:00.000Z");
   const query = jobListQuery({ videoIds: [id], characterIds: [], cutoff });
   assert.equal(query?.$and[0].projectId, id);
+});
+
+test("jobListQuery includes style preview jobs by userStyleId", () => {
+  const styleId = new ObjectId();
+  const cutoff = new Date("2026-09-28T00:00:00.000Z");
+  const query = jobListQuery({ videoIds: [], characterIds: [], userStyleIds: [styleId], cutoff });
+  assert.equal(query?.$and[0].userStyleId, styleId);
 });
 
 test("default list keeps pending and fresh settled, drops old history", () => {

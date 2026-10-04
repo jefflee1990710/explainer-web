@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { ObjectId } from "mongodb";
 import { userStylesCollection } from "@/dao/user-styles";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
-import type { PreviewStatus } from "@/model/user-style";
+import type { PreviewStatus, StyleChatMessage } from "@/model/user-style";
 import { requireAppUser } from "@/service/auth";
 import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/billing/credits";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
@@ -18,6 +18,39 @@ import { FRAME_COST } from "@/service/production-plan";
 const PREVIEW_IN_FLIGHT_MS = 15 * 60 * 1000;
 
 export type GenerateUserStylePreviewResult = { ok: true } | { ok: false; error: string };
+
+function parseChatCreatedAt(value: unknown): Date | undefined {
+  const raw = String(value ?? "").trim();
+  if (!raw) return undefined;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+// Stamp the new still onto the requesting assistant turn, or the latest one.
+export function applyPreviewToChat(
+  chat: StyleChatMessage[] | undefined,
+  previewUrl: string,
+  chatCreatedAt?: Date,
+): StyleChatMessage[] {
+  const next = (chat ?? []).map((message) => ({ ...message }));
+  let index = -1;
+  if (chatCreatedAt) {
+    index = next.findIndex(
+      (message) => message.role === "assistant" && message.createdAt.getTime() === chatCreatedAt.getTime(),
+    );
+  }
+  if (index < 0) {
+    for (let i = next.length - 1; i >= 0; i--) {
+      if (next[i].role === "assistant") {
+        index = i;
+        break;
+      }
+    }
+  }
+  if (index < 0) return next;
+  next[index] = { ...next[index], previewUrl };
+  return next;
+}
 
 type PreviewFlight = { previewStatus: PreviewStatus; previewStartedAt?: Date };
 
@@ -166,6 +199,7 @@ async function releaseUnqueuedSpend(input: {
 // Claim the 15-minute slot before charging, then queue one stylePreview image.
 export async function generateUserStylePreviewAction(input: {
   id: string;
+  chatCreatedAt?: string;
 }): Promise<GenerateUserStylePreviewResult> {
   let spendKey: string | undefined;
   let jobQueued = false;
@@ -183,6 +217,7 @@ export async function generateUserStylePreviewAction(input: {
     const now = new Date();
     styleId = doc._id;
     previewStartedAt = now;
+    const previewChatCreatedAt = parseChatCreatedAt(input.chatCreatedAt);
     const collection = await userStylesCollection();
     const claimed = await collection.updateOne(
       previewClaimFilter({
@@ -195,7 +230,9 @@ export async function generateUserStylePreviewAction(input: {
           previewStatus: "generating",
           previewStartedAt: now,
           updatedAt: now,
+          ...(previewChatCreatedAt ? { previewChatCreatedAt } : {}),
         },
+        ...(previewChatCreatedAt ? {} : { $unset: { previewChatCreatedAt: "" } }),
       },
     );
     if (!shouldChargeAfterClaim(claimed.matchedCount)) {
@@ -317,8 +354,10 @@ export async function syncStylePreviewJob(
         previewHash,
         previewStatus: "idle",
         previewCreditsCharged: false,
+        chat: applyPreviewToChat(doc.chat, stored, doc.previewChatCreatedAt),
         updatedAt: new Date(),
       },
+      $unset: { previewChatCreatedAt: "" },
     });
     if (!shouldClearPreviewCharge(updated.matchedCount)) return;
     return;

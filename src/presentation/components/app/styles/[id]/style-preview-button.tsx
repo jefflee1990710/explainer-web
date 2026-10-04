@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { generateUserStylePreviewAction } from "@/presentation/actions/styles";
 import { Spinner } from "@/presentation/components/spinner";
@@ -9,20 +9,20 @@ import { FRAME_COST } from "@/service/credit-costs";
 import type { PreviewStatus } from "@/model/user-style";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
-const POLL_MS = 4000;
-
-// Generate is off while the draft is unsaved or a preview is already running.
+// Flush auto-save first so the job reads the latest fields from the database.
 export function StylePreviewButton({
   styleId,
   dirty,
   previewStatus,
   compact = false,
+  onEnsureSaved,
   onGenerating,
 }: {
   styleId: string;
   dirty: boolean;
   previewStatus: PreviewStatus;
   compact?: boolean;
+  onEnsureSaved?: () => Promise<boolean>;
   onGenerating: () => void;
 }) {
   const { t } = useI18n();
@@ -30,28 +30,19 @@ export function StylePreviewButton({
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const generating = previewStatus === "generating" || pending;
-  const disabled = dirty || generating;
-
-  // Same cadence as use-character-poll: refresh immediately, then every 4 seconds.
-  useEffect(() => {
-    if (previewStatus !== "generating") return;
-    let cancelled = false;
-    function tick() {
-      if (!cancelled) router.refresh();
-    }
-    tick();
-    const timer = window.setInterval(tick, POLL_MS);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [previewStatus, router]);
+  const disabled = generating;
 
   async function onClick() {
     if (disabled) return;
     setError("");
     setPending(true);
     try {
+      if (onEnsureSaved) {
+        const saved = await onEnsureSaved();
+        if (!saved) return;
+      } else if (dirty) {
+        return;
+      }
       const result = await generateUserStylePreviewAction({ id: styleId });
       if (!result.ok) {
         setError(translateAppError(result.error, t));
@@ -86,7 +77,9 @@ export function StylePreviewButton({
         {generating ? <Spinner className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} /> : null}
         {label}
       </button>
-      {dirty ? <p className={compact ? "text-[11px] text-muted" : "text-sm text-muted"}>{t("styles.generateNeedsSave")}</p> : null}
+      {!onEnsureSaved && dirty ? (
+        <p className={compact ? "text-[11px] text-muted" : "text-sm text-muted"}>{t("styles.generateNeedsSave")}</p>
+      ) : null}
       {previewStatus === "failed" && !generating ? (
         <p role="alert" className={compact ? "text-[11px] font-medium text-accent" : "text-sm font-medium text-accent"}>
           {t("styles.previewFailed")}

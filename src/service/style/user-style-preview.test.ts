@@ -4,6 +4,7 @@ import { ObjectId } from "mongodb";
 import { renderableFromSystem } from "@/service/style/renderable-style";
 import { testStyle } from "@/service/style/test-styles";
 import {
+  applyPreviewToChat,
   ownedPreviewFilter,
   previewClaimFilter,
   previewSlotAvailable,
@@ -99,4 +100,21 @@ test("a completion update whose previewStartedAt no longer matches does not clea
   assert.notEqual(filter.previewStartedAt.getTime(), newer.getTime());
   assert.equal(shouldClearPreviewCharge(0), false);
   assert.equal(shouldClearPreviewCharge(1), true);
+});
+
+test("applyPreviewToChat stamps the matching assistant turn, else the latest", () => {
+  const first = new Date("2026-10-04T01:00:00Z");
+  const second = new Date("2026-10-04T01:01:00Z");
+  const chat = [
+    { role: "user" as const, content: "warmer", createdAt: first },
+    { role: "assistant" as const, content: "ok", createdAt: first },
+    { role: "user" as const, content: "again", createdAt: second },
+    { role: "assistant" as const, content: "done", createdAt: second },
+  ];
+  const targeted = applyPreviewToChat(chat, "https://blob/first.png", first);
+  assert.equal(targeted[1].previewUrl, "https://blob/first.png");
+  assert.equal(targeted[3].previewUrl, undefined);
+  const latest = applyPreviewToChat(chat, "https://blob/latest.png");
+  assert.equal(latest[3].previewUrl, "https://blob/latest.png");
+  assert.deepEqual(applyPreviewToChat(undefined, "https://blob/x.png"), []);
 });

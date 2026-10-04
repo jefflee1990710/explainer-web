@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { saveUserStyleAction } from "@/presentation/actions/styles";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { useUnsavedWarning } from "@/presentation/components/app/directors/[id]/use-unsaved-warning";
 import { StyleDeskHeader } from "@/presentation/components/app/styles/[id]/style-desk-header";
 import { StyleInfoPanel } from "@/presentation/components/app/styles/[id]/style-info-panel";
 import { StylePreviewColumn } from "@/presentation/components/app/styles/[id]/style-preview-column";
+import type { StyleChatUser } from "@/presentation/components/app/styles/[id]/style-chat-avatar";
+import { StyleChatDrawer } from "@/presentation/components/app/styles/[id]/style-chat-drawer";
 import { StyleChatPanel } from "@/presentation/components/app/styles/[id]/style-chat-panel";
+import { useStylePreviewPoll } from "@/presentation/components/app/styles/[id]/use-style-preview-poll";
 import { DeleteStyleDialog } from "@/presentation/components/app/styles/[id]/delete-style-dialog";
 import {
   catalogStyleLabel,
@@ -19,6 +22,7 @@ import {
 import type { UserStyleFields } from "@/service/style/user-style-fields";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
+const AUTO_SAVE_MS = 600;
 const SAVED_STATUS_MS = 2500;
 const CANVAS_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
@@ -26,17 +30,22 @@ const CANVAS_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 export function StyleWorkspace({
   style: initial,
   subscribed,
+  user,
 }: {
   style: StyleDetail;
   subscribed: boolean;
+  user: StyleChatUser;
 }) {
   const { t } = useI18n();
   const [style, setStyle] = useState(initial);
   const [saved, setSaved] = useState(() => fieldsFromDetail(initial));
   const [draft, setDraft] = useState(() => fieldsFromDetail(initial));
   const [saving, setSaving] = useState(false);
+  const [pendingSave, setPendingSave] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const [error, setError] = useState("");
+  const saveTimerRef = useRef<number | null>(null);
+  const savedRef = useRef(saved);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const serverPreviewKey = `${initial.previewStatus}|${initial.previewUrl ?? ""}|${String(initial.hasOwnPreview)}`;
   const [previewOverride, setPreviewOverride] = useState<{ key: string; status: StyleDetail["previewStatus"] } | null>(
@@ -44,9 +53,11 @@ export function StyleWorkspace({
   );
   const previewStatus = previewOverride?.key === serverPreviewKey ? previewOverride.status : initial.previewStatus;
   const previewUrl = initial.previewUrl;
+  useStylePreviewPoll(previewStatus);
 
+  savedRef.current = saved;
   const dirty = style.isCustom && styleFieldsDirty(saved, draft);
-  useUnsavedWarning(dirty);
+  useUnsavedWarning(dirty || saving || pendingSave);
 
   useEffect(() => {
     if (!savedFlash) return;
@@ -54,22 +65,38 @@ export function StyleWorkspace({
     return () => window.clearTimeout(timer);
   }, [savedFlash]);
 
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
+    };
+  }, []);
+
   const name = style.isCustom ? draft.name || style.name : catalogStyleLabel(t, style.id, style.name);
   const colorOk = CANVAS_COLOR_RE.test(draft.canvasColor);
-  const canSave = style.isCustom && !saving && draft.name.trim().length > 0 && colorOk && dirty;
 
-  function onChange(next: UserStyleFields) {
-    setDraft(next);
-    setSavedFlash(false);
-  }
-
-  function onApplyFields(fields: UserStyleFields) {
-    setDraft((current) => mergeVisualFields(current, fields));
-    setSavedFlash(false);
-  }
-
-  async function onSave() {
-    const sentDraft = draft;
+  async function persistDraft(sentDraft: UserStyleFields): Promise<boolean> {
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    if (!style.isCustom) {
+      setPendingSave(false);
+      return true;
+    }
+    if (!styleFieldsDirty(savedRef.current, sentDraft)) {
+      setPendingSave(false);
+      return true;
+    }
+    if (!sentDraft.name.trim()) {
+      setPendingSave(false);
+      setError(t("errors.styleNameInvalid"));
+      return false;
+    }
+    if (!CANVAS_COLOR_RE.test(sentDraft.canvasColor)) {
+      setPendingSave(false);
+      setError(t("errors.styleCanvasColorInvalid"));
+      return false;
+    }
     const payload: UserStyleFields = {
       ...sentDraft,
       name: sentDraft.name.trim(),
@@ -86,22 +113,48 @@ export function StyleWorkspace({
       });
       if (!result.ok) {
         setError(translateAppError(result.error, t));
-        return;
+        return false;
       }
       setSaved(payload);
-      setDraft((current) => (current === sentDraft ? payload : current));
+      savedRef.current = payload;
+      setDraft((current) => (styleFieldsDirty(current, sentDraft) ? current : payload));
       setStyle((current) => ({ ...current, ...payload }));
       setSavedFlash(true);
+      return true;
     } catch {
       setError(t("errors.styleSaveFailed"));
+      return false;
     } finally {
+      setPendingSave(false);
       setSaving(false);
     }
   }
 
-  function onDiscard() {
-    setDraft(saved);
-    setError("");
+  function queueAutoSave(next: UserStyleFields) {
+    if (!style.isCustom) return;
+    if (!next.name.trim() || !CANVAS_COLOR_RE.test(next.canvasColor)) return;
+    if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
+    setPendingSave(true);
+    setSavedFlash(false);
+    const sentDraft = next;
+    saveTimerRef.current = window.setTimeout(() => {
+      void persistDraft(sentDraft);
+    }, AUTO_SAVE_MS);
+  }
+
+  function onChange(next: UserStyleFields) {
+    setDraft(next);
+    queueAutoSave(next);
+  }
+
+  function onApplyFields(fields: UserStyleFields) {
+    const next = mergeVisualFields(draft, fields);
+    setDraft(next);
+    queueAutoSave(next);
+  }
+
+  function onSave(): Promise<boolean> {
+    return persistDraft(draft);
   }
 
   return (
@@ -111,15 +164,13 @@ export function StyleWorkspace({
         name={name}
         dirty={dirty}
         saving={saving}
-        canSave={canSave}
-        status={savedFlash ? t("styles.saved") : ""}
+        status={saving || pendingSave ? t("styles.saving") : savedFlash ? t("styles.saved") : ""}
         error={error}
         previewStatus={previewStatus}
         onBack={(event) => {
-          if (dirty && !window.confirm(t("styles.unsavedWarning"))) event.preventDefault();
+          if ((dirty || saving || pendingSave) && !window.confirm(t("styles.unsavedWarning"))) event.preventDefault();
         }}
-        onSave={() => void onSave()}
-        onDiscard={onDiscard}
+        onEnsureSaved={onSave}
         onDelete={() => setDeleteOpen(true)}
         onGenerating={() => setPreviewOverride({ key: serverPreviewKey, status: "generating" })}
       />
@@ -129,11 +180,11 @@ export function StyleWorkspace({
       <div
         className={
           style.isCustom
-            ? "mt-3 grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]"
+            ? "mt-3 flex min-h-0 flex-1 overflow-hidden lg:gap-4"
             : "mt-3 mx-auto grid min-h-0 w-full max-w-5xl flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]"
         }
       >
-        <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto pr-12 lg:max-w-[380px] lg:shrink-0 lg:pr-0">
           <StylePreviewColumn
             style={style}
             name={name}
@@ -146,13 +197,20 @@ export function StyleWorkspace({
           <StyleInfoPanel style={style} saved={saved} draft={draft} />
         </div>
         {style.isCustom ? (
-          <StyleChatPanel
-            styleId={style.id}
-            initialChat={style.chat}
-            draft={draft}
-            subscribed={subscribed}
-            onApplyFields={onApplyFields}
-          />
+          <StyleChatDrawer>
+            <StyleChatPanel
+              styleId={style.id}
+              initialChat={initial.chat}
+              draft={draft}
+              subscribed={subscribed}
+              user={user}
+              previewUrl={previewUrl}
+              previewStatus={previewStatus}
+              onApplyFields={onApplyFields}
+              onSaveDraft={() => onSave()}
+              onGenerating={() => setPreviewOverride({ key: serverPreviewKey, status: "generating" })}
+            />
+          </StyleChatDrawer>
         ) : null}
       </div>
     </div>
