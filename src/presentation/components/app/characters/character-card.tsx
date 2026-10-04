@@ -30,7 +30,7 @@ export function CharacterCard({ character }: { character: PublicCharacter }) {
             src={character.previewUrl}
             alt={t("characters.blueprintAlt", { name: character.name })}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            className="h-full w-full object-contain"
           />
         ) : (
           <div className="studio-grid grid h-full w-full place-items-center">

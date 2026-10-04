@@ -75,6 +75,9 @@ export const productionEn = {
   },
   shell: {
     mainNavAria: "Main menu",
+    navGeneration: "Generation",
+    navSetup: "Setup",
+    navOther: "Other",
     clipInfoAria: "Clip info",
     previewAria: "Preview",
     timelineAria: "Timeline",

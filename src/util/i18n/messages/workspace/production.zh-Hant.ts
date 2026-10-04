@@ -75,6 +75,9 @@ export const productionZhHant = {
   },
   shell: {
     mainNavAria: "主選單",
+    navGeneration: "製作",
+    navSetup: "準備",
+    navOther: "其他",
     clipInfoAria: "片段資訊",
     previewAria: "預覽",
     timelineAria: "時間軸",
