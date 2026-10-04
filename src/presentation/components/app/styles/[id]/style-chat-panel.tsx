@@ -75,12 +75,12 @@ export function StyleChatPanel({
   }
 
   return (
-    <aside className="flex min-h-[28rem] flex-col rounded-[1.75rem] border border-accent-ink/10 bg-paper/85 shadow-[8px_8px_0_0_rgba(18,20,28,0.08)] lg:sticky lg:top-0 lg:h-[calc(100dvh-6rem)]">
-      <h2 className="border-b border-accent-ink/10 px-5 py-4 font-display text-lg font-bold">
+    <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-accent-ink/10 bg-paper/85">
+      <h2 className="shrink-0 border-b border-accent-ink/10 px-3 py-2 font-display text-sm font-bold">
         {t("styles.chatTitle")}
       </h2>
 
-      <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-5 py-4" aria-live="polite">
+      <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-2" aria-live="polite">
         {chat.length === 0 && !sending && !error ? (
           <p className="text-sm leading-6 text-muted">{t("styles.chatEmpty")}</p>
         ) : null}
@@ -101,7 +101,7 @@ export function StyleChatPanel({
         {error ? <StyleChatMessage role="assistant" variant="error" content={error} /> : null}
       </div>
 
-      <div className="border-t border-accent-ink/10 p-4">
+      <div className="shrink-0 border-t border-accent-ink/10 p-2.5">
         {subscribed ? (
           <form
             onSubmit={(event) => {
@@ -111,7 +111,7 @@ export function StyleChatPanel({
             className="space-y-2"
           >
             <textarea
-              rows={3}
+              rows={2}
               maxLength={MESSAGE_MAX}
               value={input}
               disabled={sending}
@@ -124,25 +124,25 @@ export function StyleChatPanel({
                   void send();
                 }
               }}
-              className="w-full resize-none rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+              className="w-full resize-none rounded-xl border border-accent-ink/15 bg-paper px-3 py-2 text-xs leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
             />
             <div className="flex justify-end">
               <button
                 type="submit"
                 disabled={!canSend}
-                className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-accent px-3 text-xs font-semibold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {sending ? <Spinner className="h-4 w-4" /> : null}
+                {sending ? <Spinner className="h-3.5 w-3.5" /> : null}
                 {t("styles.chatSend")}
               </button>
             </div>
           </form>
         ) : (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted">{t("styles.chatLocked")}</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted">{t("styles.chatLocked")}</p>
             <Link
               href="/app/billing"
-              className="inline-flex min-h-[44px] items-center rounded-full bg-accent-ink px-4 text-sm font-semibold text-lime transition hover:-translate-y-0.5"
+              className="inline-flex h-8 items-center rounded-full bg-accent-ink px-3 text-xs font-semibold text-lime transition hover:-translate-y-0.5"
             >
               {t("styles.chatLockedCta")}
             </Link>

@@ -99,6 +99,7 @@ import {
 import { DEFAULT_SPEECH_PACE, SPEECH_PACE_PRESETS } from "@/service/director/speech-pace";
 import { SceneTextPicker } from "@/presentation/components/app/projects/new/scene-text-picker";
 import { VideoEditDesk } from "@/presentation/components/app/projects/new/video-edit-desk";
+import { VideoEditSummaryEndSlot } from "@/presentation/components/app/projects/new/video-edit-summary-end";
 import { ReviseStoryboardDialog } from "@/presentation/components/app/projects/new/revise-storyboard-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { localizedVideoType } from "@/util/video-type-i18n";
@@ -963,49 +964,52 @@ export function NewProjectForm({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
               transition={{ duration: 0.35, ease }}
-              className={`flex flex-wrap items-center gap-2 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-4 py-2 text-xs ${
+              className={`flex items-center gap-3 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-4 py-2 text-xs ${
                 desk ? "shrink-0" : "mx-4 mt-4 rounded-md border sm:mx-6"
               }`}
             >
-              <span className="font-display font-bold">{skillTitle}</span>
-              <Dot />
-              <span>{styleName}</span>
-              <Dot />
-              <span>{LANGUAGE_PRESETS[language].label}</span>
-              <Dot />
-              <span>{t("brief.summary.speechPace", { label: speechPaceLabel(t, speechPace).label })}</span>
-              {dialogueOnly ? null : (
-                <>
-                  <Dot />
-                  <span>{VOICE_PRESETS[voiceGender].label}</span>
-                </>
-              )}
-              <Dot />
-              <span>
-                {t("brief.summary.sceneText", { label: sceneTextLangLabel(t, sceneTextLanguage).label })}
-              </span>
-              <Dot />
-              <span>{aspectRatio}</span>
-              <Dot />
-              <span>
-                {isTalkingHeadSkill(project?.skillSlug || ruleSlug)
-                  ? t("brief.summary.talkingHeadLength")
-                  : isBookendSkill(project?.skillSlug || ruleSlug) && durationPreset === "auto"
-                    ? t("brief.summary.bookendLength")
-                    : durationPresetLabel(t, durationPreset).label}
-              </span>
-              {project?.logoUrl ? (
-                <>
-                  <Dot />
-                  <span>{t("brief.summary.logo")}</span>
-                </>
-              ) : null}
-              {project?.cast.length ? (
-                <>
-                  <Dot />
-                  <span>{project.cast.map((member) => member.name).join("、")}</span>
-                </>
-              ) : null}
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                <span className="font-display font-bold">{skillTitle}</span>
+                <Dot />
+                <span>{styleName}</span>
+                <Dot />
+                <span>{LANGUAGE_PRESETS[language].label}</span>
+                <Dot />
+                <span>{t("brief.summary.speechPace", { label: speechPaceLabel(t, speechPace).label })}</span>
+                {dialogueOnly ? null : (
+                  <>
+                    <Dot />
+                    <span>{VOICE_PRESETS[voiceGender].label}</span>
+                  </>
+                )}
+                <Dot />
+                <span>
+                  {t("brief.summary.sceneText", { label: sceneTextLangLabel(t, sceneTextLanguage).label })}
+                </span>
+                <Dot />
+                <span>{aspectRatio}</span>
+                <Dot />
+                <span>
+                  {isTalkingHeadSkill(project?.skillSlug || ruleSlug)
+                    ? t("brief.summary.talkingHeadLength")
+                    : isBookendSkill(project?.skillSlug || ruleSlug) && durationPreset === "auto"
+                      ? t("brief.summary.bookendLength")
+                      : durationPresetLabel(t, durationPreset).label}
+                </span>
+                {project?.logoUrl ? (
+                  <>
+                    <Dot />
+                    <span>{t("brief.summary.logo")}</span>
+                  </>
+                ) : null}
+                {project?.cast.length ? (
+                  <>
+                    <Dot />
+                    <span>{project.cast.map((member) => member.name).join("、")}</span>
+                  </>
+                ) : null}
+              </div>
+              {reelDesk ? <VideoEditSummaryEndSlot /> : null}
             </motion.div>
           )}
         </AnimatePresence>

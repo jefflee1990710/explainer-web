@@ -49,6 +49,7 @@ export const stylesZhHant = {
   modified: "已修改",
   fieldEmpty: "未設定",
   fieldsTitle: "畫面欄位",
+  fieldsHint: "唯讀 · 用 AI 修改",
   fields: {
     canvas: "畫布",
     canvasColor: "畫布顏色",

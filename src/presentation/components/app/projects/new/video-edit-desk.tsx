@@ -4,11 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { StudioFrame } from "@/presentation/studio/studio-frame";
 import { BookendVideoDialog } from "@/presentation/components/app/projects/new/bookend-video-dialog";
 import { VideoEditCoverDialog } from "@/presentation/components/app/projects/new/video-edit-cover-dialog";
-import { VideoEditExport } from "@/presentation/components/app/projects/new/video-edit-export";
-import { VideoSharePanel } from "@/presentation/components/app/projects/new/video-share-panel";
-import { VideoEditLayers } from "@/presentation/components/app/projects/new/video-edit-layers";
+import { VideoEditExportBar } from "@/presentation/components/app/projects/new/video-edit-export-bar";
 import { VideoEditPreview, type EditSelection } from "@/presentation/components/app/projects/new/video-edit-preview";
-import { VideoEditProperties } from "@/presentation/components/app/projects/new/video-edit-properties";
+import { VideoEditSummaryEnd } from "@/presentation/components/app/projects/new/video-edit-summary-end";
 import type { EditSlot } from "@/presentation/components/app/projects/new/video-edit-timeline";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { updateVideoEditAction } from "@/presentation/actions/video-edit";
@@ -22,7 +20,6 @@ import { ExportProgressOverlay } from "@/presentation/components/app/projects/ne
 import { clipUrlsForExport, timelineClips } from "@/service/video-edit/edit-timeline";
 import { setTransition } from "@/service/video-edit/edit-transition";
 import { EDIT_LIMITS, emptyEdit, type BookendClip, type BrandLayer, type VideoEdit } from "@/model/video-edit";
-import { translateAppError } from "@/util/i18n/translate-app-error";
 import { displayMediaSrc } from "@/util/media-src";
 import type { PublicVideo } from "@/presentation/serialize";
 
@@ -87,23 +84,6 @@ export function VideoEditDesk({
 
   function patchLayer(id: string, patch: Partial<BrandLayer>) {
     change((current) => ({ ...current, layers: current.layers.map((l) => (l.id === id ? { ...l, ...patch } : l)) }));
-  }
-
-  function addLayer(url: string) {
-    const layer: BrandLayer = { id: crypto.randomUUID(), kind: "image", assetUrl: url, anchor: "top-right", marginPct: 4, widthPct: 18, opacity: 1 };
-    change((current) => ({ ...current, layers: [...current.layers, layer] }));
-    setSelected(layer.id);
-  }
-
-  function moveLayer(id: string, delta: -1 | 1) {
-    change((current) => {
-      const layers = [...current.layers];
-      const from = layers.findIndex((l) => l.id === id);
-      const to = from + delta;
-      if (from < 0 || to < 0 || to >= layers.length) return current;
-      [layers[from], layers[to]] = [layers[to], layers[from]];
-      return { ...current, layers };
-    });
   }
 
   function setBookend(slot: "intro" | "outro", asset: { url: string; kind: "image" | "video"; durationSec?: number }) {
@@ -176,6 +156,16 @@ export function VideoEditDesk({
 
   return (
     <>
+    <VideoEditSummaryEnd>
+      <VideoEditExportBar
+        project={project}
+        edit={edit}
+        saving={saving || busy}
+        pending={busy}
+        error={shownError}
+        onExport={(url, filename) => void exportVideo(url, filename)}
+      />
+    </VideoEditSummaryEnd>
     <StudioFrame
       preview={
         <VideoEditPreview
@@ -193,44 +183,6 @@ export function VideoEditDesk({
           coverBusy={project.coverStatus === "generating"}
           onOpenSlot={setSlotDialog}
         />
-      }
-      inspector={
-        <div className="flex flex-col gap-5 p-4">
-          <header>
-            <p className="text-sm font-semibold">{t("video.edit.title")}</p>
-            <p className="mt-1 text-xs text-[var(--studio-muted)]">
-              {saving ? t("video.edit.subtitleSaving") : t("video.edit.subtitle")}
-            </p>
-          </header>
-          <VideoSharePanel project={project} edit={edit} />
-          <VideoEditLayers
-            edit={edit}
-            selected={selected}
-            busy={busy}
-            onSelect={setSelected}
-            onAddLayer={addLayer}
-            onRemoveLayer={(id) => {
-              change((current) => ({ ...current, layers: current.layers.filter((l) => l.id !== id) }));
-              if (selected === id) setSelected("");
-            }}
-            onMoveLayer={moveLayer}
-            onError={setMessage}
-          />
-          <VideoEditProperties
-            edit={edit}
-            selected={selected}
-            onLayerChange={patchLayer}
-            onBookendChange={(slot, patch) =>
-              change((current) => (current[slot] ? { ...current, [slot]: { ...current[slot]!, ...patch } } : current))
-            }
-          />
-          <VideoEditExport project={project} edit={edit} saving={saving || busy} pending={busy} onExport={(url, filename) => void exportVideo(url, filename)} />
-          {shownError ? (
-            <p role="alert" className="text-xs font-medium text-[#e11d48]">
-              {translateAppError(shownError, t)}
-            </p>
-          ) : null}
-        </div>
       }
     />
     {exportJob ? <ExportProgressOverlay job={exportJob} onCancel={cancelExport} /> : null}

@@ -45,8 +45,8 @@ export function StudioShell({
           />
           {toolbar}
         </StudioRail>
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-[var(--studio-canvas)] px-6 py-6">
-          {children}
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--studio-canvas)] px-6 py-6">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
         </main>
       </div>
     </div>

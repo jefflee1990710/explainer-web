@@ -12,7 +12,7 @@ export function StudioFrame({
   timelineBar,
 }: {
   preview: React.ReactNode;
-  inspector: React.ReactNode;
+  inspector?: React.ReactNode;
   timeline?: React.ReactNode;
   toolbar?: React.ReactNode;
   timelineBar?: React.ReactNode;
@@ -27,12 +27,14 @@ export function StudioFrame({
       ) : null}
       <div className="min-h-0 flex-1 overflow-y-auto lg:overflow-hidden">
         <div className="flex min-h-full flex-col lg:h-full lg:min-h-0 lg:flex-row">
-          <section
-            aria-label={t("production.shell.clipInfoAria")}
-            className="shrink-0 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] lg:h-full lg:w-[460px] lg:overflow-y-auto lg:border-b-0 lg:border-r"
-          >
-            {inspector}
-          </section>
+          {inspector ? (
+            <section
+              aria-label={t("production.shell.clipInfoAria")}
+              className="shrink-0 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] lg:h-full lg:w-[460px] lg:overflow-y-auto lg:border-b-0 lg:border-r"
+            >
+              {inspector}
+            </section>
+          ) : null}
           <section
             aria-label={t("production.shell.previewAria")}
             className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--studio-canvas)] lg:h-full"

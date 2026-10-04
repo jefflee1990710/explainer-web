@@ -1,13 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { saveUserStyleAction } from "@/presentation/actions/styles";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { useUnsavedWarning } from "@/presentation/components/app/directors/[id]/use-unsaved-warning";
+import { StyleDeskHeader } from "@/presentation/components/app/styles/[id]/style-desk-header";
 import { StyleInfoPanel } from "@/presentation/components/app/styles/[id]/style-info-panel";
+import { StylePreviewColumn } from "@/presentation/components/app/styles/[id]/style-preview-column";
 import { StyleChatPanel } from "@/presentation/components/app/styles/[id]/style-chat-panel";
-import { StylePreviewButton } from "@/presentation/components/app/styles/[id]/style-preview-button";
 import { DeleteStyleDialog } from "@/presentation/components/app/styles/[id]/delete-style-dialog";
 import {
   catalogStyleLabel,
@@ -22,8 +22,7 @@ import { translateAppError } from "@/util/i18n/translate-app-error";
 const SAVED_STATUS_MS = 2500;
 const CANVAS_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
-// Style detail: preview on top, fields on the left. Custom styles also get AI chat.
-// The draft is seeded once so a refresh while a preview runs does not wipe unsaved edits.
+// One-screen style desk: preview, visual fields, and AI chat share the viewport.
 export function StyleWorkspace({
   style: initial,
   subscribed,
@@ -39,7 +38,6 @@ export function StyleWorkspace({
   const [savedFlash, setSavedFlash] = useState(false);
   const [error, setError] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
-  // Optimistic "generating" only applies to the server snapshot that was current when the click happened.
   const serverPreviewKey = `${initial.previewStatus}|${initial.previewUrl ?? ""}|${String(initial.hasOwnPreview)}`;
   const [previewOverride, setPreviewOverride] = useState<{ key: string; status: StyleDetail["previewStatus"] } | null>(
     null,
@@ -107,67 +105,46 @@ export function StyleWorkspace({
   }
 
   return (
-    <div className="space-y-6">
-      <header>
-        <Link
-          href="/app/styles"
-          onClick={(event) => {
-            if (dirty && !window.confirm(t("styles.unsavedWarning"))) event.preventDefault();
-          }}
-          className="text-sm font-semibold text-muted transition hover:text-foreground"
-        >
-          {t("styles.backToList")}
-        </Link>
-        <h1 className="font-display mt-2 text-3xl font-bold">{name}</h1>
-        <div
-          className="relative mt-5 max-w-xl overflow-hidden rounded-2xl border border-accent-ink/10"
-          style={{ backgroundColor: colorOk ? draft.canvasColor : style.canvasColor }}
-        >
-          {previewUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={previewUrl} alt="" className="aspect-video w-full object-cover" />
-          ) : (
-            <div className="grid aspect-video place-items-center px-4 text-center font-display text-lg font-bold text-accent-ink/50">
-              {name}
-            </div>
-          )}
-          {previewStatus === "generating" ? (
-            <p className="absolute inset-x-0 bottom-0 bg-accent-ink/70 px-4 py-2 text-sm font-semibold text-paper">
-              {t("styles.previewGenerating")}
-            </p>
-          ) : null}
-        </div>
-        {style.isCustom ? (
-          <StylePreviewButton
-            styleId={style.id}
-            dirty={dirty}
-            previewStatus={previewStatus}
-            onGenerating={() => setPreviewOverride({ key: serverPreviewKey, status: "generating" })}
-          />
-        ) : null}
-      </header>
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <StyleDeskHeader
+        style={style}
+        name={name}
+        dirty={dirty}
+        saving={saving}
+        canSave={canSave}
+        status={savedFlash ? t("styles.saved") : ""}
+        error={error}
+        previewStatus={previewStatus}
+        onBack={(event) => {
+          if (dirty && !window.confirm(t("styles.unsavedWarning"))) event.preventDefault();
+        }}
+        onSave={() => void onSave()}
+        onDiscard={onDiscard}
+        onDelete={() => setDeleteOpen(true)}
+        onGenerating={() => setPreviewOverride({ key: serverPreviewKey, status: "generating" })}
+      />
 
       {deleteOpen ? <DeleteStyleDialog styleId={style.id} onClose={() => setDeleteOpen(false)} /> : null}
 
       <div
         className={
-          style.isCustom ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start" : "max-w-4xl"
+          style.isCustom
+            ? "mt-3 grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]"
+            : "mt-3 mx-auto grid min-h-0 w-full max-w-5xl flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]"
         }
       >
-        <StyleInfoPanel
-          style={style}
-          saved={saved}
-          draft={draft}
-          dirty={dirty}
-          saving={saving}
-          canSave={canSave}
-          status={savedFlash ? t("styles.saved") : ""}
-          error={error}
-          onChange={onChange}
-          onSave={() => void onSave()}
-          onDiscard={onDiscard}
-          onDelete={() => setDeleteOpen(true)}
-        />
+        <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto">
+          <StylePreviewColumn
+            style={style}
+            name={name}
+            draft={draft}
+            colorOk={colorOk}
+            previewUrl={previewUrl}
+            previewBusy={previewStatus === "generating"}
+            onChange={onChange}
+          />
+          <StyleInfoPanel style={style} saved={saved} draft={draft} />
+        </div>
         {style.isCustom ? (
           <StyleChatPanel
             styleId={style.id}

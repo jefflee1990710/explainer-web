@@ -50,6 +50,7 @@ export const stylesEn = {
   modified: "Modified",
   fieldEmpty: "Not set",
   fieldsTitle: "Visual fields",
+  fieldsHint: "Read-only · ask AI to change",
   fields: {
     canvas: "Canvas",
     canvasColor: "Canvas color",
