@@ -42,7 +42,7 @@ export const id: Partial<Messages> = {
   },
   characters: { title: "Karakter", create: "Karakter baru", empty: "Belum ada karakter." },
   billing: { title: "Tagihan" },
-  styles: { doodle: "Coretan papan tulis", "flat-vector": "Vektor datar", "paper-cutout": "Guntingan kertas", chalkboard: "Papan kapur", "chalkboard-color": "Papan kapur berwarna", watercolor: "Buku cerita cat air", clay: "Animasi tanah liat", pixel: "Seni piksel", "ink-manga": "Manga tinta", realistic: "Realistis sinematik" },
+  styles: { doodle: "Coretan papan tulis", "flat-vector": "Vektor datar", "paper-cutout": "Guntingan kertas", chalkboard: "Papan kapur", "chalkboard-color": "Papan kapur berwarna", watercolor: "Buku cerita cat air", clay: "Animasi tanah liat", pixel: "Seni piksel", "ink-manga": "Manga tinta", realistic: "Realistis sinematik", "low-poly": "3D low-poly", "colored-pencil": "Pensil warna", "dark-tech": "3D teknologi gelap" },
   plans: {
     starter: { name: "Pemula", blurb: "Cocok untuk mencoba Scro." },
     pro: { name: "Pro", blurb: "Untuk orang yang menjalankan bisnis sendiri." },

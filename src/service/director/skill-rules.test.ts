@@ -10,10 +10,16 @@ import {
   cartoonExplainerDirectorBlock,
   cartoonNarratorFrameLock,
   cartoonNarratorVideoLock,
+  comparisonCardDirectorBlock,
+  comparisonPanels,
+  comparisonSplitAxis,
   dialogueOnlyDirectorBlock,
   dialogueQaDirectorBlock,
+  isComparisonCardSkill,
+  isTalkingBrollSkill,
   listicleListEntries,
   requiredCastCount,
+  talkingBrollDirectorBlock,
   skillBansNarration,
   skillForcesSceneText,
   storyShortCameraLock,
@@ -133,6 +139,23 @@ test("Q&A director requires exactly two characters", () => {
     briefSkillError({ skillSlug: "dialogue-qa-director", characterIds: ["a"] }) || "",
     /2/,
   );
+});
+
+test("comparison card is a split, and talking-head b-roll needs one face", () => {
+  assert.equal(isComparisonCardSkill("comparison-card-director"), true);
+  assert.equal(comparisonSplitAxis("16:9"), "left-right");
+  assert.equal(comparisonSplitAxis("9:16"), "top-bottom");
+  assert.deepEqual(comparisonPanels("contrast: What you see | What your baby sees"), {
+    a: "What you see",
+    b: "What your baby sees",
+  });
+  assert.equal(comparisonPanels("hook"), null);
+  assert.match(comparisonCardDirectorBlock("9:16"), /TOP half/);
+  assert.match(comparisonCardDirectorBlock("16:9"), /LEFT half/);
+  assert.equal(isTalkingBrollSkill("talking-broll-director"), true);
+  assert.equal(requiredCastCount("talking-broll-director"), 1);
+  assert.match(talkingBrollDirectorBlock(), /two on-camera lines/);
+  assert.match(talkingBrollDirectorBlock(), /Override clip inheritance/);
 });
 
 test("listicle forces on-canvas listing text", () => {

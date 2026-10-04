@@ -378,7 +378,10 @@ export type Messages = {
     | "clay"
     | "pixel"
     | "ink-manga"
-    | "realistic",
+    | "realistic"
+    | "low-poly"
+    | "colored-pencil"
+    | "dark-tech",
     string
   >;
   plans: {

@@ -1,4 +1,5 @@
-import { listicleListEntries } from "@/service/director/skill-rules";
+import type { AspectRatio } from "@/model/project";
+import { comparisonPanels, comparisonSplitAxis, listicleListEntries } from "@/service/director/skill-rules";
 import type { SceneTextLanguage } from "@/model/project";
 import {
   resolveStyleLettering,
@@ -89,12 +90,37 @@ export function listicleOnCanvasLines(input: {
   ].filter(Boolean);
 }
 
+// Two titles, one per half. The spoken line stays off the drawing.
+export function comparisonOnCanvasLines(input: {
+  narrativeJob: string;
+  aspectRatio: AspectRatio;
+  typography?: string;
+}) {
+  const panels = comparisonPanels(input.narrativeJob);
+  const vertical = comparisonSplitAxis(input.aspectRatio) === "top-bottom";
+  const place = vertical ? "a top half and a bottom half" : "a left half and a right half";
+  const sideA = vertical ? "Top" : "Left";
+  const sideB = vertical ? "Bottom" : "Right";
+  return [
+    `Split comparison ON. Divide the frame into ${place}. Both halves stay visible together.`,
+    panels
+      ? `${sideA} title (spell exactly): "${panels.a}"`
+      : `${sideA} half needs one short title.`,
+    panels
+      ? `${sideB} title (spell exactly): "${panels.b}"`
+      : `${sideB} half needs one short title.`,
+    "Those two titles are the only writing. Do not add a voiceover caption.",
+    input.typography?.trim() || "",
+  ].filter(Boolean);
+}
+
 export function sceneTextSkillHint(
   enabled: boolean,
   language: SceneTextLanguage,
   options?: {
     dualBeat?: boolean;
     listicle?: boolean;
+    comparison?: boolean;
     inWorldLabels?: boolean;
     reelSafeZone?: boolean;
     lettering?: StyleLettering;
@@ -105,6 +131,13 @@ export function sceneTextSkillHint(
     return [
       "On-canvas text is REQUIRED for this director. Every still must show a readable numbered list of the item titles (each item clip's englishVo).",
       "Highlight the current item. The list is a primary graphic in the scene, not a tiny subtitle bar.",
+      SCENE_TEXT_PRESETS[language].skillHint,
+    ].join(" ");
+  }
+  if (options?.comparison) {
+    return [
+      "On-canvas text is the two panel titles only. narrativeJob must be `contrast: <panel A title> | <panel B title>`.",
+      "16:9 is left | right. 9:16 and 1:1 are top | bottom. Do not also caption the full voiceover.",
       SCENE_TEXT_PRESETS[language].skillHint,
     ].join(" ");
   }

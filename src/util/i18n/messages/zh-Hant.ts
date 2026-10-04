@@ -397,6 +397,9 @@ export const zhHant: Messages = {
     pixel: "16-bit 方塊像素、復古遊戲機調色。",
     "ink-manga": "沾水筆線條、網點與速度線的漫畫張力。",
     realistic: "真實光影、35mm 鏡頭感的電影劇照。",
+    "low-poly": "低面數方塊、平面上色與柔陰影，遊戲世界感。",
+    "colored-pencil": "蠟筆般的彩色鉛筆筆觸，兒童繪本手繪。",
+    "dark-tech": "深藍空間、發光量體與乾淨 3D 示意圖，科學解說感。",
   },
   plans: {
     starter: {

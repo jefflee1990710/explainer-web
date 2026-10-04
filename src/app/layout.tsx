@@ -9,6 +9,9 @@ const notoSansTc = Noto_Sans_TC({
   variable: "--font-body",
   weight: ["400", "500", "600", "700"],
   display: "swap",
+  // CJK is not a preloadable subset; webpack errors without this, and Turbopack 16.3
+  // then fails resolving the many unicode-range files.
+  preload: false,
 });
 
 const geistMono = Geist_Mono({

@@ -11,6 +11,9 @@ export const STYLE_IDS = [
   "pixel",
   "ink-manga",
   "realistic",
+  "low-poly",
+  "colored-pencil",
+  "dark-tech",
 ] as const;
 
 export const styleIdSchema = z.enum(STYLE_IDS);

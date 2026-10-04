@@ -793,7 +793,9 @@ export function NewProjectForm({
                 <p className="mt-1 text-xs text-muted">
                   {castNeed === 2
                     ? t("brief.cast.hintRequiredTwo")
-                    : t("brief.cast.hintOptional")}
+                    : castNeed === 1
+                      ? t("brief.cast.hintRequiredOne")
+                      : t("brief.cast.hintOptional")}
                 </p>
                 <div className="mt-3">
                   <CharacterPicker

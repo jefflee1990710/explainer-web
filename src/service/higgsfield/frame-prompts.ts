@@ -21,6 +21,7 @@ import {
 } from "@/service/director/dual-beat";
 import { frameEndMoment, frameStartMoment } from "@/service/director/keyframe-delta";
 import {
+  comparisonOnCanvasLines,
   listicleOnCanvasLines,
   resolveSceneText,
   sceneTextFrameLines,
@@ -33,6 +34,7 @@ import {
   bookendLogoFrameLines,
   cartoonNarratorFrameLock,
   isBookendSkill,
+  isComparisonCardSkill,
   skillBansNarration,
   skillForcesSceneText,
   STORY_SHORT_SKILL_SLUG,
@@ -294,6 +296,7 @@ export function buildFramePrompt(
 
   const sceneText = resolveSceneText(project);
   const listicle = skillForcesSceneText(project.skillSlug);
+  const comparison = isComparisonCardSkill(project.skillSlug);
   const hasCast = Boolean(project.cast && project.cast.length > 0);
   const lockUrls = frameLockReferenceUrls(project);
   const characterUrls = characterReferenceUrls(project);
@@ -337,7 +340,8 @@ export function buildFramePrompt(
   // In-world-label mode keeps the 「」 tag wording the director wrote into the scene;
   // every other mode strips it so the model does not paint invented labels.
   // Cartoon stills keep the prop tags the director wrote into the scene.
-  const keepSceneLabels = !listicle && (sceneText.inWorldLabels || (dualBeat && sceneText.enabled));
+  const keepSceneLabels =
+    !listicle && !comparison && (sceneText.inWorldLabels || (dualBeat && sceneText.enabled));
   const sceneRaw = keepSceneLabels
     ? sceneForFrame.trim()
     : stripStoryboardWriting(sceneForFrame);
@@ -362,6 +366,14 @@ export function buildFramePrompt(
           clipNumber,
         }),
       ]
+    : comparison
+      ? [
+          styleLetteringLineForSceneText(style),
+          ...comparisonOnCanvasLines({
+            narrativeJob: row.narrativeJob,
+            aspectRatio: project.aspectRatio,
+          }),
+        ]
     : sceneText.enabled
       ? [
           styleLetteringLineForSceneText(style),

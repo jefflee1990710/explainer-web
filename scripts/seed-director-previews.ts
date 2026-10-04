@@ -35,10 +35,13 @@ function googleImage() {
 
 // Gemini still → WebP on Blob. Never touches prompt / profile fields.
 async function seedDirector(skill: Skill, styleNames: string[]) {
-  const visual = (skill.profile ? parseSystemProfile(skill.profile).visual.trim() : "") || skill.description;
+  const profile = skill.profile ? parseSystemProfile(skill.profile) : null;
+  const visual = profile?.visual.trim() || skill.description;
+  const plan = [profile?.hook, profile?.arc].filter(Boolean).join(" ") || skill.description;
   const prompt = directorPreviewPrompt({
     title: skill.title,
     visual,
+    plan,
     styleNames,
   });
   const hash = createHash("sha256").update(`${prompt}|${MODEL}`).digest("hex");

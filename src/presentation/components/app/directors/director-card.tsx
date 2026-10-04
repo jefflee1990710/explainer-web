@@ -32,29 +32,29 @@ export function DirectorCard({ director }: { director: PublicSkill }) {
         className="flex flex-1 flex-col transition-colors hover:bg-accent-ink/[0.03] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
       >
         <DirectorPreviewThumb previewUrl={director.previewUrl} label={name} size="cover" />
-        <div className="flex flex-1 flex-col gap-1 p-4">
-          <h3 className="line-clamp-1 text-sm font-semibold">{name}</h3>
+        <div className="flex flex-1 flex-col gap-0.5 px-3 py-2.5">
+          <h3 className="line-clamp-1 text-xs font-semibold">{name}</h3>
           {director.isCustom ? (
-            <p className="line-clamp-1 text-xs text-muted">{t("directors.templateBadge", { name: subtitle })}</p>
+            <p className="line-clamp-1 text-[11px] text-muted">{t("directors.templateBadge", { name: subtitle })}</p>
           ) : subtitle && subtitle !== name ? (
-            <p className="line-clamp-1 text-xs text-muted">{subtitle}</p>
+            <p className="line-clamp-1 text-[11px] text-muted">{subtitle}</p>
           ) : null}
           {director.description ? (
-            <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted">{director.description}</p>
+            <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-muted">{director.description}</p>
           ) : null}
         </div>
       </Link>
-      <div className="flex items-center justify-between gap-2 border-t border-[var(--studio-line)] px-4 py-3">
+      <div className="flex items-center justify-between gap-2 border-t border-[var(--studio-line)] px-3 py-2">
         {director.isCustom ? (
-          <p className="text-xs text-muted">
+          <p className="text-[11px] text-muted">
             {t("directors.updated", { date: new Date(director.updatedAt).toLocaleDateString(locale) })}
           </p>
         ) : (
           <>
-            <span className="text-xs text-muted">{t("directors.readOnly")}</span>
+            <span className="text-[11px] text-muted">{t("directors.readOnly")}</span>
             <CreateDirectorButton
               template={director}
-              className="inline-flex min-h-[36px] cursor-pointer items-center rounded-full border border-accent-ink/15 px-3 text-xs font-semibold transition hover:border-accent-ink/40"
+              className="inline-flex h-7 cursor-pointer items-center rounded-full border border-accent-ink/15 px-2.5 text-[11px] font-semibold transition hover:border-accent-ink/40"
             />
           </>
         )}

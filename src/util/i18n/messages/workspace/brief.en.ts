@@ -22,6 +22,7 @@ export const briefEn = {
     title: "Characters",
     hintRequiredTwo:
       "Pick exactly 2 characters (asker and answerer). Only characters in the style above are shown.",
+    hintRequiredOne: "Pick exactly 1 character. Only characters in the style above are shown.",
     hintOptional: "Optional. Up to 4; only characters in the style above are shown.",
   },
   section02: {
@@ -154,6 +155,8 @@ export const briefEn = {
     "opening-director": "Opening",
     "ending-director": "Ending",
     "talking-head-director": "Talking-head read",
+    "comparison-card-director": "Comparison card",
+    "talking-broll-director": "Talking-head with B-roll",
   },
   skillGuide: {
     labels: {
@@ -216,6 +219,18 @@ export const briefEn = {
         structure: "Your spoken script; one sentence per clip, up to 20",
         picture: "One locked medium close-up, eyes to the lens, one subtitle line at the bottom",
         frames: "The next clip’s start frame continues the previous end frame",
+      },
+      "comparison-card-director": {
+        voice: "Narrator names the contrast; the two panel titles are the on-screen text",
+        structure: "One split per clip: two views of the same thing, point lands on the last clip",
+        picture: "16:9 is left/right; 9:16 and square are top/bottom. Both halves stay in frame",
+        frames: "Each clip holds the split; the pictures can change, the divider stays",
+      },
+      "talking-broll-director": {
+        voice: "The character speaks two lines to camera; B-roll may continue off-screen or stay silent",
+        structure: "Two on-camera lines, one cutaway, then back to the same setup",
+        picture: "Locked close-up for speech; the cutaway shows what those lines just named",
+        frames: "B-roll is a new place. The next speech clip returns to the first setup",
       },
     },
   },

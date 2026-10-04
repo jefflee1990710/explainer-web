@@ -1,0 +1,12 @@
+{
+  "en": {
+    "bestFor": "A person speaking to camera who cuts away to the thing they just named, then comes back — explainers that should not stay on a face.",
+    "structure": "Fixed rhythm: two on-camera lines, one B-roll cutaway, then back. Repeat. Each clip is 3–8 seconds. Micro can be one cycle (talk, talk, cutaway, return).",
+    "hook": "Opens on the face saying the strongest line. Never opens on B-roll or a title card.",
+    "arc": "Pairs of spoken lines, each pair paid off by one cutaway of what they named, then the same close-up returns. The last clip is on-camera and rests.",
+    "narrator": "The attached character speaks the on-camera lines to the lens. A B-roll clip may carry one short off-screen line or stay silent.",
+    "visual": "Look and palette come from the chosen visual style. On-camera is one locked medium close-up. B-roll is a new place and does not show the speaker.",
+    "audio": "No background music. The voice continues across the cutaway when a line is written; silent cutaways use one sound effect tied to the picture.",
+    "rules": "Needs exactly one character. Do not stay on the face for the whole video. After B-roll, return to the first on-camera setup, not the cutaway."
+  }
+}

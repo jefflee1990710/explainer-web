@@ -102,6 +102,20 @@ const SKILLS: SkillManifest[] = [
     sortOrder: 9,
     inputSchema: { durationPresets: ["micro"] },
   },
+  {
+    dir: "comparison-card-director",
+    slug: "comparison-card-director",
+    title: "Comparison card",
+    description: "每段一張對照：同一件事的兩種看法，橫向左右或直向上下。",
+    sortOrder: 10,
+  },
+  {
+    dir: "talking-broll-director",
+    slug: "talking-broll-director",
+    title: "Talking-head with B-roll",
+    description: "對鏡講兩句，切去剛才那兩句在講的畫面，再回到同一個近景。",
+    sortOrder: 11,
+  },
 ];
 
 async function readMarkdownTree(dir: string, prefix = "") {

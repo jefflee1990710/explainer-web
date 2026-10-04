@@ -23,14 +23,18 @@ import {
   normalizeBookendClips,
   phaseADurationHint,
   cartoonExplainerDirectorBlock,
+  comparisonCardDirectorBlock,
+  DIALOGUE_QA_SKILL_SLUG,
   dialogueOnlyDirectorBlock,
   dialogueQaDirectorBlock,
+  isComparisonCardSkill,
+  isTalkingBrollSkill,
   listicleDirectorBlock,
-  requiredCastCount,
   skillBansNarration,
   skillForcesSceneText,
   STORY_SHORT_SKILL_SLUG,
   storyShortDirectorBlock,
+  talkingBrollDirectorBlock,
 } from "@/service/director/skill-rules";
 import { keyframeDeltaDirectorBlock } from "@/service/director/keyframe-delta";
 import { sceneDetailDirectorBlock } from "@/service/director/scene-detail";
@@ -192,8 +196,10 @@ ${
     dialogueOnly ? dialogueOnlyDirectorBlock() : "",
     input.skill.slug === STORY_SHORT_SKILL_SLUG ? storyShortDirectorBlock() : "",
     input.skill.slug === CARTOON_EXPLAINER_SKILL_SLUG ? cartoonExplainerDirectorBlock() : "",
-    requiredCastCount(input.skill.slug) ? dialogueQaDirectorBlock() : "",
+    input.skill.slug === DIALOGUE_QA_SKILL_SLUG ? dialogueQaDirectorBlock() : "",
     skillForcesSceneText(input.skill.slug) ? listicleDirectorBlock() : "",
+    isComparisonCardSkill(input.skill.slug) ? comparisonCardDirectorBlock(input.aspectRatio) : "",
+    isTalkingBrollSkill(input.skill.slug) ? talkingBrollDirectorBlock() : "",
     bookend
       ? bookendDirectorBlock(input.skill.slug, logoImages.length > 0, { lockLength: lockBookendLength })
       : "",
@@ -212,6 +218,7 @@ ${phaseAAudioHint(input.voiceGender, { bansNarration: dialogueOnly })}
 ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   dualBeat,
   listicle: skillForcesSceneText(input.skill.slug),
+  comparison: isComparisonCardSkill(input.skill.slug),
   inWorldLabels: sceneText.inWorldLabels,
   reelSafeZone: input.skill.slug === STORY_SHORT_SKILL_SLUG && input.aspectRatio === "9:16",
   lettering,

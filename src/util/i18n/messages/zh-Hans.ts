@@ -163,6 +163,9 @@ export const zhHans: Partial<Messages> = {
     pixel: "像素艺术",
     "ink-manga": "水墨漫画",
     realistic: "电影级写实",
+    "low-poly": "低面数 3D",
+    "colored-pencil": "彩色铅笔",
+    "dark-tech": "暗色科技 3D",
   },
   plans: {
     starter: { name: "入门版", blurb: "适合先试用 Scro。" },

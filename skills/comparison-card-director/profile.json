@@ -1,0 +1,12 @@
+{
+  "en": {
+    "bestFor": "One idea shown as two views at once — what you see vs what they see, before vs after, myth vs fact — for Reels and Shorts.",
+    "structure": "Each clip is 3–8 seconds and is one split frame. About 1–2 clips for micro, 2–4 for 15–20s, 4–6 for 30–45s, and 6–8 for 50–60s. The last clip rests with both halves visible.",
+    "hook": "Opens on the split already in frame and names the contrast in the first two seconds. No greeting, no empty title card.",
+    "arc": "Hook states the two sides. Middle clips change what each half shows while the split stays. The last clip lands the point with both halves still on screen.",
+    "narrator": "An unseen narrator names the contrast. The only on-canvas writing is the two short panel titles.",
+    "visual": "Look and palette come from the chosen visual style. 16:9 is left and right. 9:16 and 1:1 are top and bottom. Both halves stay in frame together.",
+    "audio": "No background music. One soft hit when a half changes. The narrator line is audio; it is not captioned under the titles.",
+    "rules": "Titles come from the source. Do not invent a third panel, a numbered list, or a full voiceover caption. A host is optional and must not cover either title."
+  }
+}

@@ -1,32 +1,48 @@
-import { STYLE_IDS, type StyleId } from "@/model/style-id";
+import type { StyleId } from "@/model/style-id";
 
-// Director cards stay a 3×3 of the original nine looks.
-export const DIRECTOR_PREVIEW_STYLE_IDS: StyleId[] = STYLE_IDS.filter((id) => id !== "chalkboard-color");
+// One row, left to right: each frame is the next planning beat and a different style.
+export const DIRECTOR_PREVIEW_STRIP_IDS: StyleId[] = [
+  "doodle",
+  "flat-vector",
+  "paper-cutout",
+  "clay",
+  "realistic",
+];
 
-// Shared composition: one director type, restaged in every catalog style.
-export const DIRECTOR_PREVIEW_SCENE =
-  "16:9 storyboard card. MUST be a 3 by 3 grid of nine equal cells — never a single full-bleed frame. The SAME director-format moment in every cell, each cell a different visual style. Thin even gutters, no watermarks, no UI chrome, no readable paragraph text. The director type must be obvious in every cell.";
+// Kept so older imports still name the strip. Not a 3×3.
+export const DIRECTOR_PREVIEW_STYLE_IDS: StyleId[] = DIRECTOR_PREVIEW_STRIP_IDS;
 
-// Gemini image prompt for a system-director card still.
+const DIRECTOR_PREVIEW_SCENE =
+  "16:9 storyboard card. ONE horizontal row of exactly 5 equal frames, read only left to right. Thin even gutters. Never a 3 by 3 grid, never a second row, never one full-bleed picture. No watermarks, no app UI, no paragraph text. Each frame is the next moment in time.";
+
+// Gemini image prompt: a planning timeline, one style per frame.
 export function directorPreviewPrompt(input: {
   title: string;
   visual: string;
+  plan: string;
   styleNames: string[];
 }) {
-  const cells = input.styleNames
+  const frames = input.styleNames
     .map((name, index) => `${index + 1}. ${name}`)
     .join("; ");
   return [
     DIRECTOR_PREVIEW_SCENE,
-    `Director type (repeat this beat in all nine cells): ${input.title}.`,
-    `What this format looks like: ${input.visual}`,
-    `Cells left-to-right, top-to-bottom must use these styles exactly: ${cells}.`,
-    `Keep the cast, props and action identical; only the rendering style changes.`,
+    `Director: ${input.title}.`,
+    "Left to right is a timeline of how this director plans the storyboard, not five copies of one moment.",
+    "Frame 1: the opening hook, the plan just starting.",
+    "Frame 2: the first storyboard beat locked in.",
+    "Frame 3: the middle of the plan, the idea being built.",
+    "Frame 4: the turn, just before the answer.",
+    "Frame 5: the resting payoff, planning finished.",
+    `How this director plans: ${input.plan}`,
+    `What the pictures contain: ${input.visual}`,
+    `Styles, one per frame, left to right, never repeated: ${frames}.`,
+    "The story advances and the style changes. Do not reuse a style. Do not put two styles in one frame.",
   ].join("\n");
 }
 
 export function directorPreviewStyleNames(styles: { id: string; name: string }[]) {
-  return DIRECTOR_PREVIEW_STYLE_IDS.map((id) => {
+  return DIRECTOR_PREVIEW_STRIP_IDS.map((id) => {
     const style = styles.find((row) => row.id === id);
     if (!style?.name.trim()) {
       throw new Error(`Style "${id}" is missing from Mongo`);

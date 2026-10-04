@@ -1,4 +1,4 @@
-import type { DurationPreset, SpeechPace } from "@/model/project";
+import type { AspectRatio, DurationPreset, SpeechPace } from "@/model/project";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import { talkingHeadDurationHint, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
@@ -8,6 +8,8 @@ export const DIALOGUE_QA_SKILL_SLUG = "dialogue-qa-director";
 export const LISTICLE_SKILL_SLUG = "listicle-director";
 export const OPENING_SKILL_SLUG = "opening-director";
 export const ENDING_SKILL_SLUG = "ending-director";
+export const COMPARISON_CARD_SKILL_SLUG = "comparison-card-director";
+export const TALKING_BROLL_SKILL_SLUG = "talking-broll-director";
 
 // Opening / Ending bookends. Auto keeps the skill's 1×3–4s sting; a chosen length does not.
 const BOOKEND_SKILLS = new Set([OPENING_SKILL_SLUG, ENDING_SKILL_SLUG]);
@@ -103,8 +105,30 @@ export function skillBansNarration(skillSlug?: string) {
 
 export function requiredCastCount(skillSlug?: string) {
   if (skillSlug === DIALOGUE_QA_SKILL_SLUG) return 2;
-  if (skillSlug === TALKING_HEAD_SKILL_SLUG) return 1;
+  if (skillSlug === TALKING_HEAD_SKILL_SLUG || skillSlug === TALKING_BROLL_SKILL_SLUG) return 1;
   return 0;
+}
+
+export function isComparisonCardSkill(skillSlug?: string) {
+  return skillSlug === COMPARISON_CARD_SKILL_SLUG;
+}
+
+export function isTalkingBrollSkill(skillSlug?: string) {
+  return skillSlug === TALKING_BROLL_SKILL_SLUG;
+}
+
+// 16:9 reads left | right. Portrait and square read top | bottom.
+export function comparisonSplitAxis(aspectRatio: AspectRatio): "left-right" | "top-bottom" {
+  return aspectRatio === "16:9" ? "left-right" : "top-bottom";
+}
+
+// narrativeJob contract: `contrast: Panel A | Panel B`.
+export function comparisonPanels(narrativeJob: string): { a: string; b: string } | null {
+  const match = narrativeJob.match(/contrast:\s*(.+?)\s*\|\s*(.+)$/i);
+  const a = match?.[1]?.trim();
+  const b = match?.[2]?.trim();
+  if (!a || !b) return null;
+  return { a, b };
 }
 
 export function skillForcesSceneText(skillSlug?: string) {
@@ -214,4 +238,29 @@ export function dialogueQaDirectorBlock() {
 
 export function listicleDirectorBlock() {
   return "On-canvas text is REQUIRED. Every still must show a readable numbered list of the item titles (each item clip's englishVo). Highlight the current item. The list is a primary graphic in the scene, not a tiny subtitle bar.";
+}
+
+export function comparisonCardDirectorBlock(aspectRatio: AspectRatio) {
+  const split =
+    comparisonSplitAxis(aspectRatio) === "left-right"
+      ? "LEFT half then RIGHT half (16:9). Panel A is left, panel B is right."
+      : "TOP half then BOTTOM half (9:16 or 1:1). Panel A is top, panel B is bottom.";
+  return [
+    "This is a COMPARISON CARD: every clip is one split frame of two views of the same subject.",
+    split,
+    "narrativeJob MUST be exactly `contrast: <panel A title> | <panel B title>`. Titles are short (about 2–5 words).",
+    "Those two titles are the only on-canvas writing. Do not also caption the full voiceover.",
+    "The hook names the contrast. Later clips may change what each half shows; the split stays. The last clip rests with both halves visible.",
+    "A host is optional. If a character is attached, they may stand in one half or point across the split, and must not cover either title.",
+  ].join(" ");
+}
+
+export function talkingBrollDirectorBlock() {
+  return [
+    "This is TALKING-HEAD WITH B-ROLL. The rhythm is fixed: two on-camera lines, then one B-roll cutaway, then back to the same on-camera setup. Repeat until the source is covered. Never open on B-roll.",
+    "narrativeJob is only `on-camera` or `b-roll`.",
+    "On-camera: the one attached character, medium close-up, eyes to the lens, same background and light as the first on-camera clip. They speak englishVo.",
+    "B-roll: the character is not on screen. Show the concrete thing the previous two lines just named. englishVo is one short off-screen line or \"(no dialogue)\".",
+    "Override clip inheritance for this director: a b-roll startScene is a new place, not the talking-head room. The next on-camera clip returns to the first on-camera setup, not the b-roll ending.",
+  ].join(" ");
 }

@@ -22,6 +22,7 @@ export const briefZhHant = {
     title: "角色",
     hintRequiredTwo:
       "必須正好選 2 個角色（提問者與回答者），少一個或多一個都不能開始。只顯示與上方風格相同的角色。",
+    hintRequiredOne: "必須正好選 1 個角色。只顯示與上方風格相同的角色。",
     hintOptional: "選填。最多 4 個；只顯示與上方風格相同的角色。",
   },
   section02: {
@@ -151,6 +152,8 @@ export const briefZhHant = {
     "opening-director": "開場",
     "ending-director": "結尾",
     "talking-head-director": "對鏡讀稿",
+    "comparison-card-director": "對照卡",
+    "talking-broll-director": "口播切畫面",
   },
   skillGuide: {
     labels: {
@@ -213,6 +216,18 @@ export const briefZhHant = {
         structure: "你填的講稿；講出口的一句一段，最多 20 段",
         picture: "同一中近景，望住鏡頭，底部一行字幕",
         frames: "下一段起始圖接上一段結尾",
+      },
+      "comparison-card-director": {
+        voice: "旁白點出對照；畫面上只留兩邊的短標題",
+        structure: "每段一張對照：同一件事的兩種看法，最後一段才收束",
+        picture: "16:9 左右分；9:16 與方圖上下分。兩邊同時留在畫面裡",
+        frames: "每段都維持分割；圖可以換，分割線留著",
+      },
+      "talking-broll-director": {
+        voice: "角色對鏡頭講兩句；切走的畫面可以畫外接一句，或靜音",
+        structure: "對鏡兩句、切一段畫面、再回到同一個口播",
+        picture: "講話是鎖定的中近景；切走的畫面演剛才那兩句在講的東西",
+        frames: "切走是新場景。下一次開口回到第一段的口播佈景",
       },
     },
   },

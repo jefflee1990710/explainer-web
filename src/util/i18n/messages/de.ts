@@ -42,7 +42,7 @@ export const de: Partial<Messages> = {
   },
   characters: { title: "Figuren", create: "Neue Figur", empty: "Noch keine Figuren vorhanden." },
   billing: { title: "Abrechnung" },
-  styles: { doodle: "Whiteboard-Zeichnung", "flat-vector": "Flache Vektorgrafik", "paper-cutout": "Scherenschnitt", chalkboard: "Kreidetafel", "chalkboard-color": "Farbige Kreidetafel", watercolor: "Aquarell-Bilderbuch", clay: "Knetanimation", pixel: "Pixelkunst", "ink-manga": "Tusche-Manga", realistic: "Filmisch-realistisch" },
+  styles: { doodle: "Whiteboard-Zeichnung", "flat-vector": "Flache Vektorgrafik", "paper-cutout": "Scherenschnitt", chalkboard: "Kreidetafel", "chalkboard-color": "Farbige Kreidetafel", watercolor: "Aquarell-Bilderbuch", clay: "Knetanimation", pixel: "Pixelkunst", "ink-manga": "Tusche-Manga", realistic: "Filmisch-realistisch", "low-poly": "Low-Poly-3D", "colored-pencil": "Buntstift", "dark-tech": "Dunkles Tech-3D" },
   plans: {
     starter: { name: "Starter", blurb: "Perfekt, um Scro auszuprobieren." },
     pro: { name: "Pro", blurb: "Für alle, die ihr eigenes Business führen." },

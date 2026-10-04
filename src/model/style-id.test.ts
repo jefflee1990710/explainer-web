@@ -19,6 +19,9 @@ test("STYLE_IDS lists every allowed style id", () => {
     "pixel",
     "ink-manga",
     "realistic",
+    "low-poly",
+    "colored-pencil",
+    "dark-tech",
   ]);
 });
 

@@ -406,6 +406,9 @@ export const en: Messages = {
     pixel: "16-bit square pixels and retro console palette.",
     "ink-manga": "Brush ink lines, screentone, and speed lines — manga energy.",
     realistic: "Realistic light and 35 mm lens — cinematic still.",
+    "low-poly": "Chunky flat-faced shapes and soft shadows — a stylised game world.",
+    "colored-pencil": "Waxy colored-pencil strokes on paper — a children's drawing.",
+    "dark-tech": "Navy void, glowing volumes, and clean 3D diagrams — a science explainer.",
   },
   plans: {
     starter: {
