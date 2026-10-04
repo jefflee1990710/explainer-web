@@ -11,13 +11,16 @@ const SHEET_LAYOUT = [
   "Final check: every drawing must be fully visible with an empty margin between the artwork and all four edges of the canvas.",
 ];
 
-// Face geometry and temperament outrank look/palette when a photo is attached.
-const IDENTITY_FROM_REFERENCE = [
-  "Identity lock: facial feature proportions and overall temperament from the attached reference outrank the style.",
-  "Copy the 五官比例 exactly — face shape, eye spacing and shape, brows, nose, mouth, lips, jaw, chin — plus moles, scars, and other marks.",
-  "Keep the same 整體氣質: the person's aura, presence, and how they feel to look at. Do not replace them with a generic stylized stand-in.",
-  "Restyle medium and palette only after those proportions and that temperament are locked. A different face is a failed sheet.",
-];
+// Likeness from the photo; rendering must still follow the chosen style.
+function identityFromReference(style: RenderableStyle) {
+  return [
+    `Keep the reference's 五官比例 and 整體氣質, and redraw every pose in the ${style.name} style.`,
+    "五官比例: copy face shape, eye spacing and shape, brows, nose, mouth, lips, jaw, chin, plus moles, scars, and other marks.",
+    "整體氣質: keep the same aura, presence, and how they feel to look at — not a generic stand-in.",
+    `Style is required: follow Background, Rendering, Palette, and Never. The sheet must look like ${style.name}, not a photograph or an unstyled copy of the reference.`,
+    "Do not drop the style to protect likeness, and do not drop likeness to apply the style.",
+  ];
+}
 
 export function buildBlueprintPrompt(input: {
   style: RenderableStyle;
@@ -36,27 +39,27 @@ export function buildBlueprintPrompt(input: {
   if (description) lines.push(`Character: ${description}`);
   if (input.editInstruction) {
     lines.push(
-      "Use the reference sheet as the base. Apply only the change below; keep everything else identical, including layout, pose order, expression order, 五官比例, and 整體氣質.",
+      "Use the reference sheet as the base. Apply only the change below; keep everything else identical, including layout, pose order, expression order, 五官比例, 整體氣質, and the same visual style.",
       `Change: ${input.editInstruction.trim()}`,
     );
   } else if (hasReference && referenceCount > 1) {
     lines.push(
-      ...IDENTITY_FROM_REFERENCE,
+      ...identityFromReference(input.style),
       "Fuse all attached reference images into one character of the same identity.",
       "Prefer clear close-ups for 五官比例 and full-body shots for proportions and outfit.",
       "Do not invent a different character or average them into a generic look.",
     );
   } else if (hasReference && description) {
     lines.push(
-      ...IDENTITY_FROM_REFERENCE,
-      "The Character line may add age, role, or clothing hints; it must not replace the face proportions or temperament.",
+      ...identityFromReference(input.style),
+      "The Character line may add age, role, or clothing hints; it must not replace the face proportions, temperament, or the required style.",
     );
   } else if (hasReference) {
     // Image-only create: infer identity from the photo, then redraw in style.
     lines.push(
-      ...IDENTITY_FROM_REFERENCE,
+      ...identityFromReference(input.style),
       "Derive the character entirely from the attached reference image.",
-      "Redraw that same person or character as this model sheet in the specified style.",
+      `Redraw that same person or character as this ${input.style.name} model sheet.`,
     );
   }
   return lines.join("\n");

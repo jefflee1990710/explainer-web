@@ -40,8 +40,10 @@ test("blueprint prompt locks 五官比例 and 整體氣質 from one reference", 
   });
   assert.match(prompt, /五官比例/);
   assert.match(prompt, /整體氣質/);
-  assert.match(prompt, /outrank the style/);
-  assert.match(prompt, /must not replace the face proportions or temperament/);
+  assert.match(prompt, /Style is required/);
+  assert.match(prompt, /doodle name style/);
+  assert.match(prompt, /must not replace the face proportions, temperament, or the required style/);
+  assert.doesNotMatch(prompt, /outrank the style/);
   assert.doesNotMatch(prompt, /Preserve the appearance of the character in the reference image/);
 });
 
@@ -55,6 +57,7 @@ test("blueprint prompt fuses every attached photo into one identity", () => {
   assert.match(prompt, /same identity/i);
   assert.match(prompt, /五官比例/);
   assert.match(prompt, /整體氣質/);
+  assert.match(prompt, /Style is required/);
   assert.doesNotMatch(prompt, /Preserve the appearance of the character in the reference image/);
 });
 
@@ -66,7 +69,8 @@ test("image-only create infers the character from the reference and style", () =
   });
   assert.doesNotMatch(prompt, /^Character:/m);
   assert.match(prompt, /Derive the character entirely from the attached reference image/);
-  assert.match(prompt, /specified style/);
+  assert.match(prompt, /doodle name model sheet/);
+  assert.match(prompt, /Style is required/);
   assert.match(prompt, /doodle look/i);
   assert.match(prompt, /五官比例/);
   assert.match(prompt, /整體氣質/);
