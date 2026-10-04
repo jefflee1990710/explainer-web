@@ -32,13 +32,17 @@ test("blueprint prompt lays out turnaround, walk cycle, and expression grid", ()
   assert.doesNotMatch(prompt, /reference image/i);
 });
 
-test("blueprint prompt asks to preserve the reference when one is attached", () => {
+test("blueprint prompt locks 五官比例 and 整體氣質 from one reference", () => {
   const prompt = buildBlueprintPrompt({
     style: loadedStyle("doodle"),
     description: "x",
     referenceCount: 1,
   });
-  assert.match(prompt, /Preserve the appearance of the character in the reference image/);
+  assert.match(prompt, /五官比例/);
+  assert.match(prompt, /整體氣質/);
+  assert.match(prompt, /outrank the style/);
+  assert.match(prompt, /must not replace the face proportions or temperament/);
+  assert.doesNotMatch(prompt, /Preserve the appearance of the character in the reference image/);
 });
 
 test("blueprint prompt fuses every attached photo into one identity", () => {
@@ -49,6 +53,8 @@ test("blueprint prompt fuses every attached photo into one identity", () => {
   });
   assert.match(prompt, /all attached reference images/i);
   assert.match(prompt, /same identity/i);
+  assert.match(prompt, /五官比例/);
+  assert.match(prompt, /整體氣質/);
   assert.doesNotMatch(prompt, /Preserve the appearance of the character in the reference image/);
 });
 
@@ -62,6 +68,8 @@ test("image-only create infers the character from the reference and style", () =
   assert.match(prompt, /Derive the character entirely from the attached reference image/);
   assert.match(prompt, /specified style/);
   assert.match(prompt, /doodle look/i);
+  assert.match(prompt, /五官比例/);
+  assert.match(prompt, /整體氣質/);
   assert.doesNotMatch(prompt, /Preserve the appearance/);
 });
 
@@ -73,6 +81,8 @@ test("edit mode keeps the sheet identical except for the change", () => {
     editInstruction: "把睡衣換成紅色",
   });
   assert.match(prompt, /Apply only the change below; keep everything else identical/);
+  assert.match(prompt, /五官比例/);
+  assert.match(prompt, /整體氣質/);
   assert.match(prompt, /把睡衣換成紅色/);
 });
 

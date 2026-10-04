@@ -11,6 +11,14 @@ const SHEET_LAYOUT = [
   "Final check: every drawing must be fully visible with an empty margin between the artwork and all four edges of the canvas.",
 ];
 
+// Face geometry and temperament outrank look/palette when a photo is attached.
+const IDENTITY_FROM_REFERENCE = [
+  "Identity lock: facial feature proportions and overall temperament from the attached reference outrank the style.",
+  "Copy the 五官比例 exactly — face shape, eye spacing and shape, brows, nose, mouth, lips, jaw, chin — plus moles, scars, and other marks.",
+  "Keep the same 整體氣質: the person's aura, presence, and how they feel to look at. Do not replace them with a generic stylized stand-in.",
+  "Restyle medium and palette only after those proportions and that temperament are locked. A different face is a failed sheet.",
+];
+
 export function buildBlueprintPrompt(input: {
   style: RenderableStyle;
   description: string;
@@ -28,23 +36,27 @@ export function buildBlueprintPrompt(input: {
   if (description) lines.push(`Character: ${description}`);
   if (input.editInstruction) {
     lines.push(
-      "Use the reference sheet as the base. Apply only the change below; keep everything else identical, including layout, pose order, and expression order.",
+      "Use the reference sheet as the base. Apply only the change below; keep everything else identical, including layout, pose order, expression order, 五官比例, and 整體氣質.",
       `Change: ${input.editInstruction.trim()}`,
     );
   } else if (hasReference && referenceCount > 1) {
     lines.push(
+      ...IDENTITY_FROM_REFERENCE,
       "Fuse all attached reference images into one character of the same identity.",
-      "Use face, body, hair, clothing, and distinguishing features from every photo. Prefer clear close-ups for the face and full-body shots for proportions and outfit.",
-      "Redraw that same person as this model sheet in the specified style. Do not invent a different character or average them into a generic look.",
+      "Prefer clear close-ups for 五官比例 and full-body shots for proportions and outfit.",
+      "Do not invent a different character or average them into a generic look.",
     );
   } else if (hasReference && description) {
-    lines.push("Preserve the appearance of the character in the reference image.");
+    lines.push(
+      ...IDENTITY_FROM_REFERENCE,
+      "The Character line may add age, role, or clothing hints; it must not replace the face proportions or temperament.",
+    );
   } else if (hasReference) {
     // Image-only create: infer identity from the photo, then redraw in style.
     lines.push(
+      ...IDENTITY_FROM_REFERENCE,
       "Derive the character entirely from the attached reference image.",
       "Redraw that same person or character as this model sheet in the specified style.",
-      "Keep face, hair, body, clothing, and distinguishing features recognizable. Do not invent a different character.",
     );
   }
   return lines.join("\n");
