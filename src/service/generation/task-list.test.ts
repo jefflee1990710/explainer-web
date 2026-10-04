@@ -19,6 +19,7 @@ test("detail names the clip and slot", () => {
   assert.equal(taskDetail({ kind: "video", clipIndex: 2 }), "Clip 3 · 影片");
   assert.equal(taskDetail({ kind: "still", clipIndex: -1 }), "角色定裝圖");
   assert.equal(taskDetail({ kind: "character", clipIndex: -1 }), "角色藍圖");
+  assert.equal(taskDetail({ kind: "reelCover", clipIndex: 0 }), "成片封面");
 });
 
 test("a reel in progress is a 成片合成 background task", () => {

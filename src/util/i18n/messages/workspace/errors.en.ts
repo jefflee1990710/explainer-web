@@ -68,6 +68,8 @@ export const errorsEn = {
   styleDeleteFailed: "Could not delete style",
   stylePreviewFailed: "Could not generate preview",
   stylePreviewBusy: "A preview is already generating",
+  coverFailed: "Could not generate the cover",
+  coverBusy: "A cover is already generating",
 } as const;
 
 

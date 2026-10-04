@@ -163,6 +163,8 @@ export type ProjectClip = {
 
 // Concatenated reel of every storyboard clip, produced on the export step.
 export type ReelStatus = "queued" | "in_progress" | "completed" | "failed";
+// Social / reel thumbnail generated from the storyboard.
+export type CoverStatus = "idle" | "generating" | "failed";
 
 // One explainer job owned by a signed-in user.
 export type Project = {
@@ -221,6 +223,11 @@ export type Project = {
   reelAttempts?: number;
   // Branding edit for the Video tab (copy, never linked to the template).
   edit?: VideoEdit;
+  // Generated reel cover still (not part of the exported video).
+  coverUrl?: string;
+  coverStatus?: CoverStatus;
+  coverStartedAt?: Date;
+  coverCreditsCharged?: boolean;
   // Template last applied to or saved from this video.
   editTemplateId?: ObjectId;
   // Branded export. Fingerprint = reel fingerprint + edit hash.
@@ -372,6 +379,10 @@ export const projectSchema: z.ZodType<Project> = z.object({
   reelError: z.string().optional(),
   reelAttempts: z.number().optional(),
   edit: videoEditSchema.optional(),
+  coverUrl: z.string().optional(),
+  coverStatus: z.enum(["idle", "generating", "failed"]).optional(),
+  coverStartedAt: z.date().optional(),
+  coverCreditsCharged: z.boolean().optional(),
   editTemplateId: objectIdSchema.optional(),
   finalUrl: z.string().optional(),
   finalStatus: z.enum(["queued", "in_progress", "completed", "failed"]).optional(),

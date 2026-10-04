@@ -71,6 +71,8 @@ export type PublicVideo = {
   reelFingerprint?: string;
   reelError?: string;
   edit?: VideoEdit;
+  coverUrl?: string;
+  coverStatus?: Project["coverStatus"];
   editTemplateId?: string;
   finalUrl?: string;
   finalStatus?: Project["finalStatus"];
@@ -247,6 +249,8 @@ export function toPublicVideo(video: Project): PublicVideo {
     reelFingerprint: video.reelFingerprint,
     reelError: video.reelError,
     edit: video.edit,
+    coverUrl: video.coverUrl,
+    coverStatus: video.coverStatus,
     editTemplateId: video.editTemplateId?.toHexString(),
     finalUrl: video.finalUrl,
     finalStatus: video.finalStatus,

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { objectIdSchema } from "@/model/primitives";
 import type { FramePosition } from "@/model/project";
 
-export type GenerationKind = "still" | "frame" | "video" | "character" | "stylePreview";
+export type GenerationKind = "still" | "frame" | "video" | "character" | "stylePreview" | "reelCover";
 export type GenerationStatus =
   // Waiting in our queue; not sent to the provider yet.
   | "pending"
@@ -57,7 +57,7 @@ export const generationJobSchema: z.ZodType<GenerationJob> = z.object({
   _id: objectIdSchema,
   projectId: objectIdSchema.optional(),
   clipIndex: z.number(),
-  kind: z.enum(["still", "frame", "video", "character", "stylePreview"]),
+  kind: z.enum(["still", "frame", "video", "character", "stylePreview", "reelCover"]),
   framePosition: z.enum(["start", "end"]).optional(),
   characterId: objectIdSchema.optional(),
   versionId: objectIdSchema.optional(),

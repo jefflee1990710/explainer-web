@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import { syncCharacterJob } from "@/service/character/sync";
 import { syncStylePreviewJob } from "@/service/style/user-style-preview";
+import { syncReelCoverJob } from "@/service/video-edit/reel-cover";
 import {
   generationJobsCollection,
   videosCollection,
@@ -430,6 +431,27 @@ export async function applyJobStatus(input: {
   // Prefer a clear user-facing reason; raw "nsfw" is not actionable in the UI.
   if (nowFailed) {
     errorMessage = userFacingJobError(status, errorMessage);
+  }
+
+  if (job.kind === "reelCover") {
+    await syncReelCoverJob(job, status, outputUrl);
+    await jobs.updateOne(
+      { _id: job._id },
+      nowFailed
+        ? {
+            $set: {
+              status,
+              outputUrl,
+              error: errorMessage || status,
+              updatedAt: new Date(),
+            },
+          }
+        : {
+            $set: { status, outputUrl, updatedAt: new Date() },
+            $unset: { error: "" },
+          },
+    );
+    return;
   }
 
   // Style previews persist onto the user style and return before the video path.

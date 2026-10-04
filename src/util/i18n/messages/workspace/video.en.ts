@@ -102,6 +102,21 @@ export const videoEn = {
     selectEmptyIntro: "No finished opening videos yet.",
     selectEmptyOutro: "No finished ending videos yet.",
     removeBookendAria: "Remove {label}",
+    orChoose: "Or choose a finished video",
+  },
+  slots: {
+    cover: "Cover",
+    intro: "Intro",
+    outro: "Outro",
+  },
+  cover: {
+    title: "Reel cover",
+    body: "Generate a still from this reel’s title, scenes, and style. Use it as the thumbnail when you share.",
+    generate: "Generate cover · {credits} credits",
+    generating: "Generating cover…",
+    failed: "Cover generation failed. Try again.",
+    empty: "No cover yet.",
+    current: "Current cover",
   },
   properties: {
     intro: "Intro",

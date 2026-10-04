@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { ASPECT_CLASS } from "@/presentation/components/project/frame-tile";
 import { useElementSize } from "@/presentation/components/app/projects/new/use-element-size";
+import { VideoEditSlotBar, type EditSlot } from "@/presentation/components/app/projects/new/video-edit-slot-bar";
 import { VideoEditTimeline } from "@/presentation/components/app/projects/new/video-edit-timeline";
 import {
   layerPlacement,
@@ -34,6 +35,9 @@ export function VideoEditPreview({
   onSelect,
   onLayerChange,
   onTransitionChange,
+  coverUrl,
+  coverBusy,
+  onOpenSlot,
 }: {
   clips: Array<{ clipNumber: number; blobUrl?: string; outputUrl?: string }>;
   posters?: Array<{ clipNumber: number; src?: string }>;
@@ -43,6 +47,9 @@ export function VideoEditPreview({
   onSelect: (id: EditSelection) => void;
   onLayerChange: (id: string, patch: Partial<BrandLayer>) => void;
   onTransitionChange: (fromId: string, toId: string, transition: EditTransition) => void;
+  coverUrl?: string;
+  coverBusy?: boolean;
+  onOpenSlot: (slot: EditSlot) => void;
 }) {
   const { t } = useI18n();
   const items = buildEditTimeline({ intro: edit.intro, outro: edit.outro, clips, posters });
@@ -199,6 +206,13 @@ export function VideoEditPreview({
         activeId={previewId}
         onPlayFrom={playFrom}
         onTransitionChange={onTransitionChange}
+      />
+      <VideoEditSlotBar
+        coverUrl={coverUrl}
+        coverBusy={coverBusy}
+        intro={edit.intro}
+        outro={edit.outro}
+        onOpen={onOpenSlot}
       />
     </div>
   );

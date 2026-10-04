@@ -1034,6 +1034,7 @@ export function NewProjectForm({
             <VideoEditDesk
               key={project.id}
               project={project}
+              credits={walletCredits}
               error={error}
               onProjectChange={setProject}
             />

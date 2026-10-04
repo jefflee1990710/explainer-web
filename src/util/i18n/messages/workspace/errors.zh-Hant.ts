@@ -68,4 +68,6 @@ export const errorsZhHant = {
   styleDeleteFailed: "刪除風格失敗",
   stylePreviewFailed: "產生預覽失敗",
   stylePreviewBusy: "預覽正在產生中",
+  coverFailed: "產生封面失敗",
+  coverBusy: "封面正在產生中",
 } satisfies ErrorsMessages;

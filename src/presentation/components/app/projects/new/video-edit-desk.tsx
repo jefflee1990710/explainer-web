@@ -2,11 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StudioFrame } from "@/presentation/studio/studio-frame";
+import { BookendVideoDialog } from "@/presentation/components/app/projects/new/bookend-video-dialog";
+import { VideoEditCoverDialog } from "@/presentation/components/app/projects/new/video-edit-cover-dialog";
 import { VideoEditExport } from "@/presentation/components/app/projects/new/video-edit-export";
 import { VideoSharePanel } from "@/presentation/components/app/projects/new/video-share-panel";
 import { VideoEditLayers } from "@/presentation/components/app/projects/new/video-edit-layers";
 import { VideoEditPreview, type EditSelection } from "@/presentation/components/app/projects/new/video-edit-preview";
 import { VideoEditProperties } from "@/presentation/components/app/projects/new/video-edit-properties";
+import type { EditSlot } from "@/presentation/components/app/projects/new/video-edit-slot-bar";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { updateVideoEditAction } from "@/presentation/actions/video-edit";
 import {
@@ -27,10 +30,12 @@ const SAVE_DELAY_MS = 600;
 
 export function VideoEditDesk({
   project,
+  credits,
   error,
   onProjectChange,
 }: {
   project: PublicVideo;
+  credits: number;
   error: string;
   onProjectChange: (project: PublicVideo) => void;
 }) {
@@ -41,6 +46,7 @@ export function VideoEditDesk({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [exportJob, setExportJob] = useState<ExportJob | null>(null);
+  const [slotDialog, setSlotDialog] = useState<EditSlot | null>(null);
   const exportAbort = useRef<AbortController | null>(null);
   const timer = useRef<number | null>(null);
   const dirty = useRef(false);
@@ -181,6 +187,9 @@ export function VideoEditDesk({
           onTransitionChange={(fromId, toId, transition) =>
             change((current) => setTransition(current, fromId, toId, transition))
           }
+          coverUrl={project.coverUrl}
+          coverBusy={project.coverStatus === "generating"}
+          onOpenSlot={setSlotDialog}
         />
       }
       inspector={
@@ -203,8 +212,6 @@ export function VideoEditDesk({
               if (selected === id) setSelected("");
             }}
             onMoveLayer={moveLayer}
-            onSetBookend={setBookend}
-            onRemoveBookend={removeBookend}
             onError={setMessage}
           />
           <VideoEditProperties
@@ -225,6 +232,38 @@ export function VideoEditDesk({
       }
     />
     {exportJob ? <ExportProgressOverlay job={exportJob} onCancel={cancelExport} /> : null}
+    {slotDialog === "cover" ? (
+      <VideoEditCoverDialog
+        project={project}
+        credits={credits}
+        onProjectChange={onProjectChange}
+        onClose={() => setSlotDialog(null)}
+      />
+    ) : null}
+    {slotDialog === "intro" || slotDialog === "outro" ? (
+      <BookendVideoDialog
+        slot={slotDialog}
+        current={edit[slotDialog]}
+        busy={busy}
+        onSelect={(pick) => {
+          setBookend(slotDialog, { url: pick.videoUrl, kind: "video", durationSec: pick.durationSec });
+          setSlotDialog(null);
+        }}
+        onUploaded={(asset) => {
+          setBookend(slotDialog, asset);
+          setSlotDialog(null);
+        }}
+        onRemove={
+          edit[slotDialog]
+            ? () => {
+                removeBookend(slotDialog);
+                setSlotDialog(null);
+              }
+            : undefined
+        }
+        onClose={() => setSlotDialog(null)}
+      />
+    ) : null}
     </>
   );
 }

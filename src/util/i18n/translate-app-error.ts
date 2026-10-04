@@ -67,6 +67,10 @@ const EXACT: Record<string, string> = {
   "預覽生成失敗": "errors.stylePreviewFailed",
   "預覽排隊失敗": "errors.stylePreviewFailed",
   "預覽生成中": "errors.stylePreviewBusy",
+  "封面生成失敗": "errors.coverFailed",
+  "封面排隊失敗": "errors.coverFailed",
+  "封面生成中": "errors.coverBusy",
+  "還沒有分鏡內容，無法產生封面": "errors.coverFailed",
 };
 
 const PATTERNS: Array<{ re: RegExp; key: string; params?: (m: RegExpMatchArray) => Record<string, string | number> }> = [

@@ -1,6 +1,7 @@
 "use server";
 
 import * as edit from "@/service/video-edit/edit-actions";
+import * as cover from "@/service/video-edit/reel-cover";
 import * as templates from "@/service/video-edit/template-actions";
 
 export async function updateVideoEditAction(...args: Parameters<typeof edit.updateVideoEditAction>) {
@@ -11,6 +12,9 @@ export async function uploadBrandAssetAction(...args: Parameters<typeof edit.upl
 }
 export async function listBookendVideosAction(...args: Parameters<typeof edit.listBookendVideosAction>) {
   return edit.listBookendVideosAction(...args);
+}
+export async function generateReelCoverAction(...args: Parameters<typeof cover.generateReelCoverAction>) {
+  return cover.generateReelCoverAction(...args);
 }
 export async function exportFinalVideoAction(...args: Parameters<typeof edit.exportFinalVideoAction>) {
   return edit.exportFinalVideoAction(...args);

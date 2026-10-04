@@ -102,6 +102,21 @@ export const videoZhHant = {
     selectEmptyIntro: "還沒有完成的開場影片。",
     selectEmptyOutro: "還沒有完成的結尾影片。",
     removeBookendAria: "移除{label}",
+    orChoose: "或選擇已完成的影片",
+  },
+  slots: {
+    cover: "封面",
+    intro: "開頭",
+    outro: "結尾",
+  },
+  cover: {
+    title: "成片封面",
+    body: "依這支成片的標題、分鏡與風格產生一張靜態封面，分享時可當縮圖。",
+    generate: "產生封面 · {credits} 點",
+    generating: "正在產生封面…",
+    failed: "封面產生失敗，請再試一次。",
+    empty: "還沒有封面。",
+    current: "目前封面",
   },
   properties: {
     intro: "開頭",

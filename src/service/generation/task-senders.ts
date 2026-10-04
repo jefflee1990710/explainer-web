@@ -10,6 +10,7 @@ import { submitImage } from "@/service/higgsfield/generate";
 import { hydrateStyles } from "@/service/style/load-style";
 import { renderableFromUserStyle } from "@/service/style/renderable-style";
 import { stylePreviewPrompt } from "@/service/style/user-style-preview";
+import { sendReelCover } from "@/service/video-edit/reel-cover";
 import { sendClipVideo, sendFrame, sendStill } from "@/service/higgsfield/pipeline";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
 import { PermanentJobError } from "@/service/generation/task-policy";
@@ -30,6 +31,7 @@ export async function sendJob(job: GenerationJob): Promise<Sent> {
   if (!project) throw new PermanentJobError("影片已不存在");
 
   if (job.kind === "still") return sendStill(project);
+  if (job.kind === "reelCover") return sendReelCover(project);
   const clipNumber = job.clipIndex + 1;
   if (job.kind === "frame") {
     if (!job.framePosition) throw new PermanentJobError("任務缺少畫格位置");
