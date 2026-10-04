@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { STYLE_IDS } from "@/model/style-id";
 import {
+  DIRECTOR_PREVIEW_STYLE_IDS,
   directorPreviewPrompt,
   directorPreviewStyleNames,
 } from "@/service/director/preview-prompt";
@@ -44,8 +44,8 @@ test("director preview prompt is a style grid of that director type", () => {
   assert.match(prompt, /Watercolour storybook/);
 });
 
-test("directorPreviewStyleNames follows STYLE_IDS and throws when a style is missing", () => {
-  const styles = STYLE_IDS.map((id, index) => ({ id, name: STYLE_NAMES[index] }));
+test("directorPreviewStyleNames follows the 3x3 catalog and throws when a style is missing", () => {
+  const styles = DIRECTOR_PREVIEW_STYLE_IDS.map((id, index) => ({ id, name: STYLE_NAMES[index] }));
   assert.deepEqual(directorPreviewStyleNames(styles), STYLE_NAMES);
   assert.throws(
     () => directorPreviewStyleNames(styles.filter((style) => style.id !== "pixel")),

@@ -42,7 +42,7 @@ export const ko: Partial<Messages> = {
   },
   characters: { title: "캐릭터", create: "새 캐릭터", empty: "아직 캐릭터가 없습니다." },
   billing: { title: "결제" },
-  styles: { doodle: "화이트보드 낙서", "flat-vector": "플랫 벡터", "paper-cutout": "종이 오리기", chalkboard: "칠판", watercolor: "수채화 동화책", clay: "클레이 애니메이션", pixel: "픽셀 아트", "ink-manga": "먹선 만화", realistic: "시네마틱 실사" },
+  styles: { doodle: "화이트보드 낙서", "flat-vector": "플랫 벡터", "paper-cutout": "종이 오리기", chalkboard: "칠판", "chalkboard-color": "컬러 칠판", watercolor: "수채화 동화책", clay: "클레이 애니메이션", pixel: "픽셀 아트", "ink-manga": "먹선 만화", realistic: "시네마틱 실사" },
   plans: {
     starter: { name: "스타터", blurb: "Scro를 시험해 보기에 좋습니다." },
     pro: { name: "프로", blurb: "자기 사업을 운영하는 사람을 위한 요금제입니다." },

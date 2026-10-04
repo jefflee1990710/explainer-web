@@ -98,7 +98,7 @@ export const ja: Partial<Messages> = {
   },
   characters: { title: "キャラクター", create: "新規キャラクター", empty: "キャラクターはまだありません。" },
   billing: { title: "請求" },
-  styles: { doodle: "ホワイトボード風落書き", "flat-vector": "フラットベクター", "paper-cutout": "切り絵", chalkboard: "黒板アート", watercolor: "水彩絵本", clay: "クレイアニメ", pixel: "ピクセルアート", "ink-manga": "墨絵漫画", realistic: "シネマティック・リアル" },
+  styles: { doodle: "ホワイトボード風落書き", "flat-vector": "フラットベクター", "paper-cutout": "切り絵", chalkboard: "黒板アート", "chalkboard-color": "カラー黒板", watercolor: "水彩絵本", clay: "クレイアニメ", pixel: "ピクセルアート", "ink-manga": "墨絵漫画", realistic: "シネマティック・リアル" },
   plans: {
     starter: { name: "スターター", blurb: "Scro を試すのに最適です。" },
     pro: { name: "プロ", blurb: "自分のビジネスを回している人向け。" },

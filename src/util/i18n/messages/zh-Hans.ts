@@ -157,6 +157,7 @@ export const zhHans: Partial<Messages> = {
     "flat-vector": "扁平矢量",
     "paper-cutout": "剪纸拼贴",
     chalkboard: "黑板粉笔画",
+    "chalkboard-color": "彩色黑板粉笔画",
     watercolor: "水彩故事书",
     clay: "黏土动画",
     pixel: "像素艺术",

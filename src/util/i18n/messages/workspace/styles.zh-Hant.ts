@@ -6,6 +6,7 @@ export const stylesZhHant = {
   "flat-vector": "扁平向量插畫",
   "paper-cutout": "剪紙拼貼",
   chalkboard: "粉筆黑板",
+  "chalkboard-color": "彩色粉筆黑板",
   watercolor: "水彩繪本",
   clay: "3D 黏土動畫",
   pixel: "像素風",

@@ -19,6 +19,11 @@ function identityFromReference(style: RenderableStyle) {
     "整體氣質: keep the same aura, presence, and how they feel to look at — not a generic stand-in.",
     `Style is required: follow Background, Rendering, Palette, and Never. The sheet must look like ${style.name}, not a photograph or an unstyled copy of the reference.`,
     "Do not drop the style to protect likeness, and do not drop likeness to apply the style.",
+    ...(style.id === "chalkboard"
+      ? [
+          "Chalkboard is monochrome: keep 五官比例 and 整體氣質 as white chalk stroke and value on the dark slate, never as skin tone, hair dye, or clothing colour.",
+        ]
+      : []),
   ];
 }
 

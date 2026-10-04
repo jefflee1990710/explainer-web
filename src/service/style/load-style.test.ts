@@ -65,6 +65,43 @@ test("styleFromDoc returns a Style when every prompt field is filled", () => {
   assert.equal(style.letteringLayout, undefined);
 });
 
+test("styleFromDoc forces chalkboard to white chalk only", () => {
+  const style = styleFromDoc({
+    _id: "chalkboard",
+    ...stylePromptFields(
+      sampleStyle("chalkboard", {
+        palette: "pastel chalk accents in yellow, pink, light blue and mint",
+        look: "coloured chalk used only for accents",
+        letteringLine2: "yellow chalk",
+      }),
+    ),
+    letteringLine2: "yellow chalk",
+    updatedAt: new Date(),
+  });
+  assert.ok(style);
+  assert.match(style.palette, /white chalk only/i);
+  assert.doesNotMatch(style.palette, /pastel|yellow|pink|mint/i);
+  assert.match(style.negatives, /skin tones/i);
+  assert.match(style.letteringLine2 ?? "", /white chalk/);
+  assert.doesNotMatch(style.letteringLine2 ?? "", /yellow/i);
+});
+
+test("styleFromDoc keeps pastel chalk on chalkboard-color", () => {
+  const style = styleFromDoc({
+    _id: "chalkboard-color",
+    ...stylePromptFields(
+      sampleStyle("chalkboard-color", {
+        palette: "pastel chalk accents in yellow, pink, light blue and mint",
+        look: "coloured chalk used only for accents",
+      }),
+    ),
+    updatedAt: new Date(),
+  });
+  assert.ok(style);
+  assert.match(style.palette, /pastel chalk accents/);
+  assert.doesNotMatch(style.palette, /white chalk only/i);
+});
+
 test("styleFromDoc copies optional lettering fields when present", () => {
   const style = styleFromDoc({
     _id: "paper-cutout",

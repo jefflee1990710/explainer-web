@@ -5,6 +5,7 @@ export const STYLE_IDS = [
   "flat-vector",
   "paper-cutout",
   "chalkboard",
+  "chalkboard-color",
   "watercolor",
   "clay",
   "pixel",

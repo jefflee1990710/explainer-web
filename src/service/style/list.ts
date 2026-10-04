@@ -4,10 +4,12 @@ import { userStylesCollection } from "@/dao/user-styles";
 import { STYLE_IDS } from "@/model/style-id";
 import type { PublicStyle } from "@/presentation/serialize";
 import { styleFromDoc } from "@/service/style/load-style";
+import { ensureCatalogStyles } from "@/service/style/ensure-catalog-styles";
 import { selectableUserStyleFilter, toPublicUserStyle } from "@/service/style/list-selectable";
 
 // STYLE_IDS order; only complete Mongo docs appear in the picker.
 export async function listPublicStyles(): Promise<PublicStyle[]> {
+  await ensureCatalogStyles();
   const docs = await (await stylesCollection()).find({}).toArray();
   return STYLE_IDS.flatMap((id) => {
     const doc = docs.find((row) => row._id === id);

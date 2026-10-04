@@ -6,6 +6,7 @@ export const stylesEn = {
   "flat-vector": "Flat vector",
   "paper-cutout": "Paper cut-out",
   chalkboard: "Chalkboard",
+  "chalkboard-color": "Color chalkboard",
   watercolor: "Watercolour storybook",
   clay: "Claymation",
   pixel: "Pixel art",

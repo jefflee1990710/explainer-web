@@ -42,7 +42,7 @@ export const fr: Partial<Messages> = {
   },
   characters: { title: "Personnages", create: "Nouveau personnage", empty: "Aucun personnage pour le moment." },
   billing: { title: "Facturation" },
-  styles: { doodle: "Dessin sur tableau blanc", "flat-vector": "Illustration vectorielle plane", "paper-cutout": "Papier découpé", chalkboard: "Tableau noir", watercolor: "Album à l’aquarelle", clay: "Animation en pâte à modeler", pixel: "Pixel art", "ink-manga": "Manga à l’encre", realistic: "Réalisme cinématographique" },
+  styles: { doodle: "Dessin sur tableau blanc", "flat-vector": "Illustration vectorielle plane", "paper-cutout": "Papier découpé", chalkboard: "Tableau noir", "chalkboard-color": "Tableau noir en couleur", watercolor: "Album à l’aquarelle", clay: "Animation en pâte à modeler", pixel: "Pixel art", "ink-manga": "Manga à l’encre", realistic: "Réalisme cinématographique" },
   plans: {
     starter: { name: "Débutant", blurb: "Idéal pour tester Scro." },
     pro: { name: "Pro", blurb: "Pour quelqu’un qui développe sa propre activité." },

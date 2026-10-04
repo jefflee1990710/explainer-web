@@ -42,7 +42,7 @@ export const ru: Partial<Messages> = {
   },
   characters: { title: "Персонажи", create: "Новый персонаж", empty: "Персонажей пока нет." },
   billing: { title: "Оплата" },
-  styles: { doodle: "Рисунок на белой доске", "flat-vector": "Плоская векторная графика", "paper-cutout": "Бумажная аппликация", chalkboard: "Меловая доска", watercolor: "Акварельная книга", clay: "Пластилиновая анимация", pixel: "Пиксельная графика", "ink-manga": "Манга тушью", realistic: "Кинематографический реализм" },
+  styles: { doodle: "Рисунок на белой доске", "flat-vector": "Плоская векторная графика", "paper-cutout": "Бумажная аппликация", chalkboard: "Меловая доска", "chalkboard-color": "Цветная меловая доска", watercolor: "Акварельная книга", clay: "Пластилиновая анимация", pixel: "Пиксельная графика", "ink-manga": "Манга тушью", realistic: "Кинематографический реализм" },
   plans: {
     starter: { name: "Начальный", blurb: "Идеально, чтобы попробовать Scro." },
     pro: { name: "Профессиональный", blurb: "Для тех, кто ведёт свой бизнес." },

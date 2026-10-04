@@ -1,4 +1,7 @@
-import { STYLE_IDS } from "@/model/style-id";
+import { STYLE_IDS, type StyleId } from "@/model/style-id";
+
+// Director cards stay a 3×3 of the original nine looks.
+export const DIRECTOR_PREVIEW_STYLE_IDS: StyleId[] = STYLE_IDS.filter((id) => id !== "chalkboard-color");
 
 // Shared composition: one director type, restaged in every catalog style.
 export const DIRECTOR_PREVIEW_SCENE =
@@ -23,7 +26,7 @@ export function directorPreviewPrompt(input: {
 }
 
 export function directorPreviewStyleNames(styles: { id: string; name: string }[]) {
-  return STYLE_IDS.map((id) => {
+  return DIRECTOR_PREVIEW_STYLE_IDS.map((id) => {
     const style = styles.find((row) => row.id === id);
     if (!style?.name.trim()) {
       throw new Error(`Style "${id}" is missing from Mongo`);

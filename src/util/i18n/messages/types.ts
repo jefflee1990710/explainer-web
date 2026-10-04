@@ -373,6 +373,7 @@ export type Messages = {
     | "flat-vector"
     | "paper-cutout"
     | "chalkboard"
+    | "chalkboard-color"
     | "watercolor"
     | "clay"
     | "pixel"

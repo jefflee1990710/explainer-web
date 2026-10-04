@@ -105,6 +105,17 @@ test("a preloaded user style supplies look and does not resolve that id", () => 
   }
 });
 
+test("chalkboard with a reference stays white chalk, not photo colour", () => {
+  const prompt = buildBlueprintPrompt({
+    style: loadedStyle("chalkboard"),
+    description: "x",
+    referenceCount: 1,
+  });
+  assert.match(prompt, /Chalkboard is monochrome/);
+  assert.match(prompt, /white chalk stroke/);
+  assert.match(prompt, /never as skin tone/);
+});
+
 test("chalkboard blueprint sits on a chalkboard, not white", () => {
   const prompt = buildBlueprintPrompt({
     style: loadedStyle("chalkboard"),
@@ -112,6 +123,7 @@ test("chalkboard blueprint sits on a chalkboard, not white", () => {
     hasReference: false,
   });
   assert.match(prompt, /Background: chalkboard canvas/);
+  assert.doesNotMatch(prompt, /Chalkboard is monochrome/);
   const layoutInstructions = prompt
     .split("\n")
     .filter(

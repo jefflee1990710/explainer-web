@@ -5,6 +5,8 @@ import {
   type StyleId,
 } from "@/model/style-id";
 import type { StyleDoc } from "@/model/style-doc";
+import { applyChalkboardMonochrome } from "@/service/style/chalkboard-monochrome";
+import { ensureCatalogStyles } from "@/service/style/ensure-catalog-styles";
 import { LETTERING_KEYS } from "@/service/style/lettering";
 import type { Style } from "@/service/style/types";
 
@@ -53,11 +55,11 @@ export function styleFromDoc(doc: StyleDoc | null | undefined): Style | null {
   for (const key of STYLE_PROMPT_KEYS) {
     if (typeof doc[key] !== "string" || !doc[key].trim()) return null;
   }
-  return {
+  return applyChalkboardMonochrome({
     id: doc._id,
     ...stylePromptFields(doc as StyleDoc & StylePromptFields),
     ...optionalLettering(doc),
-  };
+  });
 }
 
 let overlay: Partial<Record<StyleId, Style>> = {};
@@ -82,6 +84,7 @@ export function resetStyleOverlay() {
 
 // Load every complete style doc into the overlay used by resolvedStyle.
 export async function hydrateStyles() {
+  await ensureCatalogStyles();
   const docs = await (await stylesCollection()).find({}).toArray();
   const next: Partial<Record<StyleId, Style>> = {};
   for (const doc of docs) {

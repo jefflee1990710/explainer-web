@@ -13,6 +13,7 @@ test("STYLE_IDS lists every allowed style id", () => {
     "flat-vector",
     "paper-cutout",
     "chalkboard",
+    "chalkboard-color",
     "watercolor",
     "clay",
     "pixel",
@@ -23,6 +24,7 @@ test("STYLE_IDS lists every allowed style id", () => {
 
 test("isStyleId accepts only allowed ids", () => {
   assert.equal(isStyleId("pixel"), true);
+  assert.equal(isStyleId("chalkboard-color"), true);
   assert.equal(isStyleId("nope"), false);
   assert.equal(isStyleId(undefined), false);
 });
