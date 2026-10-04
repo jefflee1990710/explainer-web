@@ -37,6 +37,24 @@ test("director block asks for start and end states scaled by seconds", () => {
   assert.doesNotMatch(english, /起始：/);
 });
 
+test("a cast on the whiteboard director may change side, action, and zoom", () => {
+  const block = keyframeDeltaDirectorBlock({ performance: true, separateStills: true });
+  assert.match(block, /zoom in or out/);
+  assert.match(block, /left or the right/);
+  assert.match(block, /jump/);
+  assert.match(block, /pull/);
+  assert.match(block, /push/);
+  assert.match(block, /head left or right/);
+  assert.match(block, /does not repeat/);
+  assert.match(block, /exactly ONE instance of each named character/);
+  assert.doesNotMatch(block, /SAME locked camera/);
+  const end = frameEndMoment(1, 6, undefined, true);
+  assert.match(end, /other side/);
+  assert.match(end, /head direction/);
+  assert.match(end, /zoomed/);
+  assert.doesNotMatch(end, /Same camera, character size/);
+});
+
 test("frame moments mention the clip duration and a readable end change", () => {
   assert.match(frameStartMoment(1, 5), /t=0s/);
   assert.match(frameStartMoment(1, 5), /5–6s/);

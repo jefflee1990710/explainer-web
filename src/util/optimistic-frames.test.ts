@@ -257,3 +257,49 @@ test("mergePolledFrames accepts a failed still for the same claim", () => {
   assert.equal(next[0].status, "failed");
   assert.match(next[0].error || "", /安全檢查/);
 });
+
+test("mergePolledFrames keeps a newer finished still over a stale snapshot", () => {
+  const finished: ClipFrame[] = [
+    {
+      ...frames[0],
+      status: "completed",
+      blobUrl: "new-start",
+      submittedAt: "2026-01-01T00:00:05.000Z",
+    },
+    frames[1],
+    frames[2],
+  ];
+  const next = mergePolledFrames(finished, frames);
+  assert.equal(next[0].blobUrl, "new-start");
+  assert.equal(next[0].status, "completed");
+});
+
+test("mergePolledClips keeps a first video claim the server has not written yet", () => {
+  const optimistic: ProjectClip[] = [
+    {
+      clipNumber: 1,
+      durationSeconds: 0,
+      prompt: "",
+      status: "queued",
+      submittedAt: "2026-01-01T00:00:03.000Z",
+    },
+  ];
+  const next = mergePolledClips(optimistic, []);
+  assert.equal(next.length, 1);
+  assert.equal(next[0].status, "queued");
+  assert.equal(next[0].blobUrl, undefined);
+});
+
+test("mergePolledClips keeps a newer finished video over a stale snapshot", () => {
+  const finished: ProjectClip[] = [
+    {
+      ...clips[0],
+      status: "completed",
+      blobUrl: "new-video",
+      submittedAt: "2026-01-01T00:00:05.000Z",
+    },
+    clips[1],
+  ];
+  const next = mergePolledClips(finished, clips);
+  assert.equal(next[0].blobUrl, "new-video");
+});

@@ -7,6 +7,7 @@ import { requireAppUser } from "@/service/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { customSkillSlug } from "@/service/director/behavior-slug";
 import { customSelectableFilter, systemSelectableFilter } from "@/service/director/selectable-skills";
+import { loadDirectorImageParts } from "@/service/character/cast-prompt";
 import { directorModel } from "@/service/director/model";
 import { chatRateLimited } from "@/service/director/chat-rate-limit";
 import {
@@ -228,10 +229,23 @@ export async function deleteDirectorAction(id: string): Promise<DeleteDirectorRe
   }
 }
 
+function parseChatImageUrl(value: unknown): string | undefined {
+  const raw = String(value ?? "").trim();
+  if (!raw) return undefined;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== "https:") return undefined;
+    return parsed.toString();
+  } catch {
+    return undefined;
+  }
+}
+
 // Ask the AI to edit the current draft; persists the exchange, never the draft.
 export async function sendDirectorChatAction(input: {
   id: string;
   message: string;
+  imageUrl?: string;
   draft: DirectorDraft;
 }): Promise<DirectorChatResult> {
   try {
@@ -243,7 +257,10 @@ export async function sendDirectorChatAction(input: {
     if (!isSubscriptionActive(sub)) return { ok: false, error: "需要訂閱才能使用 AI 修改" };
 
     const message = String(input.message ?? "").trim();
-    if (!message || message.length > MESSAGE_MAX) return { ok: false, error: "訊息過長" };
+    const imageUrl = parseChatImageUrl(input.imageUrl);
+    if (message.length > MESSAGE_MAX) return { ok: false, error: "訊息過長" };
+    if (!message && !imageUrl) return { ok: false, error: "請輸入訊息" };
+    const promptMessage = message || "Match the attached reference image.";
 
     const parsed = parseDraft(input?.draft);
     if (!parsed.ok) return parsed;
@@ -251,17 +268,39 @@ export async function sendDirectorChatAction(input: {
 
     if (chatRateLimited(skill.chat, new Date())) return { ok: false, error: "AI 修改太頻繁，請稍後再試" };
 
+    const promptText = directorChatUserPrompt({
+      draft,
+      history: (skill.chat || []).slice(-HISTORY_SENT),
+      message: promptMessage,
+      hasImage: Boolean(imageUrl),
+    });
+
+    let imageParts: Awaited<ReturnType<typeof loadDirectorImageParts>> = [];
+    if (imageUrl) {
+      try {
+        imageParts = await loadDirectorImageParts([imageUrl]);
+      } catch (error) {
+        console.error("director chat image fetch failed", error);
+        return { ok: false, error: "素材網址無效，請重新上傳" };
+      }
+    }
+
     let output: z.infer<typeof directorChatSchema>;
     try {
       ({ output } = await generateText({
         model: directorModel(),
         output: Output.object({ schema: directorChatSchema }),
         system: directorChatSystemPrompt(),
-        prompt: directorChatUserPrompt({
-          draft,
-          history: (skill.chat || []).slice(-HISTORY_SENT),
-          message,
-        }),
+        ...(imageParts.length
+          ? {
+              messages: [
+                {
+                  role: "user" as const,
+                  content: [{ type: "text" as const, text: promptText }, ...imageParts],
+                },
+              ],
+            }
+          : { prompt: promptText }),
       }));
     } catch (error) {
       console.error("director chat failed", error);
@@ -278,7 +317,12 @@ export async function sendDirectorChatAction(input: {
       content: draftFieldValue(applied.draft, field),
     }));
     const now = new Date();
-    const userMsg: DirectorChatMessage = { role: "user", content: message, createdAt: now };
+    const userMsg: DirectorChatMessage = {
+      role: "user",
+      content: message,
+      ...(imageUrl ? { imageUrl } : {}),
+      createdAt: now,
+    };
     const assistantMsg: DirectorChatMessage = {
       role: "assistant",
       content: normalizeChatSummary(output.summary, applied.changedFields.length),

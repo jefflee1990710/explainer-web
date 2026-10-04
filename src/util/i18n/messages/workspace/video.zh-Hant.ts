@@ -36,7 +36,7 @@ export const videoZhHant = {
     syncing: "同步中",
     deleteVideo: "刪除影片",
     moreAria: "更多操作",
-    back: "← 返回",
+    back: "返回",
     stepsAria: "編輯步驟",
   },
   delete: {
@@ -120,6 +120,22 @@ export const videoZhHant = {
     failed: "封面產生失敗，請再試一次。",
     empty: "還沒有封面。",
     current: "目前封面",
+    safeAreaLabel: "安全區",
+    safeAreaHint: "選填。勾選的平台會留白，裁切後仍看得到完整封面。",
+    safeAreas: {
+      igReel: {
+        label: "Instagram Reels",
+        hint: "個人檔案格與 Reels 列表。",
+      },
+      tiktok: {
+        label: "TikTok",
+        hint: "個人檔案格與 For You 頁。",
+      },
+      youtubeShorts: {
+        label: "YouTube Shorts",
+        hint: "Shorts 貨架與播放頁。",
+      },
+    },
   },
   properties: {
     intro: "開頭",

@@ -1,6 +1,7 @@
 import type { Filter, ObjectId } from "mongodb";
 import { generationJobsCollection, videosCollection } from "@/dao";
 import { failCharacterVersion } from "@/service/character/sync";
+import { syncDirectorPreviewJob } from "@/service/director/director-preview";
 import { syncStylePreviewJob } from "@/service/style/user-style-preview";
 import { syncReelCoverJob } from "@/service/video-edit/reel-cover";
 import { fetchHiggsfieldStatus, mediaUrlFromResponse } from "@/service/higgsfield/generate";
@@ -111,6 +112,10 @@ export async function failJob(
     await syncStylePreviewJob(job, "failed");
     return true;
   }
+  if (job.kind === "directorPreview") {
+    await syncDirectorPreviewJob(job, "failed");
+    return true;
+  }
   if (job.kind === "reelCover") {
     await syncReelCoverJob(job, "failed");
     return true;
@@ -213,7 +218,7 @@ export async function refreshSubmittedJobs() {
     );
   }
 
-  for (const job of due.filter((item) => item.kind === "character" || item.kind === "stylePreview" || item.kind === "reelCover")) {
+  for (const job of due.filter((item) => item.kind === "character" || item.kind === "stylePreview" || item.kind === "directorPreview" || item.kind === "reelCover")) {
     if (!job.statusUrl || !job.requestId) continue;
     try {
       const remote = await fetchHiggsfieldStatus(job.statusUrl);

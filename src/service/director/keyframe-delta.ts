@@ -48,6 +48,8 @@ const BUDGET: Record<KeyframeDeltaBand, { director: string; start: string; end: 
 export function keyframeDeltaDirectorBlock(options?: {
   separateStills?: boolean;
   language?: VoLanguage;
+  // Whiteboard explainer with a cast: walk and zoom are allowed.
+  performance?: boolean;
 }) {
   const labels = sceneStateLabels(options?.language);
   const combined =
@@ -58,35 +60,63 @@ export function keyframeDeltaDirectorBlock(options?: {
     ? "startScene is the t=0 still and endScene is the t=N still (use that clip's durationSeconds). Do not merge them into one paragraph. Write both in the scene description language."
     : combined;
   return [
-    "Each clip's start and end are the SAME locked camera; the character keeps roughly the same screen size and placement.",
+    options?.performance
+      ? "When a character is on screen, start and end are one continuous shot that may zoom in or out. The character may begin on the left or the right, run or jump toward the other side, point, pull, or push a drawn element, and turn their head left or right. Shot size and placement MAY differ. Each clip uses a different action and a different side so the performance does not repeat. Still no cut and no teleport."
+      : "Each clip's start and end are the SAME locked camera; the character keeps roughly the same screen size and placement.",
     "Each still shows exactly ONE instance of each named character — two moments of the same figure, never two bodies in one frame.",
     `They must NOT look almost identical — under-moving makes the video freeze. ${stillRule}`,
     "motionCamera names the path and how far things travel so interpolation can fill the seconds (see the motionCamera contract). Do not put the in-between action inside start or end still text.",
     "Change budget by durationSeconds:",
-    `- ${BUDGET["3s"].director}`,
-    `- ${BUDGET["4s"].director}`,
-    `- ${BUDGET["5-6s"].director}`,
-    `- ${BUDGET["7-8s"].director}`,
-    "Never invent a new camera, a jump cut, or a character teleporting across the frame.",
+    ...(options?.performance
+      ? [
+          "- 3s: one fresh action (a point, a head turn, a small jump, or a push) plus a facial-expression change and one new doodle. A small zoom is enough.",
+          "- 4s: a run, jump, pull, or push finishes, the head turns the other way, and one object draws on or leaves. The zoom may complete.",
+          "- 5–6s: the character crosses toward the other side of the frame with a new action; extra drawings appear.",
+          "- 7–8s: a longer run or a jump plus a pull or push, and a clear zoom in or out. One figure, still in frame. No cut.",
+          "A zoom is allowed. The character may jump or run. Never jump-cut or teleport the character. Do not repeat the previous clip's action.",
+        ]
+      : [
+          `- ${BUDGET["3s"].director}`,
+          `- ${BUDGET["4s"].director}`,
+          `- ${BUDGET["5-6s"].director}`,
+          `- ${BUDGET["7-8s"].director}`,
+          "Never invent a new camera, a jump cut, or a character teleporting across the frame.",
+        ]),
   ].join("\n");
 }
 
-export function frameStartMoment(clipNumber: number, durationSeconds: number) {
+export function frameStartMoment(
+  clipNumber: number,
+  durationSeconds: number,
+  performance = false,
+) {
   const seconds = clampClipSeconds(durationSeconds);
   const band = keyframeDeltaBand(seconds);
-  return `This is the FIRST frame (t=0s) of clip ${clipNumber} (${seconds}s). ${BUDGET[band].start} Keep a single locked camera the end frame will continue.`;
+  const camera = performance
+    ? "The end frame may place them on the other side, with a different head direction, after a run, jump, point, pull, or push."
+    : "Keep a single locked camera the end frame will continue.";
+  return `This is the FIRST frame (t=0s) of clip ${clipNumber} (${seconds}s). ${BUDGET[band].start} ${camera}`;
 }
 
 export function frameEndMoment(
   clipNumber: number,
   durationSeconds: number,
   nextScene?: string,
+  performance = false,
 ) {
   const seconds = clampClipSeconds(durationSeconds);
   const band = keyframeDeltaBand(seconds);
   // Do not paste the next clip's full scene — Flare rejects prompts over ~5000 chars.
   const handoff = nextScene
-    ? " It must visually hand off to the next clip on the same locked camera."
+    ? performance
+      ? " It must visually hand off to the next clip in the same world."
+      : " It must visually hand off to the next clip on the same locked camera."
     : " It is the final frame of the video: end on a clean resting payoff. Do not match or bridge back to clip 1.";
-  return `This is the LAST frame of clip ${clipNumber} (t=${seconds}s). ${BUDGET[band].end} Same camera, character size, and screen position.${handoff}`;
+  const change = performance
+    ? "The action has landed: different body pose, facial expression, head direction, and often the other side of the frame."
+    : BUDGET[band].end;
+  const camera = performance
+    ? " Shot size and which side they stand on may differ from the start because they ran, jumped, or the camera zoomed."
+    : " Same camera, character size, and screen position.";
+  return `This is the LAST frame of clip ${clipNumber} (t=${seconds}s). ${change}${camera}${handoff}`;
 }

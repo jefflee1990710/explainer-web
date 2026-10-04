@@ -116,6 +116,34 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.equal(cartoonNarratorFrameLock("story-short-director"), "");
   assert.equal(cartoonNarratorVideoLock("story-short-director"), "");
   assert.equal(skillBansNarration("cartoon-explainer-video-director"), false);
+
+  const withCast = cartoonExplainerDirectorBlock({ hasCharacter: true });
+  assert.match(withCast, /facial expression/);
+  assert.match(withCast, /walking/);
+  assert.match(withCast, /left side/);
+  assert.match(withCast, /right side/);
+  assert.match(withCast, /jumping/);
+  assert.match(withCast, /pulling/);
+  assert.match(withCast, /pushing/);
+  assert.match(withCast, /head may turn/);
+  assert.match(withCast, /do not repeat/);
+  assert.match(withCast, /fresh idea/);
+  assert.match(withCast, /zooms in or out/);
+  assert.match(withCast, /extra drawn objects/);
+  assert.match(withCast, /never speaks/);
+  assert.doesNotMatch(withCast, /stand aside/);
+  const movingStill = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+  });
+  assert.match(movingStill, /facial expression/);
+  assert.match(movingStill, /left or the right/);
+  assert.match(movingStill, /head may face/);
+  assert.match(movingStill, /walked/);
+  assert.match(movingStill, /zoomed/);
+  const movingVideo = cartoonNarratorVideoLock("cartoon-explainer-video-director", { hasCharacter: true });
+  assert.match(movingVideo, /zoom in or out/);
+  assert.match(movingVideo, /head turning/);
+  assert.match(movingVideo, /Do not repeat/);
 });
 
 test("Q&A is dialogue-only like story short: no narrator, character lines", () => {

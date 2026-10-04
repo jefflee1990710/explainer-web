@@ -213,11 +213,16 @@ export function NewProjectForm({
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   // Pinned to the video + status that was current when the user clicked a step.
+  // A finished video opens on Video (step 2). Production stays the default until then.
   const [viewingOverride, setViewingOverride] = useState<{
     id: string | null;
     status: string;
     step: number;
-  } | null>(null);
+  } | null>(() =>
+    initialVideo?.status === "ready"
+      ? { id: initialVideo.id, status: "ready", step: 2 }
+      : null,
+  );
   const [confirmBrief, setConfirmBrief] = useState(false);
   // 重新開始: brief form shown again for an existing video; submit wipes and reruns Phase A.
   const [restarting, setRestarting] = useState(false);

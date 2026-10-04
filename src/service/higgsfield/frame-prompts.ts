@@ -98,6 +98,8 @@ function compositionLockLines(
   anchor: { kind: FrameAnchorKind } | undefined,
   imageIndex: number,
   hasSceneRefs = false,
+  // Whiteboard explainer with a cast: the end still may zoom and the character may have walked.
+  allowMove = false,
 ) {
   if (!anchor) return [];
   const slot = `attached image ${imageIndex}`;
@@ -122,6 +124,14 @@ function compositionLockLines(
     anchor.kind === "clip-start"
       ? `${slot} is THIS CLIP'S START frame`
       : `${slot} is this clip's END frame`;
+  if (allowMove) {
+    return [
+      `COMPOSITION LOCK: ${source}.`,
+      "Keep the same world, set, and lighting.",
+      "Shot size MAY change (a zoom in or out). The character MAY stand on the other side because they ran or jumped, and their head MAY face the other way.",
+      "Apply the Scene changes: body pose, facial expression, head direction, pointing, pulling, or pushing extra objects. Do not invent a new room. Do not copy the previous clip's pose.",
+    ];
+  }
   return [
     `COMPOSITION LOCK: ${source}.`,
     "Keep the same camera, set, lighting, character size, and screen position.",
@@ -289,15 +299,16 @@ export function buildFramePrompt(
       : next.explainerScene
     : undefined;
 
+  const hasCast = Boolean(project.cast && project.cast.length > 0);
+  const performance = isDualBeatSkill(project.skillSlug) && hasCast;
   const moment =
     position === "start"
-      ? frameStartMoment(clipNumber, row.durationSeconds)
-      : frameEndMoment(clipNumber, row.durationSeconds, nextOpening);
+      ? frameStartMoment(clipNumber, row.durationSeconds, performance)
+      : frameEndMoment(clipNumber, row.durationSeconds, nextOpening, performance);
 
   const sceneText = resolveSceneText(project);
   const listicle = skillForcesSceneText(project.skillSlug);
   const comparison = isComparisonCardSkill(project.skillSlug);
-  const hasCast = Boolean(project.cast && project.cast.length > 0);
   const lockUrls = frameLockReferenceUrls(project);
   const characterUrls = characterReferenceUrls(project);
   const annotatedCount = options.revision?.annotatedUrl ? 1 : 0;
@@ -425,11 +436,13 @@ export function buildFramePrompt(
     `Scene: ${parts.scene}`,
     ...(parts.motion ? [`${motionLabel}: ${parts.motion}`] : []),
     ...(storyShortCameraLock(project.skillSlug) ? [storyShortCameraLock(project.skillSlug)] : []),
-    ...(cartoonNarratorFrameLock(project.skillSlug) ? [cartoonNarratorFrameLock(project.skillSlug)] : []),
+    ...(cartoonNarratorFrameLock(project.skillSlug, { hasCharacter: performance })
+      ? [cartoonNarratorFrameLock(project.skillSlug, { hasCharacter: performance })]
+      : []),
     ...(lockUrls.length ? [FRAME_WARDROBE_LOCK] : []),
     FRAME_RENDER_DETAIL,
     moment,
-    ...compositionLockLines(options.anchor, annotatedCount + 1, sceneRefUrls.length > 0),
+    ...compositionLockLines(options.anchor, annotatedCount + 1, sceneRefUrls.length > 0, performance),
     ...revisionLines(options.revision && { ...options.revision, remark: parts.remark }),
     ...(listicle
       ? ["Final check: the numbered item list is visible and spelled exactly."]

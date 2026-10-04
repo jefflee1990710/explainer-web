@@ -206,27 +206,45 @@ export function storyShortCameraLock(skillSlug?: string) {
   return "Camera: third-person observer camera, as in a film scene. No eye contact with the lens; characters never look at, wave to, or talk to the camera. Eyelines go to other characters, objects, or off into the scene (profile, three-quarter, over-the-shoulder).";
 }
 
-// 白板概念解說：永遠是畫外旁白；角色不說話；機制圖可當主體。
-export function cartoonExplainerDirectorBlock() {
+// 白板概念解說：永遠是畫外旁白；角色不說話。有角色時左右換邊、動作不重複。
+export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean }) {
+  const hasCharacter = Boolean(options?.hasCharacter);
   return [
     "This director is ALWAYS narrated: an unseen off-screen narrator speaks every englishVo line in the third person.",
     "The on-screen character never speaks, never introduces themself, and is never the narrator. No first-person lines in the character's voice (no \"Hi, I'm Scro\", \"I am…\", \"we…\" spoken as the character); the narrator may name the character or product in the third person (\"Meet Scro. Scro turns…\").",
-    "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth closed or reacting. It may point at a diagram, stand aside reacting, or handle props — it does not have to hold three props.",
-    "For every topic, make an explanation graph the main subject of the canvas — not a character holding metaphor props. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts of a whole, flow or cycle, or a simple chart. Topic does not matter: food, money, health, product, habit, or science all get a graph. Metaphor props (boxes, bins, arrows, yellow tags) are only a fallback when a graph would hide the idea. Density is the graph — never a three-prop quota. Never a near-empty canvas with one floating label.",
+    hasCharacter
+      ? "A character is on screen. Give every clip a fresh idea and do not repeat the previous clip's performance. Place them on the left side in some clips and the right side in others. Actions include running, jumping, walking, pointing, pulling a drawn element, or pushing a drawn element. The head may turn to the viewer's left or the viewer's right. Every clip still changes their body (arms, hands, torso, and legs) and facial expression. The camera zooms in or out between the start and end still: different shot size, one continuous move, no cut and no teleport. They stay silent — expression only, no lip-sync and no greeting wave."
+      : "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth closed or reacting. It may point at a diagram, stand aside reacting, or handle props — it does not have to hold three props.",
+    hasCharacter
+      ? "For every topic, keep an explanation graph and add extra drawn objects, icons, arrows, and doodles that appear on the canvas to explain the idea. The character interacts with those drawings by pointing, pulling, pushing, running past, or jumping toward them. Do not reuse the same interaction on the next clip. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts, flow, or a simple chart. Never a near-empty canvas."
+      : "For every topic, make an explanation graph the main subject of the canvas — not a character holding metaphor props. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts of a whole, flow or cycle, or a simple chart. Topic does not matter: food, money, health, product, habit, or science all get a graph. Metaphor props (boxes, bins, arrows, yellow tags) are only a fallback when a graph would hide the idea. Density is the graph — never a three-prop quota. Never a near-empty canvas with one floating label.",
+    hasCharacter
+      ? "startScene and endScene are the two resting poses: different body, face, head direction, screen side (left or right), and shot size. The run, jump, point, pull, push, head turn, zoom, and drawings appearing live only in motionCamera."
+      : "",
     "On-canvas beat text is allowed: write one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 in startScene and endScene. Do not dump the full voiceover into those fields; the still prompt adds startVo / endVo lettering separately.",
-  ].join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 // Pasted into whiteboard-explainer stills; empty for every other director.
-export function cartoonNarratorFrameLock(skillSlug?: string) {
+export function cartoonNarratorFrameLock(skillSlug?: string, options?: { hasCharacter?: boolean }) {
   if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
+  if (options?.hasCharacter) {
+    return "Silent demonstrator: the character does not talk or lip-sync (a readable facial expression is required; no greeting wave). Draw a clear body pose. They may stand on the left or the right, and the head may face left or right. Shot size and where they stand may differ from the other still of this clip because they ran, jumped, or walked and the camera zoomed. Draw the explanation graph plus extra objects they can point at, pull, or push. Draw every beat title or diagram label written in 「」, clearly readable.";
+  }
   return "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」, clearly readable.";
 }
 
 // Appended to whiteboard-explainer clip videos; empty for every other director.
-export function cartoonNarratorVideoLock(skillSlug?: string) {
+export function cartoonNarratorVideoLock(skillSlug?: string, options?: { hasCharacter?: boolean }) {
   if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
-  return "Voice: an unseen off-screen narrator speaks every line. The on-screen character never speaks or lip-syncs — mouth stays closed or shows simple reactions — and reacts to the diagram or props.";
+  const voice =
+    "Voice: an unseen off-screen narrator speaks every line. The on-screen character never speaks or lip-syncs.";
+  if (!options?.hasCharacter) {
+    return `${voice} Mouth stays closed or shows simple reactions, and reacts to the diagram or props.`;
+  }
+  return `${voice} Animate a fresh action this clip has not used before: run, jump, walk, point, pull, or push a drawn element, with the head turning left or right, and a move from one side of the frame toward the other when the stills show it. Also zoom in or out across the full duration. Extra objects and drawings appear on the canvas to explain the idea. Do not pin the character to the start position, side, or scale when the end frame has moved or zoomed. Do not repeat the previous clip's action.`;
 }
 
 export function dialogueQaDirectorBlock() {

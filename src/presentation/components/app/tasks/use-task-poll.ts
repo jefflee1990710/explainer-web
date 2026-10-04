@@ -63,9 +63,14 @@ export function useTaskPoll(initial: PublicTask[], videoId?: string, enabled = t
           const previous = tasksRef.current;
           setTasks(result.tasks);
           tasksRef.current = result.tasks;
-          for (const settledId of settledVideoIds(previous, result.tasks)) {
-            notifyProjectRefresh(settledId);
+          const refreshIds = new Set(settledVideoIds(previous, result.tasks));
+          // Still generating: the editor may look idle (old still on screen).
+          // Pull that video so the placeholder and the finished file both land.
+          for (const task of result.tasks) {
+            if (!task.videoId || task.stage === "done" || task.stage === "failed") continue;
+            refreshIds.add(task.videoId);
           }
+          for (const refreshId of refreshIds) notifyProjectRefresh(refreshId);
           notifyGenerationSettled(settledGenerationTasks(previous, result.tasks));
           setError("");
         } else {

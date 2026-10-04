@@ -14,6 +14,8 @@ import { resolveSceneText } from "@/service/director/scene-text";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { styleLetteringLine, styleLinesForFrame } from "@/service/style/prompts";
 import { captionBrief } from "@/service/video-share/caption-brief";
+import { coverSafeAreaPrompt, parseCoverSafeAreas } from "@/service/video-edit/cover-safe-area";
+import type { CoverSafeArea } from "@/model/project";
 import { mediaSrc } from "@/util/media-src";
 import { toPublicVideo } from "@/presentation/serialize";
 
@@ -40,11 +42,13 @@ export function parseCoverPrompt(raw: unknown): { ok: true; prompt: string } | {
 export function reelCoverPrompt(project: Project): string {
   const brief = captionBrief({ source: project.source, phaseA: project.phaseA });
   const extra = project.coverPrompt?.trim() ?? "";
+  const safeArea = coverSafeAreaPrompt(project.coverSafeAreas);
   return [
     "Single cover still for a finished explainer reel.",
     "No device chrome, no play button, no UI mockup.",
     `Aspect ratio ${project.aspectRatio}.`,
     brief,
+    safeArea,
     extra ? `Extra requirement: ${extra}` : "",
   ]
     .filter((line) => line.trim().length > 0)
@@ -102,7 +106,11 @@ async function claimCoverRefund(videoId: ObjectId, clerkUserId: string, coverSta
 }
 
 // Claim the slot, charge once, then queue a reelCover still.
-export async function generateReelCoverAction(videoId: string, extraPrompt?: string): Promise<GenerateReelCoverResult> {
+export async function generateReelCoverAction(
+  videoId: string,
+  extraPrompt?: string,
+  safeAreas?: CoverSafeArea[],
+): Promise<GenerateReelCoverResult> {
   let spendKey: string | undefined;
   let jobQueued = false;
   let id: ObjectId | undefined;
@@ -121,18 +129,24 @@ export async function generateReelCoverAction(videoId: string, extraPrompt?: str
 
     const parsed = parseCoverPrompt(extraPrompt);
     if (!parsed.ok) return parsed;
+    const safe = parseCoverSafeAreas(safeAreas);
+    if (!safe.ok) return safe;
 
     const now = new Date();
     id = video._id;
     coverStartedAt = now;
+    const unset: Record<string, ""> = {};
+    if (!parsed.prompt) unset.coverPrompt = "";
+    if (safe.areas.length === 0) unset.coverSafeAreas = "";
     const claimed = await videos.updateOne(coverClaimFilter({ videoId: video._id, clerkUserId: user.clerkUserId, now }), {
       $set: {
         coverStatus: "generating",
         coverStartedAt: now,
         updatedAt: now,
         ...(parsed.prompt ? { coverPrompt: parsed.prompt } : {}),
+        ...(safe.areas.length ? { coverSafeAreas: safe.areas } : {}),
       },
-      ...(parsed.prompt ? {} : { $unset: { coverPrompt: "" } }),
+      ...(Object.keys(unset).length ? { $unset: unset } : {}),
     });
     if (claimed.matchedCount !== 1) return { ok: false, error: "封面生成中" };
 

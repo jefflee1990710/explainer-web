@@ -42,7 +42,7 @@ Spoken lines in every prompt must be quoted verbatim from the approved englishVo
     skillBansNarration(input.skill.slug)
       ? "There is no narrator. Characters speak those lines. Do not copy a male/female narrator fingerprint. Infer each NAME's voice from that character in the keyframes."
       : `Copy the locked adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice fingerprint verbatim into every clip prompt. Do not invent a new narrator.`
-  } ${cartoonNarratorVideoLock(input.skill.slug)} Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. Never request background music, BGM, a musical score, or an underscore. Voice and short synced SFX only.`;
+  } ${cartoonNarratorVideoLock(input.skill.slug, { hasCharacter: Boolean(input.cast?.length || input.characterImageUrl) })} Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. Never request background music, BGM, a musical score, or an underscore. Voice and short synced SFX only.`;
 }
 
 function characterLine(input: PhaseBInput) {
@@ -86,7 +86,9 @@ export async function runPhaseBForClip(
   // Audio, narrator, wardrobe, and lettering locks ride on every clip; empty locks are skipped.
   const prompt = [
     lock,
-    cartoonNarratorVideoLock(input.skill.slug),
+    cartoonNarratorVideoLock(input.skill.slug, {
+      hasCharacter: Boolean(input.cast?.length || input.characterImageUrl),
+    }),
     phaseBWardrobeLock(input),
     phaseBLetteringLock({
       skillSlug: input.skill.slug,

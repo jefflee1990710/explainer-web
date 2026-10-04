@@ -148,6 +148,30 @@ test("whiteboard explainer stills keep the character silent and draw the mechani
   assert.doesNotMatch(buildFramePrompt(project(), 1, "start"), /Silent demonstrator/);
 });
 
+test("whiteboard explainer with a cast zooms, walks, and draws extra objects", () => {
+  const cartoon = project();
+  cartoon.skillSlug = "cartoon-explainer-video-director";
+  cartoon.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Scro",
+      blueprintUrl: "https://blob/scro.png",
+      prompt: "sheet",
+    },
+  ];
+  const end = buildFramePrompt(cartoon, 1, "end", { anchor: { kind: "clip-start" } });
+  assert.match(end, /facial expression/);
+  assert.match(end, /left or the right/);
+  assert.match(end, /head may face/);
+  assert.match(end, /walked/);
+  assert.match(end, /zoomed/);
+  assert.match(end, /pull, or push/);
+  assert.match(end, /Shot size MAY change/);
+  assert.match(end, /other side/);
+  assert.doesNotMatch(end, /Same camera, character size/);
+});
+
 test("story-short 9:16 stills place subtitles in the reel safe zone", () => {
   const story = project();
   story.skillSlug = "story-short-director";

@@ -25,10 +25,12 @@ import {
 } from "@/service/production-plan";
 import { isInheritedTalkingHeadStart, talkingHeadFramesCost } from "@/service/director/talking-head";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
+import { folderVideoPath } from "@/service/folder-video-path";
 import type { Project } from "@/model/project";
 
-// Enqueue-only: the editor already flipped the clip; poll fills the rest.
-type EnqueueResult = { ok: true } | { ok: false; error: string };
+// The editor flips to a placeholder immediately; the returned snapshot carries
+// the server claim so a poll cannot drop that row before the file exists.
+type EnqueueResult = { ok: true; project: PublicVideo } | { ok: false; error: string };
 
 type RemainingResult =
   | { ok: true; project: PublicVideo; skipped: number[] }
@@ -38,6 +40,13 @@ function revalidateProject(projectId: string) {
   revalidatePath("/app");
   revalidatePath(`/app/projects/${projectId}`);
   revalidatePath("/app/billing");
+}
+
+async function enqueuedVideo(project: Project): Promise<PublicVideo> {
+  const projects = await videosCollection();
+  const updated = await projects.findOne({ _id: project._id });
+  revalidatePath(folderVideoPath(project.projectId.toHexString(), project._id.toHexString()));
+  return toPublicVideo(updated ?? project);
 }
 
 // Owner check + "storyboard approved" gate shared by every per-clip action.
@@ -117,7 +126,7 @@ export async function generateClipFramesAction(
       throw error;
     }
 
-    return { ok: true };
+    return { ok: true, project: await enqueuedVideo(project) };
   } catch (error) {
     return {
       ok: false,
@@ -145,7 +154,7 @@ export async function generateClipVideoAction(
     const started = await claimAndStartClipVideo(user.clerkUserId, project, clipNumber);
     if (!started.ok) return { ok: false, error: started.error };
 
-    return { ok: true };
+    return { ok: true, project: await enqueuedVideo(project) };
   } catch (error) {
     return {
       ok: false,
@@ -279,7 +288,7 @@ export async function generateAllSceneImagesAction(
       await refundCredits(user.clerkUserId, plan.cost, spendKey);
       throw error;
     }
-    return { ok: true };
+    return { ok: true, project: await enqueuedVideo(loaded.project) };
   } catch (error) {
     return {
       ok: false,
@@ -319,7 +328,7 @@ export async function generateAllClipsAction(
       { $set: { autoVideoClips: plan.videos, updatedAt: new Date() } },
     );
     await queueAutoClipVideos(loaded.project._id);
-    return { ok: true };
+    return { ok: true, project: await enqueuedVideo(loaded.project) };
   } catch (error) {
     return {
       ok: false,

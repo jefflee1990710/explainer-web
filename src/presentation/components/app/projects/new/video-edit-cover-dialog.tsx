@@ -4,6 +4,9 @@ import { useEffect, useId, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
+import { VideoEditCoverPreview } from "@/presentation/components/app/projects/new/video-edit-cover-preview";
+import { VideoEditCoverSafeAreas } from "@/presentation/components/app/projects/new/video-edit-cover-safe-areas";
+import type { CoverSafeArea } from "@/model/project";
 import { generateReelCoverAction } from "@/presentation/actions/video-edit";
 import {
   holdOptimisticTasks,
@@ -35,6 +38,7 @@ export function VideoEditCoverDialog({
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [extraPrompt, setExtraPrompt] = useState(project.coverPrompt ?? "");
+  const [safeAreas, setSafeAreas] = useState<CoverSafeArea[]>(project.coverSafeAreas ?? []);
   const generating = project.coverStatus === "generating" || pending;
   const enough = credits >= FRAME_COST;
 
@@ -61,7 +65,7 @@ export function VideoEditCoverDialog({
     beginTaskRefresh();
     notifyTasksChanged();
     try {
-      const result = await generateReelCoverAction(project.id, extraPrompt);
+      const result = await generateReelCoverAction(project.id, extraPrompt, safeAreas);
       if (!result.ok) {
         releaseOptimisticTasks(held);
         notifyTasksChanged();
@@ -88,54 +92,63 @@ export function VideoEditCoverDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full max-w-md rounded-xl border border-[var(--studio-line)] bg-white p-4 shadow-lg"
+        className="grid max-h-[min(44rem,90vh)] w-full max-w-4xl overflow-hidden rounded-xl border border-[var(--studio-line)] bg-white shadow-lg lg:grid-cols-[22rem_minmax(0,1fr)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 id={titleId} className="text-sm font-semibold">
-          {t("video.cover.title")}
-        </h2>
-        <p className="mt-1 text-xs text-[var(--studio-muted)]">{t("video.cover.body")}</p>
-        <label className="mt-3 block">
-          <span className="text-xs font-semibold">{t("video.cover.promptLabel")}</span>
-          <span className="mt-0.5 block text-[11px] text-[var(--studio-muted)]">{t("video.cover.promptHint")}</span>
-          <textarea
-            value={extraPrompt}
-            rows={3}
+        <div className="border-b border-[var(--studio-line)] p-4 lg:col-span-2">
+          <VideoEditCoverSafeAreas
+            selected={safeAreas}
             disabled={generating}
-            placeholder={t("video.cover.promptPlaceholder")}
-            onChange={(event) => setExtraPrompt(event.target.value)}
-            className="mt-1.5 w-full resize-y rounded-lg border border-[var(--studio-line)] bg-white px-2 py-1.5 text-xs leading-5 text-[var(--studio-ink)] disabled:opacity-60"
+            onToggle={(id) =>
+              setSafeAreas((current) =>
+                current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+              )
+            }
           />
-        </label>
-        <div className="mt-3 overflow-hidden rounded-lg border border-[var(--studio-line)] bg-[var(--studio-fill)]">
-          {project.coverUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={project.coverUrl} alt="" className="aspect-video w-full object-cover" />
-          ) : (
-            <p className="grid aspect-video place-items-center px-3 text-center text-xs text-[var(--studio-muted)]">
-              {generating ? t("video.cover.generating") : t("video.cover.empty")}
+        </div>
+        <div className="flex min-h-0 flex-col overflow-y-auto p-4">
+          <h2 id={titleId} className="text-sm font-semibold">
+            {t("video.cover.title")}
+          </h2>
+          <p className="mt-1 text-xs text-[var(--studio-muted)]">{t("video.cover.body")}</p>
+          <label className="mt-3 block">
+            <span className="text-xs font-semibold">{t("video.cover.promptLabel")}</span>
+            <span className="mt-0.5 block text-[11px] text-[var(--studio-muted)]">{t("video.cover.promptHint")}</span>
+            <textarea
+              value={extraPrompt}
+              rows={3}
+              disabled={generating}
+              placeholder={t("video.cover.promptPlaceholder")}
+              onChange={(event) => setExtraPrompt(event.target.value)}
+              className="mt-1.5 w-full resize-y rounded-lg border border-[var(--studio-line)] bg-white px-2 py-1.5 text-xs leading-5 text-[var(--studio-ink)] disabled:opacity-60"
+            />
+          </label>
+          {project.coverStatus === "failed" && !generating ? (
+            <p role="alert" className="mt-2 text-xs font-medium text-[#e11d48]">
+              {t("video.cover.failed")}
             </p>
-          )}
+          ) : null}
+          {error ? (
+            <p role="alert" className="mt-2 text-xs font-medium text-[#e11d48]">
+              {error}
+            </p>
+          ) : null}
+          <div className="mt-4 flex justify-end gap-2">
+            <StudioButton variant="ghost" onClick={onClose}>
+              {t("common.cancel")}
+            </StudioButton>
+            <StudioButton disabled={generating || !enough} onClick={() => void generate()}>
+              {generating ? <Spinner className="h-3.5 w-3.5" /> : null}
+              {generating ? t("video.cover.generating") : t("video.cover.generate", { credits: FRAME_COST })}
+            </StudioButton>
+          </div>
         </div>
-        {project.coverStatus === "failed" && !generating ? (
-          <p role="alert" className="mt-2 text-xs font-medium text-[#e11d48]">
-            {t("video.cover.failed")}
-          </p>
-        ) : null}
-        {error ? (
-          <p role="alert" className="mt-2 text-xs font-medium text-[#e11d48]">
-            {error}
-          </p>
-        ) : null}
-        <div className="mt-4 flex justify-end gap-2">
-          <StudioButton variant="ghost" onClick={onClose}>
-            {t("common.cancel")}
-          </StudioButton>
-          <StudioButton disabled={generating || !enough} onClick={() => void generate()}>
-            {generating ? <Spinner className="h-3.5 w-3.5" /> : null}
-            {generating ? t("video.cover.generating") : t("video.cover.generate", { credits: FRAME_COST })}
-          </StudioButton>
-        </div>
+        <VideoEditCoverPreview
+          src={project.coverUrl}
+          aspectRatio={project.aspectRatio}
+          emptyLabel={generating ? t("video.cover.generating") : t("video.cover.empty")}
+          label={t("video.cover.current")}
+        />
       </div>
     </div>
   );

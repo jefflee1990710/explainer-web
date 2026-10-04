@@ -1,4 +1,4 @@
-import { charactersCollection, generationJobsCollection, videosCollection } from "@/dao";
+import { charactersCollection, generationJobsCollection, userDirectorsCollection, videosCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
 import { mediaUrlFromResponse, fetchHiggsfieldStatus } from "@/service/higgsfield/generate";
 import { applyJobStatus, refreshProjectJobs } from "@/service/higgsfield/pipeline";
@@ -56,15 +56,23 @@ export async function advanceOwnedJobs(clerkUserId: string) {
     .find({ ownerClerkUserId: clerkUserId }, { projection: { _id: 1 } })
     .limit(200)
     .toArray();
+  const directors = await (await userDirectorsCollection())
+    .find({ ownerClerkUserId: clerkUserId, isActive: true }, { projection: { _id: 1 } })
+    .limit(200)
+    .toArray();
   const projectIds = videoDocs.map((doc) => doc._id);
   const characterIds = characters.map((doc) => doc._id);
   const styleIds = styles.map((doc) => doc._id);
-  if (projectIds.length === 0 && characterIds.length === 0 && styleIds.length === 0) return;
+  const directorIds = directors.map((doc) => doc._id);
+  if (projectIds.length === 0 && characterIds.length === 0 && styleIds.length === 0 && directorIds.length === 0) {
+    return;
+  }
 
   const owners: Array<Record<string, unknown>> = [];
   if (projectIds.length) owners.push({ projectId: { $in: projectIds } });
   if (characterIds.length) owners.push({ characterId: { $in: characterIds } });
   if (styleIds.length) owners.push({ userStyleId: { $in: styleIds } });
+  if (directorIds.length) owners.push({ skillId: { $in: directorIds } });
 
   const jobs = await generationJobsCollection();
   const active = await jobs
@@ -92,7 +100,7 @@ export async function advanceOwnedJobs(clerkUserId: string) {
   }
 
   for (const job of active) {
-    if (job.kind !== "character" && job.kind !== "stylePreview") continue;
+    if (job.kind !== "character" && job.kind !== "stylePreview" && job.kind !== "directorPreview") continue;
     if (!job.statusUrl || !job.requestId) continue;
     if (job.status !== "queued" && job.status !== "in_progress") continue;
     try {

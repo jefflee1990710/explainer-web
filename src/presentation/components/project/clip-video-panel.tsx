@@ -19,6 +19,7 @@ export function ClipVideoPanel({
   state,
   aspectRatio,
   pending,
+  posterSrc,
   boxStyle,
   onGenerate,
 }: {
@@ -26,6 +27,8 @@ export function ClipVideoPanel({
   state: ClipState;
   aspectRatio: AspectRatio;
   pending: boolean;
+  // Scene still shown until this clip's video file is ready.
+  posterSrc?: string;
   boxStyle?: { width: number; height: number };
   onGenerate: () => void;
 }) {
@@ -36,6 +39,7 @@ export function ClipVideoPanel({
   const errorRaw = failed ? userFacingJobError("failed", clip?.error) : undefined;
   const error = errorRaw ? translateAppError(errorRaw, t) : "";
   const showVideo = Boolean(src) && !generating;
+  const showPoster = Boolean(posterSrc) && !showVideo;
 
   return (
     <div
@@ -44,6 +48,10 @@ export function ClipVideoPanel({
       }`}
       style={boxStyle}
     >
+      {showPoster ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={posterSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      ) : null}
       {src && showVideo ? (
         <>
           <ClipVideoPlayer src={src} dimmed={state.stale.video || failed} />
@@ -54,7 +62,7 @@ export function ClipVideoPanel({
           ) : null}
         </>
       ) : generating ? (
-        <GeneratingVideo state={state} />
+        <GeneratingVideo state={state} overImage={showPoster} />
       ) : failed ? (
         <div className="absolute inset-0 grid place-items-center bg-accent/10 p-3 text-center text-[11px] font-semibold text-accent">
           {t("production.video.failedInline", { error: error ? `：${error}` : "" })}
@@ -66,6 +74,7 @@ export function ClipVideoPanel({
           pending={pending}
           disabled={clipNextAction(state).kind !== "video"}
           cost={state.videoCost ?? MIN_VIDEO_COST}
+          overImage={showPoster}
           onGenerate={onGenerate}
         />
       )}
@@ -78,12 +87,15 @@ export function ClipVideoPanel({
   );
 }
 
-function GeneratingVideo({ state }: { state: ClipState }) {
+function GeneratingVideo({ state, overImage }: { state: ClipState; overImage: boolean }) {
   const { t } = useI18n();
   const action = clipNextAction(state);
   const text = clipNextActionText(t, action);
   return (
-    <div className="absolute inset-0 grid place-items-center bg-accent-ink/5" aria-label={text.label}>
+    <div
+      className={`absolute inset-0 grid place-items-center ${overImage ? "bg-white/45" : "bg-accent-ink/5"}`}
+      aria-label={text.label}
+    >
       <motion.div
         className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-paper/80 to-transparent"
         animate={{ x: ["-100%", "300%"] }}

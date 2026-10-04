@@ -41,6 +41,32 @@ export function directorPreviewPrompt(input: {
   ].join("\n");
 }
 
+// Hook + arc, or the description when both are empty. This is the planning line in the still.
+export function directorPreviewPlan(hook: string, arc: string, fallback: string) {
+  const plan = [hook, arc].map((line) => line.trim()).filter(Boolean).join(" ");
+  return plan || fallback.trim();
+}
+
+// Fingerprint of the director text that changes the still. Style names stay out so the browser can match it.
+export function directorPreviewSource(input: { title: string; visual: string; plan: string }) {
+  return [input.title.trim(), input.visual.trim(), input.plan.trim()].join("\n");
+}
+
+// Same fields the image prompt reads: title, visual (or description), and the planning line.
+export function directorPreviewFields(input: {
+  title: string;
+  description: string;
+  visual: string;
+  hook: string;
+  arc: string;
+}) {
+  return {
+    title: input.title.trim(),
+    visual: input.visual.trim() || input.description.trim(),
+    plan: directorPreviewPlan(input.hook, input.arc, input.description),
+  };
+}
+
 export function directorPreviewStyleNames(styles: { id: string; name: string }[]) {
   return DIRECTOR_PREVIEW_STRIP_IDS.map((id) => {
     const style = styles.find((row) => row.id === id);

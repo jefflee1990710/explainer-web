@@ -7,6 +7,7 @@ import { previewStageFit } from "@/presentation/components/project/clip-preview-
 import { FrameTile } from "@/presentation/components/project/frame-tile";
 import { isFrameTilePending } from "@/presentation/components/project/frame-tile-face";
 import type { ClipState } from "@/service/clip-stage";
+import { displayMediaSrc } from "@/util/media-src";
 import type { AspectRatio, ClipFrame, FramePosition, ProjectClip } from "@/model/project";
 
 const GAP = 16;
@@ -67,6 +68,9 @@ export function ClipPreviewStage({
     caption: CAPTION,
   });
   const ready = pane.w > 0 && pane.h > 0 && fit.start.width > 0;
+  const startDrawing = isFrameTilePending(start, startPending || framesPending);
+  // Keep the scene still in the video slot until the clip file replaces it.
+  const videoPoster = startDrawing ? undefined : displayMediaSrc(start) ?? displayMediaSrc(end);
 
   return (
     <div
@@ -95,6 +99,7 @@ export function ClipPreviewStage({
             state={state}
             aspectRatio={aspectRatio}
             pending={videoPending}
+            posterSrc={videoPoster}
             boxStyle={fit.video}
             onGenerate={onGenerateVideo}
           />

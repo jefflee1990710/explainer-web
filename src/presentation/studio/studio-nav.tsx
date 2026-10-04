@@ -27,7 +27,7 @@ export function StudioNav({ items }: { items: StudioNavItem[] }) {
         if (group.length === 0) return null;
         const labelId = `studio-nav-${section}`;
         return (
-          <div key={section} role="group" aria-labelledby={labelId} className="flex flex-col gap-0.5">
+          <div key={section} role="group" aria-labelledby={labelId} className="flex flex-col gap-1">
             {index > 0 ? (
               <span aria-hidden className="mx-2 mb-1 h-px bg-[var(--studio-line)] lg:hidden" />
             ) : null}
@@ -61,13 +61,19 @@ function StudioNavLink({ item, active }: { item: StudioNavItem; active: boolean 
       aria-label={item.label}
       title={item.label}
       aria-current={active ? "page" : undefined}
-      className={`flex min-h-11 items-center gap-3 rounded-lg px-2.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-ink)] ${
+      className={`group flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl px-1.5 text-sm transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] max-lg:justify-center ${
         active
-          ? "bg-[var(--studio-cyan-soft)] text-[var(--studio-ink)]"
-          : "text-[var(--studio-muted)] hover:bg-[var(--studio-fill)]"
+          ? "bg-[var(--studio-cyan-soft)] font-semibold text-[var(--studio-ink)]"
+          : "font-medium text-[var(--studio-ink)] hover:bg-[var(--studio-fill)]"
       }`}
     >
-      <RailIcon name={item.icon} />
+      <span
+        className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors duration-200 ${
+          active ? "bg-[var(--studio-teal)] text-[var(--studio-ink)]" : "text-[var(--studio-ink)]"
+        }`}
+      >
+        <RailIcon name={item.icon} />
+      </span>
       <span className="hidden truncate lg:inline">{item.label}</span>
       <NavPending />
     </Link>

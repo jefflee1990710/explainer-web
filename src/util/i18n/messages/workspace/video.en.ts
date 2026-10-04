@@ -36,7 +36,7 @@ export const videoEn = {
     syncing: "Syncing",
     deleteVideo: "Delete video",
     moreAria: "More actions",
-    back: "← Back",
+    back: "Back",
     stepsAria: "Editor steps",
   },
   delete: {
@@ -120,6 +120,22 @@ export const videoEn = {
     failed: "Cover generation failed. Try again.",
     empty: "No cover yet.",
     current: "Current cover",
+    safeAreaLabel: "Safe area",
+    safeAreaHint: "Optional. Checked apps get padding so the whole cover still shows after they crop it.",
+    safeAreas: {
+      igReel: {
+        label: "Instagram Reels",
+        hint: "Profile grid and Reels list.",
+      },
+      tiktok: {
+        label: "TikTok",
+        hint: "Profile grid and For You page.",
+      },
+      youtubeShorts: {
+        label: "YouTube Shorts",
+        hint: "Shorts shelf and player.",
+      },
+    },
   },
   properties: {
     intro: "Intro",

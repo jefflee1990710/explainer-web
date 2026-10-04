@@ -5,6 +5,9 @@ import { objectIdSchema } from "@/model/primitives";
 import { videoEditSchema, type VideoEdit } from "@/model/video-edit";
 
 export type AspectRatio = "16:9" | "9:16" | "1:1";
+// Cover stills can be inset so a platform crop still shows the whole picture.
+export const COVER_SAFE_AREA_IDS = ["ig-reel", "tiktok", "youtube-shorts"] as const;
+export type CoverSafeArea = (typeof COVER_SAFE_AREA_IDS)[number];
 // auto: Phase A picks length and clip count. The others are fixed clip budgets.
 export const DURATION_PRESET_IDS = ["auto", "micro", "short", "punchy", "full"] as const;
 export type DurationPreset = (typeof DURATION_PRESET_IDS)[number];
@@ -230,6 +233,8 @@ export type Project = {
   coverCreditsCharged?: boolean;
   // Optional extra requirement for the last cover generate.
   coverPrompt?: string;
+  // Social apps whose crop the last cover was composed to survive.
+  coverSafeAreas?: CoverSafeArea[];
   // Template last applied to or saved from this video.
   editTemplateId?: ObjectId;
   // Branded export. Fingerprint = reel fingerprint + edit hash.
@@ -386,6 +391,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   coverStartedAt: z.date().optional(),
   coverCreditsCharged: z.boolean().optional(),
   coverPrompt: z.string().optional(),
+  coverSafeAreas: z.array(z.enum(COVER_SAFE_AREA_IDS)).optional(),
   editTemplateId: objectIdSchema.optional(),
   finalUrl: z.string().optional(),
   finalStatus: z.enum(["queued", "in_progress", "completed", "failed"]).optional(),

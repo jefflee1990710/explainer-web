@@ -13,7 +13,7 @@ import type { Character, CharacterVersionStatus } from "@/model/character";
 import type { Folder } from "@/model/folder";
 import type { Project, ProjectStatus } from "@/model/project";
 import type { DirectorProfile, SystemProfile } from "@/model/director-profile";
-import type { DirectorChatMessage, Skill } from "@/model/skill";
+import type { DirectorChatMessage, DirectorPreviewStatus, Skill } from "@/model/skill";
 import type { Subscription } from "@/model/subscription";
 import type { VideoEdit, VideoTemplate } from "@/model/video-edit";
 
@@ -74,6 +74,7 @@ export type PublicVideo = {
   coverUrl?: string;
   coverStatus?: Project["coverStatus"];
   coverPrompt?: string;
+  coverSafeAreas?: Project["coverSafeAreas"];
   editTemplateId?: string;
   finalUrl?: string;
   finalStatus?: Project["finalStatus"];
@@ -185,9 +186,14 @@ export type PublicDirector = PublicSkill & {
   profile?: SystemProfile;
   customProfile?: DirectorProfile;
   extraInstructions?: string;
+  previewStatus: DirectorPreviewStatus;
+  previewHash?: string;
+  hasOwnPreview: boolean;
   chat: Array<{
     role: DirectorChatMessage["role"];
     content: string;
+    imageUrl?: string;
+    previewUrl?: string;
     changedPaths?: string[];
     createdAt: string;
   }>;
@@ -197,6 +203,8 @@ export function toPublicDirectorChat(chat: DirectorChatMessage[]): PublicDirecto
   return chat.map((item) => ({
     role: item.role,
     content: item.content,
+    imageUrl: item.imageUrl,
+    previewUrl: item.previewUrl,
     changedPaths: item.changedPaths,
     createdAt: item.createdAt.toISOString(),
   }));
@@ -204,12 +212,17 @@ export function toPublicDirectorChat(chat: DirectorChatMessage[]): PublicDirecto
 
 export function toPublicDirector(skill: Skill, inheritedPreviewUrl?: string): PublicDirector {
   const custom = isCustomSkill(skill);
+  const hasOwnPreview = Boolean(skill.previewUrl);
   return {
     ...toPublicSkill(skill, inheritedPreviewUrl),
     baseSlug: skill.baseSlug,
     profile: custom || !skill.profile ? undefined : parseSystemProfile(skill.profile),
     customProfile: custom ? { ...emptyProfile(), ...skill.customProfile } : undefined,
     extraInstructions: custom ? skill.extraInstructions ?? "" : undefined,
+    previewStatus: skill.previewStatus ?? "idle",
+    // Only an owned still can disable regenerate. Inherited template stills stay replaceable.
+    previewHash: hasOwnPreview ? skill.previewHash : undefined,
+    hasOwnPreview,
     chat: toPublicDirectorChat(skill.chat || []),
   };
 }
@@ -253,6 +266,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     coverUrl: video.coverUrl,
     coverStatus: video.coverStatus,
     coverPrompt: video.coverPrompt,
+    coverSafeAreas: video.coverSafeAreas,
     editTemplateId: video.editTemplateId?.toHexString(),
     finalUrl: video.finalUrl,
     finalStatus: video.finalStatus,

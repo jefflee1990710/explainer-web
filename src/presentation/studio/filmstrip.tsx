@@ -3,6 +3,7 @@
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { StudioClipItem, StudioClipTone } from "@/presentation/studio/clip-item";
+import { FilmstripGenerating } from "@/presentation/studio/filmstrip-generating";
 import { FilmstripMediaTags } from "@/presentation/studio/filmstrip-media-tags";
 
 // Status band colour under each thumbnail.
@@ -75,10 +76,15 @@ export function Filmstrip({
               <span className="relative aspect-square w-full">
                 {item.thumbnailUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  <img
+                    src={item.thumbnailUrl}
+                    alt=""
+                    className={`absolute inset-0 h-full w-full object-cover ${item.busy ? "opacity-40" : ""}`}
+                  />
                 ) : (
                   <span className="absolute inset-0 bg-[var(--studio-canvas)]" aria-hidden />
                 )}
+                {item.busy ? <FilmstripGenerating /> : null}
                 <FilmstripMediaTags hasScene={item.hasScene} hasVideo={item.hasVideo} />
                 {item.stale ? (
                   <span className="absolute bottom-1.5 right-1 rounded-sm bg-[var(--accent)] px-1 text-[9px] font-bold text-white">

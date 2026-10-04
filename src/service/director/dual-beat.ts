@@ -124,7 +124,12 @@ export function normalizeDualBeatRow(row: StoryboardRow): StoryboardRow {
 
 export function dualBeatDirectorBlock(
   sceneTextEnabled: boolean,
-  options?: { inWorldLabels?: boolean; language?: VoLanguage; lettering?: StyleLettering },
+  options?: {
+    inWorldLabels?: boolean;
+    language?: VoLanguage;
+    lettering?: StyleLettering;
+    hasCharacter?: boolean;
+  },
 ) {
   const lettering = resolveStyleLettering(options?.lettering);
   const labels = sceneStateLabels(options?.language);
@@ -138,8 +143,12 @@ export function dualBeatDirectorBlock(
   return [
     "This skill uses Dual-Keyframe + Dual-Beat (白板概念解說 only).",
     "startScene: the t=0 still only — one frozen pose, props, environment. Not a motion paragraph. Exactly one figure per named character.",
-    "endScene: the t=N still only — the later frozen pose on the same locked camera, not a near-copy of startScene. Still exactly one figure per named character. Never write a turning/walking action ('從側身轉正面') inside startScene or endScene.",
-    "If the beat is a turn or step: startScene = the first resting pose, endScene = the landed resting pose. The travel itself lives only in motionCamera.",
+    options?.hasCharacter
+      ? "endScene: the t=N still only — the later resting pose after a run, jump, point, pull, or push. Body pose, facial expression, head direction, and screen side (left or right) differ from startScene. Still exactly one figure per named character. Never write the running, jumping, or zooming action inside startScene or endScene."
+      : "endScene: the t=N still only — the later frozen pose on the same locked camera, not a near-copy of startScene. Still exactly one figure per named character. Never write a turning/walking action ('從側身轉正面') inside startScene or endScene.",
+    options?.hasCharacter
+      ? "With a character: do not repeat the previous clip. Each clip picks a fresh action and a fresh side of the frame (left or right), turns the head left or right, and may zoom in or out. Add extra drawn objects the character can point at, pull, or push. The run, jump, point, pull, push, head turn, zoom, and drawings appearing live only in motionCamera."
+      : "If the beat is a turn or step: startScene = the first resting pose, endScene = the landed resting pose. The travel itself lives only in motionCamera.",
     "motionCamera: the transition script between those two stills (see the motionCamera contract). Never a still prompt.",
     "startVo: first spoken sentence (0s → midpoint). endVo: second spoken sentence (midpoint → end).",
     `englishVo must be exactly startVo then endVo. ${sceneCompat}`,

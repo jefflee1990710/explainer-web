@@ -29,10 +29,14 @@ export type HiggsfieldDefaults = {
   videoModel: string;
 };
 
+export type DirectorPreviewStatus = "idle" | "generating" | "failed";
+
 // One turn of the chat used to edit a custom director.
 export type DirectorChatMessage = {
   role: "user" | "assistant";
   content: string;
+  imageUrl?: string;
+  previewUrl?: string;
   changedPaths?: string[];
   createdAt: Date;
 };
@@ -60,6 +64,10 @@ export type Skill = {
   // System-director card still. Custom directors inherit the template's url at serialize time.
   previewUrl?: string;
   previewHash?: string;
+  previewStatus?: DirectorPreviewStatus;
+  previewStartedAt?: Date;
+  previewCreditsCharged?: boolean;
+  previewChatCreatedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -98,6 +106,8 @@ export const skillSchema: z.ZodType<Skill> = z.object({
       z.object({
         role: z.enum(["user", "assistant"]),
         content: z.string(),
+        imageUrl: z.string().optional(),
+        previewUrl: z.string().optional(),
         changedPaths: z.array(z.string()).optional(),
         createdAt: z.date(),
       }),
@@ -109,6 +119,10 @@ export const skillSchema: z.ZodType<Skill> = z.object({
   extraInstructions: z.string().optional(),
   previewUrl: z.string().optional(),
   previewHash: z.string().optional(),
+  previewStatus: z.enum(["idle", "generating", "failed"]).optional(),
+  previewStartedAt: z.date().optional(),
+  previewCreditsCharged: z.boolean().optional(),
+  previewChatCreatedAt: z.date().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

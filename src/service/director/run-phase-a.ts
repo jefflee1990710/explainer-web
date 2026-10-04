@@ -125,6 +125,7 @@ export async function runPhaseA(input: {
   const lettering = resolveStyleLettering(input.style);
   const dualBeat = isDualBeatSkill(input.skill.slug);
   const dialogueOnly = skillBansNarration(input.skill.slug);
+  const hasCharacter = Boolean(input.cast?.length || input.characterImageUrl);
   const characterImages = await loadDirectorImageParts(
     characterReferenceUrls({
       cast: input.cast,
@@ -163,9 +164,9 @@ export async function runPhaseA(input: {
 
 You are executing Phase A only. Return structured JSON that matches the schema.
 ${language.planningSkillHint}
-${keyframeDeltaDirectorBlock({ separateStills: dualBeat, language: input.language })}
+${keyframeDeltaDirectorBlock({ separateStills: dualBeat, language: input.language, performance: dualBeat && hasCharacter })}
 ${sceneDetailDirectorBlock()}
-${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, lettering }) : ""}
+${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, lettering, hasCharacter }) : ""}
 ${
   skillForcesSceneText(input.skill.slug)
     ? "On-canvas text is required: a numbered item list must appear in every still."
@@ -195,7 +196,9 @@ ${
   [
     dialogueOnly ? dialogueOnlyDirectorBlock() : "",
     input.skill.slug === STORY_SHORT_SKILL_SLUG ? storyShortDirectorBlock() : "",
-    input.skill.slug === CARTOON_EXPLAINER_SKILL_SLUG ? cartoonExplainerDirectorBlock() : "",
+    input.skill.slug === CARTOON_EXPLAINER_SKILL_SLUG
+      ? cartoonExplainerDirectorBlock({ hasCharacter })
+      : "",
     input.skill.slug === DIALOGUE_QA_SKILL_SLUG ? dialogueQaDirectorBlock() : "",
     skillForcesSceneText(input.skill.slug) ? listicleDirectorBlock() : "",
     isComparisonCardSkill(input.skill.slug) ? comparisonCardDirectorBlock(input.aspectRatio) : "",

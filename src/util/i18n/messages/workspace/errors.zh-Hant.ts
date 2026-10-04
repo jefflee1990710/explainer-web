@@ -74,4 +74,5 @@ export const errorsZhHant = {
   coverFailed: "產生封面失敗",
   coverBusy: "封面正在產生中",
   coverPromptTooLong: "封面補充需求太長",
+  coverSafeAreaInvalid: "封面安全區無效",
 } satisfies ErrorsMessages;

@@ -114,6 +114,10 @@ export function useProjectPoll(
       }
     }
 
+    // Open editor may still show the previous still while a background job
+    // already finished, or be queued on the server. Pull once, then again
+    // when the task list says this video settled.
+    void pull();
     const unsubscribe = subscribeProjectRefresh((videoId) => {
       if (videoId === id) void pull();
     });

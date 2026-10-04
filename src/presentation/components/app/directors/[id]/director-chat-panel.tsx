@@ -2,79 +2,160 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { sendDirectorChatAction } from "@/presentation/actions/directors";
+import { useRouter } from "next/navigation";
+import { generateDirectorPreviewAction, sendDirectorChatAction } from "@/presentation/actions/directors";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { Spinner } from "@/presentation/components/spinner";
-import type { PublicDirector } from "@/presentation/serialize";
+import type { DirectorChatUser } from "@/presentation/components/app/directors/[id]/director-chat-avatar";
+import { DirectorChatComposer } from "@/presentation/components/app/directors/[id]/director-chat-composer";
+import { DirectorChatEmpty } from "@/presentation/components/app/directors/[id]/director-chat-empty";
 import { DirectorChatMessage } from "@/presentation/components/app/directors/[id]/director-chat-message";
-import {
-  applyDirectorEdits,
-  type DirectorDraft,
-  type DirectorEdit,
-} from "@/service/director/director-edits";
+import type { DirectorPreviewStatus } from "@/model/skill";
+import type { PublicDirector } from "@/presentation/serialize";
+import { applyDirectorEdits, type DirectorDraft, type DirectorEdit } from "@/service/director/director-edits";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
-const MESSAGE_MAX = 2000;
-
-// Right pane: AI chat whose replies are merged into the local draft (saved only via Save).
+// Right pane: AI chat whose profile edits land in the local draft. Auto-save writes them.
 export function DirectorChatPanel({
   directorId,
   initialChat,
   draft,
   subscribed,
+  user,
+  previewUrl,
+  previewStatus,
+  previewCurrent,
   onApplyEdits,
+  onSaveDraft,
+  onGenerating,
 }: {
   directorId: string;
   initialChat: PublicDirector["chat"];
   draft: DirectorDraft;
   subscribed: boolean;
+  user: DirectorChatUser;
+  previewUrl?: string;
+  previewStatus: DirectorPreviewStatus;
+  previewCurrent: boolean;
   onApplyEdits: (edits: DirectorEdit[]) => void;
+  onSaveDraft: () => Promise<boolean>;
+  onGenerating: () => void;
 }) {
   const { t } = useI18n();
+  const router = useRouter();
   const [chat, setChat] = useState(initialChat);
-  const [input, setInput] = useState("");
-  const [pendingMessage, setPendingMessage] = useState("");
+  const [pending, setPending] = useState<{ message: string; imageUrl?: string } | null>(null);
   const [error, setError] = useState("");
+  const [previewError, setPreviewError] = useState("");
+  const [pendingPreviewAt, setPendingPreviewAt] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const sending = pendingMessage !== "";
-  const canSend = subscribed && !sending && input.trim().length > 0;
+  const sawGenerating = useRef(false);
+  const sending = pending !== null;
+  const generating = previewStatus === "generating" || pendingPreviewAt !== null;
 
-  // Keep the newest message in view.
   useEffect(() => {
     const list = listRef.current;
     if (list) list.scrollTop = list.scrollHeight;
-  }, [chat.length, pendingMessage, error]);
+  }, [chat.length, pending, error, previewError]);
 
-  async function send() {
-    const message = input.trim();
-    if (!canSend) return;
-    // Snapshot the draft the AI sees so its edits are validated against the same values.
+  useEffect(() => {
+    setChat((current) => {
+      if (current.length === 0) return initialChat;
+      return current.map((message) => {
+        const server = initialChat.find(
+          (item) => item.role === message.role && item.createdAt === message.createdAt,
+        );
+        return server?.previewUrl && server.previewUrl !== message.previewUrl
+          ? { ...message, previewUrl: server.previewUrl }
+          : message;
+      });
+    });
+  }, [initialChat]);
+
+  useEffect(() => {
+    if (previewStatus === "generating") sawGenerating.current = true;
+  }, [previewStatus]);
+
+  useEffect(() => {
+    if (!pendingPreviewAt) return;
+    if (previewStatus === "failed") {
+      sawGenerating.current = false;
+      setPendingPreviewAt(null);
+      return;
+    }
+    if (previewStatus !== "idle" || !sawGenerating.current) return;
+    const createdAt = pendingPreviewAt;
+    setChat((current) =>
+      current.map((message) =>
+        message.role === "assistant" && message.createdAt === createdAt
+          ? { ...message, previewUrl: previewUrl || message.previewUrl }
+          : message,
+      ),
+    );
+    sawGenerating.current = false;
+    setPendingPreviewAt(null);
+  }, [pendingPreviewAt, previewStatus, previewUrl]);
+
+  async function send(input: { message: string; imageUrl?: string }) {
+    if (sending) return;
     const sent: DirectorDraft = { customProfile: draft.customProfile, extraInstructions: draft.extraInstructions };
-    setPendingMessage(message);
-    setInput("");
+    setPending(input);
     setError("");
+    setPreviewError("");
     try {
-      const result = await sendDirectorChatAction({ id: directorId, message, draft: sent });
+      const result = await sendDirectorChatAction({
+        id: directorId,
+        message: input.message,
+        imageUrl: input.imageUrl,
+        draft: sent,
+      });
       if (!result.ok) {
         setError(translateAppError(result.error, t));
-        setInput(message);
         return;
       }
       const applied = applyDirectorEdits(sent, result.edits);
       if (!applied.ok) {
         setError(translateAppError(applied.error, t));
-        setInput(message);
         return;
       }
       onApplyEdits(result.edits);
       setChat(result.chat);
     } catch {
       setError(t("errors.directorChatFailed"));
-      setInput(message);
     } finally {
-      setPendingMessage("");
+      setPending(null);
     }
   }
+
+  async function generatePreview(createdAt: string) {
+    if (generating) return;
+    setPreviewError("");
+    setPendingPreviewAt(createdAt);
+    const saved = await onSaveDraft();
+    if (!saved) {
+      setPendingPreviewAt(null);
+      return;
+    }
+    try {
+      const result = await generateDirectorPreviewAction({ id: directorId, chatCreatedAt: createdAt });
+      if (!result.ok) {
+        setPreviewError(translateAppError(result.error, t));
+        setPendingPreviewAt(null);
+        return;
+      }
+      if (result.alreadyCurrent) {
+        setPendingPreviewAt(null);
+        return;
+      }
+      onGenerating();
+      router.refresh();
+    } catch {
+      setPreviewError(t("errors.stylePreviewFailed"));
+      setPendingPreviewAt(null);
+    }
+  }
+
+  const empty = chat.length === 0 && !sending && !error;
+  const lastAssistantAt = [...chat].reverse().find((message) => message.role === "assistant")?.createdAt;
 
   return (
     <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-accent-ink/10 bg-paper/85 max-lg:rounded-none max-lg:rounded-l-xl">
@@ -83,63 +164,45 @@ export function DirectorChatPanel({
       </h2>
 
       <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-2" aria-live="polite">
-        {chat.length === 0 && !sending && !error ? (
-          <p className="text-xs leading-5 text-muted">{t("directors.chatEmpty")}</p>
-        ) : null}
-        {chat.map((message, index) => (
-          <DirectorChatMessage
-            key={`${message.createdAt}-${index}`}
-            role={message.role}
-            content={message.content}
-            changedPaths={message.changedPaths}
-          />
-        ))}
-        {sending ? (
+        {empty ? <DirectorChatEmpty /> : null}
+        {chat.map((message, index) => {
+          const isLatestAssistant = message.role === "assistant" && message.createdAt === lastAssistantAt;
+          const cardBusy = generating && (pendingPreviewAt === message.createdAt || (!pendingPreviewAt && isLatestAssistant));
+          return (
+            <DirectorChatMessage
+              key={`${message.createdAt}-${index}`}
+              role={message.role}
+              content={message.content}
+              imageUrl={message.imageUrl}
+              previewUrl={message.previewUrl}
+              changedPaths={message.changedPaths}
+              user={user}
+              previewBusy={message.role === "assistant" ? cardBusy : false}
+              previewDisabled={generating || previewCurrent}
+              onGeneratePreview={
+                message.role === "assistant" ? () => void generatePreview(message.createdAt) : undefined
+              }
+            />
+          );
+        })}
+        {pending ? (
           <>
-            <DirectorChatMessage role="user" content={pendingMessage} />
+            <DirectorChatMessage role="user" content={pending.message} imageUrl={pending.imageUrl} user={user} />
             <DirectorChatMessage role="assistant" variant="pending" />
           </>
         ) : null}
         {error ? <DirectorChatMessage role="assistant" variant="error" content={error} /> : null}
+        {previewError ? <DirectorChatMessage role="assistant" variant="error" content={previewError} /> : null}
       </div>
 
       <div className="shrink-0 border-t border-accent-ink/10 p-2.5">
         {subscribed ? (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void send();
-            }}
-            className="space-y-2"
-          >
-            <textarea
-              rows={2}
-              maxLength={MESSAGE_MAX}
-              value={input}
-              disabled={sending}
-              aria-label={t("directors.chatPlaceholder")}
-              placeholder={t("directors.chatPlaceholder")}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                // Enter sends, Shift+Enter adds a newline; ignore IME composition.
-                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-                  event.preventDefault();
-                  void send();
-                }
-              }}
-              className="w-full resize-none rounded-xl border border-accent-ink/15 bg-paper px-3 py-2 text-xs leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-            />
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={!canSend}
-                className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-accent px-3 text-xs font-semibold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {sending ? <Spinner className="h-3.5 w-3.5" /> : null}
-                {t("directors.chatSend")}
-              </button>
-            </div>
-          </form>
+          <DirectorChatComposer
+            disabled={!subscribed}
+            sending={sending}
+            onSend={(next) => void send(next)}
+            onError={setError}
+          />
         ) : (
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted">{t("directors.chatLocked")}</p>

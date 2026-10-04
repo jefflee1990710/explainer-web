@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { charactersCollection, generationJobsCollection, videosCollection } from "@/dao";
+import { charactersCollection, generationJobsCollection, userDirectorsCollection, videosCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { mediaSrc } from "@/util/media-src";
@@ -55,6 +55,7 @@ export function taskDetail(job: Pick<GenerationJob, "kind" | "clipIndex" | "fram
   if (job.kind === "still") return "角色定裝圖";
   if (job.kind === "character") return "角色藍圖";
   if (job.kind === "stylePreview") return "風格預覽";
+  if (job.kind === "directorPreview") return "導演預覽";
   if (job.kind === "reelCover") return "影片封面";
   const clip = `Clip ${job.clipIndex + 1}`;
   if (job.kind === "video") return `${clip} · 影片`;
@@ -66,6 +67,7 @@ export function taskDetailI18n(job: Pick<GenerationJob, "kind" | "clipIndex" | "
   if (job.kind === "still") return { detailKey: "tasksPage.detail.characterStill" as const };
   if (job.kind === "character") return { detailKey: "tasksPage.detail.characterBlueprint" as const };
   if (job.kind === "stylePreview") return { detailKey: "tasksPage.detail.stylePreview" as const };
+  if (job.kind === "directorPreview") return { detailKey: "tasksPage.detail.directorPreview" as const };
   if (job.kind === "reelCover") return { detailKey: "tasksPage.detail.reelCover" as const };
   if (job.kind === "video") return { detailKey: "tasksPage.detail.clipVideo" as const, detailParams: { n } };
   return {
@@ -132,7 +134,7 @@ async function ownedScope(clerkUserId: string, videoId?: string) {
       { _id: new ObjectId(videoId), clerkUserId },
       { projection: REEL_PROJECTION },
     );
-    return { videoDocs: video ? [video] : [], characters: [], styles: [] };
+    return { videoDocs: video ? [video] : [], characters: [], styles: [], directors: [] };
   }
   const videoDocs = await videos
     .find({ clerkUserId }, { projection: REEL_PROJECTION })
@@ -147,22 +149,30 @@ async function ownedScope(clerkUserId: string, videoId?: string) {
     .find({ ownerClerkUserId: clerkUserId }, { projection: { _id: 1, name: 1 } })
     .limit(200)
     .toArray();
-  return { videoDocs, characters, styles };
+  const directors = await (await userDirectorsCollection())
+    .find({ ownerClerkUserId: clerkUserId, isActive: true }, { projection: { _id: 1, title: 1 } })
+    .limit(200)
+    .toArray();
+  return { videoDocs, characters, styles, directors };
 }
 
 export function jobListQuery(input: {
   videoIds: ObjectId[];
   characterIds: ObjectId[];
   userStyleIds?: ObjectId[];
+  skillIds?: ObjectId[];
   cutoff: Date;
 }) {
   const userStyleIds = input.userStyleIds ?? [];
+  const skillIds = input.skillIds ?? [];
   const owners: Array<Record<string, unknown>> = [];
   if (input.videoIds.length === 1) owners.push({ projectId: input.videoIds[0] });
   else if (input.videoIds.length > 1) owners.push({ projectId: { $in: input.videoIds } });
   if (input.characterIds.length) owners.push({ characterId: { $in: input.characterIds } });
   if (userStyleIds.length === 1) owners.push({ userStyleId: userStyleIds[0] });
   else if (userStyleIds.length > 1) owners.push({ userStyleId: { $in: userStyleIds } });
+  if (skillIds.length === 1) owners.push({ skillId: skillIds[0] });
+  else if (skillIds.length > 1) owners.push({ skillId: { $in: skillIds } });
   if (owners.length === 0) return null;
   return {
     $and: [
@@ -182,11 +192,12 @@ export async function listTasks(
   clerkUserId: string,
   options: { videoId?: string; limit?: number } = {},
 ): Promise<PublicTask[]> {
-  const { videoDocs, characters, styles } = await ownedScope(clerkUserId, options.videoId);
-  if (videoDocs.length === 0 && characters.length === 0 && styles.length === 0) return [];
+  const { videoDocs, characters, styles, directors } = await ownedScope(clerkUserId, options.videoId);
+  if (videoDocs.length === 0 && characters.length === 0 && styles.length === 0 && directors.length === 0) return [];
   const videoById = new Map(videoDocs.map((doc) => [doc._id.toHexString(), doc]));
   const characterById = new Map(characters.map((doc) => [doc._id.toHexString(), doc]));
   const styleById = new Map(styles.map((doc) => [doc._id.toHexString(), doc]));
+  const directorById = new Map(directors.map((doc) => [doc._id.toHexString(), doc]));
 
   const jobs = await generationJobsCollection();
   const cutoff = new Date(Date.now() - RECENT_SETTLED_MS);
@@ -194,6 +205,7 @@ export async function listTasks(
     videoIds: videoDocs.map((doc) => doc._id),
     characterIds: characters.map((doc) => doc._id),
     userStyleIds: styles.map((doc) => doc._id),
+    skillIds: directors.map((doc) => doc._id),
     cutoff,
   });
   if (!query) return [];
@@ -220,15 +232,17 @@ export async function listTasks(
     const video = job.projectId ? videoById.get(job.projectId.toHexString()) : undefined;
     const character = job.characterId ? characterById.get(job.characterId.toHexString()) : undefined;
     const style = job.userStyleId ? styleById.get(job.userStyleId.toHexString()) : undefined;
+    const director = job.skillId ? directorById.get(job.skillId.toHexString()) : undefined;
     return {
       id: job._id.toHexString(),
       kind: job.kind,
       stage: taskStage(job.status),
       title:
+        director?.title ??
         style?.name ??
         character?.name ??
         video?.phaseA?.localizedTitle ??
-        (job.kind === "stylePreview" ? "未命名風格" : "未命名影片"),
+        (job.kind === "directorPreview" ? "未命名 Director" : job.kind === "stylePreview" ? "未命名風格" : "未命名影片"),
       detail: taskDetail(job),
       ...taskDetailI18n(job),
       previewUrl: job.status === "completed" ? mediaSrc(job) : undefined,
@@ -236,9 +250,11 @@ export async function listTasks(
       videoId: job.projectId?.toHexString(),
       href: video
         ? folderVideoPath(video.projectId.toHexString(), video._id.toHexString())
-        : style
-          ? `/app/styles/${style._id.toHexString()}`
-          : "/app/characters",
+        : director
+          ? `/app/directors/${director._id.toHexString()}`
+          : style
+            ? `/app/styles/${style._id.toHexString()}`
+            : "/app/characters",
       error: job.status === "failed" || job.status === "nsfw" ? job.error : undefined,
       attempts: job.attempts ?? 0,
       createdAt: job.createdAt.toISOString(),

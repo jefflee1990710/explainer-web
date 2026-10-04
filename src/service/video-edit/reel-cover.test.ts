@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { parseCoverSafeAreas } from "@/service/video-edit/cover-safe-area";
 import { isCoverRunning, parseCoverPrompt, reelCoverInFlight, reelCoverPrompt } from "@/service/video-edit/reel-cover";
 import type { Project } from "@/model/project";
 
@@ -41,6 +42,32 @@ test("reelCoverPrompt uses the storyboard and aspect ratio", () => {
 test("reelCoverPrompt appends a trimmed extra requirement", () => {
   const prompt = reelCoverPrompt(project({ coverPrompt: "  big title, no extra faces  " }));
   assert.match(prompt, /Extra requirement: big title, no extra faces/);
+});
+
+test("reelCoverPrompt insets an Instagram Reels cover so the crop still shows it", () => {
+  const prompt = reelCoverPrompt(project({ coverSafeAreas: ["ig-reel"] }));
+  assert.match(prompt, /Instagram Reels safe area/);
+  assert.match(prompt, /profile grid/);
+  assert.match(prompt, /Reels list/);
+  assert.match(prompt, /14%/);
+  assert.match(prompt, /25%/);
+  assert.doesNotMatch(prompt, /TikTok safe area/);
+});
+
+test("reelCoverPrompt uses the largest padding when several safe areas are checked", () => {
+  const prompt = reelCoverPrompt(project({ coverSafeAreas: ["youtube-shorts", "ig-reel"] }));
+  assert.match(prompt, /Instagram Reels safe area/);
+  assert.match(prompt, /YouTube Shorts safe area/);
+  assert.match(prompt, /largest padding/);
+});
+
+test("parseCoverSafeAreas keeps known apps in a stable order", () => {
+  assert.deepEqual(parseCoverSafeAreas(["youtube-shorts", "ig-reel", "ig-reel"]), {
+    ok: true,
+    areas: ["ig-reel", "youtube-shorts"],
+  });
+  assert.deepEqual(parseCoverSafeAreas(undefined), { ok: true, areas: [] });
+  assert.equal(parseCoverSafeAreas(["myspace"]).ok, false);
 });
 
 test("parseCoverPrompt trims and rejects a long extra requirement", () => {

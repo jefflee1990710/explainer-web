@@ -1,4 +1,4 @@
-import { charactersCollection, videosCollection } from "@/dao";
+import { charactersCollection, userDirectorsCollection, videosCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
 import { sendCharacterVersion } from "@/service/character/generate";
 import { runPhaseBForClip } from "@/service/director/run-phase-b";
@@ -9,6 +9,7 @@ import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { submitImage } from "@/service/higgsfield/generate";
 import { hydrateStyles } from "@/service/style/load-style";
 import { renderableFromUserStyle } from "@/service/style/renderable-style";
+import { directorPreviewImagePrompt } from "@/service/director/director-preview";
 import { stylePreviewPrompt } from "@/service/style/user-style-preview";
 import { sendReelCover } from "@/service/video-edit/reel-cover";
 import { sendClipVideo, sendFrame, sendStill } from "@/service/higgsfield/pipeline";
@@ -22,6 +23,7 @@ import type { Project } from "@/model/project";
 // Load fresh state and call the provider for one claimed job.
 export async function sendJob(job: GenerationJob): Promise<Sent> {
   if (job.kind === "stylePreview") return sendStylePreview(job);
+  if (job.kind === "directorPreview") return sendDirectorPreview(job);
   await hydrateStyles();
   if (job.kind === "character") return sendCharacter(job);
 
@@ -50,6 +52,23 @@ async function sendStylePreview(job: GenerationJob): Promise<Sent> {
   const submitted = await submitImage({
     model,
     prompt: stylePreviewPrompt(renderableFromUserStyle(doc)),
+    aspectRatio: "16:9",
+    quality: "medium",
+    resolution: "1k",
+  });
+  return toSent(model, submitted);
+}
+
+// Load the custom director by id and send its 5-frame preview strip.
+async function sendDirectorPreview(job: GenerationJob): Promise<Sent> {
+  if (!job.skillId) throw new PermanentJobError("找不到 Director");
+  const directors = await userDirectorsCollection();
+  const doc = await directors.findOne({ _id: job.skillId });
+  if (!doc) throw new PermanentJobError("找不到 Director");
+  const model = IMAGE_ROUTE_BY_SCENE_TEXT.en.model;
+  const submitted = await submitImage({
+    model,
+    prompt: await directorPreviewImagePrompt(doc),
     aspectRatio: "16:9",
     quality: "medium",
     resolution: "1k",

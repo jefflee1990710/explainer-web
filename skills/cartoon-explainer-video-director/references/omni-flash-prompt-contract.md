@@ -44,7 +44,7 @@ Avoid `rapid style changes`, which can invite model changes to drawing style, fa
 
 ## Dual-keyframe interpolation (Wan 3.0)
 
-Start and end storyboard images are the SAME SHOT. The video prompt must interpolate smoothly across the FULL duration: first half stays with the start state; second half slides and morphs element-by-element into the end state. Do not hold the start pose then snap or hard-cut to the end image in the last frames. Keep the character at roughly the same screen position and scale.
+Start and end storyboard images are one continuous shot. The video prompt must interpolate smoothly across the FULL duration: first half stays with the start state; second half slides and morphs element-by-element into the end state. Do not hold the start pose then snap or hard-cut to the end image in the last frames. With no character, keep them at roughly the same screen position and scale. When a character is in the frames, animate the fresh action already drawn between the two stills: a run, jump, point, pull, or push, a head turn to the left or right, a move from one side of the frame to the other, and a zoom. Let extra objects and doodles draw on. Do not repeat the previous clip's action.
 
 ## Timed visual sequence
 
@@ -54,7 +54,7 @@ Enforce **The 2-Second Visual Rule**: ensure a visible transformation, camera pu
 
 ## Dialogue and visual text
 
-The VO is spoken by an unseen off-screen narrator. The on-screen character never speaks or lip-syncs; its mouth stays closed or shows simple reactions while it reacts to the diagram or props. Quote the approved English VO exactly once as audio-only dialogue. Instruct the model not to add, omit, paraphrase, repeat, or reorder the spoken line. Beat lettering is added by the still prompt — do not dump a second full transcript into the video prompt.
+The VO is spoken by an unseen off-screen narrator. The on-screen character never speaks or lip-syncs. With a character in frame, the mouth shows a facial expression while the body runs, jumps, points, pulls, or pushes, the head turns left or right, and the camera zooms; extra drawings appear to explain the idea. Do not repeat the previous clip's action. Quote the approved English VO exactly once as audio-only dialogue. Instruct the model not to add, omit, paraphrase, repeat, or reorder the spoken line. Beat lettering is added by the still prompt — do not dump a second full transcript into the video prompt.
 
 Allow on-canvas beat titles, diagram labels, node names, and arrow names already named in the storyboard. Forbid photoreal UI type, logos, watermarks, palette labels, and production annotations. Put longer optional phrases in a separate post-production overlay list outside the prompts.
 

@@ -8,11 +8,14 @@ export function ClipVideoPlaceholder({
   pending,
   disabled = false,
   cost,
+  overImage = false,
   onGenerate,
 }: {
   pending: boolean;
   disabled?: boolean;
   cost: number;
+  // Start still sits behind this control until the clip file exists.
+  overImage?: boolean;
   onGenerate: () => void;
 }) {
   const { t } = useI18n();
@@ -21,7 +24,11 @@ export function ClipVideoPlaceholder({
       type="button"
       onClick={onGenerate}
       disabled={pending || disabled}
-      className="absolute inset-0 grid cursor-pointer place-items-center border-2 border-dashed border-[var(--studio-line)] bg-[var(--studio-panel)] text-[var(--studio-ink)] transition hover:border-[var(--studio-ink)]/25 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+      className={`absolute inset-0 grid cursor-pointer place-items-center border-2 border-dashed text-[var(--studio-ink)] transition disabled:cursor-not-allowed disabled:opacity-50 ${
+        overImage
+          ? "border-white/70 bg-white/45 hover:bg-white/60"
+          : "border-[var(--studio-line)] bg-[var(--studio-panel)] hover:border-[var(--studio-ink)]/25 hover:bg-white"
+      }`}
     >
       <span className="flex flex-col items-center gap-3 px-4">
         <span className="grid h-14 w-14 place-items-center rounded-full bg-[var(--studio-ink)] text-white shadow-md">

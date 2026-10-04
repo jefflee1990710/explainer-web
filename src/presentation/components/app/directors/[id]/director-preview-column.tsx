@@ -13,11 +13,15 @@ export function DirectorPreviewColumn({
   director,
   name,
   draft,
+  previewUrl,
+  previewBusy,
   onChange,
 }: {
   director: PublicDirector;
   name: string;
   draft: DirectorForm;
+  previewUrl?: string;
+  previewBusy: boolean;
   onChange: (next: DirectorForm) => void;
 }) {
   const { t } = useI18n();
@@ -26,13 +30,18 @@ export function DirectorPreviewColumn({
   return (
     <section className="flex min-w-0 flex-col gap-2">
       <div className="relative shrink-0 overflow-hidden rounded-xl border border-accent-ink/10 bg-accent-ink/[0.04]">
-        {director.previewUrl ? (
-          <DirectorPreviewThumb previewUrl={director.previewUrl} label={name} size="cover" />
+        {previewUrl ? (
+          <DirectorPreviewThumb previewUrl={previewUrl} label={name} size="cover" />
         ) : (
           <div className="grid aspect-video place-items-center px-3 text-center font-display text-sm font-bold text-accent-ink/50">
             {name}
           </div>
         )}
+        {previewBusy ? (
+          <p className="absolute inset-x-0 bottom-0 bg-accent-ink/70 px-3 py-1 text-[11px] font-semibold text-paper">
+            {t("directors.previewGenerating")}
+          </p>
+        ) : null}
       </div>
 
       {editable ? (

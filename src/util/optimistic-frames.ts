@@ -164,28 +164,14 @@ export function projectWithClearedFrames(project: PublicVideo, key: string): Pub
 }
 
 // A poll or RSC refresh can still carry the previous completed still. Keep the
-// optimistic waiting frame until the server claim catches up — but never block a
-// finished (or failed) result for that same-or-newer claim, or the UI stays on
-// a skeleton after webhook/poll completes.
+// local claim until the server timestamp catches up — including a finished file
+// that already landed — so a stale refresh cannot put the old picture back.
 export function mergePolledFrames(current: ClipFrame[], incoming: ClipFrame[]): ClipFrame[] {
   const merged = incoming.map((frame) => {
     const local = current.find(
       (item) => item.clipNumber === frame.clipNumber && item.position === frame.position,
     );
-    if (!local?.submittedAt) return frame;
-
-    const incomingClaim = frame.submittedAt;
-    // Server claim caught up → trust incoming (completed file, failure, progress).
-    if (incomingClaim && incomingClaim >= local.submittedAt) return frame;
-
-    // Incoming payload is older than the local redo claim.
-    const settledIncoming =
-      frame.status === "failed" || (frame.status === "completed" && Boolean(mediaSrc(frame)));
-    if (isWaitingStill(local) && settledIncoming) {
-      // Stale completed/failed still from before the redo — keep the skeleton.
-      return local;
-    }
-    return frame;
+    return preferNewerClaim(local, frame);
   });
   // Keep a local first-draw claim until the server row exists.
   const extras = current.filter(
@@ -199,20 +185,24 @@ export function mergePolledFrames(current: ClipFrame[], incoming: ClipFrame[]): 
 }
 
 export function mergePolledClips(current: ProjectClip[], incoming: ProjectClip[]): ProjectClip[] {
-  return incoming.map((clip) => {
+  const merged = incoming.map((clip) => {
     const local = current.find((item) => item.clipNumber === clip.clipNumber);
-    if (!local?.submittedAt) return clip;
-
-    const incomingClaim = clip.submittedAt;
-    if (incomingClaim && incomingClaim >= local.submittedAt) return clip;
-
-    const settledIncoming =
-      clip.status === "failed" || (clip.status === "completed" && Boolean(mediaSrc(clip)));
-    if (isWaitingClip(local) && settledIncoming) {
-      return local;
-    }
-    return clip;
+    return preferNewerClaim(local, clip);
   });
+  // First "產這段影片" inserts a row the server has not written yet.
+  const extras = current.filter(
+    (local) =>
+      isWaitingClip(local) && !incoming.some((clip) => clip.clipNumber === local.clipNumber),
+  );
+  return extras.length ? [...merged, ...extras] : merged;
+}
+
+// An older snapshot must not cover a redo. Same-or-newer claim wins, including
+// the finished file, so a stale list refresh cannot put the previous picture back.
+function preferNewerClaim<T extends { submittedAt?: string }>(local: T | undefined, incoming: T): T {
+  if (!local?.submittedAt) return incoming;
+  if (incoming.submittedAt && incoming.submittedAt >= local.submittedAt) return incoming;
+  return local;
 }
 
 export function mergePolledProject(current: PublicVideo, incoming: PublicVideo): PublicVideo {

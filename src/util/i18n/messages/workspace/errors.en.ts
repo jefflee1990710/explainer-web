@@ -74,6 +74,7 @@ export const errorsEn = {
   coverFailed: "Could not generate the cover",
   coverBusy: "A cover is already generating",
   coverPromptTooLong: "Cover extra requirement is too long",
+  coverSafeAreaInvalid: "Cover safe area is not valid",
 } as const;
 
 
