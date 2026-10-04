@@ -1,11 +1,11 @@
 import { loadEnvConfig } from "@next/env";
 import { createHash } from "node:crypto";
-import sharp from "sharp";
 import { generateImage } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { skillsCollection } from "@/dao";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { isCustomSkill } from "@/service/director/behavior-slug";
+import { bleedDirectorPreview } from "@/service/director/preview-frame";
 import {
   directorPreviewPrompt,
   directorPreviewStyleNames,
@@ -18,10 +18,10 @@ import type { Skill } from "@/model/skill";
 loadEnvConfig(process.cwd());
 
 const MODEL = process.env.DIRECTOR_PREVIEW_MODEL || "gemini-2.5-flash-image";
-const THUMB_WIDTH = 1280;
-const THUMB_QUALITY = 82;
 
 const force = process.argv.includes("--force");
+// Re-crop stored previews, keeping the frame aspect ratio. Does not call the image model.
+const refit = process.argv.includes("--refit");
 const only = process.argv
   .find((argument) => argument.startsWith("--only="))
   ?.slice(7)
@@ -45,22 +45,32 @@ async function seedDirector(skill: Skill, styleNames: string[]) {
     styleNames,
   });
   const hash = createHash("sha256").update(`${prompt}|${MODEL}`).digest("hex");
-  if (!force && skill.previewUrl && skill.previewHash === hash) {
+  if (!force && !refit && skill.previewUrl && skill.previewHash === hash) {
     console.log(`skip ${skill.slug} (up to date)`);
     return;
   }
 
-  console.log(`generate ${skill.slug}…`);
-  const { image } = await generateImage({
-    model: googleImage(),
-    prompt,
-    aspectRatio: "16:9",
-  });
-  const webp = await sharp(Buffer.from(image.uint8Array))
-    .resize({ width: THUMB_WIDTH, withoutEnlargement: true })
-    .webp({ quality: THUMB_QUALITY })
-    .toBuffer();
-  const previewUrl = await persistBuffer(webp, `explainer/directors/${skill.slug}-preview.webp`, "image/webp");
+  let webp: Buffer;
+  if (refit && !force && skill.previewUrl) {
+    console.log(`refit ${skill.slug}…`);
+    const response = await fetch(skill.previewUrl, { cache: "no-store" });
+    if (!response.ok) throw new Error(`無法下載 ${skill.slug} 預覽`);
+    webp = await bleedDirectorPreview(Buffer.from(await response.arrayBuffer()));
+  } else {
+    console.log(`generate ${skill.slug}…`);
+    const { image } = await generateImage({
+      model: googleImage(),
+      prompt,
+      aspectRatio: "16:9",
+    });
+    webp = await bleedDirectorPreview(Buffer.from(image.uint8Array));
+  }
+  // New pathname so a CDN cache of the previous file cannot keep the letterbox.
+  const previewUrl = await persistBuffer(
+    webp,
+    `explainer/directors/${skill.slug}-preview-${hash.slice(0, 10)}.webp`,
+    "image/webp",
+  );
 
   const skills = await skillsCollection();
   await skills.updateOne(

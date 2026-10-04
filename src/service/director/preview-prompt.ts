@@ -13,7 +13,7 @@ export const DIRECTOR_PREVIEW_STRIP_IDS: StyleId[] = [
 export const DIRECTOR_PREVIEW_STYLE_IDS: StyleId[] = DIRECTOR_PREVIEW_STRIP_IDS;
 
 const DIRECTOR_PREVIEW_SCENE =
-  "16:9 storyboard card. ONE horizontal row of exactly 5 equal frames, read only left to right. Thin even gutters. Never a 3 by 3 grid, never a second row, never one full-bleed picture. No watermarks, no app UI, no paragraph text. Each frame is the next moment in time.";
+  "16:9 storyboard card. ONE horizontal row of exactly 5 equal frames, read only left to right. Keep each frame's natural proportions — never stretch people or panels taller. No black bars, no letterboxing, no empty margin above or below. Thin even gutters only between frames. Never a 3 by 3 grid, never a second row. No watermarks, no app UI, no paragraph text. Each frame is the next moment in time.";
 
 // Gemini image prompt: a planning timeline, one style per frame.
 export function directorPreviewPrompt(input: {

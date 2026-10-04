@@ -23,6 +23,7 @@ export function StyleChatPanel({
   user,
   previewUrl,
   previewStatus,
+  previewCurrent,
   onApplyFields,
   onSaveDraft,
   onGenerating,
@@ -34,6 +35,7 @@ export function StyleChatPanel({
   user: StyleChatUser;
   previewUrl?: string;
   previewStatus: PreviewStatus;
+  previewCurrent: boolean;
   onApplyFields: (fields: UserStyleFields) => void;
   onSaveDraft: () => Promise<boolean>;
   onGenerating: () => void;
@@ -146,6 +148,10 @@ export function StyleChatPanel({
         setPendingPreviewAt(null);
         return;
       }
+      if (result.alreadyCurrent) {
+        setPendingPreviewAt(null);
+        return;
+      }
       onGenerating();
       router.refresh();
     } catch {
@@ -178,7 +184,7 @@ export function StyleChatPanel({
               changedPaths={message.changedPaths}
               user={user}
               previewBusy={message.role === "assistant" ? cardBusy : false}
-              previewDisabled={generating}
+              previewDisabled={generating || previewCurrent}
               onGeneratePreview={
                 message.role === "assistant" ? () => void generatePreview(message.createdAt) : undefined
               }

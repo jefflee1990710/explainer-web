@@ -37,6 +37,8 @@ export type StyleDetail = {
   beatTitleLayout: string;
   reelLayout: string;
   previewUrl?: string;
+  // Hash of the prompt that produced previewUrl. Empty until a still finishes.
+  previewHash?: string;
   // True when this custom style has its own still, not the inherited template image.
   hasOwnPreview: boolean;
   previewStatus: PreviewStatus;

@@ -11,6 +11,7 @@ import type { StyleChatUser } from "@/presentation/components/app/styles/[id]/st
 import { StyleChatDrawer } from "@/presentation/components/app/styles/[id]/style-chat-drawer";
 import { StyleChatPanel } from "@/presentation/components/app/styles/[id]/style-chat-panel";
 import { useStylePreviewPoll } from "@/presentation/components/app/styles/[id]/use-style-preview-poll";
+import { useStylePreviewCurrent } from "@/presentation/components/app/styles/[id]/use-style-preview-current";
 import { DeleteStyleDialog } from "@/presentation/components/app/styles/[id]/delete-style-dialog";
 import {
   catalogStyleLabel,
@@ -53,6 +54,7 @@ export function StyleWorkspace({
   );
   const previewStatus = previewOverride?.key === serverPreviewKey ? previewOverride.status : initial.previewStatus;
   const previewUrl = initial.previewUrl;
+  const previewCurrent = useStylePreviewCurrent(initial.previewHash, draft);
   useStylePreviewPoll(previewStatus);
 
   savedRef.current = saved;
@@ -167,6 +169,7 @@ export function StyleWorkspace({
         status={saving || pendingSave ? t("styles.saving") : savedFlash ? t("styles.saved") : ""}
         error={error}
         previewStatus={previewStatus}
+        previewCurrent={previewCurrent}
         onBack={(event) => {
           if ((dirty || saving || pendingSave) && !window.confirm(t("styles.unsavedWarning"))) event.preventDefault();
         }}
@@ -181,10 +184,16 @@ export function StyleWorkspace({
         className={
           style.isCustom
             ? "mt-3 flex min-h-0 flex-1 overflow-hidden lg:gap-4"
-            : "mt-3 mx-auto grid min-h-0 w-full max-w-5xl flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]"
+            : "mt-3 flex min-h-0 w-full flex-1 flex-col overflow-hidden"
         }
       >
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto pr-12 lg:max-w-[380px] lg:shrink-0 lg:pr-0">
+        <div
+          className={
+            style.isCustom
+              ? "flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-y-auto pr-12 lg:max-w-[380px] lg:shrink-0 lg:pr-0"
+              : "flex min-h-0 w-full flex-1 flex-col gap-3 overflow-y-auto"
+          }
+        >
           <StylePreviewColumn
             style={style}
             name={name}
@@ -206,6 +215,7 @@ export function StyleWorkspace({
               user={user}
               previewUrl={previewUrl}
               previewStatus={previewStatus}
+              previewCurrent={previewCurrent}
               onApplyFields={onApplyFields}
               onSaveDraft={() => onSave()}
               onGenerating={() => setPreviewOverride({ key: serverPreviewKey, status: "generating" })}

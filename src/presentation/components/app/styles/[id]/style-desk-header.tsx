@@ -18,6 +18,7 @@ export function StyleDeskHeader({
   status,
   error,
   previewStatus,
+  previewCurrent,
   onBack,
   onEnsureSaved,
   onDelete,
@@ -30,6 +31,7 @@ export function StyleDeskHeader({
   status: string;
   error: string;
   previewStatus: PreviewStatus;
+  previewCurrent: boolean;
   onBack: (event: React.MouseEvent<HTMLAnchorElement>) => void;
   onEnsureSaved: () => Promise<boolean>;
   onDelete: () => void;
@@ -78,6 +80,7 @@ export function StyleDeskHeader({
               styleId={style.id}
               dirty={dirty}
               previewStatus={previewStatus}
+              previewCurrent={previewCurrent}
               compact
               onEnsureSaved={onEnsureSaved}
               onGenerating={onGenerating}

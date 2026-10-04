@@ -14,6 +14,7 @@ export function StylePreviewButton({
   styleId,
   dirty,
   previewStatus,
+  previewCurrent = false,
   compact = false,
   onEnsureSaved,
   onGenerating,
@@ -21,6 +22,7 @@ export function StylePreviewButton({
   styleId: string;
   dirty: boolean;
   previewStatus: PreviewStatus;
+  previewCurrent?: boolean;
   compact?: boolean;
   onEnsureSaved?: () => Promise<boolean>;
   onGenerating: () => void;
@@ -30,7 +32,7 @@ export function StylePreviewButton({
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const generating = previewStatus === "generating" || pending;
-  const disabled = generating;
+  const disabled = generating || previewCurrent;
 
   async function onClick() {
     if (disabled) return;
@@ -48,6 +50,7 @@ export function StylePreviewButton({
         setError(translateAppError(result.error, t));
         return;
       }
+      if (result.alreadyCurrent) return;
       onGenerating();
       router.refresh();
     } catch {

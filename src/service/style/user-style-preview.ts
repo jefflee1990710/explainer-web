@@ -8,16 +8,16 @@ import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import { persistMedia } from "@/service/higgsfield/persist";
-import { LETTERING_KEYS, resolveStyleLettering } from "@/service/style/lettering";
-import { STYLE_PREVIEW_SCENE } from "@/service/style/preview-scene";
-import { styleLetteringLine, styleLinesForFrame } from "@/service/style/prompts";
-import { renderableFromUserStyle, type RenderableStyle } from "@/service/style/renderable-style";
+import { stylePreviewPrompt } from "@/service/style/preview-prompt";
+import { renderableFromUserStyle } from "@/service/style/renderable-style";
 import { FRAME_COST } from "@/service/production-plan";
 
 // A generating preview older than this is no longer treated as in flight.
 const PREVIEW_IN_FLIGHT_MS = 15 * 60 * 1000;
 
-export type GenerateUserStylePreviewResult = { ok: true } | { ok: false; error: string };
+export type GenerateUserStylePreviewResult =
+  | { ok: true; alreadyCurrent?: boolean }
+  | { ok: false; error: string };
 
 function parseChatCreatedAt(value: unknown): Date | undefined {
   const raw = String(value ?? "").trim();
@@ -58,18 +58,11 @@ function fail(error: unknown, fallback: string): { ok: false; error: string } {
   return { ok: false, error: error instanceof Error ? error.message : fallback };
 }
 
-// Saved look, shared IDEA scene, lettering, and a fixed 16:9 frame.
-export function stylePreviewPrompt(style: RenderableStyle): string {
-  const lettering = resolveStyleLettering(style);
-  const letteringLines = LETTERING_KEYS.map((key) => lettering[key]).filter((line) => line.length > 0);
-  return [
-    ...styleLinesForFrame(style),
-    STYLE_PREVIEW_SCENE,
-    styleLetteringLine(style),
-    ...letteringLines,
-    "The label must read exactly IDEA.",
-    "Aspect ratio 16:9.",
-  ].join("\n");
+export { stylePreviewPrompt } from "@/service/style/preview-prompt";
+
+// Fingerprint of the still prompt, stored on the style when a preview finishes.
+export function stylePreviewHash(style: Parameters<typeof stylePreviewPrompt>[0]) {
+  return createHash("sha256").update(stylePreviewPrompt(style)).digest("hex");
 }
 
 // True only while a preview is generating and started less than 15 minutes ago.
@@ -213,6 +206,10 @@ export async function generateUserStylePreviewAction(input: {
     ownerClerkUserId = user.clerkUserId;
     const doc = await ownedActiveStyle(String(input?.id ?? ""), user.clerkUserId);
     if (!doc) return { ok: false, error: "找不到 Style" };
+    // The still already matches the saved fields. Do not charge again.
+    if (doc.previewUrl && doc.previewHash === stylePreviewHash(renderableFromUserStyle(doc))) {
+      return { ok: true, alreadyCurrent: true };
+    }
 
     const now = new Date();
     styleId = doc._id;
@@ -341,8 +338,7 @@ export async function syncStylePreviewJob(
   const startedAt = doc.previewStartedAt;
 
   if (status === "completed" && outputUrl) {
-    const prompt = stylePreviewPrompt(renderableFromUserStyle(doc));
-    const previewHash = createHash("sha256").update(prompt).digest("hex");
+    const previewHash = stylePreviewHash(renderableFromUserStyle(doc));
     const stored = await persistMedia(
       outputUrl,
       `explainer/style-previews/${doc._id.toHexString()}/${job._id.toHexString()}`,

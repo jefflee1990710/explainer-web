@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import { renderableFromSystem } from "@/service/style/renderable-style";
 import { testStyle } from "@/service/style/test-styles";
+import { previewIsCurrent } from "@/service/style/preview-prompt";
 import {
   applyPreviewToChat,
   ownedPreviewFilter,
@@ -11,6 +13,7 @@ import {
   shouldChargeAfterClaim,
   shouldClearPreviewCharge,
   shouldRefundUnqueuedSpend,
+  stylePreviewHash,
   stylePreviewInFlight,
   stylePreviewPrompt,
 } from "@/service/style/user-style-preview";
@@ -24,6 +27,15 @@ test("stylePreviewPrompt uses the saved look and the shared IDEA scene", () => {
   assert.match(prompt, /Line 1 is torn paper/);
   assert.match(prompt, /IDEA/);
   assert.match(prompt, /16:9/);
+});
+
+test("stylePreviewHash matches the stored prompt digest", () => {
+  const style = renderableFromSystem(testStyle("paper-cutout", { look: "torn kraft" }));
+  const hash = stylePreviewHash(style);
+  assert.equal(hash, createHash("sha256").update(stylePreviewPrompt(style)).digest("hex"));
+  assert.equal(previewIsCurrent(hash, hash), true);
+  assert.equal(previewIsCurrent(hash, `${hash}x`), false);
+  assert.equal(previewIsCurrent(undefined, hash), false);
 });
 
 test("stylePreviewInFlight is true only for a generating preview younger than 15 minutes", () => {

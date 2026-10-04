@@ -95,6 +95,7 @@ export async function loadStyleForUser(clerkUserId: string, id: string): Promise
     beatTitleLayout: doc.beatTitleLayout ?? "",
     reelLayout: doc.reelLayout ?? "",
     previewUrl: doc.previewUrl || template?.previewUrl,
+    previewHash: doc.previewHash,
     hasOwnPreview: Boolean(doc.previewUrl),
     previewStatus: doc.previewStatus,
     baseStyleId: doc.baseStyleId,

@@ -31,7 +31,7 @@ export function DirectorCard({ director }: { director: PublicSkill }) {
         href={href}
         className="flex flex-1 flex-col transition-colors hover:bg-accent-ink/[0.03] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
       >
-        <DirectorPreviewThumb previewUrl={director.previewUrl} label={name} size="cover" />
+        <DirectorPreviewThumb previewUrl={director.previewUrl} label={name} size="card" />
         <div className="flex flex-1 flex-col gap-0.5 px-3 py-2.5">
           <h3 className="line-clamp-1 text-xs font-semibold">{name}</h3>
           {director.isCustom ? (
