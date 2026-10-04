@@ -39,6 +39,8 @@ export const directorsZhHant = {
   deleteTitle: "刪除這個 Director？",
   deleteBody: "這個 Director 會從列表移除，已用它建立的影片不受影響。",
   chatTitle: "用 AI 修改",
+  chatDrawerOpen: "開啟用 AI 修改",
+  chatDrawerClose: "關閉用 AI 修改",
   chatPlaceholder: "描述想怎樣修改…",
   chatSend: "送出",
   chatEmpty: "告訴 AI 這個 Director 應該怎樣做。AI 會修改簡介和額外指示，儲存後才生效。",

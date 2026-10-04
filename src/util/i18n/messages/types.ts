@@ -245,6 +245,7 @@ export type Messages = {
     creditsRemaining: string;
     editWhatLabel: string;
     editWhatPlaceholder: string;
+    editKeepsOriginal: string;
     generateNewVersion: string;
   };
   settings: {

@@ -25,8 +25,8 @@ export function DirectorProfileSection({
 
   return (
     <>
-      <h2 className="mt-6 text-xs font-semibold uppercase tracking-[0.12em] text-muted">{t("directors.profileTitle")}</h2>
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
+      <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{t("directors.profileTitle")}</h2>
+      <div className="mt-2 grid gap-2">
         {PROFILE_KEYS.map((key) => (
           <DirectorProfileField
             key={key}
@@ -40,7 +40,7 @@ export function DirectorProfileSection({
         ))}
       </div>
       {editable ? (
-        <div className="mt-3">
+        <div className="mt-2">
           <DirectorProfileField
             label={t("directors.extraInstructions")}
             hint={t("directors.extraInstructionsHint")}
@@ -48,7 +48,7 @@ export function DirectorProfileSection({
             editable
             modified={changedFields.includes("extraInstructions")}
             maxLength={EXTRA_INSTRUCTIONS_MAX}
-            rows={6}
+            rows={4}
             onChange={(extraInstructions) => onChange({ ...draft, extraInstructions })}
           />
         </div>

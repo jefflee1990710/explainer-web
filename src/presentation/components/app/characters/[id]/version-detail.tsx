@@ -7,6 +7,20 @@ import type { PublicCharacter, PublicCharacterVersion } from "@/presentation/ser
 import { FRAME_COST } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
+// Root version holds the uploaded photos. Later versions point at a parent sheet.
+function hasOriginalPhoto(character: PublicCharacter, version: PublicCharacterVersion) {
+  const byId = new Map(character.versions.map((item) => [item.id, item]));
+  let current: PublicCharacterVersion | undefined = version;
+  const seen = new Set<string>();
+  while (current?.parentVersionId) {
+    if (seen.has(current.id)) break;
+    seen.add(current.id);
+    current = byId.get(current.parentVersionId);
+  }
+  const root = current ?? version;
+  return Boolean(root.referenceImageUrl) && !root.parentVersionId;
+}
+
 // Right pane: big preview + set-default / edit / retry actions.
 export function VersionDetail({
   character,
@@ -161,6 +175,9 @@ export function VersionDetail({
         <form onSubmit={submitEdit} className="mt-4 space-y-3">
           <label className="block">
             <span className="mb-1.5 block text-sm font-semibold">{t("characters.editWhatLabel")}</span>
+            {hasOriginalPhoto(character, version) ? (
+              <span className="mb-1.5 block text-xs leading-5 text-muted">{t("characters.editKeepsOriginal")}</span>
+            ) : null}
             <textarea
               rows={3}
               value={instruction}

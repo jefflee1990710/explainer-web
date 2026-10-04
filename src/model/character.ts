@@ -16,7 +16,7 @@ export type CharacterVersion = {
   // Full effective description used for this generation.
   prompt: string;
   editInstruction?: string;
-  // Uploaded references (v1) or the parent blueprint (edits).
+  // Uploaded references (v1). Edits store the parent sheet first, then those root photos.
   // `referenceImageUrl` is the first photo; keep both so older rows still read.
   referenceImageUrl?: string;
   referenceImageUrls?: string[];

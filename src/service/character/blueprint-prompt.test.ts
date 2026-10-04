@@ -90,6 +90,19 @@ test("edit mode keeps the sheet identical except for the change", () => {
   assert.match(prompt, /把睡衣換成紅色/);
 });
 
+test("edit mode with originals tells the model the sheet is first and photos follow", () => {
+  const prompt = buildBlueprintPrompt({
+    style: loadedStyle("doodle"),
+    description: "x",
+    referenceCount: 3,
+    editInstruction: "把睡衣換成紅色",
+  });
+  assert.match(prompt, /first reference image is that current character sheet/);
+  assert.match(prompt, /original photo/);
+  assert.match(prompt, /does not drift/);
+  assert.match(prompt, /把睡衣換成紅色/);
+});
+
 test("a preloaded user style supplies look and does not resolve that id", () => {
   const custom = renderableFromSystem(testStyle("paper-cutout", {
     look: "torn kraft edges",

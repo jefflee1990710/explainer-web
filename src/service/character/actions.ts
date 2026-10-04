@@ -9,7 +9,7 @@ import {
 import { FRAME_COST } from "@/service/production-plan";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { enqueueCharacterVersion } from "@/service/character/generate";
-import { parseReferenceImageUrls } from "@/service/character/reference-urls";
+import { editReferenceUrls, parseReferenceImageUrls } from "@/service/character/reference-urls";
 import { collectCharacterBlobUrls } from "@/service/character/storage";
 import { failCharacterVersion } from "@/service/character/sync";
 import { canSetDefault } from "@/service/character/versions";
@@ -162,12 +162,14 @@ export async function editCharacterVersionAction(
     const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
 
     const now = new Date();
+    const refs = editReferenceUrls(character.versions, parent);
     const version: CharacterVersion = {
       id: new ObjectId(),
       parentVersionId: parent.id,
       prompt: `${parent.prompt}\n變更：${instruction}`,
       editInstruction: instruction,
-      referenceImageUrl: parent.blueprintUrl,
+      referenceImageUrl: refs[0],
+      referenceImageUrls: refs,
       status: "queued",
       creditsCharged: true,
       createdAt: now,

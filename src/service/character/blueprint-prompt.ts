@@ -45,8 +45,14 @@ export function buildBlueprintPrompt(input: {
   if (input.editInstruction) {
     lines.push(
       "Use the reference sheet as the base. Apply only the change below; keep everything else identical, including layout, pose order, expression order, 五官比例, 整體氣質, and the same visual style.",
-      `Change: ${input.editInstruction.trim()}`,
     );
+    if (referenceCount > 1) {
+      lines.push(
+        "The first reference image is that current character sheet.",
+        "Every reference image after the first is an original photo of this character. Match 五官比例 and 整體氣質 to those original photos so the face does not drift away from them.",
+      );
+    }
+    lines.push(`Change: ${input.editInstruction.trim()}`);
   } else if (hasReference && referenceCount > 1) {
     lines.push(
       ...identityFromReference(input.style),

@@ -39,6 +39,8 @@ export const directorsEn = {
   deleteTitle: "Delete this director?",
   deleteBody: "This director will be removed from your list. Videos already made with it keep working.",
   chatTitle: "Edit with AI",
+  chatDrawerOpen: "Open Edit with AI",
+  chatDrawerClose: "Close Edit with AI",
   chatPlaceholder: "Describe what to change…",
   chatSend: "Send",
   chatEmpty: "Tell the AI how this director should behave. It edits the profile and extra instructions; changes stay in your draft until you save.",

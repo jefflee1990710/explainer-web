@@ -267,6 +267,7 @@ export const en: Messages = {
     creditsRemaining: "{remaining} credits left",
     editWhatLabel: "What should change?",
     editWhatPlaceholder: "e.g. Red pajamas, add a baseball cap.",
+    editKeepsOriginal: "The original photos are sent too, so the face stays closer to them.",
     generateNewVersion: "New version · {cost} credits",
   },
   settings: {

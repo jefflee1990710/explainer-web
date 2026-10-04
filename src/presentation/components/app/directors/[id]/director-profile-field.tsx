@@ -9,7 +9,7 @@ export function DirectorProfileField({
   editable,
   modified,
   maxLength,
-  rows = 3,
+  rows = 2,
   hint,
   onChange,
 }: {
@@ -24,14 +24,16 @@ export function DirectorProfileField({
 }) {
   const { t } = useI18n();
   return (
-    <div className="rounded-[1.25rem] border border-accent-ink/10 bg-paper p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold">{label}</h3>
+    <div className="rounded-xl border border-accent-ink/10 bg-paper px-3 py-2">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-[11px] font-semibold">{label}</h3>
         {modified ? (
-          <span className="shrink-0 rounded-full bg-lime px-2 py-0.5 text-xs font-bold">{t("directors.modified")}</span>
+          <span className="shrink-0 rounded-full bg-lime px-1.5 py-px text-[10px] font-bold text-accent-ink">
+            {t("directors.modified")}
+          </span>
         ) : null}
       </div>
-      {hint ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}
+      {hint ? <p className="mt-0.5 text-[11px] leading-4 text-muted">{hint}</p> : null}
       {editable ? (
         <textarea
           rows={rows}
@@ -39,10 +41,10 @@ export function DirectorProfileField({
           maxLength={maxLength}
           aria-label={label}
           onChange={(event) => onChange(event.target.value)}
-          className="mt-2 w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="mt-1.5 w-full resize-y rounded-lg border border-accent-ink/15 bg-paper px-2.5 py-1.5 text-xs leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         />
       ) : (
-        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{value || t("directors.profileEmpty")}</p>
+        <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-muted">{value || t("directors.profileEmpty")}</p>
       )}
     </div>
   );

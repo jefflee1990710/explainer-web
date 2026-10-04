@@ -260,6 +260,7 @@ export const zhHant: Messages = {
     creditsRemaining: "剩餘 {remaining} credits",
     editWhatLabel: "要改什麼？",
     editWhatPlaceholder: "例如：把睡衣換成紅色，加一頂棒球帽。",
+    editKeepsOriginal: "也會附上最初的參考圖，讓五官不要越改越離原圖。",
     generateNewVersion: "產生新版本・{cost} credits",
   },
   settings: {
