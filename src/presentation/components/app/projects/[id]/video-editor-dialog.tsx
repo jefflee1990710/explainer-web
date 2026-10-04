@@ -12,7 +12,6 @@ import { StudioButton } from "@/presentation/studio/studio-button";
 export function VideoEditorDialog({
   folderId,
   title,
-  nav,
   syncing = false,
   canDelete = false,
   onExport,
@@ -25,7 +24,6 @@ export function VideoEditorDialog({
 }: {
   folderId: string;
   title: string;
-  nav?: React.ReactNode;
   syncing?: boolean;
   canDelete?: boolean;
   onExport?: () => void;
@@ -51,15 +49,15 @@ export function VideoEditorDialog({
 
   return (
     <div className="studio-app fixed inset-0 z-40 flex flex-col">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-4 py-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <VideoEditorBrandBack folderId={folderId} />
-          <h1 id={titleId} className="font-display text-xl font-bold">
-            {title}
-          </h1>
-          {nav}
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+      <header className="shrink-0 border-b border-[var(--studio-line)] bg-[var(--studio-panel)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <VideoEditorBrandBack folderId={folderId} />
+            <h1 id={titleId} className="font-display text-xl font-bold">
+              {title}
+            </h1>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
           {credits !== undefined && creditLimit !== undefined ? (
             <VideoEditorHeaderStatus videoId={videoId} credits={credits} creditLimit={creditLimit} />
           ) : null}
@@ -78,6 +76,7 @@ export function VideoEditorDialog({
             </p>
           ) : null}
           {canDelete && onDelete ? <VideoEditorMoreMenu onDelete={onDelete} /> : null}
+          </div>
         </div>
       </header>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>

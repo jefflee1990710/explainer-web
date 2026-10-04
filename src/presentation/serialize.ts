@@ -75,6 +75,7 @@ export type PublicVideo = {
   coverStatus?: Project["coverStatus"];
   coverPrompt?: string;
   coverSafeAreas?: Project["coverSafeAreas"];
+  coverInset?: boolean;
   editTemplateId?: string;
   finalUrl?: string;
   finalStatus?: Project["finalStatus"];
@@ -267,6 +268,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     coverStatus: video.coverStatus,
     coverPrompt: video.coverPrompt,
     coverSafeAreas: video.coverSafeAreas,
+    coverInset: video.coverInset,
     editTemplateId: video.editTemplateId?.toHexString(),
     finalUrl: video.finalUrl,
     finalStatus: video.finalStatus,

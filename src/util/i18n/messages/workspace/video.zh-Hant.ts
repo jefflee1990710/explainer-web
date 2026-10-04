@@ -120,8 +120,10 @@ export const videoZhHant = {
     failed: "封面產生失敗，請再試一次。",
     empty: "還沒有封面。",
     current: "目前封面",
+    download: "下載封面",
+    openPreview: "預覽封面",
     safeAreaLabel: "安全區",
-    safeAreaHint: "選填。封面會依這支影片的角色與風格重排，裁切後主體仍看得到。",
+    safeAreaHint: "選填。封面仍是滿版。只有角色和標題放在中央安全區。",
     safeAreas: {
       igReel: {
         label: "Instagram Reels",

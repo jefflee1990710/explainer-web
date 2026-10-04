@@ -4,10 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { NewProjectForm } from "@/presentation/components/app/projects/new/new-project-form";
 import { DeleteVideoDialog } from "@/presentation/components/app/projects/[id]/delete-video-dialog";
-import {
-  EditorStepSwitch,
-  type EditorStepNav,
-} from "@/presentation/components/app/projects/[id]/editor-step-switch";
+import type { EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import { VideoEditorDialog } from "@/presentation/components/app/projects/[id]/video-editor-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type {
@@ -81,7 +78,6 @@ export function VideoEditorWorkspace({
         videoId={video?.id}
         credits={credits}
         creditLimit={creditLimit}
-        nav={stepNav ? <EditorStepSwitch {...stepNav} /> : null}
         canDelete={Boolean(video)}
         onExport={
           stepNav?.clipsReady && stepNav.viewing !== 2

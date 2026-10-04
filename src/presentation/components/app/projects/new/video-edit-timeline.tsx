@@ -156,7 +156,7 @@ function CoverCard({
       <span className={`relative block bg-[var(--studio-fill)] ${frame.box}`}>
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <img key={src} src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 border border-dashed border-[var(--studio-muted)] bg-[var(--studio-panel)] text-[9px] font-semibold leading-none text-[var(--studio-muted)]">
             {busy ? "…" : t("video.layers.unset")}

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { ASPECT_CLASS } from "@/presentation/components/project/frame-tile";
 import { useElementSize } from "@/presentation/components/app/projects/new/use-element-size";
+import { VideoEditCoverRail } from "@/presentation/components/app/projects/new/video-edit-cover-rail";
 import { VideoEditTimeline, type EditSlot } from "@/presentation/components/app/projects/new/video-edit-timeline";
 import {
   layerPlacement,
@@ -156,6 +157,8 @@ export function VideoEditPreview({
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
+      <div className="flex w-full flex-col items-center justify-center gap-4 lg:flex-row">
+      <VideoEditCoverRail src={coverUrl} aspectRatio={aspectRatio} busy={coverBusy} />
       <div
         ref={frameRef}
         onPointerMove={moveDrag}
@@ -207,6 +210,7 @@ export function VideoEditPreview({
                 </div>
               );
             })}
+      </div>
       </div>
       <VideoEditTimeline
         items={items}

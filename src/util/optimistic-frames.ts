@@ -205,10 +205,40 @@ function preferNewerClaim<T extends { submittedAt?: string }>(local: T | undefin
   return local;
 }
 
+// Cover files are named with the job id. A later id is a later still.
+function coverJobId(url?: string) {
+  const id = url?.split("?")[0]?.split("/").pop() ?? "";
+  return /^[a-f0-9]{24}$/i.test(id) ? id.toLowerCase() : "";
+}
+
+// A stale page refresh must not put the previous cover back, or clear
+// "generating" before the finished file has been written.
+function mergeCover(current: PublicVideo, incoming: PublicVideo): PublicVideo {
+  const localId = coverJobId(current.coverUrl);
+  const remoteId = coverJobId(incoming.coverUrl);
+  const localGenerating = current.coverStatus === "generating";
+  const remoteGenerating = incoming.coverStatus === "generating";
+
+  if (remoteGenerating || (remoteId && localId && remoteId > localId)) return incoming;
+  if (localId && remoteId && localId > remoteId) {
+    return {
+      ...incoming,
+      coverUrl: current.coverUrl,
+      coverStatus: current.coverStatus === "failed" ? "failed" : "idle",
+      coverInset: current.coverInset,
+    };
+  }
+  if (localGenerating && current.coverUrl === incoming.coverUrl && incoming.coverStatus !== "failed") {
+    return { ...incoming, coverUrl: current.coverUrl, coverStatus: "generating" };
+  }
+  return incoming;
+}
+
 export function mergePolledProject(current: PublicVideo, incoming: PublicVideo): PublicVideo {
   if (current.id !== incoming.id) return incoming;
+  const cover = mergeCover(current, incoming);
   return {
-    ...incoming,
+    ...cover,
     frames: mergePolledFrames(current.frames, incoming.frames),
     clips: mergePolledClips(current.clips, incoming.clips),
   };

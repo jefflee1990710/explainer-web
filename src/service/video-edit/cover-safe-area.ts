@@ -30,21 +30,20 @@ export function parseCoverSafeAreas(
   return { ok: true, areas: COVER_SAFE_AREA_IDS.filter((id) => picked.has(id)) };
 }
 
-// Tell the image model to recompose the same scene, not to matte it.
+// Full-bleed cover. Only the character and title sit in the safe rectangle.
 export function coverSafeAreaPrompt(areas: CoverSafeArea[] | undefined) {
   const parsed = parseCoverSafeAreas(areas ?? []);
   if (!parsed.ok || parsed.areas.length === 0) return "";
   const box = strictestCoverInsets(parsed.areas);
   if (!box) return "";
   const lines = [
-    "Rearrange this cover. Keep the same character, wardrobe, face, setting, palette, and style. Do not invent a new look and do not copy the reference framing.",
-    "Paint the scene edge to edge in that same style. The outer bands are more of the same background and setting. Do not add a white border, letterbox, matte, or empty padding, and do not shrink the picture onto a blank field.",
-    `Place the character, face, title, and logo entirely inside the inner rectangle: ${percent(box.top)} down from the top, ${percent(box.bottom)} up from the bottom, ${percent(box.left)} in from the left, and ${percent(box.right)} in from the right.`,
+    "Generate this like a normal full-screen cover. Background, setting, and graphic elements fill the frame edge to edge. Do not add a white border, letterbox, matte, or empty padding, and do not shrink the picture onto a blank field.",
+    `Only the character and the title text move. Center them together inside the safe rectangle: ${percent(box.top)} down from the top, ${percent(box.bottom)} up from the bottom, ${percent(box.left)} in from the left, and ${percent(box.right)} in from the right. The face, body, and every word of the title stay inside that rectangle. Background art continues through the outer bands.`,
     ...parsed.areas.map((id) => SAFE_AREA_LINE[id]),
   ];
   if (parsed.areas.length > 1) {
     lines.push(
-      "Satisfy every selected safe area at once: keep the subject inside the strictest inner rectangle so one cover stays readable on all of them.",
+      "Satisfy every selected safe area at once: center the character and title inside the strictest inner rectangle. The background still fills the frame.",
     );
   }
   return lines.join("\n");

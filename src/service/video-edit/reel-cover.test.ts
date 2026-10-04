@@ -50,9 +50,11 @@ test("reelCoverPrompt appends a trimmed extra requirement", () => {
   assert.match(prompt, /Extra requirement: big title, no extra faces/);
 });
 
-test("reelCoverPrompt recomposes an Instagram Reels cover inside the safe rectangle", () => {
+test("reelCoverPrompt keeps a full-screen Instagram cover and centers the character and title", () => {
   const prompt = reelCoverPrompt(project({ coverSafeAreas: ["ig-reel"] }));
-  assert.match(prompt, /Rearrange this cover/);
+  assert.match(prompt, /full-screen cover/);
+  assert.match(prompt, /edge to edge/);
+  assert.match(prompt, /Only the character and the title text/);
   assert.match(prompt, /profile grid/);
   assert.match(prompt, /Reels list/);
   assert.match(prompt, /14%/);

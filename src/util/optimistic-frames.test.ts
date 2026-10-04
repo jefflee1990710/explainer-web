@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ClipFrame, ProjectClip } from "@/model/project";
+import type { PublicVideo } from "@/presentation/serialize";
 import {
   clearClipsForAction,
   clearFramesForAction,
   mergePolledClips,
   mergePolledFrames,
+  mergePolledProject,
 } from "@/util/optimistic-frames";
 
 const frames: ClipFrame[] = [
@@ -302,4 +304,47 @@ test("mergePolledClips keeps a newer finished video over a stale snapshot", () =
   ];
   const next = mergePolledClips(finished, clips);
   assert.equal(next[0].blobUrl, "new-video");
+});
+
+const OLD_COVER =
+  "https://blob.example/explainer/reel-covers/video/6ac285ea1690e9acb2fe52a3";
+const NEW_COVER =
+  "https://blob.example/explainer/reel-covers/video/6ac28cd21690e9acb2fe52a3";
+
+function coverVideo(patch: Partial<PublicVideo>): PublicVideo {
+  return {
+    id: "video",
+    frames: [],
+    clips: [],
+    coverUrl: OLD_COVER,
+    coverStatus: "idle",
+    ...patch,
+  } as PublicVideo;
+}
+
+test("mergePolledProject keeps a finished cover when a stale refresh still has the previous still", () => {
+  const next = mergePolledProject(
+    coverVideo({ coverUrl: NEW_COVER, coverStatus: "idle" }),
+    coverVideo({ coverUrl: OLD_COVER, coverStatus: "idle" }),
+  );
+  assert.equal(next.coverUrl, NEW_COVER);
+  assert.equal(next.coverStatus, "idle");
+});
+
+test("mergePolledProject keeps generating until the new cover file arrives", () => {
+  const next = mergePolledProject(
+    coverVideo({ coverStatus: "generating" }),
+    coverVideo({ coverStatus: "idle" }),
+  );
+  assert.equal(next.coverUrl, OLD_COVER);
+  assert.equal(next.coverStatus, "generating");
+});
+
+test("mergePolledProject takes the newer cover from the server", () => {
+  const next = mergePolledProject(
+    coverVideo({ coverStatus: "generating" }),
+    coverVideo({ coverUrl: NEW_COVER, coverStatus: "idle" }),
+  );
+  assert.equal(next.coverUrl, NEW_COVER);
+  assert.equal(next.coverStatus, "idle");
 });

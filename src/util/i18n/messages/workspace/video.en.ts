@@ -120,8 +120,10 @@ export const videoEn = {
     failed: "Cover generation failed. Try again.",
     empty: "No cover yet.",
     current: "Current cover",
+    download: "Download cover",
+    openPreview: "Preview cover",
     safeAreaLabel: "Safe area",
-    safeAreaHint: "Optional. The cover is recomposed in this video's character and style so the subject stays readable after the app crops it.",
+    safeAreaHint: "Optional. The cover stays full-screen. Only the character and title sit in the center safe area.",
     safeAreas: {
       igReel: {
         label: "Instagram Reels",

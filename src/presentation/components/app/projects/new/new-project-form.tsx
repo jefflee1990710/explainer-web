@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { folderVideoPath } from "@/service/folder-video-path";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
+import { EditorStepSwitch, type EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ClipProduction } from "@/presentation/components/project/clip-production";
 import { StudioPanel } from "@/presentation/studio/studio-panel";
@@ -975,6 +975,16 @@ export function NewProjectForm({
                 desk ? "shrink-0" : "mx-4 mt-4 rounded-md border sm:mx-6"
               }`}
             >
+              <EditorStepSwitch
+                status={liveStatus}
+                failedAtStep={failedAtStep}
+                viewing={viewing}
+                clipsReady={clipsReady}
+                onSelectStep={(step) => {
+                  setRestarting(false);
+                  pinViewingStep(step);
+                }}
+              />
               <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                 <span className="font-display font-bold">{skillTitle}</span>
                 <Dot />
