@@ -64,16 +64,16 @@ export function AddCharacterStyleDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="flex max-h-[min(40rem,calc(100vh-2rem))] w-full max-w-lg flex-col rounded-[1.75rem] border border-accent-ink/10 bg-paper p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.12)] sm:p-7"
+        className="flex max-h-[min(46rem,calc(100vh-2rem))] w-full max-w-4xl flex-col rounded-[1.75rem] border border-accent-ink/10 bg-paper p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.12)] sm:p-7"
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id={titleId} className="font-display text-2xl font-bold">
           {t("characters.addStyleTitle")}
         </h2>
         <p className="mt-2 text-sm leading-6 text-muted">{t("characters.addStyleBody")}</p>
-        <ul className="mt-4 min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
+        <ul className="mt-4 grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3">
           {available.length === 0 ? (
-            <li className="text-sm text-muted">{t("characters.addStyleEmpty")}</li>
+            <li className="col-span-full text-sm text-muted">{t("characters.addStyleEmpty")}</li>
           ) : (
             available.map((style) => {
               const selected = style.id === styleId;
@@ -84,24 +84,33 @@ export function AddCharacterStyleDialog({
                     type="button"
                     onClick={() => setStyleId(style.id)}
                     aria-pressed={selected}
-                    className={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-2 py-2 text-left transition ${
-                      selected ? "bg-accent-ink/5" : "hover:bg-accent-ink/5"
+                    aria-label={name}
+                    className={`flex w-full cursor-pointer flex-col overflow-hidden rounded-xl border-2 text-left transition ${
+                      selected
+                        ? "border-accent-ink"
+                        : "border-transparent hover:border-accent-ink/25"
                     }`}
                   >
                     <span
-                      className="relative h-10 w-16 shrink-0 overflow-hidden rounded-md border border-accent-ink/10"
+                      className="relative aspect-video w-full overflow-hidden bg-white"
                       style={{ backgroundColor: style.canvasColor }}
                     >
                       {style.previewUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={style.previewUrl} alt="" className="h-full w-full object-cover" />
+                        <img
+                          src={style.previewUrl}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover"
+                        />
                       ) : (
-                        <span className="absolute inset-0 grid place-items-center px-1 text-center text-[9px] font-bold text-accent-ink/60">
+                        <span className="absolute inset-0 grid place-items-center px-2 text-center text-xs font-bold text-accent-ink/60">
                           {name}
                         </span>
                       )}
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-sm font-semibold">{name}</span>
+                    <span className="truncate px-1.5 py-1.5 text-xs font-semibold">{name}</span>
                   </button>
                 </li>
               );
