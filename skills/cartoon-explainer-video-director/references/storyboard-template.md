@@ -82,7 +82,7 @@ Use at least 3–4 relevant devices per row:
 
 Make every effect clarify or intensify the spoken idea; omit unrelated spectacle.
 
-**Diagram-first explanation**: for every topic, the canvas includes an explanation graph. With no character, the graph is the main subject and metaphor props are only a fallback. When a character is attached, also add extra drawn objects, icons, arrows, and doodles that explain the idea. Write a fresh performance for each clip and do not repeat the previous clip: sometimes the character stands on the left, sometimes on the right; they may run, jump, point, pull, or push a drawn element; the head may turn left or right. Start and end stills are the two resting poses (different body, face, head direction, side, and shot size). The run, jump, point, pull, push, head turn, zoom, and drawings appearing belong in motion. Never a near-empty canvas with one floating label.
+**Diagram-first explanation**: for every topic, the canvas includes an explanation graph. With no character, the graph is the main subject and metaphor props are only a fallback. When a character is attached, also add extra drawn objects, icons, arrows, and doodles that explain the idea. Write a fresh performance and a fresh camera for each clip. Alternate the starting side (left, then right, then left). About 80% of clips keep the character on that same side: a few steps toward center, a walk toward or away from the camera, a real jump, or a push or pull in depth. Only about 20% cross the frame, left to right or right to left, and not all the same way. Start and end stills are the two resting poses. The travel belongs in motion. Never a near-empty canvas with one floating label.
 
 ## Palette and text
 
@@ -113,7 +113,7 @@ Write it as timed beats (`0–2s …; 2–5s …`). Each beat states: time windo
 - A prop that is in the end still but not in the start still is either added to the start still, or enters on camera in a beat (placed by a hand, slides in from the frame edge).
 - A prop that is in the start still but not in the end still leaves on camera in a beat (put away, moved off frame, covered).
 - Name each hand by the character's own left or right, and keep the same hand on the same prop from the start still through `motionCamera` to the end still.
-- The start and end still of one clip share the same light. With no character they also share the same camera. When a character is on screen, shot size may change because the camera zooms, and they may finish on the other side because they ran or jumped. The head may face the other way. Do not reuse the previous clip's side or action.
+- The start and end still of one clip share the same light. With no character they also share the same camera. When a character is on screen, the camera angle may change (from their left side, from above, from the front, from behind as they turn around, or toward / away for depth) but they usually finish on the same side they started. A full cross to the other side happens only on the rare lateral clip. A jump shows the feet off the ground at some point in the motion; never slide the body upward. Do not reuse the previous clip's action or camera angle.
 - When on-canvas voiceover lettering is on, add a midpoint beat where the start line wipes off and the end line writes on in the same spot. Keep that lettering out of the start and end still text; the still prompt adds it from the VO beats.
 
 Before returning, compare each clip's start and end still item by item: every difference appears in `motionCamera`, and every object `motionCamera` touches already exists in the start still or enters in a beat.
@@ -151,7 +151,7 @@ Do not include final model prompts. A global change invalidates approval and req
 - Storyboard rows have distinct narrative purposes.
 - Every row contains timed beats, at least 3–4 visual devices, audio, and a transition.
 - The voiceover is a third-person off-screen narrator; no line is the on-screen character speaking or introducing themself.
-- When a character is on screen, clips do not repeat the same performance: left and right staging alternate, actions vary (run, jump, point, pull, push), the head turns left or right, and each clip adds a fresh visual idea.
+- When a character is on screen, starting sides alternate, about 80% of clips stay on that side with a local move, only about 20% cross left-to-right or right-to-left, the camera angle changes every clip, and jumps lift the feet instead of sliding up.
 - Every start and end still has at least 3 explanatory props that the character actively uses.
 - Visual change occurs approximately every 1.5–2.5 seconds (2-Second Rule).
 - Every difference between each clip's start and end still has a timed beat in `motionCamera` showing its on-camera cause.

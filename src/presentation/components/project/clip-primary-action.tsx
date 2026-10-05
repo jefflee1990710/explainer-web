@@ -47,6 +47,17 @@ export function ClipPrimaryAction({
 
   return (
     <div className="flex flex-col gap-2">
+      {showRedraw ? (
+        <StudioButton
+          variant="ghost"
+          onClick={onGenerateFrames}
+          disabled={!idle}
+          className="w-full justify-center gap-2"
+        >
+          <RefreshIcon className="h-3.5 w-3.5" />
+          {t("production.action.rerenderFrame", { cost: state.frameCost ?? FRAMES_COST })}
+        </StudioButton>
+      ) : null}
       <StudioButton
         onClick={onClick}
         disabled={disabled}
@@ -60,17 +71,6 @@ export function ClipPrimaryAction({
       <p className="text-[11px] leading-4 text-[var(--studio-muted)]">
         {short ? t("production.action.insufficientClickToUpgrade") : text.hint}
       </p>
-      {showRedraw ? (
-        <button
-          type="button"
-          onClick={onGenerateFrames}
-          disabled={!idle}
-          className="inline-flex cursor-pointer items-center gap-1 self-start text-[11px] font-semibold text-[var(--studio-muted)] underline-offset-2 hover:text-[var(--studio-ink)] hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <RefreshIcon />
-          {t("production.action.redrawBothFrames", { cost: state.frameCost ?? FRAMES_COST })}
-        </button>
-      ) : null}
     </div>
   );
 }

@@ -29,11 +29,14 @@ export function StudioNav({ items }: { items: StudioNavItem[] }) {
         return (
           <div key={section} role="group" aria-labelledby={labelId} className="flex flex-col gap-1">
             {index > 0 ? (
-              <span aria-hidden className="mx-2 mb-1 h-px bg-[var(--studio-line)] lg:hidden" />
+              <span
+                aria-hidden
+                className="mx-2 mb-1 h-px bg-[var(--studio-line)] group-hover/rail:hidden group-focus-within/rail:hidden"
+              />
             ) : null}
             <p
               id={labelId}
-              className="sr-only px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)] lg:not-sr-only"
+              className="sr-only px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)] group-hover/rail:not-sr-only group-focus-within/rail:not-sr-only"
             >
               {labels[section]}
             </p>
@@ -61,7 +64,7 @@ function StudioNavLink({ item, active }: { item: StudioNavItem; active: boolean 
       aria-label={item.label}
       title={item.label}
       aria-current={active ? "page" : undefined}
-      className={`group flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl px-1.5 text-sm transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] max-lg:justify-center ${
+      className={`group flex min-h-11 cursor-pointer items-center justify-center gap-2.5 rounded-xl px-1.5 text-sm transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] group-hover/rail:justify-start group-focus-within/rail:justify-start ${
         active
           ? "bg-[var(--studio-cyan-soft)] font-semibold text-[var(--studio-ink)]"
           : "font-medium text-[var(--studio-ink)] hover:bg-[var(--studio-fill)]"
@@ -74,7 +77,7 @@ function StudioNavLink({ item, active }: { item: StudioNavItem; active: boolean 
       >
         <RailIcon name={item.icon} />
       </span>
-      <span className="hidden truncate lg:inline">{item.label}</span>
+      <span className="hidden truncate group-hover/rail:inline group-focus-within/rail:inline">{item.label}</span>
       <NavPending />
     </Link>
   );
@@ -85,7 +88,7 @@ function NavPending() {
   return (
     <span
       aria-hidden
-      className={`ml-auto hidden h-1.5 w-1.5 rounded-full bg-[var(--studio-teal)] lg:inline-block ${
+      className={`ml-auto hidden h-1.5 w-1.5 rounded-full bg-[var(--studio-teal)] group-hover/rail:inline-block group-focus-within/rail:inline-block ${
         pending ? "opacity-100" : "opacity-0"
       }`}
     />

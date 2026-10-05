@@ -10,6 +10,7 @@ export const productionZhHant = {
     submitting: "送出中…",
     insufficientClickToUpgrade: "credits 不足，點擊後可加購或升級並繼續產生。",
     redrawBothFrames: "重畫兩張畫格 · {cost}",
+    rerenderFrame: "重新產生畫格 · {cost}",
   },
   bulk: {
     title: "全部產生",
@@ -18,18 +19,19 @@ export const productionZhHant = {
     badgeOverwrites: "會覆蓋已完成段落",
     empty: "沒有需要處理的段落。",
     insufficientCredits: "credits 不足，確認後可加購或升級並繼續產生。",
-    confirm: "確認送出 · {cost}",
+    confirm: "確認",
+    confirmShortcut: "按 Enter 開始。",
     mode: {
       remaining: {
-        label: "補完未完成",
+        label: "補齊缺少",
         hint: "只處理沒畫格、失敗的段落，已完成的不動。",
       },
       scenes: {
-        label: "只畫畫格",
+        label: "全部畫格",
         hint: "重畫每一段的起始與結尾畫格。正在畫的段落會略過。",
       },
       clips: {
-        label: "畫格＋影片",
+        label: "全部（畫格＋影片）",
         hint: "重畫每一段畫格，兩張都完成後自動產片；影片 credits 在那時才扣。",
       },
     },
@@ -121,6 +123,9 @@ export const productionZhHant = {
     allDone: "全部完成，可以成片",
     debug: "技術資訊",
     bulkOpen: "全部產生",
+    bulkRemaining: "補齊缺少",
+    bulkAllFrames: "全部畫格",
+    bulkAllFramesVideo: "全部（畫格＋影片）",
   },
   queue: {
     viewTasks: "查看生成任務",

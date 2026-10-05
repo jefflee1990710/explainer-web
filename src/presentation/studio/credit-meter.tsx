@@ -63,15 +63,17 @@ export function CreditMeter({
 
   return (
     <div className={`flex flex-col gap-1.5 px-0.5 ${className}`}>
-      <span className="flex items-center justify-center gap-1.5 whitespace-nowrap lg:justify-start">
+      <span className="flex items-center justify-center gap-1.5 whitespace-nowrap group-hover/rail:justify-start group-focus-within/rail:justify-start">
         <CreditIcon />
-        <span className="text-sm font-bold tabular-nums leading-none">{credits}</span>
-        <span className="hidden text-[10px] font-medium uppercase tracking-wide text-[var(--studio-muted)] lg:inline">
+        <span className="hidden text-sm font-bold tabular-nums leading-none group-hover/rail:inline group-focus-within/rail:inline">
+          {credits}
+        </span>
+        <span className="hidden text-[10px] font-medium uppercase tracking-wide text-[var(--studio-muted)] group-hover/rail:inline group-focus-within/rail:inline">
           {creditsLabel}
         </span>
       </span>
       <div
-        className="h-1 overflow-hidden rounded-full bg-[var(--studio-fill)]"
+        className="hidden h-1 overflow-hidden rounded-full bg-[var(--studio-fill)] group-hover/rail:block group-focus-within/rail:block"
         role="progressbar"
         aria-label={creditsLabel}
         aria-valuemin={0}

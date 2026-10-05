@@ -128,7 +128,10 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(withCast, /head may turn/);
   assert.match(withCast, /do not repeat/);
   assert.match(withCast, /fresh idea/);
-  assert.match(withCast, /zooms in or out/);
+  assert.match(withCast, /80%/);
+  assert.match(withCast, /same side/);
+  assert.match(withCast, /toward the camera/);
+  assert.match(withCast, /zoom in or out/);
   assert.match(withCast, /extra drawn objects/);
   assert.match(withCast, /never speaks/);
   assert.doesNotMatch(withCast, /stand aside/);
@@ -136,13 +139,14 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
     hasCharacter: true,
   });
   assert.match(movingStill, /facial expression/);
+  assert.match(movingStill, /same side/);
   assert.match(movingStill, /left or the right/);
-  assert.match(movingStill, /head may face/);
+  assert.match(movingStill, /feet off the ground/);
   assert.match(movingStill, /walked/);
-  assert.match(movingStill, /zoomed/);
   const movingVideo = cartoonNarratorVideoLock("cartoon-explainer-video-director", { hasCharacter: true });
-  assert.match(movingVideo, /zoom in or out/);
-  assert.match(movingVideo, /head turning/);
+  assert.match(movingVideo, /same side/);
+  assert.match(movingVideo, /toward the camera/);
+  assert.match(movingVideo, /left to right/);
   assert.match(movingVideo, /Do not repeat/);
 });
 

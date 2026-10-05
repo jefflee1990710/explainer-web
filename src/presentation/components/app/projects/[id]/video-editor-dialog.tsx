@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId } from "react";
-import { VideoEditorBrandBack } from "@/presentation/components/app/projects/[id]/video-editor-brand-back";
+import { VideoEditorBreadcrumb } from "@/presentation/components/app/projects/[id]/video-editor-breadcrumb";
 import { VideoEditorHeaderStatus } from "@/presentation/components/app/projects/[id]/video-editor-header-status";
 import { VideoEditorMoreMenu } from "@/presentation/components/app/projects/[id]/video-editor-more-menu";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -11,6 +11,7 @@ import { StudioButton } from "@/presentation/studio/studio-button";
 // Full-page editor chrome over the studio shell.
 export function VideoEditorDialog({
   folderId,
+  folderName,
   title,
   syncing = false,
   canDelete = false,
@@ -18,11 +19,10 @@ export function VideoEditorDialog({
   onRestart,
   onDelete,
   videoId,
-  credits,
-  creditLimit,
   children,
 }: {
   folderId: string;
+  folderName: string;
   title: string;
   syncing?: boolean;
   canDelete?: boolean;
@@ -30,10 +30,8 @@ export function VideoEditorDialog({
   // Shown only when the video can start over (nothing generating).
   onRestart?: () => void;
   onDelete?: () => void;
-  // When set, show this video's pending tasks and credit meter in the header.
+  // When set, show this video's pending tasks in the header.
   videoId?: string;
-  credits?: number;
-  creditLimit?: number;
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
@@ -48,19 +46,19 @@ export function VideoEditorDialog({
   }, []);
 
   return (
-    <div className="studio-app fixed inset-0 z-40 flex flex-col">
+    <div className="studio-app fixed inset-y-0 right-0 left-[72px] z-40 flex flex-col">
       <header className="shrink-0 border-b border-[var(--studio-line)] bg-[var(--studio-panel)]">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 flex-wrap items-center gap-3">
-            <VideoEditorBrandBack folderId={folderId} />
-            <h1 id={titleId} className="font-display text-xl font-bold">
-              {title}
-            </h1>
+            <VideoEditorBreadcrumb
+              folderId={folderId}
+              folderName={folderName}
+              title={title}
+              titleId={titleId}
+            />
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-          {credits !== undefined && creditLimit !== undefined ? (
-            <VideoEditorHeaderStatus videoId={videoId} credits={credits} creditLimit={creditLimit} />
-          ) : null}
+          {videoId ? <VideoEditorHeaderStatus videoId={videoId} /> : null}
           {onRestart ? (
             <StudioButton variant="ghost" onClick={onRestart}>
               {t("video.editor.restart")}

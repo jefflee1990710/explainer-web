@@ -61,7 +61,7 @@ export function keyframeDeltaDirectorBlock(options?: {
     : combined;
   return [
     options?.performance
-      ? "When a character is on screen, start and end are one continuous shot that may zoom in or out. The character may begin on the left or the right, run or jump toward the other side, point, pull, or push a drawn element, and turn their head left or right. Shot size and placement MAY differ. Each clip uses a different action and a different side so the performance does not repeat. Still no cut and no teleport."
+      ? "When a character is on screen, start and end are one continuous shot. Alternate which side they start on, and do not repeat the previous clip's action or camera. About 80% of clips keep them on that same side: a few steps toward center, a walk toward or away from the camera, a jump whose feet leave the ground (never slide the body upward), or a push or pull toward or away from the camera. Only about 20% of clips cross the frame, either left to right or right to left. Camera angle changes every clip (from the side, from above, from the front, or from behind as they turn around) and may zoom. Still no cut and no teleport."
       : "Each clip's start and end are the SAME locked camera; the character keeps roughly the same screen size and placement.",
     "Each still shows exactly ONE instance of each named character — two moments of the same figure, never two bodies in one frame.",
     `They must NOT look almost identical — under-moving makes the video freeze. ${stillRule}`,
@@ -69,11 +69,11 @@ export function keyframeDeltaDirectorBlock(options?: {
     "Change budget by durationSeconds:",
     ...(options?.performance
       ? [
-          "- 3s: one fresh action (a point, a head turn, a small jump, or a push) plus a facial-expression change and one new doodle. A small zoom is enough.",
-          "- 4s: a run, jump, pull, or push finishes, the head turns the other way, and one object draws on or leaves. The zoom may complete.",
-          "- 5–6s: the character crosses toward the other side of the frame with a new action; extra drawings appear.",
-          "- 7–8s: a longer run or a jump plus a pull or push, and a clear zoom in or out. One figure, still in frame. No cut.",
-          "A zoom is allowed. The character may jump or run. Never jump-cut or teleport the character. Do not repeat the previous clip's action.",
+          "- 3s: one same-side action (a point, a head turn, a small jump with feet off the ground, or a short push) plus a facial-expression change and one new doodle.",
+          "- 4s: a jump lands, or a push or pull toward or away from the camera finishes, while they stay on the same side. One object draws on or leaves.",
+          "- 5–6s: a bigger same-side move (a few steps toward center, walk toward the camera, or walk away). A full left-to-right or right-to-left cross only if this clip is one of the rare lateral clips. Extra drawings appear.",
+          "- 7–8s: a longer same-side performance (approach or leave the camera, a jump, and a push or pull) or, rarely, one full lateral cross. One figure, still in frame. No cut.",
+          "Change the camera angle. A jump lifts the feet; never slide the body upward or across the frame unless this clip is a lateral cross. Do not repeat the previous clip's action.",
         ]
       : [
           `- ${BUDGET["3s"].director}`,
@@ -93,7 +93,7 @@ export function frameStartMoment(
   const seconds = clampClipSeconds(durationSeconds);
   const band = keyframeDeltaBand(seconds);
   const camera = performance
-    ? "The end frame may place them on the other side, with a different head direction, after a run, jump, point, pull, or push."
+    ? "The end frame usually keeps them on the same side after a local move. They finish on the other side only when this clip is a rare left-to-right or right-to-left cross."
     : "Keep a single locked camera the end frame will continue.";
   return `This is the FIRST frame (t=0s) of clip ${clipNumber} (${seconds}s). ${BUDGET[band].start} ${camera}`;
 }
@@ -113,10 +113,10 @@ export function frameEndMoment(
       : " It must visually hand off to the next clip on the same locked camera."
     : " It is the final frame of the video: end on a clean resting payoff. Do not match or bridge back to clip 1.";
   const change = performance
-    ? "The action has landed: different body pose, facial expression, head direction, and often the other side of the frame."
+    ? "The action has landed: different body pose, facial expression, head direction, and camera angle, usually still on the same side."
     : BUDGET[band].end;
   const camera = performance
-    ? " Shot size and which side they stand on may differ from the start because they ran, jumped, or the camera zoomed."
+    ? " Camera angle may differ (side, above, front, behind, toward, or away). They stay on the same side unless this clip crosses the frame."
     : " Same camera, character size, and screen position.";
   return `This is the LAST frame of clip ${clipNumber} (t=${seconds}s). ${change}${camera}${handoff}`;
 }

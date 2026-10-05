@@ -37,6 +37,7 @@ export const videoZhHant = {
     deleteVideo: "刪除影片",
     moreAria: "更多操作",
     back: "返回",
+    breadcrumbAria: "導覽路徑",
     stepsAria: "編輯步驟",
   },
   delete: {

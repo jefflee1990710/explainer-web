@@ -128,8 +128,8 @@ function compositionLockLines(
     return [
       `COMPOSITION LOCK: ${source}.`,
       "Keep the same world, set, and lighting.",
-      "Shot size MAY change (a zoom in or out). The character MAY stand on the other side because they ran or jumped, and their head MAY face the other way.",
-      "Apply the Scene changes: body pose, facial expression, head direction, pointing, pulling, or pushing extra objects. Do not invent a new room. Do not copy the previous clip's pose.",
+      "Camera angle MAY change (from the side, from above, from the front, from behind, toward the camera, or away). The character usually STAYS on the same side. They stand on the other side only when the Scene is a left-to-right or right-to-left cross. A jump shows the feet off the ground; do not slide the body upward.",
+      "Apply the Scene changes: body pose, facial expression, head direction, a few steps, walking toward or away, pointing, pulling, or pushing extra objects. Do not invent a new room. Do not copy the previous clip's pose.",
     ];
   }
   return [

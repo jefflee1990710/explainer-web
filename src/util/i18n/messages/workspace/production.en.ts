@@ -10,6 +10,7 @@ export const productionEn = {
     submitting: "Submitting…",
     insufficientClickToUpgrade: "Not enough credits — click to top up or upgrade and continue.",
     redrawBothFrames: "Redraw both frames · {cost}",
+    rerenderFrame: "Re-render frame · {cost}",
   },
   bulk: {
     title: "Generate all",
@@ -18,18 +19,19 @@ export const productionEn = {
     badgeOverwrites: "Overwrites finished clips",
     empty: "Nothing to process.",
     insufficientCredits: "Not enough credits — confirm to top up or upgrade and continue.",
-    confirm: "Confirm · {cost}",
+    confirm: "Confirm",
+    confirmShortcut: "Press Enter to start.",
     mode: {
       remaining: {
-        label: "Finish incomplete",
+        label: "Finish Missing",
         hint: "Only missing or failed clips; finished work stays.",
       },
       scenes: {
-        label: "Frames only",
+        label: "All frames",
         hint: "Redraw every start and end frame. In-progress clips are skipped.",
       },
       clips: {
-        label: "Frames + video",
+        label: "All (frames + video)",
         hint: "Redraw frames, then auto-render clips when both frames exist.",
       },
     },
@@ -121,6 +123,9 @@ export const productionEn = {
     allDone: "All done — ready for final reel",
     debug: "Debug",
     bulkOpen: "Generate all",
+    bulkRemaining: "Finish Missing",
+    bulkAllFrames: "All frames",
+    bulkAllFramesVideo: "All (frames + video)",
   },
   queue: {
     viewTasks: "View tasks",

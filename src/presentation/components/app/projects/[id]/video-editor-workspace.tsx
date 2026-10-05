@@ -18,20 +18,20 @@ import { folderPath, folderVideoPath } from "@/service/folder-video-path";
 // Dedicated editor page. Same-tab from the folder list.
 export function VideoEditorWorkspace({
   folderId,
+  folderName,
   skills,
   styles,
   characters,
   credits,
-  creditLimit,
   subscribed,
   initialVideo,
 }: {
   folderId: string;
+  folderName: string;
   skills: PublicSkill[];
   styles: PublicStyle[];
   characters: PublicCharacter[];
   credits: number;
-  creditLimit: number;
   subscribed: boolean;
   initialVideo: PublicVideo | null;
 }) {
@@ -74,10 +74,9 @@ export function VideoEditorWorkspace({
     <>
       <VideoEditorDialog
         folderId={folderId}
+        folderName={folderName}
         title={editorTitle}
         videoId={video?.id}
-        credits={credits}
-        creditLimit={creditLimit}
         canDelete={Boolean(video)}
         onExport={
           stepNav?.clipsReady && stepNav.viewing !== 2

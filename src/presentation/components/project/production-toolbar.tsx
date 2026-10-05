@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { TaskListDialog } from "@/presentation/components/app/tasks/task-list-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import {
+  AllFramesIcon,
+  AllFramesVideoIcon,
+  FinishMissingIcon,
+} from "@/presentation/components/project/production-bulk-action-icons";
 import { ProductionQueue } from "@/presentation/components/project/production-queue";
+import type { BulkMode } from "@/presentation/components/project/bulk-generate-dialog";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import type { InFlightCounts } from "@/service/clip-stage";
 
@@ -32,7 +38,7 @@ export function ProductionToolbar({
   busy: boolean;
   onJump: (clipNumber: number) => void;
   onToggleDebug: () => void;
-  onBulk: () => void;
+  onBulk: (mode: BulkMode) => void;
 }) {
   const { t } = useI18n();
   const videosLeft = total - videosDone;
@@ -70,8 +76,31 @@ export function ProductionToolbar({
           />
           {t("production.toolbar.debug")}
         </label>
-        <StudioButton onClick={onBulk} disabled={busy} className="min-h-9 px-3 text-xs">
-          {t("production.toolbar.bulkOpen")}
+        <StudioButton
+          variant="ghost"
+          onClick={() => onBulk("remaining")}
+          disabled={busy}
+          className="min-h-9 px-3 text-xs"
+        >
+          <FinishMissingIcon />
+          {t("production.toolbar.bulkRemaining")}
+        </StudioButton>
+        <StudioButton
+          variant="ghost"
+          onClick={() => onBulk("scenes")}
+          disabled={busy}
+          className="min-h-9 px-3 text-xs"
+        >
+          <AllFramesIcon />
+          {t("production.toolbar.bulkAllFrames")}
+        </StudioButton>
+        <StudioButton
+          onClick={() => onBulk("clips")}
+          disabled={busy}
+          className="min-h-9 px-3 text-xs"
+        >
+          <AllFramesVideoIcon />
+          {t("production.toolbar.bulkAllFramesVideo")}
         </StudioButton>
       </div>
     </div>

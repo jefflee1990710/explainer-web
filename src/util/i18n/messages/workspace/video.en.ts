@@ -37,6 +37,7 @@ export const videoEn = {
     deleteVideo: "Delete video",
     moreAria: "More actions",
     back: "Back",
+    breadcrumbAria: "Breadcrumb",
     stepsAria: "Editor steps",
   },
   delete: {

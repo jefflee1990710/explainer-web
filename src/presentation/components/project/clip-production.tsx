@@ -64,7 +64,7 @@ export function ClipProduction({
     position: FramePosition;
   } | null>(null);
   const [checked, setChecked] = useState<string[]>([]);
-  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkMode, setBulkMode] = useState<BulkMode | null>(null);
   const [showDebug, setShowDebug] = useState(false);
 
   if (!phaseA || states.length === 0) return null;
@@ -139,7 +139,7 @@ export function ClipProduction({
             busy={!idle}
             onJump={select}
             onToggleDebug={() => setShowDebug((value) => !value)}
-            onBulk={() => setBulkOpen(true)}
+            onBulk={(mode) => setBulkMode(mode)}
           />
         )}
         renderPreview={(state, select) => workspace("preview", state, select)}
@@ -161,9 +161,10 @@ export function ClipProduction({
           ) : null
         }
       />
-      {bulkOpen ? (
+      {bulkMode ? (
         <BulkGenerateDialog
           project={project}
+          mode={bulkMode}
           credits={credits}
           pending={
             pending === "bulk" ||
@@ -171,9 +172,9 @@ export function ClipProduction({
             pending === "all-clips" ||
             pending === "remaining"
           }
-          onCancel={() => setBulkOpen(false)}
+          onCancel={() => setBulkMode(null)}
           onConfirm={(mode) => {
-            setBulkOpen(false);
+            setBulkMode(null);
             void onBulkGenerate(mode);
           }}
         />

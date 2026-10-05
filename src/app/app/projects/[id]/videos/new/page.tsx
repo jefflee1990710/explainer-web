@@ -19,9 +19,9 @@ export default async function NewFolderVideoPage({
   return (
     <VideoEditorWorkspace
       folderId={folder._id.toHexString()}
+      folderName={folder.name}
       initialVideo={null}
       credits={user.credits}
-      creditLimit={user.creditLimit || 0}
       {...pickers}
     />
   );

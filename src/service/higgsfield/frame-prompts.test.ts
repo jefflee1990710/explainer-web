@@ -162,12 +162,11 @@ test("whiteboard explainer with a cast zooms, walks, and draws extra objects", (
   ];
   const end = buildFramePrompt(cartoon, 1, "end", { anchor: { kind: "clip-start" } });
   assert.match(end, /facial expression/);
-  assert.match(end, /left or the right/);
-  assert.match(end, /head may face/);
-  assert.match(end, /walked/);
-  assert.match(end, /zoomed/);
-  assert.match(end, /pull, or push/);
-  assert.match(end, /Shot size MAY change/);
+  assert.match(end, /same side/);
+  assert.match(end, /left-to-right or right-to-left/);
+  assert.match(end, /feet off the ground/);
+  assert.match(end, /toward or away/);
+  assert.match(end, /Camera angle MAY change/);
   assert.match(end, /other side/);
   assert.doesNotMatch(end, /Same camera, character size/);
 });
