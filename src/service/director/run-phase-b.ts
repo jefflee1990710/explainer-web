@@ -56,6 +56,7 @@ function characterLine(input: PhaseBInput) {
   return phaseBCharacterLine({
     cast: input.cast,
     characterImageUrl: input.characterImageUrl,
+    skillSlug: input.skill.slug,
   });
 }
 
@@ -99,7 +100,11 @@ export async function runPhaseBForClip(
       hasCharacter: Boolean(input.cast?.length || input.characterImageUrl),
       action: cartoonClipAction(row?.motionCamera),
     }),
-    phaseBWardrobeLock(input),
+    phaseBWardrobeLock({
+      cast: input.cast,
+      characterImageUrl: input.characterImageUrl,
+      skillSlug: input.skill.slug,
+    }),
     phaseBLetteringLock({
       skillSlug: input.skill.slug,
       durationSeconds: row?.durationSeconds ?? output.durationSeconds,

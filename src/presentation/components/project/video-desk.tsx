@@ -69,6 +69,7 @@ export function VideoDesk({
           <Filmstrip
             items={items}
             selectedId={selected ? String(selected.clipNumber) : ""}
+            aspectRatio={project.aspectRatio}
             onSelect={onSelect}
             checkedIds={checkedIds}
             onToggleCheck={onToggleCheck}

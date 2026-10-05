@@ -351,6 +351,7 @@ export function sceneTextFrameLines(
     markerSafeZone?: boolean;
     reelSafeZone?: boolean;
     lettering?: StyleLettering;
+    silentClip?: boolean;
   },
 ) {
   const lettering = resolveStyleLettering(options?.lettering);
@@ -367,6 +368,9 @@ export function sceneTextFrameLines(
       "No on-canvas text, labels, captions, letters, numbers, or written words of any kind. Communicate only with images, props, and composition.",
       "Ignore any mention of words, labels, signs, or lettering in the scene description below; do NOT render writing in the image.",
     ];
+  }
+  if (options?.silentClip) {
+    return ["This clip has no spoken line. No subtitle band and no letters anywhere in the frame."];
   }
   const line = narration?.trim();
   if (!line) {

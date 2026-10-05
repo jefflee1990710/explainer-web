@@ -132,6 +132,14 @@ test("Phase B with a cast forbids describing or changing clothing", () => {
   assert.match(phaseBWardrobeLock({ cast: [{ name: "Ada" }] }), /exactly the outfit shown in the first and last frames/);
   assert.match(phaseBWardrobeLock({ characterImageUrl: "https://blob/hero.png" }), /No added or changed clothing/);
   assert.equal(phaseBWardrobeLock({}), "");
+  assert.match(
+    phaseBWardrobeLock({ cast: [{ name: "Ada" }], skillSlug: "outfit-reel-director" }),
+    /one new garment goes on/,
+  );
+  assert.match(
+    phaseBCharacterLine({ cast: [{ name: "Ada" }], skillSlug: "outfit-reel-director" }),
+    /one garment this clip puts on/,
+  );
 });
 
 test("dual-beat clips swap the keyframe lettering at the midpoint instead of banning on-screen text", () => {

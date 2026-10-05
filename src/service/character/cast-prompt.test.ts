@@ -101,6 +101,14 @@ test("frame paragraph and reference urls follow the cast", () => {
   assert.deepEqual(castReferenceUrls(cast), ["https://blob/a.png", "https://blob/b.png"]);
 });
 
+test("outfit reels name listed garments and keep the face on the blueprint", () => {
+  const rules = directorBlueprintSceneRules({ wardrobeBuild: true }).join(" ");
+  assert.match(rules, /each clip adds exactly one named garment/);
+  assert.doesNotMatch(rules, /Never plan a costume change/);
+  const block = castBlockForPhaseA(cast, { wardrobeBuild: true })!;
+  assert.match(block, /listed garments/);
+});
+
 test("director rules keep the blueprint outfit in every scene", () => {
   const rules = directorBlueprintSceneRules().join(" ");
   assert.match(rules, /Wardrobe is fixed to the blueprint/);

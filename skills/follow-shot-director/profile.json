@@ -1,0 +1,12 @@
+{
+  "en": {
+    "bestFor": "A third-person continuous shot of one character already in motion, split into clips that keep going without a new angle.",
+    "structure": "Each clip is 3–6 seconds. Count follows the duration preset: about 1–2 for a micro, 2–4 for 15–20s, 4–6 for 30–45s, and 7–10 for 50–60s.",
+    "hook": "Opens mid-action, already walking or moving through the place you name. No title card.",
+    "arc": "One continuous third-person action. From clip 2 on, the start still is the previous clip's end still: same place, clothes, camera, and body position. Each clip adds a few steps, a turn, or one gesture. The last clip stops and rests.",
+    "narrator": "No narrator. The clip stays silent unless you wrote one short line.",
+    "visual": "Look and palette come from the chosen visual style. A locked third-person camera, one location, and one character at a similar size. The background shifts only a little. Clothes stay as they are.",
+    "audio": "Ambient sound or light music, plus one footstep or room sound per clip. Silent clips have no subtitle.",
+    "rules": "Needs exactly one character, a place, and the action. Because each start matches the previous end, the angle does not change between clips. No whip pans, no new setup, and no crowd as a required element."
+  }
+}

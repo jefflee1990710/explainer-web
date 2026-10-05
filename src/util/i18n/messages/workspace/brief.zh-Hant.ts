@@ -154,6 +154,9 @@ export const briefZhHant = {
     "talking-head-director": "對鏡讀稿",
     "comparison-card-director": "對照卡",
     "talking-broll-director": "口播切畫面",
+    "surprise-interview-director": "驚訝開場訪談",
+    "outfit-reel-director": "試衫",
+    "follow-shot-director": "第三人稱連續",
   },
   skillGuide: {
     labels: {
@@ -228,6 +231,24 @@ export const briefZhHant = {
         structure: "對鏡兩句、切一段畫面、再回到同一個口播",
         picture: "講話是鎖定的中近景；切走的畫面演剛才那兩句在講的東西",
         frames: "切走是新場景。下一次開口回到第一段的口播佈景",
+      },
+      "surprise-interview-director": {
+        voice: "一個角色對住鏡頭講（你選的聲）",
+        structure: "先驚訝特寫，再坐著訪談，一段一個重點",
+        picture: "第一段是鎖定特寫。之後都坐在同一張椅子",
+        frames: "第三段起，起始圖接上一段的結尾",
+      },
+      "outfit-reel-director": {
+        voice: "不說話；只有你要求時，最後一段才加一句短句",
+        structure: "一件衣服一段，最後停在完整造型",
+        picture: "同一房間、全身，衣服按你列的順序疊上去",
+        frames: "下一段的起始圖就是上一段的結尾，新的一件已經穿上",
+      },
+      "follow-shot-director": {
+        voice: "不說話；只有你寫了一句時才用那一句",
+        structure: "第三人稱連續動作，一段一小步，最後停住",
+        picture: "鏡頭鎖死、同一地點，人物大小差不多",
+        frames: "下一段的起始圖就是上一段的結尾，中間不換角度",
       },
     },
   },

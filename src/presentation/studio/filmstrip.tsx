@@ -2,6 +2,8 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
+import { ASPECT_CLASS } from "@/presentation/components/project/frame-tile";
+import type { AspectRatio } from "@/model/project";
 import type { StudioClipItem, StudioClipTone } from "@/presentation/studio/clip-item";
 import { FilmstripGenerating } from "@/presentation/studio/filmstrip-generating";
 import { FilmstripMediaTags } from "@/presentation/studio/filmstrip-media-tags";
@@ -21,12 +23,14 @@ export function Filmstrip({
   items,
   selectedId,
   onSelect,
+  aspectRatio = "1:1",
   checkedIds = [],
   onToggleCheck,
 }: {
   items: StudioClipItem[];
   selectedId: string;
   onSelect: (id: string) => void;
+  aspectRatio?: AspectRatio;
   checkedIds?: string[];
   onToggleCheck?: (id: string) => void;
 }) {
@@ -73,7 +77,7 @@ export function Filmstrip({
                 <span className="shrink-0 tabular-nums">{item.durationLabel}</span>
                 {item.busy ? <Spinner className="h-2.5 w-2.5 shrink-0" /> : null}
               </span>
-              <span className="relative aspect-square w-full">
+              <span className={`relative w-full ${ASPECT_CLASS[aspectRatio]}`}>
                 {item.thumbnailUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img

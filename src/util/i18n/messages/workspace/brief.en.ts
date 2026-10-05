@@ -157,6 +157,9 @@ export const briefEn = {
     "talking-head-director": "Talking-head read",
     "comparison-card-director": "Comparison card",
     "talking-broll-director": "Talking-head with B-roll",
+    "surprise-interview-director": "Surprise interview",
+    "outfit-reel-director": "Outfit build",
+    "follow-shot-director": "Follow shot",
   },
   skillGuide: {
     labels: {
@@ -231,6 +234,24 @@ export const briefEn = {
         structure: "Two on-camera lines, one cutaway, then back to the same setup",
         picture: "Locked close-up for speech; the cutaway shows what those lines just named",
         frames: "B-roll is a new place. The next speech clip returns to the first setup",
+      },
+      "surprise-interview-director": {
+        voice: "One character speaks to camera (the voice you picked)",
+        structure: "Surprised close-up, then a seated interview, one point per clip",
+        picture: "Clip 1 is a locked close-up. Later clips stay in the same chair",
+        frames: "From clip 3, the start frame continues the previous end frame",
+      },
+      "outfit-reel-director": {
+        voice: "Silent, unless you ask for one short line on the last clip",
+        structure: "One garment per clip, then a hold on the finished look",
+        picture: "One room, full body, clothes accumulate in your listed order",
+        frames: "Each start frame is the previous end frame, with the new piece on",
+      },
+      "follow-shot-director": {
+        voice: "Silent, unless you wrote one short line",
+        structure: "One continuous third-person action, a small beat per clip, then a rest",
+        picture: "Locked camera, same place, the character stays a similar size",
+        frames: "Each start frame is the previous end frame. The angle does not change",
       },
     },
   },

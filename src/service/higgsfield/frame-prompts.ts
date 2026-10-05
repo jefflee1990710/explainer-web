@@ -1,6 +1,8 @@
 import {
   castParagraphForFrames,
   characterReferenceUrls,
+  FRAME_WARDROBE_BUILD,
+  FRAME_WARDROBE_BUILD_CHECK,
   FRAME_WARDROBE_CHECK,
   FRAME_WARDROBE_LOCK,
   frameCharacterLockLine,
@@ -36,12 +38,13 @@ import {
   cartoonNarratorFrameLock,
   isBookendSkill,
   isComparisonCardSkill,
+  isOutfitReelSkill,
   skillBansNarration,
   skillForcesSceneText,
   STORY_SHORT_SKILL_SLUG,
   storyShortCameraLock,
 } from "@/service/director/skill-rules";
-import { subtitleText } from "@/service/director/spoken-line";
+import { isSilentSpokenLine, subtitleText } from "@/service/director/spoken-line";
 import { clipReferenceImageUrls } from "@/service/project/reference-images";
 import { imageRouteForSceneText } from "@/service/generation/image-backend";
 import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
@@ -334,13 +337,18 @@ export function buildFramePrompt(
   const sceneRefLines = sceneRefUrls.length
     ? [sceneReferenceFrameLine(sceneRefStart, sceneRefUrls.length, compositionLocked)]
     : [];
+  const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
   const castLines = hasCast
-    ? castParagraphForFrames(project.cast, {
-        start: characterAttachmentStart,
-        count: lockUrls.length,
-      })
+    ? castParagraphForFrames(
+        project.cast,
+        {
+          start: characterAttachmentStart,
+          count: lockUrls.length,
+        },
+        { wardrobeBuild },
+      )
     : lockUrls.length
-      ? soloCharacterParagraphForFrames(characterAttachmentStart)
+      ? soloCharacterParagraphForFrames(characterAttachmentStart, { wardrobeBuild })
       : [];
   const logoLines = logoUrls.length
     ? bookendLogoFrameLines(characterAttachmentStart + lockUrls.length)
@@ -354,9 +362,13 @@ export function buildFramePrompt(
       : clipEndVo(row)
     : row.englishVo;
   // Dialogue skills write NAME: "line"; the subtitle shows only the words.
-  const voForFrame = skillBansNarration(project.skillSlug)
-    ? subtitleText(spokenForFrame)
-    : spokenForFrame;
+  // "(no dialogue)" must not be painted as a caption.
+  const silentClip = isSilentSpokenLine(spokenForFrame);
+  const voForFrame = silentClip
+    ? ""
+    : skillBansNarration(project.skillSlug)
+      ? subtitleText(spokenForFrame)
+      : spokenForFrame;
   // In-world-label mode keeps the 「」 tag wording the director wrote into the scene;
   // every other mode strips it so the model does not paint invented labels.
   // Cartoon stills keep the prop tags the director wrote into the scene.
@@ -404,10 +416,10 @@ export function buildFramePrompt(
             voForFrame,
             undefined,
             dualBeat
-              ? { markerSafeZone: true, lettering }
+              ? { markerSafeZone: true, lettering, silentClip }
               : reelSafeZone
-                ? { reelSafeZone: true, lettering }
-                : { lettering },
+                ? { reelSafeZone: true, lettering, silentClip }
+                : { lettering, silentClip },
           ),
         ]
       : keepSceneLabels
@@ -451,7 +463,7 @@ export function buildFramePrompt(
     ...(parts.motion ? [`${motionLabel}: ${parts.motion}`] : []),
     ...(storyShortCameraLock(project.skillSlug) ? [storyShortCameraLock(project.skillSlug)] : []),
     ...(narratorLock ? [narratorLock] : []),
-    ...(lockUrls.length ? [FRAME_WARDROBE_LOCK] : []),
+    ...(lockUrls.length ? [wardrobeBuild ? FRAME_WARDROBE_BUILD : FRAME_WARDROBE_LOCK] : []),
     ...(parts.renderDetail ? [parts.renderDetail] : []),
     moment,
     ...compositionLockLines(options.anchor, annotatedCount + 1, sceneRefUrls.length > 0, performance),
@@ -459,7 +471,9 @@ export function buildFramePrompt(
     ...(listicle
       ? ["Final check: the numbered item list is visible and spelled exactly."]
       : sceneText.enabled
-        ? dualBeat
+        ? silentClip
+          ? ["Final check: no subtitle band and no letters in the frame."]
+          : dualBeat
           ? [
               `Final check: spelling matches the Marker line(s); no bottom subtitle band.${lettering.letteringLayout ? " Voiceover lettering sits where the Layout line says." : ""}`,
             ]
@@ -475,7 +489,9 @@ export function buildFramePrompt(
               "Final check: the only lettering is the short in-world label(s) named in the Scene; no subtitle band, no voiceover transcript.",
             ]
           : []),
-    ...(lockUrls.length ? [FRAME_WARDROBE_CHECK] : []),
+    ...(lockUrls.length
+      ? [wardrobeBuild ? FRAME_WARDROBE_BUILD_CHECK : FRAME_WARDROBE_CHECK]
+      : []),
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
 

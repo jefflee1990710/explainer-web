@@ -48,6 +48,7 @@ import { mediaSrc } from "@/util/media-src";
 import { isBookendSkill } from "@/service/director/skill-rules";
 import { resolveRunSkill } from "@/service/director/run-skill";
 import { loadStoredSkill } from "@/service/director/load-skill";
+import { chainsClipStarts } from "@/service/director/clip-continuity";
 import {
   isInheritedTalkingHeadStart,
   isTalkingHeadSkill,
@@ -906,7 +907,7 @@ export async function syncProjectFromJobs(projectId: ObjectId) {
 async function inheritTalkingHeadStarts(projectId: ObjectId) {
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
-  if (!project || !isTalkingHeadSkill(project.skillSlug)) return;
+  if (!project || !chainsClipStarts(project.skillSlug)) return;
   const frames = project.frames || [];
   const copied = withInheritedTalkingHeadStarts(frames, project.skillSlug);
   for (const frame of copied) {

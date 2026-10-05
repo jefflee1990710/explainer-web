@@ -86,7 +86,14 @@ export function VideoEditorShell({ video }: { video: PublicVideoCard }) {
     <StudioFrame
       inspector={inspector}
       preview={preview}
-      timeline={<Filmstrip items={items} selectedId={selectedId} onSelect={setSelectedId} />}
+      timeline={
+        <Filmstrip
+          items={items}
+          selectedId={selectedId}
+          aspectRatio={video.aspectRatio}
+          onSelect={setSelectedId}
+        />
+      }
     />
   );
 }

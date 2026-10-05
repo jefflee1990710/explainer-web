@@ -29,12 +29,18 @@ import {
   dialogueOnlyDirectorBlock,
   dialogueQaDirectorBlock,
   isComparisonCardSkill,
+  followShotDirectorBlock,
+  isFollowShotSkill,
+  isOutfitReelSkill,
+  isSurpriseInterviewSkill,
   isTalkingBrollSkill,
   listicleDirectorBlock,
+  outfitReelDirectorBlock,
   skillBansNarration,
   skillForcesSceneText,
   STORY_SHORT_SKILL_SLUG,
   storyShortDirectorBlock,
+  surpriseInterviewDirectorBlock,
   talkingBrollDirectorBlock,
 } from "@/service/director/skill-rules";
 import { keyframeDeltaDirectorBlock } from "@/service/director/keyframe-delta";
@@ -121,8 +127,10 @@ export async function runPhaseA(input: {
     ...input,
     skillSlug: input.skill.slug,
   });
+  const wardrobeBuild = isOutfitReelSkill(input.skill.slug);
   const characterNote =
-    castBlockForPhaseA(input.cast) || phaseASoloCharacterNote(input.characterImageUrl);
+    castBlockForPhaseA(input.cast, { wardrobeBuild }) ||
+    phaseASoloCharacterNote(input.characterImageUrl, { wardrobeBuild });
   const lettering = resolveStyleLettering(input.style);
   const dualBeat = isDualBeatSkill(input.skill.slug);
   const dialogueOnly = skillBansNarration(input.skill.slug);
@@ -187,9 +195,13 @@ ${
   characterImages.length
     ? [
         "Character reference images / blueprints are attached to the user message. You MUST inspect them.",
-        "characterLock must ONLY name the cast and say appearance follows the attached blueprint — never invent hair, face, clothing, or accessories.",
-        "In explainerScene and motionCamera describe pose, props, labels, and environment only. Plan each scene around those characters as the subject. Do not invent a replacement hero.",
-        ...directorBlueprintSceneRules(),
+        wardrobeBuild
+          ? "characterLock must ONLY name the cast and say face, hair, and proportions follow the attached blueprint. Listed garments are named in explainerScene."
+          : "characterLock must ONLY name the cast and say appearance follows the attached blueprint — never invent hair, face, clothing, or accessories.",
+        wardrobeBuild
+          ? "In explainerScene and motionCamera describe pose, the room, and the garments from the user's list. Do not invent a replacement hero, hair, or face."
+          : "In explainerScene and motionCamera describe pose, props, labels, and environment only. Plan each scene around those characters as the subject. Do not invent a replacement hero.",
+        ...directorBlueprintSceneRules({ wardrobeBuild }),
       ].join(" ")
     : ""
 }
@@ -209,6 +221,9 @@ ${
       ? bookendDirectorBlock(input.skill.slug, logoImages.length > 0, { lockLength: lockBookendLength })
       : "",
     talkingHead ? talkingHeadDirectorBlock() : "",
+    isSurpriseInterviewSkill(input.skill.slug) ? surpriseInterviewDirectorBlock() : "",
+    wardrobeBuild ? outfitReelDirectorBlock() : "",
+    isFollowShotSkill(input.skill.slug) ? followShotDirectorBlock() : "",
   ]
     .filter(Boolean)
     .join("\n")

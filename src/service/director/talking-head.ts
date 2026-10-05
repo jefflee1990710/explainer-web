@@ -1,5 +1,6 @@
 import type { FramePosition, SpeechPace, VoLanguage } from "@/model/project";
 import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
+import { chainsClipStarts, inheritsPreviousEnd } from "@/service/director/clip-continuity";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
 import { mediaSrc } from "@/util/media-src";
 
@@ -15,18 +16,18 @@ export function isTalkingHeadSkill(skillSlug?: string) {
   return skillSlug === TALKING_HEAD_SKILL_SLUG;
 }
 
-// Clip 2+ starts are not drawn: they reuse the previous clip's end still.
+// Chained directors do not draw a start that copies the previous end still.
 export function isInheritedTalkingHeadStart(
   skillSlug: string | undefined,
   clipNumber: number,
   position: FramePosition,
 ) {
-  return isTalkingHeadSkill(skillSlug) && position === "start" && clipNumber > 1;
+  return inheritsPreviousEnd(skillSlug, clipNumber, position);
 }
 
-// Clip 1 draws two stills. Later clips draw only the end still.
+// A copied start is free. Clip 1, and surprise clip 2, still draw both stills.
 export function talkingHeadFramesCost(skillSlug: string | undefined, clipNumber: number) {
-  return isTalkingHeadSkill(skillSlug) && clipNumber > 1 ? FRAME_COST : FRAMES_COST;
+  return inheritsPreviousEnd(skillSlug, clipNumber, "start") ? FRAME_COST : FRAMES_COST;
 }
 
 type CopyableFrame = {
@@ -44,7 +45,7 @@ export function withInheritedTalkingHeadStarts<T extends CopyableFrame>(
   frames: T[],
   skillSlug?: string,
 ): T[] {
-  if (!isTalkingHeadSkill(skillSlug)) return frames;
+  if (!chainsClipStarts(skillSlug)) return frames;
   return frames.map((frame) => {
     if (!isInheritedTalkingHeadStart(skillSlug, frame.clipNumber, frame.position)) return frame;
     const prev = frames.find(

@@ -106,15 +106,36 @@ const SKILLS: SkillManifest[] = [
     dir: "comparison-card-director",
     slug: "comparison-card-director",
     title: "Comparison card",
-    description: "每段一張對照：同一件事的兩種看法，橫向左右或直向上下。",
+    description: "One comparison per clip: two views of the same thing, left/right or top/bottom.",
     sortOrder: 10,
   },
   {
     dir: "talking-broll-director",
     slug: "talking-broll-director",
     title: "Talking-head with B-roll",
-    description: "對鏡講兩句，切去剛才那兩句在講的畫面，再回到同一個近景。",
+    description: "Two lines to camera, a cutaway of what those lines named, then back to the same close-up.",
     sortOrder: 11,
+  },
+  {
+    dir: "surprise-interview-director",
+    slug: "surprise-interview-director",
+    title: "Surprise interview",
+    description: "One character opens on a surprised close-up, then sits facing the camera and explains the concept.",
+    sortOrder: 12,
+  },
+  {
+    dir: "outfit-reel-director",
+    slug: "outfit-reel-director",
+    title: "Outfit build",
+    description: "One character puts on the listed clothes one piece at a time, then holds the finished look.",
+    sortOrder: 13,
+  },
+  {
+    dir: "follow-shot-director",
+    slug: "follow-shot-director",
+    title: "Follow shot",
+    description: "A third-person continuous shot. Each clip starts on the previous clip's end.",
+    sortOrder: 14,
   },
 ];
 

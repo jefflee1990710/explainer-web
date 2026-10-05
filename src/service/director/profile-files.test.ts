@@ -16,6 +16,9 @@ const DIRS = [
   "talking-head-director",
   "comparison-card-director",
   "talking-broll-director",
+  "surprise-interview-director",
+  "outfit-reel-director",
+  "follow-shot-director",
 ];
 
 for (const dir of DIRS) {

@@ -20,6 +20,9 @@ import {
   isTalkingBrollSkill,
   listicleListEntries,
   requiredCastCount,
+  followShotDirectorBlock,
+  outfitReelDirectorBlock,
+  surpriseInterviewDirectorBlock,
   talkingBrollDirectorBlock,
   skillBansNarration,
   skillForcesSceneText,
@@ -291,6 +294,20 @@ test("comparison card is a split, and talking-head b-roll needs one face", () =>
   assert.equal(requiredCastCount("talking-broll-director"), 1);
   assert.match(talkingBrollDirectorBlock(), /two on-camera lines/);
   assert.match(talkingBrollDirectorBlock(), /Override clip inheritance/);
+});
+
+test("surprise, outfit, and follow each need one character", () => {
+  for (const slug of ["surprise-interview-director", "outfit-reel-director", "follow-shot-director"]) {
+    assert.equal(requiredCastCount(slug), 1);
+    assert.match(briefSkillError({ skillSlug: slug, characterIds: [] }) || "", /1/);
+    assert.equal(briefSkillError({ skillSlug: slug, characterIds: ["a"] }), undefined);
+  }
+  assert.match(surpriseInterviewDirectorBlock(), /Clip 2 cuts once/);
+  assert.match(surpriseInterviewDirectorBlock(), /Clip 3 and after/);
+  assert.match(outfitReelDirectorBlock(), /one garment/);
+  assert.match(outfitReelDirectorBlock(), /Never invent a starting outfit/);
+  assert.match(followShotDirectorBlock(), /startScene copies the previous endScene/);
+  assert.match(followShotDirectorBlock(), /Do not scroll a whole street/);
 });
 
 test("listicle forces on-canvas listing text", () => {

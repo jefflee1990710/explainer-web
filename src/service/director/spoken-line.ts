@@ -40,10 +40,15 @@ export function spokenLineCopy(skillSlug?: string) {
 // `NAME: "line"` / `名字：「台詞」` blocks; the name is for voice casting, never on screen.
 const SPEAKER_LINE = /[^:：\n"“「]{1,40}?[:：]\s*["“「]([^"”」]*)["”」]/g;
 
+// A beat with nothing to say. Must not become a subtitle that reads "(no dialogue)".
+export function isSilentSpokenLine(line: string) {
+  return /^\(?\s*no dialogue\s*\)?$/i.test(line.trim());
+}
+
 // On-screen subtitle text: only the spoken words, no speaker labels or quotes.
 export function subtitleText(line: string) {
   const text = line.trim();
-  if (/^\(?\s*no dialogue\s*\)?$/i.test(text)) return "";
+  if (isSilentSpokenLine(text)) return "";
   const spoken = [...text.matchAll(SPEAKER_LINE)].map((match) => match[1].trim()).filter(Boolean);
   return spoken.length ? spoken.join(" ") : text;
 }

@@ -1,6 +1,14 @@
 import type { AspectRatio, DurationPreset, SpeechPace } from "@/model/project";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
+import {
+  FOLLOW_SHOT_SKILL_SLUG,
+  isFollowShotSkill,
+  isOutfitReelSkill,
+  isSurpriseInterviewSkill,
+  OUTFIT_REEL_SKILL_SLUG,
+  SURPRISE_INTERVIEW_SKILL_SLUG,
+} from "@/service/director/clip-continuity";
 import { talkingHeadDurationHint, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 
 export const STORY_SHORT_SKILL_SLUG = "story-short-director";
@@ -10,6 +18,14 @@ export const OPENING_SKILL_SLUG = "opening-director";
 export const ENDING_SKILL_SLUG = "ending-director";
 export const COMPARISON_CARD_SKILL_SLUG = "comparison-card-director";
 export const TALKING_BROLL_SKILL_SLUG = "talking-broll-director";
+export {
+  FOLLOW_SHOT_SKILL_SLUG,
+  OUTFIT_REEL_SKILL_SLUG,
+  SURPRISE_INTERVIEW_SKILL_SLUG,
+  isFollowShotSkill,
+  isOutfitReelSkill,
+  isSurpriseInterviewSkill,
+};
 
 // Opening / Ending bookends. Auto keeps the skill's 1×3–4s sting; a chosen length does not.
 const BOOKEND_SKILLS = new Set([OPENING_SKILL_SLUG, ENDING_SKILL_SLUG]);
@@ -105,7 +121,15 @@ export function skillBansNarration(skillSlug?: string) {
 
 export function requiredCastCount(skillSlug?: string) {
   if (skillSlug === DIALOGUE_QA_SKILL_SLUG) return 2;
-  if (skillSlug === TALKING_HEAD_SKILL_SLUG || skillSlug === TALKING_BROLL_SKILL_SLUG) return 1;
+  if (
+    skillSlug === TALKING_HEAD_SKILL_SLUG ||
+    skillSlug === TALKING_BROLL_SKILL_SLUG ||
+    isSurpriseInterviewSkill(skillSlug) ||
+    isOutfitReelSkill(skillSlug) ||
+    isFollowShotSkill(skillSlug)
+  ) {
+    return 1;
+  }
   return 0;
 }
 
@@ -538,6 +562,39 @@ export function comparisonCardDirectorBlock(aspectRatio: AspectRatio) {
     "Those two titles are the only on-canvas writing. Do not also caption the full voiceover.",
     "The hook names the contrast. Later clips may change what each half shows; the split stays. The last clip rests with both halves visible.",
     "A host is optional. If a character is attached, they may stand in one half or point across the split, and must not cover either title.",
+  ].join(" ");
+}
+
+// Surprise close-up, then a seated interview that chains from clip 3.
+export function surpriseInterviewDirectorBlock() {
+  return [
+    "This is a SURPRISE INTERVIEW. Exactly one attached character. They speak every line to the camera. No second character and no screen recording.",
+    "Clip 1 is a locked close-up, 3–4 seconds. The face moves into a clear surprise and says one short hook. If the user pasted a script, that hook is the first sentence verbatim. If they gave only a concept, write the hook.",
+    "Clip 2 cuts once to a seated medium shot, eyes to the lens, and starts the explanation. Do not copy the close-up into clip 2's startScene.",
+    "Clip 3 and after: startScene copies the previous endScene. Same chair, background, and light. Motion is the mouth, a small nod, and at most one hand gesture.",
+    "One idea per interview clip. The last clip rests in the chair. Bottom subtitle equals that clip's englishVo. No background music.",
+  ].join(" ");
+}
+
+// Listed garments go on one per clip. Face stays on the blueprint.
+export function outfitReelDirectorBlock() {
+  return [
+    "This is an OUTFIT REEL. Exactly one attached character. Each clip puts on one garment from the user's list, in that order, then one final clip holds the full look.",
+    "Ask for the garment list and the starting outfit before planning. Never invent a starting outfit or an extra piece.",
+    "One room, one locked full-body camera, character at a similar size. Each clip is 3–4 seconds. One action: pull on, step into, or fasten that piece.",
+    "Clip 2 and after: startScene copies the previous endScene, including every garment already on. Face, hair, and body proportions stay on the blueprint. Name the listed garments in explainerScene.",
+    "Default englishVo is \"(no dialogue)\". A short line naming the finished look is allowed only on the last clip, and only if the user asked. No step numbers and no imperative tutorial lines.",
+  ].join(" ");
+}
+
+// One third-person action, each start copied from the previous end.
+export function followShotDirectorBlock() {
+  return [
+    "This is a FOLLOW SHOT. Exactly one attached character, filmed third-person, already in motion. This is not an interview.",
+    "Each clip is 3–6 seconds and contains one beat: a few steps, one turn, or one gesture. The character stays a similar size. The background shifts only a little. Do not scroll a whole street past the lens.",
+    "Clip 2 and after: startScene copies the previous endScene. Same place, same clothes, same camera angle, same body position. Do not change angle between clips.",
+    "Clothes stay as they are. No whip pan, no new setup, and no required crowd.",
+    "No narrator. Default englishVo is \"(no dialogue)\". Use one short line only if the user wrote one. The last clip stops and rests.",
   ].join(" ");
 }
 
