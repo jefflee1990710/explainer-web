@@ -27,6 +27,7 @@ export const videoZhHant = {
     badgeImages: "圖片產生中",
     badgeVideos: "影片產生中",
     badgeAwaitingVideo: "圖片完成，待產影片",
+    generateAllVideos: "產生全部影片",
   },
   pager: {
     page: "第 {page} / {pages} 頁",

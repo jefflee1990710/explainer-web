@@ -13,7 +13,7 @@ import type {
   PublicStyle,
   PublicVideo,
 } from "@/presentation/serialize";
-import { folderPath, folderVideoPath } from "@/service/folder-video-path";
+import { folderPath } from "@/service/folder-video-path";
 
 // Dedicated editor page. Same-tab from the folder list.
 export function VideoEditorWorkspace({
@@ -95,10 +95,7 @@ export function VideoEditorWorkspace({
           initialVideo={video}
           credits={credits}
           subscribed={subscribed}
-          onVideoCreated={(next) => {
-            setVideo(next);
-            router.replace(folderVideoPath(folderId, next.id));
-          }}
+          onVideoCreated={setVideo}
           onStepNav={onStepNav}
         />
       </VideoEditorDialog>

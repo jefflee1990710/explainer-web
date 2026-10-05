@@ -2,14 +2,14 @@
 
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
 import { VideoEditCoverPreview } from "@/presentation/components/app/projects/new/video-edit-cover-preview";
 import { VideoEditCoverSafeAreas } from "@/presentation/components/app/projects/new/video-edit-cover-safe-areas";
 import type { CoverSafeArea } from "@/model/project";
-import { generateReelCoverAction } from "@/presentation/actions/video-edit";
+import { generateReelCoverAction, saveCoverSafeAreasAction } from "@/presentation/actions/video-edit";
 import {
   holdOptimisticTasks,
   paidKeyTasks,
@@ -46,6 +46,8 @@ export function VideoEditCoverDialog({
   const [pending, setPending] = useState(false);
   const [extraPrompt, setExtraPrompt] = useState(project.coverPrompt ?? "");
   const [safeAreas, setSafeAreas] = useState<CoverSafeArea[]>(project.coverSafeAreas ?? []);
+  const desiredRef = useRef(safeAreas);
+  const flushing = useRef(false);
   const generating = project.coverStatus === "generating" || pending;
   const enough = credits >= FRAME_COST;
   // Once this export has queued a cover, keep the dialog until the still lands.
@@ -58,6 +60,51 @@ export function VideoEditCoverDialog({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [holdForExport, onClose]);
+
+  async function flushSafeAreas() {
+    if (flushing.current) return;
+    flushing.current = true;
+    let written = desiredRef.current;
+    try {
+      for (;;) {
+        written = desiredRef.current;
+        let result: Awaited<ReturnType<typeof saveCoverSafeAreasAction>>;
+        try {
+          result = await saveCoverSafeAreasAction(project.id, written);
+        } catch (error) {
+          const saved = project.coverSafeAreas ?? [];
+          desiredRef.current = saved;
+          written = saved;
+          setSafeAreas(saved);
+          setError(error instanceof Error ? error.message : t("errors.coverSafeAreaInvalid"));
+          return;
+        }
+        if (desiredRef.current.join() !== written.join()) continue;
+        if (!result.ok) {
+          const saved = project.coverSafeAreas ?? [];
+          desiredRef.current = saved;
+          written = saved;
+          setSafeAreas(saved);
+          setError(translateAppError(result.error, t));
+          return;
+        }
+        onProjectChange(result.project);
+        return;
+      }
+    } finally {
+      flushing.current = false;
+      if (desiredRef.current.join() !== written.join()) void flushSafeAreas();
+    }
+  }
+
+  function toggleSafeArea(id: CoverSafeArea) {
+    const current = desiredRef.current;
+    const next = current.includes(id) ? current.filter((item) => item !== id) : [...current, id];
+    desiredRef.current = next;
+    setSafeAreas(next);
+    setError("");
+    void flushSafeAreas();
+  }
 
   async function generate() {
     if (generating || !enough) return;
@@ -114,11 +161,7 @@ export function VideoEditCoverDialog({
           <VideoEditCoverSafeAreas
             selected={safeAreas}
             disabled={generating}
-            onToggle={(id) =>
-              setSafeAreas((current) =>
-                current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
-              )
-            }
+            onToggle={toggleSafeArea}
           />
         </div>
         <div className="flex min-h-0 flex-col overflow-y-auto p-4">

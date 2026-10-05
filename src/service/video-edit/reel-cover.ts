@@ -184,6 +184,33 @@ async function claimCoverRefund(videoId: ObjectId, clerkUserId: string, coverSta
   }
 }
 
+// Remember the checked apps on this video. Opening the cover dialog again
+// restores them, so the user does not tick the same boxes twice.
+export async function saveCoverSafeAreasAction(
+  videoId: string,
+  safeAreas: CoverSafeArea[],
+): Promise<GenerateReelCoverResult> {
+  try {
+    const user = await requireAppUser();
+    if (!ObjectId.isValid(videoId)) return { ok: false, error: "找不到影片" };
+    const safe = parseCoverSafeAreas(safeAreas);
+    if (!safe.ok) return safe;
+
+    const videos = await videosCollection();
+    const now = new Date();
+    const updated = await videos.findOneAndUpdate(
+      { _id: new ObjectId(videoId), clerkUserId: user.clerkUserId },
+      safe.areas.length
+        ? { $set: { coverSafeAreas: safe.areas, updatedAt: now } }
+        : { $set: { updatedAt: now }, $unset: { coverSafeAreas: "" } },
+      { returnDocument: "after" },
+    );
+    return updated ? { ok: true, project: toPublicVideo(updated) } : { ok: false, error: "找不到影片" };
+  } catch (error) {
+    return fail(error, "封面安全區無效");
+  }
+}
+
 // Claim the slot, charge once, then queue a reelCover still.
 export async function generateReelCoverAction(
   videoId: string,

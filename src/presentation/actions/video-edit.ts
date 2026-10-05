@@ -16,6 +16,9 @@ export async function listBookendVideosAction(...args: Parameters<typeof edit.li
 export async function generateReelCoverAction(...args: Parameters<typeof cover.generateReelCoverAction>) {
   return cover.generateReelCoverAction(...args);
 }
+export async function saveCoverSafeAreasAction(...args: Parameters<typeof cover.saveCoverSafeAreasAction>) {
+  return cover.saveCoverSafeAreasAction(...args);
+}
 export async function exportFinalVideoAction(...args: Parameters<typeof edit.exportFinalVideoAction>) {
   return edit.exportFinalVideoAction(...args);
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { folderVideoPath } from "@/service/folder-video-path";
+import { folderPath, folderVideoPath } from "@/service/folder-video-path";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EditorStepSwitch, type EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
@@ -367,10 +367,11 @@ export function NewProjectForm({
       setError(translateAppError(result.error, t));
       return;
     }
-    // Switch to the stepper immediately; Phase A runs in the background.
+    // A new video goes back to this project's list. Phase A keeps running.
+    // Saving an existing brief stays on that video.
     setProject(result.project);
     onVideoCreated?.(result.project);
-    router.replace(folderVideoPath(projectId, result.project.id));
+    router.replace(project ? folderVideoPath(projectId, result.project.id) : folderPath(projectId));
   }
 
   // Wipe storyboard, stills, and clip videos, then rerun Phase A from the form.

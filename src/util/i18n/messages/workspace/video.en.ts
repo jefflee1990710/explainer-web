@@ -27,6 +27,7 @@ export const videoEn = {
     badgeImages: "Generating images",
     badgeVideos: "Generating videos",
     badgeAwaitingVideo: "Images ready",
+    generateAllVideos: "Generate all videos",
   },
   pager: {
     page: "Page {page} / {pages}",

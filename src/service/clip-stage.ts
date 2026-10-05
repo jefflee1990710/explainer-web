@@ -211,6 +211,15 @@ export function clipGenerationTags(project: ClipStageSource): GenerationDetailTa
   return tags;
 }
 
+// Every scene image is done, and at least one clip video still needs generating.
+export function canGenerateAllVideos(tags: GenerationDetailTag[]) {
+  const scenes = tags.filter((tag) => tag.kind === "scene");
+  const videos = tags.filter((tag) => tag.kind === "video");
+  if (scenes.length === 0 || videos.length === 0) return false;
+  if (!scenes.every((tag) => tag.state === "ready")) return false;
+  return videos.some((tag) => tag.state === "pending" || tag.state === "failed");
+}
+
 export type CardGenerationBadge = "images" | "videos" | "awaiting_video";
 
 // One badge per video card: images in flight win, then videos, then "images done, videos not started".

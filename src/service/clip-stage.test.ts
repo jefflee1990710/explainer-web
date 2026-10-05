@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ClipFrame, ProjectClip } from "@/model/project";
 import {
+  canGenerateAllVideos,
   cardGenerationBadge,
   clipStateFor,
   defaultSelectedClip,
@@ -414,4 +415,17 @@ test("card badge: images in flight, then videos, then images done waiting for vi
   );
   assert.equal(cardGenerationBadge([tag(1, "scene", "ready"), tag(1, "video", "pending"), tag(2, "scene", "pending"), tag(2, "video", "pending")]), null);
   assert.equal(cardGenerationBadge([tag(1, "scene", "ready"), tag(1, "video", "ready")]), null);
+});
+
+test("generate-all shows only when every scene is ready and a video is still outstanding", () => {
+  const tag = (clipNumber: number, kind: "scene" | "video", state: "pending" | "busy" | "ready" | "failed") => ({
+    clipNumber,
+    kind,
+    state,
+  });
+  assert.equal(canGenerateAllVideos([tag(1, "scene", "ready"), tag(1, "video", "pending")]), true);
+  assert.equal(canGenerateAllVideos([tag(1, "scene", "ready"), tag(1, "video", "failed"), tag(2, "scene", "ready"), tag(2, "video", "ready")]), true);
+  assert.equal(canGenerateAllVideos([tag(1, "scene", "busy"), tag(1, "video", "pending")]), false);
+  assert.equal(canGenerateAllVideos([tag(1, "scene", "ready"), tag(1, "video", "busy")]), false);
+  assert.equal(canGenerateAllVideos([tag(1, "scene", "ready"), tag(1, "video", "ready")]), false);
 });
