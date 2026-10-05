@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { VideoGenerationBadge } from "@/presentation/components/app/projects/[id]/video-generation-badge";
 import { VideoGenerationProgress } from "@/presentation/components/app/projects/[id]/video-generation-progress";
 import { durationPresetLabel, voLanguageLabel } from "@/util/i18n/picker-labels";
 import { PreviewStrip } from "@/presentation/components/app/preview-strip";
@@ -58,6 +59,7 @@ export function VideoGridCard({
             </span>
           )}
           <VideoGenerationProgress tags={video.tags} status={video.status} />
+          <VideoGenerationBadge tags={video.tags} />
         </span>
         <span className="flex flex-1 flex-col gap-1.5 p-2.5">
           <span className="line-clamp-2 text-xs font-medium leading-snug">{title}</span>

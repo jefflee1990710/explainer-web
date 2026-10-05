@@ -211,6 +211,20 @@ export function clipGenerationTags(project: ClipStageSource): GenerationDetailTa
   return tags;
 }
 
+export type CardGenerationBadge = "images" | "videos" | "awaiting_video";
+
+// One badge per video card: images in flight win, then videos, then "images done, videos not started".
+export function cardGenerationBadge(tags: GenerationDetailTag[]): CardGenerationBadge | null {
+  const scenes = tags.filter((tag) => tag.kind === "scene");
+  const videos = tags.filter((tag) => tag.kind === "video");
+  if (scenes.some((tag) => tag.state === "busy")) return "images";
+  if (videos.some((tag) => tag.state === "busy")) return "videos";
+  if (scenes.length > 0 && scenes.every((tag) => tag.state === "ready") && videos.some((tag) => tag.state === "pending")) {
+    return "awaiting_video";
+  }
+  return null;
+}
+
 export type InFlightCounts = {
   framesQueued: number;
   framesGenerating: number;

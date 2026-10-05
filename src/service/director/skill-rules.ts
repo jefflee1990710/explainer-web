@@ -206,23 +206,246 @@ export function storyShortCameraLock(skillSlug?: string) {
   return "Camera: third-person observer camera, as in a film scene. No eye contact with the lens; characters never look at, wave to, or talk to the camera. Eyelines go to other characters, objects, or off into the scene (profile, three-quarter, over-the-shoulder).";
 }
 
-// 白板概念解說：永遠是畫外旁白；角色不說話。有角色時每個鏡頭只做一種主動作，下一鏡換另一種。
+// 白板概念解說：永遠是畫外旁白；角色不說話。有角色時每個鏡頭只做一種主動作，依台詞語意挑選，近兩鏡不重複。
+export type CartoonAction =
+  | "push"
+  | "pull"
+  | "stack"
+  | "lift"
+  | "place"
+  | "toss"
+  | "plug"
+  | "sketch"
+  | "flip"
+  | "dial"
+  | "stretch"
+  | "squeeze"
+  | "magnify"
+  | "jump"
+  | "point";
+
+type CartoonActionSpec = {
+  action: CartoonAction;
+  // Word the first motionCamera beat must use so the still can name this action.
+  cue: string;
+  meaning: string;
+  director: string;
+  pattern: RegExp;
+  // Still lines stay short: only the detected action's line reaches the image prompt.
+  start: string;
+  end: string;
+  video: string;
+};
+
+const NO_SWAP = "Do not swap the action for a jump, a cheer, or a new prop.";
+
+// Earlier entries win a tie at the same word, so "pulls it apart" reads as stretch.
+const CARTOON_ACTIONS: CartoonActionSpec[] = [
+  {
+    action: "stretch",
+    cue: "stretches",
+    meaning: "break down, expand",
+    director: "hands together on a small chart, then arms wide and the chart stretched wide",
+    pattern:
+      /\bstretch(?:es|ed|ing)?\b(?!\s+(?:\w+\s+)?(?:arms?|hands?|body|legs?)\b)|\bpull(?:s|ed|ing)?\s+(?:\w+\s+){0,3}apart\b/i,
+    start:
+      "This clip's one action is a STRETCH. In this still both hands hold the edges of a small, compact element named in the Scene, close together.",
+    end: `This still is after the STRETCH: arms spread wide, and the same element is stretched wide between the hands, showing more parts. ${NO_SWAP}`,
+    video: "This clip's action is a STRETCH: the arms spread apart and the element widens between the hands.",
+  },
+  {
+    action: "push",
+    cue: "pushes",
+    meaning: "send out, submit",
+    director: "hands on the element, then arms extended and it farther away, at its destination",
+    pattern: /\b(?:push(?:es|ed|ing)?|shov(?:e|es|ed|ing)|thrust(?:s|ing)?)\b/i,
+    start:
+      "This clip's one action is a PUSH. In this still the hands are on the element named in the Scene, arms bent and loaded, the element right against the hands. Draw its destination named in the Scene on the far side of the element from the character. Any motion marks point away from the character, toward that destination.",
+    end: `This still is after the PUSH landed: arms fully extended away from the body, and the same element is still visible, farther from the character and at or against its destination. Any motion marks point away from the character. ${NO_SWAP}`,
+    video:
+      "This clip's action is a PUSH: the element moves away from the character's body for the whole clip and never slides back toward them.",
+  },
+  {
+    action: "pull",
+    cue: "pulls",
+    meaning: "bring in, get",
+    director: "arms reach and grip it, then it close to the chest with the arms drawn in",
+    pattern: /\b(?:pull(?:s|ed|ing)?|drag(?:s|ged|ging)?|tug(?:s|ged|ging)?|yank(?:s|ed|ing)?|haul(?:s|ed|ing)?)\b/i,
+    start:
+      "This clip's one action is a PULL. In this still the arms reach out and the hands grip the element named in the Scene, which sits away from the body. Any motion marks point from the element toward the character.",
+    end: `This still is after the PULL landed: arms drawn in toward the chest, and the same element is still visible, now close to the body. Any motion marks point toward the character. ${NO_SWAP}`,
+    video:
+      "This clip's action is a PULL: the element moves toward the character's body for the whole clip and never slides away from them.",
+  },
+  {
+    action: "stack",
+    cue: "stacks",
+    meaning: "add, build up",
+    director: "one hand holds a block above the stack, then the stack one block taller and the hand letting go",
+    pattern: /(?<!\b(?:a|an|the|its|this|that|tall|growing)\s)\bstack(?:s|ed|ing)?\b(?!\s+of\b)/i,
+    start:
+      "This clip's one action is a STACK. In this still one hand holds a block just above the stack named in the Scene, which is one block short.",
+    end: `This still is after the STACK: the same block sits on top, the stack is one block taller, and the hand is just letting go. ${NO_SWAP}`,
+    video: "This clip's action is a STACK: the block lowers onto the stack and stays there; the stack only grows.",
+  },
+  {
+    action: "lift",
+    cue: "lifts",
+    meaning: "increase, level up",
+    director: "crouched with both hands under it at the waist, then arms overhead holding it up",
+    pattern:
+      /\b(?:lift|hoist)(?:s|ed|ing)?\b(?!\s+(?:(?:his|her|their|one|both|an?|the)\s+)?(?:arms?|hands?|head|chin|gaze|eyes)\b)/i,
+    start:
+      "This clip's one action is a LIFT. In this still they crouch with knees bent and both hands under the element named in the Scene, at waist height.",
+    end: `This still is after the LIFT: knees straight, both arms overhead holding the same element above the head. ${NO_SWAP}`,
+    video: "This clip's action is a LIFT: they rise from a crouch and raise the element overhead; it only goes up.",
+  },
+  {
+    action: "place",
+    cue: "places",
+    meaning: "put it in the right spot",
+    director: "holds it just above its slot, then it sits in the slot with open hands above",
+    pattern: /(?<!\b(?:in|into|of|take|takes|took|taking)\s)\bplac(?:e|es|ed|ing)\b/i,
+    start:
+      "This clip's one action is a PLACE. In this still the hands hold the element named in the Scene just above its slot, with a small gap between them.",
+    end: `This still is after the PLACE: the same element sits in its slot, and the open hands hover just above it. ${NO_SWAP}`,
+    video: "This clip's action is a PLACE: the element lowers into its slot and settles there.",
+  },
+  {
+    action: "toss",
+    cue: "tosses",
+    meaning: "remove, give up",
+    director: "arm cocked back holding it, then arm swung through and it in mid-air just above the bin",
+    pattern: /\b(?:toss(?:es|ed|ing)?|throw(?:s|ing|n)?|threw|fling(?:s|ing)?|flung|lob(?:s|bed|bing)?)\b/i,
+    start:
+      "This clip's one action is a TOSS. In this still the throwing arm is cocked back behind the shoulder, holding the element named in the Scene; its bin or target is on the other side.",
+    end: `This still is after the TOSS: the arm has swung through toward the target, and the same element is in the air just above it. Motion marks trail from the hand toward the target. ${NO_SWAP}`,
+    video:
+      "This clip's action is a TOSS: the arm swings through and the element arcs away from the body toward the target, never back.",
+  },
+  {
+    action: "plug",
+    cue: "plugs",
+    meaning: "connect, integrate",
+    director: "holds the plug a short gap from its socket, then it seated with a small spark",
+    pattern: /\bplug(?:s|ged|ging)?\b|\bsnap(?:s|ped|ping)?\s+(?:\w+\s+){0,3}(?:(?:into|onto)\b(?!\s+place\b)|together\b)/i,
+    start:
+      "This clip's one action is a PLUG. In this still the hands hold the plug or piece named in the Scene a short gap away from its socket.",
+    end: `This still is after the PLUG: the same piece is seated in its socket, with a small spark at the joint and the hands just letting go. ${NO_SWAP}`,
+    video: "This clip's action is a PLUG: the piece moves into its socket and clicks in with a small spark.",
+  },
+  {
+    action: "sketch",
+    cue: "sketches an arrow",
+    meaning: "cause and effect, link two ideas",
+    director: "marker tip on node A, then a finished arrow from A to B with the marker at B",
+    pattern:
+      /\bsketch(?:es|ed|ing)?\b|\b(?:draw(?:s|ing)?|drew)\s+(?:a|an|the|one)\s+(?:\w+\s+)?(?:arrow|line|link)\b/i,
+    start:
+      "This clip's one action is a SKETCH. In this still they hold a big marker with its tip on the first node named in the Scene; the arrow is not drawn yet.",
+    end: "This still is after the SKETCH: a finished hand-drawn arrow runs from the first node to the second, and the marker tip rests at the second node.",
+    video: "This clip's action is a SKETCH: the marker draws the arrow from the first node to the second in one stroke.",
+  },
+  {
+    action: "flip",
+    cue: "flips",
+    meaning: "compare, myth versus fact",
+    director: "a card shows side A, then it turned over to side B",
+    pattern: /\bflip(?:s|ped|ping)?\b/i,
+    start: "This clip's one action is a FLIP. In this still the hands hold a large card named in the Scene, showing its first side.",
+    end: "This still is after the FLIP: the same card is turned over and shows its second side, as the Scene names it.",
+    video: "This clip's action is a FLIP: the card turns over once, from its first side to its second.",
+  },
+  {
+    action: "dial",
+    cue: "turns the dial",
+    meaning: "adjust, turn up",
+    director: "hand on a dial with the pointer at low, then at high with the linked gauge raised",
+    pattern:
+      /\b(?:turn(?:s|ed|ing)?|twist(?:s|ed|ing)?|spin(?:s|ning)?|spun|crank(?:s|ed|ing)?|rotat(?:e|es|ed|ing))\s+(?:\w+\s+){0,2}(?:dial|knob|wheel|crank|lever)\b|\bdial(?:s|ed|ing)?\s+(?:it\s+)?up\b/i,
+    start:
+      "This clip's one action is a DIAL turn. In this still the hand grips a big dial named in the Scene, its pointer at the low mark.",
+    end: "This still is after the DIAL turn: the same dial's pointer is at the high mark, and the linked gauge or graph is higher.",
+    video: "This clip's action is a DIAL turn: the hand rotates the dial from low to high and the linked gauge rises with it.",
+  },
+  {
+    action: "squeeze",
+    cue: "squeezes",
+    meaning: "simplify, condense",
+    director: "arms wide around a messy pile, then hands together on one small block",
+    pattern: /\b(?:squeez(?:e|es|ed|ing)|compress(?:es|ed|ing)?|crush(?:es|ed|ing)?)\b/i,
+    start: "This clip's one action is a SQUEEZE. In this still the arms are wide around a big, messy pile named in the Scene.",
+    end: `This still is after the SQUEEZE: the hands press together around one small, neat block, the pile condensed into it. ${NO_SWAP}`,
+    video: "This clip's action is a SQUEEZE: the hands come together and the pile condenses into one small block.",
+  },
+  {
+    action: "magnify",
+    cue: "magnifies",
+    meaning: "look closer",
+    director: "a magnifying glass at the chest, then over one node with that node enlarged in the lens",
+    pattern: /\bmagnif(?:y|ies|ied|ying|ier)\b/i,
+    start: "This clip's one action is a MAGNIFY. In this still they hold a magnifying glass at chest height, away from the graph.",
+    end: "This still is after the MAGNIFY: the magnifying glass is over one node of the graph, and that node appears enlarged inside the lens.",
+    video: "This clip's action is a MAGNIFY: the glass moves over one node and that node enlarges inside the lens.",
+  },
+  {
+    action: "jump",
+    cue: "jumps",
+    meaning: "breakthrough, excitement",
+    director: "crouched, then both feet off the ground — never a body slid upward",
+    pattern: /\b(?:jump(?:s|ed|ing)?|leap(?:s|ed|ing|t)?|hop(?:s|ped|ping)?)\b/i,
+    start:
+      "This clip's one action is a JUMP. In this still they crouch with knees bent, both feet on the ground, ready to spring.",
+    end: "This still is the JUMP: both feet clearly off the ground with a shadow below, not a body slid upward.",
+    video: "This clip's action is a JUMP: both feet leave the ground, then land.",
+  },
+  {
+    action: "point",
+    cue: "points at the camera",
+    meaning: "call to action, \"you\"",
+    director: "arm down, then one arm aimed at the lens, not at a side graphic",
+    pattern: /\bpoint(?:s|ed|ing)?\b(?=[^.;]*\b(?:camera|lens|viewer)\b)/i,
+    start: "This clip's one action is a POINT toward the camera. In this still the pointing arm is down.",
+    end: "This still is after the POINT: one arm reaches straight at the lens, fingertip aimed at the viewer, not at a side graphic.",
+    video: "This clip's action is a POINT toward the camera: the arm rises and the fingertip aims at the lens.",
+  },
+];
+
+const ACTION_BY_NAME = new Map(CARTOON_ACTIONS.map((spec) => [spec.action, spec]));
+
+const MENU_ORDER: CartoonAction[] = [
+  "push", "pull", "stack", "lift", "place", "toss", "plug", "sketch",
+  "flip", "dial", "stretch", "squeeze", "magnify", "jump", "point",
+];
+
+function directorActionMenu() {
+  return MENU_ORDER.map((action) => ACTION_BY_NAME.get(action)!)
+    .map((spec) => `${spec.action} (${spec.meaning}; write "${spec.cue}"): ${spec.director}`)
+    .join("; ");
+}
+
 export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean }) {
   const hasCharacter = Boolean(options?.hasCharacter);
   return [
     "This director is ALWAYS narrated: an unseen off-screen narrator speaks every englishVo line in the third person.",
     "The on-screen character never speaks, never introduces themself, and is never the narrator. No first-person lines in the character's voice (no \"Hi, I'm Scro\", \"I am…\", \"we…\" spoken as the character); the narrator may name the character or product in the third person (\"Meet Scro. Scro turns…\").",
     hasCharacter
-      ? "A character is on screen. Give every clip a fresh idea and do not repeat the previous clip's performance or camera. Each clip has exactly one primary body action, and the next clip must use a different one. Rotate through these four and never repeat the previous clip: push a drawn element (hands on it, arms extend, it moves away from the body), pull a drawn element (hands grab it and draw it toward the body), jump (crouch, both feet leave the ground, then land — never slide the body upward), or point toward the camera (one arm reaches at the lens, fingertip aimed at the viewer, not at a side graphic). A different standing position, a few steps, or a walk is not a new action. Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). About 80% of clips keep them on that same side for the whole clip — do not walk them from left to right every time. Only about 20% of clips are a full cross, either left to right or right to left, and those rare crosses do not all go the same way. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and facial expression. Camera angle changes every clip and does not repeat: from the character's left side, from above, from the front, or from behind as they turn around, and it may zoom in or out. One continuous move, no cut and no teleport. They stay silent — expression only, no lip-sync and no greeting wave."
+      ? `A character is on screen. Each clip has exactly one primary body action, chosen from this list by what the clip's line means. Each entry gives the meaning, the word motionCamera's first beat must use, and the before then after of the two stills: ${directorActionMenu()}. Do not reuse an action from either of the previous two clips. Use jump and point toward the camera at most once each per video, on the key beat. A different standing position, a few steps, or a walk is not a new action.`
       : "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth closed or reacting. It may point at a diagram, stand aside reacting, or handle props — it does not have to hold three props.",
     hasCharacter
-      ? "For every topic, keep an explanation graph and add the drawn element this clip pushes, pulls, jumps beside, or points past toward the camera. Do not reuse the same action or the same camera angle on the next clip. A full left-to-right or right-to-left walk is rare and does not count as the primary action. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts, flow, or a simple chart. Never a near-empty canvas."
-      : "For every topic, make an explanation graph the main subject of the canvas — not a character holding metaphor props. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts of a whole, flow or cycle, or a simple chart. Topic does not matter: food, money, health, product, habit, or science all get a graph. Metaphor props (boxes, bins, arrows, yellow tags) are only a fallback when a graph would hide the idea. Density is the graph — never a three-prop quota. Never a near-empty canvas with one floating label.",
-    hasCharacter
-      ? "startScene and endScene are the before and after of that one action, not two standing poses. Push: arms loaded on the element, then arms extended and the element farther away. Pull: arms reaching, then the element closer with the arms drawn in. Jump: one still has both feet off the ground. Point toward the camera: one still has the arm down, the other has the arm aimed at the lens. They usually stay on the same side; they finish on the opposite side only on a rare lateral cross. Do not write that the character stands in both stills. The travel lives only in motionCamera, and the first beat names the verb (push, pull, jump, or point toward the camera)."
+      ? "Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). About 80% of clips keep them on that same side for the whole clip — do not walk them from left to right every time. Only about 20% of clips are a full cross, either left to right or right to left, and those rare crosses do not all go the same way. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and facial expression. Camera angle changes every clip and does not repeat: from the character's left side, from above, from the front, or from behind as they turn around, and it may zoom in or out. One continuous move, no cut and no teleport. They stay silent — expression only, no lip-sync and no greeting wave."
       : "",
     hasCharacter
-      ? "For a push or a pull, write the same element in both startScene and endScene inside 1) Character, with where it sits relative to the character's hands and which side of the character its destination is on (the slot, box, or graph node it moves toward). In endScene the element is still visible, farther away for a push and closer for a pull. Never write that it vanished, was swallowed, or is entirely inside something."
+      ? "For every topic, keep an explanation graph and add the drawn element this clip's action works on. Do not reuse the same camera angle on the next clip. A full left-to-right or right-to-left walk is rare and does not count as the primary action. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts, flow, or a simple chart. Never a near-empty canvas."
+      : "For every topic, make an explanation graph the main subject of the canvas — not a character holding metaphor props. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts of a whole, flow or cycle, or a simple chart. Topic does not matter: food, money, health, product, habit, or science all get a graph. Metaphor props (boxes, bins, arrows, yellow tags) are only a fallback when a graph would hide the idea. Density is the graph — never a three-prop quota. Never a near-empty canvas with one floating label.",
+    hasCharacter
+      ? "startScene and endScene are the before and after of that one action as listed, not two standing poses. They usually stay on the same side; they finish on the opposite side only on a rare lateral cross. Do not write that the character stands in both stills. The travel lives only in motionCamera."
+      : "",
+    hasCharacter
+      ? "When the action moves an element (every action except jump and point toward the camera), write the same element in both startScene and endScene inside 1) Character, with where it sits relative to the hands and where its destination is (the slot, bin, stack, socket, or graph node). In endScene the element is still visible. Never write that it vanished, was swallowed, or is entirely inside something."
+      : "",
+    hasCharacter
+      ? "motionCamera plays the action in three beats: a short anticipation (wind-up or crouch), the action, then a brief follow-through where the element settles with a small wobble and the graph responds (a node lights up, an arrow draws itself on, a counter ticks up). Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
       : "",
     "On-canvas beat text is allowed: write one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 in startScene and endScene. Do not dump the full voiceover into those fields; the still prompt adds startVo / endVo lettering separately.",
   ]
@@ -230,17 +453,9 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
     .join(" ");
 }
 
-export type CartoonAction = "push" | "pull" | "jump" | "point";
-
 // Camera moves share the verbs; they are not the character's action.
 const CAMERA_VERB =
   /\b(camera|lens|shot|view)\s+(?:\w+\s+){0,2}(?:push|pull)\w*(?:\s+(?:in|out|back|away))?|\b(?:push|pull)[- ](?:in|out|back)\b/gi;
-const ACTION_PATTERNS: Array<[CartoonAction, RegExp]> = [
-  ["push", /\b(push(?:es|ed|ing)?|shov(?:e|es|ed|ing)|thrust(?:s|ing)?)\b/i],
-  ["pull", /\b(pull(?:s|ed|ing)?|drag(?:s|ged|ging)?|tug(?:s|ged|ging)?|yank(?:s|ed|ing)?|haul(?:s|ed|ing)?)\b/i],
-  ["jump", /\b(jump(?:s|ed|ing)?|leap(?:s|ed|ing|t)?|hop(?:s|ped|ping)?)\b/i],
-  ["point", /\bpoint(?:s|ed|ing)?\b(?=[^.;]*\b(?:camera|lens|viewer)\b)/i],
-];
 
 // The character's one action, read from the first motion beat that names a verb.
 export function cartoonClipAction(motionCamera: string | undefined): CartoonAction | undefined {
@@ -251,40 +466,14 @@ export function cartoonClipAction(motionCamera: string | undefined): CartoonActi
     .filter((beat) => beat.trim());
   for (const beat of beats) {
     let found: { action: CartoonAction; at: number } | undefined;
-    for (const [action, pattern] of ACTION_PATTERNS) {
-      const at = beat.search(pattern);
-      if (at >= 0 && (!found || at < found.at)) found = { action, at };
+    for (const spec of CARTOON_ACTIONS) {
+      const at = beat.search(spec.pattern);
+      if (at >= 0 && (!found || at < found.at)) found = { action: spec.action, at };
     }
     if (found) return found.action;
   }
   return undefined;
 }
-
-const ACTION_STILL: Record<CartoonAction, Record<"start" | "end", string>> = {
-  push: {
-    start:
-      "This clip's one action is a PUSH. In this still the hands are on the element named in the Scene, arms bent and loaded, the element right against the hands. Draw its destination named in the Scene on the far side of the element from the character. Any motion marks point away from the character, toward that destination.",
-    end:
-      "This still is after the PUSH landed: arms fully extended away from the body, and the same element is still visible, farther from the character and at or against its destination. Any motion marks point away from the character. Do not swap the action for a jump, a cheer, or a new prop.",
-  },
-  pull: {
-    start:
-      "This clip's one action is a PULL. In this still the arms reach out and the hands grip the element named in the Scene, which sits away from the body. Any motion marks point from the element toward the character.",
-    end:
-      "This still is after the PULL landed: arms drawn in toward the chest, and the same element is still visible, now close to the body. Any motion marks point toward the character. Do not swap the action for a jump, a cheer, or a new prop.",
-  },
-  jump: {
-    start:
-      "This clip's one action is a JUMP. In this still they crouch with knees bent, both feet on the ground, ready to spring.",
-    end:
-      "This still is the JUMP: both feet clearly off the ground with a shadow below, not a body slid upward.",
-  },
-  point: {
-    start: "This clip's one action is a POINT toward the camera. In this still the pointing arm is down.",
-    end:
-      "This still is after the POINT: one arm reaches straight at the lens, fingertip aimed at the viewer, not at a side graphic.",
-  },
-};
 
 // Pasted into whiteboard-explainer stills; empty for every other director.
 export function cartoonNarratorFrameLock(
@@ -295,28 +484,20 @@ export function cartoonNarratorFrameLock(
   if (options?.hasCharacter) {
     const silent =
       "Silent demonstrator: the character does not talk or lip-sync (a readable facial expression is required; no greeting wave).";
-    const side =
-      "They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. Camera angle may differ from the other still.";
     const labels = "Draw every beat title or diagram label written in 「」, clearly readable.";
-    if (options.action && options.position) {
+    const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
+    if (spec && options.position) {
       return [
         silent,
-        ACTION_STILL[options.action][options.position],
+        spec[options.position],
         "Keep the character on the side of the frame the Scene names. Camera angle may differ from the other still. Draw the explanation graph plus the element of this action.",
         labels,
       ].join(" ");
     }
-    return `${silent} Draw the before or after of this clip's one action, not a neutral standing pose: push (hands on a drawn element, the element moving away from the body), pull (hands on a drawn element, the element moving toward the body), jump (both feet off the ground when airborne, never a body slid upward), or point toward the camera (the arm aims at the lens, not at a side graphic). ${side} Draw the explanation graph plus the element they push, pull, or point past. ${labels}`;
+    return `${silent} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. Camera angle may differ from the other still. Draw the explanation graph plus the element of this action. ${labels}`;
   }
   return "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」, clearly readable.";
 }
-
-const ACTION_VIDEO: Record<CartoonAction, string> = {
-  push: "This clip's action is a PUSH: the element moves away from the character's body for the whole clip and never slides back toward them.",
-  pull: "This clip's action is a PULL: the element moves toward the character's body for the whole clip and never slides away from them.",
-  jump: "This clip's action is a JUMP: both feet leave the ground, then land.",
-  point: "This clip's action is a POINT toward the camera: the arm rises and the fingertip aims at the lens.",
-};
 
 // Appended to whiteboard-explainer clip videos; empty for every other director.
 export function cartoonNarratorVideoLock(
@@ -329,8 +510,9 @@ export function cartoonNarratorVideoLock(
   if (!options?.hasCharacter) {
     return `${voice} Mouth stays closed or shows simple reactions, and reacts to the diagram or props.`;
   }
-  const named = options.action ? ` ${ACTION_VIDEO[options.action]}` : "";
-  return `${voice}${named} Animate this clip's one action, which must differ from the previous clip: a push that moves a drawn element away from the body, a pull that brings a drawn element toward the body, a jump with both feet leaving the ground (never slide the body upward), or a point aimed at the camera. Do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. The drawn element moves with the push or pull. Do not repeat the previous clip's action.`;
+  const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
+  const named = spec ? ` ${spec.video}` : "";
+  return `${voice}${named} Animate this clip's one action as the two stills show it, in three beats: a short anticipation, the action, then a brief follow-through where the element settles with a small wobble and the graph responds. It must differ from the previous clip's action. Never slide the body upward, and do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. Do not repeat the previous clip's action.`;
 }
 
 export function dialogueQaDirectorBlock() {

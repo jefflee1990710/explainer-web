@@ -24,6 +24,9 @@ export const videoZhHant = {
     tagVideo: "Clip {n} · 影片",
     generationProgress: "{done}/{total} 步",
     generationProgressBusy: "{done}/{total} 步，正在處理{step}",
+    badgeImages: "圖片產生中",
+    badgeVideos: "影片產生中",
+    badgeAwaitingVideo: "圖片完成，待產影片",
   },
   pager: {
     page: "第 {page} / {pages} 頁",

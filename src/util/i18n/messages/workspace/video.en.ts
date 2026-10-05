@@ -24,6 +24,9 @@ export const videoEn = {
     tagVideo: "Clip {n} · video",
     generationProgress: "{done} of {total} steps",
     generationProgressBusy: "{done} of {total} steps, working on {step}",
+    badgeImages: "Generating images",
+    badgeVideos: "Generating videos",
+    badgeAwaitingVideo: "Images ready",
   },
   pager: {
     page: "Page {page} / {pages}",

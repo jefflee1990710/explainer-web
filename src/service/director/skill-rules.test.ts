@@ -124,13 +124,13 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(withCast, /left side/);
   assert.match(withCast, /right side/);
   assert.match(withCast, /jump/);
-  assert.match(withCast, /pull a drawn element/);
-  assert.match(withCast, /push a drawn element/);
+  assert.match(withCast, /pull \(bring in/);
+  assert.match(withCast, /push \(send out/);
   assert.match(withCast, /point toward the camera/);
   assert.match(withCast, /not two standing poses/);
   assert.match(withCast, /head may turn/);
-  assert.match(withCast, /do not repeat/);
-  assert.match(withCast, /fresh idea/);
+  assert.match(withCast, /previous two clips/);
+  assert.match(withCast, /by what the clip's line means/);
   assert.match(withCast, /80%/);
   assert.match(withCast, /same side/);
   assert.match(withCast, /toward the camera/);
@@ -149,12 +149,12 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(movingStill, /not a neutral standing pose/);
   const movingVideo = cartoonNarratorVideoLock("cartoon-explainer-video-director", { hasCharacter: true });
   assert.match(movingVideo, /same side/);
-  assert.match(movingVideo, /aimed at the camera/);
+  assert.match(movingVideo, /three beats/);
   assert.match(movingVideo, /left to right/);
   assert.match(movingVideo, /Do not repeat/);
   assert.match(movingVideo, /walk between two standing poses/);
   assert.match(withCast, /never write that it vanished/i);
-  assert.match(movingStill, /element moving away from the body/);
+  assert.match(movingStill, /hands act on the drawn element/);
   assert.doesNotMatch(movingStill, /closer or farther/);
 });
 
@@ -170,6 +170,55 @@ test("the clip's one action is read from motionCamera, ignoring camera moves", (
   assert.equal(cartoonClipAction("0–2s: He raises one arm and points straight at the camera."), "point");
   assert.equal(cartoonClipAction("0–2s: Slow camera pull back over the diagram."), undefined);
   assert.equal(cartoonClipAction(undefined), undefined);
+});
+
+test("each new action is read from its listed word, without stealing neighbours", () => {
+  const cases: Array<[string, string | undefined]> = [
+    ["0–2s: Scro stacks a third block on the pile.", "stack"],
+    ["0–2s: A tall stack of papers sits by the bin while Scro tosses the crumpled habit into it.", "toss"],
+    ["0–2s: She lifts the gold bar overhead.", "lift"],
+    ["0–2s: She lifts her arm and points at the camera.", "point"],
+    ["0–2s: The pieces snap into place as Scro places the tile into its slot.", "place"],
+    ["0–2s: He plugs the cable into the 「API」 socket.", "plug"],
+    ["0–2s: Scro sketches an arrow from 「CAUSE」 to 「EFFECT」.", "sketch"],
+    ["0–2s: He draws the arrow from A to B.", "sketch"],
+    ["0–2s: She flips the 「MYTH」 card.", "flip"],
+    ["0–2s: Scro turns the dial from low to high.", "dial"],
+    ["0–2s: He pulls the timeline apart with both hands.", "stretch"],
+    ["0–2s: She stretches her arms and jumps.", "jump"],
+    ["0–2s: Scro squeezes the messy pile into one block.", "squeeze"],
+    ["0–2s: She holds the magnifying glass over 「COST」.", "magnify"],
+    ["0–2s: Camera turns around the set while Scro waits.", undefined],
+  ];
+  for (const [motion, expected] of cases) {
+    assert.equal(cartoonClipAction(motion), expected, motion);
+  }
+});
+
+test("every action has a short still line for both stills and a video line", () => {
+  const actions = [
+    "push", "pull", "stack", "lift", "place", "toss", "plug", "sketch",
+    "flip", "dial", "stretch", "squeeze", "magnify", "jump", "point",
+  ] as const;
+  const generic = cartoonNarratorFrameLock("cartoon-explainer-video-director", { hasCharacter: true });
+  for (const action of actions) {
+    for (const position of ["start", "end"] as const) {
+      const still = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
+        hasCharacter: true,
+        action,
+        position,
+      });
+      assert.match(still, new RegExp(action === "dial" ? "DIAL" : action.toUpperCase()));
+      assert.ok(still.length <= generic.length + 120, `${action} ${position} is ${still.length} chars`);
+    }
+    const video = cartoonNarratorVideoLock("cartoon-explainer-video-director", { hasCharacter: true, action });
+    assert.match(video, /This clip's action is/);
+  }
+  const block = cartoonExplainerDirectorBlock({ hasCharacter: true });
+  for (const action of actions) assert.match(block, new RegExp(`\\b${action} \\(`));
+  assert.match(block, /previous two clips/);
+  assert.match(block, /three beats/);
+  assert.match(block, /Clip 1 opens already moving/);
 });
 
 test("a detected push draws only that action, aimed away from the character", () => {

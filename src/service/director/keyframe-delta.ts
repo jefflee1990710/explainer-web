@@ -61,7 +61,7 @@ export function keyframeDeltaDirectorBlock(options?: {
     : combined;
   return [
     options?.performance
-      ? "When a character is on screen, start and end are one continuous shot of one primary action, and the next clip uses a different action. Rotate push (hands drive a drawn element away), pull (hands draw a drawn element closer), jump (feet leave the ground — never slide the body upward), and point toward the camera (arm aimed at the lens, not at a side graphic). A different standing position or a few steps is not a new action. Alternate which side they start on. About 80% of clips keep them on that same side. Only about 20% of clips cross the frame, either left to right or right to left. Camera angle changes every clip (from the side, from above, from the front, or from behind as they turn around) and may zoom. Still no cut and no teleport, and do not repeat the previous clip's action."
+      ? "When a character is on screen, start and end are one continuous shot of one primary action from the director's action list, chosen by what the line means and not used in either of the previous two clips. A jump lifts the feet (never slide the body upward); a point toward the camera aims at the lens, not at a side graphic. A different standing position or a few steps is not a new action. Alternate which side they start on. About 80% of clips keep them on that same side. Only about 20% of clips cross the frame, either left to right or right to left. Camera angle changes every clip (from the side, from above, from the front, or from behind as they turn around) and may zoom. Still no cut and no teleport."
       : "Each clip's start and end are the SAME locked camera; the character keeps roughly the same screen size and placement.",
     "Each still shows exactly ONE instance of each named character — two moments of the same figure, never two bodies in one frame.",
     `They must NOT look almost identical — under-moving makes the video freeze. ${stillRule}`,
@@ -69,9 +69,9 @@ export function keyframeDeltaDirectorBlock(options?: {
     "Change budget by durationSeconds:",
     ...(options?.performance
       ? [
-          "- 3s: one primary action only — a short push, a short pull, a small jump with feet off the ground, or a point toward the camera — plus a facial-expression change.",
-          "- 4s: that same action finishes (the push or pull lands, the jump lands, or the point holds) while they stay on the same side. The drawn element has moved.",
-          "- 5–6s: the primary action plays fully (push, pull, jump, or point toward the camera). A full left-to-right or right-to-left cross only if this clip is one of the rare lateral clips. Extra drawings appear.",
+          "- 3s: one primary action only, short and complete, plus a facial-expression change.",
+          "- 4s: that same action lands with a brief follow-through while they stay on the same side. The drawn element has moved.",
+          "- 5–6s: anticipation, the full action, then follow-through as the graph responds. A full left-to-right or right-to-left cross only if this clip is one of the rare lateral clips. Extra drawings appear.",
           "- 7–8s: the same one primary action, with follow-through, or rarely one full lateral cross. One figure, still in frame. No cut. Do not add a second unrelated action.",
           "Change the camera angle. A jump lifts the feet; never slide the body upward or across the frame unless this clip is a lateral cross. Do not repeat the previous clip's action. Do not use a walk between two standing poses.",
         ]

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ClipFrame, ProjectClip } from "@/model/project";
 import {
+  cardGenerationBadge,
   clipStateFor,
   defaultSelectedClip,
   inFlightCounts,
@@ -390,4 +391,27 @@ test("completed video without a file is still generating, not ready", () => {
   assert.equal(isProjectBusy(p), true);
   assert.equal(isProjectReady(p), false);
   assert.deepEqual(productionCounts(p), { total: 2, framesDone: 1, videosDone: 0 });
+});
+
+test("card badge: images in flight, then videos, then images done waiting for video", () => {
+  const tag = (clipNumber: number, kind: "scene" | "video", state: "pending" | "busy" | "ready" | "failed") => ({
+    clipNumber,
+    kind,
+    state,
+  });
+  assert.equal(cardGenerationBadge([]), null);
+  assert.equal(
+    cardGenerationBadge([tag(1, "scene", "busy"), tag(1, "video", "pending"), tag(2, "scene", "ready"), tag(2, "video", "busy")]),
+    "images",
+  );
+  assert.equal(
+    cardGenerationBadge([tag(1, "scene", "ready"), tag(1, "video", "busy"), tag(2, "scene", "ready"), tag(2, "video", "pending")]),
+    "videos",
+  );
+  assert.equal(
+    cardGenerationBadge([tag(1, "scene", "ready"), tag(1, "video", "ready"), tag(2, "scene", "ready"), tag(2, "video", "pending")]),
+    "awaiting_video",
+  );
+  assert.equal(cardGenerationBadge([tag(1, "scene", "ready"), tag(1, "video", "pending"), tag(2, "scene", "pending"), tag(2, "video", "pending")]), null);
+  assert.equal(cardGenerationBadge([tag(1, "scene", "ready"), tag(1, "video", "ready")]), null);
 });

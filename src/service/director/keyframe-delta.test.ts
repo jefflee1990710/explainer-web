@@ -44,13 +44,13 @@ test("a cast on the whiteboard director stays put most of the time and varies th
   assert.match(block, /left to right/);
   assert.match(block, /right to left/);
   assert.match(block, /jump/);
-  assert.match(block, /feet leave the ground/);
-  assert.match(block, /pull/);
-  assert.match(block, /push/);
+  assert.match(block, /lifts the feet/);
+  assert.match(block, /action list/);
   assert.match(block, /point toward the camera/);
   assert.match(block, /standing position/);
   assert.match(block, /from above/);
-  assert.match(block, /do not repeat/);
+  assert.match(block, /previous two clips/);
+  assert.match(block, /follow-through/);
   assert.match(block, /exactly ONE instance of each named character/);
   assert.doesNotMatch(block, /SAME locked camera/);
   const end = frameEndMoment(1, 6, undefined, true);
