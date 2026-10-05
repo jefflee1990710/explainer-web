@@ -12,6 +12,7 @@ import { flattenToCanvas } from "@/service/higgsfield/flatten";
 import { sceneTextNegativePrompt, resolveSceneText } from "@/service/director/scene-text";
 import { imageModelForSubmit, resolveImageRoute } from "@/service/generation/image-backend";
 import { frameSubmitPlan, framesWithClipsReady } from "@/service/higgsfield/frame-prompts";
+import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt";
 import { hydrateStyles } from "@/service/style/load-style";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import type { StylePromptSlice } from "@/service/style";
@@ -162,7 +163,10 @@ export async function sendFrame(
     (frame) => frame.clipNumber === clipNumber && frame.position === position,
   )?.revision;
   const sceneText = resolveSceneText(project);
-  const { prompt, refs } = frameSubmitPlan(project, clipNumber, position, revision, style);
+  const plan = frameSubmitPlan(project, clipNumber, position, revision, style);
+  // Over Flare's cap, Gemini compresses the prompt before the image request.
+  const prompt = await ensureFramePromptFits(plan.prompt);
+  const refs = plan.refs;
   const model = imageModelForSubmit(resolveImageRoute(sceneText.language), refs.length > 0);
   const submitted = await submitImage({
     model,

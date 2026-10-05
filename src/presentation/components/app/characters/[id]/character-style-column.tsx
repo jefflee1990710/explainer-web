@@ -63,6 +63,10 @@ export function CharacterStyleColumn({
           const selected = styleId === activeStyleId;
           const name = labelFor(styleId, styles);
           const catalog = styles.find((style) => style.id === styleId);
+          const portrait = character.versions.find(
+            (version) => version.id === character.defaultByStyle[styleId],
+          )?.profileUrl;
+          const thumb = portrait || catalog?.previewUrl;
           return (
             <li key={styleId}>
               <button
@@ -75,12 +79,12 @@ export function CharacterStyleColumn({
                   selected ? "border-accent-ink" : "border-transparent hover:border-accent-ink/25"
                 }`}
               >
-                {catalog?.previewUrl ? (
+                {thumb ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={catalog.previewUrl}
+                    src={thumb}
                     alt=""
-                    className="aspect-video w-full bg-white object-cover"
+                    className={`aspect-video w-full bg-white ${portrait ? "object-contain object-center" : "object-cover"}`}
                   />
                 ) : (
                   <span

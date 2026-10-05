@@ -11,13 +11,27 @@ const SHEET_LAYOUT = [
   "Final check: every drawing must be fully visible with an empty margin between the artwork and all four edges of the canvas.",
 ];
 
+// Chalkboard's canvas is the drawing surface. Every other style keeps a light sheet.
+function usesDrawingSurface(style: RenderableStyle) {
+  return /chalkboard/i.test(`${style.id} ${style.canvas}`);
+}
+
+// Flat light ground. The tint is chosen so it stays apart from the outfit.
+const LIGHT_SHEET_GROUND = [
+  "Sheet ground: ignore any scene, room, street, or environment named in Background. The empty area behind every pose is one flat light solid colour, evenly lit, with no texture, gradient, cast shadow, or setting.",
+  "Choose that light colour from the character's clothing. It must stay light, and it must not match the outfit. Dark or saturated clothes get a warm off-white. Pale or light clothes get a light grey or a faint contrasting tint so the silhouette still reads. Use that same ground colour for the whole canvas.",
+].join(" ");
+
 // Likeness from the photo; rendering must still follow the chosen style.
 function identityFromReference(style: RenderableStyle) {
+  const styleRule = usesDrawingSurface(style)
+    ? `Style is required: follow Background, Rendering, Palette, and Never. The sheet must look like ${style.name}, not a photograph or an unstyled copy of the reference.`
+    : `Style is required: follow Rendering, Palette, and Never. The empty ground follows the sheet-ground rule, not a scene named in Background. The character must look like ${style.name}, not an unstyled copy of the reference.`;
   return [
     `Keep the reference's 五官比例 and 整體氣質, and redraw every pose in the ${style.name} style.`,
     "五官比例: copy face shape, eye spacing and shape, brows, nose, mouth, lips, jaw, chin, plus moles, scars, and other marks.",
     "整體氣質: keep the same aura, presence, and how they feel to look at — not a generic stand-in.",
-    `Style is required: follow Background, Rendering, Palette, and Never. The sheet must look like ${style.name}, not a photograph or an unstyled copy of the reference.`,
+    styleRule,
     "Do not drop the style to protect likeness, and do not drop likeness to apply the style.",
     ...(style.id === "chalkboard"
       ? [
@@ -37,15 +51,22 @@ export function buildBlueprintPrompt(input: {
   const description = input.description.trim();
   const referenceCount = input.referenceCount ?? (input.hasReference ? 1 : 0);
   const hasReference = referenceCount > 0;
+  const lightGround = !usesDrawingSurface(input.style);
   const lines = [
     ...SHEET_LAYOUT,
     ...styleLinesForBlueprint(input.style),
+    ...(lightGround ? [LIGHT_SHEET_GROUND] : []),
   ];
   if (description) lines.push(`Character: ${description}`);
   if (input.editInstruction) {
     lines.push(
       "Use the reference sheet as the base. Apply only the change below; keep everything else identical, including layout, pose order, expression order, 五官比例, 整體氣質, and the same visual style.",
     );
+    if (lightGround) {
+      lines.push(
+        "If the reference sheet shows a dark or scenic background, replace only that ground with the light sheet-ground colour. Do not copy the setting.",
+      );
+    }
     if (referenceCount > 1) {
       lines.push(
         "The first reference image is that current character sheet.",
@@ -73,5 +94,23 @@ export function buildBlueprintPrompt(input: {
       `Redraw that same person or character as this ${input.style.name} model sheet.`,
     );
   }
+  return lines.join("\n");
+}
+
+// Full-body standing preview taken from the finished sheet. Cards and pickers show this.
+export function buildProfilePrompt(input: { style: RenderableStyle; description: string }) {
+  const lightGround = !usesDrawingSurface(input.style);
+  const description = input.description.trim();
+  const lines = [
+    "One full-body standing view of the same character as the attached character sheet.",
+    "Use only the front view from the sheet. One person, standing, facing the camera, neutral expression, eyes open, arms relaxed at the sides.",
+    "Copy face, hair, outfit, and rendering from that front view. Do not copy the turnaround, walk cycle, expression grid, labels, or extra poses.",
+    "Framing: the entire body is visible, from the top of the hair to the soles of the feet, centered, with empty margin above the head and below the feet. Do not crop to a head-and-shoulders portrait.",
+    ...styleLinesForBlueprint(input.style),
+    lightGround
+      ? LIGHT_SHEET_GROUND
+      : "The figure stands on the same drawing surface as the sheet.",
+  ];
+  if (description) lines.push(`Character: ${description}`);
   return lines.join("\n");
 }

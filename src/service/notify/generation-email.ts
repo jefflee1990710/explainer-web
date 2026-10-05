@@ -70,6 +70,7 @@ async function emailCopyFor(
 ): Promise<(GenerationEmailCopy & { to: string }) | null> {
   const users = await usersCollection();
 
+  if (job.kind === "character" && job.characterSlot === "profile") return null;
   if (job.kind === "character" && job.characterId) {
     const characters = await charactersCollection();
     const character = await characters.findOne({ _id: job.characterId });

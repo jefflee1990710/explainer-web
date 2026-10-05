@@ -40,9 +40,25 @@ export function originalCharacterSource(
   };
 }
 
-// Completed sheet for one style. The character default wins when it belongs to that style.
+type StyleDefaultCharacter = Pick<
+  Character,
+  "styleId" | "defaultVersionId" | "styleDefaults" | "versions"
+>;
+
+// True when this style already has a chosen sheet, including the legacy single default.
+export function styleHasDefault(character: StyleDefaultCharacter, styleId: string) {
+  if (character.styleDefaults?.[styleId]) return true;
+  if (!character.defaultVersionId) return false;
+  return character.versions.some(
+    (version) =>
+      version.id.equals(character.defaultVersionId!) &&
+      versionStyleId(character, version) === styleId,
+  );
+}
+
+// Completed sheet for one style. That style's own default wins; otherwise the newest sheet.
 export function resolveVersionForStyle(
-  character: Pick<Character, "styleId" | "defaultVersionId" | "versions">,
+  character: StyleDefaultCharacter,
   styleId: string,
 ): CharacterVersion | null {
   const matches = character.versions.filter(
@@ -51,11 +67,14 @@ export function resolveVersionForStyle(
       version.status === "completed" &&
       Boolean(version.blueprintUrl),
   );
+  const explicitId = character.styleDefaults?.[styleId];
+  const explicit = explicitId
+    ? matches.find((version) => version.id.equals(explicitId))
+    : undefined;
+  if (explicit) return explicit;
   if (character.defaultVersionId) {
-    const explicit = matches.find((version) => version.id.equals(character.defaultVersionId!));
-    if (explicit) return explicit;
+    const legacy = matches.find((version) => version.id.equals(character.defaultVersionId!));
+    if (legacy) return legacy;
   }
-  return (
-    matches.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] ?? null
-  );
+  return matches.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] ?? null;
 }

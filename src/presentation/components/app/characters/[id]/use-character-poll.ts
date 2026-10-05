@@ -5,17 +5,18 @@ import { useRouter } from "next/navigation";
 import { refreshCharacterAction } from "@/presentation/actions/characters";
 import type { PublicCharacter } from "@/presentation/serialize";
 
-// Poll while any version is generating; first tick runs immediately.
+// Poll while a blueprint or its portrait is still generating.
 export function useCharacterPoll(
   character: PublicCharacter,
   onUpdate: (next: PublicCharacter) => void,
   onError?: (message: string) => void,
 ) {
   const router = useRouter();
-  const { id, pending } = character;
+  const { id, pending, profilePending } = character;
+  const waiting = pending || profilePending;
 
   useEffect(() => {
-    if (!pending) return;
+    if (!waiting) return;
     let cancelled = false;
 
     async function tick() {
@@ -23,7 +24,7 @@ export function useCharacterPoll(
       if (cancelled) return;
       if (result.ok) {
         onUpdate(result.character);
-        if (!result.character.pending) router.refresh();
+        if (!result.character.pending && !result.character.profilePending) router.refresh();
       } else {
         onError?.(result.error);
       }
@@ -35,5 +36,5 @@ export function useCharacterPoll(
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [id, pending, onUpdate, onError, router]);
+  }, [id, waiting, onUpdate, onError, router]);
 }

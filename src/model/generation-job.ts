@@ -34,6 +34,8 @@ export type GenerationJob = {
   // Only for kind === "character".
   characterId?: ObjectId;
   versionId?: ObjectId;
+  // Portrait follow-up. Absent means the blueprint sheet itself.
+  characterSlot?: "profile";
   // Only for kind === "stylePreview".
   userStyleId?: ObjectId;
   // Only for kind === "directorPreview".
@@ -70,6 +72,7 @@ export const generationJobSchema: z.ZodType<GenerationJob> = z.object({
   framePosition: z.enum(["start", "end"]).optional(),
   characterId: objectIdSchema.optional(),
   versionId: objectIdSchema.optional(),
+  characterSlot: z.enum(["profile"]).optional(),
   userStyleId: objectIdSchema.optional(),
   skillId: objectIdSchema.optional(),
   model: z.string(),

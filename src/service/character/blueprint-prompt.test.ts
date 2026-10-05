@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { ObjectId } from "mongodb";
-import { buildBlueprintPrompt } from "@/service/character/blueprint-prompt";
+import { buildBlueprintPrompt, buildProfilePrompt } from "@/service/character/blueprint-prompt";
 import { resetStyleOverlay, resolvedStyle } from "@/service/style/load-style";
 import { renderableFromSystem } from "@/service/style/renderable-style";
 import { installTestStyles, testStyle, uninstallTestStyles } from "@/service/style/test-styles";
@@ -129,6 +129,58 @@ test("chalkboard with a reference stays white chalk, not photo colour", () => {
   assert.match(prompt, /never as skin tone/);
 });
 
+test("blueprint ground stays light and contrasts with the outfit", () => {
+  const realistic = renderableFromSystem(testStyle("realistic", {
+    canvas: "real-world environment appropriate to the scene, softly lit",
+    look: "photorealistic cinematic still",
+  }));
+  const prompt = buildBlueprintPrompt({
+    style: realistic,
+    description: "a woman in a black dress",
+    referenceCount: 1,
+  });
+  assert.match(prompt, /flat light solid colour/);
+  assert.match(prompt, /clothing/);
+  assert.match(prompt, /must not match the outfit/);
+  assert.match(prompt, /sheet-ground rule, not a scene named in Background/);
+  assert.doesNotMatch(prompt, /follow Background, Rendering/);
+});
+
+test("editing a sheet replaces a scenic ground with the light sheet colour", () => {
+  const prompt = buildBlueprintPrompt({
+    style: loadedStyle("doodle"),
+    description: "x",
+    referenceCount: 1,
+    editInstruction: "把裙子改成白色",
+  });
+  assert.match(prompt, /replace only that ground with the light sheet-ground colour/);
+  assert.match(prompt, /把裙子改成白色/);
+});
+
+test("profile prompt is a full-body standing view on the light sheet ground", () => {
+  const prompt = buildProfilePrompt({
+    style: loadedStyle("doodle"),
+    description: "一個穿藍色格子睡衣的小男孩",
+  });
+  assert.match(prompt, /full-body standing/);
+  assert.match(prompt, /front view/);
+  assert.match(prompt, /hair to the soles of the feet/);
+  assert.match(prompt, /flat light solid colour/);
+  assert.match(prompt, /小男孩/);
+  assert.match(prompt, /Do not copy the turnaround, walk cycle, expression grid/);
+  assert.match(prompt, /Do not crop to a head-and-shoulders portrait/);
+  assert.doesNotMatch(prompt, /4-pose walk cycle/);
+});
+
+test("chalkboard profile stays on the drawing surface", () => {
+  const prompt = buildProfilePrompt({
+    style: loadedStyle("chalkboard"),
+    description: "x",
+  });
+  assert.match(prompt, /stands on the same drawing surface/);
+  assert.doesNotMatch(prompt, /flat light solid colour/);
+});
+
 test("chalkboard blueprint sits on a chalkboard, not white", () => {
   const prompt = buildBlueprintPrompt({
     style: loadedStyle("chalkboard"),
@@ -136,6 +188,7 @@ test("chalkboard blueprint sits on a chalkboard, not white", () => {
     hasReference: false,
   });
   assert.match(prompt, /Background: chalkboard canvas/);
+  assert.doesNotMatch(prompt, /flat light solid colour/);
   assert.doesNotMatch(prompt, /Chalkboard is monochrome/);
   const layoutInstructions = prompt
     .split("\n")

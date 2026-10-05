@@ -250,6 +250,7 @@ export const zhHant: Messages = {
     cardGenerating: "生成中",
     cardFailed: "失敗",
     blueprintAlt: "{name} 藍圖",
+    profileAlt: "{name} 全身",
     versionsHeading: "版本",
     defaultBadge: "預設",
     editedFromVersion: " · 由 v{n} 編輯",
@@ -475,6 +476,12 @@ export const zhHant: Messages = {
     "eight-bit": "大方塊像素與有限色的遊戲畫面。",
     "ray-traced": "金屬球、棋盤地與漸層天空。",
     "flat-illustration": "無外框色塊、色塊背景與室內植物。",
+    "cream-poster": "奶油紙底、超大標題，下面一排線稿圖示卡。",
+    "highlighter-notes": "白紙馬克筆手寫，螢光筆畫出重點。",
+    "grid-icons": "方格紙上的充氣立體字與圖示卡。",
+    "proof-poster": "黑底、撕邊數據圖與超大白字。",
+    "data-ring": "同心圓上的數字，中央一道半透明大字。",
+    "wireframe-breakdown": "去飽和場地上的青色線框人與分解標題。",
   },
   plans: {
     starter: {

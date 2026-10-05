@@ -15,6 +15,7 @@ export const tasksPageEn = {
   detail: {
     characterStill: "Character still",
     characterBlueprint: "Character blueprint",
+    characterProfile: "Character profile",
     stylePreview: "Style preview",
     directorPreview: "Director preview",
     reelCover: "Video cover",

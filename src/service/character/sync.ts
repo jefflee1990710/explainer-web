@@ -7,7 +7,8 @@ import {
 } from "@/service/character/blueprint-framing";
 import { persistMedia } from "@/service/higgsfield/persist";
 import { hydrateStyles } from "@/service/style/load-style";
-import { versionStyleId } from "@/service/character/character-styles";
+import { enqueueCharacterProfile } from "@/service/character/generate";
+import { styleHasDefault, versionStyleId } from "@/service/character/character-styles";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 
@@ -78,6 +79,44 @@ export async function failCharacterVersion(
   );
 }
 
+// Portrait failure stays on the version flag. The blueprint and its credit stay.
+export async function markCharacterProfileFailed(characterId: ObjectId, versionId: ObjectId) {
+  const characters = await charactersCollection();
+  await characters.updateOne(
+    { _id: characterId, "versions.id": versionId },
+    { $set: { "versions.$.profileStatus": "failed", updatedAt: new Date() } },
+  );
+}
+
+async function syncCharacterProfile(
+  job: GenerationJob,
+  status: GenerationStatus,
+  outputUrl?: string,
+) {
+  if (!job.characterId || !job.versionId) return;
+  const characters = await charactersCollection();
+  const filter = { _id: job.characterId, "versions.id": job.versionId };
+  if (status === "completed" && outputUrl) {
+    try {
+      const profileUrl = await persistMedia(
+        outputUrl,
+        `explainer/characters/${job.characterId.toHexString()}/${job.versionId.toHexString()}-standing`,
+      );
+      await characters.updateOne(filter, {
+        $set: { "versions.$.profileUrl": profileUrl, updatedAt: new Date() },
+        $unset: { "versions.$.profileStatus": "" },
+      });
+    } catch (error) {
+      console.error("[character] profile save failed", { versionId: job.versionId, error });
+      await markCharacterProfileFailed(job.characterId, job.versionId);
+    }
+    return;
+  }
+  if (status === "failed" || status === "nsfw" || status === "completed") {
+    await markCharacterProfileFailed(job.characterId, job.versionId);
+  }
+}
+
 // Mirror a character job's status onto the embedded version before the job
 // document is finalized by applyJobStatus.
 export async function syncCharacterJob(
@@ -85,6 +124,10 @@ export async function syncCharacterJob(
   status: GenerationStatus,
   outputUrl?: string,
 ) {
+  if (job.characterSlot === "profile") {
+    await syncCharacterProfile(job, status, outputUrl);
+    return;
+  }
   if (!job.characterId || !job.versionId) return;
   const characters = await charactersCollection();
   const character = await characters.findOne({
@@ -149,15 +192,24 @@ export async function syncCharacterJob(
       await failVersion("藍圖保存失敗");
       return;
     }
+    const styleId = versionStyleId(character, version);
     await characters.updateOne(filter, {
       $set: {
         "versions.$.status": "completed",
         "versions.$.blueprintUrl": blueprintUrl,
         "versions.$.error": undefined,
         updatedAt: now,
-        // First finished sheet becomes the default automatically.
-        ...(character.defaultVersionId ? {} : { defaultVersionId: job.versionId }),
+        // First finished sheet of this style becomes that style's default.
+        ...(styleHasDefault(character, styleId)
+          ? {}
+          : { [`styleDefaults.${styleId}`]: job.versionId }),
+        ...(character.defaultVersionId || styleId !== character.styleId
+          ? {}
+          : { defaultVersionId: job.versionId }),
       },
+    });
+    await enqueueCharacterProfile(job.characterId, job.versionId).catch((error) => {
+      console.error("[character] profile enqueue failed", { versionId: job.versionId, error });
     });
     return;
   }

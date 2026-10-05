@@ -38,6 +38,12 @@ test("STYLE_IDS lists every allowed style id", () => {
     "eight-bit",
     "ray-traced",
     "flat-illustration",
+    "cream-poster",
+    "highlighter-notes",
+    "grid-icons",
+    "proof-poster",
+    "data-ring",
+    "wireframe-breakdown",
   ]);
 });
 

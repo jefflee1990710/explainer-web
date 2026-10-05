@@ -104,7 +104,7 @@ export function CharacterWorkspace({
   const styleVersions = character.versions.filter((version) => version.styleId === activeStyleId);
   const selected =
     styleVersions.find((version) => version.id === versionParam) ||
-    styleVersions.find((version) => version.id === character.defaultVersionId) ||
+    styleVersions.find((version) => version.id === character.defaultByStyle[activeStyleId]) ||
     styleVersions[0];
 
   function select(id: string) {
@@ -114,7 +114,7 @@ export function CharacterWorkspace({
   function selectStyle(styleId: string) {
     const versions = character.versions.filter((version) => version.styleId === styleId);
     const next =
-      versions.find((version) => version.id === character.defaultVersionId) || versions[0];
+      versions.find((version) => version.id === character.defaultByStyle[styleId]) || versions[0];
     router.replace(`${pathname}?style=${styleId}${next ? `&version=${next.id}` : ""}`);
   }
 

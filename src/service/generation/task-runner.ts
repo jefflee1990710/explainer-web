@@ -1,6 +1,6 @@
 import type { Filter, ObjectId } from "mongodb";
 import { generationJobsCollection, videosCollection } from "@/dao";
-import { failCharacterVersion } from "@/service/character/sync";
+import { failCharacterVersion, markCharacterProfileFailed } from "@/service/character/sync";
 import { syncDirectorPreviewJob } from "@/service/director/director-preview";
 import { syncStylePreviewJob } from "@/service/style/user-style-preview";
 import { syncReelCoverJob } from "@/service/video-edit/reel-cover";
@@ -102,6 +102,12 @@ export async function failJob(
   const claimed = await claimFailure(job._id, error, "failed", onlyIf);
   if (!claimed) return false;
 
+  if (job.kind === "character" && job.characterSlot === "profile") {
+    if (job.characterId && job.versionId) {
+      await markCharacterProfileFailed(job.characterId, job.versionId);
+    }
+    return true;
+  }
   if (job.kind === "character") {
     if (job.characterId && job.versionId) {
       await failCharacterVersion(job.characterId, job.versionId, error);

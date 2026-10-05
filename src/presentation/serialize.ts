@@ -1,4 +1,4 @@
-import { characterStyleIds, versionStyleId } from "@/service/character/character-styles";
+import { characterStyleIds, resolveVersionForStyle, versionStyleId } from "@/service/character/character-styles";
 import { resolveDefaultVersion, versionNumber } from "@/service/character/versions";
 import { behaviorSlug, isCustomSkill } from "@/service/director/behavior-slug";
 import { emptyProfile, parseSystemProfile } from "@/service/director/profile";
@@ -433,6 +433,7 @@ export type PublicCharacterVersion = {
   editInstruction?: string;
   referenceImageUrl?: string;
   blueprintUrl?: string;
+  profileUrl?: string;
   status: CharacterVersionStatus;
   error?: string;
   createdAt: string;
@@ -447,8 +448,14 @@ export type PublicCharacter = {
   styleName: string;
   voice: CharacterVoice | null;
   defaultVersionId: string | null;
-  // Default sheet, or null when nothing has completed yet.
+  // Chosen sheet for each style that has a completed blueprint.
+  defaultByStyle: Record<string, string>;
+  // Default portrait, or the sheet until the portrait exists.
   previewUrl: string | null;
+  // True when previewUrl is the standing figure, so cards keep the whole body visible.
+  previewIsProfile: boolean;
+  // A portrait job is still in flight.
+  profilePending: boolean;
   // Newest first.
   versions: PublicCharacterVersion[];
   pending: boolean;
@@ -472,12 +479,18 @@ export function toPublicCharacter(character: Character): PublicCharacter {
       editInstruction: version.editInstruction,
       referenceImageUrl: version.referenceImageUrl,
       blueprintUrl: version.blueprintUrl,
+      profileUrl: version.profileUrl,
       status: version.status,
       error: version.error,
       createdAt: version.createdAt.toISOString(),
     }))
-    .sort((a, b) => b.number - a.number);
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
   const newest = character.versions[character.versions.length - 1];
+  const defaultByStyle: Record<string, string> = {};
+  for (const styleId of characterStyleIds(character)) {
+    const sheet = resolveVersionForStyle(character, styleId);
+    if (sheet) defaultByStyle[styleId] = sheet.id.toHexString();
+  }
   return {
     id: character._id.toHexString(),
     name: character.name,
@@ -486,7 +499,10 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     styleName: character.styleId,
     voice: parseCharacterVoice(character.voice),
     defaultVersionId: resolved ? resolved.id.toHexString() : null,
-    previewUrl: resolved?.blueprintUrl || null,
+    defaultByStyle,
+    previewUrl: resolved?.profileUrl || resolved?.blueprintUrl || null,
+    previewIsProfile: Boolean(resolved?.profileUrl),
+    profilePending: character.versions.some((version) => version.profileStatus === "queued"),
     versions,
     pending: character.versions.some(
       (version) => version.status === "queued" || version.status === "in_progress",

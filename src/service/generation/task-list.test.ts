@@ -19,6 +19,7 @@ test("detail names the clip and slot", () => {
   assert.equal(taskDetail({ kind: "video", clipIndex: 2 }), "Clip 3 · 影片");
   assert.equal(taskDetail({ kind: "still", clipIndex: -1 }), "角色定裝圖");
   assert.equal(taskDetail({ kind: "character", clipIndex: -1 }), "角色藍圖");
+  assert.equal(taskDetail({ kind: "character", clipIndex: -1, characterSlot: "profile" }), "角色頭像");
   assert.equal(taskDetail({ kind: "reelCover", clipIndex: 0 }), "影片封面");
   assert.equal(taskDetail({ kind: "stylePreview", clipIndex: 0 }), "風格預覽");
 });

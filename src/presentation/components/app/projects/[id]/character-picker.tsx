@@ -108,7 +108,7 @@ export function CharacterPicker({
           className="flex w-full min-h-[4.5rem] cursor-pointer items-center gap-3 rounded-xl border border-accent-ink/15 bg-paper/70 px-3 py-2.5 text-left transition-colors hover:border-accent-ink/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
         >
           {selected[0] ? (
-            <CharacterThumb src={blueprintForStyle(selected[0], styleId) || selected[0].previewUrl!} />
+            <CharacterThumb src={displayForStyle(selected[0], styleId)} />
           ) : (
             <EmptyThumb />
           )}
@@ -168,7 +168,7 @@ export function CharacterPicker({
                       active ? "bg-accent-ink text-paper" : "hover:bg-accent-ink/5"
                     }`}
                   >
-                    <CharacterThumb src={blueprintForStyle(character, styleId) || character.previewUrl!} />
+                    <CharacterThumb src={displayForStyle(character, styleId)} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold">{character.name}</span>
                       <VersionLine version={sheetForStyle(character, styleId)} muted={!active} inverted={active} />
@@ -200,12 +200,19 @@ function sheetForStyle(character: PublicCharacter, styleId?: string) {
       Boolean(version.blueprintUrl)
     );
   });
-  return versions.find((version) => version.id === character.defaultVersionId) ?? versions[0] ?? null;
+  const preferred = styleId ? character.defaultByStyle[styleId] : character.defaultVersionId;
+  return versions.find((version) => version.id === preferred) ?? versions[0] ?? null;
 }
 
 function blueprintForStyle(character: PublicCharacter, styleId?: string) {
   if (!styleId) return character.previewUrl;
   return sheetForStyle(character, styleId)?.blueprintUrl ?? null;
+}
+
+// Standing preview when the sheet has one; otherwise the full blueprint.
+function displayForStyle(character: PublicCharacter, styleId?: string) {
+  const sheet = sheetForStyle(character, styleId);
+  return sheet?.profileUrl || sheet?.blueprintUrl || character.previewUrl || "";
 }
 
 function VersionLine({
@@ -233,7 +240,7 @@ function CharacterThumb({ src }: { src: string }) {
       alt=""
       width={96}
       height={64}
-      className="h-14 w-24 shrink-0 rounded-md border border-accent-ink/10 bg-white object-contain object-left"
+      className="h-14 w-24 shrink-0 rounded-md border border-accent-ink/10 bg-white object-contain object-center"
     />
   );
 }

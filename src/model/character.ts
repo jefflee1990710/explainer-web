@@ -25,6 +25,10 @@ export type CharacterVersion = {
   referenceImageUrls?: string[];
   // Blob URL once the sheet is persisted.
   blueprintUrl?: string;
+  // Full-body standing preview for cards and pickers. The sheet stays the edit view.
+  profileUrl?: string;
+  // Set while a portrait job is in flight, or after that job fails.
+  profileStatus?: "queued" | "failed";
   status: CharacterVersionStatus;
   error?: string;
   creditsCharged: boolean;
@@ -42,7 +46,10 @@ export type Character = {
   styleId: string;
   // Fixed acoustic lock pasted into dialogue clips. Not part of the blueprint.
   voice?: CharacterVoice;
+  // Character-level preview. Matches the original style's chosen sheet.
   defaultVersionId?: ObjectId;
+  // One chosen sheet per style. Missing styles fall back to defaultVersionId when it belongs to that style.
+  styleDefaults?: Record<string, ObjectId>;
   versions: CharacterVersion[];
   createdAt: Date;
   updatedAt: Date;
@@ -74,6 +81,8 @@ export const characterVersionSchema: z.ZodType<CharacterVersion> = z.object({
   referenceImageUrl: z.string().optional(),
   referenceImageUrls: z.array(z.string()).optional(),
   blueprintUrl: z.string().optional(),
+  profileUrl: z.string().optional(),
+  profileStatus: z.enum(["queued", "failed"]).optional(),
   status: characterVersionStatusSchema,
   error: z.string().optional(),
   creditsCharged: z.boolean(),
@@ -89,6 +98,7 @@ export const characterSchema: z.ZodType<Character> = z.object({
   styleId: z.string(),
   voice: characterVoiceSchema.optional(),
   defaultVersionId: objectIdSchema.optional(),
+  styleDefaults: z.record(z.string(), objectIdSchema).optional(),
   versions: z.array(characterVersionSchema),
   createdAt: z.date(),
   updatedAt: z.date(),

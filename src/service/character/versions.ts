@@ -22,11 +22,20 @@ export function resolveDefaultVersion(
   return completed[0] || null;
 }
 
-// 1-based position in the append-only versions array; 0 when missing.
+// 1-based position among versions of the same style. Each style starts at v1.
 export function versionNumber(
-  character: Pick<Character, "versions">,
+  character: {
+    styleId?: string;
+    versions: Array<Pick<CharacterVersion, "id" | "styleId">>;
+  },
   versionId: ObjectId,
 ) {
-  const index = character.versions.findIndex((version) => version.id.equals(versionId));
+  const fallback = character.styleId ?? "";
+  const target = character.versions.find((version) => version.id.equals(versionId));
+  if (!target) return 0;
+  const styleId = target.styleId || fallback;
+  const index = character.versions
+    .filter((version) => (version.styleId || fallback) === styleId)
+    .findIndex((version) => version.id.equals(versionId));
   return index === -1 ? 0 : index + 1;
 }

@@ -403,10 +403,18 @@ export async function setDefaultVersionAction(
     if (!version) return { ok: false, error: "版本不存在" };
     if (!canSetDefault(version)) return { ok: false, error: "只有完成的版本可以設為預設" };
 
+    const styleId = versionStyleId(character, version);
     const characters = await charactersCollection();
     await characters.updateOne(
       { _id: character._id },
-      { $set: { defaultVersionId: version.id, updatedAt: new Date() } },
+      {
+        $set: {
+          [`styleDefaults.${styleId}`]: version.id,
+          // The character preview follows the original style only.
+          ...(styleId === character.styleId ? { defaultVersionId: version.id } : {}),
+          updatedAt: new Date(),
+        },
+      },
     );
     revalidateCharacter(characterId);
     return reload(character._id);

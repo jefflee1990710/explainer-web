@@ -30,6 +30,12 @@ export const STYLE_IDS = [
   "eight-bit",
   "ray-traced",
   "flat-illustration",
+  "cream-poster",
+  "highlighter-notes",
+  "grid-icons",
+  "proof-poster",
+  "data-ring",
+  "wireframe-breakdown",
 ] as const;
 
 export const styleIdSchema = z.enum(STYLE_IDS);

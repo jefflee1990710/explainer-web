@@ -51,8 +51,11 @@ export function taskStage(status: GenerationStatus): TaskStage {
 }
 
 // Human label for what the job produces (legacy zh strings for logs/tests).
-export function taskDetail(job: Pick<GenerationJob, "kind" | "clipIndex" | "framePosition">) {
+export function taskDetail(
+  job: Pick<GenerationJob, "kind" | "clipIndex" | "framePosition" | "characterSlot">,
+) {
   if (job.kind === "still") return "角色定裝圖";
+  if (job.kind === "character" && job.characterSlot === "profile") return "角色頭像";
   if (job.kind === "character") return "角色藍圖";
   if (job.kind === "stylePreview") return "風格預覽";
   if (job.kind === "directorPreview") return "導演預覽";
@@ -62,9 +65,14 @@ export function taskDetail(job: Pick<GenerationJob, "kind" | "clipIndex" | "fram
   return `${clip} · ${job.framePosition === "end" ? "結尾畫格" : "起始畫格"}`;
 }
 
-export function taskDetailI18n(job: Pick<GenerationJob, "kind" | "clipIndex" | "framePosition">) {
+export function taskDetailI18n(
+  job: Pick<GenerationJob, "kind" | "clipIndex" | "framePosition" | "characterSlot">,
+) {
   const n = job.clipIndex + 1;
   if (job.kind === "still") return { detailKey: "tasksPage.detail.characterStill" as const };
+  if (job.kind === "character" && job.characterSlot === "profile") {
+    return { detailKey: "tasksPage.detail.characterProfile" as const };
+  }
   if (job.kind === "character") return { detailKey: "tasksPage.detail.characterBlueprint" as const };
   if (job.kind === "stylePreview") return { detailKey: "tasksPage.detail.stylePreview" as const };
   if (job.kind === "directorPreview") return { detailKey: "tasksPage.detail.directorPreview" as const };

@@ -7,7 +7,6 @@ import { LandingEnterprise } from "@/presentation/components/landing-enterprise"
 import { LandingPersona } from "@/presentation/components/landing-persona";
 import { LandingPricing } from "@/presentation/components/landing-pricing";
 import { LandingDirector } from "@/presentation/components/landing-director";
-import { LandingExamplesLink } from "@/presentation/components/landing-examples-link";
 import { LandingSteps } from "@/presentation/components/landing-steps";
 
 export default async function HomePage() {
@@ -19,7 +18,6 @@ export default async function HomePage() {
       <LandingSteps />
       <LandingCast />
       <LandingPersona />
-      <LandingExamplesLink />
       <LandingDirector />
       <LandingPricing />
       <LandingEnterprise />

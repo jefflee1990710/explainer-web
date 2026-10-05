@@ -70,3 +70,25 @@ test("the default sheet is used only when it matches the requested style", () =>
   assert.equal(resolveVersionForStyle(character, "pixel")?.blueprintUrl, "https://blob/pixel.png");
   assert.equal(resolveVersionForStyle(character, "clay"), null);
 });
+
+test("a style default stays on that style's older sheet", () => {
+  const older = version({
+    styleId: "pixel",
+    blueprintUrl: "https://blob/pixel-old.png",
+    createdAt: new Date("2026-02-01T00:00:00Z"),
+  });
+  const newer = version({
+    styleId: "pixel",
+    blueprintUrl: "https://blob/pixel-new.png",
+    createdAt: new Date("2026-03-01T00:00:00Z"),
+  });
+  const sheet = resolveVersionForStyle(
+    {
+      styleId: "doodle",
+      styleDefaults: { pixel: older.id },
+      versions: [older, newer],
+    },
+    "pixel",
+  );
+  assert.equal(sheet?.blueprintUrl, "https://blob/pixel-old.png");
+});

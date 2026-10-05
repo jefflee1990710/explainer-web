@@ -11,6 +11,8 @@ const blobA =
   "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/characters/ref.jpg";
 const blobB =
   "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/characters/abc/def";
+const blobProfile =
+  "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/characters/abc/def-profile";
 
 test("collectCharacterBlobUrls dedupes reference and blueprint urls", () => {
   const blobC =
@@ -18,11 +20,14 @@ test("collectCharacterBlobUrls dedupes reference and blueprint urls", () => {
   const character = {
     _id: new ObjectId(),
     versions: [
-      { referenceImageUrl: blobA, referenceImageUrls: [blobA, blobC], blueprintUrl: blobB },
+      { referenceImageUrl: blobA, referenceImageUrls: [blobA, blobC], blueprintUrl: blobB, profileUrl: blobProfile },
       { referenceImageUrl: blobB, blueprintUrl: undefined },
     ],
   } as Character;
-  assert.deepEqual(collectCharacterBlobUrls(character).sort(), [blobA, blobB, blobC].sort());
+  assert.deepEqual(
+    collectCharacterBlobUrls(character).sort(),
+    [blobA, blobB, blobC, blobProfile].sort(),
+  );
 });
 
 test("isExplainerBlobUrl accepts only our public blob paths", () => {

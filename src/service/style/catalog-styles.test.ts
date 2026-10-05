@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ART_HISTORY_STYLES } from "@/service/style/art-history-styles";
 import { CATALOG_EXTRA_STYLES } from "@/service/style/catalog-styles";
+import { REEL_STYLES } from "@/service/style/reel-styles";
 import { isStyleId } from "@/model/style-id";
 
 test("extra catalog styles are allowed ids with a full prompt", () => {
@@ -11,8 +12,10 @@ test("extra catalog styles are allowed ids with a full prompt", () => {
     "colored-pencil",
     "dark-tech",
     ...ART_HISTORY_STYLES.map((style) => style.id),
+    ...REEL_STYLES.map((style) => style.id),
   ]);
   assert.equal(ART_HISTORY_STYLES.length, 16);
+  assert.equal(REEL_STYLES.length, 6);
   for (const style of CATALOG_EXTRA_STYLES) {
     assert.equal(isStyleId(style.id), true);
     assert.match(style.fields.look, /\S/);
@@ -26,4 +29,7 @@ test("extra catalog styles are allowed ids with a full prompt", () => {
   assert.match(ART_HISTORY_STYLES[0].fields.look, /cave painting/i);
   assert.match(ART_HISTORY_STYLES[13].fields.look, /8-bit/i);
   assert.match(ART_HISTORY_STYLES[15].fields.look, /flat illustration/i);
+  assert.match(REEL_STYLES[0].fields.look, /editorial social poster/i);
+  assert.match(REEL_STYLES[4].fields.look, /data mandala/i);
+  assert.match(REEL_STYLES[5].fields.look, /wireframe/i);
 });

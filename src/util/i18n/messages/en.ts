@@ -256,6 +256,7 @@ export const en: Messages = {
     cardGenerating: "Generating",
     cardFailed: "Failed",
     blueprintAlt: "{name} blueprint",
+    profileAlt: "{name} standing",
     versionsHeading: "Versions",
     defaultBadge: "Default",
     editedFromVersion: " · edited from v{n}",
@@ -485,6 +486,12 @@ export const en: Messages = {
     "eight-bit": "Large square pixels and a tiny console palette.",
     "ray-traced": "Chrome spheres, a checker floor, and a gradient sky.",
     "flat-illustration": "Borderless shapes, colour blobs, and houseplants.",
+    "cream-poster": "Cream paper, a giant headline, and a row of line-icon cards.",
+    "highlighter-notes": "Marker handwriting with neon highlighter bands on notebook paper.",
+    "grid-icons": "Inflated 3D letters and icon cards on graph paper.",
+    "proof-poster": "A black field, a torn chart, and a huge white headline.",
+    "data-ring": "Digits on concentric rings and one translucent phrase.",
+    "wireframe-breakdown": "A cyan wireframe figure on a desaturated court, with a stacked title.",
   },
   plans: {
     starter: {

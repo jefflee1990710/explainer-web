@@ -234,6 +234,7 @@ export type Messages = {
     cardGenerating: string;
     cardFailed: string;
     blueprintAlt: string;
+    profileAlt: string;
     versionsHeading: string;
     defaultBadge: string;
     editedFromVersion: string;
@@ -454,7 +455,13 @@ export type Messages = {
     | "pop-art"
     | "eight-bit"
     | "ray-traced"
-    | "flat-illustration",
+    | "flat-illustration"
+    | "cream-poster"
+    | "highlighter-notes"
+    | "grid-icons"
+    | "proof-poster"
+    | "data-ring"
+    | "wireframe-breakdown",
     string
   >;
   plans: {

@@ -20,7 +20,7 @@ function versionStatusLabel(
   }
 }
 
-// Left pane: every version newest first; the default is badged.
+// Versions of one style, newest first. The badge is that style's own default.
 export function VersionList({
   character,
   styleId,
@@ -45,7 +45,7 @@ export function VersionList({
       <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
         {versions.map((version) => {
           const selected = version.id === selectedId;
-          const isDefault = version.id === character.defaultVersionId;
+          const isDefault = character.defaultByStyle[styleId] === version.id;
           const busy = version.status === "queued" || version.status === "in_progress";
           return (
             <li key={version.id}>

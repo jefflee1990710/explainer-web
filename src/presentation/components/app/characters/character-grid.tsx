@@ -36,7 +36,7 @@ export function CharacterGrid({
   }
   return (
     <MotionConfig reducedMotion="user">
-      <motion.div layout className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <motion.div layout className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {characters.map((character) => (
           <CharacterCard key={character.id} character={character} />
         ))}

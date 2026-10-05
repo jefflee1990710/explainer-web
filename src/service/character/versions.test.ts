@@ -46,3 +46,13 @@ test("version number is 1-based array position", () => {
   assert.equal(versionNumber({ versions: [a, b] }, b.id), 2);
   assert.equal(versionNumber({ versions: [a, b] }, new ObjectId()), 0);
 });
+
+test("version numbers restart inside each style", () => {
+  const doodle = version({ styleId: "doodle" });
+  const pixel = version({ styleId: "pixel" });
+  const doodle2 = version({ styleId: "doodle" });
+  const character = { styleId: "doodle", versions: [doodle, pixel, doodle2] };
+  assert.equal(versionNumber(character, doodle.id), 1);
+  assert.equal(versionNumber(character, pixel.id), 1);
+  assert.equal(versionNumber(character, doodle2.id), 2);
+});

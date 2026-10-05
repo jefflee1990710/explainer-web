@@ -46,7 +46,7 @@ export function VersionDetail({
   const { t, locale } = useI18n();
   const [editing, setEditing] = useState(false);
   const [instruction, setInstruction] = useState("");
-  const isDefault = version.id === character.defaultVersionId;
+  const isDefault = character.defaultByStyle[version.styleId] === version.id;
   const busy = version.status === "queued" || version.status === "in_progress";
   const short = !subscribed || credits < FRAME_COST;
 
@@ -74,16 +74,17 @@ export function VersionDetail({
         </p>
       </div>
 
-      <div className="mt-4 min-h-0 flex-1 overflow-hidden rounded-[1.25rem] border border-accent-ink/10 bg-white">
+      {/* The pane keeps its height. The sheet stays fully visible inside it. */}
+      <div className="relative mt-4 min-h-0 flex-1 overflow-hidden rounded-[1.25rem] border border-accent-ink/10 bg-white">
         {version.blueprintUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={version.blueprintUrl}
             alt={t("characters.versionBlueprintAlt", { name: character.name, n: version.number })}
-            className="h-full w-full object-contain"
+            className="absolute inset-0 h-full w-full object-contain"
           />
         ) : (
-          <div className="grid h-full min-h-40 w-full place-items-center bg-accent-ink/5 text-sm text-muted">
+          <div className="absolute inset-0 grid min-h-40 w-full place-items-center bg-accent-ink/5 text-sm text-muted">
             {busy ? (
               <span className="inline-flex items-center gap-2">
                 <Spinner /> {t("characters.blueprintGenerating")}
