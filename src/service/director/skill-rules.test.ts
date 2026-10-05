@@ -150,6 +150,8 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   const movingVideo = cartoonNarratorVideoLock("cartoon-explainer-video-director", { hasCharacter: true });
   assert.match(movingVideo, /same side/);
   assert.match(movingVideo, /three beats/);
+  assert.match(movingVideo, /snapping fast and sharp/);
+  assert.match(movingVideo, /never one constant slow glide/);
   assert.match(movingVideo, /left to right/);
   assert.match(movingVideo, /Do not repeat/);
   assert.match(movingVideo, /walk between two standing poses/);
@@ -247,7 +249,8 @@ test("a detected push draws only that action, aimed away from the character", ()
     hasCharacter: true,
     action: "push",
   });
-  assert.match(video, /moves away from the character's body/);
+  assert.match(video, /shoots away from the character's body/);
+  assert.doesNotMatch(video, /for the whole clip/);
 });
 
 test("Q&A is dialogue-only like story short: no narrator, character lines", () => {

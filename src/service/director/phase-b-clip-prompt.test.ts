@@ -70,6 +70,14 @@ test("video prompt forbids a last-frame snap and asks for element-by-element int
   assert.match(prompt, /do not .*snap/i);
 });
 
+test("video prompt asks for human timing, not one constant slow glide", () => {
+  const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2 });
+  assert.match(prompt, /real human timing, not one constant speed/);
+  assert.match(prompt, /snaps fast and decisive/);
+  assert.match(prompt, /Never call the body motion smooth, slow/);
+  assert.doesNotMatch(prompt, /interpolate that travel smoothly/);
+});
+
 test("first clip has no previous neighbour", () => {
   const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 1 });
   assert.match(prompt, /first clip/);

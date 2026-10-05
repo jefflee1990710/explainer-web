@@ -263,7 +263,7 @@ const CARTOON_ACTIONS: CartoonActionSpec[] = [
       "This clip's one action is a PUSH. In this still the hands are on the element named in the Scene, arms bent and loaded, the element right against the hands. Draw its destination named in the Scene on the far side of the element from the character. Any motion marks point away from the character, toward that destination.",
     end: `This still is after the PUSH landed: arms fully extended away from the body, and the same element is still visible, farther from the character and at or against its destination. Any motion marks point away from the character. ${NO_SWAP}`,
     video:
-      "This clip's action is a PUSH: the element moves away from the character's body for the whole clip and never slides back toward them.",
+      "This clip's action is a PUSH: the arms shove out fast and the element shoots away from the character's body, then never slides back toward them.",
   },
   {
     action: "pull",
@@ -275,7 +275,7 @@ const CARTOON_ACTIONS: CartoonActionSpec[] = [
       "This clip's one action is a PULL. In this still the arms reach out and the hands grip the element named in the Scene, which sits away from the body. Any motion marks point from the element toward the character.",
     end: `This still is after the PULL landed: arms drawn in toward the chest, and the same element is still visible, now close to the body. Any motion marks point toward the character. ${NO_SWAP}`,
     video:
-      "This clip's action is a PULL: the element moves toward the character's body for the whole clip and never slides away from them.",
+      "This clip's action is a PULL: the arms yank in fast and the element snaps toward the character's body, then never slides away from them.",
   },
   {
     action: "stack",
@@ -445,7 +445,7 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
       ? "When the action moves an element (every action except jump and point toward the camera), write the same element in both startScene and endScene inside 1) Character, with where it sits relative to the hands and where its destination is (the slot, bin, stack, socket, or graph node). In endScene the element is still visible. Never write that it vanished, was swallowed, or is entirely inside something."
       : "",
     hasCharacter
-      ? "motionCamera plays the action in three beats: a short anticipation (wind-up or crouch), the action, then a brief follow-through where the element settles with a small wobble and the graph responds (a node lights up, an arrow draws itself on, a counter ticks up). Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
+      ? "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a short hold while the graph responds (a node lights up, an arrow draws itself on, a counter ticks up). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
       : "",
     "On-canvas beat text is allowed: write one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 in startScene and endScene. Do not dump the full voiceover into those fields; the still prompt adds startVo / endVo lettering separately.",
   ]
@@ -512,7 +512,7 @@ export function cartoonNarratorVideoLock(
   }
   const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
   const named = spec ? ` ${spec.video}` : "";
-  return `${voice}${named} Animate this clip's one action as the two stills show it, in three beats: a short anticipation, the action, then a brief follow-through where the element settles with a small wobble and the graph responds. It must differ from the previous clip's action. Never slide the body upward, and do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. Do not repeat the previous clip's action.`;
+  return `${voice}${named} Animate this clip's one action as the two stills show it, in three beats with real human timing: a quick anticipation, the action snapping fast and sharp, then a small overshoot, a settle with a wobble, and a short hold while the graph responds. Speed changes within the clip like a real person; never one constant slow glide. It must differ from the previous clip's action. Never slide the body upward, and do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. Do not repeat the previous clip's action.`;
 }
 
 export function dialogueQaDirectorBlock() {
