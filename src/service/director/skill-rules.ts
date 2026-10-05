@@ -221,30 +221,116 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
     hasCharacter
       ? "startScene and endScene are the before and after of that one action, not two standing poses. Push: arms loaded on the element, then arms extended and the element farther away. Pull: arms reaching, then the element closer with the arms drawn in. Jump: one still has both feet off the ground. Point toward the camera: one still has the arm down, the other has the arm aimed at the lens. They usually stay on the same side; they finish on the opposite side only on a rare lateral cross. Do not write that the character stands in both stills. The travel lives only in motionCamera, and the first beat names the verb (push, pull, jump, or point toward the camera)."
       : "",
+    hasCharacter
+      ? "For a push or a pull, write the same element in both startScene and endScene inside 1) Character, with where it sits relative to the character's hands and which side of the character its destination is on (the slot, box, or graph node it moves toward). In endScene the element is still visible, farther away for a push and closer for a pull. Never write that it vanished, was swallowed, or is entirely inside something."
+      : "",
     "On-canvas beat text is allowed: write one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 in startScene and endScene. Do not dump the full voiceover into those fields; the still prompt adds startVo / endVo lettering separately.",
   ]
     .filter(Boolean)
     .join(" ");
 }
 
+export type CartoonAction = "push" | "pull" | "jump" | "point";
+
+// Camera moves share the verbs; they are not the character's action.
+const CAMERA_VERB =
+  /\b(camera|lens|shot|view)\s+(?:\w+\s+){0,2}(?:push|pull)\w*(?:\s+(?:in|out|back|away))?|\b(?:push|pull)[- ](?:in|out|back)\b/gi;
+const ACTION_PATTERNS: Array<[CartoonAction, RegExp]> = [
+  ["push", /\b(push(?:es|ed|ing)?|shov(?:e|es|ed|ing)|thrust(?:s|ing)?)\b/i],
+  ["pull", /\b(pull(?:s|ed|ing)?|drag(?:s|ged|ging)?|tug(?:s|ged|ging)?|yank(?:s|ed|ing)?|haul(?:s|ed|ing)?)\b/i],
+  ["jump", /\b(jump(?:s|ed|ing)?|leap(?:s|ed|ing|t)?|hop(?:s|ped|ping)?)\b/i],
+  ["point", /\bpoint(?:s|ed|ing)?\b(?=[^.;]*\b(?:camera|lens|viewer)\b)/i],
+];
+
+// The character's one action, read from the first motion beat that names a verb.
+export function cartoonClipAction(motionCamera: string | undefined): CartoonAction | undefined {
+  if (!motionCamera) return undefined;
+  const beats = motionCamera
+    .replace(CAMERA_VERB, " ")
+    .split(/[；;]\s*|\s(?=\d+\s*[–-]\s*\d+\s*s\s*:)/)
+    .filter((beat) => beat.trim());
+  for (const beat of beats) {
+    let found: { action: CartoonAction; at: number } | undefined;
+    for (const [action, pattern] of ACTION_PATTERNS) {
+      const at = beat.search(pattern);
+      if (at >= 0 && (!found || at < found.at)) found = { action, at };
+    }
+    if (found) return found.action;
+  }
+  return undefined;
+}
+
+const ACTION_STILL: Record<CartoonAction, Record<"start" | "end", string>> = {
+  push: {
+    start:
+      "This clip's one action is a PUSH. In this still the hands are on the element named in the Scene, arms bent and loaded, the element right against the hands. Draw its destination named in the Scene on the far side of the element from the character. Any motion marks point away from the character, toward that destination.",
+    end:
+      "This still is after the PUSH landed: arms fully extended away from the body, and the same element is still visible, farther from the character and at or against its destination. Any motion marks point away from the character. Do not swap the action for a jump, a cheer, or a new prop.",
+  },
+  pull: {
+    start:
+      "This clip's one action is a PULL. In this still the arms reach out and the hands grip the element named in the Scene, which sits away from the body. Any motion marks point from the element toward the character.",
+    end:
+      "This still is after the PULL landed: arms drawn in toward the chest, and the same element is still visible, now close to the body. Any motion marks point toward the character. Do not swap the action for a jump, a cheer, or a new prop.",
+  },
+  jump: {
+    start:
+      "This clip's one action is a JUMP. In this still they crouch with knees bent, both feet on the ground, ready to spring.",
+    end:
+      "This still is the JUMP: both feet clearly off the ground with a shadow below, not a body slid upward.",
+  },
+  point: {
+    start: "This clip's one action is a POINT toward the camera. In this still the pointing arm is down.",
+    end:
+      "This still is after the POINT: one arm reaches straight at the lens, fingertip aimed at the viewer, not at a side graphic.",
+  },
+};
+
 // Pasted into whiteboard-explainer stills; empty for every other director.
-export function cartoonNarratorFrameLock(skillSlug?: string, options?: { hasCharacter?: boolean }) {
+export function cartoonNarratorFrameLock(
+  skillSlug?: string,
+  options?: { hasCharacter?: boolean; action?: CartoonAction; position?: "start" | "end" },
+) {
   if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
   if (options?.hasCharacter) {
-    return "Silent demonstrator: the character does not talk or lip-sync (a readable facial expression is required; no greeting wave). Draw the before or after of this clip's one action, not a neutral standing pose: push (hands on a drawn element, arms loaded or extended), pull (the element closer or farther, arms matching), jump (both feet off the ground when this still is airborne), or point toward the camera (the arm aims at the lens, not at a side graphic). They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. A jump shows the feet off the ground, not a body slid upward. Camera angle may differ from the other still (side, above, front, or behind). Draw the explanation graph plus the element they push, pull, or point past. Draw every beat title or diagram label written in 「」, clearly readable.";
+    const silent =
+      "Silent demonstrator: the character does not talk or lip-sync (a readable facial expression is required; no greeting wave).";
+    const side =
+      "They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. Camera angle may differ from the other still.";
+    const labels = "Draw every beat title or diagram label written in 「」, clearly readable.";
+    if (options.action && options.position) {
+      return [
+        silent,
+        ACTION_STILL[options.action][options.position],
+        "Keep the character on the side of the frame the Scene names. Camera angle may differ from the other still. Draw the explanation graph plus the element of this action.",
+        labels,
+      ].join(" ");
+    }
+    return `${silent} Draw the before or after of this clip's one action, not a neutral standing pose: push (hands on a drawn element, the element moving away from the body), pull (hands on a drawn element, the element moving toward the body), jump (both feet off the ground when airborne, never a body slid upward), or point toward the camera (the arm aims at the lens, not at a side graphic). ${side} Draw the explanation graph plus the element they push, pull, or point past. ${labels}`;
   }
   return "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」, clearly readable.";
 }
 
+const ACTION_VIDEO: Record<CartoonAction, string> = {
+  push: "This clip's action is a PUSH: the element moves away from the character's body for the whole clip and never slides back toward them.",
+  pull: "This clip's action is a PULL: the element moves toward the character's body for the whole clip and never slides away from them.",
+  jump: "This clip's action is a JUMP: both feet leave the ground, then land.",
+  point: "This clip's action is a POINT toward the camera: the arm rises and the fingertip aims at the lens.",
+};
+
 // Appended to whiteboard-explainer clip videos; empty for every other director.
-export function cartoonNarratorVideoLock(skillSlug?: string, options?: { hasCharacter?: boolean }) {
+export function cartoonNarratorVideoLock(
+  skillSlug?: string,
+  options?: { hasCharacter?: boolean; action?: CartoonAction },
+) {
   if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
   const voice =
     "Voice: an unseen off-screen narrator speaks every line. The on-screen character never speaks or lip-syncs.";
   if (!options?.hasCharacter) {
     return `${voice} Mouth stays closed or shows simple reactions, and reacts to the diagram or props.`;
   }
-  return `${voice} Animate this clip's one action, which must differ from the previous clip: a push that moves a drawn element away from the body, a pull that brings a drawn element toward the body, a jump with both feet leaving the ground (never slide the body upward), or a point aimed at the camera. Do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. The drawn element moves with the push or pull. Do not repeat the previous clip's action.`;
+  const named = options.action ? ` ${ACTION_VIDEO[options.action]}` : "";
+  return `${voice}${named} Animate this clip's one action, which must differ from the previous clip: a push that moves a drawn element away from the body, a pull that brings a drawn element toward the body, a jump with both feet leaving the ground (never slide the body upward), or a point aimed at the camera. Do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. The drawn element moves with the push or pull. Do not repeat the previous clip's action.`;
 }
 
 export function dialogueQaDirectorBlock() {

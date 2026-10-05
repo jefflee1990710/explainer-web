@@ -7,6 +7,7 @@ import {
   normalizeBookendClips,
   phaseADurationHint,
   briefSkillError,
+  cartoonClipAction,
   cartoonExplainerDirectorBlock,
   cartoonNarratorFrameLock,
   cartoonNarratorVideoLock,
@@ -152,6 +153,52 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(movingVideo, /left to right/);
   assert.match(movingVideo, /Do not repeat/);
   assert.match(movingVideo, /walk between two standing poses/);
+  assert.match(withCast, /never write that it vanished/i);
+  assert.match(movingStill, /element moving away from the body/);
+  assert.doesNotMatch(movingStill, /closer or farther/);
+});
+
+test("the clip's one action is read from motionCamera, ignoring camera moves", () => {
+  assert.equal(
+    cartoonClipAction(
+      "0–2s: The camera pushes in. Scro leans forward and shove the large dark card forward toward the slot 「SCRO ENGINE」. 2–4s: arms extend fully.",
+    ),
+    "push",
+  );
+  assert.equal(cartoonClipAction("0–2s: She grabs the box and pulls it toward her chest."), "pull");
+  assert.equal(cartoonClipAction("Camera push-in; he crouches and jumps, feet leaving the ground."), "jump");
+  assert.equal(cartoonClipAction("0–2s: He raises one arm and points straight at the camera."), "point");
+  assert.equal(cartoonClipAction("0–2s: Slow camera pull back over the diagram."), undefined);
+  assert.equal(cartoonClipAction(undefined), undefined);
+});
+
+test("a detected push draws only that action, aimed away from the character", () => {
+  const start = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    action: "push",
+    position: "start",
+  });
+  assert.match(start, /PUSH/);
+  assert.match(start, /point away from the character/);
+  assert.doesNotMatch(start, /jump|pull/i);
+  const end = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    action: "push",
+    position: "end",
+  });
+  assert.match(end, /still visible, farther from the character/);
+  assert.match(end, /Do not swap the action for a jump/);
+  const pullEnd = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    action: "pull",
+    position: "end",
+  });
+  assert.match(pullEnd, /close to the body/);
+  const video = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    action: "push",
+  });
+  assert.match(video, /moves away from the character's body/);
 });
 
 test("Q&A is dialogue-only like story short: no narrator, character lines", () => {

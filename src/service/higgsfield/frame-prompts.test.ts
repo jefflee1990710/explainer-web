@@ -166,9 +166,11 @@ test("whiteboard explainer with a cast zooms, walks, and draws extra objects", (
   assert.match(end, /feet off the ground/);
   assert.match(end, /point toward the camera/);
   assert.match(end, /not a neutral stand/);
-  assert.match(end, /Camera angle MAY change/);
+  assert.match(end, /Camera angle and pose MAY change/);
   assert.match(end, /other side/);
   assert.doesNotMatch(end, /Same camera, character size/);
+  assert.equal(end.match(/same side/g)?.length, 1);
+  assert.equal(end.match(/Camera angle/gi)?.length, 2);
 });
 
 test("story-short 9:16 stills place subtitles in the reel safe zone", () => {
@@ -706,6 +708,26 @@ test("an oversized storyboard is trimmed under budget, keeping locks and subtitl
     assert.match(prompt, /4\) Camera: 中景/);
     assert.match(prompt, /Aspect ratio 16:9\./);
   }
+});
+
+test("trimming drops generic rules and Light before the Scene, and Set keeps its labels", () => {
+  const long = project();
+  long.skillSlug = "cartoon-explainer-video-director";
+  long.sceneTextEnabled = true;
+  long.phaseA!.visualWorld = "寒冷的山頂。".repeat(200);
+  long.phaseA!.clips[0].startScene =
+    "1) Character: Lily stands on the right, both hands on a crate. 2) Set: A snowy ridge. A sled marked 「BASE」 waits below " +
+    "and a flag 「SUMMIT」 flies above, ".repeat(110) +
+    "3) Light: " + "cold blue rim light, ".repeat(100) + "4) Camera: medium shot from the left.";
+  long.phaseA!.clips[0].motionCamera = "0–3s: " + "she climbs the rocks, ".repeat(120) + "; 3–5s: she stops.";
+  const prompt = buildFramePrompt(long, 1, "start");
+  assert.ok(prompt.length <= FRAME_PROMPT_BUDGET, `${prompt.length} chars`);
+  assert.doesNotMatch(prompt, /Render detail:/);
+  assert.doesNotMatch(prompt, /3\) Light/);
+  assert.match(prompt, /1\) Character: Lily stands on the right, both hands on a crate\./);
+  assert.match(prompt, /4\) Camera: medium shot from the left\./);
+  assert.match(prompt, /「BASE」/);
+  assert.match(prompt, /「SUMMIT」/);
 });
 
 test("REVISION line does not attach a sibling or previous still", () => {

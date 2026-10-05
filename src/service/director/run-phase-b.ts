@@ -2,7 +2,11 @@ import { generateText, Output } from "ai";
 import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { PHASE_B_DETAIL_RULES } from "@/service/director/scene-detail";
-import { cartoonNarratorVideoLock, skillBansNarration } from "@/service/director/skill-rules";
+import {
+  cartoonClipAction,
+  cartoonNarratorVideoLock,
+  skillBansNarration,
+} from "@/service/director/skill-rules";
 import { lockedSpeakerLines } from "@/service/director/character-voice";
 import { finalizePhaseBPrompt, phaseBAudioLock, resolveVoiceGender, VOICE_PRESETS } from "@/service/director/voice";
 import { skillPromptForPhaseB } from "@/service/director/load-skill-prompt";
@@ -93,6 +97,7 @@ export async function runPhaseBForClip(
     lock,
     cartoonNarratorVideoLock(input.skill.slug, {
       hasCharacter: Boolean(input.cast?.length || input.characterImageUrl),
+      action: cartoonClipAction(row?.motionCamera),
     }),
     phaseBWardrobeLock(input),
     phaseBLetteringLock({

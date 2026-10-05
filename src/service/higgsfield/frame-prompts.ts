@@ -32,6 +32,7 @@ import {
 } from "@/service/director/scene-text";
 import {
   bookendLogoFrameLines,
+  cartoonClipAction,
   cartoonNarratorFrameLock,
   isBookendSkill,
   isComparisonCardSkill,
@@ -124,12 +125,11 @@ function compositionLockLines(
     anchor.kind === "clip-start"
       ? `${slot} is THIS CLIP'S START frame`
       : `${slot} is this clip's END frame`;
+  // The narrator lock already states the action, side, and camera rules for this still.
   if (allowMove) {
     return [
       `COMPOSITION LOCK: ${source}.`,
-      "Keep the same world, set, and lighting.",
-      "Camera angle MAY change (from the side, from above, from the front, from behind, toward the camera, or away). The character usually STAYS on the same side. They stand on the other side only when the Scene is a left-to-right or right-to-left cross. A jump shows the feet off the ground; do not slide the body upward.",
-      "Draw this still as the before or after of one action, not a neutral stand: push (hands on a drawn element, arms loaded or extended), pull (the element closer or farther), jump (feet off the ground if this still is airborne), or point toward the camera (the arm aims at the lens). Do not invent a new room. Do not copy the previous clip's pose.",
+      "Keep the same world, set, and lighting. Camera angle and pose MAY change to match the Scene. Do not invent a new room.",
     ];
   }
   return [
@@ -171,14 +171,21 @@ function clipAt(text: string, max: number) {
 }
 
 // Scene rows follow "1) Character … 2) Set … 3) Light … 4) Camera …".
-// Shrink Set + Light first (or drop them) so Character and Camera survive.
-function trimSceneParts(scene: string, mode: "shorten" | "drop") {
+// Character and Camera never trim. Light may go; Set holds where a pushed or pulled
+// element goes, so it only shortens and keeps every 「」 label it named.
+function trimSceneParts(scene: string, mode: "light-short" | "light-drop" | "set-short") {
   const parts = scene.split(/(?=[1-9]\)\s)/);
   if (parts.length < 2) return scene;
   return parts
     .map((part) => {
-      if (!/^[23]\)\s/.test(part)) return part;
-      return mode === "drop" ? "" : `${clipAt(firstSentence(part), 120)} `;
+      if (/^3\)\s/.test(part)) {
+        if (mode === "light-short") return `${clipAt(firstSentence(part), 120)} `;
+        return "";
+      }
+      if (mode !== "set-short" || !/^2\)\s/.test(part)) return part;
+      const short = clipAt(firstSentence(part), 200);
+      const lost = [...new Set(part.match(/「[^」]+」/g) || [])].filter((label) => !short.includes(label));
+      return `${short}${lost.length ? ` Also labeled ${lost.join(" ")}.` : ""} `;
     })
     .join("")
     .trim();
@@ -190,20 +197,25 @@ type FrameTrimmable = {
   scene: string;
   motion: string;
   remark: string;
+  renderDetail: string;
 };
 
-// Cut the soft sections in priority order until the prompt fits the budget.
-// Subtitles, cast / wardrobe locks, composition lock and aspect ratio never trim.
+// Cut the soft sections in priority order until the prompt fits the budget. The Scene
+// is this image's content, so generic rules go first and the Scene only loses Light and
+// the tail of Set. Subtitles, cast / wardrobe locks, composition lock and aspect ratio never trim.
+// Anything still over is left for the send-time shorten step.
 function fitFramePrompt(parts: FrameTrimmable, compose: (parts: FrameTrimmable) => string) {
   const steps: Array<(p: FrameTrimmable) => FrameTrimmable> = [
     (p) => ({ ...p, visualWorld: clipAt(firstSentence(p.visualWorld), 300) }),
     (p) => ({ ...p, motion: clipAt(firstSentence(p.motion), 160) }),
     (p) => ({ ...p, palette: clipAt(p.palette, 160) }),
     (p) => ({ ...p, remark: clipAt(p.remark, 300) }),
-    (p) => ({ ...p, scene: trimSceneParts(p.scene, "shorten") }),
-    (p) => ({ ...p, scene: trimSceneParts(p.scene, "drop") }),
+    (p) => ({ ...p, renderDetail: "" }),
+    (p) => ({ ...p, scene: trimSceneParts(p.scene, "light-short") }),
     (p) => ({ ...p, visualWorld: "", motion: "" }),
     (p) => ({ ...p, palette: clipAt(p.palette, 80), remark: clipAt(p.remark, 200) }),
+    (p) => ({ ...p, scene: trimSceneParts(p.scene, "light-drop") }),
+    (p) => ({ ...p, scene: trimSceneParts(p.scene, "set-short") }),
   ];
   let current = parts;
   let prompt = compose(current);
@@ -212,10 +224,7 @@ function fitFramePrompt(parts: FrameTrimmable, compose: (parts: FrameTrimmable) 
     current = step(current);
     prompt = compose(current);
   }
-  // Last resort: the scene absorbs whatever is still over.
-  const over = prompt.length - FRAME_PROMPT_BUDGET;
-  if (over <= 0) return prompt;
-  return compose({ ...current, scene: clipAt(current.scene, current.scene.length - over) });
+  return prompt;
 }
 
 // Catalog styles only. A user id must be loaded and passed in; it must not become doodle.
@@ -420,6 +429,11 @@ export function buildFramePrompt(
   );
   const motionLabel =
     position === "start" ? "Motion beginning at this frame" : "Motion just completed at this frame";
+  const narratorLock = cartoonNarratorFrameLock(project.skillSlug, {
+    hasCharacter: performance,
+    action: cartoonClipAction(row.motionCamera),
+    position,
+  });
 
   const compose = (parts: FrameTrimmable) => [
     ...onCanvasTextBlock,
@@ -436,11 +450,9 @@ export function buildFramePrompt(
     `Scene: ${parts.scene}`,
     ...(parts.motion ? [`${motionLabel}: ${parts.motion}`] : []),
     ...(storyShortCameraLock(project.skillSlug) ? [storyShortCameraLock(project.skillSlug)] : []),
-    ...(cartoonNarratorFrameLock(project.skillSlug, { hasCharacter: performance })
-      ? [cartoonNarratorFrameLock(project.skillSlug, { hasCharacter: performance })]
-      : []),
+    ...(narratorLock ? [narratorLock] : []),
     ...(lockUrls.length ? [FRAME_WARDROBE_LOCK] : []),
-    FRAME_RENDER_DETAIL,
+    ...(parts.renderDetail ? [parts.renderDetail] : []),
     moment,
     ...compositionLockLines(options.anchor, annotatedCount + 1, sceneRefUrls.length > 0, performance),
     ...revisionLines(options.revision && { ...options.revision, remark: parts.remark }),
@@ -449,11 +461,11 @@ export function buildFramePrompt(
       : sceneText.enabled
         ? dualBeat
           ? [
-              `Final check: spelling matches the Marker line(s); no bottom subtitle band.${lettering.letteringLayout ? ` Voiceover lettering follows ${lettering.letteringLayout}` : ""}`,
+              `Final check: spelling matches the Marker line(s); no bottom subtitle band.${lettering.letteringLayout ? " Voiceover lettering sits where the Layout line says." : ""}`,
             ]
           : reelSafeZone
             ? [
-                `Final check: spelling matches the Subtitle line(s).${lettering.reelLayout ? ` Subtitle follows ${lettering.reelLayout}` : ""}`,
+                `Final check: spelling matches the Subtitle line(s).${lettering.reelLayout ? " Subtitle sits where the layout line above says." : ""}`,
               ]
             : [
                 "Final check: bottom subtitle band only; spelling must match the Subtitle line(s) above.",
@@ -474,6 +486,7 @@ export function buildFramePrompt(
       scene: sceneDescription,
       motion: motionBeatForFrame(motionDescription, position),
       remark: options.revision?.remark?.trim() || "",
+      renderDetail: FRAME_RENDER_DETAIL,
     },
     compose,
   );

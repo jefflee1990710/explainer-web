@@ -92,10 +92,9 @@ export function frameStartMoment(
 ) {
   const seconds = clampClipSeconds(durationSeconds);
   const band = keyframeDeltaBand(seconds);
-  const camera = performance
-    ? "The end frame usually keeps them on the same side after a local move. They finish on the other side only when this clip is a rare left-to-right or right-to-left cross."
-    : "Keep a single locked camera the end frame will continue.";
-  return `This is the FIRST frame (t=0s) of clip ${clipNumber} (${seconds}s). ${BUDGET[band].start} ${camera}`;
+  // With a cast, the narrator still lock owns the side and camera rules.
+  const camera = performance ? "" : " Keep a single locked camera the end frame will continue.";
+  return `This is the FIRST frame (t=0s) of clip ${clipNumber} (${seconds}s). ${BUDGET[band].start}${camera}`;
 }
 
 export function frameEndMoment(
@@ -113,10 +112,8 @@ export function frameEndMoment(
       : " It must visually hand off to the next clip on the same locked camera."
     : " It is the final frame of the video: end on a clean resting payoff. Do not match or bridge back to clip 1.";
   const change = performance
-    ? "The one action has landed: the push, pull, jump, or point toward the camera is finished, with a different body pose, facial expression, and head direction, usually still on the same side."
+    ? "The one action has landed, with a different body pose, facial expression, and head direction."
     : BUDGET[band].end;
-  const camera = performance
-    ? " Camera angle may differ (side, above, front, behind, toward, or away). They stay on the same side unless this clip crosses the frame."
-    : " Same camera, character size, and screen position.";
+  const camera = performance ? "" : " Same camera, character size, and screen position.";
   return `This is the LAST frame of clip ${clipNumber} (t=${seconds}s). ${change}${camera}${handoff}`;
 }

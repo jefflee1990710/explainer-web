@@ -54,11 +54,10 @@ test("a cast on the whiteboard director stays put most of the time and varies th
   assert.match(block, /exactly ONE instance of each named character/);
   assert.doesNotMatch(block, /SAME locked camera/);
   const end = frameEndMoment(1, 6, undefined, true);
-  assert.match(end, /same side/);
-  assert.match(end, /crosses the frame/);
   assert.match(end, /head direction/);
-  assert.match(end, /Camera angle/);
+  assert.doesNotMatch(end, /same side|Camera angle/);
   assert.doesNotMatch(end, /Same camera, character size/);
+  assert.doesNotMatch(frameStartMoment(1, 6, true), /same side|locked camera/);
 });
 
 test("frame moments mention the clip duration and a readable end change", () => {
