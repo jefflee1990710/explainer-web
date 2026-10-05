@@ -137,6 +137,12 @@
   border-radius: 16px;
 }
 
+/* Dropdown fields use the same 8px corner as text inputs, not the pill button. */
+.studio-app button[aria-haspopup="listbox"][class*="border"][class*="bg-paper"],
+.studio-app [role="listbox"] button {
+  border-radius: 8px;
+}
+
 .studio-app :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
   border-radius: 8px;
   border-color: var(--studio-line);
