@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
+
 import { useEffect, useId, useState } from "react";
 import { startPackCheckoutAction } from "@/presentation/actions/billing";
 import { track } from "@/presentation/components/analytics/track";
@@ -70,8 +72,8 @@ export function AddCreditModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
+    <DialogBackdrop
+      className="grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
       onClick={submitting ? undefined : onClose}
     >
       <div
@@ -141,6 +143,6 @@ export function AddCreditModal({ onClose }: { onClose: () => void }) {
           </div>
         </form>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }

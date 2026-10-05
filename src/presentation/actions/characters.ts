@@ -10,6 +10,12 @@ export async function createCharacterAction(
   return service.createCharacterAction(...args);
 }
 
+export async function addCharacterStyleAction(
+  ...args: Parameters<typeof service.addCharacterStyleAction>
+) {
+  return service.addCharacterStyleAction(...args);
+}
+
 export async function editCharacterVersionAction(
   ...args: Parameters<typeof service.editCharacterVersionAction>
 ) {
@@ -26,6 +32,18 @@ export async function setDefaultVersionAction(
   ...args: Parameters<typeof service.setDefaultVersionAction>
 ) {
   return service.setDefaultVersionAction(...args);
+}
+
+export async function suggestCharacterVoiceAction(
+  ...args: Parameters<typeof service.suggestCharacterVoiceAction>
+) {
+  return service.suggestCharacterVoiceAction(...args);
+}
+
+export async function saveCharacterVoiceAction(
+  ...args: Parameters<typeof service.saveCharacterVoiceAction>
+) {
+  return service.saveCharacterVoiceAction(...args);
 }
 
 export async function renameCharacterAction(

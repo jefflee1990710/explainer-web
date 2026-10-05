@@ -1,11 +1,16 @@
 "use client";
 
+import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
+
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCharacterAction } from "@/presentation/actions/characters";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import { CreateCharacterReferences } from "@/presentation/components/app/characters/create-character-references";
+import { CharacterVoiceFields } from "@/presentation/components/app/characters/character-voice-fields";
+import type { CharacterVoice } from "@/model/character-voice";
+import { DEFAULT_CHARACTER_VOICE } from "@/service/director/character-voice";
 import type { PublicStyle } from "@/presentation/serialize";
 import { DEFAULT_STYLE_ID } from "@/service/style";
 import { Spinner } from "@/presentation/components/spinner";
@@ -78,6 +83,8 @@ export function CreateCharacterModal({
   const [name, setName] = useState("");
   const [styleId, setStyleId] = useState<string>(DEFAULT_STYLE_ID);
   const [prompt, setPrompt] = useState("");
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [voice, setVoice] = useState<CharacterVoice>(DEFAULT_CHARACTER_VOICE);
   const [referenceImageUrls, setReferenceImageUrls] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -103,6 +110,7 @@ export function CreateCharacterModal({
     data.set("name", name);
     data.set("styleId", styleId);
     data.set("prompt", prompt);
+    if (voiceOn) data.set("voice", JSON.stringify(voice));
     for (const url of referenceImageUrls) data.append("referenceImageUrl", url);
     try {
       const result = await createCharacterAction(data);
@@ -129,8 +137,8 @@ export function CreateCharacterModal({
     !submitting;
 
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
+    <DialogBackdrop
+      className="grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
       onClick={submitting ? undefined : onClose}
     >
       <div
@@ -184,6 +192,16 @@ export function CreateCharacterModal({
             />
           </label>
 
+          <CharacterVoiceFields
+            name={name}
+            enabled={voiceOn}
+            value={voice}
+            disabled={submitting}
+            auto
+            onEnabled={setVoiceOn}
+            onChange={setVoice}
+          />
+
           <CreateCharacterReferences
             urls={referenceImageUrls}
             disabled={submitting}
@@ -235,6 +253,6 @@ export function CreateCharacterModal({
           }}
         />
       ) : null}
-    </div>
+    </DialogBackdrop>
   );
 }

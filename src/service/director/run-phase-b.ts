@@ -3,6 +3,7 @@ import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-mot
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { PHASE_B_DETAIL_RULES } from "@/service/director/scene-detail";
 import { cartoonNarratorVideoLock, skillBansNarration } from "@/service/director/skill-rules";
+import { lockedSpeakerLines } from "@/service/director/character-voice";
 import { finalizePhaseBPrompt, phaseBAudioLock, resolveVoiceGender, VOICE_PRESETS } from "@/service/director/voice";
 import { skillPromptForPhaseB } from "@/service/director/load-skill-prompt";
 import { directorModel } from "@/service/director/model";
@@ -40,7 +41,9 @@ Each clip is dual-keyframe image-to-video: the approved START image is already a
 ${PHASE_B_DETAIL_RULES}
 Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}). ${
     skillBansNarration(input.skill.slug)
-      ? "There is no narrator. Characters speak those lines. Do not copy a male/female narrator fingerprint. Infer each NAME's voice from that character in the keyframes."
+      ? lockedSpeakerLines(input.cast).length
+        ? "There is no narrator. Characters speak those lines. Copy each character voice lock verbatim. Do not invent or rephrase a timbre."
+        : "There is no narrator. Characters speak those lines. Do not copy a male/female narrator fingerprint. Infer each NAME's voice from that character in the keyframes."
       : `Copy the locked adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice fingerprint verbatim into every clip prompt. Do not invent a new narrator.`
   } ${cartoonNarratorVideoLock(input.skill.slug, { hasCharacter: Boolean(input.cast?.length || input.characterImageUrl) })} Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. Never request background music, BGM, a musical score, or an underscore. Voice and short synced SFX only.`;
 }
@@ -69,6 +72,7 @@ export async function runPhaseBForClip(
       voiceGender: input.voiceGender,
       speechPace: input.speechPace,
       bansNarration: skillBansNarration(input.skill.slug),
+      speakers: input.cast,
       characterLine: characterLine(input),
     }),
   });
@@ -81,6 +85,7 @@ export async function runPhaseBForClip(
     languageLabel: language.label,
     bansNarration: skillBansNarration(input.skill.slug),
     speechPace: input.speechPace,
+    speakers: input.cast,
   });
   const row = input.phaseA.clips.find((clip) => clip.clipNumber === input.clipNumber);
   // Audio, narrator, wardrobe, and lettering locks ride on every clip; empty locks are skipped.

@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
+
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -73,8 +75,8 @@ export function CreateFolderModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
+    <DialogBackdrop
+      className="grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -124,6 +126,6 @@ export function CreateFolderModal({ onClose }: { onClose: () => void }) {
           </div>
         </form>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }

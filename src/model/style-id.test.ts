@@ -22,6 +22,22 @@ test("STYLE_IDS lists every allowed style id", () => {
     "low-poly",
     "colored-pencil",
     "dark-tech",
+    "cave-painting",
+    "egyptian-wall",
+    "attic-black-figure",
+    "roman-mosaic",
+    "gothic-illumination",
+    "high-renaissance",
+    "ukiyo-e",
+    "impressionism",
+    "post-impressionism",
+    "art-nouveau",
+    "cubism",
+    "bauhaus",
+    "pop-art",
+    "eight-bit",
+    "ray-traced",
+    "flat-illustration",
   ]);
 });
 

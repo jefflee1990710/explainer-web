@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
+
 import { useId, useState } from "react";
 import Link from "next/link";
 import { acceptCurrentPolicies } from "@/presentation/actions/legal";
@@ -29,7 +31,7 @@ export function AcceptPoliciesDialog({ firstTime }: { firstTime: boolean }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[#12141c]/40 p-4 backdrop-blur-sm">
+    <DialogBackdrop className="grid place-items-center bg-[#12141c]/40 p-4 backdrop-blur-sm">
       <form
         role="dialog"
         aria-modal="true"
@@ -80,6 +82,6 @@ export function AcceptPoliciesDialog({ firstTime }: { firstTime: boolean }) {
           {t("legal.agree")}
         </button>
       </form>
-    </div>
+    </DialogBackdrop>
   );
 }

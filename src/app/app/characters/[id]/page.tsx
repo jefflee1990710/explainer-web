@@ -6,6 +6,7 @@ import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/c
 import { charactersCollection } from "@/dao";
 import { toPublicCharacter } from "@/presentation/serialize";
 import type { Character } from "@/model/character";
+import { listSelectableStyles } from "@/service/style/list";
 import { CharacterWorkspace } from "@/presentation/components/app/characters/[id]/character-workspace";
 
 export default async function CharacterPage({
@@ -24,14 +25,20 @@ export default async function CharacterPage({
   })) as Character | null;
   if (!character) notFound();
 
-  const sub = await getActiveSubscription(user.clerkUserId);
+  const [sub, selectable] = await Promise.all([
+    getActiveSubscription(user.clerkUserId),
+    listSelectableStyles(user.clerkUserId),
+  ]);
+  const subscribed = isSubscriptionActive(sub);
 
   return (
     <Suspense fallback={<div className="h-64 rounded-[1.5rem] bg-accent-ink/5" />}>
       <CharacterWorkspace
         character={toPublicCharacter(character)}
         credits={user.credits}
-        subscribed={isSubscriptionActive(sub)}
+        subscribed={subscribed}
+        planId={subscribed && sub ? sub.planId : null}
+        styles={[...selectable.system, ...selectable.mine]}
       />
     </Suspense>
   );

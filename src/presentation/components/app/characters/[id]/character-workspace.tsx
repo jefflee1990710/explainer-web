@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
+  addCharacterStyleAction,
   editCharacterVersionAction,
   getCharacterAction,
   renameCharacterAction,
@@ -11,7 +12,7 @@ import {
   setDefaultVersionAction,
   type CharacterResult,
 } from "@/presentation/actions/characters";
-import type { PublicCharacter } from "@/presentation/serialize";
+import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
 import { useCharacterPoll } from "@/presentation/components/app/characters/[id]/use-character-poll";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { isCreditGateError } from "@/service/billing/credit-gate";
@@ -20,18 +21,34 @@ import { DeleteCharacterDialog } from "@/presentation/components/app/characters/
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import { localizedStyleName } from "@/util/style-i18n";
+import { isStyleId, type StyleId } from "@/model/style-id";
+import { CharacterStyleColumn } from "@/presentation/components/app/characters/[id]/character-style-column";
+import { CharacterVoicePanel } from "@/presentation/components/app/characters/[id]/character-voice-panel";
 import { VersionDetail } from "@/presentation/components/app/characters/[id]/version-detail";
 import { VersionList } from "@/presentation/components/app/characters/[id]/version-list";
+import type { PlanId } from "@/model/subscription";
+import { characterStyleLimit } from "@/service/character/style-limit";
+import { isPlanId } from "@/service/billing/plans";
 
-// Split character workspace: version list left, selected version right.
+function styleLabel(styleId: string, styles: PublicStyle[]) {
+  const style = styles.find((item) => item.id === styleId);
+  if (style?.isCustom || !isStyleId(styleId)) return style?.name || styleId;
+  return localizedStyleName(styleId as StyleId);
+}
+
+// Style column, then versions of that style, then the selected blueprint.
 export function CharacterWorkspace({
   character: initial,
   credits,
   subscribed,
+  planId,
+  styles,
 }: {
   character: PublicCharacter;
   credits: number;
   subscribed: boolean;
+  planId: PlanId | null;
+  styles: PublicStyle[];
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -46,9 +63,15 @@ export function CharacterWorkspace({
     needed: number;
     resume: () => void;
   } | null>(null);
-  const [paidSnap, setPaidSnap] = useState<{ credits: number; subscribed: boolean } | null>(null);
+  const [paidSnap, setPaidSnap] = useState<{
+    credits: number;
+    subscribed: boolean;
+    planId: PlanId | null;
+  } | null>(null);
   const walletCredits = paidSnap?.credits ?? credits;
   const walletSubscribed = paidSnap?.subscribed ?? subscribed;
+  const walletPlanId = paidSnap?.planId ?? planId;
+  const styleLimit = characterStyleLimit(walletPlanId);
 
   // SSR gives a first paint; refresh in the background after navigation.
   useEffect(() => {
@@ -71,13 +94,35 @@ export function CharacterWorkspace({
   useCharacterPoll(character, onPoll, onPollError);
 
   const versionParam = searchParams.get("version");
+  const styleParam = searchParams.get("style");
+  const requestedVersion = character.versions.find((version) => version.id === versionParam);
+  const activeStyleId =
+    (styleParam && character.styleIds.includes(styleParam) && styleParam) ||
+    requestedVersion?.styleId ||
+    character.styleIds[0] ||
+    character.styleId;
+  const styleVersions = character.versions.filter((version) => version.styleId === activeStyleId);
   const selected =
-    character.versions.find((version) => version.id === versionParam) ||
-    character.versions.find((version) => version.id === character.defaultVersionId) ||
-    character.versions[0];
+    styleVersions.find((version) => version.id === versionParam) ||
+    styleVersions.find((version) => version.id === character.defaultVersionId) ||
+    styleVersions[0];
 
   function select(id: string) {
-    router.replace(`${pathname}?version=${id}`);
+    router.replace(`${pathname}?style=${activeStyleId}&version=${id}`);
+  }
+
+  function selectStyle(styleId: string) {
+    const versions = character.versions.filter((version) => version.styleId === styleId);
+    const next =
+      versions.find((version) => version.id === character.defaultVersionId) || versions[0];
+    router.replace(`${pathname}?style=${styleId}${next ? `&version=${next.id}` : ""}`);
+  }
+
+  function showAdded(next: PublicCharacter, styleId: string) {
+    setCharacter(next);
+    const versions = next.versions.filter((version) => version.styleId === styleId);
+    const added = versions[0];
+    router.replace(`${pathname}?style=${styleId}${added ? `&version=${added.id}` : ""}`);
   }
 
   async function run(key: string, action: () => Promise<CharacterResult>) {
@@ -125,10 +170,6 @@ export function CharacterWorkspace({
     void run("rename", () => renameCharacterAction(character.id, trimmed));
   }
 
-  if (!selected) {
-    return <p className="text-sm text-muted">{t("characters.noVersions")}</p>;
-  }
-
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -151,7 +192,11 @@ export function CharacterWorkspace({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-sm text-muted">
-            {localizedStyleName(character.styleId)} · {t("characters.versionCount", { n: character.versions.length })}
+            {character.styleIds.length > 1
+              ? t("characters.styleCount", { n: character.styleIds.length })
+              : styleLabel(character.styleIds[0] || character.styleId, styles)}
+            {" · "}
+            {t("characters.versionCount", { n: character.versions.length })}
           </p>
           <button
             type="button"
@@ -168,32 +213,67 @@ export function CharacterWorkspace({
         <DeleteCharacterDialog character={character} onClose={() => setDeleteOpen(false)} />
       ) : null}
 
-      <div className="grid gap-6 md:grid-cols-[17.5rem_minmax(0,1fr)] md:items-start">
-        <VersionList character={character} selectedId={selected.id} onSelect={select} />
-        <VersionDetail
-          key={selected.id}
+      <div className="grid gap-6 md:grid-cols-[11rem_17.5rem_minmax(0,1fr)] md:items-start">
+        <CharacterStyleColumn
           character={character}
-          version={selected}
-          credits={walletCredits}
-          subscribed={walletSubscribed}
-          pending={pending}
-          error={error}
-          onSetDefault={() =>
-            void run("default", () => setDefaultVersionAction(character.id, selected.id))
-          }
-          onEdit={(instruction) => void onEdit(instruction)}
-          onRetry={() =>
-            void run("retry", () => retryCharacterVersionAction(character.id, selected.id))
-          }
+          styles={styles}
+          styleLimit={styleLimit}
+          activeStyleId={activeStyleId}
+          onSelect={selectStyle}
+          onAdded={showAdded}
+          onNeedCredits={(styleId) => {
+            setCreditGate({
+              needed: FRAME_COST,
+              resume: () => {
+                void addCharacterStyleAction(character.id, styleId).then((result) => {
+                  if (result.ok) showAdded(result.character, styleId);
+                  else setError(translateAppError(result.error, t));
+                });
+              },
+            });
+          }}
         />
+        <VersionList
+          character={character}
+          styleId={activeStyleId}
+          selectedId={selected?.id ?? null}
+          onSelect={select}
+        />
+        {selected ? (
+          <VersionDetail
+            key={selected.id}
+            character={character}
+            version={selected}
+            credits={walletCredits}
+            subscribed={walletSubscribed}
+            pending={pending}
+            error={error}
+            onSetDefault={() =>
+              void run("default", () => setDefaultVersionAction(character.id, selected.id))
+            }
+            onEdit={(instruction) => void onEdit(instruction)}
+            onRetry={() =>
+              void run("retry", () => retryCharacterVersionAction(character.id, selected.id))
+            }
+          />
+        ) : (
+          <p className="text-sm text-muted">{t("characters.noVersions")}</p>
+        )}
       </div>
+
+      <CharacterVoicePanel character={character} onSaved={setCharacter} />
       {creditGate ? (
         <InsufficientCreditsDialog
           needed={creditGate.needed}
           subscribed={walletSubscribed}
           onClose={() => setCreditGate(null)}
           onPaid={(snap) => {
-            setPaidSnap(snap);
+            const rawPlan = snap.planId ?? undefined;
+            setPaidSnap({
+              credits: snap.credits,
+              subscribed: snap.subscribed,
+              planId: isPlanId(rawPlan) ? rawPlan : walletPlanId,
+            });
             const resume = creditGate.resume;
             setCreditGate(null);
             resume();

@@ -88,7 +88,7 @@ test("phase A and blueprint crop load a user style instead of videoStyle or reso
     readFileSync(path.join(here, "../character/sync.ts"), "utf8"),
     "syncCharacterJob",
   );
-  assert.match(crop, /loadRenderableStyle\(\{[\s\S]*styleId: character\.styleId/);
+  assert.match(crop, /loadRenderableStyle\(\{[\s\S]*styleId: versionStyleId\(character, version\)/);
   assert.match(crop, /ownerClerkUserId: character\.clerkUserId/);
   assert.match(crop, /loaded\.canvasColor/);
   assert.doesNotMatch(crop, /resolvedStyle\s*\(/);

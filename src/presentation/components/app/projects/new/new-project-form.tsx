@@ -640,7 +640,11 @@ export function NewProjectForm({
   function onStyleChange(id: string) {
     setStyleId(id);
     setCharacterIds((ids) =>
-      ids.filter((cid) => characters.find((c) => c.id === cid)?.styleId === id),
+      ids.filter((cid) => {
+        const character = characters.find((c) => c.id === cid);
+        const styles = character?.styleIds?.length ? character.styleIds : [character?.styleId];
+        return styles.includes(id);
+      }),
     );
   }
 

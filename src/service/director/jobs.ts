@@ -1,5 +1,6 @@
 import type { ObjectId } from "mongodb";
 import { characterLockFromCast } from "@/service/character/cast-prompt";
+import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { videosCollection } from "@/dao";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
@@ -74,7 +75,7 @@ export async function runPhaseAJob(
       sceneTextEnabled: project.sceneTextEnabled,
       sceneTextLanguage: project.sceneTextLanguage,
       characterImageUrl: project.characterImageUrl,
-      cast: project.cast,
+      cast: await withCurrentCharacterVoices(project.cast),
       logoUrl: project.logoUrl,
       referenceImages: project.referenceImages,
       currentDraft: project.phaseA,

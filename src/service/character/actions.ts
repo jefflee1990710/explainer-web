@@ -4,16 +4,24 @@ import { requireAppUser } from "@/service/auth";
 import {
   assertCanSpendCredits,
   consumeCredits,
+  getActiveSubscription,
+  isSubscriptionActive,
   refundCredits,
 } from "@/service/billing/credits";
 import { FRAME_COST } from "@/service/production-plan";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { enqueueCharacterVersion } from "@/service/character/generate";
+import {
+  characterStyleIds,
+  originalCharacterSource,
+  versionStyleId,
+} from "@/service/character/character-styles";
+import { characterStyleLimit } from "@/service/character/style-limit";
 import { editReferenceUrls, parseReferenceImageUrls } from "@/service/character/reference-urls";
 import { collectCharacterBlobUrls } from "@/service/character/storage";
 import { failCharacterVersion } from "@/service/character/sync";
 import { canSetDefault } from "@/service/character/versions";
-import { charactersCollection, generationJobsCollection } from "@/dao";
+import { charactersCollection, generationJobsCollection, usersCollection } from "@/dao";
 import {
   fetchHiggsfieldStatus,
   mediaUrlFromResponse,
@@ -22,6 +30,9 @@ import { applyJobStatus } from "@/service/higgsfield/pipeline";
 import { toPublicCharacter, type PublicCharacter } from "@/presentation/serialize";
 import { isListedStyleId } from "@/service/style/list-selectable";
 import type { Character, CharacterVersion } from "@/model/character";
+import { characterVoiceForStorage, parseCharacterVoice, type CharacterVoice } from "@/model/character-voice";
+import { characterBlueprintVoiceInput, inferCharacterVoice } from "@/service/character/infer-voice";
+import { VOICE_FILL_LIMIT, VOICE_FILL_WINDOW_MS } from "@/service/character/voice-fill-rate";
 
 const NAME_MAX = 40;
 const PROMPT_MAX = 1200;
@@ -88,6 +99,17 @@ export async function createCharacterAction(
     if (!prompt && !referenceImageUrl) {
       return { ok: false, error: "請描述這個角色，或上傳參考圖" };
     }
+    const chosen = readCharacterVoice(formData.get("voice"));
+    if (chosen === "invalid") return { ok: false, error: "聲線設定無效" };
+    // No manual lock: infer one so the character is created with the lock on.
+    const voice = characterVoiceForStorage(
+      chosen ??
+        (await inferCharacterVoice({
+          name,
+          description: prompt,
+          referenceImageUrls,
+        })),
+    );
 
     await assertCanSpendCredits(user, FRAME_COST);
     const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
@@ -95,6 +117,7 @@ export async function createCharacterAction(
     const now = new Date();
     const version: CharacterVersion = {
       id: new ObjectId(),
+      styleId,
       prompt,
       referenceImageUrl,
       referenceImageUrls: referenceImageUrls.length ? referenceImageUrls : undefined,
@@ -111,6 +134,7 @@ export async function createCharacterAction(
         clerkUserId: user.clerkUserId,
         name,
         styleId,
+        ...(voice ? { voice } : {}),
         versions: [version],
         createdAt: now,
         updatedAt: now,
@@ -165,6 +189,7 @@ export async function editCharacterVersionAction(
     const refs = editReferenceUrls(character.versions, parent);
     const version: CharacterVersion = {
       id: new ObjectId(),
+      styleId: versionStyleId(character, parent),
       parentVersionId: parent.id,
       prompt: `${parent.prompt}\n變更：${instruction}`,
       editInstruction: instruction,
@@ -198,6 +223,64 @@ export async function editCharacterVersionAction(
     return reload(character._id);
   } catch (error) {
     return fail(error, "產生新版本失敗");
+  }
+}
+
+// New style on this character: a blueprint from the original photos, not from a later sheet.
+export async function addCharacterStyleAction(
+  characterId: string,
+  styleId: string,
+): Promise<CharacterResult> {
+  try {
+    const user = await requireAppUser();
+    if (!isListedStyleId(styleId)) return { ok: false, error: "請選擇風格" };
+    const character = await ownedCharacter(characterId, user.clerkUserId);
+    if (!character) return { ok: false, error: "角色不存在" };
+    const styles = characterStyleIds(character);
+    if (styles.includes(styleId)) return { ok: false, error: "這個角色已經有這個風格" };
+    const sub = await getActiveSubscription(user.clerkUserId);
+    const limit = characterStyleLimit(isSubscriptionActive(sub) && sub ? sub.planId : null);
+    if (styles.length >= limit) return { ok: false, error: "已達這個方案的風格上限" };
+
+    const source = originalCharacterSource(character.versions);
+    if (!source.prompt && source.referenceImageUrls.length === 0) {
+      return { ok: false, error: "沒有可用的原始參考" };
+    }
+
+    await assertCanSpendCredits(user, FRAME_COST);
+    const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    const now = new Date();
+    const version: CharacterVersion = {
+      id: new ObjectId(),
+      styleId,
+      prompt: source.prompt,
+      referenceImageUrl: source.referenceImageUrls[0],
+      referenceImageUrls: source.referenceImageUrls.length ? source.referenceImageUrls : undefined,
+      status: "queued",
+      creditsCharged: true,
+      createdAt: now,
+      submittedAt: now,
+    };
+    const characters = await charactersCollection();
+    try {
+      await characters.updateOne(
+        { _id: character._id },
+        { $push: { versions: version }, $set: { updatedAt: now } },
+      );
+    } catch (error) {
+      try {
+        await refundCredits(user.clerkUserId, 1, spendKey);
+      } catch (refundError) {
+        throw refundError;
+      }
+      throw error;
+    }
+
+    await enqueueOrFail(character, version);
+    revalidateCharacter(characterId);
+    return reload(character._id);
+  } catch (error) {
+    return fail(error, "新增風格失敗");
   }
 }
 
@@ -329,6 +412,112 @@ export async function setDefaultVersionAction(
     return reload(character._id);
   } catch (error) {
     return fail(error, "設定預設失敗");
+  }
+}
+
+// Claims one fill inside the 5-minute window. False when the user is already at the cap.
+async function reserveVoiceFill(clerkUserId: string, now: Date): Promise<boolean> {
+  const since = new Date(now.getTime() - VOICE_FILL_WINDOW_MS);
+  const users = await usersCollection();
+  const reserved = await users.updateOne(
+    {
+      clerkUserId,
+      $expr: {
+        $lt: [
+          {
+            $size: {
+              $filter: {
+                input: { $ifNull: ["$voiceFillAt", []] },
+                as: "stamp",
+                cond: { $gt: ["$$stamp", since] },
+              },
+            },
+          },
+          VOICE_FILL_LIMIT,
+        ],
+      },
+    },
+    [
+      {
+        $set: {
+          voiceFillAt: {
+            $concatArrays: [
+              {
+                $filter: {
+                  input: { $ifNull: ["$voiceFillAt", []] },
+                  as: "stamp",
+                  cond: { $gt: ["$$stamp", since] },
+                },
+              },
+              [now],
+            ],
+          },
+        },
+      },
+    ],
+  );
+  return reserved.matchedCount === 1;
+}
+
+// Reads the default blueprint, saves the lock, and counts toward the 5-per-5-minutes cap.
+export async function suggestCharacterVoiceAction(characterId: string): Promise<CharacterResult> {
+  try {
+    const user = await requireAppUser();
+    const character = await ownedCharacter(characterId, user.clerkUserId);
+    if (!character) return { ok: false, error: "角色不存在" };
+    const source = characterBlueprintVoiceInput(character);
+    if (!source) return { ok: false, error: "還沒有完成的藍圖" };
+    const reserved = await reserveVoiceFill(user.clerkUserId, new Date());
+    if (!reserved) return { ok: false, error: "聲線填寫太頻繁，請 5 分鐘後再試" };
+    const voice = characterVoiceForStorage(await inferCharacterVoice(source));
+    const characters = await charactersCollection();
+    await characters.updateOne(
+      { _id: character._id },
+      { $set: { voice, updatedAt: new Date() } },
+    );
+    revalidateCharacter(characterId);
+    return reload(character._id);
+  } catch (error) {
+    return fail(error, "聲線推斷失敗");
+  }
+}
+
+// null clears the lock. A voice object replaces it. Blueprint versions stay as they are.
+export async function saveCharacterVoiceAction(
+  characterId: string,
+  voice: CharacterVoice | null,
+): Promise<CharacterResult> {
+  try {
+    const user = await requireAppUser();
+    const character = await ownedCharacter(characterId, user.clerkUserId);
+    if (!character) return { ok: false, error: "角色不存在" };
+    const parsed = voice === null ? null : parseCharacterVoice(voice);
+    if (voice !== null && !parsed) {
+      return { ok: false, error: "聲線設定無效" };
+    }
+    const stored = parsed ? characterVoiceForStorage(parsed) : null;
+    const characters = await charactersCollection();
+    await characters.updateOne(
+      { _id: character._id },
+      stored
+        ? { $set: { voice: stored, updatedAt: new Date() } }
+        : { $unset: { voice: "" }, $set: { updatedAt: new Date() } },
+    );
+    revalidateCharacter(characterId);
+    return reload(character._id);
+  } catch (error) {
+    return fail(error, "儲存聲線失敗");
+  }
+}
+
+function readCharacterVoice(value: FormDataEntryValue | null): CharacterVoice | null | "invalid" {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return parseCharacterVoice(parsed) ?? "invalid";
+  } catch {
+    return "invalid";
   }
 }
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
+
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteCharacterAction } from "@/presentation/actions/characters";
@@ -35,8 +37,8 @@ export function DeleteCharacterDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
+    <DialogBackdrop
+      className="grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
       onClick={deleting ? undefined : onClose}
     >
       <div
@@ -79,6 +81,6 @@ export function DeleteCharacterDialog({
           </button>
         </div>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }

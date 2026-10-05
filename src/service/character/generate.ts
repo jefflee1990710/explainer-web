@@ -3,6 +3,7 @@ import { submitImage } from "@/service/higgsfield/generate";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
 import { buildBlueprintPrompt } from "@/service/character/blueprint-prompt";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
+import { versionStyleId } from "@/service/character/character-styles";
 import { characterReferenceUrls } from "@/service/character/reference-urls";
 import { toSent, type Sent } from "@/service/generation/sent";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
@@ -17,7 +18,7 @@ export async function sendCharacterVersion(
 ): Promise<Sent> {
   const refs = characterReferenceUrls(version);
   const style = await loadRenderableStyle({
-    styleId: character.styleId,
+    styleId: versionStyleId(character, version),
     ownerClerkUserId: character.clerkUserId,
   });
   const submitted = await submitImage({

@@ -123,7 +123,6 @@ export const productionZhHant = {
     allDone: "全部完成，可以成片",
     debug: "技術資訊",
     bulkOpen: "全部產生",
-    bulkRemaining: "補齊缺少",
     bulkAllFrames: "全部畫格",
     bulkAllFramesVideo: "全部（畫格＋影片）",
   },

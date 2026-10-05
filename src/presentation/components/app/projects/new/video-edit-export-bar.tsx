@@ -1,7 +1,7 @@
 "use client";
 
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { Spinner } from "@/presentation/components/spinner";
+import { VideoEditExportMenu } from "@/presentation/components/app/projects/new/video-edit-export-menu";
 import { isProjectReady } from "@/service/clip-stage";
 import { hasEdit, isFinalCurrent, isFinalRunning } from "@/service/video-edit/edit-state";
 import type { PublicVideo } from "@/presentation/serialize";
@@ -20,14 +20,16 @@ export function VideoEditExportBar({
   saving,
   pending,
   error,
-  onExport,
+  onVideoOnly,
+  onVideoAndCover,
 }: {
   project: PublicVideo;
   edit: VideoEdit;
   saving: boolean;
   pending: boolean;
   error?: string;
-  onExport: (existingUrl: string | undefined, filename: string) => void;
+  onVideoOnly: (existingUrl: string | undefined, filename: string) => void;
+  onVideoAndCover: (existingUrl: string | undefined, filename: string) => void;
 }) {
   const { t } = useI18n();
   const clipsReady = isProjectReady(project);
@@ -41,9 +43,7 @@ export function VideoEditExportBar({
   const basename = baseName(project, t("video.export.fallbackBasename"));
   const shownError = error || (failed ? project.finalError : undefined);
 
-  function saveFinal() {
-    onExport(fileUrl, `${basename}.mp4`);
-  }
+  const filename = `${basename}.mp4`;
 
   return (
     <div className="flex items-center gap-2">
@@ -56,19 +56,19 @@ export function VideoEditExportBar({
       ) : !clipsReady ? (
         <p className="max-w-40 truncate text-[11px] text-[var(--studio-muted)]">{t("video.export.waitForClips")}</p>
       ) : null}
-      <button
-        type="button"
+      <VideoEditExportMenu
+        label={
+          busy
+            ? t("video.export.exporting")
+            : failed
+              ? t("video.export.retry")
+              : t("video.export.export")
+        }
+        busy={busy}
         disabled={!clipsReady || busy || saving}
-        onClick={saveFinal}
-        className="inline-flex h-7 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-[#12141c] px-3 text-xs font-semibold text-[#c6f24b] transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {busy ? <Spinner className="h-3.5 w-3.5" /> : null}
-        {busy
-          ? t("video.export.exporting")
-          : failed
-            ? t("video.export.retry")
-            : t("video.export.export")}
-      </button>
+        onVideoOnly={() => onVideoOnly(fileUrl, filename)}
+        onVideoAndCover={() => onVideoAndCover(fileUrl, filename)}
+      />
     </div>
   );
 }

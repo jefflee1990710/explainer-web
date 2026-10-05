@@ -200,6 +200,16 @@ export type Messages = {
     noVersions: string;
     nameAria: string;
     versionCount: string;
+    stylesHeading: string;
+    addStyle: string;
+    styleUsage: string;
+    addStyleNeedSubscribe: string;
+    addStyleAtLimit: string;
+    addStyleTitle: string;
+    addStyleBody: string;
+    addStyleSubmit: string;
+    addStyleEmpty: string;
+    styleCount: string;
     deleteCharacter: string;
     modalIntro: string;
     nameLabel: string;
@@ -226,6 +236,7 @@ export type Messages = {
     versionsHeading: string;
     defaultBadge: string;
     editedFromVersion: string;
+    versionOriginal: string;
     versionStatusQueued: string;
     versionStatusInProgress: string;
     versionStatusCompleted: string;
@@ -247,6 +258,50 @@ export type Messages = {
     editWhatPlaceholder: string;
     editKeepsOriginal: string;
     generateNewVersion: string;
+    voiceTitle: string;
+    voiceHint: string;
+    voiceEnabled: string;
+    voiceUnset: string;
+    voiceAutoUnset: string;
+    voicePreview: string;
+    voiceSave: string;
+    voiceSaved: string;
+    voiceFill: string;
+    voiceFilled: string;
+    voiceFillNeedsBlueprint: string;
+    voiceGender: string;
+    voiceAge: string;
+    voicePitch: string;
+    voiceResonance: string;
+    voiceTexture: string;
+    voiceWeight: string;
+    voicePitchHint: string;
+    voiceResonanceHint: string;
+    voiceTextureHint: string;
+    voiceWeightHint: string;
+    voiceNote: string;
+    voiceNoteHint: string;
+    voiceNotePlaceholder: string;
+    voiceGenderMale: string;
+    voiceGenderFemale: string;
+    voiceAgeYoungAdult: string;
+    voiceAgeAdult: string;
+    voiceAgeOlder: string;
+    voicePitchLow: string;
+    voicePitchMidLow: string;
+    voicePitchMid: string;
+    voicePitchMidHigh: string;
+    voicePitchHigh: string;
+    voiceResonanceChesty: string;
+    voiceResonanceMixed: string;
+    voiceResonanceBright: string;
+    voiceTextureWarm: string;
+    voiceTextureDry: string;
+    voiceTextureSoft: string;
+    voiceTextureCrisp: string;
+    voiceWeightLight: string;
+    voiceWeightMedium: string;
+    voiceWeightHeavy: string;
   };
   settings: {
     title: string;
@@ -382,7 +437,23 @@ export type Messages = {
     | "realistic"
     | "low-poly"
     | "colored-pencil"
-    | "dark-tech",
+    | "dark-tech"
+    | "cave-painting"
+    | "egyptian-wall"
+    | "attic-black-figure"
+    | "roman-mosaic"
+    | "gothic-illumination"
+    | "high-renaissance"
+    | "ukiyo-e"
+    | "impressionism"
+    | "post-impressionism"
+    | "art-nouveau"
+    | "cubism"
+    | "bauhaus"
+    | "pop-art"
+    | "eight-bit"
+    | "ray-traced"
+    | "flat-illustration",
     string
   >;
   plans: {

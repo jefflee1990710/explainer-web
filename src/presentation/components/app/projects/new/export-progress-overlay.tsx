@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
+
 import { useId } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
@@ -26,7 +28,7 @@ export function ExportProgressOverlay({
   const activeIndex = job.phases.indexOf(job.phase);
 
   return (
-    <div className="fixed inset-0 z-[80] grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm">
+    <DialogBackdrop className="grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm">
       <div
         role="dialog"
         aria-modal="true"
@@ -36,6 +38,7 @@ export function ExportProgressOverlay({
         <h2 id={titleId} className="font-display text-xl font-bold">
           {t("video.export.progressTitle")}
         </h2>
+        <p className="mt-2 text-sm text-muted">{t("video.export.stayOpen")}</p>
         <ol className="mt-5 space-y-3">
           {job.phases.map((phase, index) => {
             const state = index < activeIndex ? "done" : index === activeIndex ? "active" : "pending";
@@ -72,7 +75,7 @@ export function ExportProgressOverlay({
           {t("video.export.cancel")}
         </button>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }
 

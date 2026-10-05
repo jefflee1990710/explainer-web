@@ -33,9 +33,11 @@ export function CharacterPicker({
   const multiple = max > 1;
 
   const anyReady = characters.some((character) => character.previewUrl);
-  const ready = characters.filter(
-    (character) => character.previewUrl && (!styleId || character.styleId === styleId),
-  );
+  const ready = characters.filter((character) => {
+    const styles = character.styleIds?.length ? character.styleIds : [character.styleId];
+    const sheet = blueprintForStyle(character, styleId);
+    return Boolean(sheet) && (!styleId || styles.includes(styleId));
+  });
   const selected = ready.filter((character) => value.includes(character.id));
   const pick = castPickStatus(value.length, required, max, t);
 
@@ -105,10 +107,16 @@ export function CharacterPicker({
           onClick={() => setOpen((current) => !current)}
           className="flex w-full min-h-[4.5rem] cursor-pointer items-center gap-3 rounded-xl border border-accent-ink/15 bg-paper/70 px-3 py-2.5 text-left transition-colors hover:border-accent-ink/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {selected[0] ? <CharacterThumb character={selected[0]} /> : <EmptyThumb />}
+          {selected[0] ? (
+            <CharacterThumb src={blueprintForStyle(selected[0], styleId) || selected[0].previewUrl!} />
+          ) : (
+            <EmptyThumb />
+          )}
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-semibold text-foreground">{summary}</span>
-            {selected.length === 1 ? <VersionLine character={selected[0]} muted /> : null}
+            {selected.length === 1 ? (
+              <VersionLine version={sheetForStyle(selected[0], styleId)} muted />
+            ) : null}
             {selected.length > 1 ? (
               <span className="mt-0.5 block text-xs text-muted">
                 {t("brief.castPicker.selectedCount", { n: selected.length })}
@@ -160,10 +168,10 @@ export function CharacterPicker({
                       active ? "bg-accent-ink text-paper" : "hover:bg-accent-ink/5"
                     }`}
                   >
-                    <CharacterThumb character={character} />
+                    <CharacterThumb src={blueprintForStyle(character, styleId) || character.previewUrl!} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold">{character.name}</span>
-                      <VersionLine character={character} muted={!active} inverted={active} />
+                      <VersionLine version={sheetForStyle(character, styleId)} muted={!active} inverted={active} />
                     </span>
                   </button>
                 </li>
@@ -182,16 +190,33 @@ export function CharacterPicker({
   );
 }
 
+// Completed sheet for the video's style. Without a style, the character default.
+function sheetForStyle(character: PublicCharacter, styleId?: string) {
+  const versions = character.versions.filter((version) => {
+    const id = version.styleId || character.styleId;
+    return (
+      (!styleId || id === styleId) &&
+      version.status === "completed" &&
+      Boolean(version.blueprintUrl)
+    );
+  });
+  return versions.find((version) => version.id === character.defaultVersionId) ?? versions[0] ?? null;
+}
+
+function blueprintForStyle(character: PublicCharacter, styleId?: string) {
+  if (!styleId) return character.previewUrl;
+  return sheetForStyle(character, styleId)?.blueprintUrl ?? null;
+}
+
 function VersionLine({
-  character,
+  version,
   muted,
   inverted,
 }: {
-  character: PublicCharacter;
+  version: PublicCharacter["versions"][number] | null;
   muted?: boolean;
   inverted?: boolean;
 }) {
-  const version = character.versions.find((item) => item.id === character.defaultVersionId);
   if (!version) return null;
   return (
     <span className={`block text-xs ${inverted ? "text-paper/75" : muted ? "text-muted" : ""}`}>
@@ -200,11 +225,11 @@ function VersionLine({
   );
 }
 
-function CharacterThumb({ character }: { character: PublicCharacter }) {
+function CharacterThumb({ src }: { src: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={character.previewUrl!}
+      src={src}
       alt=""
       width={96}
       height={64}

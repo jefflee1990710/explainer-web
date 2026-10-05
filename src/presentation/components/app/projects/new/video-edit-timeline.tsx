@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { VideoEditEmptyThumb, VideoEditThumb } from "@/presentation/components/app/projects/new/video-edit-thumb";
 import { VideoEditTransitionDialog } from "@/presentation/components/app/projects/new/video-edit-transition-dialog";
 import type { EditTimelineItem } from "@/service/video-edit/edit-timeline";
 import { resolveTransition, timelineGaps, type TimelineGap } from "@/service/video-edit/edit-transition";
@@ -154,15 +155,12 @@ function CoverCard({
       className="flex w-max shrink-0 cursor-pointer flex-col overflow-hidden rounded-md border border-[var(--studio-line)] text-[11px] font-semibold hover:border-[var(--studio-teal)]"
     >
       <span className={`relative block bg-[var(--studio-fill)] ${frame.box}`}>
-        {src ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={src} src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        {busy && !src ? (
+          <span className="absolute inset-0 grid place-items-center text-[10px] font-semibold text-[var(--studio-muted)]">…</span>
         ) : (
-          <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 border border-dashed border-[var(--studio-muted)] bg-[var(--studio-panel)] text-[9px] font-semibold leading-none text-[var(--studio-muted)]">
-            {busy ? "…" : t("video.layers.unset")}
-          </span>
+          <VideoEditThumb src={src} className="absolute inset-0 h-full w-full object-cover" />
         )}
-        {busy ? (
+        {busy && src ? (
           <span className="absolute inset-0 grid place-items-center bg-black/40 text-[10px] font-semibold text-white">
             …
           </span>
@@ -203,30 +201,10 @@ function TimelineCard({
 }
 
 function CardThumb({ item }: { item: EditTimelineItem }) {
-  const { t } = useI18n();
   if (item.mediaKind === "video" && item.src) {
     return <video src={item.src} muted playsInline className="absolute inset-0 h-full w-full object-cover" />;
   }
-  if (item.mediaKind === "image" && item.src) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={item.src} alt="" className="absolute inset-0 h-full w-full object-cover" />
-    );
-  }
-  if (item.poster) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={item.poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
-    );
-  }
-  return (
-    <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 border border-dashed border-[var(--studio-muted)] bg-[var(--studio-panel)] text-[9px] font-semibold leading-none text-[var(--studio-muted)]">
-      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-        <rect x="3" y="5" width="18" height="14" rx="2" />
-        <circle cx="9" cy="10" r="1.4" />
-        <path d="M7 16l3.2-3.2L13 15l2-2 3 3" />
-      </svg>
-      {t("video.layers.unset")}
-    </span>
-  );
+  const picture = item.mediaKind === "image" ? item.src : item.poster;
+  if (!picture) return <VideoEditEmptyThumb />;
+  return <VideoEditThumb src={picture} className="absolute inset-0 h-full w-full object-cover" />;
 }

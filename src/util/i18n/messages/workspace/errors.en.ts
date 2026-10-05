@@ -14,6 +14,10 @@ export const errorsEn = {
   folderNameRequired: "Enter a project name",
   characterNameRequired: "Enter a character name",
   styleRequired: "Choose a style",
+  characterStyleExists: "This character already has that style",
+  characterStyleLimit: "This plan's style limit is reached",
+  characterStyleNoSource: "No original reference is available",
+  addCharacterStyleFailed: "Could not add the style",
   characterDescribeOrUpload: "Describe the character or upload a reference",
   characterNotFound: "Character not found",
   versionNotFound: "Version not found",
@@ -75,6 +79,11 @@ export const errorsEn = {
   coverBusy: "A cover is already generating",
   coverPromptTooLong: "Cover extra requirement is too long",
   coverSafeAreaInvalid: "Cover safe area is not valid",
+  characterVoiceInvalid: "Voice lock is not valid",
+  characterVoiceSaveFailed: "Could not save the voice lock",
+  characterVoiceFillFailed: "Could not fill the voice from the blueprint",
+  characterVoiceNoBlueprint: "Finish a blueprint first",
+  characterVoiceFillRateLimited: "Voice fill is limited to 5 times every 5 minutes. Try again shortly.",
 } as const;
 
 

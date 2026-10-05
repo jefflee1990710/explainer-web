@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
+
 import { useEffect, useId } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
@@ -34,8 +36,8 @@ export function ReviseStoryboardDialog({
   }, [pending, onCancel]);
 
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
+    <DialogBackdrop
+      className="grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
       onClick={pending ? undefined : onCancel}
     >
       <div
@@ -71,6 +73,6 @@ export function ReviseStoryboardDialog({
           </button>
         </div>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }

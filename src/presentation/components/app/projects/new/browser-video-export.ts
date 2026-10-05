@@ -165,6 +165,18 @@ async function forget(ffmpeg: FFmpeg, name: string) {
   }
 }
 
+// Save a remote image or file. Used for the cover that rides with a video export.
+export async function downloadRemoteFile(url: string, filename: string) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("download");
+  const href = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = href;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(href);
+}
+
 // Download one finished mp4 and hand it to the browser's save dialog.
 export async function downloadVideoFile(
   url: string,

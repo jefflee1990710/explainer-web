@@ -1,7 +1,8 @@
 "use client";
 
+import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
+
 import { useEffect, useId, useState } from "react";
-import { createPortal } from "react-dom";
 import { deleteVideoAction } from "@/presentation/actions/projects";
 import { isProjectBusy } from "@/service/clip-stage";
 import { isReelBusy } from "@/service/reel/fingerprint";
@@ -51,9 +52,8 @@ export function DeleteVideoDialog({
     onDeleted();
   }
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-accent-ink/40 p-4 backdrop-blur-sm"
+  return <DialogBackdrop
+      className="flex items-center justify-center bg-accent-ink/40 p-4 backdrop-blur-sm"
       onClick={deleting ? undefined : onClose}
     >
       <div
@@ -95,7 +95,5 @@ export function DeleteVideoDialog({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
-  );
+    </DialogBackdrop>;
 }

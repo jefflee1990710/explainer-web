@@ -1,4 +1,5 @@
 import type { StyleId } from "@/model/style-id";
+import { ART_HISTORY_STYLES } from "@/service/style/art-history-styles";
 
 // Prompt fields for catalog styles that are inserted when Mongo has no complete row.
 export type CatalogStyleFields = {
@@ -82,4 +83,5 @@ export const CATALOG_EXTRA_STYLES: CatalogStyleSpec[] = [
       reelLayout: "Type stays in the upper or lower safe band, never over the brightest volume.",
     },
   },
+  ...ART_HISTORY_STYLES,
 ];

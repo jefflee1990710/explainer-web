@@ -1,7 +1,8 @@
 "use client";
 
+import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
+
 import { useEffect, useId, useState } from "react";
-import { createPortal } from "react-dom";
 import { LOCALE_OPTIONS, type LocaleId } from "@/util/i18n";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
@@ -38,9 +39,8 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
         <GlobeIcon />
       </button>
       {open
-        ? createPortal(
-            <div
-              className="fixed inset-0 z-50 grid place-items-center bg-[#12141c]/40 p-4 backdrop-blur-sm"
+        ? <DialogBackdrop
+              className="grid place-items-center bg-[#12141c]/40 p-4 backdrop-blur-sm"
               onClick={() => setOpen(false)}
             >
               <div
@@ -74,9 +74,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
                   })}
                 </ul>
               </div>
-            </div>,
-            document.body,
-          )
+            </DialogBackdrop>
         : null}
     </>
   );

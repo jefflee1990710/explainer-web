@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
+
 import { useEffect, useId, useState } from "react";
 import {
   getCreditSnapshotAction,
@@ -200,8 +202,8 @@ export function InsufficientCreditsDialog({
         : t("billing.subscribeCta");
 
   return (
-    <div
-      className="fixed inset-0 z-[60] grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
+    <DialogBackdrop
+      className="grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
       onClick={(event) => {
         event.stopPropagation();
         if (!waiting) onClose();
@@ -293,6 +295,6 @@ export function InsufficientCreditsDialog({
           </div>
         </form>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }

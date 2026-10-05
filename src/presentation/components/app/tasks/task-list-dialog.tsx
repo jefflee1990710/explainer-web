@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
+
 import { useEffect, useId } from "react";
 import { Spinner } from "@/presentation/components/spinner";
 import { readCachedTasks } from "@/presentation/components/app/tasks/task-cache";
@@ -46,8 +48,8 @@ export function TaskListDialog({
     return () => window.removeEventListener("keydown", onKey, true);
   }, [onClose]);
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
+    <DialogBackdrop
+      className="grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -97,6 +99,6 @@ export function TaskListDialog({
           )}
         </div>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }

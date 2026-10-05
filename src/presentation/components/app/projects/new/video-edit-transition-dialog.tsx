@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
+
 import { useEffect, useId, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { StudioButton } from "@/presentation/studio/studio-button";
@@ -47,7 +49,7 @@ export function VideoEditTransitionDialog({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
+    <DialogBackdrop className="grid place-items-center bg-black/40 p-4" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
@@ -112,6 +114,6 @@ export function VideoEditTransitionDialog({
           </StudioButton>
         </div>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }

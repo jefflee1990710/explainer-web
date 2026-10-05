@@ -27,6 +27,8 @@ export type AppUser = {
     privacyVersion: string;
     acceptedAt: Date;
   };
+  // Times this user ran “fill voice from blueprint”, used for the 5-minute cap.
+  voiceFillAt?: Date[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -51,6 +53,7 @@ export const appUserSchema: z.ZodType<AppUser> = z.object({
       acceptedAt: z.date(),
     })
     .optional(),
+  voiceFillAt: z.array(z.date()).optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

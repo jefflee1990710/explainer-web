@@ -1,3 +1,4 @@
+import type { CharacterVoice } from "@/model/character-voice";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
 import { clampClipSeconds } from "@/service/director/keyframe-delta";
@@ -45,6 +46,7 @@ export function clipPhaseBUserPrompt(input: {
   voiceGender?: VoiceGender;
   speechPace?: SpeechPace;
   bansNarration?: boolean;
+  speakers?: Array<{ name: string; voice?: CharacterVoice | null }>;
   characterLine: string;
 }) {
   const rows = input.phaseA.clips;
@@ -69,6 +71,7 @@ export function clipPhaseBUserPrompt(input: {
       languageLabel: input.languageLabel,
       bansNarration: input.bansNarration,
       speechPace: input.speechPace,
+      speakers: input.speakers,
     }),
     input.characterLine,
     `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,

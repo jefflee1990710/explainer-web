@@ -6,7 +6,6 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import {
   AllFramesIcon,
   AllFramesVideoIcon,
-  FinishMissingIcon,
 } from "@/presentation/components/project/production-bulk-action-icons";
 import { ProductionQueue } from "@/presentation/components/project/production-queue";
 import type { BulkMode } from "@/presentation/components/project/bulk-generate-dialog";
@@ -76,15 +75,6 @@ export function ProductionToolbar({
           />
           {t("production.toolbar.debug")}
         </label>
-        <StudioButton
-          variant="ghost"
-          onClick={() => onBulk("remaining")}
-          disabled={busy}
-          className="min-h-9 px-3 text-xs"
-        >
-          <FinishMissingIcon />
-          {t("production.toolbar.bulkRemaining")}
-        </StudioButton>
         <StudioButton
           variant="ghost"
           onClick={() => onBulk("scenes")}

@@ -2,7 +2,8 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireAppUser, requireClerkUserId } from "@/service/auth";
-import { resolveDefaultVersion } from "@/service/character/versions";
+import { isCharacterVoice } from "@/model/character-voice";
+import { characterStyleIds, resolveVersionForStyle } from "@/service/character/character-styles";
 import {
   charactersCollection,
   generationJobsCollection,
@@ -186,13 +187,13 @@ async function buildCast(
   if (docs.length !== characterIds.length) {
     return { ok: false, error: "有角色不存在" };
   }
-  if (docs.some((doc) => doc.styleId !== styleId)) {
+  if (docs.some((doc) => !characterStyleIds(doc).includes(styleId))) {
     return { ok: false, error: "角色風格與影片風格不同" };
   }
   const cast: CastMember[] = [];
   for (const id of characterIds) {
     const character = docs.find((doc) => doc._id.toHexString() === id)!;
-    const version = resolveDefaultVersion(character);
+    const version = resolveVersionForStyle(character, styleId);
     if (!version?.blueprintUrl) {
       return { ok: false, error: `角色 ${character.name} 尚未有可用藍圖` };
     }
@@ -202,6 +203,7 @@ async function buildCast(
       name: character.name,
       blueprintUrl: version.blueprintUrl,
       prompt: version.prompt,
+      ...(isCharacterVoice(character.voice) ? { voice: character.voice } : {}),
     });
   }
   return { ok: true, cast };

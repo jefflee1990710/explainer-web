@@ -1,6 +1,10 @@
+import type { CharacterVoice } from "@/model/character-voice";
 import type { VoiceGender } from "@/model/project";
+import { dialogueVoiceLock } from "@/service/director/character-voice";
 import { DIALOGUE_SPEAK_LOCK } from "@/service/director/spoken-line";
 import { speechPaceDelivery } from "@/service/director/speech-pace";
+
+type NamedVoice = { name: string; voice?: CharacterVoice | null };
 
 export const DEFAULT_VOICE_GENDER: VoiceGender = "male";
 
@@ -53,10 +57,14 @@ export function resolveVoiceGender(value?: string): VoiceGender {
 // Phase A: lock the chosen narrator, or leave character voices for Phase B.
 export function phaseAAudioHint(
   voiceGender?: string,
-  options?: { bansNarration?: boolean },
+  options?: { bansNarration?: boolean; speakers?: NamedVoice[] },
 ) {
   if (options?.bansNarration) {
-    return `No narrator and no third-person voiceover. Spoken audio is character dialogue only; each speaker's voice is chosen when the clip video is generated, matching that character. ${NO_BGM_RULE} bgmDirection and every clip bgmSfx must state there is no background music; SFX only.`;
+    const locked = dialogueVoiceLock(options.speakers);
+    const voices = locked
+      ? locked
+      : "No narrator and no third-person voiceover. Spoken audio is character dialogue only; each speaker's voice is chosen when the clip video is generated, matching that character.";
+    return `${voices} ${NO_BGM_RULE} bgmDirection and every clip bgmSfx must state there is no background music; SFX only.`;
   }
   const voice = VOICE_PRESETS[resolveVoiceGender(voiceGender)];
   return `${voice.skillHint} ${NO_BGM_RULE} bgmDirection and every clip bgmSfx must state there is no background music; SFX only.`;
@@ -68,10 +76,14 @@ export function phaseBAudioLock(input: {
   languageLabel: string;
   bansNarration?: boolean;
   speechPace?: string;
+  speakers?: NamedVoice[];
 }) {
   const pace = `Speaking pace on every clip: ${speechPaceDelivery(input.speechPace)}.`;
+  const locked = input.bansNarration ? dialogueVoiceLock(input.speakers) : null;
   const speaker = input.bansNarration
-    ? `There is no narrator. Each named speaker uses a distinct natural voice that matches that character's apparent gender, age, and look in the locked start/end frames and in Phase A characterLock. The same NAME keeps the same voice, accent, and age on every clip. Do not invent a shared narrator timbre. Silent beats stay silent. ${DIALOGUE_SPEAK_LOCK}`
+    ? locked
+      ? `${locked} ${DIALOGUE_SPEAK_LOCK}`
+      : `There is no narrator. Each named speaker uses a distinct natural voice that matches that character's apparent gender, age, and look in the locked start/end frames and in Phase A characterLock. The same NAME keeps the same voice, accent, and age on every clip. Do not invent a shared narrator timbre. Silent beats stay silent. ${DIALOGUE_SPEAK_LOCK}`
     : (() => {
         const voice = VOICE_PRESETS[resolveVoiceGender(input.voiceGender)];
         return `Same narrator on every clip: a warm, engaging adult ${voice.en} voice speaking ${input.languageLabel}, ${voice.fingerprint}`;

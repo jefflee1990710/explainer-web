@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
+
 import { useEffect, useId, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type {
@@ -111,8 +113,8 @@ export function FrameEditDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
+    <DialogBackdrop
+      className="grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -320,7 +322,7 @@ export function FrameEditDialog({
           </aside>
         </div>
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }
 

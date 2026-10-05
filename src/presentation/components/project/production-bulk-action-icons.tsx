@@ -1,15 +1,6 @@
-// Toolbar marks for the three bulk generate actions.
+// Toolbar marks for the bulk generate actions.
 
 const iconClass = "h-3.5 w-3.5 shrink-0";
-
-export function FinishMissingIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className={iconClass} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="12" r="8" strokeDasharray="3.2 2.4" />
-      <path d="m8.6 12.1 2.3 2.3 4.6-5" />
-    </svg>
-  );
-}
 
 export function AllFramesIcon() {
   return (

@@ -10,6 +10,7 @@ import {
 import { flattenToCanvas } from "@/service/higgsfield/flatten";
 import { persistMedia } from "@/service/higgsfield/persist";
 import { STYLE_IDS } from "@/model/style-id";
+import { ensureCatalogStyles } from "@/service/style/ensure-catalog-styles";
 import { styleLetteringLine, styleLinesForFrame } from "@/service/style";
 import { styleFromDoc } from "@/service/style/load-style";
 import { STYLE_PREVIEW_SCENE } from "@/service/style/preview-scene";
@@ -192,6 +193,7 @@ async function generatePreviews() {
 }
 
 async function main() {
+  await ensureCatalogStyles();
   const failed = thumbsOnly ? await rebuildThumbnails() : await generatePreviews();
   process.exit(failed ? 1 : 0);
 }

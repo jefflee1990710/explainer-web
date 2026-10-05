@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
+
 import { useEffect, useId, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
@@ -26,12 +28,17 @@ export function VideoEditCoverDialog({
   onProjectChange,
   onCreditsChange,
   onClose,
+  forExport = false,
+  onExportQueued,
 }: {
   project: PublicVideo;
   credits: number;
   onProjectChange: (project: PublicVideo) => void;
   onCreditsChange?: (delta: number) => void;
   onClose: () => void;
+  // Opened from Video + Cover. Stay up until the still is ready, then the desk downloads.
+  forExport?: boolean;
+  onExportQueued?: () => void;
 }) {
   const { t } = useI18n();
   const titleId = useId();
@@ -41,14 +48,16 @@ export function VideoEditCoverDialog({
   const [safeAreas, setSafeAreas] = useState<CoverSafeArea[]>(project.coverSafeAreas ?? []);
   const generating = project.coverStatus === "generating" || pending;
   const enough = credits >= FRAME_COST;
+  // Once this export has queued a cover, keep the dialog until the still lands.
+  const holdForExport = forExport && generating;
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && !holdForExport) onClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [holdForExport, onClose]);
 
   async function generate() {
     if (generating || !enough) return;
@@ -72,10 +81,11 @@ export function VideoEditCoverDialog({
         setError(translateAppError(result.error, t));
         return;
       }
+      if (forExport) onExportQueued?.();
       onProjectChange(result.project);
       onCreditsChange?.(-FRAME_COST);
       notifyTasksChanged();
-      onClose();
+      if (!forExport) onClose();
     } catch {
       releaseOptimisticTasks(held);
       notifyTasksChanged();
@@ -87,7 +97,12 @@ export function VideoEditCoverDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
+    <DialogBackdrop
+      className="grid place-items-center bg-black/40 p-4"
+      onClick={() => {
+        if (!holdForExport) onClose();
+      }}
+    >
       <div
         role="dialog"
         aria-modal="true"
@@ -111,6 +126,9 @@ export function VideoEditCoverDialog({
             {t("video.cover.title")}
           </h2>
           <p className="mt-1 text-xs text-[var(--studio-muted)]">{t("video.cover.body")}</p>
+          {forExport ? (
+            <p className="mt-2 text-xs font-semibold text-[var(--studio-ink)]">{t("video.export.stayForCover")}</p>
+          ) : null}
           <label className="mt-3 block">
             <span className="text-xs font-semibold">{t("video.cover.promptLabel")}</span>
             <span className="mt-0.5 block text-[11px] text-[var(--studio-muted)]">{t("video.cover.promptHint")}</span>
@@ -134,7 +152,7 @@ export function VideoEditCoverDialog({
             </p>
           ) : null}
           <div className="mt-4 flex justify-end gap-2">
-            <StudioButton variant="ghost" onClick={onClose}>
+            <StudioButton variant="ghost" disabled={holdForExport} onClick={onClose}>
               {t("common.cancel")}
             </StudioButton>
             <StudioButton disabled={generating || !enough} onClick={() => void generate()}>
@@ -150,6 +168,6 @@ export function VideoEditCoverDialog({
           label={t("video.cover.current")}
         />
       </div>
-    </div>
+    </DialogBackdrop>
   );
 }

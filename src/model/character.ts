@@ -1,5 +1,6 @@
 import type { ObjectId } from "mongodb";
 import { z } from "zod";
+import { characterVoiceSchema, type CharacterVoice } from "@/model/character-voice";
 import { objectIdSchema } from "@/model/primitives";
 
 export type CharacterVersionStatus =
@@ -11,6 +12,8 @@ export type CharacterVersionStatus =
 // One generated blueprint sheet. Versions are append-only.
 export type CharacterVersion = {
   id: ObjectId;
+  // Omitted on rows created before a character could hold more than one style.
+  styleId?: string;
   // Set when this version was made via「從此版本編輯」.
   parentVersionId?: ObjectId;
   // Full effective description used for this generation.
@@ -37,6 +40,8 @@ export type Character = {
   clerkUserId: string;
   name: string;
   styleId: string;
+  // Fixed acoustic lock pasted into dialogue clips. Not part of the blueprint.
+  voice?: CharacterVoice;
   defaultVersionId?: ObjectId;
   versions: CharacterVersion[];
   createdAt: Date;
@@ -50,6 +55,7 @@ export type CastMember = {
   name: string;
   blueprintUrl: string;
   prompt: string;
+  voice?: CharacterVoice;
 };
 
 const characterVersionStatusSchema = z.enum([
@@ -61,6 +67,7 @@ const characterVersionStatusSchema = z.enum([
 
 export const characterVersionSchema: z.ZodType<CharacterVersion> = z.object({
   id: objectIdSchema,
+  styleId: z.string().optional(),
   parentVersionId: objectIdSchema.optional(),
   prompt: z.string(),
   editInstruction: z.string().optional(),
@@ -80,6 +87,7 @@ export const characterSchema: z.ZodType<Character> = z.object({
   clerkUserId: z.string(),
   name: z.string(),
   styleId: z.string(),
+  voice: characterVoiceSchema.optional(),
   defaultVersionId: objectIdSchema.optional(),
   versions: z.array(characterVersionSchema),
   createdAt: z.date(),
@@ -92,4 +100,5 @@ export const castMemberSchema: z.ZodType<CastMember> = z.object({
   name: z.string(),
   blueprintUrl: z.string(),
   prompt: z.string(),
+  voice: characterVoiceSchema.optional(),
 });

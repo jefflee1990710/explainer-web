@@ -11,6 +11,7 @@ import type { EditSlot } from "@/presentation/components/app/projects/new/video-
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { updateVideoEditAction } from "@/presentation/actions/video-edit";
 import {
+  downloadRemoteFile,
   downloadVideoFile,
   ExportCancelled,
   renderVideoInBrowser,
@@ -47,6 +48,10 @@ export function VideoEditDesk({
   const [exportJob, setExportJob] = useState<ExportJob | null>(null);
   const [slotDialog, setSlotDialog] = useState<EditSlot | null>(null);
   const exportAbort = useRef<AbortController | null>(null);
+  // Set when Video + Cover is waiting on a still that does not exist yet.
+  const coverExport = useRef<{ filename: string; videoUrl: string | undefined } | null>(null);
+  const coverQueued = useRef(false);
+  const [coverForExport, setCoverForExport] = useState(false);
   const timer = useRef<number | null>(null);
   const dirty = useRef(false);
   const latest = useRef(edit);
@@ -152,6 +157,44 @@ export function VideoEditDesk({
     exportAbort.current?.abort();
   }
 
+  // Cover file first, then the same video export. The mp4 name gets a -cover suffix.
+  async function exportVideoAndCover(coverUrl: string, existingUrl: string | undefined, filename: string) {
+    const coverName = `${filename.replace(/\.mp4$/i, "")}-cover.jpg`;
+    try {
+      await downloadRemoteFile(coverUrl, coverName);
+    } catch {
+      setMessage(t("video.export.coverDownloadFailed"));
+    }
+    await exportVideo(existingUrl, filename);
+  }
+
+  function requestVideoAndCover(existingUrl: string | undefined, filename: string) {
+    if (project.coverUrl && project.coverStatus !== "generating") {
+      void exportVideoAndCover(project.coverUrl, existingUrl, filename);
+      return;
+    }
+    coverQueued.current = false;
+    coverExport.current = { filename, videoUrl: existingUrl };
+    setCoverForExport(true);
+    setSlotDialog("cover");
+  }
+
+  useEffect(() => {
+    const job = coverExport.current;
+    if (!job) return;
+    if (project.coverStatus === "failed" || project.coverStatus === "generating" || !project.coverUrl) return;
+    const url = project.coverUrl;
+    coverExport.current = null;
+    coverQueued.current = false;
+    // The still arrives from the project poll, so this is the handoff into download.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCoverForExport(false);
+    setSlotDialog(null);
+    void exportVideoAndCover(url, job.videoUrl, job.filename);
+    // exportVideoAndCover is current on the render that sees the finished cover.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.coverUrl, project.coverStatus]);
+
   const shownError = message || error;
 
   return (
@@ -163,7 +206,8 @@ export function VideoEditDesk({
         saving={saving || busy}
         pending={busy}
         error={shownError}
-        onExport={(url, filename) => void exportVideo(url, filename)}
+        onVideoOnly={(url, filename) => void exportVideo(url, filename)}
+        onVideoAndCover={requestVideoAndCover}
       />
     </VideoEditSummaryEnd>
     <StudioFrame
@@ -192,7 +236,18 @@ export function VideoEditDesk({
         credits={credits}
         onProjectChange={onProjectChange}
         onCreditsChange={onCreditsChange}
-        onClose={() => setSlotDialog(null)}
+        forExport={coverForExport}
+        onExportQueued={() => {
+          coverQueued.current = true;
+        }}
+        onClose={() => {
+          if (project.coverStatus !== "generating") {
+            coverExport.current = null;
+            coverQueued.current = false;
+            setCoverForExport(false);
+          }
+          setSlotDialog(null);
+        }}
       />
     ) : null}
     {slotDialog === "intro" || slotDialog === "outro" ? (

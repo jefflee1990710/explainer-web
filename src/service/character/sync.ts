@@ -7,6 +7,7 @@ import {
 } from "@/service/character/blueprint-framing";
 import { persistMedia } from "@/service/higgsfield/persist";
 import { hydrateStyles } from "@/service/style/load-style";
+import { versionStyleId } from "@/service/character/character-styles";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 
@@ -126,7 +127,7 @@ export async function syncCharacterJob(
     let canvasColor: string;
     try {
       const loaded = await loadRenderableStyle({
-        styleId: character.styleId,
+        styleId: versionStyleId(character, version),
         ownerClerkUserId: character.clerkUserId,
       });
       canvasColor = loaded.canvasColor;

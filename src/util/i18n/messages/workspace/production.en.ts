@@ -123,7 +123,6 @@ export const productionEn = {
     allDone: "All done — ready for final reel",
     debug: "Debug",
     bulkOpen: "Generate all",
-    bulkRemaining: "Finish Missing",
     bulkAllFrames: "All frames",
     bulkAllFramesVideo: "All (frames + video)",
   },

@@ -1,6 +1,7 @@
 import { charactersCollection, userDirectorsCollection, videosCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
 import { sendCharacterVersion } from "@/service/character/generate";
+import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { runPhaseBForClip } from "@/service/director/run-phase-b";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
@@ -119,7 +120,7 @@ async function sendVideo(project: Project, clipNumber: number) {
     voiceGender: project.voiceGender,
     speechPace: project.speechPace,
     characterImageUrl: project.characterImageUrl,
-    cast: project.cast,
+    cast: await withCurrentCharacterVoices(project.cast),
   });
   const projects = await videosCollection();
   await projects.updateOne(

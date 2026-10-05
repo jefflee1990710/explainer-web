@@ -14,6 +14,22 @@ export const STYLE_IDS = [
   "low-poly",
   "colored-pencil",
   "dark-tech",
+  "cave-painting",
+  "egyptian-wall",
+  "attic-black-figure",
+  "roman-mosaic",
+  "gothic-illumination",
+  "high-renaissance",
+  "ukiyo-e",
+  "impressionism",
+  "post-impressionism",
+  "art-nouveau",
+  "cubism",
+  "bauhaus",
+  "pop-art",
+  "eight-bit",
+  "ray-traced",
+  "flat-illustration",
 ] as const;
 
 export const styleIdSchema = z.enum(STYLE_IDS);

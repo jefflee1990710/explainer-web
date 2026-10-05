@@ -1,3 +1,4 @@
+import { characterStyleIds, versionStyleId } from "@/service/character/character-styles";
 import { resolveDefaultVersion, versionNumber } from "@/service/character/versions";
 import { behaviorSlug, isCustomSkill } from "@/service/director/behavior-slug";
 import { emptyProfile, parseSystemProfile } from "@/service/director/profile";
@@ -10,6 +11,7 @@ import { normalizeProjectStatus } from "@/service/project-status";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
 import type { AppUser } from "@/model/user";
 import type { Character, CharacterVersionStatus } from "@/model/character";
+import { parseCharacterVoice, type CharacterVoice } from "@/model/character-voice";
 import type { Folder } from "@/model/folder";
 import type { Project, ProjectStatus } from "@/model/project";
 import type { DirectorProfile, SystemProfile } from "@/model/director-profile";
@@ -423,6 +425,7 @@ export function publicSubscription(sub: Subscription | null) {
 
 export type PublicCharacterVersion = {
   id: string;
+  styleId: string;
   number: number;
   parentVersionId?: string;
   parentNumber?: number;
@@ -439,7 +442,10 @@ export type PublicCharacter = {
   id: string;
   name: string;
   styleId: string;
+  // Every style on this character, original first.
+  styleIds: string[];
   styleName: string;
+  voice: CharacterVoice | null;
   defaultVersionId: string | null;
   // Default sheet, or null when nothing has completed yet.
   previewUrl: string | null;
@@ -456,6 +462,7 @@ export function toPublicCharacter(character: Character): PublicCharacter {
   const versions = character.versions
     .map((version) => ({
       id: version.id.toHexString(),
+      styleId: versionStyleId(character, version),
       number: versionNumber(character, version.id),
       parentVersionId: version.parentVersionId?.toHexString(),
       parentNumber: version.parentVersionId
@@ -475,7 +482,9 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     id: character._id.toHexString(),
     name: character.name,
     styleId: character.styleId,
+    styleIds: characterStyleIds(character),
     styleName: character.styleId,
+    voice: parseCharacterVoice(character.voice),
     defaultVersionId: resolved ? resolved.id.toHexString() : null,
     previewUrl: resolved?.blueprintUrl || null,
     versions,

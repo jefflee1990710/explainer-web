@@ -8,6 +8,7 @@ import {
   phaseASoloCharacterNote,
 } from "@/service/character/cast-prompt";
 import { LANGUAGE_PRESETS, sceneDescriptionLanguageLock } from "@/service/director/languages";
+import { lockedSpeakerLines } from "@/service/director/character-voice";
 import { phaseAAudioHint, VOICE_PRESETS, resolveVoiceGender } from "@/service/director/voice";
 import { SPEECH_PACE_PRESETS, resolveSpeechPace, speechPaceSkillHint } from "@/service/director/speech-pace";
 import {
@@ -125,6 +126,7 @@ export async function runPhaseA(input: {
   const lettering = resolveStyleLettering(input.style);
   const dualBeat = isDualBeatSkill(input.skill.slug);
   const dialogueOnly = skillBansNarration(input.skill.slug);
+  const speakerLocks = dialogueOnly ? lockedSpeakerLines(input.cast) : [];
   const hasCharacter = Boolean(input.cast?.length || input.characterImageUrl);
   const characterImages = await loadDirectorImageParts(
     characterReferenceUrls({
@@ -217,7 +219,7 @@ ${
     ? "Speaking pace changes each sentence's durationSeconds. Do not keep a fixed clip length."
     : speechPaceSkillHint(input.speechPace)
 }
-${phaseAAudioHint(input.voiceGender, { bansNarration: dialogueOnly })}
+${phaseAAudioHint(input.voiceGender, { bansNarration: dialogueOnly, speakers: input.cast })}
 ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   dualBeat,
   listicle: skillForcesSceneText(input.skill.slug),
@@ -251,7 +253,9 @@ ${sceneDescriptionLanguageLock(input.language)}
 Speaking pace: ${resolveSpeechPace(input.speechPace)} (${SPEECH_PACE_PRESETS[resolveSpeechPace(input.speechPace)].delivery})
 ${
   dialogueOnly
-    ? "Character voices: do not pick a narrator gender. MiniMax will match each named speaker when the clip video is generated."
+    ? speakerLocks.length
+      ? `Character voices: do not pick a narrator gender. Copy these locks verbatim into every clip. Do not rephrase them:\n${speakerLocks.join("\n")}`
+      : "Character voices: do not pick a narrator gender. MiniMax will match each named speaker when the clip video is generated."
     : `Narrator voice: ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].label} (adult ${resolveVoiceGender(input.voiceGender)})`
 }
 Audio: no background music. bgmDirection and each clip bgmSfx are SFX-only.
