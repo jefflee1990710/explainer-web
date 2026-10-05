@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { AvatarCreditRing } from "@/presentation/components/auth/avatar-credit-ring";
 import { SignOutButton } from "@/presentation/components/auth/sign-out-button";
+import { useCreditSnapshot } from "@/presentation/studio/use-credit-snapshot";
+import { creditProgress } from "@/service/billing/credit-balance";
 
 // Rail footer. Clicking the signed-in row opens settings and sign out.
 export function SignedInAccount({
@@ -11,18 +14,41 @@ export function SignedInAccount({
   avatarUrl,
   signOutLabel,
   settingsLabel,
+  credits: initialCredits,
+  creditLimit: initialLimit,
+  creditsLabel,
 }: {
   email: string;
   name: string;
   avatarUrl?: string;
   signOutLabel: string;
   settingsLabel: string;
+  credits: number;
+  creditLimit: number;
+  creditsLabel: string;
 }) {
   const [open, setOpen] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const showPhoto = Boolean(avatarUrl) && !photoFailed;
   const initial = (name || email || "?").trim().charAt(0).toUpperCase();
+  const { credits, creditLimit } = useCreditSnapshot(initialCredits, initialLimit);
+  const { ratio } = creditProgress(credits, Math.max(creditLimit, credits));
+  const avatar = showPhoto ? (
+    <img
+      src={avatarUrl}
+      alt=""
+      width={32}
+      height={32}
+      referrerPolicy="no-referrer"
+      onError={() => setPhotoFailed(true)}
+      className="h-8 w-8 rounded-full object-cover"
+    />
+  ) : (
+    <span className="grid h-8 w-8 place-items-center rounded-full bg-[#12141c] text-xs font-semibold text-[#c6f24b]">
+      {initial}
+    </span>
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -50,21 +76,9 @@ export function SignedInAccount({
         onClick={() => setOpen((value) => !value)}
         className="flex w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-lg px-1 py-1 hover:bg-[var(--studio-fill)] group-hover/rail:justify-start group-focus-within/rail:justify-start"
       >
-        {showPhoto ? (
-          <img
-            src={avatarUrl}
-            alt=""
-            width={32}
-            height={32}
-            referrerPolicy="no-referrer"
-            onError={() => setPhotoFailed(true)}
-            className="h-8 w-8 shrink-0 rounded-full object-cover"
-          />
-        ) : (
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#12141c] text-xs font-semibold text-[#c6f24b]">
-            {initial}
-          </span>
-        )}
+        <AvatarCreditRing ratio={ratio} label={creditsLabel}>
+          {avatar}
+        </AvatarCreditRing>
         <span className="hidden min-w-0 flex-1 truncate text-left text-xs font-medium text-[var(--studio-ink)] group-hover/rail:block group-focus-within/rail:block">
           {email}
         </span>

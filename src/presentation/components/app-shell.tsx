@@ -43,9 +43,6 @@ export function AppShell({
   return (
     <StudioShell
       items={items}
-      credits={credits}
-      creditLimit={creditLimit}
-      creditsLabel={t("common.credits")}
       headerEnd={<TaskQueueBanner initialPending={activeTasks} />}
       toolbar={
         <SignedInAccount
@@ -54,6 +51,9 @@ export function AppShell({
           avatarUrl={avatarUrl}
           signOutLabel={t("auth.signOut")}
           settingsLabel={t("nav.settings")}
+          credits={credits}
+          creditLimit={creditLimit}
+          creditsLabel={t("common.credits")}
         />
       }
     >

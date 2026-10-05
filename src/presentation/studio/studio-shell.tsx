@@ -1,7 +1,6 @@
 "use client";
 
 import { BrandMark } from "@/presentation/components/brand-mark";
-import { CreditMeter } from "@/presentation/studio/credit-meter";
 import { StudioNav } from "@/presentation/studio/studio-nav";
 
 export type StudioNavSection = "generation" | "setup" | "other";
@@ -16,17 +15,11 @@ export type StudioNavItem = {
 // Logged-in frame: full-height icon rail and a scrolling main slot.
 export function StudioShell({
   items,
-  credits,
-  creditLimit,
-  creditsLabel,
   headerEnd,
   toolbar,
   children,
 }: {
   items: StudioNavItem[];
-  credits: number;
-  creditLimit: number;
-  creditsLabel: string;
   // Sticky queue banner. Hidden when the slot renders nothing.
   headerEnd: React.ReactNode;
   // Account controls pinned to the bottom of the rail.
@@ -37,15 +30,7 @@ export function StudioShell({
     <div className="studio-app flex h-dvh w-full flex-col">
       {headerEnd}
       <div className="flex min-h-0 flex-1">
-        <StudioRail items={items}>
-          <CreditMeter
-            credits={credits}
-            creditLimit={creditLimit}
-            creditsLabel={creditsLabel}
-            className="w-full min-w-0"
-          />
-          {toolbar}
-        </StudioRail>
+        <StudioRail items={items}>{toolbar}</StudioRail>
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--studio-canvas)] px-6 py-6">
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
         </main>
