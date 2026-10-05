@@ -13,7 +13,6 @@ import { FRAME_COST } from "@/service/production-plan";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { styleLetteringLine, styleLinesForFrame } from "@/service/style/prompts";
-import { captionBrief } from "@/service/video-share/caption-brief";
 import { frameLockReferenceUrls } from "@/service/character/cast-prompt";
 import { logoReferenceUrls } from "@/service/higgsfield/frame-prompts";
 import { coverSafeAreaPrompt, parseCoverSafeAreas } from "@/service/video-edit/cover-safe-area";
@@ -23,6 +22,8 @@ import { toPublicVideo } from "@/presentation/serialize";
 
 const COVER_IN_FLIGHT_MS = 15 * 60 * 1000;
 export const COVER_PROMPT_MAX = 500;
+// Provider rejects image prompts over 5000 characters. Leave headroom.
+export const COVER_SUBMISSION_BUDGET = 4500;
 
 export type GenerateReelCoverResult =
   | { ok: true; project: ReturnType<typeof toPublicVideo> }
@@ -41,6 +42,12 @@ export function parseCoverPrompt(raw: unknown): { ok: true; prompt: string } | {
 }
 
 // Character and setting from the storyboard, so the cover stays this video.
+function clipField(value: string | undefined, max: number) {
+  const text = value?.trim() ?? "";
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1).trimEnd()}…`;
+}
+
 function coverContinuity(project: Project): string {
   const phase = project.phaseA;
   const cast = project.cast ?? [];
@@ -48,12 +55,42 @@ function coverContinuity(project: Project): string {
     ? `${cast.map((member) => member.name).join(", ")}. Keep this exact character. Appearance follows the attached blueprint.`
     : phase?.characterLock?.trim();
   return [
-    phase?.visualWorld?.trim() && `Setting: ${phase.visualWorld.trim()}`,
-    phase?.palette?.trim() && `Palette: ${phase.palette.trim()}`,
-    character && `Character: ${character}`,
+    phase?.visualWorld?.trim() && `Setting: ${clipField(phase.visualWorld, 180)}`,
+    phase?.palette?.trim() && `Palette: ${clipField(phase.palette, 120)}`,
+    character && `Character: ${clipField(character, 180)}`,
   ]
     .filter((line): line is string => Boolean(line))
     .join("\n");
+}
+
+// Spoken line only. The video title is a file name and must not be lettered.
+function coverSpokenLine(project: Project) {
+  const clip = project.phaseA?.clips[0];
+  const full = clip?.englishVo?.trim();
+  if (full) return clipField(full, 180);
+  const parts = [clip?.startVo, clip?.endVo].map((part) => part?.trim()).filter(Boolean);
+  return parts.length ? clipField(parts.join(" "), 180) : "";
+}
+
+function coverBrief(project: Project) {
+  const line = coverSpokenLine(project);
+  return [
+    line
+      ? `On-screen text, exactly once: "${line}". Every word stays inside the safe rectangle.`
+      : "",
+    "Do not write a title or the video name.",
+  ]
+    .filter((part) => part.trim().length > 0)
+    .join("\n");
+}
+
+// Style lines sit in front. Cut the tail so the provider accepts the prompt.
+export function joinCoverSubmission(parts: string[], budget = COVER_SUBMISSION_BUDGET) {
+  const text = parts.map((part) => part.trim()).filter(Boolean).join("\n");
+  if (text.length <= budget) return text;
+  const head = text.slice(0, budget - 1);
+  const cut = head.lastIndexOf("\n");
+  return (cut > budget / 2 ? head.slice(0, cut) : head).trim();
 }
 
 // Which attached image locks the still, the character, and the logo.
@@ -62,7 +99,7 @@ export function coverReferenceNote(counts: { still: number; character: number; l
   let index = 1;
   if (counts.still) {
     lines.push(
-      `Attached image ${index} is a still from this video. Match its character, setting, palette, and style. Do not copy its framing or where the title sits.`,
+      `Attached image ${index} is a still from this video. Match its character, setting, palette, and style. Do not copy its framing or any words on it.`,
     );
     index += counts.still;
   }
@@ -75,23 +112,22 @@ export function coverReferenceNote(counts: { still: number; character: number; l
     index = end + 1;
   }
   if (counts.logo) {
-    lines.push(`Attached image ${index} is the brand logo. Keep it intact and place it with the title.`);
+    lines.push(`Attached image ${index} is the brand logo. Keep it intact. Do not add a title next to it.`);
   }
   return lines.join("\n");
 }
 
 // Title, message, hook, and clip lines plus the video's visual style.
 export function reelCoverPrompt(project: Project): string {
-  const brief = captionBrief({ source: project.source, phaseA: project.phaseA });
   const extra = project.coverPrompt?.trim() ?? "";
   const safeArea = coverSafeAreaPrompt(project.coverSafeAreas);
   return [
+    safeArea,
     "Single cover still for a finished explainer reel.",
     "No device chrome, no play button, no UI mockup.",
     `Aspect ratio ${project.aspectRatio}.`,
-    brief,
     coverContinuity(project),
-    safeArea,
+    coverBrief(project),
     extra ? `Extra requirement: ${extra}` : "",
   ]
     .filter((line) => line.trim().length > 0)
@@ -251,19 +287,19 @@ export async function sendReelCover(project: Project) {
   const stillUrl = startFrame ? mediaSrc(startFrame) : "";
   const characterUrls = frameLockReferenceUrls(project);
   const logoUrls = logoReferenceUrls(project);
-  const model = IMAGE_ROUTE_BY_SCENE_TEXT[sceneText.language].model;
-  const submitted = await submitImage({
-    model,
-    prompt: [
-      ...styleLinesForFrame(style),
-      styleLetteringLine(style),
-      reelCoverPrompt(project),
-      coverReferenceNote({
-        still: stillUrl ? 1 : 0,
-        character: characterUrls.length,
-        logo: logoUrls.length,
-      }),
-    ].join("\n"),
+    const model = IMAGE_ROUTE_BY_SCENE_TEXT[sceneText.language].model;
+    const submitted = await submitImage({
+      model,
+      prompt: joinCoverSubmission([
+        ...styleLinesForFrame(style),
+        styleLetteringLine(style),
+        reelCoverPrompt(project),
+        coverReferenceNote({
+          still: stillUrl ? 1 : 0,
+          character: characterUrls.length,
+          logo: logoUrls.length,
+        }),
+      ]),
     aspectRatio: project.aspectRatio,
     quality: "medium",
     resolution: "1k",

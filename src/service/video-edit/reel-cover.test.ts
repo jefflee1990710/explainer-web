@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseCoverSafeAreas } from "@/service/video-edit/cover-safe-area";
 import {
+  COVER_SUBMISSION_BUDGET,
   coverReferenceNote,
   isCoverRunning,
+  joinCoverSubmission,
   parseCoverPrompt,
   reelCoverInFlight,
   reelCoverPrompt,
@@ -38,9 +40,10 @@ function project(partial: Partial<Project> = {}): Project {
 test("reelCoverPrompt uses the storyboard and aspect ratio", () => {
   const prompt = reelCoverPrompt(project());
   assert.match(prompt, /9:16/);
-  assert.match(prompt, /Sleep debt/);
-  assert.match(prompt, /Missed sleep adds up/);
-  assert.match(prompt, /You cannot bank sleep/);
+  assert.doesNotMatch(prompt, /Sleep debt/);
+  assert.match(prompt, /Do not write a title/);
+  assert.match(prompt, /On-screen text, exactly once: "You cannot bank sleep."/);
+  assert.doesNotMatch(prompt, /Missed sleep adds up/);
   assert.match(prompt, /cover still/i);
   assert.doesNotMatch(prompt, /Extra requirement/);
 });
@@ -52,21 +55,21 @@ test("reelCoverPrompt appends a trimmed extra requirement", () => {
 
 test("reelCoverPrompt keeps a full-screen Instagram cover and centers the character and title", () => {
   const prompt = reelCoverPrompt(project({ coverSafeAreas: ["ig-reel"] }));
-  assert.match(prompt, /full-screen cover/);
+  assert.match(prompt, /Full-screen cover/);
   assert.match(prompt, /edge to edge/);
-  assert.match(prompt, /Only the character and the title text/);
-  assert.match(prompt, /profile grid/);
-  assert.match(prompt, /Reels list/);
+  assert.match(prompt, /Place the character and the on-screen text inside the safe rectangle/);
+  assert.match(prompt, /top bar/);
+  assert.match(prompt, /bottom caption/);
   assert.match(prompt, /14%/);
   assert.match(prompt, /25%/);
-  assert.match(prompt, /Do not add a white border/);
-  assert.doesNotMatch(prompt, /TikTok:/);
+  assert.match(prompt, /No white border/);
+  assert.doesNotMatch(prompt, /TikTok covers/);
 });
 
 test("reelCoverPrompt uses the strictest rectangle when several safe areas are checked", () => {
   const prompt = reelCoverPrompt(project({ coverSafeAreas: ["youtube-shorts", "ig-reel"] }));
-  assert.match(prompt, /Instagram Reels:/);
-  assert.match(prompt, /YouTube Shorts:/);
+  assert.match(prompt, /Instagram Reels covers/);
+  assert.match(prompt, /YouTube Shorts covers/);
   assert.match(prompt, /strictest inner rectangle/);
   assert.match(prompt, /18%/);
   assert.match(prompt, /8%/);
@@ -118,9 +121,27 @@ test("reelCoverInFlight is true only while generating and younger than 15 minute
 test("coverReferenceNote numbers the still, then the character, then the logo", () => {
   const note = coverReferenceNote({ still: 1, character: 1, logo: 1 });
   assert.match(note, /Attached image 1 is a still/);
-  assert.match(note, /Do not copy its framing/);
+  assert.match(note, /Do not copy its framing or any words/);
   assert.match(note, /Attached image 2 lock how the character looks/);
   assert.match(note, /Attached image 3 is the brand logo/);
+  assert.match(note, /Do not add a title/);
+});
+
+test("joinCoverSubmission drops the tail once the provider budget is exceeded", () => {
+  const safe = "Full-screen cover. 14% from the top.";
+  const tail = `Source: ${"word ".repeat(2000)}`;
+  const prompt = joinCoverSubmission([safe, tail]);
+  assert.ok(prompt.length <= COVER_SUBMISSION_BUDGET);
+  assert.match(prompt, /14% from the top/);
+  assert.ok(!prompt.includes("word ".repeat(2000)));
+});
+
+test("reelCoverPrompt does not paste the whole source", () => {
+  const source = `long source ${"detail ".repeat(400)}`;
+  const prompt = reelCoverPrompt(project({ source, coverSafeAreas: ["ig-reel"] }));
+  assert.ok(prompt.length < COVER_SUBMISSION_BUDGET);
+  assert.equal(prompt.includes(source), false);
+  assert.match(prompt, /14%/);
 });
 
 test("isCoverRunning is true only while the cover job is generating", () => {
