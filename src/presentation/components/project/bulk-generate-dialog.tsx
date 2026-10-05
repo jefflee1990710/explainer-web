@@ -9,7 +9,7 @@ import { StudioButton } from "@/presentation/studio/studio-button";
 import {
   cheapestVideoCost,
   needsVideoUpgrade,
-  planGenerateAllClips,
+  planGenerateAllVideos,
   planGenerateAllScenes,
   planRemaining,
 } from "@/service/production-plan";
@@ -20,7 +20,7 @@ export type BulkMode = "remaining" | "scenes" | "clips";
 function planForMode(project: PublicVideo, mode: BulkMode) {
   if (mode === "remaining") return planRemaining(project);
   if (mode === "scenes") return planGenerateAllScenes(project);
-  return planGenerateAllClips(project);
+  return planGenerateAllVideos(project);
 }
 
 // Lightweight confirm after picking a bulk action from the toolbar.

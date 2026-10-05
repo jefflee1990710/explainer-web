@@ -31,8 +31,8 @@ export const productionEn = {
         hint: "Redraw every start and end frame. In-progress clips are skipped.",
       },
       clips: {
-        label: "All (frames + video)",
-        hint: "Redraw frames, then auto-render clips when both frames exist.",
+        label: "All videos",
+        hint: "Render every clip that does not have a video yet. Available once every frame is ready.",
       },
     },
     row: {
@@ -123,8 +123,8 @@ export const productionEn = {
     allDone: "All done — ready for final reel",
     debug: "Debug",
     bulkOpen: "Generate all",
-    bulkAllFrames: "All frames",
-    bulkAllFramesVideo: "All (frames + video)",
+    bulkAllVideos: "All videos",
+    bulkAllVideosWaiting: "Available once every frame is ready",
   },
   queue: {
     viewTasks: "View tasks",

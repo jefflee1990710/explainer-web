@@ -11,6 +11,7 @@ import { ProductionToolbar } from "@/presentation/components/project/production-
 import { SelectionBar } from "@/presentation/components/project/selection-bar";
 import { VideoDesk, type SelectClip } from "@/presentation/components/project/video-desk";
 import { clipStatesFor, inFlightCounts, productionCounts, type ClipState } from "@/service/clip-stage";
+import { allFramesReady } from "@/service/production-plan";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import type { PublicVideo } from "@/presentation/serialize";
 import type {
@@ -137,6 +138,7 @@ export function ClipProduction({
             firstUnfinished={firstUnfinished}
             showDebug={showDebug}
             busy={!idle}
+            framesReady={allFramesReady(project)}
             onJump={select}
             onToggleDebug={() => setShowDebug((value) => !value)}
             onBulk={(mode) => setBulkMode(mode)}

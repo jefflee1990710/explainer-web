@@ -1083,6 +1083,13 @@ async function syncProjectOnce(projectId: ObjectId): Promise<"written" | "confli
       },
     },
   );
+  // The character still just landed: queue scene images for this new video.
+  if (written.matchedCount > 0 && set.characterStillUrl) {
+    const { enqueueSceneImagesForNewVideo } = await import("@/service/clip/enqueue-scene-images");
+    await enqueueSceneImagesForNewVideo(projectId).catch((error) => {
+      console.error("[frames] auto enqueue after still failed", { projectId, error });
+    });
+  }
   return written.matchedCount > 0 ? "written" : "conflict";
 }
 

@@ -31,8 +31,8 @@ export const productionZhHant = {
         hint: "重畫每一段的起始與結尾畫格。正在畫的段落會略過。",
       },
       clips: {
-        label: "全部（畫格＋影片）",
-        hint: "重畫每一段畫格，兩張都完成後自動產片；影片 credits 在那時才扣。",
+        label: "全部影片",
+        hint: "每一段畫格都完成後，產生還沒有影片的段落。",
       },
     },
     row: {
@@ -123,8 +123,8 @@ export const productionZhHant = {
     allDone: "全部完成，可以成片",
     debug: "技術資訊",
     bulkOpen: "全部產生",
-    bulkAllFrames: "全部畫格",
-    bulkAllFramesVideo: "全部（畫格＋影片）",
+    bulkAllVideos: "全部影片",
+    bulkAllVideosWaiting: "全部畫格完成後才能產生",
   },
   queue: {
     viewTasks: "查看生成任務",

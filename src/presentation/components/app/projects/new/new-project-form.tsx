@@ -35,7 +35,7 @@ import {
   cheapestVideoCost,
   clipVideoCost,
   needsVideoUpgrade,
-  planGenerateAllClips,
+  planGenerateAllVideos,
   planGenerateAllScenes,
   planRemaining,
   planSelected,
@@ -558,7 +558,7 @@ export function NewProjectForm({
         ? planRemaining(project)
         : mode === "scenes"
           ? planGenerateAllScenes(project)
-          : planGenerateAllClips(project);
+          : planGenerateAllVideos(project);
     const cheapest = cheapestVideoCost(project, plan.videos);
     if (plan.videos.length > 0 && needsVideoUpgrade(walletCredits, cheapest)) {
       openCreditGate(Math.max(cheapest, plan.cost), () => {

@@ -2,15 +2,6 @@
 
 const iconClass = "h-3.5 w-3.5 shrink-0";
 
-export function AllFramesIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className={iconClass} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <rect x="3.5" y="4.5" width="12" height="10" rx="1.6" />
-      <rect x="8.5" y="9.5" width="12" height="10" rx="1.6" />
-    </svg>
-  );
-}
-
 export function AllFramesVideoIcon() {
   return (
     <svg viewBox="0 0 24 24" className={iconClass} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

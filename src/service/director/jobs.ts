@@ -8,6 +8,7 @@ import { keepProposalRegenerateClips } from "@/service/director/phase-a-edit";
 import { runPhaseA } from "@/service/director/run-phase-a";
 import { hydrateStyles } from "@/service/style/load-style";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
+import { enqueueSceneImagesForNewVideo } from "@/service/clip/enqueue-scene-images";
 import { submitStillIfNeeded } from "@/service/higgsfield/pipeline";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { concatMp4Urls } from "@/service/reel/concat";
@@ -110,6 +111,12 @@ export async function runPhaseAJob(
     );
     // Same as the old approve action: lock the character still before frames.
     await runStillJob(projectId);
+    // A new storyboard queues every scene image. A clips-only rewrite does not.
+    if (!options?.clipsOnly) {
+      await enqueueSceneImagesForNewVideo(projectId).catch((error: unknown) => {
+        console.error("[frames] auto enqueue failed", { projectId, error });
+      });
+    }
   } catch (error) {
     await projects.updateOne(
       { _id: projectId },

@@ -3,10 +3,7 @@
 import { useState } from "react";
 import { TaskListDialog } from "@/presentation/components/app/tasks/task-list-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import {
-  AllFramesIcon,
-  AllFramesVideoIcon,
-} from "@/presentation/components/project/production-bulk-action-icons";
+import { AllFramesVideoIcon } from "@/presentation/components/project/production-bulk-action-icons";
 import { ProductionQueue } from "@/presentation/components/project/production-queue";
 import type { BulkMode } from "@/presentation/components/project/bulk-generate-dialog";
 import { StudioButton } from "@/presentation/studio/studio-button";
@@ -23,6 +20,7 @@ export function ProductionToolbar({
   firstUnfinished,
   showDebug,
   busy,
+  framesReady,
   onJump,
   onToggleDebug,
   onBulk,
@@ -35,6 +33,8 @@ export function ProductionToolbar({
   firstUnfinished?: number;
   showDebug: boolean;
   busy: boolean;
+  // False until every clip has a current start and end image.
+  framesReady: boolean;
   onJump: (clipNumber: number) => void;
   onToggleDebug: () => void;
   onBulk: (mode: BulkMode) => void;
@@ -76,21 +76,13 @@ export function ProductionToolbar({
           {t("production.toolbar.debug")}
         </label>
         <StudioButton
-          variant="ghost"
-          onClick={() => onBulk("scenes")}
-          disabled={busy}
-          className="min-h-9 px-3 text-xs"
-        >
-          <AllFramesIcon />
-          {t("production.toolbar.bulkAllFrames")}
-        </StudioButton>
-        <StudioButton
           onClick={() => onBulk("clips")}
-          disabled={busy}
+          disabled={busy || !framesReady}
+          title={framesReady ? undefined : t("production.toolbar.bulkAllVideosWaiting")}
           className="min-h-9 px-3 text-xs"
         >
           <AllFramesVideoIcon />
-          {t("production.toolbar.bulkAllFramesVideo")}
+          {t("production.toolbar.bulkAllVideos")}
         </StudioButton>
       </div>
     </div>

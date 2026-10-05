@@ -106,19 +106,24 @@ export function planGenerateAllScenes(project: ClipStageSource): BulkGeneratePla
   return { frames, videos: [], cost: sceneImageCost(project, frames) };
 }
 
-// Scene images for every clip not already drawing, plus a video for every clip.
-// Video credits are reserved up front and charged only after both stills exist.
-export function planGenerateAllClips(project: ClipStageSource): BulkGeneratePlan {
+const FRAMES_DONE = new Set(["frames_ready", "video_generating", "video_failed", "video_ready"]);
+
+// Every clip has a current start and end still, so videos may be rendered.
+export function allFramesReady(project: ClipStageSource) {
   const states = clipStatesFor(project);
-  const frames = states
-    .filter((state) => state.stage !== "frames_generating")
+  return (
+    states.length > 0 &&
+    states.every((state) => FRAMES_DONE.has(state.stage) && !state.stale.frames)
+  );
+}
+
+// Videos for clips that still need one. Empty until every frame image is ready.
+export function planGenerateAllVideos(project: ClipStageSource): BulkGeneratePlan {
+  if (!allFramesReady(project)) return { frames: [], videos: [], cost: 0 };
+  const videos = clipStatesFor(project)
+    .filter((state) => state.stage === "frames_ready" || state.stage === "video_failed")
     .map((state) => state.clipNumber);
-  const videos = states.map((state) => state.clipNumber);
-  return {
-    frames,
-    videos,
-    cost: sceneImageCost(project, frames) + videosCost(project, videos),
-  };
+  return { frames: [], videos, cost: videosCost(project, videos) };
 }
 
 const IN_FLIGHT = new Set(["queued", "in_progress"]);

@@ -7,7 +7,7 @@ import {
   refundCredits,
 } from "@/service/billing/credits";
 import { videosCollection } from "@/dao";
-import { claimAndStartClipVideo, queueAutoClipVideos } from "@/service/clip/auto-video";
+import { claimAndStartClipVideo } from "@/service/clip/auto-video";
 import {
   enqueueClipFrameJobs,
   failUnsubmittedFrames,
@@ -17,11 +17,10 @@ import { isProductionLike } from "@/service/project-status";
 import {
   clipVideoCost,
   FRAME_COST,
-  planGenerateAllClips,
+  planGenerateAllVideos,
   planGenerateAllScenes,
   planRemaining,
   planSelected,
-  sceneImageCost,
 } from "@/service/production-plan";
 import { isInheritedTalkingHeadStart, talkingHeadFramesCost } from "@/service/director/talking-head";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
@@ -297,7 +296,7 @@ export async function generateAllSceneImagesAction(
   }
 }
 
-// Draw every scene image, then start each clip video once both stills exist.
+// Render every clip that still needs a video. Frames must already be ready.
 export async function generateAllClipsAction(
   projectId: string,
 ): Promise<EnqueueResult> {
@@ -306,29 +305,23 @@ export async function generateAllClipsAction(
     const loaded = await loadProduction(projectId, user.clerkUserId);
     if (!loaded.ok) return loaded;
 
-    const plan = planGenerateAllClips(loaded.project);
-    if (plan.cost === 0) return { ok: false, error: "沒有可產生的段落" };
-    const blocker = await stillBlocker(loaded.project);
-    if (blocker) return { ok: false, error: blocker };
+    const plan = planGenerateAllVideos(loaded.project);
+    if (plan.videos.length === 0) return { ok: false, error: "畫格還沒全部完成，或沒有可產生的影片" };
     await assertCanSpendCredits(user, plan.cost);
-    const frameCost = sceneImageCost(loaded.project, plan.frames);
-    if (frameCost > 0) {
-      const spendKey = await consumeCredits(user.clerkUserId, frameCost);
-      try {
-        await enqueueClipFrameJobs(loaded.project, plan.frames);
-      } catch (error) {
-        await refundCredits(user.clerkUserId, frameCost, spendKey);
-        throw error;
-      }
+
+    let firstError = "";
+    let started = 0;
+    for (const clipNumber of plan.videos) {
+      const result = await generateClipVideoAction(projectId, clipNumber);
+      if (result.ok) started += 1;
+      else firstError ||= result.error;
     }
+    if (started === 0) return { ok: false, error: firstError || "產生影片失敗" };
 
     const projects = await videosCollection();
-    await projects.updateOne(
-      { _id: loaded.project._id },
-      { $set: { autoVideoClips: plan.videos, updatedAt: new Date() } },
-    );
-    await queueAutoClipVideos(loaded.project._id);
-    return { ok: true, project: await enqueuedVideo(loaded.project) };
+    const updated = await projects.findOne({ _id: loaded.project._id });
+    revalidateProject(projectId);
+    return { ok: true, project: toPublicVideo(updated!) };
   } catch (error) {
     return {
       ok: false,
