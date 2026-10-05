@@ -119,12 +119,14 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
 
   const withCast = cartoonExplainerDirectorBlock({ hasCharacter: true });
   assert.match(withCast, /facial expression/);
-  assert.match(withCast, /walking/);
+  assert.match(withCast, /walk is not a new action/);
   assert.match(withCast, /left side/);
   assert.match(withCast, /right side/);
-  assert.match(withCast, /jumping/);
-  assert.match(withCast, /pulling/);
-  assert.match(withCast, /pushing/);
+  assert.match(withCast, /jump/);
+  assert.match(withCast, /pull a drawn element/);
+  assert.match(withCast, /push a drawn element/);
+  assert.match(withCast, /point toward the camera/);
+  assert.match(withCast, /not two standing poses/);
   assert.match(withCast, /head may turn/);
   assert.match(withCast, /do not repeat/);
   assert.match(withCast, /fresh idea/);
@@ -132,7 +134,7 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(withCast, /same side/);
   assert.match(withCast, /toward the camera/);
   assert.match(withCast, /zoom in or out/);
-  assert.match(withCast, /extra drawn objects/);
+  assert.match(withCast, /explanation graph/);
   assert.match(withCast, /never speaks/);
   assert.doesNotMatch(withCast, /stand aside/);
   const movingStill = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
@@ -142,12 +144,14 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(movingStill, /same side/);
   assert.match(movingStill, /left or the right/);
   assert.match(movingStill, /feet off the ground/);
-  assert.match(movingStill, /walked/);
+  assert.match(movingStill, /point toward the camera/);
+  assert.match(movingStill, /not a neutral standing pose/);
   const movingVideo = cartoonNarratorVideoLock("cartoon-explainer-video-director", { hasCharacter: true });
   assert.match(movingVideo, /same side/);
-  assert.match(movingVideo, /toward the camera/);
+  assert.match(movingVideo, /aimed at the camera/);
   assert.match(movingVideo, /left to right/);
   assert.match(movingVideo, /Do not repeat/);
+  assert.match(movingVideo, /walk between two standing poses/);
 });
 
 test("Q&A is dialogue-only like story short: no narrator, character lines", () => {

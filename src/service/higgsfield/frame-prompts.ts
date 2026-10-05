@@ -129,7 +129,7 @@ function compositionLockLines(
       `COMPOSITION LOCK: ${source}.`,
       "Keep the same world, set, and lighting.",
       "Camera angle MAY change (from the side, from above, from the front, from behind, toward the camera, or away). The character usually STAYS on the same side. They stand on the other side only when the Scene is a left-to-right or right-to-left cross. A jump shows the feet off the ground; do not slide the body upward.",
-      "Apply the Scene changes: body pose, facial expression, head direction, a few steps, walking toward or away, pointing, pulling, or pushing extra objects. Do not invent a new room. Do not copy the previous clip's pose.",
+      "Draw this still as the before or after of one action, not a neutral stand: push (hands on a drawn element, arms loaded or extended), pull (the element closer or farther), jump (feet off the ground if this still is airborne), or point toward the camera (the arm aims at the lens). Do not invent a new room. Do not copy the previous clip's pose.",
     ];
   }
   return [
