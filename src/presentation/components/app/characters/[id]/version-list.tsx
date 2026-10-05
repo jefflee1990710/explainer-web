@@ -35,14 +35,14 @@ export function VersionList({
   const { t } = useI18n();
   const versions = character.versions.filter((version) => version.styleId === styleId);
   return (
-    <div className="rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-3 shadow-[4px_4px_0_0_rgba(18,20,28,0.06)]">
-      <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+    <div className="flex h-full max-h-80 min-h-0 flex-col rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-3 shadow-[4px_4px_0_0_rgba(18,20,28,0.06)] md:max-h-none">
+      <p className="shrink-0 px-2 pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted">
         {t("characters.versionsHeading")}
       </p>
       {versions.length === 0 ? (
         <p className="px-2 text-sm text-muted">{t("characters.noVersions")}</p>
       ) : null}
-      <ul className="space-y-1">
+      <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
         {versions.map((version) => {
           const selected = version.id === selectedId;
           const isDefault = version.id === character.defaultVersionId;

@@ -218,6 +218,7 @@ export const en: Messages = {
     noVersions: "This character has no versions yet.",
     nameAria: "Character name",
     versionCount: "{n} versions",
+    outlookHeading: "Look",
     stylesHeading: "Styles",
     addStyle: "Add",
     styleUsage: "{used}/{limit} styles",

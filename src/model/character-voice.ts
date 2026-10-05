@@ -34,7 +34,10 @@ export const characterVoiceSchema = z.object({
     }),
 });
 
-export type CharacterVoice = z.infer<typeof characterVoiceSchema>;
+// Parsed notes are `string | undefined`, which would force every object to set `note`.
+// Call sites may omit it when there is no extra line.
+type ParsedCharacterVoice = z.output<typeof characterVoiceSchema>;
+export type CharacterVoice = Omit<ParsedCharacterVoice, "note"> & { note?: string };
 
 export function parseCharacterVoice(value: unknown): CharacterVoice | null {
   const parsed = characterVoiceSchema.safeParse(value);

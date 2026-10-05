@@ -213,7 +213,11 @@ export function CharacterWorkspace({
         <DeleteCharacterDialog character={character} onClose={() => setDeleteOpen(false)} />
       ) : null}
 
-      <div className="grid gap-6 md:grid-cols-[11rem_17.5rem_minmax(0,1fr)] md:items-start">
+      <section
+        aria-label={t("characters.outlookHeading")}
+        className="flex min-h-[28rem] flex-col md:h-[min(40rem,calc(100dvh-9rem))]"
+      >
+      <div className="grid min-h-0 flex-1 gap-6 md:grid-cols-[11rem_17.5rem_minmax(0,1fr)] md:items-stretch">
         <CharacterStyleColumn
           character={character}
           styles={styles}
@@ -260,8 +264,11 @@ export function CharacterWorkspace({
           <p className="text-sm text-muted">{t("characters.noVersions")}</p>
         )}
       </div>
+      </section>
 
-      <CharacterVoicePanel character={character} onSaved={setCharacter} />
+      <section aria-label={t("characters.voiceTitle")}>
+        <CharacterVoicePanel character={character} onSaved={setCharacter} />
+      </section>
       {creditGate ? (
         <InsufficientCreditsDialog
           needed={creditGate.needed}

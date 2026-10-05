@@ -37,8 +37,8 @@ export function CharacterStyleColumn({
   const atLimit = character.styleIds.length >= styleLimit;
 
   return (
-    <div className="rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-3 shadow-[4px_4px_0_0_rgba(18,20,28,0.06)]">
-      <div className="flex items-center justify-between gap-2 px-1 pb-2">
+    <div className="flex h-full max-h-80 min-h-0 flex-col rounded-[1.5rem] border border-accent-ink/10 bg-paper/85 p-3 shadow-[4px_4px_0_0_rgba(18,20,28,0.06)] md:max-h-none">
+      <div className="flex shrink-0 items-center justify-between gap-2 px-1 pb-2">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
           {t("characters.stylesHeading")}
         </p>
@@ -51,14 +51,14 @@ export function CharacterStyleColumn({
           {t("characters.addStyle")}
         </button>
       </div>
-      <p className="px-1 pb-2 text-[11px] leading-4 text-muted">
+      <p className="shrink-0 px-1 pb-2 text-[11px] leading-4 text-muted">
         {atLimit
           ? styleLimit <= 1
             ? t("characters.addStyleNeedSubscribe")
             : t("characters.addStyleAtLimit", { limit: styleLimit })
           : t("characters.styleUsage", { used: character.styleIds.length, limit: styleLimit })}
       </p>
-      <ul className="space-y-1">
+      <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
         {character.styleIds.map((styleId) => {
           const selected = styleId === activeStyleId;
           const name = labelFor(styleId, styles);

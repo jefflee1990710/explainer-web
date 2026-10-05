@@ -59,8 +59,8 @@ export function VersionDetail({
   }
 
   return (
-    <section className="rounded-[1.75rem] border border-accent-ink/10 bg-paper/85 p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.08)]">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.75rem] border border-accent-ink/10 bg-paper/85 p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.08)]">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl font-bold">
           v{version.number}
           {isDefault ? (
@@ -74,16 +74,16 @@ export function VersionDetail({
         </p>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-[1.25rem] border border-accent-ink/10 bg-white">
+      <div className="mt-4 min-h-0 flex-1 overflow-hidden rounded-[1.25rem] border border-accent-ink/10 bg-white">
         {version.blueprintUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={version.blueprintUrl}
             alt={t("characters.versionBlueprintAlt", { name: character.name, n: version.number })}
-            className="aspect-video w-full object-contain"
+            className="h-full w-full object-contain"
           />
         ) : (
-          <div className="grid aspect-video w-full place-items-center bg-accent-ink/5 text-sm text-muted">
+          <div className="grid h-full min-h-40 w-full place-items-center bg-accent-ink/5 text-sm text-muted">
             {busy ? (
               <span className="inline-flex items-center gap-2">
                 <Spinner /> {t("characters.blueprintGenerating")}
@@ -97,7 +97,7 @@ export function VersionDetail({
         )}
       </div>
 
-      <dl className="mt-4 space-y-2 text-sm">
+      <dl className="mt-4 max-h-28 shrink-0 space-y-2 overflow-y-auto text-sm">
         {version.editInstruction ? (
           <div>
             <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
@@ -124,12 +124,12 @@ export function VersionDetail({
       </dl>
 
       {error ? (
-        <p role="alert" className="mt-4 text-sm font-medium text-accent">
+        <p role="alert" className="mt-4 shrink-0 text-sm font-medium text-accent">
           {translateAppError(error, t)}
         </p>
       ) : null}
 
-      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-accent-ink/10 pt-5">
+      <div className="mt-5 flex shrink-0 flex-wrap items-center gap-3 border-t border-accent-ink/10 pt-5">
         {version.status === "completed" && !isDefault ? (
           <button
             type="button"
@@ -172,7 +172,7 @@ export function VersionDetail({
       </div>
 
       {editing ? (
-        <form onSubmit={submitEdit} className="mt-4 space-y-3">
+        <form onSubmit={submitEdit} className="mt-4 shrink-0 space-y-3">
           <label className="block">
             <span className="mb-1.5 block text-sm font-semibold">{t("characters.editWhatLabel")}</span>
             {hasOriginalPhoto(character, version) ? (

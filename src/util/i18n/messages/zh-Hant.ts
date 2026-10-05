@@ -212,6 +212,7 @@ export const zhHant: Messages = {
     noVersions: "這個角色還沒有任何版本。",
     nameAria: "角色名稱",
     versionCount: "{n} 個版本",
+    outlookHeading: "外觀",
     stylesHeading: "風格",
     addStyle: "新增",
     styleUsage: "{used}/{limit} 個風格",

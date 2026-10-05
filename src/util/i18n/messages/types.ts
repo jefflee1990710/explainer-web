@@ -200,6 +200,7 @@ export type Messages = {
     noVersions: string;
     nameAria: string;
     versionCount: string;
+    outlookHeading: string;
     stylesHeading: string;
     addStyle: string;
     styleUsage: string;

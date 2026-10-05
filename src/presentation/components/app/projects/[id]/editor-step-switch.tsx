@@ -29,9 +29,10 @@ export function EditorStepSwitch({
   const { t } = useI18n();
   const current = currentStepFor(status, failedAtStep);
   const maxReachable = maxReachableStep(current, clipsReady);
-  const steps = PROJECT_STEPS.flatMap((step, index) =>
-    index === 0 || (step.id !== "production" && step.id !== "export") ? [] : [{ step, index }],
-  );
+  const steps: { id: "production" | "export"; index: number }[] = [];
+  PROJECT_STEPS.forEach((step, index) => {
+    if (step.id === "production" || step.id === "export") steps.push({ id: step.id, index });
+  });
 
   return (
     <div
@@ -39,13 +40,13 @@ export function EditorStepSwitch({
       aria-label={t("video.editor.stepsAria")}
       className="inline-flex shrink-0 items-end gap-1"
     >
-      {steps.map(({ step, index }) => {
-        const label = projectStepLabel(step.id, t);
+      {steps.map(({ id, index }) => {
+        const label = projectStepLabel(id, t);
         const selected = index === viewing;
         const clickable = index <= maxReachable;
         return (
           <button
-            key={step.id}
+            key={id}
             type="button"
             role="tab"
             aria-selected={selected}
@@ -61,7 +62,7 @@ export function EditorStepSwitch({
                 : "cursor-not-allowed opacity-40"
             }`}
           >
-            <EditorStepIcon stepId={step.id} />
+            <EditorStepIcon stepId={id} />
             <span>{label}</span>
           </button>
         );
