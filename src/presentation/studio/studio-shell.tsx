@@ -9,7 +9,7 @@ export type StudioNavItem = {
   href: string;
   label: string;
   section: StudioNavSection;
-  icon: "projects" | "directors" | "styles" | "characters" | "mcp" | "affiliate" | "billing" | "settings";
+  icon: "projects" | "posts" | "directors" | "styles" | "characters" | "mcp" | "affiliate" | "billing" | "settings";
 };
 
 // Logged-in frame: full-height icon rail and a scrolling main slot.

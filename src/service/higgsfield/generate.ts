@@ -49,7 +49,8 @@ function imageRefs(urls: Array<string | undefined>) {
 
 // OpenAI GPT Image on Higgsfield only accepts 1:1 / 3:2 / 2:3.
 // Map the project ratio to the closest supported frame; video keeps the true ratio.
-function imageAspectRatio(model: string, ratio: AspectRatio): string {
+function imageAspectRatio(model: string, ratio: AspectRatio | "2:3"): string {
+  if (ratio === "2:3") return "2:3";
   if (!/gpt-image/i.test(model)) return ratio;
   if (ratio === "16:9") return "3:2";
   if (ratio === "9:16") return "2:3";
@@ -65,7 +66,7 @@ function imageAspectRatio(model: string, ratio: AspectRatio): string {
 export async function submitImage(input: {
   model: string;
   prompt: string;
-  aspectRatio: AspectRatio;
+  aspectRatio: AspectRatio | "2:3";
   quality?: "low" | "medium" | "high";
   resolution?: "1k" | "2k" | "4k";
   referenceImageUrls?: Array<string | undefined>;
@@ -81,6 +82,9 @@ export async function submitImage(input: {
   const imageUrls = await referenceUrlsForModel(model, refs);
 
   if (route.backend === "alicloud") {
+    if (input.aspectRatio === "2:3") {
+      throw new Error("這條產圖路由不接受 2:3");
+    }
     return submitAlicloudImage({
       model,
       prompt: input.prompt,

@@ -14,6 +14,7 @@ import { directorPreviewImagePrompt } from "@/service/director/director-preview"
 import { stylePreviewPrompt } from "@/service/style/user-style-preview";
 import { sendReelCover } from "@/service/video-edit/reel-cover";
 import { sendClipVideo, sendFrame, sendStill } from "@/service/higgsfield/pipeline";
+import { sendPostPreview } from "@/service/post/send-preview";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
 import { PermanentJobError } from "@/service/generation/task-policy";
 import { toSent, type Sent } from "@/service/generation/sent";
@@ -23,6 +24,7 @@ import type { Project } from "@/model/project";
 
 // Load fresh state and call the provider for one claimed job.
 export async function sendJob(job: GenerationJob): Promise<Sent> {
+  if (job.kind === "postPreview") return sendPostPreview(job);
   if (job.kind === "stylePreview") return sendStylePreview(job);
   if (job.kind === "directorPreview") return sendDirectorPreview(job);
   await hydrateStyles();

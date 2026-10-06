@@ -16,3 +16,4 @@ export { mcpToolCallsCollection } from "@/dao/mcp-tool-calls";
 export { videoTemplatesCollection } from "@/dao/video-templates";
 export { userStylesCollection } from "@/dao/user-styles";
 export { userDirectorsCollection } from "@/dao/user-directors";
+export { postsCollection } from "@/dao/posts";

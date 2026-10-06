@@ -6,6 +6,7 @@ import type { ProductionMessages } from "@/util/i18n/messages/workspace/producti
 import type { StylesMessages } from "@/util/i18n/messages/workspace/styles.en";
 import type { TasksPageMessages } from "@/util/i18n/messages/workspace/tasks.en";
 import type { VideoMessages } from "@/util/i18n/messages/workspace/video.en";
+import type { PostMessages } from "@/util/i18n/messages/workspace/post.en";
 
 // Shared message shape — every locale file must satisfy this interface.
 export type Messages = {
@@ -29,6 +30,7 @@ export type Messages = {
     signIn: string;
     workspace: string;
     language: string;
+    posts: string;
   };
   common: {
     credits: string;
@@ -472,6 +474,7 @@ export type Messages = {
   };
   brief: BriefMessages;
   video: VideoMessages;
+  post: PostMessages;
   production: ProductionMessages;
   tasksPage: TasksPageMessages;
   pickers: PickersMessages;

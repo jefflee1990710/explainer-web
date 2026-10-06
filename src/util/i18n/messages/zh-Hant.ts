@@ -7,6 +7,7 @@ import { pickersZhHant } from "@/util/i18n/messages/workspace/pickers.zh-Hant";
 import { productionZhHant } from "@/util/i18n/messages/workspace/production.zh-Hant";
 import { tasksPageZhHant } from "@/util/i18n/messages/workspace/tasks.zh-Hant";
 import { videoZhHant } from "@/util/i18n/messages/workspace/video.zh-Hant";
+import { postZhHant } from "@/util/i18n/messages/workspace/post.zh-Hant";
 
 export const zhHant: Messages = {
   meta: {
@@ -30,6 +31,7 @@ export const zhHant: Messages = {
     signIn: "登入",
     workspace: "工作台",
     language: "語言",
+    posts: "海報",
   },
   common: {
     credits: "credits",
@@ -503,6 +505,7 @@ export const zhHant: Messages = {
   },
   brief: briefZhHant,
   video: videoZhHant,
+  post: postZhHant,
   production: productionZhHant,
   tasksPage: tasksPageZhHant,
   pickers: pickersZhHant,

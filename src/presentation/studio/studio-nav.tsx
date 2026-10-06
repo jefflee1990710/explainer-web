@@ -4,6 +4,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { StudioNavItem, StudioNavSection } from "@/presentation/studio/studio-shell";
+import { isStudioNavActive } from "@/presentation/studio/studio-nav-active";
 
 const SECTIONS: StudioNavSection[] = ["generation", "setup", "other"];
 
@@ -41,20 +42,13 @@ export function StudioNav({ items }: { items: StudioNavItem[] }) {
               {labels[section]}
             </p>
             {group.map((item) => (
-              <StudioNavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+              <StudioNavLink key={item.href} item={item} active={isStudioNavActive(pathname, item.href)} />
             ))}
           </div>
         );
       })}
     </nav>
   );
-}
-
-function isActive(pathname: string, href: string) {
-  if (href === "/app") {
-    return pathname === "/app" || pathname.startsWith("/app/projects");
-  }
-  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 function StudioNavLink({ item, active }: { item: StudioNavItem; active: boolean }) {
@@ -102,6 +96,14 @@ function RailIcon({ name }: { name: StudioNavItem["icon"] }) {
       <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
         <path d="M3 7.5h7l2 2H21V19a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19V7.5Z" />
         <path d="M3 7.5V6A1.5 1.5 0 0 1 4.5 4.5H10l2 2" />
+      </svg>
+    );
+  }
+  if (name === "posts") {
+    return (
+      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+        <rect x="6" y="3.5" width="12" height="17" rx="1.5" />
+        <rect x="9" y="8" width="6" height="5" />
       </svg>
     );
   }

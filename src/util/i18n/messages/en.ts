@@ -7,6 +7,7 @@ import { pickersEn } from "@/util/i18n/messages/workspace/pickers.en";
 import { productionEn } from "@/util/i18n/messages/workspace/production.en";
 import { tasksPageEn } from "@/util/i18n/messages/workspace/tasks.en";
 import { videoEn } from "@/util/i18n/messages/workspace/video.en";
+import { postEn } from "@/util/i18n/messages/workspace/post.en";
 
 export const en: Messages = {
   meta: {
@@ -30,6 +31,7 @@ export const en: Messages = {
     signIn: "Sign in",
     workspace: "Workspace",
     language: "Language",
+    posts: "Post",
   },
   common: {
     credits: "credits",
@@ -513,6 +515,7 @@ export const en: Messages = {
   },
   brief: briefEn,
   video: videoEn,
+  post: postEn,
   production: productionEn,
   tasksPage: tasksPageEn,
   pickers: pickersEn,

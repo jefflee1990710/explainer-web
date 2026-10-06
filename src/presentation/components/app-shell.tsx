@@ -30,6 +30,7 @@ export function AppShell({
   const { t } = useI18n();
   const items: StudioNavItem[] = [
     { href: "/app", label: t("nav.projects"), icon: "projects", section: "generation" },
+    { href: "/app/posts", label: t("nav.posts"), icon: "posts", section: "generation" },
     { href: "/app/directors", label: t("nav.directors"), icon: "directors", section: "setup" },
     { href: "/app/styles", label: t("nav.styles"), icon: "styles", section: "setup" },
     { href: "/app/characters", label: t("nav.characters"), icon: "characters", section: "setup" },
