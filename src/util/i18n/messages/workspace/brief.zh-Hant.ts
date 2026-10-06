@@ -25,6 +25,10 @@ export const briefZhHant = {
     hintRequiredOne: "必須正好選 1 個角色。只顯示與上方風格相同的角色。",
     hintOptional: "選填。最多 4 個；只顯示與上方風格相同的角色。",
   },
+  products: {
+    title: "產品",
+    hint: "選填，最多 2 個。產品保持寫實，不會跟著這支影片的畫風重繪。",
+  },
   section02: {
     title: "導演指示",
     hint: "告訴導演這支影片要怎麼規劃：要講什麼、語氣、結構、必要的畫面。也可以直接貼上完整腳本或文章。",
@@ -157,6 +161,22 @@ export const briefZhHant = {
     "surprise-interview-director": "驚訝開場訪談",
     "outfit-reel-director": "試衫",
     "follow-shot-director": "第三人稱連續",
+  },
+  videoTypeBlurbs: {
+    "cartoon-explainer-video-director": "把概念做成白板塗鴉解說。先核准分鏡，再輸出 clips。",
+    "story-short-director": "以角色對白推動的短片，結構跟題材走，沒有旁白。",
+    "product-demo-director": "痛點、開箱、功能示範、結果。產品外觀全程鎖定。",
+    "dialogue-qa-director": "正好兩個角色，一問一答。",
+    "listicle-director": "每段一個項目，每張靜幀都要看到清單文字。",
+    "tutorial-director": "先看完成品，再一段一步，最後回到完成品。",
+    "opening-director": "3–4 秒片頭：品牌標誌進場並停住。",
+    "ending-director": "3–4 秒片尾：畫面停在品牌標誌上。",
+    "talking-head-director": "一個角色對鏡讀稿，每段一句。",
+    "comparison-card-director": "每段一次對照，同一件事的兩個看法。",
+    "talking-broll-director": "對鏡兩句，切到那兩句提到的畫面，再切回特寫。",
+    "surprise-interview-director": "先是驚訝特寫，再坐下來把概念講清楚。",
+    "outfit-reel-director": "一個角色一件一件穿上指定衣服，最後停在完整造型。",
+    "follow-shot-director": "第三人稱連續鏡頭。下一段從上一段的結尾開始。",
   },
   skillGuide: {
     labels: {

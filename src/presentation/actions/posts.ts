@@ -10,8 +10,12 @@ function refreshPost(id?: string) {
   if (id) revalidatePath(`/app/posts/${id}`);
 }
 
-export async function createPostAction(layoutId: string, instruction: string) {
-  const result = await createPost({ layoutId, instruction });
+export async function createPostAction(
+  layoutId: string,
+  instruction: string,
+  options?: { styleId?: string; characterIds?: string[]; productIds?: string[] },
+) {
+  const result = await createPost({ layoutId, instruction, ...options });
   if (result.ok) refreshPost(result.id);
   return result;
 }

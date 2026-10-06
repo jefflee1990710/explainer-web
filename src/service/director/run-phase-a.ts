@@ -70,6 +70,8 @@ import type { Style } from "@/service/style";
 import { resolveStyleLettering } from "@/service/style/lettering";
 import type { RenderableStyle } from "@/service/style/renderable-style";
 import type { CastMember } from "@/model/character";
+import type { ProductShot } from "@/model/product";
+import { productReferenceUrls } from "@/service/product/blueprint-prompt";
 import type {
   AspectRatio,
   DurationPreset,
@@ -98,6 +100,8 @@ export async function runPhaseA(input: {
   sceneTextLanguage?: SceneTextLanguage;
   characterImageUrl?: string;
   cast?: CastMember[];
+  // Real products. Attached after characters and before the logo.
+  products?: ProductShot[];
   // Opening / Ending brand logo, attached after the character references.
   logoUrl?: string;
   // Brief scene references; the director tags clips with their ids.
@@ -144,6 +148,9 @@ export async function runPhaseA(input: {
   );
   const logoUrl = bookend ? input.logoUrl : undefined;
   const logoImages = logoUrl ? await loadDirectorImageParts([logoUrl]) : [];
+  const productUrls = productReferenceUrls(input.products);
+  const productImages = productUrls.length ? await loadDirectorImageParts(productUrls) : [];
+  const productNames = (input.products ?? []).map((item) => item.name).filter(Boolean).join(", ");
   const references = await loadReferenceImageContent(input.referenceImages);
   // R ids are positional, so ids from an older draft may now name a different image;
   // drop them and let the director assign against the current list.
@@ -282,7 +289,7 @@ On-canvas text: ${
       : "off"
 }
 ${characterNote}
-${logoImages.length ? `Brand logo: the LAST attached image is the brand logo (after any scene and character references). Use it as-is in startScene / endScene.\n` : ""}${draftNote}${revisionNote}${clipsOnlyNote}
+${productImages.length ? `Product references (${productNames}) are attached after the character blueprints and before any brand logo. Keep the product photorealistic and identical to those images in every scene that shows it. Do not restyle the product into the visual style.\n` : ""}${logoImages.length ? `Brand logo: the LAST attached image is the brand logo (after any scene, character, and product references). Use it as-is in startScene / endScene.\n` : ""}${draftNote}${revisionNote}${clipsOnlyNote}
 Produce a complete Phase A director proposal now.`,
           },
           ...references.parts,
@@ -290,6 +297,7 @@ Produce a complete Phase A director proposal now.`,
             ? [{ type: "text" as const, text: "Character blueprints follow (not scene references):" }]
             : []),
           ...characterImages,
+          ...productImages,
           ...logoImages,
         ],
       },

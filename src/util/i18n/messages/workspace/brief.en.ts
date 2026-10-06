@@ -25,6 +25,10 @@ export const briefEn = {
     hintRequiredOne: "Pick exactly 1 character. Only characters in the style above are shown.",
     hintOptional: "Optional. Up to 4; only characters in the style above are shown.",
   },
+  products: {
+    title: "Products",
+    hint: "Optional. Up to 2. The product stays photorealistic and is not redrawn in this style.",
+  },
   section02: {
     title: "Instruction",
     hint: "Tell the director how to plan this video: what to cover, tone, structure, must-have shots. You can also paste a full script or article.",
@@ -160,6 +164,22 @@ export const briefEn = {
     "surprise-interview-director": "Surprise interview",
     "outfit-reel-director": "Outfit build",
     "follow-shot-director": "Follow shot",
+  },
+  videoTypeBlurbs: {
+    "cartoon-explainer-video-director": "Turn a concept into a whiteboard doodle explainer. Approve the storyboard, then export the clips.",
+    "story-short-director": "A short film driven by character dialogue. Structure follows the source — no narrator.",
+    "product-demo-director": "Pain, unbox, feature demo, result. The product look stays locked.",
+    "dialogue-qa-director": "Exactly two characters ask and answer.",
+    "listicle-director": "One item per clip. Every still shows the list text.",
+    "tutorial-director": "Show the result, then one step per clip, then the finished piece.",
+    "opening-director": "A 3–4 second bumper: the brand logo enters and holds.",
+    "ending-director": "A 3–4 second closer that settles on the brand logo.",
+    "talking-head-director": "One character reads to camera, one line per clip.",
+    "comparison-card-director": "One comparison per clip, two views of the same thing.",
+    "talking-broll-director": "Two lines to camera, a cutaway, then back to the close-up.",
+    "surprise-interview-director": "A surprised close-up, then the character explains the concept.",
+    "outfit-reel-director": "One character puts on the listed clothes, then holds the look.",
+    "follow-shot-director": "A third-person continuous shot. Each clip starts where the last one ended.",
   },
   skillGuide: {
     labels: {

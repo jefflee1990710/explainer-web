@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicSkill } from "@/presentation/serialize";
-import { localizedVideoType } from "@/util/video-type-i18n";
+import { localizedVideoBlurb, localizedVideoType } from "@/util/video-type-i18n";
 import { CreateDirectorButton } from "@/presentation/components/app/directors/create-director-modal";
 import { DirectorPreviewThumb } from "@/presentation/components/director-preview-thumb";
 
@@ -15,9 +15,12 @@ const ease = [0.22, 1, 0.36, 1] as const;
 export function DirectorCard({ director }: { director: PublicSkill }) {
   const { t, locale } = useI18n();
   const href = `/app/directors/${director.id}`;
-  const name = director.title;
+  const name = director.isCustom ? director.title : localizedVideoType(t, director.slug, director.title);
+  const description = director.isCustom
+    ? director.description
+    : localizedVideoBlurb(t, director.slug, director.description || "");
   const subtitle = director.isCustom
-    ? localizedVideoType(director.behaviorSlug, director.behaviorSlug)
+    ? localizedVideoType(t, director.behaviorSlug, director.behaviorSlug)
     : "";
 
   return (
@@ -39,8 +42,8 @@ export function DirectorCard({ director }: { director: PublicSkill }) {
           ) : subtitle && subtitle !== name ? (
             <p className="line-clamp-1 text-[11px] text-muted">{subtitle}</p>
           ) : null}
-          {director.description ? (
-            <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-muted">{director.description}</p>
+          {description ? (
+            <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-muted">{description}</p>
           ) : null}
         </div>
       </Link>

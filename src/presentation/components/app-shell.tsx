@@ -34,6 +34,7 @@ export function AppShell({
     { href: "/app/directors", label: t("nav.directors"), icon: "directors", section: "setup" },
     { href: "/app/styles", label: t("nav.styles"), icon: "styles", section: "setup" },
     { href: "/app/characters", label: t("nav.characters"), icon: "characters", section: "setup" },
+    { href: "/app/products", label: t("nav.products"), icon: "products", section: "setup" },
     { href: "/app/mcp", label: t("nav.mcp"), icon: "mcp", section: "other" },
     { href: "/app/billing", label: t("nav.billing"), icon: "billing", section: "other" },
   ];

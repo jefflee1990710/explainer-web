@@ -19,6 +19,7 @@ export const tasksPageEn = {
     stylePreview: "Style preview",
     directorPreview: "Director preview",
     postPreview: "Poster preview",
+    productBlueprint: "Product blueprint",
     reelCover: "Video cover",
     clipVideo: "Clip {n} · video",
     clipFrameStart: "Clip {n} · start frame",

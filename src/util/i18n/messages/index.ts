@@ -8,6 +8,7 @@ import { id } from "@/util/i18n/messages/id";
 import { ja } from "@/util/i18n/messages/ja";
 import { ko } from "@/util/i18n/messages/ko";
 import { mergeMessages } from "@/util/i18n/messages/merge";
+import { applyDirectorLocale } from "@/util/i18n/messages/director-locale";
 import { pt } from "@/util/i18n/messages/pt";
 import { ru } from "@/util/i18n/messages/ru";
 import { zhHans } from "@/util/i18n/messages/zh-Hans";
@@ -29,8 +30,8 @@ const LOCALE_OVERRIDES: Record<LocaleId, Partial<Messages>> = {
 
 export function getMessages(locale: LocaleId): Messages {
   const override = LOCALE_OVERRIDES[locale] ?? en;
-  if (locale === "en") return en;
-  return mergeMessages(en, override);
+  const merged = locale === "en" ? en : mergeMessages(en, override);
+  return applyDirectorLocale(locale, merged);
 }
 
 export { en };

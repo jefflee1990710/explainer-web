@@ -126,6 +126,14 @@ function RailIcon({ name }: { name: StudioNavItem["icon"] }) {
       </svg>
     );
   }
+  if (name === "products") {
+    return (
+      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+        <path d="M8 8.5h8l1 11H7l1-11Z" />
+        <path d="M9 8.5V7a3 3 0 0 1 6 0v1.5" />
+      </svg>
+    );
+  }
   if (name === "characters") {
     return (
       <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>

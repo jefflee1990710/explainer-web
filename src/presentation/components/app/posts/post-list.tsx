@@ -6,9 +6,22 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { CreatePostDialog, type PosterLayoutChoice } from "@/presentation/components/app/posts/create-post-dialog";
 import { PostCard } from "@/presentation/components/app/posts/post-card";
 import type { PublicPost } from "@/model/post-layers";
+import type { PublicCharacter, PublicProduct, PublicStyle } from "@/presentation/serialize";
 
 // Poster library. Refreshes while a preview is still running.
-export function PostList({ posts, layouts }: { posts: PublicPost[]; layouts: PosterLayoutChoice[] }) {
+export function PostList({
+  posts,
+  layouts,
+  styles,
+  characters,
+  products,
+}: {
+  posts: PublicPost[];
+  layouts: PosterLayoutChoice[];
+  styles: PublicStyle[];
+  characters: PublicCharacter[];
+  products: PublicProduct[];
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -44,7 +57,15 @@ export function PostList({ posts, layouts }: { posts: PublicPost[]; layouts: Pos
           ))}
         </div>
       )}
-      {open ? <CreatePostDialog layouts={layouts} onClose={() => setOpen(false)} /> : null}
+      {open ? (
+        <CreatePostDialog
+          layouts={layouts}
+          styles={styles}
+          characters={characters}
+          products={products}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

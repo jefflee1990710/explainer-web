@@ -70,7 +70,7 @@ import {
 import { isTalkingHeadSkill, talkingHeadScriptFromClips } from "@/service/director/talking-head";
 import { TalkingHeadScriptField } from "@/presentation/components/app/projects/new/talking-head-script-field";
 import { failedStepFor, isProductionLike } from "@/service/project-status";
-import type { PublicCharacter, PublicSkill, PublicStyle, PublicVideo } from "@/presentation/serialize";
+import type { PublicCharacter, PublicProduct, PublicSkill, PublicStyle, PublicVideo } from "@/presentation/serialize";
 import { DEFAULT_STYLE_ID } from "@/service/style";
 import type {
   AspectRatio,
@@ -84,6 +84,7 @@ import type {
   VoiceGender,
 } from "@/model/project";
 import { CharacterPicker } from "@/presentation/components/app/projects/[id]/character-picker";
+import { ProductPicker } from "@/presentation/components/app/products/product-picker";
 import { SkillPicker } from "@/presentation/components/app/projects/[id]/skill-picker";
 import { AspectRatioPicker } from "@/presentation/components/app/projects/new/aspect-ratio-picker";
 import { DirectorProgress } from "@/presentation/components/app/projects/new/director-progress";
@@ -131,6 +132,7 @@ export function NewProjectForm({
   skills,
   styles,
   characters,
+  products,
   initialVideo = null,
   credits,
   subscribed,
@@ -141,6 +143,7 @@ export function NewProjectForm({
   skills: PublicSkill[];
   styles: PublicStyle[];
   characters: PublicCharacter[];
+  products: PublicProduct[];
   initialVideo?: PublicVideo | null;
   credits: number;
   subscribed: boolean;
@@ -196,6 +199,9 @@ export function NewProjectForm({
   );
   const [characterIds, setCharacterIds] = useState<string[]>(
     initialVideo?.cast.map((member) => member.characterId) || lastBrief?.characterIds || [],
+  );
+  const [productIds, setProductIds] = useState<string[]>(
+    initialVideo?.products?.map((item) => item.productId) || [],
   );
   // Opening / Ending only: brand logo used in both scene images.
   const [logoUrl, setLogoUrl] = useState(initialVideo?.logoUrl || "");
@@ -291,6 +297,8 @@ export function NewProjectForm({
     if (!project) return false;
     const currentIds = project.cast.map((member) => member.characterId).slice().sort();
     const nextIds = characterIds.slice().sort();
+    const currentProducts = (project.products ?? []).map((item) => item.productId).slice().sort();
+    const nextProducts = productIds.slice().sort();
     return (
       project.source === source.trim() &&
       (project.spokenScript || "") === (talkingHead ? spokenScript.trim() : "") &&
@@ -306,7 +314,9 @@ export function NewProjectForm({
       JSON.stringify(toReferenceDrafts(project.referenceImages)) ===
         JSON.stringify(referenceImages.map((item) => ({ ...item, description: item.description.trim() }))) &&
       currentIds.length === nextIds.length &&
-      currentIds.every((id, index) => id === nextIds[index])
+      currentIds.every((id, index) => id === nextIds[index]) &&
+      currentProducts.length === nextProducts.length &&
+      currentProducts.every((id, index) => id === nextProducts[index])
     );
   }
 
@@ -327,6 +337,7 @@ export function NewProjectForm({
     if (bookend && logoUrl) formData.set("logoUrl", logoUrl);
     formData.set("referenceImages", JSON.stringify(referenceImages));
     for (const id of characterIds) formData.append("characterIds", id);
+    for (const id of productIds) formData.append("productIds", id);
     return formData;
   }
 
@@ -411,6 +422,7 @@ export function NewProjectForm({
     setAspectRatio(video.aspectRatio);
     setDurationPreset(video.durationPreset);
     setCharacterIds(video.cast.map((member) => member.characterId));
+    setProductIds((video.products ?? []).map((item) => item.productId));
     setLogoUrl(video.logoUrl || "");
     setReferenceImages(toReferenceDrafts(video.referenceImages));
   }
@@ -653,7 +665,7 @@ export function NewProjectForm({
   const skillTitle = summarySkill
     ? summarySkill.isCustom
       ? summarySkill.title
-      : localizedVideoType(summarySkill.slug, summarySkill.title)
+      : localizedVideoType(t, summarySkill.slug, summarySkill.title)
     : t("brief.fallback.videoType");
   const selectedStyle = styles.find((item) => item.id === (project?.styleId || styleId));
   const styleName = selectedStyle
@@ -816,6 +828,16 @@ export function NewProjectForm({
                     disabled={briefBusy}
                     max={castNeed > 0 ? castNeed : 4}
                     required={castNeed}
+                  />
+                </div>
+                <p className="mt-5 text-sm font-semibold">{t("brief.products.title")}</p>
+                <p className="mt-1 text-xs text-muted">{t("brief.products.hint")}</p>
+                <div className="mt-3">
+                  <ProductPicker
+                    products={products}
+                    value={productIds}
+                    onChange={setProductIds}
+                    disabled={briefBusy}
                   />
                 </div>
               </Section>

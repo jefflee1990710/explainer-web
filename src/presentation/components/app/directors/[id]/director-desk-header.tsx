@@ -38,7 +38,7 @@ export function DirectorDeskHeader({
   onGenerating: () => void;
 }) {
   const { t } = useI18n();
-  const templateName = localizedVideoType(director.behaviorSlug, director.baseSlug || director.behaviorSlug);
+  const templateName = localizedVideoType(t, director.behaviorSlug, director.baseSlug || director.behaviorSlug);
 
   return (
     <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2">

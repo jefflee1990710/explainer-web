@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { createPostAction } from "@/presentation/actions/posts";
+import { CharacterPicker } from "@/presentation/components/app/projects/[id]/character-picker";
+import { ProductPicker } from "@/presentation/components/app/products/product-picker";
+import { StylePicker } from "@/presentation/components/style-picker";
 import { INSTRUCTION_MAX, type PosterLayoutId } from "@/model/post-layers";
+import { DEFAULT_STYLE_ID } from "@/service/style";
+import type { PublicCharacter, PublicProduct, PublicStyle } from "@/presentation/serialize";
 
 export type PosterLayoutChoice = {
   id: PosterLayoutId;
@@ -15,15 +20,24 @@ export type PosterLayoutChoice = {
 // Pick one of the 16 layouts and describe the poster.
 export function CreatePostDialog({
   layouts,
+  styles,
+  characters,
+  products,
   onClose,
 }: {
   layouts: PosterLayoutChoice[];
+  styles: PublicStyle[];
+  characters: PublicCharacter[];
+  products: PublicProduct[];
   onClose: () => void;
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const titleId = useId();
   const [layoutId, setLayoutId] = useState<PosterLayoutId>("layout-01");
+  const [styleId, setStyleId] = useState<string>(DEFAULT_STYLE_ID);
+  const [characterIds, setCharacterIds] = useState<string[]>([]);
+  const [productIds, setProductIds] = useState<string[]>([]);
   const [instruction, setInstruction] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -40,7 +54,11 @@ export function CreatePostDialog({
     event.preventDefault();
     setSubmitting(true);
     setError("");
-    const result = await createPostAction(layoutId, instruction);
+    const result = await createPostAction(layoutId, instruction, {
+      styleId,
+      characterIds,
+      productIds,
+    });
     setSubmitting(false);
     if (!result.ok) {
       setError(t(`post.error.${result.error}`));
@@ -96,6 +114,40 @@ export function CreatePostDialog({
             })}
           </div>
         </fieldset>
+        <p className="mt-5 text-sm font-semibold">{t("post.create.styleLabel")}</p>
+        <div className="mt-3">
+          <StylePicker
+            styles={styles}
+            value={styleId}
+            disabled={submitting}
+            onChange={(id) => {
+              setStyleId(id);
+              setCharacterIds((ids) =>
+                ids.filter((characterId) => {
+                  const character = characters.find((item) => item.id === characterId);
+                  const styleIds = character?.styleIds?.length ? character.styleIds : [character?.styleId];
+                  return styleIds.includes(id);
+                }),
+              );
+            }}
+          />
+        </div>
+        <p className="mt-5 text-sm font-semibold">{t("post.create.castLabel")}</p>
+        <p className="mt-1 text-xs text-muted">{t("post.create.castHint")}</p>
+        <div className="mt-3">
+          <CharacterPicker
+            characters={characters}
+            styleId={styleId}
+            value={characterIds}
+            onChange={setCharacterIds}
+            disabled={submitting}
+          />
+        </div>
+        <p className="mt-5 text-sm font-semibold">{t("post.create.productLabel")}</p>
+        <p className="mt-1 text-xs text-muted">{t("post.create.productHint")}</p>
+        <div className="mt-3">
+          <ProductPicker products={products} value={productIds} onChange={setProductIds} disabled={submitting} />
+        </div>
         <label className="mt-5 block text-sm font-semibold">
           {t("post.create.instructionLabel")}
           <textarea

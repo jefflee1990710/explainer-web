@@ -20,6 +20,11 @@ export const postZhHant = {
     submit: "生成海報",
     submitting: "生成中…",
     close: "關閉",
+    styleLabel: "視覺風格",
+    castLabel: "角色",
+    castHint: "選填。角色會用上面的風格來畫。",
+    productLabel: "產品",
+    productHint: "選填。產品保持寫實，不會被海報畫風改掉。",
   },
   editor: {
     back: "返回海報",
@@ -45,5 +50,7 @@ export const postZhHant = {
     not_found: "找不到這張海報。",
     busy: "預覽還在生成。",
     save: "沒能儲存，請再試一次。",
+    cast: "請選擇與角色相符的風格，以及已完成的角色藍圖。",
+    product: "這個產品需要已完成的寫實藍圖。",
   },
 } satisfies PostMessages;

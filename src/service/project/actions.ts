@@ -7,6 +7,7 @@ import { characterStyleIds, resolveVersionForStyle } from "@/service/character/c
 import {
   charactersCollection,
   generationJobsCollection,
+  productsCollection,
   projectsCollection,
   videosCollection,
 } from "@/dao";
@@ -32,6 +33,7 @@ import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { isListedStyleId } from "@/service/style/list-selectable";
 import type { CastMember, Character } from "@/model/character";
+import { PRODUCT_MAX, type Product, type ProductShot } from "@/model/product";
 import { isProjectBusy } from "@/service/clip-stage";
 import { isReelBusy } from "@/service/reel/fingerprint";
 import { recoverStaleReel } from "@/service/reel/enqueue";
@@ -78,6 +80,7 @@ type BriefFields = {
   sceneTextEnabled: boolean;
   sceneTextLanguage: SceneTextLanguage;
   characterIds: string[];
+  productIds: string[];
   // Bookend skills only; undefined clears it.
   logoUrl?: string;
   // Up to 4 described scene references, ids R1..Rn.
@@ -110,6 +113,17 @@ function readVideoBrief(
   );
   if (characterIds.length > CAST_MAX) {
     return { ok: false, error: `最多選 ${CAST_MAX} 個角色` };
+  }
+  const productIds = Array.from(
+    new Set(
+      formData
+        .getAll("productIds")
+        .map(String)
+        .filter((id) => ObjectId.isValid(id)),
+    ),
+  );
+  if (productIds.length > PRODUCT_MAX) {
+    return { ok: false, error: `最多選 ${PRODUCT_MAX} 個產品` };
   }
   if (!source) return { ok: false, error: "請提供導演指示" };
   if (isTalkingHeadSkill(ruleSlug) && !spokenScript) {
@@ -167,6 +181,7 @@ function readVideoBrief(
       sceneTextEnabled: true,
       sceneTextLanguage,
       characterIds,
+      productIds,
     },
   };
 }
@@ -207,6 +222,35 @@ async function buildCast(
     });
   }
   return { ok: true, cast };
+}
+
+// Products ignore the video style. Only a finished realistic sheet can be attached.
+async function buildProducts(
+  clerkUserId: string,
+  productIds: string[],
+): Promise<{ ok: true; products: ProductShot[] } | { ok: false; error: string }> {
+  if (productIds.length === 0) return { ok: true, products: [] };
+  const productsCol = await productsCollection();
+  const docs = (await productsCol
+    .find({
+      _id: { $in: productIds.map((id) => new ObjectId(id)) },
+      clerkUserId,
+    })
+    .toArray()) as Product[];
+  if (docs.length !== productIds.length) return { ok: false, error: "有產品不存在" };
+  const products: ProductShot[] = [];
+  for (const id of productIds) {
+    const product = docs.find((doc) => doc._id.toHexString() === id);
+    if (!product?.blueprintUrl || product.status !== "completed") {
+      return { ok: false, error: `產品 ${product?.name || ""} 尚未有可用藍圖` };
+    }
+    products.push({
+      productId: product._id,
+      name: product.name,
+      blueprintUrl: product.blueprintUrl,
+    });
+  }
+  return { ok: true, products };
 }
 
 type VideoResult =
@@ -325,6 +369,8 @@ export async function createVideoAction(
     const castResult = await buildCast(user.clerkUserId, brief.styleId, brief.characterIds);
     if (!castResult.ok) return castResult;
     const { cast } = castResult;
+    const productResult = await buildProducts(user.clerkUserId, brief.productIds);
+    if (!productResult.ok) return productResult;
 
     const now = new Date();
     const videos = await videosCollection();
@@ -348,6 +394,7 @@ export async function createVideoAction(
       ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
       ...(brief.referenceImages.length ? { referenceImages: brief.referenceImages } : {}),
       cast,
+      ...(productResult.products.length ? { products: productResult.products } : {}),
       status: "phase_a",
       clips: [],
       ...(hasReusableEdit(folder.editDefaults) ? { edit: inheritedEdit } : {}),
@@ -432,6 +479,8 @@ async function rewriteVideoBrief(
 
     const castResult = await buildCast(user.clerkUserId, brief.styleId, brief.characterIds);
     if (!castResult.ok) return castResult;
+    const productResult = await buildProducts(user.clerkUserId, brief.productIds);
+    if (!productResult.ok) return productResult;
 
     // Restart drops every stored frame / clip / export file and job first.
     if (options.restart) {
@@ -459,6 +508,7 @@ async function rewriteVideoBrief(
           sceneTextEnabled: applySkillSceneText(ruleSlug, brief.sceneTextEnabled),
           sceneTextLanguage: brief.sceneTextLanguage,
           cast: castResult.cast,
+          products: productResult.products,
           ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
           ...(brief.referenceImages.length ? { referenceImages: brief.referenceImages } : {}),
           status: "phase_a",

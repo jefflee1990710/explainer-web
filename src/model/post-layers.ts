@@ -5,7 +5,8 @@ export const POSTER_CANVAS = { width: 1000, height: 1500 } as const;
 export const POSTER_FILLS = {
   canvas: "#FFFFFF",
   ink: "#1A1A1A",
-  sage: "#9AAF8A",
+  // Scro lime. The field name stays sage so existing layer ids keep compiling.
+  sage: "#C6F24B",
 } as const;
 
 export const POSTER_LAYOUT_IDS = [

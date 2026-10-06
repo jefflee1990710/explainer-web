@@ -10,6 +10,7 @@ import {
   sceneImageReferenceUrls,
   soloCharacterParagraphForFrames,
 } from "@/service/character/cast-prompt";
+import { productLockParagraph, productReferenceUrls } from "@/service/product/blueprint-prompt";
 import {
   clipFrameAnchor,
   type FrameAnchorKind,
@@ -326,10 +327,11 @@ export function buildFramePrompt(
   const annotatedCount = options.revision?.annotatedUrl ? 1 : 0;
   const anchorCount = options.anchor ? 1 : 0;
   const logoUrls = logoReferenceUrls(project);
+  const productUrls = productReferenceUrls(project.products);
   const sceneRefUrls = frameSceneReferenceUrls(
     project,
     clipNumber,
-    annotatedCount + anchorCount + lockUrls.length + logoUrls.length,
+    annotatedCount + anchorCount + lockUrls.length + logoUrls.length + productUrls.length,
   );
   const sceneRefStart = annotatedCount + anchorCount + 1;
   const characterAttachmentStart = sceneRefStart + sceneRefUrls.length;
@@ -350,8 +352,14 @@ export function buildFramePrompt(
     : lockUrls.length
       ? soloCharacterParagraphForFrames(characterAttachmentStart, { wardrobeBuild })
       : [];
+  const productStart = characterAttachmentStart + lockUrls.length;
+  const productLine = productLockParagraph(
+    (project.products ?? []).map((item) => item.name),
+    productStart,
+    productUrls.length,
+  );
   const logoLines = logoUrls.length
-    ? bookendLogoFrameLines(characterAttachmentStart + lockUrls.length)
+    ? bookendLogoFrameLines(productStart + productUrls.length)
     : [];
 
   const sceneForFrame =
@@ -454,6 +462,7 @@ export function buildFramePrompt(
     `Palette: ${parts.palette}`,
     ...sceneRefLines,
     ...castLines,
+    ...(productLine ? [productLine] : []),
     ...logoLines,
     ...(characterLockLine ? [characterLockLine] : []),
     ...(listicle || sceneText.enabled || keepSceneLabels
@@ -520,11 +529,16 @@ export function frameSubmitPlan(
   const anchor = clipFrameAnchor(project.frames, clipNumber, position);
   const castUrls = frameLockReferenceUrls(project);
   const logoUrls = logoReferenceUrls(project);
+  const productUrls = productReferenceUrls(project.products);
   // Same cap as buildFramePrompt so the URL order matches the prompt's numbering.
   const sceneRefUrls = frameSceneReferenceUrls(
     project,
     clipNumber,
-    (revision?.annotatedUrl ? 1 : 0) + (anchor ? 1 : 0) + castUrls.length + logoUrls.length,
+    (revision?.annotatedUrl ? 1 : 0) +
+      (anchor ? 1 : 0) +
+      castUrls.length +
+      logoUrls.length +
+      productUrls.length,
   );
   return {
     prompt: buildFramePrompt(project, clipNumber, position, {
@@ -535,7 +549,7 @@ export function frameSubmitPlan(
     refs: sceneImageReferenceUrls({
       annotatedUrl: revision?.annotatedUrl,
       anchorUrl: anchor?.url,
-      lockUrls: [...sceneRefUrls, ...castUrls, ...logoUrls],
+      lockUrls: [...sceneRefUrls, ...castUrls, ...productUrls, ...logoUrls],
     }),
     anchor,
   };

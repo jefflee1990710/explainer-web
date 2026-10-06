@@ -1,3 +1,4 @@
+import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { imageModelForSubmit, resolveImageRoute } from "@/service/generation/image-backend";
 import { submitImage } from "@/service/higgsfield/generate";
 import { PermanentJobError } from "@/service/generation/task-policy";
@@ -19,13 +20,34 @@ export async function sendPostPreview(job: GenerationJob): Promise<Sent> {
   const language = posterSceneLanguage(wording);
   const model = imageModelForSubmit(resolveImageRoute(language), true);
   const reference = await blueprintReferenceUrl(layout);
+  const characterUrls = (post.cast ?? []).map((member) => member.blueprintUrl).filter(Boolean);
+  const productUrls = (post.products ?? []).map((item) => item.blueprintUrl).filter(Boolean);
+  let styleName = "";
+  let styleLook = "";
+  if (post.styleId) {
+    try {
+      const style = await loadRenderableStyle({
+        styleId: post.styleId,
+        ownerClerkUserId: post.clerkUserId,
+      });
+      styleName = style.name;
+      styleLook = style.look;
+    } catch {
+      styleName = "";
+    }
+  }
   const submitted = await submitImage({
     model,
-    prompt: buildPosterImagePrompt(post.layers),
+    prompt: buildPosterImagePrompt(post.layers, {
+      styleName,
+      styleLook,
+      characterCount: characterUrls.length,
+      productNames: (post.products ?? []).map((item) => item.name),
+    }),
     aspectRatio: "2:3",
     quality: "medium",
     resolution: "1k",
-    referenceImageUrls: [reference],
+    referenceImageUrls: [reference, ...characterUrls, ...productUrls],
     sceneTextLanguage: language,
   });
   return toSent(model, submitted);

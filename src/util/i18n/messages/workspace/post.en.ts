@@ -18,6 +18,11 @@ export const postEn = {
     submit: "Generate poster",
     submitting: "Generating…",
     close: "Close",
+    styleLabel: "Visual style",
+    castLabel: "Characters",
+    castHint: "Optional. Characters are drawn in the style above.",
+    productLabel: "Products",
+    productHint: "Optional. The product stays photorealistic.",
   },
   editor: {
     back: "Back to Post",
@@ -43,6 +48,8 @@ export const postEn = {
     not_found: "That poster is gone.",
     busy: "A preview is already running.",
     save: "Could not save. Try again.",
+    cast: "Pick a style that matches the character, and a finished blueprint.",
+    product: "That product needs a finished realistic blueprint.",
   },
 };
 

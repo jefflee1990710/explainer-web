@@ -27,12 +27,13 @@ export function SkillPicker({
   const system = skills.filter((skill) => !skill.isCustom);
   const mine = skills.filter((skill) => skill.isCustom);
   const selected = skills.find((skill) => skill.slug === value);
-  const optionName = (skill: PublicSkill) => skill.title;
+  const optionName = (skill: PublicSkill) =>
+    skill.isCustom ? skill.title : localizedVideoType(t, skill.slug, skill.title);
 
   let subtitle = "";
   if (selected?.isCustom) {
     const template = system.find((skill) => skill.slug === selected.behaviorSlug);
-    const templateName = localizedVideoType(selected.behaviorSlug, template?.title || selected.behaviorSlug);
+    const templateName = localizedVideoType(t, selected.behaviorSlug, template?.title || selected.behaviorSlug);
     subtitle = t("directors.templateBadge", { name: templateName });
   }
 

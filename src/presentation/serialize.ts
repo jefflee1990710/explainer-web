@@ -11,6 +11,7 @@ import { normalizeProjectStatus } from "@/service/project-status";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
 import type { AppUser } from "@/model/user";
 import type { Character, CharacterVersionStatus } from "@/model/character";
+import type { Product } from "@/model/product";
 import { parseCharacterVoice, type CharacterVoice } from "@/model/character-voice";
 import type { Folder } from "@/model/folder";
 import type { Project, ProjectStatus } from "@/model/project";
@@ -64,6 +65,7 @@ export type PublicVideo = {
   logoUrl?: string;
   referenceImages: NonNullable<Project["referenceImages"]>;
   cast: Array<{ characterId: string; name: string; blueprintUrl: string }>;
+  products: Array<{ productId: string; name: string; blueprintUrl: string }>;
   status: ProjectStatus;
   phaseA?: Project["phaseA"];
   frames: NonNullable<Project["frames"]>;
@@ -256,6 +258,11 @@ export function toPublicVideo(video: Project): PublicVideo {
       characterId: member.characterId.toHexString(),
       name: member.name,
       blueprintUrl: member.blueprintUrl,
+    })),
+    products: (video.products || []).map((item) => ({
+      productId: item.productId.toHexString(),
+      name: item.name,
+      blueprintUrl: item.blueprintUrl,
     })),
     status: normalizeProjectStatus(video.status),
     phaseA: video.phaseA,
@@ -515,6 +522,30 @@ export function toPublicCharacter(character: Character): PublicCharacter {
 
 // Template row for the Video tab picker.
 export type PublicTemplate = VideoEdit & { id: string; name: string; updatedAt: string };
+
+export type PublicProduct = {
+  id: string;
+  name: string;
+  description: string;
+  referenceImageUrls: string[];
+  blueprintUrl?: string;
+  status: Product["status"];
+  pending: boolean;
+  failed: boolean;
+};
+
+export function toPublicProduct(product: Product): PublicProduct {
+  return {
+    id: product._id.toHexString(),
+    name: product.name,
+    description: product.description,
+    referenceImageUrls: product.referenceImageUrls,
+    blueprintUrl: product.blueprintUrl,
+    status: product.status,
+    pending: product.status === "queued" || product.status === "in_progress",
+    failed: product.status === "failed",
+  };
+}
 
 export function toPublicTemplate(template: VideoTemplate): PublicTemplate {
   return {

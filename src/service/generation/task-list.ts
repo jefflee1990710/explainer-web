@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { charactersCollection, generationJobsCollection, userDirectorsCollection, videosCollection, postsCollection } from "@/dao";
+import { charactersCollection, generationJobsCollection, userDirectorsCollection, videosCollection, postsCollection, productsCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
 import { postHeadline } from "@/service/post/create-post";
 import { folderVideoPath } from "@/service/folder-video-path";
@@ -61,6 +61,7 @@ export function taskDetail(
   if (job.kind === "stylePreview") return "風格預覽";
   if (job.kind === "directorPreview") return "導演預覽";
   if (job.kind === "postPreview") return "海報預覽";
+  if (job.kind === "product") return "產品藍圖";
   if (job.kind === "reelCover") return "影片封面";
   const clip = `Clip ${job.clipIndex + 1}`;
   if (job.kind === "video") return `${clip} · 影片`;
@@ -79,6 +80,7 @@ export function taskDetailI18n(
   if (job.kind === "stylePreview") return { detailKey: "tasksPage.detail.stylePreview" as const };
   if (job.kind === "directorPreview") return { detailKey: "tasksPage.detail.directorPreview" as const };
   if (job.kind === "postPreview") return { detailKey: "tasksPage.detail.postPreview" as const };
+  if (job.kind === "product") return { detailKey: "tasksPage.detail.productBlueprint" as const };
   if (job.kind === "reelCover") return { detailKey: "tasksPage.detail.reelCover" as const };
   if (job.kind === "video") return { detailKey: "tasksPage.detail.clipVideo" as const, detailParams: { n } };
   return {
@@ -145,7 +147,7 @@ async function ownedScope(clerkUserId: string, videoId?: string) {
       { _id: new ObjectId(videoId), clerkUserId },
       { projection: REEL_PROJECTION },
     );
-    return { videoDocs: video ? [video] : [], characters: [], styles: [], directors: [], posts: [] };
+    return { videoDocs: video ? [video] : [], characters: [], styles: [], directors: [], posts: [], products: [] };
   }
   const videoDocs = await videos
     .find({ clerkUserId }, { projection: REEL_PROJECTION })
@@ -169,7 +171,11 @@ async function ownedScope(clerkUserId: string, videoId?: string) {
     .sort({ updatedAt: -1 })
     .limit(120)
     .toArray();
-  return { videoDocs, characters, styles, directors, posts };
+  const products = await (await productsCollection())
+    .find({ clerkUserId }, { projection: { _id: 1, name: 1 } })
+    .limit(200)
+    .toArray();
+  return { videoDocs, characters, styles, directors, posts, products };
 }
 
 export function jobListQuery(input: {
@@ -178,11 +184,13 @@ export function jobListQuery(input: {
   userStyleIds?: ObjectId[];
   skillIds?: ObjectId[];
   postIds?: ObjectId[];
+  productIds?: ObjectId[];
   cutoff: Date;
 }) {
   const userStyleIds = input.userStyleIds ?? [];
   const skillIds = input.skillIds ?? [];
   const postIds = input.postIds ?? [];
+  const productIds = input.productIds ?? [];
   const owners: Array<Record<string, unknown>> = [];
   if (input.videoIds.length === 1) owners.push({ projectId: input.videoIds[0] });
   else if (input.videoIds.length > 1) owners.push({ projectId: { $in: input.videoIds } });
@@ -193,6 +201,8 @@ export function jobListQuery(input: {
   else if (skillIds.length > 1) owners.push({ skillId: { $in: skillIds } });
   if (postIds.length === 1) owners.push({ postId: postIds[0] });
   else if (postIds.length > 1) owners.push({ postId: { $in: postIds } });
+  if (productIds.length === 1) owners.push({ productId: productIds[0] });
+  else if (productIds.length > 1) owners.push({ productId: { $in: productIds } });
   if (owners.length === 0) return null;
   return {
     $and: [
@@ -212,13 +222,14 @@ export async function listTasks(
   clerkUserId: string,
   options: { videoId?: string; limit?: number } = {},
 ): Promise<PublicTask[]> {
-  const { videoDocs, characters, styles, directors, posts } = await ownedScope(clerkUserId, options.videoId);
+  const { videoDocs, characters, styles, directors, posts, products } = await ownedScope(clerkUserId, options.videoId);
   if (
     videoDocs.length === 0 &&
     characters.length === 0 &&
     styles.length === 0 &&
     directors.length === 0 &&
-    posts.length === 0
+    posts.length === 0 &&
+    products.length === 0
   ) {
     return [];
   }
@@ -227,6 +238,7 @@ export async function listTasks(
   const styleById = new Map(styles.map((doc) => [doc._id.toHexString(), doc]));
   const directorById = new Map(directors.map((doc) => [doc._id.toHexString(), doc]));
   const postById = new Map(posts.map((doc) => [doc._id.toHexString(), doc]));
+  const productById = new Map(products.map((doc) => [doc._id.toHexString(), doc]));
 
   const jobs = await generationJobsCollection();
   const cutoff = new Date(Date.now() - RECENT_SETTLED_MS);
@@ -236,6 +248,7 @@ export async function listTasks(
     userStyleIds: styles.map((doc) => doc._id),
     skillIds: directors.map((doc) => doc._id),
     postIds: posts.map((doc) => doc._id),
+    productIds: products.map((doc) => doc._id),
     cutoff,
   });
   if (!query) return [];
@@ -264,6 +277,7 @@ export async function listTasks(
     const style = job.userStyleId ? styleById.get(job.userStyleId.toHexString()) : undefined;
     const director = job.skillId ? directorById.get(job.skillId.toHexString()) : undefined;
     const post = job.postId ? postById.get(job.postId.toHexString()) : undefined;
+    const product = job.productId ? productById.get(job.productId.toHexString()) : undefined;
     const postTitle = post ? postHeadline(post) : "";
     return {
       id: job._id.toHexString(),
@@ -271,6 +285,7 @@ export async function listTasks(
       stage: taskStage(job.status),
       title:
         postTitle ||
+        product?.name ||
         director?.title ||
         style?.name ||
         character?.name ||
@@ -289,7 +304,9 @@ export async function listTasks(
       videoId: job.projectId?.toHexString(),
       href: post
         ? `/app/posts/${post._id.toHexString()}`
-        : video
+        : product
+          ? `/app/products/${product._id.toHexString()}`
+          : video
           ? folderVideoPath(video.projectId.toHexString(), video._id.toHexString())
           : director
             ? `/app/directors/${director._id.toHexString()}`

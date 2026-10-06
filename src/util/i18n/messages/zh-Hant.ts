@@ -8,6 +8,7 @@ import { productionZhHant } from "@/util/i18n/messages/workspace/production.zh-H
 import { tasksPageZhHant } from "@/util/i18n/messages/workspace/tasks.zh-Hant";
 import { videoZhHant } from "@/util/i18n/messages/workspace/video.zh-Hant";
 import { postZhHant } from "@/util/i18n/messages/workspace/post.zh-Hant";
+import { productsZhHant } from "@/util/i18n/messages/workspace/products.zh-Hant";
 
 export const zhHant: Messages = {
   meta: {
@@ -17,7 +18,7 @@ export const zhHant: Messages = {
   },
   nav: {
     projects: "影片",
-    directors: "Director",
+    directors: "導演",
     styles: "風格",
     characters: "角色",
     tasks: "生成任務",
@@ -32,6 +33,7 @@ export const zhHant: Messages = {
     workspace: "工作台",
     language: "語言",
     posts: "海報",
+    products: "產品",
   },
   common: {
     credits: "credits",
@@ -509,6 +511,7 @@ export const zhHant: Messages = {
   brief: briefZhHant,
   video: videoZhHant,
   post: postZhHant,
+  products: productsZhHant,
   production: productionZhHant,
   tasksPage: tasksPageZhHant,
   pickers: pickersZhHant,

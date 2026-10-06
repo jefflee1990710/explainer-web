@@ -32,7 +32,7 @@ test("edits move a shape and keep its fill", () => {
   assert.equal(oval?.type, "shape");
   if (oval?.type === "shape") {
     assert.equal(oval.x, 100);
-    assert.equal(oval.fill, "#9AAF8A");
+    assert.equal(oval.fill, "#C6F24B");
     assert.equal(oval.shape, "ellipse");
   }
 });

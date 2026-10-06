@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { z } from "zod";
 import { objectIdSchema } from "@/model/primitives";
+import { productShotSchema, type ProductShot } from "@/model/product";
 import {
   POSTER_LAYOUT_IDS,
   type PosterLayer,
@@ -36,6 +37,10 @@ export type Post = {
   layoutId: PosterLayoutId;
   instruction: string;
   layers: PosterLayer[];
+  // Optional cast and style, same idea as a video. Products stay realistic.
+  styleId?: string;
+  cast?: Array<{ characterId: ObjectId; name: string; blueprintUrl: string }>;
+  products?: ProductShot[];
   previewUrl?: string;
   thumbnailUrl?: string;
   previewStatus: PostPreviewStatus;
@@ -95,6 +100,11 @@ export const postSchema: z.ZodType<Post> = z.object({
   layoutId: z.enum(POSTER_LAYOUT_IDS),
   instruction: z.string(),
   layers: z.array(posterLayerSchema),
+  styleId: z.string().optional(),
+  cast: z
+    .array(z.object({ characterId: objectIdSchema, name: z.string(), blueprintUrl: z.string() }))
+    .optional(),
+  products: z.array(productShotSchema).optional(),
   previewUrl: z.string().optional(),
   thumbnailUrl: z.string().optional(),
   previewStatus: z.enum(["generating", "ready", "failed"]),

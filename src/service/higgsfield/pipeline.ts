@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import { syncCharacterJob } from "@/service/character/sync";
 import { syncDirectorPreviewJob } from "@/service/director/director-preview";
 import { syncPostPreviewJob } from "@/service/post/sync-preview";
+import { syncProductJob } from "@/service/product/sync";
 import { syncStylePreviewJob } from "@/service/style/user-style-preview";
 import { syncReelCoverJob } from "@/service/video-edit/reel-cover";
 import {
@@ -464,6 +465,27 @@ export async function applyJobStatus(input: {
   // Director previews persist onto the custom director and return before the video path.
   if (job.kind === "directorPreview") {
     await syncDirectorPreviewJob(job, status, outputUrl);
+    await jobs.updateOne(
+      { _id: job._id },
+      nowFailed
+        ? {
+            $set: {
+              status,
+              outputUrl,
+              error: errorMessage || status,
+              updatedAt: new Date(),
+            },
+          }
+        : {
+            $set: { status, outputUrl, updatedAt: new Date() },
+            $unset: { error: "" },
+          },
+    );
+    return;
+  }
+
+  if (job.kind === "product") {
+    await syncProductJob(job, status, outputUrl);
     await jobs.updateOne(
       { _id: job._id },
       nowFailed

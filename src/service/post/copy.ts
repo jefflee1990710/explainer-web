@@ -48,13 +48,40 @@ export function posterCopyText(layers: PosterLayer[]) {
 }
 
 // Prompt for the scene-image preview. The blueprint image is the layout reference.
-export function buildPosterImagePrompt(layers: PosterLayer[]) {
+export function buildPosterImagePrompt(
+  layers: PosterLayer[],
+  options: {
+    styleName?: string;
+    styleLook?: string;
+    characterCount?: number;
+    productNames?: string[];
+  } = {},
+) {
   const wording = posterCopyText(layers) || " ";
-  return [
-    "Swiss modernist poster, portrait 2:3.",
+  const productCount = options.productNames?.length ?? 0;
+  const lines = [
+    "Scro poster, portrait 2:3, white paper.",
     "Follow the attached layout blueprint: same blocks, lines, curves, and whitespace.",
-    "Flat sage green #9AAF8A, ink #1A1A1A, white ground.",
+    "Brand fills: ink #1A1A1A and lime #C6F24B on white. Do not use sage green.",
     `Replace the sample lettering with this wording only: "${wording}".`,
-    "Do not add extra captions, logos, or a border.",
-  ].join(" ");
+  ];
+  if (options.styleName) {
+    lines.push(
+      `Draw people and the surrounding scene in the ${options.styleName} style.`,
+      options.styleLook ? `Look: ${options.styleLook}.` : "",
+    );
+  }
+  if (options.characterCount) {
+    lines.push(
+      "Character references follow the layout blueprint. Keep their identity and draw them in the chosen style.",
+    );
+  }
+  if (productCount) {
+    const start = 2 + (options.characterCount ?? 0);
+    lines.push(
+      `PRODUCT LOCK: attached image${productCount === 1 ? ` ${start} is` : `s ${start}–${start + productCount - 1} are`} the real product (${options.productNames!.join(", ")}). Keep the product photorealistic and identical to that reference. Do not redraw the product in the poster style.`,
+    );
+  }
+  lines.push("Do not add extra captions or a border.");
+  return lines.filter(Boolean).join(" ");
 }

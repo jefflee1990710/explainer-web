@@ -9,6 +9,7 @@ import { VideoEditorDialog } from "@/presentation/components/app/projects/[id]/v
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type {
   PublicCharacter,
+  PublicProduct,
   PublicSkill,
   PublicStyle,
   PublicVideo,
@@ -22,6 +23,7 @@ export function VideoEditorWorkspace({
   skills,
   styles,
   characters,
+  products,
   credits,
   subscribed,
   initialVideo,
@@ -31,6 +33,7 @@ export function VideoEditorWorkspace({
   skills: PublicSkill[];
   styles: PublicStyle[];
   characters: PublicCharacter[];
+  products: PublicProduct[];
   credits: number;
   subscribed: boolean;
   initialVideo: PublicVideo | null;
@@ -92,6 +95,7 @@ export function VideoEditorWorkspace({
           skills={skills}
           styles={styles}
           characters={characters}
+          products={products}
           initialVideo={video}
           credits={credits}
           subscribed={subscribed}

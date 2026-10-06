@@ -77,6 +77,7 @@ export async function runPhaseAJob(
       sceneTextLanguage: project.sceneTextLanguage,
       characterImageUrl: project.characterImageUrl,
       cast: await withCurrentCharacterVoices(project.cast),
+      products: project.products,
       logoUrl: project.logoUrl,
       referenceImages: project.referenceImages,
       currentDraft: project.phaseA,

@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { z } from "zod";
 import { castMemberSchema, type CastMember } from "@/model/character";
+import { productShotSchema, type ProductShot } from "@/model/product";
 import { objectIdSchema } from "@/model/primitives";
 import { videoEditSchema, type VideoEdit } from "@/model/video-edit";
 
@@ -201,6 +202,8 @@ export type Project = {
   referenceImages?: ReferenceImage[];
   // Characters chosen at creation; snapshot of each default blueprint.
   cast?: CastMember[];
+  // Real products. They are never restyled into the video's look.
+  products?: ProductShot[];
   status: ProjectStatus | LegacyProjectStatus;
   phaseA?: PhaseAProposal;
   phaseB?: PhaseBPackage;
@@ -322,6 +325,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
     .array(z.object({ id: z.string(), url: z.string(), description: z.string() }))
     .optional(),
   cast: z.array(castMemberSchema).optional(),
+  products: z.array(productShotSchema).optional(),
   status: z.enum([
     "draft",
     "phase_a",

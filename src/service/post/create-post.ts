@@ -2,7 +2,11 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { put } from "@vercel/blob";
 import { ObjectId } from "mongodb";
-import { postsCollection } from "@/dao/posts";
+import { charactersCollection, postsCollection, productsCollection } from "@/dao";
+import { characterStyleIds, resolveVersionForStyle } from "@/service/character/character-styles";
+import type { Character } from "@/model/character";
+import type { Product, ProductShot } from "@/model/product";
+import { isListedStyleId } from "@/service/style/list-selectable";
 import type { PosterLayout } from "@/model/post";
 import { isPosterLayoutId, type Post, type PublicPost } from "@/model/post";
 import { requireAppUser } from "@/service/auth";
@@ -24,9 +28,50 @@ export type PostActionError =
   | "preview"
   | "not_found"
   | "busy"
-  | "save";
+  | "save"
+  | "cast"
+  | "product";
 
 const blueprintUrls = new Map<string, string>();
+
+async function buildPostCast(clerkUserId: string, styleId: string, characterIds: string[]) {
+  if (characterIds.length === 0) return { ok: true as const, cast: [] as NonNullable<Post["cast"]> };
+  if (!isListedStyleId(styleId)) return { ok: false as const, error: "cast" as const };
+  const characters = await charactersCollection();
+  const docs = (await characters
+    .find({ _id: { $in: characterIds.map((id) => new ObjectId(id)) }, clerkUserId })
+    .toArray()) as Character[];
+  if (docs.length !== characterIds.length) return { ok: false as const, error: "cast" as const };
+  const cast: NonNullable<Post["cast"]> = [];
+  for (const id of characterIds) {
+    const character = docs.find((doc) => doc._id.toHexString() === id);
+    if (!character || !characterStyleIds(character).includes(styleId)) {
+      return { ok: false as const, error: "cast" as const };
+    }
+    const version = resolveVersionForStyle(character, styleId);
+    if (!version?.blueprintUrl) return { ok: false as const, error: "cast" as const };
+    cast.push({ characterId: character._id, name: character.name, blueprintUrl: version.blueprintUrl });
+  }
+  return { ok: true as const, cast };
+}
+
+async function buildPostProducts(clerkUserId: string, productIds: string[]) {
+  if (productIds.length === 0) return { ok: true as const, products: [] as ProductShot[] };
+  const products = await productsCollection();
+  const docs = (await products
+    .find({ _id: { $in: productIds.map((id) => new ObjectId(id)) }, clerkUserId })
+    .toArray()) as Product[];
+  if (docs.length !== productIds.length) return { ok: false as const, error: "product" as const };
+  const shots: ProductShot[] = [];
+  for (const id of productIds) {
+    const product = docs.find((doc) => doc._id.toHexString() === id);
+    if (!product?.blueprintUrl || product.status !== "completed") {
+      return { ok: false as const, error: "product" as const };
+    }
+    shots.push({ productId: product._id, name: product.name, blueprintUrl: product.blueprintUrl });
+  }
+  return { ok: true as const, products: shots };
+}
 
 function spendError(error: unknown): PostActionError {
   const message = error instanceof Error ? error.message : "";
@@ -107,7 +152,13 @@ async function queuePreview(postId: ObjectId, clerkUserId: string) {
 }
 
 // Fill the layout, store the poster, then queue the scene-image preview.
-export async function createPost(input: { layoutId: string; instruction: string }) {
+export async function createPost(input: {
+  layoutId: string;
+  instruction: string;
+  styleId?: string;
+  characterIds?: string[];
+  productIds?: string[];
+}) {
   const instruction = validatePostInstruction(input.instruction);
   if (!instruction.ok) return instruction;
   if (!isPosterLayoutId(input.layoutId)) {
@@ -119,6 +170,14 @@ export async function createPost(input: { layoutId: string; instruction: string 
   } catch (error) {
     return { ok: false as const, error: spendError(error) };
   }
+
+  const styleId = (input.styleId || "").trim();
+  const characterIds = (input.characterIds ?? []).filter((id) => ObjectId.isValid(id)).slice(0, 4);
+  const productIds = (input.productIds ?? []).filter((id) => ObjectId.isValid(id)).slice(0, 2);
+  const castResult = await buildPostCast(user.clerkUserId, styleId, characterIds);
+  if (!castResult.ok) return castResult;
+  const productResult = await buildPostProducts(user.clerkUserId, productIds);
+  if (!productResult.ok) return productResult;
 
   const layout = posterLayout(input.layoutId);
   let raw: Record<string, string>;
@@ -135,6 +194,9 @@ export async function createPost(input: { layoutId: string; instruction: string 
     layoutId: layout.id,
     instruction: instruction.instruction,
     layers: applyPosterCopy(layout, raw),
+    ...(styleId ? { styleId } : {}),
+    ...(castResult.cast.length ? { cast: castResult.cast } : {}),
+    ...(productResult.products.length ? { products: productResult.products } : {}),
     previewStatus: "generating",
     aspectRatio: "2:3",
     createdAt: now,
