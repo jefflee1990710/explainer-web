@@ -844,3 +844,34 @@ test("clips without assigned references attach none", () => {
   assert.deepEqual(plan.refs, []);
   assert.doesNotMatch(plan.prompt, /SCENE REFERENCE/);
 });
+
+test("outfit reel start stills skip the clothing photo", () => {
+  const video = project();
+  video.skillSlug = "outfit-reel-director";
+  video.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Lily",
+      blueprintUrl: "https://blob/c.png",
+      prompt: "",
+    },
+  ];
+  video.referenceImages = [{ id: "R1", url: "https://blob/r1.png", description: "outfit" }];
+  video.phaseA!.clips[0].referenceImageIds = ["R1"];
+  video.phaseA!.clips[0].startScene =
+    "Character: Lily stands in a white tank and shorts, holding a mini skirt at thigh height.";
+  const start = frameSubmitPlan(video, 1, "start");
+  assert.deepEqual(start.refs, ["https://blob/c.png"]);
+  assert.doesNotMatch(start.prompt, /CLOTHING REFERENCE/);
+  assert.doesNotMatch(start.prompt, /tight shorts/);
+  assert.doesNotMatch(start.prompt, /bare torso/);
+  assert.match(start.prompt, /knee-length athletic shorts/);
+  assert.match(start.prompt, /hands relaxed at the sides/);
+  assert.match(start.prompt, /Do not draw a skirt/);
+  assert.match(start.prompt, /stands still/);
+  assert.doesNotMatch(start.prompt, /pulls it upward/);
+  const end = frameSubmitPlan(video, 1, "end");
+  assert.deepEqual(end.refs, ["https://blob/r1.png", "https://blob/c.png"]);
+  assert.match(end.prompt, /CLOTHING REFERENCE/);
+});

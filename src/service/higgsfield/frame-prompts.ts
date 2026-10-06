@@ -45,6 +45,7 @@ import {
   STORY_SHORT_SKILL_SLUG,
   storyShortCameraLock,
 } from "@/service/director/skill-rules";
+import { rewriteOutfitSafetyText, sanitizeOutfitFrameScene, OUTFIT_CLIP1_START_LOCK, OUTFIT_CLIP1_START_MOTION } from "@/service/director/outfit-reel";
 import { isSilentSpokenLine, subtitleText } from "@/service/director/spoken-line";
 import { clipReferenceImageUrls } from "@/service/project/reference-images";
 import { imageRouteForSceneText } from "@/service/generation/image-backend";
@@ -337,15 +338,19 @@ export function buildFramePrompt(
   const anchorCount = options.anchor ? 1 : 0;
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
-  const sceneRefUrls = frameSceneReferenceUrls(
-    project,
-    clipNumber,
-    annotatedCount + anchorCount + lockUrls.length + logoUrls.length + productUrls.length,
-  );
+  const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
+  // Clothing photos on the blank start still look like undressing to safety filters.
+  const sceneRefUrls =
+    wardrobeBuild && position === "start"
+      ? []
+      : frameSceneReferenceUrls(
+          project,
+          clipNumber,
+          annotatedCount + anchorCount + lockUrls.length + logoUrls.length + productUrls.length,
+        );
   const sceneRefStart = annotatedCount + anchorCount + 1;
   const characterAttachmentStart = sceneRefStart + sceneRefUrls.length;
   const compositionLocked = Boolean(options.anchor && options.anchor.kind !== "prev-end");
-  const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
   const sceneRefLines = sceneRefUrls.length
     ? [sceneReferenceFrameLine(sceneRefStart, sceneRefUrls.length, compositionLocked, wardrobeBuild)]
     : [];
@@ -398,12 +403,24 @@ export function buildFramePrompt(
     ? row.motionCamera.trim()
     : stripStoryboardWriting(row.motionCamera);
   // Marker / subtitle lines already spell the voiceover; do not repeat it in Scene.
-  const sceneDescription = sceneText.enabled
+  let sceneDescription = sceneText.enabled
     ? stripSceneVoiceoverRecap(sceneRaw)
     : sceneRaw;
-  const motionDescription = sceneText.enabled
+  let motionDescription = sceneText.enabled
     ? stripSceneVoiceoverRecap(motionRaw)
     : motionRaw;
+  if (wardrobeBuild) {
+    sceneDescription = sanitizeOutfitFrameScene({
+      scene: sceneDescription,
+      clipNumber,
+      position,
+      name: project.cast?.[0]?.name,
+    });
+    motionDescription = rewriteOutfitSafetyText(motionDescription);
+    if (clipNumber === 1 && position === "start") {
+      motionDescription = OUTFIT_CLIP1_START_MOTION;
+    }
+  }
   // 9:16 story shorts: subtitles sit above the reel chrome, not in the bottom band.
   const reelSafeZone =
     project.skillSlug === STORY_SHORT_SKILL_SLUG && project.aspectRatio === "9:16";
@@ -482,6 +499,7 @@ export function buildFramePrompt(
     ...(storyShortCameraLock(project.skillSlug) ? [storyShortCameraLock(project.skillSlug)] : []),
     ...(narratorLock ? [narratorLock] : []),
     ...(lockUrls.length ? [wardrobeBuild ? FRAME_WARDROBE_BUILD : FRAME_WARDROBE_LOCK] : []),
+    ...(wardrobeBuild && clipNumber === 1 && position === "start" ? [OUTFIT_CLIP1_START_LOCK] : []),
     ...(parts.renderDetail ? [parts.renderDetail] : []),
     moment,
     ...compositionLockLines(options.anchor, annotatedCount + 1, sceneRefUrls.length > 0, performance),
@@ -508,7 +526,13 @@ export function buildFramePrompt(
             ]
           : []),
     ...(lockUrls.length
-      ? [wardrobeBuild ? FRAME_WARDROBE_BUILD_CHECK : FRAME_WARDROBE_CHECK]
+      ? [
+          wardrobeBuild
+            ? clipNumber === 1 && position === "start"
+              ? "Final check: only the white tank and knee-length athletic shorts; face and hair match the blueprint."
+              : FRAME_WARDROBE_BUILD_CHECK
+            : FRAME_WARDROBE_CHECK,
+        ]
       : []),
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
@@ -539,16 +563,20 @@ export function frameSubmitPlan(
   const castUrls = frameLockReferenceUrls(project);
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
+  const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
   // Same cap as buildFramePrompt so the URL order matches the prompt's numbering.
-  const sceneRefUrls = frameSceneReferenceUrls(
-    project,
-    clipNumber,
-    (revision?.annotatedUrl ? 1 : 0) +
-      (anchor ? 1 : 0) +
-      castUrls.length +
-      logoUrls.length +
-      productUrls.length,
-  );
+  const sceneRefUrls =
+    wardrobeBuild && position === "start"
+      ? []
+      : frameSceneReferenceUrls(
+          project,
+          clipNumber,
+          (revision?.annotatedUrl ? 1 : 0) +
+            (anchor ? 1 : 0) +
+            castUrls.length +
+            logoUrls.length +
+            productUrls.length,
+        );
   return {
     prompt: buildFramePrompt(project, clipNumber, position, {
       revision,

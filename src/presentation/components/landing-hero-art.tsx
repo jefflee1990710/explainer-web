@@ -3,21 +3,21 @@
 import { ParallaxLayer } from "@/presentation/components/parallax-layer";
 
 // Desktop art fills the hero. Mobile splits the portrait so the copy sits between the two scenes.
-// The wide still is a short Higgsfield loop: steam, drawing, and the two people talking.
+// Pop art redraw of the desk and poster-wall scene; the wide still loops via MiniMax H3.
 export function LandingHeroArt() {
   return (
     <>
       <ParallaxLayer distance={28} className="lg:hidden">
         <img
-          src="/hero/scene-mobile-top.png?v=1"
+          src="/hero/scene-pop-mobile-top.png"
           alt=""
           className="hero-drift pointer-events-none h-auto w-full"
         />
       </ParallaxLayer>
       <ParallaxLayer className="pointer-events-none absolute inset-[-10%] hidden h-auto lg:block" distance={96}>
         <video
-          src="/hero/scene-loop.mp4?v=2"
-          poster="/hero/scene.png"
+          src="/hero/scene-pop-loop.mp4"
+          poster="/hero/scene-pop.png"
           autoPlay
           muted
           loop
@@ -26,7 +26,7 @@ export function LandingHeroArt() {
           className="h-full w-full object-cover object-center motion-reduce:hidden"
         />
         <img
-          src="/hero/scene.png"
+          src="/hero/scene-pop.png"
           alt=""
           className="hidden h-full w-full object-cover object-center motion-reduce:block"
         />
@@ -39,7 +39,7 @@ export function LandingHeroArtBottom() {
   return (
     <ParallaxLayer distance={28} className="lg:hidden">
       <img
-        src="/hero/scene-mobile-bottom.png?v=1"
+        src="/hero/scene-pop-mobile-bottom.png"
         alt=""
         className="hero-drift pointer-events-none h-auto w-full"
       />

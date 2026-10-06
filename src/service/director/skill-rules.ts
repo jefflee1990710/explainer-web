@@ -580,11 +580,11 @@ export function surpriseInterviewDirectorBlock() {
 export function outfitReelDirectorBlock() {
   return [
     "This is an OUTFIT REEL. Exactly one attached character. Each clip puts on one garment, then one final clip holds the full look.",
-    "Clip 1 START is always plain white tight shorts only. That is the base, not nudity, not a shirt, and not loungewear. Do not ask for a starting outfit and do not invent one.",
-    "Garments come only from the attached clothing reference images. Read each photo and list the distinct worn pieces (top, bottom, outer layer, socks, shoes). One piece per clip, in a sensible dressing order. Copy cut, colour, and details from that photo and name its reference id in the scene. If no clothing reference is attached, ask for the photos and stop. Do not invent pieces from the brief sentence.",
+    "Clip 1 START is a standing rest already fully dressed in an opaque white crew-neck tank covering the shoulders and torso, plus white knee-length athletic shorts, both hands relaxed at the sides. That is the blank start. Do not ask for a starting outfit. Do not write a garment held in the hands, at the chest, at the thighs, or pulled over the head.",
+    "Garments come only from the attached clothing reference images. Read each photo and list the distinct worn pieces (top, bottom, outer layer, socks, shoes). If the first reference top is a similar white tank, the base tank already stands in for it — skip that piece and start with the next distinct garment. One piece per clip, in a sensible dressing order. Copy cut, colour, and details from that photo and name its reference id in the scene. If no clothing reference is attached, ask for the photos and stop. Do not invent pieces from the brief sentence.",
     "The person in a clothing photo is not the character. Never copy their face, hair, body, tattoos, pose, or room. Face, hair, and body proportions stay on the character blueprint. Only the clothes change.",
-    "The white tight shorts stay until a reference bottom goes on. That bottom replaces the shorts; do not wear both. Other pieces stack. Clip 2 and after: startScene copies the previous endScene.",
-    "One room, one locked full-body camera, character at a similar size. Each clip is 3–4 seconds. One action: pull on, step into, or fasten that piece.",
+    "The white knee-length athletic shorts stay until a reference bottom goes on. That bottom replaces the shorts; do not wear both. The base tank stays until a different reference top or outer layer goes on. Clip 2 and after: startScene copies the previous endScene.",
+    "One room, one locked full-body camera, character at a similar size. Each clip is 3–4 seconds. One action: step into or fasten that piece at the waist or feet.",
     "Default englishVo is \"(no dialogue)\". A short line naming the finished look is allowed only on the last clip, and only if the user asked. No step numbers and no imperative tutorial lines.",
   ].join(" ");
 }

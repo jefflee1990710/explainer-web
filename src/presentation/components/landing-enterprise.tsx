@@ -9,14 +9,14 @@ export function LandingEnterprise() {
 
   return (
     <section className="bg-white px-4 pb-16 sm:pb-20 lg:px-8">
-      <div className="mx-auto grid max-w-6xl overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 lg:grid-cols-[minmax(0,22rem)_1fr]">
+      <div className="mx-auto grid max-w-6xl overflow-hidden rounded-2xl border-2 border-[#12141c] bg-[#f4f1ea] shadow-[6px_6px_0_0_#12141c] lg:grid-cols-[minmax(0,22rem)_1fr]">
         <img
-          src="/pricing/enterprise.png"
+          src="/pricing/enterprise-bauhaus.png"
           alt=""
           className="h-48 w-full object-cover object-center sm:h-56 lg:h-full"
         />
         <div className="flex flex-col justify-center px-5 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#d62828]">
             Enterprise
           </p>
           <h2 className="mt-2 text-2xl font-bold text-zinc-900 sm:text-3xl">{t("landing.enterprise.title")}</h2>

@@ -1,12 +1,12 @@
 {
   "en": {
     "bestFor": "Showing one character put on the clothes from a reference image, piece by piece, then hold the finished look.",
-    "structure": "Starts in plain white tight shorts. One 3–4 second clip per reference garment, plus one final clip where the full look holds.",
-    "hook": "Opens in plain white tight shorts as the first reference garment goes on. No title card.",
-    "arc": "White tight shorts, then each piece from the clothing reference. A reference bottom replaces the shorts. The last clip holds the complete look.",
+    "structure": "Starts already wearing a white crew-neck tank and matching white knee-length athletic shorts. One 3–4 second clip per new reference garment, plus one final clip where the full look holds.",
+    "hook": "Opens in the white athletic base as the first distinct reference garment goes on. No title card.",
+    "arc": "White tank and shorts, then each piece from the clothing reference. A reference bottom replaces the shorts. The last clip holds the complete look.",
     "narrator": "Silent by default. A short spoken line that names the finished look is added only when you ask for one, and only on the last clip.",
     "visual": "Look and palette come from the chosen visual style. One room and one locked full-body camera, with the character at a similar size. Face and hair stay on the blueprint. Clothes are copied from the reference images only.",
     "audio": "A music bed with one clothing sound effect per clip. Silent clips have no subtitle.",
-    "rules": "Needs exactly one character and clothing reference images. Starts in plain white tight shorts. Only the garments in those photos, one action per clip. Face and hair never change. No invented pieces."
+    "rules": "Needs exactly one character and clothing reference images. Starts in a white crew-neck tank and white knee-length athletic shorts. Only the garments in those photos, one action per clip. Face and hair never change. No invented pieces."
   }
 }

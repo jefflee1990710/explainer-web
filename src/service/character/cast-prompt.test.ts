@@ -15,6 +15,7 @@ import {
   loadDirectorImageParts,
   frameCharacterLockLine,
   phaseASoloCharacterNote,
+  FRAME_WARDROBE_BUILD,
 } from "@/service/character/cast-prompt";
 import type { CastMember } from "@/model/character";
 
@@ -103,7 +104,10 @@ test("frame paragraph and reference urls follow the cast", () => {
 
 test("outfit reels copy reference clothes and keep the face on the blueprint", () => {
   const rules = directorBlueprintSceneRules({ wardrobeBuild: true }).join(" ");
-  assert.match(rules, /plain white tight shorts/);
+  assert.match(rules, /knee-length athletic shorts/);
+  assert.match(rules, /crew-neck tank/);
+  assert.match(rules, /hands at the sides/);
+  assert.doesNotMatch(rules, /tight shorts/);
   assert.match(rules, /clothing reference images/);
   assert.doesNotMatch(rules, /Never plan a costume change/);
   const block = castBlockForPhaseA(cast, { wardrobeBuild: true })!;
@@ -111,6 +115,10 @@ test("outfit reels copy reference clothes and keep the face on the blueprint", (
   const lock = characterLockFromCast(cast, { wardrobeBuild: true });
   assert.match(lock, /臉、髮型/);
   assert.doesNotMatch(lock, /服裝、配件/);
+  assert.doesNotMatch(FRAME_WARDROBE_BUILD, /tight shorts/);
+  assert.doesNotMatch(FRAME_WARDROBE_BUILD, /bare torso/);
+  assert.doesNotMatch(FRAME_WARDROBE_BUILD, /shorts-only/);
+  assert.match(FRAME_WARDROBE_BUILD, /Wear exactly the garments named in the Scene/);
 });
 
 test("director rules keep the blueprint outfit in every scene", () => {

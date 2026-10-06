@@ -6,7 +6,7 @@ Each prompt:
 
 1. Duration 3–4 seconds, aspect ratio, full-body, locked camera.
 2. First frame = this clip's start still. Last frame = this clip's end still. From clip 2 on, the first frame is the previous clip's last frame.
-3. Name the one new garment and the hand that puts it on. If it replaces the plain white tight shorts, those shorts are off in the last frame. Other garments already on stay on.
+3. Name the one new garment and the hand that puts it on. If it replaces the white knee-length athletic shorts, those shorts are off in the last frame. Other garments already on stay on. Never pull a top over the head.
 4. Face, hair, and body proportions stay as in the frames. Do not copy a person from a clothing photo.
 5. The hold clip adds no garment. The look rests.
 6. One clothing sound effect on a dressing clip. No spoken line unless the approved `englishVo` is a real line.

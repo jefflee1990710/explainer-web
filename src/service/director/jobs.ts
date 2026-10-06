@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { characterLockFromCast } from "@/service/character/cast-prompt";
 import { isOutfitReelSkill } from "@/service/director/skill-rules";
+import { sanitizeOutfitPhaseA } from "@/service/director/outfit-reel";
 import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { videosCollection } from "@/dao";
 import { loadStoredSkill } from "@/service/director/load-skill";
@@ -98,6 +99,9 @@ export async function runPhaseAJob(
       nextPhaseA.characterLock = wardrobeBuild
         ? "角色的臉與髮型一律以附加參考圖為準；服裝只跟衣服參考圖。禁止改臉或髮型。"
         : "角色外貌一律以附加參考圖為準；禁止另行描述或改動髮型、臉型、服裝或配件。";
+    }
+    if (wardrobeBuild) {
+      nextPhaseA.clips = sanitizeOutfitPhaseA(nextPhaseA).clips;
     }
 
     await projects.updateOne(

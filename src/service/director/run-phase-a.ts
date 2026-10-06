@@ -67,6 +67,7 @@ import {
   talkingHeadSpokenError,
   talkingHeadSourceError,
 } from "@/service/director/talking-head";
+import { sanitizeOutfitPhaseA } from "@/service/director/outfit-reel";
 import type { Style } from "@/service/style";
 import { resolveStyleLettering } from "@/service/style/lettering";
 import type { RenderableStyle } from "@/service/style/renderable-style";
@@ -359,5 +360,6 @@ Produce a complete Phase A director proposal now.`,
         : "角色外貌一律以附加參考圖為準；禁止另行描述或改動髮型、臉型、服裝或配件。",
     };
   }
+  if (wardrobeBuild) next = sanitizeOutfitPhaseA(next);
   return next;
 }

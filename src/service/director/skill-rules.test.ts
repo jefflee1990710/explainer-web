@@ -306,7 +306,9 @@ test("surprise, outfit, and follow each need one character", () => {
   assert.match(surpriseInterviewDirectorBlock(), /Clip 2 cuts once/);
   assert.match(surpriseInterviewDirectorBlock(), /Clip 3 and after/);
   assert.match(outfitReelDirectorBlock(), /one garment/);
-  assert.match(outfitReelDirectorBlock(), /plain white tight shorts/);
+  assert.match(outfitReelDirectorBlock(), /knee-length athletic shorts/);
+  assert.match(outfitReelDirectorBlock(), /hands relaxed at the sides/);
+  assert.doesNotMatch(outfitReelDirectorBlock(), /tight shorts/);
   assert.match(outfitReelDirectorBlock(), /clothing reference images/);
   assert.match(followShotDirectorBlock(), /startScene copies the previous endScene/);
   assert.match(followShotDirectorBlock(), /Do not scroll a whole street/);

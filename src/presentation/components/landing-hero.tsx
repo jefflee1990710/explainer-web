@@ -22,10 +22,16 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
   };
 
   return (
-    <section className="relative overflow-hidden bg-white">
+    // Pop-art art stays on the sides. A cream panel keeps the headline readable.
+    <section className="relative overflow-hidden bg-[#f7f3e8]">
       <LandingHeroArt />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 left-1/2 z-[1] hidden w-[min(52rem,70%)] -translate-x-1/2 bg-[radial-gradient(ellipse_at_center,rgba(255,252,245,0.96)_0%,rgba(255,252,245,0.88)_42%,rgba(255,252,245,0)_78%)] lg:block"
+      />
       <ParallaxLayer distance={-18} className="relative z-10">
         <div className="mx-auto flex max-w-3xl flex-col items-center justify-center px-6 py-8 text-center lg:py-24">
+          <div className="rounded-[2rem] bg-[#fffdf8]/95 px-6 py-8 shadow-[0_12px_40px_rgba(18,20,28,0.08)] backdrop-blur-sm sm:px-10 sm:py-10">
           <motion.h1
             custom={0}
             variants={fadeUp}
@@ -40,7 +46,7 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
             variants={fadeUp}
             initial="hidden"
             animate="visible"
-            className="mt-5 max-w-xl text-base text-zinc-600 lg:text-lg"
+            className="mt-5 max-w-xl text-base font-medium text-zinc-600 lg:text-lg"
           >
             {t("landing.hero.subtitle")}
           </motion.p>
@@ -59,11 +65,12 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
             </Link>
             <Link
               href="#pricing"
-              className="inline-flex rounded-full border border-[#12141c]/15 bg-white/80 px-8 py-3 text-sm font-semibold text-[#12141c] backdrop-blur-sm transition-colors hover:bg-[#f4fcd4]"
+              className="inline-flex rounded-full border border-[#12141c]/20 bg-white px-8 py-3 text-sm font-semibold text-[#12141c] transition-colors hover:bg-[#f4fcd4]"
             >
               {t("landing.hero.ctaPricing")}
             </Link>
           </motion.div>
+          </div>
         </div>
       </ParallaxLayer>
       <LandingHeroArtBottom />
