@@ -93,7 +93,7 @@ export const briefEn = {
     hint: "Instruction is for the director. Add the script the character will read in the field below.",
     scriptTitle: "Script to read",
     scriptHint:
-      "The character reads this aloud. One sentence is one clip (up to 20). A line over 12 seconds must be shortened.",
+      "The character reads this aloud. Clips share a similar length (5–12 seconds, up to 20). A script over 240 seconds must be shortened.",
     scriptLabel: "Script to read",
     scriptPlaceholder: "Hello. This product saves you an hour every week.\nTry it today.",
   },
@@ -116,7 +116,7 @@ export const briefEn = {
     speechPace: "Pace · {label}",
     sceneText: "On-screen text · {label}",
     bookendLength: "1 clip · 3–4s",
-    talkingHeadLength: "1 sentence · 1 clip · up to 20",
+    talkingHeadLength: "Even clips · 5–12s · up to 20",
     logo: "Logo",
   },
   confirm: {
@@ -159,6 +159,7 @@ export const briefEn = {
     "opening-director": "Opening",
     "ending-director": "Ending",
     "talking-head-director": "Talking-head read",
+    "full-body-talking-head-director": "Full body Talking-head read",
     "comparison-card-director": "Comparison card",
     "talking-broll-director": "Talking-head with B-roll",
     "surprise-interview-director": "Surprise interview",
@@ -175,10 +176,12 @@ export const briefEn = {
     "opening-director": "A 3–4 second bumper: the brand logo enters and holds.",
     "ending-director": "A 3–4 second closer that settles on the brand logo.",
     "talking-head-director": "One character reads to camera, one line per clip.",
+    "full-body-talking-head-director":
+      "One character reads to camera in a locked full-body shot. Each clip has a similar amount of speech.",
     "comparison-card-director": "One comparison per clip, two views of the same thing.",
     "talking-broll-director": "Two lines to camera, a cutaway, then back to the close-up.",
     "surprise-interview-director": "A surprised close-up, then the character explains the concept.",
-    "outfit-reel-director": "One character puts on the listed clothes, then holds the look.",
+    "outfit-reel-director": "Starts in plain white tight shorts, then puts on only the clothes in the reference image.",
     "follow-shot-director": "A third-person continuous shot. Each clip starts where the last one ended.",
   },
   skillGuide: {
@@ -239,8 +242,14 @@ export const briefEn = {
       },
       "talking-head-director": {
         voice: "The character reads your script to camera (the voice you picked)",
-        structure: "Your spoken script; one sentence per clip, up to 20",
-        picture: "One locked medium close-up, eyes to the lens, one subtitle line at the bottom",
+        structure: "Your spoken script, split so each clip has a similar length, up to 20",
+        picture: "Shot size follows this director, eyes to the lens, one subtitle line at the bottom",
+        frames: "The next clip’s start frame continues the previous end frame",
+      },
+      "full-body-talking-head-director": {
+        voice: "The character reads your script to camera (the voice you picked)",
+        structure: "Your spoken script, split so each clip has a similar length, up to 20",
+        picture: "One locked full-body shot, head to feet, eyes to the lens, one subtitle line at the bottom",
         frames: "The next clip’s start frame continues the previous end frame",
       },
       "comparison-card-director": {
@@ -264,7 +273,7 @@ export const briefEn = {
       "outfit-reel-director": {
         voice: "Silent, unless you ask for one short line on the last clip",
         structure: "One garment per clip, then a hold on the finished look",
-        picture: "One room, full body, clothes accumulate in your listed order",
+        picture: "One room, full body. Starts in white tight shorts; only the reference clothes change. Face and hair stay.",
         frames: "Each start frame is the previous end frame, with the new piece on",
       },
       "follow-shot-director": {

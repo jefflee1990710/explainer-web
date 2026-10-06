@@ -4,10 +4,11 @@ Present a readable director's proposal and stop for confirmation before writing 
 
 ## Garment list
 
-- Use the user's order. One garment per clip, then one hold clip.
-- Name the starting outfit once. Every still after that repeats the clothes already on, then the new piece.
-- Do not add coats, hats, bags, or shoes the user did not list.
-- Face, hair, and proportions stay on the blueprint. The garment names in the scene are the clothes to draw.
+- The garments are the distinct worn pieces in the clothing reference images. Use a sensible dressing order. One garment per clip, then one hold clip.
+- Clip 1 starts in plain white tight shorts only. Do not invent a shirt, lounge set, or any other base.
+- Every still after that repeats the clothes already on, then the new piece. A reference bottom replaces the white tight shorts; do not wear both.
+- Copy cut, colour, and details from the photo. Name the reference id. Do not add pieces the photos do not show.
+- Face, hair, and proportions stay on the character blueprint. Do not copy the person in the clothing photo. The garment names in the scene are the clothes to draw.
 
 ## Header contract
 
@@ -15,7 +16,7 @@ Present a readable director's proposal and stop for confirmation before writing 
 2. Total duration (sum of the 3–4s clips), clip count = garments + 1, loop mode: always Linear
 3. The finished look in a few words
 4. Aspect ratio, the one room, and the locked full-body camera
-5. Cast lock: the one attached blueprint; clothes come from the list
+5. Cast lock: face and hair from the one attached blueprint; clothes come from the clothing references
 6. Music plus one clothing sound per dressing clip
 7. The garment list mapped to clips, with the outfit after each clip
 
@@ -30,8 +31,8 @@ Every dressing clip is 3–4 seconds. The hold clip is 3–4 seconds and adds no
 
 Write `startScene` and `endScene` as four concrete parts, in order:
 
-1. Character: pose and which listed garments are on. Do not describe hair or face. The end still of a dressing clip has exactly one more garment than the start still.
-2. Set: the same room in every clip.
+1. Character: pose and which reference garments are on. Do not describe hair or face. The end still of a dressing clip has exactly one more garment than the start still, except when a reference bottom replaces the white tight shorts.
+2. Set: the same room in every clip. Do not copy the room in the clothing photo.
 3. Light: the same light in every clip.
 4. Camera: locked full-body, character at a similar size, centered.
 
@@ -48,8 +49,9 @@ The hold clip is a small settle only: `0–3s a small pose settle; camera locked
 ## Phase A checks
 
 - Exactly one character.
-- Clip count equals garments + 1.
-- Each dressing clip adds exactly one listed garment and keeps the earlier ones.
+- Clip count equals reference garments + 1.
+- Clip 1 starts in plain white tight shorts only.
+- Each dressing clip adds exactly one reference garment. A reference bottom replaces the white shorts.
 - The next start still matches the previous end still.
 - Same room and same camera. No flash cuts.
 - Silent clips use `(no dialogue)`.

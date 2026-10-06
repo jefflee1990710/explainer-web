@@ -8,11 +8,14 @@ import {
   talkingHeadPlanError,
   talkingHeadScriptFromClips,
   talkingHeadSeconds,
+  talkingHeadShot,
   talkingHeadSourceError,
   talkingHeadSpokenError,
   withInheritedTalkingHeadStarts,
 } from "@/service/director/talking-head";
 import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
+
+const TALKING_HEAD_TOO_LONG = 20 * 12 * 4 + 8;
 
 const SCRIPT = [
   "大家好，我係 Jeff。",
@@ -41,11 +44,13 @@ test("talking-head seconds follow the word count and the pace", () => {
   assert.ok(talkingHeadSeconds(line, "fast") < talkingHeadSeconds(line, "medium"));
 });
 
-test("talking-head refuses more than 20 sentences or a sentence over 12 seconds", () => {
+test("talking-head refuses a script that cannot fit in 20 clips", () => {
   const many = Array.from({ length: 21 }, (_, index) => `第${index + 1}句。`).join("");
-  assert.match(talkingHeadPlanError(many, "medium") || "", /21 句/);
+  assert.equal(talkingHeadPlanError(many, "medium"), undefined);
+  const tooLong = `${"甲".repeat(TALKING_HEAD_TOO_LONG)}。`;
+  assert.match(talkingHeadPlanError(tooLong, "medium") || "", /最多 240 秒/);
   const long = "甲".repeat(60) + "。";
-  assert.match(talkingHeadPlanError(long, "medium") || "", /超過 12 秒/);
+  assert.equal(talkingHeadPlanError(long, "medium"), undefined);
   assert.equal(talkingHeadPlanError(SCRIPT, "medium"), undefined);
 });
 
@@ -60,24 +65,57 @@ test("talking-head keeps instruction and spoken script as separate fields", () =
   ]);
   assert.equal(script, "Video makes a product feel real.\nShow the problem, then the fix.");
   const clips = planTalkingHeadClips({ source: script, pace: "medium", language: "en" });
-  assert.equal(clips.length, 2);
-  assert.equal(clips[0].englishVo, "Video makes a product feel real.");
+  assert.equal(clips.length, 1);
+  assert.match(clips[0].englishVo, /Video makes a product feel real/);
+  assert.match(clips[0].englishVo, /Show the problem, then the fix/);
+  assert.equal(clips[0].durationSeconds, 5);
   assert.match(talkingHeadDirectorBlock(), /spoken script is locked/i);
+  assert.doesNotMatch(talkingHeadDirectorBlock(), /medium close-up/i);
 });
 
 test("clip 2 starts on clip 1's end still", () => {
   const clips = planTalkingHeadClips({ source: SCRIPT, pace: "medium", language: "yue" });
-  assert.equal(clips.length, 5);
+  assert.ok(clips.length >= 2);
   assert.equal(clips[1].startScene, clips[0].endScene);
-  assert.equal(clips[4].startScene, clips[3].endScene);
   assert.match(clips[0].motionCamera, /底部字幕/);
-  assert.equal(clips[0].englishVo, "大家好，我係 Jeff。");
-  assert.ok(clips.every((clip) => clip.durationSeconds <= 12));
+  assert.match(clips.map((clip) => clip.englishVo).join(""), /大家好，我係 Jeff/);
+  assert.ok(clips.every((clip) => clip.durationSeconds >= 5 && clip.durationSeconds <= 12));
+  assert.doesNotMatch(clips[0].startScene, /中近景|medium close-up/);
+});
+
+const FULL_BODY_VISUAL =
+  "One locked full-body shot with the character centered and facing the camera.";
+
+test("talking-head evens word count and keeps a named shot", () => {
+  const script = [
+    "Hi, everyone. I am Scro.",
+    "I am a tools for you to generate short video in few click, for you to promote your product or service.",
+    "Like this video, I created in few minute, I just need to focus at content, and Scro.io do the rest.",
+    "Try it now!",
+  ].join(" ");
+  assert.deepEqual(splitTalkingHeadSentences("and Scro.io do the rest."), ["and Scro.io do the rest."]);
+  const clips = planTalkingHeadClips({
+    source: script,
+    pace: "medium",
+    language: "en",
+    shot: talkingHeadShot(FULL_BODY_VISUAL),
+  });
+  const words = clips.map((clip) => clip.englishVo.split(/\s+/).length);
+  const durations = clips.map((clip) => clip.durationSeconds);
+  assert.ok(clips.length >= 2);
+  assert.ok(clips.some((clip) => clip.englishVo.includes("Scro.io")));
+  assert.ok(Math.max(...words) - Math.min(...words) <= 8);
+  assert.ok(Math.max(...durations) - Math.min(...durations) <= 3);
+  assert.ok(durations.every((seconds) => seconds >= 5 && seconds <= 12));
+  assert.match(clips[0].startScene, /locked full-body/);
+  assert.doesNotMatch(clips[0].startScene, /medium close-up/);
+  assert.equal(talkingHeadShot(undefined), undefined);
 });
 
 test("talking-head clip 2 start copies the previous end file and costs one still", () => {
   assert.equal(talkingHeadFramesCost("talking-head-director", 1), FRAMES_COST);
   assert.equal(talkingHeadFramesCost("talking-head-director", 2), FRAME_COST);
+  assert.equal(talkingHeadFramesCost("full-body-talking-head-director", 2), FRAME_COST);
   assert.equal(talkingHeadFramesCost("story-short-director", 2), FRAMES_COST);
   assert.equal(talkingHeadFramesCost("outfit-reel-director", 2), FRAME_COST);
   assert.equal(talkingHeadFramesCost("follow-shot-director", 2), FRAME_COST);

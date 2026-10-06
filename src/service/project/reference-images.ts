@@ -73,9 +73,22 @@ export function referenceImageLabel(image: ReferenceImage) {
 }
 
 // System rules for Phase A; empty when the brief has no reference images.
-export function phaseAReferenceImageRules(images: ReferenceImage[]) {
+export function phaseAReferenceImageRules(
+  images: ReferenceImage[],
+  options?: { clothingOnly?: boolean },
+) {
   if (images.length === 0) return "";
   const ids = images.map((image) => image.id).join(", ");
+  // Outfit reels use the photo for the clothes, not the person or the room.
+  if (options?.clothingOnly) {
+    return [
+      `The user attached clothing reference images ${ids}.`,
+      "They are clothes only. List the distinct garments you can see and put those on, one per clip.",
+      "Copy cut, colour, and details from the photo. Do not copy the person, face, hair, pose, tattoos, or the room.",
+      "Tag every dressing clip with the reference id that shows that garment.",
+      "Do not invent a garment the photos do not show.",
+    ].join(" ");
+  }
   return [
     `The user attached scene reference images ${ids}, each labelled with its description in the user message.`,
     "Use them to plan scenes: match the composition, subject, product, and setting they show.",

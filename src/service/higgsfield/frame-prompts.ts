@@ -263,9 +263,18 @@ export function frameSceneReferenceUrls(
 
 // Brief reference images the director assigned to this clip; they guide layout, not cast looks.
 // With a COMPOSITION LOCK (end frame / redo) the lock wins; otherwise the reference sets the place.
-export function sceneReferenceFrameLine(start: number, count: number, locked = false) {
+export function sceneReferenceFrameLine(
+  start: number,
+  count: number,
+  locked = false,
+  clothingOnly = false,
+) {
   const which =
     count === 1 ? `attached image ${start} shows` : `attached images ${start}–${start + count - 1} show`;
+  // A clothing photo is the garment, not a person or a set to copy.
+  if (clothingOnly) {
+    return `CLOTHING REFERENCE: ${which} the clothes to copy. Copy only the garment this still names (cut, colour, details). Do not copy the person, face, hair, pose, tattoos, or background. Face and hair stay on the character blueprint.`;
+  }
   const follow = locked
     ? "keep the COMPOSITION LOCK framing and use them only for subject and set details"
     : "follow their composition, location, and setting";
@@ -336,10 +345,10 @@ export function buildFramePrompt(
   const sceneRefStart = annotatedCount + anchorCount + 1;
   const characterAttachmentStart = sceneRefStart + sceneRefUrls.length;
   const compositionLocked = Boolean(options.anchor && options.anchor.kind !== "prev-end");
-  const sceneRefLines = sceneRefUrls.length
-    ? [sceneReferenceFrameLine(sceneRefStart, sceneRefUrls.length, compositionLocked)]
-    : [];
   const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
+  const sceneRefLines = sceneRefUrls.length
+    ? [sceneReferenceFrameLine(sceneRefStart, sceneRefUrls.length, compositionLocked, wardrobeBuild)]
+    : [];
   const castLines = hasCast
     ? castParagraphForFrames(
         project.cast,

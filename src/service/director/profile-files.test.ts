@@ -14,6 +14,7 @@ const DIRS = [
   "opening-director",
   "ending-director",
   "talking-head-director",
+  "full-body-talking-head-director",
   "comparison-card-director",
   "talking-broll-director",
   "surprise-interview-director",

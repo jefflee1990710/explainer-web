@@ -63,6 +63,7 @@ import {
   planTalkingHeadClips,
   spokenUnits,
   talkingHeadDirectorBlock,
+  talkingHeadShot,
   talkingHeadSpokenError,
   talkingHeadSourceError,
 } from "@/service/director/talking-head";
@@ -203,16 +204,16 @@ ${
     ? [
         "Character reference images / blueprints are attached to the user message. You MUST inspect them.",
         wardrobeBuild
-          ? "characterLock must ONLY name the cast and say face, hair, and proportions follow the attached blueprint. Listed garments are named in explainerScene."
+          ? "characterLock must ONLY name the cast and say face, hair, and proportions follow the attached blueprint. Do not lock clothing to the blueprint. Garments copied from the clothing references are named in explainerScene."
           : "characterLock must ONLY name the cast and say appearance follows the attached blueprint — never invent hair, face, clothing, or accessories.",
         wardrobeBuild
-          ? "In explainerScene and motionCamera describe pose, the room, and the garments from the user's list. Do not invent a replacement hero, hair, or face."
+          ? "In explainerScene and motionCamera describe pose, the room, and the garments copied from the clothing references. Do not invent a replacement hero, hair, or face, and do not copy the person in a clothing photo."
           : "In explainerScene and motionCamera describe pose, props, labels, and environment only. Plan each scene around those characters as the subject. Do not invent a replacement hero.",
         ...directorBlueprintSceneRules({ wardrobeBuild }),
       ].join(" ")
     : ""
 }
-${phaseAReferenceImageRules(references.attached)}
+${phaseAReferenceImageRules(references.attached, { clothingOnly: wardrobeBuild })}
 ${
   [
     dialogueOnly ? dialogueOnlyDirectorBlock() : "",
@@ -227,7 +228,7 @@ ${
     bookend
       ? bookendDirectorBlock(input.skill.slug, logoImages.length > 0, { lockLength: lockBookendLength })
       : "",
-    talkingHead ? talkingHeadDirectorBlock() : "",
+    talkingHead ? talkingHeadDirectorBlock(input.skill.slug) : "",
     isSurpriseInterviewSkill(input.skill.slug) ? surpriseInterviewDirectorBlock() : "",
     wardrobeBuild ? outfitReelDirectorBlock() : "",
     isFollowShotSkill(input.skill.slug) ? followShotDirectorBlock() : "",
@@ -265,7 +266,7 @@ ${sceneDescriptionLanguageLock(input.language)}`,
 ${input.source}
 ${
   talkingHead
-    ? `\nSpoken script the character must read verbatim (one sentence = one clip):\n${input.spokenScript}\n`
+    ? `\nSpoken script the character must read verbatim. Keep every word in order. Clips share a similar length; do not force one sentence per clip:\n${input.spokenScript}\n`
     : ""
 }
 Aspect ratio: ${input.aspectRatio}
@@ -332,6 +333,7 @@ Produce a complete Phase A director proposal now.`,
       source: input.spokenScript || "",
       pace: input.speechPace,
       language: input.language,
+      shot: talkingHeadShot(input.skill.customProfile?.visual || input.skill.profile?.visual),
     });
     const spoken = clips.reduce((sum, clip) => {
       const units = spokenUnits(clip.englishVo);
@@ -348,12 +350,13 @@ Produce a complete Phase A director proposal now.`,
   }
   // Overwrite any invented look text so frame prompts never inherit a wrong outfit.
   if (input.cast && input.cast.length > 0) {
-    next = { ...next, characterLock: characterLockFromCast(input.cast) };
+    next = { ...next, characterLock: characterLockFromCast(input.cast, { wardrobeBuild }) };
   } else if (input.characterImageUrl) {
     next = {
       ...next,
-      characterLock:
-        "角色外貌一律以附加參考圖為準；禁止另行描述或改動髮型、臉型、服裝或配件。",
+      characterLock: wardrobeBuild
+        ? "角色的臉與髮型一律以附加參考圖為準；服裝只跟衣服參考圖。禁止改臉或髮型。"
+        : "角色外貌一律以附加參考圖為準；禁止另行描述或改動髮型、臉型、服裝或配件。",
     };
   }
   return next;

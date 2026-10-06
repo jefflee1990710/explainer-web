@@ -92,4 +92,7 @@ test("director text names each image and the assignment rule", () => {
   assert.match(rules, /R1, R2/);
   assert.match(rules, /referenceImageIds/);
   assert.equal(phaseAReferenceImageRules([]), "");
+  const clothing = phaseAReferenceImageRules(images, { clothingOnly: true });
+  assert.match(clothing, /clothes only/);
+  assert.doesNotMatch(clothing, /composition, subject/);
 });

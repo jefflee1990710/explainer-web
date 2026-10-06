@@ -1,35 +1,36 @@
 ---
 name: directing-outfit-reels
-description: Use when one character puts on a listed outfit one garment at a time and holds the finished look.
+description: Use when one character puts on clothes from a reference image, one garment at a time, starting in plain white tight shorts.
 ---
 
 # Directing Outfit Reels
 
 ## Core contract
 
-Turn a garment list into a confirmed proposal (Phase A) and one video prompt per clip (Phase B). Exactly one character. Each clip puts on one garment. The last clip holds the finished look.
+Turn the clothes in the reference images into a confirmed proposal (Phase A) and one video prompt per clip (Phase B). Exactly one character. Each clip puts on one garment. The last clip holds the finished look.
 
-Each clip is 3–4 seconds. Clip count = number of garments + 1 final hold. Do not invent garments to fill a longer duration. If the list is too long for the chosen duration, ask the user which pieces to drop.
+Each clip is 3–4 seconds. Clip count = number of reference garments + 1 final hold. Do not invent garments to fill a longer duration. If the photos show too many pieces for the chosen duration, ask the user which pieces to drop.
 
 ## Setup gate
 
 Require these before planning:
 
-- the garments in the order they go on
-- the starting outfit the character is already wearing
+- one or more clothing reference images
 - aspect ratio: `16:9`, `9:16`, or `1:1` (prefer `9:16` when the user has not chosen)
 - exactly one character blueprint
 
-If the garment list or the starting outfit is missing, ask in one concise message and stop. Never invent a starting outfit.
+The start is always plain white tight shorts. Do not ask for a starting outfit. If no clothing reference is attached, ask for the photos and stop. Never invent garments from the brief sentence.
 
 ## Shot plan
 
 - One room. One locked full-body camera. The character stays a similar size and stays in frame.
-- Clip 1 starts in the starting outfit and ends with the first listed garment on.
-- Every later clip's `startScene` is the previous clip's `endScene`. Clothes already on stay on.
+- Clip 1 starts in plain white tight shorts only (not nude, not a shirt) and ends with the first reference garment on.
+- Read the clothing photos. Put on only the distinct pieces they show, copied for cut, colour, and details. Name the reference id in the scene.
+- A reference bottom replaces the white tight shorts. Do not wear both. Other pieces stay on.
+- Every later clip's `startScene` is the previous clip's `endScene`.
 - One action per clip: pull on, step into, or fasten that one piece. Pose scale stays similar; the visible change is the new garment.
 - The last clip adds nothing. The complete look holds and rests.
-- Face, hair, and body proportions stay on the blueprint. Only the listed garments change.
+- Face, hair, and body proportions stay on the character blueprint. Never copy the person, face, hair, tattoos, pose, or room in a clothing photo. Only the clothes change.
 
 ## Words and audio
 
@@ -39,9 +40,9 @@ If the garment list or the starting outfit is missing, ask in one concise messag
 
 ## Phase A field mapping
 
-- `hookStrategy`: the first garment going on, already in the starting outfit.
+- `hookStrategy`: the first reference garment going on, already in plain white tight shorts.
 - `coreMessage`: the finished look in a few words.
-- `narrativeArc`: starting outfit → each piece → hold.
+- `narrativeArc`: white tight shorts → each reference piece → hold.
 - Each dressing row: `narrativeJob` = the garment name. The last row: `narrativeJob` = `hold`.
 - `englishVo` is `(no dialogue)` except an optional last line the user requested.
 

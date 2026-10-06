@@ -47,7 +47,7 @@ export const cartoonPhaseASchema = phaseASchema.extend({
   clips: z.array(dualBeatStoryboardRowSchema).min(1),
 });
 
-// Talking-head clips are one sentence each: 1–12s, at most 20 (enforced in talkingHeadPlanError, not
+// Talking-head clips share the script evenly: 5–12s, at most 20 (enforced in talkingHeadPlanError, not
 // on this schema — Gemini structured output rejects maxItems on nested arrays).
 export const talkingHeadPhaseASchema = phaseASchema.extend({
   clips: z.array(storyboardRowSchema.extend({ durationSeconds: z.number().min(1).max(12) })).min(1),

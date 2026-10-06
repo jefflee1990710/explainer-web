@@ -1,9 +1,9 @@
 ---
-name: directing-talking-head-reads
-description: Use when a character faces the camera and reads the user's spoken script aloud, with a similar amount of speech in each clip and a bottom subtitle.
+name: directing-full-body-talking-head-reads
+description: Use when a character faces the camera in a locked full-body shot and reads the user's spoken script aloud, with a similar amount of speech in each clip and a bottom subtitle.
 ---
 
-# Directing Talking-Head Reads
+# Directing Full-Body Talking-Head Reads
 
 ## Core contract
 
@@ -30,7 +30,7 @@ If required items are missing, ask for them in one concise message and stop.
 
 The rendering rules come from the **Visual style** block appended below. Do not invent a different medium.
 
-- Shot size follows the director visual. The character is centered and looks into the lens in every clip.
+- One locked full-body shot. Head, torso, and feet stay in frame. The character is centered and looks into the lens in every clip. Do not crop to a close-up or a medium shot.
 - Same background, same light, same camera. No new props, no push-in, no cutaway.
 - **Clip 2 and after**: `startScene` is the previous clip's `endScene`. The read continues; it does not restage.
 

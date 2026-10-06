@@ -7,6 +7,7 @@ export const FOLLOW_SHOT_SKILL_SLUG = "follow-shot-director";
 
 const CHAIN_FROM_CLIP_2 = new Set([
   "talking-head-director",
+  "full-body-talking-head-director",
   OUTFIT_REEL_SKILL_SLUG,
   FOLLOW_SHOT_SKILL_SLUG,
 ]);

@@ -134,7 +134,7 @@ test("Phase B with a cast forbids describing or changing clothing", () => {
   assert.equal(phaseBWardrobeLock({}), "");
   assert.match(
     phaseBWardrobeLock({ cast: [{ name: "Ada" }], skillSlug: "outfit-reel-director" }),
-    /one new garment goes on/,
+    /one new garment from the clothing reference goes on/,
   );
   assert.match(
     phaseBCharacterLine({ cast: [{ name: "Ada" }], skillSlug: "outfit-reel-director" }),

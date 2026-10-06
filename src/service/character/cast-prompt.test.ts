@@ -101,12 +101,16 @@ test("frame paragraph and reference urls follow the cast", () => {
   assert.deepEqual(castReferenceUrls(cast), ["https://blob/a.png", "https://blob/b.png"]);
 });
 
-test("outfit reels name listed garments and keep the face on the blueprint", () => {
+test("outfit reels copy reference clothes and keep the face on the blueprint", () => {
   const rules = directorBlueprintSceneRules({ wardrobeBuild: true }).join(" ");
-  assert.match(rules, /each clip adds exactly one named garment/);
+  assert.match(rules, /plain white tight shorts/);
+  assert.match(rules, /clothing reference images/);
   assert.doesNotMatch(rules, /Never plan a costume change/);
   const block = castBlockForPhaseA(cast, { wardrobeBuild: true })!;
-  assert.match(block, /listed garments/);
+  assert.match(block, /clothing reference images/);
+  const lock = characterLockFromCast(cast, { wardrobeBuild: true });
+  assert.match(lock, /臉、髮型/);
+  assert.doesNotMatch(lock, /服裝、配件/);
 });
 
 test("director rules keep the blueprint outfit in every scene", () => {

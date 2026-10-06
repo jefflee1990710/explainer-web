@@ -267,6 +267,7 @@ test("Q&A is dialogue-only like story short: no narrator, character lines", () =
 test("Q&A director requires exactly two characters", () => {
   assert.equal(requiredCastCount("dialogue-qa-director"), 2);
   assert.equal(requiredCastCount("talking-head-director"), 1);
+  assert.equal(requiredCastCount("full-body-talking-head-director"), 1);
   assert.equal(requiredCastCount("story-short-director"), 0);
   assert.match(briefSkillError({ skillSlug: "dialogue-qa-director", characterIds: [] }) || "", /2/);
   assert.equal(
@@ -305,7 +306,8 @@ test("surprise, outfit, and follow each need one character", () => {
   assert.match(surpriseInterviewDirectorBlock(), /Clip 2 cuts once/);
   assert.match(surpriseInterviewDirectorBlock(), /Clip 3 and after/);
   assert.match(outfitReelDirectorBlock(), /one garment/);
-  assert.match(outfitReelDirectorBlock(), /Never invent a starting outfit/);
+  assert.match(outfitReelDirectorBlock(), /plain white tight shorts/);
+  assert.match(outfitReelDirectorBlock(), /clothing reference images/);
   assert.match(followShotDirectorBlock(), /startScene copies the previous endScene/);
   assert.match(followShotDirectorBlock(), /Do not scroll a whole street/);
 });

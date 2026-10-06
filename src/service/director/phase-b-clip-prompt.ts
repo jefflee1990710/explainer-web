@@ -15,7 +15,7 @@ export function phaseBCharacterLine(input: {
 }) {
   const names = input.cast?.map((member) => member.name).filter(Boolean).join(", ");
   if (names && isOutfitReelSkill(input.skillSlug)) {
-    return `Keep ${names}'s face, hair, and proportions as in the first and last frames. Name the one garment this clip puts on, and say every garment already on stays on. Do not mention reference images or reference sheets — MiniMax H3 only receives this clip's first and last frames.`;
+    return `Keep ${names}'s face, hair, and proportions as in the first and last frames. Name the one garment this clip puts on. If it replaces the plain white tight shorts, those shorts are off in the last frame. Other pieces already on stay on. Do not mention reference images or reference sheets — MiniMax H3 only receives this clip's first and last frames.`;
   }
   if (names) {
     return `Keep ${names} identical to Phase A characterLock. Do not mention reference images or reference sheets in the MiniMax H3 prompt — MiniMax H3 only receives this clip's first and last frames. Never describe clothing, wardrobe, or gear (no "winter coat", "boots", "backpack"); say only that the outfit stays exactly as in the first and last frames.`;
@@ -31,7 +31,7 @@ export function phaseBWardrobeLock(input: {
 }) {
   if (!input.cast?.length && !input.characterImageUrl) return "";
   if (isOutfitReelSkill(input.skillSlug)) {
-    return "Wardrobe: the first frame is the outfit so far. During the clip one new garment goes on and is fully on in the last frame. Earlier pieces stay. Do not change face or hair.";
+    return "Wardrobe: the first frame is the outfit so far, starting from plain white tight shorts. During the clip one new garment from the clothing reference goes on and is fully on in the last frame. A reference bottom replaces the white shorts. Other pieces stay. Do not change face or hair.";
   }
   return "Wardrobe: every character keeps exactly the outfit shown in the first and last frames for the whole clip. No added or changed clothing, layers, or gear.";
 }

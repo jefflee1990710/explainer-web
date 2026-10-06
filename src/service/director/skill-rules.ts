@@ -9,7 +9,7 @@ import {
   OUTFIT_REEL_SKILL_SLUG,
   SURPRISE_INTERVIEW_SKILL_SLUG,
 } from "@/service/director/clip-continuity";
-import { talkingHeadDurationHint, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
+import { talkingHeadDurationHint, isTalkingHeadSkill } from "@/service/director/talking-head";
 
 export const STORY_SHORT_SKILL_SLUG = "story-short-director";
 export const DIALOGUE_QA_SKILL_SLUG = "dialogue-qa-director";
@@ -47,7 +47,7 @@ export function phaseADurationHint(input: {
   durationPreset: DurationPreset;
   speechPace?: SpeechPace;
 }) {
-  if (input.skillSlug === TALKING_HEAD_SKILL_SLUG) return talkingHeadDurationHint(input.speechPace);
+  if (isTalkingHeadSkill(input.skillSlug)) return talkingHeadDurationHint(input.speechPace, input.skillSlug);
   if (bookendLocksLength(input.skillSlug, input.durationPreset)) {
     return bookendDurationHint(input.skillSlug);
   }
@@ -122,7 +122,7 @@ export function skillBansNarration(skillSlug?: string) {
 export function requiredCastCount(skillSlug?: string) {
   if (skillSlug === DIALOGUE_QA_SKILL_SLUG) return 2;
   if (
-    skillSlug === TALKING_HEAD_SKILL_SLUG ||
+    isTalkingHeadSkill(skillSlug) ||
     skillSlug === TALKING_BROLL_SKILL_SLUG ||
     isSurpriseInterviewSkill(skillSlug) ||
     isOutfitReelSkill(skillSlug) ||
@@ -579,10 +579,12 @@ export function surpriseInterviewDirectorBlock() {
 // Listed garments go on one per clip. Face stays on the blueprint.
 export function outfitReelDirectorBlock() {
   return [
-    "This is an OUTFIT REEL. Exactly one attached character. Each clip puts on one garment from the user's list, in that order, then one final clip holds the full look.",
-    "Ask for the garment list and the starting outfit before planning. Never invent a starting outfit or an extra piece.",
+    "This is an OUTFIT REEL. Exactly one attached character. Each clip puts on one garment, then one final clip holds the full look.",
+    "Clip 1 START is always plain white tight shorts only. That is the base, not nudity, not a shirt, and not loungewear. Do not ask for a starting outfit and do not invent one.",
+    "Garments come only from the attached clothing reference images. Read each photo and list the distinct worn pieces (top, bottom, outer layer, socks, shoes). One piece per clip, in a sensible dressing order. Copy cut, colour, and details from that photo and name its reference id in the scene. If no clothing reference is attached, ask for the photos and stop. Do not invent pieces from the brief sentence.",
+    "The person in a clothing photo is not the character. Never copy their face, hair, body, tattoos, pose, or room. Face, hair, and body proportions stay on the character blueprint. Only the clothes change.",
+    "The white tight shorts stay until a reference bottom goes on. That bottom replaces the shorts; do not wear both. Other pieces stack. Clip 2 and after: startScene copies the previous endScene.",
     "One room, one locked full-body camera, character at a similar size. Each clip is 3–4 seconds. One action: pull on, step into, or fasten that piece.",
-    "Clip 2 and after: startScene copies the previous endScene, including every garment already on. Face, hair, and body proportions stay on the blueprint. Name the listed garments in explainerScene.",
     "Default englishVo is \"(no dialogue)\". A short line naming the finished look is allowed only on the last clip, and only if the user asked. No step numbers and no imperative tutorial lines.",
   ].join(" ");
 }

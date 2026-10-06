@@ -291,7 +291,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
           .string()
           .optional()
           .describe(
-            "Talking-head only: exact words the character reads. Required when skillSlug is talking-head-director.",
+            "Talking-head only: exact words the character reads. Required when skillSlug is talking-head-director or full-body-talking-head-director.",
           ),
         referenceImages: z
           .array(

@@ -1,12 +1,12 @@
 {
   "en": {
-    "bestFor": "Showing one character put on an outfit piece by piece, in the order you list, then hold the finished look.",
-    "structure": "One 3–4 second clip per garment, plus one final clip where the full look holds. Four garments make five clips.",
-    "hook": "Opens already wearing the starting outfit you name, as the first listed garment goes on. No title card.",
-    "arc": "Starting outfit, then each listed piece lands and stays. The next clip begins on the previous clip's finished outfit. The last clip holds the complete look.",
+    "bestFor": "Showing one character put on the clothes from a reference image, piece by piece, then hold the finished look.",
+    "structure": "Starts in plain white tight shorts. One 3–4 second clip per reference garment, plus one final clip where the full look holds.",
+    "hook": "Opens in plain white tight shorts as the first reference garment goes on. No title card.",
+    "arc": "White tight shorts, then each piece from the clothing reference. A reference bottom replaces the shorts. The last clip holds the complete look.",
     "narrator": "Silent by default. A short spoken line that names the finished look is added only when you ask for one, and only on the last clip.",
-    "visual": "Look and palette come from the chosen visual style. One room and one locked full-body camera, with the character at a similar size. Face and hair stay on the blueprint. Clothes follow your list and accumulate.",
+    "visual": "Look and palette come from the chosen visual style. One room and one locked full-body camera, with the character at a similar size. Face and hair stay on the blueprint. Clothes are copied from the reference images only.",
     "audio": "A music bed with one clothing sound effect per clip. Silent clips have no subtitle.",
-    "rules": "Needs exactly one character, the garment order, and a starting outfit. Only those garments, in that order, one action per clip. No half-second flash cuts and no invented pieces."
+    "rules": "Needs exactly one character and clothing reference images. Starts in plain white tight shorts. Only the garments in those photos, one action per clip. Face and hair never change. No invented pieces."
   }
 }

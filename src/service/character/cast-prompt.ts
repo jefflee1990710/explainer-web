@@ -63,8 +63,15 @@ export async function loadDirectorImageParts(
 
 // Deterministic lock when a cast is selected. Never invent clothing/hair —
 // the attached blueprint is the only appearance source.
-export function characterLockFromCast(cast: CastMember[]): string {
+export function characterLockFromCast(
+  cast: CastMember[],
+  options?: { wardrobeBuild?: boolean },
+): string {
   const names = cast.map((member) => member.name).join("、");
+  // Outfit reels change clothes. Lock the face and hair, not the blueprint outfit.
+  if (options?.wardrobeBuild) {
+    return `${names}：臉、髮型與身體比例一律以附加角色藍圖為準；服裝只跟衣服參考圖。禁止改臉或髮型。`;
+  }
   return `${names}：外貌、髮型、服裝、配件與比例一律以附加角色藍圖為準；禁止另行描述或改動角色造型。`;
 }
 
@@ -89,10 +96,10 @@ export function castBlockForPhaseA(
     // Blueprint always wins. characterLock must never invent looks that later
     // fight the sheet in frame generation.
     wardrobeBuild
-      ? "characterLock MUST only list the cast names and say face, hair, and proportions follow the attached character blueprint / reference sheet. Do NOT invent hair, face, gender, age, or colouring. Name only the user's listed garments in explainerScene."
+      ? "characterLock MUST only list the cast names and say face, hair, and proportions follow the attached character blueprint / reference sheet. Do NOT invent hair, face, gender, age, or colouring. Do NOT lock clothing to the blueprint. Name only garments copied from the clothing reference images in explainerScene."
       : "characterLock MUST only list the cast names and say their appearance follows the attached character blueprint / reference sheet. Do NOT invent or describe hair, face, clothing, accessories, gender, age, or colouring in characterLock, palette, or explainerScene.",
     wardrobeBuild
-      ? "In explainerScene and motionCamera, refer to cast members by name and describe pose and the listed garments. Never invent hair or face."
+      ? "In explainerScene and motionCamera, refer to cast members by name and describe pose and the reference garments. Never invent hair or face, and never copy the person in a clothing photo."
       : "In explainerScene and motionCamera, refer to cast members by name and describe pose, props, labels, and environment only — never invent outfit or hairstyle details.",
     "Reference cast members by name in explainerScene.",
     "The selected cast's reference images are attached. You MUST inspect them and follow those exact characters when planning every scene. Stage each shot around them as the subject. Do not invent a replacement hero.",
@@ -105,12 +112,12 @@ export function directorBlueprintSceneRules(options?: { wardrobeBuild?: boolean 
   return [
     "The attached image is a character BLUEPRINT / reference sheet only — not a scene to copy.",
     options?.wardrobeBuild
-      ? "The sheet may show many poses, turnarounds, walk cycles, or expression tiles of the SAME person. Use it only to lock face, hair, and proportions. Clothes come from the garment list."
+      ? "The sheet may show many poses, turnarounds, walk cycles, or expression tiles of the SAME person. Use it only to lock face, hair, and proportions. Clothes come from the clothing reference images."
       : "The sheet may show many poses, turnarounds, walk cycles, or expression tiles of the SAME person. Use it only to lock face, hair, outfit, accessories, and proportions.",
     "Every still (start and end) must contain exactly ONE instance of each named cast member. Never stage a turnaround, walk-cycle, or expression grid. Never write two poses of the same person as if they share one frame.",
     "Start and end are two frozen moments of that same single figure. Put the travel (turn, step, look-up) in motionCamera only — still descriptions must be a resting pose, not in-between action like 'turning from side to front'.",
     options?.wardrobeBuild
-      ? "Face, hair, and body proportions stay on the blueprint. Worn clothes follow the user's garment list: each clip adds exactly one named garment and keeps every garment already on. Do not revert to the blueprint outfit. Do not add garments the user did not list. Name those garments in explainerScene. Never put unlisted worn items in visualWorld."
+      ? "Face, hair, and body proportions stay on the blueprint. Clip 1 starts in plain white tight shorts only. Each later still adds exactly one garment copied from the clothing reference images. A reference bottom replaces those shorts. Do not revert to the blueprint outfit and do not invent clothes. Name the garments and their reference ids in explainerScene. Never put worn items in visualWorld."
       : "Wardrobe is fixed to the blueprint in every clip, whatever the setting or weather. Never plan a costume change, weather gear (coats, gloves, hats, boots), or body-worn props (backpacks, harnesses, clip-on mics, helmets). Hand-held props are fine. Never put worn items in visualWorld either.",
   ];
 }
@@ -124,10 +131,10 @@ export const FRAME_WARDROBE_CHECK =
 
 // Outfit reel: the scene's garment list is the clothes. The blueprint still locks the face.
 export const FRAME_WARDROBE_BUILD =
-  "WARDROBE BUILD: face, hair, and body proportions stay on the blueprint. Draw exactly the garments named in the Scene. Pieces already on stay on. Add only the new garment this still names. Do not invent clothes and do not revert to the blueprint outfit.";
+  "WARDROBE BUILD: face, hair, and body proportions stay on the character blueprint. The reel starts in plain white tight shorts only. Draw exactly the garments named in the Scene, matching the clothing reference (cut, colour, details). A reference bottom replaces the white shorts. Do not invent clothes, do not copy the person in the clothing photo, and do not revert to the blueprint outfit.";
 
 export const FRAME_WARDROBE_BUILD_CHECK =
-  "Final check: the character wears the Scene's garment list. Face and hair still match the blueprint.";
+  "Final check: clothes match the Scene and the clothing reference. Face and hair still match the character blueprint.";
 
 // User-message note when there is no named cast.
 export function phaseASoloCharacterNote(
@@ -139,10 +146,10 @@ export function phaseASoloCharacterNote(
     return [
       "A character reference image is attached. You MUST inspect it.",
       wardrobeBuild
-        ? "characterLock MUST only say face, hair, and proportions follow the attached reference image. Name the user's listed garments in explainerScene."
+        ? "characterLock MUST only say face, hair, and proportions follow the attached reference image. Name garments copied from the clothing reference images in explainerScene."
         : "characterLock MUST only say appearance follows the attached reference image — do NOT invent hair, face, clothing, or accessories.",
       wardrobeBuild
-        ? "In explainerScene, describe pose and the listed garments. Never invent hair or face."
+        ? "In explainerScene, describe pose and the reference garments. Never invent hair or face."
         : "In explainerScene, describe pose and props only; never invent outfit details.",
       "Do not invent a replacement hero.",
       ...directorBlueprintSceneRules({ wardrobeBuild }),
@@ -182,7 +189,7 @@ export function castParagraphForFrames(
     `${attachmentLabel(attachment?.start, attachment?.count)} the ONLY source of truth for how each character looks (face, hair, outfit, accessories, proportions, gender). Cast: ${cast.map((member) => member.name).join(", ")}.`,
     BLUEPRINT_REFERENCE_ONLY,
     options?.wardrobeBuild
-      ? "Face, hair, and body proportions follow the blueprint. Worn garments follow the Scene, including pieces added on top of the blueprint outfit. Do not invent a replacement hero or extra clothes."
+      ? "Face, hair, and body proportions follow the blueprint. Worn garments follow the Scene and the clothing reference, not the blueprint outfit. Do not invent a replacement hero, extra clothes, or the person in the clothing photo."
       : "Ignore any clothing, hair, or style wording in the text — the blueprint wins. Do not invent a replacement hero or redesign their outfit.",
   ];
 }
@@ -199,7 +206,7 @@ export function soloCharacterParagraphForFrames(
     `${lead} the ONLY source of truth for how the character looks.`,
     BLUEPRINT_REFERENCE_ONLY,
     options?.wardrobeBuild
-      ? "Face, hair, and body proportions follow the attached guideline. Worn garments follow the Scene. Do not invent a replacement hero or extra clothes."
+      ? "Face, hair, and body proportions follow the attached guideline. Worn garments follow the Scene and the clothing reference. Do not invent a replacement hero or extra clothes."
       : "Ignore any clothing, hair, or style wording in the text — the attached guideline wins. Do not invent a replacement hero or redesign their outfit.",
   ];
 }

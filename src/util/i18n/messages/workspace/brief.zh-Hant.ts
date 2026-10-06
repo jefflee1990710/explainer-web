@@ -91,7 +91,7 @@ export const briefZhHant = {
   talkingHead: {
     hint: "上方是給導演的指示。角色要唸的講稿請填在下面。",
     scriptTitle: "角色講稿",
-    scriptHint: "角色會逐字讀這段。一句一段（最多 20 段）。超過 12 秒的句子請改短。",
+    scriptHint: "角色會逐字讀這段。每段字數相近（5–12 秒，最多 20 段）。整段超過 240 秒請改短。",
     scriptLabel: "角色講稿",
     scriptPlaceholder: "大家好。這個產品每星期幫你省一個小時。\n今日就試一次。",
   },
@@ -113,7 +113,7 @@ export const briefZhHant = {
     speechPace: "語速 · {label}",
     sceneText: "畫面文字 · {label}",
     bookendLength: "1 段 · 3–4 秒",
-    talkingHeadLength: "一句一段 · 最多 20 段",
+    talkingHeadLength: "每段長短相近 · 5–12 秒 · 最多 20 段",
     logo: "Logo",
   },
   confirm: {
@@ -156,6 +156,7 @@ export const briefZhHant = {
     "opening-director": "開場",
     "ending-director": "結尾",
     "talking-head-director": "對鏡讀稿",
+    "full-body-talking-head-director": "全身對鏡讀稿",
     "comparison-card-director": "對照卡",
     "talking-broll-director": "口播切畫面",
     "surprise-interview-director": "驚訝開場訪談",
@@ -172,10 +173,11 @@ export const briefZhHant = {
     "opening-director": "3–4 秒片頭：品牌標誌進場並停住。",
     "ending-director": "3–4 秒片尾：畫面停在品牌標誌上。",
     "talking-head-director": "一個角色對鏡讀稿，每段一句。",
+    "full-body-talking-head-director": "一個角色以全身鏡頭對鏡讀稿，每段字數相近。",
     "comparison-card-director": "每段一次對照，同一件事的兩個看法。",
     "talking-broll-director": "對鏡兩句，切到那兩句提到的畫面，再切回特寫。",
     "surprise-interview-director": "先是驚訝特寫，再坐下來把概念講清楚。",
-    "outfit-reel-director": "一個角色一件一件穿上指定衣服，最後停在完整造型。",
+    "outfit-reel-director": "從白色緊身短褲開始，只穿上參考圖裡的衣服。",
     "follow-shot-director": "第三人稱連續鏡頭。下一段從上一段的結尾開始。",
   },
   skillGuide: {
@@ -236,8 +238,14 @@ export const briefZhHant = {
       },
       "talking-head-director": {
         voice: "角色對住鏡頭讀你寫的講稿（你選的聲）",
-        structure: "你填的講稿；講出口的一句一段，最多 20 段",
-        picture: "同一中近景，望住鏡頭，底部一行字幕",
+        structure: "你填的講稿；每段字數相近，最多 20 段",
+        picture: "景別跟這位導演，望住鏡頭，底部一行字幕",
+        frames: "下一段起始圖接上一段結尾",
+      },
+      "full-body-talking-head-director": {
+        voice: "角色對住鏡頭讀你寫的講稿（你選的聲）",
+        structure: "你填的講稿；每段字數相近，最多 20 段",
+        picture: "鎖定全身，頭到腳都在畫面，望住鏡頭，底部一行字幕",
         frames: "下一段起始圖接上一段結尾",
       },
       "comparison-card-director": {
@@ -261,7 +269,7 @@ export const briefZhHant = {
       "outfit-reel-director": {
         voice: "不說話；只有你要求時，最後一段才加一句短句",
         structure: "一件衣服一段，最後停在完整造型",
-        picture: "同一房間、全身，衣服按你列的順序疊上去",
+        picture: "同一房間、全身。從白色緊身短褲開始，只換參考圖的衣服，臉和髮型不變",
         frames: "下一段的起始圖就是上一段的結尾，新的一件已經穿上",
       },
       "follow-shot-director": {
