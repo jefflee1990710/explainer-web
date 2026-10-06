@@ -5,7 +5,7 @@
     "hook": "No separate hook is added — the video opens straight on the character saying your first sentence, so lead with your strongest line.",
     "arc": "Follows your script sentence by sentence in order; each clip carries straight on from the previous one without restaging.",
     "narrator": "Exactly one character reads every line aloud to camera. Your script is used word for word; your separate instruction only guides tone and emphasis and is never spoken.",
-    "visual": "Look and palette come from the chosen visual style. Shot size follows this director. The character stays centred and looks into the lens; the same background, light and camera throughout, with only the mouth and small nods moving.",
+    "visual": "Look and palette come from the chosen visual style. Shot size follows this director. The character stays centred and looks into the lens; the same background, light and camera throughout. While speaking: continuous lip-sync, a small nod, a slight eyebrow lift, and quiet shoulders.",
     "audio": "No background music — just the character's voice, with a bottom subtitle that matches each clip's spoken line exactly.",
     "rules": "Needs a script, one character image and an aspect ratio. Words are never rewritten. Short lines are grouped and long lines are split so each clip has a similar length. A script over 240 seconds must be shortened."
   }

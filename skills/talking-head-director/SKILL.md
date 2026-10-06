@@ -44,7 +44,7 @@ The rendering rules come from the **Visual style** block appended below. Do not 
 ## Phase A field mapping
 
 - `clipCount`: the balanced clip count. `targetDuration`: the sum of the clip lengths. `loopMode`: always linear.
-- Each row: `narrativeJob` = clip k of N; `startScene` / `endScene` = the locked shot plus that clip's subtitle; `motionCamera` = mouth and a small nod across that clip's own seconds; `englishVo` = that clip's spoken line.
+- Each row: `narrativeJob` = clip k of N; `startScene` / `endScene` = the locked shot plus that clip's subtitle; `motionCamera` = continuous lip-sync, a small nod, and a slight eyebrow lift across that clip's own seconds; `englishVo` = that clip's spoken line.
 
 ## Workflow
 

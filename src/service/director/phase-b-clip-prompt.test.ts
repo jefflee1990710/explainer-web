@@ -78,6 +78,29 @@ test("video prompt asks for human timing, not one constant slow glide", () => {
   assert.doesNotMatch(prompt, /interpolate that travel smoothly/);
 });
 
+test("talking-head Phase B uses speech motion instead of snap verbs", () => {
+  const prompt = clipPhaseBUserPrompt({
+    ...base,
+    skillSlug: "talking-head-director",
+    phaseA: proposal(),
+    clipNumber: 2,
+  });
+  assert.match(prompt, /lip-sync/);
+  assert.match(prompt, /Do not write snaps/);
+  assert.doesNotMatch(prompt, /snaps fast and decisive/);
+});
+
+test("outfit-reel Phase B keeps snap dual-keyframe rules", () => {
+  const prompt = clipPhaseBUserPrompt({
+    ...base,
+    skillSlug: "outfit-reel-director",
+    phaseA: proposal(),
+    clipNumber: 2,
+  });
+  assert.match(prompt, /snaps fast and decisive/);
+  assert.doesNotMatch(prompt, /lip-sync/);
+});
+
 test("first clip has no previous neighbour", () => {
   const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 1 });
   assert.match(prompt, /first clip/);

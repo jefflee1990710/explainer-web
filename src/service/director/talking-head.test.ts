@@ -78,6 +78,7 @@ test("clip 2 starts on clip 1's end still", () => {
   assert.ok(clips.length >= 2);
   assert.equal(clips[1].startScene, clips[0].endScene);
   assert.match(clips[0].motionCamera, /底部字幕/);
+  assert.match(clips[0].motionCamera, /口型跟住講/);
   assert.match(clips.map((clip) => clip.englishVo).join(""), /大家好，我係 Jeff/);
   assert.ok(clips.every((clip) => clip.durationSeconds >= 5 && clip.durationSeconds <= 12));
   assert.doesNotMatch(clips[0].startScene, /中近景|medium close-up/);
@@ -108,6 +109,10 @@ test("talking-head evens word count and keeps a named shot", () => {
   assert.ok(Math.max(...durations) - Math.min(...durations) <= 3);
   assert.ok(durations.every((seconds) => seconds >= 5 && seconds <= 12));
   assert.match(clips[0].startScene, /locked full-body/);
+  assert.match(clips[0].startScene, /mouth just opening to speak/);
+  assert.match(clips[0].endScene || "", /open palm at waist height/);
+  assert.match(clips[0].motionCamera, /continuous lip-sync/);
+  assert.match(clips[0].motionCamera, /open palm/);
   assert.doesNotMatch(clips[0].startScene, /medium close-up/);
   assert.equal(talkingHeadShot(undefined), undefined);
 });

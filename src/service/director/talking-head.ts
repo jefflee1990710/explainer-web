@@ -2,6 +2,7 @@ import type { FramePosition, SpeechPace, VoLanguage } from "@/model/project";
 import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
 import { chainsClipStarts, inheritsPreviousEnd } from "@/service/director/clip-continuity";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
+import { talkingMotionLine } from "@/service/director/talking-performance";
 import { mediaSrc } from "@/util/media-src";
 
 export const TALKING_HEAD_SKILL_SLUG = "talking-head-director";
@@ -211,7 +212,7 @@ export function planTalkingHeadClips(input: {
       explainerScene: startScene,
       startScene,
       endScene,
-      motionCamera: motionLine(input.language, seconds, line, previousLine, input.shot),
+      motionCamera: motionLine(input.language, seconds, line, previousLine, input.shot, index + 1),
       englishVo: line,
       bgmSfx: input.language === "en" ? "none" : "無",
     });
@@ -231,8 +232,8 @@ export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
       ? "Locked full-body shot. Head, torso, and feet stay in frame. The character looks into the lens. Do not crop to a close-up."
       : "Do not pick a shot size. The director visual names the shot. The character looks into the lens the whole time.",
     fullBody
-      ? "Clip 2+ startScene must copy the previous clip's endScene. Motion is the mouth, a small nod, and natural body gestures. Feet stay in frame. One bottom subtitle equal to that clip's spoken line, same on the start and end still."
-      : "Clip 2+ startScene must copy the previous clip's endScene. Motion is mouth and a small nod only. One bottom subtitle equal to that clip's spoken line, same on the start and end still.",
+      ? "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync, a small nod, a slight eyebrow lift, and one waist-height open-palm gesture. Feet stay in frame. One bottom subtitle equal to that clip's spoken line, same on the start and end still."
+      : "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync, a small nod, and a slight eyebrow lift. Shoulders stay quiet. One bottom subtitle equal to that clip's spoken line, same on the start and end still.",
   ].join(" ");
 }
 
@@ -247,6 +248,9 @@ export function talkingHeadDirectorBlock(skillSlug?: string) {
     fullBody
       ? "Camera is a locked full-body shot. Do not crop to a close-up or a medium shot. Set and light stay identical across every clip. Clip 2 and after open on the previous clip's end still."
       : "Shot size follows the director visual. Do not pick a different shot. Camera, set, and light stay identical across every clip. Clip 2 and after open on the previous clip's end still.",
+    fullBody
+      ? "On-camera speech: eyes on the lens, continuous lip-sync, a small nod, a slight eyebrow lift, and one waist-height open-palm gesture. Never freeze the face. Never a greeting wave."
+      : "On-camera speech: eyes on the lens, continuous lip-sync, a small nod, and a slight eyebrow lift. Shoulders stay quiet. Never freeze the face. Never a greeting wave.",
     "Bottom subtitle only: that clip's spoken line, nothing else written in the frame.",
   ].join(" ");
 }
@@ -275,17 +279,22 @@ function shotLine(
   shot?: string,
 ) {
   const camera = cameraClause(language, shot);
+  const fullBody = shot === "full-body";
   if (language === "en") {
     const pose =
       moment === "start"
-        ? "Character: centered, eyes into the lens, mouth just opening."
-        : "Character: same pose, eyes into the lens, mouth just closed after the line.";
+        ? "Character: centered, eyes into the lens, mouth just opening to speak, brows relaxed, a soft inhale."
+        : fullBody
+          ? "Character: same stance, eyes into the lens, mouth just closed after the line, a warm small smile, one hand a small open palm at waist height, feet planted."
+          : "Character: same pose, eyes into the lens, mouth just closed after the line, a warm small smile.";
     return `${pose} Set: the same plain background in every clip, no new props. Light: soft and even, unchanged.${camera} Subtitle: one bottom line, exactly "${line}".`;
   }
   const pose =
     moment === "start"
-      ? "角色：置中，望住鏡頭，準備開口。"
-      : "角色：同一姿勢，望住鏡頭，呢句講完、口部合上。";
+      ? "角色：置中，望住鏡頭，準備開口，眉眼放鬆。"
+      : fullBody
+        ? "角色：同一站姿，望住鏡頭，呢句講完、口部合上變成溫暖淺笑，一隻手喺腰際攤掌，腳唔郁。"
+        : "角色：同一姿勢，望住鏡頭，呢句講完、口部合上變成溫暖淺笑。";
   return `${pose}場景：全程同一個簡潔背景，冇新道具。光：柔和均勻，不變。${camera}字幕：畫面底部一行，逐字係「${line}」。`;
 }
 
@@ -452,22 +461,14 @@ function motionLine(
   line: string,
   previousLine?: string,
   shot?: string,
+  clipNumber?: number,
 ) {
-  const fullBody = shot === "full-body";
-  if (language === "en") {
-    const subtitle = previousLine
-      ? `Bottom subtitle changes from "${previousLine}" to "${line}".`
-      : `Bottom subtitle stays "${line}".`;
-    const move = fullBody
-      ? "speaks this line, mouth moving, one small nod, and a natural gesture; feet stay in frame; camera stays locked."
-      : "speaks this line, mouth moving, one small nod; camera stays locked.";
-    return `0–${seconds}s the character looks into the lens and ${move} ${subtitle}`;
-  }
-  const subtitle = previousLine
-    ? `底部字幕由「${previousLine}」換成「${line}」。`
-    : `底部字幕保持「${line}」。`;
-  const move = fullBody
-    ? "口型跟住講，輕微點頭，身體有自然手勢；頭到腳留喺畫面；鏡頭鎖定。"
-    : "口型跟住講，輕微點頭；鏡頭鎖定。";
-  return `0–${seconds}s 望住鏡頭讀出呢句，${move}${subtitle}`;
+  return talkingMotionLine({
+    language,
+    seconds,
+    line,
+    previousLine,
+    shot: shot === "full-body" ? "full-body" : "face",
+    clipNumber,
+  });
 }

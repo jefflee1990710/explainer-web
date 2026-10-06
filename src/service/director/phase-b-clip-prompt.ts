@@ -5,6 +5,11 @@ import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-mot
 import { clampClipSeconds } from "@/service/director/keyframe-delta";
 import { phaseBAudioLock } from "@/service/director/voice";
 import type { PhaseAProposal, SpeechPace, VoiceGender } from "@/model/project";
+import {
+  clipUsesTalkingPerformance,
+  talkingShotForSkill,
+  talkingVideoMotionRules,
+} from "@/service/director/talking-performance";
 
 // Director-only note. Do not pass character sheet URLs — MiniMax H3 only
 // receives this clip's first and last frames.
@@ -57,6 +62,7 @@ export function clipPhaseBUserPrompt(input: {
   bansNarration?: boolean;
   speakers?: Array<{ name: string; voice?: CharacterVoice | null }>;
   characterLine: string;
+  skillSlug?: string;
 }) {
   const rows = input.phaseA.clips;
   const index = rows.findIndex((row) => row.clipNumber === input.clipNumber);
@@ -84,7 +90,9 @@ export function clipPhaseBUserPrompt(input: {
     }),
     input.characterLine,
     `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,
-    DUAL_KEYFRAME_MOTION_RULES,
+    clipUsesTalkingPerformance(input.skillSlug)
+      ? talkingVideoMotionRules(talkingShotForSkill(input.skillSlug) ?? "face")
+      : DUAL_KEYFRAME_MOTION_RULES,
     opening,
     closing,
     "Return a single object { clipNumber, durationSeconds, prompt }.",

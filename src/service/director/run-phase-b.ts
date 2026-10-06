@@ -23,6 +23,11 @@ import type { CastMember } from "@/model/character";
 import type { PhaseAProposal, PhaseBPrompt, SpeechPace, VoLanguage, VoiceGender } from "@/model/project";
 import { speechPaceDelivery } from "@/service/director/speech-pace";
 import type { Skill } from "@/model/skill";
+import { isTalkingHeadSkill } from "@/service/director/talking-head";
+import {
+  talkingShotForSkill,
+  talkingVideoMotionRules,
+} from "@/service/director/talking-performance";
 
 type PhaseBInput = {
   skill: Skill;
@@ -41,7 +46,11 @@ function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageS
 
 You are executing Phase B only after explicit approval of the current Phase A.
 Return standalone MiniMax H3 video prompts that follow the skill prompt contract. Do not invent new facts.
-Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image. ${DUAL_KEYFRAME_MOTION_RULES} Do not invent a different final pose, camera, or composition.
+Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image. ${
+    isTalkingHeadSkill(input.skill.slug)
+      ? talkingVideoMotionRules(talkingShotForSkill(input.skill.slug) ?? "face")
+      : DUAL_KEYFRAME_MOTION_RULES
+  } Do not invent a different final pose, camera, or composition.
 ${PHASE_B_DETAIL_RULES}
 Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}). ${
     skillBansNarration(input.skill.slug)
@@ -79,6 +88,7 @@ export async function runPhaseBForClip(
       bansNarration: skillBansNarration(input.skill.slug),
       speakers: input.cast,
       characterLine: characterLine(input),
+      skillSlug: input.skill.slug,
     }),
   });
 

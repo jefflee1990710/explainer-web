@@ -56,6 +56,18 @@ test("lockDialogueSpeech leaves explainer prompts unchanged", () => {
     lockDialogueSpeech("Narrator reads the line.", "cartoon-explainer-video-director"),
     "Narrator reads the line.",
   );
+  assert.equal(
+    lockDialogueSpeech("She puts on the skirt.", "outfit-reel-director"),
+    "She puts on the skirt.",
+  );
+});
+
+test("lockDialogueSpeech adds lip-sync rules for talking-head directors only", () => {
+  const locked = lockDialogueSpeech("She reads the line.", "full-body-talking-head-director");
+  assert.match(locked, /visible mouth/);
+  assert.match(locked, /lip-sync/);
+  assert.match(locked, /open palm/);
+  assert.equal(lockDialogueSpeech(locked, "full-body-talking-head-director"), locked);
 });
 
 test("DIALOGUE_SPEAK_LOCK tells MiniMax the on-screen character speaks", () => {

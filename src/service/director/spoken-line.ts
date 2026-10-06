@@ -1,4 +1,9 @@
 import { skillBansNarration, storyShortCameraLock } from "@/service/director/skill-rules";
+import {
+  clipUsesTalkingPerformance,
+  talkingShotForSkill,
+  talkingVideoMotionRules,
+} from "@/service/director/talking-performance";
 
 // MiniMax must hear on-screen speech, not an off-camera narrator.
 export const DIALOGUE_SPEAK_LOCK =
@@ -57,9 +62,17 @@ export function subtitleText(line: string) {
 // speech; story shorts also get the third-person camera lock.
 export function lockDialogueSpeech(prompt: string, skillSlug?: string) {
   let body = prompt.trim();
-  if (!skillBansNarration(skillSlug)) return body;
-  for (const lock of [DIALOGUE_SPEAK_LOCK, storyShortCameraLock(skillSlug)]) {
-    if (lock && !body.includes(lock)) body = `${body}\n\n${lock}`;
+  if (skillBansNarration(skillSlug)) {
+    for (const lock of [DIALOGUE_SPEAK_LOCK, storyShortCameraLock(skillSlug)]) {
+      if (lock && !body.includes(lock)) body = `${body}\n\n${lock}`;
+    }
+    return body;
+  }
+  if (clipUsesTalkingPerformance(skillSlug)) {
+    const shot = talkingShotForSkill(skillSlug) ?? "face";
+    for (const lock of [DIALOGUE_SPEAK_LOCK, talkingVideoMotionRules(shot)]) {
+      if (lock && !body.includes(lock)) body = `${body}\n\n${lock}`;
+    }
   }
   return body;
 }
