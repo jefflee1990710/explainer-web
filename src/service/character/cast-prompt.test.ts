@@ -103,7 +103,9 @@ test("frame paragraph and reference urls follow the cast", () => {
 
 test("outfit reels copy reference clothes and keep the face on the blueprint", () => {
   const rules = directorBlueprintSceneRules({ wardrobeBuild: true }).join(" ");
-  assert.match(rules, /plain white tight shorts/);
+  assert.match(rules, /white fitted tank/);
+  assert.match(rules, /white tight shorts/);
+  assert.match(rules, /Never write shorts-only/);
   assert.match(rules, /clothing reference images/);
   assert.doesNotMatch(rules, /Never plan a costume change/);
   const block = castBlockForPhaseA(cast, { wardrobeBuild: true })!;

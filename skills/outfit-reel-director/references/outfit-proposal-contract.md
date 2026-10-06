@@ -5,7 +5,8 @@ Present a readable director's proposal and stop for confirmation before writing 
 ## Garment list
 
 - The garments are the distinct worn pieces in the clothing reference images. Use a sensible dressing order. One garment per clip, then one hold clip.
-- Clip 1 starts in plain white tight shorts only. Do not invent a shirt, lounge set, or any other base.
+- Clip 1 starts already wearing a plain white fitted tank that covers the torso and matching white tight shorts. Do not invent loungewear. Never write shorts-only or a bare torso.
+- If the first reference top is a similar white tank, skip that piece — the base tank already stands in — and start with the next distinct garment.
 - Every still after that repeats the clothes already on, then the new piece. A reference bottom replaces the white tight shorts; do not wear both.
 - Copy cut, colour, and details from the photo. Name the reference id. Do not add pieces the photos do not show.
 - Face, hair, and proportions stay on the character blueprint. Do not copy the person in the clothing photo. The garment names in the scene are the clothes to draw.
@@ -42,7 +43,7 @@ Clip 2 and after: `startScene` copies the previous `endScene`, including every g
 
 Timed beats for the one action. Name the character's own left or right hand, and keep that hand on that garment from the start still through the end still.
 
-Example: `0–1s both hands lift the shirt; 1–3s the shirt comes down over the torso; 3–4s the hands drop and the shirt is on`.
+Example: `0–1s both hands lift the skirt at the waist; 1–3s the skirt comes up over the hips; 3–4s the hands drop and the skirt is on`. Never pull a top over the head. Never hold a garment at chest level.
 
 The hold clip is a small settle only: `0–3s a small pose settle; camera locked`. No new clothes.
 
@@ -50,7 +51,7 @@ The hold clip is a small settle only: `0–3s a small pose settle; camera locked
 
 - Exactly one character.
 - Clip count equals reference garments + 1.
-- Clip 1 starts in plain white tight shorts only.
+- Clip 1 starts already wearing the white tank and white tight shorts, torso covered.
 - Each dressing clip adds exactly one reference garment. A reference bottom replaces the white shorts.
 - The next start still matches the previous end still.
 - Same room and same camera. No flash cuts.

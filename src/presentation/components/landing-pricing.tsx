@@ -25,7 +25,7 @@ export function LandingPricing() {
   }
 
   return (
-    <section id="pricing" className="bg-white px-4 py-20 md:px-8">
+    <section id="pricing" className="bg-gradient-to-b from-[#fff7d6] via-white to-white px-4 py-20 md:px-8">
       <div className="mx-auto max-w-6xl">
       <MotionReveal>
         <h2 className="text-center text-3xl font-bold text-zinc-900">{t("landing.pricing.title")}</h2>

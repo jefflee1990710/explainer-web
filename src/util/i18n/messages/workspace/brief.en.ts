@@ -181,7 +181,7 @@ export const briefEn = {
     "comparison-card-director": "One comparison per clip, two views of the same thing.",
     "talking-broll-director": "Two lines to camera, a cutaway, then back to the close-up.",
     "surprise-interview-director": "A surprised close-up, then the character explains the concept.",
-    "outfit-reel-director": "Starts in plain white tight shorts, then puts on only the clothes in the reference image.",
+    "outfit-reel-director": "Starts already wearing a white fitted tank and matching white tight shorts, then puts on only the clothes in the reference image.",
     "follow-shot-director": "A third-person continuous shot. Each clip starts where the last one ended.",
   },
   skillGuide: {
@@ -273,7 +273,7 @@ export const briefEn = {
       "outfit-reel-director": {
         voice: "Silent, unless you ask for one short line on the last clip",
         structure: "One garment per clip, then a hold on the finished look",
-        picture: "One room, full body. Starts in white tight shorts; only the reference clothes change. Face and hair stay.",
+        picture: "One room, full body. Starts in a white tank and shorts; only the reference clothes change. Face and hair stay.",
         frames: "Each start frame is the previous end frame, with the new piece on",
       },
       "follow-shot-director": {

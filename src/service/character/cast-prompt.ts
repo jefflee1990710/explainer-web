@@ -117,7 +117,7 @@ export function directorBlueprintSceneRules(options?: { wardrobeBuild?: boolean 
     "Every still (start and end) must contain exactly ONE instance of each named cast member. Never stage a turnaround, walk-cycle, or expression grid. Never write two poses of the same person as if they share one frame.",
     "Start and end are two frozen moments of that same single figure. Put the travel (turn, step, look-up) in motionCamera only — still descriptions must be a resting pose, not in-between action like 'turning from side to front'.",
     options?.wardrobeBuild
-      ? "Face, hair, and body proportions stay on the blueprint. Clip 1 starts in plain white tight shorts only. Each later still adds exactly one garment copied from the clothing reference images. A reference bottom replaces those shorts. Do not revert to the blueprint outfit and do not invent clothes. Name the garments and their reference ids in explainerScene. Never put worn items in visualWorld."
+      ? "Face, hair, and body proportions stay on the blueprint. Clip 1 starts already wearing a plain white fitted tank (torso covered) and matching white tight shorts. Each later still adds exactly one garment copied from the clothing reference images. A reference bottom replaces those shorts. Never write shorts-only, a bare torso, or a top held at chest level. Do not revert to the blueprint outfit and do not invent clothes. Name the garments and their reference ids in explainerScene. Never put worn items in visualWorld."
       : "Wardrobe is fixed to the blueprint in every clip, whatever the setting or weather. Never plan a costume change, weather gear (coats, gloves, hats, boots), or body-worn props (backpacks, harnesses, clip-on mics, helmets). Hand-held props are fine. Never put worn items in visualWorld either.",
   ];
 }
@@ -131,7 +131,7 @@ export const FRAME_WARDROBE_CHECK =
 
 // Outfit reel: the scene's garment list is the clothes. The blueprint still locks the face.
 export const FRAME_WARDROBE_BUILD =
-  "WARDROBE BUILD: face, hair, and body proportions stay on the character blueprint. The reel starts in plain white tight shorts only. Draw exactly the garments named in the Scene, matching the clothing reference (cut, colour, details). A reference bottom replaces the white shorts. Do not invent clothes, do not copy the person in the clothing photo, and do not revert to the blueprint outfit.";
+  "WARDROBE BUILD: face, hair, and body proportions stay on the character blueprint. The reel starts already wearing a plain white fitted tank that covers the torso and matching white tight shorts — never shorts-only or a bare torso. Draw exactly the garments named in the Scene, matching the clothing reference (cut, colour, details). A reference bottom replaces the white shorts. Do not invent clothes, do not copy the person in the clothing photo, and do not revert to the blueprint outfit.";
 
 export const FRAME_WARDROBE_BUILD_CHECK =
   "Final check: clothes match the Scene and the clothing reference. Face and hair still match the character blueprint.";

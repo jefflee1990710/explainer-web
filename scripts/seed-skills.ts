@@ -136,7 +136,7 @@ const SKILLS: SkillManifest[] = [
     dir: "outfit-reel-director",
     slug: "outfit-reel-director",
     title: "Outfit build",
-    description: "Starts in plain white tight shorts, then puts on only the clothes in the reference image.",
+    description: "Starts already wearing a white fitted tank and matching white tight shorts, then puts on only the clothes in the reference image.",
     sortOrder: 14,
   },
   {

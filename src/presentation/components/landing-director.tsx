@@ -14,11 +14,12 @@ export function LandingDirector() {
   ];
 
   return (
-    <section id="cost" className="bg-white">
+    // Low-poly sky to mint, matching the director art's daylight scene.
+    <section id="cost" className="bg-gradient-to-br from-[#dff3ea] via-[#d3ecf2] to-[#cfe3f7]">
       <div className="grid w-full items-center lg:grid-cols-2">
         <div className="px-6 py-12 text-left sm:px-10 sm:py-16 lg:py-24 lg:pl-16 lg:pr-10">
           <div className="mx-auto max-w-lg lg:ml-0 lg:mr-auto">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0f766e]">
               {t("landing.director.eyebrow")}
             </p>
             <h2 className="mt-3 text-pretty text-3xl font-bold leading-[1.12] tracking-tight text-[#12141c] sm:text-4xl lg:text-5xl">
@@ -29,7 +30,7 @@ export function LandingDirector() {
               {points.map((label) => (
                 <li
                   key={label}
-                  className="rounded-full border border-[#12141c]/15 bg-white px-3 py-1 text-xs font-medium text-zinc-700"
+                  className="rounded-full border border-[#0f766e]/30 bg-white/80 px-3 py-1 text-xs font-medium text-[#0f766e]"
                 >
                   {label}
                 </li>
@@ -45,8 +46,8 @@ export function LandingDirector() {
         </div>
         <ParallaxLayer distance={40} className="overflow-hidden">
           <video
-            src="/landing/director-cost-loop.mp4"
-            poster="/landing/director-cost.png?v=2"
+            src="/landing/director-cost-lowpoly-loop.mp4"
+            poster="/landing/director-cost-lowpoly.png"
             autoPlay
             muted
             loop
@@ -55,7 +56,7 @@ export function LandingDirector() {
             className="h-72 w-full object-contain sm:h-96 lg:h-full lg:min-h-[32rem] lg:p-8 motion-reduce:hidden"
           />
           <img
-            src="/landing/director-cost.png?v=2"
+            src="/landing/director-cost-lowpoly.png"
             alt=""
             className="hidden h-72 w-full object-contain motion-reduce:block sm:h-96 lg:h-full lg:min-h-[32rem] lg:p-8"
           />
