@@ -226,6 +226,9 @@ export const en: Messages = {
     styleUsage: "{used}/{limit} styles",
     addStyleNeedSubscribe: "Subscribe to add another style.",
     addStyleAtLimit: "This plan allows {limit} styles per character.",
+    characterUsage: "{used}/{limit} characters",
+    characterNeedSubscribe: "Subscribe to create another character.",
+    characterAtLimit: "This plan allows {limit} characters.",
     addStyleTitle: "Add a style",
     addStyleBody:
       "A new blueprint is generated from this character's original photos and description. Later edits of other styles are not used.",

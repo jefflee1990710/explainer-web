@@ -21,19 +21,21 @@ import { translateAppError } from "@/util/i18n/translate-app-error";
 
 const NAME_MAX = 40;
 const DEFAULT_BUTTON_CLASS =
-  "inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5";
+  "inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0";
 
 // Header / empty-state trigger for the create-character dialog.
 export function CreateCharacterButton({
   credits,
   subscribed,
   styles,
+  atCharacterLimit = false,
   className = DEFAULT_BUTTON_CLASS,
   children,
 }: {
   credits: number;
   subscribed: boolean;
   styles: PublicStyle[];
+  atCharacterLimit?: boolean;
   className?: string;
   children?: React.ReactNode;
 }) {
@@ -47,6 +49,7 @@ export function CreateCharacterButton({
         className={className}
         aria-haspopup="dialog"
         aria-expanded={open}
+        disabled={atCharacterLimit}
         onClick={() => setOpen(true)}
       >
         {label}

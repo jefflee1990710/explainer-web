@@ -220,6 +220,9 @@ export const zhHant: Messages = {
     styleUsage: "{used}/{limit} 個風格",
     addStyleNeedSubscribe: "訂閱後才能為這個角色再加一個風格。",
     addStyleAtLimit: "這個方案每個角色最多 {limit} 個風格。",
+    characterUsage: "{used}/{limit} 個角色",
+    characterNeedSubscribe: "訂閱後才能再建立角色。",
+    characterAtLimit: "這個方案最多 {limit} 個角色。",
     addStyleTitle: "新增風格",
     addStyleBody:
       "會用這個角色最初的照片與描述，產生這個風格的新藍圖。不會沿用其他風格後來改過的圖。",

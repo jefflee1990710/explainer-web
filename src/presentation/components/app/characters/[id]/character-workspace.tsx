@@ -42,12 +42,15 @@ export function CharacterWorkspace({
   credits,
   subscribed,
   planId,
+  unlimitedStyles = false,
   styles,
 }: {
   character: PublicCharacter;
   credits: number;
   subscribed: boolean;
   planId: PlanId | null;
+  // This account can add styles past the plan cap.
+  unlimitedStyles?: boolean;
   styles: PublicStyle[];
 }) {
   const { t } = useI18n();
@@ -71,7 +74,7 @@ export function CharacterWorkspace({
   const walletCredits = paidSnap?.credits ?? credits;
   const walletSubscribed = paidSnap?.subscribed ?? subscribed;
   const walletPlanId = paidSnap?.planId ?? planId;
-  const styleLimit = characterStyleLimit(walletPlanId);
+  const styleLimit = unlimitedStyles ? null : characterStyleLimit(walletPlanId);
 
   // SSR gives a first paint; refresh in the background after navigation.
   useEffect(() => {

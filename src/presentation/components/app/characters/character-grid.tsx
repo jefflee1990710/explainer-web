@@ -11,12 +11,14 @@ export function CharacterGrid({
   credits,
   subscribed,
   styles,
+  atCharacterLimit = false,
 }: {
   characters: PublicCharacter[];
   credits: number;
   subscribed: boolean;
   // Passed through to the empty-state create button's style picker.
   styles: PublicStyle[];
+  atCharacterLimit?: boolean;
 }) {
   const { t } = useI18n();
 
@@ -29,7 +31,8 @@ export function CharacterGrid({
           credits={credits}
           subscribed={subscribed}
           styles={styles}
-          className="mt-5 inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5"
+          atCharacterLimit={atCharacterLimit}
+          className="mt-5 inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
         />
       </div>
     );

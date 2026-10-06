@@ -16,7 +16,8 @@ import {
   originalCharacterSource,
   versionStyleId,
 } from "@/service/character/character-styles";
-import { characterStyleLimit } from "@/service/character/style-limit";
+import { characterAllowance } from "@/service/character/character-limit";
+import { characterStyleAllowance } from "@/service/character/style-limit";
 import { editReferenceUrls, parseReferenceImageUrls } from "@/service/character/reference-urls";
 import { collectCharacterBlobUrls } from "@/service/character/storage";
 import { failCharacterVersion } from "@/service/character/sync";
@@ -98,6 +99,16 @@ export async function createCharacterAction(
     if (!isListedStyleId(styleId)) return { ok: false, error: "請選擇風格" };
     if (!prompt && !referenceImageUrl) {
       return { ok: false, error: "請描述這個角色，或上傳參考圖" };
+    }
+    const sub = await getActiveSubscription(user.clerkUserId);
+    const allowance = characterAllowance(
+      isSubscriptionActive(sub) && sub ? sub.planId : null,
+      user.email,
+    );
+    if (allowance != null) {
+      const existing = await charactersCollection();
+      const count = await existing.countDocuments({ clerkUserId: user.clerkUserId });
+      if (count >= allowance) return { ok: false, error: "已達這個方案的角色上限" };
     }
     const chosen = readCharacterVoice(formData.get("voice"));
     if (chosen === "invalid") return { ok: false, error: "聲線設定無效" };
@@ -239,8 +250,13 @@ export async function addCharacterStyleAction(
     const styles = characterStyleIds(character);
     if (styles.includes(styleId)) return { ok: false, error: "這個角色已經有這個風格" };
     const sub = await getActiveSubscription(user.clerkUserId);
-    const limit = characterStyleLimit(isSubscriptionActive(sub) && sub ? sub.planId : null);
-    if (styles.length >= limit) return { ok: false, error: "已達這個方案的風格上限" };
+    const limit = characterStyleAllowance(
+      isSubscriptionActive(sub) && sub ? sub.planId : null,
+      user.email,
+    );
+    if (limit != null && styles.length >= limit) {
+      return { ok: false, error: "已達這個方案的風格上限" };
+    }
 
     const source = originalCharacterSource(character.versions);
     if (!source.prompt && source.referenceImageUrls.length === 0) {

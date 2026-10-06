@@ -16,6 +16,7 @@ export const errorsEn = {
   styleRequired: "Choose a style",
   characterStyleExists: "This character already has that style",
   characterStyleLimit: "This plan's style limit is reached",
+  characterLimit: "This plan's character limit is reached",
   characterStyleNoSource: "No original reference is available",
   addCharacterStyleFailed: "Could not add the style",
   characterDescribeOrUpload: "Describe the character or upload a reference",

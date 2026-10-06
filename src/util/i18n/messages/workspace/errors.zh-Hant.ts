@@ -16,6 +16,7 @@ export const errorsZhHant = {
   styleRequired: "請選擇風格",
   characterStyleExists: "這個角色已經有這個風格",
   characterStyleLimit: "已達這個方案的風格上限",
+  characterLimit: "已達這個方案的角色上限",
   characterStyleNoSource: "沒有可用的原始參考",
   addCharacterStyleFailed: "新增風格失敗",
   characterDescribeOrUpload: "請描述這個角色，或上傳參考圖",

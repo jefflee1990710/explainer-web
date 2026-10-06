@@ -208,6 +208,9 @@ export type Messages = {
     styleUsage: string;
     addStyleNeedSubscribe: string;
     addStyleAtLimit: string;
+    characterUsage: string;
+    characterNeedSubscribe: string;
+    characterAtLimit: string;
     addStyleTitle: string;
     addStyleBody: string;
     addStyleSubmit: string;

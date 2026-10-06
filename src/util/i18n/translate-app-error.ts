@@ -24,6 +24,7 @@ const EXACT: Record<string, string> = {
   "請選擇風格": "errors.styleRequired",
   "這個角色已經有這個風格": "errors.characterStyleExists",
   "已達這個方案的風格上限": "errors.characterStyleLimit",
+  "已達這個方案的角色上限": "errors.characterLimit",
   "沒有可用的原始參考": "errors.characterStyleNoSource",
   "新增風格失敗": "errors.addCharacterStyleFailed",
   "請描述這個角色，或上傳參考圖": "errors.characterDescribeOrUpload",

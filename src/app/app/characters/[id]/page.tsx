@@ -6,6 +6,7 @@ import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/c
 import { charactersCollection } from "@/dao";
 import { toPublicCharacter } from "@/presentation/serialize";
 import type { Character } from "@/model/character";
+import { isCharacterStyleLimitUnlocked } from "@/service/character/style-limit";
 import { listSelectableStyles } from "@/service/style/list";
 import { CharacterWorkspace } from "@/presentation/components/app/characters/[id]/character-workspace";
 
@@ -38,6 +39,7 @@ export default async function CharacterPage({
         credits={user.credits}
         subscribed={subscribed}
         planId={subscribed && sub ? sub.planId : null}
+        unlimitedStyles={isCharacterStyleLimitUnlocked(user.email)}
         styles={[...selectable.system, ...selectable.mine]}
       />
     </Suspense>
