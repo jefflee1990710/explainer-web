@@ -155,16 +155,24 @@ export function VideoEditPreview({
     setLive(null);
   }
 
+  const frameClass = [
+    "relative w-auto overflow-hidden rounded-lg bg-black",
+    ASPECT_CLASS[aspectRatio],
+    // Phone height leaves room for the header, specs, and filmstrip. Desktop fills the stage.
+    "h-[min(36rem,calc(100dvh-19rem))] lg:h-full lg:max-h-full",
+    aspectRatio === "9:16" ? "max-w-[min(100%,22rem)]" : "max-w-[min(100%,48rem)]",
+  ].join(" ");
+
   return (
-    <div className="flex flex-col items-center gap-4 p-4">
-      <div className="flex w-full flex-col items-center justify-center gap-4 lg:flex-row">
+    <div className="flex w-full flex-col lg:h-full lg:min-h-0 lg:flex-1">
+      <div className="flex w-full items-center justify-center gap-3 px-3 pt-3 lg:min-h-0 lg:flex-1">
       <VideoEditCoverRail src={coverUrl} aspectRatio={aspectRatio} busy={coverBusy} />
       <div
         ref={frameRef}
         onPointerMove={moveDrag}
         onPointerUp={endDrag}
         onClick={() => onSelect(previewId)}
-        className={`relative w-full overflow-hidden rounded-lg bg-black ${aspectRatio === "9:16" ? "max-w-[22rem]" : "max-w-3xl"} ${ASPECT_CLASS[aspectRatio]}`}
+        className={frameClass}
       >
         <TimelineMedia
           item={current}

@@ -30,6 +30,20 @@ const chalkboard: Style = {
   canvas: "dark green slate chalkboard with faint chalk-dust smudges",
 };
 
+test("cinematic realistic tells the director to pick a prime per clip", () => {
+  const block = styleBlockForDirector({
+    ...doodle,
+    id: "realistic",
+    name: "Cinematic realistic",
+  });
+  assert.match(block, /24mm f\/1\.2/);
+  assert.match(block, /35mm f\/1\.4/);
+  assert.match(block, /50mm f\/1\.4/);
+  assert.match(block, /80mm f\/1\.4/);
+  assert.match(block, /35mm f\/1\.4 to 80mm f\/1\.4/);
+  assert.doesNotMatch(styleBlockForDirector(doodle), /24mm f\/1\.2/);
+});
+
 test("director block carries typography, motion and negatives", () => {
   const block = styleBlockForDirector(doodle);
   assert.match(block, /## Visual style/);

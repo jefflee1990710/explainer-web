@@ -23,7 +23,7 @@ If any required item is missing, ask in one concise message and stop. Never pick
 
 ## Shot plan
 
-1. **Clip 1 — surprise close-up (3–4s).** Tight on the face. Eyes into the lens. The expression moves into a clear surprise. One short hook line. Locked camera. Same light for the whole clip.
+1. **Clip 1 — surprise hook (3–4s).** The person stays right-side up. The camera starts above the head, looking down, then drops downward while it snaps a zoom-in onto the face. Sharp and clear, no blur, and do not flip the picture. The expression moves into a clear surprise. One short hook line.
 2. **Clip 2 — seated interview.** Medium shot. The same character is now sitting, facing the lens, and starts the explanation. This is the only framing change in the video. Do not copy the close-up into this clip's start.
 3. **Clip 3 and after.** The interview continues. `startScene` copies the previous clip's `endScene`. Same chair, same background, same light. Only the mouth, a small nod, and the hands change.
 
@@ -34,7 +34,7 @@ One idea per interview clip. The last clip ends with the character at rest in th
 - If the user pasted a script, copy those sentences in order into `englishVo`. The first sentence is the hook. Do not rewrite them.
 - If the user gave only a concept, write the interview lines. The hook is one short line. Later lines explain, one point each.
 - The character speaks every line to the camera. No second voice.
-- A bottom subtitle matches that clip's spoken line exactly. No other writing.
+- On-canvas type is a shock poster on every clip. Ultra-bold condensed sans-serif. Body words are white. Numbers, prices, and percents are mustard yellow. The payoff phrase is black type on a thick mustard-yellow dry-brush stroke, slightly tilted. Clip 1 places it huge at the top. Every later clip places the same design smaller at the bottom, as the subtitle, and keeps it pinned there for the whole clip. Not a white subtitle bar. The camera stays locked and does not zoom out. Letters stay upright and sharp. Spell the spoken line exactly. Do not add a "shock hook" label.
 
 ## Audio
 

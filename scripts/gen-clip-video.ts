@@ -14,6 +14,7 @@ import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { videoStyle } from "@/service/higgsfield/frame-prompts";
 import { mediaSrc } from "@/util/media-src";
 import { refreshProjectJobs } from "@/service/higgsfield/pipeline";
+import { hydrateStyles } from "@/service/style/load-style";
 import type { Project } from "@/model/project";
 
 loadEnvConfig(process.cwd());
@@ -34,6 +35,7 @@ function sleep(ms: number) {
 }
 
 async function main() {
+  await hydrateStyles();
   const videoId = process.argv[2] || "6aae09120d76b8b8baa76aaa";
   const clipNumber = Number(process.argv[3] || "1");
   const projectId = new ObjectId(videoId);

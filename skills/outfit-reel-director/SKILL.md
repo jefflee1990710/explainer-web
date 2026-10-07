@@ -28,17 +28,13 @@ Copy the clothing photos 100 percent: every piece, same style, cut, colour, patt
 ## Shot plan
 
 - One room. The outfit does not change.
-- Each clip is one camera move. The start still is the beginning of that move. The end still is the end of that move. Head and shoes stay in frame.
-- Shuffle the moves every time you plan, and do not give two clips in a row the same move:
-  - front
-  - front top move forward
-  - front zoom out
-  - front to left
-  - front to right
-  - low rise from the floor to an eye-level front
-  - orbit from her left across the front to her right
-  - lateral slide across the front
-- She stays planted. She does not dress, and she does not turn her body to follow the lens.
+- Each clip is one camera rotation. The start still and the end still share the same pose, the same room, the same distance, and the same subject size. Only the camera angle changes. Head and shoes stay in frame. The move is one slow gimbal rotation. No push, no zoom, no handheld shake, no whip, and no jump inside a clip.
+- Default order, shuffled each time you plan so two clips in a row are not the same rotation:
+  - left to right
+  - top to bottom
+  - right to left
+  - bottom to top
+- She stays planted, feet still, bright smile, no bounce. She does not dress, and she does not turn her body to follow the lens.
 - The next clip is a hard cut to a different move.
 
 ## Words and audio

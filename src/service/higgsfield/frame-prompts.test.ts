@@ -873,14 +873,16 @@ test("outfit reel stills copy the clothing photo on start and end", () => {
     },
   ];
   const start = frameSubmitPlan(video, 1, "start");
-  assert.deepEqual(start.refs, ["https://blob/r1.png", "https://blob/c.png"]);
+  assert.deepEqual(start.refs, ["https://blob/c.png", "https://blob/r1.png"]);
+  assert.match(start.prompt, /IDENTITY LOCK/);
+  assert.match(start.prompt, /energetic and happy/);
   assert.match(start.prompt, /CLOTHING REFERENCE/);
   assert.match(start.prompt, /style, cut, colour/);
   assert.match(start.prompt, /START FRAME CAMERA/);
   assert.doesNotMatch(start.prompt, /athletic shorts/);
   const end = frameSubmitPlan(video, 1, "end");
   assert.equal(end.anchor, undefined);
-  assert.deepEqual(end.refs, ["https://blob/r1.png", "https://blob/c.png"]);
+  assert.deepEqual(end.refs, ["https://blob/c.png", "https://blob/r1.png"]);
   assert.match(end.prompt, /END FRAME CAMERA/);
   assert.doesNotMatch(end.prompt, /Keep the same camera/);
 });
@@ -925,8 +927,67 @@ test("outfit reel later starts are a hard cut and do not attach the previous end
   ];
   const start = frameSubmitPlan(video, 2, "start");
   assert.equal(start.anchor, undefined);
-  assert.deepEqual(start.refs, ["https://blob/r1.png", "https://blob/c.png"]);
+  assert.deepEqual(start.refs, ["https://blob/c.png", "https://blob/r1.png"]);
   assert.match(start.prompt, /NEW CAMERA/);
   assert.match(start.prompt, /directly in front/);
   assert.doesNotMatch(start.prompt, /previous clip's END frame/);
+});
+
+test("surprise hook stills drop from above, zoom in, and use shock-poster type", () => {
+  const video = project();
+  video.skillSlug = "surprise-interview-director";
+  video.phaseA!.clips[0].englishVo = 'Ada: "I spent $0 on ads and got 37 clients."';
+  video.phaseA!.clips[0].startScene =
+    "Character: Ada looks into the lens. Set: studio. Light: daylight. Camera: locked close-up.";
+  video.phaseA!.clips[0].endScene =
+    "Character: Ada looks surprised. Set: studio. Light: daylight. Camera: locked close-up.";
+  video.frames = [
+    {
+      clipNumber: 1,
+      position: "start",
+      prompt: "p",
+      status: "completed",
+      blobUrl: "https://blob/start.png",
+    },
+  ];
+  const start = frameSubmitPlan(video, 1, "start");
+  assert.match(start.prompt, /HOOK CAMERA/);
+  assert.match(start.prompt, /looking down/);
+  assert.match(start.prompt, /Do not flip the picture/);
+  assert.match(start.prompt, /dry-brush/);
+  assert.match(start.prompt, /solid black rectangle/);
+  assert.match(start.prompt, /37 clients/);
+  assert.match(start.prompt, /I spent \$0 on ads and got 37 clients/);
+  assert.doesNotMatch(start.prompt, /subtitle band across the bottom/);
+  const end = frameSubmitPlan(video, 1, "end");
+  assert.equal(end.anchor, undefined);
+  assert.match(end.prompt, /dropped down and snapped a zoom-in/);
+  assert.doesNotMatch(end.prompt, /Keep the same camera/);
+});
+
+test("later surprise clips use the shock poster at the bottom", () => {
+  const video = project();
+  video.skillSlug = "surprise-interview-director";
+  video.sceneTextEnabled = true;
+  video.phaseA!.clips.push({
+    clipNumber: 2,
+    timeRange: "3-7s",
+    durationSeconds: 4,
+    narrativeJob: "interview",
+    explainerScene: "seated",
+    motionCamera: "camera locked",
+    englishVo: "It works because the first client told a friend.",
+    referenceTranslation: "r",
+    bgmSfx: "s",
+    startScene: "Character: Ada sits. Set: studio. Light: daylight. Camera: locked medium shot.",
+    endScene: "Character: Ada nods. Set: studio. Light: daylight. Camera: locked medium shot.",
+  });
+  const start = frameSubmitPlan(video, 2, "start");
+  assert.match(start.prompt, /bottom as the subtitle/);
+  assert.match(start.prompt, /dry-brush/);
+  assert.match(start.prompt, /first client told a friend/);
+  assert.doesNotMatch(start.prompt, /from the top edge/);
+  assert.doesNotMatch(start.prompt, /HOOK CAMERA/);
+  assert.doesNotMatch(start.prompt, /white band/);
+  assert.doesNotMatch(start.prompt, /hand-lettered/);
 });

@@ -26,8 +26,8 @@ export function VideoEditCoverRail({
   if (!src && !busy) return null;
 
   return (
-    <aside className="flex w-28 shrink-0 flex-col items-stretch gap-2 sm:w-36">
-      <div className={`relative overflow-hidden rounded-lg border border-[var(--studio-line)] bg-white ${ASPECT_CLASS[aspectRatio]}`}>
+    <aside className="flex max-h-full w-20 shrink-0 flex-col items-stretch gap-2 sm:w-28 lg:w-36">
+      <div className={`relative max-h-full overflow-hidden rounded-lg border border-[var(--studio-line)] bg-white ${ASPECT_CLASS[aspectRatio]}`}>
         {src && picture === "ok" ? (
           <button
             type="button"

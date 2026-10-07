@@ -131,7 +131,7 @@ export const FRAME_WARDROBE_CHECK =
 
 // Outfit reel: the scene's garment list is the clothes. The blueprint still locks the face.
 export const FRAME_WARDROBE_BUILD =
-  "WARDROBE: keep the face, hair, and body from the character blueprint. Wear the complete outfit in the clothing reference exactly — same style, cut, colour, pattern, and details. Do not copy clothes from the character blueprint. Do not redesign, recolor, drop, or add any piece. Do not copy the person, pose, or background in the clothing photo. She is already dressed.";
+  "WARDROBE: the character image is the person. Copy that face, haircut, hair length, skin, age, and body. Wear the complete outfit in the clothing reference exactly — same style, cut, colour, pattern, and details. Do not copy clothes from the character image. Do not copy the person, face, hair, hair length, pose, or background in the clothing photo. Only the clothes change. She is already dressed, energetic and happy.";
 
 export const FRAME_WARDROBE_BUILD_CHECK =
   "Final check: every garment matches the clothing reference in style and colour. Face and hair still match the character blueprint. She is not putting clothes on.";
@@ -185,12 +185,18 @@ export function castParagraphForFrames(
   options?: { wardrobeBuild?: boolean },
 ) {
   if (!cast || cast.length === 0) return [];
+  const names = cast.map((member) => member.name).join(", ");
+  if (options?.wardrobeBuild) {
+    return [
+      `${attachmentLabel(attachment?.start, attachment?.count)} the ONLY source of truth for this character's face, haircut, hair length, skin, age, and body. Cast: ${names}.`,
+      "Draw exactly one person. Copy her face and hair from that image, including hair length. If it is a multi-pose sheet, do not copy the sheet layout.",
+      "Do not copy the face, hair, hair length, or body of the person in the clothing photo. Only the clothes change. Worn garments follow the clothing reference exactly, not the clothes in the character image.",
+    ];
+  }
   return [
-    `${attachmentLabel(attachment?.start, attachment?.count)} the ONLY source of truth for how each character looks (face, hair, outfit, accessories, proportions, gender). Cast: ${cast.map((member) => member.name).join(", ")}.`,
+    `${attachmentLabel(attachment?.start, attachment?.count)} the ONLY source of truth for how each character looks (face, hair, outfit, accessories, proportions, gender). Cast: ${names}.`,
     BLUEPRINT_REFERENCE_ONLY,
-    options?.wardrobeBuild
-      ? "Face, hair, and body proportions follow the blueprint. Worn garments follow the Scene and the clothing reference, not the blueprint outfit. Do not invent a replacement hero, extra clothes, or the person in the clothing photo."
-      : "Ignore any clothing, hair, or style wording in the text — the blueprint wins. Do not invent a replacement hero or redesign their outfit.",
+    "Ignore any clothing, hair, or style wording in the text — the blueprint wins. Do not invent a replacement hero or redesign their outfit.",
   ];
 }
 
@@ -206,7 +212,7 @@ export function soloCharacterParagraphForFrames(
     `${lead} the ONLY source of truth for how the character looks.`,
     BLUEPRINT_REFERENCE_ONLY,
     options?.wardrobeBuild
-      ? "Face, hair, and body proportions follow the attached guideline. Worn garments follow the Scene and the clothing reference. Do not invent a replacement hero or extra clothes."
+      ? "Face, haircut, hair length, skin, age, and body follow the attached guideline. Do not copy the person or the hair in the clothing photo. Only the clothes change. Worn garments follow the clothing reference."
       : "Ignore any clothing, hair, or style wording in the text — the attached guideline wins. Do not invent a replacement hero or redesign their outfit.",
   ];
 }

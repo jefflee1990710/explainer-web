@@ -36,7 +36,7 @@ export function VideoEditorBreadcrumb({
         </li>
         <CrumbSep />
         <li className="min-w-0">
-          <h1 id={titleId} className="truncate font-display text-xl font-bold">
+          <h1 id={titleId} className="truncate font-display text-base font-bold sm:text-xl">
             {title}
           </h1>
         </li>

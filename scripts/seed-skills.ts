@@ -129,14 +129,14 @@ const SKILLS: SkillManifest[] = [
     dir: "surprise-interview-director",
     slug: "surprise-interview-director",
     title: "Surprise interview",
-    description: "One character opens on a surprised close-up, then sits facing the camera and explains the concept.",
+    description: "Opens with a camera drop from above and a sharp zoom-in, then a seated interview. On-screen type is a black, white, and yellow shock poster.",
     sortOrder: 13,
   },
   {
     dir: "outfit-reel-director",
     slug: "outfit-reel-director",
     title: "Outfit reel",
-    description: "Already wearing the full outfit from the reference image. Each clip is a different camera move, with sound effects only.",
+    description: "Already wearing the full outfit from the reference image. Each clip is one camera rotation, with sound effects only.",
     sortOrder: 14,
   },
   {

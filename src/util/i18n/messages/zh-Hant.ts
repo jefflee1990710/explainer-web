@@ -286,7 +286,7 @@ export const zhHant: Messages = {
     voiceTitle: "聲線鎖定",
     voiceHint: "細節留在這些選項。影片提示只貼下面那句短的。語速仍用影片上的語速。",
     voiceEnabled: "鎖定這個角色的聲線",
-    voiceUnset: "尚未鎖定。對白片會照外表猜聲音，所以每段可能不一樣。",
+    voiceUnset: "尚未鎖定。所有導演都會改用專案的旁白聲線鎖定，聲線不會每段不同。",
     voiceAutoUnset:
       "維持關閉即可。建立時會用 AI 讀描述和參考圖，並自動打開聲線鎖定。只有想自己選時才打開。",
     voicePreview: "每段都會原樣貼上的句子",
@@ -463,7 +463,7 @@ export const zhHant: Messages = {
     clay: "手捏黏土、柔光攝影棚的停格動畫。",
     pixel: "16-bit 方塊像素、復古遊戲機調色。",
     "ink-manga": "沾水筆線條、網點與速度線的漫畫張力。",
-    realistic: "真實光影、35mm 鏡頭感的電影劇照。",
+    realistic: "真實光影。每段在 24mm f/1.2、35mm f/1.4、50mm f/1.4、80mm f/1.4 裡選鏡頭。",
     "low-poly": "低面數方塊、平面上色與柔陰影，遊戲世界感。",
     "colored-pencil": "蠟筆般的彩色鉛筆筆觸，兒童繪本手繪。",
     "dark-tech": "深藍空間、發光量體與乾淨 3D 示意圖，科學解說感。",

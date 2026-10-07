@@ -32,22 +32,18 @@ Write `startScene` and `endScene` as four concrete parts, in order:
 1. Character: a planted standing pose in the complete reference outfit. Do not describe hair or face. Do not put a garment in her hands.
 2. Set: the same room in every clip. Do not copy the room in the clothing photo.
 3. Light: the same light in every clip.
-4. Camera: the start still is the beginning of this clip's move. The end still is where that move lands. Head and shoes stay in frame.
+4. Camera: the start still is the beginning of this clip's one rotation. The end still is where that rotation lands. Same pose, same room, same distance, and same subject size. Head and shoes stay in frame.
 
 ## Motion contract (`motionCamera`)
 
-Timed beats for the camera only. She is already dressed and stays planted. The move is sharp and quick: a short hold, one decisive travel, then a hold on the end frame.
+Timed beats for the camera only. She is already dressed and stays planted in the same pose. The move is one slow gimbal rotation for the whole clip. Same distance and same subject size. No push, no zoom, no handheld shake, no whip, and no jump.
 
-Assign these moves at random, a different one on every clip, and a new shuffle each time you plan:
+Assign these rotations, a different one on every clip, and a new shuffle each time you plan. The default order is:
 
-- front
-- front top move forward
-- front zoom out
-- front to left
-- front to right
-- low rise from the floor to an eye-level front
-- orbit from her left across the front to her right
-- lateral slide across the front
+- left to right
+- top to bottom
+- right to left
+- bottom to top
 
 ## Audio
 

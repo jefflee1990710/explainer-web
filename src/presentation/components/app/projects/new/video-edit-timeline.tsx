@@ -61,8 +61,8 @@ export function VideoEditTimeline({
 
   return (
     <>
-      <div className="w-full max-w-3xl overflow-x-auto px-1">
-        <div className="mx-auto flex w-max min-w-full items-start justify-center">
+      <div className="w-full max-w-3xl shrink-0 overflow-x-auto px-3 pb-3">
+        <div className="flex w-max min-w-full items-start justify-start md:justify-center">
           <CoverCard src={coverUrl} busy={coverBusy} frame={frame} onClick={() => onOpenSlot("cover")} />
           <span className="w-2 shrink-0" aria-hidden />
           {items.map((item, index) => {

@@ -1,7 +1,8 @@
 import type { ObjectId } from "mongodb";
 import { characterLockFromCast } from "@/service/character/cast-prompt";
-import { isOutfitReelSkill } from "@/service/director/skill-rules";
+import { isOutfitReelSkill, isSurpriseInterviewSkill } from "@/service/director/skill-rules";
 import { sanitizeOutfitPhaseA } from "@/service/director/outfit-reel";
+import { sanitizeSurprisePhaseA } from "@/service/director/surprise-interview";
 import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { videosCollection } from "@/dao";
 import { loadStoredSkill } from "@/service/director/load-skill";
@@ -101,7 +102,12 @@ export async function runPhaseAJob(
         : "角色外貌一律以附加參考圖為準；禁止另行描述或改動髮型、臉型、服裝或配件。";
     }
     if (wardrobeBuild) {
-      nextPhaseA.clips = sanitizeOutfitPhaseA(nextPhaseA).clips;
+      nextPhaseA.clips = sanitizeOutfitPhaseA(nextPhaseA, Math.random, {
+        lenses: project.styleId === "realistic",
+      }).clips;
+    }
+    if (isSurpriseInterviewSkill(project.skillSlug)) {
+      nextPhaseA.clips = sanitizeSurprisePhaseA(nextPhaseA).clips;
     }
 
     await projects.updateOne(

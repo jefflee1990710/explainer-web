@@ -294,7 +294,7 @@ export const en: Messages = {
     voiceHint:
       "Extra detail stays in these picks. The clip only receives the short line below. Pace still comes from the video.",
     voiceEnabled: "Lock this character's voice",
-    voiceUnset: "Not locked. Dialogue videos guess a voice from the look, so it can change between clips.",
+    voiceUnset: "Not locked. Every director uses the project narrator voice lock, so the timbre stays the same.",
     voiceAutoUnset:
       "Leave this off. Creating the character runs AI on the description and photos, then turns the lock on. Turn it on only to choose the voice yourself.",
     voicePreview: "Pasted into every clip",
@@ -473,7 +473,7 @@ export const en: Messages = {
     clay: "Hand-sculpted clay and soft studio lighting — claymation stop-motion.",
     pixel: "16-bit square pixels and retro console palette.",
     "ink-manga": "Brush ink lines, screentone, and speed lines — manga energy.",
-    realistic: "Realistic light and 35 mm lens — cinematic still.",
+    realistic: "Realistic light. Each clip picks 24mm f/1.2, 35mm f/1.4, 50mm f/1.4, or 80mm f/1.4.",
     "low-poly": "Chunky flat-faced shapes and soft shadows — a stylised game world.",
     "colored-pencil": "Waxy colored-pencil strokes on paper — a children's drawing.",
     "dark-tech": "Navy void, glowing volumes, and clean 3D diagrams — a science explainer.",

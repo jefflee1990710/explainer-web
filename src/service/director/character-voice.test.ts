@@ -48,12 +48,14 @@ test("a character voice fingerprint stays one short line", () => {
   assert.ok(!characterVoiceFingerprint("Fred", { ...fred.voice, note: long }).includes("x".repeat(51)));
 });
 
-test("dialogue lock pastes every locked speaker and leaves the rest to the frames", () => {
+test("dialogue lock pastes every locked speaker and locks the rest to the project voice", () => {
   const lock = dialogueVoiceLock([fred, { name: "Sam" }]);
   assert.ok(lock);
   assert.match(lock, /Copy each voice lock verbatim/);
   assert.match(lock, /Fred: adult male, mid-low, chesty, warm, medium/);
   assert.match(lock, /Unlocked \(Sam\)/);
+  assert.match(lock, /voice lock verbatim/);
+  assert.doesNotMatch(lock, /match the frames/);
   assert.equal(lock.split("Change only emotion or volume").length - 1, 1);
   assert.deepEqual(lockedSpeakerLines([fred, { name: "Sam" }]), [
     characterVoiceFingerprint("Fred", fred.voice),

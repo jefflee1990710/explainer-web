@@ -998,8 +998,8 @@ export function NewProjectForm({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10, transition: { duration: 0.2 } }}
               transition={{ duration: 0.35, ease }}
-              className={`flex items-center gap-3 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-4 py-2 text-xs ${
-                desk ? "shrink-0" : "mx-4 mt-4 rounded-md border sm:mx-6"
+              className={`flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-3 py-2 text-xs sm:px-4 ${
+                desk ? "shrink-0" : "mx-3 mt-3 rounded-md border sm:mx-6 sm:mt-4"
               }`}
             >
               <EditorStepSwitch
@@ -1012,7 +1012,8 @@ export function NewProjectForm({
                   pinViewingStep(step);
                 }}
               />
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+              {/* Full row under the steps on a phone, so the export button is not painted over the specs. */}
+              <div className="order-last flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:order-none sm:w-auto sm:flex-1">
                 <span className="font-display font-bold">{skillTitle}</span>
                 <Dot />
                 <span>{styleName}</span>

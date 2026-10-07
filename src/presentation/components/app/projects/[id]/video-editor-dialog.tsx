@@ -46,10 +46,11 @@ export function VideoEditorDialog({
   }, []);
 
   return (
-    <div className="studio-app fixed inset-y-0 right-0 left-[72px] z-40 flex flex-col">
+    // Phone: cover the icon rail. md+: sit beside the 72px rail.
+    <div className="studio-app fixed inset-0 z-[60] flex flex-col md:inset-y-0 md:right-0 md:left-[72px] md:z-40">
       <header className="shrink-0 border-b border-[var(--studio-line)] bg-[var(--studio-panel)]">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-3">
+        <div className="flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4 sm:py-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <VideoEditorBreadcrumb
               folderId={folderId}
               folderName={folderName}
@@ -57,7 +58,7 @@ export function VideoEditorDialog({
               titleId={titleId}
             />
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2">
           {videoId ? <VideoEditorHeaderStatus videoId={videoId} /> : null}
           {onRestart ? (
             <StudioButton variant="ghost" onClick={onRestart}>

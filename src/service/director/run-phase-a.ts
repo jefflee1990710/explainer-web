@@ -68,6 +68,7 @@ import {
   talkingHeadSourceError,
 } from "@/service/director/talking-head";
 import { sanitizeOutfitPhaseA } from "@/service/director/outfit-reel";
+import { sanitizeSurprisePhaseA } from "@/service/director/surprise-interview";
 import type { Style } from "@/service/style";
 import { resolveStyleLettering } from "@/service/style/lettering";
 import type { RenderableStyle } from "@/service/style/renderable-style";
@@ -140,7 +141,8 @@ export async function runPhaseA(input: {
   const lettering = resolveStyleLettering(input.style);
   const dualBeat = isDualBeatSkill(input.skill.slug);
   const dialogueOnly = skillBansNarration(input.skill.slug);
-  const speakerLocks = dialogueOnly ? lockedSpeakerLines(input.cast) : [];
+  const speakerLocks = lockedSpeakerLines(input.cast);
+  const voice = VOICE_PRESETS[resolveVoiceGender(input.voiceGender)];
   const hasCharacter = Boolean(input.cast?.length || input.characterImageUrl);
   const characterImages = await loadDirectorImageParts(
     characterReferenceUrls({
@@ -276,11 +278,11 @@ ${dialogueOnly ? "Dialogue language" : "Voiceover language"}: ${language.label} 
 ${sceneDescriptionLanguageLock(input.language)}
 Speaking pace: ${resolveSpeechPace(input.speechPace)} (${SPEECH_PACE_PRESETS[resolveSpeechPace(input.speechPace)].delivery})
 ${
-  dialogueOnly
-    ? speakerLocks.length
-      ? `Character voices: do not pick a narrator gender. Copy these locks verbatim into every clip. Do not rephrase them:\n${speakerLocks.join("\n")}`
-      : "Character voices: do not pick a narrator gender. MiniMax will match each named speaker when the clip video is generated."
-    : `Narrator voice: ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].label} (adult ${resolveVoiceGender(input.voiceGender)})`
+  speakerLocks.length
+    ? `Voice lock: copy these character locks verbatim into every spoken clip. Do not invent a timbre from the look:\n${speakerLocks.join("\n")}\nAny speaker without a lock uses: adult ${voice.en}, ${voice.fingerprint}`
+    : dialogueOnly
+      ? `Voice lock: every speaker uses this verbatim: adult ${voice.en}, ${voice.fingerprint}. Do not invent a timbre from the look. No narrator.`
+      : `Narrator voice lock: ${voice.label} (adult ${voice.en}), ${voice.fingerprint}. Copy it verbatim. Do not invent a timbre from the look.`
 }
 Audio: no background music. bgmDirection and each clip bgmSfx are SFX-only.
 On-canvas text: ${
@@ -360,6 +362,11 @@ Produce a complete Phase A director proposal now.`,
         : "角色外貌一律以附加參考圖為準；禁止另行描述或改動髮型、臉型、服裝或配件。",
     };
   }
-  if (wardrobeBuild) next = sanitizeOutfitPhaseA(next);
+  if (wardrobeBuild) {
+    next = sanitizeOutfitPhaseA(next, Math.random, {
+      lenses: input.style.id === "realistic" || input.style.name === "Cinematic realistic",
+    });
+  }
+  if (isSurpriseInterviewSkill(input.skill.slug)) next = sanitizeSurprisePhaseA(next);
   return next;
 }

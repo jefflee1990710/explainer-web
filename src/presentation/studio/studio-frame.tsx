@@ -37,7 +37,7 @@ export function StudioFrame({
           ) : null}
           <section
             aria-label={t("production.shell.previewAria")}
-            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--studio-canvas)] lg:h-full"
+            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-[var(--studio-canvas)] lg:h-full lg:overflow-hidden"
           >
             {preview}
           </section>

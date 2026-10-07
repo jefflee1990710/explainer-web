@@ -26,11 +26,13 @@ test("Phase A audio hint locks the chosen narrator voice and forbids BGM", () =>
   assert.match(phaseAAudioHint("male"), /bgmDirection/);
 });
 
-test("story-short Phase A audio hint skips narrator gender", () => {
+test("story-short Phase A audio hint uses the voice lock", () => {
   const hint = phaseAAudioHint("male", { bansNarration: true });
   assert.match(hint, /No narrator/);
-  assert.match(hint, /when the clip video is generated/i);
-  assert.doesNotMatch(hint, /adult male voice/);
+  assert.match(hint, /voice lock verbatim/i);
+  assert.match(hint, /mid-low pitch/);
+  assert.doesNotMatch(hint, /when the clip video is generated/i);
+  assert.doesNotMatch(hint, /infer/i);
   assert.match(hint, /no background music/i);
 });
 
@@ -58,19 +60,52 @@ test("Phase B audio lock is a fixed fingerprint, not rewritten per clip", () => 
   assert.notEqual(a, female);
 });
 
-test("story-short Phase B lock infers each speaker and still forbids BGM", () => {
+test("story-short Phase B lock uses the voice lock and still forbids BGM", () => {
   const lock = phaseBAudioLock({
     voiceGender: "male",
     languageLabel: "English",
     bansNarration: true,
   });
   assert.match(lock, /There is no narrator/);
-  assert.match(lock, /start\/end frames/);
+  assert.match(lock, /voice lock verbatim/i);
+  assert.match(lock, /mid-low pitch/);
   assert.match(lock, /On-screen characters MUST speak/);
   assert.match(lock, /visible mouth/);
-  assert.doesNotMatch(lock, /adult male/);
-  assert.doesNotMatch(lock, /mid-low pitch/);
+  assert.doesNotMatch(lock, /start\/end frames/);
+  assert.doesNotMatch(lock, /infer/i);
   assert.match(lock, /No background music/);
+});
+
+test("a character voice lock is pasted for narrated directors too", () => {
+  const lock = phaseBAudioLock({
+    voiceGender: "female",
+    languageLabel: "English",
+    speakers: [
+      {
+        name: "Ada",
+        voice: {
+          gender: "female",
+          age: "adult",
+          pitch: "mid",
+          resonance: "mixed",
+          texture: "warm",
+        },
+      },
+    ],
+  });
+  assert.match(lock, /Ada: adult female, mid, mixed, warm, medium/);
+  assert.match(lock, /voice lock verbatim/i);
+  assert.doesNotMatch(lock, /infer/i);
+});
+
+test("a silent director does not receive a speaking voice lock", () => {
+  const lock = phaseBAudioLock({
+    voiceGender: "male",
+    languageLabel: "English",
+    silent: true,
+  });
+  assert.match(lock, /No spoken words/);
+  assert.doesNotMatch(lock, /mid-low pitch/);
 });
 
 test("finalizePhaseBPrompt appends the audio lock once", () => {

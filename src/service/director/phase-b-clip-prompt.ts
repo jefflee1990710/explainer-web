@@ -3,6 +3,8 @@ import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { isOutfitReelSkill } from "@/service/director/skill-rules";
 import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
 import { OUTFIT_VIDEO_MOTION_RULES } from "@/service/director/outfit-reel";
+import { isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
+import { surpriseVideoMotionRules } from "@/service/director/surprise-interview";
 import { clampClipSeconds } from "@/service/director/keyframe-delta";
 import { phaseBAudioLock } from "@/service/director/voice";
 import type { PhaseAProposal, SpeechPace, VoiceGender } from "@/model/project";
@@ -92,6 +94,7 @@ export function clipPhaseBUserPrompt(input: {
       bansNarration: input.bansNarration,
       speechPace: input.speechPace,
       speakers: input.speakers,
+      silent: isOutfitReelSkill(input.skillSlug),
     }),
     input.characterLine,
     `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,
@@ -99,7 +102,9 @@ export function clipPhaseBUserPrompt(input: {
       ? talkingVideoMotionRules(talkingShotForSkill(input.skillSlug) ?? "face")
       : isOutfitReelSkill(input.skillSlug)
         ? OUTFIT_VIDEO_MOTION_RULES
-        : DUAL_KEYFRAME_MOTION_RULES,
+        : isSurpriseInterviewSkill(input.skillSlug)
+          ? surpriseVideoMotionRules(row.clipNumber)
+          : DUAL_KEYFRAME_MOTION_RULES,
     opening,
     closing,
     "Return a single object { clipNumber, durationSeconds, prompt }.",

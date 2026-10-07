@@ -54,20 +54,28 @@ export function resolveVoiceGender(value?: string): VoiceGender {
   return value && isVoiceGender(value) ? value : DEFAULT_VOICE_GENDER;
 }
 
-// Phase A: lock the chosen narrator, or leave character voices for Phase B.
+function projectVoice(voiceGender?: string) {
+  return VOICE_PRESETS[resolveVoiceGender(voiceGender)];
+}
+
+// Phase A: every speaking director copies a voice lock. Silent skills ignore this.
 export function phaseAAudioHint(
   voiceGender?: string,
   options?: { bansNarration?: boolean; speakers?: NamedVoice[] },
 ) {
+  const voice = projectVoice(voiceGender);
+  const locked = dialogueVoiceLock(options?.speakers, `adult ${voice.en}, ${voice.fingerprint}`, {
+    keepNarrator: !options?.bansNarration,
+  });
+  const tail = `${NO_BGM_RULE} bgmDirection and every clip bgmSfx must state there is no background music; SFX only.`;
   if (options?.bansNarration) {
-    const locked = dialogueVoiceLock(options.speakers);
     const voices = locked
       ? locked
-      : "No narrator and no third-person voiceover. Spoken audio is character dialogue only; each speaker's voice is chosen when the clip video is generated, matching that character.";
-    return `${voices} ${NO_BGM_RULE} bgmDirection and every clip bgmSfx must state there is no background music; SFX only.`;
+      : `No narrator and no third-person voiceover. Every speaker uses this voice lock verbatim: warm, engaging adult ${voice.en} voice, ${voice.fingerprint} Do not invent a timbre from the look.`;
+    return `${voices} ${tail}`;
   }
-  const voice = VOICE_PRESETS[resolveVoiceGender(voiceGender)];
-  return `${voice.skillHint} ${NO_BGM_RULE} bgmDirection and every clip bgmSfx must state there is no background music; SFX only.`;
+  if (locked) return `${locked}\nSpoken audio uses that voice lock verbatim. Do not invent a timbre from the look. ${tail}`;
+  return `${voice.skillHint} Copy this voice lock verbatim. Do not invent a timbre from the look. ${tail}`;
 }
 
 // Phase B: MiniMax hears this for voice + silence under the spoken line.
@@ -77,17 +85,25 @@ export function phaseBAudioLock(input: {
   bansNarration?: boolean;
   speechPace?: string;
   speakers?: NamedVoice[];
+  silent?: boolean;
 }) {
+  if (input.silent) {
+    return `No spoken words, no voiceover, no narrator, and no lip-sync. ${NO_BGM_RULE}`;
+  }
   const pace = `Speaking pace on every clip: ${speechPaceDelivery(input.speechPace)}.`;
-  const locked = input.bansNarration ? dialogueVoiceLock(input.speakers) : null;
-  const speaker = input.bansNarration
-    ? locked
+  const voice = projectVoice(input.voiceGender);
+  const projectFingerprint = `adult ${voice.en}, ${voice.fingerprint}`;
+  const locked = dialogueVoiceLock(input.speakers, projectFingerprint, {
+    keepNarrator: !input.bansNarration,
+  });
+  const projectLock = `Same narrator on every clip: a warm, engaging adult ${voice.en} voice speaking ${input.languageLabel}, ${voice.fingerprint} Copy this voice lock verbatim. Do not invent a timbre from the look.`;
+  const speaker = locked
+    ? input.bansNarration
       ? `${locked} ${DIALOGUE_SPEAK_LOCK}`
-      : `There is no narrator. Each named speaker uses a distinct natural voice that matches that character's apparent gender, age, and look in the locked start/end frames and in Phase A characterLock. The same NAME keeps the same voice, accent, and age on every clip. Do not invent a shared narrator timbre. Silent beats stay silent. ${DIALOGUE_SPEAK_LOCK}`
-    : (() => {
-        const voice = VOICE_PRESETS[resolveVoiceGender(input.voiceGender)];
-        return `Same narrator on every clip: a warm, engaging adult ${voice.en} voice speaking ${input.languageLabel}, ${voice.fingerprint}`;
-      })();
+      : `${locked} Spoken audio on every clip uses that voice lock verbatim. Do not invent a timbre from the look.`
+    : input.bansNarration
+      ? `There is no narrator. Every named speaker uses this voice lock verbatim: ${projectFingerprint} Do not invent a timbre from the frames or the look. The same NAME keeps this voice on every clip. ${DIALOGUE_SPEAK_LOCK}`
+      : projectLock;
   return `${speaker} ${pace} ${NO_BGM_RULE}`;
 }
 

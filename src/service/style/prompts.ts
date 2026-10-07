@@ -1,3 +1,4 @@
+import { CINEMATIC_LENS_RULE } from "@/service/style/cinematic-lenses";
 import type { Style } from "@/service/style/types";
 
 export type StylePromptSlice = Pick<
@@ -9,8 +10,8 @@ export type StylePromptSlice = Pick<
 // the rendering rules of SKILL.md's whiteboard "Locked visual world" so one
 // skill can drive every style; the character-identity lock and the default
 // everyman in that same section still apply.
-export function styleBlockForDirector(style: StylePromptSlice) {
-  return [
+export function styleBlockForDirector(style: StylePromptSlice & { id?: string }) {
+  const lines = [
     `## Visual style: ${style.name} (overrides the rendering, palette, lettering and motion rules of the "Locked visual world" section above)`,
     `Canvas: ${style.canvas}.`,
     `Look: ${style.look}.`,
@@ -18,8 +19,14 @@ export function styleBlockForDirector(style: StylePromptSlice) {
     `Typography: ${style.typography}.`,
     `Motion: ${style.motion}.`,
     `Never: ${style.negatives}.`,
+  ];
+  if (style.id === "realistic" || style.name === "Cinematic realistic") {
+    lines.push(CINEMATIC_LENS_RULE);
+  }
+  lines.push(
     "Write visualWorld and palette in this style. If a cast or character reference is given, characterLock must only say appearance follows the attached blueprint — never invent clothing or hairstyle from this palette. The default everyman applies only when no cast/reference is given. Keep every other rule (hooks, pacing, clip structure, cast lock, narration) unchanged.",
-  ].join("\n");
+  );
+  return lines.join("\n");
 }
 
 // Opening lines of every storyboard-frame / still prompt.

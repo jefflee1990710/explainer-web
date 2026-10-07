@@ -1,12 +1,12 @@
 {
   "en": {
     "bestFor": "Showing one character already wearing the full outfit from a reference image, with a different camera move on every clip.",
-    "structure": "Clip count follows the duration. Every clip is the same complete outfit. Each clip is one 3–4 second camera move, shuffled from the move list.",
+    "structure": "Clip count follows the duration. Every clip is the same complete outfit. Each clip is one 3–4 second camera rotation, shuffled from left-to-right, top-to-bottom, and the two reverse rotations.",
     "hook": "Opens already dressed in the reference outfit. No title card and no dressing.",
-    "arc": "The same look, seen from a new camera each clip: front, a high push-in, a zoom out, arcs to either side, a low rise, an orbit, or a lateral slide.",
+    "arc": "The same look and the same planted pose. Each clip rotates the camera on one axis: left to right, top to bottom, right to left, or bottom to top.",
     "narrator": "No voiceover and no spoken line.",
     "visual": "Look and palette come from the chosen visual style. One room. Clothes match the reference image in style and colour. Face and hair stay on the blueprint. Only the character changes.",
     "audio": "One sound effect per clip. No background music. No voice.",
-    "rules": "Needs exactly one character and clothing reference images. The outfit is already on from clip 1. Copy style and colour exactly. A different camera move on every clip, in a new random order each time. No voiceover. No background music."
+    "rules": "Needs exactly one character and clothing reference images. The outfit is already on from clip 1. Copy style and colour exactly. One camera rotation per clip, in a new random order each time. Same pose and same subject size inside a clip. No voiceover. No background music."
   }
 }

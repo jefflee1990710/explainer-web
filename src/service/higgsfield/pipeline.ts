@@ -47,7 +47,8 @@ import { scheduleGenerationFinishedEmail } from "@/service/notify/generation-ema
 import { queueReelIfReady } from "@/service/reel/enqueue";
 import { retimeMp4 } from "@/service/reel/retime";
 import { mediaSrc } from "@/util/media-src";
-import { isBookendSkill } from "@/service/director/skill-rules";
+import { isBookendSkill, isOutfitReelSkill } from "@/service/director/skill-rules";
+import { withOutfitIdentityPortraits } from "@/service/higgsfield/outfit-identity";
 import { resolveRunSkill } from "@/service/director/run-skill";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { chainsClipStarts } from "@/service/director/clip-continuity";
@@ -169,7 +170,11 @@ export async function sendFrame(
   const plan = frameSubmitPlan(project, clipNumber, position, revision, style);
   // Over Flare's cap, Gemini compresses the prompt before the image request.
   const prompt = await ensureFramePromptFits(plan.prompt);
-  const refs = plan.refs;
+  // A turnaround sheet loses to the clothing photo. Send one full-body portrait instead.
+  const refs =
+    isOutfitReelSkill(project.skillSlug) && project.cast && project.cast.length > 0
+      ? await withOutfitIdentityPortraits(project.cast, plan.refs)
+      : plan.refs;
   const model = imageModelForSubmit(resolveImageRoute(sceneText.language), refs.length > 0);
   const submitted = await submitImage({
     model,

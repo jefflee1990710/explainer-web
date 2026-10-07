@@ -569,10 +569,10 @@ export function comparisonCardDirectorBlock(aspectRatio: AspectRatio) {
 export function surpriseInterviewDirectorBlock() {
   return [
     "This is a SURPRISE INTERVIEW. Exactly one attached character. They speak every line to the camera. No second character and no screen recording.",
-    "Clip 1 is a locked close-up, 3–4 seconds. The face moves into a clear surprise and says one short hook. If the user pasted a script, that hook is the first sentence verbatim. If they gave only a concept, write the hook.",
-    "Clip 2 cuts once to a seated medium shot, eyes to the lens, and starts the explanation. Do not copy the close-up into clip 2's startScene.",
-    "Clip 3 and after: startScene copies the previous endScene. Same chair, background, and light. Motion is the mouth, a small nod, and at most one hand gesture.",
-    "One idea per interview clip. The last clip rests in the chair. Bottom subtitle equals that clip's englishVo. No background music.",
+    "Clip 1 is the hook, 3–4 seconds. The person stays right-side up. The camera starts above the head, looking down, then drops downward while it snaps a zoom-in onto the surprised face. Sharp and clear: no blur, no slow glide, and do not flip the picture. The face moves into a clear surprise and says one short hook. If the user pasted a script, that hook is the first sentence verbatim. If they gave only a concept, write the hook.",
+    "Clip 2 cuts once to a seated medium shot, right-side up, eyes to the lens, and starts the explanation. Do not copy the overhead zoom into clip 2's startScene.",
+    "Clip 3 and after: startScene copies the previous endScene. Same chair, background, and light. Motion is the mouth, a small nod, and at most one hand gesture. Camera stays locked and right-side up.",
+    "One idea per interview clip. The last clip rests in the chair. Every clip uses the same shock-poster type: ultra-bold condensed sans, white words, numbers in mustard yellow, the payoff in black on a tilted mustard-yellow dry-brush stroke. Clip 1 places that poster huge at the top. Every later clip places the same design smaller at the bottom, as the subtitle, and keeps it pinned there for the whole clip. Not a white subtitle bar. The camera stays locked and does not zoom out. Letters stay upright. No background music.",
   ].join(" ");
 }
 
@@ -581,9 +581,9 @@ export function outfitReelDirectorBlock() {
   return [
     "This is an OUTFIT REEL. Exactly one attached character. She is already fully dressed in clip 1 and stays in that same outfit for every clip. Do not write her putting clothes on, taking clothes off, or changing garments.",
     "Clothes must follow the clothing reference images 100 percent: same style, cut, colour, pattern, and details. Copy every piece the photos show. Do not redesign, recolor, drop, or add a piece. If no clothing reference is attached, ask for the photos and stop. Do not invent clothes from the brief sentence.",
-    "The person in a clothing photo is not the character. Never copy their face, hair, body, tattoos, pose, or room. Face, hair, and body proportions stay on the character blueprint. Only the character changes.",
-    "Do not add one clip per garment. Clip count follows the duration preset. Every clip shows the complete outfit. One room. Each clip is 3–4 seconds and one camera move. Within a clip the camera travels from the start still to the end still. The next clip is a hard cut to a different move.",
-    "Pick a different camera move for every clip, and shuffle which move goes on which clip every time you plan. Use these moves, and do not give two clips in a row the same one: front; front top move forward; front zoom out; front to left; front to right; low rise from the floor to an eye-level front; orbit from her left across the front to her right; lateral slide across the front. She stays planted. Head and shoes stay in frame.",
+    "The person in a clothing photo is not the character. Never copy their face, hair, hair length, haircut, skin, age, body, tattoos, pose, or room. Face, hair length, skin, age, and body stay on the character blueprint. Only the clothes change. She is energetic and happy in every clip: bright smile, lively eyes, feet planted, no bounce.",
+    "Do not add one clip per garment. Clip count follows the duration preset. Every clip shows the complete outfit. One room. Each clip is 3–4 seconds and one camera rotation. Inside a clip the camera is one slow gimbal move on a single axis. Same pose, same distance, same subject size, and no handheld shake. The next clip is a hard cut to a different rotation.",
+    "Default order is left to right, then top to bottom, then right to left, then bottom to top. Use a shuffle of that list each time you plan, and do not give two clips in a row the same rotation. Do not push, zoom, rise, or change the lens inside a clip. She stays planted. Head and shoes stay in frame.",
     "englishVo is \"(no dialogue)\" on every clip. No voiceover, no spoken line, no narrator. No background music. bgmDirection and every bgmSfx are one sound effect only.",
   ].join(" ");
 }

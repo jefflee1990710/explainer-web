@@ -40,6 +40,7 @@ import {
   isBookendSkill,
   isComparisonCardSkill,
   isOutfitReelSkill,
+  isSurpriseInterviewSkill,
   skillBansNarration,
   skillForcesSceneText,
   STORY_SHORT_SKILL_SLUG,
@@ -49,9 +50,17 @@ import {
   rewriteOutfitSafetyText,
   sanitizeOutfitFrameScene,
   outfitAngleDirective,
+  OUTFIT_ENERGY,
   OUTFIT_FRAME_GARMENT_LOCK,
+  OUTFIT_IDENTITY_LOCK,
 } from "@/service/director/outfit-reel";
 import { isSilentSpokenLine, subtitleText } from "@/service/director/spoken-line";
+import {
+  sanitizeSurpriseFrameScene,
+  surpriseHookCameraDirective,
+  surpriseHookSkipsFrameAnchor,
+  surpriseTypeLines,
+} from "@/service/director/surprise-interview";
 import { clipReferenceImageUrls } from "@/service/project/reference-images";
 import { imageRouteForSceneText } from "@/service/generation/image-backend";
 import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
@@ -344,14 +353,21 @@ export function buildFramePrompt(
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
   const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
+  const surprise = isSurpriseInterviewSkill(project.skillSlug);
   // Every still needs the clothing photo so style and colour stay exact.
   const sceneRefUrls = frameSceneReferenceUrls(
     project,
     clipNumber,
     annotatedCount + anchorCount + lockUrls.length + logoUrls.length + productUrls.length,
   );
-  const sceneRefStart = annotatedCount + anchorCount + 1;
-  const characterAttachmentStart = sceneRefStart + sceneRefUrls.length;
+  // Outfit stills put the character blueprint first so the clothing model's face does not win.
+  const characterFirst = wardrobeBuild;
+  const characterAttachmentStart = characterFirst
+    ? annotatedCount + anchorCount + 1
+    : annotatedCount + anchorCount + 1 + sceneRefUrls.length;
+  const sceneRefStart = characterFirst
+    ? characterAttachmentStart + lockUrls.length
+    : annotatedCount + anchorCount + 1;
   const compositionLocked = Boolean(options.anchor && options.anchor.kind !== "prev-end");
   const sceneRefLines = sceneRefUrls.length
     ? [sceneReferenceFrameLine(sceneRefStart, sceneRefUrls.length, compositionLocked, wardrobeBuild)]
@@ -368,7 +384,9 @@ export function buildFramePrompt(
     : lockUrls.length
       ? soloCharacterParagraphForFrames(characterAttachmentStart, { wardrobeBuild })
       : [];
-  const productStart = characterAttachmentStart + lockUrls.length;
+  const productStart = characterFirst
+    ? sceneRefStart + sceneRefUrls.length
+    : characterAttachmentStart + lockUrls.length;
   const productLine = productLockParagraph(
     (project.products ?? []).map((item) => item.name),
     productStart,
@@ -420,9 +438,17 @@ export function buildFramePrompt(
     });
     motionDescription = rewriteOutfitSafetyText(motionDescription);
   }
+  if (surprise) {
+    sceneDescription = sanitizeSurpriseFrameScene({
+      scene: sceneDescription,
+      clipNumber,
+      position,
+    });
+  }
   // 9:16 story shorts: subtitles sit above the reel chrome, not in the bottom band.
   const reelSafeZone =
     project.skillSlug === STORY_SHORT_SKILL_SLUG && project.aspectRatio === "9:16";
+  const paintSurpriseType = surprise && Boolean(voForFrame);
   const onCanvasTextBlock = listicle
     ? [
         styleLetteringLineForSceneText(style),
@@ -439,7 +465,9 @@ export function buildFramePrompt(
             aspectRatio: project.aspectRatio,
           }),
         ]
-    : sceneText.enabled
+    : paintSurpriseType
+      ? surpriseTypeLines({ clipNumber, line: subtitleText(voForFrame) || voForFrame })
+      : sceneText.enabled
       ? [
           styleLetteringLineForSceneText(style),
           // Typography already sits on the Lettering line above.
@@ -485,12 +513,14 @@ export function buildFramePrompt(
     ...styleLinesForFrame(style),
     ...(parts.visualWorld ? [`Visual world: ${parts.visualWorld}`] : []),
     `Palette: ${parts.palette}`,
+    ...(wardrobeBuild ? [OUTFIT_IDENTITY_LOCK, OUTFIT_ENERGY] : []),
+    ...(characterFirst ? castLines : []),
     ...sceneRefLines,
-    ...castLines,
+    ...(characterFirst ? [] : castLines),
     ...(productLine ? [productLine] : []),
     ...logoLines,
     ...(characterLockLine ? [characterLockLine] : []),
-    ...(listicle || sceneText.enabled || keepSceneLabels
+    ...(listicle || sceneText.enabled || keepSceneLabels || paintSurpriseType
       ? []
       : sceneTextFrameLines(false, sceneText.language)),
     `Scene: ${parts.scene}`,
@@ -499,12 +529,19 @@ export function buildFramePrompt(
     ...(narratorLock ? [narratorLock] : []),
     ...(lockUrls.length ? [wardrobeBuild ? FRAME_WARDROBE_BUILD : FRAME_WARDROBE_LOCK] : []),
     ...(wardrobeBuild ? [outfitAngleDirective(clipNumber, position, sceneDescription)] : []),
+    ...(surprise && clipNumber === 1 ? [surpriseHookCameraDirective(position)] : []),
     ...(parts.renderDetail ? [parts.renderDetail] : []),
     moment,
     ...compositionLockLines(options.anchor, annotatedCount + 1, sceneRefUrls.length > 0, performance),
     ...revisionLines(options.revision && { ...options.revision, remark: parts.remark }),
     ...(listicle
       ? ["Final check: the numbered item list is visible and spelled exactly."]
+      : paintSurpriseType
+        ? [
+            clipNumber === 1
+              ? "Final check: black field behind the stacked type at the top, white ultra-condensed body, payoff in black on a thick mustard dry-brush bar. Spell only the spoken line. No white subtitle bar. No SHOCK label. Letters stay upright."
+              : "Final check: the same shock poster sits at the bottom as the subtitle. White ultra-condensed body, payoff in black on a thick mustard dry-brush bar. Spell only this clip's spoken line. No white subtitle bar. No SHOCK label. Letters stay upright.",
+          ]
       : sceneText.enabled
         ? silentClip
           ? ["Final check: no subtitle band and no letters in the frame."]
@@ -557,9 +594,11 @@ export function frameSubmitPlan(
   style?: RenderableStyle,
 ) {
   const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
+  const surpriseHook =
+    isSurpriseInterviewSkill(project.skillSlug) && surpriseHookSkipsFrameAnchor(clipNumber);
   const foundAnchor = clipFrameAnchor(project.frames, clipNumber, position);
   // Another still glued on makes the image model copy its camera, so the move never happens.
-  const anchor = wardrobeBuild ? undefined : foundAnchor;
+  const anchor = wardrobeBuild || surpriseHook ? undefined : foundAnchor;
   const castUrls = frameLockReferenceUrls(project);
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
@@ -582,7 +621,9 @@ export function frameSubmitPlan(
     refs: sceneImageReferenceUrls({
       annotatedUrl: revision?.annotatedUrl,
       anchorUrl: anchor?.url,
-      lockUrls: [...sceneRefUrls, ...castUrls, ...productUrls, ...logoUrls],
+      lockUrls: wardrobeBuild
+        ? [...castUrls, ...sceneRefUrls, ...productUrls, ...logoUrls]
+        : [...sceneRefUrls, ...castUrls, ...productUrls, ...logoUrls],
     }),
     anchor,
   };

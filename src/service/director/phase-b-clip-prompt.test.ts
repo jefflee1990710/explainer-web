@@ -99,12 +99,27 @@ test("outfit-reel Phase B keeps the outfit on and moves only the camera", () => 
     clipNumber: 2,
   });
   assert.match(prompt, /already wearing the complete outfit/);
-  assert.match(prompt, /sharp and quick/);
+  assert.match(prompt, /slow gimbal move/);
+  assert.doesNotMatch(prompt, /sharp and quick/);
   assert.match(prompt, /DIFFERENT camera move/);
   assert.match(prompt, /No background music/);
   assert.match(prompt, /No spoken words/);
   assert.doesNotMatch(prompt, /one new garment/);
   assert.doesNotMatch(prompt, /snaps fast and decisive/);
+});
+
+test("surprise hook Phase B drops from above and zooms in", () => {
+  const prompt = clipPhaseBUserPrompt({
+    ...base,
+    skillSlug: "surprise-interview-director",
+    phaseA: proposal(),
+    clipNumber: 1,
+  });
+  assert.match(prompt, /right-side up/);
+  assert.match(prompt, /downward/);
+  assert.match(prompt, /zoom/i);
+  assert.match(prompt, /sharp and clear/);
+  assert.doesNotMatch(prompt, /same screen position and scale/);
 });
 
 test("first clip has no previous neighbour", () => {
@@ -140,7 +155,7 @@ test("Phase B user prompt locks narrator gender and forbids background music", (
   assert.doesNotMatch(prompt, /driving beat|keep narration dominant over BGM/i);
 });
 
-test("story-short Phase B prompt does not lock a narrator gender", () => {
+test("story-short Phase B prompt uses the voice lock instead of guessing", () => {
   const prompt = clipPhaseBUserPrompt({
     ...base,
     bansNarration: true,
@@ -148,8 +163,10 @@ test("story-short Phase B prompt does not lock a narrator gender", () => {
     clipNumber: 2,
   });
   assert.match(prompt, /There is no narrator/);
+  assert.match(prompt, /voice lock verbatim/i);
+  assert.match(prompt, /adult female/);
   assert.doesNotMatch(prompt, /same narrator on every clip/i);
-  assert.doesNotMatch(prompt, /adult female voice/);
+  assert.doesNotMatch(prompt, /infer/i);
 });
 
 test("unknown clip throws", () => {

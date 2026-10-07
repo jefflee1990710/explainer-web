@@ -33,8 +33,12 @@ export function lockedSpeakerLines(cast?: NamedVoice[]): string[] {
   });
 }
 
-// Dialogue skills paste this instead of asking the model to invent a voice from the look.
-export function dialogueVoiceLock(cast?: NamedVoice[]): string | null {
+// Every speaking director pastes this instead of inventing a timbre from the look.
+export function dialogueVoiceLock(
+  cast?: NamedVoice[],
+  unlockedLock?: string,
+  options?: { keepNarrator?: boolean },
+): string | null {
   const lines = lockedSpeakerLines(cast);
   if (!lines.length || !cast) return null;
   const lockedNames = new Set(
@@ -45,11 +49,10 @@ export function dialogueVoiceLock(cast?: NamedVoice[]): string | null {
   );
   const missing = cast.map((member) => member.name.trim()).filter((name) => name && !lockedNames.has(name));
   const fallback = missing.length
-    ? `Unlocked (${missing.join(", ")}): match the frames and keep that voice.`
+    ? `Unlocked (${missing.join(", ")}): ${unlockedLock || "use the project voice lock verbatim. Do not invent a timbre from the look."}`
     : "Do not invent a timbre for a locked speaker.";
-  return [
-    "No narrator. Copy each voice lock verbatim. Same accent as the spoken language. Change only emotion or volume.",
-    ...lines,
-    fallback,
-  ].join("\n");
+  const preamble = options?.keepNarrator
+    ? "Copy each voice lock verbatim. Same accent as the spoken language. Change only emotion or volume."
+    : "No narrator. Copy each voice lock verbatim. Same accent as the spoken language. Change only emotion or volume.";
+  return [preamble, ...lines, fallback].join("\n");
 }

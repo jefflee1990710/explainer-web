@@ -53,7 +53,7 @@ export const briefZhHant = {
     titleDialogue: "對白語言與語速",
     titleNarration: "旁白語言、語速與聲線",
     hintDialogue:
-      "角色用這個語言、這個語速說話；聲線在產片時依角色外貌自動決定。這個導演沒有旁白。Phase A 分鏡規劃欄位與所選語言一致。",
+      "角色用這個語言、這個語速說話，並使用該角色的聲線鎖定。沒有鎖定的角色改用旁白聲線鎖定。這個導演沒有旁白。Phase A 分鏡規劃欄位與所選語言一致。",
     hintNarration:
       "影片會用這個語言、語速與男／女聲配旁白；Phase A 分鏡規劃欄位與所選語言一致。",
   },
@@ -176,7 +176,7 @@ export const briefZhHant = {
     "full-body-talking-head-director": "一個角色以全身鏡頭對鏡讀稿，每段字數相近。",
     "comparison-card-director": "每段一次對照，同一件事的兩個看法。",
     "talking-broll-director": "對鏡兩句，切到那兩句提到的畫面，再切回特寫。",
-    "surprise-interview-director": "先是驚訝特寫，再坐下來把概念講清楚。",
+    "surprise-interview-director": "開場鏡頭由上往下並急推近，再坐下來把概念講清楚。",
     "outfit-reel-director": "第一段已經穿好參考圖的整套衣服。每段換一個鏡頭。",
     "follow-shot-director": "第三人稱連續鏡頭。下一段從上一段的結尾開始。",
   },
@@ -263,7 +263,7 @@ export const briefZhHant = {
       "surprise-interview-director": {
         voice: "一個角色對住鏡頭講（你選的聲）",
         structure: "先驚訝特寫，再坐著訪談，一段一個重點",
-        picture: "第一段是鎖定特寫。之後都坐在同一張椅子",
+        picture: "第一段人是正的，鏡頭由上往下並急推近。之後坐在同一張椅子。畫面字是黑底粗體，重點放在黃刷筆上",
         frames: "第三段起，起始圖接上一段的結尾",
       },
       "outfit-reel-director": {

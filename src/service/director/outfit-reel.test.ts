@@ -53,8 +53,10 @@ test("every clip is already dressed in the reference outfit, with no voice and n
       "Character: Scro Official stands wearing white tight shorts only, holding a mini skirt at thigh height. Set: studio. Light: daylight. Camera: locked full-body.",
     ),
     keepOrder,
+    { lenses: true },
   );
   const clip = next.clips[0];
+  assert.match(clip.startScene || "", /energetic and happy/);
   assert.match(clip.startScene || "", /complete outfit from the clothing reference/);
   assert.match(clip.startScene || "", /copied exactly/);
   assert.match(clip.endScene || "", /complete outfit from the clothing reference/);
@@ -64,7 +66,14 @@ test("every clip is already dressed in the reference outfit, with no voice and n
   assert.doesNotMatch(clip.startScene || "", /athletic shorts/);
   assert.doesNotMatch(clip.motionCamera, /pelvic area/);
   assert.doesNotMatch(clip.motionCamera, /pull/i);
-  assert.match(clip.motionCamera, /sharp and quick/i);
+  assert.match(clip.motionCamera, /gimbal smooth and slow/i);
+  assert.match(clip.motionCamera, /horizontal camera rotation/);
+  assert.match(clip.motionCamera, /staying on 35mm f\/1\.4/);
+  assert.doesNotMatch(clip.motionCamera, /to \d+mm/);
+  assert.doesNotMatch(clip.motionCamera, /sharp and quick/i);
+  assert.match(clip.endScene || "", /same spot/);
+  assert.match(clip.startScene || "", /tall window on the left/);
+  assert.match(clip.endScene || "", /Do not change this room/);
   assert.match(clip.motionCamera, /already dressed/);
   assert.equal(clip.englishVo, "(no dialogue)");
   assert.match(clip.bgmSfx, /No background music/);
@@ -128,9 +137,9 @@ test("later clips get different camera moves and keep every clothing reference",
 });
 
 test("each plan can assign a different first camera move", () => {
-  const first = assignOutfitCameraMoves(5, keepOrder).map((move) => move.id);
-  const shuffled = assignOutfitCameraMoves(5, () => 0).map((move) => move.id);
-  assert.equal(new Set(first).size, 5);
+  const first = assignOutfitCameraMoves(4, keepOrder).map((move) => move.id);
+  const shuffled = assignOutfitCameraMoves(4, () => 0).map((move) => move.id);
+  assert.equal(new Set(first).size, 4);
   assert.notEqual(first[0], shuffled[0]);
   for (let index = 1; index < shuffled.length; index += 1) {
     assert.notEqual(shuffled[index], shuffled[index - 1]);

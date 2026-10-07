@@ -54,7 +54,7 @@ export const briefEn = {
     titleDialogue: "Dialogue language & pace",
     titleNarration: "Voiceover language, pace & voice",
     hintDialogue:
-      "Characters speak in this language at this pace; voices are inferred at render time. There is no narrator. Phase A storyboard planning fields use the same language.",
+      "Characters speak in this language at this pace, using each character's voice lock. A character without a lock uses the narrator voice lock. There is no narrator. Phase A storyboard planning fields use the same language.",
     hintNarration:
       "The video uses this language, pace, and male/female narrator. Phase A storyboard planning fields use the same language.",
   },
@@ -180,7 +180,7 @@ export const briefEn = {
       "One character reads to camera in a locked full-body shot. Each clip has a similar amount of speech.",
     "comparison-card-director": "One comparison per clip, two views of the same thing.",
     "talking-broll-director": "Two lines to camera, a cutaway, then back to the close-up.",
-    "surprise-interview-director": "A surprised close-up, then the character explains the concept.",
+    "surprise-interview-director": "Opens with a camera drop from above and a sharp zoom-in, then the character explains the concept.",
     "outfit-reel-director": "Already wearing the full outfit from the reference image. Each clip is a different camera move.",
     "follow-shot-director": "A third-person continuous shot. Each clip starts where the last one ended.",
   },
@@ -267,7 +267,7 @@ export const briefEn = {
       "surprise-interview-director": {
         voice: "One character speaks to camera (the voice you picked)",
         structure: "Surprised close-up, then a seated interview, one point per clip",
-        picture: "Clip 1 is a locked close-up. Later clips stay in the same chair",
+        picture: "Clip 1 stays upright: the camera drops from above and zooms in. Later clips stay in the same chair. On-screen type is bold white on black, with the payoff on a yellow brush stroke",
         frames: "From clip 3, the start frame continues the previous end frame",
       },
       "outfit-reel-director": {

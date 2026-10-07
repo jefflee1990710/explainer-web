@@ -86,6 +86,19 @@ test("styleFromDoc forces chalkboard to white chalk only", () => {
   assert.doesNotMatch(style.letteringLine2 ?? "", /yellow/i);
 });
 
+test("styleFromDoc gives cinematic realistic the prime lens kit", () => {
+  const style = styleFromDoc({
+    _id: "realistic",
+    ...stylePromptFields(sampleStyle("realistic", { look: "35mm lens look" })),
+    updatedAt: new Date(),
+  });
+  assert.ok(style);
+  assert.match(style.look, /24mm f\/1\.2/);
+  assert.match(style.look, /80mm f\/1\.4/);
+  assert.match(style.motion, /35mm f\/1\.4 to 80mm f\/1\.4/);
+  assert.doesNotMatch(style.look, /^35mm lens look$/);
+});
+
 test("styleFromDoc keeps pastel chalk on chalkboard-color", () => {
   const style = styleFromDoc({
     _id: "chalkboard-color",

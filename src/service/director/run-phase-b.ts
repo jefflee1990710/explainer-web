@@ -6,6 +6,7 @@ import {
   cartoonClipAction,
   cartoonNarratorVideoLock,
   isOutfitReelSkill,
+  isSurpriseInterviewSkill,
   skillBansNarration,
 } from "@/service/director/skill-rules";
 import { lockedSpeakerLines } from "@/service/director/character-voice";
@@ -30,6 +31,7 @@ import {
   OUTFIT_VIDEO_MOTION_RULES,
   rewriteOutfitSafetyText,
 } from "@/service/director/outfit-reel";
+import { SURPRISE_HOOK_VIDEO_RULES } from "@/service/director/surprise-interview";
 import {
   talkingShotForSkill,
   talkingVideoMotionRules,
@@ -57,7 +59,9 @@ Each clip is dual-keyframe image-to-video: the approved START image is already a
       ? talkingVideoMotionRules(talkingShotForSkill(input.skill.slug) ?? "face")
       : isOutfitReelSkill(input.skill.slug)
         ? OUTFIT_VIDEO_MOTION_RULES
-        : DUAL_KEYFRAME_MOTION_RULES
+        : isSurpriseInterviewSkill(input.skill.slug)
+          ? SURPRISE_HOOK_VIDEO_RULES
+          : DUAL_KEYFRAME_MOTION_RULES
   } Do not invent a different final pose, camera, or composition.
 ${PHASE_B_DETAIL_RULES}
 ${
@@ -67,11 +71,9 @@ ${
   } ${
     isOutfitReelSkill(input.skill.slug)
       ? "Do not copy a narrator voice."
-      : skillBansNarration(input.skill.slug)
-        ? lockedSpeakerLines(input.cast).length
-          ? "There is no narrator. Characters speak those lines. Copy each character voice lock verbatim. Do not invent or rephrase a timbre."
-          : "There is no narrator. Characters speak those lines. Do not copy a male/female narrator fingerprint. Infer each NAME's voice from that character in the keyframes."
-        : `Copy the locked adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice fingerprint verbatim into every clip prompt. Do not invent a new narrator.`
+      : lockedSpeakerLines(input.cast).length
+        ? "Copy each character voice lock verbatim into every clip prompt. Do not invent or rephrase a timbre from the look."
+        : `Copy the locked adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice fingerprint verbatim into every clip prompt. Do not invent a timbre from the look or the keyframes.`
   } ${cartoonNarratorVideoLock(input.skill.slug, { hasCharacter: Boolean(input.cast?.length || input.characterImageUrl) })} ${
     isOutfitReelSkill(input.skill.slug) ? "" : `Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. `
   }Never request background music, BGM, a musical score, or an underscore. ${
@@ -119,6 +121,7 @@ export async function runPhaseBForClip(
     bansNarration: skillBansNarration(input.skill.slug),
     speechPace: input.speechPace,
     speakers: input.cast,
+    silent: isOutfitReelSkill(input.skill.slug),
   });
   const row = input.phaseA.clips.find((clip) => clip.clipNumber === input.clipNumber);
   // Audio, narrator, wardrobe, and lettering locks ride on every clip; empty locks are skipped.
