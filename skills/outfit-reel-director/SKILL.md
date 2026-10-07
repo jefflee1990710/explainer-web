@@ -23,12 +23,12 @@ The start is always a modest athletic base already on: an opaque white crew-neck
 
 ## Shot plan
 
-- One room. One locked full-body camera. The character stays a similar size and stays in frame.
-- Clip 1 starts already wearing the white tank and white knee-length athletic shorts, standing with hands at the sides. If the first reference top is a similar white tank, skip it — the base tank already stands in — and put on the next distinct piece.
+- One room. Each clip is a new locked full-body angle (front, 3/4 left, 3/4 right, or slightly-low 3/4 for shoes and socks). Within a clip the camera stays locked. Across clips the angle changes.
+- Clip 1 starts already wearing the white tank and white knee-length athletic shorts, standing with hands at the sides, facing camera. If the first reference top is a similar white tank, skip it — the base tank already stands in — and put on the next distinct piece.
 - Read the clothing photos. Put on only the distinct pieces they show, copied for cut, colour, and details. Name the reference id in the scene.
 - A reference bottom replaces the white knee-length athletic shorts. Do not wear both. Other pieces stay on. Every still is fully dressed.
-- Every later clip's `startScene` is the previous clip's `endScene`.
-- One action per clip: step into or fasten that one piece at the waist or feet. Pose scale stays similar; the visible change is the new garment.
+- Clip 2 and after: clothes already on continue. Do not copy the previous camera or a facing-forward stance. Start stills are a new angle on the clothes already on, not mid-dressing.
+- One dressing action per clip, with real body motion: weight shift, look down, 3/4 turn, arms sliding into sleeves, or a step into shoes. Never leave her frozen facing camera with only the hands moving. Never pull a bottom up from the thighs. The torso stays covered; a new bottom is already at the natural waist and the previous shorts vanish underneath.
 - The last clip adds nothing. The complete look holds and rests.
 - Face, hair, and body proportions stay on the character blueprint. Never copy the person, face, hair, tattoos, pose, or room in a clothing photo. Only the clothes change.
 

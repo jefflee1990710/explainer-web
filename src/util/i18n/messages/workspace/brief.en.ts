@@ -243,13 +243,13 @@ export const briefEn = {
       "talking-head-director": {
         voice: "The character reads your script to camera (the voice you picked)",
         structure: "Your spoken script, split so each clip has a similar length, up to 20",
-        picture: "Shot size follows this director, eyes to the lens, one subtitle line at the bottom",
+        picture: "Shot size follows this director, eyes locked on the lens like filming a reel; head, a hand, and the upper body keep moving",
         frames: "The next clip’s start frame continues the previous end frame",
       },
       "full-body-talking-head-director": {
         voice: "The character reads your script to camera (the voice you picked)",
         structure: "Your spoken script, split so each clip has a similar length, up to 20",
-        picture: "One locked full-body shot, head to feet, eyes to the lens, one subtitle line at the bottom",
+        picture: "One locked full-body shot, head to feet, eyes locked on the lens like filming a reel; head, hands, and whole body keep moving",
         frames: "The next clip’s start frame continues the previous end frame",
       },
       "comparison-card-director": {
@@ -273,8 +273,8 @@ export const briefEn = {
       "outfit-reel-director": {
         voice: "Silent, unless you ask for one short line on the last clip",
         structure: "One garment per clip, then a hold on the finished look",
-        picture: "One room, full body. Starts in a white tank and knee-length athletic shorts; only the reference clothes change. Face and hair stay.",
-        frames: "Each start frame is the previous end frame, with the new piece on",
+        picture: "One room, full body. Each clip uses a new angle. Starts in a white tank and knee-length athletic shorts; only the reference clothes change. Face and hair stay.",
+        frames: "Each clip draws its own start and end stills. Clothes continue; the camera angle changes.",
       },
       "follow-shot-director": {
         voice: "Silent, unless you wrote one short line",

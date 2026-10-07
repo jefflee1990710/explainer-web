@@ -17,7 +17,7 @@ test("only the two talking-head directors use talking performance", () => {
   assert.equal(clipUsesTalkingPerformance("outfit-reel-director"), false);
 });
 
-test("full-body talking motion has lip-sync, a nod, and a waist-height open palm", () => {
+test("full-body talking motion has lip-sync, head, hands, and a weight shift", () => {
   const motion = talkingMotionLine({
     language: "en",
     seconds: 5,
@@ -26,14 +26,15 @@ test("full-body talking motion has lip-sync, a nod, and a waist-height open palm
     clipNumber: 1,
   });
   assert.match(motion, /continuous lip-sync/);
-  assert.match(motion, /small nod/);
-  assert.match(motion, /eyebrow lift/);
-  assert.match(motion, /right hand rising to waist height with an open palm/);
-  assert.match(motion, /warm small smile/);
+  assert.match(motion, /reel-person face/);
+  assert.match(motion, /head tilting and nodding/);
+  assert.match(motion, /right then left hand gesturing at chest height/);
+  assert.match(motion, /weight shifting hip to hip/);
+  assert.match(motion, /eyes locked on the lens/);
   assert.doesNotMatch(motion, /snap|flick|whip/i);
 });
 
-test("face talking motion keeps hands still", () => {
+test("face talking motion still uses the hands and head, eyes on the lens", () => {
   const motion = talkingMotionLine({
     language: "en",
     seconds: 5,
@@ -41,12 +42,16 @@ test("face talking motion keeps hands still", () => {
     shot: "face",
   });
   assert.match(motion, /continuous lip-sync/);
-  assert.doesNotMatch(motion, /open palm/);
+  assert.match(motion, /head tilting and nodding/);
+  assert.match(motion, /hand rising into the lower frame/);
+  assert.match(motion, /eyes locked on the lens/);
 });
 
-test("talking video rules forbid snap verbs", () => {
+test("talking video rules forbid snap verbs and a frozen statue", () => {
   const rules = talkingVideoMotionRules("full-body");
   assert.match(rules, /lip-sync/);
-  assert.match(rules, /open palm/);
+  assert.match(rules, /real person filming a vertical reel/);
+  assert.match(rules, /weight shifts hip to hip/);
   assert.match(rules, /Do not write snaps/);
+  assert.doesNotMatch(rules, /Feet stay planted. One conversational gesture only/);
 });

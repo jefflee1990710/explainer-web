@@ -16,7 +16,7 @@ Present a readable director's proposal and stop for confirmation before writing 
 1. Title in the planning language and in English
 2. Total duration (sum of the 3–4s clips), clip count = garments + 1, loop mode: always Linear
 3. The finished look in a few words
-4. Aspect ratio, the one room, and the locked full-body camera
+4. Aspect ratio, the one room, and a new locked full-body camera angle on every clip
 5. Cast lock: face and hair from the one attached blueprint; clothes come from the clothing references
 6. Music plus one clothing sound per dressing clip
 7. The garment list mapped to clips, with the outfit after each clip
@@ -35,17 +35,17 @@ Write `startScene` and `endScene` as four concrete parts, in order:
 1. Character: pose and which reference garments are on. Do not describe hair or face. Clip 1 start is standing with hands at the sides in the white tank and knee-length athletic shorts. The end still of a dressing clip has exactly one more garment than the start still, except when a reference bottom replaces the white athletic shorts.
 2. Set: the same room in every clip. Do not copy the room in the clothing photo.
 3. Light: the same light in every clip.
-4. Camera: locked full-body, character at a similar size, centered.
+4. Camera: locked full-body. Clip 1 is facing the camera. Every later clip MUST pick a different angle (3/4 left, 3/4 right, or slightly-low 3/4). Do not reuse facing-forward on two clips in a row.
 
-Clip 2 and after: `startScene` copies the previous `endScene`, including every garment already on.
+Clip 2 and after: garments already on continue. Camera and pose change. The start still is a resting pose at the new angle, not a copy of the previous end still and not mid-dressing.
 
 ## Motion contract (`motionCamera`)
 
-Timed beats for the one action. Name the character's own left or right hand, and keep that hand on that garment from the start still through the end still.
+Timed beats for the one action, with body motion (weight shift, look down, 3/4 turn, arms into sleeves, or a step). Name the character's own left or right hand, and keep that hand on that garment from the start still through the end still. Camera locked on THIS clip's angle only.
 
-Example: `0–1s both hands lift the skirt at the waist; 1–3s the skirt comes up over the hips; 3–4s the hands drop and the skirt is on`. Never pull a top over the head. Never hold a garment at chest or thigh height in a still.
+Example for a bottom: `0–1s she settles into the 3/4 and looks down at the waist; 1–3s both hands smooth and fasten the waistband already at the natural waist as the previous shorts vanish underneath, torso covered; 3–4s she looks up and settles`. Never pull a skirt or shorts up from the thighs. Never lower the waistband below the navel. Never pull a top over the head. Never hold a garment at chest or thigh height in a still.
 
-The hold clip is a small settle only: `0–3s a small pose settle; camera locked`. No new clothes.
+The hold clip is a 3/4 pose settle that shows the finished look: `0–3s weight onto the back hip, chin toward the lens; camera locked on this 3/4`. No new clothes.
 
 ## Phase A checks
 
@@ -54,6 +54,6 @@ The hold clip is a small settle only: `0–3s a small pose settle; camera locked
 - Clip 1 starts already wearing the white tank and white knee-length athletic shorts, torso covered, hands at the sides.
 - Each dressing clip adds exactly one reference garment. A reference bottom replaces the white shorts.
 - The next start still matches the previous end still.
-- Same room and same camera. No flash cuts.
+- Same room. New camera angle each clip. No flash cuts inside a clip.
 - Silent clips use `(no dialogue)`.
 - The last clip rests on the full look. No loop.

@@ -5,8 +5,8 @@
     "hook": "Opens in the white athletic base as the first distinct reference garment goes on. No title card.",
     "arc": "White tank and shorts, then each piece from the clothing reference. A reference bottom replaces the shorts. The last clip holds the complete look.",
     "narrator": "Silent by default. A short spoken line that names the finished look is added only when you ask for one, and only on the last clip.",
-    "visual": "Look and palette come from the chosen visual style. One room and one locked full-body camera, with the character at a similar size. Face and hair stay on the blueprint. Clothes are copied from the reference images only.",
+    "visual": "Look and palette come from the chosen visual style. One room. Each clip is a new locked full-body angle so the dressing is seen from more than one side. Face and hair stay on the blueprint. Clothes are copied from the reference images only.",
     "audio": "A music bed with one clothing sound effect per clip. Silent clips have no subtitle.",
-    "rules": "Needs exactly one character and clothing reference images. Starts in a white crew-neck tank and white knee-length athletic shorts. Only the garments in those photos, one action per clip. Face and hair never change. No invented pieces."
+    "rules": "Needs exactly one character and clothing reference images. Starts in a white crew-neck tank and white knee-length athletic shorts. Only the garments in those photos, one action per clip, with a new camera angle and real body motion. Never pull a bottom up from the thighs. Face and hair never change. No invented pieces."
   }
 }

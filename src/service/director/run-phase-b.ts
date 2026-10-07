@@ -5,6 +5,7 @@ import { PHASE_B_DETAIL_RULES } from "@/service/director/scene-detail";
 import {
   cartoonClipAction,
   cartoonNarratorVideoLock,
+  isOutfitReelSkill,
   skillBansNarration,
 } from "@/service/director/skill-rules";
 import { lockedSpeakerLines } from "@/service/director/character-voice";
@@ -24,6 +25,11 @@ import type { PhaseAProposal, PhaseBPrompt, SpeechPace, VoLanguage, VoiceGender 
 import { speechPaceDelivery } from "@/service/director/speech-pace";
 import type { Skill } from "@/model/skill";
 import { isTalkingHeadSkill } from "@/service/director/talking-head";
+import {
+  OUTFIT_COVERED_SWAP,
+  OUTFIT_VIDEO_MOTION_RULES,
+  rewriteOutfitSafetyText,
+} from "@/service/director/outfit-reel";
 import {
   talkingShotForSkill,
   talkingVideoMotionRules,
@@ -49,7 +55,9 @@ Return standalone MiniMax H3 video prompts that follow the skill prompt contract
 Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image. ${
     isTalkingHeadSkill(input.skill.slug)
       ? talkingVideoMotionRules(talkingShotForSkill(input.skill.slug) ?? "face")
-      : DUAL_KEYFRAME_MOTION_RULES
+      : isOutfitReelSkill(input.skill.slug)
+        ? OUTFIT_VIDEO_MOTION_RULES
+        : DUAL_KEYFRAME_MOTION_RULES
   } Do not invent a different final pose, camera, or composition.
 ${PHASE_B_DETAIL_RULES}
 Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}). ${
@@ -104,6 +112,10 @@ export async function runPhaseBForClip(
   });
   const row = input.phaseA.clips.find((clip) => clip.clipNumber === input.clipNumber);
   // Audio, narrator, wardrobe, and lettering locks ride on every clip; empty locks are skipped.
+  // Rewrite the model action first so "Never pull" locks appended below stay intact.
+  const modelPrompt = isOutfitReelSkill(input.skill.slug)
+    ? rewriteOutfitSafetyText(output.prompt)
+    : output.prompt;
   const prompt = [
     lock,
     cartoonNarratorVideoLock(input.skill.slug, {
@@ -119,9 +131,10 @@ export async function runPhaseBForClip(
       skillSlug: input.skill.slug,
       durationSeconds: row?.durationSeconds ?? output.durationSeconds,
     }),
+    isOutfitReelSkill(input.skill.slug) ? OUTFIT_COVERED_SWAP : "",
   ]
     .filter(Boolean)
-    .reduce(finalizePhaseBPrompt, output.prompt);
+    .reduce(finalizePhaseBPrompt, modelPrompt);
   // The model may echo a wrong number; trust the caller.
   return {
     ...output,

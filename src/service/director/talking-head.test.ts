@@ -109,10 +109,13 @@ test("talking-head evens word count and keeps a named shot", () => {
   assert.ok(Math.max(...durations) - Math.min(...durations) <= 3);
   assert.ok(durations.every((seconds) => seconds >= 5 && seconds <= 12));
   assert.match(clips[0].startScene, /locked full-body/);
-  assert.match(clips[0].startScene, /mouth just opening to speak/);
-  assert.match(clips[0].endScene || "", /open palm at waist height/);
+  assert.match(clips[0].startScene, /mouth just opening/);
+  assert.match(clips[0].startScene, /eyes locked into the lens/);
+  assert.match(clips[0].endScene || "", /chest height/);
+  assert.match(clips[0].endScene || "", /weight on the other hip/);
   assert.match(clips[0].motionCamera, /continuous lip-sync/);
-  assert.match(clips[0].motionCamera, /open palm/);
+  assert.match(clips[0].motionCamera, /chest height/);
+  assert.match(clips[0].motionCamera, /weight shifting hip to hip/);
   assert.doesNotMatch(clips[0].startScene, /medium close-up/);
   assert.equal(talkingHeadShot(undefined), undefined);
 });
@@ -122,7 +125,7 @@ test("talking-head clip 2 start copies the previous end file and costs one still
   assert.equal(talkingHeadFramesCost("talking-head-director", 2), FRAME_COST);
   assert.equal(talkingHeadFramesCost("full-body-talking-head-director", 2), FRAME_COST);
   assert.equal(talkingHeadFramesCost("story-short-director", 2), FRAMES_COST);
-  assert.equal(talkingHeadFramesCost("outfit-reel-director", 2), FRAME_COST);
+  assert.equal(talkingHeadFramesCost("outfit-reel-director", 2), FRAMES_COST);
   assert.equal(talkingHeadFramesCost("follow-shot-director", 2), FRAME_COST);
   assert.equal(talkingHeadFramesCost("surprise-interview-director", 2), FRAMES_COST);
   assert.equal(talkingHeadFramesCost("surprise-interview-director", 3), FRAME_COST);

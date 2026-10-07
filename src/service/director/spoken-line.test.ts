@@ -66,7 +66,7 @@ test("lockDialogueSpeech adds lip-sync rules for talking-head directors only", (
   const locked = lockDialogueSpeech("She reads the line.", "full-body-talking-head-director");
   assert.match(locked, /visible mouth/);
   assert.match(locked, /lip-sync/);
-  assert.match(locked, /open palm/);
+  assert.match(locked, /chest height/);
   assert.equal(lockDialogueSpeech(locked, "full-body-talking-head-director"), locked);
 });
 

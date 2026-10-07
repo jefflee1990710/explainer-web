@@ -5,10 +5,10 @@ export const SURPRISE_INTERVIEW_SKILL_SLUG = "surprise-interview-director";
 export const OUTFIT_REEL_SKILL_SLUG = "outfit-reel-director";
 export const FOLLOW_SHOT_SKILL_SLUG = "follow-shot-director";
 
+// Outfit reels cut to a new full-body angle each clip, so they draw a new start still.
 const CHAIN_FROM_CLIP_2 = new Set([
   "talking-head-director",
   "full-body-talking-head-director",
-  OUTFIT_REEL_SKILL_SLUG,
   FOLLOW_SHOT_SKILL_SLUG,
 ]);
 

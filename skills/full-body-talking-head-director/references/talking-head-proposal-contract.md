@@ -22,7 +22,7 @@ Present a readable director's proposal and stop for confirmation before writing 
 
 ## Storyboard contract
 
-| Clip # & time | Clip k of N | Start still | Lip-sync + nod + open palm, camera locked | Spoken line | SFX |
+| Clip # & time | Clip k of N | Start still | Lip-sync + head/hands/body like a reel, camera locked | Spoken line | SFX |
 |---|---|---|---|---|---|
 
 One row per balanced clip, not one row per sentence.
@@ -31,7 +31,7 @@ One row per balanced clip, not one row per sentence.
 
 Write `startScene` and `endScene` as four concrete parts, in order:
 
-1. Character: eyes into the lens, mouth just opening to speak (start) or mouth just closed in a warm small smile with one open palm at waist height (end). Never describe appearance.
+1. Character: eyes locked into the lens as if talking into a phone, mouth just opening, head tilted, one hand beginning to lift at chest height, weight on one hip (start) or mouth just closed in an engaged small smile, head tilted the other way, the other hand still raised, weight on the other hip (end). Never describe appearance.
 2. Set: the same plain background in every clip.
 3. Light: same direction and mood in every clip.
 4. Camera: locked full-body, character centered, head to feet in frame. Name the bottom subtitle and quote the spoken line.
@@ -40,7 +40,7 @@ Clip 2 and after: `startScene` copies the previous `endScene`.
 
 ## Motion contract (`motionCamera`)
 
-One timed move that fills this clip's own seconds, for example `0–0.4s inhale and blink; 0.4–4s continuous lip-sync with a small nod, a slight eyebrow lift, and one waist-height open-palm gesture; 4–5s mouth closes into a warm small smile; feet stay in frame; camera locked`. No cuts. The subtitle does not change mid-clip.
+One timed move that fills this clip's own seconds, for example `0–0.4s inhale, blink, eyes on the lens, head already tilting; 0.4–4s continuous lip-sync with a live reel-person face, head tilting and nodding, both hands gesturing at chest height, weight shifting hip to hip; 4–5s mouth closes into an engaged small smile; feet stay in frame; camera locked`. No cuts. The subtitle does not change mid-clip. Never freeze the head, hands, or body.
 
 ## Phase A checks
 

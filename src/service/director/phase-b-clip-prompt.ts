@@ -2,6 +2,7 @@ import type { CharacterVoice } from "@/model/character-voice";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { isOutfitReelSkill } from "@/service/director/skill-rules";
 import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
+import { OUTFIT_VIDEO_MOTION_RULES } from "@/service/director/outfit-reel";
 import { clampClipSeconds } from "@/service/director/keyframe-delta";
 import { phaseBAudioLock } from "@/service/director/voice";
 import type { PhaseAProposal, SpeechPace, VoiceGender } from "@/model/project";
@@ -20,7 +21,7 @@ export function phaseBCharacterLine(input: {
 }) {
   const names = input.cast?.map((member) => member.name).filter(Boolean).join(", ");
   if (names && isOutfitReelSkill(input.skillSlug)) {
-    return `Keep ${names}'s face, hair, and proportions as in the first and last frames. Name the one garment this clip puts on. If it replaces the white knee-length athletic shorts, those shorts are off in the last frame. Other pieces already on stay on. Do not mention reference images or reference sheets — MiniMax H3 only receives this clip's first and last frames.`;
+    return `Keep ${names}'s face, hair, and proportions as in the first and last frames. Name the one garment this clip puts on. If it replaces the white knee-length athletic shorts, those shorts are off in the last frame. Other pieces already on stay on. The torso stays covered; never pull a bottom up from the thighs. Do not mention reference images or reference sheets — MiniMax H3 only receives this clip's first and last frames.`;
   }
   if (names) {
     return `Keep ${names} identical to Phase A characterLock. Do not mention reference images or reference sheets in the MiniMax H3 prompt — MiniMax H3 only receives this clip's first and last frames. Never describe clothing, wardrobe, or gear (no "winter coat", "boots", "backpack"); say only that the outfit stays exactly as in the first and last frames.`;
@@ -36,7 +37,7 @@ export function phaseBWardrobeLock(input: {
 }) {
   if (!input.cast?.length && !input.characterImageUrl) return "";
   if (isOutfitReelSkill(input.skillSlug)) {
-    return "Wardrobe: the first frame is the outfit so far, starting from a white crew-neck tank plus white knee-length athletic shorts. During the clip one new garment from the clothing reference goes on and is fully on in the last frame. A reference bottom replaces the athletic shorts. Other pieces stay. Do not change face or hair.";
+    return "Wardrobe: the first frame is the outfit so far, starting from a white crew-neck tank plus white knee-length athletic shorts. During the clip one new garment from the clothing reference goes on and is fully on in the last frame. A reference bottom replaces the athletic shorts. The new bottom is already at the natural waist; the previous shorts vanish underneath; never pull it up from the thighs; never show a gap between the tank and the waistband. Other pieces stay. Do not change face or hair.";
   }
   return "Wardrobe: every character keeps exactly the outfit shown in the first and last frames for the whole clip. No added or changed clothing, layers, or gear.";
 }
@@ -72,10 +73,14 @@ export function clipPhaseBUserPrompt(input: {
   const next = rows[index + 1];
 
   const opening = prev
-    ? `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene} (${prev.motionCamera}). Start from that resting state.`
+    ? isOutfitReelSkill(input.skillSlug)
+      ? `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene}. Clothes already on continue. This clip is a NEW camera angle — do not copy the previous facing-forward stance. Open on THIS clip's START frame.`
+      : `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene} (${prev.motionCamera}). Start from that resting state.`
     : "It is the first clip; open cold on the START frame.";
   const closing = next
-    ? `It hands off to clip ${next.clipNumber}, which opens with: ${next.explainerScene}. End on a state that leads into it.`
+    ? isOutfitReelSkill(input.skillSlug)
+      ? `The next clip will cut to a different full-body angle. End this clip settled on its own locked camera.`
+      : `It hands off to clip ${next.clipNumber}, which opens with: ${next.explainerScene}. End on a state that leads into it.`
     : "It is the last clip; end on a clean resting payoff. Do not bridge back to clip 1 or plan a seamless loop.";
 
   return [
@@ -92,7 +97,9 @@ export function clipPhaseBUserPrompt(input: {
     `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,
     clipUsesTalkingPerformance(input.skillSlug)
       ? talkingVideoMotionRules(talkingShotForSkill(input.skillSlug) ?? "face")
-      : DUAL_KEYFRAME_MOTION_RULES,
+      : isOutfitReelSkill(input.skillSlug)
+        ? OUTFIT_VIDEO_MOTION_RULES
+        : DUAL_KEYFRAME_MOTION_RULES,
     opening,
     closing,
     "Return a single object { clipNumber, durationSeconds, prompt }.",

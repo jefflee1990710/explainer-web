@@ -22,7 +22,7 @@ Present a readable director's proposal and stop for confirmation before writing 
 
 ## Storyboard contract
 
-| Clip # & time | Clip k of N | Start still | Lip-sync + nod, camera locked | Spoken line | SFX |
+| Clip # & time | Clip k of N | Start still | Lip-sync + head/hands/body like a reel, camera locked | Spoken line | SFX |
 |---|---|---|---|---|---|
 
 One row per balanced clip, not one row per sentence.
@@ -31,7 +31,7 @@ One row per balanced clip, not one row per sentence.
 
 Write `startScene` and `endScene` as four concrete parts, in order:
 
-1. Character: eyes into the lens, mouth just opening to speak (start) or mouth just closed in a warm small smile (end). Never describe appearance.
+1. Character: eyes locked into the lens as if talking into a phone, mouth just opening, head tilted, one hand beginning to lift (start) or mouth just closed in an engaged small smile, head tilted the other way, a hand still slightly in the lower frame (end). Never describe appearance.
 2. Set: the same plain background in every clip.
 3. Light: same direction and mood in every clip.
 4. Camera: the shot named by the director visual, otherwise no shot size. Name the bottom subtitle and quote the spoken line.
@@ -40,7 +40,7 @@ Clip 2 and after: `startScene` copies the previous `endScene`.
 
 ## Motion contract (`motionCamera`)
 
-One timed move that fills this clip's own seconds, for example `0–0.4s inhale and blink; 0.4–4s continuous lip-sync with a small nod and a slight eyebrow lift; 4–5s mouth closes into a warm small smile; camera locked`. No cuts. The subtitle does not change mid-clip.
+One timed move that fills this clip's own seconds, for example `0–0.4s inhale, blink, eyes on the lens, head already tilting; 0.4–4s continuous lip-sync with a live reel-person face, head tilting and nodding, shoulders rocking, one hand entering the lower frame; 4–5s mouth closes into an engaged small smile; camera locked`. No cuts. The subtitle does not change mid-clip. Never freeze the head, hands, or shoulders.
 
 ## Phase A checks
 

@@ -30,8 +30,9 @@ If required items are missing, ask for them in one concise message and stop.
 
 The rendering rules come from the **Visual style** block appended below. Do not invent a different medium.
 
-- One locked full-body shot. Head, torso, and feet stay in frame. The character is centered and looks into the lens in every clip. Do not crop to a close-up or a medium shot.
+- One locked full-body shot. Head, torso, and feet stay in frame. The character is centered and looks straight into the lens in every clip, like a real person filming a reel on a phone. Do not crop to a close-up or a medium shot.
 - Same background, same light, same camera. No new props, no push-in, no cutaway.
+- While speaking the head, both hands, and whole body keep moving (weight shift, torso sway). Never freeze at attention.
 - **Clip 2 and after**: `startScene` is the previous clip's `endScene`. The read continues; it does not restage.
 
 ## Audio and subtitles
@@ -44,7 +45,7 @@ The rendering rules come from the **Visual style** block appended below. Do not 
 ## Phase A field mapping
 
 - `clipCount`: the balanced clip count. `targetDuration`: the sum of the clip lengths. `loopMode`: always linear.
-- Each row: `narrativeJob` = clip k of N; `startScene` / `endScene` = the locked shot plus that clip's subtitle; `motionCamera` = continuous lip-sync, a small nod, a slight eyebrow lift, and one waist-height open-palm gesture across that clip's own seconds; `englishVo` = that clip's spoken line.
+- Each row: `narrativeJob` = clip k of N; `startScene` / `endScene` = the locked shot plus that clip's subtitle; `motionCamera` = continuous lip-sync like a reel: head tilting, both hands at chest height, weight shifting hip to hip; `englishVo` = that clip's spoken line.
 
 ## Workflow
 

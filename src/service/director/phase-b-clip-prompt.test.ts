@@ -87,18 +87,22 @@ test("talking-head Phase B uses speech motion instead of snap verbs", () => {
   });
   assert.match(prompt, /lip-sync/);
   assert.match(prompt, /Do not write snaps/);
+  assert.match(prompt, /real person filming a vertical reel/);
   assert.doesNotMatch(prompt, /snaps fast and decisive/);
 });
 
-test("outfit-reel Phase B keeps snap dual-keyframe rules", () => {
+test("outfit-reel Phase B forbids pulling a bottom up from the thighs", () => {
   const prompt = clipPhaseBUserPrompt({
     ...base,
     skillSlug: "outfit-reel-director",
     phaseA: proposal(),
     clipNumber: 2,
   });
-  assert.match(prompt, /snaps fast and decisive/);
-  assert.doesNotMatch(prompt, /lip-sync/);
+  assert.match(prompt, /already at the natural waist/);
+  assert.match(prompt, /Never pull a skirt/);
+  assert.match(prompt, /Body motion is required/);
+  assert.match(prompt, /different full-body angle/);
+  assert.doesNotMatch(prompt, /snaps fast and decisive/);
 });
 
 test("first clip has no previous neighbour", () => {
@@ -161,7 +165,7 @@ test("Phase B with a cast forbids describing or changing clothing", () => {
   );
   assert.match(
     phaseBCharacterLine({ cast: [{ name: "Ada" }], skillSlug: "outfit-reel-director" }),
-    /one garment this clip puts on/,
+    /never pull a bottom up from the thighs/,
   );
 });
 

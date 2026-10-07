@@ -30,8 +30,9 @@ If required items are missing, ask for them in one concise message and stop.
 
 The rendering rules come from the **Visual style** block appended below. Do not invent a different medium.
 
-- Shot size follows the director visual. The character is centered and looks into the lens in every clip.
+- Shot size follows the director visual. The character is centered and looks straight into the lens in every clip, like a real person filming a reel on a phone.
 - Same background, same light, same camera. No new props, no push-in, no cutaway.
+- While speaking the head, hands, and upper body keep moving. Never freeze into a presenter statue.
 - **Clip 2 and after**: `startScene` is the previous clip's `endScene`. The read continues; it does not restage.
 
 ## Audio and subtitles
@@ -44,7 +45,7 @@ The rendering rules come from the **Visual style** block appended below. Do not 
 ## Phase A field mapping
 
 - `clipCount`: the balanced clip count. `targetDuration`: the sum of the clip lengths. `loopMode`: always linear.
-- Each row: `narrativeJob` = clip k of N; `startScene` / `endScene` = the locked shot plus that clip's subtitle; `motionCamera` = continuous lip-sync, a small nod, and a slight eyebrow lift across that clip's own seconds; `englishVo` = that clip's spoken line.
+- Each row: `narrativeJob` = clip k of N; `startScene` / `endScene` = the locked shot plus that clip's subtitle; `motionCamera` = continuous lip-sync like a reel: head tilting, a hand in the lower frame, shoulders rocking; `englishVo` = that clip's spoken line.
 
 ## Workflow
 

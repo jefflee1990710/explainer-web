@@ -232,8 +232,8 @@ export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
       ? "Locked full-body shot. Head, torso, and feet stay in frame. The character looks into the lens. Do not crop to a close-up."
       : "Do not pick a shot size. The director visual names the shot. The character looks into the lens the whole time.",
     fullBody
-      ? "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync, a small nod, a slight eyebrow lift, and one waist-height open-palm gesture. Feet stay in frame. One bottom subtitle equal to that clip's spoken line, same on the start and end still."
-      : "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync, a small nod, and a slight eyebrow lift. Shoulders stay quiet. One bottom subtitle equal to that clip's spoken line, same on the start and end still.",
+      ? "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, both hands gesturing at chest height, weight shifting hip to hip. Feet stay in frame. One bottom subtitle equal to that clip's spoken line, same on the start and end still."
+      : "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, shoulders rocking, a hand entering the lower frame. One bottom subtitle equal to that clip's spoken line, same on the start and end still.",
   ].join(" ");
 }
 
@@ -249,8 +249,8 @@ export function talkingHeadDirectorBlock(skillSlug?: string) {
       ? "Camera is a locked full-body shot. Do not crop to a close-up or a medium shot. Set and light stay identical across every clip. Clip 2 and after open on the previous clip's end still."
       : "Shot size follows the director visual. Do not pick a different shot. Camera, set, and light stay identical across every clip. Clip 2 and after open on the previous clip's end still.",
     fullBody
-      ? "On-camera speech: eyes on the lens, continuous lip-sync, a small nod, a slight eyebrow lift, and one waist-height open-palm gesture. Never freeze the face. Never a greeting wave."
-      : "On-camera speech: eyes on the lens, continuous lip-sync, a small nod, and a slight eyebrow lift. Shoulders stay quiet. Never freeze the face. Never a greeting wave.",
+      ? "On-camera speech like a real person recording a reel: eyes locked on the lens, continuous lip-sync, head tilting and nodding, both hands gesturing at chest height, weight shifting hip to hip. Never freeze the face, head, hands, or body. Never a greeting wave."
+      : "On-camera speech like a real person recording a reel: eyes locked on the lens, continuous lip-sync, head tilting and nodding, shoulders rocking, a hand entering the lower frame. Never freeze the face or neck. Never a greeting wave.",
     "Bottom subtitle only: that clip's spoken line, nothing else written in the frame.",
   ].join(" ");
 }
@@ -283,18 +283,18 @@ function shotLine(
   if (language === "en") {
     const pose =
       moment === "start"
-        ? "Character: centered, eyes into the lens, mouth just opening to speak, brows relaxed, a soft inhale."
+        ? "Character: centered, eyes locked into the lens as if talking into a phone, mouth just opening, head tilted a few degrees, one hand beginning to lift, a live thinking expression."
         : fullBody
-          ? "Character: same stance, eyes into the lens, mouth just closed after the line, a warm small smile, one hand a small open palm at waist height, feet planted."
-          : "Character: same pose, eyes into the lens, mouth just closed after the line, a warm small smile.";
+          ? "Character: eyes still locked on the lens, mouth just closed after the line, an engaged small smile, head tilted the other way, the other hand still slightly raised at chest height, weight on the other hip, feet in frame."
+          : "Character: eyes still locked on the lens, mouth just closed after the line, an engaged small smile, head tilted the other way, one hand still slightly in the lower frame.";
     return `${pose} Set: the same plain background in every clip, no new props. Light: soft and even, unchanged.${camera} Subtitle: one bottom line, exactly "${line}".`;
   }
   const pose =
     moment === "start"
-      ? "角色：置中，望住鏡頭，準備開口，眉眼放鬆。"
+      ? "角色：置中，直望鏡頭好似對住手機講，準備開口，頭微傾，一隻手開始提起，神情有生氣。"
       : fullBody
-        ? "角色：同一站姿，望住鏡頭，呢句講完、口部合上變成溫暖淺笑，一隻手喺腰際攤掌，腳唔郁。"
-        : "角色：同一姿勢，望住鏡頭，呢句講完、口部合上變成溫暖淺笑。";
+        ? "角色：仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，頭反向微傾，另一隻手仲喺胸前，重心換咗邊，腳留喺畫面。"
+        : "角色：仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，頭反向微傾，一隻手仲喺畫面下方。";
   return `${pose}場景：全程同一個簡潔背景，冇新道具。光：柔和均勻，不變。${camera}字幕：畫面底部一行，逐字係「${line}」。`;
 }
 
