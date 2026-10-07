@@ -6,7 +6,7 @@ import { skillsCollection, userDirectorsCollection } from "@/dao";
 import { requireAppUser } from "@/service/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { customSkillSlug } from "@/service/director/behavior-slug";
-import { customSelectableFilter, systemSelectableFilter } from "@/service/director/selectable-skills";
+import { customSelectableFilter, isHiddenPickerSkill, systemSelectableFilter } from "@/service/director/selectable-skills";
 import { loadDirectorImageParts } from "@/service/character/cast-prompt";
 import { directorModel } from "@/service/director/model";
 import { chatRateLimited } from "@/service/director/chat-rate-limit";
@@ -135,7 +135,7 @@ export async function createDirectorAction(input: {
       ownerClerkUserId: { $exists: false },
       isActive: true,
     })) as Skill | null;
-    if (!template?.profile) return { ok: false, error: "找不到模板" };
+    if (!template?.profile || isHiddenPickerSkill(template)) return { ok: false, error: "找不到模板" };
 
     const _id = new ObjectId();
     const now = new Date();

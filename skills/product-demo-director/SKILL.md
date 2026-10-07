@@ -24,8 +24,9 @@ If required items are missing, ask for them in one concise message and stop. Nev
 The rendering rules (canvas, look, palette, lettering, motion) come from the **Visual style** block appended below this skill. Do not invent a different medium.
 
 - **Product lock**: define the product ONCE in `visualWorld` as a fixed prop spec — shape, size relative to the character, two colours in ordinary words, one distinguishing detail (a dial, a strap, a logo mark drawn as a simple shape) — and repeat that exact description in every clip row that shows it. The product never changes shape, colour, or proportion between clips. If the source has no visual description, invent a simple, plausible one and state that it is a placeholder for the user to confirm.
-- **Cast lock**: if character references / blueprints are attached, the presenter/user MUST follow them exactly across all clips; say so in `characterLock` and never restyle them. If none, define ONE simple presenter in `characterLock` and keep it identical.
-- Hands and the product are the stars: frame them large; the presenter's face is secondary.
+- **Cast lock**: if character references / blueprints are attached, the presenter/user MUST follow them exactly across all clips; say so in `characterLock` and never restyle them. If none, define ONE simple presenter in `characterLock` and keep it identical. A scene or product reference never replaces that person. Lock face and hair to the selected character in every clip.
+- Hands and the product may be framed large. Any face that is visible is still the selected character's face and hair, never the person in a reference photo.
+- Clothes stay on the character blueprint unless the user's instruction says the clothes follow a reference image. Then copy only the garments, not the wearer.
 - Environment: one clean surface or context appropriate to the product, reused in every clip.
 
 ## Demo architecture

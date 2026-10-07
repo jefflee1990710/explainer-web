@@ -1,6 +1,14 @@
 import { skillsCollection, userDirectorsCollection } from "@/dao";
 import type { Skill } from "@/model/skill";
 import { isCustomSkill } from "@/service/director/behavior-slug";
+import { OUTFIT_REEL_SKILL_SLUG } from "@/service/director/clip-continuity";
+
+// 試衫 stays in the codebase. New videos and the director list do not offer it.
+const HIDDEN_PICKER_SLUGS = new Set([OUTFIT_REEL_SKILL_SLUG]);
+
+export function isHiddenPickerSkill(skill: { slug: string; baseSlug?: string }) {
+  return HIDDEN_PICKER_SLUGS.has(skill.slug) || Boolean(skill.baseSlug && HIDDEN_PICKER_SLUGS.has(skill.baseSlug));
+}
 
 // Active system skills. Custom directors live in `userDirectors`.
 export function systemSelectableFilter() {
@@ -35,7 +43,9 @@ export async function listSelectableSkills(clerkUserId: string): Promise<Skill[]
     skills.find(systemSelectableFilter()).toArray(),
     directors.find(customSelectableFilter(clerkUserId)).toArray(),
   ]);
-  return sortSelectableSkills([...(system as Skill[]), ...(custom as Skill[])]);
+  return sortSelectableSkills([...(system as Skill[]), ...(custom as Skill[])]).filter(
+    (skill) => !isHiddenPickerSkill(skill),
+  );
 }
 
 // One skill by slug, only if this user may pick it.

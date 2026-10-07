@@ -13,7 +13,7 @@ import {
 } from "@/dao";
 import { runPhaseAJob, runStillJob } from "@/service/director/jobs";
 import { behaviorSlug } from "@/service/director/behavior-slug";
-import { findSelectableSkill } from "@/service/director/selectable-skills";
+import { findSelectableSkill, isHiddenPickerSkill } from "@/service/director/selectable-skills";
 import { isVoLanguage } from "@/service/director/languages";
 import { isVoiceGender, resolveVoiceGender } from "@/service/director/voice";
 import { isSpeechPace } from "@/service/director/speech-pace";
@@ -343,7 +343,7 @@ export async function createVideoAction(
       user.clerkUserId,
       String(formData.get("skillSlug") || ""),
     );
-    if (!skill) return { ok: false, error: "找不到風格" };
+    if (!skill || isHiddenPickerSkill(skill)) return { ok: false, error: "找不到風格" };
     const ruleSlug = behaviorSlug(skill);
     const parsed = readVideoBrief(formData, user.clerkUserId, ruleSlug);
     if (!parsed.ok) return parsed;

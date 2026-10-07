@@ -32,7 +32,7 @@ export function motionTransitionContract() {
 
 // Appended to every still so the image model renders, not sketches, the scene.
 export const FRAME_RENDER_DETAIL =
-  "Render detail: follow the Scene's shot size, angle, and composition exactly; give props and surfaces clear material and texture; keep light direction, shadows, and depth consistent with the Scene; never restyle the character's look or outfit beyond the attached reference.";
+  "Render detail: follow the Scene's shot size, angle, and composition exactly; give props and surfaces clear material and texture; keep light direction, shadows, and depth consistent with the Scene; never copy a scene reference's person, face, or hairstyle — those stay on the character blueprint.";
 
 // Phase B system rule so each video prompt is a precise motion brief.
 export const PHASE_B_DETAIL_RULES =

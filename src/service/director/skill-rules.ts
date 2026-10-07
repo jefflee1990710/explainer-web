@@ -211,8 +211,9 @@ export function listicleListEntries(clips: ListicleClip[]) {
 // Shared by every dialogue-only director (story short, Q&A).
 export function dialogueOnlyDirectorBlock() {
   return [
-    'There is NO narrator and NO third-person voiceover. The narrator field must start with "No narrator — characters speak." and may then describe each speaker\'s voice.',
+    'There is NO narrator and NO third-person voiceover. The narrator field must start with "No narrator — characters speak." Then paste each supplied voice lock verbatim, one speaker per sentence. A speaker without their own lock uses the project voice lock verbatim. Do not invent a timbre and do not leave a speaker out.',
     'englishVo is only character dialogue written as NAME: "line", in the chosen dialogue language. Multiple speakers are allowed. A silent beat is "(no dialogue)".',
+    "motionCamera names who is speaking. That character's mouth lip-syncs every syllable of their line. Every other on-screen character keeps their mouth closed and only reacts.",
   ].join(" ");
 }
 
@@ -442,6 +443,14 @@ const MENU_ORDER: CartoonAction[] = [
   "flip", "dial", "stretch", "squeeze", "magnify", "jump", "point",
 ];
 
+// Clip 1 only. The two stills must show the before and after, or the video will not move the lens.
+export function cartoonHookCameraRule(hasCharacter: boolean) {
+  if (!hasCharacter) {
+    return "Clip 1 is the hook and always uses one exaggerated camera on the graph, sharp and fast, no slow glide and no blur: a snap zoom into the key node, or a snap zoom out from that node to the whole chart. The start still and the end still use different shot sizes. Later clips do not repeat this hook camera.";
+  }
+  return "Clip 1 is the hook and always uses exactly one exaggerated camera move, sharp and fast in the first second, no slow glide and no blur. Pick one, and do not use the same move every video: a snap zoom in from a wider shot to the surprised face; a snap zoom out from the surprised face to the full body and the graph; a fast 360 orbit around the character that ends on the opposite side; an overhead drop from looking down onto an eye-level surprised face; a crash push from far across the canvas into a close-up as the graph rushes past; a dutch snap from a tilted close-up into an upright wider view. Write that before and after in each still's Camera line, so shot size or angle differs. Surprise is a facial expression only. The character stays silent. Later clips do not repeat this hook camera.";
+}
+
 function directorActionMenu() {
   return MENU_ORDER.map((action) => ACTION_BY_NAME.get(action)!)
     .map((spec) => `${spec.action} (${spec.meaning}; write "${spec.cue}"): ${spec.director}`)
@@ -454,7 +463,7 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
     "This director is ALWAYS narrated: an unseen off-screen narrator speaks every englishVo line in the third person.",
     "The on-screen character never speaks, never introduces themself, and is never the narrator. No first-person lines in the character's voice (no \"Hi, I'm Scro\", \"I am…\", \"we…\" spoken as the character); the narrator may name the character or product in the third person (\"Meet Scro. Scro turns…\").",
     hasCharacter
-      ? `A character is on screen. Each clip has exactly one primary body action, chosen from this list by what the clip's line means. Each entry gives the meaning, the word motionCamera's first beat must use, and the before then after of the two stills: ${directorActionMenu()}. Do not reuse an action from either of the previous two clips. Use jump and point toward the camera at most once each per video, on the key beat. A different standing position, a few steps, or a walk is not a new action.`
+      ? `A character is on screen. Each clip has exactly one primary body action, chosen from this list by what the clip's line means. Each entry gives the meaning, the word motionCamera's first beat must use, and the before then after of the two stills: ${directorActionMenu()}. Do not reuse an action from either of the previous two clips. Use jump at most once per video, on the key beat. The last clip never points toward the camera. Pick another action that matches the last line, and keep the hands on the graph. A different standing position, a few steps, or a walk is not a new action.`
       : "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth closed or reacting. It may point at a diagram, stand aside reacting, or handle props — it does not have to hold three props.",
     hasCharacter
       ? "Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). About 80% of clips keep them on that same side for the whole clip — do not walk them from left to right every time. Only about 20% of clips are a full cross, either left to right or right to left, and those rare crosses do not all go the same way. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and facial expression. Camera angle changes every clip and does not repeat: from the character's left side, from above, from the front, or from behind as they turn around, and it may zoom in or out. One continuous move, no cut and no teleport. They stay silent — expression only, no lip-sync and no greeting wave."
@@ -471,6 +480,7 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
     hasCharacter
       ? "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a short hold while the graph responds (a node lights up, an arrow draws itself on, a counter ticks up). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
       : "",
+    cartoonHookCameraRule(hasCharacter),
     "On-canvas beat text is allowed: write one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 in startScene and endScene. Do not dump the full voiceover into those fields; the still prompt adds startVo / endVo lettering separately.",
   ]
     .filter(Boolean)
@@ -502,9 +512,13 @@ export function cartoonClipAction(motionCamera: string | undefined): CartoonActi
 // Pasted into whiteboard-explainer stills; empty for every other director.
 export function cartoonNarratorFrameLock(
   skillSlug?: string,
-  options?: { hasCharacter?: boolean; action?: CartoonAction; position?: "start" | "end" },
+  options?: { hasCharacter?: boolean; action?: CartoonAction; position?: "start" | "end"; clipNumber?: number },
 ) {
   if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
+  const hook =
+    options?.clipNumber === 1
+      ? "HOOK CAMERA: this still uses the exaggerated framing named in the Scene. Shot size or angle differs from the other still of Clip 1. A close view shows a surprised face."
+      : "";
   if (options?.hasCharacter) {
     const silent =
       "Silent demonstrator: the character does not talk or lip-sync (a readable facial expression is required; no greeting wave).";
@@ -516,33 +530,44 @@ export function cartoonNarratorFrameLock(
         spec[options.position],
         "Keep the character on the side of the frame the Scene names. Camera angle may differ from the other still. Draw the explanation graph plus the element of this action.",
         labels,
-      ].join(" ");
+        hook,
+      ].filter(Boolean).join(" ");
     }
-    return `${silent} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. Camera angle may differ from the other still. Draw the explanation graph plus the element of this action. ${labels}`;
+    return `${silent} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. Camera angle may differ from the other still. Draw the explanation graph plus the element of this action. ${labels}${hook ? ` ${hook}` : ""}`;
   }
-  return "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」, clearly readable.";
+  const base = "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」, clearly readable.";
+  return hook ? `${base} ${hook}` : base;
 }
 
 // Appended to whiteboard-explainer clip videos; empty for every other director.
 export function cartoonNarratorVideoLock(
   skillSlug?: string,
-  options?: { hasCharacter?: boolean; action?: CartoonAction },
+  options?: { hasCharacter?: boolean; action?: CartoonAction; clipNumber?: number },
 ) {
   if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
   const voice =
-    "Voice: an unseen off-screen narrator speaks every line. The on-screen character never speaks or lip-syncs.";
+    "Voice: an unseen off-screen narrator speaks every line aloud. The on-screen character never speaks or lip-syncs. Sound effects never replace the narrator. The clip is never silent.";
   if (!options?.hasCharacter) {
-    return `${voice} Mouth stays closed or shows simple reactions, and reacts to the diagram or props.`;
+    const graphHook =
+      options?.clipNumber === 1
+        ? " HOOK CAMERA: play the exaggerated zoom drawn between the two stills, sharp and fast, no slow glide and no blur."
+        : "";
+    return `${voice} Mouth stays closed or shows simple reactions, and reacts to the diagram or props.${graphHook}`;
   }
   const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
   const named = spec ? ` ${spec.video}` : "";
-  return `${voice}${named} Animate this clip's one action as the two stills show it, in three beats with real human timing: a quick anticipation, the action snapping fast and sharp, then a small overshoot, a settle with a wobble, and a short hold while the graph responds. Speed changes within the clip like a real person; never one constant slow glide. It must differ from the previous clip's action. Never slide the body upward, and do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. Do not repeat the previous clip's action.`;
+  const hook =
+    options?.clipNumber === 1
+      ? " HOOK CAMERA: play the exaggerated move drawn between the two stills, sharp and fast in the first second, no slow glide and no blur. A close view shows a surprised face. The character stays silent."
+      : "";
+  return `${voice}${named} Animate this clip's one action as the two stills show it, in three beats with real human timing: a quick anticipation, the action snapping fast and sharp, then a small overshoot, a settle with a wobble, and a short hold while the graph responds. Speed changes within the clip like a real person; never one constant slow glide. It must differ from the previous clip's action. Never slide the body upward, and do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. Do not repeat the previous clip's action.${hook}`;
 }
 
 export function dialogueQaDirectorBlock() {
   return [
     "This director requires exactly two attached character blueprints. Assign one as ASKER and one as ANSWERER. Do not invent a third character or a replacement hero.",
     "Use each character's attached name as NAME in every dialogue line. The ASKER speaks the questions; the ANSWERER speaks the answers. No unseen host or narrator explains anything.",
+    "On a question clip only the asker's mouth moves. On an answer clip only the answerer's mouth moves. The listener's mouth stays closed.",
   ].join(" ");
 }
 
@@ -570,9 +595,8 @@ export function surpriseInterviewDirectorBlock() {
   return [
     "This is a SURPRISE INTERVIEW. Exactly one attached character. They speak every line to the camera. No second character and no screen recording.",
     "Clip 1 is the hook, 3–4 seconds. The person stays right-side up. The camera starts above the head, looking down, then drops downward while it snaps a zoom-in onto the surprised face. Sharp and clear: no blur, no slow glide, and do not flip the picture. The face moves into a clear surprise and says one short hook. If the user pasted a script, that hook is the first sentence verbatim. If they gave only a concept, write the hook.",
-    "Clip 2 cuts once to a seated medium shot, right-side up, eyes to the lens, and starts the explanation. Do not copy the overhead zoom into clip 2's startScene.",
-    "Clip 3 and after: startScene copies the previous endScene. Same chair, background, and light. Motion is the mouth, a small nod, and at most one hand gesture. Camera stays locked and right-side up.",
-    "One idea per interview clip. The last clip rests in the chair. Every clip uses the same shock-poster type: ultra-bold condensed sans, white words, numbers in mustard yellow, the payoff in black on a tilted mustard-yellow dry-brush stroke. Clip 1 places that poster huge at the top. Every later clip places the same design smaller at the bottom, as the subtitle, and keeps it pinned there for the whole clip. Not a white subtitle bar. The camera stays locked and does not zoom out. Letters stay upright. No background music.",
+    "Clip 2 and after each hard-cut to a different camera angle and a different body pose. Do not copy the previous clip's framing, and do not copy the overhead zoom. Within a clip the angle and the pose stay locked. Only the mouth and expression move.",
+    "One idea per interview clip. The last clip rests. Every clip uses the same shock-poster type: ultra-bold condensed sans, white words, numbers in mustard yellow, the payoff in black on a tilted mustard-yellow dry-brush stroke. Each clip pins that poster in one place: top, middle, or bottom. Neighbouring clips do not share the place. Not a white subtitle bar. Letters stay upright. No background music.",
   ].join(" ");
 }
 

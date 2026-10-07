@@ -1,3 +1,4 @@
+import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import { skillBansNarration, storyShortCameraLock } from "@/service/director/skill-rules";
 import {
   clipUsesTalkingPerformance,
@@ -43,7 +44,7 @@ export function spokenLineCopy(skillSlug?: string) {
 }
 
 // `NAME: "line"` / `名字：「台詞」` blocks; the name is for voice casting, never on screen.
-const SPEAKER_LINE = /[^:：\n"“「]{1,40}?[:：]\s*["“「]([^"”」]*)["”」]/g;
+const SPEAKER_LINE = /([^:：\n"“「]{1,40})[:：]\s*["“「]([^"”」]*)["”」]/g;
 
 // A beat with nothing to say. Must not become a subtitle that reads "(no dialogue)".
 export function isSilentSpokenLine(line: string) {
@@ -51,19 +52,69 @@ export function isSilentSpokenLine(line: string) {
 }
 
 // On-screen subtitle text: only the spoken words, no speaker labels or quotes.
+export function speakerTurns(line: string): Array<{ name: string; line: string }> {
+  return [...line.matchAll(SPEAKER_LINE)].flatMap((match) => {
+    const name = match[1]?.replace(/^[\s,.;]+/, "").trim() ?? "";
+    const spoken = match[2]?.trim() ?? "";
+    if (!name || !spoken) return [];
+    return [{ name, line: spoken }];
+  });
+}
+
 export function subtitleText(line: string) {
   const text = line.trim();
   if (isSilentSpokenLine(text)) return "";
-  const spoken = [...text.matchAll(SPEAKER_LINE)].map((match) => match[1].trim()).filter(Boolean);
+  const spoken = speakerTurns(text).map((turn) => turn.line);
   return spoken.length ? spoken.join(" ") : text;
+}
+
+// The person who says the line moves their mouth. Everyone else stays shut.
+export function speakingMouthLock(line: string, castNames?: string[]) {
+  const text = line.trim();
+  if (!text || isSilentSpokenLine(text)) return "";
+  const turns = speakerTurns(text);
+  if (!turns.length) {
+    const spoken = subtitleText(text);
+    if (!spoken) return "";
+    return `Mouth: the on-screen speaker lip-syncs every syllable of "${spoken}". Every other character's mouth stays closed. No off-screen narrator.`;
+  }
+  const speaking = new Set(turns.map((turn) => turn.name));
+  const listeners = (castNames ?? []).map((name) => name.trim()).filter((name) => name && !speaking.has(name));
+  const closed =
+    listeners.length === 1
+      ? `${listeners[0]}'s mouth stays closed`
+      : listeners.length
+        ? `${listeners.join(" and ")}'s mouths stay closed`
+        : "every other character's mouth stays closed";
+  const beats = turns
+    .map((turn) => `${turn.name}'s mouth lip-syncs every syllable of "${turn.line}". While ${turn.name} speaks, ${closed}.`)
+    .join(" ");
+  return `Mouth: only the speaking character lip-syncs. ${beats} Do not move a listener's mouth as if they are talking.`;
+}
+
+// Cartoon explainer is always narrated. The line goes first so a long motion
+// prompt cannot bury it, and sound effects cannot stand in for the voice.
+export function narratorSpeechLock(line: string) {
+  const spoken = subtitleText(line).replaceAll('"', "'");
+  if (!spoken) return "";
+  return `AUDIO REQUIRED, spoken once by an unseen off-screen narrator, starting in the first half-second, loud and clear, word for word: "${spoken}". Sound effects never replace this voice. This clip is never silent. The on-screen character's mouth stays closed.`;
 }
 
 // Appended when submitting a story-short / Q&A clip so the model cannot skip
 // speech; story shorts also get the third-person camera lock.
-export function lockDialogueSpeech(prompt: string, skillSlug?: string) {
+export function lockDialogueSpeech(
+  prompt: string,
+  skillSlug?: string,
+  spokenLine?: string,
+  castNames?: string[],
+) {
   let body = prompt.trim();
   if (skillBansNarration(skillSlug)) {
-    for (const lock of [DIALOGUE_SPEAK_LOCK, storyShortCameraLock(skillSlug)]) {
+    // A second pass must not quote the whole prompt, including an earlier mouth lock.
+    const mouth = /(?:^|\n)Mouth: /.test(body)
+      ? ""
+      : speakingMouthLock(spokenLine?.trim() || body, castNames);
+    for (const lock of [DIALOGUE_SPEAK_LOCK, mouth, storyShortCameraLock(skillSlug)]) {
       if (lock && !body.includes(lock)) body = `${body}\n\n${lock}`;
     }
     return body;
@@ -73,6 +124,11 @@ export function lockDialogueSpeech(prompt: string, skillSlug?: string) {
     for (const lock of [DIALOGUE_SPEAK_LOCK, talkingVideoMotionRules(shot)]) {
       if (lock && !body.includes(lock)) body = `${body}\n\n${lock}`;
     }
+    return body;
+  }
+  if (skillSlug === CARTOON_EXPLAINER_SKILL_SLUG) {
+    const lock = narratorSpeechLock(spokenLine ?? "");
+    if (lock && !body.includes(lock)) body = `${lock}\n\n${body}`;
   }
   return body;
 }

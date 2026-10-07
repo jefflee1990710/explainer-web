@@ -28,7 +28,7 @@ test("Phase A motionCamera is a transition script that covers every start → en
 
 test("Phase A scene detail never re-describes the character look", () => {
   assert.match(sceneDetailDirectorBlock(), /Never describe a character's appearance, hair, or outfit/);
-  assert.match(FRAME_RENDER_DETAIL, /never restyle the character's look or outfit/);
+  assert.match(FRAME_RENDER_DETAIL, /never copy a scene reference's person, face, or hairstyle/);
 });
 
 test("Phase B detail asks for timed action, expression change, and camera start/end", () => {

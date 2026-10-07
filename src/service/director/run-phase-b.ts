@@ -5,11 +5,15 @@ import { PHASE_B_DETAIL_RULES } from "@/service/director/scene-detail";
 import {
   cartoonClipAction,
   cartoonNarratorVideoLock,
+  isComparisonCardSkill,
   isOutfitReelSkill,
   isSurpriseInterviewSkill,
   skillBansNarration,
+  skillForcesSceneText,
 } from "@/service/director/skill-rules";
+import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { lockedSpeakerLines } from "@/service/director/character-voice";
+import { lockDialogueSpeech } from "@/service/director/spoken-line";
 import { finalizePhaseBPrompt, phaseBAudioLock, resolveVoiceGender, VOICE_PRESETS } from "@/service/director/voice";
 import { skillPromptForPhaseB } from "@/service/director/load-skill-prompt";
 import { directorModel } from "@/service/director/model";
@@ -26,16 +30,25 @@ import type { PhaseAProposal, PhaseBPrompt, SpeechPace, VoLanguage, VoiceGender 
 import { speechPaceDelivery } from "@/service/director/speech-pace";
 import type { Skill } from "@/model/skill";
 import { isTalkingHeadSkill } from "@/service/director/talking-head";
+import { spokenSubtitleLock } from "@/service/director/scene-text";
 import {
   OUTFIT_COVERED_SWAP,
   OUTFIT_VIDEO_MOTION_RULES,
   rewriteOutfitSafetyText,
 } from "@/service/director/outfit-reel";
-import { SURPRISE_HOOK_VIDEO_RULES } from "@/service/director/surprise-interview";
+import { SURPRISE_VARIETY_VIDEO_RULES } from "@/service/director/surprise-interview";
 import {
   talkingShotForSkill,
   talkingVideoMotionRules,
 } from "@/service/director/talking-performance";
+
+// Spoken subtitles follow the aspect rule. Posters, lists, splits, and marker beats do not.
+function usesSpokenSubtitle(skillSlug?: string) {
+  if (!skillSlug) return false;
+  if (isOutfitReelSkill(skillSlug) || isSurpriseInterviewSkill(skillSlug)) return false;
+  if (isDualBeatSkill(skillSlug) || isComparisonCardSkill(skillSlug) || skillForcesSceneText(skillSlug)) return false;
+  return true;
+}
 
 type PhaseBInput = {
   skill: Skill;
@@ -60,7 +73,7 @@ Each clip is dual-keyframe image-to-video: the approved START image is already a
       : isOutfitReelSkill(input.skill.slug)
         ? OUTFIT_VIDEO_MOTION_RULES
         : isSurpriseInterviewSkill(input.skill.slug)
-          ? SURPRISE_HOOK_VIDEO_RULES
+          ? SURPRISE_VARIETY_VIDEO_RULES
           : DUAL_KEYFRAME_MOTION_RULES
   } Do not invent a different final pose, camera, or composition.
 ${PHASE_B_DETAIL_RULES}
@@ -134,6 +147,7 @@ export async function runPhaseBForClip(
     cartoonNarratorVideoLock(input.skill.slug, {
       hasCharacter: Boolean(input.cast?.length || input.characterImageUrl),
       action: cartoonClipAction(row?.motionCamera),
+      clipNumber: input.clipNumber,
     }),
     phaseBWardrobeLock({
       cast: input.cast,
@@ -145,6 +159,7 @@ export async function runPhaseBForClip(
       durationSeconds: row?.durationSeconds ?? output.durationSeconds,
     }),
     isOutfitReelSkill(input.skill.slug) ? OUTFIT_COVERED_SWAP : "",
+    usesSpokenSubtitle(input.skill.slug) ? spokenSubtitleLock(input.phaseA.aspectRatio) : "",
   ]
     .filter(Boolean)
     .reduce(finalizePhaseBPrompt, modelPrompt);
@@ -152,6 +167,11 @@ export async function runPhaseBForClip(
   return {
     ...output,
     clipNumber: input.clipNumber,
-    prompt,
+    prompt: lockDialogueSpeech(
+      prompt,
+      input.skill.slug,
+      row?.englishVo,
+      input.cast?.map((member) => member.name),
+    ),
   };
 }

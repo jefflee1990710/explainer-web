@@ -7,6 +7,7 @@ import {
   castParagraphForFrames,
   castReferenceUrls,
   characterLockFromCast,
+  soloCharacterLock,
   characterReferenceUrls,
   frameLockReferenceUrls,
   sceneImageReferenceUrls,
@@ -118,6 +119,17 @@ test("outfit reels copy reference clothes and keep the face on the blueprint", (
   assert.doesNotMatch(FRAME_WARDROBE_BUILD, /bare torso/);
   assert.doesNotMatch(FRAME_WARDROBE_BUILD, /shorts-only/);
   assert.match(FRAME_WARDROBE_BUILD, /complete outfit in the clothing reference exactly/);
+});
+
+test("an instruction can change clothes and still locks face and hair", () => {
+  const lock = characterLockFromCast(cast, { clothingFromReference: true });
+  assert.match(lock, /臉與髮型/);
+  assert.match(lock, /禁止抄參考圖裡的人/);
+  assert.match(soloCharacterLock({ clothingFromReference: true }), /禁止改臉或髮型/);
+  const rules = directorBlueprintSceneRules({ clothingFromReference: true }).join(" ");
+  assert.match(rules, /Clothes follow the reference image/);
+  assert.match(rules, /Do not copy that photo's person/);
+  assert.doesNotMatch(rules, /Never plan a costume change/);
 });
 
 test("director rules keep the blueprint outfit in every scene", () => {

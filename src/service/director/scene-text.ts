@@ -114,6 +114,26 @@ export function comparisonOnCanvasLines(input: {
   ].filter(Boolean);
 }
 
+// 9:16 Instagram Reels sit the spoken subtitle just under the middle. Landscape stays at the bottom.
+export function subtitleSitsBelowCenter(aspectRatio?: string) {
+  return aspectRatio === "9:16";
+}
+
+export function spokenSubtitleLock(aspectRatio?: string) {
+  if (subtitleSitsBelowCenter(aspectRatio)) {
+    return "Subtitle: keep this clip's spoken line a little below the vertical center for the whole clip. Clear of the face and clear of the bottom edge. Do not move it to the bottom. Same words, same place, from the first frame to the last.";
+  }
+  return "Subtitle: keep this clip's spoken line in a band across the bottom of the frame for the whole clip. Same words, same place, from the first frame to the last.";
+}
+
+function spokenSubtitlePlace(aspectRatio?: string) {
+  if (subtitleSitsBelowCenter(aspectRatio)) {
+    return "a little below the vertical center of the frame, clear of the face and the bottom edge";
+  }
+  if (aspectRatio === "16:9") return "across the bottom of the frame";
+  return "a little below the vertical center on a 9:16 Instagram Reel, and across the bottom on a 16:9 landscape frame";
+}
+
 export function sceneTextSkillHint(
   enabled: boolean,
   language: SceneTextLanguage,
@@ -123,6 +143,7 @@ export function sceneTextSkillHint(
     comparison?: boolean;
     inWorldLabels?: boolean;
     reelSafeZone?: boolean;
+    aspectRatio?: string;
     lettering?: StyleLettering;
   },
 ) {
@@ -165,13 +186,13 @@ export function sceneTextSkillHint(
   }
   if (options?.reelSafeZone) {
     return [
-      `When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo as a subtitle.${lettering.reelLayout ? ` ${lettering.reelLayout}` : ""}`,
+      `When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo as a subtitle ${spokenSubtitlePlace("9:16")}.${lettering.reelLayout ? ` ${lettering.reelLayout}` : ""}`,
       "explainerScene and motionCamera must describe pose, props, and environment only. Do NOT invent extra titles, quotes, 「Mental Health?」-style labels, signs, or any wording that is not englishVo.",
       SCENE_TEXT_PRESETS[language].skillHint,
     ].join(" ");
   }
   return [
-    "When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo voiceover line as a bottom subtitle, spelled character-for-character.",
+    `When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo voiceover line as a subtitle ${spokenSubtitlePlace(options?.aspectRatio)}, spelled character-for-character.`,
     "explainerScene and motionCamera must describe pose, props, and environment only. Do NOT invent extra titles, quotes, 「Mental Health?」-style labels, signs, or any wording that is not englishVo.",
     SCENE_TEXT_PRESETS[language].skillHint,
   ].join(" ");
@@ -187,11 +208,13 @@ export function sceneTextDirectorRevisionNote(
   }
   const voScript =
     language === "zh-Hant"
-      ? "Rewrite every clip's englishVo into Traditional Chinese (繁體中文) — that Chinese line is the bottom subtitle."
+      ? "Rewrite every clip's englishVo into Traditional Chinese (繁體中文) — that Chinese line is the subtitle."
       : language === "zh-Hans"
-        ? "Rewrite every clip's englishVo into Simplified Chinese (简体中文) — that Chinese line is the bottom subtitle."
-        : "Keep each clip's englishVo as the spoken English line; that line is the bottom subtitle.";
-  return `On-canvas text is now ON (${SCENE_TEXT_PRESETS[language].label}). ${voScript} The ONLY writing in each still is that clip's englishVo. Rewrite every clip's explainerScene and motionCamera: pose, props, environment only — never invent short titles such as 「Mental Health?」 or any other quoted labels. Keep the same story, characters, and proposal titles.`;
+        ? "Rewrite every clip's englishVo into Simplified Chinese (简体中文) — that Chinese line is the subtitle."
+        : "Keep each clip's englishVo as the spoken English line; that line is the subtitle.";
+  const place =
+    "On a 9:16 Instagram Reel place it a little below the vertical center. On a 16:9 landscape frame place it across the bottom.";
+  return `On-canvas text is now ON (${SCENE_TEXT_PRESETS[language].label}). ${voScript} ${place} The ONLY writing in each still is that clip's englishVo. Rewrite every clip's explainerScene and motionCamera: pose, props, environment only — never invent short titles such as 「Mental Health?」 or any other quoted labels. Keep the same story, characters, and proposal titles.`;
 }
 
 // Typography locale for lettering style; the quoted voiceover keeps its own script.
@@ -350,6 +373,7 @@ export function sceneTextFrameLines(
     inWorldLabels?: boolean;
     markerSafeZone?: boolean;
     reelSafeZone?: boolean;
+    subtitlePlace?: "below-center" | "bottom";
     lettering?: StyleLettering;
     silentClip?: boolean;
   },
@@ -380,7 +404,8 @@ export function sceneTextFrameLines(
     ];
   }
   const marker = Boolean(options?.markerSafeZone);
-  const reel = Boolean(options?.reelSafeZone) && !marker;
+  const belowCenter = options?.subtitlePlace === "below-center" && !marker;
+  const reel = Boolean(options?.reelSafeZone) && !marker && !belowCenter;
   const formatted = marker ? formatVoiceoverForMarker(line) : formatVoiceoverForCanvas(line);
   // Typography belongs on the separate Lettering line; do not repeat it here.
   const letterStyle = sceneTextVoLetteringHint(language, line, {
@@ -411,9 +436,11 @@ export function sceneTextFrameLines(
 
   return [
     "On-canvas subtitles ON — highest priority.",
-    reel
-      ? lettering.reelLayout
-      : "Layout: a semi-opaque white band across the bottom 18% of the frame; dark hand-lettered text centered inside the band (integrated caption, not a tiny corner tag).",
+    belowCenter
+      ? "Layout: one subtitle a little below the vertical center of the frame, centered horizontally, about 55% of the way down from the top. Clear of the face and clear of the bottom edge. A short semi-opaque white plate behind dark readable text. Not a band glued to the bottom."
+      : reel
+        ? lettering.reelLayout
+        : "Layout: a semi-opaque white band across the bottom 18% of the frame; dark hand-lettered text centered inside the band (integrated caption, not a tiny corner tag).",
     ...subtitleLines,
     letterStyle,
     "Only the subtitle line(s) above may appear as writing; no other letters, numbers, signs, or labels anywhere in the illustration.",

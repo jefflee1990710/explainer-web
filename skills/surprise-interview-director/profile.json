@@ -3,10 +3,10 @@
     "bestFor": "Explaining one concept with a single character: a surprised close-up first, then a seated interview facing the camera.",
     "structure": "Clip 1 is a 3–4 second close-up. Each later clip is 3–8 seconds and covers one point. Clip count follows the duration preset.",
     "hook": "Opens with the camera above, then drops down and snaps a zoom-in on the surprised face. The person stays upright. Sharp and clear. One short hook line.",
-    "arc": "After the close-up, cut once to the same person seated in a medium interview shot. From clip 3 on, each clip starts on the previous clip's end. The last line rests in the chair.",
+    "arc": "After the surprise close-up, every later clip hard-cuts to a different camera angle and a different body pose. The last line rests.",
     "narrator": "Exactly one character speaks every line to the camera. A pasted script is read in order. A concept with no script becomes interview lines for you to approve.",
-    "visual": "Look and palette come from the chosen visual style. Clip 1 stays upright: the camera starts above and drops down while zooming in. From clip 2 the same person sits right-side up, facing the lens, in the same chair, background, and light. On-canvas type is a shock poster: bold condensed white letters, yellow numbers, and a yellow dry-brush stroke behind the payoff.",
+    "visual": "Look and palette come from the chosen visual style. Clip 1 stays upright: the camera starts above and drops down while zooming in. Each later clip uses a different angle and a different pose. On-canvas type is a shock poster pinned at the top, the middle, or the bottom, and neighbours do not share that place.",
     "audio": "No background music. Only the character's voice. The spoken line is the on-canvas shock type.",
-    "rules": "Needs exactly one character and an aspect ratio. No second person, no screen recording, and no new location after the seat is set. Clip 1 is the only framing change."
+    "rules": "Needs exactly one character and an aspect ratio. No second person and no screen recording. Clip 1 is always the surprise. Later clips each change the camera angle, the pose, and the subtitle place."
   }
 }

@@ -1,6 +1,6 @@
 ---
 name: directing-full-body-talking-head-reads
-description: Use when a character faces the camera in a locked full-body shot and reads the user's spoken script aloud, with a similar amount of speech in each clip and a bottom subtitle.
+description: Use when a character faces the camera in a locked full-body shot and reads the user's spoken script aloud, with a similar amount of speech in each clip and a subtitle.
 ---
 
 # Directing Full-Body Talking-Head Reads
@@ -40,7 +40,7 @@ The rendering rules come from the **Visual style** block appended below. Do not 
 - `englishVo` is that clip's spoken line verbatim, in the chosen spoken language.
 - The character speaks it. No second narrator line.
 - No background music.
-- One subtitle at the bottom of both stills, spelled exactly like that clip's spoken line. No other writing.
+- One subtitle on both stills, spelled exactly like that clip's spoken line. On a 9:16 Instagram Reel, place it a little below the vertical center, clear of the face and the bottom edge. On a 16:9 landscape frame, place it across the bottom. No other writing.
 
 ## Phase A field mapping
 

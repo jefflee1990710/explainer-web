@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import type { Skill } from "@/model/skill";
-import { customSelectableFilter, sortSelectableSkills, systemSelectableFilter } from "@/service/director/selectable-skills";
+import {
+  customSelectableFilter,
+  isHiddenPickerSkill,
+  sortSelectableSkills,
+  systemSelectableFilter,
+} from "@/service/director/selectable-skills";
 
 // Minimal skill doc for ordering checks.
 function skill(slug: string, sortOrder: number, updatedAt: Date, ownerClerkUserId?: string): Skill {
@@ -32,6 +37,12 @@ test("filters keep system skills and the owner's directors in separate collectio
     isActive: true,
     ownerClerkUserId: "user_1",
   });
+});
+
+test("試衫 is hidden from the picker, including a custom fork of it", () => {
+  assert.equal(isHiddenPickerSkill({ slug: "outfit-reel-director" }), true);
+  assert.equal(isHiddenPickerSkill({ slug: "custom-1", baseSlug: "outfit-reel-director" }), true);
+  assert.equal(isHiddenPickerSkill({ slug: "dialogue-qa-director" }), false);
 });
 
 test("system skills by sortOrder first, then custom newest first", () => {

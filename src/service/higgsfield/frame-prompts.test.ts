@@ -14,6 +14,7 @@ import { STYLE_IDS } from "@/model/style-id";
 import { resetStyleOverlay } from "@/service/style/load-style";
 import { renderableFromSystem } from "@/service/style/renderable-style";
 import { installTestStyles, testStyle, uninstallTestStyles } from "@/service/style/test-styles";
+import { surpriseVarietyPlan } from "@/service/director/surprise-interview";
 
 before(() => installTestStyles());
 after(() => uninstallTestStyles());
@@ -173,39 +174,53 @@ test("whiteboard explainer with a cast zooms, walks, and draws extra objects", (
   assert.equal(end.match(/Camera angle/gi)?.length, 2);
 });
 
-test("story-short 9:16 stills place subtitles in the reel safe zone", () => {
+test("9:16 stills place subtitles a little below center for every director", () => {
   const story = project();
   story.skillSlug = "story-short-director";
   story.aspectRatio = "9:16";
   story.sceneTextEnabled = true;
   story.phaseA!.clips[0].englishVo = 'Lily: "We made it."';
   const prompt = buildFramePrompt(story, 1, "start");
-  assert.doesNotMatch(prompt, /64% and 78%/);
+  assert.match(prompt, /a little below the vertical center/);
   assert.match(prompt, /We made it\./);
   assert.doesNotMatch(prompt, /bottom 18%/);
 
   story.aspectRatio = "16:9";
   const wide = buildFramePrompt(story, 1, "start");
   assert.match(wide, /bottom 18%/);
-  assert.doesNotMatch(wide, /64% and 78%/);
+  assert.doesNotMatch(wide, /a little below the vertical center/);
 
   const other = project();
+  other.skillSlug = "dialogue-qa-director";
   other.aspectRatio = "9:16";
   other.sceneTextEnabled = true;
-  assert.match(buildFramePrompt(other, 1, "start"), /bottom 18%/);
+  const dialogue = buildFramePrompt(other, 1, "start");
+  assert.match(dialogue, /a little below the vertical center/);
+  assert.doesNotMatch(dialogue, /bottom 18%/);
+});
 
-  installTestStyles(
-    STYLE_IDS.map((id) =>
-      id === "doodle"
-        ? testStyle(id, { reelLayout: "Reel cut-paper captions at 70%." })
-        : testStyle(id),
-    ),
-  );
-  story.aspectRatio = "9:16";
-  const styled = buildFramePrompt(story, 1, "start");
-  assert.match(styled, /70%/);
-  assert.doesNotMatch(styled, /bottom 18%/);
-  installTestStyles();
+test("talking-head 9:16 stills place the subtitle a little below center", () => {
+  const face = project();
+  face.skillSlug = "talking-head-director";
+  face.aspectRatio = "9:16";
+  face.sceneTextEnabled = true;
+  face.phaseA!.clips[0].englishVo = "We made it.";
+  const reel = buildFramePrompt(face, 1, "start");
+  assert.match(reel, /a little below the vertical center/);
+  assert.doesNotMatch(reel, /bottom 18%/);
+  assert.match(reel, /not in a bottom band/);
+
+  face.aspectRatio = "16:9";
+  const wide = buildFramePrompt(face, 1, "start");
+  assert.match(wide, /bottom 18%/);
+  assert.doesNotMatch(wide, /a little below the vertical center/);
+
+  const body = project();
+  body.skillSlug = "full-body-talking-head-director";
+  body.aspectRatio = "9:16";
+  body.sceneTextEnabled = true;
+  body.phaseA!.clips[0].englishVo = "We made it.";
+  assert.match(buildFramePrompt(body, 1, "start"), /a little below the vertical center/);
 });
 
 test("story-short subtitles show only the spoken words, never the speaker name", () => {
@@ -739,7 +754,7 @@ test("REVISION line does not attach a sibling or previous still", () => {
   assert.doesNotMatch(prompt, /previous still/);
 });
 
-test("assigned scene references sit after the anchor and before the cast", () => {
+test("assigned scene references sit after the character so the photo's face does not win", () => {
   const video = project();
   video.cast = [
     {
@@ -756,9 +771,34 @@ test("assigned scene references sit after the anchor and before the cast", () =>
   ];
   video.phaseA!.clips[0].referenceImageIds = ["R2"];
   const plan = frameSubmitPlan(video, 1, "start");
-  assert.deepEqual(plan.refs, ["https://blob/r2.png", "https://blob/c.png"]);
-  assert.match(plan.prompt, /SCENE REFERENCE: attached image 1 shows/);
-  assert.match(plan.prompt, /Attached image 2/);
+  assert.deepEqual(plan.refs, ["https://blob/c.png", "https://blob/r2.png"]);
+  assert.match(plan.prompt, /SCENE REFERENCE: attached image 2 shows/);
+  assert.match(plan.prompt, /Do not copy the person, face, or hairstyle/);
+  assert.match(plan.prompt, /Do not redress the character/);
+  assert.match(plan.prompt, /Attached image 1/);
+});
+
+test("a clothing instruction copies garments and still locks the character's face", () => {
+  const video = project();
+  video.skillSlug = "product-demo-director";
+  video.source = "Scro opens the box. 衣服跟參考圖。";
+  video.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Scro",
+      blueprintUrl: "https://blob/scro.png",
+      prompt: "",
+    },
+  ];
+  video.referenceImages = [{ id: "R1", url: "https://blob/r1.png", description: "unboxing" }];
+  video.phaseA!.clips[0].referenceImageIds = ["R1"];
+  const plan = frameSubmitPlan(video, 1, "start");
+  assert.deepEqual(plan.refs, ["https://blob/scro.png", "https://blob/r1.png"]);
+  assert.match(plan.prompt, /copy only the garments/i);
+  assert.match(plan.prompt, /Do not copy the person, face, or hairstyle/);
+  assert.match(plan.prompt, /Face and hair stay on the selected character/);
+  assert.doesNotMatch(plan.prompt, /Do not redress the character/);
 });
 
 // Two-blueprint end frame on the 3-slot zh-Hant edit model: anchor + cast fill
@@ -787,8 +827,8 @@ test("scene references are capped to the edit model's free slots", () => {
   assert.doesNotMatch(end.prompt, /SCENE REFERENCE/);
 
   const start = frameSubmitPlan(video, 1, "start");
-  assert.deepEqual(start.refs, ["https://blob/r1.png", "https://blob/Lily.png", "https://blob/Max.png"]);
-  assert.match(start.prompt, /SCENE REFERENCE: attached image 1 shows/);
+  assert.deepEqual(start.refs, ["https://blob/Lily.png", "https://blob/Max.png", "https://blob/r1.png"]);
+  assert.match(start.prompt, /SCENE REFERENCE: attached image 3 shows/);
 });
 
 test("end frame with a composition lock keeps the lock framing over the scene reference", () => {
@@ -965,7 +1005,7 @@ test("surprise hook stills drop from above, zoom in, and use shock-poster type",
   assert.doesNotMatch(end.prompt, /Keep the same camera/);
 });
 
-test("later surprise clips use the shock poster at the bottom", () => {
+test("later surprise clips change the poster place and skip the previous framing", () => {
   const video = project();
   video.skillSlug = "surprise-interview-director";
   video.sceneTextEnabled = true;
@@ -982,11 +1022,22 @@ test("later surprise clips use the shock poster at the bottom", () => {
     startScene: "Character: Ada sits. Set: studio. Light: daylight. Camera: locked medium shot.",
     endScene: "Character: Ada nods. Set: studio. Light: daylight. Camera: locked medium shot.",
   });
+  video.frames = [
+    {
+      clipNumber: 1,
+      position: "end",
+      prompt: "p",
+      status: "completed",
+      blobUrl: "https://blob/prev-end.png",
+    },
+  ];
+  const place = surpriseVarietyPlan(video.phaseA!).find((item) => item.clipNumber === 2)?.place;
   const start = frameSubmitPlan(video, 2, "start");
-  assert.match(start.prompt, /bottom as the subtitle/);
+  assert.equal(start.anchor, undefined);
+  assert.match(start.prompt, /THIS CLIP'S CAMERA AND POSE/);
   assert.match(start.prompt, /dry-brush/);
   assert.match(start.prompt, /first client told a friend/);
-  assert.doesNotMatch(start.prompt, /from the top edge/);
+  assert.match(start.prompt, new RegExp(place === "top" ? "SUBTITLE PLACE: TOP" : place === "middle" ? "SUBTITLE PLACE: MIDDLE" : "SUBTITLE PLACE: BOTTOM"));
   assert.doesNotMatch(start.prompt, /HOOK CAMERA/);
   assert.doesNotMatch(start.prompt, /white band/);
   assert.doesNotMatch(start.prompt, /hand-lettered/);

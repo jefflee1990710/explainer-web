@@ -36,7 +36,7 @@ Rules per row:
 - One feature per row. Name the feature in `Demo beat` and the benefit in the VO.
 - `Scene at clip start` repeats the product lock spec words for shape and colours whenever the product is visible.
 - `Hand action → visible result` is the whole motion of the clip: what the hand does and what the product visibly does in response, ending in the resting state the next row inherits.
-- Product large in frame; hands readable; face secondary.
+- Product large in frame; hands readable. Any face that appears is the selected character's face and hair, not the person in a reference photo.
 - A visible change every 1.5–2.5 seconds.
 
 ## Scene detail
@@ -65,7 +65,7 @@ Write it as timed beats (`0–2s …; 2–5s …`). Each beat states: time windo
 
 Before returning, compare each clip's start and end still item by item: every difference appears in `motionCamera`, and every object `motionCamera` touches already exists in the start still or enters in a beat.
 
-Wardrobe lock: every character wears exactly their blueprint outfit in every clip, whatever the setting or weather. Never plan a costume change, weather gear (coats, gloves, hats, boots), or body-worn props (backpacks, harnesses, clip-on mics, helmets) — in scenes or in `visualWorld`. Hand-held props are fine. Pick settings that work in that outfit.
+Wardrobe lock: every character wears exactly their blueprint outfit in every clip, whatever the setting or weather. Never plan a costume change, weather gear (coats, gloves, hats, boots), or body-worn props (backpacks, harnesses, clip-on mics, helmets) — in scenes or in `visualWorld`. Hand-held props are fine. Pick settings that work in that outfit. If the user's instruction says the clothes follow a reference image, copy only those garments. Face and hair still stay on the blueprint. Do not copy the person in that photo.
 
 ## Composition by aspect ratio
 

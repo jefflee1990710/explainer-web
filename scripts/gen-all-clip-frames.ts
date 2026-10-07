@@ -6,6 +6,7 @@ import { loadEnvConfig } from "@next/env";
 import { ObjectId } from "mongodb";
 import { videosCollection } from "@/dao";
 import { framesWithClip } from "@/service/higgsfield/frame-prompts";
+import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { mediaSrc } from "@/util/media-src";
 import { refreshProjectJobs, regenerateFrames } from "@/service/higgsfield/pipeline";
 import type { FramePosition, Project } from "@/model/project";
@@ -51,9 +52,13 @@ async function main() {
     project = { ...project, clips: [] };
   }
 
+  const style = await loadRenderableStyle({
+    styleId: project.styleId,
+    ownerClerkUserId: project.clerkUserId,
+  });
   const outputs: Array<Record<string, unknown>> = [];
   for (const clip of storyboard) {
-    const frames = framesWithClip(project, clip.clipNumber);
+    const frames = framesWithClip(project, clip.clipNumber, style);
     await videos.updateOne(
       { _id: projectId },
       { $set: { frames, status: "production", updatedAt: new Date() } },

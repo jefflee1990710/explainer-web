@@ -40,7 +40,7 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 
 - There is NO narrator, host, or third-person voiceover. Never add an unseen explainer voice.
 - All speech is character dialogue in the chosen dialogue language, written as `NAME: "line"` with each attached character's name. One or two speakers per clip; a clip may contain a question and its short answer if both fit in 8 seconds.
-- `narrator` must start with `No narrator — characters speak.` and then describe both voices (e.g. "No narrator — characters speak. ASKER — light, quick, upward inflection; ANSWERER — warm, steady, lower"). Keep them identical in every clip.
+- `narrator` must start with `No narrator — characters speak.` Then paste each supplied voice lock verbatim, one speaker per sentence. A speaker without their own lock uses the project voice lock verbatim. Do not invent a timbre and do not leave a speaker out. Keep that block identical in every clip.
 - ~7–20 spoken words per clip total at medium speaking pace. Slow ≈ 0.8× those words with pauses; fast ≈ 1.2× with fewer pauses. Clip duration stays the same. Questions are short (≤10 words at medium); answers may run longer.
 - Dialogue is audio-only. Never caption or subtitle it. In-world text only on props or diagrams the answerer uses (one to three words, exactly spelled).
 - Only use facts from the source. If the asker raises a question the source does not answer, the answerer must not invent one — pick a different question.
@@ -50,12 +50,13 @@ The rendering rules (canvas, look, palette, lettering, motion) come from the **V
 - `hookStrategy`: the opening question and the asker's motion/prop device in second 0–2.
 - `coreMessage`: the one answer the viewer should remember.
 - `narrativeArc`: the exchange ladder (Q1 → A1 → Q2 → …) mapped to clips, with the "aha" marked.
-- `narrator`: `No narrator — characters speak.` followed by both voice identities.
+- `narrator`: `No narrator — characters speak.` followed by each supplied voice lock pasted verbatim.
 - `visualWorld`: the fixed staging (who stands where), the setting, and the aid zone.
 - `characterLock`: two-character lock statement.
 - `palette`: ordinary colour words; one accent for visual aids.
 - `bgmDirection`: SFX-only reminder (no background music), with a reaction SFX lift at the "aha".
-- Each clip row: `narrativeJob` = which exchange / role (question or answer); `explainerScene` = both characters' poses and the aid state at t=0; `motionCamera` = gestures, reaction, aid change within the same shot, camera; `englishVo` = character dialogue only (`NAME: "line"`) in the chosen dialogue language; `bgmSfx` = 1–2 reaction/aid SFX, no music.
+- Each clip row: `narrativeJob` = which exchange / role (question or answer); `explainerScene` = both characters' poses and the aid state at t=0; `motionCamera` = gestures, reaction, aid change within the same shot, camera, and whose mouth moves; `englishVo` = character dialogue only (`NAME: "line"`) in the chosen dialogue language; `bgmSfx` = 1–2 reaction/aid SFX, no music.
+- On a question clip only the asker's mouth lip-syncs. On an answer clip only the answerer's mouth lip-syncs. The listener's mouth stays closed.
 
 ## Clip continuity
 

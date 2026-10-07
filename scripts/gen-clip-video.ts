@@ -9,9 +9,10 @@ import { generationJobsCollection, videosCollection } from "@/dao";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { insertPendingJob } from "@/service/generation/task-store";
 import { runJobById } from "@/service/generation/task-runner";
+import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { runPhaseBForClip } from "@/service/director/run-phase-b";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
-import { videoStyle } from "@/service/higgsfield/frame-prompts";
+import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { mediaSrc } from "@/util/media-src";
 import { refreshProjectJobs } from "@/service/higgsfield/pipeline";
 import { hydrateStyles } from "@/service/style/load-style";
@@ -93,12 +94,17 @@ async function main() {
       }
     : await runPhaseBForClip({
         skill,
-        style: videoStyle(project),
+        style: await loadRenderableStyle({
+          styleId: project.styleId,
+          ownerClerkUserId: project.clerkUserId,
+        }),
         phaseA: project.phaseA,
         clipNumber,
         language: project.language,
+        voiceGender: project.voiceGender,
+        speechPace: project.speechPace,
         characterImageUrl: project.characterImageUrl,
-        cast: project.cast,
+        cast: await withCurrentCharacterVoices(project.cast),
       });
   await videos.updateOne(
     { _id: projectId, "clips.clipNumber": clipNumber },
@@ -138,6 +144,8 @@ async function main() {
             reusedPrompt: reusePrompt && Boolean(existing?.prompt),
             submitMs: Date.now() - submitStarted,
             phaseBPromptPreview: prompt.prompt.slice(0, 280),
+            mouthLocked: /Mouth:/.test(prompt.prompt),
+            voiceLocked: /voice lock verbatim|Unlocked \(/.test(prompt.prompt),
           },
           null,
           2,

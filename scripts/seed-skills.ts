@@ -98,7 +98,7 @@ const SKILLS: SkillManifest[] = [
     dir: "talking-head-director",
     slug: "talking-head-director",
     title: "Talking-head read",
-    description: "One character reads to camera: one line per clip, timed to word count, up to 20 clips, with bottom subtitles.",
+    description: "One character reads to camera: one line per clip, timed to word count, up to 20 clips, with subtitles.",
     sortOrder: 9,
     inputSchema: { durationPresets: ["micro"] },
   },
@@ -107,7 +107,7 @@ const SKILLS: SkillManifest[] = [
     slug: "full-body-talking-head-director",
     title: "Full body Talking-head read",
     description:
-      "One character reads to camera in a locked full-body shot. Clips share a similar length, up to 20, with bottom subtitles.",
+      "One character reads to camera in a locked full-body shot. Clips share a similar length, up to 20, with subtitles.",
     sortOrder: 10,
     inputSchema: { durationPresets: ["micro"] },
   },

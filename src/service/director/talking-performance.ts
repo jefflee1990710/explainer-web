@@ -58,23 +58,26 @@ export function talkingMotionLine(input: {
   previousLine?: string;
   shot: TalkingShot;
   clipNumber?: number;
+  belowCenter?: boolean;
 }) {
   const close = speakEnd(input.seconds);
   const hand = leadHand(input.clipNumber);
   const other = hand === "right" ? "left" : "right";
   if (input.language === "en" || !input.language) {
+    const place = input.belowCenter ? "a little below the vertical center" : "at the bottom";
     const subtitle = input.previousLine
-      ? `Bottom subtitle changes from "${input.previousLine}" to "${input.line}".`
-      : `Bottom subtitle stays "${input.line}".`;
+      ? `Subtitle ${place} changes from "${input.previousLine}" to "${input.line}".`
+      : `Subtitle stays ${place}: "${input.line}".`;
     const body =
       input.shot === "full-body"
         ? `speaks "${input.line}" with continuous lip-sync, a live reel-person face, head tilting and nodding on the stresses, the ${hand} then ${other} hand gesturing at chest height, and weight shifting hip to hip; feet stay in frame`
         : `speaks "${input.line}" with continuous lip-sync, a live reel-person face, head tilting and nodding on the stresses, shoulders rocking, and the ${hand} hand rising into the lower frame at chest height`;
     return `0–0.4s she inhales, blinks once, eyes locked on the lens as if talking into a phone, head already tilting, mouth opening; 0.4–${close}s she ${body}; ${close}–${input.seconds}s the mouth closes into an engaged small smile, the raised hand settles, the body still has a little residual sway; camera locked. ${subtitle}`;
   }
+  const place = input.belowCenter ? "中線下面少少嘅字幕" : "底部字幕";
   const subtitle = input.previousLine
-    ? `底部字幕由「${input.previousLine}」換成「${input.line}」。`
-    : `底部字幕保持「${input.line}」。`;
+    ? `${place}由「${input.previousLine}」換成「${input.line}」。`
+    : `${place}保持「${input.line}」。`;
   const zhHand = hand === "right" ? "右手" : "左手";
   const zhOther = hand === "right" ? "左手" : "右手";
   const body =

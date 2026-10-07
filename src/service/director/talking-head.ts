@@ -187,10 +187,16 @@ export type TalkingHeadClipPlan = {
   bgmSfx: string;
 };
 
+// 9:16 Instagram Reels sit the subtitle just under the middle. Landscape stays at the bottom.
+function talkingHeadSubtitleBelowCenter(aspectRatio?: string) {
+  return aspectRatio === "9:16";
+}
+
 export function planTalkingHeadClips(input: {
   source: string;
   pace?: SpeechPace;
   language?: VoLanguage;
+  aspectRatio?: string;
   // From the director visual, e.g. "full-body". Omitted when the director names no shot.
   shot?: string;
 }): TalkingHeadClipPlan[] {
@@ -200,10 +206,13 @@ export function planTalkingHeadClips(input: {
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
     const seconds = plannedClipSeconds(line, input.pace);
-    const endScene = shotLine(input.language, "end", line, input.shot);
+    const belowCenter = talkingHeadSubtitleBelowCenter(input.aspectRatio);
+    const endScene = shotLine(input.language, "end", line, input.shot, belowCenter);
     const previousLine = index === 0 ? undefined : lines[index - 1];
     const startScene =
-      index === 0 ? shotLine(input.language, "start", line, input.shot) : clips[index - 1].endScene;
+      index === 0
+        ? shotLine(input.language, "start", line, input.shot, belowCenter)
+        : clips[index - 1].endScene;
     clips.push({
       clipNumber: index + 1,
       timeRange: `0–${seconds}s`,
@@ -212,7 +221,15 @@ export function planTalkingHeadClips(input: {
       explainerScene: startScene,
       startScene,
       endScene,
-      motionCamera: motionLine(input.language, seconds, line, previousLine, input.shot, index + 1),
+      motionCamera: motionLine(
+        input.language,
+        seconds,
+        line,
+        previousLine,
+        input.shot,
+        index + 1,
+        belowCenter,
+      ),
       englishVo: line,
       bgmSfx: input.language === "en" ? "none" : "無",
     });
@@ -232,12 +249,22 @@ export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
       ? "Locked full-body shot. Head, torso, and feet stay in frame. The character looks into the lens. Do not crop to a close-up."
       : "Do not pick a shot size. The director visual names the shot. The character looks into the lens the whole time.",
     fullBody
-      ? "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, both hands gesturing at chest height, weight shifting hip to hip. Feet stay in frame. One bottom subtitle equal to that clip's spoken line, same on the start and end still."
-      : "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, shoulders rocking, a hand entering the lower frame. One bottom subtitle equal to that clip's spoken line, same on the start and end still.",
+      ? "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, both hands gesturing at chest height, weight shifting hip to hip. Feet stay in frame. One subtitle equal to that clip's spoken line, same on the start and end still."
+      : "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, shoulders rocking, a hand entering the lower frame. One subtitle equal to that clip's spoken line, same on the start and end still.",
   ].join(" ");
 }
 
-export function talkingHeadDirectorBlock(skillSlug?: string) {
+function talkingSubtitleRule(aspectRatio?: string) {
+  if (talkingHeadSubtitleBelowCenter(aspectRatio)) {
+    return "One subtitle a little below the vertical center of the frame, clear of the face and clear of the bottom edge. Spell that clip's spoken line. Nothing else written.";
+  }
+  if (aspectRatio === "16:9") {
+    return "One subtitle across the bottom of the frame. Spell that clip's spoken line. Nothing else written.";
+  }
+  return "On a 9:16 Instagram Reel, one subtitle a little below the vertical center, clear of the face and the bottom edge. On a 16:9 landscape frame, one subtitle across the bottom. Spell that clip's spoken line. Nothing else written.";
+}
+
+export function talkingHeadDirectorBlock(skillSlug?: string, aspectRatio?: string) {
   const fullBody = skillSlug === FULL_BODY_TALKING_HEAD_SKILL_SLUG;
   return [
     fullBody
@@ -251,7 +278,7 @@ export function talkingHeadDirectorBlock(skillSlug?: string) {
     fullBody
       ? "On-camera speech like a real person recording a reel: eyes locked on the lens, continuous lip-sync, head tilting and nodding, both hands gesturing at chest height, weight shifting hip to hip. Never freeze the face, head, hands, or body. Never a greeting wave."
       : "On-camera speech like a real person recording a reel: eyes locked on the lens, continuous lip-sync, head tilting and nodding, shoulders rocking, a hand entering the lower frame. Never freeze the face or neck. Never a greeting wave.",
-    "Bottom subtitle only: that clip's spoken line, nothing else written in the frame.",
+    talkingSubtitleRule(aspectRatio),
   ].join(" ");
 }
 
@@ -277,6 +304,7 @@ function shotLine(
   moment: "start" | "end",
   line: string,
   shot?: string,
+  belowCenter?: boolean,
 ) {
   const camera = cameraClause(language, shot);
   const fullBody = shot === "full-body";
@@ -287,7 +315,10 @@ function shotLine(
         : fullBody
           ? "Character: eyes still locked on the lens, mouth just closed after the line, an engaged small smile, head tilted the other way, the other hand still slightly raised at chest height, weight on the other hip, feet in frame."
           : "Character: eyes still locked on the lens, mouth just closed after the line, an engaged small smile, head tilted the other way, one hand still slightly in the lower frame.";
-    return `${pose} Set: the same plain background in every clip, no new props. Light: soft and even, unchanged.${camera} Subtitle: one bottom line, exactly "${line}".`;
+    const place = belowCenter
+      ? "one line a little below the vertical center, clear of the face and the bottom edge"
+      : "one bottom line";
+    return `${pose} Set: the same plain background in every clip, no new props. Light: soft and even, unchanged.${camera} Subtitle: ${place}, exactly "${line}".`;
   }
   const pose =
     moment === "start"
@@ -295,7 +326,8 @@ function shotLine(
       : fullBody
         ? "角色：仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，頭反向微傾，另一隻手仲喺胸前，重心換咗邊，腳留喺畫面。"
         : "角色：仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，頭反向微傾，一隻手仲喺畫面下方。";
-  return `${pose}場景：全程同一個簡潔背景，冇新道具。光：柔和均勻，不變。${camera}字幕：畫面底部一行，逐字係「${line}」。`;
+  const place = belowCenter ? "畫面垂直中線下面少少一行，避開臉同最底邊" : "畫面底部一行";
+  return `${pose}場景：全程同一個簡潔背景，冇新道具。光：柔和均勻，不變。${camera}字幕：${place}，逐字係「${line}」。`;
 }
 
 function cameraClause(language: VoLanguage | undefined, shot?: string) {
@@ -462,6 +494,7 @@ function motionLine(
   previousLine?: string,
   shot?: string,
   clipNumber?: number,
+  belowCenter?: boolean,
 ) {
   return talkingMotionLine({
     language,
@@ -470,5 +503,6 @@ function motionLine(
     previousLine,
     shot: shot === "full-body" ? "full-body" : "face",
     clipNumber,
+    belowCenter,
   });
 }

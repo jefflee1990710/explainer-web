@@ -374,7 +374,12 @@ export async function sendClipVideo(
 ): Promise<Sent> {
   const { start, end } = assertClipKeyframes(project.frames, clipNumber);
   const submitted = await submitClipVideo({
-    prompt: lockDialogueSpeech(prompt.prompt, project.skillSlug),
+    prompt: lockDialogueSpeech(
+      prompt.prompt,
+      project.skillSlug,
+      project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber)?.englishVo,
+      project.cast?.map((member) => member.name),
+    ),
     aspectRatio: project.aspectRatio,
     durationSeconds: prompt.durationSeconds,
     startImageUrl: start,

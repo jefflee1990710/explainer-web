@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   DIALOGUE_SPEAK_LOCK,
   lockDialogueSpeech,
+  narratorSpeechLock,
   spokenLineCopy,
   subtitleText,
 } from "@/service/director/spoken-line";
@@ -51,7 +52,7 @@ test("subtitleText drops speaker names and quotes from dialogue lines", () => {
   assert.equal(subtitleText("Plain line, no speaker."), "Plain line, no speaker.");
 });
 
-test("lockDialogueSpeech leaves explainer prompts unchanged", () => {
+test("lockDialogueSpeech leaves explainer prompts unchanged until a spoken line is supplied", () => {
   assert.equal(
     lockDialogueSpeech("Narrator reads the line.", "cartoon-explainer-video-director"),
     "Narrator reads the line.",
@@ -60,6 +61,22 @@ test("lockDialogueSpeech leaves explainer prompts unchanged", () => {
     lockDialogueSpeech("She puts on the skirt.", "outfit-reel-director"),
     "She puts on the skirt.",
   );
+});
+
+test("cartoon explainer puts the narrator line first so the clip cannot stay silent", () => {
+  const line = "Boosting cannot revive a dead post.";
+  const locked = lockDialogueSpeech("Animate the magnifier.", "cartoon-explainer-video-director", line);
+  assert.match(locked, /^AUDIO REQUIRED/);
+  assert.match(locked, /Boosting cannot revive a dead post/);
+  assert.match(locked, /never silent/);
+  assert.match(locked, /mouth stays closed/);
+  assert.match(locked, /Sound effects never replace this voice/);
+  assert.equal(lockDialogueSpeech(locked, "cartoon-explainer-video-director", line), locked);
+  assert.equal(
+    lockDialogueSpeech("Animate.", "cartoon-explainer-video-director", "(no dialogue)"),
+    "Animate.",
+  );
+  assert.equal(narratorSpeechLock("(no dialogue)"), "");
 });
 
 test("lockDialogueSpeech adds lip-sync rules for talking-head directors only", () => {
@@ -73,4 +90,19 @@ test("lockDialogueSpeech adds lip-sync rules for talking-head directors only", (
 test("DIALOGUE_SPEAK_LOCK tells MiniMax the on-screen character speaks", () => {
   assert.match(DIALOGUE_SPEAK_LOCK, /On-screen characters MUST speak/);
   assert.match(DIALOGUE_SPEAK_LOCK, /visible mouth/);
+});
+
+test("dialogue video prompts name the speaking mouth and keep the listener shut", () => {
+  const line = 'Joyce: "What\'s the best marketing tool right now?"';
+  const locked = lockDialogueSpeech("They sit at a table.", "dialogue-qa-director", line, [
+    "Joyce",
+    "Scro Official",
+  ]);
+  assert.match(locked, /Joyce's mouth lip-syncs every syllable/);
+  assert.match(locked, /Scro Official's mouth stays closed/);
+  assert.doesNotMatch(locked, /third-person observer camera/);
+  assert.equal(
+    lockDialogueSpeech(locked, "dialogue-qa-director", line, ["Joyce", "Scro Official"]),
+    locked,
+  );
 });

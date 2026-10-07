@@ -7,7 +7,7 @@ Use only after explicit approval of the current Phase A. Write ONE self-containe
 1. Output spec: duration in seconds (3–8, max 8), aspect ratio, 720p, 24 FPS, synchronized audio.
 2. Style lock: repeat the canvas, look and negatives from the Visual style block in one or two sentences.
 3. Product lock: repeat the exact product spec (shape, relative size, two colours, distinguishing detail). The product in the attached start/end keyframes is authoritative; never change its shape, colour, or proportion.
-4. Cast lock: the presenter follows the attached keyframes and blueprints exactly; never restyle.
+4. Cast lock: the presenter follows the attached keyframes and the character blueprint exactly. Face and hair stay on that character even when a scene reference is attached. Never restyle them into the person in a reference photo. Clothes change only when the approved storyboard says the instruction's reference supplies the garments.
 5. Scene at t=0: environment, product state, hand position (matches the START keyframe).
 6. Timed beats scaled to duration: first half — hand approaches / begins the action with small motion; second half — the product responds and the result appears element by element, landing on the END keyframe. Name the visible result explicitly.
 7. Camera: one modest move (slow push toward the product, gentle drift). No cuts inside a clip.

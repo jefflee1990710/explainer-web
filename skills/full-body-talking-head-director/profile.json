@@ -6,7 +6,7 @@
     "arc": "Follows your script sentence by sentence in order; each clip carries straight on from the previous one without restaging.",
     "narrator": "Exactly one character reads every line aloud to camera. Your script is used word for word; your separate instruction only guides tone and emphasis and is never spoken.",
     "visual": "Look and palette come from the chosen visual style. One locked full-body shot with the character centered and looking straight into the lens like a real person filming a reel; the same background, lighting and camera angle throughout. While speaking the head, both hands, and whole body keep moving (weight shift, torso sway). Feet stay in frame.",
-    "audio": "No background music — just the character's voice, with a bottom subtitle that matches each clip's spoken line exactly.",
+    "audio": "No background music — just the character's voice, with a subtitle that matches each clip's spoken line exactly. On a 9:16 Instagram Reel the subtitle sits a little below center. On a 16:9 landscape frame it sits at the bottom.",
     "rules": "Needs a script, one character image and an aspect ratio. Words are never rewritten. Short lines are grouped and long lines are split so each clip has a similar length. A script over 240 seconds must be shortened."
   }
 }

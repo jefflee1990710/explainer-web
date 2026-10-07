@@ -22,7 +22,7 @@ Spoken words scale with the preset (~2.2–2.5 words/second at medium pace). Slo
 2. Total duration, clip count N (each 3–8s), loop mode: always Linear
 3. Core answer and the hook question (+ the asker's motion/prop device)
 4. Aspect ratio, setting, fixed staging (who is on which side), aid zone
-5. Dialogue language, "No narrator — characters speak." plus both voice identities, and total spoken-unit count
+5. Dialogue language, "No narrator — characters speak." plus each supplied voice lock pasted verbatim (the project voice lock for a speaker without their own). Do not invent a timbre. Total spoken-unit count.
 6. Two-character lock: attached blueprints exactly (with role assignment), or the two defined characters
 7. SFX direction (no background music) and the exchange ladder mapped to clips
 
@@ -35,7 +35,8 @@ Rules per row:
 
 - Name which exchange and whether the row is a question, an answer, or a short Q+A.
 - `Scene at clip start` always lists both characters with their fixed sides, poses, and the visual aid state at t=0.
-- The asker visibly reacts in every answer row (lean, eyebrow, step back, prop grab).
+- The asker visibly reacts in every answer row (lean, eyebrow, step back, prop grab). Their mouth stays closed while the answerer speaks.
+- `motionCamera` names the speaker. That character's mouth lip-syncs every syllable of their line. The listener's mouth stays closed.
 - Aids are the only elements allowed to appear, morph, or vanish; characters never swap sides or leave.
 - A visible change every 1.5–2.5 seconds.
 

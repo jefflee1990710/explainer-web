@@ -158,9 +158,10 @@ export function NewProjectForm({
     : readBriefDefaults(projectId, { skills, styles, characters });
 
   // Form fields
+  const rememberedSkill = lastBrief?.skillSlug;
   const [skillSlug, setSkillSlug] = useState(
     (initialVideo && selectedSkillSlugFor(initialVideo, skills)) ||
-      lastBrief?.skillSlug ||
+      (rememberedSkill && skills.some((skill) => skill.slug === rememberedSkill) ? rememberedSkill : "") ||
       skills[0]?.slug ||
       "",
   );

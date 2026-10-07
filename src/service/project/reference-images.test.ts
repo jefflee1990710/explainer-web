@@ -4,6 +4,7 @@ import type { Project } from "@/model/project";
 import {
   MAX_REFERENCE_IMAGES,
   clipReferenceImageUrls,
+  instructionFollowsReferenceClothes,
   parseReferenceImages,
   phaseAReferenceImageRules,
   referenceImageLabel,
@@ -91,8 +92,23 @@ test("director text names each image and the assignment rule", () => {
   const rules = phaseAReferenceImageRules(images);
   assert.match(rules, /R1, R2/);
   assert.match(rules, /referenceImageIds/);
+  assert.match(rules, /Lock face and hair/);
+  assert.match(rules, /Do not copy the person, face, or hairstyle/);
+  assert.doesNotMatch(rules, /subject/);
   assert.equal(phaseAReferenceImageRules([]), "");
   const clothing = phaseAReferenceImageRules(images, { clothingOnly: true });
   assert.match(clothing, /clothes only/);
   assert.doesNotMatch(clothing, /composition, subject/);
+  const fromInstruction = phaseAReferenceImageRules(images, { clothingFromInstruction: true });
+  assert.match(fromInstruction, /Copy only those garments/);
+  assert.match(fromInstruction, /Do not copy the wearer/);
+});
+
+test("clothes follow a reference only when the instruction says so", () => {
+  assert.equal(instructionFollowsReferenceClothes(["Put the bottle in a box and open it"]), false);
+  assert.equal(instructionFollowsReferenceClothes(["我們的店面，用在開場"]), false);
+  assert.equal(instructionFollowsReferenceClothes(["follow the outfit in the reference image"]), true);
+  assert.equal(instructionFollowsReferenceClothes(["衣服跟參考圖"]), true);
+  assert.equal(instructionFollowsReferenceClothes(["wear the clothes from the photo"]), true);
+  assert.equal(instructionFollowsReferenceClothes([undefined, ""]), false);
 });

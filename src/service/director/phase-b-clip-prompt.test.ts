@@ -197,6 +197,19 @@ test("dual-beat clips swap the keyframe lettering at the midpoint instead of ban
   assert.equal(phaseBLetteringLock({ skillSlug: "story-short-director", durationSeconds: 5 }), "");
 });
 
+test("dialogue Phase B names the speaking mouth and forbids an invented timbre", () => {
+  const prompt = clipPhaseBUserPrompt({
+    ...base,
+    phaseA: proposal(),
+    clipNumber: 1,
+    bansNarration: true,
+    skillSlug: "dialogue-qa-director",
+  });
+  assert.match(prompt, /only the character named/);
+  assert.match(prompt, /mouth stays closed|keeps their mouth closed/);
+  assert.match(prompt, /Do not invent a timbre/);
+});
+
 test("Phase B character line never hands Wan a reference-image URL", () => {
   assert.equal(phaseBCharacterLine({}), base.characterLine);
   assert.match(

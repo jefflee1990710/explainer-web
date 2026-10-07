@@ -47,6 +47,8 @@ test("a cast on the whiteboard director stays put most of the time and varies th
   assert.match(block, /lifts the feet/);
   assert.match(block, /action list/);
   assert.match(block, /point toward the camera/);
+  assert.match(block, /last clip never points toward the camera/);
+  assert.match(block, /exaggerated hook camera/);
   assert.match(block, /standing position/);
   assert.match(block, /from above/);
   assert.match(block, /previous two clips/);

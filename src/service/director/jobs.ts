@@ -1,5 +1,6 @@
 import type { ObjectId } from "mongodb";
-import { characterLockFromCast } from "@/service/character/cast-prompt";
+import { characterLockFromCast, soloCharacterLock } from "@/service/character/cast-prompt";
+import { instructionFollowsReferenceClothes } from "@/service/project/reference-images";
 import { isOutfitReelSkill, isSurpriseInterviewSkill } from "@/service/director/skill-rules";
 import { sanitizeOutfitPhaseA } from "@/service/director/outfit-reel";
 import { sanitizeSurprisePhaseA } from "@/service/director/surprise-interview";
@@ -94,12 +95,17 @@ export async function runPhaseAJob(
     // Always pin characterLock to the cast blueprint rule, including clips-only
     // regenerations that would otherwise keep a previously invented outfit.
     const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
+    const clothingFromReference =
+      !wardrobeBuild &&
+      instructionFollowsReferenceClothes([
+        project.source,
+        ...(project.referenceImages || []).map((image) => image.description),
+      ]);
+    const look = { wardrobeBuild, clothingFromReference };
     if (project.cast && project.cast.length > 0) {
-      nextPhaseA.characterLock = characterLockFromCast(project.cast, { wardrobeBuild });
+      nextPhaseA.characterLock = characterLockFromCast(project.cast, look);
     } else if (project.characterImageUrl) {
-      nextPhaseA.characterLock = wardrobeBuild
-        ? "角色的臉與髮型一律以附加參考圖為準；服裝只跟衣服參考圖。禁止改臉或髮型。"
-        : "角色外貌一律以附加參考圖為準；禁止另行描述或改動髮型、臉型、服裝或配件。";
+      nextPhaseA.characterLock = soloCharacterLock(look);
     }
     if (wardrobeBuild) {
       nextPhaseA.clips = sanitizeOutfitPhaseA(nextPhaseA, Math.random, {

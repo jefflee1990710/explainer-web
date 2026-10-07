@@ -29,6 +29,11 @@ export function SkillPicker({
   const selected = skills.find((skill) => skill.slug === value);
   const optionName = (skill: PublicSkill) =>
     skill.isCustom ? skill.title : localizedVideoType(t, skill.slug, skill.title);
+  const selectedLabel = selected
+    ? optionName(selected)
+    : value
+      ? localizedVideoType(t, value, value)
+      : t("brief.skill.aria");
 
   let subtitle = "";
   if (selected?.isCustom) {
@@ -114,11 +119,9 @@ export function SkillPicker({
           onClick={() => setOpen((current) => !current)}
           className="flex w-full min-h-[4.5rem] cursor-pointer items-center gap-3 rounded-xl border border-accent-ink/15 bg-paper/70 px-3 py-2.5 text-left transition-colors hover:border-accent-ink/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {selected ? <DirectorPreviewThumb previewUrl={selected.previewUrl} label={optionName(selected)} /> : null}
+          {selected ? <DirectorPreviewThumb previewUrl={selected.previewUrl} label={selectedLabel} /> : null}
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-semibold text-foreground">
-              {selected ? optionName(selected) : t("brief.skill.aria")}
-            </span>
+            <span className="block truncate text-sm font-semibold text-foreground">{selectedLabel}</span>
             {subtitle ? <span className="mt-0.5 block truncate text-xs text-muted">{subtitle}</span> : null}
           </span>
           <ChevronIcon open={open} />
@@ -137,7 +140,7 @@ export function SkillPicker({
           </ul>
         ) : null}
       </div>
-      {selected ? <SkillGuideRows slug={selected.behaviorSlug} /> : null}
+      {selected || value ? <SkillGuideRows slug={selected?.behaviorSlug || value} /> : null}
     </div>
   );
 }

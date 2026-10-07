@@ -87,6 +87,30 @@ test("clip 2 starts on clip 1's end still", () => {
 const FULL_BODY_VISUAL =
   "One locked full-body shot with the character centered and facing the camera.";
 
+test("9:16 talking-head subtitles sit a little below center; 16:9 stays at the bottom", () => {
+  const script = "Hi, everyone. I am Scro.";
+  const reel = planTalkingHeadClips({
+    source: script,
+    pace: "medium",
+    language: "en",
+    aspectRatio: "9:16",
+  });
+  assert.match(reel[0].startScene, /a little below the vertical center/);
+  assert.match(reel[0].motionCamera, /a little below the vertical center/);
+  assert.doesNotMatch(reel[0].startScene, /one bottom line/);
+  const wide = planTalkingHeadClips({
+    source: script,
+    pace: "medium",
+    language: "en",
+    aspectRatio: "16:9",
+    shot: "full-body",
+  });
+  assert.match(wide[0].startScene, /one bottom line/);
+  assert.match(wide[0].motionCamera, /at the bottom/);
+  assert.match(talkingHeadDirectorBlock("talking-head-director", "9:16"), /a little below the vertical center/);
+  assert.match(talkingHeadDirectorBlock("full-body-talking-head-director", "16:9"), /across the bottom/);
+});
+
 test("talking-head evens word count and keeps a named shot", () => {
   const script = [
     "Hi, everyone. I am Scro.",

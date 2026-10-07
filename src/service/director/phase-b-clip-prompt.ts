@@ -4,7 +4,7 @@ import { isOutfitReelSkill } from "@/service/director/skill-rules";
 import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
 import { OUTFIT_VIDEO_MOTION_RULES } from "@/service/director/outfit-reel";
 import { isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
-import { surpriseVideoMotionRules } from "@/service/director/surprise-interview";
+import { surpriseVarietyPlan, surpriseVideoMotionRules } from "@/service/director/surprise-interview";
 import { clampClipSeconds } from "@/service/director/keyframe-delta";
 import { phaseBAudioLock } from "@/service/director/voice";
 import type { PhaseAProposal, SpeechPace, VoiceGender } from "@/model/project";
@@ -74,15 +74,20 @@ export function clipPhaseBUserPrompt(input: {
   const prev = rows[index - 1];
   const next = rows[index + 1];
 
+  const surprise = isSurpriseInterviewSkill(input.skillSlug);
   const opening = prev
     ? isOutfitReelSkill(input.skillSlug)
       ? `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene}. The outfit stays the same. This clip is a hard cut to a DIFFERENT camera move. Open on THIS clip's START frame.`
-      : `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene} (${prev.motionCamera}). Start from that resting state.`
+      : surprise
+        ? `Hard cut from clip ${prev.clipNumber}. Do not continue its camera angle or body pose. Open on THIS clip's own angle and pose.`
+        : `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene} (${prev.motionCamera}). Start from that resting state.`
     : "It is the first clip; open cold on the START frame.";
   const closing = next
     ? isOutfitReelSkill(input.skillSlug)
       ? `The next clip will hard-cut to a different camera move. End this clip on its own end camera. No voice. No background music.`
-      : `It hands off to clip ${next.clipNumber}, which opens with: ${next.explainerScene}. End on a state that leads into it.`
+      : surprise
+        ? `The next clip hard-cuts to a different angle and a different pose. End on this clip's own pose.`
+        : `It hands off to clip ${next.clipNumber}, which opens with: ${next.explainerScene}. End on a state that leads into it.`
     : "It is the last clip; end on a clean resting payoff. Do not bridge back to clip 1 or plan a seamless loop.";
 
   return [
@@ -103,10 +108,16 @@ export function clipPhaseBUserPrompt(input: {
       : isOutfitReelSkill(input.skillSlug)
         ? OUTFIT_VIDEO_MOTION_RULES
         : isSurpriseInterviewSkill(input.skillSlug)
-          ? surpriseVideoMotionRules(row.clipNumber)
+          ? surpriseVideoMotionRules(
+              row.clipNumber,
+              surpriseVarietyPlan(input.phaseA).find((item) => item.clipNumber === row.clipNumber)?.place,
+            )
           : DUAL_KEYFRAME_MOTION_RULES,
     opening,
     closing,
+    input.bansNarration
+      ? 'Mouth: only the character named in this clip\'s englishVo lip-syncs every syllable of their line. Every other on-screen character keeps their mouth closed and only reacts. Paste each supplied voice lock verbatim. Do not invent a timbre.'
+      : "",
     "Return a single object { clipNumber, durationSeconds, prompt }.",
   ].join("\n\n");
 }

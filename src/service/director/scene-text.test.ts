@@ -167,6 +167,16 @@ test("reel safe zone uses the style reel layout and drops the bottom band", () =
   assert.doesNotMatch(bare, /bottom 18%/);
 });
 
+test("talking-head 9:16 subtitles sit a little below center, not in the bottom band", () => {
+  const text = sceneTextFrameLines(true, "en", "We made it", undefined, {
+    subtitlePlace: "below-center",
+  }).join("\n");
+  assert.match(text, /a little below the vertical center/);
+  assert.match(text, /55%/);
+  assert.match(text, /We made it/);
+  assert.doesNotMatch(text, /bottom 18%/);
+});
+
 test("cartoon marker safe zone uppercases English and drops the bottom band", () => {
   const lines = sceneTextFrameLines(
     true,

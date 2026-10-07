@@ -3,6 +3,7 @@ import { test } from "node:test";
 import type { PhaseAProposal, StoryboardRow } from "@/model/project";
 import {
   shockPosterLines,
+  surpriseVarietyPlan,
   surpriseVideoMotionRules,
   sanitizeSurprisePhaseA,
 } from "@/service/director/surprise-interview";
@@ -46,17 +47,34 @@ function proposal(): PhaseAProposal {
   };
 }
 
-test("clip 1 drops from above and zooms in, later clips stay seated", () => {
-  const next = sanitizeSurprisePhaseA(proposal());
+test("clip 1 stays the surprise, later clips change angle, pose, and subtitle place", () => {
+  const source = proposal();
+  source.clipCount = 3;
+  source.clips.push(clip(3, { englishVo: "The third point is the quiet one." }));
+  source.clips.push(clip(4, { englishVo: "Sign up and try the first video free." }));
+  source.clipCount = 4;
+  const next = sanitizeSurprisePhaseA(source);
+  const plan = surpriseVarietyPlan(source);
   const hook = next.clips[0];
   assert.match(hook.startScene || "", /looking down/);
   assert.match(hook.endScene || "", /dropped down and snapped a zoom-in/);
   assert.match(hook.motionCamera, /drops from above/);
   assert.match(hook.motionCamera, /not a flip/);
+  assert.match(hook.motionCamera, new RegExp(plan[0].place));
   assert.doesNotMatch(hook.startScene || "", /upside down/);
   assert.equal(hook.narrativeJob, "surprise");
+  assert.equal(new Set(plan.map((item) => item.place)).size, 3);
+  assert.notEqual(plan[0].place, plan[1].place);
+  assert.notEqual(plan[1].place, plan[2].place);
+  assert.notEqual(plan[2].place, plan[3].place);
+  assert.equal(new Set(plan.slice(1).map((item) => item.angle)).size, 3);
+  assert.equal(new Set(plan.slice(1).map((item) => item.pose)).size, 3);
+  assert.match(next.clips[1].startScene || "", new RegExp(plan[1].angle || "eye-level"));
+  assert.match(next.clips[1].startScene || "", new RegExp(plan[1].pose || "seated"));
+  assert.match(next.clips[1].endScene || "", new RegExp(plan[1].pose || "seated"));
   assert.match(next.clips[1].motionCamera, /camera locked/);
-  assert.doesNotMatch(next.clips[1].startScene || "", /looking down/);
+  assert.doesNotMatch(next.clips[1].startScene || "", /above the head/);
+  assert.deepEqual(surpriseVarietyPlan(source), plan);
 });
 
 test("shock poster stacks a number payoff and a shouted last word", () => {
@@ -76,8 +94,10 @@ test("hook video rules demand a sharp drop and zoom, person upright", () => {
   assert.match(hook, /sharp and clear/);
   assert.doesNotMatch(hook, /head points to the bottom/);
   assert.doesNotMatch(hook, /same screen position and scale/);
-  const later = surpriseVideoMotionRules(2);
+  const later = surpriseVideoMotionRules(2, "middle");
   assert.match(later, /right-side up/);
   assert.match(later, /entire clip/);
   assert.match(later, /zoom out/);
+  assert.match(later, /pinned at the middle/);
+  assert.match(later, /own camera angle/);
 });

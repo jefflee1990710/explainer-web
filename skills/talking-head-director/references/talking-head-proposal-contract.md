@@ -16,7 +16,7 @@ Present a readable director's proposal and stop for confirmation before writing 
 2. Total duration (sum of clip seconds), clip count, loop mode: always Linear
 3. The script's point in one line
 4. Aspect ratio and the shot named by the director visual (eyes to lens)
-5. The character speaks; bottom subtitles match each clip's spoken line
+5. The character speaks. On 9:16 the subtitle sits a little below the vertical center. On 16:9 it sits across the bottom. It matches each clip's spoken line.
 6. Cast lock: the one attached blueprint
 7. No music
 
@@ -34,7 +34,7 @@ Write `startScene` and `endScene` as four concrete parts, in order:
 1. Character: eyes locked into the lens as if talking into a phone, mouth just opening, head tilted, one hand beginning to lift (start) or mouth just closed in an engaged small smile, head tilted the other way, a hand still slightly in the lower frame (end). Never describe appearance.
 2. Set: the same plain background in every clip.
 3. Light: same direction and mood in every clip.
-4. Camera: the shot named by the director visual, otherwise no shot size. Name the bottom subtitle and quote the spoken line.
+4. Camera: the shot named by the director visual, otherwise no shot size. Name the subtitle place (a little below center on 9:16, across the bottom on 16:9) and quote the spoken line.
 
 Clip 2 and after: `startScene` copies the previous `endScene`.
 
@@ -48,4 +48,4 @@ One timed move that fills this clip's own seconds, for example `0–0.4s inhale,
 - Every clip is a verbatim slice of the script, 5–12 seconds.
 - Every clip shares the same camera, set, and light.
 - Each start still after clip 1 matches the previous end still.
-- The bottom subtitle matches `englishVo`.
+- The subtitle matches `englishVo`. On 9:16 it sits a little below the vertical center. On 16:9 it sits across the bottom.

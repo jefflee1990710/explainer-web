@@ -2,6 +2,7 @@ import { generateText, Output } from "ai";
 import {
   castBlockForPhaseA,
   characterLockFromCast,
+  soloCharacterLock,
   characterReferenceUrls,
   directorBlueprintSceneRules,
   loadDirectorImageParts,
@@ -54,6 +55,7 @@ import {
 import { loadReferenceImageContent } from "@/service/director/reference-image-content";
 import { directorModel } from "@/service/director/model";
 import {
+  instructionFollowsReferenceClothes,
   phaseAReferenceImageRules,
   sanitizeClipReferenceIds,
 } from "@/service/project/reference-images";
@@ -135,9 +137,16 @@ export async function runPhaseA(input: {
     skillSlug: input.skill.slug,
   });
   const wardrobeBuild = isOutfitReelSkill(input.skill.slug);
+  const clothingFromReference =
+    !wardrobeBuild &&
+    instructionFollowsReferenceClothes([
+      input.source,
+      input.revisionNote,
+      ...(input.referenceImages || []).map((image) => image.description),
+    ]);
+  const look = { wardrobeBuild, clothingFromReference };
   const characterNote =
-    castBlockForPhaseA(input.cast, { wardrobeBuild }) ||
-    phaseASoloCharacterNote(input.characterImageUrl, { wardrobeBuild });
+    castBlockForPhaseA(input.cast, look) || phaseASoloCharacterNote(input.characterImageUrl, look);
   const lettering = resolveStyleLettering(input.style);
   const dualBeat = isDualBeatSkill(input.skill.slug);
   const dialogueOnly = skillBansNarration(input.skill.slug);
@@ -208,15 +217,19 @@ ${
         "Character reference images / blueprints are attached to the user message. You MUST inspect them.",
         wardrobeBuild
           ? "characterLock must ONLY name the cast and say face, hair, and proportions follow the attached blueprint. Do not lock clothing to the blueprint. Garments copied from the clothing references are named in explainerScene."
-          : "characterLock must ONLY name the cast and say appearance follows the attached blueprint — never invent hair, face, clothing, or accessories.",
+          : clothingFromReference
+            ? "characterLock must ONLY name the cast and say face and hair follow the attached blueprint. Do not invent hair or face. Clothes follow the reference image only because the instruction says so."
+            : "characterLock must ONLY name the cast and say appearance follows the attached blueprint — never invent hair, face, clothing, or accessories.",
         wardrobeBuild
           ? "In explainerScene and motionCamera describe pose, the room, and the garments copied from the clothing references. Do not invent a replacement hero, hair, or face, and do not copy the person in a clothing photo."
-          : "In explainerScene and motionCamera describe pose, props, labels, and environment only. Plan each scene around those characters as the subject. Do not invent a replacement hero.",
-        ...directorBlueprintSceneRules({ wardrobeBuild }),
+          : clothingFromReference
+            ? "In explainerScene and motionCamera describe pose, props, and the garments the instruction copies from the reference. Do not invent a replacement hero, hair, or face, and do not copy the person in the reference photo."
+            : "In explainerScene and motionCamera describe pose, props, labels, and environment only. Plan each scene around those characters as the subject. Do not invent a replacement hero. A scene reference never replaces their face or hair.",
+        ...directorBlueprintSceneRules(look),
       ].join(" ")
     : ""
 }
-${phaseAReferenceImageRules(references.attached, { clothingOnly: wardrobeBuild })}
+${phaseAReferenceImageRules(references.attached, { clothingOnly: wardrobeBuild, clothingFromInstruction: clothingFromReference })}
 ${
   [
     dialogueOnly ? dialogueOnlyDirectorBlock() : "",
@@ -231,7 +244,7 @@ ${
     bookend
       ? bookendDirectorBlock(input.skill.slug, logoImages.length > 0, { lockLength: lockBookendLength })
       : "",
-    talkingHead ? talkingHeadDirectorBlock(input.skill.slug) : "",
+    talkingHead ? talkingHeadDirectorBlock(input.skill.slug, input.aspectRatio) : "",
     isSurpriseInterviewSkill(input.skill.slug) ? surpriseInterviewDirectorBlock() : "",
     wardrobeBuild ? outfitReelDirectorBlock() : "",
     isFollowShotSkill(input.skill.slug) ? followShotDirectorBlock() : "",
@@ -251,7 +264,7 @@ ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   listicle: skillForcesSceneText(input.skill.slug),
   comparison: isComparisonCardSkill(input.skill.slug),
   inWorldLabels: sceneText.inWorldLabels,
-  reelSafeZone: input.skill.slug === STORY_SHORT_SKILL_SLUG && input.aspectRatio === "9:16",
+  aspectRatio: input.aspectRatio,
   lettering,
 })}
 The englishVo field always carries the spoken line in the chosen language above (character dialogue when this skill bans narration), regardless of the field name.
@@ -336,6 +349,7 @@ Produce a complete Phase A director proposal now.`,
       source: input.spokenScript || "",
       pace: input.speechPace,
       language: input.language,
+      aspectRatio: input.aspectRatio,
       shot: talkingHeadShot(input.skill.customProfile?.visual || input.skill.profile?.visual),
     });
     const spoken = clips.reduce((sum, clip) => {
@@ -353,14 +367,9 @@ Produce a complete Phase A director proposal now.`,
   }
   // Overwrite any invented look text so frame prompts never inherit a wrong outfit.
   if (input.cast && input.cast.length > 0) {
-    next = { ...next, characterLock: characterLockFromCast(input.cast, { wardrobeBuild }) };
+    next = { ...next, characterLock: characterLockFromCast(input.cast, look) };
   } else if (input.characterImageUrl) {
-    next = {
-      ...next,
-      characterLock: wardrobeBuild
-        ? "角色的臉與髮型一律以附加參考圖為準；服裝只跟衣服參考圖。禁止改臉或髮型。"
-        : "角色外貌一律以附加參考圖為準；禁止另行描述或改動髮型、臉型、服裝或配件。",
-    };
+    next = { ...next, characterLock: soloCharacterLock(look) };
   }
   if (wardrobeBuild) {
     next = sanitizeOutfitPhaseA(next, Math.random, {

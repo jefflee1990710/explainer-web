@@ -4,6 +4,8 @@ import {
   FRAME_WARDROBE_BUILD,
   FRAME_WARDROBE_BUILD_CHECK,
   FRAME_WARDROBE_CHECK,
+  FRAME_WARDROBE_FROM_REFERENCE,
+  FRAME_WARDROBE_FROM_REFERENCE_CHECK,
   FRAME_WARDROBE_LOCK,
   frameCharacterLockLine,
   frameLockReferenceUrls,
@@ -11,6 +13,7 @@ import {
   soloCharacterParagraphForFrames,
 } from "@/service/character/cast-prompt";
 import { productLockParagraph, productReferenceUrls } from "@/service/product/blueprint-prompt";
+import { instructionFollowsReferenceClothes } from "@/service/project/reference-images";
 import {
   clipFrameAnchor,
   type FrameAnchorKind,
@@ -28,6 +31,7 @@ import {
   listicleOnCanvasLines,
   resolveSceneText,
   sceneTextFrameLines,
+  subtitleSitsBelowCenter,
   stripSceneVoiceoverRecap,
   stripStoryboardWriting,
   stripVisualWorldStyleEcho,
@@ -43,7 +47,6 @@ import {
   isSurpriseInterviewSkill,
   skillBansNarration,
   skillForcesSceneText,
-  STORY_SHORT_SKILL_SLUG,
   storyShortCameraLock,
 } from "@/service/director/skill-rules";
 import {
@@ -57,9 +60,12 @@ import {
 import { isSilentSpokenLine, subtitleText } from "@/service/director/spoken-line";
 import {
   sanitizeSurpriseFrameScene,
+  surpriseAngleDirective,
   surpriseHookCameraDirective,
   surpriseHookSkipsFrameAnchor,
+  surprisePosterLayout,
   surpriseTypeLines,
+  surpriseVarietyPlan,
 } from "@/service/director/surprise-interview";
 import { clipReferenceImageUrls } from "@/service/project/reference-images";
 import { imageRouteForSceneText } from "@/service/generation/image-backend";
@@ -276,13 +282,14 @@ export function frameSceneReferenceUrls(
   return urls.slice(0, Math.max(0, room));
 }
 
-// Brief reference images the director assigned to this clip; they guide layout, not cast looks.
+// Brief reference images the director assigned to this clip; they guide place and product, not the person.
 // With a COMPOSITION LOCK (end frame / redo) the lock wins; otherwise the reference sets the place.
 export function sceneReferenceFrameLine(
   start: number,
   count: number,
   locked = false,
   clothingOnly = false,
+  clothingFromInstruction = false,
 ) {
   const which =
     count === 1 ? `attached image ${start} shows` : `attached images ${start}–${start + count - 1} show`;
@@ -291,9 +298,12 @@ export function sceneReferenceFrameLine(
     return `CLOTHING REFERENCE: ${which} the clothes to copy exactly. Copy every garment's style, cut, colour, pattern, and details. Do not redesign, recolor, drop, or add pieces. Do not copy the person, face, hair, pose, tattoos, or background. Face, hair, and body stay on the character blueprint. Only the character changes.`;
   }
   const follow = locked
-    ? "keep the COMPOSITION LOCK framing and use them only for subject and set details"
+    ? "keep the COMPOSITION LOCK framing and use them only for product and set details"
     : "follow their composition, location, and setting";
-  return `SCENE REFERENCE: ${which} the intended layout, subject, and setting for this scene — ${follow}; keep cast identity from the character references.`;
+  const clothes = clothingFromInstruction
+    ? "The instruction says the clothes follow this image: copy only the garments."
+    : "Do not redress the character from this image.";
+  return `SCENE REFERENCE: ${which} the place, product, props, and layout for this scene — ${follow}. Do not copy the person, face, or hairstyle in that image. Face and hair stay on the selected character. ${clothes}`;
 }
 
 // Catalog typography often bans "subtitles"; scene-text mode needs integrated captions.
@@ -354,14 +364,21 @@ export function buildFramePrompt(
   const productUrls = productReferenceUrls(project.products);
   const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
   const surprise = isSurpriseInterviewSkill(project.skillSlug);
+  const clothingFromInstruction =
+    !wardrobeBuild &&
+    instructionFollowsReferenceClothes([
+      project.source,
+      ...(project.referenceImages || []).map((image) => image.description),
+    ]);
   // Every still needs the clothing photo so style and colour stay exact.
   const sceneRefUrls = frameSceneReferenceUrls(
     project,
     clipNumber,
     annotatedCount + anchorCount + lockUrls.length + logoUrls.length + productUrls.length,
   );
-  // Outfit stills put the character blueprint first so the clothing model's face does not win.
-  const characterFirst = wardrobeBuild;
+  // The character blueprint comes before any scene photo so that photo's face does not win.
+  const characterFirst = lockUrls.length > 0;
+  const copyClothes = clothingFromInstruction && sceneRefUrls.length > 0;
   const characterAttachmentStart = characterFirst
     ? annotatedCount + anchorCount + 1
     : annotatedCount + anchorCount + 1 + sceneRefUrls.length;
@@ -370,7 +387,15 @@ export function buildFramePrompt(
     : annotatedCount + anchorCount + 1;
   const compositionLocked = Boolean(options.anchor && options.anchor.kind !== "prev-end");
   const sceneRefLines = sceneRefUrls.length
-    ? [sceneReferenceFrameLine(sceneRefStart, sceneRefUrls.length, compositionLocked, wardrobeBuild)]
+    ? [
+        sceneReferenceFrameLine(
+          sceneRefStart,
+          sceneRefUrls.length,
+          compositionLocked,
+          wardrobeBuild,
+          copyClothes,
+        ),
+      ]
     : [];
   const castLines = hasCast
     ? castParagraphForFrames(
@@ -438,16 +463,21 @@ export function buildFramePrompt(
     });
     motionDescription = rewriteOutfitSafetyText(motionDescription);
   }
+  const surprisePlan = surprise ? surpriseVarietyPlan(phaseA) : [];
+  const surpriseClip = surprisePlan.find((item) => item.clipNumber === clipNumber);
   if (surprise) {
     sceneDescription = sanitizeSurpriseFrameScene({
       scene: sceneDescription,
       clipNumber,
       position,
+      name: project.cast?.[0]?.name || phaseA.characterLock.split(/[：:]/)[0]?.trim(),
+      angle: surpriseClip?.angle,
+      pose: surpriseClip?.pose,
+      place: surpriseClip?.place,
     });
   }
-  // 9:16 story shorts: subtitles sit above the reel chrome, not in the bottom band.
-  const reelSafeZone =
-    project.skillSlug === STORY_SHORT_SKILL_SLUG && project.aspectRatio === "9:16";
+  // Every 9:16 spoken subtitle sits a little below center. Landscape stays in the bottom band.
+  const subtitleBelowCenter = subtitleSitsBelowCenter(project.aspectRatio);
   const paintSurpriseType = surprise && Boolean(voForFrame);
   const onCanvasTextBlock = listicle
     ? [
@@ -466,7 +496,10 @@ export function buildFramePrompt(
           }),
         ]
     : paintSurpriseType
-      ? surpriseTypeLines({ clipNumber, line: subtitleText(voForFrame) || voForFrame })
+      ? surpriseTypeLines({
+          line: subtitleText(voForFrame) || voForFrame,
+          place: surpriseClip?.place ?? "top",
+        })
       : sceneText.enabled
       ? [
           styleLetteringLineForSceneText(style),
@@ -478,8 +511,8 @@ export function buildFramePrompt(
             undefined,
             dualBeat
               ? { markerSafeZone: true, lettering, silentClip }
-              : reelSafeZone
-                ? { reelSafeZone: true, lettering, silentClip }
+              : subtitleBelowCenter
+                ? { subtitlePlace: "below-center" as const, lettering, silentClip }
                 : { lettering, silentClip },
           ),
         ]
@@ -506,10 +539,14 @@ export function buildFramePrompt(
     hasCharacter: performance,
     action: cartoonClipAction(row.motionCamera),
     position,
+    clipNumber,
   });
 
   const compose = (parts: FrameTrimmable) => [
     ...onCanvasTextBlock,
+    ...(surprise && surpriseClip?.angle && surpriseClip.pose
+      ? [surpriseAngleDirective(surpriseClip.angle, surpriseClip.pose)]
+      : []),
     ...styleLinesForFrame(style),
     ...(parts.visualWorld ? [`Visual world: ${parts.visualWorld}`] : []),
     `Palette: ${parts.palette}`,
@@ -527,7 +564,15 @@ export function buildFramePrompt(
     ...(parts.motion ? [`${motionLabel}: ${parts.motion}`] : []),
     ...(storyShortCameraLock(project.skillSlug) ? [storyShortCameraLock(project.skillSlug)] : []),
     ...(narratorLock ? [narratorLock] : []),
-    ...(lockUrls.length ? [wardrobeBuild ? FRAME_WARDROBE_BUILD : FRAME_WARDROBE_LOCK] : []),
+    ...(lockUrls.length
+      ? [
+          wardrobeBuild
+            ? FRAME_WARDROBE_BUILD
+            : copyClothes
+              ? FRAME_WARDROBE_FROM_REFERENCE
+              : FRAME_WARDROBE_LOCK,
+        ]
+      : []),
     ...(wardrobeBuild ? [outfitAngleDirective(clipNumber, position, sceneDescription)] : []),
     ...(surprise && clipNumber === 1 ? [surpriseHookCameraDirective(position)] : []),
     ...(parts.renderDetail ? [parts.renderDetail] : []),
@@ -538,9 +583,7 @@ export function buildFramePrompt(
       ? ["Final check: the numbered item list is visible and spelled exactly."]
       : paintSurpriseType
         ? [
-            clipNumber === 1
-              ? "Final check: black field behind the stacked type at the top, white ultra-condensed body, payoff in black on a thick mustard dry-brush bar. Spell only the spoken line. No white subtitle bar. No SHOCK label. Letters stay upright."
-              : "Final check: the same shock poster sits at the bottom as the subtitle. White ultra-condensed body, payoff in black on a thick mustard dry-brush bar. Spell only this clip's spoken line. No white subtitle bar. No SHOCK label. Letters stay upright.",
+            `Final check: ${surprisePosterLayout(surpriseClip?.place ?? "top")} White ultra-condensed body, payoff in black on a thick mustard dry-brush bar. Spell only this clip's spoken line. No white subtitle bar. No SHOCK label. Letters stay upright.`,
           ]
       : sceneText.enabled
         ? silentClip
@@ -549,9 +592,9 @@ export function buildFramePrompt(
           ? [
               `Final check: spelling matches the Marker line(s); no bottom subtitle band.${lettering.letteringLayout ? " Voiceover lettering sits where the Layout line says." : ""}`,
             ]
-          : reelSafeZone
+          : subtitleBelowCenter
             ? [
-                `Final check: spelling matches the Subtitle line(s).${lettering.reelLayout ? " Subtitle sits where the layout line above says." : ""}`,
+                "Final check: the subtitle sits a little below the vertical center, not in a bottom band. Spelling must match the Subtitle line(s) above.",
               ]
             : [
                 "Final check: bottom subtitle band only; spelling must match the Subtitle line(s) above.",
@@ -565,7 +608,9 @@ export function buildFramePrompt(
       ? [
           wardrobeBuild
             ? `${FRAME_WARDROBE_BUILD_CHECK} ${OUTFIT_FRAME_GARMENT_LOCK}`
-            : FRAME_WARDROBE_CHECK,
+            : copyClothes
+              ? FRAME_WARDROBE_FROM_REFERENCE_CHECK
+              : FRAME_WARDROBE_CHECK,
         ]
       : []),
     `Aspect ratio ${project.aspectRatio}.`,
@@ -595,7 +640,8 @@ export function frameSubmitPlan(
 ) {
   const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
   const surpriseHook =
-    isSurpriseInterviewSkill(project.skillSlug) && surpriseHookSkipsFrameAnchor(clipNumber);
+    isSurpriseInterviewSkill(project.skillSlug) &&
+    surpriseHookSkipsFrameAnchor(clipNumber, position);
   const foundAnchor = clipFrameAnchor(project.frames, clipNumber, position);
   // Another still glued on makes the image model copy its camera, so the move never happens.
   const anchor = wardrobeBuild || surpriseHook ? undefined : foundAnchor;
@@ -621,9 +667,10 @@ export function frameSubmitPlan(
     refs: sceneImageReferenceUrls({
       annotatedUrl: revision?.annotatedUrl,
       anchorUrl: anchor?.url,
-      lockUrls: wardrobeBuild
-        ? [...castUrls, ...sceneRefUrls, ...productUrls, ...logoUrls]
-        : [...sceneRefUrls, ...castUrls, ...productUrls, ...logoUrls],
+      lockUrls:
+        castUrls.length > 0
+          ? [...castUrls, ...sceneRefUrls, ...productUrls, ...logoUrls]
+          : [...sceneRefUrls, ...castUrls, ...productUrls, ...logoUrls],
     }),
     anchor,
   };

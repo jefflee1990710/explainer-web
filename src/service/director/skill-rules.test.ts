@@ -130,6 +130,7 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(withCast, /pull \(bring in/);
   assert.match(withCast, /push \(send out/);
   assert.match(withCast, /point toward the camera/);
+  assert.match(withCast, /last clip never points toward the camera/);
   assert.match(withCast, /not two standing poses/);
   assert.match(withCast, /head may turn/);
   assert.match(withCast, /previous two clips/);
@@ -224,6 +225,29 @@ test("every action has a short still line for both stills and a video line", () 
   assert.match(block, /previous two clips/);
   assert.match(block, /three beats/);
   assert.match(block, /Clip 1 opens already moving/);
+  assert.match(block, /snap zoom in/);
+  assert.match(block, /360 orbit/);
+  assert.match(block, /overhead drop/);
+  assert.match(block, /crash push/);
+  assert.match(block, /dutch snap/);
+  assert.match(block, /Later clips do not repeat this hook camera/);
+  assert.match(cartoonExplainerDirectorBlock(), /snap zoom into the key node/);
+  assert.match(
+    cartoonNarratorVideoLock("cartoon-explainer-video-director", { hasCharacter: true, clipNumber: 1 }),
+    /HOOK CAMERA/,
+  );
+  assert.doesNotMatch(
+    cartoonNarratorVideoLock("cartoon-explainer-video-director", { hasCharacter: true, clipNumber: 2 }),
+    /HOOK CAMERA/,
+  );
+  assert.match(
+    cartoonNarratorFrameLock("cartoon-explainer-video-director", {
+      hasCharacter: true,
+      clipNumber: 1,
+      position: "start",
+    }),
+    /HOOK CAMERA/,
+  );
 });
 
 test("a detected push draws only that action, aimed away from the character", () => {
@@ -260,7 +284,10 @@ test("Q&A is dialogue-only like story short: no narrator, character lines", () =
   assert.equal(skillBansNarration("dialogue-qa-director"), true);
   assert.match(dialogueOnlyDirectorBlock(), /NO narrator/);
   assert.match(dialogueOnlyDirectorBlock(), /NAME: "line"/);
+  assert.match(dialogueOnlyDirectorBlock(), /voice lock verbatim/);
+  assert.match(dialogueOnlyDirectorBlock(), /keeps their mouth closed/);
   assert.match(dialogueQaDirectorBlock(), /ASKER/);
+  assert.match(dialogueQaDirectorBlock(), /mouth stays closed/);
   assert.doesNotMatch(dialogueQaDirectorBlock(), /SHORT FILM/);
 });
 
@@ -303,13 +330,13 @@ test("surprise, outfit, and follow each need one character", () => {
     assert.match(briefSkillError({ skillSlug: slug, characterIds: [] }) || "", /1/);
     assert.equal(briefSkillError({ skillSlug: slug, characterIds: ["a"] }), undefined);
   }
-  assert.match(surpriseInterviewDirectorBlock(), /Clip 2 cuts once/);
-  assert.match(surpriseInterviewDirectorBlock(), /Clip 3 and after/);
+  assert.match(surpriseInterviewDirectorBlock(), /different camera angle/);
+  assert.match(surpriseInterviewDirectorBlock(), /different body pose/);
   assert.match(surpriseInterviewDirectorBlock(), /right-side up/);
   assert.match(surpriseInterviewDirectorBlock(), /drops downward/);
   assert.match(surpriseInterviewDirectorBlock(), /zoom-in/);
   assert.match(surpriseInterviewDirectorBlock(), /dry-brush/);
-  assert.match(surpriseInterviewDirectorBlock(), /at the bottom/);
+  assert.match(surpriseInterviewDirectorBlock(), /top, middle, or bottom/);
   assert.match(outfitReelDirectorBlock(), /already fully dressed/);
   assert.match(outfitReelDirectorBlock(), /Only the clothes change/);
   assert.match(outfitReelDirectorBlock(), /energetic and happy/);
