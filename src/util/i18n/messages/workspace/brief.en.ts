@@ -163,7 +163,7 @@ export const briefEn = {
     "comparison-card-director": "Comparison card",
     "talking-broll-director": "Talking-head with B-roll",
     "surprise-interview-director": "Surprise interview",
-    "outfit-reel-director": "Outfit build",
+    "outfit-reel-director": "Outfit reel",
     "follow-shot-director": "Follow shot",
   },
   videoTypeBlurbs: {
@@ -181,7 +181,7 @@ export const briefEn = {
     "comparison-card-director": "One comparison per clip, two views of the same thing.",
     "talking-broll-director": "Two lines to camera, a cutaway, then back to the close-up.",
     "surprise-interview-director": "A surprised close-up, then the character explains the concept.",
-    "outfit-reel-director": "Starts already wearing a white crew-neck tank and matching white knee-length athletic shorts, then puts on only the clothes in the reference image.",
+    "outfit-reel-director": "Already wearing the full outfit from the reference image. Each clip is a different camera move.",
     "follow-shot-director": "A third-person continuous shot. Each clip starts where the last one ended.",
   },
   skillGuide: {
@@ -271,10 +271,10 @@ export const briefEn = {
         frames: "From clip 3, the start frame continues the previous end frame",
       },
       "outfit-reel-director": {
-        voice: "Silent, unless you ask for one short line on the last clip",
-        structure: "One garment per clip, then a hold on the finished look",
-        picture: "One room, full body. Each clip uses a new angle. Starts in a white tank and knee-length athletic shorts; only the reference clothes change. Face and hair stay.",
-        frames: "Each clip draws its own start and end stills. Clothes continue; the camera angle changes.",
+        voice: "No voiceover. Sound effects only. No background music",
+        structure: "Already dressed from the first clip. One camera move per clip, in a new random order each time",
+        picture: "One room, full body. Clothes match the reference image in style and colour. Only the character changes",
+        frames: "Each clip draws its own start and end stills for that camera move",
       },
       "follow-shot-director": {
         voice: "Silent, unless you wrote one short line",

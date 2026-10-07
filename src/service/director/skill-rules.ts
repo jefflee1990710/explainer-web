@@ -576,16 +576,15 @@ export function surpriseInterviewDirectorBlock() {
   ].join(" ");
 }
 
-// Listed garments go on one per clip. Face stays on the blueprint.
+// Already dressed in the reference outfit. Each clip is a different camera move.
 export function outfitReelDirectorBlock() {
   return [
-    "This is an OUTFIT REEL. Exactly one attached character. Each clip puts on one garment, then one final clip holds the full look.",
-    "Clip 1 START is a standing rest already fully dressed in an opaque white crew-neck tank covering the shoulders and torso, plus white knee-length athletic shorts, both hands relaxed at the sides. That is the blank start. Do not ask for a starting outfit. Do not write a garment held in the hands, at the chest, at the thighs, or pulled over the head.",
-    "Garments come only from the attached clothing reference images. Read each photo and list the distinct worn pieces (top, bottom, outer layer, socks, shoes). If the first reference top is a similar white tank, the base tank already stands in for it — skip that piece and start with the next distinct garment. One piece per clip, in a sensible dressing order. Copy cut, colour, and details from that photo and name its reference id in the scene. If no clothing reference is attached, ask for the photos and stop. Do not invent pieces from the brief sentence.",
-    "The person in a clothing photo is not the character. Never copy their face, hair, body, tattoos, pose, or room. Face, hair, and body proportions stay on the character blueprint. Only the clothes change.",
-    "The white knee-length athletic shorts stay until a reference bottom goes on. That bottom replaces the shorts; do not wear both. The base tank stays until a different reference top or outer layer goes on. Clip 2 and after: clothes already on continue, but Camera and pose MUST change. Do not copy the previous endScene camera or a facing-forward stance.",
-    "One room. Each clip is a NEW locked full-body angle (front, 3/4 left, 3/4 right, or slightly-low 3/4 for shoes). Within a clip the camera stays locked; across clips the angle changes so we see the dressing from different sides. Each clip is 3–4 seconds. Body motion is required: weight shift, look down, 3/4 turn, arms into sleeves, or a step. Never leave her frozen facing camera. Never pull a bottom up from the thighs. The torso stays covered; a new bottom is already at the natural waist and the previous shorts vanish underneath.",
-    "Default englishVo is \"(no dialogue)\". A short line naming the finished look is allowed only on the last clip, and only if the user asked. No step numbers and no imperative tutorial lines.",
+    "This is an OUTFIT REEL. Exactly one attached character. She is already fully dressed in clip 1 and stays in that same outfit for every clip. Do not write her putting clothes on, taking clothes off, or changing garments.",
+    "Clothes must follow the clothing reference images 100 percent: same style, cut, colour, pattern, and details. Copy every piece the photos show. Do not redesign, recolor, drop, or add a piece. If no clothing reference is attached, ask for the photos and stop. Do not invent clothes from the brief sentence.",
+    "The person in a clothing photo is not the character. Never copy their face, hair, body, tattoos, pose, or room. Face, hair, and body proportions stay on the character blueprint. Only the character changes.",
+    "Do not add one clip per garment. Clip count follows the duration preset. Every clip shows the complete outfit. One room. Each clip is 3–4 seconds and one camera move. Within a clip the camera travels from the start still to the end still. The next clip is a hard cut to a different move.",
+    "Pick a different camera move for every clip, and shuffle which move goes on which clip every time you plan. Use these moves, and do not give two clips in a row the same one: front; front top move forward; front zoom out; front to left; front to right; low rise from the floor to an eye-level front; orbit from her left across the front to her right; lateral slide across the front. She stays planted. Head and shoes stay in frame.",
+    "englishVo is \"(no dialogue)\" on every clip. No voiceover, no spoken line, no narrator. No background music. bgmDirection and every bgmSfx are one sound effect only.",
   ].join(" ");
 }
 

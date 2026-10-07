@@ -1,12 +1,12 @@
 {
   "en": {
-    "bestFor": "Showing one character put on the clothes from a reference image, piece by piece, then hold the finished look.",
-    "structure": "Starts already wearing a white crew-neck tank and matching white knee-length athletic shorts. One 3–4 second clip per new reference garment, plus one final clip where the full look holds.",
-    "hook": "Opens in the white athletic base as the first distinct reference garment goes on. No title card.",
-    "arc": "White tank and shorts, then each piece from the clothing reference. A reference bottom replaces the shorts. The last clip holds the complete look.",
-    "narrator": "Silent by default. A short spoken line that names the finished look is added only when you ask for one, and only on the last clip.",
-    "visual": "Look and palette come from the chosen visual style. One room. Each clip is a new locked full-body angle so the dressing is seen from more than one side. Face and hair stay on the blueprint. Clothes are copied from the reference images only.",
-    "audio": "A music bed with one clothing sound effect per clip. Silent clips have no subtitle.",
-    "rules": "Needs exactly one character and clothing reference images. Starts in a white crew-neck tank and white knee-length athletic shorts. Only the garments in those photos, one action per clip, with a new camera angle and real body motion. Never pull a bottom up from the thighs. Face and hair never change. No invented pieces."
+    "bestFor": "Showing one character already wearing the full outfit from a reference image, with a different camera move on every clip.",
+    "structure": "Clip count follows the duration. Every clip is the same complete outfit. Each clip is one 3–4 second camera move, shuffled from the move list.",
+    "hook": "Opens already dressed in the reference outfit. No title card and no dressing.",
+    "arc": "The same look, seen from a new camera each clip: front, a high push-in, a zoom out, arcs to either side, a low rise, an orbit, or a lateral slide.",
+    "narrator": "No voiceover and no spoken line.",
+    "visual": "Look and palette come from the chosen visual style. One room. Clothes match the reference image in style and colour. Face and hair stay on the blueprint. Only the character changes.",
+    "audio": "One sound effect per clip. No background music. No voice.",
+    "rules": "Needs exactly one character and clothing reference images. The outfit is already on from clip 1. Copy style and colour exactly. A different camera move on every clip, in a new random order each time. No voiceover. No background music."
   }
 }

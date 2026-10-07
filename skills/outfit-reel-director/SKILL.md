@@ -1,15 +1,15 @@
 ---
 name: directing-outfit-reels
-description: Use when one character puts on clothes from a reference image, one garment at a time, starting in a white crew-neck tank and knee-length athletic shorts.
+description: Use when one character is already wearing the clothes from a reference image, and each clip is a different camera move. No voiceover and no music.
 ---
 
 # Directing Outfit Reels
 
 ## Core contract
 
-Turn the clothes in the reference images into a confirmed proposal (Phase A) and one video prompt per clip (Phase B). Exactly one character. Each clip puts on one garment. The last clip holds the finished look.
+Turn the clothes in the reference images into a confirmed proposal (Phase A) and one video prompt per clip (Phase B). Exactly one character. She is already dressed in the complete reference outfit from the first frame of clip 1 through the last frame. Do not put clothes on.
 
-Each clip is 3–4 seconds. Clip count = number of new reference garments + 1 final hold. Do not invent garments to fill a longer duration. If the photos show too many pieces for the chosen duration, ask the user which pieces to drop.
+Each clip is 3–4 seconds. Clip count follows the duration preset. Do not add a clip per garment.
 
 ## Setup gate
 
@@ -19,32 +19,41 @@ Require these before planning:
 - aspect ratio: `16:9`, `9:16`, or `1:1` (prefer `9:16` when the user has not chosen)
 - exactly one character blueprint
 
-The start is always a modest athletic base already on: an opaque white crew-neck tank covering the shoulders and torso, plus white knee-length athletic shorts, hands at the sides. Do not ask for a starting outfit. Do not write a garment held in the hands, at the chest, at the thighs, or pulled over the head. If no clothing reference is attached, ask for the photos and stop. Never invent garments from the brief sentence.
+If no clothing reference is attached, ask for the photos and stop. Never invent garments from the brief sentence.
+
+## Clothes
+
+Copy the clothing photos 100 percent: every piece, same style, cut, colour, pattern, and details. Do not redesign, recolor, drop, or add a piece. Face, hair, and body proportions stay on the character blueprint. Never copy the person, face, hair, tattoos, pose, or room in a clothing photo. Only the character changes.
 
 ## Shot plan
 
-- One room. Each clip is a new locked full-body angle (front, 3/4 left, 3/4 right, or slightly-low 3/4 for shoes and socks). Within a clip the camera stays locked. Across clips the angle changes.
-- Clip 1 starts already wearing the white tank and white knee-length athletic shorts, standing with hands at the sides, facing camera. If the first reference top is a similar white tank, skip it — the base tank already stands in — and put on the next distinct piece.
-- Read the clothing photos. Put on only the distinct pieces they show, copied for cut, colour, and details. Name the reference id in the scene.
-- A reference bottom replaces the white knee-length athletic shorts. Do not wear both. Other pieces stay on. Every still is fully dressed.
-- Clip 2 and after: clothes already on continue. Do not copy the previous camera or a facing-forward stance. Start stills are a new angle on the clothes already on, not mid-dressing.
-- One dressing action per clip, with real body motion: weight shift, look down, 3/4 turn, arms sliding into sleeves, or a step into shoes. Never leave her frozen facing camera with only the hands moving. Never pull a bottom up from the thighs. The torso stays covered; a new bottom is already at the natural waist and the previous shorts vanish underneath.
-- The last clip adds nothing. The complete look holds and rests.
-- Face, hair, and body proportions stay on the character blueprint. Never copy the person, face, hair, tattoos, pose, or room in a clothing photo. Only the clothes change.
+- One room. The outfit does not change.
+- Each clip is one camera move. The start still is the beginning of that move. The end still is the end of that move. Head and shoes stay in frame.
+- Shuffle the moves every time you plan, and do not give two clips in a row the same move:
+  - front
+  - front top move forward
+  - front zoom out
+  - front to left
+  - front to right
+  - low rise from the floor to an eye-level front
+  - orbit from her left across the front to her right
+  - lateral slide across the front
+- She stays planted. She does not dress, and she does not turn her body to follow the lens.
+- The next clip is a hard cut to a different move.
 
 ## Words and audio
 
-- Default `englishVo` is `(no dialogue)`. Silent clips have no subtitle.
-- A short spoken line that names the finished look is allowed only on the last clip, and only when the user asked for one.
-- Music bed. One clothing sound effect per dressing clip. No step numbers and no "now put on" instructions.
+- `englishVo` is `(no dialogue)` on every clip. No voiceover, no spoken line, no narrator, no subtitle.
+- No background music. One sound effect per clip.
 
 ## Phase A field mapping
 
-- `hookStrategy`: the first distinct reference garment going on, already in the white tank and knee-length athletic shorts.
+- `hookStrategy`: the complete reference outfit, already on.
 - `coreMessage`: the finished look in a few words.
-- `narrativeArc`: white athletic base → each reference piece → hold.
-- Each dressing row: `narrativeJob` = the garment name. The last row: `narrativeJob` = `hold`.
-- `englishVo` is `(no dialogue)` except an optional last line the user requested.
+- `narrativeArc`: the same outfit, seen through different camera moves.
+- `narrativeJob`: the camera move for that clip.
+- `englishVo` is `(no dialogue)`.
+- `bgmDirection` and every `bgmSfx` say no music and name one sound effect.
 
 ## Workflow
 

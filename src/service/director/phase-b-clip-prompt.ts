@@ -21,7 +21,7 @@ export function phaseBCharacterLine(input: {
 }) {
   const names = input.cast?.map((member) => member.name).filter(Boolean).join(", ");
   if (names && isOutfitReelSkill(input.skillSlug)) {
-    return `Keep ${names}'s face, hair, and proportions as in the first and last frames. Name the one garment this clip puts on. If it replaces the white knee-length athletic shorts, those shorts are off in the last frame. Other pieces already on stay on. The torso stays covered; never pull a bottom up from the thighs. Do not mention reference images or reference sheets — MiniMax H3 only receives this clip's first and last frames.`;
+    return `Keep ${names}'s face, hair, and proportions as in the first and last frames. The outfit is already complete in both frames and must stay identical, including style and colour. Do not dress her. Do not mention reference images or reference sheets — MiniMax H3 only receives this clip's first and last frames.`;
   }
   if (names) {
     return `Keep ${names} identical to Phase A characterLock. Do not mention reference images or reference sheets in the MiniMax H3 prompt — MiniMax H3 only receives this clip's first and last frames. Never describe clothing, wardrobe, or gear (no "winter coat", "boots", "backpack"); say only that the outfit stays exactly as in the first and last frames.`;
@@ -37,7 +37,7 @@ export function phaseBWardrobeLock(input: {
 }) {
   if (!input.cast?.length && !input.characterImageUrl) return "";
   if (isOutfitReelSkill(input.skillSlug)) {
-    return "Wardrobe: the first frame is the outfit so far, starting from a white crew-neck tank plus white knee-length athletic shorts. During the clip one new garment from the clothing reference goes on and is fully on in the last frame. A reference bottom replaces the athletic shorts. The new bottom is already at the natural waist; the previous shorts vanish underneath; never pull it up from the thighs; never show a gap between the tank and the waistband. Other pieces stay. Do not change face or hair.";
+    return "Wardrobe: both frames already show the complete outfit from the clothing reference, same style and colour. Nothing goes on or comes off during the clip. Do not change face or hair.";
   }
   return "Wardrobe: every character keeps exactly the outfit shown in the first and last frames for the whole clip. No added or changed clothing, layers, or gear.";
 }
@@ -74,12 +74,12 @@ export function clipPhaseBUserPrompt(input: {
 
   const opening = prev
     ? isOutfitReelSkill(input.skillSlug)
-      ? `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene}. Clothes already on continue. This clip is a NEW camera angle — do not copy the previous facing-forward stance. Open on THIS clip's START frame.`
+      ? `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene}. The outfit stays the same. This clip is a hard cut to a DIFFERENT camera move. Open on THIS clip's START frame.`
       : `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene} (${prev.motionCamera}). Start from that resting state.`
     : "It is the first clip; open cold on the START frame.";
   const closing = next
     ? isOutfitReelSkill(input.skillSlug)
-      ? `The next clip will cut to a different full-body angle. End this clip settled on its own locked camera.`
+      ? `The next clip will hard-cut to a different camera move. End this clip on its own end camera. No voice. No background music.`
       : `It hands off to clip ${next.clipNumber}, which opens with: ${next.explainerScene}. End on a state that leads into it.`
     : "It is the last clip; end on a clean resting payoff. Do not bridge back to clip 1 or plan a seamless loop.";
 

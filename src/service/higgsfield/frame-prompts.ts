@@ -45,7 +45,12 @@ import {
   STORY_SHORT_SKILL_SLUG,
   storyShortCameraLock,
 } from "@/service/director/skill-rules";
-import { rewriteOutfitSafetyText, sanitizeOutfitFrameScene, OUTFIT_CLIP1_START_LOCK, OUTFIT_CLIP1_START_MOTION } from "@/service/director/outfit-reel";
+import {
+  rewriteOutfitSafetyText,
+  sanitizeOutfitFrameScene,
+  outfitAngleDirective,
+  OUTFIT_FRAME_GARMENT_LOCK,
+} from "@/service/director/outfit-reel";
 import { isSilentSpokenLine, subtitleText } from "@/service/director/spoken-line";
 import { clipReferenceImageUrls } from "@/service/project/reference-images";
 import { imageRouteForSceneText } from "@/service/generation/image-backend";
@@ -274,7 +279,7 @@ export function sceneReferenceFrameLine(
     count === 1 ? `attached image ${start} shows` : `attached images ${start}–${start + count - 1} show`;
   // A clothing photo is the garment, not a person or a set to copy.
   if (clothingOnly) {
-    return `CLOTHING REFERENCE: ${which} the clothes to copy. Copy only the garment this still names (cut, colour, details). Do not copy the person, face, hair, pose, tattoos, or background. Face and hair stay on the character blueprint.`;
+    return `CLOTHING REFERENCE: ${which} the clothes to copy exactly. Copy every garment's style, cut, colour, pattern, and details. Do not redesign, recolor, drop, or add pieces. Do not copy the person, face, hair, pose, tattoos, or background. Face, hair, and body stay on the character blueprint. Only the character changes.`;
   }
   const follow = locked
     ? "keep the COMPOSITION LOCK framing and use them only for subject and set details"
@@ -339,15 +344,12 @@ export function buildFramePrompt(
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
   const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
-  // Clothing photos on the blank start still look like undressing to safety filters.
-  const sceneRefUrls =
-    wardrobeBuild && position === "start"
-      ? []
-      : frameSceneReferenceUrls(
-          project,
-          clipNumber,
-          annotatedCount + anchorCount + lockUrls.length + logoUrls.length + productUrls.length,
-        );
+  // Every still needs the clothing photo so style and colour stay exact.
+  const sceneRefUrls = frameSceneReferenceUrls(
+    project,
+    clipNumber,
+    annotatedCount + anchorCount + lockUrls.length + logoUrls.length + productUrls.length,
+  );
   const sceneRefStart = annotatedCount + anchorCount + 1;
   const characterAttachmentStart = sceneRefStart + sceneRefUrls.length;
   const compositionLocked = Boolean(options.anchor && options.anchor.kind !== "prev-end");
@@ -417,9 +419,6 @@ export function buildFramePrompt(
       name: project.cast?.[0]?.name,
     });
     motionDescription = rewriteOutfitSafetyText(motionDescription);
-    if (clipNumber === 1 && position === "start") {
-      motionDescription = OUTFIT_CLIP1_START_MOTION;
-    }
   }
   // 9:16 story shorts: subtitles sit above the reel chrome, not in the bottom band.
   const reelSafeZone =
@@ -499,7 +498,7 @@ export function buildFramePrompt(
     ...(storyShortCameraLock(project.skillSlug) ? [storyShortCameraLock(project.skillSlug)] : []),
     ...(narratorLock ? [narratorLock] : []),
     ...(lockUrls.length ? [wardrobeBuild ? FRAME_WARDROBE_BUILD : FRAME_WARDROBE_LOCK] : []),
-    ...(wardrobeBuild && clipNumber === 1 && position === "start" ? [OUTFIT_CLIP1_START_LOCK] : []),
+    ...(wardrobeBuild ? [outfitAngleDirective(clipNumber, position, sceneDescription)] : []),
     ...(parts.renderDetail ? [parts.renderDetail] : []),
     moment,
     ...compositionLockLines(options.anchor, annotatedCount + 1, sceneRefUrls.length > 0, performance),
@@ -528,9 +527,7 @@ export function buildFramePrompt(
     ...(lockUrls.length
       ? [
           wardrobeBuild
-            ? clipNumber === 1 && position === "start"
-              ? "Final check: only the white tank and knee-length athletic shorts; face and hair match the blueprint."
-              : FRAME_WARDROBE_BUILD_CHECK
+            ? `${FRAME_WARDROBE_BUILD_CHECK} ${OUTFIT_FRAME_GARMENT_LOCK}`
             : FRAME_WARDROBE_CHECK,
         ]
       : []),
@@ -559,24 +556,23 @@ export function frameSubmitPlan(
   revision?: FrameRevision,
   style?: RenderableStyle,
 ) {
-  const anchor = clipFrameAnchor(project.frames, clipNumber, position);
+  const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
+  const foundAnchor = clipFrameAnchor(project.frames, clipNumber, position);
+  // Another still glued on makes the image model copy its camera, so the move never happens.
+  const anchor = wardrobeBuild ? undefined : foundAnchor;
   const castUrls = frameLockReferenceUrls(project);
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
-  const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
   // Same cap as buildFramePrompt so the URL order matches the prompt's numbering.
-  const sceneRefUrls =
-    wardrobeBuild && position === "start"
-      ? []
-      : frameSceneReferenceUrls(
-          project,
-          clipNumber,
-          (revision?.annotatedUrl ? 1 : 0) +
-            (anchor ? 1 : 0) +
-            castUrls.length +
-            logoUrls.length +
-            productUrls.length,
-        );
+  const sceneRefUrls = frameSceneReferenceUrls(
+    project,
+    clipNumber,
+    (revision?.annotatedUrl ? 1 : 0) +
+      (anchor ? 1 : 0) +
+      castUrls.length +
+      logoUrls.length +
+      productUrls.length,
+  );
   return {
     prompt: buildFramePrompt(project, clipNumber, position, {
       revision,

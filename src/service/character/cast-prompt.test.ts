@@ -104,9 +104,8 @@ test("frame paragraph and reference urls follow the cast", () => {
 
 test("outfit reels copy reference clothes and keep the face on the blueprint", () => {
   const rules = directorBlueprintSceneRules({ wardrobeBuild: true }).join(" ");
-  assert.match(rules, /knee-length athletic shorts/);
-  assert.match(rules, /crew-neck tank/);
-  assert.match(rules, /hands at the sides/);
+  assert.match(rules, /already wears the complete outfit/);
+  assert.match(rules, /copied exactly/);
   assert.doesNotMatch(rules, /tight shorts/);
   assert.match(rules, /clothing reference images/);
   assert.doesNotMatch(rules, /Never plan a costume change/);
@@ -118,7 +117,7 @@ test("outfit reels copy reference clothes and keep the face on the blueprint", (
   assert.doesNotMatch(FRAME_WARDROBE_BUILD, /tight shorts/);
   assert.doesNotMatch(FRAME_WARDROBE_BUILD, /bare torso/);
   assert.doesNotMatch(FRAME_WARDROBE_BUILD, /shorts-only/);
-  assert.match(FRAME_WARDROBE_BUILD, /Wear exactly the garments named in the Scene/);
+  assert.match(FRAME_WARDROBE_BUILD, /complete outfit in the clothing reference exactly/);
 });
 
 test("director rules keep the blueprint outfit in every scene", () => {

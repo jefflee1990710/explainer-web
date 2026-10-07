@@ -177,7 +177,7 @@ export const briefZhHant = {
     "comparison-card-director": "每段一次對照，同一件事的兩個看法。",
     "talking-broll-director": "對鏡兩句，切到那兩句提到的畫面，再切回特寫。",
     "surprise-interview-director": "先是驚訝特寫，再坐下來把概念講清楚。",
-    "outfit-reel-director": "一開始已穿白色圓領背心和及膝運動短褲，再只穿上參考圖裡的衣服。",
+    "outfit-reel-director": "第一段已經穿好參考圖的整套衣服。每段換一個鏡頭。",
     "follow-shot-director": "第三人稱連續鏡頭。下一段從上一段的結尾開始。",
   },
   skillGuide: {
@@ -267,10 +267,10 @@ export const briefZhHant = {
         frames: "第三段起，起始圖接上一段的結尾",
       },
       "outfit-reel-director": {
-        voice: "不說話；只有你要求時，最後一段才加一句短句",
-        structure: "一件衣服一段，最後停在完整造型",
-        picture: "同一房間、全身。每一段換一個角度看換裝。從白色背心加及膝運動短褲開始，只換參考圖的衣服，臉和髮型不變",
-        frames: "每一段自己產出起始圖和結束圖。衣服接續，鏡頭角度要換",
+        voice: "沒有旁白。只有音效，沒有背景音樂",
+        structure: "第一段已經著好。每段一個鏡頭，每次隨機分配",
+        picture: "同一房間、全身。衣服的款式和顏色跟參考圖。只換角色",
+        frames: "每一段自己產出起始圖和結束圖，對應該段的鏡頭運動",
       },
       "follow-shot-director": {
         voice: "不說話；只有你寫了一句時才用那一句",

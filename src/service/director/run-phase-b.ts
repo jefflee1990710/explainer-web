@@ -60,13 +60,23 @@ Each clip is dual-keyframe image-to-video: the approved START image is already a
         : DUAL_KEYFRAME_MOTION_RULES
   } Do not invent a different final pose, camera, or composition.
 ${PHASE_B_DETAIL_RULES}
-Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}). ${
-    skillBansNarration(input.skill.slug)
-      ? lockedSpeakerLines(input.cast).length
-        ? "There is no narrator. Characters speak those lines. Copy each character voice lock verbatim. Do not invent or rephrase a timbre."
-        : "There is no narrator. Characters speak those lines. Do not copy a male/female narrator fingerprint. Infer each NAME's voice from that character in the keyframes."
-      : `Copy the locked adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice fingerprint verbatim into every clip prompt. Do not invent a new narrator.`
-  } ${cartoonNarratorVideoLock(input.skill.slug, { hasCharacter: Boolean(input.cast?.length || input.characterImageUrl) })} Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. Never request background music, BGM, a musical score, or an underscore. Voice and short synced SFX only.`;
+${
+    isOutfitReelSkill(input.skill.slug)
+      ? "This director is silent. Do not write a spoken line, a narrator, or lip-sync. No background music. One sound effect only."
+      : `Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}).`
+  } ${
+    isOutfitReelSkill(input.skill.slug)
+      ? "Do not copy a narrator voice."
+      : skillBansNarration(input.skill.slug)
+        ? lockedSpeakerLines(input.cast).length
+          ? "There is no narrator. Characters speak those lines. Copy each character voice lock verbatim. Do not invent or rephrase a timbre."
+          : "There is no narrator. Characters speak those lines. Do not copy a male/female narrator fingerprint. Infer each NAME's voice from that character in the keyframes."
+        : `Copy the locked adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice fingerprint verbatim into every clip prompt. Do not invent a new narrator.`
+  } ${cartoonNarratorVideoLock(input.skill.slug, { hasCharacter: Boolean(input.cast?.length || input.characterImageUrl) })} ${
+    isOutfitReelSkill(input.skill.slug) ? "" : `Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. `
+  }Never request background music, BGM, a musical score, or an underscore. ${
+    isOutfitReelSkill(input.skill.slug) ? "Sound effects only. No voice." : "Voice and short synced SFX only."
+  }`;
 }
 
 function characterLine(input: PhaseBInput) {

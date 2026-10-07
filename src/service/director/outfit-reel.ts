@@ -1,97 +1,165 @@
 import type { FramePosition, PhaseAProposal, StoryboardRow } from "@/model/project";
 
-// Modest sportswear start. "Tight shorts" and hand-held garments trip image safety.
-export const OUTFIT_BASE_LOOK =
-  "an opaque white crew-neck tank that covers the shoulders and torso, plus white knee-length athletic shorts";
+// The clothing photo is the whole outfit. Only the character changes.
+export const OUTFIT_LOOK_LOCK =
+  "wearing the complete outfit from the clothing reference, copied exactly for style, cut, colour, pattern, and details. Do not redesign, recolor, drop, or add any piece. Only the character changes.";
 
-export const OUTFIT_CLIP1_START_LOCK =
-  "Only the Scene garments are on: an opaque white crew-neck tank covering the shoulders and torso, plus white knee-length athletic shorts, hands at the sides. Do not draw a skirt, socks, shoes, bag, dress, or extra layers.";
-
-export const OUTFIT_CLIP1_START_MOTION = "0–1s she stands still with both hands relaxed at the sides";
-
-// Dual-keyframe pull-ups expose a gap between tank and waistband. Keep the swap at the waist.
-export const OUTFIT_COVERED_SWAP =
-  "The torso stays covered for the whole clip. Never lower a waistband below the navel. Never pull a skirt, shorts, trousers, or dress up from the thighs. A new bottom is already at the natural waist; the previous shorts vanish underneath it. Hands only smooth or fasten the waistband. Never show a gap between the tank and the waistband.";
+export const OUTFIT_FRAME_GARMENT_LOCK =
+  "Copy every garment in the clothing reference exactly: same style, cut, colour, pattern, and details. Do not drop, recolor, redesign, or add any piece. Only the character's face, hair, and body change. She is already dressed. Do not draw her putting clothes on.";
 
 export const OUTFIT_VIDEO_MOTION_RULES = [
-  "This clip's start and end stills are the SAME CAMERA ANGLE, attached as first/last frames.",
-  OUTFIT_COVERED_SWAP,
-  "Do not write pulls, yanks, or a waistband sliding up the legs. Dual-keyframe interpolation must not create an in-between where the waistband sits on the thighs.",
-  "Body motion is required: weight shift, a look down at the garment, a 3/4 turn of the torso, arms sliding into sleeves, or a step into shoes. Do not leave her frozen facing camera with only the hands moving.",
-  "Timed beats match the garment. Hands fasten or smooth a piece already at the waist. Shoes and socks: look down and step in at the feet. A cardigan or layer: slide arms into sleeves; never pull anything over the head.",
-  "Camera is locked for THIS clip only. Later clips cut to a different full-body angle. Do not copy a facing-forward stance from the previous clip.",
+  "She is already wearing the complete outfit in both the first frame and the last frame. Do not put clothes on, take clothes off, or change a single garment, colour, or detail during the clip.",
+  "The only motion is the camera move named in this clip, plus a small pose settle. She stays planted. She does not turn her body to follow the lens and does not dress.",
+  "The camera move is sharp and quick: a short hold, then one decisive move that lands before the clip ends, then a hold on the end frame. Do not write a slow glide.",
+  "No spoken words, no voiceover, no narrator, and no lip-sync. englishVo is (no dialogue).",
+  "No background music, no score, no underscore. One sound effect only, matching this clip's bgmSfx.",
+  "The next clip is a hard cut to a different camera move, not a continuation of this camera.",
 ].join(" ");
 
-type OutfitShot = {
-  camera: string;
-  startPose: string;
-  endPose: string;
+export type OutfitCameraMove = {
+  id: string;
+  label: string;
+  startCamera: string;
+  endCamera: string;
+  travel: string;
+  sfx: string;
 };
 
-const FRONT_SHOT: OutfitShot = {
-  camera: "locked eye-level full-body shot, subject centered, facing the camera",
-  startPose: "stands centered facing forward, both hands relaxed at the sides",
-  endPose: "stands centered facing forward, weight shifted onto one hip, hands relaxing at the sides",
-};
+// One move per clip. Order is shuffled on every plan so the same reel does not repeat.
+export const OUTFIT_CAMERA_MOVES: readonly OutfitCameraMove[] = [
+  {
+    id: "front",
+    label: "Front",
+    startCamera:
+      "locked eye-level full-body, camera directly in front of her, she faces the lens, head to shoes in frame",
+    endCamera:
+      "the same eye-level front, camera a half-step closer, she still faces the lens, head to shoes in frame",
+    travel: "the camera punches in a half-step on the front view and stops",
+    sfx: "one soft fabric rustle",
+  },
+  {
+    id: "front-top-forward",
+    label: "Front top move forward",
+    startCamera:
+      "high front, camera above her head looking slightly down, full body with floor in frame, head to shoes visible",
+    endCamera:
+      "eye-level front after the camera has moved forward and down, closer full body, head to shoes still in frame",
+    travel: "the camera drops from above and pushes forward to an eye-level front",
+    sfx: "one short whoosh",
+  },
+  {
+    id: "front-zoom-out",
+    label: "Front zoom out",
+    startCamera:
+      "eye-level front, closer full body, she fills the frame, head and shoes just inside the edges",
+    endCamera:
+      "eye-level front after the camera has pulled back, more room around her, head to shoes with space above and below",
+    travel: "the camera zooms out from the close front to a wider full-body front",
+    sfx: "one reverse whoosh",
+  },
+  {
+    id: "front-to-left",
+    label: "Front to left",
+    startCamera: "eye-level full-body directly in front, she faces the lens, head to shoes in frame",
+    endCamera:
+      "eye-level full-body 3/4 after the camera has arced to HER left, a clear 3/4 of her right side, head to shoes in frame",
+    travel: "the camera arcs from the front to her left. Her feet stay planted; she does not spin",
+    sfx: "one arc whoosh",
+  },
+  {
+    id: "front-to-right",
+    label: "Front to right",
+    startCamera: "eye-level full-body directly in front, she faces the lens, head to shoes in frame",
+    endCamera:
+      "eye-level full-body 3/4 after the camera has arced to HER right, a clear 3/4 of her left side, head to shoes in frame",
+    travel: "the camera arcs from the front to her right. Her feet stay planted; she does not spin",
+    sfx: "one arc whoosh",
+  },
+  {
+    id: "low-rise",
+    label: "Low rise to front",
+    startCamera:
+      "low front, camera near the floor looking up, shoes closer to the lens, full body and face still in frame",
+    endCamera: "eye-level front after the camera has risen, balanced full body, head to shoes in frame",
+    travel: "the camera rises from the floor to an eye-level front",
+    sfx: "one rising whoosh",
+  },
+  {
+    id: "orbit",
+    label: "Orbit across the front",
+    startCamera:
+      "eye-level full-body 3/4 from HER left, a clear 3/4 of her right side, head to shoes in frame",
+    endCamera:
+      "eye-level full-body 3/4 from HER right, a clear 3/4 of her left side, head to shoes in frame",
+    travel: "the camera orbits across the front from her left to her right. Her feet stay planted",
+    sfx: "one traveling whoosh",
+  },
+  {
+    id: "lateral-slide",
+    label: "Lateral slide",
+    startCamera:
+      "eye-level full-body, camera offset to frame-left so she stands on the right third, head to shoes in frame",
+    endCamera:
+      "eye-level full-body, camera has slid to frame-right so she stands on the left third, same size, head to shoes in frame",
+    travel: "the camera slides sideways across the front with a parallax on the room. She stays planted",
+    sfx: "one sliding whoosh",
+  },
+];
 
-const THREE_Q_LEFT: OutfitShot = {
-  camera: "locked eye-level full-body 3/4 from camera-left, head to feet in frame",
-  startPose: "stands in a 3/4 turn toward camera-left, looking down at the garment, weight on the back foot",
-  endPose: "stands in the same 3/4 toward camera-left, looking toward the lens, weight settled on one hip",
-};
+const START_POSE = "stands with both hands relaxed at the sides, weight even";
+const END_POSE = "stands with both hands relaxed at the sides, weight on the back hip, a small smile";
 
-const THREE_Q_RIGHT: OutfitShot = {
-  camera: "locked eye-level full-body 3/4 from camera-right, showing both shoulders and the open front",
-  startPose: "stands in a 3/4 turn toward camera-right, the near arm slightly lifted toward a sleeve",
-  endPose: "stands in the same 3/4 toward camera-right, shoulders relaxed, hands at the sides",
-};
-
-const FEET_LEFT: OutfitShot = {
-  camera: "locked slightly-low full-body 3/4 from camera-left, ankles and feet readable, head still in frame",
-  startPose: "stands in a 3/4 turn toward camera-left, looking down at the feet, one knee softly bent",
-  endPose: "stands in the same slightly-low 3/4, looking back up toward camera-left, weight settled",
-};
-
-const FEET_RIGHT: OutfitShot = {
-  camera: "locked slightly-low full-body 3/4 from camera-right, ankles and feet readable, head still in frame",
-  startPose: "stands in a 3/4 turn toward camera-right, looking down at the feet, one knee softly bent",
-  endPose: "stands in the same slightly-low 3/4, looking back up toward camera-right, weight settled",
-};
-
-const HOLD_SHOT: OutfitShot = {
-  camera: "locked eye-level full-body 3/4 from camera-left, the finished look readable from head to feet",
-  startPose: "stands in a 3/4 toward camera-left, weight on the back hip, looking toward the lens",
-  endPose: "settles the same 3/4 with a small confident smile, chin slightly turned to show the outfit",
-};
-
-export function outfitShotForClip(clipNumber: number, narrativeJob: string): OutfitShot {
-  if (clipNumber <= 1) return FRONT_SHOT;
-  const job = narrativeJob.toLowerCase();
-  if (job === "hold") return HOLD_SHOT;
-  if (/sock/.test(job)) return clipNumber % 2 === 0 ? FEET_LEFT : FEET_RIGHT;
-  // Shoes stay eye-level 3/4 — a low angle on a skirt clip trips image safety.
-  if (/shoe|sneaker|boot/.test(job)) return clipNumber % 2 === 0 ? THREE_Q_LEFT : THREE_Q_RIGHT;
-  if (/cardigan|jacket|coat|blazer|overshirt|hoodie|layer/.test(job)) return THREE_Q_RIGHT;
-  return clipNumber % 2 === 0 ? THREE_Q_LEFT : THREE_Q_RIGHT;
+function shuffle<T>(items: readonly T[], random: () => number) {
+  const next = [...items];
+  for (let index = next.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(random() * (index + 1));
+    [next[index], next[swap]] = [next[swap], next[index]];
+  }
+  return next;
 }
 
-export function outfitClip1StartCharacter(name: string) {
-  return `Character: ${name} stands centered facing forward, wearing ${OUTFIT_BASE_LOOK}, both hands relaxed at the sides.`;
+// Distinct moves, reshuffled when the pool runs out, never the same move twice in a row.
+export function assignOutfitCameraMoves(count: number, random: () => number = Math.random) {
+  const picked: OutfitCameraMove[] = [];
+  let bag = shuffle(OUTFIT_CAMERA_MOVES, random);
+  while (picked.length < count) {
+    if (bag.length === 0) bag = shuffle(OUTFIT_CAMERA_MOVES, random);
+    let move = bag.shift();
+    if (!move) break;
+    const previous = picked[picked.length - 1];
+    if (previous && move.id === previous.id) {
+      const other = bag.find((item) => item.id !== move!.id);
+      if (other) {
+        bag = bag.filter((item) => item !== other);
+        bag.push(move);
+        move = other;
+      }
+    }
+    picked.push(move);
+  }
+  return picked;
 }
 
-function castNameFromPhaseA(phaseA: Pick<PhaseAProposal, "characterLock" | "clips">) {
-  const fromScene = phaseA.clips[0]?.startScene?.match(/Character:\s*([^,]+?)\s+stands/i);
-  if (fromScene?.[1]) return fromScene[1].trim();
-  const fromLock = phaseA.characterLock.split(/[：:]/)[0]?.trim();
-  return fromLock || "the character";
+export function outfitCameraLine(scene: string) {
+  return scene.match(/Camera:\s*(.+)$/i)?.[1]?.replace(/\.\s*$/, "").trim() || "";
+}
+
+// Leading line so the image model paints this still's camera, not the other still's.
+export function outfitAngleDirective(clipNumber: number, position: FramePosition, scene: string) {
+  const camera = outfitCameraLine(scene);
+  const hardCut = clipNumber > 1 && position === "start" ? "NEW CAMERA. Hard cut. " : "";
+  if (position === "end") {
+    return `${hardCut}END FRAME CAMERA: ${camera}. This is the end of the camera move. Do not copy the start frame's angle, height, or distance.`;
+  }
+  return `${hardCut}START FRAME CAMERA: ${camera}.`;
 }
 
 function rewriteRiskyWardrobe(text: string) {
   return text
-    .replace(/plain white tight shorts only/gi, OUTFIT_BASE_LOOK)
-    .replace(/white tight shorts/gi, "white knee-length athletic shorts")
-    .replace(/tight shorts/gi, "knee-length athletic shorts")
-    .replace(/mini skirt/gi, "pleated skirt")
+    .replace(/plain white tight shorts only/gi, "the complete reference outfit")
+    .replace(/white tight shorts/gi, "the reference outfit")
+    .replace(/tight shorts/gi, "the reference outfit")
+    .replace(/\b(?:pleated\s+)?mini skirt/gi, "pleated skirt")
     .replace(/at thigh height/gi, "at the waist")
     .replace(/at chest level/gi, "at the waist")
     .replace(/bare torso/gi, "covered torso")
@@ -110,62 +178,26 @@ function rewriteRiskyWardrobe(text: string) {
     .replace(/from (?:the )?thighs/gi, "at the waist");
 }
 
-function isBottomSwap(clip: StoryboardRow) {
-  return /skirt|shorts|trousers|pants|bottom|dress/i.test(clip.narrativeJob);
-}
-
-function coveredBottomMotion(seconds: number, firstBeat: string) {
-  const end = Math.max(seconds - 0.5, 2);
-  return `${firstBeat}; 1–${end}s both hands smooth and fasten the waistband already at the natural waist as the previous shorts vanish underneath, torso covered, waistband never below the navel; ${end}–${seconds}s the hands drop to the sides. Camera locked.`;
-}
-
-function outfitMotionForClip(clip: StoryboardRow, shot: OutfitShot) {
-  const seconds = clip.durationSeconds || 3;
-  const mid = Math.max(seconds - 0.6, 2);
-  const cam = `Camera locked: ${shot.camera}.`;
-  const job = clip.narrativeJob.toLowerCase();
-  if (clip.clipNumber === 1) {
-    return isBottomSwap(clip)
-      ? coveredBottomMotion(seconds, OUTFIT_CLIP1_START_MOTION)
-      : clip.motionCamera.replace(/^[^;；]+/, OUTFIT_CLIP1_START_MOTION);
-  }
-  if (job === "hold") {
-    return `0–${mid}s she shifts weight onto the back hip, turns the chin toward the lens, and lets the finished look settle; ${mid}–${seconds}s she holds the 3/4. ${cam}`;
-  }
-  if (isBottomSwap(clip)) {
-    return `0–1s she settles into the 3/4 and looks down at the waist; 1–${mid}s both hands smooth and fasten the waistband already at the natural waist as the previous shorts vanish underneath, torso covered, waistband never below the navel; ${mid}–${seconds}s she looks up and settles. ${cam}`;
-  }
-  if (/cardigan|jacket|coat|blazer|overshirt|hoodie|layer/.test(job)) {
-    return `0–0.8s she turns into the 3/4 and lifts the near arm; 0.8–${mid}s first one arm then the other slides into the sleeves — never over the head — as the layer settles on the shoulders; ${mid}–${seconds}s both hands smooth the open front and drop. ${cam}`;
-  }
-  if (/sock/.test(job)) {
-    return `0–0.7s she looks down and bends at the knees, torso still covered; 0.7–${mid}s both hands smooth the sock onto the visible ankle; ${mid}–${seconds}s she rises into the 3/4 and looks toward camera. ${cam}`;
-  }
-  if (/shoe|sneaker|boot/.test(job)) {
-    return `0–1s she looks down and steps the visible foot into the shoe; 1–${mid}s both hands smooth the tongue and fasten the laces; ${mid}–${seconds}s she stands into the 3/4, looking up. ${cam}`;
-  }
-  return `0–1s she shifts weight and looks toward the new piece; 1–${mid}s both hands smooth and settle that garment; ${mid}–${seconds}s she drops the hands and holds the new angle. ${cam}`;
-}
-
 export function rewriteOutfitSafetyText(text: string) {
   return rewriteRiskyWardrobe(text);
 }
 
-function spliceCharacterBlock(scene: string, characterLine: string) {
-  if (/Character:/i.test(scene)) {
-    return scene.replace(/Character:[\s\S]*?(?=Set:|Light:|Camera:|$)/i, `${characterLine} `).trim();
-  }
-  return `${characterLine} ${scene}`.trim();
+function castNameFromPhaseA(phaseA: Pick<PhaseAProposal, "characterLock" | "clips">) {
+  const fromScene = phaseA.clips[0]?.startScene?.match(/Character:\s*([^,]+?)(?:\s+stands|\s+wears|,)/i);
+  if (fromScene?.[1]) return fromScene[1].trim();
+  const fromLock = phaseA.characterLock.split(/[：:]/)[0]?.trim();
+  return fromLock || "the character";
 }
 
-function splicePose(scene: string, pose: string) {
-  if (/Character:/i.test(scene) && /stands|standing/i.test(scene)) {
-    return scene.replace(
-      /(Character:\s*[^,]+?)\s+(?:stands|standing)[\s\S]*?(?=,\s*wearing| wearing|, fully dressed| fully dressed|, guiding|, adjusting|, stepping)/i,
-      `$1 ${pose}`,
-    );
+function characterLine(name: string, pose: string) {
+  return `Character: ${name} ${pose}, ${OUTFIT_LOOK_LOCK}`;
+}
+
+function spliceCharacterBlock(scene: string, line: string) {
+  if (/Character:/i.test(scene)) {
+    return scene.replace(/Character:[\s\S]*?(?=Set:|Light:|Camera:|$)/i, `${line} `).trim();
   }
-  return scene;
+  return `${line} ${scene}`.trim();
 }
 
 function spliceCamera(scene: string, camera: string) {
@@ -175,66 +207,25 @@ function spliceCamera(scene: string, camera: string) {
   return `${scene} Camera: ${camera}.`.trim();
 }
 
-// Start stills are a new angle on clothes already on, not mid-dressing.
-function stripStartDressingAction(scene: string) {
-  return scene.replace(
-    /,\s*(?:guiding|adjusting|stepping(?: down)? into|holding|sliding)[\s\S]*?(?=\s*Set:)/i,
-    ".",
-  );
+function cameraMotion(seconds: number, move: OutfitCameraMove) {
+  const arrive = Math.min(1.4, Math.max(1, seconds - 0.8));
+  return `0–0.2s hold the start frame; 0.2–${arrive}s ${move.travel}; ${arrive}–${seconds}s hold the end frame. Sharp and quick, one decisive camera move, then a hold. She is already dressed and stays planted. No voice. No background music. Start camera: ${move.startCamera}. End camera: ${move.endCamera}.`;
 }
 
-function feetLock(clips: StoryboardRow[], clipNumber: number, position: FramePosition) {
-  const onBy = (pattern: RegExp) =>
-    clips.some((clip) => {
-      if (!pattern.test(clip.narrativeJob)) return false;
-      return clip.clipNumber < clipNumber || (clip.clipNumber === clipNumber && position === "end");
-    });
-  if (onBy(/shoe|sneaker|boot/i)) return "";
-  if (onBy(/sock/i)) return "Socks are on. Do not draw shoes or sneakers.";
-  return "Bare feet. Do not draw socks, shoes, or sneakers.";
-}
-
-function appendFeetLock(scene: string, lock: string) {
-  if (!lock) return scene;
-  if (/Bare feet|Do not draw shoes/i.test(scene)) return scene;
-  if (/Set:/i.test(scene)) return scene.replace(/Set:/i, `${lock} Set:`);
-  return `${scene} ${lock}`;
-}
-
-function applyShot(scene: string, pose: string, camera: string) {
-  return spliceCamera(splicePose(scene, pose), camera);
-}
-
-function sanitizeClip(clip: StoryboardRow, name: string, clips: StoryboardRow[]): StoryboardRow {
-  let startScene = rewriteRiskyWardrobe(clip.startScene || "");
-  let endScene = rewriteRiskyWardrobe(clip.endScene || "");
-  let explainerScene = rewriteRiskyWardrobe(clip.explainerScene);
-  let motionCamera = rewriteRiskyWardrobe(clip.motionCamera);
-  const shot = outfitShotForClip(clip.clipNumber, clip.narrativeJob);
-  if (clip.clipNumber === 1) {
-    startScene = spliceCharacterBlock(startScene, outfitClip1StartCharacter(name));
-    const startLine = `Start: ${name} stands centered facing the camera, wearing ${OUTFIT_BASE_LOOK}, hands relaxed at the sides.`;
-    explainerScene = /Start:/i.test(explainerScene)
-      ? explainerScene.replace(/Start:[\s\S]*?(?=End:|$)/i, `${startLine} `).trim()
-      : `${startLine} ${explainerScene}`.trim();
-    motionCamera = outfitMotionForClip({ ...clip, motionCamera }, shot);
-  } else {
-    startScene = stripStartDressingAction(applyShot(startScene, shot.startPose, shot.camera));
-    endScene = applyShot(endScene, shot.endPose, shot.camera);
-    motionCamera = outfitMotionForClip({ ...clip, motionCamera }, shot);
+function allReferenceIds(clips: StoryboardRow[]) {
+  const ids: string[] = [];
+  for (const clip of clips) {
+    for (const id of clip.referenceImageIds || []) {
+      if (!ids.includes(id)) ids.push(id);
+    }
   }
-  startScene = appendFeetLock(startScene, feetLock(clips, clip.clipNumber, "start"));
-  endScene = appendFeetLock(endScene, feetLock(clips, clip.clipNumber, "end"));
-  return {
-    ...clip,
-    startScene,
-    endScene,
-    explainerScene,
-    motionCamera,
-  };
+  return ids;
 }
 
-// Clip 1 start is a standing athletic base. Later rows lose safety-trigger wording.
+function applyMove(scene: string, name: string, pose: string, camera: string) {
+  return spliceCamera(spliceCharacterBlock(rewriteRiskyWardrobe(scene), characterLine(name, pose)), camera);
+}
+
 export function sanitizeOutfitFrameScene(input: {
   scene: string;
   clipNumber: number;
@@ -242,19 +233,42 @@ export function sanitizeOutfitFrameScene(input: {
   name?: string;
 }) {
   let scene = rewriteRiskyWardrobe(input.scene);
-  if (input.clipNumber === 1 && input.position === "start") {
+  const undressed = /athletic shorts|crew-neck tank|holding a |putting on|guides? the|adjusting the/i.test(scene);
+  if (undressed) {
     scene = spliceCharacterBlock(
       scene,
-      outfitClip1StartCharacter(input.name?.trim() || "the character"),
+      characterLine(input.name?.trim() || "the character", START_POSE),
     );
   }
   return scene;
 }
 
-export function sanitizeOutfitPhaseA(phaseA: PhaseAProposal): PhaseAProposal {
+export function sanitizeOutfitPhaseA(
+  phaseA: PhaseAProposal,
+  random: () => number = Math.random,
+): PhaseAProposal {
   const name = castNameFromPhaseA(phaseA);
+  const moves = assignOutfitCameraMoves(phaseA.clips.length, random);
+  const referenceImageIds = allReferenceIds(phaseA.clips);
   return {
     ...phaseA,
-    clips: phaseA.clips.map((clip) => sanitizeClip(clip, name, phaseA.clips)),
+    narrator: "No voiceover.",
+    englishWordCount: 0,
+    bgmDirection: "No background music. Sound effects only. No voice.",
+    clips: phaseA.clips.map((clip, index) => {
+      const move = moves[index] ?? OUTFIT_CAMERA_MOVES[0];
+      const seconds = clip.durationSeconds || 3;
+      return {
+        ...clip,
+        narrativeJob: move.label,
+        englishVo: "(no dialogue)",
+        bgmSfx: `No background music. No voice. One sound effect only: ${move.sfx}.`,
+        referenceImageIds: referenceImageIds.length ? referenceImageIds : clip.referenceImageIds,
+        startScene: applyMove(clip.startScene || "", name, START_POSE, move.startCamera),
+        endScene: applyMove(clip.endScene || "", name, END_POSE, move.endCamera),
+        explainerScene: `Start: ${name} is already wearing the complete reference outfit. Camera: ${move.startCamera}. End: the same outfit, no new garment. Camera: ${move.endCamera}.`,
+        motionCamera: cameraMotion(seconds, move),
+      };
+    }),
   };
 }

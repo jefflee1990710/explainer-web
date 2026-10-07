@@ -845,7 +845,7 @@ test("clips without assigned references attach none", () => {
   assert.doesNotMatch(plan.prompt, /SCENE REFERENCE/);
 });
 
-test("outfit reel start stills skip the clothing photo", () => {
+test("outfit reel stills copy the clothing photo on start and end", () => {
   const video = project();
   video.skillSlug = "outfit-reel-director";
   video.cast = [
@@ -860,18 +860,73 @@ test("outfit reel start stills skip the clothing photo", () => {
   video.referenceImages = [{ id: "R1", url: "https://blob/r1.png", description: "outfit" }];
   video.phaseA!.clips[0].referenceImageIds = ["R1"];
   video.phaseA!.clips[0].startScene =
-    "Character: Lily stands in a white tank and shorts, holding a mini skirt at thigh height.";
+    "Character: Lily stands with both hands relaxed at the sides, wearing the complete outfit from the clothing reference. Set: studio. Camera: locked eye-level full-body, camera directly in front of her.";
+  video.phaseA!.clips[0].endScene =
+    "Character: Lily stands with weight on the back hip, wearing the complete outfit from the clothing reference. Set: studio. Camera: the same eye-level front, camera a half-step closer.";
+  video.frames = [
+    {
+      clipNumber: 1,
+      position: "start",
+      prompt: "p",
+      status: "completed",
+      blobUrl: "https://blob/start.png",
+    },
+  ];
   const start = frameSubmitPlan(video, 1, "start");
-  assert.deepEqual(start.refs, ["https://blob/c.png"]);
-  assert.doesNotMatch(start.prompt, /CLOTHING REFERENCE/);
-  assert.doesNotMatch(start.prompt, /tight shorts/);
-  assert.doesNotMatch(start.prompt, /bare torso/);
-  assert.match(start.prompt, /knee-length athletic shorts/);
-  assert.match(start.prompt, /hands relaxed at the sides/);
-  assert.match(start.prompt, /Do not draw a skirt/);
-  assert.match(start.prompt, /stands still/);
-  assert.doesNotMatch(start.prompt, /pulls it upward/);
+  assert.deepEqual(start.refs, ["https://blob/r1.png", "https://blob/c.png"]);
+  assert.match(start.prompt, /CLOTHING REFERENCE/);
+  assert.match(start.prompt, /style, cut, colour/);
+  assert.match(start.prompt, /START FRAME CAMERA/);
+  assert.doesNotMatch(start.prompt, /athletic shorts/);
   const end = frameSubmitPlan(video, 1, "end");
+  assert.equal(end.anchor, undefined);
   assert.deepEqual(end.refs, ["https://blob/r1.png", "https://blob/c.png"]);
-  assert.match(end.prompt, /CLOTHING REFERENCE/);
+  assert.match(end.prompt, /END FRAME CAMERA/);
+  assert.doesNotMatch(end.prompt, /Keep the same camera/);
+});
+
+test("outfit reel later starts are a hard cut and do not attach the previous end", () => {
+  const video = project();
+  video.skillSlug = "outfit-reel-director";
+  video.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Lily",
+      blueprintUrl: "https://blob/c.png",
+      prompt: "",
+    },
+  ];
+  video.phaseA!.clipCount = 2;
+  video.referenceImages = [{ id: "R1", url: "https://blob/r1.png", description: "outfit" }];
+  video.phaseA!.clips.push({
+    clipNumber: 2,
+    timeRange: "5-8s",
+    durationSeconds: 3,
+    narrativeJob: "Front to left",
+    explainerScene: "same outfit, new camera",
+    motionCamera: "0–0.2s hold; 0.2–1.4s the camera arcs; 1.4–3s hold.",
+    englishVo: "(no dialogue)",
+    startScene:
+      "Character: Lily stands with both hands relaxed at the sides, wearing the complete outfit. Set: studio. Light: daylight. Camera: eye-level full-body directly in front.",
+    endScene:
+      "Character: Lily stands with weight on the back hip, wearing the complete outfit. Set: studio. Light: daylight. Camera: eye-level full-body 3/4 after the camera has arced to HER left.",
+    bgmSfx: "No background music. One sound effect only.",
+    referenceImageIds: ["R1"],
+  });
+  video.frames = [
+    {
+      clipNumber: 1,
+      position: "end",
+      prompt: "p",
+      status: "completed",
+      blobUrl: "https://blob/prev-end.png",
+    },
+  ];
+  const start = frameSubmitPlan(video, 2, "start");
+  assert.equal(start.anchor, undefined);
+  assert.deepEqual(start.refs, ["https://blob/r1.png", "https://blob/c.png"]);
+  assert.match(start.prompt, /NEW CAMERA/);
+  assert.match(start.prompt, /directly in front/);
+  assert.doesNotMatch(start.prompt, /previous clip's END frame/);
 });
