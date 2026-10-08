@@ -28,6 +28,12 @@ export async function updateVideoBriefAction(
   return service.updateVideoBriefAction(...args);
 }
 
+export async function updateVideoTextStyleAction(
+  ...args: Parameters<typeof service.updateVideoTextStyleAction>
+) {
+  return service.updateVideoTextStyleAction(...args);
+}
+
 export async function restartVideoAction(
   ...args: Parameters<typeof service.restartVideoAction>
 ) {

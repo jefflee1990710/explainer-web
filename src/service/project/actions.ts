@@ -469,6 +469,49 @@ export async function updateVideoBriefAction(
   return rewriteVideoBrief(formData, { restart: false });
 }
 
+// Lettering only. An existing video never reopens the brief, so this saves the
+// look without rewriting the storyboard. The next generated frame uses it.
+export async function updateVideoTextStyleAction(
+  videoId: string,
+  textStyleId: string,
+): Promise<VideoResult> {
+  try {
+    const user = await requireAppUser();
+    if (!ObjectId.isValid(videoId)) return { ok: false, error: "專案不存在" };
+    const choice = await resolveTextStyleChoice(user.clerkUserId, textStyleId);
+    if (!choice.ok) return choice;
+
+    const videos = await videosCollection();
+    const video = await videos.findOne({
+      _id: new ObjectId(videoId),
+      clerkUserId: user.clerkUserId,
+    });
+    if (!video) return { ok: false, error: "專案不存在" };
+
+    await videos.updateOne(
+      { _id: video._id },
+      {
+        $set: {
+          subtitleLook: choice.subtitleLook,
+          textStyleId: choice.textStyleId,
+          updatedAt: new Date(),
+          ...(choice.textStyleImageUrl ? { textStyleImageUrl: choice.textStyleImageUrl } : {}),
+        },
+        ...(choice.textStyleImageUrl ? {} : { $unset: { textStyleImageUrl: "" } }),
+      },
+    );
+
+    const updated = await videos.findOne({ _id: video._id });
+    revalidateVideo(videoId, video.projectId.toHexString());
+    return { ok: true, project: toPublicVideo(updated!) };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "更新文字樣式失敗",
+    };
+  }
+}
+
 // Start over: wipe storyboard, stills, clip videos, and exports, then re-run
 // Phase A from the (possibly edited) brief. Spent credits are not refunded.
 export async function restartVideoAction(

@@ -29,6 +29,7 @@ import {
   restartVideoAction,
   retryProjectAction,
   updateVideoBriefAction,
+  updateVideoTextStyleAction,
 } from "@/presentation/actions/projects";
 import { isProjectBusy } from "@/service/clip-stage";
 import {
@@ -117,7 +118,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { localizedVideoType } from "@/util/video-type-i18n";
 import { localizedStyleName } from "@/util/style-i18n";
 import { translateAppError } from "@/util/i18n/translate-app-error";
-import { sceneTextLangLabel, speechPaceLabel, subtitleLookLabel } from "@/util/i18n/picker-labels";
+import { sceneTextLangLabel, speechPaceLabel } from "@/util/i18n/picker-labels";
 import { useProjectPoll } from "@/presentation/components/app/projects/new/use-project-poll";
 import {
   ruleSlugFor,
@@ -690,6 +691,21 @@ export function NewProjectForm({
     characterIds,
   ]);
 
+  // Existing videos never reopen the brief, so the look is saved from the summary.
+  async function saveTextStyle(id: string) {
+    if (!project || id === textStyleId) return;
+    const previous = textStyleId;
+    setTextStyleId(id);
+    const result = await updateVideoTextStyleAction(project.id, id);
+    if (!result.ok) {
+      setTextStyleId(previous);
+      setError(translateAppError(result.error, t));
+      return;
+    }
+    setProject(result.project);
+    setError("");
+  }
+
   function onStyleChange(id: string) {
     setStyleId(id);
     setCharacterIds((ids) =>
@@ -1085,19 +1101,14 @@ export function NewProjectForm({
                 <span>
                   {t("brief.summary.sceneText", { label: sceneTextLangLabel(t, sceneTextLanguage).label })}
                 </span>
-                {showSubtitleLook ? (
-                  <>
-                    <Dot />
-                    <span>
-                      {t("brief.summary.subtitleLook", {
-                        label: isSubtitleLook(textStyleId)
-                          ? subtitleLookLabel(t, textStyleId).label
-                          : textStyles.find((style) => style.id === textStyleId)?.name ||
-                            subtitleLookLabel(t, DEFAULT_SUBTITLE_LOOK).label,
-                      })}
-                    </span>
-                  </>
-                ) : null}
+                <Dot />
+                <TextStylePicker
+                  compact
+                  value={textStyleId}
+                  styles={textStyles}
+                  disabled={briefBusy}
+                  onChange={(id) => void saveTextStyle(id)}
+                />
                 <Dot />
                 <span>{aspectRatio}</span>
                 <Dot />
