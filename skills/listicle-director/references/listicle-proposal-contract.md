@@ -82,7 +82,7 @@ Wardrobe lock: every character wears exactly their blueprint outfit in every cli
 ## Palette and text
 
 - Colours in ordinary words only; the accent colour is reserved for the number device.
-- The hook shows only the count. An item clip shows only that item's number and short title (the name, not the spoken sentence). The last clip shows those short titles in a clean list. No extra invented labels.
+- The hook shows only the count. An item clip shows only that item's number and short title (the name, not the spoken sentence). The last clip shows those short titles in a clean list. Every clip also shows the spoken line as a subtitle. No extra invented labels.
 
 ## Confirmation ending
 

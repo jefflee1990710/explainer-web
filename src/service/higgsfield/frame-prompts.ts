@@ -484,6 +484,8 @@ export function buildFramePrompt(
         ...listicleOnCanvasLines({
           clips: phaseA.clips,
           clipNumber,
+          subtitle: voForFrame,
+          subtitlePlace: subtitleBelowCenter ? "below-center" : "bottom",
         }),
       ]
     : comparison

@@ -52,9 +52,15 @@ test("an item clip spells only the item it introduces", () => {
     { clipNumber: 3, narrativeJob: "item 2 of 3", englishVo: "Skip water." },
     { clipNumber: 4, narrativeJob: "full list", englishVo: "Fix one today." },
   ];
-  const item = listicleOnCanvasLines({ clips, clipNumber: 2 }).join("\n");
+  const item = listicleOnCanvasLines({
+    clips,
+    clipNumber: 2,
+    subtitle: "Snooze the alarm.",
+  }).join("\n");
   assert.match(item, /only this item/i);
   assert.match(item, /Snooze the alarm/);
+  assert.match(item, /On-canvas subtitles ON/);
+  assert.match(item, /Subtitle \(spell exactly\): "Snooze the alarm\."/);
   assert.doesNotMatch(item, /Skip water/);
   assert.doesNotMatch(item, /Three morning mistakes/);
   const full = listicleOnCanvasLines({ clips, clipNumber: 4 }).join("\n");

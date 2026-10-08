@@ -83,11 +83,34 @@ export function listicleCanvasTitle(spoken: string) {
   return head || spoken.trim();
 }
 
+// The spoken line sits with the list graphic. It does not replace the count, the item, or the full list.
+function listicleSubtitleLines(subtitle: string | undefined, place?: "below-center" | "bottom") {
+  const line = subtitle?.trim();
+  if (!line) return [];
+  const formatted = formatVoiceoverForCanvas(line);
+  const quoted = formatted.line2
+    ? [
+        `Subtitle line 1 (spell exactly): "${formatted.line1}"`,
+        `Subtitle line 2 (spell exactly): "${formatted.line2}"`,
+      ]
+    : [`Subtitle (spell exactly): "${formatted.line1}"`];
+  return [
+    "On-canvas subtitles ON — in addition to the graphic above.",
+    place === "below-center"
+      ? "Layout: one subtitle a little below the vertical center of the frame, centered horizontally, clear of the face and the bottom edge."
+      : "Layout: a band across the bottom 18% of the frame; the subtitle is centered in that band.",
+    ...quoted,
+    "The subtitle is this clip's spoken line. Keep the count, the item title, or the full list as well.",
+  ];
+}
+
 // Item clips spell only the item they introduce. The last clip spells every title.
 export function listicleOnCanvasLines(input: {
   clips: Array<{ clipNumber: number; narrativeJob: string; englishVo: string }>;
   clipNumber: number;
   typography?: string;
+  subtitle?: string;
+  subtitlePlace?: "below-center" | "bottom";
 }) {
   const entries = listicleListEntries(input.clips);
   const clip = input.clips.find((item) => item.clipNumber === input.clipNumber);
@@ -95,14 +118,16 @@ export function listicleOnCanvasLines(input: {
   const showFull =
     input.clipNumber === lastNumber || /full list|完整清單/i.test(clip?.narrativeJob || "");
   const look = input.typography?.trim() || "";
+  const subtitle = listicleSubtitleLines(input.subtitle, input.subtitlePlace);
   if (showFull) {
     const titles = entries.flatMap((entry) => listicleTitles(entry.title).map(listicleCanvasTitle));
     return [
-      "On-canvas FULL LIST — clean and clear, highest priority. Empty background. One evenly spaced numbered list of these short titles, large and readable. No host, no extra props, no long sentences, no side clutter.",
+      "On-canvas FULL LIST — clean and clear, highest priority. Empty background. One evenly spaced numbered list of these short titles, large and readable. No host, no extra props, and no side clutter. List titles stay short.",
       ...titles.map((title, index) => `List item ${index + 1} (spell exactly): "${title}"`),
       "Every title is readable. Do not leave one off. Ignore any extra objects written in the Scene.",
       look,
-      "Only these short titles may appear as writing.",
+      "The list itself is these short titles. The spoken line is a separate subtitle.",
+      ...subtitle,
     ].filter(Boolean);
   }
   const current = entries.find((entry) => entry.clipNumber === input.clipNumber);
@@ -111,17 +136,19 @@ export function listicleOnCanvasLines(input: {
     return [
       "On-canvas item ON — clean and clear, highest priority. This clip introduces only this item. Empty space around one number, this short title, and one object.",
       ...titles.map((title, index) => `Item ${current.index + index} (spell exactly): "${title}"`),
-      "Do not draw the other items, a side list, the full list, extra props, or the spoken sentence. Ignore any checklist written in the Scene.",
+      "Do not draw the other items, a side list, the full list, or extra props. Ignore any checklist written in the Scene. The spoken line is a separate subtitle.",
       look,
-      "Only this short title may appear as writing.",
+      "Only this short title and the subtitle may appear as writing.",
+      ...subtitle,
     ].filter(Boolean);
   }
   const count = entries.flatMap((entry) => listicleTitles(entry.title)).length;
   return [
     "HOOK — clean and clear, highest priority. Empty background. Draw one large count and nothing else.",
     count > 0 ? `Count (spell exactly): "${count}"` : "",
-    "Do not draw item titles, a checklist, the first item, extra props, or a caption of the spoken sentence. Leave most of the frame empty. Ignore any side list written in the Scene.",
+    "Do not draw item titles, a checklist, the first item, or extra props. Leave most of the frame empty. Ignore any side list written in the Scene. The spoken line is a separate subtitle.",
     look,
+    ...subtitle,
   ].filter(Boolean);
 }
 
@@ -187,7 +214,7 @@ export function sceneTextSkillHint(
   if (options?.listicle) {
     return [
       "On-canvas text is REQUIRED. The hook is a clean empty frame with one large count only. Each later clip introduces one item: its number, a short title, and one object, with empty space around them.",
-      "Show items one by one. The last clip is a clean full list: short titles only, evenly spaced on an empty background. Do not caption the spoken sentence.",
+      "Show items one by one. The last clip is a clean full list: short titles only, evenly spaced on an empty background. Every clip also shows the spoken line as a subtitle, clear of that graphic.",
       lookLine,
       "Lettering follows that Look. Do not copy typography from the visual style.",
       SCENE_TEXT_PRESETS[language].skillHint,

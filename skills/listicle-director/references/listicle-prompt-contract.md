@@ -7,7 +7,7 @@ Use only after explicit approval of the current Phase A. Write ONE self-containe
 1. Output spec: duration in seconds (3–8, max 8), aspect ratio, 720p, 24 FPS, synchronized audio.
 2. Style lock: repeat the canvas, look and negatives from the Visual style block in one or two sentences.
 3. Cast lock: the host (if present) follows the attached start/end keyframes and blueprints exactly; never restyle.
-4. On-canvas item: the hook paints one large count on an empty frame. An item clip paints only that item's number, short title, and one object, with empty space around them. The last clip paints a clean numbered list of the short titles, evenly spaced, with no host and no extra props. Do not caption the spoken sentence.
+4. On-canvas item: the hook paints one large count on an empty frame. An item clip paints only that item's number, short title, and one object, with empty space around them. The last clip paints a clean numbered list of the short titles, evenly spaced, with no host and no extra props. Every clip also paints the spoken line as a subtitle, clear of that graphic.
 5. Scene at t=0: the hook is empty except the count. An item clip is the setting plus that one item (matches the START keyframe); earlier items are already off screen. The last clip is only the clean list.
 6. Timed beats scaled to duration: number pops with an SFX hit → item image appears or morphs element by element → settles on the END keyframe. For the hook clip: count line + slam-in. For the outro: items line up at rest.
 7. Camera: one modest move (punch-in on the number, drift toward the item). No cuts inside a clip.
@@ -21,7 +21,7 @@ Start and end keyframes are the SAME SHOT. Interpolate across the FULL duration;
 
 ## Dialogue rule
 
-Quote the line exactly as approved, once, as audio. Forbid paraphrase, repetition, captions, or visual transcription. Keep the host voice identical in every prompt.
+Quote the line exactly as approved, once, as audio, and paint that same line as the subtitle. Do not paraphrase it or add a second caption. Keep the host voice identical in every prompt.
 
 ## Motion detail
 

@@ -7,6 +7,6 @@
     "narrator": "An energetic, clear host talking to the viewer, with every item line in the same parallel shape (e.g. \"Number one: …\" or \"Want X? Do Y.\").",
     "visual": "Look and palette come from the chosen visual style. The hook is one large count on an empty frame. Each item clip shows only that item: its number, a short title, and one object, with empty space around them. The last clip is a clean full list of those short titles, evenly spaced, with no extra props.",
     "audio": "A driving beat that hits each time a number pops in and builds up on the final item.",
-    "rules": "Items come only from your source — the list is never padded. Each item needs a concrete visual stand-in. The narration isn't captioned. An item clip's on-screen text is that item only; the full list is the last clip."
+    "rules": "Items come only from your source — the list is never padded. Each item needs a concrete visual stand-in. An item clip's on-screen title is that item only; the full list is the last clip. Every clip also shows the spoken line as a subtitle."
   }
 }

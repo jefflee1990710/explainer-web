@@ -24,7 +24,7 @@ If required items are missing, ask for them in one concise message and stop. Nev
 The rendering rules (canvas, look, palette, and motion) come from the **Visual style** block appended below this skill. Do not invent a different medium. Lettering comes only from the selected text style, never from the visual style or from this skill.
 
 - **Cast lock**: if character references / blueprints are attached, the host MUST follow them exactly across all clips; say so in `characterLock`, never restyle. If none, define ONE simple host in `characterLock` and keep it identical. The host may be absent from some item clips if the item is better shown as an object.
-- **On-canvas item (required)**: the hook is a clean empty frame with one large count only. An item clip shows ONLY the item it introduces — its number, a short title (the name, not the spoken sentence), and one object — with empty space around them. The last clip is a clean full list of those short titles, evenly spaced on an empty background. Do not caption the spoken sentence.
+- **On-canvas item (required)**: the hook is a clean empty frame with one large count only. An item clip shows ONLY the item it introduces — its number, a short title (the name, not the spoken sentence), and one object — with empty space around them. The last clip is a clean full list of those short titles, evenly spaced on an empty background. Every clip also shows the spoken line as a subtitle, clear of that graphic.
 - **Item number device**: every item clip also carries a short in-world number marker (`1`, `2`, `3` … or `#1`) drawn as a prop in the style (a tag, a card, a badge, a chalk numeral). Same device, same position, every item.
 - **Item image**: each item is ONE concrete object or mini-scene that stands for it. Consistent scale and placement clip to clip so the list reads as a set.
 - Keep the setting constant; only the item image and the number change.
@@ -42,7 +42,7 @@ The rendering rules (canvas, look, palette, and motion) come from the **Visual s
 - Default: an energetic but clear adult host voice in the requested voiceover language, second person.
 - Rhythm: each item line follows the same grammatical shape ("Number one: … . Number two: …" or "Want X? Do Y."). Parallel structure is the listicle's music.
 - ~7–20 spoken words per clip at medium speaking pace. Slow ≈ 0.8× those words with pauses; fast ≈ 1.2× with fewer pauses. Clip duration stays the same. Item lines ≤15 words at medium.
-- Spoken lines are audio-only. The hook shows only the count. An item clip shows that item's number and short title. The last clip shows the short titles as a clean list. Do not caption the spoken sentence.
+- The spoken line is heard and also shown as a subtitle on every clip, in the selected text style. The hook still shows only the count, an item clip still shows that item's short title, and the last clip still shows the short titles as a clean list. The subtitle does not replace those graphics.
 
 ## Phase A field mapping
 
