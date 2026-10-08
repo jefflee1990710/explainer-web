@@ -12,12 +12,14 @@ function armBrowserNotifications() {
   void Notification.requestPermission();
 }
 
+// OS notifications show the Scro mark, not the generated still.
+const SCRO_ICON = "/logo-mark.png";
+
 function showGenerationNotice(task: PublicTask, title: string, open: (href: string) => void) {
   const failed = task.stage === "failed";
-  const icon = !failed && task.previewUrl && !task.isVideo ? task.previewUrl : undefined;
   const notice = new Notification(title, {
     body: failed && task.error ? task.error : task.title,
-    icon,
+    icon: SCRO_ICON,
     tag: task.id,
   });
   notice.onclick = () => {
