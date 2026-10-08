@@ -76,12 +76,13 @@ Wardrobe lock: every character wears exactly their blueprint outfit in every cli
 - `16:9`: number device top-left, the one item image centre-right, host (if present) left. No side list.
 - `9:16`: number device top-centre, the one item image in the middle third, host in the lower third. No side list.
 - `1:1`: number device top-left corner, the one item image centred. No side list.
-- The last clip only: every title lines up together (bottom row on 16:9 and 1:1, a vertical stack on 9:16).
+- Hook: one large count, empty background, nothing else.
+- The last clip only: a clean numbered list of the short titles, evenly spaced, empty background, no host and no extra props.
 
 ## Palette and text
 
 - Colours in ordinary words only; the accent colour is reserved for the number device.
-- An item clip shows only that item's number and title, spelled exactly from its VO. Do not write the other titles. The last clip shows every title. No extra invented labels.
+- The hook shows only the count. An item clip shows only that item's number and short title (the name, not the spoken sentence). The last clip shows those short titles in a clean list. No extra invented labels.
 
 ## Confirmation ending
 

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   isSceneTextLanguage,
+  listicleCanvasTitle,
   listicleOnCanvasLines,
   resolveSceneText,
   sceneTextFrameLines,
@@ -62,8 +63,18 @@ test("an item clip spells only the item it introduces", () => {
   assert.match(full, /Snooze the alarm/);
   assert.match(full, /Skip water/);
   const hook = listicleOnCanvasLines({ clips, clipNumber: 1 }).join("\n");
+  assert.match(hook, /clean and clear/i);
+  assert.match(hook, /Count \(spell exactly\): "2"/);
   assert.match(hook, /Do not draw item titles/);
   assert.doesNotMatch(hook, /Snooze the alarm/);
+});
+
+test("listicle canvas title keeps the item name and drops the spoken explanation", () => {
+  assert.equal(
+    listicleCanvasTitle("Number one: Godly, for top-tier modern web design inspiration."),
+    "Godly",
+  );
+  assert.equal(listicleCanvasTitle("Snooze the alarm."), "Snooze the alarm.");
 });
 
 test("isSceneTextLanguage accepts only the three scene-text ids", () => {

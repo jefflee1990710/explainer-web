@@ -74,6 +74,15 @@ function listicleTitles(title: string) {
   return title.split(/\s*\|\s*/).map((part) => part.trim()).filter(Boolean);
 }
 
+// On-canvas text is the item name, not the spoken explanation after the comma.
+export function listicleCanvasTitle(spoken: string) {
+  const stripped = spoken
+    .replace(/^(?:number\s+\w+|第\s*[0-9一二三四五六七八九十]+\s*[項个個]?)\s*[:：.]?\s*/i, "")
+    .trim();
+  const head = stripped.split(/[,，。；;]/)[0]?.trim() || stripped;
+  return head || spoken.trim();
+}
+
 // Item clips spell only the item they introduce. The last clip spells every title.
 export function listicleOnCanvasLines(input: {
   clips: Array<{ clipNumber: number; narrativeJob: string; englishVo: string }>;
@@ -87,30 +96,32 @@ export function listicleOnCanvasLines(input: {
     input.clipNumber === lastNumber || /full list|完整清單/i.test(clip?.narrativeJob || "");
   const look = input.typography?.trim() || "";
   if (showFull) {
-    const titles = entries.flatMap((entry) => listicleTitles(entry.title));
+    const titles = entries.flatMap((entry) => listicleTitles(entry.title).map(listicleCanvasTitle));
     return [
-      "On-canvas FULL LIST — highest priority. This last clip shows a readable numbered list of every item title at once, as a primary graphic, not a tiny subtitle bar.",
+      "On-canvas FULL LIST — clean and clear, highest priority. Empty background. One evenly spaced numbered list of these short titles, large and readable. No host, no extra props, no long sentences, no side clutter.",
       ...titles.map((title, index) => `List item ${index + 1} (spell exactly): "${title}"`),
-      "Every title is readable. Do not leave one off.",
+      "Every title is readable. Do not leave one off. Ignore any extra objects written in the Scene.",
       look,
-      "Only these item titles may appear as writing; no other invented labels.",
+      "Only these short titles may appear as writing.",
     ].filter(Boolean);
   }
   const current = entries.find((entry) => entry.clipNumber === input.clipNumber);
   if (current) {
-    const titles = listicleTitles(current.title);
+    const titles = listicleTitles(current.title).map(listicleCanvasTitle);
     return [
-      "On-canvas item ON — highest priority. This clip introduces only this item. Do not draw the other items, a side list, or the full list.",
+      "On-canvas item ON — clean and clear, highest priority. This clip introduces only this item. Empty space around one number, this short title, and one object.",
       ...titles.map((title, index) => `Item ${current.index + index} (spell exactly): "${title}"`),
-      "Ignore any checklist or other item titles written in the Scene. Draw one item image. The full numbered list appears only on the last clip.",
+      "Do not draw the other items, a side list, the full list, extra props, or the spoken sentence. Ignore any checklist written in the Scene.",
       look,
-      "Only this item title may appear as writing; no other invented labels.",
+      "Only this short title may appear as writing.",
     ].filter(Boolean);
   }
+  const count = entries.flatMap((entry) => listicleTitles(entry.title)).length;
   return [
-    "Do not draw item titles or a side list on this clip. Introduce the count only. The full numbered list appears only on the last clip.",
+    "HOOK — clean and clear, highest priority. Empty background. Draw one large count and nothing else.",
+    count > 0 ? `Count (spell exactly): "${count}"` : "",
+    "Do not draw item titles, a checklist, the first item, extra props, or a caption of the spoken sentence. Leave most of the frame empty. Ignore any side list written in the Scene.",
     look,
-    "No invented item labels.",
   ].filter(Boolean);
 }
 
@@ -175,8 +186,8 @@ export function sceneTextSkillHint(
   const lookLine = options?.lookLine || subtitleLookLine(options?.look);
   if (options?.listicle) {
     return [
-      "On-canvas text is REQUIRED for this director. An item clip shows only the one item it introduces: that number and that title. Do not draw the other items or a running side list.",
-      "Show items one by one. The last clip is the only clip that shows the full list, every title readable, as a primary graphic, not a tiny subtitle bar.",
+      "On-canvas text is REQUIRED. The hook is a clean empty frame with one large count only. Each later clip introduces one item: its number, a short title, and one object, with empty space around them.",
+      "Show items one by one. The last clip is a clean full list: short titles only, evenly spaced on an empty background. Do not caption the spoken sentence.",
       lookLine,
       "Lettering follows that Look. Do not copy typography from the visual style.",
       SCENE_TEXT_PRESETS[language].skillHint,

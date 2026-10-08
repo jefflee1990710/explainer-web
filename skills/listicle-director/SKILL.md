@@ -24,25 +24,25 @@ If required items are missing, ask for them in one concise message and stop. Nev
 The rendering rules (canvas, look, palette, and motion) come from the **Visual style** block appended below this skill. Do not invent a different medium. Lettering comes only from the selected text style, never from the visual style or from this skill.
 
 - **Cast lock**: if character references / blueprints are attached, the host MUST follow them exactly across all clips; say so in `characterLock`, never restyle. If none, define ONE simple host in `characterLock` and keep it identical. The host may be absent from some item clips if the item is better shown as an object.
-- **On-canvas item (required)**: an item clip shows ONLY the item it introduces — its number and its title — as a primary graphic (not a tiny subtitle bar). Spell that title exactly from that clip's `englishVo`. Do not draw the other items, a side list, or the full list on an item clip. The last clip is the only still that shows every title at once.
+- **On-canvas item (required)**: the hook is a clean empty frame with one large count only. An item clip shows ONLY the item it introduces — its number, a short title (the name, not the spoken sentence), and one object — with empty space around them. The last clip is a clean full list of those short titles, evenly spaced on an empty background. Do not caption the spoken sentence.
 - **Item number device**: every item clip also carries a short in-world number marker (`1`, `2`, `3` … or `#1`) drawn as a prop in the style (a tag, a card, a badge, a chalk numeral). Same device, same position, every item.
 - **Item image**: each item is ONE concrete object or mini-scene that stands for it. Consistent scale and placement clip to clip so the list reads as a set.
 - Keep the setting constant; only the item image and the number change.
 
 ## Listicle architecture
 
-1. **Hook (Clip 1, first 2s)**: state the count and the promise mid-motion ("5 things…", "3 mistakes…") while the number device or first item slams in. Optional micro-tease of the last item ("…and #5 is the one everyone gets wrong"). No greetings. On a 2-clip micro, the hook may be the first item.
+1. **Hook (Clip 1)**: a clean, clear frame. One large count ("5", "3") on an empty background. No items, no checklist, no extra props, no tease of a later item, and no caption of the spoken sentence. Leave most of the frame empty. On a 2-clip micro, the hook may be the first item.
 2. **Items**: one clip per item until the list passes the duration ceiling. Only then combine 2 items on a middle clip, revealed one by one inside that clip. Use 3 on a clip only when pairs would still pass the ceiling. Never more than 3. Item 1 and the last item each stay alone when there are at least two item clips. The number pops first, then the item image appears, then the line lands. Order for retention: strong first, weakest in the middle, BEST LAST.
 3. **Optional mid-list pattern break**: for 6+ items, one item clip may change camera or scale to reset attention.
 4. **Payoff item**: the last item gets the most vivid image and the longest beat, still on its own clip.
-5. **Full list (required, last clip, ≤5s)**: every item title visible at once and one closing line or CTA. `narrativeJob` is `full list`. The set rests. Never loop to item 1. Do not drop this clip to save length.
+5. **Full list (required, last clip, ≤5s)**: a clean, clear numbered list of the short titles only, evenly spaced on an empty background. No host, no extra props, no long sentences. `narrativeJob` is `full list`. The set rests. Never loop to item 1. Do not drop this clip to save length.
 
 ## Narration
 
 - Default: an energetic but clear adult host voice in the requested voiceover language, second person.
 - Rhythm: each item line follows the same grammatical shape ("Number one: … . Number two: …" or "Want X? Do Y."). Parallel structure is the listicle's music.
 - ~7–20 spoken words per clip at medium speaking pace. Slow ≈ 0.8× those words with pauses; fast ≈ 1.2× with fewer pauses. Clip duration stays the same. Item lines ≤15 words at medium.
-- Spoken lines are audio-only. An item clip's on-canvas writing is that item's number and title only. The last clip's on-canvas writing is the full numbered list. Do not add a caption of the full voiceover on top.
+- Spoken lines are audio-only. The hook shows only the count. An item clip shows that item's number and short title. The last clip shows the short titles as a clean list. Do not caption the spoken sentence.
 
 ## Phase A field mapping
 

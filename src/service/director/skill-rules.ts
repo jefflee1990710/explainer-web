@@ -576,8 +576,9 @@ export function listicleDirectorBlock() {
     "This is a LISTICLE. Always turn the source into a numbered list of distinct items. Do not tell it as a story with no list, and do not drop items to fit a shorter preset.",
     "Show the items one by one. One item per clip until the item count passes the duration ceiling. Above that ceiling, put 2 items on a middle clip and reveal them one by one inside that clip (start highlights the first, end highlights the last). Use 3 on a clip only when pairs would still pass the ceiling. Never more than 3 on one clip. Item 1 and the last item each stay on their own clip when there are at least two item clips. If 3 per clip still passes the ceiling, keep 3 per clip and let the clip count run over the preset.",
     "Ceilings, counting the ending: micro 2 clips, short 4, punchy 6, full 10, auto 12.",
-    "The last clip is required and is not an item clip. narrativeJob is `full list`. It shows every item title at once, readable, none left off. A packed clip's englishVo joins those item lines with ` | `.",
-    "On-canvas text is REQUIRED. An item clip shows only the item it introduces: that number and that title, plus one item image. Do not draw the other items, a side list, or the full list on an item clip. Only the last clip shows every item title at once. Ignore any earlier line that puts the whole list on every still. Lettering follows the selected text style.",
+    "Clip 1 is a clean hook: empty setting, one large count, no items, no checklist, no extra props, and no caption of the spoken sentence. Leave most of the frame empty.",
+    "Then introduce items one by one. An item clip holds only that item's number, a short title (the name, not the spoken sentence), and one object, with empty space around them. Do not draw the other items or a side list.",
+    "The last clip is required and is not an item clip. narrativeJob is `full list`. It is a clean full list: short titles only, evenly spaced on an empty background, every title readable, no host and no extra props. A packed clip's englishVo joins those item lines with ` | `. Ignore any earlier line that puts the whole list on every still. Lettering follows the selected text style.",
   ].join(" ");
 }
 
