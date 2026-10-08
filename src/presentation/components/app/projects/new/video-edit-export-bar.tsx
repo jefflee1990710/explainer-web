@@ -3,6 +3,7 @@
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { VideoEditExportMenu } from "@/presentation/components/app/projects/new/video-edit-export-menu";
 import { isProjectReady } from "@/service/clip-stage";
+import { isReelBusy } from "@/service/reel/fingerprint";
 import { hasEdit, isFinalCurrent, isFinalRunning } from "@/service/video-edit/edit-state";
 import type { PublicVideo } from "@/presentation/serialize";
 import type { VideoEdit } from "@/model/video-edit";
@@ -44,9 +45,29 @@ export function VideoEditExportBar({
   const shownError = error || (failed ? project.finalError : undefined);
 
   const filename = `${basename}.mp4`;
+  const reelStep = isReelBusy(project.reelStatus) ? project.reelStep : undefined;
+  const reelPercent = reelStep
+    ? Math.round(((reelStep.phase === "join" ? reelStep.current : Math.max(0, reelStep.current - 1)) / Math.max(1, reelStep.total)) * 100)
+    : 0;
 
   return (
     <div className="flex items-center gap-2">
+      {reelStep ? (
+        <div className="w-36">
+          <p className="truncate text-[11px] font-medium text-[var(--studio-ink)]">
+            {t(reelStep.phase === "download" ? "video.export.stepDownload" : "video.export.stepJoin", reelStep)}
+          </p>
+          <div
+            className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--studio-fill)]"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={reelPercent}
+          >
+            <div className="h-full rounded-full bg-lime" style={{ width: `${reelPercent}%` }} />
+          </div>
+        </div>
+      ) : null}
       {shownError ? (
         <p role="alert" className="max-w-48 truncate text-[11px] font-medium text-[#e11d48]">
           {translateAppError(shownError, t)}

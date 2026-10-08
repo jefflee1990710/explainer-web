@@ -97,6 +97,7 @@ test("restart clears storyboard and every generated output field", () => {
     "reelStatus",
     "reelFingerprint",
     "reelError",
+    "reelStep",
     "reelAttempts",
     "finalUrl",
     "finalStatus",

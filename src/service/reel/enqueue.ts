@@ -26,7 +26,7 @@ export async function markReelQueued(project: Project): Promise<string | null> {
         reelAttempts: 1,
         updatedAt: now,
       },
-      $unset: { reelError: "" },
+      $unset: { reelError: "", reelStep: "" },
     },
   );
   // Another caller queued it between the read and this write.
@@ -98,7 +98,7 @@ export async function recoverStaleReel(project: StaleReel, now = Date.now()) {
       reelAttempts: nextAttempts,
       updatedAt: new Date(now),
     },
-    $unset: { reelError: "" },
+    $unset: { reelError: "", reelStep: "" },
   });
   if (claimed.modifiedCount !== 1) return false;
   scheduleReel(project._id, fingerprint);

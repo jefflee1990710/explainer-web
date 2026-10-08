@@ -14,6 +14,7 @@ import {
   downloadRemoteFile,
   downloadVideoFile,
   ExportCancelled,
+  exportPhases,
   renderVideoInBrowser,
   type ExportJob,
 } from "@/presentation/components/app/projects/new/browser-video-export";
@@ -116,10 +117,13 @@ export function VideoEditDesk({
     exportAbort.current = controller;
     setBusy(true);
     setMessage("");
+    const exportClips = [...project.clips]
+      .sort((a, b) => a.clipNumber - b.clipNumber)
+      .filter((clip) => clip.blobUrl || clip.outputUrl);
     setExportJob({
       phase: existingUrl ? "download" : "encoder",
       ratio: 0,
-      phases: existingUrl ? ["download", "save"] : ["encoder", "download", "encode", "save"],
+      phases: existingUrl ? ["download", "save"] : exportPhases(exportClips.length, edit),
     });
     try {
       const saved = await save();
@@ -127,9 +131,6 @@ export function VideoEditDesk({
       if (existingUrl) {
         await downloadVideoFile(existingUrl, filename, setExportJob, controller.signal);
       } else {
-        const exportClips = [...project.clips]
-          .sort((a, b) => a.clipNumber - b.clipNumber)
-          .filter((clip) => clip.blobUrl || clip.outputUrl);
         const clipUrls = clipUrlsForExport(exportClips);
         if (clipUrls.length === 0) {
           setMessage(t("video.export.failed"));

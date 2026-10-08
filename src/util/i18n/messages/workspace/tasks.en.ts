@@ -25,6 +25,8 @@ export const tasksPageEn = {
     clipFrameStart: "Clip {n} · start frame",
     clipFrameEnd: "Clip {n} · end frame",
     reel: "Final reel",
+    reelDownload: "Final reel · downloading clip {current} of {total}",
+    reelJoin: "Final reel · joining clip {current} of {total}",
   },
   doneToast: "{detail} is ready",
   failedToast: "{detail} failed",

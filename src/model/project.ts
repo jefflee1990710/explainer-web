@@ -233,6 +233,8 @@ export type Project = {
   reelStatus?: ReelStatus;
   reelFingerprint?: string;
   reelError?: string;
+  // Which clip the pairwise reel join is on, so the editor can show progress.
+  reelStep?: { current: number; total: number; phase: "download" | "join" };
   // Compose tries for the current fingerprint. A dead worker retries until the cap.
   reelAttempts?: number;
   // Branding edit for the Video tab (copy, never linked to the template).
@@ -401,6 +403,13 @@ export const projectSchema: z.ZodType<Project> = z.object({
   reelStatus: z.enum(["queued", "in_progress", "completed", "failed"]).optional(),
   reelFingerprint: z.string().optional(),
   reelError: z.string().optional(),
+  reelStep: z
+    .object({
+      current: z.number(),
+      total: z.number(),
+      phase: z.enum(["download", "join"]),
+    })
+    .optional(),
   reelAttempts: z.number().optional(),
   edit: videoEditSchema.optional(),
   coverUrl: z.string().optional(),

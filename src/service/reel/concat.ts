@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import ffmpegPath from "ffmpeg-static";
 import { CLIP_EDGE_FADE_SEC } from "@/service/reel/fade";
+import type { PairwiseStep } from "@/service/reel/pairwise-progress";
 import { REEL_TIMEOUT_MESSAGE } from "@/service/reel/timeout";
 
 export { CLIP_EDGE_FADE_SEC };
@@ -66,16 +67,30 @@ function remainingMs(timeoutMs: number | undefined, started: number) {
 }
 
 // Concat storyboard clips in order with 100ms fades on every clip edge.
+// Each step joins the running result with the next clip, so only two files are in memory.
 // timeoutMs covers the whole download plus encode, not each clip separately.
-export async function concatMp4Urls(urls: string[], timeoutMs?: number): Promise<Buffer> {
+export async function concatMp4Urls(
+  urls: string[],
+  timeoutMs?: number,
+  onProgress?: (step: PairwiseStep) => void,
+): Promise<Buffer> {
   if (urls.length === 0) throw new Error("沒有可合成的片段");
   const started = Date.now();
-  if (urls.length === 1) return fetchBuffer(urls[0], "片段", remainingMs(timeoutMs, started));
-  const buffers = [];
-  for (let i = 0; i < urls.length; i += 1) {
-    buffers.push(await fetchBuffer(urls[i], `第 ${i + 1} 段`, remainingMs(timeoutMs, started)));
+  const total = urls.length;
+  if (total === 1) {
+    onProgress?.({ current: 1, total, phase: "download" });
+    return fetchBuffer(urls[0], "片段", remainingMs(timeoutMs, started));
   }
-  return concatMp4Buffers(buffers, remainingMs(timeoutMs, started));
+  onProgress?.({ current: 1, total, phase: "download" });
+  let acc: Buffer = await fetchBuffer(urls[0], "第 1 段", remainingMs(timeoutMs, started));
+  for (let index = 1; index < total; index += 1) {
+    const current = index + 1;
+    onProgress?.({ current, total, phase: "download" });
+    const next = await fetchBuffer(urls[index], `第 ${current} 段`, remainingMs(timeoutMs, started));
+    onProgress?.({ current, total, phase: "join" });
+    acc = await concatMp4Buffers([acc, next], remainingMs(timeoutMs, started));
+  }
+  return acc;
 }
 
 export async function concatMp4Buffers(buffers: Buffer[], timeoutMs?: number): Promise<Buffer> {

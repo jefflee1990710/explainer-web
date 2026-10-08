@@ -25,6 +25,8 @@ export const tasksPageZhHant = {
     clipFrameStart: "Clip {n} · 起始畫格",
     clipFrameEnd: "Clip {n} · 結尾畫格",
     reel: "成片合成",
+    reelDownload: "成片合成 · 下載第 {current} / {total} 段",
+    reelJoin: "成片合成 · 接上第 {current} / {total} 段",
   },
   doneToast: "{detail} 完成",
   failedToast: "{detail} 失敗",

@@ -10,9 +10,15 @@ import type { ExportJob, ExportPhase } from "@/presentation/components/app/proje
 const PHASE_LABEL: Record<ExportPhase, string> = {
   encoder: "video.export.phaseEncoder",
   download: "video.export.phaseDownload",
+  join: "video.export.phaseJoin",
   encode: "video.export.phaseEncode",
   save: "video.export.phaseSave",
 };
+
+function jobCaption(job: ExportJob, t: (key: string, params?: { current: number; total: number }) => string) {
+  if (job.detailKey && job.detail) return t(job.detailKey, job.detail);
+  return t(PHASE_LABEL[job.phase]);
+}
 
 // Blocks the editor while a browser export runs, and names the current stage.
 export function ExportProgressOverlay({
@@ -26,6 +32,7 @@ export function ExportProgressOverlay({
   const titleId = useId();
   const percent = Math.round(Math.max(0, Math.min(1, job.ratio)) * 100);
   const activeIndex = job.phases.indexOf(job.phase);
+  const caption = jobCaption(job, t);
 
   return (
     <DialogBackdrop className="grid place-items-center bg-accent-ink/40 p-4 backdrop-blur-sm">
@@ -45,14 +52,16 @@ export function ExportProgressOverlay({
             return (
               <li key={phase} className="flex items-center gap-3 text-sm">
                 <StageMark state={state} />
-                <span className={state === "pending" ? "text-muted" : "font-semibold"}>{t(PHASE_LABEL[phase])}</span>
+                <span className={state === "pending" ? "text-muted" : "font-semibold"}>
+                  {state === "active" ? caption : t(PHASE_LABEL[phase])}
+                </span>
               </li>
             );
           })}
         </ol>
         <div className="mt-5">
           <div className="mb-1.5 flex items-center justify-between text-xs text-muted">
-            <span>{t(PHASE_LABEL[job.phase])}</span>
+            <span>{caption}</span>
             <span className="tabular-nums">{t("video.export.percent", { n: percent })}</span>
           </div>
           <div
@@ -61,7 +70,7 @@ export function ExportProgressOverlay({
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={percent}
-            aria-valuetext={t(PHASE_LABEL[job.phase])}
+            aria-valuetext={caption}
           >
             <div className="h-full rounded-full bg-lime transition-[width] duration-200" style={{ width: `${percent}%` }} />
           </div>

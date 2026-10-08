@@ -99,6 +99,7 @@ const REEL_PROJECTION = {
   reelStatus: 1,
   reelUrl: 1,
   reelError: 1,
+  reelStep: 1,
   updatedAt: 1,
 } as const;
 
@@ -111,6 +112,7 @@ export function reelTask(
     reelStatus?: ReelStatus;
     reelUrl?: string;
     reelError?: string;
+    reelStep?: { current: number; total: number; phase: "download" | "join" };
     updatedAt: string;
   },
   now = Date.now(),
@@ -120,14 +122,20 @@ export function reelTask(
   const stage: TaskStage =
     status === "queued" ? "queued" : status === "in_progress" ? "generating" : status === "failed" ? "failed" : "done";
   if (!isCurrentTask(stage, input.updatedAt, now)) return null;
+  const step = stage === "generating" ? input.reelStep : undefined;
   return {
     id: `reel:${input.videoId}`,
     kind: "reel",
     stage,
     videoId: input.videoId,
     title: input.title,
-    detail: "成片合成",
-    detailKey: "tasksPage.detail.reel",
+    detail: step ? `成片合成 ${step.current}/${step.total}` : "成片合成",
+    detailKey: step
+      ? step.phase === "download"
+        ? "tasksPage.detail.reelDownload"
+        : "tasksPage.detail.reelJoin"
+      : "tasksPage.detail.reel",
+    detailParams: step ? { current: step.current, total: step.total } : undefined,
     previewUrl: stage === "done" ? input.reelUrl : undefined,
     isVideo: true,
     href: folderVideoPath(input.projectId, input.videoId),
@@ -266,6 +274,7 @@ export async function listTasks(
       reelStatus: video.reelStatus,
       reelUrl: video.reelUrl,
       reelError: video.reelError,
+      reelStep: video.reelStep,
       updatedAt: (video.updatedAt ?? new Date(0)).toISOString(),
     });
     return task ? [task] : [];

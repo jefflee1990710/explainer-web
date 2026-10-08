@@ -79,6 +79,7 @@ export type PublicVideo = {
   reelStatus?: Project["reelStatus"];
   reelFingerprint?: string;
   reelError?: string;
+  reelStep?: { current: number; total: number; phase: "download" | "join" };
   edit?: VideoEdit;
   coverUrl?: string;
   coverStatus?: Project["coverStatus"];
@@ -280,6 +281,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     reelStatus: video.reelStatus,
     reelFingerprint: video.reelFingerprint,
     reelError: video.reelError,
+    reelStep: video.reelStep,
     edit: video.edit,
     coverUrl: video.coverUrl,
     coverStatus: video.coverStatus,

@@ -208,7 +208,11 @@ export async function runReelJob(projectId: ObjectId, fingerprint: string) {
         ? urls[0]
         : await withTimeout(
             persistBuffer(
-              await concatMp4Urls(urls, deadline - Date.now()),
+              await concatMp4Urls(urls, deadline - Date.now(), async (step) => {
+                await projects.updateOne(attemptMatch, {
+                  $set: { reelStep: step, updatedAt: new Date() },
+                });
+              }),
               `explainer/${projectId.toHexString()}/reel/${fingerprint}.mp4`,
               "video/mp4",
             ),
@@ -224,6 +228,7 @@ export async function runReelJob(projectId: ObjectId, fingerprint: string) {
           reelError: "片段已更新，改合成新的成片",
           updatedAt: new Date(),
         },
+        $unset: { reelStep: "" },
       });
       await queueReelIfReady(projectId);
       return;
@@ -236,14 +241,14 @@ export async function runReelJob(projectId: ObjectId, fingerprint: string) {
         reelFingerprint: fingerprint,
         updatedAt: new Date(),
       },
-      $unset: { reelError: "" },
+      $unset: { reelError: "", reelStep: "" },
     });
   } catch (error) {
     const retry = isRetryableReelError(error) && attempt < MAX_REEL_ATTEMPTS;
     if (retry) {
       const requeued = await projects.updateOne(attemptMatch, {
         $set: { reelStatus: "queued", reelAttempts: attempt + 1, updatedAt: new Date() },
-        $unset: { reelError: "" },
+        $unset: { reelError: "", reelStep: "" },
       });
       if (requeued.modifiedCount === 1) scheduleReel(projectId, fingerprint);
       return;
@@ -254,6 +259,7 @@ export async function runReelJob(projectId: ObjectId, fingerprint: string) {
         reelError: errorMessage(error, "合成成片失敗"),
         updatedAt: new Date(),
       },
+      $unset: { reelStep: "" },
     });
   }
 }
