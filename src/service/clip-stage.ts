@@ -30,6 +30,8 @@ export type ClipState = {
   wait?: ClipWait;
   // Credits this clip's video costs, from its storyboard duration.
   videoCost?: number;
+  // The video job is still pending in our queue, so the user may cancel it.
+  videoUnsent?: boolean;
   // Credits to draw this clip's stills. Talking-head clip 2+ draws only the end.
   frameCost?: number;
 };
@@ -38,6 +40,7 @@ export type ClipState = {
 export type ClipStageSource = {
   status: ProjectStatus | LegacyProjectStatus;
   skillSlug?: string;
+  styleId?: string;
   phaseA?: { clips: Array<{ clipNumber: number; durationSeconds?: number; editedAt?: string }> };
   frames?: ClipFrame[];
   clips: ProjectClip[];
@@ -107,8 +110,10 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
     stage,
     stale,
     wait: waitKind(waitItems),
-    videoCost: videoCost(row?.durationSeconds ?? MIN_VIDEO_SECONDS),
+    videoCost: videoCost(row?.durationSeconds ?? MIN_VIDEO_SECONDS, project.styleId),
     frameCost: talkingHeadFramesCost(project.skillSlug, clipNumber),
+    // Cancel is only offered before the provider has the request.
+    videoUnsent: stage === "video_generating" && clip?.status === "queued" && clip.unsent === true,
   };
 }
 

@@ -1,11 +1,11 @@
 {
   "en": {
     "bestFor": "Lists of tips, tools, mistakes or reasons — \"N things…\" videos for Reels, Shorts, or carousels turned into video.",
-    "structure": "Each clip runs 3–8 seconds: an opening hook, one clip per item, and an optional short outro. About 3 items for 15–20s, 4–5 for 30–45s and 6–8 for 50–60s; a micro version fits 1–2 items.",
+    "structure": "Each clip runs 3–8 seconds. Items appear one by one, one item per clip. Only when the list is too long does a middle clip hold two or three items and reveal them one by one. The last clip always shows the full list.",
     "hook": "States the count and the promise (\"5 things…\", \"3 mistakes…\") while the first number or item slams in, sometimes teasing the final item.",
-    "arc": "Strong item first, weakest in the middle, best saved for last with the most vivid image. Long lists may switch camera or scale once mid-way to reset attention; the outro shows the whole set together and rests.",
+    "arc": "Strong item first, weakest in the middle, best item last with the most vivid image. The clip after that shows the full list at rest.",
     "narrator": "An energetic, clear host talking to the viewer, with every item line in the same parallel shape (e.g. \"Number one: …\" or \"Want X? Do Y.\").",
-    "visual": "Look and palette come from the chosen visual style. Every frame shows a numbered list of the item titles, clearly readable, with the current one highlighted, plus a matching number badge and one concrete image per item in a constant setting.",
+    "visual": "Look and palette come from the chosen visual style. Every frame shows a numbered list of the item titles, clearly readable. An item clip highlights the current item. The last clip shows every title. A matching number badge and one concrete image per item stay in a constant setting.",
     "audio": "A driving beat that hits each time a number pops in and builds up on the final item.",
     "rules": "Items come only from your source — the list is never padded. Each item needs a concrete visual stand-in. The narration isn't captioned; the numbered list is the on-screen text."
   }

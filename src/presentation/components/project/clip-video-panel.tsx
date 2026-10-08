@@ -22,6 +22,8 @@ export function ClipVideoPanel({
   posterSrc,
   boxStyle,
   onGenerate,
+  onCancel,
+  cancelPending,
 }: {
   clip?: ProjectClip;
   state: ClipState;
@@ -31,6 +33,8 @@ export function ClipVideoPanel({
   posterSrc?: string;
   boxStyle?: { width: number; height: number };
   onGenerate: () => void;
+  onCancel: () => void;
+  cancelPending: boolean;
 }) {
   const { t } = useI18n();
   const src = displayMediaSrc(clip);
@@ -62,7 +66,12 @@ export function ClipVideoPanel({
           ) : null}
         </>
       ) : generating ? (
-        <GeneratingVideo state={state} overImage={showPoster} />
+        <GeneratingVideo
+          state={state}
+          overImage={showPoster}
+          cancelling={cancelPending}
+          onCancel={onCancel}
+        />
       ) : failed ? (
         <div className="absolute inset-0 grid place-items-center bg-accent/10 p-3 text-center text-[11px] font-semibold text-accent">
           {t("production.video.failedInline", { error: error ? `：${error}` : "" })}
@@ -87,7 +96,17 @@ export function ClipVideoPanel({
   );
 }
 
-function GeneratingVideo({ state, overImage }: { state: ClipState; overImage: boolean }) {
+function GeneratingVideo({
+  state,
+  overImage,
+  cancelling,
+  onCancel,
+}: {
+  state: ClipState;
+  overImage: boolean;
+  cancelling: boolean;
+  onCancel: () => void;
+}) {
   const { t } = useI18n();
   const action = clipNextAction(state);
   const text = clipNextActionText(t, action);
@@ -97,14 +116,24 @@ function GeneratingVideo({ state, overImage }: { state: ClipState; overImage: bo
       aria-label={text.label}
     >
       <motion.div
-        className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-paper/80 to-transparent"
+        className="pointer-events-none absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-paper/80 to-transparent"
         animate={{ x: ["-100%", "300%"] }}
         transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
       />
-      <span className="flex flex-col items-center gap-2 px-4 text-center text-accent-ink/50">
+      <span className="relative z-10 flex flex-col items-center gap-2 px-4 text-center text-accent-ink/50">
         <Spinner className="h-5 w-5" />
         <span className="font-display text-[11px] font-bold">{text.label}</span>
         <span className="text-[11px]">{text.hint}</span>
+        {state.videoUnsent ? (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={cancelling}
+            className="mt-1 cursor-pointer rounded-full bg-[var(--studio-ink)] px-3 py-1.5 font-display text-[11px] font-bold text-white disabled:cursor-wait disabled:opacity-60"
+          >
+            {cancelling ? <Spinner className="h-3.5 w-3.5" /> : t("production.video.cancelQueued")}
+          </button>
+        ) : null}
       </span>
     </div>
   );

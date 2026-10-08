@@ -26,6 +26,7 @@ export function ClipWorkspace({
   onOpenFrame,
   onUpdateClip,
   onGenerateVideo,
+  onCancelVideo,
   onSelect,
   region,
 }: {
@@ -40,6 +41,7 @@ export function ClipWorkspace({
   onOpenFrame: (position: FramePosition) => void;
   onUpdateClip: (input: ClipStoryboardInput, regenerate: boolean) => Promise<boolean>;
   onGenerateVideo: () => void;
+  onCancelVideo: () => void;
   onSelect: (clipNumber: number) => void;
   region: "preview" | "inspector";
 }) {
@@ -54,7 +56,9 @@ export function ClipWorkspace({
     pending === `clip:${n}` ? "save" : pending === `clip:${n}:regen` ? "regenerate" : "";
 
   const framesPending = pending === `frames:${n}` || pending === `clip:${n}:regen`;
-  const ownPending = framesPending || pending === `video:${n}` || pending.startsWith(`frame:${n}:`);
+  const cancelPending = pending === `cancel-video:${n}`;
+  const ownPending =
+    framesPending || pending === `video:${n}` || pending.startsWith(`frame:${n}:`) || cancelPending;
   const idle = pending === "";
 
   if (region === "preview") {
@@ -71,8 +75,10 @@ export function ClipWorkspace({
         startPending={pending === `frame:${n}:start`}
         endPending={pending === `frame:${n}:end`}
         videoPending={pending === `video:${n}`}
+        cancelPending={cancelPending}
         onOpenFrame={onOpenFrame}
         onGenerateVideo={onGenerateVideo}
+        onCancelVideo={onCancelVideo}
         prevClip={index > 0 ? ordered[index - 1].clipNumber : undefined}
         nextClip={index >= 0 && index < ordered.length - 1 ? ordered[index + 1].clipNumber : undefined}
         onSelect={onSelect}
@@ -98,6 +104,7 @@ export function ClipWorkspace({
         pending={ownPending}
         onGenerateFrames={onGenerateFrames}
         onGenerateVideo={onGenerateVideo}
+        onCancelVideo={onCancelVideo}
         onSelect={onSelect}
       />
 

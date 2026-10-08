@@ -17,6 +17,7 @@ export function ClipPrimaryAction({
   pending,
   onGenerateFrames,
   onGenerateVideo,
+  onCancelVideo,
   onSelect,
 }: {
   state: ClipState;
@@ -27,6 +28,7 @@ export function ClipPrimaryAction({
   pending: boolean;
   onGenerateFrames: () => void;
   onGenerateVideo: () => void;
+  onCancelVideo: () => void;
   onSelect: (clipNumber: number) => void;
 }) {
   const { t } = useI18n();
@@ -34,11 +36,13 @@ export function ClipPrimaryAction({
   const text = clipNextActionText(t, action);
   const videoUpgrade = action.kind === "video" && needsVideoUpgrade(credits, action.cost);
   const short = action.cost > 0 && credits < action.cost && !videoUpgrade;
-  const busy = action.kind === "busy" || pending;
-  const disabled = busy || !idle || action.kind === "done";
+  const cancellable = Boolean(state.videoUnsent);
+  const busy = (action.kind === "busy" && !cancellable) || pending;
+  const disabled = cancellable ? pending : busy || !idle || action.kind === "done";
 
   function onClick() {
-    if (action.kind === "frames") onGenerateFrames();
+    if (cancellable) onCancelVideo();
+    else if (action.kind === "frames") onGenerateFrames();
     else if (action.kind === "video") onGenerateVideo();
     else if (action.kind === "next" && nextUnfinished !== undefined) onSelect(nextUnfinished);
   }
@@ -65,11 +69,15 @@ export function ClipPrimaryAction({
         className="w-full justify-center gap-2"
       >
         {busy ? <Spinner className="h-4 w-4" /> : null}
-        {text.label}
-        {action.cost > 0 ? ` · ${action.cost}` : ""}
+        {cancellable ? t("production.video.cancelQueued") : text.label}
+        {!cancellable && action.cost > 0 ? ` · ${action.cost}` : ""}
       </StudioButton>
       <p className="text-[11px] leading-4 text-[var(--studio-muted)]">
-        {short ? t("production.action.insufficientClickToUpgrade") : text.hint}
+        {cancellable
+          ? t("production.video.cancelQueuedHint")
+          : short
+            ? t("production.action.insufficientClickToUpgrade")
+            : text.hint}
       </p>
     </div>
   );

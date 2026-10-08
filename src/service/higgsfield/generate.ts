@@ -9,8 +9,10 @@ import {
 } from "@/service/higgsfield/client";
 import { referenceUrlsForModel } from "@/service/higgsfield/reference-sheet";
 import {
-  MINIMAX_H3_VIDEO_MODEL,
+  SEEDANCE_2_VIDEO_MODEL,
+  clipVideoModel,
   h3ClipVideoInput,
+  seedanceClipVideoInput,
 } from "@/service/higgsfield/clip-keyframes";
 import type { AspectRatio, SceneTextLanguage } from "@/model/project";
 
@@ -162,22 +164,21 @@ export async function submitClipVideo(input: {
   durationSeconds: number;
   startImageUrl: string;
   endImageUrl: string;
+  styleId?: string;
 }) {
   if (clipVideoProvider() !== "higgsfield") {
-    throw new Error("clip video must use Higgsfield MiniMax H3 image_url + end_image_url");
+    throw new Error("clip video must use Higgsfield first and last frames");
   }
 
   const client = assertHiggsfieldConfigured();
-  // Mentalok harness: MiniMax H3 first+last-frame I2V. Always this model,
-  // even if a stored skill still points at Wan 3.0.
-  return client.subscribe(MINIMAX_H3_VIDEO_MODEL, {
-    input: h3ClipVideoInput({
-      prompt: input.prompt,
-      aspectRatio: input.aspectRatio,
-      durationSeconds: input.durationSeconds,
-      startImageUrl: input.startImageUrl,
-      endImageUrl: input.endImageUrl,
-    }),
+  const model = clipVideoModel(input.styleId);
+  // Cinematic realistic is Seedance 2.0. Every other style stays on MiniMax H3.
+  const body =
+    model === SEEDANCE_2_VIDEO_MODEL
+      ? seedanceClipVideoInput(input)
+      : h3ClipVideoInput(input);
+  return client.subscribe(model, {
+    input: body,
     withPolling: false,
     webhook: webhookOptions(),
   });

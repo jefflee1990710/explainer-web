@@ -44,7 +44,7 @@ export async function claimAndStartClipVideo(
 
   const submittedAt = new Date().toISOString();
   // Billed per second of the storyboard duration; stored on the clip for refunds.
-  const cost = videoCost(row.durationSeconds);
+  const cost = videoCost(row.durationSeconds, project.styleId);
   const existing = project.clips.find((clip) => clip.clipNumber === clipNumber);
   const stuck = existing ? await isStuckClaim(project._id, clipNumber, existing) : false;
   if (existing && !stuck && IN_FLIGHT.has(existing.status)) {

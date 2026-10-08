@@ -36,6 +36,7 @@ const EXACT: Record<string, string> = {
   "專案不存在": "errors.projectNotFound",
   "分鏡尚未完成": "errors.storyboardNotReady",
   "找不到這段分鏡": "errors.clipNotFound",
+  "這段已經送出，無法取消": "errors.clipAlreadySent",
   "這一段的分鏡圖還在產生中，請稍後再重畫": "errors.framesStillGenerating",
   "沒有需要補齊的段落": "errors.nothingToProcess",
   "未知的產生類型": "errors.unknownGenerateKind",

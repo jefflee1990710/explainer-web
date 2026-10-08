@@ -153,7 +153,7 @@ export function sceneTextSkillHint(
   if (options?.listicle) {
     return [
       "On-canvas text is REQUIRED for this director. Every still must show a readable numbered list of the item titles (each item clip's englishVo).",
-      "Highlight the current item. The list is a primary graphic in the scene, not a tiny subtitle bar.",
+      "Show items one by one. Highlight the current item on an item clip. The last clip shows the full list, every title readable. The list is a primary graphic in the scene, not a tiny subtitle bar.",
       lookLine,
       "Lettering follows that Look. Do not copy typography from the visual style.",
       SCENE_TEXT_PRESETS[language].skillHint,

@@ -13,6 +13,7 @@ import { StylePicker } from "@/presentation/components/style-picker";
 import {
   generateAllClipsAction,
   generateAllSceneImagesAction,
+  cancelPendingClipVideoAction,
   generateClipFramesAction,
   generateClipVideoAction,
   generateRemainingAction,
@@ -94,7 +95,7 @@ import type {
   VoiceGender,
 } from "@/model/project";
 import { CharacterPicker } from "@/presentation/components/app/projects/[id]/character-picker";
-import { ProductPicker } from "@/presentation/components/app/products/product-picker";
+import { ProductDropdown } from "@/presentation/components/app/projects/new/product-dropdown";
 import { SkillPicker } from "@/presentation/components/app/projects/[id]/skill-picker";
 import { AspectRatioPicker } from "@/presentation/components/app/projects/new/aspect-ratio-picker";
 import { DirectorProgress } from "@/presentation/components/app/projects/new/director-progress";
@@ -586,6 +587,21 @@ export function NewProjectForm({
     void runPaid(`video:${clipNumber}`, () => generateClipVideoAction(project.id, clipNumber), cost);
   }
 
+  async function onCancelVideo(clipNumber: number) {
+    if (!project) return;
+    setPending(`cancel-video:${clipNumber}`);
+    setError("");
+    const result = await cancelPendingClipVideoAction(project.id, clipNumber);
+    setPending("");
+    notifyTasksChanged();
+    if (!result.ok) {
+      setError(translateAppError(result.error, t));
+      return;
+    }
+    setProject(result.project);
+    router.refresh();
+  }
+
   // 全部產生: fill gaps, redraw every frame, or redraw + auto video.
   function onBulkGenerate(mode: BulkMode) {
     if (!project) return Promise.resolve(false);
@@ -878,10 +894,20 @@ export function NewProjectForm({
                     required={castNeed}
                   />
                 </div>
+                <p className="mt-5 text-sm font-semibold">{t("brief.section04.lookTitle")}</p>
+                <p className="mt-1 text-xs text-muted">{t("brief.section04.lookHint")}</p>
+                <div className="mt-3">
+                  <TextStylePicker
+                    value={textStyleId}
+                    styles={textStyles}
+                    onChange={setTextStyleId}
+                    disabled={briefBusy}
+                  />
+                </div>
                 <p className="mt-5 text-sm font-semibold">{t("brief.products.title")}</p>
                 <p className="mt-1 text-xs text-muted">{t("brief.products.hint")}</p>
                 <div className="mt-3">
-                  <ProductPicker
+                  <ProductDropdown
                     products={products}
                     value={productIds}
                     onChange={setProductIds}
@@ -975,16 +1001,6 @@ export function NewProjectForm({
                   onLanguageChange={setSceneTextLanguage}
                   disabled={briefBusy}
                 />
-                <p className="mt-4 text-sm font-semibold">{t("brief.section04.lookTitle")}</p>
-                <p className="mt-1 text-xs text-muted">{t("brief.section04.lookHint")}</p>
-                <div className="mt-3">
-                  <TextStylePicker
-                    value={textStyleId}
-                    styles={textStyles}
-                    onChange={setTextStyleId}
-                    disabled={briefBusy}
-                  />
-                </div>
               </Section>
 
               <Section step="05" title={t("brief.section05.title")} hint={t("brief.section05.hint")}>
@@ -1141,6 +1157,7 @@ export function NewProjectForm({
               onRegenerateFrame={onRegenerateFrame}
               onUpdateClip={onUpdateClip}
               onGenerateVideo={onGenerateVideo}
+              onCancelVideo={onCancelVideo}
               onBulkGenerate={onBulkGenerate}
               onGenerateSelected={onGenerateSelected}
             />

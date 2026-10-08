@@ -36,6 +36,7 @@ export function ClipProduction({
   onRegenerateFrame,
   onUpdateClip,
   onGenerateVideo,
+  onCancelVideo,
   onBulkGenerate,
   onGenerateSelected,
 }: {
@@ -55,6 +56,7 @@ export function ClipProduction({
     regenerate: boolean,
   ) => Promise<boolean>;
   onGenerateVideo: (clipNumber: number) => void;
+  onCancelVideo: (clipNumber: number) => void;
   onBulkGenerate: (mode: BulkMode) => Promise<boolean>;
   onGenerateSelected: (clipNumbers: number[], kind: "frames" | "videos") => Promise<boolean>;
 }) {
@@ -117,6 +119,7 @@ export function ClipProduction({
         onOpenFrame={(position) => setEditingFrame({ clipNumber: state.clipNumber, position })}
         onUpdateClip={(input, regenerate) => onUpdateClip(state.clipNumber, input, regenerate)}
         onGenerateVideo={() => onGenerateVideo(state.clipNumber)}
+        onCancelVideo={() => onCancelVideo(state.clipNumber)}
         onSelect={select}
       />
     );

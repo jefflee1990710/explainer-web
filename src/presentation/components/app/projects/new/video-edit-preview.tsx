@@ -60,6 +60,8 @@ export function VideoEditPreview({
   const [live, setLive] = useState<{ left: number; top: number; w: number } | null>(null);
   const boxes = useRef(new Map<string, HTMLImageElement>());
   const videoRef = useRef<HTMLVideoElement>(null);
+  // Ignore the ended event the previous clip emits while its src is replaced.
+  const switchedAt = useRef(0);
   const current = items.find((item) => item.id === previewId) ?? items.find((item) => item.id === defaultTimelineId(items));
   const showingBookend = current && isTimelineBookend(current.id) ? current : undefined;
 
@@ -74,6 +76,7 @@ export function VideoEditPreview({
 
   function playFrom(id: string) {
     const item = items.find((row) => row.id === id);
+    switchedAt.current = performance.now();
     onSelect(id);
     setPreviewId(id);
     setAdvancing(Boolean(item?.src));
@@ -91,7 +94,18 @@ export function VideoEditPreview({
     onOpenSlot(slot);
   }
 
-  function advance() {
+  function advance(event?: React.SyntheticEvent<HTMLVideoElement>) {
+    if (performance.now() - switchedAt.current < 500) return;
+    const video = event?.currentTarget;
+    // Swapping the clip src can emit ended at time 0. That is not the clip finishing.
+    if (
+      video &&
+      Number.isFinite(video.duration) &&
+      video.duration > 0.25 &&
+      video.currentTime < video.duration - 0.25
+    ) {
+      return;
+    }
     const nextId = nextPlayableTimelineId(items, previewId);
     if (!nextId) {
       setAdvancing(false);

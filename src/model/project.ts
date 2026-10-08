@@ -167,6 +167,8 @@ export type ProjectClip = {
   submittedAt?: string;
   // Credits taken for the current attempt, so a refund returns the same amount.
   creditsCharged?: number;
+  // True while the video job is still in our queue and has not been sent.
+  unsent?: boolean;
 };
 
 // Concatenated reel of every storyboard clip, produced on the export step.
@@ -399,6 +401,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
       error: z.string().optional(),
       submittedAt: z.string().optional(),
       creditsCharged: z.number().optional(),
+      unsent: z.boolean().optional(),
     }),
   ),
   reelUrl: z.string().optional(),

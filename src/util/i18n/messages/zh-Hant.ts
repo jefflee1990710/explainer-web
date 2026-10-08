@@ -354,7 +354,7 @@ export const zhHant: Messages = {
     monthlyAllowance: " · 每月額度 {monthly}",
     bonusUnused: " · 加購未用 {bonus}",
     periodEnds: " · 週期至 {date}",
-    clipCostNote: "每張圖扣 4 credits，影片每秒扣 9 credits（最少 5 秒）。",
+    clipCostNote: "每張圖扣 4 credits，影片每秒扣 9 credits（最少 5 秒）。寫實電影感影片每秒扣 47 credits。",
     videoUpgradeTitle: "credits 不夠產生影片",
     videoUpgradeBody: "一支影片需要 {credits} credits。升級方案後就能繼續製作。",
     videoUpgradeCta: "升級方案",

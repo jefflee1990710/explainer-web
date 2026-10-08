@@ -38,6 +38,8 @@ export const productsZhHant = {
   pickerHint: "選填，最多 {max} 個。產品保持寫實，不會跟著影片畫風重繪。",
   pickerEmpty: "還沒有可用的產品。",
   pickerCreate: "新增產品",
+  pickerManage: "管理產品",
+  pickerSelected: "已選 {n} 個",
   pickerNone: "不使用產品",
   error: {
     name: "請輸入產品名稱。",

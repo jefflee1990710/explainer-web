@@ -202,7 +202,15 @@ function TimelineCard({
 
 function CardThumb({ item }: { item: EditTimelineItem }) {
   if (item.mediaKind === "video" && item.src) {
-    return <video src={item.src} muted playsInline className="absolute inset-0 h-full w-full object-cover" />;
+    // A video inside a button swallows the click, so the clip never selects.
+    return (
+      <video
+        src={item.src}
+        muted
+        playsInline
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+      />
+    );
   }
   const picture = item.mediaKind === "image" ? item.src : item.poster;
   if (!picture) return <VideoEditEmptyThumb />;

@@ -25,8 +25,10 @@ export function ClipPreviewStage({
   startPending,
   endPending,
   videoPending,
+  cancelPending,
   onOpenFrame,
   onGenerateVideo,
+  onCancelVideo,
   prevClip,
   nextClip,
   onSelect,
@@ -40,8 +42,10 @@ export function ClipPreviewStage({
   startPending: boolean;
   endPending: boolean;
   videoPending: boolean;
+  cancelPending: boolean;
   onOpenFrame: (position: FramePosition) => void;
   onGenerateVideo: () => void;
+  onCancelVideo: () => void;
   prevClip?: number;
   nextClip?: number;
   onSelect: (clipNumber: number) => void;
@@ -102,6 +106,8 @@ export function ClipPreviewStage({
             posterSrc={videoPoster}
             boxStyle={fit.video}
             onGenerate={onGenerateVideo}
+            onCancel={onCancelVideo}
+            cancelPending={cancelPending}
           />
           <FrameTile
             frame={end}

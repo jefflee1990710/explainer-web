@@ -95,6 +95,8 @@ export const productionZhHant = {
     failedOverlay: "產片失敗{error} · credits 已退回",
     failedInline: "產片失敗{error}",
     creditsRefunded: "credits 已退回",
+    cancelQueued: "取消排隊",
+    cancelQueuedHint: "尚未送出。點一下停止，並退回 credits。",
   },
   stale: { badge: "舊版" },
   frame: {

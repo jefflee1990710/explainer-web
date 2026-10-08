@@ -4,17 +4,20 @@ Present a readable director's proposal and stop for confirmation before writing 
 
 ## Adapt the source into a list
 
-- Extract the items; keep only those with a concrete visual stand-in. Merge near-duplicates.
-- Choose the count N that fits the preset (below) and state it in the hook.
+- Extract every distinct item. Do not drop items to fit a shorter preset. Merge only exact duplicates.
+- Always show them one by one. One item per clip until the item count passes the ceiling below.
+- Above that ceiling, put 2 items on a middle clip. Use 3 on a clip only when pairs would still pass the ceiling. Never more than 3 on one clip. If 3 per clip still passes the ceiling, keep 3 per clip and let the clip count run over the preset.
+- Item 1 and the last item each stay on their own clip when there are at least two clips.
 - Order: strong first, weakest middle, best last. State the reasoning in the arc.
 - Give every item the same sentence shape.
 
-Item counts and spoken words per preset (~2.2–2.5 words/second at medium pace). Slow ≈ 0.8× the words; fast ≈ 1.2×. Clip count and duration stay the same:
+Ceilings and spoken words (~2.2–2.5 words/second at medium pace). Slow ≈ 0.8× the words; fast ≈ 1.2×. One item per clip stays inside these ceilings:
 
-- **4–8s micro**: 1 item + hook in the same clip, or 2 items; ~10–18 words, 1–2 clips.
-- **15–20s short**: 3 items; ~35–50 words, 3–4 clips.
-- **30–45s punchy**: 4–5 items; ~70–110 words, 4–6 clips.
-- **50–60s full**: 6–8 items; ~120–150 words, 7–10 clips.
+- **4–8s micro**: ceiling 2 clips.
+- **15–20s short**: ceiling 4 clips; ~35–50 words when the list fits.
+- **30–45s punchy**: ceiling 6 clips; ~70–110 words when the list fits.
+- **50–60s full**: ceiling 10 clips; ~120–150 words when the list fits.
+- **Auto**: ceiling 12 clips, one item each until then.
 
 ## Header contract
 
@@ -33,10 +36,11 @@ Item counts and spoken words per preset (~2.2–2.5 words/second at medium pace)
 
 Rules per row:
 
-- Exactly one item per item row. The scene shows the numbered item list; the current title is highlighted.
+- One item per row unless this row is a packed middle clip (`items k-m of N`). A packed row joins those item lines in the VO with ` | ` and still shows them one by one: start highlights the first, end highlights the last.
 - `Scene at clip start` repeats the number device spec and states where the previous item went (slid off, shrunk into the row).
 - The item image is one concrete object or mini-scene; keep scale and placement consistent across items.
-- The last item row has the most vivid image and the longest beat.
+- The last item row has the most vivid image and the longest beat, and it is not the last clip.
+- The last clip is always `full list`: every item title visible at once, one closing line, the set at rest.
 - A visible change every 1.5–2.5 seconds.
 
 ## Scene detail
@@ -89,5 +93,5 @@ Ask the user to approve, drop/add/reorder an item, or change a global setting.
 - Best item is last; order reasoning stated.
 - Number device spec present and consistent; digits only.
 - Every clip 3–8s; same-shot start/end; next row inherits the previous end.
-- The last row rests on the set or last item; no loop.
+- The last row is `full list`, every title readable; no loop.
 - No padding beyond the source; no technical colour notation.

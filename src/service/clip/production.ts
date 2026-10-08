@@ -8,6 +8,7 @@ import {
 } from "@/service/billing/credits";
 import { videosCollection } from "@/dao";
 import { claimAndStartClipVideo } from "@/service/clip/auto-video";
+import { cancelPendingClipVideo, markUnsentClipVideos } from "@/service/clip/cancel-pending-video";
 import {
   enqueueClipFrameJobs,
   failUnsubmittedFrames,
@@ -45,7 +46,7 @@ async function enqueuedVideo(project: Project): Promise<PublicVideo> {
   const projects = await videosCollection();
   const updated = await projects.findOne({ _id: project._id });
   revalidatePath(folderVideoPath(project.projectId.toHexString(), project._id.toHexString()));
-  return toPublicVideo(updated ?? project);
+  return toPublicVideo(await markUnsentClipVideos(updated ?? project));
 }
 
 // Owner check + "storyboard approved" gate shared by every per-clip action.
@@ -158,6 +159,27 @@ export async function generateClipVideoAction(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "產片失敗",
+    };
+  }
+}
+
+// Stop a clip video that is still in our queue. A request the provider already
+// has cannot be pulled back.
+export async function cancelPendingClipVideoAction(
+  projectId: string,
+  clipNumber: number,
+): Promise<EnqueueResult> {
+  try {
+    const user = await requireAppUser();
+    const loaded = await loadProduction(projectId, user.clerkUserId);
+    if (!loaded.ok) return loaded;
+    const cancelled = await cancelPendingClipVideo(user.clerkUserId, loaded.project, clipNumber);
+    if (!cancelled.ok) return cancelled;
+    return { ok: true, project: await enqueuedVideo(loaded.project) };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "取消失敗",
     };
   }
 }

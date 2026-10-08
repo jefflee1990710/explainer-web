@@ -33,7 +33,7 @@ import {
 import { jobNeedsRefresh, settleProviderStatus, userFacingJobError } from "@/service/higgsfield/job-status";
 import { persistMedia } from "@/service/higgsfield/persist";
 import {
-  MINIMAX_H3_VIDEO_MODEL,
+  clipVideoModel,
   assertClipKeyframes,
   clipKeyframeUrls,
   planFrameSubmissions,
@@ -384,8 +384,9 @@ export async function sendClipVideo(
     durationSeconds: prompt.durationSeconds,
     startImageUrl: start,
     endImageUrl: end,
+    styleId: project.styleId,
   });
-  return toSent(MINIMAX_H3_VIDEO_MODEL, submitted);
+  return toSent(clipVideoModel(project.styleId), submitted);
 }
 
 // ---------- status sync ----------

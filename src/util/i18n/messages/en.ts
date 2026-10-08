@@ -363,7 +363,7 @@ export const en: Messages = {
     monthlyAllowance: " · monthly allowance {monthly}",
     bonusUnused: " · unused top-up {bonus}",
     periodEnds: " · period ends {date}",
-    clipCostNote: "Each image costs 4 credits. Video costs 9 credits per second (5-second minimum).",
+    clipCostNote: "Each image costs 4 credits. Video costs 9 credits per second (5-second minimum). Cinematic realistic video costs 47 credits per second.",
     videoUpgradeTitle: "Not enough credits for a video",
     videoUpgradeBody: "A video costs {credits} credits. Upgrade your plan to keep generating.",
     videoUpgradeCta: "Upgrade plan",

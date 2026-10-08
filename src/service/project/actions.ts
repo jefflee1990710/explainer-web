@@ -37,6 +37,7 @@ import { isListedStyleId } from "@/service/style/list-selectable";
 import type { CastMember, Character } from "@/model/character";
 import { PRODUCT_MAX, type Product, type ProductShot } from "@/model/product";
 import { isProjectBusy } from "@/service/clip-stage";
+import { markUnsentClipVideos } from "@/service/clip/cancel-pending-video";
 import { isReelBusy } from "@/service/reel/fingerprint";
 import { recoverStaleReel } from "@/service/reel/enqueue";
 import { applyPhaseAEdits } from "@/service/director/phase-a-edit";
@@ -864,7 +865,7 @@ export async function getVideoAction(videoId: string): Promise<VideoResult> {
       const recovered = await recoverStaleReel(video);
       if (recovered) {
         const fresh = await videos.findOne({ _id: video._id });
-        if (fresh) return { ok: true, project: toPublicVideo(fresh) };
+        if (fresh) return { ok: true, project: toPublicVideo(await markUnsentClipVideos(fresh)) };
       }
     }
     // Leftover 核准分鏡 videos enter 製作 the first time they are opened.
@@ -878,9 +879,10 @@ export async function getVideoAction(videoId: string): Promise<VideoResult> {
       );
       after(() => runStillJob(video._id));
       const promoted = await videos.findOne({ _id: video._id });
-      return { ok: true, project: toPublicVideo(promoted!) };
+      return { ok: true, project: toPublicVideo(await markUnsentClipVideos(promoted!)) };
     }
-    return { ok: true, project: toPublicVideo(video) };
+    const flagged = await markUnsentClipVideos(video);
+    return { ok: true, project: toPublicVideo(flagged) };
   } catch (error) {
     return {
       ok: false,

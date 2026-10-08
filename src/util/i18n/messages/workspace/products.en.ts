@@ -38,6 +38,8 @@ export const productsEn = {
   pickerHint: "Optional. Up to {max}. The product stays photorealistic and is not redrawn in the video style.",
   pickerEmpty: "No ready products yet.",
   pickerCreate: "Add a product",
+  pickerManage: "Manage products",
+  pickerSelected: "{n} selected",
   pickerNone: "No product",
   error: {
     name: "Enter a product name.",

@@ -66,6 +66,11 @@ test("no frames at all → no_frames", () => {
   assert.equal(clipStateFor(project(), 1).stage, "no_frames");
 });
 
+test("cinematic realistic bills the Seedance video rate", () => {
+  assert.equal(clipStateFor(project(), 1).videoCost, 45);
+  assert.equal(clipStateFor(project({ styleId: "realistic" }), 1).videoCost, 235);
+});
+
 test("one frame in flight → frames_generating", () => {
   const p = project({ frames: [frame(1, "start", "completed"), frame(1, "end", "in_progress")] });
   assert.equal(clipStateFor(p, 1).stage, "frames_generating");
@@ -90,6 +95,17 @@ test("both frames completed, no video → frames_ready", () => {
 test("only one frame completed (other missing) → no_frames", () => {
   const p = project({ frames: [frame(1, "start", "completed")] });
   assert.equal(clipStateFor(p, 1).stage, "no_frames");
+});
+
+test("a queued video can be cancelled only before it is sent", () => {
+  const frames = [frame(1, "start", "completed"), frame(1, "end", "completed")];
+  const waiting = clipStateFor(
+    project({ frames, clips: [{ ...clip(1, "queued"), unsent: true }] }),
+    1,
+  );
+  assert.equal(waiting.videoUnsent, true);
+  const sent = clipStateFor(project({ frames, clips: [clip(1, "queued")] }), 1);
+  assert.equal(sent.videoUnsent, false);
 });
 
 test("video queued → video_generating when frames are settled", () => {

@@ -18,6 +18,7 @@ import {
   dialogueQaDirectorBlock,
   isComparisonCardSkill,
   isTalkingBrollSkill,
+  listicleDirectorBlock,
   listicleListEntries,
   requiredCastCount,
   followShotDirectorBlock,
@@ -357,6 +358,10 @@ test("surprise, outfit, and follow each need one character", () => {
 });
 
 test("listicle forces on-canvas listing text", () => {
+  const block = listicleDirectorBlock();
+  assert.match(block, /one by one/);
+  assert.match(block, /full list/);
+  assert.match(block, /Never more than 3/);
   assert.equal(skillForcesSceneText("listicle-director"), true);
   assert.equal(skillForcesSceneText("tutorial-director"), false);
   const entries = listicleListEntries([

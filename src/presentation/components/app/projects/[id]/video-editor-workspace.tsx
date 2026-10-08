@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { NewProjectForm } from "@/presentation/components/app/projects/new/new-project-form";
 import { DeleteVideoDialog } from "@/presentation/components/app/projects/[id]/delete-video-dialog";
@@ -51,20 +51,44 @@ export function VideoEditorWorkspace({
     setVideo(initialVideo);
   }, [initialVideo]);
 
+  // Latest step handlers. Stored aside so a new function identity does not
+  // set state and retrigger the form effect.
+  const stepHandlers = useRef<{
+    onSelectStep: (step: number) => void;
+    onRestart: () => void;
+  } | null>(null);
+
+  const navKey = useRef<string | null>(null);
   const onStepNav = useCallback((nav: EditorStepNav | null) => {
+    stepHandlers.current = nav
+      ? { onSelectStep: nav.onSelectStep, onRestart: nav.onRestart }
+      : null;
+    const key = nav
+      ? `${nav.status}|${nav.viewing}|${nav.clipsReady}|${nav.failedAtStep ?? ""}|${nav.canRestart}`
+      : "";
+    if (navKey.current === key) return;
+    navKey.current = key;
     setStepNav((current) => {
-      if (current === nav) return current;
-      if (!current || !nav) return nav;
+      if (!nav) return current ? null : current;
       if (
+        current &&
         current.status === nav.status &&
         current.viewing === nav.viewing &&
         current.clipsReady === nav.clipsReady &&
-        current.failedAtStep === nav.failedAtStep
+        current.failedAtStep === nav.failedAtStep &&
+        current.canRestart === nav.canRestart
       ) {
-        if (current.onSelectStep === nav.onSelectStep) return current;
-        return { ...current, onSelectStep: nav.onSelectStep };
+        return current;
       }
-      return nav;
+      return {
+        status: nav.status,
+        failedAtStep: nav.failedAtStep,
+        viewing: nav.viewing,
+        clipsReady: nav.clipsReady,
+        canRestart: nav.canRestart,
+        onSelectStep: (step) => stepHandlers.current?.onSelectStep(step),
+        onRestart: () => stepHandlers.current?.onRestart(),
+      };
     });
   }, []);
 

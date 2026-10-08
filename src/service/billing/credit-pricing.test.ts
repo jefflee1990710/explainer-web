@@ -56,6 +56,12 @@ test("video is billed 9 credits per second with a 5 second minimum", () => {
   assert.equal(videoCost(Number.NaN), 45);
 });
 
+test("cinematic realistic video costs 47 credits per second", () => {
+  assert.equal(videoCost(5, "realistic"), 235);
+  assert.equal(videoCost(8, "realistic"), 376);
+  assert.equal(videoCost(3, "doodle"), 45);
+});
+
 test("a new account can draw images but cannot render a video", () => {
   assert.equal(WELCOME_CREDITS, 20);
   assert.equal(WELCOME_CREDITS >= FRAMES_COST, true);

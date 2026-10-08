@@ -175,7 +175,7 @@ export const briefEn = {
     "story-short-director": "A short film driven by character dialogue. Structure follows the source — no narrator.",
     "product-demo-director": "Pain, unbox, feature demo, result. The product look stays locked.",
     "dialogue-qa-director": "Exactly two characters ask and answer.",
-    "listicle-director": "One item per clip. Every still shows the list text.",
+    "listicle-director": "One item per clip. When the list is too long, a clip may hold two or three items and reveal them one by one. The last clip shows the full list.",
     "tutorial-director": "Show the result, then one step per clip, then the finished piece.",
     "opening-director": "A 3–4 second bumper: the brand logo enters and holds.",
     "ending-director": "A 3–4 second closer that settles on the brand logo.",
@@ -222,9 +222,9 @@ export const briefEn = {
       },
       "listicle-director": {
         voice: "Host narration; every item uses the same sentence shape",
-        structure: "Open with N items → one item per clip → best item last",
+        structure: "Always a list, one item per clip; pack two or three only when there are too many, best item last",
         picture: "Every still shows a numbered list with the current item highlighted",
-        frames: "One item per clip: the number pops in, then the image",
+        frames: "One item per clip; a packed clip highlights the first item at the start and the next at the end",
       },
       "tutorial-director": {
         voice: "Imperative narration (cut, tap, add)",

@@ -10,7 +10,7 @@ export * from "@/service/credit-costs";
 // Video credits for one storyboard clip, from its planned duration.
 export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
   const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
-  return videoCost(row?.durationSeconds ?? MIN_VIDEO_SECONDS);
+  return videoCost(row?.durationSeconds ?? MIN_VIDEO_SECONDS, project.styleId);
 }
 
 // Scene-image credits. Talking-head clip 2+ pays for the end still only.

@@ -95,6 +95,8 @@ export const productionEn = {
     failedOverlay: "Render failed{error} · credits refunded",
     failedInline: "Render failed{error}",
     creditsRefunded: "Credits refunded",
+    cancelQueued: "Cancel queue",
+    cancelQueuedHint: "Not sent yet. Click to stop and refund the credits.",
   },
   stale: { badge: "Stale" },
   frame: {

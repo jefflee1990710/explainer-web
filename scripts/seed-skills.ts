@@ -68,7 +68,7 @@ const SKILLS: SkillManifest[] = [
     dir: "listicle-director",
     slug: "listicle-director",
     title: "Listicle",
-    description: "N items, one per clip, fast cuts. Every still must show the list text.",
+    description: "A numbered list, one item per clip. Pack two or three only when the list is too long. The last clip shows the full list.",
     sortOrder: 5,
   },
   {

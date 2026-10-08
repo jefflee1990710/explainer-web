@@ -8,6 +8,12 @@ export async function generateClipFramesAction(
   return service.generateClipFramesAction(...args);
 }
 
+export async function cancelPendingClipVideoAction(
+  ...args: Parameters<typeof service.cancelPendingClipVideoAction>
+) {
+  return service.cancelPendingClipVideoAction(...args);
+}
+
 export async function generateClipVideoAction(
   ...args: Parameters<typeof service.generateClipVideoAction>
 ) {

@@ -28,6 +28,7 @@ export const errorsEn = {
   projectNotFound: "Project not found",
   storyboardNotReady: "Storyboard not ready",
   clipNotFound: "Clip not found",
+  clipAlreadySent: "This clip was already sent and cannot be cancelled.",
   framesStillGenerating: "Frames still generating — try again later",
   nothingToProcess: "Nothing to process",
   unknownGenerateKind: "Unknown generate type",

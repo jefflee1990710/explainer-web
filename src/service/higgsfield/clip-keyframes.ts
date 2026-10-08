@@ -5,6 +5,13 @@ import type { AspectRatio, ClipFrame, FramePosition } from "@/model/project";
 // Production V2 slug (H3 Max CLI job_type is OAuth-only).
 export const MINIMAX_H3_VIDEO_MODEL = "minimax/h3/image-to-video";
 
+// Cinematic realistic uses Seedance 2.0. Same first/last frame idea, higher cost.
+export const SEEDANCE_2_VIDEO_MODEL = "bytedance/seedance-2.0/image-to-video";
+
+export function clipVideoModel(styleId?: string) {
+  return styleId === "realistic" ? SEEDANCE_2_VIDEO_MODEL : MINIMAX_H3_VIDEO_MODEL;
+}
+
 export type FrameAnchorKind = "clip-start" | "prev-end" | "clip-end";
 
 export type FrameSubmitTarget = {
@@ -130,5 +137,23 @@ export function h3ClipVideoInput(input: {
     image_url: input.startImageUrl,
     end_image_url: input.endImageUrl,
     aigc_watermark: false,
+  };
+}
+
+// Seedance 2.0 rejects unknown fields. Framing follows the start still.
+// Native audio stays on so dialogue in the prompt is spoken in the clip.
+export function seedanceClipVideoInput(input: {
+  prompt: string;
+  durationSeconds: number;
+  startImageUrl: string;
+  endImageUrl: string;
+}) {
+  return {
+    prompt: input.prompt,
+    duration: h3DurationSeconds(input.durationSeconds),
+    resolution: "1080p" as const,
+    image_url: input.startImageUrl,
+    end_image_url: input.endImageUrl,
+    generate_audio: true,
   };
 }

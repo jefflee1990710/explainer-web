@@ -7,7 +7,7 @@ description: Use when turning a list article, a set of tips, tools, mistakes, or
 
 ## Core contract
 
-Turn one source into a confirmed director's proposal (Phase A) and then standalone per-clip video prompts (Phase B). Each clip runs 3–8 seconds (maximum 8 seconds). Clip count = 1 intro clip (optional for micro) + one clip per item + 0–1 outro clip, bounded by the duration preset (e.g. 3 items for 15–20s, 4–5 items for 30–45s, 6–8 items for 60s). Each item is one clear image and one clear line; the list order is a retention device.
+Turn one source into a confirmed director's proposal (Phase A) and then standalone per-clip video prompts (Phase B). Always make a numbered list. Each clip runs 3–8 seconds (maximum 8 seconds). Show the items one by one: one item per clip until the item count passes the duration ceiling. Only then put 2 items on a middle clip, or 3 if pairs would still pass the ceiling. Never more than 3 on one clip. The last clip always shows the full list. Each item is one clear image and one clear line; the list order is a retention device.
 
 ## Setup gate
 
@@ -24,18 +24,18 @@ If required items are missing, ask for them in one concise message and stop. Nev
 The rendering rules (canvas, look, palette, and motion) come from the **Visual style** block appended below this skill. Do not invent a different medium. Lettering comes only from the selected text style, never from the visual style or from this skill.
 
 - **Cast lock**: if character references / blueprints are attached, the host MUST follow them exactly across all clips; say so in `characterLock`, never restyle. If none, define ONE simple host in `characterLock` and keep it identical. The host may be absent from some item clips if the item is better shown as an object.
-- **On-canvas item list (required)**: every still MUST show a readable numbered list of the item titles as a primary graphic in the scene (not a tiny subtitle bar). Spell each title exactly from that item clip's `englishVo`. Highlight the current item. Hook and outro stills show the full list.
+- **On-canvas item list (required)**: every still MUST show a readable numbered list of the item titles as a primary graphic in the scene (not a tiny subtitle bar). Spell each title exactly from that item clip's `englishVo`. An item clip highlights the current item. The last clip shows every title at once.
 - **Item number device**: every item clip also carries a short in-world number marker (`1`, `2`, `3` … or `#1`) drawn as a prop in the style (a tag, a card, a badge, a chalk numeral). Same device, same position, every item.
 - **Item image**: each item is ONE concrete object or mini-scene that stands for it. Consistent scale and placement clip to clip so the list reads as a set.
 - Keep the setting constant; only the item image and the number change.
 
 ## Listicle architecture
 
-1. **Hook (Clip 1, first 2s)**: state the count and the promise mid-motion ("5 things…", "3 mistakes…") while the number device or first item slams in. Optional micro-tease of the last item ("…and #5 is the one everyone gets wrong"). No greetings.
-2. **Items**: one clip per item; the number pops first, then the item image appears/morphs, then the line lands. Order for retention: strong first, weakest in the middle, BEST LAST. If items are counted down, say so and keep the direction consistent.
+1. **Hook (Clip 1, first 2s)**: state the count and the promise mid-motion ("5 things…", "3 mistakes…") while the number device or first item slams in. Optional micro-tease of the last item ("…and #5 is the one everyone gets wrong"). No greetings. On a 2-clip micro, the hook may be the first item.
+2. **Items**: one clip per item until the list passes the duration ceiling. Only then combine 2 items on a middle clip, revealed one by one inside that clip. Use 3 on a clip only when pairs would still pass the ceiling. Never more than 3. Item 1 and the last item each stay alone when there are at least two item clips. The number pops first, then the item image appears, then the line lands. Order for retention: strong first, weakest in the middle, BEST LAST.
 3. **Optional mid-list pattern break**: for 6+ items, one item clip may change camera or scale to reset attention.
-4. **Payoff item**: the last item gets the most vivid image and the longest beat.
-5. **Outro (optional, ≤5s)**: the full set visible at once (the numbers lined up) and one closing line or CTA. The set rests. Never loop to item 1.
+4. **Payoff item**: the last item gets the most vivid image and the longest beat, still on its own clip.
+5. **Full list (required, last clip, ≤5s)**: every item title visible at once and one closing line or CTA. `narrativeJob` is `full list`. The set rests. Never loop to item 1. Do not drop this clip to save length.
 
 ## Narration
 
@@ -54,13 +54,13 @@ The rendering rules (canvas, look, palette, and motion) come from the **Visual s
 - `characterLock`: cast lock statement.
 - `palette`: ordinary colour words; one accent colour reserved for the number device.
 - `bgmDirection`: driving beat with a hit on every number pop and a lift on the last item.
-- Each clip row: `narrativeJob` = hook / item k of N / outro; `explainerScene` = the setting, host (if present), number device state, and item image at t=0; `motionCamera` = number pop → item appear/morph → settle, camera; `englishVo` = the line; `bgmSfx` = beat + number-pop SFX.
+- Each clip row: `narrativeJob` = hook / item k of N / items k–m of N / full list; `explainerScene` = the setting, host (if present), number device state, and item image at t=0; `motionCamera` = number pop → item appear → settle, camera; `englishVo` = the line (packed clips join lines with ` | `); `bgmSfx` = beat + number-pop SFX.
 
 ## Clip continuity
 
 - Start and end of each clip are the SAME SHOT; within a clip the number pops and the item image forms. New item images arrive at clip boundaries by inheriting the previous end (the previous item slides off or shrinks into a row as the next number arrives).
 - A visible change every 1.5–2.5 seconds: number pop, item appear, item morph, camera punch.
-- The last clip ends with the set (or the last item) at rest. Never bridge back to Clip 1.
+- The last clip is the full list at rest. Never bridge back to Clip 1.
 
 ## Workflow
 
@@ -73,6 +73,6 @@ The rendering rules (canvas, look, palette, and motion) come from the **Visual s
 
 - 3–8 seconds per clip; each prompt states its duration.
 - Colours in ordinary words only; never hexadecimal, RGB, HSL, or Pantone.
-- Items come only from the source; do not pad the list.
-- No captions, subtitles, item titles written on screen, or UI text beyond the number device.
-- The final clip rests; never a loop.
+- Items come only from the source; do not pad the list and do not drop items.
+- The numbered item list is required on every still. Do not add a second caption of the full voiceover.
+- The final clip shows the full list and rests; never a loop.

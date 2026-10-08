@@ -4,6 +4,9 @@ export const FRAMES_COST = 8;
 
 // Video is billed per second like the provider: 9 credits/s, 5–15 billed seconds.
 export const VIDEO_CREDITS_PER_SECOND = 9;
+// Seedance 2.0 at 1080p is about $0.68/s (1920×1080×24/1024 tokens × $0.014/1k).
+// MiniMax H3 is $0.13/s for 9 credits, so the same credit value is 47 credits/s.
+export const CINEMATIC_VIDEO_CREDITS_PER_SECOND = 47;
 export const MIN_VIDEO_SECONDS = 5;
 export const MAX_VIDEO_SECONDS = 15;
 export const MIN_VIDEO_COST = VIDEO_CREDITS_PER_SECOND * MIN_VIDEO_SECONDS;
@@ -14,8 +17,12 @@ export function billedVideoSeconds(seconds: number) {
   return Math.min(MAX_VIDEO_SECONDS, Math.max(MIN_VIDEO_SECONDS, rounded));
 }
 
-export function videoCost(seconds: number) {
-  return VIDEO_CREDITS_PER_SECOND * billedVideoSeconds(seconds);
+export function videoCreditsPerSecond(styleId?: string) {
+  return styleId === "realistic" ? CINEMATIC_VIDEO_CREDITS_PER_SECOND : VIDEO_CREDITS_PER_SECOND;
+}
+
+export function videoCost(seconds: number, styleId?: string) {
+  return videoCreditsPerSecond(styleId) * billedVideoSeconds(seconds);
 }
 
 // What a clip video attempt was charged. Older clips predate `creditsCharged`.

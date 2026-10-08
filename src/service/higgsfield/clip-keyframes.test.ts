@@ -3,11 +3,14 @@ import { test } from "node:test";
 import type { ClipFrame } from "@/model/project";
 import {
   MINIMAX_H3_VIDEO_MODEL,
+  SEEDANCE_2_VIDEO_MODEL,
   assertClipKeyframes,
   clipFrameAnchor,
   clipKeyframeUrls,
+  clipVideoModel,
   h3ClipVideoInput,
   planFrameSubmissions,
+  seedanceClipVideoInput,
 } from "@/service/higgsfield/clip-keyframes";
 
 function frame(
@@ -196,5 +199,26 @@ test("h3ClipVideoInput clamps duration to MiniMax H3 5–15s", () => {
       endImageUrl: "https://blob/end.png",
     }).duration,
     15,
+  );
+});
+
+test("cinematic realistic sends Seedance 2.0 with both frames", () => {
+  assert.equal(clipVideoModel("realistic"), SEEDANCE_2_VIDEO_MODEL);
+  assert.equal(clipVideoModel("doodle"), MINIMAX_H3_VIDEO_MODEL);
+  assert.deepEqual(
+    seedanceClipVideoInput({
+      prompt: "walk to the box",
+      durationSeconds: 5,
+      startImageUrl: "https://blob/start.png",
+      endImageUrl: "https://blob/end.png",
+    }),
+    {
+      prompt: "walk to the box",
+      duration: 5,
+      resolution: "1080p",
+      image_url: "https://blob/start.png",
+      end_image_url: "https://blob/end.png",
+      generate_audio: true,
+    },
   );
 });

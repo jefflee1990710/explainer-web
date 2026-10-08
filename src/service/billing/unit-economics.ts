@@ -3,6 +3,7 @@ import { FRAMES_COST, MIN_VIDEO_COST, MIN_VIDEO_SECONDS } from "@/service/credit
 // Provider COGS used to set list prices (checked 2026-09).
 // Image: Marketing Studio Flare ~$0.075 (Qwen Image 3 is $0.04).
 // Video: MiniMax H3 image-to-video at 2K, $0.13 per second.
+// Cinematic realistic uses Seedance 2.0 at 1080p, about $0.68 per second.
 export const IMAGE_COGS_USD = 0.075;
 export const VIDEO_COGS_PER_SECOND_USD = 0.13;
 
