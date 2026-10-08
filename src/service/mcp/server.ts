@@ -7,7 +7,6 @@ import {
   getVideoAction,
   reviseProjectAction,
 } from "@/service/project/actions";
-import { importReferenceImage } from "@/service/project/reference-image-import";
 import { approveStoryboardAction } from "@/service/generation/actions";
 import {
   generateClipFramesAction,
@@ -25,7 +24,6 @@ import {
 } from "@/dao";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { listPublicStyles } from "@/service/style/list";
-import { mcpToolCallsCollection } from "@/dao";
 import {
   clipVideoCost,
   FRAME_COST,
@@ -36,87 +34,12 @@ import {
 import type { PublicVideo } from "@/presentation/serialize";
 import type { AppUser } from "@/model/user";
 import type { McpApiKey } from "@/model/mcp";
-import type { OptionalId } from "mongodb";
-import type { McpToolCall } from "@/model/mcp";
-
-function textResult(data: unknown) {
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: typeof data === "string" ? data : JSON.stringify(data, null, 2),
-      },
-    ],
-  };
-}
-
-function errorResult(message: string) {
-  return {
-    content: [{ type: "text" as const, text: message }],
-    isError: true as const,
-  };
-}
-
-async function logCall(input: {
-  user: AppUser;
-  apiKey: McpApiKey;
-  tool: string;
-  ok: boolean;
-  error?: string;
-  latencyMs: number;
-  creditsCharged: number;
-}) {
-  const col = await mcpToolCallsCollection();
-  const doc: OptionalId<McpToolCall> = {
-    clerkUserId: input.user.clerkUserId,
-    apiKeyId: input.apiKey._id,
-    tool: input.tool,
-    ok: input.ok,
-    error: input.error,
-    latencyMs: input.latencyMs,
-    creditsCharged: input.creditsCharged,
-    createdAt: new Date(),
-  };
-  await col.insertOne(doc).catch(() => {});
-}
-
-function wrapTool<TArgs>(
-  user: AppUser,
-  apiKey: McpApiKey,
-  tool: string,
-  // Fixed cost, or one read from the tool result (per-second video pricing).
-  creditsCharged: number | ((result: unknown, args: TArgs) => number),
-  fn: (args: TArgs) => Promise<unknown>,
-) {
-  return async (args: TArgs) => {
-    const started = Date.now();
-    try {
-      const result = await fn(args);
-      await logCall({
-        user,
-        apiKey,
-        tool,
-        ok: true,
-        latencyMs: Date.now() - started,
-        creditsCharged:
-          typeof creditsCharged === "function" ? creditsCharged(result, args) : creditsCharged,
-      });
-      return textResult(result);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Tool failed";
-      await logCall({
-        user,
-        apiKey,
-        tool,
-        ok: false,
-        error: message,
-        latencyMs: Date.now() - started,
-        creditsCharged: 0,
-      });
-      return errorResult(message);
-    }
-  };
-}
+import { registerBriefTools } from "@/service/mcp/brief-tools";
+import { registerGenerationTools } from "@/service/mcp/generation-tools";
+import { registerReelEditTools } from "@/service/mcp/reel-edit-tools";
+import { fillVideoBrief, videoBriefFields } from "@/service/mcp/video-brief";
+import { requireVideoApproval } from "@/service/mcp/video-approval";
+import { wrapTool } from "@/service/mcp/wrap-tool";
 
 export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
   const server = new McpServer({
@@ -280,76 +203,16 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     {
       title: "Create video",
       description:
-        "Create a video inside a folder and start storyboard generation. skillSlug is the director skill.",
+        "Create a video inside a folder and start storyboard generation. skillSlug comes from list_skills.",
       inputSchema: {
         folderId: z.string(),
-        source: z
-          .string()
-          .min(1)
-          .describe("Director instruction: how to plan the video; may include the topic or a full script"),
-        spokenScript: z
-          .string()
-          .optional()
-          .describe(
-            "Talking-head only: exact words the character reads. Required when skillSlug is talking-head-director or full-body-talking-head-director.",
-          ),
-        referenceImages: z
-          .array(
-            z.object({
-              url: z.string().url().describe("Public PNG/JPG/WebP image, ≤ 5MB"),
-              description: z
-                .string()
-                .trim()
-                .min(1)
-                .max(300)
-                .describe("What it shows and how the director should use it"),
-            }),
-          )
-          .max(4)
-          .optional()
-          .describe("Scene references; the director assigns them to clips and reuses them for scene stills"),
-        skillSlug: z.string().default("cartoon-explainer"),
-        styleId: z.string(),
-        aspectRatio: z.enum(["16:9", "9:16", "1:1"]),
-        durationPreset: z.enum(["auto", "micro", "short", "punchy", "full"]),
-        language: z.string().default("en"),
-        voiceGender: z.enum(["male", "female"]).default("male"),
-        speechPace: z
-          .enum(["slow", "medium", "fast"])
-          .default("medium")
-          .describe("Speaking speed for narration / dialogue"),
-        sceneTextLanguage: z
-          .enum(["en", "zh-Hant", "zh-Hans"])
-          .default("en")
-          .describe("On-canvas text is always on; this picks its script"),
-        characterIds: z
-          .array(z.string())
-          .optional()
-          .describe("Required: exactly 2 ids when skillSlug is dialogue-qa-director"),
+        ...videoBriefFields,
       },
     },
     wrapTool(user, apiKey, "create_video", 0, async (args) => {
       const form = new FormData();
       form.set("projectId", args.folderId);
-      form.set("source", args.source);
-      if (args.spokenScript) form.set("spokenScript", args.spokenScript);
-      form.set("skillSlug", args.skillSlug);
-      form.set("styleId", args.styleId);
-      form.set("aspectRatio", args.aspectRatio);
-      form.set("durationPreset", args.durationPreset);
-      form.set("language", args.language);
-      form.set("voiceGender", args.voiceGender);
-      form.set("speechPace", args.speechPace);
-      form.set("sceneTextLanguage", args.sceneTextLanguage);
-      for (const id of args.characterIds || []) form.append("characterIds", id);
-      const references: Array<{ url: string; description: string }> = [];
-      for (const item of args.referenceImages || []) {
-        references.push({
-          url: await importReferenceImage(item.url, user.clerkUserId),
-          description: item.description,
-        });
-      }
-      if (references.length) form.set("referenceImages", JSON.stringify(references));
+      await fillVideoBrief(form, args, user.clerkUserId);
       const result = await createVideoAction(form);
       if (!result.ok) throw new Error(result.error);
       return result.project;
@@ -415,11 +278,12 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     "generate_clip_video",
     {
       title: "Generate clip video",
-      description: `Generate the rendered video for one clip (costs ${VIDEO_CREDITS_PER_SECOND} credits per second, minimum ${MIN_VIDEO_COST}).`,
+      description: `Generate or regenerate the rendered video for one clip (costs ${VIDEO_CREDITS_PER_SECOND} credits per second, minimum ${MIN_VIDEO_COST}). Asks the user to approve before anything is queued.`,
       inputSchema: {
         videoId: z.string(),
         clipNumber: z.number().int().positive(),
       },
+      annotations: { destructiveHint: true },
     },
     wrapTool<{ videoId: string; clipNumber: number }>(
       user,
@@ -427,6 +291,10 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
       "generate_clip_video",
       (project, args) => clipVideoCost(project as PublicVideo, args.clipNumber),
       async (args) => {
+        await requireVideoApproval(
+          server,
+          `要產生 Clip ${args.clipNumber} 的影片嗎？這會扣除 credits。`,
+        );
         const result = await generateClipVideoAction(args.videoId, args.clipNumber);
         if (!result.ok) throw new Error(result.error);
         const loaded = await getVideoAction(args.videoId);
@@ -440,10 +308,16 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     "generate_remaining",
     {
       title: "Generate remaining",
-      description: "Generate all remaining frames and videos for a project.",
+      description:
+        "Generate all remaining frames and videos for a project. Asks the user to approve before anything is queued, because this can render video.",
       inputSchema: { videoId: z.string() },
+      annotations: { destructiveHint: true },
     },
     wrapTool(user, apiKey, "generate_remaining", 0, async ({ videoId }) => {
+      await requireVideoApproval(
+        server,
+        "要補齊尚未完成的場景圖並產生影片嗎？產生影片會扣除 credits。",
+      );
       const result = await generateRemainingAction(videoId);
       if (!result.ok) throw new Error(result.error);
       return { project: result.project, skipped: result.skipped };
@@ -475,6 +349,11 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
       return result.character;
     }),
   );
+
+  const ctx = { server, user, apiKey };
+  registerBriefTools(ctx);
+  registerGenerationTools(ctx);
+  registerReelEditTools(ctx);
 
   return server;
 }

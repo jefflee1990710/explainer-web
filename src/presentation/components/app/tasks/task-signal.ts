@@ -30,7 +30,7 @@ export function notifyProjectRefresh(videoId: string) {
   for (const listener of projectListeners) listener(videoId);
 }
 
-// Image / video jobs that just finished. The toaster dedupes by task id
+// Image / video jobs that just finished. The notifier dedupes by task id
 // because more than one poller can report the same snapshot.
 const generationListeners = new Set<(tasks: PublicTask[]) => void>();
 

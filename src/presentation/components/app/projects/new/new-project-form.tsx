@@ -252,7 +252,7 @@ export function NewProjectForm({
   }, [credits]);
 
   // A settled frame or clip should refresh the task list immediately so the
-  // app-wide toast can announce it without waiting for the next 5s tick.
+  // browser notification can fire without waiting for the next 5s tick.
   const settledRef = useRef(false);
   const onPollUpdate = useCallback((next: PublicVideo) => {
     setProject((current) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { SignedInAccount } from "@/presentation/components/auth/signed-in-account";
-import { GenerationDoneToaster } from "@/presentation/components/app/tasks/generation-done-toaster";
+import { GenerationDoneNotifier } from "@/presentation/components/app/tasks/generation-done-notifier";
 import { TaskQueueBanner } from "@/presentation/components/app/tasks/task-queue-banner";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { StudioShell, type StudioNavItem } from "@/presentation/studio/studio-shell";
@@ -63,7 +63,7 @@ export function AppShell({
       }
     >
       {children}
-      <GenerationDoneToaster />
+      <GenerationDoneNotifier />
     </StudioShell>
   );
 }
