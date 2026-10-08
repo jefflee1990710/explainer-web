@@ -12,9 +12,9 @@ export const pickersEn = {
     "zh-Hans": { label: "简体中文", sublabel: "画面文字" },
   },
   subtitleLook: {
-    handwritten: { label: "Handwritten", sublabel: "Marker, not a printed font" },
-    clean: { label: "Clean", sublabel: "Sans on a white plate" },
-    bold: { label: "Bold", sublabel: "Condensed display type" },
+    handwritten: { label: "Marker", sublabel: "Black marker on torn paper" },
+    clean: { label: "Torn paper", sublabel: "Black strip and green strip" },
+    bold: { label: "Impact", sublabel: "Worn white type, yellow brush" },
   },
   speechPace: {
     slow: { label: "Slow", sublabel: "Pauses between sentences" },

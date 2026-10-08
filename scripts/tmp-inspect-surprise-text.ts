@@ -1,7 +1,7 @@
 import { loadEnvConfig } from "@next/env";
 import { ObjectId } from "mongodb";
 import { videosCollection } from "@/dao";
-import { surpriseTypeLines } from "@/service/director/surprise-interview";
+import { surpriseTypeLines, surpriseVarietyPlan } from "@/service/director/surprise-interview";
 import { subtitleText } from "@/service/director/spoken-line";
 import { buildFramePrompt } from "@/service/higgsfield/frame-prompts";
 import { hydrateStyles } from "@/service/style/load-style";
@@ -16,6 +16,7 @@ async function main() {
   const video = await videos.findOne({ _id: VIDEO_ID });
   if (!video?.phaseA) throw new Error("missing");
   const fresh = buildFramePrompt(video, 2, "start");
+  const variety = surpriseVarietyPlan(video.phaseA);
   console.log(
     JSON.stringify(
       {
@@ -35,8 +36,8 @@ async function main() {
           n: clip.clipNumber,
           vo: clip.englishVo,
           poster: surpriseTypeLines({
-            clipNumber: clip.clipNumber,
             line: subtitleText(clip.englishVo) || clip.englishVo,
+            place: variety.find((item) => item.clipNumber === clip.clipNumber)?.place ?? "top",
           }),
         })),
         frames: (video.frames || []).map((frame) => ({

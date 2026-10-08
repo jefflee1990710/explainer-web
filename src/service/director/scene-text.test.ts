@@ -151,7 +151,7 @@ test("reel safe zone stays in the center and does not take placement from a styl
   });
   const text = lines.join("\n");
   assert.match(text, /center safe area/);
-  assert.match(text, /geometric sans/);
+  assert.match(text, /torn-paper strips/);
   assert.match(text, /We made it/);
   assert.doesNotMatch(text, /70%/);
   assert.doesNotMatch(text, /bottom 18%/);
@@ -225,7 +225,7 @@ test("subtitle look changes lettering and never the director placement", () => {
   assert.match(marker, /condensed sans/);
   assert.match(marker, /No bottom subtitle band/);
   assert.doesNotMatch(marker, /40%|70%|20%/);
-  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /geometric sans/);
+  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /torn-paper strips/);
   assert.match(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /Not a bottom subtitle bar/);
   assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /40%/);
 });

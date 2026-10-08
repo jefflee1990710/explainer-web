@@ -7,7 +7,9 @@ test("subtitle look is appearance only and falls back when missing", () => {
   assert.equal(resolveSubtitleLook("nope"), "handwritten");
   assert.equal(resolveSubtitleLook("bold"), "bold");
   const line = subtitleLookLine("clean");
-  assert.match(line, /geometric sans/);
+  assert.match(line, /torn-paper strips/);
+  assert.match(subtitleLookLine("bold"), /yellow dry-brush/);
+  assert.match(subtitleLookLine("handwritten"), /thick black marker/);
   assert.doesNotMatch(line, /%|bottom|center|lower third|safe area/i);
   const sample = textStyleSampleLookLine(3);
   assert.match(sample, /attached image 3/);

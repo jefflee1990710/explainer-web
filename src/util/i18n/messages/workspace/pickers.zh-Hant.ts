@@ -12,9 +12,9 @@ export const pickersZhHant = {
     "zh-Hans": { label: "简体中文", sublabel: "画面文字" },
   },
   subtitleLook: {
-    handwritten: { label: "手寫", sublabel: "馬克筆，不是印刷體" },
-    clean: { label: "乾淨", sublabel: "黑體配白板" },
-    bold: { label: "粗體", sublabel: "窄體展示字" },
+    handwritten: { label: "馬克筆", sublabel: "撕紙上的黑筆手寫" },
+    clean: { label: "撕紙", sublabel: "黑條與綠條" },
+    bold: { label: "衝擊字", sublabel: "磨損白字，黃刷底" },
   },
   speechPace: {
     slow: { label: "慢", sublabel: "從容、句間停頓" },

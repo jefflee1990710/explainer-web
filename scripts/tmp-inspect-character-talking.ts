@@ -1,6 +1,7 @@
 import { loadEnvConfig } from "@next/env";
 import { ObjectId } from "mongodb";
 import { videosCollection } from "@/dao";
+import type { ProjectClip, StoryboardRow } from "@/model/project";
 
 loadEnvConfig(process.cwd());
 
@@ -36,16 +37,16 @@ async function main() {
         spokenScript: row.spokenScript?.slice(0, 200),
         clipCount: row.phaseA?.clips?.length,
         talkingRows: row.phaseA?.clips
-          ?.filter((clip) => clip.englishVo && !/no dialogue/i.test(clip.englishVo))
+          ?.filter((clip: StoryboardRow) => clip.englishVo && !/no dialogue/i.test(clip.englishVo))
           .slice(0, 2)
-          .map((clip) => ({
+          .map((clip: StoryboardRow) => ({
             n: clip.clipNumber,
             vo: clip.englishVo,
             motion: clip.motionCamera,
           })),
         videos: row.clips
-          ?.filter((clip) => clip.status === "completed")
-          .map((clip) => ({ n: clip.clipNumber, url: clip.blobUrl || clip.outputUrl })),
+          ?.filter((clip: ProjectClip) => clip.status === "completed")
+          .map((clip: ProjectClip) => ({ n: clip.clipNumber, url: clip.blobUrl || clip.outputUrl })),
       })),
       null,
       2,
