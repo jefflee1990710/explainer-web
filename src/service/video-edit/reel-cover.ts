@@ -306,6 +306,13 @@ export async function generateReelCoverAction(
   }
 }
 
+// Drop empty slots, then swap each blueprint sheet for one standing figure.
+async function coverReferenceUrls(project: Project, refs: Array<string | undefined>) {
+  const urls = refs.filter((url): url is string => Boolean(url));
+  if (!project.cast || project.cast.length === 0) return urls;
+  return withSceneCharacterLocks(project.cast, urls);
+}
+
 export async function sendReelCover(project: Project) {
   const style = await loadRenderableStyle({
     styleId: project.styleId,
@@ -336,10 +343,7 @@ export async function sendReelCover(project: Project) {
     quality: "medium",
     resolution: "1k",
     sceneTextLanguage: sceneText.language,
-    referenceImageUrls:
-      project.cast && project.cast.length > 0
-        ? await withSceneCharacterLocks(project.cast, [stillUrl, ...characterUrls, ...logoUrls])
-        : [stillUrl, ...characterUrls, ...logoUrls],
+    referenceImageUrls: await coverReferenceUrls(project, [stillUrl, ...characterUrls, ...logoUrls]),
   });
   return toSent(model, submitted);
 }
