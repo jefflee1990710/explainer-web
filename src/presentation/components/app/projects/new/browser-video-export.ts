@@ -220,6 +220,31 @@ export async function renderVideoInBrowser(
     return;
   }
 
+  // Nothing to burn in: save the clip, or the file the joins already encoded.
+  if (!exportNeedsRender(edit)) {
+    if (clipUrls.length === 1) {
+      const bytes = await fetchBytes(
+        clipUrls[0],
+        (ratio) => onProgress({ phase: "download", ratio, phases }),
+        signal,
+      );
+      remember(key, bytes);
+      onProgress({ phase: "save", ratio: 1, phases });
+      saveBlob(bytes, filename);
+      return;
+    }
+    const ffmpeg = await loadEncoder((ratio) => onProgress({ phase: "encoder", ratio, phases }), signal);
+    throwIfAborted(signal);
+    let mainName = "main.mp4";
+    try {
+      mainName = await assembleClips(ffmpeg, clipUrls, edit, clipNumbers, onProgress, phases, signal);
+      await saveEncoderFile(ffmpeg, mainName, key, filename, phases, onProgress);
+    } finally {
+      await forgetEncoderFiles(ffmpeg, [], mainName);
+    }
+    return;
+  }
+
   const ffmpeg = await loadEncoder((ratio) => onProgress({ phase: "encoder", ratio, phases }), signal);
   throwIfAborted(signal);
 
@@ -318,30 +343,48 @@ export async function renderVideoInBrowser(
     }
     if (code !== 0) throw new Error("encode");
 
-    const raw = await ffmpeg.readFile("final.mp4");
-    if (typeof raw === "string") throw new Error("encode");
-    const bytes = new Uint8Array(raw);
-    remember(key, bytes);
-    onProgress({ phase: "save", ratio: 1, phases });
-    saveBlob(bytes, filename);
+    await saveEncoderFile(ffmpeg, "final.mp4", key, filename, phases, onProgress);
   } finally {
-    for (const file of files) await forget(ffmpeg, file.name);
-    await forget(ffmpeg, mainName);
-    await forget(ffmpeg, "acc-a.mp4");
-    await forget(ffmpeg, "acc-b.mp4");
-    await forget(ffmpeg, "next.mp4");
-    await forget(ffmpeg, "final.mp4");
+    await forgetEncoderFiles(ffmpeg, files.map((file) => file.name), mainName);
   }
 }
 
+// Layers and bookends need a final encode. A plain reel is already an mp4.
+export function exportNeedsRender(edit: VideoEdit) {
+  return edit.layers.length > 0 || Boolean(edit.intro) || Boolean(edit.outro);
+}
+
 export function exportPhases(clipCount: number, edit: VideoEdit): ExportPhase[] {
-  const assets = edit.layers.length + (edit.intro ? 1 : 0) + (edit.outro ? 1 : 0);
-  if (clipCount > 1) {
-    return assets > 0
-      ? ["encoder", "join", "download", "encode", "save"]
-      : ["encoder", "join", "encode", "save"];
+  if (!exportNeedsRender(edit)) {
+    return clipCount > 1 ? ["encoder", "join", "save"] : ["download", "save"];
   }
+  if (clipCount > 1) return ["encoder", "join", "download", "encode", "save"];
   return ["encoder", "download", "encode", "save"];
+}
+
+async function saveEncoderFile(
+  ffmpeg: FFmpeg,
+  name: string,
+  key: string,
+  filename: string,
+  phases: ExportPhase[],
+  onProgress: (job: ExportJob) => void,
+) {
+  const raw = await ffmpeg.readFile(name);
+  if (typeof raw === "string") throw new Error("encode");
+  const bytes = new Uint8Array(raw);
+  remember(key, bytes);
+  onProgress({ phase: "save", ratio: 1, phases });
+  saveBlob(bytes, filename);
+}
+
+async function forgetEncoderFiles(ffmpeg: FFmpeg, names: string[], mainName: string) {
+  for (const name of names) await forget(ffmpeg, name);
+  await forget(ffmpeg, mainName);
+  await forget(ffmpeg, "acc-a.mp4");
+  await forget(ffmpeg, "acc-b.mp4");
+  await forget(ffmpeg, "next.mp4");
+  await forget(ffmpeg, "final.mp4");
 }
 
 // Download clip 1, then clip 2, join them, then join that file with the next clip.
