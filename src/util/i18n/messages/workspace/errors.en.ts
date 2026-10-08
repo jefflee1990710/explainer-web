@@ -65,6 +65,7 @@ export const errorsEn = {
   directorChatFailed: "AI edit failed. Try again.",
   directorChatNoEdits: "AI did not change anything",
   directorChatRateLimited: "Too many AI edits. Try again later.",
+  sceneChatEmpty: "Start and end scenes cannot be empty.",
   directorCreateFailed: "Could not create director",
   directorSaveFailed: "Could not save director",
   directorDeleteFailed: "Could not delete director",

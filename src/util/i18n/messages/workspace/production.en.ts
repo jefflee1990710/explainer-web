@@ -83,6 +83,7 @@ export const productionEn = {
     clipInfoAria: "Clip info",
     previewAria: "Preview",
     timelineAria: "Timeline",
+    chatAria: "AI scene chat",
   },
   annotation: {
     textPlaceholder: "Note",
@@ -319,6 +320,20 @@ export const productionEn = {
       emptyError: "Scene and voiceover cannot be empty.",
       dualEmptyError: "Start/end scenes and both VO lines cannot be empty.",
     },
+  },
+  sceneChat: {
+    title: "Edit clip {n} with AI",
+    empty: "Describe a change to the start still, the end still, or the camera. Then use the button in the reply to redraw the frames and make the video.",
+    placeholder: "Example: make the ending overhead and push the camera in",
+    send: "Send",
+    changed: "Updated: {fields}",
+    fieldStart: "Start still",
+    fieldEnd: "End still",
+    fieldMotion: "Camera",
+    regenerate: "Redraw frames & video · {credits}",
+    regenerating: "Redrawing the frames. The video starts when they finish.",
+    locked: "Subscribe to edit scenes with AI.",
+    lockedCta: "View plans",
   },
 } as const;
 

@@ -44,7 +44,7 @@ test("concatMp4Buffers joins same-codec clips into one mp4", async () => {
       ["-i", out, "-f", "null", "-"],
       { encoding: "utf8" },
     );
-    assert.match(probe.stderr, /Duration: 00:00:00\.4/);
+    assert.match(probe.stderr, /Duration: 00:00:00\.6/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

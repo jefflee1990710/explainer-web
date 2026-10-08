@@ -38,7 +38,7 @@ export function EditorStepSwitch({
     <div
       role="tablist"
       aria-label={t("video.editor.stepsAria")}
-      className="inline-flex shrink-0 items-end gap-1"
+      className="inline-flex shrink-0 items-center gap-0.5 rounded-lg bg-[var(--studio-ink)] p-0.5"
     >
       {steps.map(({ id, index }) => {
         const label = projectStepLabel(id, t);
@@ -52,13 +52,15 @@ export function EditorStepSwitch({
             aria-selected={selected}
             disabled={!clickable}
             onClick={() => onSelectStep(index)}
-            className={`inline-flex items-center gap-1 border-b-2 px-2 py-1 text-xs transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] [&_svg]:h-3.5 [&_svg]:w-3.5 ${
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] [&_svg]:h-3.5 [&_svg]:w-3.5 ${
               selected
-                ? "border-[var(--studio-ink)] font-semibold text-[var(--studio-ink)]"
-                : "border-transparent font-medium text-[var(--studio-muted)]"
+                ? "bg-white font-semibold text-[var(--studio-ink)]"
+                : "font-medium text-white/70"
             } ${
               clickable
-                ? "cursor-pointer hover:text-[var(--studio-ink)]"
+                ? selected
+                  ? "cursor-pointer"
+                  : "cursor-pointer hover:text-white"
                 : "cursor-not-allowed opacity-40"
             }`}
           >

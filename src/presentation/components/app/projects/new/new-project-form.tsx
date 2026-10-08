@@ -24,18 +24,19 @@ import {
   regenerateFrameAction,
   updateClipStoryboardAction,
 } from "@/presentation/actions/generation";
+import { regenerateClipSceneMediaAction } from "@/presentation/actions/scene-chat";
 import {
   createVideoAction,
   getVideoAction,
   restartVideoAction,
   retryProjectAction,
   updateVideoBriefAction,
-  updateVideoTextStyleAction,
 } from "@/presentation/actions/projects";
 import { isProjectBusy } from "@/service/clip-stage";
 import {
   cheapestVideoCost,
   clipVideoCost,
+  sceneImageCost,
   needsVideoUpgrade,
   planGenerateAllVideos,
   planGenerateAllScenes,
@@ -604,6 +605,17 @@ export function NewProjectForm({
     );
   }
 
+  // Chat button: redraw this clip's stills now, and start the video when they finish.
+  function onRegenerateClipMedia(clipNumber: number) {
+    if (!project) return Promise.resolve(false);
+    const spend = sceneImageCost(project, [clipNumber]) + clipVideoCost(project, clipNumber);
+    return runPaid(
+      `clip:${clipNumber}:regen`,
+      () => regenerateClipSceneMediaAction(project.id, clipNumber),
+      spend,
+    );
+  }
+
   // Per-clip production: both frames, one video, or fill every gap.
   function onGenerateFrames(clipNumber: number) {
     if (!project) return;
@@ -734,21 +746,6 @@ export function NewProjectForm({
     durationPreset,
     characterIds,
   ]);
-
-  // Existing videos never reopen the brief, so the look is saved from the summary.
-  async function saveTextStyle(id: string) {
-    if (!project || id === textStyleId) return;
-    const previous = textStyleId;
-    setTextStyleId(id);
-    const result = await updateVideoTextStyleAction(project.id, id);
-    if (!result.ok) {
-      setTextStyleId(previous);
-      setError(translateAppError(result.error, t));
-      return;
-    }
-    setProject(result.project);
-    setError("");
-  }
 
   function onStyleChange(id: string) {
     setStyleId(id);
@@ -1142,14 +1139,6 @@ export function NewProjectForm({
                   {t("brief.summary.sceneText", { label: sceneTextLangLabel(t, sceneTextLanguage).label })}
                 </span>
                 <Dot />
-                <TextStylePicker
-                  compact
-                  value={textStyleId}
-                  styles={textStyles}
-                  disabled={briefBusy}
-                  onChange={(id) => void saveTextStyle(id)}
-                />
-                <Dot />
                 <span>{aspectRatio}</span>
                 <Dot />
                 <span>
@@ -1196,6 +1185,9 @@ export function NewProjectForm({
               onCancelVideo={onCancelVideo}
               onBulkGenerate={onBulkGenerate}
               onGenerateSelected={onGenerateSelected}
+              subscribed={walletSubscribed}
+              onProject={setProject}
+              onRegenerateClipMedia={onRegenerateClipMedia}
             />
             </div>
           ) : reelDesk && project ? (

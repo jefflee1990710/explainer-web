@@ -17,6 +17,7 @@ export function VideoDesk({
   pending = "",
   renderPreview,
   renderInspector,
+  renderAside,
   renderToolbar,
   checkedIds,
   onToggleCheck,
@@ -26,6 +27,7 @@ export function VideoDesk({
   pending?: string;
   renderPreview: (state: ClipState, select: SelectClip) => React.ReactNode;
   renderInspector: (state: ClipState, select: SelectClip) => React.ReactNode;
+  renderAside?: (state: ClipState) => React.ReactNode;
   renderToolbar?: (select: SelectClip) => React.ReactNode;
   checkedIds?: string[];
   onToggleCheck?: (id: string) => void;
@@ -64,6 +66,7 @@ export function VideoDesk({
         toolbar={renderToolbar?.(selectClip)}
         preview={selected ? renderPreview(selected, selectClip) : null}
         inspector={selected ? renderInspector(selected, selectClip) : null}
+        aside={selected ? renderAside?.(selected) : null}
         timelineBar={timelineBar}
         timeline={
           <Filmstrip

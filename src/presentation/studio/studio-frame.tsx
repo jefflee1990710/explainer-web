@@ -7,12 +7,14 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 export function StudioFrame({
   preview,
   inspector,
+  aside,
   timeline,
   toolbar,
   timelineBar,
 }: {
   preview: React.ReactNode;
   inspector?: React.ReactNode;
+  aside?: React.ReactNode;
   timeline?: React.ReactNode;
   toolbar?: React.ReactNode;
   timelineBar?: React.ReactNode;
@@ -41,6 +43,14 @@ export function StudioFrame({
           >
             {preview}
           </section>
+          {aside ? (
+            <section
+              aria-label={t("production.shell.chatAria")}
+              className="flex min-h-[28rem] shrink-0 flex-col border-t border-[var(--studio-line)] bg-[var(--studio-panel)] lg:h-full lg:min-h-0 lg:w-[340px] lg:border-t-0 lg:border-l"
+            >
+              {aside}
+            </section>
+          ) : null}
         </div>
       </div>
       {timelineBar ? (

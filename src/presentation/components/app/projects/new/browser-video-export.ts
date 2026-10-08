@@ -3,6 +3,7 @@
 import type { FFmpeg } from "@ffmpeg/ffmpeg";
 import type { VideoEdit } from "@/model/video-edit";
 import { stableEditString } from "@/service/video-edit/edit-state";
+import { joinPadArgs } from "@/service/reel/join-pad";
 import { buildClipConcatFilter } from "@/service/video-edit/clip-concat-filter";
 import { clipPairTransitions, resolveTransition } from "@/service/video-edit/edit-transition";
 import { pairwiseRatio, type PairwiseStep } from "@/service/reel/pairwise-progress";
@@ -147,7 +148,7 @@ function remember(key: string, bytes: Uint8Array) {
   rendered.set(key, bytes);
 }
 
-async function probeFile(ffmpeg: FFmpeg, name: string) {
+async function probeLog(ffmpeg: FFmpeg, name: string) {
   const lines: string[] = [];
   const onLog = ({ message }: { message: string }) => {
     lines.push(message);
@@ -158,7 +159,11 @@ async function probeFile(ffmpeg: FFmpeg, name: string) {
   } finally {
     ffmpeg.off("log", onLog);
   }
-  return parseProbe(lines.join("\n"));
+  return lines.join("\n");
+}
+
+async function probeFile(ffmpeg: FFmpeg, name: string) {
+  return parseProbe(await probeLog(ffmpeg, name));
 }
 
 async function forget(ffmpeg: FFmpeg, name: string) {
@@ -388,7 +393,7 @@ async function forgetEncoderFiles(ffmpeg: FFmpeg, names: string[], mainName: str
   await forget(ffmpeg, "list.txt");
 }
 
-// Remux two mp4s. No fade and no second encode.
+// Remux two mp4s with a 200ms hold of the left clip's last frame between them.
 async function copyJoin(
   ffmpeg: FFmpeg,
   leftName: string,
@@ -397,7 +402,16 @@ async function copyJoin(
   signal: AbortSignal,
   onRatio: (ratio: number) => void,
 ) {
-  await ffmpeg.writeFile("list.txt", `file '${leftName}'\nfile '${rightName}'\n`);
+  const padName = "join-pad.mp4";
+  const probe = await probeLog(ffmpeg, leftName);
+  throwIfAborted(signal);
+  const padCode = await ffmpeg.exec(joinPadArgs(leftName, padName, probe), undefined, { signal });
+  if (signal.aborted) {
+    resetEncoder();
+    throw new ExportCancelled();
+  }
+  if (padCode !== 0) throw new Error("concat");
+  await ffmpeg.writeFile("list.txt", `file '${leftName}'\nfile '${padName}'\nfile '${rightName}'\n`);
   onRatio(0);
   try {
     const code = await ffmpeg.exec(
@@ -419,6 +433,7 @@ async function copyJoin(
     throw error;
   } finally {
     await forget(ffmpeg, "list.txt");
+    await forget(ffmpeg, "join-pad.mp4");
   }
 }
 
@@ -484,7 +499,7 @@ async function assembleClips(
 }
 
 // Join the clip accumulated so far with the one just downloaded.
-// A hard cut copies the original files. A chosen fade still has to re-encode.
+// A hard cut copies the files and holds the left clip for 200ms. A chosen fade still re-encodes.
 async function joinPair(
   ffmpeg: FFmpeg,
   leftName: string,

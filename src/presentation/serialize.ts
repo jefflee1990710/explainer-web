@@ -75,6 +75,15 @@ export type PublicVideo = {
   phaseA?: Project["phaseA"];
   frames: NonNullable<Project["frames"]>;
   clips: Project["clips"];
+  sceneChats?: Array<{
+    clipNumber: number;
+    messages: Array<{
+      role: "user" | "assistant";
+      content: string;
+      changedPaths?: Array<"startScene" | "endScene" | "motionCamera">;
+      createdAt: string;
+    }>;
+  }>;
   reelUrl?: string;
   reelStatus?: Project["reelStatus"];
   reelFingerprint?: string;
@@ -238,6 +247,24 @@ export function toPublicDirector(skill: Skill, inheritedPreviewUrl?: string): Pu
   };
 }
 
+function chatCreatedAt(value: Date | string) {
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? new Date(0).toISOString() : date.toISOString();
+}
+
+function toPublicSceneChats(chats: Project["sceneChats"]): PublicVideo["sceneChats"] {
+  if (!chats?.length) return undefined;
+  return chats.map((thread) => ({
+    clipNumber: thread.clipNumber,
+    messages: thread.messages.map((item) => ({
+      role: item.role,
+      content: item.content,
+      changedPaths: item.changedPaths,
+      createdAt: chatCreatedAt(item.createdAt),
+    })),
+  }));
+}
+
 export function toPublicVideo(video: Project): PublicVideo {
   const sceneText = resolveSceneText(video);
   return {
@@ -277,6 +304,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     phaseA: video.phaseA,
     frames: video.frames || [],
     clips: video.clips,
+    sceneChats: toPublicSceneChats(video.sceneChats),
     reelUrl: video.reelUrl,
     reelStatus: video.reelStatus,
     reelFingerprint: video.reelFingerprint,

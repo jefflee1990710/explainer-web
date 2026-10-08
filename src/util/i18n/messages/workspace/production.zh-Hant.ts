@@ -83,6 +83,7 @@ export const productionZhHant = {
     clipInfoAria: "片段資訊",
     previewAria: "預覽",
     timelineAria: "時間軸",
+    chatAria: "AI 修改畫面",
   },
   annotation: {
     textPlaceholder: "備註",
@@ -319,5 +320,19 @@ export const productionZhHant = {
       emptyError: "畫面描述與旁白不能空白。",
       dualEmptyError: "起始／結尾畫面與兩句旁白不能空白。",
     },
+  },
+  sceneChat: {
+    title: "用 AI 改第 {n} 段",
+    empty: "描述想改的起始畫面、結尾畫面或鏡頭。AI 回覆後，按泡泡裡的按鈕重畫畫面並產生影片。",
+    placeholder: "例如：結尾改成俯視，鏡頭慢慢推近",
+    send: "送出",
+    changed: "已改：{fields}",
+    fieldStart: "起始畫面",
+    fieldEnd: "結尾畫面",
+    fieldMotion: "鏡頭",
+    regenerate: "重新產生畫面與影片 · {credits}",
+    regenerating: "正在重畫畫面，完成後會接著產影片",
+    locked: "訂閱後即可用 AI 修改畫面與鏡頭。",
+    lockedCta: "查看方案",
   },
 } satisfies ProductionMessages;

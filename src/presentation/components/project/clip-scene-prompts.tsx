@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
@@ -43,6 +43,23 @@ export function ClipScenePrompts({
   const spoken = (key: string, params?: Record<string, string | number>) =>
     t(`production.spoken.${spokenKind}.${key}`, params);
   const [draft, setDraft] = useState<ClipStoryboardInput>(() => draftFromClip(clip));
+  const externalKey = [
+    clip.editedAt ?? "",
+    clip.explainerScene,
+    clip.motionCamera,
+    clip.startScene ?? "",
+    clip.endScene ?? "",
+    clip.englishVo,
+    clip.startVo ?? "",
+    clip.endVo ?? "",
+  ].join("\u0001");
+
+  // Chat saves land on the clip. Replace the fields when that text changes.
+  useEffect(() => {
+    setDraft(draftFromClip(clip));
+    // externalKey already lists every field draftFromClip reads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalKey]);
 
   const busy = pending !== "";
   const dirty = isDraftDirty(draft, clip);

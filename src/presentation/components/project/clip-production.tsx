@@ -9,6 +9,7 @@ import { ClipWorkspace } from "@/presentation/components/project/clip-workspace"
 import { FrameEditDialog } from "@/presentation/components/project/frame-edit-dialog";
 import { ProductionToolbar } from "@/presentation/components/project/production-toolbar";
 import { SelectionBar } from "@/presentation/components/project/selection-bar";
+import { SceneChatPanel } from "@/presentation/components/project/scene-chat-panel";
 import { VideoDesk, type SelectClip } from "@/presentation/components/project/video-desk";
 import { clipStatesFor, inFlightCounts, productionCounts, type ClipState } from "@/service/clip-stage";
 import { allFramesReady } from "@/service/production-plan";
@@ -39,6 +40,9 @@ export function ClipProduction({
   onCancelVideo,
   onBulkGenerate,
   onGenerateSelected,
+  subscribed,
+  onProject,
+  onRegenerateClipMedia,
 }: {
   project: PublicVideo;
   credits: number;
@@ -59,6 +63,9 @@ export function ClipProduction({
   onCancelVideo: (clipNumber: number) => void;
   onBulkGenerate: (mode: BulkMode) => Promise<boolean>;
   onGenerateSelected: (clipNumbers: number[], kind: "frames" | "videos") => Promise<boolean>;
+  subscribed: boolean;
+  onProject: (project: PublicVideo) => void;
+  onRegenerateClipMedia: (clipNumber: number) => Promise<boolean>;
 }) {
   const phaseA = project.phaseA;
   const states = clipStatesFor(project);
@@ -149,6 +156,16 @@ export function ClipProduction({
         )}
         renderPreview={(state, select) => workspace("preview", state, select)}
         renderInspector={(state, select) => workspace("inspector", state, select)}
+        renderAside={(state) => (
+          <SceneChatPanel
+            project={project}
+            clipNumber={state.clipNumber}
+            subscribed={subscribed}
+            regenerating={pending === `clip:${state.clipNumber}:regen`}
+            onProject={onProject}
+            onRegenerate={() => onRegenerateClipMedia(state.clipNumber)}
+          />
+        )}
         checkedIds={checked}
         onToggleCheck={toggleCheck}
         timelineBar={

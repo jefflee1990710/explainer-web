@@ -106,6 +106,21 @@ export type StoryboardRow = {
   editedAt?: string;
 };
 
+export type SceneChatField = "startScene" | "endScene" | "motionCamera";
+
+// One turn in the production-page chat for a single clip.
+export type SceneChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  changedPaths?: SceneChatField[];
+  createdAt: Date;
+};
+
+export type SceneChatThread = {
+  clipNumber: number;
+  messages: SceneChatMessage[];
+};
+
 // Storyboard fields the user may rewrite per clip while reviewing frames.
 export type ClipStoryboardInput = Pick<
   StoryboardRow,
@@ -232,6 +247,8 @@ export type Project = {
   clips: ProjectClip[];
   // Clips that should start a video once both scene images exist.
   autoVideoClips?: number[];
+  // Per-clip AI chat that rewrites the start still, end still, and camera.
+  sceneChats?: SceneChatThread[];
   // Concatenated reel (step 4). Fingerprint must match current clip URLs.
   reelUrl?: string;
   reelStatus?: ReelStatus;

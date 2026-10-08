@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import ffmpegPath from "ffmpeg-static";
+import { joinPadArgs } from "@/service/reel/join-pad";
 import type { PairwiseStep } from "@/service/reel/pairwise-progress";
 import { REEL_TIMEOUT_MESSAGE } from "@/service/reel/timeout";
 
@@ -58,8 +59,13 @@ export async function concatMp4Buffers(buffers: Buffer[], timeoutMs?: number): P
       const name = `clip${String(i).padStart(3, "0")}.mp4`;
       await writeFile(join(dir, name), buffers[i]);
       names.push(name);
+      if (i === buffers.length - 1) continue;
+      const pad = `pad${String(i).padStart(3, "0")}.mp4`;
+      const stderr = await ffmpegStderr(dir, ["-i", name], timeoutMs);
+      await runFfmpeg(dir, joinPadArgs(name, pad, stderr), timeoutMs);
+      names.push(pad);
     }
-    // Stream copy. No fade and no second encode.
+    // Stream copy of the clips. The pad between them is only 200ms.
     await writeFile(join(dir, "list.txt"), names.map((name) => `file '${name}'`).join("\n"));
     const out = join(dir, "reel.mp4");
     await runFfmpeg(
