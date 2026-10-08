@@ -172,7 +172,7 @@ export const briefZhHant = {
     "story-short-director": "以角色對白推動的短片，結構跟題材走，沒有旁白。",
     "product-demo-director": "痛點、開箱、功能示範、結果。產品外觀全程鎖定。",
     "dialogue-qa-director": "正好兩個角色，一問一答。",
-    "listicle-director": "開場只留一個清楚的數字。接著一項一段。項目太多時，才把兩、三項併進同一段。最後一段是清楚的完整清單。每一段另有旁白字幕。",
+    "listicle-director": "開場文字最大。接著一項一段，每段換鏡頭和構圖。項目太多時，才把兩、三項併進同一段。最後一段是清楚的完整清單。每一段另有旁白字幕。",
     "tutorial-director": "先看完成品，再一段一步，最後回到完成品。",
     "opening-director": "3–4 秒片頭：品牌標誌進場並停住。",
     "ending-director": "3–4 秒片尾：畫面停在品牌標誌上。",
@@ -219,7 +219,7 @@ export const briefZhHant = {
       "listicle-director": {
         voice: "主持人旁白，每項句型對齊",
         structure: "永遠列成清單，一項一段；太多才併兩、三項，最好的放最後",
-        picture: "每張都要有編號清單，凸顯當項",
+        picture: "開場文字最大。每一項換鏡頭和構圖。最後一張才是完整清單。",
         frames: "一項一段；併段時起始凸顯第一項，結尾凸顯下一項",
       },
       "tutorial-director": {

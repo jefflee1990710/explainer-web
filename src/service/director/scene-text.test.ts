@@ -58,11 +58,15 @@ test("an item clip spells only the item it introduces", () => {
     subtitle: "Snooze the alarm.",
   }).join("\n");
   assert.match(item, /only this item/i);
+  assert.match(item, /low angle/);
   assert.match(item, /Snooze the alarm/);
   assert.match(item, /On-canvas subtitles ON/);
   assert.match(item, /Subtitle \(spell exactly\): "Snooze the alarm\."/);
   assert.doesNotMatch(item, /Skip water/);
   assert.doesNotMatch(item, /Three morning mistakes/);
+  const next = listicleOnCanvasLines({ clips, clipNumber: 3 }).join("\n");
+  assert.match(next, /overhead/);
+  assert.doesNotMatch(next, /low angle/);
   const full = listicleOnCanvasLines({ clips, clipNumber: 4 }).join("\n");
   assert.match(full, /FULL LIST/);
   assert.match(full, /numbered list/i);
@@ -73,7 +77,7 @@ test("an item clip spells only the item it introduces", () => {
     clipNumber: 1,
     subtitle: "Three morning mistakes.",
   }).join("\n");
-  assert.match(hook, /on-screen text required/i);
+  assert.match(hook, /largest text/i);
   assert.match(hook, /Count \(spell exactly\): "2"/);
   assert.match(hook, /Subtitle \(spell exactly\): "Three morning mistakes\."/);
   assert.match(hook, /Do not draw item titles/);

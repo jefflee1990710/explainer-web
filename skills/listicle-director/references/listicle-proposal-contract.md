@@ -73,16 +73,15 @@ Wardrobe lock: every character wears exactly their blueprint outfit in every cli
 
 ## Composition by aspect ratio
 
-- `16:9`: number device top-left, the one item image centre-right, host (if present) left. No side list.
-- `9:16`: number device top-centre, the one item image in the middle third, host in the lower third. No side list.
-- `1:1`: number device top-left corner, the one item image centred. No side list.
-- Hook: one large count and the spoken subtitle, both readable. No items and no extra props.
+- Each item clip uses the next camera and composition. Do not repeat the previous item. In order, then repeat: low angle with the object huge in front; overhead looking down; tight side close-up; wide three-quarter with the object off-center; dutch tilt close to the lens; over-the-shoulder. No side list.
+- Within one item clip, the start and end stills share that camera.
+- Hook: the spoken line is the largest text in the video, with a large count. No items and no extra props.
 - The last clip only: a clean numbered list of the short titles, evenly spaced, empty background, no host and no extra props.
 
 ## Palette and text
 
 - Colours in ordinary words only; the accent colour is reserved for the number device.
-- The hook shows only the count. An item clip shows only that item's number and short title (the name, not the spoken sentence). The last clip shows those short titles in a clean list. Every clip also shows the spoken line as a subtitle. No extra invented labels.
+- The hook shows the count and the spoken line, and that spoken line is the largest text in the video. An item clip shows only that item's number and short title (the name, not the spoken sentence). The last clip shows those short titles in a clean list, smaller than the hook. Every clip also shows the spoken line as a subtitle. No extra invented labels.
 
 ## Confirmation ending
 

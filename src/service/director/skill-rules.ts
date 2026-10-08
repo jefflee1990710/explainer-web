@@ -208,6 +208,21 @@ export function listicleListEntries(clips: ListicleClip[]) {
   }));
 }
 
+// One shot per item, in order, so neighbouring items never share an angle.
+const LISTICLE_ITEM_SHOTS = [
+  "low angle, object huge in the foreground, host small behind it",
+  "overhead, looking straight down, object in the middle of a surface",
+  "tight side close-up, object filling the left half, open space on the right",
+  "wide three-quarter, object off-center, host entering from the opposite side",
+  "dutch tilt close to the lens, object leaning forward, background falling away",
+  "over-the-shoulder, host's shoulder on the near edge, object deeper in the shot",
+];
+
+export function listicleItemShot(itemIndex: number) {
+  const index = (Math.max(itemIndex, 1) - 1) % LISTICLE_ITEM_SHOTS.length;
+  return LISTICLE_ITEM_SHOTS[index];
+}
+
 // Shared by every dialogue-only director (story short, Q&A).
 export function dialogueOnlyDirectorBlock() {
   return [
@@ -576,8 +591,8 @@ export function listicleDirectorBlock() {
     "This is a LISTICLE. Always turn the source into a numbered list of distinct items. Do not tell it as a story with no list, and do not drop items to fit a shorter preset.",
     "Show the items one by one. One item per clip until the item count passes the duration ceiling. Above that ceiling, put 2 items on a middle clip and reveal them one by one inside that clip (start highlights the first, end highlights the last). Use 3 on a clip only when pairs would still pass the ceiling. Never more than 3 on one clip. Item 1 and the last item each stay on their own clip when there are at least two item clips. If 3 per clip still passes the ceiling, keep 3 per clip and let the clip count run over the preset.",
     "Ceilings, counting the ending: micro 2 clips, short 4, punchy 6, full 10, auto 12.",
-    "Clip 1 is a clear hook: empty setting, one large count, and the spoken line written as a subtitle. Both must be readable. No items, no checklist, and no extra props.",
-    "Then introduce items one by one. An item clip holds only that item's number, a short title (the name, not the spoken sentence), and one object, with empty space around them. Do not draw the other items or a side list.",
+    "Clip 1 is a clear hook: empty setting, one large count, and the spoken line written as a subtitle. That spoken line is the largest text in the whole video, bigger than the count and bigger than any later title. No items, no checklist, and no extra props.",
+    "Then introduce items one by one. An item clip holds only that item's number, a short title (the name, not the spoken sentence), and one object. Each item clip uses a different camera angle and a different composition. Do not repeat the previous item's angle, shot size, or where the object sits. In order: low angle with the object huge in front; overhead looking down; a tight side close-up; a wide three-quarter with the object off-center; a dutch tilt close to the lens; an over-the-shoulder. Within one clip the start and end share that angle. Do not draw the other items or a side list.",
     "The last clip is required and is not an item clip. narrativeJob is `full list`. It is a clean full list: short titles only, evenly spaced on an empty background, every title readable, no host and no extra props. A packed clip's englishVo joins those item lines with ` | `.",
     "Every clip also shows that clip's spoken line as a subtitle in the selected text style, clear of the count, the item, and the full list. The subtitle does not replace those graphics. Ignore any earlier line that puts the whole list on every still or that forbids the subtitle.",
   ].join(" ");

@@ -596,6 +596,7 @@ test("listicle item stills name only that item; the last still lists every title
   ];
   const item = buildFramePrompt(list, 2, "start");
   assert.match(item, /only this item/i);
+  assert.match(item, /low angle/);
   assert.match(item, /Unused subscriptions/);
   assert.match(item, /On-canvas subtitles ON/);
   assert.match(item, /Subtitle \(spell exactly\): "Unused subscriptions\."/);

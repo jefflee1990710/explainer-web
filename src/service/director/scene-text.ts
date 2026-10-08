@@ -2,6 +2,7 @@ import type { AspectRatio } from "@/model/project";
 import {
   comparisonPanels,
   comparisonSplitAxis,
+  listicleItemShot,
   listicleListEntries,
 } from "@/service/director/skill-rules";
 import type { SceneTextLanguage } from "@/model/project";
@@ -84,7 +85,11 @@ export function listicleCanvasTitle(spoken: string) {
 }
 
 // The spoken line sits with the list graphic. It does not replace the count, the item, or the full list.
-function listicleSubtitleLines(subtitle: string | undefined, place?: "below-center" | "bottom") {
+function listicleSubtitleLines(
+  subtitle: string | undefined,
+  place?: "below-center" | "bottom",
+  scale?: "hook" | "later",
+) {
   const line = subtitle?.trim();
   if (!line) return [];
   const formatted = formatVoiceoverForCanvas(line);
@@ -99,6 +104,9 @@ function listicleSubtitleLines(subtitle: string | undefined, place?: "below-cent
     place === "below-center"
       ? "Layout: one subtitle a little below the vertical center of the frame, centered horizontally, clear of the face and the bottom edge."
       : "Layout: a band across the bottom 18% of the frame; the subtitle is centered in that band.",
+    scale === "hook"
+      ? "Size: this spoken line is the largest text in the whole video, bigger than the count and bigger than any title or subtitle on a later clip. Do not shrink it into a small caption."
+      : "Size: this subtitle is clearly smaller than the hook text on clip 1.",
     ...quoted,
     "The subtitle is this clip's spoken line. Keep the count, the item title, or the full list as well.",
   ];
@@ -118,11 +126,11 @@ export function listicleOnCanvasLines(input: {
   const showFull =
     input.clipNumber === lastNumber || /full list|完整清單/i.test(clip?.narrativeJob || "");
   const look = input.typography?.trim() || "";
-  const subtitle = listicleSubtitleLines(input.subtitle, input.subtitlePlace);
+  const subtitle = listicleSubtitleLines(input.subtitle, input.subtitlePlace, "later");
   if (showFull) {
     const titles = entries.flatMap((entry) => listicleTitles(entry.title).map(listicleCanvasTitle));
     return [
-      "On-canvas FULL LIST — clean and clear, highest priority. Empty background. One evenly spaced numbered list of these short titles, large and readable. No host, no extra props, and no side clutter. List titles stay short.",
+      "On-canvas FULL LIST — clean and clear, highest priority. Empty background. One evenly spaced numbered list of these short titles, readable, and smaller than the hook text. No host, no extra props, and no side clutter. List titles stay short.",
       ...titles.map((title, index) => `List item ${index + 1} (spell exactly): "${title}"`),
       "Every title is readable. Do not leave one off. Ignore any extra objects written in the Scene.",
       look,
@@ -134,7 +142,9 @@ export function listicleOnCanvasLines(input: {
   if (current) {
     const titles = listicleTitles(current.title).map(listicleCanvasTitle);
     return [
-      "On-canvas item ON — clean and clear, highest priority. This clip introduces only this item. Empty space around one number, this short title, and one object.",
+      "On-canvas item ON — this clip introduces only this item. One number, this short title, and one object.",
+      `Camera and composition, higher priority than a repeated straight-on setup in the Scene: ${listicleItemShot(current.index)}.`,
+      "Within this clip keep that angle. The title and the subtitle stay smaller than the hook text.",
       ...titles.map((title, index) => `Item ${current.index + index} (spell exactly): "${title}"`),
       "Do not draw the other items, a side list, the full list, or extra props. Ignore any checklist written in the Scene. The spoken line is a separate subtitle.",
       look,
@@ -144,11 +154,12 @@ export function listicleOnCanvasLines(input: {
   }
   const count = entries.flatMap((entry) => listicleTitles(entry.title)).length;
   return [
-    "HOOK — on-screen text required. Empty background, but the count and the spoken subtitle must both be large and readable. Do not leave the frame without writing.",
+    "HOOK — on-screen text required. Empty background. The spoken line is the largest text in the whole video.",
     count > 0 ? `Count (spell exactly): "${count}"` : "",
+    "The count is large, but the spoken subtitle is bigger than the count and bigger than any later title. Do not leave the frame without writing.",
     "Do not draw item titles, a checklist, the first item, or extra props. Ignore any side list written in the Scene. The spoken line is a subtitle, not optional.",
     look,
-    ...subtitle,
+    ...listicleSubtitleLines(input.subtitle, input.subtitlePlace, "hook"),
   ].filter(Boolean);
 }
 
@@ -213,7 +224,7 @@ export function sceneTextSkillHint(
   const lookLine = options?.lookLine || subtitleLookLine(options?.look);
   if (options?.listicle) {
     return [
-      "On-canvas text is REQUIRED. The hook shows one large count and the spoken line as a subtitle; both are readable. Each later clip introduces one item: its number, a short title, and one object, with empty space around them.",
+      "On-canvas text is REQUIRED. The hook's spoken line is the largest text in the video, with a large count. Each later clip introduces one item with its own camera angle and composition: its number, a short title, and one object.",
       "Show items one by one. The last clip is a clean full list: short titles only, evenly spaced on an empty background. Every clip also shows the spoken line as a subtitle, clear of that graphic.",
       lookLine,
       "Lettering follows that Look. Do not copy typography from the visual style.",

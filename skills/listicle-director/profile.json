@@ -2,10 +2,10 @@
   "en": {
     "bestFor": "Lists of tips, tools, mistakes or reasons — \"N things…\" videos for Reels, Shorts, or carousels turned into video.",
     "structure": "Each clip runs 3–8 seconds. Items appear one by one, one item per clip. Only when the list is too long does a middle clip hold two or three items and reveal them one by one. The last clip always shows the full list.",
-    "hook": "A clear frame with one large count and the spoken line as a subtitle. Both are readable. No items, no checklist, and no extra props.",
+    "hook": "A clear frame. The spoken line is the largest text in the video, with a large count. No items, no checklist, and no extra props.",
     "arc": "Strong item first, weakest in the middle, best item last with the most vivid image. The clip after that shows the full list at rest.",
     "narrator": "An energetic, clear host talking to the viewer, with every item line in the same parallel shape (e.g. \"Number one: …\" or \"Want X? Do Y.\").",
-    "visual": "Look and palette come from the chosen visual style. The hook is one large count on an empty frame. Each item clip shows only that item: its number, a short title, and one object, with empty space around them. The last clip is a clean full list of those short titles, evenly spaced, with no extra props.",
+    "visual": "Look and palette come from the chosen visual style. The hook's spoken line is the largest text, with a large count on an empty frame. Each item clip shows only that item, and each item uses a different camera angle and composition. The last clip is a clean full list of those short titles, evenly spaced, with no extra props.",
     "audio": "A driving beat that hits each time a number pops in and builds up on the final item.",
     "rules": "Items come only from your source — the list is never padded. Each item needs a concrete visual stand-in. An item clip's on-screen title is that item only; the full list is the last clip. Every clip also shows the spoken line as a subtitle."
   }

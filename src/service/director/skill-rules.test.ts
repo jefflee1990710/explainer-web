@@ -362,6 +362,8 @@ test("listicle forces on-canvas listing text", () => {
   assert.match(block, /one by one/);
   assert.match(block, /full list/);
   assert.match(block, /Never more than 3/);
+  assert.match(block, /largest text/);
+  assert.match(block, /different camera angle/);
   assert.equal(skillForcesSceneText("listicle-director"), true);
   assert.equal(skillForcesSceneText("tutorial-director"), false);
   const entries = listicleListEntries([
