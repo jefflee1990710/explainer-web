@@ -1,5 +1,6 @@
 import * as z from "zod";
 import { PRODUCT_MAX } from "@/model/product-constants";
+import { SUBTITLE_LOOK_IDS, type SubtitleLook } from "@/model/subtitle-look-id";
 import { importBrandAsset, importReferenceImage } from "@/service/project/reference-image-import";
 
 // Matches the create-video form. The action still validates language, cast, and logo.
@@ -36,7 +37,7 @@ export const videoBriefFields = {
     .default("en")
     .describe("On-canvas text is always on; this picks its script"),
   subtitleLook: z
-    .enum(["handwritten", "clean", "bold"])
+    .enum(SUBTITLE_LOOK_IDS)
     .default("handwritten")
     .describe("Subtitle lettering only. Where the subtitle sits is chosen by the director."),
   characterIds: z
@@ -60,7 +61,7 @@ export const videoBriefUpdateFields = {
   voiceGender: z.enum(["male", "female"]),
   speechPace: z.enum(["slow", "medium", "fast"]),
   sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans"]),
-  subtitleLook: z.enum(["handwritten", "clean", "bold"]),
+  subtitleLook: z.enum(SUBTITLE_LOOK_IDS),
 };
 
 export type VideoBriefArgs = {
@@ -75,7 +76,7 @@ export type VideoBriefArgs = {
   voiceGender?: "male" | "female";
   speechPace?: "slow" | "medium" | "fast";
   sceneTextLanguage?: "en" | "zh-Hant" | "zh-Hans";
-  subtitleLook?: "handwritten" | "clean" | "bold";
+  subtitleLook?: SubtitleLook;
   characterIds?: string[];
   productIds?: string[];
   logoUrl?: string;

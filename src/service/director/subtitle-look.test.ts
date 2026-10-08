@@ -15,7 +15,13 @@ test("subtitle look is appearance only and falls back when missing", () => {
   assert.match(line, /torn-paper strips/);
   assert.match(subtitleLookLine("bold"), /yellow dry-brush/);
   assert.match(subtitleLookLine("handwritten"), /thick black marker/);
+  assert.match(subtitleLookLine("neon"), /neon glass tubing/);
+  assert.match(subtitleLookLine("brush"), /calligraphy brush/);
   assert.doesNotMatch(line, /%|bottom|center|lower third|safe area/i);
+  for (const look of ["neon", "comic", "chalk", "gold", "typewriter", "graffiti", "sticker", "glitch", "brush", "outline"] as const) {
+    assert.doesNotMatch(subtitleLookLine(look), /%|bottom|center|lower third|safe area/i);
+    assert.match(textStylePreviewPrompt(look), /Try it now/);
+  }
   const preview = textStylePreviewPrompt("bold");
   assert.match(preview, /yellow dry-brush/);
   assert.match(preview, /Try it now/);

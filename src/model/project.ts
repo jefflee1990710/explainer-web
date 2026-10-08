@@ -3,7 +3,10 @@ import { z } from "zod";
 import { castMemberSchema, type CastMember } from "@/model/character";
 import { productShotSchema, type ProductShot } from "@/model/product";
 import { objectIdSchema } from "@/model/primitives";
+import { SUBTITLE_LOOK_IDS, type SubtitleLook } from "@/model/subtitle-look-id";
 import { videoEditSchema, type VideoEdit } from "@/model/video-edit";
+
+export { SUBTITLE_LOOK_IDS, type SubtitleLook };
 
 export type AspectRatio = "16:9" | "9:16" | "1:1";
 // Cover stills can be inset so a platform crop still shows the whole picture.
@@ -22,7 +25,6 @@ export type SpeechPace = "slow" | "medium" | "fast";
 // On-canvas labels in storyboard stills; independent of voiceover language.
 export type SceneTextLanguage = "en" | "zh-Hant" | "zh-Hans";
 // Subtitle lettering. Placement is chosen by the director, not this field.
-export type SubtitleLook = "handwritten" | "clean" | "bold";
 
 // Lifecycle: phase_a → production → ready.
 // `awaiting_approval` remains for leftover videos; the UI treats it as production.
@@ -329,7 +331,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   speechPace: z.enum(["slow", "medium", "fast"]).optional(),
   sceneTextEnabled: z.boolean().optional(),
   sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans"]).optional(),
-  subtitleLook: z.enum(["handwritten", "clean", "bold"]).optional(),
+  subtitleLook: z.enum(SUBTITLE_LOOK_IDS).optional(),
   textStyleId: z.string().optional(),
   textStyleImageUrl: z.string().optional(),
   characterImageUrl: z.string().optional(),
