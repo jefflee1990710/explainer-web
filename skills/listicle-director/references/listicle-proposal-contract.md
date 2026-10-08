@@ -76,7 +76,7 @@ Wardrobe lock: every character wears exactly their blueprint outfit in every cli
 - `16:9`: number device top-left, the one item image centre-right, host (if present) left. No side list.
 - `9:16`: number device top-centre, the one item image in the middle third, host in the lower third. No side list.
 - `1:1`: number device top-left corner, the one item image centred. No side list.
-- Hook: one large count, empty background, nothing else.
+- Hook: one large count and the spoken subtitle, both readable. No items and no extra props.
 - The last clip only: a clean numbered list of the short titles, evenly spaced, empty background, no host and no extra props.
 
 ## Palette and text

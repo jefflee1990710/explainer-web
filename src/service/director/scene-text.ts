@@ -144,9 +144,9 @@ export function listicleOnCanvasLines(input: {
   }
   const count = entries.flatMap((entry) => listicleTitles(entry.title)).length;
   return [
-    "HOOK — clean and clear, highest priority. Empty background. Draw one large count and nothing else.",
+    "HOOK — on-screen text required. Empty background, but the count and the spoken subtitle must both be large and readable. Do not leave the frame without writing.",
     count > 0 ? `Count (spell exactly): "${count}"` : "",
-    "Do not draw item titles, a checklist, the first item, or extra props. Leave most of the frame empty. Ignore any side list written in the Scene. The spoken line is a separate subtitle.",
+    "Do not draw item titles, a checklist, the first item, or extra props. Ignore any side list written in the Scene. The spoken line is a subtitle, not optional.",
     look,
     ...subtitle,
   ].filter(Boolean);
@@ -213,7 +213,7 @@ export function sceneTextSkillHint(
   const lookLine = options?.lookLine || subtitleLookLine(options?.look);
   if (options?.listicle) {
     return [
-      "On-canvas text is REQUIRED. The hook is a clean empty frame with one large count only. Each later clip introduces one item: its number, a short title, and one object, with empty space around them.",
+      "On-canvas text is REQUIRED. The hook shows one large count and the spoken line as a subtitle; both are readable. Each later clip introduces one item: its number, a short title, and one object, with empty space around them.",
       "Show items one by one. The last clip is a clean full list: short titles only, evenly spaced on an empty background. Every clip also shows the spoken line as a subtitle, clear of that graphic.",
       lookLine,
       "Lettering follows that Look. Do not copy typography from the visual style.",

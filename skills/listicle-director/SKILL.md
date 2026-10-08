@@ -31,7 +31,7 @@ The rendering rules (canvas, look, palette, and motion) come from the **Visual s
 
 ## Listicle architecture
 
-1. **Hook (Clip 1)**: a clean, clear frame. One large count ("5", "3") on an empty background. No items, no checklist, no extra props, no tease of a later item, and no caption of the spoken sentence. Leave most of the frame empty. On a 2-clip micro, the hook may be the first item.
+1. **Hook (Clip 1)**: a clear frame. One large count ("5", "3") and the spoken line as a readable subtitle. Both are required on-screen text. No items, no checklist, no extra props, and no tease of a later item. On a 2-clip micro, the hook may be the first item.
 2. **Items**: one clip per item until the list passes the duration ceiling. Only then combine 2 items on a middle clip, revealed one by one inside that clip. Use 3 on a clip only when pairs would still pass the ceiling. Never more than 3. Item 1 and the last item each stay alone when there are at least two item clips. The number pops first, then the item image appears, then the line lands. Order for retention: strong first, weakest in the middle, BEST LAST.
 3. **Optional mid-list pattern break**: for 6+ items, one item clip may change camera or scale to reset attention.
 4. **Payoff item**: the last item gets the most vivid image and the longest beat, still on its own clip.
