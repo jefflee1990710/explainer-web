@@ -1,6 +1,12 @@
 import type { PublicTask } from "@/service/generation/task-list";
 
-const MEDIA_KINDS = new Set<PublicTask["kind"]>(["frame", "still", "video", "character"]);
+const MEDIA_KINDS = new Set<PublicTask["kind"]>([
+  "frame",
+  "still",
+  "video",
+  "character",
+  "reelCover",
+]);
 const FRESH_MS = 20_000;
 
 function active(task: PublicTask) {

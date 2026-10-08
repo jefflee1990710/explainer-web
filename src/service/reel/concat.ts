@@ -3,54 +3,8 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import ffmpegPath from "ffmpeg-static";
-import { CLIP_EDGE_FADE_SEC } from "@/service/reel/fade";
 import type { PairwiseStep } from "@/service/reel/pairwise-progress";
 import { REEL_TIMEOUT_MESSAGE } from "@/service/reel/timeout";
-
-export { CLIP_EDGE_FADE_SEC };
-
-// Fade video + audio out at the end of clip N and in at the start of clip N+1.
-export function buildEdgeFadeFilter(
-  durations: number[],
-  hasAudio: boolean[],
-  fadeSec = CLIP_EDGE_FADE_SEC,
-): string {
-  if (durations.length < 2) return "";
-  const audio = hasAudio.length === durations.length && hasAudio.every(Boolean);
-  const parts: string[] = [];
-  const concatPads: string[] = [];
-
-  for (let i = 0; i < durations.length; i += 1) {
-    const fade = Math.min(fadeSec, durations[i] / 2);
-    const outAt = Math.max(0, roundFade(durations[i] - fade));
-    const fadeD = roundFade(fade);
-    const vFades: string[] = [];
-    const aFades: string[] = [];
-    if (i > 0) {
-      vFades.push(`fade=t=in:st=0:d=${fadeD}`);
-      aFades.push(`afade=t=in:st=0:d=${fadeD}`);
-    }
-    if (i < durations.length - 1) {
-      vFades.push(`fade=t=out:st=${outAt}:d=${fadeD}`);
-      aFades.push(`afade=t=out:st=${outAt}:d=${fadeD}`);
-    }
-    parts.push(`[${i}:v]${vFades.join(",") || "null"}[v${i}]`);
-    if (audio) parts.push(`[${i}:a]${aFades.join(",") || "anull"}[a${i}]`);
-    concatPads.push(`[v${i}]`);
-    if (audio) concatPads.push(`[a${i}]`);
-  }
-
-  parts.push(
-    `${concatPads.join("")}concat=n=${durations.length}:v=1:a=${audio ? 1 : 0}${
-      audio ? "[v][a]" : "[v]"
-    }`,
-  );
-  return parts.join(";");
-}
-
-function roundFade(value: number) {
-  return Math.round(value * 1000) / 1000;
-}
 
 function timeoutError(error: unknown) {
   if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
@@ -66,9 +20,9 @@ function remainingMs(timeoutMs: number | undefined, started: number) {
   return left;
 }
 
-// Concat storyboard clips in order with 100ms fades on every clip edge.
+// Concat storyboard clips in order by remuxing the original files.
 // Each step joins the running result with the next clip, so only two files are in memory.
-// timeoutMs covers the whole download plus encode, not each clip separately.
+// timeoutMs covers the whole download plus the join, not each clip separately.
 export async function concatMp4Urls(
   urls: string[],
   timeoutMs?: number,
@@ -105,48 +59,18 @@ export async function concatMp4Buffers(buffers: Buffer[], timeoutMs?: number): P
       await writeFile(join(dir, name), buffers[i]);
       names.push(name);
     }
-    const started = Date.now();
-    const probes = [];
-    for (const name of names) probes.push(await probeClip(dir, name, remainingMs(timeoutMs, started)));
-    const filter = buildEdgeFadeFilter(
-      probes.map((item) => item.duration),
-      probes.map((item) => item.hasAudio),
-    );
+    // Stream copy. No fade and no second encode.
+    await writeFile(join(dir, "list.txt"), names.map((name) => `file '${name}'`).join("\n"));
     const out = join(dir, "reel.mp4");
-    const args = ["-y"];
-    for (const name of names) args.push("-i", name);
-    args.push(
-      "-filter_complex",
-      filter,
-      "-map",
-      "[v]",
+    await runFfmpeg(
+      dir,
+      ["-y", "-f", "concat", "-safe", "0", "-i", "list.txt", "-c", "copy", "-movflags", "+faststart", "reel.mp4"],
+      timeoutMs,
     );
-    if (probes.every((item) => item.hasAudio)) {
-      args.push("-map", "[a]", "-c:a", "aac", "-ac", "2");
-    }
-    args.push(
-      "-c:v",
-      "libx264",
-      "-pix_fmt",
-      "yuv420p",
-      "-movflags",
-      "+faststart",
-      "reel.mp4",
-    );
-    await runFfmpeg(dir, args, remainingMs(timeoutMs, started));
     return await readFile(out);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
-}
-
-async function probeClip(cwd: string, name: string, timeoutMs?: number) {
-  const stderr = await ffmpegStderr(cwd, ["-i", name], timeoutMs);
-  const match = stderr.match(/Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/);
-  if (!match) throw new Error(`無法讀取 ${name} 時長`);
-  const duration =
-    Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
-  return { duration, hasAudio: /Audio:/.test(stderr) };
 }
 
 export function ffmpegStderr(cwd: string, args: string[], timeoutMs?: number) {

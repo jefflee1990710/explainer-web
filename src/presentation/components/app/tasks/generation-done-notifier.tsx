@@ -1,39 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import {
+  armBrowserNotifications,
+  showBrowserGenerationNotice,
+} from "@/presentation/components/app/tasks/browser-generation-notice";
+import { taskNoticeTag } from "@/presentation/components/app/tasks/generation-notice-tag";
 import { subscribeGenerationSettled } from "@/presentation/components/app/tasks/task-signal";
-import type { PublicTask } from "@/service/generation/task-list";
-
-// Ask once, on a click or key press. Browsers ignore permission prompts that are not tied to a gesture.
-function armBrowserNotifications() {
-  if (typeof Notification === "undefined" || Notification.permission !== "default") return;
-  void Notification.requestPermission();
-}
-
-// OS notifications show the Scro mark, not the generated still.
-const SCRO_ICON = "/logo-mark.png";
-
-function showGenerationNotice(task: PublicTask, title: string, open: (href: string) => void) {
-  const failed = task.stage === "failed";
-  const notice = new Notification(title, {
-    body: failed && task.error ? task.error : task.title,
-    icon: SCRO_ICON,
-    tag: task.id,
-  });
-  notice.onclick = () => {
-    window.focus();
-    notice.close();
-    if (task.href) open(task.href);
-  };
-}
 
 // OS notification when a background image or video job finishes. No in-app toast.
 export function GenerationDoneNotifier() {
   const { t } = useI18n();
-  const router = useRouter();
-  const announced = useRef(new Set<string>());
 
   useEffect(() => {
     let asked = false;
@@ -52,19 +30,21 @@ export function GenerationDoneNotifier() {
 
   useEffect(() => {
     return subscribeGenerationSettled((tasks) => {
-      if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
       for (const task of tasks) {
-        if (announced.current.has(task.id)) continue;
-        announced.current.add(task.id);
         const detail = t(task.detailKey, task.detailParams);
         const title =
           task.stage === "failed"
             ? t("tasksPage.failedToast", { detail })
             : t("tasksPage.doneToast", { detail });
-        showGenerationNotice(task, title, (href) => router.push(href));
+        void showBrowserGenerationNotice({
+          tag: taskNoticeTag(task),
+          title,
+          body: task.stage === "failed" && task.error ? task.error : task.title,
+          href: task.href,
+        });
       }
     });
-  }, [router, t]);
+  }, [t]);
 
   return null;
 }

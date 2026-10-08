@@ -220,7 +220,7 @@ export async function renderVideoInBrowser(
     return;
   }
 
-  // Nothing to burn in: save the clip, or the file the joins already encoded.
+  // Nothing to burn in: save the clip, or the file the joins copied together.
   if (!exportNeedsRender(edit)) {
     if (clipUrls.length === 1) {
       const bytes = await fetchBytes(
@@ -385,6 +385,41 @@ async function forgetEncoderFiles(ffmpeg: FFmpeg, names: string[], mainName: str
   await forget(ffmpeg, "acc-b.mp4");
   await forget(ffmpeg, "next.mp4");
   await forget(ffmpeg, "final.mp4");
+  await forget(ffmpeg, "list.txt");
+}
+
+// Remux two mp4s. No fade and no second encode.
+async function copyJoin(
+  ffmpeg: FFmpeg,
+  leftName: string,
+  rightName: string,
+  outName: string,
+  signal: AbortSignal,
+  onRatio: (ratio: number) => void,
+) {
+  await ffmpeg.writeFile("list.txt", `file '${leftName}'\nfile '${rightName}'\n`);
+  onRatio(0);
+  try {
+    const code = await ffmpeg.exec(
+      ["-f", "concat", "-safe", "0", "-i", "list.txt", "-c", "copy", "-movflags", "+faststart", outName],
+      undefined,
+      { signal },
+    );
+    if (signal.aborted) {
+      resetEncoder();
+      throw new ExportCancelled();
+    }
+    if (code !== 0) throw new Error("concat");
+    onRatio(1);
+  } catch (error) {
+    if (signal.aborted) {
+      resetEncoder();
+      throw new ExportCancelled();
+    }
+    throw error;
+  } finally {
+    await forget(ffmpeg, "list.txt");
+  }
 }
 
 // Download clip 1, then clip 2, join them, then join that file with the next clip.
@@ -449,6 +484,7 @@ async function assembleClips(
 }
 
 // Join the clip accumulated so far with the one just downloaded.
+// A hard cut copies the original files. A chosen fade still has to re-encode.
 async function joinPair(
   ffmpeg: FFmpeg,
   leftName: string,
@@ -458,6 +494,10 @@ async function joinPair(
   signal: AbortSignal,
   onRatio: (ratio: number) => void,
 ) {
+  if (!transition || transition.effect === "none") {
+    await copyJoin(ffmpeg, leftName, rightName, outName, signal, onRatio);
+    return;
+  }
   const left = await probeFile(ffmpeg, leftName);
   const right = await probeFile(ffmpeg, rightName);
   const hasAudio = left.hasAudio && right.hasAudio;

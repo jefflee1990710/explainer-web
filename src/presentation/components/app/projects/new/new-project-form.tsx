@@ -58,6 +58,11 @@ import {
 } from "@/presentation/components/app/tasks/optimistic-tasks";
 import { beginTaskRefresh, endTaskRefresh } from "@/presentation/components/app/tasks/task-refresh";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
+import {
+  armBrowserNotifications,
+  showBrowserGenerationNotice,
+} from "@/presentation/components/app/tasks/browser-generation-notice";
+import { frameNoticeTag, videoNoticeTag } from "@/presentation/components/app/tasks/generation-notice-tag";
 import { isReelBusy } from "@/service/reel/fingerprint";
 import { durationPresetLabel } from "@/util/i18n/picker-labels";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
@@ -280,11 +285,41 @@ export function NewProjectForm({
   // A settled frame or clip should refresh the task list immediately so the
   // browser notification can fire without waiting for the next 5s tick.
   const settledRef = useRef(false);
+  const tRef = useRef(t);
+  tRef.current = t;
   const onPollUpdate = useCallback((next: PublicVideo) => {
     setProject((current) => {
       if (!current) return next;
       const merged = mergePolledProject(current, next);
-      if (generationTransitions(current, merged).length > 0) settledRef.current = true;
+      const settled = generationTransitions(current, merged);
+      if (settled.length > 0) {
+        settledRef.current = true;
+        const href = folderVideoPath(merged.projectId, merged.id);
+        const body = merged.phaseA?.localizedTitle || merged.phaseA?.englishTitle || "";
+        const translate = tRef.current;
+        for (const item of settled) {
+          const detail = translate(
+            item.kind === "video"
+              ? "tasksPage.detail.clipVideo"
+              : item.position === "end"
+                ? "tasksPage.detail.clipFrameEnd"
+                : "tasksPage.detail.clipFrameStart",
+            { n: item.clipNumber },
+          );
+          void showBrowserGenerationNotice({
+            tag:
+              item.kind === "video"
+                ? videoNoticeTag(merged.id, item.clipNumber)
+                : frameNoticeTag(merged.id, item.clipNumber, item.position || "start"),
+            title:
+              item.outcome === "failed"
+                ? translate("tasksPage.failedToast", { detail })
+                : translate("tasksPage.doneToast", { detail }),
+            body: item.outcome === "failed" && item.error ? item.error : body || detail,
+            href,
+          });
+        }
+      }
       return merged;
     });
   }, []);
@@ -483,6 +518,7 @@ export function NewProjectForm({
     spend = costForPaidKey(key),
     queueKeys?: string[],
   ) {
+    armBrowserNotifications();
     setPending(key);
     setError("");
     creditsSnapshotRef.current = walletCredits;

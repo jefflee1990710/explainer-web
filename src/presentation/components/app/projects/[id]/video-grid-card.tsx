@@ -13,6 +13,7 @@ import {
   endTaskRefresh,
 } from "@/presentation/components/app/tasks/task-refresh";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
+import { armBrowserNotifications } from "@/presentation/components/app/tasks/browser-generation-notice";
 import {
   holdOptimisticTasks,
   paidKeyTasks,
@@ -57,6 +58,7 @@ export function VideoGridCard({
 
   async function generateAll() {
     if (submitting) return;
+    armBrowserNotifications();
     setError("");
     setSubmitting(true);
     const keys = video.tags
