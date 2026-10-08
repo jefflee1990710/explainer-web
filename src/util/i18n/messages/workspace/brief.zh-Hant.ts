@@ -69,6 +69,9 @@ export const briefZhHant = {
     title: "畫面文字",
     hintListicle: "清單式導演會在畫面列出項目文字，選擇文字語言。",
     hintDefault: "每張分鏡圖都會寫上畫面文字，選擇文字語言。",
+    lookTitle: "字幕外觀",
+    lookHint: "只改字體。字幕放在哪裡由導演決定。",
+    lookAria: "字幕外觀",
   },
   section05: {
     title: "畫面比例",
@@ -112,6 +115,7 @@ export const briefZhHant = {
   summary: {
     speechPace: "語速 · {label}",
     sceneText: "畫面文字 · {label}",
+    subtitleLook: "外觀 · {label}",
     bookendLength: "1 段 · 3–4 秒",
     talkingHeadLength: "每段長短相近 · 5–12 秒 · 最多 20 段",
     logo: "Logo",

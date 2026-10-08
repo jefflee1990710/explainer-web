@@ -1,5 +1,11 @@
 import { ObjectId } from "mongodb";
-import { charactersCollection, productsCollection, projectsCollection, videosCollection } from "@/dao";
+import {
+  charactersCollection,
+  productsCollection,
+  projectsCollection,
+  textStylesCollection,
+  videosCollection,
+} from "@/dao";
 import type { AppUser } from "@/model/user";
 import type { Character } from "@/model/character";
 import type { Folder } from "@/model/folder";
@@ -7,8 +13,16 @@ import type { Project } from "@/model/project";
 import { listSelectableSkills } from "@/service/director/selectable-skills";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { listSelectableStyles } from "@/service/style/list";
-import { toPublicCharacter, toPublicFolder, toPublicProduct, toPublicSkills, VIDEO_LIST_PROJECTION } from "@/presentation/serialize";
+import {
+  toPublicCharacter,
+  toPublicFolder,
+  toPublicProduct,
+  toPublicSkills,
+  toPublicTextStyle,
+  VIDEO_LIST_PROJECTION,
+} from "@/presentation/serialize";
 import type { Product } from "@/model/product";
+import type { TextStyleDoc } from "@/model/text-style";
 
 export async function loadOwnedFolder(folderId: string, clerkUserId: string) {
   if (!ObjectId.isValid(folderId)) return null;
@@ -24,7 +38,8 @@ export async function loadOwnedFolder(folderId: string, clerkUserId: string) {
 export async function loadStudioPickers(user: AppUser) {
   const charactersCol = await charactersCollection();
   const productsCol = await productsCollection();
-  const [skillDocs, selectableStyles, characterDocs, productDocs, sub] = await Promise.all([
+  const textStylesCol = await textStylesCollection();
+  const [skillDocs, selectableStyles, characterDocs, productDocs, textStyleDocs, sub] = await Promise.all([
     listSelectableSkills(user.clerkUserId),
     listSelectableStyles(user.clerkUserId),
     charactersCol
@@ -35,6 +50,10 @@ export async function loadStudioPickers(user: AppUser) {
       .find({ clerkUserId: user.clerkUserId })
       .sort({ updatedAt: -1 })
       .toArray() as Promise<Product[]>,
+    textStylesCol
+      .find({ clerkUserId: user.clerkUserId })
+      .sort({ updatedAt: -1 })
+      .toArray() as Promise<TextStyleDoc[]>,
     getActiveSubscription(user.clerkUserId),
   ]);
   return {
@@ -42,6 +61,7 @@ export async function loadStudioPickers(user: AppUser) {
     styles: [...selectableStyles.system, ...selectableStyles.mine],
     characters: characterDocs.map(toPublicCharacter),
     products: productDocs.map(toPublicProduct),
+    textStyles: textStyleDocs.map(toPublicTextStyle),
     subscribed: isSubscriptionActive(sub),
   };
 }

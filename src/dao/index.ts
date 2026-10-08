@@ -18,3 +18,4 @@ export { userStylesCollection } from "@/dao/user-styles";
 export { userDirectorsCollection } from "@/dao/user-directors";
 export { postsCollection } from "@/dao/posts";
 export { productsCollection } from "@/dao/products";
+export { textStylesCollection } from "@/dao/text-styles";

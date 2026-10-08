@@ -21,6 +21,8 @@ export type VoiceGender = "male" | "female";
 export type SpeechPace = "slow" | "medium" | "fast";
 // On-canvas labels in storyboard stills; independent of voiceover language.
 export type SceneTextLanguage = "en" | "zh-Hant" | "zh-Hans";
+// Subtitle lettering. Placement is chosen by the director, not this field.
+export type SubtitleLook = "handwritten" | "clean" | "bold";
 
 // Lifecycle: phase_a → production → ready.
 // `awaiting_approval` remains for leftover videos; the UI treats it as production.
@@ -195,6 +197,12 @@ export type Project = {
   // Missing or false → no on-canvas labels. True + language → labels in that script.
   sceneTextEnabled?: boolean;
   sceneTextLanguage?: SceneTextLanguage;
+  // Missing rows use handwritten. Does not choose where the subtitle sits.
+  subtitleLook?: SubtitleLook;
+  // System look id, or a user text-style ObjectId. Missing rows use subtitleLook.
+  textStyleId?: string;
+  // Denormalized lettering sample. Present only for a custom text style.
+  textStyleImageUrl?: string;
   characterImageUrl?: string;
   // Opening / Ending bookends: brand logo used as a reference in every still.
   logoUrl?: string;
@@ -319,6 +327,9 @@ export const projectSchema: z.ZodType<Project> = z.object({
   speechPace: z.enum(["slow", "medium", "fast"]).optional(),
   sceneTextEnabled: z.boolean().optional(),
   sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans"]).optional(),
+  subtitleLook: z.enum(["handwritten", "clean", "bold"]).optional(),
+  textStyleId: z.string().optional(),
+  textStyleImageUrl: z.string().optional(),
   characterImageUrl: z.string().optional(),
   logoUrl: z.string().optional(),
   referenceImages: z

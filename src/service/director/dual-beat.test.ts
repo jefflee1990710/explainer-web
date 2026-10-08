@@ -106,7 +106,7 @@ test("dual-beat director block mentions two VO beats and does not invent letteri
   assert.match(on, /ONLY endVo/);
   assert.doesNotMatch(on, /52%/);
   assert.doesNotMatch(on, /warm-yellow/);
-  assert.match(on, /visual style catalog/);
+  assert.match(on, /Subtitle placement stays with this director/);
   assert.match(on, /one frozen pose/);
   assert.match(on, /landed resting pose/);
   assert.match(on, /motionCamera/);
@@ -122,21 +122,12 @@ test("dual-beat director block mentions two VO beats and does not invent letteri
   assert.match(dualBeatDirectorBlock(false), /Do not invent extra titles/);
 });
 
-test("dual-beat director block uses style lettering when provided", () => {
-  const on = dualBeatDirectorBlock(true, {
-    lettering: {
-      letteringLayout: "Layout: cut-paper VO at 40% height.",
-      letteringLine1: "Line 1 is torn dark-ink paper.",
-      letteringLine2: "Line 2 is a sunflower paper strip.",
-      beatTitleLayout: "Beat title on a kraft tag at 20%.",
-      reelLayout: "Reel cut-paper captions at 70%.",
-    },
-  });
-  assert.match(on, /40% height/);
-  assert.match(on, /torn dark-ink paper/);
-  assert.match(on, /kraft tag at 20%/);
+test("dual-beat director block uses the subtitle look and keeps its own placement", () => {
+  const on = dualBeatDirectorBlock(true, { look: "bold" });
+  assert.match(on, /condensed sans/);
+  assert.match(on, /Not a bottom subtitle bar/);
+  assert.doesNotMatch(on, /40%|70%|20%/);
   assert.doesNotMatch(on, /52%/);
-  assert.doesNotMatch(on, /hand-drawn all-caps marker/);
 });
 
 test("dual-beat director block keeps in-world labels when only captions are off", () => {

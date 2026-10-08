@@ -21,6 +21,8 @@ function raw(over: Partial<BriefDefaults> = {}): BriefDefaults {
     voiceGender: "female",
     speechPace: "fast",
     sceneTextLanguage: "zh-Hant",
+    subtitleLook: "handwritten",
+    textStyleId: "handwritten",
     aspectRatio: "9:16",
     durationPreset: "short",
     characterIds: ["a", "b"],

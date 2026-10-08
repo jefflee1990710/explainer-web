@@ -37,12 +37,14 @@ export function AppShell({
     { href: "/app/directors", label: t("nav.directors"), icon: "directors", section: "setup" },
     { href: "/app/styles", label: t("nav.styles"), icon: "styles", section: "setup" },
     { href: "/app/characters", label: t("nav.characters"), icon: "characters", section: "setup" },
+    { href: "/app/text-styles", label: t("nav.textStyles"), icon: "text", section: "setup" },
     { href: "/app/products", label: t("nav.products"), icon: "products", section: "setup" },
     { href: "/app/mcp", label: t("nav.mcp"), icon: "mcp", section: "other" },
     { href: "/app/billing", label: t("nav.billing"), icon: "billing", section: "other" },
   ];
   if (affiliateEnabled) {
-    items.splice(5, 0, { href: "/app/affiliate", label: t("nav.affiliate"), icon: "affiliate", section: "other" });
+    const mcpIndex = items.findIndex((item) => item.href === "/app/mcp");
+    items.splice(mcpIndex, 0, { href: "/app/affiliate", label: t("nav.affiliate"), icon: "affiliate", section: "other" });
   }
 
   return (

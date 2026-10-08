@@ -33,6 +33,7 @@ export type Messages = {
     language: string;
     posts: string;
     products: string;
+    textStyles: string;
   };
   common: {
     credits: string;
@@ -481,6 +482,23 @@ export type Messages = {
   video: VideoMessages;
   post: PostMessages;
   products: ProductsMessages;
+  textStyles: {
+    title: string;
+    subtitle: string;
+    systemSection: string;
+    mineSection: string;
+    mineEmpty: string;
+    create: string;
+    name: string;
+    namePlaceholder: string;
+    image: string;
+    imageHint: string;
+    replaceImage: string;
+    delete: string;
+    deleteConfirm: string;
+    systemBadge: string;
+    saving: string;
+  };
   production: ProductionMessages;
   tasksPage: TasksPageMessages;
   pickers: PickersMessages;

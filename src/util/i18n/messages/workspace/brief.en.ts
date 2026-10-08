@@ -70,6 +70,9 @@ export const briefEn = {
     title: "On-screen text",
     hintListicle: "Listicle directors show item titles on screen — pick the text language.",
     hintDefault: "Each storyboard still can show on-screen text — pick the text language.",
+    lookTitle: "Subtitle look",
+    lookHint: "Lettering only. Where the subtitle sits depends on the director.",
+    lookAria: "Subtitle look",
   },
   section05: {
     title: "Aspect ratio",
@@ -115,6 +118,7 @@ export const briefEn = {
   summary: {
     speechPace: "Pace · {label}",
     sceneText: "On-screen text · {label}",
+    subtitleLook: "Look · {label}",
     bookendLength: "1 clip · 3–4s",
     talkingHeadLength: "Even clips · 5–12s · up to 20",
     logo: "Logo",

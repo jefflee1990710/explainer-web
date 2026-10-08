@@ -1,10 +1,24 @@
 import type { AspectRatio } from "@/model/project";
-import { comparisonPanels, comparisonSplitAxis, listicleListEntries } from "@/service/director/skill-rules";
-import type { SceneTextLanguage } from "@/model/project";
+import { isOutfitReelSkill, isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
 import {
-  resolveStyleLettering,
-  type StyleLettering,
-} from "@/service/style/lettering";
+  comparisonPanels,
+  comparisonSplitAxis,
+  isComparisonCardSkill,
+  listicleListEntries,
+  skillForcesSceneText,
+} from "@/service/director/skill-rules";
+import type { SceneTextLanguage } from "@/model/project";
+import { subtitleLookLine, type SubtitleLook } from "@/service/director/subtitle-look";
+
+// Spoken captions. Listicle, comparison, surprise, and outfit keep their own on-canvas text.
+export function skillUsesSpokenSubtitle(skillSlug?: string) {
+  return (
+    !skillForcesSceneText(skillSlug) &&
+    !isComparisonCardSkill(skillSlug) &&
+    !isSurpriseInterviewSkill(skillSlug) &&
+    !isOutfitReelSkill(skillSlug)
+  );
+}
 
 export type SceneTextPreset = {
   id: SceneTextLanguage;
@@ -144,10 +158,11 @@ export function sceneTextSkillHint(
     inWorldLabels?: boolean;
     reelSafeZone?: boolean;
     aspectRatio?: string;
-    lettering?: StyleLettering;
+    look?: SubtitleLook;
+    lookLine?: string;
   },
 ) {
-  const lettering = resolveStyleLettering(options?.lettering);
+  const lookLine = options?.lookLine || subtitleLookLine(options?.look);
   if (options?.listicle) {
     return [
       "On-canvas text is REQUIRED for this director. Every still must show a readable numbered list of the item titles (each item clip's englishVo).",
@@ -174,25 +189,22 @@ export function sceneTextSkillHint(
     return "On-canvas text is OFF. explainerScene, visualWorld, and motionCamera must contain NO written words, labels, numbers, captions, signage, or lettering — not even in quotes or 「」. Communicate only with images, props, and composition.";
   }
   if (options?.dualBeat) {
-    const look = [lettering.letteringLayout, lettering.letteringLine1, lettering.letteringLine2]
-      .filter(Boolean)
-      .join(" ");
     return [
-      `When on-canvas text is ON, the start still quotes ONLY startVo and the end still quotes ONLY endVo as handwritten marker lettering.${look ? ` ${look}` : ""} English is all-caps. Two beats switch at the midpoint.`,
+      `When on-canvas text is ON, the start still quotes ONLY startVo and the end still quotes ONLY endVo. ${lookLine} Not a bottom subtitle bar. English marker beats are all-caps. Two beats switch at the midpoint.`,
       "startScene and endScene may also name one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 on the graph they belong to. Do not dump a second transcript of the spoken line into those fields.",
-      "Lettering follows the selected visual style — never a printed caption.",
+      "Subtitle placement stays with this director. Do not copy placement from the visual style.",
       markerLanguageHint(language),
     ].join(" ");
   }
   if (options?.reelSafeZone) {
     return [
-      `When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo as a subtitle ${spokenSubtitlePlace("9:16")}.${lettering.reelLayout ? ` ${lettering.reelLayout}` : ""}`,
+      `When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo as a subtitle inside the center safe area, clear of the top and bottom edges. ${lookLine}`,
       "explainerScene and motionCamera must describe pose, props, and environment only. Do NOT invent extra titles, quotes, 「Mental Health?」-style labels, signs, or any wording that is not englishVo.",
       SCENE_TEXT_PRESETS[language].skillHint,
     ].join(" ");
   }
   return [
-    `When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo voiceover line as a subtitle ${spokenSubtitlePlace(options?.aspectRatio)}, spelled character-for-character.`,
+    `When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo voiceover line as a subtitle ${spokenSubtitlePlace(options?.aspectRatio)}, spelled character-for-character. ${lookLine}`,
     "explainerScene and motionCamera must describe pose, props, and environment only. Do NOT invent extra titles, quotes, 「Mental Health?」-style labels, signs, or any wording that is not englishVo.",
     SCENE_TEXT_PRESETS[language].skillHint,
   ].join(" ");
@@ -233,28 +245,11 @@ export function voiceoverLineLooksLatin(line: string) {
 }
 
 export function sceneTextVoLetteringHint(
-  language: SceneTextLanguage,
-  narration: string,
-  options?: { markerSafeZone?: boolean; lettering?: StyleLettering },
+  _language: SceneTextLanguage,
+  _narration: string,
+  options?: { look?: SubtitleLook },
 ) {
-  const lettering = resolveStyleLettering(options?.lettering);
-  if (options?.markerSafeZone) {
-    const look = [lettering.letteringLine1, lettering.letteringLine2].filter(Boolean).join(" ");
-    if (look) return look;
-    if (language === "zh-Hant") return "以繁體手寫呈現這句旁白。";
-    if (language === "zh-Hans") return "以简体手写呈现这句旁白。";
-    return "Hand-letter the quoted line.";
-  }
-  if (voiceoverLineLooksLatin(narration)) {
-    return "Hand-letter the quoted English subtitle in large, readable mixed-case (same spelling as the quote).";
-  }
-  if (language === "zh-Hant") {
-    return "以繁體手寫字幕呈現下方整句旁白，字大清晰。";
-  }
-  if (language === "zh-Hans") {
-    return "以简体手写字幕呈现下方整句旁白，字大清晰。";
-  }
-  return "Hand-letter the FULL quoted voiceover line large and readable.";
+  return subtitleLookLine(options?.look);
 }
 
 // Phase A often embeds labels like 「Mental Health?」 — models copy those instead of englishVo.
@@ -374,11 +369,11 @@ export function sceneTextFrameLines(
     markerSafeZone?: boolean;
     reelSafeZone?: boolean;
     subtitlePlace?: "below-center" | "bottom";
-    lettering?: StyleLettering;
+    look?: SubtitleLook;
+    lookLine?: string;
     silentClip?: boolean;
   },
 ) {
-  const lettering = resolveStyleLettering(options?.lettering);
   if (!enabled && options?.inWorldLabels) {
     return [
       "Voiceover captions OFF: no subtitle band, no transcript of the spoken line anywhere in the image.",
@@ -408,10 +403,7 @@ export function sceneTextFrameLines(
   const reel = Boolean(options?.reelSafeZone) && !marker && !belowCenter;
   const formatted = marker ? formatVoiceoverForMarker(line) : formatVoiceoverForCanvas(line);
   // Typography belongs on the separate Lettering line; do not repeat it here.
-  const letterStyle = sceneTextVoLetteringHint(language, line, {
-    markerSafeZone: marker,
-    lettering,
-  });
+  const letterStyle = options?.lookLine || sceneTextVoLetteringHint(language, line, { look: options?.look });
   if (marker) {
     const markerLines = formatted.line2
       ? [
@@ -421,10 +413,9 @@ export function sceneTextFrameLines(
       : [`Marker line (spell exactly): "${formatted.line1}"`];
     return [
       "On-canvas marker lettering ON — highest priority.",
-      lettering.letteringLayout,
       ...markerLines,
       letterStyle,
-      `These quoted line(s) are the voiceover lettering. Also draw a short beat title only if the Scene already writes one inside 「」.${lettering.beatTitleLayout ? ` ${lettering.beatTitleLayout}` : ""} Draw the diagram labels already written in the Scene inside 「」 (node names, arrow names). No bottom subtitle band.`,
+      "These quoted line(s) are the voiceover lettering. Also draw a short beat title only if the Scene already writes one inside 「」. Draw the diagram labels already written in the Scene inside 「」 (node names, arrow names). No bottom subtitle band.",
     ].filter(Boolean);
   }
   const subtitleLines = formatted.line2
@@ -437,10 +428,10 @@ export function sceneTextFrameLines(
   return [
     "On-canvas subtitles ON — highest priority.",
     belowCenter
-      ? "Layout: one subtitle a little below the vertical center of the frame, centered horizontally, about 55% of the way down from the top. Clear of the face and clear of the bottom edge. A short semi-opaque white plate behind dark readable text. Not a band glued to the bottom."
+      ? "Layout: one subtitle a little below the vertical center of the frame, centered horizontally, about 55% of the way down from the top. Clear of the face and clear of the bottom edge. Not a band glued to the bottom."
       : reel
-        ? lettering.reelLayout
-        : "Layout: a semi-opaque white band across the bottom 18% of the frame; dark hand-lettered text centered inside the band (integrated caption, not a tiny corner tag).",
+        ? "Layout: one subtitle inside the center safe area, clear of the top and bottom edges. Not a bottom band."
+        : "Layout: a band across the bottom 18% of the frame; the subtitle is centered in that band (not a tiny corner tag).",
     ...subtitleLines,
     letterStyle,
     "Only the subtitle line(s) above may appear as writing; no other letters, numbers, signs, or labels anywhere in the illustration.",

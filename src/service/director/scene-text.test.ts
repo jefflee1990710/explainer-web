@@ -144,26 +144,20 @@ test("enabled scene text quotes the clip narration on canvas", () => {
   assert.match(sceneTextSkillHint(true, "en"), /englishVo voiceover line/);
 });
 
-test("reel safe zone uses the style reel layout and drops the bottom band", () => {
-  const lettering = {
-    letteringLayout: "",
-    letteringLine1: "",
-    letteringLine2: "",
-    beatTitleLayout: "",
-    reelLayout: "Reel cut-paper captions at 70%.",
-  };
+test("reel safe zone stays in the center and does not take placement from a style", () => {
   const lines = sceneTextFrameLines(true, "en", "We made it", undefined, {
     reelSafeZone: true,
-    lettering,
+    look: "clean",
   });
   const text = lines.join("\n");
-  assert.match(text, /70%/);
+  assert.match(text, /center safe area/);
+  assert.match(text, /geometric sans/);
   assert.match(text, /We made it/);
+  assert.doesNotMatch(text, /70%/);
   assert.doesNotMatch(text, /bottom 18%/);
-  assert.doesNotMatch(text, /64% and 78%/);
-  assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true, lettering }), /70%/);
+  assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true, look: "bold" }), /center safe area/);
+  assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true, look: "bold" }), /condensed sans/);
   const bare = sceneTextFrameLines(true, "en", "We made it", undefined, { reelSafeZone: true }).join("\n");
-  assert.doesNotMatch(bare, /64% and 78%/);
   assert.doesNotMatch(bare, /bottom 18%/);
 });
 
@@ -223,24 +217,17 @@ test("voiceoverLineLooksLatin detects English narration", () => {
   assert.equal(voiceoverLineLooksLatin("你好"), false);
 });
 
-test("scene text uses the style lettering override when provided", () => {
-  const lettering = {
-    letteringLayout: "Layout: cut-paper VO at 40% height.",
-    letteringLine1: "Line 1 is torn dark-ink paper.",
-    letteringLine2: "Line 2 is a sunflower paper strip.",
-    beatTitleLayout: "Beat title on a kraft tag at 20%.",
-    reelLayout: "Reel cut-paper captions at 70%.",
-  };
+test("subtitle look changes lettering and never the director placement", () => {
   const marker = sceneTextFrameLines(true, "en", "Hello world now", undefined, {
     markerSafeZone: true,
-    lettering,
+    look: "bold",
   }).join("\n");
-  assert.match(marker, /40% height/);
-  assert.match(marker, /torn dark-ink paper/);
-  assert.doesNotMatch(marker, /52% and 60%/);
-  assert.doesNotMatch(marker, /hand-drawn all-caps marker/);
-  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true, lettering }), /40% height/);
-  assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true, lettering }), /70%/);
+  assert.match(marker, /condensed sans/);
+  assert.match(marker, /No bottom subtitle band/);
+  assert.doesNotMatch(marker, /40%|70%|20%/);
+  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /geometric sans/);
+  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /Not a bottom subtitle bar/);
+  assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /40%/);
 });
 
 test("director revision note asks to drop invented labels when toggling", () => {

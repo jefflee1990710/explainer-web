@@ -1,4 +1,4 @@
-import type { DurationPreset, SceneTextLanguage, SpeechPace, VoLanguage, VoiceGender } from "@/model/project";
+import type { DurationPreset, SceneTextLanguage, SpeechPace, SubtitleLook, VoLanguage, VoiceGender } from "@/model/project";
 import type { TranslateFn } from "@/util/i18n/translate";
 
 export function voLanguageLabel(t: TranslateFn, id: VoLanguage) {
@@ -12,6 +12,13 @@ export function sceneTextLangLabel(t: TranslateFn, id: SceneTextLanguage) {
   return {
     label: t(`pickers.sceneTextLang.${id}.label`),
     sublabel: t(`pickers.sceneTextLang.${id}.sublabel`),
+  };
+}
+
+export function subtitleLookLabel(t: TranslateFn, id: SubtitleLook) {
+  return {
+    label: t(`pickers.subtitleLook.${id}.label`),
+    sublabel: t(`pickers.subtitleLook.${id}.sublabel`),
   };
 }
 

@@ -16,6 +16,7 @@ import {
   resolveSceneText,
   SCENE_TEXT_PRESETS,
   sceneTextSkillHint,
+  skillUsesSpokenSubtitle,
 } from "@/service/director/scene-text";
 import { skillPromptForPhaseA } from "@/service/director/load-skill-prompt";
 import {
@@ -72,7 +73,7 @@ import {
 import { sanitizeOutfitPhaseA } from "@/service/director/outfit-reel";
 import { sanitizeSurprisePhaseA } from "@/service/director/surprise-interview";
 import type { Style } from "@/service/style";
-import { resolveStyleLettering } from "@/service/style/lettering";
+import { resolveSubtitleLook, textStyleSampleHint } from "@/service/director/subtitle-look";
 import type { RenderableStyle } from "@/service/style/renderable-style";
 import type { CastMember } from "@/model/character";
 import type { ProductShot } from "@/model/product";
@@ -103,6 +104,8 @@ export async function runPhaseA(input: {
   speechPace?: SpeechPace;
   sceneTextEnabled?: boolean;
   sceneTextLanguage?: SceneTextLanguage;
+  subtitleLook?: string;
+  textStyleImageUrl?: string;
   characterImageUrl?: string;
   cast?: CastMember[];
   // Real products. Attached after characters and before the logo.
@@ -147,7 +150,9 @@ export async function runPhaseA(input: {
   const look = { wardrobeBuild, clothingFromReference };
   const characterNote =
     castBlockForPhaseA(input.cast, look) || phaseASoloCharacterNote(input.characterImageUrl, look);
-  const lettering = resolveStyleLettering(input.style);
+  const subtitleLook = resolveSubtitleLook(input.subtitleLook);
+  const sampleLookLine =
+    input.textStyleImageUrl && skillUsesSpokenSubtitle(input.skill.slug) ? textStyleSampleHint() : undefined;
   const dualBeat = isDualBeatSkill(input.skill.slug);
   const dialogueOnly = skillBansNarration(input.skill.slug);
   const speakerLocks = lockedSpeakerLines(input.cast);
@@ -196,7 +201,7 @@ You are executing Phase A only. Return structured JSON that matches the schema.
 ${language.planningSkillHint}
 ${keyframeDeltaDirectorBlock({ separateStills: dualBeat, language: input.language, performance: dualBeat && hasCharacter })}
 ${sceneDetailDirectorBlock()}
-${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, lettering, hasCharacter }) : ""}
+${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter }) : ""}
 ${
   skillForcesSceneText(input.skill.slug)
     ? "On-canvas text is required: a numbered item list must appear in every still."
@@ -265,7 +270,8 @@ ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   comparison: isComparisonCardSkill(input.skill.slug),
   inWorldLabels: sceneText.inWorldLabels,
   aspectRatio: input.aspectRatio,
-  lettering,
+  look: subtitleLook,
+  lookLine: sampleLookLine,
 })}
 The englishVo field always carries the spoken line in the chosen language above (character dialogue when this skill bans narration), regardless of the field name.
 Leave referenceTranslation empty. Do not invent a translation column.

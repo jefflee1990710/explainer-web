@@ -31,6 +31,7 @@ import {
   listicleOnCanvasLines,
   resolveSceneText,
   sceneTextFrameLines,
+  skillUsesSpokenSubtitle,
   subtitleSitsBelowCenter,
   stripSceneVoiceoverRecap,
   stripStoryboardWriting,
@@ -76,7 +77,7 @@ import {
   styleLinesForFrame,
   type Style,
 } from "@/service/style";
-import { resolveStyleLettering } from "@/service/style/lettering";
+import { resolveSubtitleLook, textStyleSampleLookLine } from "@/service/director/subtitle-look";
 import { isStyleId } from "@/model/style-id";
 import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
 import { loadRenderableStyle, type RenderableStyle } from "@/service/style/renderable-style";
@@ -333,7 +334,7 @@ export function buildFramePrompt(
   options: FramePromptOptions = {},
 ) {
   const style = options.style ?? systemStyle(project);
-  const lettering = resolveStyleLettering(style);
+  const subtitleLook = resolveSubtitleLook(project.subtitleLook);
   const phaseA = project.phaseA;
   if (!phaseA) throw new Error("尚未有分鏡");
   const row = phaseA.clips.find((clip) => clip.clipNumber === clipNumber);
@@ -371,11 +372,30 @@ export function buildFramePrompt(
       ...(project.referenceImages || []).map((image) => image.description),
     ]);
   // Every still needs the clothing photo so style and colour stay exact.
+  const textStyleUrl =
+    project.textStyleImageUrl && skillUsesSpokenSubtitle(project.skillSlug)
+      ? project.textStyleImageUrl
+      : undefined;
   const sceneRefUrls = frameSceneReferenceUrls(
     project,
     clipNumber,
-    annotatedCount + anchorCount + lockUrls.length + logoUrls.length + productUrls.length,
+    annotatedCount +
+      anchorCount +
+      lockUrls.length +
+      logoUrls.length +
+      productUrls.length +
+      (textStyleUrl ? 1 : 0),
   );
+  const textStyleIndex = textStyleUrl
+    ? annotatedCount +
+      anchorCount +
+      lockUrls.length +
+      sceneRefUrls.length +
+      productUrls.length +
+      logoUrls.length +
+      1
+    : 0;
+  const sampleLookLine = textStyleUrl ? textStyleSampleLookLine(textStyleIndex) : undefined;
   // The character blueprint comes before any scene photo so that photo's face does not win.
   const characterFirst = lockUrls.length > 0;
   const copyClothes = clothingFromInstruction && sceneRefUrls.length > 0;
@@ -502,18 +522,16 @@ export function buildFramePrompt(
         })
       : sceneText.enabled
       ? [
-          styleLetteringLineForSceneText(style),
-          // Typography already sits on the Lettering line above.
           ...sceneTextFrameLines(
             true,
             sceneText.language,
             voForFrame,
             undefined,
             dualBeat
-              ? { markerSafeZone: true, lettering, silentClip }
+              ? { markerSafeZone: true, look: subtitleLook, lookLine: sampleLookLine, silentClip }
               : subtitleBelowCenter
-                ? { subtitlePlace: "below-center" as const, lettering, silentClip }
-                : { lettering, silentClip },
+                ? { subtitlePlace: "below-center" as const, look: subtitleLook, lookLine: sampleLookLine, silentClip }
+                : { look: subtitleLook, lookLine: sampleLookLine, silentClip },
           ),
         ]
       : keepSceneLabels
@@ -589,9 +607,7 @@ export function buildFramePrompt(
         ? silentClip
           ? ["Final check: no subtitle band and no letters in the frame."]
           : dualBeat
-          ? [
-              `Final check: spelling matches the Marker line(s); no bottom subtitle band.${lettering.letteringLayout ? " Voiceover lettering sits where the Layout line says." : ""}`,
-            ]
+          ? ["Final check: spelling matches the Marker line(s); no bottom subtitle band."]
           : subtitleBelowCenter
             ? [
                 "Final check: the subtitle sits a little below the vertical center, not in a bottom band. Spelling must match the Subtitle line(s) above.",
@@ -649,6 +665,10 @@ export function frameSubmitPlan(
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
   // Same cap as buildFramePrompt so the URL order matches the prompt's numbering.
+  const textStyleUrls =
+    project.textStyleImageUrl && skillUsesSpokenSubtitle(project.skillSlug)
+      ? [project.textStyleImageUrl]
+      : [];
   const sceneRefUrls = frameSceneReferenceUrls(
     project,
     clipNumber,
@@ -656,8 +676,13 @@ export function frameSubmitPlan(
       (anchor ? 1 : 0) +
       castUrls.length +
       logoUrls.length +
-      productUrls.length,
+      productUrls.length +
+      textStyleUrls.length,
   );
+  const orderedLocks =
+    castUrls.length > 0
+      ? [...castUrls, ...sceneRefUrls, ...productUrls, ...logoUrls, ...textStyleUrls]
+      : [...sceneRefUrls, ...castUrls, ...productUrls, ...logoUrls, ...textStyleUrls];
   return {
     prompt: buildFramePrompt(project, clipNumber, position, {
       revision,
@@ -667,10 +692,7 @@ export function frameSubmitPlan(
     refs: sceneImageReferenceUrls({
       annotatedUrl: revision?.annotatedUrl,
       anchorUrl: anchor?.url,
-      lockUrls:
-        castUrls.length > 0
-          ? [...castUrls, ...sceneRefUrls, ...productUrls, ...logoUrls]
-          : [...sceneRefUrls, ...castUrls, ...productUrls, ...logoUrls],
+      lockUrls: orderedLocks,
     }),
     anchor,
   };

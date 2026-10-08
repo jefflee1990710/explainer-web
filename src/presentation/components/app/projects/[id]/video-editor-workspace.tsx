@@ -12,6 +12,7 @@ import type {
   PublicProduct,
   PublicSkill,
   PublicStyle,
+  PublicTextStyle,
   PublicVideo,
 } from "@/presentation/serialize";
 import { folderPath } from "@/service/folder-video-path";
@@ -24,6 +25,7 @@ export function VideoEditorWorkspace({
   styles,
   characters,
   products,
+  textStyles,
   credits,
   subscribed,
   initialVideo,
@@ -34,6 +36,7 @@ export function VideoEditorWorkspace({
   styles: PublicStyle[];
   characters: PublicCharacter[];
   products: PublicProduct[];
+  textStyles: PublicTextStyle[];
   credits: number;
   subscribed: boolean;
   initialVideo: PublicVideo | null;
@@ -96,6 +99,7 @@ export function VideoEditorWorkspace({
           styles={styles}
           characters={characters}
           products={products}
+          textStyles={textStyles}
           initialVideo={video}
           credits={credits}
           subscribed={subscribed}

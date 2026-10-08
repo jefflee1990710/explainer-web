@@ -1,6 +1,7 @@
 import { isDurationPreset } from "@/service/director/duration-presets";
 import { isVoLanguage } from "@/service/director/languages";
 import { isSceneTextLanguage } from "@/service/director/scene-text";
+import { isSubtitleLook, resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { isSpeechPace } from "@/service/director/speech-pace";
 import { requiredCastCount } from "@/service/director/skill-rules";
 import { isVoiceGender } from "@/service/director/voice";
@@ -10,6 +11,7 @@ import type {
   DurationPreset,
   SceneTextLanguage,
   SpeechPace,
+  SubtitleLook,
   VoLanguage,
   VoiceGender,
 } from "@/model/project";
@@ -21,6 +23,8 @@ export type BriefDefaults = {
   voiceGender: VoiceGender;
   speechPace: SpeechPace;
   sceneTextLanguage: SceneTextLanguage;
+  subtitleLook: SubtitleLook;
+  textStyleId: string;
   aspectRatio: AspectRatio;
   durationPreset: DurationPreset;
   characterIds: string[];
@@ -30,6 +34,7 @@ type Catalog = {
   skills: Array<{ slug: string; behaviorSlug?: string }>;
   styles: Array<{ id: string }>;
   characters: Array<{ id: string; styleId: string; styleIds?: string[] }>;
+  textStyles?: Array<{ id: string }>;
 };
 
 const RATIOS = new Set<AspectRatio>(["16:9", "9:16", "1:1"]);
@@ -63,6 +68,14 @@ export function sanitizeBriefDefaults(
     typeof input.sceneTextLanguage === "string" && isSceneTextLanguage(input.sceneTextLanguage)
       ? input.sceneTextLanguage
       : "en";
+  const subtitleLook = resolveSubtitleLook(
+    typeof input.subtitleLook === "string" ? input.subtitleLook : undefined,
+  );
+  const rawTextStyle = typeof input.textStyleId === "string" ? input.textStyleId : subtitleLook;
+  const textStyleId =
+    isSubtitleLook(rawTextStyle) || catalog.textStyles?.some((style) => style.id === rawTextStyle)
+      ? rawTextStyle
+      : subtitleLook;
   const aspectRatio =
     typeof input.aspectRatio === "string" && RATIOS.has(input.aspectRatio as AspectRatio)
       ? (input.aspectRatio as AspectRatio)
@@ -89,6 +102,8 @@ export function sanitizeBriefDefaults(
     voiceGender,
     speechPace,
     sceneTextLanguage,
+    subtitleLook,
+    textStyleId,
     aspectRatio,
     durationPreset,
     characterIds: need > 0 ? characterIds.slice(0, need) : characterIds.slice(0, 4),

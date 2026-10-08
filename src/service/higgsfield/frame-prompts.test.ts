@@ -27,6 +27,25 @@ test("bookend stills attach the logo after the character refs and name it", () =
   assert.match(plan.prompt, /BRAND LOGO: attached image 1 is the brand logo/);
 });
 
+test("custom text style is the last reference and only describes lettering", () => {
+  const image = "https://blob/lettering.png";
+  const plan = frameSubmitPlan({ ...project(), textStyleImageUrl: image, subtitleLook: "clean" }, 1, "start");
+  assert.deepEqual(plan.refs, [image]);
+  assert.match(plan.prompt, /attached image 1, a lettering sample/);
+  assert.doesNotMatch(plan.prompt, /geometric sans/);
+});
+
+test("outfit reels do not attach a text-style sample", () => {
+  const image = "https://blob/lettering.png";
+  const plan = frameSubmitPlan(
+    { ...project(), skillSlug: "outfit-reel-director", textStyleImageUrl: image },
+    1,
+    "start",
+  );
+  assert.deepEqual(plan.refs, []);
+  assert.doesNotMatch(plan.prompt, /lettering sample/);
+});
+
 test("non-bookend videos ignore a stray logo", () => {
   const other = { ...project(), logoUrl: "https://blob/logo.png" };
   const plan = frameSubmitPlan(other, 1, "start");
@@ -87,15 +106,17 @@ test("doodle frame prompt uses the loaded style, no hard-coded whiteboard litera
   const prompt = buildFramePrompt(project(), 1, "start");
   assert.match(prompt, /doodle name short video/);
   assert.match(prompt, /Canvas: doodle canvas/);
-  assert.match(prompt, /Lettering:/);
+  assert.match(prompt, /Look: dark hand-lettered/);
   assert.doesNotMatch(prompt, /No on-canvas text/);
   assert.doesNotMatch(prompt, /whiteboard-doodle cartoon explainer video/);
 });
 
-test("pixel video gets pixel canvas and its own pixel lettering", () => {
+test("pixel video keeps its canvas while subtitle look stays independent", () => {
   const prompt = buildFramePrompt(project("pixel"), 1, "end");
   assert.match(prompt, /pixel name short video/);
-  assert.match(prompt, /Lettering: pixel typography/);
+  assert.match(prompt, /pixel canvas/);
+  assert.match(prompt, /Look: dark hand-lettered/);
+  assert.doesNotMatch(prompt, /pixel typography/);
 });
 
 test("end frame is the same shot as start, not a new composition", () => {
@@ -390,7 +411,7 @@ test("legacy disabled scene text still paints the voiceover lettering", () => {
   const off = project();
   off.sceneTextEnabled = false;
   const prompt = buildFramePrompt(off, 1, "start");
-  assert.match(prompt, /Lettering:/);
+  assert.match(prompt, /Look: dark hand-lettered/);
   assert.match(prompt, /Subtitle \(spell exactly\): "vo"/);
   assert.doesNotMatch(prompt, /No on-canvas text/);
 });
@@ -444,8 +465,9 @@ test("whiteboard stills use the video style lettering instead of doodle defaults
     englishVo: "First beat. Second beat.",
   };
   const start = buildFramePrompt(dual, 1, "start");
-  assert.match(start, /40% height/);
-  assert.match(start, /torn dark-ink paper/);
+  assert.doesNotMatch(start, /40% height/);
+  assert.doesNotMatch(start, /torn dark-ink paper/);
+  assert.match(start, /Look: dark hand-lettered/);
   assert.doesNotMatch(start, /52% and 60%/);
   assert.doesNotMatch(start, /hand-drawn all-caps marker/);
   installTestStyles();
@@ -518,7 +540,7 @@ test("enabled scene text puts the voiceover line on canvas with lettering", () =
   on.sceneTextEnabled = true;
   on.sceneTextLanguage = "zh-Hant";
   const prompt = buildFramePrompt(on, 1, "start");
-  assert.match(prompt, /Lettering:/);
+  assert.match(prompt, /Look: dark hand-lettered/);
   assert.match(prompt, /subtitles ON/i);
   assert.match(prompt, /Subtitle \(spell exactly\): "vo"/);
   const sceneAt = prompt.indexOf("Scene:");
@@ -873,8 +895,9 @@ test("a preloaded user style supplies look and lettering", () => {
   video.skillSlug = "cartoon-explainer-video-director";
   const prompt = buildFramePrompt(video, 1, "start", { style: custom });
   assert.match(prompt, /torn kraft edges/);
-  assert.match(prompt, /torn dark-ink paper/);
-  assert.match(prompt, /40% height/);
+  assert.doesNotMatch(prompt, /torn dark-ink paper/);
+  assert.doesNotMatch(prompt, /40% height/);
+  assert.match(prompt, /Look: dark hand-lettered/);
 });
 
 test("clips without assigned references attach none", () => {

@@ -9,6 +9,7 @@ import {
   generationJobsCollection,
   productsCollection,
   projectsCollection,
+  textStylesCollection,
   videosCollection,
 } from "@/dao";
 import { runPhaseAJob, runStillJob } from "@/service/director/jobs";
@@ -18,6 +19,7 @@ import { isVoLanguage } from "@/service/director/languages";
 import { isVoiceGender, resolveVoiceGender } from "@/service/director/voice";
 import { isSpeechPace } from "@/service/director/speech-pace";
 import { isSceneTextLanguage } from "@/service/director/scene-text";
+import { isSubtitleLook, resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { isDurationPreset } from "@/service/director/duration-presets";
 import { isTalkingHeadSkill } from "@/service/director/talking-head";
 import {
@@ -51,6 +53,7 @@ import type {
   ReferenceImage,
   SceneTextLanguage,
   SpeechPace,
+  SubtitleLook,
   VoLanguage,
   VoiceGender,
 } from "@/model/project";
@@ -79,6 +82,9 @@ type BriefFields = {
   speechPace: SpeechPace;
   sceneTextEnabled: boolean;
   sceneTextLanguage: SceneTextLanguage;
+  subtitleLook: SubtitleLook;
+  textStyleId: string;
+  textStyleImageUrl?: string;
   characterIds: string[];
   productIds: string[];
   // Bookend skills only; undefined clears it.
@@ -87,12 +93,36 @@ type BriefFields = {
   referenceImages: ReferenceImage[];
 };
 
+// System ids keep the extracted look. A user id loads that lettering sample.
+async function resolveTextStyleChoice(
+  clerkUserId: string,
+  raw: string,
+): Promise<
+  | { ok: true; subtitleLook: SubtitleLook; textStyleId: string; textStyleImageUrl?: string }
+  | { ok: false; error: string }
+> {
+  if (!raw || isSubtitleLook(raw)) {
+    const look = resolveSubtitleLook(raw);
+    return { ok: true, subtitleLook: look, textStyleId: look };
+  }
+  if (!ObjectId.isValid(raw)) return { ok: false, error: "請選擇文字樣式" };
+  const styles = await textStylesCollection();
+  const doc = await styles.findOne({ _id: new ObjectId(raw), clerkUserId });
+  if (!doc) return { ok: false, error: "找不到文字樣式" };
+  return {
+    ok: true,
+    subtitleLook: "handwritten",
+    textStyleId: raw,
+    textStyleImageUrl: doc.imageUrl,
+  };
+}
+
 // `ruleSlug` is the behaviour slug; custom directors follow their template's rules.
-function readVideoBrief(
+async function readVideoBrief(
   formData: FormData,
   clerkUserId: string,
   ruleSlug: string,
-): { ok: true; brief: BriefFields } | { ok: false; error: string } {
+): Promise<{ ok: true; brief: BriefFields } | { ok: false; error: string }> {
   const skillSlug = String(formData.get("skillSlug") || "");
   const styleId = String(formData.get("styleId") || "");
   const source = String(formData.get("source") || "").trim();
@@ -103,6 +133,7 @@ function readVideoBrief(
   const voiceGender = String(formData.get("voiceGender") || "male");
   const speechPace = String(formData.get("speechPace") || "medium");
   const sceneTextLanguage = String(formData.get("sceneTextLanguage") || "en");
+  const textStyleRaw = String(formData.get("textStyleId") || formData.get("subtitleLook") || "");
   const characterIds = Array.from(
     new Set(
       formData
@@ -147,6 +178,8 @@ function readVideoBrief(
   if (!isSceneTextLanguage(sceneTextLanguage)) {
     return { ok: false, error: "請選擇畫面文字語言" };
   }
+  const textStyle = await resolveTextStyleChoice(clerkUserId, textStyleRaw);
+  if (!textStyle.ok) return textStyle;
   // Catalog ids and user-style ObjectId hex strings. Unknown strings are rejected, never doodle.
   if (!isListedStyleId(styleId)) {
     return { ok: false, error: "請選擇視覺風格" };
@@ -180,6 +213,9 @@ function readVideoBrief(
       // 畫面文字永遠開啟，使用者只選語言。
       sceneTextEnabled: true,
       sceneTextLanguage,
+      subtitleLook: textStyle.subtitleLook,
+      textStyleId: textStyle.textStyleId,
+      ...(textStyle.textStyleImageUrl ? { textStyleImageUrl: textStyle.textStyleImageUrl } : {}),
       characterIds,
       productIds,
     },
@@ -345,7 +381,7 @@ export async function createVideoAction(
     );
     if (!skill || isHiddenPickerSkill(skill)) return { ok: false, error: "找不到風格" };
     const ruleSlug = behaviorSlug(skill);
-    const parsed = readVideoBrief(formData, user.clerkUserId, ruleSlug);
+    const parsed = await readVideoBrief(formData, user.clerkUserId, ruleSlug);
     if (!parsed.ok) return parsed;
     const { brief } = parsed;
 
@@ -391,6 +427,9 @@ export async function createVideoAction(
       speechPace: brief.speechPace,
       sceneTextEnabled: applySkillSceneText(ruleSlug, brief.sceneTextEnabled),
       sceneTextLanguage: brief.sceneTextLanguage,
+      subtitleLook: brief.subtitleLook,
+      textStyleId: brief.textStyleId,
+      ...(brief.textStyleImageUrl ? { textStyleImageUrl: brief.textStyleImageUrl } : {}),
       ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
       ...(brief.referenceImages.length ? { referenceImages: brief.referenceImages } : {}),
       cast,
@@ -451,7 +490,7 @@ async function rewriteVideoBrief(
     );
     if (!skill) return { ok: false, error: "找不到風格" };
     const ruleSlug = behaviorSlug(skill);
-    const parsed = readVideoBrief(formData, user.clerkUserId, ruleSlug);
+    const parsed = await readVideoBrief(formData, user.clerkUserId, ruleSlug);
     if (!parsed.ok) return parsed;
     const { brief } = parsed;
     if (!ObjectId.isValid(videoId)) {
@@ -507,6 +546,9 @@ async function rewriteVideoBrief(
           speechPace: brief.speechPace,
           sceneTextEnabled: applySkillSceneText(ruleSlug, brief.sceneTextEnabled),
           sceneTextLanguage: brief.sceneTextLanguage,
+          subtitleLook: brief.subtitleLook,
+          textStyleId: brief.textStyleId,
+          ...(brief.textStyleImageUrl ? { textStyleImageUrl: brief.textStyleImageUrl } : {}),
           cast: castResult.cast,
           products: productResult.products,
           ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
@@ -519,6 +561,7 @@ async function rewriteVideoBrief(
           ...(brief.logoUrl ? {} : { logoUrl: "" }),
           ...(brief.referenceImages.length ? {} : { referenceImages: "" }),
           ...(brief.spokenScript ? {} : { spokenScript: "" }),
+          ...(brief.textStyleImageUrl ? {} : { textStyleImageUrl: "" }),
         },
       },
     );

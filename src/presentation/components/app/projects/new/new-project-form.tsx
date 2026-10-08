@@ -61,8 +61,12 @@ import { durationPresetLabel } from "@/util/i18n/picker-labels";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { DEFAULT_VOICE_GENDER, VOICE_PRESETS } from "@/service/director/voice";
 import { SCENE_TEXT_PRESETS } from "@/service/director/scene-text";
+import { DEFAULT_SUBTITLE_LOOK, isSubtitleLook } from "@/service/director/subtitle-look";
+import { TextStylePicker } from "@/presentation/components/app/projects/new/text-style-picker";
+import { isOutfitReelSkill, isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
 import {
   isBookendSkill,
+  isComparisonCardSkill,
   requiredCastCount,
   skillBansNarration,
   skillForcesSceneText,
@@ -70,7 +74,14 @@ import {
 import { isTalkingHeadSkill, talkingHeadScriptFromClips } from "@/service/director/talking-head";
 import { TalkingHeadScriptField } from "@/presentation/components/app/projects/new/talking-head-script-field";
 import { failedStepFor, isProductionLike } from "@/service/project-status";
-import type { PublicCharacter, PublicProduct, PublicSkill, PublicStyle, PublicVideo } from "@/presentation/serialize";
+import type {
+  PublicCharacter,
+  PublicProduct,
+  PublicSkill,
+  PublicStyle,
+  PublicTextStyle,
+  PublicVideo,
+} from "@/presentation/serialize";
 import { DEFAULT_STYLE_ID } from "@/service/style";
 import type {
   AspectRatio,
@@ -106,7 +117,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { localizedVideoType } from "@/util/video-type-i18n";
 import { localizedStyleName } from "@/util/style-i18n";
 import { translateAppError } from "@/util/i18n/translate-app-error";
-import { sceneTextLangLabel, speechPaceLabel } from "@/util/i18n/picker-labels";
+import { sceneTextLangLabel, speechPaceLabel, subtitleLookLabel } from "@/util/i18n/picker-labels";
 import { useProjectPoll } from "@/presentation/components/app/projects/new/use-project-poll";
 import {
   ruleSlugFor,
@@ -127,12 +138,23 @@ function queueKeysForPlan(plan: { frames: number[]; videos: number[] }) {
   ];
 }
 
+function chosenTextStyleId(
+  video: PublicVideo | null | undefined,
+  remembered: string | undefined,
+  styles: PublicTextStyle[],
+) {
+  const id = video?.textStyleId || remembered || video?.subtitleLook || DEFAULT_SUBTITLE_LOOK;
+  if (isSubtitleLook(id) || styles.some((style) => style.id === id)) return id;
+  return video?.subtitleLook || DEFAULT_SUBTITLE_LOOK;
+}
+
 export function NewProjectForm({
   projectId,
   skills,
   styles,
   characters,
   products,
+  textStyles,
   initialVideo = null,
   credits,
   subscribed,
@@ -144,6 +166,7 @@ export function NewProjectForm({
   styles: PublicStyle[];
   characters: PublicCharacter[];
   products: PublicProduct[];
+  textStyles: PublicTextStyle[];
   initialVideo?: PublicVideo | null;
   credits: number;
   subscribed: boolean;
@@ -155,7 +178,7 @@ export function NewProjectForm({
   // New-video dialog recalls this folder's last picks; never the script.
   const lastBrief = initialVideo
     ? undefined
-    : readBriefDefaults(projectId, { skills, styles, characters });
+    : readBriefDefaults(projectId, { skills, styles, characters, textStyles });
 
   // Form fields
   const rememberedSkill = lastBrief?.skillSlug;
@@ -190,6 +213,9 @@ export function NewProjectForm({
   );
   const [sceneTextLanguage, setSceneTextLanguage] = useState<SceneTextLanguage>(
     initialVideo?.sceneTextLanguage || lastBrief?.sceneTextLanguage || "en",
+  );
+  const [textStyleId, setTextStyleId] = useState(() =>
+    chosenTextStyleId(initialVideo, lastBrief?.textStyleId, textStyles),
   );
   const [aspectRatio, setAspectRatio] = useState<AspectRatio | "">(
     initialVideo?.aspectRatio || lastBrief?.aspectRatio || "",
@@ -309,6 +335,7 @@ export function NewProjectForm({
       project.voiceGender === voiceGender &&
       project.speechPace === speechPace &&
       project.sceneTextLanguage === sceneTextLanguage &&
+      (project.textStyleId || project.subtitleLook) === textStyleId &&
       project.aspectRatio === aspectRatio &&
       project.durationPreset === durationPreset &&
       (project.logoUrl || "") === (bookend ? logoUrl : "") &&
@@ -333,6 +360,8 @@ export function NewProjectForm({
     formData.set("voiceGender", voiceGender);
     formData.set("speechPace", speechPace);
     formData.set("sceneTextLanguage", sceneTextLanguage);
+    formData.set("textStyleId", textStyleId);
+    formData.set("subtitleLook", isSubtitleLook(textStyleId) ? textStyleId : DEFAULT_SUBTITLE_LOOK);
     formData.set("aspectRatio", aspectRatio);
     formData.set("durationPreset", durationPreset);
     if (bookend && logoUrl) formData.set("logoUrl", logoUrl);
@@ -420,6 +449,7 @@ export function NewProjectForm({
     setVoiceGender(video.voiceGender || DEFAULT_VOICE_GENDER);
     setSpeechPace(video.speechPace || DEFAULT_SPEECH_PACE);
     setSceneTextLanguage(video.sceneTextLanguage || "en");
+    setTextStyleId(chosenTextStyleId(video, undefined, textStyles));
     setAspectRatio(video.aspectRatio);
     setDurationPreset(video.durationPreset);
     setCharacterIds(video.cast.map((member) => member.characterId));
@@ -618,6 +648,12 @@ export function NewProjectForm({
   const castNeed = requiredCastCount(ruleSlug);
   const forceSceneText = skillForcesSceneText(ruleSlug);
   const dialogueOnly = skillBansNarration(ruleSlug);
+  // Listicle, comparison, surprise, and outfit do not use a spoken subtitle look.
+  const showSubtitleLook =
+    !forceSceneText &&
+    !isComparisonCardSkill(ruleSlug) &&
+    !isSurpriseInterviewSkill(ruleSlug) &&
+    !isOutfitReelSkill(ruleSlug);
 
   useEffect(() => {
     if (castNeed > 0) {
@@ -634,6 +670,8 @@ export function NewProjectForm({
       voiceGender,
       speechPace,
       sceneTextLanguage,
+      subtitleLook: isSubtitleLook(textStyleId) ? textStyleId : DEFAULT_SUBTITLE_LOOK,
+      textStyleId,
       aspectRatio,
       durationPreset,
       characterIds,
@@ -646,6 +684,7 @@ export function NewProjectForm({
     voiceGender,
     speechPace,
     sceneTextLanguage,
+    textStyleId,
     aspectRatio,
     durationPreset,
     characterIds,
@@ -928,6 +967,20 @@ export function NewProjectForm({
                   onLanguageChange={setSceneTextLanguage}
                   disabled={briefBusy}
                 />
+                {showSubtitleLook ? (
+                  <>
+                    <p className="mt-4 text-sm font-semibold">{t("brief.section04.lookTitle")}</p>
+                    <p className="mt-1 text-xs text-muted">{t("brief.section04.lookHint")}</p>
+                    <div className="mt-3">
+                      <TextStylePicker
+                        value={textStyleId}
+                        styles={textStyles}
+                        onChange={setTextStyleId}
+                        disabled={briefBusy}
+                      />
+                    </div>
+                  </>
+                ) : null}
               </Section>
 
               <Section step="05" title={t("brief.section05.title")} hint={t("brief.section05.hint")}>
@@ -1032,6 +1085,19 @@ export function NewProjectForm({
                 <span>
                   {t("brief.summary.sceneText", { label: sceneTextLangLabel(t, sceneTextLanguage).label })}
                 </span>
+                {showSubtitleLook ? (
+                  <>
+                    <Dot />
+                    <span>
+                      {t("brief.summary.subtitleLook", {
+                        label: isSubtitleLook(textStyleId)
+                          ? subtitleLookLabel(t, textStyleId).label
+                          : textStyles.find((style) => style.id === textStyleId)?.name ||
+                            subtitleLookLabel(t, DEFAULT_SUBTITLE_LOOK).label,
+                      })}
+                    </span>
+                  </>
+                ) : null}
                 <Dot />
                 <span>{aspectRatio}</span>
                 <Dot />

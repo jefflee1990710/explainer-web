@@ -11,6 +11,11 @@ export const pickersZhHant = {
     "zh-Hant": { label: "繁體中文", sublabel: "畫面文字" },
     "zh-Hans": { label: "简体中文", sublabel: "画面文字" },
   },
+  subtitleLook: {
+    handwritten: { label: "手寫", sublabel: "馬克筆，不是印刷體" },
+    clean: { label: "乾淨", sublabel: "黑體配白板" },
+    bold: { label: "粗體", sublabel: "窄體展示字" },
+  },
   speechPace: {
     slow: { label: "慢", sublabel: "從容、句間停頓" },
     medium: { label: "中", sublabel: "自然對話速度" },

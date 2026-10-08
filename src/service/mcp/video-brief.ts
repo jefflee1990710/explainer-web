@@ -35,6 +35,10 @@ export const videoBriefFields = {
     .enum(["en", "zh-Hant", "zh-Hans"])
     .default("en")
     .describe("On-canvas text is always on; this picks its script"),
+  subtitleLook: z
+    .enum(["handwritten", "clean", "bold"])
+    .default("handwritten")
+    .describe("Subtitle lettering only. Where the subtitle sits is chosen by the director."),
   characterIds: z
     .array(z.string())
     .max(4)
@@ -56,6 +60,7 @@ export const videoBriefUpdateFields = {
   voiceGender: z.enum(["male", "female"]),
   speechPace: z.enum(["slow", "medium", "fast"]),
   sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans"]),
+  subtitleLook: z.enum(["handwritten", "clean", "bold"]),
 };
 
 export type VideoBriefArgs = {
@@ -70,6 +75,7 @@ export type VideoBriefArgs = {
   voiceGender?: "male" | "female";
   speechPace?: "slow" | "medium" | "fast";
   sceneTextLanguage?: "en" | "zh-Hant" | "zh-Hans";
+  subtitleLook?: "handwritten" | "clean" | "bold";
   characterIds?: string[];
   productIds?: string[];
   logoUrl?: string;
@@ -87,6 +93,7 @@ export async function fillVideoBrief(form: FormData, args: VideoBriefArgs, clerk
   form.set("voiceGender", args.voiceGender || "male");
   form.set("speechPace", args.speechPace || "medium");
   form.set("sceneTextLanguage", args.sceneTextLanguage || "en");
+  form.set("subtitleLook", args.subtitleLook || "handwritten");
   for (const id of args.characterIds || []) form.append("characterIds", id);
   for (const id of args.productIds || []) form.append("productIds", id);
   if (args.logoUrl) {

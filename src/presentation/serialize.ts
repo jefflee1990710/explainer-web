@@ -3,6 +3,7 @@ import { resolveDefaultVersion, versionNumber } from "@/service/character/versio
 import { behaviorSlug, isCustomSkill } from "@/service/director/behavior-slug";
 import { emptyProfile, parseSystemProfile } from "@/service/director/profile";
 import { resolveSceneText } from "@/service/director/scene-text";
+import { resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { resolveVoiceGender } from "@/service/director/voice";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
 import { clipGenerationTags, productionCounts, type GenerationDetailTag } from "@/service/clip-stage";
@@ -12,6 +13,7 @@ import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
 import type { AppUser } from "@/model/user";
 import type { Character, CharacterVersionStatus } from "@/model/character";
 import type { Product } from "@/model/product";
+import type { TextStyleDoc } from "@/model/text-style";
 import { parseCharacterVoice, type CharacterVoice } from "@/model/character-voice";
 import type { Folder } from "@/model/folder";
 import type { Project, ProjectStatus } from "@/model/project";
@@ -59,6 +61,9 @@ export type PublicVideo = {
   speechPace: NonNullable<Project["speechPace"]>;
   sceneTextEnabled: boolean;
   sceneTextLanguage: NonNullable<Project["sceneTextLanguage"]>;
+  subtitleLook: NonNullable<Project["subtitleLook"]>;
+  textStyleId?: string;
+  textStyleImageUrl?: string;
   characterImageUrl?: string;
   characterStillUrl?: string;
   stillError?: string;
@@ -249,6 +254,9 @@ export function toPublicVideo(video: Project): PublicVideo {
     speechPace: resolveSpeechPace(video.speechPace),
     sceneTextEnabled: sceneText.enabled,
     sceneTextLanguage: sceneText.language,
+    subtitleLook: resolveSubtitleLook(video.subtitleLook),
+    textStyleId: video.textStyleId,
+    textStyleImageUrl: video.textStyleImageUrl,
     characterImageUrl: video.characterImageUrl,
     characterStillUrl: video.characterStillUrl,
     stillError: video.stillError,
@@ -544,6 +552,22 @@ export function toPublicProduct(product: Product): PublicProduct {
     status: product.status,
     pending: product.status === "queued" || product.status === "in_progress",
     failed: product.status === "failed",
+  };
+}
+
+export type PublicTextStyle = {
+  id: string;
+  name: string;
+  imageUrl: string;
+  updatedAt: string;
+};
+
+export function toPublicTextStyle(doc: TextStyleDoc): PublicTextStyle {
+  return {
+    id: doc._id.toHexString(),
+    name: doc.name,
+    imageUrl: doc.imageUrl,
+    updatedAt: doc.updatedAt.toISOString(),
   };
 }
 
