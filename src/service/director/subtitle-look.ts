@@ -21,13 +21,30 @@ const LOOK_LINE: Record<SubtitleLook, string> = {
 };
 
 const PREVIEW: Record<SubtitleLook, string> = {
-  bold: "/text-styles/impact.png",
-  clean: "/text-styles/torn-paper.png",
-  handwritten: "/text-styles/marker.png",
+  bold: "/text-styles/impact-c28c94b1a6.png",
+  clean: "/text-styles/torn-paper-bbf030af28.png",
+  handwritten: "/text-styles/marker-cc56a090df.png",
 };
 
 export function systemTextStylePreview(look: SubtitleLook) {
   return PREVIEW[look];
+}
+
+// Same sample on every card, the way style previews all read IDEA.
+export const TEXT_STYLE_PREVIEW_SAMPLE = "Try it now";
+
+// Lettering sample only. The guideline describes the look; the sample words stay fixed.
+export function textStylePreviewPrompt(look?: string | null) {
+  const resolved = resolveSubtitleLook(look);
+  const lines = [
+    "16:9 lettering sample card. Show only the subtitle lettering, large and readable. No people, no scene, no logo, no extra writing.",
+    subtitleLookLine(resolved),
+    `The only words are: ${TEXT_STYLE_PREVIEW_SAMPLE}`,
+  ];
+  if (resolved === "clean") lines.push("Put Try it on the black strip and now on the green strip.");
+  if (resolved === "bold") lines.push("Put now on the yellow brush stroke.");
+  lines.push("Aspect ratio 16:9.");
+  return lines.join("\n");
 }
 
 export function isSubtitleLook(value: string): value is SubtitleLook {
