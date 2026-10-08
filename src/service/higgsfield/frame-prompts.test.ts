@@ -35,15 +35,34 @@ test("custom text style is the last reference and only describes lettering", () 
   assert.doesNotMatch(plan.prompt, /geometric sans/);
 });
 
-test("outfit reels do not attach a text-style sample", () => {
-  const image = "https://blob/lettering.png";
-  const plan = frameSubmitPlan(
-    { ...project(), skillSlug: "outfit-reel-director", textStyleImageUrl: image },
+test("each selected text style changes the scene-image lettering", () => {
+  const bold = buildFramePrompt({ ...project(), subtitleLook: "bold" }, 1, "start");
+  const clean = buildFramePrompt({ ...project(), subtitleLook: "clean" }, 1, "start");
+  const handwritten = buildFramePrompt({ ...project(), subtitleLook: "handwritten" }, 1, "start");
+  assert.match(bold, /yellow dry-brush/);
+  assert.doesNotMatch(bold, /torn-paper strips|thick black marker/);
+  assert.match(clean, /torn-paper strips/);
+  assert.doesNotMatch(clean, /yellow dry-brush|thick black marker/);
+  assert.match(handwritten, /thick black marker/);
+  assert.doesNotMatch(handwritten, /yellow dry-brush|torn-paper strips/);
+
+  const custom = frameSubmitPlan(
+    { ...project(), subtitleLook: "handwritten", textStyleImageUrl: "https://blob/mine.png" },
     1,
     "start",
   );
-  assert.deepEqual(plan.refs, []);
-  assert.doesNotMatch(plan.prompt, /lettering sample/);
+  assert.deepEqual(custom.refs, ["https://blob/mine.png"]);
+  assert.match(custom.prompt, /attached image 1, a lettering sample/);
+  assert.doesNotMatch(custom.prompt, /yellow dry-brush|torn-paper strips|thick black marker/);
+});
+
+test("every director attaches the selected text-style sample", () => {
+  const image = "https://blob/lettering.png";
+  for (const skillSlug of ["outfit-reel-director", "listicle-director", "surprise-interview-director"]) {
+    const plan = frameSubmitPlan({ ...project(), skillSlug, textStyleImageUrl: image }, 1, "start");
+    assert.ok(plan.refs.includes(image), skillSlug);
+    assert.match(plan.prompt, /lettering sample/);
+  }
 });
 
 test("non-bookend videos ignore a stray logo", () => {
@@ -434,12 +453,12 @@ test("whiteboard explainer dual-beat uses start/end scene and VO per still", () 
   assert.match(start, /Scene: 起點拿尺/);
   assert.doesNotMatch(start, /尺變成回歸線/);
   assert.doesNotMatch(start, /52% and 60%/);
-  assert.match(start, /Marker line \(spell exactly\): "FIRST BEAT\."/);
+  assert.match(start, /Marker line \(spell exactly\): "First beat\."/);
   assert.doesNotMatch(start, /bottom 18%/);
   assert.doesNotMatch(start, /SECOND BEAT/);
   assert.match(end, /Scene: 尺變成回歸線/);
-  assert.match(end, /SECOND BEAT/);
-  assert.doesNotMatch(end, /FIRST BEAT/);
+  assert.match(end, /Second beat/);
+  assert.doesNotMatch(end, /First beat/);
 });
 
 test("whiteboard stills use the video style lettering instead of doodle defaults", () => {
@@ -490,7 +509,7 @@ test("legacy captions-off whiteboard video keeps prop labels, paints the marker 
   };
   const start = buildFramePrompt(dual, 1, "start");
   assert.match(start, /「OLS」/);
-  assert.match(start, /FIRST BEAT/);
+  assert.match(start, /First beat/);
   assert.doesNotMatch(start, /52% and 60%/);
   assert.doesNotMatch(start, /No on-canvas text/);
   assert.match(start, /Visual world: 白板塗鴉風格。純白背景黑色墨線。/);
@@ -1017,8 +1036,10 @@ test("surprise hook stills drop from above, zoom in, and use shock-poster type",
   assert.match(start.prompt, /HOOK CAMERA/);
   assert.match(start.prompt, /looking down/);
   assert.match(start.prompt, /Do not flip the picture/);
-  assert.match(start.prompt, /dry-brush/);
-  assert.match(start.prompt, /solid black rectangle/);
+  assert.match(start.prompt, /thick black marker/);
+  assert.doesNotMatch(start.prompt, /ultra-bold ultra-condensed/);
+  assert.doesNotMatch(start.prompt, /solid black rectangle/);
+  assert.doesNotMatch(start.prompt, /mustard/);
   assert.match(start.prompt, /37 clients/);
   assert.match(start.prompt, /I spent \$0 on ads and got 37 clients/);
   assert.doesNotMatch(start.prompt, /subtitle band across the bottom/);
@@ -1058,7 +1079,7 @@ test("later surprise clips change the poster place and skip the previous framing
   const start = frameSubmitPlan(video, 2, "start");
   assert.equal(start.anchor, undefined);
   assert.match(start.prompt, /THIS CLIP'S CAMERA AND POSE/);
-  assert.match(start.prompt, /dry-brush/);
+  assert.match(start.prompt, /thick black marker/);
   assert.match(start.prompt, /first client told a friend/);
   assert.match(start.prompt, new RegExp(place === "top" ? "SUBTITLE PLACE: TOP" : place === "middle" ? "SUBTITLE PLACE: MIDDLE" : "SUBTITLE PLACE: BOTTOM"));
   assert.doesNotMatch(start.prompt, /HOOK CAMERA/);

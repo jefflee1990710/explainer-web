@@ -12,13 +12,13 @@ export type StylePromptSlice = Pick<
 // everyman in that same section still apply.
 export function styleBlockForDirector(style: StylePromptSlice & { id?: string }) {
   const lines = [
-    `## Visual style: ${style.name} (overrides the rendering, palette, lettering and motion rules of the "Locked visual world" section above)`,
+    `## Visual style: ${style.name} (overrides the rendering, palette, and motion rules of the "Locked visual world" section above)`,
     `Canvas: ${style.canvas}.`,
     `Look: ${style.look}.`,
     `Palette: ${style.palette}.`,
-    `Typography: ${style.typography}.`,
     `Motion: ${style.motion}.`,
     `Never: ${style.negatives}.`,
+    "Do not set a font, lettering texture, or subtitle color. Those come only from the selected text style, never from this visual style and never from the skill.",
   ];
   if (style.id === "realistic" || style.name === "Cinematic realistic") {
     lines.push(CINEMATIC_LENS_RULE);

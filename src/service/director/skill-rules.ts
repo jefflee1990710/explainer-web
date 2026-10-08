@@ -94,7 +94,7 @@ export function bookendDirectorBlock(
       : "Follow the duration preset for clip count and each clip's length. This remains a brand sting, not a full explainer story.",
     hasLogo
       ? "The brand logo image is attached. It is the hero of both stills: startScene and endScene must name the logo, its placement (centered unless stated), and its size. Never redraw, restyle, translate, or invent a different logo or wordmark."
-      : "No logo image is attached: build the sting around the brand or product name from the source as clean title lettering.",
+      : "No logo image is attached: build the sting around the brand or product name from the source as title lettering in the selected text style. Do not copy typography from the visual style.",
     opening
       ? "startScene: the logo is hidden, small, or forming (drawn on, assembled from shapes, revealed behind a prop). endScene: the full logo, crisp and readable, centered."
       : "startScene: the closing beat of the world (character or props wrapping up). endScene: the full logo centered on a calm canvas as the final card.",
@@ -596,7 +596,7 @@ export function surpriseInterviewDirectorBlock() {
     "This is a SURPRISE INTERVIEW. Exactly one attached character. They speak every line to the camera. No second character and no screen recording.",
     "Clip 1 is the hook, 3–4 seconds. The person stays right-side up. The camera starts above the head, looking down, then drops downward while it snaps a zoom-in onto the surprised face. Sharp and clear: no blur, no slow glide, and do not flip the picture. The face moves into a clear surprise and says one short hook. If the user pasted a script, that hook is the first sentence verbatim. If they gave only a concept, write the hook.",
     "Clip 2 and after each hard-cut to a different camera angle and a different body pose. Do not copy the previous clip's framing, and do not copy the overhead zoom. Within a clip the angle and the pose stay locked. Only the mouth and expression move.",
-    "One idea per interview clip. The last clip rests. Every clip uses the same shock-poster type: ultra-bold condensed sans, white words, numbers in mustard yellow, the payoff in black on a tilted mustard-yellow dry-brush stroke. Each clip pins that poster in one place: top, middle, or bottom. Neighbouring clips do not share the place. Not a white subtitle bar. Letters stay upright. No background music.",
+    "One idea per interview clip. The last clip rests. Each clip pins the spoken line in one place: top, middle, or bottom. Neighbouring clips do not share the place. Not a white subtitle bar. Letters stay upright. Lettering follows the selected text style. Do not invent a font, and do not copy typography from the visual style. No background music.",
   ].join(" ");
 }
 

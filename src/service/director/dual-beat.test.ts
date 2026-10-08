@@ -133,7 +133,8 @@ test("dual-beat director block uses the subtitle look and keeps its own placemen
 test("dual-beat director block keeps in-world labels when only captions are off", () => {
   const block = dualBeatDirectorBlock(false, { inWorldLabels: true });
   assert.match(block, /captions OFF/);
-  assert.match(block, /yellow tags/);
+  assert.match(block, /short in-world labels/);
+  assert.match(block, /selected text style/);
   assert.match(block, /beat title/);
   assert.doesNotMatch(block, /STEP N|STEP 1/);
   assert.match(block, /3–4 visual devices/);

@@ -16,7 +16,6 @@ import {
   resolveSceneText,
   SCENE_TEXT_PRESETS,
   sceneTextSkillHint,
-  skillUsesSpokenSubtitle,
 } from "@/service/director/scene-text";
 import { skillPromptForPhaseA } from "@/service/director/load-skill-prompt";
 import {
@@ -151,8 +150,7 @@ export async function runPhaseA(input: {
   const characterNote =
     castBlockForPhaseA(input.cast, look) || phaseASoloCharacterNote(input.characterImageUrl, look);
   const subtitleLook = resolveSubtitleLook(input.subtitleLook);
-  const sampleLookLine =
-    input.textStyleImageUrl && skillUsesSpokenSubtitle(input.skill.slug) ? textStyleSampleHint() : undefined;
+  const sampleLookLine = input.textStyleImageUrl ? textStyleSampleHint() : undefined;
   const dualBeat = isDualBeatSkill(input.skill.slug);
   const dialogueOnly = skillBansNarration(input.skill.slug);
   const speakerLocks = lockedSpeakerLines(input.cast);

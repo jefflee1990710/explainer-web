@@ -335,7 +335,8 @@ test("surprise, outfit, and follow each need one character", () => {
   assert.match(surpriseInterviewDirectorBlock(), /right-side up/);
   assert.match(surpriseInterviewDirectorBlock(), /drops downward/);
   assert.match(surpriseInterviewDirectorBlock(), /zoom-in/);
-  assert.match(surpriseInterviewDirectorBlock(), /dry-brush/);
+  assert.match(surpriseInterviewDirectorBlock(), /selected text style/);
+  assert.doesNotMatch(surpriseInterviewDirectorBlock(), /dry-brush/);
   assert.match(surpriseInterviewDirectorBlock(), /top, middle, or bottom/);
   assert.match(outfitReelDirectorBlock(), /already fully dressed/);
   assert.match(outfitReelDirectorBlock(), /Only the clothes change/);

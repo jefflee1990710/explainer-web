@@ -86,7 +86,7 @@ test("whiteboard explainer legacy captions-off videos now resolve to on-canvas t
 test("in-world label helpers still describe the captions-off wording", () => {
   const hint = sceneTextSkillHint(false, "en", { dualBeat: true, inWorldLabels: true });
   assert.match(hint, /captions are OFF/);
-  assert.match(hint, /yellow tags/);
+  assert.match(hint, /selected text style/);
   assert.match(hint, /「」/);
   assert.doesNotMatch(hint, /NO written words/);
 
@@ -171,7 +171,7 @@ test("talking-head 9:16 subtitles sit a little below center, not in the bottom b
   assert.doesNotMatch(text, /bottom 18%/);
 });
 
-test("cartoon marker safe zone uppercases English and drops the bottom band", () => {
+test("cartoon marker safe zone keeps spoken casing and drops the bottom band", () => {
   const lines = sceneTextFrameLines(
     true,
     "en",
@@ -182,8 +182,9 @@ test("cartoon marker safe zone uppercases English and drops the bottom band", ()
   const text = lines.join("\n");
   assert.match(text, /marker lettering ON/i);
   assert.doesNotMatch(text, /52% and 60%/);
-  assert.match(text, /EVERY QUANT TRADER STARTS/);
-  assert.match(text, /WITH THIS ONE TOOL/);
+  assert.match(text, /Every quant trader starts/);
+  assert.match(text, /with this one tool/);
+  assert.doesNotMatch(text, /EVERY QUANT TRADER STARTS/);
   assert.doesNotMatch(text, /warm-yellow/);
   assert.doesNotMatch(text, /bottom 18%/);
   assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /52%/);

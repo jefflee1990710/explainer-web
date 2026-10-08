@@ -64,10 +64,8 @@ import { DEFAULT_VOICE_GENDER, VOICE_PRESETS } from "@/service/director/voice";
 import { SCENE_TEXT_PRESETS } from "@/service/director/scene-text";
 import { DEFAULT_SUBTITLE_LOOK, isSubtitleLook } from "@/service/director/subtitle-look";
 import { TextStylePicker } from "@/presentation/components/app/projects/new/text-style-picker";
-import { isOutfitReelSkill, isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
 import {
   isBookendSkill,
-  isComparisonCardSkill,
   requiredCastCount,
   skillBansNarration,
   skillForcesSceneText,
@@ -649,12 +647,6 @@ export function NewProjectForm({
   const castNeed = requiredCastCount(ruleSlug);
   const forceSceneText = skillForcesSceneText(ruleSlug);
   const dialogueOnly = skillBansNarration(ruleSlug);
-  // Listicle, comparison, surprise, and outfit do not use a spoken subtitle look.
-  const showSubtitleLook =
-    !forceSceneText &&
-    !isComparisonCardSkill(ruleSlug) &&
-    !isSurpriseInterviewSkill(ruleSlug) &&
-    !isOutfitReelSkill(ruleSlug);
 
   useEffect(() => {
     if (castNeed > 0) {
@@ -983,20 +975,16 @@ export function NewProjectForm({
                   onLanguageChange={setSceneTextLanguage}
                   disabled={briefBusy}
                 />
-                {showSubtitleLook ? (
-                  <>
-                    <p className="mt-4 text-sm font-semibold">{t("brief.section04.lookTitle")}</p>
-                    <p className="mt-1 text-xs text-muted">{t("brief.section04.lookHint")}</p>
-                    <div className="mt-3">
-                      <TextStylePicker
-                        value={textStyleId}
-                        styles={textStyles}
-                        onChange={setTextStyleId}
-                        disabled={briefBusy}
-                      />
-                    </div>
-                  </>
-                ) : null}
+                <p className="mt-4 text-sm font-semibold">{t("brief.section04.lookTitle")}</p>
+                <p className="mt-1 text-xs text-muted">{t("brief.section04.lookHint")}</p>
+                <div className="mt-3">
+                  <TextStylePicker
+                    value={textStyleId}
+                    styles={textStyles}
+                    onChange={setTextStyleId}
+                    disabled={briefBusy}
+                  />
+                </div>
               </Section>
 
               <Section step="05" title={t("brief.section05.title")} hint={t("brief.section05.hint")}>

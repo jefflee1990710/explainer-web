@@ -73,7 +73,7 @@ Wardrobe lock: every character wears exactly their blueprint outfit in every cli
 ## Composition by aspect ratio
 
 - `16:9`: lateral staging; travel and opposing characters can sit left-to-right.
-- `9:16`: vertical staging; foreground/background depth; keep faces in the upper-middle third. When on-canvas text is on, the subtitle follows the selected visual style's reel lettering.
+- `9:16`: vertical staging; foreground/background depth; keep faces in the upper-middle third. When on-canvas text is on, the subtitle follows the selected text style, not the visual style.
 - `1:1`: centre-weighted; short travel; important objects enter from the edge.
 
 ## Palette and text

@@ -31,7 +31,6 @@ import {
   listicleOnCanvasLines,
   resolveSceneText,
   sceneTextFrameLines,
-  skillUsesSpokenSubtitle,
   subtitleSitsBelowCenter,
   stripSceneVoiceoverRecap,
   stripStoryboardWriting,
@@ -73,11 +72,10 @@ import { imageRouteForSceneText } from "@/service/generation/image-backend";
 import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
 import { FRAME_RENDER_DETAIL } from "@/service/director/scene-detail";
 import {
-  styleLetteringLine,
   styleLinesForFrame,
   type Style,
 } from "@/service/style";
-import { resolveSubtitleLook, textStyleSampleLookLine } from "@/service/director/subtitle-look";
+import { resolveSubtitleLook, subtitleLookLine, textStyleSampleLookLine } from "@/service/director/subtitle-look";
 import { isStyleId } from "@/model/style-id";
 import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
 import { loadRenderableStyle, type RenderableStyle } from "@/service/style/renderable-style";
@@ -307,24 +305,6 @@ export function sceneReferenceFrameLine(
   return `SCENE REFERENCE: ${which} the place, product, props, and layout for this scene — ${follow}. Do not copy the person, face, or hairstyle in that image. Face and hair stay on the selected character. ${clothes}`;
 }
 
-// Catalog typography often bans "subtitles"; scene-text mode needs integrated captions.
-function typographyForSceneText(typography: string) {
-  return typography
-    .replace(/;\s*never subtitles or captions\.?/gi, "")
-    .replace(/,?\s*never subtitles or captions\.?/gi, "")
-    .replace(/;\s*never bold blocky text\.?/gi, "")
-    .replace(/,?\s*never bold blocky text\.?/gi, "")
-    .replace(/\s{2,}/g, " ")
-    .replace(/;\s*;/g, ";")
-    .replace(/,\s*,/g, ",")
-    .trim();
-}
-
-function styleLetteringLineForSceneText(style: Pick<Style, "typography">) {
-  const typography = typographyForSceneText(style.typography);
-  return `Lettering: ${typography}. Integrated on-canvas voiceover lettering is required (not a separate TV subtitle bar).`;
-}
-
 // Deterministic image prompts derived from the approved Phase A storyboard.
 // No extra LLM call: the storyboard rows already describe scene + motion.
 export function buildFramePrompt(
@@ -372,10 +352,7 @@ export function buildFramePrompt(
       ...(project.referenceImages || []).map((image) => image.description),
     ]);
   // Every still needs the clothing photo so style and colour stay exact.
-  const textStyleUrl =
-    project.textStyleImageUrl && skillUsesSpokenSubtitle(project.skillSlug)
-      ? project.textStyleImageUrl
-      : undefined;
+  const textStyleUrl = project.textStyleImageUrl || undefined;
   const sceneRefUrls = frameSceneReferenceUrls(
     project,
     clipNumber,
@@ -396,6 +373,8 @@ export function buildFramePrompt(
       1
     : 0;
   const sampleLookLine = textStyleUrl ? textStyleSampleLookLine(textStyleIndex) : undefined;
+  // Lettering comes from the video's text style, not the visual style catalog.
+  const letteringLine = sampleLookLine || subtitleLookLine(subtitleLook);
   // The character blueprint comes before any scene photo so that photo's face does not win.
   const characterFirst = lockUrls.length > 0;
   const copyClothes = clothingFromInstruction && sceneRefUrls.length > 0;
@@ -501,7 +480,7 @@ export function buildFramePrompt(
   const paintSurpriseType = surprise && Boolean(voForFrame);
   const onCanvasTextBlock = listicle
     ? [
-        styleLetteringLineForSceneText(style),
+        letteringLine,
         ...listicleOnCanvasLines({
           clips: phaseA.clips,
           clipNumber,
@@ -509,7 +488,7 @@ export function buildFramePrompt(
       ]
     : comparison
       ? [
-          styleLetteringLineForSceneText(style),
+          letteringLine,
           ...comparisonOnCanvasLines({
             narrativeJob: row.narrativeJob,
             aspectRatio: project.aspectRatio,
@@ -519,6 +498,7 @@ export function buildFramePrompt(
       ? surpriseTypeLines({
           line: subtitleText(voForFrame) || voForFrame,
           place: surpriseClip?.place ?? "top",
+          lookLine: letteringLine,
         })
       : sceneText.enabled
       ? [
@@ -536,8 +516,10 @@ export function buildFramePrompt(
         ]
       : keepSceneLabels
         ? // Catalog typography already says "never subtitles or captions" — exactly this mode.
-          sceneTextFrameLines(false, sceneText.language, undefined, styleLetteringLine(style), {
+          sceneTextFrameLines(false, sceneText.language, undefined, undefined, {
             inWorldLabels: true,
+            look: subtitleLook,
+            lookLine: sampleLookLine,
           })
         : [];
 
@@ -601,7 +583,7 @@ export function buildFramePrompt(
       ? ["Final check: the numbered item list is visible and spelled exactly."]
       : paintSurpriseType
         ? [
-            `Final check: ${surprisePosterLayout(surpriseClip?.place ?? "top")} White ultra-condensed body, payoff in black on a thick mustard dry-brush bar. Spell only this clip's spoken line. No white subtitle bar. No SHOCK label. Letters stay upright.`,
+            `Final check: ${surprisePosterLayout(surpriseClip?.place ?? "top")} Spell only this clip's spoken line. Lettering matches the Look line above, not the visual style. No white subtitle bar. No SHOCK label. Letters stay upright.`,
           ]
       : sceneText.enabled
         ? silentClip
@@ -665,10 +647,7 @@ export function frameSubmitPlan(
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
   // Same cap as buildFramePrompt so the URL order matches the prompt's numbering.
-  const textStyleUrls =
-    project.textStyleImageUrl && skillUsesSpokenSubtitle(project.skillSlug)
-      ? [project.textStyleImageUrl]
-      : [];
+  const textStyleUrls = project.textStyleImageUrl ? [project.textStyleImageUrl] : [];
   const sceneRefUrls = frameSceneReferenceUrls(
     project,
     clipNumber,

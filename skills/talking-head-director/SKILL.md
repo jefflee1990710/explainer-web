@@ -28,7 +28,7 @@ If required items are missing, ask for them in one concise message and stop.
 
 ## Visual world
 
-The rendering rules come from the **Visual style** block appended below. Do not invent a different medium.
+The rendering rules (canvas, look, palette, and motion) come from the **Visual style** block appended below. Do not invent a different medium. Lettering comes only from the selected text style, never from the visual style or from this skill.
 
 - Shot size follows the director visual. The character is centered and looks straight into the lens in every clip, like a real person filming a reel on a phone.
 - Same background, same light, same camera. No new props, no push-in, no cutaway.

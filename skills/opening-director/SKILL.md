@@ -22,10 +22,10 @@ If required items are missing, ask for them in one concise message and stop. Nev
 
 ## Visual world
 
-The rendering rules (canvas, look, palette, lettering, motion) come from the **Visual style** block appended below this skill. Do not invent a different medium.
+The rendering rules (canvas, look, palette, and motion) come from the **Visual style** block appended below this skill. Do not invent a different medium. Lettering comes only from the selected text style, never from the visual style or from this skill.
 
 - **Logo lock (when a logo is attached)**: the logo is the hero of the sting. Reproduce it exactly — same shapes, colours, and lettering. Never redraw, restyle, translate, crop, or invent a different wordmark. Name the logo, its placement, and its size in `startScene` and `endScene`.
-- **No logo attached**: build the sting around the brand or product name from the source as clean title lettering in the style's lettering rules.
+- **No logo attached**: build the sting around the brand or product name from the source as title lettering in the selected text style. Do not copy typography from the visual style.
 - **Cast lock**: if a mascot blueprint is attached, it may present the logo, but it must follow the blueprint exactly. Otherwise keep the frame to the logo and a few simple shapes.
 - One calm canvas. Few elements. Lots of breathing room around the logo.
 

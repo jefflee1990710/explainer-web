@@ -21,7 +21,7 @@ If required items are missing, ask for them in one concise message and stop. Nev
 
 ## Visual world
 
-The rendering rules (canvas, look, palette, lettering, motion) come from the **Visual style** block appended below this skill. Do not invent a different medium.
+The rendering rules (canvas, look, palette, and motion) come from the **Visual style** block appended below this skill. Do not invent a different medium. Lettering comes only from the selected text style, never from the visual style or from this skill.
 
 - **Two-character lock**: the ASKER (curious, reactive, stands for the viewer) and the ANSWERER (calm, knowledgeable). Exactly two blueprints are attached — assign one role to each and follow them exactly. Never invent a third person. Never restyle attached blueprints.
 - **Fixed staging**: the two characters keep the same left/right (or top/bottom for `9:16`) positions for the whole video. The asker on one side, the answerer on the other. Never swap sides.

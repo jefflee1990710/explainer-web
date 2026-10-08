@@ -150,13 +150,13 @@ export function dualBeatDirectorBlock(
     "startVo: first spoken sentence (0s → midpoint). endVo: second spoken sentence (midpoint → end).",
     `englishVo must be exactly startVo then endVo. ${sceneCompat}`,
     sceneTextEnabled
-      ? `On-canvas text ON: start still quotes ONLY startVo; end still quotes ONLY endVo. ${lookLine} Not a bottom subtitle bar. English is all-caps. Two beats switch at the midpoint. Never both voiceover lines on one still. motionCamera includes a midpoint beat where the startVo lettering wipes off and the endVo lettering writes on in the same spot. Never copy the voiceover lettering into startScene or endScene; the still prompt adds it from startVo / endVo.`
+      ? `On-canvas text ON: start still quotes ONLY startVo; end still quotes ONLY endVo. ${lookLine} Not a bottom subtitle bar. Keep the spoken line's own casing. Two beats switch at the midpoint. Never both voiceover lines on one still. motionCamera includes a midpoint beat where the startVo lettering wipes off and the endVo lettering writes on in the same spot. Never copy the voiceover lettering into startScene or endScene; the still prompt adds it from startVo / endVo.`
       : inWorldLabels
-        ? "Voiceover captions OFF: no subtitle band on either still. A short beat title, diagram labels, and in-world handwritten labels (yellow tags, arrow labels, box or bin names, cell numbers in 「」) ARE allowed and encouraged — they count toward the 3–4 visual devices per still."
+        ? `Voiceover captions OFF: no subtitle band on either still. A short beat title, diagram labels, and short in-world labels (tags, arrow labels, box or bin names, cell numbers in 「」) ARE allowed and encouraged — they count toward the 3–4 visual devices per still. ${lookLine} Lettering follows that Look. Do not copy typography from the visual style.`
         : "On-canvas text OFF: no writing on either still.",
     sceneTextEnabled
-      ? "Subtitle placement stays with this director: not a bottom subtitle bar. Do not copy placement from the visual style."
-      : "Lettering look follows the selected visual style catalog — do not force whiteboard marker lettering unless that style asks for it.",
+      ? "Subtitle placement stays with this director: not a bottom subtitle bar. Do not copy placement from the visual style. Lettering follows the selected text style, not the visual style."
+      : "Do not take lettering from the visual style. Any label that is allowed follows the selected text style.",
     sceneTextEnabled
       ? "Also write one short beat title that names this clip's idea. Also add diagram labels / node names / arrow names inside 「」 on the graph they belong to. Do not dump the full voiceover into startScene or endScene."
       : inWorldLabels

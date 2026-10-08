@@ -21,7 +21,7 @@ If required items are missing, ask for them in one concise message and stop. Nev
 
 ## Visual world
 
-The rendering rules (canvas, look, palette, lettering, motion) come from the **Visual style** block appended below this skill. Do not invent a different medium.
+The rendering rules (canvas, look, palette, and motion) come from the **Visual style** block appended below this skill. Do not invent a different medium. Lettering comes only from the selected text style, never from the visual style or from this skill.
 
 - **Cast lock**: if character references / blueprints are attached, the host MUST follow them exactly across all clips; say so in `characterLock`, never restyle. If none, define ONE simple host in `characterLock` and keep it identical. The host may be absent from some item clips if the item is better shown as an object.
 - **On-canvas item list (required)**: every still MUST show a readable numbered list of the item titles as a primary graphic in the scene (not a tiny subtitle bar). Spell each title exactly from that item clip's `englishVo`. Highlight the current item. Hook and outro stills show the full list.

@@ -47,10 +47,11 @@ test("cinematic realistic tells the director to pick a prime per clip", () => {
 test("director block carries typography, motion and negatives", () => {
   const block = styleBlockForDirector(doodle);
   assert.match(block, /## Visual style/);
-  assert.match(block, /overrides the rendering, palette, lettering and motion rules/);
+  assert.match(block, /overrides the rendering, palette, and motion rules/);
   assert.match(block, /default everyman applies only when no cast\/reference is given/);
   assert.match(block, /appearance follows the attached blueprint/);
-  assert.match(block, /Typography:/);
+  assert.match(block, /selected text style/);
+  assert.doesNotMatch(block, /Typography:/);
   assert.match(block, /Motion:/);
   assert.match(block, /Never:/);
   assert.doesNotMatch(block, HEX);

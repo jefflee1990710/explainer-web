@@ -21,7 +21,7 @@ If required items are missing, ask for them in one concise message and stop. Nev
 
 ## Visual world
 
-The rendering rules (canvas, look, palette, lettering, motion) come from the **Visual style** block appended below this skill. Do not invent a different medium.
+The rendering rules (canvas, look, palette, and motion) come from the **Visual style** block appended below this skill. Do not invent a different medium. Lettering comes only from the selected text style, never from the visual style or from this skill.
 
 - **Cast lock**: if character references / blueprints are attached, every character MUST follow them exactly across all clips (face, hair, wardrobe, accessories, proportions). Say so in `characterLock`; never re-describe or restyle them. If no reference is given, define ONE simple protagonist in `characterLock` (silhouette, two wardrobe colours, one signature prop) and keep it identical in every clip.
 - Emotion is carried by pose, gesture, eyes, and staging — not by on-screen text.
@@ -50,7 +50,7 @@ Do **not** force want → obstacle → turn → resolution (or any other canned 
 - All speech is character dialogue, written as `NAME: "line"`. One or two speakers per clip. Never add an unseen storyteller.
 - Dialogue is addressed to someone in the scene (or said to oneself), never to the viewer. No "you" aimed at the audience, no direct address.
 - Allocate ~7–20 spoken words per clip at medium speaking pace. Slow ≈ 0.8× those words with pauses; fast ≈ 1.2× with fewer pauses. Clip duration stays the same. Silence is allowed — say `(no dialogue)` in the VO field when a beat has no speech.
-- Dialogue is audio-only. Never caption, subtitle, or transcribe it on screen unless the user turned on-canvas text on. On a `9:16` reel, that subtitle follows the selected visual style's reel lettering. In-world text is limited to short props that belong to the scene (a sign, a letter, a screen), spelled exactly as written.
+- Dialogue is audio-only. Never caption, subtitle, or transcribe it on screen unless the user turned on-canvas text on. On a `9:16` reel, that subtitle follows the selected text style, not the visual style. In-world text is limited to short props that belong to the scene (a sign, a letter, a screen), spelled exactly as written.
 
 ## Phase A field mapping
 

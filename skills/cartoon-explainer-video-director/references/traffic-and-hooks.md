@@ -31,7 +31,7 @@ The opening buys the first 2–3 seconds of attention. A standalone hook is ofte
 1. **Spoken Hook**: Opening spoken line teasing high stakes, contrarian truth, or an unexpected outcome.
 2. **Motion Hook**: Immediate character or object physical movement right at second 0 (sliding in, jumping into frame, quick turn).
 3. **Image / Visual Hook**: A jarring, curious, or oversized doodle element popping into view (e.g., a giant yellow price tag, objects flying out of a box, an absurd scale contrast).
-4. **Text-on-Screen Hook**: Bold handwritten all-caps marker headline or post-production overlay stating the burning premise or question.
+4. **Text-on-Screen Hook**: A headline in the selected text style, or a post-production overlay, stating the burning premise or question.
 5. **Audio Hook**: Immediate SFX (whoosh, pop, impact ding) or dynamic BGM drop timed to second 0.
 6. **Caption Hook**: High-curiosity opening line in the post description, prompting immediate reading.
 

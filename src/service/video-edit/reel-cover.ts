@@ -12,7 +12,8 @@ import { persistMedia } from "@/service/higgsfield/persist";
 import { FRAME_COST } from "@/service/production-plan";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
-import { styleLetteringLine, styleLinesForFrame } from "@/service/style/prompts";
+import { resolveSubtitleLook, subtitleLookLine, textStyleSampleHint } from "@/service/director/subtitle-look";
+import { styleLinesForFrame } from "@/service/style/prompts";
 import { frameLockReferenceUrls } from "@/service/character/cast-prompt";
 import { logoReferenceUrls } from "@/service/higgsfield/frame-prompts";
 import { coverSafeAreaPrompt, parseCoverSafeAreas } from "@/service/video-edit/cover-safe-area";
@@ -319,7 +320,10 @@ export async function sendReelCover(project: Project) {
       model,
       prompt: joinCoverSubmission([
         ...styleLinesForFrame(style),
-        styleLetteringLine(style),
+        project.textStyleImageUrl
+          ? textStyleSampleHint()
+          : subtitleLookLine(resolveSubtitleLook(project.subtitleLook)),
+        "Lettering follows that Look. Do not copy typography from the visual style.",
         reelCoverPrompt(project),
         coverReferenceNote({
           still: stillUrl ? 1 : 0,

@@ -21,7 +21,7 @@ If required items are missing, ask for them in one concise message and stop. Nev
 
 ## Visual world
 
-The rendering rules (canvas, look, palette, lettering, motion) come from the **Visual style** block appended below this skill. Do not invent a different medium.
+The rendering rules (canvas, look, palette, and motion) come from the **Visual style** block appended below this skill. Do not invent a different medium. Lettering comes only from the selected text style, never from the visual style or from this skill.
 
 - **Cast lock**: if character references / blueprints are attached, the instructor MUST follow them exactly across all clips; say so in `characterLock`, never restyle. If none, define ONE simple instructor in `characterLock` (or hands-only framing) and keep it identical.
 - **Workspace lock**: define ONE workspace in `visualWorld` (surface, the tools/inputs laid out, the "result zone") and keep it identical. Objects only change state; they do not teleport.

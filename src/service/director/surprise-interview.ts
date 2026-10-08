@@ -8,13 +8,12 @@ const HOOK_START_CAMERA =
 const HOOK_END_CAMERA =
   "right-side up, after the camera has dropped down and snapped a zoom-in: a tight close-up of the surprised face, camera now near eye level, head still toward the top edge, face much larger, focus crisp, no motion blur";
 
+// Placement only. The selected text style supplies font, color, and texture.
 export const SURPRISE_TYPE_STYLE = [
-  "On-canvas type is this shock poster, not a white subtitle bar, not handwriting, and not a thin font. Ignore any style rule that bans lettering.",
+  "On-canvas type is this poster, not a white subtitle bar. Ignore any style rule that bans lettering.",
   "Stack the spoken line in full-width lines, flush left, nearly touching the left and right edges.",
-  "Font: ultra-bold ultra-condensed gothic sans, all caps, very tight leading, scratched distressed ink.",
-  "Body lines are white. Yellow is only for a digit, a price, or a percent, at the same size. A name stays white, including a product or brand name. Every other body word stays white.",
-  "The last line is the payoff: black letters on a thick mustard-yellow dry-brush bar, edge to edge, slightly tilted, rough painted ends, with a thinner yellow stroke just under the bar.",
   "Letters stay upright and sharp. No blur. Do not add a caption, a curved arrow, or the words SHOCK or SURPRISE HOOK.",
+  "Lettering follows the selected text style Look. Do not invent a font, color, or texture, and do not copy typography from the visual style.",
 ].join(" ");
 
 export const SURPRISE_HOOK_VIDEO_RULES = [
@@ -119,12 +118,12 @@ export function surpriseVarietyPlan(phaseA: PhaseAProposal): SurpriseClipVariety
 
 export function surprisePosterLayout(place: SurpriseSubtitlePlace) {
   if (place === "top") {
-    return "SUBTITLE PLACE: TOP. Glue the shock poster to the top edge. Do not put it in the middle and do not glue it to the bottom. The person stays below the poster. A solid black rectangle sits behind the type only.";
+    return "SUBTITLE PLACE: TOP. Glue the poster to the top edge. Do not put it in the middle and do not glue it to the bottom. The person stays below the poster.";
   }
   if (place === "middle") {
-    return "SUBTITLE PLACE: MIDDLE. Center the shock poster on the vertical middle. Do not touch the top edge and do not touch the bottom edge. Leave a clear gap above the poster and below it. A solid black rectangle sits behind the type only.";
+    return "SUBTITLE PLACE: MIDDLE. Center the poster on the vertical middle. Do not touch the top edge and do not touch the bottom edge. Leave a clear gap above the poster and below it.";
   }
-  return "SUBTITLE PLACE: BOTTOM. Glue the shock poster to the bottom edge. Do not put it in the middle and do not glue it to the top. The person stays above the poster. A solid black rectangle sits behind the type only.";
+  return "SUBTITLE PLACE: BOTTOM. Glue the poster to the bottom edge. Do not put it in the middle and do not glue it to the top. The person stays above the poster.";
 }
 
 function varietyLock(place: SurpriseSubtitlePlace) {
@@ -250,25 +249,25 @@ export function shockPosterLines(line: string) {
   return { body: chunks.map((chunk) => chunk.join(" ")), payoff };
 }
 
-export function surpriseTypeLines(input: { line: string; place: SurpriseSubtitlePlace }) {
+export function surpriseTypeLines(input: {
+  line: string;
+  place: SurpriseSubtitlePlace;
+  lookLine?: string;
+}) {
   const spoken = input.line.trim();
   const stack = shockPosterLines(spoken);
   const rows = [
-    ...stack.body.map((row, index) => {
-      const color = /\d/.test(row)
-        ? "a number or price on this line is mustard yellow"
-        : "every word on this line is white";
-      return `Line ${index + 1}, white body, all caps (${color}): "${row}"`;
-    }),
-    `Line ${stack.body.length + 1}, PAYOFF, black all-caps letters on the mustard-yellow dry-brush bar: "${stack.payoff}"`,
+    ...stack.body.map((row, index) => `Line ${index + 1} (spell exactly): "${row}"`),
+    `Line ${stack.body.length + 1} (spell exactly): "${stack.payoff}"`,
   ];
   return [
-    "On-canvas shock type ON — highest priority. Paint only the lines below.",
+    "On-canvas type ON — highest priority. Paint only the lines below.",
+    input.lookLine || "",
     SURPRISE_TYPE_STYLE,
     surprisePosterLayout(input.place),
     ...rows,
     `Spoken line (these words only, do not add words): "${spoken}"`,
-  ];
+  ].filter(Boolean);
 }
 
 export function surpriseAngleDirective(angle: string, pose: string) {
