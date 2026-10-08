@@ -179,11 +179,24 @@ test("characterReferenceUrls prefers the selected cast over a still", () => {
   );
 });
 
-test("frameLockReferenceUrls always sends the character blueprint", () => {
+test("frameLockReferenceUrls sends each character blueprint once", () => {
   assert.deepEqual(frameLockReferenceUrls({ cast }), [
     "https://blob/a.png",
     "https://blob/b.png",
   ]);
+  assert.deepEqual(
+    frameLockReferenceUrls({
+      cast: [cast[0], { ...cast[0], name: "小明再次" }],
+    }),
+    ["https://blob/a.png"],
+  );
+  assert.deepEqual(
+    frameLockReferenceUrls({
+      characterStillUrl: "https://blob/still.png",
+      characterImageUrl: "https://blob/upload.png",
+    }),
+    ["https://blob/still.png"],
+  );
 });
 
 test("sceneImageReferenceUrls keeps annotated then lock order", () => {

@@ -7,12 +7,12 @@ Use only after explicit approval of the current Phase A. Write ONE self-containe
 1. Output spec: duration in seconds (3–8, max 8), aspect ratio, 720p, 24 FPS, synchronized audio.
 2. Style lock: repeat the canvas, look and negatives from the Visual style block in one or two sentences.
 3. Cast lock: the host (if present) follows the attached start/end keyframes and blueprints exactly; never restyle.
-4. On-canvas item list: paint a readable numbered list of every approved item title as a primary graphic. An item clip highlights the current item. The last clip shows the full list with every title readable. Also repeat the number-device spec.
-5. Scene at t=0: setting, host pose, number device state, item image state, and where previous items sit (matches the START keyframe).
+4. On-canvas item: an item clip paints only the item it introduces (its number and title) as a primary graphic. Do not paint the other items or a side list. The last clip paints the full numbered list, every title readable. Also repeat the number-device spec.
+5. Scene at t=0: setting, host pose, number device state, and this clip's one item image (matches the START keyframe). Earlier items are already off screen. The last clip instead shows every title.
 6. Timed beats scaled to duration: number pops with an SFX hit → item image appears or morphs element by element → settles on the END keyframe. For the hook clip: count line + slam-in. For the outro: items line up at rest.
 7. Camera: one modest move (punch-in on the number, drift toward the item). No cuts inside a clip.
 8. Audio: the line quoted exactly once, audio-only, in the user-selected adult male or female voice; no background music; number-pop SFX synced to the pop.
-9. Handoff: the resting state the next clip inherits (this item shrinks into the row / slides off as the next number arrives) — or, for the last clip, the set at rest; no loop.
+9. Handoff: this item leaves the frame as the next number arrives — or, for the last clip, the full list at rest; no loop. Do not park earlier items in a visible row before the last clip.
 10. Negatives: no extra invented labels beyond the numbered item list, no wrong numbers, no host restyle, no style drift, no extra limbs, plus the Visual style negatives.
 
 ## Dual-keyframe rule

@@ -44,20 +44,26 @@ test("listicle forces on-canvas text even when the toggle is off", () => {
   );
 });
 
-test("listicle on-canvas lines list every item and highlight the current one", () => {
-  const lines = listicleOnCanvasLines({
-    clips: [
-      { clipNumber: 1, narrativeJob: "hook", englishVo: "Three morning mistakes." },
-      { clipNumber: 2, narrativeJob: "item 1 of 3", englishVo: "Snooze the alarm." },
-      { clipNumber: 3, narrativeJob: "item 2 of 3", englishVo: "Skip water." },
-    ],
-    clipNumber: 2,
-  });
-  const text = lines.join("\n");
-  assert.match(text, /numbered list/i);
-  assert.match(text, /Snooze the alarm/);
-  assert.match(text, /Skip water/);
-  assert.match(text, /Highlight list item 1/);
+test("an item clip spells only the item it introduces", () => {
+  const clips = [
+    { clipNumber: 1, narrativeJob: "hook", englishVo: "Three morning mistakes." },
+    { clipNumber: 2, narrativeJob: "item 1 of 3", englishVo: "Snooze the alarm." },
+    { clipNumber: 3, narrativeJob: "item 2 of 3", englishVo: "Skip water." },
+    { clipNumber: 4, narrativeJob: "full list", englishVo: "Fix one today." },
+  ];
+  const item = listicleOnCanvasLines({ clips, clipNumber: 2 }).join("\n");
+  assert.match(item, /only this item/i);
+  assert.match(item, /Snooze the alarm/);
+  assert.doesNotMatch(item, /Skip water/);
+  assert.doesNotMatch(item, /Three morning mistakes/);
+  const full = listicleOnCanvasLines({ clips, clipNumber: 4 }).join("\n");
+  assert.match(full, /FULL LIST/);
+  assert.match(full, /numbered list/i);
+  assert.match(full, /Snooze the alarm/);
+  assert.match(full, /Skip water/);
+  const hook = listicleOnCanvasLines({ clips, clipNumber: 1 }).join("\n");
+  assert.match(hook, /Do not draw item titles/);
+  assert.doesNotMatch(hook, /Snooze the alarm/);
 });
 
 test("isSceneTextLanguage accepts only the three scene-text ids", () => {

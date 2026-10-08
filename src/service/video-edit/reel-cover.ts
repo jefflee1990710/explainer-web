@@ -15,6 +15,7 @@ import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { resolveSubtitleLook, subtitleLookLine, textStyleSampleHint } from "@/service/director/subtitle-look";
 import { styleLinesForFrame } from "@/service/style/prompts";
 import { frameLockReferenceUrls } from "@/service/character/cast-prompt";
+import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lock";
 import { logoReferenceUrls } from "@/service/higgsfield/frame-prompts";
 import { coverSafeAreaPrompt, parseCoverSafeAreas } from "@/service/video-edit/cover-safe-area";
 import type { CoverSafeArea } from "@/model/project";
@@ -335,7 +336,10 @@ export async function sendReelCover(project: Project) {
     quality: "medium",
     resolution: "1k",
     sceneTextLanguage: sceneText.language,
-    referenceImageUrls: [stillUrl, ...characterUrls, ...logoUrls],
+    referenceImageUrls:
+      project.cast && project.cast.length > 0
+        ? await withSceneCharacterLocks(project.cast, [stillUrl, ...characterUrls, ...logoUrls])
+        : [stillUrl, ...characterUrls, ...logoUrls],
   });
   return toSent(model, submitted);
 }

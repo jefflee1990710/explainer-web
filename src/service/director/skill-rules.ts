@@ -577,7 +577,7 @@ export function listicleDirectorBlock() {
     "Show the items one by one. One item per clip until the item count passes the duration ceiling. Above that ceiling, put 2 items on a middle clip and reveal them one by one inside that clip (start highlights the first, end highlights the last). Use 3 on a clip only when pairs would still pass the ceiling. Never more than 3 on one clip. Item 1 and the last item each stay on their own clip when there are at least two item clips. If 3 per clip still passes the ceiling, keep 3 per clip and let the clip count run over the preset.",
     "Ceilings, counting the ending: micro 2 clips, short 4, punchy 6, full 10, auto 12.",
     "The last clip is required and is not an item clip. narrativeJob is `full list`. It shows every item title at once, readable, none left off. A packed clip's englishVo joins those item lines with ` | `.",
-    "On-canvas text is REQUIRED. Every still shows a readable numbered list of the item titles (each item clip's englishVo) as a primary graphic, not a tiny subtitle bar. Item clips highlight the current item. Ignore any earlier line in this skill that forbids item titles on screen. Lettering follows the selected text style.",
+    "On-canvas text is REQUIRED. An item clip shows only the item it introduces: that number and that title, plus one item image. Do not draw the other items, a side list, or the full list on an item clip. Only the last clip shows every item title at once. Ignore any earlier line that puts the whole list on every still. Lettering follows the selected text style.",
   ].join(" ");
 }
 

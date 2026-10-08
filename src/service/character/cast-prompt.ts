@@ -16,9 +16,12 @@ export function characterReferenceUrls(source: CharacterLockSource): string[] {
   );
 }
 
-// Every scene still attaches the character blueprint (or solo still / upload).
+// Scene stills attach one image per character. A second photo of the same person
+// makes the model draw them again.
 export function frameLockReferenceUrls(source: CharacterLockSource): string[] {
-  return characterReferenceUrls(source);
+  if (source.cast && source.cast.length > 0) return castReferenceUrls(source.cast);
+  const url = source.characterStillUrl || source.characterImageUrl;
+  return url ? [url] : [];
 }
 
 // Same order as pipeline.ts: annotated redo, then the sibling still, then lock refs.
@@ -207,7 +210,7 @@ function attachmentLabel(start?: number, count?: number) {
 
 // Multi-pose sheets get copied into the still unless we say they are look-lock only.
 const BLUEPRINT_REFERENCE_ONLY =
-  "BLUEPRINT / reference sheet only — not a scene to copy: draw exactly ONE instance of each named cast member. Never copy the sheet layout or tile the same person.";
+  "BLUEPRINT / reference sheet only — not a scene to copy: draw exactly ONE instance of each named cast member, even if the name is plural. Never copy the sheet layout or tile the same person.";
 
 // Frame prompts: the attached blueprint outranks any text about the character,
 // so a stale or guessed characterLock cannot redraw the cast. Kept compact —
@@ -265,5 +268,12 @@ export function frameCharacterLockLine(
 }
 
 export function castReferenceUrls(cast: CastMember[] | undefined) {
-  return (cast || []).map((member) => member.blueprintUrl);
+  const seen = new Set<string>();
+  const urls: string[] = [];
+  for (const member of cast || []) {
+    if (!member.blueprintUrl || seen.has(member.blueprintUrl)) continue;
+    seen.add(member.blueprintUrl);
+    urls.push(member.blueprintUrl);
+  }
+  return urls;
 }

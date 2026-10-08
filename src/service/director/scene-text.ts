@@ -70,24 +70,47 @@ export function resolveSceneText(input: {
 const IN_WORLD_LABELS_RULE =
   "Short in-world labels that belong to the scene ARE allowed and encouraged: one short beat title, diagram labels, node names, arrow names, tags, and bin or box names. They must name the beat or a part of the diagram — never a transcript of the voiceover. Their lettering follows the selected text style, not the visual style.";
 
+function listicleTitles(title: string) {
+  return title.split(/\s*\|\s*/).map((part) => part.trim()).filter(Boolean);
+}
+
+// Item clips spell only the item they introduce. The last clip spells every title.
 export function listicleOnCanvasLines(input: {
   clips: Array<{ clipNumber: number; narrativeJob: string; englishVo: string }>;
   clipNumber: number;
   typography?: string;
 }) {
   const entries = listicleListEntries(input.clips);
+  const clip = input.clips.find((item) => item.clipNumber === input.clipNumber);
+  const lastNumber = input.clips.reduce((max, item) => Math.max(max, item.clipNumber), 0);
+  const showFull =
+    input.clipNumber === lastNumber || /full list|完整清單/i.test(clip?.narrativeJob || "");
+  const look = input.typography?.trim() || "";
+  if (showFull) {
+    const titles = entries.flatMap((entry) => listicleTitles(entry.title));
+    return [
+      "On-canvas FULL LIST — highest priority. This last clip shows a readable numbered list of every item title at once, as a primary graphic, not a tiny subtitle bar.",
+      ...titles.map((title, index) => `List item ${index + 1} (spell exactly): "${title}"`),
+      "Every title is readable. Do not leave one off.",
+      look,
+      "Only these item titles may appear as writing; no other invented labels.",
+    ].filter(Boolean);
+  }
   const current = entries.find((entry) => entry.clipNumber === input.clipNumber);
-  const listLines = entries.map(
-    (entry) => `List item ${entry.index} (spell exactly): "${entry.title}"`,
-  );
+  if (current) {
+    const titles = listicleTitles(current.title);
+    return [
+      "On-canvas item ON — highest priority. This clip introduces only this item. Do not draw the other items, a side list, or the full list.",
+      ...titles.map((title, index) => `Item ${current.index + index} (spell exactly): "${title}"`),
+      "Ignore any checklist or other item titles written in the Scene. Draw one item image. The full numbered list appears only on the last clip.",
+      look,
+      "Only this item title may appear as writing; no other invented labels.",
+    ].filter(Boolean);
+  }
   return [
-    "On-canvas item list ON — highest priority. The scene MUST show a readable numbered list of these items as a primary graphic, not a tiny subtitle bar.",
-    ...listLines,
-    current
-      ? `Highlight list item ${current.index} as the current beat.`
-      : "Show the full list; this is the hook or outro.",
-    input.typography?.trim() || "",
-    "Only the listed item titles may appear as writing; no other invented labels.",
+    "Do not draw item titles or a side list on this clip. Introduce the count only. The full numbered list appears only on the last clip.",
+    look,
+    "No invented item labels.",
   ].filter(Boolean);
 }
 
@@ -152,8 +175,8 @@ export function sceneTextSkillHint(
   const lookLine = options?.lookLine || subtitleLookLine(options?.look);
   if (options?.listicle) {
     return [
-      "On-canvas text is REQUIRED for this director. Every still must show a readable numbered list of the item titles (each item clip's englishVo).",
-      "Show items one by one. Highlight the current item on an item clip. The last clip shows the full list, every title readable. The list is a primary graphic in the scene, not a tiny subtitle bar.",
+      "On-canvas text is REQUIRED for this director. An item clip shows only the one item it introduces: that number and that title. Do not draw the other items or a running side list.",
+      "Show items one by one. The last clip is the only clip that shows the full list, every title readable, as a primary graphic, not a tiny subtitle bar.",
       lookLine,
       "Lettering follows that Look. Do not copy typography from the visual style.",
       SCENE_TEXT_PRESETS[language].skillHint,

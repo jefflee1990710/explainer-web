@@ -584,28 +584,24 @@ test("without a cast, the text characterLock stays authoritative", () => {
   assert.doesNotMatch(prompt, /Cast reference sheets are attached/);
 });
 
-test("listicle stills paint a numbered item list even when scene text is off", () => {
+test("listicle item stills name only that item; the last still lists every title", () => {
   const list = project();
   list.skillSlug = "listicle-director";
   list.sceneTextEnabled = false;
+  const row = list.phaseA!.clips[0];
   list.phaseA!.clips = [
-    {
-      ...list.phaseA!.clips[0],
-      clipNumber: 1,
-      narrativeJob: "hook",
-      englishVo: "Two money leaks.",
-    },
-    {
-      ...list.phaseA!.clips[0],
-      clipNumber: 2,
-      narrativeJob: "item 1 of 2",
-      englishVo: "Unused subscriptions.",
-    },
+    { ...row, clipNumber: 1, narrativeJob: "hook", englishVo: "Two money leaks." },
+    { ...row, clipNumber: 2, narrativeJob: "item 1 of 2", englishVo: "Unused subscriptions." },
+    { ...row, clipNumber: 3, narrativeJob: "full list", englishVo: "Cancel one today." },
   ];
-  const prompt = buildFramePrompt(list, 2, "start");
-  assert.match(prompt, /numbered list/i);
-  assert.match(prompt, /Unused subscriptions/);
-  assert.doesNotMatch(prompt, /No on-canvas text/);
+  const item = buildFramePrompt(list, 2, "start");
+  assert.match(item, /only this item/i);
+  assert.match(item, /Unused subscriptions/);
+  assert.doesNotMatch(item, /Two money leaks/);
+  assert.doesNotMatch(item, /No on-canvas text/);
+  const full = buildFramePrompt(list, 3, "start");
+  assert.match(full, /numbered list/i);
+  assert.match(full, /Unused subscriptions/);
 });
 
 test("framesWithClips queues start and end for every clip", () => {

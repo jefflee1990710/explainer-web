@@ -47,8 +47,8 @@ import { scheduleGenerationFinishedEmail } from "@/service/notify/generation-ema
 import { queueReelIfReady } from "@/service/reel/enqueue";
 import { retimeMp4 } from "@/service/reel/retime";
 import { mediaSrc } from "@/util/media-src";
-import { isBookendSkill, isOutfitReelSkill } from "@/service/director/skill-rules";
-import { withOutfitIdentityPortraits } from "@/service/higgsfield/outfit-identity";
+import { isBookendSkill } from "@/service/director/skill-rules";
+import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lock";
 import { resolveRunSkill } from "@/service/director/run-skill";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { chainsClipStarts } from "@/service/director/clip-continuity";
@@ -170,10 +170,10 @@ export async function sendFrame(
   const plan = frameSubmitPlan(project, clipNumber, position, revision, style);
   // Over Flare's cap, Gemini compresses the prompt before the image request.
   const prompt = await ensureFramePromptFits(plan.prompt);
-  // A turnaround sheet loses to the clothing photo. Send one full-body portrait instead.
+  // A turnaround sheet shows the same person many times. Send one standing figure per character.
   const refs =
-    isOutfitReelSkill(project.skillSlug) && project.cast && project.cast.length > 0
-      ? await withOutfitIdentityPortraits(project.cast, plan.refs)
+    project.cast && project.cast.length > 0
+      ? await withSceneCharacterLocks(project.cast, plan.refs)
       : plan.refs;
   const model = imageModelForSubmit(resolveImageRoute(sceneText.language), refs.length > 0);
   const submitted = await submitImage({

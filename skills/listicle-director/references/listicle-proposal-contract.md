@@ -37,7 +37,7 @@ Ceilings and spoken words (~2.2–2.5 words/second at medium pace). Slow ≈ 0.8
 Rules per row:
 
 - One item per row unless this row is a packed middle clip (`items k-m of N`). A packed row joins those item lines in the VO with ` | ` and still shows them one by one: start highlights the first, end highlights the last.
-- `Scene at clip start` repeats the number device spec and states where the previous item went (slid off, shrunk into the row).
+- `Scene at clip start` repeats the number device spec and states that the previous item has left the frame. Do not leave a visible checklist of the other items.
 - The item image is one concrete object or mini-scene; keep scale and placement consistent across items.
 - The last item row has the most vivid image and the longest beat, and it is not the last clip.
 - The last clip is always `full list`: every item title visible at once, one closing line, the set at rest.
@@ -73,14 +73,15 @@ Wardrobe lock: every character wears exactly their blueprint outfit in every cli
 
 ## Composition by aspect ratio
 
-- `16:9`: number device top-left, item image centre-right, host (if present) left; collected items line up along the bottom.
-- `9:16`: number device top-centre, item image middle third, host lower third; collected items stack down one side.
-- `1:1`: number device top-left corner, item image centred; collected items shrink into a row along the bottom.
+- `16:9`: number device top-left, the one item image centre-right, host (if present) left. No side list.
+- `9:16`: number device top-centre, the one item image in the middle third, host in the lower third. No side list.
+- `1:1`: number device top-left corner, the one item image centred. No side list.
+- The last clip only: every title lines up together (bottom row on 16:9 and 1:1, a vertical stack on 9:16).
 
 ## Palette and text
 
 - Colours in ordinary words only; the accent colour is reserved for the number device.
-- Every still must show a numbered list of the item titles as a primary graphic, spelled exactly from each item clip's VO. Highlight the current item. No extra invented labels.
+- An item clip shows only that item's number and title, spelled exactly from its VO. Do not write the other titles. The last clip shows every title. No extra invented labels.
 
 ## Confirmation ending
 

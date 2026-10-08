@@ -172,7 +172,7 @@ export const briefZhHant = {
     "story-short-director": "以角色對白推動的短片，結構跟題材走，沒有旁白。",
     "product-demo-director": "痛點、開箱、功能示範、結果。產品外觀全程鎖定。",
     "dialogue-qa-director": "正好兩個角色，一問一答。",
-    "listicle-director": "一項一段。項目太多時，才把兩、三項併進同一段，段內逐項出現。最後一段秀出完整清單。",
+    "listicle-director": "一項一段，該段只顯示這一項。項目太多時，才把兩、三項併進同一段。最後一段才秀出完整清單。",
     "tutorial-director": "先看完成品，再一段一步，最後回到完成品。",
     "opening-director": "3–4 秒片頭：品牌標誌進場並停住。",
     "ending-director": "3–4 秒片尾：畫面停在品牌標誌上。",

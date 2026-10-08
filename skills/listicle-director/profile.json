@@ -5,8 +5,8 @@
     "hook": "States the count and the promise (\"5 things…\", \"3 mistakes…\") while the first number or item slams in, sometimes teasing the final item.",
     "arc": "Strong item first, weakest in the middle, best item last with the most vivid image. The clip after that shows the full list at rest.",
     "narrator": "An energetic, clear host talking to the viewer, with every item line in the same parallel shape (e.g. \"Number one: …\" or \"Want X? Do Y.\").",
-    "visual": "Look and palette come from the chosen visual style. Every frame shows a numbered list of the item titles, clearly readable. An item clip highlights the current item. The last clip shows every title. A matching number badge and one concrete image per item stay in a constant setting.",
+    "visual": "Look and palette come from the chosen visual style. Each item clip shows only that item: its number, its title, and one concrete image. Earlier items leave the frame. The last clip is the only one that shows the full numbered list.",
     "audio": "A driving beat that hits each time a number pops in and builds up on the final item.",
-    "rules": "Items come only from your source — the list is never padded. Each item needs a concrete visual stand-in. The narration isn't captioned; the numbered list is the on-screen text."
+    "rules": "Items come only from your source — the list is never padded. Each item needs a concrete visual stand-in. The narration isn't captioned. An item clip's on-screen text is that item only; the full list is the last clip."
   }
 }

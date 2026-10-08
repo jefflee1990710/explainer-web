@@ -24,7 +24,7 @@ If required items are missing, ask for them in one concise message and stop. Nev
 The rendering rules (canvas, look, palette, and motion) come from the **Visual style** block appended below this skill. Do not invent a different medium. Lettering comes only from the selected text style, never from the visual style or from this skill.
 
 - **Cast lock**: if character references / blueprints are attached, the host MUST follow them exactly across all clips; say so in `characterLock`, never restyle. If none, define ONE simple host in `characterLock` and keep it identical. The host may be absent from some item clips if the item is better shown as an object.
-- **On-canvas item list (required)**: every still MUST show a readable numbered list of the item titles as a primary graphic in the scene (not a tiny subtitle bar). Spell each title exactly from that item clip's `englishVo`. An item clip highlights the current item. The last clip shows every title at once.
+- **On-canvas item (required)**: an item clip shows ONLY the item it introduces — its number and its title — as a primary graphic (not a tiny subtitle bar). Spell that title exactly from that clip's `englishVo`. Do not draw the other items, a side list, or the full list on an item clip. The last clip is the only still that shows every title at once.
 - **Item number device**: every item clip also carries a short in-world number marker (`1`, `2`, `3` … or `#1`) drawn as a prop in the style (a tag, a card, a badge, a chalk numeral). Same device, same position, every item.
 - **Item image**: each item is ONE concrete object or mini-scene that stands for it. Consistent scale and placement clip to clip so the list reads as a set.
 - Keep the setting constant; only the item image and the number change.
@@ -42,7 +42,7 @@ The rendering rules (canvas, look, palette, and motion) come from the **Visual s
 - Default: an energetic but clear adult host voice in the requested voiceover language, second person.
 - Rhythm: each item line follows the same grammatical shape ("Number one: … . Number two: …" or "Want X? Do Y."). Parallel structure is the listicle's music.
 - ~7–20 spoken words per clip at medium speaking pace. Slow ≈ 0.8× those words with pauses; fast ≈ 1.2× with fewer pauses. Clip duration stays the same. Item lines ≤15 words at medium.
-- Spoken lines are audio-only. The on-canvas numbered list is required in every still and must list the item titles. Do not add captions of the full voiceover on top of that list.
+- Spoken lines are audio-only. An item clip's on-canvas writing is that item's number and title only. The last clip's on-canvas writing is the full numbered list. Do not add a caption of the full voiceover on top.
 
 ## Phase A field mapping
 
@@ -58,7 +58,7 @@ The rendering rules (canvas, look, palette, and motion) come from the **Visual s
 
 ## Clip continuity
 
-- Start and end of each clip are the SAME SHOT; within a clip the number pops and the item image forms. New item images arrive at clip boundaries by inheriting the previous end (the previous item slides off or shrinks into a row as the next number arrives).
+- Start and end of each clip are the SAME SHOT; within a clip the number pops and the item image forms. The previous item leaves the frame at the clip boundary. Do not keep earlier items visible beside the current one. The full list appears only on the last clip.
 - A visible change every 1.5–2.5 seconds: number pop, item appear, item morph, camera punch.
 - The last clip is the full list at rest. Never bridge back to Clip 1.
 
@@ -74,5 +74,5 @@ The rendering rules (canvas, look, palette, and motion) come from the **Visual s
 - 3–8 seconds per clip; each prompt states its duration.
 - Colours in ordinary words only; never hexadecimal, RGB, HSL, or Pantone.
 - Items come only from the source; do not pad the list and do not drop items.
-- The numbered item list is required on every still. Do not add a second caption of the full voiceover.
+- An item still shows only that item. The last still shows the full list. Do not add a second caption of the full voiceover.
 - The final clip shows the full list and rests; never a loop.
