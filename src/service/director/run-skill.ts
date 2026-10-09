@@ -41,5 +41,7 @@ export async function resolveRunSkill(
     slug: baseSlug,
     systemPrompt: `${template.systemPrompt}${customDirectorBlock(skill.customProfile, skill.extraInstructions)}`,
     references: template.references,
+    // Template slots per language; the fork's customPerformance (already on `skill`) overrides per key.
+    performance: template.performance,
   };
 }

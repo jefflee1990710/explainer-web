@@ -2,6 +2,7 @@ import { loadEnvConfig } from "@next/env";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { skillsCollection } from "@/dao";
+import { parseSystemPerformance } from "@/service/director/performance";
 import { parseSystemProfile } from "@/service/director/profile";
 import { MINIMAX_H3_VIDEO_MODEL } from "@/service/higgsfield/clip-keyframes";
 import type { HiggsfieldDefaults, SkillInputSchema } from "@/model/skill";
@@ -165,6 +166,16 @@ async function readMarkdownTree(dir: string, prefix = "") {
   return files;
 }
 
+// performance.json is optional; only on-camera read directors ship one.
+async function readPerformance(file: string) {
+  try {
+    return parseSystemPerformance(JSON.parse(await readFile(file, "utf8")));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw error;
+  }
+}
+
 async function seedSkill(manifest: SkillManifest) {
   const files = await readMarkdownTree(path.join(process.cwd(), "skills", manifest.dir));
   const skillFile = files.find((file) => file.path === "SKILL.md");
@@ -175,6 +186,8 @@ async function seedSkill(manifest: SkillManifest) {
   const profile = parseSystemProfile(
     JSON.parse(await readFile(path.join(process.cwd(), "skills", manifest.dir, "profile.json"), "utf8")),
   );
+  // Optional on-camera performance slots (talking-head family). Absent → field removed.
+  const performance = await readPerformance(path.join(process.cwd(), "skills", manifest.dir, "performance.json"));
 
   const now = new Date();
   const skills = await skillsCollection();
@@ -186,6 +199,7 @@ async function seedSkill(manifest: SkillManifest) {
         title: manifest.title,
         description: manifest.description,
         profile,
+        ...(performance ? { performance } : {}),
         systemPrompt: skillFile.content,
         references: files
           .filter((file) => file.path !== "SKILL.md")
@@ -196,7 +210,7 @@ async function seedSkill(manifest: SkillManifest) {
         sortOrder: manifest.sortOrder,
         updatedAt: now,
       },
-      $unset: { titleZh: "" },
+      $unset: { titleZh: "", ...(performance ? {} : { performance: "" }) },
       $setOnInsert: { createdAt: now },
     },
     { upsert: true },

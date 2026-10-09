@@ -17,7 +17,6 @@ import {
 } from "@/service/director/director-chat-prompt";
 import {
   applyDirectorEdits,
-  DRAFT_FIELDS,
   draftFieldValue,
   parseDraft,
   type DirectorDraft,
@@ -38,9 +37,10 @@ const MESSAGE_MAX = 2000;
 const HISTORY_SENT = 20;
 const CHAT_KEPT = 100;
 
+// Field names are validated by applyDirectorEdits (profile, extraInstructions, performance.*).
 const directorChatSchema = z.object({
   summary: z.string(),
-  edits: z.array(z.object({ field: z.enum(DRAFT_FIELDS), content: z.string() })),
+  edits: z.array(z.object({ field: z.string(), content: z.string() })),
 });
 
 export type CreateDirectorResult = { ok: true; id: string } | { ok: false; error: string };
@@ -150,6 +150,8 @@ export async function createDirectorAction(input: {
       references: [],
       customProfile: { ...parseSystemProfile(template.profile) },
       extraInstructions: "",
+      // On-camera read templates carry performance slots; the fork edits the English set.
+      ...(template.performance ? { customPerformance: { ...template.performance.en } } : {}),
       inputSchema: template.inputSchema,
       higgsfieldDefaults: template.higgsfieldDefaults,
       isActive: true,
@@ -176,6 +178,7 @@ export async function saveDirectorAction(input: {
   description: string;
   customProfile: DirectorDraft["customProfile"];
   extraInstructions: string;
+  customPerformance?: DirectorDraft["customPerformance"];
 }): Promise<SaveDirectorResult> {
   try {
     const user = await requireAppUser();
@@ -183,7 +186,11 @@ export async function saveDirectorAction(input: {
     if (!skill) return { ok: false, error: "找不到 Director" };
     const meta = parseMeta(input.title, input.description);
     if (!meta.ok) return meta;
-    const parsed = parseDraft({ customProfile: input.customProfile, extraInstructions: input.extraInstructions });
+    const parsed = parseDraft({
+      customProfile: input.customProfile,
+      extraInstructions: input.extraInstructions,
+      customPerformance: input.customPerformance,
+    });
     if (!parsed.ok) return parsed;
 
     const directors = await userDirectorsCollection();
@@ -195,6 +202,10 @@ export async function saveDirectorAction(input: {
           description: meta.description,
           customProfile: parsed.draft.customProfile,
           extraInstructions: parsed.draft.extraInstructions,
+          // Only directors that already have slots may save them; others keep none.
+          ...(parsed.draft.customPerformance && skill.customPerformance
+            ? { customPerformance: parsed.draft.customPerformance }
+            : {}),
           updatedAt: new Date(),
         },
       },
@@ -265,6 +276,8 @@ export async function sendDirectorChatAction(input: {
     const parsed = parseDraft(input?.draft);
     if (!parsed.ok) return parsed;
     const draft = parsed.draft;
+    // A client that did not send slots still gets them editable from the saved director.
+    if (!draft.customPerformance && skill.customPerformance) draft.customPerformance = { ...skill.customPerformance };
 
     if (chatRateLimited(skill.chat, new Date())) return { ok: false, error: "AI 修改太頻繁，請稍後再試" };
 
@@ -290,7 +303,7 @@ export async function sendDirectorChatAction(input: {
       ({ output } = await generateText({
         model: directorModel(),
         output: Output.object({ schema: directorChatSchema }),
-        system: directorChatSystemPrompt(),
+        system: directorChatSystemPrompt(draft),
         ...(imageParts.length
           ? {
               messages: [

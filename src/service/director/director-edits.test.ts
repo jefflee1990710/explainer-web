@@ -8,6 +8,7 @@ import {
   parseDraft,
   type DirectorDraft,
 } from "@/service/director/director-edits";
+import { emptyPerformance } from "@/service/director/performance";
 import { emptyProfile } from "@/service/director/profile";
 
 function baseDraft(): DirectorDraft {
@@ -85,4 +86,42 @@ test("parseDraft coerces input and enforces limits", () => {
     error: "欄位內容過長",
   });
   assert.ok(parseDraft(null).ok);
+});
+
+test("performance fields are editable only when the draft carries slots", () => {
+  const withoutSlots = applyDirectorEdits(baseDraft(), [{ field: "performance.restingFace", content: "calm" }]);
+  assert.equal(withoutSlots.ok, false);
+
+  const draft: DirectorDraft = { ...baseDraft(), customPerformance: { ...emptyPerformance(), restingFace: "smile" } };
+  const result = applyDirectorEdits(draft, [
+    { field: "performance.restingFace", content: "deadpan" },
+    { field: "performance.anchorProp", content: "" },
+  ]);
+  assert.ok(result.ok);
+  assert.equal(result.draft.customPerformance?.restingFace, "deadpan");
+  assert.deepEqual(result.changedFields, ["performance.restingFace"]);
+  // Input draft untouched.
+  assert.equal(draft.customPerformance?.restingFace, "smile");
+  assert.equal(draftFieldValue(result.draft, "performance.restingFace"), "deadpan");
+});
+
+test("parseDraft keeps customPerformance absent unless sent, and validates it when sent", () => {
+  const plain = parseDraft({ customProfile: {}, extraInstructions: "" });
+  assert.ok(plain.ok);
+  if (plain.ok) assert.equal(plain.draft.customPerformance, undefined);
+  const sent = parseDraft({ customProfile: {}, extraInstructions: "", customPerformance: { set: "a roof", bogus: 1 } });
+  assert.ok(sent.ok);
+  if (sent.ok) {
+    assert.equal(sent.draft.customPerformance?.set, "a roof");
+    assert.equal(sent.draft.customPerformance?.light, "");
+  }
+  const tooLong = parseDraft({ customProfile: {}, customPerformance: { set: "x".repeat(601) } });
+  assert.equal(tooLong.ok, false);
+});
+
+test("changedDraftFields includes performance slots when either side has them", () => {
+  const saved: DirectorDraft = { ...baseDraft(), customPerformance: { ...emptyPerformance(), light: "soft" } };
+  const draft: DirectorDraft = { ...baseDraft(), customPerformance: { ...emptyPerformance(), light: "hard" } };
+  assert.deepEqual(changedDraftFields(saved, draft), ["performance.light"]);
+  assert.deepEqual(changedDraftFields(baseDraft(), baseDraft()), []);
 });

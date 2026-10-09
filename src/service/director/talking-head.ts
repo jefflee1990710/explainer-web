@@ -1,8 +1,10 @@
+import type { PerformanceSlots } from "@/model/director-performance";
 import type { FramePosition, SpeechPace, VoLanguage } from "@/model/project";
 import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
 import { chainsClipStarts, inheritsPreviousEnd } from "@/service/director/clip-continuity";
+import { DEFAULT_PERFORMANCE, performanceLanguage } from "@/service/director/performance";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
-import { talkingMotionLine } from "@/service/director/talking-performance";
+import { hasAnchorProp, talkingMotionLine, type TalkingShot } from "@/service/director/talking-performance";
 import { mediaSrc } from "@/util/media-src";
 
 export const TALKING_HEAD_SKILL_SLUG = "talking-head-director";
@@ -199,22 +201,24 @@ export function planTalkingHeadClips(input: {
   aspectRatio?: string;
   // From the director visual, e.g. "full-body". Omitted when the director names no shot.
   shot?: string;
-  // Uploaded room photos replace the bookshelf sentence.
+  // Uploaded room photos replace the set sentence.
   background?: boolean;
+  // Resolved performance slots in the prompt language. Defaults to the shot's built-in set.
+  performance?: PerformanceSlots;
 }): TalkingHeadClipPlan[] {
   const lines = balanceTalkingHeadLines(input.source, input.pace);
   const total = lines.length;
   const clips: TalkingHeadClipPlan[] = [];
+  const talkingShot: TalkingShot = input.shot === "full-body" ? "full-body" : "face";
+  const perf = input.performance ?? DEFAULT_PERFORMANCE[talkingShot][performanceLanguage(input.language)];
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
     const seconds = plannedClipSeconds(line, input.pace);
     const belowCenter = talkingHeadSubtitleBelowCenter(input.aspectRatio);
-    const endScene = shotLine(input.language, "end", line, input.shot, belowCenter, input.background);
+    const scene = { shot: input.shot, belowCenter, background: input.background, perf };
+    const endScene = shotLine(input.language, "end", line, scene);
     const previousLine = index === 0 ? undefined : lines[index - 1];
-    const startScene =
-      index === 0
-        ? shotLine(input.language, "start", line, input.shot, belowCenter, input.background)
-        : clips[index - 1].endScene;
+    const startScene = index === 0 ? shotLine(input.language, "start", line, scene) : clips[index - 1].endScene;
     clips.push({
       clipNumber: index + 1,
       timeRange: `0–${seconds}s`,
@@ -223,15 +227,17 @@ export function planTalkingHeadClips(input: {
       explainerScene: startScene,
       startScene,
       endScene,
-      motionCamera: motionLine(
-        input.language,
+      motionCamera: talkingMotionLine({
+        language: input.language,
         seconds,
         line,
         previousLine,
-        input.shot,
-        index + 1,
+        shot: talkingShot,
+        clipNumber: index + 1,
+        totalClips: total,
         belowCenter,
-      ),
+        performance: perf,
+      }),
       englishVo: line,
       bgmSfx: input.language === "en" ? "none" : "無",
     });
@@ -266,10 +272,8 @@ export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
     `durationSeconds follows Chinese characters / ${CJK_CHARS_PER_SECOND} + English words / ${ENGLISH_WORDS_PER_SECOND}, then ${paceNote(pace)}.`,
     fullBody
       ? "Locked full-body shot. Head, torso, and feet stay in frame. The character looks into the lens. Do not crop to a close-up."
-      : "Locked seated medium shot, like a real phone video filmed at home. Head, torso, and a small homemade microphone stay in frame. The character sits and looks into the lens. Do not stand them up. Do not crop to a face-only close-up.",
-    fullBody
-      ? "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, both hands gesturing at chest height, weight shifting hip to hip. Feet stay in frame. One subtitle equal to that clip's spoken line, same on the start and end still."
-      : "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync like a real person filming at home: seated the whole time, eyes on the lens, head tilting and nodding, shoulders rocking, one hand keeping a homemade microphone near the mouth. One subtitle equal to that clip's spoken line, same on the start and end still.",
+      : "Locked seated medium shot, like a real phone video filmed at home. Head and torso stay in frame. The character sits and looks into the lens. Do not stand them up. Do not crop to a face-only close-up.",
+    "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, hands gesturing and changing shape every 1–2 seconds, following the performance slots in the director block. One subtitle equal to that clip's spoken line, same on the start and end still.",
   ].join(" ");
 }
 
@@ -283,20 +287,29 @@ function talkingSubtitleRule(aspectRatio?: string) {
   return "On a 9:16 Instagram Reel, one subtitle a little below the vertical center, clear of the face and the bottom edge. On a 16:9 landscape frame, one subtitle across the bottom. Spell that clip's spoken line. Nothing else written.";
 }
 
-export function talkingHeadDirectorBlock(skillSlug?: string, aspectRatio?: string) {
+// Phase A director block. Performance slots (English) describe the style layer the
+// user may have customised; the pipeline rules around them are fixed.
+export function talkingHeadDirectorBlock(skillSlug?: string, aspectRatio?: string, performance?: PerformanceSlots) {
   const fullBody = skillSlug === FULL_BODY_TALKING_HEAD_SKILL_SLUG;
+  const p = performance ?? DEFAULT_PERFORMANCE[fullBody ? "full-body" : "face"].en;
+  const anchored = hasAnchorProp(p);
+  const hands = anchored
+    ? `one hand keeping ${p.anchorProp} as a fixed anchor while the other hand does all the gesturing`
+    : "both hands gesturing at chest height";
   return [
     fullBody
       ? "This is a FULL-BODY TALKING-HEAD READ. The on-screen character faces the camera, head to feet in frame, and speaks. There is no cutaway and no second character."
-      : "This is a TALKING-HEAD READ. The on-screen character sits, faces the camera, holds a small homemade microphone, and speaks. There is no cutaway and no second character.",
+      : `This is a TALKING-HEAD READ. The on-screen character sits, faces the camera${anchored ? `, holds ${p.anchorProp}` : ""}, and speaks. There is no cutaway and no second character.`,
     "The director instruction is planning notes only (tone, emphasis, must-have looks). It is NOT spoken.",
     "The spoken script is locked. Each clip's englishVo is a verbatim slice of that script. Do not paraphrase. Give every clip a similar amount of speech.",
     fullBody
-      ? "Camera is a locked full-body shot. Do not crop to a close-up or a medium shot. Set and light stay identical across every clip. Clip 2 and after open on the previous clip's end still."
-      : "Camera is a locked seated medium shot: head, torso, and the homemade microphone stay in frame. Same seat beside a bookshelf, same soft indoor daylight in every clip. No pictures pasted on the frame. Do not stand the character up. Do not crop to a face-only close-up. Clip 2 and after open on the previous clip's end still.",
+      ? `Camera is a locked full-body shot. Do not crop to a close-up or a medium shot. Set: ${p.set}. Light: ${p.light}. Set and light stay identical across every clip. Clip 2 and after open on the previous clip's end still.`
+      : `Camera is a locked seated medium shot: head and torso${anchored ? " and the handheld prop" : ""} stay in frame. Set: ${p.set}. Light: ${p.light}. Same set and light in every clip. No pictures pasted on the frame. Do not stand the character up. Do not crop to a face-only close-up. Clip 2 and after open on the previous clip's end still.`,
     fullBody
-      ? "On-camera speech like a real person recording a reel: eyes locked on the lens, continuous lip-sync, head tilting and nodding, both hands gesturing at chest height, weight shifting hip to hip. Never freeze the face, head, hands, or body. Never a greeting wave."
-      : "On-camera speech like a real person filming a phone video at home: seated, eyes locked on the lens, continuous lip-sync, head tilting and nodding, shoulders rocking, one hand keeping a small homemade microphone near the mouth. Natural skin, real cloth, unposed. Never freeze the face or neck. Never a greeting wave. Never stand up.",
+      ? `On-camera speech like a real person recording a reel: eyes locked on the lens, continuous lip-sync, head tilting and nodding, ${hands}, weight shifting hip to hip. Never freeze the face, head, hands, or body. Never a greeting wave.`
+      : `On-camera speech like a real person filming a phone video at home: seated, eyes locked on the lens, continuous lip-sync, head tilting and nodding, ${hands}. Natural skin, real cloth, unposed. Never freeze the face or neck. Never a greeting wave. Never stand up.`,
+    `Face pattern: resting face is ${p.restingFace}. Emphasis: ${p.emphasisBeat}. Clip 1 opens with ${p.hookBeat} as the hook. The last clip ends on ${p.ctaBeat}.`,
+    `Gesture pattern: the gesturing hand changes shape every 1–2 seconds in time with the words — ${p.gestureLibrary}. Head: ${p.headMotion}.`,
     talkingSubtitleRule(aspectRatio),
   ].join(" ");
 }
@@ -318,75 +331,86 @@ function plannedClipSeconds(text: string, pace?: SpeechPace) {
   return Math.min(TALKING_HEAD_MAX_SECONDS, Math.max(PROVIDER_MIN_SECONDS, talkingHeadSeconds(text, pace)));
 }
 
-function shotLine(
-  language: VoLanguage | undefined,
-  moment: "start" | "end",
-  line: string,
-  shot?: string,
-  belowCenter?: boolean,
-  background?: boolean,
-) {
-  const camera = cameraClause(language, shot);
-  const fullBody = shot === "full-body";
+type SceneInput = { shot?: string; belowCenter?: boolean; background?: boolean; perf: PerformanceSlots };
+
+// Start still: hook face, free hand mid-gesture. End still: smile relaxed, head tilted the other way.
+function shotLine(language: VoLanguage | undefined, moment: "start" | "end", line: string, scene: SceneInput) {
+  const camera = cameraClause(language, scene.shot, scene.perf);
+  const fullBody = scene.shot === "full-body";
+  const anchored = hasAnchorProp(scene.perf);
+  const p = scene.perf;
   if (language === "en") {
+    const prop = anchored ? ` One hand holds ${p.anchorProp}.` : "";
+    const propEnd = anchored ? ` ${capitalize(p.anchorProp)} stays in that hand, a little lower.` : "";
+    const freeHand = anchored ? "The other hand" : "One hand";
     const pose =
       moment === "start"
         ? fullBody
-          ? "Character: centered, eyes locked into the lens as if talking into a phone, mouth just opening, head tilted a few degrees, one hand beginning to lift, a live thinking expression."
-          : "Character: seated and centered, head and torso in frame, eyes locked into the lens like a real phone video filmed at home, mouth just opening, head tilted a few degrees, a live unposed expression. One hand holds a small homemade microphone — a thin stick with a fluffy fuzzy windscreen — close to the mouth."
+          ? `Character: centered, eyes locked into the lens as if talking into a phone, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture.`
+          : `Character: seated and centered, head and torso in frame, eyes locked into the lens like a real phone video filmed at home, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live unposed expression.${prop} ${freeHand} is already up at chest height, index finger raised mid-gesture.`
         : fullBody
-          ? "Character: eyes still locked on the lens, mouth just closed after the line, an engaged small smile, head tilted the other way, the other hand still slightly raised at chest height, weight on the other hip, feet in frame."
-          : "Character: still seated, eyes still locked on the lens, mouth just closed into a small real smile, head tilted the other way. The same homemade microphone stays in that hand, a little lower, still near the mouth.";
-    const place = belowCenter
+          ? `Character: eyes still locked on the lens, mouth just closed after the line, an engaged small smile, eyebrows relaxed, head tilted the other way.${propEnd} ${freeHand} is still slightly raised at chest height with an open palm, weight on the other hip, feet in frame.`
+          : `Character: still seated, eyes still locked on the lens, mouth just closed into a small real smile, eyebrows relaxed, head tilted the other way.${propEnd} ${freeHand} is open-palm at chest height, caught between gestures.`;
+    const place = scene.belowCenter
       ? "one line a little below the vertical center, clear of the face and the bottom edge"
       : "one bottom line";
-    return `${pose} ${setClause("en", fullBody, background)}${camera} Subtitle: ${place}, exactly "${line}".`;
+    return `${pose} ${setClause("en", scene)}${camera} Subtitle: ${place}, exactly "${line}".`;
   }
+  const prop = anchored ? `一隻手拎住${p.anchorProp}。` : "";
+  const propEnd = anchored ? `${p.anchorProp}仲喺嗰隻手，稍為放低。` : "";
+  const freeHand = anchored ? "另一隻手" : "一隻手";
   const pose =
     moment === "start"
       ? fullBody
-        ? "角色：置中，直望鏡頭好似對住手機講，準備開口，頭微傾，一隻手開始提起，神情有生氣。"
-        : "角色：坐住置中，頭同上身喺畫面，直望鏡頭好似喺屋企用手機實拍，準備開口，頭微傾，神情自然唔擺拍。一隻手拎住自製咪（幼棒加毛毛防風罩）靠近個口。"
+        ? `角色：置中，直望鏡頭好似對住手機講，準備開口，${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢。`
+        : `角色：坐住置中，頭同上身喺畫面，直望鏡頭好似喺屋企用手機實拍，準備開口，${p.hookBeat}，頭微傾，神情自然唔擺拍。${prop}${freeHand}已經提到胸前，豎起食指做緊手勢。`
       : fullBody
-        ? "角色：仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，頭反向微傾，另一隻手仲喺胸前，重心換咗邊，腳留喺畫面。"
-        : "角色：仍然坐住直望鏡頭，呢句講完、口部合上變成自然淺笑，頭反向微傾。同一支自製咪仲喺嗰隻手，稍為放低，仍然靠近個口。";
-  const place = belowCenter ? "畫面垂直中線下面少少一行，避開臉同最底邊" : "畫面底部一行";
-  return `${pose}${setClause("yue", fullBody, background)}${camera}字幕：${place}，逐字係「${line}」。`;
+        ? `角色：仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，眉毛放鬆，頭反向微傾。${propEnd}${freeHand}仲喺胸前掌心打開，重心換咗邊，腳留喺畫面。`
+        : `角色：仍然坐住直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，頭反向微傾。${propEnd}${freeHand}掌心打開停喺胸前，好似兩個手勢之間。`;
+  const place = scene.belowCenter ? "畫面垂直中線下面少少一行，避開臉同最底邊" : "畫面底部一行";
+  return `${pose}${setClause("yue", scene)}${camera}字幕：${place}，逐字係「${line}」。`;
 }
 
-// Face reads sit in a real room with one homemade mic. Full-body stays a plain set.
-function setClause(language: "en" | "yue", fullBody: boolean, background?: boolean) {
-  if (fullBody) {
+function capitalize(text: string) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+// Set and light come from the slots. An uploaded room photo replaces the set sentence.
+function setClause(language: "en" | "yue", scene: SceneInput) {
+  const p = scene.perf;
+  const anchored = hasAnchorProp(p);
+  const noProps = language === "en"
+    ? anchored ? `no new props besides ${p.anchorProp}` : "no new props"
+    : anchored ? `除咗${p.anchorProp}之外冇新道具` : "冇新道具";
+  // A bed in this line was getting later clips blocked, so the photo rule names it.
+  if (scene.background) {
     return language === "en"
-      ? "Set: the same plain background in every clip, no new props. Light: soft and even, unchanged."
-      : "場景：全程同一個簡潔背景，冇新道具。光：柔和均勻，不變。";
-  }
-  // Uploaded room photos replace the bookshelf. A bed in this line was getting later clips blocked.
-  if (background) {
-    return language === "en"
-      ? "Set: the background is the attached scene reference photo. Do not draw a bookshelf, a bed, or a different room. The same background stays in every clip. No pictures pasted on the frame, no extra writing, no new props besides the homemade microphone. Light follows the reference photo."
-      : "場景：背景用附上的場景參考圖，唔好再畫書架、床或者其他房間。全程同一個背景。畫面上面唔好貼圖、唔好加字，除咗自製咪之外冇新道具。光跟參考圖。";
+      ? `Set: the background is the attached scene reference photo. Do not draw a bookshelf, a bed, or a different room. The same background stays in every clip. No pictures pasted on the frame, no extra writing, ${noProps}. Light follows the reference photo.`
+      : `場景：背景用附上的場景參考圖，唔好再畫書架、床或者其他房間。全程同一個背景。畫面上面唔好貼圖、唔好加字，${noProps}。光跟參考圖。`;
   }
   return language === "en"
-    ? "Set: the same real sitting spot in every clip, seated beside a bookshelf, books at the shoulder. No pictures pasted on the frame, no extra writing, no new props besides the homemade microphone. Light: soft natural indoor daylight, ordinary and unchanged, like a phone video at home."
-    : "場景：全程同一個真實坐位，坐喺書架旁邊，身後係書。畫面上面唔好貼圖、唔好加字，除咗自製咪之外冇新道具。光：柔和自然室內日光，似喺屋企用手機拍，不變。";
+    ? `Set: ${p.set}. No pictures pasted on the frame, no extra writing, ${noProps}. Light: ${p.light}.`
+    : `場景：${p.set}。畫面上面唔好貼圖、唔好加字，${noProps}。光：${p.light}。`;
 }
 
-function cameraClause(language: VoLanguage | undefined, shot?: string) {
+function cameraClause(language: VoLanguage | undefined, shot: string | undefined, perf: PerformanceSlots) {
   const size = shot?.trim() || "";
   const fullBody = size === "full-body";
+  const anchored = hasAnchorProp(perf);
   if (language === "en") {
     if (fullBody) return " Camera: locked full-body, character centered, head to feet in frame.";
+    const inFrame = anchored ? "Head, torso, and the handheld prop stay in frame." : "Head and torso stay in frame.";
     if (!size) {
-      return " Camera: locked seated medium shot. Head, torso, and the homemade microphone stay in frame. Do not stand up. Do not crop to a face-only close-up.";
+      return ` Camera: locked seated medium shot. ${inFrame} Do not stand up. Do not crop to a face-only close-up.`;
     }
-    return ` Camera: locked ${size}, character seated and centered, homemade microphone in frame.`;
+    return ` Camera: locked ${size}, character seated and centered${anchored ? ", handheld prop in frame" : ""}.`;
   }
   if (fullBody) return "鏡頭：鎖定全身，角色置中，頭到腳都在畫面內。";
+  const inFrame = anchored ? "頭、上身同手持道具留喺畫面" : "頭同上身留喺畫面";
   if (!size) {
-    return "鏡頭：鎖定坐姿中景，頭、上身同自製咪留喺畫面。唔好企起身，唔好裁成淨係塊臉。";
+    return `鏡頭：鎖定坐姿中景，${inFrame}。唔好企起身，唔好裁成淨係塊臉。`;
   }
-  return `鏡頭：鎖定${shotLabel(size)}，角色坐住置中，自製咪留喺畫面。`;
+  return `鏡頭：鎖定${shotLabel(size)}，角色坐住置中${anchored ? "，手持道具留喺畫面" : ""}。`;
 }
 
 function shotLabel(shot: string) {
@@ -530,24 +554,4 @@ function joinSpoken(parts: string[]) {
     out += cjk ? piece : ` ${piece}`;
   }
   return out;
-}
-
-function motionLine(
-  language: VoLanguage | undefined,
-  seconds: number,
-  line: string,
-  previousLine?: string,
-  shot?: string,
-  clipNumber?: number,
-  belowCenter?: boolean,
-) {
-  return talkingMotionLine({
-    language,
-    seconds,
-    line,
-    previousLine,
-    shot: shot === "full-body" ? "full-body" : "face",
-    clipNumber,
-    belowCenter,
-  });
 }

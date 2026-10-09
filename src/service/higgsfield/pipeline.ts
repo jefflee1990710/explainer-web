@@ -49,7 +49,9 @@ import { retimeMp4 } from "@/service/reel/retime";
 import { mediaSrc } from "@/util/media-src";
 import { isBookendSkill } from "@/service/director/skill-rules";
 import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lock";
+import { resolvePerformance } from "@/service/director/performance";
 import { resolveRunSkill } from "@/service/director/run-skill";
+import { talkingShotForSkill } from "@/service/director/talking-performance";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { chainsClipStarts } from "@/service/director/clip-continuity";
 import {
@@ -373,12 +375,16 @@ export async function sendClipVideo(
   prompt: PhaseBPrompt,
 ): Promise<Sent> {
   const { start, end } = assertClipKeyframes(project.frames, clipNumber);
+  // Talking-head locks must match the director's (possibly customised) performance slots.
+  const talkingShot = talkingShotForSkill(project.skillSlug);
+  const performance = talkingShot ? resolvePerformance(await loadSkill(project), talkingShot, "en") : undefined;
   const submitted = await submitClipVideo({
     prompt: lockDialogueSpeech(
       prompt.prompt,
       project.skillSlug,
       project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber)?.englishVo,
       project.cast?.map((member) => member.name),
+      performance,
     ),
     aspectRatio: project.aspectRatio,
     durationSeconds: prompt.durationSeconds,

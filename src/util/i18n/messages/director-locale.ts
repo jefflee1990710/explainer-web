@@ -1,6 +1,6 @@
 import type { LocaleId } from "@/util/i18n/locales";
 import type { Messages } from "@/util/i18n/messages/types";
-import type { DirectorsMessages } from "@/util/i18n/messages/workspace/directors.en";
+import { directorsEn, type DirectorsMessages } from "@/util/i18n/messages/workspace/directors.en";
 
 type VideoNames = Messages["brief"]["videoTypes"];
 type VideoBlurbs = Messages["brief"]["videoTypeBlurbs"];
@@ -39,8 +39,14 @@ function blurbs(values: string[]): VideoBlurbs {
   return Object.fromEntries(slugs.map((slug, index) => [slug, values[index]])) as VideoBlurbs;
 }
 
-function ui(input: DirectorsMessages): DirectorsMessages {
-  return input;
+// Performance slot labels are English-only for now; packs fall back to them.
+type PerformanceKeys = "performanceTitle" | "performanceLabels";
+function ui(input: Omit<DirectorsMessages, PerformanceKeys>): DirectorsMessages {
+  return {
+    ...input,
+    performanceTitle: directorsEn.performanceTitle,
+    performanceLabels: directorsEn.performanceLabels,
+  };
 }
 
 const packs: Partial<Record<LocaleId, DirectorPack>> = {
@@ -420,7 +426,7 @@ function pack(
     products,
     videoTypes: names(titles),
     blurbs: blurbs(descriptions),
-    directors: {
+    directors: ui({
       title: nav,
       subtitle,
       systemSection,
@@ -475,7 +481,7 @@ function pack(
       unsavedWarning,
       updated,
       backToList,
-    },
+    }),
   };
 }
 

@@ -35,6 +35,8 @@ function formFromDirector(director: PublicDirector): DirectorForm {
     description: director.description,
     customProfile: director.customProfile ?? emptyProfile(),
     extraInstructions: director.extraInstructions ?? "",
+    // Only on-camera read forks carry performance slots.
+    ...(director.customPerformance ? { customPerformance: director.customPerformance } : {}),
   };
 }
 
@@ -164,6 +166,7 @@ export function DirectorWorkspace({
       ...draft,
       customProfile: applied.draft.customProfile,
       extraInstructions: applied.draft.extraInstructions,
+      ...(applied.draft.customPerformance ? { customPerformance: applied.draft.customPerformance } : {}),
     };
     setDraft(next);
     queueAutoSave(next);

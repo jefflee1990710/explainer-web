@@ -1,0 +1,24 @@
+{
+  "en": {
+    "restingFace": "a warm, chatty smile with a hint of teeth, eyebrows relaxed and slightly lifted, eyes locked on the lens like talking to one friend",
+    "emphasisBeat": "on every stressed word or number the eyes widen, the eyebrows pop up, and the mouth opens bigger for about half a second, then the face relaxes back into the smile",
+    "hookBeat": "eyebrows already lifting into a big warm smile",
+    "ctaBeat": "a softer, closer smile, eyebrows settling, the torso leaning a little toward the lens like sharing a secret",
+    "gestureLibrary": "a raised index finger or a small finger count on a list or a number, an open palm pushed out toward the lens on 'look at this', a palm facing the lens swaying side to side on a negative, fingers spread beside the face on a big claim, a palm turned up and offered to the lens on an invitation",
+    "headMotion": "a constant small side-to-side sway of a few degrees, tilts left and right, nods on stressed words, a chin drop then lift, a small lean in on the key point then settling back; shoulders rock",
+    "anchorProp": "",
+    "set": "the same plain background in every clip, no new props",
+    "light": "soft and even, unchanged"
+  },
+  "yue": {
+    "restingFace": "露少少牙嘅親切笑容，眉毛放鬆微微揚起，直望鏡頭好似同一個朋友傾偈",
+    "emphasisBeat": "每到重音字或者數字，眼睛睜大、眉毛快速上挑、口張大約半秒，然後放鬆返落笑容",
+    "hookBeat": "眉毛已經揚起、展開一個大笑容",
+    "ctaBeat": "更柔和、更親近嘅淺笑，眉毛放鬆，上身微微傾向鏡頭好似講緊秘密",
+    "gestureLibrary": "數數或者講數字時豎食指、「睇呢個」時掌心向鏡頭推出、否定時掌心對鏡頭左右擺、誇張強調時五指張開喺臉旁、邀請時掌心向上遞向鏡頭",
+    "headMotion": "全程有幾度嘅細幅左右搖擺，頭左右傾、重音位點頭、下巴跌一跌再抬起，講到重點時微微前傾再坐返；膊頭郁",
+    "anchorProp": "",
+    "set": "全程同一個簡潔背景，冇新道具",
+    "light": "柔和均勻，不變"
+  }
+}

@@ -1,6 +1,12 @@
 import type { ObjectId } from "mongodb";
 import { z } from "zod";
 import { PROFILE_KEYS, type DirectorProfile, type ProfileKey, type SystemProfile } from "@/model/director-profile";
+import {
+  PERFORMANCE_KEYS,
+  type PerformanceKey,
+  type PerformanceSlots,
+  type SystemPerformance,
+} from "@/model/director-performance";
 import { objectIdSchema } from "@/model/primitives";
 
 export {
@@ -9,6 +15,12 @@ export {
   type ProfileKey,
   type SystemProfile,
 } from "@/model/director-profile";
+export {
+  PERFORMANCE_KEYS,
+  type PerformanceKey,
+  type PerformanceSlots,
+  type SystemPerformance,
+} from "@/model/director-performance";
 
 export type SkillReference = {
   path: string;
@@ -61,6 +73,10 @@ export type Skill = {
   profile?: SystemProfile;
   customProfile?: DirectorProfile;
   extraInstructions?: string;
+  // On-camera performance style (talking-head family). System directors seed `performance`
+  // per prompt language; a fork copies the English set into `customPerformance` to edit.
+  performance?: SystemPerformance;
+  customPerformance?: PerformanceSlots;
   // System-director card still. Custom directors inherit the template's url at serialize time.
   previewUrl?: string;
   previewHash?: string;
@@ -76,6 +92,10 @@ const aspectRatioSchema = z.enum(["16:9", "9:16", "1:1"]);
 
 const profileSchema = z.object(
   Object.fromEntries(PROFILE_KEYS.map((key) => [key, z.string()])) as Record<ProfileKey, z.ZodString>,
+);
+
+const performanceSlotsSchema = z.object(
+  Object.fromEntries(PERFORMANCE_KEYS.map((key) => [key, z.string()])) as Record<PerformanceKey, z.ZodString>,
 );
 
 export const skillSchema: z.ZodType<Skill> = z.object({
@@ -117,6 +137,8 @@ export const skillSchema: z.ZodType<Skill> = z.object({
   profile: profileSchema.optional(),
   customProfile: profileSchema.optional(),
   extraInstructions: z.string().optional(),
+  performance: z.object({ en: performanceSlotsSchema, yue: performanceSlotsSchema }).optional(),
+  customPerformance: performanceSlotsSchema.optional(),
   previewUrl: z.string().optional(),
   previewHash: z.string().optional(),
   previewStatus: z.enum(["idle", "generating", "failed"]).optional(),

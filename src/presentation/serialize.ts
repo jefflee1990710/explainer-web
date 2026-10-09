@@ -1,6 +1,7 @@
 import { characterStyleIds, resolveVersionForStyle, versionStyleId } from "@/service/character/character-styles";
 import { resolveDefaultVersion, versionNumber } from "@/service/character/versions";
 import { behaviorSlug, isCustomSkill } from "@/service/director/behavior-slug";
+import { emptyPerformance } from "@/service/director/performance";
 import { emptyProfile, parseSystemProfile } from "@/service/director/profile";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { resolveSubtitleLook } from "@/service/director/subtitle-look";
@@ -23,6 +24,7 @@ import type { TextStyleDoc } from "@/model/text-style";
 import { parseCharacterVoice, type CharacterVoice } from "@/model/character-voice";
 import type { Folder } from "@/model/folder";
 import type { Project, ProjectStatus } from "@/model/project";
+import type { PerformanceSlots } from "@/model/director-performance";
 import type { DirectorProfile, SystemProfile } from "@/model/director-profile";
 import type { DirectorChatMessage, DirectorPreviewStatus, Skill } from "@/model/skill";
 import type { Subscription } from "@/model/subscription";
@@ -213,6 +215,9 @@ export type PublicDirector = PublicSkill & {
   profile?: SystemProfile;
   customProfile?: DirectorProfile;
   extraInstructions?: string;
+  // On-camera performance slots: template English set for system directors, editable copy for forks.
+  performance?: PerformanceSlots;
+  customPerformance?: PerformanceSlots;
   previewStatus: DirectorPreviewStatus;
   previewHash?: string;
   hasOwnPreview: boolean;
@@ -246,6 +251,8 @@ export function toPublicDirector(skill: Skill, inheritedPreviewUrl?: string): Pu
     profile: custom || !skill.profile ? undefined : parseSystemProfile(skill.profile),
     customProfile: custom ? { ...emptyProfile(), ...skill.customProfile } : undefined,
     extraInstructions: custom ? skill.extraInstructions ?? "" : undefined,
+    performance: custom ? undefined : skill.performance?.en,
+    customPerformance: custom && skill.customPerformance ? { ...emptyPerformance(), ...skill.customPerformance } : undefined,
     previewStatus: skill.previewStatus ?? "idle",
     // Only an owned still can disable regenerate. Inherited template stills stay replaceable.
     previewHash: hasOwnPreview ? skill.previewHash : undefined,

@@ -97,7 +97,11 @@ export function DirectorChatPanel({
 
   async function send(input: { message: string; imageUrl?: string }) {
     if (sending) return;
-    const sent: DirectorDraft = { customProfile: draft.customProfile, extraInstructions: draft.extraInstructions };
+    const sent: DirectorDraft = {
+      customProfile: draft.customProfile,
+      extraInstructions: draft.extraInstructions,
+      ...(draft.customPerformance ? { customPerformance: draft.customPerformance } : {}),
+    };
     setPending(input);
     setError("");
     setPreviewError("");

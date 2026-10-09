@@ -29,6 +29,7 @@ import type { CastMember } from "@/model/character";
 import type { PhaseAProposal, PhaseBPrompt, SpeechPace, VoLanguage, VoiceGender } from "@/model/project";
 import { speechPaceDelivery } from "@/service/director/speech-pace";
 import type { Skill } from "@/model/skill";
+import { resolvePerformance } from "@/service/director/performance";
 import { isTalkingHeadSkill, talkingHeadPhaseBPrompt } from "@/service/director/talking-head";
 import { spokenSubtitleLock } from "@/service/director/scene-text";
 import {
@@ -69,7 +70,10 @@ You are executing Phase B only after explicit approval of the current Phase A.
 Return standalone MiniMax H3 video prompts that follow the skill prompt contract. Do not invent new facts.
 Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image. ${
     isTalkingHeadSkill(input.skill.slug)
-      ? talkingVideoMotionRules(talkingShotForSkill(input.skill.slug) ?? "face")
+      ? talkingVideoMotionRules(
+          talkingShotForSkill(input.skill.slug) ?? "face",
+          resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en"),
+        )
       : isOutfitReelSkill(input.skill.slug)
         ? OUTFIT_VIDEO_MOTION_RULES
         : isSurpriseInterviewSkill(input.skill.slug)
@@ -130,6 +134,7 @@ export async function runPhaseBForClip(
         speakers: input.cast,
         characterLine: characterLine(input),
         skillSlug: input.skill.slug,
+        performance: resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en"),
       }),
     });
     // Avoid NoOutputGeneratedError on `.output` when the model returns nothing or is filtered.
@@ -187,6 +192,7 @@ export async function runPhaseBForClip(
       input.skill.slug,
       row?.englishVo,
       input.cast?.map((member) => member.name),
+      resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en"),
     ),
   };
 }

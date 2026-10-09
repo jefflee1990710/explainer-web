@@ -60,6 +60,8 @@ import {
   sanitizeClipReferenceIds,
 } from "@/service/project/reference-images";
 import { cartoonPhaseASchema, phaseASchema, talkingHeadPhaseASchema } from "@/model/director";
+import { resolvePerformance } from "@/service/director/performance";
+import { talkingShotForSkill } from "@/service/director/talking-performance";
 import {
   isTalkingHeadSkill,
   planTalkingHeadClips,
@@ -299,7 +301,13 @@ ${
     bookend
       ? bookendDirectorBlock(input.skill.slug, logoImages.length > 0, { lockLength: lockBookendLength })
       : "",
-    talkingHead ? talkingHeadDirectorBlock(input.skill.slug, input.aspectRatio) : "",
+    talkingHead
+      ? talkingHeadDirectorBlock(
+          input.skill.slug,
+          input.aspectRatio,
+          resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en"),
+        )
+      : "",
     isSurpriseInterviewSkill(input.skill.slug) ? surpriseInterviewDirectorBlock() : "",
     wardrobeBuild ? outfitReelDirectorBlock() : "",
     isFollowShotSkill(input.skill.slug) ? followShotDirectorBlock() : "",
@@ -425,6 +433,8 @@ Produce a complete Phase A director proposal now.`,
       aspectRatio: input.aspectRatio,
       shot: talkingHeadShot(input.skill.customProfile?.visual || input.skill.profile?.visual),
       background: Boolean(input.backgroundImageUrls?.length),
+      // Custom directors override template slots per key; see resolvePerformance.
+      performance: resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", input.language),
     });
     const spoken = clips.reduce((sum, clip) => {
       const units = spokenUnits(clip.englishVo);

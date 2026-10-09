@@ -1,6 +1,7 @@
 "use client";
 
 import type { PublicDirector } from "@/presentation/serialize";
+import { DirectorPerformanceSection } from "@/presentation/components/app/directors/[id]/director-performance-section";
 import { DirectorProfileSection } from "@/presentation/components/app/directors/[id]/director-profile-section";
 import { type DirectorDraft, type DraftField } from "@/service/director/director-edits";
 
@@ -20,6 +21,7 @@ export function DirectorInfoPanel({
   return (
     <section className="min-w-0 rounded-xl border border-accent-ink/10 bg-paper/85 px-3 py-2.5">
       <DirectorProfileSection director={director} draft={draft} changedFields={changedFields} />
+      <DirectorPerformanceSection director={director} draft={draft} changedFields={changedFields} />
     </section>
   );
 }

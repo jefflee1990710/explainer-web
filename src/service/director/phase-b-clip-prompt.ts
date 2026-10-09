@@ -1,4 +1,5 @@
 import type { CharacterVoice } from "@/model/character-voice";
+import type { PerformanceSlots } from "@/model/director-performance";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { isOutfitReelSkill } from "@/service/director/skill-rules";
 import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
@@ -66,6 +67,8 @@ export function clipPhaseBUserPrompt(input: {
   speakers?: Array<{ name: string; voice?: CharacterVoice | null }>;
   characterLine: string;
   skillSlug?: string;
+  // Resolved talking-head performance slots (English). Default set when omitted.
+  performance?: PerformanceSlots;
 }) {
   const rows = input.phaseA.clips;
   const index = rows.findIndex((row) => row.clipNumber === input.clipNumber);
@@ -104,7 +107,7 @@ export function clipPhaseBUserPrompt(input: {
     input.characterLine,
     `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,
     clipUsesTalkingPerformance(input.skillSlug)
-      ? talkingVideoMotionRules(talkingShotForSkill(input.skillSlug) ?? "face")
+      ? talkingVideoMotionRules(talkingShotForSkill(input.skillSlug) ?? "face", input.performance)
       : isOutfitReelSkill(input.skillSlug)
         ? OUTFIT_VIDEO_MOTION_RULES
         : isSurpriseInterviewSkill(input.skillSlug)

@@ -25,6 +25,8 @@ function draftFrom(raw?: Partial<DirectorDraft>): DirectorDraft {
   return {
     customProfile: { ...emptyProfile(), ...(raw?.customProfile ?? {}) },
     extraInstructions: String(raw?.extraInstructions ?? ""),
+    // Performance slots are optional; parseDraft validates keys and lengths.
+    ...(raw?.customPerformance ? { customPerformance: raw.customPerformance } : {}),
   };
 }
 
@@ -48,6 +50,7 @@ export const PUT = withApiUser<Params>(async ({ request, params }) => {
     description?: string;
     customProfile?: DirectorDraft["customProfile"];
     extraInstructions?: string;
+    customPerformance?: DirectorDraft["customPerformance"];
   }>(request);
   const draft = draftFrom(body);
   return fromResult(
@@ -57,6 +60,7 @@ export const PUT = withApiUser<Params>(async ({ request, params }) => {
       description: String(body.description ?? ""),
       customProfile: draft.customProfile,
       extraInstructions: draft.extraInstructions,
+      customPerformance: draft.customPerformance,
     }),
   );
 });

@@ -1,3 +1,4 @@
+import type { PerformanceSlots } from "@/model/director-performance";
 import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import { skillBansNarration, storyShortCameraLock } from "@/service/director/skill-rules";
 import {
@@ -107,6 +108,8 @@ export function lockDialogueSpeech(
   skillSlug?: string,
   spokenLine?: string,
   castNames?: string[],
+  // Talking-head performance slots (English) so the appended lock matches a customised director.
+  performance?: PerformanceSlots,
 ) {
   let body = prompt.trim();
   if (skillBansNarration(skillSlug)) {
@@ -121,7 +124,7 @@ export function lockDialogueSpeech(
   }
   if (clipUsesTalkingPerformance(skillSlug)) {
     const shot = talkingShotForSkill(skillSlug) ?? "face";
-    for (const lock of [DIALOGUE_SPEAK_LOCK, talkingVideoMotionRules(shot)]) {
+    for (const lock of [DIALOGUE_SPEAK_LOCK, talkingVideoMotionRules(shot, performance)]) {
       if (lock && !body.includes(lock)) body = `${body}\n\n${lock}`;
     }
     return body;
