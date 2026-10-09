@@ -49,6 +49,13 @@ export const briefZhHant = {
     descriptionCount: "{n}/{max}",
     descriptionRequired: "請為每張參考圖填寫說明。",
   },
+  backgrounds: {
+    title: "背景參考",
+    hint: "選填，最多 {max} 張。這些照片會取代書架背景，並在產生每一張場景圖時當作參考。",
+    add: "加入背景圖",
+    remove: "移除",
+    alt: "背景圖 {n}",
+  },
   section03: {
     titleDialogue: "對白語言與語速",
     titleNarration: "旁白語言、語速與聲線",

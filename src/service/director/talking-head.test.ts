@@ -77,6 +77,14 @@ test("talking-head keeps instruction and spoken script as separate fields", () =
   assert.match(clips[0].startScene, /homemade microphone/);
   assert.match(clips[0].startScene, /beside a bookshelf/);
   assert.doesNotMatch(clips[0].startScene, /\bbed\b/);
+  const withRoom = planTalkingHeadClips({
+    source: script,
+    pace: "medium",
+    language: "en",
+    background: true,
+  });
+  assert.match(withRoom[0].startScene, /attached scene reference photo/);
+  assert.doesNotMatch(withRoom[0].startScene, /beside a bookshelf/);
   assert.doesNotMatch(talkingHeadDirectorBlock(), /medium close-up/i);
 });
 

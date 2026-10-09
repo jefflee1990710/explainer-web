@@ -794,6 +794,28 @@ test("REVISION line does not attach a sibling or previous still", () => {
   assert.doesNotMatch(prompt, /previous still/);
 });
 
+test("talking-head background photos replace the bookshelf and attach as the room", () => {
+  const video = project();
+  video.skillSlug = "talking-head-director";
+  video.backgroundImageUrls = ["https://blob/room-a.png", "https://blob/room-b.png"];
+  video.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Lily",
+      blueprintUrl: "https://blob/c.png",
+      prompt: "",
+    },
+  ];
+  video.referenceImages = [{ id: "R1", url: "https://blob/other.png", description: "shop" }];
+  video.phaseA!.clips[0].referenceImageIds = ["R1"];
+  const plan = frameSubmitPlan(video, 1, "start");
+  assert.deepEqual(plan.refs, ["https://blob/c.png", "https://blob/room-a.png", "https://blob/room-b.png"]);
+  assert.match(plan.prompt, /BACKGROUND REFERENCE: attached images 2–3 show the room/);
+  assert.match(plan.prompt, /instead of a bookshelf/);
+  assert.doesNotMatch(plan.prompt, /https:\/\/blob\/other.png/);
+});
+
 test("assigned scene references sit after the character so the photo's face does not win", () => {
   const video = project();
   video.cast = [

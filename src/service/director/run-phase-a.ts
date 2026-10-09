@@ -163,6 +163,8 @@ export async function runPhaseA(input: {
   logoUrl?: string;
   // Brief scene references; the director tags clips with their ids.
   referenceImages?: ReferenceImage[];
+  // Talking-head room photos. When present, the bookshelf set is not used.
+  backgroundImageUrls?: string[];
   // Existing user-edited draft; regenerate from this instead of inventing anew.
   currentDraft?: PhaseAProposal;
   revisionNote?: string;
@@ -422,6 +424,7 @@ Produce a complete Phase A director proposal now.`,
       language: input.language,
       aspectRatio: input.aspectRatio,
       shot: talkingHeadShot(input.skill.customProfile?.visual || input.skill.profile?.visual),
+      background: Boolean(input.backgroundImageUrls?.length),
     });
     const spoken = clips.reduce((sum, clip) => {
       const units = spokenUnits(clip.englishVo);

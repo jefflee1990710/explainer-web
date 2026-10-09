@@ -77,8 +77,13 @@ import {
   skillBansNarration,
   skillForcesSceneText,
 } from "@/service/director/skill-rules";
-import { isTalkingHeadSkill, talkingHeadScriptFromClips } from "@/service/director/talking-head";
+import {
+  isTalkingHeadSkill,
+  TALKING_HEAD_SKILL_SLUG,
+  talkingHeadScriptFromClips,
+} from "@/service/director/talking-head";
 import { TalkingHeadScriptField } from "@/presentation/components/app/projects/new/talking-head-script-field";
+import { TalkingHeadBackgroundField } from "@/presentation/components/app/projects/new/talking-head-background-field";
 import { failedStepFor, isProductionLike } from "@/service/project-status";
 import type {
   PublicCharacter,
@@ -241,8 +246,12 @@ export function NewProjectForm({
   const [referenceImages, setReferenceImages] = useState<ReferenceImageDraft[]>(
     () => toReferenceDrafts(initialVideo?.referenceImages),
   );
+  const [backgroundImageUrls, setBackgroundImageUrls] = useState<string[]>(
+    initialVideo?.backgroundImageUrls || [],
+  );
   const bookend = isBookendSkill(ruleSlug);
   const talkingHead = isTalkingHeadSkill(ruleSlug);
+  const talkingHeadBackground = ruleSlug === TALKING_HEAD_SKILL_SLUG;
 
   // Flow state. The stepper can jump back to 題材 after a video exists.
   const [project, setProject] = useState<PublicVideo | null>(initialVideo);
@@ -377,6 +386,8 @@ export function NewProjectForm({
       (project.logoUrl || "") === (bookend ? logoUrl : "") &&
       JSON.stringify(toReferenceDrafts(project.referenceImages)) ===
         JSON.stringify(referenceImages.map((item) => ({ ...item, description: item.description.trim() }))) &&
+      JSON.stringify(project.backgroundImageUrls || []) ===
+        JSON.stringify(talkingHeadBackground ? backgroundImageUrls : []) &&
       currentIds.length === nextIds.length &&
       currentIds.every((id, index) => id === nextIds[index]) &&
       currentProducts.length === nextProducts.length &&
@@ -402,6 +413,9 @@ export function NewProjectForm({
     formData.set("durationPreset", durationPreset);
     if (bookend && logoUrl) formData.set("logoUrl", logoUrl);
     formData.set("referenceImages", JSON.stringify(referenceImages));
+    if (talkingHeadBackground) {
+      formData.set("backgroundImageUrls", JSON.stringify(backgroundImageUrls));
+    }
     for (const id of characterIds) formData.append("characterIds", id);
     for (const id of productIds) formData.append("productIds", id);
     return formData;
@@ -492,6 +506,7 @@ export function NewProjectForm({
     setProductIds((video.products ?? []).map((item) => item.productId));
     setLogoUrl(video.logoUrl || "");
     setReferenceImages(toReferenceDrafts(video.referenceImages));
+    setBackgroundImageUrls(video.backgroundImageUrls || []);
   }
 
   const onRestart = useCallback(() => {
@@ -971,6 +986,14 @@ export function NewProjectForm({
                   <TalkingHeadScriptField
                     value={spokenScript}
                     onChange={setSpokenScript}
+                    disabled={briefBusy}
+                  />
+                ) : null}
+                {talkingHeadBackground ? (
+                  <TalkingHeadBackgroundField
+                    value={backgroundImageUrls}
+                    onChange={setBackgroundImageUrls}
+                    onError={setError}
                     disabled={briefBusy}
                   />
                 ) : null}

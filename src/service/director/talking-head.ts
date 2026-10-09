@@ -199,6 +199,8 @@ export function planTalkingHeadClips(input: {
   aspectRatio?: string;
   // From the director visual, e.g. "full-body". Omitted when the director names no shot.
   shot?: string;
+  // Uploaded room photos replace the bookshelf sentence.
+  background?: boolean;
 }): TalkingHeadClipPlan[] {
   const lines = balanceTalkingHeadLines(input.source, input.pace);
   const total = lines.length;
@@ -207,11 +209,11 @@ export function planTalkingHeadClips(input: {
     const line = lines[index];
     const seconds = plannedClipSeconds(line, input.pace);
     const belowCenter = talkingHeadSubtitleBelowCenter(input.aspectRatio);
-    const endScene = shotLine(input.language, "end", line, input.shot, belowCenter);
+    const endScene = shotLine(input.language, "end", line, input.shot, belowCenter, input.background);
     const previousLine = index === 0 ? undefined : lines[index - 1];
     const startScene =
       index === 0
-        ? shotLine(input.language, "start", line, input.shot, belowCenter)
+        ? shotLine(input.language, "start", line, input.shot, belowCenter, input.background)
         : clips[index - 1].endScene;
     clips.push({
       clipNumber: index + 1,
@@ -322,6 +324,7 @@ function shotLine(
   line: string,
   shot?: string,
   belowCenter?: boolean,
+  background?: boolean,
 ) {
   const camera = cameraClause(language, shot);
   const fullBody = shot === "full-body";
@@ -337,7 +340,7 @@ function shotLine(
     const place = belowCenter
       ? "one line a little below the vertical center, clear of the face and the bottom edge"
       : "one bottom line";
-    return `${pose} ${setClause("en", fullBody)}${camera} Subtitle: ${place}, exactly "${line}".`;
+    return `${pose} ${setClause("en", fullBody, background)}${camera} Subtitle: ${place}, exactly "${line}".`;
   }
   const pose =
     moment === "start"
@@ -348,17 +351,22 @@ function shotLine(
         ? "角色：仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，頭反向微傾，另一隻手仲喺胸前，重心換咗邊，腳留喺畫面。"
         : "角色：仍然坐住直望鏡頭，呢句講完、口部合上變成自然淺笑，頭反向微傾。同一支自製咪仲喺嗰隻手，稍為放低，仍然靠近個口。";
   const place = belowCenter ? "畫面垂直中線下面少少一行，避開臉同最底邊" : "畫面底部一行";
-  return `${pose}${setClause("yue", fullBody)}${camera}字幕：${place}，逐字係「${line}」。`;
+  return `${pose}${setClause("yue", fullBody, background)}${camera}字幕：${place}，逐字係「${line}」。`;
 }
 
 // Face reads sit in a real room with one homemade mic. Full-body stays a plain set.
-function setClause(language: "en" | "yue", fullBody: boolean) {
+function setClause(language: "en" | "yue", fullBody: boolean, background?: boolean) {
   if (fullBody) {
     return language === "en"
       ? "Set: the same plain background in every clip, no new props. Light: soft and even, unchanged."
       : "場景：全程同一個簡潔背景，冇新道具。光：柔和均勻，不變。";
   }
-  // Books beside the seat. A bed in this line was getting the video safety check to block later clips.
+  // Uploaded room photos replace the bookshelf. A bed in this line was getting later clips blocked.
+  if (background) {
+    return language === "en"
+      ? "Set: the background is the attached scene reference photo. Do not draw a bookshelf, a bed, or a different room. The same background stays in every clip. No pictures pasted on the frame, no extra writing, no new props besides the homemade microphone. Light follows the reference photo."
+      : "場景：背景用附上的場景參考圖，唔好再畫書架、床或者其他房間。全程同一個背景。畫面上面唔好貼圖、唔好加字，除咗自製咪之外冇新道具。光跟參考圖。";
+  }
   return language === "en"
     ? "Set: the same real sitting spot in every clip, seated beside a bookshelf, books at the shoulder. No pictures pasted on the frame, no extra writing, no new props besides the homemade microphone. Light: soft natural indoor daylight, ordinary and unchanged, like a phone video at home."
     : "場景：全程同一個真實坐位，坐喺書架旁邊，身後係書。畫面上面唔好貼圖、唔好加字，除咗自製咪之外冇新道具。光：柔和自然室內日光，似喺屋企用手機拍，不變。";

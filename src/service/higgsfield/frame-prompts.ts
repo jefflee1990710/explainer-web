@@ -68,6 +68,7 @@ import {
   surpriseVarietyPlan,
 } from "@/service/director/surprise-interview";
 import { clipReferenceImageUrls } from "@/service/project/reference-images";
+import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 import { imageRouteForSceneText } from "@/service/generation/image-backend";
 import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
 import { FRAME_RENDER_DETAIL } from "@/service/director/scene-detail";
@@ -275,7 +276,10 @@ export function frameSceneReferenceUrls(
   clipNumber: number,
   otherRefCount: number,
 ) {
-  const urls = clipReferenceImageUrls(project, clipNumber);
+  // Talking-head room photos replace the bookshelf and any clip-assigned refs.
+  const backgrounds =
+    project.skillSlug === TALKING_HEAD_SKILL_SLUG ? project.backgroundImageUrls || [] : [];
+  const urls = backgrounds.length ? backgrounds : clipReferenceImageUrls(project, clipNumber);
   const route = imageRouteForSceneText(resolveSceneText(project).language);
   const room = referenceLimitForModel(route.editModel) - otherRefCount;
   return urls.slice(0, Math.max(0, room));
@@ -289,9 +293,13 @@ export function sceneReferenceFrameLine(
   locked = false,
   clothingOnly = false,
   clothingFromInstruction = false,
+  background = false,
 ) {
   const which =
     count === 1 ? `attached image ${start} shows` : `attached images ${start}–${start + count - 1} show`;
+  if (background) {
+    return `BACKGROUND REFERENCE: ${which} the room behind the character. Use that background instead of a bookshelf, a bed, or any other set. Do not copy the person, face, hair, or clothes in that photo. The character stays the selected blueprint.`;
+  }
   // A clothing photo is the garment, not a person or a set to copy.
   if (clothingOnly) {
     return `CLOTHING REFERENCE: ${which} the clothes to copy exactly. Copy every garment's style, cut, colour, pattern, and details. Do not redesign, recolor, drop, or add pieces. Do not copy the person, face, hair, pose, tattoos, or background. Face, hair, and body stay on the character blueprint. Only the character changes.`;
@@ -385,6 +393,8 @@ export function buildFramePrompt(
     ? characterAttachmentStart + lockUrls.length
     : annotatedCount + anchorCount + 1;
   const compositionLocked = Boolean(options.anchor && options.anchor.kind !== "prev-end");
+  const backgroundRefs =
+    project.skillSlug === TALKING_HEAD_SKILL_SLUG && (project.backgroundImageUrls?.length || 0) > 0;
   const sceneRefLines = sceneRefUrls.length
     ? [
         sceneReferenceFrameLine(
@@ -393,6 +403,7 @@ export function buildFramePrompt(
           compositionLocked,
           wardrobeBuild,
           copyClothes,
+          backgroundRefs,
         ),
       ]
     : [];

@@ -50,6 +50,13 @@ export const briefEn = {
     descriptionCount: "{n}/{max}",
     descriptionRequired: "Add a description for every reference image.",
   },
+  backgrounds: {
+    title: "Background reference",
+    hint: "Optional, up to {max}. These photos replace the bookshelf and are used when drawing every scene still.",
+    add: "Add background photo",
+    remove: "Remove",
+    alt: "Background photo {n}",
+  },
   section03: {
     titleDialogue: "Dialogue language & pace",
     titleNarration: "Voiceover language, pace & voice",

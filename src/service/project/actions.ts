@@ -21,7 +21,8 @@ import { isSpeechPace } from "@/service/director/speech-pace";
 import { isSceneTextLanguage } from "@/service/director/scene-text";
 import { isSubtitleLook, resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { isDurationPreset } from "@/service/director/duration-presets";
-import { isTalkingHeadSkill } from "@/service/director/talking-head";
+import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
+import { parseBackgroundImageUrls } from "@/service/project/background-images";
 import {
   applySkillSceneText,
   briefSkillError,
@@ -92,6 +93,8 @@ type BriefFields = {
   logoUrl?: string;
   // Up to 4 described scene references, ids R1..Rn.
   referenceImages: ReferenceImage[];
+  // Talking-head read only. Up to 2 room photos that replace the bookshelf.
+  backgroundImageUrls: string[];
 };
 
 // System ids keep the extracted look. A user id loads that lettering sample.
@@ -197,6 +200,11 @@ async function readVideoBrief(
     isBrandAssetUrl(url, clerkUserId, storeHost),
   );
   if (!references.ok) return references;
+  const backgrounds = parseBackgroundImageUrls(
+    ruleSlug === TALKING_HEAD_SKILL_SLUG ? String(formData.get("backgroundImageUrls") || "") : "",
+    (url) => isBrandAssetUrl(url, clerkUserId, storeHost),
+  );
+  if (!backgrounds.ok) return backgrounds;
   return {
     ok: true,
     brief: {
@@ -208,6 +216,7 @@ async function readVideoBrief(
       durationPreset,
       logoUrl,
       referenceImages: references.images,
+      backgroundImageUrls: backgrounds.urls,
       language,
       voiceGender: resolveVoiceGender(voiceGender),
       speechPace,
@@ -436,6 +445,7 @@ export async function createVideoAction(
       ...(brief.textStyleImageUrl ? { textStyleImageUrl: brief.textStyleImageUrl } : {}),
       ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
       ...(brief.referenceImages.length ? { referenceImages: brief.referenceImages } : {}),
+      ...(brief.backgroundImageUrls.length ? { backgroundImageUrls: brief.backgroundImageUrls } : {}),
       cast,
       ...(productResult.products.length ? { products: productResult.products } : {}),
       status: "phase_a",
@@ -600,6 +610,9 @@ async function rewriteVideoBrief(
           products: productResult.products,
           ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
           ...(brief.referenceImages.length ? { referenceImages: brief.referenceImages } : {}),
+          ...(brief.backgroundImageUrls.length
+            ? { backgroundImageUrls: brief.backgroundImageUrls }
+            : {}),
           status: "phase_a",
           updatedAt: new Date(),
         },
@@ -607,6 +620,7 @@ async function rewriteVideoBrief(
           ...(options.restart ? RESTART_UNSET_FIELDS : { error: "", stillError: "" }),
           ...(brief.logoUrl ? {} : { logoUrl: "" }),
           ...(brief.referenceImages.length ? {} : { referenceImages: "" }),
+          ...(brief.backgroundImageUrls.length ? {} : { backgroundImageUrls: "" }),
           ...(brief.spokenScript ? {} : { spokenScript: "" }),
           ...(brief.textStyleImageUrl ? {} : { textStyleImageUrl: "" }),
         },
