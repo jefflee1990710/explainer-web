@@ -4,6 +4,7 @@ import { persistBuffer } from "@/service/higgsfield/persist";
 // How many separate reference URLs each Higgsfield image model accepts.
 export function referenceLimitForModel(model: string) {
   if (model.startsWith("marketing-studio/image")) return 16;
+  if (model.startsWith("xai/grok-imagine")) return 10;
   if (/qwen-image-3\/edit/i.test(model)) return 3;
   if (model.startsWith("ideogram/")) return 1;
   if (model.startsWith("z-image/")) return 0;

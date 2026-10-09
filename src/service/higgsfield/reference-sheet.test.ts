@@ -10,6 +10,7 @@ import {
 test("language models accept more than one blueprint reference", () => {
   assert.equal(referenceLimitForModel("marketing-studio/image/flare"), 16);
   assert.equal(referenceLimitForModel("marketing-studio/image/sunburst"), 16);
+  assert.equal(referenceLimitForModel("xai/grok-imagine-image-2.0"), 10);
   assert.equal(referenceLimitForModel("alibaba/qwen-image-3/edit"), 3);
 });
 

@@ -36,6 +36,10 @@ function isIdeogram(model: string) {
   return model.startsWith("ideogram/");
 }
 
+function isGrokImage(model: string) {
+  return model.startsWith("xai/grok-imagine");
+}
+
 function webhookOptions() {
   const secret = process.env.HF_WEBHOOK_SECRET;
   if (!secret) return undefined;
@@ -118,6 +122,21 @@ export async function submitImage(input: {
         prompt: input.prompt,
         aspect_ratio: input.aspectRatio,
         quality: input.quality || "medium",
+        ...(imageUrls.length ? { image_urls: imageUrls } : {}),
+      },
+      withPolling: false,
+      webhook,
+    });
+  }
+
+  // quality is only low or medium; resolution is 1k or 2k. Up to 10 image_urls.
+  if (isGrokImage(model)) {
+    return client.subscribe(model, {
+      input: {
+        prompt: input.prompt,
+        aspect_ratio: input.aspectRatio,
+        quality: input.quality === "low" ? "low" : "medium",
+        resolution: input.resolution === "2k" ? "2k" : "1k",
         ...(imageUrls.length ? { image_urls: imageUrls } : {}),
       },
       withPolling: false,

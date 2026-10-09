@@ -877,8 +877,7 @@ test("a clothing instruction copies garments and still locks the character's fac
   assert.doesNotMatch(plan.prompt, /Do not redress the character/);
 });
 
-// Ideogram takes one reference. Anchor + two blueprints already fill it,
-// so scene photos are left out and numbering stays one URL per image.
+// Grok Image takes 10 references, so both scene photos still fit beside the cast.
 test("scene references are capped to the edit model's free slots", () => {
   const video = project();
   video.sceneTextLanguage = "zh-Hant";
@@ -899,12 +898,23 @@ test("scene references are capped to the edit model's free slots", () => {
     { clipNumber: 1, position: "end", prompt: "p", status: "queued" },
   ];
   const end = frameSubmitPlan(video, 1, "end");
-  assert.deepEqual(end.refs, ["https://blob/start.png", "https://blob/Lily.png", "https://blob/Max.png"]);
-  assert.doesNotMatch(end.prompt, /SCENE REFERENCE/);
+  assert.deepEqual(end.refs, [
+    "https://blob/start.png",
+    "https://blob/Lily.png",
+    "https://blob/Max.png",
+    "https://blob/r1.png",
+    "https://blob/r2.png",
+  ]);
+  assert.match(end.prompt, /SCENE REFERENCE: attached images 4–5 show/);
 
   const start = frameSubmitPlan(video, 1, "start");
-  assert.deepEqual(start.refs, ["https://blob/Lily.png", "https://blob/Max.png"]);
-  assert.doesNotMatch(start.prompt, /SCENE REFERENCE/);
+  assert.deepEqual(start.refs, [
+    "https://blob/Lily.png",
+    "https://blob/Max.png",
+    "https://blob/r1.png",
+    "https://blob/r2.png",
+  ]);
+  assert.match(start.prompt, /SCENE REFERENCE: attached images 3–4 show/);
 });
 
 test("end frame with a composition lock keeps the lock framing over the scene reference", () => {
