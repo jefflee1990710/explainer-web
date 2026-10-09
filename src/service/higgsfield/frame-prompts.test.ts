@@ -6,7 +6,7 @@ import {
   FRAME_PROMPT_BUDGET,
   IMAGE_PROMPT_MAX_CHARS,
   buildFramePrompt,
-  compactIdeogramFramePrompt,
+  compactSceneTextPrompt,
   frameSubmitPlan,
   framesWithClips,
   framesWithClipsReady,
@@ -562,7 +562,7 @@ test("a long Cantonese prompt keeps the exact line inside Ideogram's cap", () =>
     "Identity notes (match these):",
     "x".repeat(4000),
   ].join("\n");
-  const compact = compactIdeogramFramePrompt(full, "9:16");
+  const compact = compactSceneTextPrompt(full, "9:16");
   assert.ok(compact.length <= 2048, `${compact.length} chars`);
   assert.match(compact, /你啲貨幾靚都好喎，/);
   assert.match(compact, /「好產品」/);
@@ -573,11 +573,9 @@ test("enabled scene text puts the voiceover line on canvas with lettering", () =
   on.sceneTextEnabled = true;
   on.sceneTextLanguage = "zh-Hant";
   const prompt = buildFramePrompt(on, 1, "start");
-  assert.match(prompt, /Look: thick black marker/);
-  assert.match(prompt, /subtitles ON/i);
-  assert.match(prompt, /Subtitle \(spell exactly\): "vo"/);
+  assert.match(prompt, /Marker line \(spell exactly\): "vo"/);
   const sceneAt = prompt.indexOf("Scene:");
-  const subAt = prompt.indexOf("On-canvas subtitles ON");
+  const subAt = prompt.indexOf("spell exactly");
   assert.ok(subAt >= 0 && subAt < sceneAt, "subtitle block must precede Scene");
   assert.doesNotMatch(prompt, /Mental Health\?/);
   assert.doesNotMatch(prompt, /never subtitles or captions/i);
@@ -905,7 +903,8 @@ test("scene references are capped to the edit model's free slots", () => {
     "https://blob/r1.png",
     "https://blob/r2.png",
   ]);
-  assert.match(end.prompt, /SCENE REFERENCE: attached images 4–5 show/);
+  assert.match(end.prompt, /spell exactly/);
+  assert.doesNotMatch(end.prompt, /SCENE REFERENCE/);
 
   const start = frameSubmitPlan(video, 1, "start");
   assert.deepEqual(start.refs, [
@@ -914,7 +913,8 @@ test("scene references are capped to the edit model's free slots", () => {
     "https://blob/r1.png",
     "https://blob/r2.png",
   ]);
-  assert.match(start.prompt, /SCENE REFERENCE: attached images 3–4 show/);
+  assert.match(start.prompt, /spell exactly/);
+  assert.doesNotMatch(start.prompt, /SCENE REFERENCE/);
 });
 
 test("end frame with a composition lock keeps the lock framing over the scene reference", () => {

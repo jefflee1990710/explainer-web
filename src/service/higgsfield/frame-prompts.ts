@@ -240,7 +240,7 @@ function quotedSpellings(prompt: string) {
 
 // Ideogram only accepts 2048 characters. Keep the exact lettering and the
 // scene, and drop the long identity notes the blueprint image already shows.
-export function compactIdeogramFramePrompt(prompt: string, aspectRatio: string) {
+export function compactSceneTextPrompt(prompt: string, aspectRatio: string) {
   const quotes = quotedSpellings(prompt);
   const scene = prompt.match(/^Scene: .+$/m)?.[0] ?? "Scene: the storyboard still.";
   const sceneLine = scene.length > 700 ? `${scene.slice(0, 699)}…` : scene;
@@ -663,7 +663,8 @@ export function buildFramePrompt(
 
   // Ideogram rejects anything over 2048 characters. Soft sections trim first;
   // the spelled subtitle line is outside those sections and stays whole.
-  const ideogram = imageRouteForSceneText(sceneText.language).model.startsWith("ideogram/");
+  const routeModel = imageRouteForSceneText(sceneText.language).model;
+  const ideogram = routeModel.startsWith("ideogram/");
   const budget = ideogram ? IDEOGRAM_PROMPT_MAX : FRAME_PROMPT_BUDGET;
   const prompt = fitFramePrompt(
     {
@@ -677,8 +678,13 @@ export function buildFramePrompt(
     compose,
     budget,
   );
+  // Grok spells the quoted line when that line leads a short prompt. A long
+  // storyboard prompt, or the previous still, makes it copy a similar character.
+  if (routeModel.startsWith("xai/grok-imagine")) {
+    return compactSceneTextPrompt(prompt, project.aspectRatio);
+  }
   if (!ideogram || prompt.length <= IDEOGRAM_PROMPT_MAX) return prompt;
-  return compactIdeogramFramePrompt(prompt, project.aspectRatio);
+  return compactSceneTextPrompt(prompt, project.aspectRatio);
 }
 
 // Prompt + reference URLs for one still submit. End waits until start exists

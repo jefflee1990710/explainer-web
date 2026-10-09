@@ -182,10 +182,15 @@ export async function sendFrame(
     ? await ensureFramePromptFits(plan.prompt, undefined, IDEOGRAM_PROMPT_MAX)
     : await ensureFramePromptFits(plan.prompt);
   // A turnaround sheet shows the same person many times. Send one standing figure per character.
-  const refs =
+  const locked =
     project.cast && project.cast.length > 0
       ? await withSceneCharacterLocks(project.cast, plan.refs)
       : plan.refs;
+  // The previous still's caption is what Grok copies. Keep the character
+  // blueprint and drop that still so the quoted line is drawn fresh.
+  const refs = route.model.startsWith("xai/grok-imagine")
+    ? locked.filter((url) => url !== plan.anchor?.url)
+    : locked;
   const model = imageModelForSubmit(route, refs.length > 0);
   const submitted = await submitImage({
     model,
