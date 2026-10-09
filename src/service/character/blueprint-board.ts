@@ -1,8 +1,14 @@
 import sharp from "sharp";
 
-const BOARD_HEIGHT = 1024;
-const GUTTER = 48;
-const MARGIN = 48;
+import {
+  BLUEPRINT_BOARD_GUTTER,
+  BLUEPRINT_BOARD_HEIGHT,
+  BLUEPRINT_BOARD_MARGIN,
+} from "@/service/character/blueprint-board-size";
+
+const BOARD_HEIGHT = BLUEPRINT_BOARD_HEIGHT;
+const GUTTER = BLUEPRINT_BOARD_GUTTER;
+const MARGIN = BLUEPRINT_BOARD_MARGIN;
 
 // Lay the identity portrait (left) and the full-body figure (right) on one canvas.
 // Scene stills and the director get this single image per character, so the face

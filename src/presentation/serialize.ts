@@ -507,9 +507,9 @@ export type PublicCharacter = {
   defaultVersionId: string | null;
   // Chosen sheet for each style that has a completed blueprint.
   defaultByStyle: Record<string, string>;
-  // Default portrait, or the sheet until the portrait exists.
+  // Board versions show the composed blueprint. Older sheets still use the standing figure.
   previewUrl: string | null;
-  // True when previewUrl is the standing figure, so cards keep the whole body visible.
+  // True when previewUrl is a legacy standing figure, so the card can crop to the body.
   previewIsProfile: boolean;
   // A portrait job is still in flight.
   profilePending: boolean;
@@ -520,6 +520,19 @@ export type PublicCharacter = {
   createdAt: string;
   updatedAt: string;
 };
+
+// The library card shows the new board (portrait + full body). A legacy sheet
+// still falls back to the standing figure, then the old turnaround.
+function characterPreview(version: Character["versions"][number] | null) {
+  if (!version) return { url: null, isProfile: false };
+  if (version.blueprintKind === "board") {
+    return { url: version.blueprintUrl || version.portraitUrl || null, isProfile: false };
+  }
+  return {
+    url: version.profileUrl || version.blueprintUrl || null,
+    isProfile: Boolean(version.profileUrl),
+  };
+}
 
 export function toPublicCharacter(character: Character): PublicCharacter {
   const resolved = resolveDefaultVersion(character);
@@ -552,6 +565,7 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     const sheet = resolveVersionForStyle(character, styleId);
     if (sheet) defaultByStyle[styleId] = sheet.id.toHexString();
   }
+  const preview = characterPreview(resolved);
   return {
     id: character._id.toHexString(),
     name: character.name,
@@ -561,8 +575,8 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     voice: parseCharacterVoice(character.voice),
     defaultVersionId: resolved ? resolved.id.toHexString() : null,
     defaultByStyle,
-    previewUrl: resolved?.profileUrl || resolved?.blueprintUrl || null,
-    previewIsProfile: Boolean(resolved?.profileUrl),
+    previewUrl: preview.url,
+    previewIsProfile: preview.isProfile,
     profilePending: character.versions.some((version) => version.profileStatus === "queued"),
     versions,
     pending: character.versions.some(
