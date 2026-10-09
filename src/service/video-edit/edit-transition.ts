@@ -84,3 +84,17 @@ export function clipPairTransitions(edit: VideoEdit, clipNumbers: number[]) {
   }
   return pairs;
 }
+
+// Intro and outro are extra pieces in the same concat, not a second render.
+export function assemblyTransitions(edit: VideoEdit, clipNumbers: number[]) {
+  const ids = [
+    ...(edit.intro ? ["intro"] : []),
+    ...[...clipNumbers].sort((a, b) => a - b).map(clipTimelineId),
+    ...(edit.outro ? ["outro"] : []),
+  ];
+  const pairs: EditTransition[] = [];
+  for (let i = 0; i < ids.length - 1; i += 1) {
+    pairs.push(resolveTransition(edit, ids[i], ids[i + 1]));
+  }
+  return pairs;
+}

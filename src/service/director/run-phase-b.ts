@@ -29,7 +29,7 @@ import type { CastMember } from "@/model/character";
 import type { PhaseAProposal, PhaseBPrompt, SpeechPace, VoLanguage, VoiceGender } from "@/model/project";
 import { speechPaceDelivery } from "@/service/director/speech-pace";
 import type { Skill } from "@/model/skill";
-import { isTalkingHeadSkill } from "@/service/director/talking-head";
+import { isTalkingHeadSkill, talkingHeadPhaseBPrompt } from "@/service/director/talking-head";
 import { spokenSubtitleLock } from "@/service/director/scene-text";
 import {
   OUTFIT_COVERED_SWAP,
@@ -107,26 +107,41 @@ export async function runPhaseBForClip(
   input: PhaseBInput & { clipNumber: number },
 ): Promise<PhaseBPrompt> {
   const language = LANGUAGE_PRESETS[input.language || "en"];
-  const { output } = await generateText({
-    model: directorModel(),
-    output: Output.object({ schema: phaseBClipSchema }),
-    system: phaseBSystemPrompt(input, language.label, language.sublabel),
-    prompt: clipPhaseBUserPrompt({
-      phaseA: input.phaseA,
-      clipNumber: input.clipNumber,
-      languageLabel: language.label,
-      languageSublabel: language.sublabel,
-      voiceGender: input.voiceGender,
-      speechPace: input.speechPace,
-      bansNarration: skillBansNarration(input.skill.slug),
-      speakers: input.cast,
-      characterLine: characterLine(input),
-      skillSlug: input.skill.slug,
-    }),
-  });
-
+  const talkingHead = isTalkingHeadSkill(input.skill.slug);
+  let output = talkingHead
+    ? talkingHeadPhaseBPrompt({ phaseA: input.phaseA, clipNumber: input.clipNumber })
+    : undefined;
+  if (talkingHead && !output) {
+    throw new Error("口播鏡頭缺少動作描述，請重新生成分鏡。");
+  }
   if (!output) {
-    throw new Error("產片 prompt 產生失敗");
+    const generated = await generateText({
+      model: directorModel(),
+      output: Output.object({ schema: phaseBClipSchema }),
+      system: phaseBSystemPrompt(input, language.label, language.sublabel),
+      prompt: clipPhaseBUserPrompt({
+        phaseA: input.phaseA,
+        clipNumber: input.clipNumber,
+        languageLabel: language.label,
+        languageSublabel: language.sublabel,
+        voiceGender: input.voiceGender,
+        speechPace: input.speechPace,
+        bansNarration: skillBansNarration(input.skill.slug),
+        speakers: input.cast,
+        characterLine: characterLine(input),
+        skillSlug: input.skill.slug,
+      }),
+    });
+    // Avoid NoOutputGeneratedError on `.output` when the model returns nothing or is filtered.
+    if (generated.finishReason === "stop") {
+      output = generated.output ?? undefined;
+    }
+    if (!output) {
+      if (generated.finishReason === "content-filter") {
+        throw new Error("這次題材被模型拒絕，請改寫場景描述後再試。");
+      }
+      throw new Error("產片 prompt 產生失敗");
+    }
   }
   const lock = phaseBAudioLock({
     voiceGender: input.voiceGender,

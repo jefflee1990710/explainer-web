@@ -1,17 +1,15 @@
 "use client";
 
 import type { FFmpeg } from "@ffmpeg/ffmpeg";
-import type { VideoEdit } from "@/model/video-edit";
+import type { BookendClip, EditTransition, VideoEdit } from "@/model/video-edit";
 import { stableEditString } from "@/service/video-edit/edit-state";
-import { joinPadArgs } from "@/service/reel/join-pad";
+import { joinPadArgs, stillClipArgs } from "@/service/reel/join-pad";
 import { buildClipConcatFilter } from "@/service/video-edit/clip-concat-filter";
-import { clipPairTransitions, resolveTransition } from "@/service/video-edit/edit-transition";
+import { assemblyTransitions } from "@/service/video-edit/edit-transition";
 import { pairwiseRatio, type PairwiseStep } from "@/service/reel/pairwise-progress";
-import { clipTimelineId } from "@/service/video-edit/edit-timeline";
 import { buildFinalFilter } from "@/service/video-edit/final-filter";
 import { layerPlacement } from "@/service/video-edit/layer-placement";
 import { parseProbe } from "@/service/video-edit/probe";
-import type { BookendClip } from "@/model/video-edit";
 
 // Single-thread build. The multi-thread core needs cross-origin isolation,
 // which breaks Firebase sign-in.
@@ -206,7 +204,7 @@ export async function downloadVideoFile(
   saveBlob(bytes, filename);
 }
 
-// Concat clips, then burn layers and bookends in the browser, then save locally.
+// Concat clips, intro, and outro. A logo layer is the only reason for a final encode.
 export async function renderVideoInBrowser(
   clipUrls: string[],
   edit: VideoEdit,
@@ -227,7 +225,7 @@ export async function renderVideoInBrowser(
 
   // Nothing to burn in: save the clip, or the file the joins copied together.
   if (!exportNeedsRender(edit)) {
-    if (clipUrls.length === 1) {
+    if (exportPieceCount(clipUrls.length, edit) === 1) {
       const bytes = await fetchBytes(
         clipUrls[0],
         (ratio) => onProgress({ phase: "download", ratio, phases }),
@@ -253,18 +251,17 @@ export async function renderVideoInBrowser(
   const ffmpeg = await loadEncoder((ratio) => onProgress({ phase: "encoder", ratio, phases }), signal);
   throwIfAborted(signal);
 
-  // One clip is the main file. Several clips are joined first, two at a time.
+  // Bookends are already inside the joined file. Layers are the only extra inputs.
   const files: Array<{ name: string; url: string }> = [];
-  if (clipUrls.length === 1) files.push({ name: "main.mp4", url: clipUrls[0] });
+  const joined = exportPieceCount(clipUrls.length, edit) > 1;
+  if (!joined) files.push({ name: "main.mp4", url: clipUrls[0] });
   edit.layers.forEach((layer, index) => {
     files.push({ name: `layer${index}.${extOf(layer.assetUrl)}`, url: layer.assetUrl });
   });
-  if (edit.intro) files.push({ name: `intro.${extOf(edit.intro.assetUrl)}`, url: edit.intro.assetUrl });
-  if (edit.outro) files.push({ name: `outro.${extOf(edit.outro.assetUrl)}`, url: edit.outro.assetUrl });
 
   let mainName = "main.mp4";
   try {
-    if (clipUrls.length > 1) {
+    if (joined) {
       mainName = await assembleClips(ffmpeg, clipUrls, edit, clipNumbers, onProgress, phases, signal);
     }
     for (let index = 0; index < files.length; index += 1) {
@@ -282,22 +279,6 @@ export async function renderVideoInBrowser(
 
     const args = ["-i", mainName];
     let nextIndex = 1;
-
-    async function addBookend(slot: "intro" | "outro", clip?: BookendClip) {
-      if (!clip) return undefined;
-      const name = `${slot}.${extOf(clip.assetUrl)}`;
-      const index = nextIndex++;
-      if (clip.kind === "image") {
-        args.push("-loop", "1", "-framerate", String(main.fps), "-t", String(clip.durationSec), "-i", name);
-        return { index, kind: "image" as const, durationSec: clip.durationSec, hasAudio: false };
-      }
-      const probed = await probeFile(ffmpeg, name);
-      if (!probed.durationSec) throw new Error("probe");
-      args.push("-i", name);
-      return { index, kind: "video" as const, durationSec: probed.durationSec, hasAudio: probed.hasAudio };
-    }
-
-    const intro = await addBookend("intro", edit.intro);
     const layers = [];
     for (let index = 0; index < edit.layers.length; index += 1) {
       args.push("-i", `layer${index}.${extOf(edit.layers[index].assetUrl)}`);
@@ -307,19 +288,12 @@ export async function renderVideoInBrowser(
         opacity: edit.layers[index].opacity,
       });
     }
-    const outro = await addBookend("outro", edit.outro);
-    const firstClip = clipNumbers[0] ?? 1;
-    const lastClip = clipNumbers[clipNumbers.length - 1] ?? firstClip;
     const { filter, hasAudio } = buildFinalFilter({
       width: main.width,
       height: main.height,
       fps: main.fps,
       main: { durationSec: main.durationSec, hasAudio: main.hasAudio },
-      intro,
-      outro,
       layers,
-      introTransition: resolveTransition(edit, "intro", clipTimelineId(firstClip)),
-      outroTransition: resolveTransition(edit, clipTimelineId(lastClip), "outro"),
     });
     args.push("-filter_complex", filter, "-map", "[v]");
     if (hasAudio) args.push("-map", "[a]", "-c:a", "aac", "-ac", "2");
@@ -354,16 +328,21 @@ export async function renderVideoInBrowser(
   }
 }
 
-// Layers and bookends need a final encode. A plain reel is already an mp4.
+// A logo cannot be stream-copied. Intro and outro are just more pieces to join.
 export function exportNeedsRender(edit: VideoEdit) {
-  return edit.layers.length > 0 || Boolean(edit.intro) || Boolean(edit.outro);
+  return edit.layers.length > 0;
+}
+
+export function exportPieceCount(clipCount: number, edit: VideoEdit) {
+  return clipCount + (edit.intro ? 1 : 0) + (edit.outro ? 1 : 0);
 }
 
 export function exportPhases(clipCount: number, edit: VideoEdit): ExportPhase[] {
+  const pieces = exportPieceCount(clipCount, edit);
   if (!exportNeedsRender(edit)) {
-    return clipCount > 1 ? ["encoder", "join", "save"] : ["download", "save"];
+    return pieces > 1 ? ["encoder", "join", "save"] : ["download", "save"];
   }
-  if (clipCount > 1) return ["encoder", "join", "download", "encode", "save"];
+  if (pieces > 1) return ["encoder", "join", "download", "encode", "save"];
   return ["encoder", "download", "encode", "save"];
 }
 
@@ -437,8 +416,23 @@ async function copyJoin(
   }
 }
 
+type AssemblyPiece = { url: string; imageDuration?: number };
+
+function bookendPiece(clip: BookendClip): AssemblyPiece {
+  return clip.kind === "image" ? { url: clip.assetUrl, imageDuration: clip.durationSec } : { url: clip.assetUrl };
+}
+
+// Intro, each clip, then outro. Image bookends are turned into a short mp4 before the copy join.
+function assemblyPieces(clipUrls: string[], edit: VideoEdit): AssemblyPiece[] {
+  return [
+    ...(edit.intro ? [bookendPiece(edit.intro)] : []),
+    ...clipUrls.map((url) => ({ url })),
+    ...(edit.outro ? [bookendPiece(edit.outro)] : []),
+  ];
+}
+
 // Download clip 1, then clip 2, join them, then join that file with the next clip.
-// Only the running pair stays in the encoder, and each step reports its own progress.
+// Intro and outro use the same steps. Only the running pair stays in the encoder.
 async function assembleClips(
   ffmpeg: FFmpeg,
   clipUrls: string[],
@@ -448,9 +442,10 @@ async function assembleClips(
   phases: ExportPhase[],
   signal: AbortSignal,
 ) {
-  const transitions = clipPairTransitions(edit, clipNumbers);
-  const total = clipUrls.length;
-  let acc = "acc-a.mp4";
+  const pieces = assemblyPieces(clipUrls, edit);
+  const transitions = assemblyTransitions(edit, clipNumbers);
+  const total = pieces.length;
+  const files = new Map<number, string>();
   let spare = "acc-b.mp4";
 
   function report(step: PairwiseStep, unitRatio: number) {
@@ -463,39 +458,76 @@ async function assembleClips(
     });
   }
 
-  const first = await fetchBytes(
-    clipUrls[0],
-    (ratio) => report({ current: 1, total, phase: "download" }, ratio),
-    signal,
-  );
-  throwIfAborted(signal);
-  await ffmpeg.writeFile(acc, first);
+  async function fileFor(index: number): Promise<string> {
+    const ready = files.get(index);
+    if (ready) return ready;
+    const piece = pieces[index];
+    const name = `seg-${index}.mp4`;
+    if (piece.imageDuration == null) {
+      const bytes = await fetchBytes(
+        piece.url,
+        (ratio) => report({ current: index + 1, total, phase: "download" }, ratio),
+        signal,
+      );
+      throwIfAborted(signal);
+      await ffmpeg.writeFile(name, bytes);
+    } else {
+      const refIndex = pieces.findIndex((item) => item.imageDuration == null);
+      if (refIndex < 0) throw new Error("probe");
+      const ref = await fileFor(refIndex);
+      const stillName = "bookend-still";
+      const bytes = await fetchBytes(
+        piece.url,
+        (ratio) => report({ current: index + 1, total, phase: "download" }, ratio),
+        signal,
+      );
+      throwIfAborted(signal);
+      await ffmpeg.writeFile(stillName, bytes);
+      const frame = await probeFile(ffmpeg, ref);
+      if (!frame.width || !frame.height) throw new Error("probe");
+      let code = 1;
+      try {
+        code = await ffmpeg.exec(stillClipArgs(stillName, name, frame, piece.imageDuration), undefined, { signal });
+      } catch (error) {
+        if (signal.aborted) {
+          resetEncoder();
+          throw new ExportCancelled();
+        }
+        throw error;
+      } finally {
+        await forget(ffmpeg, stillName);
+      }
+      if (signal.aborted) {
+        resetEncoder();
+        throw new ExportCancelled();
+      }
+      if (code !== 0) throw new Error("concat");
+    }
+    files.set(index, name);
+    return name;
+  }
 
+  let left = await fileFor(0);
   for (let index = 1; index < total; index += 1) {
-    const current = index + 1;
-    const bytes = await fetchBytes(
-      clipUrls[index],
-      (ratio) => report({ current, total, phase: "download" }, ratio),
-      signal,
-    );
-    throwIfAborted(signal);
-    await ffmpeg.writeFile("next.mp4", bytes);
+    const right = await fileFor(index);
+    const out = spare;
     await joinPair(
       ffmpeg,
-      acc,
-      "next.mp4",
-      spare,
+      left,
+      right,
+      out,
       transitions[index - 1],
       signal,
-      (ratio) => report({ current, total, phase: "join" }, ratio),
+      (ratio) => report({ current: index + 1, total, phase: "join" }, ratio),
     );
-    await forget(ffmpeg, acc);
-    await forget(ffmpeg, "next.mp4");
-    const previous = acc;
-    acc = spare;
-    spare = previous;
+    await forget(ffmpeg, left);
+    await forget(ffmpeg, right);
+    files.delete(index - 1);
+    files.delete(index);
+    left = out;
+    spare = spare === "acc-b.mp4" ? "acc-a.mp4" : "acc-b.mp4";
   }
-  return acc;
+  return left;
 }
 
 // Join the clip accumulated so far with the one just downloaded.
@@ -505,7 +537,7 @@ async function joinPair(
   leftName: string,
   rightName: string,
   outName: string,
-  transition: ReturnType<typeof clipPairTransitions>[number],
+  transition: EditTransition | undefined,
   signal: AbortSignal,
   onRatio: (ratio: number) => void,
 ) {

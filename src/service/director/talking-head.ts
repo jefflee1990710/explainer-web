@@ -237,6 +237,19 @@ export function planTalkingHeadClips(input: {
   return clips;
 }
 
+// Talking-head video prompts are planned in Phase A (motionCamera). Gemini structured
+// Phase B often returns no object, so production reuses that row instead of calling the model.
+export function talkingHeadPhaseBPrompt(input: { phaseA: { clips: TalkingHeadClipPlan[] }; clipNumber: number }) {
+  const row = input.phaseA.clips.find((clip) => clip.clipNumber === input.clipNumber);
+  const prompt = row?.motionCamera?.trim();
+  if (!row || !prompt) return undefined;
+  return {
+    clipNumber: input.clipNumber,
+    durationSeconds: row.durationSeconds,
+    prompt,
+  };
+}
+
 export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
   const fullBody = skillSlug === FULL_BODY_TALKING_HEAD_SKILL_SLUG;
   return [

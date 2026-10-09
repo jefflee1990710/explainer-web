@@ -11,6 +11,7 @@ import {
   talkingHeadShot,
   talkingHeadSourceError,
   talkingHeadSpokenError,
+  talkingHeadPhaseBPrompt,
   withInheritedTalkingHeadStarts,
 } from "@/service/director/talking-head";
 import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
@@ -116,6 +117,16 @@ test("9:16 talking-head subtitles sit a little below center; 16:9 stays at the b
   assert.match(wide[0].motionCamera, /at the bottom/);
   assert.match(talkingHeadDirectorBlock("talking-head-director", "9:16"), /a little below the vertical center/);
   assert.match(talkingHeadDirectorBlock("full-body-talking-head-director", "16:9"), /across the bottom/);
+});
+
+test("talking-head Phase B reuses motionCamera from Phase A", () => {
+  const clips = planTalkingHeadClips({ source: "Hello world.", pace: "medium", language: "en" });
+  const phaseA = { clips };
+  const prompt = talkingHeadPhaseBPrompt({ phaseA, clipNumber: 1 });
+  assert.ok(prompt);
+  assert.equal(prompt?.clipNumber, 1);
+  assert.equal(prompt?.prompt, clips[0].motionCamera);
+  assert.equal(talkingHeadPhaseBPrompt({ phaseA, clipNumber: 99 }), undefined);
 });
 
 test("talking-head evens word count and keeps a named shot", () => {

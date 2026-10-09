@@ -14,7 +14,7 @@ function baseName(project: PublicVideo, fallback: string) {
   return raw.replace(/[\\/:*?"<>|]+/g, " ").trim() || fallback;
 }
 
-// Download a finished file, or render layers and bookends in the browser.
+// Download a finished file, or join clips with bookends. A logo still encodes once.
 export function VideoEditExport({
   project,
   edit,

@@ -4,6 +4,7 @@ import { emptyEdit } from "@/model/video-edit";
 import {
   applyReusableEdit,
   pickReusableEdit,
+  assemblyTransitions,
   resolveTransition,
   setTransition,
   timelineGaps,
@@ -19,6 +20,16 @@ test("gaps sit between Intro, each clip, and Outro", () => {
     timelineGaps(items).map((gap) => gap.key),
     ["intro__clip-1", "clip-1__clip-2", "clip-2__outro"],
   );
+});
+
+test("intro and outro are extra join gaps around the clips", () => {
+  const edit = {
+    ...emptyEdit(),
+    intro: { kind: "video" as const, assetUrl: "https://blob/in.mp4", durationSec: 2 },
+    outro: { kind: "image" as const, assetUrl: "https://blob/out.png", durationSec: 2 },
+  };
+  const effects = assemblyTransitions(edit, [1, 2]).map((item) => item.effect);
+  assert.deepEqual(effects, ["none", "none", "none"]);
 });
 
 test("unset gaps resolve to none; a saved pair wins over the folder default", () => {

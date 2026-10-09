@@ -18,17 +18,25 @@ test("a plain reel skips the final render", () => {
   assert.deepEqual(exportPhases(4, emptyEdit()), ["encoder", "join", "save"]);
 });
 
-test("layers and bookends still render once", () => {
+const outro = { kind: "image" as const, assetUrl: "https://blob/end.png", durationSec: 2 };
+
+test("bookends join with the clips and do not add a render step", () => {
+  assert.deepEqual(exportPhases(3, { ...emptyEdit(), outro }), ["encoder", "join", "save"]);
+  assert.deepEqual(exportPhases(1, { ...emptyEdit(), intro: outro }), ["encoder", "join", "save"]);
+});
+
+test("a logo still renders once, after any bookends are joined", () => {
   assert.deepEqual(exportPhases(1, { ...emptyEdit(), layers: [logo] }), [
     "encoder",
     "download",
     "encode",
     "save",
   ]);
-  assert.ok(
-    exportPhases(3, {
-      ...emptyEdit(),
-      outro: { kind: "image", assetUrl: "https://blob/end.png", durationSec: 2 },
-    }).includes("encode"),
-  );
+  assert.deepEqual(exportPhases(3, { ...emptyEdit(), layers: [logo], outro }), [
+    "encoder",
+    "join",
+    "download",
+    "encode",
+    "save",
+  ]);
 });
