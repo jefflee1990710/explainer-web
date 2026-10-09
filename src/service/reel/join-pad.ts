@@ -78,3 +78,44 @@ export function stillClipArgs(
   args.push("-c:v", "libx264", "-pix_fmt", "yuv420p", outName);
   return args;
 }
+
+// A video bookend (or any piece) whose size or frame rate differs from the clips.
+// xfade and stream-copy both reject a mismatched frame.
+export function fitClipArgs(
+  sourceName: string,
+  outName: string,
+  frame: Pick<MediaProbe, "width" | "height" | "fps" | "hasAudio">,
+  sourceHasAudio: boolean,
+): string[] {
+  const filter = [
+    `scale=${frame.width}:${frame.height}:force_original_aspect_ratio=increase`,
+    `crop=${frame.width}:${frame.height}`,
+    "setsar=1",
+    `fps=${frame.fps}`,
+    "format=yuv420p",
+  ].join(",");
+  const args = ["-i", sourceName];
+  if (frame.hasAudio && sourceHasAudio) {
+    args.push("-vf", filter, "-c:a", "aac", "-ar", "44100", "-ac", "2");
+  } else if (frame.hasAudio) {
+    args.push(
+      "-f",
+      "lavfi",
+      "-i",
+      "anullsrc=r=44100:cl=stereo",
+      "-filter_complex",
+      `[0:v]${filter}[v]`,
+      "-map",
+      "[v]",
+      "-map",
+      "1:a",
+      "-shortest",
+      "-c:a",
+      "aac",
+    );
+  } else {
+    args.push("-vf", filter, "-an");
+  }
+  args.push("-c:v", "libx264", "-pix_fmt", "yuv420p", outName);
+  return args;
+}

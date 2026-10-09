@@ -3,7 +3,7 @@
 import type { FFmpeg } from "@ffmpeg/ffmpeg";
 import type { BookendClip, EditTransition, VideoEdit } from "@/model/video-edit";
 import { stableEditString } from "@/service/video-edit/edit-state";
-import { joinPadArgs, stillClipArgs } from "@/service/reel/join-pad";
+import { fitClipArgs, joinPadArgs, stillClipArgs } from "@/service/reel/join-pad";
 import { buildClipConcatFilter } from "@/service/video-edit/clip-concat-filter";
 import { assemblyTransitions } from "@/service/video-edit/edit-transition";
 import { pairwiseRatio, type PairwiseStep } from "@/service/reel/pairwise-progress";
@@ -416,10 +416,12 @@ async function copyJoin(
   }
 }
 
-type AssemblyPiece = { url: string; imageDuration?: number };
+type AssemblyPiece = { url: string; imageDuration?: number; bookend?: boolean };
 
 function bookendPiece(clip: BookendClip): AssemblyPiece {
-  return clip.kind === "image" ? { url: clip.assetUrl, imageDuration: clip.durationSec } : { url: clip.assetUrl };
+  const piece: AssemblyPiece = { url: clip.assetUrl, bookend: true };
+  if (clip.kind === "image") piece.imageDuration = clip.durationSec;
+  return piece;
 }
 
 // Intro, each clip, then outro. Image bookends are turned into a short mp4 before the copy join.
@@ -458,6 +460,47 @@ async function assembleClips(
     });
   }
 
+  // Storyboard clips set the frame. Bookends are fitted to that, not the other way around.
+  function referenceIndex() {
+    const clip = pieces.findIndex((item) => item.imageDuration == null && !item.bookend);
+    if (clip >= 0) return clip;
+    return pieces.findIndex((item) => item.imageDuration == null);
+  }
+
+  // Scale a video piece onto the clip frame when size, fps, or audio presence differ.
+  async function fitVideoPiece(index: number, name: string) {
+    const refIndex = referenceIndex();
+    if (refIndex < 0 || refIndex === index) return name;
+    const refName = await fileFor(refIndex);
+    const ref = await probeFile(ffmpeg, refName);
+    const current = await probeFile(ffmpeg, name);
+    if (!ref.width || !ref.height) throw new Error("probe");
+    const same =
+      current.width === ref.width &&
+      current.height === ref.height &&
+      current.fps === ref.fps &&
+      current.hasAudio === ref.hasAudio;
+    if (same) return name;
+    const fitted = `seg-${index}-fit.mp4`;
+    let code = 1;
+    try {
+      code = await ffmpeg.exec(fitClipArgs(name, fitted, ref, current.hasAudio), undefined, { signal });
+    } catch (error) {
+      if (signal.aborted) {
+        resetEncoder();
+        throw new ExportCancelled();
+      }
+      throw error;
+    }
+    if (signal.aborted) {
+      resetEncoder();
+      throw new ExportCancelled();
+    }
+    if (code !== 0) throw new Error("concat");
+    await forget(ffmpeg, name);
+    return fitted;
+  }
+
   async function fileFor(index: number): Promise<string> {
     const ready = files.get(index);
     if (ready) return ready;
@@ -471,8 +514,12 @@ async function assembleClips(
       );
       throwIfAborted(signal);
       await ffmpeg.writeFile(name, bytes);
+      // A video ending shot at a different size cannot xfade onto the clips.
+      const stored = await fitVideoPiece(index, name);
+      files.set(index, stored);
+      return stored;
     } else {
-      const refIndex = pieces.findIndex((item) => item.imageDuration == null);
+      const refIndex = referenceIndex();
       if (refIndex < 0) throw new Error("probe");
       const ref = await fileFor(refIndex);
       const stillName = "bookend-still";
