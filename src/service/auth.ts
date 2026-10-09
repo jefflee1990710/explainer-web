@@ -7,6 +7,7 @@ import {
 } from "@/service/affiliate/engine";
 import { AFFILIATE_ENABLED, isAffiliateAccount } from "@/service/affiliate/enabled";
 import { REFERRAL_COOKIE } from "@/service/affiliate/rates";
+import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
 import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
 import { usersCollection } from "@/dao";
 import { adminAuth } from "@/service/firebase/admin";
@@ -51,7 +52,7 @@ export async function upsertAppUserFromIdentity(
     // Skip a write on every navigation when the profile is unchanged.
     if (existing.email === email && existing.name === name) {
       if (isAffiliateAccount(existing)) await ensureAffiliateProfile(existing);
-      return existing;
+      return withUnlimitedCredits(existing);
     }
     await users.updateOne(
       { clerkUserId: uid },
@@ -59,7 +60,7 @@ export async function upsertAppUserFromIdentity(
     );
     const updated = { ...existing, email, name, updatedAt: now };
     if (isAffiliateAccount(updated)) await ensureAffiliateProfile(updated);
-    return updated;
+    return withUnlimitedCredits(updated);
   }
 
   // First-touch referral cookie from /r/[code]. Ignored while affiliate is off
@@ -97,7 +98,7 @@ export async function upsertAppUserFromIdentity(
     user = await bindReferralOnSignup(user, referralCode);
     if (isAffiliateAccount(user)) await ensureAffiliateProfile(user);
   }
-  return user;
+  return withUnlimitedCredits(user);
 }
 
 // Upsert the Mongo user from the Firebase session cookie.
@@ -112,7 +113,7 @@ const requireAppUserImpl = cache(async (): Promise<AppUser> => {
 export async function requireAppUser(): Promise<AppUser> {
   // MCP API-key requests bind the user here so existing actions work unchanged.
   const mcpUser = mcpUserStore.getStore();
-  if (mcpUser) return mcpUser;
+  if (mcpUser) return withUnlimitedCredits(mcpUser);
   return requireAppUserImpl();
 }
 

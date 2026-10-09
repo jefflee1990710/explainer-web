@@ -4,6 +4,7 @@ import type { OptionalId } from "mongodb";
 import { mcpApiKeysCollection, usersCollection } from "@/dao";
 import type { AppUser } from "@/model/user";
 import type { McpApiKey } from "@/model/mcp";
+import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
 
 // When set, requireAppUser() returns this user (MCP API-key auth path).
 export const mcpUserStore = new AsyncLocalStorage<AppUser>();
@@ -88,7 +89,7 @@ export async function authenticateApiKey(
     { $set: { lastUsedAt: new Date() } },
   );
 
-  return { user, apiKey };
+  return { user: withUnlimitedCredits(user), apiKey };
 }
 
 export async function runAsMcpUser<T>(user: AppUser, fn: () => Promise<T>) {

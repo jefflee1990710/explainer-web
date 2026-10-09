@@ -11,6 +11,7 @@ import {
 } from "@/service/affiliate/engine";
 import type { AppUser } from "@/model/user";
 import type { Subscription } from "@/model/subscription";
+import { hasUnlimitedCredits } from "@/service/billing/unlimited-credits";
 
 const ACTIVE_STATUSES = new Set(["trialing", "active"]);
 
@@ -36,7 +37,7 @@ export async function assertCanSpendCredits(
   if (!sub || !isSubscriptionActive(sub)) {
     throw new Error("請先訂閱方案才能產片");
   }
-  if (user.credits < cost) {
+  if (!hasUnlimitedCredits(user.email) && user.credits < cost) {
     throw new Error("credits 不足，請加購或升級方案");
   }
   return sub;
@@ -60,8 +61,13 @@ export async function consumeCredits(
   cost: number,
 ): Promise<string> {
   const users = await usersCollection();
-  const user = await users.findOne({ clerkUserId, credits: { $gte: cost } });
+  const user = await users.findOne({ clerkUserId });
   if (!user) {
+    throw new Error("credits 不足，無法扣款");
+  }
+  // This account is not billed. Skip the affiliate commission too, since nothing was spent.
+  if (hasUnlimitedCredits(user.email)) return newSpendEventKey(clerkUserId);
+  if (user.credits < cost) {
     throw new Error("credits 不足，無法扣款");
   }
   const next = applySpend(balanceOf(user), cost);
@@ -90,6 +96,9 @@ export async function refundCredits(
   spendEventKey?: string,
 ) {
   const users = await usersCollection();
+  const user = await users.findOne({ clerkUserId }, { projection: { email: 1 } });
+  // Nothing was deducted, so a failure must not add credits either.
+  if (hasUnlimitedCredits(user?.email)) return;
   await users.updateOne(
     { clerkUserId },
     { $inc: { credits: cost }, $set: { updatedAt: new Date() } },
