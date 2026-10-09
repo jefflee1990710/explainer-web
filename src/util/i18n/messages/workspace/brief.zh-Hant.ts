@@ -243,7 +243,7 @@ export const briefZhHant = {
       "talking-head-director": {
         voice: "角色對住鏡頭讀你寫的講稿（你選的聲）",
         structure: "你填的講稿；每段字數相近，最多 20 段",
-        picture: "景別跟這位導演，直望鏡頭像在拍 Reel；頭、手和上身會郁",
+        picture: "坐姿中景，像在家用手機實拍，直望鏡頭，一手拿自製咪；頭、咪和上身會動",
         frames: "下一段起始圖接上一段結尾",
       },
       "full-body-talking-head-director": {

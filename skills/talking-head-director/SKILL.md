@@ -30,9 +30,9 @@ If required items are missing, ask for them in one concise message and stop.
 
 The rendering rules (canvas, look, palette, and motion) come from the **Visual style** block appended below. Do not invent a different medium. Lettering comes only from the selected text style, never from the visual style or from this skill.
 
-- Shot size follows the director visual. The character is centered and looks straight into the lens in every clip, like a real person filming a reel on a phone.
-- Same background, same light, same camera. No new props, no push-in, no cutaway.
-- While speaking the head, hands, and upper body keep moving. Never freeze into a presenter statue.
+- Locked seated medium shot. The character sits, centered, head and torso in frame, and looks straight into the lens like a real phone video filmed at home. One hand holds a small homemade microphone — a thin stick with a fluffy fuzzy windscreen — close to the mouth. Do not stand them up. Do not crop to a face-only close-up.
+- Same lived-in room, same seat, same soft indoor daylight, same camera. A simple wall or bed behind the shoulders. No pictures pasted on the frame, no extra writing, no new props besides the homemade microphone. No push-in, no cutaway.
+- While speaking the head, shoulders, and the mic hand keep moving. The microphone stays near the mouth. Never freeze into a presenter statue. Never stand up.
 - **Clip 2 and after**: `startScene` is the previous clip's `endScene`. The read continues; it does not restage.
 
 ## Audio and subtitles
@@ -45,7 +45,7 @@ The rendering rules (canvas, look, palette, and motion) come from the **Visual s
 ## Phase A field mapping
 
 - `clipCount`: the balanced clip count. `targetDuration`: the sum of the clip lengths. `loopMode`: always linear.
-- Each row: `narrativeJob` = clip k of N; `startScene` / `endScene` = the locked shot plus that clip's subtitle; `motionCamera` = continuous lip-sync like a reel: head tilting, a hand in the lower frame, shoulders rocking; `englishVo` = that clip's spoken line.
+- Each row: `narrativeJob` = clip k of N; `startScene` / `endScene` = the seated shot, the homemade microphone, and that clip's subtitle; `motionCamera` = continuous lip-sync like a phone video at home: seated, head tilting, the microphone staying near the mouth, shoulders rocking; `englishVo` = that clip's spoken line.
 
 ## Workflow
 

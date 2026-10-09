@@ -70,6 +70,11 @@ test("talking-head keeps instruction and spoken script as separate fields", () =
   assert.match(clips[0].englishVo, /Show the problem, then the fix/);
   assert.equal(clips[0].durationSeconds, 5);
   assert.match(talkingHeadDirectorBlock(), /spoken script is locked/i);
+  assert.match(talkingHeadDirectorBlock(), /seated medium shot/);
+  assert.match(talkingHeadDirectorBlock(), /homemade microphone/);
+  assert.match(clips[0].startScene, /seated/);
+  assert.match(clips[0].startScene, /homemade microphone/);
+  assert.match(clips[0].startScene, /lived-in room/);
   assert.doesNotMatch(talkingHeadDirectorBlock(), /medium close-up/i);
 });
 
@@ -81,6 +86,8 @@ test("clip 2 starts on clip 1's end still", () => {
   assert.match(clips[0].motionCamera, /口型跟住講/);
   assert.match(clips.map((clip) => clip.englishVo).join(""), /大家好，我係 Jeff/);
   assert.ok(clips.every((clip) => clip.durationSeconds >= 5 && clip.durationSeconds <= 12));
+  assert.match(clips[0].startScene, /坐住/);
+  assert.match(clips[0].startScene, /自製咪/);
   assert.doesNotMatch(clips[0].startScene, /中近景|medium close-up/);
 });
 

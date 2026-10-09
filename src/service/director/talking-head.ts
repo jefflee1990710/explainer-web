@@ -247,10 +247,10 @@ export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
     `durationSeconds follows Chinese characters / ${CJK_CHARS_PER_SECOND} + English words / ${ENGLISH_WORDS_PER_SECOND}, then ${paceNote(pace)}.`,
     fullBody
       ? "Locked full-body shot. Head, torso, and feet stay in frame. The character looks into the lens. Do not crop to a close-up."
-      : "Do not pick a shot size. The director visual names the shot. The character looks into the lens the whole time.",
+      : "Locked seated medium shot, like a real phone video filmed at home. Head, torso, and a small homemade microphone stay in frame. The character sits and looks into the lens. Do not stand them up. Do not crop to a face-only close-up.",
     fullBody
       ? "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, both hands gesturing at chest height, weight shifting hip to hip. Feet stay in frame. One subtitle equal to that clip's spoken line, same on the start and end still."
-      : "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, shoulders rocking, a hand entering the lower frame. One subtitle equal to that clip's spoken line, same on the start and end still.",
+      : "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync like a real person filming at home: seated the whole time, eyes on the lens, head tilting and nodding, shoulders rocking, one hand keeping a homemade microphone near the mouth. One subtitle equal to that clip's spoken line, same on the start and end still.",
   ].join(" ");
 }
 
@@ -269,15 +269,15 @@ export function talkingHeadDirectorBlock(skillSlug?: string, aspectRatio?: strin
   return [
     fullBody
       ? "This is a FULL-BODY TALKING-HEAD READ. The on-screen character faces the camera, head to feet in frame, and speaks. There is no cutaway and no second character."
-      : "This is a TALKING-HEAD READ. The on-screen character faces the camera and speaks. There is no cutaway and no second character.",
+      : "This is a TALKING-HEAD READ. The on-screen character sits, faces the camera, holds a small homemade microphone, and speaks. There is no cutaway and no second character.",
     "The director instruction is planning notes only (tone, emphasis, must-have looks). It is NOT spoken.",
     "The spoken script is locked. Each clip's englishVo is a verbatim slice of that script. Do not paraphrase. Give every clip a similar amount of speech.",
     fullBody
       ? "Camera is a locked full-body shot. Do not crop to a close-up or a medium shot. Set and light stay identical across every clip. Clip 2 and after open on the previous clip's end still."
-      : "Shot size follows the director visual. Do not pick a different shot. Camera, set, and light stay identical across every clip. Clip 2 and after open on the previous clip's end still.",
+      : "Camera is a locked seated medium shot: head, torso, and the homemade microphone stay in frame. Same lived-in room, same seat, same soft indoor daylight in every clip. No pictures pasted on the frame. Do not stand the character up. Do not crop to a face-only close-up. Clip 2 and after open on the previous clip's end still.",
     fullBody
       ? "On-camera speech like a real person recording a reel: eyes locked on the lens, continuous lip-sync, head tilting and nodding, both hands gesturing at chest height, weight shifting hip to hip. Never freeze the face, head, hands, or body. Never a greeting wave."
-      : "On-camera speech like a real person recording a reel: eyes locked on the lens, continuous lip-sync, head tilting and nodding, shoulders rocking, a hand entering the lower frame. Never freeze the face or neck. Never a greeting wave.",
+      : "On-camera speech like a real person filming a phone video at home: seated, eyes locked on the lens, continuous lip-sync, head tilting and nodding, shoulders rocking, one hand keeping a small homemade microphone near the mouth. Natural skin, real cloth, unposed. Never freeze the face or neck. Never a greeting wave. Never stand up.",
     talkingSubtitleRule(aspectRatio),
   ].join(" ");
 }
@@ -311,37 +311,56 @@ function shotLine(
   if (language === "en") {
     const pose =
       moment === "start"
-        ? "Character: centered, eyes locked into the lens as if talking into a phone, mouth just opening, head tilted a few degrees, one hand beginning to lift, a live thinking expression."
+        ? fullBody
+          ? "Character: centered, eyes locked into the lens as if talking into a phone, mouth just opening, head tilted a few degrees, one hand beginning to lift, a live thinking expression."
+          : "Character: seated and centered, head and torso in frame, eyes locked into the lens like a real phone video filmed at home, mouth just opening, head tilted a few degrees, a live unposed expression. One hand holds a small homemade microphone — a thin stick with a fluffy fuzzy windscreen — close to the mouth."
         : fullBody
           ? "Character: eyes still locked on the lens, mouth just closed after the line, an engaged small smile, head tilted the other way, the other hand still slightly raised at chest height, weight on the other hip, feet in frame."
-          : "Character: eyes still locked on the lens, mouth just closed after the line, an engaged small smile, head tilted the other way, one hand still slightly in the lower frame.";
+          : "Character: still seated, eyes still locked on the lens, mouth just closed into a small real smile, head tilted the other way. The same homemade microphone stays in that hand, a little lower, still near the mouth.";
     const place = belowCenter
       ? "one line a little below the vertical center, clear of the face and the bottom edge"
       : "one bottom line";
-    return `${pose} Set: the same plain background in every clip, no new props. Light: soft and even, unchanged.${camera} Subtitle: ${place}, exactly "${line}".`;
+    return `${pose} ${setClause("en", fullBody)}${camera} Subtitle: ${place}, exactly "${line}".`;
   }
   const pose =
     moment === "start"
-      ? "角色：置中，直望鏡頭好似對住手機講，準備開口，頭微傾，一隻手開始提起，神情有生氣。"
+      ? fullBody
+        ? "角色：置中，直望鏡頭好似對住手機講，準備開口，頭微傾，一隻手開始提起，神情有生氣。"
+        : "角色：坐住置中，頭同上身喺畫面，直望鏡頭好似喺屋企用手機實拍，準備開口，頭微傾，神情自然唔擺拍。一隻手拎住自製咪（幼棒加毛毛防風罩）靠近個口。"
       : fullBody
         ? "角色：仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，頭反向微傾，另一隻手仲喺胸前，重心換咗邊，腳留喺畫面。"
-        : "角色：仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，頭反向微傾，一隻手仲喺畫面下方。";
+        : "角色：仍然坐住直望鏡頭，呢句講完、口部合上變成自然淺笑，頭反向微傾。同一支自製咪仲喺嗰隻手，稍為放低，仍然靠近個口。";
   const place = belowCenter ? "畫面垂直中線下面少少一行，避開臉同最底邊" : "畫面底部一行";
-  return `${pose}場景：全程同一個簡潔背景，冇新道具。光：柔和均勻，不變。${camera}字幕：${place}，逐字係「${line}」。`;
+  return `${pose}${setClause("yue", fullBody)}${camera}字幕：${place}，逐字係「${line}」。`;
+}
+
+// Face reads sit in a real room with one homemade mic. Full-body stays a plain set.
+function setClause(language: "en" | "yue", fullBody: boolean) {
+  if (fullBody) {
+    return language === "en"
+      ? "Set: the same plain background in every clip, no new props. Light: soft and even, unchanged."
+      : "場景：全程同一個簡潔背景，冇新道具。光：柔和均勻，不變。";
+  }
+  return language === "en"
+    ? "Set: the same real sitting spot in every clip, a lived-in room with a seat and a simple wall or bed behind the shoulders. No pictures pasted on the frame, no extra writing, no new props besides the homemade microphone. Light: soft natural indoor daylight, ordinary and unchanged, like a phone video at home."
+    : "場景：全程同一個真實坐位，住家房間，身後係牆或者床。畫面上面唔好貼圖、唔好加字，除咗自製咪之外冇新道具。光：柔和自然室內日光，似喺屋企用手機拍，不變。";
 }
 
 function cameraClause(language: VoLanguage | undefined, shot?: string) {
-  const size = shot?.trim();
-  if (!size) return "";
+  const size = shot?.trim() || "";
   const fullBody = size === "full-body";
   if (language === "en") {
-    return fullBody
-      ? " Camera: locked full-body, character centered, head to feet in frame."
-      : ` Camera: locked ${size}, character centered.`;
+    if (fullBody) return " Camera: locked full-body, character centered, head to feet in frame.";
+    if (!size) {
+      return " Camera: locked seated medium shot. Head, torso, and the homemade microphone stay in frame. Do not stand up. Do not crop to a face-only close-up.";
+    }
+    return ` Camera: locked ${size}, character seated and centered, homemade microphone in frame.`;
   }
-  return fullBody
-    ? "鏡頭：鎖定全身，角色置中，頭到腳都在畫面內。"
-    : `鏡頭：鎖定${shotLabel(size)}、角色置中。`;
+  if (fullBody) return "鏡頭：鎖定全身，角色置中，頭到腳都在畫面內。";
+  if (!size) {
+    return "鏡頭：鎖定坐姿中景，頭、上身同自製咪留喺畫面。唔好企起身，唔好裁成淨係塊臉。";
+  }
+  return `鏡頭：鎖定${shotLabel(size)}，角色坐住置中，自製咪留喺畫面。`;
 }
 
 function shotLabel(shot: string) {
