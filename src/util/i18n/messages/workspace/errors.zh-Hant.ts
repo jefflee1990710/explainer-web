@@ -87,4 +87,12 @@ export const errorsZhHant = {
   characterVoiceFillFailed: "無法用藍圖填寫聲線",
   characterVoiceNoBlueprint: "還沒有完成的藍圖",
   characterVoiceFillRateLimited: "聲線填寫每 5 分鐘最多 5 次，請稍後再試。",
+  voiceSamplePick: "請選擇聲音檔",
+  voiceSampleType: "只支援 MP3、WAV、M4A 聲音檔",
+  voiceSampleTooLarge: "聲音檔不可超過 10MB",
+  voiceSampleUnreadable: "無法讀取聲音檔",
+  voiceSampleLength: "示範聲音需為 5–120 秒",
+  voiceSampleNotConfigured: "尚未設定聲音複製服務",
+  voiceSampleUploadFailed: "上傳示範聲音失敗",
+  voiceSampleRemoveFailed: "移除示範聲音失敗",
 } satisfies ErrorsMessages;

@@ -8,6 +8,7 @@ import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { autoVideoDecision } from "@/service/production-plan";
 import { chargedVideoCredits, STUCK_CLAIM_MS, videoCost } from "@/service/production-plan";
 import type { Project, ProjectClip } from "@/model/project";
+import { voiceSwapVoiceId } from "@/model/character-voice-sample";
 
 const IN_FLIGHT = new Set<ProjectClip["status"]>(["queued", "in_progress"]);
 
@@ -44,7 +45,11 @@ export async function claimAndStartClipVideo(
 
   const submittedAt = new Date().toISOString();
   // Billed per second of the storyboard duration; stored on the clip for refunds.
-  const cost = videoCost(row.durationSeconds, project.styleId);
+  const cost = videoCost(
+    row.durationSeconds,
+    project.styleId,
+    Boolean(voiceSwapVoiceId(project.cast)),
+  );
   const existing = project.clips.find((clip) => clip.clipNumber === clipNumber);
   const stuck = existing ? await isStuckClaim(project._id, clipNumber, existing) : false;
   if (existing && !stuck && IN_FLIGHT.has(existing.status)) {

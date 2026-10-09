@@ -2,6 +2,7 @@ import { mediaSrc } from "@/util/media-src";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
 import { talkingHeadFramesCost } from "@/service/director/talking-head";
+import { voiceSwapVoiceId } from "@/model/character-voice-sample";
 import type {
   ClipFrame,
   LegacyProjectStatus,
@@ -44,6 +45,8 @@ export type ClipStageSource = {
   phaseA?: { clips: Array<{ clipNumber: number; durationSeconds?: number; editedAt?: string }> };
   frames?: ClipFrame[];
   clips: ProjectClip[];
+  // Only `voiceSample` is read, to price the voice swap.
+  cast?: Array<{ voiceSample?: { elevenVoiceId?: string } | null }>;
 };
 
 const IN_FLIGHT = new Set<string>(["queued", "in_progress"]);
@@ -110,7 +113,11 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
     stage,
     stale,
     wait: waitKind(waitItems),
-    videoCost: videoCost(row?.durationSeconds ?? MIN_VIDEO_SECONDS, project.styleId),
+    videoCost: videoCost(
+      row?.durationSeconds ?? MIN_VIDEO_SECONDS,
+      project.styleId,
+      Boolean(voiceSwapVoiceId(project.cast)),
+    ),
     frameCost: talkingHeadFramesCost(project.skillSlug, clipNumber),
     // Cancel is only offered before the provider has the request.
     videoUnsent: stage === "video_generating" && clip?.status === "queued" && clip.unsent === true,

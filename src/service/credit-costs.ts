@@ -9,6 +9,8 @@ export const VIDEO_CREDITS_PER_SECOND = 9;
 // Seedance 2.0 at 1080p is about $0.68/s (1920×1080×24/1024 tokens × $0.014/1k).
 // MiniMax H3 is $0.13/s for 9 credits, so the same credit value is 47 credits/s.
 export const CINEMATIC_VIDEO_CREDITS_PER_SECOND = 47;
+// ElevenLabs voice changer on a clip whose character has a demo voice.
+export const VOICE_SWAP_CREDITS_PER_SECOND = 1;
 export const MIN_VIDEO_SECONDS = 5;
 export const MAX_VIDEO_SECONDS = 15;
 export const MIN_VIDEO_COST = VIDEO_CREDITS_PER_SECOND * MIN_VIDEO_SECONDS;
@@ -23,8 +25,9 @@ export function videoCreditsPerSecond(styleId?: string) {
   return styleId === "realistic" ? CINEMATIC_VIDEO_CREDITS_PER_SECOND : VIDEO_CREDITS_PER_SECOND;
 }
 
-export function videoCost(seconds: number, styleId?: string) {
-  return videoCreditsPerSecond(styleId) * billedVideoSeconds(seconds);
+export function videoCost(seconds: number, styleId?: string, voiceSwap = false) {
+  const perSecond = videoCreditsPerSecond(styleId) + (voiceSwap ? VOICE_SWAP_CREDITS_PER_SECOND : 0);
+  return perSecond * billedVideoSeconds(seconds);
 }
 
 // What a clip video attempt was charged. Older clips predate `creditsCharged`.

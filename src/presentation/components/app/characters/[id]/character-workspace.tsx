@@ -24,6 +24,7 @@ import { localizedStyleName } from "@/util/style-i18n";
 import { isStyleId, type StyleId } from "@/model/style-id";
 import { CharacterStyleColumn } from "@/presentation/components/app/characters/[id]/character-style-column";
 import { CharacterVoicePanel } from "@/presentation/components/app/characters/[id]/character-voice-panel";
+import { CharacterVoiceSamplePanel } from "@/presentation/components/app/characters/[id]/character-voice-sample-panel";
 import { VersionDetail } from "@/presentation/components/app/characters/[id]/version-detail";
 import { VersionList } from "@/presentation/components/app/characters/[id]/version-list";
 import type { PlanId } from "@/model/subscription";
@@ -271,6 +272,7 @@ export function CharacterWorkspace({
 
       <section aria-label={t("characters.voiceTitle")}>
         <CharacterVoicePanel character={character} onSaved={setCharacter} />
+        <CharacterVoiceSamplePanel character={character} onSaved={setCharacter} />
       </section>
       {creditGate ? (
         <InsufficientCreditsDialog

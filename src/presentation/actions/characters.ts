@@ -46,6 +46,18 @@ export async function saveCharacterVoiceAction(
   return service.saveCharacterVoiceAction(...args);
 }
 
+export async function uploadCharacterVoiceSampleAction(
+  ...args: Parameters<typeof service.uploadCharacterVoiceSampleAction>
+) {
+  return service.uploadCharacterVoiceSampleAction(...args);
+}
+
+export async function removeCharacterVoiceSampleAction(
+  ...args: Parameters<typeof service.removeCharacterVoiceSampleAction>
+) {
+  return service.removeCharacterVoiceSampleAction(...args);
+}
+
 export async function renameCharacterAction(
   ...args: Parameters<typeof service.renameCharacterAction>
 ) {

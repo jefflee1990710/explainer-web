@@ -2,6 +2,12 @@ import type { ObjectId } from "mongodb";
 import { z } from "zod";
 import { characterSpecSchema, type CharacterSpec } from "@/model/character-spec";
 import { characterVoiceSchema, type CharacterVoice } from "@/model/character-voice";
+import {
+  castVoiceSampleSchema,
+  characterVoiceSampleSchema,
+  type CastVoiceSample,
+  type CharacterVoiceSample,
+} from "@/model/character-voice-sample";
 import { objectIdSchema } from "@/model/primitives";
 
 export type CharacterVersionStatus =
@@ -65,6 +71,8 @@ export type Character = {
   styleId: string;
   // Fixed acoustic lock pasted into dialogue clips. Not part of the blueprint.
   voice?: CharacterVoice;
+  // Demo voice the clip audio is converted to after generation.
+  voiceSample?: CharacterVoiceSample;
   // Character-level preview. Matches the original style's chosen sheet.
   defaultVersionId?: ObjectId;
   // One chosen sheet per style. Missing styles fall back to defaultVersionId when it belongs to that style.
@@ -85,6 +93,7 @@ export type CastMember = {
   prompt: string;
   spec?: CharacterSpec;
   voice?: CharacterVoice;
+  voiceSample?: CastVoiceSample;
 };
 
 const characterVersionStatusSchema = z.enum([
@@ -124,6 +133,7 @@ export const characterSchema: z.ZodType<Character> = z.object({
   name: z.string(),
   styleId: z.string(),
   voice: characterVoiceSchema.optional(),
+  voiceSample: characterVoiceSampleSchema.optional(),
   defaultVersionId: objectIdSchema.optional(),
   styleDefaults: z.record(z.string(), objectIdSchema).optional(),
   versions: z.array(characterVersionSchema),
@@ -140,4 +150,5 @@ export const castMemberSchema: z.ZodType<CastMember> = z.object({
   prompt: z.string(),
   spec: characterSpecSchema.optional(),
   voice: characterVoiceSchema.optional(),
+  voiceSample: castVoiceSampleSchema.optional(),
 });

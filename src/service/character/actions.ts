@@ -27,7 +27,25 @@ import {
 import { collectCharacterBlobUrls } from "@/service/character/storage";
 import { failCharacterVersion, versionCreditsCost } from "@/service/character/sync";
 import { canSetDefault } from "@/service/character/versions";
-import { charactersCollection, generationJobsCollection, usersCollection } from "@/dao";
+import {
+  charactersCollection,
+  generationJobsCollection,
+  usersCollection,
+  videosCollection,
+} from "@/dao";
+import { persistBuffer } from "@/service/higgsfield/persist";
+import {
+  isVoiceSampleMime,
+  VOICE_SAMPLE_MAX_BYTES,
+  VOICE_SAMPLE_MAX_SECONDS,
+  VOICE_SAMPLE_MIN_SECONDS,
+} from "@/model/character-voice-sample";
+import {
+  createVoiceClone,
+  deleteVoiceClone,
+  isElevenLabsConfigured,
+} from "@/service/voice/elevenlabs";
+import { probeAudioSeconds } from "@/service/voice/voice-swap";
 import {
   fetchHiggsfieldStatus,
   mediaUrlFromResponse,
@@ -585,6 +603,86 @@ export async function saveCharacterVoiceAction(
   }
 }
 
+// Stores the demo voice on Blob and clones it on ElevenLabs. Replaces any older sample.
+export async function uploadCharacterVoiceSampleAction(
+  characterId: string,
+  formData: FormData,
+): Promise<CharacterResult> {
+  try {
+    const user = await requireAppUser();
+    const character = await ownedCharacter(characterId, user.clerkUserId);
+    if (!character) return { ok: false, error: "角色不存在" };
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) return { ok: false, error: "請選擇聲音檔" };
+    if (!isVoiceSampleMime(file.type)) return { ok: false, error: "只支援 MP3、WAV、M4A 聲音檔" };
+    if (file.size > VOICE_SAMPLE_MAX_BYTES) return { ok: false, error: "聲音檔不可超過 10MB" };
+    if (!isElevenLabsConfigured()) return { ok: false, error: "尚未設定 ELEVENLABS_API_KEY" };
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const ext = (file.name.split(".").pop() || "mp3").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const seconds = await probeAudioSeconds(buffer, ext || "mp3");
+    if (seconds === null) return { ok: false, error: "無法讀取聲音檔" };
+    if (seconds < VOICE_SAMPLE_MIN_SECONDS || seconds > VOICE_SAMPLE_MAX_SECONDS) {
+      return { ok: false, error: "示範聲音需為 5–120 秒" };
+    }
+
+    const elevenVoiceId = await createVoiceClone({
+      name: `${character.name} (${character._id.toHexString()})`,
+      file,
+      filename: file.name || `sample.${ext}`,
+    });
+    const url = await persistBuffer(
+      buffer,
+      `explainer/characters/${character._id.toHexString()}/voice-${Date.now()}.${ext || "mp3"}`,
+      file.type,
+    );
+    const characters = await charactersCollection();
+    await characters.updateOne(
+      { _id: character._id },
+      {
+        $set: {
+          voiceSample: { url, durationSeconds: seconds, elevenVoiceId, uploadedAt: new Date() },
+          updatedAt: new Date(),
+        },
+      },
+    );
+    // Videos already cast keep their own snapshot, so the old clone and file can go.
+    if (character.voiceSample) await dropVoiceSample(character.voiceSample);
+    revalidateCharacter(characterId);
+    return reload(character._id);
+  } catch (error) {
+    return fail(error, "上傳示範聲音失敗");
+  }
+}
+
+export async function removeCharacterVoiceSampleAction(
+  characterId: string,
+): Promise<CharacterResult> {
+  try {
+    const user = await requireAppUser();
+    const character = await ownedCharacter(characterId, user.clerkUserId);
+    if (!character) return { ok: false, error: "角色不存在" };
+    const characters = await charactersCollection();
+    await characters.updateOne(
+      { _id: character._id },
+      { $unset: { voiceSample: "" }, $set: { updatedAt: new Date() } },
+    );
+    if (character.voiceSample) await dropVoiceSample(character.voiceSample);
+    revalidateCharacter(characterId);
+    return reload(character._id);
+  } catch (error) {
+    return fail(error, "移除示範聲音失敗");
+  }
+}
+
+// The file always goes. The clone stays while any video cast still swaps to it.
+async function dropVoiceSample(sample: NonNullable<Character["voiceSample"]>) {
+  await deleteExplainerBlobUrls([sample.url]);
+  const videos = await videosCollection();
+  const inUse = await videos.countDocuments({ "cast.voiceSample.elevenVoiceId": sample.elevenVoiceId });
+  if (inUse === 0) await deleteVoiceClone(sample.elevenVoiceId);
+}
+
 function readCharacterVoice(value: FormDataEntryValue | null): CharacterVoice | null | "invalid" {
   const raw = String(value || "").trim();
   if (!raw) return null;
@@ -641,6 +739,7 @@ export async function deleteCharacterAction(
     if (removed.deletedCount !== 1) {
       return { ok: false, error: "角色不存在" };
     }
+    if (character.voiceSample) await dropVoiceSample(character.voiceSample);
 
     revalidateCharacter(characterId);
     revalidatePath("/app");

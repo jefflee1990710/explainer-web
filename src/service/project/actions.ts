@@ -268,6 +268,15 @@ async function buildCast(
       // Appearance notes travel with the video so prompts stay stable after later edits.
       ...(version.spec ? { spec: version.spec } : {}),
       ...(isCharacterVoice(character.voice) ? { voice: character.voice } : {}),
+      // Snapshot so a later sample change does not re-voice this video.
+      ...(character.voiceSample
+        ? {
+            voiceSample: {
+              url: character.voiceSample.url,
+              elevenVoiceId: character.voiceSample.elevenVoiceId,
+            },
+          }
+        : {}),
     });
   }
   return { ok: true, cast };

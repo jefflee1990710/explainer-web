@@ -347,6 +347,13 @@ export type Messages = {
     voiceFill: string;
     voiceFilled: string;
     voiceFillNeedsBlueprint: string;
+    voiceSampleTitle: string;
+    voiceSampleHint: string;
+    voiceSampleUpload: string;
+    voiceSampleReplace: string;
+    voiceSampleRemove: string;
+    voiceSampleSeconds: string;
+    voiceSampleSaved: string;
     voiceGender: string;
     voiceAge: string;
     voicePitch: string;

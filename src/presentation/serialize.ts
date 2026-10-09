@@ -78,7 +78,13 @@ export type PublicVideo = {
   logoUrl?: string;
   referenceImages: NonNullable<Project["referenceImages"]>;
   backgroundImageUrls: string[];
-  cast: Array<{ characterId: string; name: string; blueprintUrl: string }>;
+  // `voiceSample` carries the clone id so clip prices include the voice swap.
+  cast: Array<{
+    characterId: string;
+    name: string;
+    blueprintUrl: string;
+    voiceSample?: { elevenVoiceId: string };
+  }>;
   products: Array<{ productId: string; name: string; blueprintUrl: string }>;
   status: ProjectStatus;
   phaseA?: Project["phaseA"];
@@ -309,6 +315,9 @@ export function toPublicVideo(video: Project): PublicVideo {
       characterId: member.characterId.toHexString(),
       name: member.name,
       blueprintUrl: member.blueprintUrl,
+      ...(member.voiceSample
+        ? { voiceSample: { elevenVoiceId: member.voiceSample.elevenVoiceId } }
+        : {}),
     })),
     products: (video.products || []).map((item) => ({
       productId: item.productId.toHexString(),
@@ -513,6 +522,8 @@ export type PublicCharacter = {
   styleIds: string[];
   styleName: string;
   voice: CharacterVoice | null;
+  // Uploaded demo voice. The clone id stays on the server.
+  voiceSample: { url: string; durationSeconds: number } | null;
   defaultVersionId: string | null;
   // Chosen sheet for each style that has a completed blueprint.
   defaultByStyle: Record<string, string>;
@@ -582,6 +593,9 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     styleIds: characterStyleIds(character),
     styleName: character.styleId,
     voice: parseCharacterVoice(character.voice),
+    voiceSample: character.voiceSample
+      ? { url: character.voiceSample.url, durationSeconds: character.voiceSample.durationSeconds }
+      : null,
     defaultVersionId: resolved ? resolved.id.toHexString() : null,
     defaultByStyle,
     previewUrl: preview.url,

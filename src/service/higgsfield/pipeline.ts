@@ -46,6 +46,8 @@ import {
 import { scheduleGenerationFinishedEmail } from "@/service/notify/generation-email";
 import { queueReelIfReady } from "@/service/reel/enqueue";
 import { retimeMp4 } from "@/service/reel/retime";
+import { swapClipVoice } from "@/service/voice/voice-swap";
+import { voiceSwapVoiceId } from "@/model/character-voice-sample";
 import { mediaSrc } from "@/util/media-src";
 import { isBookendSkill } from "@/service/director/skill-rules";
 import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lock";
@@ -624,19 +626,38 @@ export async function applyJobStatus(input: {
             })
           ).canvasColor
         : undefined;
+    // One-character cast with a demo voice: re-voice before any retime.
+    const voiceId =
+      project && job.kind === "video" && !isBookendSkill(project.skillSlug)
+        ? voiceSwapVoiceId(project.cast)
+        : null;
+    const swapVoice = (buffer: Buffer) =>
+      voiceId
+        ? swapClipVoice(buffer, voiceId).catch((error: unknown) => {
+            console.error("[higgsfield] voice swap failed; keeping clip audio", {
+              requestId: job.requestId,
+              error,
+            });
+            return buffer;
+          })
+        : Promise.resolve(buffer);
     const transformOptions =
       bookendSeconds
         ? {
             // Provider renders ≥5s; bookends play at their 3–4s storyboard length.
-            transform: (buffer: Buffer) =>
-              retimeMp4(buffer, bookendSeconds).catch((error: unknown) => {
+            transform: async (buffer: Buffer) => {
+              const voiced = await swapVoice(buffer);
+              return retimeMp4(voiced, bookendSeconds).catch((error: unknown) => {
                 console.error("[higgsfield] bookend retime failed; persisting original", {
                   requestId: job.requestId,
                   error,
                 });
-                return buffer;
-              }),
+                return voiced;
+              });
+            },
           }
+        : voiceId
+        ? { transform: swapVoice }
         : canvasColor
         ? {
             transform: (buffer: Buffer) =>

@@ -87,6 +87,14 @@ export const errorsEn = {
   characterVoiceFillFailed: "Could not fill the voice from the blueprint",
   characterVoiceNoBlueprint: "Finish a blueprint first",
   characterVoiceFillRateLimited: "Voice fill is limited to 5 times every 5 minutes. Try again shortly.",
+  voiceSamplePick: "Pick an audio file",
+  voiceSampleType: "Only MP3, WAV and M4A audio is supported",
+  voiceSampleTooLarge: "Audio must be 10MB or less",
+  voiceSampleUnreadable: "Could not read this audio file",
+  voiceSampleLength: "The demo voice must be 5–120 seconds",
+  voiceSampleNotConfigured: "Voice cloning is not set up yet",
+  voiceSampleUploadFailed: "Could not upload the demo voice",
+  voiceSampleRemoveFailed: "Could not remove the demo voice",
 } as const;
 
 
