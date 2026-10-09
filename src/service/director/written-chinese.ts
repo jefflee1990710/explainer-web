@@ -55,7 +55,8 @@ export function looksColloquial(line: string) {
 export function toWrittenChinese(line: string) {
   const text = line.trim();
   if (!text || !looksColloquial(text)) return line;
-  let next = text;
+  // 唔好 means "not good" before 嘅 or punctuation (市況唔好嘅), otherwise "don't".
+  let next = text.replace(/唔好(?=嘅|[，。！？,.!?\s]|$)/g, "不好");
   for (const [from, to] of PHRASES) next = next.replaceAll(from, to);
   next = [...next].map((ch) => (ch in CHAR_MAP ? CHAR_MAP[ch] : ch)).join("");
   return next.replace(/\s{2,}/g, " ").trim() || line;

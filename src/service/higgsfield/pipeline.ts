@@ -68,6 +68,7 @@ import {
 } from "@/service/director/talking-head";
 import { chargedVideoCredits, FRAME_COST, STUCK_CLAIM_MS } from "@/service/production-plan";
 import { lockDialogueSpeech } from "@/service/director/spoken-line";
+import { withCantonesePronunciation } from "@/service/voice/cantonese-pronunciation";
 import { toSent, type Sent } from "@/service/generation/sent";
 import { frameJobDocs } from "@/service/generation/frame-jobs";
 import {
@@ -395,13 +396,18 @@ export async function sendClipVideo(
   // Talking-head locks must match the director's (possibly customised) performance slots.
   const talkingShot = talkingShotForSkill(project.skillSlug);
   const performance = talkingShot ? resolvePerformance(await loadSkill(project), talkingShot, "en") : undefined;
+  const spokenLine = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber)?.englishVo;
   const submitted = await submitClipVideo({
-    prompt: lockDialogueSpeech(
-      prompt.prompt,
-      project.skillSlug,
-      project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber)?.englishVo,
-      project.cast?.map((member) => member.name),
-      performance,
+    prompt: withCantonesePronunciation(
+      lockDialogueSpeech(
+        prompt.prompt,
+        project.skillSlug,
+        spokenLine,
+        project.cast?.map((member) => member.name),
+        performance,
+      ),
+      project.language,
+      spokenLine,
     ),
     aspectRatio: project.aspectRatio,
     durationSeconds: prompt.durationSeconds,

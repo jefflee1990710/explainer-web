@@ -9,3 +9,8 @@ test("Cantonese colloquial becomes written Chinese, and English stays", () => {
   assert.equal(toWrittenChinese("Instagram"), "Instagram");
   assert.equal(toWrittenChinese("大家好"), "大家好");
 });
+
+test("唔好 keeps 'not good' apart from 'don't'", () => {
+  assert.equal(toWrittenChinese("係呢個市況唔好嘅大環境"), "係這個市況不好的大環境");
+  assert.equal(toWrittenChinese("唔好走"), "不要走");
+});
