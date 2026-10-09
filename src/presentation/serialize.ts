@@ -11,7 +11,13 @@ import { folderRollupStatus } from "@/service/folder";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
 import type { AppUser } from "@/model/user";
-import type { Character, CharacterVersionStatus } from "@/model/character";
+import type {
+  Character,
+  CharacterBlueprintKind,
+  CharacterBlueprintStage,
+  CharacterVersionStatus,
+} from "@/model/character";
+import type { CharacterSpec } from "@/model/character-spec";
 import type { Product } from "@/model/product";
 import type { TextStyleDoc } from "@/model/text-style";
 import { parseCharacterVoice, type CharacterVoice } from "@/model/character-voice";
@@ -477,8 +483,14 @@ export type PublicCharacterVersion = {
   prompt: string;
   editInstruction?: string;
   referenceImageUrl?: string;
+  // "sheet" for rows made before boards existed.
+  blueprintKind: CharacterBlueprintKind;
+  // Board versions: which image is generating now.
+  stage?: CharacterBlueprintStage;
+  portraitUrl?: string;
   blueprintUrl?: string;
   profileUrl?: string;
+  spec?: CharacterSpec;
   status: CharacterVersionStatus;
   error?: string;
   createdAt: string;
@@ -523,8 +535,12 @@ export function toPublicCharacter(character: Character): PublicCharacter {
       prompt: version.prompt,
       editInstruction: version.editInstruction,
       referenceImageUrl: version.referenceImageUrl,
+      blueprintKind: version.blueprintKind ?? "sheet",
+      stage: version.stage,
+      portraitUrl: version.portraitUrl,
       blueprintUrl: version.blueprintUrl,
       profileUrl: version.profileUrl,
+      spec: version.spec,
       status: version.status,
       error: version.error,
       createdAt: version.createdAt.toISOString(),

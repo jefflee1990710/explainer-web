@@ -16,11 +16,14 @@ export function CreateCharacterReferences({
   disabled,
   onChange,
   onError,
+  onOpenCamera,
 }: {
   urls: string[];
   disabled: boolean;
   onChange: (urls: string[]) => void;
   onError: (message: string) => void;
+  // Opens the guided camera dialog; the parent owns it so the coverage panel can open it too.
+  onOpenCamera?: () => void;
 }) {
   const { t } = useI18n();
   const [uploading, setUploading] = useState(false);
@@ -127,8 +130,39 @@ export function CreateCharacterReferences({
               />
             </label>
           )}
+          {full || !onOpenCamera ? null : (
+            <button
+              type="button"
+              onClick={onOpenCamera}
+              disabled={blocked}
+              className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/15 bg-paper px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 disabled:opacity-60"
+            >
+              <CameraIcon />
+              {t("characters.useCamera")}
+            </button>
+          )}
         </div>
       </div>
+      {/* What to shoot so the blueprint has a face, a profile, and a body to work from. */}
+      <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
+        <li>{t("characters.referenceGuideFront")}</li>
+        <li>{t("characters.referenceGuideSide")}</li>
+        <li>{t("characters.referenceGuideFull")}</li>
+        <li>{t("characters.referenceGuideLight")}</li>
+      </ul>
     </div>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden>
+      <path
+        d="M3 7.5A1.5 1.5 0 0 1 4.5 6h2l1-1.5h5l1 1.5h2A1.5 1.5 0 0 1 17 7.5v7A1.5 1.5 0 0 1 15.5 16h-11A1.5 1.5 0 0 1 3 14.5v-7Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <circle cx="10" cy="11" r="2.75" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
   );
 }

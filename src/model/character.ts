@@ -1,5 +1,6 @@
 import type { ObjectId } from "mongodb";
 import { z } from "zod";
+import { characterSpecSchema, type CharacterSpec } from "@/model/character-spec";
 import { characterVoiceSchema, type CharacterVoice } from "@/model/character-voice";
 import { objectIdSchema } from "@/model/primitives";
 
@@ -9,7 +10,14 @@ export type CharacterVersionStatus =
   | "completed"
   | "failed";
 
-// One generated blueprint sheet. Versions are append-only.
+// "sheet": legacy single turnaround / expression sheet (one image job).
+// "board": identity portrait + full-body standing, composed into one board (two image jobs).
+export type CharacterBlueprintKind = "sheet" | "board";
+
+// Which image a board version is waiting on. Unset once the board is composed.
+export type CharacterBlueprintStage = "portrait" | "fullBody";
+
+// One generated blueprint. Versions are append-only.
 export type CharacterVersion = {
   id: ObjectId;
   // Omitted on rows created before a character could hold more than one style.
@@ -19,19 +27,30 @@ export type CharacterVersion = {
   // Full effective description used for this generation.
   prompt: string;
   editInstruction?: string;
-  // Uploaded references (v1). Edits store the parent sheet first, then those root photos.
+  // Uploaded references. Legacy sheet edits store the parent sheet first, then the
+  // root photos; board versions always store the root photos only.
   // `referenceImageUrl` is the first photo; keep both so older rows still read.
   referenceImageUrl?: string;
   referenceImageUrls?: string[];
-  // Blob URL once the sheet is persisted.
+  // Missing on rows created before boards existed.
+  blueprintKind?: CharacterBlueprintKind;
+  // Board versions: which image job is running now.
+  stage?: CharacterBlueprintStage;
+  // Board versions: identity close-up (1:1) persisted to Blob.
+  portraitUrl?: string;
+  // Blob URL once the sheet (legacy) or the composed board is persisted.
   blueprintUrl?: string;
-  // Full-body standing preview for cards and pickers. The sheet stays the edit view.
+  // Full-body standing figure for cards, pickers, and scene locks.
   profileUrl?: string;
-  // Set while a portrait job is in flight, or after that job fails.
+  // Legacy sheet versions: set while the follow-up portrait job is in flight, or after it fails.
   profileStatus?: "queued" | "failed";
+  // Appearance notes read from the photos. Pasted into scene prompts next to the images.
+  spec?: CharacterSpec;
   status: CharacterVersionStatus;
   error?: string;
   creditsCharged: boolean;
+  // Credits taken for this version. Missing on rows charged before boards (FRAME_COST).
+  creditsCost?: number;
   createdAt: Date;
   // When the current generation attempt was sent to the provider.
   submittedAt?: Date;
@@ -61,7 +80,10 @@ export type CastMember = {
   versionId: ObjectId;
   name: string;
   blueprintUrl: string;
+  // Missing on videos cast before boards existed (a sheet).
+  blueprintKind?: CharacterBlueprintKind;
   prompt: string;
+  spec?: CharacterSpec;
   voice?: CharacterVoice;
 };
 
@@ -80,12 +102,17 @@ export const characterVersionSchema: z.ZodType<CharacterVersion> = z.object({
   editInstruction: z.string().optional(),
   referenceImageUrl: z.string().optional(),
   referenceImageUrls: z.array(z.string()).optional(),
+  blueprintKind: z.enum(["sheet", "board"]).optional(),
+  stage: z.enum(["portrait", "fullBody"]).optional(),
+  portraitUrl: z.string().optional(),
   blueprintUrl: z.string().optional(),
   profileUrl: z.string().optional(),
   profileStatus: z.enum(["queued", "failed"]).optional(),
+  spec: characterSpecSchema.optional(),
   status: characterVersionStatusSchema,
   error: z.string().optional(),
   creditsCharged: z.boolean(),
+  creditsCost: z.number().optional(),
   createdAt: z.date(),
   submittedAt: z.date().optional(),
 });
@@ -109,6 +136,8 @@ export const castMemberSchema: z.ZodType<CastMember> = z.object({
   versionId: objectIdSchema,
   name: z.string(),
   blueprintUrl: z.string(),
+  blueprintKind: z.enum(["sheet", "board"]).optional(),
   prompt: z.string(),
+  spec: characterSpecSchema.optional(),
   voice: characterVoiceSchema.optional(),
 });

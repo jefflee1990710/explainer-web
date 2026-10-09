@@ -1,3 +1,4 @@
+import { characterSpecBlock, type CharacterSpec } from "@/model/character-spec";
 import { styleLinesForBlueprint } from "@/service/style";
 import type { RenderableStyle } from "@/service/style/renderable-style";
 
@@ -92,6 +93,125 @@ export function buildBlueprintPrompt(input: {
       ...identityFromReference(input.style),
       "Derive the character entirely from the attached reference image.",
       `Redraw that same person or character as this ${input.style.name} model sheet.`,
+    );
+  }
+  return lines.join("\n");
+}
+
+// ---------- Blueprint board (portrait + full body) ----------
+
+// Likeness rules shared by both board images. The spec is a text anchor; photos still win.
+function boardIdentityLines(input: {
+  style: RenderableStyle;
+  spec?: CharacterSpec;
+  photoCount: number;
+}) {
+  const lines: string[] = [];
+  if (input.photoCount > 0) {
+    lines.push(
+      ...identityFromReference(input.style),
+      ...(input.photoCount > 1
+        ? [
+            "Fuse all attached photos into one character of the same identity.",
+            "Prefer clear close-ups for 五官比例 and full-body shots for proportions and outfit.",
+            "Do not invent a different character or average them into a generic look.",
+          ]
+        : ["Derive the character entirely from the attached photo."]),
+    );
+  }
+  if (input.spec) {
+    lines.push(
+      "Appearance notes read from the photos (keep every one of them; they describe the same person):",
+      characterSpecBlock(input.spec),
+    );
+  }
+  return lines;
+}
+
+type BoardPromptInput = {
+  style: RenderableStyle;
+  description: string;
+  spec?: CharacterSpec;
+  // Original photos attached after any parent images.
+  photoCount: number;
+  // Set when branching from a finished board: the parent's image(s) come first.
+  editInstruction?: string;
+  parentImageCount?: number;
+};
+
+// Identity portrait: head-and-shoulders, front, the face as large as the canvas allows.
+// This is the image every later scene copies the face from, so nothing else is on it.
+export function buildPortraitPrompt(input: BoardPromptInput) {
+  const description = input.description.trim();
+  const lightGround = !usesDrawingSurface(input.style);
+  const lines = [
+    "Character identity portrait on a square canvas: one person, head and shoulders, facing the camera straight on, eyes open, looking into the lens, neutral relaxed expression with a hint of warmth.",
+    "The face fills most of the frame: top of the hair near the top edge with a small margin, shoulders cut at the bottom edge. No hands, no props, no text, no labels, no frame or border, no second person.",
+    "Even soft front light so every facial feature reads clearly: eye shape, brows, nose, lips, jaw, skin, hair line, and any marks.",
+    ...styleLinesForBlueprint(input.style),
+    ...(lightGround ? [LIGHT_SHEET_GROUND] : []),
+  ];
+  if (description) lines.push(`Character: ${description}`);
+  if (input.editInstruction && input.parentImageCount) {
+    lines.push(
+      "Use the first attached image (the current identity portrait) as the base. Apply only the change below; keep the face, hair, framing, and visual style otherwise identical.",
+      ...(input.photoCount > 0
+        ? [
+            "Every attached image after the first is an original photo of this character. Keep 五官比例 and 整體氣質 anchored to those photos so the face does not drift.",
+          ]
+        : []),
+      `Change: ${input.editInstruction.trim()}`,
+    );
+    if (input.spec) {
+      lines.push(
+        "Appearance notes for this character (still true unless the change above says otherwise):",
+        characterSpecBlock(input.spec),
+      );
+    }
+    return lines.join("\n");
+  }
+  lines.push(...boardIdentityLines(input));
+  if (input.photoCount > 0 && description) {
+    lines.push(
+      "The Character line may add age, role, or clothing hints; it must not replace the face proportions, temperament, or the required style.",
+    );
+  }
+  return lines.join("\n");
+}
+
+// Full-body standing figure drawn from the finished portrait (first image) plus the photos.
+// Cards, pickers, and scene stills use this one; it must be one whole person, nothing else.
+export function buildFullBodyPrompt(input: BoardPromptInput) {
+  const description = input.description.trim();
+  const lightGround = !usesDrawingSurface(input.style);
+  const lines = [
+    "One full-body standing view of the character in the first attached image (their identity portrait) on a tall canvas.",
+    "One person, standing, facing the camera, neutral expression, eyes open, arms relaxed at the sides, feet slightly apart. No props, no text, no labels, no second person, no extra poses.",
+    "Copy the face, hair, skin, and the visible clothing from that portrait exactly. Complete the rest of the outfit, shoes, and accessories from the photos and the notes.",
+    "Framing: the entire body is visible from the top of the hair to the soles of the feet, centered, with empty margin above the head and below the feet. Do not crop to a portrait. Do not draw the figure too small — it should fill about four fifths of the canvas height.",
+    ...styleLinesForBlueprint(input.style),
+    lightGround
+      ? LIGHT_SHEET_GROUND
+      : "The figure stands on the same drawing surface as the portrait.",
+  ];
+  if (description) lines.push(`Character: ${description}`);
+  if (input.editInstruction && input.parentImageCount && input.parentImageCount > 1) {
+    lines.push(
+      "The second attached image is the previous full-body figure. Apply only the change below to it; keep pose, framing, and everything the change does not name identical, and keep the face on the new portrait.",
+      `Change: ${input.editInstruction.trim()}`,
+    );
+  } else if (input.editInstruction) {
+    lines.push(`Change already applied to the portrait, also apply it here: ${input.editInstruction.trim()}`);
+  }
+  if (input.photoCount > 0) {
+    lines.push(
+      "The remaining attached images are original photos of this character. Use them for body proportions, outfit, shoes, and accessories; the face stays on the portrait.",
+    );
+  }
+  if (input.spec) {
+    lines.push(
+      "Appearance notes for this character:",
+      characterSpecBlock(input.spec),
     );
   }
   return lines.join("\n");

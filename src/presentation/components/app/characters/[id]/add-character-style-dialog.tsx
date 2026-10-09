@@ -6,7 +6,7 @@ import { addCharacterStyleAction } from "@/presentation/actions/characters";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
-import { FRAME_COST } from "@/service/production-plan";
+import { BLUEPRINT_COST } from "@/service/production-plan";
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import { localizedStyleName } from "@/util/style-i18n";
@@ -138,7 +138,7 @@ export function AddCharacterStyleDialog({
             className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent-ink px-5 text-sm font-semibold text-paper shadow-[3px_3px_0_0_rgba(18,20,28,0.15)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending ? <Spinner className="h-4 w-4" /> : null}
-            {t("characters.addStyleSubmit", { cost: FRAME_COST })}
+            {t("characters.addStyleSubmit", { cost: BLUEPRINT_COST })}
           </button>
         </div>
       </div>

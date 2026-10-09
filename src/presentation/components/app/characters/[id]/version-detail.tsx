@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { Spinner } from "@/presentation/components/spinner";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { BlueprintBoard } from "@/presentation/components/app/characters/[id]/blueprint-board";
+import { CharacterSpecList } from "@/presentation/components/app/characters/[id]/character-spec-list";
 import type { PublicCharacter, PublicCharacterVersion } from "@/presentation/serialize";
-import { FRAME_COST } from "@/service/production-plan";
+import { BLUEPRINT_COST, FRAME_COST } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 // Root version holds the uploaded photos. Later versions point at a parent sheet.
@@ -48,7 +50,10 @@ export function VersionDetail({
   const [instruction, setInstruction] = useState("");
   const isDefault = character.defaultByStyle[version.styleId] === version.id;
   const busy = version.status === "queued" || version.status === "in_progress";
-  const short = !subscribed || credits < FRAME_COST;
+  const board = version.blueprintKind === "board";
+  // Boards are two images; a legacy sheet retries or edits as one.
+  const cost = board ? BLUEPRINT_COST : FRAME_COST;
+  const short = !subscribed || credits < cost;
 
   function submitEdit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,9 +79,11 @@ export function VersionDetail({
         </p>
       </div>
 
-      {/* The pane keeps its height. The sheet stays fully visible inside it. */}
+      {/* The pane keeps its height. The sheet or board stays fully visible inside it. */}
       <div className="relative mt-4 min-h-0 flex-1 overflow-hidden rounded-[1.25rem] border border-accent-ink/10 bg-white">
-        {version.blueprintUrl ? (
+        {board ? (
+          <BlueprintBoard name={character.name} version={version} />
+        ) : version.blueprintUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={version.blueprintUrl}
@@ -98,7 +105,17 @@ export function VersionDetail({
         )}
       </div>
 
-      <dl className="mt-4 max-h-28 shrink-0 space-y-2 overflow-y-auto text-sm">
+      <dl className="mt-4 max-h-36 shrink-0 space-y-2 overflow-y-auto text-sm">
+        {version.spec ? (
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+              {t("characters.specHeading")}
+            </dt>
+            <dd className="mt-1">
+              <CharacterSpecList spec={version.spec} />
+            </dd>
+          </div>
+        ) : null}
         {version.editInstruction ? (
           <div>
             <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
@@ -160,7 +177,7 @@ export function VersionDetail({
             className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent-ink px-4 text-sm font-semibold text-lime transition hover:-translate-y-0.5 disabled:opacity-60"
           >
             {pending === "retry" ? <Spinner className="h-4 w-4" /> : null}
-            {t("characters.retryCredits", { cost: FRAME_COST })}
+            {t("characters.retryCredits", { cost })}
           </button>
         ) : null}
         <p className="text-xs text-muted">
@@ -194,7 +211,7 @@ export function VersionDetail({
               className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {pending === "edit" ? <Spinner className="h-4 w-4" /> : null}
-              {t("characters.generateNewVersion", { cost: FRAME_COST })}
+              {t("characters.generateNewVersion", { cost })}
             </button>
             <button
               type="button"

@@ -7,8 +7,13 @@ import { useRouter } from "next/navigation";
 import { createCharacterAction } from "@/presentation/actions/characters";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { isCreditGateError } from "@/service/billing/credit-gate";
+import { analyzeCharacterReferencesAction } from "@/presentation/actions/analyze-references";
+import { CameraCaptureDialog } from "@/presentation/components/app/characters/camera-capture-dialog";
 import { CreateCharacterReferences } from "@/presentation/components/app/characters/create-character-references";
+import { ReferenceCoveragePanel } from "@/presentation/components/app/characters/reference-coverage-panel";
 import { CharacterVoiceFields } from "@/presentation/components/app/characters/character-voice-fields";
+import { MAX_CHARACTER_REFERENCES } from "@/service/character/reference-urls";
+import type { ReferenceCoverage } from "@/service/character/reference-coverage";
 import type { CharacterVoice } from "@/model/character-voice";
 import { DEFAULT_CHARACTER_VOICE } from "@/service/director/character-voice";
 import type { PublicStyle } from "@/presentation/serialize";
@@ -16,7 +21,7 @@ import { DEFAULT_STYLE_ID } from "@/service/style";
 import { Spinner } from "@/presentation/components/spinner";
 import { StylePicker } from "@/presentation/components/style-picker";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { FRAME_COST } from "@/service/production-plan";
+import { BLUEPRINT_COST } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 const NAME_MAX = 40;
@@ -93,22 +98,52 @@ export function CreateCharacterModal({
   const [submitting, setSubmitting] = useState(false);
   const [creditGate, setCreditGate] = useState(false);
   const [paidSnap, setPaidSnap] = useState<{ credits: number; subscribed: boolean } | null>(null);
+  // Reference check: result of the last AI read, and whether the user chose to generate anyway.
+  const [coverage, setCoverage] = useState<ReferenceCoverage | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [coverageSkipped, setCoverageSkipped] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const walletCredits = paidSnap?.credits ?? credits;
   const walletSubscribed = paidSnap?.subscribed ?? subscribed;
 
   useEffect(() => {
     inputRef.current?.focus();
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape" && !creditGate) onClose();
+      if (event.key === "Escape" && !creditGate && !cameraOpen) onClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [creditGate, onClose]);
+  }, [creditGate, cameraOpen, onClose]);
+
+  // A changed photo set invalidates the last check.
+  function updateReferences(urls: string[]) {
+    setReferenceImageUrls(urls);
+    setCoverage(null);
+    setCoverageSkipped(false);
+  }
+
+  // Ask the AI whether the photos cover face, profile, and body. True means go ahead.
+  async function referencesSufficient() {
+    if (referenceImageUrls.length === 0 || coverageSkipped || coverage?.ok) return true;
+    setChecking(true);
+    try {
+      const result = await analyzeCharacterReferencesAction(referenceImageUrls);
+      // A failed check never blocks the user; they can still generate.
+      if (!result.ok) return true;
+      setCoverage(result.coverage);
+      return result.coverage.ok;
+    } catch {
+      return true;
+    } finally {
+      setChecking(false);
+    }
+  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitting(true);
     setError("");
+    if (!(await referencesSufficient())) return;
+    setSubmitting(true);
     const data = new FormData();
     data.set("name", name);
     data.set("styleId", styleId);
@@ -137,7 +172,9 @@ export function CreateCharacterModal({
   const canSubmit =
     name.trim().length > 0 &&
     (prompt.trim().length > 0 || referenceImageUrls.length > 0) &&
-    !submitting;
+    !submitting &&
+    !checking;
+  const showCoverage = Boolean(coverage && !coverage.ok && !coverageSkipped);
 
   return (
     <DialogBackdrop
@@ -207,10 +244,25 @@ export function CreateCharacterModal({
 
           <CreateCharacterReferences
             urls={referenceImageUrls}
-            disabled={submitting}
-            onChange={setReferenceImageUrls}
+            disabled={submitting || checking}
+            onChange={updateReferences}
             onError={setError}
+            onOpenCamera={() => setCameraOpen(true)}
           />
+
+          {showCoverage && coverage ? (
+            <ReferenceCoveragePanel
+              coverage={coverage}
+              disabled={submitting}
+              onAddMore={() => setCoverage(null)}
+              onOpenCamera={() => setCameraOpen(true)}
+              onSkip={() => {
+                setCoverageSkipped(true);
+                // Generate right away with the photos already uploaded.
+                window.setTimeout(() => formRef.current?.requestSubmit(), 0);
+              }}
+            />
+          ) : null}
 
           {error ? (
             <p role="alert" className="text-sm text-accent">
@@ -220,7 +272,7 @@ export function CreateCharacterModal({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-muted">
               {walletSubscribed
-                ? t("characters.costLine", { cost: FRAME_COST, remaining: walletCredits })
+                ? t("characters.costLine", { cost: BLUEPRINT_COST, remaining: walletCredits })
                 : t("characters.subscribeRequired")}
             </p>
             <div className="flex items-center gap-2">
@@ -237,16 +289,25 @@ export function CreateCharacterModal({
                 disabled={!canSubmit}
                 className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {submitting ? <Spinner className="h-4 w-4" /> : null}
-                {t("characters.generateBlueprint")}
+                {submitting || checking ? <Spinner className="h-4 w-4" /> : null}
+                {checking ? t("characters.checkingReferences") : t("characters.generateBlueprint")}
               </button>
             </div>
           </div>
         </form>
       </div>
+      {cameraOpen ? (
+        <CameraCaptureDialog
+          remaining={MAX_CHARACTER_REFERENCES - referenceImageUrls.length}
+          onClose={() => setCameraOpen(false)}
+          onCaptured={(urls) =>
+            updateReferences([...referenceImageUrls, ...urls.filter((url) => !referenceImageUrls.includes(url))])
+          }
+        />
+      ) : null}
       {creditGate ? (
         <InsufficientCreditsDialog
-          needed={FRAME_COST}
+          needed={BLUEPRINT_COST}
           subscribed={walletSubscribed}
           onClose={() => setCreditGate(false)}
           onPaid={(snap) => {

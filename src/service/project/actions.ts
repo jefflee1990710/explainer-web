@@ -254,7 +254,10 @@ async function buildCast(
       versionId: version.id,
       name: character.name,
       blueprintUrl: version.blueprintUrl,
+      blueprintKind: version.blueprintKind ?? "sheet",
       prompt: version.prompt,
+      // Appearance notes travel with the video so prompts stay stable after later edits.
+      ...(version.spec ? { spec: version.spec } : {}),
       ...(isCharacterVoice(character.voice) ? { voice: character.voice } : {}),
     });
   }

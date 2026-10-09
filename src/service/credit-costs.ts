@@ -1,6 +1,8 @@
 // Credits per action. Each image is 4; a clip's two frames are 8.
 export const FRAME_COST = 4;
 export const FRAMES_COST = 8;
+// A character blueprint board is two images: identity portrait + full-body standing.
+export const BLUEPRINT_COST = FRAME_COST * 2;
 
 // Video is billed per second like the provider: 9 credits/s, 5–15 billed seconds.
 export const VIDEO_CREDITS_PER_SECOND = 9;

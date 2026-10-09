@@ -7,12 +7,15 @@ import { persistBuffer } from "@/service/higgsfield/persist";
 
 const lockUrlCache = new Map<string, Promise<string>>();
 
-// Standing preview when it exists. Otherwise crop the front figure off a wide turnaround sheet.
+// A board (portrait + one standing figure) goes in whole: the close-up carries the face.
+// Legacy sheets use the standing preview when it exists, else the cropped front figure.
 export function sceneLockPlan(input: {
+  blueprintKind?: "sheet" | "board";
   profileUrl?: string;
   blueprintWidth: number;
   blueprintHeight: number;
 }) {
+  if (input.blueprintKind === "board") return { kind: "board" as const };
   if (input.profileUrl) return { kind: "profile" as const, url: input.profileUrl };
   if (input.blueprintWidth > input.blueprintHeight) return { kind: "front" as const };
   return { kind: "blueprint" as const };
@@ -24,11 +27,13 @@ async function download(url: string) {
   return Buffer.from(await response.arrayBuffer());
 }
 
-// One standing figure. A multi-pose sheet makes the scene draw that person again.
+// One board or one standing figure. A multi-pose sheet makes the scene draw that person again.
 async function resolveLockUrl(member: CastMember) {
+  if (member.blueprintKind === "board") return member.blueprintUrl;
   const characters = await charactersCollection();
   const character = await characters.findOne({ _id: member.characterId });
   const version = character?.versions.find((item) => item.id.equals(member.versionId));
+  if (version?.blueprintKind === "board") return member.blueprintUrl;
   if (version?.profileUrl) return version.profileUrl;
 
   const blueprint = await download(member.blueprintUrl);

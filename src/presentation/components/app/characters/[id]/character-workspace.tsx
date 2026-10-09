@@ -16,7 +16,7 @@ import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
 import { useCharacterPoll } from "@/presentation/components/app/characters/[id]/use-character-poll";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { isCreditGateError } from "@/service/billing/credit-gate";
-import { FRAME_COST } from "@/service/production-plan";
+import { BLUEPRINT_COST } from "@/service/production-plan";
 import { DeleteCharacterDialog } from "@/presentation/components/app/characters/[id]/delete-character-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -138,7 +138,7 @@ export function CharacterWorkspace({
         setError(translateAppError(result.error, t));
         if (isCreditGateError(result.error)) {
           setCreditGate({
-            needed: FRAME_COST,
+            needed: BLUEPRINT_COST,
             resume: () => {
               void run(key, action);
             },
@@ -230,7 +230,7 @@ export function CharacterWorkspace({
           onAdded={showAdded}
           onNeedCredits={(styleId) => {
             setCreditGate({
-              needed: FRAME_COST,
+              needed: BLUEPRINT_COST,
               resume: () => {
                 void addCharacterStyleAction(character.id, styleId).then((result) => {
                   if (result.ok) showAdded(result.character, styleId);

@@ -67,10 +67,12 @@ export function characterBlueprintVoiceInput(
   )
     .map((url) => url.trim())
     .filter((url) => url && url !== blueprint);
+  // A board's close-up portrait reads age and gender better than the whole board.
+  const face = version.portraitUrl?.trim() || blueprint;
   return {
     name: character.name,
     description: version.prompt,
-    referenceImageUrls: [blueprint, ...photos].slice(0, 2),
+    referenceImageUrls: [face, ...photos.filter((url) => url !== face)].slice(0, 2),
   };
 }
 

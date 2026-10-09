@@ -16,6 +16,7 @@ export const tasksPageZhHant = {
     characterStill: "角色定裝圖",
     characterBlueprint: "角色藍圖",
     characterProfile: "角色頭像",
+    characterFullBody: "角色全身圖",
     stylePreview: "風格預覽",
     directorPreview: "導演預覽",
     postPreview: "海報預覽",

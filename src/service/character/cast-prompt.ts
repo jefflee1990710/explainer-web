@@ -1,6 +1,26 @@
 import type { CastMember } from "@/model/character";
+import { characterSpecLine } from "@/model/character-spec";
 
 // Text the director and image prompts share so every stage names the same cast.
+
+// Frame prompts share a tight cap with the scene text; notes stay short there.
+const FRAME_SPEC_CHARS = 220;
+const DIRECTOR_SPEC_CHARS = 400;
+
+function hasBoard(cast: CastMember[] | undefined) {
+  return Boolean(cast?.some((member) => member.blueprintKind === "board"));
+}
+
+// "Name: notes" lines for cast members that carry a spec. Empty when none do.
+export function castSpecLines(cast: CastMember[] | undefined, maxChars: number) {
+  return (cast || [])
+    .filter((member) => member.spec)
+    .map((member) => `${member.name}: ${characterSpecLine(member.spec!, maxChars)}`);
+}
+
+// What a board reference is, so the model reads both panels as one person.
+const BOARD_LAYOUT_NOTE =
+  "A character board shows the SAME person twice: a face close-up on the left and one full-body standing figure on the right. Copy the face from the close-up and the body, outfit, and proportions from the standing figure. Never draw both panels.";
 
 export type CharacterLockSource = {
   cast?: CastMember[];
@@ -104,6 +124,7 @@ export function castBlockForPhaseA(cast: CastMember[] | undefined, options?: Cas
   if (!cast || cast.length === 0) return null;
   const wardrobeBuild = Boolean(options?.wardrobeBuild);
   const clothingFromReference = Boolean(options?.clothingFromReference) && !wardrobeBuild;
+  const specLines = castSpecLines(cast, DIRECTOR_SPEC_CHARS);
   return [
     "Cast (use these exact names; they are the only recurring characters):",
     ...cast.map((member) =>
@@ -111,6 +132,14 @@ export function castBlockForPhaseA(cast: CastMember[] | undefined, options?: Cas
         ? `- ${member.name}: (appearance defined only by the attached reference sheet)`
         : `- ${member.name}: ${member.prompt} (staging hint only; appearance still follows the attached reference sheet)`,
     ),
+    // Appearance notes read from the photos: a text anchor beside the attached image.
+    ...(specLines.length
+      ? [
+          "Appearance notes per cast member (read from their photos; the attached image still wins on rendering and colour):",
+          ...specLines.map((line) => `- ${line}`),
+        ]
+      : []),
+    ...(hasBoard(cast) ? [BOARD_LAYOUT_NOTE] : []),
     // Blueprint always wins. characterLock must never invent looks that later
     // fight the sheet in frame generation.
     wardrobeBuild
@@ -134,6 +163,7 @@ export function directorBlueprintSceneRules(options?: CastLookOptions) {
   const clothingFromReference = Boolean(options?.clothingFromReference) && !options?.wardrobeBuild;
   return [
     "The attached image is a character BLUEPRINT / reference sheet only — not a scene to copy.",
+    "It may be a two-panel board (face close-up + one standing figure) or a multi-pose sheet; either way it is one person.",
     options?.wardrobeBuild
       ? "The sheet may show many poses, turnarounds, walk cycles, or expression tiles of the SAME person. Use it only to lock face, hair, and proportions. Clothes come from the clothing reference images."
       : clothingFromReference
@@ -229,9 +259,14 @@ export function castParagraphForFrames(
       "Do not copy the face, hair, hair length, or body of the person in the clothing photo. Only the clothes change. Worn garments follow the clothing reference exactly, not the clothes in the character image.",
     ];
   }
+  const specLines = castSpecLines(cast, FRAME_SPEC_CHARS);
   return [
     `${attachmentLabel(attachment?.start, attachment?.count)} the ONLY source of truth for how each character looks (face, hair, outfit, accessories, proportions, gender). Cast: ${names}.`,
     BLUEPRINT_REFERENCE_ONLY,
+    ...(hasBoard(cast) ? [BOARD_LAYOUT_NOTE] : []),
+    ...(specLines.length
+      ? [`Identity notes (match these; the attached image wins on rendering): ${specLines.join(" | ")}`]
+      : []),
     "Ignore any clothing, hair, or style wording in the text — the blueprint wins. Do not invent a replacement hero or redesign their outfit.",
   ];
 }

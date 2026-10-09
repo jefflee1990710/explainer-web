@@ -34,7 +34,26 @@ export function characterReferenceUrls(version: {
   return version.referenceImageUrl ? [version.referenceImageUrl] : [];
 }
 
-// Edit sends the sheet being changed first, then the root version's uploaded photos.
+// Walk the parent chain to the version that holds the uploaded photos.
+export function rootVersionOf<T extends VersionRefs>(versions: T[], from: T): T {
+  const byId = new Map(versions.map((version) => [version.id.toHexString(), version]));
+  let current: T | undefined = from;
+  const guard = new Set<string>();
+  while (current?.parentVersionId) {
+    const id = current.id.toHexString();
+    if (guard.has(id)) break;
+    guard.add(id);
+    current = byId.get(current.parentVersionId.toHexString());
+  }
+  return current ?? from;
+}
+
+// The original uploaded photos behind any version, however many edits deep.
+export function rootReferenceUrls(versions: VersionRefs[], from: VersionRefs) {
+  return characterReferenceUrls(rootVersionOf(versions, from));
+}
+
+// Legacy sheet edit: the sheet being changed first, then the root version's uploaded photos.
 // Later sheets are not included, so the face stays anchored to the originals.
 export function editReferenceUrls(versions: VersionRefs[], parent: VersionRefs) {
   const urls: string[] = [];
@@ -47,16 +66,7 @@ export function editReferenceUrls(versions: VersionRefs[], parent: VersionRefs) 
   }
 
   push(parent.blueprintUrl);
-  const byId = new Map(versions.map((version) => [version.id.toHexString(), version]));
-  let current: VersionRefs | undefined = parent;
-  const guard = new Set<string>();
-  while (current?.parentVersionId) {
-    const id = current.id.toHexString();
-    if (guard.has(id)) break;
-    guard.add(id);
-    current = byId.get(current.parentVersionId.toHexString());
-  }
-  for (const url of characterReferenceUrls(current ?? parent)) push(url);
+  for (const url of rootReferenceUrls(versions, parent)) push(url);
   return urls;
 }
 

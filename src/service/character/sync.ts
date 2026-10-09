@@ -5,14 +5,26 @@ import {
   canReframeOnCanvas,
   reframeBlueprintBuffer,
 } from "@/service/character/blueprint-framing";
-import { persistMedia } from "@/service/higgsfield/persist";
+import { composeBlueprintBoard } from "@/service/character/blueprint-board";
+import { persistBuffer, persistMedia } from "@/service/higgsfield/persist";
 import { hydrateStyles } from "@/service/style/load-style";
-import { enqueueCharacterProfile } from "@/service/character/generate";
+import {
+  enqueueCharacterFullBody,
+  enqueueCharacterProfile,
+  isBoardVersion,
+} from "@/service/character/generate";
 import { styleHasDefault, versionStyleId } from "@/service/character/character-styles";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
+import { FRAME_COST } from "@/service/credit-costs";
+import type { Character, CharacterVersion } from "@/model/character";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 
-// Mark a version failed and refund its credit exactly once. The atomic claim on
+// What this version was charged. Rows from before boards carried one sheet at FRAME_COST.
+export function versionCreditsCost(version: Pick<CharacterVersion, "creditsCost">) {
+  return version.creditsCost ?? FRAME_COST;
+}
+
+// Mark a version failed and refund its credits exactly once. The atomic claim on
 // `creditsCharged: true` is the single refund guard; if the refund itself
 // throws we restore the flag so a later delivery can retry it.
 // `onlyIf` adds extra conditions to the claim (e.g. "still in flight and
@@ -27,6 +39,7 @@ export async function failCharacterVersion(
   const characters = await charactersCollection();
   const character = await characters.findOne({ _id: characterId, "versions.id": versionId });
   if (!character) return;
+  const version = character.versions.find((item) => item.id.equals(versionId));
 
   const now = new Date();
   const claimed = await characters.updateOne(
@@ -43,11 +56,12 @@ export async function failCharacterVersion(
         "versions.$.creditsCharged": false,
         updatedAt: now,
       },
+      $unset: { "versions.$.stage": "" },
     },
   );
   if (claimed.modifiedCount === 1) {
     try {
-      await refundCredits(character.clerkUserId, 1);
+      await refundCredits(character.clerkUserId, version ? versionCreditsCost(version) : FRAME_COST);
     } catch (error) {
       // Restore the claim so a later delivery can retry the refund.
       await characters.updateOne(
@@ -117,6 +131,124 @@ async function syncCharacterProfile(
   }
 }
 
+// Set the version's default flags on first completion of its style.
+function completionDefaults(character: Character, versionId: ObjectId, styleId: string) {
+  return {
+    // First finished blueprint of this style becomes that style's default.
+    ...(styleHasDefault(character, styleId) ? {} : { [`styleDefaults.${styleId}`]: versionId }),
+    ...(character.defaultVersionId || styleId !== character.styleId
+      ? {}
+      : { defaultVersionId: versionId }),
+  };
+}
+
+// Board stage one finished: save the portrait and queue the full-body figure.
+async function completeBoardPortrait(
+  job: GenerationJob,
+  character: Character,
+  version: CharacterVersion,
+  outputUrl: string,
+) {
+  const characters = await charactersCollection();
+  const filter = { _id: job.characterId!, "versions.id": job.versionId! };
+  const failVersion = (message: string) =>
+    failCharacterVersion(job.characterId!, job.versionId!, message);
+  let portraitUrl: string;
+  try {
+    portraitUrl = await persistMedia(
+      outputUrl,
+      `explainer/characters/${job.characterId!.toHexString()}/${job.versionId!.toHexString()}-portrait`,
+    );
+  } catch {
+    await failVersion("肖像保存失敗");
+    return;
+  }
+  await characters.updateOne(filter, {
+    $set: {
+      "versions.$.portraitUrl": portraitUrl,
+      "versions.$.stage": "fullBody",
+      "versions.$.status": "in_progress",
+      // Restart the stale clock for the second image.
+      "versions.$.submittedAt": new Date(),
+      updatedAt: new Date(),
+    },
+  });
+  try {
+    await enqueueCharacterFullBody(job.characterId!, job.versionId!);
+  } catch (error) {
+    console.error("[character] full-body enqueue failed", { versionId: version.id, error });
+    await failVersion("全身圖排程失敗");
+  }
+}
+
+// Board stage two finished: save the figure, compose the board, mark completed.
+async function completeBoardFullBody(
+  job: GenerationJob,
+  character: Character,
+  version: CharacterVersion,
+  outputUrl: string,
+) {
+  const characters = await charactersCollection();
+  const filter = { _id: job.characterId!, "versions.id": job.versionId! };
+  const failVersion = (message: string) =>
+    failCharacterVersion(job.characterId!, job.versionId!, message);
+  if (!version.portraitUrl) {
+    await failVersion("肖像遺失，無法組合藍圖");
+    return;
+  }
+  const base = `explainer/characters/${job.characterId!.toHexString()}/${job.versionId!.toHexString()}`;
+  let profileUrl: string;
+  let blueprintUrl: string;
+  try {
+    const [fullBodyBuffer, portraitBuffer] = await Promise.all([
+      downloadBuffer(outputUrl),
+      downloadBuffer(version.portraitUrl),
+    ]);
+    await hydrateStyles();
+    let background: string | undefined;
+    try {
+      const style = await loadRenderableStyle({
+        styleId: versionStyleId(character, version),
+        ownerClerkUserId: character.clerkUserId,
+      });
+      background = style.canvasColor;
+    } catch {
+      background = undefined;
+    }
+    const board = await composeBlueprintBoard({
+      portrait: portraitBuffer,
+      fullBody: fullBodyBuffer,
+      background,
+    });
+    [profileUrl, blueprintUrl] = await Promise.all([
+      persistBuffer(fullBodyBuffer, `${base}-standing`, "image/png"),
+      persistBuffer(board, base, "image/png"),
+    ]);
+  } catch (error) {
+    console.error("[character] board compose failed", { versionId: version.id, error });
+    await failVersion("藍圖保存失敗");
+    return;
+  }
+  const styleId = versionStyleId(character, version);
+  await characters.updateOne(filter, {
+    $set: {
+      "versions.$.status": "completed",
+      "versions.$.profileUrl": profileUrl,
+      "versions.$.blueprintUrl": blueprintUrl,
+      "versions.$.error": undefined,
+      updatedAt: new Date(),
+      ...completionDefaults(character, job.versionId!, styleId),
+    },
+    $unset: { "versions.$.stage": "" },
+  });
+}
+
+async function downloadBuffer(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`無法下載角色圖（${response.status}）`);
+  return Buffer.from(await response.arrayBuffer());
+}
+
 // Mirror a character job's status onto the embedded version before the job
 // document is finalized by applyJobStatus.
 export async function syncCharacterJob(
@@ -137,7 +269,7 @@ export async function syncCharacterJob(
   if (!character) return;
   const version = character.versions.find((item) => item.id.equals(job.versionId!));
   if (!version) return;
-  // Completed sheets are final. A failed version only needs attention when an
+  // Completed blueprints are final. A failed version only needs attention when an
   // earlier refund attempt threw and left the charge in place.
   if (version.status === "completed") return;
   if (version.status === "failed") {
@@ -158,6 +290,35 @@ export async function syncCharacterJob(
   const filter = { _id: job.characterId, "versions.id": job.versionId };
   const failVersion = (message: string) =>
     failCharacterVersion(job.characterId!, job.versionId!, message);
+
+  // Board versions: two images, both fatal on failure.
+  if (isBoardVersion(version)) {
+    const isFullBody = job.characterSlot === "fullBody";
+    if (status === "completed" && outputUrl) {
+      // A stale portrait delivery after the full-body stage started is ignored.
+      if (!isFullBody && version.portraitUrl) return;
+      if (isFullBody) await completeBoardFullBody(job, character, version, outputUrl);
+      else await completeBoardPortrait(job, character, version, outputUrl);
+      return;
+    }
+    if (status === "failed" || status === "nsfw" || status === "completed") {
+      await failVersion(
+        status === "nsfw" ? "內容被判定不適當" : isFullBody ? "全身圖產生失敗" : "肖像產生失敗",
+      );
+      return;
+    }
+    if (status === "in_progress" || status === "queued") {
+      await characters.updateOne(filter, {
+        $set: {
+          // Stage two keeps in_progress even while the provider queues it.
+          "versions.$.status": isFullBody ? "in_progress" : status,
+          "versions.$.stage": isFullBody ? "fullBody" : "portrait",
+          updatedAt: now,
+        },
+      });
+    }
+    return;
+  }
 
   if (status === "completed" && outputUrl) {
     // Reframe only on near-white solid canvases, where the model reliably
@@ -199,13 +360,7 @@ export async function syncCharacterJob(
         "versions.$.blueprintUrl": blueprintUrl,
         "versions.$.error": undefined,
         updatedAt: now,
-        // First finished sheet of this style becomes that style's default.
-        ...(styleHasDefault(character, styleId)
-          ? {}
-          : { [`styleDefaults.${styleId}`]: job.versionId }),
-        ...(character.defaultVersionId || styleId !== character.styleId
-          ? {}
-          : { defaultVersionId: job.versionId }),
+        ...completionDefaults(character, job.versionId, styleId),
       },
     });
     await enqueueCharacterProfile(job.characterId, job.versionId).catch((error) => {

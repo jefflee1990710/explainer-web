@@ -1,6 +1,10 @@
 import { charactersCollection, userDirectorsCollection, videosCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
-import { sendCharacterProfile, sendCharacterVersion } from "@/service/character/generate";
+import {
+  sendCharacterFullBody,
+  sendCharacterProfile,
+  sendCharacterVersion,
+} from "@/service/character/generate";
 import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { runPhaseBForClip } from "@/service/director/run-phase-b";
 import { loadStoredSkill } from "@/service/director/load-skill";
@@ -92,6 +96,7 @@ async function sendCharacter(job: GenerationJob) {
   const version = character?.versions.find((item) => item.id.equals(job.versionId!));
   if (!character || !version) throw new PermanentJobError("角色版本已不存在");
   if (job.characterSlot === "profile") return sendCharacterProfile(character, version);
+  if (job.characterSlot === "fullBody") return sendCharacterFullBody(character, version);
   return sendCharacterVersion(character, version);
 }
 

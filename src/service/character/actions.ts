@@ -8,9 +8,9 @@ import {
   isSubscriptionActive,
   refundCredits,
 } from "@/service/billing/credits";
-import { FRAME_COST } from "@/service/production-plan";
+import { BLUEPRINT_COST } from "@/service/production-plan";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
-import { enqueueCharacterVersion } from "@/service/character/generate";
+import { enqueueCharacterVersion, isBoardVersion } from "@/service/character/generate";
 import {
   characterStyleIds,
   originalCharacterSource,
@@ -18,9 +18,14 @@ import {
 } from "@/service/character/character-styles";
 import { characterAllowance } from "@/service/character/character-limit";
 import { characterStyleAllowance } from "@/service/character/style-limit";
-import { editReferenceUrls, parseReferenceImageUrls } from "@/service/character/reference-urls";
+import { extractCharacterSpec } from "@/service/character/extract-spec";
+import {
+  editReferenceUrls,
+  parseReferenceImageUrls,
+  rootReferenceUrls,
+} from "@/service/character/reference-urls";
 import { collectCharacterBlobUrls } from "@/service/character/storage";
-import { failCharacterVersion } from "@/service/character/sync";
+import { failCharacterVersion, versionCreditsCost } from "@/service/character/sync";
 import { canSetDefault } from "@/service/character/versions";
 import { charactersCollection, generationJobsCollection, usersCollection } from "@/dao";
 import {
@@ -83,7 +88,7 @@ async function enqueueOrFail(character: Character, version: CharacterVersion) {
   }
 }
 
-// Create a character and its first version (FRAME_COST credits).
+// Create a character and its first board version (BLUEPRINT_COST credits).
 export async function createCharacterAction(
   formData: FormData,
 ): Promise<CharacterResult> {
@@ -113,17 +118,15 @@ export async function createCharacterAction(
     const chosen = readCharacterVoice(formData.get("voice"));
     if (chosen === "invalid") return { ok: false, error: "聲線設定無效" };
     // No manual lock: infer one so the character is created with the lock on.
-    const voice = characterVoiceForStorage(
-      chosen ??
-        (await inferCharacterVoice({
-          name,
-          description: prompt,
-          referenceImageUrls,
-        })),
-    );
+    // The appearance spec reads the same photos; both run before the charge.
+    const [inferredVoice, spec] = await Promise.all([
+      chosen ? Promise.resolve(chosen) : inferCharacterVoice({ name, description: prompt, referenceImageUrls }),
+      extractCharacterSpec({ name, description: prompt, referenceImageUrls }),
+    ]);
+    const voice = characterVoiceForStorage(inferredVoice);
 
-    await assertCanSpendCredits(user, FRAME_COST);
-    const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    await assertCanSpendCredits(user, BLUEPRINT_COST);
+    const spendKey = await consumeCredits(user.clerkUserId, BLUEPRINT_COST);
 
     const now = new Date();
     const version: CharacterVersion = {
@@ -132,8 +135,12 @@ export async function createCharacterAction(
       prompt,
       referenceImageUrl,
       referenceImageUrls: referenceImageUrls.length ? referenceImageUrls : undefined,
+      blueprintKind: "board",
+      stage: "portrait",
+      ...(spec ? { spec } : {}),
       status: "queued",
       creditsCharged: true,
+      creditsCost: BLUEPRINT_COST,
       createdAt: now,
       submittedAt: now,
     };
@@ -153,10 +160,10 @@ export async function createCharacterAction(
       character = (await characters.findOne({ _id: insert.insertedId })) as Character;
     } catch (error) {
       // Refund if the DB write fails after charging. There is no version to
-      // restore a flag on, so the credit is lost only if the refund fails too;
+      // restore a flag on, so the credits are lost only if the refund fails too;
       // surface that error instead of the write error.
       try {
-        await refundCredits(user.clerkUserId, 1, spendKey);
+        await refundCredits(user.clerkUserId, BLUEPRINT_COST, spendKey);
       } catch (refundError) {
         throw refundError;
       }
@@ -192,12 +199,18 @@ export async function editCharacterVersionAction(
     if (parent.status !== "completed" || !parent.blueprintUrl) {
       return { ok: false, error: "只能從已完成的版本編輯" };
     }
+    // A sheet parent keeps the legacy single-image edit; a board parent edits both images.
+    const board = isBoardVersion(parent);
+    const cost = board ? BLUEPRINT_COST : versionCreditsCost(parent);
 
-    await assertCanSpendCredits(user, FRAME_COST);
-    const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    await assertCanSpendCredits(user, cost);
+    const spendKey = await consumeCredits(user.clerkUserId, cost);
 
     const now = new Date();
-    const refs = editReferenceUrls(character.versions, parent);
+    // Board edits store only the root photos; the sender adds the parent images itself.
+    const refs = board
+      ? rootReferenceUrls(character.versions, parent)
+      : editReferenceUrls(character.versions, parent);
     const version: CharacterVersion = {
       id: new ObjectId(),
       styleId: versionStyleId(character, parent),
@@ -205,9 +218,17 @@ export async function editCharacterVersionAction(
       prompt: `${parent.prompt}\n變更：${instruction}`,
       editInstruction: instruction,
       referenceImageUrl: refs[0],
-      referenceImageUrls: refs,
+      referenceImageUrls: refs.length ? refs : undefined,
+      ...(board
+        ? {
+            blueprintKind: "board" as const,
+            stage: "portrait" as const,
+            ...(parent.spec ? { spec: parent.spec } : {}),
+          }
+        : {}),
       status: "queued",
       creditsCharged: true,
+      creditsCost: cost,
       createdAt: now,
       submittedAt: now,
     };
@@ -219,10 +240,10 @@ export async function editCharacterVersionAction(
       );
     } catch (error) {
       // Refund if the DB write fails after charging. There is no version to
-      // restore a flag on, so the credit is lost only if the refund fails too;
+      // restore a flag on, so the credits are lost only if the refund fails too;
       // surface that error instead of the write error.
       try {
-        await refundCredits(user.clerkUserId, 1, spendKey);
+        await refundCredits(user.clerkUserId, cost, spendKey);
       } catch (refundError) {
         throw refundError;
       }
@@ -262,9 +283,18 @@ export async function addCharacterStyleAction(
     if (!source.prompt && source.referenceImageUrls.length === 0) {
       return { ok: false, error: "沒有可用的原始參考" };
     }
+    // Reuse the spec an earlier board read from these same photos; otherwise read it now.
+    const root = character.versions.find((version) => !version.parentVersionId) ?? character.versions[0];
+    const spec =
+      root?.spec ??
+      (await extractCharacterSpec({
+        name: character.name,
+        description: source.prompt,
+        referenceImageUrls: source.referenceImageUrls,
+      }));
 
-    await assertCanSpendCredits(user, FRAME_COST);
-    const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    await assertCanSpendCredits(user, BLUEPRINT_COST);
+    const spendKey = await consumeCredits(user.clerkUserId, BLUEPRINT_COST);
     const now = new Date();
     const version: CharacterVersion = {
       id: new ObjectId(),
@@ -272,8 +302,12 @@ export async function addCharacterStyleAction(
       prompt: source.prompt,
       referenceImageUrl: source.referenceImageUrls[0],
       referenceImageUrls: source.referenceImageUrls.length ? source.referenceImageUrls : undefined,
+      blueprintKind: "board",
+      stage: "portrait",
+      ...(spec ? { spec } : {}),
       status: "queued",
       creditsCharged: true,
+      creditsCost: BLUEPRINT_COST,
       createdAt: now,
       submittedAt: now,
     };
@@ -285,7 +319,7 @@ export async function addCharacterStyleAction(
       );
     } catch (error) {
       try {
-        await refundCredits(user.clerkUserId, 1, spendKey);
+        await refundCredits(user.clerkUserId, BLUEPRINT_COST, spendKey);
       } catch (refundError) {
         throw refundError;
       }
@@ -300,7 +334,7 @@ export async function addCharacterStyleAction(
   }
 }
 
-// Re-run a failed version in place (FRAME_COST credits).
+// Re-run a failed version in place (the same credits it was first charged).
 export async function retryCharacterVersionAction(
   characterId: string,
   versionId: string,
@@ -319,6 +353,7 @@ export async function retryCharacterVersionAction(
     // Capture for nested helpers (TS narrowing doesn't flow into nested functions).
     const doc = character;
     const ver = version;
+    const cost = isBoardVersion(ver) ? BLUEPRINT_COST : versionCreditsCost(ver);
 
     const characters = await charactersCollection();
     const jobs = await generationJobsCollection();
@@ -331,10 +366,16 @@ export async function retryCharacterVersionAction(
         $set: {
           "versions.$.status": "queued",
           "versions.$.error": undefined,
+          "versions.$.creditsCost": cost,
           // Restart the stale-timeout clock for this attempt.
           "versions.$.submittedAt": new Date(),
           updatedAt: new Date(),
+          // A board starts over from the portrait.
+          ...(isBoardVersion(ver) ? { "versions.$.stage": "portrait" } : {}),
         },
+        ...(isBoardVersion(ver)
+          ? { $unset: { "versions.$.portraitUrl": "", "versions.$.profileUrl": "", "versions.$.blueprintUrl": "" } }
+          : {}),
       },
     );
     if (claimed.modifiedCount !== 1) {
@@ -364,8 +405,8 @@ export async function retryCharacterVersionAction(
 
     let spendKey: string;
     try {
-      await assertCanSpendCredits(user, FRAME_COST);
-      spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+      await assertCanSpendCredits(user, cost);
+      spendKey = await consumeCredits(user.clerkUserId, cost);
     } catch (error) {
       await revertClaim();
       throw error;
@@ -379,7 +420,7 @@ export async function retryCharacterVersionAction(
     } catch (error) {
       await revertClaim({ creditsCharged: false });
       try {
-        await refundCredits(user.clerkUserId, 1, spendKey);
+        await refundCredits(user.clerkUserId, cost, spendKey);
       } catch (refundError) {
         await characters.updateOne(
           { _id: doc._id, "versions.id": ver.id },
@@ -395,7 +436,15 @@ export async function retryCharacterVersionAction(
       throw error;
     }
 
-    const retryVersion = { ...ver, status: "queued" as const, creditsCharged: true };
+    const retryVersion: CharacterVersion = {
+      ...ver,
+      status: "queued",
+      creditsCharged: true,
+      creditsCost: cost,
+      ...(isBoardVersion(ver)
+        ? { stage: "portrait", portraitUrl: undefined, profileUrl: undefined, blueprintUrl: undefined }
+        : {}),
+    };
     await enqueueOrFail(doc, retryVersion);
     revalidateCharacter(characterId);
     return reload(doc._id);
