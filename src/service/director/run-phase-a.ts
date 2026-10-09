@@ -89,6 +89,56 @@ import type {
 } from "@/model/project";
 import type { Skill } from "@/model/skill";
 
+// Gemini sometimes returns PROHIBITED_CONTENT and no JSON for a normal
+// talking-head brief. Clips are planned locally, so the storyboard can
+// still be built from the script and the room note.
+function talkingHeadBriefWithoutModel(input: {
+  source: string;
+  spokenScript?: string;
+  aspectRatio: AspectRatio;
+  styleName: string;
+}): PhaseAProposal {
+  const line = (input.spokenScript || "").replace(/\s+/g, " ").trim();
+  const sentence = line.split(/(?<=[.!?。！？])\s/)[0] || line;
+  const title = sentence
+    ? sentence.length > 80
+      ? `${sentence.slice(0, 77)}…`
+      : sentence
+    : "Talking-head read";
+  const room = input.source.replace(/\s+/g, " ").trim();
+  return {
+    englishTitle: title,
+    localizedTitle: title,
+    targetDuration: "5s",
+    clipCount: 1,
+    loopMode: "linear",
+    coreMessage: title,
+    hookStrategy: "Opens on the first spoken line.",
+    aspectRatio: input.aspectRatio,
+    visualWorld: room
+      ? `${input.styleName}. Room from the instruction: ${room}`
+      : input.styleName,
+    narrator: "The on-screen character speaks.",
+    englishWordCount: 1,
+    characterLock: "Appearance follows the attached blueprint.",
+    palette: "From the visual style.",
+    bgmDirection: "none",
+    narrativeArc: "The spoken script, in order.",
+    clips: [
+      {
+        clipNumber: 1,
+        timeRange: "0–5s",
+        durationSeconds: 5,
+        narrativeJob: "Read the script.",
+        explainerScene: "Seated read.",
+        motionCamera: "Locked camera.",
+        englishVo: line || title,
+        bgmSfx: "none",
+      },
+    ],
+  };
+}
+
 export async function runPhaseA(input: {
   skill: Skill;
   // System styles and user forks. Style.id is a catalog id, so a user hex cannot be Style.
@@ -188,7 +238,7 @@ export async function runPhaseA(input: {
     ? `\nRegenerate ONLY the clips array (and clipCount / narrativeArc / englishWordCount / bgmDirection as needed). Copy localizedTitle, englishTitle, coreMessage, hookStrategy, narrator, visualWorld, characterLock, palette, aspectRatio, loopMode, and targetDuration verbatim from the current draft. Do not change the proposal brief.\n`
     : "";
 
-  const { output } = await generateText({
+  const generated = await generateText({
     model: directorModel(),
     output: Output.object({
       schema: dualBeat ? cartoonPhaseASchema : talkingHead ? talkingHeadPhaseASchema : phaseASchema,
@@ -325,8 +375,25 @@ Produce a complete Phase A director proposal now.`,
     ],
   });
 
+  // content-filter throws on `.output` and stores "No output generated."
+  // Talking-head clips do not come from the model, so keep the storyboard.
+  let output: PhaseAProposal | undefined;
+  if (generated.finishReason === "stop") {
+    output = generated.output ?? undefined;
+  }
   if (!output) {
-    throw new Error("解說提案產生失敗");
+    if (talkingHead) {
+      output = talkingHeadBriefWithoutModel({
+        source: input.source,
+        spokenScript: input.spokenScript,
+        aspectRatio: input.aspectRatio,
+        styleName: input.style.name,
+      });
+    } else if (generated.finishReason === "content-filter") {
+      throw new Error("這次題材被模型拒絕，請改寫場景描述後再試。");
+    } else {
+      throw new Error("解說提案產生失敗");
+    }
   }
   // Always linear: finales end cleanly; never invent a loop bridge.
   let next: PhaseAProposal = {
