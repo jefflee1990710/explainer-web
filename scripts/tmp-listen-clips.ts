@@ -34,7 +34,6 @@ async function main() {
           clipIndex: job.clipIndex,
           status: job.status,
           error: job.error,
-          raw: job.rawError || job.providerError || job.lastError,
           attempts: job.attempts,
           model: job.model,
           updatedAt: job.updatedAt,

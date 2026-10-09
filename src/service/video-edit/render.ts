@@ -19,9 +19,10 @@ export type FinalRenderInput = {
 
 // Burn brand layers into the reel and wrap it with the bookends.
 export async function renderFinalFromBuffers(input: FinalRenderInput): Promise<Buffer> {
-  const dir = await mkdtemp(join(tmpdir(), "final-"));
+  // OS temp dir, not the repo. Ignore it or Turbopack traces the whole project into the server bundle.
+  const dir = await mkdtemp(join(/* turbopackIgnore: true */ tmpdir(), "final-"));
   try {
-    await writeFile(join(dir, "main.mp4"), input.reel);
+    await writeFile(join(/* turbopackIgnore: true */ dir, "main.mp4"), input.reel);
     const main = parseProbe(await ffmpegStderr(dir, ["-i", "main.mp4"]));
     if (!main.width || !main.height || !main.durationSec) throw new Error("無法讀取成片資訊");
 
@@ -34,7 +35,7 @@ export async function renderFinalFromBuffers(input: FinalRenderInput): Promise<B
     ): Promise<FinalSegmentInput | undefined> {
       if (!source) return undefined;
       const name = `${slot}.${source.file.ext}`;
-      await writeFile(join(dir, name), source.file.buffer);
+      await writeFile(join(/* turbopackIgnore: true */ dir, name), source.file.buffer);
       const index = nextIndex++;
       if (source.clip.kind === "image") {
         args.push("-loop", "1", "-framerate", String(main.fps), "-t", String(source.clip.durationSec), "-i", name);
@@ -51,7 +52,7 @@ export async function renderFinalFromBuffers(input: FinalRenderInput): Promise<B
     for (let i = 0; i < input.layers.length; i += 1) {
       const { file, layer } = input.layers[i];
       const name = `layer${i}.${file.ext}`;
-      await writeFile(join(dir, name), file.buffer);
+      await writeFile(join(/* turbopackIgnore: true */ dir, name), file.buffer);
       args.push("-i", name);
       layers.push({
         index: nextIndex++,
@@ -74,7 +75,7 @@ export async function renderFinalFromBuffers(input: FinalRenderInput): Promise<B
     if (hasAudio) args.push("-map", "[a]", "-c:a", "aac", "-ac", "2");
     args.push("-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "final.mp4");
     await runFfmpeg(dir, args);
-    return await readFile(join(dir, "final.mp4"));
+    return await readFile(join(/* turbopackIgnore: true */ dir, "final.mp4"));
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
