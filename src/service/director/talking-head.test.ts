@@ -88,10 +88,15 @@ test("talking-head keeps instruction and spoken script as separate fields", () =
   assert.doesNotMatch(talkingHeadDirectorBlock(), /medium close-up/i);
 });
 
-test("clip 2 starts on clip 1's end still", () => {
+test("clip 2 keeps clip 1's pose but speaks only its own line", () => {
   const clips = planTalkingHeadClips({ source: SCRIPT, pace: "medium", language: "yue" });
   assert.ok(clips.length >= 2);
-  assert.equal(clips[1].startScene, clips[0].endScene);
+  assert.match(clips[1].startScene, /口部合上/);
+  assert.equal(clips[1].startScene.match(/逐字係「[^」]+」/)?.[0], clips[1].endScene.match(/逐字係「[^」]+」/)?.[0]);
+  assert.notEqual(clips[1].startScene.match(/逐字係「[^」]+」/)?.[0], clips[0].endScene.match(/逐字係「[^」]+」/)?.[0]);
+  assert.doesNotMatch(clips[1].motionCamera, /由「/);
+  assert.match(clips[1].motionCamera, /唔好讀出舊字/);
+  assert.equal(clips[1].motionCamera.includes(clips[0].englishVo), false);
   assert.match(clips[0].motionCamera, /底部字幕/);
   assert.match(clips[0].motionCamera, /口型跟住講/);
   assert.match(clips.map((clip) => clip.englishVo).join(""), /大家好，我係 Jeff/);
@@ -136,6 +141,29 @@ test("talking-head Phase B reuses motionCamera from Phase A", () => {
   assert.equal(prompt?.clipNumber, 1);
   assert.equal(prompt?.prompt, clips[0].motionCamera);
   assert.equal(talkingHeadPhaseBPrompt({ phaseA, clipNumber: 99 }), undefined);
+});
+
+test("an old clip 2 prompt drops the previous line before it is sent", () => {
+  const previous = "有無諗過你個Instagram都可以變成你嘅生財工具？";
+  const line = "係呢個市況唔好嘅大環境，大家更加要學多一個技能啦。";
+  const prompt = talkingHeadPhaseBPrompt({
+    language: "yue",
+    clipNumber: 2,
+    phaseA: {
+      clips: [
+        { clipNumber: 1, durationSeconds: 9, englishVo: previous, motionCamera: "第一段" },
+        {
+          clipNumber: 2,
+          durationSeconds: 8,
+          englishVo: line,
+          motionCamera: `口型跟住講「${line}」。中線下面少少嘅字幕由「${previous}」換成「${line}」。`,
+        },
+      ],
+    },
+  });
+  assert.match(prompt?.prompt || "", /唔好讀出舊字/);
+  assert.equal(prompt?.prompt.includes(previous), false);
+  assert.equal(prompt?.prompt.includes("換成"), false);
 });
 
 test("talking-head keeps a full English word inside a Cantonese line", () => {

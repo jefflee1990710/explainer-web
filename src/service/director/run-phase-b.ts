@@ -113,7 +113,11 @@ export async function runPhaseBForClip(
   const language = LANGUAGE_PRESETS[input.language || "en"];
   const talkingHead = isTalkingHeadSkill(input.skill.slug);
   let output = talkingHead
-    ? talkingHeadPhaseBPrompt({ phaseA: input.phaseA, clipNumber: input.clipNumber })
+    ? talkingHeadPhaseBPrompt({
+        phaseA: input.phaseA,
+        clipNumber: input.clipNumber,
+        language: input.language,
+      })
     : undefined;
   if (talkingHead && !output) {
     throw new Error("口播鏡頭缺少動作描述，請重新生成分鏡。");
@@ -181,7 +185,9 @@ export async function runPhaseBForClip(
     isOutfitReelSkill(input.skill.slug) ? OUTFIT_COVERED_SWAP : "",
     usesSpokenSubtitle(input.skill.slug)
       ? input.language === "yue"
-        ? "Subtitle: keep the Traditional written Chinese (書面語) already painted on the first and last frames. Do not repaint colloquial particles. The voice speaks Hong Kong colloquial Cantonese; the letters stay written Chinese, same place from the first frame to the last."
+        ? isTalkingHeadSkill(input.skill.slug)
+          ? "Subtitle: show only this clip's Traditional written Chinese (書面語), in the same place from the first moment to the last. If the opening frame still shows the previous clip's words, replace those letters at once and do not read them. The voice speaks this clip's Hong Kong colloquial line once, and no earlier sentence."
+          : "Subtitle: keep the Traditional written Chinese (書面語) already painted on the first and last frames. Do not repaint colloquial particles. The voice speaks Hong Kong colloquial Cantonese; the letters stay written Chinese, same place from the first frame to the last."
         : spokenSubtitleLock(input.phaseA.aspectRatio)
       : "",
   ]

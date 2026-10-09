@@ -4,7 +4,7 @@ import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
 import { chainsClipStarts, inheritsPreviousEnd } from "@/service/director/clip-continuity";
 import { DEFAULT_PERFORMANCE, performanceLanguage } from "@/service/director/performance";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
-import { hasAnchorProp, talkingMotionLine, type TalkingShot } from "@/service/director/talking-performance";
+import { hasAnchorProp, speakOnlyThisClip, talkingMotionLine, type TalkingShot } from "@/service/director/talking-performance";
 import { toWrittenChinese } from "@/service/director/written-chinese";
 import { mediaSrc } from "@/util/media-src";
 
@@ -219,7 +219,11 @@ export function planTalkingHeadClips(input: {
     const scene = { shot: input.shot, belowCenter, background: input.background, perf };
     const endScene = shotLine(input.language, "end", line, scene);
     const previousLine = index === 0 ? undefined : lines[index - 1];
-    const startScene = index === 0 ? shotLine(input.language, "start", line, scene) : clips[index - 1].endScene;
+    // Pose continues from the previous end. The subtitle is this clip's own line.
+    const startScene =
+      index === 0
+        ? shotLine(input.language, "start", line, scene)
+        : withThisClipSubtitle(clips[index - 1].endScene, input.language, line, belowCenter);
     clips.push({
       clipNumber: index + 1,
       timeRange: `0–${seconds}s`,
@@ -250,16 +254,21 @@ export function planTalkingHeadClips(input: {
 // Phase B often returns no object, so production reuses that row instead of calling the model.
 // Phase A rows only guarantee clip number, duration, and motion. startScene may be absent.
 export function talkingHeadPhaseBPrompt(input: {
-  phaseA: { clips: Array<{ clipNumber: number; durationSeconds: number; motionCamera?: string }> };
+  phaseA: {
+    clips: Array<{ clipNumber: number; durationSeconds: number; motionCamera?: string; englishVo?: string }>;
+  };
   clipNumber: number;
+  language?: VoLanguage;
 }) {
   const row = input.phaseA.clips.find((clip) => clip.clipNumber === input.clipNumber);
   const prompt = row?.motionCamera?.trim();
   if (!row || !prompt) return undefined;
+  const index = input.phaseA.clips.findIndex((clip) => clip.clipNumber === input.clipNumber);
+  const previous = index > 0 ? input.phaseA.clips[index - 1]?.englishVo : undefined;
   return {
     clipNumber: input.clipNumber,
     durationSeconds: row.durationSeconds,
-    prompt,
+    prompt: previous ? speakOnlyThisClip(prompt, row.englishVo || "", input.language) : prompt,
   };
 }
 
@@ -274,7 +283,7 @@ export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
     fullBody
       ? "Locked full-body shot. Head, torso, and feet stay in frame. The character looks into the lens. Do not crop to a close-up."
       : "Locked seated medium shot, like a real phone video filmed at home. Head and torso stay in frame. The character sits and looks into the lens. Do not stand them up. Do not crop to a face-only close-up.",
-    "Clip 2+ startScene must copy the previous clip's endScene. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, hands gesturing and changing shape every 1–2 seconds, following the performance slots in the director block. One subtitle equal to that clip's spoken line, same on the start and end still.",
+    "Clip 2+ keeps the previous clip's pose, set, and camera, but both stills show this clip's own spoken line as the subtitle. Never copy the previous clip's words into this clip's subtitle or voice. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, hands gesturing and changing shape every 1–2 seconds, following the performance slots in the director block. The voice says only this clip's line, once.",
   ].join(" ");
 }
 
@@ -312,6 +321,7 @@ export function talkingHeadDirectorBlock(skillSlug?: string, aspectRatio?: strin
     `Face pattern: resting face is ${p.restingFace}. Emphasis: ${p.emphasisBeat}. Clip 1 opens with ${p.hookBeat} as the hook. The last clip ends on ${p.ctaBeat}.`,
     `Gesture pattern: the gesturing hand changes shape every 1–2 seconds in time with the words — ${p.gestureLibrary}. Head: ${p.headMotion}.`,
     talkingSubtitleRule(aspectRatio),
+    "Each clip's voice says only that clip's own line, once. Never repeat the previous clip's sentence, even when the opening frame still shows it.",
   ].join(" ");
 }
 
@@ -371,6 +381,25 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
         : `角色：畫面仍然只有呢一個人，仍然坐住直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，頭反向微傾。${propEnd}${freeHand}掌心打開停喺胸前，好似兩個手勢之間。`;
   const place = scene.belowCenter ? "畫面垂直中線下面少少一行，避開臉同最底邊" : "畫面底部一行";
   return `${pose}${setClause("yue", scene)}${camera}字幕：${place}，逐字係「${painted}」。`;
+}
+
+// Keep the previous end's pose, and swap in this clip's own subtitle.
+function withThisClipSubtitle(
+  previousEnd: string,
+  language: VoLanguage | undefined,
+  line: string,
+  belowCenter: boolean,
+) {
+  const painted = language === "yue" ? toWrittenChinese(line) : line;
+  const body = previousEnd.replace(/\s*(?:Subtitle:|字幕：).*$/u, "").trim();
+  if (language === "en") {
+    const place = belowCenter
+      ? "one line a little below the vertical center, clear of the face and the bottom edge"
+      : "one bottom line";
+    return `${body} Subtitle: ${place}, exactly "${painted}".`;
+  }
+  const place = belowCenter ? "畫面垂直中線下面少少一行，避開臉同最底邊" : "畫面底部一行";
+  return `${body}字幕：${place}，逐字係「${painted}」。`;
 }
 
 function capitalize(text: string) {

@@ -113,6 +113,26 @@ test("custom performance slots replace the default text in motion and rules", ()
   assert.match(rules, /one hand leads, the other follows/);
 });
 
+test("a continued clip never quotes the previous spoken line", () => {
+  const previous = "有無諗過你個Instagram都可以變成你嘅生財工具？";
+  const line = "係呢個市況唔好嘅大環境，大家更加要學多一個技能啦。";
+  const motion = talkingMotionLine({
+    language: "yue",
+    seconds: 8,
+    line,
+    previousLine: previous,
+    shot: "face",
+    clipNumber: 2,
+    totalClips: 2,
+    belowCenter: true,
+  });
+  assert.doesNotMatch(motion, /由「/);
+  assert.doesNotMatch(motion, /生財/);
+  assert.match(motion, /口型跟住講「係呢個市況唔好嘅大環境/);
+  assert.match(motion, /唔好讀出舊字/);
+  assert.match(motion, /市況不好的大環境/);
+});
+
 test("talking video rules forbid snap verbs and a frozen statue", () => {
   const rules = talkingVideoMotionRules("full-body");
   assert.match(rules, /lip-sync/);
