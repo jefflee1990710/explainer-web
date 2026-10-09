@@ -58,6 +58,12 @@ export async function deleteCharacterAction(
   return service.deleteCharacterAction(...args);
 }
 
+export async function loadCharacterWorkspaceAction(
+  ...args: Parameters<typeof service.loadCharacterWorkspaceAction>
+) {
+  return service.loadCharacterWorkspaceAction(...args);
+}
+
 export async function getCharacterAction(
   ...args: Parameters<typeof service.getCharacterAction>
 ) {

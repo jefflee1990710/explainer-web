@@ -17,7 +17,7 @@ import {
   versionStyleId,
 } from "@/service/character/character-styles";
 import { characterAllowance } from "@/service/character/character-limit";
-import { characterStyleAllowance } from "@/service/character/style-limit";
+import { characterStyleAllowance, isCharacterStyleLimitUnlocked } from "@/service/character/style-limit";
 import { extractCharacterSpec } from "@/service/character/extract-spec";
 import {
   editReferenceUrls,
@@ -33,8 +33,10 @@ import {
   mediaUrlFromResponse,
 } from "@/service/higgsfield/generate";
 import { applyJobStatus } from "@/service/higgsfield/pipeline";
-import { toPublicCharacter, type PublicCharacter } from "@/presentation/serialize";
+import { toPublicCharacter, type PublicCharacter, type PublicStyle } from "@/presentation/serialize";
 import { isListedStyleId } from "@/service/style/list-selectable";
+import { listSelectableStyles } from "@/service/style/list";
+import type { PlanId } from "@/model/subscription";
 import type { Character, CharacterVersion } from "@/model/character";
 import { characterVoiceForStorage, parseCharacterVoice, type CharacterVoice } from "@/model/character-voice";
 import { characterBlueprintVoiceInput, inferCharacterVoice } from "@/service/character/infer-voice";
@@ -648,6 +650,46 @@ export async function deleteCharacterAction(
       ok: false,
       error: error instanceof Error ? error.message : "刪除角色失敗",
     };
+  }
+}
+
+export type CharacterWorkspaceLoad =
+  | {
+      ok: true;
+      character: PublicCharacter;
+      credits: number;
+      subscribed: boolean;
+      planId: PlanId | null;
+      unlimitedStyles: boolean;
+      styles: PublicStyle[];
+    }
+  | { ok: false; error: string };
+
+// Everything the character page paints. The route itself stays empty so the URL
+// changes immediately and this load fills the page.
+export async function loadCharacterWorkspaceAction(
+  characterId: string,
+): Promise<CharacterWorkspaceLoad> {
+  try {
+    const user = await requireAppUser();
+    const character = await ownedCharacter(characterId, user.clerkUserId);
+    if (!character) return { ok: false, error: "角色不存在" };
+    const [sub, selectable] = await Promise.all([
+      getActiveSubscription(user.clerkUserId),
+      listSelectableStyles(user.clerkUserId),
+    ]);
+    const subscribed = isSubscriptionActive(sub);
+    return {
+      ok: true,
+      character: toPublicCharacter(character),
+      credits: user.credits,
+      subscribed,
+      planId: subscribed && sub ? sub.planId : null,
+      unlimitedStyles: isCharacterStyleLimitUnlocked(user.email),
+      styles: [...selectable.system, ...selectable.mine],
+    };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "讀取角色失敗" };
   }
 }
 

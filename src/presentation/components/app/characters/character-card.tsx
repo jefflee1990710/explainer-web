@@ -24,15 +24,15 @@ export function CharacterCard({ character }: { character: PublicCharacter }) {
         character.failed ? "border-[#f04444]" : "border-[var(--studio-line)]"
       }`}
     >
-      <Link
-        href={href}
-        className={`relative block overflow-hidden bg-white ${character.previewIsProfile ? "aspect-[3/4]" : ""}`}
-        style={
-          character.previewIsProfile
-            ? undefined
-            : { aspectRatio: `${BLUEPRINT_BOARD_WIDTH} / ${BLUEPRINT_BOARD_HEIGHT}` }
-        }
-      >
+      <Link href={href} className="flex flex-1 flex-col">
+        <span
+          className={`relative block overflow-hidden bg-white ${character.previewIsProfile ? "aspect-[3/4]" : ""}`}
+          style={
+            character.previewIsProfile
+              ? undefined
+              : { aspectRatio: `${BLUEPRINT_BOARD_WIDTH} / ${BLUEPRINT_BOARD_HEIGHT}` }
+          }
+        >
         {character.previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -60,19 +60,18 @@ export function CharacterCard({ character }: { character: PublicCharacter }) {
             {t("characters.cardFailed")}
           </span>
         ) : null}
-      </Link>
-      <div className="flex flex-1 flex-col gap-1 px-3 py-2.5">
-        <Link href={href} className="min-w-0">
+        </span>
+        <span className="flex flex-1 flex-col gap-1 px-3 py-2.5">
           <h3 className="line-clamp-1 text-sm font-medium">{character.name}</h3>
-        </Link>
-        <p className="mt-auto text-xs text-muted">
-          {character.styleIds.length > 1
-            ? t("characters.styleCount", { n: character.styleIds.length })
-            : localizedStyleName(character.styleId)}
-          {" · "}
-          {t("characters.versionCount", { n: character.versions.length })}
-        </p>
-      </div>
+          <p className="mt-auto text-xs text-muted">
+            {character.styleIds.length > 1
+              ? t("characters.styleCount", { n: character.styleIds.length })
+              : localizedStyleName(character.styleId)}
+            {" · "}
+            {t("characters.versionCount", { n: character.versions.length })}
+          </p>
+        </span>
+      </Link>
     </motion.article>
   );
 }
