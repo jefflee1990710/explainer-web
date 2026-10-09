@@ -3,6 +3,10 @@ import { test } from "node:test";
 import { voiceSwapVoiceId } from "@/model/character-voice-sample";
 import { videoCost } from "@/service/credit-costs";
 import { mixVoiceArgs, VOICE_SWAP_FILTER } from "@/service/voice/voice-swap-args";
+import {
+  CANTONESE_TALKING_HEAD_VOICE_ID,
+  resolveVoiceSwapId,
+} from "@/service/voice/voice-swap-target";
 
 test("voice swap runs only for a one-character cast with a demo voice", () => {
   assert.equal(voiceSwapVoiceId(undefined), null);
@@ -13,6 +17,22 @@ test("voice swap runs only for a one-character cast with a demo voice", () => {
     voiceSwapVoiceId([{ voiceSample: { elevenVoiceId: "v1" } }, { voiceSample: { elevenVoiceId: "v2" } }]),
     null,
   );
+});
+
+test("Cantonese talking-head always converts, and a cloned demo voice wins", () => {
+  const yue = { skillSlug: "talking-head-director", language: "yue" };
+  assert.equal(resolveVoiceSwapId(yue), CANTONESE_TALKING_HEAD_VOICE_ID);
+  assert.equal(
+    resolveVoiceSwapId({ ...yue, skillSlug: "full-body-talking-head-director" }),
+    CANTONESE_TALKING_HEAD_VOICE_ID,
+  );
+  assert.equal(
+    resolveVoiceSwapId({ ...yue, cast: [{ voiceSample: { elevenVoiceId: "clone" } }] }),
+    "clone",
+  );
+  assert.equal(resolveVoiceSwapId({ skillSlug: "talking-head-director", language: "zh" }), null);
+  assert.equal(resolveVoiceSwapId({ skillSlug: "cartoon-explainer-video-director", language: "yue" }), null);
+  assert.equal(videoCost(5, "doodle", Boolean(resolveVoiceSwapId(yue))), 50);
 });
 
 test("voice swap adds 1 credit per billed second", () => {

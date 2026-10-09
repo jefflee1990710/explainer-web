@@ -4,7 +4,7 @@ import type { ClipFrame, ProjectClip } from "@/model/project";
 
 import { MIN_VIDEO_COST, MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
 import { talkingHeadFramesCost } from "@/service/director/talking-head";
-import { voiceSwapVoiceId } from "@/model/character-voice-sample";
+import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 
 export * from "@/service/credit-costs";
 
@@ -14,7 +14,7 @@ export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
   return videoCost(
     row?.durationSeconds ?? MIN_VIDEO_SECONDS,
     project.styleId,
-    Boolean(voiceSwapVoiceId(project.cast)),
+    Boolean(resolveVoiceSwapId(project)),
   );
 }
 

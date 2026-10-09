@@ -51,7 +51,7 @@ import { scheduleGenerationFinishedEmail } from "@/service/notify/generation-ema
 import { queueReelIfReady } from "@/service/reel/enqueue";
 import { retimeMp4 } from "@/service/reel/retime";
 import { swapClipVoice } from "@/service/voice/voice-swap";
-import { voiceSwapVoiceId } from "@/model/character-voice-sample";
+import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import { mediaSrc } from "@/util/media-src";
 import { isBookendSkill } from "@/service/director/skill-rules";
 import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lock";
@@ -638,10 +638,11 @@ export async function applyJobStatus(input: {
             })
           ).canvasColor
         : undefined;
-    // One-character cast with a demo voice: re-voice before any retime.
+    // Re-voice before any retime. A cloned demo wins; Cantonese talking-head
+    // always converts on ElevenLabs even when the cast has no sample.
     const voiceId =
       project && job.kind === "video" && !isBookendSkill(project.skillSlug)
-        ? voiceSwapVoiceId(project.cast)
+        ? resolveVoiceSwapId(project)
         : null;
     const swapVoice = (buffer: Buffer) =>
       voiceId

@@ -138,6 +138,23 @@ test("talking-head Phase B reuses motionCamera from Phase A", () => {
   assert.equal(talkingHeadPhaseBPrompt({ phaseA, clipNumber: 99 }), undefined);
 });
 
+test("talking-head keeps a full English word inside a Cantonese line", () => {
+  const source = [
+    "有無諗過你個Instagram也可以變成你嘅生財工具？",
+    "我係下星期一有一個Webinar就係教大家點樣做，",
+    "係呢個市況唔好嘅大環境，大家更加要學多一個技能啦，仲要免費！",
+    "大家DM留言報名啦！",
+  ].join("");
+  const clips = planTalkingHeadClips({ source, pace: "medium", language: "yue" });
+  const spoken = clips.map((clip) => clip.englishVo).join("\n");
+  assert.match(spoken, /Instagram/);
+  assert.match(spoken, /Webinar/);
+  assert.match(spoken, /DM/);
+  assert.doesNotMatch(spoken, /Instagra\s/);
+  assert.doesNotMatch(spoken, /Webi\s/);
+  assert.ok(clips.every((clip) => clip.durationSeconds >= 5 && clip.durationSeconds <= 12));
+});
+
 test("talking-head evens word count and keeps a named shot", () => {
   const script = [
     "Hi, everyone. I am Scro.",

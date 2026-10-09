@@ -267,7 +267,7 @@ export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
   return [
     fullBody ? "Full-body talking-head read: ignore the duration preset." : "Talking-head read: ignore the duration preset.",
     "The first user text is a DIRECTOR INSTRUCTION for staging and tone. The second user text is the SPOKEN SCRIPT — copy the words into englishVo verbatim.",
-    "Do not force one sentence per clip. Group short lines and split long lines so each clip has a similar word count and the same speaking pace.",
+    "Do not force one sentence per clip. Group short lines and split long lines so each clip has a similar word count and the same speaking pace. Never cut through a complete English word such as Instagram, Webinar, or Scro.io.",
     `Clip count is from 1 to ${TALKING_HEAD_MAX_CLIPS}. Each clip is ${PROVIDER_MIN_SECONDS}–${TALKING_HEAD_MAX_SECONDS}s.`,
     `durationSeconds follows Chinese characters / ${CJK_CHARS_PER_SECOND} + English words / ${ENGLISH_WORDS_PER_SECOND}, then ${paceNote(pace)}.`,
     fullBody
@@ -451,27 +451,49 @@ function splitClauses(sentence: string) {
   return parts.length ? parts : [sentence];
 }
 
+// A Latin token (Instagram, Webinar, Scro.io, DM) is one atom. Han is one character.
+// A no-space Cantonese line must not be sliced through the middle of an English word.
+function speechAtoms(text: string): string[] {
+  const atoms: string[] = [];
+  const token = /\s+|[A-Za-z][A-Za-z0-9]*(?:[.'’-][A-Za-z0-9]+)*|\p{Script=Han}|./gu;
+  for (const match of text.matchAll(token)) {
+    const piece = match[0];
+    if (/^\s+$/.test(piece)) {
+      if (atoms.length && /[A-Za-z0-9]$/.test(atoms[atoms.length - 1])) {
+        atoms[atoms.length - 1] += " ";
+      }
+      continue;
+    }
+    atoms.push(piece);
+  }
+  return atoms;
+}
+
 function splitLongPiece(text: string, pace?: SpeechPace) {
   const trimmed = text.trim();
   if (rawSpokenSeconds(trimmed, pace) <= 4) return [trimmed];
+  const atoms = speechAtoms(trimmed);
+  if (atoms.length <= 1) return [trimmed];
   const parts = Math.max(2, Math.ceil(rawSpokenSeconds(trimmed, pace) / 4));
-  const cjkRun = /[\u4e00-\u9fff]/.test(trimmed) && !/\s/.test(trimmed);
-  if (cjkRun) {
-    const chars = [...trimmed];
-    const size = Math.ceil(chars.length / parts);
-    const chunks: string[] = [];
-    for (let index = 0; index < chars.length; index += size) {
-      chunks.push(chars.slice(index, index + size).join(""));
-    }
-    return chunks;
-  }
-  const words = trimmed.split(/\s+/);
-  const size = Math.ceil(words.length / parts);
+  const weights = atoms.map((atom) => Math.max(rawSpokenSeconds(atom.trim(), pace), 0.01));
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  const target = total / parts;
   const chunks: string[] = [];
-  for (let index = 0; index < words.length; index += size) {
-    chunks.push(words.slice(index, index + size).join(" "));
+  let current: string[] = [];
+  let weight = 0;
+  for (let index = 0; index < atoms.length; index += 1) {
+    current.push(atoms[index]);
+    weight += weights[index];
+    const remaining = atoms.length - index - 1;
+    const slotsLeft = parts - chunks.length - 1;
+    if (slotsLeft > 0 && weight >= target && remaining >= slotsLeft) {
+      chunks.push(current.join("").trim());
+      current = [];
+      weight = 0;
+    }
   }
-  return chunks;
+  if (current.length) chunks.push(current.join("").trim());
+  return chunks.filter(Boolean);
 }
 
 // Pick the clip count whose real slices are closest in length, each at least 5s.

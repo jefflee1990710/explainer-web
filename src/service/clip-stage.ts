@@ -2,12 +2,13 @@ import { mediaSrc } from "@/util/media-src";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
 import { talkingHeadFramesCost } from "@/service/director/talking-head";
-import { voiceSwapVoiceId } from "@/model/character-voice-sample";
+import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import type {
   ClipFrame,
   LegacyProjectStatus,
   ProjectClip,
   ProjectStatus,
+  VoLanguage,
 } from "@/model/project";
 
 // Where one clip is in production. Derived, never stored.
@@ -45,6 +46,7 @@ export type ClipStageSource = {
   phaseA?: { clips: Array<{ clipNumber: number; durationSeconds?: number; editedAt?: string }> };
   frames?: ClipFrame[];
   clips: ProjectClip[];
+  language?: VoLanguage;
   // Only `voiceSample` is read, to price the voice swap.
   cast?: Array<{ voiceSample?: { elevenVoiceId?: string } | null }>;
 };
@@ -116,7 +118,7 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
     videoCost: videoCost(
       row?.durationSeconds ?? MIN_VIDEO_SECONDS,
       project.styleId,
-      Boolean(voiceSwapVoiceId(project.cast)),
+      Boolean(resolveVoiceSwapId(project)),
     ),
     frameCost: talkingHeadFramesCost(project.skillSlug, clipNumber),
     // Cancel is only offered before the provider has the request.
