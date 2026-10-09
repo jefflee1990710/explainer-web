@@ -291,7 +291,7 @@ export function talkingHeadDirectorBlock(skillSlug?: string, aspectRatio?: strin
     "The spoken script is locked. Each clip's englishVo is a verbatim slice of that script. Do not paraphrase. Give every clip a similar amount of speech.",
     fullBody
       ? "Camera is a locked full-body shot. Do not crop to a close-up or a medium shot. Set and light stay identical across every clip. Clip 2 and after open on the previous clip's end still."
-      : "Camera is a locked seated medium shot: head, torso, and the homemade microphone stay in frame. Same lived-in room, same seat, same soft indoor daylight in every clip. No pictures pasted on the frame. Do not stand the character up. Do not crop to a face-only close-up. Clip 2 and after open on the previous clip's end still.",
+      : "Camera is a locked seated medium shot: head, torso, and the homemade microphone stay in frame. Same seat beside a bookshelf, same soft indoor daylight in every clip. No pictures pasted on the frame. Do not stand the character up. Do not crop to a face-only close-up. Clip 2 and after open on the previous clip's end still.",
     fullBody
       ? "On-camera speech like a real person recording a reel: eyes locked on the lens, continuous lip-sync, head tilting and nodding, both hands gesturing at chest height, weight shifting hip to hip. Never freeze the face, head, hands, or body. Never a greeting wave."
       : "On-camera speech like a real person filming a phone video at home: seated, eyes locked on the lens, continuous lip-sync, head tilting and nodding, shoulders rocking, one hand keeping a small homemade microphone near the mouth. Natural skin, real cloth, unposed. Never freeze the face or neck. Never a greeting wave. Never stand up.",
@@ -358,9 +358,10 @@ function setClause(language: "en" | "yue", fullBody: boolean) {
       ? "Set: the same plain background in every clip, no new props. Light: soft and even, unchanged."
       : "場景：全程同一個簡潔背景，冇新道具。光：柔和均勻，不變。";
   }
+  // Books beside the seat. A bed in this line was getting the video safety check to block later clips.
   return language === "en"
-    ? "Set: the same real sitting spot in every clip, a lived-in room with a seat and a simple wall or bed behind the shoulders. No pictures pasted on the frame, no extra writing, no new props besides the homemade microphone. Light: soft natural indoor daylight, ordinary and unchanged, like a phone video at home."
-    : "場景：全程同一個真實坐位，住家房間，身後係牆或者床。畫面上面唔好貼圖、唔好加字，除咗自製咪之外冇新道具。光：柔和自然室內日光，似喺屋企用手機拍，不變。";
+    ? "Set: the same real sitting spot in every clip, seated beside a bookshelf, books at the shoulder. No pictures pasted on the frame, no extra writing, no new props besides the homemade microphone. Light: soft natural indoor daylight, ordinary and unchanged, like a phone video at home."
+    : "場景：全程同一個真實坐位，坐喺書架旁邊，身後係書。畫面上面唔好貼圖、唔好加字，除咗自製咪之外冇新道具。光：柔和自然室內日光，似喺屋企用手機拍，不變。";
 }
 
 function cameraClause(language: VoLanguage | undefined, shot?: string) {

@@ -31,7 +31,7 @@ If required items are missing, ask for them in one concise message and stop.
 The rendering rules (canvas, look, palette, and motion) come from the **Visual style** block appended below. Do not invent a different medium. Lettering comes only from the selected text style, never from the visual style or from this skill.
 
 - Locked seated medium shot. The character sits, centered, head and torso in frame, and looks straight into the lens like a real phone video filmed at home. One hand holds a small homemade microphone — a thin stick with a fluffy fuzzy windscreen — close to the mouth. Do not stand them up. Do not crop to a face-only close-up.
-- Same lived-in room, same seat, same soft indoor daylight, same camera. A simple wall or bed behind the shoulders. No pictures pasted on the frame, no extra writing, no new props besides the homemade microphone. No push-in, no cutaway.
+- Same seat beside a bookshelf, same soft indoor daylight, same camera. Books at the shoulder. No pictures pasted on the frame, no extra writing, no new props besides the homemade microphone. No push-in, no cutaway.
 - While speaking the head, shoulders, and the mic hand keep moving. The microphone stays near the mouth. Never freeze into a presenter statue. Never stand up.
 - **Clip 2 and after**: `startScene` is the previous clip's `endScene`. The read continues; it does not restage.
 

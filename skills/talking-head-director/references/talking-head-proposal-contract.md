@@ -32,7 +32,7 @@ One row per balanced clip, not one row per sentence.
 Write `startScene` and `endScene` as four concrete parts, in order:
 
 1. Character: seated, eyes locked into the lens like a real phone video filmed at home, mouth just opening, one hand holding a small homemade microphone close to the mouth (start) or mouth just closed in a small real smile, the same microphone still near the mouth (end). Never describe appearance. Never stand them up.
-2. Set: the same lived-in room and the same seat in every clip. A simple wall or bed behind the shoulders. No pictures pasted on the frame.
+2. Set: the same seat beside a bookshelf in every clip. Books at the shoulder. No pictures pasted on the frame.
 3. Light: soft natural indoor daylight, the same in every clip.
 4. Camera: locked seated medium shot, head, torso, and the homemade microphone in frame. Name the subtitle place (a little below center on 9:16, across the bottom on 16:9) and quote the spoken line.
 
