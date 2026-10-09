@@ -1,3 +1,5 @@
+import { CANTONESE_JYUTPING } from "@/service/voice/cantonese-jyutping";
+
 // The video model voices Cantonese clips itself and ElevenLabs only swaps the
 // timbre, so the reading has to be right when the clip is generated.
 
@@ -13,13 +15,8 @@ const ENGLISH_SOUNDS: Record<string, string> = {
   app: "ap",
 };
 
-// Words the model misreads, with Jyutping (粵拼).
-const JYUTPING: Array<[string, string]> = [
-  ["生財", "saang1 coi4"],
-  ["技能", "gei6 nang4"],
-  ["市況", "si5 fong3"],
-  ["免費", "min5 fai3"],
-];
+// Keeps the prompt short when a long line hits many words.
+const MAX_JYUTPING = 12;
 
 // Extra lines for a Cantonese clip prompt: language lock, English words, Jyutping.
 export function cantonesePronunciationLock(line?: string) {
@@ -29,7 +26,9 @@ export function cantonesePronunciationLock(line?: string) {
     const sound = ENGLISH_SOUNDS[word.toLowerCase()];
     return sound ? `"${word}" = ${sound}` : `"${word}"`;
   });
-  const jyutping = JYUTPING.filter(([word]) => text.includes(word)).map(([word, sound]) => `${word} = ${sound}`);
+  const jyutping = CANTONESE_JYUTPING.filter(([word]) => text.includes(word))
+    .slice(0, MAX_JYUTPING)
+    .map(([word, sound]) => `${word} = ${sound}`);
   const parts = ["Speech language: Hong Kong Cantonese (廣東話) only, never Mandarin. Read every Chinese character with its Cantonese sound."];
   if (english.length) parts.push(`Say these English words in natural English, not as Chinese syllables: ${english.join(", ")}.`);
   if (jyutping.length) parts.push(`Pronunciation (Jyutping): ${jyutping.join(", ")}.`);

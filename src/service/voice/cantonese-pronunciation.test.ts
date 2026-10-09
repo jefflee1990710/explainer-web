@@ -4,6 +4,24 @@ import {
   cantonesePronunciationLock,
   withCantonesePronunciation,
 } from "@/service/voice/cantonese-pronunciation";
+import { CANTONESE_JYUTPING } from "@/service/voice/cantonese-jyutping";
+
+test("every Jyutping entry has one toned syllable per character, no duplicates", () => {
+  const words = new Set<string>();
+  for (const [word, sound] of CANTONESE_JYUTPING) {
+    const syllables = sound.split(" ");
+    assert.equal(syllables.length, [...word].length, word);
+    for (const syllable of syllables) assert.match(syllable, /^[a-z]+[1-6]$/, word);
+    assert.equal(words.has(word), false, word);
+    words.add(word);
+  }
+});
+
+test("Jyutping list is capped on a long line", () => {
+  const line = CANTONESE_JYUTPING.map(([word]) => word).join("，");
+  const listed = cantonesePronunciationLock(line).match(/ = [a-z]+\d/g) ?? [];
+  assert.equal(listed.length, 12);
+});
 
 const LINE = "有無諗過你個Instagram都可以變成你嘅生財工具？我係下星期一有一個Webinar";
 
