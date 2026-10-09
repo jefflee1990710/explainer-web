@@ -6,8 +6,8 @@ import {
 } from "@/service/higgsfield/frame-prompts";
 
 // Flare rejects prompts over this many characters. At the cap, shorten first.
-export function framePromptNeedsShorten(prompt: string) {
-  return prompt.length >= IMAGE_PROMPT_MAX_CHARS;
+export function framePromptNeedsShorten(prompt: string, maxChars = IMAGE_PROMPT_MAX_CHARS) {
+  return prompt.length >= maxChars;
 }
 
 // Quoted spellings and titles must survive compression unchanged.
@@ -34,10 +34,11 @@ export function framePromptSectionLabels(prompt: string) {
 export function validateShortenedFramePrompt(
   original: string,
   shortened: string,
+  maxChars = IMAGE_PROMPT_MAX_CHARS,
 ): { ok: true } | { ok: false; error: string } {
   const next = shortened.trim();
   if (!next) return { ok: false, error: "產圖說明縮短失敗，請再試一次" };
-  if (next.length >= IMAGE_PROMPT_MAX_CHARS) {
+  if (next.length >= maxChars) {
     return { ok: false, error: "產圖說明縮短後仍超過上限" };
   }
   const missingQuote = framePromptQuotes(original).find((quote) => !next.includes(quote));
@@ -54,12 +55,15 @@ function unwrapModelText(text: string) {
 }
 
 // Compress prose only. Headings and quoted lines stay so the still still spells the same words.
-export async function shortenFramePromptWithGemini(prompt: string) {
+export async function shortenFramePromptWithGemini(
+  prompt: string,
+  maxChars = FRAME_PROMPT_BUDGET,
+) {
   const { text } = await generateText({
     model: directorModel(),
     system: [
       "You shorten an image-generation prompt.",
-      `The result must be under ${FRAME_PROMPT_BUDGET} characters.`,
+      `The result must be under ${maxChars} characters.`,
       "Keep every section label, including the words before each colon, and keep Aspect ratio.",
       "Keep every double-quoted string and every 「」 string exactly, character for character.",
       "Compress only the prose between those labels. Do not drop a section, do not add sections, and do not change the order.",
@@ -74,11 +78,13 @@ export async function shortenFramePromptWithGemini(prompt: string) {
 // and the result is checked before any image request.
 export async function ensureFramePromptFits(
   prompt: string,
-  shorten: (prompt: string) => Promise<string> = shortenFramePromptWithGemini,
+  shorten?: (prompt: string) => Promise<string>,
+  maxChars = IMAGE_PROMPT_MAX_CHARS,
 ) {
-  if (!framePromptNeedsShorten(prompt)) return prompt;
-  const shortened = unwrapModelText(await shorten(prompt));
-  const check = validateShortenedFramePrompt(prompt, shortened);
+  if (!framePromptNeedsShorten(prompt, maxChars)) return prompt;
+  const run = shorten ?? ((text: string) => shortenFramePromptWithGemini(text, maxChars));
+  const shortened = unwrapModelText(await run(prompt));
+  const check = validateShortenedFramePrompt(prompt, shortened, maxChars);
   if (!check.ok) throw new Error(check.error);
   return shortened;
 }

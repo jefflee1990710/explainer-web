@@ -69,7 +69,7 @@ import {
 } from "@/service/director/surprise-interview";
 import { clipReferenceImageUrls } from "@/service/project/reference-images";
 import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
-import { imageRouteForSceneText } from "@/service/generation/image-backend";
+import { IDEOGRAM_PROMPT_MAX, imageRouteForSceneText } from "@/service/generation/image-backend";
 import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
 import { FRAME_RENDER_DETAIL } from "@/service/director/scene-detail";
 import {
@@ -229,7 +229,41 @@ type FrameTrimmable = {
 // is this image's content, so generic rules go first and the Scene only loses Light and
 // the tail of Set. Subtitles, cast / wardrobe locks, composition lock and aspect ratio never trim.
 // Anything still over is left for the send-time shorten step.
-function fitFramePrompt(parts: FrameTrimmable, compose: (parts: FrameTrimmable) => string) {
+function quotedSpellings(prompt: string) {
+  const quotes = new Set<string>();
+  for (const match of prompt.matchAll(/"([^"\n]+)"|「([^」\n]+)」/g)) {
+    const text = (match[1] || match[2] || "").trim();
+    if (text) quotes.add(text);
+  }
+  return [...quotes];
+}
+
+// Ideogram only accepts 2048 characters. Keep the exact lettering and the
+// scene, and drop the long identity notes the blueprint image already shows.
+export function compactIdeogramFramePrompt(prompt: string, aspectRatio: string) {
+  const quotes = quotedSpellings(prompt);
+  const scene = prompt.match(/^Scene: .+$/m)?.[0] ?? "Scene: the storyboard still.";
+  const sceneLine = scene.length > 700 ? `${scene.slice(0, 699)}…` : scene;
+  const labels = quotes.filter((quote) => prompt.includes(`「${quote}」`));
+  const spoken = quotes.filter((quote) => !labels.includes(quote));
+  const lines = [
+    "On-canvas lettering ON — highest priority. Draw each character below exactly. Do not swap in a similar word.",
+    ...spoken.map((quote) => `Marker line (spell exactly): "${quote}"`),
+    ...(labels.length ? [`Also draw these labels exactly: ${labels.map((label) => `「${label}」`).join(" ")}`] : []),
+    "Look: extra-bold condensed sans, white fill, thick black outline, sitting on a yellow dry-brush stroke.",
+    sceneLine,
+    "Draw exactly one character matching attached image 1. Do not copy a turnaround sheet or draw the person twice.",
+    "No extra words and no subtitle bar.",
+    `Aspect ratio ${aspectRatio}.`,
+  ];
+  return lines.join("\n");
+}
+
+function fitFramePrompt(
+  parts: FrameTrimmable,
+  compose: (parts: FrameTrimmable) => string,
+  budget = FRAME_PROMPT_BUDGET,
+) {
   const steps: Array<(p: FrameTrimmable) => FrameTrimmable> = [
     (p) => ({ ...p, visualWorld: clipAt(firstSentence(p.visualWorld), 300) }),
     (p) => ({ ...p, motion: clipAt(firstSentence(p.motion), 160) }),
@@ -245,7 +279,7 @@ function fitFramePrompt(parts: FrameTrimmable, compose: (parts: FrameTrimmable) 
   let current = parts;
   let prompt = compose(current);
   for (const step of steps) {
-    if (prompt.length <= FRAME_PROMPT_BUDGET) return prompt;
+    if (prompt.length <= budget) return prompt;
     current = step(current);
     prompt = compose(current);
   }
@@ -627,7 +661,11 @@ export function buildFramePrompt(
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
 
-  return fitFramePrompt(
+  // Ideogram rejects anything over 2048 characters. Soft sections trim first;
+  // the spelled subtitle line is outside those sections and stays whole.
+  const ideogram = imageRouteForSceneText(sceneText.language).model.startsWith("ideogram/");
+  const budget = ideogram ? IDEOGRAM_PROMPT_MAX : FRAME_PROMPT_BUDGET;
+  const prompt = fitFramePrompt(
     {
       visualWorld,
       palette: phaseA.palette,
@@ -637,7 +675,10 @@ export function buildFramePrompt(
       renderDetail: FRAME_RENDER_DETAIL,
     },
     compose,
+    budget,
   );
+  if (!ideogram || prompt.length <= IDEOGRAM_PROMPT_MAX) return prompt;
+  return compactIdeogramFramePrompt(prompt, project.aspectRatio);
 }
 
 // Prompt + reference URLs for one still submit. End waits until start exists

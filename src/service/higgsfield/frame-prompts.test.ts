@@ -6,6 +6,7 @@ import {
   FRAME_PROMPT_BUDGET,
   IMAGE_PROMPT_MAX_CHARS,
   buildFramePrompt,
+  compactIdeogramFramePrompt,
   frameSubmitPlan,
   framesWithClips,
   framesWithClipsReady,
@@ -554,6 +555,19 @@ test("other skills keep a single scene and full voiceover on both stills", () =>
   assert.match(end, /Whole line/);
 });
 
+test("a long Cantonese prompt keeps the exact line inside Ideogram's cap", () => {
+  const full = [
+    'Marker line (spell exactly): "你啲貨幾靚都好喎，"',
+    "Scene: 紙箱寫住「好產品」。",
+    "Identity notes (match these):",
+    "x".repeat(4000),
+  ].join("\n");
+  const compact = compactIdeogramFramePrompt(full, "9:16");
+  assert.ok(compact.length <= 2048, `${compact.length} chars`);
+  assert.match(compact, /你啲貨幾靚都好喎，/);
+  assert.match(compact, /「好產品」/);
+});
+
 test("enabled scene text puts the voiceover line on canvas with lettering", () => {
   const on = project();
   on.sceneTextEnabled = true;
@@ -863,8 +877,8 @@ test("a clothing instruction copies garments and still locks the character's fac
   assert.doesNotMatch(plan.prompt, /Do not redress the character/);
 });
 
-// Two-blueprint end frame on the 3-slot zh-Hant edit model: anchor + cast fill
-// all but one slot, so only R1 fits and numbering stays one URL per image.
+// Ideogram takes one reference. Anchor + two blueprints already fill it,
+// so scene photos are left out and numbering stays one URL per image.
 test("scene references are capped to the edit model's free slots", () => {
   const video = project();
   video.sceneTextLanguage = "zh-Hant";
@@ -889,8 +903,8 @@ test("scene references are capped to the edit model's free slots", () => {
   assert.doesNotMatch(end.prompt, /SCENE REFERENCE/);
 
   const start = frameSubmitPlan(video, 1, "start");
-  assert.deepEqual(start.refs, ["https://blob/Lily.png", "https://blob/Max.png", "https://blob/r1.png"]);
-  assert.match(start.prompt, /SCENE REFERENCE: attached image 3 shows/);
+  assert.deepEqual(start.refs, ["https://blob/Lily.png", "https://blob/Max.png"]);
+  assert.doesNotMatch(start.prompt, /SCENE REFERENCE/);
 });
 
 test("end frame with a composition lock keeps the lock framing over the scene reference", () => {

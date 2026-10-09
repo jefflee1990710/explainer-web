@@ -13,12 +13,15 @@ export type ImageRoute = {
 
 /**
  * 畫面文字語系 → Higgsfield 產圖模型。生成時只讀呢張表。
- * 三支在有角色藍圖時都收 image_urls（多張參考圖）。
+ * en / zh-Hans 收多張 image_urls。zh-Hant 只收一張 image_url。
  * en：GPT Image 2.5 Flare，最多 16 張。
- * zh-Hant：GPT Image 2.5 Sunburst。Qwen Image 3 會把口字邊粵語字畫錯
- * （啲→哩、喎→啀、咪→米、喺→嗜），而且預設會改寫提示。
+ * zh-Hant：Ideogram 4.0。它按提示裡的字來畫，唔會把粵語口字邊改成近形字
+ * （Sunburst 會把喎畫成喝、搭座橋畫成別的字）。提示上限 2048，只收一張參考圖。
  * zh-Hans：GPT Image 2.5 Sunburst，最多 16 張。
  */
+export const IDEOGRAM_V4_MODEL = "ideogram/v4.0";
+export const IDEOGRAM_PROMPT_MAX = 2048;
+
 export const IMAGE_ROUTE_BY_SCENE_TEXT: Record<SceneTextLanguage, ImageRoute> = {
   en: {
     backend: "higgsfield",
@@ -27,8 +30,8 @@ export const IMAGE_ROUTE_BY_SCENE_TEXT: Record<SceneTextLanguage, ImageRoute> = 
   },
   "zh-Hant": {
     backend: "higgsfield",
-    model: "marketing-studio/image/sunburst",
-    editModel: "marketing-studio/image/sunburst",
+    model: IDEOGRAM_V4_MODEL,
+    editModel: IDEOGRAM_V4_MODEL,
   },
   "zh-Hans": {
     backend: "higgsfield",

@@ -2,7 +2,11 @@ import { getAppUrl, isPublicHttpUrl } from "@/util/app-url";
 import { isAlicloudStatusUrl } from "@/service/alicloud/dashscope";
 import { fetchAlicloudStatus, submitAlicloudImage } from "@/service/alicloud/generate";
 import { clipVideoProvider } from "@/service/generation/video-backend";
-import { imageModelForSubmit, resolveImageRoute } from "@/service/generation/image-backend";
+import {
+  IDEOGRAM_PROMPT_MAX,
+  imageModelForSubmit,
+  resolveImageRoute,
+} from "@/service/generation/image-backend";
 import {
   assertHiggsfieldConfigured,
   mediaUrlFromResponse,
@@ -26,6 +30,10 @@ function isQwenImage3(model: string) {
 
 function isMarketingStudio(model: string) {
   return model.startsWith("marketing-studio/image");
+}
+
+function isIdeogram(model: string) {
+  return model.startsWith("ideogram/");
 }
 
 function webhookOptions() {
@@ -81,7 +89,12 @@ export async function submitImage(input: {
     (url): url is string => Boolean(url),
   );
   const model = imageModelForSubmit(route, refs.length > 0);
-  const imageUrls = await referenceUrlsForModel(model, refs);
+  // Ideogram takes one image. The first URL is the composition lock, or the
+  // character blueprint when this still has no lock yet. A contact sheet would
+  // be drawn as a row of pictures.
+  const imageUrls = isIdeogram(model)
+    ? refs.slice(0, 1)
+    : await referenceUrlsForModel(model, refs);
 
   if (route.backend === "alicloud") {
     if (input.aspectRatio === "2:3") {
@@ -106,6 +119,25 @@ export async function submitImage(input: {
         aspect_ratio: input.aspectRatio,
         quality: input.quality || "medium",
         ...(imageUrls.length ? { image_urls: imageUrls } : {}),
+      },
+      withPolling: false,
+      webhook,
+    });
+  }
+
+  // One reference, no extra fields. rendering_speed QUALITY keeps the glyphs.
+  if (isIdeogram(model)) {
+    const prompt =
+      input.prompt.length > IDEOGRAM_PROMPT_MAX
+        ? input.prompt.slice(0, IDEOGRAM_PROMPT_MAX)
+        : input.prompt;
+    const imageUrl = imageUrls[0];
+    return client.subscribe(model, {
+      input: {
+        prompt,
+        aspect_ratio: input.aspectRatio,
+        rendering_speed: "QUALITY",
+        ...(imageUrl ? { image_url: imageUrl, image_weight: 45 } : {}),
       },
       withPolling: false,
       webhook,

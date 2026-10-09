@@ -12,7 +12,11 @@ import {
 import { refundCredits } from "@/service/billing/credits";
 import { flattenToCanvas } from "@/service/higgsfield/flatten";
 import { sceneTextNegativePrompt, resolveSceneText } from "@/service/director/scene-text";
-import { imageModelForSubmit, resolveImageRoute } from "@/service/generation/image-backend";
+import {
+  IDEOGRAM_PROMPT_MAX,
+  imageModelForSubmit,
+  resolveImageRoute,
+} from "@/service/generation/image-backend";
 import { frameSubmitPlan, framesWithClipsReady } from "@/service/higgsfield/frame-prompts";
 import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt";
 import { hydrateStyles } from "@/service/style/load-style";
@@ -172,14 +176,17 @@ export async function sendFrame(
   )?.revision;
   const sceneText = resolveSceneText(project);
   const plan = frameSubmitPlan(project, clipNumber, position, revision, style);
-  // Over Flare's cap, Gemini compresses the prompt before the image request.
-  const prompt = await ensureFramePromptFits(plan.prompt);
+  // Over the model's cap, Gemini compresses the prompt before the image request.
+  const route = resolveImageRoute(sceneText.language);
+  const prompt = route.model.startsWith("ideogram/")
+    ? await ensureFramePromptFits(plan.prompt, undefined, IDEOGRAM_PROMPT_MAX)
+    : await ensureFramePromptFits(plan.prompt);
   // A turnaround sheet shows the same person many times. Send one standing figure per character.
   const refs =
     project.cast && project.cast.length > 0
       ? await withSceneCharacterLocks(project.cast, plan.refs)
       : plan.refs;
-  const model = imageModelForSubmit(resolveImageRoute(sceneText.language), refs.length > 0);
+  const model = imageModelForSubmit(route, refs.length > 0);
   const submitted = await submitImage({
     model,
     prompt,
