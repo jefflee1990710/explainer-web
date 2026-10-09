@@ -8,7 +8,6 @@ const NEED_KEYS: Record<CoverageNeed, { title: string; body: string }> = {
   frontFace: { title: "characters.coverageFrontFaceTitle", body: "characters.coverageFrontFaceBody" },
   clearCloseup: { title: "characters.coverageCloseupTitle", body: "characters.coverageCloseupBody" },
   sideFace: { title: "characters.coverageSideFaceTitle", body: "characters.coverageSideFaceBody" },
-  fullBody: { title: "characters.coverageFullBodyTitle", body: "characters.coverageFullBodyBody" },
 };
 
 const WARNING_KEYS: Record<ReferenceCoverage["warnings"][number]["reason"], string> = {

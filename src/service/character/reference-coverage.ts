@@ -17,7 +17,8 @@ export const referencePhotoCheckSchema = z.object({
 
 export type ReferencePhotoCheck = z.infer<typeof referencePhotoCheckSchema>;
 
-export const COVERAGE_NEEDS = ["frontFace", "sideFace", "fullBody", "clearCloseup"] as const;
+// Face shots are enough. A full-body photo is not required.
+export const COVERAGE_NEEDS = ["frontFace", "sideFace", "clearCloseup"] as const;
 export type CoverageNeed = (typeof COVERAGE_NEEDS)[number];
 
 export type CoverageWarningReason = "blurry" | "dark" | "occluded" | "multiplePeople" | "noFace";
@@ -46,11 +47,10 @@ export function coverageFromChecks(photos: ReferencePhotoCheck[]): ReferenceCove
   const sideFace = good.some(
     (photo) => photo.faceVisible && (photo.angle === "profile" || photo.angle === "three-quarter"),
   );
-  const fullBody = good.some((photo) => photo.framing === "full");
   const clearCloseup = good.some(
     (photo) => photo.faceVisible && photo.framing === "closeup" && photo.wellLit,
   );
-  const have: Record<CoverageNeed, boolean> = { frontFace, sideFace, fullBody, clearCloseup };
+  const have: Record<CoverageNeed, boolean> = { frontFace, sideFace, clearCloseup };
   const missing = COVERAGE_NEEDS.filter((need) => !have[need]);
 
   const warnings: ReferenceCoverage["warnings"] = [];

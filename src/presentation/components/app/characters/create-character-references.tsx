@@ -143,12 +143,12 @@ export function CreateCharacterReferences({
           )}
         </div>
       </div>
-      {/* What to shoot so the blueprint has a face, a profile, and a body to work from. */}
+      {/* Face shots are enough. A full-body photo is not required. */}
       <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted">
         <li>{t("characters.referenceGuideFront")}</li>
         <li>{t("characters.referenceGuideSide")}</li>
-        <li>{t("characters.referenceGuideFull")}</li>
         <li>{t("characters.referenceGuideLight")}</li>
+        <li>{t("characters.referenceGuideFaceOnly")}</li>
       </ul>
     </div>
   );

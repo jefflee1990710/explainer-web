@@ -10,10 +10,13 @@ export function DialogBackdrop({
   className,
   children,
   onClick,
+  zIndex = 100,
 }: {
   className: string;
   children: ReactNode;
   onClick?: MouseEventHandler<HTMLDivElement>;
+  // Nested dialogs pass a higher value so they sit above the dialog that opened them.
+  zIndex?: number;
 }) {
   const [host, setHost] = useState<HTMLElement | null>(null);
 
@@ -24,7 +27,7 @@ export function DialogBackdrop({
   if (!host) return null;
 
   return createPortal(
-    <div className={`pointer-events-auto fixed inset-0 z-[100] ${className}`} onClick={onClick}>
+    <div className={`pointer-events-auto fixed inset-0 ${className}`} style={{ zIndex }} onClick={onClick}>
       {children}
     </div>,
     host,

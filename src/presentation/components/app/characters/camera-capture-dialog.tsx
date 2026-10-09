@@ -7,12 +7,11 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
-// Guided shots, in order. The first three feed the face; the last one feeds body and outfit.
+// Face-only guided shots. A full-body photo is not required.
 const CAPTURE_STEPS = [
-  { id: "front", guide: "face", title: "characters.cameraStepFront", hint: "characters.cameraHintFront" },
-  { id: "left", guide: "face", title: "characters.cameraStepLeft", hint: "characters.cameraHintLeft" },
-  { id: "right", guide: "face", title: "characters.cameraStepRight", hint: "characters.cameraHintRight" },
-  { id: "full", guide: "body", title: "characters.cameraStepFull", hint: "characters.cameraHintFull" },
+  { id: "front", title: "characters.cameraStepFront", hint: "characters.cameraHintFront" },
+  { id: "left", title: "characters.cameraStepLeft", hint: "characters.cameraHintLeft" },
+  { id: "right", title: "characters.cameraStepRight", hint: "characters.cameraHintRight" },
 ] as const;
 
 type CaptureStepId = (typeof CAPTURE_STEPS)[number]["id"];
@@ -64,7 +63,7 @@ export function CameraCaptureDialog({
   const finished = stepIndex >= CAPTURE_STEPS.length;
   const atLimit = shots.length >= remaining;
   const mirrored = facing === "user";
-  const detecting = autoShutter && ready && !finished && step.guide === "face";
+  const detecting = autoShutter && ready && !finished;
 
   // Start (or restart) the stream for the chosen camera.
   useEffect(() => {
@@ -268,7 +267,8 @@ export function CameraCaptureDialog({
 
   return (
     <DialogBackdrop
-      className="grid place-items-center bg-accent-ink/60 p-4 backdrop-blur-sm"
+      zIndex={120}
+      className="grid place-items-center bg-accent-ink/70 p-4 backdrop-blur-sm"
       onClick={(event) => {
         // Nested inside the create dialog: a scrim click must not close that one too.
         event.stopPropagation();
@@ -329,19 +329,12 @@ export function CameraCaptureDialog({
             className={`absolute inset-0 h-full w-full object-cover ${mirrored ? "-scale-x-100" : ""}`}
           />
           {!finished && ready ? (
-            step.guide === "face" ? (
-              <div
-                aria-hidden
-                className={`pointer-events-none absolute left-1/2 top-[42%] h-[52%] w-[62%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border-[3px] transition-colors ${
-                  detecting && faceInGuide ? "border-lime" : "border-paper/80"
-                }`}
-              />
-            ) : (
-              <div
-                aria-hidden
-                className="pointer-events-none absolute left-1/2 top-1/2 h-[92%] w-[46%] -translate-x-1/2 -translate-y-1/2 rounded-[3rem] border-[3px] border-dashed border-paper/80"
-              />
-            )
+            <div
+              aria-hidden
+              className={`pointer-events-none absolute left-1/2 top-[42%] h-[52%] w-[62%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border-[3px] transition-colors ${
+                detecting && faceInGuide ? "border-lime" : "border-paper/80"
+              }`}
+            />
           ) : null}
           {countdown !== null ? (
             <div className="pointer-events-none absolute inset-0 grid place-items-center">
@@ -376,7 +369,7 @@ export function CameraCaptureDialog({
           ) : null}
         </div>
 
-        {autoShutter && !finished && step.guide === "face" ? (
+        {autoShutter && !finished ? (
           <p className="mt-2 text-xs text-muted">{t("characters.cameraAutoHint")}</p>
         ) : null}
 

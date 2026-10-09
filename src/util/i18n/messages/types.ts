@@ -238,7 +238,7 @@ export type Messages = {
     useCamera: string;
     referenceGuideFront: string;
     referenceGuideSide: string;
-    referenceGuideFull: string;
+    referenceGuideFaceOnly: string;
     referenceGuideLight: string;
     checkingReferences: string;
     // Reference coverage check (AI reads the uploads before generating)
@@ -250,8 +250,6 @@ export type Messages = {
     coverageCloseupBody: string;
     coverageSideFaceTitle: string;
     coverageSideFaceBody: string;
-    coverageFullBodyTitle: string;
-    coverageFullBodyBody: string;
     coverageWarnPrefix: string;
     coverageWarnBlurry: string;
     coverageWarnDark: string;
@@ -284,11 +282,9 @@ export type Messages = {
     cameraStepFront: string;
     cameraStepLeft: string;
     cameraStepRight: string;
-    cameraStepFull: string;
     cameraHintFront: string;
     cameraHintLeft: string;
     cameraHintRight: string;
-    cameraHintFull: string;
     // Blueprint board (portrait + full body) and appearance notes
     boardPortrait: string;
     boardFullBody: string;
