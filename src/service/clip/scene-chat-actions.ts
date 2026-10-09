@@ -12,6 +12,7 @@ import { directorModel } from "@/service/director/model";
 import { isProductionLike } from "@/service/project-status";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { buildFramePrompt } from "@/service/higgsfield/frame-prompts";
+import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { revalidatePath } from "next/cache";
 import {
   SCENE_CHAT_FIELDS,
@@ -127,7 +128,7 @@ export async function sendClipSceneChatAction(input: {
     if (applied.changed.length > 0) {
       const nextClip = clipWithSceneDraft(clip, applied.draft, project.skillSlug);
       clips = project.phaseA.clips.map((item) => (item.clipNumber === clipNumber ? nextClip : item));
-      const nextProject = { ...project, phaseA: { ...project.phaseA, clips } };
+      const nextProject = await withWrittenCanvas({ ...project, phaseA: { ...project.phaseA, clips } });
       const style = await loadRenderableStyle({
         styleId: project.styleId,
         ownerClerkUserId: project.clerkUserId,

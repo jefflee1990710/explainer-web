@@ -15,9 +15,8 @@ export type ImageRoute = {
  * 畫面文字語系 → Higgsfield 產圖模型。生成時只讀呢張表。
  * 三支都收 image_urls。
  * en：GPT Image 2.5 Flare，最多 16 張。
- * zh-Hant：Grok Image 2.0，最多 10 張。Sunburst 會把粵語字改成近形字
- * （喎→喝），Ideogram 4.0 在這條帳戶上直接失敗。
- * zh-Hans：GPT Image 2.5 Sunburst，最多 16 張。
+ * zh-Hant / zh-Hans：GPT Image 2.5 Sunburst（ChatGPT image），最多 16 張。
+ * 粵語口白畫面上的字先改成書面語，再交給 Sunburst 逐字畫。
  */
 export const GROK_IMAGE_MODEL = "xai/grok-imagine-image-2.0";
 export const IDEOGRAM_V4_MODEL = "ideogram/v4.0";
@@ -31,8 +30,8 @@ export const IMAGE_ROUTE_BY_SCENE_TEXT: Record<SceneTextLanguage, ImageRoute> = 
   },
   "zh-Hant": {
     backend: "higgsfield",
-    model: GROK_IMAGE_MODEL,
-    editModel: GROK_IMAGE_MODEL,
+    model: "marketing-studio/image/sunburst",
+    editModel: "marketing-studio/image/sunburst",
   },
   "zh-Hans": {
     backend: "higgsfield",

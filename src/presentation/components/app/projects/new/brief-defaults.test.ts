@@ -57,6 +57,14 @@ test("sanitize keeps Q&A to exactly two matching-style characters", () => {
   assert.deepEqual(next?.characterIds, ["a", "b"]);
 });
 
+test("sanitize keeps every director except Q&A to one character", () => {
+  const next = sanitizeBriefDefaults(
+    raw({ skillSlug: "story-short-director", characterIds: ["a", "b"] }),
+    { skills, styles, characters },
+  );
+  assert.deepEqual(next?.characterIds, ["a"]);
+});
+
 test("sanitize caps cast by a custom director's template behaviour", () => {
   const next = sanitizeBriefDefaults(
     raw({ skillSlug: "custom-abc", characterIds: ["a", "b"] }),

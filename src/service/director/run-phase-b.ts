@@ -179,7 +179,11 @@ export async function runPhaseBForClip(
       durationSeconds: row?.durationSeconds ?? output.durationSeconds,
     }),
     isOutfitReelSkill(input.skill.slug) ? OUTFIT_COVERED_SWAP : "",
-    usesSpokenSubtitle(input.skill.slug) ? spokenSubtitleLock(input.phaseA.aspectRatio) : "",
+    usesSpokenSubtitle(input.skill.slug)
+      ? input.language === "yue"
+        ? "Subtitle: keep the Traditional written Chinese (書面語) already painted on the first and last frames. Do not repaint colloquial particles. The voice speaks Hong Kong colloquial Cantonese; the letters stay written Chinese, same place from the first frame to the last."
+        : spokenSubtitleLock(input.phaseA.aspectRatio)
+      : "",
   ]
     .filter(Boolean)
     .reduce(finalizePhaseBPrompt, modelPrompt);

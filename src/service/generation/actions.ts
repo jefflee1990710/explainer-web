@@ -14,6 +14,7 @@ import { runStillJob } from "@/service/director/jobs";
 import { persistFrameAnnotation } from "@/service/higgsfield/frame-annotation";
 import { clipKeyframeUrls, planFrameSubmissions } from "@/service/higgsfield/clip-keyframes";
 import { buildFramePrompt, framesWithClip } from "@/service/higgsfield/frame-prompts";
+import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import {
   failUnsubmittedFrames,
@@ -175,7 +176,7 @@ export async function regenerateFrameAction(
           $set: {
             updatedAt: new Date(),
             // Keep the prompt/revision actually used on the frame for later review.
-            "frames.$[frame].prompt": buildFramePrompt(project, clipNumber, position, {
+            "frames.$[frame].prompt": buildFramePrompt(await withWrittenCanvas(project), clipNumber, position, {
               revision,
               style,
             }),
@@ -309,7 +310,7 @@ export async function updateClipStoryboardAction(
     const clips = project.phaseA.clips.map((clip, index) =>
       index === clipIndex ? { ...clip, ...clean, editedAt } : clip,
     );
-    const nextProject = { ...project, phaseA: { ...project.phaseA, clips } };
+    const nextProject = await withWrittenCanvas({ ...project, phaseA: { ...project.phaseA, clips } });
 
     // Frames need the character lock before they can be redrawn.
     if (regenerate) {

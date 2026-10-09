@@ -119,18 +119,12 @@ export function skillBansNarration(skillSlug?: string) {
   return Boolean(skillSlug && DIALOGUE_ONLY_SKILLS.has(skillSlug));
 }
 
+// Dialogue Q&A is the only director that uses two people. Every other director
+// is a single on-screen character.
 export function requiredCastCount(skillSlug?: string) {
+  if (!skillSlug) return 0;
   if (skillSlug === DIALOGUE_QA_SKILL_SLUG) return 2;
-  if (
-    isTalkingHeadSkill(skillSlug) ||
-    skillSlug === TALKING_BROLL_SKILL_SLUG ||
-    isSurpriseInterviewSkill(skillSlug) ||
-    isOutfitReelSkill(skillSlug) ||
-    isFollowShotSkill(skillSlug)
-  ) {
-    return 1;
-  }
-  return 0;
+  return 1;
 }
 
 export function isComparisonCardSkill(skillSlug?: string) {

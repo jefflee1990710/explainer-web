@@ -32,6 +32,11 @@ test("resolveSceneText is always on; legacy false and missing still enable", () 
     language: "zh-Hans",
     inWorldLabels: false,
   });
+  assert.deepEqual(resolveSceneText({ language: "yue", sceneTextLanguage: "en" }), {
+    enabled: true,
+    language: "zh-Hant",
+    inWorldLabels: false,
+  });
 });
 
 test("listicle forces on-canvas text even when the toggle is off", () => {

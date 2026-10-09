@@ -568,12 +568,22 @@ test("a long Cantonese prompt keeps the exact line inside Ideogram's cap", () =>
   assert.match(compact, /「好產品」/);
 });
 
+test("Cantonese voiceover is painted as written Chinese", () => {
+  const video = project();
+  video.language = "yue";
+  video.phaseA!.clips[0].englishVo = "你啲貨幾靚都好喎";
+  video.phaseA!.clips[0].explainerScene = "紙箱寫住「好產品」。";
+  const prompt = buildFramePrompt(video, 1, "start");
+  assert.match(prompt, /你些貨幾漂亮都好/);
+  assert.doesNotMatch(prompt, /啲|喎/);
+});
+
 test("enabled scene text puts the voiceover line on canvas with lettering", () => {
   const on = project();
   on.sceneTextEnabled = true;
   on.sceneTextLanguage = "zh-Hant";
   const prompt = buildFramePrompt(on, 1, "start");
-  assert.match(prompt, /Marker line \(spell exactly\): "vo"/);
+  assert.match(prompt, /Subtitle \(spell exactly\): "vo"/);
   const sceneAt = prompt.indexOf("Scene:");
   const subAt = prompt.indexOf("spell exactly");
   assert.ok(subAt >= 0 && subAt < sceneAt, "subtitle block must precede Scene");
@@ -806,6 +816,28 @@ test("REVISION line does not attach a sibling or previous still", () => {
   assert.doesNotMatch(prompt, /previous still/);
 });
 
+test("talking-head stills keep only the first character", () => {
+  const video = project();
+  video.skillSlug = "talking-head-director";
+  video.cast = ["Lily", "Max"].map((name) => ({
+    characterId: new ObjectId(),
+    versionId: new ObjectId(),
+    name,
+    blueprintUrl: `https://blob/${name}.png`,
+    prompt: "",
+  }));
+  const plan = frameSubmitPlan(video, 1, "start");
+  assert.deepEqual(plan.refs, ["https://blob/Lily.png"]);
+  assert.match(plan.prompt, /SOLO: exactly one person/);
+  assert.match(plan.prompt, /Cast: Lily\./);
+  assert.doesNotMatch(plan.prompt, /Max/);
+
+  video.skillSlug = "full-body-talking-head-director";
+  const body = frameSubmitPlan(video, 1, "start");
+  assert.deepEqual(body.refs, ["https://blob/Lily.png"]);
+  assert.match(body.prompt, /SOLO: exactly one person/);
+});
+
 test("talking-head background photos replace the bookshelf and attach as the room", () => {
   const video = project();
   video.skillSlug = "talking-head-director";
@@ -875,7 +907,7 @@ test("a clothing instruction copies garments and still locks the character's fac
   assert.doesNotMatch(plan.prompt, /Do not redress the character/);
 });
 
-// Grok Image takes 10 references, so both scene photos still fit beside the cast.
+// Sunburst takes 16 references, so both scene photos still fit beside the cast.
 test("scene references are capped to the edit model's free slots", () => {
   const video = project();
   video.sceneTextLanguage = "zh-Hant";
@@ -904,7 +936,7 @@ test("scene references are capped to the edit model's free slots", () => {
     "https://blob/r2.png",
   ]);
   assert.match(end.prompt, /spell exactly/);
-  assert.doesNotMatch(end.prompt, /SCENE REFERENCE/);
+  assert.match(end.prompt, /SCENE REFERENCE/);
 
   const start = frameSubmitPlan(video, 1, "start");
   assert.deepEqual(start.refs, [
@@ -914,7 +946,7 @@ test("scene references are capped to the edit model's free slots", () => {
     "https://blob/r2.png",
   ]);
   assert.match(start.prompt, /spell exactly/);
-  assert.doesNotMatch(start.prompt, /SCENE REFERENCE/);
+  assert.match(start.prompt, /SCENE REFERENCE/);
 });
 
 test("end frame with a composition lock keeps the lock framing over the scene reference", () => {

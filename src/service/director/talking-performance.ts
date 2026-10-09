@@ -1,6 +1,7 @@
 import type { PerformanceSlots } from "@/model/director-performance";
 import type { VoLanguage } from "@/model/project";
 import { DEFAULT_PERFORMANCE } from "@/service/director/performance";
+import { toWrittenChinese } from "@/service/director/written-chinese";
 
 const TALKING_HEAD_SLUG = "talking-head-director";
 const FULL_BODY_TALKING_HEAD_SLUG = "full-body-talking-head-director";
@@ -127,10 +128,12 @@ export function talkingMotionLine(input: {
   }
   const p = input.performance ?? DEFAULT_PERFORMANCE[input.shot].yue;
   const anchored = hasAnchorProp(p);
+  const painted = toWrittenChinese(input.line);
+  const paintedPrevious = input.previousLine ? toWrittenChinese(input.previousLine) : undefined;
   const place = input.belowCenter ? "中線下面少少嘅字幕" : "底部字幕";
-  const subtitle = input.previousLine
-    ? `${place}由「${input.previousLine}」換成「${input.line}」。`
-    : `${place}保持「${input.line}」。`;
+  const subtitle = paintedPrevious
+    ? `${place}由「${paintedPrevious}」換成「${painted}」。`
+    : `${place}保持「${painted}」。`;
   const zhHand = hand === "right" ? "右手" : "左手";
   const zhOther = hand === "right" ? "左手" : "右手";
   const face = `神情似真人${seated ? "喺屋企拍手機片" : "拍 Reel"}，${p.restingFace}，${p.emphasisBeat}`;

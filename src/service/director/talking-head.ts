@@ -5,6 +5,7 @@ import { chainsClipStarts, inheritsPreviousEnd } from "@/service/director/clip-c
 import { DEFAULT_PERFORMANCE, performanceLanguage } from "@/service/director/performance";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
 import { hasAnchorProp, talkingMotionLine, type TalkingShot } from "@/service/director/talking-performance";
+import { toWrittenChinese } from "@/service/director/written-chinese";
 import { mediaSrc } from "@/util/media-src";
 
 export const TALKING_HEAD_SKILL_SLUG = "talking-head-director";
@@ -298,8 +299,8 @@ export function talkingHeadDirectorBlock(skillSlug?: string, aspectRatio?: strin
     : "both hands gesturing at chest height";
   return [
     fullBody
-      ? "This is a FULL-BODY TALKING-HEAD READ. The on-screen character faces the camera, head to feet in frame, and speaks. There is no cutaway and no second character."
-      : `This is a TALKING-HEAD READ. The on-screen character sits, faces the camera${anchored ? `, holds ${p.anchorProp}` : ""}, and speaks. There is no cutaway and no second character.`,
+      ? "This is a FULL-BODY TALKING-HEAD READ. Exactly one character is on screen for the whole video: they face the camera, head to feet in frame, and speak. There is no cutaway, no crowd, and no second character."
+      : `This is a TALKING-HEAD READ. Exactly one character is on screen for the whole video: they sit, face the camera${anchored ? `, hold ${p.anchorProp}` : ""}, and speak. There is no cutaway, no crowd, and no second character.`,
     "The director instruction is planning notes only (tone, emphasis, must-have looks). It is NOT spoken.",
     "The spoken script is locked. Each clip's englishVo is a verbatim slice of that script. Do not paraphrase. Give every clip a similar amount of speech.",
     fullBody
@@ -335,6 +336,7 @@ type SceneInput = { shot?: string; belowCenter?: boolean; background?: boolean; 
 
 // Start still: hook face, free hand mid-gesture. End still: smile relaxed, head tilted the other way.
 function shotLine(language: VoLanguage | undefined, moment: "start" | "end", line: string, scene: SceneInput) {
+  const painted = language === "yue" ? toWrittenChinese(line) : line;
   const camera = cameraClause(language, scene.shot, scene.perf);
   const fullBody = scene.shot === "full-body";
   const anchored = hasAnchorProp(scene.perf);
@@ -346,15 +348,15 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
     const pose =
       moment === "start"
         ? fullBody
-          ? `Character: centered, eyes locked into the lens as if talking into a phone, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture.`
-          : `Character: seated and centered, head and torso in frame, eyes locked into the lens like a real phone video filmed at home, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live unposed expression.${prop} ${freeHand} is already up at chest height, index finger raised mid-gesture.`
+          ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture.`
+          : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens like a real phone video filmed at home, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live unposed expression.${prop} ${freeHand} is already up at chest height, index finger raised mid-gesture.`
         : fullBody
-          ? `Character: eyes still locked on the lens, mouth just closed after the line, an engaged small smile, eyebrows relaxed, head tilted the other way.${propEnd} ${freeHand} is still slightly raised at chest height with an open palm, weight on the other hip, feet in frame.`
-          : `Character: still seated, eyes still locked on the lens, mouth just closed into a small real smile, eyebrows relaxed, head tilted the other way.${propEnd} ${freeHand} is open-palm at chest height, caught between gestures.`;
+          ? `Character: still the only person in the frame, eyes still locked on the lens, mouth just closed after the line, an engaged small smile, eyebrows relaxed, head tilted the other way.${propEnd} ${freeHand} is still slightly raised at chest height with an open palm, weight on the other hip, feet in frame.`
+          : `Character: still the only person in the frame, still seated, eyes still locked on the lens, mouth just closed into a small real smile, eyebrows relaxed, head tilted the other way.${propEnd} ${freeHand} is open-palm at chest height, caught between gestures.`;
     const place = scene.belowCenter
       ? "one line a little below the vertical center, clear of the face and the bottom edge"
       : "one bottom line";
-    return `${pose} ${setClause("en", scene)}${camera} Subtitle: ${place}, exactly "${line}".`;
+    return `${pose} ${setClause("en", scene)}${camera} Subtitle: ${place}, exactly "${painted}".`;
   }
   const prop = anchored ? `一隻手拎住${p.anchorProp}。` : "";
   const propEnd = anchored ? `${p.anchorProp}仲喺嗰隻手，稍為放低。` : "";
@@ -362,13 +364,13 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
   const pose =
     moment === "start"
       ? fullBody
-        ? `角色：置中，直望鏡頭好似對住手機講，準備開口，${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢。`
-        : `角色：坐住置中，頭同上身喺畫面，直望鏡頭好似喺屋企用手機實拍，準備開口，${p.hookBeat}，頭微傾，神情自然唔擺拍。${prop}${freeHand}已經提到胸前，豎起食指做緊手勢。`
+        ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，準備開口，${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢。`
+        : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，直望鏡頭好似喺屋企用手機實拍，準備開口，${p.hookBeat}，頭微傾，神情自然唔擺拍。${prop}${freeHand}已經提到胸前，豎起食指做緊手勢。`
       : fullBody
-        ? `角色：仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，眉毛放鬆，頭反向微傾。${propEnd}${freeHand}仲喺胸前掌心打開，重心換咗邊，腳留喺畫面。`
-        : `角色：仍然坐住直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，頭反向微傾。${propEnd}${freeHand}掌心打開停喺胸前，好似兩個手勢之間。`;
+        ? `角色：畫面仍然只有呢一個人，仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，眉毛放鬆，頭反向微傾。${propEnd}${freeHand}仲喺胸前掌心打開，重心換咗邊，腳留喺畫面。`
+        : `角色：畫面仍然只有呢一個人，仍然坐住直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，頭反向微傾。${propEnd}${freeHand}掌心打開停喺胸前，好似兩個手勢之間。`;
   const place = scene.belowCenter ? "畫面垂直中線下面少少一行，避開臉同最底邊" : "畫面底部一行";
-  return `${pose}${setClause("yue", scene)}${camera}字幕：${place}，逐字係「${line}」。`;
+  return `${pose}${setClause("yue", scene)}${camera}字幕：${place}，逐字係「${painted}」。`;
 }
 
 function capitalize(text: string) {

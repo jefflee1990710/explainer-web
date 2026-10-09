@@ -18,6 +18,7 @@ import {
   resolveImageRoute,
 } from "@/service/generation/image-backend";
 import { frameSubmitPlan, framesWithClipsReady } from "@/service/higgsfield/frame-prompts";
+import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt";
 import { hydrateStyles } from "@/service/style/load-style";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
@@ -175,7 +176,8 @@ export async function sendFrame(
     (frame) => frame.clipNumber === clipNumber && frame.position === position,
   )?.revision;
   const sceneText = resolveSceneText(project);
-  const plan = frameSubmitPlan(project, clipNumber, position, revision, style);
+  const canvasProject = await withWrittenCanvas(project);
+  const plan = frameSubmitPlan(canvasProject, clipNumber, position, revision, style);
   // Over the model's cap, Gemini compresses the prompt before the image request.
   const route = resolveImageRoute(sceneText.language);
   const prompt = route.model.startsWith("ideogram/")
@@ -255,9 +257,10 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
   // Frames first, then the jobs: reconcile only trusts jobs created at or
   // after `submittedAt`. `$unset` rather than `$set: undefined` so the
   // previous failure message never lingers as `null`.
+  const canvasProject = await withWrittenCanvas(project);
   for (const target of targets) {
     const { prompt } = frameSubmitPlan(
-      project,
+      canvasProject,
       target.clipNumber,
       target.position,
       target.revision,
@@ -638,10 +641,12 @@ export async function applyJobStatus(input: {
             })
           ).canvasColor
         : undefined;
-    // Re-voice before any retime. A cloned demo wins; Cantonese talking-head
-    // always converts on ElevenLabs even when the cast has no sample.
+    // Re-voice before any retime. A cloned demo wins. Cantonese on every
+    // director, including bookends, converts on ElevenLabs without a sample.
     const voiceId =
-      project && job.kind === "video" && !isBookendSkill(project.skillSlug)
+      project &&
+      job.kind === "video" &&
+      (project.language === "yue" || !isBookendSkill(project.skillSlug))
         ? resolveVoiceSwapId(project)
         : null;
     const swapVoice = (buffer: Buffer) =>
@@ -892,7 +897,8 @@ export async function submitDeferredEndIfNeeded(
     styleId: project.styleId,
     ownerClerkUserId: project.clerkUserId,
   });
-  const { prompt } = frameSubmitPlan(project, clipNumber, "end", end.revision, style);
+  const canvasProject = await withWrittenCanvas(project);
+  const { prompt } = frameSubmitPlan(canvasProject, clipNumber, "end", end.revision, style);
   // Frame first so the job's `createdAt` is never older than `submittedAt`.
   await projects.updateOne(
     { _id: projectId },

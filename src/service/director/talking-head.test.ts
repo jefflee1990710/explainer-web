@@ -150,6 +150,11 @@ test("talking-head keeps a full English word inside a Cantonese line", () => {
   assert.match(spoken, /Instagram/);
   assert.match(spoken, /Webinar/);
   assert.match(spoken, /DM/);
+  const voiced = clips.find((clip) => clip.englishVo.includes("嘅"));
+  assert.ok(voiced);
+  assert.match(voiced.motionCamera, /口型跟住講「[^」]*嘅/);
+  assert.match(voiced.startScene, /逐字係「[^」]*的/);
+  assert.doesNotMatch(voiced.startScene, /逐字係「[^」]*嘅/);
   assert.doesNotMatch(spoken, /Instagra\s/);
   assert.doesNotMatch(spoken, /Webi\s/);
   assert.ok(clips.every((clip) => clip.durationSeconds >= 5 && clip.durationSeconds <= 12));

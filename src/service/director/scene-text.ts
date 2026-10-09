@@ -1,4 +1,4 @@
-import type { AspectRatio } from "@/model/project";
+import type { AspectRatio, VoLanguage } from "@/model/project";
 import {
   comparisonPanels,
   comparisonSplitAxis,
@@ -60,7 +60,12 @@ export function resolveSceneText(input: {
   sceneTextEnabled?: boolean;
   sceneTextLanguage?: SceneTextLanguage;
   skillSlug?: string;
+  // Cantonese voiceover always paints Traditional written Chinese.
+  language?: VoLanguage;
 }) {
+  if (input.language === "yue") {
+    return { enabled: true, language: "zh-Hant" as const, inWorldLabels: false };
+  }
   const language = input.sceneTextLanguage && isSceneTextLanguage(input.sceneTextLanguage)
     ? input.sceneTextLanguage
     : "en";

@@ -25,7 +25,7 @@ export const LANGUAGE_PRESETS: Record<VoLanguage, LanguagePreset> = {
     label: "廣東話",
     sublabel: "香港口語白話",
     skillHint:
-      "Voiceover language: Hong Kong Cantonese colloquial speech (香港廣東話口語／白話), written in Traditional Chinese characters with authentic spoken particles such as 啦、囉、喎、咩、㖭, and Hong Kong vocabulary. Do NOT write formal written Chinese or Mandarin phrasing. Roughly 2.5 Chinese characters per second of speech.",
+      "Voiceover language: Hong Kong Cantonese colloquial speech (香港廣東話口語／白話), written in Traditional Chinese characters with authentic spoken particles such as 啦、囉、喎、咩、㖭, and Hong Kong vocabulary. Do NOT write formal written Chinese or Mandarin phrasing in englishVo. On-canvas subtitles are rewritten into Traditional Chinese 書面語; do not paint colloquial particles on the picture. Roughly 2.5 Chinese characters per second of speech.",
     planningSkillHint:
       "Planning explanations (narrativeJob, explainerScene, startScene, endScene, motionCamera, hookStrategy, coreMessage, localizedTitle, narrativeArc, visualWorld, narrator, palette, bgmDirection, and every clip bgmSfx note) must be Hong Kong Cantonese colloquial (香港廣東話口語), written in Traditional Chinese characters with natural spoken particles — not Mandarin or formal written Chinese. This overrides any skill line that says to write Phase A in the user's language.",
   },

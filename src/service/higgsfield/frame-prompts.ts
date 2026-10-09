@@ -58,6 +58,7 @@ import {
   OUTFIT_IDENTITY_LOCK,
 } from "@/service/director/outfit-reel";
 import { isSilentSpokenLine, subtitleText } from "@/service/director/spoken-line";
+import { toWrittenChinese } from "@/service/director/written-chinese";
 import {
   sanitizeSurpriseFrameScene,
   surpriseAngleDirective,
@@ -68,7 +69,7 @@ import {
   surpriseVarietyPlan,
 } from "@/service/director/surprise-interview";
 import { clipReferenceImageUrls } from "@/service/project/reference-images";
-import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
+import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 import { IDEOGRAM_PROMPT_MAX, imageRouteForSceneText } from "@/service/generation/image-backend";
 import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
 import { FRAME_RENDER_DETAIL } from "@/service/director/scene-detail";
@@ -347,6 +348,16 @@ export function sceneReferenceFrameLine(
   return `SCENE REFERENCE: ${which} the place, product, props, and layout for this scene — ${follow}. Do not copy the person, face, or hairstyle in that image. Face and hair stay on the selected character. ${clothes}`;
 }
 
+// Talking-head stills show the selected person once. A second blueprint, or a
+// person inside a room photo, otherwise gets drawn as someone else.
+const TALKING_HEAD_SOLO =
+  "SOLO: exactly one person in the frame — the selected character. No second person, crowd, interviewer, reflection of another face, or a second copy of the same person.";
+
+function talkingHeadFrameProject(project: Project): Project {
+  if (!isTalkingHeadSkill(project.skillSlug) || !project.cast || project.cast.length <= 1) return project;
+  return { ...project, cast: project.cast.slice(0, 1) };
+}
+
 // Deterministic image prompts derived from the approved Phase A storyboard.
 // No extra LLM call: the storyboard rows already describe scene + motion.
 export function buildFramePrompt(
@@ -355,13 +366,30 @@ export function buildFramePrompt(
   position: FramePosition,
   options: FramePromptOptions = {},
 ) {
+  project = talkingHeadFrameProject(project);
+  const solo = isTalkingHeadSkill(project.skillSlug);
   const style = options.style ?? systemStyle(project);
   const subtitleLook = resolveSubtitleLook(project.subtitleLook);
   const phaseA = project.phaseA;
   if (!phaseA) throw new Error("尚未有分鏡");
-  const row = phaseA.clips.find((clip) => clip.clipNumber === clipNumber);
+  // Spoken lines stay colloquial for the voice. The still spells 書面語.
+  const canvasClips =
+    project.language === "yue"
+      ? phaseA.clips.map((clip) => ({
+          ...clip,
+          englishVo: toWrittenChinese(clip.englishVo),
+          narrativeJob: toWrittenChinese(clip.narrativeJob),
+          explainerScene: toWrittenChinese(clip.explainerScene),
+          motionCamera: toWrittenChinese(clip.motionCamera),
+          ...(clip.startScene ? { startScene: toWrittenChinese(clip.startScene) } : {}),
+          ...(clip.endScene ? { endScene: toWrittenChinese(clip.endScene) } : {}),
+          ...(clip.startVo ? { startVo: toWrittenChinese(clip.startVo) } : {}),
+          ...(clip.endVo ? { endVo: toWrittenChinese(clip.endVo) } : {}),
+        }))
+      : phaseA.clips;
+  const row = canvasClips.find((clip) => clip.clipNumber === clipNumber);
   if (!row) throw new Error(`找不到 clip ${clipNumber}`);
-  const next = phaseA.clips.find((clip) => clip.clipNumber === clipNumber + 1);
+  const next = canvasClips.find((clip) => clip.clipNumber === clipNumber + 1);
   const dualBeat = isDualBeatSkill(project.skillSlug);
   const nextOpening = next
     ? dualBeat
@@ -527,7 +555,7 @@ export function buildFramePrompt(
     ? [
         letteringLine,
         ...listicleOnCanvasLines({
-          clips: phaseA.clips,
+          clips: canvasClips,
           clipNumber,
           subtitle: voForFrame,
           subtitlePlace: subtitleBelowCenter ? "below-center" : "bottom",
@@ -601,6 +629,7 @@ export function buildFramePrompt(
     ...(characterFirst ? castLines : []),
     ...sceneRefLines,
     ...(characterFirst ? [] : castLines),
+    ...(solo ? [TALKING_HEAD_SOLO] : []),
     ...(productLine ? [productLine] : []),
     ...logoLines,
     ...(characterLockLine ? [characterLockLine] : []),
@@ -696,6 +725,7 @@ export function frameSubmitPlan(
   revision?: FrameRevision,
   style?: RenderableStyle,
 ) {
+  project = talkingHeadFrameProject(project);
   const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
   const surpriseHook =
     isSurpriseInterviewSkill(project.skillSlug) &&

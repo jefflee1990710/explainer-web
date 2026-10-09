@@ -4,7 +4,7 @@ import { voiceSwapVoiceId } from "@/model/character-voice-sample";
 import { videoCost } from "@/service/credit-costs";
 import { mixVoiceArgs, VOICE_SWAP_FILTER } from "@/service/voice/voice-swap-args";
 import {
-  CANTONESE_TALKING_HEAD_VOICE_ID,
+  CANTONESE_VOICE_ID,
   resolveVoiceSwapId,
 } from "@/service/voice/voice-swap-target";
 
@@ -19,19 +19,38 @@ test("voice swap runs only for a one-character cast with a demo voice", () => {
   );
 });
 
-test("Cantonese talking-head always converts, and a cloned demo voice wins", () => {
+test("Cantonese voiceover always converts on ElevenLabs, and a cloned demo voice wins", () => {
   const yue = { skillSlug: "talking-head-director", language: "yue" };
-  assert.equal(resolveVoiceSwapId(yue), CANTONESE_TALKING_HEAD_VOICE_ID);
+  assert.equal(resolveVoiceSwapId(yue), CANTONESE_VOICE_ID);
   assert.equal(
-    resolveVoiceSwapId({ ...yue, skillSlug: "full-body-talking-head-director" }),
-    CANTONESE_TALKING_HEAD_VOICE_ID,
+    resolveVoiceSwapId({ skillSlug: "cartoon-explainer-video-director", language: "yue" }),
+    CANTONESE_VOICE_ID,
   );
   assert.equal(
     resolveVoiceSwapId({ ...yue, cast: [{ voiceSample: { elevenVoiceId: "clone" } }] }),
     "clone",
   );
-  assert.equal(resolveVoiceSwapId({ skillSlug: "talking-head-director", language: "zh" }), null);
-  assert.equal(resolveVoiceSwapId({ skillSlug: "cartoon-explainer-video-director", language: "yue" }), null);
+  assert.equal(
+    resolveVoiceSwapId({ skillSlug: "dialogue-qa-director", language: "yue" }),
+    CANTONESE_VOICE_ID,
+  );
+  assert.equal(resolveVoiceSwapId({ skillSlug: "opening-director", language: "yue" }), CANTONESE_VOICE_ID);
+  assert.equal(
+    resolveVoiceSwapId({
+      skillSlug: "talking-head-director",
+      language: "zh",
+      cast: [{ voiceSample: { elevenVoiceId: "clone" } }],
+    }),
+    null,
+  );
+  assert.equal(
+    resolveVoiceSwapId({
+      skillSlug: "cartoon-explainer-video-director",
+      language: "en",
+      cast: [{ voiceSample: { elevenVoiceId: "clone" } }],
+    }),
+    null,
+  );
   assert.equal(videoCost(5, "doodle", Boolean(resolveVoiceSwapId(yue))), 50);
 });
 
