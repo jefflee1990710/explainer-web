@@ -43,6 +43,7 @@ import {
   storyShortDirectorBlock,
   surpriseInterviewDirectorBlock,
   talkingBrollDirectorBlock,
+  verticalSafeAreaDirectorLine,
 } from "@/service/director/skill-rules";
 import { keyframeDeltaDirectorBlock } from "@/service/director/keyframe-delta";
 import { sceneDetailDirectorBlock } from "@/service/director/scene-detail";
@@ -251,6 +252,7 @@ export async function runPhaseA(input: {
 
 You are executing Phase A only. Return structured JSON that matches the schema.
 ${language.planningSkillHint}
+${verticalSafeAreaDirectorLine(input.aspectRatio)}
 ${keyframeDeltaDirectorBlock({ separateStills: dualBeat, language: input.language, performance: dualBeat && hasCharacter })}
 ${sceneDetailDirectorBlock()}
 ${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter }) : ""}

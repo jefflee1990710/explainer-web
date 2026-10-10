@@ -24,6 +24,7 @@ import {
   followShotDirectorBlock,
   outfitReelDirectorBlock,
   surpriseInterviewDirectorBlock,
+  verticalSafeAreaDirectorLine,
   talkingBrollDirectorBlock,
   skillBansNarration,
   skillForcesSceneText,
@@ -395,4 +396,12 @@ test("listicle forces on-canvas listing text", () => {
     entries.map((entry) => entry.title),
     ["Snooze the alarm.", "Skip water."],
   );
+});
+
+test("every director keeps a 9:16 middle safe area and leaves landscape alone", () => {
+  const vertical = verticalSafeAreaDirectorLine("9:16");
+  assert.match(vertical, /space at the top and the bottom/);
+  assert.match(vertical, /subtitle, the character, and the main subject/);
+  assert.equal(verticalSafeAreaDirectorLine("16:9"), "");
+  assert.equal(verticalSafeAreaDirectorLine("1:1"), "");
 });

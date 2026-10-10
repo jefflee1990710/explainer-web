@@ -42,6 +42,7 @@ import {
   cartoonClipAction,
   cartoonNarratorFrameLock,
   isBookendSkill,
+  VERTICAL_FRAME_SAFE_AREA,
   isComparisonCardSkill,
   isOutfitReelSkill,
   isSurpriseInterviewSkill,
@@ -675,6 +676,7 @@ export function buildFramePrompt(
               : FRAME_WARDROBE_CHECK,
         ]
       : []),
+    ...(project.aspectRatio === "9:16" ? [VERTICAL_FRAME_SAFE_AREA] : []),
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
 

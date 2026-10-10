@@ -36,6 +36,16 @@ export function isBookendSkill(skillSlug?: string) {
   return Boolean(skillSlug && BOOKEND_SKILLS.has(skillSlug));
 }
 
+// 9:16 stills keep a margin. Subtitle, character, and the hero stay in the middle.
+export const VERTICAL_FRAME_SAFE_AREA =
+  "9:16 vertical safe area: leave a clear empty band at the top and a clear empty band at the bottom. Keep the subtitle, the character, and the main subject in the middle. Do not place them in the top band or the bottom band, and do not crop them into either edge.";
+
+// Director plan for every skill. Empty unless the video is vertical.
+export function verticalSafeAreaDirectorLine(aspectRatio?: string) {
+  if (aspectRatio !== "9:16") return "";
+  return "This video is vertical 9:16. In every still, leave space at the top and the bottom. Write the subtitle, the character, and the main subject in the middle. Do not put them in the top area or the bottom area.";
+}
+
 // Auto on a bookend still follows that director's own short-sting plan.
 export function bookendLocksLength(skillSlug: string | undefined, durationPreset: DurationPreset) {
   return isBookendSkill(skillSlug) && durationPreset === "auto";

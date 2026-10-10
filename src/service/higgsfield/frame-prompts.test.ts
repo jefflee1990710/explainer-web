@@ -244,6 +244,9 @@ test("the still paints the director's subtitle sentence and does not add a secon
   assert.match(reel, /dead center/);
   assert.doesNotMatch(reel, /a little below the vertical center/);
   assert.doesNotMatch(reel, /bottom 18%/);
+  assert.match(reel, /9:16 vertical safe area/);
+  assert.match(reel, /empty band at the top/);
+  assert.doesNotMatch(buildFramePrompt(project(), 1, "start"), /9:16 vertical safe area/);
 });
 
 test("story-short subtitles show only the spoken words, never the speaker name", () => {
