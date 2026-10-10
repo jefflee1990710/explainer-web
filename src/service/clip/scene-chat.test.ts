@@ -8,7 +8,6 @@ import {
   clipWithSceneDraft,
   highlightedSceneFields,
   regenStoryboardInput,
-  sceneFieldDiff,
   sceneDraftFromClip,
   sceneRedrawPhase,
 } from "@/service/clip/scene-chat";
@@ -113,13 +112,7 @@ test("current scope ignores other clips; all scope rewrites each one", () => {
   const current = applySceneChatToClips({ clips, currentClip: 1, scope: "current", edits });
   assert.equal(current.ok, true);
   if (!current.ok) return;
-  assert.deepEqual(
-    current.changed.map((item) => item.fields),
-    [["englishVo"]],
-  );
-  assert.deepEqual(current.changed[0]?.replacements, [
-    { field: "englishVo", before: "一個 Webinar", after: "一個線上研討會" },
-  ]);
+  assert.deepEqual(current.changed, [{ clipNumber: 1, fields: ["englishVo"] }]);
   assert.equal(current.clips[1].englishVo, "下一個 Webinar");
 
   const all = applySceneChatToClips({ clips, currentClip: 1, scope: "all", edits });
@@ -153,28 +146,6 @@ test("highlight follows the newest assistant turn only", () => {
   assert.deepEqual(highlightedSceneFields(chats, 1), ["motionCamera"]);
   assert.deepEqual(highlightedSceneFields(chats, 2), ["englishVo"]);
   assert.deepEqual(highlightedSceneFields(chats, 3), []);
-});
-
-test("a field diff keeps the previous paragraph from the newest turn", () => {
-  const chats = [
-    {
-      messages: [
-        {
-          role: "assistant" as const,
-          createdAt: "2026-10-10T02:00:00.000Z",
-          changedClips: [
-            {
-              clipNumber: 1,
-              fields: ["motionCamera" as const],
-              replacements: [{ field: "motionCamera" as const, before: "old move", after: "new move" }],
-            },
-          ],
-        },
-      ],
-    },
-  ];
-  assert.deepEqual(sceneFieldDiff(chats, 1, "motionCamera"), { before: "old move", after: "new move" });
-  assert.equal(sceneFieldDiff(chats, 1, "englishVo"), undefined);
 });
 
 test("a redraw stays done after the reply, and a failure can be tried again", () => {

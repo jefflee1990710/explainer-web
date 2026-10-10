@@ -4,35 +4,28 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { clipEndScene, clipEndVo, clipStartScene, clipStartVo } from "@/service/director/dual-beat";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { skillBansNarration } from "@/service/director/skill-rules";
-import type { StoryboardRow, VoLanguage } from "@/model/project";
+import type { SceneChatField, StoryboardRow, VoLanguage } from "@/model/project";
 
-// Read-only storyboard. A chat edit shows the old paragraph struck through, then the new one in green.
+// Read-only storyboard. Edits come from the chat; the fields that turn changed are marked.
 export function ClipScenePrompts({
   clip,
   language,
   dualBeat,
   skillSlug,
-  previousVo,
-  previousScene,
-  previousStart,
-  previousEnd,
-  previousMotion,
+  highlighted = [],
 }: {
   clip: StoryboardRow;
   language: VoLanguage;
   dualBeat?: boolean;
   skillSlug?: string;
-  previousVo?: string;
-  previousScene?: string;
-  previousStart?: string;
-  previousEnd?: string;
-  previousMotion?: string;
+  highlighted?: SceneChatField[];
 }) {
   const { t } = useI18n();
   const voLabel = LANGUAGE_PRESETS[language].label;
   const spokenKind = skillBansNarration(skillSlug) ? "dialogue" : "narration";
   const spoken = (key: string, params?: Record<string, string | number>) =>
     t(`production.spoken.${spokenKind}.${key}`, params);
+  const mark = (field: SceneChatField) => highlighted.includes(field);
   const sceneSummary = dualBeat
     ? t("production.scene.summaryStart", { text: clip.startScene || clipStartScene(clip) || t("production.scene.empty") })
     : clip.explainerScene || t("production.scene.empty");
@@ -42,42 +35,51 @@ export function ClipScenePrompts({
       <FormSection title={spoken("section")}>
         {dualBeat ? (
           <>
-            <ReadOnlyField label={spoken("startField", { lang: voLabel })} value={clip.startVo || clipStartVo(clip)} />
-            <ReadOnlyField label={spoken("endField", { lang: voLabel })} value={clip.endVo || clipEndVo(clip)} />
+            <ReadOnlyField
+              label={spoken("startField", { lang: voLabel })}
+              value={clip.startVo || clipStartVo(clip)}
+              highlighted={mark("englishVo")}
+              highlightLabel={t("production.sceneChat.highlight")}
+            />
+            <ReadOnlyField
+              label={spoken("endField", { lang: voLabel })}
+              value={clip.endVo || clipEndVo(clip)}
+              highlighted={mark("englishVo")}
+              highlightLabel={t("production.sceneChat.highlight")}
+            />
           </>
         ) : (
           <ReadOnlyField
             label={spoken("field", { lang: voLabel })}
             value={clip.englishVo}
-            previous={previousVo}
+            highlighted={mark("englishVo")}
+            highlightLabel={t("production.sceneChat.highlight")}
           />
         )}
       </FormSection>
 
-      <FormSection
-        title={t("production.scene.sectionScene")}
-        summary={sceneSummary}
-        collapsible
-        open={Boolean(previousScene || previousStart || previousEnd)}
-      >
+      <FormSection title={t("production.scene.sectionScene")} summary={sceneSummary} collapsible>
         {dualBeat ? (
           <>
             <ReadOnlyField
               label={t("production.scene.labelStartScene")}
               value={clip.startScene || clipStartScene(clip)}
-              previous={previousStart}
+              highlighted={mark("startScene")}
+              highlightLabel={t("production.sceneChat.highlight")}
             />
             <ReadOnlyField
               label={t("production.scene.labelEndScene")}
               value={clip.endScene || clipEndScene(clip)}
-              previous={previousEnd}
+              highlighted={mark("endScene")}
+              highlightLabel={t("production.sceneChat.highlight")}
             />
           </>
         ) : (
           <ReadOnlyField
             label={t("production.scene.labelExplainerScene")}
             value={clip.explainerScene}
-            previous={previousScene}
+            highlighted={mark("startScene") || mark("endScene")}
+            highlightLabel={t("production.sceneChat.highlight")}
           />
         )}
       </FormSection>
@@ -86,12 +88,13 @@ export function ClipScenePrompts({
         title={t("production.scene.sectionMotion")}
         summary={clip.motionCamera || t("production.scene.empty")}
         collapsible
-        open={Boolean(previousMotion)}
+        open={mark("motionCamera")}
       >
         <ReadOnlyField
           label={t("production.scene.labelMotion")}
           value={clip.motionCamera}
-          previous={previousMotion}
+          highlighted={mark("motionCamera")}
+          highlightLabel={t("production.sceneChat.highlight")}
         />
       </FormSection>
     </div>
@@ -138,26 +141,29 @@ function FormSection({
 function ReadOnlyField({
   label,
   value,
-  previous,
+  highlighted,
+  highlightLabel,
 }: {
   label: string;
   value: string;
-  previous?: string;
+  highlighted: boolean;
+  highlightLabel: string;
 }) {
-  const changed = Boolean(previous && previous !== value);
   return (
-    <div>
-      <p className="text-xs font-semibold">{label}</p>
-      {changed ? (
-        <>
-          <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-muted line-through">{previous}</p>
-          <p className="mt-2 whitespace-pre-wrap rounded-md bg-green-100 px-2 py-1.5 text-sm leading-6 text-green-950">
-            {value}
-          </p>
-        </>
-      ) : (
-        <p className="mt-1 whitespace-pre-wrap text-sm leading-6">{value}</p>
-      )}
+    <div
+      className={
+        highlighted
+          ? "rounded-md bg-[color-mix(in_srgb,var(--studio-teal)_16%,white)] px-2.5 py-2 ring-1 ring-[var(--studio-teal)]"
+          : ""
+      }
+    >
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-xs font-semibold">{label}</p>
+        {highlighted ? (
+          <span className="text-[10px] font-bold text-[var(--studio-teal)]">{highlightLabel}</span>
+        ) : null}
+      </div>
+      <p className="mt-1 whitespace-pre-wrap text-sm leading-6">{value}</p>
     </div>
   );
 }
