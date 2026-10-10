@@ -579,9 +579,10 @@ export function buildFramePrompt(
           lookLine: letteringLine,
         })
       : sceneText.enabled
-      ? sampleLookLine
-        ? [sampleLookLine]
-        : []
+      // Place and size stay in the scene sentence. The selected 字幕外觀 still applies.
+      ? silentClip
+        ? []
+        : [letteringLine]
       : keepSceneLabels
         ? // Catalog typography already says "never subtitles or captions" — exactly this mode.
           sceneTextFrameLines(false, sceneText.language, undefined, undefined, {
@@ -657,7 +658,9 @@ export function buildFramePrompt(
       : sceneText.enabled
         ? silentClip
           ? ["Final check: no subtitle band and no letters in the frame."]
-          : []
+          : [
+              "Final check: subtitle place and size follow the Scene's Subtitle sentence. Paint those words with the subtitle Look line above. Do not replace that lettering with a plain white caption or the visual style.",
+            ]
         : keepSceneLabels
           ? [
               "Final check: the only lettering is the short in-world label(s) named in the Scene; no subtitle band, no voiceover transcript.",

@@ -113,6 +113,9 @@ export function ClipWorkspace({
         dualBeat={isDualBeatSkill(project.skillSlug)}
         skillSlug={project.skillSlug}
         highlighted={highlightedSceneFields(project.sceneChats, n)}
+        startPrompt={start?.prompt}
+        endPrompt={end?.prompt}
+        motionPrompt={clip?.prompt}
       />
 
       {showDebug ? (

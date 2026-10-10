@@ -36,16 +36,20 @@ test("custom text style is the last reference and only describes lettering", () 
   assert.doesNotMatch(plan.prompt, /geometric sans/);
 });
 
-test("the selected text style is not pasted over the director's subtitle sentence", () => {
+test("the selected text style stays while the scene sentence keeps place and size", () => {
   const bold = buildFramePrompt({ ...project(), subtitleLook: "bold" }, 1, "start");
   const clean = buildFramePrompt({ ...project(), subtitleLook: "clean" }, 1, "start");
-  assert.doesNotMatch(bold, /yellow dry-brush/);
-  assert.doesNotMatch(clean, /torn-paper strips/);
+  assert.match(bold, /yellow dry-brush/);
+  assert.match(clean, /torn-paper strips/);
+  assert.doesNotMatch(bold, /bottom 18%/);
+  assert.doesNotMatch(clean, /55% of the way/);
   const written = project();
-  written.subtitleLook = "bold";
-  written.phaseA!.clips[0].explainerScene = "Subtitle: yellow dry-brush stroke, dead center, exactly \"vo\".";
-  assert.match(buildFramePrompt(written, 1, "start"), /yellow dry-brush/);
-  assert.match(buildFramePrompt(written, 1, "start"), /dead center/);
+  written.subtitleLook = "clean";
+  written.phaseA!.clips[0].explainerScene = 'Subtitle: large text in the dead center, exactly "vo".';
+  const prompt = buildFramePrompt(written, 1, "start");
+  assert.match(prompt, /torn-paper strips/);
+  assert.match(prompt, /dead center/);
+  assert.match(prompt, /subtitle Look line above/);
 
   const custom = frameSubmitPlan(
     { ...project(), subtitleLook: "handwritten", textStyleImageUrl: "https://blob/mine.png" },
@@ -135,7 +139,7 @@ test("pixel video keeps its canvas while subtitle look stays independent", () =>
   const prompt = buildFramePrompt(project("pixel"), 1, "end");
   assert.match(prompt, /pixel name short video/);
   assert.match(prompt, /pixel canvas/);
-  assert.doesNotMatch(prompt, /thick black marker/);
+  assert.match(prompt, /thick black marker/);
   assert.doesNotMatch(prompt, /pixel typography/);
 });
 
@@ -440,7 +444,7 @@ test("whiteboard explainer dual-beat uses start/end scene and VO per still", () 
   assert.doesNotMatch(end, /First beat/);
 });
 
-test("whiteboard stills use the video style lettering instead of doodle defaults", () => {
+test("whiteboard stills keep the selected subtitle look instead of the visual style lettering", () => {
   installTestStyles(
     STYLE_IDS.map((id) =>
       id === "paper-cutout"
@@ -465,7 +469,7 @@ test("whiteboard stills use the video style lettering instead of doodle defaults
   const start = buildFramePrompt(dual, 1, "start");
   assert.doesNotMatch(start, /40% height/);
   assert.doesNotMatch(start, /torn dark-ink paper/);
-  assert.doesNotMatch(start, /thick black marker/);
+  assert.match(start, /thick black marker/);
   assert.doesNotMatch(start, /52% and 60%/);
   assert.doesNotMatch(start, /hand-drawn all-caps marker/);
   installTestStyles();
@@ -973,7 +977,7 @@ test("a preloaded user style supplies look and lettering", () => {
   assert.match(prompt, /torn kraft edges/);
   assert.doesNotMatch(prompt, /torn dark-ink paper/);
   assert.doesNotMatch(prompt, /40% height/);
-  assert.doesNotMatch(prompt, /thick black marker/);
+  assert.match(prompt, /thick black marker/);
 });
 
 test("clips without assigned references attach none", () => {

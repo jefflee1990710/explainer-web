@@ -6,19 +6,26 @@ import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { skillBansNarration } from "@/service/director/skill-rules";
 import type { SceneChatField, StoryboardRow, VoLanguage } from "@/model/project";
 
-// Read-only storyboard. Edits come from the chat; the fields that turn changed are marked.
+// Read-only storyboard. When a still or clip has been sent, those sections show that prompt.
 export function ClipScenePrompts({
   clip,
   language,
   dualBeat,
   skillSlug,
   highlighted = [],
+  startPrompt,
+  endPrompt,
+  motionPrompt,
 }: {
   clip: StoryboardRow;
   language: VoLanguage;
   dualBeat?: boolean;
   skillSlug?: string;
   highlighted?: SceneChatField[];
+  // Exact prompts last submitted for the start still, end still, and clip video.
+  startPrompt?: string;
+  endPrompt?: string;
+  motionPrompt?: string;
 }) {
   const { t } = useI18n();
   const voLabel = LANGUAGE_PRESETS[language].label;
@@ -26,9 +33,16 @@ export function ClipScenePrompts({
   const spoken = (key: string, params?: Record<string, string | number>) =>
     t(`production.spoken.${spokenKind}.${key}`, params);
   const mark = (field: SceneChatField) => highlighted.includes(field);
-  const sceneSummary = dualBeat
-    ? t("production.scene.summaryStart", { text: clip.startScene || clipStartScene(clip) || t("production.scene.empty") })
+  const sentStart = startPrompt?.trim() || "";
+  const sentEnd = endPrompt?.trim() || "";
+  const sentMotion = motionPrompt?.trim() || "";
+  const showSentStills = Boolean(sentStart || sentEnd);
+  const startText = sentStart || clip.startScene || clipStartScene(clip);
+  const endText = sentEnd || clip.endScene || clipEndScene(clip);
+  const sceneSummary = showSentStills || dualBeat
+    ? t("production.scene.summaryStart", { text: startText || t("production.scene.empty") })
     : clip.explainerScene || t("production.scene.empty");
+  const motionText = sentMotion || clip.motionCamera;
 
   return (
     <div className="flex flex-col gap-3">
@@ -59,18 +73,18 @@ export function ClipScenePrompts({
       </FormSection>
 
       <FormSection title={t("production.scene.sectionScene")} summary={sceneSummary} collapsible>
-        {dualBeat ? (
+        {showSentStills || dualBeat ? (
           <>
             <ReadOnlyField
               label={t("production.scene.labelStartScene")}
-              value={clip.startScene || clipStartScene(clip)}
-              highlighted={mark("startScene")}
+              value={startText}
+              highlighted={!sentStart && mark("startScene")}
               highlightLabel={t("production.sceneChat.highlight")}
             />
             <ReadOnlyField
               label={t("production.scene.labelEndScene")}
-              value={clip.endScene || clipEndScene(clip)}
-              highlighted={mark("endScene")}
+              value={endText}
+              highlighted={!sentEnd && mark("endScene")}
               highlightLabel={t("production.sceneChat.highlight")}
             />
           </>
@@ -86,14 +100,14 @@ export function ClipScenePrompts({
 
       <FormSection
         title={t("production.scene.sectionMotion")}
-        summary={clip.motionCamera || t("production.scene.empty")}
+        summary={motionText || t("production.scene.empty")}
         collapsible
-        open={mark("motionCamera")}
+        open={!sentMotion && mark("motionCamera")}
       >
         <ReadOnlyField
           label={t("production.scene.labelMotion")}
-          value={clip.motionCamera}
-          highlighted={mark("motionCamera")}
+          value={motionText}
+          highlighted={!sentMotion && mark("motionCamera")}
           highlightLabel={t("production.sceneChat.highlight")}
         />
       </FormSection>
