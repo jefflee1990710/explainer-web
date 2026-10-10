@@ -111,7 +111,8 @@ test("dual-beat director block mentions two VO beats and does not invent letteri
   assert.match(on, /landed resting pose/);
   assert.match(on, /motionCamera/);
   assert.match(on, /startVo lettering wipes off and the endVo lettering writes on/);
-  assert.match(on, /Never copy the voiceover lettering into startScene or endScene/);
+  assert.match(on, /Subtitle \(spell exactly\)/);
+  assert.match(on, /what the still paints/);
   assert.match(on, /beat title/);
   assert.doesNotMatch(on, /STEP N|STEP 1/);
   assert.match(on, /diagram labels/);
@@ -125,7 +126,7 @@ test("dual-beat director block mentions two VO beats and does not invent letteri
 test("dual-beat director block uses the subtitle look and keeps its own placement", () => {
   const on = dualBeatDirectorBlock(true, { look: "bold" });
   assert.match(on, /condensed sans/);
-  assert.match(on, /Not a bottom subtitle bar/);
+  assert.match(on, /not a bottom bar/);
   assert.doesNotMatch(on, /40%|70%|20%/);
   assert.doesNotMatch(on, /52%/);
 });

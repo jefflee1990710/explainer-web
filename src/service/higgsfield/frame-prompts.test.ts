@@ -36,16 +36,16 @@ test("custom text style is the last reference and only describes lettering", () 
   assert.doesNotMatch(plan.prompt, /geometric sans/);
 });
 
-test("each selected text style changes the scene-image lettering", () => {
+test("the selected text style is not pasted over the director's subtitle sentence", () => {
   const bold = buildFramePrompt({ ...project(), subtitleLook: "bold" }, 1, "start");
   const clean = buildFramePrompt({ ...project(), subtitleLook: "clean" }, 1, "start");
-  const handwritten = buildFramePrompt({ ...project(), subtitleLook: "handwritten" }, 1, "start");
-  assert.match(bold, /yellow dry-brush/);
-  assert.doesNotMatch(bold, /torn-paper strips|thick black marker/);
-  assert.match(clean, /torn-paper strips/);
-  assert.doesNotMatch(clean, /yellow dry-brush|thick black marker/);
-  assert.match(handwritten, /thick black marker/);
-  assert.doesNotMatch(handwritten, /yellow dry-brush|torn-paper strips/);
+  assert.doesNotMatch(bold, /yellow dry-brush/);
+  assert.doesNotMatch(clean, /torn-paper strips/);
+  const written = project();
+  written.subtitleLook = "bold";
+  written.phaseA!.clips[0].explainerScene = "Subtitle: yellow dry-brush stroke, dead center, exactly \"vo\".";
+  assert.match(buildFramePrompt(written, 1, "start"), /yellow dry-brush/);
+  assert.match(buildFramePrompt(written, 1, "start"), /dead center/);
 
   const custom = frameSubmitPlan(
     { ...project(), subtitleLook: "handwritten", textStyleImageUrl: "https://blob/mine.png" },
@@ -126,7 +126,7 @@ test("doodle frame prompt uses the loaded style, no hard-coded whiteboard litera
   const prompt = buildFramePrompt(project(), 1, "start");
   assert.match(prompt, /doodle name short video/);
   assert.match(prompt, /Canvas: doodle canvas/);
-  assert.match(prompt, /Look: thick black marker/);
+  assert.match(prompt, /Look: doodle look/);
   assert.doesNotMatch(prompt, /No on-canvas text/);
   assert.doesNotMatch(prompt, /whiteboard-doodle cartoon explainer video/);
 });
@@ -135,7 +135,7 @@ test("pixel video keeps its canvas while subtitle look stays independent", () =>
   const prompt = buildFramePrompt(project("pixel"), 1, "end");
   assert.match(prompt, /pixel name short video/);
   assert.match(prompt, /pixel canvas/);
-  assert.match(prompt, /Look: thick black marker/);
+  assert.doesNotMatch(prompt, /thick black marker/);
   assert.doesNotMatch(prompt, /pixel typography/);
 });
 
@@ -215,53 +215,31 @@ test("whiteboard explainer with a cast zooms, walks, and draws extra objects", (
   assert.equal(end.match(/Camera angle/gi)?.length, 2);
 });
 
-test("9:16 stills place subtitles a little below center for every director", () => {
+test("the still paints the director's subtitle sentence and does not add a second layout", () => {
   const story = project();
   story.skillSlug = "story-short-director";
   story.aspectRatio = "9:16";
   story.sceneTextEnabled = true;
   story.phaseA!.clips[0].englishVo = 'Lily: "We made it."';
+  story.phaseA!.clips[0].explainerScene =
+    'Subtitle (spell exactly): "We made it." Giant text in the dead center of the frame.';
   const prompt = buildFramePrompt(story, 1, "start");
-  assert.match(prompt, /a little below the vertical center/);
+  assert.match(prompt, /dead center/);
   assert.match(prompt, /We made it\./);
   assert.doesNotMatch(prompt, /bottom 18%/);
+  assert.doesNotMatch(prompt, /55% of the way/);
+  assert.doesNotMatch(prompt, /Ignore any storyboard/);
+  assert.doesNotMatch(prompt, /not in a bottom band/);
 
-  story.aspectRatio = "16:9";
-  const wide = buildFramePrompt(story, 1, "start");
-  assert.match(wide, /bottom 18%/);
-  assert.doesNotMatch(wide, /a little below the vertical center/);
-
-  const other = project();
-  other.skillSlug = "dialogue-qa-director";
-  other.aspectRatio = "9:16";
-  other.sceneTextEnabled = true;
-  const dialogue = buildFramePrompt(other, 1, "start");
-  assert.match(dialogue, /a little below the vertical center/);
-  assert.doesNotMatch(dialogue, /bottom 18%/);
-});
-
-test("talking-head 9:16 stills place the subtitle a little below center", () => {
   const face = project();
   face.skillSlug = "talking-head-director";
   face.aspectRatio = "9:16";
   face.sceneTextEnabled = true;
-  face.phaseA!.clips[0].englishVo = "We made it.";
+  face.phaseA!.clips[0].explainerScene = 'Subtitle: one giant line in the dead center, exactly "We made it."';
   const reel = buildFramePrompt(face, 1, "start");
-  assert.match(reel, /a little below the vertical center/);
+  assert.match(reel, /dead center/);
+  assert.doesNotMatch(reel, /a little below the vertical center/);
   assert.doesNotMatch(reel, /bottom 18%/);
-  assert.match(reel, /not in a bottom band/);
-
-  face.aspectRatio = "16:9";
-  const wide = buildFramePrompt(face, 1, "start");
-  assert.match(wide, /bottom 18%/);
-  assert.doesNotMatch(wide, /a little below the vertical center/);
-
-  const body = project();
-  body.skillSlug = "full-body-talking-head-director";
-  body.aspectRatio = "9:16";
-  body.sceneTextEnabled = true;
-  body.phaseA!.clips[0].englishVo = "We made it.";
-  assert.match(buildFramePrompt(body, 1, "start"), /a little below the vertical center/);
 });
 
 test("story-short subtitles show only the spoken words, never the speaker name", () => {
@@ -269,9 +247,10 @@ test("story-short subtitles show only the spoken words, never the speaker name",
   story.skillSlug = "story-short-director";
   story.sceneTextEnabled = true;
   story.phaseA!.clips[0].englishVo = 'Scro - Cinematic: "One clone, unlimited environments."';
+  story.phaseA!.clips[0].explainerScene = 'Subtitle (spell exactly): "One clone, unlimited environments."';
   const prompt = buildFramePrompt(story, 1, "start");
   assert.match(prompt, /One clone,/);
-  assert.doesNotMatch(prompt, /Subtitle[^\n]*Scro - Cinematic/);
+  assert.doesNotMatch(prompt, /Scro - Cinematic/);
 });
 
 test("cast stills lock the blueprint outfit against the setting", () => {
@@ -427,12 +406,12 @@ test("a solo still is attached as the character the scene must follow", () => {
   assert.doesNotMatch(prompt, /發明的綠洋裝/);
 });
 
-test("legacy disabled scene text still paints the voiceover lettering", () => {
+test("a scene without a subtitle sentence does not get a second subtitle block", () => {
   const off = project();
   off.sceneTextEnabled = false;
   const prompt = buildFramePrompt(off, 1, "start");
-  assert.match(prompt, /Look: thick black marker/);
-  assert.match(prompt, /Subtitle \(spell exactly\): "vo"/);
+  assert.match(prompt, /Look: doodle look/);
+  assert.doesNotMatch(prompt, /Subtitle \(spell exactly\)/);
   assert.doesNotMatch(prompt, /No on-canvas text/);
 });
 
@@ -454,11 +433,10 @@ test("whiteboard explainer dual-beat uses start/end scene and VO per still", () 
   assert.match(start, /Scene: 起點拿尺/);
   assert.doesNotMatch(start, /尺變成回歸線/);
   assert.doesNotMatch(start, /52% and 60%/);
-  assert.match(start, /Marker line \(spell exactly\): "First beat\."/);
+  assert.doesNotMatch(start, /Marker line \(spell exactly\)/);
   assert.doesNotMatch(start, /bottom 18%/);
   assert.doesNotMatch(start, /SECOND BEAT/);
   assert.match(end, /Scene: 尺變成回歸線/);
-  assert.match(end, /Second beat/);
   assert.doesNotMatch(end, /First beat/);
 });
 
@@ -487,7 +465,7 @@ test("whiteboard stills use the video style lettering instead of doodle defaults
   const start = buildFramePrompt(dual, 1, "start");
   assert.doesNotMatch(start, /40% height/);
   assert.doesNotMatch(start, /torn dark-ink paper/);
-  assert.match(start, /Look: thick black marker/);
+  assert.doesNotMatch(start, /thick black marker/);
   assert.doesNotMatch(start, /52% and 60%/);
   assert.doesNotMatch(start, /hand-drawn all-caps marker/);
   installTestStyles();
@@ -510,7 +488,7 @@ test("legacy captions-off whiteboard video keeps prop labels, paints the marker 
   };
   const start = buildFramePrompt(dual, 1, "start");
   assert.match(start, /「OLS」/);
-  assert.match(start, /First beat/);
+  assert.doesNotMatch(start, /First beat/);
   assert.doesNotMatch(start, /52% and 60%/);
   assert.doesNotMatch(start, /No on-canvas text/);
   assert.match(start, /Visual world: 白板塗鴉風格。純白背景黑色墨線。/);
@@ -524,8 +502,8 @@ test("legacy captions-off story short now paints the dialogue line and strips in
   story.phaseA!.clips[0].explainerScene = "牆上掛著寫有「HELLO」的牌子";
   const prompt = buildFramePrompt(story, 1, "start");
   assert.doesNotMatch(prompt, /No on-canvas text/);
-  assert.doesNotMatch(prompt, /HELLO/);
-  assert.match(prompt, /Subtitle \(spell exactly\): "vo"/);
+  assert.match(prompt, /HELLO/);
+  assert.doesNotMatch(prompt, /Subtitle \(spell exactly\): "vo"/);
 });
 
 test("every still carries the render detail line", () => {
@@ -545,7 +523,7 @@ test("other skills keep a single scene and full voiceover on both stills", () =>
   const story = project();
   story.skillSlug = "story-short-director";
   story.sceneTextEnabled = true;
-  story.phaseA!.clips[0].explainerScene = "整段同一個畫面描述";
+  story.phaseA!.clips[0].explainerScene = '整段同一個畫面描述。Subtitle (spell exactly): "Whole line."';
   story.phaseA!.clips[0].englishVo = "Whole line.";
   const start = buildFramePrompt(story, 1, "start");
   const end = buildFramePrompt(story, 1, "end");
@@ -553,6 +531,7 @@ test("other skills keep a single scene and full voiceover on both stills", () =>
   assert.match(end, /Scene: 整段同一個畫面描述/);
   assert.match(start, /Whole line/);
   assert.match(end, /Whole line/);
+  assert.doesNotMatch(start, /55% of the way/);
 });
 
 test("a long Cantonese prompt keeps the exact line inside Ideogram's cap", () => {
@@ -572,32 +551,35 @@ test("Cantonese voiceover is painted as written Chinese", () => {
   const video = project();
   video.language = "yue";
   video.phaseA!.clips[0].englishVo = "你啲貨幾靚都好喎";
-  video.phaseA!.clips[0].explainerScene = "紙箱寫住「好產品」。";
+  video.phaseA!.clips[0].explainerScene = "紙箱寫住「好產品」。字幕：你些貨幾漂亮都好。";
   const prompt = buildFramePrompt(video, 1, "start");
   assert.match(prompt, /你些貨幾漂亮都好/);
-  assert.doesNotMatch(prompt, /啲|喎/);
+  assert.match(prompt, /好產品/);
 });
 
-test("enabled scene text puts the voiceover line on canvas with lettering", () => {
+test("enabled scene text keeps the director subtitle inside the scene", () => {
   const on = project();
   on.sceneTextEnabled = true;
   on.sceneTextLanguage = "zh-Hant";
+  on.phaseA!.clips[0].explainerScene = 'Subtitle (spell exactly): "vo"。置中放大。';
   const prompt = buildFramePrompt(on, 1, "start");
   assert.match(prompt, /Subtitle \(spell exactly\): "vo"/);
+  assert.match(prompt, /置中放大/);
   const sceneAt = prompt.indexOf("Scene:");
   const subAt = prompt.indexOf("spell exactly");
-  assert.ok(subAt >= 0 && subAt < sceneAt, "subtitle block must precede Scene");
-  assert.doesNotMatch(prompt, /Mental Health\?/);
+  assert.ok(sceneAt >= 0 && subAt > sceneAt, "subtitle stays inside the scene");
+  assert.doesNotMatch(prompt, /On-canvas subtitles ON/);
   assert.doesNotMatch(prompt, /never subtitles or captions/i);
 });
 
-test("legacy disabled scene text limits writing to the subtitle", () => {
+test("scene writing stays in the still prompt", () => {
   const off = project();
   off.sceneTextEnabled = false;
   off.phaseA!.clips[0].explainerScene = "A sign reads HELLO";
   const prompt = buildFramePrompt(off, 1, "end");
-  assert.match(prompt, /Only the subtitle line\(s\) above may appear as writing/);
-  assert.match(prompt, /subtitles ON/i);
+  assert.match(prompt, /HELLO/);
+  assert.doesNotMatch(prompt, /Only the subtitle line/);
+  assert.doesNotMatch(prompt, /On-canvas subtitles ON/);
 });
 
 test("without a cast, the text characterLock stays authoritative", () => {
@@ -764,7 +746,7 @@ test("an oversized storyboard is trimmed under budget, keeping locks and subtitl
   huge.phaseA!.palette = "冰川藍、暗岩灰、".repeat(100);
   const hugeScene =
     "1) Character: Lily 神情專注，右手握著裝置。2) Set: " + "厚雪與岩石，".repeat(150) +
-    "3) Light: " + "冷光，".repeat(150) + "4) Camera: 中景，角色在畫面右側。";
+    "3) Light: " + "冷光，".repeat(150) + '4) Camera: 中景，角色在畫面右側。Subtitle (spell exactly): "We made it to the top."';
   huge.phaseA!.clips[0].startScene = hugeScene;
   huge.phaseA!.clips[0].endScene = hugeScene;
   huge.phaseA!.clips[0].motionCamera = "0–3s: " + "走上岩石，".repeat(200) + "; 3–5s: 停下。";
@@ -794,7 +776,7 @@ test("trimming drops generic rules and Light before the Scene, and Set keeps its
   long.phaseA!.visualWorld = "寒冷的山頂。".repeat(200);
   long.phaseA!.clips[0].startScene =
     "1) Character: Lily stands on the right, both hands on a crate. 2) Set: A snowy ridge. A sled marked 「BASE」 waits below " +
-    "and a flag 「SUMMIT」 flies above, ".repeat(110) +
+    "and a flag 「SUMMIT」 flies above, ".repeat(220) +
     "3) Light: " + "cold blue rim light, ".repeat(100) + "4) Camera: medium shot from the left.";
   long.phaseA!.clips[0].motionCamera = "0–3s: " + "she climbs the rocks, ".repeat(120) + "; 3–5s: she stops.";
   const prompt = buildFramePrompt(long, 1, "start");
@@ -935,7 +917,6 @@ test("scene references are capped to the edit model's free slots", () => {
     "https://blob/r1.png",
     "https://blob/r2.png",
   ]);
-  assert.match(end.prompt, /spell exactly/);
   assert.match(end.prompt, /SCENE REFERENCE/);
 
   const start = frameSubmitPlan(video, 1, "start");
@@ -945,7 +926,6 @@ test("scene references are capped to the edit model's free slots", () => {
     "https://blob/r1.png",
     "https://blob/r2.png",
   ]);
-  assert.match(start.prompt, /spell exactly/);
   assert.match(start.prompt, /SCENE REFERENCE/);
 });
 
@@ -993,7 +973,7 @@ test("a preloaded user style supplies look and lettering", () => {
   assert.match(prompt, /torn kraft edges/);
   assert.doesNotMatch(prompt, /torn dark-ink paper/);
   assert.doesNotMatch(prompt, /40% height/);
-  assert.match(prompt, /Look: thick black marker/);
+  assert.doesNotMatch(prompt, /thick black marker/);
 });
 
 test("clips without assigned references attach none", () => {

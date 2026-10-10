@@ -288,13 +288,12 @@ export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
 }
 
 function talkingSubtitleRule(aspectRatio?: string) {
-  if (talkingHeadSubtitleBelowCenter(aspectRatio)) {
-    return "One subtitle a little below the vertical center of the frame, clear of the face and clear of the bottom edge. Spell that clip's spoken line. Nothing else written.";
-  }
-  if (aspectRatio === "16:9") {
-    return "One subtitle across the bottom of the frame. Spell that clip's spoken line. Nothing else written.";
-  }
-  return "On a 9:16 Instagram Reel, one subtitle a little below the vertical center, clear of the face and the bottom edge. On a 16:9 landscape frame, one subtitle across the bottom. Spell that clip's spoken line. Nothing else written.";
+  const place = talkingHeadSubtitleBelowCenter(aspectRatio)
+    ? "a little below the vertical center of the frame, clear of the face and clear of the bottom edge"
+    : aspectRatio === "16:9"
+      ? "across the bottom of the frame"
+      : "a little below the vertical center on a 9:16 Instagram Reel, and across the bottom on a 16:9 landscape frame";
+  return `Write the subtitle into startScene and endScene as Subtitle (spell exactly): "<this clip's spoken line>", ${place}. That sentence is what the still paints. Nothing later moves or resizes it. Change the place or size in that sentence when the instruction asks. Nothing else written.`;
 }
 
 // Phase A director block. Performance slots (English) describe the style layer the

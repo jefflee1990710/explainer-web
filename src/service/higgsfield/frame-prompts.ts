@@ -513,16 +513,19 @@ export function buildFramePrompt(
   // Cartoon stills keep the prop tags the director wrote into the scene.
   const keepSceneLabels =
     !listicle && !comparison && (sceneText.inWorldLabels || (dualBeat && sceneText.enabled));
-  const sceneRaw = keepSceneLabels
+  // The director writes the subtitle into the scene. Do not strip it or replace it.
+  const directorWritesLettering = sceneText.enabled && !listicle && !comparison;
+  const sceneRaw = directorWritesLettering || keepSceneLabels
     ? sceneForFrame.trim()
     : stripStoryboardWriting(sceneForFrame);
-  const motionRaw = keepSceneLabels
+  const motionRaw = directorWritesLettering || keepSceneLabels
     ? row.motionCamera.trim()
     : stripStoryboardWriting(row.motionCamera);
-  // Marker / subtitle lines already spell the voiceover; do not repeat it in Scene.
-  let sceneDescription = sceneText.enabled
-    ? stripSceneVoiceoverRecap(sceneRaw)
-    : sceneRaw;
+  let sceneDescription = directorWritesLettering
+    ? sceneRaw
+    : sceneText.enabled
+      ? stripSceneVoiceoverRecap(sceneRaw)
+      : sceneRaw;
   let motionDescription = sceneText.enabled
     ? stripSceneVoiceoverRecap(motionRaw)
     : motionRaw;
@@ -576,19 +579,9 @@ export function buildFramePrompt(
           lookLine: letteringLine,
         })
       : sceneText.enabled
-      ? [
-          ...sceneTextFrameLines(
-            true,
-            sceneText.language,
-            voForFrame,
-            undefined,
-            dualBeat
-              ? { markerSafeZone: true, look: subtitleLook, lookLine: sampleLookLine, silentClip }
-              : subtitleBelowCenter
-                ? { subtitlePlace: "below-center" as const, look: subtitleLook, lookLine: sampleLookLine, silentClip }
-                : { look: subtitleLook, lookLine: sampleLookLine, silentClip },
-          ),
-        ]
+      ? sampleLookLine
+        ? [sampleLookLine]
+        : []
       : keepSceneLabels
         ? // Catalog typography already says "never subtitles or captions" — exactly this mode.
           sceneTextFrameLines(false, sceneText.language, undefined, undefined, {
@@ -664,15 +657,7 @@ export function buildFramePrompt(
       : sceneText.enabled
         ? silentClip
           ? ["Final check: no subtitle band and no letters in the frame."]
-          : dualBeat
-          ? ["Final check: spelling matches the Marker line(s); no bottom subtitle band."]
-          : subtitleBelowCenter
-            ? [
-                "Final check: the subtitle sits a little below the vertical center, not in a bottom band. Spelling must match the Subtitle line(s) above.",
-              ]
-            : [
-                "Final check: bottom subtitle band only; spelling must match the Subtitle line(s) above.",
-              ]
+          : []
         : keepSceneLabels
           ? [
               "Final check: the only lettering is the short in-world label(s) named in the Scene; no subtitle band, no voiceover transcript.",

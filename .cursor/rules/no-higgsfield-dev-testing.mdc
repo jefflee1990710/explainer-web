@@ -1,0 +1,12 @@
+---
+description: Do not call Higgsfield while coding or running development tests
+alwaysApply: true
+---
+
+# No Higgsfield during development
+
+While coding, debugging, or verifying a change, do not call the Higgsfield API. That includes image generation, video generation, status polls, and any script that submits a job.
+
+Verify with local unit tests, prompt snapshots, and mocks. A test file under `src/service/higgsfield/` that only checks prompt text or pure functions is fine. A live submit is not.
+
+Do not use a real video or frame regeneration on Higgsfield to check that a code change works.

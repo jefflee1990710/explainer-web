@@ -178,7 +178,8 @@ test("enabled scene text quotes the clip narration on canvas", () => {
   assert.match(lines.join("\n"), /subtitles ON/i);
   assert.match(lines.join("\n"), /你好世界/);
   assert.match(lines.join("\n"), /Mental Health/);
-  assert.match(sceneTextSkillHint(true, "en"), /englishVo voiceover line/);
+  assert.match(sceneTextSkillHint(true, "en"), /spoken line/);
+  assert.match(sceneTextSkillHint(true, "en"), /image prompt/);
 });
 
 test("reel safe zone stays in the center and does not take placement from a style", () => {
@@ -264,14 +265,14 @@ test("subtitle look changes lettering and never the director placement", () => {
   assert.match(marker, /No bottom subtitle band/);
   assert.doesNotMatch(marker, /40%|70%|20%/);
   assert.match(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /torn-paper strips/);
-  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /Not a bottom subtitle bar/);
+  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /not a bottom bar/);
   assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /40%/);
 });
 
 test("director revision note asks to drop invented labels when toggling", () => {
   assert.match(sceneTextDirectorRevisionNote(true, "en"), /englishVo/);
   assert.match(sceneTextDirectorRevisionNote(false, "en"), /OFF/);
-  assert.match(sceneTextSkillHint(true, "en"), /do NOT invent extra titles/i);
+  assert.match(sceneTextSkillHint(true, "en"), /only writing is that spoken line/i);
   assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /ONLY startVo/);
   assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /visual style/);
 });

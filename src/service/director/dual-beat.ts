@@ -150,7 +150,7 @@ export function dualBeatDirectorBlock(
     "startVo: first spoken sentence (0s → midpoint). endVo: second spoken sentence (midpoint → end).",
     `englishVo must be exactly startVo then endVo. ${sceneCompat}`,
     sceneTextEnabled
-      ? `On-canvas text ON: start still quotes ONLY startVo; end still quotes ONLY endVo. ${lookLine} Not a bottom subtitle bar. Keep the spoken line's own casing. Two beats switch at the midpoint. Never both voiceover lines on one still. motionCamera includes a midpoint beat where the startVo lettering wipes off and the endVo lettering writes on in the same spot. Never copy the voiceover lettering into startScene or endScene; the still prompt adds it from startVo / endVo.`
+      ? `On-canvas text ON: write the subtitle into the still. startScene quotes ONLY startVo and endScene quotes ONLY endVo, each as Subtitle (spell exactly): "<that beat>". ${lookLine} That sentence is what the still paints. Default place is not a bottom bar; set place and size in the sentence. Keep the spoken line's own casing. Two beats switch at the midpoint. Never both voiceover lines on one still. motionCamera includes a midpoint beat where the startVo lettering wipes off and the endVo lettering writes on in the same spot.`
       : inWorldLabels
         ? `Voiceover captions OFF: no subtitle band on either still. A short beat title, diagram labels, and short in-world labels (tags, arrow labels, box or bin names, cell numbers in 「」) ARE allowed and encouraged — they count toward the 3–4 visual devices per still. ${lookLine} Lettering follows that Look. Do not copy typography from the visual style.`
         : "On-canvas text OFF: no writing on either still.",

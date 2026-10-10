@@ -490,7 +490,7 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
       ? "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a short hold while the graph responds (a node lights up, an arrow draws itself on, a counter ticks up). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
       : "",
     cartoonHookCameraRule(hasCharacter),
-    "On-canvas beat text is allowed: write one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 in startScene and endScene. Do not dump the full voiceover into those fields; the still prompt adds startVo / endVo lettering separately.",
+    "On-canvas beat text: write one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 in startScene and endScene. Also write that still's spoken line there as Subtitle (spell exactly): \"<startVo or endVo>\". The still paints that sentence.",
   ]
     .filter(Boolean)
     .join(" ");

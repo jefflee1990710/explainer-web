@@ -64,7 +64,7 @@ Write it as timed beats (`0–2s …; 2–5s …`). Each beat states: time windo
 - A prop that is in the start still but not in the end still leaves on camera in a beat (put away, moved off frame, covered).
 - Name each hand by the character's own left or right, and keep the same hand on the same prop from the start still through `motionCamera` to the end still.
 - The start and end still of one clip share the same light and the same camera; a mood change comes from expression and props.
-- When on-canvas voiceover lettering is on, add a midpoint beat where the start line wipes off and the end line writes on in the same spot. Keep that lettering out of the start and end still text; the still prompt adds it from the VO beats.
+- When on-canvas voiceover lettering is on, write each still's spoken line into that still as Subtitle (spell exactly): "<that beat>". The still paints that sentence. Add a midpoint beat where the start line wipes off and the end line writes on in the same spot.
 
 Before returning, compare each clip's start and end still item by item: every difference appears in `motionCamera`, and every object `motionCamera` touches already exists in the start still or enters in a beat.
 

@@ -241,6 +241,7 @@ Rules:
 - On "all", return an edit for every clip whose text must change. Each edit includes that clip's clipNumber.
 - Change only what the user asks for. Return each changed field with its full new content. Omit unchanged fields.
 - When the user asks to replace a word, replace every copy of it in englishVo, startScene, endScene, and motionCamera of each clip you edit.
+- Subtitle size and place live in the scene's Subtitle sentence. Change that sentence when the user asks. The still paints it as written.
 - Keep each clip's existing language. Do not translate it unless the user asks.
 - Keep each field under ${SCENE_FIELD_MAX} characters.
 - summary: one or two short sentences in the same language as the user's request. Do not put the new field text only in the summary.

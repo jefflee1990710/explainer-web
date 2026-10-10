@@ -260,22 +260,26 @@ export function sceneTextSkillHint(
   }
   if (options?.dualBeat) {
     return [
-      `When on-canvas text is ON, the start still quotes ONLY startVo and the end still quotes ONLY endVo. ${lookLine} Not a bottom subtitle bar. Keep the spoken line's own casing. Two beats switch at the midpoint.`,
+      `When on-canvas text is ON, write the subtitle into the still the image paints. startScene quotes ONLY startVo and endScene quotes ONLY endVo, each as Subtitle (spell exactly): "<that beat's line>". ${lookLine} Keep the spoken line's own casing. Two beats switch at the midpoint.`,
+      "That Subtitle sentence is the image prompt. A later step does not move, resize, or restyle it. Default place is not a bottom bar; set the place and size in the sentence when the instruction asks.",
       "startScene and endScene may also name one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 on the graph they belong to. Do not dump a second transcript of the spoken line into those fields.",
-      "Subtitle placement stays with this director. Do not copy placement from the visual style.",
+      "Lettering follows that Look. Do not copy typography or placement from the visual style.",
       markerLanguageHint(language),
     ].join(" ");
   }
   if (options?.reelSafeZone) {
     return [
-      `When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo as a subtitle inside the center safe area, clear of the top and bottom edges. ${lookLine}`,
-      "explainerScene and motionCamera must describe pose, props, and environment only. Do NOT invent extra titles, quotes, 「Mental Health?」-style labels, signs, or any wording that is not englishVo.",
+      `When on-canvas text is ON, write the subtitle into the scene the still paints: Subtitle (spell exactly): "<this clip's englishVo>", inside the center safe area, clear of the top and bottom edges. ${lookLine}`,
+      "That Subtitle sentence is the image prompt. A later step does not move, resize, or restyle it.",
+      "The only writing is that spoken line. Do not add extra titles, signs, or labels.",
       SCENE_TEXT_PRESETS[language].skillHint,
     ].join(" ");
   }
   return [
-    `When on-canvas text is ON, the ONLY writing in each still is that clip's englishVo voiceover line as a subtitle ${spokenSubtitlePlace(options?.aspectRatio)}, spelled character-for-character. ${lookLine}`,
-    "explainerScene and motionCamera must describe pose, props, and environment only. Do NOT invent extra titles, quotes, 「Mental Health?」-style labels, signs, or any wording that is not englishVo.",
+    `When on-canvas text is ON, write the subtitle into the scene the still paints (explainerScene, and startScene / endScene when this skill has them): Subtitle (spell exactly): "<this clip's spoken line>". Default place: ${spokenSubtitlePlace(options?.aspectRatio)}. ${lookLine}`,
+    "That Subtitle sentence is the image prompt. A later step does not move, resize, or restyle it. Change the place or size in that sentence when the instruction asks.",
+    "The only writing is that spoken line. Do not add extra titles, signs, or labels.",
+    "Lettering follows that Look. Do not copy typography or placement from the visual style.",
     SCENE_TEXT_PRESETS[language].skillHint,
   ].join(" ");
 }
@@ -296,7 +300,7 @@ export function sceneTextDirectorRevisionNote(
         : "Keep each clip's englishVo as the spoken English line; that line is the subtitle.";
   const place =
     "On a 9:16 Instagram Reel place it a little below the vertical center. On a 16:9 landscape frame place it across the bottom.";
-  return `On-canvas text is now ON (${SCENE_TEXT_PRESETS[language].label}). ${voScript} ${place} The ONLY writing in each still is that clip's englishVo. Rewrite every clip's explainerScene and motionCamera: pose, props, environment only — never invent short titles such as 「Mental Health?」 or any other quoted labels. Keep the same story, characters, and proposal titles.`;
+  return `On-canvas text is now ON (${SCENE_TEXT_PRESETS[language].label}). ${voScript} Write that line into each scene as Subtitle (spell exactly): "...". ${place} That sentence is what the still paints. The only writing is that clip's spoken line — never invent short titles such as 「Mental Health?」. Keep the same story, characters, and proposal titles.`;
 }
 
 // Typography locale for lettering style; the quoted voiceover keeps its own script.

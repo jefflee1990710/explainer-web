@@ -40,7 +40,8 @@ The rendering rules (canvas, look, palette, and motion) come from the **Visual s
 - `englishVo` is that clip's spoken line verbatim, in the chosen spoken language.
 - The character speaks it. No second narrator line.
 - No background music.
-- One subtitle on both stills, spelled exactly like that clip's spoken line. On a 9:16 Instagram Reel, place it a little below the vertical center, clear of the face and the bottom edge. On a 16:9 landscape frame, place it across the bottom. No other writing.
+- Write the subtitle into `startScene` and `endScene`. That sentence is what the still paints. A later step does not move or resize it.
+- Default: `Subtitle (spell exactly): "<this clip's spoken line>"`. On a 9:16 Instagram Reel, a little below the vertical center, clear of the face and the bottom edge. On a 16:9 landscape frame, across the bottom. Use the selected text style for the lettering. Change the place or size in that sentence when the instruction asks. No other writing.
 
 ## Phase A field mapping
 

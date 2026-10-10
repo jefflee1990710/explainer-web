@@ -90,7 +90,7 @@ Keep the character strictly locked across all rows: if a character reference ima
 
 Name colors only with ordinary descriptive language. Do not use hexadecimal, RGB, HSL, Pantone, or other technical color notation anywhere in the proposal or production prompts.
 
-Allow on-canvas beat text: one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names, each spelled inside 「」 in startScene and endScene. Do not dump the full voiceover into those fields — the still prompt adds startVo / endVo lettering separately. After the storyboard, optionally list longer two-to-five-word English overlays for post-production, including their target clips and safe placement; never carry those longer overlays into the video-generation prompts.
+Allow on-canvas beat text: one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names, each spelled inside 「」 in startScene and endScene. Also write that still's spoken line there as Subtitle (spell exactly): "<startVo or endVo>". The still paints that sentence. After the storyboard, optionally list longer two-to-five-word English overlays for post-production, including their target clips and safe placement; never carry those longer overlays into the video-generation prompts.
 
 ## Scene detail
 
@@ -114,7 +114,7 @@ Write it as timed beats (`0–2s …; 2–5s …`). Each beat states: time windo
 - A prop that is in the start still but not in the end still leaves on camera in a beat (put away, moved off frame, covered).
 - Name each hand by the character's own left or right, and keep the same hand on the same prop from the start still through `motionCamera` to the end still.
 - The start and end still of one clip share the same light. With no character they also share the same camera. When a character is on screen, the camera angle may change (from their left side, from above, from the front, from behind as they turn around, or toward / away for depth) but they usually finish on the same side they started. A full cross to the other side happens only on the rare lateral clip. The motion is one action from the director's list, picked by the line's meaning and not used in the previous two clips. A jump shows the feet off the ground at some point in the motion; never slide the body upward. A point aims at the lens, not at a side graphic. Do not reuse the previous clip's action or camera angle, and do not describe both stills as standing.
-- When on-canvas voiceover lettering is on, add a midpoint beat where the start line wipes off and the end line writes on in the same spot. Keep that lettering out of the start and end still text; the still prompt adds it from the VO beats.
+- When on-canvas voiceover lettering is on, write each still's spoken line into that still as Subtitle (spell exactly): "<that beat>". The still paints that sentence. Add a midpoint beat where the start line wipes off and the end line writes on in the same spot.
 
 Before returning, compare each clip's start and end still item by item: every difference appears in `motionCamera`, and every object `motionCamera` touches already exists in the start still or enters in a beat.
 
