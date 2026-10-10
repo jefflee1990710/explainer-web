@@ -106,13 +106,21 @@ export type StoryboardRow = {
   editedAt?: string;
 };
 
-export type SceneChatField = "startScene" | "endScene" | "motionCamera";
+export type SceneChatField = "startScene" | "endScene" | "motionCamera" | "englishVo";
 
-// One turn in the production-page chat for a single clip.
+// One clip's fields rewritten by a production-chat turn.
+export type SceneChatChange = {
+  clipNumber: number;
+  fields: SceneChatField[];
+};
+
+// One turn in the production-page chat. The thread belongs to the clip that was open.
 export type SceneChatMessage = {
   role: "user" | "assistant";
   content: string;
   changedPaths?: SceneChatField[];
+  // Every clip this turn rewrote. Default is the open clip; "all clips" fills the rest.
+  changedClips?: SceneChatChange[];
   createdAt: Date;
 };
 

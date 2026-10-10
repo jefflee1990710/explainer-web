@@ -15,11 +15,7 @@ import { clipStatesFor, inFlightCounts, productionCounts, type ClipState } from 
 import { allFramesReady } from "@/service/production-plan";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import type { PublicVideo } from "@/presentation/serialize";
-import type {
-  ClipStoryboardInput,
-  FramePosition,
-  FrameRevisionInput,
-} from "@/model/project";
+import type { FramePosition, FrameRevisionInput } from "@/model/project";
 
 // Needs work: no finished video yet, or the video is out of date.
 function unfinished(state: ClipState) {
@@ -35,7 +31,6 @@ export function ClipProduction({
   error,
   onGenerateFrames,
   onRegenerateFrame,
-  onUpdateClip,
   onGenerateVideo,
   onCancelVideo,
   onBulkGenerate,
@@ -54,11 +49,6 @@ export function ClipProduction({
     position: FramePosition,
     revision?: FrameRevisionInput,
   ) => void;
-  onUpdateClip: (
-    clipNumber: number,
-    input: ClipStoryboardInput,
-    regenerate: boolean,
-  ) => Promise<boolean>;
   onGenerateVideo: (clipNumber: number) => void;
   onCancelVideo: (clipNumber: number) => void;
   onBulkGenerate: (mode: BulkMode) => Promise<boolean>;
@@ -124,7 +114,6 @@ export function ClipProduction({
         showDebug={showDebug}
         onGenerateFrames={() => onGenerateFrames(state.clipNumber)}
         onOpenFrame={(position) => setEditingFrame({ clipNumber: state.clipNumber, position })}
-        onUpdateClip={(input, regenerate) => onUpdateClip(state.clipNumber, input, regenerate)}
         onGenerateVideo={() => onGenerateVideo(state.clipNumber)}
         onCancelVideo={() => onCancelVideo(state.clipNumber)}
         onSelect={select}

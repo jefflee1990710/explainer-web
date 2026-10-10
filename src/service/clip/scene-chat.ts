@@ -1,4 +1,10 @@
-import type { ClipStoryboardInput, SceneChatField, SceneChatMessage, StoryboardRow } from "@/model/project";
+import type {
+  ClipStoryboardInput,
+  SceneChatChange,
+  SceneChatField,
+  SceneChatMessage,
+  StoryboardRow,
+} from "@/model/project";
 import {
   clipEndScene,
   clipEndVo,
@@ -10,7 +16,7 @@ import {
 } from "@/service/director/dual-beat";
 import { chatRateLimited } from "@/service/director/chat-rate-limit";
 
-export const SCENE_CHAT_FIELDS = ["startScene", "endScene", "motionCamera"] as const;
+export const SCENE_CHAT_FIELDS = ["startScene", "endScene", "motionCamera", "englishVo"] as const;
 export const SCENE_FIELD_MAX = 1200;
 export const SCENE_CHAT_MESSAGE_MAX = 2000;
 export const SCENE_CHAT_HISTORY = 8;
@@ -21,6 +27,7 @@ export type SceneDraft = {
   startScene: string;
   endScene: string;
   motionCamera: string;
+  englishVo: string;
 };
 
 export type SceneChatEdit = {
@@ -28,12 +35,19 @@ export type SceneChatEdit = {
   content: string;
 };
 
-// The three fields the production chat is allowed to rewrite.
-export function sceneDraftFromClip(row: Pick<StoryboardRow, "explainerScene" | "startScene" | "endScene" | "motionCamera">): SceneDraft {
+export type SceneChatClipEdit = SceneChatEdit & {
+  clipNumber: number;
+};
+
+// The fields the production chat is allowed to rewrite, including the spoken line.
+export function sceneDraftFromClip(
+  row: Pick<StoryboardRow, "explainerScene" | "startScene" | "endScene" | "motionCamera" | "englishVo">,
+): SceneDraft {
   return {
     startScene: clipStartScene(row),
     endScene: clipEndScene(row),
     motionCamera: row.motionCamera,
+    englishVo: row.englishVo,
   };
 }
 
@@ -59,7 +73,7 @@ export function applySceneChatEdits(
       return { ok: false, error: "AI 修改了不存在的欄位" };
     }
     const content = edit.content.trim().slice(0, SCENE_FIELD_MAX);
-    if ((edit.field === "startScene" || edit.field === "endScene") && !content) {
+    if ((edit.field === "startScene" || edit.field === "endScene" || edit.field === "englishVo") && !content) {
       return { ok: false, error: "起始與結尾畫面不能空白" };
     }
     if (content === next[edit.field]) continue;
@@ -72,6 +86,76 @@ export function applySceneChatEdits(
   return { ok: true, draft: next, changed };
 }
 
+// Default scope is the open clip. "all" applies edits whose clip number exists.
+export function applySceneChatToClips(input: {
+  clips: StoryboardRow[];
+  currentClip: number;
+  scope: "current" | "all";
+  edits: SceneChatClipEdit[];
+  skillSlug?: string;
+}): { ok: true; clips: StoryboardRow[]; changed: SceneChatChange[] } | { ok: false; error: string } {
+  const allowed = new Set(
+    input.scope === "all" ? input.clips.map((clip) => clip.clipNumber) : [input.currentClip],
+  );
+  const grouped = new Map<number, SceneChatEdit[]>();
+  for (const edit of input.edits) {
+    if (!allowed.has(edit.clipNumber)) continue;
+    const list = grouped.get(edit.clipNumber) ?? [];
+    list.push({ field: edit.field, content: edit.content });
+    grouped.set(edit.clipNumber, list);
+  }
+
+  const changed: SceneChatChange[] = [];
+  const clips: StoryboardRow[] = [];
+  for (const clip of input.clips) {
+    const edits = grouped.get(clip.clipNumber);
+    if (!edits?.length) {
+      clips.push(clip);
+      continue;
+    }
+    const applied = applySceneChatEdits(sceneDraftFromClip(clip), edits);
+    if (!applied.ok) return applied;
+    if (!applied.changed.length) {
+      clips.push(clip);
+      continue;
+    }
+    changed.push({ clipNumber: clip.clipNumber, fields: applied.changed });
+    clips.push(clipWithSceneDraft(clip, applied.draft, input.skillSlug));
+  }
+  return { ok: true, clips, changed };
+}
+
+// Fields the newest assistant turn rewrote on this clip. Older turns stay unmarked.
+export function highlightedSceneFields(
+  chats:
+    | Array<{
+        clipNumber: number;
+        messages: Array<{
+          role: SceneChatMessage["role"];
+          createdAt: Date | string;
+          changedPaths?: SceneChatMessage["changedPaths"];
+          changedClips?: SceneChatMessage["changedClips"];
+        }>;
+      }>
+    | undefined,
+  clipNumber: number,
+): SceneChatField[] {
+  let newestAt = -1;
+  let fields: SceneChatField[] = [];
+  for (const thread of chats ?? []) {
+    for (const message of thread.messages) {
+      if (message.role !== "assistant") continue;
+      const at = message.createdAt instanceof Date ? message.createdAt.getTime() : Date.parse(String(message.createdAt));
+      if (Number.isNaN(at) || at < newestAt) continue;
+      const listed = message.changedClips?.find((item) => item.clipNumber === clipNumber)?.fields;
+      const own = !message.changedClips?.length && thread.clipNumber === clipNumber ? message.changedPaths : undefined;
+      newestAt = at;
+      fields = listed ?? own ?? [];
+    }
+  }
+  return fields;
+}
+
 // Write the draft back onto the clip. Single-scene skills keep one labeled scene string.
 export function clipWithSceneDraft(clip: StoryboardRow, draft: SceneDraft, skillSlug?: string): StoryboardRow {
   const editedAt = new Date().toISOString();
@@ -81,7 +165,7 @@ export function clipWithSceneDraft(clip: StoryboardRow, draft: SceneDraft, skill
       ...syncDualBeatFields({
         explainerScene: clip.explainerScene,
         motionCamera: draft.motionCamera,
-        englishVo: clip.englishVo,
+        englishVo: draft.englishVo,
         startScene: draft.startScene,
         endScene: draft.endScene,
         startVo: clip.startVo || clipStartVo(clip),
@@ -95,6 +179,7 @@ export function clipWithSceneDraft(clip: StoryboardRow, draft: SceneDraft, skill
     ...rest,
     explainerScene: joinSceneBeats(draft.startScene, draft.endScene),
     motionCamera: draft.motionCamera,
+    englishVo: draft.englishVo,
     editedAt,
   };
 }
@@ -120,29 +205,39 @@ export function regenStoryboardInput(clip: StoryboardRow, skillSlug?: string): C
 }
 
 export function sceneChatSystemPrompt() {
-  return `You edit one clip of an explainer video. You may change only these fields:
+  return `You edit explainer-video clips. You may change only these fields:
 - startScene: the opening still at t=0. One frozen picture: who, what, where, and any on-screen text. Not a motion paragraph.
 - endScene: the closing still. One frozen picture after this clip's action. Not a copy of the start unless the user asks to keep it.
 - motionCamera: how the camera and the action move from the start still to the end still. Timestamps are welcome. Not a still description.
+- englishVo: the spoken line shown on the left. Change it when the user asks to change what is said.
 
 Rules:
+- scope is "current" unless the user asks to change every clip, all clips, or the whole video. Then scope is "all".
+- On "current", return edits only for the current clip number.
+- On "all", return an edit for every clip whose text must change. Each edit includes that clip's clipNumber.
 - Change only what the user asks for. Return each changed field with its full new content. Omit unchanged fields.
-- Keep the scene's existing language. Do not translate it unless the user asks.
+- When the user asks to replace a word, replace every copy of it in englishVo, startScene, endScene, and motionCamera of each clip you edit.
+- Keep each clip's existing language. Do not translate it unless the user asks.
 - Keep each field under ${SCENE_FIELD_MAX} characters.
-- Do not change the spoken line.
-- summary: one or two short sentences in the same language as the user's request.
-- If the user is only asking a question, return an empty edits array and answer in summary.`;
+- summary: one or two short sentences in the same language as the user's request. Do not put the new field text only in the summary.
+- If the user is only asking a question, return scope "current", an empty edits array, and answer in summary.`;
 }
 
 export function sceneChatUserPrompt(input: {
-  draft: SceneDraft;
+  clips: Array<StoryboardRow & { clipNumber: number }>;
+  currentClip: number;
   history: SceneChatMessage[];
   message: string;
 }) {
-  const current = SCENE_CHAT_FIELDS.map((field) => `${field}:\n${input.draft[field]}`).join("\n\n");
+  const blocks = input.clips.map((clip) => {
+    const draft = sceneDraftFromClip(clip);
+    const mark = clip.clipNumber === input.currentClip ? " (current)" : "";
+    const fields = SCENE_CHAT_FIELDS.map((field) => `${field}:\n${draft[field]}`).join("\n\n");
+    return `Clip ${clip.clipNumber}${mark}:\n${fields}`;
+  });
   const history = input.history
     .slice(-SCENE_CHAT_HISTORY)
     .map((item) => `${item.role}: ${item.content}`)
     .join("\n");
-  return `Current clip:\n${current}\n\nRecent chat:\n${history || "(none)"}\n\nUser request:\n${input.message}`;
+  return `${blocks.join("\n\n")}\n\nRecent chat:\n${history || "(none)"}\n\nUser request:\n${input.message}`;
 }

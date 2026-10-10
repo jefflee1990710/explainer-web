@@ -2,13 +2,14 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
-import type { SceneChatField } from "@/model/project";
+import type { SceneChatChange, SceneChatField } from "@/model/project";
 
 // One production-chat bubble. The regenerate control sits inside the latest AI reply.
 export function SceneChatMessage({
   role,
   content,
   changedPaths,
+  changedClips,
   variant = "normal",
   regenerating = false,
   regenerateDisabled = false,
@@ -18,6 +19,7 @@ export function SceneChatMessage({
   role: "user" | "assistant";
   content?: string;
   changedPaths?: SceneChatField[];
+  changedClips?: SceneChatChange[];
   variant?: "normal" | "pending" | "error";
   regenerating?: boolean;
   regenerateDisabled?: boolean;
@@ -29,6 +31,7 @@ export function SceneChatMessage({
   function fieldLabel(field: SceneChatField) {
     if (field === "startScene") return t("production.sceneChat.fieldStart");
     if (field === "endScene") return t("production.sceneChat.fieldEnd");
+    if (field === "englishVo") return t("production.sceneChat.fieldVo");
     return t("production.sceneChat.fieldMotion");
   }
 
@@ -79,7 +82,18 @@ export function SceneChatMessage({
           ) : null}
         </div>
       )}
-      {changedPaths && changedPaths.length > 0 ? (
+      {changedClips && changedClips.length > 0 ? (
+        <p className="px-1 text-xs text-muted">
+          {changedClips.length > 1
+            ? t("production.sceneChat.changedClips", {
+                clips: changedClips.map((item) => item.clipNumber).join("、"),
+                fields: [...new Set(changedClips.flatMap((item) => item.fields))].map(fieldLabel).join("、"),
+              })
+            : t("production.sceneChat.changed", {
+                fields: (changedClips[0]?.fields ?? changedPaths ?? []).map(fieldLabel).join("、"),
+              })}
+        </p>
+      ) : changedPaths && changedPaths.length > 0 ? (
         <p className="px-1 text-xs text-muted">
           {t("production.sceneChat.changed", {
             fields: changedPaths.map(fieldLabel).join("、"),

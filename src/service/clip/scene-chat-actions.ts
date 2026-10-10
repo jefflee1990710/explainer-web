@@ -17,14 +17,12 @@ import { revalidatePath } from "next/cache";
 import {
   SCENE_CHAT_FIELDS,
   SCENE_CHAT_KEPT,
-  applySceneChatEdits,
-  clipWithSceneDraft,
+  applySceneChatToClips,
   normalizeSceneChatSummary,
   regenStoryboardInput,
   sceneChatRateLimited,
   sceneChatSystemPrompt,
   sceneChatUserPrompt,
-  sceneDraftFromClip,
 } from "@/service/clip/scene-chat";
 
 type SceneChatResult =
@@ -33,8 +31,10 @@ type SceneChatResult =
 
 const sceneChatSchema = z.object({
   summary: z.string(),
+  scope: z.enum(["current", "all"]),
   edits: z.array(
     z.object({
+      clipNumber: z.number().int(),
       field: z.enum(SCENE_CHAT_FIELDS),
       content: z.string(),
     }),
@@ -87,7 +87,6 @@ export async function sendClipSceneChatAction(input: {
       return { ok: false, error: "AI 修改太頻繁，請稍後再試" };
     }
 
-    const draft = sceneDraftFromClip(clip);
     let output: z.infer<typeof sceneChatSchema>;
     try {
       ({ output } = await generateText({
@@ -95,7 +94,8 @@ export async function sendClipSceneChatAction(input: {
         output: Output.object({ schema: sceneChatSchema }),
         system: sceneChatSystemPrompt(),
         prompt: sceneChatUserPrompt({
-          draft,
+          clips: project.phaseA.clips,
+          currentClip: clipNumber,
           history: thread?.messages || [],
           message,
         }),
@@ -105,15 +105,26 @@ export async function sendClipSceneChatAction(input: {
       return { ok: false, error: "AI 修改失敗，請再試一次" };
     }
 
-    const applied = applySceneChatEdits(draft, output.edits);
+    const applied = applySceneChatToClips({
+      clips: project.phaseA.clips,
+      currentClip: clipNumber,
+      scope: output.scope,
+      edits: output.edits,
+      skillSlug: project.skillSlug,
+    });
     if (!applied.ok) return applied;
+    const currentFields = applied.changed.find((item) => item.clipNumber === clipNumber)?.fields;
 
     const now = new Date();
     const userMsg: SceneChatMessage = { role: "user", content: message, createdAt: now };
     const assistantMsg: SceneChatMessage = {
       role: "assistant",
-      content: normalizeSceneChatSummary(output.summary, applied.changed.length),
-      ...(applied.changed.length ? { changedPaths: applied.changed } : {}),
+      content: normalizeSceneChatSummary(
+        output.summary,
+        applied.changed.reduce((sum, item) => sum + item.fields.length, 0),
+      ),
+      ...(currentFields?.length ? { changedPaths: currentFields } : {}),
+      ...(applied.changed.length ? { changedClips: applied.changed } : {}),
       createdAt: now,
     };
     const messages = [...(thread?.messages || []), userMsg, assistantMsg].slice(-SCENE_CHAT_KEPT);
@@ -123,19 +134,18 @@ export async function sendClipSceneChatAction(input: {
         )
       : [...(project.sceneChats || []), { clipNumber, messages }];
 
-    let clips = project.phaseA.clips;
+    const clips = applied.clips;
     let frames = project.frames || [];
     if (applied.changed.length > 0) {
-      const nextClip = clipWithSceneDraft(clip, applied.draft, project.skillSlug);
-      clips = project.phaseA.clips.map((item) => (item.clipNumber === clipNumber ? nextClip : item));
+      const changedNumbers = new Set(applied.changed.map((item) => item.clipNumber));
       const nextProject = await withWrittenCanvas({ ...project, phaseA: { ...project.phaseA, clips } });
       const style = await loadRenderableStyle({
         styleId: project.styleId,
         ownerClerkUserId: project.clerkUserId,
       });
       frames = (project.frames || []).map((frame) => {
-        const own = frame.clipNumber === clipNumber;
-        const handoff = frame.clipNumber === clipNumber - 1 && frame.position === "end";
+        const own = changedNumbers.has(frame.clipNumber);
+        const handoff = frame.position === "end" && changedNumbers.has(frame.clipNumber + 1);
         if (!own && !handoff) return frame;
         return {
           ...frame,

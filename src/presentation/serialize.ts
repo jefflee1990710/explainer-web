@@ -95,7 +95,11 @@ export type PublicVideo = {
     messages: Array<{
       role: "user" | "assistant";
       content: string;
-      changedPaths?: Array<"startScene" | "endScene" | "motionCamera">;
+      changedPaths?: Array<"startScene" | "endScene" | "motionCamera" | "englishVo">;
+      changedClips?: Array<{
+        clipNumber: number;
+        fields: Array<"startScene" | "endScene" | "motionCamera" | "englishVo">;
+      }>;
       createdAt: string;
     }>;
   }>;
@@ -280,6 +284,7 @@ function toPublicSceneChats(chats: Project["sceneChats"]): PublicVideo["sceneCha
       role: item.role,
       content: item.content,
       changedPaths: item.changedPaths,
+      changedClips: item.changedClips,
       createdAt: chatCreatedAt(item.createdAt),
     })),
   }));

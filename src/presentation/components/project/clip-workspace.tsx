@@ -2,17 +2,15 @@
 
 import { ClipPrimaryAction } from "@/presentation/components/project/clip-primary-action";
 import { ClipPreviewStage } from "@/presentation/components/project/clip-preview-stage";
-import {
-  ClipScenePrompts,
-  type ClipScenePending,
-} from "@/presentation/components/project/clip-scene-prompts";
+import { ClipScenePrompts } from "@/presentation/components/project/clip-scene-prompts";
+import { highlightedSceneFields } from "@/service/clip/scene-chat";
 import { FramePromptPanel } from "@/presentation/components/project/frame-prompt-panel";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { ClipState } from "@/service/clip-stage";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { PublicVideo } from "@/presentation/serialize";
-import type { ClipStoryboardInput, FramePosition } from "@/model/project";
+import type { FramePosition } from "@/model/project";
 
 export function ClipWorkspace({
   project,
@@ -24,7 +22,6 @@ export function ClipWorkspace({
   showDebug,
   onGenerateFrames,
   onOpenFrame,
-  onUpdateClip,
   onGenerateVideo,
   onCancelVideo,
   onSelect,
@@ -39,7 +36,6 @@ export function ClipWorkspace({
   showDebug: boolean;
   onGenerateFrames: () => void;
   onOpenFrame: (position: FramePosition) => void;
-  onUpdateClip: (input: ClipStoryboardInput, regenerate: boolean) => Promise<boolean>;
   onGenerateVideo: () => void;
   onCancelVideo: () => void;
   onSelect: (clipNumber: number) => void;
@@ -52,9 +48,6 @@ export function ClipWorkspace({
   const start = project.frames.find((f) => f.clipNumber === n && f.position === "start");
   const end = project.frames.find((f) => f.clipNumber === n && f.position === "end");
   const clip = project.clips.find((c) => c.clipNumber === n);
-  const scenePending: ClipScenePending =
-    pending === `clip:${n}` ? "save" : pending === `clip:${n}:regen` ? "regenerate" : "";
-
   const framesPending = pending === `frames:${n}` || pending === `clip:${n}:regen`;
   const cancelPending = pending === `cancel-video:${n}`;
   const ownPending =
@@ -115,14 +108,11 @@ export function ClipWorkspace({
       ) : null}
 
       <ClipScenePrompts
-        key={`${n}:${row.editedAt ?? ""}`}
         clip={row}
         language={project.language}
         dualBeat={isDualBeatSkill(project.skillSlug)}
         skillSlug={project.skillSlug}
-        credits={credits}
-        pending={scenePending}
-        onSave={onUpdateClip}
+        highlighted={highlightedSceneFields(project.sceneChats, n)}
       />
 
       {showDebug ? (

@@ -4,7 +4,9 @@ import type { StoryboardRow } from "@/model/project";
 import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import {
   applySceneChatEdits,
+  applySceneChatToClips,
   clipWithSceneDraft,
+  highlightedSceneFields,
   regenStoryboardInput,
   sceneDraftFromClip,
 } from "@/service/clip/scene-chat";
@@ -28,6 +30,7 @@ test("scene draft reads a labeled single scene as start and end", () => {
   assert.equal(draft.startScene, "a desk");
   assert.equal(draft.endScene, "the same desk, closer.");
   assert.equal(draft.motionCamera, "push in");
+  assert.equal(draft.englishVo, "Five tools.");
 });
 
 test("apply keeps untouched fields and rejects a blank start", () => {
@@ -49,7 +52,7 @@ test("a single-scene clip stores Start/End in explainerScene and drops split fie
   const clip = row({ startScene: "old start", endScene: "old end" });
   const next = clipWithSceneDraft(
     clip,
-    { startScene: "overhead paper", endScene: "paper with a giant 5", motionCamera: "drop in" },
+    { startScene: "overhead paper", endScene: "paper with a giant 5", motionCamera: "drop in", englishVo: "Five tools." },
     "listicle-director",
   );
   assert.equal(next.startScene, undefined);
@@ -72,7 +75,7 @@ test("a dual-beat clip keeps separate start and end stills", () => {
   });
   const next = clipWithSceneDraft(
     clip,
-    { startScene: "crouches", endScene: "stands up", motionCamera: "jump" },
+    { startScene: "crouches", endScene: "stands up", motionCamera: "jump", englishVo: "First line. Second line." },
     CARTOON_EXPLAINER_SKILL_SLUG,
   );
   assert.equal(next.startScene, "crouches");
@@ -81,4 +84,65 @@ test("a dual-beat clip keeps separate start and end stills", () => {
   assert.equal(next.endVo, "Second line.");
   assert.match(next.explainerScene, /crouches/);
   assert.match(next.explainerScene, /stands up/);
+});
+
+test("a spoken-line edit is saved onto the clip", () => {
+  const draft = sceneDraftFromClip(row({ englishVo: "一個 Webinar" }));
+  const changed = applySceneChatEdits(draft, [{ field: "englishVo", content: "一個線上研討會" }]);
+  assert.equal(changed.ok, true);
+  if (!changed.ok) return;
+  assert.deepEqual(changed.changed, ["englishVo"]);
+  const next = clipWithSceneDraft(row({ englishVo: "一個 Webinar" }), changed.draft, "talking-head-director");
+  assert.equal(next.englishVo, "一個線上研討會");
+
+  const blank = applySceneChatEdits(draft, [{ field: "englishVo", content: "  " }]);
+  assert.equal(blank.ok, false);
+});
+
+test("current scope ignores other clips; all scope rewrites each one", () => {
+  const clips = [
+    row({ clipNumber: 1, englishVo: "一個 Webinar" }),
+    row({ clipNumber: 2, englishVo: "下一個 Webinar" }),
+  ];
+  const edits = [
+    { clipNumber: 1, field: "englishVo" as const, content: "一個線上研討會" },
+    { clipNumber: 2, field: "englishVo" as const, content: "下一個線上研討會" },
+  ];
+  const current = applySceneChatToClips({ clips, currentClip: 1, scope: "current", edits });
+  assert.equal(current.ok, true);
+  if (!current.ok) return;
+  assert.deepEqual(current.changed, [{ clipNumber: 1, fields: ["englishVo"] }]);
+  assert.equal(current.clips[1].englishVo, "下一個 Webinar");
+
+  const all = applySceneChatToClips({ clips, currentClip: 1, scope: "all", edits });
+  assert.equal(all.ok, true);
+  if (!all.ok) return;
+  assert.equal(all.clips[0].englishVo, "一個線上研討會");
+  assert.equal(all.clips[1].englishVo, "下一個線上研討會");
+});
+
+test("highlight follows the newest assistant turn only", () => {
+  const chats = [
+    {
+      clipNumber: 1,
+      messages: [
+        {
+          role: "assistant" as const,
+          createdAt: new Date("2026-10-10T01:00:00Z"),
+          changedClips: [{ clipNumber: 1, fields: ["englishVo" as const] }],
+        },
+        {
+          role: "assistant" as const,
+          createdAt: new Date("2026-10-10T02:00:00Z"),
+          changedClips: [
+            { clipNumber: 1, fields: ["motionCamera" as const] },
+            { clipNumber: 2, fields: ["englishVo" as const] },
+          ],
+        },
+      ],
+    },
+  ];
+  assert.deepEqual(highlightedSceneFields(chats, 1), ["motionCamera"]);
+  assert.deepEqual(highlightedSceneFields(chats, 2), ["englishVo"]);
+  assert.deepEqual(highlightedSceneFields(chats, 3), []);
 });

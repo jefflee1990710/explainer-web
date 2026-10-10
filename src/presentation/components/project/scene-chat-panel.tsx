@@ -91,6 +91,7 @@ export function SceneChatPanel({
             role={message.role}
             content={message.content}
             changedPaths={message.changedPaths}
+            changedClips={message.changedClips}
             regenerating={regenerating && index === latestChanged}
             regenerateDisabled={regenerating || framesBusy}
             credits={credits}

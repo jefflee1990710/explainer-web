@@ -20,10 +20,7 @@ import {
   generateSelectedClipsAction,
 } from "@/presentation/actions/clip-production";
 import type { BulkMode } from "@/presentation/components/project/bulk-generate-dialog";
-import {
-  regenerateFrameAction,
-  updateClipStoryboardAction,
-} from "@/presentation/actions/generation";
+import { regenerateFrameAction } from "@/presentation/actions/generation";
 import { regenerateClipSceneMediaAction } from "@/presentation/actions/scene-chat";
 import {
   createVideoAction,
@@ -96,7 +93,6 @@ import type {
 import { DEFAULT_STYLE_ID } from "@/service/style";
 import type {
   AspectRatio,
-  ClipStoryboardInput,
   DurationPreset,
   FramePosition,
   FrameRevisionInput,
@@ -605,18 +601,6 @@ export function NewProjectForm({
     if (!project) return;
     void runPaid(`frame:${clipNumber}:${position}`, () =>
       regenerateFrameAction(project.id, clipNumber, position, revision),
-    );
-  }
-
-  // Rewrite one clip's storyboard text; optionally redraw its two frames (FRAMES_COST).
-  function onUpdateClip(
-    clipNumber: number,
-    input: ClipStoryboardInput,
-    regenerate: boolean,
-  ) {
-    if (!project) return Promise.resolve(false);
-    return runPaid(`clip:${clipNumber}${regenerate ? ":regen" : ""}`, () =>
-      updateClipStoryboardAction(project.id, clipNumber, input, { regenerate }),
     );
   }
 
@@ -1203,7 +1187,6 @@ export function NewProjectForm({
               error={error}
               onGenerateFrames={onGenerateFrames}
               onRegenerateFrame={onRegenerateFrame}
-              onUpdateClip={onUpdateClip}
               onGenerateVideo={onGenerateVideo}
               onCancelVideo={onCancelVideo}
               onBulkGenerate={onBulkGenerate}

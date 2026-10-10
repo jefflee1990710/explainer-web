@@ -1,138 +1,59 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { Spinner } from "@/presentation/components/spinner";
-import { StudioButton } from "@/presentation/studio/studio-button";
-import {
-  clipEndScene,
-  clipEndVo,
-  clipStartScene,
-  clipStartVo,
-} from "@/service/director/dual-beat";
+import { clipEndScene, clipEndVo, clipStartScene, clipStartVo } from "@/service/director/dual-beat";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { skillBansNarration } from "@/service/director/skill-rules";
-import { talkingHeadFramesCost } from "@/service/director/talking-head";
-import type { ClipStoryboardInput, StoryboardRow, VoLanguage } from "@/model/project";
+import type { SceneChatField, StoryboardRow, VoLanguage } from "@/model/project";
 
-const MAX_FIELD_LENGTH = 1200;
-
-export type ClipScenePending = "" | "save" | "regenerate";
-
+// Read-only storyboard. Edits come from the chat; the fields that turn changed are marked.
 export function ClipScenePrompts({
   clip,
   language,
   dualBeat,
   skillSlug,
-  credits,
-  pending,
-  onSave,
+  highlighted = [],
 }: {
   clip: StoryboardRow;
   language: VoLanguage;
   dualBeat?: boolean;
   skillSlug?: string;
-  credits: number;
-  pending: ClipScenePending;
-  onSave: (input: ClipStoryboardInput, regenerate: boolean) => Promise<boolean>;
+  highlighted?: SceneChatField[];
 }) {
   const { t } = useI18n();
-  const fieldId = useId();
   const voLabel = LANGUAGE_PRESETS[language].label;
   const spokenKind = skillBansNarration(skillSlug) ? "dialogue" : "narration";
   const spoken = (key: string, params?: Record<string, string | number>) =>
     t(`production.spoken.${spokenKind}.${key}`, params);
-  const [draft, setDraft] = useState<ClipStoryboardInput>(() => draftFromClip(clip));
-  const externalKey = [
-    clip.editedAt ?? "",
-    clip.explainerScene,
-    clip.motionCamera,
-    clip.startScene ?? "",
-    clip.endScene ?? "",
-    clip.englishVo,
-    clip.startVo ?? "",
-    clip.endVo ?? "",
-  ].join("\u0001");
-
-  // Chat saves land on the clip. Replace the fields when that text changes.
-  useEffect(() => {
-    setDraft(draftFromClip(clip));
-    // externalKey already lists every field draftFromClip reads.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [externalKey]);
-
-  const busy = pending !== "";
-  const dirty = isDraftDirty(draft, clip);
-  const valid = dualBeat
-    ? Boolean(
-        draft.startScene?.trim() &&
-          draft.endScene?.trim() &&
-          draft.startVo?.trim() &&
-          draft.endVo?.trim(),
-      )
-    : draft.explainerScene.trim().length > 0 && draft.englishVo.trim().length > 0;
-  const frameCost = talkingHeadFramesCost(skillSlug, clip.clipNumber);
-  const enoughCredits = credits >= frameCost;
-  const canSave = valid && dirty && !busy;
-  const canRedraw = valid && !busy;
-
-  function update<K extends keyof ClipStoryboardInput>(key: K, value: string) {
-    setDraft((prev) => ({ ...prev, [key]: value }));
-  }
-
-  async function submit(regenerate: boolean) {
-    if (regenerate ? !canRedraw : !canSave) return;
-    await onSave(
-      {
-        explainerScene: draft.explainerScene.trim(),
-        motionCamera: draft.motionCamera.trim(),
-        englishVo: draft.englishVo.trim(),
-        startScene: draft.startScene?.trim(),
-        endScene: draft.endScene?.trim(),
-        startVo: draft.startVo?.trim(),
-        endVo: draft.endVo?.trim(),
-      },
-      regenerate,
-    );
-  }
-
+  const mark = (field: SceneChatField) => highlighted.includes(field);
   const sceneSummary = dualBeat
-    ? t("production.scene.summaryStart", { text: draft.startScene || t("production.scene.empty") })
-    : draft.explainerScene || t("production.scene.empty");
+    ? t("production.scene.summaryStart", { text: clip.startScene || clipStartScene(clip) || t("production.scene.empty") })
+    : clip.explainerScene || t("production.scene.empty");
 
   return (
     <div className="flex flex-col gap-3">
       <FormSection title={spoken("section")}>
         {dualBeat ? (
           <>
-            <TextField
-              id={`${fieldId}-vo-start`}
+            <ReadOnlyField
               label={spoken("startField", { lang: voLabel })}
-              value={draft.startVo || ""}
-              rows={2}
-              disabled={busy}
-              placeholder={spoken("startPlaceholder")}
-              onChange={(value) => update("startVo", value)}
+              value={clip.startVo || clipStartVo(clip)}
+              highlighted={mark("englishVo")}
+              highlightLabel={t("production.sceneChat.highlight")}
             />
-            <TextField
-              id={`${fieldId}-vo-end`}
+            <ReadOnlyField
               label={spoken("endField", { lang: voLabel })}
-              value={draft.endVo || ""}
-              rows={2}
-              disabled={busy}
-              placeholder={spoken("endPlaceholder")}
-              onChange={(value) => update("endVo", value)}
+              value={clip.endVo || clipEndVo(clip)}
+              highlighted={mark("englishVo")}
+              highlightLabel={t("production.sceneChat.highlight")}
             />
           </>
         ) : (
-          <TextField
-            id={`${fieldId}-vo`}
+          <ReadOnlyField
             label={spoken("field", { lang: voLabel })}
-            value={draft.englishVo}
-            rows={3}
-            disabled={busy}
-            placeholder={spoken("placeholder")}
-            onChange={(value) => update("englishVo", value)}
+            value={clip.englishVo}
+            highlighted={mark("englishVo")}
+            highlightLabel={t("production.sceneChat.highlight")}
           />
         )}
       </FormSection>
@@ -140,113 +61,43 @@ export function ClipScenePrompts({
       <FormSection title={t("production.scene.sectionScene")} summary={sceneSummary} collapsible>
         {dualBeat ? (
           <>
-            <TextField
-              id={`${fieldId}-start`}
+            <ReadOnlyField
               label={t("production.scene.labelStartScene")}
-              value={draft.startScene || ""}
-              rows={4}
-              disabled={busy}
-              placeholder={t("production.scene.placeholderStartScene")}
-              onChange={(value) => update("startScene", value)}
+              value={clip.startScene || clipStartScene(clip)}
+              highlighted={mark("startScene")}
+              highlightLabel={t("production.sceneChat.highlight")}
             />
-            <TextField
-              id={`${fieldId}-end`}
+            <ReadOnlyField
               label={t("production.scene.labelEndScene")}
-              value={draft.endScene || ""}
-              rows={4}
-              disabled={busy}
-              placeholder={t("production.scene.placeholderEndScene")}
-              onChange={(value) => update("endScene", value)}
+              value={clip.endScene || clipEndScene(clip)}
+              highlighted={mark("endScene")}
+              highlightLabel={t("production.sceneChat.highlight")}
             />
           </>
         ) : (
-          <TextField
-            id={`${fieldId}-scene`}
+          <ReadOnlyField
             label={t("production.scene.labelExplainerScene")}
-            value={draft.explainerScene}
-            rows={5}
-            disabled={busy}
-            placeholder={t("production.scene.placeholderExplainerScene")}
-            onChange={(value) => update("explainerScene", value)}
+            value={clip.explainerScene}
+            highlighted={mark("startScene") || mark("endScene")}
+            highlightLabel={t("production.sceneChat.highlight")}
           />
         )}
       </FormSection>
 
       <FormSection
         title={t("production.scene.sectionMotion")}
-        summary={draft.motionCamera || t("production.scene.empty")}
+        summary={clip.motionCamera || t("production.scene.empty")}
         collapsible
+        open={mark("motionCamera")}
       >
-        <TextField
-          id={`${fieldId}-motion`}
+        <ReadOnlyField
           label={t("production.scene.labelMotion")}
-          value={draft.motionCamera}
-          rows={3}
-          disabled={busy}
-          placeholder={t("production.scene.placeholderMotion")}
-          onChange={(value) => update("motionCamera", value)}
+          value={clip.motionCamera}
+          highlighted={mark("motionCamera")}
+          highlightLabel={t("production.sceneChat.highlight")}
         />
       </FormSection>
-
-      {dirty || busy ? (
-        <div className="sticky bottom-0 -mx-4 flex flex-col gap-2 border-t border-[var(--studio-line)] bg-[var(--studio-panel)] px-4 py-3">
-          {!valid ? (
-            <p className="text-xs font-medium text-accent">
-              {dualBeat ? spoken("dualEmptyError") : spoken("emptyError")}
-            </p>
-          ) : !enoughCredits ? (
-            <p className="text-xs font-medium text-accent">{t("production.scene.insufficientCreditsRedraw")}</p>
-          ) : (
-            <p className="text-[11px] text-[var(--studio-muted)]">{t("production.scene.redrawHint")}</p>
-          )}
-          <div className="flex gap-2">
-            <StudioButton
-              variant="ghost"
-              onClick={() => void submit(false)}
-              disabled={!canSave}
-              className="min-h-9 flex-1 px-3 text-xs"
-            >
-              {pending === "save" ? <Spinner className="h-3.5 w-3.5" /> : null}
-              {pending === "save" ? t("production.action.saving") : t("production.action.save")}
-            </StudioButton>
-            <StudioButton
-              onClick={() => void submit(true)}
-              disabled={!canRedraw}
-              className="min-h-9 flex-[2] px-3 text-xs"
-            >
-              {pending === "regenerate" ? <Spinner className="h-3.5 w-3.5" /> : null}
-              {pending === "regenerate"
-                ? t("production.action.submitting")
-                : t("production.action.saveAndRedraw", { cost: frameCost })}
-            </StudioButton>
-          </div>
-        </div>
-      ) : null}
     </div>
-  );
-}
-
-function draftFromClip(clip: StoryboardRow): ClipStoryboardInput {
-  return {
-    explainerScene: clip.explainerScene,
-    motionCamera: clip.motionCamera,
-    englishVo: clip.englishVo,
-    startScene: clip.startScene ?? clipStartScene(clip),
-    endScene: clip.endScene ?? clipEndScene(clip),
-    startVo: clip.startVo ?? clipStartVo(clip),
-    endVo: clip.endVo ?? clipEndVo(clip),
-  };
-}
-
-function isDraftDirty(draft: ClipStoryboardInput, clip: StoryboardRow) {
-  return (
-    draft.explainerScene !== clip.explainerScene ||
-    draft.motionCamera !== clip.motionCamera ||
-    draft.englishVo !== clip.englishVo ||
-    (draft.startScene ?? "") !== (clip.startScene ?? clipStartScene(clip)) ||
-    (draft.endScene ?? "") !== (clip.endScene ?? clipEndScene(clip)) ||
-    (draft.startVo ?? "") !== (clip.startVo ?? clipStartVo(clip)) ||
-    (draft.endVo ?? "") !== (clip.endVo ?? clipEndVo(clip))
   );
 }
 
@@ -254,11 +105,13 @@ function FormSection({
   title,
   summary,
   collapsible = false,
+  open = false,
   children,
 }: {
   title: string;
   summary?: string;
   collapsible?: boolean;
+  open?: boolean;
   children: React.ReactNode;
 }) {
   if (!collapsible) {
@@ -270,7 +123,7 @@ function FormSection({
     );
   }
   return (
-    <details className="group rounded-md border border-[var(--studio-line)]">
+    <details className="group rounded-md border border-[var(--studio-line)]" {...(open ? { open: true } : {})}>
       <summary className="flex cursor-pointer list-none items-start gap-2 px-3 py-2">
         <span className="mt-0.5 text-[10px] text-[var(--studio-muted)] transition group-open:rotate-90">
           ▶
@@ -285,43 +138,32 @@ function FormSection({
   );
 }
 
-function TextField({
-  id,
+function ReadOnlyField({
   label,
   value,
-  rows,
-  disabled,
-  placeholder,
-  onChange,
+  highlighted,
+  highlightLabel,
 }: {
-  id: string;
   label: string;
   value: string;
-  rows: number;
-  disabled?: boolean;
-  placeholder: string;
-  onChange: (value: string) => void;
+  highlighted: boolean;
+  highlightLabel: string;
 }) {
   return (
-    <div>
+    <div
+      className={
+        highlighted
+          ? "rounded-md bg-[color-mix(in_srgb,var(--studio-teal)_16%,white)] px-2.5 py-2 ring-1 ring-[var(--studio-teal)]"
+          : ""
+      }
+    >
       <div className="flex items-baseline justify-between gap-2">
-        <label htmlFor={id} className="text-xs font-semibold">
-          {label}
-        </label>
-        <span className="text-[10px] tabular-nums text-[var(--studio-muted)]">
-          {value.length}/{MAX_FIELD_LENGTH}
-        </span>
+        <p className="text-xs font-semibold">{label}</p>
+        {highlighted ? (
+          <span className="text-[10px] font-bold text-[var(--studio-teal)]">{highlightLabel}</span>
+        ) : null}
       </div>
-      <textarea
-        id={id}
-        rows={rows}
-        maxLength={MAX_FIELD_LENGTH}
-        value={value}
-        disabled={disabled}
-        placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-1 w-full resize-y rounded-md border border-[var(--studio-line)] bg-white px-3 py-2 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--studio-teal)] disabled:opacity-60"
-      />
+      <p className="mt-1 whitespace-pre-wrap text-sm leading-6">{value}</p>
     </div>
   );
 }
