@@ -18,6 +18,7 @@ import {
   framePromptSummaryUser,
   framePromptThread,
   normalizeFramePromptSummary,
+  openingSummaryFresh,
   withFramePromptThread,
 } from "@/service/clip/frame-prompt-chat";
 import { directorModel } from "@/service/director/model";
@@ -84,20 +85,21 @@ export async function openFramePromptChatAction(input: {
     if (!project?.phaseA) return { ok: false, error: "專案不存在" };
     if (!isProductionLike(project.status)) return { ok: false, error: "分鏡尚未完成" };
 
+    const locale = input.locale || "en";
     const existing = framePromptThread(project.sceneChats, target.clipNumber, target.position);
-    if (existing?.messages.length) return { ok: true, project: toPublicVideo(project) };
+    if (openingSummaryFresh(existing?.messages, locale)) return { ok: true, project: toPublicVideo(project) };
 
     const frame = (project.frames || []).find(
       (item) => item.clipNumber === target.clipNumber && item.position === target.position,
     );
     const prompt = frame?.prompt?.trim() ?? "";
-    let summary = emptyFramePromptSummary(input.locale || "en");
+    let summary = emptyFramePromptSummary(locale);
     if (prompt) {
       try {
         const { output } = await generateText({
           model: directorModel(),
           output: Output.object({ schema: summarySchema }),
-          system: framePromptSummarySystem(input.locale || "en"),
+          system: framePromptSummarySystem(locale),
           prompt: framePromptSummaryUser(prompt),
         });
         summary = normalizeFramePromptSummary(output.summary);
@@ -108,13 +110,18 @@ export async function openFramePromptChatAction(input: {
     }
 
     const now = new Date();
-    const assistant: SceneChatMessage = { role: "assistant", content: summary.slice(0, FRAME_PROMPT_SUMMARY_MAX), createdAt: now };
+    const assistant: SceneChatMessage = {
+      role: "assistant",
+      content: summary.slice(0, FRAME_PROMPT_SUMMARY_MAX),
+      locale,
+      createdAt: now,
+    };
     const sceneChats = withFramePromptThread(project.sceneChats, {
       clipNumber: target.clipNumber,
       position: target.position,
-      messages: existing?.messages.length ? existing.messages : [assistant],
+      messages: [assistant],
     });
-    // Another open may have stored the summary first. Do not add a second one.
+    // A chat that already has a user reply is left alone.
     const wrote = await projects.updateOne(
       {
         _id: project._id,
@@ -124,7 +131,7 @@ export async function openFramePromptChatAction(input: {
             $elemMatch: {
               clipNumber: target.clipNumber,
               position: target.position,
-              "messages.0": { $exists: true },
+              "messages.role": "user",
             },
           },
         },

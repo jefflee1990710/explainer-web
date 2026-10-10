@@ -125,6 +125,8 @@ export type SceneChatMessage = {
   changedClips?: SceneChatChange[];
   // This turn replaced the still's image prompt.
   promptChanged?: boolean;
+  // Interface language of an opening summary, so a locale change can rewrite it.
+  locale?: string;
   createdAt: Date;
 };
 

@@ -9,7 +9,7 @@ import { ClipWorkspace } from "@/presentation/components/project/clip-workspace"
 import { FrameEditDialog } from "@/presentation/components/project/frame-edit-dialog";
 import { ProductionToolbar } from "@/presentation/components/project/production-toolbar";
 import { SelectionBar } from "@/presentation/components/project/selection-bar";
-import { FramePromptChatPanel } from "@/presentation/components/project/frame-prompt-chat-panel";
+import { FramePromptChatDialog } from "@/presentation/components/project/frame-prompt-chat-dialog";
 import { VideoDesk, type SelectClip } from "@/presentation/components/project/video-desk";
 import { clipStatesFor, inFlightCounts, productionCounts, type ClipState } from "@/service/clip-stage";
 import { allFramesReady } from "@/service/production-plan";
@@ -159,21 +159,6 @@ export function ClipProduction({
         )}
         renderPreview={(state, select) => workspace("preview", state, select)}
         renderInspector={(state, select) => workspace("inspector", state, select)}
-        renderAside={(state) =>
-          promptChat?.clipNumber === state.clipNumber ? (
-            <FramePromptChatPanel
-              key={`${state.clipNumber}:${promptChat.position}`}
-              project={project}
-              clipNumber={state.clipNumber}
-              position={promptChat.position}
-              subscribed={subscribed}
-              regenerating={pending === `frame:${state.clipNumber}:${promptChat.position}`}
-              onProject={onProject}
-              onRegenerate={() => onRegenerateFramePrompt(state.clipNumber, promptChat.position)}
-              onClose={() => setPromptChat(null)}
-            />
-          ) : null
-        }
         checkedIds={checked}
         onToggleCheck={toggleCheck}
         timelineBar={
@@ -207,6 +192,20 @@ export function ClipProduction({
             setBulkMode(null);
             void onBulkGenerate(mode);
           }}
+        />
+      ) : null}
+      {promptChat ? (
+        <FramePromptChatDialog
+          key={`${promptChat.clipNumber}:${promptChat.position}`}
+          project={project}
+          clipNumber={promptChat.clipNumber}
+          position={promptChat.position}
+          aspectRatio={project.aspectRatio}
+          subscribed={subscribed}
+          regenerating={pending === `frame:${promptChat.clipNumber}:${promptChat.position}`}
+          onProject={onProject}
+          onRegenerate={() => onRegenerateFramePrompt(promptChat.clipNumber, promptChat.position)}
+          onClose={() => setPromptChat(null)}
         />
       ) : null}
       {editingFrame && frame && editingRow ? (

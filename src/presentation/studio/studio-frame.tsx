@@ -1,6 +1,7 @@
 "use client";
 
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { FilmstripPane } from "@/presentation/studio/filmstrip-pane";
 
 // Editor body: toolbar, preview and inspector, then the filmstrip pinned at the bottom.
 // `timelineBar` sits directly above the filmstrip for batch actions.
@@ -58,14 +59,7 @@ export function StudioFrame({
           {timelineBar}
         </div>
       ) : null}
-      {timeline ? (
-        <section
-          aria-label={t("production.shell.timelineAria")}
-          className="shrink-0 overflow-x-auto overflow-y-hidden border-t border-[var(--studio-line)] bg-[var(--studio-canvas)]"
-        >
-          {timeline}
-        </section>
-      ) : null}
+      {timeline ? <FilmstripPane>{timeline}</FilmstripPane> : null}
     </div>
   );
 }

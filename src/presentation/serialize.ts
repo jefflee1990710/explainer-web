@@ -102,6 +102,7 @@ export type PublicVideo = {
         fields: Array<"startScene" | "endScene" | "motionCamera" | "englishVo">;
       }>;
       promptChanged?: boolean;
+      locale?: string;
       createdAt: string;
     }>;
   }>;
@@ -289,6 +290,7 @@ function toPublicSceneChats(chats: Project["sceneChats"]): PublicVideo["sceneCha
       changedPaths: item.changedPaths,
       changedClips: item.changedClips,
       ...(item.promptChanged ? { promptChanged: true } : {}),
+      ...(item.locale ? { locale: item.locale } : {}),
       createdAt: chatCreatedAt(item.createdAt),
     })),
   }));

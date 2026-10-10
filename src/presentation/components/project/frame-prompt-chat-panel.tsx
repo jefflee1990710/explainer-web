@@ -10,6 +10,7 @@ import { SceneChatComposer } from "@/presentation/components/project/scene-chat-
 import { SceneChatMessage } from "@/presentation/components/project/scene-chat-message";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicVideo } from "@/presentation/serialize";
+import { openingSummaryFresh } from "@/service/clip/frame-prompt-chat";
 import { sceneRedrawFinishedAt, sceneRedrawPhase } from "@/service/clip/scene-chat";
 import { FRAME_COST } from "@/service/credit-costs";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -26,7 +27,6 @@ export function FramePromptChatPanel({
   regenerating,
   onProject,
   onRegenerate,
-  onClose,
 }: {
   project: PublicVideo;
   clipNumber: number;
@@ -35,7 +35,6 @@ export function FramePromptChatPanel({
   regenerating: boolean;
   onProject: (project: PublicVideo) => void;
   onRegenerate: () => Promise<boolean>;
-  onClose: () => void;
 }) {
   const { t, locale } = useI18n();
   const listRef = useRef<HTMLDivElement>(null);
@@ -54,7 +53,6 @@ export function FramePromptChatPanel({
   const latestChanged = messages.findLastIndex(
     (message) => message.role === "assistant" && message.promptChanged,
   );
-  const positionLabel = t(`production.frame.position.${position}`);
 
   useEffect(() => {
     setPending("");
@@ -70,7 +68,7 @@ export function FramePromptChatPanel({
   const started = useRef("");
 
   useEffect(() => {
-    if (!subscribed || messages.length > 0) return;
+    if (!subscribed || openingSummaryFresh(messages, locale)) return;
     const key = `${project.id}:${clipNumber}:${position}`;
     if (started.current === key || opening.has(key)) return;
     started.current = key;
@@ -97,7 +95,7 @@ export function FramePromptChatPanel({
         opening.delete(key);
         setOpeningNow(false);
       });
-  }, [subscribed, messages.length, project.id, clipNumber, position, locale, t]);
+  }, [subscribed, messages, project.id, clipNumber, position, locale, t]);
 
   async function send(message: string) {
     setPending(message);
@@ -122,19 +120,9 @@ export function FramePromptChatPanel({
   }
 
   return (
-    <aside className="flex h-full min-h-0 flex-col bg-[var(--studio-panel)]">
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--studio-line)] px-3 py-2">
-        <h2 className="text-sm font-bold">{t("production.frameChat.title", { position: positionLabel })}</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          className="cursor-pointer text-xs font-semibold text-muted underline-offset-2 hover:underline"
-        >
-          {t("production.frameChat.close")}
-        </button>
-      </div>
-      <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-2" aria-live="polite">
-        {messages.map((message, index) => {
+    <div className="flex h-full min-h-[22rem] flex-col border-t border-[var(--studio-line)] bg-[var(--studio-panel)] lg:min-h-0 lg:border-t-0 lg:border-l">
+      <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3" aria-live="polite">
+        {(openingNow && !openingSummaryFresh(messages, locale) ? [] : messages).map((message, index) => {
           const redrawInput = {
             messageAt: message.createdAt,
             frames: frame ? [frame] : [],
@@ -159,7 +147,7 @@ export function FramePromptChatPanel({
             />
           );
         })}
-        {openingNow && messages.length === 0 ? <SceneChatMessage role="assistant" variant="pending" /> : null}
+        {openingNow ? <SceneChatMessage role="assistant" variant="pending" /> : null}
         {pending ? (
           <>
             <SceneChatMessage role="user" content={pending} />
@@ -188,6 +176,6 @@ export function FramePromptChatPanel({
           </div>
         )}
       </div>
-    </aside>
+    </div>
   );
 }

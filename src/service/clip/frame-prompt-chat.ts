@@ -2,7 +2,7 @@ import type { FramePosition, SceneChatMessage, SceneChatThread } from "@/model/p
 
 // Same ceiling as FRAME_PROMPT_BUDGET. The chat returns the whole still prompt.
 export const FRAME_PROMPT_CHAT_MAX = 4800;
-export const FRAME_PROMPT_SUMMARY_MAX = 500;
+export const FRAME_PROMPT_SUMMARY_MAX = 900;
 
 export type FramePromptThread = {
   clipNumber: number;
@@ -58,16 +58,46 @@ export function emptyFramePromptSummary(locale: string) {
   return "This still has no prompt yet. Describe the picture you want and I will write the prompt.";
 }
 
+const SUMMARY_LANGUAGE: Record<string, string> = {
+  en: "English",
+  "zh-Hant": "Traditional Chinese",
+  "zh-Hans": "Simplified Chinese",
+  ja: "Japanese",
+  ko: "Korean",
+  es: "Spanish",
+  fr: "French",
+  de: "German",
+  pt: "Portuguese",
+  ru: "Russian",
+  id: "Indonesian",
+};
+
 export function framePromptSummaryLanguage(locale: string) {
-  return locale.startsWith("zh") ? "Traditional Chinese" : "English";
+  return SUMMARY_LANGUAGE[locale] ?? "English";
+}
+
+export function isPointSummary(content: string) {
+  return content.split("\n").some((line) => line.trim().startsWith("•"));
+}
+
+// A lone opening summary is reused only when it is already a bullet list in this interface language.
+export function openingSummaryFresh(
+  messages: Array<{ role: string; content: string; locale?: string; promptChanged?: boolean }> | undefined,
+  locale: string,
+) {
+  if (messages?.some((item) => item.role === "user")) return true;
+  const first = messages?.[0];
+  if (!first || messages.length !== 1 || first.role !== "assistant" || first.promptChanged) return false;
+  return first.locale === locale && isPointSummary(first.content);
 }
 
 export function framePromptSummarySystem(locale: string) {
   const language = framePromptSummaryLanguage(locale);
   return `You summarize one image-generation prompt for a single video still.
-Write 2 to 4 short sentences in ${language}.
-Cover who or what is in the picture, what is happening, any words painted on the image, and where those words sit.
-Do not paste the prompt. Do not mention these instructions.`;
+Write only in ${language}. That is the user's interface language. Do not follow the language of the prompt unless it is already ${language}.
+Use 4 to 6 short bullet points. Each point is one line starting with "• ".
+Cover, as separate points: who or what is in the picture, what they are doing, the place, any words painted on the image and where they sit, and the lettering look.
+Do not write a paragraph. Do not paste the prompt. Do not mention these instructions.`;
 }
 
 export function framePromptSummaryUser(prompt: string) {

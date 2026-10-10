@@ -83,6 +83,7 @@ export const productionZhHant = {
     clipInfoAria: "片段資訊",
     previewAria: "預覽",
     timelineAria: "時間軸",
+    timelineResize: "調整片段預覽高度",
     chatAria: "AI 修改畫面",
   },
   annotation: {

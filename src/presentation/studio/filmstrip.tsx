@@ -2,13 +2,18 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
-import { ASPECT_CLASS } from "@/presentation/components/project/frame-tile";
 import type { AspectRatio } from "@/model/project";
 import type { StudioClipItem, StudioClipTone } from "@/presentation/studio/clip-item";
 import { FilmstripGenerating } from "@/presentation/studio/filmstrip-generating";
 import { FilmstripMediaTags } from "@/presentation/studio/filmstrip-media-tags";
 
 // Status band colour under each thumbnail.
+const ASPECT_WIDTH_RATIO: Record<AspectRatio, number> = {
+  "16:9": 16 / 9,
+  "9:16": 9 / 16,
+  "1:1": 1,
+};
+
 const TONE_CLASS: Record<StudioClipTone, string> = {
   idle: "bg-[var(--studio-line)]",
   busy: "bg-[var(--studio-teal)] animate-pulse",
@@ -47,27 +52,30 @@ export function Filmstrip({
   const checking = checkedIds.length > 0;
 
   return (
-    <ol role="tablist" aria-label={t("production.filmstrip.timelineAria")} className="flex min-w-max items-stretch gap-2 px-3 py-2">
+    <ol role="tablist" aria-label={t("production.filmstrip.timelineAria")} className="flex h-full min-w-max items-stretch gap-2 px-3">
       {items.map((item) => {
         const selected = item.id === selectedId;
         const checked = checkedIds.includes(item.id);
         return (
-          <li key={item.id} className={`group relative ${selected ? "z-10" : ""}`}>
+          <li key={item.id} className={`group relative h-full ${selected ? "z-10" : ""}`}>
             <button
               type="button"
               role="tab"
               aria-selected={selected}
               aria-label={`${item.title} ${item.durationLabel} ${item.statusLabel}${item.hasScene ? t("production.filmstrip.sceneDoneSuffix") : ""}${item.hasVideo ? t("production.filmstrip.videoDoneSuffix") : ""}`}
               onClick={() => onSelect(item.id)}
-              className={`flex w-[148px] cursor-pointer flex-col overflow-hidden rounded-sm border bg-white text-left transition ${
+              style={{
+                width: `calc((var(--filmstrip-h) - 35px) * ${ASPECT_WIDTH_RATIO[aspectRatio]})`,
+              }}
+              className={`grid h-full cursor-pointer grid-rows-[20px_minmax(0,1fr)_3px] overflow-hidden rounded-sm border bg-white text-left transition ${
                 selected
                   ? "border-2 border-[var(--studio-ink)] shadow-[0_0_0_3px_var(--studio-teal)]"
                   : "border border-[var(--studio-line)] opacity-80 hover:opacity-100"
               }`}
             >
-              {/* Only the selected clip keeps the bright teal title bar. */}
+              {/* Title stays inside the still width so a long name cannot stretch the card. */}
               <span
-                className={`flex h-5 shrink-0 items-center gap-1 px-1.5 text-[10px] font-semibold leading-none ${
+                className={`flex h-5 min-w-0 items-center gap-1 px-1.5 text-[10px] font-semibold leading-none ${
                   selected
                     ? "bg-[var(--studio-teal)] text-white"
                     : "bg-[var(--studio-fill)] text-[var(--studio-muted)]"
@@ -77,7 +85,10 @@ export function Filmstrip({
                 <span className="shrink-0 tabular-nums">{item.durationLabel}</span>
                 {item.busy ? <Spinner className="h-2.5 w-2.5 shrink-0" /> : null}
               </span>
-              <span className={`relative w-full ${ASPECT_CLASS[aspectRatio]}`}>
+              <span
+                className="relative h-full min-h-0"
+                style={{ aspectRatio: ASPECT_WIDTH_RATIO[aspectRatio] }}
+              >
                 {item.thumbnailUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img

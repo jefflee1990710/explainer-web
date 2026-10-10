@@ -3,7 +3,9 @@ import { test } from "node:test";
 import {
   applyFramePromptEdit,
   emptyFramePromptSummary,
+  framePromptSummarySystem,
   framePromptThread,
+  openingSummaryFresh,
   promptForFrameSubmit,
   withFramePromptThread,
 } from "@/service/clip/frame-prompt-chat";
@@ -73,4 +75,29 @@ test("frame threads ignore the old clip-wide chat", () => {
 test("an empty still gets a summary without calling the model", () => {
   assert.match(emptyFramePromptSummary("zh-Hant"), /還沒有提示/);
   assert.match(emptyFramePromptSummary("en"), /no prompt yet/);
+});
+
+test("the opening summary is a bullet list in the interface language", () => {
+  const traditional = framePromptSummarySystem("zh-Hant");
+  assert.match(traditional, /Traditional Chinese/);
+  assert.match(traditional, /• /);
+  assert.doesNotMatch(traditional, /Simplified Chinese/);
+  const english = framePromptSummarySystem("en");
+  assert.match(english, /English/);
+  assert.match(framePromptSummarySystem("ja"), /Japanese/);
+
+  const bullet = { role: "assistant", content: "• 一位女生\n• 站在天台", locale: "zh-Hant" };
+  assert.equal(openingSummaryFresh([bullet], "zh-Hant"), true);
+  assert.equal(openingSummaryFresh([bullet], "en"), false);
+  assert.equal(
+    openingSummaryFresh([{ role: "assistant", content: "A woman stands on a roof.", locale: "en" }], "en"),
+    false,
+  );
+  assert.equal(
+    openingSummaryFresh(
+      [bullet, { role: "user", content: "放大字幕", locale: "zh-Hant" }],
+      "en",
+    ),
+    true,
+  );
 });

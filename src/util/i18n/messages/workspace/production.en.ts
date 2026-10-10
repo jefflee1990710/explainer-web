@@ -83,6 +83,7 @@ export const productionEn = {
     clipInfoAria: "Clip info",
     previewAria: "Preview",
     timelineAria: "Timeline",
+    timelineResize: "Resize clip previews",
     chatAria: "AI scene chat",
   },
   annotation: {
