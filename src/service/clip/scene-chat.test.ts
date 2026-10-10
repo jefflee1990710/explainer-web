@@ -9,6 +9,7 @@ import {
   highlightedSceneFields,
   regenStoryboardInput,
   sceneDraftFromClip,
+  sceneRedrawFinishedAt,
   sceneRedrawPhase,
 } from "@/service/clip/scene-chat";
 
@@ -148,16 +149,14 @@ test("highlight follows the newest assistant turn only", () => {
   assert.deepEqual(highlightedSceneFields(chats, 3), []);
 });
 
-test("a redraw stays done after the reply, and a failure can be tried again", () => {
+test("a scene redraw is done when the fresh stills finish, even if the video failed", () => {
   const messageAt = "2026-10-10T02:00:00.000Z";
-  assert.equal(
-    sceneRedrawPhase({
-      messageAt,
-      frames: [{ status: "completed", submittedAt: "2026-10-10T01:00:00.000Z" }],
-      clip: { status: "completed", submittedAt: "2026-10-10T01:10:00.000Z" },
-    }),
-    "ready",
-  );
+  const older = {
+    messageAt,
+    frames: [{ status: "completed", submittedAt: "2026-10-10T01:00:00.000Z" }],
+  };
+  assert.equal(sceneRedrawPhase(older), "ready");
+  assert.equal(sceneRedrawFinishedAt(older), undefined);
   assert.equal(
     sceneRedrawPhase({
       messageAt,
@@ -165,19 +164,19 @@ test("a redraw stays done after the reply, and a failure can be tried again", ()
     }),
     "running",
   );
+  const finished = {
+    messageAt,
+    frames: [
+      { status: "completed", submittedAt: "2026-10-10T02:01:00.000Z" },
+      { status: "completed", submittedAt: "2026-10-10T02:02:00.000Z" },
+    ],
+  };
+  assert.equal(sceneRedrawPhase(finished), "done");
+  assert.equal(sceneRedrawFinishedAt(finished), "2026-10-10T02:02:00.000Z");
   assert.equal(
     sceneRedrawPhase({
       messageAt,
-      frames: [{ status: "completed", submittedAt: "2026-10-10T02:01:00.000Z" }],
-      clip: { status: "completed", submittedAt: "2026-10-10T02:05:00.000Z" },
-    }),
-    "done",
-  );
-  assert.equal(
-    sceneRedrawPhase({
-      messageAt,
-      frames: [{ status: "completed", submittedAt: "2026-10-10T02:01:00.000Z" }],
-      clip: { status: "failed", submittedAt: "2026-10-10T02:05:00.000Z" },
+      frames: [{ status: "failed", submittedAt: "2026-10-10T02:01:00.000Z" }],
     }),
     "failed",
   );

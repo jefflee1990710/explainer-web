@@ -7,8 +7,8 @@ import { SceneChatComposer } from "@/presentation/components/project/scene-chat-
 import { SceneChatMessage } from "@/presentation/components/project/scene-chat-message";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicVideo } from "@/presentation/serialize";
-import { sceneRedrawPhase } from "@/service/clip/scene-chat";
-import { clipVideoCost, sceneImageCost } from "@/service/production-plan";
+import { sceneRedrawFinishedAt, sceneRedrawPhase } from "@/service/clip/scene-chat";
+import { sceneImageCost } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 // Right side of the production desk: edit this clip's stills and camera, then redraw.
@@ -38,7 +38,7 @@ export function SceneChatPanel({
       frame.clipNumber === clipNumber &&
       (frame.status === "queued" || frame.status === "in_progress"),
   );
-  const credits = sceneImageCost(project, [clipNumber]) + clipVideoCost(project, clipNumber);
+  const credits = sceneImageCost(project, [clipNumber]);
   const latestChanged = chat.findLastIndex(
     (message) => message.role === "assistant" && (message.changedPaths?.length ?? 0) > 0,
   );
@@ -87,15 +87,9 @@ export function SceneChatPanel({
           <p className="px-1 py-2 text-sm leading-6 text-muted">{t("production.sceneChat.empty")}</p>
         ) : null}
         {chat.map((message, index) => {
-          const clip = project.clips.find((item) => item.clipNumber === clipNumber);
-          const redraw =
-            index === latestChanged
-              ? sceneRedrawPhase({
-                  messageAt: message.createdAt,
-                  frames: project.frames.filter((frame) => frame.clipNumber === clipNumber),
-                  clip,
-                })
-              : "ready";
+          const clipFrames = project.frames.filter((frame) => frame.clipNumber === clipNumber);
+          const redrawInput = { messageAt: message.createdAt, frames: clipFrames };
+          const redraw = index === latestChanged ? sceneRedrawPhase(redrawInput) : "ready";
           return (
             <SceneChatMessage
               key={`${message.createdAt}-${index}`}
@@ -104,7 +98,7 @@ export function SceneChatPanel({
               changedPaths={message.changedPaths}
               changedClips={message.changedClips}
               regenerating={index === latestChanged && (regenerating || framesBusy || redraw === "running")}
-              redrawAt={redraw === "done" ? clip?.submittedAt : undefined}
+              redrawAt={redraw === "done" ? sceneRedrawFinishedAt(redrawInput) : undefined}
               credits={credits}
               onRegenerate={
                 index === latestChanged

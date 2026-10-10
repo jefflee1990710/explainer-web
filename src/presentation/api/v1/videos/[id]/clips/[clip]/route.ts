@@ -34,7 +34,7 @@ function clipNumber(raw: string) {
 //   cancelVideo     – pull a video request that is still in our queue
 //   regenerateFrame – redraw one still ({ position, remark?, sketchDataUrl? })
 //   chat            – AI scene chat that rewrites start/end scene + camera ({ message })
-//   regenerateScene – redraw stills after a scene chat edit
+//   regenerateScene – redraw stills after a scene chat edit; does not render video
 export const POST = withApiUser<Params>(async ({ request, params }) => {
   const n = clipNumber(params.clip);
   if (!n) return apiError("找不到這段分鏡", 404);

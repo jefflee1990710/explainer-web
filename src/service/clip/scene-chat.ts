@@ -159,25 +159,39 @@ export function highlightedSceneFields(
 const REDRAW_IN_FLIGHT = new Set(["queued", "in_progress"]);
 
 // Whether this chat turn's redraw button can be pressed again.
-// A redraw submitted at or after the reply counts; an older picture does not.
+// A still submitted at or after the reply counts; an older picture, and the clip video, do not.
 export function sceneRedrawPhase(input: {
   messageAt?: string;
   frames: Array<{ status: string; submittedAt?: string }>;
-  clip?: { status: string; submittedAt?: string };
 }): "ready" | "running" | "done" | "failed" {
-  const at = input.messageAt;
-  if (!at) return "ready";
-  const fresh = (submittedAt?: string) => Boolean(submittedAt && submittedAt >= at);
-  const frames = input.frames.filter((frame) => fresh(frame.submittedAt));
-  const videoFresh = fresh(input.clip?.submittedAt);
-  if (!frames.length && !videoFresh) return "ready";
-  const videoRunning = videoFresh && input.clip && REDRAW_IN_FLIGHT.has(input.clip.status);
-  if (frames.some((frame) => REDRAW_IN_FLIGHT.has(frame.status)) || videoRunning) return "running";
-  if (frames.some((frame) => frame.status === "failed") || (videoFresh && input.clip?.status === "failed")) {
-    return "failed";
-  }
-  if (videoFresh && input.clip?.status === "completed") return "done";
+  const frames = freshRedrawFrames(input);
+  if (!frames.length) return "ready";
+  if (frames.some((frame) => REDRAW_IN_FLIGHT.has(frame.status))) return "running";
+  if (frames.some((frame) => frame.status === "failed")) return "failed";
+  if (frames.every((frame) => frame.status === "completed")) return "done";
   return "running";
+}
+
+// Time shown on "已更新" once every fresh still has finished.
+export function sceneRedrawFinishedAt(input: {
+  messageAt?: string;
+  frames: Array<{ status: string; submittedAt?: string }>;
+}): string | undefined {
+  if (sceneRedrawPhase(input) !== "done") return undefined;
+  return freshRedrawFrames(input)
+    .map((frame) => frame.submittedAt)
+    .filter((submittedAt): submittedAt is string => Boolean(submittedAt))
+    .sort()
+    .at(-1);
+}
+
+function freshRedrawFrames(input: {
+  messageAt?: string;
+  frames: Array<{ status: string; submittedAt?: string }>;
+}) {
+  const at = input.messageAt;
+  if (!at) return [];
+  return input.frames.filter((frame) => frame.submittedAt && frame.submittedAt >= at);
 }
 
 // Write the draft back onto the clip. Single-scene skills keep one labeled scene string.

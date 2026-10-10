@@ -6,7 +6,7 @@ import type { SceneChatMessage } from "@/model/project";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
 import { assertCanSpendCredits, getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
-import { clipVideoCost, sceneImageCost } from "@/service/production-plan";
+import { sceneImageCost } from "@/service/production-plan";
 import { updateClipStoryboardAction } from "@/service/generation/actions";
 import { directorModel } from "@/service/director/model";
 import { isProductionLike } from "@/service/project-status";
@@ -179,7 +179,7 @@ export async function sendClipSceneChatAction(input: {
   }
 }
 
-// Redraw this clip's stills, then start its video once both pictures exist.
+// Redraw this clip's stills from the saved storyboard. Does not start the video.
 export async function regenerateClipSceneMediaAction(
   videoId: string,
   clipNumber: number,
@@ -199,10 +199,7 @@ export async function regenerateClipSceneMediaAction(
     if (!clip) return { ok: false, error: "找不到這段分鏡" };
 
     const source = { ...project, frames: project.frames || [] };
-    await assertCanSpendCredits(
-      user,
-      sceneImageCost(source, [clipNumber]) + clipVideoCost(source, clipNumber),
-    );
+    await assertCanSpendCredits(user, sceneImageCost(source, [clipNumber]));
 
     const saved = await updateClipStoryboardAction(
       videoId,
@@ -211,15 +208,6 @@ export async function regenerateClipSceneMediaAction(
       { regenerate: true },
     );
     if (!saved.ok) return saved;
-
-    try {
-      await projects.updateOne(
-        { _id: project._id, clerkUserId: user.clerkUserId },
-        { $addToSet: { autoVideoClips: clipNumber }, $set: { updatedAt: new Date() } },
-      );
-    } catch (error) {
-      console.error("queue clip video after scene chat failed", error);
-    }
 
     const updated = await projects.findOne({ _id: project._id });
     if (!updated) return saved;

@@ -604,10 +604,10 @@ export function NewProjectForm({
     );
   }
 
-  // Chat button: redraw this clip's stills now, and start the video when they finish.
+  // Chat button: redraw this clip's stills. The video stays until the user generates it.
   function onRegenerateClipMedia(clipNumber: number) {
     if (!project) return Promise.resolve(false);
-    const spend = sceneImageCost(project, [clipNumber]) + clipVideoCost(project, clipNumber);
+    const spend = sceneImageCost(project, [clipNumber]);
     return runPaid(
       `clip:${clipNumber}:regen`,
       () => regenerateClipSceneMediaAction(project.id, clipNumber),
