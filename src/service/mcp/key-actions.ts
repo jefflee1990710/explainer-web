@@ -6,7 +6,9 @@ import {
   revokeMcpApiKey,
 } from "@/service/mcp/api-keys";
 import { mcpToolCallsCollection } from "@/dao";
-import { getAppUrl } from "@/util/app-url";
+
+/** Public MCP server. Clients connect here, not to a local app URL. */
+const MCP_ENDPOINT = "https://scro.io/api/mcp";
 
 export async function createMcpKeyAction(name?: string) {
   try {
@@ -40,7 +42,7 @@ export async function revokeMcpKeyAction(keyId: string) {
 export async function getMcpDashboardData() {
   const user = await requireAppUser();
   const keys = await listMcpApiKeys(user.clerkUserId);
-  const endpoint = `${getAppUrl()}/api/mcp`;
+  const endpoint = MCP_ENDPOINT;
 
   const since = new Date();
   since.setDate(since.getDate() - 30);
