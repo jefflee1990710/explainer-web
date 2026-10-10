@@ -10,16 +10,19 @@ const MESSAGE_MAX = 2000;
 export function SceneChatComposer({
   disabled,
   sending,
+  placeholder,
   onSend,
 }: {
   disabled: boolean;
   sending: boolean;
+  placeholder?: string;
   onSend: (message: string) => void;
 }) {
   const { t } = useI18n();
   const [input, setInput] = useState("");
   const blocked = disabled || sending;
   const canSend = !blocked && input.trim().length > 0;
+  const hint = placeholder || t("production.sceneChat.placeholder");
 
   function submit() {
     if (!canSend) return;
@@ -40,8 +43,8 @@ export function SceneChatComposer({
         maxLength={MESSAGE_MAX}
         value={input}
         disabled={blocked}
-        aria-label={t("production.sceneChat.placeholder")}
-        placeholder={t("production.sceneChat.placeholder")}
+        aria-label={hint}
+        placeholder={hint}
         onChange={(event) => setInput(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {

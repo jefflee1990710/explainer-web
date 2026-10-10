@@ -339,4 +339,11 @@ export const productionZhHant = {
     locked: "訂閱後即可用 AI 修改畫面與鏡頭。",
     lockedCta: "查看方案",
   },
+  frameChat: {
+    open: "AI 改提示",
+    title: "{position}畫面提示",
+    close: "關閉",
+    placeholder: "例如：字幕再大一點，人物留在中間",
+    changed: "已改這張畫面的提示",
+  },
 } satisfies ProductionMessages;

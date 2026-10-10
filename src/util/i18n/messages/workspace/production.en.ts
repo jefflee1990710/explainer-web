@@ -339,6 +339,13 @@ export const productionEn = {
     locked: "Subscribe to edit scenes with AI.",
     lockedCta: "View plans",
   },
+  frameChat: {
+    open: "Edit prompt",
+    title: "{position} still prompt",
+    close: "Close",
+    placeholder: "Example: make the subtitle larger and keep the person in the middle",
+    changed: "Updated this still's prompt",
+  },
 } as const;
 
 

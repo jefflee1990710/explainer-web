@@ -77,6 +77,7 @@ const EXACT: Record<string, string> = {
   "AI 修改失敗，請再試一次": "errors.directorChatFailed",
   "AI 修改太頻繁，請稍後再試": "errors.directorChatRateLimited",
   "起始與結尾畫面不能空白": "errors.sceneChatEmpty",
+  "畫面提示不能空白": "errors.framePromptEmpty",
   "建立 Director 失敗": "errors.directorCreateFailed",
   "儲存 Director 失敗": "errors.directorSaveFailed",
   "刪除 Director 失敗": "errors.directorDeleteFailed",

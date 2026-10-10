@@ -9,7 +9,7 @@ import { ClipWorkspace } from "@/presentation/components/project/clip-workspace"
 import { FrameEditDialog } from "@/presentation/components/project/frame-edit-dialog";
 import { ProductionToolbar } from "@/presentation/components/project/production-toolbar";
 import { SelectionBar } from "@/presentation/components/project/selection-bar";
-import { SceneChatPanel } from "@/presentation/components/project/scene-chat-panel";
+import { FramePromptChatPanel } from "@/presentation/components/project/frame-prompt-chat-panel";
 import { VideoDesk, type SelectClip } from "@/presentation/components/project/video-desk";
 import { clipStatesFor, inFlightCounts, productionCounts, type ClipState } from "@/service/clip-stage";
 import { allFramesReady } from "@/service/production-plan";
@@ -37,7 +37,7 @@ export function ClipProduction({
   onGenerateSelected,
   subscribed,
   onProject,
-  onRegenerateClipMedia,
+  onRegenerateFramePrompt,
 }: {
   project: PublicVideo;
   credits: number;
@@ -55,7 +55,7 @@ export function ClipProduction({
   onGenerateSelected: (clipNumbers: number[], kind: "frames" | "videos") => Promise<boolean>;
   subscribed: boolean;
   onProject: (project: PublicVideo) => void;
-  onRegenerateClipMedia: (clipNumber: number) => Promise<boolean>;
+  onRegenerateFramePrompt: (clipNumber: number, position: FramePosition) => Promise<boolean>;
 }) {
   const phaseA = project.phaseA;
   const states = clipStatesFor(project);
@@ -66,6 +66,10 @@ export function ClipProduction({
   const [checked, setChecked] = useState<string[]>([]);
   const [bulkMode, setBulkMode] = useState<BulkMode | null>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [promptChat, setPromptChat] = useState<{
+    clipNumber: number;
+    position: FramePosition;
+  } | null>(null);
 
   if (!phaseA || states.length === 0) return null;
 
@@ -117,6 +121,16 @@ export function ClipProduction({
         onGenerateVideo={() => onGenerateVideo(state.clipNumber)}
         onCancelVideo={() => onCancelVideo(state.clipNumber)}
         onSelect={select}
+        editingPosition={
+          promptChat?.clipNumber === state.clipNumber ? promptChat.position : undefined
+        }
+        onEditPrompt={(position) =>
+          setPromptChat((current) =>
+            current?.clipNumber === state.clipNumber && current.position === position
+              ? null
+              : { clipNumber: state.clipNumber, position },
+          )
+        }
       />
     );
   }
@@ -145,16 +159,21 @@ export function ClipProduction({
         )}
         renderPreview={(state, select) => workspace("preview", state, select)}
         renderInspector={(state, select) => workspace("inspector", state, select)}
-        renderAside={(state) => (
-          <SceneChatPanel
-            project={project}
-            clipNumber={state.clipNumber}
-            subscribed={subscribed}
-            regenerating={pending === `clip:${state.clipNumber}:regen`}
-            onProject={onProject}
-            onRegenerate={() => onRegenerateClipMedia(state.clipNumber)}
-          />
-        )}
+        renderAside={(state) =>
+          promptChat?.clipNumber === state.clipNumber ? (
+            <FramePromptChatPanel
+              key={`${state.clipNumber}:${promptChat.position}`}
+              project={project}
+              clipNumber={state.clipNumber}
+              position={promptChat.position}
+              subscribed={subscribed}
+              regenerating={pending === `frame:${state.clipNumber}:${promptChat.position}`}
+              onProject={onProject}
+              onRegenerate={() => onRegenerateFramePrompt(state.clipNumber, promptChat.position)}
+              onClose={() => setPromptChat(null)}
+            />
+          ) : null
+        }
         checkedIds={checked}
         onToggleCheck={toggleCheck}
         timelineBar={

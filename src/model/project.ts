@@ -75,6 +75,8 @@ export type ClipFrame = {
   revision?: FrameRevision;
   // ISO time the current job was submitted; compared with the row's editedAt.
   submittedAt?: string;
+  // The production chat rewrote this prompt. Later sends keep it instead of rebuilding.
+  promptEdited?: boolean;
 };
 
 // User-supplied scene reference for the director. Max 4 per video, ids R1..R4.
@@ -114,18 +116,22 @@ export type SceneChatChange = {
   fields: SceneChatField[];
 };
 
-// One turn in the production-page chat. The thread belongs to the clip that was open.
+// One turn in the production-page chat. The thread belongs to one still.
 export type SceneChatMessage = {
   role: "user" | "assistant";
   content: string;
   changedPaths?: SceneChatField[];
   // Every clip this turn rewrote. Default is the open clip; "all clips" fills the rest.
   changedClips?: SceneChatChange[];
+  // This turn replaced the still's image prompt.
+  promptChanged?: boolean;
   createdAt: Date;
 };
 
 export type SceneChatThread = {
   clipNumber: number;
+  // Which still this thread edits. Missing on older clip-level chats.
+  position?: FramePosition;
   messages: SceneChatMessage[];
 };
 

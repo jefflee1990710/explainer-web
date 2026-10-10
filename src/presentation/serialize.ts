@@ -92,6 +92,7 @@ export type PublicVideo = {
   clips: Project["clips"];
   sceneChats?: Array<{
     clipNumber: number;
+    position?: "start" | "end";
     messages: Array<{
       role: "user" | "assistant";
       content: string;
@@ -100,6 +101,7 @@ export type PublicVideo = {
         clipNumber: number;
         fields: Array<"startScene" | "endScene" | "motionCamera" | "englishVo">;
       }>;
+      promptChanged?: boolean;
       createdAt: string;
     }>;
   }>;
@@ -280,11 +282,13 @@ function toPublicSceneChats(chats: Project["sceneChats"]): PublicVideo["sceneCha
   if (!chats?.length) return undefined;
   return chats.map((thread) => ({
     clipNumber: thread.clipNumber,
+    ...(thread.position ? { position: thread.position } : {}),
     messages: thread.messages.map((item) => ({
       role: item.role,
       content: item.content,
       changedPaths: item.changedPaths,
       changedClips: item.changedClips,
+      ...(item.promptChanged ? { promptChanged: true } : {}),
       createdAt: chatCreatedAt(item.createdAt),
     })),
   }));

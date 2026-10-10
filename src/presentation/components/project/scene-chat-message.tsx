@@ -10,6 +10,7 @@ export function SceneChatMessage({
   content,
   changedPaths,
   changedClips,
+  changedNote,
   variant = "normal",
   regenerating = false,
   redrawAt,
@@ -20,6 +21,7 @@ export function SceneChatMessage({
   content?: string;
   changedPaths?: SceneChatField[];
   changedClips?: SceneChatChange[];
+  changedNote?: string;
   variant?: "normal" | "pending" | "error";
   regenerating?: boolean;
   redrawAt?: string;
@@ -110,6 +112,8 @@ export function SceneChatMessage({
             fields: changedPaths.map(fieldLabel).join("、"),
           })}
         </p>
+      ) : changedNote ? (
+        <p className="px-1 text-xs text-muted">{changedNote}</p>
       ) : null}
     </div>
   );

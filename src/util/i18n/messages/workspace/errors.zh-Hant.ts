@@ -66,6 +66,7 @@ export const errorsZhHant = {
   directorChatNoEdits: "AI 沒有修改任何欄位",
   directorChatRateLimited: "AI 修改太頻繁，請稍後再試。",
   sceneChatEmpty: "起始與結尾畫面不能空白。",
+  framePromptEmpty: "畫面提示不能空白。",
   directorCreateFailed: "建立 Director 失敗",
   directorSaveFailed: "儲存 Director 失敗",
   directorDeleteFailed: "刪除 Director 失敗",

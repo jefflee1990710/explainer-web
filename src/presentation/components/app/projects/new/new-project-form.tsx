@@ -21,7 +21,7 @@ import {
 } from "@/presentation/actions/clip-production";
 import type { BulkMode } from "@/presentation/components/project/bulk-generate-dialog";
 import { regenerateFrameAction } from "@/presentation/actions/generation";
-import { regenerateClipSceneMediaAction } from "@/presentation/actions/scene-chat";
+import { regenerateFramePromptAction } from "@/presentation/actions/scene-chat";
 import {
   createVideoAction,
   getVideoAction,
@@ -29,11 +29,11 @@ import {
   retryProjectAction,
   updateVideoBriefAction,
 } from "@/presentation/actions/projects";
+import { FRAME_COST } from "@/service/credit-costs";
 import { isProjectBusy } from "@/service/clip-stage";
 import {
   cheapestVideoCost,
   clipVideoCost,
-  sceneImageCost,
   needsVideoUpgrade,
   planGenerateAllVideos,
   planGenerateAllScenes,
@@ -604,14 +604,13 @@ export function NewProjectForm({
     );
   }
 
-  // Chat button: redraw this clip's stills. The video stays until the user generates it.
-  function onRegenerateClipMedia(clipNumber: number) {
+  // Chat button: redraw this one still from the prompt saved in the chat.
+  function onRegenerateFramePrompt(clipNumber: number, position: FramePosition) {
     if (!project) return Promise.resolve(false);
-    const spend = sceneImageCost(project, [clipNumber]);
     return runPaid(
-      `clip:${clipNumber}:regen`,
-      () => regenerateClipSceneMediaAction(project.id, clipNumber),
-      spend,
+      `frame:${clipNumber}:${position}`,
+      () => regenerateFramePromptAction(project.id, clipNumber, position),
+      FRAME_COST,
     );
   }
 
@@ -1193,7 +1192,7 @@ export function NewProjectForm({
               onGenerateSelected={onGenerateSelected}
               subscribed={walletSubscribed}
               onProject={setProject}
-              onRegenerateClipMedia={onRegenerateClipMedia}
+              onRegenerateFramePrompt={onRegenerateFramePrompt}
             />
             </div>
           ) : reelDesk && project ? (

@@ -17,6 +17,7 @@ import {
   imageModelForSubmit,
   resolveImageRoute,
 } from "@/service/generation/image-backend";
+import { promptForFrameSubmit } from "@/service/clip/frame-prompt-chat";
 import { frameSubmitPlan, framesWithClipsReady } from "@/service/higgsfield/frame-prompts";
 import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt";
@@ -173,17 +174,24 @@ export async function sendFrame(
     ownerClerkUserId: project.clerkUserId,
   });
   const skill = await loadSkill(project);
-  const revision = project.frames?.find(
+  const storedFrame = project.frames?.find(
     (frame) => frame.clipNumber === clipNumber && frame.position === position,
-  )?.revision;
+  );
+  const revision = storedFrame?.revision;
   const sceneText = resolveSceneText(project);
   const canvasProject = await withWrittenCanvas(project);
   const plan = frameSubmitPlan(canvasProject, clipNumber, position, revision, style);
+  // A chat edit is sent as stored. Other stills are rebuilt from the storyboard.
+  const promptSource = promptForFrameSubmit({
+    storedPrompt: storedFrame?.prompt,
+    promptEdited: storedFrame?.promptEdited,
+    builtPrompt: plan.prompt,
+  });
   // Over the model's cap, Gemini compresses the prompt before the image request.
   const route = resolveImageRoute(sceneText.language);
   const prompt = route.model.startsWith("ideogram/")
-    ? await ensureFramePromptFits(plan.prompt, undefined, IDEOGRAM_PROMPT_MAX)
-    : await ensureFramePromptFits(plan.prompt);
+    ? await ensureFramePromptFits(promptSource, undefined, IDEOGRAM_PROMPT_MAX)
+    : await ensureFramePromptFits(promptSource);
   // A turnaround sheet shows the same person many times. Send one standing figure per character.
   const locked =
     project.cast && project.cast.length > 0
@@ -213,6 +221,8 @@ export type FrameTarget = {
   position: FramePosition;
   // Director's remark / annotated reference for this redo, if any.
   revision?: FrameRevision;
+  // Send the prompt already stored on the frame instead of rebuilding it.
+  useStoredPrompt?: boolean;
 };
 
 // One insert for a click's frame jobs: ready stills are kicked now, ends
@@ -260,13 +270,22 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
   // previous failure message never lingers as `null`.
   const canvasProject = await withWrittenCanvas(project);
   for (const target of targets) {
-    const { prompt } = frameSubmitPlan(
+    const stored = (project.frames || []).find(
+      (frame) => frame.clipNumber === target.clipNumber && frame.position === target.position,
+    );
+    const built = frameSubmitPlan(
       canvasProject,
       target.clipNumber,
       target.position,
       target.revision,
       style,
-    );
+    ).prompt;
+    const useStored = Boolean(target.useStoredPrompt && stored?.prompt?.trim());
+    const prompt = promptForFrameSubmit({
+      storedPrompt: stored?.prompt,
+      useStoredPrompt: target.useStoredPrompt,
+      builtPrompt: built,
+    });
     await projects.updateOne(
       { _id: project._id },
       {
@@ -276,11 +295,13 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
           "frames.$[frame].prompt": prompt,
           status: "production",
           updatedAt: new Date(),
+          ...(useStored ? { "frames.$[frame].promptEdited": true } : {}),
         },
         $unset: {
           "frames.$[frame].error": "",
           "frames.$[frame].blobUrl": "",
           "frames.$[frame].outputUrl": "",
+          ...(useStored ? {} : { "frames.$[frame].promptEdited": "" }),
         },
       },
       {
@@ -380,8 +401,11 @@ export async function regenerateFrame(
   clipNumber: number,
   position: FramePosition,
   revision?: FrameRevision,
+  options?: { useStoredPrompt?: boolean },
 ) {
-  await regenerateFrames(project, [{ clipNumber, position, revision }]);
+  await regenerateFrames(project, [
+    { clipNumber, position, revision, useStoredPrompt: options?.useStoredPrompt },
+  ]);
 }
 
 // ---------- video clips ----------
