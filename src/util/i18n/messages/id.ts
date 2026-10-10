@@ -5,7 +5,7 @@ export const id: Partial<Messages> = {
   nav: { projects: "Video", characters: "Karakter", tasks: "Tugas", mcp: "MCP", affiliate: "Affiliate", billing: "Tagihan", examples: "Contoh", pricing: "Harga", signIn: "Masuk", workspace: "Ruang kerja", language: "Bahasa" },
   common: { credits: "credits", pending: "tertunda", perMonth: "/ bln", cancel: "Batal", save: "Simpan", close: "Tutup", create: "Buat", loading: "Memuat…", popular: "Paling populer", subscribe: "Berlangganan" },
   landing: {
-    hero: { kicker: "Scro", title: "Jelaskan ide dengan gamblang melalui Reels, video pemasaran, dan presentasi.", subtitle: "Pilih gaya, setujui storyboard, lalu ekspor clips untuk video pendek, pemasaran produk, dan presentasi.", ctaStart: "Mulai", ctaWorkspace: "Buka ruang kerja", ctaPricing: "Lihat paket", artLabel: "Ilustrasi konsep storyboard dan penyuntingan" },
+    hero: { kicker: "Studio video pendek", title: "Cara tercepat membuat Reels dan Shorts yang ditonton sampai habis.", subtitle: "Masukkan ide. Sutradara AI Scro menulis hook, merencanakan setiap adegan, dan merender video vertikal 9:16 yang siap diunggah.", ctaStart: "Buat short pertamaku", ctaWorkspace: "Buka ruang kerja", ctaUseCases: "Lihat apa yang bisa dibuat", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Dua ponsel memutar video pendek vertikal" },
     steps: {
       step1Title: "Pilih gaya", step1Body: "Pilih gaya penyutradaraan untuk video pendek, pemasaran, presentasi, dan lainnya.",
       step2Title: "Setujui storyboard", step2Body: "AI mengusulkan judul, kalimat pembuka, adegan, dan sulih suara. Sunting hingga Anda puas.",
@@ -15,7 +15,6 @@ export const id: Partial<Messages> = {
     enterprise: { title: "Butuh lebih dari Scale?", body: "Credits, faktur, dan kontrak khusus untuk tim yang melebihi paket yang tercantum.", cta: "Hubungi kami" },
     showcase: { title: "Lihat hasil", subtitle: "Empat kombinasi di platform yang sama: topik, gaya, dan rasio.", reel: "Reel", deck: "Presentasi", marketing: "Pemasaran", scro: "Cara kerja Scro", product: "Demo produk", story: "Cerita pendek" },
     cast: { eyebrow: "Karakter", title: "Buat karakternya sekali. Pakai wajah yang sama di setiap video.", body: "Tentukan karakter dan gaya dulu. Lalu buat Reel, klip pemasaran, dan video penjelasan yang konsisten — untuk produk, fitur layanan, atau pengetahuan.", product: "Produk", service: "Layanan", knowledge: "Pengetahuan", cta: "Buat karakter" },
-    persona: { eyebrow: "Personal brand", title: "Tidak perlu tampil di kamera. Versi virtualmu yang memandu Reel.", body: "Unggah fotomu. Scro menggambar ulang kamu sebagai karakter virtual dengan gaya yang sama, lalu memakainya untuk video personal brand.", cta: "Pakai fotomu" },
     director: { eyebrow: "Biaya generasi", title: "Yang mahal adalah percobaan ulang.", body: "Video AI membengkak karena setiap meleset berarti render lagi. Sutradara AI Scro mengubah idemu menjadi storyboard yang kamu setujui dulu. Videonya tepat dalam beberapa take, dan biaya generasi tetap rendah.", idea: "Idemu", takes: "Sedikit take", cost: "Biaya lebih rendah", cta: "Tulis storyboard" },
   },
   examples: {

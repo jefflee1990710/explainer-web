@@ -12,9 +12,9 @@ import { productsEn } from "@/util/i18n/messages/workspace/products.en";
 
 export const en: Messages = {
   meta: {
-    title: "Scro — explainer videos",
+    title: "Scro — AI short videos for Reels and Shorts",
     description:
-      "Turn concepts into Reels, marketing clips, and presentation videos. Pick a style, approve storyboards, export clips.",
+      "Make Instagram Reels and YouTube Shorts from an idea: explain a concept, launch your SaaS, promote a product, teach a skill, or let a virtual you host.",
   },
   nav: {
     projects: "Video",
@@ -51,14 +51,67 @@ export const en: Messages = {
   },
   landing: {
     hero: {
-      kicker: "Scro",
-      title: "Explain ideas clearly as Reels, marketing, and deck videos.",
+      kicker: "The short-video studio",
+      title: "The fastest way to make Reels and Shorts that people finish.",
       subtitle:
-        "Pick a style, approve storyboards, export clips—for short video, product marketing, and presentations.",
-      ctaStart: "Get started",
+        "Drop in an idea. Scro's AI director writes the hook, plans every scene, and renders a vertical 9:16 video ready to post.",
+      ctaStart: "Make my first short",
       ctaWorkspace: "Open workspace",
-      ctaPricing: "See plans",
-      artLabel: "Storyboard and editing concept illustration",
+      ctaUseCases: "See what you can make",
+      platformReels: "Instagram Reels",
+      platformShorts: "YouTube Shorts",
+      platformTiktok: "TikTok",
+      artLabel: "Two phones playing vertical short videos",
+    },
+    useCases: {
+      eyebrow: "Use cases",
+      title: "One studio for every short you need to post.",
+      subtitle: "Pick the job. Scro picks the hook, the pacing, and the frame for a 30–60 second vertical video.",
+      explain: {
+        eyebrow: "Explain a complex idea",
+        title: "Turn a hard concept into a short anyone gets.",
+        body: "Paste the article, the notes, or the jargon. Scro breaks it into one clear idea per scene, with a visual for each step.",
+        point1: "A hook that names the problem in the first second",
+        point2: "One idea per scene, drawn as a simple diagram",
+        point3: "Works for finance, science, health, and tech topics",
+        cta: "Explain an idea",
+      },
+      saas: {
+        eyebrow: "Introduce your SaaS",
+        title: "Show what your software does before they scroll past.",
+        body: "Describe the feature and the pain it fixes. Scro turns it into a fast demo short with your UI, your logo, and a clear call to action.",
+        point1: "Feature launches, onboarding tips, and release notes",
+        point2: "Your logo and screenshots stay true in every frame",
+        point3: "Ends on a sign-up or free-trial prompt",
+        cta: "Make a SaaS short",
+      },
+      product: {
+        eyebrow: "Promote a product or service",
+        title: "Put your product in the spotlight, in 30 seconds.",
+        body: "Upload product photos or describe your service. Scro builds an ad-style short that keeps the real product looking like itself.",
+        point1: "Real product shots are never restyled or warped",
+        point2: "Hooks built around the buyer's problem, not the spec sheet",
+        point3: "Fits shops, studios, clinics, and local services",
+        cta: "Promote a product",
+      },
+      tutorial: {
+        eyebrow: "Teach a skill",
+        title: "Share knowledge as step-by-step tutorials.",
+        body: "Give Scro the steps or the lesson. It plans a numbered tutorial with on-screen text, so viewers save it and come back.",
+        point1: "Listicles, how-tos, tips, and mini lessons",
+        point2: "Readable on-screen subtitles in your language",
+        point3: "Build a series with the same host and style",
+        cta: "Create a tutorial",
+      },
+      virtualYou: {
+        eyebrow: "A virtual you",
+        title: "Stay off camera. Let a virtual you host every short.",
+        body: "Upload one photo. Scro redraws you as a character in your chosen style, then puts that same you in every video you post.",
+        point1: "No filming, lighting, or retakes",
+        point2: "The same face and outfit across the whole series",
+        point3: "Built for personal brands, coaches, and creators",
+        cta: "Create my virtual self",
+      },
     },
     steps: {
       step1Title: "Pick a style",
@@ -103,12 +156,6 @@ export const en: Messages = {
       service: "Service",
       knowledge: "Knowledge",
       cta: "Create a character",
-    },
-    persona: {
-      eyebrow: "Personal brand",
-      title: "Stay off camera. Let a virtual you host the Reel.",
-      body: "Upload your own photo. Scro redraws you as a virtual character in the same style, then uses that character for personal-branding videos.",
-      cta: "Use your photo",
     },
     director: {
       eyebrow: "Generation cost",

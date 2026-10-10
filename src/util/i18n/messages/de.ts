@@ -5,7 +5,7 @@ export const de: Partial<Messages> = {
   nav: { projects: "Video", characters: "Figuren", tasks: "Aufgaben", mcp: "MCP", affiliate: "Affiliate", billing: "Abrechnung", examples: "Beispiele", pricing: "Preise", signIn: "Anmelden", workspace: "Arbeitsbereich", language: "Sprache" },
   common: { credits: "credits", pending: "ausstehend", perMonth: "/ Monat", cancel: "Abbrechen", save: "Speichern", close: "Schließen", create: "Erstellen", loading: "Wird geladen…", popular: "Am beliebtesten", subscribe: "Abonnieren" },
   landing: {
-    hero: { kicker: "Scro", title: "Erkläre Ideen verständlich als Reels, Marketing- und Präsentationsvideos.", subtitle: "Wähle einen Stil, gib Storyboards frei und exportiere clips – für Kurzvideos, Produktmarketing und Präsentationen.", ctaStart: "Jetzt starten", ctaWorkspace: "Arbeitsbereich öffnen", ctaPricing: "Tarife ansehen", artLabel: "Konzeptillustration für Storyboard und Schnitt" },
+    hero: { kicker: "Das Kurzvideo-Studio", title: "Der schnellste Weg zu Reels und Shorts, die bis zum Ende geschaut werden.", subtitle: "Gib eine Idee ein. Der KI-Regisseur von Scro schreibt den Hook, plant jede Szene und rendert ein vertikales 9:16-Video, bereit zum Posten.", ctaStart: "Mein erstes Short erstellen", ctaWorkspace: "Arbeitsbereich öffnen", ctaUseCases: "Was du erstellen kannst", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Zwei Smartphones spielen vertikale Kurzvideos" },
     steps: {
       step1Title: "Stil auswählen", step1Body: "Wähle einen Regiestil für Kurzvideos, Marketing, Präsentationen und mehr.",
       step2Title: "Storyboards freigeben", step2Body: "Die KI schlägt Titel, Aufhänger, Szenen und Sprechertexte vor. Bearbeite alles, bis du zufrieden bist.",
@@ -15,7 +15,6 @@ export const de: Partial<Messages> = {
     enterprise: { title: "Mehr als Scale?", body: "Individuelle Credits, Rechnungen und Verträge für Teams, die über die gelisteten Tarife hinauswachsen.", cta: "Kontakt" },
     showcase: { title: "Ergebnisse ansehen", subtitle: "Vier Kombinationen auf derselben Plattform: Thema, Stil und Format.", reel: "Reel", deck: "Präsentation", marketing: "Marketing", scro: "So funktioniert Scro", product: "Produktdemo", story: "Kurzgeschichte" },
     cast: { eyebrow: "Charaktere", title: "Charakter einmal anlegen. In jedem Video derselbe.", body: "Lege zuerst Charakter und Stil fest. Danach entstehen Reels, Marketingclips und Erklärvideos mit demselben Gesicht — für ein Produkt, eine Funktion oder Wissen.", product: "Produkt", service: "Service", knowledge: "Wissen", cta: "Charakter erstellen" },
-    persona: { eyebrow: "Personal Brand", title: "Nicht vor die Kamera. Ein virtuelles Ich moderiert das Reel.", body: "Lade dein Foto hoch. Scro zeichnet dich im selben Stil als virtuellen Charakter und nutzt ihn für Personal-Branding-Videos.", cta: "Foto verwenden" },
     director: { eyebrow: "Generierungskosten", title: "Teuer sind die Wiederholungen.", body: "KI-Video summiert sich, weil jeder Fehlversuch ein neues Rendering ist. Scros KI-Regie macht aus deiner Idee zuerst ein Storyboard zum Freigeben. Das Video trifft in wenigen Takes, und die Generierungskosten bleiben niedrig.", idea: "Deine Idee", takes: "Wenige Takes", cost: "Niedrigere Kosten", cta: "Storyboard schreiben" },
   },
   examples: {

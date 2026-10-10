@@ -33,13 +33,16 @@ export const zhHans: Partial<Messages> = {
   },
   landing: {
     hero: {
-      kicker: "Scro",
-      title: "用 Reels、营销和演示视频清晰讲解创意。",
-      subtitle: "选择风格、确认分镜并导出 clips，适用于短视频、产品营销和演示。",
-      ctaStart: "开始使用",
+      kicker: "短视频制作工作室",
+      title: "做 Reels 和 Shorts，最快、最让人看完的工具。",
+      subtitle: "丢一个想法进来。Scro 的 AI 导演写好开场钩子、排好每个分镜，直接产出可发布的 9:16 竖屏短片。",
+      ctaStart: "做我的第一支短片",
       ctaWorkspace: "打开工作区",
-      ctaPricing: "查看方案",
-      artLabel: "分镜与剪辑概念插图",
+      ctaUseCases: "看看能做什么",
+      platformReels: "Instagram Reels",
+      platformShorts: "YouTube Shorts",
+      platformTiktok: "TikTok",
+      artLabel: "两部手机正在播放竖屏短视频",
     },
     steps: {
       step1Title: "选择风格",
@@ -78,12 +81,6 @@ export const zhHans: Partial<Messages> = {
       service: "服务",
       knowledge: "知识",
       cta: "创建角色",
-    },
-    persona: {
-      eyebrow: "个人品牌",
-      title: "不想出镜，就让虚拟的你来主持。",
-      body: "上传自己的照片，Scro 会按你的样子做成虚拟角色，并用同一风格帮你做个人品牌短视频。",
-      cta: "用照片创建",
     },
     director: {
       eyebrow: "生成成本",

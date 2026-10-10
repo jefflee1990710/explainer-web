@@ -9,6 +9,17 @@ import type { VideoMessages } from "@/util/i18n/messages/workspace/video.en";
 import type { PostMessages } from "@/util/i18n/messages/workspace/post.en";
 import type { ProductsMessages } from "@/util/i18n/messages/workspace/products.en";
 
+// One landing use-case row: label, headline, pitch, three bullets, and a button.
+export type LandingUseCaseMessages = {
+  eyebrow: string;
+  title: string;
+  body: string;
+  point1: string;
+  point2: string;
+  point3: string;
+  cta: string;
+};
+
 // Shared message shape — every locale file must satisfy this interface.
 export type Messages = {
   meta: {
@@ -55,8 +66,21 @@ export type Messages = {
       subtitle: string;
       ctaStart: string;
       ctaWorkspace: string;
-      ctaPricing: string;
+      ctaUseCases: string;
+      platformReels: string;
+      platformShorts: string;
+      platformTiktok: string;
       artLabel: string;
+    };
+    useCases: {
+      eyebrow: string;
+      title: string;
+      subtitle: string;
+      explain: LandingUseCaseMessages;
+      saas: LandingUseCaseMessages;
+      product: LandingUseCaseMessages;
+      tutorial: LandingUseCaseMessages;
+      virtualYou: LandingUseCaseMessages;
     };
     steps: {
       step1Title: string;
@@ -97,12 +121,6 @@ export type Messages = {
       product: string;
       service: string;
       knowledge: string;
-      cta: string;
-    };
-    persona: {
-      eyebrow: string;
-      title: string;
-      body: string;
       cta: string;
     };
     director: {

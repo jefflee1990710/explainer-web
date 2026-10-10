@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { LandingHeroArt, LandingHeroArtBottom } from "@/presentation/components/landing-hero-art";
+import { LandingHeroArt } from "@/presentation/components/landing-hero-art";
 import { ParallaxLayer } from "@/presentation/components/parallax-layer";
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
-// Centered hero over a drifting line drawing. Desktop height follows the copy.
-// Mobile stacks the two scenes around the headline so the portrait gap stays short.
+// Short-video hero. On desktop the copy sits on the empty paper between the two phones.
 export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
   const { t } = useI18n();
   const fadeUp = {
@@ -20,29 +19,33 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
       transition: { delay: i * 0.12 + 0.15, duration: 0.7, ease },
     }),
   };
+  const platforms = [t("landing.hero.platformReels"), t("landing.hero.platformShorts"), t("landing.hero.platformTiktok")];
 
   return (
-    // Pop-art art stays on the sides. A cream panel keeps the headline readable.
-    <section className="relative overflow-hidden bg-[#f7f3e8]">
-      <LandingHeroArt />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-1/2 z-[1] hidden w-[min(52rem,70%)] -translate-x-1/2 bg-[radial-gradient(ellipse_at_center,rgba(255,252,245,0.96)_0%,rgba(255,252,245,0.88)_42%,rgba(255,252,245,0)_78%)] lg:block"
-      />
-      <ParallaxLayer distance={-18} className="relative z-10">
-        <div className="mx-auto flex max-w-3xl flex-col items-center justify-center px-6 py-8 text-center lg:py-24">
-          <div className="rounded-[2rem] bg-[#fffdf8]/95 px-6 py-8 shadow-[0_12px_40px_rgba(18,20,28,0.08)] backdrop-blur-sm sm:px-10 sm:py-10">
-          <motion.h1
+    // Paper ground matches the cut-out art so the phones read as pieces on one sheet.
+    <section className="relative flex flex-col overflow-hidden border-b-2 border-[#12141c] bg-[#f3f3f3] lg:aspect-[16/9] lg:max-h-[46rem] lg:min-h-[36rem] lg:justify-center">
+      <ParallaxLayer distance={-18} className="relative z-10 order-1">
+        <div className="mx-auto flex max-w-2xl flex-col items-center px-6 pb-2 pt-14 text-center lg:max-w-[36rem] lg:py-10 xl:max-w-[42rem]">
+          <motion.p
             custom={0}
             variants={fadeUp}
             initial="hidden"
             animate="visible"
-            className="max-w-3xl text-pretty text-3xl font-bold leading-[1.12] tracking-tight text-[#12141c] sm:text-4xl lg:text-6xl"
+            className="inline-flex items-center gap-2 rounded-full bg-[#12141c] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#c6f24b]"
+          >
+            {t("landing.hero.kicker")}
+          </motion.p>
+          <motion.h1
+            custom={1}
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            className="mt-5 text-pretty text-4xl font-bold leading-[1.08] tracking-tight text-[#12141c] sm:text-5xl xl:text-6xl"
           >
             {t("landing.hero.title")}
           </motion.h1>
           <motion.p
-            custom={1}
+            custom={2}
             variants={fadeUp}
             initial="hidden"
             animate="visible"
@@ -50,8 +53,25 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
           >
             {t("landing.hero.subtitle")}
           </motion.p>
+          {/* Where the videos go: plain chips, no platform logos. */}
+          <motion.ul
+            custom={3}
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            className="mt-5 flex flex-wrap justify-center gap-2"
+          >
+            {platforms.map((label) => (
+              <li
+                key={label}
+                className="rounded-full border-2 border-[#12141c] bg-white px-3 py-1 text-xs font-semibold text-[#12141c]"
+              >
+                {label}
+              </li>
+            ))}
+          </motion.ul>
           <motion.div
-            custom={2}
+            custom={4}
             variants={fadeUp}
             initial="hidden"
             animate="visible"
@@ -64,16 +84,17 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
               {signedIn ? t("landing.hero.ctaWorkspace") : t("landing.hero.ctaStart")}
             </Link>
             <Link
-              href="#pricing"
+              href="#use-cases"
               className="inline-flex rounded-full border border-[#12141c]/20 bg-white px-8 py-3 text-sm font-semibold text-[#12141c] transition-colors hover:bg-[#f4fcd4]"
             >
-              {t("landing.hero.ctaPricing")}
+              {t("landing.hero.ctaUseCases")}
             </Link>
           </motion.div>
-          </div>
         </div>
       </ParallaxLayer>
-      <LandingHeroArtBottom />
+      <div className="order-2">
+        <LandingHeroArt />
+      </div>
     </section>
   );
 }

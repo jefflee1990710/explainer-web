@@ -12,9 +12,9 @@ import { productsZhHant } from "@/util/i18n/messages/workspace/products.zh-Hant"
 
 export const zhHant: Messages = {
   meta: {
-    title: "Scro — 概念解說影片",
+    title: "Scro — 做 Reels 與 Shorts 的 AI 短影音工具",
     description:
-      "把概念講清楚，做成 Reels、行銷、簡報與更多用途的 explainer 影片。選風格、核准分鏡、產出 clips。",
+      "從一個想法做出 Instagram Reels 與 YouTube Shorts：解釋概念、介紹 SaaS、推廣產品、分享教學，或讓虛擬的你主持。",
   },
   nav: {
     projects: "影片",
@@ -51,13 +51,66 @@ export const zhHant: Messages = {
   },
   landing: {
     hero: {
-      kicker: "Scro",
-      title: "把概念講清楚，做成 Reels、行銷與簡報影片。",
-      subtitle: "選風格、核准分鏡、輸出 clips——給短影音、產品行銷與簡報使用。",
-      ctaStart: "開始使用",
+      kicker: "短影音製作工作室",
+      title: "做 Reels 和 Shorts，最快、最讓人看完的工具。",
+      subtitle: "丟一個想法進來。Scro 的 AI 導演寫好開場鉤子、排好每個分鏡，直接產出可發佈的 9:16 直式短片。",
+      ctaStart: "做我的第一支短片",
       ctaWorkspace: "進入工作台",
-      ctaPricing: "看方案",
-      artLabel: "分鏡與剪輯概念插圖",
+      ctaUseCases: "看看能做什麼",
+      platformReels: "Instagram Reels",
+      platformShorts: "YouTube Shorts",
+      platformTiktok: "TikTok",
+      artLabel: "兩部手機正在播放直式短影音",
+    },
+    useCases: {
+      eyebrow: "使用情境",
+      title: "你要發的每一種短片，都在同一個工作室完成。",
+      subtitle: "選好用途，Scro 會幫你決定開場鉤子、節奏和畫面，做出 30–60 秒的直式短片。",
+      explain: {
+        eyebrow: "解釋複雜概念",
+        title: "把難懂的概念，變成人人看得懂的短片。",
+        body: "貼上文章、筆記或一堆術語。Scro 把它拆成一個分鏡講一個重點，每一步都配上圖解。",
+        point1: "第一秒就點出問題的開場鉤子",
+        point2: "一個分鏡一個重點，用簡單圖解呈現",
+        point3: "適合財經、科學、健康與科技主題",
+        cta: "解釋一個概念",
+      },
+      saas: {
+        eyebrow: "介紹你的 SaaS",
+        title: "在觀眾滑走之前，讓他看懂你的軟體。",
+        body: "描述功能和它解決的痛點。Scro 做成節奏明快的示範短片，放上你的介面、Logo 和清楚的行動呼籲。",
+        point1: "新功能上線、上手教學與版本更新",
+        point2: "Logo 與截圖在每一格都保持原樣",
+        point3: "結尾導向註冊或免費試用",
+        cta: "做 SaaS 短片",
+      },
+      product: {
+        eyebrow: "介紹產品或服務",
+        title: "30 秒，讓你的產品站上舞台中央。",
+        body: "上傳產品照片或描述你的服務。Scro 做成廣告感短片，真實產品始終保持原本的樣子。",
+        point1: "真實產品照不會被改畫或變形",
+        point2: "鉤子圍繞買家的問題，而不是規格表",
+        point3: "適合網店、工作室、診所與在地服務",
+        cta: "推廣產品",
+      },
+      tutorial: {
+        eyebrow: "分享知識與教學",
+        title: "把知識做成一步一步的教學短片。",
+        body: "給 Scro 步驟或課程內容，它會排成有編號、有字幕的教學，讓觀眾收藏、回來再看。",
+        point1: "清單、教學、小技巧與迷你課程",
+        point2: "用你的語言顯示清楚易讀的字幕",
+        point3: "同一位主持人、同一風格做成系列",
+        cta: "建立教學短片",
+      },
+      virtualYou: {
+        eyebrow: "虛擬的你",
+        title: "不用上鏡，讓虛擬的你主持每一支短片。",
+        body: "上傳一張照片，Scro 依你選的風格把你畫成角色，之後每支短片都由同一個你出場。",
+        point1: "不用拍攝、打燈或重拍",
+        point2: "整個系列都是同一張臉、同一套造型",
+        point3: "適合個人品牌、教練與創作者",
+        cta: "建立虛擬的我",
+      },
     },
     steps: {
       step1Title: "選風格",
@@ -99,12 +152,6 @@ export const zhHant: Messages = {
       service: "服務",
       knowledge: "知識",
       cta: "建立角色",
-    },
-    persona: {
-      eyebrow: "個人品牌",
-      title: "不想上鏡，就讓虛擬的你來主持。",
-      body: "上傳自己的照片，Scro 會依你的樣子做成虛擬角色，並用同一風格幫你做個人品牌短影音。",
-      cta: "用照片建立",
     },
     director: {
       eyebrow: "生成成本",

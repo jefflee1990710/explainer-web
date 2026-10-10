@@ -6,13 +6,16 @@ export const ja: Partial<Messages> = {
   common: { credits: "credits", pending: "処理中", perMonth: "/ 月", cancel: "キャンセル", save: "保存", close: "閉じる", create: "作成", loading: "読み込み中…", popular: "一番人気", subscribe: "登録する" },
   landing: {
     hero: {
-      kicker: "Scro",
-      title: "アイデアを Reels、マーケティング、プレゼン動画で分かりやすく。",
-      subtitle: "スタイルを選び、絵コンテを承認して clips を書き出すだけ。ショート動画、商品マーケティング、プレゼンに活用できます。",
-      ctaStart: "始める",
+      kicker: "ショート動画スタジオ",
+      title: "最後まで見られるリールとショートを、いちばん速く。",
+      subtitle: "アイデアを入れるだけ。Scro の AI ディレクターがフックを書き、シーンを組み立て、そのまま投稿できる 9:16 の縦型動画を仕上げます。",
+      ctaStart: "最初のショートを作る",
       ctaWorkspace: "ワークスペースを開く",
-      ctaPricing: "プランを見る",
-      artLabel: "絵コンテと編集のコンセプトイラスト",
+      ctaUseCases: "作れるものを見る",
+      platformReels: "Instagram Reels",
+      platformShorts: "YouTube Shorts",
+      platformTiktok: "TikTok",
+      artLabel: "縦型ショート動画を再生する二台のスマホ",
     },
     steps: {
       step1Title: "スタイルを選ぶ",
@@ -51,12 +54,6 @@ export const ja: Partial<Messages> = {
       service: "サービス",
       knowledge: "知識",
       cta: "キャラクターを作る",
-    },
-    persona: {
-      eyebrow: "パーソナルブランド",
-      title: "カメラに映らなくていい。仮想の自分がリールを担当。",
-      body: "自分の写真をアップロードすると、Scro が同じスタイルの仮想キャラクターに描き直し、パーソナルブランドの動画に使います。",
-      cta: "写真から作る",
     },
     director: {
       eyebrow: "生成コスト",

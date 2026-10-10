@@ -5,7 +5,7 @@ export const es: Partial<Messages> = {
   nav: { projects: "Vídeo", characters: "Personajes", tasks: "Tareas", mcp: "MCP", affiliate: "Affiliate", billing: "Facturación", examples: "Ejemplos", pricing: "Precios", signIn: "Iniciar sesión", workspace: "Espacio de trabajo", language: "Idioma" },
   common: { credits: "credits", pending: "pendientes", perMonth: "/ mes", cancel: "Cancelar", save: "Guardar", close: "Cerrar", create: "Crear", loading: "Cargando…", popular: "Más popular", subscribe: "Suscribirse" },
   landing: {
-    hero: { kicker: "Scro", title: "Explica tus ideas con claridad mediante Reels, vídeos de marketing y presentaciones.", subtitle: "Elige un estilo, aprueba los guiones gráficos y exporta clips para vídeos cortos, marketing de producto y presentaciones.", ctaStart: "Empezar", ctaWorkspace: "Abrir espacio de trabajo", ctaPricing: "Ver planes", artLabel: "Ilustración conceptual de guion gráfico y edición" },
+    hero: { kicker: "El estudio de vídeo corto", title: "La forma más rápida de crear Reels y Shorts que la gente ve hasta el final.", subtitle: "Escribe una idea. El director de IA de Scro crea el gancho, planifica cada escena y renderiza un vídeo vertical 9:16 listo para publicar.", ctaStart: "Crear mi primer short", ctaWorkspace: "Abrir espacio de trabajo", ctaUseCases: "Mira qué puedes crear", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Dos móviles reproduciendo vídeos cortos verticales" },
     steps: {
       step1Title: "Elige un estilo", step1Body: "Elige un estilo de dirección para vídeos cortos, marketing, presentaciones y mucho más.",
       step2Title: "Aprueba los guiones gráficos", step2Body: "La IA propone títulos, ganchos, escenas y locución. Edítalos hasta que te convenzan.",
@@ -15,7 +15,6 @@ export const es: Partial<Messages> = {
     enterprise: { title: "¿Necesitas más que Scale?", body: "Credits, facturación y contrato a medida para equipos que superan los planes publicados.", cta: "Contáctanos" },
     showcase: { title: "Ver resultados", subtitle: "Cuatro combinaciones en la misma plataforma: tema, estilo y formato.", reel: "Reel", deck: "Presentación", marketing: "Marketing", scro: "Cómo funciona Scro", product: "Demo de producto", story: "Historia corta" },
     cast: { eyebrow: "Personajes", title: "Crea el personaje una vez. Úsalo en cada vídeo.", body: "Define primero el personaje y el estilo. Luego haz Reels, clips de marketing y vídeos explicativos con la misma cara: para un producto, una función o un conocimiento.", product: "Producto", service: "Servicio", knowledge: "Conocimiento", cta: "Crear personaje" },
-    persona: { eyebrow: "Marca personal", title: "Sin salir a cámara. Que un tú virtual presente el Reel.", body: "Sube tu foto. Scro te redibuja como personaje virtual en el mismo estilo y lo usa en vídeos de marca personal.", cta: "Usar tu foto" },
     director: { eyebrow: "Coste de generación", title: "Lo caro son los reintentos.", body: "El vídeo con IA se encarece porque cada fallo es otro render. El director de IA de Scro convierte tu idea en un storyboard que apruebas primero. El vídeo acierta en pocas tomas y el coste de generación baja.", idea: "Tu idea", takes: "Pocas tomas", cost: "Menor coste", cta: "Escribir el storyboard" },
   },
   examples: {
