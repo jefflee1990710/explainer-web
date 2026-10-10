@@ -22,7 +22,8 @@ test("Phase A motionCamera is a transition script that covers every start → en
   assert.match(block, /in the end still but not in the start still/);
   assert.match(block, /in the start still but not in the end still/);
   assert.match(block, /character's own left or right/);
-  assert.match(block, /same light and the same camera/);
+  assert.match(block, /same light and the same place/);
+  assert.match(block, /after motionCamera has finished/);
   assert.match(block, /every object motionCamera touches already exists in the start still/);
 });
 

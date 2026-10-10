@@ -143,11 +143,21 @@ test("pixel video keeps its canvas while subtitle look stays independent", () =>
   assert.doesNotMatch(prompt, /pixel typography/);
 });
 
-test("end frame is the same shot as start, not a new composition", () => {
-  const prompt = buildFramePrompt(project(), 1, "end");
-  assert.match(prompt, /SAME locked camera/);
+test("end frame is the opening still after the camera motion", () => {
+  const video = project();
+  video.phaseA!.clips[0].startScene = "Camera: wide shot of the desk from the left.";
+  video.phaseA!.clips[0].endScene = "the mug is now centered.";
+  video.phaseA!.clips[0].motionCamera = "0–2s the camera pushes in; 2–5s it settles on a close-up from the front.";
+  const prompt = buildFramePrompt(video, 1, "end", { anchor: { kind: "clip-start" } });
+  assert.match(prompt, /Camera landing:/);
+  assert.match(prompt, /Opening: Camera: wide shot of the desk from the left/);
+  assert.match(prompt, /Motion: 0–2s the camera pushes in/);
+  assert.match(prompt, /where the camera lands/);
+  assert.match(prompt, /camera motion's landing/);
   assert.match(prompt, /5–6s/);
-  assert.doesNotMatch(prompt, /modest continuation/);
+  assert.doesNotMatch(prompt, /Keep the same camera/);
+  assert.doesNotMatch(prompt, /SAME locked camera/);
+  assert.doesNotMatch(buildFramePrompt(video, 1, "start"), /Camera landing:/);
 });
 
 test("start frame stays an opening state of this shot", () => {
@@ -181,7 +191,9 @@ test("end frame with a start still names it as the composition lock", () => {
   });
   assert.match(prompt, /COMPOSITION LOCK/);
   assert.match(prompt, /attached image 1 is THIS CLIP'S START frame/);
-  assert.match(prompt, /Do not invent a new room or camera/);
+  assert.match(prompt, /camera motion's landing/);
+  assert.match(prompt, /Do not invent a new room/);
+  assert.doesNotMatch(prompt, /Do not invent a new room or camera/);
 });
 
 test("whiteboard explainer stills keep the character silent and draw the mechanism graph", () => {
@@ -662,7 +674,7 @@ test("end frame handoff stays short and does not paste the next clip scene", () 
     },
   ];
   const end = buildFramePrompt(dual, 1, "end");
-  assert.match(end, /hand off to the next clip on the same locked camera/);
+  assert.match(end, /hand off to the next clip in the same place/);
   assert.doesNotMatch(end, /SCRO RESULTS/);
   assert.doesNotMatch(end, /FOLLOW US RIGHT NOW/);
 });
@@ -728,7 +740,8 @@ test("stills carry only their own motion beat, not the whole timeline", () => {
   assert.match(start, /Lily lifts the cup/);
   assert.doesNotMatch(start, /sets it down/);
   assert.match(end, /sets it down and smiles/);
-  assert.doesNotMatch(end, /lifts the cup/);
+  assert.match(end, /Camera landing:[\s\S]*lifts the cup/);
+  assert.doesNotMatch(end.split("Camera landing:")[0], /lifts the cup/);
   assert.doesNotMatch(start, /Motion and camera across the clip/);
 });
 

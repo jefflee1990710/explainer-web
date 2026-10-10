@@ -128,6 +128,10 @@ function compositionLockLines(
   hasSceneRefs = false,
   // Whiteboard explainer with a cast: the end still may zoom and the character may have walked.
   allowMove = false,
+  // Talking-head end stills must not reframe. A new crop reads as a jump in the clip.
+  tightLock = false,
+  // End still: the attached start frame is the before picture. The camera follows the motion.
+  followMotion = false,
 ) {
   if (!anchor) return [];
   const slot = `attached image ${imageIndex}`;
@@ -159,11 +163,35 @@ function compositionLockLines(
       "Keep the same world, set, and lighting. Camera angle and pose MAY change to match the Scene. Do not invent a new room.",
     ];
   }
+  if (tightLock) {
+    return [
+      `COMPOSITION LOCK: ${source}.`,
+      "Keep the same camera, crop, distance, set, lighting, character size, and screen position.",
+      "Do not zoom, reframe, or move the character to a new spot. No jump.",
+      "Only small changes from the Scene: the mouth, a few degrees of the head, the free hand, and the subtitle. A handheld prop stays in the same hand.",
+    ];
+  }
+  if (followMotion) {
+    return [
+      `COMPOSITION LOCK: ${source}.`,
+      "Keep the same world, set, lighting, and who is on screen.",
+      "Shot size, camera angle, and where subjects sit follow the camera motion's landing, not this attached frame.",
+      "Do not invent a new room.",
+    ];
+  }
   return [
     `COMPOSITION LOCK: ${source}.`,
     "Keep the same camera, set, lighting, character size, and screen position.",
     "Apply only the Scene changes (pose, props, lettering). Do not invent a new room or camera.",
   ];
+}
+
+// End still = the opening still after the camera motion. Kept short so it survives the prompt budget.
+function endFrameMotionLine(startScene: string, motion: string) {
+  const opening = clipAt(startScene.replace(/\s+/g, " ").trim(), 140);
+  const camera = clipAt(motion.replace(/\s+/g, " ").trim(), 180);
+  if (!opening && !camera) return "";
+  return `Camera landing: this end still is the opening still after the camera motion. Opening: ${opening} Motion: ${camera} Keep the same place and light. Shot size, angle, and where subjects sit follow where the camera lands. If the motion locks the camera, keep that framing.`;
 }
 
 // Higgsfield Marketing Studio Flare rejects prompts over this many characters.
@@ -552,6 +580,19 @@ export function buildFramePrompt(
       place: surpriseClip?.place,
     });
   }
+  const openingRaw = directorWritesLettering || keepSceneLabels
+    ? clipStartScene(row).trim()
+    : stripStoryboardWriting(clipStartScene(row));
+  const openingForLanding = directorWritesLettering
+    ? openingRaw
+    : sceneText.enabled
+      ? stripSceneVoiceoverRecap(openingRaw)
+      : openingRaw;
+  // Outfit and surprise already write their own end camera. Everyone else lands the motion.
+  const cameraLanding =
+    position === "end" && !wardrobeBuild && !surprise
+      ? endFrameMotionLine(openingForLanding, motionDescription)
+      : "";
   // Every 9:16 spoken subtitle sits a little below center. Landscape stays in the bottom band.
   const subtitleBelowCenter = subtitleSitsBelowCenter(project.aspectRatio);
   const paintSurpriseType = surprise && Boolean(voForFrame);
@@ -647,8 +688,16 @@ export function buildFramePrompt(
     ...(wardrobeBuild ? [outfitAngleDirective(clipNumber, position, sceneDescription)] : []),
     ...(surprise && clipNumber === 1 ? [surpriseHookCameraDirective(position)] : []),
     ...(parts.renderDetail ? [parts.renderDetail] : []),
+    ...(cameraLanding ? [cameraLanding] : []),
     moment,
-    ...compositionLockLines(options.anchor, annotatedCount + 1, sceneRefUrls.length > 0, performance),
+    ...compositionLockLines(
+      options.anchor,
+      annotatedCount + 1,
+      sceneRefUrls.length > 0,
+      performance,
+      solo && options.anchor?.kind === "clip-start",
+      position === "end" && !solo && !wardrobeBuild && !surprise,
+    ),
     ...revisionLines(options.revision && { ...options.revision, remark: parts.remark }),
     ...(listicle
       ? ["Final check: the numbered item list is visible and spelled exactly."]

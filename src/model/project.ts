@@ -298,6 +298,8 @@ export type Project = {
   finalError?: string;
   // When the current export was queued; a stale one can be re-queued.
   finalQueuedAt?: Date;
+  // Set when the user marks a finished video as posted. Absent means pending to post.
+  postedAt?: Date;
   // Legacy batch charges (pre per-clip pipeline). No longer written.
   creditCost?: number;
   creditsCharged: boolean;
@@ -466,6 +468,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   finalFingerprint: z.string().optional(),
   finalError: z.string().optional(),
   finalQueuedAt: z.date().optional(),
+  postedAt: z.date().optional(),
   creditCost: z.number().optional(),
   creditsCharged: z.boolean(),
   error: z.string().optional(),

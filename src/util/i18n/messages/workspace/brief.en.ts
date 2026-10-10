@@ -103,7 +103,7 @@ export const briefEn = {
     hint: "Instruction is for the director. Add the script the character will read in the field below.",
     scriptTitle: "Script to read",
     scriptHint:
-      "The character reads this aloud. Clips share a similar length (5–12 seconds, up to 20). A script over 240 seconds must be shortened.",
+      "The character reads this aloud. Each clip is one short line so the subtitle stays large (about 4 seconds of speech, played at least 5 seconds, up to 20 clips). A script over 240 seconds must be shortened.",
     scriptLabel: "Script to read",
     scriptPlaceholder: "Hello. This product saves you an hour every week.\nTry it today.",
   },
@@ -127,7 +127,7 @@ export const briefEn = {
     sceneText: "On-screen text · {label}",
     subtitleLook: "Look · {label}",
     bookendLength: "1 clip · 3–4s",
-    talkingHeadLength: "Even clips · 5–12s · up to 20",
+    talkingHeadLength: "Short lines · at least 5s · up to 20",
     logo: "Logo",
   },
   confirm: {

@@ -104,6 +104,7 @@ test("restart clears storyboard and every generated output field", () => {
     "finalFingerprint",
     "finalError",
     "finalQueuedAt",
+    "postedAt",
     "error",
   ]) {
     assert.ok(field in RESTART_UNSET_FIELDS, `missing ${field}`);

@@ -12,6 +12,10 @@ export const TALKING_HEAD_SKILL_SLUG = "talking-head-director";
 export const FULL_BODY_TALKING_HEAD_SKILL_SLUG = "full-body-talking-head-director";
 export const TALKING_HEAD_MAX_CLIPS = 20;
 export const TALKING_HEAD_MAX_SECONDS = 12;
+// One short line per clip so the on-screen subtitle stays large.
+// Speech can be under the 5s render floor; the clip still lasts at least 5s.
+const SPEECH_TARGET_SECONDS = 4;
+const SPEECH_MAX_SECONDS = 5;
 
 // Medium pace: ~2.4 English words/s, ~4 Chinese characters/s.
 const ENGLISH_WORDS_PER_SECOND = 2.4;
@@ -277,13 +281,13 @@ export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
   return [
     fullBody ? "Full-body talking-head read: ignore the duration preset." : "Talking-head read: ignore the duration preset.",
     "The first user text is a DIRECTOR INSTRUCTION for staging and tone. The second user text is the SPOKEN SCRIPT — copy the words into englishVo verbatim.",
-    "Do not force one sentence per clip. Group short lines and split long lines so each clip has a similar word count and the same speaking pace. Never cut through a complete English word such as Instagram, Webinar, or Scro.io.",
-    `Clip count is from 1 to ${TALKING_HEAD_MAX_CLIPS}. Each clip is ${PROVIDER_MIN_SECONDS}–${TALKING_HEAD_MAX_SECONDS}s.`,
+    "Split the script into short lines. Each clip is about one short clause, not a paragraph, so the subtitle stays large. Group only when a line is already shorter than that. Never cut through a complete English word such as Instagram, Webinar, or Scro.io.",
+    `Clip count is from 1 to ${TALKING_HEAD_MAX_CLIPS}. Each clip's speech is about ${SPEECH_TARGET_SECONDS}s and at most ${SPEECH_MAX_SECONDS}s unless the script cannot fit in ${TALKING_HEAD_MAX_CLIPS} clips. The rendered clip is still ${PROVIDER_MIN_SECONDS}–${TALKING_HEAD_MAX_SECONDS}s so a short line is not sped up.`,
     `durationSeconds follows Chinese characters / ${CJK_CHARS_PER_SECOND} + English words / ${ENGLISH_WORDS_PER_SECOND}, then ${paceNote(pace)}.`,
     fullBody
       ? "Locked full-body shot. Head, torso, and feet stay in frame. The character looks into the lens. Do not crop to a close-up."
       : "Locked seated medium shot, like a real phone video filmed at home. Head and torso stay in frame. The character sits and looks into the lens. Do not stand them up. Do not crop to a face-only close-up.",
-    "Clip 2+ keeps the previous clip's pose, set, and camera, but both stills show this clip's own spoken line as the subtitle. Never copy the previous clip's words into this clip's subtitle or voice. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, hands gesturing and changing shape every 1–2 seconds, following the performance slots in the director block. The voice says only this clip's line, once.",
+    "Clip 2+ keeps the previous clip's pose, set, and camera, but both stills show this clip's own spoken line as the subtitle. Never copy the previous clip's words into this clip's subtitle or voice. The camera does not jump: the end still is the same crop, distance, and screen position as the start still. Only the mouth, a few degrees of head, and the free hand change. The microphone stays in the same hand. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, the free hand gesturing. The voice says only this clip's line, once.",
   ].join(" ");
 }
 
@@ -293,7 +297,7 @@ function talkingSubtitleRule(aspectRatio?: string) {
     : aspectRatio === "16:9"
       ? "across the bottom of the frame"
       : "a little below the vertical center on a 9:16 Instagram Reel, and across the bottom on a 16:9 landscape frame";
-  return `Write the subtitle into startScene and endScene as Subtitle (spell exactly): "<this clip's spoken line>", ${place}. That sentence is what the still paints. Nothing later moves or resizes it. Change the place or size in that sentence when the instruction asks. Nothing else written.`;
+  return `Write the subtitle into startScene and endScene as one LARGE phone-readable subtitle, ${place}. Spell the spoken line exactly. It fades and slides in at the start of the clip and fades and slides out at the end. The camera stays on the same framing from the start still to the end still. Nothing else written.`;
 }
 
 // Phase A director block. Performance slots (English) describe the style layer the
@@ -352,34 +356,32 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
   const p = scene.perf;
   if (language === "en") {
     const prop = anchored ? ` One hand holds ${p.anchorProp}.` : "";
-    const propEnd = anchored ? ` ${capitalize(p.anchorProp)} stays in that hand, a little lower.` : "";
+    const propEnd = anchored ? ` ${capitalize(p.anchorProp)} stays in the same hand, not lower and not swapped.` : "";
     const freeHand = anchored ? "The other hand" : "One hand";
+    const sameFrame = " Same camera as the opening still: same crop, same distance, the character in the same place on screen. No zoom, no reframe, no jump.";
     const pose =
       moment === "start"
         ? fullBody
           ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture.`
           : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens like a real phone video filmed at home, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live unposed expression.${prop} ${freeHand} is already up at chest height, index finger raised mid-gesture.`
         : fullBody
-          ? `Character: still the only person in the frame, eyes still locked on the lens, mouth just closed after the line, an engaged small smile, eyebrows relaxed, head tilted the other way.${propEnd} ${freeHand} is still slightly raised at chest height with an open palm, weight on the other hip, feet in frame.`
-          : `Character: still the only person in the frame, still seated, eyes still locked on the lens, mouth just closed into a small real smile, eyebrows relaxed, head tilted the other way.${propEnd} ${freeHand} is open-palm at chest height, caught between gestures.`;
-    const place = scene.belowCenter
-      ? "one line a little below the vertical center, clear of the face and the bottom edge"
-      : "one bottom line";
-    return `${pose} ${setClause("en", scene)}${camera} Subtitle: ${place}, exactly "${painted}".`;
+          ? `Character: still the only person in the frame, eyes still locked on the lens, mouth just closed after the line, an engaged small smile, eyebrows relaxed, head nodded only a few degrees.${propEnd} ${freeHand} is still slightly raised at chest height with an open palm, weight on the other hip, feet in the same place.${sameFrame}`
+          : `Character: still the only person in the frame, still seated, eyes still locked on the lens, mouth just closed into a small real smile, eyebrows relaxed, head nodded only a few degrees.${propEnd} ${freeHand} is open-palm at chest height, caught between gestures.${sameFrame}`;
+    return `${pose} ${setClause("en", scene)}${camera} ${subtitleSentence("en", painted, scene.belowCenter)}`;
   }
   const prop = anchored ? `一隻手拎住${p.anchorProp}。` : "";
-  const propEnd = anchored ? `${p.anchorProp}仲喺嗰隻手，稍為放低。` : "";
+  const propEnd = anchored ? `${p.anchorProp}留喺同一隻手，唔好放低，唔好換手。` : "";
   const freeHand = anchored ? "另一隻手" : "一隻手";
+  const sameFrame = "鏡頭同開頭畫面一樣：同一個裁切、同一距離、角色留喺畫面同一個位置。唔好變焦，唔好跳鏡。";
   const pose =
     moment === "start"
       ? fullBody
         ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，準備開口，${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢。`
         : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，直望鏡頭好似喺屋企用手機實拍，準備開口，${p.hookBeat}，頭微傾，神情自然唔擺拍。${prop}${freeHand}已經提到胸前，豎起食指做緊手勢。`
       : fullBody
-        ? `角色：畫面仍然只有呢一個人，仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，眉毛放鬆，頭反向微傾。${propEnd}${freeHand}仲喺胸前掌心打開，重心換咗邊，腳留喺畫面。`
-        : `角色：畫面仍然只有呢一個人，仍然坐住直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，頭反向微傾。${propEnd}${freeHand}掌心打開停喺胸前，好似兩個手勢之間。`;
-  const place = scene.belowCenter ? "畫面垂直中線下面少少一行，避開臉同最底邊" : "畫面底部一行";
-  return `${pose}${setClause("yue", scene)}${camera}字幕：${place}，逐字係「${painted}」。`;
+        ? `角色：畫面仍然只有呢一個人，仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，眉毛放鬆，頭只再傾幾度。${propEnd}${freeHand}仲喺胸前掌心打開，重心輕輕換咗少少，腳留喺同一個位置。${sameFrame}`
+        : `角色：畫面仍然只有呢一個人，仍然坐住直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，頭只再傾幾度。${propEnd}${freeHand}掌心打開停喺胸前，好似兩個手勢之間。${sameFrame}`;
+  return `${pose}${setClause("yue", scene)}${camera}${subtitleSentence("yue", painted, scene.belowCenter)}`;
 }
 
 // Keep the previous end's pose, and swap in this clip's own subtitle.
@@ -391,14 +393,20 @@ function withThisClipSubtitle(
 ) {
   const painted = language === "yue" ? toWrittenChinese(line) : line;
   const body = previousEnd.replace(/\s*(?:Subtitle:|字幕：).*$/u, "").trim();
+  const lang = language === "en" ? "en" : "yue";
+  return `${body} ${subtitleSentence(lang, painted, belowCenter)}`.replace(/\s{2,}/g, " ");
+}
+
+// Large lettering. A long line was being painted as one tiny row.
+function subtitleSentence(language: "en" | "yue", line: string, belowCenter?: boolean) {
   if (language === "en") {
     const place = belowCenter
-      ? "one line a little below the vertical center, clear of the face and the bottom edge"
-      : "one bottom line";
-    return `${body} Subtitle: ${place}, exactly "${painted}".`;
+      ? "a little below the vertical center, clear of the face and the bottom edge"
+      : "one LARGE bottom line, clear of the bottom edge";
+    return `Subtitle: one LARGE phone-readable subtitle, ${place}, exactly "${line}".`;
   }
-  const place = belowCenter ? "畫面垂直中線下面少少一行，避開臉同最底邊" : "畫面底部一行";
-  return `${body}字幕：${place}，逐字係「${painted}」。`;
+  const place = belowCenter ? "畫面垂直中線下面少少，避開臉同最底邊" : "畫面底部一行，避開最底邊";
+  return `字幕：一個大字幕，手機上睇得清楚，${place}，逐字係「${line}」。`;
 }
 
 function capitalize(text: string) {
@@ -501,10 +509,10 @@ function speechAtoms(text: string): string[] {
 
 function splitLongPiece(text: string, pace?: SpeechPace) {
   const trimmed = text.trim();
-  if (rawSpokenSeconds(trimmed, pace) <= 4) return [trimmed];
+  if (rawSpokenSeconds(trimmed, pace) <= SPEECH_MAX_SECONDS) return [trimmed];
   const atoms = speechAtoms(trimmed);
   if (atoms.length <= 1) return [trimmed];
-  const parts = Math.max(2, Math.ceil(rawSpokenSeconds(trimmed, pace) / 4));
+  const parts = Math.max(2, Math.ceil(rawSpokenSeconds(trimmed, pace) / SPEECH_TARGET_SECONDS));
   const weights = atoms.map((atom) => Math.max(rawSpokenSeconds(atom.trim(), pace), 0.01));
   const total = weights.reduce((sum, weight) => sum + weight, 0);
   const target = total / parts;
@@ -526,26 +534,26 @@ function splitLongPiece(text: string, pace?: SpeechPace) {
   return chunks.filter(Boolean);
 }
 
-// Pick the clip count whose real slices are closest in length, each at least 5s.
+// Prefer short slices so each subtitle is one large line. Pack longer only when
+// 20 clips cannot hold the script.
 function evenRanges(weights: number[], total: number): Array<[number, number]> {
-  if (weights.length <= 1 || total <= TALKING_HEAD_MAX_SECONDS) return [[0, weights.length]];
-  const minClips = Math.max(1, Math.ceil(total / TALKING_HEAD_MAX_SECONDS));
-  const maxClips = Math.min(
-    TALKING_HEAD_MAX_CLIPS,
-    weights.length,
-    Math.max(1, Math.floor(total / (PROVIDER_MIN_SECONDS - 0.45))),
+  if (weights.length <= 1 || total <= SPEECH_MAX_SECONDS) return [[0, weights.length]];
+  const sliceMax = Math.min(
+    TALKING_HEAD_MAX_SECONDS,
+    Math.max(SPEECH_MAX_SECONDS, total / TALKING_HEAD_MAX_CLIPS),
   );
+  const minClips = Math.max(1, Math.ceil(total / sliceMax));
+  const maxClips = Math.min(TALKING_HEAD_MAX_CLIPS, weights.length);
+  const target = Math.min(SPEECH_TARGET_SECONDS, sliceMax);
   let best: Array<[number, number]> | undefined;
   let bestCost = Number.POSITIVE_INFINITY;
   for (let groups = minClips; groups <= Math.max(minClips, maxClips); groups += 1) {
     const ranges = partitionEven(weights, groups);
     const seconds = ranges.map(([start, end]) => weightSum(weights, start, end));
-    if (seconds.some((value) => value > TALKING_HEAD_MAX_SECONDS)) continue;
-    if (groups > 1 && seconds.some((value) => value < PROVIDER_MIN_SECONDS - 0.45)) continue;
+    if (seconds.some((value) => value > sliceMax + 0.05)) continue;
     const mean = total / groups;
     const spread = Math.max(...seconds) - Math.min(...seconds);
-    // 7s keeps speech above the 5s render floor and the subtitle to about two short lines.
-    const cost = spread * 4 + Math.abs(mean - 7);
+    const cost = spread * 4 + Math.abs(mean - target);
     if (cost < bestCost) {
       bestCost = cost;
       best = ranges;

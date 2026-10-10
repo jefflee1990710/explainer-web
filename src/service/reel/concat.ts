@@ -1,11 +1,16 @@
 import { spawn } from "node:child_process";
+import { createWriteStream } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import type { ReadableStream as WebReadableStream } from "node:stream/web";
 import ffmpegPath from "ffmpeg-static";
 import { joinPadArgs } from "@/service/reel/join-pad";
 import type { PairwiseStep } from "@/service/reel/pairwise-progress";
 import { REEL_TIMEOUT_MESSAGE } from "@/service/reel/timeout";
+import { mapLimit } from "@/util/map-limit";
 
 function timeoutError(error: unknown) {
   if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
@@ -21,8 +26,17 @@ function remainingMs(timeoutMs: number | undefined, started: number) {
   return left;
 }
 
+// Clips download at the same time, straight to disk.
+const DOWNLOAD_LIMIT = 4;
+// Pads are tiny encodes; a few run side by side.
+const PAD_LIMIT = 3;
+
+function clipName(index: number) {
+  return `clip${String(index).padStart(3, "0")}.mp4`;
+}
+
 // Concat storyboard clips in order by remuxing the original files.
-// Each step joins the running result with the next clip, so only two files are in memory.
+// All clips download in parallel to a temp dir, then one stream copy writes the reel.
 // timeoutMs covers the whole download plus the join, not each clip separately.
 export async function concatMp4Urls(
   urls: string[],
@@ -32,50 +46,70 @@ export async function concatMp4Urls(
   if (urls.length === 0) throw new Error("沒有可合成的片段");
   const started = Date.now();
   const total = urls.length;
-  if (total === 1) {
-    onProgress?.({ current: 1, total, phase: "download" });
-    return fetchBuffer(urls[0], "片段", remainingMs(timeoutMs, started));
-  }
   onProgress?.({ current: 1, total, phase: "download" });
-  let acc: Buffer = await fetchBuffer(urls[0], "第 1 段", remainingMs(timeoutMs, started));
-  for (let index = 1; index < total; index += 1) {
-    const current = index + 1;
-    onProgress?.({ current, total, phase: "download" });
-    const next = await fetchBuffer(urls[index], `第 ${current} 段`, remainingMs(timeoutMs, started));
-    onProgress?.({ current, total, phase: "join" });
-    acc = await concatMp4Buffers([acc, next], remainingMs(timeoutMs, started));
+  if (total === 1) return fetchBuffer(urls[0], "片段", remainingMs(timeoutMs, started));
+
+  const dir = await mkdtemp(join(tmpdir(), "reel-"));
+  try {
+    let done = 0;
+    const names = await mapLimit(urls, DOWNLOAD_LIMIT, async (url, index) => {
+      const name = clipName(index);
+      await downloadToFile(url, join(dir, name), `第 ${index + 1} 段`, remainingMs(timeoutMs, started));
+      done += 1;
+      onProgress?.({ current: Math.min(total, done + 1), total, phase: "download" });
+      return name;
+    });
+    onProgress?.({ current: total, total, phase: "join" });
+    return await concatFilesInDir(dir, names, () => remainingMs(timeoutMs, started));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
   }
-  return acc;
 }
 
 export async function concatMp4Buffers(buffers: Buffer[], timeoutMs?: number): Promise<Buffer> {
   if (buffers.length === 0) throw new Error("沒有可合成的片段");
   if (buffers.length === 1) return buffers[0];
 
+  const started = Date.now();
   const dir = await mkdtemp(join(tmpdir(), "reel-"));
   try {
     const names: string[] = [];
     for (let i = 0; i < buffers.length; i += 1) {
-      const name = `clip${String(i).padStart(3, "0")}.mp4`;
-      await writeFile(join(dir, name), buffers[i]);
-      names.push(name);
-      if (i === buffers.length - 1) continue;
-      const pad = `pad${String(i).padStart(3, "0")}.mp4`;
-      const stderr = await ffmpegStderr(dir, ["-i", name], timeoutMs);
-      await runFfmpeg(dir, joinPadArgs(name, pad, stderr), timeoutMs);
-      names.push(pad);
+      names.push(clipName(i));
+      await writeFile(join(dir, names[i]), buffers[i]);
     }
-    // Stream copy of the clips. The pad between them is only 200ms.
-    await writeFile(join(dir, "list.txt"), names.map((name) => `file '${name}'`).join("\n"));
-    const out = join(dir, "reel.mp4");
-    await runFfmpeg(
-      dir,
-      ["-y", "-f", "concat", "-safe", "0", "-i", "list.txt", "-c", "copy", "-movflags", "+faststart", "reel.mp4"],
-      timeoutMs,
-    );
-    return await readFile(out);
+    return await concatFilesInDir(dir, names, () => remainingMs(timeoutMs, started));
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+}
+
+// Hold each clip's last frame for 200ms, then stream copy everything in one pass.
+async function concatFilesInDir(dir: string, names: string[], timeLeft: () => number | undefined) {
+  const pads = await mapLimit(names.slice(0, -1), PAD_LIMIT, async (name, index) => {
+    const pad = `pad${String(index).padStart(3, "0")}.mp4`;
+    const stderr = await ffmpegStderr(dir, ["-i", name], timeLeft());
+    await runFfmpeg(dir, joinPadArgs(name, pad, stderr), timeLeft());
+    return pad;
+  });
+  const list = names.flatMap((name, index) => (index < pads.length ? [name, pads[index]] : [name]));
+  await writeFile(join(dir, "list.txt"), list.map((name) => `file '${name}'`).join("\n"));
+  await runFfmpeg(
+    dir,
+    ["-y", "-f", "concat", "-safe", "0", "-i", "list.txt", "-c", "copy", "-movflags", "+faststart", "reel.mp4"],
+    timeLeft(),
+  );
+  return readFile(join(dir, "reel.mp4"));
+}
+
+// Stream a remote file to disk so large clips never sit in memory as a Buffer.
+async function downloadToFile(url: string, dest: string, label: string, timeoutMs?: number) {
+  try {
+    const response = await fetch(url, timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : undefined);
+    if (!response.ok || !response.body) throw new Error(`無法下載${label}（${response.status}）`);
+    await pipeline(Readable.fromWeb(response.body as WebReadableStream), createWriteStream(dest));
+  } catch (error) {
+    throw timeoutError(error);
   }
 }
 

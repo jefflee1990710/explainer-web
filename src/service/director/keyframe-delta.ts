@@ -23,25 +23,25 @@ const BUDGET: Record<KeyframeDeltaBand, { director: string; start: string; end: 
     director:
       "3s: one small readable beat — a head/hand turn, one prop slides about 1/4 of the frame, or a wash blooms. Still the same pose scale.",
     start: "Opening at t=0s, before that 3s beat. Leave room for one small change.",
-    end: "After 3s on the SAME locked camera: one clear completed beat (turn, short slide, or bloom). Difference must be obvious enough to animate; do not look like a duplicate of the start.",
+    end: "After 3s, the camera motion has landed: one clear completed beat (turn, short slide, or bloom). Same place and light. Shot size and angle are where that motion stops. Difference must be obvious enough to animate; do not look like a duplicate of the start.",
   },
   "4s": {
     director:
       "4s: one beat plus follow-through — pose shifts and one element fully enters or leaves the frame.",
     start: "Opening at t=0s, before the 4s beat and follow-through.",
-    end: "After 4s on the SAME locked camera: the beat has finished (pose shifted; one element fully in or out). Readable travel, no cut or teleport.",
+    end: "After 4s, the camera motion has landed (pose shifted; one element fully in or out). Same place and light. Shot size and angle are where that motion stops. No cut or teleport.",
   },
   "5-6s": {
     director:
       "5–6s: two beats — opening state → mid change → resting payoff (e.g. a cloud becomes a flower while the character looks up). Props may travel ~1/3 of the frame.",
     start: "Opening at t=0s of a 5–6s two-beat clip, before any of that motion.",
-    end: "After 5–6s on the SAME locked camera: both beats are done (payoff pose, morph complete, props at their new place). Must read as a later moment, not a near-copy of the start.",
+    end: "After 5–6s, the camera motion has landed (payoff pose, morph complete, props at their new place). Same place and light. Shot size and angle are where that motion stops. Must read as a later moment, not a near-copy of the start.",
   },
   "7-8s": {
     director:
       "7–8s: two stronger beats — a step or a prop crossing much of the frame, plus a completed morph. Character stays in-frame at similar size; still no new camera.",
     start: "Opening at t=0s of a 7–8s clip, before the longer travel.",
-    end: "After 7–8s on the SAME locked camera: the longer travel has landed. Clear spatial change so I2V can animate the full duration; no jump cut or teleport.",
+    end: "After 7–8s, the camera motion has landed. Same place and light. Shot size and angle are where that motion stops, with a clear spatial change so I2V can animate the full duration; no jump cut or teleport.",
   },
 };
 
@@ -62,7 +62,7 @@ export function keyframeDeltaDirectorBlock(options?: {
   return [
     options?.performance
       ? "When a character is on screen, start and end are one continuous shot of one primary action from the director's action list, chosen by what the line means and not used in either of the previous two clips. A jump lifts the feet (never slide the body upward); a point toward the camera aims at the lens, not at a side graphic. The last clip never points toward the camera. Clip 1 always uses one exaggerated hook camera, and its two stills differ in shot size or angle. A different standing position or a few steps is not a new action. Alternate which side they start on. About 80% of clips keep them on that same side. Only about 20% of clips cross the frame, either left to right or right to left. Camera angle changes every clip (from the side, from above, from the front, or from behind as they turn around) and may zoom. Still no cut and no teleport."
-      : "Each clip's start and end are the SAME locked camera; the character keeps roughly the same screen size and placement.",
+      : "Write the end still from this clip's start still plus its camera motion. Same place and light. Shot size, angle, and where subjects sit are where the motion lands, and stay put only when the motion keeps the camera locked. No cut and no teleport.",
     "Each still shows exactly ONE instance of each named character — two moments of the same figure, never two bodies in one frame.",
     `They must NOT look almost identical — under-moving makes the video freeze. ${stillRule}`,
     "motionCamera names the path and how far things travel so interpolation can fill the seconds (see the motionCamera contract). Do not put the in-between action inside start or end still text.",
@@ -93,7 +93,7 @@ export function frameStartMoment(
   const seconds = clampClipSeconds(durationSeconds);
   const band = keyframeDeltaBand(seconds);
   // With a cast, the narrator still lock owns the side and camera rules.
-  const camera = performance ? "" : " Keep a single locked camera the end frame will continue.";
+  const camera = performance ? "" : " This is the framing before the camera motion. The end frame shows where that motion lands.";
   return `This is the FIRST frame (t=0s) of clip ${clipNumber} (${seconds}s). ${BUDGET[band].start}${camera}`;
 }
 
@@ -109,11 +109,11 @@ export function frameEndMoment(
   const handoff = nextScene
     ? performance
       ? " It must visually hand off to the next clip in the same world."
-      : " It must visually hand off to the next clip on the same locked camera."
+      : " It must visually hand off to the next clip in the same place."
     : " It is the final frame of the video: end on a clean resting payoff. Do not match or bridge back to clip 1.";
   const change = performance
     ? "The one action has landed, with a different body pose, facial expression, and head direction."
     : BUDGET[band].end;
-  const camera = performance ? "" : " Same camera, character size, and screen position.";
+  const camera = performance ? "" : " The camera is where this clip's motion lands. Same place and light.";
   return `This is the LAST frame of clip ${clipNumber} (t=${seconds}s). ${change}${camera}${handoff}`;
 }

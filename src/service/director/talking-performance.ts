@@ -100,6 +100,11 @@ function leadHand(clipNumber?: number) {
   return (clipNumber ?? 1) % 2 === 1 ? "right" : "left";
 }
 
+// The mic hand never swaps. Clip 2 was jumping because the prompt moved it to the other hand.
+function anchorSide() {
+  return "right" as const;
+}
+
 export function talkingMotionLine(input: {
   language?: VoLanguage;
   seconds: number;
@@ -114,20 +119,23 @@ export function talkingMotionLine(input: {
   performance?: PerformanceSlots;
 }) {
   const close = speakEnd(input.seconds);
-  const hand = leadHand(input.clipNumber);
+  const pEn = input.performance ?? DEFAULT_PERFORMANCE[input.shot].en;
+  const anchoredEn = hasAnchorProp(pEn);
+  // Unanchored clips still alternate which hand leads. The mic hand stays put.
+  const hand = anchoredEn ? anchorSide() : leadHand(input.clipNumber);
   const other = hand === "right" ? "left" : "right";
   // Clip 1 opens on the hook beat; the last clip closes on the CTA beat.
   const first = (input.clipNumber ?? 1) === 1;
   const last = Boolean(input.totalClips && input.clipNumber === input.totalClips);
   const seated = input.shot !== "full-body";
   if (input.language === "en" || !input.language) {
-    const p = input.performance ?? DEFAULT_PERFORMANCE[input.shot].en;
-    const anchored = hasAnchorProp(p);
+    const p = pEn;
+    const anchored = anchoredEn;
     const place = input.belowCenter ? "a little below the vertical center" : "at the bottom";
     // Quoting the previous line makes the model speak it again.
     const subtitle = input.previousLine
       ? thisClipOnlySubtitle({ language: "en", line: input.line, belowCenter: Boolean(input.belowCenter) })
-      : `Subtitle stays ${place}: "${input.line}".`;
+      : `The large subtitle holds ${place}: "${input.line}".`;
     const face = `a live ${seated ? "real-person" : "reel-person"} face — ${p.restingFace}, and ${p.emphasisBeat}`;
     const head = `head tilting and nodding on the stresses — ${p.headMotion}`;
     const hands = anchored
@@ -138,16 +146,20 @@ export function talkingMotionLine(input: {
       : `speaks "${input.line}" with continuous lip-sync, ${face}, ${head}, ${hands}, and weight shifting hip to hip; feet stay in frame`;
     const hook = first ? `${p.hookBeat} as the hook` : "eyebrows lifting into a warm half-smile";
     const propReady = anchored ? `, the ${hand} hand already holding ${p.anchorProp}` : "";
-    const open = seated
-      ? `0–0.4s she inhales, blinks once, seated, eyes locked on the lens, ${hook}${propReady}, the ${other} hand already rising to chest height, mouth opening`
-      : `0–0.4s she inhales, blinks once, eyes locked on the lens as if talking into a phone, ${hook}${propReady}, head already tilting, one hand already rising, mouth opening`;
+    const fadeIn = `the large subtitle fades and slides up into place ${place}`;
+    const open = !first
+      ? `0–0.4s she stays in the exact framing of the first frame, ${seated ? "seated, " : ""}same crop, same distance, eyes locked on the lens, ${hook}${propReady}, mouth opening into this line, ${fadeIn}, no cut and no jump`
+      : seated
+        ? `0–0.4s she inhales, blinks once, seated, eyes locked on the lens, ${hook}${propReady}, the ${other} hand already rising to chest height, mouth opening, ${fadeIn}`
+        : `0–0.4s she inhales, blinks once, eyes locked on the lens as if talking into a phone, ${hook}${propReady}, head already tilting, one hand already rising, mouth opening, ${fadeIn}`;
     const closeFace = last
       ? `the mouth closes into ${p.ctaBeat}`
       : "the mouth closes into an engaged small smile, eyebrows settling";
     const closeBeat = anchored
-      ? `the ${hand} hand still holding ${p.anchorProp}, the ${other} hand lowers to chest height, the body still has a little residual sway`
-      : "the raised hand settles at chest height, the body still has a little residual sway";
-    return `${open}; 0.4–${close}s she ${body}; ${close}–${input.seconds}s ${closeFace}, ${closeBeat}; camera locked. ${subtitle}`;
+      ? `the ${hand} hand still holding ${p.anchorProp}, the ${other} hand eases at chest height, the body stays in the same place on screen`
+      : "the raised hand settles at chest height, the body stays in the same place on screen";
+    const fadeOut = `the large subtitle fades and slides down out`;
+    return `${open}; 0.4–${close}s she ${body}, and the large subtitle holds still; ${close}–${input.seconds}s ${closeFace}, ${closeBeat}, ${fadeOut}; camera stays locked on the same framing from the first frame to the last frame, no zoom, no reframe, no jump. ${subtitle}`;
   }
   const p = input.performance ?? DEFAULT_PERFORMANCE[input.shot].yue;
   const anchored = hasAnchorProp(p);
@@ -156,7 +168,7 @@ export function talkingMotionLine(input: {
   // 唔好引用上一段。引用會令模型再唸一次。
   const subtitle = input.previousLine
     ? thisClipOnlySubtitle({ language: input.language, line: input.line, belowCenter: Boolean(input.belowCenter) })
-    : `${place}保持「${painted}」。`;
+    : `大字幕保持${place}「${painted}」。`;
   const zhHand = hand === "right" ? "右手" : "左手";
   const zhOther = hand === "right" ? "左手" : "右手";
   const face = `神情似真人${seated ? "喺屋企拍手機片" : "拍 Reel"}，${p.restingFace}，${p.emphasisBeat}`;
@@ -169,12 +181,15 @@ export function talkingMotionLine(input: {
     : `口型跟住講「${input.line}」，${face}，${head}，${hands}，重心左右移；頭到腳留喺畫面`;
   const hook = first ? `${p.hookBeat}做 hook` : "眉毛揚起、帶住半笑";
   const propReady = anchored ? `、${p.anchorProp}已經喺${zhHand}` : "";
-  const open = seated
-    ? `0–0.4s 坐住、吸一口氣、眨眼、直望鏡頭、${hook}${propReady}、${zhOther}已經提到胸前、準備開口`
-    : `0–0.4s 吸一口氣、眨眼、直望鏡頭好似對住手機講、${hook}${propReady}、頭已經微傾、一隻手已經提起、準備開口`;
+  const fadeIn = `大字幕由下向上淡入到${place}`;
+  const open = !first
+    ? `0–0.4s 保持第一幀嘅構圖，${seated ? "坐住、" : ""}同一個裁切、同一距離、直望鏡頭、${hook}${propReady}、開口講呢句、${fadeIn}、冇切鏡、冇跳鏡`
+    : seated
+      ? `0–0.4s 坐住、吸一口氣、眨眼、直望鏡頭、${hook}${propReady}、${zhOther}已經提到胸前、準備開口、${fadeIn}`
+      : `0–0.4s 吸一口氣、眨眼、直望鏡頭好似對住手機講、${hook}${propReady}、頭已經微傾、一隻手已經提起、準備開口、${fadeIn}`;
   const closeFace = last ? `口部合上變成${p.ctaBeat}` : "口部合上變成有神嘅淺笑，眉毛放鬆";
   const closeBeat = anchored
-    ? `${p.anchorProp}仍然喺${zhHand}，${zhOther}放低到胸前，身體仲有少少餘勢`
-    : "手慢慢放低到胸前，身體仲有少少餘勢";
-  return `${open}；0.4–${close}s ${body}；${close}–${input.seconds}s ${closeFace}，${closeBeat}；鏡頭鎖定。${subtitle}`;
+    ? `${p.anchorProp}仍然喺${zhHand}，${zhOther}停喺胸前，身體留喺畫面同一個位置`
+    : "手停喺胸前，身體留喺畫面同一個位置";
+  return `${open}；0.4–${close}s ${body}，大字幕保持唔郁；${close}–${input.seconds}s ${closeFace}，${closeBeat}，大字幕向下淡出；鏡頭由第一幀到最後一幀鎖定同一構圖，唔好變焦、唔好換鏡、唔好跳鏡。${subtitle}`;
 }

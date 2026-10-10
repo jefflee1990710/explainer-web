@@ -45,5 +45,6 @@ export const RESTART_UNSET_FIELDS = {
   finalFingerprint: "",
   finalError: "",
   finalQueuedAt: "",
+  postedAt: "",
   error: "",
 } as const;

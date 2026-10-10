@@ -49,3 +49,20 @@ test("concatMp4Buffers joins same-codec clips into one mp4", async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("concatMp4Buffers joins many clips in one pass with a hold between each", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "reel-test-"));
+  try {
+    const clips = await Promise.all(
+      ["red", "blue", "green", "white"].map((color) => readFile(makeClip(dir, `${color}.mp4`, color))),
+    );
+    const reel = await concatMp4Buffers(clips);
+    const out = join(dir, "out.mp4");
+    await writeFile(out, reel);
+    const probe = spawnSync(ffmpegPath!, ["-i", out, "-f", "null", "-"], { encoding: "utf8" });
+    // Four 0.2s clips plus three 0.2s holds.
+    assert.match(probe.stderr, /Duration: 00:00:01\.(3|4)/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

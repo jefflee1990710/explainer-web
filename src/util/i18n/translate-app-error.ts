@@ -42,6 +42,7 @@ const EXACT: Record<string, string> = {
   "只有失敗的版本可以重試": "errors.retryFailedVersionOnly",
   "只有完成的版本可以設為預設": "errors.defaultVersionCompletedOnly",
   "專案不存在": "errors.projectNotFound",
+  "請等全部片段完成再標為已發佈": "errors.videosNotReady",
   "分鏡尚未完成": "errors.storyboardNotReady",
   "找不到這段分鏡": "errors.clipNotFound",
   "這段已經送出，無法取消": "errors.clipAlreadySent",

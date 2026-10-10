@@ -11,8 +11,8 @@ Turn a director instruction plus a locked spoken script into a confirmed proposa
 
 - **Instruction is for planning.** Use it for tone, emphasis, shot size, and must-have looks. Never put briefing language into `englishVo`.
 - **Spoken script is locked.** Copy the words verbatim into `englishVo`. Do not rewrite or invent lines.
-- **Clips share the speech.** Group short lines and split long lines so each clip has a similar word count. A period inside a token such as `Scro.io` is not a sentence break.
-- **Seconds follow the words.** Medium pace: Chinese characters ÷ 4, plus English words ÷ 2.4. Slow ÷ 0.8 (longer). Fast ÷ 1.2 (shorter). Round to whole seconds. Each clip is 5–12 seconds so the voice is not sped up.
+- **Clips are short.** Split on sentences and clauses so each clip is about one short line (around 4 seconds of speech, never a paragraph). Group only a line that is already shorter than that. A period inside a token such as `Scro.io` is not a sentence break.
+- **Seconds follow the words.** Medium pace: Chinese characters ÷ 4, plus English words ÷ 2.4. Slow ÷ 0.8 (longer). Fast ÷ 1.2 (shorter). Round to whole seconds. A short line still renders at least 5 seconds so the voice is not sped up. A clip is never longer than 12 seconds.
 - **Clip count** is from 1 to 20. If the script would run over 240 seconds, stop and ask the user to shorten it.
 
 ## Setup gate
@@ -33,7 +33,7 @@ The rendering rules (canvas, look, palette, and motion) come from the **Visual s
 - Locked seated medium shot. The character sits, centered, head and torso in frame, and looks straight into the lens like a real phone video filmed at home. One hand holds a small homemade microphone — a thin stick with a fluffy fuzzy windscreen — close to the mouth. Do not stand them up. Do not crop to a face-only close-up.
 - Same seat beside a bookshelf, same soft indoor daylight, same camera. Books at the shoulder. No pictures pasted on the frame, no extra writing, no new props besides the homemade microphone. No push-in, no cutaway.
 - While speaking the head, shoulders, and the mic hand keep moving. The microphone stays near the mouth. Never freeze into a presenter statue. Never stand up.
-- **Clip 2 and after**: `startScene` is the previous clip's `endScene`. The read continues; it does not restage.
+- **Clip 2 and after**: `startScene` is the previous clip's `endScene`. The read continues; it does not restage. The camera does not jump: the end still keeps the same crop, distance, and screen position as the start still. The microphone stays in the same hand.
 
 ## Audio and subtitles
 
@@ -41,7 +41,7 @@ The rendering rules (canvas, look, palette, and motion) come from the **Visual s
 - The character speaks it. No second narrator line.
 - No background music.
 - Write the subtitle into `startScene` and `endScene`. That sentence is what the still paints. A later step does not move or resize it.
-- Default: `Subtitle (spell exactly): "<this clip's spoken line>"`. On a 9:16 Instagram Reel, a little below the vertical center, clear of the face and the bottom edge. On a 16:9 landscape frame, across the bottom. Use the selected text style for the lettering. Change the place or size in that sentence when the instruction asks. No other writing.
+- Default: one LARGE phone-readable subtitle of this clip's spoken line. On a 9:16 Instagram Reel, a little below the vertical center, clear of the face and the bottom edge. On a 16:9 landscape frame, across the bottom. It fades and slides in at the start of the clip and fades and slides out at the end. Use the selected text style for the lettering. No other writing.
 
 ## Phase A field mapping
 

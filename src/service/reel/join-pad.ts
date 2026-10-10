@@ -6,15 +6,18 @@ import type { MediaProbe } from "@/service/video-edit/probe";
 export function joinPadArgs(sourceName: string, padName: string, stderr: string): string[] {
   const fps = stderr.match(/(\d+(?:\.\d+)?) fps/)?.[1] ?? "30";
   const audio = stderr.match(/Audio:.*?(\d+) Hz,\s*(mono|stereo|\d+ channels)/);
+  // A 0.04s window can hold no frame at 24fps, which leaves an audio-only pad and breaks the
+  // stream copy. Read the last 0.25s and keep its final frame instead.
   const filter = [
-    "select=eq(n\\,0)",
+    "reverse",
+    "trim=end_frame=1",
     "setpts=PTS-STARTPTS",
     `tpad=stop_mode=clone:stop_duration=${CLIP_JOIN_PAD_SEC}`,
     `fps=${fps}`,
     `trim=duration=${CLIP_JOIN_PAD_SEC}`,
     "format=yuv420p",
   ].join(",");
-  const args = ["-sseof", "-0.04", "-i", sourceName];
+  const args = ["-sseof", "-0.25", "-i", sourceName];
   if (audio) {
     const layout = audio[2] === "mono" || audio[2].startsWith("1") ? "mono" : "stereo";
     args.push(

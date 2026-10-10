@@ -24,6 +24,14 @@ import type { BrandLayer, EditTransition, VideoEdit } from "@/model/video-edit";
 
 export type EditSelection = "" | "intro" | "outro" | string;
 
+// Largest box of this ratio that fits the stage. Width is set in style because a slash in a
+// Tailwind class is a modifier, and an explicit height plus max-width stretches past the video.
+function previewFrameStyle(aspectRatio: AspectRatio): React.CSSProperties {
+  const max = aspectRatio === "9:16" ? "22rem" : "48rem";
+  const wide = aspectRatio === "16:9" ? "16 / 9" : aspectRatio === "1:1" ? "1" : "9 / 16";
+  return { width: `min(${max}, 100cqw, calc(100cqh * ${wide}))` };
+}
+
 type Drag = { id: string; mode: "move" | "resize"; startX: number; startY: number; left: number; top: number; w: number; h: number };
 
 export function VideoEditPreview({
@@ -169,17 +177,11 @@ export function VideoEditPreview({
     setLive(null);
   }
 
-  const frameClass = [
-    "relative w-auto overflow-hidden rounded-lg bg-black",
-    ASPECT_CLASS[aspectRatio],
-    // Phone height leaves room for the header, specs, and filmstrip. Desktop fills the stage.
-    "h-[min(36rem,calc(100dvh-19rem))] lg:h-full lg:max-h-full",
-    aspectRatio === "9:16" ? "max-w-[min(100%,22rem)]" : "max-w-[min(100%,48rem)]",
-  ].join(" ");
+  const frameClass = ["relative h-auto min-w-0 overflow-hidden rounded-lg bg-black", ASPECT_CLASS[aspectRatio]].join(" ");
 
   return (
     <div className="flex w-full flex-col lg:h-full lg:min-h-0 lg:flex-1">
-      <div className="flex w-full items-center justify-center gap-3 px-3 pt-3 lg:min-h-0 lg:flex-1">
+      <div className="flex h-[min(36rem,calc(100dvh-19rem))] w-full items-center justify-center gap-3 px-3 pt-3 [container-type:size] lg:h-auto lg:min-h-0 lg:min-w-0 lg:flex-1">
       <VideoEditCoverRail src={coverUrl} aspectRatio={aspectRatio} busy={coverBusy} />
       <div
         ref={frameRef}
@@ -187,6 +189,7 @@ export function VideoEditPreview({
         onPointerUp={endDrag}
         onClick={() => onSelect(previewId)}
         className={frameClass}
+        style={previewFrameStyle(aspectRatio)}
       >
         <TimelineMedia
           item={current}

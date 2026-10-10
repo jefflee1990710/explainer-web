@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { generateAllClipsAction } from "@/presentation/actions/clip-production";
+import { markVideoPostedAction } from "@/presentation/actions/video-post";
 import { VideoGenerationBadge } from "@/presentation/components/app/projects/[id]/video-generation-badge";
 import { VideoGenerationProgress } from "@/presentation/components/app/projects/[id]/video-generation-progress";
 import {
@@ -25,6 +26,7 @@ import { PreviewStrip } from "@/presentation/components/app/preview-strip";
 import type { PublicVideoCard } from "@/presentation/serialize";
 import { canGenerateAllVideos, type GenerationDetailTag } from "@/service/clip-stage";
 import { folderVideoPath } from "@/service/folder-video-path";
+import type { VideoListFilter } from "@/service/video/list-stage";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -41,13 +43,18 @@ function videosAsBusy(tags: GenerationDetailTag[]): GenerationDetailTag[] {
 export function VideoGridCard({
   folderId,
   video,
+  stage,
+  onPosted,
 }: {
   folderId: string;
   video: PublicVideoCard;
+  stage: VideoListFilter;
+  onPosted: (id: string) => void;
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
   const ready = canGenerateAllVideos(video.tags);
   const tags = submitting ? videosAsBusy(video.tags) : video.tags;
@@ -92,6 +99,26 @@ export function VideoGridCard({
       setError(t("errors.genericRetry"));
     } finally {
       endTaskRefresh();
+    }
+  }
+
+  // Finished videos start as pending to post. This is the only way onto the posted tag.
+  async function markPosted() {
+    if (posting) return;
+    setError("");
+    setPosting(true);
+    try {
+      const result = await markVideoPostedAction(video.id);
+      if (!result.ok) {
+        setError(translateAppError(result.error, t));
+        return;
+      }
+      onPosted(video.id);
+      router.refresh();
+    } catch {
+      setError(t("errors.genericRetry"));
+    } finally {
+      setPosting(false);
     }
   }
 
@@ -153,6 +180,21 @@ export function VideoGridCard({
         >
           {t("video.card.generateAllVideos")}
         </button>
+      ) : null}
+      {stage === "pending_post" ? (
+        <button
+          type="button"
+          disabled={posting}
+          onClick={() => void markPosted()}
+          className="absolute right-2 top-2 z-20 inline-flex cursor-pointer items-center rounded-full bg-lime px-2.5 py-1 text-[10px] font-semibold text-accent-ink shadow-sm hover:opacity-90 disabled:opacity-60"
+        >
+          {t("video.card.markPosted")}
+        </button>
+      ) : null}
+      {stage === "posted" ? (
+        <span className="absolute right-2 top-2 z-20 inline-flex items-center rounded-full bg-lime px-2.5 py-1 text-[10px] font-semibold text-accent-ink shadow-sm">
+          {t("video.card.posted")}
+        </span>
       ) : null}
     </motion.article>
   );

@@ -26,6 +26,7 @@ export const errorsEn = {
   retryFailedVersionOnly: "Only failed versions can be retried",
   defaultVersionCompletedOnly: "Only completed versions can be default",
   projectNotFound: "Project not found",
+  videosNotReady: "Finish every clip before marking this posted.",
   storyboardNotReady: "Storyboard not ready",
   clipNotFound: "Clip not found",
   clipAlreadySent: "This clip was already sent and cannot be cancelled.",

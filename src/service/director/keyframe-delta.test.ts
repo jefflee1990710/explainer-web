@@ -67,7 +67,8 @@ test("frame moments mention the clip duration and a readable end change", () => 
   assert.match(frameStartMoment(1, 5), /5–6s/);
   const end = frameEndMoment(2, 8, "next scene with a very long opening description");
   assert.match(end, /t=8s/);
-  assert.match(end, /longer travel/);
-  assert.match(end, /hand off to the next clip on the same locked camera/);
+  assert.match(end, /camera motion has landed/);
+  assert.match(end, /hand off to the next clip in the same place/);
+  assert.match(end, /where this clip's motion lands/);
   assert.doesNotMatch(end, /very long opening description/);
 });

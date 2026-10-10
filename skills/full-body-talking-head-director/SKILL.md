@@ -11,8 +11,8 @@ Turn a director instruction plus a locked spoken script into a confirmed proposa
 
 - **Instruction is for planning.** Use it for tone, emphasis, shot size, and must-have looks. Never put briefing language into `englishVo`.
 - **Spoken script is locked.** Copy the words verbatim into `englishVo`. Do not rewrite or invent lines.
-- **Clips share the speech.** Group short lines and split long lines so each clip has a similar word count. A period inside a token such as `Scro.io` is not a sentence break.
-- **Seconds follow the words.** Medium pace: Chinese characters ÷ 4, plus English words ÷ 2.4. Slow ÷ 0.8 (longer). Fast ÷ 1.2 (shorter). Round to whole seconds. Each clip is 5–12 seconds so the voice is not sped up.
+- **Clips are short.** Split on sentences and clauses so each clip is about one short line (around 4 seconds of speech, never a paragraph). Group only a line that is already shorter than that. A period inside a token such as `Scro.io` is not a sentence break.
+- **Seconds follow the words.** Medium pace: Chinese characters ÷ 4, plus English words ÷ 2.4. Slow ÷ 0.8 (longer). Fast ÷ 1.2 (shorter). Round to whole seconds. A short line still renders at least 5 seconds so the voice is not sped up. A clip is never longer than 12 seconds.
 - **Clip count** is from 1 to 20. If the script would run over 240 seconds, stop and ask the user to shorten it.
 
 ## Setup gate
@@ -33,15 +33,15 @@ The rendering rules (canvas, look, palette, and motion) come from the **Visual s
 - One locked full-body shot. Head, torso, and feet stay in frame. The character is centered and looks straight into the lens in every clip, like a real person filming a reel on a phone. Do not crop to a close-up or a medium shot.
 - Same background, same light, same camera. No new props, no push-in, no cutaway.
 - While speaking the head, both hands, and whole body keep moving (weight shift, torso sway). Never freeze at attention.
-- **Clip 2 and after**: `startScene` is the previous clip's `endScene`. The read continues; it does not restage.
+- **Clip 2 and after**: `startScene` is the previous clip's `endScene`. The read continues; it does not restage. The camera does not jump: the end still keeps the same crop, distance, and screen position as the start still.
 
 ## Audio and subtitles
 
 - `englishVo` is that clip's spoken line verbatim, in the chosen spoken language.
 - The character speaks it. No second narrator line.
 - No background music.
-- Write the subtitle into `startScene` and `endScene`. That sentence is what the still paints. A later step does not move or resize it.
-- Default: `Subtitle (spell exactly): "<this clip's spoken line>"`. On a 9:16 Instagram Reel, a little below the vertical center, clear of the face and the bottom edge. On a 16:9 landscape frame, across the bottom. Use the selected text style for the lettering. Change the place or size in that sentence when the instruction asks. No other writing.
+- Write the subtitle into `startScene` and `endScene`. That sentence is what the still paints.
+- Default: one LARGE phone-readable subtitle of this clip's spoken line. On a 9:16 Instagram Reel, a little below the vertical center, clear of the face and the bottom edge. On a 16:9 landscape frame, across the bottom. It fades and slides in at the start of the clip and fades and slides out at the end. Use the selected text style for the lettering. No other writing.
 
 ## Phase A field mapping
 

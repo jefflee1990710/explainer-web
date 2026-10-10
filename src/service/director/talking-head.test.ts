@@ -96,6 +96,10 @@ test("clip 2 keeps clip 1's pose but speaks only its own line", () => {
   assert.notEqual(clips[1].startScene.match(/逐字係「[^」]+」/)?.[0], clips[0].endScene.match(/逐字係「[^」]+」/)?.[0]);
   assert.doesNotMatch(clips[1].motionCamera, /由「/);
   assert.match(clips[1].motionCamera, /唔好讀出舊字/);
+  assert.match(clips[1].motionCamera, /唔好跳鏡/);
+  assert.match(clips[1].motionCamera, /大字幕/);
+  assert.match(clips[1].endScene, /唔好跳鏡/);
+  assert.doesNotMatch(clips[1].motionCamera, /左手拎住/);
   assert.equal(clips[1].motionCamera.includes(clips[0].englishVo), false);
   assert.match(clips[0].motionCamera, /底部字幕/);
   assert.match(clips[0].motionCamera, /口型跟住講/);
@@ -118,6 +122,9 @@ test("9:16 talking-head subtitles sit a little below center; 16:9 stays at the b
     aspectRatio: "9:16",
   });
   assert.match(reel[0].startScene, /a little below the vertical center/);
+  assert.match(reel[0].startScene, /LARGE/);
+  assert.match(reel[0].motionCamera, /fades and slides up/);
+  assert.match(reel[0].motionCamera, /fades and slides down out/);
   assert.match(reel[0].motionCamera, /a little below the vertical center/);
   assert.doesNotMatch(reel[0].startScene, /one bottom line/);
   const wide = planTalkingHeadClips({
@@ -127,7 +134,7 @@ test("9:16 talking-head subtitles sit a little below center; 16:9 stays at the b
     aspectRatio: "16:9",
     shot: "full-body",
   });
-  assert.match(wide[0].startScene, /one bottom line/);
+  assert.match(wide[0].startScene, /LARGE bottom line/);
   assert.match(wide[0].motionCamera, /at the bottom/);
   assert.match(talkingHeadDirectorBlock("talking-head-director", "9:16"), /a little below the vertical center/);
   assert.match(talkingHeadDirectorBlock("full-body-talking-head-director", "16:9"), /across the bottom/);
@@ -186,6 +193,34 @@ test("talking-head keeps a full English word inside a Cantonese line", () => {
   assert.doesNotMatch(spoken, /Instagra\s/);
   assert.doesNotMatch(spoken, /Webi\s/);
   assert.ok(clips.every((clip) => clip.durationSeconds >= 5 && clip.durationSeconds <= 12));
+});
+
+test("a long talking-head line becomes short clips, and clip 2 does not swap the mic hand", () => {
+  const source = [
+    "What if you have zero budget for marketing?",
+    "Stop overthinking ads.",
+    "Your best asset is Content Marketing via Instagram Reels.",
+    "Reels organic reach is insane right now, but who has time to script and edit every day?",
+    "That's why you use Scro.io.",
+    "It turns your raw marketing ideas into professional Reel clips.",
+  ].join(" ");
+  const clips = planTalkingHeadClips({
+    source,
+    pace: "medium",
+    language: "en",
+    aspectRatio: "9:16",
+  });
+  const words = clips.map((clip) => clip.englishVo.split(/\s+/).filter(Boolean).length);
+  assert.ok(clips.length >= 5);
+  assert.ok(Math.max(...words) <= 14);
+  assert.ok(clips[1]);
+  assert.match(clips[1].motionCamera, /no jump/);
+  assert.match(clips[1].motionCamera, /right hand holding/);
+  assert.doesNotMatch(clips[1].motionCamera, /left hand holding/);
+  assert.match(clips[1].endScene, /No zoom, no reframe, no jump/);
+  assert.match(clips[1].startScene, /LARGE/);
+  assert.match(clips[1].motionCamera, /fades and slides up/);
+  assert.match(clips[1].motionCamera, /fades and slides down out/);
 });
 
 test("talking-head evens word count and keeps a named shot", () => {

@@ -6,6 +6,7 @@ import { useId } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { ExportJob, ExportPhase } from "@/presentation/components/app/projects/new/browser-video-export";
+import { ExportTimeLeft } from "@/presentation/components/app/projects/new/export-countdown";
 
 const PHASE_LABEL: Record<ExportPhase, string> = {
   encoder: "video.export.phaseEncoder",
@@ -42,9 +43,12 @@ export function ExportProgressOverlay({
         aria-labelledby={titleId}
         className="w-full max-w-md rounded-[1.75rem] border border-accent-ink/10 bg-paper p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.12)]"
       >
-        <h2 id={titleId} className="font-display text-xl font-bold">
-          {t("video.export.progressTitle")}
-        </h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <h2 id={titleId} className="font-display text-xl font-bold">
+            {t("video.export.progressTitle")}
+          </h2>
+          <ExportTimeLeft job={job} />
+        </div>
         <p className="mt-2 text-sm text-muted">{t("video.export.stayOpen")}</p>
         <ol className="mt-5 space-y-3">
           {job.phases.map((phase, index) => {

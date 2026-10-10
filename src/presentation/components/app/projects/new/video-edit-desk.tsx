@@ -21,6 +21,8 @@ import {
 import { ExportProgressOverlay } from "@/presentation/components/app/projects/new/export-progress-overlay";
 import { clipUrlsForExport, timelineClips } from "@/service/video-edit/edit-timeline";
 import { setTransition } from "@/service/video-edit/edit-transition";
+import { reelCoversJoins } from "@/service/video-edit/export-source";
+import { isReelCurrent } from "@/service/reel/fingerprint";
 import { EDIT_LIMITS, emptyEdit, type BookendClip, type BrandLayer, type VideoEdit } from "@/model/video-edit";
 import { displayMediaSrc } from "@/util/media-src";
 import type { PublicVideo } from "@/presentation/serialize";
@@ -120,10 +122,20 @@ export function VideoEditDesk({
     const exportClips = [...project.clips]
       .sort((a, b) => a.clipNumber - b.clipNumber)
       .filter((clip) => clip.blobUrl || clip.outputUrl);
+    const clipNumbers = exportClips.map((clip) => clip.clipNumber);
+    // The server already joined these clips; start from that file instead of joining again.
+    const reelSource =
+      project.reelUrl &&
+      isReelCurrent(project) &&
+      exportClips.length === (project.phaseA?.clips.length ?? 0) &&
+      reelCoversJoins(edit, clipNumbers)
+        ? [project.reelUrl]
+        : null;
+    const sourceUrls = reelSource ?? clipUrlsForExport(exportClips);
     setExportJob({
       phase: existingUrl ? "download" : "encoder",
       ratio: 0,
-      phases: existingUrl ? ["download", "save"] : exportPhases(exportClips.length, edit),
+      phases: existingUrl ? ["download", "save"] : exportPhases(sourceUrls.length, edit),
     });
     try {
       const saved = await save();
@@ -131,18 +143,17 @@ export function VideoEditDesk({
       if (existingUrl) {
         await downloadVideoFile(existingUrl, filename, setExportJob, controller.signal);
       } else {
-        const clipUrls = clipUrlsForExport(exportClips);
-        if (clipUrls.length === 0) {
+        if (sourceUrls.length === 0) {
           setMessage(t("video.export.failed"));
           return;
         }
         await renderVideoInBrowser(
-          clipUrls,
+          sourceUrls,
           edit,
           filename,
           setExportJob,
           controller.signal,
-          exportClips.map((clip) => clip.clipNumber),
+          reelSource ? [1] : clipNumbers,
         );
       }
     } catch (error) {

@@ -54,6 +54,7 @@ import {
   normalizeDualBeatRow,
 } from "@/service/director/dual-beat";
 import { loadReferenceImageContent } from "@/service/director/reference-image-content";
+import { rewriteEndScenes } from "@/service/director/end-scene-rewrite";
 import { directorModel } from "@/service/director/model";
 import {
   instructionFollowsReferenceClothes,
@@ -424,6 +425,17 @@ Produce a complete Phase A director proposal now.`,
       clips,
       clipCount: clips.length,
       targetDuration: clips[0] ? `${clips[0].durationSeconds}s` : next.targetDuration,
+    };
+  }
+  // Flash writes the storyboard. Pro rewrites only the end still from the opening and the motion.
+  if (!talkingHead) {
+    next = {
+      ...next,
+      clips: await rewriteEndScenes({
+        clips: next.clips,
+        language: input.language,
+        skillSlug: input.skill.slug,
+      }),
     };
   }
   // Talking-head timing is deterministic; spoken lines come from spokenScript.

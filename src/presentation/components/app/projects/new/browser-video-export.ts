@@ -1,20 +1,24 @@
 "use client";
 
-import type { FFmpeg } from "@ffmpeg/ffmpeg";
+import type { FFFSType, FFmpeg } from "@ffmpeg/ffmpeg";
 import type { BookendClip, EditTransition, VideoEdit } from "@/model/video-edit";
 import { stableEditString } from "@/service/video-edit/edit-state";
 import { fitClipArgs, joinPadArgs, stillClipArgs } from "@/service/reel/join-pad";
 import { buildClipConcatFilter } from "@/service/video-edit/clip-concat-filter";
 import { assemblyTransitions } from "@/service/video-edit/edit-transition";
-import { pairwiseRatio, type PairwiseStep } from "@/service/reel/pairwise-progress";
+import { assemblyRatio, assemblyRuns, type AssemblyStage } from "@/service/reel/assembly-plan";
 import { buildFinalFilter } from "@/service/video-edit/final-filter";
 import { layerPlacement } from "@/service/video-edit/layer-placement";
 import { parseProbe } from "@/service/video-edit/probe";
+import { mapLimit } from "@/util/map-limit";
 
 // Single-thread build. The multi-thread core needs cross-origin isolation,
-// which breaks Firebase sign-in.
+// which breaks Firebase sign-in. Fade groups and logo burn-in use WebCodecs
+// instead of this wasm encoder; hard cuts stay a stream copy.
 // ESM build: the ffmpeg worker is a module worker and imports the core as an ES module.
 const CORE_BASE = "https://unpkg.com/@ffmpeg/core@0.12.9/dist/esm";
+// Clips and layers download side by side.
+const DOWNLOAD_LIMIT = 4;
 
 export type ExportPhase = "encoder" | "download" | "join" | "encode" | "save";
 
@@ -56,6 +60,15 @@ function concatBytes(chunks: Uint8Array[]) {
 }
 
 async function fetchBytes(url: string, onRatio: (ratio: number) => void, signal: AbortSignal) {
+  return concatBytes(await fetchChunks(url, onRatio, signal));
+}
+
+// A Blob can live outside the wasm heap, and the browser may page it to disk.
+async function fetchBlob(url: string, onRatio: (ratio: number) => void, signal: AbortSignal) {
+  return new Blob((await fetchChunks(url, onRatio, signal)) as Uint8Array<ArrayBuffer>[]);
+}
+
+async function fetchChunks(url: string, onRatio: (ratio: number) => void, signal: AbortSignal) {
   let response: Response;
   try {
     response = await fetch(url, { signal });
@@ -86,7 +99,99 @@ async function fetchBytes(url: string, onRatio: (ratio: number) => void, signal:
     onRatio(total > 0 ? Math.min(1, received / total) : 0);
   }
   onRatio(1);
-  return concatBytes(chunks);
+  return chunks;
+}
+
+type InputFile = { name: string; blob: Blob };
+
+let mountCount = 0;
+
+// Expose downloads to ffmpeg without copying them into its memory (WORKERFS reads the Blob).
+// Falls back to a normal in-memory write if the mount is refused.
+async function mountInputs(ffmpeg: FFmpeg, files: InputFile[]) {
+  if (files.length === 0) return { paths: [] as string[], release: async () => {} };
+  const dir = `/in${(mountCount += 1)}`;
+  try {
+    await ffmpeg.createDir(dir);
+    const blobs = files.map((file) => ({ name: file.name, data: file.blob }));
+    if (await ffmpeg.mount("WORKERFS" as FFFSType, { blobs }, dir)) {
+      return {
+        paths: files.map((file) => `${dir}/${file.name}`),
+        release: async () => {
+          try {
+            await ffmpeg.unmount(dir);
+            await ffmpeg.deleteDir(dir);
+          } catch {
+            // A reset worker has already dropped the mount.
+          }
+        },
+      };
+    }
+  } catch {
+    // Fall through to the in-memory copy.
+  }
+  for (const file of files) await ffmpeg.writeFile(file.name, new Uint8Array(await file.blob.arrayBuffer()));
+  return {
+    paths: files.map((file) => file.name),
+    release: async () => {
+      for (const file of files) await forget(ffmpeg, file.name);
+    },
+  };
+}
+
+// Download several files at once. onRatio gets the average progress across all of them.
+async function fetchBlobs(
+  urls: string[],
+  onRatio: (ratio: number, done: number) => void,
+  signal: AbortSignal,
+) {
+  const received = urls.map(() => 0);
+  let done = 0;
+  const update = () => onRatio(received.reduce((sum, value) => sum + value, 0) / Math.max(1, urls.length), done);
+  return mapLimit(urls, DOWNLOAD_LIMIT, async (url, index) => {
+    const blob = await fetchBlob(
+      url,
+      (ratio) => {
+        received[index] = ratio;
+        update();
+      },
+      signal,
+    );
+    done += 1;
+    update();
+    return blob;
+  });
+}
+
+// Run one ffmpeg command. Cancel resets the worker; a non-zero exit throws `failure`.
+async function runEncoder(
+  ffmpeg: FFmpeg,
+  args: string[],
+  signal: AbortSignal,
+  failure: string,
+  onRatio?: (ratio: number) => void,
+) {
+  const onEncode = ({ progress }: { progress: number }) => {
+    onRatio?.(Math.max(0, Math.min(1, progress || 0)));
+  };
+  if (onRatio) ffmpeg.on("progress", onEncode);
+  let code = 1;
+  try {
+    code = await ffmpeg.exec(args, undefined, { signal });
+  } catch (error) {
+    if (signal.aborted) {
+      resetEncoder();
+      throw new ExportCancelled();
+    }
+    throw error;
+  } finally {
+    if (onRatio) ffmpeg.off("progress", onEncode);
+  }
+  if (signal.aborted) {
+    resetEncoder();
+    throw new ExportCancelled();
+  }
+  if (code !== 0) throw new Error(failure);
 }
 
 async function blobUrl(url: string, mime: string, onRatio: (ratio: number) => void, signal: AbortSignal) {
@@ -243,7 +348,7 @@ export async function renderVideoInBrowser(
       mainName = await assembleClips(ffmpeg, clipUrls, edit, clipNumbers, onProgress, phases, signal);
       await saveEncoderFile(ffmpeg, mainName, key, filename, phases, onProgress);
     } finally {
-      await forgetEncoderFiles(ffmpeg, [], mainName);
+      await forgetEncoderFiles(ffmpeg, mainName);
     }
     return;
   }
@@ -260,28 +365,51 @@ export async function renderVideoInBrowser(
   });
 
   let mainName = "main.mp4";
+  let release = async () => {};
   try {
     if (joined) {
       mainName = await assembleClips(ffmpeg, clipUrls, edit, clipNumbers, onProgress, phases, signal);
     }
-    for (let index = 0; index < files.length; index += 1) {
-      const file = files[index];
-      const bytes = await fetchBytes(
-        file.url,
-        (ratio) => onProgress({ phase: "download", ratio: (index + ratio) / files.length, phases }),
-        signal,
-      );
-      await ffmpeg.writeFile(file.name, bytes);
-    }
+    const blobs = await fetchBlobs(
+      files.map((file) => file.url),
+      (ratio) => onProgress({ phase: "download", ratio, phases }),
+      signal,
+    );
+    throwIfAborted(signal);
+    const inputs = await mountInputs(
+      ffmpeg,
+      files.map((file, index) => ({ name: file.name, blob: blobs[index] })),
+    );
+    release = inputs.release;
+    const pathOf = (name: string) => inputs.paths[files.findIndex((file) => file.name === name)];
+    if (!joined) mainName = pathOf("main.mp4");
 
     const main = await probeFile(ffmpeg, mainName);
     if (!main.width || !main.height || !main.durationSec) throw new Error("probe");
+
+    // Hardware encode the logo burn-in. Wasm libx264 below is the fallback.
+    const burned = await hardwareLogo(
+      joined ? null : blobs[0],
+      joined ? blobs : blobs.slice(1),
+      edit,
+      main,
+      ffmpeg,
+      mainName,
+      signal,
+      (ratio) => onProgress({ phase: "encode", ratio, phases }),
+    );
+    if (burned) {
+      remember(key, burned);
+      onProgress({ phase: "save", ratio: 1, phases });
+      saveBlob(burned, filename);
+      return;
+    }
 
     const args = ["-i", mainName];
     let nextIndex = 1;
     const layers = [];
     for (let index = 0; index < edit.layers.length; index += 1) {
-      args.push("-i", `layer${index}.${extOf(edit.layers[index].assetUrl)}`);
+      args.push("-i", pathOf(`layer${index}.${extOf(edit.layers[index].assetUrl)}`));
       layers.push({
         index: nextIndex++,
         placement: layerPlacement(edit.layers[index], main.width, main.height),
@@ -300,31 +428,12 @@ export async function renderVideoInBrowser(
     args.push("-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "final.mp4");
 
     onProgress({ phase: "encode", ratio: 0, phases });
-    const onEncode = ({ progress }: { progress: number }) => {
-      onProgress({ phase: "encode", ratio: Math.max(0, Math.min(1, progress || 0)), phases });
-    };
-    ffmpeg.on("progress", onEncode);
-    let code = 1;
-    try {
-      code = await ffmpeg.exec(args, undefined, { signal });
-    } catch (error) {
-      if (signal.aborted) {
-        resetEncoder();
-        throw new ExportCancelled();
-      }
-      throw error;
-    } finally {
-      ffmpeg.off("progress", onEncode);
-    }
-    if (signal.aborted) {
-      resetEncoder();
-      throw new ExportCancelled();
-    }
-    if (code !== 0) throw new Error("encode");
+    await runEncoder(ffmpeg, args, signal, "encode", (ratio) => onProgress({ phase: "encode", ratio, phases }));
 
     await saveEncoderFile(ffmpeg, "final.mp4", key, filename, phases, onProgress);
   } finally {
-    await forgetEncoderFiles(ffmpeg, files.map((file) => file.name), mainName);
+    await forgetEncoderFiles(ffmpeg, mainName);
+    await release();
   }
 }
 
@@ -362,58 +471,9 @@ async function saveEncoderFile(
   saveBlob(bytes, filename);
 }
 
-async function forgetEncoderFiles(ffmpeg: FFmpeg, names: string[], mainName: string) {
-  for (const name of names) await forget(ffmpeg, name);
+async function forgetEncoderFiles(ffmpeg: FFmpeg, mainName: string) {
   await forget(ffmpeg, mainName);
-  await forget(ffmpeg, "acc-a.mp4");
-  await forget(ffmpeg, "acc-b.mp4");
-  await forget(ffmpeg, "next.mp4");
   await forget(ffmpeg, "final.mp4");
-  await forget(ffmpeg, "list.txt");
-}
-
-// Remux two mp4s with a 200ms hold of the left clip's last frame between them.
-async function copyJoin(
-  ffmpeg: FFmpeg,
-  leftName: string,
-  rightName: string,
-  outName: string,
-  signal: AbortSignal,
-  onRatio: (ratio: number) => void,
-) {
-  const padName = "join-pad.mp4";
-  const probe = await probeLog(ffmpeg, leftName);
-  throwIfAborted(signal);
-  const padCode = await ffmpeg.exec(joinPadArgs(leftName, padName, probe), undefined, { signal });
-  if (signal.aborted) {
-    resetEncoder();
-    throw new ExportCancelled();
-  }
-  if (padCode !== 0) throw new Error("concat");
-  await ffmpeg.writeFile("list.txt", `file '${leftName}'\nfile '${padName}'\nfile '${rightName}'\n`);
-  onRatio(0);
-  try {
-    const code = await ffmpeg.exec(
-      ["-f", "concat", "-safe", "0", "-i", "list.txt", "-c", "copy", "-movflags", "+faststart", outName],
-      undefined,
-      { signal },
-    );
-    if (signal.aborted) {
-      resetEncoder();
-      throw new ExportCancelled();
-    }
-    if (code !== 0) throw new Error("concat");
-    onRatio(1);
-  } catch (error) {
-    if (signal.aborted) {
-      resetEncoder();
-      throw new ExportCancelled();
-    }
-    throw error;
-  } finally {
-    await forget(ffmpeg, "list.txt");
-    await forget(ffmpeg, "join-pad.mp4");
-  }
 }
 
 type AssemblyPiece = { url: string; imageDuration?: number; bookend?: boolean };
@@ -433,8 +493,18 @@ function assemblyPieces(clipUrls: string[], edit: VideoEdit): AssemblyPiece[] {
   ];
 }
 
-// Download clip 1, then clip 2, join them, then join that file with the next clip.
-// Intro and outro use the same steps. Only the running pair stays in the encoder.
+// Storyboard clips set the frame. Bookends are fitted to that, not the other way around.
+function referenceIndex(pieces: AssemblyPiece[]) {
+  const clip = pieces.findIndex((item) => item.imageDuration == null && !item.bookend);
+  if (clip >= 0) return clip;
+  return pieces.findIndex((item) => item.imageDuration == null);
+}
+
+// Join every piece in one pass:
+// 1. download all pieces at once (kept as Blobs, outside the encoder's memory)
+// 2. fit bookends and odd-sized pieces to the clip frame, and make the 200ms holds
+// 3. encode each group of fade-joined pieces once
+// 4. stream copy the groups and holds into one file
 async function assembleClips(
   ffmpeg: FFmpeg,
   clipUrls: string[],
@@ -446,183 +516,241 @@ async function assembleClips(
 ) {
   const pieces = assemblyPieces(clipUrls, edit);
   const transitions = assemblyTransitions(edit, clipNumbers);
+  const runs = assemblyRuns(pieces.length, transitions);
+  const fadeRuns = runs.filter((run) => run.length > 1);
   const total = pieces.length;
-  const files = new Map<number, string>();
-  let spare = "acc-b.mp4";
 
-  function report(step: PairwiseStep, unitRatio: number) {
+  function report(stage: AssemblyStage, ratio: number, done?: number) {
     onProgress({
       phase: "join",
-      ratio: pairwiseRatio(step, unitRatio),
+      ratio: assemblyRatio(stage, ratio, fadeRuns.length > 0),
       phases,
-      detailKey: step.phase === "download" ? "video.export.stepDownload" : "video.export.stepJoin",
-      detail: { current: step.current, total: step.total },
+      ...(stage === "download"
+        ? { detailKey: "video.export.stepDownload", detail: { current: Math.min(total, (done ?? 0) + 1), total } }
+        : {}),
     });
   }
 
-  // Storyboard clips set the frame. Bookends are fitted to that, not the other way around.
-  function referenceIndex() {
-    const clip = pieces.findIndex((item) => item.imageDuration == null && !item.bookend);
-    if (clip >= 0) return clip;
-    return pieces.findIndex((item) => item.imageDuration == null);
-  }
+  const blobs = await fetchBlobs(
+    pieces.map((piece) => piece.url),
+    (ratio, done) => report("download", ratio, done),
+    signal,
+  );
+  throwIfAborted(signal);
+  const inputs = await mountInputs(
+    ffmpeg,
+    pieces.map((piece, index) => ({
+      name: `seg-${index}.${piece.imageDuration == null ? "mp4" : extOf(piece.url)}`,
+      blob: blobs[index],
+    })),
+  );
 
-  // Scale a video piece onto the clip frame when size, fps, or audio presence differ.
-  async function fitVideoPiece(index: number, name: string) {
-    const refIndex = referenceIndex();
-    if (refIndex < 0 || refIndex === index) return name;
-    const refName = await fileFor(refIndex);
-    const ref = await probeFile(ffmpeg, refName);
-    const current = await probeFile(ffmpeg, name);
+  // Encoder-memory files this assembly wrote. All but the returned one are deleted.
+  const made: string[] = [];
+  let output = "";
+  try {
+    const refIndex = referenceIndex(pieces);
+    if (refIndex < 0) throw new Error("probe");
+    const ref = await probeFile(ffmpeg, inputs.paths[refIndex]);
     if (!ref.width || !ref.height) throw new Error("probe");
-    const same =
-      current.width === ref.width &&
-      current.height === ref.height &&
-      current.fps === ref.fps &&
-      current.hasAudio === ref.hasAudio;
-    if (same) return name;
-    const fitted = `seg-${index}-fit.mp4`;
-    let code = 1;
-    try {
-      code = await ffmpeg.exec(fitClipArgs(name, fitted, ref, current.hasAudio), undefined, { signal });
-    } catch (error) {
-      if (signal.aborted) {
-        resetEncoder();
-        throw new ExportCancelled();
-      }
-      throw error;
-    }
-    if (signal.aborted) {
-      resetEncoder();
-      throw new ExportCancelled();
-    }
-    if (code !== 0) throw new Error("concat");
-    await forget(ffmpeg, name);
-    return fitted;
-  }
+    const prepareSteps = total + runs.length - 1;
 
-  async function fileFor(index: number): Promise<string> {
-    const ready = files.get(index);
-    if (ready) return ready;
-    const piece = pieces[index];
-    const name = `seg-${index}.mp4`;
-    if (piece.imageDuration == null) {
-      const bytes = await fetchBytes(
-        piece.url,
-        (ratio) => report({ current: index + 1, total, phase: "download" }, ratio),
-        signal,
-      );
-      throwIfAborted(signal);
-      await ffmpeg.writeFile(name, bytes);
-      // A video ending shot at a different size cannot xfade onto the clips.
-      const stored = await fitVideoPiece(index, name);
-      files.set(index, stored);
-      return stored;
-    } else {
-      const refIndex = referenceIndex();
-      if (refIndex < 0) throw new Error("probe");
-      const ref = await fileFor(refIndex);
-      const stillName = "bookend-still";
-      const bytes = await fetchBytes(
-        piece.url,
-        (ratio) => report({ current: index + 1, total, phase: "download" }, ratio),
-        signal,
-      );
-      throwIfAborted(signal);
-      await ffmpeg.writeFile(stillName, bytes);
-      const frame = await probeFile(ffmpeg, ref);
-      if (!frame.width || !frame.height) throw new Error("probe");
-      let code = 1;
-      try {
-        code = await ffmpeg.exec(stillClipArgs(stillName, name, frame, piece.imageDuration), undefined, { signal });
-      } catch (error) {
-        if (signal.aborted) {
-          resetEncoder();
-          throw new ExportCancelled();
+    // Image bookends become clips; a video at a different size, fps, or audio is scaled to match.
+    const files: string[] = [];
+    for (let index = 0; index < total; index += 1) {
+      report("prepare", index / prepareSteps);
+      const piece = pieces[index];
+      const source = inputs.paths[index];
+      const fitted = `fit-${index}.mp4`;
+      if (piece.imageDuration != null) {
+        await runEncoder(ffmpeg, stillClipArgs(source, fitted, ref, piece.imageDuration), signal, "concat");
+      } else if (index === refIndex) {
+        files.push(source);
+        continue;
+      } else {
+        const current = await probeFile(ffmpeg, source);
+        const same =
+          current.width === ref.width &&
+          current.height === ref.height &&
+          current.fps === ref.fps &&
+          current.hasAudio === ref.hasAudio;
+        if (same) {
+          files.push(source);
+          continue;
         }
-        throw error;
-      } finally {
-        await forget(ffmpeg, stillName);
+        await runEncoder(ffmpeg, fitClipArgs(source, fitted, ref, current.hasAudio), signal, "concat");
       }
-      if (signal.aborted) {
-        resetEncoder();
-        throw new ExportCancelled();
-      }
-      if (code !== 0) throw new Error("concat");
+      made.push(fitted);
+      files.push(fitted);
     }
-    files.set(index, name);
-    return name;
-  }
 
-  let left = await fileFor(0);
-  for (let index = 1; index < total; index += 1) {
-    const right = await fileFor(index);
-    const out = spare;
-    await joinPair(
+    // A hard cut holds the last frame of the group before it. A fade group ends on its last piece untouched.
+    const holds: string[] = [];
+    for (let index = 0; index < runs.length - 1; index += 1) {
+      report("prepare", (total + index) / prepareSteps);
+      const last = files[runs[index][runs[index].length - 1]];
+      const hold = `hold-${index}.mp4`;
+      await runEncoder(ffmpeg, joinPadArgs(last, hold, await probeLog(ffmpeg, last)), signal, "concat");
+      made.push(hold);
+      holds.push(hold);
+    }
+
+    // Only fade groups are encoded; every other clip is copied as is.
+    const parts: string[] = [];
+    let encoded = 0;
+    for (let index = 0; index < runs.length; index += 1) {
+      const run = runs[index];
+      if (run.length === 1) {
+        parts.push(files[run[0]]);
+        continue;
+      }
+      const firstLog = await probeLog(ffmpeg, files[run[0]]);
+      const probes = [parseProbe(firstLog)];
+      for (const piece of run.slice(1)) probes.push(await probeFile(ffmpeg, files[piece]));
+      const hasAudio = probes.every((probe) => probe.hasAudio);
+      // The stream copy keeps the first file's audio rate. A group at another rate plays stretched.
+      const sampleRate = firstLog.match(/Audio:.*?(\d+) Hz/)?.[1];
+      const filter = buildClipConcatFilter(
+        run.length,
+        hasAudio,
+        probes.map((probe) => probe.durationSec || 0),
+        run.slice(0, -1).map((piece) => transitions[piece]),
+      );
+      const out = `run-${index}.mp4`;
+      const step = encoded;
+      const onEncode = (ratio: number) => report("join", ((step + ratio) / fadeRuns.length) * 0.95);
+      const runBlobs = await Promise.all(run.map((piece) => pieceBlob(ffmpeg, files[piece], inputs.paths[piece], blobs[piece])));
+      const hardware = await hardwareFade(
+        runBlobs,
+        probes.map((probe) => probe.durationSec || 0),
+        run.slice(0, -1).map((piece) => transitions[piece]),
+        ref,
+        signal,
+        onEncode,
+      );
+      if (!hardware) {
+        const args = run.flatMap((piece) => ["-i", files[piece]]);
+        args.push("-filter_complex", filter, "-map", "[v]");
+        if (hasAudio) {
+          args.push("-map", "[a]", "-c:a", "aac", "-ac", "2");
+          if (sampleRate) args.push("-ar", sampleRate);
+        }
+        args.push("-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", out);
+        await runEncoder(ffmpeg, args, signal, "concat", onEncode);
+      } else {
+        await ffmpeg.writeFile(out, hardware);
+      }
+      encoded += 1;
+      made.push(out);
+      parts.push(out);
+    }
+
+    if (parts.length === 1) {
+      output = parts[0];
+      return output;
+    }
+    const list = parts.flatMap((part, index) => (index < holds.length ? [part, holds[index]] : [part]));
+    await ffmpeg.writeFile("list.txt", list.map((name) => `file '${name}'`).join("\n"));
+    made.push("list.txt");
+    report("join", fadeRuns.length > 0 ? 0.95 : 0);
+    output = "joined.mp4";
+    await runEncoder(
       ffmpeg,
-      left,
-      right,
-      out,
-      transitions[index - 1],
+      ["-f", "concat", "-safe", "0", "-i", "list.txt", "-c", "copy", "-movflags", "+faststart", output],
       signal,
-      (ratio) => report({ current: index + 1, total, phase: "join" }, ratio),
+      "concat",
     );
-    await forget(ffmpeg, left);
-    await forget(ffmpeg, right);
-    files.delete(index - 1);
-    files.delete(index);
-    left = out;
-    spare = spare === "acc-b.mp4" ? "acc-a.mp4" : "acc-b.mp4";
+    report("join", 1);
+    return output;
+  } catch (error) {
+    if (output) await forget(ffmpeg, output);
+    output = "";
+    throw error;
+  } finally {
+    for (const name of made) if (name !== output) await forget(ffmpeg, name);
+    await inputs.release();
   }
-  return left;
 }
 
-// Join the clip accumulated so far with the one just downloaded.
-// A hard cut copies the files and holds the left clip for 200ms. A chosen fade still re-encodes.
-async function joinPair(
-  ffmpeg: FFmpeg,
-  leftName: string,
-  rightName: string,
-  outName: string,
-  transition: EditTransition | undefined,
+// A fitted piece lives in the encoder. An untouched download is still the original Blob.
+async function pieceBlob(ffmpeg: FFmpeg, path: string, mounted: string, original: Blob) {
+  if (path === mounted) return original;
+  const raw = await ffmpeg.readFile(path);
+  if (typeof raw === "string") throw new Error("concat");
+  return new Blob([new Uint8Array(raw)]);
+}
+
+async function readEncoderBlob(ffmpeg: FFmpeg, name: string) {
+  try {
+    const raw = await ffmpeg.readFile(name);
+    if (typeof raw === "string") return null;
+    return new Blob([new Uint8Array(raw)]);
+  } catch {
+    return null;
+  }
+}
+
+// WebCodecs for a fade group. Null means the wasm encoder should do it.
+async function hardwareFade(
+  blobs: Blob[],
+  durations: number[],
+  transitions: EditTransition[],
+  frame: { width: number; height: number; fps: number },
   signal: AbortSignal,
   onRatio: (ratio: number) => void,
 ) {
-  if (!transition || transition.effect === "none") {
-    await copyJoin(ffmpeg, leftName, rightName, outName, signal, onRatio);
-    return;
-  }
-  const left = await probeFile(ffmpeg, leftName);
-  const right = await probeFile(ffmpeg, rightName);
-  const hasAudio = left.hasAudio && right.hasAudio;
-  const filter = buildClipConcatFilter(
-    2,
-    hasAudio,
-    [left.durationSec || 0, right.durationSec || 0],
-    [transition],
-  );
-  const args = ["-i", leftName, "-i", rightName, "-filter_complex", filter, "-map", "[v]"];
-  if (hasAudio) args.push("-map", "[a]", "-c:a", "aac", "-ac", "2");
-  args.push("-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", outName);
-  onRatio(0);
-  const onEncode = ({ progress }: { progress: number }) => {
-    onRatio(Math.max(0, Math.min(1, progress || 0)));
-  };
-  ffmpeg.on("progress", onEncode);
   try {
-    const code = await ffmpeg.exec(args, undefined, { signal });
-    if (signal.aborted) {
-      resetEncoder();
-      throw new ExportCancelled();
-    }
-    if (code !== 0) throw new Error("concat");
+    const { encodeFadeGroup } = await import("@/presentation/components/app/projects/new/hardware-encode");
+    return await encodeFadeGroup({
+      blobs,
+      durations,
+      transitions,
+      width: frame.width,
+      height: frame.height,
+      fps: frame.fps,
+      signal,
+      onRatio,
+    });
   } catch (error) {
-    if (signal.aborted) {
-      resetEncoder();
-      throw new ExportCancelled();
-    }
-    throw error;
-  } finally {
-    ffmpeg.off("progress", onEncode);
+    if (signal.aborted || (error instanceof DOMException && error.name === "AbortError")) throw new ExportCancelled();
+    console.warn("WebCodecs fade encode failed, using the software encoder", error);
+    return null;
+  }
+}
+
+// WebCodecs for the logo pass. Null means the wasm encoder should burn it in.
+async function hardwareLogo(
+  mainBlob: Blob | null,
+  layerBlobs: Blob[],
+  edit: VideoEdit,
+  frame: { width: number; height: number },
+  ffmpeg: FFmpeg,
+  mainName: string,
+  signal: AbortSignal,
+  onRatio: (ratio: number) => void,
+) {
+  try {
+    const video = mainBlob ?? (await readEncoderBlob(ffmpeg, mainName));
+    if (!video) return null;
+    const { encodeWithLayers } = await import("@/presentation/components/app/projects/new/hardware-encode");
+    return await encodeWithLayers({
+      video,
+      layers: edit.layers.map((layer, index) => {
+        const placement = layerPlacement(layer, frame.width, frame.height);
+        return {
+          blob: layerBlobs[index],
+          anchor: placement.anchor,
+          w: placement.w,
+          margin: placement.margin,
+          opacity: layer.opacity,
+        };
+      }),
+      signal,
+      onRatio,
+    });
+  } catch (error) {
+    if (signal.aborted || (error instanceof DOMException && error.name === "AbortError")) throw new ExportCancelled();
+    console.warn("WebCodecs logo encode failed, using the software encoder", error);
+    return null;
   }
 }

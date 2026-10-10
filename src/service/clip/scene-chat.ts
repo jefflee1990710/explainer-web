@@ -245,7 +245,7 @@ export function regenStoryboardInput(clip: StoryboardRow, skillSlug?: string): C
 export function sceneChatSystemPrompt() {
   return `You edit explainer-video clips. You may change only these fields:
 - startScene: the opening still at t=0. One frozen picture: who, what, where, and any on-screen text. Not a motion paragraph.
-- endScene: the closing still. One frozen picture after this clip's action. Not a copy of the start unless the user asks to keep it.
+- endScene: the closing still. One frozen picture of the start still after motionCamera has finished. The camera is where that motion lands. Not a new scene.
 - motionCamera: how the camera and the action move from the start still to the end still. Timestamps are welcome. Not a still description.
 - englishVo: the spoken line shown on the left. Change it when the user asks to change what is said.
 

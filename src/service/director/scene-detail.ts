@@ -25,7 +25,7 @@ export function motionTransitionContract() {
     "A prop that is in the end still but not in the start still is either added to the start still, or enters on camera in a beat (placed by a hand, slides in from the frame edge).",
     "A prop that is in the start still but not in the end still leaves on camera in a beat (put away, moved off frame, covered).",
     "Name each hand by the character's own left or right, and keep the same hand on the same prop from the start still through motionCamera to the end still.",
-    "The start and end still of one clip share the same light and the same camera; a mood change comes from expression and props.",
+    "The start and end still of one clip share the same light and the same place. endScene is the opening still after motionCamera has finished: its Camera line is the landed shot size, angle, and where subjects sit. If motionCamera keeps the camera locked, keep that Camera line. Write the landed picture, not the in-between path.",
     "Before returning, compare each clip's start and end still item by item: every difference appears in motionCamera, and every object motionCamera touches already exists in the start still or enters in a beat.",
   ].join(" ");
 }

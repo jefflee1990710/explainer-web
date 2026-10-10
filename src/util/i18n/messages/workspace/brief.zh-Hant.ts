@@ -101,7 +101,7 @@ export const briefZhHant = {
   talkingHead: {
     hint: "上方是給導演的指示。角色要唸的講稿請填在下面。",
     scriptTitle: "角色講稿",
-    scriptHint: "角色會逐字讀這段。每段字數相近（5–12 秒，最多 20 段）。整段超過 240 秒請改短。",
+    scriptHint: "角色會逐字讀這段。每段只放一句短句，字幕先保持大（大約 4 秒講稿，成片至少 5 秒，最多 20 段）。整段超過 240 秒請改短。",
     scriptLabel: "角色講稿",
     scriptPlaceholder: "大家好。這個產品每星期幫你省一個小時。\n今日就試一次。",
   },
@@ -124,7 +124,7 @@ export const briefZhHant = {
     sceneText: "畫面文字 · {label}",
     subtitleLook: "外觀 · {label}",
     bookendLength: "1 段 · 3–4 秒",
-    talkingHeadLength: "每段長短相近 · 5–12 秒 · 最多 20 段",
+    talkingHeadLength: "每段一句短句 · 至少 5 秒 · 最多 20 段",
     logo: "Logo",
   },
   confirm: {

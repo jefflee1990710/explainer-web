@@ -146,6 +146,8 @@ export type PublicVideoCard = {
   videosTotal: number;
   // Per-clip scene and video steps for the card progress bar.
   tags: GenerationDetailTag[];
+  // ISO time the user marked this finished video as posted.
+  postedAt?: string;
 };
 
 export type PublicFolder = {
@@ -186,6 +188,7 @@ export const VIDEO_LIST_PROJECTION = {
   "clips.status": 1,
   "clips.blobUrl": 1,
   "clips.outputUrl": 1,
+  postedAt: 1,
 } as const;
 
 function publicPreviewUrl(url?: string, hash?: string) {
@@ -387,6 +390,7 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
     videosDone: counts.videosDone,
     videosTotal: counts.total,
     tags: clipGenerationTags(source),
+    postedAt: video.postedAt?.toISOString(),
   };
 }
 

@@ -1,12 +1,12 @@
 {
   "en": {
     "bestFor": "Having one character face the camera and read your own script — announcements, quick updates or presenter-style messages.",
-    "structure": "The script is split into 1 to 20 clips with a similar word count in each. Each clip is 5–12 seconds at the chosen pace (about 4 Chinese characters or 2.4 English words per second at medium pace).",
+    "structure": "The script is split into 1 to 20 short clips, about one clause each (around 4 seconds of speech) so the subtitle stays large. A short line still plays for at least 5 seconds.",
     "hook": "No separate hook is added — the video opens straight on the character saying your first sentence, so lead with your strongest line.",
     "arc": "Follows your script sentence by sentence in order; each clip carries straight on from the previous one without restaging.",
     "narrator": "Exactly one character reads every line aloud to camera. Your script is used word for word; your separate instruction only guides tone and emphasis and is never spoken.",
     "visual": "Look and palette come from the chosen visual style. The character sits beside a bookshelf, chest and head in frame, like a real phone video filmed at home, and looks straight into the lens. One hand holds a small homemade microphone near the mouth. The same books, seat, and soft indoor daylight stay throughout. While speaking the head, the microphone, and the upper body keep moving.",
-    "audio": "No background music — just the character's voice, with a subtitle that matches each clip's spoken line exactly. On a 9:16 Instagram Reel the subtitle sits a little below center. On a 16:9 landscape frame it sits at the bottom.",
-    "rules": "Needs a script, one character image and an aspect ratio. Words are never rewritten. Short lines are grouped and long lines are split so each clip has a similar length. A script over 240 seconds must be shortened."
+    "audio": "No background music — just the character's voice, with a large subtitle that matches each clip's spoken line exactly. It fades and slides in at the start of the clip and fades and slides out at the end. On a 9:16 Instagram Reel the subtitle sits a little below center. On a 16:9 landscape frame it sits at the bottom.",
+    "rules": "Needs a script, one character image and an aspect ratio. Words are never rewritten. Each clip is one short line so the subtitle stays large. The camera does not jump between the start still and the end still. A script over 240 seconds must be shortened."
   }
 }

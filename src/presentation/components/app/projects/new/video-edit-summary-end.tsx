@@ -14,7 +14,18 @@ export function VideoEditSummaryEndSlot() {
 export function VideoEditSummaryEnd({ children }: { children: ReactNode }) {
   const [host, setHost] = useState<HTMLElement | null>(null);
   useEffect(() => {
-    setHost(document.getElementById(SLOT_ID));
+    // The summary row animates in, so the slot can mount after the desk or be replaced. Follow it.
+    const attach = () => {
+      const slot = document.getElementById(SLOT_ID);
+      setHost((current) => (slot === current ? current : slot));
+    };
+    const observer = new MutationObserver(attach);
+    observer.observe(document.body, { childList: true, subtree: true });
+    const frame = requestAnimationFrame(attach);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, []);
   if (!host) return null;
   return createPortal(children, host);

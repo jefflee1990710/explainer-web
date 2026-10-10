@@ -26,6 +26,7 @@ export const errorsZhHant = {
   retryFailedVersionOnly: "只有失敗的版本可以重試",
   defaultVersionCompletedOnly: "只有完成的版本可以設為預設",
   projectNotFound: "專案不存在",
+  videosNotReady: "請等全部片段完成再標為已發佈",
   storyboardNotReady: "分鏡尚未完成",
   clipNotFound: "找不到這段分鏡",
   clipAlreadySent: "這段已經送出，無法取消。",

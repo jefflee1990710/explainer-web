@@ -78,6 +78,24 @@ export function placementFromDrag(input: {
   return { anchor: `${isTop ? "top" : "bottom"}-${isLeft ? "left" : "right"}`, marginPct };
 }
 
+// Pixel box for a logo burned in the browser. Height follows the image aspect, and stays even.
+export function layerPixelBox(
+  placement: LayerPlacement,
+  frameW: number,
+  frameH: number,
+  imageW: number,
+  imageH: number,
+) {
+  const w = placement.w;
+  const h = Math.max(2, Math.round((imageH * w) / Math.max(1, imageW) / 2) * 2);
+  if (placement.anchor === "center") {
+    return { x: Math.round((frameW - w) / 2), y: Math.round((frameH - h) / 2), w, h };
+  }
+  const x = placement.anchor.endsWith("left") ? placement.margin : frameW - w - placement.margin;
+  const y = placement.anchor.startsWith("top") ? placement.margin : frameH - h - placement.margin;
+  return { x, y, w, h };
+}
+
 export function widthPctFromBox(boxW: number, frameW: number) {
   const { min, max } = EDIT_LIMITS.widthPct;
   return clamp(round1((boxW / frameW) * 100), min, max);
