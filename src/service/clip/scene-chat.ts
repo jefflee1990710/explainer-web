@@ -3,6 +3,7 @@ import type {
   SceneChatChange,
   SceneChatField,
   SceneChatMessage,
+  SceneChatReplacement,
   StoryboardRow,
 } from "@/model/project";
 import {
@@ -119,8 +120,26 @@ export function applySceneChatToClips(input: {
       clips.push(clip);
       continue;
     }
-    changed.push({ clipNumber: clip.clipNumber, fields: applied.changed });
-    clips.push(clipWithSceneDraft(clip, applied.draft, input.skillSlug));
+    const next = clipWithSceneDraft(clip, applied.draft, input.skillSlug);
+    const previous = sceneDraftFromClip(clip);
+    const replacements: SceneChatReplacement[] = applied.changed.map((field) => ({
+      field,
+      before: previous[field],
+      after: applied.draft[field],
+    }));
+    if (
+      !isDualBeatSkill(input.skillSlug) &&
+      applied.changed.some((field) => field === "startScene" || field === "endScene") &&
+      clip.explainerScene !== next.explainerScene
+    ) {
+      replacements.push({
+        field: "explainerScene",
+        before: clip.explainerScene,
+        after: next.explainerScene,
+      });
+    }
+    changed.push({ clipNumber: clip.clipNumber, fields: applied.changed, replacements });
+    clips.push(next);
   }
   return { ok: true, clips, changed };
 }
@@ -154,6 +173,61 @@ export function highlightedSceneFields(
     }
   }
   return fields;
+}
+
+// Previous and new paragraph for one field, from the newest assistant turn.
+export function sceneFieldDiff(
+  chats:
+    | Array<{
+        messages: Array<{
+          role: SceneChatMessage["role"];
+          createdAt: Date | string;
+          changedClips?: SceneChatMessage["changedClips"];
+        }>;
+      }>
+    | undefined,
+  clipNumber: number,
+  field: SceneChatField | "explainerScene",
+): { before: string; after: string } | undefined {
+  let newestAt = -1;
+  let diff: { before: string; after: string } | undefined;
+  for (const thread of chats ?? []) {
+    for (const message of thread.messages) {
+      if (message.role !== "assistant") continue;
+      const at = message.createdAt instanceof Date ? message.createdAt.getTime() : Date.parse(String(message.createdAt));
+      if (Number.isNaN(at) || at < newestAt) continue;
+      const replacement = message.changedClips
+        ?.find((item) => item.clipNumber === clipNumber)
+        ?.replacements?.find((item) => item.field === field);
+      newestAt = at;
+      diff = replacement ? { before: replacement.before, after: replacement.after } : undefined;
+    }
+  }
+  return diff && diff.before !== diff.after ? diff : undefined;
+}
+
+const REDRAW_IN_FLIGHT = new Set(["queued", "in_progress"]);
+
+// Whether this chat turn's redraw button can be pressed again.
+// A redraw submitted at or after the reply counts; an older picture does not.
+export function sceneRedrawPhase(input: {
+  messageAt?: string;
+  frames: Array<{ status: string; submittedAt?: string }>;
+  clip?: { status: string; submittedAt?: string };
+}): "ready" | "running" | "done" | "failed" {
+  const at = input.messageAt;
+  if (!at) return "ready";
+  const fresh = (submittedAt?: string) => Boolean(submittedAt && submittedAt >= at);
+  const frames = input.frames.filter((frame) => fresh(frame.submittedAt));
+  const videoFresh = fresh(input.clip?.submittedAt);
+  if (!frames.length && !videoFresh) return "ready";
+  const videoRunning = videoFresh && input.clip && REDRAW_IN_FLIGHT.has(input.clip.status);
+  if (frames.some((frame) => REDRAW_IN_FLIGHT.has(frame.status)) || videoRunning) return "running";
+  if (frames.some((frame) => frame.status === "failed") || (videoFresh && input.clip?.status === "failed")) {
+    return "failed";
+  }
+  if (videoFresh && input.clip?.status === "completed") return "done";
+  return "running";
 }
 
 // Write the draft back onto the clip. Single-scene skills keep one labeled scene string.

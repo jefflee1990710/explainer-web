@@ -99,6 +99,11 @@ export type PublicVideo = {
       changedClips?: Array<{
         clipNumber: number;
         fields: Array<"startScene" | "endScene" | "motionCamera" | "englishVo">;
+        replacements?: Array<{
+          field: "startScene" | "endScene" | "motionCamera" | "englishVo" | "explainerScene";
+          before: string;
+          after: string;
+        }>;
       }>;
       createdAt: string;
     }>;

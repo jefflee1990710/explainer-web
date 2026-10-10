@@ -108,10 +108,18 @@ export type StoryboardRow = {
 
 export type SceneChatField = "startScene" | "endScene" | "motionCamera" | "englishVo";
 
+// One rewritten paragraph: the previous text and the text that replaced it.
+export type SceneChatReplacement = {
+  field: SceneChatField | "explainerScene";
+  before: string;
+  after: string;
+};
+
 // One clip's fields rewritten by a production-chat turn.
 export type SceneChatChange = {
   clipNumber: number;
   fields: SceneChatField[];
+  replacements?: SceneChatReplacement[];
 };
 
 // One turn in the production-page chat. The thread belongs to the clip that was open.

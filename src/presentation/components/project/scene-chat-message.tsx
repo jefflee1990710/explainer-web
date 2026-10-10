@@ -12,7 +12,7 @@ export function SceneChatMessage({
   changedClips,
   variant = "normal",
   regenerating = false,
-  regenerateDisabled = false,
+  redrawAt,
   credits = 0,
   onRegenerate,
 }: {
@@ -22,11 +22,19 @@ export function SceneChatMessage({
   changedClips?: SceneChatChange[];
   variant?: "normal" | "pending" | "error";
   regenerating?: boolean;
-  regenerateDisabled?: boolean;
+  redrawAt?: string;
   credits?: number;
   onRegenerate?: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const redrawDate = redrawAt
+    ? new Date(redrawAt).toLocaleString(locale, {
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "";
 
   function fieldLabel(field: SceneChatField) {
     if (field === "startScene") return t("production.sceneChat.fieldStart");
@@ -69,12 +77,15 @@ export function SceneChatMessage({
                 <Spinner className="h-3.5 w-3.5" />
                 {t("production.sceneChat.regenerating")}
               </p>
+            ) : redrawDate ? (
+              <p className="mt-2 inline-flex min-h-11 items-center rounded-full border border-[var(--studio-line)] bg-[var(--studio-fill)] px-3 text-xs font-semibold text-muted">
+                {t("production.sceneChat.regenerated", { date: redrawDate })}
+              </p>
             ) : (
               <button
                 type="button"
                 onClick={onRegenerate}
-                disabled={regenerateDisabled}
-                className="mt-2 inline-flex min-h-11 cursor-pointer items-center rounded-full bg-accent px-3 text-left text-xs font-semibold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-2 inline-flex min-h-11 cursor-pointer items-center rounded-full bg-accent px-3 text-left text-xs font-semibold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 {t("production.sceneChat.regenerate", { credits })}
               </button>

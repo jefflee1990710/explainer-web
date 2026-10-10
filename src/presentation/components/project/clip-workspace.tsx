@@ -3,7 +3,7 @@
 import { ClipPrimaryAction } from "@/presentation/components/project/clip-primary-action";
 import { ClipPreviewStage } from "@/presentation/components/project/clip-preview-stage";
 import { ClipScenePrompts } from "@/presentation/components/project/clip-scene-prompts";
-import { highlightedSceneFields } from "@/service/clip/scene-chat";
+import { sceneFieldDiff } from "@/service/clip/scene-chat";
 import { FramePromptPanel } from "@/presentation/components/project/frame-prompt-panel";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { ClipState } from "@/service/clip-stage";
@@ -112,7 +112,11 @@ export function ClipWorkspace({
         language={project.language}
         dualBeat={isDualBeatSkill(project.skillSlug)}
         skillSlug={project.skillSlug}
-        highlighted={highlightedSceneFields(project.sceneChats, n)}
+        previousVo={sceneFieldDiff(project.sceneChats, n, "englishVo")?.before}
+        previousScene={sceneFieldDiff(project.sceneChats, n, "explainerScene")?.before}
+        previousStart={sceneFieldDiff(project.sceneChats, n, "startScene")?.before}
+        previousEnd={sceneFieldDiff(project.sceneChats, n, "endScene")?.before}
+        previousMotion={sceneFieldDiff(project.sceneChats, n, "motionCamera")?.before}
       />
 
       {showDebug ? (

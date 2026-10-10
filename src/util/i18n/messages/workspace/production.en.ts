@@ -335,6 +335,7 @@ export const productionEn = {
     fieldVo: "Spoken line",
     regenerate: "Redraw frames & video · {credits}",
     regenerating: "Redrawing the frames. The video starts when they finish.",
+    regenerated: "Updated {date}",
     locked: "Subscribe to edit scenes with AI.",
     lockedCta: "View plans",
   },
