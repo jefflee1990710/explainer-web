@@ -64,7 +64,8 @@ export function ClipProduction({
   const [checked, setChecked] = useState<string[]>([]);
   const [bulkMode, setBulkMode] = useState<BulkMode | null>(null);
   const [showDebug, setShowDebug] = useState(false);
-  const [sceneChatClip, setSceneChatClip] = useState<number | null>(null);
+  // Chat sits beside the preview as soon as the desk opens, and follows the selected clip.
+  const [sceneChatOpen, setSceneChatOpen] = useState(true);
 
   if (!phaseA || states.length === 0) return null;
 
@@ -116,10 +117,8 @@ export function ClipProduction({
         onGenerateVideo={() => onGenerateVideo(state.clipNumber)}
         onCancelVideo={() => onCancelVideo(state.clipNumber)}
         onSelect={select}
-        sceneChatOpen={sceneChatClip === state.clipNumber}
-        onEditScene={() =>
-          setSceneChatClip((current) => (current === state.clipNumber ? null : state.clipNumber))
-        }
+        sceneChatOpen={sceneChatOpen}
+        onEditScene={() => setSceneChatOpen((open) => !open)}
       />
     );
   }
@@ -149,14 +148,14 @@ export function ClipProduction({
         renderPreview={(state, select) => workspace("preview", state, select)}
         renderInspector={(state, select) => workspace("inspector", state, select)}
         renderAside={(state) =>
-          sceneChatClip === state.clipNumber ? (
+          sceneChatOpen ? (
             <SceneChatDialog
               key={state.clipNumber}
               project={project}
               clipNumber={state.clipNumber}
               subscribed={subscribed}
               onProject={onProject}
-              onClose={() => setSceneChatClip(null)}
+              onClose={() => setSceneChatOpen(false)}
             />
           ) : null
         }
