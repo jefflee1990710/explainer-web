@@ -88,6 +88,22 @@ test("a dual-beat clip keeps separate start and end stills", () => {
   assert.match(next.explainerScene, /stands up/);
 });
 
+test("editing the camera text drops the director's start-still choice", () => {
+  const clip = row({ endUsesStartStill: true });
+  const voiced = clipWithSceneDraft(
+    clip,
+    { startScene: "a desk", endScene: "the same desk, closer.", motionCamera: "push in", englishVo: "Six tools." },
+    "listicle-director",
+  );
+  assert.equal(voiced.endUsesStartStill, true);
+  const moved = clipWithSceneDraft(
+    clip,
+    { startScene: "a desk", endScene: "the same desk, closer.", motionCamera: "orbit", englishVo: "Five tools." },
+    "listicle-director",
+  );
+  assert.equal(moved.endUsesStartStill, undefined);
+});
+
 test("a spoken-line edit is saved onto the clip", () => {
   const draft = sceneDraftFromClip(row({ englishVo: "一個 Webinar" }));
   const changed = applySceneChatEdits(draft, [{ field: "englishVo", content: "一個線上研討會" }]);

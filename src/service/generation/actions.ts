@@ -8,6 +8,7 @@ import {
   refundCredits,
 } from "@/service/billing/credits";
 import { videosCollection } from "@/dao";
+import { clearEndStillChoice, endStillChoiceIsStale } from "@/service/director/camera-move";
 import { hasDualBeatDraft, syncDualBeatFields } from "@/service/director/dual-beat";
 import { spokenLineCopy } from "@/service/director/spoken-line";
 import { runStillJob } from "@/service/director/jobs";
@@ -307,9 +308,11 @@ export async function updateClipStoryboardAction(
 
     // Apply the edit in memory first so frame prompts are rebuilt from the new text.
     const editedAt = new Date().toISOString();
-    const clips = project.phaseA.clips.map((clip, index) =>
-      index === clipIndex ? { ...clip, ...clean, editedAt } : clip,
-    );
+    const clips = project.phaseA.clips.map((clip, index) => {
+      if (index !== clipIndex) return clip;
+      const next = { ...clip, ...clean, editedAt };
+      return endStillChoiceIsStale(clip, next) ? clearEndStillChoice(next) : next;
+    });
     const nextProject = await withWrittenCanvas({ ...project, phaseA: { ...project.phaseA, clips } });
 
     // Frames need the character lock before they can be redrawn.

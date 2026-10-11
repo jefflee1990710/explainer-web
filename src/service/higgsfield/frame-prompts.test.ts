@@ -361,6 +361,61 @@ test("frameSubmitPlan attaches this clip's start still when generating the end",
   assert.match(plan.prompt, /THIS CLIP'S START frame/);
 });
 
+test("an orbit end still does not attach the start frame, and names the landed angle", () => {
+  const arc = project();
+  arc.skillSlug = "cartoon-explainer-video-director";
+  arc.cast = [
+    { characterId: new ObjectId(), versionId: new ObjectId(), name: "Scro", blueprintUrl: "https://blob/c.png", prompt: "" },
+  ];
+  arc.phaseA!.clips[0].motionCamera =
+    "0-2s Scro grasps rig dial with right hand; 2-5s smooth gimbal arc sweeps 180 degrees from left profile to right 3/4 view.";
+  arc.frames = [
+    { clipNumber: 1, position: "start", prompt: "p", status: "completed", blobUrl: "https://blob/start.png" },
+    { clipNumber: 1, position: "end", prompt: "p", status: "queued" },
+  ];
+  const plan = frameSubmitPlan(arc, 1, "end");
+  assert.equal(plan.anchor, undefined);
+  assert.deepEqual(plan.refs, ["https://blob/c.png"]);
+  assert.match(plan.prompt, /LANDED CAMERA: the move is finished/);
+  assert.match(plan.prompt, /Draw only the landed angle: right 3\/4 view/);
+  assert.match(plan.prompt, /opening angle was left profile/);
+  assert.doesNotMatch(plan.prompt, /COMPOSITION LOCK/);
+  assert.doesNotMatch(plan.prompt, /THIS CLIP'S START frame/);
+
+  arc.frames.push({
+    clipNumber: 1,
+    position: "end",
+    prompt: "p",
+    status: "completed",
+    blobUrl: "https://blob/end.png",
+  });
+  const opening = frameSubmitPlan(arc, 1, "start");
+  assert.deepEqual(opening.refs, ["https://blob/c.png"]);
+  assert.match(opening.prompt, /OPENING CAMERA: this still is before the camera moves/);
+  assert.match(opening.prompt, /Draw only the opening angle: left profile/);
+
+  arc.phaseA!.clips[0].motionCamera = "0–2s the camera pushes in; 2–5s it settles on a close-up.";
+  const push = frameSubmitPlan(arc, 1, "end");
+  assert.deepEqual(push.refs, ["https://blob/start.png", "https://blob/c.png"]);
+  assert.match(push.prompt, /COMPOSITION LOCK: attached image 1 is THIS CLIP'S START frame/);
+  assert.doesNotMatch(push.prompt, /LANDED CAMERA/);
+
+  arc.phaseA!.clips[0].motionCamera =
+    "0-2s Scro grasps rig dial with right hand; 2-5s smooth gimbal arc sweeps 180 degrees from left profile to right 3/4 view.";
+  arc.phaseA!.clips[0].endUsesStartStill = true;
+  const kept = frameSubmitPlan(arc, 1, "end");
+  assert.deepEqual(kept.refs, ["https://blob/start.png", "https://blob/c.png"]);
+  assert.match(kept.prompt, /COMPOSITION LOCK/);
+  assert.doesNotMatch(kept.prompt, /LANDED CAMERA/);
+
+  arc.phaseA!.clips[0].motionCamera = "0–2s the camera pushes in; 2–5s it settles on a close-up.";
+  arc.phaseA!.clips[0].endUsesStartStill = false;
+  const freed = frameSubmitPlan(arc, 1, "end");
+  assert.deepEqual(freed.refs, ["https://blob/c.png"]);
+  assert.match(freed.prompt, /LANDED CAMERA/);
+  assert.doesNotMatch(freed.prompt, /COMPOSITION LOCK/);
+});
+
 test("opening still without a previous frame still numbers the blueprint first", () => {
   const withCast = project();
   withCast.cast = [

@@ -104,6 +104,9 @@ export type StoryboardRow = {
   bgmSfx: string;
   // Reference images (R1..R4) the director assigned to this clip's stills.
   referenceImageIds?: string[];
+  // Director's choice: attach this clip's start still when drawing the end.
+  // Absent on older videos and after a user edits the camera text.
+  endUsesStartStill?: boolean;
   // ISO time the user last edited this row; newer than submittedAt ⇒ stale media.
   editedAt?: string;
 };
@@ -332,6 +335,7 @@ const storyboardRowSchema = z.object({
   bgmSfx: z.string(),
   referenceImageIds: z.array(z.string()).optional(),
   editedAt: z.string().optional(),
+  endUsesStartStill: z.boolean().optional(),
 });
 
 const phaseAProposalSchema = z.object({

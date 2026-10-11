@@ -2,6 +2,7 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 import type { StoryboardRow, VoLanguage } from "@/model/project";
 import { isFollowShotSkill, isOutfitReelSkill, isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
+import { clearEndStillChoice } from "@/service/director/camera-move";
 import { clipEndScene, clipStartScene, isDualBeatSkill, normalizeDualBeatRow } from "@/service/director/dual-beat";
 import { sceneDescriptionLanguageLock } from "@/service/director/languages";
 import { endSceneModel } from "@/service/director/model";
@@ -12,6 +13,7 @@ const endSceneRewriteSchema = z.object({
     z.object({
       clipNumber: z.number().int().min(1),
       endScene: z.string(),
+      endUsesStartStill: z.boolean(),
     }),
   ),
 });
@@ -30,6 +32,9 @@ export function endSceneRewriteSystem(language?: VoLanguage) {
     "If the motion keeps the camera locked, keep the opening framing.",
     "Keep the draft's subtitle sentence, logo, and 「」 labels that are still on screen when the motion ends. Do not change the spoken words.",
     "Write the landed picture, not the in-between path. Do not invent a new room or a new character.",
+    "endUsesStartStill is a boolean, not a sentence. The image model copies an attached opening still.",
+    "Set endUsesStartStill true only when the end keeps the opening camera angle and the subject's screen position: a locked camera, a push-in, or a zoom.",
+    "Set endUsesStartStill false when the camera changes side or angle, or the subject lands in a different place on screen.",
     sceneDescriptionLanguageLock(language),
   ].join(" ");
 }
@@ -53,18 +58,18 @@ export function endSceneRewritePrompt(clips: StoryboardRow[]) {
 
 export function applyEndSceneRewrites(
   clips: StoryboardRow[],
-  rewrites: Array<{ clipNumber: number; endScene: string }>,
+  rewrites: Array<{ clipNumber: number; endScene: string; endUsesStartStill: boolean }>,
   options?: { dualBeat?: boolean },
 ) {
   const byNumber = new Map(
     rewrites
       .filter((item) => item.endScene.trim())
-      .map((item) => [item.clipNumber, item.endScene.trim()]),
+      .map((item) => [item.clipNumber, { endScene: item.endScene.trim(), endUsesStartStill: item.endUsesStartStill }]),
   );
   return clips.map((clip) => {
-    const endScene = byNumber.get(clip.clipNumber);
-    if (!endScene) return clip;
-    const next = { ...clip, endScene };
+    const rewrite = byNumber.get(clip.clipNumber);
+    if (!rewrite) return clip;
+    const next = { ...clip, endScene: rewrite.endScene, endUsesStartStill: rewrite.endUsesStartStill };
     return options?.dualBeat ? normalizeDualBeatRow(next) : next;
   });
 }
@@ -75,7 +80,8 @@ function chainCopiedStarts(clips: StoryboardRow[]) {
     if (index === 0) return clip;
     const endScene = clips[index - 1]?.endScene?.trim();
     if (!endScene) return clip;
-    return { ...clip, startScene: endScene };
+    // The next opening changed, so that clip's old yes/no no longer matches its start still.
+    return clearEndStillChoice({ ...clip, startScene: endScene });
   });
 }
 

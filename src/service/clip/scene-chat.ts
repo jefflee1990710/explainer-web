@@ -14,6 +14,7 @@ import {
   joinSceneBeats,
   syncDualBeatFields,
 } from "@/service/director/dual-beat";
+import { clearEndStillChoice, endStillChoiceIsStale } from "@/service/director/camera-move";
 import { chatRateLimited } from "@/service/director/chat-rate-limit";
 
 export const SCENE_CHAT_FIELDS = ["startScene", "endScene", "motionCamera", "englishVo"] as const;
@@ -197,8 +198,9 @@ function freshRedrawFrames(input: {
 // Write the draft back onto the clip. Single-scene skills keep one labeled scene string.
 export function clipWithSceneDraft(clip: StoryboardRow, draft: SceneDraft, skillSlug?: string): StoryboardRow {
   const editedAt = new Date().toISOString();
+  let next: StoryboardRow;
   if (isDualBeatSkill(skillSlug)) {
-    return {
+    next = {
       ...clip,
       ...syncDualBeatFields({
         explainerScene: clip.explainerScene,
@@ -211,15 +213,20 @@ export function clipWithSceneDraft(clip: StoryboardRow, draft: SceneDraft, skill
       }),
       editedAt,
     };
+  } else {
+    const rest = { ...clip };
+    delete rest.startScene;
+    delete rest.endScene;
+    next = {
+      ...rest,
+      explainerScene: joinSceneBeats(draft.startScene, draft.endScene),
+      motionCamera: draft.motionCamera,
+      englishVo: draft.englishVo,
+      editedAt,
+    };
   }
-  const { startScene: _start, endScene: _end, ...rest } = clip;
-  return {
-    ...rest,
-    explainerScene: joinSceneBeats(draft.startScene, draft.endScene),
-    motionCamera: draft.motionCamera,
-    englishVo: draft.englishVo,
-    editedAt,
-  };
+  // The director's yes/no described the previous camera text.
+  return endStillChoiceIsStale(clip, next) ? clearEndStillChoice(next) : next;
 }
 
 // Input for a redraw. Single-scene clips must not send start/end or the save treats them as dual-beat.

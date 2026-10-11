@@ -25,6 +25,12 @@ import {
   clipStartVo,
   isDualBeatSkill,
 } from "@/service/director/dual-beat";
+import {
+  cameraChangesAngle,
+  endFrameCameraLine,
+  endStillUsesOpeningStill,
+  openingCameraDirective,
+} from "@/service/director/camera-move";
 import { frameEndMoment, frameStartMoment } from "@/service/director/keyframe-delta";
 import {
   comparisonOnCanvasLines,
@@ -439,6 +445,7 @@ export function buildFramePrompt(
   const lockUrls = frameLockReferenceUrls(project);
   const characterUrls = characterReferenceUrls(project);
   const annotatedCount = options.revision?.annotatedUrl ? 1 : 0;
+  // An anchor in front shifts the numbering of the refs after it.
   const anchorCount = options.anchor ? 1 : 0;
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
@@ -593,6 +600,11 @@ export function buildFramePrompt(
     position === "end" && !wardrobeBuild && !surprise
       ? endFrameMotionLine(openingForLanding, motionDescription)
       : "";
+  // An attached opening still makes the edit model repaint that angle, so this line is text only.
+  const angleText = !wardrobeBuild && !surprise && !isTalkingHeadSkill(project.skillSlug);
+  const landedCamera =
+    position === "end" && angleText ? endFrameCameraLine(motionDescription, row.endUsesStartStill) : "";
+  const openingCamera = position === "start" && angleText ? openingCameraDirective(motionDescription) : "";
   // Every 9:16 spoken subtitle sits a little below center. Landscape stays in the bottom band.
   const subtitleBelowCenter = subtitleSitsBelowCenter(project.aspectRatio);
   const paintSurpriseType = surprise && Boolean(voForFrame);
@@ -689,15 +701,17 @@ export function buildFramePrompt(
     ...(surprise && clipNumber === 1 ? [surpriseHookCameraDirective(position)] : []),
     ...(parts.renderDetail ? [parts.renderDetail] : []),
     ...(cameraLanding ? [cameraLanding] : []),
+    ...(landedCamera ? [landedCamera] : []),
+    ...(openingCamera ? [openingCamera] : []),
     moment,
     ...compositionLockLines(
-      options.anchor,
-      annotatedCount + 1,
-      sceneRefUrls.length > 0,
-      performance,
-      solo && options.anchor?.kind === "clip-start",
-      position === "end" && !solo && !wardrobeBuild && !surprise,
-    ),
+          options.anchor,
+          annotatedCount + 1,
+          sceneRefUrls.length > 0,
+          performance,
+          solo && options.anchor?.kind === "clip-start",
+          position === "end" && !solo && !wardrobeBuild && !surprise,
+        ),
     ...revisionLines(options.revision && { ...options.revision, remark: parts.remark }),
     ...(listicle
       ? ["Final check: the numbered item list is visible and spelled exactly."]
@@ -755,8 +769,8 @@ export function buildFramePrompt(
   return compactSceneTextPrompt(prompt, project.aspectRatio);
 }
 
-// Prompt + reference URLs for one still submit. End waits until start exists
-// so the start file can lock composition.
+// Prompt + reference URLs for one still submit. A push or a locked camera
+// waits for the start file. An angle change does not attach that still.
 export function frameSubmitPlan(
   project: Project,
   clipNumber: number,
@@ -769,9 +783,16 @@ export function frameSubmitPlan(
   const surpriseHook =
     isSurpriseInterviewSkill(project.skillSlug) &&
     surpriseHookSkipsFrameAnchor(clipNumber, position);
+  const clipRow = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
+  const motion = clipRow?.motionCamera;
   const foundAnchor = clipFrameAnchor(project.frames, clipNumber, position);
-  // Another still glued on makes the image model copy its camera, so the move never happens.
-  const anchor = wardrobeBuild || surpriseHook ? undefined : foundAnchor;
+  // Talking-head, outfit, and surprise keep their own still rules. The director's boolean is ignored.
+  const directorChooses =
+    !isTalkingHeadSkill(project.skillSlug) && !isSurpriseInterviewSkill(project.skillSlug);
+  // Another still glued on makes the image model copy its camera, so a new angle is drawn without it.
+  const dropEndStill = position === "end" && directorChooses && !endStillUsesOpeningStill(clipRow);
+  const dropOpeningStill = position === "start" && directorChooses && cameraChangesAngle(motion);
+  const anchor = wardrobeBuild || surpriseHook || dropEndStill || dropOpeningStill ? undefined : foundAnchor;
   const castUrls = frameLockReferenceUrls(project);
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
