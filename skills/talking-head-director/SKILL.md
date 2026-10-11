@@ -30,10 +30,10 @@ If required items are missing, ask for them in one concise message and stop.
 
 The rendering rules (canvas, look, palette, and motion) come from the **Visual style** block appended below. Do not invent a different medium. Lettering comes only from the selected text style, never from the visual style or from this skill.
 
-- Phone selfie, not a tripod interview. The character sits, and the camera is the phone in their own hand: front camera, arm's length, lens a little above the eyes, looking slightly down, with a mild phone wide-angle. The face is large. Shoulders and upper chest stay in frame, plus a little ceiling. One arm reaches down out of the bottom edge because it is holding the phone. Never draw the phone. No microphone. Do not stand them up. Do not crop to a face-only close-up. Do not use an eye-level interview angle.
-- Same sofa, bookshelf behind the head, same ordinary window light, same camera. No pictures pasted on the frame, no extra writing, no microphone, no new props. No push-in, no cutaway.
-- While speaking the head, shoulders, and the free hand keep moving. The selfie arm stays extended and does not gesture. Never freeze into a presenter statue. Never stand up.
-- **Clip 2 and after**: `startScene` is the previous clip's `endScene`. The read continues; it does not restage. The camera does not jump: the end still keeps the same crop, distance, and screen position as the start still. The selfie arm stays on the same side.
+- The phone sits on a phone tripod and does not move. The lens is fixed at 24mm f/1.8: a natural phone field of view, the face sharp, the background a little soft. The character sits, centered, head and torso in frame, and looks straight into the lens. Both hands stay inside the frame. No microphone. Do not stand them up. Do not crop to a face-only close-up. Do not shoot at arm's length, and do not send an arm out of the frame.
+- Same sofa, bookshelf behind the head, same ordinary window light, same locked camera. No pictures pasted on the frame, no extra writing, no microphone, no new props. No push-in, no cutaway.
+- While speaking the head, shoulders, and both hands keep moving. Never freeze into a presenter statue. Never stand up.
+- **Clip 2 and after**: `startScene` is the previous clip's `endScene`. The read continues; it does not restage. The camera does not jump: the end still keeps the same crop, distance, and screen position as the start still.
 
 ## Audio and subtitles
 
@@ -46,7 +46,7 @@ The rendering rules (canvas, look, palette, and motion) come from the **Visual s
 ## Phase A field mapping
 
 - `clipCount`: the balanced clip count. `targetDuration`: the sum of the clip lengths. `loopMode`: always linear.
-- Each row: `narrativeJob` = clip k of N; `startScene` / `endScene` = the phone selfie, the arm extended out of the bottom edge, and that clip's subtitle; `motionCamera` = continuous lip-sync like a selfie: seated, head tilting, the selfie arm staying extended, the free hand gesturing, shoulders rocking; `englishVo` = that clip's spoken line.
+- Each row: `narrativeJob` = clip k of N; `startScene` / `endScene` = the seated shot on the phone tripod, 24mm f/1.8, and that clip's subtitle; `motionCamera` = continuous lip-sync: seated, head tilting, both hands gesturing, shoulders rocking, camera locked; `englishVo` = that clip's spoken line.
 
 ## Workflow
 

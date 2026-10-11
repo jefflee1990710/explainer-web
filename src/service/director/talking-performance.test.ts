@@ -44,8 +44,10 @@ test("face talking motion still uses the hands and head, eyes on the lens", () =
   });
   assert.match(motion, /continuous lip-sync/);
   assert.match(motion, /head tilting and nodding/);
-  assert.match(motion, /unseen phone/);
+  assert.match(motion, /24mm at f\/1\.8/);
+  assert.match(motion, /phone tripod/);
   assert.match(motion, /seated/);
+  assert.doesNotMatch(motion, /unseen phone/);
   assert.match(motion, /eyes locked on the lens/);
 });
 
@@ -61,12 +63,12 @@ test("talking motion carries the reel expression and gesture pattern", () => {
   // Resting smile, brow-pop on stresses, free hand changing every 1–2 seconds.
   assert.match(motion, /warm, chatty smile with a hint of teeth/);
   assert.match(motion, /eyes widen, the eyebrows pop up/);
-  assert.match(motion, /changes shape every 1–2 seconds/);
+  assert.match(motion, /changing shape every 1–2 seconds/);
   assert.match(motion, /side-to-side sway/);
-  // Clip 1 hooks with a big smile; the left hand gestures while the right arm holds the unseen phone.
+  // Clip 1 hooks with a big smile; both hands gesture because the phone is on a tripod.
   assert.match(motion, /big warm smile as the hook/);
-  assert.match(motion, /right hand holding the unseen phone/);
-  assert.match(motion, /left hand does all the gesturing/);
+  assert.match(motion, /right then left hand gesturing/);
+  assert.doesNotMatch(motion, /unseen phone/);
   assert.doesNotMatch(motion, /sharing a secret/);
 });
 

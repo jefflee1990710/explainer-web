@@ -286,8 +286,8 @@ export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
     `durationSeconds follows Chinese characters / ${CJK_CHARS_PER_SECOND} + English words / ${ENGLISH_WORDS_PER_SECOND}, then ${paceNote(pace)}.`,
     fullBody
       ? "Locked full-body shot. Head, torso, and feet stay in frame. The character looks into the lens. Do not crop to a close-up."
-      : "Phone front-camera selfie at arm's length, lens a little above the eyes, looking slightly down. Face, shoulders, and upper chest stay in frame. One arm reaches down out of the bottom edge because it is holding the phone; do not draw the phone. No microphone. The character sits and looks into the lens. Do not stand them up. Do not use a tripod or an eye-level interview angle. Do not crop to a face-only close-up.",
-    "Clip 2+ keeps the previous clip's pose, set, and camera, but both stills show this clip's own spoken line as the subtitle. Never copy the previous clip's words into this clip's subtitle or voice. The camera does not jump: the end still is the same crop, distance, and screen position as the start still. Only the mouth, a few degrees of head, and the free hand change. The microphone stays in the same hand. Motion is continuous lip-sync like a real person filming a reel: eyes on the lens, head tilting and nodding, the free hand gesturing. The voice says only this clip's line, once.",
+      : "The phone is fixed on a phone tripod. The lens is 24mm at f/1.8: face sharp, background a little soft. Head and torso stay in frame. Both hands stay inside the frame. No microphone. The character sits and looks into the lens. Do not stand them up. Do not shoot at arm's length. Do not send an arm out of the frame. Do not crop to a face-only close-up.",
+    "Clip 2+ keeps the previous clip's pose, set, and camera, but both stills show this clip's own spoken line as the subtitle. Never copy the previous clip's words into this clip's subtitle or voice. The camera does not jump: the end still is the same crop, distance, and screen position as the start still. Only the mouth, a few degrees of head, and the hands change. Motion is continuous lip-sync: eyes on the lens, head tilting and nodding, both hands gesturing. The voice says only this clip's line, once.",
   ].join(" ");
 }
 
@@ -312,15 +312,15 @@ export function talkingHeadDirectorBlock(skillSlug?: string, aspectRatio?: strin
   return [
     fullBody
       ? "This is a FULL-BODY TALKING-HEAD READ. Exactly one character is on screen for the whole video: they face the camera, head to feet in frame, and speak. There is no cutaway, no crowd, and no second character."
-      : `This is a TALKING-HEAD READ. Exactly one character is on screen for the whole video: they sit and film a phone selfie, face the camera${anchored ? `, and hold ${p.anchorProp}` : ""}, and speak. There is no cutaway, no crowd, and no second character. No microphone.`,
+      : `This is a TALKING-HEAD READ. Exactly one character is on screen for the whole video: they sit in front of a phone on a tripod, face the camera${anchored ? `, and hold ${p.anchorProp}` : ""}, and speak. There is no cutaway, no crowd, and no second character. No microphone.`,
     "The director instruction is planning notes only (tone, emphasis, must-have looks). It is NOT spoken.",
     "The spoken script is locked. Each clip's englishVo is a verbatim slice of that script. Do not paraphrase. Give every clip a similar amount of speech.",
     fullBody
       ? `Camera is a locked full-body shot. Do not crop to a close-up or a medium shot. Set: ${p.set}. Light: ${p.light}. Set and light stay identical across every clip. Clip 2 and after open on the previous clip's end still.`
-      : `Camera is a phone front-camera selfie at arm's length, lens a little above the eyes looking slightly down. Face, shoulders, and upper chest${anchored ? " stay in frame, and one arm reaches down out of the bottom edge; the phone is never drawn" : " stay in frame"}. Set: ${p.set}. Light: ${p.light}. Same set and light in every clip. No pictures pasted on the frame. No microphone. Do not stand the character up. Do not use a tripod or an eye-level interview angle. Do not crop to a face-only close-up. Clip 2 and after open on the previous clip's end still.`,
+      : `Camera is a phone fixed on a phone tripod. The lens is 24mm at f/1.8, the face sharp and the background a little soft. Head and torso${anchored ? " and the handheld prop" : ""} stay in frame. Both hands stay inside the frame. Set: ${p.set}. Light: ${p.light}. Same set and light in every clip. No pictures pasted on the frame. No microphone. Do not stand the character up. Do not shoot at arm's length. Do not send an arm out of the frame. Do not crop to a face-only close-up. Clip 2 and after open on the previous clip's end still.`,
     fullBody
       ? `On-camera speech like a real person recording a reel: eyes locked on the lens, continuous lip-sync, head tilting and nodding, ${hands}, weight shifting hip to hip. Never freeze the face, head, hands, or body. Never a greeting wave.`
-      : `On-camera speech like a real person filming a phone selfie: seated, eyes locked on the lens, continuous lip-sync, head tilting and nodding, ${hands}. Natural skin, real cloth, unposed. Never freeze the face or neck. Never a greeting wave. Never stand up. Never draw the phone.`,
+      : `On-camera speech to a phone on a tripod: seated, eyes locked on the lens, continuous lip-sync, head tilting and nodding, ${hands}. Natural skin, real cloth, unposed. Never freeze the face or neck. Never a greeting wave. Never stand up.`,
     `Face pattern: resting face is ${p.restingFace}. Emphasis: ${p.emphasisBeat}. Clip 1 opens with ${p.hookBeat} as the hook. The last clip ends on ${p.ctaBeat}.`,
     `Gesture pattern: the gesturing hand changes shape every 1–2 seconds in time with the words — ${p.gestureLibrary}. Head: ${p.headMotion}.`,
     talkingSubtitleRule(aspectRatio),
@@ -363,7 +363,7 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
       moment === "start"
         ? fullBody
           ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture.`
-          : `Character: the only person in the frame, seated, filming a phone selfie, face large with shoulders and upper chest in frame, eyes locked into the lens, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live unposed expression.${prop} ${freeHand} is already up near the chest, index finger raised mid-gesture.`
+          : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live unposed expression.${prop} ${freeHand} is already up at chest height, index finger raised mid-gesture.`
         : fullBody
           ? `Character: still the only person in the frame, eyes still locked on the lens, mouth just closed after the line, an engaged small smile, eyebrows relaxed, head nodded only a few degrees.${propEnd} ${freeHand} is still slightly raised at chest height with an open palm, weight on the other hip, feet in the same place.${sameFrame}`
           : `Character: still the only person in the frame, still seated, eyes still locked on the lens, mouth just closed into a small real smile, eyebrows relaxed, head nodded only a few degrees.${propEnd} ${freeHand} is open-palm at chest height, caught between gestures.${sameFrame}`;
@@ -434,17 +434,17 @@ function cameraClause(language: VoLanguage | undefined, shot: string | undefined
   if (language === "en") {
     if (fullBody) return " Camera: locked full-body, character centered, head to feet in frame.";
     const inFrame = anchored
-      ? "Head, shoulders, and upper chest stay in frame, and one arm reaches the bottom edge."
-      : "Head, shoulders, and upper chest stay in frame.";
+      ? "Head and torso stay in frame, and the handheld prop stays in frame."
+      : "Head and torso stay in frame.";
     if (!size) {
-      return ` Camera: phone front-camera selfie at arm's length, lens a little above the eyes, looking slightly down. ${inFrame} A little ceiling is visible. Do not stand up. Do not draw the phone. No microphone. Do not use a tripod or an eye-level interview angle. Do not crop to a face-only close-up.`;
+      return ` Camera: a phone fixed on a phone tripod, locked. Lens is 24mm at f/1.8, the face sharp and the background a little soft. ${inFrame} Both hands stay inside the frame. Do not stand up. No microphone. Do not shoot at arm's length. Do not send an arm out of the frame. Do not crop to a face-only close-up.`;
     }
     return ` Camera: locked ${size}, character seated and centered${anchored ? ", handheld prop in frame" : ""}.`;
   }
   if (fullBody) return "鏡頭：鎖定全身，角色置中，頭到腳都在畫面內。";
-  const inFrame = anchored ? "頭、膊頭、上胸留喺畫面，一隻手伸到畫面底外" : "頭、膊頭、上胸留喺畫面";
+  const inFrame = anchored ? "頭同上身留喺畫面，手持道具留喺畫面" : "頭同上身留喺畫面";
   if (!size) {
-    return `鏡頭：手機前置自拍，手臂距離，鏡頭比眼睛高少少、微微向下。${inFrame}。睇到少少天花板。唔好企起身，唔好畫出部手機，冇咪。唔好用腳架或者平視訪問角度，唔好裁成淨係塊臉。`;
+    return `鏡頭：手機固定喺手機腳架，鎖定唔郁。鏡頭係 24mm f/1.8，塊臉清楚、背景少少朦。${inFrame}。兩隻手都留喺畫面入面。唔好企起身，冇咪。唔好用手臂距離，唔好伸隻手出畫面，唔好裁成淨係塊臉。`;
   }
   return `鏡頭：鎖定${shotLabel(size)}，角色坐住置中${anchored ? "，手持道具留喺畫面" : ""}。`;
 }

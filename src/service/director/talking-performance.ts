@@ -160,7 +160,7 @@ export function talkingMotionLine(input: {
       : "the raised hand settles at chest height, the body stays in the same place on screen";
     const fadeOut = `the large subtitle fades and slides down out`;
     const cameraTail = seated
-      ? "camera stays on the same framing from the first frame to the last frame, a phone selfie held a little above the eyes, no zoom, no reframe, no jump."
+      ? "camera stays locked on the phone tripod, 24mm at f/1.8, from the first frame to the last frame, no zoom, no reframe, no jump."
       : "camera stays locked on the same framing from the first frame to the last frame, no zoom, no reframe, no jump.";
     return `${open}; 0.4–${close}s she ${body}, and the large subtitle holds still; ${close}–${input.seconds}s ${closeFace}, ${closeBeat}, ${fadeOut}; ${cameraTail} ${subtitle}`;
   }
@@ -195,7 +195,7 @@ export function talkingMotionLine(input: {
     ? `${p.anchorProp}仍然喺${zhHand}，${zhOther}停喺胸前，身體留喺畫面同一個位置`
     : "手停喺胸前，身體留喺畫面同一個位置";
   const cameraTail = seated
-    ? "鏡頭由第一幀到最後一幀保持同一構圖，似手機舉高少少自拍，唔好變焦、唔好換鏡、唔好跳鏡。"
+    ? "鏡頭由第一幀到最後一幀鎖喺手機腳架，24mm f/1.8，唔好變焦、唔好換鏡、唔好跳鏡。"
     : "鏡頭由第一幀到最後一幀鎖定同一構圖，唔好變焦、唔好換鏡、唔好跳鏡。";
   return `${open}；0.4–${close}s ${body}，大字幕保持唔郁；${close}–${input.seconds}s ${closeFace}，${closeBeat}，大字幕向下淡出；${cameraTail}${subtitle}`;
 }

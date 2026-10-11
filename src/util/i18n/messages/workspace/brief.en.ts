@@ -254,7 +254,7 @@ export const briefEn = {
       "talking-head-director": {
         voice: "The character reads your script to camera (the voice you picked)",
         structure: "Your spoken script, split so each clip has a similar length, up to 20",
-        picture: "Phone selfie at arm's length, lens a little above the eyes, one arm reaching down out of frame as if holding the phone; the phone is not drawn, and the head and free hand keep moving",
+        picture: "Seated on a sofa, phone locked on a tripod at 24mm f/1.8, both hands in frame; the head and upper body keep moving",
         frames: "The next clip’s start frame continues the previous end frame",
       },
       "full-body-talking-head-director": {

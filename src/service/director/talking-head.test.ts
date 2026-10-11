@@ -71,11 +71,14 @@ test("talking-head keeps instruction and spoken script as separate fields", () =
   assert.match(clips[0].englishVo, /Show the problem, then the fix/);
   assert.equal(clips[0].durationSeconds, 5);
   assert.match(talkingHeadDirectorBlock(), /spoken script is locked/i);
-  assert.match(talkingHeadDirectorBlock(), /phone selfie/);
-  assert.match(talkingHeadDirectorBlock(), /unseen phone/);
+  assert.match(talkingHeadDirectorBlock(), /phone tripod/);
+  assert.match(talkingHeadDirectorBlock(), /24mm at f\/1\.8/);
+  assert.match(talkingHeadDirectorBlock(), /Do not shoot at arm's length/);
   assert.match(clips[0].startScene, /seated/);
-  assert.match(clips[0].startScene, /unseen phone/);
+  assert.match(clips[0].startScene, /24mm at f\/1\.8/);
   assert.match(clips[0].startScene, /bookshelf behind the head/);
+  assert.match(clips[0].startScene, /Do not send an arm out of the frame/);
+  assert.doesNotMatch(clips[0].startScene, /unseen phone/);
   assert.doesNotMatch(clips[0].startScene, /\bbed\b/);
   const withRoom = planTalkingHeadClips({
     source: script,
@@ -106,7 +109,8 @@ test("clip 2 keeps clip 1's pose but speaks only its own line", () => {
   assert.match(clips.map((clip) => clip.englishVo).join(""), /大家好，我係 Jeff/);
   assert.ok(clips.every((clip) => clip.durationSeconds >= 5 && clip.durationSeconds <= 12));
   assert.match(clips[0].startScene, /坐住/);
-  assert.match(clips[0].startScene, /睇唔到嘅手機/);
+  assert.match(clips[0].startScene, /24mm f\/1\.8/);
+  assert.match(clips[0].startScene, /手機腳架/);
   assert.doesNotMatch(clips[0].startScene, /中近景|medium close-up/);
 });
 
@@ -195,7 +199,7 @@ test("talking-head keeps a full English word inside a Cantonese line", () => {
   assert.ok(clips.every((clip) => clip.durationSeconds >= 5 && clip.durationSeconds <= 12));
 });
 
-test("a long talking-head line becomes short clips, and clip 2 does not swap the mic hand", () => {
+test("a long talking-head line becomes short clips, and both hands stay free", () => {
   const source = [
     "What if you have zero budget for marketing?",
     "Stop overthinking ads.",
@@ -215,8 +219,8 @@ test("a long talking-head line becomes short clips, and clip 2 does not swap the
   assert.ok(Math.max(...words) <= 14);
   assert.ok(clips[1]);
   assert.match(clips[1].motionCamera, /no jump/);
-  assert.match(clips[1].motionCamera, /right hand holding/);
-  assert.doesNotMatch(clips[1].motionCamera, /left hand holding/);
+  assert.match(clips[1].motionCamera, /left then right hand gesturing/);
+  assert.doesNotMatch(clips[1].motionCamera, /hand holding/);
   assert.match(clips[1].endScene, /No zoom, no reframe, no jump/);
   assert.match(clips[1].startScene, /LARGE/);
   assert.match(clips[1].motionCamera, /fades and slides up/);

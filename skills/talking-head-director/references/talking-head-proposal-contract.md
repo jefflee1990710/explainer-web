@@ -31,16 +31,16 @@ One row per short clip. Do not pack several sentences into one row.
 
 Write `startScene` and `endScene` as four concrete parts, in order:
 
-1. Character: seated, filming a phone selfie, eyes locked into the lens, mouth just opening (start) or mouth just closed in a small real smile (end). One arm stays extended down out of the bottom edge, as if holding the phone that is the camera. Never draw the phone. No microphone. Never describe appearance. Never stand them up.
-2. Set: the same sofa in every clip. A bookshelf behind the head, and a little of the ceiling, because the phone is held up. No pictures pasted on the frame.
-3. Light: ordinary daylight from a window to one side, flat like a phone front camera, the same in every clip. No studio light.
-4. Camera: phone front-camera selfie at arm's length, lens a little above the eyes, looking slightly down. Face large, shoulders and upper chest in frame. The subtitle is LARGE (a little below center on 9:16, across the bottom on 16:9). Quote the spoken line. The end still keeps the same crop, distance, and screen position as the start still. The selfie arm stays on the same side. No zoom and no jump. No tripod, no eye-level interview angle.
+1. Character: seated, eyes locked into the lens, mouth just opening (start) or mouth just closed in a small real smile (end). Both hands stay inside the frame. No microphone. Never describe appearance. Never stand them up. Do not send an arm out of the frame.
+2. Set: the same sofa in every clip. A bookshelf behind the head. No pictures pasted on the frame.
+3. Light: ordinary daylight from a window to one side, the same in every clip. No studio light.
+4. Camera: a phone fixed on a phone tripod. The lens is 24mm at f/1.8, the face sharp and the background a little soft. Head and torso in frame. The subtitle is LARGE (a little below center on 9:16, across the bottom on 16:9). Quote the spoken line. The end still keeps the same crop, distance, and screen position as the start still. No zoom and no jump. Not arm's length.
 
 Clip 2 and after: `startScene` copies the previous `endScene`. The end still does not reframe.
 
 ## Motion contract (`motionCamera`)
 
-One timed move that fills this clip's own seconds. The camera stays on the same framing from the first frame to the last: no cut, no zoom, no jump. The selfie arm stays extended on the same side. Example: `0–0.4s seated selfie, eyes on the lens, one arm already extended down out of the bottom edge, the large subtitle fades and slides up into place; 0.4–4s continuous lip-sync, the free hand gestures, the subtitle holds large and still; 4–5s mouth closes, the large subtitle fades and slides down out; camera stays on the same selfie framing`. Never draw the phone. Never freeze the head, the free hand, or the shoulders. Never stand up.
+One timed move that fills this clip's own seconds. The phone stays on the tripod: no cut, no zoom, no jump. Example: `0–0.4s seated, eyes on the lens, both hands in frame, the large subtitle fades and slides up into place; 0.4–4s continuous lip-sync, both hands gesture, the subtitle holds large and still; 4–5s mouth closes, the large subtitle fades and slides down out; camera stays locked, 24mm at f/1.8`. Never freeze the head, the hands, or the shoulders. Never stand up.
 
 ## Phase A checks
 
