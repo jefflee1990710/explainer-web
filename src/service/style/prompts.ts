@@ -1,4 +1,4 @@
-import { CINEMATIC_LENS_RULE } from "@/service/style/cinematic-lenses";
+import { CINEMATIC_LENS_RULE, CINEMATIC_WORLD_RULE } from "@/service/style/cinematic-lenses";
 import type { Style } from "@/service/style/types";
 
 export type StylePromptSlice = Pick<
@@ -20,8 +20,8 @@ export function styleBlockForDirector(style: StylePromptSlice & { id?: string })
     `Never: ${style.negatives}.`,
     "Do not set a font, lettering texture, or subtitle color. Those come only from the selected text style, never from this visual style and never from the skill.",
   ];
-  if (style.id === "realistic" || style.name === "Cinematic realistic") {
-    lines.push(CINEMATIC_LENS_RULE);
+  if (isCinematicRealistic(style)) {
+    lines.push(CINEMATIC_LENS_RULE, CINEMATIC_WORLD_RULE);
   }
   lines.push(
     "Write visualWorld and palette in this style. If a cast or character reference is given, characterLock must only say appearance follows the attached blueprint — never invent clothing or hairstyle from this palette. The default everyman applies only when no cast/reference is given. Keep every other rule (hooks, pacing, clip structure, cast lock, narration) unchanged.",
@@ -30,12 +30,17 @@ export function styleBlockForDirector(style: StylePromptSlice & { id?: string })
 }
 
 // Opening lines of every storyboard-frame / still prompt.
-export function styleLinesForFrame(style: StylePromptSlice) {
+export function styleLinesForFrame(style: StylePromptSlice & { id?: string }) {
   return [
     // Skill-neutral wording: the same still prompt serves explainer, story, demo, etc.
     `Single storyboard still for a ${style.name} short video.`,
     `Canvas: ${style.canvas}. Look: ${style.look}. Never: ${style.negatives}. No watermark.`,
+    ...(isCinematicRealistic(style) ? [CINEMATIC_WORLD_RULE] : []),
   ];
+}
+
+function isCinematicRealistic(style: { id?: string; name?: string }) {
+  return style.id === "realistic" || style.name === "Cinematic realistic";
 }
 
 // Placed next to the spelling rule so lettering and spelling travel together.

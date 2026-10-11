@@ -30,6 +30,26 @@ const chalkboard: Style = {
   canvas: "dark green slate chalkboard with faint chalk-dust smudges",
 };
 
+test("cinematic realistic keeps bodies and motion in the real world", () => {
+  const realistic = {
+    ...doodle,
+    id: "realistic" as const,
+    name: "Cinematic realistic",
+  };
+  const block = styleBlockForDirector(realistic);
+  assert.match(block, /one person is one person/);
+  assert.match(block, /two places/);
+  assert.match(block, /human speed/);
+  assert.match(block, /No teleport/);
+  assert.match(block, /Feet stay on the ground/);
+  assert.doesNotMatch(styleBlockForDirector(doodle), /two places/);
+
+  const frames = styleLinesForFrame(realistic).join("\n");
+  assert.match(frames, /one person is one person/);
+  assert.match(frames, /two places/);
+  assert.doesNotMatch(styleLinesForFrame(doodle).join("\n"), /two places/);
+});
+
 test("cinematic realistic tells the director to pick a prime per clip", () => {
   const block = styleBlockForDirector({
     ...doodle,

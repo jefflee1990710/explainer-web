@@ -10,6 +10,13 @@ export const CINEMATIC_LENS_RULE = [
   "Write both lenses into the Camera line and into the motion. One lens change per clip, slow, on a gimbal. No handheld shake, no whip, and no snap zoom.",
 ].join(" ");
 
+// Bodies and motion stay physical. Cartoon snap and jump do not apply in this style.
+export const CINEMATIC_WORLD_RULE = [
+  "Real world: one person is one person. No second copy, clone, or the same character standing in two places in one frame.",
+  "Movement is human speed. A walk, a turn, and a reach take real time. No teleport, and no sudden fast slide.",
+  "Feet stay on the ground. Both feet leave the ground only when the storyboard writes a real jump. An object in a hand stays in that hand.",
+].join(" ");
+
 const CINEMATIC_LOOK =
   "photorealistic cinematic still: natural skin and fabric detail, believable lighting with a soft key and gentle fill, shallow depth of field, filmic colour grading, no illustration. The lens is exactly one of 24mm f/1.2, 35mm f/1.4, 50mm f/1.4, or 80mm f/1.4, the lens named in the scene.";
 
