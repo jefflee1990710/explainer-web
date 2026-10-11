@@ -228,6 +228,7 @@ test("cartoon marker safe zone keeps spoken casing and drops the bottom band", (
   assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /52%/);
   assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /mixed-case/);
   assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /beat title/);
+  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /must not repeat that still's Subtitle/);
   assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /STEP N|STEP 1/);
   assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /diagram/);
   assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /SYSTOLIC|TPU/i);

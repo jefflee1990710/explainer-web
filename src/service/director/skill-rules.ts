@@ -500,7 +500,7 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
       ? "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a short hold while the graph responds (a node lights up, an arrow draws itself on, a counter ticks up). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
       : "",
     cartoonHookCameraRule(hasCharacter),
-    "On-canvas beat text: write one short beat title that names this clip's idea, plus diagram labels, node names, and arrow names inside 「」 in startScene and endScene. Also write that still's spoken line there as Subtitle (spell exactly): \"<startVo or endVo>\". The still paints that sentence.",
+    "On-canvas beat text: a beat title may name a diagram label, node, arrow, or prop inside 「」 in startScene and endScene. A 「」 label must not repeat the Subtitle on that still. Also write that still's spoken line as Subtitle (spell exactly): \"<startVo or endVo>\". The still paints that sentence once.",
   ]
     .filter(Boolean)
     .join(" ");
@@ -556,6 +556,28 @@ export function cartoonNarratorFrameLock(
   }
   const base = "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」, clearly readable.";
   return hook ? `${base} ${hook}` : base;
+}
+
+function letteringKey(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[.!?。！？'"“”]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Cartoon stills only. A 「」 label that repeats the Subtitle sentence is a second copy.
+export function dropRepeatedSubtitleLabels(scene: string) {
+  const quotes = [...scene.matchAll(/Subtitle(?:\s*\([^)]*\))?\s*:\s*"([^"]*)"/gi)].map((match) =>
+    letteringKey(match[1] || ""),
+  );
+  if (!quotes.some(Boolean)) return scene;
+  return scene
+    .replace(/「([^」]*)」/g, (full, inner: string) =>
+      quotes.includes(letteringKey(inner)) ? "" : full,
+    )
+    .replace(/[ \t]{2,}/g, " ");
 }
 
 // Appended to whiteboard-explainer clip videos; empty for every other director.

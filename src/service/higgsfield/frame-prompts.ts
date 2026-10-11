@@ -53,6 +53,7 @@ import {
   bookendLogoFrameLines,
   cartoonClipAction,
   cartoonNarratorFrameLock,
+  dropRepeatedSubtitleLabels,
   isBookendSkill,
   VERTICAL_FRAME_SAFE_AREA,
   isComparisonCardSkill,
@@ -619,6 +620,10 @@ export function buildFramePrompt(
   }
   // The Scene line is what the image model follows. A later rule cannot undo a contradiction inside it.
   sceneDescription = reconcileSightline(sceneDescription);
+  // Cartoon only: drop a 「」 label that is the same words as this still's Subtitle.
+  if (isDualBeatSkill(project.skillSlug)) {
+    sceneDescription = dropRepeatedSubtitleLabels(sceneDescription);
+  }
   const openingRaw = directorWritesLettering || keepSceneLabels
     ? clipStartScene(row).trim()
     : stripStoryboardWriting(clipStartScene(row));

@@ -158,7 +158,7 @@ export function dualBeatDirectorBlock(
       ? "Subtitle placement stays with this director: not a bottom subtitle bar. Do not copy placement from the visual style. Lettering follows the selected text style, not the visual style."
       : "Do not take lettering from the visual style. Any label that is allowed follows the selected text style.",
     sceneTextEnabled
-      ? "Also write one short beat title that names this clip's idea. Also add diagram labels / node names / arrow names inside 「」 on the graph they belong to. Do not dump the full voiceover into startScene or endScene."
+      ? "A beat title may name diagram labels, nodes, arrows, or props inside 「」 on the graph they belong to. A 「」 label must not repeat that still's Subtitle. Do not dump the full voiceover into startScene or endScene."
       : inWorldLabels
         ? "Labels must name a step, mechanism, or part of the diagram; never transcribe the voiceover."
         : "Do not invent extra titles besides the beat voiceover.",

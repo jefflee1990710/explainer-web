@@ -9,6 +9,7 @@ import {
   briefSkillError,
   cartoonClipAction,
   cartoonExplainerDirectorBlock,
+  dropRepeatedSubtitleLabels,
   cartoonNarratorFrameLock,
   cartoonNarratorVideoLock,
   comparisonCardDirectorBlock,
@@ -101,6 +102,19 @@ test("story short is filmed third-person: characters never address the camera", 
   assert.equal(storyShortCameraLock("dialogue-qa-director"), "");
 });
 
+test("a cartoon still drops a bracket label that repeats the subtitle", () => {
+  const scene =
+    'floating label 「5 Camera Motions You Need to Know!」 beside her. Subtitle: "5 Camera Motions You Need to Know!"';
+  const next = dropRepeatedSubtitleLabels(scene);
+  assert.doesNotMatch(next, /「5 Camera Motions You Need to Know!」/);
+  assert.match(next, /Subtitle: "5 Camera Motions You Need to Know!"/);
+});
+
+test("a different diagram label stays next to the subtitle", () => {
+  const scene = 'cue card labeled 「ARC SHOT」. Subtitle: "First is the arc shot!"';
+  assert.match(dropRepeatedSubtitleLabels(scene), /「ARC SHOT」/);
+});
+
 test("whiteboard explainer is always narrated; every topic uses an explanation graph", () => {
   const block = cartoonExplainerDirectorBlock();
   assert.match(block, /ALWAYS narrated/);
@@ -109,6 +123,7 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(block, /explanation graph/);
   assert.match(block, /every topic/);
   assert.match(block, /beat title/);
+  assert.match(block, /must not repeat the Subtitle/);
   assert.doesNotMatch(block, /STEP N|STEP 1/);
   assert.doesNotMatch(block, /at least 3 concrete props/);
   assert.doesNotMatch(block, /SYSTOLIC|TPU|walk-forward/i);

@@ -126,6 +126,22 @@ function project(styleId?: Project["styleId"]): Project {
   };
 }
 
+test("a cartoon still paints the subtitle once when the bracket label repeats it", () => {
+  const cartoon = project();
+  cartoon.skillSlug = "cartoon-explainer-video-director";
+  cartoon.sceneTextEnabled = true;
+  cartoon.phaseA!.clips[0].explainerScene =
+    'floating label 「5 Camera Motions You Need to Know!」. Subtitle: "5 Camera Motions You Need to Know!"';
+  const prompt = buildFramePrompt(cartoon, 1, "start");
+  assert.doesNotMatch(prompt, /「5 Camera Motions You Need to Know!」/);
+  assert.match(prompt, /5 Camera Motions You Need to Know!/);
+
+  const other = project();
+  other.sceneTextEnabled = true;
+  other.phaseA!.clips[0].explainerScene = cartoon.phaseA!.clips[0].explainerScene;
+  assert.match(buildFramePrompt(other, 1, "start"), /「5 Camera Motions You Need to Know!」/);
+});
+
 test("doodle frame prompt uses the loaded style, no hard-coded whiteboard literal", () => {
   const prompt = buildFramePrompt(project(), 1, "start");
   assert.match(prompt, /doodle name short video/);
