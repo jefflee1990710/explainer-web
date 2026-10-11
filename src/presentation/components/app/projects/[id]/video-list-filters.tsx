@@ -12,34 +12,39 @@ const LABEL: Record<VideoListFilter, string> = {
   posted: "video.filters.posted",
 };
 
-// Tag chips above the folder grid. One tag shows only that stage; click it again to show all.
+// Tag chips above the folder grid. Several stages can stay on at once.
 export function VideoListFilters({
   counts,
   active,
   onChange,
 }: {
   counts: Record<VideoListFilter, number>;
-  active: VideoListFilter | null;
-  onChange: (filter: VideoListFilter | null) => void;
+  active: VideoListFilter[];
+  onChange: (filters: VideoListFilter[]) => void;
 }) {
   const { t } = useI18n();
   const total = VIDEO_LIST_FILTERS.reduce((sum, filter) => sum + counts[filter], 0);
+  const allOn = active.length === VIDEO_LIST_FILTERS.length;
 
   return (
     <div className="flex gap-2 overflow-x-auto pb-1" role="toolbar" aria-label={t("video.filters.label")}>
       <FilterChip
         label={t("video.filters.all")}
         count={total}
-        pressed={active === null}
-        onClick={() => onChange(null)}
+        pressed={allOn}
+        onClick={() => onChange(allOn ? [] : [...VIDEO_LIST_FILTERS])}
       />
       {VIDEO_LIST_FILTERS.map((filter) => (
         <FilterChip
           key={filter}
           label={t(LABEL[filter])}
           count={counts[filter]}
-          pressed={active === filter}
-          onClick={() => onChange(active === filter ? null : filter)}
+          pressed={active.includes(filter)}
+          onClick={() =>
+            onChange(
+              active.includes(filter) ? active.filter((id) => id !== filter) : [...active, filter],
+            )
+          }
         />
       ))}
     </div>

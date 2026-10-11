@@ -1,9 +1,11 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { AspectRatio } from "@/model/project";
 import type { StudioClipItem, StudioClipTone } from "@/presentation/studio/clip-item";
+import { FilmstripAddClip } from "@/presentation/studio/filmstrip-add-clip";
 import { FilmstripGenerating } from "@/presentation/studio/filmstrip-generating";
 import { FilmstripMediaTags } from "@/presentation/studio/filmstrip-media-tags";
 
@@ -31,6 +33,8 @@ export function Filmstrip({
   aspectRatio = "1:1",
   checkedIds = [],
   onToggleCheck,
+  onReorder,
+  onAdd,
 }: {
   items: StudioClipItem[];
   selectedId: string;
@@ -38,8 +42,14 @@ export function Filmstrip({
   aspectRatio?: AspectRatio;
   checkedIds?: string[];
   onToggleCheck?: (id: string) => void;
+  onReorder?: (fromId: string, toId: string) => void;
+  onAdd?: () => void;
 }) {
   const { t } = useI18n();
+  const [draggingId, setDraggingId] = useState("");
+  const [overId, setOverId] = useState("");
+  const skipClickUntil = useRef(0);
+  const draggingRef = useRef("");
   if (items.length === 0) {
     return (
       <p className="flex items-center px-4 py-6 text-sm text-[var(--studio-muted)]">
@@ -57,13 +67,55 @@ export function Filmstrip({
         const selected = item.id === selectedId;
         const checked = checkedIds.includes(item.id);
         return (
-          <li key={item.id} className={`group relative h-full ${selected ? "z-10" : ""}`}>
+          <li
+            key={item.id}
+            draggable={Boolean(onReorder)}
+            onDragStart={(event) => {
+              const target = event.target as HTMLElement;
+              if (target.closest("label")) {
+                event.preventDefault();
+                return;
+              }
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/plain", item.id);
+              draggingRef.current = item.id;
+              setDraggingId(item.id);
+            }}
+            onDragOver={(event) => {
+              if (!onReorder || !draggingRef.current || draggingRef.current === item.id) return;
+              event.preventDefault();
+              if (overId !== item.id) setOverId(item.id);
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              const fromId = event.dataTransfer.getData("text/plain") || draggingRef.current;
+              draggingRef.current = "";
+              setDraggingId("");
+              setOverId("");
+              if (onReorder && fromId && fromId !== item.id) onReorder(fromId, item.id);
+            }}
+            onDragEnd={() => {
+              draggingRef.current = "";
+              skipClickUntil.current = Date.now() + 200;
+              setDraggingId("");
+              setOverId("");
+            }}
+            className={`group relative h-full ${selected ? "z-10" : ""} ${
+              onReorder ? "cursor-grab active:cursor-grabbing" : ""
+            } ${overId === item.id ? "rounded-sm ring-2 ring-[var(--studio-teal)]" : ""} ${
+              draggingId === item.id ? "opacity-50" : ""
+            }`}
+          >
             <button
               type="button"
               role="tab"
               aria-selected={selected}
+              aria-roledescription={onReorder ? t("production.filmstrip.dragClip", { title: item.title }) : undefined}
               aria-label={`${item.title} ${item.durationLabel} ${item.statusLabel}${item.hasScene ? t("production.filmstrip.sceneDoneSuffix") : ""}${item.hasVideo ? t("production.filmstrip.videoDoneSuffix") : ""}`}
-              onClick={() => onSelect(item.id)}
+              onClick={() => {
+                if (Date.now() < skipClickUntil.current) return;
+                onSelect(item.id);
+              }}
               style={{
                 width: `calc((var(--filmstrip-h) - 35px) * ${ASPECT_WIDTH_RATIO[aspectRatio]})`,
               }}
@@ -129,6 +181,7 @@ export function Filmstrip({
           </li>
         );
       })}
+      {onAdd ? <FilmstripAddClip aspectRatio={aspectRatio} onAdd={onAdd} /> : null}
     </ol>
   );
 }

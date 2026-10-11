@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { GenerationDetailTag } from "@/service/clip-stage";
-import { videoListStage } from "@/service/video/list-stage";
+import { videoListFiltersFromSearch, videoListFiltersSearchValue, videoListStage } from "@/service/video/list-stage";
 
 const scene = (state: GenerationDetailTag["state"]): GenerationDetailTag => ({
   clipNumber: 1,
@@ -50,6 +50,29 @@ test("images done and the video not started is pending video", () => {
   assert.equal(
     videoListStage({ status: "production", tags: [scene("ready"), video("failed")] }),
     "pending_video",
+  );
+});
+
+test("the list opens on pending video and pending to post unless the url names filters", () => {
+  assert.deepEqual(videoListFiltersFromSearch(null), ["pending_video", "pending_post"]);
+  assert.deepEqual(videoListFiltersFromSearch(undefined), ["pending_video", "pending_post"]);
+  assert.deepEqual(videoListFiltersFromSearch("nope"), ["pending_video", "pending_post"]);
+  assert.deepEqual(videoListFiltersFromSearch("posted"), ["posted"]);
+  assert.deepEqual(videoListFiltersFromSearch("posted,pending_video"), ["pending_video", "posted"]);
+  assert.deepEqual(videoListFiltersFromSearch("all"), [
+    "director",
+    "scenes",
+    "videos",
+    "pending_video",
+    "pending_post",
+    "posted",
+  ]);
+  assert.deepEqual(videoListFiltersFromSearch("none"), []);
+  assert.equal(videoListFiltersSearchValue(["pending_post", "pending_video"]), "pending_video,pending_post");
+  assert.equal(videoListFiltersSearchValue([]), "none");
+  assert.equal(
+    videoListFiltersSearchValue(["director", "scenes", "videos", "pending_video", "pending_post", "posted"]),
+    "all",
   );
 });
 
