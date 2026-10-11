@@ -55,10 +55,11 @@ export function sceneDraftFromClip(
 }
 
 // Clip-wide director chat. Still-prompt threads have a start/end position.
-export function clipSceneChatThread(
-  chats: Array<Pick<SceneChatThread, "clipNumber" | "position" | "messages">> | undefined,
+// Generic so serialized chats (createdAt: string) and stored chats (Date) both fit.
+export function clipSceneChatThread<T extends { clipNumber: number; position?: string }>(
+  chats: T[] | undefined,
   clipNumber: number,
-) {
+): T | undefined {
   return (chats || []).find((item) => item.clipNumber === clipNumber && !item.position);
 }
 
