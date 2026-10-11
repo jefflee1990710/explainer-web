@@ -452,6 +452,50 @@ test("an orbit end still does not attach the start frame, and names the landed a
   assert.doesNotMatch(freed.prompt, /COMPOSITION LOCK/);
 });
 
+test("Cinematic realistic whiteboard stills share the camera and the whole subtitle", () => {
+  const steady = project("realistic");
+  steady.skillSlug = "cartoon-explainer-video-director";
+  steady.sceneTextEnabled = true;
+  steady.cast = [
+    { characterId: new ObjectId(), versionId: new ObjectId(), name: "Scro", blueprintUrl: "https://blob/c.png", prompt: "" },
+  ];
+  steady.phaseA!.clips[0] = {
+    ...steady.phaseA!.clips[0],
+    startScene: 'Scro holds the card. Subtitle (spell exactly): "First beat. Second beat."',
+    endScene: 'Scro has flipped the card. Subtitle (spell exactly): "First beat. Second beat."',
+    startVo: "First beat.",
+    endVo: "Second beat.",
+    englishVo: "First beat. Second beat.",
+    // A stale orbit in the camera text must not pull the start still away.
+    motionCamera: "0-5s Scro flips the card; gimbal arc sweeps 180 degrees from left profile to right 3/4 view.",
+  };
+  steady.frames = [
+    { clipNumber: 1, position: "start", prompt: "p", status: "completed", blobUrl: "https://blob/start.png" },
+    { clipNumber: 1, position: "end", prompt: "p", status: "queued" },
+  ];
+  const end = frameSubmitPlan(steady, 1, "end");
+  assert.deepEqual(end.refs, ["https://blob/start.png", "https://blob/c.png"]);
+  assert.match(end.prompt, /COMPOSITION LOCK: attached image 1 is THIS CLIP'S START frame/);
+  assert.match(end.prompt, /No zoom, no reframe, no new angle/);
+  assert.match(end.prompt, /subtitle lettering stays identical/);
+  assert.match(end.prompt, /match the other still of this clip/);
+  assert.doesNotMatch(end.prompt, /LANDED CAMERA/);
+  assert.doesNotMatch(end.prompt, /Camera landing/);
+  assert.doesNotMatch(end.prompt, /may differ from the other still/);
+  assert.doesNotMatch(end.prompt, /exaggerated framing/);
+
+  steady.frames.push({ clipNumber: 1, position: "end", prompt: "p", status: "completed", blobUrl: "https://blob/end.png" });
+  const start = frameSubmitPlan(steady, 1, "start");
+  assert.doesNotMatch(start.prompt, /OPENING CAMERA/);
+  assert.match(start.prompt, /gentle push at most/);
+
+  // Doodle on the same storyboard still draws the landed angle without the start still.
+  const doodle = { ...steady, styleId: "doodle" as const };
+  const freed = frameSubmitPlan(doodle, 1, "end");
+  assert.deepEqual(freed.refs, ["https://blob/c.png"]);
+  assert.match(freed.prompt, /LANDED CAMERA/);
+});
+
 test("an end still without a start lock attaches the prop sheet and empty-set plate", () => {
   const arc = project();
   arc.skillSlug = "cartoon-explainer-video-director";

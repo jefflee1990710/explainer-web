@@ -2,7 +2,7 @@ import type { CharacterVoice } from "@/model/character-voice";
 import type { PerformanceSlots } from "@/model/director-performance";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { isOutfitReelSkill } from "@/service/director/skill-rules";
-import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
+import { DUAL_KEYFRAME_GLIDE_RULES, DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
 import { OUTFIT_VIDEO_MOTION_RULES } from "@/service/director/outfit-reel";
 import { isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
 import { surpriseVarietyPlan, surpriseVideoMotionRules } from "@/service/director/surprise-interview";
@@ -47,8 +47,16 @@ export function phaseBWardrobeLock(input: {
 
 // Dual-beat stills always carry startVo / endVo marker lettering, so the video
 // must swap it at the midpoint rather than erase it as a "caption".
-export function phaseBLetteringLock(input: { skillSlug: string; durationSeconds: number }) {
+export function phaseBLetteringLock(input: {
+  skillSlug: string;
+  durationSeconds: number;
+  // Cinematic realistic: both frames carry the same whole line, so nothing is swapped.
+  fixedLettering?: boolean;
+}) {
   if (!isDualBeatSkill(input.skillSlug)) return "";
+  if (input.fixedLettering) {
+    return "On-canvas lettering: the first and last frames carry the same marker line. It stays exactly as drawn for the whole clip: no wipe, no rewrite, no new words. This is in-scene lettering from the keyframes, not a caption or subtitle.";
+  }
   const midpoint = clampClipSeconds(input.durationSeconds) / 2;
   return `On-canvas lettering: the marker line drawn in the first frame stays until about ${midpoint}s, then wipes off and the marker line drawn in the last frame writes on in the same spot. Keep both lines exactly as the frames show; this is in-scene lettering from the keyframes, not a caption or subtitle.`;
 }
@@ -69,6 +77,8 @@ export function clipPhaseBUserPrompt(input: {
   skillSlug?: string;
   // Resolved talking-head performance slots (English). Default set when omitted.
   performance?: PerformanceSlots;
+  // Cinematic realistic whiteboard: one smooth glide instead of the snap beats.
+  smoothMotion?: boolean;
 }) {
   const rows = input.phaseA.clips;
   const index = rows.findIndex((row) => row.clipNumber === input.clipNumber);
@@ -115,7 +125,9 @@ export function clipPhaseBUserPrompt(input: {
               row.clipNumber,
               surpriseVarietyPlan(input.phaseA).find((item) => item.clipNumber === row.clipNumber)?.place,
             )
-          : DUAL_KEYFRAME_MOTION_RULES,
+          : input.smoothMotion
+            ? DUAL_KEYFRAME_GLIDE_RULES
+            : DUAL_KEYFRAME_MOTION_RULES,
     opening,
     closing,
     input.bansNarration

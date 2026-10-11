@@ -162,6 +162,7 @@ export function ClipProduction({
         checkedIds={checked}
         onToggleCheck={toggleCheck}
         onProject={onProject}
+        onDeleted={() => setChecked([])}
         timelineBar={
           checked.length ? (
             <SelectionBar

@@ -102,6 +102,13 @@ export const errorsEn = {
   voiceSampleNotConfigured: "Voice cloning is not set up yet",
   voiceSampleUploadFailed: "Could not upload the demo voice",
   voiceSampleRemoveFailed: "Could not remove the demo voice",
+  clipBusy: "Wait until generation finishes before deleting a clip",
+  reelBusyDelete: "Wait until the full video finishes before deleting a clip",
+  keepOneClip: "Keep at least one clip",
+  deleteClipFailed: "Could not delete the clip. Try again.",
+  clipBusyInsert: "Wait until generation finishes before inserting a clip",
+  reelBusyInsert: "Wait until the full video finishes before inserting a clip",
+  insertSlotInvalid: "That clip position is not valid",
 } as const;
 
 

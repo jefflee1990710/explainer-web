@@ -272,6 +272,15 @@ test("subtitle look changes lettering and never the director placement", () => {
   assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /40%/);
 });
 
+test("steady dual-beat stills quote the same whole line on both stills", () => {
+  const hint = sceneTextSkillHint(true, "en", { dualBeat: true, steadyStills: true });
+  assert.match(hint, /SAME whole line/);
+  assert.match(hint, /"<startVo> <endVo>"/);
+  assert.match(hint, /lettering never changes inside the clip/);
+  assert.doesNotMatch(hint, /ONLY startVo/);
+  assert.doesNotMatch(hint, /switch at the midpoint/);
+});
+
 test("director revision note asks to drop invented labels when toggling", () => {
   assert.match(sceneTextDirectorRevisionNote(true, "en"), /englishVo/);
   assert.match(sceneTextDirectorRevisionNote(false, "en"), /OFF/);

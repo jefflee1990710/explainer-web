@@ -75,7 +75,8 @@ import {
 } from "@/service/director/talking-head";
 import { sanitizeOutfitPhaseA } from "@/service/director/outfit-reel";
 import { sanitizeSurprisePhaseA } from "@/service/director/surprise-interview";
-import { isCinematicRealistic, type Style } from "@/service/style";
+import { usesSteadyStills } from "@/service/director/steady-stills";
+import type { Style } from "@/service/style";
 import { resolveSubtitleLook, textStyleSampleHint } from "@/service/director/subtitle-look";
 import type { RenderableStyle } from "@/service/style/renderable-style";
 import type { CastMember } from "@/model/character";
@@ -208,6 +209,8 @@ export async function runPhaseA(input: {
   const subtitleLook = resolveSubtitleLook(input.subtitleLook);
   const sampleLookLine = input.textStyleImageUrl ? textStyleSampleHint() : undefined;
   const dualBeat = isDualBeatSkill(input.skill.slug);
+  // Cinematic realistic whiteboard: locked camera and one subtitle per clip so the video glides.
+  const steadyStills = usesSteadyStills(input.skill.slug, input.style);
   const dialogueOnly = skillBansNarration(input.skill.slug);
   const speakerLocks = lockedSpeakerLines(input.cast);
   const voice = VOICE_PRESETS[resolveVoiceGender(input.voiceGender)];
@@ -254,15 +257,17 @@ export async function runPhaseA(input: {
 You are executing Phase A only. Return structured JSON that matches the schema.
 ${language.planningSkillHint}
 ${verticalSafeAreaDirectorLine(input.aspectRatio)}
-${keyframeDeltaDirectorBlock({ separateStills: dualBeat, language: input.language, performance: dualBeat && hasCharacter })}
+${keyframeDeltaDirectorBlock({ separateStills: dualBeat, language: input.language, performance: dualBeat && hasCharacter, steadyStills })}
 ${sceneDetailDirectorBlock()}
-${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter }) : ""}
+${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter, steadyStills }) : ""}
 ${
   skillForcesSceneText(input.skill.slug)
     ? "On-canvas text is required: a numbered item list must appear in every still."
     : sceneText.enabled
       ? dualBeat
-        ? "On-canvas text: start still quotes only startVo; end still quotes only endVo."
+        ? steadyStills
+          ? "On-canvas text: both stills quote the same whole line, startVo then endVo, as one identical Subtitle."
+          : "On-canvas text: start still quotes only startVo; end still quotes only endVo."
         : "On-canvas text may stay the same line from start to end; motion is pose, props, and lettering placement only."
       : sceneText.inWorldLabels
         ? "Motion is pose, props, and short in-world labels / tags popping or snapping in — never a voiceover caption."
@@ -297,7 +302,7 @@ ${
     input.skill.slug === CARTOON_EXPLAINER_SKILL_SLUG
       ? cartoonExplainerDirectorBlock({
           hasCharacter,
-          smoothMotion: isCinematicRealistic(input.style),
+          smoothMotion: steadyStills,
         })
       : "",
     input.skill.slug === DIALOGUE_QA_SKILL_SLUG ? dialogueQaDirectorBlock() : "",
@@ -330,6 +335,7 @@ ${
 ${phaseAAudioHint(input.voiceGender, { bansNarration: dialogueOnly, speakers: input.cast })}
 ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   dualBeat,
+  steadyStills,
   listicle: skillForcesSceneText(input.skill.slug),
   comparison: isComparisonCardSkill(input.skill.slug),
   inWorldLabels: sceneText.inWorldLabels,
@@ -438,6 +444,7 @@ Produce a complete Phase A director proposal now.`,
         clips: next.clips,
         language: input.language,
         skillSlug: input.skill.slug,
+        lockedCamera: steadyStills,
       }),
     };
   }

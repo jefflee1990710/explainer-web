@@ -23,7 +23,7 @@ export type ClipOrderProject = {
     clipNumber: number;
     messages: Array<{ changedClips?: Numbered[] }>;
   }>;
-  backgroundPlates?: Array<{ clipNumbers: number[] }>;
+  backgroundPlates?: Array<{ setId?: string; clipNumbers: number[] }>;
   phaseB?: { prompts: Numbered[] };
   autoVideoClips?: number[];
   edit?: { transitions?: Record<string, unknown> };
@@ -75,6 +75,107 @@ export function placeAppendedClip(
       clips.reduce((sum, item) => sum + spokenUnits(item.englishVo, options?.language), 0),
     ),
   };
+}
+
+function bumpMap(numbers: number[], insertAt: number, added: number) {
+  return new Map(numbers.map((number) => [number, number >= insertAt ? number + added : number]));
+}
+
+// Insert drafted rows at `insertAt` (1 = before the first clip) and shift later clips.
+export function insertClips<T extends ClipOrderProject>(
+  project: T,
+  rows: StoryboardRow[],
+  insertAt: number,
+  options?: { language?: VoLanguage; talkingHead?: boolean },
+): { ok: true; project: T } | { ok: false; error: string } {
+  const current = [...(project.phaseA?.clips ?? [])].sort((a, b) => a.clipNumber - b.clipNumber);
+  if (!project.phaseA || rows.length < 1 || insertAt < 1 || insertAt > current.length + 1) {
+    return { ok: false, error: "插入位置不正確" };
+  }
+  const added = rows.length;
+  const map = bumpMap(
+    current.map((clip) => clip.clipNumber),
+    insertAt,
+    added,
+  );
+  const previous = current.find((clip) => clip.clipNumber === insertAt - 1);
+  const following = current.find((clip) => clip.clipNumber === insertAt);
+  const setId = previous?.backgroundSetId || following?.backgroundSetId;
+  const prepared = rows.map((row, index) => ({
+    ...row,
+    clipNumber: insertAt + index,
+    durationSeconds: clampClipDuration(row.durationSeconds, options?.talkingHead),
+    ...(setId ? { backgroundSetId: setId } : {}),
+  }));
+  const bumped = current.map((clip) => ({
+    ...clip,
+    clipNumber: map.get(clip.clipNumber) ?? clip.clipNumber,
+  }));
+  const clips = withTimeRanges([
+    ...bumped.filter((clip) => clip.clipNumber < insertAt),
+    ...prepared,
+    ...bumped.filter((clip) => clip.clipNumber >= insertAt),
+  ]);
+  const total = clips.reduce((sum, clip) => sum + clip.durationSeconds, 0);
+  const phaseA = {
+    ...project.phaseA,
+    clips,
+    clipCount: clips.length,
+    targetDuration: `${total}s`,
+    englishWordCount: Math.max(
+      1,
+      clips.reduce((sum, clip) => sum + spokenUnits(clip.englishVo, options?.language), 0),
+    ),
+  };
+  const newNumbers = prepared.map((clip) => clip.clipNumber);
+  const cleared = {
+    ...project,
+    phaseA,
+    clips: renumber(project.clips, map),
+    frames: project.frames ? renumber(project.frames, map) : project.frames,
+    sceneChats: project.sceneChats?.map((thread) => ({
+      ...thread,
+      clipNumber: map.get(thread.clipNumber) ?? thread.clipNumber,
+      messages: thread.messages.map((message) => ({
+        ...message,
+        changedClips: message.changedClips?.map((change) => ({
+          ...change,
+          clipNumber: map.get(change.clipNumber) ?? change.clipNumber,
+        })),
+      })),
+    })),
+    backgroundPlates: project.backgroundPlates?.map((plate) => {
+      const clipNumbers = plate.clipNumbers.map((number) => map.get(number) ?? number);
+      if (setId && plate.setId === setId) {
+        for (const number of newNumbers) {
+          if (!clipNumbers.includes(number)) clipNumbers.push(number);
+        }
+      }
+      return { ...plate, clipNumbers };
+    }),
+    phaseB: project.phaseB
+      ? { ...project.phaseB, prompts: renumber(project.phaseB.prompts, map) }
+      : project.phaseB,
+    autoVideoClips: project.autoVideoClips?.map((number) => map.get(number) ?? number),
+    edit: project.edit?.transitions
+      ? { ...project.edit, transitions: remapTransitions(project.edit.transitions, map) }
+      : project.edit,
+  };
+  const withReel = cleared as T & {
+    reelUrl?: string;
+    reelStatus?: string;
+    reelFingerprint?: string;
+    reelError?: string;
+    reelStep?: unknown;
+    reelAttempts?: number;
+  };
+  withReel.reelUrl = undefined;
+  withReel.reelStatus = undefined;
+  withReel.reelFingerprint = undefined;
+  withReel.reelError = undefined;
+  withReel.reelStep = undefined;
+  withReel.reelAttempts = undefined;
+  return { ok: true, project: cleared };
 }
 
 // A new clip stays in the same empty set as the clip it follows.
@@ -156,6 +257,117 @@ function remapTransitions<T>(transitions: Record<string, T>, map: Map<number, nu
     next[`${remapTimelineId(from, map)}__${remapTimelineId(to, map)}`] = value;
   }
   return next;
+}
+
+function dropAndRenumber<T extends Numbered>(items: T[], removed: number, map: Map<number, number>) {
+  return renumber(
+    items.filter((item) => item.clipNumber !== removed),
+    map,
+  );
+}
+
+function transitionTouchesClip(id: string, removed: number) {
+  return clipNumberFromTimelineId(id) === removed;
+}
+
+// Drop transitions that used the deleted clip, then renumber the rest.
+function remapTransitionsAfterRemoval<T>(transitions: Record<string, T>, removed: number, map: Map<number, number>) {
+  const next: Record<string, T> = {};
+  for (const [key, value] of Object.entries(transitions)) {
+    const [from, to] = key.split("__");
+    if (!from || !to || transitionTouchesClip(from, removed) || transitionTouchesClip(to, removed)) continue;
+    next[`${remapTimelineId(from, map)}__${remapTimelineId(to, map)}`] = value;
+  }
+  return next;
+}
+
+// Which clip stays open after `removed` is gone.
+export function selectedClipAfterRemoval(selected: number, removed: number, remaining: number) {
+  if (remaining < 1) return 1;
+  if (selected === removed) return Math.min(removed, remaining);
+  if (selected > removed) return selected - 1;
+  return selected;
+}
+
+// Drop one storyboard clip and renumber everything that follows it.
+export function removeClip<T extends ClipOrderProject>(
+  project: T,
+  clipNumber: number,
+  options?: { language?: VoLanguage },
+): { ok: true; project: T } | { ok: false; error: string } {
+  const current = project.phaseA?.clips ?? [];
+  if (!project.phaseA || !current.some((clip) => clip.clipNumber === clipNumber)) {
+    return { ok: false, error: "找不到這段分鏡" };
+  }
+  if (current.length <= 1) return { ok: false, error: "至少保留一段" };
+  const remaining = current
+    .filter((clip) => clip.clipNumber !== clipNumber)
+    .sort((a, b) => a.clipNumber - b.clipNumber);
+  const map = new Map(remaining.map((clip, index) => [clip.clipNumber, index + 1]));
+  const clips = withTimeRanges(remaining.map((clip, index) => ({ ...clip, clipNumber: index + 1 })));
+  const total = clips.reduce((sum, clip) => sum + clip.durationSeconds, 0);
+  const phaseA = {
+    ...project.phaseA,
+    clips,
+    clipCount: clips.length,
+    targetDuration: `${total}s`,
+    englishWordCount: Math.max(
+      1,
+      clips.reduce((sum, clip) => sum + spokenUnits(clip.englishVo, options?.language), 0),
+    ),
+  };
+  const cleared = {
+    ...project,
+    phaseA,
+    clips: dropAndRenumber(project.clips, clipNumber, map),
+    frames: project.frames ? dropAndRenumber(project.frames, clipNumber, map) : project.frames,
+    sceneChats: project.sceneChats
+      ?.filter((thread) => thread.clipNumber !== clipNumber)
+      .map((thread) => ({
+        ...thread,
+        clipNumber: map.get(thread.clipNumber) ?? thread.clipNumber,
+        messages: thread.messages.map((message) => ({
+          ...message,
+          changedClips: message.changedClips
+            ?.filter((change) => change.clipNumber !== clipNumber)
+            .map((change) => ({
+              ...change,
+              clipNumber: map.get(change.clipNumber) ?? change.clipNumber,
+            })),
+        })),
+      })),
+    backgroundPlates: project.backgroundPlates?.map((plate) => ({
+      ...plate,
+      clipNumbers: plate.clipNumbers
+        .filter((number) => number !== clipNumber)
+        .map((number) => map.get(number) ?? number),
+    })),
+    phaseB: project.phaseB
+      ? { ...project.phaseB, prompts: dropAndRenumber(project.phaseB.prompts, clipNumber, map) }
+      : project.phaseB,
+    autoVideoClips: project.autoVideoClips
+      ?.filter((number) => number !== clipNumber)
+      .map((number) => map.get(number) ?? number),
+    edit: project.edit?.transitions
+      ? { ...project.edit, transitions: remapTransitionsAfterRemoval(project.edit.transitions, clipNumber, map) }
+      : project.edit,
+  };
+  // The old concat still contains this clip, so it is no longer the current reel.
+  const withReel = cleared as T & {
+    reelUrl?: string;
+    reelStatus?: string;
+    reelFingerprint?: string;
+    reelError?: string;
+    reelStep?: unknown;
+    reelAttempts?: number;
+  };
+  withReel.reelUrl = undefined;
+  withReel.reelStatus = undefined;
+  withReel.reelFingerprint = undefined;
+  withReel.reelError = undefined;
+  withReel.reelStep = undefined;
+  withReel.reelAttempts = undefined;
+  return { ok: true, project: cleared };
 }
 
 // `order` is the old clip numbers in the new filmstrip order.

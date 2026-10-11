@@ -62,6 +62,19 @@ test("a cast on the whiteboard director stays put most of the time and varies th
   assert.doesNotMatch(frameStartMoment(1, 6, true), /same side|locked camera/);
 });
 
+test("steady stills lock the camera inside a clip and differ by the action only", () => {
+  const block = keyframeDeltaDirectorBlock({ performance: true, separateStills: true, steadyStills: true });
+  assert.match(block, /one locked shot/);
+  assert.match(block, /same shot size, angle, side, and crop/);
+  assert.match(block, /differ by the one action only/);
+  assert.match(block, /Keep the camera where the start still has it/);
+  assert.doesNotMatch(block, /exaggerated hook camera/);
+  assert.doesNotMatch(block, /Camera angle changes every clip/);
+  assert.doesNotMatch(block, /must NOT look almost identical/);
+  const graph = keyframeDeltaDirectorBlock({ separateStills: true, steadyStills: true });
+  assert.match(graph, /do not move inside a clip/);
+});
+
 test("frame moments mention the clip duration and a readable end change", () => {
   assert.match(frameStartMoment(1, 5), /t=0s/);
   assert.match(frameStartMoment(1, 5), /5–6s/);

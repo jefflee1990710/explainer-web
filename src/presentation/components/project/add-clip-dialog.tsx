@@ -8,11 +8,13 @@ import { StudioButton } from "@/presentation/studio/studio-button";
 
 // Asks for the new clip's content, then the director appends it.
 export function AddClipDialog({
+  place,
   pending,
   error,
   onCancel,
   onConfirm,
 }: {
+  place: string;
   pending: boolean;
   error: string;
   onCancel: () => void;
@@ -51,7 +53,9 @@ export function AddClipDialog({
         <h2 id={titleId} className="text-lg font-bold">
           {t("production.filmstrip.addTitle")}
         </h2>
-        <p className="mt-2 text-sm text-[var(--studio-muted)]">{t("production.filmstrip.addBody")}</p>
+        <p className="mt-2 text-sm text-[var(--studio-muted)]">
+          {t("production.filmstrip.addBody", { place })}
+        </p>
         <textarea
           value={content}
           onChange={(event) => setContent(event.target.value)}

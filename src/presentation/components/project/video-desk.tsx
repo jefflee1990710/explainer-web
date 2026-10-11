@@ -1,18 +1,20 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   appendDirectorClipAction,
-  reorderClipsAction,
+  deleteClipAction,
 } from "@/presentation/actions/clip-timeline";
 import { AddClipDialog } from "@/presentation/components/project/add-clip-dialog";
+import { DeleteClipDialog } from "@/presentation/components/project/delete-clip-dialog";
 import { pageVideos, pauseAllVideos } from "@/presentation/components/project/exclusive-video";
 import { ClipPlaybackProvider } from "@/presentation/components/project/clip-video-player";
 import { clipStudioItems } from "@/presentation/components/project/clip-timeline";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Filmstrip } from "@/presentation/studio/filmstrip";
 import { StudioFrame } from "@/presentation/studio/studio-frame";
-import { applyClipOrder, moveClipIds } from "@/service/clip/clip-order";
+import { removeClip, selectedClipAfterRemoval } from "@/service/clip/clip-order";
+import { translateAppError } from "@/util/i18n/translate-app-error";
 import { clipStatesFor, defaultSelectedClip, type ClipState } from "@/service/clip-stage";
 import type { PublicVideo } from "@/presentation/serialize";
 
@@ -29,6 +31,7 @@ export function VideoDesk({
   onToggleCheck,
   timelineBar,
   onProject,
+  onDeleted,
 }: {
   project: PublicVideo;
   pending?: string;
@@ -40,16 +43,18 @@ export function VideoDesk({
   onToggleCheck?: (id: string) => void;
   timelineBar?: React.ReactNode;
   onProject?: (project: PublicVideo) => void;
+  onDeleted?: () => void;
 }) {
   const { t } = useI18n();
   const states = clipStatesFor(project);
   const [selectedClip, setSelectedClip] = useState(() => defaultSelectedClip(states));
   const [playToken, setPlayToken] = useState(0);
-  const [addOpen, setAddOpen] = useState(false);
+  const [addSlot, setAddSlot] = useState<number | null>(null);
   const [addPending, setAddPending] = useState(false);
   const [addError, setAddError] = useState("");
-  const [reorderError, setReorderError] = useState("");
-  const savingOrder = useRef(false);
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const selected = states.find((state) => state.clipNumber === selectedClip) ?? states[0];
   const items = useMemo(
@@ -73,60 +78,57 @@ export function VideoDesk({
     selectClip(clipNumber);
   }
 
-  async function reorder(fromId: string, toId: string) {
-    if (!onProject || savingOrder.current) return;
-    const order = moveClipIds(
-      items.map((item) => item.id),
-      fromId,
-      toId,
-    ).map(Number);
-    if (order.every((clipNumber, index) => clipNumber === index + 1)) return;
-    const moved = applyClipOrder(project, order);
-    if (!moved.ok) {
-      setReorderError(moved.error);
+  function slotPlace(insertAt: number) {
+    const before = items[insertAt - 2];
+    const after = items[insertAt - 1];
+    if (before && after) {
+      return t("production.filmstrip.addBetween", { before: before.title, after: after.title });
+    }
+    if (after) return t("production.filmstrip.addBefore", { title: after.title });
+    if (before) return t("production.filmstrip.addAfter", { title: before.title });
+    return t("production.filmstrip.addClip");
+  }
+
+  async function confirmDelete() {
+    if (!onProject || deletePending || deleteTarget == null) return;
+    const clipNumber = deleteTarget;
+    const removed = removeClip(project, clipNumber, { language: project.language });
+    if (!removed.ok) {
+      setDeleteError(translateAppError(removed.error, t));
       return;
     }
-    const previous = project;
-    const previousClip = selectedClip;
-    savingOrder.current = true;
-    setReorderError("");
-    onProject(moved.project);
-    setSelectedClip(Math.max(1, order.indexOf(previousClip) + 1));
-    const result = await reorderClipsAction(project.id, order);
-    savingOrder.current = false;
+    setDeletePending(true);
+    setDeleteError("");
+    const result = await deleteClipAction(project.id, clipNumber);
+    setDeletePending(false);
     if (!result.ok) {
-      onProject(previous);
-      setSelectedClip(previousClip);
-      setReorderError(result.error);
+      setDeleteError(translateAppError(result.error, t));
       return;
     }
+    onDeleted?.();
     onProject(result.project);
+    setSelectedClip(
+      selectedClipAfterRemoval(selectedClip, clipNumber, result.project.phaseA?.clips.length ?? 1),
+    );
+    setDeleteTarget(null);
   }
 
   async function addClip(content: string) {
-    if (!onProject || addPending) return;
+    if (!onProject || addPending || addSlot == null) return;
+    const insertAt = addSlot;
     setAddPending(true);
     setAddError("");
-    const result = await appendDirectorClipAction({ videoId: project.id, content });
+    const result = await appendDirectorClipAction({ videoId: project.id, content, insertAt });
     setAddPending(false);
     if (!result.ok) {
-      setAddError(result.error);
+      setAddError(translateAppError(result.error, t));
       return;
     }
+    onDeleted?.();
     onProject(result.project);
-    const last = result.project.phaseA?.clips.at(-1)?.clipNumber;
-    if (last) selectClip(last);
-    setAddOpen(false);
+    selectClip(insertAt);
+    setAddSlot(null);
   }
-
-  const bar = reorderError ? (
-    <>
-      {timelineBar}
-      <p className="px-3 py-1 text-xs text-accent">{reorderError}</p>
-    </>
-  ) : (
-    timelineBar
-  );
 
   return (
     <ClipPlaybackProvider token={playToken}>
@@ -135,7 +137,7 @@ export function VideoDesk({
         preview={selected ? renderPreview(selected, selectClip) : null}
         inspector={selected ? renderInspector(selected, selectClip) : null}
         aside={selected ? renderAside?.(selected) : null}
-        timelineBar={bar}
+        timelineBar={timelineBar}
         timeline={
           <Filmstrip
             items={items}
@@ -144,18 +146,49 @@ export function VideoDesk({
             onSelect={onSelect}
             checkedIds={checkedIds}
             onToggleCheck={onToggleCheck}
-            onReorder={onProject ? reorder : undefined}
-            onAdd={onProject ? () => setAddOpen(true) : undefined}
+            onAdd={
+              onProject
+                ? (insertAt) => {
+                    setAddError("");
+                    setAddSlot(insertAt);
+                  }
+                : undefined
+            }
+            onDelete={
+              onProject
+                ? (id) => {
+                    const clipNumber = Number(id);
+                    if (!Number.isFinite(clipNumber)) return;
+                    setDeleteError("");
+                    setDeleteTarget(clipNumber);
+                  }
+                : undefined
+            }
           />
         }
       />
-      {addOpen ? (
+      {deleteTarget != null ? (
+        <DeleteClipDialog
+          title={t("production.filmstrip.clipTitle", { n: deleteTarget })}
+          pending={deletePending}
+          error={deleteError}
+          blocked={(project.phaseA?.clips.length ?? 0) <= 1}
+          onCancel={() => {
+            if (deletePending) return;
+            setDeleteTarget(null);
+            setDeleteError("");
+          }}
+          onConfirm={() => void confirmDelete()}
+        />
+      ) : null}
+      {addSlot != null ? (
         <AddClipDialog
+          place={slotPlace(addSlot)}
           pending={addPending}
           error={addError}
           onCancel={() => {
             if (addPending) return;
-            setAddOpen(false);
+            setAddSlot(null);
             setAddError("");
           }}
           onConfirm={(content) => void addClip(content)}

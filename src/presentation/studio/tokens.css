@@ -159,6 +159,15 @@
   color: var(--studio-ink);
 }
 
+.studio-app button.studio-insert-clip:hover,
+.studio-app button.studio-insert-clip:focus-visible {
+  background-color: var(--studio-ink);
+  border-color: var(--studio-ink);
+  color: var(--studio-teal);
+  outline: 2px solid var(--studio-teal);
+  outline-offset: 2px;
+}
+
 /* Style tiles are rounded squares. The pill rules above match every ink/paper button. */
 .studio-app button.style-option,
 .studio-app button.style-option.bg-accent-ink,

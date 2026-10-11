@@ -197,6 +197,23 @@ test("dual-beat clips swap the keyframe lettering at the midpoint instead of ban
   assert.equal(phaseBLetteringLock({ skillSlug: "story-short-director", durationSeconds: 5 }), "");
 });
 
+test("steady stills keep the lettering fixed and ask for one continuous glide", () => {
+  const fixed = phaseBLetteringLock({
+    skillSlug: "cartoon-explainer-video-director",
+    durationSeconds: 5,
+    fixedLettering: true,
+  });
+  assert.match(fixed, /same marker line/);
+  assert.match(fixed, /no wipe, no rewrite, no new words/);
+  assert.doesNotMatch(fixed, /wipes off/);
+  const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2, smoothMotion: true });
+  assert.match(prompt, /one continuous, smooth glide/);
+  assert.match(prompt, /lettering is identical in both frames/);
+  assert.match(prompt, /camera stays where both stills have it/);
+  assert.doesNotMatch(prompt, /snaps fast and decisive/);
+  assert.doesNotMatch(prompt, /element-by-element/);
+});
+
 test("dialogue Phase B names the speaking mouth and forbids an invented timbre", () => {
   const prompt = clipPhaseBUserPrompt({
     ...base,

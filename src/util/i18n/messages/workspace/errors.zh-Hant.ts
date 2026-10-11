@@ -102,4 +102,11 @@ export const errorsZhHant = {
   voiceSampleNotConfigured: "尚未設定聲音複製服務",
   voiceSampleUploadFailed: "上傳示範聲音失敗",
   voiceSampleRemoveFailed: "移除示範聲音失敗",
+  clipBusy: "片段還在生成，請完成後再刪除",
+  reelBusyDelete: "成片合成中，請完成後再刪除",
+  keepOneClip: "至少保留一段",
+  deleteClipFailed: "刪除片段失敗，請再試一次",
+  clipBusyInsert: "片段還在生成，請完成後再插入片段",
+  reelBusyInsert: "成片合成中，請完成後再插入片段",
+  insertSlotInvalid: "插入位置不正確",
 } satisfies ErrorsMessages;

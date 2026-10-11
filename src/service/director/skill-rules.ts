@@ -466,9 +466,9 @@ const MENU_ORDER: CartoonAction[] = [
 export function cartoonHookCameraRule(hasCharacter: boolean, smoothMotion?: boolean) {
   if (smoothMotion) {
     if (!hasCharacter) {
-      return "Clip 1 is the hook and uses one camera move on the graph. The start still and the end still may use different shot sizes, and the move between them is a smooth glide with every in-between frame. No snap and no skipped frame. Later clips do not repeat this hook camera.";
+      return "Clip 1 is the hook and uses at most one gentle push-in or pull-out on the graph, as a smooth glide with every in-between frame. Same angle and same crop centre in both stills; only the distance may differ a little. No snap, no skipped frame, and no new angle. Later clips do not repeat this hook camera.";
     }
-    return "Clip 1 is the hook and uses exactly one camera move. Write that before and after in each still's Camera line, so shot size or angle may differ, and the move between them is a smooth glide with every in-between frame. No snap and no skipped frame. Surprise is a facial expression only. The character stays silent. Later clips do not repeat this hook camera.";
+    return "Clip 1 is the hook and uses at most one gentle push-in or pull-out, as a smooth glide with every in-between frame. Both Camera lines keep the same angle and the same side; only the distance may differ a little. No snap, no skipped frame, no orbit, and no new angle. Surprise is a facial expression only. The character stays silent. Later clips do not repeat this hook camera.";
   }
   if (!hasCharacter) {
     return "Clip 1 is the hook and always uses one exaggerated camera on the graph, sharp and fast, no slow glide and no blur: a snap zoom into the key node, or a snap zoom out from that node to the whole chart. The start still and the end still use different shot sizes. Later clips do not repeat this hook camera.";
@@ -492,7 +492,9 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
       ? `A character is on screen. Each clip has exactly one primary body action, chosen from this list by what the clip's line means. Each entry gives the meaning, the word motionCamera's first beat must use, and the before then after of the two stills: ${directorActionMenu()}. Do not reuse an action from either of the previous two clips. Use jump at most once per video, on the key beat. The last clip never points toward the camera. Pick another action that matches the last line, and keep the hands on the graph. A different standing position, a few steps, or a walk is not a new action.`
       : "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth closed or reacting. It may point at a diagram, stand aside reacting, or handle props — it does not have to hold three props.",
     hasCharacter
-      ? "Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). About 80% of clips keep them on that same side for the whole clip — do not walk them from left to right every time. Only about 20% of clips are a full cross, either left to right or right to left, and those rare crosses do not all go the same way. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and facial expression. Camera angle changes every clip and does not repeat: from the character's left side, from above, from the front, or from behind as they turn around, and it may zoom in or out. One continuous move, no cut and no teleport. They stay silent — expression only, no lip-sync and no greeting wave."
+      ? smooth
+        ? "Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). They stay on that side for the whole clip; no lateral cross. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and facial expression. The camera is locked inside a clip: both stills share the same angle, shot size, and crop. A new angle (from the character's left side, from above, from the front, or from behind) is chosen only between clips, at the cut, and does not repeat the previous clip. No orbit and no move to another side inside a clip. They stay silent — expression only, no lip-sync and no greeting wave."
+        : "Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). About 80% of clips keep them on that same side for the whole clip — do not walk them from left to right every time. Only about 20% of clips are a full cross, either left to right or right to left, and those rare crosses do not all go the same way. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and facial expression. Camera angle changes every clip and does not repeat: from the character's left side, from above, from the front, or from behind as they turn around, and it may zoom in or out. One continuous move, no cut and no teleport. They stay silent — expression only, no lip-sync and no greeting wave."
       : "",
     hasCharacter
       ? "For every topic, keep an explanation graph and add the drawn element this clip's action works on. Do not reuse the same camera angle on the next clip. A full left-to-right or right-to-left walk is rare and does not count as the primary action. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts, flow, or a simple chart. Never a near-empty canvas."
@@ -509,7 +511,9 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
         : "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a short hold while the graph responds (a node lights up, an arrow draws itself on, a counter ticks up). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
       : "",
     cartoonHookCameraRule(hasCharacter, smooth),
-    "On-canvas beat text: the spoken line is the subtitle. Write it as Subtitle (spell exactly): \"<startVo or endVo>\". The still paints that sentence in the selected text style, large in the frame, not as small type on a prop. A beat title may name a diagram label, node, arrow, or prop inside 「」 on the object it belongs to. Words inside 「」 are ordinary writing on that object. They do not use the subtitle text style. A 「」 label must not repeat the Subtitle on that still.",
+    smooth
+      ? "On-canvas beat text: the spoken line is the subtitle. Both stills carry the same whole line, written as Subtitle (spell exactly): \"<startVo> <endVo>\", in the same place and size. The still paints that sentence in the selected text style, large in the frame, not as small type on a prop. The lettering never changes inside the clip. A beat title may name a diagram label, node, arrow, or prop inside 「」 on the object it belongs to. Words inside 「」 are ordinary writing on that object. They do not use the subtitle text style. A 「」 label must not repeat the Subtitle on that still."
+      : "On-canvas beat text: the spoken line is the subtitle. Write it as Subtitle (spell exactly): \"<startVo or endVo>\". The still paints that sentence in the selected text style, large in the frame, not as small type on a prop. A beat title may name a diagram label, node, arrow, or prop inside 「」 on the object it belongs to. Words inside 「」 are ordinary writing on that object. They do not use the subtitle text style. A 「」 label must not repeat the Subtitle on that still.",
   ]
     .filter(Boolean)
     .join(" ");
@@ -540,13 +544,26 @@ export function cartoonClipAction(motionCamera: string | undefined): CartoonActi
 // Pasted into whiteboard-explainer stills; empty for every other director.
 export function cartoonNarratorFrameLock(
   skillSlug?: string,
-  options?: { hasCharacter?: boolean; action?: CartoonAction; position?: "start" | "end"; clipNumber?: number },
+  options?: {
+    hasCharacter?: boolean;
+    action?: CartoonAction;
+    position?: "start" | "end";
+    clipNumber?: number;
+    // Cinematic realistic: both stills share the camera; only the action differs.
+    steadyStills?: boolean;
+  },
 ) {
   if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
+  const steady = Boolean(options?.steadyStills);
   const hook =
     options?.clipNumber === 1
-      ? "HOOK CAMERA: this still uses the exaggerated framing named in the Scene. Shot size or angle differs from the other still of Clip 1. A close view shows a surprised face."
+      ? steady
+        ? "HOOK CAMERA: Clip 1 moves the camera by a gentle push at most. This still keeps the same angle and side as the other still of Clip 1. A close view shows a surprised face."
+        : "HOOK CAMERA: this still uses the exaggerated framing named in the Scene. Shot size or angle differs from the other still of Clip 1. A close view shows a surprised face."
       : "";
+  const cameraMatch = steady
+    ? "Camera angle, shot size, and side match the other still of this clip."
+    : "Camera angle may differ from the other still.";
   if (options?.hasCharacter) {
     const silent =
       "Silent demonstrator: the character does not talk or lip-sync (a readable facial expression only when the face is toward the camera; from behind, leave the face unseen; no greeting wave).";
@@ -557,12 +574,12 @@ export function cartoonNarratorFrameLock(
       return [
         silent,
         spec[options.position],
-        "Keep the character on the side of the frame the Scene names. Camera angle may differ from the other still. Draw the explanation graph plus the element of this action.",
+        `Keep the character on the side of the frame the Scene names. ${cameraMatch} Draw the explanation graph plus the element of this action.`,
         labels,
         hook,
       ].filter(Boolean).join(" ");
     }
-    return `${silent} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. Camera angle may differ from the other still. Draw the explanation graph plus the element of this action. ${labels}${hook ? ` ${hook}` : ""}`;
+    return `${silent} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. ${cameraMatch} Draw the explanation graph plus the element of this action. ${labels}${hook ? ` ${hook}` : ""}`;
   }
   const base = "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.";
   return hook ? `${base} ${hook}` : base;
@@ -595,7 +612,7 @@ const SNAP_MOTION =
   "Animate this clip's one action as the two stills show it, in three beats with real human timing: a quick anticipation, the action snapping fast and sharp, then a small overshoot, a settle with a wobble, and a short hold while the graph responds. Speed changes within the clip like a real person; never one constant slow glide.";
 
 const SMOOTH_MOTION =
-  "Animate this clip's one action as a smooth glide from the start still to the end still. Show every in-between frame. The body, the hands, and any prop move continuously. A card flip rotates through its edge and does not pop from one face to the other. A smooth glide is required. Never snap, never skip a frame, and never cut.";
+  "Animate this clip's one action as a smooth glide from the start still to the end still. Show every in-between frame. The body, the hands, and any prop move continuously. A card flip rotates through its edge and does not pop from one face to the other. A smooth glide is required. Never snap, never skip a frame, and never cut. The camera stays where both stills have it; a push-in, if the stills show one, is slow and even. The lettering is the same in both stills and stays fixed for the whole clip: no wipe, no rewrite, no new words.";
 
 export function cartoonNarratorVideoLock(
   skillSlug?: string,
@@ -609,7 +626,7 @@ export function cartoonNarratorVideoLock(
     const graphHook =
       options?.clipNumber === 1
         ? smooth
-          ? " HOOK CAMERA: play the camera move drawn between the two stills as a smooth glide, with every in-between frame. No snap and no skipped frame."
+          ? " HOOK CAMERA: play the gentle push drawn between the two stills as a smooth glide, with every in-between frame. No snap, no skipped frame, and no new angle."
           : " HOOK CAMERA: play the exaggerated zoom drawn between the two stills, sharp and fast, no slow glide and no blur."
         : "";
     const glide = smooth ? ` ${SMOOTH_MOTION}` : "";
@@ -620,7 +637,7 @@ export function cartoonNarratorVideoLock(
   const hook =
     options?.clipNumber === 1
       ? smooth
-        ? " HOOK CAMERA: play the camera move drawn between the two stills as a smooth glide, with every in-between frame. No snap and no skipped frame. A close view shows a surprised face. The character stays silent."
+        ? " HOOK CAMERA: play the gentle push drawn between the two stills as a smooth glide, with every in-between frame. No snap, no skipped frame, and no new angle. A close view shows a surprised face. The character stays silent."
         : " HOOK CAMERA: play the exaggerated move drawn between the two stills, sharp and fast in the first second, no slow glide and no blur. A close view shows a surprised face. The character stays silent."
       : "";
   const beats = smooth ? SMOOTH_MOTION : SNAP_MOTION;

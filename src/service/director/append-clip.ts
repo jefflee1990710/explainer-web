@@ -5,6 +5,7 @@ import { chainsClipStarts } from "@/service/director/clip-continuity";
 import { clearEndStillChoice } from "@/service/director/camera-move";
 import { isDualBeatSkill, normalizeDualBeatRow } from "@/service/director/dual-beat";
 import { rewriteEndScenes } from "@/service/director/end-scene-rewrite";
+import { usesSteadyStills } from "@/service/director/steady-stills";
 import { LANGUAGE_PRESETS, sceneDescriptionLanguageLock } from "@/service/director/languages";
 import { skillPromptForPhaseA } from "@/service/director/load-skill-prompt";
 import { directorModel } from "@/service/director/model";
@@ -36,18 +37,45 @@ function clipBrief(clip: StoryboardRow) {
 }
 
 // One new clip, continuing the storyboard the director already wrote.
-export function appendClipUserPrompt(phaseA: PhaseAProposal, content: string) {
-  const last = phaseA.clips[phaseA.clips.length - 1];
-  const earlier = phaseA.clips
-    .slice(0, -1)
+function clipBefore(phaseA: PhaseAProposal, insertAt: number) {
+  return phaseA.clips.find((clip) => clip.clipNumber === insertAt - 1);
+}
+
+function clipAfter(phaseA: PhaseAProposal, insertAt: number) {
+  return phaseA.clips.find((clip) => clip.clipNumber === insertAt);
+}
+
+// Where the new clip sits. `insertAt` 1 is before the current first clip.
+export function appendClipPlacement(phaseA: PhaseAProposal, insertAt: number) {
+  const before = clipBefore(phaseA, insertAt);
+  const after = clipAfter(phaseA, insertAt);
+  if (before && after) {
+    return `You are adding one clip between clip ${before.clipNumber} and clip ${after.clipNumber}. Return that one clip only.`;
+  }
+  if (after) return "You are adding one clip before the current first clip. Return that one clip only.";
+  return "You are adding one clip to the end of a finished storyboard. Return that one clip only.";
+}
+
+export function appendClipUserPrompt(phaseA: PhaseAProposal, content: string, insertAt?: number) {
+  const at = insertAt ?? phaseA.clips.length + 1;
+  const before = clipBefore(phaseA, at);
+  const after = clipAfter(phaseA, at);
+  const others = phaseA.clips
+    .filter((clip) => clip !== before && clip !== after)
     .map((clip) => `Clip ${clip.clipNumber}: ${clip.narrativeJob} — ${clip.englishVo}`)
     .join("\n");
+  const slot = before && after
+    ? `Write ONE new clip that plays after clip ${before.clipNumber} and before clip ${after.clipNumber}.`
+    : after
+      ? `Write ONE new clip that plays before clip ${after.clipNumber}.`
+      : `Write ONE new clip that plays after clip ${before?.clipNumber ?? 0}.`;
   return [
     `Visual world: ${phaseA.visualWorld}`,
     `Core message: ${phaseA.coreMessage}`,
-    earlier ? `Earlier clips:\n${earlier}` : "",
-    last ? `Last clip, which this new one must follow:\n${clipBrief(last)}` : "",
-    `Write ONE new clip that plays after clip ${last?.clipNumber ?? 0}.`,
+    others ? `Other clips:\n${others}` : "",
+    before ? `Clip it follows:\n${clipBrief(before)}` : "",
+    after ? `Clip that follows it:\n${clipBrief(after)}` : "",
+    slot,
     "Do not repeat an earlier clip. Continue the same cast, place, and voice.",
     `Content for the new clip:\n${content}`,
   ]
@@ -75,12 +103,15 @@ type AppendInput = {
   backgroundImageUrls?: string[];
   cast?: CastMember[];
   content: string;
+  // 1-based slot. Omit to add after the last clip.
+  insertAt?: number;
 };
 
 // Director flow for one extra clip: storyboard row, then the end-still rewrite.
 export async function draftAppendedClips(input: AppendInput): Promise<StoryboardRow[]> {
   const skillSlug = input.skill.slug;
-  const previous = input.phaseA.clips[input.phaseA.clips.length - 1];
+  const insertAt = input.insertAt ?? input.phaseA.clips.length + 1;
+  const previous = input.phaseA.clips.find((clip) => clip.clipNumber === insertAt - 1);
   if (isTalkingHeadSkill(skillSlug)) {
     const planned = planTalkingHeadClips({
       source: input.content,
@@ -100,19 +131,22 @@ export async function draftAppendedClips(input: AppendInput): Promise<Storyboard
 
   const language = LANGUAGE_PRESETS[input.language || "en"];
   const dualBeat = isDualBeatSkill(skillSlug);
+  // Cinematic realistic whiteboard: same camera and one subtitle on both stills.
+  const steadyStills = usesSteadyStills(skillSlug, input.style);
   const generated = await generateText({
     model: directorModel(),
     output: Output.object({ schema: dualBeat ? dualClipDraftSchema : clipDraftSchema }),
     system: `${skillPromptForPhaseA(input.skill, input.style)}
 
-You are adding one clip to the end of a finished storyboard. Return that one clip only.
+${appendClipPlacement(input.phaseA, insertAt)}
 ${language.planningSkillHint}
 ${sceneDescriptionLanguageLock(input.language)}
 durationSeconds is ${dualBeat ? "5 to 8" : "3 to 8"}.
 The englishVo field is the spoken line in ${language.label}. Leave referenceTranslation empty.
 ${dualBeat ? "Write startScene, endScene, startVo, and endVo. motionCamera is the move between the two stills." : "motionCamera is the camera move through this clip."}
+${steadyStills ? "Both stills share the same Camera line and the same whole subtitle (startVo then endVo). Only the one action differs between them. motionCamera is a smooth glide with no wipe or rewrite of the lettering." : ""}
 The next clip's start inherits the previous clip's end environment.`,
-    prompt: `Director instruction:\n${input.source}\n\n${appendClipUserPrompt(input.phaseA, input.content)}`,
+    prompt: `Director instruction:\n${input.source}\n\n${appendClipUserPrompt(input.phaseA, input.content, insertAt)}`,
   });
   if (!generated.output) {
     if (generated.finishReason === "content-filter") {
@@ -134,6 +168,7 @@ The next clip's start inherits the previous clip's end environment.`,
     clips: [row],
     language: input.language,
     skillSlug,
+    lockedCamera: steadyStills,
   });
   return [rewritten ?? row];
 }

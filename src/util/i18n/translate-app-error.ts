@@ -102,6 +102,13 @@ const EXACT: Record<string, string> = {
   "還沒有分鏡內容，無法產生封面": "errors.coverFailed",
   "封面補充需求最多 500 字": "errors.coverPromptTooLong",
   "封面安全區無效": "errors.coverSafeAreaInvalid",
+  "片段還在生成，請完成後再刪除": "errors.clipBusy",
+  "成片合成中，請完成後再刪除": "errors.reelBusyDelete",
+  "至少保留一段": "errors.keepOneClip",
+  "刪除片段失敗，請再試一次": "errors.deleteClipFailed",
+  "片段還在生成，請完成後再插入片段": "errors.clipBusyInsert",
+  "成片合成中，請完成後再插入片段": "errors.reelBusyInsert",
+  "插入位置不正確": "errors.insertSlotInvalid",
 };
 
 const PATTERNS: Array<{ re: RegExp; key: string; params?: (m: RegExpMatchArray) => Record<string, string | number> }> = [

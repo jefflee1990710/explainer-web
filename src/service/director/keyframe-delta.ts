@@ -50,8 +50,11 @@ export function keyframeDeltaDirectorBlock(options?: {
   language?: VoLanguage;
   // Whiteboard explainer with a cast: walk and zoom are allowed.
   performance?: boolean;
+  // Cinematic realistic whiteboard: the camera is locked inside a clip; only the action differs.
+  steadyStills?: boolean;
 }) {
   const labels = sceneStateLabels(options?.language);
+  const steady = Boolean(options?.steadyStills);
   const combined =
     labels.start === "Start"
       ? 'explainerScene writes both states in one English paragraph: "Start: …. End (Ns later): …" using that clip\'s durationSeconds.'
@@ -60,11 +63,17 @@ export function keyframeDeltaDirectorBlock(options?: {
     ? "startScene is the t=0 still and endScene is the t=N still (use that clip's durationSeconds). Do not merge them into one paragraph. Write both in the scene description language."
     : combined;
   return [
-    options?.performance
-      ? "When a character is on screen, start and end are one continuous shot of one primary action from the director's action list, chosen by what the line means and not used in either of the previous two clips. A jump lifts the feet (never slide the body upward); a point toward the camera aims at the lens, not at a side graphic. The last clip never points toward the camera. Clip 1 always uses one exaggerated hook camera, and its two stills differ in shot size or angle. A different standing position or a few steps is not a new action. Alternate which side they start on. About 80% of clips keep them on that same side. Only about 20% of clips cross the frame, either left to right or right to left. Camera angle changes every clip (from the side, from above, from the front, or from behind as they turn around) and may zoom. Still no cut and no teleport."
-      : "Write the end still from this clip's start still plus its camera motion. Same place and light. Shot size, angle, and where subjects sit are where the motion lands, and stay put only when the motion keeps the camera locked. No cut and no teleport.",
+    steady
+      ? options?.performance
+        ? "When a character is on screen, start and end are one locked shot of one primary action from the director's action list, chosen by what the line means and not used in either of the previous two clips. A jump lifts the feet (never slide the body upward); a point toward the camera aims at the lens, not at a side graphic. The last clip never points toward the camera. Both stills of a clip share the same camera: same shot size, angle, side, and crop. Clip 1's hook is one gentle push-in or pull-out at most. A different standing position or a few steps is not a new action. Alternate which side they start on; they stay on that side for the whole clip, with no lateral cross. A new camera angle is chosen only between clips, at the cut. No cut and no teleport inside a clip."
+        : "Write the end still from this clip's start still plus its one change. Same place, same light, same camera: shot size, angle, and where subjects sit do not move inside a clip. A new framing is chosen only between clips. No cut and no teleport."
+      : options?.performance
+        ? "When a character is on screen, start and end are one continuous shot of one primary action from the director's action list, chosen by what the line means and not used in either of the previous two clips. A jump lifts the feet (never slide the body upward); a point toward the camera aims at the lens, not at a side graphic. The last clip never points toward the camera. Clip 1 always uses one exaggerated hook camera, and its two stills differ in shot size or angle. A different standing position or a few steps is not a new action. Alternate which side they start on. About 80% of clips keep them on that same side. Only about 20% of clips cross the frame, either left to right or right to left. Camera angle changes every clip (from the side, from above, from the front, or from behind as they turn around) and may zoom. Still no cut and no teleport."
+        : "Write the end still from this clip's start still plus its camera motion. Same place and light. Shot size, angle, and where subjects sit are where the motion lands, and stay put only when the motion keeps the camera locked. No cut and no teleport.",
     "Each still shows exactly ONE instance of each named character — two moments of the same figure, never two bodies in one frame.",
-    `They must NOT look almost identical — under-moving makes the video freeze. ${stillRule}`,
+    steady
+      ? `The two stills differ by the one action only: the acting hands, the moved element, the pose, and the expression. The subject's screen position and scale stay. ${stillRule}`
+      : `They must NOT look almost identical — under-moving makes the video freeze. ${stillRule}`,
     "motionCamera names the path and how far things travel so interpolation can fill the seconds (see the motionCamera contract). Do not put the in-between action inside start or end still text.",
     "Change budget by durationSeconds:",
     ...(options?.performance
@@ -73,7 +82,9 @@ export function keyframeDeltaDirectorBlock(options?: {
           "- 4s: that same action lands with a brief follow-through while they stay on the same side. The drawn element has moved.",
           "- 5–6s: anticipation, the full action, then follow-through as the graph responds. A full left-to-right or right-to-left cross only if this clip is one of the rare lateral clips. Extra drawings appear.",
           "- 7–8s: the same one primary action, with follow-through, or rarely one full lateral cross. One figure, still in frame. No cut. Do not add a second unrelated action.",
-          "Change the camera angle. A jump lifts the feet; never slide the body upward or across the frame unless this clip is a lateral cross. Do not repeat the previous clip's action. Do not use a walk between two standing poses.",
+          steady
+            ? "Keep the camera where the start still has it. A jump lifts the feet; never slide the body upward or across the frame. Do not repeat the previous clip's action. Do not use a walk between two standing poses."
+            : "Change the camera angle. A jump lifts the feet; never slide the body upward or across the frame unless this clip is a lateral cross. Do not repeat the previous clip's action. Do not use a walk between two standing poses.",
         ]
       : [
           `- ${BUDGET["3s"].director}`,

@@ -30,7 +30,9 @@ import {
   clipStartScene,
   clipStartVo,
   isDualBeatSkill,
+  joinVoBeats,
 } from "@/service/director/dual-beat";
+import { usesSteadyStills } from "@/service/director/steady-stills";
 import {
   cameraChangesAngle,
   endFrameCameraLine,
@@ -145,6 +147,8 @@ function compositionLockLines(
   tightLock = false,
   // End still: the attached start frame is the before picture. The camera follows the motion.
   followMotion = false,
+  // Cinematic realistic whiteboard end still: same camera and lettering, only the action lands.
+  steadyLock = false,
 ) {
   if (!anchor) return [];
   const slot = `attached image ${imageIndex}`;
@@ -169,6 +173,14 @@ function compositionLockLines(
     anchor.kind === "clip-start"
       ? `${slot} is THIS CLIP'S START frame`
       : `${slot} is this clip's END frame`;
+  if (steadyLock) {
+    return [
+      `COMPOSITION LOCK: ${source}.`,
+      "Keep the same camera, shot size, angle, crop, set, lighting, character size, and screen position. No zoom, no reframe, no new angle.",
+      "Only this clip's one action changes: the acting hands, the moved element, the pose, and the expression.",
+      "The subtitle lettering stays identical: same words, same place, same size.",
+    ];
+  }
   // The narrator lock already states the action, side, and camera rules for this still.
   if (allowMove) {
     return [
@@ -424,6 +436,8 @@ export function buildFramePrompt(
   project = talkingHeadFrameProject(project);
   const solo = isTalkingHeadSkill(project.skillSlug);
   const style = options.style ?? systemStyle(project);
+  // Cinematic realistic whiteboard: both stills share the camera and the whole subtitle.
+  const steady = usesSteadyStills(project.skillSlug, style);
   const subtitleLook = resolveSubtitleLook(project.subtitleLook);
   const phaseA = project.phaseA;
   if (!phaseA) throw new Error("尚未有分鏡");
@@ -564,10 +578,13 @@ export function buildFramePrompt(
 
   const sceneForFrame =
     position === "start" ? clipStartScene(row) : clipEndScene(row);
+  // Steady stills paint the whole line on both frames so the video never rewrites the lettering.
   const spokenForFrame = dualBeat
-    ? position === "start"
-      ? clipStartVo(row)
-      : clipEndVo(row)
+    ? steady
+      ? joinVoBeats(clipStartVo(row), clipEndVo(row))
+      : position === "start"
+        ? clipStartVo(row)
+        : clipEndVo(row)
     : row.englishVo;
   // Dialogue skills write NAME: "line"; the subtitle shows only the words.
   // "(no dialogue)" must not be painted as a caption.
@@ -636,11 +653,12 @@ export function buildFramePrompt(
       : openingRaw;
   // Outfit and surprise already write their own end camera. Everyone else lands the motion.
   const cameraLanding =
-    position === "end" && !wardrobeBuild && !surprise
+    position === "end" && !wardrobeBuild && !surprise && !steady
       ? endFrameMotionLine(openingForLanding, motionDescription)
       : "";
   // An attached opening still makes the edit model repaint that angle, so this line is text only.
-  const angleText = !wardrobeBuild && !surprise && !isTalkingHeadSkill(project.skillSlug);
+  // Steady stills never change angle, so neither camera-change line is written.
+  const angleText = !wardrobeBuild && !surprise && !steady && !isTalkingHeadSkill(project.skillSlug);
   const landedCamera =
     position === "end" && angleText ? endFrameCameraLine(motionDescription, row.endUsesStartStill) : "";
   const openingCamera = position === "start" && angleText ? openingCameraDirective(motionDescription) : "";
@@ -710,6 +728,7 @@ export function buildFramePrompt(
     action: cartoonClipAction(row.motionCamera),
     position,
     clipNumber,
+    steadyStills: steady,
   });
 
   const compose = (parts: FrameTrimmable) => [
@@ -761,9 +780,10 @@ export function buildFramePrompt(
           options.anchor,
           annotatedCount + 1,
           sceneRefUrls.length > 0,
-          performance,
+          performance && !steady,
           solo && options.anchor?.kind === "clip-start",
-          position === "end" && !solo && !wardrobeBuild && !surprise,
+          position === "end" && !solo && !wardrobeBuild && !surprise && !steady,
+          steady && position === "end",
         ),
     ...revisionLines(options.revision && { ...options.revision, remark: parts.remark }),
     ...(listicle
@@ -846,9 +866,13 @@ export function frameSubmitPlan(
   // Talking-head, outfit, and surprise keep their own still rules. The director's boolean is ignored.
   const directorChooses =
     !isTalkingHeadSkill(project.skillSlug) && !isSurpriseInterviewSkill(project.skillSlug);
+  // Cinematic realistic whiteboard never changes angle inside a clip, so the start still always rides along.
+  const steady = usesSteadyStills(project.skillSlug, style ?? systemStyle(project));
   // Another still glued on makes the image model copy its camera, so a new angle is drawn without it.
-  const dropEndStill = position === "end" && directorChooses && !endStillUsesOpeningStill(clipRow);
-  const dropOpeningStill = position === "start" && directorChooses && cameraChangesAngle(motion);
+  const dropEndStill =
+    position === "end" && directorChooses && !steady && !endStillUsesOpeningStill(clipRow);
+  const dropOpeningStill =
+    position === "start" && directorChooses && !steady && cameraChangesAngle(motion);
   const anchor = wardrobeBuild || surpriseHook || dropEndStill || dropOpeningStill ? undefined : foundAnchor;
   const castUrls = frameLockReferenceUrls(project);
   const logoUrls = logoReferenceUrls(project);

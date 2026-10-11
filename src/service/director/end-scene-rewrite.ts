@@ -25,7 +25,21 @@ export function shouldRewriteEndScenes(skillSlug?: string) {
   return !isTalkingHeadSkill(skillSlug) && !isOutfitReelSkill(skillSlug) && !isSurpriseInterviewSkill(skillSlug);
 }
 
-export function endSceneRewriteSystem(language?: VoLanguage) {
+export function endSceneRewriteSystem(language?: VoLanguage, options?: { lockedCamera?: boolean }) {
+  // Cinematic realistic whiteboard: the end still is the opening still plus one action, same camera.
+  if (options?.lockedCamera) {
+    return [
+      "You rewrite only the end still of each clip.",
+      "endScene is one frozen picture of that clip's opening still after its one action has landed.",
+      "Same place, same light, same camera. Copy the opening Camera line: same shot size, same angle, same side, same crop. The subject keeps its screen position and scale.",
+      "Only the action changes the picture: the acting hands, the moved element, the pose, and the expression.",
+      "Keep the draft's subtitle sentence word for word, in the same place and size, plus the logo and 「」 labels still on screen. Do not change the spoken words.",
+      "Write the landed picture, not the in-between path. Do not invent a new room or a new character.",
+      SIGHTLINE_RULE,
+      "endUsesStartStill is a boolean and is true for every clip: the image model copies the attached opening still.",
+      sceneDescriptionLanguageLock(language),
+    ].join(" ");
+  }
   return [
     "You rewrite only the end still of each clip.",
     "endScene is one frozen picture of that clip's opening still after its camera motion has finished.",
@@ -61,12 +75,19 @@ export function endSceneRewritePrompt(clips: StoryboardRow[]) {
 export function applyEndSceneRewrites(
   clips: StoryboardRow[],
   rewrites: Array<{ clipNumber: number; endScene: string; endUsesStartStill: boolean }>,
-  options?: { dualBeat?: boolean },
+  options?: { dualBeat?: boolean; lockedCamera?: boolean },
 ) {
   const byNumber = new Map(
     rewrites
       .filter((item) => item.endScene.trim())
-      .map((item) => [item.clipNumber, { endScene: item.endScene.trim(), endUsesStartStill: item.endUsesStartStill }]),
+      .map((item) => [
+        item.clipNumber,
+        {
+          endScene: item.endScene.trim(),
+          // A locked camera always attaches the opening still, whatever the model answered.
+          endUsesStartStill: options?.lockedCamera ? true : item.endUsesStartStill,
+        },
+      ]),
   );
   return clips.map((clip) => {
     const rewrite = byNumber.get(clip.clipNumber);
@@ -104,18 +125,19 @@ async function generateEndScenes(input: { system: string; prompt: string }) {
 
 // One Pro call for every end still. A failure keeps the Flash draft.
 export async function rewriteEndScenes(
-  input: { clips: StoryboardRow[]; language?: VoLanguage; skillSlug?: string },
+  input: { clips: StoryboardRow[]; language?: VoLanguage; skillSlug?: string; lockedCamera?: boolean },
   generate: EndSceneGenerate = generateEndScenes,
 ) {
   if (!shouldRewriteEndScenes(input.skillSlug) || input.clips.length === 0) return input.clips;
   try {
     const output = await generate({
-      system: endSceneRewriteSystem(input.language),
+      system: endSceneRewriteSystem(input.language, { lockedCamera: input.lockedCamera }),
       prompt: endSceneRewritePrompt(input.clips),
     });
     if (!output) return input.clips;
     const next = applyEndSceneRewrites(input.clips, output.clips, {
       dualBeat: isDualBeatSkill(input.skillSlug),
+      lockedCamera: input.lockedCamera,
     });
     return isFollowShotSkill(input.skillSlug) ? chainCopiedStarts(next) : next;
   } catch (error) {

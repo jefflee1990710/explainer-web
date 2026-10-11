@@ -306,6 +306,41 @@ test("Cinematic realistic keeps a smooth glide; other styles keep the snap", () 
   assert.match(cartoonExplainerDirectorBlock({ hasCharacter: true }), /three beats/);
 });
 
+test("Cinematic realistic locks the camera and keeps one subtitle on both stills", () => {
+  // Phase A: no angle change inside a clip, one whole subtitle, gentle hook only.
+  const block = cartoonExplainerDirectorBlock({ hasCharacter: true, smoothMotion: true });
+  assert.match(block, /camera is locked inside a clip/);
+  assert.match(block, /No orbit/);
+  assert.match(block, /"<startVo> <endVo>"/);
+  assert.match(block, /at most one gentle push-in or pull-out/);
+  assert.doesNotMatch(block, /Camera angle changes every clip/);
+  assert.doesNotMatch(block, /fast 360 orbit/);
+  const doodle = cartoonExplainerDirectorBlock({ hasCharacter: true });
+  assert.match(doodle, /Camera angle changes every clip/);
+  assert.match(doodle, /"<startVo or endVo>"/);
+  // Stills: the two frames of a clip share the camera.
+  const still = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    action: "flip",
+    position: "end",
+    clipNumber: 1,
+    steadyStills: true,
+  });
+  assert.match(still, /match the other still of this clip/);
+  assert.match(still, /gentle push at most/);
+  assert.doesNotMatch(still, /may differ from the other still/);
+  assert.doesNotMatch(still, /exaggerated framing/);
+  // Video: the lettering never changes and the camera stays put.
+  const video = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    action: "flip",
+    clipNumber: 2,
+    smoothMotion: true,
+  });
+  assert.match(video, /lettering is the same in both stills and stays fixed/);
+  assert.match(video, /camera stays where both stills have it/);
+});
+
 test("a detected push draws only that action, aimed away from the character", () => {
   const start = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
     hasCharacter: true,

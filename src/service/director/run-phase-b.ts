@@ -1,5 +1,6 @@
 import { generateText, Output } from "ai";
-import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
+import { DUAL_KEYFRAME_GLIDE_RULES, DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
+import { usesSteadyStills } from "@/service/director/steady-stills";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { PHASE_B_DETAIL_RULES } from "@/service/director/scene-detail";
 import {
@@ -24,7 +25,7 @@ import {
   phaseBWardrobeLock,
 } from "@/service/director/phase-b-clip-prompt";
 import { phaseBClipSchema } from "@/model/director";
-import { isCinematicRealistic, type StylePromptSlice } from "@/service/style";
+import type { StylePromptSlice } from "@/service/style";
 import type { CastMember } from "@/model/character";
 import type { PhaseAProposal, PhaseBPrompt, SpeechPace, VoLanguage, VoiceGender } from "@/model/project";
 import { speechPaceDelivery } from "@/service/director/speech-pace";
@@ -64,6 +65,7 @@ type PhaseBInput = {
 
 // Shared director contract for video prompts (batch and per-clip).
 function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageSublabel: string) {
+  const steady = usesSteadyStills(input.skill.slug, input.style);
   return `${skillPromptForPhaseB(input.skill, input.style)}
 
 You are executing Phase B only after explicit approval of the current Phase A.
@@ -78,7 +80,9 @@ Each clip is dual-keyframe image-to-video: the approved START image is already a
         ? OUTFIT_VIDEO_MOTION_RULES
         : isSurpriseInterviewSkill(input.skill.slug)
           ? SURPRISE_VARIETY_VIDEO_RULES
-          : DUAL_KEYFRAME_MOTION_RULES
+          : steady
+            ? DUAL_KEYFRAME_GLIDE_RULES
+            : DUAL_KEYFRAME_MOTION_RULES
   } Do not invent a different final pose, camera, or composition.
 ${PHASE_B_DETAIL_RULES}
 ${
@@ -93,7 +97,7 @@ ${
         : `Copy the locked adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice fingerprint verbatim into every clip prompt. Do not invent a timbre from the look or the keyframes.`
   } ${cartoonNarratorVideoLock(input.skill.slug, {
     hasCharacter: Boolean(input.cast?.length || input.characterImageUrl),
-    smoothMotion: isCinematicRealistic(input.style),
+    smoothMotion: steady,
   })} ${
     isOutfitReelSkill(input.skill.slug) ? "" : `Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. `
   }Never request background music, BGM, a musical score, or an underscore. ${
@@ -115,6 +119,8 @@ export async function runPhaseBForClip(
 ): Promise<PhaseBPrompt> {
   const language = LANGUAGE_PRESETS[input.language || "en"];
   const talkingHead = isTalkingHeadSkill(input.skill.slug);
+  // Cinematic realistic whiteboard: one glide, fixed lettering, locked camera.
+  const steady = usesSteadyStills(input.skill.slug, input.style);
   let output = talkingHead
     ? talkingHeadPhaseBPrompt({
         phaseA: input.phaseA,
@@ -142,6 +148,7 @@ export async function runPhaseBForClip(
         characterLine: characterLine(input),
         skillSlug: input.skill.slug,
         performance: resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en"),
+        smoothMotion: steady,
       }),
     });
     // Avoid NoOutputGeneratedError on `.output` when the model returns nothing or is filtered.
@@ -175,7 +182,7 @@ export async function runPhaseBForClip(
       hasCharacter: Boolean(input.cast?.length || input.characterImageUrl),
       action: cartoonClipAction(row?.motionCamera),
       clipNumber: input.clipNumber,
-      smoothMotion: isCinematicRealistic(input.style),
+      smoothMotion: steady,
     }),
     phaseBWardrobeLock({
       cast: input.cast,
@@ -185,6 +192,7 @@ export async function runPhaseBForClip(
     phaseBLetteringLock({
       skillSlug: input.skill.slug,
       durationSeconds: row?.durationSeconds ?? output.durationSeconds,
+      fixedLettering: steady,
     }),
     isOutfitReelSkill(input.skill.slug) ? OUTFIT_COVERED_SWAP : "",
     usesSpokenSubtitle(input.skill.slug)

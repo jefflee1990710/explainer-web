@@ -63,6 +63,21 @@ test("a rewrite replaces the end still and keeps a clip the model skipped", () =
   assert.equal(next[1]?.endUsesStartStill, undefined);
 });
 
+test("a locked camera copies the opening framing and always attaches the start still", () => {
+  const system = endSceneRewriteSystem("en", { lockedCamera: true });
+  assert.match(system, /Copy the opening Camera line/);
+  assert.match(system, /true for every clip/);
+  assert.match(system, /subtitle sentence word for word/);
+  assert.doesNotMatch(system, /Set endUsesStartStill false/);
+  const next = applyEndSceneRewrites(
+    [clip({ clipNumber: 1, startScene: "wide", endScene: "old" })],
+    [{ clipNumber: 1, endScene: "card flipped", endUsesStartStill: false }],
+    { lockedCamera: true },
+  );
+  assert.equal(next[0]?.endScene, "card flipped");
+  assert.equal(next[0]?.endUsesStartStill, true);
+});
+
 test("a dual-beat rewrite keeps the joined scene in sync", () => {
   const clips = [
     clip({

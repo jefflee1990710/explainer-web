@@ -127,6 +127,21 @@ test("dual-beat director block mentions two VO beats and does not invent letteri
   assert.match(dualBeatDirectorBlock(false), /Do not invent extra titles/);
 });
 
+test("steady stills paint one whole subtitle on both stills and copy the camera", () => {
+  const steady = dualBeatDirectorBlock(true, { steadyStills: true, hasCharacter: true });
+  assert.match(steady, /BOTH stills quote the whole spoken line/);
+  assert.match(steady, /"<startVo> <endVo>"/);
+  assert.match(steady, /lettering never changes inside the clip/);
+  assert.match(steady, /Camera line is a copy of the start Camera line/);
+  assert.match(steady, /chosen only between clips, at the cut/);
+  assert.doesNotMatch(steady, /ONLY startVo/);
+  assert.doesNotMatch(steady, /wipes off/);
+  assert.doesNotMatch(steady, /Never both voiceover lines on one still/);
+  assert.doesNotMatch(steady, /exaggerated hook camera/);
+  // Without the flag the two-beat swap stays.
+  assert.match(dualBeatDirectorBlock(true, { hasCharacter: true }), /wipes off/);
+});
+
 test("dual-beat director block uses the subtitle look and keeps its own placement", () => {
   const on = dualBeatDirectorBlock(true, { look: "bold" });
   assert.match(on, /condensed sans/);

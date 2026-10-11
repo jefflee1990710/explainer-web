@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { Fragment } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { AspectRatio } from "@/model/project";
 import type { StudioClipItem, StudioClipTone } from "@/presentation/studio/clip-item";
-import { FilmstripAddClip } from "@/presentation/studio/filmstrip-add-clip";
+import { FilmstripDeleteClip } from "@/presentation/studio/filmstrip-delete-clip";
 import { FilmstripGenerating } from "@/presentation/studio/filmstrip-generating";
+import { FilmstripInsertClip } from "@/presentation/studio/filmstrip-insert-clip";
 import { FilmstripMediaTags } from "@/presentation/studio/filmstrip-media-tags";
 
 // Status band colour under each thumbnail.
@@ -33,8 +34,8 @@ export function Filmstrip({
   aspectRatio = "1:1",
   checkedIds = [],
   onToggleCheck,
-  onReorder,
   onAdd,
+  onDelete,
 }: {
   items: StudioClipItem[];
   selectedId: string;
@@ -42,14 +43,11 @@ export function Filmstrip({
   aspectRatio?: AspectRatio;
   checkedIds?: string[];
   onToggleCheck?: (id: string) => void;
-  onReorder?: (fromId: string, toId: string) => void;
-  onAdd?: () => void;
+  // `insertAt` is the 1-based slot: 1 is before the first clip.
+  onAdd?: (insertAt: number) => void;
+  onDelete?: (id: string) => void;
 }) {
   const { t } = useI18n();
-  const [draggingId, setDraggingId] = useState("");
-  const [overId, setOverId] = useState("");
-  const skipClickUntil = useRef(0);
-  const draggingRef = useRef("");
   if (items.length === 0) {
     return (
       <p className="flex items-center px-4 py-6 text-sm text-[var(--studio-muted)]">
@@ -61,61 +59,32 @@ export function Filmstrip({
   // Once anything is checked every checkbox stays visible.
   const checking = checkedIds.length > 0;
 
+  function slotLabel(insertAt: number) {
+    const before = items[insertAt - 2];
+    const after = items[insertAt - 1];
+    if (before && after) {
+      return t("production.filmstrip.addBetween", { before: before.title, after: after.title });
+    }
+    if (after) return t("production.filmstrip.addBefore", { title: after.title });
+    if (before) return t("production.filmstrip.addAfter", { title: before.title });
+    return t("production.filmstrip.addClip");
+  }
+
   return (
     <ol role="tablist" aria-label={t("production.filmstrip.timelineAria")} className="flex h-full min-w-max items-stretch gap-2 px-3">
-      {items.map((item) => {
+      {onAdd ? <FilmstripInsertClip label={slotLabel(1)} onAdd={() => onAdd(1)} /> : null}
+      {items.map((item, index) => {
         const selected = item.id === selectedId;
         const checked = checkedIds.includes(item.id);
         return (
-          <li
-            key={item.id}
-            draggable={Boolean(onReorder)}
-            onDragStart={(event) => {
-              const target = event.target as HTMLElement;
-              if (target.closest("label")) {
-                event.preventDefault();
-                return;
-              }
-              event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("text/plain", item.id);
-              draggingRef.current = item.id;
-              setDraggingId(item.id);
-            }}
-            onDragOver={(event) => {
-              if (!onReorder || !draggingRef.current || draggingRef.current === item.id) return;
-              event.preventDefault();
-              if (overId !== item.id) setOverId(item.id);
-            }}
-            onDrop={(event) => {
-              event.preventDefault();
-              const fromId = event.dataTransfer.getData("text/plain") || draggingRef.current;
-              draggingRef.current = "";
-              setDraggingId("");
-              setOverId("");
-              if (onReorder && fromId && fromId !== item.id) onReorder(fromId, item.id);
-            }}
-            onDragEnd={() => {
-              draggingRef.current = "";
-              skipClickUntil.current = Date.now() + 200;
-              setDraggingId("");
-              setOverId("");
-            }}
-            className={`group relative h-full ${selected ? "z-10" : ""} ${
-              onReorder ? "cursor-grab active:cursor-grabbing" : ""
-            } ${overId === item.id ? "rounded-sm ring-2 ring-[var(--studio-teal)]" : ""} ${
-              draggingId === item.id ? "opacity-50" : ""
-            }`}
-          >
+          <Fragment key={item.id}>
+          <li className={`group relative h-full ${selected ? "z-10" : ""}`}>
             <button
               type="button"
               role="tab"
               aria-selected={selected}
-              aria-roledescription={onReorder ? t("production.filmstrip.dragClip", { title: item.title }) : undefined}
               aria-label={`${item.title} ${item.durationLabel} ${item.statusLabel}${item.hasScene ? t("production.filmstrip.sceneDoneSuffix") : ""}${item.hasVideo ? t("production.filmstrip.videoDoneSuffix") : ""}`}
-              onClick={() => {
-                if (Date.now() < skipClickUntil.current) return;
-                onSelect(item.id);
-              }}
+              onClick={() => onSelect(item.id)}
               style={{
                 width: `calc((var(--filmstrip-h) - 35px) * ${ASPECT_WIDTH_RATIO[aspectRatio]})`,
               }}
@@ -178,10 +147,16 @@ export function Filmstrip({
                 />
               </label>
             ) : null}
+            {onDelete ? (
+              <FilmstripDeleteClip title={item.title} visible={selected} onDelete={() => onDelete(item.id)} />
+            ) : null}
           </li>
+          {onAdd ? (
+            <FilmstripInsertClip label={slotLabel(index + 2)} onAdd={() => onAdd(index + 2)} />
+          ) : null}
+          </Fragment>
         );
       })}
-      {onAdd ? <FilmstripAddClip aspectRatio={aspectRatio} onAdd={onAdd} /> : null}
     </ol>
   );
 }
