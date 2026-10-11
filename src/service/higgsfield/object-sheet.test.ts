@@ -48,6 +48,7 @@ test("lock paragraphs name the attached image and forbid copying the sheet layou
     /OBJECT LOCK: attached image 2/,
   );
   assert.match(objectSheetLockParagraph(2, [{ name: "gimbal", notes: "" }]), /Do not copy the white background/);
+  assert.match(objectSheetLockParagraph(2, [{ name: "gimbal", notes: "" }]), /draw the blank back/);
   assert.match(backgroundPlateLockParagraph(3, { name: "rooftop" }), /BACKGROUND LOCK: attached image 3/);
   assert.match(backgroundPlateLockParagraph(3, { name: "rooftop" }), /Do not paste the empty framing/);
 });

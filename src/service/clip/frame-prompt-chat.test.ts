@@ -3,12 +3,50 @@ import { test } from "node:test";
 import {
   applyFramePromptEdit,
   emptyFramePromptSummary,
+  ensureSightlinePrompt,
+  framePromptEditSystem,
   framePromptSummarySystem,
   framePromptThread,
+  FRAME_PROMPT_CHAT_MAX,
   openingSummaryFresh,
   promptForFrameSubmit,
   withFramePromptThread,
 } from "@/service/clip/frame-prompt-chat";
+
+test("still chat keeps the sightline rule when the camera changes", () => {
+  assert.match(framePromptEditSystem(), /Sightline: show only what this camera can see/);
+  assert.match(framePromptEditSystem(), /rewrite the Scene so it still obeys Sightline/);
+  assert.match(framePromptEditSystem(), /Do not turn a person or a prop around/);
+});
+
+test("a scene that wants both sides is reconciled before it is sent", () => {
+  const scene =
+    "Scene: over-the-shoulder shot from behind, showing her back and the glowing computer screen in front of her.";
+  const tail = Array.from({ length: 40 }, () => "Camera landing: extra motion note.").join("\n");
+  const edited = ensureSightlinePrompt(`${scene}\n${tail}`, FRAME_PROMPT_CHAT_MAX);
+  assert.match(edited, /Do not turn anyone or anything around/);
+  assert.doesNotMatch(edited, /Monitor facing|glowing|in front of her/);
+  assert.match(edited, /^Sightline:/m);
+  assert.ok(edited.length <= FRAME_PROMPT_CHAT_MAX);
+
+  const page = ensureSightlinePrompt("Scene: rear view of the open book, the page text clearly readable.");
+  assert.match(page, /stays on the side that faces its user/);
+  assert.doesNotMatch(page, /clearly readable/);
+
+  const saved = applyFramePromptEdit("Scene: front view.", `${scene}\nLook: torn paper.`);
+  assert.equal(saved.ok, true);
+  if (!saved.ok) return;
+  assert.equal(saved.changed, true);
+  assert.match(saved.prompt, /Do not turn anyone or anything around/);
+
+  const sent = promptForFrameSubmit({
+    storedPrompt: scene,
+    promptEdited: true,
+    builtPrompt: "built",
+  });
+  assert.match(sent, /Do not turn anyone or anything around/);
+  assert.match(sent, /^Sightline:/m);
+});
 
 test("a stored prompt is sent only after the still chat edits it", () => {
   assert.equal(

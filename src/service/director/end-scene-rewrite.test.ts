@@ -45,6 +45,7 @@ test("the end-scene prompt includes the opening still and the camera motion", ()
   assert.match(prompt, /draft endScene:\nthe mug is centered/);
   assert.match(endSceneRewriteSystem(), /endUsesStartStill is a boolean/);
   assert.match(endSceneRewriteSystem(), /copies an attached opening still/);
+  assert.match(endSceneRewriteSystem(), /Sightline: show only what this camera can see/);
 });
 
 test("a rewrite replaces the end still and keeps a clip the model skipped", () => {

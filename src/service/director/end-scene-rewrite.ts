@@ -5,6 +5,7 @@ import { isFollowShotSkill, isOutfitReelSkill, isSurpriseInterviewSkill } from "
 import { clearEndStillChoice } from "@/service/director/camera-move";
 import { clipEndScene, clipStartScene, isDualBeatSkill, normalizeDualBeatRow } from "@/service/director/dual-beat";
 import { sceneDescriptionLanguageLock } from "@/service/director/languages";
+import { SIGHTLINE_RULE } from "@/service/director/scene-detail";
 import { endSceneModel } from "@/service/director/model";
 import { isTalkingHeadSkill } from "@/service/director/talking-head";
 
@@ -32,6 +33,7 @@ export function endSceneRewriteSystem(language?: VoLanguage) {
     "If the motion keeps the camera locked, keep the opening framing.",
     "Keep the draft's subtitle sentence, logo, and 「」 labels that are still on screen when the motion ends. Do not change the spoken words.",
     "Write the landed picture, not the in-between path. Do not invent a new room or a new character.",
+    SIGHTLINE_RULE,
     "endUsesStartStill is a boolean, not a sentence. The image model copies an attached opening still.",
     "Set endUsesStartStill true only when the end keeps the opening camera angle and the subject's screen position: a locked camera, a push-in, or a zoom.",
     "Set endUsesStartStill false when the camera changes side or angle, or the subject lands in a different place on screen.",

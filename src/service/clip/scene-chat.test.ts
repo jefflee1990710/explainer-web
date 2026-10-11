@@ -10,6 +10,7 @@ import {
   regenStoryboardInput,
   sceneDraftFromClip,
   sceneRedrawFinishedAt,
+  sceneChatSystemPrompt,
   sceneRedrawPhase,
 } from "@/service/clip/scene-chat";
 
@@ -26,6 +27,11 @@ function row(partial: Partial<StoryboardRow> = {}): StoryboardRow {
     ...partial,
   };
 }
+
+test("scene chat rewrites a still so the camera can still see it", () => {
+  assert.match(sceneChatSystemPrompt(), /Sightline: show only what this camera can see/);
+  assert.match(sceneChatSystemPrompt(), /new still must obey Sightline/);
+});
 
 test("scene draft reads a labeled single scene as start and end", () => {
   const draft = sceneDraftFromClip(row());

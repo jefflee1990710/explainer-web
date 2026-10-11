@@ -44,6 +44,7 @@ export function videoLocksSystem(language?: VoLanguage) {
   return [
     "You list the invented props and unique locations for one explainer video.",
     "objects: handheld or set-dressing props that must look the same across stills (tools, cups, dials, boards).",
+    "Object notes describe shape, materials, and colours. Do not describe screen content or lettering that only one side can see.",
     "Do not list characters, brand products already locked elsewhere, locations, sky, buildings, or subtitle lettering.",
     `At most ${MAX_OBJECTS} objects. Merge duplicates. Empty array if none.`,
     "sets: unique places from the Set lines. Same room or rooftop across clips shares one setId.",

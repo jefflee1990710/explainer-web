@@ -540,7 +540,7 @@ export function cartoonNarratorFrameLock(
       : "";
   if (options?.hasCharacter) {
     const silent =
-      "Silent demonstrator: the character does not talk or lip-sync (a readable facial expression is required; no greeting wave).";
+      "Silent demonstrator: the character does not talk or lip-sync (a readable facial expression only when the face is toward the camera; from behind, leave the face unseen; no greeting wave).";
     const labels = "Draw every beat title or diagram label written in 「」, clearly readable.";
     const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
     if (spec && options.position) {

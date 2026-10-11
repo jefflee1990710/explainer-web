@@ -15,6 +15,7 @@ import {
   syncDualBeatFields,
 } from "@/service/director/dual-beat";
 import { clearEndStillChoice, endStillChoiceIsStale } from "@/service/director/camera-move";
+import { reconcileSightline, SIGHTLINE_RULE } from "@/service/director/scene-detail";
 import { chatRateLimited } from "@/service/director/chat-rate-limit";
 
 export const SCENE_CHAT_FIELDS = ["startScene", "endScene", "motionCamera", "englishVo"] as const;
@@ -77,8 +78,10 @@ export function applySceneChatEdits(
     if ((edit.field === "startScene" || edit.field === "endScene" || edit.field === "englishVo") && !content) {
       return { ok: false, error: "起始與結尾畫面不能空白" };
     }
-    if (content === next[edit.field]) continue;
-    next[edit.field] = content;
+    const reconciled =
+      edit.field === "startScene" || edit.field === "endScene" ? reconcileSightline(content) : content;
+    if (reconciled === next[edit.field]) continue;
+    next[edit.field] = reconciled;
     if (!changed.includes(edit.field)) changed.push(edit.field);
   }
   if (!next.startScene.trim() || !next.endScene.trim()) {
@@ -264,6 +267,7 @@ Rules:
 - When the user asks to replace a word, replace every copy of it in englishVo, startScene, endScene, and motionCamera of each clip you edit.
 - Subtitle size and place live in the scene's Subtitle sentence. Change that sentence when the user asks. Do not invent a new font, color, paper, or brush. The selected subtitle look is applied when the still is painted.
 - Keep each clip's existing language. Do not translate it unless the user asks.
+- ${SIGHTLINE_RULE} When you change the camera or what is visible, the new still must obey Sightline. If the user asks to see a side this camera cannot see, keep the camera and drop the hidden content. Do not turn a person or a prop around to reveal it.
 - Keep each field under ${SCENE_FIELD_MAX} characters.
 - summary: one or two short sentences in the same language as the user's request. Do not put the new field text only in the summary.
 - If the user is only asking a question, return scope "current", an empty edits array, and answer in summary.`;

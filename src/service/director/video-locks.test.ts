@@ -42,6 +42,7 @@ test("the locks prompt includes each clip's stills and motion", () => {
   assert.match(prompt, /endScene:\nSet: Rooftop/);
   assert.match(prompt, /motionCamera:\narc sweeps/);
   assert.match(videoLocksSystem(), /At most 8 objects/);
+  assert.match(videoLocksSystem(), /Do not describe screen content/);
 });
 
 test("normalize merges skipped clips onto a set and caps counts", () => {

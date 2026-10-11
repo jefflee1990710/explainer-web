@@ -2,6 +2,38 @@
 // stills and clip videos carry that detail through. Character look always
 // comes from the cast reference, never from scene text.
 
+// What this camera can see. One sentence so storyboard, rewrites, and stills stay aligned.
+// The image model will rotate a person or a prop so hidden content faces the lens.
+// This forbids that move for every working face, not for one kind of object.
+export const SIGHTLINE_RULE =
+  "Sightline: show only what this camera can see. A working face (a person's face, a screen, a page, a sign, a dial, a label) stays aimed at whoever uses it. Draw that content only on that side. If this camera cannot see that side, draw the blank side it does see. Never turn a person or a prop around, and never move the content onto the blank side, just to make it visible.";
+
+// Written into a scene that asks the camera to see a side and the content of the opposite side.
+export const SIGHTLINE_HOLD =
+  "Do not turn anyone or anything around. A face, screen, page, sign, dial, or label stays on the side that faces its user. Draw only the side this camera already sees.";
+
+const SEES_HIDDEN_SIDE =
+  /\b(from behind|seen from behind|back to (?:the )?camera|over[- ]the[- ]shoulder|(?:her|his|their) back|rear view|back view|back of the)\b|從背後|看背|背面|過肩/i;
+
+const DEMANDS_HIDDEN_CONTENT =
+  /\b(clearly visible|displaying|readable|glowing|we can see|in front of (?:her|him|them|the camera|the lens))\b|看得到|清楚看見|顯示/i;
+
+// A scene may name only the side this camera sees. Content on the other side stays there.
+export function reconcileSightline(scene: string) {
+  const text = scene.trim();
+  if (!text || text.includes(SIGHTLINE_HOLD)) return text;
+  if (!SEES_HIDDEN_SIDE.test(text) || !DEMANDS_HIDDEN_CONTENT.test(text)) return text;
+  const softened = text
+    .replace(/\bclearly visible\b/gi, "")
+    .replace(/\bclearly readable\b/gi, "")
+    .replace(/\bglowing\b/gi, "")
+    .replace(/\bin front of (?:her|him|them|the camera|the lens)\b/gi, "on the side facing its user")
+    .replace(/[ ]{2,}/g, " ")
+    .replace(/\s+([,.;])/g, "$1")
+    .trim();
+  return `${softened} ${SIGHTLINE_HOLD}`;
+}
+
 export function sceneDetailDirectorBlock() {
   return [
     "Scene detail: write every explainerScene (and startScene / endScene when used) as four concrete parts, in this order:",
@@ -11,6 +43,7 @@ export function sceneDetailDirectorBlock() {
     "4) Camera: shot size, camera angle, composition, and where each character sits in frame (left / centre / right, near / far).",
     "Never describe a character's appearance, hair, or outfit — that always follows the character reference.",
     "Be specific (a chipped blue mug, warm side light from a window on the left), not generic (a nice room).",
+    SIGHTLINE_RULE,
     motionTransitionContract(),
   ].join(" ");
 }

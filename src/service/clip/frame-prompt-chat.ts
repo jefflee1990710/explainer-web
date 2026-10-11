@@ -1,4 +1,5 @@
 import type { FramePosition, SceneChatMessage, SceneChatThread } from "@/model/project";
+import { reconcileSightline, SIGHTLINE_RULE } from "@/service/director/scene-detail";
 
 // Same ceiling as FRAME_PROMPT_BUDGET. The chat returns the whole still prompt.
 export const FRAME_PROMPT_CHAT_MAX = 4800;
@@ -31,8 +32,47 @@ export function promptForFrameSubmit(input: {
   builtPrompt: string;
 }) {
   const stored = input.storedPrompt?.trim() ?? "";
-  if ((input.useStoredPrompt || input.promptEdited) && stored) return stored;
-  return input.builtPrompt;
+  const chosen = (input.useStoredPrompt || input.promptEdited) && stored ? stored : input.builtPrompt;
+  return ensureSightlinePrompt(chosen, FRAME_PROMPT_CHAT_MAX);
+}
+
+// Chat can drop Sightline and leave a scene that asks to see both sides of something.
+// Reconcile that scene before the image model can rotate the object to satisfy it.
+export function ensureSightlinePrompt(prompt: string, max = FRAME_PROMPT_CHAT_MAX) {
+  let next = prompt.trim().replace(/^Scene: .+$/m, (line) => {
+    const body = reconcileSightline(line.replace(/^Scene:\s*/, ""));
+    return `Scene: ${body}`;
+  });
+  if (/^Scene: /m.test(next) && !/^Sightline:/m.test(next)) {
+    next = insertAfterScene(next, SIGHTLINE_RULE);
+  }
+  return fitPromptLines(next, max);
+}
+
+function insertAfterScene(prompt: string, line: string) {
+  if (/^Scene: .+$/m.test(prompt)) {
+    return prompt.replace(/^Scene: .+$/m, (scene) => `${scene}\n${line}`);
+  }
+  return `${prompt}\n${line}`;
+}
+
+const PROTECTED_LINE = /^(?:Scene:|Sightline:|Look:|Aspect ratio|OBJECT LOCK|BACKGROUND LOCK|WARDROBE)/;
+
+function fitPromptLines(prompt: string, max: number) {
+  const lines = prompt.split("\n");
+  while (lines.join("\n").length > max) {
+    let dropped = false;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (PROTECTED_LINE.test(lines[i])) continue;
+      lines.splice(i, 1);
+      dropped = true;
+      break;
+    }
+    if (!dropped) break;
+  }
+  let fitted = lines.join("\n").trim();
+  if (fitted.length > max) fitted = fitted.slice(0, max).trim();
+  return fitted;
 }
 
 // The model must return a full prompt. Blank means it failed; an unchanged prompt is not an edit.
@@ -40,8 +80,9 @@ export function applyFramePromptEdit(
   current: string,
   next: string,
 ): { ok: true; prompt: string; changed: boolean } | { ok: false; error: string } {
-  const prompt = next.trim().slice(0, FRAME_PROMPT_CHAT_MAX).trim();
-  if (!prompt) return { ok: false, error: "畫面提示不能空白" };
+  const raw = next.trim();
+  if (!raw) return { ok: false, error: "畫面提示不能空白" };
+  const prompt = ensureSightlinePrompt(raw, FRAME_PROMPT_CHAT_MAX);
   return { ok: true, prompt, changed: prompt !== current.trim() };
 }
 
@@ -112,6 +153,7 @@ Return:
 Rules:
 - Change only what the user asks for.
 - Do not drop locks, wardrobe, or subtitle look lines unless the user asks to remove them.
+- ${SIGHTLINE_RULE} Include that Sightline line in the prompt you return. If the user changes the angle, rewrite the Scene so it still obeys Sightline. If they ask to see a side this camera cannot see, keep the camera and drop the hidden content. Do not turn a person or a prop around to reveal a face, screen, page, sign, dial, or label.
 - Keep the prompt under ${FRAME_PROMPT_CHAT_MAX} characters.
 - If the request cannot be done inside this one still, say so in the summary and return the prompt unchanged.`;
 }

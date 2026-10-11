@@ -52,6 +52,7 @@ export function objectSheetLockParagraph(imageIndex: number, items: ObjectSheetI
   return [
     `OBJECT LOCK: attached image ${imageIndex} is this video's prop sheet${names ? ` (${names})` : ""}.`,
     "Copy only shape, materials, and colours of props the Scene names.",
+    "The sheet shows each prop from the front. Aim its working face at the person using it. If this camera cannot see that face, draw the blank back. Never move the front's content onto that blank side.",
     "Do not copy the white background, the grid, or unused tiles. Do not stage a contact sheet in the scene.",
   ].join(" ");
 }

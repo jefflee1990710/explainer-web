@@ -892,6 +892,7 @@ test("trimming drops generic rules and Light before the Scene, and Set keeps its
   const prompt = buildFramePrompt(long, 1, "start");
   assert.ok(prompt.length <= FRAME_PROMPT_BUDGET, `${prompt.length} chars`);
   assert.doesNotMatch(prompt, /Render detail:/);
+  assert.match(prompt, /Sightline: show only what this camera can see/);
   assert.doesNotMatch(prompt, /3\) Light/);
   assert.match(prompt, /1\) Character: Lily stands on the right, both hands on a crate\./);
   assert.match(prompt, /4\) Camera: medium shot from the left\./);

@@ -85,7 +85,7 @@ import { clipReferenceImageUrls } from "@/service/project/reference-images";
 import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 import { IDEOGRAM_PROMPT_MAX, imageRouteForSceneText } from "@/service/generation/image-backend";
 import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
-import { FRAME_RENDER_DETAIL } from "@/service/director/scene-detail";
+import { FRAME_RENDER_DETAIL, reconcileSightline, SIGHTLINE_RULE } from "@/service/director/scene-detail";
 import {
   styleLinesForFrame,
   type Style,
@@ -294,6 +294,7 @@ export function compactSceneTextPrompt(prompt: string, aspectRatio: string) {
     ...(labels.length ? [`Also draw these labels exactly: ${labels.map((label) => `「${label}」`).join(" ")}`] : []),
     "Look: extra-bold condensed sans, white fill, thick black outline, sitting on a yellow dry-brush stroke.",
     sceneLine,
+    SIGHTLINE_RULE,
     "Draw exactly one character matching attached image 1. Do not copy a turnaround sheet or draw the person twice.",
     "No extra words and no subtitle bar.",
     `Aspect ratio ${aspectRatio}.`,
@@ -616,6 +617,8 @@ export function buildFramePrompt(
       place: surpriseClip?.place,
     });
   }
+  // The Scene line is what the image model follows. A later rule cannot undo a contradiction inside it.
+  sceneDescription = reconcileSightline(sceneDescription);
   const openingRaw = directorWritesLettering || keepSceneLabels
     ? clipStartScene(row).trim()
     : stripStoryboardWriting(clipStartScene(row));
@@ -718,6 +721,8 @@ export function buildFramePrompt(
       ? []
       : sceneTextFrameLines(false, sceneText.language)),
     `Scene: ${parts.scene}`,
+    // Stays after the Scene when generic lines such as Render detail are trimmed away.
+    SIGHTLINE_RULE,
     ...(parts.motion ? [`${motionLabel}: ${parts.motion}`] : []),
     ...(storyShortCameraLock(project.skillSlug) ? [storyShortCameraLock(project.skillSlug)] : []),
     ...(narratorLock ? [narratorLock] : []),
