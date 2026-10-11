@@ -46,6 +46,7 @@ import {
   resolveSceneText,
   sceneTextFrameLines,
   subtitleSitsBelowCenter,
+  formatVoiceoverForMarker,
   stripSceneVoiceoverRecap,
   stripStoryboardWriting,
   stripVisualWorldStyleEcho,
@@ -90,6 +91,7 @@ import { IDEOGRAM_PROMPT_MAX, imageRouteForSceneText } from "@/service/generatio
 import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
 import { FRAME_RENDER_DETAIL, reconcileSightline, SIGHTLINE_RULE } from "@/service/director/scene-detail";
 import {
+  isCinematicRealistic,
   styleLinesForFrame,
   type Style,
 } from "@/service/style";
@@ -253,6 +255,31 @@ function clipAt(text: string, max: number) {
 // Scene rows follow "1) Character … 2) Set … 3) Light … 4) Camera …".
 // Character and Camera never trim. Light may go; Set holds where a pushed or pulled
 // element goes, so it only shortens and keeps every 「」 label it named.
+function spellSubtitleLines(lines: string[]) {
+  const kept = lines.map((line) => line.trim()).filter(Boolean);
+  if (kept.length === 0) return [];
+  if (kept.length === 1) return [`Subtitle (spell exactly): "${kept[0]}"`];
+  return kept.map((line, index) => `Subtitle line ${index + 1} (spell exactly): "${line}"`);
+}
+
+// Prefer the director's Subtitle sentence. Fall back to the spoken line so a still
+// with no sentence still gets on-screen text. Either way it leaves the trimmable Scene.
+function whiteboardSubtitleSpellLines(scene: string, spoken: string) {
+  const quoted = [...scene.matchAll(/Subtitle\b[^"]*"([^"]*)"/gi)]
+    .map((match) => match[1]?.trim() || "")
+    .filter(Boolean);
+  if (quoted.length > 0) return spellSubtitleLines(quoted);
+  const formatted = formatVoiceoverForMarker(spoken);
+  return spellSubtitleLines([formatted.line1, formatted.line2]);
+}
+
+function stripSceneSubtitleSentence(scene: string) {
+  return scene
+    .replace(/\s*Subtitle\b(?:(?!")[\s\S])*?"[^"]*"/gi, " ")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
 function trimSceneParts(scene: string, mode: "light-short" | "light-drop" | "set-short") {
   const parts = scene.split(/(?=[1-9]\)\s)/);
   if (parts.length < 2) return scene;
@@ -643,6 +670,14 @@ export function buildFramePrompt(
   if (isDualBeatSkill(project.skillSlug)) {
     sceneDescription = dropRepeatedSubtitleLabels(sceneDescription);
   }
+  // Spell the spoken line beside the text style. The Scene copy is what a long Set trims away.
+  const whiteboardSpells =
+    dualBeat && sceneText.enabled && voForFrame && !silentClip
+      ? whiteboardSubtitleSpellLines(sceneDescription, voForFrame)
+      : [];
+  if (whiteboardSpells.length > 0) {
+    sceneDescription = stripSceneSubtitleSentence(sceneDescription);
+  }
   const openingRaw = directorWritesLettering || keepSceneLabels
     ? clipStartScene(row).trim()
     : stripStoryboardWriting(clipStartScene(row));
@@ -666,8 +701,16 @@ export function buildFramePrompt(
   const subtitleBelowCenter = subtitleSitsBelowCenter(project.aspectRatio);
   const paintSurpriseType = surprise && Boolean(voForFrame);
   // Cartoon only: the text style is the spoken subtitle. 「」 labels stay on the prop.
-  const cartoonSubtitleLook =
-    "This Look is only the subtitle: the words in the Scene's Subtitle sentence, which are this still's spoken line. Paint them large in the frame in this Look. Do not paint them as small type on a prop. Do not give this Look to words inside 「」.";
+  const cartoonSubtitleLook = [
+    "This Look is only the subtitle: the quoted Subtitle lines above, which are this still's spoken line.",
+    "Paint them large in the frame in this Look. They are required on-screen text. Do not omit them.",
+    "Do not paint them as small type on a prop. Do not give this Look to words inside 「」.",
+    isCinematicRealistic(style)
+      ? "This subtitle is a graphic overlay on the photoreal scene. The visual style saying no illustration does not remove it."
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   const onCanvasTextBlock = listicle
     ? [
         letteringLine,
@@ -697,7 +740,7 @@ export function buildFramePrompt(
       ? silentClip
         ? []
         : dualBeat
-          ? [letteringLine, cartoonSubtitleLook]
+          ? [letteringLine, ...whiteboardSpells, cartoonSubtitleLook]
           : [letteringLine]
       : keepSceneLabels
         ? // Catalog typography already says "never subtitles or captions" — exactly this mode.
@@ -797,7 +840,7 @@ export function buildFramePrompt(
           ? ["Final check: no subtitle band and no letters in the frame."]
           : dualBeat
             ? [
-                "Final check: the Subtitle sentence is this still's spoken line, painted large in the subtitle Look above, not as small type on a prop. Words inside 「」 stay ordinary writing on their object.",
+                "Final check: the quoted Subtitle lines are painted large in the subtitle Look above. They are required on-screen text. Do not omit them. Words inside 「」 stay ordinary writing on their object.",
               ]
             : [
                 "Final check: subtitle place and size follow the Scene's Subtitle sentence. Paint those words with the subtitle Look line above. Do not replace that lettering with a plain white caption or the visual style.",

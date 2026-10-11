@@ -142,6 +142,29 @@ test("a cartoon still paints the subtitle once when the bracket label repeats it
   assert.match(buildFramePrompt(other, 1, "start"), /「5 Camera Motions You Need to Know!」/);
 });
 
+test("whiteboard stills keep the spoken subtitle in the text style after the scene is trimmed", () => {
+  const cartoon = project("realistic");
+  cartoon.skillSlug = "cartoon-explainer-video-director";
+  cartoon.subtitleLook = "clean";
+  const set = `2) Set: ${"dark studio floor ".repeat(40)}`;
+  cartoon.phaseA!.clips[0] = {
+    ...cartoon.phaseA!.clips[0],
+    startScene: `1) Character: Scro stands by a dial labeled 「LIGHT CONTROL」. ${set} 3) Light: a soft key. 4) Camera: 50mm f/1.4. Subtitle centered on torn paper: "Four lighting techniques you must know. Everything begins inside a dark studio."`,
+    endScene: "1) Character: Scro has turned the dial.",
+    startVo: "Four lighting techniques you must know.",
+    endVo: "Everything begins inside a dark studio.",
+    englishVo: "Four lighting techniques you must know. Everything begins inside a dark studio.",
+  };
+  const prompt = buildFramePrompt(cartoon, 1, "start");
+  assert.match(prompt, /torn-paper strips/);
+  assert.match(prompt, /Four lighting techniques you must know/);
+  assert.match(prompt, /Everything begins inside a dark studio/);
+  assert.match(prompt, /required on-screen text/);
+  assert.match(prompt, /no illustration does not remove it/);
+  assert.match(prompt, /「LIGHT CONTROL」/);
+  assert.match(prompt, /Do not give this Look to words inside 「」/);
+});
+
 test("cartoon stills paint the spoken subtitle in the text style, not the bracket labels", () => {
   const cartoon = project();
   cartoon.skillSlug = "cartoon-explainer-video-director";
@@ -677,7 +700,8 @@ test("legacy captions-off whiteboard video keeps prop labels, paints the marker 
   };
   const start = buildFramePrompt(dual, 1, "start");
   assert.match(start, /「OLS」/);
-  assert.doesNotMatch(start, /First beat/);
+  assert.match(start, /Subtitle \(spell exactly\): "First beat\."/);
+  assert.match(start, /thick black marker/);
   assert.doesNotMatch(start, /52% and 60%/);
   assert.doesNotMatch(start, /No on-canvas text/);
   assert.match(start, /Visual world: 白板塗鴉風格。純白背景黑色墨線。/);
