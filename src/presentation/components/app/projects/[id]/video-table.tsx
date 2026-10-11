@@ -17,11 +17,12 @@ import {
   type VideoListFilter,
 } from "@/service/video/list-stage";
 
-function stageOf(video: PublicVideoCard, postedAt?: string) {
+function stageOf(video: PublicVideoCard, postedAt?: string, archivedAt?: string) {
   return videoListStage({
     status: video.status,
     tags: video.tags,
     postedAt: postedAt || video.postedAt,
+    archivedAt: archivedAt || video.archivedAt,
   });
 }
 
@@ -38,14 +39,19 @@ export function VideoTable({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [page, setPage] = useState(1);
-  // Posted clicks apply before the server refresh returns postedAt.
+  // Posted and archive clicks apply before the server refresh returns the flags.
   const [postedIds, setPostedIds] = useState<Record<string, string>>({});
+  const [archivedIds, setArchivedIds] = useState<Record<string, string>>({});
   const filters = videoListFiltersFromSearch(searchParams.get(VIDEO_LIST_FILTER_PARAM));
 
   const counts = Object.fromEntries(VIDEO_LIST_FILTERS.map((id) => [id, 0])) as Record<VideoListFilter, number>;
-  for (const video of videos) counts[stageOf(video, postedIds[video.id])] += 1;
+  for (const video of videos) {
+    counts[stageOf(video, postedIds[video.id], archivedIds[video.id])] += 1;
+  }
 
-  const shown = videos.filter((video) => filters.includes(stageOf(video, postedIds[video.id])));
+  const shown = videos.filter((video) =>
+    filters.includes(stageOf(video, postedIds[video.id], archivedIds[video.id])),
+  );
   const pages = pageCount(shown.length);
   const safePage = pages === 0 ? 1 : Math.min(page, pages);
   const rows = pageSlice(shown, safePage);
@@ -77,8 +83,11 @@ export function VideoTable({
                   key={video.id}
                   folderId={folderId}
                   video={video}
-                  stage={stageOf(video, postedIds[video.id])}
+                  stage={stageOf(video, postedIds[video.id], archivedIds[video.id])}
                   onPosted={(id) => setPostedIds((current) => ({ ...current, [id]: new Date().toISOString() }))}
+                  onArchived={(id) =>
+                    setArchivedIds((current) => ({ ...current, [id]: new Date().toISOString() }))
+                  }
                 />
               ))}
             </div>

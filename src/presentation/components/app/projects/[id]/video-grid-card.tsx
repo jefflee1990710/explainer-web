@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { generateAllClipsAction } from "@/presentation/actions/clip-production";
+import { markVideoArchivedAction } from "@/presentation/actions/video-archive";
 import { markVideoPostedAction } from "@/presentation/actions/video-post";
 import { VideoGenerationBadge } from "@/presentation/components/app/projects/[id]/video-generation-badge";
 import { VideoGenerationProgress } from "@/presentation/components/app/projects/[id]/video-generation-progress";
@@ -45,16 +46,19 @@ export function VideoGridCard({
   video,
   stage,
   onPosted,
+  onArchived,
 }: {
   folderId: string;
   video: PublicVideoCard;
   stage: VideoListFilter;
   onPosted: (id: string) => void;
+  onArchived: (id: string) => void;
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [archiving, setArchiving] = useState(false);
   const [error, setError] = useState("");
   const ready = canGenerateAllVideos(video.tags);
   const tags = submitting ? videosAsBusy(video.tags) : video.tags;
@@ -122,6 +126,26 @@ export function VideoGridCard({
     }
   }
 
+  // Any stage can be archived. It then only shows under the Archived filter.
+  async function markArchived() {
+    if (archiving) return;
+    setError("");
+    setArchiving(true);
+    try {
+      const result = await markVideoArchivedAction(video.id);
+      if (!result.ok) {
+        setError(translateAppError(result.error, t));
+        return;
+      }
+      onArchived(video.id);
+      router.refresh();
+    } catch {
+      setError(t("errors.genericRetry"));
+    } finally {
+      setArchiving(false);
+    }
+  }
+
   const previews = video.previewUrls;
   const title = video.title || t("video.card.unnamed");
   const progress =
@@ -162,7 +186,7 @@ export function VideoGridCard({
           <VideoGenerationProgress tags={tags} status={video.status} />
           {ready && !submitting ? null : <VideoGenerationBadge tags={tags} />}
         </span>
-        <span className="flex flex-1 flex-col gap-1.5 p-2.5">
+        <span className="flex flex-1 flex-col gap-1.5 p-2.5 pb-10">
           <span className="line-clamp-2 text-xs font-medium leading-snug">{title}</span>
           {progress ? <span className="text-[11px] leading-snug text-muted">{progress}</span> : null}
           {error ? <span className="text-[11px] font-medium leading-snug text-accent">{error}</span> : null}
@@ -172,30 +196,46 @@ export function VideoGridCard({
           <span className="text-[11px] text-muted">{created}</span>
         </span>
       </Link>
-      {ready && !submitting ? (
-        <button
-          type="button"
-          onClick={() => void generateAll()}
-          className="absolute right-2 top-2 z-20 inline-flex cursor-pointer items-center rounded-full bg-[var(--studio-ink)] px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm hover:opacity-90"
-        >
-          {t("video.card.generateAllVideos")}
-        </button>
-      ) : null}
-      {stage === "pending_post" ? (
-        <button
-          type="button"
-          disabled={posting}
-          onClick={() => void markPosted()}
-          className="absolute right-2 top-2 z-20 inline-flex cursor-pointer items-center rounded-full bg-lime px-2.5 py-1 text-[10px] font-semibold text-accent-ink shadow-sm hover:opacity-90 disabled:opacity-60"
-        >
-          {t("video.card.markPosted")}
-        </button>
-      ) : null}
-      {stage === "posted" ? (
-        <span className="absolute right-2 top-2 z-20 inline-flex items-center rounded-full bg-lime px-2.5 py-1 text-[10px] font-semibold text-accent-ink shadow-sm">
-          {t("video.card.posted")}
-        </span>
-      ) : null}
+      <span className="absolute bottom-2 right-2 z-20 flex max-w-[calc(100%-1rem)] flex-wrap justify-end gap-1">
+        {ready && !submitting && stage !== "archived" ? (
+          <button
+            type="button"
+            onClick={() => void generateAll()}
+            className="inline-flex cursor-pointer items-center rounded-full bg-[var(--studio-ink)] px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm hover:opacity-90"
+          >
+            {t("video.card.generateAllVideos")}
+          </button>
+        ) : null}
+        {stage === "pending_post" ? (
+          <button
+            type="button"
+            disabled={posting}
+            onClick={() => void markPosted()}
+            className="inline-flex cursor-pointer items-center rounded-full bg-lime px-2.5 py-1 text-[10px] font-semibold text-accent-ink shadow-sm hover:opacity-90 disabled:opacity-60"
+          >
+            {t("video.card.markPosted")}
+          </button>
+        ) : null}
+        {stage === "posted" ? (
+          <span className="inline-flex items-center rounded-full bg-lime px-2.5 py-1 text-[10px] font-semibold text-accent-ink shadow-sm">
+            {t("video.card.posted")}
+          </span>
+        ) : null}
+        {stage === "archived" ? (
+          <span className="inline-flex items-center rounded-full bg-accent-ink px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm">
+            {t("video.card.archived")}
+          </span>
+        ) : (
+          <button
+            type="button"
+            disabled={archiving}
+            onClick={() => void markArchived()}
+            className="inline-flex cursor-pointer items-center rounded-full border border-accent-ink/15 bg-paper px-2.5 py-1 text-[10px] font-semibold text-accent-ink shadow-sm hover:bg-accent-ink hover:text-white disabled:opacity-60"
+          >
+            {t("video.card.markArchive")}
+          </button>
+        )}
+      </span>
     </motion.article>
   );
 }

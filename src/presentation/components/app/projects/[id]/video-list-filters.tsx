@@ -10,6 +10,7 @@ const LABEL: Record<VideoListFilter, string> = {
   pending_video: "video.filters.pendingVideo",
   pending_post: "video.filters.pendingPost",
   posted: "video.filters.posted",
+  archived: "video.filters.archived",
 };
 
 // Tag chips above the folder grid. Several stages can stay on at once.

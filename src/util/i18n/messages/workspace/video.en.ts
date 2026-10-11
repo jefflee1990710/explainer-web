@@ -30,6 +30,8 @@ export const videoEn = {
     generateAllVideos: "Generate all videos",
     markPosted: "Posted",
     posted: "Posted",
+    markArchive: "Archive",
+    archived: "Archived",
   },
   filters: {
     label: "Filter videos",
@@ -40,6 +42,7 @@ export const videoEn = {
     pendingVideo: "Pending video",
     pendingPost: "Pending to post",
     posted: "Posted",
+    archived: "Archived",
     empty: "No videos with this tag.",
   },
   pager: {

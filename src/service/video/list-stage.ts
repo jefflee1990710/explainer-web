@@ -9,6 +9,7 @@ export const VIDEO_LIST_FILTERS = [
   "pending_video",
   "pending_post",
   "posted",
+  "archived",
 ] as const;
 
 export type VideoListFilter = (typeof VIDEO_LIST_FILTERS)[number];
@@ -45,6 +46,7 @@ type StageInput = {
   status: ProjectStatus;
   tags: GenerationDetailTag[];
   postedAt?: string;
+  archivedAt?: string;
 };
 
 // Finished means every scene still and every clip video is stored.
@@ -62,6 +64,7 @@ export function videoListStage(video: StageInput): VideoListFilter {
   const videos = video.tags.filter((tag) => tag.kind === "video");
   const done = clipsFinished(video.tags, video.status);
 
+  if (video.archivedAt) return "archived";
   if (done && video.postedAt) return "posted";
   if (video.status === "draft" || video.status === "phase_a" || video.status === "failed") return "director";
   if (scenes.some((tag) => tag.state === "busy") || scenes.some((tag) => tag.state !== "ready")) return "scenes";

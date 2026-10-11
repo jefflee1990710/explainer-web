@@ -158,6 +158,8 @@ export type PublicVideoCard = {
   tags: GenerationDetailTag[];
   // ISO time the user marked this finished video as posted.
   postedAt?: string;
+  // ISO time the user archived this video. Any stage can be archived.
+  archivedAt?: string;
 };
 
 export type PublicFolder = {
@@ -199,6 +201,7 @@ export const VIDEO_LIST_PROJECTION = {
   "clips.blobUrl": 1,
   "clips.outputUrl": 1,
   postedAt: 1,
+  archivedAt: 1,
 } as const;
 
 function publicPreviewUrl(url?: string, hash?: string) {
@@ -404,6 +407,7 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
     videosTotal: counts.total,
     tags: clipGenerationTags(source),
     postedAt: video.postedAt?.toISOString(),
+    archivedAt: video.archivedAt?.toISOString(),
   };
 }
 

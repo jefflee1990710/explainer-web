@@ -330,6 +330,8 @@ export type Project = {
   finalQueuedAt?: Date;
   // Set when the user marks a finished video as posted. Absent means pending to post.
   postedAt?: Date;
+  // Set when the user archives the video. Any stage can be archived.
+  archivedAt?: Date;
   // Legacy batch charges (pre per-clip pipeline). No longer written.
   creditCost?: number;
   creditsCharged: boolean;
@@ -520,6 +522,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   finalError: z.string().optional(),
   finalQueuedAt: z.date().optional(),
   postedAt: z.date().optional(),
+  archivedAt: z.date().optional(),
   creditCost: z.number().optional(),
   creditsCharged: z.boolean(),
   error: z.string().optional(),

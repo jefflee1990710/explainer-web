@@ -66,12 +66,21 @@ test("the list opens on pending video and pending to post unless the url names f
     "pending_video",
     "pending_post",
     "posted",
+    "archived",
   ]);
   assert.deepEqual(videoListFiltersFromSearch("none"), []);
   assert.equal(videoListFiltersSearchValue(["pending_post", "pending_video"]), "pending_video,pending_post");
   assert.equal(videoListFiltersSearchValue([]), "none");
   assert.equal(
-    videoListFiltersSearchValue(["director", "scenes", "videos", "pending_video", "pending_post", "posted"]),
+    videoListFiltersSearchValue([
+      "director",
+      "scenes",
+      "videos",
+      "pending_video",
+      "pending_post",
+      "posted",
+      "archived",
+    ]),
     "all",
   );
 });
@@ -82,5 +91,34 @@ test("a finished video is pending to post until the user marks it posted", () =>
   assert.equal(
     videoListStage({ status: "ready", tags, postedAt: "2026-01-01T00:00:00.000Z" }),
     "posted",
+  );
+});
+
+test("any video with archivedAt is archived, ahead of posted or in-flight work", () => {
+  const tags = [scene("ready"), video("ready")];
+  assert.equal(
+    videoListStage({ status: "ready", tags, archivedAt: "2026-01-02T00:00:00.000Z" }),
+    "archived",
+  );
+  assert.equal(
+    videoListStage({
+      status: "ready",
+      tags,
+      postedAt: "2026-01-01T00:00:00.000Z",
+      archivedAt: "2026-01-02T00:00:00.000Z",
+    }),
+    "archived",
+  );
+  assert.equal(
+    videoListStage({ status: "draft", tags: [], archivedAt: "2026-01-02T00:00:00.000Z" }),
+    "archived",
+  );
+  assert.equal(
+    videoListStage({
+      status: "production",
+      tags: [scene("busy"), video("pending")],
+      archivedAt: "2026-01-02T00:00:00.000Z",
+    }),
+    "archived",
   );
 });

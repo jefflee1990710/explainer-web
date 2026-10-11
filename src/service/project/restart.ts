@@ -52,5 +52,6 @@ export const RESTART_UNSET_FIELDS = {
   finalError: "",
   finalQueuedAt: "",
   postedAt: "",
+  archivedAt: "",
   error: "",
 } as const;

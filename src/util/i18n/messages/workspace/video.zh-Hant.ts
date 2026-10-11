@@ -30,6 +30,8 @@ export const videoZhHant = {
     generateAllVideos: "產生全部影片",
     markPosted: "標為已發佈",
     posted: "已發佈",
+    markArchive: "封存",
+    archived: "已封存",
   },
   filters: {
     label: "篩選影片",
@@ -40,6 +42,7 @@ export const videoZhHant = {
     pendingVideo: "待產影片",
     pendingPost: "待發佈",
     posted: "已發佈",
+    archived: "已封存",
     empty: "沒有這個狀態的影片。",
   },
   pager: {
