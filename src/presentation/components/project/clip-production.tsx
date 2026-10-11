@@ -148,6 +148,18 @@ export function ClipProduction({
         )}
         renderPreview={(state, select) => workspace("preview", state, select)}
         renderInspector={(state, select) => workspace("inspector", state, select)}
+        renderAside={(state) =>
+          sceneChatClip === state.clipNumber ? (
+            <SceneChatDialog
+              key={state.clipNumber}
+              project={project}
+              clipNumber={state.clipNumber}
+              subscribed={subscribed}
+              onProject={onProject}
+              onClose={() => setSceneChatClip(null)}
+            />
+          ) : null
+        }
         checkedIds={checked}
         onToggleCheck={toggleCheck}
         timelineBar={
@@ -181,17 +193,6 @@ export function ClipProduction({
             setBulkMode(null);
             void onBulkGenerate(mode);
           }}
-        />
-      ) : null}
-      {sceneChatClip != null ? (
-        <SceneChatDialog
-          key={sceneChatClip}
-          project={project}
-          clipNumber={sceneChatClip}
-          aspectRatio={project.aspectRatio}
-          subscribed={subscribed}
-          onProject={onProject}
-          onClose={() => setSceneChatClip(null)}
         />
       ) : null}
       {editingFrame && frame && editingRow ? (

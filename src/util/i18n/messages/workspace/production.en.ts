@@ -81,10 +81,12 @@ export const productionEn = {
     navSetup: "Setup",
     navOther: "Other",
     clipInfoAria: "Clip info",
+    clipInfoResize: "Resize clip info",
     previewAria: "Preview",
     timelineAria: "Timeline",
     timelineResize: "Resize clip previews",
     chatAria: "AI scene chat",
+    chatResize: "Resize AI scene chat",
   },
   annotation: {
     textPlaceholder: "Note",

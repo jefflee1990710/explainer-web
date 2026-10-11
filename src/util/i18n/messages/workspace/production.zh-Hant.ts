@@ -81,10 +81,12 @@ export const productionZhHant = {
     navSetup: "準備",
     navOther: "其他",
     clipInfoAria: "片段資訊",
+    clipInfoResize: "調整片段資訊寬度",
     previewAria: "預覽",
     timelineAria: "時間軸",
     timelineResize: "調整片段預覽高度",
-    chatAria: "AI 修改畫面",
+    chatAria: "AI 改提示",
+    chatResize: "調整 AI 改提示寬度",
   },
   annotation: {
     textPlaceholder: "備註",
