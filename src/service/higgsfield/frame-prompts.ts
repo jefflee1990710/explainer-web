@@ -212,15 +212,15 @@ export const IMAGE_PROMPT_MAX_CHARS = 5000;
 // Stills are trimmed to this, leaving headroom under the provider cap.
 export const FRAME_PROMPT_BUDGET = 4800;
 
-// A still freezes one instant, so it only needs the motion beat at that instant:
-// start = first timed beat, end = last timed beat.
+// End stills freeze the landing, so they keep only the last timed beat.
+// Start stills send the whole motionCamera; see the start-frame label.
 export function motionBeatForFrame(motion: string, position: FramePosition) {
   const beats = motion
     .split(/[；;]\s*/)
     .map((beat) => beat.trim())
     .filter(Boolean);
-  if (beats.length < 2) return motion.trim();
-  return position === "start" ? beats[0] : beats[beats.length - 1];
+  if (beats.length < 2 || position === "start") return motion.trim();
+  return beats[beats.length - 1];
 }
 
 // First sentence of a paragraph (a "." only ends a sentence before space/end).
@@ -310,15 +310,17 @@ function fitFramePrompt(
 ) {
   const steps: Array<(p: FrameTrimmable) => FrameTrimmable> = [
     (p) => ({ ...p, visualWorld: clipAt(firstSentence(p.visualWorld), 300) }),
-    (p) => ({ ...p, motion: clipAt(firstSentence(p.motion), 160) }),
     (p) => ({ ...p, palette: clipAt(p.palette, 160) }),
     (p) => ({ ...p, remark: clipAt(p.remark, 300) }),
     (p) => ({ ...p, renderDetail: "" }),
     (p) => ({ ...p, scene: trimSceneParts(p.scene, "light-short") }),
-    (p) => ({ ...p, visualWorld: "", motion: "" }),
+    (p) => ({ ...p, visualWorld: "" }),
     (p) => ({ ...p, palette: clipAt(p.palette, 80), remark: clipAt(p.remark, 200) }),
     (p) => ({ ...p, scene: trimSceneParts(p.scene, "light-drop") }),
     (p) => ({ ...p, scene: trimSceneParts(p.scene, "set-short") }),
+    // Camera motion stays whole until the prompt is still over the cap.
+    (p) => ({ ...p, motion: clipAt(p.motion, 160) }),
+    (p) => ({ ...p, motion: "" }),
   ];
   let current = parts;
   let prompt = compose(current);
@@ -698,8 +700,11 @@ export function buildFramePrompt(
     characterUrls.length > 0,
     phaseA.characterLock,
   );
+  // Start stills need the whole move so the opening pose and framing leave room for it.
   const motionLabel =
-    position === "start" ? "Motion beginning at this frame" : "Motion just completed at this frame";
+    position === "start"
+      ? "Full camera motion (consider the whole move; this still is only the opening)"
+      : "Motion just completed at this frame";
   const narratorLock = cartoonNarratorFrameLock(project.skillSlug, {
     hasCharacter: performance,
     action: cartoonClipAction(row.motionCamera),

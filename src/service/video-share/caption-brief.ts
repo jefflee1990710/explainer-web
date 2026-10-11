@@ -12,6 +12,8 @@ export const CAPTION_GUIDES: Record<VideoShareId, string> = {
     "Write a Facebook post: 1-3 short paragraphs, conversational. At most 2 hashtags. No title prefix.",
   tiktok:
     "Write a TikTok caption: one hook sentence plus 3-6 hashtags. Keep it punchy. No title prefix.",
+  youtube_shorts:
+    "Write a YouTube Shorts title on the first line (no prefix, under 70 characters), a blank line, then 1-2 sentences and 3-5 hashtags.",
   youtube:
     "Write a YouTube title on the first line (no prefix), a blank line, then a 2-4 sentence description. Optional 3-5 hashtags at the end.",
   x: "Write a single X/Twitter post. Max 240 characters. 0-2 hashtags. No URL — the share link is added separately. No title prefix.",
@@ -54,5 +56,16 @@ export function shareCaptionPrompt(input: {
       CAPTION_GUIDES[input.platform],
     ].join("\n"),
     user: input.brief,
+  };
+}
+
+// Title formats put the title on line 1 and the description after the first break.
+export function splitShareCaption(text: string) {
+  const trimmed = text.trim();
+  const line = trimmed.indexOf("\n");
+  if (line === -1) return { title: trimmed, body: "" };
+  return {
+    title: trimmed.slice(0, line).trim(),
+    body: trimmed.slice(line + 1).trim(),
   };
 }

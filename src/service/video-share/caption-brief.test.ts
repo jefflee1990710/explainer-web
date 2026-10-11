@@ -5,6 +5,7 @@ import {
   CAPTION_GUIDES,
   captionBrief,
   shareCaptionPrompt,
+  splitShareCaption,
 } from "@/service/video-share/caption-brief";
 import { VIDEO_SHARE_IDS } from "@/service/video-share/platforms";
 
@@ -88,4 +89,22 @@ test("youtube prompt asks for title then description", () => {
   });
   assert.match(prompt.system, /YouTube title/);
   assert.match(prompt.system, /American English/);
+});
+
+test("shorts prompt asks for a short title then a caption", () => {
+  const prompt = shareCaptionPrompt({
+    platform: "youtube_shorts",
+    language: "yue",
+    brief: "Title: 吐司",
+  });
+  assert.match(prompt.system, /YouTube Shorts title/);
+  assert.match(prompt.system, /廣東話/);
+});
+
+test("title captions split on the first line", () => {
+  assert.deepEqual(splitShareCaption("為什麼吐司會燒焦\n\n熱度太高就會焦。"), {
+    title: "為什麼吐司會燒焦",
+    body: "熱度太高就會焦。",
+  });
+  assert.deepEqual(splitShareCaption("只剩一行"), { title: "只剩一行", body: "" });
 });

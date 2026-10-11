@@ -5,6 +5,7 @@ import { VideoEditorBreadcrumb } from "@/presentation/components/app/projects/[i
 import { VideoEditorHeaderStatus } from "@/presentation/components/app/projects/[id]/video-editor-header-status";
 import { VideoEditorMoreMenu } from "@/presentation/components/app/projects/[id]/video-editor-more-menu";
 import { VideoLocksReferenceButton } from "@/presentation/components/app/projects/[id]/video-locks-reference-button";
+import { VideoShareCaptionsButton } from "@/presentation/components/app/projects/[id]/video-share-captions-button";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
@@ -73,6 +74,7 @@ export function VideoEditorDialog({
             objectSheetItems={objectSheetItems}
             backgroundPlates={backgroundPlates}
           />
+          {videoId ? <VideoShareCaptionsButton videoId={videoId} /> : null}
           {onRestart ? (
             <StudioButton variant="ghost" onClick={onRestart}>
               {t("video.editor.restart")}

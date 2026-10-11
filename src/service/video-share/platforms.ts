@@ -3,6 +3,7 @@ export const VIDEO_SHARE_IDS = [
   "instagram_post",
   "facebook",
   "tiktok",
+  "youtube_shorts",
   "youtube",
   "x",
 ] as const;

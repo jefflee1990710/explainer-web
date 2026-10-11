@@ -97,6 +97,6 @@ export function VideoShareIcon({
   }
   if (id === "facebook") return <FacebookMark className={className} />;
   if (id === "tiktok") return <TikTokMark className={className} />;
-  if (id === "youtube") return <YouTubeMark className={className} />;
+  if (id === "youtube" || id === "youtube_shorts") return <YouTubeMark className={className} />;
   return <XMark className={className} />;
 }

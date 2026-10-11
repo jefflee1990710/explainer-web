@@ -858,17 +858,18 @@ test("dual-beat stills with a cast stay under the Flare prompt cap", () => {
   }
 });
 
-test("stills carry only their own motion beat, not the whole timeline", () => {
+test("start stills send the full camera motion; end stills keep the landed beat", () => {
   const p = project();
   p.phaseA!.clips[0].motionCamera = "0–2s: Lily lifts the cup; 2–5s: she sets it down and smiles";
   const start = buildFramePrompt(p, 1, "start");
   const end = buildFramePrompt(p, 1, "end");
-  assert.match(start, /Lily lifts the cup/);
-  assert.doesNotMatch(start, /sets it down/);
+  assert.match(start, /Full camera motion/);
+  assert.match(start, /consider the whole move/);
+  assert.match(start, /this still is only the opening/);
+  assert.match(start, /0–2s: Lily lifts the cup; 2–5s: she sets it down and smiles/);
   assert.match(end, /sets it down and smiles/);
   assert.match(end, /Camera landing:[\s\S]*lifts the cup/);
   assert.doesNotMatch(end.split("Camera landing:")[0], /lifts the cup/);
-  assert.doesNotMatch(start, /Motion and camera across the clip/);
 });
 
 test("a cast still spends far fewer characters on the character rules", () => {
