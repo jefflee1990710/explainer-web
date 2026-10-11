@@ -197,7 +197,7 @@ test("dual-beat clips swap the keyframe lettering at the midpoint instead of ban
   assert.equal(phaseBLetteringLock({ skillSlug: "story-short-director", durationSeconds: 5 }), "");
 });
 
-test("steady stills keep the lettering fixed and ask for one continuous glide", () => {
+test("steady stills keep the lettering fixed and ask the move to accelerate then decelerate", () => {
   const fixed = phaseBLetteringLock({
     skillSlug: "cartoon-explainer-video-director",
     durationSeconds: 5,
@@ -208,7 +208,7 @@ test("steady stills keep the lettering fixed and ask for one continuous glide", 
   assert.match(fixed, /no end frame to match/);
   assert.doesNotMatch(fixed, /wipes off/);
   const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2, smoothMotion: true });
-  assert.match(prompt, /one continuous, smooth glide/);
+  assert.match(prompt, /accelerates through the change, then decelerates into the landing/);
   assert.match(prompt, /There is no end image and no last frame/);
   assert.match(prompt, /endScene is where this clip's one action lands/);
   assert.doesNotMatch(prompt, /snaps fast and decisive/);

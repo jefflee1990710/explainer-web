@@ -487,7 +487,7 @@ test("Cinematic realistic whiteboard stills share the camera and the whole subti
   steady.frames.push({ clipNumber: 1, position: "end", prompt: "p", status: "completed", blobUrl: "https://blob/end.png" });
   const start = frameSubmitPlan(steady, 1, "start");
   assert.doesNotMatch(start.prompt, /OPENING CAMERA/);
-  assert.match(start.prompt, /gentle push at most/);
+  assert.match(start.prompt, /one push-in or pull-out at most/);
 
   // Doodle on the same storyboard still draws the landed angle without the start still.
   const doodle = { ...steady, styleId: "doodle" as const };

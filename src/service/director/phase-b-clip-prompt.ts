@@ -77,7 +77,7 @@ export function clipPhaseBUserPrompt(input: {
   skillSlug?: string;
   // Resolved talking-head performance slots (English). Default set when omitted.
   performance?: PerformanceSlots;
-  // Cinematic realistic whiteboard: one smooth glide instead of the snap beats.
+  // Cinematic realistic whiteboard: accelerate through the change, then decelerate.
   smoothMotion?: boolean;
 }) {
   const rows = input.phaseA.clips;

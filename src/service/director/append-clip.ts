@@ -144,7 +144,7 @@ ${sceneDescriptionLanguageLock(input.language)}
 durationSeconds is ${dualBeat ? "5 to 8" : "3 to 8"}.
 The englishVo field is the spoken line in ${language.label}. Leave referenceTranslation empty.
 ${dualBeat ? "Write startScene, endScene, startVo, and endVo. motionCamera is the move between the two stills." : "motionCamera is the camera move through this clip."}
-${steadyStills ? "Both stills share the same Camera line and the same whole subtitle (startVo then endVo). Only the one action differs between them. motionCamera is a smooth glide with no wipe or rewrite of the lettering." : ""}
+${steadyStills ? "Both stills share the same Camera line and the same whole subtitle (startVo then endVo). Only the one action differs between them. motionCamera starts, accelerates through the one action, then decelerates into the landing. No wipe or rewrite of the lettering." : ""}
 The next clip's start inherits the previous clip's end environment.`,
     prompt: `Director instruction:\n${input.source}\n\n${appendClipUserPrompt(input.phaseA, input.content, insertAt)}`,
   });

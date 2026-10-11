@@ -13,12 +13,13 @@ export const DUAL_KEYFRAME_MOTION_RULES = [
 ].join(" ");
 
 // Cinematic realistic whiteboard: one start image plus the motion. endScene is text
-// for the landing, not a picture the video model receives.
+// for the landing, not a picture the video model receives. The move accelerates
+// through the change, then decelerates. It does not drift at one slow speed.
 export const DUAL_KEYFRAME_GLIDE_RULES = [
   "Only the START storyboard image is attached, as the first frame. There is no end image and no last frame.",
   "Never call that still a reference image.",
   "Reply with the start scene and the camera motion. endScene is where this clip's one action lands: write that landing into the motion. Do not ask the video to match a second picture.",
-  "Play the action as one continuous, smooth glide that fills the whole duration (see the clip's durationSeconds). Show every in-between pose of the body, the hands, and the moved element.",
-  "Write the speed into the verbs (glides, eases, rotates through, slides). Never snap, flick, whip, pop, or dart. No anticipation jolt, no overshoot, no hold-then-jump. No cut and no skipped frame.",
+  "Play the action across the whole duration (see the clip's durationSeconds) with a rhythm: it starts, accelerates through the change, then decelerates into the landing. The middle of the move is sharp and quick. The opening and the landing are slower. Show every in-between pose of the body, the hands, and the moved element.",
+  "Write that speed into the verbs (accelerates, drives through, eases out). Do not stretch the move as one slow constant glide. Never skip a frame and never cut. No hold-then-jump.",
   "The camera follows motionCamera. The lettering painted on the start image stays fixed for the whole clip: no wipe and no new words. The character keeps the same screen position and scale.",
 ].join(" ");

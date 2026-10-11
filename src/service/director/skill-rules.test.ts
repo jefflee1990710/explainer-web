@@ -271,14 +271,15 @@ test("every action has a short still line for both stills and a video line", () 
   );
 });
 
-test("Cinematic realistic keeps a smooth glide; other styles keep the snap", () => {
+test("Cinematic realistic accelerates then decelerates; other styles keep the snap", () => {
   const smoothVideo = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
     hasCharacter: true,
     action: "flip",
     clipNumber: 2,
     smoothMotion: true,
   });
-  assert.match(smoothVideo, /A smooth glide is required/);
+  assert.match(smoothVideo, /accelerates through the change, then decelerates into the landing/);
+  assert.match(smoothVideo, /middle of the move is sharp and quick/);
   assert.match(smoothVideo, /rotates through its edge/);
   assert.match(smoothVideo, /This clip's action is a FLIP/);
   assert.doesNotMatch(smoothVideo, /snapping fast and sharp/);
@@ -288,7 +289,7 @@ test("Cinematic realistic keeps a smooth glide; other styles keep the snap", () 
     clipNumber: 1,
     smoothMotion: true,
   });
-  assert.match(smoothHook, /smooth glide/);
+  assert.match(smoothHook, /accelerates through the change, then decelerates into the landing/);
   assert.doesNotMatch(smoothHook, /no slow glide/);
   const doodle = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
     hasCharacter: true,
@@ -297,9 +298,9 @@ test("Cinematic realistic keeps a smooth glide; other styles keep the snap", () 
   });
   assert.match(doodle, /snapping fast and sharp/);
   assert.match(doodle, /never one constant slow glide/);
-  assert.doesNotMatch(doodle, /A smooth glide is required/);
+  assert.doesNotMatch(doodle, /accelerates through the change, then decelerates into the landing/);
   const block = cartoonExplainerDirectorBlock({ hasCharacter: true, smoothMotion: true });
-  assert.match(block, /smooth glide/);
+  assert.match(block, /accelerates through the change, then decelerates into the landing/);
   assert.doesNotMatch(block, /three beats/);
   assert.doesNotMatch(block, /Never describe the body as moving smoothly/);
   assert.doesNotMatch(block, /no slow glide/);
@@ -312,7 +313,7 @@ test("Cinematic realistic locks the camera and keeps one subtitle on both stills
   assert.match(block, /camera is locked inside a clip/);
   assert.match(block, /No orbit/);
   assert.match(block, /"<startVo> <endVo>"/);
-  assert.match(block, /at most one gentle push-in or pull-out/);
+  assert.match(block, /at most one push-in or pull-out/);
   assert.doesNotMatch(block, /Camera angle changes every clip/);
   assert.doesNotMatch(block, /fast 360 orbit/);
   const doodle = cartoonExplainerDirectorBlock({ hasCharacter: true });
@@ -327,7 +328,7 @@ test("Cinematic realistic locks the camera and keeps one subtitle on both stills
     steadyStills: true,
   });
   assert.match(still, /match the other still of this clip/);
-  assert.match(still, /gentle push at most/);
+  assert.match(still, /one push-in or pull-out at most/);
   assert.doesNotMatch(still, /may differ from the other still/);
   assert.doesNotMatch(still, /exaggerated framing/);
   // Video: the lettering never changes and the camera stays put.

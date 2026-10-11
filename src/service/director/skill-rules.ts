@@ -466,9 +466,9 @@ const MENU_ORDER: CartoonAction[] = [
 export function cartoonHookCameraRule(hasCharacter: boolean, smoothMotion?: boolean) {
   if (smoothMotion) {
     if (!hasCharacter) {
-      return "Clip 1 is the hook and uses at most one gentle push-in or pull-out on the graph, as a smooth glide with every in-between frame. Same angle and same crop centre in both stills; only the distance may differ a little. No snap, no skipped frame, and no new angle. Later clips do not repeat this hook camera.";
+      return "Clip 1 is the hook and uses at most one push-in or pull-out on the graph. It starts, accelerates through the change, then decelerates into the landing. The middle of that push is sharp and quick. Same angle and same crop centre in both stills; only the distance may differ a little. Show every in-between frame. No skipped frame and no new angle. Later clips do not repeat this hook camera.";
     }
-    return "Clip 1 is the hook and uses at most one gentle push-in or pull-out, as a smooth glide with every in-between frame. Both Camera lines keep the same angle and the same side; only the distance may differ a little. No snap, no skipped frame, no orbit, and no new angle. Surprise is a facial expression only. The character stays silent. Later clips do not repeat this hook camera.";
+    return "Clip 1 is the hook and uses at most one push-in or pull-out. It starts, accelerates through the change, then decelerates into the landing. The middle of that push is sharp and quick. Both Camera lines keep the same angle and the same side; only the distance may differ a little. Show every in-between frame. No skipped frame, no orbit, and no new angle. Surprise is a facial expression only. The character stays silent. Later clips do not repeat this hook camera.";
   }
   if (!hasCharacter) {
     return "Clip 1 is the hook and always uses one exaggerated camera on the graph, sharp and fast, no slow glide and no blur: a snap zoom into the key node, or a snap zoom out from that node to the whole chart. The start still and the end still use different shot sizes. Later clips do not repeat this hook camera.";
@@ -507,7 +507,7 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
       : "",
     hasCharacter
       ? smooth
-        ? "motionCamera plays the one action as a smooth glide from the start still to the end still, filling the clip. Show every in-between pose. A card flip rotates through its edge. A smooth glide is required. Never a snap, a pop, a cut, or a skipped frame. Never describe the motion as snapping or fast and sharp. Timestamp the glide across the whole clip."
+        ? "motionCamera plays the one action with a rhythm: it starts, accelerates through the change, then decelerates into the landing. The middle is sharp and quick. The opening and the landing are slower. Timestamp the speed-up and the slow-down. Show every in-between pose. A card flip rotates through its edge. Never a cut or a skipped frame. Do not describe the move as one slow constant glide."
         : "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a short hold while the graph responds (a node lights up, an arrow draws itself on, a counter ticks up). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
       : "",
     cartoonHookCameraRule(hasCharacter, smooth),
@@ -558,7 +558,7 @@ export function cartoonNarratorFrameLock(
   const hook =
     options?.clipNumber === 1
       ? steady
-        ? "HOOK CAMERA: Clip 1 moves the camera by a gentle push at most. This still keeps the same angle and side as the other still of Clip 1. A close view shows a surprised face."
+        ? "HOOK CAMERA: Clip 1 moves the camera by one push-in or pull-out at most. This still keeps the same angle and side as the other still of Clip 1. A close view shows a surprised face."
         : "HOOK CAMERA: this still uses the exaggerated framing named in the Scene. Shot size or angle differs from the other still of Clip 1. A close view shows a surprised face."
       : "";
   const cameraMatch = steady
@@ -612,7 +612,7 @@ const SNAP_MOTION =
   "Animate this clip's one action as the two stills show it, in three beats with real human timing: a quick anticipation, the action snapping fast and sharp, then a small overshoot, a settle with a wobble, and a short hold while the graph responds. Speed changes within the clip like a real person; never one constant slow glide.";
 
 const SMOOTH_MOTION =
-  "Animate this clip's one action as a smooth glide that leaves the start still and lands on the described end scene. There is no end image. Show every in-between frame. The body, the hands, and any prop move continuously. A card flip rotates through its edge and does not pop from one face to the other. A smooth glide is required. Never snap, never skip a frame, and never cut. The camera follows the motion already written. The lettering painted on the start still stays fixed for the whole clip: no wipe, no rewrite, no new words.";
+  "Animate this clip's one action so it leaves the start still and lands on the described end scene. There is no end image. The move has a rhythm: it starts, accelerates through the change, then decelerates into the landing. The middle of the move is sharp and quick. The opening and the landing are slower. Show every in-between frame. The body, the hands, and any prop keep moving through that curve. A card flip rotates through its edge and does not pop from one face to the other. Do not stretch the action as one slow constant glide. Never skip a frame and never cut. The camera follows the motion already written, on the same accelerate-then-decelerate curve. The lettering painted on the start still stays fixed for the whole clip: no wipe, no rewrite, no new words.";
 
 export function cartoonNarratorVideoLock(
   skillSlug?: string,
@@ -626,7 +626,7 @@ export function cartoonNarratorVideoLock(
     const graphHook =
       options?.clipNumber === 1
         ? smooth
-          ? " HOOK CAMERA: play the gentle push drawn between the two stills as a smooth glide, with every in-between frame. No snap, no skipped frame, and no new angle."
+          ? " HOOK CAMERA: play the one push drawn between the two stills so it accelerates through the change, then decelerates into the landing. The middle of that push is sharp and quick. Show every in-between frame. No skipped frame and no new angle."
           : " HOOK CAMERA: play the exaggerated zoom drawn between the two stills, sharp and fast, no slow glide and no blur."
         : "";
     const glide = smooth ? ` ${SMOOTH_MOTION}` : "";
@@ -637,7 +637,7 @@ export function cartoonNarratorVideoLock(
   const hook =
     options?.clipNumber === 1
       ? smooth
-        ? " HOOK CAMERA: play the gentle push drawn between the two stills as a smooth glide, with every in-between frame. No snap, no skipped frame, and no new angle. A close view shows a surprised face. The character stays silent."
+        ? " HOOK CAMERA: play the one push drawn between the two stills so it accelerates through the change, then decelerates into the landing. The middle of that push is sharp and quick. Show every in-between frame. No skipped frame and no new angle. A close view shows a surprised face. The character stays silent."
         : " HOOK CAMERA: play the exaggerated move drawn between the two stills, sharp and fast in the first second, no slow glide and no blur. A close view shows a surprised face. The character stays silent."
       : "";
   const beats = smooth ? SMOOTH_MOTION : SNAP_MOTION;
