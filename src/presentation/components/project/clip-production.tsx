@@ -37,7 +37,6 @@ export function ClipProduction({
   onGenerateSelected,
   subscribed,
   onProject,
-  onRegenerateClipScene,
 }: {
   project: PublicVideo;
   credits: number;
@@ -55,7 +54,6 @@ export function ClipProduction({
   onGenerateSelected: (clipNumbers: number[], kind: "frames" | "videos") => Promise<boolean>;
   subscribed: boolean;
   onProject: (project: PublicVideo) => void;
-  onRegenerateClipScene: (clipNumber: number) => Promise<boolean>;
 }) {
   const phaseA = project.phaseA;
   const states = clipStatesFor(project);
@@ -192,9 +190,7 @@ export function ClipProduction({
           clipNumber={sceneChatClip}
           aspectRatio={project.aspectRatio}
           subscribed={subscribed}
-          regenerating={pending === `clip:${sceneChatClip}:regen`}
           onProject={onProject}
-          onRegenerate={() => onRegenerateClipScene(sceneChatClip)}
           onClose={() => setSceneChatClip(null)}
         />
       ) : null}

@@ -325,7 +325,7 @@ export const productionZhHant = {
   sceneChat: {
     open: "AI 改提示",
     title: "用 AI 改第 {n} 段",
-    empty: "描述想改的內容。預設只改這一段；要改全部就說「全部片段」。回覆後按泡泡裡的按鈕重畫。",
+    empty: "描述想改的內容。預設只改這一段；要改全部就說「全部片段」。",
     placeholder: "例如：全部片段的 Webinar 改成線上研討會",
     send: "送出",
     changed: "已改：{fields}",

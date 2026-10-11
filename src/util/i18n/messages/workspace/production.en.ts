@@ -325,7 +325,7 @@ export const productionEn = {
   sceneChat: {
     open: "Edit with AI",
     title: "Edit clip {n} with AI",
-    empty: "Describe the change. It applies to this clip unless you ask to change every clip. Then use the button in the reply to redraw.",
+    empty: "Describe the change. It applies to this clip unless you ask to change every clip.",
     placeholder: "Example: change Webinar to online seminar in every clip",
     send: "Send",
     changed: "Updated: {fields}",

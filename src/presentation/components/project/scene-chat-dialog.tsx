@@ -14,18 +14,14 @@ export function SceneChatDialog({
   clipNumber,
   aspectRatio,
   subscribed,
-  regenerating,
   onProject,
-  onRegenerate,
   onClose,
 }: {
   project: PublicVideo;
   clipNumber: number;
   aspectRatio: AspectRatio;
   subscribed: boolean;
-  regenerating: boolean;
   onProject: (project: PublicVideo) => void;
-  onRegenerate: () => Promise<boolean>;
   onClose: () => void;
 }) {
   const { t } = useI18n();
@@ -74,13 +70,11 @@ export function SceneChatDialog({
                 frame={start}
                 aspectRatio={aspectRatio}
                 label={t("production.frame.position.start")}
-                regenerating={regenerating}
               />
               <SceneStillPreview
                 frame={end}
                 aspectRatio={aspectRatio}
                 label={t("production.frame.position.end")}
-                regenerating={regenerating}
               />
             </div>
             {row?.motionCamera ? (
@@ -96,9 +90,7 @@ export function SceneChatDialog({
             project={project}
             clipNumber={clipNumber}
             subscribed={subscribed}
-            regenerating={regenerating}
             onProject={onProject}
-            onRegenerate={onRegenerate}
             hideTitle
           />
         </div>

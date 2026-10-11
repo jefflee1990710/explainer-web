@@ -11,12 +11,12 @@ export function SceneStillPreview({
   frame,
   aspectRatio,
   label,
-  regenerating,
+  regenerating = false,
 }: {
   frame?: ClipFrame;
   aspectRatio: AspectRatio;
   label: string;
-  regenerating: boolean;
+  regenerating?: boolean;
 }) {
   const liveSrc = displayMediaSrc(frame);
   const [heldSrc, setHeldSrc] = useState(liveSrc);

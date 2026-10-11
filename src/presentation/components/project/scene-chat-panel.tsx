@@ -7,26 +7,21 @@ import { SceneChatComposer } from "@/presentation/components/project/scene-chat-
 import { SceneChatMessage } from "@/presentation/components/project/scene-chat-message";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicVideo } from "@/presentation/serialize";
-import { clipSceneChatThread, sceneRedrawFinishedAt, sceneRedrawPhase } from "@/service/clip/scene-chat";
-import { sceneImageCost } from "@/service/production-plan";
+import { clipSceneChatThread } from "@/service/clip/scene-chat";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
-// Right side of the production desk: edit this clip's stills and camera, then redraw.
+// Right side of the production desk: edit this clip's stills and camera.
 export function SceneChatPanel({
   project,
   clipNumber,
   subscribed,
-  regenerating,
   onProject,
-  onRegenerate,
   hideTitle = false,
 }: {
   project: PublicVideo;
   clipNumber: number;
   subscribed: boolean;
-  regenerating: boolean;
   onProject: (project: PublicVideo) => void;
-  onRegenerate: () => Promise<boolean>;
   hideTitle?: boolean;
 }) {
   const { t } = useI18n();
@@ -38,10 +33,6 @@ export function SceneChatPanel({
     (frame) =>
       frame.clipNumber === clipNumber &&
       (frame.status === "queued" || frame.status === "in_progress"),
-  );
-  const credits = sceneImageCost(project, [clipNumber]);
-  const latestChanged = chat.findLastIndex(
-    (message) => message.role === "assistant" && (message.changedPaths?.length ?? 0) > 0,
   );
 
   useEffect(() => {
@@ -89,30 +80,15 @@ export function SceneChatPanel({
         {empty ? (
           <p className="px-1 py-2 text-sm leading-6 text-muted">{t("production.sceneChat.empty")}</p>
         ) : null}
-        {chat.map((message, index) => {
-          const clipFrames = project.frames.filter((frame) => frame.clipNumber === clipNumber);
-          const redrawInput = { messageAt: message.createdAt, frames: clipFrames };
-          const redraw = index === latestChanged ? sceneRedrawPhase(redrawInput) : "ready";
-          return (
-            <SceneChatMessage
-              key={`${message.createdAt}-${index}`}
-              role={message.role}
-              content={message.content}
-              changedPaths={message.changedPaths}
-              changedClips={message.changedClips}
-              regenerating={index === latestChanged && (regenerating || framesBusy || redraw === "running")}
-              redrawAt={redraw === "done" ? sceneRedrawFinishedAt(redrawInput) : undefined}
-              credits={credits}
-              onRegenerate={
-                index === latestChanged
-                  ? () => {
-                      void onRegenerate();
-                    }
-                  : undefined
-              }
-            />
-          );
-        })}
+        {chat.map((message, index) => (
+          <SceneChatMessage
+            key={`${message.createdAt}-${index}`}
+            role={message.role}
+            content={message.content}
+            changedPaths={message.changedPaths}
+            changedClips={message.changedClips}
+          />
+        ))}
         {pending ? (
           <>
             <SceneChatMessage role="user" content={pending} />
@@ -124,7 +100,7 @@ export function SceneChatPanel({
       <div className="shrink-0 border-t border-[var(--studio-line)] p-2.5">
         {subscribed ? (
           <SceneChatComposer
-            disabled={framesBusy || regenerating}
+            disabled={framesBusy}
             sending={Boolean(pending)}
             onSend={(message) => void send(message)}
           />

@@ -21,7 +21,6 @@ import {
 } from "@/presentation/actions/clip-production";
 import type { BulkMode } from "@/presentation/components/project/bulk-generate-dialog";
 import { regenerateFrameAction } from "@/presentation/actions/generation";
-import { regenerateClipSceneMediaAction } from "@/presentation/actions/scene-chat";
 import {
   createVideoAction,
   getVideoAction,
@@ -38,7 +37,6 @@ import {
   planGenerateAllScenes,
   planRemaining,
   planSelected,
-  sceneImageCost,
 } from "@/service/production-plan";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { isCreditGateError } from "@/service/billing/credit-gate";
@@ -607,16 +605,6 @@ export function NewProjectForm({
     if (!project) return;
     void runPaid(`frame:${clipNumber}:${position}`, () =>
       regenerateFrameAction(project.id, clipNumber, position, revision),
-    );
-  }
-
-  // Director chat: redraw this clip's start and end stills from the storyboard.
-  function onRegenerateClipScene(clipNumber: number) {
-    if (!project) return Promise.resolve(false);
-    return runPaid(
-      `clip:${clipNumber}:regen`,
-      () => regenerateClipSceneMediaAction(project.id, clipNumber),
-      sceneImageCost(project, [clipNumber]),
     );
   }
 
@@ -1198,7 +1186,6 @@ export function NewProjectForm({
               onGenerateSelected={onGenerateSelected}
               subscribed={walletSubscribed}
               onProject={setProject}
-              onRegenerateClipScene={onRegenerateClipScene}
             />
             </div>
           ) : reelDesk && project ? (
