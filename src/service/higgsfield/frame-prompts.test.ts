@@ -142,6 +142,26 @@ test("a cartoon still paints the subtitle once when the bracket label repeats it
   assert.match(buildFramePrompt(other, 1, "start"), /「5 Camera Motions You Need to Know!」/);
 });
 
+test("cartoon stills paint the spoken subtitle in the text style, not the bracket labels", () => {
+  const cartoon = project();
+  cartoon.skillSlug = "cartoon-explainer-video-director";
+  cartoon.subtitleLook = "clean";
+  cartoon.phaseA!.clips[0].startScene =
+    'card labeled 「VIRAL SHOTS」. Subtitle (spell exactly): "Save it now!"';
+  cartoon.phaseA!.clips[0].startVo = "Save it now!";
+  const prompt = buildFramePrompt(cartoon, 1, "start");
+  assert.match(prompt, /This Look is only the subtitle/);
+  assert.match(prompt, /Do not give this Look to words inside 「」/);
+  assert.match(prompt, /Save it now!/);
+  assert.match(prompt, /「VIRAL SHOTS」/);
+
+  const other = project();
+  other.subtitleLook = "clean";
+  other.phaseA!.clips[0].explainerScene =
+    'card labeled 「VIRAL SHOTS」. Subtitle (spell exactly): "Save it now!"';
+  assert.doesNotMatch(buildFramePrompt(other, 1, "start"), /This Look is only the subtitle/);
+});
+
 test("doodle frame prompt uses the loaded style, no hard-coded whiteboard literal", () => {
   const prompt = buildFramePrompt(project(), 1, "start");
   assert.match(prompt, /doodle name short video/);

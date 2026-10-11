@@ -260,10 +260,10 @@ export function sceneTextSkillHint(
   }
   if (options?.dualBeat) {
     return [
-      `When on-canvas text is ON, write the subtitle into the still the image paints. startScene quotes ONLY startVo and endScene quotes ONLY endVo, each as Subtitle (spell exactly): "<that beat's line>". ${lookLine} Keep the spoken line's own casing. Two beats switch at the midpoint.`,
+      `When on-canvas text is ON, the spoken line is the subtitle. startScene quotes ONLY startVo and endScene quotes ONLY endVo, each as Subtitle (spell exactly): "<that beat's line>". ${lookLine} The still paints that sentence in the selected text style, large in the frame, not as small type on a prop. Keep the spoken line's own casing. Two beats switch at the midpoint.`,
       "That Subtitle sentence is the image prompt. A later step does not move, resize, or restyle it. Default place is not a bottom bar; set the place and size in the sentence when the instruction asks.",
-      "A beat title may name a diagram label, node, arrow, or prop inside 「」 on the graph they belong to. A 「」 label must not repeat that still's Subtitle. Do not dump a second transcript of the spoken line into those fields.",
-      "Lettering follows that Look. Do not copy typography or placement from the visual style.",
+      "A beat title may name a diagram label, node, arrow, or prop inside 「」 on the graph they belong to. Words inside 「」 are ordinary writing on that object. They do not use the subtitle text style. A 「」 label must not repeat that still's Subtitle. Do not dump a second transcript of the spoken line into those fields.",
+      "Do not copy typography or placement from the visual style.",
       markerLanguageHint(language),
     ].join(" ");
   }

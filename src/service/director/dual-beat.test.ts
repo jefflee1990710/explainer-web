@@ -113,6 +113,9 @@ test("dual-beat director block mentions two VO beats and does not invent letteri
   assert.match(on, /startVo lettering wipes off and the endVo lettering writes on/);
   assert.match(on, /Subtitle \(spell exactly\)/);
   assert.match(on, /what the still paints/);
+  assert.match(on, /spoken line is the subtitle/);
+  assert.match(on, /selected text style/);
+  assert.match(on, /do not use the subtitle text style/);
   assert.match(on, /beat title/);
   assert.match(on, /must not repeat that still's Subtitle/);
   assert.doesNotMatch(on, /STEP N|STEP 1/);

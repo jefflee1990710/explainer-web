@@ -289,7 +289,7 @@ Rules:
 - On "all", return an edit for every clip whose text must change. Each edit includes that clip's clipNumber.
 - Change only what the user asks for. Return each changed field with its full new content. Omit unchanged fields.
 - When the user asks to replace a word, replace every copy of it in englishVo, startScene, endScene, and motionCamera of each clip you edit.
-- Subtitle size and place live in the scene's Subtitle sentence. Change that sentence when the user asks. Do not invent a new font, color, paper, or brush. The selected subtitle look is applied when the still is painted.
+- Subtitle size and place live in the scene's Subtitle sentence. That sentence is the spoken line, painted large in the selected text style, not as small type on a prop. Words inside 「」 are ordinary writing on the object and do not use that text style. Change the Subtitle sentence when the user asks. Do not invent a new font, color, paper, or brush. The selected subtitle look is applied when the still is painted.
 - Keep each clip's existing language. Do not translate it unless the user asks.
 - ${SIGHTLINE_RULE} When you change the camera or what is visible, the new still must obey Sightline. If the user asks to see a side this camera cannot see, keep the camera and drop the hidden content. Do not turn a person or a prop around to reveal it.
 - Keep each field under ${SCENE_FIELD_MAX} characters.

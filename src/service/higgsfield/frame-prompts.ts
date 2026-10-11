@@ -645,6 +645,9 @@ export function buildFramePrompt(
   // Every 9:16 spoken subtitle sits a little below center. Landscape stays in the bottom band.
   const subtitleBelowCenter = subtitleSitsBelowCenter(project.aspectRatio);
   const paintSurpriseType = surprise && Boolean(voForFrame);
+  // Cartoon only: the text style is the spoken subtitle. 「」 labels stay on the prop.
+  const cartoonSubtitleLook =
+    "This Look is only the subtitle: the words in the Scene's Subtitle sentence, which are this still's spoken line. Paint them large in the frame in this Look. Do not paint them as small type on a prop. Do not give this Look to words inside 「」.";
   const onCanvasTextBlock = listicle
     ? [
         letteringLine,
@@ -673,7 +676,9 @@ export function buildFramePrompt(
       // Place and size stay in the scene sentence. The selected 字幕外觀 still applies.
       ? silentClip
         ? []
-        : [letteringLine]
+        : dualBeat
+          ? [letteringLine, cartoonSubtitleLook]
+          : [letteringLine]
       : keepSceneLabels
         ? // Catalog typography already says "never subtitles or captions" — exactly this mode.
           sceneTextFrameLines(false, sceneText.language, undefined, undefined, {
@@ -765,9 +770,13 @@ export function buildFramePrompt(
       : sceneText.enabled
         ? silentClip
           ? ["Final check: no subtitle band and no letters in the frame."]
-          : [
-              "Final check: subtitle place and size follow the Scene's Subtitle sentence. Paint those words with the subtitle Look line above. Do not replace that lettering with a plain white caption or the visual style.",
-            ]
+          : dualBeat
+            ? [
+                "Final check: the Subtitle sentence is this still's spoken line, painted large in the subtitle Look above, not as small type on a prop. Words inside 「」 stay ordinary writing on their object.",
+              ]
+            : [
+                "Final check: subtitle place and size follow the Scene's Subtitle sentence. Paint those words with the subtitle Look line above. Do not replace that lettering with a plain white caption or the visual style.",
+              ]
         : keepSceneLabels
           ? [
               "Final check: the only lettering is the short in-world label(s) named in the Scene; no subtitle band, no voiceover transcript.",

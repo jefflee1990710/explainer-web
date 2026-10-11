@@ -500,7 +500,7 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
       ? "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a short hold while the graph responds (a node lights up, an arrow draws itself on, a counter ticks up). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
       : "",
     cartoonHookCameraRule(hasCharacter),
-    "On-canvas beat text: a beat title may name a diagram label, node, arrow, or prop inside 「」 in startScene and endScene. A 「」 label must not repeat the Subtitle on that still. Also write that still's spoken line as Subtitle (spell exactly): \"<startVo or endVo>\". The still paints that sentence once.",
+    "On-canvas beat text: the spoken line is the subtitle. Write it as Subtitle (spell exactly): \"<startVo or endVo>\". The still paints that sentence in the selected text style, large in the frame, not as small type on a prop. A beat title may name a diagram label, node, arrow, or prop inside 「」 on the object it belongs to. Words inside 「」 are ordinary writing on that object. They do not use the subtitle text style. A 「」 label must not repeat the Subtitle on that still.",
   ]
     .filter(Boolean)
     .join(" ");
@@ -541,7 +541,8 @@ export function cartoonNarratorFrameLock(
   if (options?.hasCharacter) {
     const silent =
       "Silent demonstrator: the character does not talk or lip-sync (a readable facial expression only when the face is toward the camera; from behind, leave the face unseen; no greeting wave).";
-    const labels = "Draw every beat title or diagram label written in 「」, clearly readable.";
+    const labels =
+      "Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.";
     const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
     if (spec && options.position) {
       return [
@@ -554,7 +555,7 @@ export function cartoonNarratorFrameLock(
     }
     return `${silent} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. Camera angle may differ from the other still. Draw the explanation graph plus the element of this action. ${labels}${hook ? ` ${hook}` : ""}`;
   }
-  const base = "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」, clearly readable.";
+  const base = "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.";
   return hook ? `${base} ${hook}` : base;
 }
 
