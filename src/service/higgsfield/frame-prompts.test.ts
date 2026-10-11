@@ -416,6 +416,41 @@ test("an orbit end still does not attach the start frame, and names the landed a
   assert.doesNotMatch(freed.prompt, /COMPOSITION LOCK/);
 });
 
+test("an end still without a start lock attaches the prop sheet and empty-set plate", () => {
+  const arc = project();
+  arc.skillSlug = "cartoon-explainer-video-director";
+  arc.cast = [
+    { characterId: new ObjectId(), versionId: new ObjectId(), name: "Scro", blueprintUrl: "https://blob/c.png", prompt: "" },
+  ];
+  arc.objectSheetItems = [{ name: "gimbal", notes: "metal dial" }];
+  arc.objectSheetUrl = "https://blob/sheet.png";
+  arc.backgroundPlates = [
+    {
+      setId: "rooftop",
+      name: "rooftop",
+      notes: "railing and skyline",
+      clipNumbers: [1],
+      url: "https://blob/roof.png",
+    },
+  ];
+  arc.phaseA!.clips[0].backgroundSetId = "rooftop";
+  arc.phaseA!.clips[0].motionCamera =
+    "2-5s smooth gimbal arc sweeps 180 degrees from left profile to right 3/4 view.";
+  arc.phaseA!.clips[0].endUsesStartStill = false;
+  arc.frames = [
+    { clipNumber: 1, position: "start", prompt: "p", status: "completed", blobUrl: "https://blob/start.png" },
+  ];
+  const plan = frameSubmitPlan(arc, 1, "end");
+  assert.deepEqual(plan.refs, [
+    "https://blob/c.png",
+    "https://blob/sheet.png",
+    "https://blob/roof.png",
+  ]);
+  assert.match(plan.prompt, /OBJECT LOCK: attached image 2/);
+  assert.match(plan.prompt, /BACKGROUND LOCK: attached image 3/);
+  assert.doesNotMatch(plan.prompt, /COMPOSITION LOCK/);
+});
+
 test("opening still without a previous frame still numbers the blueprint first", () => {
   const withCast = project();
   withCast.cast = [

@@ -107,8 +107,26 @@ export type StoryboardRow = {
   // Director's choice: attach this clip's start still when drawing the end.
   // Absent on older videos and after a user edits the camera text.
   endUsesStartStill?: boolean;
+  // Which empty-set background plate this clip uses (from backgroundPlates).
+  backgroundSetId?: string;
   // ISO time the user last edited this row; newer than submittedAt ⇒ stale media.
   editedAt?: string;
+};
+
+// Prop tiles for the video-wide white-background object sheet.
+export type ObjectSheetItem = {
+  name: string;
+  notes: string;
+};
+
+// One empty location plate. Clips share a setId when they are in the same place.
+export type BackgroundPlate = {
+  setId: string;
+  name: string;
+  notes: string;
+  // Clips that open in this set. Used when rebuilding assignments after a rewrite.
+  clipNumbers: number[];
+  url?: string;
 };
 
 export type SceneChatField = "startScene" | "endScene" | "motionCamera" | "englishVo";
@@ -258,6 +276,13 @@ export type Project = {
   characterStillUrl?: string;
   // Character still failed; the next frame request resubmits it.
   stillError?: string;
+  // Director-invented props on a white sheet. Absent until planned; [] means none.
+  objectSheetItems?: ObjectSheetItem[];
+  objectSheetUrl?: string;
+  objectSheetError?: string;
+  // One empty-set plate per unique location. Absent until planned; [] means none.
+  backgroundPlates?: BackgroundPlate[];
+  backgroundPlateError?: string;
   // Storyboard frames generated after storyboard approval.
   frames?: ClipFrame[];
   // Legacy batch charges (pre per-clip pipeline). No longer written.
@@ -336,6 +361,20 @@ const storyboardRowSchema = z.object({
   referenceImageIds: z.array(z.string()).optional(),
   editedAt: z.string().optional(),
   endUsesStartStill: z.boolean().optional(),
+  backgroundSetId: z.string().optional(),
+});
+
+const objectSheetItemSchema = z.object({
+  name: z.string(),
+  notes: z.string(),
+});
+
+const backgroundPlateSchema = z.object({
+  setId: z.string(),
+  name: z.string(),
+  notes: z.string(),
+  clipNumbers: z.array(z.number()),
+  url: z.string().optional(),
 });
 
 const phaseAProposalSchema = z.object({
@@ -414,6 +453,11 @@ export const projectSchema: z.ZodType<Project> = z.object({
     .optional(),
   characterStillUrl: z.string().optional(),
   stillError: z.string().optional(),
+  objectSheetItems: z.array(objectSheetItemSchema).optional(),
+  objectSheetUrl: z.string().optional(),
+  objectSheetError: z.string().optional(),
+  backgroundPlates: z.array(backgroundPlateSchema).optional(),
+  backgroundPlateError: z.string().optional(),
   frames: z
     .array(
       z.object({

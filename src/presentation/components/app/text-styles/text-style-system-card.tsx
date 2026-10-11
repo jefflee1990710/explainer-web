@@ -1,6 +1,7 @@
 "use client";
 
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { CreateFromLookButton } from "@/presentation/components/app/text-styles/create-from-look-modal";
 import {
   SYSTEM_TEXT_STYLE_ORDER,
   systemTextStylePreview,
@@ -8,7 +9,7 @@ import {
 } from "@/service/director/subtitle-look";
 import { subtitleLookLabel } from "@/util/i18n/picker-labels";
 
-// One reference still. These cards are not edited; upload a sample to make your own.
+// One reference still. Fork opens a custom copy the user can edit with AI chat.
 export function TextStyleSystemCard({ look }: { look: SubtitleLook }) {
   const { t } = useI18n();
   const label = subtitleLookLabel(t, look);
@@ -23,8 +24,9 @@ export function TextStyleSystemCard({ look }: { look: SubtitleLook }) {
         <h3 className="text-xs font-semibold">{label.label}</h3>
         <p className="line-clamp-2 text-[11px] leading-4 text-muted">{label.sublabel}</p>
       </div>
-      <div className="border-t border-[var(--studio-line)] px-3 py-2">
+      <div className="flex items-center justify-between gap-2 border-t border-[var(--studio-line)] px-3 py-2">
         <span className="text-[11px] text-muted">{t("textStyles.systemBadge")}</span>
+        <CreateFromLookButton look={look} />
       </div>
     </article>
   );

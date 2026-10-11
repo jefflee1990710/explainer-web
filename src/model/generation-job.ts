@@ -12,7 +12,10 @@ export type GenerationKind =
   | "directorPreview"
   | "reelCover"
   | "postPreview"
-  | "product";
+  | "product"
+  | "objectSheet"
+  | "backgroundPlate"
+  | "textStylePreview";
 export type GenerationStatus =
   // Waiting in our queue; not sent to the provider yet.
   | "pending"
@@ -48,6 +51,10 @@ export type GenerationJob = {
   postId?: ObjectId;
   // Only for kind === "product".
   productId?: ObjectId;
+  // Only for kind === "backgroundPlate".
+  backgroundSetId?: string;
+  // Only for kind === "textStylePreview".
+  textStyleId?: ObjectId;
   model: string;
   // Unset until the provider accepts the request.
   requestId?: string;
@@ -86,6 +93,9 @@ export const generationJobSchema: z.ZodType<GenerationJob> = z.object({
     "reelCover",
     "postPreview",
     "product",
+    "objectSheet",
+    "backgroundPlate",
+    "textStylePreview",
   ]),
   framePosition: z.enum(["start", "end"]).optional(),
   characterId: objectIdSchema.optional(),
@@ -95,6 +105,8 @@ export const generationJobSchema: z.ZodType<GenerationJob> = z.object({
   skillId: objectIdSchema.optional(),
   postId: objectIdSchema.optional(),
   productId: objectIdSchema.optional(),
+  backgroundSetId: z.string().optional(),
+  textStyleId: objectIdSchema.optional(),
   model: z.string(),
   requestId: z.string().optional(),
   statusUrl: z.string().optional(),

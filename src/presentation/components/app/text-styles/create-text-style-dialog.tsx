@@ -60,6 +60,10 @@ function CreateTextStyleDialog({ onClose }: { onClose: () => void }) {
       return;
     }
     onClose();
+    if ("id" in result && result.id) {
+      router.push(`/app/text-styles/${result.id}`);
+      return;
+    }
     router.refresh();
   }
 

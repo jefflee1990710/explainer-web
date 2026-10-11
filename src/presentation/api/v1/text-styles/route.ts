@@ -1,7 +1,10 @@
 import { textStylesCollection } from "@/dao";
 import { apiError, apiJson, fromResult, withApiUser } from "@/service/api/respond";
 import { SYSTEM_TEXT_STYLE_ORDER, systemTextStylePreview } from "@/service/director/subtitle-look";
-import { createTextStyleAction } from "@/service/text-style/actions";
+import {
+  createTextStyleAction,
+  createTextStyleFromLookAction,
+} from "@/service/text-style/actions";
 import { toPublicTextStyle } from "@/presentation/serialize";
 import { getAppUrl } from "@/util/app-url";
 import type { TextStyleDoc } from "@/model/text-style";
@@ -23,9 +26,24 @@ export const GET = withApiUser(async ({ auth }) => {
   });
 });
 
-// Upload a lettering sample. Multipart: name, file (PNG/JPG/WebP).
+// Multipart upload: name + file. JSON fork: { baseLookId, name }.
 export const POST = withApiUser(async ({ request }) => {
   const type = request.headers.get("content-type") || "";
-  if (!type.includes("multipart/form-data")) return apiError("請用 multipart/form-data 上傳");
-  return fromResult(await createTextStyleAction(await request.formData()), 201);
+  if (type.includes("multipart/form-data")) {
+    return fromResult(await createTextStyleAction(await request.formData()), 201);
+  }
+  if (type.includes("application/json")) {
+    const body = (await request.json().catch(() => null)) as
+      | { baseLookId?: string; name?: string }
+      | null;
+    if (!body) return apiError("請提供 JSON");
+    return fromResult(
+      await createTextStyleFromLookAction({
+        baseLookId: String(body.baseLookId || ""),
+        name: String(body.name || ""),
+      }),
+      201,
+    );
+  }
+  return apiError("請用 multipart/form-data 或 application/json");
 });

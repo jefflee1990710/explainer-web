@@ -17,6 +17,10 @@ export function collectVideoBlobUrls(
   add(video.characterStillUrl);
   add(video.reelUrl);
   add(video.finalUrl);
+  add(video.objectSheetUrl);
+  for (const plate of video.backgroundPlates || []) {
+    add(plate.url);
+  }
   for (const frame of video.frames || []) {
     add(frame.blobUrl);
     add(frame.revision?.annotatedUrl);

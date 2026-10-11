@@ -5,6 +5,7 @@ import { syncDirectorPreviewJob } from "@/service/director/director-preview";
 import { syncPostPreviewJob } from "@/service/post/sync-preview";
 import { failProduct } from "@/service/product/sync";
 import { syncStylePreviewJob } from "@/service/style/user-style-preview";
+import { syncTextStylePreviewJob } from "@/service/text-style/preview";
 import { syncReelCoverJob } from "@/service/video-edit/reel-cover";
 import { fetchHiggsfieldStatus, mediaUrlFromResponse } from "@/service/higgsfield/generate";
 import {
@@ -19,6 +20,7 @@ import {
   refundClaimedFailure,
   syncProjectFromJobs,
 } from "@/service/higgsfield/pipeline";
+import { syncVideoLockJob } from "@/service/higgsfield/video-locks-pipeline";
 import {
   MAX_SUBMIT_ATTEMPTS,
   PROVIDER_TIMEOUT_MS,
@@ -120,6 +122,10 @@ export async function failJob(
     await syncStylePreviewJob(job, "failed");
     return true;
   }
+  if (job.kind === "textStylePreview") {
+    await syncTextStylePreviewJob(job, "failed");
+    return true;
+  }
   if (job.kind === "directorPreview") {
     await syncDirectorPreviewJob(job, "failed");
     return true;
@@ -134,6 +140,14 @@ export async function failJob(
   }
   if (job.kind === "reelCover") {
     await syncReelCoverJob(job, "failed");
+    return true;
+  }
+  if (job.kind === "objectSheet" || job.kind === "backgroundPlate") {
+    await syncVideoLockJob(job, "failed");
+    if (!job.projectId) return true;
+    const projects = await videosCollection();
+    const project = await projects.findOne({ _id: job.projectId });
+    if (project) await refundClaimedFailure(job, project, error);
     return true;
   }
   if (!job.projectId) return true;
@@ -234,7 +248,7 @@ export async function refreshSubmittedJobs() {
     );
   }
 
-  for (const job of due.filter((item) => item.kind === "character" || item.kind === "stylePreview" || item.kind === "directorPreview" || item.kind === "reelCover" || item.kind === "postPreview" || item.kind === "product")) {
+  for (const job of due.filter((item) => item.kind === "character" || item.kind === "stylePreview" || item.kind === "textStylePreview" || item.kind === "directorPreview" || item.kind === "reelCover" || item.kind === "postPreview" || item.kind === "product")) {
     if (!job.statusUrl || !job.requestId) continue;
     try {
       const remote = await fetchHiggsfieldStatus(job.statusUrl);

@@ -108,6 +108,17 @@ export function textStylePreviewPrompt(look?: string | null) {
   return lines.join("\n");
 }
 
+// Custom user lookLine (forked or chat-edited). Same sample words as system cards.
+export function customTextStylePreviewPrompt(lookLine: string) {
+  const line = lookLine.trim() || subtitleLookLine(DEFAULT_SUBTITLE_LOOK);
+  return [
+    "16:9 lettering sample card. Show only the subtitle lettering, large and readable. No people, no scene, no logo, no extra writing.",
+    line.startsWith("Look:") ? line : `Look: ${line}`,
+    `The only words are: ${TEXT_STYLE_PREVIEW_SAMPLE}`,
+    "One line of lettering on a flat field that fits the look. Aspect ratio 16:9.",
+  ].join("\n");
+}
+
 export function isSubtitleLook(value: string): value is SubtitleLook {
   return (SUBTITLE_LOOKS as readonly string[]).includes(value);
 }

@@ -14,6 +14,10 @@ import { hydrateStyles } from "@/service/style/load-style";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { enqueueSceneImagesForNewVideo } from "@/service/clip/enqueue-scene-images";
 import { submitStillIfNeeded } from "@/service/higgsfield/pipeline";
+import {
+  enqueueVideoLockJobs,
+  planAndStoreVideoLocks,
+} from "@/service/higgsfield/video-locks-pipeline";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { concatMp4Urls } from "@/service/reel/concat";
 import { clipReelFingerprint, clipUrlsInOrder } from "@/service/reel/fingerprint";
@@ -134,8 +138,18 @@ export async function runPhaseAJob(
     );
     // Same as the old approve action: lock the character still before frames.
     await runStillJob(projectId);
-    // A new storyboard queues every scene image. A clips-only rewrite does not.
+    // Inventory props and unique sets, then queue their reference stills.
     if (!options?.clipsOnly) {
+      await planAndStoreVideoLocks(projectId).catch((error: unknown) => {
+        console.error("[video-locks] plan failed", { projectId, error });
+      });
+      const withLocks = await projects.findOne({ _id: projectId });
+      if (withLocks) {
+        await enqueueVideoLockJobs(withLocks).catch((error: unknown) => {
+          console.error("[video-locks] enqueue failed", { projectId, error });
+        });
+      }
+      // Frames wait until locks are ready; lock completion re-calls this.
       await enqueueSceneImagesForNewVideo(projectId).catch((error: unknown) => {
         console.error("[frames] auto enqueue failed", { projectId, error });
       });

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { ParallaxLayer } from "@/presentation/components/parallax-layer";
 
-// Full-width band: the cost of retries on the left, plan-style art on the right.
+// The cost of retries. The one dark band on the page: white copy, green accents, paper art card.
 export function LandingDirector() {
   const { t } = useI18n();
   const points = [
@@ -14,53 +14,43 @@ export function LandingDirector() {
   ];
 
   return (
-    // Low-poly sky to mint, matching the director art's daylight scene.
-    <section id="cost" className="bg-gradient-to-br from-[#dff3ea] via-[#d3ecf2] to-[#cfe3f7]">
-      <div className="grid w-full items-center lg:grid-cols-2">
-        <div className="px-6 py-12 text-left sm:px-10 sm:py-16 lg:py-24 lg:pl-16 lg:pr-10">
-          <div className="mx-auto max-w-lg lg:ml-0 lg:mr-auto">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0f766e]">
-              {t("landing.director.eyebrow")}
-            </p>
-            <h2 className="mt-3 text-pretty text-3xl font-bold leading-[1.12] tracking-tight text-[#12141c] sm:text-4xl lg:text-5xl">
-              {t("landing.director.title")}
-            </h2>
-            <p className="mt-4 text-base text-zinc-600">{t("landing.director.body")}</p>
-            <ul className="mt-5 flex flex-wrap gap-2">
-              {points.map((label) => (
-                <li
-                  key={label}
-                  className="rounded-full border border-[#0f766e]/30 bg-white/80 px-3 py-1 text-xs font-medium text-[#0f766e]"
-                >
-                  {label}
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/app"
-              className="mt-8 inline-flex rounded-full bg-[#12141c] px-8 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black"
-            >
-              {t("landing.director.cta")}
-            </Link>
-          </div>
+    <section id="cost" className="bg-[#12141c] px-4 py-20 md:px-8 md:py-28">
+      <div className="mx-auto grid max-w-6xl items-center gap-10 md:gap-12 lg:grid-cols-2">
+        <div className="overflow-hidden rounded-3xl border-2 border-white bg-white shadow-[6px_6px_0_0_#c6f24b] lg:order-1">
+          <ParallaxLayer distance={20}>
+            <img src="/landing/director-scro.webp" alt="" className="aspect-[4/3] w-full scale-105 object-cover" />
+          </ParallaxLayer>
         </div>
-        <ParallaxLayer distance={40} className="overflow-hidden">
-          <video
-            src="/landing/director-cost-lowpoly-loop.mp4"
-            poster="/landing/director-cost-lowpoly.png"
-            autoPlay
-            muted
-            loop
-            playsInline
-            aria-hidden
-            className="h-72 w-full object-contain sm:h-96 lg:h-full lg:min-h-[32rem] lg:p-8 motion-reduce:hidden"
-          />
-          <img
-            src="/landing/director-cost-lowpoly.png"
-            alt=""
-            className="hidden h-72 w-full object-contain motion-reduce:block sm:h-96 lg:h-full lg:min-h-[32rem] lg:p-8"
-          />
-        </ParallaxLayer>
+        <div className="lg:order-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#c6f24b]">
+            {t("landing.director.eyebrow")}
+          </p>
+          <h2 className="mt-3 text-pretty text-3xl font-bold leading-[1.12] tracking-tight text-white sm:text-4xl lg:text-5xl">
+            {t("landing.director.title")}
+          </h2>
+          <p className="mt-4 text-base leading-7 text-white/70">{t("landing.director.body")}</p>
+          {/* Idea → a few takes → lower cost, read left to right. */}
+          <ol className="mt-6 flex flex-wrap items-center gap-2">
+            {points.map((label, index) => (
+              <li key={label} className="flex items-center gap-2">
+                <span className="rounded-full border-2 border-[#c6f24b] px-3 py-1 text-xs font-semibold text-[#c6f24b]">
+                  {label}
+                </span>
+                {index < points.length - 1 ? (
+                  <span aria-hidden className="text-sm font-bold text-[#c6f24b]">
+                    →
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+          <Link
+            href="/app"
+            className="mt-8 inline-flex rounded-full bg-[#c6f24b] px-8 py-3 text-sm font-semibold text-[#12141c] transition-colors hover:bg-[#d6ff5c]"
+          >
+            {t("landing.director.cta")}
+          </Link>
+        </div>
       </div>
     </section>
   );

@@ -1,0 +1,223 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  generateTextStylePreviewAction,
+  sendTextStyleChatAction,
+} from "@/presentation/actions/text-styles";
+import { useI18n } from "@/presentation/components/i18n-provider";
+import type { StyleChatUser } from "@/presentation/components/app/styles/[id]/style-chat-avatar";
+import { StyleChatComposer } from "@/presentation/components/app/styles/[id]/style-chat-composer";
+import { StyleChatMessage } from "@/presentation/components/app/styles/[id]/style-chat-message";
+import type { PublicTextStyleDetail } from "@/presentation/serialize";
+import type { TextStylePreviewStatus } from "@/model/text-style";
+import { translateAppError } from "@/util/i18n/translate-app-error";
+
+// Right pane: AI chat whose lookLine edits land in the local draft.
+export function TextStyleChatPanel({
+  styleId,
+  initialChat,
+  lookLine,
+  subscribed,
+  user,
+  imageUrl,
+  previewStatus,
+  previewCurrent,
+  onApplyLookLine,
+  onSaveDraft,
+  onGenerating,
+}: {
+  styleId: string;
+  initialChat: PublicTextStyleDetail["chat"];
+  lookLine: string;
+  subscribed: boolean;
+  user: StyleChatUser;
+  imageUrl: string;
+  previewStatus: TextStylePreviewStatus;
+  previewCurrent: boolean;
+  onApplyLookLine: (lookLine: string) => void;
+  onSaveDraft: () => Promise<boolean>;
+  onGenerating: () => void;
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [chat, setChat] = useState(initialChat);
+  const [pending, setPending] = useState<{ message: string; imageUrl?: string } | null>(null);
+  const [error, setError] = useState("");
+  const [previewError, setPreviewError] = useState("");
+  const [pendingPreviewAt, setPendingPreviewAt] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const sawGenerating = useRef(false);
+  const sending = pending !== null;
+  const generating = previewStatus === "generating" || pendingPreviewAt !== null;
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (list) list.scrollTop = list.scrollHeight;
+  }, [chat.length, pending, error, previewError]);
+
+  useEffect(() => {
+    setChat((current) => {
+      if (current.length === 0) return initialChat;
+      return current.map((message) => {
+        const server = initialChat.find(
+          (item) => item.role === message.role && item.createdAt === message.createdAt,
+        );
+        return server?.previewUrl && server.previewUrl !== message.previewUrl
+          ? { ...message, previewUrl: server.previewUrl }
+          : message;
+      });
+    });
+  }, [initialChat]);
+
+  useEffect(() => {
+    if (previewStatus === "generating") sawGenerating.current = true;
+  }, [previewStatus]);
+
+  useEffect(() => {
+    if (!pendingPreviewAt) return;
+    if (previewStatus === "failed") {
+      sawGenerating.current = false;
+      setPendingPreviewAt(null);
+      return;
+    }
+    if (previewStatus !== "idle" || !sawGenerating.current) return;
+    const createdAt = pendingPreviewAt;
+    setChat((current) =>
+      current.map((message) =>
+        message.role === "assistant" && message.createdAt === createdAt
+          ? { ...message, previewUrl: imageUrl || message.previewUrl }
+          : message,
+      ),
+    );
+    sawGenerating.current = false;
+    setPendingPreviewAt(null);
+  }, [pendingPreviewAt, previewStatus, imageUrl]);
+
+  async function send(input: { message: string; imageUrl?: string }) {
+    if (sending) return;
+    setPending(input);
+    setError("");
+    setPreviewError("");
+    try {
+      const result = await sendTextStyleChatAction({
+        id: styleId,
+        message: input.message,
+        imageUrl: input.imageUrl,
+        lookLine,
+      });
+      if (!result.ok) {
+        setError(translateAppError(result.error, t));
+        return;
+      }
+      onApplyLookLine(result.lookLine);
+      setChat((current) => [
+        ...current,
+        { role: "user", content: input.message, imageUrl: input.imageUrl, createdAt: new Date().toISOString() },
+        {
+          role: "assistant",
+          content: result.summary,
+          changedPaths: result.lookLine === lookLine ? [] : ["lookLine"],
+          createdAt: result.createdAt,
+          previewUrl: result.previewUrl,
+        },
+      ]);
+    } catch {
+      setError(t("errors.directorChatFailed"));
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function generatePreview(createdAt: string) {
+    if (generating) return;
+    setPreviewError("");
+    setPendingPreviewAt(createdAt);
+    const saved = await onSaveDraft();
+    if (!saved) {
+      setPendingPreviewAt(null);
+      return;
+    }
+    try {
+      const result = await generateTextStylePreviewAction({ id: styleId, chatCreatedAt: createdAt });
+      if (!result.ok) {
+        setPreviewError(translateAppError(result.error, t));
+        setPendingPreviewAt(null);
+        return;
+      }
+      if (result.alreadyCurrent) {
+        setPendingPreviewAt(null);
+        return;
+      }
+      onGenerating();
+      router.refresh();
+    } catch {
+      setPreviewError(t("errors.stylePreviewFailed"));
+      setPendingPreviewAt(null);
+    }
+  }
+
+  const empty = chat.length === 0 && !sending && !error;
+  const lastAssistantAt = [...chat].reverse().find((message) => message.role === "assistant")?.createdAt;
+
+  return (
+    <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-accent-ink/10 bg-paper/85 max-lg:rounded-none max-lg:rounded-l-xl">
+      <h2 className="shrink-0 border-b border-accent-ink/10 px-3 py-2 pr-14 font-display text-sm font-bold lg:pr-3">
+        {t("textStyles.chatTitle")}
+      </h2>
+
+      <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-2" aria-live="polite">
+        {empty ? (
+          <p className="px-1 py-6 text-center text-sm leading-6 text-muted">{t("textStyles.chatEmpty")}</p>
+        ) : null}
+        {chat.map((message, index) => {
+          const isLatestAssistant = message.role === "assistant" && message.createdAt === lastAssistantAt;
+          const cardBusy =
+            generating && (pendingPreviewAt === message.createdAt || (!pendingPreviewAt && isLatestAssistant));
+          return (
+            <StyleChatMessage
+              key={`${message.createdAt}-${index}`}
+              role={message.role}
+              content={message.content}
+              imageUrl={message.imageUrl}
+              previewUrl={message.previewUrl}
+              changedPaths={message.changedPaths}
+              user={user}
+              previewBusy={message.role === "assistant" ? cardBusy : false}
+              previewDisabled={generating || previewCurrent}
+              onGeneratePreview={
+                message.role === "assistant" ? () => void generatePreview(message.createdAt) : undefined
+              }
+            />
+          );
+        })}
+        {pending ? (
+          <>
+            <StyleChatMessage role="user" content={pending.message} imageUrl={pending.imageUrl} user={user} />
+            <StyleChatMessage role="assistant" variant="pending" />
+          </>
+        ) : null}
+        {error ? <StyleChatMessage role="assistant" variant="error" content={error} /> : null}
+        {previewError ? <StyleChatMessage role="assistant" variant="error" content={previewError} /> : null}
+      </div>
+
+      <div className="shrink-0 border-t border-accent-ink/10 p-2.5">
+        {subscribed ? (
+          <StyleChatComposer disabled={!subscribed} sending={sending} onSend={(next) => void send(next)} onError={setError} />
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted">{t("textStyles.chatLocked")}</p>
+            <Link
+              href="/app/billing"
+              className="inline-flex h-8 items-center rounded-full bg-accent-ink px-3 text-xs font-semibold text-lime transition hover:-translate-y-0.5"
+            >
+              {t("textStyles.chatLockedCta")}
+            </Link>
+          </div>
+        )}
+      </div>
+    </aside>
+  );
+}

@@ -60,9 +60,12 @@ export function taskDetail(
   if (job.kind === "character" && job.characterSlot === "fullBody") return "角色全身圖";
   if (job.kind === "character") return "角色藍圖";
   if (job.kind === "stylePreview") return "風格預覽";
+  if (job.kind === "textStylePreview") return "文字樣式樣本";
   if (job.kind === "directorPreview") return "導演預覽";
   if (job.kind === "postPreview") return "海報預覽";
   if (job.kind === "product") return "產品藍圖";
+  if (job.kind === "objectSheet") return "道具參考表";
+  if (job.kind === "backgroundPlate") return "場景背景參考";
   if (job.kind === "reelCover") return "影片封面";
   const clip = `Clip ${job.clipIndex + 1}`;
   if (job.kind === "video") return `${clip} · 影片`;
@@ -82,9 +85,12 @@ export function taskDetailI18n(
   }
   if (job.kind === "character") return { detailKey: "tasksPage.detail.characterBlueprint" as const };
   if (job.kind === "stylePreview") return { detailKey: "tasksPage.detail.stylePreview" as const };
+  if (job.kind === "textStylePreview") return { detailKey: "tasksPage.detail.textStylePreview" as const };
   if (job.kind === "directorPreview") return { detailKey: "tasksPage.detail.directorPreview" as const };
   if (job.kind === "postPreview") return { detailKey: "tasksPage.detail.postPreview" as const };
   if (job.kind === "product") return { detailKey: "tasksPage.detail.productBlueprint" as const };
+  if (job.kind === "objectSheet") return { detailKey: "tasksPage.detail.objectSheet" as const };
+  if (job.kind === "backgroundPlate") return { detailKey: "tasksPage.detail.backgroundPlate" as const };
   if (job.kind === "reelCover") return { detailKey: "tasksPage.detail.reelCover" as const };
   if (job.kind === "video") return { detailKey: "tasksPage.detail.clipVideo" as const, detailParams: { n } };
   return {

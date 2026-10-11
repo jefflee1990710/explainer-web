@@ -20,7 +20,7 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
               {t("nav.affiliate")}
             </Link>
           ) : null}
-          <Link href="/#pricing" className="hover:text-[#12141c]">
+          <Link href="/pricing" className="hover:text-[#12141c]">
             {t("nav.pricing")}
           </Link>
           <Link href="/terms" className="hover:text-[#12141c]">

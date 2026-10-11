@@ -83,6 +83,8 @@ export type Messages = {
       virtualYou: LandingUseCaseMessages;
     };
     steps: {
+      eyebrow: string;
+      title: string;
       step1Title: string;
       step1Body: string;
       step2Title: string;
@@ -91,6 +93,7 @@ export type Messages = {
       step3Body: string;
     };
     pricing: {
+      eyebrow: string;
       title: string;
       subtitle: string;
       clipsApprox: string;
@@ -137,6 +140,7 @@ export type Messages = {
       title: string;
       body: string;
       cta: string;
+      ctaPricing: string;
     };
   };
   examples: {
@@ -582,6 +586,10 @@ export type Messages = {
     mineSection: string;
     mineEmpty: string;
     create: string;
+    createSubmit: string;
+    createFromLookTitle: string;
+    createFromLookIntro: string;
+    useTemplate: string;
     name: string;
     namePlaceholder: string;
     image: string;
@@ -591,6 +599,19 @@ export type Messages = {
     deleteConfirm: string;
     systemBadge: string;
     saving: string;
+    saved: string;
+    open: string;
+    updated: string;
+    backToList: string;
+    templateBadge: string;
+    lookLineLabel: string;
+    lookLineHint: string;
+    generateSample: string;
+    previewGenerating: string;
+    chatTitle: string;
+    chatEmpty: string;
+    chatLocked: string;
+    chatLockedCta: string;
   };
   production: ProductionMessages;
   tasksPage: TasksPageMessages;

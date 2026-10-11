@@ -6,16 +6,27 @@ import {
   refundCredits,
 } from "@/service/billing/credits";
 import { enqueueClipFrameJobs } from "@/service/higgsfield/pipeline";
+import {
+  enqueueVideoLockJobs,
+  videoLocksReady,
+} from "@/service/higgsfield/video-locks-pipeline";
 import { planGenerateAllScenes } from "@/service/production-plan";
 
 // After a new storyboard lands, queue every scene image. No-op until the
-// character still exists, and no-op once any frame has already been submitted.
+// character still and video locks exist, and no-op once any frame has started.
 export async function enqueueSceneImagesForNewVideo(projectId: ObjectId) {
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
   if (!project?.phaseA) return;
   const hasCast = (project.cast?.length ?? 0) > 0;
   if (!hasCast && !project.characterStillUrl) return;
+  // Prop sheet / empty-set plates must finish first so frames can lock to them.
+  if (!videoLocksReady(project)) {
+    await enqueueVideoLockJobs(project).catch((error) => {
+      console.error("[frames] video locks enqueue failed", { projectId, error });
+    });
+    return;
+  }
   const started = (project.frames || []).some(
     (frame) =>
       frame.submittedAt ||

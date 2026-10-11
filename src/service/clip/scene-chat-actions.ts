@@ -12,6 +12,7 @@ import { directorModel } from "@/service/director/model";
 import { isProductionLike } from "@/service/project-status";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { buildFramePrompt } from "@/service/higgsfield/frame-prompts";
+import { refreshVideoLocksAfterStoryboardEdit } from "@/service/higgsfield/video-locks-pipeline";
 import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { revalidatePath } from "next/cache";
 import {
@@ -169,6 +170,11 @@ export async function sendClipSceneChatAction(input: {
       },
     );
     if (wrote.matchedCount !== 1) return { ok: false, error: "專案不存在" };
+    if (applied.changed.length > 0) {
+      await refreshVideoLocksAfterStoryboardEdit(project._id).catch((error) => {
+        console.error("[video-locks] refresh after scene chat failed", { videoId, error });
+      });
+    }
 
     const updated = await projects.findOne({ _id: project._id });
     if (!updated) return { ok: false, error: "專案不存在" };

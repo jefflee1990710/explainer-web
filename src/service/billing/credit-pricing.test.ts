@@ -12,11 +12,11 @@ import {
   videoCost,
 } from "@/service/production-plan";
 
-test("plans keep their prices and grant the rebalanced monthly credits", () => {
-  assert.equal(PLANS.starter.monthlyCredits, 1000);
-  assert.equal(PLANS.pro.monthlyCredits, 2400);
-  assert.equal(PLANS.studio.monthlyCredits, 4800);
-  assert.equal(PLANS.scale.monthlyCredits, 8000);
+test("plans keep their prices and grant credits sized to the worst-case margins", () => {
+  assert.equal(PLANS.starter.monthlyCredits, 1641);
+  assert.equal(PLANS.pro.monthlyCredits, 3333);
+  assert.equal(PLANS.studio.monthlyCredits, 5938);
+  assert.equal(PLANS.scale.monthlyCredits, 8723);
   assert.deepEqual(
     [PLANS.starter.amountUsd, PLANS.pro.amountUsd, PLANS.studio.amountUsd, PLANS.scale.amountUsd],
     [59, 129, 249, 399],
@@ -76,9 +76,20 @@ test("upgrade is offered only when the wallet cannot pay for the video", () => {
   assert.equal(needsVideoUpgrade(72, 72), false);
 });
 
-test("every plan keeps room for a 20% discount plus full affiliate stack", () => {
+test("every plan stays profitable at 30% off plus the full affiliate stack", () => {
+  for (const plan of Object.values(PLANS)) {
+    const netUsd = plan.amountUsd * 0.7 * 0.75;
+    const margin = typicalGrossMargin(netUsd, plan.monthlyCredits);
+    assert.equal(margin > 0, true, `${plan.id} ${margin}`);
+  }
+});
+
+test("worst-case cash margin is 30, 35, 40, and 45 percent", () => {
+  const targets: Record<string, number> = { starter: 0.3, pro: 0.35, studio: 0.4, scale: 0.45 };
   for (const plan of Object.values(PLANS)) {
     const netUsd = plan.amountUsd * 0.8 * 0.75;
-    assert.equal(typicalGrossMargin(netUsd, plan.monthlyCredits) > 0.3, true, plan.id);
+    const margin = typicalGrossMargin(netUsd, plan.monthlyCredits);
+    const target = targets[plan.id];
+    assert.equal(margin >= target && margin < target + 0.005, true, `${plan.id} ${margin}`);
   }
 });

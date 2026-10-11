@@ -10,6 +10,7 @@ import {
 import { videosCollection } from "@/dao";
 import { clearEndStillChoice, endStillChoiceIsStale } from "@/service/director/camera-move";
 import { hasDualBeatDraft, syncDualBeatFields } from "@/service/director/dual-beat";
+import { refreshVideoLocksAfterStoryboardEdit } from "@/service/higgsfield/video-locks-pipeline";
 import { spokenLineCopy } from "@/service/director/spoken-line";
 import { runStillJob } from "@/service/director/jobs";
 import { persistFrameAnnotation } from "@/service/higgsfield/frame-annotation";
@@ -26,7 +27,7 @@ import {
 } from "@/service/higgsfield/pipeline";
 import { isProductionLike } from "@/service/project-status";
 import { isInheritedTalkingHeadStart, talkingHeadFramesCost, withInheritedTalkingHeadStarts } from "@/service/director/talking-head";
-import { FRAME_COST, FRAMES_COST } from "@/service/production-plan";
+import { FRAME_COST } from "@/service/production-plan";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import type {
   ClipFrame,
@@ -313,11 +314,23 @@ export async function updateClipStoryboardAction(
       const next = { ...clip, ...clean, editedAt };
       return endStillChoiceIsStale(clip, next) ? clearEndStillChoice(next) : next;
     });
-    const nextProject = await withWrittenCanvas({ ...project, phaseA: { ...project.phaseA, clips } });
+    // Persist the storyboard first so lock planning reads the new text.
+    await projects.updateOne(
+      { _id: project._id },
+      { $set: { "phaseA.clips": clips, updatedAt: new Date() } },
+    );
+    // Re-plan props / sets; fingerprint match keeps existing lock files.
+    await refreshVideoLocksAfterStoryboardEdit(project._id);
 
-    // Frames need the character lock before they can be redrawn.
+    const locked = (await projects.findOne({ _id: project._id })) || project;
+    const nextProject = await withWrittenCanvas({
+      ...locked,
+      phaseA: { ...locked.phaseA!, clips: locked.phaseA?.clips || clips },
+    });
+
+    // Frames need the character lock and video locks before they can be redrawn.
     if (regenerate) {
-      const blocker = await stillBlocker(project);
+      const blocker = await stillBlocker(locked);
       if (blocker) return { ok: false, error: blocker };
     }
 
@@ -345,7 +358,7 @@ export async function updateClipStoryboardAction(
     try {
       await projects.updateOne(
         { _id: project._id },
-        { $set: { "phaseA.clips": clips, frames, updatedAt: new Date() } },
+        { $set: { frames, updatedAt: new Date() } },
       );
     } catch (error) {
       // Write failed before anything went out → give back the full charge.

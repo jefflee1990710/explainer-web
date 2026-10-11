@@ -15,6 +15,12 @@ import {
 import { productLockParagraph, productReferenceUrls } from "@/service/product/blueprint-prompt";
 import { instructionFollowsReferenceClothes } from "@/service/project/reference-images";
 import {
+  backgroundPlateForClip,
+  backgroundPlateLockParagraph,
+  objectSheetLockParagraph,
+  objectSheetUrl,
+} from "@/service/higgsfield/object-sheet";
+import {
   clipFrameAnchor,
   type FrameAnchorKind,
 } from "@/service/higgsfield/clip-keyframes";
@@ -338,6 +344,16 @@ export function logoReferenceUrls(project: Pick<Project, "skillSlug" | "logoUrl"
   return isBookendSkill(project.skillSlug) && project.logoUrl ? [project.logoUrl] : [];
 }
 
+// Prop sheet then empty-set plate for this clip. Sit after the character so faces win.
+export function videoLockReferenceUrls(project: Project, clipNumber: number): string[] {
+  const urls: string[] = [];
+  const sheet = objectSheetUrl(project);
+  if (sheet) urls.push(sheet);
+  const plate = backgroundPlateForClip(project, clipNumber);
+  if (plate?.url) urls.push(plate.url);
+  return urls;
+}
+
 // Brief reference images assigned to this clip, capped to the free slots of the
 // edit model. Past its URL limit every ref is stacked into one sheet, which
 // breaks the "attached image N" numbering and the composition lock.
@@ -449,6 +465,9 @@ export function buildFramePrompt(
   const anchorCount = options.anchor ? 1 : 0;
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
+  const videoLockUrls = videoLockReferenceUrls(project, clipNumber);
+  const sheetUrl = objectSheetUrl(project);
+  const plate = backgroundPlateForClip(project, clipNumber);
   const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
   const surprise = isSurpriseInterviewSkill(project.skillSlug);
   const clothingFromInstruction =
@@ -465,6 +484,7 @@ export function buildFramePrompt(
     annotatedCount +
       anchorCount +
       lockUrls.length +
+      videoLockUrls.length +
       logoUrls.length +
       productUrls.length +
       (textStyleUrl ? 1 : 0),
@@ -473,6 +493,7 @@ export function buildFramePrompt(
     ? annotatedCount +
       anchorCount +
       lockUrls.length +
+      videoLockUrls.length +
       sceneRefUrls.length +
       productUrls.length +
       logoUrls.length +
@@ -487,8 +508,9 @@ export function buildFramePrompt(
   const characterAttachmentStart = characterFirst
     ? annotatedCount + anchorCount + 1
     : annotatedCount + anchorCount + 1 + sceneRefUrls.length;
+  const videoLockStart = characterAttachmentStart + lockUrls.length;
   const sceneRefStart = characterFirst
-    ? characterAttachmentStart + lockUrls.length
+    ? videoLockStart + videoLockUrls.length
     : annotatedCount + anchorCount + 1;
   const compositionLocked = Boolean(options.anchor && options.anchor.kind !== "prev-end");
   const backgroundRefs =
@@ -517,9 +539,16 @@ export function buildFramePrompt(
     : lockUrls.length
       ? soloCharacterParagraphForFrames(characterAttachmentStart, { wardrobeBuild })
       : [];
+  let videoLockCursor = videoLockStart;
+  const objectLockLine = sheetUrl
+    ? objectSheetLockParagraph(videoLockCursor++, project.objectSheetItems || [])
+    : "";
+  const backgroundLockLine = plate?.url
+    ? backgroundPlateLockParagraph(videoLockCursor++, plate)
+    : "";
   const productStart = characterFirst
     ? sceneRefStart + sceneRefUrls.length
-    : characterAttachmentStart + lockUrls.length;
+    : characterAttachmentStart + lockUrls.length + videoLockUrls.length;
   const productLine = productLockParagraph(
     (project.products ?? []).map((item) => item.name),
     productStart,
@@ -675,8 +704,12 @@ export function buildFramePrompt(
     `Palette: ${parts.palette}`,
     ...(wardrobeBuild ? [OUTFIT_IDENTITY_LOCK, OUTFIT_ENERGY] : []),
     ...(characterFirst ? castLines : []),
+    ...(characterFirst && objectLockLine ? [objectLockLine] : []),
+    ...(characterFirst && backgroundLockLine ? [backgroundLockLine] : []),
     ...sceneRefLines,
     ...(characterFirst ? [] : castLines),
+    ...(!characterFirst && objectLockLine ? [objectLockLine] : []),
+    ...(!characterFirst && backgroundLockLine ? [backgroundLockLine] : []),
     ...(solo ? [TALKING_HEAD_SOLO] : []),
     ...(productLine ? [productLine] : []),
     ...logoLines,
@@ -796,6 +829,7 @@ export function frameSubmitPlan(
   const castUrls = frameLockReferenceUrls(project);
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
+  const videoLockUrls = videoLockReferenceUrls(project, clipNumber);
   // Same cap as buildFramePrompt so the URL order matches the prompt's numbering.
   const textStyleUrls = project.textStyleImageUrl ? [project.textStyleImageUrl] : [];
   const sceneRefUrls = frameSceneReferenceUrls(
@@ -804,14 +838,15 @@ export function frameSubmitPlan(
     (revision?.annotatedUrl ? 1 : 0) +
       (anchor ? 1 : 0) +
       castUrls.length +
+      videoLockUrls.length +
       logoUrls.length +
       productUrls.length +
       textStyleUrls.length,
   );
   const orderedLocks =
     castUrls.length > 0
-      ? [...castUrls, ...sceneRefUrls, ...productUrls, ...logoUrls, ...textStyleUrls]
-      : [...sceneRefUrls, ...castUrls, ...productUrls, ...logoUrls, ...textStyleUrls];
+      ? [...castUrls, ...videoLockUrls, ...sceneRefUrls, ...productUrls, ...logoUrls, ...textStyleUrls]
+      : [...sceneRefUrls, ...castUrls, ...videoLockUrls, ...productUrls, ...logoUrls, ...textStyleUrls];
   return {
     prompt: buildFramePrompt(project, clipNumber, position, {
       revision,

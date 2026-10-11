@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  customTextStylePreviewPrompt,
   resolveSubtitleLook,
   subtitleLookLine,
   textStylePreviewPrompt,
@@ -22,6 +23,10 @@ test("subtitle look is appearance only and falls back when missing", () => {
     assert.doesNotMatch(subtitleLookLine(look), /%|bottom|center|lower third|safe area/i);
     assert.match(textStylePreviewPrompt(look), /Try it now/);
   }
+  assert.match(
+    customTextStylePreviewPrompt("Look: wet black brush strokes."),
+    /wet black brush strokes/,
+  );
   const preview = textStylePreviewPrompt("bold");
   assert.match(preview, /yellow dry-brush/);
   assert.match(preview, /Try it now/);

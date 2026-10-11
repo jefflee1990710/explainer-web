@@ -23,7 +23,7 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
 
   return (
     // Paper ground matches the cut-out art so the phones read as pieces on one sheet.
-    <section className="relative flex flex-col overflow-hidden border-b-2 border-[#12141c] bg-[#f3f3f3] lg:aspect-[16/9] lg:max-h-[46rem] lg:min-h-[36rem] lg:justify-center">
+    <section className="relative flex w-full flex-col overflow-hidden bg-[#f3f3f3] lg:max-h-[46rem] lg:min-h-[36rem] lg:justify-center">
       <ParallaxLayer distance={-18} className="relative z-10 order-1">
         <div className="mx-auto flex max-w-2xl flex-col items-center px-6 pb-2 pt-14 text-center lg:max-w-[36rem] lg:py-10 xl:max-w-[42rem]">
           <motion.p

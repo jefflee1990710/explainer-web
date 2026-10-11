@@ -16,7 +16,19 @@ export async function PolicyLayout({ children }: { children: ReactNode }) {
   }
   return (
     <div className="flex min-h-dvh flex-1 flex-col bg-white text-zinc-900">
-      <SiteHeader signedIn={Boolean(session)} showAffiliate={showAffiliate} />
+      <SiteHeader
+        signedIn={Boolean(session)}
+        showAffiliate={showAffiliate}
+        account={
+          session
+            ? {
+                email: typeof session.email === "string" ? session.email : "",
+                name: typeof session.name === "string" ? session.name : "",
+                avatarUrl: typeof session.picture === "string" ? session.picture : undefined,
+              }
+            : undefined
+        }
+      />
       <div className="flex-1">{children}</div>
       <SiteFooter showAffiliate={showAffiliate} />
     </div>

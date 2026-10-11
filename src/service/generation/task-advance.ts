@@ -100,7 +100,14 @@ export async function advanceOwnedJobs(clerkUserId: string) {
   }
 
   for (const job of active) {
-    if (job.kind !== "character" && job.kind !== "stylePreview" && job.kind !== "directorPreview") continue;
+    if (
+      job.kind !== "character" &&
+      job.kind !== "stylePreview" &&
+      job.kind !== "textStylePreview" &&
+      job.kind !== "directorPreview"
+    ) {
+      continue;
+    }
     if (!job.statusUrl || !job.requestId) continue;
     if (job.status !== "queued" && job.status !== "in_progress") continue;
     try {

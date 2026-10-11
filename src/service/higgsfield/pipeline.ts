@@ -3,7 +3,9 @@ import { syncCharacterJob } from "@/service/character/sync";
 import { syncDirectorPreviewJob } from "@/service/director/director-preview";
 import { syncPostPreviewJob } from "@/service/post/sync-preview";
 import { syncProductJob } from "@/service/product/sync";
+import { syncVideoLockJob } from "@/service/higgsfield/video-locks-pipeline";
 import { syncStylePreviewJob } from "@/service/style/user-style-preview";
+import { syncTextStylePreviewJob } from "@/service/text-style/preview";
 import { syncReelCoverJob } from "@/service/video-edit/reel-cover";
 import {
   generationJobsCollection,
@@ -153,10 +155,12 @@ export async function submitStillIfNeeded(project: Project) {
 // Frames need the character lock. Returns a user-facing reason to wait (and
 // kicks the still off) or null when frames may be submitted now.
 export async function stillBlocker(project: Project): Promise<string | null> {
-  if (project.cast && project.cast.length > 0) return null;
-  if (project.characterStillUrl) return null;
-  await submitStillIfNeeded(project);
-  return "角色定裝圖正在產生，請稍候再試";
+  if (!(project.cast && project.cast.length > 0) && !project.characterStillUrl) {
+    await submitStillIfNeeded(project);
+    return "角色定裝圖正在產生，請稍候再試";
+  }
+  const { videoLocksBlocker } = await import("@/service/higgsfield/video-locks-pipeline");
+  return videoLocksBlocker(project);
 }
 
 // ---------- frames ----------
@@ -569,6 +573,37 @@ export async function applyJobStatus(input: {
     return;
   }
 
+  if (job.kind === "objectSheet" || job.kind === "backgroundPlate") {
+    await syncVideoLockJob(job, status, outputUrl);
+    const lockUpdate = nowFailed
+      ? {
+          $set: {
+            status,
+            outputUrl,
+            error: errorMessage || status,
+            updatedAt: new Date(),
+          },
+        }
+      : {
+          $set: { status, outputUrl, updatedAt: new Date() },
+          $unset: { error: "" as const },
+        };
+    const claimedLockFailure = nowFailed
+      ? Boolean(
+          await jobs.findOneAndUpdate(
+            { _id: job._id, status: { $nin: ["failed", "nsfw"] } },
+            lockUpdate,
+          ),
+        )
+      : false;
+    if (!claimedLockFailure) await jobs.updateOne({ _id: job._id }, lockUpdate);
+    if (claimedLockFailure && job.projectId) {
+      const lockProject = await (await videosCollection()).findOne({ _id: job.projectId });
+      if (lockProject) await refundCredits(lockProject.clerkUserId, FRAME_COST);
+    }
+    return;
+  }
+
   if (job.kind === "postPreview") {
     await syncPostPreviewJob(job, status, outputUrl);
     await jobs.updateOne(
@@ -593,6 +628,28 @@ export async function applyJobStatus(input: {
   // Style previews persist onto the user style and return before the video path.
   if (job.kind === "stylePreview") {
     await syncStylePreviewJob(job, status, outputUrl);
+    await jobs.updateOne(
+      { _id: job._id },
+      nowFailed
+        ? {
+            $set: {
+              status,
+              outputUrl,
+              error: errorMessage || status,
+              updatedAt: new Date(),
+            },
+          }
+        : {
+            $set: { status, outputUrl, updatedAt: new Date() },
+            $unset: { error: "" },
+          },
+    );
+    return;
+  }
+
+  // Text-style sample previews replace imageUrl on the lettering doc.
+  if (job.kind === "textStylePreview") {
+    await syncTextStylePreviewJob(job, status, outputUrl);
     await jobs.updateOne(
       { _id: job._id },
       nowFailed
@@ -801,6 +858,9 @@ export async function refundClaimedFailure(
   error: string,
 ) {
   if (job.kind === "frame") await refundCredits(project.clerkUserId, FRAME_COST);
+  if (job.kind === "objectSheet" || job.kind === "backgroundPlate") {
+    await refundCredits(project.clerkUserId, FRAME_COST);
+  }
   if (job.kind === "video") {
     const clip = project.clips.find((item) => item.clipNumber === job.clipIndex + 1);
     await refundCredits(project.clerkUserId, chargedVideoCredits(clip));

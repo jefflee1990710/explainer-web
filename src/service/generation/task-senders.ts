@@ -1,4 +1,4 @@
-import { charactersCollection, userDirectorsCollection, videosCollection } from "@/dao";
+import { charactersCollection, textStylesCollection, userDirectorsCollection, videosCollection } from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
 import {
   sendCharacterFullBody,
@@ -16,8 +16,17 @@ import { hydrateStyles } from "@/service/style/load-style";
 import { renderableFromUserStyle } from "@/service/style/renderable-style";
 import { directorPreviewImagePrompt } from "@/service/director/director-preview";
 import { stylePreviewPrompt } from "@/service/style/user-style-preview";
+import {
+  textStyleSamplePrompt,
+} from "@/service/text-style/preview";
+import { resolveTextStyleLookLine } from "@/service/text-style/look-line";
+import type { TextStyleDoc } from "@/model/text-style";
 import { sendReelCover } from "@/service/video-edit/reel-cover";
 import { sendClipVideo, sendFrame, sendStill } from "@/service/higgsfield/pipeline";
+import {
+  sendBackgroundPlate,
+  sendObjectSheet,
+} from "@/service/higgsfield/video-locks-pipeline";
 import { sendPostPreview } from "@/service/post/send-preview";
 import { loadProduct, sendProductBlueprint } from "@/service/product/generate";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
@@ -37,6 +46,7 @@ export async function sendJob(job: GenerationJob): Promise<Sent> {
     return sendProductBlueprint(product);
   }
   if (job.kind === "stylePreview") return sendStylePreview(job);
+  if (job.kind === "textStylePreview") return sendTextStylePreview(job);
   if (job.kind === "directorPreview") return sendDirectorPreview(job);
   await hydrateStyles();
   if (job.kind === "character") return sendCharacter(job);
@@ -47,6 +57,11 @@ export async function sendJob(job: GenerationJob): Promise<Sent> {
   if (!project) throw new PermanentJobError("影片已不存在");
 
   if (job.kind === "still") return sendStill(project);
+  if (job.kind === "objectSheet") return sendObjectSheet(project);
+  if (job.kind === "backgroundPlate") {
+    if (!job.backgroundSetId) throw new PermanentJobError("找不到背景場景");
+    return sendBackgroundPlate(project, job.backgroundSetId);
+  }
   if (job.kind === "reelCover") return sendReelCover(project);
   const clipNumber = job.clipIndex + 1;
   if (job.kind === "frame") {
@@ -69,6 +84,26 @@ async function sendStylePreview(job: GenerationJob): Promise<Sent> {
     aspectRatio: "16:9",
     quality: "medium",
     resolution: "1k",
+  });
+  return toSent(model, submitted);
+}
+
+// Regenerate a lettering sample from the saved lookLine; current image is an appearance ref.
+async function sendTextStylePreview(job: GenerationJob): Promise<Sent> {
+  if (!job.textStyleId) throw new PermanentJobError("找不到文字樣式");
+  const styles = await textStylesCollection();
+  const doc = (await styles.findOne({ _id: job.textStyleId })) as TextStyleDoc | null;
+  if (!doc) throw new PermanentJobError("找不到文字樣式");
+  const model = IMAGE_ROUTE_BY_SCENE_TEXT.en.model;
+  const lookLine = resolveTextStyleLookLine(doc);
+  const submitted = await submitImage({
+    model,
+    prompt: textStyleSamplePrompt(lookLine),
+    aspectRatio: "16:9",
+    quality: "medium",
+    resolution: "1k",
+    // Seed appearance from the current sample without locking its crop.
+    referenceImageUrls: doc.imageUrl ? [doc.imageUrl] : undefined,
   });
   return toSent(model, submitted);
 }

@@ -2,17 +2,19 @@
 
 import Link from "next/link";
 import { BrandMark } from "@/presentation/components/brand-mark";
-import { SignOutButton } from "@/presentation/components/auth/sign-out-button";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { LanguageSwitcher } from "@/presentation/components/language-switcher";
+import { SiteAccountMenu, type SiteAccount } from "@/presentation/components/site-account-menu";
 
 // Sticky translucent bar, same chrome as mentalok.io.
 export function SiteHeader({
   signedIn = false,
   showAffiliate = false,
+  account,
 }: {
   signedIn?: boolean;
   showAffiliate?: boolean;
+  account?: SiteAccount;
 }) {
   const { t } = useI18n();
 
@@ -42,25 +44,14 @@ export function SiteHeader({
             </Link>
           ) : null}
           <Link
-            href="/#pricing"
+            href="/pricing"
             className="shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
           >
             {t("nav.pricing")}
           </Link>
           <LanguageSwitcher />
           {signedIn ? (
-            <>
-              <Link
-                href="/app"
-                className="hidden shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c] min-[420px]:inline"
-              >
-                {t("nav.workspace")}
-              </Link>
-              <SignOutButton
-                label={t("auth.signOut")}
-                className="cursor-pointer whitespace-nowrap rounded-full border border-[#12141c]/15 px-2 py-1.5 text-xs font-semibold text-[#12141c] transition-colors hover:bg-zinc-50 sm:px-4 sm:py-2 sm:text-sm"
-              />
-            </>
+            <SiteAccountMenu account={account ?? { email: "", name: "" }} />
           ) : (
             <Link
               href="/sign-in"

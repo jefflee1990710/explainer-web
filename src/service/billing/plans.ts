@@ -21,14 +21,16 @@ export const PLAN_RANK: Record<PlanId, number> = {
   scale: 3,
 };
 
-// Credits are sized so Scale still clears ~35%+ margin after a 20% discount
-// and the full affiliate commission stack (see unit-economics).
+// Monthly credits are the largest whole number that still leaves the target
+// worst-case cash margin. Worst case is list price after a 20% discount and the
+// full affiliate stack (buy 20.5% + consume 4.5%), i.e. 60% of list price.
+// Targets: Starter 30%, Pro 35%, Studio 40%, Scale 45%.
 export const PLANS: Record<PlanId, PlanDefinition> = {
   starter: {
     id: "starter",
     name: "Starter",
     nameZh: "入門",
-    monthlyCredits: 1000,
+    monthlyCredits: 1641,
     amountUsd: 59,
     blurb: "適合先試用 Scro。",
   },
@@ -36,7 +38,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     id: "pro",
     name: "Pro",
     nameZh: "專業",
-    monthlyCredits: 2400,
+    monthlyCredits: 3333,
     amountUsd: 129,
     blurb: "適合自己在做生意的人。",
   },
@@ -44,7 +46,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     id: "studio",
     name: "Studio",
     nameZh: "工作室",
-    monthlyCredits: 4800,
+    monthlyCredits: 5938,
     amountUsd: 249,
     blurb: "適合用 Scro 接案賺錢的人。",
     highlight: true,
@@ -53,7 +55,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     id: "scale",
     name: "Scale",
     nameZh: "規模",
-    monthlyCredits: 8000,
+    monthlyCredits: 8723,
     amountUsd: 399,
     blurb: "適合幫很多客戶做片的團隊。",
   },

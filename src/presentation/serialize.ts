@@ -658,6 +658,24 @@ export type PublicTextStyle = {
   name: string;
   imageUrl: string;
   updatedAt: string;
+  baseLookId?: string;
+  lookLine?: string;
+  previewStatus?: "idle" | "generating" | "failed";
+  previewHash?: string;
+};
+
+export type PublicTextStyleDetail = PublicTextStyle & {
+  lookLine: string;
+  chat: Array<{
+    role: "user" | "assistant";
+    content: string;
+    imageUrl?: string;
+    previewUrl?: string;
+    changedPaths?: string[];
+    createdAt: string;
+  }>;
+  previewStatus: "idle" | "generating" | "failed";
+  previewHash?: string;
 };
 
 export function toPublicTextStyle(doc: TextStyleDoc): PublicTextStyle {
@@ -666,6 +684,10 @@ export function toPublicTextStyle(doc: TextStyleDoc): PublicTextStyle {
     name: doc.name,
     imageUrl: doc.imageUrl,
     updatedAt: doc.updatedAt.toISOString(),
+    baseLookId: doc.baseLookId,
+    lookLine: doc.lookLine,
+    previewStatus: doc.previewStatus || "idle",
+    previewHash: doc.previewHash,
   };
 }
 
