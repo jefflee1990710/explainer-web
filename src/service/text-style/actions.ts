@@ -1,5 +1,3 @@
-"use server";
-
 import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
 import { randomUUID } from "node:crypto";
