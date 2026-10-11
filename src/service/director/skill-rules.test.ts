@@ -176,6 +176,7 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(movingVideo, /three beats/);
   assert.match(movingVideo, /snapping fast and sharp/);
   assert.match(movingVideo, /never one constant slow glide/);
+  assert.doesNotMatch(movingVideo, /A smooth glide is required/);
   assert.match(movingVideo, /left to right/);
   assert.match(movingVideo, /Do not repeat/);
   assert.match(movingVideo, /walk between two standing poses/);
@@ -268,6 +269,41 @@ test("every action has a short still line for both stills and a video line", () 
     }),
     /HOOK CAMERA/,
   );
+});
+
+test("Cinematic realistic keeps a smooth glide; other styles keep the snap", () => {
+  const smoothVideo = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    action: "flip",
+    clipNumber: 2,
+    smoothMotion: true,
+  });
+  assert.match(smoothVideo, /A smooth glide is required/);
+  assert.match(smoothVideo, /rotates through its edge/);
+  assert.match(smoothVideo, /This clip's action is a FLIP/);
+  assert.doesNotMatch(smoothVideo, /snapping fast and sharp/);
+  assert.doesNotMatch(smoothVideo, /never one constant slow glide/);
+  const smoothHook = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    clipNumber: 1,
+    smoothMotion: true,
+  });
+  assert.match(smoothHook, /smooth glide/);
+  assert.doesNotMatch(smoothHook, /no slow glide/);
+  const doodle = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    action: "flip",
+    clipNumber: 2,
+  });
+  assert.match(doodle, /snapping fast and sharp/);
+  assert.match(doodle, /never one constant slow glide/);
+  assert.doesNotMatch(doodle, /A smooth glide is required/);
+  const block = cartoonExplainerDirectorBlock({ hasCharacter: true, smoothMotion: true });
+  assert.match(block, /smooth glide/);
+  assert.doesNotMatch(block, /three beats/);
+  assert.doesNotMatch(block, /Never describe the body as moving smoothly/);
+  assert.doesNotMatch(block, /no slow glide/);
+  assert.match(cartoonExplainerDirectorBlock({ hasCharacter: true }), /three beats/);
 });
 
 test("a detected push draws only that action, aimed away from the character", () => {

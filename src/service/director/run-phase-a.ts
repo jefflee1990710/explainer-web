@@ -75,7 +75,7 @@ import {
 } from "@/service/director/talking-head";
 import { sanitizeOutfitPhaseA } from "@/service/director/outfit-reel";
 import { sanitizeSurprisePhaseA } from "@/service/director/surprise-interview";
-import type { Style } from "@/service/style";
+import { isCinematicRealistic, type Style } from "@/service/style";
 import { resolveSubtitleLook, textStyleSampleHint } from "@/service/director/subtitle-look";
 import type { RenderableStyle } from "@/service/style/renderable-style";
 import type { CastMember } from "@/model/character";
@@ -295,7 +295,10 @@ ${
     dialogueOnly ? dialogueOnlyDirectorBlock() : "",
     input.skill.slug === STORY_SHORT_SKILL_SLUG ? storyShortDirectorBlock() : "",
     input.skill.slug === CARTOON_EXPLAINER_SKILL_SLUG
-      ? cartoonExplainerDirectorBlock({ hasCharacter })
+      ? cartoonExplainerDirectorBlock({
+          hasCharacter,
+          smoothMotion: isCinematicRealistic(input.style),
+        })
       : "",
     input.skill.slug === DIALOGUE_QA_SKILL_SLUG ? dialogueQaDirectorBlock() : "",
     skillForcesSceneText(input.skill.slug) ? listicleDirectorBlock() : "",

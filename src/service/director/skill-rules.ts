@@ -463,7 +463,13 @@ const MENU_ORDER: CartoonAction[] = [
 ];
 
 // Clip 1 only. The two stills must show the before and after, or the video will not move the lens.
-export function cartoonHookCameraRule(hasCharacter: boolean) {
+export function cartoonHookCameraRule(hasCharacter: boolean, smoothMotion?: boolean) {
+  if (smoothMotion) {
+    if (!hasCharacter) {
+      return "Clip 1 is the hook and uses one camera move on the graph. The start still and the end still may use different shot sizes, and the move between them is a smooth glide with every in-between frame. No snap and no skipped frame. Later clips do not repeat this hook camera.";
+    }
+    return "Clip 1 is the hook and uses exactly one camera move. Write that before and after in each still's Camera line, so shot size or angle may differ, and the move between them is a smooth glide with every in-between frame. No snap and no skipped frame. Surprise is a facial expression only. The character stays silent. Later clips do not repeat this hook camera.";
+  }
   if (!hasCharacter) {
     return "Clip 1 is the hook and always uses one exaggerated camera on the graph, sharp and fast, no slow glide and no blur: a snap zoom into the key node, or a snap zoom out from that node to the whole chart. The start still and the end still use different shot sizes. Later clips do not repeat this hook camera.";
   }
@@ -476,8 +482,9 @@ function directorActionMenu() {
     .join("; ");
 }
 
-export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean }) {
+export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean; smoothMotion?: boolean }) {
   const hasCharacter = Boolean(options?.hasCharacter);
+  const smooth = Boolean(options?.smoothMotion);
   return [
     "This director is ALWAYS narrated: an unseen off-screen narrator speaks every englishVo line in the third person.",
     "The on-screen character never speaks, never introduces themself, and is never the narrator. No first-person lines in the character's voice (no \"Hi, I'm Scro\", \"I am…\", \"we…\" spoken as the character); the narrator may name the character or product in the third person (\"Meet Scro. Scro turns…\").",
@@ -497,9 +504,11 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
       ? "When the action moves an element (every action except jump and point toward the camera), write the same element in both startScene and endScene inside 1) Character, with where it sits relative to the hands and where its destination is (the slot, bin, stack, socket, or graph node). In endScene the element is still visible. Never write that it vanished, was swallowed, or is entirely inside something."
       : "",
     hasCharacter
-      ? "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a short hold while the graph responds (a node lights up, an arrow draws itself on, a counter ticks up). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
+      ? smooth
+        ? "motionCamera plays the one action as a smooth glide from the start still to the end still, filling the clip. Show every in-between pose. A card flip rotates through its edge. A smooth glide is required. Never a snap, a pop, a cut, or a skipped frame. Never describe the motion as snapping or fast and sharp. Timestamp the glide across the whole clip."
+        : "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a short hold while the graph responds (a node lights up, an arrow draws itself on, a counter ticks up). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
       : "",
-    cartoonHookCameraRule(hasCharacter),
+    cartoonHookCameraRule(hasCharacter, smooth),
     "On-canvas beat text: the spoken line is the subtitle. Write it as Subtitle (spell exactly): \"<startVo or endVo>\". The still paints that sentence in the selected text style, large in the frame, not as small type on a prop. A beat title may name a diagram label, node, arrow, or prop inside 「」 on the object it belongs to. Words inside 「」 are ordinary writing on that object. They do not use the subtitle text style. A 「」 label must not repeat the Subtitle on that still.",
   ]
     .filter(Boolean)
@@ -582,27 +591,40 @@ export function dropRepeatedSubtitleLabels(scene: string) {
 }
 
 // Appended to whiteboard-explainer clip videos; empty for every other director.
+const SNAP_MOTION =
+  "Animate this clip's one action as the two stills show it, in three beats with real human timing: a quick anticipation, the action snapping fast and sharp, then a small overshoot, a settle with a wobble, and a short hold while the graph responds. Speed changes within the clip like a real person; never one constant slow glide.";
+
+const SMOOTH_MOTION =
+  "Animate this clip's one action as a smooth glide from the start still to the end still. Show every in-between frame. The body, the hands, and any prop move continuously. A card flip rotates through its edge and does not pop from one face to the other. A smooth glide is required. Never snap, never skip a frame, and never cut.";
+
 export function cartoonNarratorVideoLock(
   skillSlug?: string,
-  options?: { hasCharacter?: boolean; action?: CartoonAction; clipNumber?: number },
+  options?: { hasCharacter?: boolean; action?: CartoonAction; clipNumber?: number; smoothMotion?: boolean },
 ) {
   if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
+  const smooth = Boolean(options?.smoothMotion);
   const voice =
     "Voice: an unseen off-screen narrator speaks every line aloud. The on-screen character never speaks or lip-syncs. Sound effects never replace the narrator. The clip is never silent.";
   if (!options?.hasCharacter) {
     const graphHook =
       options?.clipNumber === 1
-        ? " HOOK CAMERA: play the exaggerated zoom drawn between the two stills, sharp and fast, no slow glide and no blur."
+        ? smooth
+          ? " HOOK CAMERA: play the camera move drawn between the two stills as a smooth glide, with every in-between frame. No snap and no skipped frame."
+          : " HOOK CAMERA: play the exaggerated zoom drawn between the two stills, sharp and fast, no slow glide and no blur."
         : "";
-    return `${voice} Mouth stays closed or shows simple reactions, and reacts to the diagram or props.${graphHook}`;
+    const glide = smooth ? ` ${SMOOTH_MOTION}` : "";
+    return `${voice} Mouth stays closed or shows simple reactions, and reacts to the diagram or props.${glide}${graphHook}`;
   }
   const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
   const named = spec ? ` ${spec.video}` : "";
   const hook =
     options?.clipNumber === 1
-      ? " HOOK CAMERA: play the exaggerated move drawn between the two stills, sharp and fast in the first second, no slow glide and no blur. A close view shows a surprised face. The character stays silent."
+      ? smooth
+        ? " HOOK CAMERA: play the camera move drawn between the two stills as a smooth glide, with every in-between frame. No snap and no skipped frame. A close view shows a surprised face. The character stays silent."
+        : " HOOK CAMERA: play the exaggerated move drawn between the two stills, sharp and fast in the first second, no slow glide and no blur. A close view shows a surprised face. The character stays silent."
       : "";
-  return `${voice}${named} Animate this clip's one action as the two stills show it, in three beats with real human timing: a quick anticipation, the action snapping fast and sharp, then a small overshoot, a settle with a wobble, and a short hold while the graph responds. Speed changes within the clip like a real person; never one constant slow glide. It must differ from the previous clip's action. Never slide the body upward, and do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. Do not repeat the previous clip's action.${hook}`;
+  const beats = smooth ? SMOOTH_MOTION : SNAP_MOTION;
+  return `${voice}${named} ${beats} It must differ from the previous clip's action. Never slide the body upward, and do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. Do not repeat the previous clip's action.${hook}`;
 }
 
 export function dialogueQaDirectorBlock() {

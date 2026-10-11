@@ -39,7 +39,7 @@ export function styleLinesForFrame(style: StylePromptSlice & { id?: string }) {
   ];
 }
 
-function isCinematicRealistic(style: { id?: string; name?: string }) {
+export function isCinematicRealistic(style: { id?: string; name?: string }) {
   return style.id === "realistic" || style.name === "Cinematic realistic";
 }
 

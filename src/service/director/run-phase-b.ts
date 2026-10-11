@@ -24,7 +24,7 @@ import {
   phaseBWardrobeLock,
 } from "@/service/director/phase-b-clip-prompt";
 import { phaseBClipSchema } from "@/model/director";
-import type { StylePromptSlice } from "@/service/style";
+import { isCinematicRealistic, type StylePromptSlice } from "@/service/style";
 import type { CastMember } from "@/model/character";
 import type { PhaseAProposal, PhaseBPrompt, SpeechPace, VoLanguage, VoiceGender } from "@/model/project";
 import { speechPaceDelivery } from "@/service/director/speech-pace";
@@ -53,7 +53,7 @@ function usesSpokenSubtitle(skillSlug?: string) {
 
 type PhaseBInput = {
   skill: Skill;
-  style: StylePromptSlice;
+  style: StylePromptSlice & { id?: string; name?: string };
   phaseA: PhaseAProposal;
   language?: VoLanguage;
   voiceGender?: VoiceGender;
@@ -91,7 +91,10 @@ ${
       : lockedSpeakerLines(input.cast).length
         ? "Copy each character voice lock verbatim into every clip prompt. Do not invent or rephrase a timbre from the look."
         : `Copy the locked adult ${VOICE_PRESETS[resolveVoiceGender(input.voiceGender)].en} voice fingerprint verbatim into every clip prompt. Do not invent a timbre from the look or the keyframes.`
-  } ${cartoonNarratorVideoLock(input.skill.slug, { hasCharacter: Boolean(input.cast?.length || input.characterImageUrl) })} ${
+  } ${cartoonNarratorVideoLock(input.skill.slug, {
+    hasCharacter: Boolean(input.cast?.length || input.characterImageUrl),
+    smoothMotion: isCinematicRealistic(input.style),
+  })} ${
     isOutfitReelSkill(input.skill.slug) ? "" : `Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. `
   }Never request background music, BGM, a musical score, or an underscore. ${
     isOutfitReelSkill(input.skill.slug) ? "Sound effects only. No voice." : "Voice and short synced SFX only."
@@ -172,6 +175,7 @@ export async function runPhaseBForClip(
       hasCharacter: Boolean(input.cast?.length || input.characterImageUrl),
       action: cartoonClipAction(row?.motionCamera),
       clipNumber: input.clipNumber,
+      smoothMotion: isCinematicRealistic(input.style),
     }),
     phaseBWardrobeLock({
       cast: input.cast,
