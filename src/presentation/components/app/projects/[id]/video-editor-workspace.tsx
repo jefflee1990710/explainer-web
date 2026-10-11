@@ -107,6 +107,9 @@ export function VideoEditorWorkspace({
         folderName={folderName}
         title={editorTitle}
         videoId={video?.id}
+        objectSheetUrl={video?.objectSheetUrl}
+        objectSheetItems={video?.objectSheetItems}
+        backgroundPlates={video?.backgroundPlates}
         canDelete={Boolean(video)}
         onExport={
           stepNav?.clipsReady && stepNav.viewing !== 2

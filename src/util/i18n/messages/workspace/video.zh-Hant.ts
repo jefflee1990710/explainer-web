@@ -56,6 +56,13 @@ export const videoZhHant = {
     back: "返回",
     breadcrumbAria: "導覽路徑",
     stepsAria: "編輯步驟",
+    locksButton: "參考圖",
+    locksTitle: "道具表與背景",
+    locksIntro: "這些參考圖用來鎖定自創道具與場景，讓開場與結尾長一樣。",
+    locksObjectSheet: "道具參考表",
+    locksBackgrounds: "場景背景",
+    locksClips: "Clip {clips}",
+    locksEmpty: "還沒有參考圖。",
   },
   delete: {
     title: "刪除影片",

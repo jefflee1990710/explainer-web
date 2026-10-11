@@ -4,9 +4,11 @@ import { useEffect, useId } from "react";
 import { VideoEditorBreadcrumb } from "@/presentation/components/app/projects/[id]/video-editor-breadcrumb";
 import { VideoEditorHeaderStatus } from "@/presentation/components/app/projects/[id]/video-editor-header-status";
 import { VideoEditorMoreMenu } from "@/presentation/components/app/projects/[id]/video-editor-more-menu";
+import { VideoLocksReferenceButton } from "@/presentation/components/app/projects/[id]/video-locks-reference-button";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
+import type { PublicVideo } from "@/presentation/serialize";
 
 // Full-page editor chrome over the studio shell.
 export function VideoEditorDialog({
@@ -19,6 +21,9 @@ export function VideoEditorDialog({
   onRestart,
   onDelete,
   videoId,
+  objectSheetUrl,
+  objectSheetItems,
+  backgroundPlates,
   children,
 }: {
   folderId: string;
@@ -32,6 +37,9 @@ export function VideoEditorDialog({
   onDelete?: () => void;
   // When set, show this video's pending tasks in the header.
   videoId?: string;
+  objectSheetUrl?: string;
+  objectSheetItems?: PublicVideo["objectSheetItems"];
+  backgroundPlates?: PublicVideo["backgroundPlates"];
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
@@ -60,6 +68,11 @@ export function VideoEditorDialog({
           </div>
           <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2">
           {videoId ? <VideoEditorHeaderStatus videoId={videoId} /> : null}
+          <VideoLocksReferenceButton
+            objectSheetUrl={objectSheetUrl}
+            objectSheetItems={objectSheetItems}
+            backgroundPlates={backgroundPlates}
+          />
           {onRestart ? (
             <StudioButton variant="ghost" onClick={onRestart}>
               {t("video.editor.restart")}

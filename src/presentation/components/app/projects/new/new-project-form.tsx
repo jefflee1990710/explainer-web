@@ -293,10 +293,14 @@ export function NewProjectForm({
   const settledRef = useRef(false);
   const tRef = useRef(t);
   tRef.current = t;
+  const onVideoCreatedRef = useRef(onVideoCreated);
+  onVideoCreatedRef.current = onVideoCreated;
+  const projectRef = useRef(project);
+  projectRef.current = project;
   const onPollUpdate = useCallback((next: PublicVideo) => {
-    setProject((current) => {
-      if (!current) return next;
-      const merged = mergePolledProject(current, next);
+    const current = projectRef.current;
+    const merged = !current || current.id !== next.id ? next : mergePolledProject(current, next);
+    if (current && current.id === merged.id) {
       const settled = generationTransitions(current, merged);
       if (settled.length > 0) {
         settledRef.current = true;
@@ -326,8 +330,10 @@ export function NewProjectForm({
           });
         }
       }
-      return merged;
-    });
+    }
+    setProject(merged);
+    // Keep the editor header (prop sheet / backgrounds button) on the polled snapshot.
+    onVideoCreatedRef.current?.(merged);
   }, []);
   useEffect(() => {
     if (!settledRef.current) return;

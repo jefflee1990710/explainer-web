@@ -56,6 +56,13 @@ export const videoEn = {
     back: "Back",
     breadcrumbAria: "Breadcrumb",
     stepsAria: "Editor steps",
+    locksButton: "Reference stills",
+    locksTitle: "Prop sheet & backgrounds",
+    locksIntro: "These locks keep invented props and places consistent across stills.",
+    locksObjectSheet: "Prop sheet",
+    locksBackgrounds: "Background plates",
+    locksClips: "Clips {clips}",
+    locksEmpty: "No reference stills yet.",
   },
   delete: {
     title: "Delete video",
