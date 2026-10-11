@@ -5,7 +5,9 @@ import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import {
   applySceneChatEdits,
   applySceneChatToClips,
+  clipSceneChatThread,
   clipWithSceneDraft,
+  withClipSceneChatThread,
   highlightedSceneFields,
   regenStoryboardInput,
   sceneDraftFromClip,
@@ -27,6 +29,35 @@ function row(partial: Partial<StoryboardRow> = {}): StoryboardRow {
     ...partial,
   };
 }
+
+test("clip scene chat ignores still-prompt threads", () => {
+  const chats = [
+    {
+      clipNumber: 1,
+      position: "end" as const,
+      messages: [{ role: "assistant" as const, content: "still", createdAt: new Date() }],
+    },
+    {
+      clipNumber: 1,
+      messages: [{ role: "assistant" as const, content: "director", createdAt: new Date() }],
+    },
+  ];
+  assert.equal(clipSceneChatThread(chats, 1)?.messages[0]?.content, "director");
+  assert.equal(clipSceneChatThread(chats, 2), undefined);
+});
+
+test("clip scene chat write leaves still-prompt threads alone", () => {
+  const still = {
+    clipNumber: 1,
+    position: "start" as const,
+    messages: [{ role: "assistant" as const, content: "still", createdAt: new Date() }],
+  };
+  const next = withClipSceneChatThread([still], 1, [
+    { role: "assistant", content: "director", createdAt: new Date() },
+  ]);
+  assert.equal(next.find((item) => item.position)?.messages[0]?.content, "still");
+  assert.equal(clipSceneChatThread(next, 1)?.messages[0]?.content, "director");
+});
 
 test("scene chat rewrites a still so the camera can still see it", () => {
   assert.match(sceneChatSystemPrompt(), /Sightline: show only what this camera can see/);
@@ -169,6 +200,33 @@ test("highlight follows the newest assistant turn only", () => {
   assert.deepEqual(highlightedSceneFields(chats, 1), ["motionCamera"]);
   assert.deepEqual(highlightedSceneFields(chats, 2), ["englishVo"]);
   assert.deepEqual(highlightedSceneFields(chats, 3), []);
+});
+
+test("highlight ignores still-prompt threads", () => {
+  const chats = [
+    {
+      clipNumber: 1,
+      position: "end",
+      messages: [
+        {
+          role: "assistant" as const,
+          createdAt: new Date("2026-10-10T03:00:00Z"),
+          changedPaths: ["endScene" as const],
+        },
+      ],
+    },
+    {
+      clipNumber: 1,
+      messages: [
+        {
+          role: "assistant" as const,
+          createdAt: new Date("2026-10-10T02:00:00Z"),
+          changedPaths: ["motionCamera" as const],
+        },
+      ],
+    },
+  ];
+  assert.deepEqual(highlightedSceneFields(chats, 1), ["motionCamera"]);
 });
 
 test("a scene redraw is done when the fresh stills finish, even if the video failed", () => {

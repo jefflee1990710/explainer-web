@@ -19,11 +19,13 @@ import {
   SCENE_CHAT_FIELDS,
   SCENE_CHAT_KEPT,
   applySceneChatToClips,
+  clipSceneChatThread,
   normalizeSceneChatSummary,
   regenStoryboardInput,
   sceneChatRateLimited,
   sceneChatSystemPrompt,
   sceneChatUserPrompt,
+  withClipSceneChatThread,
 } from "@/service/clip/scene-chat";
 
 type SceneChatResult =
@@ -83,7 +85,7 @@ export async function sendClipSceneChatAction(input: {
     const clip = project.phaseA.clips.find((item) => item.clipNumber === clipNumber);
     if (!clip) return { ok: false, error: "找不到這段分鏡" };
 
-    const thread = (project.sceneChats || []).find((item) => item.clipNumber === clipNumber);
+    const thread = clipSceneChatThread(project.sceneChats, clipNumber);
     if (sceneChatRateLimited(thread?.messages, new Date())) {
       return { ok: false, error: "AI 修改太頻繁，請稍後再試" };
     }
@@ -129,11 +131,7 @@ export async function sendClipSceneChatAction(input: {
       createdAt: now,
     };
     const messages = [...(thread?.messages || []), userMsg, assistantMsg].slice(-SCENE_CHAT_KEPT);
-    const sceneChats = thread
-      ? (project.sceneChats || []).map((item) =>
-          item.clipNumber === clipNumber ? { ...item, messages } : item,
-        )
-      : [...(project.sceneChats || []), { clipNumber, messages }];
+    const sceneChats = withClipSceneChatThread(project.sceneChats, clipNumber, messages);
 
     const clips = applied.clips;
     let frames = project.frames || [];

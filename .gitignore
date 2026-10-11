@@ -46,3 +46,6 @@ next-env.d.ts
 
 # linked git worktrees
 .worktrees/
+
+# local TTS experiments (audio dataset and model weights)
+/experiments/

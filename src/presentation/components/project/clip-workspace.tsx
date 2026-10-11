@@ -26,8 +26,8 @@ export function ClipWorkspace({
   onCancelVideo,
   onSelect,
   region,
-  editingPosition,
-  onEditPrompt,
+  sceneChatOpen,
+  onEditScene,
 }: {
   project: PublicVideo;
   state: ClipState;
@@ -42,8 +42,8 @@ export function ClipWorkspace({
   onCancelVideo: () => void;
   onSelect: (clipNumber: number) => void;
   region: "preview" | "inspector";
-  editingPosition?: FramePosition;
-  onEditPrompt: (position: FramePosition) => void;
+  sceneChatOpen?: boolean;
+  onEditScene: () => void;
 }) {
   const { t } = useI18n();
   const n = state.clipNumber;
@@ -79,8 +79,8 @@ export function ClipWorkspace({
         prevClip={index > 0 ? ordered[index - 1].clipNumber : undefined}
         nextClip={index >= 0 && index < ordered.length - 1 ? ordered[index + 1].clipNumber : undefined}
         onSelect={onSelect}
-        editingPosition={editingPosition}
-        onEditPrompt={onEditPrompt}
+        sceneChatOpen={sceneChatOpen}
+        onEditScene={onEditScene}
       />
     );
   }

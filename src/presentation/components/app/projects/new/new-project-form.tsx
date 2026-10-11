@@ -21,7 +21,7 @@ import {
 } from "@/presentation/actions/clip-production";
 import type { BulkMode } from "@/presentation/components/project/bulk-generate-dialog";
 import { regenerateFrameAction } from "@/presentation/actions/generation";
-import { regenerateFramePromptAction } from "@/presentation/actions/scene-chat";
+import { regenerateClipSceneMediaAction } from "@/presentation/actions/scene-chat";
 import {
   createVideoAction,
   getVideoAction,
@@ -29,7 +29,6 @@ import {
   retryProjectAction,
   updateVideoBriefAction,
 } from "@/presentation/actions/projects";
-import { FRAME_COST } from "@/service/credit-costs";
 import { isProjectBusy } from "@/service/clip-stage";
 import {
   cheapestVideoCost,
@@ -39,6 +38,7 @@ import {
   planGenerateAllScenes,
   planRemaining,
   planSelected,
+  sceneImageCost,
 } from "@/service/production-plan";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { isCreditGateError } from "@/service/billing/credit-gate";
@@ -610,13 +610,13 @@ export function NewProjectForm({
     );
   }
 
-  // Chat button: redraw this one still from the prompt saved in the chat.
-  function onRegenerateFramePrompt(clipNumber: number, position: FramePosition) {
+  // Director chat: redraw this clip's start and end stills from the storyboard.
+  function onRegenerateClipScene(clipNumber: number) {
     if (!project) return Promise.resolve(false);
     return runPaid(
-      `frame:${clipNumber}:${position}`,
-      () => regenerateFramePromptAction(project.id, clipNumber, position),
-      FRAME_COST,
+      `clip:${clipNumber}:regen`,
+      () => regenerateClipSceneMediaAction(project.id, clipNumber),
+      sceneImageCost(project, [clipNumber]),
     );
   }
 
@@ -1198,7 +1198,7 @@ export function NewProjectForm({
               onGenerateSelected={onGenerateSelected}
               subscribed={walletSubscribed}
               onProject={setProject}
-              onRegenerateFramePrompt={onRegenerateFramePrompt}
+              onRegenerateClipScene={onRegenerateClipScene}
             />
             </div>
           ) : reelDesk && project ? (

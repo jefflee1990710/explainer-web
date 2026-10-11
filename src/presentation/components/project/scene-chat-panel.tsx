@@ -7,7 +7,7 @@ import { SceneChatComposer } from "@/presentation/components/project/scene-chat-
 import { SceneChatMessage } from "@/presentation/components/project/scene-chat-message";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicVideo } from "@/presentation/serialize";
-import { sceneRedrawFinishedAt, sceneRedrawPhase } from "@/service/clip/scene-chat";
+import { clipSceneChatThread, sceneRedrawFinishedAt, sceneRedrawPhase } from "@/service/clip/scene-chat";
 import { sceneImageCost } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
@@ -19,6 +19,7 @@ export function SceneChatPanel({
   regenerating,
   onProject,
   onRegenerate,
+  hideTitle = false,
 }: {
   project: PublicVideo;
   clipNumber: number;
@@ -26,13 +27,13 @@ export function SceneChatPanel({
   regenerating: boolean;
   onProject: (project: PublicVideo) => void;
   onRegenerate: () => Promise<boolean>;
+  hideTitle?: boolean;
 }) {
   const { t } = useI18n();
   const listRef = useRef<HTMLDivElement>(null);
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
-  const chat =
-    project.sceneChats?.find((thread) => thread.clipNumber === clipNumber)?.messages ?? [];
+  const chat = clipSceneChatThread(project.sceneChats, clipNumber)?.messages ?? [];
   const framesBusy = project.frames.some(
     (frame) =>
       frame.clipNumber === clipNumber &&
@@ -79,9 +80,11 @@ export function SceneChatPanel({
 
   return (
     <aside className="flex h-full min-h-0 flex-col bg-[var(--studio-panel)]">
-      <h2 className="shrink-0 border-b border-[var(--studio-line)] px-3 py-2 text-sm font-bold">
-        {t("production.sceneChat.title", { n: clipNumber })}
-      </h2>
+      {hideTitle ? null : (
+        <h2 className="shrink-0 border-b border-[var(--studio-line)] px-3 py-2 text-sm font-bold">
+          {t("production.sceneChat.title", { n: clipNumber })}
+        </h2>
+      )}
       <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-2" aria-live="polite">
         {empty ? (
           <p className="px-1 py-2 text-sm leading-6 text-muted">{t("production.sceneChat.empty")}</p>

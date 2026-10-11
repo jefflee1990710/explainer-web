@@ -3,6 +3,7 @@ import type {
   SceneChatChange,
   SceneChatField,
   SceneChatMessage,
+  SceneChatThread,
   StoryboardRow,
 } from "@/model/project";
 import {
@@ -51,6 +52,26 @@ export function sceneDraftFromClip(
     motionCamera: row.motionCamera,
     englishVo: row.englishVo,
   };
+}
+
+// Clip-wide director chat. Still-prompt threads have a start/end position.
+export function clipSceneChatThread(
+  chats: Array<Pick<SceneChatThread, "clipNumber" | "position" | "messages">> | undefined,
+  clipNumber: number,
+) {
+  return (chats || []).find((item) => item.clipNumber === clipNumber && !item.position);
+}
+
+// Replace or append the clip-wide thread. Still-prompt threads stay put.
+export function withClipSceneChatThread(
+  chats: SceneChatThread[] | undefined,
+  clipNumber: number,
+  messages: SceneChatMessage[],
+): SceneChatThread[] {
+  const list = chats || [];
+  const index = list.findIndex((item) => item.clipNumber === clipNumber && !item.position);
+  if (index === -1) return [...list, { clipNumber, messages }];
+  return list.map((item, i) => (i === index ? { ...item, messages } : item));
 }
 
 export function sceneChatRateLimited(messages: SceneChatMessage[] | undefined, now: Date) {
@@ -134,6 +155,7 @@ export function highlightedSceneFields(
   chats:
     | Array<{
         clipNumber: number;
+        position?: string;
         messages: Array<{
           role: SceneChatMessage["role"];
           createdAt: Date | string;
@@ -147,6 +169,7 @@ export function highlightedSceneFields(
   let newestAt = -1;
   let fields: SceneChatField[] = [];
   for (const thread of chats ?? []) {
+    if (thread.position) continue;
     for (const message of thread.messages) {
       if (message.role !== "assistant") continue;
       const at = message.createdAt instanceof Date ? message.createdAt.getTime() : Date.parse(String(message.createdAt));
