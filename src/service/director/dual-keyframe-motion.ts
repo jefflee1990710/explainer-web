@@ -12,13 +12,13 @@ export const DUAL_KEYFRAME_MOTION_RULES = [
   "Interpolate element-by-element: start elements leave one by one; end elements pop or slide in. The character keeps roughly the same screen position and scale.",
 ].join(" ");
 
-// Cinematic realistic whiteboard: the two stills share camera and lettering, so the
-// clip is one continuous glide of the single action. A photoreal model shows every snap.
+// Cinematic realistic whiteboard: one start image plus the motion. endScene is text
+// for the landing, not a picture the video model receives.
 export const DUAL_KEYFRAME_GLIDE_RULES = [
-  "The start and end storyboard images for this clip are the SAME SHOT, attached as first/last frames.",
-  "Never call those stills a reference image; the video model receives them as first/last frames only.",
-  "They differ by one action only. Play that action as one continuous, smooth glide that fills the whole duration (see the clip's durationSeconds): the body, the hands, and the moved element travel through every in-between pose.",
+  "Only the START storyboard image is attached, as the first frame. There is no end image and no last frame.",
+  "Never call that still a reference image.",
+  "Reply with the start scene and the camera motion. endScene is where this clip's one action lands: write that landing into the motion. Do not ask the video to match a second picture.",
+  "Play the action as one continuous, smooth glide that fills the whole duration (see the clip's durationSeconds). Show every in-between pose of the body, the hands, and the moved element.",
   "Write the speed into the verbs (glides, eases, rotates through, slides). Never snap, flick, whip, pop, or dart. No anticipation jolt, no overshoot, no hold-then-jump. No cut and no skipped frame.",
-  "The camera stays where both stills have it. A push-in, if the stills show one, is slow and even. No new angle.",
-  "The lettering is identical in both frames and stays fixed for the whole clip. The character keeps the same screen position and scale.",
+  "The camera follows motionCamera. The lettering painted on the start image stays fixed for the whole clip: no wipe and no new words. The character keeps the same screen position and scale.",
 ].join(" ");

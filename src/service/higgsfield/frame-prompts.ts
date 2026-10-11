@@ -920,7 +920,11 @@ export function framesWithClip(
 ): ClipFrame[] {
   const others = (project.frames || []).filter((frame) => frame.clipNumber !== clipNumber);
   const submittedAt = new Date().toISOString();
-  const own = (["start", "end"] as FramePosition[]).map((position) => ({
+  // Cinematic realistic whiteboard draws the start still only. The end scene stays text.
+  const positions: FramePosition[] = usesSteadyStills(project.skillSlug, style ?? { id: project.styleId })
+    ? ["start"]
+    : ["start", "end"];
+  const own = positions.map((position) => ({
     clipNumber,
     position,
     prompt: buildFramePrompt(project, clipNumber, position, { style }),

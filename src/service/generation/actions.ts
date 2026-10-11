@@ -26,7 +26,9 @@ import {
   stillBlocker,
 } from "@/service/higgsfield/pipeline";
 import { isProductionLike } from "@/service/project-status";
-import { isInheritedTalkingHeadStart, talkingHeadFramesCost, withInheritedTalkingHeadStarts } from "@/service/director/talking-head";
+import { isInheritedTalkingHeadStart, withInheritedTalkingHeadStarts } from "@/service/director/talking-head";
+import { clipFrameCost } from "@/service/clip-stage";
+import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { FRAME_COST } from "@/service/production-plan";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import type {
@@ -131,6 +133,9 @@ export async function regenerateFrameAction(
       (item) => item.clipNumber === clipNumber && item.position === position,
     );
     if (!frame) return { ok: false, error: "找不到這張分鏡圖" };
+    if (position === "end" && clipSkipsEndStill(project)) {
+      return { ok: false, error: "這段不產生結尾畫格" };
+    }
     // A redo deletes the frame's current job, which would strand the credit
     // already spent on it; make the user wait for it to settle instead.
     if (frame.status === "queued" || frame.status === "in_progress") {
@@ -304,7 +309,8 @@ export async function updateClipStoryboardAction(
       return { ok: false, error: "這一段的分鏡圖還在產生中，請稍後再重畫" };
     }
 
-    const cost = regenerate ? talkingHeadFramesCost(project.skillSlug, clipNumber) : 0;
+    const skipEnd = clipSkipsEndStill(project);
+    const cost = regenerate ? clipFrameCost(project, clipNumber) : 0;
     if (regenerate) await assertCanSpendCredits(user, cost);
 
     // Apply the edit in memory first so frame prompts are rebuilt from the new text.
@@ -370,10 +376,12 @@ export async function updateClipStoryboardAction(
       // Anything older than this belongs to a previous attempt and cannot prove
       // that this one reached the provider.
       const attemptStartedAt = new Date();
-      const targets = [
-        { clipNumber, position: "start" as const },
-        { clipNumber, position: "end" as const },
-      ];
+      const targets = skipEnd
+        ? [{ clipNumber, position: "start" as const }]
+        : [
+            { clipNumber, position: "start" as const },
+            { clipNumber, position: "end" as const },
+          ];
       const { deferred } = planFrameSubmissions(targets, frames);
       try {
         await regenerateFrames({ ...nextProject, frames }, targets);
@@ -395,7 +403,9 @@ export async function updateClipStoryboardAction(
             ...(isInheritedTalkingHeadStart(project.skillSlug, clipNumber, "start")
               ? ["start" as const]
               : []),
+            ...(skipEnd ? ["end" as const] : []),
           ],
+          skipEnd ? { strict: true } : {},
         );
         if (missed > 0) {
           await refundCredits(user.clerkUserId, missed * FRAME_COST, spendKey);

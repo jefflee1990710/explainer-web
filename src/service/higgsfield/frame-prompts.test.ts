@@ -800,6 +800,19 @@ test("listicle item stills name only that item; the last still lists every title
   assert.match(full, /Unused subscriptions/);
 });
 
+test("Cinematic realistic whiteboard queues the start still only", () => {
+  const steady = project("realistic");
+  steady.skillSlug = "cartoon-explainer-video-director";
+  steady.frames = [
+    { clipNumber: 1, position: "end", prompt: "old", status: "completed", blobUrl: "https://blob/end.png" },
+  ];
+  const next = framesWithClips(steady, [1]);
+  assert.deepEqual(
+    next.map((frame) => frame.position),
+    ["start"],
+  );
+});
+
 test("framesWithClips queues start and end for every clip", () => {
   const next = framesWithClips(project(), [1]);
   assert.deepEqual(

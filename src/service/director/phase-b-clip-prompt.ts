@@ -50,12 +50,12 @@ export function phaseBWardrobeLock(input: {
 export function phaseBLetteringLock(input: {
   skillSlug: string;
   durationSeconds: number;
-  // Cinematic realistic: both frames carry the same whole line, so nothing is swapped.
+  // Cinematic realistic: the start frame carries the whole line, and nothing is swapped.
   fixedLettering?: boolean;
 }) {
   if (!isDualBeatSkill(input.skillSlug)) return "";
   if (input.fixedLettering) {
-    return "On-canvas lettering: the first and last frames carry the same marker line. It stays exactly as drawn for the whole clip: no wipe, no rewrite, no new words. This is in-scene lettering from the keyframes, not a caption or subtitle.";
+    return "On-canvas lettering: the start frame carries the marker line and it stays exactly as drawn for the whole clip: no wipe, no rewrite, no new words. There is no end frame to match. This is in-scene lettering from the keyframe, not a caption or subtitle.";
   }
   const midpoint = clampClipSeconds(input.durationSeconds) / 2;
   return `On-canvas lettering: the marker line drawn in the first frame stays until about ${midpoint}s, then wipes off and the marker line drawn in the last frame writes on in the same spot. Keep both lines exactly as the frames show; this is in-scene lettering from the keyframes, not a caption or subtitle.`;

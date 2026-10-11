@@ -222,3 +222,20 @@ test("cinematic realistic sends Seedance 2.0 with both frames", () => {
     },
   );
 });
+
+test("Seedance omits the end image when the clip sends the start still only", () => {
+  const input = seedanceClipVideoInput({
+    prompt: "glide the card over",
+    durationSeconds: 5,
+    startImageUrl: "https://blob/start.png",
+  });
+  assert.equal(input.image_url, "https://blob/start.png");
+  assert.equal("end_image_url" in input, false);
+  assert.doesNotThrow(() =>
+    assertClipKeyframes(
+      [frame("start", { blobUrl: "https://blob/start.png" })],
+      1,
+      { startOnly: true },
+    ),
+  );
+});

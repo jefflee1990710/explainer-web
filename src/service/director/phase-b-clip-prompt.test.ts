@@ -203,13 +203,14 @@ test("steady stills keep the lettering fixed and ask for one continuous glide", 
     durationSeconds: 5,
     fixedLettering: true,
   });
-  assert.match(fixed, /same marker line/);
+  assert.match(fixed, /start frame carries the marker line/);
   assert.match(fixed, /no wipe, no rewrite, no new words/);
+  assert.match(fixed, /no end frame to match/);
   assert.doesNotMatch(fixed, /wipes off/);
   const prompt = clipPhaseBUserPrompt({ ...base, phaseA: proposal(), clipNumber: 2, smoothMotion: true });
   assert.match(prompt, /one continuous, smooth glide/);
-  assert.match(prompt, /lettering is identical in both frames/);
-  assert.match(prompt, /camera stays where both stills have it/);
+  assert.match(prompt, /There is no end image and no last frame/);
+  assert.match(prompt, /endScene is where this clip's one action lands/);
   assert.doesNotMatch(prompt, /snaps fast and decisive/);
   assert.doesNotMatch(prompt, /element-by-element/);
 });

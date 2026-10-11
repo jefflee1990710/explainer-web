@@ -105,13 +105,15 @@ export function planFrameSubmissions<T extends FrameSubmitTarget>(
   return { ready, deferred };
 }
 
-// Video must have both files. A completed row without a URL is not ready.
+// Video must have both files, unless this clip sends the start image only.
+// A completed row without a URL is not ready.
 export function assertClipKeyframes(
   frames: ClipFrame[] | undefined,
   clipNumber: number,
+  options?: { startOnly?: boolean },
 ) {
   const { start, end } = clipKeyframeUrls(frames, clipNumber);
-  if (!start || !end) {
+  if (!start || (!options?.startOnly && !end)) {
     throw new Error("這段的起點或終點畫格還沒有檔案，無法產片");
   }
   return { start, end };
@@ -146,14 +148,15 @@ export function seedanceClipVideoInput(input: {
   prompt: string;
   durationSeconds: number;
   startImageUrl: string;
-  endImageUrl: string;
+  // Omitted for Cinematic realistic whiteboard: the end scene is text, not a frame.
+  endImageUrl?: string;
 }) {
   return {
     prompt: input.prompt,
     duration: h3DurationSeconds(input.durationSeconds),
     resolution: "1080p" as const,
     image_url: input.startImageUrl,
-    end_image_url: input.endImageUrl,
+    ...(input.endImageUrl ? { end_image_url: input.endImageUrl } : {}),
     generate_audio: true,
   };
 }

@@ -87,6 +87,25 @@ test("one frame failed and none in flight → frames_failed", () => {
   assert.equal(clipStateFor(p, 1).stage, "frames_failed");
 });
 
+test("cinematic realistic whiteboard is ready from the start still alone", () => {
+  const p = project({
+    skillSlug: "cartoon-explainer-video-director",
+    styleId: "realistic",
+    frames: [frame(1, "start", "completed")],
+  });
+  assert.equal(clipStateFor(p, 1).stage, "frames_ready");
+  assert.equal(clipStateFor(p, 1).frameCost, 4);
+  const tags = clipGenerationTags(p);
+  assert.equal(tags.find((tag) => tag.clipNumber === 1 && tag.kind === "scene")?.state, "ready");
+  // A leftover end failure does not hold the clip.
+  const staleEnd = project({
+    skillSlug: "cartoon-explainer-video-director",
+    styleId: "realistic",
+    frames: [frame(1, "start", "completed"), frame(1, "end", "failed")],
+  });
+  assert.equal(clipStateFor(staleEnd, 1).stage, "frames_ready");
+});
+
 test("both frames completed, no video → frames_ready", () => {
   const p = project({ frames: [frame(1, "start", "completed"), frame(1, "end", "completed")] });
   assert.equal(clipStateFor(p, 1).stage, "frames_ready");

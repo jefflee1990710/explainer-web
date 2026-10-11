@@ -214,7 +214,7 @@ export async function submitClipVideo(input: {
   aspectRatio: AspectRatio;
   durationSeconds: number;
   startImageUrl: string;
-  endImageUrl: string;
+  endImageUrl?: string;
   styleId?: string;
 }) {
   if (clipVideoProvider() !== "higgsfield") {
@@ -223,11 +223,17 @@ export async function submitClipVideo(input: {
 
   const client = assertHiggsfieldConfigured();
   const model = clipVideoModel(input.styleId);
-  // Cinematic realistic is Seedance 2.0. Every other style stays on MiniMax H3.
+  // Cinematic realistic is Seedance 2.0 and may omit the end image. H3 still needs both.
   const body =
     model === SEEDANCE_2_VIDEO_MODEL
       ? seedanceClipVideoInput(input)
-      : h3ClipVideoInput(input);
+      : h3ClipVideoInput({
+          ...input,
+          endImageUrl: input.endImageUrl || "",
+        });
+  if (model !== SEEDANCE_2_VIDEO_MODEL && !input.endImageUrl) {
+    throw new Error("這段的起點或終點畫格還沒有檔案，無法產片");
+  }
   return client.subscribe(model, {
     input: body,
     withPolling: false,

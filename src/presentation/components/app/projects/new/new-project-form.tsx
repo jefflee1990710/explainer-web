@@ -33,6 +33,7 @@ import {
   updateVideoBriefAction,
 } from "@/presentation/actions/projects";
 import { isProjectBusy } from "@/service/clip-stage";
+import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import {
   cheapestVideoCost,
   clipVideoCost,
@@ -563,6 +564,7 @@ export function NewProjectForm({
             projectId: project.projectId,
             title: project.phaseA?.localizedTitle || t("brief.fallback.unnamedVideo"),
             keys: queueKeys ?? [key],
+            startOnlyFrames: clipSkipsEndStill(project),
           }),
         )
       : [];

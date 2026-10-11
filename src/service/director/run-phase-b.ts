@@ -69,8 +69,12 @@ function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageS
   return `${skillPromptForPhaseB(input.skill, input.style)}
 
 You are executing Phase B only after explicit approval of the current Phase A.
-Return standalone MiniMax H3 video prompts that follow the skill prompt contract. Do not invent new facts.
-Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image. ${
+Return standalone video prompts that follow the skill prompt contract. Do not invent new facts.
+${
+  steady
+    ? "Each clip is image-to-video from the approved START image only. That image is attached as the first frame. There is no end image. Reply with the start scene and the camera motion. endScene is the landing the motion reaches; write that landing into the motion, and do not treat it as a frame the model can see."
+    : "Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image."
+} ${
     isTalkingHeadSkill(input.skill.slug)
       ? talkingVideoMotionRules(
           talkingShotForSkill(input.skill.slug) ?? "face",

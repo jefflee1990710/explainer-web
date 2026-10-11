@@ -1,9 +1,8 @@
 import { mediaSrc } from "@/util/media-src";
-import { canQueueFrames, clipStatesFor, type ClipStageSource } from "@/service/clip-stage";
+import { canQueueFrames, clipFrameCost, clipStatesFor, type ClipStageSource } from "@/service/clip-stage";
 import type { ClipFrame, ProjectClip } from "@/model/project";
 
 import { MIN_VIDEO_COST, MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
-import { talkingHeadFramesCost } from "@/service/director/talking-head";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 
 export * from "@/service/credit-costs";
@@ -20,10 +19,7 @@ export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
 
 // Scene-image credits. Talking-head clip 2+ pays for the end still only.
 export function sceneImageCost(project: ClipStageSource, clipNumbers: number[]) {
-  return clipNumbers.reduce(
-    (sum, clipNumber) => sum + talkingHeadFramesCost(project.skillSlug, clipNumber),
-    0,
-  );
+  return clipNumbers.reduce((sum, clipNumber) => sum + clipFrameCost(project, clipNumber), 0);
 }
 
 // Sum of video credits for these clips.
@@ -138,24 +134,24 @@ export function autoVideoDecision(
   frames: ClipFrame[] | undefined,
   clips: ProjectClip[],
   clipNumber: number,
+  options?: { startOnly?: boolean },
 ): "start" | "wait" | "drop" | "done" {
   const start = frames?.find(
     (frame) => frame.clipNumber === clipNumber && frame.position === "start",
   );
-  const end = frames?.find(
-    (frame) => frame.clipNumber === clipNumber && frame.position === "end",
-  );
-  const pair = [start, end];
-  if (pair.some((frame) => frame && IN_FLIGHT.has(frame.status))) return "wait";
-  if (!start || !end) return "wait";
-  if (pair.some((frame) => frame?.status === "failed")) return "drop";
-  if (start.status !== "completed" || end.status !== "completed") return "wait";
-  if (!mediaSrc(start) || !mediaSrc(end)) return "wait";
+  const end = options?.startOnly
+    ? undefined
+    : frames?.find((frame) => frame.clipNumber === clipNumber && frame.position === "end");
+  const pair = [start, end].filter((frame): frame is ClipFrame => Boolean(frame));
+  if (pair.some((frame) => IN_FLIGHT.has(frame.status))) return "wait";
+  if (!start || (!options?.startOnly && !end)) return "wait";
+  if (pair.some((frame) => frame.status === "failed")) return "drop";
+  if (pair.some((frame) => frame.status !== "completed" || !mediaSrc(frame))) return "wait";
 
   const clip = clips.find((item) => item.clipNumber === clipNumber);
   if (clip && IN_FLIGHT.has(clip.status)) return "wait";
 
-  const frameAt = [start.submittedAt, end.submittedAt].filter(Boolean).sort().at(-1);
+  const frameAt = pair.map((frame) => frame.submittedAt).filter(Boolean).sort().at(-1);
   if (
     clip?.status === "completed" &&
     clip.submittedAt &&

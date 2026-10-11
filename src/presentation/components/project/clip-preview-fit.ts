@@ -36,11 +36,12 @@ function fitHero(input: {
   aw: number;
   ah: number;
   sideScale: number;
+  sideCount: number;
 }): PreviewStageFit {
-  const gaps = input.gap * 2;
+  const gaps = input.gap * input.sideCount;
   const availW = Math.max(0, input.containerWidth - gaps);
   const availH = Math.max(0, input.containerHeight - input.caption);
-  const widthUnits = input.sideScale * 2 + 1;
+  const widthUnits = input.sideScale * input.sideCount + 1;
   let videoW = widthUnits > 0 ? availW / widthUnits : 0;
   let videoH = input.aw > 0 ? videoW * (input.ah / input.aw) : 0;
   if (videoH > availH) {
@@ -49,11 +50,12 @@ function fitHero(input: {
   }
   const sideH = videoH * input.sideScale;
   const sideW = input.ah > 0 ? sideH * (input.aw / input.ah) : 0;
+  const showEnd = input.sideCount > 1;
   return {
     start: { width: sideW, height: sideH },
     video: { width: videoW, height: videoH },
-    end: { width: sideW, height: sideH },
-    rowWidth: sideW * 2 + videoW + gaps,
+    end: showEnd ? { width: sideW, height: sideH } : { width: 0, height: 0 },
+    rowWidth: sideW * input.sideCount + videoW + gaps,
     rowHeight: videoH + input.caption,
   };
 }
@@ -66,9 +68,12 @@ export function previewStageFit(input: {
   containerHeight: number;
   gap?: number;
   caption?: number;
+  // Cinematic realistic whiteboard shows the start still only.
+  endStill?: boolean;
 }): PreviewStageFit {
   const gap = input.gap ?? 16;
   const caption = input.caption ?? 28;
+  const sideCount = input.endStill === false ? 1 : 2;
   if (input.aspectRatio === "9:16" || input.aspectRatio === "16:9") {
     const { w: aw, h: ah } = aspectWh(input.aspectRatio);
     return fitHero({
@@ -79,19 +84,21 @@ export function previewStageFit(input: {
       aw,
       ah,
       sideScale: input.aspectRatio === "9:16" ? PORTRAIT_SIDE_SCALE : LANDSCAPE_SIDE_SCALE,
+      sideCount,
     });
   }
   const { w: aw, h: ah } = aspectWh(input.aspectRatio);
-  const gaps = gap * 2;
+  const flexSum = sideCount === 1 ? PREVIEW_START_FLEX + PREVIEW_VIDEO_FLEX : PREVIEW_FLEX_SUM;
+  const gaps = gap * sideCount;
   const fromHeight = Math.max(0, input.containerHeight - caption) * (aw / ah);
-  const fromWidth = Math.max(0, input.containerWidth - gaps) / PREVIEW_FLEX_SUM;
+  const fromWidth = Math.max(0, input.containerWidth - gaps) / flexSum;
   const unitW = Math.min(fromHeight, fromWidth);
   const mediaH = unitW * (ah / aw);
   return {
     start: { width: unitW * PREVIEW_START_FLEX, height: mediaH },
     video: { width: unitW * PREVIEW_VIDEO_FLEX, height: mediaH },
-    end: { width: unitW * PREVIEW_END_FLEX, height: mediaH },
-    rowWidth: unitW * PREVIEW_FLEX_SUM + gaps,
+    end: sideCount === 1 ? { width: 0, height: 0 } : { width: unitW * PREVIEW_END_FLEX, height: mediaH },
+    rowWidth: unitW * flexSum + gaps,
     rowHeight: mediaH + caption,
   };
 }

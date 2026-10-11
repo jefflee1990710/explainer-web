@@ -21,6 +21,7 @@ import {
 } from "@/service/generation/image-backend";
 import { promptForFrameSubmit } from "@/service/clip/frame-prompt-chat";
 import { frameSubmitPlan, framesWithClipsReady } from "@/service/higgsfield/frame-prompts";
+import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt";
 import { hydrateStyles } from "@/service/style/load-style";
@@ -330,8 +331,11 @@ export async function enqueueClipFrameJobs(project: Project, clipNumbers: number
     project.skillSlug,
   );
   // Talking-head clip 2+ starts are copied from the previous end, never submitted.
+  const positions = clipSkipsEndStill(project)
+    ? (["start"] as const)
+    : (["start", "end"] as const);
   const targets: FrameTarget[] = clipNumbers.flatMap((clipNumber) =>
-    (["start", "end"] as const)
+    positions
       .filter((position) => !isInheritedTalkingHeadStart(project.skillSlug, clipNumber, position))
       .map((position) => ({ clipNumber, position })),
   );
@@ -420,7 +424,9 @@ export async function sendClipVideo(
   clipNumber: number,
   prompt: PhaseBPrompt,
 ): Promise<Sent> {
-  const { start, end } = assertClipKeyframes(project.frames, clipNumber);
+  // Cinematic realistic whiteboard sends the start image only. An old end file stays unused.
+  const startOnly = clipSkipsEndStill(project);
+  const { start, end } = assertClipKeyframes(project.frames, clipNumber, { startOnly });
   // Talking-head locks must match the director's (possibly customised) performance slots.
   const talkingShot = talkingShotForSkill(project.skillSlug);
   const performance = talkingShot ? resolvePerformance(await loadSkill(project), talkingShot, "en") : undefined;
@@ -440,7 +446,7 @@ export async function sendClipVideo(
     aspectRatio: project.aspectRatio,
     durationSeconds: prompt.durationSeconds,
     startImageUrl: start,
-    endImageUrl: end,
+    endImageUrl: startOnly ? undefined : end,
     styleId: project.styleId,
   });
   return toSent(clipVideoModel(project.styleId), submitted);

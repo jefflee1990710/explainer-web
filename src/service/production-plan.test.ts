@@ -127,6 +127,12 @@ test("video cost follows each clip's storyboard duration", () => {
   assert.deepEqual(planGenerateAllVideos(project), { frames: [], videos: [], cost: 0 });
 });
 
+test("a start-only clip can film once the start still exists", () => {
+  const frames = [frame(1, "start", "completed", "2026-03-01T00:00:00.000Z")];
+  assert.equal(autoVideoDecision(frames, [], 1), "wait");
+  assert.equal(autoVideoDecision(frames, [], 1, { startOnly: true }), "start");
+});
+
 test("auto video waits until both stills exist, then starts once", () => {
   const frames = [
     frame(1, "start", "completed", "2026-03-01T00:00:00.000Z"),

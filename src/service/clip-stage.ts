@@ -2,6 +2,8 @@ import { mediaSrc } from "@/util/media-src";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
 import { talkingHeadFramesCost } from "@/service/director/talking-head";
+import { clipSkipsEndStill } from "@/service/director/steady-stills";
+import { FRAME_COST } from "@/service/credit-costs";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import type {
   ClipFrame,
@@ -78,14 +80,25 @@ function isLater(a?: string, b?: string) {
   return Boolean(a && b && a > b);
 }
 
+// One still when the clip sends no end image; otherwise the talking-head pair rule.
+export function clipFrameCost(
+  project: { skillSlug?: string; styleId?: string },
+  clipNumber: number,
+) {
+  if (clipSkipsEndStill(project)) return FRAME_COST;
+  return talkingHeadFramesCost(project.skillSlug, clipNumber);
+}
+
 export function clipStateFor(project: ClipStageSource, clipNumber: number): ClipState {
   const row = project.phaseA?.clips.find((item) => item.clipNumber === clipNumber);
   const start = project.frames?.find(
     (item) => item.clipNumber === clipNumber && item.position === "start",
   );
-  const end = project.frames?.find(
+  const storedEnd = project.frames?.find(
     (item) => item.clipNumber === clipNumber && item.position === "end",
   );
+  // An old end file is ignored: this clip is ready once the start image exists.
+  const end = clipSkipsEndStill(project) ? undefined : storedEnd;
   const clip = project.clips.find((item) => item.clipNumber === clipNumber);
   const frames = [start, end].filter((item): item is ClipFrame => Boolean(item));
 
@@ -106,7 +119,7 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
   else if (frames.some((frame) => frame.status === "failed")) stage = "frames_failed";
   else if (isCompleted(clip)) stage = "video_ready";
   else if (clip?.status === "failed") stage = "video_failed";
-  else if (isCompleted(start) && isCompleted(end)) stage = "frames_ready";
+  else if (isCompleted(start) && (clipSkipsEndStill(project) || isCompleted(end))) stage = "frames_ready";
   else stage = "no_frames";
 
   const waitItems = stage === "video_generating" ? [clip] : stage === "frames_generating" ? frames : [];
@@ -120,7 +133,7 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
       project.styleId,
       Boolean(resolveVoiceSwapId(project)),
     ),
-    frameCost: talkingHeadFramesCost(project.skillSlug, clipNumber),
+    frameCost: clipFrameCost(project, clipNumber),
     // Cancel is only offered before the provider has the request.
     videoUnsent: stage === "video_generating" && clip?.status === "queued" && clip.unsent === true,
   };
@@ -189,12 +202,13 @@ function mediaBusy(item?: MediaItem) {
   return isInFlight(item) || needsPersist(item);
 }
 
-function sceneTagState(frames: ClipFrame[]): GenerationTagState {
-  if (frames.some((frame) => mediaBusy(frame))) return "busy";
-  const start = frames.find((frame) => frame.position === "start");
-  const end = frames.find((frame) => frame.position === "end");
-  if (isCompleted(start) && isCompleted(end)) return "ready";
-  if (frames.some((frame) => frame.status === "failed")) return "failed";
+function sceneTagState(frames: ClipFrame[], skipEnd = false): GenerationTagState {
+  const relevant = skipEnd ? frames.filter((frame) => frame.position !== "end") : frames;
+  if (relevant.some((frame) => mediaBusy(frame))) return "busy";
+  const start = relevant.find((frame) => frame.position === "start");
+  const end = relevant.find((frame) => frame.position === "end");
+  if (isCompleted(start) && (skipEnd || isCompleted(end))) return "ready";
+  if (relevant.some((frame) => frame.status === "failed")) return "failed";
   return "pending";
 }
 
@@ -215,7 +229,11 @@ export function clipGenerationTags(project: ClipStageSource): GenerationDetailTa
   const tags: GenerationDetailTag[] = [];
   for (const clipNumber of [...numbers].sort((a, b) => a - b)) {
     const frames = (project.frames || []).filter((frame) => frame.clipNumber === clipNumber);
-    tags.push({ clipNumber, kind: "scene", state: sceneTagState(frames) });
+    tags.push({
+      clipNumber,
+      kind: "scene",
+      state: sceneTagState(frames, clipSkipsEndStill(project)),
+    });
     tags.push({
       clipNumber,
       kind: "video",

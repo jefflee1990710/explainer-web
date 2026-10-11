@@ -8,6 +8,7 @@ import { FramePromptPanel } from "@/presentation/components/project/frame-prompt
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { ClipState } from "@/service/clip-stage";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
+import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { PublicVideo } from "@/presentation/serialize";
 import type { FramePosition } from "@/model/project";
@@ -50,7 +51,10 @@ export function ClipWorkspace({
   const row = project.phaseA?.clips.find((item) => item.clipNumber === n);
   if (!row) return null;
   const start = project.frames.find((f) => f.clipNumber === n && f.position === "start");
-  const end = project.frames.find((f) => f.clipNumber === n && f.position === "end");
+  const skipEnd = clipSkipsEndStill(project);
+  const end = skipEnd
+    ? undefined
+    : project.frames.find((f) => f.clipNumber === n && f.position === "end");
   const clip = project.clips.find((c) => c.clipNumber === n);
   const framesPending = pending === `frames:${n}` || pending === `clip:${n}:regen`;
   const cancelPending = pending === `cancel-video:${n}`;
@@ -81,6 +85,7 @@ export function ClipWorkspace({
         onSelect={onSelect}
         sceneChatOpen={sceneChatOpen}
         onEditScene={onEditScene}
+        endStill={!skipEnd}
       />
     );
   }

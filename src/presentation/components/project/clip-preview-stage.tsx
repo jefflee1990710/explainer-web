@@ -37,6 +37,7 @@ export function ClipPreviewStage({
   onSelect,
   sceneChatOpen,
   onEditScene,
+  endStill = true,
 }: {
   start?: ClipFrame;
   end?: ClipFrame;
@@ -56,6 +57,8 @@ export function ClipPreviewStage({
   onSelect: (clipNumber: number) => void;
   sceneChatOpen?: boolean;
   onEditScene: () => void;
+  // False hides the end still. The end scene text still lives in the storyboard.
+  endStill?: boolean;
 }) {
   const paneRef = useRef<HTMLDivElement>(null);
   const [pane, setPane] = useState({ w: 0, h: 0 });
@@ -78,6 +81,7 @@ export function ClipPreviewStage({
     containerHeight: pane.h,
     gap: GAP,
     caption: CAPTION,
+    endStill,
   });
   const ready = pane.w > 0 && pane.h > 0 && fit.start.width > 0;
   const startDrawing = isFrameTilePending(start, startPending || framesPending);
@@ -124,17 +128,19 @@ export function ClipPreviewStage({
             onCancel={onCancelVideo}
             cancelPending={cancelPending}
           />
-          <div className="flex flex-col" style={{ width: fit.end.width }}>
-            <FrameTile
-              frame={end}
-              position="end"
-              aspectRatio={aspectRatio}
-              pending={isFrameTilePending(end, endPending || framesPending)}
-              stale={state.stale.frames}
-              boxStyle={fit.end}
-              onOpen={() => onOpenFrame("end")}
-            />
-          </div>
+          {endStill ? (
+            <div className="flex flex-col" style={{ width: fit.end.width }}>
+              <FrameTile
+                frame={end}
+                position="end"
+                aspectRatio={aspectRatio}
+                pending={isFrameTilePending(end, endPending || framesPending)}
+                stale={state.stale.frames}
+                boxStyle={fit.end}
+                onOpen={() => onOpenFrame("end")}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

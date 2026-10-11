@@ -6,6 +6,7 @@ import { settledAutoVideoClips } from "@/service/clip/auto-video-list";
 import { hasJobSince } from "@/service/higgsfield/job-attempts";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { autoVideoDecision } from "@/service/production-plan";
+import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { chargedVideoCredits, STUCK_CLAIM_MS, videoCost } from "@/service/production-plan";
 import type { Project, ProjectClip } from "@/model/project";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
@@ -31,7 +32,8 @@ async function isStuckClaim(
 
 // Claim one clip, charge it and queue its video job (Phase B runs at send time).
 // Caller already checked the storyboard exists.
-// Video starts only when both scene images have files.
+// Video starts once the stills it will send have files. Cinematic realistic
+// whiteboard sends the start image only.
 export async function claimAndStartClipVideo(
   clerkUserId: string,
   project: Project,
@@ -41,7 +43,9 @@ export async function claimAndStartClipVideo(
   const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
   if (!row) return { ok: false, error: "找不到這段分鏡" };
   const { start, end } = clipKeyframeUrls(project.frames, clipNumber);
-  if (!start || !end) return { ok: false, error: "這段的畫格還沒完成", retry: true };
+  if (!start || (!clipSkipsEndStill(project) && !end)) {
+    return { ok: false, error: "這段的畫格還沒完成", retry: true };
+  }
 
   const submittedAt = new Date().toISOString();
   // Billed per second of the storyboard duration; stored on the clip for refunds.
@@ -175,7 +179,9 @@ export async function queueAutoClipVideos(projectId: ObjectId) {
 
   const remaining: number[] = [];
   for (const clipNumber of pending) {
-    const decision = autoVideoDecision(project.frames, project.clips, clipNumber);
+    const decision = autoVideoDecision(project.frames, project.clips, clipNumber, {
+      startOnly: clipSkipsEndStill(project),
+    });
     if (decision === "wait") {
       remaining.push(clipNumber);
       continue;

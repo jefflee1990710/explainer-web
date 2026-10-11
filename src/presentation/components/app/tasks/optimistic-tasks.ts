@@ -63,6 +63,8 @@ export function paidKeyTasks(input: {
   title: string;
   keys: string[];
   now?: string;
+  // Cinematic realistic whiteboard draws the start still only.
+  startOnlyFrames?: boolean;
 }): PublicTask[] {
   const now = input.now ?? new Date().toISOString();
   const tasks: PublicTask[] = [];
@@ -77,7 +79,9 @@ export function paidKeyTasks(input: {
     const clipNumber = frames ? Number(frames[1]) : regen ? Number(regen[1]) : 0;
     if (clipNumber) {
       tasks.push(queuedRow({ ...input, now, clipNumber, position: "start" }));
-      tasks.push(queuedRow({ ...input, now, clipNumber, position: "end" }));
+      if (!input.startOnlyFrames) {
+        tasks.push(queuedRow({ ...input, now, clipNumber, position: "end" }));
+      }
       continue;
     }
     const frame = FRAME_KEY.exec(key);

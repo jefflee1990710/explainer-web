@@ -337,8 +337,9 @@ test("Cinematic realistic locks the camera and keeps one subtitle on both stills
     clipNumber: 2,
     smoothMotion: true,
   });
-  assert.match(video, /lettering is the same in both stills and stays fixed/);
-  assert.match(video, /camera stays where both stills have it/);
+  assert.match(video, /lands on the described end scene/);
+  assert.match(video, /There is no end image/);
+  assert.match(video, /lettering painted on the start still stays fixed/);
 });
 
 test("a detected push draws only that action, aimed away from the character", () => {

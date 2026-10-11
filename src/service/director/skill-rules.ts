@@ -612,7 +612,7 @@ const SNAP_MOTION =
   "Animate this clip's one action as the two stills show it, in three beats with real human timing: a quick anticipation, the action snapping fast and sharp, then a small overshoot, a settle with a wobble, and a short hold while the graph responds. Speed changes within the clip like a real person; never one constant slow glide.";
 
 const SMOOTH_MOTION =
-  "Animate this clip's one action as a smooth glide from the start still to the end still. Show every in-between frame. The body, the hands, and any prop move continuously. A card flip rotates through its edge and does not pop from one face to the other. A smooth glide is required. Never snap, never skip a frame, and never cut. The camera stays where both stills have it; a push-in, if the stills show one, is slow and even. The lettering is the same in both stills and stays fixed for the whole clip: no wipe, no rewrite, no new words.";
+  "Animate this clip's one action as a smooth glide that leaves the start still and lands on the described end scene. There is no end image. Show every in-between frame. The body, the hands, and any prop move continuously. A card flip rotates through its edge and does not pop from one face to the other. A smooth glide is required. Never snap, never skip a frame, and never cut. The camera follows the motion already written. The lettering painted on the start still stays fixed for the whole clip: no wipe, no rewrite, no new words.";
 
 export function cartoonNarratorVideoLock(
   skillSlug?: string,

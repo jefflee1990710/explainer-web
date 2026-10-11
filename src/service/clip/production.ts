@@ -23,7 +23,9 @@ import {
   planRemaining,
   planSelected,
 } from "@/service/production-plan";
-import { isInheritedTalkingHeadStart, talkingHeadFramesCost } from "@/service/director/talking-head";
+import { isInheritedTalkingHeadStart } from "@/service/director/talking-head";
+import { clipFrameCost } from "@/service/clip-stage";
+import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { folderVideoPath } from "@/service/folder-video-path";
 import type { Project } from "@/model/project";
@@ -97,7 +99,7 @@ export async function generateClipFramesAction(
     const blocker = await stillBlocker(project);
     if (blocker) return { ok: false, error: blocker };
 
-    const frameCost = talkingHeadFramesCost(project.skillSlug, clipNumber);
+    const frameCost = clipFrameCost(project, clipNumber);
     await assertCanSpendCredits(user, frameCost);
     const spendKey = await consumeCredits(user.clerkUserId, frameCost);
 
@@ -113,12 +115,14 @@ export async function generateClipFramesAction(
       // `queued` forever); a frame that did get one is reconciliation's.
       const message = error instanceof Error ? error.message : "分鏡圖送出失敗";
       const inherited = isInheritedTalkingHeadStart(project.skillSlug, clipNumber, "start");
+      const skipEnd = clipSkipsEndStill(project);
       const missed = await failUnsubmittedFrames(
         project._id,
         clipNumber,
         message,
         attemptStartedAt,
-        inherited ? ["start"] : [],
+        skipEnd ? ["end"] : inherited ? ["start"] : [],
+        skipEnd ? { strict: true } : {},
       );
       if (missed > 0) {
         await refundCredits(user.clerkUserId, missed * FRAME_COST, spendKey);
