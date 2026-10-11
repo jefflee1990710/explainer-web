@@ -53,10 +53,10 @@ test("images done and the video not started is pending video", () => {
   );
 });
 
-test("the list opens on pending video and pending to post unless the url names filters", () => {
-  assert.deepEqual(videoListFiltersFromSearch(null), ["pending_video", "pending_post"]);
-  assert.deepEqual(videoListFiltersFromSearch(undefined), ["pending_video", "pending_post"]);
-  assert.deepEqual(videoListFiltersFromSearch("nope"), ["pending_video", "pending_post"]);
+test("the list opens on generating, pending video, and pending to post unless the url names filters", () => {
+  assert.deepEqual(videoListFiltersFromSearch(null), ["scenes", "videos", "pending_video", "pending_post"]);
+  assert.deepEqual(videoListFiltersFromSearch(undefined), ["scenes", "videos", "pending_video", "pending_post"]);
+  assert.deepEqual(videoListFiltersFromSearch("nope"), ["scenes", "videos", "pending_video", "pending_post"]);
   assert.deepEqual(videoListFiltersFromSearch("posted"), ["posted"]);
   assert.deepEqual(videoListFiltersFromSearch("posted,pending_video"), ["pending_video", "posted"]);
   assert.deepEqual(videoListFiltersFromSearch("all"), [

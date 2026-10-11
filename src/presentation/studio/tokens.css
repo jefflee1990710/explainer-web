@@ -130,6 +130,35 @@
   box-shadow: none;
 }
 
+/* Folder grid corner actions. The rules above cancel Tailwind hover on these pills. */
+.studio-app button.studio-card-action {
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.studio-app button.studio-card-action:hover:not(:disabled),
+.studio-app button.studio-card-action:focus-visible:not(:disabled) {
+  background-color: var(--studio-ink);
+  border-color: var(--studio-ink);
+  color: #fff;
+}
+
+.studio-app button.studio-card-action:focus-visible:not(:disabled) {
+  outline: 2px solid var(--studio-teal);
+  outline-offset: 2px;
+}
+
+.studio-app button.studio-card-action-ink:hover:not(:disabled),
+.studio-app button.studio-card-action-ink:focus-visible:not(:disabled) {
+  background-color: #000;
+  color: var(--studio-teal);
+}
+
+.studio-app button.studio-card-action-lime:hover:not(:disabled),
+.studio-app button.studio-card-action-lime:focus-visible:not(:disabled) {
+  background-color: var(--studio-teal);
+  color: var(--studio-ink);
+}
+
 /* Style tiles are rounded squares. The pill rules above match every ink/paper button. */
 .studio-app button.style-option,
 .studio-app button.style-option.bg-accent-ink,

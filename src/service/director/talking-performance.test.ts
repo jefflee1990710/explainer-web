@@ -44,7 +44,7 @@ test("face talking motion still uses the hands and head, eyes on the lens", () =
   });
   assert.match(motion, /continuous lip-sync/);
   assert.match(motion, /head tilting and nodding/);
-  assert.match(motion, /homemade microphone/);
+  assert.match(motion, /unseen phone/);
   assert.match(motion, /seated/);
   assert.match(motion, /eyes locked on the lens/);
 });
@@ -63,9 +63,9 @@ test("talking motion carries the reel expression and gesture pattern", () => {
   assert.match(motion, /eyes widen, the eyebrows pop up/);
   assert.match(motion, /changes shape every 1–2 seconds/);
   assert.match(motion, /side-to-side sway/);
-  // Clip 1 hooks with a big smile; the left hand gestures while the right holds the mic.
+  // Clip 1 hooks with a big smile; the left hand gestures while the right arm holds the unseen phone.
   assert.match(motion, /big warm smile as the hook/);
-  assert.match(motion, /right hand holding a small homemade microphone/);
+  assert.match(motion, /right hand holding the unseen phone/);
   assert.match(motion, /left hand does all the gesturing/);
   assert.doesNotMatch(motion, /sharing a secret/);
 });

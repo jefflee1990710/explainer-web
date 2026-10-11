@@ -31,6 +31,10 @@ import type { VideoListFilter } from "@/service/video/list-stage";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
+// Resting look. Hover colors live in tokens.css because studio rules flatten Tailwind hover.
+const cornerActionClass =
+  "studio-card-action inline-flex cursor-pointer items-center rounded-full px-2.5 py-1 text-[10px] font-semibold disabled:cursor-not-allowed disabled:opacity-60";
+
 // Click shows the generating badge before the list refreshes.
 function videosAsBusy(tags: GenerationDetailTag[]): GenerationDetailTag[] {
   return tags.map((tag) =>
@@ -201,7 +205,7 @@ export function VideoGridCard({
           <button
             type="button"
             onClick={() => void generateAll()}
-            className="inline-flex cursor-pointer items-center rounded-full bg-[var(--studio-ink)] px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm hover:opacity-90"
+            className={`${cornerActionClass} studio-card-action-ink bg-[var(--studio-ink)] text-white`}
           >
             {t("video.card.generateAllVideos")}
           </button>
@@ -211,7 +215,7 @@ export function VideoGridCard({
             type="button"
             disabled={posting}
             onClick={() => void markPosted()}
-            className="inline-flex cursor-pointer items-center rounded-full bg-lime px-2.5 py-1 text-[10px] font-semibold text-accent-ink shadow-sm hover:opacity-90 disabled:opacity-60"
+            className={`${cornerActionClass} studio-card-action-lime bg-lime text-accent-ink`}
           >
             {t("video.card.markPosted")}
           </button>
@@ -230,7 +234,7 @@ export function VideoGridCard({
             type="button"
             disabled={archiving}
             onClick={() => void markArchived()}
-            className="inline-flex cursor-pointer items-center rounded-full border border-accent-ink/15 bg-paper px-2.5 py-1 text-[10px] font-semibold text-accent-ink shadow-sm hover:bg-accent-ink hover:text-white disabled:opacity-60"
+            className={`${cornerActionClass} border border-accent-ink/15 bg-paper text-accent-ink`}
           >
             {t("video.card.markArchive")}
           </button>

@@ -71,11 +71,11 @@ test("talking-head keeps instruction and spoken script as separate fields", () =
   assert.match(clips[0].englishVo, /Show the problem, then the fix/);
   assert.equal(clips[0].durationSeconds, 5);
   assert.match(talkingHeadDirectorBlock(), /spoken script is locked/i);
-  assert.match(talkingHeadDirectorBlock(), /seated medium shot/);
-  assert.match(talkingHeadDirectorBlock(), /homemade microphone/);
+  assert.match(talkingHeadDirectorBlock(), /phone selfie/);
+  assert.match(talkingHeadDirectorBlock(), /unseen phone/);
   assert.match(clips[0].startScene, /seated/);
-  assert.match(clips[0].startScene, /homemade microphone/);
-  assert.match(clips[0].startScene, /beside a bookshelf/);
+  assert.match(clips[0].startScene, /unseen phone/);
+  assert.match(clips[0].startScene, /bookshelf behind the head/);
   assert.doesNotMatch(clips[0].startScene, /\bbed\b/);
   const withRoom = planTalkingHeadClips({
     source: script,
@@ -106,7 +106,7 @@ test("clip 2 keeps clip 1's pose but speaks only its own line", () => {
   assert.match(clips.map((clip) => clip.englishVo).join(""), /大家好，我係 Jeff/);
   assert.ok(clips.every((clip) => clip.durationSeconds >= 5 && clip.durationSeconds <= 12));
   assert.match(clips[0].startScene, /坐住/);
-  assert.match(clips[0].startScene, /自製咪/);
+  assert.match(clips[0].startScene, /睇唔到嘅手機/);
   assert.doesNotMatch(clips[0].startScene, /中近景|medium close-up/);
 });
 

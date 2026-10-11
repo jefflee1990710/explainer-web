@@ -16,14 +16,19 @@ export type VideoListFilter = (typeof VIDEO_LIST_FILTERS)[number];
 
 export const VIDEO_LIST_FILTER_PARAM = "filter";
 
-// First visit, with no query, shows videos still to make and videos still to post.
-export const DEFAULT_VIDEO_LIST_FILTERS: VideoListFilter[] = ["pending_video", "pending_post"];
+// First visit, with no query, shows work still in flight plus videos still to make or post.
+export const DEFAULT_VIDEO_LIST_FILTERS: VideoListFilter[] = [
+  "scenes",
+  "videos",
+  "pending_video",
+  "pending_post",
+];
 
 function isVideoListFilter(value: string): value is VideoListFilter {
   return (VIDEO_LIST_FILTERS as readonly string[]).includes(value);
 }
 
-// Missing param uses the default pair. `all` and `none` are explicit.
+// Missing param uses the default set. `all` and `none` are explicit.
 export function videoListFiltersFromSearch(value: string | null | undefined): VideoListFilter[] {
   if (!value) return [...DEFAULT_VIDEO_LIST_FILTERS];
   if (value === "all") return [...VIDEO_LIST_FILTERS];

@@ -24,9 +24,9 @@ const FACE_EN: PerformanceSlots = {
     "a raised index finger or a small finger count on a list or a number, an open palm pushed out toward the lens on 'look at this', a palm facing the lens swaying side to side on a negative, fingers spread beside the face on a big claim, a palm turned up and offered to the lens on an invitation",
   headMotion:
     "a constant small side-to-side sway of a few degrees, tilts left and right, nods on stressed words, a chin drop then lift, a small lean in on the key point then settling back; shoulders rock",
-  anchorProp: "a small homemade microphone — a thin stick with a fluffy fuzzy windscreen — held near the mouth",
-  set: "the same real sitting spot in every clip, seated beside a bookshelf, books at the shoulder",
-  light: "soft natural indoor daylight, ordinary and unchanged, like a phone video at home",
+  anchorProp: "the unseen phone just beyond the bottom edge, that arm extended toward the lens and not gesturing",
+  set: "the same sofa at home in every clip, a bookshelf behind the head and a little of the ceiling, because the phone is held up",
+  light: "ordinary daylight from a window to one side, flat and real like a phone front camera, no studio light",
 };
 
 const FACE_YUE: PerformanceSlots = {
@@ -37,9 +37,9 @@ const FACE_YUE: PerformanceSlots = {
   gestureLibrary:
     "數數或者講數字時豎食指、「睇呢個」時掌心向鏡頭推出、否定時掌心對鏡頭左右擺、誇張強調時五指張開喺臉旁、邀請時掌心向上遞向鏡頭",
   headMotion: "全程有幾度嘅細幅左右搖擺，頭左右傾、重音位點頭、下巴跌一跌再抬起，講到重點時微微前傾再坐返；膊頭郁",
-  anchorProp: "一支自製咪（幼棒加毛毛防風罩）靠近個口",
-  set: "全程同一個真實坐位，坐喺書架旁邊，身後係書",
-  light: "柔和自然室內日光，似喺屋企用手機拍，不變",
+  anchorProp: "畫面底外、睇唔到嘅手機，手臂伸出去，呢隻手唔做手勢",
+  set: "全程同一張屋企沙發，書架喺頭後面，因為手機舉高咗所以睇到少少天花板",
+  light: "一邊窗嘅普通日光，平實似手機前置鏡頭，冇影樓燈",
 };
 
 const FULL_BODY_EN: PerformanceSlots = {

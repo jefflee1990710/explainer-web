@@ -41,7 +41,7 @@ function talkingBodyRules(shot: TalkingShot, perf: PerformanceSlots) {
   const head = `Head keeps moving: ${perf.headMotion}. Never look away from the lens.`;
   const hands = anchored
     ? [
-        `One hand holds ${perf.anchorProp} the whole time as a fixed visual anchor; that hand barely moves. It may tip the prop a little on a stressed word, then bring it back. Never put it down. Never a greeting wave. Never a finger jab at the lens.`,
+        `One hand holds ${perf.anchorProp} the whole time. That hand barely moves and never swaps hands. Never a greeting wave. Never a finger jab at the lens.`,
         `The other hand does all the gesturing and changes shape every 1–2 seconds in time with the words: ${perf.gestureLibrary}. It may enter and leave the frame edge between gestures. It never stays still through a whole sentence.`,
       ].join(" ")
     : `Hands keep moving at chest height and change shape every 1–2 seconds in time with the words: one hand leads, the other follows — ${perf.gestureLibrary}. A hand may enter and leave the frame edge between gestures. Never freeze both arms at the sides. Never a greeting wave. Never a finger jab at the lens.`;
@@ -159,7 +159,10 @@ export function talkingMotionLine(input: {
       ? `the ${hand} hand still holding ${p.anchorProp}, the ${other} hand eases at chest height, the body stays in the same place on screen`
       : "the raised hand settles at chest height, the body stays in the same place on screen";
     const fadeOut = `the large subtitle fades and slides down out`;
-    return `${open}; 0.4–${close}s she ${body}, and the large subtitle holds still; ${close}–${input.seconds}s ${closeFace}, ${closeBeat}, ${fadeOut}; camera stays locked on the same framing from the first frame to the last frame, no zoom, no reframe, no jump. ${subtitle}`;
+    const cameraTail = seated
+      ? "camera stays on the same framing from the first frame to the last frame, a phone selfie held a little above the eyes, no zoom, no reframe, no jump."
+      : "camera stays locked on the same framing from the first frame to the last frame, no zoom, no reframe, no jump.";
+    return `${open}; 0.4–${close}s she ${body}, and the large subtitle holds still; ${close}–${input.seconds}s ${closeFace}, ${closeBeat}, ${fadeOut}; ${cameraTail} ${subtitle}`;
   }
   const p = input.performance ?? DEFAULT_PERFORMANCE[input.shot].yue;
   const anchored = hasAnchorProp(p);
@@ -191,5 +194,8 @@ export function talkingMotionLine(input: {
   const closeBeat = anchored
     ? `${p.anchorProp}仍然喺${zhHand}，${zhOther}停喺胸前，身體留喺畫面同一個位置`
     : "手停喺胸前，身體留喺畫面同一個位置";
-  return `${open}；0.4–${close}s ${body}，大字幕保持唔郁；${close}–${input.seconds}s ${closeFace}，${closeBeat}，大字幕向下淡出；鏡頭由第一幀到最後一幀鎖定同一構圖，唔好變焦、唔好換鏡、唔好跳鏡。${subtitle}`;
+  const cameraTail = seated
+    ? "鏡頭由第一幀到最後一幀保持同一構圖，似手機舉高少少自拍，唔好變焦、唔好換鏡、唔好跳鏡。"
+    : "鏡頭由第一幀到最後一幀鎖定同一構圖，唔好變焦、唔好換鏡、唔好跳鏡。";
+  return `${open}；0.4–${close}s ${body}，大字幕保持唔郁；${close}–${input.seconds}s ${closeFace}，${closeBeat}，大字幕向下淡出；${cameraTail}${subtitle}`;
 }
