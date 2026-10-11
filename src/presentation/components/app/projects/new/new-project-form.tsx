@@ -2,8 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { folderPath, folderVideoPath } from "@/service/folder-video-path";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { EditorStepSwitch, type EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
+import {
+  editorTabStorageKey,
+  rememberedEditorStep,
+} from "@/presentation/components/app/projects/new/editor-tab-memory";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ClipProduction } from "@/presentation/components/project/clip-production";
 import { StudioPanel } from "@/presentation/studio/studio-panel";
@@ -255,7 +259,7 @@ export function NewProjectForm({
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   // Pinned to the video + status that was current when the user clicked a step.
-  // A finished video opens on Video (step 2). Production stays the default until then.
+  // A finished video opens on Video (step 2) until this browser has a saved tab.
   const [viewingOverride, setViewingOverride] = useState<{
     id: string | null;
     status: string;
@@ -265,6 +269,7 @@ export function NewProjectForm({
       ? { id: initialVideo.id, status: "ready", step: 2 }
       : null,
   );
+  const restoredEditorTab = useRef<string | null>(null);
   const [confirmBrief, setConfirmBrief] = useState(false);
   // 重新開始: brief form shown again for an existing video; submit wipes and reruns Phase A.
   const [restarting, setRestarting] = useState(false);
@@ -479,6 +484,7 @@ export function NewProjectForm({
     }
     setRestarting(false);
     setViewingOverride(null);
+    window.localStorage.removeItem(editorTabStorageKey(project.id));
     setProject(result.project);
     onVideoCreated?.(result.project);
     router.refresh();
@@ -780,9 +786,26 @@ export function NewProjectForm({
   const pinViewingStep = useCallback(
     (step: number) => {
       setViewingOverride({ id: liveId, status: liveStatus, step });
+      // Remember 製作 or 影片 for the next time this video is opened.
+      if (liveId && (step === 1 || step === 2)) {
+        window.localStorage.setItem(editorTabStorageKey(liveId), String(step));
+      }
     },
     [liveId, liveStatus],
   );
+
+  // Apply the saved tab once, before paint, so a reload stays on the last click.
+  useLayoutEffect(() => {
+    const video = projectRef.current;
+    if (!video || restoredEditorTab.current === video.id) return;
+    restoredEditorTab.current = video.id;
+    const saved = rememberedEditorStep(
+      window.localStorage.getItem(editorTabStorageKey(video.id)),
+      video.status === "ready",
+    );
+    if (saved == null) return;
+    setViewingOverride({ id: video.id, status: video.status, step: saved });
+  }, [project?.id]);
   const briefBusy =
     submitting || Boolean(project && (isProjectBusy(project) || isReelBusy(project.reelStatus)));
   const clipsReady = project?.status === "ready";
