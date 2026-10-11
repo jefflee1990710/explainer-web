@@ -94,6 +94,7 @@ test("restart clears storyboard and every generated output field", () => {
     "objectSheetItems",
     "objectSheetUrl",
     "objectSheetError",
+    "lockRevision",
     "backgroundPlates",
     "backgroundPlateError",
     "autoVideoClips",

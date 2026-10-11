@@ -21,25 +21,30 @@ test("object sheet prompt is a white contact sheet in the video style", () => {
   const style = renderableFromSystem(testStyle("doodle"));
   const prompt = buildObjectSheetPrompt({
     style,
-    items: [{ name: "gimbal", notes: "metal dial on a slider" }],
+    items: [{ name: "Whiteboard", notes: "easel with diagrams" }],
   });
   assert.match(prompt, /plain white background/);
-  assert.match(prompt, /1\) gimbal: metal dial on a slider/);
+  assert.match(prompt, /1\) Whiteboard: easel with diagrams/);
+  assert.match(prompt, /paint its exact name/);
+  assert.match(prompt, /Whiteboard/);
+  assert.match(prompt, /No room, no floor, no desk/);
   assert.match(prompt, /No people/);
   assert.match(prompt, /doodle look/);
 });
 
-test("background plate prompt is an empty set with no people", () => {
+test("background plate prompt is a 3x3 of the empty set", () => {
   const style = renderableFromSystem(testStyle("doodle"));
   const prompt = buildBackgroundPlatePrompt({
     style,
     plate: { name: "rooftop", notes: "railing and city skyline at soft daylight" },
     aspectRatio: "9:16",
   });
-  assert.match(prompt, /Empty set reference/);
+  assert.match(prompt, /3x3/);
+  assert.match(prompt, /Nine cells/);
   assert.match(prompt, /Location: rooftop/);
   assert.match(prompt, /No people/);
-  assert.match(prompt, /Aspect ratio 9:16/);
+  assert.match(prompt, /overhead/);
+  assert.doesNotMatch(prompt, /Aspect ratio 9:16/);
 });
 
 test("lock paragraphs name the attached image and forbid copying the sheet layout", () => {
@@ -49,7 +54,9 @@ test("lock paragraphs name the attached image and forbid copying the sheet layou
   );
   assert.match(objectSheetLockParagraph(2, [{ name: "gimbal", notes: "" }]), /Do not copy the white background/);
   assert.match(objectSheetLockParagraph(2, [{ name: "gimbal", notes: "" }]), /draw the blank back/);
+  assert.match(objectSheetLockParagraph(2, [{ name: "Whiteboard", notes: "" }]), /named tile/);
   assert.match(backgroundPlateLockParagraph(3, { name: "rooftop" }), /BACKGROUND LOCK: attached image 3/);
+  assert.match(backgroundPlateLockParagraph(3, { name: "rooftop" }), /cell whose angle matches/);
   assert.match(backgroundPlateLockParagraph(3, { name: "rooftop" }), /Do not paste the empty framing/);
 });
 

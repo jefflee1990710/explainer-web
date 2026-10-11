@@ -33,6 +33,7 @@ export const RESTART_UNSET_FIELDS = {
   objectSheetItems: "",
   objectSheetUrl: "",
   objectSheetError: "",
+  lockRevision: "",
   backgroundPlates: "",
   backgroundPlateError: "",
   autoVideoClips: "",

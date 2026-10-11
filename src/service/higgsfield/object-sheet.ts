@@ -17,10 +17,12 @@ export function buildObjectSheetPrompt(input: {
     .join("\n");
   return [
     "Prop reference sheet on a plain white background.",
-    "Lay every listed prop out as its own tile in one row or a neat grid. Even light, no cast shadow, no lifestyle scene.",
-    "Each tile shows one clear three-quarter view of that prop only. Keep materials, colours, and proportions readable.",
-    "No people, no hands, no room, no captions, no watermark, no subtitle lettering.",
     ...styleLinesForBlueprint(input.style),
+    "Override the style canvas: plain white background. No room, no floor, no desk, no window, no lifestyle scene.",
+    "Lay every listed prop out as its own tile in a neat grid. Even light, no cast shadow.",
+    "Each tile shows one clear three-quarter view of that prop only. Keep materials, colours, and proportions readable.",
+    "Under each prop, paint its exact name in plain black sans letters. Every listed prop must appear. Do not invent extra props.",
+    "No people, no hands, no watermark, no subtitle lettering.",
     "Props:",
     tiles,
   ].join("\n");
@@ -34,12 +36,13 @@ export function buildBackgroundPlatePrompt(input: {
 }) {
   const notes = input.plate.notes.replace(/\s+/g, " ").trim().slice(0, 240);
   return [
-    `Empty set reference still for a ${input.style.name} short video.`,
-    `Aspect ratio ${input.aspectRatio}.`,
+    `Empty set reference as a 3x3 contact sheet of the same ${input.style.name} place.`,
+    "Aspect ratio 16:9.",
     ...styleLinesForBlueprint(input.style),
     `Location: ${input.plate.name}.`,
     notes ? `Set and light: ${notes}` : "",
-    "No people, no characters, no handheld props, no product close-ups, no captions, no watermark.",
+    "Nine cells, left to right, top to bottom: 1 wide establishing, 2 medium, 3 low angle, 4 high angle, 5 from the left, 6 from the right, 7 overhead, 8 from behind, 9 architecture detail.",
+    "Same architecture, sky, and light in every cell. No people, no characters, no handheld props, no product close-ups, no captions, no watermark.",
     "Show only the place: architecture, set dressing that stays put, sky, and light direction.",
   ]
     .filter(Boolean)
@@ -51,7 +54,7 @@ export function objectSheetLockParagraph(imageIndex: number, items: ObjectSheetI
   const names = items.map((item) => item.name).filter(Boolean).join(", ");
   return [
     `OBJECT LOCK: attached image ${imageIndex} is this video's prop sheet${names ? ` (${names})` : ""}.`,
-    "Copy only shape, materials, and colours of props the Scene names.",
+    "Copy only shape, materials, and colours of props the Scene names. Match each named tile.",
     "The sheet shows each prop from the front. Aim its working face at the person using it. If this camera cannot see that face, draw the blank back. Never move the front's content onto that blank side.",
     "Do not copy the white background, the grid, or unused tiles. Do not stage a contact sheet in the scene.",
   ].join(" ");
@@ -62,8 +65,9 @@ export function backgroundPlateLockParagraph(imageIndex: number, plate?: Pick<Ba
   const label = plate?.name ? ` (${plate.name})` : "";
   return [
     `BACKGROUND LOCK: attached image ${imageIndex} is the empty set for this clip${label}.`,
+    "This image is a 3x3 of the empty set. Use the cell whose angle matches this Scene's Camera line.",
     "Match location, architecture, sky, and light direction.",
-    "Where people and props sit follows the Scene, not this plate's crop. Do not paste the empty framing.",
+    "Where people and props sit follows the Scene, not this plate's crop. Do not paste the empty framing or the grid.",
   ].join(" ");
 }
 

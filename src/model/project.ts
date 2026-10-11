@@ -280,6 +280,8 @@ export type Project = {
   objectSheetItems?: ObjectSheetItem[];
   objectSheetUrl?: string;
   objectSheetError?: string;
+  // New path segment so a redraw does not reuse the previous lock URL.
+  lockRevision?: string;
   // One empty-set plate per unique location. Absent until planned; [] means none.
   backgroundPlates?: BackgroundPlate[];
   backgroundPlateError?: string;
@@ -456,6 +458,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   objectSheetItems: z.array(objectSheetItemSchema).optional(),
   objectSheetUrl: z.string().optional(),
   objectSheetError: z.string().optional(),
+  lockRevision: z.string().optional(),
   backgroundPlates: z.array(backgroundPlateSchema).optional(),
   backgroundPlateError: z.string().optional(),
   frames: z

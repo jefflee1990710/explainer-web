@@ -3,6 +3,7 @@ import test from "node:test";
 import type { StoryboardRow } from "@/model/project";
 import {
   applyVideoLocksToClips,
+  fillMissingSceneProps,
   normalizeVideoLocks,
   planVideoLocks,
   shouldPlanVideoLocks,
@@ -41,8 +42,32 @@ test("the locks prompt includes each clip's stills and motion", () => {
   assert.match(prompt, /startScene:\nSet: Rooftop/);
   assert.match(prompt, /endScene:\nSet: Rooftop/);
   assert.match(prompt, /motionCamera:\narc sweeps/);
-  assert.match(videoLocksSystem(), /At most 8 objects/);
+  assert.match(videoLocksSystem(), /every distinct prop/);
+  assert.match(videoLocksSystem(), /whiteboard/);
   assert.match(videoLocksSystem(), /Do not describe screen content/);
+});
+
+test("a writing surface named in the scenes becomes Whiteboard on the sheet", () => {
+  const clips = [
+    clip({
+      clipNumber: 1,
+      startScene: "Set: rooftop with an easel chart 「5 MOTIONS」.",
+      endScene: "Set: rooftop, marker on the board.",
+      motionCamera: "taps the board",
+    }),
+  ];
+  const filled = fillMissingSceneProps(clips, [
+    { name: "Easel Presentation Chart", notes: "diagrams" },
+    { name: "Black Felt Marker", notes: "pen" },
+  ]);
+  assert.equal(
+    filled.some((item) => /whiteboard/i.test(item.name)),
+    true,
+  );
+  assert.equal(
+    filled.some((item) => /marker/i.test(item.name)),
+    true,
+  );
 });
 
 test("normalize merges skipped clips onto a set and caps counts", () => {

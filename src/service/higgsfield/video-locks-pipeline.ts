@@ -48,6 +48,16 @@ async function invalidateVideoLockJobs(projectId: ObjectId, clerkUserId: string)
   }
 }
 
+export function videoLockAssetSuffix(
+  kind: "objectSheet" | "backgroundPlate",
+  setId?: string,
+  revision?: string,
+) {
+  const rev = revision?.trim() || "0";
+  if (kind === "objectSheet") return `object-sheet-${rev}`;
+  return `bg-${(setId || "set").trim() || "set"}-${rev}`;
+}
+
 export function objectSheetNeeded(project: Pick<Project, "objectSheetItems">) {
   return (project.objectSheetItems?.length || 0) > 0;
 }
@@ -109,6 +119,7 @@ export async function storeVideoLocksPlan(projectId: ObjectId, plan: VideoLocksP
         "phaseA.clips": clips,
         objectSheetItems: plan.objects,
         backgroundPlates,
+        lockRevision: Date.now().toString(36),
         updatedAt: new Date(),
       },
       $unset: {
@@ -300,7 +311,11 @@ export async function syncVideoLockJob(
 
   let blobUrl = outputUrl;
   try {
-    const suffix = job.kind === "objectSheet" ? "object-sheet" : `bg-${job.backgroundSetId || "set"}`;
+    const suffix = videoLockAssetSuffix(
+      job.kind === "backgroundPlate" ? "backgroundPlate" : "objectSheet",
+      job.backgroundSetId,
+      project.lockRevision,
+    );
     blobUrl = await persistMedia(outputUrl, `explainer/${job.projectId.toHexString()}/locks/${suffix}`);
   } catch (error) {
     console.error("[video-locks] persist failed", { jobId: job._id, error });

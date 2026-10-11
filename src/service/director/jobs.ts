@@ -139,17 +139,17 @@ export async function runPhaseAJob(
     // Same as the old approve action: lock the character still before frames.
     await runStillJob(projectId);
     // Inventory props and unique sets, then queue their reference stills.
-    if (!options?.clipsOnly) {
-      await planAndStoreVideoLocks(projectId).catch((error: unknown) => {
-        console.error("[video-locks] plan failed", { projectId, error });
+    await planAndStoreVideoLocks(projectId).catch((error: unknown) => {
+      console.error("[video-locks] plan failed", { projectId, error });
+    });
+    const withLocks = await projects.findOne({ _id: projectId });
+    if (withLocks) {
+      await enqueueVideoLockJobs(withLocks).catch((error: unknown) => {
+        console.error("[video-locks] enqueue failed", { projectId, error });
       });
-      const withLocks = await projects.findOne({ _id: projectId });
-      if (withLocks) {
-        await enqueueVideoLockJobs(withLocks).catch((error: unknown) => {
-          console.error("[video-locks] enqueue failed", { projectId, error });
-        });
-      }
-      // Frames wait until locks are ready; lock completion re-calls this.
+    }
+    // Frames wait until locks are ready; lock completion re-calls this.
+    if (!options?.clipsOnly) {
       await enqueueSceneImagesForNewVideo(projectId).catch((error: unknown) => {
         console.error("[frames] auto enqueue failed", { projectId, error });
       });

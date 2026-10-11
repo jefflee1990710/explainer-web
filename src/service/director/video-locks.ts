@@ -11,7 +11,7 @@ import { sceneDescriptionLanguageLock } from "@/service/director/languages";
 import { directorModel } from "@/service/director/model";
 import { isTalkingHeadSkill } from "@/service/director/talking-head";
 
-const MAX_OBJECTS = 8;
+const MAX_OBJECTS = 16;
 const MAX_SETS = 4;
 
 const videoLocksSchema = z.object({
@@ -43,10 +43,11 @@ export function shouldPlanVideoLocks(skillSlug?: string) {
 export function videoLocksSystem(language?: VoLanguage) {
   return [
     "You list the invented props and unique locations for one explainer video.",
-    "objects: handheld or set-dressing props that must look the same across stills (tools, cups, dials, boards).",
+    "objects: every distinct prop the stills name — tools, cups, dials, boards, easels, whiteboards, charts, furniture, handheld items.",
+    "A board, a whiteboard, and an easel are separate if the scenes name them separately. Call a writing surface Whiteboard when the scene writes on a board, chart, or easel.",
     "Object notes describe shape, materials, and colours. Do not describe screen content or lettering that only one side can see.",
     "Do not list characters, brand products already locked elsewhere, locations, sky, buildings, or subtitle lettering.",
-    `At most ${MAX_OBJECTS} objects. Merge duplicates. Empty array if none.`,
+    `List every named prop. At most ${MAX_OBJECTS} objects after merging true duplicates. Empty array only if the stills name none.`,
     "sets: unique places from the Set lines. Same room or rooftop across clips shares one setId.",
     `At most ${MAX_SETS} sets. Merge near-duplicates. Every clipNumber appears in exactly one set.`,
     "setId is a short slug like rooftop or desk. notes describe empty architecture, light, and sky — no people, no handheld props.",
@@ -72,10 +73,13 @@ export function normalizeVideoLocks(
   raw: z.infer<typeof videoLocksSchema>,
 ): VideoLocksPlan {
   const clipNumbers = clips.map((clip) => clip.clipNumber);
-  const objects = raw.objects
-    .map((item) => ({ name: item.name.trim(), notes: item.notes.trim() }))
-    .filter((item) => item.name)
-    .slice(0, MAX_OBJECTS);
+  const objects = fillMissingSceneProps(
+    clips,
+    raw.objects
+      .map((item) => ({ name: item.name.trim(), notes: item.notes.trim() }))
+      .filter((item) => item.name)
+      .slice(0, MAX_OBJECTS),
+  );
 
   const sets: VideoLocksPlan["sets"] = [];
   const used = new Set<number>();
@@ -111,6 +115,30 @@ export function normalizeVideoLocks(
   }
 
   return { objects, sets: sets.slice(0, MAX_SETS) };
+}
+
+// Scenes name a writing surface as board / easel / chart; the sheet must list Whiteboard.
+const WRITING_SURFACE = /whiteboard|白板|\beasel\b|畫架|(?<![A-Za-z])board\b|\bchart\b/i;
+const NAMED_AS_WHITEBOARD = /whiteboard|白板/i;
+const NAMED_AS_SURFACE = /easel|chart|(?<![A-Za-z])board\b/i;
+const NAMED_AS_MARKER = /marker|麥克筆/i;
+
+export function fillMissingSceneProps(clips: StoryboardRow[], objects: ObjectSheetItem[]): ObjectSheetItem[] {
+  const text = clips
+    .map((clip) => [clipStartScene(clip), clipEndScene(clip), clip.motionCamera].join("\n"))
+    .join("\n");
+  const next = objects.map((item) => ({ ...item }));
+  const has = (pattern: RegExp) => next.some((item) => pattern.test(item.name));
+
+  if (WRITING_SURFACE.test(text) && !has(NAMED_AS_WHITEBOARD)) {
+    const existing = next.find((item) => NAMED_AS_SURFACE.test(item.name));
+    if (existing) existing.name = "Whiteboard";
+    else next.push({ name: "Whiteboard", notes: "Writing surface named in the scenes." });
+  }
+  if (NAMED_AS_MARKER.test(text) && !has(NAMED_AS_MARKER)) {
+    next.push({ name: "Marker", notes: "Handheld marker named in the scenes." });
+  }
+  return next;
 }
 
 // Write set ids onto each clip so frame prompts can find the plate.

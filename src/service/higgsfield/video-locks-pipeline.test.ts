@@ -5,6 +5,7 @@ import type { Project } from "@/model/project";
 import {
   objectSheetNeeded,
   backgroundPlatesNeeded,
+  videoLockAssetSuffix,
   videoLocksCost,
   videoLocksReady,
 } from "@/service/higgsfield/video-locks-pipeline";
@@ -96,6 +97,15 @@ test("videoLocksReady waits for planned props and plates", () => {
       skillSlug: "talking-head-director",
     }),
     true,
+  );
+});
+
+test("lock files use a new path when the inventory is stored again", () => {
+  assert.equal(videoLockAssetSuffix("objectSheet", undefined, "abc"), "object-sheet-abc");
+  assert.equal(videoLockAssetSuffix("backgroundPlate", "rooftop", "abc"), "bg-rooftop-abc");
+  assert.notEqual(
+    videoLockAssetSuffix("objectSheet", undefined, "abc"),
+    videoLockAssetSuffix("objectSheet", undefined, "def"),
   );
 });
 
