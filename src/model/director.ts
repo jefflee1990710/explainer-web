@@ -47,6 +47,18 @@ export const cartoonPhaseASchema = phaseASchema.extend({
   clips: z.array(dualBeatStoryboardRowSchema).min(1),
 });
 
+// Cinematic realistic whiteboard: one opening still and the camera move. No end still.
+export const startOnlyStoryboardRowSchema = storyboardRowSchema.extend({
+  startScene: z.string().min(1),
+  endScene: z.string().optional(),
+  startVo: z.string().min(1),
+  endVo: z.string().min(1),
+});
+
+export const startOnlyPhaseASchema = phaseASchema.extend({
+  clips: z.array(startOnlyStoryboardRowSchema).min(1),
+});
+
 // Talking-head clips share the script evenly: 5–12s, at most 20 (enforced in talkingHeadPlanError, not
 // on this schema — Gemini structured output rejects maxItems on nested arrays).
 export const talkingHeadPhaseASchema = phaseASchema.extend({
