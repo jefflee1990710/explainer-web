@@ -31,7 +31,7 @@ import type { PhaseAProposal, PhaseBPrompt, SpeechPace, VoLanguage, VoiceGender 
 import { speechPaceDelivery } from "@/service/director/speech-pace";
 import type { Skill } from "@/model/skill";
 import { resolvePerformance } from "@/service/director/performance";
-import { isTalkingHeadSkill, talkingHeadPhaseBPrompt } from "@/service/director/talking-head";
+import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG, talkingHeadPhaseBPrompt } from "@/service/director/talking-head";
 import { spokenSubtitleLock } from "@/service/director/scene-text";
 import {
   OUTFIT_COVERED_SWAP,
@@ -61,6 +61,8 @@ type PhaseBInput = {
   speechPace?: SpeechPace;
   characterImageUrl?: string;
   cast?: CastMember[];
+  // Talking-head read: the end still shows the next clip's subtitle.
+  subtitleHandoff?: boolean;
 };
 
 // Shared director contract for video prompts (batch and per-clip).
@@ -130,6 +132,8 @@ export async function runPhaseBForClip(
         phaseA: input.phaseA,
         clipNumber: input.clipNumber,
         language: input.language,
+        subtitleHandoff:
+          input.subtitleHandoff === true && input.skill.slug === TALKING_HEAD_SKILL_SLUG,
       })
     : undefined;
   if (talkingHead && !output) {

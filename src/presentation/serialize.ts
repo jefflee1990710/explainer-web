@@ -8,6 +8,7 @@ import { resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { resolveVoiceGender } from "@/service/director/voice";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
 import { clipGenerationTags, productionCounts, type GenerationDetailTag } from "@/service/clip-stage";
+import { displayMediaSrc } from "@/util/media-src";
 import { folderRollupStatus } from "@/service/folder";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { DEFAULT_STYLE_ID, type StyleId } from "@/service/style";
@@ -200,6 +201,10 @@ export const VIDEO_LIST_PROJECTION = {
   "frames.status": 1,
   "frames.blobUrl": 1,
   "frames.outputUrl": 1,
+  "frames.mergedUrl": 1,
+  "frames.mergedAt": 1,
+  "frames.submittedAt": 1,
+  subtitleOverlay: 1,
   "clips.clipNumber": 1,
   "clips.status": 1,
   "clips.blobUrl": 1,
@@ -395,6 +400,7 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
   const counts = productionCounts(source);
   const previewUrls = previewUrlsFromVideo({
     frames,
+    subtitleOverlay: video.subtitleOverlay === true,
     characterStillUrl: video.characterStillUrl,
     characterImageUrl: video.characterImageUrl,
   });
@@ -466,16 +472,30 @@ export function toPublicFolder(folder: Folder, videos: Project[]): PublicFolder 
 const PREVIEW_STRIP_MAX = 4;
 
 export type PreviewMediaSource = {
+  // When set, a burned subtitle still replaces the clean frame in the strip.
+  subtitleOverlay?: boolean;
   frames?: Array<{
     clipNumber: number;
     position: string;
     status: string;
     blobUrl?: string;
     outputUrl?: string;
+    mergedUrl?: string;
+    mergedAt?: string;
+    submittedAt?: string;
   }>;
   characterStillUrl?: string;
   characterImageUrl?: string;
 };
+
+// Subtitle on: the merged still is the preview, and the clean file stays out of the strip.
+function previewFrameUrl(
+  frame: NonNullable<PreviewMediaSource["frames"]>[number],
+  subtitleOverlay: boolean,
+) {
+  if (subtitleOverlay && frame.mergedUrl) return displayMediaSrc(frame);
+  return frame.blobUrl || frame.outputUrl;
+}
 
 // Start frames first so the strip reads as a left-to-right scene sequence.
 export function previewUrlsFromVideo(video: PreviewMediaSource, max = PREVIEW_STRIP_MAX) {
@@ -494,11 +514,12 @@ export function previewUrlsFromVideo(video: PreviewMediaSource, max = PREVIEW_ST
     urls.push(url);
   }
 
+  const subtitleOn = video.subtitleOverlay === true;
   for (const frame of completed) {
-    if (frame.position === "start") push(frame.blobUrl || frame.outputUrl);
+    if (frame.position === "start") push(previewFrameUrl(frame, subtitleOn));
   }
   for (const frame of completed) {
-    if (frame.position === "end") push(frame.blobUrl || frame.outputUrl);
+    if (frame.position === "end") push(previewFrameUrl(frame, subtitleOn));
   }
   push(video.characterStillUrl);
   push(video.characterImageUrl);

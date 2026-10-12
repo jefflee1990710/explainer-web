@@ -23,6 +23,7 @@ import {
 import { resolveTextStyleLookLine } from "@/service/text-style/look-line";
 import type { TextStyleDoc } from "@/model/text-style";
 import { sendReelCover } from "@/service/video-edit/reel-cover";
+import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 import { sendClipVideo, sendFrame, sendStill } from "@/service/higgsfield/pipeline";
 import { sendSubtitlePlate } from "@/service/higgsfield/subtitle-plate-job";
 import {
@@ -180,6 +181,7 @@ async function sendVideo(project: Project, clipNumber: number) {
     speechPace: project.speechPace,
     characterImageUrl: project.characterImageUrl,
     cast: await withCurrentCharacterVoices(project.cast),
+    subtitleHandoff: project.subtitleOverlay === true && project.skillSlug === TALKING_HEAD_SKILL_SLUG,
   });
   const projects = await videosCollection();
   await projects.updateOne(

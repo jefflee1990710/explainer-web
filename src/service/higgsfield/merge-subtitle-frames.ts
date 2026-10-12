@@ -1,36 +1,49 @@
 import type { ObjectId } from "mongodb";
 import { videosCollection } from "@/dao";
 import type { FramePosition } from "@/model/project";
+import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 import { plateLineStale } from "@/service/video-edit/subtitle-export";
+import { overlayFramePlateUrl } from "@/service/video-edit/overlay-frame-plate";
 import { compositeSubtitleStill } from "@/service/video-edit/merge-subtitle-still";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { mediaSrc } from "@/util/media-src";
 
-// Overlay the clip's subtitle plate onto each finished still. The clean file
-// stays on blobUrl so the next still can lock to pixels without the words.
+// Overlay a subtitle plate onto each finished still. The clean file stays on
+// blobUrl so the next still can lock to pixels without the words.
+// Talking-head read puts the next clip's line on the end still.
 export async function mergeReadySubtitleFrames(projectId: ObjectId) {
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
   if (!project?.subtitleOverlay) return;
 
-  for (const plate of project.subtitlePlates || []) {
-    if (plate.status !== "completed" || !plate.blobUrl) continue;
+  const ready = (project.subtitlePlates || []).flatMap((plate) => {
+    if (plate.status !== "completed" || !plate.blobUrl) return [];
     const spoken = project.phaseA?.clips.find((item) => item.clipNumber === plate.clipNumber);
-    if (plateLineStale(plate, spoken?.englishVo)) continue;
+    if (plateLineStale(plate, spoken?.englishVo)) return [];
+    return [{ clipNumber: plate.clipNumber, blobUrl: plate.blobUrl }];
+  });
+  const clipNumbers = (project.phaseA?.clips || []).map((clip) => clip.clipNumber);
+  const handoff = project.skillSlug === TALKING_HEAD_SKILL_SLUG;
+
+  for (const clipNumber of clipNumbers) {
     for (const position of ["start", "end"] as const) {
+      const plateUrl = overlayFramePlateUrl({
+        handoff,
+        clipNumber,
+        position,
+        clipNumbers,
+        plates: ready,
+      });
+      if (!plateUrl) continue;
       const frame = project.frames?.find(
-        (item) => item.clipNumber === plate.clipNumber && item.position === position,
+        (item) => item.clipNumber === clipNumber && item.position === position,
       );
       const sceneUrl = mediaSrc(frame);
       if (!frame || frame.status !== "completed" || !sceneUrl) continue;
-      if (
-        frame.mergedUrl &&
-        frame.mergedSceneUrl === sceneUrl &&
-        frame.mergedPlateUrl === plate.blobUrl
-      ) {
+      if (frame.mergedUrl && frame.mergedSceneUrl === sceneUrl && frame.mergedPlateUrl === plateUrl) {
         continue;
       }
-      await mergeOne(projectId, plate.clipNumber, position, sceneUrl, plate.blobUrl, project.aspectRatio);
+      await mergeOne(projectId, clipNumber, position, sceneUrl, plateUrl, project.aspectRatio);
     }
   }
 }

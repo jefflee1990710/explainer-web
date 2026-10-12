@@ -33,6 +33,50 @@ test("preview strip skips unfinished frames and falls back to the still", () => 
   assert.deepEqual(urls, ["e1", "still"]);
 });
 
+test("subtitle preview uses the merged still and drops the clean file", () => {
+  const mergedAt = "2026-10-02T00:00:00.000Z";
+  const urls = previewUrlsFromVideo(
+    video({
+      subtitleOverlay: true,
+      frames: [
+        {
+          clipNumber: 1,
+          position: "start",
+          status: "completed",
+          blobUrl: "clean",
+          mergedUrl: "merged",
+          mergedAt,
+        },
+        {
+          clipNumber: 1,
+          position: "end",
+          status: "completed",
+          blobUrl: "clean-end",
+        },
+      ],
+    } as Partial<PublicVideo>),
+  );
+  assert.deepEqual(urls, [`merged?v=${encodeURIComponent(mergedAt)}`, "clean-end"]);
+});
+
+test("preview strip keeps the clean still when subtitles are off", () => {
+  const urls = previewUrlsFromVideo(
+    video({
+      subtitleOverlay: false,
+      frames: [
+        {
+          clipNumber: 1,
+          position: "start",
+          status: "completed",
+          blobUrl: "clean",
+          mergedUrl: "merged",
+        },
+      ],
+    } as Partial<PublicVideo>),
+  );
+  assert.deepEqual(urls, ["clean"]);
+});
+
 test("preview strip caps unique urls", () => {
   const urls = previewUrlsFromVideo(
     video({

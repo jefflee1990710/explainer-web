@@ -155,6 +155,38 @@ test("9:16 talking-head subtitles sit a little below center; 16:9 stays at the b
   assert.match(talkingHeadDirectorBlock("full-body-talking-head-director", "16:9"), /across the bottom/);
 });
 
+test("subtitle handoff is added once when the stored motion has none", () => {
+  const prompt = talkingHeadPhaseBPrompt({
+    subtitleHandoff: true,
+    language: "en",
+    clipNumber: 1,
+    phaseA: {
+      clips: [
+        { clipNumber: 1, durationSeconds: 5, englishVo: "Hello there.", motionCamera: "She speaks the line." },
+        { clipNumber: 2, durationSeconds: 5, englishVo: "See you.", motionCamera: "She waves." },
+      ],
+    },
+  });
+  assert.match(prompt?.prompt || "", /slides and fades into the next subtitle "See you\."/);
+  const again = talkingHeadPhaseBPrompt({
+    subtitleHandoff: true,
+    language: "en",
+    clipNumber: 1,
+    phaseA: {
+      clips: [
+        {
+          clipNumber: 1,
+          durationSeconds: 5,
+          englishVo: "Hello there.",
+          motionCamera: prompt?.prompt,
+        },
+      ],
+    },
+  });
+  const hits = again?.prompt?.match(/slides and fades into the next subtitle/g) || [];
+  assert.equal(hits.length, 1);
+});
+
 test("talking-head Phase B reuses motionCamera from Phase A", () => {
   const clips = planTalkingHeadClips({ source: "Hello world.", pace: "medium", language: "en" });
   const phaseA = { clips };
@@ -304,7 +336,8 @@ test("overlay talking-head scenes keep the voice line and drop the subtitle", ()
   assert.match(clips[0].motionCamera, /Hello there/);
   assert.doesNotMatch(clips[0].startScene, /Subtitle:/);
   assert.doesNotMatch(clips[0].endScene, /Subtitle:/);
-  assert.doesNotMatch(clips[0].motionCamera, /fades and slides/);
+  assert.match(clips[0].motionCamera, /on-screen subtitle holds/);
+  assert.doesNotMatch(clips[0].motionCamera, /next subtitle/);
   // That pair is under 5s, so it stays one clip. Clip 2 needs a longer script.
   const continued = planTalkingHeadClips({
     source: "Hello there. This opening line should stand alone as the first spoken clip today. See you.",
@@ -313,8 +346,14 @@ test("overlay talking-head scenes keep the voice line and drop the subtitle", ()
     aspectRatio: "9:16",
     overlay: true,
   });
+  assert.ok(continued.length >= 2);
   assert.doesNotMatch(continued[1].startScene, /Subtitle:/);
+  assert.match(continued[0].motionCamera, /slides and fades into the next subtitle/);
+  assert.ok(continued[0].motionCamera.includes(continued[1].englishVo));
+  assert.match(continued[0].motionCamera, /does not speak the next subtitle/);
+  assert.doesNotMatch(continued.at(-1)!.motionCamera, /slides and fades into the next subtitle/);
   const block = talkingHeadDirectorBlock("talking-head-director", "9:16", undefined, true);
   assert.match(block, /no letters/i);
+  assert.match(block, /next clip's subtitle/);
   assert.doesNotMatch(block, /Write the subtitle into startScene/);
 });

@@ -234,6 +234,7 @@ export function planTalkingHeadClips(input: {
     };
     const endScene = shotLine(input.language, "end", line, scene);
     const previousLine = index === 0 ? undefined : lines[index - 1];
+    const nextLine = index + 1 < lines.length ? lines[index + 1] : undefined;
     // Pose continues from the previous end. The subtitle is this clip's own line.
     const startScene =
       index === 0
@@ -258,6 +259,7 @@ export function planTalkingHeadClips(input: {
         belowCenter,
         performance: perf,
         overlay: input.overlay,
+        nextLine,
       }),
       englishVo: line,
       bgmSfx: input.language === "en" ? "none" : "無",
@@ -275,17 +277,42 @@ export function talkingHeadPhaseBPrompt(input: {
   };
   clipNumber: number;
   language?: VoLanguage;
+  // Talking-head read burns the next line onto the end still.
+  subtitleHandoff?: boolean;
 }) {
   const row = input.phaseA.clips.find((clip) => clip.clipNumber === input.clipNumber);
   const prompt = row?.motionCamera?.trim();
   if (!row || !prompt) return undefined;
   const index = input.phaseA.clips.findIndex((clip) => clip.clipNumber === input.clipNumber);
   const previous = index > 0 ? input.phaseA.clips[index - 1]?.englishVo : undefined;
+  const spoken = previous ? speakOnlyThisClip(prompt, row.englishVo || "", input.language) : prompt;
+  const next = input.phaseA.clips[index + 1]?.englishVo;
   return {
     clipNumber: input.clipNumber,
     durationSeconds: row.durationSeconds,
-    prompt: previous ? speakOnlyThisClip(prompt, row.englishVo || "", input.language) : prompt,
+    prompt: input.subtitleHandoff
+      ? withSubtitleHandoff(spoken, row.englishVo || "", next, input.language)
+      : spoken,
   };
+}
+
+// Older motion text has no handoff. Add it once so a re-render still moves the subtitle.
+function withSubtitleHandoff(prompt: string, line: string, nextLine: string | undefined, language?: VoLanguage) {
+  if (/slides and fades into the next subtitle|滑動淡入下一段字幕|on-screen subtitle holds|畫面字幕一直係/.test(prompt)) {
+    return prompt;
+  }
+  const next = nextLine?.trim();
+  if (language === "yue") {
+    const painted = toWrittenChinese(line);
+    const sentence = next
+      ? `。畫面字幕由「${painted}」喺最後一刻滑動淡入下一段字幕「${toWrittenChinese(next)}」，最後一幀只係下一段嗰句。把聲只講「${line}」一次，唔好講下一段字幕`
+      : `。畫面字幕一直係「${painted}」，去到最後一幀都係`;
+    return `${prompt}${sentence}`;
+  }
+  const sentence = next
+    ? `, and the on-screen subtitle starts as "${line}" and in the last moment slides and fades into the next subtitle "${next}", so the last frame shows only that next line. The voice says "${line}" once and does not speak the next subtitle`
+    : `, and the on-screen subtitle holds "${line}" through the last frame`;
+  return `${prompt}${sentence}`;
 }
 
 export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
@@ -341,7 +368,9 @@ export function talkingHeadDirectorBlock(
     `Face pattern: resting face is ${p.restingFace}. Emphasis: ${p.emphasisBeat}. Clip 1 opens with ${p.hookBeat} as the hook. The last clip ends on ${p.ctaBeat}.`,
     `Gesture pattern: the gesturing hand changes shape every 1–2 seconds in time with the words — ${p.gestureLibrary}. Head: ${p.headMotion}.`,
     overlay
-      ? "The frame has no letters, no subtitle, no caption, no logo, and no writing. The spoken line is voice only."
+      ? fullBody
+        ? "The frame has no letters, no subtitle, no caption, no logo, and no writing. The spoken line is voice only."
+        : "The stills have no letters, no subtitle, no caption, no logo, and no writing. The video shows this clip's subtitle on the opening frame and the next clip's subtitle on the end frame, with a short slide-and-fade between them. The last clip keeps its own subtitle on the end frame. The voice says only this clip's line and never speaks the next subtitle."
       : talkingSubtitleRule(aspectRatio),
     "Each clip's voice says only that clip's own line, once. Never repeat the previous clip's sentence, even when the opening frame still shows it.",
   ].join(" ");

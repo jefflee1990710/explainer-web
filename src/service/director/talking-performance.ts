@@ -119,6 +119,8 @@ export function talkingMotionLine(input: {
   performance?: PerformanceSlots;
   // True when a later pass burns the subtitle on. Motion keeps the spoken line and skips caption fades.
   overlay?: boolean;
+  // Next clip's spoken line. Talking-head overlay ends on this subtitle.
+  nextLine?: string;
 }) {
   const close = speakEnd(input.seconds);
   const pEn = input.performance ?? DEFAULT_PERFORMANCE[input.shot].en;
@@ -167,8 +169,11 @@ export function talkingMotionLine(input: {
       : "camera stays locked on the same framing from the first frame to the last frame, no zoom, no reframe, no jump.";
     const hold = input.overlay ? "" : ", and the large subtitle holds still";
     const fadeOutClause = input.overlay ? "" : `, ${fadeOut}`;
-    const subtitleTail = input.overlay ? "" : ` ${subtitle}`;
-    return `${open}; 0.4–${close}s she ${body}${hold}; ${close}–${input.seconds}s ${closeFace}, ${closeBeat}${fadeOutClause}; ${cameraTail}${subtitleTail}`;
+    const subtitleTail = input.overlay
+      ? ""
+      : ` ${subtitle}`;
+    const transition = overlaySubtitleTransition("en", input);
+    return `${open}; 0.4–${close}s she ${body}${hold}; ${close}–${input.seconds}s ${closeFace}, ${closeBeat}${fadeOutClause}${transition}; ${cameraTail}${subtitleTail}`;
   }
   const p = input.performance ?? DEFAULT_PERFORMANCE[input.shot].yue;
   const anchored = hasAnchorProp(p);
@@ -207,5 +212,25 @@ export function talkingMotionLine(input: {
   const hold = input.overlay ? "" : "，大字幕保持唔郁";
   const fadeOutClause = input.overlay ? "" : "，大字幕向下淡出";
   const subtitleTail = input.overlay ? "" : subtitle;
-  return `${open}；0.4–${close}s ${body}${hold}；${close}–${input.seconds}s ${closeFace}，${closeBeat}${fadeOutClause}；${cameraTail}${subtitleTail}`;
+  const transition = overlaySubtitleTransition("yue", input);
+  return `${open}；0.4–${close}s ${body}${hold}；${close}–${input.seconds}s ${closeFace}，${closeBeat}${fadeOutClause}${transition}；${cameraTail}${subtitleTail}`;
+}
+
+// Talking-head overlay: the end still already shows the next line, so the
+// motion has to move the subtitle there. The voice still says only this line.
+// Full-body overlay keeps one subtitle for the whole clip.
+function overlaySubtitleTransition(
+  language: "en" | "yue",
+  input: { overlay?: boolean; shot: TalkingShot; line: string; nextLine?: string },
+) {
+  if (!input.overlay || input.shot === "full-body") return "";
+  const next = input.nextLine?.trim();
+  if (language === "en") {
+    if (!next) return `, and the on-screen subtitle holds "${input.line}" through the last frame`;
+    return `, and the on-screen subtitle starts as "${input.line}" and in the last moment slides and fades into the next subtitle "${next}", so the last frame shows only that next line. The voice says "${input.line}" once and does not speak the next subtitle`;
+  }
+  const painted = toWrittenChinese(input.line);
+  if (!next) return `。畫面字幕一直係「${painted}」，去到最後一幀都係`;
+  const nextPainted = toWrittenChinese(next);
+  return `。畫面字幕由「${painted}」喺最後一刻滑動淡入下一段字幕「${nextPainted}」，最後一幀只係下一段嗰句。把聲只講「${input.line}」一次，唔好講下一段字幕`;
 }
