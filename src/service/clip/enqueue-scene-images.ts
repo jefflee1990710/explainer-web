@@ -6,6 +6,7 @@ import {
   refundCredits,
 } from "@/service/billing/credits";
 import { enqueueClipFrameJobs } from "@/service/higgsfield/pipeline";
+import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
 import {
   enqueueVideoLockJobs,
   videoLocksReady,
@@ -46,6 +47,8 @@ export async function enqueueSceneImagesForNewVideo(projectId: ObjectId) {
   const spendKey = await consumeCredits(project.clerkUserId, plan.cost);
   try {
     await enqueueClipFrameJobs(project, plan.frames);
+    // One plate per clip; the plan cost above already includes them.
+    await enqueueSubtitlePlateJobs(project);
   } catch (error) {
     await refundCredits(project.clerkUserId, plan.cost, spendKey);
     throw error;

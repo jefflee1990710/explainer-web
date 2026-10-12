@@ -4,6 +4,7 @@ import { syncDirectorPreviewJob } from "@/service/director/director-preview";
 import { syncPostPreviewJob } from "@/service/post/sync-preview";
 import { syncProductJob } from "@/service/product/sync";
 import { syncVideoLockJob } from "@/service/higgsfield/video-locks-pipeline";
+import { syncSubtitlePlateJob } from "@/service/higgsfield/subtitle-plate-job";
 import { syncStylePreviewJob } from "@/service/style/user-style-preview";
 import { syncTextStylePreviewJob } from "@/service/text-style/preview";
 import { syncReelCoverJob } from "@/service/video-edit/reel-cover";
@@ -656,6 +657,28 @@ export async function applyJobStatus(input: {
   // Text-style sample previews replace imageUrl on the lettering doc.
   if (job.kind === "textStylePreview") {
     await syncTextStylePreviewJob(job, status, outputUrl);
+    await jobs.updateOne(
+      { _id: job._id },
+      nowFailed
+        ? {
+            $set: {
+              status,
+              outputUrl,
+              error: errorMessage || status,
+              updatedAt: new Date(),
+            },
+          }
+        : {
+            $set: { status, outputUrl, updatedAt: new Date() },
+            $unset: { error: "" },
+          },
+    );
+    return;
+  }
+
+  // Subtitle plates key onto their own plate row and refund there; never the frame/clip path.
+  if (job.kind === "subtitlePlate") {
+    await syncSubtitlePlateJob(job, status, outputUrl);
     await jobs.updateOne(
       { _id: job._id },
       nowFailed
