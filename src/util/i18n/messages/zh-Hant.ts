@@ -239,7 +239,7 @@ export const zhHant: Messages = {
     steps: {
       input: "題材",
       scene: "分鏡",
-      production: "製作",
+      production: "AI生成",
       export: "影片",
     },
     status: {

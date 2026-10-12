@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Geist_Mono, Noto_Sans_TC } from "next/font/google";
 import { GoogleAnalytics } from "@/presentation/components/analytics/google-analytics";
 import { I18nProvider } from "@/presentation/components/i18n-provider";
-import { en } from "@/util/i18n/messages/en";
+import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY, type LocaleId } from "@/util/i18n";
 import "./globals.css";
+
+async function localeFromCookie(): Promise<LocaleId> {
+  const jar = await cookies();
+  const stored = jar.get(LOCALE_STORAGE_KEY)?.value;
+  return isLocaleId(stored) ? stored : DEFAULT_LOCALE;
+}
 
 const notoSansTc = Noto_Sans_TC({
   variable: "--font-body",
@@ -19,15 +26,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: en.meta.title,
-  description: en.meta.description,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const messages = getMessages(await localeFromCookie());
+  return {
+    title: messages.meta.title,
+    description: messages.meta.description,
+  };
+}
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const initialLocale = await localeFromCookie();
+
   return (
     <html
-      lang="en"
+      lang={initialLocale}
       className={`${notoSansTc.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
@@ -35,7 +47,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         className={`${notoSansTc.className} flex min-h-dvh flex-col bg-background text-foreground`}
       >
         <GoogleAnalytics />
-        <I18nProvider>{children}</I18nProvider>
+        <I18nProvider initialLocale={initialLocale}>{children}</I18nProvider>
       </body>
     </html>
   );

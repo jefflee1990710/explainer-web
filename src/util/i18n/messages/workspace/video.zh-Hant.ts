@@ -266,4 +266,7 @@ export const videoZhHant = {
       x: "X",
     },
   },
+  opencut: {
+    empty: "請先在製作分頁渲染各段。完成的片段會送到 OpenCut 再剪。",
+  },
 } satisfies VideoMessages;

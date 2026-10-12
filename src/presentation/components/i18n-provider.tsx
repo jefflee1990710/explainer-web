@@ -14,6 +14,7 @@ import {
   readStoredLocale,
   writeStoredLocale,
   createTranslate,
+  DEFAULT_LOCALE,
   getMessages,
   type LocaleId,
   type TranslateFn,
@@ -27,11 +28,26 @@ type I18nContextValue = {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
-// Client-side UI locale: localStorage preference, else browser language.
-export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<LocaleId>(() =>
-    resolveLocale(readStoredLocale(), typeof navigator !== "undefined" ? [...navigator.languages, navigator.language] : []),
-  );
+// First paint uses the cookie locale so server and client render the same words.
+// localStorage or the browser language is applied after mount.
+export function I18nProvider({
+  children,
+  initialLocale = DEFAULT_LOCALE,
+}: {
+  children: ReactNode;
+  initialLocale?: LocaleId;
+}) {
+  const [locale, setLocaleState] = useState<LocaleId>(initialLocale);
+
+  useEffect(() => {
+    const resolved = resolveLocale(readStoredLocale(), [
+      ...(navigator.languages ?? []),
+      navigator.language,
+    ]);
+    if (resolved === initialLocale) return;
+    setLocaleState(resolved);
+    writeStoredLocale(resolved);
+  }, [initialLocale]);
 
   const setLocale = useCallback((next: LocaleId) => {
     setLocaleState(next);

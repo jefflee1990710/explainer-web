@@ -121,8 +121,7 @@ import {
 } from "@/presentation/components/app/projects/new/brief-defaults";
 import { DEFAULT_SPEECH_PACE, SPEECH_PACE_PRESETS } from "@/service/director/speech-pace";
 import { SceneTextPicker } from "@/presentation/components/app/projects/new/scene-text-picker";
-import { VideoEditDesk } from "@/presentation/components/app/projects/new/video-edit-desk";
-import { VideoEditSummaryEndSlot } from "@/presentation/components/app/projects/new/video-edit-summary-end";
+import { OpenCutVideoDesk } from "@/presentation/components/app/projects/new/opencut-video-desk";
 import { ReviseStoryboardDialog } from "@/presentation/components/app/projects/new/revise-storyboard-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { localizedVideoType } from "@/util/video-type-i18n";
@@ -1208,7 +1207,6 @@ export function NewProjectForm({
                   </>
                 ) : null}
               </div>
-              {reelDesk ? <VideoEditSummaryEndSlot /> : null}
             </motion.div>
           )}
         </AnimatePresence>
@@ -1236,14 +1234,7 @@ export function NewProjectForm({
             />
             </div>
           ) : reelDesk && project ? (
-            <VideoEditDesk
-              key={project.id}
-              project={project}
-              credits={walletCredits}
-              error={error}
-              onProjectChange={setProject}
-              onCreditsChange={(delta) => setWalletCredits((current) => current + delta)}
-            />
+            <OpenCutVideoDesk key={project.id} project={project} />
           ) : project?.status === "failed" && viewing === liveStep ? (
             <FailedCard
               key="failed"

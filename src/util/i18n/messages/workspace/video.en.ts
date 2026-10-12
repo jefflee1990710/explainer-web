@@ -266,6 +266,9 @@ export const videoEn = {
       x: "X",
     },
   },
+  opencut: {
+    empty: "Render clips on Production first. OpenCut edits the finished clips.",
+  },
 } as const;
 
 

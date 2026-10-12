@@ -6,6 +6,7 @@ import { VideoEditorHeaderStatus } from "@/presentation/components/app/projects/
 import { VideoEditorMoreMenu } from "@/presentation/components/app/projects/[id]/video-editor-more-menu";
 import { VideoLocksReferenceButton } from "@/presentation/components/app/projects/[id]/video-locks-reference-button";
 import { VideoShareCaptionsButton } from "@/presentation/components/app/projects/[id]/video-share-captions-button";
+import { VideoEditorHeaderExportSlot } from "@/presentation/components/app/projects/new/video-edit-summary-end";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
@@ -80,6 +81,7 @@ export function VideoEditorDialog({
               {t("video.editor.restart")}
             </StudioButton>
           ) : null}
+          <VideoEditorHeaderExportSlot />
           {onExport ? (
             <StudioButton onClick={onExport}>{t("video.editor.nextExport")}</StudioButton>
           ) : null}
