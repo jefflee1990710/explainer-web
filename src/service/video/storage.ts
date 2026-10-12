@@ -25,6 +25,9 @@ export function collectVideoBlobUrls(
     add(frame.blobUrl);
     add(frame.revision?.annotatedUrl);
   }
+  for (const plate of video.subtitlePlates || []) {
+    add(plate.blobUrl);
+  }
   for (const clip of video.clips || []) {
     add(clip.blobUrl);
   }

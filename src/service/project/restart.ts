@@ -28,6 +28,9 @@ export const RESTART_UNSET_FIELDS = {
   phaseA: "",
   phaseB: "",
   frames: "",
+  // Plates belong to the storyboard; phase A writes the overlay flag again.
+  subtitlePlates: "",
+  subtitleOverlay: "",
   characterStillUrl: "",
   stillError: "",
   objectSheetItems: "",

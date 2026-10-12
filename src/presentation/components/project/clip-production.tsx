@@ -119,6 +119,7 @@ export function ClipProduction({
         onSelect={select}
         sceneChatOpen={sceneChatOpen}
         onEditScene={() => setSceneChatOpen((open) => !open)}
+        onProject={onProject}
       />
     );
   }

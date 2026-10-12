@@ -24,6 +24,7 @@ import { resolveTextStyleLookLine } from "@/service/text-style/look-line";
 import type { TextStyleDoc } from "@/model/text-style";
 import { sendReelCover } from "@/service/video-edit/reel-cover";
 import { sendClipVideo, sendFrame, sendStill } from "@/service/higgsfield/pipeline";
+import { sendSubtitlePlate } from "@/service/higgsfield/subtitle-plate-job";
 import {
   sendBackgroundPlate,
   sendObjectSheet,
@@ -69,6 +70,9 @@ export async function sendJob(job: GenerationJob): Promise<Sent> {
     if (!job.framePosition) throw new PermanentJobError("任務缺少畫格位置");
     return sendFrame(project, clipNumber, job.framePosition);
   }
+  // A plate is an image job. It must never fall through to the video sender.
+  if (job.kind === "subtitlePlate") return sendSubtitlePlate(project, clipNumber);
+  if (job.kind !== "video") throw new PermanentJobError(`不支援的任務類型：${job.kind}`);
   return sendVideo(project, clipNumber);
 }
 

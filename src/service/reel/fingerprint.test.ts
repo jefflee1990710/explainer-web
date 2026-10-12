@@ -36,6 +36,22 @@ test("clipUrlsInOrder walks the storyboard, not clips[] order", () => {
   );
 });
 
+test("fingerprint changes when a subtitle plate URL changes", () => {
+  const base = {
+    subtitleOverlay: true,
+    phaseA: { clips: [{ clipNumber: 1 }] },
+    clips: [{ clipNumber: 1, blobUrl: "https://blob/clip.mp4", submittedAt: "t" }],
+    subtitlePlates: [{ clipNumber: 1, blobUrl: "https://blob/plate-a.png" }],
+  };
+  const next = {
+    ...base,
+    subtitlePlates: [{ clipNumber: 1, blobUrl: "https://blob/plate-b.png" }],
+  };
+  assert.notEqual(clipReelFingerprint(base), clipReelFingerprint(next));
+  const painted = { phaseA: base.phaseA, clips: base.clips };
+  assert.equal(clipReelFingerprint(painted).includes("plate"), false);
+});
+
 test("isReelCurrent requires a completed reel for this fingerprint", () => {
   const fingerprint = clipReelFingerprint({ phaseA, clips });
   assert.equal(

@@ -117,6 +117,8 @@ export const productionZhHant = {
     creditsRefunded: "credits 已退回",
     cancelQueued: "取消排隊",
     cancelQueuedHint: "尚未送出。點一下停止，並退回 credits。",
+    retryPlate: "重新產生字幕圖 · {cost} credits",
+    retryPlateAria: "這段的字幕圖還沒有完成，重新產生需要 {cost} credits",
   },
   stale: { badge: "舊版" },
   frame: {

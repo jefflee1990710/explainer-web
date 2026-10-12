@@ -21,6 +21,7 @@ import {
   syncProjectFromJobs,
 } from "@/service/higgsfield/pipeline";
 import { syncVideoLockJob } from "@/service/higgsfield/video-locks-pipeline";
+import { syncSubtitlePlateJob } from "@/service/higgsfield/subtitle-plate-job";
 import {
   MAX_SUBMIT_ATTEMPTS,
   PROVIDER_TIMEOUT_MS,
@@ -140,6 +141,11 @@ export async function failJob(
   }
   if (job.kind === "reelCover") {
     await syncReelCoverJob(job, "failed");
+    return true;
+  }
+  if (job.kind === "subtitlePlate") {
+    // The plate row refunds its own credit; frames and clip video stay as they are.
+    await syncSubtitlePlateJob(job, "failed", undefined, error);
     return true;
   }
   if (job.kind === "objectSheet" || job.kind === "backgroundPlate") {

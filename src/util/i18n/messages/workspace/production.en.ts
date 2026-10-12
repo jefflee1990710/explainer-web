@@ -117,6 +117,8 @@ export const productionEn = {
     creditsRefunded: "Credits refunded",
     cancelQueued: "Cancel queue",
     cancelQueuedHint: "Not sent yet. Click to stop and refund the credits.",
+    retryPlate: "Redo subtitle plate · {cost} credits",
+    retryPlateAria: "This clip's subtitle plate is not ready. Redoing it costs {cost} credits",
   },
   stale: { badge: "Stale" },
   frame: {

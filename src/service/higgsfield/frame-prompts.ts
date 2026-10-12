@@ -523,7 +523,9 @@ export function buildFramePrompt(
       ...(project.referenceImages || []).map((image) => image.description),
     ]);
   // Every still needs the clothing photo so style and colour stay exact.
-  const textStyleUrl = project.textStyleImageUrl || undefined;
+  // Overlay stills burn the subtitle later, so they must not reserve a lettering-sample slot.
+  const overlay = project.subtitleOverlay === true && isTalkingHeadSkill(project.skillSlug);
+  const textStyleUrl = overlay ? undefined : project.textStyleImageUrl || undefined;
   // User's opening photo sits in front of the character so that face is the person who talks.
   const openingPhotoUrl = openingPhotoReference(project, clipNumber, position);
   const openingCount = openingPhotoUrl ? 1 : 0;
@@ -687,6 +689,9 @@ export function buildFramePrompt(
   if (whiteboardSpells.length > 0) {
     sceneDescription = stripSceneSubtitleSentence(sceneDescription);
   }
+  if (overlay) {
+    sceneDescription = sceneDescription.replace(/\s*(?:Subtitle:|字幕：).*$/u, "").trim();
+  }
   const openingRaw = directorWritesLettering || keepSceneLabels
     ? clipStartScene(row).trim()
     : stripStoryboardWriting(clipStartScene(row));
@@ -720,7 +725,9 @@ export function buildFramePrompt(
   ]
     .filter(Boolean)
     .join(" ");
-  const onCanvasTextBlock = listicle
+  const onCanvasTextBlock = overlay
+    ? []
+    : listicle
     ? [
         letteringLine,
         ...listicleOnCanvasLines({
@@ -839,7 +846,9 @@ export function buildFramePrompt(
           steady && position === "end",
         ),
     ...revisionLines(options.revision && { ...options.revision, remark: parts.remark }),
-    ...(listicle
+    ...(overlay
+      ? ["Final check: no letters, no subtitle, no caption bar, no watermark."]
+      : listicle
       ? ["Final check: the numbered item list is visible and spelled exactly."]
       : paintSurpriseType
         ? [
@@ -932,7 +941,8 @@ export function frameSubmitPlan(
   const productUrls = productReferenceUrls(project.products);
   const videoLockUrls = videoLockReferenceUrls(project, clipNumber);
   // Same cap as buildFramePrompt so the URL order matches the prompt's numbering.
-  const textStyleUrls = project.textStyleImageUrl ? [project.textStyleImageUrl] : [];
+  const overlay = project.subtitleOverlay === true && isTalkingHeadSkill(project.skillSlug);
+  const textStyleUrls = overlay || !project.textStyleImageUrl ? [] : [project.textStyleImageUrl];
   const openingPhotoUrl = openingPhotoReference(project, clipNumber, position);
   const sceneRefUrls = frameSceneReferenceUrls(
     project,

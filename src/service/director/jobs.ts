@@ -10,6 +10,7 @@ import { loadStoredSkill } from "@/service/director/load-skill";
 import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
 import { keepProposalRegenerateClips } from "@/service/director/phase-a-edit";
 import { runPhaseA } from "@/service/director/run-phase-a";
+import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { hydrateStyles } from "@/service/style/load-style";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { enqueueSceneImagesForNewVideo } from "@/service/clip/enqueue-scene-images";
@@ -19,8 +20,9 @@ import {
   planAndStoreVideoLocks,
 } from "@/service/higgsfield/video-locks-pipeline";
 import { persistBuffer } from "@/service/higgsfield/persist";
-import { concatMp4Urls } from "@/service/reel/concat";
-import { clipReelFingerprint, clipUrlsInOrder } from "@/service/reel/fingerprint";
+import { burnSubtitlePlates } from "@/service/reel/burn-plates";
+import { concatMp4Buffers, concatMp4Urls } from "@/service/reel/concat";
+import { clipReelFingerprint, clipUrlsInOrder, plateUrlsInOrder } from "@/service/reel/fingerprint";
 import { queueReelIfReady, scheduleReel } from "@/service/reel/enqueue";
 import {
   MAX_REEL_ATTEMPTS,
@@ -123,6 +125,12 @@ export async function runPhaseAJob(
     if (isSurpriseInterviewSkill(project.skillSlug)) {
       nextPhaseA.clips = sanitizeSurprisePhaseA(nextPhaseA).clips;
     }
+    // Same gate the clip planner used. A later Phase A replaces this flag.
+    const subtitleOverlay = usesTalkingHeadSubtitleOverlay({
+      skillSlug: skill.slug,
+      styleId: style.id,
+      baseStyleId: style.baseStyleId,
+    });
 
     await projects.updateOne(
       { _id: projectId },
@@ -130,6 +138,7 @@ export async function runPhaseAJob(
         // `$set: { error: undefined }` would store null; clear the field instead.
         $set: {
           phaseA: nextPhaseA,
+          subtitleOverlay,
           // Skip the old 核准分鏡 gate — frames and videos start from 製作.
           status: "production",
           updatedAt: new Date(),
@@ -219,8 +228,32 @@ export async function runReelJob(projectId: ObjectId, fingerprint: string) {
   try {
     const urls = clipUrlsInOrder(project);
     const deadline = Date.now() + reelTimeoutMs(urls.length);
-    const reelUrl =
-      urls.length === 1
+    // Overlay projects burn each clip's plate first, so even one clip is re-encoded.
+    const overlay = project.subtitleOverlay === true;
+    const reelUrl = overlay
+      ? await withTimeout(
+          persistBuffer(
+            await concatMp4Buffers(
+              await burnSubtitlePlates({
+                clipUrls: urls,
+                plateUrls: plateUrlsInOrder(project),
+                aspect: project.aspectRatio,
+                timeoutMs: deadline - Date.now(),
+                onProgress: async (done, total) => {
+                  await projects.updateOne(attemptMatch, {
+                    $set: { reelStep: { current: done + 1, total, phase: "download" }, updatedAt: new Date() },
+                  });
+                },
+              }),
+              deadline - Date.now(),
+            ),
+            `explainer/${projectId.toHexString()}/reel/${fingerprint}.mp4`,
+            "video/mp4",
+          ),
+          Math.max(1, deadline - Date.now()),
+          REEL_TIMEOUT_MESSAGE,
+        )
+      : urls.length === 1
         ? urls[0]
         : await withTimeout(
             persistBuffer(

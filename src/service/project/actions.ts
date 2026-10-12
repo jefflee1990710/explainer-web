@@ -48,6 +48,8 @@ import { markUnsentClipVideos } from "@/service/clip/cancel-pending-video";
 import { isReelBusy } from "@/service/reel/fingerprint";
 import { recoverStaleReel } from "@/service/reel/enqueue";
 import { applyPhaseAEdits } from "@/service/director/phase-a-edit";
+import { invalidatePlatesForChangedVo } from "@/service/higgsfield/subtitle-plate-job";
+import { clipsWithChangedVo } from "@/service/video-edit/subtitle-export";
 import { collectVideoBlobUrls } from "@/service/video/storage";
 import {
   RESTART_UNSET_FIELDS,
@@ -724,6 +726,13 @@ export async function updatePhaseAProposalAction(
         },
       },
     );
+    // A changed spoken line makes its finished subtitle plate wrong (free; the user redoes it).
+    if (video.subtitleOverlay === true) {
+      await invalidatePlatesForChangedVo(
+        video._id,
+        clipsWithChangedVo(video.phaseA.clips, applied.phaseA.clips),
+      );
+    }
 
     const folders = await projectsCollection();
     await folders.updateOne(

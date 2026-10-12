@@ -6,11 +6,14 @@ import {
   autoVideoDecision,
   cheapestVideoCost,
   clipVideoCost,
+  FRAME_COST,
   FRAMES_COST,
   planGenerateAllVideos,
   planGenerateAllScenes,
   planRemaining,
   planSelected,
+  sceneImageCost,
+  subtitlePlateCost,
   MIN_VIDEO_COST,
 } from "@/service/production-plan";
 
@@ -222,4 +225,20 @@ test("empty plan when everything is done", () => {
     clips: [clip(1, "completed")],
   };
   assert.deepEqual(planRemaining(project), { frames: [], videos: [], cost: 0 });
+});
+
+test("cinematic talking-head scene plan adds one plate per clip", () => {
+  // No frames yet, so both clips still need scene images.
+  const video: ClipStageSource & { subtitleOverlay?: boolean } = {
+    status: "production",
+    subtitleOverlay: true,
+    phaseA: { clips: [{ clipNumber: 1 }, { clipNumber: 2 }] },
+    frames: [],
+    clips: [],
+  };
+  assert.equal(subtitlePlateCost(video), FRAME_COST * 2);
+  const plan = planGenerateAllScenes(video);
+  assert.equal(plan.cost, sceneImageCost(video, [1, 2]) + FRAME_COST * 2);
+  video.subtitleOverlay = false;
+  assert.equal(subtitlePlateCost(video), 0);
 });

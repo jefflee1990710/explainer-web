@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import { userStylesCollection } from "@/dao/user-styles";
-import { isStyleId } from "@/model/style-id";
+import { isStyleId, type StyleId } from "@/model/style-id";
 import type { UserStyleDoc } from "@/model/user-style";
 import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
 import type { Style } from "@/service/style/types";
@@ -11,7 +11,7 @@ import {
   type UserStyleFields,
 } from "@/service/style/user-style-fields";
 
-export type RenderableStyle = { id: string } & UserStyleFields;
+export type RenderableStyle = { id: string; baseStyleId?: StyleId } & UserStyleFields;
 
 export function renderableFromSystem(style: Style): RenderableStyle {
   return { id: style.id, ...copyUserStyleFields(style) };
@@ -29,7 +29,12 @@ function userStyleFieldsFromDoc(doc: UserStyleDoc): UserStyleFields {
 }
 
 export function renderableFromUserStyle(doc: UserStyleDoc): RenderableStyle {
-  return { id: doc._id.toHexString(), ...userStyleFieldsFromDoc(doc) };
+  // Keep the system template id so a user fork of cinematic realistic still gates overlay.
+  return {
+    id: doc._id.toHexString(),
+    ...userStyleFieldsFromDoc(doc),
+    baseStyleId: doc.baseStyleId,
+  };
 }
 
 async function defaultFindUserStyle(

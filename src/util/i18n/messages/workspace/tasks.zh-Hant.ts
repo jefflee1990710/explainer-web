@@ -26,6 +26,7 @@ export const tasksPageZhHant = {
     backgroundPlate: "場景背景參考",
     reelCover: "影片封面",
     clipVideo: "Clip {n} · 影片",
+    clipSubtitlePlate: "Clip {n} · 字幕圖",
     clipFrameStart: "Clip {n} · 起始畫格",
     clipFrameEnd: "Clip {n} · 結尾畫格",
     reel: "成片合成",

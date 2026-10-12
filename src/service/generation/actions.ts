@@ -25,6 +25,7 @@ import {
   regenerateFrames,
   stillBlocker,
 } from "@/service/higgsfield/pipeline";
+import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
 import { isProductionLike } from "@/service/project-status";
 import { isInheritedTalkingHeadStart, withInheritedTalkingHeadStarts } from "@/service/director/talking-head";
 import { clipFrameCost } from "@/service/clip-stage";
@@ -224,6 +225,61 @@ export async function regenerateFrameAction(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "重新產生分鏡圖失敗",
+    };
+  }
+}
+
+// Redo one clip's subtitle plate for FRAME_COST credits. The charge is refunded when no
+// job gets queued; a plate job that fails later refunds itself.
+export async function retrySubtitlePlateAction(
+  projectId: string,
+  clipNumber: number,
+): Promise<ProjectResult> {
+  try {
+    const user = await requireAppUser();
+    if (!ObjectId.isValid(projectId) || !Number.isInteger(clipNumber)) {
+      return { ok: false, error: "專案不存在" };
+    }
+
+    const projects = await videosCollection();
+    const project = await projects.findOne({
+      _id: new ObjectId(projectId),
+      clerkUserId: user.clerkUserId,
+    });
+    if (!project?.phaseA) return { ok: false, error: "專案不存在" };
+    if (!isProductionLike(project.status)) {
+      return { ok: false, error: "分鏡尚未完成" };
+    }
+    if (project.subtitleOverlay !== true) {
+      return { ok: false, error: "這個專案不使用字幕圖" };
+    }
+    if (!project.phaseA.clips.some((clip) => clip.clipNumber === clipNumber)) {
+      return { ok: false, error: "找不到這段分鏡" };
+    }
+    // A redo replaces the plate's job, which would strand the credit already spent on it.
+    const plate = project.subtitlePlates?.find((item) => item.clipNumber === clipNumber);
+    if (plate && (plate.status === "queued" || plate.status === "in_progress")) {
+      return { ok: false, error: "這段的字幕圖還在產生中，請稍後再重試" };
+    }
+
+    await assertCanSpendCredits(user, FRAME_COST);
+    const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
+    try {
+      // Replaces only this clip's row and job; the row keeps the clip's current line.
+      await enqueueSubtitlePlateJobs(project, [clipNumber]);
+    } catch (error) {
+      // No job was left behind, so nothing will refund this charge but us.
+      await refundCredits(user.clerkUserId, FRAME_COST, spendKey);
+      throw error;
+    }
+
+    const updated = await projects.findOne({ _id: project._id });
+    revalidateProject(projectId);
+    return { ok: true, project: toPublicVideo(updated!) };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "重新產生字幕圖失敗",
     };
   }
 }

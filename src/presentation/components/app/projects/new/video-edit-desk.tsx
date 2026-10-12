@@ -23,6 +23,7 @@ import { clipUrlsForExport, timelineClips } from "@/service/video-edit/edit-time
 import { setTransition } from "@/service/video-edit/edit-transition";
 import { reelCoversJoins } from "@/service/video-edit/export-source";
 import { isReelCurrent } from "@/service/reel/fingerprint";
+import { subtitleExportBlocked } from "@/service/video-edit/subtitle-export";
 import { EDIT_LIMITS, emptyEdit, type BookendClip, type BrandLayer, type VideoEdit } from "@/model/video-edit";
 import { displayMediaSrc } from "@/util/media-src";
 import type { PublicVideo } from "@/presentation/serialize";
@@ -115,6 +116,11 @@ export function VideoEditDesk({
 
   async function exportVideo(existingUrl: string | undefined, filename: string) {
     if (exportAbort.current) return;
+    // A clip without its finished plate would ship without a subtitle.
+    if (subtitleExportBlocked(project)) {
+      setMessage("字幕圖尚未完成");
+      return;
+    }
     const controller = new AbortController();
     exportAbort.current = controller;
     setBusy(true);
@@ -124,7 +130,10 @@ export function VideoEditDesk({
       .filter((clip) => clip.blobUrl || clip.outputUrl);
     const clipNumbers = exportClips.map((clip) => clip.clipNumber);
     // The server already joined these clips; start from that file instead of joining again.
+    // Overlay projects burn plates in the browser, so an older reel is never reused.
+    const overlay = project.subtitleOverlay === true;
     const reelSource =
+      !overlay &&
       project.reelUrl &&
       isReelCurrent(project) &&
       exportClips.length === (project.phaseA?.clips.length ?? 0) &&
@@ -132,16 +141,24 @@ export function VideoEditDesk({
         ? [project.reelUrl]
         : null;
     const sourceUrls = reelSource ?? clipUrlsForExport(exportClips);
+    // Completed plates for the burn pass; empty when the project has no overlay.
+    const plates = overlay
+      ? (project.subtitlePlates || [])
+          .filter((plate) => plate.status === "completed" && plate.blobUrl)
+          .map((plate) => ({ clipNumber: plate.clipNumber, url: plate.blobUrl! }))
+      : [];
+    // An overlay project never saves a prebuilt file as is: it has no plates burned in.
+    const fileUrl = overlay ? undefined : existingUrl;
     setExportJob({
-      phase: existingUrl ? "download" : "encoder",
+      phase: fileUrl ? "download" : "encoder",
       ratio: 0,
-      phases: existingUrl ? ["download", "save"] : exportPhases(sourceUrls.length, edit),
+      phases: fileUrl ? ["download", "save"] : exportPhases(sourceUrls.length, edit, plates.length > 0),
     });
     try {
       const saved = await save();
       if (!saved || controller.signal.aborted) return;
-      if (existingUrl) {
-        await downloadVideoFile(existingUrl, filename, setExportJob, controller.signal);
+      if (fileUrl) {
+        await downloadVideoFile(fileUrl, filename, setExportJob, controller.signal);
       } else {
         if (sourceUrls.length === 0) {
           setMessage(t("video.export.failed"));
@@ -154,6 +171,7 @@ export function VideoEditDesk({
           setExportJob,
           controller.signal,
           reelSource ? [1] : clipNumbers,
+          plates,
         );
       }
     } catch (error) {

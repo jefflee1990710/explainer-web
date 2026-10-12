@@ -69,6 +69,7 @@ export function taskDetail(
   if (job.kind === "reelCover") return "影片封面";
   const clip = `Clip ${job.clipIndex + 1}`;
   if (job.kind === "video") return `${clip} · 影片`;
+  if (job.kind === "subtitlePlate") return `${clip} · 字幕圖`;
   return `${clip} · ${job.framePosition === "end" ? "結尾畫格" : "起始畫格"}`;
 }
 
@@ -93,6 +94,9 @@ export function taskDetailI18n(
   if (job.kind === "backgroundPlate") return { detailKey: "tasksPage.detail.backgroundPlate" as const };
   if (job.kind === "reelCover") return { detailKey: "tasksPage.detail.reelCover" as const };
   if (job.kind === "video") return { detailKey: "tasksPage.detail.clipVideo" as const, detailParams: { n } };
+  if (job.kind === "subtitlePlate") {
+    return { detailKey: "tasksPage.detail.clipSubtitlePlate" as const, detailParams: { n } };
+  }
   return {
     detailKey:
       job.framePosition === "end"
