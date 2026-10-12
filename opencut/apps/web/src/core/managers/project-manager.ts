@@ -109,6 +109,7 @@ export class ProjectManager {
 				},
 			},
 			version: CURRENT_PROJECT_VERSION,
+			timelineViewState: DEFAULTS.timeline.viewState,
 		};
 
 		this.active = newProject;

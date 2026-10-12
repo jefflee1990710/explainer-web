@@ -1,4 +1,5 @@
 import { DEFAULT_NEW_ELEMENT_DURATION } from "@/timeline/creation";
+import { DEFAULT_TIMELINE_ZOOM } from "@/timeline/scale";
 import type { TTimelineViewState } from "@/project/types";
 import type { BlendMode, Transform } from "@/rendering";
 import { ZERO_MEDIA_TIME } from "@/wasm";
@@ -64,7 +65,7 @@ const defaultTextElement: Omit<TextElement, "id"> = {
 };
 
 const defaultTimelineViewState: TTimelineViewState = {
-	zoomLevel: 1,
+	zoomLevel: DEFAULT_TIMELINE_ZOOM,
 	scrollLeft: 0,
 	playheadTime: ZERO_MEDIA_TIME,
 };

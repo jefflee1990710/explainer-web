@@ -137,7 +137,14 @@ export function OpenCutVideoDesk({ project }: { project: PublicVideo }) {
 
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== origin) return;
-      const data = event.data as { type?: string; sourceUrls?: string[] } & Partial<SaveMessage>;
+      const data = event.data as {
+        type?: string;
+        sourceUrls?: string[];
+        videoId?: string;
+        project?: unknown;
+        media?: OpencutEditMedia[];
+        uploads?: SaveUpload[];
+      };
       if (data?.type === "scro-editor-ready") {
         readyRef.current = true;
         beginSync();

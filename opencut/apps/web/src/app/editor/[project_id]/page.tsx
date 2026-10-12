@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import {
 	ResizablePanelGroup,
 	ResizablePanel,
@@ -86,6 +86,8 @@ function DegradedRendererBanner() {
 
 function EditorLayout() {
 	usePasteMedia();
+	// The embed hides the header, so the panels need the same inset the sides and timeline already have.
+	const embedded = useSearchParams().get("embed") === "1";
 	const { panels, setPanel } = usePanelStore();
 	const activeScene = useEditor((editor) =>
 		editor.scenes.getActiveSceneOrNull(),
@@ -154,7 +156,7 @@ function EditorLayout() {
 			>
 				<ResizablePanelGroup
 					direction="horizontal"
-					className="size-full gap-[0.19rem] px-3"
+					className={`size-full gap-[0.19rem] px-3${embedded ? " pt-3" : ""}`}
 					onLayout={(sizes) => {
 						setPanel({ panel: "tools", size: sizes[0] ?? panels.tools });
 						setPanel({ panel: "preview", size: sizes[1] ?? panels.preview });
