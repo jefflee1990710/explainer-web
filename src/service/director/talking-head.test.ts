@@ -281,3 +281,29 @@ test("talking-head clip 2 start copies the previous end file and costs one still
   assert.equal(frames[1].blobUrl, "https://blob/end-1.png");
   assert.equal(frames[2].status, "queued");
 });
+
+test("overlay talking-head scenes keep the voice line and drop the subtitle", () => {
+  const clips = planTalkingHeadClips({
+    source: "Hello there. See you.",
+    pace: "medium",
+    language: "en",
+    aspectRatio: "9:16",
+    overlay: true,
+  });
+  assert.match(clips[0].motionCamera, /Hello there/);
+  assert.doesNotMatch(clips[0].startScene, /Subtitle:/);
+  assert.doesNotMatch(clips[0].endScene, /Subtitle:/);
+  assert.doesNotMatch(clips[0].motionCamera, /fades and slides/);
+  // That pair is under 5s, so it stays one clip. Clip 2 needs a longer script.
+  const continued = planTalkingHeadClips({
+    source: "Hello there. This opening line should stand alone as the first spoken clip today. See you.",
+    pace: "medium",
+    language: "en",
+    aspectRatio: "9:16",
+    overlay: true,
+  });
+  assert.doesNotMatch(continued[1].startScene, /Subtitle:/);
+  const block = talkingHeadDirectorBlock("talking-head-director", "9:16", undefined, true);
+  assert.match(block, /no letters/i);
+  assert.doesNotMatch(block, /Write the subtitle into startScene/);
+});

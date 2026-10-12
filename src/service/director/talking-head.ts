@@ -210,6 +210,8 @@ export function planTalkingHeadClips(input: {
   background?: boolean;
   // Resolved performance slots in the prompt language. Defaults to the shot's built-in set.
   performance?: PerformanceSlots;
+  // True when a later pass burns the subtitle on. Stills and motion stay free of painted letters.
+  overlay?: boolean;
 }): TalkingHeadClipPlan[] {
   const lines = balanceTalkingHeadLines(input.source, input.pace);
   const total = lines.length;
@@ -220,14 +222,14 @@ export function planTalkingHeadClips(input: {
     const line = lines[index];
     const seconds = plannedClipSeconds(line, input.pace);
     const belowCenter = talkingHeadSubtitleBelowCenter(input.aspectRatio);
-    const scene = { shot: input.shot, belowCenter, background: input.background, perf };
+    const scene = { shot: input.shot, belowCenter, background: input.background, perf, overlay: input.overlay };
     const endScene = shotLine(input.language, "end", line, scene);
     const previousLine = index === 0 ? undefined : lines[index - 1];
     // Pose continues from the previous end. The subtitle is this clip's own line.
     const startScene =
       index === 0
         ? shotLine(input.language, "start", line, scene)
-        : withThisClipSubtitle(clips[index - 1].endScene, input.language, line, belowCenter);
+        : withThisClipSubtitle(clips[index - 1].endScene, input.language, line, belowCenter, input.overlay);
     clips.push({
       clipNumber: index + 1,
       timeRange: `0–${seconds}s`,
@@ -246,6 +248,7 @@ export function planTalkingHeadClips(input: {
         totalClips: total,
         belowCenter,
         performance: perf,
+        overlay: input.overlay,
       }),
       englishVo: line,
       bgmSfx: input.language === "en" ? "none" : "無",
@@ -302,7 +305,12 @@ function talkingSubtitleRule(aspectRatio?: string) {
 
 // Phase A director block. Performance slots (English) describe the style layer the
 // user may have customised; the pipeline rules around them are fixed.
-export function talkingHeadDirectorBlock(skillSlug?: string, aspectRatio?: string, performance?: PerformanceSlots) {
+export function talkingHeadDirectorBlock(
+  skillSlug?: string,
+  aspectRatio?: string,
+  performance?: PerformanceSlots,
+  overlay?: boolean,
+) {
   const fullBody = skillSlug === FULL_BODY_TALKING_HEAD_SKILL_SLUG;
   const p = performance ?? DEFAULT_PERFORMANCE[fullBody ? "full-body" : "face"].en;
   const anchored = hasAnchorProp(p);
@@ -323,7 +331,9 @@ export function talkingHeadDirectorBlock(skillSlug?: string, aspectRatio?: strin
       : `On-camera speech to a phone on a tripod: seated, eyes locked on the lens, continuous lip-sync, head tilting and nodding, ${hands}. Natural skin, real cloth, unposed. Never freeze the face or neck. Never a greeting wave. Never stand up.`,
     `Face pattern: resting face is ${p.restingFace}. Emphasis: ${p.emphasisBeat}. Clip 1 opens with ${p.hookBeat} as the hook. The last clip ends on ${p.ctaBeat}.`,
     `Gesture pattern: the gesturing hand changes shape every 1–2 seconds in time with the words — ${p.gestureLibrary}. Head: ${p.headMotion}.`,
-    talkingSubtitleRule(aspectRatio),
+    overlay
+      ? "The frame has no letters, no subtitle, no caption, no logo, and no writing. The spoken line is voice only."
+      : talkingSubtitleRule(aspectRatio),
     "Each clip's voice says only that clip's own line, once. Never repeat the previous clip's sentence, even when the opening frame still shows it.",
   ].join(" ");
 }
@@ -345,11 +355,16 @@ function plannedClipSeconds(text: string, pace?: SpeechPace) {
   return Math.min(TALKING_HEAD_MAX_SECONDS, Math.max(PROVIDER_MIN_SECONDS, talkingHeadSeconds(text, pace)));
 }
 
-type SceneInput = { shot?: string; belowCenter?: boolean; background?: boolean; perf: PerformanceSlots };
+type SceneInput = {
+  shot?: string;
+  belowCenter?: boolean;
+  background?: boolean;
+  perf: PerformanceSlots;
+  overlay?: boolean;
+};
 
 // Start still: hook face, free hand mid-gesture. End still: smile relaxed, head tilted the other way.
 function shotLine(language: VoLanguage | undefined, moment: "start" | "end", line: string, scene: SceneInput) {
-  const painted = language === "yue" ? toWrittenChinese(line) : line;
   const camera = cameraClause(language, scene.shot, scene.perf);
   const fullBody = scene.shot === "full-body";
   const anchored = hasAnchorProp(scene.perf);
@@ -367,7 +382,10 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
         : fullBody
           ? `Character: still the only person in the frame, eyes still locked on the lens, mouth just closed after the line, an engaged small smile, eyebrows relaxed, head nodded only a few degrees.${propEnd} ${freeHand} is still slightly raised at chest height with an open palm, weight on the other hip, feet in the same place.${sameFrame}`
           : `Character: still the only person in the frame, still seated, eyes still locked on the lens, mouth just closed into a small real smile, eyebrows relaxed, head nodded only a few degrees.${propEnd} ${freeHand} is open-palm at chest height, caught between gestures.${sameFrame}`;
-    return `${pose} ${setClause("en", scene)}${camera} ${subtitleSentence("en", painted, scene.belowCenter)}`;
+    const still = `${pose} ${setClause("en", scene)}${camera}`;
+    // Overlay subtitles are composited later, so the still is pose, set, and camera only.
+    if (scene.overlay) return still.trim();
+    return `${still} ${subtitleSentence("en", line, scene.belowCenter)}`;
   }
   const prop = anchored ? `一隻手拎住${p.anchorProp}。` : "";
   const propEnd = anchored ? `同一隻手仍然拎住${p.anchorProp}。` : "";
@@ -381,7 +399,9 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
       : fullBody
         ? `角色：畫面仍然只有呢一個人，仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，眉毛放鬆，頭只再傾幾度。${propEnd}${freeHand}仲喺胸前掌心打開，重心輕輕換咗少少，腳留喺同一個位置。${sameFrame}`
         : `角色：畫面仍然只有呢一個人，仍然坐住直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，頭只再傾幾度。${propEnd}${freeHand}掌心打開停喺胸前，好似兩個手勢之間。${sameFrame}`;
-  return `${pose}${setClause("yue", scene)}${camera}${subtitleSentence("yue", painted, scene.belowCenter)}`;
+  const still = `${pose}${setClause("yue", scene)}${camera}`;
+  if (scene.overlay) return still.trim();
+  return `${still}${subtitleSentence("yue", toWrittenChinese(line), scene.belowCenter)}`;
 }
 
 // Keep the previous end's pose, and swap in this clip's own subtitle.
@@ -390,7 +410,9 @@ function withThisClipSubtitle(
   language: VoLanguage | undefined,
   line: string,
   belowCenter: boolean,
+  overlay?: boolean,
 ) {
+  if (overlay) return previousEnd.replace(/\s*(?:Subtitle:|字幕：).*$/u, "").trim();
   const painted = language === "yue" ? toWrittenChinese(line) : line;
   const body = previousEnd.replace(/\s*(?:Subtitle:|字幕：).*$/u, "").trim();
   const lang = language === "en" ? "en" : "yue";
