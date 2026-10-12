@@ -188,12 +188,14 @@ test("reel safe zone stays in the center and does not take placement from a styl
     look: "clean",
   });
   const text = lines.join("\n");
-  assert.match(text, /center safe area/);
+  assert.match(text, /top 20%/);
+  assert.match(text, /bottom 20%/);
   assert.match(text, /torn-paper strips/);
   assert.match(text, /We made it/);
   assert.doesNotMatch(text, /70%/);
   assert.doesNotMatch(text, /bottom 18%/);
-  assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true, look: "bold" }), /center safe area/);
+  assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true, look: "bold" }), /top 20%/);
+  assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true, look: "bold" }), /bottom 20%/);
   assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true, look: "bold" }), /condensed sans/);
   const bare = sceneTextFrameLines(true, "en", "We made it", undefined, { reelSafeZone: true }).join("\n");
   assert.doesNotMatch(bare, /bottom 18%/);

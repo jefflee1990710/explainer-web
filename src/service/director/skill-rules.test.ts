@@ -491,8 +491,10 @@ test("listicle forces on-canvas listing text", () => {
 
 test("every director keeps a 9:16 middle safe area and leaves landscape alone", () => {
   const vertical = verticalSafeAreaDirectorLine("9:16");
-  assert.match(vertical, /space at the top and the bottom/);
-  assert.match(vertical, /subtitle, the character, and the main subject/);
+  assert.match(vertical, /top 20%/);
+  assert.match(vertical, /bottom 20%/);
+  assert.match(vertical, /middle 60%/);
+  assert.match(vertical, /text, characters, or the main subject/);
   assert.equal(verticalSafeAreaDirectorLine("16:9"), "");
   assert.equal(verticalSafeAreaDirectorLine("1:1"), "");
 });

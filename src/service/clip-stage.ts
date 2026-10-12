@@ -1,6 +1,7 @@
 import { mediaSrc } from "@/util/media-src";
 import { normalizeProjectStatus } from "@/service/project-status";
 import { MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
+import { inheritsPreviousEnd } from "@/service/director/clip-continuity";
 import { talkingHeadFramesCost } from "@/service/director/talking-head";
 import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { FRAME_COST } from "@/service/credit-costs";
@@ -102,8 +103,13 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
   const clip = project.clips.find((item) => item.clipNumber === clipNumber);
   const frames = [start, end].filter((item): item is ClipFrame => Boolean(item));
 
+  // A chained start is a copy of the previous end. Its old timestamp must not
+  // keep this clip on "redraw frames" after the end still has been redrawn.
+  const drawnFrames = frames.filter(
+    (frame) => !inheritsPreviousEnd(project.skillSlug, clipNumber, frame.position),
+  );
   const stale = {
-    frames: frames.some((frame) => isLater(row?.editedAt, frame.submittedAt)),
+    frames: drawnFrames.some((frame) => isLater(row?.editedAt, frame.submittedAt)),
     video:
       Boolean(clip) &&
       (isLater(row?.editedAt, clip?.submittedAt) ||

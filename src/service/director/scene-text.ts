@@ -273,7 +273,7 @@ export function sceneTextSkillHint(
   }
   if (options?.reelSafeZone) {
     return [
-      `When on-canvas text is ON, write the subtitle into the scene the still paints: Subtitle (spell exactly): "<this clip's englishVo>", inside the center safe area, clear of the top and bottom edges. ${lookLine}`,
+      `When on-canvas text is ON, write the subtitle into the scene the still paints: Subtitle (spell exactly): "<this clip's englishVo>", inside the middle 60%, clear of the top 20% and the bottom 20%. ${lookLine}`,
       "That Subtitle sentence is the image prompt. A later step does not move, resize, or restyle it.",
       "The only writing is that spoken line. Do not add extra titles, signs, or labels.",
       SCENE_TEXT_PRESETS[language].skillHint,
@@ -510,7 +510,7 @@ export function sceneTextFrameLines(
     belowCenter
       ? "Layout: one subtitle a little below the vertical center of the frame, centered horizontally, about 55% of the way down from the top. Clear of the face and clear of the bottom edge. Not a band glued to the bottom."
       : reel
-        ? "Layout: one subtitle inside the center safe area, clear of the top and bottom edges. Not a bottom band."
+        ? "Layout: one subtitle inside the middle 60%, clear of the top 20% and the bottom 20%. Not a bottom band."
         : "Layout: a band across the bottom 18% of the frame; the subtitle is centered in that band (not a tiny corner tag).",
     ...subtitleLines,
     letterStyle,

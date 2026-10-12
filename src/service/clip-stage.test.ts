@@ -169,6 +169,33 @@ test("stale.frames when the row was edited after a frame was submitted", () => {
   assert.deepEqual(clipStateFor(p, 1).stale, { frames: true, video: false });
 });
 
+test("a copied talking-head start does not keep frames stale after the end still is redrawn", () => {
+  const p = project({
+    skillSlug: "talking-head-director",
+    phaseA: {
+      clips: [{ clipNumber: 2, editedAt: "2026-10-12T06:29:35.121Z" }],
+    },
+    frames: [
+      frame(2, "start", "completed", "2026-10-11T15:58:54.992Z"),
+      frame(2, "end", "completed", "2026-10-12T07:28:55.989Z"),
+    ],
+    clips: [clip(2, "completed", "2026-10-11T18:14:14.287Z")],
+  });
+  assert.deepEqual(clipStateFor(p, 2).stale, { frames: false, video: true });
+});
+
+test("a talking-head end still stays stale when the line was edited after it was drawn", () => {
+  const p = project({
+    skillSlug: "talking-head-director",
+    phaseA: { clips: [{ clipNumber: 2, editedAt: "2026-10-12T08:00:00.000Z" }] },
+    frames: [
+      frame(2, "start", "completed", "2026-10-11T15:58:54.992Z"),
+      frame(2, "end", "completed", "2026-10-12T07:28:55.989Z"),
+    ],
+  });
+  assert.equal(clipStateFor(p, 2).stale.frames, true);
+});
+
 test("stale.video when the row was edited after the video was submitted", () => {
   const p = project({
     phaseA: { clips: [{ clipNumber: 1, editedAt: "2026-01-05T00:00:00.000Z" }] },
