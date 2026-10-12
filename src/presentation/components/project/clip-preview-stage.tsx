@@ -10,7 +10,7 @@ import { SceneChatButton } from "@/presentation/components/project/scene-chat-bu
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { ClipState } from "@/service/clip-stage";
 import { displayMediaSrc } from "@/util/media-src";
-import type { AspectRatio, ClipFrame, FramePosition, ProjectClip } from "@/model/project";
+import type { AspectRatio, ClipFrame, FramePosition, ProjectClip, SubtitlePlate } from "@/model/project";
 
 const GAP = 16;
 // Status line under the still.
@@ -38,6 +38,8 @@ export function ClipPreviewStage({
   sceneChatOpen,
   onEditScene,
   endStill = true,
+  subtitleOverlay,
+  subtitlePlates,
 }: {
   start?: ClipFrame;
   end?: ClipFrame;
@@ -59,6 +61,9 @@ export function ClipPreviewStage({
   onEditScene: () => void;
   // False hides the end still. The end scene text still lives in the storyboard.
   endStill?: boolean;
+  // Talking-head plates. Only a completed plate is drawn on the clip video.
+  subtitleOverlay: boolean;
+  subtitlePlates?: SubtitlePlate[];
 }) {
   const paneRef = useRef<HTMLDivElement>(null);
   const [pane, setPane] = useState({ w: 0, h: 0 });
@@ -87,6 +92,10 @@ export function ClipPreviewStage({
   const startDrawing = isFrameTilePending(start, startPending || framesPending);
   // Keep the scene still in the video slot until the clip file replaces it.
   const videoPoster = startDrawing ? undefined : displayMediaSrc(start) ?? displayMediaSrc(end);
+  const plate = subtitlePlates?.find((item) => item.clipNumber === state.clipNumber);
+  // Start and end stills stay clean; the plate only covers the playing clip.
+  const subtitleSrc =
+    subtitleOverlay && plate?.status === "completed" ? plate.blobUrl : undefined;
 
   return (
     <div
@@ -123,6 +132,7 @@ export function ClipPreviewStage({
             aspectRatio={aspectRatio}
             pending={videoPending}
             posterSrc={videoPoster}
+            subtitleSrc={subtitleSrc}
             boxStyle={fit.video}
             onGenerate={onGenerateVideo}
             onCancel={onCancelVideo}

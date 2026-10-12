@@ -86,6 +86,8 @@ export function ClipWorkspace({
         sceneChatOpen={sceneChatOpen}
         onEditScene={onEditScene}
         endStill={!skipEnd}
+        subtitleOverlay={project.subtitleOverlay}
+        subtitlePlates={project.subtitlePlates}
       />
     );
   }

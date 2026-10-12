@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { ClipSubtitleOverlay } from "@/presentation/components/project/clip-subtitle-overlay";
 import { ClipVideoPlaceholder } from "@/presentation/components/project/clip-video-placeholder";
 import { ClipVideoPlayer } from "@/presentation/components/project/clip-video-player";
 import { ASPECT_CLASS } from "@/presentation/components/project/frame-tile";
@@ -20,6 +21,7 @@ export function ClipVideoPanel({
   aspectRatio,
   pending,
   posterSrc,
+  subtitleSrc,
   boxStyle,
   onGenerate,
   onCancel,
@@ -31,6 +33,8 @@ export function ClipVideoPanel({
   pending: boolean;
   // Scene still shown until this clip's video file is ready.
   posterSrc?: string;
+  // Completed keyed subtitle plate. Omitted until the plate for this clip is ready.
+  subtitleSrc?: string;
   boxStyle?: { width: number; height: number };
   onGenerate: () => void;
   onCancel: () => void;
@@ -59,8 +63,11 @@ export function ClipVideoPanel({
       {src && showVideo ? (
         <>
           <ClipVideoPlayer src={src} dimmed={state.stale.video || failed} />
+          {showVideo && subtitleSrc ? (
+            <ClipSubtitleOverlay src={subtitleSrc} aspectRatio={aspectRatio} />
+          ) : null}
           {failed ? (
-            <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-accent/85 px-2 py-1.5 text-center font-display text-[11px] font-bold text-white">
+            <span className="pointer-events-none absolute inset-x-0 bottom-0 z-30 bg-accent/85 px-2 py-1.5 text-center font-display text-[11px] font-bold text-white">
               {t("production.video.failedOverlay", { error: error ? `：${error}` : "" })}
             </span>
           ) : null}
@@ -88,7 +95,7 @@ export function ClipVideoPanel({
         />
       )}
       {showVideo && state.stale.video ? (
-        <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-accent px-2 py-0.5 font-display text-[10px] font-bold text-white">
+        <span className="pointer-events-none absolute right-2 top-2 z-30 rounded-full bg-accent px-2 py-0.5 font-display text-[10px] font-bold text-white">
           {t("production.stale.badge")}
         </span>
       ) : null}
