@@ -259,6 +259,8 @@ export type Project = {
   textStyleId?: string;
   // Denormalized lettering sample. Present only for a custom text style.
   textStyleImageUrl?: string;
+  // Talking-head cinematic: the still stays free of painted subtitles.
+  subtitleOverlay?: boolean;
   characterImageUrl?: string;
   // Opening / Ending bookends: brand logo used as a reference in every still.
   logoUrl?: string;

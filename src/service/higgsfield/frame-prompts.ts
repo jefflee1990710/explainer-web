@@ -522,7 +522,9 @@ export function buildFramePrompt(
       ...(project.referenceImages || []).map((image) => image.description),
     ]);
   // Every still needs the clothing photo so style and colour stay exact.
-  const textStyleUrl = project.textStyleImageUrl || undefined;
+  // Overlay stills burn the subtitle later, so they must not reserve a lettering-sample slot.
+  const overlay = project.subtitleOverlay === true && isTalkingHeadSkill(project.skillSlug);
+  const textStyleUrl = overlay ? undefined : project.textStyleImageUrl || undefined;
   const sceneRefUrls = frameSceneReferenceUrls(
     project,
     clipNumber,
@@ -678,6 +680,9 @@ export function buildFramePrompt(
   if (whiteboardSpells.length > 0) {
     sceneDescription = stripSceneSubtitleSentence(sceneDescription);
   }
+  if (overlay) {
+    sceneDescription = sceneDescription.replace(/\s*(?:Subtitle:|字幕：).*$/u, "").trim();
+  }
   const openingRaw = directorWritesLettering || keepSceneLabels
     ? clipStartScene(row).trim()
     : stripStoryboardWriting(clipStartScene(row));
@@ -711,7 +716,9 @@ export function buildFramePrompt(
   ]
     .filter(Boolean)
     .join(" ");
-  const onCanvasTextBlock = listicle
+  const onCanvasTextBlock = overlay
+    ? []
+    : listicle
     ? [
         letteringLine,
         ...listicleOnCanvasLines({
@@ -779,7 +786,10 @@ export function buildFramePrompt(
     ...(surprise && surpriseClip?.angle && surpriseClip.pose
       ? [surpriseAngleDirective(surpriseClip.angle, surpriseClip.pose)]
       : []),
-    ...styleLinesForFrame(style),
+    // The catalog line is "Look: …". Overlay stills rename it so no Look: label remains.
+    ...(overlay
+      ? styleLinesForFrame(style).map((line) => line.replaceAll("Look:", "Rendering:"))
+      : styleLinesForFrame(style)),
     ...(parts.visualWorld ? [`Visual world: ${parts.visualWorld}`] : []),
     `Palette: ${parts.palette}`,
     ...(wardrobeBuild ? [OUTFIT_IDENTITY_LOCK, OUTFIT_ENERGY] : []),
@@ -829,7 +839,9 @@ export function buildFramePrompt(
           steady && position === "end",
         ),
     ...revisionLines(options.revision && { ...options.revision, remark: parts.remark }),
-    ...(listicle
+    ...(overlay
+      ? ["Final check: no letters, no subtitle, no caption bar, no watermark."]
+      : listicle
       ? ["Final check: the numbered item list is visible and spelled exactly."]
       : paintSurpriseType
         ? [
@@ -922,7 +934,8 @@ export function frameSubmitPlan(
   const productUrls = productReferenceUrls(project.products);
   const videoLockUrls = videoLockReferenceUrls(project, clipNumber);
   // Same cap as buildFramePrompt so the URL order matches the prompt's numbering.
-  const textStyleUrls = project.textStyleImageUrl ? [project.textStyleImageUrl] : [];
+  const overlay = project.subtitleOverlay === true && isTalkingHeadSkill(project.skillSlug);
+  const textStyleUrls = overlay || !project.textStyleImageUrl ? [] : [project.textStyleImageUrl];
   const sceneRefUrls = frameSceneReferenceUrls(
     project,
     clipNumber,

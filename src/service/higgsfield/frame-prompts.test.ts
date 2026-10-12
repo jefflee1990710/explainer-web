@@ -1027,6 +1027,33 @@ test("REVISION line does not attach a sibling or previous still", () => {
   assert.doesNotMatch(prompt, /previous still/);
 });
 
+test("cinematic talking-head overlay stills do not paint the subtitle", () => {
+  const video = project("realistic");
+  video.skillSlug = "talking-head-director";
+  video.subtitleOverlay = true;
+  video.textStyleImageUrl = "https://blob/look.png";
+  video.phaseA!.clips[0].englishVo = "Hello there.";
+  video.phaseA!.clips[0].startScene = 'Person seated. Subtitle: one LARGE line, exactly "Hello there."';
+  const prompt = buildFramePrompt(video, 1, "start");
+  assert.match(prompt, /no letters, no subtitle, no caption bar, no watermark/);
+  assert.doesNotMatch(prompt, /Look:/);
+  assert.doesNotMatch(prompt, /Subtitle:/);
+  const plan = frameSubmitPlan(video, 1, "start");
+  // frameSubmitPlan returns refs; the brief's imageUrls name is not on the plan.
+  assert.equal(plan.refs.includes("https://blob/look.png"), false);
+});
+
+test("talking-head stills still attach the Look line when subtitle overlay is unset", () => {
+  const video = project("realistic");
+  video.skillSlug = "talking-head-director";
+  video.textStyleImageUrl = "https://blob/look.png";
+  video.phaseA!.clips[0].englishVo = "Hello there.";
+  const prompt = buildFramePrompt(video, 1, "start");
+  assert.match(prompt, /lettering sample/);
+  const plan = frameSubmitPlan(video, 1, "start");
+  assert.equal(plan.refs.includes("https://blob/look.png"), true);
+});
+
 test("talking-head stills keep only the first character", () => {
   const video = project();
   video.skillSlug = "talking-head-director";
