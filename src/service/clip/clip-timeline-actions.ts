@@ -98,6 +98,7 @@ export async function appendDirectorClipAction(input: {
       cast: project.cast,
       content,
       insertAt,
+      subtitleOverlay: project.subtitleOverlay,
     });
     if (drafted.length === 0) return { ok: false, error: "導演沒有寫出片段" };
     if (project.phaseA.clips.length + drafted.length > APPEND_CLIP_MAX) {

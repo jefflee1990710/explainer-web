@@ -76,6 +76,7 @@ import {
 import { sanitizeOutfitPhaseA } from "@/service/director/outfit-reel";
 import { sanitizeSurprisePhaseA } from "@/service/director/surprise-interview";
 import { usesSteadyStills } from "@/service/director/steady-stills";
+import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import type { Style } from "@/service/style";
 import { resolveSubtitleLook, textStyleSampleHint } from "@/service/director/subtitle-look";
 import type { RenderableStyle } from "@/service/style/renderable-style";
@@ -246,6 +247,12 @@ export async function runPhaseA(input: {
   const clipsOnlyNote = input.clipsOnly
     ? `\nRegenerate ONLY the clips array (and clipCount / narrativeArc / englishWordCount / bgmDirection as needed). Copy localizedTitle, englishTitle, coreMessage, hookStrategy, narrator, visualWorld, characterLock, palette, aspectRatio, loopMode, and targetDuration verbatim from the current draft. Do not change the proposal brief.\n`
     : "";
+  // Cinematic talking-head: later burn-in owns the letters, so stills stay clean.
+  const subtitleOverlay = usesTalkingHeadSubtitleOverlay({
+    skillSlug: input.skill.slug,
+    styleId: input.style.id,
+    baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
+  });
 
   const generated = await generateText({
     model: directorModel(),
@@ -317,6 +324,7 @@ ${
           input.skill.slug,
           input.aspectRatio,
           resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en"),
+          subtitleOverlay,
         )
       : "",
     isSurpriseInterviewSkill(input.skill.slug) ? surpriseInterviewDirectorBlock() : "",
@@ -459,6 +467,7 @@ Produce a complete Phase A director proposal now.`,
       background: Boolean(input.backgroundImageUrls?.length),
       // Custom directors override template slots per key; see resolvePerformance.
       performance: resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", input.language),
+      overlay: subtitleOverlay,
     });
     const spoken = clips.reduce((sum, clip) => {
       const units = spokenUnits(clip.englishVo);

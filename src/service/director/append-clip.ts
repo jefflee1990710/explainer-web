@@ -105,6 +105,8 @@ type AppendInput = {
   content: string;
   // 1-based slot. Omit to add after the last clip.
   insertAt?: number;
+  // Stored by Phase A. Do not recompute the cinematic gate here.
+  subtitleOverlay?: boolean;
 };
 
 // Director flow for one extra clip: storyboard row, then the end-still rewrite.
@@ -125,6 +127,7 @@ export async function draftAppendedClips(input: AppendInput): Promise<Storyboard
         talkingShotForSkill(input.skill.slug) ?? "face",
         input.language,
       ),
+      overlay: input.subtitleOverlay === true,
     });
     return planned.map((row) => inheritOpening(row, previous, skillSlug));
   }

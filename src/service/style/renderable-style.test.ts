@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import { installTestStyles, testStyle, uninstallTestStyles } from "@/service/style/test-styles";
-import { loadRenderableStyle } from "@/service/style/renderable-style";
+import { loadRenderableStyle, renderableFromUserStyle } from "@/service/style/renderable-style";
 import type { UserStyleDoc } from "@/model/user-style";
 
 const owner = "user_1";
@@ -49,4 +49,13 @@ test("missing styleId is doodle; a system id is that style; a user id uses the d
     /style/i,
   );
   uninstallTestStyles();
+});
+
+test("user renderable style keeps baseStyleId", () => {
+  const style = renderableFromUserStyle({
+    ...userDoc(new ObjectId(), "cinematic look"),
+    baseStyleId: "realistic",
+    name: "My look",
+  });
+  assert.equal(style.baseStyleId, "realistic");
 });

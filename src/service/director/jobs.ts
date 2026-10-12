@@ -10,6 +10,7 @@ import { loadStoredSkill } from "@/service/director/load-skill";
 import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
 import { keepProposalRegenerateClips } from "@/service/director/phase-a-edit";
 import { runPhaseA } from "@/service/director/run-phase-a";
+import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { hydrateStyles } from "@/service/style/load-style";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { enqueueSceneImagesForNewVideo } from "@/service/clip/enqueue-scene-images";
@@ -122,6 +123,12 @@ export async function runPhaseAJob(
     if (isSurpriseInterviewSkill(project.skillSlug)) {
       nextPhaseA.clips = sanitizeSurprisePhaseA(nextPhaseA).clips;
     }
+    // Same gate the clip planner used. A later Phase A replaces this flag.
+    const subtitleOverlay = usesTalkingHeadSubtitleOverlay({
+      skillSlug: skill.slug,
+      styleId: style.id,
+      baseStyleId: style.baseStyleId,
+    });
 
     await projects.updateOne(
       { _id: projectId },
@@ -129,6 +136,7 @@ export async function runPhaseAJob(
         // `$set: { error: undefined }` would store null; clear the field instead.
         $set: {
           phaseA: nextPhaseA,
+          subtitleOverlay,
           // Skip the old 核准分鏡 gate — frames and videos start from 製作.
           status: "production",
           updatedAt: new Date(),
