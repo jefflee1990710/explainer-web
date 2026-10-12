@@ -67,9 +67,6 @@ export function ClipVideoPanel({
       {src && showVideo ? (
         <>
           <ClipVideoPlayer src={src} dimmed={state.stale.video || failed} />
-          {showVideo && subtitleSrc ? (
-            <ClipSubtitleOverlay src={subtitleSrc} aspectRatio={aspectRatio} />
-          ) : null}
           {failed ? (
             <span className="pointer-events-none absolute inset-x-0 bottom-0 z-30 bg-accent/85 px-2 py-1.5 text-center font-display text-[11px] font-bold text-white">
               {t("production.video.failedOverlay", { error: error ? `：${error}` : "" })}
@@ -98,6 +95,7 @@ export function ClipVideoPanel({
           onGenerate={onGenerate}
         />
       )}
+      {subtitleSrc ? <ClipSubtitleOverlay src={subtitleSrc} aspectRatio={aspectRatio} /> : null}
       {plateRetry}
       {showVideo && state.stale.video ? (
         <span className="pointer-events-none absolute right-2 top-2 z-30 rounded-full bg-accent px-2 py-0.5 font-display text-[10px] font-bold text-white">

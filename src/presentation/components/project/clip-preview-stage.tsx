@@ -98,15 +98,16 @@ export function ClipPreviewStage({
   const startDrawing = isFrameTilePending(start, startPending || framesPending);
   // Keep the scene still in the video slot until the clip file replaces it.
   const plate = subtitlePlates?.find((item) => item.clipNumber === state.clipNumber);
+  // The poster is the same still the side tiles show, including a burned-in subtitle.
+  const videoPoster = startDrawing ? undefined : displayMediaSrc(start) ?? displayMediaSrc(end);
   // A video filmed from merged stills already contains the subtitle.
   const baked = clip?.mergedKeyframes === true;
-  const clean = (frame?: ClipFrame) => (frame ? { ...frame, mergedUrl: undefined } : undefined);
-  const videoPoster = startDrawing
-    ? undefined
-    : displayMediaSrc(baked ? start : clean(start)) ?? displayMediaSrc(baked ? end : clean(end));
-  // Older clips were filmed from clean stills, so the plate still covers the player.
+  const posterHasSubtitle = Boolean(start?.mergedUrl || (!start && end?.mergedUrl));
+  // Clean stills get the plate on top of the poster. Merged stills already show the words.
   const subtitleSrc =
-    subtitleOverlay && !baked && plate?.status === "completed" ? plate.blobUrl : undefined;
+    subtitleOverlay && !baked && !posterHasSubtitle && plate?.status === "completed"
+      ? plate.blobUrl
+      : undefined;
   // A missing or failed plate can be redone; before any frames exist, generate-all adds it.
   const plateNeedsRetry =
     subtitleOverlay &&
