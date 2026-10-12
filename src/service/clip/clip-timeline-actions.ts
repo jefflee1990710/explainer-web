@@ -3,7 +3,15 @@ import { revalidatePath } from "next/cache";
 import { generationJobsCollection, videosCollection } from "@/dao";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { requireAppUser } from "@/service/auth";
-import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
+import {
+  assertCanSpendCredits,
+  consumeCredits,
+  getActiveSubscription,
+  isSubscriptionActive,
+  refundCredits,
+} from "@/service/billing/credits";
+import { FRAME_COST } from "@/service/credit-costs";
+import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
 import {
   applyClipOrder,
   insertClips,
@@ -71,6 +79,9 @@ export async function appendDirectorClipAction(input: {
       return { ok: false, error: "成片合成中，請完成後再插入片段" };
     }
 
+    // Overlay projects pay for one plate per new clip.
+    const plateOverlay = project.subtitleOverlay === true;
+
     const talkingHead = isTalkingHeadSkill(project.skillSlug);
     if (talkingHead) {
       const spokenError = talkingHeadSpokenError(content, project.speechPace);
@@ -105,6 +116,9 @@ export async function appendDirectorClipAction(input: {
       return { ok: false, error: `最多 ${APPEND_CLIP_MAX} 段` };
     }
 
+    // Check the full plate bill before saving, so a short balance never leaves clips without plates.
+    if (plateOverlay) await assertCanSpendCredits(user, FRAME_COST * drafted.length);
+
     const inserted = insertClips(project, drafted, insertAt, {
       language: project.language,
       talkingHead,
@@ -118,6 +132,9 @@ export async function appendDirectorClipAction(input: {
           phaseA: inserted.project.phaseA,
           clips: inserted.project.clips,
           frames: inserted.project.frames ?? [],
+          ...(Array.isArray(inserted.project.subtitlePlates)
+            ? { subtitlePlates: inserted.project.subtitlePlates }
+            : {}),
           ...(Array.isArray(inserted.project.sceneChats) ? { sceneChats: inserted.project.sceneChats } : {}),
           ...(Array.isArray(inserted.project.backgroundPlates)
             ? { backgroundPlates: inserted.project.backgroundPlates }
@@ -144,12 +161,40 @@ export async function appendDirectorClipAction(input: {
     );
     if (wrote.matchedCount !== 1) return { ok: false, error: "專案不存在" };
     if (shiftsLaterClips) await shiftInsertedClipJobs(project._id, insertAt, drafted.length);
+    if (plateOverlay) {
+      // Only the new clips get a plate; renumbered clips keep theirs.
+      const newNumbers = drafted.map((_, index) => insertAt + index);
+      await queueNewClipPlates(user.clerkUserId, project._id, newNumbers);
+    }
     const updated = await videos.findOne({ _id: project._id });
     if (!updated) return { ok: false, error: "專案不存在" };
     revalidateVideo(String(project.projectId));
     return { ok: true, project: toPublicVideo(updated) };
   } catch (error) {
     return fail(error, "新增片段失敗，請再試一次");
+  }
+}
+
+// Charge and queue plates for the clips just added. The clips are already saved, so a
+// failure refunds those credits and leaves no plate: export stays blocked and the studio's
+// retry button is the way to recover.
+async function queueNewClipPlates(clerkUserId: string, videoId: ObjectId, clipNumbers: number[]) {
+  const cost = FRAME_COST * clipNumbers.length;
+  let spendKey: string | undefined;
+  try {
+    spendKey = await consumeCredits(clerkUserId, cost);
+  } catch (error) {
+    console.error("[subtitle-plate] new clip charge failed", { videoId, error });
+    return;
+  }
+  try {
+    const videos = await videosCollection();
+    const saved = await videos.findOne({ _id: videoId });
+    if (!saved) throw new Error("專案不存在");
+    await enqueueSubtitlePlateJobs(saved, clipNumbers);
+  } catch (error) {
+    console.error("[subtitle-plate] new clip enqueue failed", { videoId, error });
+    await refundCredits(clerkUserId, cost, spendKey);
   }
 }
 
@@ -178,6 +223,9 @@ export async function reorderClipsAction(videoId: string, order: number[]): Prom
           phaseA: next.project.phaseA,
           clips: next.project.clips,
           frames: next.project.frames ?? [],
+          ...(Array.isArray(next.project.subtitlePlates)
+            ? { subtitlePlates: next.project.subtitlePlates }
+            : {}),
           ...(next.project.sceneChats ? { sceneChats: next.project.sceneChats } : {}),
           ...(next.project.backgroundPlates ? { backgroundPlates: next.project.backgroundPlates } : {}),
           ...(next.project.phaseB ? { phaseB: next.project.phaseB } : {}),
@@ -223,6 +271,9 @@ export async function deleteClipAction(videoId: string, clipNumber: number): Pro
           phaseA: next.project.phaseA,
           clips: next.project.clips,
           frames: next.project.frames ?? [],
+          ...(Array.isArray(next.project.subtitlePlates)
+            ? { subtitlePlates: next.project.subtitlePlates }
+            : {}),
           ...(Array.isArray(next.project.sceneChats) ? { sceneChats: next.project.sceneChats } : {}),
           ...(Array.isArray(next.project.backgroundPlates)
             ? { backgroundPlates: next.project.backgroundPlates }
@@ -259,7 +310,7 @@ async function shiftInsertedClipJobs(videoId: ObjectId, insertAt: number, added:
   await jobs.updateMany(
     {
       projectId: videoId,
-      kind: { $in: ["frame", "video"] as const },
+      kind: { $in: ["frame", "video", "subtitlePlate"] as const },
       clipIndex: { $gte: insertAt - 1 },
     },
     { $inc: { clipIndex: added } },
@@ -270,7 +321,7 @@ async function shiftInsertedClipJobs(videoId: ObjectId, insertAt: number, added:
 async function shiftDeletedClipJobs(videoId: ObjectId, clipNumber: number) {
   const removedIndex = clipNumber - 1;
   const jobs = await generationJobsCollection();
-  const clipJobs = { projectId: videoId, kind: { $in: ["frame", "video"] as const } };
+  const clipJobs = { projectId: videoId, kind: { $in: ["frame", "video", "subtitlePlate"] as const } };
   await jobs.deleteMany({ ...clipJobs, clipIndex: removedIndex });
   await jobs.updateMany(
     { ...clipJobs, clipIndex: { $gt: removedIndex } },

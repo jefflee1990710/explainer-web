@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { subtitleBurnArgs, subtitleExportBlocked, subtitleFrameSize } from "@/service/video-edit/subtitle-export";
+import {
+  clipsWithChangedVo,
+  plateLineStale,
+  subtitleBurnArgs,
+  subtitleExportBlocked,
+  subtitleFrameSize,
+} from "@/service/video-edit/subtitle-export";
 
 test("export waits until every overlay plate is completed", () => {
   assert.equal(
@@ -54,4 +60,85 @@ test("burn args loop the plate and keep the clip audio", () => {
   });
   assert.ok(!silent.includes("0:a"));
   assert.deepEqual(subtitleFrameSize("1:1"), { width: 1080, height: 1080 });
+});
+
+test("export is blocked when a plate row is missing", () => {
+  assert.equal(
+    subtitleExportBlocked({
+      subtitleOverlay: true,
+      phaseA: { clips: [{ clipNumber: 1 }, { clipNumber: 2 }] },
+      subtitlePlates: [{ clipNumber: 1, status: "completed", blobUrl: "https://blob/a.png" }],
+    }),
+    true,
+  );
+  assert.equal(
+    subtitleExportBlocked({ subtitleOverlay: true, phaseA: { clips: [{ clipNumber: 1 }] } }),
+    true,
+  );
+});
+
+test("export is blocked while a plate is queued or in progress", () => {
+  for (const status of ["queued", "in_progress"]) {
+    assert.equal(
+      subtitleExportBlocked({
+        subtitleOverlay: true,
+        phaseA: { clips: [{ clipNumber: 1 }] },
+        subtitlePlates: [{ clipNumber: 1, status }],
+      }),
+      true,
+    );
+  }
+});
+
+test("a completed plate drawn for another line does not count as completed", () => {
+  const plates = [
+    { clipNumber: 1, status: "completed", blobUrl: "https://blob/a.png", line: "Old line." },
+  ];
+  assert.equal(
+    subtitleExportBlocked({
+      subtitleOverlay: true,
+      phaseA: { clips: [{ clipNumber: 1, englishVo: "New line." }] },
+      subtitlePlates: plates,
+    }),
+    true,
+  );
+  // Same line still passes, and an older row with no `line` stays completed.
+  assert.equal(
+    subtitleExportBlocked({
+      subtitleOverlay: true,
+      phaseA: { clips: [{ clipNumber: 1, englishVo: "Old line." }] },
+      subtitlePlates: plates,
+    }),
+    false,
+  );
+  assert.equal(
+    subtitleExportBlocked({
+      subtitleOverlay: true,
+      phaseA: { clips: [{ clipNumber: 1, englishVo: "Anything." }] },
+      subtitlePlates: [{ clipNumber: 1, status: "completed", blobUrl: "https://blob/a.png" }],
+    }),
+    false,
+  );
+});
+
+test("plateLineStale ignores rows with no stored line", () => {
+  assert.equal(plateLineStale({}, "x"), false);
+  assert.equal(plateLineStale({ line: "a" }, " a "), false);
+  assert.equal(plateLineStale({ line: "a" }, "b"), true);
+});
+
+test("clipsWithChangedVo lists only clips whose spoken line changed", () => {
+  assert.deepEqual(
+    clipsWithChangedVo(
+      [
+        { clipNumber: 1, englishVo: "A." },
+        { clipNumber: 2, englishVo: "B." },
+      ],
+      [
+        { clipNumber: 1, englishVo: "A." },
+        { clipNumber: 2, englishVo: "B2." },
+      ],
+    ),
+    [2],
+  );
 });

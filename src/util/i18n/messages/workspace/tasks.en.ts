@@ -26,6 +26,7 @@ export const tasksPageEn = {
     backgroundPlate: "Background plate",
     reelCover: "Video cover",
     clipVideo: "Clip {n} · video",
+    clipSubtitlePlate: "Clip {n} · subtitle plate",
     clipFrameStart: "Clip {n} · start frame",
     clipFrameEnd: "Clip {n} · end frame",
     reel: "Final reel",

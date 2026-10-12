@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { PhaseAProposal, StoryboardRow } from "@/model/project";
 import {
+  type ClipOrderProject,
   applyClipOrder,
   insertClips,
   moveClipIds,
@@ -206,4 +207,70 @@ test("removeClip keeps the last clip", () => {
   phaseA.clipCount = 1;
   const result = removeClip({ phaseA, clips: [] }, 1);
   assert.equal(result.ok, false);
+});
+
+// Plates carry a clip number only; the marker tells which clip's plate it is.
+function plate(clipNumber: number, mark: string) {
+  return { clipNumber, status: "completed" as const, blobUrl: mark };
+}
+
+test("applyClipOrder renumbers subtitle plates with their clip", () => {
+  const project = {
+    phaseA: proposal(),
+    clips: [],
+    subtitlePlates: [plate(1, "first"), plate(2, "second")],
+  };
+  const result = applyClipOrder(project, [2, 1]);
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.deepEqual(
+    result.project.subtitlePlates?.map((item) => [item.clipNumber, (item as { blobUrl: string }).blobUrl]),
+    [
+      [1, "second"],
+      [2, "first"],
+    ],
+  );
+});
+
+test("removeClip drops the deleted clip's plate and renumbers the rest", () => {
+  const phaseA = { ...proposal(), clipCount: 3, clips: [row(1), row(2), row(3)] };
+  const project = {
+    phaseA,
+    clips: [],
+    subtitlePlates: [plate(1, "one"), plate(2, "two"), plate(3, "three")],
+  };
+  const result = removeClip(project, 2);
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.deepEqual(
+    result.project.subtitlePlates?.map((item) => [item.clipNumber, (item as { blobUrl: string }).blobUrl]),
+    [
+      [1, "one"],
+      [2, "three"],
+    ],
+  );
+});
+
+test("insertClips shifts later plates and leaves the new slot without one", () => {
+  const project = {
+    phaseA: proposal(),
+    clips: [],
+    subtitlePlates: [plate(1, "one"), plate(2, "two")],
+  };
+  const result = insertClips(project, [row(9)], 2);
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.deepEqual(
+    result.project.subtitlePlates?.map((item) => [item.clipNumber, (item as { blobUrl: string }).blobUrl]),
+    [
+      [1, "one"],
+      [3, "two"],
+    ],
+  );
+});
+
+test("a project with no plates stays without plates", () => {
+  const result = applyClipOrder({ phaseA: proposal(), clips: [] } as ClipOrderProject, [2, 1]);
+  assert.equal(result.ok, true);
+  if (result.ok) assert.equal(result.project.subtitlePlates, undefined);
 });

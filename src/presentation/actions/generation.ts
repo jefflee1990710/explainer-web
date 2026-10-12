@@ -14,6 +14,12 @@ export async function regenerateFrameAction(
   return service.regenerateFrameAction(...args);
 }
 
+export async function retrySubtitlePlateAction(
+  ...args: Parameters<typeof service.retrySubtitlePlateAction>
+) {
+  return service.retrySubtitlePlateAction(...args);
+}
+
 export async function updateClipStoryboardAction(
   ...args: Parameters<typeof service.updateClipStoryboardAction>
 ) {

@@ -145,7 +145,7 @@ export async function failJob(
   }
   if (job.kind === "subtitlePlate") {
     // The plate row refunds its own credit; frames and clip video stay as they are.
-    await syncSubtitlePlateJob(job, "failed");
+    await syncSubtitlePlateJob(job, "failed", undefined, error);
     return true;
   }
   if (job.kind === "objectSheet" || job.kind === "backgroundPlate") {

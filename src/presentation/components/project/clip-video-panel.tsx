@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { ClipSubtitleOverlay } from "@/presentation/components/project/clip-subtitle-overlay";
@@ -22,6 +23,7 @@ export function ClipVideoPanel({
   pending,
   posterSrc,
   subtitleSrc,
+  plateRetry,
   boxStyle,
   onGenerate,
   onCancel,
@@ -35,6 +37,8 @@ export function ClipVideoPanel({
   posterSrc?: string;
   // Completed keyed subtitle plate. Omitted until the plate for this clip is ready.
   subtitleSrc?: string;
+  // Retry control for a missing or failed plate; rendered above the plate overlay.
+  plateRetry?: ReactNode;
   boxStyle?: { width: number; height: number };
   onGenerate: () => void;
   onCancel: () => void;
@@ -94,6 +98,7 @@ export function ClipVideoPanel({
           onGenerate={onGenerate}
         />
       )}
+      {plateRetry}
       {showVideo && state.stale.video ? (
         <span className="pointer-events-none absolute right-2 top-2 z-30 rounded-full bg-accent px-2 py-0.5 font-display text-[10px] font-bold text-white">
           {t("production.stale.badge")}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ClipPlateRetry } from "@/presentation/components/project/clip-plate-retry";
 import { ClipPreviewBrowse } from "@/presentation/components/project/clip-preview-browse";
 import { ClipVideoPanel } from "@/presentation/components/project/clip-video-panel";
 import { previewStageFit } from "@/presentation/components/project/clip-preview-fit";
@@ -8,6 +9,7 @@ import { FrameTile } from "@/presentation/components/project/frame-tile";
 import { isFrameTilePending } from "@/presentation/components/project/frame-tile-face";
 import { SceneChatButton } from "@/presentation/components/project/scene-chat-button";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import type { PublicVideo } from "@/presentation/serialize";
 import type { ClipState } from "@/service/clip-stage";
 import { displayMediaSrc } from "@/util/media-src";
 import type { AspectRatio, ClipFrame, FramePosition, ProjectClip, SubtitlePlate } from "@/model/project";
@@ -40,6 +42,8 @@ export function ClipPreviewStage({
   endStill = true,
   subtitleOverlay,
   subtitlePlates,
+  videoId,
+  onProject,
 }: {
   start?: ClipFrame;
   end?: ClipFrame;
@@ -64,6 +68,8 @@ export function ClipPreviewStage({
   // Talking-head plates. Only a completed plate is drawn on the clip video.
   subtitleOverlay: boolean;
   subtitlePlates?: SubtitlePlate[];
+  videoId: string;
+  onProject?: (project: PublicVideo) => void;
 }) {
   const paneRef = useRef<HTMLDivElement>(null);
   const [pane, setPane] = useState({ w: 0, h: 0 });
@@ -96,6 +102,11 @@ export function ClipPreviewStage({
   // Start and end stills stay clean; the plate only covers the playing clip.
   const subtitleSrc =
     subtitleOverlay && plate?.status === "completed" ? plate.blobUrl : undefined;
+  // A missing or failed plate can be redone; before any frames exist, generate-all adds it.
+  const plateNeedsRetry =
+    subtitleOverlay &&
+    state.stage !== "no_frames" &&
+    (!plate || plate.status === "failed");
 
   return (
     <div
@@ -133,6 +144,16 @@ export function ClipPreviewStage({
             pending={videoPending}
             posterSrc={videoPoster}
             subtitleSrc={subtitleSrc}
+            plateRetry={
+              plateNeedsRetry ? (
+                <ClipPlateRetry
+                  videoId={videoId}
+                  clipNumber={state.clipNumber}
+                  plateError={plate?.error}
+                  onProject={onProject}
+                />
+              ) : null
+            }
             boxStyle={fit.video}
             onGenerate={onGenerateVideo}
             onCancel={onCancelVideo}

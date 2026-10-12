@@ -29,6 +29,7 @@ export function ClipWorkspace({
   region,
   sceneChatOpen,
   onEditScene,
+  onProject,
 }: {
   project: PublicVideo;
   state: ClipState;
@@ -45,6 +46,7 @@ export function ClipWorkspace({
   region: "preview" | "inspector";
   sceneChatOpen?: boolean;
   onEditScene: () => void;
+  onProject?: (project: PublicVideo) => void;
 }) {
   const { t } = useI18n();
   const n = state.clipNumber;
@@ -88,6 +90,8 @@ export function ClipWorkspace({
         endStill={!skipEnd}
         subtitleOverlay={project.subtitleOverlay}
         subtitlePlates={project.subtitlePlates}
+        videoId={project.id}
+        onProject={onProject}
       />
     );
   }

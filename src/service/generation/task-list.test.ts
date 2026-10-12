@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
-import { isCurrentTask, jobListQuery, RECENT_SETTLED_MS, reelTask, taskDetail, taskStage } from "@/service/generation/task-list";
+import { isCurrentTask, jobListQuery, RECENT_SETTLED_MS, reelTask, taskDetail, taskDetailI18n, taskStage } from "@/service/generation/task-list";
 
 test("status maps to the five UI stages", () => {
   assert.equal(taskStage("pending"), "queued");
@@ -26,6 +26,12 @@ test("detail names the clip and slot", () => {
   assert.equal(taskDetail({ kind: "postPreview", clipIndex: 0 }), "海報預覽");
   assert.equal(taskDetail({ kind: "objectSheet", clipIndex: -1 }), "道具參考表");
   assert.equal(taskDetail({ kind: "backgroundPlate", clipIndex: -1 }), "場景背景參考");
+  // A plate is labeled as a subtitle plate, never as a start frame.
+  assert.equal(taskDetail({ kind: "subtitlePlate", clipIndex: 1 }), "Clip 2 · 字幕圖");
+  assert.deepEqual(taskDetailI18n({ kind: "subtitlePlate", clipIndex: 1 }), {
+    detailKey: "tasksPage.detail.clipSubtitlePlate",
+    detailParams: { n: 2 },
+  });
 });
 
 test("a reel in progress is a 成片合成 background task", () => {

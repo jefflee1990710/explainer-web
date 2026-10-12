@@ -14,6 +14,7 @@ import {
   failUnsubmittedFrames,
   stillBlocker,
 } from "@/service/higgsfield/pipeline";
+import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
 import { isProductionLike } from "@/service/project-status";
 import {
   clipVideoCost,
@@ -22,6 +23,7 @@ import {
   planGenerateAllScenes,
   planRemaining,
   planSelected,
+  subtitlePlateCost,
 } from "@/service/production-plan";
 import { isInheritedTalkingHeadStart } from "@/service/director/talking-head";
 import { clipFrameCost } from "@/service/clip-stage";
@@ -310,7 +312,17 @@ export async function generateAllSceneImagesAction(
     try {
       await enqueueClipFrameJobs(loaded.project, plan.frames);
     } catch (error) {
+      // Nothing was queued, so the whole spend (frames + plates) comes back.
       await refundCredits(user.clerkUserId, plan.cost, spendKey);
+      throw error;
+    }
+    try {
+      // The plan cost already includes one plate per clip (overlay projects only).
+      await enqueueSubtitlePlateJobs(loaded.project);
+    } catch (error) {
+      // Frames are queued and keep their credits; only the plate share returns.
+      const plateCost = subtitlePlateCost(loaded.project);
+      if (plateCost > 0) await refundCredits(user.clerkUserId, plateCost, spendKey);
       throw error;
     }
     return { ok: true, project: await enqueuedVideo(loaded.project) };

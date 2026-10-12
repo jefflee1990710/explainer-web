@@ -19,6 +19,8 @@ export type ClipOrderProject = {
   };
   clips: Numbered[];
   frames?: Numbered[];
+  // Keyed subtitle plates follow their clip like frames do.
+  subtitlePlates?: Numbered[];
   sceneChats?: Array<{
     clipNumber: number;
     messages: Array<{ changedClips?: Numbered[] }>;
@@ -133,6 +135,9 @@ export function insertClips<T extends ClipOrderProject>(
     phaseA,
     clips: renumber(project.clips, map),
     frames: project.frames ? renumber(project.frames, map) : project.frames,
+    subtitlePlates: project.subtitlePlates
+      ? renumber(project.subtitlePlates, map)
+      : project.subtitlePlates,
     sceneChats: project.sceneChats?.map((thread) => ({
       ...thread,
       clipNumber: map.get(thread.clipNumber) ?? thread.clipNumber,
@@ -321,6 +326,9 @@ export function removeClip<T extends ClipOrderProject>(
     phaseA,
     clips: dropAndRenumber(project.clips, clipNumber, map),
     frames: project.frames ? dropAndRenumber(project.frames, clipNumber, map) : project.frames,
+    subtitlePlates: project.subtitlePlates
+      ? dropAndRenumber(project.subtitlePlates, clipNumber, map)
+      : project.subtitlePlates,
     sceneChats: project.sceneChats
       ?.filter((thread) => thread.clipNumber !== clipNumber)
       .map((thread) => ({
@@ -392,6 +400,9 @@ export function applyClipOrder<T extends ClipOrderProject>(
       phaseA,
       clips: renumber(project.clips, map),
       frames: project.frames ? renumber(project.frames, map) : project.frames,
+      subtitlePlates: project.subtitlePlates
+        ? renumber(project.subtitlePlates, map)
+        : project.subtitlePlates,
       sceneChats: project.sceneChats?.map((thread) => ({
         ...thread,
         clipNumber: map.get(thread.clipNumber) ?? thread.clipNumber,

@@ -18,6 +18,7 @@ import { PermanentJobError } from "@/service/generation/task-policy";
 import { insertPendingJobs, kickJob } from "@/service/generation/task-store";
 import { submitImage } from "@/service/higgsfield/generate";
 import { persistBuffer } from "@/service/higgsfield/persist";
+import { PLATE_LINE_CHANGED_ERROR, plateLineStale } from "@/service/video-edit/subtitle-export";
 
 // The graphic is a wide strip; the export filter scales it to the frame width.
 const PLATE_ASPECT_RATIO = "16:9" as const;
@@ -70,10 +71,15 @@ function plateLook(project: Project) {
   };
 }
 
-// Queue one plate per storyboard clip (already charged inside the scene-image plan).
-export async function enqueueSubtitlePlateJobs(project: Project): Promise<void> {
+// Queue plates for storyboard clips (all of them, or only `clipNumbers`). The credit is taken
+// by the caller. Jobs go in first and rows after, so a row never sits `queued` without a job.
+export async function enqueueSubtitlePlateJobs(
+  project: Project,
+  clipNumbers?: number[],
+): Promise<void> {
   if (project.subtitleOverlay !== true || !project.phaseA) return;
-  const clips = project.phaseA.clips;
+  const only = clipNumbers ? new Set(clipNumbers) : undefined;
+  const clips = project.phaseA.clips.filter((clip) => !only || only.has(clip.clipNumber));
   if (clips.length === 0) return;
 
   const model = imageRouteForSceneText(resolveSceneText(project).language).model;
@@ -84,21 +90,18 @@ export async function enqueueSubtitlePlateJobs(project: Project): Promise<void> 
     status: "queued",
     submittedAt,
     creditsCharged: FRAME_COST,
+    // The line this plate is drawn for; a later edit makes it stale.
+    line: clip.englishVo?.trim() || undefined,
   }));
 
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
-  // A re-run replaces any earlier plate job or row for these clips.
+  // A re-run replaces any earlier plate job for these clips.
   await jobs.deleteMany({
     projectId: project._id,
     kind: "subtitlePlate",
     clipIndex: { $in: clips.map((clip) => clip.clipNumber - 1) },
   });
-  const kept = (project.subtitlePlates || []).filter((plate) => !numbers.has(plate.clipNumber));
-  await projects.updateOne(
-    { _id: project._id },
-    { $set: { subtitlePlates: [...kept, ...plates], updatedAt: new Date() } },
-  );
   const ids = await insertPendingJobs(
     clips.map((clip) => ({
       projectId: project._id,
@@ -107,7 +110,52 @@ export async function enqueueSubtitlePlateJobs(project: Project): Promise<void> 
       model,
     })),
   );
+  try {
+    const kept = (project.subtitlePlates || []).filter((plate) => !numbers.has(plate.clipNumber));
+    await projects.updateOne(
+      { _id: project._id },
+      { $set: { subtitlePlates: [...kept, ...plates], updatedAt: new Date() } },
+    );
+  } catch (error) {
+    // No row points at these jobs, so remove them before anything can send them.
+    await jobs.deleteMany({ _id: { $in: ids } }).catch((cleanupError) => {
+      console.error("[subtitle-plate] job cleanup failed", { cleanupError });
+    });
+    throw error;
+  }
   ids.forEach((id) => kickJob(id));
+}
+
+// Fail a completed plate whose clip line changed, and drop its job. No charge, no refund:
+// the plate was already paid for and delivered; the user retries it for FRAME_COST.
+export async function invalidatePlatesForChangedVo(
+  projectId: ObjectId,
+  clipNumbers: number[],
+): Promise<void> {
+  if (clipNumbers.length === 0) return;
+  const projects = await videosCollection();
+  const jobs = await generationJobsCollection();
+  let failed = false;
+  for (const clipNumber of clipNumbers) {
+    const result = await projects.updateOne(
+      { _id: projectId, subtitlePlates: { $elemMatch: { clipNumber, status: "completed" } } },
+      {
+        $set: {
+          "subtitlePlates.$.status": "failed",
+          "subtitlePlates.$.error": PLATE_LINE_CHANGED_ERROR,
+          updatedAt: new Date(),
+        },
+        $unset: { "subtitlePlates.$.blobUrl": "", "subtitlePlates.$.outputUrl": "" },
+      },
+    );
+    if (result.matchedCount > 0) failed = true;
+  }
+  if (!failed) return;
+  await jobs.deleteMany({
+    projectId,
+    kind: "subtitlePlate",
+    clipIndex: { $in: clipNumbers.map((number) => number - 1) },
+  });
 }
 
 // Send one plate to the image provider. Never a video: the kind has its own branch in sendJob.
@@ -168,13 +216,16 @@ export async function syncSubtitlePlateJob(
   job: GenerationJob,
   status: GenerationStatus,
   outputUrl?: string,
+  // The job's user-facing error, when the caller has one.
+  errorMessage?: string,
 ): Promise<void> {
   if (!job.projectId) return;
   const projectId = job.projectId;
   const clipNumber = job.clipIndex + 1;
 
   if (status === "failed" || status === "nsfw") {
-    const message = status === "nsfw" ? "字幕圖未通過內容檢查" : "字幕圖產生失敗";
+    const fallback = status === "nsfw" ? "字幕圖未通過內容檢查" : "字幕圖產生失敗";
+    const message = errorMessage?.trim() || fallback;
     await failPlate(projectId, clipNumber, message, FRAME_COST);
     return;
   }
@@ -195,6 +246,13 @@ export async function syncSubtitlePlateJob(
   }
   // Already settled (duplicate webhook / poll, or a timeout got there first).
   if (plate.status === "completed" || plate.status === "failed") return;
+
+  // The spoken line changed while this plate was drawing: do not save a stale graphic.
+  const clip = project.phaseA?.clips.find((item) => item.clipNumber === clipNumber);
+  if (plateLineStale(plate, clip?.englishVo)) {
+    await failPlate(projectId, clipNumber, PLATE_LINE_CHANGED_ERROR, plate.creditsCharged);
+    return;
+  }
 
   let keyed: { png: Buffer; ratio: number };
   try {

@@ -678,7 +678,7 @@ export async function applyJobStatus(input: {
 
   // Subtitle plates key onto their own plate row and refund there; never the frame/clip path.
   if (job.kind === "subtitlePlate") {
-    await syncSubtitlePlateJob(job, status, outputUrl);
+    await syncSubtitlePlateJob(job, status, outputUrl, nowFailed ? errorMessage : undefined);
     await jobs.updateOne(
       { _id: job._id },
       nowFailed

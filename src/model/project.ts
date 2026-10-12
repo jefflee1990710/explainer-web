@@ -232,6 +232,8 @@ export type SubtitlePlate = {
   error?: string;
   submittedAt?: string;
   creditsCharged?: number;
+  // The spoken line this plate was drawn for; a later edit makes the plate stale.
+  line?: string;
 };
 
 // Concatenated reel of every storyboard clip, produced on the export step.
@@ -367,6 +369,7 @@ const subtitlePlateSchema = z.object({
   error: z.string().optional(),
   submittedAt: z.string().optional(),
   creditsCharged: z.number().optional(),
+  line: z.string().optional(),
 });
 
 const frameRevisionSchema = z.object({
