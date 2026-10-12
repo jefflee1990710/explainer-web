@@ -2,7 +2,7 @@ import { mediaSrc } from "@/util/media-src";
 import { canQueueFrames, clipFrameCost, clipStatesFor, type ClipStageSource } from "@/service/clip-stage";
 import type { ClipFrame, ProjectClip } from "@/model/project";
 
-import { MIN_VIDEO_COST, MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
+import { FRAME_COST, MIN_VIDEO_COST, MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 
 export * from "@/service/credit-costs";
@@ -20,6 +20,12 @@ export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
 // Scene-image credits. Talking-head clip 2+ pays for the end still only.
 export function sceneImageCost(project: ClipStageSource, clipNumbers: number[]) {
   return clipNumbers.reduce((sum, clipNumber) => sum + clipFrameCost(project, clipNumber), 0);
+}
+
+// One keyed subtitle plate per storyboard clip when overlay is on.
+export function subtitlePlateCost(project: { subtitleOverlay?: boolean; phaseA?: { clips: unknown[] } }) {
+  if (project.subtitleOverlay !== true) return 0;
+  return FRAME_COST * (project.phaseA?.clips.length ?? 0);
 }
 
 // Sum of video credits for these clips.
@@ -104,7 +110,11 @@ export function planGenerateAllScenes(project: ClipStageSource): BulkGeneratePla
   const frames = clipStatesFor(project)
     .filter((state) => state.stage !== "frames_generating")
     .map((state) => state.clipNumber);
-  return { frames, videos: [], cost: sceneImageCost(project, frames) };
+  return {
+    frames,
+    videos: [],
+    cost: sceneImageCost(project, frames) + subtitlePlateCost(project),
+  };
 }
 
 const FRAMES_DONE = new Set(["frames_ready", "video_generating", "video_failed", "video_ready"]);
