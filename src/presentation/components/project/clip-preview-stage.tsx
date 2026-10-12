@@ -5,6 +5,7 @@ import { ClipPlateRetry } from "@/presentation/components/project/clip-plate-ret
 import { ClipPreviewBrowse } from "@/presentation/components/project/clip-preview-browse";
 import { ClipVideoPanel } from "@/presentation/components/project/clip-video-panel";
 import { previewStageFit } from "@/presentation/components/project/clip-preview-fit";
+import { previewSubtitleSrc } from "@/presentation/components/project/clip-preview-subtitle";
 import { FrameTile } from "@/presentation/components/project/frame-tile";
 import { isFrameTilePending } from "@/presentation/components/project/frame-tile-face";
 import { SceneChatButton } from "@/presentation/components/project/scene-chat-button";
@@ -103,11 +104,15 @@ export function ClipPreviewStage({
   // A video filmed from merged stills already contains the subtitle.
   const baked = clip?.mergedKeyframes === true;
   const posterHasSubtitle = Boolean(start?.mergedUrl || (!start && end?.mergedUrl));
-  // Clean stills get the plate on top of the poster. Merged stills already show the words.
-  const subtitleSrc =
-    subtitleOverlay && !baked && !posterHasSubtitle && plate?.status === "completed"
-      ? plate.blobUrl
-      : undefined;
+  // Clean stills get the plate on top of the poster. A generating slot stays blank.
+  const subtitleSrc = previewSubtitleSrc({
+    subtitleOverlay,
+    baked,
+    posterHasSubtitle,
+    posterSrc: videoPoster,
+    plateStatus: plate?.status,
+    plateUrl: plate?.blobUrl,
+  });
   // A missing or failed plate can be redone; before any frames exist, generate-all adds it.
   const plateNeedsRetry =
     subtitleOverlay &&
