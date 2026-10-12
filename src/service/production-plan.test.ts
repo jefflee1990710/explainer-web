@@ -242,3 +242,11 @@ test("cinematic talking-head scene plan adds one plate per clip", () => {
   video.subtitleOverlay = false;
   assert.equal(subtitlePlateCost(video), 0);
 });
+
+test("overlay video waits until the subtitle is burned onto both stills", () => {
+  const frames = [frame(1, "start", "completed"), frame(1, "end", "completed")];
+  assert.equal(autoVideoDecision(frames, [], 1, { merged: true }), "wait");
+  frames[0] = { ...frames[0], mergedUrl: "m-start" };
+  frames[1] = { ...frames[1], mergedUrl: "m-end" };
+  assert.equal(autoVideoDecision(frames, [], 1, { merged: true }), "start");
+});

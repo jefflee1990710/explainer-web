@@ -228,15 +228,17 @@ export async function runReelJob(projectId: ObjectId, fingerprint: string) {
   try {
     const urls = clipUrlsInOrder(project);
     const deadline = Date.now() + reelTimeoutMs(urls.length);
-    // Overlay projects burn each clip's plate first, so even one clip is re-encoded.
-    const overlay = project.subtitleOverlay === true;
+    // Burn only plates that are not already inside the clip. A clip filmed from
+    // a merged still keeps its file; burning again would double the subtitle.
+    const plateUrls = project.subtitleOverlay === true ? plateUrlsInOrder(project) : [];
+    const overlay = plateUrls.some((url) => url);
     const reelUrl = overlay
       ? await withTimeout(
           persistBuffer(
             await concatMp4Buffers(
               await burnSubtitlePlates({
                 clipUrls: urls,
-                plateUrls: plateUrlsInOrder(project),
+                plateUrls,
                 aspect: project.aspectRatio,
                 timeoutMs: deadline - Date.now(),
                 onProgress: async (done, total) => {

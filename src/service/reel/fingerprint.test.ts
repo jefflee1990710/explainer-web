@@ -52,6 +52,21 @@ test("fingerprint changes when a subtitle plate URL changes", () => {
   assert.equal(clipReelFingerprint(painted).includes("plate"), false);
 });
 
+test("a clip filmed from merged stills ignores a later plate URL", () => {
+  const filmed = {
+    subtitleOverlay: true,
+    phaseA: { clips: [{ clipNumber: 1 }] },
+    clips: [{ clipNumber: 1, blobUrl: "https://blob/clip.mp4", submittedAt: "t", mergedKeyframes: true }],
+    subtitlePlates: [{ clipNumber: 1, blobUrl: "https://blob/plate-a.png" }],
+  };
+  const next = {
+    ...filmed,
+    subtitlePlates: [{ clipNumber: 1, blobUrl: "https://blob/plate-b.png" }],
+  };
+  assert.equal(clipReelFingerprint(filmed), clipReelFingerprint(next));
+  assert.equal(clipReelFingerprint(filmed).includes("plate"), false);
+});
+
 test("isReelCurrent requires a completed reel for this fingerprint", () => {
   const fingerprint = clipReelFingerprint({ phaseA, clips });
   assert.equal(

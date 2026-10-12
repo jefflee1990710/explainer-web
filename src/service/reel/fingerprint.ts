@@ -8,6 +8,8 @@ export type ReelClipSource = {
     blobUrl?: string;
     outputUrl?: string;
     submittedAt?: string;
+    // Subtitle is already inside this clip, so the reel does not burn the plate again.
+    mergedKeyframes?: boolean;
   }>;
   subtitleOverlay?: boolean;
   subtitlePlates?: Array<{ clipNumber: number; blobUrl?: string }>;
@@ -28,7 +30,7 @@ export function clipReelFingerprint(project: ReelClipSource) {
       const clip = project.clips.find((item) => item.clipNumber === row.clipNumber);
       const url = mediaSrc(clip) || "";
       const identity = `${row.clipNumber}:${clip?.submittedAt || ""}:${url.slice(-48)}`;
-      if (!project.subtitleOverlay) return identity;
+      if (!project.subtitleOverlay || clip?.mergedKeyframes) return identity;
       const plate = project.subtitlePlates?.find((item) => item.clipNumber === row.clipNumber);
       return `${identity}:plate:${(plate?.blobUrl || "").slice(-48)}`;
     })
@@ -44,9 +46,12 @@ export function clipUrlsInOrder(project: ReelClipSource) {
   });
 }
 
-// Plate image URLs in storyboard order. A missing plate stops the reel instead of shipping bare.
-export function plateUrlsInOrder(project: ReelClipSource) {
+// Plate URL per clip. null means the subtitle is already in the video, so skip the burn.
+// A clip that still needs a burn and has no plate stops the reel.
+export function plateUrlsInOrder(project: ReelClipSource): Array<string | null> {
   return (project.phaseA?.clips || []).map((row) => {
+    const clip = project.clips.find((item) => item.clipNumber === row.clipNumber);
+    if (clip?.mergedKeyframes) return null;
     const plate = project.subtitlePlates?.find((item) => item.clipNumber === row.clipNumber);
     if (!plate?.blobUrl) throw new Error(`缺少第 ${row.clipNumber} 段字幕圖`);
     return plate.blobUrl;

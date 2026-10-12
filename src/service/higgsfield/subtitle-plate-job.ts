@@ -18,6 +18,7 @@ import { PermanentJobError } from "@/service/generation/task-policy";
 import { insertPendingJobs, kickJob } from "@/service/generation/task-store";
 import { submitImage } from "@/service/higgsfield/generate";
 import { persistBuffer } from "@/service/higgsfield/persist";
+import { mergeReadySubtitleFrames } from "@/service/higgsfield/merge-subtitle-frames";
 import { PLATE_LINE_CHANGED_ERROR, plateLineStale } from "@/service/video-edit/subtitle-export";
 
 // The graphic is a wide strip; the export filter scales it to the frame width.
@@ -290,4 +291,8 @@ export async function syncSubtitlePlateJob(
       $unset: { "subtitlePlates.$.error": "" },
     },
   );
+  // The stills may already be finished. Burn this plate on, then start video.
+  await mergeReadySubtitleFrames(projectId);
+  const { queueAutoClipVideos } = await import("@/service/clip/auto-video");
+  await queueAutoClipVideos(projectId);
 }

@@ -130,10 +130,23 @@ export function VideoEditDesk({
       .filter((clip) => clip.blobUrl || clip.outputUrl);
     const clipNumbers = exportClips.map((clip) => clip.clipNumber);
     // The server already joined these clips; start from that file instead of joining again.
-    // Overlay projects burn plates in the browser, so an older reel is never reused.
-    const overlay = project.subtitleOverlay === true;
+    // A clip filmed from a clean still still burns its plate here. Merged clips do not.
+    const bakedClips = new Set(
+      exportClips.filter((clip) => clip.mergedKeyframes).map((clip) => clip.clipNumber),
+    );
+    // Completed plates for clips filmed from clean stills. Merged clips already contain the words.
+    const plates =
+      project.subtitleOverlay === true
+        ? (project.subtitlePlates || [])
+            .filter(
+              (plate) =>
+                plate.status === "completed" && plate.blobUrl && !bakedClips.has(plate.clipNumber),
+            )
+            .map((plate) => ({ clipNumber: plate.clipNumber, url: plate.blobUrl! }))
+        : [];
+    const burn = plates.length > 0;
     const reelSource =
-      !overlay &&
+      !burn &&
       project.reelUrl &&
       isReelCurrent(project) &&
       exportClips.length === (project.phaseA?.clips.length ?? 0) &&
@@ -141,14 +154,7 @@ export function VideoEditDesk({
         ? [project.reelUrl]
         : null;
     const sourceUrls = reelSource ?? clipUrlsForExport(exportClips);
-    // Completed plates for the burn pass; empty when the project has no overlay.
-    const plates = overlay
-      ? (project.subtitlePlates || [])
-          .filter((plate) => plate.status === "completed" && plate.blobUrl)
-          .map((plate) => ({ clipNumber: plate.clipNumber, url: plate.blobUrl! }))
-      : [];
-    // An overlay project never saves a prebuilt file as is: it has no plates burned in.
-    const fileUrl = overlay ? undefined : existingUrl;
+    const fileUrl = burn ? undefined : existingUrl;
     setExportJob({
       phase: fileUrl ? "download" : "encoder",
       ratio: 0,

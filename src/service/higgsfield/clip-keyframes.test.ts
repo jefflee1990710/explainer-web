@@ -8,6 +8,7 @@ import {
   clipFrameAnchor,
   clipKeyframeUrls,
   clipVideoModel,
+  videoKeyframeUrls,
   h3ClipVideoInput,
   planFrameSubmissions,
   seedanceClipVideoInput,
@@ -25,6 +26,21 @@ function frame(
     ...extra,
   };
 }
+
+test("videoKeyframeUrls sends the merged still and never the clean one", () => {
+  const frames = [
+    frame("start", { blobUrl: "clean-start", mergedUrl: "merged-start" }),
+    frame("end", { blobUrl: "clean-end" }),
+  ];
+  assert.deepEqual(videoKeyframeUrls(frames, 1, { merged: true }), {
+    start: "merged-start",
+    end: undefined,
+  });
+  assert.deepEqual(videoKeyframeUrls(frames, 1), {
+    start: "clean-start",
+    end: "clean-end",
+  });
+});
 
 test("clipKeyframeUrls prefers blob over provider URL and ignores empty completed rows", () => {
   assert.deepEqual(

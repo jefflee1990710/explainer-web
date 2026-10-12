@@ -144,7 +144,7 @@ export function autoVideoDecision(
   frames: ClipFrame[] | undefined,
   clips: ProjectClip[],
   clipNumber: number,
-  options?: { startOnly?: boolean },
+  options?: { startOnly?: boolean; merged?: boolean },
 ): "start" | "wait" | "drop" | "done" {
   const start = frames?.find(
     (frame) => frame.clipNumber === clipNumber && frame.position === "start",
@@ -157,6 +157,8 @@ export function autoVideoDecision(
   if (!start || (!options?.startOnly && !end)) return "wait";
   if (pair.some((frame) => frame.status === "failed")) return "drop";
   if (pair.some((frame) => frame.status !== "completed" || !mediaSrc(frame))) return "wait";
+  // Overlay clips wait until the subtitle is burned onto each still.
+  if (options?.merged && pair.some((frame) => !frame.mergedUrl)) return "wait";
 
   const clip = clips.find((item) => item.clipNumber === clipNumber);
   if (clip && IN_FLIGHT.has(clip.status)) return "wait";

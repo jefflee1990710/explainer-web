@@ -5,6 +5,7 @@ import { syncPostPreviewJob } from "@/service/post/sync-preview";
 import { syncProductJob } from "@/service/product/sync";
 import { syncVideoLockJob } from "@/service/higgsfield/video-locks-pipeline";
 import { syncSubtitlePlateJob } from "@/service/higgsfield/subtitle-plate-job";
+import { mergeReadySubtitleFrames } from "@/service/higgsfield/merge-subtitle-frames";
 import { syncStylePreviewJob } from "@/service/style/user-style-preview";
 import { syncTextStylePreviewJob } from "@/service/text-style/preview";
 import { syncReelCoverJob } from "@/service/video-edit/reel-cover";
@@ -44,9 +45,9 @@ import { jobNeedsRefresh, settleProviderStatus, userFacingJobError } from "@/ser
 import { persistMedia } from "@/service/higgsfield/persist";
 import {
   clipVideoModel,
-  assertClipKeyframes,
   clipKeyframeUrls,
   planFrameSubmissions,
+  videoKeyframeUrls,
 } from "@/service/higgsfield/clip-keyframes";
 import {
   nextProjectStatus,
@@ -427,7 +428,13 @@ export async function sendClipVideo(
 ): Promise<Sent> {
   // Cinematic realistic whiteboard sends the start image only. An old end file stays unused.
   const startOnly = clipSkipsEndStill(project);
-  const { start, end } = assertClipKeyframes(project.frames, clipNumber, { startOnly });
+  const merged = project.subtitleOverlay === true;
+  const { start, end } = videoKeyframeUrls(project.frames, clipNumber, { merged });
+  if (!start || (!startOnly && !end)) {
+    throw new Error(
+      merged ? "字幕還沒疊上畫格，無法產片" : "這段的起點或終點畫格還沒有檔案，無法產片",
+    );
+  }
   // Talking-head locks must match the director's (possibly customised) performance slots.
   const talkingShot = talkingShotForSkill(project.skillSlug);
   const performance = talkingShot ? resolvePerformance(await loadSkill(project), talkingShot, "en") : undefined;
@@ -1116,6 +1123,8 @@ export async function syncProjectFromJobs(projectId: ObjectId) {
   }
 
   await inheritTalkingHeadStarts(projectId);
+  // Burn the subtitle onto finished stills before any clip video is queued.
+  await mergeReadySubtitleFrames(projectId);
 
   // "產生全部影片" waits here until both stills for a clip have files.
   const { queueAutoClipVideos } = await import("@/service/clip/auto-video");
@@ -1149,7 +1158,14 @@ async function inheritTalkingHeadStarts(projectId: ObjectId) {
           "frames.$[frame].submittedAt": frame.submittedAt,
           updatedAt: new Date(),
         },
-        $unset: { "frames.$[frame].error": "" },
+        $unset: {
+          "frames.$[frame].error": "",
+          // The copied file is clean. This clip's own plate is burned on next.
+          "frames.$[frame].mergedUrl": "",
+          "frames.$[frame].mergedSceneUrl": "",
+          "frames.$[frame].mergedPlateUrl": "",
+          "frames.$[frame].mergedAt": "",
+        },
       },
       { arrayFilters: [{ "frame.clipNumber": frame.clipNumber, "frame.position": "start" }] },
     );

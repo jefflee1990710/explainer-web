@@ -267,3 +267,40 @@ test("a submitting clip job clears the old video", () => {
   assert.equal(clip.status, "queued");
   assert.equal(clip.blobUrl, undefined);
 });
+
+test("a new still drops the previous subtitle composite", () => {
+  const frames: ClipFrame[] = [
+    {
+      clipNumber: 1,
+      position: "start",
+      prompt: "p",
+      status: "completed",
+      blobUrl: "https://old/scene.png",
+      mergedUrl: "https://old/merged.png",
+      mergedSceneUrl: "https://old/scene.png",
+      mergedAt: "2026-01-01T00:00:00.000Z",
+    },
+  ];
+  const [replaced] = reconcileFrames(frames, [
+    job({
+      kind: "frame",
+      clipIndex: 0,
+      framePosition: "start",
+      status: "completed",
+      blobUrl: "https://new/scene.png",
+    }),
+  ]);
+  assert.equal(replaced.blobUrl, "https://new/scene.png");
+  assert.equal(replaced.mergedUrl, undefined);
+
+  const [kept] = reconcileFrames(frames, [
+    job({
+      kind: "frame",
+      clipIndex: 0,
+      framePosition: "start",
+      status: "completed",
+      blobUrl: "https://old/scene.png",
+    }),
+  ]);
+  assert.equal(kept.mergedUrl, "https://old/merged.png");
+});

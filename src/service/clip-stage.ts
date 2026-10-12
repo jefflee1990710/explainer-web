@@ -113,7 +113,11 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
     video:
       Boolean(clip) &&
       (isLater(row?.editedAt, clip?.submittedAt) ||
-        frames.some((frame) => isLater(frame.submittedAt, clip?.submittedAt))),
+        frames.some(
+          (frame) =>
+            isLater(frame.submittedAt, clip?.submittedAt) ||
+            isLater(frame.mergedAt, clip?.submittedAt),
+        )),
   };
 
   // Precedence: active frames > active video > failed frames > finished video

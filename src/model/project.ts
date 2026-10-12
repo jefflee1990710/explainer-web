@@ -77,6 +77,13 @@ export type ClipFrame = {
   submittedAt?: string;
   // The production chat rewrote this prompt. Later sends keep it instead of rebuilding.
   promptEdited?: boolean;
+  // Clean still with the subtitle plate burned on. Video generation sends this file.
+  mergedUrl?: string;
+  // Scene and plate URLs this merge was built from. A new file rebuilds it.
+  mergedSceneUrl?: string;
+  mergedPlateUrl?: string;
+  // ISO time of the merge. Newer than the clip means the video is stale.
+  mergedAt?: string;
 };
 
 // User-supplied scene reference for the director. Max 4 per video, ids R1..R4.
@@ -221,9 +228,12 @@ export type ProjectClip = {
   creditsCharged?: number;
   // True while the video job is still in our queue and has not been sent.
   unsent?: boolean;
+  // True when this video was sent from stills that already had the subtitle burned in.
+  mergedKeyframes?: boolean;
 };
 
-// One talking-head subtitle plate for a clip, composited after the clip renders.
+// One talking-head subtitle plate. Burned onto the start and end stills before video.
+// Clips filmed from clean stills still burn this plate at export.
 export type SubtitlePlate = {
   clipNumber: number;
   status: "queued" | "in_progress" | "completed" | "failed";
@@ -509,6 +519,10 @@ export const projectSchema: z.ZodType<Project> = z.object({
         error: z.string().optional(),
         revision: frameRevisionSchema.optional(),
         submittedAt: z.string().optional(),
+        mergedUrl: z.string().optional(),
+        mergedSceneUrl: z.string().optional(),
+        mergedPlateUrl: z.string().optional(),
+        mergedAt: z.string().optional(),
       }),
     )
     .optional(),
@@ -527,6 +541,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
       submittedAt: z.string().optional(),
       creditsCharged: z.number().optional(),
       unsent: z.boolean().optional(),
+      mergedKeyframes: z.boolean().optional(),
     }),
   ),
   reelUrl: z.string().optional(),

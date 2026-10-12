@@ -14,6 +14,19 @@ test("displayMediaSrc cache-busts a rewritten blob with the claim time", () => {
   );
 });
 
+test("displayMediaSrc prefers the merged still and busts on the merge time", () => {
+  const mergedAt = "2026-10-02T00:00:00.000Z";
+  assert.equal(
+    displayMediaSrc({
+      blobUrl: "https://blob.example/clean.png",
+      mergedUrl: "https://blob.example/merged.png",
+      submittedAt: "2026-10-01T00:00:00.000Z",
+      mergedAt,
+    }),
+    `https://blob.example/merged.png?v=${encodeURIComponent(mergedAt)}`,
+  );
+});
+
 test("displayMediaSrc leaves a URL alone when there is no claim time", () => {
   assert.equal(displayMediaSrc({ blobUrl: "https://blob.example/a.png" }), "https://blob.example/a.png");
   assert.equal(displayMediaSrc(null), undefined);

@@ -4,7 +4,8 @@ import { consumeCredits, refundCredits } from "@/service/billing/credits";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import { settledAutoVideoClips } from "@/service/clip/auto-video-list";
 import { hasJobSince } from "@/service/higgsfield/job-attempts";
-import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
+import { videoKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
+import { mergeReadySubtitleFrames } from "@/service/higgsfield/merge-subtitle-frames";
 import { autoVideoDecision } from "@/service/production-plan";
 import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { chargedVideoCredits, STUCK_CLAIM_MS, videoCost } from "@/service/production-plan";
@@ -42,9 +43,21 @@ export async function claimAndStartClipVideo(
   const projects = await videosCollection();
   const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
   if (!row) return { ok: false, error: "找不到這段分鏡" };
-  const { start, end } = clipKeyframeUrls(project.frames, clipNumber);
-  if (!start || (!clipSkipsEndStill(project) && !end)) {
-    return { ok: false, error: "這段的畫格還沒完成", retry: true };
+  // Plate may have landed after the still. Burn it on before this clip is sent.
+  if (project.subtitleOverlay === true) {
+    await mergeReadySubtitleFrames(project._id);
+    const fresh = await projects.findOne({ _id: project._id });
+    if (fresh) project = fresh;
+  }
+  const merged = project.subtitleOverlay === true;
+  const startOnly = clipSkipsEndStill(project);
+  const { start, end } = videoKeyframeUrls(project.frames, clipNumber, { merged });
+  if (!start || (!startOnly && !end)) {
+    return {
+      ok: false,
+      error: merged ? "字幕還沒疊上畫格" : "這段的畫格還沒完成",
+      retry: true,
+    };
   }
 
   const submittedAt = new Date().toISOString();
@@ -78,6 +91,7 @@ export async function claimAndStartClipVideo(
             "clips.$.creditsCharged": cost,
             // Empty prompt makes the sender run Phase B for this attempt.
             "clips.$.prompt": "",
+            "clips.$.mergedKeyframes": merged,
             status: "production",
             updatedAt: new Date(),
           },
@@ -99,6 +113,7 @@ export async function claimAndStartClipVideo(
               status: "queued" as const,
               submittedAt,
               creditsCharged: cost,
+              ...(merged ? { mergedKeyframes: true } : {}),
             },
           },
           $set: { status: "production", updatedAt: new Date() },
@@ -181,6 +196,7 @@ export async function queueAutoClipVideos(projectId: ObjectId) {
   for (const clipNumber of pending) {
     const decision = autoVideoDecision(project.frames, project.clips, clipNumber, {
       startOnly: clipSkipsEndStill(project),
+      merged: project.subtitleOverlay === true,
     });
     if (decision === "wait") {
       remaining.push(clipNumber);

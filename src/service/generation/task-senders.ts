@@ -9,7 +9,7 @@ import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { runPhaseBForClip } from "@/service/director/run-phase-b";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
-import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
+import { videoKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { submitImage } from "@/service/higgsfield/generate";
@@ -145,9 +145,12 @@ async function sendVideo(project: Project, clipNumber: number) {
   if (!project.phaseA) throw new PermanentJobError("找不到分鏡");
   // Missing keyframes will not fix themselves; stop before spending a Phase B call.
   const startOnly = clipSkipsEndStill(project);
-  const { start, end } = clipKeyframeUrls(project.frames, clipNumber);
+  const merged = project.subtitleOverlay === true;
+  const { start, end } = videoKeyframeUrls(project.frames, clipNumber, { merged });
   if (!start || (!startOnly && !end)) {
-    throw new PermanentJobError("這段的起點或終點畫格還沒有檔案，無法產片");
+    throw new PermanentJobError(
+      merged ? "字幕還沒疊上畫格，無法產片" : "這段的起點或終點畫格還沒有檔案，無法產片",
+    );
   }
   const clip = project.clips.find((item) => item.clipNumber === clipNumber);
   if (clip?.prompt) {

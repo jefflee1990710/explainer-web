@@ -47,7 +47,7 @@ export function reconcileFrames(frames: ClipFrame[], jobs: GenerationJob[]): Cli
     if (!job || !appliesToClaim(job, frame.submittedAt)) return frame;
     const nextUrl = mediaSrc(job);
     const pending = isJobInFlight(job.status);
-    return {
+    const next: ClipFrame = {
       ...frame,
       status: toFrameStatus(job.status),
       // Pending redo must clear the previous still so the tile can show
@@ -57,6 +57,14 @@ export function reconcileFrames(frames: ClipFrame[], jobs: GenerationJob[]): Cli
       blobUrl: nextUrl ? job.blobUrl : pending ? undefined : frame.blobUrl ?? job.blobUrl,
       error: job.error,
     };
+    // A new still, or a redo still in flight, must not keep the old subtitle composite.
+    if (pending || (frame.mergedSceneUrl && mediaSrc(next) !== frame.mergedSceneUrl)) {
+      delete next.mergedUrl;
+      delete next.mergedSceneUrl;
+      delete next.mergedPlateUrl;
+      delete next.mergedAt;
+    }
+    return next;
   });
 }
 

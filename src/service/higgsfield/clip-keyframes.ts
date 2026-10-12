@@ -39,6 +39,23 @@ export function clipKeyframeUrls(
   return { start, end };
 }
 
+// Video sends the clean still, unless this clip burns the subtitle onto the still first.
+// `merged` then returns only the composited file, never the clean one.
+export function videoKeyframeUrls(
+  frames: ClipFrame[] | undefined,
+  clipNumber: number,
+  options?: { merged?: boolean },
+) {
+  const startFrame = frames?.find(
+    (frame) => frame.clipNumber === clipNumber && frame.position === "start",
+  );
+  const endFrame = frames?.find(
+    (frame) => frame.clipNumber === clipNumber && frame.position === "end",
+  );
+  const pick = (frame?: ClipFrame) => (options?.merged ? frame?.mergedUrl : mediaSrc(frame));
+  return { start: pick(startFrame), end: pick(endFrame) };
+}
+
 // Which completed still this frame must continue from. End always prefers
 // this clip's start; start prefers the previous clip's end, then this clip's
 // end (a start redo after the end already exists).

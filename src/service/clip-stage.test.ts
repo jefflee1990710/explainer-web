@@ -491,3 +491,16 @@ test("generate-all shows only when every scene is ready and a video is still out
   assert.equal(canGenerateAllVideos([tag(1, "scene", "ready"), tag(1, "video", "busy")]), false);
   assert.equal(canGenerateAllVideos([tag(1, "scene", "ready"), tag(1, "video", "ready")]), false);
 });
+
+test("a newer subtitle merge makes the video stale", () => {
+  const p = project({
+    frames: [
+      frame(1, "start", "completed", "2026-01-01T00:00:00.000Z", {
+        mergedAt: "2026-01-02T00:00:00.000Z",
+      }),
+      frame(1, "end", "completed", "2026-01-01T00:00:00.000Z"),
+    ],
+    clips: [clip(1, "completed", "2026-01-01T12:00:00.000Z")],
+  });
+  assert.equal(clipStateFor(p, 1).stale.video, true);
+});

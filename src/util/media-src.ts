@@ -13,9 +13,13 @@ export function displayMediaSrc(item?: {
   blobUrl?: string;
   outputUrl?: string;
   submittedAt?: string;
+  mergedUrl?: string;
+  mergedAt?: string;
 } | null) {
-  const src = mediaSrc(item);
-  if (!src || !item?.submittedAt) return src;
+  // A still with the subtitle burned on is what the studio shows.
+  const src = item?.mergedUrl || mediaSrc(item);
+  const version = item?.mergedUrl ? item.mergedAt || item.submittedAt : item?.submittedAt;
+  if (!src || !version) return src;
   const sep = src.includes("?") ? "&" : "?";
-  return `${src}${sep}v=${encodeURIComponent(item.submittedAt)}`;
+  return `${src}${sep}v=${encodeURIComponent(version)}`;
 }
