@@ -786,10 +786,7 @@ export function buildFramePrompt(
     ...(surprise && surpriseClip?.angle && surpriseClip.pose
       ? [surpriseAngleDirective(surpriseClip.angle, surpriseClip.pose)]
       : []),
-    // The catalog line is "Look: …". Overlay stills rename it so no Look: label remains.
-    ...(overlay
-      ? styleLinesForFrame(style).map((line) => line.replaceAll("Look:", "Rendering:"))
-      : styleLinesForFrame(style)),
+    ...styleLinesForFrame(style),
     ...(parts.visualWorld ? [`Visual world: ${parts.visualWorld}`] : []),
     `Palette: ${parts.palette}`,
     ...(wardrobeBuild ? [OUTFIT_IDENTITY_LOCK, OUTFIT_ENERGY] : []),

@@ -1036,10 +1036,11 @@ test("cinematic talking-head overlay stills do not paint the subtitle", () => {
   video.phaseA!.clips[0].startScene = 'Person seated. Subtitle: one LARGE line, exactly "Hello there."';
   const prompt = buildFramePrompt(video, 1, "start");
   assert.match(prompt, /no letters, no subtitle, no caption bar, no watermark/);
-  assert.doesNotMatch(prompt, /Look:/);
+  assert.match(prompt, /Look: realistic look/);
+  assert.doesNotMatch(prompt, /lettering sample/);
   assert.doesNotMatch(prompt, /Subtitle:/);
+  assert.doesNotMatch(prompt, /https:\/\/blob\/look\.png/);
   const plan = frameSubmitPlan(video, 1, "start");
-  // frameSubmitPlan returns refs; the brief's imageUrls name is not on the plan.
   assert.equal(plan.refs.includes("https://blob/look.png"), false);
 });
 
