@@ -23,7 +23,7 @@ import type { Product } from "@/model/product";
 import type { TextStyleDoc } from "@/model/text-style";
 import { parseCharacterVoice, type CharacterVoice } from "@/model/character-voice";
 import type { Folder } from "@/model/folder";
-import type { Project, ProjectStatus } from "@/model/project";
+import type { Project, ProjectStatus, SubtitlePlate } from "@/model/project";
 import type { PerformanceSlots } from "@/model/director-performance";
 import type { DirectorProfile, SystemProfile } from "@/model/director-profile";
 import type { DirectorChatMessage, DirectorPreviewStatus, Skill } from "@/model/skill";
@@ -72,6 +72,9 @@ export type PublicVideo = {
   subtitleLook: NonNullable<Project["subtitleLook"]>;
   textStyleId?: string;
   textStyleImageUrl?: string;
+  // True when talking-head subtitles are a plate, not painted into the still.
+  subtitleOverlay: boolean;
+  subtitlePlates?: SubtitlePlate[];
   characterImageUrl?: string;
   characterStillUrl?: string;
   stillError?: string;
@@ -332,6 +335,8 @@ export function toPublicVideo(video: Project): PublicVideo {
     subtitleLook: resolveSubtitleLook(video.subtitleLook),
     textStyleId: video.textStyleId,
     textStyleImageUrl: video.textStyleImageUrl,
+    subtitleOverlay: video.subtitleOverlay === true,
+    subtitlePlates: video.subtitlePlates,
     characterImageUrl: video.characterImageUrl,
     characterStillUrl: video.characterStillUrl,
     stillError: video.stillError,

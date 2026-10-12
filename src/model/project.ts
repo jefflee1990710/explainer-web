@@ -223,6 +223,17 @@ export type ProjectClip = {
   unsent?: boolean;
 };
 
+// One talking-head subtitle plate for a clip, composited after the clip renders.
+export type SubtitlePlate = {
+  clipNumber: number;
+  status: "queued" | "in_progress" | "completed" | "failed";
+  outputUrl?: string;
+  blobUrl?: string;
+  error?: string;
+  submittedAt?: string;
+  creditsCharged?: number;
+};
+
 // Concatenated reel of every storyboard clip, produced on the export step.
 export type ReelStatus = "queued" | "in_progress" | "completed" | "failed";
 // Social / reel thumbnail generated from the storyboard.
@@ -261,6 +272,8 @@ export type Project = {
   textStyleImageUrl?: string;
   // Talking-head cinematic: the still stays free of painted subtitles.
   subtitleOverlay?: boolean;
+  // Per-clip subtitle plates for that overlay. Absent until a plate job is queued.
+  subtitlePlates?: SubtitlePlate[];
   characterImageUrl?: string;
   // Opening / Ending bookends: brand logo used as a reference in every still.
   logoUrl?: string;
@@ -345,6 +358,17 @@ export type Project = {
 const aspectRatioSchema = z.enum(["16:9", "9:16", "1:1"]);
 const frameStatusSchema = z.enum(["queued", "in_progress", "completed", "failed"]);
 
+// Same four statuses as a clip. No frame position: one plate per clip.
+const subtitlePlateSchema = z.object({
+  clipNumber: z.number(),
+  status: frameStatusSchema,
+  outputUrl: z.string().optional(),
+  blobUrl: z.string().optional(),
+  error: z.string().optional(),
+  submittedAt: z.string().optional(),
+  creditsCharged: z.number().optional(),
+});
+
 const frameRevisionSchema = z.object({
   remark: z.string().optional(),
   annotatedUrl: z.string().optional(),
@@ -422,6 +446,8 @@ export const projectSchema: z.ZodType<Project> = z.object({
   subtitleLook: z.enum(SUBTITLE_LOOK_IDS).optional(),
   textStyleId: z.string().optional(),
   textStyleImageUrl: z.string().optional(),
+  subtitleOverlay: z.boolean().optional(),
+  subtitlePlates: z.array(subtitlePlateSchema).optional(),
   characterImageUrl: z.string().optional(),
   logoUrl: z.string().optional(),
   referenceImages: z

@@ -15,7 +15,8 @@ export type GenerationKind =
   | "product"
   | "objectSheet"
   | "backgroundPlate"
-  | "textStylePreview";
+  | "textStylePreview"
+  | "subtitlePlate";
 export type GenerationStatus =
   // Waiting in our queue; not sent to the provider yet.
   | "pending"
@@ -96,6 +97,7 @@ export const generationJobSchema: z.ZodType<GenerationJob> = z.object({
     "objectSheet",
     "backgroundPlate",
     "textStylePreview",
+    "subtitlePlate",
   ]),
   framePosition: z.enum(["start", "end"]).optional(),
   characterId: objectIdSchema.optional(),
