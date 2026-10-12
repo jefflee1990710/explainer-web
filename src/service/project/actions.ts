@@ -10,6 +10,7 @@ import {
   productsCollection,
   projectsCollection,
   textStylesCollection,
+  userStylesCollection,
   videosCollection,
 } from "@/dao";
 import { runPhaseAJob, runStillJob } from "@/service/director/jobs";
@@ -23,6 +24,11 @@ import { isSubtitleLook, resolveSubtitleLook } from "@/service/director/subtitle
 import { isDurationPreset } from "@/service/director/duration-presets";
 import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 import { parseBackgroundImageUrls } from "@/service/project/background-images";
+import {
+  parseStartImageUrl,
+  talkingHeadOpeningPhotoAllowed,
+} from "@/service/project/start-image";
+import { isStyleId } from "@/model/style-id";
 import {
   applySkillSceneText,
   briefSkillError,
@@ -95,6 +101,8 @@ type BriefFields = {
   referenceImages: ReferenceImage[];
   // Talking-head read only. Up to 2 room photos that replace the bookshelf.
   backgroundImageUrls: string[];
+  // Talking-head read + Cinematic realistic. One optional opening photo.
+  startImageUrl?: string;
 };
 
 // System ids keep the extracted look. A user id loads that lettering sample.
@@ -119,6 +127,17 @@ async function resolveTextStyleChoice(
     textStyleId: raw,
     textStyleImageUrl: doc.imageUrl,
   };
+}
+
+// A user style forked from Cinematic realistic keeps baseStyleId "realistic".
+async function openingPhotoStyle(clerkUserId: string, styleId: string) {
+  if (isStyleId(styleId) || !ObjectId.isValid(styleId)) return {};
+  const styles = await userStylesCollection();
+  const doc = await styles.findOne({
+    _id: new ObjectId(styleId),
+    ownerClerkUserId: clerkUserId,
+  });
+  return { baseStyleId: doc?.baseStyleId, styleName: doc?.name };
 }
 
 // `ruleSlug` is the behaviour slug; custom directors follow their template's rules.
@@ -205,6 +224,18 @@ async function readVideoBrief(
     (url) => isBrandAssetUrl(url, clerkUserId, storeHost),
   );
   if (!backgrounds.ok) return backgrounds;
+  const styleLook = await openingPhotoStyle(clerkUserId, styleId);
+  const startImage = talkingHeadOpeningPhotoAllowed({
+    skillSlug: ruleSlug,
+    styleId,
+    baseStyleId: styleLook.baseStyleId,
+    styleName: styleLook.styleName,
+  })
+    ? parseStartImageUrl(String(formData.get("startImageUrl") || ""), (url) =>
+        isBrandAssetUrl(url, clerkUserId, storeHost),
+      )
+    : { ok: true as const, url: undefined };
+  if (!startImage.ok) return startImage;
   return {
     ok: true,
     brief: {
@@ -217,6 +248,7 @@ async function readVideoBrief(
       logoUrl,
       referenceImages: references.images,
       backgroundImageUrls: backgrounds.urls,
+      startImageUrl: startImage.url,
       language,
       voiceGender: resolveVoiceGender(voiceGender),
       speechPace,
@@ -455,6 +487,7 @@ export async function createVideoAction(
       ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
       ...(brief.referenceImages.length ? { referenceImages: brief.referenceImages } : {}),
       ...(brief.backgroundImageUrls.length ? { backgroundImageUrls: brief.backgroundImageUrls } : {}),
+      ...(brief.startImageUrl ? { startImageUrl: brief.startImageUrl } : {}),
       cast,
       ...(productResult.products.length ? { products: productResult.products } : {}),
       status: "phase_a",
@@ -622,6 +655,7 @@ async function rewriteVideoBrief(
           ...(brief.backgroundImageUrls.length
             ? { backgroundImageUrls: brief.backgroundImageUrls }
             : {}),
+          ...(brief.startImageUrl ? { startImageUrl: brief.startImageUrl } : {}),
           status: "phase_a",
           updatedAt: new Date(),
         },
@@ -630,6 +664,7 @@ async function rewriteVideoBrief(
           ...(brief.logoUrl ? {} : { logoUrl: "" }),
           ...(brief.referenceImages.length ? {} : { referenceImages: "" }),
           ...(brief.backgroundImageUrls.length ? {} : { backgroundImageUrls: "" }),
+          ...(brief.startImageUrl ? {} : { startImageUrl: "" }),
           ...(brief.spokenScript ? {} : { spokenScript: "" }),
           ...(brief.textStyleImageUrl ? {} : { textStyleImageUrl: "" }),
         },

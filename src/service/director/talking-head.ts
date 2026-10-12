@@ -208,6 +208,8 @@ export function planTalkingHeadClips(input: {
   shot?: string;
   // Uploaded room photos replace the set sentence.
   background?: boolean;
+  // User's own photo. Clip 1's start matches it; later clips keep that person.
+  openingPhoto?: boolean;
   // Resolved performance slots in the prompt language. Defaults to the shot's built-in set.
   performance?: PerformanceSlots;
 }): TalkingHeadClipPlan[] {
@@ -220,7 +222,13 @@ export function planTalkingHeadClips(input: {
     const line = lines[index];
     const seconds = plannedClipSeconds(line, input.pace);
     const belowCenter = talkingHeadSubtitleBelowCenter(input.aspectRatio);
-    const scene = { shot: input.shot, belowCenter, background: input.background, perf };
+    const scene = {
+      shot: input.shot,
+      belowCenter,
+      background: input.background,
+      openingPhoto: input.openingPhoto,
+      perf,
+    };
     const endScene = shotLine(input.language, "end", line, scene);
     const previousLine = index === 0 ? undefined : lines[index - 1];
     // Pose continues from the previous end. The subtitle is this clip's own line.
@@ -345,7 +353,13 @@ function plannedClipSeconds(text: string, pace?: SpeechPace) {
   return Math.min(TALKING_HEAD_MAX_SECONDS, Math.max(PROVIDER_MIN_SECONDS, talkingHeadSeconds(text, pace)));
 }
 
-type SceneInput = { shot?: string; belowCenter?: boolean; background?: boolean; perf: PerformanceSlots };
+type SceneInput = {
+  shot?: string;
+  belowCenter?: boolean;
+  background?: boolean;
+  openingPhoto?: boolean;
+  perf: PerformanceSlots;
+};
 
 // Start still: hook face, free hand mid-gesture. End still: smile relaxed, head tilted the other way.
 function shotLine(language: VoLanguage | undefined, moment: "start" | "end", line: string, scene: SceneInput) {
@@ -354,6 +368,15 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
   const fullBody = scene.shot === "full-body";
   const anchored = hasAnchorProp(scene.perf);
   const p = scene.perf;
+  if (scene.openingPhoto && moment === "start") {
+    const pose =
+      language === "en"
+        ? "Character: the only person in the frame. Match the attached opening photo exactly: same face, hair, clothes, body, and pose. They look into the lens, mouth just opening."
+        : "角色：畫面只有呢一個人。跟附上的開場照片：同一張臉、頭髮、衫、身形同姿勢。直望鏡頭，準備開口。";
+    return language === "en"
+      ? `${pose} ${setClause("en", scene)}${camera} ${subtitleSentence("en", painted, scene.belowCenter)}`
+      : `${pose}${setClause("yue", scene)}${camera}${subtitleSentence("yue", painted, scene.belowCenter)}`;
+  }
   if (language === "en") {
     const prop = anchored ? ` One hand holds ${p.anchorProp}.` : "";
     const propEnd = anchored ? ` The same hand still holds ${p.anchorProp}.` : "";
@@ -417,6 +440,11 @@ function setClause(language: "en" | "yue", scene: SceneInput) {
     ? anchored ? `no new props besides ${p.anchorProp}` : "no new props"
     : anchored ? `除咗${p.anchorProp}之外冇新道具` : "冇新道具";
   // A bed in this line was getting later clips blocked, so the photo rule names it.
+  if (scene.openingPhoto) {
+    return language === "en"
+      ? `Set: the same person, clothes, and background as the user's opening photo. Do not draw a bookshelf, a bed, or a different room. The same person stays in every clip. Light follows that photo.`
+      : `場景：人物、衫同背景跟用戶的開場照片，唔好再畫書架、床或者其他房間。全程同一個人。光跟呢張相。`;
+  }
   if (scene.background) {
     return language === "en"
       ? `Set: the background is the attached scene reference photo. Do not draw a bookshelf, a bed, or a different room. The same background stays in every clip. No pictures pasted on the frame, no extra writing, ${noProps}. Light follows the reference photo.`

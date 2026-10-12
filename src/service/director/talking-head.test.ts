@@ -89,6 +89,17 @@ test("talking-head keeps instruction and spoken script as separate fields", () =
   assert.match(withRoom[0].startScene, /attached scene reference photo/);
   assert.doesNotMatch(withRoom[0].startScene, /beside a bookshelf/);
   assert.doesNotMatch(talkingHeadDirectorBlock(), /medium close-up/i);
+  const withPhoto = planTalkingHeadClips({
+    source: SCRIPT,
+    pace: "medium",
+    language: "en",
+    openingPhoto: true,
+  });
+  assert.ok(withPhoto.length >= 2);
+  assert.match(withPhoto[0].startScene, /attached opening photo/);
+  assert.match(withPhoto[0].endScene, /user's opening photo/);
+  assert.doesNotMatch(withPhoto[0].startScene, /beside a bookshelf/);
+  assert.match(withPhoto[1].startScene, /opening photo/);
 });
 
 test("clip 2 keeps clip 1's pose but speaks only its own line", () => {

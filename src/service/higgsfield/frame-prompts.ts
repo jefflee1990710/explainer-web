@@ -14,6 +14,7 @@ import {
 } from "@/service/character/cast-prompt";
 import { productLockParagraph, productReferenceUrls } from "@/service/product/blueprint-prompt";
 import { instructionFollowsReferenceClothes } from "@/service/project/reference-images";
+import { openingPhotoReference } from "@/service/project/start-image";
 import {
   backgroundPlateForClip,
   backgroundPlateLockParagraph,
@@ -523,11 +524,15 @@ export function buildFramePrompt(
     ]);
   // Every still needs the clothing photo so style and colour stay exact.
   const textStyleUrl = project.textStyleImageUrl || undefined;
+  // User's opening photo sits in front of the character so that face is the person who talks.
+  const openingPhotoUrl = openingPhotoReference(project, clipNumber, position);
+  const openingCount = openingPhotoUrl ? 1 : 0;
   const sceneRefUrls = frameSceneReferenceUrls(
     project,
     clipNumber,
     annotatedCount +
       anchorCount +
+      openingCount +
       lockUrls.length +
       videoLockUrls.length +
       logoUrls.length +
@@ -537,6 +542,7 @@ export function buildFramePrompt(
   const textStyleIndex = textStyleUrl
     ? annotatedCount +
       anchorCount +
+      openingCount +
       lockUrls.length +
       videoLockUrls.length +
       sceneRefUrls.length +
@@ -551,12 +557,15 @@ export function buildFramePrompt(
   const characterFirst = lockUrls.length > 0;
   const copyClothes = clothingFromInstruction && sceneRefUrls.length > 0;
   const characterAttachmentStart = characterFirst
-    ? annotatedCount + anchorCount + 1
-    : annotatedCount + anchorCount + 1 + sceneRefUrls.length;
+    ? annotatedCount + anchorCount + openingCount + 1
+    : annotatedCount + anchorCount + openingCount + 1 + sceneRefUrls.length;
   const videoLockStart = characterAttachmentStart + lockUrls.length;
   const sceneRefStart = characterFirst
     ? videoLockStart + videoLockUrls.length
-    : annotatedCount + anchorCount + 1;
+    : annotatedCount + anchorCount + openingCount + 1;
+  const openingPhotoLine = openingPhotoUrl
+    ? `OPENING PHOTO: attached image ${annotatedCount + anchorCount + 1} is the user's own starting photo. Draw this starting still from that photo: same face, hair, clothes, body, pose, and setting. Do not replace them with the character blueprint.`
+    : "";
   const compositionLocked = Boolean(options.anchor && options.anchor.kind !== "prev-end");
   const backgroundRefs =
     project.skillSlug === TALKING_HEAD_SKILL_SLUG && (project.backgroundImageUrls?.length || 0) > 0;
@@ -787,6 +796,7 @@ export function buildFramePrompt(
     ...(characterFirst && objectLockLine ? [objectLockLine] : []),
     ...(characterFirst && backgroundLockLine ? [backgroundLockLine] : []),
     ...sceneRefLines,
+    ...(openingPhotoLine ? [openingPhotoLine] : []),
     ...(characterFirst ? [] : castLines),
     ...(!characterFirst && objectLockLine ? [objectLockLine] : []),
     ...(!characterFirst && backgroundLockLine ? [backgroundLockLine] : []),
@@ -923,21 +933,24 @@ export function frameSubmitPlan(
   const videoLockUrls = videoLockReferenceUrls(project, clipNumber);
   // Same cap as buildFramePrompt so the URL order matches the prompt's numbering.
   const textStyleUrls = project.textStyleImageUrl ? [project.textStyleImageUrl] : [];
+  const openingPhotoUrl = openingPhotoReference(project, clipNumber, position);
   const sceneRefUrls = frameSceneReferenceUrls(
     project,
     clipNumber,
     (revision?.annotatedUrl ? 1 : 0) +
       (anchor ? 1 : 0) +
+      (openingPhotoUrl ? 1 : 0) +
       castUrls.length +
       videoLockUrls.length +
       logoUrls.length +
       productUrls.length +
       textStyleUrls.length,
   );
+  const openingUrls = openingPhotoUrl ? [openingPhotoUrl] : [];
   const orderedLocks =
     castUrls.length > 0
-      ? [...castUrls, ...videoLockUrls, ...sceneRefUrls, ...productUrls, ...logoUrls, ...textStyleUrls]
-      : [...sceneRefUrls, ...castUrls, ...videoLockUrls, ...productUrls, ...logoUrls, ...textStyleUrls];
+      ? [...openingUrls, ...castUrls, ...videoLockUrls, ...sceneRefUrls, ...productUrls, ...logoUrls, ...textStyleUrls]
+      : [...openingUrls, ...sceneRefUrls, ...castUrls, ...videoLockUrls, ...productUrls, ...logoUrls, ...textStyleUrls];
   return {
     prompt: buildFramePrompt(project, clipNumber, position, {
       revision,

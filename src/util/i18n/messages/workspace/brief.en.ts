@@ -57,6 +57,13 @@ export const briefEn = {
     remove: "Remove",
     alt: "Background photo {n}",
   },
+  startImage: {
+    title: "Opening photo",
+    hint: "Optional, one photo. Talking-head read uses it to draw the opening still, then the talking-head video starts from that still. Later clips continue from it.",
+    add: "Upload opening photo",
+    remove: "Remove",
+    alt: "Opening photo",
+  },
   section03: {
     titleDialogue: "Dialogue language & pace",
     titleNarration: "Voiceover language, pace & voice",

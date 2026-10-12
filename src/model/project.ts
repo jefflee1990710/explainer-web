@@ -266,6 +266,8 @@ export type Project = {
   referenceImages?: ReferenceImage[];
   // Talking-head only: up to 2 room photos. They replace the bookshelf set.
   backgroundImageUrls?: string[];
+  // Talking-head read + Cinematic realistic: one optional photo for the opening still.
+  startImageUrl?: string;
   // Characters chosen at creation; snapshot of each default blueprint.
   cast?: CastMember[];
   // Real products. They are never restyled into the video's look.
@@ -426,6 +428,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
     .array(z.object({ id: z.string(), url: z.string(), description: z.string() }))
     .optional(),
   backgroundImageUrls: z.array(z.string()).max(2).optional(),
+  startImageUrl: z.string().optional(),
   cast: z.array(castMemberSchema).optional(),
   products: z.array(productShotSchema).optional(),
   status: z.enum([

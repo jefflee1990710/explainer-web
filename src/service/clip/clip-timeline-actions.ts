@@ -95,6 +95,7 @@ export async function appendDirectorClipAction(input: {
       phaseA: project.phaseA,
       referenceImages: project.referenceImages,
       backgroundImageUrls: project.backgroundImageUrls,
+      startImageUrl: project.startImageUrl,
       cast: project.cast,
       content,
       insertAt,

@@ -91,6 +91,7 @@ export async function runPhaseAJob(
       logoUrl: project.logoUrl,
       referenceImages: project.referenceImages,
       backgroundImageUrls: project.backgroundImageUrls,
+      startImageUrl: project.startImageUrl,
       currentDraft: project.phaseA,
       revisionNote,
       clipsOnly: options?.clipsOnly,

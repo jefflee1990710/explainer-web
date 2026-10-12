@@ -10,7 +10,12 @@ import { LANGUAGE_PRESETS, sceneDescriptionLanguageLock } from "@/service/direct
 import { skillPromptForPhaseA } from "@/service/director/load-skill-prompt";
 import { directorModel } from "@/service/director/model";
 import { resolvePerformance } from "@/service/director/performance";
-import { isTalkingHeadSkill, planTalkingHeadClips, talkingHeadShot } from "@/service/director/talking-head";
+import {
+  isTalkingHeadSkill,
+  planTalkingHeadClips,
+  talkingHeadShot,
+  TALKING_HEAD_SKILL_SLUG,
+} from "@/service/director/talking-head";
 import { talkingShotForSkill } from "@/service/director/talking-performance";
 import { sanitizeClipReferenceIds } from "@/service/project/reference-images";
 import type { Skill } from "@/model/skill";
@@ -101,6 +106,7 @@ type AppendInput = {
   phaseA: PhaseAProposal;
   referenceImages?: ReferenceImage[];
   backgroundImageUrls?: string[];
+  startImageUrl?: string;
   cast?: CastMember[];
   content: string;
   // 1-based slot. Omit to add after the last clip.
@@ -120,6 +126,7 @@ export async function draftAppendedClips(input: AppendInput): Promise<Storyboard
       aspectRatio: input.aspectRatio,
       shot: talkingHeadShot(input.skill.customProfile?.visual || input.skill.profile?.visual),
       background: Boolean(input.backgroundImageUrls?.length),
+      openingPhoto: skillSlug === TALKING_HEAD_SKILL_SLUG && Boolean(input.startImageUrl),
       performance: resolvePerformance(
         input.skill,
         talkingShotForSkill(input.skill.slug) ?? "face",

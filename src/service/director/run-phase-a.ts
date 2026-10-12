@@ -67,6 +67,7 @@ import { talkingShotForSkill } from "@/service/director/talking-performance";
 import {
   isTalkingHeadSkill,
   planTalkingHeadClips,
+  TALKING_HEAD_SKILL_SLUG,
   spokenUnits,
   talkingHeadDirectorBlock,
   talkingHeadShot,
@@ -170,6 +171,8 @@ export async function runPhaseA(input: {
   referenceImages?: ReferenceImage[];
   // Talking-head room photos. When present, the bookshelf set is not used.
   backgroundImageUrls?: string[];
+  // Talking-head read + Cinematic realistic. Clip 1's start matches this photo.
+  startImageUrl?: string;
   // Existing user-edited draft; regenerate from this instead of inventing anew.
   currentDraft?: PhaseAProposal;
   revisionNote?: string;
@@ -457,6 +460,8 @@ Produce a complete Phase A director proposal now.`,
       aspectRatio: input.aspectRatio,
       shot: talkingHeadShot(input.skill.customProfile?.visual || input.skill.profile?.visual),
       background: Boolean(input.backgroundImageUrls?.length),
+      openingPhoto:
+        input.skill.slug === TALKING_HEAD_SKILL_SLUG && Boolean(input.startImageUrl),
       // Custom directors override template slots per key; see resolvePerformance.
       performance: resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", input.language),
     });

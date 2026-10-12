@@ -1050,6 +1050,30 @@ test("talking-head stills keep only the first character", () => {
   assert.match(body.prompt, /SOLO: exactly one person/);
 });
 
+test("talking-head opening photo is the first reference on clip 1's start", () => {
+  const video = project();
+  video.skillSlug = "talking-head-director";
+  video.styleId = "realistic";
+  video.startImageUrl = "https://blob/me.png";
+  video.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Lily",
+      blueprintUrl: "https://blob/c.png",
+      prompt: "",
+    },
+  ];
+  const start = frameSubmitPlan(video, 1, "start");
+  assert.deepEqual(start.refs, ["https://blob/me.png", "https://blob/c.png"]);
+  assert.match(start.prompt, /OPENING PHOTO: attached image 1 is the user's own starting photo/);
+  const end = frameSubmitPlan(video, 1, "end");
+  assert.deepEqual(end.refs, ["https://blob/c.png"]);
+  assert.doesNotMatch(end.prompt, /OPENING PHOTO/);
+  video.skillSlug = "full-body-talking-head-director";
+  assert.deepEqual(frameSubmitPlan(video, 1, "start").refs, ["https://blob/c.png"]);
+});
+
 test("talking-head background photos replace the bookshelf and attach as the room", () => {
   const video = project();
   video.skillSlug = "talking-head-director";

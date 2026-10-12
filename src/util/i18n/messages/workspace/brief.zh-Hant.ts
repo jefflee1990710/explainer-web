@@ -56,6 +56,13 @@ export const briefZhHant = {
     remove: "移除",
     alt: "背景圖 {n}",
   },
+  startImage: {
+    title: "開場參考圖",
+    hint: "選填，一張。Talking-head read 會用這張相畫出開場畫面，再由這張開場圖產生對鏡說話效果。後面的片段會接著這張開場繼續。",
+    add: "上傳開場圖",
+    remove: "移除",
+    alt: "開場參考圖",
+  },
   section03: {
     titleDialogue: "對白語言與語速",
     titleNarration: "旁白語言、語速與聲線",
