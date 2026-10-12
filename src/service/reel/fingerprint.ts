@@ -44,6 +44,15 @@ export function clipUrlsInOrder(project: ReelClipSource) {
   });
 }
 
+// Plate image URLs in storyboard order. A missing plate stops the reel instead of shipping bare.
+export function plateUrlsInOrder(project: ReelClipSource) {
+  return (project.phaseA?.clips || []).map((row) => {
+    const plate = project.subtitlePlates?.find((item) => item.clipNumber === row.clipNumber);
+    if (!plate?.blobUrl) throw new Error(`缺少第 ${row.clipNumber} 段字幕圖`);
+    return plate.blobUrl;
+  });
+}
+
 export function isReelBusy(reelStatus?: ReelStatus) {
   return reelStatus === "queued" || reelStatus === "in_progress";
 }

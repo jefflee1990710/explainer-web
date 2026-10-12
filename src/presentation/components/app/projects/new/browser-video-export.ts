@@ -10,6 +10,7 @@ import { assemblyRatio, assemblyRuns, type AssemblyStage } from "@/service/reel/
 import { buildFinalFilter } from "@/service/video-edit/final-filter";
 import { layerPlacement } from "@/service/video-edit/layer-placement";
 import { parseProbe } from "@/service/video-edit/probe";
+import { subtitleBurnArgs, type SubtitleAspect } from "@/service/video-edit/subtitle-export";
 import { mapLimit } from "@/util/map-limit";
 
 // Single-thread build. The multi-thread core needs cross-origin isolation,
@@ -309,7 +310,11 @@ export async function downloadVideoFile(
   saveBlob(bytes, filename);
 }
 
+export type SubtitlePlateInput = { clipNumber: number; url: string };
+
 // Concat clips, intro, and outro. A logo layer is the only reason for a final encode.
+// With plates, every clip with a plate is burned first (even a one-clip export), then
+// the burned files go through the same join and logo path.
 export async function renderVideoInBrowser(
   clipUrls: string[],
   edit: VideoEdit,
@@ -317,10 +322,117 @@ export async function renderVideoInBrowser(
   onProgress: (job: ExportJob) => void,
   signal: AbortSignal,
   clipNumbers: number[] = clipUrls.map((_, index) => index + 1),
+  plates: SubtitlePlateInput[] = [],
 ) {
   if (clipUrls.length === 0) throw new Error("clips");
-  const phases = exportPhases(clipUrls.length, edit);
-  const key = `${clipUrls.join("|")}#${stableEditString(edit)}`;
+  const burn = plates.length > 0;
+  const phases = exportPhases(clipUrls.length, edit, burn);
+  const plateKey = burn ? `#plates:${plates.map((plate) => `${plate.clipNumber}=${plate.url}`).join("|")}` : "";
+  const key = `${clipUrls.join("|")}#${stableEditString(edit)}${plateKey}`;
+  if (!burn) return renderClips(clipUrls, edit, filename, onProgress, signal, clipNumbers, key, phases);
+
+  const cached = rendered.get(key);
+  if (cached) {
+    onProgress({ phase: "save", ratio: 1, phases });
+    saveBlob(cached, filename);
+    return;
+  }
+  const ffmpeg = await loadEncoder((ratio) => onProgress({ phase: "encoder", ratio, phases }), signal);
+  throwIfAborted(signal);
+  const burned = await burnPlates(ffmpeg, clipUrls, clipNumbers, plates, phases, onProgress, signal);
+  try {
+    await renderClips(burned.urls, edit, filename, onProgress, signal, clipNumbers, key, phases);
+  } finally {
+    burned.release();
+  }
+}
+
+// Frame shape of a clip decides where the plate sits.
+function aspectOfFrame(width: number, height: number): SubtitleAspect {
+  if (width > height) return "16:9";
+  if (width === height) return "1:1";
+  return "9:16";
+}
+
+// Burn each clip's plate in the wasm encoder. Clips without a plate keep their URL.
+// Burned files come back as object URLs so the normal join path can fetch them.
+async function burnPlates(
+  ffmpeg: FFmpeg,
+  clipUrls: string[],
+  clipNumbers: number[],
+  plates: SubtitlePlateInput[],
+  phases: ExportPhase[],
+  onProgress: (job: ExportJob) => void,
+  signal: AbortSignal,
+) {
+  const urls: string[] = [];
+  const made: string[] = [];
+  const release = () => {
+    for (const url of made) URL.revokeObjectURL(url);
+  };
+  const total = clipUrls.length;
+  try {
+    for (let index = 0; index < total; index += 1) {
+      const plate = plates.find((item) => item.clipNumber === clipNumbers[index]);
+      if (!plate) {
+        urls.push(clipUrls[index]);
+        continue;
+      }
+      const report = (ratio: number) => onProgress({ phase: "encode", ratio: (index + ratio) / total, phases });
+      const [clipBlob, plateBlob] = await fetchBlobs([clipUrls[index], plate.url], (ratio) => report(ratio * 0.3), signal);
+      throwIfAborted(signal);
+      const inputs = await mountInputs(ffmpeg, [
+        { name: `burn-${index}.mp4`, blob: clipBlob },
+        { name: `plate-${index}.${extOf(plate.url)}`, blob: plateBlob },
+      ]);
+      const out = `burned-${index}.mp4`;
+      try {
+        const probe = await probeFile(ffmpeg, inputs.paths[0]);
+        if (!probe.width || !probe.height || !probe.durationSec) throw new Error("probe");
+        await runEncoder(
+          ffmpeg,
+          subtitleBurnArgs({
+            clip: inputs.paths[0],
+            plate: inputs.paths[1],
+            out,
+            durationSec: probe.durationSec,
+            fps: probe.fps,
+            hasAudio: probe.hasAudio,
+            aspect: aspectOfFrame(probe.width, probe.height),
+            width: probe.width,
+            height: probe.height,
+          }),
+          signal,
+          "encode",
+          (ratio) => report(0.3 + ratio * 0.7),
+        );
+        const blob = await readEncoderBlob(ffmpeg, out);
+        if (!blob) throw new Error("encode");
+        const url = URL.createObjectURL(new Blob([blob], { type: "video/mp4" }));
+        made.push(url);
+        urls.push(url);
+      } finally {
+        await forget(ffmpeg, out);
+        await inputs.release();
+      }
+    }
+  } catch (error) {
+    release();
+    throw error;
+  }
+  return { urls, release };
+}
+
+async function renderClips(
+  clipUrls: string[],
+  edit: VideoEdit,
+  filename: string,
+  onProgress: (job: ExportJob) => void,
+  signal: AbortSignal,
+  clipNumbers: number[],
+  key: string,
+  phases: ExportPhase[],
+) {
   const cached = rendered.get(key);
   if (cached) {
     onProgress({ phase: "save", ratio: 1, phases });
@@ -446,8 +558,13 @@ export function exportPieceCount(clipCount: number, edit: VideoEdit) {
   return clipCount + (edit.intro ? 1 : 0) + (edit.outro ? 1 : 0);
 }
 
-export function exportPhases(clipCount: number, edit: VideoEdit): ExportPhase[] {
+export function exportPhases(clipCount: number, edit: VideoEdit, burn = false): ExportPhase[] {
   const pieces = exportPieceCount(clipCount, edit);
+  if (burn) {
+    // The plate burn runs first and reports as "encode"; the rest follows the normal flow.
+    const rest = exportPhases(clipCount, edit).filter((phase) => phase !== "encoder" && phase !== "encode");
+    return ["encoder", "encode", ...rest];
+  }
   if (!exportNeedsRender(edit)) {
     return pieces > 1 ? ["encoder", "join", "save"] : ["download", "save"];
   }

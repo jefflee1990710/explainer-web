@@ -20,8 +20,9 @@ import {
   planAndStoreVideoLocks,
 } from "@/service/higgsfield/video-locks-pipeline";
 import { persistBuffer } from "@/service/higgsfield/persist";
-import { concatMp4Urls } from "@/service/reel/concat";
-import { clipReelFingerprint, clipUrlsInOrder } from "@/service/reel/fingerprint";
+import { burnSubtitlePlates } from "@/service/reel/burn-plates";
+import { concatMp4Buffers, concatMp4Urls } from "@/service/reel/concat";
+import { clipReelFingerprint, clipUrlsInOrder, plateUrlsInOrder } from "@/service/reel/fingerprint";
 import { queueReelIfReady, scheduleReel } from "@/service/reel/enqueue";
 import {
   MAX_REEL_ATTEMPTS,
@@ -226,8 +227,32 @@ export async function runReelJob(projectId: ObjectId, fingerprint: string) {
   try {
     const urls = clipUrlsInOrder(project);
     const deadline = Date.now() + reelTimeoutMs(urls.length);
-    const reelUrl =
-      urls.length === 1
+    // Overlay projects burn each clip's plate first, so even one clip is re-encoded.
+    const overlay = project.subtitleOverlay === true;
+    const reelUrl = overlay
+      ? await withTimeout(
+          persistBuffer(
+            await concatMp4Buffers(
+              await burnSubtitlePlates({
+                clipUrls: urls,
+                plateUrls: plateUrlsInOrder(project),
+                aspect: project.aspectRatio,
+                timeoutMs: deadline - Date.now(),
+                onProgress: async (done, total) => {
+                  await projects.updateOne(attemptMatch, {
+                    $set: { reelStep: { current: done + 1, total, phase: "download" }, updatedAt: new Date() },
+                  });
+                },
+              }),
+              deadline - Date.now(),
+            ),
+            `explainer/${projectId.toHexString()}/reel/${fingerprint}.mp4`,
+            "video/mp4",
+          ),
+          Math.max(1, deadline - Date.now()),
+          REEL_TIMEOUT_MESSAGE,
+        )
+      : urls.length === 1
         ? urls[0]
         : await withTimeout(
             persistBuffer(
