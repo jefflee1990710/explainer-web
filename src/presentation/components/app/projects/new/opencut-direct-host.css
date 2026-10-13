@@ -16,7 +16,7 @@
   --accent-foreground: #12141c;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #e4e4e7;
+  --border: #f3f3f5;
   --input: #ffffff;
   --ring: #71717a;
   --sidebar: #ffffff;
@@ -32,5 +32,7 @@
   --foreground: #12141c;
   --card: #ffffff;
   --card-foreground: #12141c;
-  --border: #e4e4e7;
+  --border: #f3f3f5;
+  border-radius: 0;
+  border-color: #f3f3f5;
 }

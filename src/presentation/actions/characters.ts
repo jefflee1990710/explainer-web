@@ -1,6 +1,9 @@
 "use server";
 
 import * as service from "@/service/character/actions";
+import type { CharacterLookSelection } from "@/service/character/character-look";
+import { requireAppUser } from "@/service/auth";
+import { renderCharacterPoseSheet, reviseCharacterPoseSheet } from "@/service/character/pose-sheet";
 
 export type { CharacterResult, DeleteCharacterResult } from "@/service/character/actions";
 
@@ -86,4 +89,30 @@ export async function refreshCharacterAction(
   ...args: Parameters<typeof service.refreshCharacterAction>
 ) {
   return service.refreshCharacterAction(...args);
+}
+
+export async function generateCharacterPoseSheetAction(selection: CharacterLookSelection) {
+  await requireAppUser();
+  try {
+    const image = await renderCharacterPoseSheet(selection);
+    return { ok: true as const, image };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "產生八個姿勢失敗";
+    return { ok: false as const, error: message };
+  }
+}
+
+export async function reviseCharacterPoseSheetAction(input: {
+  selection: CharacterLookSelection;
+  image: string;
+  comment: string;
+}) {
+  await requireAppUser();
+  try {
+    const image = await reviseCharacterPoseSheet(input.selection, input.image, input.comment);
+    return { ok: true as const, image };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "更新姿勢圖失敗";
+    return { ok: false as const, error: message };
+  }
 }

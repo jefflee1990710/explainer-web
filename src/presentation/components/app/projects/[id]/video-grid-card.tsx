@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { generateAllClipsAction } from "@/presentation/actions/clip-production";
-import { markVideoArchivedAction } from "@/presentation/actions/video-archive";
+import { markVideoArchivedAction, unarchiveVideoAction } from "@/presentation/actions/video-archive";
 import { markVideoPostedAction } from "@/presentation/actions/video-post";
 import { VideoGenerationBadge } from "@/presentation/components/app/projects/[id]/video-generation-badge";
 import { VideoGenerationProgress } from "@/presentation/components/app/projects/[id]/video-generation-progress";
@@ -51,12 +51,14 @@ export function VideoGridCard({
   stage,
   onPosted,
   onArchived,
+  onUnarchived,
 }: {
   folderId: string;
   video: PublicVideoCard;
   stage: VideoListFilter;
   onPosted: (id: string) => void;
   onArchived: (id: string) => void;
+  onUnarchived: (id: string) => void;
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -150,6 +152,26 @@ export function VideoGridCard({
     }
   }
 
+  // Clears the archive flag so the card returns to its real stage.
+  async function unarchive() {
+    if (archiving) return;
+    setError("");
+    setArchiving(true);
+    try {
+      const result = await unarchiveVideoAction(video.id);
+      if (!result.ok) {
+        setError(translateAppError(result.error, t));
+        return;
+      }
+      onUnarchived(video.id);
+      router.refresh();
+    } catch {
+      setError(t("errors.genericRetry"));
+    } finally {
+      setArchiving(false);
+    }
+  }
+
   const previews = video.previewUrls;
   const title = video.title || t("video.card.unnamed");
   const progress =
@@ -226,9 +248,19 @@ export function VideoGridCard({
           </span>
         ) : null}
         {stage === "archived" ? (
-          <span className="inline-flex items-center rounded-full bg-accent-ink px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm">
-            {t("video.card.archived")}
-          </span>
+          <>
+            <span className="inline-flex items-center rounded-full bg-accent-ink px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm">
+              {t("video.card.archived")}
+            </span>
+            <button
+              type="button"
+              disabled={archiving}
+              onClick={() => void unarchive()}
+              className={`${cornerActionClass} border border-accent-ink/15 bg-paper text-accent-ink`}
+            >
+              {t("video.card.unarchive")}
+            </button>
+          </>
         ) : (
           <button
             type="button"

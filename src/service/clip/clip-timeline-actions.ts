@@ -12,6 +12,8 @@ import {
 } from "@/service/billing/credits";
 import { FRAME_COST } from "@/service/credit-costs";
 import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
+import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
+import { resolveSceneText } from "@/service/director/scene-text";
 import {
   applyClipOrder,
   insertClips,
@@ -80,7 +82,10 @@ export async function appendDirectorClipAction(input: {
     }
 
     // Overlay projects pay for one plate per new clip.
-    const plateOverlay = project.subtitleOverlay === true;
+    const plateOverlay = usesTalkingHeadSubtitleOverlay({
+      skillSlug: project.skillSlug,
+      styleId: project.styleId,
+    });
 
     const talkingHead = isTalkingHeadSkill(project.skillSlug);
     if (talkingHead) {
@@ -110,7 +115,8 @@ export async function appendDirectorClipAction(input: {
       cast: project.cast,
       content,
       insertAt,
-      subtitleOverlay: project.subtitleOverlay,
+      subtitleOverlay: plateOverlay,
+      noText: !resolveSceneText(project).enabled,
     });
     if (drafted.length === 0) return { ok: false, error: "導演沒有寫出片段" };
     if (project.phaseA.clips.length + drafted.length > APPEND_CLIP_MAX) {

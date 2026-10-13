@@ -1028,7 +1028,7 @@ test("REVISION line does not attach a sibling or previous still", () => {
   assert.doesNotMatch(prompt, /previous still/);
 });
 
-test("cinematic talking-head overlay stills do not paint the subtitle", () => {
+test("talking-head realistic stills paint the subtitle even when an old overlay flag is set", () => {
   const video = project("realistic");
   video.skillSlug = "talking-head-director";
   video.subtitleOverlay = true;
@@ -1036,11 +1036,32 @@ test("cinematic talking-head overlay stills do not paint the subtitle", () => {
   video.phaseA!.clips[0].englishVo = "Hello there.";
   video.phaseA!.clips[0].startScene = 'Person seated. Subtitle: one LARGE line, exactly "Hello there."';
   const prompt = buildFramePrompt(video, 1, "start");
-  assert.match(prompt, /no letters, no subtitle, no caption bar, no watermark/);
-  assert.match(prompt, /Look: realistic look/);
-  assert.doesNotMatch(prompt, /lettering sample/);
+  assert.doesNotMatch(prompt, /no letters, no subtitle, no caption bar, no watermark/);
+  assert.match(prompt, /Subtitle:/);
+  assert.match(prompt, /Hello there\./);
+  assert.match(prompt, /lettering sample/);
+  const plan = frameSubmitPlan(video, 1, "start");
+  assert.equal(plan.refs.includes("https://blob/look.png"), true);
+
+  video.phaseA!.clips[0].startScene = "Person seated.";
+  const filled = buildFramePrompt(video, 1, "start");
+  assert.match(filled, /Subtitle:/);
+  assert.match(filled, /Hello there\./);
+});
+
+test("none on-screen text strips writing from the still prompt", () => {
+  const video = project("realistic");
+  video.skillSlug = "talking-head-director";
+  video.sceneTextLanguage = "none";
+  video.textStyleImageUrl = "https://blob/look.png";
+  video.phaseA!.clips[0].englishVo = "Hello there.";
+  video.phaseA!.clips[0].startScene = 'Person seated. Subtitle: one LARGE line, exactly "Hello there."';
+  const prompt = buildFramePrompt(video, 1, "start");
+  assert.match(prompt, /No on-canvas text/);
+  assert.match(prompt, /no letters, no subtitle/);
   assert.doesNotMatch(prompt, /Subtitle:/);
-  assert.doesNotMatch(prompt, /https:\/\/blob\/look\.png/);
+  assert.doesNotMatch(prompt, /Hello there/);
+  assert.doesNotMatch(prompt, /lettering sample/);
   const plan = frameSubmitPlan(video, 1, "start");
   assert.equal(plan.refs.includes("https://blob/look.png"), false);
 });

@@ -6,7 +6,6 @@ import {
   autoVideoDecision,
   cheapestVideoCost,
   clipVideoCost,
-  FRAME_COST,
   FRAMES_COST,
   planGenerateAllVideos,
   planGenerateAllScenes,
@@ -227,20 +226,19 @@ test("empty plan when everything is done", () => {
   assert.deepEqual(planRemaining(project), { frames: [], videos: [], cost: 0 });
 });
 
-test("cinematic talking-head scene plan adds one plate per clip", () => {
-  // No frames yet, so both clips still need scene images.
-  const video: ClipStageSource & { subtitleOverlay?: boolean } = {
+test("scene plan does not add a separate subtitle plate", () => {
+  const video: ClipStageSource & { subtitleOverlay?: boolean; skillSlug?: string; styleId?: string } = {
     status: "production",
     subtitleOverlay: true,
+    skillSlug: "talking-head-director",
+    styleId: "realistic",
     phaseA: { clips: [{ clipNumber: 1 }, { clipNumber: 2 }] },
     frames: [],
     clips: [],
   };
-  assert.equal(subtitlePlateCost(video), FRAME_COST * 2);
-  const plan = planGenerateAllScenes(video);
-  assert.equal(plan.cost, sceneImageCost(video, [1, 2]) + FRAME_COST * 2);
-  video.subtitleOverlay = false;
   assert.equal(subtitlePlateCost(video), 0);
+  const plan = planGenerateAllScenes(video);
+  assert.equal(plan.cost, sceneImageCost(video, [1, 2]));
 });
 
 test("overlay video waits until the subtitle is burned onto both stills", () => {

@@ -17,6 +17,7 @@ import { useEditor } from "@/editor/use-editor";
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@/components/ui/button";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
 	createPreviewOverlayControl,
 	isPreviewOverlayVisible,
@@ -37,19 +38,22 @@ import { Toaster } from "sonner";
 // OpenCut editor mounted inside Scro's React tree. No iframe, no second origin.
 export default function OpenCutInlineEditor({ projectId }: { projectId: string }) {
 	return (
-		<EditorProvider projectId={projectId}>
-			<ScroClipImport />
-			<ScroExportBridge />
-			<ScroProjectSync />
-			<ScroSubtitleBridge />
-			<div className="opencut-direct-host bg-background flex h-full min-h-0 w-full flex-col overflow-hidden">
-				<DegradedRendererBanner />
-				<div className="min-h-0 min-w-0 flex-1">
-					<EditorLayout />
+		// OpenCut's app layout supplies TooltipProvider. This mount skips that layout.
+		<TooltipProvider>
+			<EditorProvider projectId={projectId}>
+				<ScroClipImport />
+				<ScroExportBridge />
+				<ScroProjectSync />
+				<ScroSubtitleBridge />
+				<div className="opencut-direct-host bg-background flex h-full min-h-0 w-full flex-col overflow-hidden">
+					<DegradedRendererBanner />
+					<div className="min-h-0 min-w-0 flex-1">
+						<EditorLayout />
+					</div>
+					<Toaster />
 				</div>
-				<Toaster />
-			</div>
-		</EditorProvider>
+			</EditorProvider>
+		</TooltipProvider>
 	);
 }
 

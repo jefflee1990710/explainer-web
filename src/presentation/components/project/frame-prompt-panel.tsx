@@ -2,7 +2,7 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { sceneTextLangLabel } from "@/util/i18n/picker-labels";
-import type { ClipFrame, SceneTextLanguage } from "@/model/project";
+import type { ClipFrame, SceneTextChoice } from "@/model/project";
 
 export function sceneTextPromptSummary(prompt: string) {
   if (/MANDATORY ON-CANVAS TEXT/.test(prompt)) {
@@ -27,7 +27,7 @@ export function FramePromptPanel({
   frames,
 }: {
   sceneTextEnabled: boolean;
-  sceneTextLanguage: SceneTextLanguage;
+  sceneTextLanguage: SceneTextChoice;
   voiceoverLine?: string;
   frames: Array<ClipFrame | undefined>;
 }) {

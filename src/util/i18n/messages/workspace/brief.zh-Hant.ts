@@ -82,7 +82,7 @@ export const briefZhHant = {
   section04: {
     title: "畫面文字",
     hintListicle: "清單式導演會在畫面列出項目文字，選擇文字語言。",
-    hintDefault: "每張分鏡圖都會寫上畫面文字，選擇文字語言。",
+    hintDefault: "每張分鏡圖可以寫上畫面文字。選擇語言，或選「無」，場景圖和影片都不要出現文字。",
     lookTitle: "字幕外觀",
     lookHint: "只改字體。字幕放在哪裡由導演決定。",
     lookAria: "字幕外觀",

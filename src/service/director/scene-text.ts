@@ -5,7 +5,7 @@ import {
   listicleItemShot,
   listicleListEntries,
 } from "@/service/director/skill-rules";
-import type { SceneTextLanguage } from "@/model/project";
+import type { SceneTextChoice, SceneTextLanguage } from "@/model/project";
 import { subtitleLookLine, type SubtitleLook } from "@/service/director/subtitle-look";
 
 export type SceneTextPreset = {
@@ -42,6 +42,10 @@ export const SCENE_TEXT_PRESETS: Record<SceneTextLanguage, SceneTextPreset> = {
 
 export const SCENE_TEXT_IDS = Object.keys(SCENE_TEXT_PRESETS) as SceneTextLanguage[];
 
+// Shown beside the languages. Not a script, so it stays out of SCENE_TEXT_PRESETS.
+export const SCENE_TEXT_OFF = "none" as const;
+export const SCENE_TEXT_CHOICES = [...SCENE_TEXT_IDS, SCENE_TEXT_OFF] as SceneTextChoice[];
+
 // AliCloud / Qwen: steer away from lettering when scene text is off.
 export const SCENE_TEXT_OFF_NEGATIVE_PROMPT =
   "text, words, letters, numbers, typography, captions, subtitles, signage, labels, watermark, logo";
@@ -54,15 +58,22 @@ export function isSceneTextLanguage(value: string): value is SceneTextLanguage {
   return SCENE_TEXT_IDS.includes(value as SceneTextLanguage);
 }
 
-// On-canvas text is always on; only the script is chosen. Legacy
-// `sceneTextEnabled: false` rows resolve to on as well.
+export function isSceneTextChoice(value: string): value is SceneTextChoice {
+  return value === SCENE_TEXT_OFF || isSceneTextLanguage(value);
+}
+
+// On-canvas text stays on unless the brief chose None. Legacy
+// `sceneTextEnabled: false` rows still resolve to on.
 export function resolveSceneText(input: {
   sceneTextEnabled?: boolean;
-  sceneTextLanguage?: SceneTextLanguage;
+  sceneTextLanguage?: SceneTextChoice;
   skillSlug?: string;
-  // Cantonese voiceover always paints Traditional written Chinese.
+  // Cantonese voiceover paints Traditional written Chinese, unless the brief chose None.
   language?: VoLanguage;
 }) {
+  if (input.sceneTextLanguage === SCENE_TEXT_OFF) {
+    return { enabled: false, language: "en" as const, inWorldLabels: false };
+  }
   if (input.language === "yue") {
     return { enabled: true, language: "zh-Hant" as const, inWorldLabels: false };
   }

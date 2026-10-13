@@ -54,6 +54,16 @@ type StageInput = {
   archivedAt?: string;
 };
 
+// null is an optimistic unarchive and must beat a stale server archivedAt.
+// A timestamp is an optimistic archive. Absent means use the server value.
+export function resolvedArchivedAt(
+  serverArchivedAt: string | undefined,
+  override: string | null | undefined,
+): string | undefined {
+  if (override === null) return undefined;
+  return override || serverArchivedAt;
+}
+
 // Finished means every scene still and every clip video is stored.
 function clipsFinished(tags: GenerationDetailTag[], status: ProjectStatus) {
   const scenes = tags.filter((tag) => tag.kind === "scene");

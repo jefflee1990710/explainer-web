@@ -5,6 +5,7 @@ import { emptyPerformance } from "@/service/director/performance";
 import { emptyProfile, parseSystemProfile } from "@/service/director/profile";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { resolveSubtitleLook } from "@/service/director/subtitle-look";
+import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { resolveVoiceGender } from "@/service/director/voice";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
 import { clipGenerationTags, productionCounts, type GenerationDetailTag } from "@/service/clip-stage";
@@ -337,11 +338,13 @@ export function toPublicVideo(video: Project): PublicVideo {
     voiceGender: resolveVoiceGender(video.voiceGender),
     speechPace: resolveSpeechPace(video.speechPace),
     sceneTextEnabled: sceneText.enabled,
-    sceneTextLanguage: sceneText.language,
+    sceneTextLanguage: video.sceneTextLanguage === "none" ? "none" : sceneText.language,
     subtitleLook: resolveSubtitleLook(video.subtitleLook),
     textStyleId: video.textStyleId,
     textStyleImageUrl: video.textStyleImageUrl,
-    subtitleOverlay: video.subtitleOverlay === true,
+    subtitleOverlay:
+      video.subtitleOverlay === true &&
+      usesTalkingHeadSubtitleOverlay({ skillSlug: video.skillSlug, styleId: video.styleId }),
     subtitlePlates: video.subtitlePlates,
     characterImageUrl: video.characterImageUrl,
     characterStillUrl: video.characterStillUrl,
@@ -400,7 +403,9 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
   const counts = productionCounts(source);
   const previewUrls = previewUrlsFromVideo({
     frames,
-    subtitleOverlay: video.subtitleOverlay === true,
+    subtitleOverlay:
+      video.subtitleOverlay === true &&
+      usesTalkingHeadSubtitleOverlay({ skillSlug: video.skillSlug, styleId: video.styleId }),
     characterStillUrl: video.characterStillUrl,
     characterImageUrl: video.characterImageUrl,
   });

@@ -9,6 +9,7 @@ import { InsufficientCreditsDialog } from "@/presentation/components/app/billing
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import { analyzeCharacterReferencesAction } from "@/presentation/actions/analyze-references";
 import { CameraCaptureDialog } from "@/presentation/components/app/characters/camera-capture-dialog";
+import { CreateCharacterMenu } from "@/presentation/components/app/characters/create-character-menu";
 import { CreateCharacterReferences } from "@/presentation/components/app/characters/create-character-references";
 import { ReferenceCoveragePanel } from "@/presentation/components/app/characters/reference-coverage-panel";
 import { CharacterVoiceFields } from "@/presentation/components/app/characters/character-voice-fields";
@@ -45,20 +46,18 @@ export function CreateCharacterButton({
   children?: React.ReactNode;
 }) {
   const { t } = useI18n();
-  const label = children ?? t("characters.create");
+  const router = useRouter();
+  const label = typeof children === "string" && children.length > 0 ? children : t("characters.create");
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button
-        type="button"
+      <CreateCharacterMenu
+        label={label}
         className={className}
-        aria-haspopup="dialog"
-        aria-expanded={open}
         disabled={atCharacterLimit}
-        onClick={() => setOpen(true)}
-      >
-        {label}
-      </button>
+        onSimple={() => setOpen(true)}
+        onGenerator={() => router.push("/app/characters/generate")}
+      />
       {open ? (
         <CreateCharacterModal
           credits={credits}
@@ -189,7 +188,7 @@ export function CreateCharacterModal({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id={titleId} className="font-display text-2xl font-bold">
-          {t("characters.create")}
+          {t("characters.createSimple")}
         </h2>
         <p className="mt-2 text-sm text-muted">{t("characters.modalIntro")}</p>
         <form ref={formRef} onSubmit={onSubmit} className="mt-5 space-y-4">

@@ -250,7 +250,7 @@ export async function runPhaseA(input: {
   const clipsOnlyNote = input.clipsOnly
     ? `\nRegenerate ONLY the clips array (and clipCount / narrativeArc / englishWordCount / bgmDirection as needed). Copy localizedTitle, englishTitle, coreMessage, hookStrategy, narrator, visualWorld, characterLock, palette, aspectRatio, loopMode, and targetDuration verbatim from the current draft. Do not change the proposal brief.\n`
     : "";
-  // Cinematic talking-head: later burn-in owns the letters, so stills stay clean.
+  // Talking-head paints the spoken line into the still. Overlay plates stay off.
   const subtitleOverlay = usesTalkingHeadSubtitleOverlay({
     skillSlug: input.skill.slug,
     styleId: input.style.id,
@@ -271,7 +271,7 @@ ${keyframeDeltaDirectorBlock({ separateStills: dualBeat, language: input.languag
 ${sceneDetailDirectorBlock()}
 ${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter, steadyStills }) : ""}
 ${
-  skillForcesSceneText(input.skill.slug)
+  sceneText.enabled && skillForcesSceneText(input.skill.slug)
     ? "On-canvas text is required: a numbered item list must appear in every still."
     : sceneText.enabled
       ? dualBeat
@@ -316,8 +316,8 @@ ${
         })
       : "",
     input.skill.slug === DIALOGUE_QA_SKILL_SLUG ? dialogueQaDirectorBlock() : "",
-    skillForcesSceneText(input.skill.slug) ? listicleDirectorBlock() : "",
-    isComparisonCardSkill(input.skill.slug) ? comparisonCardDirectorBlock(input.aspectRatio) : "",
+    sceneText.enabled && skillForcesSceneText(input.skill.slug) ? listicleDirectorBlock() : "",
+    sceneText.enabled && isComparisonCardSkill(input.skill.slug) ? comparisonCardDirectorBlock(input.aspectRatio) : "",
     isTalkingBrollSkill(input.skill.slug) ? talkingBrollDirectorBlock() : "",
     bookend
       ? bookendDirectorBlock(input.skill.slug, logoImages.length > 0, { lockLength: lockBookendLength })
@@ -328,6 +328,7 @@ ${
           input.aspectRatio,
           resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en"),
           subtitleOverlay,
+          !sceneText.enabled,
         )
       : "",
     isSurpriseInterviewSkill(input.skill.slug) ? surpriseInterviewDirectorBlock() : "",
@@ -347,8 +348,8 @@ ${phaseAAudioHint(input.voiceGender, { bansNarration: dialogueOnly, speakers: in
 ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   dualBeat,
   steadyStills,
-  listicle: skillForcesSceneText(input.skill.slug),
-  comparison: isComparisonCardSkill(input.skill.slug),
+  listicle: sceneText.enabled && skillForcesSceneText(input.skill.slug),
+  comparison: sceneText.enabled && isComparisonCardSkill(input.skill.slug),
   inWorldLabels: sceneText.inWorldLabels,
   aspectRatio: input.aspectRatio,
   look: subtitleLook,
@@ -473,6 +474,7 @@ Produce a complete Phase A director proposal now.`,
       // Custom directors override template slots per key; see resolvePerformance.
       performance: resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", input.language),
       overlay: subtitleOverlay,
+      noText: !sceneText.enabled,
     });
     const spoken = clips.reduce((sum, clip) => {
       const units = spokenUnits(clip.englishVo);

@@ -1,6 +1,6 @@
 import { isDurationPreset } from "@/service/director/duration-presets";
 import { isVoLanguage } from "@/service/director/languages";
-import { isSceneTextLanguage } from "@/service/director/scene-text";
+import { isSceneTextChoice } from "@/service/director/scene-text";
 import { isSubtitleLook, resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { isSpeechPace } from "@/service/director/speech-pace";
 import { requiredCastCount } from "@/service/director/skill-rules";
@@ -9,7 +9,7 @@ import { DEFAULT_STYLE_ID } from "@/service/style";
 import type {
   AspectRatio,
   DurationPreset,
-  SceneTextLanguage,
+  SceneTextChoice,
   SpeechPace,
   SubtitleLook,
   VoLanguage,
@@ -22,7 +22,7 @@ export type BriefDefaults = {
   language: VoLanguage;
   voiceGender: VoiceGender;
   speechPace: SpeechPace;
-  sceneTextLanguage: SceneTextLanguage;
+  sceneTextLanguage: SceneTextChoice;
   subtitleLook: SubtitleLook;
   textStyleId: string;
   aspectRatio: AspectRatio;
@@ -65,7 +65,7 @@ export function sanitizeBriefDefaults(
   const speechPace =
     typeof input.speechPace === "string" && isSpeechPace(input.speechPace) ? input.speechPace : "medium";
   const sceneTextLanguage =
-    typeof input.sceneTextLanguage === "string" && isSceneTextLanguage(input.sceneTextLanguage)
+    typeof input.sceneTextLanguage === "string" && isSceneTextChoice(input.sceneTextLanguage)
       ? input.sceneTextLanguage
       : "en";
   const subtitleLook = resolveSubtitleLook(

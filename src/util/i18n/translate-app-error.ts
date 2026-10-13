@@ -109,6 +109,11 @@ const EXACT: Record<string, string> = {
   "片段還在生成，請完成後再插入片段": "errors.clipBusyInsert",
   "成片合成中，請完成後再插入片段": "errors.reelBusyInsert",
   "插入位置不正確": "errors.insertSlotInvalid",
+  "請寫下要改的地方": "errors.poseCommentRequired",
+  "修改意見太長": "errors.poseCommentTooLong",
+  "姿勢圖格式不正確": "errors.poseImageInvalid",
+  "姿勢圖太大": "errors.poseImageTooLarge",
+  "更新姿勢圖失敗": "errors.poseUpdateFailed",
 };
 
 const PATTERNS: Array<{ re: RegExp; key: string; params?: (m: RegExpMatchArray) => Record<string, string | number> }> = [

@@ -230,7 +230,12 @@ export async function runReelJob(projectId: ObjectId, fingerprint: string) {
     const deadline = Date.now() + reelTimeoutMs(urls.length);
     // Burn only plates that are not already inside the clip. A clip filmed from
     // a merged still keeps its file; burning again would double the subtitle.
-    const plateUrls = project.subtitleOverlay === true ? plateUrlsInOrder(project) : [];
+    const plateUrls = usesTalkingHeadSubtitleOverlay({
+      skillSlug: project.skillSlug,
+      styleId: project.styleId,
+    })
+      ? plateUrlsInOrder(project)
+      : [];
     const overlay = plateUrls.some((url) => url);
     const reelUrl = overlay
       ? await withTimeout(

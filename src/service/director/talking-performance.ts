@@ -119,6 +119,8 @@ export function talkingMotionLine(input: {
   performance?: PerformanceSlots;
   // True when a later pass burns the subtitle on. Motion keeps the spoken line and skips caption fades.
   overlay?: boolean;
+  // Brief chose None. Do not mention an on-screen subtitle at all.
+  noText?: boolean;
   // Next clip's spoken line. Talking-head overlay ends on this subtitle.
   nextLine?: string;
 }) {
@@ -150,8 +152,9 @@ export function talkingMotionLine(input: {
       : `speaks "${input.line}" with continuous lip-sync, ${face}, ${head}, ${hands}, and weight shifting hip to hip; feet stay in frame`;
     const hook = first ? `${p.hookBeat} as the hook` : "eyebrows lifting into a warm half-smile";
     const propReady = anchored ? `, the ${hand} hand already holding ${p.anchorProp}` : "";
+    const hideSubtitle = input.overlay || input.noText;
     const fadeIn = `the large subtitle fades and slides up into place ${place}`;
-    const fadeInClause = input.overlay ? "" : `, ${fadeIn}`;
+    const fadeInClause = hideSubtitle ? "" : `, ${fadeIn}`;
     const open = !first
       ? `0–0.4s she stays in the exact framing of the first frame, ${seated ? "seated, " : ""}same crop, same distance, eyes locked on the lens, ${hook}${propReady}, mouth opening into this line${fadeInClause}, no cut and no jump`
       : seated
@@ -167,12 +170,10 @@ export function talkingMotionLine(input: {
     const cameraTail = seated
       ? "camera stays locked on the phone tripod, 24mm at f/1.8, from the first frame to the last frame, no zoom, no reframe, no jump."
       : "camera stays locked on the same framing from the first frame to the last frame, no zoom, no reframe, no jump.";
-    const hold = input.overlay ? "" : ", and the large subtitle holds still";
-    const fadeOutClause = input.overlay ? "" : `, ${fadeOut}`;
-    const subtitleTail = input.overlay
-      ? ""
-      : ` ${subtitle}`;
-    const transition = overlaySubtitleTransition("en", input);
+    const hold = hideSubtitle ? "" : ", and the large subtitle holds still";
+    const fadeOutClause = hideSubtitle ? "" : `, ${fadeOut}`;
+    const subtitleTail = hideSubtitle ? "" : ` ${subtitle}`;
+    const transition = input.noText ? "" : overlaySubtitleTransition("en", input);
     return `${open}; 0.4–${close}s she ${body}${hold}; ${close}–${input.seconds}s ${closeFace}, ${closeBeat}${fadeOutClause}${transition}; ${cameraTail}${subtitleTail}`;
   }
   const p = input.performance ?? DEFAULT_PERFORMANCE[input.shot].yue;
@@ -195,8 +196,9 @@ export function talkingMotionLine(input: {
     : `口型跟住講「${input.line}」，${face}，${head}，${hands}，重心左右移；頭到腳留喺畫面`;
   const hook = first ? `${p.hookBeat}做 hook` : "眉毛揚起、帶住半笑";
   const propReady = anchored ? `、${p.anchorProp}已經喺${zhHand}` : "";
+  const hideSubtitle = input.overlay || input.noText;
   const fadeIn = `大字幕由下向上淡入到${place}`;
-  const fadeInClause = input.overlay ? "" : `、${fadeIn}`;
+  const fadeInClause = hideSubtitle ? "" : `、${fadeIn}`;
   const open = !first
     ? `0–0.4s 保持第一幀嘅構圖，${seated ? "坐住、" : ""}同一個裁切、同一距離、直望鏡頭、${hook}${propReady}、開口講呢句${fadeInClause}、冇切鏡、冇跳鏡`
     : seated
@@ -209,10 +211,10 @@ export function talkingMotionLine(input: {
   const cameraTail = seated
     ? "鏡頭由第一幀到最後一幀鎖喺手機腳架，24mm f/1.8，唔好變焦、唔好換鏡、唔好跳鏡。"
     : "鏡頭由第一幀到最後一幀鎖定同一構圖，唔好變焦、唔好換鏡、唔好跳鏡。";
-  const hold = input.overlay ? "" : "，大字幕保持唔郁";
-  const fadeOutClause = input.overlay ? "" : "，大字幕向下淡出";
-  const subtitleTail = input.overlay ? "" : subtitle;
-  const transition = overlaySubtitleTransition("yue", input);
+  const hold = hideSubtitle ? "" : "，大字幕保持唔郁";
+  const fadeOutClause = hideSubtitle ? "" : "，大字幕向下淡出";
+  const subtitleTail = hideSubtitle ? "" : subtitle;
+  const transition = input.noText ? "" : overlaySubtitleTransition("yue", input);
   return `${open}；0.4–${close}s ${body}${hold}；${close}–${input.seconds}s ${closeFace}，${closeBeat}${fadeOutClause}${transition}；${cameraTail}${subtitleTail}`;
 }
 

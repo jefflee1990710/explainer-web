@@ -26,6 +26,7 @@ import {
   stillBlocker,
 } from "@/service/higgsfield/pipeline";
 import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
+import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { isProductionLike } from "@/service/project-status";
 import { isInheritedTalkingHeadStart, withInheritedTalkingHeadStarts } from "@/service/director/talking-head";
 import { clipFrameCost } from "@/service/clip-stage";
@@ -250,7 +251,10 @@ export async function retrySubtitlePlateAction(
     if (!isProductionLike(project.status)) {
       return { ok: false, error: "分鏡尚未完成" };
     }
-    if (project.subtitleOverlay !== true) {
+    if (
+      project.subtitleOverlay !== true ||
+      !usesTalkingHeadSubtitleOverlay({ skillSlug: project.skillSlug, styleId: project.styleId })
+    ) {
       return { ok: false, error: "這個專案不使用字幕圖" };
     }
     if (!project.phaseA.clips.some((clip) => clip.clipNumber === clipNumber)) {

@@ -3,6 +3,7 @@ import { canQueueFrames, clipFrameCost, clipStatesFor, type ClipStageSource } fr
 import type { ClipFrame, ProjectClip } from "@/model/project";
 
 import { FRAME_COST, MIN_VIDEO_COST, MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
+import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 
 export * from "@/service/credit-costs";
@@ -23,8 +24,23 @@ export function sceneImageCost(project: ClipStageSource, clipNumbers: number[]) 
 }
 
 // One keyed subtitle plate per storyboard clip when overlay is on.
-export function subtitlePlateCost(project: { subtitleOverlay?: boolean; phaseA?: { clips: unknown[] } }) {
-  if (project.subtitleOverlay !== true) return 0;
+export function subtitlePlateCost(project: {
+  subtitleOverlay?: boolean;
+  skillSlug?: string;
+  styleId?: string;
+  baseStyleId?: string;
+  phaseA?: { clips: unknown[] };
+}) {
+  if (
+    project.subtitleOverlay !== true ||
+    !usesTalkingHeadSubtitleOverlay({
+      skillSlug: project.skillSlug,
+      styleId: project.styleId,
+      baseStyleId: project.baseStyleId,
+    })
+  ) {
+    return 0;
+  }
   return FRAME_COST * (project.phaseA?.clips.length ?? 0);
 }
 

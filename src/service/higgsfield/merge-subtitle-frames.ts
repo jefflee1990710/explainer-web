@@ -2,6 +2,7 @@ import type { ObjectId } from "mongodb";
 import { videosCollection } from "@/dao";
 import type { FramePosition } from "@/model/project";
 import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
+import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { plateLineStale } from "@/service/video-edit/subtitle-export";
 import { overlayFramePlateUrl } from "@/service/video-edit/overlay-frame-plate";
 import { compositeSubtitleStill } from "@/service/video-edit/merge-subtitle-still";
@@ -15,6 +16,7 @@ export async function mergeReadySubtitleFrames(projectId: ObjectId) {
   const projects = await videosCollection();
   const project = await projects.findOne({ _id: projectId });
   if (!project?.subtitleOverlay) return;
+  if (!usesTalkingHeadSubtitleOverlay({ skillSlug: project.skillSlug, styleId: project.styleId })) return;
 
   const ready = (project.subtitlePlates || []).flatMap((plate) => {
     if (plate.status !== "completed" || !plate.blobUrl) return [];

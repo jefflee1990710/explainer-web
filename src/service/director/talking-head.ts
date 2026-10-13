@@ -214,6 +214,8 @@ export function planTalkingHeadClips(input: {
   performance?: PerformanceSlots;
   // True when a later pass burns the subtitle on. Stills and motion stay free of painted letters.
   overlay?: boolean;
+  // Brief chose None. Stills and the video stay free of every written word.
+  noText?: boolean;
 }): TalkingHeadClipPlan[] {
   const lines = balanceTalkingHeadLines(input.source, input.pace);
   const total = lines.length;
@@ -230,7 +232,7 @@ export function planTalkingHeadClips(input: {
       background: input.background,
       openingPhoto: input.openingPhoto,
       perf,
-      overlay: input.overlay,
+      overlay: input.overlay || input.noText,
     };
     const endScene = shotLine(input.language, "end", line, scene);
     const previousLine = index === 0 ? undefined : lines[index - 1];
@@ -239,7 +241,13 @@ export function planTalkingHeadClips(input: {
     const startScene =
       index === 0
         ? shotLine(input.language, "start", line, scene)
-        : withThisClipSubtitle(clips[index - 1].endScene, input.language, line, belowCenter, input.overlay);
+        : withThisClipSubtitle(
+            clips[index - 1].endScene,
+            input.language,
+            line,
+            belowCenter,
+            input.overlay || input.noText,
+          );
     clips.push({
       clipNumber: index + 1,
       timeRange: `0–${seconds}s`,
@@ -259,6 +267,7 @@ export function planTalkingHeadClips(input: {
         belowCenter,
         performance: perf,
         overlay: input.overlay,
+        noText: input.noText,
         nextLine,
       }),
       englishVo: line,
@@ -346,6 +355,7 @@ export function talkingHeadDirectorBlock(
   aspectRatio?: string,
   performance?: PerformanceSlots,
   overlay?: boolean,
+  noText?: boolean,
 ) {
   const fullBody = skillSlug === FULL_BODY_TALKING_HEAD_SKILL_SLUG;
   const p = performance ?? DEFAULT_PERFORMANCE[fullBody ? "full-body" : "face"].en;
@@ -367,11 +377,13 @@ export function talkingHeadDirectorBlock(
       : `On-camera speech to a phone on a tripod: seated, eyes locked on the lens, continuous lip-sync, head tilting and nodding, ${hands}. Natural skin, real cloth, unposed. Never freeze the face or neck. Never a greeting wave. Never stand up.`,
     `Face pattern: resting face is ${p.restingFace}. Emphasis: ${p.emphasisBeat}. Clip 1 opens with ${p.hookBeat} as the hook. The last clip ends on ${p.ctaBeat}.`,
     `Gesture pattern: the gesturing hand changes shape every 1–2 seconds in time with the words — ${p.gestureLibrary}. Head: ${p.headMotion}.`,
-    overlay
-      ? fullBody
-        ? "The frame has no letters, no subtitle, no caption, no logo, and no writing. The spoken line is voice only."
-        : "The stills have no letters, no subtitle, no caption, no logo, and no writing. The video shows this clip's subtitle on the opening frame and the next clip's subtitle on the end frame, with a short slide-and-fade between them. The last clip keeps its own subtitle on the end frame. The voice says only this clip's line and never speaks the next subtitle."
-      : talkingSubtitleRule(aspectRatio),
+    noText
+      ? "The frame has no letters, no subtitle, no caption, no logo, and no writing. The spoken line is voice only."
+      : overlay
+        ? fullBody
+          ? "The frame has no letters, no subtitle, no caption, no logo, and no writing. The spoken line is voice only."
+          : "The stills have no letters, no subtitle, no caption, no logo, and no writing. The video shows this clip's subtitle on the opening frame and the next clip's subtitle on the end frame, with a short slide-and-fade between them. The last clip keeps its own subtitle on the end frame. The voice says only this clip's line and never speaks the next subtitle."
+        : talkingSubtitleRule(aspectRatio),
     "Each clip's voice says only that clip's own line, once. Never repeat the previous clip's sentence, even when the opening frame still shows it.",
   ].join(" ");
 }
@@ -471,6 +483,17 @@ function withThisClipSubtitle(
   const body = previousEnd.replace(/\s*(?:Subtitle:|字幕：).*$/u, "").trim();
   const lang = language === "en" ? "en" : "yue";
   return `${body} ${subtitleSentence(lang, painted, belowCenter)}`.replace(/\s{2,}/g, " ");
+}
+
+// The same sentence the storyboard writes into a still, for a frame that was planned without one.
+export function talkingHeadStillSubtitle(input: {
+  line: string;
+  language?: VoLanguage;
+  belowCenter?: boolean;
+}) {
+  const lang = input.language === "yue" ? "yue" : "en";
+  const painted = lang === "yue" ? toWrittenChinese(input.line) : input.line;
+  return subtitleSentence(lang, painted, input.belowCenter);
 }
 
 // Large lettering. A long line was being painted as one tiny row.

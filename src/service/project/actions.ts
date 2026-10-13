@@ -19,7 +19,7 @@ import { findSelectableSkill, isHiddenPickerSkill } from "@/service/director/sel
 import { isVoLanguage } from "@/service/director/languages";
 import { isVoiceGender, resolveVoiceGender } from "@/service/director/voice";
 import { isSpeechPace } from "@/service/director/speech-pace";
-import { isSceneTextLanguage } from "@/service/director/scene-text";
+import { isSceneTextChoice, SCENE_TEXT_OFF } from "@/service/director/scene-text";
 import { isSubtitleLook, resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { isDurationPreset } from "@/service/director/duration-presets";
 import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
@@ -61,7 +61,7 @@ import type {
   DurationPreset,
   PhaseAEditInput,
   ReferenceImage,
-  SceneTextLanguage,
+  SceneTextChoice,
   SpeechPace,
   SubtitleLook,
   VoLanguage,
@@ -91,7 +91,7 @@ type BriefFields = {
   voiceGender: VoiceGender;
   speechPace: SpeechPace;
   sceneTextEnabled: boolean;
-  sceneTextLanguage: SceneTextLanguage;
+  sceneTextLanguage: SceneTextChoice;
   subtitleLook: SubtitleLook;
   textStyleId: string;
   textStyleImageUrl?: string;
@@ -200,7 +200,7 @@ async function readVideoBrief(
   if (!isSpeechPace(speechPace)) {
     return { ok: false, error: "請選擇語速" };
   }
-  if (!isSceneTextLanguage(sceneTextLanguage)) {
+  if (!isSceneTextChoice(sceneTextLanguage)) {
     return { ok: false, error: "請選擇畫面文字語言" };
   }
   const textStyle = await resolveTextStyleChoice(clerkUserId, textStyleRaw);
@@ -254,8 +254,8 @@ async function readVideoBrief(
       language,
       voiceGender: resolveVoiceGender(voiceGender),
       speechPace,
-      // 畫面文字永遠開啟，使用者只選語言。
-      sceneTextEnabled: true,
+      // None turns writing off. Any language keeps it on.
+      sceneTextEnabled: sceneTextLanguage !== SCENE_TEXT_OFF,
       sceneTextLanguage,
       subtitleLook: textStyle.subtitleLook,
       textStyleId: textStyle.textStyleId,
@@ -481,7 +481,10 @@ export async function createVideoAction(
       language: brief.language,
       voiceGender: brief.voiceGender,
       speechPace: brief.speechPace,
-      sceneTextEnabled: applySkillSceneText(ruleSlug, brief.sceneTextEnabled),
+      sceneTextEnabled:
+        brief.sceneTextLanguage === SCENE_TEXT_OFF
+          ? false
+          : applySkillSceneText(ruleSlug, brief.sceneTextEnabled),
       sceneTextLanguage: brief.sceneTextLanguage,
       subtitleLook: brief.subtitleLook,
       textStyleId: brief.textStyleId,
@@ -645,7 +648,10 @@ async function rewriteVideoBrief(
           language: brief.language,
           voiceGender: brief.voiceGender,
           speechPace: brief.speechPace,
-          sceneTextEnabled: applySkillSceneText(ruleSlug, brief.sceneTextEnabled),
+          sceneTextEnabled:
+        brief.sceneTextLanguage === SCENE_TEXT_OFF
+          ? false
+          : applySkillSceneText(ruleSlug, brief.sceneTextEnabled),
           sceneTextLanguage: brief.sceneTextLanguage,
           subtitleLook: brief.subtitleLook,
           textStyleId: brief.textStyleId,

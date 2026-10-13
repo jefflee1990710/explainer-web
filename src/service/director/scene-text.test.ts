@@ -37,6 +37,16 @@ test("resolveSceneText is always on; legacy false and missing still enable", () 
     language: "zh-Hant",
     inWorldLabels: false,
   });
+  assert.deepEqual(resolveSceneText({ sceneTextLanguage: "none" }), {
+    enabled: false,
+    language: "en",
+    inWorldLabels: false,
+  });
+  assert.deepEqual(resolveSceneText({ language: "yue", sceneTextLanguage: "none", skillSlug: "listicle-director" }), {
+    enabled: false,
+    language: "en",
+    inWorldLabels: false,
+  });
 });
 
 test("listicle forces on-canvas text even when the toggle is off", () => {
@@ -101,6 +111,7 @@ test("isSceneTextLanguage accepts only the three scene-text ids", () => {
   assert.equal(isSceneTextLanguage("en"), true);
   assert.equal(isSceneTextLanguage("zh-Hant"), true);
   assert.equal(isSceneTextLanguage("zh-Hans"), true);
+  assert.equal(isSceneTextLanguage("none"), false);
   assert.equal(isSceneTextLanguage("zh"), false);
   assert.equal(isSceneTextLanguage("yue"), false);
 });

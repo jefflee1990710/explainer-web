@@ -5,7 +5,13 @@ import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
 import type { Project, SubtitlePlate } from "@/model/project";
 import { refundCredits } from "@/service/billing/credits";
 import { FRAME_COST } from "@/service/credit-costs";
-import { isMagentaKeyPixel, plateIsEmpty, PLATE_EMPTY_ERROR, subtitlePlatePrompt } from "@/service/director/subtitle-plate";
+import {
+  isGreenKeyPixel,
+  plateIsEmpty,
+  PLATE_EMPTY_ERROR,
+  subtitlePlatePrompt,
+  usesTalkingHeadSubtitleOverlay,
+} from "@/service/director/subtitle-plate";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { subtitleLookLine } from "@/service/director/subtitle-look";
 import {
@@ -24,8 +30,8 @@ import { PLATE_LINE_CHANGED_ERROR, plateLineStale } from "@/service/video-edit/s
 // The graphic is a wide strip; the export filter scales it to the frame width.
 const PLATE_ASPECT_RATIO = "16:9" as const;
 
-// Turn #FF00FF into transparency. `ratio` is the share of pixels that stay opaque.
-export async function keyMagentaPng(png: Buffer): Promise<{ png: Buffer; ratio: number }> {
+// Turn chroma green into transparency. `ratio` is the share of pixels that stay opaque.
+export async function keyGreenPng(png: Buffer): Promise<{ png: Buffer; ratio: number }> {
   const { data, info } = await sharp(png)
     .removeAlpha()
     .raw()
@@ -42,7 +48,7 @@ export async function keyMagentaPng(png: Buffer): Promise<{ png: Buffer; ratio: 
     rgba[out + 1] = g;
     rgba[out + 2] = b;
     // Same rule as opaqueRatio(), counted inline so a large plate never builds a pixel array.
-    if (isMagentaKeyPixel(r, g, b)) {
+    if (isGreenKeyPixel(r, g, b)) {
       rgba[out + 3] = 0;
     } else {
       rgba[out + 3] = 255;
@@ -80,7 +86,13 @@ export async function enqueueSubtitlePlateJobs(
   options?: { skipOverlayCheck?: boolean },
 ): Promise<void> {
   if (!project.phaseA) return;
-  if (!options?.skipOverlayCheck && project.subtitleOverlay !== true) return;
+  // OpenCut can still ask for a plate. Talking-head scene overlay no longer queues one.
+  if (
+    !options?.skipOverlayCheck &&
+    !usesTalkingHeadSubtitleOverlay({ skillSlug: project.skillSlug, styleId: project.styleId })
+  ) {
+    return;
+  }
   const only = clipNumbers ? new Set(clipNumbers) : undefined;
   const clips = project.phaseA.clips.filter((clip) => !only || only.has(clip.clipNumber));
   if (clips.length === 0) return;
@@ -261,7 +273,7 @@ export async function syncSubtitlePlateJob(
   try {
     const response = await fetch(outputUrl);
     if (!response.ok) throw new Error("無法下載字幕圖");
-    keyed = await keyMagentaPng(Buffer.from(await response.arrayBuffer()));
+    keyed = await keyGreenPng(Buffer.from(await response.arrayBuffer()));
   } catch (error) {
     console.error("[subtitle-plate] key failed", { jobId: job._id, error });
     await failPlate(projectId, clipNumber, "字幕圖處理失敗", plate.creditsCharged);

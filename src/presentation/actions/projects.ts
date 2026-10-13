@@ -1,6 +1,7 @@
 "use server";
 
 import * as service from "@/service/project/actions";
+import { loadFolderVideoCardsForUser } from "@/service/project/load-folder-studio";
 
 export type { DeleteVideoResult } from "@/service/project/actions";
 
@@ -62,6 +63,10 @@ export async function deleteVideoAction(
   ...args: Parameters<typeof service.deleteVideoAction>
 ) {
   return service.deleteVideoAction(...args);
+}
+
+export async function loadFolderVideoCardsAction(folderId: string) {
+  return loadFolderVideoCardsForUser(folderId);
 }
 
 export async function getVideoAction(

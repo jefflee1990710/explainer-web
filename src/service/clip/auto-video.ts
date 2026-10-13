@@ -8,6 +8,7 @@ import { videoKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { mergeReadySubtitleFrames } from "@/service/higgsfield/merge-subtitle-frames";
 import { autoVideoDecision } from "@/service/production-plan";
 import { clipSkipsEndStill } from "@/service/director/steady-stills";
+import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { chargedVideoCredits, STUCK_CLAIM_MS, videoCost } from "@/service/production-plan";
 import type { Project, ProjectClip } from "@/model/project";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
@@ -44,12 +45,16 @@ export async function claimAndStartClipVideo(
   const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
   if (!row) return { ok: false, error: "找不到這段分鏡" };
   // Plate may have landed after the still. Burn it on before this clip is sent.
-  if (project.subtitleOverlay === true) {
+  const overlay = usesTalkingHeadSubtitleOverlay({
+    skillSlug: project.skillSlug,
+    styleId: project.styleId,
+  });
+  if (overlay) {
     await mergeReadySubtitleFrames(project._id);
     const fresh = await projects.findOne({ _id: project._id });
     if (fresh) project = fresh;
   }
-  const merged = project.subtitleOverlay === true;
+  const merged = overlay;
   const startOnly = clipSkipsEndStill(project);
   const { start, end } = videoKeyframeUrls(project.frames, clipNumber, { merged });
   if (!start || (!startOnly && !end)) {
@@ -196,7 +201,10 @@ export async function queueAutoClipVideos(projectId: ObjectId) {
   for (const clipNumber of pending) {
     const decision = autoVideoDecision(project.frames, project.clips, clipNumber, {
       startOnly: clipSkipsEndStill(project),
-      merged: project.subtitleOverlay === true,
+      merged: usesTalkingHeadSubtitleOverlay({
+        skillSlug: project.skillSlug,
+        styleId: project.styleId,
+      }),
     });
     if (decision === "wait") {
       remaining.push(clipNumber);

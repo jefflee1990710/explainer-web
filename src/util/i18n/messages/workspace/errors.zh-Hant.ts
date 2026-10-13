@@ -109,4 +109,9 @@ export const errorsZhHant = {
   clipBusyInsert: "片段還在生成，請完成後再插入片段",
   reelBusyInsert: "成片合成中，請完成後再插入片段",
   insertSlotInvalid: "插入位置不正確",
+  poseCommentRequired: "請寫下要改的地方",
+  poseCommentTooLong: "修改意見太長",
+  poseImageInvalid: "這張姿勢圖無法修改",
+  poseImageTooLarge: "這張姿勢圖太大",
+  poseUpdateFailed: "更新姿勢圖失敗，請再試一次",
 } satisfies ErrorsMessages;

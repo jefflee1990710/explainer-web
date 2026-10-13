@@ -2,18 +2,18 @@
 
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { SCENE_TEXT_IDS } from "@/service/director/scene-text";
+import { SCENE_TEXT_CHOICES } from "@/service/director/scene-text";
 import { sceneTextLangLabel } from "@/util/i18n/picker-labels";
-import type { SceneTextLanguage } from "@/model/project";
+import type { SceneTextChoice } from "@/model/project";
 
-// On-canvas text is always on; the user only picks its script.
+// Languages, plus None when the still and the video should have no writing.
 export function SceneTextPicker({
   language,
   onLanguageChange,
   disabled,
 }: {
-  language: SceneTextLanguage;
-  onLanguageChange: (value: SceneTextLanguage) => void;
+  language: SceneTextChoice;
+  onLanguageChange: (value: SceneTextChoice) => void;
   disabled?: boolean;
 }) {
   const { t } = useI18n();
@@ -21,9 +21,9 @@ export function SceneTextPicker({
     <div
       role="radiogroup"
       aria-label={t("brief.sceneText.aria")}
-      className="grid grid-cols-3 gap-1 rounded-2xl border border-accent-ink/10 bg-paper/70 p-1"
+      className="grid grid-cols-2 gap-1 rounded-2xl border border-accent-ink/10 bg-paper/70 p-1 sm:grid-cols-4"
     >
-      {SCENE_TEXT_IDS.map((id) => {
+      {SCENE_TEXT_CHOICES.map((id) => {
         const preset = sceneTextLangLabel(t, id);
         const active = id === language;
         return (

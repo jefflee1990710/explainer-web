@@ -87,7 +87,8 @@ import {
   surpriseVarietyPlan,
 } from "@/service/director/surprise-interview";
 import { clipReferenceImageUrls } from "@/service/project/reference-images";
-import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
+import { isTalkingHeadSkill, talkingHeadStillSubtitle, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
+import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { IDEOGRAM_PROMPT_MAX, imageRouteForSceneText } from "@/service/generation/image-backend";
 import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
 import { FRAME_RENDER_DETAIL, reconcileSightline, SIGHTLINE_RULE } from "@/service/director/scene-detail";
@@ -524,8 +525,12 @@ export function buildFramePrompt(
     ]);
   // Every still needs the clothing photo so style and colour stay exact.
   // Overlay stills burn the subtitle later, so they must not reserve a lettering-sample slot.
-  const overlay = project.subtitleOverlay === true && isTalkingHeadSkill(project.skillSlug);
-  const textStyleUrl = overlay ? undefined : project.textStyleImageUrl || undefined;
+  const overlay = usesTalkingHeadSubtitleOverlay({
+    skillSlug: project.skillSlug,
+    styleId: project.styleId,
+  });
+  const textOff = !sceneText.enabled;
+  const textStyleUrl = overlay || textOff ? undefined : project.textStyleImageUrl || undefined;
   // User's opening photo sits in front of the character so that face is the person who talks.
   const openingPhotoUrl = openingPhotoReference(project, clipNumber, position);
   const openingCount = openingPhotoUrl ? 1 : 0;
@@ -689,8 +694,19 @@ export function buildFramePrompt(
   if (whiteboardSpells.length > 0) {
     sceneDescription = stripSceneSubtitleSentence(sceneDescription);
   }
-  if (overlay) {
+  if (overlay || !sceneText.enabled) {
     sceneDescription = sceneDescription.replace(/\s*(?:Subtitle:|字幕：).*$/u, "").trim();
+  } else if (
+    isTalkingHeadSkill(project.skillSlug) &&
+    voForFrame &&
+    !/(?:Subtitle:|字幕：)/u.test(sceneDescription)
+  ) {
+    // An older overlay storyboard left the still blank. Paint this clip's line into it.
+    sceneDescription = `${sceneDescription} ${talkingHeadStillSubtitle({
+      line: voForFrame,
+      language: project.language,
+      belowCenter: subtitleSitsBelowCenter(project.aspectRatio),
+    })}`.replace(/\s{2,}/g, " ").trim();
   }
   const openingRaw = directorWritesLettering || keepSceneLabels
     ? clipStartScene(row).trim()
@@ -725,7 +741,9 @@ export function buildFramePrompt(
   ]
     .filter(Boolean)
     .join(" ");
-  const onCanvasTextBlock = overlay
+  const onCanvasTextBlock = !sceneText.enabled
+    ? sceneTextFrameLines(false, sceneText.language)
+    : overlay
     ? []
     : listicle
     ? [
@@ -811,7 +829,7 @@ export function buildFramePrompt(
     ...(productLine ? [productLine] : []),
     ...logoLines,
     ...(characterLockLine ? [characterLockLine] : []),
-    ...(listicle || sceneText.enabled || keepSceneLabels || paintSurpriseType
+    ...(listicle || sceneText.enabled || keepSceneLabels || paintSurpriseType || !sceneText.enabled
       ? []
       : sceneTextFrameLines(false, sceneText.language)),
     `Scene: ${parts.scene}`,
@@ -846,7 +864,9 @@ export function buildFramePrompt(
           steady && position === "end",
         ),
     ...revisionLines(options.revision && { ...options.revision, remark: parts.remark }),
-    ...(overlay
+    ...(!sceneText.enabled
+      ? ["Final check: no letters, no subtitle, no caption, no numbers, no sign, no watermark."]
+      : overlay
       ? ["Final check: no letters, no subtitle, no caption bar, no watermark."]
       : listicle
       ? ["Final check: the numbered item list is visible and spelled exactly."]
@@ -941,8 +961,12 @@ export function frameSubmitPlan(
   const productUrls = productReferenceUrls(project.products);
   const videoLockUrls = videoLockReferenceUrls(project, clipNumber);
   // Same cap as buildFramePrompt so the URL order matches the prompt's numbering.
-  const overlay = project.subtitleOverlay === true && isTalkingHeadSkill(project.skillSlug);
-  const textStyleUrls = overlay || !project.textStyleImageUrl ? [] : [project.textStyleImageUrl];
+  const overlay = usesTalkingHeadSubtitleOverlay({
+    skillSlug: project.skillSlug,
+    styleId: project.styleId,
+  });
+  const textOff = !resolveSceneText(project).enabled;
+  const textStyleUrls = overlay || textOff || !project.textStyleImageUrl ? [] : [project.textStyleImageUrl];
   const openingPhotoUrl = openingPhotoReference(project, clipNumber, position);
   const sceneRefUrls = frameSceneReferenceUrls(
     project,

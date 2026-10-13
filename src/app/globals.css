@@ -17,7 +17,7 @@
 }
 
 /* OpenCut editor classes, compiled into this app so the video tab can mount it directly. */
-@source "../../opencut/apps/web/src";
+@source "../opencut";
 
 @theme inline {
   --color-background: var(--background);

@@ -109,6 +109,11 @@ export const errorsEn = {
   clipBusyInsert: "Wait until generation finishes before inserting a clip",
   reelBusyInsert: "Wait until the full video finishes before inserting a clip",
   insertSlotInvalid: "That clip position is not valid",
+  poseCommentRequired: "Describe what to change",
+  poseCommentTooLong: "That note is too long",
+  poseImageInvalid: "This pose picture cannot be edited",
+  poseImageTooLarge: "This pose picture is too large",
+  poseUpdateFailed: "Could not update the picture. Try again.",
 } as const;
 
 

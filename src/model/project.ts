@@ -24,6 +24,8 @@ export type VoiceGender = "male" | "female";
 export type SpeechPace = "slow" | "medium" | "fast";
 // On-canvas labels in storyboard stills; independent of voiceover language.
 export type SceneTextLanguage = "en" | "zh-Hant" | "zh-Hans";
+// "none" is a brief choice, not a script. It turns on-screen text off.
+export type SceneTextChoice = SceneTextLanguage | "none";
 // Subtitle lettering. Placement is chosen by the director, not this field.
 
 // Lifecycle: phase_a → production → ready.
@@ -275,7 +277,7 @@ export type Project = {
   speechPace?: SpeechPace;
   // Missing or false → no on-canvas labels. True + language → labels in that script.
   sceneTextEnabled?: boolean;
-  sceneTextLanguage?: SceneTextLanguage;
+  sceneTextLanguage?: SceneTextChoice;
   // Missing rows use handwritten. Does not choose where the subtitle sits.
   subtitleLook?: SubtitleLook;
   // System look id, or a user text-style ObjectId. Missing rows use subtitleLook.
@@ -457,7 +459,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   voiceGender: z.enum(["male", "female"]).optional(),
   speechPace: z.enum(["slow", "medium", "fast"]).optional(),
   sceneTextEnabled: z.boolean().optional(),
-  sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans"]).optional(),
+  sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans", "none"]).optional(),
   subtitleLook: z.enum(SUBTITLE_LOOK_IDS).optional(),
   textStyleId: z.string().optional(),
   textStyleImageUrl: z.string().optional(),

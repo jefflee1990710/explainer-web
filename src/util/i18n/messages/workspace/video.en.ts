@@ -32,6 +32,7 @@ export const videoEn = {
     posted: "Posted",
     markArchive: "Archive",
     archived: "Archived",
+    unarchive: "Unarchive",
   },
   filters: {
     label: "Filter videos",

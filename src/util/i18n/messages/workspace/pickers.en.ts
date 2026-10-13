@@ -10,6 +10,7 @@ export const pickersEn = {
     en: { label: "English", sublabel: "On-screen labels" },
     "zh-Hant": { label: "繁體中文", sublabel: "畫面文字" },
     "zh-Hans": { label: "简体中文", sublabel: "画面文字" },
+    none: { label: "None", sublabel: "No writing" },
   },
   subtitleLook: {
     handwritten: { label: "Marker", sublabel: "Black marker on torn paper" },

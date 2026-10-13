@@ -24,6 +24,8 @@ import { resolveTextStyleLookLine } from "@/service/text-style/look-line";
 import type { TextStyleDoc } from "@/model/text-style";
 import { sendReelCover } from "@/service/video-edit/reel-cover";
 import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
+import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
+import { resolveSceneText } from "@/service/director/scene-text";
 import { sendClipVideo, sendFrame, sendStill } from "@/service/higgsfield/pipeline";
 import { sendSubtitlePlate } from "@/service/higgsfield/subtitle-plate-job";
 import {
@@ -146,7 +148,10 @@ async function sendVideo(project: Project, clipNumber: number) {
   if (!project.phaseA) throw new PermanentJobError("找不到分鏡");
   // Missing keyframes will not fix themselves; stop before spending a Phase B call.
   const startOnly = clipSkipsEndStill(project);
-  const merged = project.subtitleOverlay === true;
+  const merged = usesTalkingHeadSubtitleOverlay({
+    skillSlug: project.skillSlug,
+    styleId: project.styleId,
+  });
   const { start, end } = videoKeyframeUrls(project.frames, clipNumber, { merged });
   if (!start || (!startOnly && !end)) {
     throw new PermanentJobError(
@@ -181,7 +186,10 @@ async function sendVideo(project: Project, clipNumber: number) {
     speechPace: project.speechPace,
     characterImageUrl: project.characterImageUrl,
     cast: await withCurrentCharacterVoices(project.cast),
-    subtitleHandoff: project.subtitleOverlay === true && project.skillSlug === TALKING_HEAD_SKILL_SLUG,
+    subtitleHandoff:
+      usesTalkingHeadSubtitleOverlay({ skillSlug: project.skillSlug, styleId: project.styleId }) &&
+      project.skillSlug === TALKING_HEAD_SKILL_SLUG,
+    sceneTextOff: !resolveSceneText(project).enabled,
   });
   const projects = await videosCollection();
   await projects.updateOne(

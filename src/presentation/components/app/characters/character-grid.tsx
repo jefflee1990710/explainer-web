@@ -27,13 +27,15 @@ export function CharacterGrid({
       <div className="rounded-[1.5rem] border border-dashed border-accent-ink/20 bg-paper/60 p-10 text-center">
         <p className="font-display text-lg font-bold">{t("characters.emptyTitle")}</p>
         <p className="mt-2 text-sm text-muted">{t("characters.emptyBody")}</p>
-        <CreateCharacterButton
-          credits={credits}
-          subscribed={subscribed}
-          styles={styles}
-          atCharacterLimit={atCharacterLimit}
-          className="mt-5 inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-        />
+        <div className="mt-5">
+          <CreateCharacterButton
+            credits={credits}
+            subscribed={subscribed}
+            styles={styles}
+            atCharacterLimit={atCharacterLimit}
+            className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+          />
+        </div>
       </div>
     );
   }

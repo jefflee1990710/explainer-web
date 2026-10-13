@@ -32,6 +32,7 @@ export const videoZhHant = {
     posted: "已發佈",
     markArchive: "封存",
     archived: "已封存",
+    unarchive: "取消封存",
   },
   filters: {
     label: "篩選影片",

@@ -23,7 +23,7 @@ import type {
   AspectRatio,
   ClipFrame,
   FrameRevisionInput,
-  SceneTextLanguage,
+  SceneTextChoice,
   StoryboardRow,
 } from "@/model/project";
 
@@ -64,7 +64,7 @@ export function FrameEditDialog({
   aspectRatio: AspectRatio;
   credits: number;
   sceneTextEnabled: boolean;
-  sceneTextLanguage: SceneTextLanguage;
+  sceneTextLanguage: SceneTextChoice;
   dualBeat?: boolean;
   canRegenerate: boolean;
   onClose: () => void;

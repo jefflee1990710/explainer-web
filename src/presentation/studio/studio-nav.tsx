@@ -8,7 +8,8 @@ import { isStudioNavActive } from "@/presentation/studio/studio-nav-active";
 
 const SECTIONS: StudioNavSection[] = ["generation", "setup", "other"];
 
-// Grouped rail: Generation, Setup, then account-style links.
+// Grouped rail: project links, then Setup, then account-style links.
+// The Generation heading stays for screen readers and is not shown on the rail.
 export function StudioNav({ items }: { items: StudioNavItem[] }) {
   const { t } = useI18n();
   const pathname = usePathname();
@@ -37,7 +38,11 @@ export function StudioNav({ items }: { items: StudioNavItem[] }) {
             ) : null}
             <p
               id={labelId}
-              className="sr-only px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)] group-hover/rail:not-sr-only group-focus-within/rail:not-sr-only"
+              className={
+                section === "generation"
+                  ? "sr-only"
+                  : "sr-only px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)] group-hover/rail:not-sr-only group-focus-within/rail:not-sr-only"
+              }
             >
               {labels[section]}
             </p>

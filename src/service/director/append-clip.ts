@@ -113,6 +113,8 @@ type AppendInput = {
   insertAt?: number;
   // Stored by Phase A. Do not recompute the cinematic gate here.
   subtitleOverlay?: boolean;
+  // Brief chose None. The new clip's stills and motion stay free of writing.
+  noText?: boolean;
 };
 
 // Director flow for one extra clip: storyboard row, then the end-still rewrite.
@@ -135,6 +137,7 @@ export async function draftAppendedClips(input: AppendInput): Promise<Storyboard
         input.language,
       ),
       overlay: input.subtitleOverlay === true,
+      noText: input.noText === true,
     });
     return planned.map((row) => inheritOpening(row, previous, skillSlug));
   }

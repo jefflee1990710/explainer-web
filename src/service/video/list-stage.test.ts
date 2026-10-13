@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { GenerationDetailTag } from "@/service/clip-stage";
-import { videoListFiltersFromSearch, videoListFiltersSearchValue, videoListStage } from "@/service/video/list-stage";
+import {
+  resolvedArchivedAt,
+  videoListFiltersFromSearch,
+  videoListFiltersSearchValue,
+  videoListStage,
+} from "@/service/video/list-stage";
 
 const scene = (state: GenerationDetailTag["state"]): GenerationDetailTag => ({
   clipNumber: 1,
@@ -90,6 +95,24 @@ test("a finished video is pending to post until the user marks it posted", () =>
   assert.equal(videoListStage({ status: "ready", tags }), "pending_post");
   assert.equal(
     videoListStage({ status: "ready", tags, postedAt: "2026-01-01T00:00:00.000Z" }),
+    "posted",
+  );
+});
+
+test("an optimistic unarchive clears a stale archivedAt, and an optimistic archive wins", () => {
+  assert.equal(resolvedArchivedAt("2026-01-02T00:00:00.000Z", null), undefined);
+  assert.equal(resolvedArchivedAt("2026-01-02T00:00:00.000Z", undefined), "2026-01-02T00:00:00.000Z");
+  assert.equal(
+    resolvedArchivedAt(undefined, "2026-01-03T00:00:00.000Z"),
+    "2026-01-03T00:00:00.000Z",
+  );
+  assert.equal(
+    videoListStage({
+      status: "ready",
+      tags: [scene("ready"), video("ready")],
+      postedAt: "2026-01-01T00:00:00.000Z",
+      archivedAt: resolvedArchivedAt("2026-01-02T00:00:00.000Z", null),
+    }),
     "posted",
   );
 });

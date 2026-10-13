@@ -24,7 +24,6 @@
   },
   "include": [
     "next-env.d.ts",
-    "src/types/opencut-inline.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",

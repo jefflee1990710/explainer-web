@@ -221,6 +221,57 @@ export type Messages = {
     title: string;
     subtitle: string;
     create: string;
+    createSimple: string;
+    createSimpleHint: string;
+    createGenerator: string;
+    createGeneratorHint: string;
+    generatorTitle: string;
+    generatorIntro: string;
+    poseGenerate: string;
+    poseGenerating: string;
+    poseEmpty: string;
+    poseCommentLabel: string;
+    poseCommentPlaceholder: string;
+    poseUpdate: string;
+    poseUpdating: string;
+    look: {
+      hair: string;
+      face: string;
+      body: string;
+      pants: string;
+      shoes: string;
+      options: {
+        hair: {
+          bob: string; long: string; curly: string; bun: string; crop: string;
+          waves: string; rolls: string; beehive: string; feathered: string; mullet: string; wolf: string;
+          hime: string; korean: string; afro: string; braids: string; chignon: string; plait: string;
+          tower: string; spikes: string; cloud: string; drills: string; fountain: string; horns: string;
+        };
+        face: {
+          round: string; oval: string; square: string; heart: string;
+          monolid: string; doe: string; brows: string; ears: string; button: string; aquiline: string; full: string; thin: string;
+          east: string; japan: string; korea: string; south: string; sea: string; africa: string; europe: string; usa: string; latin: string; mideast: string;
+          bugeyes: string; pin: string; beak: string; balloon: string; dumbo: string; stretch: string;
+        };
+        body: {
+          slim: string; average: string; broad: string; petite: string;
+          short: string; tall: string; heavy: string; skinny: string; woman: string; man: string; hourglass: string; athletic: string;
+          strong: string; giant: string; beanpole: string; hulk: string; sumo: string; corset: string; muscle: string; wedge: string;
+        };
+        pants: {
+          jeans: string; chinos: string; shorts: string; sweatpants: string;
+          cargo: string; wide: string; leggings: string; suit: string; bells: string; baggy: string;
+          hakama: string; salwar: string; lederhosen: string; baji: string;
+          balloon: string; puddle: string; micro: string;
+        };
+        shoes: {
+          sneakers: string; boots: string; loafers: string; sandals: string;
+          heels: string; oxfords: string; slippers: string; platforms: string; tstrap: string; hightops: string;
+          geta: string; cowboy: string; clogs: string; brogues: string;
+          clown: string; towers: string; pebble: string;
+        };
+      };
+    };
     emptyTitle: string;
     emptyBody: string;
     backToList: string;

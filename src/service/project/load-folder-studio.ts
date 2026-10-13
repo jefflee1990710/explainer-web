@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb";
+import { requireAppUser } from "@/service/auth";
 import {
   charactersCollection,
   productsCollection,
@@ -73,4 +74,13 @@ export async function loadFolderVideoCards(folder: Folder) {
     .sort({ updatedAt: -1, createdAt: -1 })
     .toArray()) as Project[];
   return toPublicFolder(folder, videoDocs);
+}
+
+// Fresh folder cards for the video list after a tag filter changes.
+export async function loadFolderVideoCardsForUser(folderId: string) {
+  const user = await requireAppUser();
+  const folder = await loadOwnedFolder(folderId, user.clerkUserId);
+  if (!folder) return null;
+  const publicFolder = await loadFolderVideoCards(folder);
+  return publicFolder.videos;
 }

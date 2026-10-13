@@ -19,7 +19,7 @@ import type { OpencutEditMedia } from "@/model/opencut-edit";
 import type { PublicTextStyle, PublicVideo } from "@/presentation/serialize";
 import "./opencut-direct-host.css";
 
-const OpenCutInlineEditor = dynamic(() => import("@opencut-inline"), {
+const OpenCutInlineEditor = dynamic(() => import("@/opencut/embed/scro-inline-editor"), {
   ssr: false,
   loading: () => (
     <p className="px-4 py-6 text-sm text-muted">載入 OpenCut…</p>

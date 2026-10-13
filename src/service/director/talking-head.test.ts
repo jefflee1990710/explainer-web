@@ -155,6 +155,19 @@ test("9:16 talking-head subtitles sit a little below center; 16:9 stays at the b
   assert.match(talkingHeadDirectorBlock("full-body-talking-head-director", "16:9"), /across the bottom/);
 });
 
+test("none on-screen text keeps talking-head stills and motion free of writing", () => {
+  const clips = planTalkingHeadClips({
+    source: "Hello there. See you.",
+    pace: "medium",
+    language: "en",
+    aspectRatio: "9:16",
+    noText: true,
+  });
+  assert.doesNotMatch(clips[0].startScene, /Subtitle:/);
+  assert.doesNotMatch(clips[0].motionCamera, /subtitle/i);
+  assert.match(talkingHeadDirectorBlock("talking-head-director", "9:16", undefined, false, true), /no letters/);
+});
+
 test("subtitle handoff is added once when the stored motion has none", () => {
   const prompt = talkingHeadPhaseBPrompt({
     subtitleHandoff: true,

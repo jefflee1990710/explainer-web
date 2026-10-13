@@ -24,6 +24,7 @@ import {
 import { promptForFrameSubmit } from "@/service/clip/frame-prompt-chat";
 import { frameSubmitPlan, framesWithClipsReady } from "@/service/higgsfield/frame-prompts";
 import { clipSkipsEndStill } from "@/service/director/steady-stills";
+import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt";
 import { hydrateStyles } from "@/service/style/load-style";
@@ -428,7 +429,10 @@ export async function sendClipVideo(
 ): Promise<Sent> {
   // Cinematic realistic whiteboard sends the start image only. An old end file stays unused.
   const startOnly = clipSkipsEndStill(project);
-  const merged = project.subtitleOverlay === true;
+  const merged = usesTalkingHeadSubtitleOverlay({
+    skillSlug: project.skillSlug,
+    styleId: project.styleId,
+  });
   const { start, end } = videoKeyframeUrls(project.frames, clipNumber, { merged });
   if (!start || (!startOnly && !end)) {
     throw new Error(

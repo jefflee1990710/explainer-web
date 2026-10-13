@@ -78,15 +78,16 @@
   box-shadow: 0 16px 48px rgba(22, 24, 35, 0.16);
 }
 
-/* Primary actions: logo black with lime label. Destructive confirms stay red. */
-.studio-app :is(button, a).bg-accent {
+/* Primary actions: logo black with lime label. Destructive confirms stay red.
+   OpenCut fields also use .bg-accent; leave those on the editor light theme. */
+.studio-app :is(button, a).bg-accent:not(.opencut-direct-host *) {
   border-radius: 999px;
   background-color: #12141c;
   color: #c6f24b;
   box-shadow: none;
 }
 
-.studio-app :is(button, a).bg-accent:hover {
+.studio-app :is(button, a).bg-accent:hover:not(.opencut-direct-host *) {
   background-color: #000;
 }
 

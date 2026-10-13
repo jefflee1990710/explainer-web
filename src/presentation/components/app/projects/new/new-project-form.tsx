@@ -100,7 +100,7 @@ import type {
   DurationPreset,
   FramePosition,
   FrameRevisionInput,
-  SceneTextLanguage,
+  SceneTextChoice,
   SpeechPace,
   VoLanguage,
   VoiceGender,
@@ -221,7 +221,7 @@ export function NewProjectForm({
   const [speechPace, setSpeechPace] = useState<SpeechPace>(
     initialVideo?.speechPace || lastBrief?.speechPace || DEFAULT_SPEECH_PACE,
   );
-  const [sceneTextLanguage, setSceneTextLanguage] = useState<SceneTextLanguage>(
+  const [sceneTextLanguage, setSceneTextLanguage] = useState<SceneTextChoice>(
     initialVideo?.sceneTextLanguage || lastBrief?.sceneTextLanguage || "en",
   );
   const [textStyleId, setTextStyleId] = useState(() =>

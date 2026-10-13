@@ -10,6 +10,7 @@ export const pickersZhHant = {
     en: { label: "English", sublabel: "英文標籤" },
     "zh-Hant": { label: "繁體中文", sublabel: "畫面文字" },
     "zh-Hans": { label: "简体中文", sublabel: "画面文字" },
+    none: { label: "無", sublabel: "不要文字" },
   },
   subtitleLook: {
     handwritten: { label: "馬克筆", sublabel: "撕紙上的黑筆手寫" },

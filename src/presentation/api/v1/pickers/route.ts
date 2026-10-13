@@ -1,7 +1,7 @@
 import { apiJson, withApiUser } from "@/service/api/respond";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
-import { SCENE_TEXT_PRESETS } from "@/service/director/scene-text";
+import { SCENE_TEXT_CHOICES, SCENE_TEXT_PRESETS } from "@/service/director/scene-text";
 import { SPEECH_PACE_PRESETS } from "@/service/director/speech-pace";
 import {
   isBookendSkill,
@@ -34,7 +34,10 @@ export const GET = withApiUser(async ({ auth }) => {
       languages: Object.values(LANGUAGE_PRESETS).map(({ id, label, sublabel }) => ({ id, label, sublabel })),
       voices: Object.values(VOICE_PRESETS).map(({ id, label, sublabel }) => ({ id, label, sublabel })),
       speechPaces: Object.values(SPEECH_PACE_PRESETS).map(({ id, label, sublabel }) => ({ id, label, sublabel })),
-      sceneTextLanguages: Object.values(SCENE_TEXT_PRESETS).map(({ id, label, sublabel }) => ({ id, label, sublabel })),
+      sceneTextLanguages: [
+        ...Object.values(SCENE_TEXT_PRESETS).map(({ id, label, sublabel }) => ({ id, label, sublabel })),
+        { id: "none" as const, label: "None", sublabel: "No writing" },
+      ].filter((item) => (SCENE_TEXT_CHOICES as readonly string[]).includes(item.id)),
     },
     // Behaviour-slug rules keyed by director slug.
     rules: Object.fromEntries(

@@ -33,9 +33,9 @@ export const videoBriefFields = {
   voiceGender: z.enum(["male", "female"]).default("male"),
   speechPace: z.enum(["slow", "medium", "fast"]).default("medium").describe("Speaking speed for narration / dialogue"),
   sceneTextLanguage: z
-    .enum(["en", "zh-Hant", "zh-Hans"])
+    .enum(["en", "zh-Hant", "zh-Hans", "none"])
     .default("en")
-    .describe("On-canvas text is always on; this picks its script"),
+    .describe("On-canvas text script. none leaves the picture and the video without writing"),
   subtitleLook: z
     .enum(SUBTITLE_LOOK_IDS)
     .default("handwritten")
@@ -60,7 +60,7 @@ export const videoBriefUpdateFields = {
   language: z.string().min(1),
   voiceGender: z.enum(["male", "female"]),
   speechPace: z.enum(["slow", "medium", "fast"]),
-  sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans"]),
+  sceneTextLanguage: z.enum(["en", "zh-Hant", "zh-Hans", "none"]),
   subtitleLook: z.enum(SUBTITLE_LOOK_IDS),
 };
 
@@ -75,7 +75,7 @@ export type VideoBriefArgs = {
   language?: string;
   voiceGender?: "male" | "female";
   speechPace?: "slow" | "medium" | "fast";
-  sceneTextLanguage?: "en" | "zh-Hant" | "zh-Hans";
+  sceneTextLanguage?: "en" | "zh-Hant" | "zh-Hans" | "none";
   subtitleLook?: SubtitleLook;
   characterIds?: string[];
   productIds?: string[];
