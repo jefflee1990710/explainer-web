@@ -268,6 +268,14 @@ export const videoEn = {
   },
   opencut: {
     empty: "Render clips on Production first. OpenCut edits the finished clips.",
+    subtitles: "Subtitles",
+    subtitleHint: "Pick a text style. Generate uses Scro image generation for each spoken line and places it on that clip.",
+    generate: "Generate",
+    generating: "Generating…",
+    placed: "Placed {count} subtitle images.",
+    placedPartial: "Placed {count}. {missing} clips are not on the timeline.",
+    noLines: "This video has no spoken lines.",
+    noMatch: "Those clips are not on the timeline yet.",
   },
 } as const;
 

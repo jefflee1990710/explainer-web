@@ -8,14 +8,22 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
+import { useSearchParams } from "next/navigation";
 import {
 	TAB_KEYS,
 	tabs,
 	useAssetsPanelStore,
 } from "@/components/editor/panels/assets/assets-panel-store";
+import { ScroSubtitleRailButton } from "@/components/editor/panels/assets/scro-subtitle-rail-button";
+import {
+	setScroSubtitleOpen,
+	useScroSubtitleOpen,
+} from "@/embed/scro-subtitle-store";
 
 export function TabBar() {
 	const { activeTab, setActiveTab } = useAssetsPanelStore();
+	const subtitleOpen = useScroSubtitleOpen();
+	const embedded = useSearchParams().get("embed") === "1";
 	const [showTopFade, setShowTopFade] = useState(false);
 	const [showBottomFade, setShowBottomFade] = useState(false);
 	const scrollRef = useRef<HTMLDivElement>(null);
@@ -53,19 +61,23 @@ export function TabBar() {
 			>
 				{TAB_KEYS.map((tabKey) => {
 					const tab = tabs[tabKey];
+					const active = !subtitleOpen && activeTab === tabKey;
 					return (
 						<Tooltip key={tabKey} delayDuration={10}>
 							<TooltipTrigger asChild>
 								<Button
-									variant={activeTab === tabKey ? "secondary" : "ghost"}
+									variant={active ? "secondary" : "ghost"}
 									size="icon"
 									aria-label={tab.label}
 									className={cn(
 										"shrink-0",
 										"h-8 w-8",
-										activeTab !== tabKey && "text-muted-foreground",
+										!active && "text-muted-foreground",
 									)}
-									onClick={() => setActiveTab(tabKey)}
+									onClick={() => {
+										setScroSubtitleOpen(false);
+										setActiveTab(tabKey);
+									}}
 								>
 									<tab.icon />
 								</Button>
@@ -83,6 +95,7 @@ export function TabBar() {
 						</Tooltip>
 					);
 				})}
+				{embedded ? <ScroSubtitleRailButton /> : null}
 			</div>
 
 			<FadeOverlay direction="top" show={showTopFade} />

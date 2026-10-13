@@ -77,8 +77,10 @@ function plateLook(project: Project) {
 export async function enqueueSubtitlePlateJobs(
   project: Project,
   clipNumbers?: number[],
+  options?: { skipOverlayCheck?: boolean },
 ): Promise<void> {
-  if (project.subtitleOverlay !== true || !project.phaseA) return;
+  if (!project.phaseA) return;
+  if (!options?.skipOverlayCheck && project.subtitleOverlay !== true) return;
   const only = clipNumbers ? new Set(clipNumbers) : undefined;
   const clips = project.phaseA.clips.filter((clip) => !only || only.has(clip.clipNumber));
   if (clips.length === 0) return;

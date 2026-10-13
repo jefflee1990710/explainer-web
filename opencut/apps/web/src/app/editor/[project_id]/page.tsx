@@ -35,6 +35,7 @@ import {
 	getBookmarkPreviewOverlaySource,
 } from "@/timeline/bookmarks/index";
 import { ScroClipImport } from "@/embed/scro-clip-import";
+import { ScroSubtitleBridge } from "@/embed/scro-subtitle-bridge";
 import { ScroExportBridge } from "@/embed/scro-export-bridge";
 import { ScroProjectSync } from "@/embed/scro-project-sync";
 
@@ -48,6 +49,7 @@ export default function Editor() {
 				<ScroClipImport />
 				<ScroExportBridge />
 				<ScroProjectSync />
+				<ScroSubtitleBridge />
 				<div className="bg-background flex h-screen w-screen flex-col overflow-hidden">
 					<DegradedRendererBanner />
 					<EditorHeader />

@@ -1234,7 +1234,7 @@ export function NewProjectForm({
             />
             </div>
           ) : reelDesk && project ? (
-            <OpenCutVideoDesk key={project.id} project={project} />
+            <OpenCutVideoDesk key={project.id} project={project} textStyles={textStyles} />
           ) : project?.status === "failed" && viewing === liveStep ? (
             <FailedCard
               key="failed"

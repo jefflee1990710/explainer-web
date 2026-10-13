@@ -10,9 +10,14 @@ import { SoundsView } from "@/sounds/components/assets-view";
 import { StickersView } from "@/stickers/components/assets-view";
 import { TextView } from "@/text/components/assets-view";
 import { EffectsView } from "@/effects/components/assets-view";
+import { useSearchParams } from "next/navigation";
+import { ScroSubtitlePanel } from "@/components/editor/panels/assets/scro-subtitle-panel";
+import { useScroSubtitleOpen } from "@/embed/scro-subtitle-store";
 
 export function AssetsPanel() {
 	const { activeTab } = useAssetsPanelStore();
+	const subtitleOpen = useScroSubtitleOpen();
+	const embedded = useSearchParams().get("embed") === "1";
 
 	const viewMap: Record<Tab, React.ReactNode> = {
 		media: <MediaView />,
@@ -38,7 +43,9 @@ export function AssetsPanel() {
 		<div className="panel bg-background flex h-full rounded-sm border overflow-hidden">
 			<TabBar />
 			<Separator orientation="vertical" />
-			<div className="flex-1 overflow-hidden">{viewMap[activeTab]}</div>
+			<div className="flex-1 overflow-hidden">
+				{embedded && subtitleOpen ? <ScroSubtitlePanel /> : viewMap[activeTab]}
+			</div>
 		</div>
 	);
 }

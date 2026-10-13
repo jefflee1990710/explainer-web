@@ -12,6 +12,22 @@ export interface PanelSizes {
 
 export type PanelId = keyof PanelSizes;
 
+// The old default gave the timeline half the editor. Keep a shorter size the user already chose.
+function withShortTimeline({
+	panels,
+	version,
+}: {
+	panels: PanelSizes;
+	version: number;
+}): PanelSizes {
+	if (version >= 3 || panels.timeline < 40) return panels;
+	return {
+		...panels,
+		mainContent: PANEL_CONFIG.panels.mainContent,
+		timeline: PANEL_CONFIG.panels.timeline,
+	};
+}
+
 interface PanelState {
 	panels: PanelSizes;
 	setPanel: (args: { panel: PanelId; size: number }) => void;
@@ -41,8 +57,8 @@ export const usePanelStore = create<PanelState>()(
 		}),
 		{
 			name: "panel-sizes",
-			version: 2,
-			migrate: (persistedState) => {
+			version: 3,
+			migrate: (persistedState, version) => {
 				const state = persistedState as
 					| {
 							panels?: Partial<PanelSizes> | null;
@@ -62,28 +78,30 @@ export const usePanelStore = create<PanelState>()(
 
 				if (state.panels && typeof state.panels === "object") {
 					return {
-						panels: {
-							...PANEL_CONFIG.panels,
-							...state.panels,
-						},
+						panels: withShortTimeline({
+							panels: {
+								...PANEL_CONFIG.panels,
+								...state.panels,
+							},
+							version,
+						}),
 					};
 				}
 
-				return {
-					panels: {
-						tools: state.tools ?? state.toolsPanel ?? PANEL_CONFIG.panels.tools,
-						preview:
-							state.preview ??
-							state.previewPanel ??
-							PANEL_CONFIG.panels.preview,
-						properties:
-							state.properties ??
-							state.propertiesPanel ??
-							PANEL_CONFIG.panels.properties,
-						mainContent: state.mainContent ?? PANEL_CONFIG.panels.mainContent,
-						timeline: state.timeline ?? PANEL_CONFIG.panels.timeline,
-					},
+				const panels = {
+					tools: state.tools ?? state.toolsPanel ?? PANEL_CONFIG.panels.tools,
+					preview:
+						state.preview ??
+						state.previewPanel ??
+						PANEL_CONFIG.panels.preview,
+					properties:
+						state.properties ??
+						state.propertiesPanel ??
+						PANEL_CONFIG.panels.properties,
+					mainContent: state.mainContent ?? PANEL_CONFIG.panels.mainContent,
+					timeline: state.timeline ?? PANEL_CONFIG.panels.timeline,
 				};
+				return { panels: withShortTimeline({ panels, version }) };
 			},
 			partialize: (state) => ({
 				panels: state.panels,

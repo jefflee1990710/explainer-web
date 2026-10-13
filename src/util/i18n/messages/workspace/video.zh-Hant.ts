@@ -268,5 +268,13 @@ export const videoZhHant = {
   },
   opencut: {
     empty: "請先在製作分頁渲染各段。完成的片段會送到 OpenCut 再剪。",
+    subtitles: "字幕",
+    subtitleHint: "選擇文字樣式。按下產生後，會用 Scro 圖像生成每一句字幕圖，並貼在對應片段的時間上。",
+    generate: "產生",
+    generating: "產生中…",
+    placed: "已貼上 {count} 張字幕圖。",
+    placedPartial: "已貼上 {count} 張。有 {missing} 段不在時間軸上。",
+    noLines: "這支影片沒有對白。",
+    noMatch: "這些片段還沒有在時間軸上。",
   },
 } satisfies VideoMessages;
