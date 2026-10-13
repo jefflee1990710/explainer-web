@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { VideoEditorHeaderExport } from "@/presentation/components/app/projects/new/video-edit-summary-end";
 import { Spinner } from "@/presentation/components/spinner";
+import type { ScroOpenCutHost } from "@/service/opencut/host-channel";
 import type { PublicVideo } from "@/presentation/serialize";
-
-const OPENCUT_ORIGIN = process.env.NEXT_PUBLIC_OPENCUT_URL || "http://localhost:3001";
 
 function exportFilename(project: PublicVideo, fallback: string) {
   const raw = project.phaseA?.localizedTitle || project.phaseA?.englishTitle || fallback;
@@ -14,25 +13,23 @@ function exportFilename(project: PublicVideo, fallback: string) {
   return `${base}.mp4`;
 }
 
-// Sits to the right of 重新開始 and asks the OpenCut iframe to render the timeline.
+// Sits to the right of 重新開始 and asks the in-page OpenCut editor to render the timeline.
 export function OpenCutExportButton({
   project,
-  iframeRef,
+  host,
   disabled,
 }: {
   project: PublicVideo;
-  iframeRef: RefObject<HTMLIFrameElement | null>;
+  host: ScroOpenCutHost;
   disabled: boolean;
 }) {
   const { t } = useI18n();
   const [phase, setPhase] = useState<"idle" | "exporting" | "error">("idle");
   const [progress, setProgress] = useState(0);
-  const origin = new URL(OPENCUT_ORIGIN).origin;
 
   useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      if (event.origin !== origin) return;
-      const data = event.data as { type?: string; exporting?: boolean; progress?: number };
+    return host.subscribeScro((payload) => {
+      const data = payload as { type?: string; exporting?: boolean; progress?: number };
       if (data?.type === "scro-export-progress" && data.exporting) {
         setPhase("exporting");
         setProgress(typeof data.progress === "number" ? data.progress : 0);
@@ -43,20 +40,17 @@ export function OpenCutExportButton({
         setPhase("error");
         setProgress(0);
       }
-    };
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [origin]);
+    });
+  }, [host]);
 
   function startExport() {
-    const frame = iframeRef.current?.contentWindow;
-    if (!frame || disabled || phase === "exporting") return;
+    if (disabled || phase === "exporting") return;
     setPhase("exporting");
     setProgress(0);
-    frame.postMessage(
-      { type: "scro-export", filename: exportFilename(project, t("video.export.fallbackBasename")) },
-      origin,
-    );
+    host.postToEditor({
+      type: "scro-export",
+      filename: exportFilename(project, t("video.export.fallbackBasename")),
+    });
   }
 
   const label =

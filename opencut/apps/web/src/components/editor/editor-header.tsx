@@ -13,6 +13,7 @@ import Link from "next/link";
 import { RenameProjectDialog } from "@/project/components/rename-project-dialog";
 import { DeleteProjectDialog } from "@/project/components/delete-project-dialog";
 import { useRouter, useSearchParams } from "next/navigation";
+import { isScroEmbed } from "@/embed/scro-transport";
 import { FaDiscord } from "react-icons/fa6";
 import { ExportButton } from "./export-button";
 import { FeedbackPopover } from "@/feedback/components/feedback-popover";
@@ -29,7 +30,7 @@ import { cn } from "@/utils/ui";
 
 export function EditorHeader() {
 	// Scro's Video tab already has its own chrome. Drop this bar in the iframe.
-	const embedded = useSearchParams().get("embed") === "1";
+	const embedded = isScroEmbed(useSearchParams().get("embed"));
 	if (embedded) return null;
 
 	return (

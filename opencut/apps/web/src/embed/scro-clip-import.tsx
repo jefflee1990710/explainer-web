@@ -7,6 +7,7 @@ import { buildElementFromMedia } from "@/timeline/element-utils";
 import { toElementDurationTicks } from "@/timeline/creation";
 import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/wasm";
 import { armScroSync, readSeen, rememberClipSource, writeSeen } from "@/embed/scro-media-sources";
+import { isScroEmbed, listenFromScro, sendToScro } from "@/embed/scro-transport";
 
 // Scro's Video tab sends finished clips into this editor.
 const PARENT_ORIGINS = new Set([
@@ -31,31 +32,24 @@ type ScroImportMessage = {
 	clips: ScroClip[];
 };
 
-function isEmbed() {
-	return new URLSearchParams(window.location.search).get("embed") === "1";
-}
-
 export function ScroClipImport() {
 	const editor = useEditor();
 	const busy = useRef(false);
 
 	useEffect(() => {
-		if (!isEmbed()) return;
+		if (!isScroEmbed()) return;
 
-		const onMessage = (event: MessageEvent) => {
-			if (!PARENT_ORIGINS.has(event.origin)) return;
-			const data = event.data as ScroImportMessage;
+		const stop = listenFromScro((payload) => {
+			const data = payload as ScroImportMessage;
 			if (!data || data.type !== "scro-import-clips" || !data.videoId) return;
 			void importClips(data);
-		};
-
-		window.addEventListener("message", onMessage);
+		}, PARENT_ORIGINS);
 		const parentOrigin = document.referrer
 			? new URL(document.referrer).origin
-			: "*";
-		window.parent.postMessage({ type: "scro-editor-ready" }, parentOrigin);
+			: window.location.origin;
+		sendToScro({ type: "scro-editor-ready" }, parentOrigin);
 
-		return () => window.removeEventListener("message", onMessage);
+		return stop;
 
 		async function importClips(data: ScroImportMessage) {
 			if (busy.current) return;

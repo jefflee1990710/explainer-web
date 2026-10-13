@@ -1,4 +1,5 @@
 import { scroEmbedParentOrigin } from "@/embed/scro-embed-parent";
+import { listenFromScro, sendToScro } from "@/embed/scro-transport";
 
 export type ScroSubtitlePlateResult = { clipNumber: number; url: string };
 
@@ -14,14 +15,15 @@ export function requestScroSubtitlePlates(input: {
 	if (!origin) return Promise.reject(new Error("Not embedded in Scro"));
 
 	return new Promise((resolve, reject) => {
+		let stop = () => {};
 		const timeout = window.setTimeout(() => {
-			window.removeEventListener("message", onMessage);
+			stop();
 			reject(new Error("Subtitle generation timed out"));
 		}, GENERATE_TIMEOUT_MS);
 
-		const onMessage = (event: MessageEvent) => {
-			if (event.origin !== origin) return;
-			const data = event.data as {
+		stop = listenFromScro((payload, eventOrigin) => {
+			if (eventOrigin !== origin) return;
+			const data = payload as {
 				type?: string;
 				videoId?: string;
 				ok?: boolean;
@@ -30,16 +32,15 @@ export function requestScroSubtitlePlates(input: {
 			};
 			if (data?.type !== "scro-subtitle-generate-result" || data.videoId !== input.videoId) return;
 			window.clearTimeout(timeout);
-			window.removeEventListener("message", onMessage);
+			stop();
 			if (!data.ok) {
 				reject(new Error(data.error || "Subtitle generation failed"));
 				return;
 			}
 			resolve(data.plates ?? []);
-		};
+		}, new Set([origin]));
 
-		window.addEventListener("message", onMessage);
-		window.parent.postMessage(
+		sendToScro(
 			{
 				type: "scro-subtitle-generate",
 				videoId: input.videoId,

@@ -38,6 +38,7 @@ import { ScroClipImport } from "@/embed/scro-clip-import";
 import { ScroSubtitleBridge } from "@/embed/scro-subtitle-bridge";
 import { ScroExportBridge } from "@/embed/scro-export-bridge";
 import { ScroProjectSync } from "@/embed/scro-project-sync";
+import { isScroEmbed } from "@/embed/scro-transport";
 
 export default function Editor() {
 	const params = useParams();
@@ -89,7 +90,7 @@ function DegradedRendererBanner() {
 function EditorLayout() {
 	usePasteMedia();
 	// The embed hides the header, so the panels need the same inset the sides and timeline already have.
-	const embedded = useSearchParams().get("embed") === "1";
+	const embedded = isScroEmbed(useSearchParams().get("embed"));
 	const { panels, setPanel } = usePanelStore();
 	const activeScene = useEditor((editor) =>
 		editor.scenes.getActiveSceneOrNull(),

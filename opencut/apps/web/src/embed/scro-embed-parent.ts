@@ -1,3 +1,5 @@
+import { isScroEmbed, scroHost } from "@/embed/scro-transport";
+
 const PARENT_ORIGINS = new Set([
 	"http://localhost:3000",
 	"http://127.0.0.1:3000",
@@ -5,12 +7,11 @@ const PARENT_ORIGINS = new Set([
 	"https://scro.io",
 ]);
 
-export function isScroEmbed() {
-	return new URLSearchParams(window.location.search).get("embed") === "1";
-}
+export { isScroEmbed };
 
-// Parent frame that loaded this editor in embed mode.
+// Parent frame that loaded this editor, or this window when Scro mounts it inline.
 export function scroEmbedParentOrigin(): string | null {
+	if (scroHost()) return window.location.origin;
 	if (!document.referrer) return null;
 	try {
 		const origin = new URL(document.referrer).origin;

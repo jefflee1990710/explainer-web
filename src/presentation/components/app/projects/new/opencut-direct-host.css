@@ -1,0 +1,36 @@
+/* OpenCut tokens, scoped so they do not restyle the rest of Scro. */
+.opencut-direct-host {
+  --background: #fafafa;
+  --foreground: #12141c;
+  --card: #ffffff;
+  --card-foreground: #12141c;
+  --popover: #ffffff;
+  --popover-foreground: #12141c;
+  --primary: #12141c;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #12141c;
+  --muted: #e4e4e7;
+  --muted-foreground: #5c6170;
+  --accent: #f4f4f5;
+  --accent-foreground: #12141c;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e4e4e7;
+  --input: #ffffff;
+  --ring: #71717a;
+  --sidebar: #ffffff;
+  --sidebar-background: #fafafa;
+  --sidebar-foreground: #12141c;
+  --sidebar-border: #e4e4e7;
+  color: var(--foreground);
+  color-scheme: light;
+}
+
+.opencut-direct-host .panel {
+  --background: #ffffff;
+  --foreground: #12141c;
+  --card: #ffffff;
+  --card-foreground: #12141c;
+  --border: #e4e4e7;
+}

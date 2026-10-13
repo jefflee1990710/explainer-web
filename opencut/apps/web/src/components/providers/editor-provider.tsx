@@ -14,6 +14,7 @@ import {
 	initializeGpuRenderer,
 	isGpuAvailable,
 } from "@/services/renderer/gpu-renderer";
+import { isScroEmbed, scroHost } from "@/embed/scro-transport";
 
 interface EditorProviderProps {
 	projectId: string;
@@ -56,13 +57,20 @@ export function EditorProvider({ projectId, children }: EditorProviderProps) {
 
 				if (isNotFound) {
 					try {
+						if (scroHost()) {
+							await editor.project.createNewProject({
+								name: "Scro",
+								id: projectId,
+							});
+							if (cancelled) return;
+							setIsLoading(false);
+							loadFontAtlas();
+							return;
+						}
 						const newProjectId = await editor.project.createNewProject({
 							name: "Untitled Project",
 						});
-						const embed =
-							new URLSearchParams(window.location.search).get("embed") === "1"
-								? "?embed=1"
-								: "";
+						const embed = isScroEmbed() ? "?embed=1" : "";
 						router.replace(`/editor/${newProjectId}${embed}`);
 					} catch (_createErr) {
 						setError("Failed to create project");
@@ -143,7 +151,7 @@ function EditorRuntimeBindings() {
 
 	useEffect(() => {
 		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-			if (new URLSearchParams(window.location.search).get("embed") === "1") return;
+			if (isScroEmbed()) return;
 			if (!editor.save.getIsDirty()) return;
 			event.preventDefault();
 			(event as unknown as { returnValue: string }).returnValue = "";

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useEditor } from "@/editor/use-editor";
 import { downloadBuffer, getExportMimeType } from "@/export";
 import { DEFAULT_EXPORT_OPTIONS } from "@/export/defaults";
+import { isScroEmbed, listenFromScro, scroHost, sendToScro } from "@/embed/scro-transport";
 
 // Pages allowed to ask this embedded editor to export.
 const PARENT_ORIGINS = new Set([
@@ -13,11 +14,8 @@ const PARENT_ORIGINS = new Set([
 	"https://scro.io",
 ]);
 
-function isEmbed() {
-	return new URLSearchParams(window.location.search).get("embed") === "1";
-}
-
 function parentOrigin() {
+	if (scroHost()) return window.location.origin;
 	if (!document.referrer) return null;
 	try {
 		const origin = new URL(document.referrer).origin;
@@ -34,10 +32,10 @@ export function ScroExportBridge() {
 	const exportState = useEditor((state) => state.project.getExportState());
 
 	useEffect(() => {
-		if (!isEmbed()) return;
+		if (!isScroEmbed()) return;
 		const origin = parentOrigin();
 		if (!origin) return;
-		window.parent.postMessage(
+		sendToScro(
 			{
 				type: "scro-export-progress",
 				exporting: exportState.isExporting,
@@ -48,27 +46,23 @@ export function ScroExportBridge() {
 	}, [exportState]);
 
 	useEffect(() => {
-		if (!isEmbed()) return;
+		if (!isScroEmbed()) return;
 
-		const onMessage = (event: MessageEvent) => {
-			if (!PARENT_ORIGINS.has(event.origin)) return;
-			const data = event.data as { type?: string; filename?: string };
+		return listenFromScro((payload, origin) => {
+			const data = payload as { type?: string; filename?: string };
 			if (data?.type !== "scro-export") return;
 			const filename =
 				typeof data.filename === "string" && data.filename.trim()
 					? data.filename.trim()
 					: "video.mp4";
-			void runExport(event.origin, filename);
-		};
-
-		window.addEventListener("message", onMessage);
-		return () => window.removeEventListener("message", onMessage);
+			void runExport(origin, filename);
+		}, PARENT_ORIGINS);
 
 		async function runExport(origin: string, filename: string) {
 			if (exporting.current) return;
 			const project = editor.project.getActiveOrNull();
 			if (!project) {
-				window.parent.postMessage({ type: "scro-export-error" }, origin);
+				sendToScro({ type: "scro-export-error" }, origin);
 				return;
 			}
 			exporting.current = true;
@@ -86,13 +80,13 @@ export function ScroExportBridge() {
 						filename,
 						mimeType: getExportMimeType({ format: "mp4" }),
 					});
-					window.parent.postMessage({ type: "scro-export-done" }, origin);
+					sendToScro({ type: "scro-export-done" }, origin);
 				} else {
-					window.parent.postMessage({ type: "scro-export-error" }, origin);
+					sendToScro({ type: "scro-export-error" }, origin);
 				}
 				editor.project.clearExportState();
 			} catch {
-				window.parent.postMessage({ type: "scro-export-error" }, origin);
+				sendToScro({ type: "scro-export-error" }, origin);
 			} finally {
 				exporting.current = false;
 			}

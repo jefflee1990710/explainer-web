@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/ui";
 import { useSearchParams } from "next/navigation";
+import { isScroEmbed } from "@/embed/scro-transport";
 import {
 	TAB_KEYS,
 	tabs,
@@ -23,7 +24,7 @@ import {
 export function TabBar() {
 	const { activeTab, setActiveTab } = useAssetsPanelStore();
 	const subtitleOpen = useScroSubtitleOpen();
-	const embedded = useSearchParams().get("embed") === "1";
+	const embedded = isScroEmbed(useSearchParams().get("embed"));
 	const [showTopFade, setShowTopFade] = useState(false);
 	const [showBottomFade, setShowBottomFade] = useState(false);
 	const scrollRef = useRef<HTMLDivElement>(null);

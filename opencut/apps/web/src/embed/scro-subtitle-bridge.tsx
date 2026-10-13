@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { isScroEmbed, scroEmbedParentOrigin } from "@/embed/scro-embed-parent";
+import { listenFromScro, sendToScro } from "@/embed/scro-transport";
 import { setScroSubtitleCatalog, setScroSubtitleVideoId, type ScroSubtitleCatalog } from "@/embed/scro-subtitle-store";
 
 function isCatalog(value: unknown): value is ScroSubtitleCatalog {
@@ -17,17 +18,15 @@ export function ScroSubtitleBridge() {
 		const origin = scroEmbedParentOrigin();
 		if (!origin) return;
 
-		const onMessage = (event: MessageEvent) => {
-			if (event.origin !== origin) return;
-			const data = event.data as { type?: string; catalog?: unknown; videoId?: string };
+		const stop = listenFromScro((payload, eventOrigin) => {
+			if (eventOrigin !== origin) return;
+			const data = payload as { type?: string; catalog?: unknown; videoId?: string };
 			if (data?.type !== "scro-subtitle-catalog" || !isCatalog(data.catalog)) return;
 			setScroSubtitleCatalog(data.catalog);
 			if (typeof data.videoId === "string") setScroSubtitleVideoId(data.videoId);
-		};
-
-		window.addEventListener("message", onMessage);
-		window.parent.postMessage({ type: "scro-subtitle-request" }, origin);
-		return () => window.removeEventListener("message", onMessage);
+		}, new Set([origin]));
+		sendToScro({ type: "scro-subtitle-request" }, origin);
+		return stop;
 	}, []);
 
 	return null;

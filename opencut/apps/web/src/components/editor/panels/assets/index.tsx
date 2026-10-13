@@ -11,13 +11,14 @@ import { StickersView } from "@/stickers/components/assets-view";
 import { TextView } from "@/text/components/assets-view";
 import { EffectsView } from "@/effects/components/assets-view";
 import { useSearchParams } from "next/navigation";
+import { isScroEmbed } from "@/embed/scro-transport";
 import { ScroSubtitlePanel } from "@/components/editor/panels/assets/scro-subtitle-panel";
 import { useScroSubtitleOpen } from "@/embed/scro-subtitle-store";
 
 export function AssetsPanel() {
 	const { activeTab } = useAssetsPanelStore();
 	const subtitleOpen = useScroSubtitleOpen();
-	const embedded = useSearchParams().get("embed") === "1";
+	const embedded = isScroEmbed(useSearchParams().get("embed"));
 
 	const viewMap: Record<Tab, React.ReactNode> = {
 		media: <MediaView />,

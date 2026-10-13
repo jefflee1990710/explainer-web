@@ -1,0 +1,29 @@
+---
+description: YouTube 粵語 Qwen3 accent 微調與 Vast 管線（新 repo，非舊 LoRA）
+globs: experiments/youtube/**,experiments/qwen3-tts-cantonese-accent/**
+alwaysApply: false
+---
+
+# YouTube accent TTS（qwen3-tts-cantonese-accent）
+
+## 用邊套 repo
+
+- **現行**：`experiments/qwen3-tts-cantonese-accent` — SFT、`use_language_id` / lang **2072**、推理 `generate_voice_clone`（cantonese）。
+- **勿開新實驗**：`experiments/qwen3-tts-hk-cantonese-finetune` 與 `youtube/cloud_bundle/remote_train*.sh`（multi-speaker LoRA + `generate_custom_voice`）。
+
+## 資料與腳本
+
+- JSONL：`experiments/youtube/train_accent_raw.jsonl` → reencode → `train_accent_min3s.jsonl`（≥36 frames）。
+- Vast：`experiments/youtube/cloud_bundle/accent/remote_setup.sh`、`remote_reencode_and_filter.sh`、`remote_train.sh`。
+- 工作階段 handoff：`experiments/youtube/CURSOR_SESSION.md`（instance id、SSH、進度 — 新 chat 先讀/更新）。
+
+## Vast 遠端注意
+
+- 遠端根：`/workspace/hk-tts`；jsonl 內音檔路徑相對 `youtube/chunks_sent/`。
+- `remote_setup.sh`：PyPI `qwen-tts`，將不完整 `third_party/.../qwen_tts` 改名；`sft_12hz.py` 用 `eager` 非 flash-attn。
+- 查進度：`grep "Opt Steps" /workspace/hk-tts/logs/train_accent.log | tail -1`。
+
+## 驗證
+
+- 唔 live call Higgsfield；用 mock / 本機腳本 / eval wav。
+- 評估聽感優先於 loss 數字。

@@ -12,6 +12,7 @@ import {
 	writeSeen,
 	readSeen,
 } from "@/embed/scro-media-sources";
+import { isScroEmbed, listenFromScro, scroHost, sendToScro } from "@/embed/scro-transport";
 
 const PARENT_ORIGINS = new Set([
 	"http://localhost:3000",
@@ -38,11 +39,8 @@ type RestoreMessage = {
 	updatedAt: string;
 };
 
-function isEmbed() {
-	return new URLSearchParams(window.location.search).get("embed") === "1";
-}
-
 function parentOrigin() {
+	if (scroHost()) return window.location.origin;
 	if (!document.referrer) return null;
 	try {
 		const origin = new URL(document.referrer).origin;
@@ -101,7 +99,7 @@ export function ScroProjectSync() {
 	const restoring = useRef(false);
 
 	useEffect(() => {
-		if (!isEmbed()) return;
+		if (!isScroEmbed()) return;
 		const origin = parentOrigin();
 		if (!origin) return;
 
@@ -145,7 +143,7 @@ export function ScroProjectSync() {
 					});
 				}
 			}
-			window.parent.postMessage(
+			sendToScro(
 				{ type: "scro-project-save", videoId, project: plain, media, uploads },
 				origin,
 			);
@@ -166,20 +164,18 @@ export function ScroProjectSync() {
 		const stopMedia = editor.media.subscribe(schedule);
 		window.addEventListener("scro-sync-arm", onArm);
 
-		const onMessage = (event: MessageEvent) => {
-			if (!PARENT_ORIGINS.has(event.origin)) return;
-			const data = event.data as RestoreMessage;
+		const stopMessages = listenFromScro((payload, replyOrigin) => {
+			const data = payload as RestoreMessage;
 			if (!data || data.type !== "scro-restore" || !data.videoId || !data.project) return;
-			void restore(data, event.origin);
-		};
-		window.addEventListener("message", onMessage);
+			void restore(data, replyOrigin);
+		}, PARENT_ORIGINS);
 
 		return () => {
 			window.clearTimeout(timer);
 			stopProject();
 			stopMedia();
 			window.removeEventListener("scro-sync-arm", onArm);
-			window.removeEventListener("message", onMessage);
+			stopMessages();
 		};
 
 		async function restore(data: RestoreMessage, replyOrigin: string) {
@@ -190,7 +186,7 @@ export function ScroProjectSync() {
 			if (local && hasTimeline(local) && localTime > remoteTime) {
 				armed.current = true;
 				postSave();
-				window.parent.postMessage(
+				sendToScro(
 					{ type: "scro-restore-done", sourceUrls: Object.values(readClipSources(data.videoId)) },
 					replyOrigin,
 				);
@@ -224,7 +220,7 @@ export function ScroProjectSync() {
 				writeSeen(data.videoId, seen);
 				await storageService.saveProject({ project: asProject(data.project) });
 				await editor.project.loadProject({ id: projectId });
-				window.parent.postMessage(
+				sendToScro(
 					{
 						type: "scro-restore-done",
 						sourceUrls: (data.media ?? []).map((item) => item.sourceUrl).filter(Boolean),
@@ -233,7 +229,7 @@ export function ScroProjectSync() {
 				);
 			} catch (error) {
 				console.error("Failed to restore Scro edit:", error);
-				window.parent.postMessage({ type: "scro-restore-done", sourceUrls: [] }, replyOrigin);
+				sendToScro({ type: "scro-restore-done", sourceUrls: [] }, replyOrigin);
 			} finally {
 				restoring.current = false;
 				armScroSync();

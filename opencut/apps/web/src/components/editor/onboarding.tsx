@@ -5,13 +5,12 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { SOCIAL_LINKS } from "@/site/social";
 import { useLocalStorage } from "@/services/storage/use-local-storage";
+import { isScroEmbed } from "@/embed/scro-transport";
 import { Button } from "../ui/button";
 import { Dialog, DialogBody, DialogContent, DialogTitle } from "../ui/dialog";
 
 export function Onboarding() {
-	const embedded =
-		typeof window !== "undefined" &&
-		new URLSearchParams(window.location.search).get("embed") === "1";
+	const embedded = isScroEmbed();
 	const [step, setStep] = useState(0);
 	const [hasSeenOnboarding, setHasSeenOnboarding] = useLocalStorage({
 		key: "hasSeenOnboarding",
