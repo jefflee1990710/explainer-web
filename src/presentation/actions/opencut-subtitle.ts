@@ -58,8 +58,8 @@ export async function syncOpencutSubtitlePlatesAction(input: {
     if (!project?.phaseA) return { ok: false, error: "專案不存在" };
 
     const styleChanged = opencutSubtitleStyleChanged(before, {
-      textStyleId: project.textStyleId ?? project.subtitleLook,
-      textStyleImageUrl: project.textStyleImageUrl,
+      textStyleId,
+      textStyleImageUrl: styleResult.project.textStyleImageUrl,
     });
 
     const classified = classifyOpencutSubtitlePlates({
