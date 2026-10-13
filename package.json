@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev:opencut": "cd opencut/apps/web && bun --bun next dev --turbopack --port 3001",
-    "build": "next build",
+    "build": "npm install --prefix opencut/apps/web --omit=dev --no-audit --no-fund && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "seed:skills": "tsx scripts/seed-skills.ts",
