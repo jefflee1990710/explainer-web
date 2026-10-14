@@ -29,7 +29,7 @@ import {
 	bookmarkNotesPreviewOverlay,
 	getBookmarkPreviewOverlaySource,
 } from "@/opencut/timeline/bookmarks/index";
-import { ScroClipImport } from "@/opencut/embed/scro-clip-import";
+import { ScroVideoSync } from "@/opencut/embed/scro-video-sync";
 import { ScroSubtitleBridge } from "@/opencut/embed/scro-subtitle-bridge";
 import { ScroExportBridge } from "@/opencut/embed/scro-export-bridge";
 import { ScroProjectSync } from "@/opencut/embed/scro-project-sync";
@@ -41,7 +41,7 @@ export default function OpenCutInlineEditor({ projectId }: { projectId: string }
 		// OpenCut's app layout supplies TooltipProvider. This mount skips that layout.
 		<TooltipProvider>
 			<EditorProvider projectId={projectId}>
-				<ScroClipImport />
+				<ScroVideoSync />
 				<ScroExportBridge />
 				<ScroProjectSync />
 				<ScroSubtitleBridge />

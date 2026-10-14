@@ -10,13 +10,13 @@ import {
   uploadOpencutMediaAction,
 } from "@/presentation/actions/opencut-edit";
 import { syncOpencutSubtitlePlatesAction } from "@/presentation/actions/opencut-subtitle";
-import { timelineClips } from "@/service/video-edit/edit-timeline";
 import { buildSubtitleCatalog, type SubtitleCatalog } from "@/service/video-edit/subtitle-catalog";
 import { createScroOpenCutHost, type ScroOpenCutHost } from "@/service/opencut/host-channel";
+import { buildSeedClips, diffScroSeedClips } from "@/service/scro-video/timeline-seed";
 import { subtitleLookLabel } from "@/util/i18n/picker-labels";
-import { mediaSrc } from "@/util/media-src";
 import type { OpencutEditMedia } from "@/model/opencut-edit";
 import type { PublicTextStyle, PublicVideo } from "@/presentation/serialize";
+import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 import "./opencut-direct-host.css";
 
 const OpenCutInlineEditor = dynamic(() => import("@/opencut/embed/scro-inline-editor"), {
@@ -72,17 +72,11 @@ export function OpenCutDirectDesk({
   const syncedRef = useRef(false);
   const savingRef = useRef(false);
   const pendingSave = useRef<SaveMessage | null>(null);
-  const clips = useMemo(
-    () =>
-      timelineClips(project).flatMap((clip) => {
-        const url = mediaSrc(clip);
-        if (!url) return [];
-        return [{ name: `Clip ${clip.clipNumber}`, url }];
-      }),
-    [project],
-  );
-  const clipsRef = useRef(clips);
-  clipsRef.current = clips;
+  const seedClips = useMemo(() => buildSeedClips(project), [project]);
+  const seedClipsRef = useRef(seedClips);
+  seedClipsRef.current = seedClips;
+  const prevSeedRef = useRef<ScroVideoSeedClip[]>([]);
+  const readyVideos = seedClips.filter((clip) => clip.videoUrl);
 
   const post = (message: unknown) => {
     host.postToEditor(message);
@@ -137,12 +131,14 @@ export function OpenCutDirectDesk({
         });
         return;
       }
+      const clips = seedClipsRef.current;
       channel.postToEditor({
-        type: "scro-import-clips",
+        type: "scro-seed-videos",
         videoId: project.id,
         aspectRatio: project.aspectRatio,
-        clips: clipsRef.current,
+        clips,
       });
+      prevSeedRef.current = clips;
       syncedRef.current = true;
     };
 
@@ -274,14 +270,13 @@ export function OpenCutDirectDesk({
       }
       if (data?.type === "scro-restore-done") {
         syncedRef.current = true;
-        const known = new Set(data.sourceUrls ?? []);
-        const fresh = clipsRef.current.filter((clip) => !known.has(clip.url));
-        if (fresh.length > 0) {
+        prevSeedRef.current = seedClipsRef.current;
+        // Push current posters/videos onto restored scroClipNumber elements.
+        for (const clip of seedClipsRef.current) {
           channel.postToEditor({
-            type: "scro-import-clips",
+            type: "scro-clip-updated",
             videoId: project.id,
-            aspectRatio: project.aspectRatio,
-            clips: fresh,
+            clip,
           });
         }
         return;
@@ -305,18 +300,33 @@ export function OpenCutDirectDesk({
 
   useEffect(() => {
     if (!syncedRef.current) return;
-    host.postToEditor({
-      type: "scro-import-clips",
-      videoId: project.id,
-      aspectRatio: project.aspectRatio,
-      clips,
+    const changed = diffScroSeedClips({
+      previous: prevSeedRef.current,
+      next: seedClips,
     });
-  }, [clips, project.aspectRatio, project.id]);
+    prevSeedRef.current = seedClips;
+    host.postToEditor({
+      type: "scro-videos-state",
+      videoId: project.id,
+      clips: seedClips,
+    });
+    for (const clip of changed) {
+      host.postToEditor({
+        type: "scro-clip-updated",
+        videoId: project.id,
+        clip,
+      });
+    }
+  }, [seedClips, project.id, host]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[var(--studio-canvas)]">
-      <OpenCutExportButton project={project} host={host} disabled={clips.length === 0} />
-      {clips.length === 0 ? (
+      <OpenCutExportButton
+        project={project}
+        host={host}
+        disabled={readyVideos.length === 0}
+      />
+      {seedClips.length === 0 ? (
         <p className="shrink-0 px-4 py-2 text-xs text-muted">{t("video.opencut.empty")}</p>
       ) : null}
       <div className="min-h-0 flex-1">
