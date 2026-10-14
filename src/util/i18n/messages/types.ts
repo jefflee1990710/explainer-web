@@ -199,6 +199,7 @@ export type Messages = {
       scene: string;
       production: string;
       export: string;
+      video: string;
     };
     status: Record<
       | "draft"

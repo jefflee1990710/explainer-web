@@ -16,41 +16,46 @@ export type StatusMeta = {
   busy: boolean;
 };
 
-export const PROJECT_STEP_IDS = ["input", "production", "export"] as const;
+// Brief → Video editor (Production tab removed; generation lives in Video).
+export const PROJECT_STEP_IDS = ["input", "video"] as const;
 
-// 題材 → 製作 → 成片. Export unlocks after every clip is video_ready.
 export const PROJECT_STEPS = PROJECT_STEP_IDS.map((id) => ({ id }));
 
 export type StepVisualState = "done" | "current" | "todo";
 
-// Production stays current until all clips are ready; export is current once
-// unlocked and not yet concatenated. ready.step stays 1 so Next is required.
+const VIDEO_INDEX = 1;
+
+// Two-step progress: input then video. `phaseAReady` unlocks video without
+// waiting for every clip to finish. `reelReady` marks video as done.
 export function stepVisualState(
   index: number,
   current: number,
-  clipsReady: boolean,
+  phaseAReady: boolean,
   reelReady: boolean,
 ): StepVisualState {
-  const exportIndex = PROJECT_STEPS.length - 1;
-  const productionIndex = 1;
-  if (index < exportIndex) {
-    if (index < current || (clipsReady && index <= productionIndex)) return "done";
-    if (index === current) return "current";
+  if (index === 0) {
+    if (current > 0 || phaseAReady) return "done";
+    if (current === 0) return "current";
     return "todo";
   }
-  if (reelReady) return "done";
-  if (clipsReady) return "current";
+  if (index === VIDEO_INDEX) {
+    if (reelReady) return "done";
+    if (current >= VIDEO_INDEX || phaseAReady) return "current";
+    return "todo";
+  }
   return "todo";
 }
 
-export function maxReachableStep(current: number, clipsReady: boolean) {
-  return clipsReady ? PROJECT_STEPS.length - 1 : current;
+/** Unlock Video when Phase A has clips (or the user is already on that step). */
+export function maxReachableStep(current: number, phaseAReady: boolean) {
+  if (phaseAReady || current >= VIDEO_INDEX) return VIDEO_INDEX;
+  return 0;
 }
 
 export const STATUS_META: Record<ProjectStatus, StatusMeta> = {
   draft: { tone: "neutral", step: 0, busy: false },
   phase_a: { tone: "working", step: 1, busy: true },
-  // Leftover 核准分鏡 projects land on 製作; Phase A now skips this status.
+  // Leftover 核准分鏡 projects land on Video; Phase A now skips this status.
   awaiting_approval: { tone: "action", step: 1, busy: false },
   // Static `busy` so folder rollups / dashboard filters work from statuses alone;
   // components with the full project use isProjectBusy() for the precise answer.
@@ -83,7 +88,7 @@ export function isProductionLike(status: ProjectStatus | LegacyProjectStatus) {
   );
 }
 
-// Failed videos stay on 製作 so retry / progress copy stays in one place.
+// Failed videos stay on Video so retry / progress copy stays in one place.
 export function failedStepFor(_project: {
   phaseA?: PhaseAProposal;
   frames?: ClipFrame[];

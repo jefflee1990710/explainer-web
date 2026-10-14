@@ -64,7 +64,7 @@ export function VideoEditorWorkspace({
       ? { onSelectStep: nav.onSelectStep, onRestart: nav.onRestart }
       : null;
     const key = nav
-      ? `${nav.status}|${nav.viewing}|${nav.clipsReady}|${nav.failedAtStep ?? ""}|${nav.canRestart}`
+      ? `${nav.status}|${nav.viewing}|${nav.phaseAReady}|${nav.failedAtStep ?? ""}|${nav.canRestart}`
       : "";
     if (navKey.current === key) return;
     navKey.current = key;
@@ -74,7 +74,7 @@ export function VideoEditorWorkspace({
         current &&
         current.status === nav.status &&
         current.viewing === nav.viewing &&
-        current.clipsReady === nav.clipsReady &&
+        current.phaseAReady === nav.phaseAReady &&
         current.failedAtStep === nav.failedAtStep &&
         current.canRestart === nav.canRestart
       ) {
@@ -84,7 +84,7 @@ export function VideoEditorWorkspace({
         status: nav.status,
         failedAtStep: nav.failedAtStep,
         viewing: nav.viewing,
-        clipsReady: nav.clipsReady,
+        phaseAReady: nav.phaseAReady,
         canRestart: nav.canRestart,
         onSelectStep: (step) => stepHandlers.current?.onSelectStep(step),
         onRestart: () => stepHandlers.current?.onRestart(),
@@ -111,11 +111,7 @@ export function VideoEditorWorkspace({
         objectSheetItems={video?.objectSheetItems}
         backgroundPlates={video?.backgroundPlates}
         canDelete={Boolean(video)}
-        onExport={
-          stepNav?.clipsReady && stepNav.viewing !== 2
-            ? () => stepNav.onSelectStep(2)
-            : undefined
-        }
+        onExport={undefined}
         onRestart={stepNav?.canRestart ? stepNav.onRestart : undefined}
         onDelete={() => setDeleteOpen(true)}
       >

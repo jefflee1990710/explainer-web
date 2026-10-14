@@ -241,6 +241,7 @@ export const zhHant: Messages = {
       scene: "分鏡",
       production: "AI生成",
       export: "影片",
+      video: "影片",
     },
     status: {
       draft: "草稿",

@@ -35,7 +35,7 @@ export const pt: Partial<Messages> = {
     searchPlaceholder: "Pesquisar pelo nome do projeto…", searchLabel: "Pesquisar pelo nome do projeto", filterLabel: "Filtro de estado",
   },
   project: {
-    steps: { input: "Conteúdo", scene: "Cena", production: "Produção", export: "Video" },
+    steps: { input: "Conteúdo", scene: "Cena", production: "Produção", export: "Video", video: "Video" },
     status: { draft: "Rascunho", phase_a: "A escrever o storyboard", awaiting_approval: "Revisão do storyboard", production: "Em produção", ready: "Concluído", failed: "Falhou" },
     filters: { all: "Todos", action: "Requer atenção", active: "Em curso", ready: "Concluídos", failed: "Falhados" },
   },

@@ -28,6 +28,7 @@ export function ProjectStepper({
   detail,
   viewingStep,
   onSelectStep,
+  phaseAReady = false,
   clipsReady = false,
   reelReady = false,
 }: {
@@ -41,7 +42,9 @@ export function ProjectStepper({
   // Which step the workspace is showing; defaults to the live status step.
   viewingStep?: number;
   onSelectStep?: (step: number) => void;
-  // All clips video_ready — unlocks step 4 without auto-advancing.
+  // Phase A has clips — unlocks Video without waiting for every render.
+  phaseAReady?: boolean;
+  /** @deprecated use phaseAReady */
   clipsReady?: boolean;
   reelReady?: boolean;
 }) {
@@ -50,13 +53,14 @@ export function ProjectStepper({
   const viewed = viewingStep ?? current;
   const failed = status === "failed";
   const isBusy = busy ?? STATUS_META[status].busy;
-  const maxReachable = maxReachableStep(current, clipsReady);
+  const unlocked = phaseAReady ?? clipsReady ?? false;
+  const maxReachable = maxReachableStep(current, unlocked);
 
   if (compact) {
     return (
       <ol className="flex items-center gap-1" aria-label="Progress">
         {PROJECT_STEPS.map((step, index) => {
-          const state = stepVisualState(index, current, clipsReady, reelReady);
+          const state = stepVisualState(index, current, unlocked, reelReady);
           return (
             <li
               key={step.id}
@@ -80,7 +84,7 @@ export function ProjectStepper({
   return (
     <ol className="flex items-center gap-2 sm:gap-3" aria-label="Project steps">
       {PROJECT_STEPS.map((step, index) => {
-        const state = stepVisualState(index, current, clipsReady, reelReady);
+        const state = stepVisualState(index, current, unlocked, reelReady);
         const isLast = index === PROJECT_STEPS.length - 1;
         const isViewing = index === viewed;
         const clickable = Boolean(onSelectStep) && index <= maxReachable;

@@ -9,7 +9,6 @@ import {
   rememberedEditorStep,
 } from "@/presentation/components/app/projects/new/editor-tab-memory";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
-import { ClipProduction } from "@/presentation/components/project/clip-production";
 import { StudioPanel } from "@/presentation/studio/studio-panel";
 import { currentStepFor } from "@/presentation/components/project/project-stepper";
 import { Spinner } from "@/presentation/components/spinner";
@@ -801,8 +800,8 @@ export function NewProjectForm({
   const pinViewingStep = useCallback(
     (step: number) => {
       setViewingOverride({ id: liveId, status: liveStatus, step });
-      // Remember 製作 or 影片 for the next time this video is opened.
-      if (liveId && (step === 1 || step === 2)) {
+      // Remember Video for the next time this video is opened.
+      if (liveId && step === 1) {
         window.localStorage.setItem(editorTabStorageKey(liveId), String(step));
       }
     },
@@ -816,14 +815,14 @@ export function NewProjectForm({
     restoredEditorTab.current = video.id;
     const saved = rememberedEditorStep(
       window.localStorage.getItem(editorTabStorageKey(video.id)),
-      video.status === "ready",
+      Boolean(video.phaseA?.clips?.length),
     );
     if (saved == null) return;
     setViewingOverride({ id: video.id, status: video.status, step: saved });
   }, [project?.id]);
   const briefBusy =
     submitting || Boolean(project && (isProjectBusy(project) || isReelBusy(project.reelStatus)));
-  const clipsReady = project?.status === "ready";
+  const phaseAReady = Boolean(project?.phaseA?.clips?.length);
   const failedAtStep = project?.status === "failed" ? failedStepFor(project) : undefined;
 
   useEffect(() => {
@@ -835,7 +834,7 @@ export function NewProjectForm({
       status: liveStatus,
       failedAtStep,
       viewing,
-      clipsReady,
+      phaseAReady,
       onSelectStep: (step) => {
         setRestarting(false);
         pinViewingStep(step);
@@ -845,7 +844,7 @@ export function NewProjectForm({
     });
   }, [
     briefBusy,
-    clipsReady,
+    phaseAReady,
     failedAtStep,
     liveStatus,
     onRestart,
@@ -868,11 +867,11 @@ export function NewProjectForm({
     (castNeed === 0 || characterIds.length === castNeed) &&
     referenceImages.every((item) => item.description.trim().length > 0) &&
     !briefBusy;
-  const fillEditor =
+  // Video desk opens as soon as Phase A has a storyboard (not only when ready).
+  const videoDesk =
     viewing === 1 && Boolean(project?.phaseA && isProductionLike(project.status));
-  const reelDesk = viewing === 2 && project?.status === "ready";
   const directorBusy = viewing === 1 && project?.status === "phase_a";
-  const desk = fillEditor || reelDesk;
+  const desk = videoDesk || directorBusy;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -1156,10 +1155,8 @@ export function NewProjectForm({
               }`}
             >
               <EditorStepSwitch
-                status={liveStatus}
-                failedAtStep={failedAtStep}
                 viewing={viewing}
-                clipsReady={clipsReady}
+                phaseAReady={phaseAReady}
                 onSelectStep={(step) => {
                   setRestarting(false);
                   pinViewingStep(step);
@@ -1216,24 +1213,7 @@ export function NewProjectForm({
             <div key="phase-a" className="grid min-h-0 flex-1 place-items-center px-6">
               <DirectorProgress />
             </div>
-          ) : fillEditor && project ? (
-            <div key="production" className="flex min-h-0 flex-1 flex-col">
-            <ClipProduction
-              project={project}
-              credits={walletCredits}
-              pending={pending}
-              error={error}
-              onGenerateFrames={onGenerateFrames}
-              onRegenerateFrame={onRegenerateFrame}
-              onGenerateVideo={onGenerateVideo}
-              onCancelVideo={onCancelVideo}
-              onBulkGenerate={onBulkGenerate}
-              onGenerateSelected={onGenerateSelected}
-              subscribed={walletSubscribed}
-              onProject={setProject}
-            />
-            </div>
-          ) : reelDesk && project ? (
+          ) : videoDesk && project ? (
             <OpenCutVideoDesk key={project.id} project={project} textStyles={textStyles} />
           ) : project?.status === "failed" && viewing === liveStep ? (
             <FailedCard

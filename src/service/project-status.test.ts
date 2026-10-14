@@ -5,6 +5,7 @@ import {
   isProductionLike,
   maxReachableStep,
   normalizeProjectStatus,
+  PROJECT_STEP_IDS,
   stepVisualState,
 } from "@/service/project-status";
 
@@ -33,19 +34,32 @@ test("isProductionLike covers production, ready, leftover approval, and legacy m
   assert.equal(isProductionLike("phase_a"), false);
 });
 
-test("failedStepFor: storyboard missing or present both land on production", () => {
+test("failedStepFor: storyboard missing or present both land on video", () => {
   assert.equal(failedStepFor({}), 1);
   assert.equal(failedStepFor({ phaseA: { clips: [] } as never }), 1);
 });
 
-test("export stays locked until clips are ready; Next unlocks step 3", () => {
-  assert.equal(stepVisualState(1, 1, false, false), "current");
-  assert.equal(stepVisualState(2, 1, false, false), "todo");
+test("steps are input then video", () => {
+  assert.deepEqual([...PROJECT_STEP_IDS], ["input", "video"]);
+});
+
+test("unlocks video when phase A is ready even if clips are not done", () => {
+  assert.equal(maxReachableStep(1, true), 1);
+});
+
+test("does not unlock video when phase A is not ready and still on input", () => {
+  assert.equal(maxReachableStep(0, false), 0);
+});
+
+test("video step is reachable once current is already video", () => {
   assert.equal(maxReachableStep(1, false), 1);
+});
 
-  assert.equal(stepVisualState(1, 1, true, false), "done");
-  assert.equal(stepVisualState(2, 1, true, false), "current");
-  assert.equal(maxReachableStep(1, true), 2);
-
-  assert.equal(stepVisualState(2, 1, true, true), "done");
+test("step visuals for two-step input → video", () => {
+  assert.equal(stepVisualState(0, 0, false, false), "current");
+  assert.equal(stepVisualState(1, 0, false, false), "todo");
+  assert.equal(stepVisualState(1, 0, true, false), "current");
+  assert.equal(stepVisualState(0, 1, true, false), "done");
+  assert.equal(stepVisualState(1, 1, true, false), "current");
+  assert.equal(stepVisualState(1, 1, true, true), "done");
 });

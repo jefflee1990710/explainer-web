@@ -1,18 +1,19 @@
-// Last 製作 (1) or 影片 (2) tab for one video, kept in this browser only.
+// Last Video tab (1) for one video, kept in this browser only.
+// Legacy saves used 2 for the old Export/Video step — treat as Video.
 
 export function editorTabStorageKey(videoId: string) {
   return `explainer.editorTab:${videoId}`;
 }
 
-export function parseEditorTab(raw: string | null): 1 | 2 | null {
-  if (raw === "1") return 1;
-  if (raw === "2") return 2;
+export function parseEditorTab(raw: string | null): 1 | null {
+  if (raw === "1" || raw === "2") return 1;
   return null;
 }
 
-// Drop 影片 when that step is still locked. No saved click keeps the usual default.
-export function rememberedEditorStep(raw: string | null, clipsReady: boolean): 1 | 2 | null {
+/** Remembered editor step. Video unlocks once Phase A has clips. */
+export function rememberedEditorStep(raw: string | null, phaseAReady: boolean): 1 | null {
   const saved = parseEditorTab(raw);
-  if (saved === 2 && !clipsReady) return null;
+  if (saved == null) return null;
+  if (!phaseAReady) return null;
   return saved;
 }

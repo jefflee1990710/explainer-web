@@ -1,5 +1,6 @@
-// Icon inside a step avatar. Production is frames; Video is a play mark.
-export function EditorStepIcon({ stepId }: { stepId: "production" | "export" }) {
+// Icon inside a step avatar. Video is a play mark.
+export function EditorStepIcon({ stepId }: { stepId: "video" | "production" | "export" }) {
+  // Legacy production/export ids still render the play mark (Video).
   if (stepId === "production") {
     return (
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>

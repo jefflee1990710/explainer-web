@@ -246,6 +246,7 @@ export const en: Messages = {
       scene: "Scene",
       production: "Production",
       export: "Video",
+      video: "Video",
     },
     status: {
       draft: "Draft",
