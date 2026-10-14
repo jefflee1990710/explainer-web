@@ -10,8 +10,10 @@ import {
   uploadOpencutMediaAction,
 } from "@/presentation/actions/opencut-edit";
 import { syncOpencutSubtitlePlatesAction } from "@/presentation/actions/opencut-subtitle";
+import { generateRemainingAction } from "@/presentation/actions/clip-production";
 import { buildSubtitleCatalog, type SubtitleCatalog } from "@/service/video-edit/subtitle-catalog";
 import { createScroOpenCutHost, type ScroOpenCutHost } from "@/service/opencut/host-channel";
+import { planRemaining } from "@/service/production-plan";
 import { buildSeedClips, diffScroSeedClips } from "@/service/scro-video/timeline-seed";
 import { subtitleLookLabel } from "@/util/i18n/picker-labels";
 import type { OpencutEditMedia } from "@/model/opencut-edit";
@@ -76,6 +78,7 @@ export function OpenCutDirectDesk({
   const seedClipsRef = useRef(seedClips);
   seedClipsRef.current = seedClips;
   const prevSeedRef = useRef<ScroVideoSeedClip[]>([]);
+  const didAutoPlanRef = useRef(false);
   const readyVideos = seedClips.filter((clip) => clip.videoUrl);
 
   const post = (message: unknown) => {
@@ -318,6 +321,23 @@ export function OpenCutDirectDesk({
       });
     }
   }, [seedClips, project.id, host]);
+
+  // Once per desk session: queue remaining frames/videos like Production's auto fill.
+  useEffect(() => {
+    if (didAutoPlanRef.current) return;
+    if (!project.phaseA?.clips?.length) return;
+    const plan = planRemaining(project);
+    if (plan.frames.length === 0 && plan.videos.length === 0) {
+      didAutoPlanRef.current = true;
+      return;
+    }
+    didAutoPlanRef.current = true;
+    void generateRemainingAction(project.id).then((result) => {
+      if (!result.ok) {
+        console.warn("[scro-video] auto plan:", result.error);
+      }
+    });
+  }, [project]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[var(--studio-canvas)]">
