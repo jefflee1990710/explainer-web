@@ -54,6 +54,7 @@ describe("scroVideosFor", () => {
           {
             clipNumber: 1,
             status: "in_progress",
+            durationSeconds: 5,
             prompt: "",
           },
         ],
@@ -87,6 +88,7 @@ describe("scroVideosFor", () => {
           {
             clipNumber: 1,
             status: "completed",
+            durationSeconds: 5,
             blobUrl: "https://cdn.example/clip.mp4",
             prompt: "",
           },

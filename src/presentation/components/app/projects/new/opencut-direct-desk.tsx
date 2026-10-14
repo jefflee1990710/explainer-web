@@ -5,6 +5,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { OpenCutExportButton } from "@/presentation/components/app/projects/new/opencut-export-button";
 import {
+  OpenCutScroAiShell,
+  useOpenCutScroAiState,
+} from "@/presentation/components/app/projects/new/opencut-scro-ai-shell";
+import {
   getOpencutEditAction,
   saveOpencutEditAction,
   uploadOpencutMediaAction,
@@ -17,6 +21,7 @@ import { planRemaining } from "@/service/production-plan";
 import { buildSeedClips, diffScroSeedClips } from "@/service/scro-video/timeline-seed";
 import { subtitleLookLabel } from "@/util/i18n/picker-labels";
 import type { OpencutEditMedia } from "@/model/opencut-edit";
+import type { FramePosition, FrameRevisionInput } from "@/model/project";
 import type { PublicTextStyle, PublicVideo } from "@/presentation/serialize";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 import "./opencut-direct-host.css";
@@ -52,13 +57,30 @@ type SaveMessage = {
   uploads?: SaveUpload[];
 };
 
+export type OpenCutProductionHandlers = {
+  credits: number;
+  pending: string;
+  subscribed: boolean;
+  onGenerateFrames: (clipNumber: number) => void;
+  onGenerateVideo: (clipNumber: number) => void;
+  onCancelVideo: (clipNumber: number) => void;
+  onRegenerateFrame: (
+    clipNumber: number,
+    position: FramePosition,
+    revision?: FrameRevisionInput,
+  ) => void;
+  onProject: (project: PublicVideo) => void;
+};
+
 // Video tab: OpenCut runs in this page, not inside an iframe.
 export function OpenCutDirectDesk({
   project,
   textStyles,
+  production,
 }: {
   project: PublicVideo;
   textStyles: PublicTextStyle[];
+  production?: OpenCutProductionHandlers;
 }) {
   const { t } = useI18n();
   const hostRef = useRef<ScroOpenCutHost | null>(null);
@@ -80,6 +102,11 @@ export function OpenCutDirectDesk({
   const prevSeedRef = useRef<ScroVideoSeedClip[]>([]);
   const didAutoPlanRef = useRef(false);
   const readyVideos = seedClips.filter((clip) => clip.videoUrl);
+  const productionRef = useRef(production);
+  productionRef.current = production;
+  const ai = useOpenCutScroAiState();
+  const aiRef = useRef(ai);
+  aiRef.current = ai;
 
   const post = (message: unknown) => {
     host.postToEditor(message);
@@ -244,6 +271,10 @@ export function OpenCutDirectDesk({
         videoId?: string;
         textStyleId?: string;
         clipNumbers?: number[];
+        clipNumber?: number;
+        action?: string;
+        kind?: string;
+        position?: FramePosition;
         project?: unknown;
         media?: OpencutEditMedia[];
         uploads?: SaveUpload[];
@@ -267,6 +298,27 @@ export function OpenCutDirectDesk({
             videoId: data.videoId,
             textStyleId: data.textStyleId,
             clipNumbers,
+          });
+        }
+        return;
+      }
+      if (data?.type === "scro-clip-action" && data.videoId === project.id && typeof data.clipNumber === "number") {
+        const handlers = productionRef.current;
+        if (!handlers) return;
+        if (data.action === "generate-frames") handlers.onGenerateFrames(data.clipNumber);
+        else if (data.action === "generate-video") handlers.onGenerateVideo(data.clipNumber);
+        else if (data.action === "cancel-video") void handlers.onCancelVideo(data.clipNumber);
+        return;
+      }
+      if (data?.type === "scro-open-ai" && data.videoId === project.id && typeof data.clipNumber === "number") {
+        if (data.kind === "scene-chat") {
+          aiRef.current.setSceneChatClip(data.clipNumber);
+          return;
+        }
+        if (data.kind === "frame-edit" && (data.position === "start" || data.position === "end")) {
+          aiRef.current.setEditingFrame({
+            clipNumber: data.clipNumber,
+            position: data.position,
           });
         }
         return;
@@ -340,7 +392,7 @@ export function OpenCutDirectDesk({
   }, [project]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[var(--studio-canvas)]">
+    <div className="relative flex min-h-0 flex-1 flex-col bg-[var(--studio-canvas)]">
       <OpenCutExportButton
         project={project}
         host={host}
@@ -352,6 +404,20 @@ export function OpenCutDirectDesk({
       <div className="min-h-0 flex-1">
         <OpenCutInlineEditor projectId={`scro-${project.id}`} />
       </div>
+      {production ? (
+        <OpenCutScroAiShell
+          project={project}
+          credits={production.credits}
+          pending={production.pending}
+          subscribed={production.subscribed}
+          sceneChatClip={ai.sceneChatClip}
+          editingFrame={ai.editingFrame}
+          onCloseSceneChat={() => ai.setSceneChatClip(null)}
+          onCloseFrameEdit={() => ai.setEditingFrame(null)}
+          onProject={production.onProject}
+          onRegenerateFrame={production.onRegenerateFrame}
+        />
+      ) : null}
     </div>
   );
 }

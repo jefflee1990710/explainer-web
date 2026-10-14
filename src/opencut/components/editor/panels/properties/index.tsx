@@ -9,6 +9,10 @@ import {
 	TooltipTrigger,
 } from "@/opencut/components/ui/tooltip";
 import { useEditor } from "@/opencut/editor/use-editor";
+import {
+	ScroVideoProperties,
+	useSelectedScroClipNumber,
+} from "@/opencut/embed/scro-video-properties";
 import { useElementSelection } from "@/opencut/timeline/hooks/element/use-element-selection";
 import { usePropertiesStore } from "./stores/properties-store";
 import { getPropertiesConfig } from "./registry";
@@ -22,7 +26,35 @@ export function PropertiesPanel() {
 	const { selectedElements } = useElementSelection();
 	const { activeTabPerType, setActiveTab } = usePropertiesStore();
 
+	const timelineScroClip =
+		selectedElements.length === 1
+			? (() => {
+					const located = editor.timeline.getElementsWithTracks({
+						elements: selectedElements,
+					})[0];
+					const element = located?.element;
+					if (
+						element &&
+						(element.type === "video" || element.type === "image") &&
+						element.scroClipNumber != null
+					) {
+						return element.scroClipNumber;
+					}
+					return null;
+				})()
+			: null;
+	const scroClipNumber = useSelectedScroClipNumber(timelineScroClip);
+
 	if (selectedElements.length === 0) {
+		if (scroClipNumber != null) {
+			return (
+				<div className="panel bg-background flex h-full overflow-hidden rounded-none border">
+					<ScrollArea className="flex-1 scrollbar-hidden">
+						<ScroVideoProperties clipNumber={scroClipNumber} />
+					</ScrollArea>
+				</div>
+			);
+		}
 		return (
 			<div className="panel bg-background flex h-full flex-col items-center justify-center overflow-hidden rounded-none border">
 				<EmptyView />
@@ -50,6 +82,17 @@ export function PropertiesPanel() {
 	if (!elementWithTrack) return null;
 
 	const { element, track } = elementWithTrack;
+
+	if (scroClipNumber != null) {
+		return (
+			<div className="panel bg-background flex h-full overflow-hidden rounded-none border">
+				<ScrollArea className="flex-1 scrollbar-hidden">
+					<ScroVideoProperties clipNumber={scroClipNumber} />
+				</ScrollArea>
+			</div>
+		);
+	}
+
 	const config = getPropertiesConfig({ element, mediaAssets });
 	const visibleTabs = config.tabs;
 

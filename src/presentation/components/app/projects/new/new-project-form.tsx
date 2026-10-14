@@ -1217,7 +1217,21 @@ export function NewProjectForm({
               <DirectorProgress />
             </div>
           ) : videoDesk && project ? (
-            <OpenCutVideoDesk key={project.id} project={project} textStyles={textStyles} />
+            <OpenCutVideoDesk
+              key={project.id}
+              project={project}
+              textStyles={textStyles}
+              production={{
+                credits: walletCredits,
+                pending,
+                subscribed: walletSubscribed,
+                onGenerateFrames,
+                onGenerateVideo,
+                onCancelVideo,
+                onRegenerateFrame,
+                onProject: setProject,
+              }}
+            />
           ) : project?.status === "failed" && viewing === liveStep ? (
             <FailedCard
               key="failed"
