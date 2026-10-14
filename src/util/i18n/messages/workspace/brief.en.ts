@@ -125,9 +125,9 @@ export const briefEn = {
     restartWarning:
       "This deletes the storyboard, frames, and clips for this video, then runs Phase A again. Spent credits are not refunded.",
     editBriefWarning:
-      "Changing the instruction rewrites the storyboard and returns to production. Existing frames and clips may no longer match.",
+      "Changing the instruction rewrites the storyboard and returns to Video. Existing frames and clips may no longer match.",
     noCharge:
-      "This step does not spend credits. After the storyboard is ready you go straight to production; frames and clips charge then.",
+      "This step does not spend credits. After the storyboard is ready you go straight to Video; frames and clips charge then.",
   },
   summary: {
     speechPace: "Pace · {label}",
@@ -140,7 +140,7 @@ export const briefEn = {
   confirm: {
     regenerateStoryboard: {
       title: "Regenerate storyboard?",
-      body: "Rewrites the storyboard from this brief and returns to production. Existing frames and clips may no longer match.",
+      body: "Rewrites the storyboard from this brief and returns to Video. Existing frames and clips may no longer match.",
       confirm: "Confirm rewrite",
     },
     restart: {
@@ -153,7 +153,7 @@ export const briefEn = {
   failed: {
     title: "Something went wrong",
     retryDefault: "Please try again.",
-    retryToProduction: "Back to production — redo clips",
+    retryToProduction: "Back to Video — redo clips",
     retryRegenerateStoryboard: "Regenerate storyboard",
     creditsRefunded: "Credits for the failed step were refunded; retry will not double-charge.",
   },
@@ -344,7 +344,7 @@ export const briefEn = {
     approvedTitle: "Storyboard approved — edits still allowed",
     approvedBody: "Saving text marks matching frames/clips stale until you redraw.",
     approvedBack: "Save & back",
-    approveTitle: "Approve storyboard & start production",
+    approveTitle: "Approve storyboard & open Video"
     approvePricing:
       "Approval is free. Each clip is generated separately: frames {frameCost} credits each, video billed per second.",
     approveRemaining: "({remaining} left)",
@@ -384,7 +384,7 @@ export const briefEn = {
     stageTimeline: "Breaking into clips and timeline…",
     stageVo: "Writing voiceover and reference translation…",
     stageLocks: "Checking cast lock and visual world…",
-    eta: "Usually 20–60 seconds. Production starts automatically when ready.",
+    eta: "Usually 20–60 seconds. Video opens automatically when the storyboard is ready.",
   },
   aspectRatioHints: {
     "9_16": "Reels / Shorts",

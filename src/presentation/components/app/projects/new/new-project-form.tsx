@@ -1334,7 +1334,7 @@ function FailedCard({
 }) {
   const { t } = useI18n();
   // Only Phase A can fail at project level now; anything further back is a
-  // per-clip failure the user redoes inside the production workspace.
+  // per-clip failure the user redoes inside the Video workspace.
   const label = project.phaseA ? t("brief.failed.retryToProduction") : t("brief.failed.retryRegenerateStoryboard");
   return (
     <motion.section

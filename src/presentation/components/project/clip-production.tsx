@@ -22,8 +22,8 @@ function unfinished(state: ClipState) {
   return state.stage !== "video_ready" || state.stale.frames || state.stale.video;
 }
 
-// Selected clip fills the desk: toolbar, preview, inspector, and the shared
-// filmstrip with checkboxes for batch runs.
+// Legacy Production desk. Video tab now uses OpenCutDirectDesk + ScroVideo chrome.
+// Kept only so shared dialogs/helpers stay importable during the migration.
 export function ClipProduction({
   project,
   credits,

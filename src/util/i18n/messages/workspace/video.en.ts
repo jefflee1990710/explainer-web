@@ -268,7 +268,7 @@ export const videoEn = {
     },
   },
   opencut: {
-    empty: "Render clips on Production first. OpenCut edits the finished clips.",
+    empty: "Storyboard clips will appear here as ScroVideos once Phase A finishes.",
     subtitles: "Subtitles",
     subtitleHint: "Pick a text style. Generate uses Scro image generation for each spoken line and places it on that clip.",
     generate: "Generate",

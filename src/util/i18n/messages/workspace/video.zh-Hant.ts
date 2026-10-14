@@ -268,7 +268,7 @@ export const videoZhHant = {
     },
   },
   opencut: {
-    empty: "請先在製作分頁渲染各段。完成的片段會送到 OpenCut 再剪。",
+    empty: "分鏡完成後，各段會以 ScroVideo 出現在此時間軸與素材庫。",
     subtitles: "字幕",
     subtitleHint: "選擇文字樣式。按下產生後，會用 Scro 圖像生成每一句字幕圖，並貼在對應片段的時間上。",
     generate: "產生",
