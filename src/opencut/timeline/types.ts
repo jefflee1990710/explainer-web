@@ -122,6 +122,8 @@ export interface VideoElement extends BaseTimelineElement {
 	retime?: RetimeConfig;
 	effects?: Effect[];
 	masks?: Mask[];
+	/** Scro storyboard clip number when this element is a ScroVideo placeholder/result. */
+	scroClipNumber?: number;
 }
 
 export interface ImageElement extends BaseTimelineElement {
@@ -130,6 +132,8 @@ export interface ImageElement extends BaseTimelineElement {
 	hidden?: boolean;
 	effects?: Effect[];
 	masks?: Mask[];
+	/** Scro storyboard clip number when this element is a ScroVideo placeholder/result. */
+	scroClipNumber?: number;
 }
 
 export interface TextElement extends BaseTimelineElement {

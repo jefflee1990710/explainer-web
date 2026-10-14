@@ -27,6 +27,10 @@ export interface MediaAssetData {
 	hasAudio?: boolean;
 	ephemeral?: boolean;
 	thumbnailUrl?: string;
+	/** Scro storyboard clip this asset belongs to. */
+	scroClipNumber?: number;
+	/** Last known start-still URL for loading thumbs. */
+	scroPosterUrl?: string;
 }
 
 export type SerializedScene = Omit<TScene, "createdAt" | "updatedAt"> & {

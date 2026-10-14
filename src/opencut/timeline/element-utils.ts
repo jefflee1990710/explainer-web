@@ -232,11 +232,13 @@ function buildVideoElement({
 	name,
 	duration,
 	startTime,
+	scroClipNumber,
 }: {
 	mediaId: string;
 	name: string;
 	duration: MediaTime;
 	startTime: MediaTime;
+	scroClipNumber?: number;
 }): CreateVideoElement {
 	return {
 		type: "video",
@@ -250,6 +252,7 @@ function buildVideoElement({
 		isSourceAudioEnabled: true,
 		hidden: false,
 		params: buildDefaultElementParams({ type: "video" }),
+		...(scroClipNumber != null ? { scroClipNumber } : {}),
 	};
 }
 
@@ -258,11 +261,13 @@ function buildImageElement({
 	name,
 	duration,
 	startTime,
+	scroClipNumber,
 }: {
 	mediaId: string;
 	name: string;
 	duration: MediaTime;
 	startTime: MediaTime;
+	scroClipNumber?: number;
 }): CreateImageElement {
 	return {
 		type: "image",
@@ -274,6 +279,7 @@ function buildImageElement({
 		trimEnd: ZERO_MEDIA_TIME,
 		hidden: false,
 		params: buildDefaultElementParams({ type: "image" }),
+		...(scroClipNumber != null ? { scroClipNumber } : {}),
 	};
 }
 
@@ -315,6 +321,7 @@ export function buildElementFromMedia({
 	duration,
 	startTime,
 	buffer,
+	scroClipNumber,
 }: {
 	mediaId: string;
 	mediaType: MediaType;
@@ -322,6 +329,7 @@ export function buildElementFromMedia({
 	duration: MediaTime;
 	startTime: MediaTime;
 	buffer?: AudioBuffer;
+	scroClipNumber?: number;
 }): CreateTimelineElement {
 	switch (mediaType) {
 		case "audio":
@@ -333,9 +341,21 @@ export function buildElementFromMedia({
 				buffer,
 			});
 		case "video":
-			return buildVideoElement({ mediaId, name, duration, startTime });
+			return buildVideoElement({
+				mediaId,
+				name,
+				duration,
+				startTime,
+				scroClipNumber,
+			});
 		case "image":
-			return buildImageElement({ mediaId, name, duration, startTime });
+			return buildImageElement({
+				mediaId,
+				name,
+				duration,
+				startTime,
+				scroClipNumber,
+			});
 	}
 }
 
