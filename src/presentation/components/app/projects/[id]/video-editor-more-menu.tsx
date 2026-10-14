@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { StudioHint } from "@/presentation/studio/studio-hint";
 
 // Header kebab: open actions, then confirm delete in the existing dialog.
 export function VideoEditorMoreMenu({ onDelete }: { onDelete: () => void }) {
@@ -30,17 +31,18 @@ export function VideoEditorMoreMenu({ onDelete }: { onDelete: () => void }) {
 
   return (
     <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-label={t("video.editor.moreAria")}
-        title={t("video.editor.moreAria")}
-        onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[var(--studio-fill)] text-[var(--studio-ink)] transition hover:bg-zinc-100"
-      >
-        <KebabIcon />
-      </button>
+      <StudioHint hint={open ? "" : t("video.editor.moreAria")} align="end">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-haspopup="menu"
+          aria-label={t("video.editor.moreAria")}
+          onClick={() => setOpen((value) => !value)}
+          className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[var(--studio-fill)] text-[var(--studio-ink)] transition hover:bg-zinc-100"
+        >
+          <KebabIcon />
+        </button>
+      </StudioHint>
       {open ? (
         <div
           role="menu"

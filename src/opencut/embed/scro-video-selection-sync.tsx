@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useEditor } from "@/opencut/editor/use-editor";
+import { resolveElementScroClipNumber } from "@/opencut/embed/scro-clip-number";
 import { setScroVideoSelection, useScroVideos } from "@/opencut/embed/scro-video-store";
 import { useElementSelection } from "@/opencut/timeline/hooks/element/use-element-selection";
 
@@ -19,15 +20,15 @@ export function ScroVideoSelectionSync() {
 			elements: selectedElements,
 		})[0];
 		const element = located?.element;
-		if (
-			!element ||
-			(element.type !== "video" && element.type !== "image") ||
-			element.scroClipNumber == null
-		) {
-			return;
-		}
-		if (store.selectedClipNumber !== element.scroClipNumber) {
-			setScroVideoSelection(element.scroClipNumber);
+		if (!element) return;
+		const clipNumber = resolveElementScroClipNumber({
+			element,
+			assets: editor.media.getAssets(),
+			clips: store.clips,
+		});
+		if (clipNumber == null) return;
+		if (store.selectedClipNumber !== clipNumber) {
+			setScroVideoSelection(clipNumber);
 		}
 	}, [editor, selectedElements, store]);
 

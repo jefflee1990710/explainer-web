@@ -1043,10 +1043,11 @@ test("talking-head realistic stills paint the subtitle even when an old overlay 
   const plan = frameSubmitPlan(video, 1, "start");
   assert.equal(plan.refs.includes("https://blob/look.png"), true);
 
-  video.phaseA!.clips[0].startScene = "Person seated.";
-  const filled = buildFramePrompt(video, 1, "start");
-  assert.match(filled, /Subtitle:/);
-  assert.match(filled, /Hello there\./);
+  video.phaseA!.clips[0].startScene = "Person seated. No extra writing.";
+  const blank = buildFramePrompt(video, 1, "start");
+  assert.match(blank, /No on-canvas text/);
+  assert.doesNotMatch(blank, /Subtitle:/);
+  assert.doesNotMatch(blank, /Hello there/);
 });
 
 test("none on-screen text strips writing from the still prompt", () => {
@@ -1066,15 +1067,21 @@ test("none on-screen text strips writing from the still prompt", () => {
   assert.equal(plan.refs.includes("https://blob/look.png"), false);
 });
 
-test("talking-head stills still attach the Look line when subtitle overlay is unset", () => {
+test("talking-head stills attach the Look line only when the storyboard asks for a subtitle", () => {
   const video = project("realistic");
   video.skillSlug = "talking-head-director";
   video.textStyleImageUrl = "https://blob/look.png";
   video.phaseA!.clips[0].englishVo = "Hello there.";
+  video.phaseA!.clips[0].startScene = 'Person seated. Subtitle: one LARGE line, exactly "Hello there."';
   const prompt = buildFramePrompt(video, 1, "start");
   assert.match(prompt, /lettering sample/);
   const plan = frameSubmitPlan(video, 1, "start");
   assert.equal(plan.refs.includes("https://blob/look.png"), true);
+
+  video.phaseA!.clips[0].startScene = "Person seated. No extra writing.";
+  const bare = frameSubmitPlan(video, 1, "start");
+  assert.equal(bare.refs.includes("https://blob/look.png"), false);
+  assert.doesNotMatch(bare.prompt, /lettering sample/);
 });
 
 test("talking-head stills keep only the first character", () => {

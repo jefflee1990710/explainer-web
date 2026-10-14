@@ -23,9 +23,9 @@ import {
 import { resolveTextStyleLookLine } from "@/service/text-style/look-line";
 import type { TextStyleDoc } from "@/model/text-style";
 import { sendReelCover } from "@/service/video-edit/reel-cover";
-import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
+import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
-import { resolveSceneText } from "@/service/director/scene-text";
+import { dropInventedSubtitleLock, resolveSceneText, storyboardAsksForSubtitle } from "@/service/director/scene-text";
 import { sendClipVideo, sendFrame, sendStill } from "@/service/higgsfield/pipeline";
 import { sendSubtitlePlate } from "@/service/higgsfield/subtitle-plate-job";
 import {
@@ -160,9 +160,23 @@ async function sendVideo(project: Project, clipNumber: number) {
   }
   const clip = project.clips.find((item) => item.clipNumber === clipNumber);
   if (clip?.prompt) {
+    const story = project.phaseA?.clips.find((item) => item.clipNumber === clipNumber);
+    const prompt =
+      isTalkingHeadSkill(project.skillSlug) &&
+      !storyboardAsksForSubtitle(story?.startScene, story?.endScene, story?.explainerScene)
+        ? dropInventedSubtitleLock(clip.prompt)
+        : clip.prompt;
+    if (prompt !== clip.prompt) {
+      const projects = await videosCollection();
+      await projects.updateOne(
+        { _id: project._id },
+        { $set: { "clips.$[clip].prompt": prompt, updatedAt: new Date() } },
+        { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
+      );
+    }
     return sendClipVideo(project, clipNumber, {
       clipNumber,
-      prompt: clip.prompt,
+      prompt,
       durationSeconds: clip.durationSeconds,
     });
   }

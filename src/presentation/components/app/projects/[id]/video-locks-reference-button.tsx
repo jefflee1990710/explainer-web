@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { VideoLocksReferenceDialog } from "@/presentation/components/app/projects/[id]/video-locks-reference-dialog";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { ReferenceStillsIcon } from "@/presentation/studio/studio-action-icons";
 import { StudioButton } from "@/presentation/studio/studio-button";
+import { StudioHint } from "@/presentation/studio/studio-hint";
 import type { PublicVideo } from "@/presentation/serialize";
 
 export function videoHasLockReferences(
@@ -30,14 +32,17 @@ export function VideoLocksReferenceButton({
 
   return (
     <>
-      <StudioButton
-        variant="ghost"
-        onClick={() => setOpen(true)}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-      >
-        {t("video.editor.locksButton")}
-      </StudioButton>
+      <StudioHint hint={t("video.editor.locksHint")}>
+        <StudioButton
+          variant="ghost"
+          onClick={() => setOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+        >
+          <ReferenceStillsIcon />
+          {t("video.editor.locksButton")}
+        </StudioButton>
+      </StudioHint>
       {open ? (
         <VideoLocksReferenceDialog
           objectSheetUrl={objectSheetUrl}

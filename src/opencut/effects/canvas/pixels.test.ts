@@ -302,6 +302,39 @@ describe("canvas effect pixels", () => {
 		assert.deepEqual(at(wipe, 3, 0, 4).slice(0, 3), [200, 40, 40]);
 	});
 
+	it("covers clock, barn, dissolve, and an opening circle", () => {
+		const paint = (shader: string, progress: number) => {
+			const data = fill({
+				width: 11,
+				height: 11,
+				pixel: () => [180, 40, 40, 255],
+			});
+			applyCanvasShaderToPixels({
+				data,
+				width: 11,
+				height: 11,
+				shader,
+				uniforms: { u_progress: progress, u_amount: 100, u_direction: 0 },
+			});
+			return data;
+		};
+
+		const clock = paint("canvas:clock", 0.3);
+		assert.deepEqual(at(clock, 10, 5, 11).slice(0, 3), [0, 0, 0]);
+		assert.deepEqual(at(clock, 0, 5, 11).slice(0, 3), [180, 40, 40]);
+
+		const barn = paint("canvas:barn", 0.25);
+		assert.deepEqual(at(barn, 0, 5, 11).slice(0, 3), [0, 0, 0]);
+		assert.deepEqual(at(barn, 5, 5, 11).slice(0, 3), [180, 40, 40]);
+
+		const dissolve = paint("canvas:dissolve", 0.5);
+		assert.deepEqual(at(dissolve, 0, 0, 11).slice(0, 3), [0, 0, 0]);
+
+		const open = paint("canvas:iris-open", 0.2);
+		assert.deepEqual(at(open, 5, 5, 11).slice(0, 3), [0, 0, 0]);
+		assert.deepEqual(at(open, 0, 0, 11).slice(0, 3), [180, 40, 40]);
+	});
+
 	it("turns blue toward brown with sepia", () => {
 		const data = fill({
 			width: 1,
@@ -350,7 +383,25 @@ describe("editor effect catalog", () => {
 
 		assert.deepEqual(
 			transitionEffectDefinitions.map((definition) => definition.type),
-			["dip", "flash", "wipe", "wipe-right", "iris", "slide", "zoom", "blur-in"],
+			[
+				"dip",
+				"flash",
+				"wipe",
+				"wipe-right",
+				"wipe-up",
+				"wipe-down",
+				"iris",
+				"iris-open",
+				"slide",
+				"slide-right",
+				"slide-up",
+				"slide-down",
+				"zoom",
+				"clock",
+				"barn",
+				"dissolve",
+				"blur-in",
+			],
 		);
 		assert.equal(transitionStrength({ progress: 0, amount: 100 }), 0);
 		assert.equal(transitionPhase(0.5), 1);

@@ -208,6 +208,25 @@ export function subtitleSitsBelowCenter(aspectRatio?: string) {
   return aspectRatio === "9:16";
 }
 
+// The storyboard asked for painted lettering. A blank talking-head still did not.
+export function storyboardAsksForSubtitle(...scenes: Array<string | undefined>) {
+  return scenes.some((scene) => /(?:Subtitle:|字幕：)/u.test(scene || ""));
+}
+
+export const NO_ONSCREEN_WRITING =
+  "No letters, subtitles, captions, signs, or labels appear at any moment. Do not invent writing.";
+
+// Phase B used to append a subtitle lock even when the stills said "no extra writing".
+export function dropInventedSubtitleLock(prompt: string) {
+  const kept = prompt
+    .split(/\n{2,}/)
+    .filter((paragraph) => !/^Subtitle:/u.test(paragraph.trim()))
+    .join("\n\n")
+    .trim();
+  if (/No letters, subtitles, captions/i.test(kept)) return kept;
+  return `${kept}\n\n${NO_ONSCREEN_WRITING}`;
+}
+
 export function spokenSubtitleLock(aspectRatio?: string) {
   if (subtitleSitsBelowCenter(aspectRatio)) {
     return "Subtitle: keep this clip's spoken line a little below the vertical center for the whole clip. Clear of the face and clear of the bottom edge. Do not move it to the bottom. Same words, same place, from the first frame to the last.";

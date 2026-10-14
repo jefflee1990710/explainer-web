@@ -305,10 +305,15 @@ function MediaAssetDraggable({
 		});
 	};
 
+	// Card frame matches the file, so a 9:16 still is not cropped into 16:9.
+	const aspectRatio =
+		item.width && item.height ? item.width / item.height : 16 / 9;
+
 	return (
 		<DraggableItem
 			name={label}
 			preview={preview}
+			aspectRatio={aspectRatio}
 			dragData={{
 				id: item.id,
 				type: "media",

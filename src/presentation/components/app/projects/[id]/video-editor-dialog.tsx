@@ -9,7 +9,9 @@ import { VideoShareCaptionsButton } from "@/presentation/components/app/projects
 import { VideoEditorHeaderExportSlot } from "@/presentation/components/app/projects/new/video-edit-summary-end";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
+import { RefreshIcon } from "@/presentation/components/project/production-icons";
 import { StudioButton } from "@/presentation/studio/studio-button";
+import { StudioHint } from "@/presentation/studio/studio-hint";
 import type { PublicVideo } from "@/presentation/serialize";
 
 // Full-page editor chrome over the studio shell.
@@ -58,7 +60,7 @@ export function VideoEditorDialog({
   return (
     // Phone: cover the icon rail. md+: sit beside the 72px rail.
     <div className="studio-app fixed inset-0 z-[60] flex flex-col md:inset-y-0 md:right-0 md:left-[72px] md:z-40">
-      <header className="shrink-0 border-b border-[var(--studio-line)] bg-[var(--studio-panel)]">
+      <header className="relative z-30 shrink-0 border-b border-[var(--studio-line)] bg-[var(--studio-panel)]">
         <div className="flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4 sm:py-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <VideoEditorBreadcrumb
@@ -77,9 +79,12 @@ export function VideoEditorDialog({
           />
           {videoId ? <VideoShareCaptionsButton videoId={videoId} /> : null}
           {onRestart ? (
-            <StudioButton variant="ghost" onClick={onRestart}>
-              {t("video.editor.restart")}
-            </StudioButton>
+            <StudioHint hint={t("video.editor.restartHint")}>
+              <StudioButton variant="ghost" onClick={onRestart}>
+                <RefreshIcon className="h-4 w-4" />
+                {t("video.editor.restart")}
+              </StudioButton>
+            </StudioHint>
           ) : null}
           <VideoEditorHeaderExportSlot />
           {onExport ? (

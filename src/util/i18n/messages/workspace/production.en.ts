@@ -75,6 +75,7 @@ export const productionEn = {
     sceneTagTitle: "Scene frame ready",
     videoTagTitle: "Video ready",
     addClip: "Add clip",
+    addClipHint: "Add a new clip at the end of the timeline.",
     addClipAria: "Add a clip {place}",
     addBefore: "before {title}",
     addAfter: "after {title}",
@@ -89,6 +90,7 @@ export const productionEn = {
     deleteBody: "This deletes {title}, including its storyboard, scene frames, and video. Later clips are renumbered. This cannot be undone.",
     deleteLast: "Keep at least one clip.",
     deleteConfirm: "Delete clip",
+    deleteClipHint: "Delete the selected clip.",
     deletePending: "Deleting…",
   },
   shell: {

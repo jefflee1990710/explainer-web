@@ -3,9 +3,16 @@
 import Image from "next/image";
 import {
 	useScroVideos,
+	getScroVideos,
 	setScroVideoSelection,
 	toggleScroVideoChecked,
 } from "@/opencut/embed/scro-video-store";
+import {
+	resolveElementScroClipNumber,
+	resolveScroClipNumber,
+} from "@/opencut/embed/scro-clip-number";
+
+export { resolveScroClipNumber };
 import type { ScroVideoSeedClip, ScroVideoUiStage } from "@/opencut/embed/scro-video-types";
 import type { EditorCore } from "@/opencut/core";
 import type { MediaAsset } from "@/opencut/media/types";
@@ -27,25 +34,6 @@ export function scroStageTone(stage: ScroVideoUiStage) {
 		return "bg-amber-500/15 text-amber-900";
 	}
 	return "bg-muted text-muted-foreground";
-}
-
-/** Resolve clipNumber from asset field or "Clip N" / "Clip N.mp4" name. */
-export function resolveScroClipNumber({
-	asset,
-	clips,
-}: {
-	asset: MediaAsset;
-	clips: ScroVideoSeedClip[] | undefined;
-}): number | null {
-	if (asset.scroClipNumber != null) return asset.scroClipNumber;
-	const match = /^Clip\s+(\d+)/i.exec(asset.name.trim());
-	if (!match) return null;
-	const clipNumber = Number(match[1]);
-	if (!Number.isInteger(clipNumber)) return null;
-	if (clips && clips.length > 0 && !clips.some((clip) => clip.clipNumber === clipNumber)) {
-		return null;
-	}
-	return clipNumber;
 }
 
 /** Keep one media row per Scro clip (prefer video over still), then other assets. */
@@ -171,10 +159,12 @@ export function selectScroMediaClip({
 }) {
 	setScroVideoSelection(clipNumber);
 	const scene = editor.scenes.getActiveScene();
+	const clips = getScroVideos()?.clips;
+	const assets = editor.media.getAssets();
+	// Restored clips may only be named "Clip N.mp4" and lack scroClipNumber.
 	const hit = scene.tracks.main.elements.find(
 		(element) =>
-			(element.type === "video" || element.type === "image") &&
-			element.scroClipNumber === clipNumber,
+			resolveElementScroClipNumber({ element, assets, clips }) === clipNumber,
 	);
 	if (hit) {
 		editor.selection.setSelectedElements({

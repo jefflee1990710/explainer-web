@@ -1,7 +1,7 @@
 "use server";
 
 import { requireClerkUserId } from "@/service/auth";
-import { listSoundEffects } from "@/service/sound-effect/library";
+import { searchFreesoundSounds } from "@/service/freesound/search";
 
 function rethrowRedirect(error: unknown) {
   if (
@@ -15,11 +15,15 @@ function rethrowRedirect(error: unknown) {
   }
 }
 
-// One page of the sound-effect library for the editor panel.
-export async function listSoundEffectsAction(input: { page?: number; query?: string }) {
+// One page of Freesound results for the editor panel.
+export async function listSoundEffectsAction(input: {
+  page?: number;
+  query?: string;
+  commercialOnly?: boolean;
+}) {
   try {
     await requireClerkUserId();
-    const page = await listSoundEffects(input);
+    const page = await searchFreesoundSounds(input);
     return { ok: true as const, ...page };
   } catch (error) {
     rethrowRedirect(error);

@@ -46,6 +46,7 @@ import {
   listicleOnCanvasLines,
   resolveSceneText,
   sceneTextFrameLines,
+  storyboardAsksForSubtitle,
   subtitleSitsBelowCenter,
   formatVoiceoverForMarker,
   stripSceneVoiceoverRecap,
@@ -87,7 +88,7 @@ import {
   surpriseVarietyPlan,
 } from "@/service/director/surprise-interview";
 import { clipReferenceImageUrls } from "@/service/project/reference-images";
-import { isTalkingHeadSkill, talkingHeadStillSubtitle, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
+import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { IDEOGRAM_PROMPT_MAX, imageRouteForSceneText } from "@/service/generation/image-backend";
 import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
@@ -530,7 +531,12 @@ export function buildFramePrompt(
     styleId: project.styleId,
   });
   const textOff = !sceneText.enabled;
-  const textStyleUrl = overlay || textOff ? undefined : project.textStyleImageUrl || undefined;
+  // A talking-head storyboard with no Subtitle sentence already turned lettering off.
+  const frameScene = position === "start" ? clipStartScene(row) : clipEndScene(row);
+  const talkingHeadSkipsLettering =
+    solo && sceneText.enabled && !storyboardAsksForSubtitle(frameScene);
+  const textStyleUrl =
+    overlay || textOff || talkingHeadSkipsLettering ? undefined : project.textStyleImageUrl || undefined;
   // User's opening photo sits in front of the character so that face is the person who talks.
   const openingPhotoUrl = openingPhotoReference(project, clipNumber, position);
   const openingCount = openingPhotoUrl ? 1 : 0;
@@ -694,19 +700,8 @@ export function buildFramePrompt(
   if (whiteboardSpells.length > 0) {
     sceneDescription = stripSceneSubtitleSentence(sceneDescription);
   }
-  if (overlay || !sceneText.enabled) {
+  if (overlay || !sceneText.enabled || talkingHeadSkipsLettering) {
     sceneDescription = sceneDescription.replace(/\s*(?:Subtitle:|字幕：).*$/u, "").trim();
-  } else if (
-    isTalkingHeadSkill(project.skillSlug) &&
-    voForFrame &&
-    !/(?:Subtitle:|字幕：)/u.test(sceneDescription)
-  ) {
-    // An older overlay storyboard left the still blank. Paint this clip's line into it.
-    sceneDescription = `${sceneDescription} ${talkingHeadStillSubtitle({
-      line: voForFrame,
-      language: project.language,
-      belowCenter: subtitleSitsBelowCenter(project.aspectRatio),
-    })}`.replace(/\s{2,}/g, " ").trim();
   }
   const openingRaw = directorWritesLettering || keepSceneLabels
     ? clipStartScene(row).trim()
@@ -741,7 +736,7 @@ export function buildFramePrompt(
   ]
     .filter(Boolean)
     .join(" ");
-  const onCanvasTextBlock = !sceneText.enabled
+  const onCanvasTextBlock = !sceneText.enabled || talkingHeadSkipsLettering
     ? sceneTextFrameLines(false, sceneText.language)
     : overlay
     ? []
@@ -864,7 +859,7 @@ export function buildFramePrompt(
           steady && position === "end",
         ),
     ...revisionLines(options.revision && { ...options.revision, remark: parts.remark }),
-    ...(!sceneText.enabled
+    ...(!sceneText.enabled || talkingHeadSkipsLettering
       ? ["Final check: no letters, no subtitle, no caption, no numbers, no sign, no watermark."]
       : overlay
       ? ["Final check: no letters, no subtitle, no caption bar, no watermark."]
@@ -966,7 +961,19 @@ export function frameSubmitPlan(
     styleId: project.styleId,
   });
   const textOff = !resolveSceneText(project).enabled;
-  const textStyleUrls = overlay || textOff || !project.textStyleImageUrl ? [] : [project.textStyleImageUrl];
+  const frameScene = clipRow
+    ? position === "start"
+      ? clipStartScene(clipRow)
+      : clipEndScene(clipRow)
+    : "";
+  const talkingHeadSkipsLettering =
+    isTalkingHeadSkill(project.skillSlug) &&
+    !textOff &&
+    !storyboardAsksForSubtitle(frameScene);
+  const textStyleUrls =
+    overlay || textOff || talkingHeadSkipsLettering || !project.textStyleImageUrl
+      ? []
+      : [project.textStyleImageUrl];
   const openingPhotoUrl = openingPhotoReference(project, clipNumber, position);
   const sceneRefUrls = frameSceneReferenceUrls(
     project,

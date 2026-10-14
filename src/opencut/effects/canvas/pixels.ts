@@ -101,8 +101,12 @@ export function applyCanvasShaderToPixels({
 		case "canvas:dip-white":
 		case "canvas:wipe":
 		case "canvas:iris":
+		case "canvas:iris-open":
 		case "canvas:slide":
 		case "canvas:zoom":
+		case "canvas:clock":
+		case "canvas:barn":
+		case "canvas:dissolve":
 			applyTransition({
 				data,
 				width,
@@ -462,15 +466,43 @@ function applyTransition({
 				data[index + 2] = 0;
 				continue;
 			}
-			if (shader === "canvas:iris") {
+			if (shader === "canvas:iris" || shader === "canvas:iris-open") {
 				const dx = (x + 0.5) / width - 0.5;
 				const dy = (y + 0.5) / height - 0.5;
 				const distance = Math.hypot(dx, dy) / Math.SQRT1_2;
-				if (distance > 1 - phase) {
+				const covered = shader === "canvas:iris-open" ? distance < phase : distance > 1 - phase;
+				if (covered) {
 					data[index] = 0;
 					data[index + 1] = 0;
 					data[index + 2] = 0;
 				}
+				continue;
+			}
+			if (shader === "canvas:barn") {
+				const nx = x / width;
+				if (nx < phase * 0.5 || nx > 1 - phase * 0.5) {
+					data[index] = 0;
+					data[index + 1] = 0;
+					data[index + 2] = 0;
+				}
+				continue;
+			}
+			if (shader === "canvas:clock") {
+				const dx = (x + 0.5) / width - 0.5;
+				const dy = (y + 0.5) / height - 0.5;
+				const theta = Math.atan2(dx, -dy);
+				const norm = theta < 0 ? theta + Math.PI * 2 : theta;
+				if (norm < phase * Math.PI * 2) {
+					data[index] = 0;
+					data[index + 1] = 0;
+					data[index + 2] = 0;
+				}
+				continue;
+			}
+			if (shader === "canvas:dissolve" && grainUnit(x, y, 3) < phase) {
+				data[index] = 0;
+				data[index + 1] = 0;
+				data[index + 2] = 0;
 				continue;
 			}
 			if (shader === "canvas:slide" && source) {

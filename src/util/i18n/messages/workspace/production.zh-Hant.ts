@@ -75,6 +75,7 @@ export const productionZhHant = {
     sceneTagTitle: "場景圖已完成",
     videoTagTitle: "影片已完成",
     addClip: "新增片段",
+    addClipHint: "在時間軸結尾新增一段。",
     addClipAria: "新增片段，位置在{place}",
     addBefore: "{title} 前面",
     addAfter: "{title} 後面",
@@ -89,6 +90,7 @@ export const productionZhHant = {
     deleteBody: "會刪除 {title} 的分鏡、場景圖和影片，後面的片段會重新編號。此動作無法還原。",
     deleteLast: "至少保留一段。",
     deleteConfirm: "刪除片段",
+    deleteClipHint: "刪除目前選取的片段。",
     deletePending: "正在刪除…",
   },
   shell: {

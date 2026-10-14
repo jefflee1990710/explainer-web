@@ -14,8 +14,7 @@ import {
 	buildElementFromMedia,
 	buildEffectElement,
 } from "@/opencut/timeline/element-utils";
-import { AddTrackCommand, InsertElementCommand } from "@/opencut/commands/timeline";
-import { BatchCommand } from "@/opencut/commands";
+import { InsertElementCommand } from "@/opencut/commands/timeline";
 import type { Command } from "@/opencut/commands/base-command";
 import { effectTimingAt, transitionTimingAt } from "@/opencut/effects/effect-timing";
 import { isTransitionEffectType } from "@/opencut/effects/transition-layout";
@@ -356,18 +355,15 @@ export class DragDropController {
 		trackType: TrackType;
 	}): void {
 		if (target.isNewTrack) {
-			const addTrackCmd = new AddTrackCommand({
-				type: trackType,
-				index: target.trackIndex,
-			});
 			this.config.executeCommand(
-				new BatchCommand([
-					addTrackCmd,
-					new InsertElementCommand({
-						element,
-						placement: { mode: "explicit", trackId: addTrackCmd.getTrackId() },
-					}),
-				]),
+				new InsertElementCommand({
+					element,
+					placement: {
+						mode: "new-track",
+						trackType,
+						insertIndex: target.trackIndex,
+					},
+				}),
 			);
 			return;
 		}
@@ -417,7 +413,11 @@ export class DragDropController {
 		const element = buildTextElement({
 			raw: {
 				name: dragData.name ?? "",
-				params: { content: dragData.content ?? "" },
+				params: {
+					content: dragData.content ?? "",
+					...(dragData.fontFamily ? { fontFamily: dragData.fontFamily } : {}),
+					...(dragData.fontWeight ? { fontWeight: dragData.fontWeight } : {}),
+				},
 			},
 			startTime: target.xPosition,
 		});

@@ -13,6 +13,8 @@ export type ScroVideoStoreState = {
 };
 
 let state: ScroVideoStoreState | null = null;
+/** Click that arrived before the storyboard store was filled. */
+let pendingClipNumber: number | null = null;
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -32,7 +34,7 @@ export function setScroVideos({
 	clips: ScroVideoSeedClip[];
 }): void {
 	const keepSelection =
-		state?.videoId === videoId ? state.selectedClipNumber : null;
+		state?.videoId === videoId ? state.selectedClipNumber : pendingClipNumber;
 	const clipSet = new Set(clips.map((clip) => clip.clipNumber));
 	const checked =
 		state?.videoId === videoId
@@ -45,10 +47,12 @@ export function setScroVideos({
 			keepSelection != null && clipSet.has(keepSelection) ? keepSelection : null,
 		checkedClipNumbers: checked,
 	};
+	pendingClipNumber = state.selectedClipNumber;
 	emit();
 }
 
 export function setScroVideoSelection(clipNumber: number | null): void {
+	pendingClipNumber = clipNumber;
 	if (!state) return;
 	state = { ...state, selectedClipNumber: clipNumber };
 	emit();

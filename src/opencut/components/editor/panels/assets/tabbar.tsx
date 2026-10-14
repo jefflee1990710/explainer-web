@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
 	Tooltip,
 	TooltipContent,
@@ -64,39 +64,41 @@ export function TabBar() {
 					const tab = tabs[tabKey];
 					const active = !subtitleOpen && activeTab === tabKey;
 					return (
-						<Tooltip key={tabKey} delayDuration={10}>
-							<TooltipTrigger asChild>
-								<Button
-									variant={active ? "secondary" : "ghost"}
-									size="icon"
-									aria-label={tab.label}
-									className={cn(
-										"shrink-0",
-										"h-8 w-8",
-										!active && "text-muted-foreground",
-									)}
-									onClick={() => {
-										setScroSubtitleOpen(false);
-										setActiveTab(tabKey);
-									}}
+						<Fragment key={tabKey}>
+							<Tooltip delayDuration={10}>
+								<TooltipTrigger asChild>
+									<Button
+										variant={active ? "secondary" : "ghost"}
+										size="icon"
+										aria-label={tab.label}
+										className={cn(
+											"shrink-0",
+											"h-8 w-8",
+											!active && "text-muted-foreground",
+										)}
+										onClick={() => {
+											setScroSubtitleOpen(false);
+											setActiveTab(tabKey);
+										}}
+									>
+										<tab.icon />
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent
+									side="right"
+									align="center"
+									variant="sidebar"
+									sideOffset={8}
 								>
-									<tab.icon />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent
-								side="right"
-								align="center"
-								variant="sidebar"
-								sideOffset={8}
-							>
-								<div className="text-[#12141c] text-sm leading-none font-medium">
-									{tab.label}
-								</div>
-							</TooltipContent>
-						</Tooltip>
+									<div className="text-[#12141c] text-sm leading-none font-medium">
+										{tab.label}
+									</div>
+								</TooltipContent>
+							</Tooltip>
+							{embedded && tabKey === "text" ? <ScroSubtitleRailButton /> : null}
+						</Fragment>
 					);
 				})}
-				{embedded ? <ScroSubtitleRailButton /> : null}
 			</div>
 
 			<FadeOverlay direction="top" show={showTopFade} />

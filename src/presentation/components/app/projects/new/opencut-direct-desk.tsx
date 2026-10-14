@@ -292,6 +292,12 @@ export function OpenCutDirectDesk({
       if (data?.type === "scro-editor-ready") {
         readyRef.current = true;
         beginSync();
+        // Properties reads this store even when the timeline was restored without clip numbers.
+        channel.postToEditor({
+          type: "scro-videos-state",
+          videoId: project.id,
+          clips: seedClipsRef.current,
+        });
         postCatalog();
         return;
       }
@@ -375,7 +381,12 @@ export function OpenCutDirectDesk({
       if (data?.type === "scro-restore-done") {
         syncedRef.current = true;
         prevSeedRef.current = seedClipsRef.current;
-        // Push current posters/videos onto restored scroClipNumber elements.
+        // Full storyboard first. Per-clip updates only replace one row.
+        channel.postToEditor({
+          type: "scro-videos-state",
+          videoId: project.id,
+          clips: seedClipsRef.current,
+        });
         for (const clip of seedClipsRef.current) {
           channel.postToEditor({
             type: "scro-clip-updated",

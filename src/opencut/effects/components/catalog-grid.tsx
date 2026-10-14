@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { PanelView } from "@/opencut/components/editor/panels/assets/views/base-panel";
 import { DraggableItem } from "@/opencut/components/editor/panels/assets/draggable-item";
 import { CatalogThumb } from "@/opencut/effects/components/catalog-thumb";
+import { TransitionCatalogMenu } from "@/opencut/effects/components/transition-catalog-menu";
 import { effectsRegistry, registerDefaultEffects } from "@/opencut/effects";
 import { effectTimingAt, transitionTimingAt } from "@/opencut/effects/effect-timing";
 import type { EffectCategory, EffectDefinition } from "@/opencut/effects/types";
@@ -64,7 +65,7 @@ function CatalogItem({
 		});
 	}, [editor, effect.type]);
 
-	return (
+	const card = (
 		<DraggableItem
 			name={effect.name}
 			preview={<CatalogThumb category={category} type={effect.type} />}
@@ -82,5 +83,13 @@ function CatalogItem({
 			variant="card"
 			containerClassName="w-full"
 		/>
+	);
+
+	if (category !== "transition") return card;
+
+	return (
+		<TransitionCatalogMenu effectType={effect.type} onAddHere={handleAddToTimeline}>
+			{card}
+		</TransitionCatalogMenu>
 	);
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { TransitionGifThumb } from "@/opencut/effects/components/transition-gif-thumb";
 import { editorPreviewSrc } from "@/opencut/effects/preview-art";
 import { effectPreviewService } from "@/opencut/services/renderer/effect-preview";
 
@@ -13,8 +14,11 @@ export function CatalogThumb({
 	type: string;
 }) {
 	const [failed, setFailed] = useState(false);
+	if (category === "transition") {
+		return <TransitionGifThumb type={type} />;
+	}
 	if (failed) {
-		return <LiveEffectThumb effectType={type} progress={category === "transition" ? 0.5 : undefined} />;
+		return <LiveEffectThumb effectType={type} />;
 	}
 	return (
 		<img

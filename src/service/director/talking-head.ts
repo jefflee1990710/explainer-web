@@ -485,17 +485,6 @@ function withThisClipSubtitle(
   return `${body} ${subtitleSentence(lang, painted, belowCenter)}`.replace(/\s{2,}/g, " ");
 }
 
-// The same sentence the storyboard writes into a still, for a frame that was planned without one.
-export function talkingHeadStillSubtitle(input: {
-  line: string;
-  language?: VoLanguage;
-  belowCenter?: boolean;
-}) {
-  const lang = input.language === "yue" ? "yue" : "en";
-  const painted = lang === "yue" ? toWrittenChinese(input.line) : input.line;
-  return subtitleSentence(lang, painted, input.belowCenter);
-}
-
 // Large lettering. A long line was being painted as one tiny row.
 function subtitleSentence(language: "en" | "yue", line: string, belowCenter?: boolean) {
   if (language === "en") {

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { anchorEffectToClips, type ClipSpan } from "@/opencut/effects/clip-anchor";
+import {
+	anchorEffectToClips,
+	listApplyAllTransitionSlots,
+	type ClipSpan,
+} from "@/opencut/effects/clip-anchor";
 
 const main = (clips: ClipSpan[]): ClipSpan[][] => [clips];
 
@@ -144,6 +148,44 @@ describe("anchorEffectToClips", () => {
 			edgeOnly: true,
 		});
 		assert.deepEqual(span, { kind: "between", start: 9.5, duration: 1 });
+	});
+
+	it("lists a cut between each joined clip and the last tail", () => {
+		assert.deepEqual(
+			listApplyAllTransitionSlots([
+				{ start: 0, end: 10 },
+				{ start: 10, end: 16 },
+				{ start: 16, end: 20 },
+			]),
+			[
+				{ start: 9.5, duration: 1 },
+				{ start: 15.5, duration: 1 },
+				{ start: 19, duration: 1 },
+			],
+		);
+	});
+
+	it("uses the outgoing tail when clips are far apart", () => {
+		assert.deepEqual(
+			listApplyAllTransitionSlots([
+				{ start: 0, end: 10 },
+				{ start: 14, end: 18 },
+			]),
+			[
+				{ start: 9, duration: 1 },
+				{ start: 17, duration: 1 },
+			],
+		);
+	});
+
+	it("places only the ending when there is one clip", () => {
+		assert.deepEqual(listApplyAllTransitionSlots([{ start: 0, end: 10 }]), [
+			{ start: 9, duration: 1 },
+		]);
+	});
+
+	it("returns no slots when there are no clips", () => {
+		assert.deepEqual(listApplyAllTransitionSlots([]), []);
 	});
 
 	it("refuses a transition far from every edge", () => {

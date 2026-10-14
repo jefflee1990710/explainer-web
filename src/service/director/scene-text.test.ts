@@ -10,6 +10,8 @@ import {
   sceneTextDirectorRevisionNote,
   sceneTextSkillHint,
   stripSceneVoiceoverRecap,
+  dropInventedSubtitleLock,
+  storyboardAsksForSubtitle,
   stripStoryboardWriting,
   stripVisualWorldStyleEcho,
   stripVisualWorldTextPolicy,
@@ -257,6 +259,19 @@ test("cartoon marker safe zone keeps spoken casing and drops the bottom band", (
 test("sceneTextNegativePrompt only when off", () => {
   assert.equal(sceneTextNegativePrompt(false)?.includes("subtitles"), true);
   assert.equal(sceneTextNegativePrompt(true), undefined);
+});
+
+test("a talking-head video prompt drops a subtitle lock the storyboard never asked for", () => {
+  assert.equal(storyboardAsksForSubtitle("No extra writing.", undefined), false);
+  const prompt = [
+    '0.4s she speaks "You can use Scro to create one easily. Try now."',
+    "Subtitle: keep this clip's spoken line a little below the vertical center for the whole clip. Clear of the face and clear of the bottom edge. Do not move it to the bottom. Same words, same place, from the first frame to the last.",
+    "On-screen characters MUST speak the dialogue aloud.",
+  ].join("\n\n");
+  const cleaned = dropInventedSubtitleLock(prompt);
+  assert.doesNotMatch(cleaned, /Subtitle:/);
+  assert.match(cleaned, /No letters, subtitles, captions/);
+  assert.match(cleaned, /speaks "You can use Scro/);
 });
 
 test("stripStoryboardWriting removes embedded label quotes", () => {

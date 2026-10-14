@@ -190,6 +190,67 @@ function joinCut({
 	return (previous.end + next.start) / 2;
 }
 
+/**
+ * One transition on every clip-to-clip join, plus the tail of the last clip.
+ * A wide gap uses the outgoing clip's tail instead of a centered cut.
+ */
+export function listApplyAllTransitionSlots(
+	clips: ClipSpan[],
+): Array<{ start: number; duration: number }> {
+	const sorted = clips
+		.filter((clip) => clip.end - clip.start > 1e-4)
+		.sort((a, b) => a.start - b.start);
+	if (sorted.length === 0) return [];
+
+	const slots: Array<{ start: number; duration: number }> = [];
+	for (let i = 0; i < sorted.length - 1; i++) {
+		const previous = sorted[i];
+		const next = sorted[i + 1];
+		if (next.start - previous.end <= JOIN_GAP_SECONDS) {
+			slots.push(betweenSpan({ previous, next }));
+		} else {
+			const duration = edgeDuration({ clip: previous });
+			slots.push({ start: previous.end - duration, duration });
+		}
+	}
+	const last = sorted[sorted.length - 1];
+	const duration = edgeDuration({ clip: last });
+	slots.push({ start: last.end - duration, duration });
+	return packSlots(slots);
+}
+
+/** Keep earlier slots when a short clip would stack two transitions. */
+function packSlots(
+	slots: Array<{ start: number; duration: number }>,
+): Array<{ start: number; duration: number }> {
+	const kept: Array<{ start: number; duration: number }> = [];
+	for (const slot of slots) {
+		const overlaps = kept.some(
+			(existing) =>
+				slot.start < existing.start + existing.duration - 1e-4 &&
+				slot.start + slot.duration > existing.start + 1e-4,
+		);
+		if (!overlaps) kept.push(slot);
+	}
+	return kept;
+}
+
+function betweenSpan({
+	previous,
+	next,
+}: {
+	previous: ClipSpan;
+	next: ClipSpan;
+}): { start: number; duration: number } {
+	const cut = joinCut({ previous, next });
+	const half = Math.min(
+		EDGE_SECONDS / 2,
+		(previous.end - previous.start) / 2,
+		(next.end - next.start) / 2,
+	);
+	return { start: Math.max(0, cut - half), duration: half * 2 };
+}
+
 function isCloser({
 	candidate,
 	best,

@@ -8,8 +8,8 @@ import { useScroSubtitleCatalog, useScroSubtitleVideoId } from "@/opencut/embed/
 import { isScroSubtitleName, matchSubtitleSlots } from "@/opencut/embed/scro-subtitle-slots";
 import { processMediaAssets } from "@/opencut/media/processing";
 import { buildElementFromMedia } from "@/opencut/timeline/element-utils";
+import { ScroSubtitleStyleGrid } from "@/opencut/components/editor/panels/assets/scro-subtitle-style-grid";
 import { Button } from "@/opencut/components/ui/button";
-import { cn } from "@/opencut/utils/ui";
 
 function fill({
 	template,
@@ -124,31 +124,12 @@ export function ScroSubtitlePanel() {
 			<div className="min-h-0 flex-1 overflow-y-auto p-3">
 				<h2 className="text-sm font-medium">{ui.subtitles}</h2>
 				<p className="text-muted-foreground mt-1 text-xs leading-snug">{ui.hint}</p>
-				<div className="mt-3 flex flex-col gap-1" role="listbox" aria-label={ui.subtitles}>
-					{catalog.styles.map((style) => {
-						const active = style.id === selected;
-						return (
-							<button
-								key={style.id}
-								type="button"
-								role="option"
-								aria-selected={active}
-								onClick={() => setPicked(style.id)}
-								className={cn(
-									"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left",
-									active ? "bg-secondary" : "hover:bg-muted",
-								)}
-							>
-								<img
-									src={style.previewUrl}
-									alt=""
-									className="bg-muted h-10 w-16 shrink-0 rounded object-cover"
-								/>
-								<span className="truncate text-sm">{style.name}</span>
-							</button>
-						);
-					})}
-				</div>
+				<ScroSubtitleStyleGrid
+					styles={catalog.styles}
+					selectedId={selected}
+					label={ui.subtitles}
+					onSelect={setPicked}
+				/>
 			</div>
 			<div className="border-t p-3">
 				<Button className="w-full" disabled={busy || catalog.lines.length === 0 || !videoId} onClick={() => void generate()}>

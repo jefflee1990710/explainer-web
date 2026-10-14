@@ -32,7 +32,7 @@ import { speechPaceDelivery } from "@/service/director/speech-pace";
 import type { Skill } from "@/model/skill";
 import { resolvePerformance } from "@/service/director/performance";
 import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG, talkingHeadPhaseBPrompt } from "@/service/director/talking-head";
-import { spokenSubtitleLock } from "@/service/director/scene-text";
+import { NO_ONSCREEN_WRITING, spokenSubtitleLock, storyboardAsksForSubtitle } from "@/service/director/scene-text";
 import {
   OUTFIT_COVERED_SWAP,
   OUTFIT_VIDEO_MOTION_RULES,
@@ -185,6 +185,11 @@ export async function runPhaseBForClip(
     silent: isOutfitReelSkill(input.skill.slug),
   });
   const row = input.phaseA.clips.find((clip) => clip.clipNumber === input.clipNumber);
+  // Overlay-era talking-head stills say "no extra writing" and have no Subtitle sentence.
+  // Do not put the spoken line back on screen in the video prompt.
+  const talkingHeadWithoutSubtitle =
+    isTalkingHeadSkill(input.skill.slug) &&
+    !storyboardAsksForSubtitle(row?.startScene, row?.endScene, row?.explainerScene);
   // Audio, narrator, wardrobe, and lettering locks ride on every clip; empty locks are skipped.
   // Rewrite the model action first so "Never pull" locks appended below stay intact.
   const modelPrompt = isOutfitReelSkill(input.skill.slug)
@@ -203,15 +208,15 @@ export async function runPhaseBForClip(
       characterImageUrl: input.characterImageUrl,
       skillSlug: input.skill.slug,
     }),
-    input.sceneTextOff
-      ? "No letters, subtitles, captions, signs, or labels appear at any moment. Do not invent writing."
+    input.sceneTextOff || talkingHeadWithoutSubtitle
+      ? NO_ONSCREEN_WRITING
       : phaseBLetteringLock({
           skillSlug: input.skill.slug,
           durationSeconds: row?.durationSeconds ?? output.durationSeconds,
           fixedLettering: steady,
         }),
     isOutfitReelSkill(input.skill.slug) ? OUTFIT_COVERED_SWAP : "",
-    input.sceneTextOff
+    input.sceneTextOff || talkingHeadWithoutSubtitle
       ? ""
       : usesSpokenSubtitle(input.skill.slug)
         ? input.language === "yue"

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { VideoEditorHeaderExport } from "@/presentation/components/app/projects/new/video-edit-summary-end";
 import { Spinner } from "@/presentation/components/spinner";
+import { StudioHint } from "@/presentation/studio/studio-hint";
 import type { ScroOpenCutHost } from "@/service/opencut/host-channel";
 import type { PublicVideo } from "@/presentation/serialize";
 
@@ -64,15 +65,17 @@ export function OpenCutExportButton({
 
   return (
     <VideoEditorHeaderExport>
-      <button
-        type="button"
-        onClick={startExport}
-        disabled={disabled || phase === "exporting"}
-        className="inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-full bg-[#12141c] px-3.5 text-sm font-semibold text-[#c6f24b] transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {phase === "exporting" ? <Spinner className="h-3.5 w-3.5" /> : <DownloadIcon />}
-        {label}
-      </button>
+      <StudioHint hint={disabled ? t("video.export.waitForClips") : t("video.export.hint")}>
+        <button
+          type="button"
+          onClick={startExport}
+          disabled={disabled || phase === "exporting"}
+          className="inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-full bg-[#12141c] px-3.5 text-sm font-semibold text-[#c6f24b] transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {phase === "exporting" ? <Spinner className="h-3.5 w-3.5" /> : <DownloadIcon />}
+          {label}
+        </button>
+      </StudioHint>
     </VideoEditorHeaderExport>
   );
 }

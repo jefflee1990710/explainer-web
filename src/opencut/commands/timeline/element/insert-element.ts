@@ -22,7 +22,8 @@ import { roundMediaTime } from "@/opencut/wasm";
 
 type InsertElementPlacement =
 	| { mode: "explicit"; trackId: string }
-	| { mode: "auto"; trackType?: TrackType; insertIndex?: number };
+	| { mode: "auto"; trackType?: TrackType; insertIndex?: number }
+	| { mode: "new-track"; trackType: TrackType; insertIndex: number };
 
 export interface InsertElementParams {
 	element: CreateTimelineElement;
@@ -210,6 +211,37 @@ export class InsertElementCommand extends Command {
 		element: TimelineElement;
 	}): { updatedTracks: SceneTracks; targetTrackId: string } | null {
 		const placement = this.placement;
+
+		// Create the row and the element together. A separate empty-track
+		// command is pruned before the element can land on it.
+		if (placement.mode === "new-track") {
+			if (
+				!canElementGoOnTrack({
+					elementType: element.type,
+					trackType: placement.trackType,
+				})
+			) {
+				console.error(
+					`${element.type} elements cannot be placed on ${placement.trackType} tracks`,
+				);
+				return null;
+			}
+			const applied = applyPlacement({
+				tracks,
+				placementResult: {
+					kind: "newTrack",
+					trackType: placement.trackType,
+					insertIndex: placement.insertIndex,
+					insertPosition: null,
+				},
+				elements: [element],
+			});
+			if (!applied) return null;
+			return {
+				updatedTracks: applied.updatedTracks,
+				targetTrackId: applied.targetTrackId,
+			};
+		}
 
 		if (
 			placement.mode === "auto" &&

@@ -56,6 +56,21 @@ function mainHasScroClip(elements: TimelineElement[]) {
 	);
 }
 
+/** Replace one clip, or append it when the list was only partially filled. */
+function upsertScroClip({
+	clips,
+	clip,
+}: {
+	clips: ScroVideoSeedClip[];
+	clip: ScroVideoSeedClip;
+}) {
+	const index = clips.findIndex((item) => item.clipNumber === clip.clipNumber);
+	if (index < 0) {
+		return [...clips, clip].sort((a, b) => a.clipNumber - b.clipNumber);
+	}
+	return clips.map((item) => (item.clipNumber === clip.clipNumber ? clip : item));
+}
+
 function findScroElement(elements: TimelineElement[], clipNumber: number) {
 	return elements.find(
 		(element) =>
@@ -95,11 +110,10 @@ export function ScroVideoSync() {
 			}
 			if (data.type === "scro-clip-updated") {
 				const current = getScroVideos();
-				const nextClips = current?.videoId === data.videoId
-					? current.clips.map((clip) =>
-							clip.clipNumber === data.clip.clipNumber ? data.clip : clip,
-						)
-					: [data.clip];
+				const nextClips =
+					current?.videoId === data.videoId
+						? upsertScroClip({ clips: current.clips, clip: data.clip })
+						: [data.clip];
 				setScroVideos({ videoId: data.videoId, clips: nextClips });
 				void updateClip(data);
 			}

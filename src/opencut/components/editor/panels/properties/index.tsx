@@ -9,6 +9,7 @@ import {
 	TooltipTrigger,
 } from "@/opencut/components/ui/tooltip";
 import { useEditor } from "@/opencut/editor/use-editor";
+import { resolveElementScroClipNumber } from "@/opencut/embed/scro-clip-number";
 import { ScroVideoProperties } from "@/opencut/embed/scro-video-properties";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { useElementSelection } from "@/opencut/timeline/hooks/element/use-element-selection";
@@ -25,6 +26,8 @@ export function PropertiesPanel() {
 	const { activeTabPerType, setActiveTab } = usePropertiesStore();
 	const scroStore = useScroVideos();
 
+	const mediaAssets = editor.media.getAssets();
+	// "Clip N.mp4" on a restored timeline has no scroClipNumber field.
 	const timelineScroClip =
 		selectedElements.length === 1
 			? (() => {
@@ -32,14 +35,12 @@ export function PropertiesPanel() {
 						elements: selectedElements,
 					})[0];
 					const element = located?.element;
-					if (
-						element &&
-						(element.type === "video" || element.type === "image") &&
-						element.scroClipNumber != null
-					) {
-						return element.scroClipNumber;
-					}
-					return null;
+					if (!element) return null;
+					return resolveElementScroClipNumber({
+						element,
+						assets: mediaAssets,
+						clips: scroStore?.clips,
+					});
 				})()
 			: null;
 	// Assets click sets store selection; only use it when the timeline is empty.
@@ -71,8 +72,6 @@ export function PropertiesPanel() {
 			</div>
 		);
 	}
-
-	const mediaAssets = editor.media.getAssets();
 
 	const elementsWithTracks = editor.timeline.getElementsWithTracks({
 		elements: selectedElements,

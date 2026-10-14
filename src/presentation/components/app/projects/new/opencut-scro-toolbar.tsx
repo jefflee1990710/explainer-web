@@ -11,7 +11,15 @@ import { DeleteClipDialog } from "@/presentation/components/project/delete-clip-
 import { SelectionBar } from "@/presentation/components/project/selection-bar";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { ScroVideoQueue } from "@/opencut/embed/scro-video-queue";
+import { AllFramesVideoIcon } from "@/presentation/components/project/production-bulk-action-icons";
+import {
+  AddClipIcon,
+  AllFramesIcon,
+  DeleteClipIcon,
+  FinishMissingIcon,
+} from "@/presentation/studio/studio-action-icons";
 import { StudioButton } from "@/presentation/studio/studio-button";
+import { StudioHint } from "@/presentation/studio/studio-hint";
 import {
   clipStatesFor,
   inFlightCounts,
@@ -109,7 +117,7 @@ export function OpenCutScroToolbar({
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-3 py-2 text-xs">
+      <div className="relative z-20 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-3 py-2 text-xs">
         <button
           type="button"
           disabled={firstUnfinished === undefined}
@@ -132,51 +140,72 @@ export function OpenCutScroToolbar({
           <TaskListDialog videoId={project.id} onClose={() => setTasksOpen(false)} />
         ) : null}
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <StudioButton
-            variant="ghost"
-            className="min-h-8 px-2 text-xs"
-            disabled={!idle}
-            onClick={() => setBulkMode("remaining")}
+          <StudioHint hint={t("production.bulk.mode.remaining.hint")}>
+            <StudioButton
+              variant="ghost"
+              className="min-h-8 px-2 text-xs"
+              disabled={!idle}
+              onClick={() => setBulkMode("remaining")}
+            >
+              <FinishMissingIcon />
+              {t("production.bulk.mode.remaining.label")}
+            </StudioButton>
+          </StudioHint>
+          <StudioHint hint={t("production.bulk.mode.scenes.hint")}>
+            <StudioButton
+              variant="ghost"
+              className="min-h-8 px-2 text-xs"
+              disabled={!idle}
+              onClick={() => setBulkMode("scenes")}
+            >
+              <AllFramesIcon />
+              {t("production.bulk.mode.scenes.label")}
+            </StudioButton>
+          </StudioHint>
+          <StudioHint
+            hint={
+              allFramesReady(project)
+                ? t("production.bulk.mode.clips.hint")
+                : t("production.toolbar.bulkAllVideosWaiting")
+            }
           >
-            {t("production.bulk.mode.remaining.label")}
-          </StudioButton>
-          <StudioButton
-            variant="ghost"
-            className="min-h-8 px-2 text-xs"
-            disabled={!idle}
-            onClick={() => setBulkMode("scenes")}
-          >
-            {t("production.bulk.mode.scenes.label")}
-          </StudioButton>
-          <StudioButton
-            className="min-h-8 px-2 text-xs"
-            disabled={!idle || !allFramesReady(project)}
-            onClick={() => setBulkMode("clips")}
-          >
-            {t("production.toolbar.bulkAllVideos")}
-          </StudioButton>
-          <StudioButton
-            variant="ghost"
-            className="min-h-8 px-2 text-xs"
-            disabled={!idle}
-            onClick={() => {
-              setAddError("");
-              setAddOpen(true);
-            }}
-          >
-            {t("production.filmstrip.addClip")}
-          </StudioButton>
-          <StudioButton
-            variant="ghost"
-            className="min-h-8 px-2 text-xs"
-            disabled={!idle || deleteTarget == null}
-            onClick={() => {
-              setDeleteError("");
-              setDeleteOpen(true);
-            }}
-          >
-            {t("production.filmstrip.deleteConfirm")}
-          </StudioButton>
+            <StudioButton
+              className="min-h-8 px-2 text-xs"
+              disabled={!idle || !allFramesReady(project)}
+              onClick={() => setBulkMode("clips")}
+            >
+              <AllFramesVideoIcon />
+              {t("production.toolbar.bulkAllVideos")}
+            </StudioButton>
+          </StudioHint>
+          <StudioHint hint={t("production.filmstrip.addClipHint")}>
+            <StudioButton
+              variant="ghost"
+              className="min-h-8 px-2 text-xs"
+              disabled={!idle}
+              onClick={() => {
+                setAddError("");
+                setAddOpen(true);
+              }}
+            >
+              <AddClipIcon />
+              {t("production.filmstrip.addClip")}
+            </StudioButton>
+          </StudioHint>
+          <StudioHint hint={t("production.filmstrip.deleteClipHint")}>
+            <StudioButton
+              variant="ghost"
+              className="min-h-8 px-2 text-xs"
+              disabled={!idle || deleteTarget == null}
+              onClick={() => {
+                setDeleteError("");
+                setDeleteOpen(true);
+              }}
+            >
+              <DeleteClipIcon />
+              {t("production.filmstrip.deleteConfirm")}
+            </StudioButton>
+          </StudioHint>
         </div>
       </div>
       {checkedClipNumbers.length > 0 ? (
