@@ -1,9 +1,14 @@
-import type { TimelineTrack } from "@/opencut/timeline";
+import {
+	isTransitionElement,
+	isTransitionOnlyTrack,
+} from "@/opencut/effects/transition-layout";
+import type { TimelineElement, TimelineTrack } from "@/opencut/timeline";
 import { timelineTimeToPixels } from "@/opencut/timeline/pixel-utils";
 import {
 	TIMELINE_CONTENT_TOP_PADDING_PX,
+	TIMELINE_TRACK_GAP_PX,
 } from "./layout";
-import { getCumulativeHeightBefore, getTrackHeight } from "./track-layout";
+import { getTrackHeight } from "./track-layout";
 
 type TimelineElementRef = { trackId: string; elementId: string };
 
@@ -97,39 +102,97 @@ export function resolveTimelineElementIntersections({
 		endPos: currentPos,
 	});
 	const selectedElements: TimelineElementRef[] = [];
+	const transitionHits: Array<{ trackId: string; element: TimelineElement }> = [];
+	let cursor = 0;
+	let mainBandTop: number | null = null;
 
-	for (const [trackIndex, track] of tracks.entries()) {
-		const trackTop = getCumulativeHeightBefore({
-			tracks,
-			trackIndex,
-		});
+	for (let trackIndex = 0; trackIndex < tracks.length; trackIndex++) {
+		const track = tracks[trackIndex];
+		if (isTransitionOnlyTrack(track)) {
+			for (const element of track.elements) {
+				transitionHits.push({ trackId: track.id, element });
+			}
+			continue;
+		}
+
 		const trackHeight = getTrackHeight({ type: track.type });
-		const elementTop = TIMELINE_CONTENT_TOP_PADDING_PX + trackTop;
-		const elementBottom = elementTop + trackHeight;
+		const elementTop = TIMELINE_CONTENT_TOP_PADDING_PX + cursor;
+		if (track.type === "video") mainBandTop = elementTop;
 
 		for (const element of track.elements) {
-			const elementLeft = timelineTimeToPixels({ time: element.startTime, zoomLevel });
-			const elementRight = timelineTimeToPixels({ time: element.startTime + element.duration, zoomLevel });
-			const elementRectangle = {
-				left: elementLeft,
-				top: elementTop,
-				right: elementRight,
-				bottom: elementBottom,
-			};
-
-			if (
-				isRectangleIntersecting({
-					elementRectangle,
-					selectionRectangle,
-				})
-			) {
-				selectedElements.push({
-					trackId: track.id,
-					elementId: element.id,
-				});
+			if (isTransitionElement(element)) {
+				transitionHits.push({ trackId: track.id, element });
+				continue;
 			}
+			pushIfHit({
+				selectedElements,
+				selectionRectangle,
+				trackId: track.id,
+				element,
+				top: elementTop,
+				bottom: elementTop + trackHeight,
+				zoomLevel,
+			});
+		}
+
+		const hasLaterVisible = tracks
+			.slice(trackIndex + 1)
+			.some((item) => !isTransitionOnlyTrack(item));
+		cursor += trackHeight + (hasLaterVisible ? TIMELINE_TRACK_GAP_PX : 0);
+	}
+
+	if (mainBandTop !== null) {
+		const barHeight = getTrackHeight({ type: "effect" });
+		for (const hit of transitionHits) {
+			pushIfHit({
+				selectedElements,
+				selectionRectangle,
+				trackId: hit.trackId,
+				element: hit.element,
+				top: mainBandTop,
+				bottom: mainBandTop + barHeight,
+				zoomLevel,
+			});
 		}
 	}
 
 	return selectedElements;
+}
+
+function pushIfHit({
+	selectedElements,
+	selectionRectangle,
+	trackId,
+	element,
+	top,
+	bottom,
+	zoomLevel,
+}: {
+	selectedElements: TimelineElementRef[];
+	selectionRectangle: SelectionRectangle;
+	trackId: string;
+	element: TimelineElement;
+	top: number;
+	bottom: number;
+	zoomLevel: number;
+}): void {
+	const elementLeft = timelineTimeToPixels({ time: element.startTime, zoomLevel });
+	const elementRight = timelineTimeToPixels({
+		time: element.startTime + element.duration,
+		zoomLevel,
+	});
+	if (
+		!isRectangleIntersecting({
+			elementRectangle: {
+				left: elementLeft,
+				top,
+				right: elementRight,
+				bottom,
+			},
+			selectionRectangle,
+		})
+	) {
+		return;
+	}
+	selectedElements.push({ trackId, elementId: element.id });
 }

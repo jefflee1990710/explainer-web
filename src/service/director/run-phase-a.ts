@@ -89,7 +89,7 @@ import type {
   DurationPreset,
   PhaseAProposal,
   ReferenceImage,
-  SceneTextLanguage,
+  SceneTextChoice,
   SpeechPace,
   VoLanguage,
   VoiceGender,
@@ -159,7 +159,7 @@ export async function runPhaseA(input: {
   voiceGender?: VoiceGender;
   speechPace?: SpeechPace;
   sceneTextEnabled?: boolean;
-  sceneTextLanguage?: SceneTextLanguage;
+  sceneTextLanguage?: SceneTextChoice;
   subtitleLook?: string;
   textStyleImageUrl?: string;
   characterImageUrl?: string;

@@ -19,7 +19,26 @@ export function requestScroClipAction({
 	);
 }
 
-/** Ask the Scro host to open SceneChat or FrameEdit. */
+/** Ask the Scro host to rewrite this clip from one instruction. */
+export function requestScroSceneEdit({
+	videoId,
+	clipNumber,
+	message,
+	requestId,
+}: {
+	videoId: string;
+	clipNumber: number;
+	message: string;
+	requestId: string;
+}) {
+	const origin = scroEmbedParentOrigin() ?? window.location.origin;
+	sendToScro(
+		{ type: "scro-scene-edit", videoId, clipNumber, message, requestId },
+		origin,
+	);
+}
+
+/** Ask the Scro host to open FrameEdit. */
 export function requestScroOpenAi({
 	videoId,
 	clipNumber,

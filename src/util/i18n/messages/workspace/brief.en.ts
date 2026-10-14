@@ -344,7 +344,7 @@ export const briefEn = {
     approvedTitle: "Storyboard approved — edits still allowed",
     approvedBody: "Saving text marks matching frames/clips stale until you redraw.",
     approvedBack: "Save & back",
-    approveTitle: "Approve storyboard & open Video"
+    approveTitle: "Approve storyboard & open Video",
     approvePricing:
       "Approval is free. Each clip is generated separately: frames {frameCost} credits each, video billed per second.",
     approveRemaining: "({remaining} left)",

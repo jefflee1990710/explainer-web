@@ -1,22 +1,46 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { listSoundEffectsAction } from "@/presentation/actions/sound-effects";
 import { useSoundsStore } from "@/opencut/sounds/sounds-store";
+import type { SoundEffect } from "@/opencut/sounds/types";
+import type { LibrarySound } from "@/service/sound-effect/library";
 
-export function useSoundSearch({
-	query,
-	commercialOnly,
-}: {
-	query: string;
-	commercialOnly: boolean;
-}) {
+function toEditorSound(sound: LibrarySound): SoundEffect {
+	return {
+		id: sound.id,
+		name: sound.name,
+		description: sound.description,
+		url: sound.previewUrl,
+		previewUrl: sound.previewUrl,
+		downloadUrl: sound.previewUrl,
+		duration: sound.duration,
+		filesize: 0,
+		type: "audio",
+		channels: 0,
+		bitrate: 0,
+		bitdepth: 0,
+		samplerate: 0,
+		username: sound.username,
+		tags: sound.tags,
+		license: sound.license,
+		created: "",
+		downloads: 0,
+		rating: 0,
+		ratingCount: 0,
+	};
+}
+
+export function useSoundSearch({ query }: { query: string }) {
 	const {
 		searchResults,
 		isSearching,
 		searchError,
-		lastSearchQuery,
 		currentPage,
 		hasNextPage,
 		isLoadingMore,
 		totalCount,
+		setTopSoundEffects,
+		setLoading,
+		setHasLoaded,
 		setSearchResults,
 		setSearching,
 		setSearchError,
@@ -29,88 +53,70 @@ export function useSoundSearch({
 		appendTopSounds,
 		resetPagination,
 	} = useSoundsStore();
+	const loadingMoreRef = useRef(false);
 
 	const loadMore = async () => {
-		if (isLoadingMore || !hasNextPage) return;
+		if (loadingMoreRef.current || isLoadingMore || !hasNextPage) return;
+		loadingMoreRef.current = true;
 
 		try {
 			setLoadingMore({ loading: true });
 			const nextPage = currentPage + 1;
+			const page = await listSoundEffectsAction({ page: nextPage, query });
+			if (!page.ok) {
+				setSearchError({ error: page.error });
+				return;
+			}
 
-			const searchParams = new URLSearchParams({
-				page: nextPage.toString(),
-				type: "effects",
-			});
-
+			const sounds = page.results.map(toEditorSound);
 			if (query.trim()) {
-				searchParams.set("q", query);
-			}
-
-			searchParams.set("commercial_only", commercialOnly.toString());
-			const response = await fetch(
-				`/api/sounds/search?${searchParams.toString()}`,
-			);
-
-			if (response.ok) {
-				const data = await response.json();
-
-				if (query.trim()) {
-					appendSearchResults(data.results);
-				} else {
-					appendTopSounds(data.results);
-				}
-
-				setCurrentPage({ page: nextPage });
-				setHasNextPage({ hasNext: !!data.next });
-				setTotalCount(data.count);
+				appendSearchResults({ results: sounds });
 			} else {
-				setSearchError({ error: `Load more failed: ${response.status}` });
+				appendTopSounds({ results: sounds });
 			}
+
+			setCurrentPage({ page: nextPage });
+			setHasNextPage({ hasNext: page.hasNext && sounds.length > 0 });
+			setTotalCount({ count: page.count });
 		} catch (err) {
 			setSearchError({
 				error: err instanceof Error ? err.message : "Load more failed",
 			});
 		} finally {
+			loadingMoreRef.current = false;
 			setLoadingMore({ loading: false });
 		}
 	};
 
 	useEffect(() => {
-		if (!query.trim()) {
-			setSearchResults({ results: [] });
-			setSearchError({ error: null });
-			setLastSearchQuery({ query: "" });
-			return;
-		}
-
-		if (query === lastSearchQuery && searchResults.length > 0) {
-			return;
-		}
-
 		let ignore = false;
-
+		const trimmed = query.trim();
 		const timeoutId = setTimeout(async () => {
 			try {
-				setSearching({ searching: true });
+				if (trimmed) setSearching({ searching: true });
+				else setLoading({ loading: true });
 				setSearchError({ error: null });
 				resetPagination();
 
-				const response = await fetch(
-					`/api/sounds/search?q=${encodeURIComponent(query)}&type=effects&page=1`,
-				);
-
-				if (!ignore) {
-					if (response.ok) {
-						const data = await response.json();
-						setSearchResults({ results: data.results });
-						setLastSearchQuery({ query: query });
-						setHasNextPage({ hasNext: !!data.next });
-						setTotalCount({ count: data.count });
-						setCurrentPage({ page: 1 });
-					} else {
-						setSearchError({ error: `Search failed: ${response.status}` });
-					}
+				const page = await listSoundEffectsAction({ page: 1, query: trimmed });
+				if (ignore) return;
+				if (!page.ok) {
+					setSearchError({ error: page.error });
+					return;
 				}
+
+				const sounds = page.results.map(toEditorSound);
+				if (trimmed) {
+					setSearchResults({ results: sounds });
+				} else {
+					setTopSoundEffects({ sounds });
+					setSearchResults({ results: [] });
+					setHasLoaded({ loaded: true });
+				}
+				setLastSearchQuery({ query: trimmed });
+				setHasNextPage({ hasNext: page.hasNext });
+				setTotalCount({ count: page.count });
+				setCurrentPage({ page: 1 });
 			} catch (err) {
 				if (!ignore) {
 					setSearchError({
@@ -120,9 +126,10 @@ export function useSoundSearch({
 			} finally {
 				if (!ignore) {
 					setSearching({ searching: false });
+					setLoading({ loading: false });
 				}
 			}
-		}, 300);
+		}, trimmed ? 300 : 0);
 
 		return () => {
 			clearTimeout(timeoutId);
@@ -130,16 +137,17 @@ export function useSoundSearch({
 		};
 	}, [
 		query,
-		lastSearchQuery,
-		searchResults.length,
+		resetPagination,
+		setCurrentPage,
+		setHasLoaded,
+		setHasNextPage,
+		setLastSearchQuery,
+		setLoading,
+		setSearchError,
 		setSearchResults,
 		setSearching,
-		setSearchError,
-		setLastSearchQuery,
-		setCurrentPage,
-		setHasNextPage,
+		setTopSoundEffects,
 		setTotalCount,
-		resetPagination,
 	]);
 
 	return {

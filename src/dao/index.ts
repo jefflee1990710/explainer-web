@@ -20,3 +20,5 @@ export { postsCollection } from "@/dao/posts";
 export { productsCollection } from "@/dao/products";
 export { textStylesCollection } from "@/dao/text-styles";
 export { opencutEditsCollection } from "@/dao/opencut-edits";
+export { soundEffectsCollection } from "@/dao/sound-effects";
+export { freesoundGrantsCollection } from "@/dao/freesound-grants";

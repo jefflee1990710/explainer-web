@@ -266,6 +266,8 @@ export interface DropTarget {
 	insertPosition: "above" | "below" | null;
 	xPosition: MediaTime;
 	targetElement: { elementId: string; trackId: string } | null;
+	/** Length of an effect snapped to a clip head, tail, or cut. */
+	anchoredDuration?: MediaTime;
 }
 
 export interface ComputeDropTargetParams {

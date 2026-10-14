@@ -74,27 +74,20 @@ function SoundEffectsView() {
 		loadSavedSounds,
 		showCommercialOnly,
 		toggleCommercialFilter,
-		hasLoaded,
-		setTopSoundEffects,
-		setLoading,
-		setError,
-		setHasLoaded,
-		setCurrentPage,
-		setHasNextPage,
-		setTotalCount,
+		error,
 	} = useSoundsStore();
 	const {
 		results: searchResults,
 		isLoading: isSearching,
+		error: searchError,
 		loadMore,
 		hasNextPage,
 		isLoadingMore,
 	} = useSoundSearch({
 		query: searchQuery,
-		commercialOnly: showCommercialOnly,
 	});
 
-	const [playingId, setPlayingId] = useState<number | null>(null);
+	const [playingId, setPlayingId] = useState<string | null>(null);
 	const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(
 		null,
 	);
@@ -109,67 +102,23 @@ function SoundEffectsView() {
 		loadSavedSounds();
 	}, [loadSavedSounds]);
 
+	const displayedSounds = searchQuery ? searchResults : topSoundEffects;
+
+	// If the first page does not fill the panel, keep paging until it does or the list ends.
 	useEffect(() => {
-		if (hasLoaded) {
-			return;
+		const el = scrollAreaRef.current;
+		if (!el || !hasNextPage || isLoadingMore || isLoading || isSearching) return;
+		if (el.scrollHeight <= el.clientHeight + 24) {
+			void loadMore();
 		}
-
-		let shouldIgnore = false;
-
-		const fetchTopSounds = async () => {
-			try {
-				if (!shouldIgnore) {
-					setLoading({ loading: true });
-					setError({ error: null });
-				}
-
-				const response = await fetch(
-					"/api/sounds/search?page_size=50&sort=downloads",
-				);
-
-				if (!shouldIgnore) {
-					if (!response.ok) {
-						throw new Error(`Failed to fetch: ${response.status}`);
-					}
-
-					const data = await response.json();
-					setTopSoundEffects({ sounds: data.results });
-					setHasLoaded({ loaded: true });
-
-					setCurrentPage({ page: 1 });
-					setHasNextPage({ hasNext: !!data.next });
-					setTotalCount({ count: data.count });
-				}
-			} catch (error) {
-				if (!shouldIgnore) {
-					console.error("Failed to fetch top sounds:", error);
-					setError({
-						error:
-							error instanceof Error ? error.message : "Failed to load sounds",
-					});
-				}
-			} finally {
-				if (!shouldIgnore) {
-					setLoading({ loading: false });
-				}
-			}
-		};
-
-		const timeoutId = setTimeout(fetchTopSounds, 100, {});
-
-		return () => {
-			shouldIgnore = true;
-			clearTimeout(timeoutId);
-		};
 	}, [
-		hasLoaded,
-		setTopSoundEffects,
-		setLoading,
-		setError,
-		setHasLoaded,
-		setCurrentPage,
-		setHasNextPage,
-		setTotalCount,
+		displayedSounds.length,
+		hasNextPage,
+		isLoading,
+		isLoadingMore,
+		isSearching,
+		loadMore,
+		scrollAreaRef,
 	]);
 
 	useEffect(() => {
@@ -193,8 +142,6 @@ function SoundEffectsView() {
 		setScrollPosition({ position: scrollTop });
 		handleScroll({ currentTarget } as React.UIEvent<HTMLDivElement>);
 	};
-
-	const displayedSounds = searchQuery ? searchResults : topSoundEffects;
 
 	const playSound = ({ sound }: { sound: SoundEffect }) => {
 		if (playingId === sound.id) {
@@ -270,6 +217,9 @@ function SoundEffectsView() {
 					onScrollCapture={handleScrollWithPosition}
 				>
 					<div className="flex flex-col gap-4">
+						{(error || searchError) && (
+							<div className="text-destructive text-sm">{error || searchError}</div>
+						)}
 						{isLoading && !searchQuery && (
 							<div className="text-muted-foreground text-sm">
 								Loading sounds...
@@ -312,7 +262,7 @@ function SavedSoundsView() {
 		clearSavedSounds,
 	} = useSoundsStore();
 
-	const [playingId, setPlayingId] = useState<number | null>(null);
+	const [playingId, setPlayingId] = useState<string | null>(null);
 	const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(
 		null,
 	);
@@ -445,10 +395,8 @@ function SavedSoundsView() {
 							</Button>
 							<Button
 								variant="destructive"
-								onClick={async ({
-									stopPropagation,
-								}: React.MouseEvent<HTMLButtonElement>) => {
-									stopPropagation();
+								onClick={async (event: React.MouseEvent<HTMLButtonElement>) => {
+									event.stopPropagation();
 									await clearSavedSounds();
 									setShowClearDialog(false);
 								}}
@@ -493,17 +441,13 @@ function AudioItem({ sound, isPlaying, onPlay }: AudioItemProps) {
 		onPlay({ sound });
 	};
 
-	const handleSaveClick = ({
-		stopPropagation,
-	}: React.MouseEvent<HTMLButtonElement>) => {
-		stopPropagation();
-		toggleSavedSound({ soundEffect: sound });
+	const handleSaveClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+		event.stopPropagation();
+		void toggleSavedSound({ soundEffect: sound });
 	};
 
-	const handleAddToTimeline = async ({
-		stopPropagation,
-	}: React.MouseEvent<HTMLButtonElement>) => {
-		stopPropagation();
+	const handleAddToTimeline = async (event: React.MouseEvent<HTMLButtonElement>) => {
+		event.stopPropagation();
 		await addSoundToTimeline({ sound });
 	};
 
@@ -526,7 +470,8 @@ function AudioItem({ sound, isPlaying, onPlay }: AudioItemProps) {
 				<div className="min-w-0 flex-1 overflow-hidden">
 					<p className="truncate text-sm font-medium">{sound.name}</p>
 					<span className="text-muted-foreground block truncate text-xs">
-						{sound.username}
+						{sound.duration > 0 ? `${sound.duration.toFixed(1)}s · ` : ""}
+						{sound.description || sound.username}
 					</span>
 				</div>
 			</button>

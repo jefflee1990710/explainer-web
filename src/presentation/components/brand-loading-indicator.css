@@ -1,0 +1,137 @@
+/* Scro mark loader: soft float + orbiting lime trail. */
+
+@keyframes brand-load-float {
+	0%,
+	100% {
+		transform: translateY(0) scale(1);
+	}
+	50% {
+		transform: translateY(-6%) scale(1.04);
+	}
+}
+
+@keyframes brand-load-glow {
+	0%,
+	100% {
+		opacity: 0.35;
+		transform: scale(0.92);
+	}
+	50% {
+		opacity: 0.7;
+		transform: scale(1.08);
+	}
+}
+
+@keyframes brand-load-orbit {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes brand-load-dash {
+	to {
+		stroke-dashoffset: -48;
+	}
+}
+
+@keyframes brand-load-spark {
+	0%,
+	100% {
+		opacity: 0.35;
+		transform: scale(0.85);
+	}
+	50% {
+		opacity: 1;
+		transform: scale(1.15);
+	}
+}
+
+.brand-load {
+	--brand-load-size: 3.5rem;
+	position: relative;
+	display: grid;
+	width: var(--brand-load-size);
+	height: var(--brand-load-size);
+	place-items: center;
+}
+
+.brand-load--sm {
+	--brand-load-size: 2.25rem;
+}
+
+.brand-load--lg {
+	--brand-load-size: 4.5rem;
+}
+
+.brand-load__glow {
+	position: absolute;
+	inset: -18%;
+	border-radius: 28%;
+	background: radial-gradient(
+		circle,
+		color-mix(in srgb, var(--lime, #c6f24b) 55%, transparent) 0%,
+		transparent 70%
+	);
+	animation: brand-load-glow 1.8s ease-in-out infinite;
+}
+
+.brand-load__orbit {
+	position: absolute;
+	inset: -10%;
+	animation: brand-load-orbit 2.4s linear infinite;
+}
+
+.brand-load__ring {
+	width: 100%;
+	height: 100%;
+	fill: none;
+	stroke: var(--lime, #c6f24b);
+	stroke-width: 2.5;
+	stroke-linecap: round;
+	stroke-dasharray: 18 30;
+	animation: brand-load-dash 1.2s linear infinite;
+}
+
+.brand-load__spark {
+	position: absolute;
+	top: 0;
+	left: 50%;
+	width: 0.45rem;
+	height: 0.45rem;
+	margin-left: -0.225rem;
+	border-radius: 999px;
+	background: var(--studio-ink, #12141c);
+	box-shadow: 0 0 0 2px var(--lime, #c6f24b);
+	animation: brand-load-spark 1.2s ease-in-out infinite;
+}
+
+.brand-load__mark {
+	position: relative;
+	z-index: 1;
+	width: 72%;
+	height: 72%;
+	overflow: hidden;
+	border-radius: 22%;
+	animation: brand-load-float 1.8s ease-in-out infinite;
+}
+
+.brand-load__mark img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.brand-load__glow,
+	.brand-load__orbit,
+	.brand-load__ring,
+	.brand-load__spark,
+	.brand-load__mark {
+		animation: none;
+	}
+
+	.brand-load__glow {
+		opacity: 0.45;
+	}
+}

@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 interface UseInfiniteScrollOptions {
 	onLoadMore: () => void;
@@ -30,6 +30,22 @@ export function useInfiniteScroll({
 		},
 		[onLoadMore, hasMore, isLoading, threshold, enabled],
 	);
+
+	// Element scroll does not bubble, so listen on the scroller itself.
+	useEffect(() => {
+		const el = scrollAreaRef.current;
+		if (!el || !enabled) return;
+
+		const onScroll = () => {
+			if (!hasMore || isLoading) return;
+			const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
+			if (nearBottom) onLoadMore();
+		};
+
+		el.addEventListener("scroll", onScroll, { passive: true });
+		onScroll();
+		return () => el.removeEventListener("scroll", onScroll);
+	}, [enabled, hasMore, isLoading, onLoadMore, threshold]);
 
 	return { scrollAreaRef, handleScroll };
 }

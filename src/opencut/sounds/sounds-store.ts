@@ -52,8 +52,8 @@ interface SoundsStore {
 	}: {
 		soundEffect: SoundEffect;
 	}) => Promise<void>;
-	removeSavedSound: ({ soundId }: { soundId: number }) => Promise<void>;
-	isSoundSaved: ({ soundId }: { soundId: number }) => boolean;
+	removeSavedSound: ({ soundId }: { soundId: string }) => Promise<void>;
+	isSoundSaved: ({ soundId }: { soundId: string }) => boolean;
 	toggleSavedSound: ({
 		soundEffect,
 	}: {

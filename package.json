@@ -14,6 +14,7 @@
     "seed:character-looks": "tsx scripts/seed-character-look-previews.ts",
     "seed:text-styles": "tsx scripts/seed-text-style-previews.ts",
     "seed:editor-previews": "tsx scripts/seed-editor-previews.ts",
+    "seed:sound-effects": "tsx scripts/seed-kenney-sound-effects.ts",
     "migrate:folders": "tsx scripts/migrate-project-folders.ts"
   },
   "dependencies": {

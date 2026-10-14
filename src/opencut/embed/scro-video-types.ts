@@ -58,13 +58,31 @@ export type ScroClipActionMessage = {
 	action: "generate-frames" | "generate-video" | "cancel-video";
 };
 
-/** Editor → host: open SceneChat or FrameEdit on the page shell. */
+/** Editor → host: open FrameEdit on the page shell. */
 export type ScroOpenAiMessage = {
 	type: "scro-open-ai";
 	videoId: string;
 	clipNumber: number;
 	kind: "scene-chat" | "frame-edit";
 	position?: FramePosition;
+};
+
+/** Editor → host: rewrite this clip from one instruction, without a chat transcript. */
+export type ScroSceneEditMessage = {
+	type: "scro-scene-edit";
+	videoId: string;
+	clipNumber: number;
+	message: string;
+	requestId: string;
+};
+
+export type ScroSceneEditResultMessage = {
+	type: "scro-scene-edit-result";
+	videoId: string;
+	clipNumber: number;
+	requestId: string;
+	ok: boolean;
+	error?: string;
 };
 
 /** Editor → host: Assets selection for bulk / delete chrome. */

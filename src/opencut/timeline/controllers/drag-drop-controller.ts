@@ -17,6 +17,8 @@ import {
 import { AddTrackCommand, InsertElementCommand } from "@/opencut/commands/timeline";
 import { BatchCommand } from "@/opencut/commands";
 import type { Command } from "@/opencut/commands/base-command";
+import { effectTimingAt, transitionTimingAt } from "@/opencut/effects/effect-timing";
+import { isTransitionEffectType } from "@/opencut/effects/transition-layout";
 import { computeDropTarget } from "@/opencut/timeline/components/drop-target";
 import type { TimelineDragSource } from "@/opencut/timeline/drag-source";
 import type {
@@ -30,7 +32,7 @@ import type {
 import type { TimelineDragData } from "@/opencut/timeline/drag";
 import type { MediaAsset } from "@/opencut/media/types";
 import type { ProcessedMediaAsset } from "@/opencut/media/processing";
-import { roundFrameTime, type MediaTime } from "@/opencut/wasm";
+import { mediaTime, roundFrameTime, TICKS_PER_SECOND, type MediaTime } from "@/opencut/wasm";
 
 // --- Config ---
 
@@ -51,7 +53,9 @@ export interface DragDropConfig {
 	}) => Promise<MediaAsset | null>;
 	executeCommand: (command: Command) => void;
 	insertElement: (args: {
-		placement: { mode: "explicit"; trackId: string };
+		placement:
+			| { mode: "explicit"; trackId: string }
+			| { mode: "auto"; trackType?: TrackType; insertIndex?: number };
 		element: CreateTimelineElement;
 	}) => void;
 	addClipEffect: (args: {
@@ -204,13 +208,34 @@ export class DragDropController {
 		}
 
 		const elementType = elementTypeFromDrag({ dragData });
-		const duration = getDurationForDrag({
+		const sceneTracks = this.config.getSceneTracks();
+		let duration = getDurationForDrag({
 			dragData,
 			mediaAssets: this.config.getMediaAssets(),
 		});
-		const targetElementTypes = getTargetElementTypesForDrag({ dragData });
+		let targetElementTypes = getTargetElementTypesForDrag({ dragData });
+		let startTimeOverride: MediaTime | undefined;
 
-		const sceneTracks = this.config.getSceneTracks();
+		if (dragData.type === "effect") {
+			const pointerTime = isExternal
+				? this.config.getCurrentPlayheadTime()
+				: mediaTime({
+						ticks: Math.round(
+							Math.max(
+								0,
+								coords.mouseX /
+									(BASE_TIMELINE_PIXELS_PER_SECOND * this.config.zoomLevel),
+							) * TICKS_PER_SECOND,
+						),
+					});
+			const timing = isTransitionEffectType(dragData.effectType)
+				? transitionTimingAt({ time: pointerTime, tracks: sceneTracks })
+				: effectTimingAt({ time: pointerTime, tracks: sceneTracks });
+			duration = timing.duration;
+			startTimeOverride = timing.startTime;
+			targetElementTypes = [];
+		}
+
 		const target = computeDropTarget({
 			elementType,
 			mouseX: coords.mouseX,
@@ -222,9 +247,14 @@ export class DragDropController {
 			pixelsPerSecond: BASE_TIMELINE_PIXELS_PER_SECOND,
 			zoomLevel: this.config.zoomLevel,
 			targetElementTypes,
+			startTimeOverride,
 		});
-
 		const fps = this.config.getActiveProjectFps();
+		if (dragData.type === "effect" && startTimeOverride !== undefined) {
+			// Keep the block on the clip edge if track placement moves x.
+			target.xPosition = startTimeOverride;
+			target.anchoredDuration = duration;
+		}
 		target.xPosition = fps
 			? roundFrameTime({ time: target.xPosition, fps })
 			: target.xPosition;
@@ -461,32 +491,20 @@ export class DragDropController {
 		target: DropTarget;
 		dragData: Extract<TimelineDragData, { type: "effect" }>;
 	}): void {
-		if (target.targetElement) {
-			this.config.addClipEffect({
-				trackId: target.targetElement.trackId,
-				elementId: target.targetElement.elementId,
-				effectType: dragData.effectType,
-			});
-			return;
-		}
-
+		// The drag preview already snapped this to a clip head, tail, or cut.
 		const element = buildEffectElement({
 			effectType: dragData.effectType,
 			startTime: target.xPosition,
+			duration: target.anchoredDuration,
 		});
-
-		const existingEffectTrack = orderedTracks({
-			sceneTracks: this.config.getSceneTracks(),
-		}).find((track) => track.type === "effect");
-
-		if (existingEffectTrack) {
+		// Transitions reuse one effect track and are painted on the video row.
+		if (isTransitionEffectType(dragData.effectType)) {
 			this.config.insertElement({
-				placement: { mode: "explicit", trackId: existingEffectTrack.id },
+				placement: { mode: "auto", trackType: "effect" },
 				element,
 			});
 			return;
 		}
-
 		this.insertAtTarget({ element, target, trackType: "effect" });
 	}
 

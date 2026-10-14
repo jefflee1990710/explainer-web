@@ -1,10 +1,9 @@
 "use client";
 
-import { Button } from "@/opencut/components/ui/button";
 import { requestScroOpenAi } from "@/opencut/embed/scro-video-actions";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 
-/** Opens host-mounted SceneChat / FrameEdit dialogs. */
+/** Redraw stills. Clip text edits use the sticky input under the panel. */
 export function ScroVideoAiEntry({
 	videoId,
 	clip,
@@ -17,20 +16,6 @@ export function ScroVideoAiEntry({
 			<div className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
 				Edit
 			</div>
-			<Button
-				variant="secondary"
-				size="sm"
-				className="w-full"
-				onClick={() =>
-					requestScroOpenAi({
-						videoId,
-						clipNumber: clip.clipNumber,
-						kind: "scene-chat",
-					})
-				}
-			>
-				Edit with AI
-			</Button>
 			<div className="grid grid-cols-2 gap-2">
 				<button
 					type="button"

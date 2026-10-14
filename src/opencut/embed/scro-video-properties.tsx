@@ -1,5 +1,7 @@
 "use client";
 
+import { ScroClipTextField } from "@/opencut/embed/scro-clip-text-field";
+import { ScroSceneEditInput } from "@/opencut/embed/scro-scene-edit-input";
 import { ScroVideoAiEntry } from "@/opencut/embed/scro-video-ai-entry";
 import { ScroVideoPrimaryActions } from "@/opencut/embed/scro-video-primary-actions";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
@@ -17,14 +19,7 @@ const STAGE_LABEL: Record<ScroVideoUiStage, string> = {
 function Field({ label, value }: { label: string; value?: string }) {
 	const text = value?.trim();
 	if (!text) return null;
-	return (
-		<div className="space-y-1">
-			<div className="text-muted-foreground text-[0.65rem] font-medium uppercase tracking-wide">
-				{label}
-			</div>
-			<p className="text-foreground whitespace-pre-wrap text-xs leading-relaxed">{text}</p>
-		</div>
-	);
+	return <ScroClipTextField label={label} text={text} />;
 }
 
 function Detail({ clip }: { clip: ScroVideoSeedClip }) {
@@ -57,19 +52,24 @@ export function ScroVideoProperties({ clipNumber }: { clipNumber: number }) {
 	}
 
 	return (
-		<div className="flex flex-col gap-4 p-3">
-			<header className="space-y-1">
-				<p className="text-sm font-semibold">{clip.name}</p>
-				<p className="text-muted-foreground text-xs tabular-nums">
-					{clip.timeRange
-						? `${clip.timeRange} · ${clip.durationSeconds}s`
-						: `${clip.durationSeconds}s`}
-				</p>
-				<p className="text-xs">{STAGE_LABEL[clip.stage]}</p>
-			</header>
-			<ScroVideoPrimaryActions videoId={store.videoId} clip={clip} />
-			<ScroVideoAiEntry videoId={store.videoId} clip={clip} />
-			<Detail clip={clip} />
+		<div className="flex min-h-0 flex-1 flex-col">
+			<div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
+				<div className="flex flex-col gap-4 p-3">
+					<header className="space-y-1">
+						<p className="text-sm font-semibold">{clip.name}</p>
+						<p className="text-muted-foreground text-xs tabular-nums">
+							{clip.timeRange
+								? `${clip.timeRange} · ${clip.durationSeconds}s`
+								: `${clip.durationSeconds}s`}
+						</p>
+						<p className="text-xs">{STAGE_LABEL[clip.stage]}</p>
+					</header>
+					<ScroVideoPrimaryActions videoId={store.videoId} clip={clip} />
+					<ScroVideoAiEntry videoId={store.videoId} clip={clip} />
+					<Detail clip={clip} />
+				</div>
+			</div>
+			<ScroSceneEditInput videoId={store.videoId} clipNumber={clip.clipNumber} />
 		</div>
 	);
 }

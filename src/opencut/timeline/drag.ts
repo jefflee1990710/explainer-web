@@ -32,6 +32,8 @@ export interface EffectDragData extends BaseDragData {
 	type: "effect";
 	effectType: string;
 	targetElementTypes: VisualElement["type"][];
+	/** "edge" accepts a drop only on a clip head, tail, or the cut between clips. */
+	placement?: "anywhere" | "edge";
 }
 
 export type TimelineDragData =

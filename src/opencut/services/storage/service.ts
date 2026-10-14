@@ -520,7 +520,7 @@ class StorageService {
 		}
 	}
 
-	async removeSavedSound({ soundId }: { soundId: number }): Promise<void> {
+	async removeSavedSound({ soundId }: { soundId: string }): Promise<void> {
 		try {
 			const currentData = await this.loadSavedSounds();
 
@@ -539,7 +539,7 @@ class StorageService {
 		}
 	}
 
-	async isSoundSaved({ soundId }: { soundId: number }): Promise<boolean> {
+	async isSoundSaved({ soundId }: { soundId: string }): Promise<boolean> {
 		try {
 			const currentData = await this.loadSavedSounds();
 			return currentData.sounds.some((sound) => sound.id === soundId);

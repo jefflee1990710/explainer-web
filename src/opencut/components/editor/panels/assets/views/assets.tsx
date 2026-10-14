@@ -58,7 +58,13 @@ import {
 	Video01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import { ScroVideoAssets } from "@/opencut/embed/scro-video-assets";
+import {
+	mergeScroMediaAssets,
+	resolveScroClipNumber,
+	scroDisplayName,
+	ScroMediaOverlays,
+	selectScroMediaClip,
+} from "@/opencut/embed/scro-video-assets";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 
 export function MediaView() {
@@ -66,7 +72,6 @@ export function MediaView() {
 	const mediaFiles = useEditor((e) => e.media.getAssets());
 	const activeProject = useEditor((e) => e.project.getActive());
 	const scroVideos = useScroVideos();
-	const hasScroVideos = Boolean(scroVideos?.clips.length);
 
 	const {
 		mediaViewMode,
@@ -154,8 +159,24 @@ export function MediaView() {
 
 	const filteredMediaItems = useMemo(() => {
 		const filtered = mediaFiles.filter((item) => !item.ephemeral);
+		// One ScroVideo row per clipNumber, then user imports — no separate section.
+		const merged = mergeScroMediaAssets({
+			assets: filtered,
+			clips: scroVideos?.clips,
+		});
+		const scroIds = new Set(
+			merged
+				.filter(
+					(item) =>
+						resolveScroClipNumber({ asset: item, clips: scroVideos?.clips }) !=
+						null,
+				)
+				.map((item) => item.id),
+		);
+		const scroItems = merged.filter((item) => scroIds.has(item.id));
+		const otherItems = merged.filter((item) => !scroIds.has(item.id));
 
-		filtered.sort((a, b) => {
+		otherItems.sort((a, b) => {
 			let valueA: string | number;
 			let valueB: string | number;
 
@@ -185,8 +206,8 @@ export function MediaView() {
 			return 0;
 		});
 
-		return filtered;
-	}, [mediaFiles, mediaSortBy, mediaSortOrder]);
+		return [...scroItems, ...otherItems];
+	}, [mediaFiles, mediaSortBy, mediaSortOrder, scroVideos?.clips]);
 	const orderedMediaIds = useMemo(() => {
 		return filteredMediaItems.map((item) => item.id);
 	}, [filteredMediaItems]);
@@ -212,41 +233,28 @@ export function MediaView() {
 				contentClassName="h-full"
 				{...dragProps}
 			>
-				<div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-2">
-					{hasScroVideos ? <ScroVideoAssets /> : null}
-					{isDragOver || filteredMediaItems.length === 0 ? (
-						hasScroVideos && !isDragOver ? (
-							<button
-								type="button"
-								onClick={openFilePicker}
-								className="text-muted-foreground hover:text-foreground border-border rounded-sm border border-dashed px-3 py-4 text-center text-xs"
-							>
-								Import media
-							</button>
-						) : (
-							<MediaDragOverlay
-								isVisible={true}
-								isProcessing={isProcessing}
-								progress={progress}
-								onClick={openFilePicker}
-							/>
-						)
-					) : (
-						<SelectableSurface
-							ariaLabel="Assets"
-							orderedIds={orderedMediaIds}
-							revealId={highlightMediaId}
-							onRevealComplete={clearHighlight}
-						>
-							<MediaScopeRegistrar />
-							<MediaItemList
-								items={filteredMediaItems}
-								mode={mediaViewMode}
-								onRemove={handleRemove}
-							/>
-						</SelectableSurface>
-					)}
-				</div>
+				{isDragOver || filteredMediaItems.length === 0 ? (
+					<MediaDragOverlay
+						isVisible={true}
+						isProcessing={isProcessing}
+						progress={progress}
+						onClick={openFilePicker}
+					/>
+				) : (
+					<SelectableSurface
+						ariaLabel="Assets"
+						orderedIds={orderedMediaIds}
+						revealId={highlightMediaId}
+						onRevealComplete={clearHighlight}
+					>
+						<MediaScopeRegistrar />
+						<MediaItemList
+							items={filteredMediaItems}
+							mode={mediaViewMode}
+							onRemove={handleRemove}
+						/>
+					</SelectableSurface>
+				)}
 			</PanelView>
 		</>
 	);
@@ -269,6 +277,8 @@ function MediaAssetDraggable({
 	isRounded?: boolean;
 }) {
 	const editor = useEditor();
+	const scroVideos = useScroVideos();
+	const label = scroDisplayName({ asset: item, clips: scroVideos?.clips });
 
 	const addElementAtTime = ({
 		asset,
@@ -284,9 +294,10 @@ function MediaAssetDraggable({
 		const element = buildElementFromMedia({
 			mediaId: asset.id,
 			mediaType: asset.type,
-			name: asset.name,
+			name: label,
 			duration,
 			startTime,
+			scroClipNumber: asset.scroClipNumber,
 		});
 		editor.timeline.insertElement({
 			element,
@@ -296,13 +307,13 @@ function MediaAssetDraggable({
 
 	return (
 		<DraggableItem
-			name={item.name}
+			name={label}
 			preview={preview}
 			dragData={{
 				id: item.id,
 				type: "media",
 				mediaType: item.type,
-				name: item.name,
+				name: label,
 				...(item.type !== "audio" && {
 					targetElementTypes: [...MASKABLE_ELEMENT_TYPES],
 				}),
@@ -370,6 +381,8 @@ function MediaItemList({
 		ids: string[];
 	}) => void;
 }) {
+	const editor = useEditor();
+	const scroVideos = useScroVideos();
 	const isGrid = mode === "grid";
 
 	return (
@@ -379,23 +392,39 @@ function MediaItemList({
 				isGrid ? { gridTemplateColumns: "repeat(auto-fill, 7rem)" } : undefined
 			}
 		>
-			{items.map((item) => (
-				<MediaItemWithContextMenu item={item} onRemove={onRemove} key={item.id}>
-					<SelectableItem className={cn(!isGrid && "w-full")} id={item.id}>
-						<MediaAssetDraggable
-							item={item}
-							preview={
-								<MediaPreview
-									item={item}
-									variant={isGrid ? "grid" : "compact"}
-								/>
-							}
-							variant={isGrid ? "card" : "compact"}
-							isRounded={isGrid ? false : undefined}
-						/>
-					</SelectableItem>
-				</MediaItemWithContextMenu>
-			))}
+			{items.map((item) => {
+				const clipNumber = resolveScroClipNumber({
+					asset: item,
+					clips: scroVideos?.clips,
+				});
+				return (
+					<MediaItemWithContextMenu item={item} onRemove={onRemove} key={item.id}>
+						<SelectableItem
+							className={cn(!isGrid && "w-full")}
+							id={item.id}
+							onClick={() => {
+								if (clipNumber == null) return;
+								selectScroMediaClip({
+									clipNumber,
+									editor,
+								});
+							}}
+						>
+							<MediaAssetDraggable
+								item={item}
+								preview={
+									<MediaPreview
+										item={item}
+										variant={isGrid ? "grid" : "compact"}
+									/>
+								}
+								variant={isGrid ? "card" : "compact"}
+								isRounded={isGrid ? false : undefined}
+							/>
+						</SelectableItem>
+					</MediaItemWithContextMenu>
+				);
+			})}
 		</div>
 	);
 }
@@ -458,20 +487,29 @@ function MediaPreview({
 	item: MediaAsset;
 	variant?: "grid" | "compact";
 }) {
+	const scroVideos = useScroVideos();
 	const shouldShowDurationBadge = variant === "grid";
+	const clipNumber = resolveScroClipNumber({
+		asset: item,
+		clips: scroVideos?.clips,
+	});
+	const label = scroDisplayName({ asset: item, clips: scroVideos?.clips });
+	const scroOverlay =
+		clipNumber != null ? <ScroMediaOverlays clipNumber={clipNumber} /> : null;
 
 	if (item.type === "image") {
 		return (
 			<div className="relative flex size-full items-center justify-center bg-muted">
 				<Image
 					src={item.url ?? ""}
-					alt={item.name}
+					alt={label}
 					fill
 					sizes="100vw"
 					className="object-cover"
 					loading="lazy"
 					unoptimized
 				/>
+				{scroOverlay}
 			</div>
 		);
 	}
@@ -482,14 +520,16 @@ function MediaPreview({
 				<div className="relative size-full">
 					<Image
 						src={item.thumbnailUrl}
-						alt={item.name}
+						alt={label}
 						fill
 						sizes="100vw"
 						className="rounded object-cover"
 						loading="lazy"
 						unoptimized
 					/>
-					{shouldShowDurationBadge ? (
+					{scroOverlay}
+					{/* Scro stage badge replaces the duration chip. */}
+					{shouldShowDurationBadge && !scroOverlay ? (
 						<MediaDurationBadge duration={item.duration} />
 					) : null}
 				</div>
@@ -497,12 +537,15 @@ function MediaPreview({
 		}
 
 		return (
-			<MediaTypePlaceholder
-				icon={Video01Icon}
-				label="Video"
-				duration={item.duration}
-				variant="muted"
-			/>
+			<div className="relative size-full">
+				<MediaTypePlaceholder
+					icon={Video01Icon}
+					label="Video"
+					duration={scroOverlay ? undefined : item.duration}
+					variant="muted"
+				/>
+				{scroOverlay}
+			</div>
 		);
 	}
 

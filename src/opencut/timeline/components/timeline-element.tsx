@@ -215,6 +215,8 @@ interface TimelineElementProps {
 	}) => void;
 	dragView: ElementDragView;
 	isDropTarget?: boolean;
+	/** Drawn on the video row instead of its own effect track. */
+	overlay?: boolean;
 }
 
 export function TimelineElement({
@@ -227,6 +229,7 @@ export function TimelineElement({
 	onElementClick,
 	dragView,
 	isDropTarget = false,
+	overlay = false,
 }: TimelineElementProps) {
 	const mediaAssets = useEditor((e) => e.media.getAssets());
 	const { selectedElements } = useElementSelection();
@@ -257,9 +260,9 @@ export function TimelineElement({
 		: undefined;
 	const isBeingDragged = dragTimeOffset !== undefined;
 	const dragOffsetY =
-		isDragging && isBeingDragged
-			? dragView.currentMouseY - dragView.startMouseY
-			: 0;
+		overlay || !isDragging || !isBeingDragged
+			? 0
+			: dragView.currentMouseY - dragView.startMouseY;
 	const elementStartTime =
 		isDragging && isBeingDragged
 			? addMediaTime({ a: dragView.currentTime, b: dragTimeOffset })
@@ -379,12 +382,14 @@ export function TimelineElement({
 						style={{
 							left: `${elementLeft}px`,
 							width: `${elementWidth}px`,
-							height:
-								expandedRows.length > 0
+							height: overlay
+								? `${baseTrackHeight}px`
+								: expandedRows.length > 0
 									? `${baseTrackHeight + expansionHeight}px`
 									: "100%",
+							zIndex: overlay ? 3 : undefined,
 							transform:
-								isDragging && isBeingDragged
+								!overlay && isDragging && isBeingDragged
 									? `translate3d(0, ${dragOffsetY}px, 0)`
 									: undefined,
 						}}
@@ -401,6 +406,7 @@ export function TimelineElement({
 							onElementMouseDown={onElementMouseDown}
 							onResizeStart={onResizeStart}
 							isDropTarget={isDropTarget}
+							allowResize={!overlay}
 						/>
 						{isSelected && (
 							<div
@@ -521,6 +527,7 @@ function ElementInner({
 	onElementMouseDown,
 	onResizeStart,
 	isDropTarget = false,
+	allowResize = true,
 }: {
 	element: TimelineElementType;
 	displayElement?: TimelineElementType;
@@ -544,6 +551,7 @@ function ElementInner({
 		side: "left" | "right";
 	}) => void;
 	isDropTarget?: boolean;
+	allowResize?: boolean;
 }) {
 	const visibleElement = displayElement ?? element;
 	const isReducedOpacity =
@@ -601,7 +609,7 @@ function ElementInner({
 				</div>
 			</div>
 
-			{isSelected && (
+			{isSelected && allowResize && (
 				<>
 					<ResizeHandle
 						side="left"

@@ -85,6 +85,10 @@ import { useScrollPosition } from "@/opencut/timeline/hooks/use-scroll-position"
 import { useTimelinePlayhead } from "@/opencut/timeline/hooks/use-timeline-playhead";
 import { DragLine } from "./drag-line";
 import { invokeAction } from "@/opencut/actions";
+import {
+	transitionOverlayElements,
+	visibleTimelineTracks,
+} from "@/opencut/effects/transition-layout";
 import { resolveTimelineElementIntersections } from "./selection-hit-testing";
 import { cn } from "@/opencut/utils/ui";
 
@@ -127,12 +131,16 @@ export function Timeline() {
 	const scene = useEditor((currentEditor) =>
 		currentEditor.scenes.getActiveSceneOrNull(),
 	);
-	const tracks = useMemo<TimelineTrack[]>(
+	const allTracks = useMemo<TimelineTrack[]>(
 		() =>
 			scene
 				? [...scene.tracks.overlay, scene.tracks.main, ...scene.tracks.audio]
 				: [],
 		[scene],
+	);
+	const tracks = useMemo(
+		() => visibleTimelineTracks(allTracks),
+		[allTracks],
 	);
 	const mainTrackId = scene?.tracks.main.id ?? null;
 	const seek = (time: MediaTime) => editor.playback.seek({ time });
@@ -355,7 +363,7 @@ export function Timeline() {
 			return resolveTimelineElementIntersections({
 				container: tracksContainerRef.current,
 				scrollContainer: tracksScrollRef.current,
-				tracks,
+				tracks: allTracks,
 				zoomLevel,
 				startPos,
 				currentPos,
@@ -460,13 +468,13 @@ export function Timeline() {
 					/>
 					<DragLine
 						dropTarget={dropTarget}
-						tracks={tracks}
+						tracks={allTracks}
 						isVisible={isDragOver && !dropTarget?.targetElement}
 						headerHeight={timelineHeaderHeight}
 					/>
 					<DragLine
 						dropTarget={isElementDragging ? dragView.dropTarget : null}
-						tracks={tracks}
+						tracks={allTracks}
 						isVisible={isElementDragging}
 						headerHeight={timelineHeaderHeight}
 					/>
@@ -614,9 +622,11 @@ function TrackLabelsPanel({
 	const scene = useEditor((e) => e.scenes.getActiveSceneOrNull());
 	const tracks = useMemo<TimelineTrack[]>(
 		() =>
-			scene
-				? [...scene.tracks.overlay, scene.tracks.main, ...scene.tracks.audio]
-				: [],
+			visibleTimelineTracks(
+				scene
+					? [...scene.tracks.overlay, scene.tracks.main, ...scene.tracks.audio]
+					: [],
+			),
 		[scene],
 	);
 	const { selectedElements } = useElementSelection();
@@ -753,12 +763,20 @@ function TimelineTrackRows({
 }) {
 	const timeline = useEditor((e) => e.timeline);
 	const scene = useEditor((e) => e.scenes.getActiveSceneOrNull());
-	const tracks = useMemo<TimelineTrack[]>(
+	const allTracks = useMemo<TimelineTrack[]>(
 		() =>
 			scene
 				? [...scene.tracks.overlay, scene.tracks.main, ...scene.tracks.audio]
 				: [],
 		[scene],
+	);
+	const tracks = useMemo(
+		() => visibleTimelineTracks(allTracks),
+		[allTracks],
+	);
+	const overlays = useMemo(
+		() => transitionOverlayElements({ tracks: allTracks }),
+		[allTracks],
 	);
 	const { selectedElements } = useElementSelection();
 	const tracksWithSelection = useMemo(
@@ -831,6 +849,9 @@ function TimelineTrackRows({
 									isDragOver
 										? (dropTarget?.targetElement?.elementId ?? null)
 										: null
+								}
+								overlayElements={
+									track.id === mainTrackId ? overlays : []
 								}
 							/>
 						</div>

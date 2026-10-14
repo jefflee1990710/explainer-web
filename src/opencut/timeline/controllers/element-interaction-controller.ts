@@ -20,6 +20,8 @@ import { TIMELINE_DRAG_THRESHOLD_PX } from "@/opencut/timeline/components/intera
 import type { FrameRate } from "opencut-wasm";
 import { computeDropTarget } from "@/opencut/timeline/components/drop-target";
 import { getMouseTimeFromClientX } from "@/opencut/timeline/drag-utils";
+import { fixedTransitionStart } from "@/opencut/effects/effect-timing";
+import { isTransitionElement } from "@/opencut/effects/transition-layout";
 import { generateUUID } from "@/opencut/utils/id";
 import type { SnapPoint } from "@/opencut/timeline/snapping";
 import type {
@@ -191,6 +193,61 @@ function frameSnappedMouseTime({
 		b: subMediaTime({ a: mouseTime, b: clickOffsetTime }),
 	});
 	return roundFrameTime({ time: adjusted, fps });
+}
+
+/** Transitions stay on a clip head, tail, or cut while the block is dragged. */
+function lockedTransitionTime({
+	elementId,
+	trackId,
+	proposedTime,
+	tracks,
+	fps,
+}: {
+	elementId: string;
+	trackId: string;
+	proposedTime: MediaTime;
+	tracks: SceneTracks;
+	fps: FrameRate;
+}): MediaTime | null {
+	const ordered = [...tracks.overlay, tracks.main, ...tracks.audio];
+	const track = ordered.find((item) => item.id === trackId);
+	const element = track?.elements.find((item) => item.id === elementId);
+	if (!element || element.type !== "effect") return null;
+	const fixed = fixedTransitionStart({
+		time: proposedTime,
+		tracks,
+		effectType: element.effectType,
+	});
+	if (fixed === null) return null;
+	return roundFrameTime({ time: fixed, fps });
+}
+
+/** Keep a transition on its effect track so dragging it does not open a new row. */
+function pinnedTransitionDropTarget({
+	group,
+	tracks,
+	snappedTime,
+}: {
+	group: MoveGroup;
+	tracks: SceneTracks;
+	snappedTime: MediaTime;
+}): DropTarget | null {
+	const ordered = orderedTracks(tracks);
+	const allTransitions = group.members.every((member) => {
+		const track = ordered.find((item) => item.id === member.trackId);
+		const element = track?.elements.find((item) => item.id === member.elementId);
+		return !!element && isTransitionElement(element);
+	});
+	if (!allTransitions) return null;
+	const trackIndex = ordered.findIndex((item) => item.id === group.anchor.trackId);
+	if (trackIndex < 0) return null;
+	return {
+		trackIndex,
+		isNewTrack: false,
+		insertPosition: null,
+		xPosition: snappedTime,
+		targetElement: null,
+	};
 }
 
 function resolveDropTarget({
@@ -494,20 +551,26 @@ export class ElementInteractionController {
 		const tracks = scene.getTracks();
 		const zoomLevel = viewport.getZoomLevel();
 
-		const anchorDropTarget = resolveDropTarget({
-			clientX,
-			clientY,
-			elementId: mousedown.elementId,
-			trackId: mousedown.trackId,
-			tracks,
-			viewport,
-			zoomLevel,
-			snappedTime,
-			verticalDragDirection: verticalDirection({
-				startMouseY: mousedown.origin.y,
-				currentMouseY: clientY,
-			}),
-		});
+		const anchorDropTarget =
+			pinnedTransitionDropTarget({
+				group: drag.moveGroup,
+				tracks,
+				snappedTime,
+			}) ??
+			resolveDropTarget({
+				clientX,
+				clientY,
+				elementId: mousedown.elementId,
+				trackId: mousedown.trackId,
+				tracks,
+				viewport,
+				zoomLevel,
+				snappedTime,
+				verticalDragDirection: verticalDirection({
+					startMouseY: mousedown.origin.y,
+					currentMouseY: clientY,
+				}),
+			});
 
 		const nextGroupMoveResult = anchorDropTarget
 			? resolveGroupMoveForDrop({
@@ -592,10 +655,21 @@ export class ElementInteractionController {
 			clickOffsetTime: mousedown.clickOffsetTime,
 			fps,
 		});
-		const { snappedTime, snapPoint } = this.snapResult({
-			frameSnappedTime,
-			group: moveGroup,
+		const tracks = this.deps.scene.getTracks();
+		const lockedTime = lockedTransitionTime({
+			elementId: mousedown.elementId,
+			trackId: mousedown.trackId,
+			proposedTime: frameSnappedTime,
+			tracks,
+			fps,
 		});
+		const { snappedTime, snapPoint } =
+			lockedTime !== null
+				? { snappedTime: lockedTime, snapPoint: null }
+				: this.snapResult({
+						frameSnappedTime,
+						group: moveGroup,
+					});
 
 		// Ensure the anchor is selected before we render the drag — covers the
 		// case where the selection store hasn't committed the mousedown-time
@@ -656,10 +730,20 @@ export class ElementInteractionController {
 			clickOffsetTime: mousedown.clickOffsetTime,
 			fps,
 		});
-		const { snappedTime, snapPoint } = this.snapResult({
-			frameSnappedTime,
-			group: drag.moveGroup,
+		const lockedTime = lockedTransitionTime({
+			elementId: mousedown.elementId,
+			trackId: mousedown.trackId,
+			proposedTime: frameSnappedTime,
+			tracks: this.deps.scene.getTracks(),
+			fps,
 		});
+		const { snappedTime, snapPoint } =
+			lockedTime !== null
+				? { snappedTime: lockedTime, snapPoint: null }
+				: this.snapResult({
+						frameSnappedTime,
+						group: drag.moveGroup,
+					});
 
 		drag.currentTime = snappedTime;
 		drag.currentMouseX = clientX;

@@ -4,16 +4,11 @@ import { useCallback } from "react";
 import { PanelView } from "@/opencut/components/editor/panels/assets/views/base-panel";
 import { DraggableItem } from "@/opencut/components/editor/panels/assets/draggable-item";
 import { CatalogThumb } from "@/opencut/effects/components/catalog-thumb";
-import {
-	effectsRegistry,
-	EFFECT_TARGET_ELEMENT_TYPES,
-	registerDefaultEffects,
-} from "@/opencut/effects";
+import { effectsRegistry, registerDefaultEffects } from "@/opencut/effects";
+import { effectTimingAt, transitionTimingAt } from "@/opencut/effects/effect-timing";
 import type { EffectCategory, EffectDefinition } from "@/opencut/effects/types";
-import type { EditorCore } from "@/opencut/core";
 import { useEditor } from "@/opencut/editor/use-editor";
 import { buildEffectElement } from "@/opencut/timeline/element-utils";
-import { mediaTimeFromSeconds, mediaTimeToSeconds, type MediaTime } from "@/opencut/wasm";
 
 export function EffectCatalog({
 	category,
@@ -51,19 +46,23 @@ function CatalogItem({
 	const editor = useEditor();
 
 	const handleAddToTimeline = useCallback(() => {
-		const startTime =
+		const tracks = editor.scenes.getActiveScene().tracks;
+		const time = editor.playback.getCurrentTime();
+		// Transitions stick to a video head, tail, or cut. Other effects keep the wider snap.
+		const timing =
 			category === "transition"
-				? transitionStartTime({ editor })
-				: editor.playback.getCurrentTime();
+				? transitionTimingAt({ time, tracks })
+				: effectTimingAt({ time, tracks });
 		const element = buildEffectElement({
 			effectType: effect.type,
-			startTime,
+			startTime: timing.startTime,
+			duration: timing.duration,
 		});
 		editor.timeline.insertElement({
 			placement: { mode: "auto", trackType: "effect" },
 			element,
 		});
-	}, [category, editor, effect.type]);
+	}, [editor, effect.type]);
 
 	return (
 		<DraggableItem
@@ -74,7 +73,8 @@ function CatalogItem({
 				name: effect.name,
 				type: "effect",
 				effectType: effect.type,
-				targetElementTypes: category === "transition" ? [] : EFFECT_TARGET_ELEMENT_TYPES,
+				placement: category === "transition" ? "edge" : "anywhere",
+				targetElementTypes: [],
 			}}
 			onAddToTimeline={handleAddToTimeline}
 			aspectRatio={1}
@@ -83,34 +83,4 @@ function CatalogItem({
 			containerClassName="w-full"
 		/>
 	);
-}
-
-/** Center a 1s transition on the nearest cut, or on the playhead. */
-function transitionStartTime({ editor }: { editor: EditorCore }): MediaTime {
-	const playhead = editor.playback.getCurrentTime();
-	const playheadSeconds = mediaTimeToSeconds({ time: playhead });
-	const tracks = editor.scenes.getActiveScene().tracks;
-	const cuts: number[] = [];
-	const collect = (elements: Array<{ startTime: MediaTime; duration: MediaTime }>) => {
-		for (const element of elements) {
-			const start = mediaTimeToSeconds({ time: element.startTime });
-			cuts.push(start);
-			cuts.push(start + mediaTimeToSeconds({ time: element.duration }));
-		}
-	};
-	collect(tracks.main.elements);
-	for (const track of tracks.overlay) {
-		if (track.type === "effect") continue;
-		collect(track.elements);
-	}
-	let centerSeconds = playheadSeconds;
-	let best = 1.5;
-	for (const cut of cuts) {
-		const distance = Math.abs(cut - playheadSeconds);
-		if (distance <= best) {
-			centerSeconds = cut;
-			best = distance;
-		}
-	}
-	return mediaTimeFromSeconds({ seconds: Math.max(0, centerSeconds - 0.5) });
 }

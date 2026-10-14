@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { folderPath, folderVideoPath } from "@/service/folder-video-path";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { EditorStepSwitch, type EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
+import type { EditorStepNav } from "@/presentation/components/app/projects/[id]/editor-step-switch";
 import {
   editorTabStorageKey,
   rememberedEditorStep,
@@ -1157,15 +1157,7 @@ export function NewProjectForm({
                 desk ? "shrink-0" : "mx-3 mt-3 rounded-md border sm:mx-6 sm:mt-4"
               }`}
             >
-              <EditorStepSwitch
-                viewing={viewing}
-                phaseAReady={phaseAReady}
-                onSelectStep={(step) => {
-                  setRestarting(false);
-                  pinViewingStep(step);
-                }}
-              />
-              {/* Full row under the steps on a phone, so the export button is not painted over the specs. */}
+              {/* Full row under the header on a phone, so the export button is not painted over the specs. */}
               <div className="order-last flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:order-none sm:w-auto sm:flex-1">
                 <span className="font-display font-bold">{skillTitle}</span>
                 <Dot />

@@ -1,5 +1,5 @@
 export interface SoundEffect {
-	id: number;
+	id: string;
 	name: string;
 	description: string;
 	url: string;
@@ -22,7 +22,7 @@ export interface SoundEffect {
 }
 
 export interface SavedSound {
-	id: number; // freesound id
+	id: string;
 	name: string;
 	username: string;
 	previewUrl?: string;

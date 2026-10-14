@@ -1,5 +1,6 @@
 import type { TimelineTrack, TimelineElement } from "@/opencut/timeline";
 import type { ComputeDropTargetParams, DropTarget } from "@/opencut/timeline";
+import { isTransitionOnlyTrack } from "@/opencut/effects/transition-layout";
 import { resolveTrackPlacement } from "@/opencut/timeline/placement";
 import { TIMELINE_TRACK_GAP_PX } from "./layout";
 import { getTrackHeight } from "./track-layout";
@@ -55,6 +56,9 @@ function getTrackAtY({
 	let cumulativeHeight = 0;
 
 	for (let i = 0; i < tracks.length; i++) {
+		// Transition-only rows are not drawn, so they take no vertical space.
+		if (isTransitionOnlyTrack(tracks[i])) continue;
+
 		const trackHeight = getTrackHeight({ type: tracks[i].type });
 		const trackTop = cumulativeHeight;
 		const trackBottom = trackTop + trackHeight;
@@ -66,19 +70,21 @@ function getTrackAtY({
 			};
 		}
 
-		if (i < tracks.length - 1 && verticalDragDirection) {
+		const nextIndex = nextVisibleTrackIndex({ tracks, afterIndex: i });
+		if (nextIndex !== null && verticalDragDirection) {
 			const gapTop = trackBottom;
 			const gapBottom = gapTop + TIMELINE_TRACK_GAP_PX;
 			if (mouseY >= gapTop && mouseY < gapBottom) {
 				const isDraggingUp = verticalDragDirection === "up";
 				return {
-					trackIndex: isDraggingUp ? i : i + 1,
+					trackIndex: isDraggingUp ? i : nextIndex,
 					relativeY: isDraggingUp ? trackHeight - 1 : 0,
 				};
 			}
 		}
 
-		cumulativeHeight += trackHeight + TIMELINE_TRACK_GAP_PX;
+		cumulativeHeight +=
+			trackHeight + (nextIndex !== null ? TIMELINE_TRACK_GAP_PX : 0);
 	}
 
 	return null;
@@ -268,8 +274,22 @@ export function getDropLineY({
 	let y = 0;
 
 	for (let i = 0; i < safeTrackIndex; i++) {
+		if (isTransitionOnlyTrack(tracks[i])) continue;
 		y += getTrackHeight({ type: tracks[i].type }) + TIMELINE_TRACK_GAP_PX;
 	}
 
 	return y;
+}
+
+function nextVisibleTrackIndex({
+	tracks,
+	afterIndex,
+}: {
+	tracks: TimelineTrack[];
+	afterIndex: number;
+}): number | null {
+	for (let i = afterIndex + 1; i < tracks.length; i++) {
+		if (!isTransitionOnlyTrack(tracks[i])) return i;
+	}
+	return null;
 }

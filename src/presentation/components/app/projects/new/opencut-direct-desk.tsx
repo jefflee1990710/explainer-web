@@ -17,6 +17,7 @@ import {
 } from "@/presentation/actions/opencut-edit";
 import { syncOpencutSubtitlePlatesAction } from "@/presentation/actions/opencut-subtitle";
 import { generateRemainingAction } from "@/presentation/actions/clip-production";
+import { sendClipSceneChatAction } from "@/presentation/actions/scene-chat";
 import { buildSubtitleCatalog, type SubtitleCatalog } from "@/service/video-edit/subtitle-catalog";
 import { createScroOpenCutHost, type ScroOpenCutHost } from "@/service/opencut/host-channel";
 import { planRemaining } from "@/service/production-plan";
@@ -25,14 +26,13 @@ import { subtitleLookLabel } from "@/util/i18n/picker-labels";
 import type { OpencutEditMedia } from "@/model/opencut-edit";
 import type { FramePosition, FrameRevisionInput } from "@/model/project";
 import type { PublicTextStyle, PublicVideo } from "@/presentation/serialize";
+import { OpenCutEditorLoading } from "@/presentation/components/app/projects/new/opencut-editor-loading";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 import "./opencut-direct-host.css";
 
 const OpenCutInlineEditor = dynamic(() => import("@/opencut/embed/scro-inline-editor"), {
   ssr: false,
-  loading: () => (
-    <p className="px-4 py-6 text-sm text-muted">載入 OpenCut…</p>
-  ),
+  loading: OpenCutEditorLoading,
 });
 
 type SavedEdit = {
@@ -280,6 +280,8 @@ export function OpenCutDirectDesk({
         clipNumber?: number;
         action?: string;
         kind?: string;
+        message?: string;
+        requestId?: string;
         position?: FramePosition;
         selectedClipNumber?: number | null;
         checkedClipNumbers?: number[];
@@ -316,6 +318,32 @@ export function OpenCutDirectDesk({
         if (data.action === "generate-frames") handlers.onGenerateFrames(data.clipNumber);
         else if (data.action === "generate-video") handlers.onGenerateVideo(data.clipNumber);
         else if (data.action === "cancel-video") void handlers.onCancelVideo(data.clipNumber);
+        return;
+      }
+      if (
+        data?.type === "scro-scene-edit" &&
+        data.videoId === project.id &&
+        typeof data.clipNumber === "number" &&
+        typeof data.requestId === "string"
+      ) {
+        const clipNumber = data.clipNumber;
+        const requestId = data.requestId;
+        const message = data.message ?? "";
+        void sendClipSceneChatAction({
+          videoId: project.id,
+          clipNumber,
+          message,
+        }).then((result) => {
+          if (result.ok) productionRef.current?.onProject(result.project);
+          channel.postToEditor({
+            type: "scro-scene-edit-result",
+            videoId: project.id,
+            clipNumber,
+            requestId,
+            ok: result.ok,
+            error: result.ok ? undefined : result.error,
+          });
+        });
         return;
       }
       if (data?.type === "scro-open-ai" && data.videoId === project.id && typeof data.clipNumber === "number") {

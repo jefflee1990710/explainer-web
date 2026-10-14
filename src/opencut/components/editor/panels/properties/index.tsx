@@ -9,10 +9,8 @@ import {
 	TooltipTrigger,
 } from "@/opencut/components/ui/tooltip";
 import { useEditor } from "@/opencut/editor/use-editor";
-import {
-	ScroVideoProperties,
-	useSelectedScroClipNumber,
-} from "@/opencut/embed/scro-video-properties";
+import { ScroVideoProperties } from "@/opencut/embed/scro-video-properties";
+import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { useElementSelection } from "@/opencut/timeline/hooks/element/use-element-selection";
 import { usePropertiesStore } from "./stores/properties-store";
 import { getPropertiesConfig } from "./registry";
@@ -25,6 +23,7 @@ export function PropertiesPanel() {
 	useEditor((e) => e.media.getAssets());
 	const { selectedElements } = useElementSelection();
 	const { activeTabPerType, setActiveTab } = usePropertiesStore();
+	const scroStore = useScroVideos();
 
 	const timelineScroClip =
 		selectedElements.length === 1
@@ -43,15 +42,16 @@ export function PropertiesPanel() {
 					return null;
 				})()
 			: null;
-	const scroClipNumber = useSelectedScroClipNumber(timelineScroClip);
+	// Assets click sets store selection; only use it when the timeline is empty.
+	const scroClipNumber =
+		timelineScroClip ??
+		(selectedElements.length === 0 ? scroStore?.selectedClipNumber ?? null : null);
 
 	if (selectedElements.length === 0) {
 		if (scroClipNumber != null) {
 			return (
-				<div className="panel bg-background flex h-full overflow-hidden rounded-none border">
-					<ScrollArea className="flex-1 scrollbar-hidden">
-						<ScroVideoProperties clipNumber={scroClipNumber} />
-					</ScrollArea>
+				<div className="panel bg-background flex h-full min-h-0 flex-col overflow-hidden rounded-none border">
+					<ScroVideoProperties clipNumber={scroClipNumber} />
 				</div>
 			);
 		}
@@ -83,12 +83,10 @@ export function PropertiesPanel() {
 
 	const { element, track } = elementWithTrack;
 
-	if (scroClipNumber != null) {
+	if (timelineScroClip != null) {
 		return (
-			<div className="panel bg-background flex h-full overflow-hidden rounded-none border">
-				<ScrollArea className="flex-1 scrollbar-hidden">
-					<ScroVideoProperties clipNumber={scroClipNumber} />
-				</ScrollArea>
+			<div className="panel bg-background flex h-full min-h-0 flex-col overflow-hidden rounded-none border">
+				<ScroVideoProperties clipNumber={timelineScroClip} />
 			</div>
 		);
 	}
