@@ -9,7 +9,6 @@ import { InsufficientCreditsDialog } from "@/presentation/components/app/billing
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import { analyzeCharacterReferencesAction } from "@/presentation/actions/analyze-references";
 import { CameraCaptureDialog } from "@/presentation/components/app/characters/camera-capture-dialog";
-import { CreateCharacterMenu } from "@/presentation/components/app/characters/create-character-menu";
 import { CreateCharacterReferences } from "@/presentation/components/app/characters/create-character-references";
 import { ReferenceCoveragePanel } from "@/presentation/components/app/characters/reference-coverage-panel";
 import { CharacterVoiceFields } from "@/presentation/components/app/characters/character-voice-fields";
@@ -21,6 +20,7 @@ import type { PublicStyle } from "@/presentation/serialize";
 import { DEFAULT_STYLE_ID } from "@/service/style";
 import { Spinner } from "@/presentation/components/spinner";
 import { StylePicker } from "@/presentation/components/style-picker";
+import { CreateCharacterMenu } from "@/presentation/components/app/characters/create-character-menu";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { BLUEPRINT_COST } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -46,7 +46,6 @@ export function CreateCharacterButton({
   children?: React.ReactNode;
 }) {
   const { t } = useI18n();
-  const router = useRouter();
   const label = typeof children === "string" && children.length > 0 ? children : t("characters.create");
   const [open, setOpen] = useState(false);
   return (
@@ -56,7 +55,6 @@ export function CreateCharacterButton({
         className={className}
         disabled={atCharacterLimit}
         onSimple={() => setOpen(true)}
-        onGenerator={() => router.push("/app/characters/generate")}
       />
       {open ? (
         <CreateCharacterModal

@@ -13,6 +13,14 @@ export interface GroupResizeMember extends ElementRef {
 	retime?: RetimeConfig;
 	leftNeighborBound: MediaTime | null;
 	rightNeighborBound: MediaTime | null;
+	/** Transition glued to a clip head: the left edge does not move. */
+	fixedStart?: boolean;
+	/** Transition glued to a clip tail: the right edge does not move. */
+	fixedEnd?: boolean;
+	/** Left edge cannot move past this time (the cut, or the glued head). */
+	maxStart?: MediaTime;
+	/** Right edge cannot move past this time (the cut, or the glued tail). */
+	minEnd?: MediaTime;
 }
 
 export interface GroupResizeUpdate extends ElementRef {

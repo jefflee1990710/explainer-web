@@ -31,6 +31,15 @@ export async function getOpencutEdit(videoId: string): Promise<OpencutEditSnapsh
   };
 }
 
+/** Drop the saved cut so the next open follows the new storyboard. */
+export async function deleteOpencutEdit(videoId: string): Promise<void> {
+  const clerkUserId = await requireClerkUserId();
+  const video = await ownedVideo(videoId, clerkUserId);
+  if (!video) return;
+  const edits = await opencutEditsCollection();
+  await edits.deleteOne({ _id: video._id, clerkUserId });
+}
+
 export async function saveOpencutEdit(input: {
   videoId: string;
   project: unknown;

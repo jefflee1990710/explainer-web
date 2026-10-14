@@ -185,6 +185,10 @@ export const VIDEO_LIST_PROJECTION = {
   _id: 1,
   projectId: 1,
   status: 1,
+  // Card progress treats cinematic realistic as one still per clip. Without these
+  // the missing end frame looks unfinished even when every clip video exists.
+  skillSlug: 1,
+  styleId: 1,
   source: 1,
   aspectRatio: 1,
   durationPreset: 1,

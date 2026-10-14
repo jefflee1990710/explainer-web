@@ -6,24 +6,47 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { StudioButton } from "@/presentation/studio/studio-button";
 
-// Asks for the new clip's content, then the director appends it.
+export type AddClipAfterOption = {
+  clipNumber: number;
+  title: string;
+};
+
+// Asks for the new clip's content. When afterOptions is set, the user picks
+// which clip it follows so generation can start from that clip's ending scene.
 export function AddClipDialog({
   place,
   pending,
   error,
   onCancel,
   onConfirm,
+  afterOptions,
+  defaultAfterClipNumber,
 }: {
-  place: string;
+  place?: string;
   pending: boolean;
   error: string;
   onCancel: () => void;
-  onConfirm: (content: string) => void;
+  onConfirm: (content: string, afterClipNumber?: number) => void;
+  afterOptions?: AddClipAfterOption[];
+  defaultAfterClipNumber?: number | null;
 }) {
   const { t } = useI18n();
   const titleId = useId();
   const [content, setContent] = useState("");
-  const canConfirm = !pending && content.trim().length > 0;
+  const fallbackAfter = afterOptions?.at(-1)?.clipNumber;
+  const [afterClipNumber, setAfterClipNumber] = useState(
+    afterOptions?.some((option) => option.clipNumber === defaultAfterClipNumber)
+      ? defaultAfterClipNumber!
+      : fallbackAfter,
+  );
+  const chosen = afterOptions?.find((option) => option.clipNumber === afterClipNumber);
+  const following = afterOptions?.find((option) => option.clipNumber === (afterClipNumber ?? 0) + 1);
+  const resolvedPlace = chosen
+    ? following
+      ? t("production.filmstrip.addBetween", { before: chosen.title, after: following.title })
+      : t("production.filmstrip.addAfter", { title: chosen.title })
+    : (place ?? t("production.filmstrip.addClip"));
+  const canConfirm = !pending && content.trim().length > 0 && (afterOptions == null || chosen != null);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -47,15 +70,35 @@ export function AddClipDialog({
         onClick={(event) => event.stopPropagation()}
         onSubmit={(event) => {
           event.preventDefault();
-          if (canConfirm) onConfirm(content.trim());
+          if (canConfirm) onConfirm(content.trim(), chosen?.clipNumber);
         }}
       >
         <h2 id={titleId} className="text-lg font-bold">
           {t("production.filmstrip.addTitle")}
         </h2>
         <p className="mt-2 text-sm text-[var(--studio-muted)]">
-          {t("production.filmstrip.addBody", { place })}
+          {t("production.filmstrip.addBody", { place: resolvedPlace })}
         </p>
+        {afterOptions && afterOptions.length > 0 ? (
+          <label className="mt-4 block text-sm">
+            <span className="font-semibold">{t("production.filmstrip.addAfterLabel")}</span>
+            <select
+              value={afterClipNumber ?? ""}
+              disabled={pending}
+              onChange={(event) => setAfterClipNumber(Number(event.target.value))}
+              className="mt-1 w-full rounded-lg border border-[var(--studio-line)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--studio-ink)]"
+            >
+              {afterOptions.map((option) => (
+                <option key={option.clipNumber} value={option.clipNumber}>
+                  {option.title}
+                </option>
+              ))}
+            </select>
+            <span className="mt-1 block text-xs text-[var(--studio-muted)]">
+              {t("production.filmstrip.addAfterHint")}
+            </span>
+          </label>
+        ) : null}
         <textarea
           value={content}
           onChange={(event) => setContent(event.target.value)}

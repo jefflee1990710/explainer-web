@@ -20,12 +20,17 @@ import { generateRemainingAction } from "@/presentation/actions/clip-production"
 import { sendClipSceneChatAction } from "@/presentation/actions/scene-chat";
 import { buildSubtitleCatalog, type SubtitleCatalog } from "@/service/video-edit/subtitle-catalog";
 import { createScroOpenCutHost, type ScroOpenCutHost } from "@/service/opencut/host-channel";
-import { planRemaining } from "@/service/production-plan";
-import { buildSeedClips, diffScroSeedClips } from "@/service/scro-video/timeline-seed";
+import { allFramesReady, planRemaining } from "@/service/production-plan";
+import {
+  buildSeedClips,
+  diffScroSeedClips,
+  storyboardLayoutAction,
+} from "@/service/scro-video/timeline-seed";
 import { subtitleLookLabel } from "@/util/i18n/picker-labels";
 import type { OpencutEditMedia } from "@/model/opencut-edit";
 import type { FramePosition, FrameRevisionInput } from "@/model/project";
 import type { PublicTextStyle, PublicVideo } from "@/presentation/serialize";
+import { EditorLoadingOverlay } from "@/presentation/components/app/projects/new/editor-loading-overlay";
 import { OpenCutEditorLoading } from "@/presentation/components/app/projects/new/opencut-editor-loading";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 import "./opencut-direct-host.css";
@@ -111,6 +116,7 @@ export function OpenCutDirectDesk({
   const ai = useOpenCutScroAiState();
   const aiRef = useRef(ai);
   aiRef.current = ai;
+  const [booting, setBooting] = useState(true);
   const [selectedClipNumber, setSelectedClipNumber] = useState<number | null>(null);
   const [checkedClipNumbers, setCheckedClipNumbers] = useState<number[]>([]);
 
@@ -299,6 +305,12 @@ export function OpenCutDirectDesk({
           clips: seedClipsRef.current,
         });
         postCatalog();
+        channel.postToEditor({
+          type: "scro-clip-menu-state",
+          videoId: project.id,
+          idle: (productionRef.current?.pending ?? "") === "",
+          videosEnabled: allFramesReady(project),
+        });
         return;
       }
       if (data?.type === "scro-subtitle-request") {
@@ -378,7 +390,12 @@ export function OpenCutDirectDesk({
         );
         return;
       }
+      if (data?.type === "scro-seed-done" && data.videoId === project.id) {
+        setBooting(false);
+        return;
+      }
       if (data?.type === "scro-restore-done") {
+        setBooting(false);
         syncedRef.current = true;
         prevSeedRef.current = seedClipsRef.current;
         // Full storyboard first. Per-clip updates only replace one row.
@@ -415,11 +432,29 @@ export function OpenCutDirectDesk({
 
   useEffect(() => {
     if (!syncedRef.current) return;
-    const changed = diffScroSeedClips({
-      previous: prevSeedRef.current,
-      next: seedClips,
+    const previous = prevSeedRef.current;
+    const layout = storyboardLayoutAction({
+      synced: true,
+      previousCount: previous.length,
+      nextCount: seedClips.length,
     });
     prevSeedRef.current = seedClips;
+    // A new storyboard (first create, or recreate after the old one was cleared)
+    // replaces the main track and places each clip at its storyboard time.
+    if (layout === "clear" || layout === "place") {
+      host.postToEditor({
+        type: "scro-seed-videos",
+        videoId: project.id,
+        aspectRatio: project.aspectRatio,
+        clips: seedClips,
+        replace: true,
+      });
+      return;
+    }
+    const changed = diffScroSeedClips({
+      previous,
+      next: seedClips,
+    });
     host.postToEditor({
       type: "scro-videos-state",
       videoId: project.id,
@@ -432,7 +467,18 @@ export function OpenCutDirectDesk({
         clip,
       });
     }
-  }, [seedClips, project.id, host]);
+  }, [seedClips, project.id, project.aspectRatio, host]);
+
+  // Assets ⋮ menu reads this so Finish / All frames / All videos stay in sync.
+  useEffect(() => {
+    if (!production) return;
+    host.postToEditor({
+      type: "scro-clip-menu-state",
+      videoId: project.id,
+      idle: production.pending === "",
+      videosEnabled: allFramesReady(project),
+    });
+  }, [host, production, project]);
 
   // Once per desk session: queue remaining frames/videos like Production's auto fill.
   useEffect(() => {
@@ -480,6 +526,7 @@ export function OpenCutDirectDesk({
       <div className="min-h-0 flex-1">
         <OpenCutInlineEditor projectId={`scro-${project.id}`} />
       </div>
+      {booting ? <EditorLoadingOverlay placement="absolute" /> : null}
       {production ? (
         <OpenCutScroAiShell
           project={project}

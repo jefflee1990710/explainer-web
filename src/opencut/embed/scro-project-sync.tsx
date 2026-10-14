@@ -5,6 +5,7 @@ import { useEditor } from "@/opencut/editor/use-editor";
 import { processMediaAssets } from "@/opencut/media/processing";
 import { storageService } from "@/opencut/services/storage/service";
 import type { TProject } from "@/opencut/project/types";
+import { applyScroCanvasSize } from "@/opencut/embed/scro-canvas-size";
 import {
 	armScroSync,
 	readClipSources,
@@ -34,6 +35,7 @@ type RemoteMedia = {
 type RestoreMessage = {
 	type: "scro-restore";
 	videoId: string;
+	aspectRatio?: "9:16" | "16:9" | "1:1";
 	project: TProject;
 	media: RemoteMedia[];
 	updatedAt: string;
@@ -184,6 +186,7 @@ export function ScroProjectSync() {
 			const remoteTime = Date.parse(data.updatedAt);
 			const localTime = local?.metadata.updatedAt.getTime() ?? 0;
 			if (local && hasTimeline(local) && localTime > remoteTime) {
+				await applyScroCanvasSize(editor, data.aspectRatio);
 				armed.current = true;
 				postSave();
 				sendToScro(
@@ -220,6 +223,7 @@ export function ScroProjectSync() {
 				writeSeen(data.videoId, seen);
 				await storageService.saveProject({ project: asProject(data.project) });
 				await editor.project.loadProject({ id: projectId });
+				await applyScroCanvasSize(editor, data.aspectRatio);
 				sendToScro(
 					{
 						type: "scro-restore-done",

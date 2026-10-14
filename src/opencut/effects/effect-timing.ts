@@ -1,4 +1,8 @@
-import { anchorEffectToClips, type ClipSpan } from "@/opencut/effects/clip-anchor";
+import {
+	anchorEffectToClips,
+	placeTransitionWithDuration,
+	type ClipSpan,
+} from "@/opencut/effects/clip-anchor";
 import { registerDefaultEffects } from "@/opencut/effects/definitions";
 import { effectsRegistry } from "@/opencut/effects/registry";
 import type { SceneTracks } from "@/opencut/timeline";
@@ -61,16 +65,26 @@ export function fixedTransitionStart({
 	time,
 	tracks,
 	effectType,
+	duration,
 }: {
 	time: MediaTime;
 	tracks: SceneTracks;
 	effectType: string;
+	/** Length already on the block, so a drag does not snap it back to one second. */
+	duration?: MediaTime;
 }): MediaTime | null {
 	registerDefaultEffects();
 	if (!effectsRegistry.has(effectType)) return null;
 	const definition = effectsRegistry.get(effectType);
 	if ((definition.category ?? "effect") !== "transition") return null;
-	return transitionTimingAt({ time, tracks }).startTime;
+	if (duration == null) return transitionTimingAt({ time, tracks }).startTime;
+	const placed = placeTransitionWithDuration({
+		time: mediaTimeToSeconds({ time }),
+		clips: videoClipTracks({ tracks })[0] ?? [],
+		duration: mediaTimeToSeconds({ time: duration }),
+	});
+	if (!placed) return transitionTimingAt({ time, tracks }).startTime;
+	return mediaTimeFromSeconds({ seconds: Math.max(0, placed.start) });
 }
 
 function placementFromSpan({

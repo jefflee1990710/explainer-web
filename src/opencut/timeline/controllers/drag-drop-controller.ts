@@ -5,6 +5,8 @@ import {
 	DEFAULT_NEW_ELEMENT_DURATION,
 	toElementDurationTicks,
 } from "@/opencut/timeline/creation";
+import { placementForScroMedia } from "@/opencut/embed/scro-clip-duration";
+import { getScroVideos } from "@/opencut/embed/scro-video-store";
 import { BASE_TIMELINE_PIXELS_PER_SECOND } from "@/opencut/timeline/scale";
 import type { FrameRate } from "opencut-wasm";
 import {
@@ -123,7 +125,39 @@ function getDurationForDrag({
 }): MediaTime {
 	if (dragData.type !== "media") return DEFAULT_NEW_ELEMENT_DURATION;
 	const media = mediaAssets.find((asset) => asset.id === dragData.id);
-	return toElementDurationTicks({ seconds: media?.duration });
+	const placed = media
+		? placementForScroMedia({ asset: media, clips: getScroVideos()?.clips })
+		: null;
+	return toElementDurationTicks({ seconds: placed?.visibleSeconds ?? media?.duration });
+}
+
+/** Storyboard length for a Scro clip; the generated file's extra seconds stay trimmed. */
+function buildDroppedMediaElement({
+	asset,
+	name,
+	startTime,
+}: {
+	asset: MediaAsset;
+	name?: string;
+	startTime: MediaTime;
+}) {
+	const placed = placementForScroMedia({ asset, clips: getScroVideos()?.clips });
+	return buildElementFromMedia({
+		mediaId: asset.id,
+		mediaType: asset.type,
+		name: name ?? asset.name,
+		duration: toElementDurationTicks({
+			seconds: placed?.visibleSeconds ?? asset.duration,
+		}),
+		startTime,
+		scroClipNumber: placed?.clipNumber ?? asset.scroClipNumber,
+		...(placed
+			? {
+					sourceDuration: toElementDurationTicks({ seconds: placed.sourceSeconds }),
+					trimEnd: toElementDurationTicks({ seconds: placed.trimEndSeconds }),
+				}
+			: {}),
+	});
 }
 
 function orderedTracks({
@@ -474,11 +508,8 @@ export class DragDropController {
 
 		const trackType: TrackType =
 			dragData.mediaType === "audio" ? "audio" : "video";
-		const element = buildElementFromMedia({
-			mediaId: mediaAsset.id,
-			mediaType: mediaAsset.type,
-			name: mediaAsset.name,
-			duration: toElementDurationTicks({ seconds: mediaAsset.duration }),
+		const element = buildDroppedMediaElement({
+			asset: mediaAsset,
 			startTime: target.xPosition,
 		});
 		this.insertAtTarget({ element, target, trackType });
@@ -535,8 +566,12 @@ export class DragDropController {
 					});
 					if (!createdAsset) continue;
 
+					const placed = placementForScroMedia({
+						asset: createdAsset,
+						clips: getScroVideos()?.clips,
+					});
 					const duration = toElementDurationTicks({
-						seconds: createdAsset.duration,
+						seconds: placed?.visibleSeconds ?? createdAsset.duration,
 					});
 
 					const sceneTracks = this.config.getSceneTracks();
@@ -553,11 +588,8 @@ export class DragDropController {
 					if (reuseMainTrackId) {
 						this.config.insertElement({
 							placement: { mode: "explicit", trackId: reuseMainTrackId },
-							element: buildElementFromMedia({
-								mediaId: createdAsset.id,
-								mediaType: createdAsset.type,
-								name: createdAsset.name,
-								duration,
+							element: buildDroppedMediaElement({
+								asset: createdAsset,
 								startTime: currentTime,
 							}),
 						});
@@ -579,11 +611,8 @@ export class DragDropController {
 					const trackType: TrackType =
 						createdAsset.type === "audio" ? "audio" : "video";
 					this.insertAtTarget({
-						element: buildElementFromMedia({
-							mediaId: createdAsset.id,
-							mediaType: createdAsset.type,
-							name: createdAsset.name,
-							duration,
+						element: buildDroppedMediaElement({
+							asset: createdAsset,
 							startTime: dropTarget.xPosition,
 						}),
 						target: dropTarget,

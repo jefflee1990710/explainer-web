@@ -88,7 +88,9 @@ export class InsertElementCommand extends Command {
 				(item: MediaAsset) => item.id === newElement.mediaId,
 			);
 
-			if (asset?.width && asset?.height) {
+			// A 1×1 stand-in (clip waiting for stills) must not become the frame.
+			// Stretching that pixel paints the preview as one solid color.
+			if (asset?.width && asset?.height && asset.width > 1 && asset.height > 1) {
 				const nextCanvasSize = { width: asset.width, height: asset.height };
 				const shouldSetOriginalCanvasSize =
 					!activeProject?.settings.originalCanvasSize;

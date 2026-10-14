@@ -12,7 +12,15 @@ export type ScroVideoStoreState = {
 	checkedClipNumbers: number[];
 };
 
+export type ScroClipMenuFlags = {
+	/** No bulk job is running, so clip actions can open. */
+	idle: boolean;
+	/** Every frame is ready, so All videos can run. */
+	videosEnabled: boolean;
+};
+
 let state: ScroVideoStoreState | null = null;
+let menuFlags: ScroClipMenuFlags = { idle: true, videosEnabled: false };
 /** Click that arrived before the storyboard store was filled. */
 let pendingClipNumber: number | null = null;
 const listeners = new Set<() => void>();
@@ -68,6 +76,19 @@ export function toggleScroVideoChecked(clipNumber: number): void {
 			: [...state.checkedClipNumbers, clipNumber].sort((a, b) => a - b),
 	};
 	emit();
+}
+
+export function setScroClipMenuFlags(flags: ScroClipMenuFlags): void {
+	menuFlags = flags;
+	emit();
+}
+
+export function getScroClipMenuFlags(): ScroClipMenuFlags {
+	return menuFlags;
+}
+
+export function useScroClipMenuFlags(): ScroClipMenuFlags {
+	return useSyncExternalStore(subscribe, getScroClipMenuFlags, () => menuFlags);
 }
 
 export function clearScroVideoChecked(): void {

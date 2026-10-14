@@ -168,8 +168,18 @@ function getMinimumAllowedDeltaTime({
 	minDuration: MediaTime;
 }): MediaTime {
 	if (side === "right") {
-		return subMediaTime({ a: minDuration, b: member.duration });
+		if (member.fixedEnd) return ZERO_MEDIA_TIME;
+		let floor = subMediaTime({ a: minDuration, b: member.duration });
+		if (member.minEnd != null) {
+			const end = addMediaTime({ a: member.startTime, b: member.duration });
+			floor = maxMediaTime({
+				a: floor,
+				b: subMediaTime({ a: member.minEnd, b: end }),
+			});
+		}
+		return floor;
 	}
+	if (member.fixedStart) return ZERO_MEDIA_TIME;
 
 	const leftNeighborFloor =
 		member.leftNeighborBound !== null
@@ -208,8 +218,17 @@ function getMaximumAllowedDeltaTime({
 	minDuration: MediaTime;
 }): MediaTime | null {
 	if (side === "left") {
-		return subMediaTime({ a: member.duration, b: minDuration });
+		if (member.fixedStart) return ZERO_MEDIA_TIME;
+		let ceiling = subMediaTime({ a: member.duration, b: minDuration });
+		if (member.maxStart != null) {
+			ceiling = minMediaTime({
+				a: ceiling,
+				b: subMediaTime({ a: member.maxStart, b: member.startTime }),
+			});
+		}
+		return ceiling;
 	}
+	if (member.fixedEnd) return ZERO_MEDIA_TIME;
 
 	const rightNeighborCeiling =
 		member.rightNeighborBound === null

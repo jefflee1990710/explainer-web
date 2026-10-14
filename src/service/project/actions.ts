@@ -51,6 +51,7 @@ import { applyPhaseAEdits } from "@/service/director/phase-a-edit";
 import { invalidatePlatesForChangedVo } from "@/service/higgsfield/subtitle-plate-job";
 import { clipsWithChangedVo } from "@/service/video-edit/subtitle-export";
 import { collectVideoBlobUrls } from "@/service/video/storage";
+import { deleteOpencutEdit } from "@/service/opencut/edit-store";
 import {
   RESTART_UNSET_FIELDS,
   restartBlobUrls,
@@ -678,6 +679,9 @@ async function rewriteVideoBrief(
         },
       },
     );
+
+    // The previous cut must not come back over the new storyboard.
+    if (options.restart) await deleteOpencutEdit(videoId);
 
     after(() => runPhaseAJob(video._id));
 

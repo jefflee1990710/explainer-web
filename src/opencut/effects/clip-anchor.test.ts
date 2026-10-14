@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 import {
 	anchorEffectToClips,
 	listApplyAllTransitionSlots,
+	placeTransitionWithDuration,
+	transitionResizeLimits,
 	type ClipSpan,
 } from "@/opencut/effects/clip-anchor";
 
@@ -182,6 +184,88 @@ describe("anchorEffectToClips", () => {
 		assert.deepEqual(listApplyAllTransitionSlots([{ start: 0, end: 10 }]), [
 			{ start: 9, duration: 1 },
 		]);
+	});
+
+	it("keeps a longer block on the tail instead of the one-second default", () => {
+		assert.deepEqual(
+			placeTransitionWithDuration({
+				time: 8,
+				clips: [{ start: 0, end: 10 }],
+				duration: 2.5,
+			}),
+			{ start: 7.5, duration: 2.5 },
+		);
+	});
+
+	it("keeps a longer block centered on the cut", () => {
+		assert.deepEqual(
+			placeTransitionWithDuration({
+				time: 10,
+				clips: [
+					{ start: 0, end: 10 },
+					{ start: 10, end: 16 },
+				],
+				duration: 2,
+			}),
+			{ start: 9, duration: 2 },
+		);
+	});
+
+	it("locks the head and lets the free edge reach the end of the clip", () => {
+		assert.deepEqual(
+			transitionResizeLimits({
+				start: 0,
+				duration: 1,
+				clips: [{ start: 0, end: 10 }],
+			}),
+			{
+				fixedStart: true,
+				fixedEnd: false,
+				minStart: 0,
+				maxEnd: 10,
+				maxStart: 0,
+				minEnd: 0,
+			},
+		);
+	});
+
+	it("locks the tail and lets the free edge reach the start of the clip", () => {
+		assert.deepEqual(
+			transitionResizeLimits({
+				start: 9,
+				duration: 1,
+				clips: [{ start: 0, end: 10 }],
+			}),
+			{
+				fixedStart: false,
+				fixedEnd: true,
+				minStart: 0,
+				maxEnd: 10,
+				maxStart: 10,
+				minEnd: 10,
+			},
+		);
+	});
+
+	it("keeps a cut inside the block while both edges move", () => {
+		assert.deepEqual(
+			transitionResizeLimits({
+				start: 9.5,
+				duration: 1,
+				clips: [
+					{ start: 0, end: 10 },
+					{ start: 10, end: 16 },
+				],
+			}),
+			{
+				fixedStart: false,
+				fixedEnd: false,
+				minStart: 0,
+				maxEnd: 16,
+				maxStart: 10,
+				minEnd: 10,
+			},
+		);
 	});
 
 	it("returns no slots when there are no clips", () => {

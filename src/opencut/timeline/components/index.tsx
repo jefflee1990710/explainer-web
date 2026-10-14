@@ -24,6 +24,7 @@ import { useTimelineZoom } from "@/opencut/timeline/hooks/use-timeline-zoom";
 import {
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -32,6 +33,7 @@ import {
 import { useContainerSize } from "@/opencut/hooks/use-container-size";
 import type { MediaTime } from "@/opencut/wasm";
 import type { ElementDragView, DropTarget } from "@/opencut/timeline";
+import { TrackLayerNumber } from "./track-layer-number";
 import { TimelineTrackContent } from "./timeline-track";
 import { TimelinePlayhead } from "./timeline-playhead";
 import { SelectionBox } from "@/opencut/selection/selection-box";
@@ -180,17 +182,23 @@ export function Timeline() {
 	});
 
 	const savedViewState = editor.project.getTimelineViewState();
+	// Opening a video fits every clip. A saved zoom stays zoomed in on the first seconds.
+	const zoomTouchedRef = useRef(false);
 
 	const { zoomLevel, setZoomLevel, handleWheel, saveScrollPosition } =
 		useTimelineZoom({
 			containerRef: timelineRef,
 			minZoom: minZoomLevel,
-			initialZoom: savedViewState?.zoomLevel,
-			initialScrollLeft: savedViewState?.scrollLeft,
 			initialPlayheadTime: savedViewState?.playheadTime,
 			tracksScrollRef,
 			rulerScrollRef,
 		});
+
+	useLayoutEffect(() => {
+		if (zoomTouchedRef.current) return;
+		if (timelineDuration <= 0 || tracksContainerWidth <= 0) return;
+		setZoomLevel(minZoomLevel);
+	}, [timelineDuration, tracksContainerWidth, minZoomLevel, setZoomLevel]);
 	const { isResizing, handleResizeStart } = useTimelineResize({
 		zoomLevel,
 		onSnapPointChange: handleSnapPointChange,
@@ -260,7 +268,10 @@ export function Timeline() {
 						const cappedDelta =
 							Math.sign(frameRawDelta) * Math.min(Math.abs(frameRawDelta), 30);
 						const zoomFactor = Math.exp(-cappedDelta / 300);
-						setZoomLevelRef.current((prev) => prev * zoomFactor);
+						setZoomLevelRef.current((prev) => {
+							zoomTouchedRef.current = true;
+							return prev * zoomFactor;
+						});
 						pendingZoomDelta = 0;
 						zoomRafId = null;
 					});
@@ -447,7 +458,10 @@ export function Timeline() {
 			<TimelineToolbar
 				zoomLevel={zoomLevel}
 				minZoom={minZoomLevel}
-				setZoomLevel={({ zoom }) => setZoomLevel(zoom)}
+				setZoomLevel={({ zoom }) => {
+					zoomTouchedRef.current = true;
+					setZoomLevel(zoom);
+				}}
 			/>
 
 			<div className="relative flex flex-1 overflow-hidden" ref={timelineRef}>
@@ -677,38 +691,41 @@ function TrackLabelsPanel({
 										}}
 									>
 										<div
-											className="flex shrink-0 items-center justify-end gap-2 px-3"
+											className="flex shrink-0 items-center justify-between gap-2 px-3"
 											style={{ height: `${baseHeight}px` }}
 										>
-											{canTrackHaveAudio(track) && (
-												<TrackToggleIcon
-													isOff={track.muted}
-													icons={{
-														on: VolumeHighIcon,
-														off: VolumeOffIcon,
-													}}
-													onClick={() =>
-														editor.timeline.toggleTrackMute({
-															trackId: track.id,
-														})
-													}
-												/>
-											)}
-											{canTrackBeHidden(track) && (
-												<TrackToggleIcon
-													isOff={track.hidden}
-													icons={{
-														on: ViewIcon,
-														off: ViewOffSlashIcon,
-													}}
-													onClick={() =>
-														editor.timeline.toggleTrackVisibility({
-															trackId: track.id,
-														})
-													}
-												/>
-											)}
-											<TrackIcon track={track} />
+											<TrackLayerNumber layer={index + 1} />
+											<div className="flex items-center gap-2">
+												{canTrackHaveAudio(track) && (
+													<TrackToggleIcon
+														isOff={track.muted}
+														icons={{
+															on: VolumeHighIcon,
+															off: VolumeOffIcon,
+														}}
+														onClick={() =>
+															editor.timeline.toggleTrackMute({
+																trackId: track.id,
+															})
+														}
+													/>
+												)}
+												{canTrackBeHidden(track) && (
+													<TrackToggleIcon
+														isOff={track.hidden}
+														icons={{
+															on: ViewIcon,
+															off: ViewOffSlashIcon,
+														}}
+														onClick={() =>
+															editor.timeline.toggleTrackVisibility({
+																trackId: track.id,
+															})
+														}
+													/>
+												)}
+												<TrackIcon track={track} />
+											</div>
 										</div>
 										{expandedRows.length > 0 && (
 											<PropertyTree rows={expandedRows} />

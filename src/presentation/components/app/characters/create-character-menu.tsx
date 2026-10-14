@@ -1,26 +1,25 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
-// New-character trigger. Opens Simple Create or Character Generator.
+// New character opens this menu: simple form, or the picture generator.
 export function CreateCharacterMenu({
   label,
   className,
-  disabled,
+  disabled = false,
   onSimple,
-  onGenerator,
 }: {
   label: string;
   className: string;
   disabled?: boolean;
   onSimple: () => void;
-  onGenerator: () => void;
 }) {
   const { t } = useI18n();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const menuId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -29,7 +28,6 @@ export function CreateCharacterMenu({
     }
     function onKey(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
-      event.preventDefault();
       setOpen(false);
     }
     document.addEventListener("mousedown", onPointerDown);
@@ -41,76 +39,48 @@ export function CreateCharacterMenu({
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative inline-flex">
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         className={className}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
         disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
       >
-        <span className="inline-flex items-center gap-1.5">
-          {label}
-          <ChevronIcon />
-        </span>
+        {label}
       </button>
       {open ? (
         <div
-          id={menuId}
           role="menu"
-          aria-label={label}
-          className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper p-1 text-foreground shadow-[4px_4px_0_0_rgba(18,20,28,0.12)]"
+          className="absolute right-0 z-30 mt-2 w-72 overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper p-1.5 text-left shadow-[6px_6px_0_0_rgba(18,20,28,0.08)]"
         >
-          <MenuItem
-            label={t("characters.createSimple")}
-            hint={t("characters.createSimpleHint")}
+          <button
+            type="button"
+            role="menuitem"
+            className="block w-full cursor-pointer rounded-xl px-3 py-2.5 hover:bg-accent-ink/5"
             onClick={() => {
               setOpen(false);
               onSimple();
             }}
-          />
-          <MenuItem
-            label={t("characters.createGenerator")}
-            hint={t("characters.createGeneratorHint")}
+          >
+            <span className="block text-sm font-semibold">{t("characters.createSimple")}</span>
+            <span className="mt-0.5 block text-xs text-muted">{t("characters.createSimpleHint")}</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="block w-full cursor-pointer rounded-xl px-3 py-2.5 hover:bg-accent-ink/5"
             onClick={() => {
               setOpen(false);
-              onGenerator();
+              router.push("/app/characters/generate");
             }}
-          />
+          >
+            <span className="block text-sm font-semibold">{t("characters.createGenerator")}</span>
+            <span className="mt-0.5 block text-xs text-muted">{t("characters.createGeneratorHint")}</span>
+          </button>
         </div>
       ) : null}
     </div>
-  );
-}
-
-function MenuItem({
-  label,
-  hint,
-  onClick,
-}: {
-  label: string;
-  hint: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="menuitem"
-      onClick={onClick}
-      className="flex w-full cursor-pointer flex-col rounded-xl px-3 py-2.5 text-left hover:bg-accent-ink/5"
-    >
-      <span className="text-sm font-semibold">{label}</span>
-      <span className="mt-0.5 text-xs leading-5 text-muted">{hint}</span>
-    </button>
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="m6 9 6 6 6-6" />
-    </svg>
   );
 }

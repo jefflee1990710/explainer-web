@@ -1,10 +1,14 @@
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { BASE_TIMELINE_PIXELS_PER_SECOND } from "@/opencut/timeline/scale";
+import { transitionResizeLimits } from "@/opencut/effects/clip-anchor";
+import { isTransitionElement } from "@/opencut/effects/transition-layout";
 import {
 	addMediaTime,
 	maxMediaTime,
 	type MediaTime,
 	mediaTime,
+	mediaTimeFromSeconds,
+	mediaTimeToSeconds,
 	minMediaTime,
 	subMediaTime,
 	TICKS_PER_SECOND,
@@ -122,6 +126,34 @@ export function buildResizeMembers({
 				null,
 			);
 
+		const limits = isTransitionElement(element)
+			? transitionResizeLimits({
+					start: mediaTimeToSeconds({ time: element.startTime }),
+					duration: mediaTimeToSeconds({ time: element.duration }),
+					clips: tracks.main.elements.map((clip) => {
+						const start = mediaTimeToSeconds({ time: clip.startTime });
+						return {
+							start,
+							end: start + mediaTimeToSeconds({ time: clip.duration }),
+						};
+					}),
+				})
+			: null;
+		const minStart = limits ? mediaTimeFromSeconds({ seconds: limits.minStart }) : null;
+		const maxEnd = limits ? mediaTimeFromSeconds({ seconds: limits.maxEnd }) : null;
+		const boundedLeft =
+			minStart === null
+				? leftNeighborBound
+				: leftNeighborBound === null
+					? minStart
+					: maxMediaTime({ a: leftNeighborBound, b: minStart });
+		const boundedRight =
+			maxEnd === null
+				? rightNeighborBound
+				: rightNeighborBound === null
+					? maxEnd
+					: minMediaTime({ a: rightNeighborBound, b: maxEnd });
+
 		return [
 			{
 				trackId,
@@ -132,8 +164,12 @@ export function buildResizeMembers({
 				trimEnd: element.trimEnd,
 				sourceDuration: element.sourceDuration,
 				retime: isRetimableElement(element) ? element.retime : undefined,
-				leftNeighborBound,
-				rightNeighborBound,
+				leftNeighborBound: boundedLeft,
+				rightNeighborBound: boundedRight,
+				fixedStart: limits?.fixedStart,
+				fixedEnd: limits?.fixedEnd,
+				maxStart: limits ? mediaTimeFromSeconds({ seconds: limits.maxStart }) : undefined,
+				minEnd: limits ? mediaTimeFromSeconds({ seconds: limits.minEnd }) : undefined,
 			},
 		];
 	});

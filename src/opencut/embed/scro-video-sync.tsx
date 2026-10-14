@@ -6,6 +6,14 @@ import { processMediaAssets } from "@/opencut/media/processing";
 import { buildElementFromMedia } from "@/opencut/timeline/element-utils";
 import { toElementDurationTicks } from "@/opencut/timeline/creation";
 import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/opencut/wasm";
+import type { MediaType } from "@/opencut/media/types";
+import { applyScroCanvasSize } from "@/opencut/embed/scro-canvas-size";
+import { resolveElementScroClipNumber } from "@/opencut/embed/scro-clip-number";
+import {
+	fitFullLengthPlacements,
+	storyboardPlacement,
+} from "@/opencut/embed/scro-clip-duration";
+import { stillPlaceholderFile } from "@/opencut/embed/scro-still-placeholder";
 import {
 	armScroSync,
 	rememberClipSource,
@@ -20,6 +28,7 @@ import type {
 import {
 	clearScroVideoChecked,
 	getScroVideos,
+	setScroClipMenuFlags,
 	setScroVideos,
 } from "@/opencut/embed/scro-video-store";
 import type { TimelineElement } from "@/opencut/timeline";
@@ -30,23 +39,6 @@ const PARENT_ORIGINS = new Set([
 	"https://www.scro.io",
 	"https://scro.io",
 ]);
-
-const CANVAS = {
-	"9:16": { width: 1080, height: 1920 },
-	"16:9": { width: 1920, height: 1080 },
-	"1:1": { width: 1080, height: 1080 },
-} as const;
-
-// 1×1 gray PNG used when a clip has no start still yet.
-function placeholderFile(name: string): File {
-	const bytes = Uint8Array.from(
-		atob(
-			"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-		),
-		(char) => char.charCodeAt(0),
-	);
-	return new File([bytes], name, { type: "image/png" });
-}
 
 function mainHasScroClip(elements: TimelineElement[]) {
 	return elements.some(
@@ -71,6 +63,42 @@ function upsertScroClip({
 	return clips.map((item) => (item.clipNumber === clip.clipNumber ? clip : item));
 }
 
+/** Visible length is the storyboard. A longer generated file keeps its tail trimmed off. */
+function buildScroTimelineElement({
+	mediaId,
+	mediaType,
+	name,
+	clip,
+	fileSeconds,
+	startTime,
+}: {
+	mediaId: string;
+	mediaType: MediaType;
+	name: string;
+	clip: ScroVideoSeedClip;
+	fileSeconds?: number;
+	startTime: ReturnType<typeof mediaTimeFromSeconds>;
+}) {
+	const place = storyboardPlacement({
+		storyboardSeconds: clip.durationSeconds,
+		fileSeconds: mediaType === "video" ? fileSeconds : undefined,
+	});
+	return buildElementFromMedia({
+		mediaId,
+		mediaType,
+		name,
+		duration: toElementDurationTicks({ seconds: place.visibleSeconds }),
+		startTime,
+		scroClipNumber: clip.clipNumber,
+		...(mediaType === "video"
+			? {
+					sourceDuration: toElementDurationTicks({ seconds: place.sourceSeconds }),
+					trimEnd: toElementDurationTicks({ seconds: place.trimEndSeconds }),
+				}
+			: {}),
+	});
+}
+
 function findScroElement(elements: TimelineElement[], clipNumber: number) {
 	return elements.find(
 		(element) =>
@@ -83,6 +111,7 @@ function findScroElement(elements: TimelineElement[], clipNumber: number) {
 export function ScroVideoSync() {
 	const editor = useEditor();
 	const busy = useRef(false);
+	const pendingSeed = useRef<ScroSeedMessage | null>(null);
 
 	useEffect(() => {
 		if (!isScroEmbed()) return;
@@ -92,7 +121,8 @@ export function ScroVideoSync() {
 				| ScroSeedMessage
 				| ScroClipUpdatedMessage
 				| ScroVideosStateMessage
-				| { type: "scro-clear-checked"; videoId: string };
+				| { type: "scro-clear-checked"; videoId: string }
+				| { type: "scro-clip-menu-state"; videoId: string; idle?: boolean; videosEnabled?: boolean };
 			if (!data || !("type" in data) || !data.videoId) return;
 			if (data.type === "scro-seed-videos") {
 				setScroVideos({ videoId: data.videoId, clips: data.clips });
@@ -101,11 +131,22 @@ export function ScroVideoSync() {
 			}
 			if (data.type === "scro-videos-state") {
 				setScroVideos({ videoId: data.videoId, clips: data.clips });
-				void reconcileClips(data);
+				void (async () => {
+					await reconcileClips(data);
+					await upgradeStandIns(data);
+					fitStoryboardLengths(data.clips);
+				})();
 				return;
 			}
 			if (data.type === "scro-clear-checked") {
 				clearScroVideoChecked();
+				return;
+			}
+			if (data.type === "scro-clip-menu-state") {
+				setScroClipMenuFlags({
+					idle: data.idle !== false,
+					videosEnabled: data.videosEnabled === true,
+				});
 				return;
 			}
 			if (data.type === "scro-clip-updated") {
@@ -126,49 +167,80 @@ export function ScroVideoSync() {
 
 		return stop;
 
+		function seedDone(videoId: string) {
+			sendToScro({ type: "scro-seed-done", videoId }, parentOrigin);
+		}
+
 		async function seedClips(data: ScroSeedMessage) {
-			if (busy.current) return;
+			if (busy.current) {
+				if (data.replace) pendingSeed.current = data;
+				else seedDone(data.videoId);
+				return;
+			}
 			const project = editor.project.getActiveOrNull();
-			if (!project) return;
-			const scene = editor.scenes.getActiveScene();
-			if (mainHasScroClip(scene.tracks.main.elements)) {
+			if (!project) {
+				seedDone(data.videoId);
+				return;
+			}
+			let scene = editor.scenes.getActiveScene();
+			if (!data.replace && mainHasScroClip(scene.tracks.main.elements)) {
+				await applyScroCanvasSize(editor, data.aspectRatio);
 				armScroSync();
+				seedDone(data.videoId);
 				return;
 			}
 
-			const size = data.aspectRatio ? CANVAS[data.aspectRatio] : undefined;
-			if (size) {
-				await editor.project.updateSettings({
-					settings: { canvasSize: size, canvasSizeMode: "preset" },
-					pushHistory: false,
-				});
-			}
+			await applyScroCanvasSize(editor, data.aspectRatio);
 
 			busy.current = true;
 			try {
+				if (data.replace) {
+					const victims = scene.tracks.main.elements
+						.filter(
+							(element) => element.type === "video" || element.type === "image",
+						)
+						.map((element) => ({
+							trackId: scene.tracks.main.id,
+							elementId: element.id,
+						}));
+					if (victims.length > 0) {
+						editor.timeline.deleteElements({ elements: victims });
+					}
+					scene = editor.scenes.getActiveScene();
+				}
+				// Storyboard order, each clip as long as the director wrote it.
+				const ordered = [...data.clips].sort((a, b) => a.clipNumber - b.clipNumber);
 				let cursor = 0;
-				for (const clip of data.clips) {
+				for (const clip of ordered) {
 					const created = await ensureMedia({ videoId: data.videoId, clip });
 					if (!created) continue;
-					const duration = toElementDurationTicks({
-						seconds: clip.durationSeconds,
+					const place = storyboardPlacement({
+						storyboardSeconds: clip.durationSeconds,
+						fileSeconds: created.type === "video" ? created.duration : undefined,
 					});
 					editor.timeline.insertElement({
 						placement: { mode: "explicit", trackId: scene.tracks.main.id },
-						element: buildElementFromMedia({
+						element: buildScroTimelineElement({
 							mediaId: created.id,
 							mediaType: created.type,
 							name: clip.name,
-							duration,
+							clip,
+							fileSeconds: created.duration,
 							startTime: mediaTimeFromSeconds({ seconds: cursor }),
-							scroClipNumber: clip.clipNumber,
 						}),
 					});
-					cursor += clip.durationSeconds;
+					cursor += place.visibleSeconds;
 				}
 			} finally {
 				busy.current = false;
+				// Insert adopts the first image's pixel size. Re-apply after the
+				// stand-in so a restart does not leave the preview at 1×1.
+				await applyScroCanvasSize(editor, data.aspectRatio);
 				armScroSync();
+				seedDone(data.videoId);
+				const next = pendingSeed.current;
+				pendingSeed.current = null;
+				if (next) void seedClips(next);
 			}
 		}
 
@@ -204,6 +276,15 @@ export function ScroVideoSync() {
 				wantedList.length > presentList.length &&
 				wantedList.slice(0, presentList.length).join(",") === presentKey;
 
+			// A hand-edited timeline (split clips, extra drops) is not a fresh seed.
+			// Wiping it to match clip numbers would throw away that edit.
+			const hasManualClip = scene.tracks.main.elements.some(
+				(element) =>
+					(element.type === "video" || element.type === "image") &&
+					element.scroClipNumber == null,
+			);
+			if (hasManualClip && !isAppendOnly) return;
+
 			busy.current = true;
 			try {
 				if (!isAppendOnly) {
@@ -214,21 +295,21 @@ export function ScroVideoSync() {
 					for (const clip of data.clips) {
 						const created = await ensureMedia({ videoId: data.videoId, clip });
 						if (!created) continue;
-						const duration = toElementDurationTicks({
-							seconds: clip.durationSeconds,
-						});
 						editor.timeline.insertElement({
 							placement: { mode: "explicit", trackId: scene.tracks.main.id },
-							element: buildElementFromMedia({
+							element: buildScroTimelineElement({
 								mediaId: created.id,
 								mediaType: created.type,
 								name: clip.name,
-								duration,
+								clip,
+								fileSeconds: created.duration,
 								startTime: mediaTimeFromSeconds({ seconds: cursor }),
-								scroClipNumber: clip.clipNumber,
 							}),
 						});
-						cursor += clip.durationSeconds;
+						cursor += storyboardPlacement({
+						storyboardSeconds: clip.durationSeconds,
+						fileSeconds: created.type === "video" ? created.duration : undefined,
+					}).visibleSeconds;
 					}
 					return;
 				}
@@ -239,25 +320,62 @@ export function ScroVideoSync() {
 				for (const clip of missing) {
 					const created = await ensureMedia({ videoId: data.videoId, clip });
 					if (!created) continue;
-					const duration = toElementDurationTicks({
-						seconds: clip.durationSeconds,
-					});
 					editor.timeline.insertElement({
 						placement: { mode: "explicit", trackId: scene.tracks.main.id },
-						element: buildElementFromMedia({
+						element: buildScroTimelineElement({
 							mediaId: created.id,
 							mediaType: created.type,
 							name: clip.name,
-							duration,
+							clip,
+							fileSeconds: created.duration,
 							startTime: mediaTimeFromSeconds({ seconds: cursor }),
-							scroClipNumber: clip.clipNumber,
 						}),
 					});
-					cursor += clip.durationSeconds;
+					cursor += storyboardPlacement({
+						storyboardSeconds: clip.durationSeconds,
+						fileSeconds: created.type === "video" ? created.duration : undefined,
+					}).visibleSeconds;
 				}
 			} finally {
 				busy.current = false;
 				armScroSync();
+			}
+		}
+
+		function placeholderFrame() {
+			const size = editor.project.getActiveOrNull()?.settings.canvasSize;
+			if (size && size.width > 16 && size.height > 16) {
+				return { width: size.width, height: size.height };
+			}
+			return { width: 1080, height: 1920 };
+		}
+
+		/** Swap a stretched 1×1 stand-in for the drawn waiting frame. */
+		async function upgradeStandIns(data: ScroVideosStateMessage) {
+			if (busy.current) return;
+			const scene = editor.scenes.getActiveScene();
+			for (const clip of data.clips) {
+				if (clip.videoUrl || clip.posterUrl) continue;
+				const existing = findScroElement(
+					scene.tracks.main.elements,
+					clip.clipNumber,
+				);
+				if (!existing || (existing.type !== "image" && existing.type !== "video")) {
+					continue;
+				}
+				const asset = editor.media.getAssets().find((item) => item.id === existing.mediaId);
+				if (
+					asset?.scroPlaceholder &&
+					(asset.width ?? 0) > 16 &&
+					(asset.height ?? 0) > 16
+				) {
+					continue;
+				}
+				await updateClip({
+					type: "scro-clip-updated",
+					videoId: data.videoId,
+					clip,
+				});
 			}
 		}
 
@@ -272,7 +390,6 @@ export function ScroVideoSync() {
 			const created = await ensureMedia({ videoId: data.videoId, clip: data.clip });
 			if (!created) return;
 			const startTime = existing.startTime;
-			const duration = existing.duration;
 			if (existing.type === created.type) {
 				editor.timeline.updateElements({
 					updates: [
@@ -283,21 +400,74 @@ export function ScroVideoSync() {
 						},
 					],
 				});
+				fitStoryboardLengths(getScroVideos()?.clips ?? [data.clip]);
 				return;
 			}
-			// Image ↔ video: replace the element, keep start and storyboard duration.
+			// Image ↔ video: replace the element at the storyboard length, not the file length.
 			editor.timeline.deleteElements({
 				elements: [{ trackId: scene.tracks.main.id, elementId: existing.id }],
 			});
 			editor.timeline.insertElement({
 				placement: { mode: "explicit", trackId: scene.tracks.main.id },
-				element: buildElementFromMedia({
+				element: buildScroTimelineElement({
 					mediaId: created.id,
 					mediaType: created.type,
 					name: data.clip.name,
-					duration,
+					clip: data.clip,
+					fileSeconds: created.duration,
 					startTime,
-					scroClipNumber: data.clip.clipNumber,
+				}),
+			});
+		}
+
+		/** Pull full-file drops back to the storyboard length and close the gap. */
+		function fitStoryboardLengths(clips: ScroVideoSeedClip[]) {
+			if (clips.length === 0) return;
+			const scene = editor.scenes.getActiveScene();
+			const assets = editor.media.getAssets();
+			const elements = scene.tracks.main.elements.map((element) => {
+				const mediaId = "mediaId" in element ? element.mediaId : undefined;
+				const asset = mediaId ? assets.find((item) => item.id === mediaId) : undefined;
+				const sourceDuration =
+					"sourceDuration" in element ? element.sourceDuration : undefined;
+				return {
+					id: element.id,
+					clipNumber: resolveElementScroClipNumber({ element, assets, clips }),
+					startSeconds: mediaTimeToSeconds({ time: element.startTime }),
+					durationSeconds: mediaTimeToSeconds({ time: element.duration }),
+					trimStartSeconds: mediaTimeToSeconds({ time: element.trimStart }),
+					trimEndSeconds: mediaTimeToSeconds({ time: element.trimEnd }),
+					sourceSeconds:
+						sourceDuration != null ? mediaTimeToSeconds({ time: sourceDuration }) : null,
+					fileSeconds: asset?.type === "video" ? (asset.duration ?? null) : null,
+				};
+			});
+			const patches = fitFullLengthPlacements({
+				elements,
+				storyboard: clips.map((clip) => ({
+					clipNumber: clip.clipNumber,
+					durationSeconds: clip.durationSeconds,
+				})),
+			});
+			if (patches.length === 0) return;
+			editor.timeline.updateElements({
+				pushHistory: false,
+				updates: patches.map((patch) => {
+					const element = scene.tracks.main.elements.find((item) => item.id === patch.id);
+					return {
+						trackId: scene.tracks.main.id,
+						elementId: patch.id,
+						patch: {
+							startTime: mediaTimeFromSeconds({ seconds: patch.startSeconds }),
+							...(patch.durationChanged && element?.type === "video"
+								? {
+										duration: mediaTimeFromSeconds({ seconds: patch.durationSeconds }),
+										trimEnd: mediaTimeFromSeconds({ seconds: patch.trimEndSeconds }),
+										sourceDuration: mediaTimeFromSeconds({ seconds: patch.sourceSeconds }),
+									}
+								: {}),
+						},
+					};
 				}),
 			});
 		}
@@ -322,7 +492,12 @@ export function ScroVideoSync() {
 					type: blob.type || (clip.videoUrl ? "video/mp4" : "image/webp"),
 				});
 			} else {
-				file = placeholderFile(`${clip.name}.png`);
+				const frame = placeholderFrame();
+				file = await stillPlaceholderFile({
+					name: clip.name,
+					width: frame.width,
+					height: frame.height,
+				});
 			}
 			const processed = await processMediaAssets({ files: [file] });
 			const asset = processed[0];
@@ -331,8 +506,10 @@ export function ScroVideoSync() {
 				projectId: project.metadata.id,
 				asset: {
 					...asset,
+					name: clip.name,
 					scroClipNumber: clip.clipNumber,
 					scroPosterUrl: clip.posterUrl,
+					scroPlaceholder: !sourceUrl,
 					thumbnailUrl: clip.posterUrl ?? asset.thumbnailUrl,
 				},
 			});

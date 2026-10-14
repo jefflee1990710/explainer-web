@@ -251,6 +251,165 @@ function betweenSpan({
 	return { start: Math.max(0, cut - half), duration: half * 2 };
 }
 
+const EDGE_MATCH_SECONDS = 0.08;
+
+export type TransitionResizeLimits = {
+	/** Head of a clip: the left edge stays put. */
+	fixedStart: boolean;
+	/** Tail of a clip: the right edge stays put. */
+	fixedEnd: boolean;
+	minStart: number;
+	maxEnd: number;
+	/** Left edge cannot pass this time. */
+	maxStart: number;
+	/** Right edge cannot pass this time. */
+	minEnd: number;
+};
+
+/**
+ * How far a transition already on an edge may be resized.
+ * The glued edge stays on the head, tail, or cut. The free edge stops at the clip.
+ */
+export function transitionResizeLimits({
+	start,
+	duration,
+	clips,
+}: {
+	start: number;
+	duration: number;
+	clips: ClipSpan[];
+}): TransitionResizeLimits | null {
+	const sorted = sortedClips(clips);
+	if (sorted.length === 0 || duration <= 1e-4) return null;
+	const end = start + duration;
+	const cut = cutCoveredBy({ start, end, clips: sorted });
+	if (cut) {
+		return {
+			fixedStart: false,
+			fixedEnd: false,
+			minStart: cut.previous.start,
+			maxEnd: cut.next.end,
+			maxStart: cut.time,
+			minEnd: cut.time,
+		};
+	}
+	const head = sorted.find(
+		(clip) =>
+			Math.abs(clip.start - start) <= EDGE_MATCH_SECONDS &&
+			end <= clip.end + EDGE_MATCH_SECONDS,
+	);
+	if (head) {
+		return {
+			fixedStart: true,
+			fixedEnd: false,
+			minStart: head.start,
+			maxEnd: head.end,
+			maxStart: head.start,
+			minEnd: head.start,
+		};
+	}
+	const tail = sorted.find(
+		(clip) =>
+			Math.abs(clip.end - end) <= EDGE_MATCH_SECONDS &&
+			start >= clip.start - EDGE_MATCH_SECONDS,
+	);
+	if (tail) {
+		return {
+			fixedStart: false,
+			fixedEnd: true,
+			minStart: tail.start,
+			maxEnd: tail.end,
+			maxStart: tail.end,
+			minEnd: tail.end,
+		};
+	}
+	return null;
+}
+
+/**
+ * Snap `duration` onto the nearest head, tail, or cut.
+ * A longer block keeps its length instead of collapsing back to one second.
+ */
+export function placeTransitionWithDuration({
+	time,
+	clips,
+	duration,
+}: {
+	time: number;
+	clips: ClipSpan[];
+	duration: number;
+}): { start: number; duration: number } | null {
+	const span = anchorEffectToClips({ time, tracks: [clips] });
+	if (!span) return null;
+	const sorted = sortedClips(clips);
+	const requested = Math.max(duration, 1 / 30);
+	if (span.kind === "start") {
+		const clip = sorted.find((item) => Math.abs(item.start - span.start) < 1e-3);
+		if (!clip) return { start: span.start, duration: span.duration };
+		const next = Math.min(requested, clip.end - clip.start);
+		return { start: clip.start, duration: next };
+	}
+	if (span.kind === "end") {
+		const clipEnd = span.start + span.duration;
+		const clip = sorted.find((item) => Math.abs(item.end - clipEnd) < 1e-2);
+		if (!clip) return { start: span.start, duration: span.duration };
+		const next = Math.min(requested, clip.end - clip.start);
+		return { start: clip.end - next, duration: next };
+	}
+	const cut = span.start + span.duration / 2;
+	const pair = joinedPairAt({ cut, clips: sorted });
+	if (!pair) return { start: span.start, duration: span.duration };
+	const left = Math.min(requested / 2, cut - pair.previous.start);
+	const right = Math.min(requested / 2, pair.next.end - cut);
+	return { start: Math.max(0, cut - left), duration: left + right };
+}
+
+function sortedClips(clips: ClipSpan[]): ClipSpan[] {
+	return clips
+		.filter((clip) => clip.end - clip.start > 1e-4)
+		.sort((a, b) => a.start - b.start);
+}
+
+/** A join the block still covers, so resizing cannot slide off the cut. */
+function cutCoveredBy({
+	start,
+	end,
+	clips,
+}: {
+	start: number;
+	end: number;
+	clips: ClipSpan[];
+}): { time: number; previous: ClipSpan; next: ClipSpan } | null {
+	for (let i = 0; i < clips.length - 1; i++) {
+		const previous = clips[i];
+		const next = clips[i + 1];
+		if (next.start - previous.end > JOIN_GAP_SECONDS) continue;
+		const time = joinCut({ previous, next });
+		if (time > start + EDGE_MATCH_SECONDS && time < end - EDGE_MATCH_SECONDS) {
+			return { time, previous, next };
+		}
+	}
+	return null;
+}
+
+function joinedPairAt({
+	cut,
+	clips,
+}: {
+	cut: number;
+	clips: ClipSpan[];
+}): { previous: ClipSpan; next: ClipSpan } | null {
+	for (let i = 0; i < clips.length - 1; i++) {
+		const previous = clips[i];
+		const next = clips[i + 1];
+		if (next.start - previous.end > JOIN_GAP_SECONDS) continue;
+		if (Math.abs(joinCut({ previous, next }) - cut) <= 0.2) {
+			return { previous, next };
+		}
+	}
+	return null;
+}
+
 function isCloser({
 	candidate,
 	best,

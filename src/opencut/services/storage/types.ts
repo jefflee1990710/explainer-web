@@ -31,6 +31,8 @@ export interface MediaAssetData {
 	scroClipNumber?: number;
 	/** Last known start-still URL for loading thumbs. */
 	scroPosterUrl?: string;
+	/** Drawn stand-in while this clip is still waiting for a frame. */
+	scroPlaceholder?: boolean;
 }
 
 export type SerializedScene = Omit<TScene, "createdAt" | "updatedAt"> & {

@@ -1,37 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TaskListDialog } from "@/presentation/components/app/tasks/task-list-dialog";
 import {
   BulkGenerateDialog,
   type BulkMode,
 } from "@/presentation/components/project/bulk-generate-dialog";
 import { AddClipDialog } from "@/presentation/components/project/add-clip-dialog";
-import { DeleteClipDialog } from "@/presentation/components/project/delete-clip-dialog";
 import { SelectionBar } from "@/presentation/components/project/selection-bar";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { ScroVideoQueue } from "@/opencut/embed/scro-video-queue";
-import { AllFramesVideoIcon } from "@/presentation/components/project/production-bulk-action-icons";
-import {
-  AddClipIcon,
-  AllFramesIcon,
-  DeleteClipIcon,
-  FinishMissingIcon,
-} from "@/presentation/studio/studio-action-icons";
-import { StudioButton } from "@/presentation/studio/studio-button";
-import { StudioHint } from "@/presentation/studio/studio-hint";
+import { scroHost } from "@/opencut/embed/scro-transport";
+import type { ScroClipMenuAction } from "@/opencut/embed/scro-video-actions";
 import {
   clipStatesFor,
   inFlightCounts,
   productionCounts,
 } from "@/service/clip-stage";
 import { allFramesReady } from "@/service/production-plan";
-import { appendDirectorClipAction, deleteClipAction } from "@/presentation/actions/clip-timeline";
-import { removeClip } from "@/service/clip/clip-order";
+import { appendDirectorClipAction } from "@/presentation/actions/clip-timeline";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import type { PublicVideo } from "@/presentation/serialize";
 
-/** Bulk / queue / add / delete chrome above the OpenCut editor. */
+// Select label: clip number, plus a short story beat when the director wrote one.
+function clipOptionTitle(label: string, narrativeJob: string) {
+  const job = narrativeJob.trim();
+  if (!job) return label;
+  const short = job.length > 36 ? `${job.slice(0, 36)}…` : job;
+  return `${label} · ${short}`;
+}
+
+/** Bulk / queue / add-clip chrome above the OpenCut editor. */
 export function OpenCutScroToolbar({
   project,
   credits,
@@ -62,21 +61,18 @@ export function OpenCutScroToolbar({
   const [addOpen, setAddOpen] = useState(false);
   const [addPending, setAddPending] = useState(false);
   const [addError, setAddError] = useState("");
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deletePending, setDeletePending] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
-  const clipCount = project.phaseA?.clips.length ?? 0;
-  const deleteTarget = selectedClipNumber;
+  const clips = project.phaseA?.clips ?? [];
 
   async function runSelected(clipNumbers: number[], kind: "frames" | "videos") {
     if (await onGenerateSelected(clipNumbers, kind)) onClearChecked();
   }
 
-  async function confirmAdd(content: string) {
+  async function confirmAdd(content: string, afterClipNumber?: number) {
     if (addPending) return;
     setAddPending(true);
     setAddError("");
-    const insertAt = clipCount + 1;
+    // Slot is the clip after the one whose ending scene seeds the new opening.
+    const insertAt = (afterClipNumber ?? clips.at(-1)?.clipNumber ?? 0) + 1;
     const result = await appendDirectorClipAction({
       videoId: project.id,
       content,
@@ -91,29 +87,38 @@ export function OpenCutScroToolbar({
     setAddOpen(false);
   }
 
-  async function confirmDelete() {
-    if (deletePending || deleteTarget == null) return;
-    const removed = removeClip(project, deleteTarget, { language: project.language });
-    if (!removed.ok) {
-      setDeleteError(translateAppError(removed.error, t));
-      return;
-    }
-    setDeletePending(true);
-    setDeleteError("");
-    const result = await deleteClipAction(project.id, deleteTarget);
-    setDeletePending(false);
-    if (!result.ok) {
-      setDeleteError(translateAppError(result.error, t));
-      return;
-    }
-    onClearChecked();
-    onProject(result.project);
-    setDeleteOpen(false);
-  }
-
   const firstUnfinished = clipStatesFor(project).find(
     (state) => state.stage !== "video_ready" || state.stale.frames || state.stale.video,
   )?.clipNumber;
+  const videosEnabled = allFramesReady(project);
+  const idleRef = useRef(idle);
+  const videosEnabledRef = useRef(videosEnabled);
+  idleRef.current = idle;
+  videosEnabledRef.current = videosEnabled;
+
+  // Assets header menu asks for the same dialogs that used to be buttons here.
+  useEffect(() => {
+    const host = scroHost();
+    if (!host) return;
+    return host.subscribeScro((payload) => {
+      const data = payload as { type?: string; videoId?: string; action?: ScroClipMenuAction };
+      if (data?.type !== "scro-clip-menu" || data.videoId !== project.id || !data.action) return;
+      if (!idleRef.current) return;
+      if (data.action === "remaining" || data.action === "scenes") {
+        setBulkMode(data.action);
+        return;
+      }
+      if (data.action === "clips") {
+        if (!videosEnabledRef.current) return;
+        setBulkMode("clips");
+        return;
+      }
+      if (data.action === "add") {
+        setAddError("");
+        setAddOpen(true);
+      }
+    });
+  }, [project.id]);
 
   return (
     <>
@@ -139,74 +144,6 @@ export function OpenCutScroToolbar({
         {tasksOpen ? (
           <TaskListDialog videoId={project.id} onClose={() => setTasksOpen(false)} />
         ) : null}
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <StudioHint hint={t("production.bulk.mode.remaining.hint")}>
-            <StudioButton
-              variant="ghost"
-              className="min-h-8 px-2 text-xs"
-              disabled={!idle}
-              onClick={() => setBulkMode("remaining")}
-            >
-              <FinishMissingIcon />
-              {t("production.bulk.mode.remaining.label")}
-            </StudioButton>
-          </StudioHint>
-          <StudioHint hint={t("production.bulk.mode.scenes.hint")}>
-            <StudioButton
-              variant="ghost"
-              className="min-h-8 px-2 text-xs"
-              disabled={!idle}
-              onClick={() => setBulkMode("scenes")}
-            >
-              <AllFramesIcon />
-              {t("production.bulk.mode.scenes.label")}
-            </StudioButton>
-          </StudioHint>
-          <StudioHint
-            hint={
-              allFramesReady(project)
-                ? t("production.bulk.mode.clips.hint")
-                : t("production.toolbar.bulkAllVideosWaiting")
-            }
-          >
-            <StudioButton
-              className="min-h-8 px-2 text-xs"
-              disabled={!idle || !allFramesReady(project)}
-              onClick={() => setBulkMode("clips")}
-            >
-              <AllFramesVideoIcon />
-              {t("production.toolbar.bulkAllVideos")}
-            </StudioButton>
-          </StudioHint>
-          <StudioHint hint={t("production.filmstrip.addClipHint")}>
-            <StudioButton
-              variant="ghost"
-              className="min-h-8 px-2 text-xs"
-              disabled={!idle}
-              onClick={() => {
-                setAddError("");
-                setAddOpen(true);
-              }}
-            >
-              <AddClipIcon />
-              {t("production.filmstrip.addClip")}
-            </StudioButton>
-          </StudioHint>
-          <StudioHint hint={t("production.filmstrip.deleteClipHint")}>
-            <StudioButton
-              variant="ghost"
-              className="min-h-8 px-2 text-xs"
-              disabled={!idle || deleteTarget == null}
-              onClick={() => {
-                setDeleteError("");
-                setDeleteOpen(true);
-              }}
-            >
-              <DeleteClipIcon />
-              {t("production.filmstrip.deleteConfirm")}
-            </StudioButton>
-          </StudioHint>
-        </div>
       </div>
       {checkedClipNumbers.length > 0 ? (
         <SelectionBar
@@ -240,29 +177,19 @@ export function OpenCutScroToolbar({
       ) : null}
       {addOpen ? (
         <AddClipDialog
-          place={t("production.filmstrip.addClip")}
           pending={addPending}
           error={addError}
+          afterOptions={clips.map((clip) => ({
+            clipNumber: clip.clipNumber,
+            title: clipOptionTitle(clip.clipNumber, clip.narrativeJob, t),
+          }))}
+          defaultAfterClipNumber={selectedClipNumber ?? clips.at(-1)?.clipNumber}
           onCancel={() => {
             if (addPending) return;
             setAddOpen(false);
             setAddError("");
           }}
-          onConfirm={(content) => void confirmAdd(content)}
-        />
-      ) : null}
-      {deleteOpen && deleteTarget != null ? (
-        <DeleteClipDialog
-          title={t("production.filmstrip.clipTitle", { n: deleteTarget })}
-          pending={deletePending}
-          error={deleteError}
-          blocked={clipCount <= 1}
-          onCancel={() => {
-            if (deletePending) return;
-            setDeleteOpen(false);
-            setDeleteError("");
-          }}
-          onConfirm={() => void confirmDelete()}
+          onConfirm={(content, afterClipNumber) => void confirmAdd(content, afterClipNumber)}
         />
       ) : null}
     </>

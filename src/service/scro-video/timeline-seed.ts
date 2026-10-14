@@ -1,3 +1,4 @@
+import { mediaSrc } from "@/util/media-src";
 import { clipStateFor } from "@/service/clip-stage";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import {
@@ -41,6 +42,7 @@ export function buildSeedClips(project: SeedSource): ScroVideoSeedClip[] {
       durationSeconds: view.durationSeconds,
       stage: view.stage,
       posterUrl: view.posterUrl,
+      endPosterUrl: end?.status === "completed" ? mediaSrc(end) : undefined,
       videoUrl: view.videoUrl,
       name: `Clip ${view.clipNumber}`,
       timeRange: row?.timeRange,
@@ -63,6 +65,26 @@ export function buildSeedClips(project: SeedSource): ScroVideoSeedClip[] {
   });
 }
 
+/**
+ * Create and recreate lay the timeline out from the storyboard.
+ * An empty storyboard clears the old cut. The first non-empty storyboard places clips.
+ * Later frame and video updates keep the user's arrangement.
+ */
+export function storyboardLayoutAction({
+  synced,
+  previousCount,
+  nextCount,
+}: {
+  synced: boolean;
+  previousCount: number;
+  nextCount: number;
+}): "keep" | "clear" | "place" {
+  if (!synced) return "keep";
+  if (previousCount > 0 && nextCount === 0) return "clear";
+  if (previousCount === 0 && nextCount > 0) return "place";
+  return "keep";
+}
+
 /** Clips whose poster/video/stage changed between two snapshots. */
 export function diffScroSeedClips({
   previous,
@@ -79,6 +101,7 @@ export function diffScroSeedClips({
       !before ||
       before.stage !== clip.stage ||
       before.posterUrl !== clip.posterUrl ||
+      before.endPosterUrl !== clip.endPosterUrl ||
       before.videoUrl !== clip.videoUrl ||
       before.durationSeconds !== clip.durationSeconds ||
       before.error !== clip.error ||

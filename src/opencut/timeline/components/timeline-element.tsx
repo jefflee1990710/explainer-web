@@ -2,8 +2,11 @@
 
 import { createContext, useContext } from "react";
 import { useEditor } from "@/opencut/editor/use-editor";
+import { scroAssetPreviewSrc } from "@/opencut/embed/scro-video-assets";
+import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { useAssetsPanelStore } from "@/opencut/components/editor/panels/assets/assets-panel-store";
 import { AudioWaveform, WAVEFORM_GAIN_SAMPLE_COUNT } from "./audio-waveform";
+import { TimelineStillPlaceholder } from "./timeline-still-placeholder";
 import { AudioVolumeLine } from "./audio-volume-line";
 import { useElementPreview } from "@/opencut/timeline/hooks/use-element-preview";
 import {
@@ -406,7 +409,8 @@ export function TimelineElement({
 							onElementMouseDown={onElementMouseDown}
 							onResizeStart={onResizeStart}
 							isDropTarget={isDropTarget}
-							allowResize={!overlay}
+							allowResize
+							showResizeHandles={isSelected || overlay}
 						/>
 						{isSelected && (
 							<div
@@ -528,6 +532,7 @@ function ElementInner({
 	onResizeStart,
 	isDropTarget = false,
 	allowResize = true,
+	showResizeHandles = false,
 }: {
 	element: TimelineElementType;
 	displayElement?: TimelineElementType;
@@ -552,6 +557,8 @@ function ElementInner({
 	}) => void;
 	isDropTarget?: boolean;
 	allowResize?: boolean;
+	/** Overlay transitions stay resizable before the block is selected. */
+	showResizeHandles?: boolean;
 }) {
 	const visibleElement = displayElement ?? element;
 	const isReducedOpacity =
@@ -609,7 +616,7 @@ function ElementInner({
 				</div>
 			</div>
 
-			{isSelected && allowResize && (
+			{allowResize && (isSelected || showResizeHandles) && (
 				<>
 					<ResizeHandle
 						side="left"
@@ -1095,12 +1102,34 @@ function TiledMediaContent({
 	track: TimelineTrack;
 }) {
 	const mediaAssets = useEditor((e) => e.media.getAssets());
+	const scroVideos = useScroVideos();
 
 	const mediaAsset = mediaAssets.find((asset) => asset.id === element.mediaId);
+	const clipNumber = element.scroClipNumber ?? mediaAsset?.scroClipNumber ?? null;
+	const clip =
+		clipNumber != null
+			? scroVideos?.clips.find((item) => item.clipNumber === clipNumber)
+			: undefined;
+	const freshStill =
+		clip?.posterUrl && clip.stage !== "video_ready" ? clip.posterUrl : undefined;
+	const tinyStandIn =
+		mediaAsset?.width != null &&
+		mediaAsset.height != null &&
+		mediaAsset.width <= 1 &&
+		mediaAsset.height <= 1;
+	const waitingForStill =
+		!freshStill &&
+		(element.scroClipNumber != null || mediaAsset?.scroClipNumber != null) &&
+		(mediaAsset?.scroPlaceholder === true || tinyStandIn);
+	if (waitingForStill) {
+		return (
+			<TimelineStillPlaceholder name={element.name || mediaAsset?.name || "Clip"} />
+		);
+	}
+
 	const imageUrl =
-		element.type === "video"
-			? mediaAsset?.thumbnailUrl
-			: (mediaAsset?.thumbnailUrl ?? mediaAsset?.url);
+		freshStill ??
+		(mediaAsset ? scroAssetPreviewSrc({ asset: mediaAsset, clip }) : undefined);
 
 	if (!imageUrl) {
 		return (

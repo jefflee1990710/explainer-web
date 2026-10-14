@@ -233,12 +233,17 @@ function buildVideoElement({
 	duration,
 	startTime,
 	scroClipNumber,
+	sourceDuration,
+	trimEnd,
 }: {
 	mediaId: string;
 	name: string;
 	duration: MediaTime;
 	startTime: MediaTime;
 	scroClipNumber?: number;
+	/** Full file length when the visible block is only the storyboard slice. */
+	sourceDuration?: MediaTime;
+	trimEnd?: MediaTime;
 }): CreateVideoElement {
 	return {
 		type: "video",
@@ -247,8 +252,8 @@ function buildVideoElement({
 		duration,
 		startTime,
 		trimStart: ZERO_MEDIA_TIME,
-		trimEnd: ZERO_MEDIA_TIME,
-		sourceDuration: duration,
+		trimEnd: trimEnd ?? ZERO_MEDIA_TIME,
+		sourceDuration: sourceDuration ?? duration,
 		isSourceAudioEnabled: true,
 		hidden: false,
 		params: buildDefaultElementParams({ type: "video" }),
@@ -322,6 +327,8 @@ export function buildElementFromMedia({
 	startTime,
 	buffer,
 	scroClipNumber,
+	sourceDuration,
+	trimEnd,
 }: {
 	mediaId: string;
 	mediaType: MediaType;
@@ -330,6 +337,8 @@ export function buildElementFromMedia({
 	startTime: MediaTime;
 	buffer?: AudioBuffer;
 	scroClipNumber?: number;
+	sourceDuration?: MediaTime;
+	trimEnd?: MediaTime;
 }): CreateTimelineElement {
 	switch (mediaType) {
 		case "audio":
@@ -347,6 +356,8 @@ export function buildElementFromMedia({
 				duration,
 				startTime,
 				scroClipNumber,
+				sourceDuration,
+				trimEnd,
 			});
 		case "image":
 			return buildImageElement({

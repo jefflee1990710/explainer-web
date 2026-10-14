@@ -5,6 +5,8 @@ import { useEditor } from "@/opencut/editor/use-editor";
 import { processMediaAssets } from "@/opencut/media/processing";
 import { buildElementFromMedia } from "@/opencut/timeline/element-utils";
 import { toElementDurationTicks } from "@/opencut/timeline/creation";
+import { placementForScroMedia } from "@/opencut/embed/scro-clip-duration";
+import { getScroVideos } from "@/opencut/embed/scro-video-store";
 import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/opencut/wasm";
 import { armScroSync, readSeen, rememberClipSource, writeSeen } from "@/opencut/embed/scro-media-sources";
 import { isScroEmbed, listenFromScro, sendToScro } from "@/opencut/embed/scro-transport";
@@ -89,7 +91,11 @@ export function ScroClipImport() {
 					});
 					if (!created) continue;
 					rememberClipSource(data.videoId, created.id, clip.url);
-					const duration = toElementDurationTicks({ seconds: created.duration });
+					const placed = placementForScroMedia({
+						asset: created,
+						clips: getScroVideos()?.clips,
+					});
+					const visibleSeconds = placed?.visibleSeconds ?? created.duration ?? 5;
 					const scene = editor.scenes.getActiveScene();
 					editor.timeline.insertElement({
 						placement: { mode: "explicit", trackId: scene.tracks.main.id },
@@ -97,11 +103,18 @@ export function ScroClipImport() {
 							mediaId: created.id,
 							mediaType: created.type,
 							name: created.name,
-							duration,
+							duration: toElementDurationTicks({ seconds: visibleSeconds }),
 							startTime: mediaTimeFromSeconds({ seconds: cursor }),
+							scroClipNumber: placed?.clipNumber,
+							...(placed
+								? {
+										sourceDuration: toElementDurationTicks({ seconds: placed.sourceSeconds }),
+										trimEnd: toElementDurationTicks({ seconds: placed.trimEndSeconds }),
+									}
+								: {}),
 						}),
 					});
-					cursor += created.duration ?? 5;
+					cursor += visibleSeconds;
 					seen.add(clip.url);
 					writeSeen(data.videoId, seen);
 				}

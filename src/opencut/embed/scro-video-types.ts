@@ -9,6 +9,8 @@ export type ScroVideoSeedClip = {
 	durationSeconds: number;
 	stage: ScroVideoUiStage;
 	posterUrl?: string;
+	/** Completed end still. Shown beside the start so it can be added on its own. */
+	endPosterUrl?: string;
 	videoUrl?: string;
 	name: string;
 	timeRange?: string;
@@ -36,6 +38,8 @@ export type ScroSeedMessage = {
 	videoId: string;
 	aspectRatio?: "9:16" | "16:9" | "1:1";
 	clips: ScroVideoSeedClip[];
+	/** Create or recreate: drop the main-track cut and place the storyboard. */
+	replace?: boolean;
 };
 
 export type ScroClipUpdatedMessage = {

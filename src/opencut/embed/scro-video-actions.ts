@@ -2,6 +2,20 @@ import { scroEmbedParentOrigin } from "@/opencut/embed/scro-embed-parent";
 import { sendToScro } from "@/opencut/embed/scro-transport";
 import type { FramePosition } from "@/model/project";
 
+export type ScroClipMenuAction = "remaining" | "scenes" | "clips" | "add";
+
+/** Ask the Scro host to open a clip toolbar action (finish, frames, videos, add, delete). */
+export function requestScroClipMenu({
+	videoId,
+	action,
+}: {
+	videoId: string;
+	action: ScroClipMenuAction;
+}) {
+	const origin = scroEmbedParentOrigin() ?? window.location.origin;
+	sendToScro({ type: "scro-clip-menu", videoId, action }, origin);
+}
+
 /** Ask the Scro host to run a clip production action. */
 export function requestScroClipAction({
 	videoId,

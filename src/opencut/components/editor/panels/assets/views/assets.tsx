@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PanelView } from "@/opencut/components/editor/panels/assets/views/base-panel";
 import { MediaDragOverlay } from "@/opencut/components/editor/panels/assets/drag-overlay";
 import { DraggableItem } from "@/opencut/components/editor/panels/assets/draggable-item";
@@ -39,6 +39,7 @@ import {
 	useSelectionScope,
 } from "@/opencut/selection";
 import { buildElementFromMedia } from "@/opencut/timeline/element-utils";
+import { placementForScroMedia } from "@/opencut/embed/scro-clip-duration";
 import {
 	type MediaSortKey,
 	type MediaSortOrder,
@@ -61,11 +62,16 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
 	mergeScroMediaAssets,
 	resolveScroClipNumber,
+	scroAssetPreviewSrc,
 	scroDisplayName,
 	ScroMediaOverlays,
 	selectScroMediaClip,
 } from "@/opencut/embed/scro-video-assets";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
+import { AssetsClipMenu } from "@/opencut/components/editor/panels/assets/views/assets-clip-menu";
+import { SceneFrameCard } from "@/opencut/components/editor/panels/assets/views/assets-frame-card";
+import { addSceneFrameToTimeline, ensureFrameStill } from "@/opencut/embed/scro-frame-still";
+import { useI18n } from "@/presentation/components/i18n-provider";
 
 export function MediaView() {
 	const editor = useEditor();
@@ -277,8 +283,44 @@ function MediaAssetDraggable({
 	isRounded?: boolean;
 }) {
 	const editor = useEditor();
+	const { t } = useI18n();
 	const scroVideos = useScroVideos();
 	const label = scroDisplayName({ asset: item, clips: scroVideos?.clips });
+	const clipNumber = resolveScroClipNumber({
+		asset: item,
+		clips: scroVideos?.clips,
+	});
+	const clip =
+		clipNumber != null
+			? scroVideos?.clips.find((row) => row.clipNumber === clipNumber)
+			: undefined;
+	// The card can show a new start still while the file is still the previous video.
+	const startStillUrl =
+		clip && clip.stage !== "video_ready" ? clip.posterUrl : undefined;
+	const assetIsStartStill =
+		Boolean(startStillUrl) &&
+		item.type === "image" &&
+		(item.url === startStillUrl ||
+			item.scroPosterUrl === startStillUrl ||
+			item.thumbnailUrl === startStillUrl);
+	const startStillName = `${label} · ${t("production.frame.position.start")}`;
+	const [startStillId, setStartStillId] = useState<string | null>(null);
+
+	useEffect(() => {
+		if (!startStillUrl || assetIsStartStill) {
+			setStartStillId(null);
+			return;
+		}
+		let cancelled = false;
+		void ensureFrameStill({ editor, url: startStillUrl, name: startStillName }).then(
+			(asset) => {
+				if (!cancelled && asset) setStartStillId(asset.id);
+			},
+		);
+		return () => {
+			cancelled = true;
+		};
+	}, [assetIsStartStill, editor, startStillName, startStillUrl]);
 
 	const addElementAtTime = ({
 		asset,
@@ -287,8 +329,11 @@ function MediaAssetDraggable({
 		asset: MediaAsset;
 		startTime: MediaTime;
 	}) => {
-		const duration =
-			asset.duration != null
+		// A generated file is often longer than the storyboard clip. Place the storyboard slice.
+		const placed = placementForScroMedia({ asset, clips: scroVideos?.clips });
+		const duration = placed
+			? mediaTimeFromSeconds({ seconds: placed.visibleSeconds })
+			: asset.duration != null
 				? mediaTimeFromSeconds({ seconds: asset.duration })
 				: DEFAULT_NEW_ELEMENT_DURATION;
 		const element = buildElementFromMedia({
@@ -297,7 +342,13 @@ function MediaAssetDraggable({
 			name: label,
 			duration,
 			startTime,
-			scroClipNumber: asset.scroClipNumber,
+			scroClipNumber: placed?.clipNumber ?? asset.scroClipNumber,
+			...(placed
+				? {
+						sourceDuration: mediaTimeFromSeconds({ seconds: placed.sourceSeconds }),
+						trimEnd: mediaTimeFromSeconds({ seconds: placed.trimEndSeconds }),
+					}
+				: {}),
 		});
 		editor.timeline.insertElement({
 			element,
@@ -315,18 +366,28 @@ function MediaAssetDraggable({
 			preview={preview}
 			aspectRatio={aspectRatio}
 			dragData={{
-				id: item.id,
+				id: startStillId ?? item.id,
 				type: "media",
-				mediaType: item.type,
-				name: label,
+				mediaType: startStillId ? "image" : item.type,
+				name: startStillId ? startStillName : label,
 				...(item.type !== "audio" && {
 					targetElementTypes: [...MASKABLE_ELEMENT_TYPES],
 				}),
 			}}
 			shouldShowPlusOnDrag={false}
-			onAddToTimeline={({ currentTime }) =>
-				addElementAtTime({ asset: item, startTime: currentTime })
-			}
+			onAddToTimeline={({ currentTime }) => {
+				if (startStillUrl && !assetIsStartStill && clip) {
+					void addSceneFrameToTimeline({
+						editor,
+						url: startStillUrl,
+						name: startStillName,
+						durationSeconds: clip.durationSeconds,
+						startTime: currentTime,
+					});
+					return;
+				}
+				addElementAtTime({ asset: item, startTime: currentTime });
+			}}
 			variant={variant}
 			isRounded={isRounded}
 		/>
@@ -402,32 +463,54 @@ function MediaItemList({
 					asset: item,
 					clips: scroVideos?.clips,
 				});
+				const clip =
+					clipNumber != null
+						? scroVideos?.clips.find((row) => row.clipNumber === clipNumber)
+						: undefined;
 				return (
-					<MediaItemWithContextMenu item={item} onRemove={onRemove} key={item.id}>
-						<SelectableItem
-							className={cn(!isGrid && "w-full")}
-							id={item.id}
-							onClick={() => {
-								if (clipNumber == null) return;
-								selectScroMediaClip({
-									clipNumber,
-									editor,
-								});
-							}}
-						>
-							<MediaAssetDraggable
-								item={item}
-								preview={
-									<MediaPreview
-										item={item}
-										variant={isGrid ? "grid" : "compact"}
-									/>
-								}
-								variant={isGrid ? "card" : "compact"}
-								isRounded={isGrid ? false : undefined}
+					<div key={item.id} className={cn(isGrid && "contents")}>
+						<MediaItemWithContextMenu item={item} onRemove={onRemove}>
+							<SelectableItem
+								className={cn(!isGrid && "w-full")}
+								id={item.id}
+								onClick={() => {
+									if (clipNumber == null) return;
+									selectScroMediaClip({
+										clipNumber,
+										editor,
+									});
+								}}
+							>
+								<MediaAssetDraggable
+									item={item}
+									preview={
+										<MediaPreview
+											item={item}
+											variant={isGrid ? "grid" : "compact"}
+										/>
+									}
+									variant={isGrid ? "card" : "compact"}
+									isRounded={isGrid ? false : undefined}
+								/>
+							</SelectableItem>
+						</MediaItemWithContextMenu>
+						{isGrid && clip?.stage === "video_ready" && clip.posterUrl ? (
+							<SceneFrameCard
+								clipNumber={clip.clipNumber}
+								position="start"
+								url={clip.posterUrl}
+								durationSeconds={clip.durationSeconds}
 							/>
-						</SelectableItem>
-					</MediaItemWithContextMenu>
+						) : null}
+						{isGrid && clip?.endPosterUrl ? (
+							<SceneFrameCard
+								clipNumber={clip.clipNumber}
+								position="end"
+								url={clip.endPosterUrl}
+								durationSeconds={clip.durationSeconds}
+							/>
+						) : null}
+					</div>
 				);
 			})}
 		</div>
@@ -501,19 +584,33 @@ function MediaPreview({
 	const label = scroDisplayName({ asset: item, clips: scroVideos?.clips });
 	const scroOverlay =
 		clipNumber != null ? <ScroMediaOverlays clipNumber={clipNumber} /> : null;
+	const clip =
+		clipNumber != null
+			? scroVideos?.clips.find((row) => row.clipNumber === clipNumber)
+			: undefined;
+	// After regenerate, show the new start still as soon as it exists.
+	const previewSrc = scroAssetPreviewSrc({ asset: item, clip });
+	const showStartStill =
+		item.type === "image" ||
+		(Boolean(clip?.posterUrl) && clip?.stage !== "video_ready");
 
-	if (item.type === "image") {
+	if (showStartStill) {
 		return (
 			<div className="relative flex size-full items-center justify-center bg-muted">
-				<Image
-					src={item.url ?? ""}
-					alt={label}
-					fill
-					sizes="100vw"
-					className="object-cover"
-					loading="lazy"
-					unoptimized
-				/>
+				{previewSrc ? (
+					<Image
+						key={previewSrc}
+						src={previewSrc}
+						alt={label}
+						fill
+						sizes="100vw"
+						className={
+							item.type === "video" ? "rounded object-cover" : "object-cover"
+						}
+						loading="lazy"
+						unoptimized
+					/>
+				) : null}
 				{scroOverlay}
 			</div>
 		);
@@ -679,6 +776,7 @@ function MediaActions({
 				<HugeiconsIcon icon={CloudUploadIcon} />
 				Import
 			</Button>
+			<AssetsClipMenu />
 		</div>
 	);
 }

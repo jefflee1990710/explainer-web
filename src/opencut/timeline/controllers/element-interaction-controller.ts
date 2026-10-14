@@ -217,6 +217,7 @@ function lockedTransitionTime({
 		time: proposedTime,
 		tracks,
 		effectType: element.effectType,
+		duration: element.duration,
 	});
 	if (fixed === null) return null;
 	return roundFrameTime({ time: fixed, fps });

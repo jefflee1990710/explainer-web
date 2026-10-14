@@ -36,7 +36,59 @@ export function scroStageTone(stage: ScroVideoUiStage) {
 	return "bg-muted text-muted-foreground";
 }
 
-/** Keep one media row per Scro clip (prefer video over still), then other assets. */
+/**
+ * Thumb to show for a storyboard clip.
+ * After a regenerate, the old video file stays in the library until the new
+ * video exists. Once the new start still is ready, that still is the preview.
+ */
+export function scroAssetPreviewSrc({
+	asset,
+	clip,
+}: {
+	asset: Pick<MediaAsset, "type" | "url" | "thumbnailUrl">;
+	clip?: Pick<ScroVideoSeedClip, "stage" | "posterUrl"> | null;
+}): string | undefined {
+	if (clip?.posterUrl && clip.stage !== "video_ready") return clip.posterUrl;
+	if (asset.type === "video") return asset.thumbnailUrl;
+	return asset.url ?? asset.thumbnailUrl;
+}
+
+/** One library row for this clip: the new still, or the newest finished video. */
+export function pickScroClipAsset({
+	clip,
+	assets,
+	clips,
+}: {
+	clip: ScroVideoSeedClip;
+	assets: MediaAsset[];
+	clips: ScroVideoSeedClip[] | undefined;
+}): MediaAsset | undefined {
+	const matches = assets.filter(
+		(asset) => resolveScroClipNumber({ asset, clips }) === clip.clipNumber,
+	);
+	if (matches.length === 0) return undefined;
+	if (clip.stage !== "video_ready") {
+		if (clip.posterUrl) {
+			const posted = [...matches].reverse().find(
+				(asset) =>
+					asset.scroPosterUrl === clip.posterUrl ||
+					asset.thumbnailUrl === clip.posterUrl ||
+					asset.url === clip.posterUrl,
+			);
+			if (posted) return posted;
+		}
+		const image = [...matches]
+			.reverse()
+			.find((asset) => asset.type === "image" && asset.scroPlaceholder !== true);
+		if (image) return image;
+	} else {
+		const video = [...matches].reverse().find((asset) => asset.type === "video");
+		if (video) return video;
+	}
+	return matches[matches.length - 1];
+}
+
+/** Keep one media row per Scro clip, then assets that are not storyboard clips. */
 export function mergeScroMediaAssets({
 	assets,
 	clips,
@@ -44,34 +96,19 @@ export function mergeScroMediaAssets({
 	assets: MediaAsset[];
 	clips: ScroVideoSeedClip[] | undefined;
 }): MediaAsset[] {
-	const byClip = new Map<number, MediaAsset>();
-	const other: MediaAsset[] = [];
-	for (const asset of assets) {
-		const clipNumber = resolveScroClipNumber({ asset, clips });
-		if (clipNumber == null) {
-			other.push(asset);
-			continue;
-		}
-		const prev = byClip.get(clipNumber);
-		if (!prev || (asset.type === "video" && prev.type !== "video")) {
-			byClip.set(clipNumber, asset);
-		}
-	}
-
+	if (!clips?.length) return assets;
+	const used = new Set<string>();
 	const orderedScro: MediaAsset[] = [];
-	const seen = new Set<number>();
-	for (const clip of clips ?? []) {
-		const asset = byClip.get(clip.clipNumber);
-		if (!asset) continue;
+	for (const clip of clips) {
+		const asset = pickScroClipAsset({ clip, assets, clips });
+		if (!asset || used.has(asset.id)) continue;
 		orderedScro.push(asset);
-		seen.add(clip.clipNumber);
+		used.add(asset.id);
 	}
-	for (const [clipNumber, asset] of [...byClip.entries()].sort(
-		(a, b) => a[0] - b[0],
-	)) {
-		if (seen.has(clipNumber)) continue;
-		orderedScro.push(asset);
-	}
+	const other = assets.filter((asset) => {
+		if (used.has(asset.id)) return false;
+		return resolveScroClipNumber({ asset, clips }) == null;
+	});
 	return [...orderedScro, ...other];
 }
 
@@ -98,10 +135,17 @@ export function ScroMediaOverlays({
 }) {
 	const store = useScroVideos();
 	const clip = store?.clips.find((item) => item.clipNumber === clipNumber);
+	// Once the new start still exists, show it. The veil stays only while that
+	// image is missing, or while the new video itself is rendering.
+	const startStillVisible =
+		Boolean(clip?.posterUrl) &&
+		clip?.stage !== "video_ready" &&
+		clip?.stage !== "video_generating";
 	const loading = clip
-		? clip.stage === "awaiting_frames" ||
-			clip.stage === "frames_generating" ||
-			clip.stage === "video_generating"
+		? (clip.stage === "awaiting_frames" ||
+				clip.stage === "frames_generating" ||
+				clip.stage === "video_generating") &&
+			!startStillVisible
 		: false;
 
 	return (
