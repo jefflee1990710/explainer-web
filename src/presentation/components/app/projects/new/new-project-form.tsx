@@ -267,14 +267,17 @@ export function NewProjectForm({
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   // Pinned to the video + status that was current when the user clicked a step.
-  // A finished video opens on Video (step 2) until this browser has a saved tab.
+  // Phase A / production / ready open on Video (step 1).
   const [viewingOverride, setViewingOverride] = useState<{
     id: string | null;
     status: string;
     step: number;
   } | null>(() =>
-    initialVideo?.status === "ready"
-      ? { id: initialVideo.id, status: "ready", step: 2 }
+    initialVideo &&
+    (initialVideo.status === "ready" ||
+      initialVideo.status === "production" ||
+      Boolean(initialVideo.phaseA?.clips?.length))
+      ? { id: initialVideo.id, status: initialVideo.status, step: 1 }
       : null,
   );
   const restoredEditorTab = useRef<string | null>(null);
