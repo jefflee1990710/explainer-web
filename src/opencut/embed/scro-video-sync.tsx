@@ -15,7 +15,9 @@ import type {
 	ScroClipUpdatedMessage,
 	ScroSeedMessage,
 	ScroVideoSeedClip,
+	ScroVideosStateMessage,
 } from "@/opencut/embed/scro-video-types";
+import { getScroVideos, setScroVideos } from "@/opencut/embed/scro-video-store";
 import type { TimelineElement } from "@/opencut/timeline";
 
 const PARENT_ORIGINS = new Set([
@@ -67,13 +69,28 @@ export function ScroVideoSync() {
 		if (!isScroEmbed()) return;
 
 		const stop = listenFromScro((payload) => {
-			const data = payload as ScroSeedMessage | ScroClipUpdatedMessage;
+			const data = payload as
+				| ScroSeedMessage
+				| ScroClipUpdatedMessage
+				| ScroVideosStateMessage;
 			if (!data || !("type" in data) || !data.videoId) return;
 			if (data.type === "scro-seed-videos") {
+				setScroVideos({ videoId: data.videoId, clips: data.clips });
 				void seedClips(data);
 				return;
 			}
+			if (data.type === "scro-videos-state") {
+				setScroVideos({ videoId: data.videoId, clips: data.clips });
+				return;
+			}
 			if (data.type === "scro-clip-updated") {
+				const current = getScroVideos();
+				const nextClips = current?.videoId === data.videoId
+					? current.clips.map((clip) =>
+							clip.clipNumber === data.clip.clipNumber ? data.clip : clip,
+						)
+					: [data.clip];
+				setScroVideos({ videoId: data.videoId, clips: nextClips });
 				void updateClip(data);
 			}
 		}, PARENT_ORIGINS);

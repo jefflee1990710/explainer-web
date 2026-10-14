@@ -58,11 +58,15 @@ import {
 	Video01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import { ScroVideoAssets } from "@/opencut/embed/scro-video-assets";
+import { useScroVideos } from "@/opencut/embed/scro-video-store";
 
 export function MediaView() {
 	const editor = useEditor();
 	const mediaFiles = useEditor((e) => e.media.getAssets());
 	const activeProject = useEditor((e) => e.project.getActive());
+	const scroVideos = useScroVideos();
+	const hasScroVideos = Boolean(scroVideos?.clips.length);
 
 	const {
 		mediaViewMode,
@@ -208,28 +212,41 @@ export function MediaView() {
 				contentClassName="h-full"
 				{...dragProps}
 			>
-				{isDragOver || filteredMediaItems.length === 0 ? (
-					<MediaDragOverlay
-						isVisible={true}
-						isProcessing={isProcessing}
-						progress={progress}
-						onClick={openFilePicker}
-					/>
-				) : (
-					<SelectableSurface
-						ariaLabel="Assets"
-						orderedIds={orderedMediaIds}
-						revealId={highlightMediaId}
-						onRevealComplete={clearHighlight}
-					>
-						<MediaScopeRegistrar />
-						<MediaItemList
-							items={filteredMediaItems}
-							mode={mediaViewMode}
-							onRemove={handleRemove}
-						/>
-					</SelectableSurface>
-				)}
+				<div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-2">
+					{hasScroVideos ? <ScroVideoAssets /> : null}
+					{isDragOver || filteredMediaItems.length === 0 ? (
+						hasScroVideos && !isDragOver ? (
+							<button
+								type="button"
+								onClick={openFilePicker}
+								className="text-muted-foreground hover:text-foreground border-border rounded-sm border border-dashed px-3 py-4 text-center text-xs"
+							>
+								Import media
+							</button>
+						) : (
+							<MediaDragOverlay
+								isVisible={true}
+								isProcessing={isProcessing}
+								progress={progress}
+								onClick={openFilePicker}
+							/>
+						)
+					) : (
+						<SelectableSurface
+							ariaLabel="Assets"
+							orderedIds={orderedMediaIds}
+							revealId={highlightMediaId}
+							onRevealComplete={clearHighlight}
+						>
+							<MediaScopeRegistrar />
+							<MediaItemList
+								items={filteredMediaItems}
+								mode={mediaViewMode}
+								onRemove={handleRemove}
+							/>
+						</SelectableSurface>
+					)}
+				</div>
 			</PanelView>
 		</>
 	);
