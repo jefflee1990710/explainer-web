@@ -1229,6 +1229,8 @@ export function NewProjectForm({
                 onGenerateVideo,
                 onCancelVideo,
                 onRegenerateFrame,
+                onBulkGenerate,
+                onGenerateSelected,
                 onProject: setProject,
               }}
             />

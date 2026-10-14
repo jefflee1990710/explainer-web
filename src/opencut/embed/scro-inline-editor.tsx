@@ -31,6 +31,7 @@ import {
 } from "@/opencut/timeline/bookmarks/index";
 import { ScroVideoSync } from "@/opencut/embed/scro-video-sync";
 import { ScroVideoSelectionSync } from "@/opencut/embed/scro-video-selection-sync";
+import { ScroVideoToolbarBridge } from "@/opencut/embed/scro-video-toolbar";
 import { ScroSubtitleBridge } from "@/opencut/embed/scro-subtitle-bridge";
 import { ScroExportBridge } from "@/opencut/embed/scro-export-bridge";
 import { ScroProjectSync } from "@/opencut/embed/scro-project-sync";
@@ -44,6 +45,7 @@ export default function OpenCutInlineEditor({ projectId }: { projectId: string }
 			<EditorProvider projectId={projectId}>
 				<ScroVideoSync />
 				<ScroVideoSelectionSync />
+				<ScroVideoToolbarBridge />
 				<ScroExportBridge />
 				<ScroProjectSync />
 				<ScroSubtitleBridge />

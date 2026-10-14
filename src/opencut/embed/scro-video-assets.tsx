@@ -1,6 +1,10 @@
 "use client";
 
-import { useScroVideos, setScroVideoSelection } from "@/opencut/embed/scro-video-store";
+import {
+	useScroVideos,
+	setScroVideoSelection,
+	toggleScroVideoChecked,
+} from "@/opencut/embed/scro-video-store";
 import type { ScroVideoSeedClip, ScroVideoUiStage } from "@/opencut/embed/scro-video-types";
 import { useEditor } from "@/opencut/editor/use-editor";
 import { cn } from "@/opencut/utils/ui";
@@ -59,34 +63,51 @@ export function ScroVideoAssets() {
 						clip.stage === "video_generating";
 					return (
 						<li key={clip.clipNumber}>
-							<button
-								type="button"
-								onClick={() => selectClip(clip)}
+							<div
 								className={cn(
-									"border-border bg-accent/40 hover:bg-accent flex w-full flex-col overflow-hidden rounded-sm border text-left transition-colors",
+									"border-border bg-accent/40 flex w-full flex-col overflow-hidden rounded-sm border text-left transition-colors",
 									selected && "ring-primary ring-2",
 								)}
 							>
-								<div className="bg-muted relative aspect-video w-full overflow-hidden">
-									{thumb ? (
-										// eslint-disable-next-line @next/next/no-img-element
-										<img
-											src={thumb}
-											alt=""
-											className="size-full object-cover"
+								<div className="relative">
+									<label className="absolute top-1 left-1 z-10 flex size-5 items-center justify-center rounded-sm bg-black/45">
+										<input
+											type="checkbox"
+											checked={store.checkedClipNumbers.includes(clip.clipNumber)}
+											onChange={() => toggleScroVideoChecked(clip.clipNumber)}
+											className="size-3.5 accent-[var(--primary)]"
+											aria-label={`Select ${clip.name}`}
 										/>
-									) : (
-										<div className="text-muted-foreground grid size-full place-items-center text-[0.65rem]">
-											{loading ? "Loading…" : "No still"}
-										</div>
-									)}
-									{loading && thumb ? (
-										<div className="absolute inset-0 grid place-items-center bg-black/35 text-[0.65rem] text-white">
-											Loading…
-										</div>
-									) : null}
+									</label>
+									<button
+										type="button"
+										onClick={() => selectClip(clip)}
+										className="bg-muted relative aspect-video w-full overflow-hidden"
+									>
+										{thumb ? (
+											// eslint-disable-next-line @next/next/no-img-element
+											<img
+												src={thumb}
+												alt=""
+												className="size-full object-cover"
+											/>
+										) : (
+											<div className="text-muted-foreground grid size-full place-items-center text-[0.65rem]">
+												{loading ? "Loading…" : "No still"}
+											</div>
+										)}
+										{loading && thumb ? (
+											<div className="absolute inset-0 grid place-items-center bg-black/35 text-[0.65rem] text-white">
+												Loading…
+											</div>
+										) : null}
+									</button>
 								</div>
-								<div className="flex items-center justify-between gap-1 px-1.5 py-1">
+								<button
+									type="button"
+									onClick={() => selectClip(clip)}
+									className="hover:bg-accent flex items-center justify-between gap-1 px-1.5 py-1"
+								>
 									<span className="truncate text-[0.7rem] font-medium">
 										{clip.name}
 									</span>
@@ -98,8 +119,8 @@ export function ScroVideoAssets() {
 									>
 										{STAGE_LABEL[clip.stage]}
 									</span>
-								</div>
-							</button>
+								</button>
+							</div>
 						</li>
 					);
 				})}

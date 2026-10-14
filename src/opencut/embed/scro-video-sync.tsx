@@ -17,7 +17,11 @@ import type {
 	ScroVideoSeedClip,
 	ScroVideosStateMessage,
 } from "@/opencut/embed/scro-video-types";
-import { getScroVideos, setScroVideos } from "@/opencut/embed/scro-video-store";
+import {
+	clearScroVideoChecked,
+	getScroVideos,
+	setScroVideos,
+} from "@/opencut/embed/scro-video-store";
 import type { TimelineElement } from "@/opencut/timeline";
 
 const PARENT_ORIGINS = new Set([
@@ -72,7 +76,8 @@ export function ScroVideoSync() {
 			const data = payload as
 				| ScroSeedMessage
 				| ScroClipUpdatedMessage
-				| ScroVideosStateMessage;
+				| ScroVideosStateMessage
+				| { type: "scro-clear-checked"; videoId: string };
 			if (!data || !("type" in data) || !data.videoId) return;
 			if (data.type === "scro-seed-videos") {
 				setScroVideos({ videoId: data.videoId, clips: data.clips });
@@ -81,6 +86,11 @@ export function ScroVideoSync() {
 			}
 			if (data.type === "scro-videos-state") {
 				setScroVideos({ videoId: data.videoId, clips: data.clips });
+				void reconcileClips(data);
+				return;
+			}
+			if (data.type === "scro-clear-checked") {
+				clearScroVideoChecked();
 				return;
 			}
 			if (data.type === "scro-clip-updated") {
@@ -124,6 +134,95 @@ export function ScroVideoSync() {
 			try {
 				let cursor = 0;
 				for (const clip of data.clips) {
+					const created = await ensureMedia({ videoId: data.videoId, clip });
+					if (!created) continue;
+					const duration = toElementDurationTicks({
+						seconds: clip.durationSeconds,
+					});
+					editor.timeline.insertElement({
+						placement: { mode: "explicit", trackId: scene.tracks.main.id },
+						element: buildElementFromMedia({
+							mediaId: created.id,
+							mediaType: created.type,
+							name: clip.name,
+							duration,
+							startTime: mediaTimeFromSeconds({ seconds: cursor }),
+							scroClipNumber: clip.clipNumber,
+						}),
+					});
+					cursor += clip.durationSeconds;
+				}
+			} finally {
+				busy.current = false;
+				armScroSync();
+			}
+		}
+
+		/** Append new storyboard clips, or re-seed when delete renumbers clips. */
+		async function reconcileClips(data: ScroVideosStateMessage) {
+			if (busy.current) return;
+			const project = editor.project.getActiveOrNull();
+			if (!project) return;
+			const scene = editor.scenes.getActiveScene();
+			if (!mainHasScroClip(scene.tracks.main.elements)) return;
+
+			const wantedList = data.clips.map((clip) => clip.clipNumber);
+			const presentList: number[] = [];
+			const scroElements: Array<{ trackId: string; elementId: string }> = [];
+			for (const element of scene.tracks.main.elements) {
+				if (
+					(element.type === "video" || element.type === "image") &&
+					element.scroClipNumber != null
+				) {
+					presentList.push(element.scroClipNumber);
+					scroElements.push({
+						trackId: scene.tracks.main.id,
+						elementId: element.id,
+					});
+				}
+			}
+			presentList.sort((a, b) => a - b);
+			const wantedKey = wantedList.join(",");
+			const presentKey = presentList.join(",");
+			if (wantedKey === presentKey) return;
+
+			const isAppendOnly =
+				wantedList.length > presentList.length &&
+				wantedList.slice(0, presentList.length).join(",") === presentKey;
+
+			busy.current = true;
+			try {
+				if (!isAppendOnly) {
+					if (scroElements.length > 0) {
+						editor.timeline.deleteElements({ elements: scroElements });
+					}
+					let cursor = 0;
+					for (const clip of data.clips) {
+						const created = await ensureMedia({ videoId: data.videoId, clip });
+						if (!created) continue;
+						const duration = toElementDurationTicks({
+							seconds: clip.durationSeconds,
+						});
+						editor.timeline.insertElement({
+							placement: { mode: "explicit", trackId: scene.tracks.main.id },
+							element: buildElementFromMedia({
+								mediaId: created.id,
+								mediaType: created.type,
+								name: clip.name,
+								duration,
+								startTime: mediaTimeFromSeconds({ seconds: cursor }),
+								scroClipNumber: clip.clipNumber,
+							}),
+						});
+						cursor += clip.durationSeconds;
+					}
+					return;
+				}
+
+				const present = new Set(presentList);
+				const missing = data.clips.filter((clip) => !present.has(clip.clipNumber));
+				let cursor = mainTrackEndSeconds(editor.scenes.getActiveScene().tracks.main.elements);
+				for (const clip of missing) {
 					const created = await ensureMedia({ videoId: data.videoId, clip });
 					if (!created) continue;
 					const duration = toElementDurationTicks({

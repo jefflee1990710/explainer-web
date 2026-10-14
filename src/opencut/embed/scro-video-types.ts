@@ -66,3 +66,11 @@ export type ScroOpenAiMessage = {
 	kind: "scene-chat" | "frame-edit";
 	position?: FramePosition;
 };
+
+/** Editor → host: Assets selection for bulk / delete chrome. */
+export type ScroSelectionStateMessage = {
+	type: "scro-selection-state";
+	videoId: string;
+	selectedClipNumber: number | null;
+	checkedClipNumbers: number[];
+};

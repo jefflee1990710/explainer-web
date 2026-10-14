@@ -1,13 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { OpenCutExportButton } from "@/presentation/components/app/projects/new/opencut-export-button";
 import {
   OpenCutScroAiShell,
   useOpenCutScroAiState,
 } from "@/presentation/components/app/projects/new/opencut-scro-ai-shell";
+import { OpenCutScroToolbar } from "@/presentation/components/app/projects/new/opencut-scro-toolbar";
+import type { BulkMode } from "@/presentation/components/project/bulk-generate-dialog";
 import {
   getOpencutEditAction,
   saveOpencutEditAction,
@@ -69,6 +71,8 @@ export type OpenCutProductionHandlers = {
     position: FramePosition,
     revision?: FrameRevisionInput,
   ) => void;
+  onBulkGenerate: (mode: BulkMode) => Promise<boolean>;
+  onGenerateSelected: (clipNumbers: number[], kind: "frames" | "videos") => Promise<boolean>;
   onProject: (project: PublicVideo) => void;
 };
 
@@ -107,6 +111,8 @@ export function OpenCutDirectDesk({
   const ai = useOpenCutScroAiState();
   const aiRef = useRef(ai);
   aiRef.current = ai;
+  const [selectedClipNumber, setSelectedClipNumber] = useState<number | null>(null);
+  const [checkedClipNumbers, setCheckedClipNumbers] = useState<number[]>([]);
 
   const post = (message: unknown) => {
     host.postToEditor(message);
@@ -275,6 +281,8 @@ export function OpenCutDirectDesk({
         action?: string;
         kind?: string;
         position?: FramePosition;
+        selectedClipNumber?: number | null;
+        checkedClipNumbers?: number[];
         project?: unknown;
         media?: OpencutEditMedia[];
         uploads?: SaveUpload[];
@@ -321,6 +329,19 @@ export function OpenCutDirectDesk({
             position: data.position,
           });
         }
+        return;
+      }
+      if (data?.type === "scro-selection-state" && data.videoId === project.id) {
+        setSelectedClipNumber(
+          typeof data.selectedClipNumber === "number" ? data.selectedClipNumber : null,
+        );
+        setCheckedClipNumbers(
+          Array.isArray(data.checkedClipNumbers)
+            ? data.checkedClipNumbers.filter(
+                (n): n is number => typeof n === "number" && Number.isInteger(n),
+              )
+            : [],
+        );
         return;
       }
       if (data?.type === "scro-restore-done") {
@@ -398,6 +419,22 @@ export function OpenCutDirectDesk({
         host={host}
         disabled={readyVideos.length === 0}
       />
+      {production ? (
+        <OpenCutScroToolbar
+          project={project}
+          credits={production.credits}
+          pending={production.pending}
+          checkedClipNumbers={checkedClipNumbers}
+          selectedClipNumber={selectedClipNumber}
+          onBulkGenerate={production.onBulkGenerate}
+          onGenerateSelected={production.onGenerateSelected}
+          onClearChecked={() => {
+            setCheckedClipNumbers([]);
+            host.postToEditor({ type: "scro-clear-checked", videoId: project.id });
+          }}
+          onProject={production.onProject}
+        />
+      ) : null}
       {seedClips.length === 0 ? (
         <p className="shrink-0 px-4 py-2 text-xs text-muted">{t("video.opencut.empty")}</p>
       ) : null}

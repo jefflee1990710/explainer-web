@@ -8,6 +8,8 @@ export type ScroVideoStoreState = {
 	clips: ScroVideoSeedClip[];
 	/** Assets/Properties selection when the clip is not on the timeline. */
 	selectedClipNumber: number | null;
+	/** Multi-select for bulk generate. */
+	checkedClipNumbers: number[];
 };
 
 let state: ScroVideoStoreState | null = null;
@@ -29,10 +31,19 @@ export function setScroVideos({
 	videoId: string;
 	clips: ScroVideoSeedClip[];
 }): void {
+	const keepSelection =
+		state?.videoId === videoId ? state.selectedClipNumber : null;
+	const clipSet = new Set(clips.map((clip) => clip.clipNumber));
+	const checked =
+		state?.videoId === videoId
+			? state.checkedClipNumbers.filter((n) => clipSet.has(n))
+			: [];
 	state = {
 		videoId,
 		clips,
-		selectedClipNumber: state?.videoId === videoId ? state.selectedClipNumber : null,
+		selectedClipNumber:
+			keepSelection != null && clipSet.has(keepSelection) ? keepSelection : null,
+		checkedClipNumbers: checked,
 	};
 	emit();
 }
@@ -43,8 +54,30 @@ export function setScroVideoSelection(clipNumber: number | null): void {
 	emit();
 }
 
+export function toggleScroVideoChecked(clipNumber: number): void {
+	if (!state) return;
+	const has = state.checkedClipNumbers.includes(clipNumber);
+	state = {
+		...state,
+		checkedClipNumbers: has
+			? state.checkedClipNumbers.filter((n) => n !== clipNumber)
+			: [...state.checkedClipNumbers, clipNumber].sort((a, b) => a - b),
+	};
+	emit();
+}
+
+export function clearScroVideoChecked(): void {
+	if (!state) return;
+	state = { ...state, checkedClipNumbers: [] };
+	emit();
+}
+
 export function getScroVideos(): ScroVideoStoreState | null {
 	return state;
+}
+
+export function subscribeScroVideos(fn: () => void): () => void {
+	return subscribe(fn);
 }
 
 export function useScroVideos(): ScroVideoStoreState | null {
