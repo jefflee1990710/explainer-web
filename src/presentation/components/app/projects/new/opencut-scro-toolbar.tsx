@@ -181,7 +181,10 @@ export function OpenCutScroToolbar({
           error={addError}
           afterOptions={clips.map((clip) => ({
             clipNumber: clip.clipNumber,
-            title: clipOptionTitle(clip.clipNumber, clip.narrativeJob, t),
+            title: clipOptionTitle(
+              t("production.filmstrip.addAfterOption", { n: clip.clipNumber }),
+              clip.narrativeJob,
+            ),
           }))}
           defaultAfterClipNumber={selectedClipNumber ?? clips.at(-1)?.clipNumber}
           onCancel={() => {

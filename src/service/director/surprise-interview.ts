@@ -1,4 +1,4 @@
-import type { FramePosition, PhaseAProposal } from "@/model/project";
+import type { FramePosition, PhaseAProposal, StoryboardRow } from "@/model/project";
 import { DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
 
 // Hook stays upright. The camera drops from above and punches in.
@@ -259,7 +259,7 @@ export function sanitizeSurpriseFrameScene(input: {
 export function sanitizeSurprisePhaseA(phaseA: PhaseAProposal): PhaseAProposal {
   const plan = surpriseVarietyPlan(phaseA);
   const name = castLabel(phaseA);
-  const clips = [];
+  const clips: StoryboardRow[] = [];
   for (let index = 0; index < phaseA.clips.length; index += 1) {
     const clip = phaseA.clips[index]!;
     const place = plan[index]?.place ?? "top";

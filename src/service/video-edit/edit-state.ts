@@ -126,8 +126,10 @@ export type FolderBookendVideo = {
 export function folderBookendVideos(
   rows: Array<BookendSource & { skillSlug?: string }>,
 ): FolderBookendVideo[] {
-  const videos = rows.flatMap((row) => {
+  const videos: FolderBookendVideo[] = rows.flatMap((row) => {
     if (row.skillSlug !== OPENING_SKILL_SLUG && row.skillSlug !== ENDING_SKILL_SLUG) return [];
+    const skillSlug: FolderBookendVideo["skillSlug"] =
+      row.skillSlug === OPENING_SKILL_SLUG ? OPENING_SKILL_SLUG : ENDING_SKILL_SLUG;
     const pick = bookendPick(row);
     if (!pick) return [];
     const clip = [...(row.clips ?? [])]
@@ -136,7 +138,7 @@ export function folderBookendVideos(
     return [
       {
         id: pick.id,
-        skillSlug: row.skillSlug,
+        skillSlug,
         title: pick.title,
         videoUrl: pick.videoUrl,
         posterUrl: pick.posterUrl,
