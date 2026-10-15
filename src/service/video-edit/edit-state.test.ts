@@ -4,6 +4,7 @@ import {
   FINAL_STALE_MS,
   blobStoreHost,
   bookendPick,
+  folderBookendVideos,
   brandAssetPath,
   checkBrandUpload,
   finalFingerprint,
@@ -124,6 +125,43 @@ test("bookendPick uses a finished clip and its start still", () => {
   assert.equal(pick?.posterUrl, "https://blob/f.png");
   assert.equal(pick?.durationSec, 4);
   assert.equal(bookendPick({ id: "v2", source: "pending", clips: [{ clipNumber: 1, status: "queued", durationSeconds: 3 }] }), null);
+});
+
+test("folderBookendVideos keeps finished Opening and Ending videos, Opening first", () => {
+  const rows = folderBookendVideos([
+    {
+      id: "end",
+      skillSlug: "ending-director",
+      source: "closer",
+      phaseA: { localizedTitle: "結尾" },
+      clips: [{ clipNumber: 1, status: "completed", blobUrl: "https://blob/end.mp4", durationSeconds: 4 }],
+    },
+    {
+      id: "open",
+      skillSlug: "opening-director",
+      source: "bumper",
+      phaseA: { localizedTitle: "開場" },
+      clips: [{ clipNumber: 1, status: "completed", blobUrl: "https://blob/open.mp4", durationSeconds: 3.2 }],
+    },
+    {
+      id: "story",
+      skillSlug: "cartoon-explainer-video-director",
+      source: "story",
+      clips: [{ clipNumber: 1, status: "completed", blobUrl: "https://blob/story.mp4", durationSeconds: 4 }],
+    },
+    {
+      id: "pending",
+      skillSlug: "opening-director",
+      source: "not ready",
+      clips: [{ clipNumber: 1, status: "queued", durationSeconds: 3 }],
+    },
+  ]);
+  assert.deepEqual(
+    rows.map((row) => row.id),
+    ["open", "end"],
+  );
+  assert.equal(rows[0]?.durationSeconds, 3.2);
+  assert.equal(rows[0]?.videoUrl, "https://blob/open.mp4");
 });
 
 test("normalizeTemplateName trims and bounds length", () => {

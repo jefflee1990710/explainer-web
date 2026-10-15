@@ -3,6 +3,10 @@
 import { createContext, useContext } from "react";
 import { useEditor } from "@/opencut/editor/use-editor";
 import { scroAssetPreviewSrc } from "@/opencut/embed/scro-video-assets";
+import {
+	MediaLoadingMark,
+	useMediaImageReady,
+} from "@/opencut/components/loading-media-image";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { useAssetsPanelStore } from "@/opencut/components/editor/panels/assets/assets-panel-store";
 import { AudioWaveform, WAVEFORM_GAIN_SAMPLE_COUNT } from "./audio-waveform";
@@ -1121,15 +1125,17 @@ function TiledMediaContent({
 		!freshStill &&
 		(element.scroClipNumber != null || mediaAsset?.scroClipNumber != null) &&
 		(mediaAsset?.scroPlaceholder === true || tinyStandIn);
+	const imageUrl = waitingForStill
+		? undefined
+		: freshStill ??
+			(mediaAsset ? scroAssetPreviewSrc({ asset: mediaAsset, clip }) : undefined);
+	const imageReady = useMediaImageReady(imageUrl);
+
 	if (waitingForStill) {
 		return (
 			<TimelineStillPlaceholder name={element.name || mediaAsset?.name || "Clip"} />
 		);
 	}
-
-	const imageUrl =
-		freshStill ??
-		(mediaAsset ? scroAssetPreviewSrc({ asset: mediaAsset, clip }) : undefined);
 
 	if (!imageUrl) {
 		return (
@@ -1153,13 +1159,14 @@ function TiledMediaContent({
 				className="absolute inset-0"
 				style={{
 					backgroundColor: "var(--muted)",
-					backgroundImage: `url(${imageUrl})`,
+					backgroundImage: imageReady ? `url(${imageUrl})` : undefined,
 					backgroundRepeat: "repeat-x",
 					backgroundSize: `${tileWidth}px ${trackHeight}px`,
 					backgroundPosition: "left center",
 					pointerEvents: "none",
 				}}
 			/>
+			{imageReady ? null : <MediaLoadingMark className="text-white" />}
 			<MediaElementHeader
 				name={mediaAsset?.name}
 				leading={

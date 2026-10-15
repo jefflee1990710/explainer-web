@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { PanelView } from "@/opencut/components/editor/panels/assets/views/base-panel";
 import { MediaDragOverlay } from "@/opencut/components/editor/panels/assets/drag-overlay";
@@ -69,8 +68,12 @@ import {
 } from "@/opencut/embed/scro-video-assets";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { AssetsClipMenu } from "@/opencut/components/editor/panels/assets/views/assets-clip-menu";
-import { SceneFrameCard } from "@/opencut/components/editor/panels/assets/views/assets-frame-card";
+import { BookendVideoCard } from "@/opencut/components/editor/panels/assets/views/assets-bookend-card";
+import { listFolderBookendVideosAction } from "@/presentation/actions/video-edit";
+import type { FolderBookendVideo } from "@/service/video-edit/edit-state";
+import { localizedVideoType } from "@/util/video-type-i18n";
 import { addSceneFrameToTimeline, ensureFrameStill } from "@/opencut/embed/scro-frame-still";
+import { LoadingMediaImage } from "@/opencut/components/loading-media-image";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 export function MediaView() {
@@ -447,9 +450,34 @@ function MediaItemList({
 		ids: string[];
 	}) => void;
 }) {
+	const { t } = useI18n();
 	const editor = useEditor();
 	const scroVideos = useScroVideos();
 	const isGrid = mode === "grid";
+	const [bookends, setBookends] = useState<FolderBookendVideo[]>([]);
+
+	useEffect(() => {
+		const videoId = scroVideos?.videoId;
+		if (!videoId) return;
+		let cancelled = false;
+		void listFolderBookendVideosAction(videoId).then((result) => {
+			if (!cancelled && result.ok) setBookends(result.videos);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [scroVideos?.videoId]);
+
+	const bookendNames = new Set(
+		bookends.map((video) => `${localizedVideoType(t, video.skillSlug)} · ${video.title}`),
+	);
+	const bookendUrls = new Set(bookends.map((video) => video.videoUrl));
+	// The download is also a library file. The Opening / Ending card is the one shown.
+	const shown = items.filter(
+		(item) =>
+			!bookendNames.has(item.name) &&
+			!(item.scroPosterUrl && bookendUrls.has(item.scroPosterUrl)),
+	);
 
 	return (
 		<div
@@ -458,15 +486,11 @@ function MediaItemList({
 				isGrid ? { gridTemplateColumns: "repeat(auto-fill, 7rem)" } : undefined
 			}
 		>
-			{items.map((item) => {
+			{shown.map((item) => {
 				const clipNumber = resolveScroClipNumber({
 					asset: item,
 					clips: scroVideos?.clips,
 				});
-				const clip =
-					clipNumber != null
-						? scroVideos?.clips.find((row) => row.clipNumber === clipNumber)
-						: undefined;
 				return (
 					<div key={item.id} className={cn(isGrid && "contents")}>
 						<MediaItemWithContextMenu item={item} onRemove={onRemove}>
@@ -494,25 +518,12 @@ function MediaItemList({
 								/>
 							</SelectableItem>
 						</MediaItemWithContextMenu>
-						{isGrid && clip?.stage === "video_ready" && clip.posterUrl ? (
-							<SceneFrameCard
-								clipNumber={clip.clipNumber}
-								position="start"
-								url={clip.posterUrl}
-								durationSeconds={clip.durationSeconds}
-							/>
-						) : null}
-						{isGrid && clip?.endPosterUrl ? (
-							<SceneFrameCard
-								clipNumber={clip.clipNumber}
-								position="end"
-								url={clip.endPosterUrl}
-								durationSeconds={clip.durationSeconds}
-							/>
-						) : null}
 					</div>
 				);
 			})}
+			{isGrid
+				? bookends.map((video) => <BookendVideoCard key={video.id} video={video} />)
+				: null}
 		</div>
 	);
 }
@@ -527,7 +538,7 @@ function MediaDurationBadge({ duration }: { duration?: number }) {
 	if (!duration) return null;
 
 	return (
-		<div className="absolute right-1 bottom-1 rounded bg-black/70 px-1 text-xs text-white">
+		<div className="absolute right-1 bottom-1 z-20 rounded bg-black/70 px-1 text-xs text-white">
 			{formatDuration({ duration })}
 		</div>
 	);
@@ -582,12 +593,26 @@ function MediaPreview({
 		clips: scroVideos?.clips,
 	});
 	const label = scroDisplayName({ asset: item, clips: scroVideos?.clips });
-	const scroOverlay =
-		clipNumber != null ? <ScroMediaOverlays clipNumber={clipNumber} /> : null;
 	const clip =
 		clipNumber != null
 			? scroVideos?.clips.find((row) => row.clipNumber === clipNumber)
 			: undefined;
+	// File length when the browser has probed it; otherwise the storyboard length.
+	const videoSeconds =
+		item.type === "video"
+			? item.duration && item.duration > 0
+				? item.duration
+				: clip?.durationSeconds
+			: undefined;
+	const showDuration =
+		shouldShowDurationBadge && videoSeconds != null && videoSeconds > 0;
+	const durationBadge = showDuration ? (
+		<MediaDurationBadge duration={videoSeconds} />
+	) : null;
+	const scroOverlay =
+		clipNumber != null ? (
+			<ScroMediaOverlays clipNumber={clipNumber} reserveCorner={showDuration} />
+		) : null;
 	// After regenerate, show the new start still as soon as it exists.
 	const previewSrc = scroAssetPreviewSrc({ asset: item, clip });
 	const showStartStill =
@@ -598,20 +623,16 @@ function MediaPreview({
 		return (
 			<div className="relative flex size-full items-center justify-center bg-muted">
 				{previewSrc ? (
-					<Image
-						key={previewSrc}
+					<LoadingMediaImage
 						src={previewSrc}
 						alt={label}
-						fill
-						sizes="100vw"
 						className={
 							item.type === "video" ? "rounded object-cover" : "object-cover"
 						}
-						loading="lazy"
-						unoptimized
 					/>
 				) : null}
 				{scroOverlay}
+				{durationBadge}
 			</div>
 		);
 	}
@@ -620,20 +641,13 @@ function MediaPreview({
 		if (item.thumbnailUrl) {
 			return (
 				<div className="relative size-full">
-					<Image
+					<LoadingMediaImage
 						src={item.thumbnailUrl}
 						alt={label}
-						fill
-						sizes="100vw"
 						className="rounded object-cover"
-						loading="lazy"
-						unoptimized
 					/>
 					{scroOverlay}
-					{/* Scro stage badge replaces the duration chip. */}
-					{shouldShowDurationBadge && !scroOverlay ? (
-						<MediaDurationBadge duration={item.duration} />
-					) : null}
+					{durationBadge}
 				</div>
 			);
 		}
@@ -643,10 +657,10 @@ function MediaPreview({
 				<MediaTypePlaceholder
 					icon={Video01Icon}
 					label="Video"
-					duration={scroOverlay ? undefined : item.duration}
 					variant="muted"
 				/>
 				{scroOverlay}
+				{durationBadge}
 			</div>
 		);
 	}

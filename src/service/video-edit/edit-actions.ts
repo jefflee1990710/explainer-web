@@ -18,7 +18,9 @@ import {
   isBrandAssetUrl,
   isFinalCurrent,
   isFinalRunning,
+  folderBookendVideos,
   type BookendPick,
+  type FolderBookendVideo,
 } from "@/service/video-edit/edit-state";
 import { runFinalJob } from "@/service/video-edit/final-job";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
@@ -84,6 +86,52 @@ export async function listBookendVideosAction(
     return pick ? [pick] : [];
   });
   return { ok: true, videos: picks };
+}
+
+// Opening and Ending videos in the same folder as this video, so the timeline can add them.
+export async function listFolderBookendVideosAction(
+  videoId: string,
+): Promise<{ ok: true; videos: FolderBookendVideo[] } | Fail> {
+  const user = await requireAppUser();
+  const current = await ownedVideo(videoId, user.clerkUserId);
+  if (!current) return { ok: false, error: "找不到影片" };
+  const videos = await videosCollection();
+  const rows = await videos
+    .find(
+      {
+        clerkUserId: user.clerkUserId,
+        projectId: current.projectId,
+        _id: { $ne: current._id },
+        skillSlug: { $in: [OPENING_SKILL_SLUG, ENDING_SKILL_SLUG] },
+      },
+      {
+        projection: {
+          skillSlug: 1,
+          source: 1,
+          "phaseA.localizedTitle": 1,
+          "phaseA.englishTitle": 1,
+          "clips.clipNumber": 1,
+          "clips.status": 1,
+          "clips.blobUrl": 1,
+          "clips.durationSeconds": 1,
+          "frames.position": 1,
+          "frames.status": 1,
+          "frames.blobUrl": 1,
+          reelUrl: 1,
+          reelStatus: 1,
+          updatedAt: 1,
+        },
+      },
+    )
+    .sort({ updatedAt: -1 })
+    .limit(24)
+    .toArray();
+  return {
+    ok: true,
+    videos: folderBookendVideos(
+      rows.map((video) => ({ ...video, id: video._id.toHexString() })),
+    ),
+  };
 }
 
 async function ownedVideo(videoId: string, clerkUserId: string) {

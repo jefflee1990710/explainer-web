@@ -19,6 +19,7 @@ import type {
 } from "@/opencut/preview/overlays";
 import { PreviewContextMenu } from "./context-menu";
 import { PreviewToolbar } from "./toolbar";
+import { MediaLoadingMark } from "@/opencut/components/loading-media-image";
 import {
 	PreviewViewportProvider,
 	usePreviewViewportState,
@@ -53,6 +54,37 @@ function normalizeWheelDelta({
 	}
 
 	return delta;
+}
+
+/** True while the preview canvas is still the empty background. */
+function previewFrameIsEmpty(canvas: HTMLCanvasElement) {
+	try {
+		const probe = document.createElement("canvas");
+		probe.width = 8;
+		probe.height = 8;
+		const context = probe.getContext("2d", { willReadFrequently: true });
+		if (!context || canvas.width < 1 || canvas.height < 1) return false;
+		context.drawImage(
+			canvas,
+			Math.max(0, canvas.width / 2 - 4),
+			Math.max(0, canvas.height / 2 - 4),
+			8,
+			8,
+			0,
+			0,
+			8,
+			8,
+		);
+		const pixels = context.getImageData(0, 0, 8, 8).data;
+		for (let index = 0; index < pixels.length; index += 4) {
+			if (pixels[index] > 16 || pixels[index + 1] > 16 || pixels[index + 2] > 16) {
+				return false;
+			}
+		}
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 export function PreviewPanel({
@@ -142,6 +174,10 @@ function PreviewCanvas({
 	const lastFrameRef = useRef(-1);
 	const lastSceneRef = useRef<RootNode | null>(null);
 	const renderingRef = useRef(false);
+	const previewLoadingRef = useRef(true);
+	const slowTimerRef = useRef(0);
+	const emptySinceRef = useRef(0);
+	const [previewLoading, setPreviewLoading] = useState(true);
 	const { width: nativeWidth, height: nativeHeight } = usePreviewSize();
 	const viewportSize = useContainerSize({ containerRef: viewportRef });
 	const editor = useEditor();
@@ -174,6 +210,8 @@ function PreviewCanvas({
 		outputCanvas.style.display = "block";
 		outputCanvas.style.width = "100%";
 		outputCanvas.style.height = "100%";
+		outputCanvas.style.position = "relative";
+		outputCanvas.style.zIndex = "0";
 		mount.appendChild(outputCanvas);
 		return () => {
 			if (outputCanvas.parentElement === mount) {
@@ -204,12 +242,46 @@ function PreviewCanvas({
 		renderingRef.current = true;
 		lastSceneRef.current = renderTree;
 		lastFrameRef.current = frame;
+		// A fast cached frame stays clear. A slow image or video decode shows loading.
+		window.clearTimeout(slowTimerRef.current);
+		slowTimerRef.current = window.setTimeout(() => {
+			if (previewLoadingRef.current) return;
+			previewLoadingRef.current = true;
+			setPreviewLoading(true);
+		}, 200);
 		renderer
 			.render({ node: renderTree, time: renderTime })
-			.then(() => {
+			.catch((error) => {
+				console.error("Preview frame failed:", error);
+			})
+			.finally(() => {
 				renderingRef.current = false;
+				window.clearTimeout(slowTimerRef.current);
+				const canvas = renderer.getOutputCanvas();
+				const empty = previewFrameIsEmpty(canvas);
+				if (empty) {
+					if (emptySinceRef.current === 0) emptySinceRef.current = performance.now();
+					// Keep the spinner while the still or video frame is still black.
+					if (performance.now() - emptySinceRef.current < 8000) {
+						lastFrameRef.current = -1;
+						if (!previewLoadingRef.current) {
+							previewLoadingRef.current = true;
+							setPreviewLoading(true);
+						}
+						return;
+					}
+				} else {
+					emptySinceRef.current = 0;
+				}
+				if (!previewLoadingRef.current) return;
+				previewLoadingRef.current = false;
+				setPreviewLoading(false);
 			});
 	}, [renderer, renderTree, editor.playback, editor.timeline]);
+
+	useEffect(() => {
+		return () => window.clearTimeout(slowTimerRef.current);
+	}, []);
 
 	useRafLoop(render);
 
@@ -321,7 +393,14 @@ function PreviewCanvas({
 											? "transparent"
 											: activeProject?.settings.background.color,
 								}}
-							/>
+							>
+								{previewLoading ? (
+									<MediaLoadingMark
+										className="z-20 bg-black/45 text-white"
+										spinnerClassName="size-6"
+									/>
+								) : null}
+							</div>
 								<PreviewOverlayLayer
 									instances={overlayInstances}
 									plane="under-interaction"

@@ -13,6 +13,11 @@ export async function uploadBrandAssetAction(...args: Parameters<typeof edit.upl
 export async function listBookendVideosAction(...args: Parameters<typeof edit.listBookendVideosAction>) {
   return edit.listBookendVideosAction(...args);
 }
+export async function listFolderBookendVideosAction(
+  ...args: Parameters<typeof edit.listFolderBookendVideosAction>
+) {
+  return edit.listFolderBookendVideosAction(...args);
+}
 export async function generateReelCoverAction(...args: Parameters<typeof cover.generateReelCoverAction>) {
   return cover.generateReelCoverAction(...args);
 }

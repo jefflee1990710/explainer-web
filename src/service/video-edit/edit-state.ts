@@ -1,5 +1,6 @@
 import { EDIT_LIMITS, type BookendClip, type VideoEdit } from "@/model/video-edit";
 import type { ReelStatus } from "@/model/project";
+import { ENDING_SKILL_SLUG, OPENING_SKILL_SLUG } from "@/service/director/skill-rules";
 import { clipReelFingerprint, isReelBusy, type ReelClipSource } from "@/service/reel/fingerprint";
 
 export type FinalRecord = {
@@ -110,6 +111,43 @@ export function bookendPick(video: BookendSource): BookendPick | null {
     video.source.trim().slice(0, 48) ||
     "Video";
   return { id: video.id, title, videoUrl, posterUrl: poster?.blobUrl, durationSec };
+}
+
+/** A finished Opening or Ending video in the same folder, ready to drop on the timeline. */
+export type FolderBookendVideo = {
+  id: string;
+  skillSlug: typeof OPENING_SKILL_SLUG | typeof ENDING_SKILL_SLUG;
+  title: string;
+  videoUrl: string;
+  posterUrl?: string;
+  durationSeconds: number;
+};
+
+export function folderBookendVideos(
+  rows: Array<BookendSource & { skillSlug?: string }>,
+): FolderBookendVideo[] {
+  const videos = rows.flatMap((row) => {
+    if (row.skillSlug !== OPENING_SKILL_SLUG && row.skillSlug !== ENDING_SKILL_SLUG) return [];
+    const pick = bookendPick(row);
+    if (!pick) return [];
+    const clip = [...(row.clips ?? [])]
+      .sort((a, b) => a.clipNumber - b.clipNumber)
+      .find((item) => item.status === "completed" && item.blobUrl);
+    return [
+      {
+        id: pick.id,
+        skillSlug: row.skillSlug,
+        title: pick.title,
+        videoUrl: pick.videoUrl,
+        posterUrl: pick.posterUrl,
+        durationSeconds: clip?.durationSeconds ?? pick.durationSec,
+      },
+    ];
+  });
+  return videos.sort((a, b) => {
+    if (a.skillSlug === b.skillSlug) return 0;
+    return a.skillSlug === OPENING_SKILL_SLUG ? -1 : 1;
+  });
 }
 
 export function editAssetUrls(edit: VideoEdit) {

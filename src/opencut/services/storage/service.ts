@@ -305,6 +305,9 @@ class StorageService {
 			duration: mediaAsset.duration,
 			thumbnailUrl: mediaAsset.thumbnailUrl,
 			ephemeral: mediaAsset.ephemeral,
+			scroClipNumber: mediaAsset.scroClipNumber,
+			scroPosterUrl: mediaAsset.scroPosterUrl,
+			scroPlaceholder: mediaAsset.scroPlaceholder,
 		};
 
 		try {
@@ -378,6 +381,9 @@ class StorageService {
 			duration: metadata.duration,
 			thumbnailUrl: metadata.thumbnailUrl,
 			ephemeral: metadata.ephemeral,
+			scroClipNumber: metadata.scroClipNumber,
+			scroPosterUrl: metadata.scroPosterUrl,
+			scroPlaceholder: metadata.scroPlaceholder,
 		};
 	}
 

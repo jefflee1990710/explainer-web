@@ -129,9 +129,12 @@ export function scroDisplayName({
 export function ScroMediaOverlays({
 	clipNumber,
 	className,
+	reserveCorner = false,
 }: {
 	clipNumber: number;
 	className?: string;
+	/** Leave the bottom-right corner for the video length chip. */
+	reserveCorner?: boolean;
 }) {
 	const store = useScroVideos();
 	const clip = store?.clips.find((item) => item.clipNumber === clipNumber);
@@ -182,7 +185,8 @@ export function ScroMediaOverlays({
 			{clip ? (
 				<span
 					className={cn(
-						"absolute right-1 bottom-1 rounded px-1 py-0.5 text-[0.6rem]",
+						"absolute bottom-1 rounded px-1 py-0.5 text-[0.6rem]",
+						reserveCorner ? "left-1" : "right-1",
 						scroStageTone(clip.stage),
 					)}
 				>
