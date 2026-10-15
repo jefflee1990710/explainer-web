@@ -42,26 +42,31 @@ export function ScroVideoAiEntry({
 					</div>
 					<span className="px-1.5 py-1 text-[0.65rem]">Redraw start</span>
 				</button>
-				{clip.dualBeat ? (
-					<button
-						type="button"
-						disabled={!clip.hasEndFrame}
-						onClick={() =>
-							requestScroOpenAi({
-								videoId,
-								clipNumber: clip.clipNumber,
-								kind: "frame-edit",
-								position: "end",
-							})
-						}
-						className="border-border bg-accent/40 hover:bg-accent disabled:opacity-40 flex flex-col overflow-hidden rounded-sm border text-left"
-					>
-						<div className="bg-muted text-muted-foreground grid aspect-video w-full place-items-center text-[0.65rem]">
-							End
-						</div>
-						<span className="px-1.5 py-1 text-[0.65rem]">Redraw end</span>
-					</button>
-				) : null}
+				<button
+					type="button"
+					disabled={!clip.hasEndFrame && !clip.endPosterUrl}
+					onClick={() =>
+						requestScroOpenAi({
+							videoId,
+							clipNumber: clip.clipNumber,
+							kind: "frame-edit",
+							position: "end",
+						})
+					}
+					className="border-border bg-accent/40 hover:bg-accent disabled:opacity-40 flex flex-col overflow-hidden rounded-sm border text-left"
+				>
+					<div className="bg-muted aspect-video w-full overflow-hidden">
+						{clip.endPosterUrl ? (
+							// eslint-disable-next-line @next/next/no-img-element
+							<img src={clip.endPosterUrl} alt="" className="size-full object-cover" />
+						) : (
+							<div className="text-muted-foreground grid size-full place-items-center text-[0.65rem]">
+								End
+							</div>
+						)}
+					</div>
+					<span className="px-1.5 py-1 text-[0.65rem]">Redraw end</span>
+				</button>
 			</div>
 		</div>
 	);
