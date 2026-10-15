@@ -2,7 +2,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
 // Director runs on Google AI Studio (Gemini) instead of the Vercel AI Gateway,
 // because gateway free tier blocks the paid third-party models.
-const DEFAULT_MODEL = "gemini-3.8-flash";
+const DEFAULT_MODEL = "gemini-4-argon";
 // End stills are one constrained rewrite. Pro follows the landed camera better than Flash.
 const END_SCENE_MODEL = "gemini-3.1-pro-preview";
 
