@@ -5,7 +5,8 @@ import { folderVideoRedirectFromQuery } from "@/service/folder-video-path";
 import { loadFolderVideoCards, loadOwnedFolder } from "@/service/project/load-folder-studio";
 import { ProjectWorkspace } from "@/presentation/components/app/projects/[id]/project-workspace";
 
-export const maxDuration = 300;
+// Gemini 4 Argon can think for several minutes before a director call returns.
+export const maxDuration = 800;
 
 export default async function ProjectPage({
   params,

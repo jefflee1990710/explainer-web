@@ -5,7 +5,8 @@ import { getVideoAction } from "@/service/project/actions";
 import { loadOwnedFolder, loadStudioPickers } from "@/service/project/load-folder-studio";
 import { VideoEditorWorkspace } from "@/presentation/components/app/projects/[id]/video-editor-workspace";
 
-export const maxDuration = 300;
+// Gemini 4 Argon can think for several minutes before a director call returns.
+export const maxDuration = 800;
 
 export default async function FolderVideoPage({
   params,
