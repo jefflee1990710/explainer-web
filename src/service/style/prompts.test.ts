@@ -30,57 +30,42 @@ const chalkboard: Style = {
   canvas: "dark green slate chalkboard with faint chalk-dust smudges",
 };
 
-test("cinematic realistic keeps bodies and motion in the real world", () => {
-  const realistic = {
-    ...doodle,
-    id: "realistic" as const,
-    name: "Cinematic realistic",
-  };
-  const block = styleBlockForDirector(realistic);
-  assert.match(block, /one person is one person/);
-  assert.match(block, /two places/);
-  assert.match(block, /human speed/);
-  assert.match(block, /No teleport/);
-  assert.match(block, /Feet stay on the ground/);
-  assert.doesNotMatch(styleBlockForDirector(doodle), /two places/);
-
-  const frames = styleLinesForFrame(realistic).join("\n");
-  assert.match(frames, /one person is one person/);
-  assert.match(frames, /two places/);
-  assert.doesNotMatch(styleLinesForFrame(doodle).join("\n"), /two places/);
-});
-
-test("cinematic realistic tells the director to pick a prime per clip", () => {
+test("visual style block is picture only and drops on-screen text clauses", () => {
   const block = styleBlockForDirector({
     ...doodle,
     id: "realistic",
     name: "Cinematic realistic",
+    look: "photoreal still. No on-canvas text.",
+    negatives: "illustration, captions, subtitles, floating UI text",
   });
-  assert.match(block, /24mm f\/1\.2/);
-  assert.match(block, /35mm f\/1\.4/);
-  assert.match(block, /50mm f\/1\.4/);
-  assert.match(block, /80mm f\/1\.4/);
-  assert.match(block, /35mm f\/1\.4 to 80mm f\/1\.4/);
+  assert.match(block, /## Visual style: Cinematic realistic/);
+  assert.match(block, /how the picture is drawn/);
+  assert.match(block, /photoreal still/);
+  assert.match(block, /illustration/);
+  assert.match(block, /Motion: marker-doodle animation/);
+  assert.doesNotMatch(block, /on-canvas|captions|subtitles|UI text|24mm|text style|lettering/i);
   assert.doesNotMatch(styleBlockForDirector(doodle), /24mm f\/1\.2/);
 });
 
-test("director block carries typography, motion and negatives", () => {
+test("director block carries motion and negatives, not typography", () => {
   const block = styleBlockForDirector(doodle);
   assert.match(block, /## Visual style/);
-  assert.match(block, /overrides the rendering, palette, and motion rules/);
-  assert.match(block, /default everyman applies only when no cast\/reference is given/);
-  assert.match(block, /appearance follows the attached blueprint/);
-  assert.match(block, /selected text style/);
   assert.doesNotMatch(block, /Typography:/);
+  assert.doesNotMatch(block, /all-caps marker labels/);
   assert.match(block, /Motion:/);
   assert.match(block, /Never:/);
   assert.doesNotMatch(block, HEX);
 });
 
-test("frame lines name the style, canvas, look and lettering", () => {
-  const lines = styleLinesForFrame(doodle);
+test("frame lines name the style, canvas and look, and omit lettering", () => {
+  const lines = styleLinesForFrame({
+    ...doodle,
+    negatives: "photorealism, printed fonts",
+  });
   assert.match(lines.join("\n"), /Whiteboard doodle short video/);
   assert.match(lines.join("\n"), /Canvas: clean solid white canvas/);
+  assert.match(lines.join("\n"), /photorealism/);
+  assert.doesNotMatch(lines.join("\n"), /fonts|Lettering|marker labels/i);
   assert.match(styleLetteringLine(doodle), /^Lettering: .*all-caps marker labels/);
   assert.doesNotMatch(lines.join("\n"), HEX);
 });

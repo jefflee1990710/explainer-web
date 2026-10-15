@@ -1,4 +1,3 @@
-import { CINEMATIC_LENS_RULE, CINEMATIC_WORLD_RULE } from "@/service/style/cinematic-lenses";
 import type { Style } from "@/service/style/types";
 
 export type StylePromptSlice = Pick<
@@ -6,44 +5,55 @@ export type StylePromptSlice = Pick<
   "name" | "canvas" | "look" | "palette" | "typography" | "motion" | "negatives"
 >;
 
-// Markdown block appended to the director system prompt. It supersedes only
-// the rendering rules of SKILL.md's whiteboard "Locked visual world" so one
-// skill can drive every style; the character-identity lock and the default
-// everyman in that same section still apply.
+// Clauses that tell the image or video model what words to paint. The director owns that.
+const ON_SCREEN_TEXT =
+  /typography|lettering|captions?|subtitles?|on-canvas|on canvas|\bfonts?\b|\btexts?\b|\bletters?\b|\bwords?\b|headlines?|\btitles?\b|\blabels?\b|signage|watermark|字幕|字體|字体|標題|标题|手寫字|手写字|印刷/i;
+
+/** Drop style clauses that tell a still or a clip what text to draw. */
+export function withoutOnScreenTextInstructions(value: string) {
+  return value
+    .split(/(?<=[.;。])\s+|,\s+/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0 && !ON_SCREEN_TEXT.test(part))
+    .join(", ");
+}
+
+function visualLine(label: string, value: string) {
+  const text = withoutOnScreenTextInstructions(value);
+  return text ? `${label}: ${text}.` : "";
+}
+
+// Picture only. Storyboard, cast, objects, and on-screen text stay with the director.
 export function styleBlockForDirector(style: StylePromptSlice & { id?: string }) {
-  const lines = [
-    `## Visual style: ${style.name} (overrides the rendering, palette, and motion rules of the "Locked visual world" section above)`,
-    `Canvas: ${style.canvas}.`,
-    `Look: ${style.look}.`,
-    `Palette: ${style.palette}.`,
-    `Motion: ${style.motion}.`,
-    `Never: ${style.negatives}.`,
-    "Do not set a font, lettering texture, or subtitle color. Those come only from the selected text style, never from this visual style and never from the skill.",
-  ];
-  if (isCinematicRealistic(style)) {
-    lines.push(CINEMATIC_LENS_RULE, CINEMATIC_WORLD_RULE);
-  }
-  lines.push(
-    "Write visualWorld and palette in this style. If a cast or character reference is given, characterLock must only say appearance follows the attached blueprint — never invent clothing or hairstyle from this palette. The default everyman applies only when no cast/reference is given. Keep every other rule (hooks, pacing, clip structure, cast lock, narration) unchanged.",
-  );
-  return lines.join("\n");
+  return [
+    `## Visual style: ${style.name}`,
+    "These lines replace only how the picture is drawn and how it moves.",
+    visualLine("Canvas", style.canvas),
+    visualLine("Look", style.look),
+    visualLine("Palette", style.palette),
+    visualLine("Motion", style.motion),
+    visualLine("Never", style.negatives),
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 // Opening lines of every storyboard-frame / still prompt.
 export function styleLinesForFrame(style: StylePromptSlice & { id?: string }) {
   return [
-    // Skill-neutral wording: the same still prompt serves explainer, story, demo, etc.
     `Single storyboard still for a ${style.name} short video.`,
-    `Canvas: ${style.canvas}. Look: ${style.look}. Never: ${style.negatives}. No watermark.`,
-    ...(isCinematicRealistic(style) ? [CINEMATIC_WORLD_RULE] : []),
+    [
+      visualLine("Canvas", style.canvas),
+      visualLine("Look", style.look),
+      visualLine("Palette", style.palette),
+      visualLine("Never", style.negatives),
+    ]
+      .filter(Boolean)
+      .join(" "),
   ];
 }
 
-export function isCinematicRealistic(style: { id?: string; name?: string }) {
-  return style.id === "realistic" || style.name === "Cinematic realistic";
-}
-
-// Placed next to the spelling rule so lettering and spelling travel together.
+// Style-preview lettering only. Scene stills and clip videos do not use this.
 export function styleLetteringLine(style: StylePromptSlice) {
   return `Lettering: ${style.typography}.`;
 }

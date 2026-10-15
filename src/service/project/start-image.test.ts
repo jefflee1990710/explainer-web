@@ -8,38 +8,10 @@ import {
 
 const allow = (url: string) => url.startsWith("https://blob/");
 
-test("opening photo is allowed only for talking-head read in cinematic realistic", () => {
-  assert.equal(
-    talkingHeadOpeningPhotoAllowed({ skillSlug: "talking-head-director", styleId: "realistic" }),
-    true,
-  );
-  assert.equal(
-    talkingHeadOpeningPhotoAllowed({
-      skillSlug: "talking-head-director",
-      styleId: "abc",
-      baseStyleId: "realistic",
-    }),
-    true,
-  );
-  assert.equal(
-    talkingHeadOpeningPhotoAllowed({
-      skillSlug: "talking-head-director",
-      styleId: "abc",
-      styleName: "Cinematic realistic",
-    }),
-    true,
-  );
-  assert.equal(
-    talkingHeadOpeningPhotoAllowed({ skillSlug: "talking-head-director", styleId: "doodle" }),
-    false,
-  );
-  assert.equal(
-    talkingHeadOpeningPhotoAllowed({
-      skillSlug: "full-body-talking-head-director",
-      styleId: "realistic",
-    }),
-    false,
-  );
+test("opening photo follows the talking-head director on every style", () => {
+  assert.equal(talkingHeadOpeningPhotoAllowed({ skillSlug: "talking-head-director" }), true);
+  assert.equal(talkingHeadOpeningPhotoAllowed({ skillSlug: "full-body-talking-head-director" }), false);
+  assert.equal(talkingHeadOpeningPhotoAllowed({ skillSlug: "cartoon-explainer-video-director" }), false);
 });
 
 test("parse keeps one allowed url and drops a blank", () => {

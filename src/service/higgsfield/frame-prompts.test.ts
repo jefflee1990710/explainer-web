@@ -160,7 +160,7 @@ test("whiteboard stills keep the spoken subtitle in the text style after the sce
   assert.match(prompt, /Four lighting techniques you must know/);
   assert.match(prompt, /Everything begins inside a dark studio/);
   assert.match(prompt, /required on-screen text/);
-  assert.match(prompt, /no illustration does not remove it/);
+  assert.doesNotMatch(prompt, /no illustration does not remove it/);
   assert.match(prompt, /「LIGHT CONTROL」/);
   assert.match(prompt, /Do not give this Look to words inside 「」/);
 });
@@ -476,7 +476,7 @@ test("an orbit end still does not attach the start frame, and names the landed a
   assert.doesNotMatch(freed.prompt, /COMPOSITION LOCK/);
 });
 
-test("Cinematic realistic whiteboard stills share the camera and the whole subtitle", () => {
+test("whiteboard end stills land the camera in every visual style", () => {
   const steady = project("realistic");
   steady.skillSlug = "cartoon-explainer-video-director";
   steady.sceneTextEnabled = true;
@@ -490,7 +490,6 @@ test("Cinematic realistic whiteboard stills share the camera and the whole subti
     startVo: "First beat.",
     endVo: "Second beat.",
     englishVo: "First beat. Second beat.",
-    // A stale orbit in the camera text must not pull the start still away.
     motionCamera: "0-5s Scro flips the card; gimbal arc sweeps 180 degrees from left profile to right 3/4 view.",
   };
   steady.frames = [
@@ -498,26 +497,9 @@ test("Cinematic realistic whiteboard stills share the camera and the whole subti
     { clipNumber: 1, position: "end", prompt: "p", status: "queued" },
   ];
   const end = frameSubmitPlan(steady, 1, "end");
-  assert.deepEqual(end.refs, ["https://blob/start.png", "https://blob/c.png"]);
-  assert.match(end.prompt, /COMPOSITION LOCK: attached image 1 is THIS CLIP'S START frame/);
-  assert.match(end.prompt, /No zoom, no reframe, no new angle/);
-  assert.match(end.prompt, /subtitle lettering stays identical/);
-  assert.match(end.prompt, /match the other still of this clip/);
-  assert.doesNotMatch(end.prompt, /LANDED CAMERA/);
-  assert.doesNotMatch(end.prompt, /Camera landing/);
-  assert.doesNotMatch(end.prompt, /may differ from the other still/);
-  assert.doesNotMatch(end.prompt, /exaggerated framing/);
-
-  steady.frames.push({ clipNumber: 1, position: "end", prompt: "p", status: "completed", blobUrl: "https://blob/end.png" });
-  const start = frameSubmitPlan(steady, 1, "start");
-  assert.doesNotMatch(start.prompt, /OPENING CAMERA/);
-  assert.match(start.prompt, /one push-in or pull-out at most/);
-
-  // Doodle on the same storyboard still draws the landed angle without the start still.
-  const doodle = { ...steady, styleId: "doodle" as const };
-  const freed = frameSubmitPlan(doodle, 1, "end");
-  assert.deepEqual(freed.refs, ["https://blob/c.png"]);
-  assert.match(freed.prompt, /LANDED CAMERA/);
+  assert.deepEqual(end.refs, ["https://blob/c.png"]);
+  assert.match(end.prompt, /LANDED CAMERA/);
+  assert.doesNotMatch(end.prompt, /COMPOSITION LOCK/);
 });
 
 test("an end still without a start lock attaches the prop sheet and empty-set plate", () => {
@@ -825,7 +807,7 @@ test("listicle item stills name only that item; the last still lists every title
   assert.match(full, /Unused subscriptions/);
 });
 
-test("Cinematic realistic whiteboard queues the start still only", () => {
+test("whiteboard queues a start still and an end still in every visual style", () => {
   const steady = project("realistic");
   steady.skillSlug = "cartoon-explainer-video-director";
   steady.frames = [
@@ -833,8 +815,8 @@ test("Cinematic realistic whiteboard queues the start still only", () => {
   ];
   const next = framesWithClips(steady, [1]);
   assert.deepEqual(
-    next.map((frame) => frame.position),
-    ["start"],
+    next.map((frame) => `${frame.position}:${frame.status}`),
+    ["start:queued", "end:queued"],
   );
 });
 
@@ -1416,7 +1398,7 @@ test("surprise hook stills drop from above, zoom in, and use shock-poster type",
   assert.doesNotMatch(end.prompt, /Keep the same camera/);
 });
 
-test("later surprise clips change the poster place and skip the previous framing", () => {
+test("later surprise clips keep the previous end and change the poster place", () => {
   const video = project();
   video.skillSlug = "surprise-interview-director";
   video.sceneTextEnabled = true;
@@ -1441,15 +1423,25 @@ test("later surprise clips change the poster place and skip the previous framing
       status: "completed",
       blobUrl: "https://blob/prev-end.png",
     },
+    {
+      clipNumber: 2,
+      position: "start",
+      prompt: "p",
+      status: "completed",
+      blobUrl: "https://blob/prev-end.png",
+    },
   ];
   const place = surpriseVarietyPlan(video.phaseA!).find((item) => item.clipNumber === 2)?.place;
-  const start = frameSubmitPlan(video, 2, "start");
-  assert.equal(start.anchor, undefined);
-  assert.match(start.prompt, /THIS CLIP'S CAMERA AND POSE/);
-  assert.match(start.prompt, /thick black marker/);
-  assert.match(start.prompt, /first client told a friend/);
-  assert.match(start.prompt, new RegExp(place === "top" ? "SUBTITLE PLACE: TOP" : place === "middle" ? "SUBTITLE PLACE: MIDDLE" : "SUBTITLE PLACE: BOTTOM"));
-  assert.doesNotMatch(start.prompt, /HOOK CAMERA/);
-  assert.doesNotMatch(start.prompt, /white band/);
-  assert.doesNotMatch(start.prompt, /hand-lettered/);
+  const end = frameSubmitPlan(video, 2, "end");
+  assert.equal(end.anchor?.kind, "clip-start");
+  assert.equal(end.anchor?.url, "https://blob/prev-end.png");
+  assert.match(end.prompt, /COMPOSITION LOCK/);
+  assert.match(end.prompt, /dropped down and snapped a zoom-in/);
+  assert.match(end.prompt, /thick black marker/);
+  assert.match(end.prompt, /first client told a friend/);
+  assert.match(end.prompt, new RegExp(place === "top" ? "SUBTITLE PLACE: TOP" : place === "middle" ? "SUBTITLE PLACE: MIDDLE" : "SUBTITLE PLACE: BOTTOM"));
+  assert.doesNotMatch(end.prompt, /THIS CLIP'S CAMERA AND POSE/);
+  assert.doesNotMatch(end.prompt, /HOOK CAMERA/);
+  assert.doesNotMatch(end.prompt, /white band/);
+  assert.doesNotMatch(end.prompt, /hand-lettered/);
 });

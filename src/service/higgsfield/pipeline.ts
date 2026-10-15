@@ -30,6 +30,7 @@ import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt
 import { hydrateStyles } from "@/service/style/load-style";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import type { StylePromptSlice } from "@/service/style";
+import { withoutOnScreenTextInstructions } from "@/service/style/prompts";
 import {
   orphanQueuedClips,
   orphanQueuedFrames,
@@ -99,7 +100,7 @@ function stillPrompt(project: Project, style: StylePromptSlice) {
   const lock = project.phaseA?.characterLock || "default explainer everyman";
   return [
     `Character visual lock still for a ${style.name} short video.`,
-    `Canvas: ${style.canvas}. Look: ${style.look}. Never: ${style.negatives}.`,
+    `Canvas: ${withoutOnScreenTextInstructions(style.canvas)}. Look: ${withoutOnScreenTextInstructions(style.look)}. Never: ${withoutOnScreenTextInstructions(style.negatives)}.`,
     `Front three-quarter standing pose, identical character: ${lock}.`,
     `Aspect ratio ${project.aspectRatio}.`,
   ].join(" ");

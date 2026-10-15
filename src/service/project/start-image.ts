@@ -1,22 +1,12 @@
 import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
-import { isCinematicRealistic } from "@/service/style/prompts";
 
 export type StartImageParse =
   | { ok: true; url?: string }
   | { ok: false; error: string };
 
-// Talking-head read + Cinematic realistic may keep one opening photo.
-export function talkingHeadOpeningPhotoAllowed(input: {
-  skillSlug: string;
-  styleId: string;
-  baseStyleId?: string;
-  styleName?: string;
-}) {
-  if (input.skillSlug !== TALKING_HEAD_SKILL_SLUG) return false;
-  return (
-    isCinematicRealistic({ id: input.styleId, name: input.styleName }) ||
-    input.baseStyleId === "realistic"
-  );
+// Talking-head read may keep one opening photo. The visual style does not decide this.
+export function talkingHeadOpeningPhotoAllowed(input: { skillSlug: string }) {
+  return input.skillSlug === TALKING_HEAD_SKILL_SLUG;
 }
 
 // One optional image. Blank clears it. Anything else must be this user's upload.

@@ -92,14 +92,14 @@ export function clipPhaseBUserPrompt(input: {
     ? isOutfitReelSkill(input.skillSlug)
       ? `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene}. The outfit stays the same. This clip is a hard cut to a DIFFERENT camera move. Open on THIS clip's START frame.`
       : surprise
-        ? `Hard cut from clip ${prev.clipNumber}. Do not continue its camera angle or body pose. Open on THIS clip's own angle and pose.`
+        ? `Open on clip ${prev.clipNumber}'s end still. Same camera angle, same crop, same body pose. Only the mouth and expression move.`
         : `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene} (${prev.motionCamera}). Start from that resting state.`
     : "It is the first clip; open cold on the START frame.";
   const closing = next
     ? isOutfitReelSkill(input.skillSlug)
       ? `The next clip will hard-cut to a different camera move. End this clip on its own end camera. No voice. No background music.`
       : surprise
-        ? `The next clip hard-cuts to a different angle and a different pose. End on this clip's own pose.`
+        ? `The next clip opens on this clip's end still. Keep this angle and pose. Do not hard-cut to a new setup.`
         : `It hands off to clip ${next.clipNumber}, which opens with: ${next.explainerScene}. End on a state that leads into it.`
     : "It is the last clip; end on a clean resting payoff. Do not bridge back to clip 1 or plan a seamless loop.";
 

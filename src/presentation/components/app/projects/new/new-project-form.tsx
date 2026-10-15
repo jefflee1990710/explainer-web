@@ -251,13 +251,8 @@ export function NewProjectForm({
   const bookend = isBookendSkill(ruleSlug);
   const talkingHead = isTalkingHeadSkill(ruleSlug);
   const talkingHeadBackground = ruleSlug === TALKING_HEAD_SKILL_SLUG;
-  const selectedStyleLive = styles.find((item) => item.id === styleId);
-  // Catalog "realistic", a fork of it, or a style still named Cinematic realistic.
-  const talkingHeadStartImage =
-    talkingHeadBackground &&
-    (styleId === "realistic" ||
-      selectedStyleLive?.baseStyleId === "realistic" ||
-      selectedStyleLive?.name === "Cinematic realistic");
+  // Opening photo belongs to this director, on every visual style.
+  const talkingHeadStartImage = talkingHeadBackground;
 
   // Flow state. The stepper can jump back to 題材 after a video exists.
   const [project, setProject] = useState<PublicVideo | null>(initialVideo);

@@ -47,7 +47,7 @@ function proposal(): PhaseAProposal {
   };
 }
 
-test("clip 1 stays the surprise, later clips change angle, pose, and subtitle place", () => {
+test("clip 1 stays the surprise, later clips open on the previous end", () => {
   const source = proposal();
   source.clipCount = 3;
   source.clips.push(clip(3, { englishVo: "The third point is the quiet one." }));
@@ -67,13 +67,15 @@ test("clip 1 stays the surprise, later clips change angle, pose, and subtitle pl
   assert.notEqual(plan[0].place, plan[1].place);
   assert.notEqual(plan[1].place, plan[2].place);
   assert.notEqual(plan[2].place, plan[3].place);
-  assert.equal(new Set(plan.slice(1).map((item) => item.angle)).size, 3);
-  assert.equal(new Set(plan.slice(1).map((item) => item.pose)).size, 3);
-  assert.match(next.clips[1].startScene || "", new RegExp(plan[1].angle || "eye-level"));
-  assert.match(next.clips[1].startScene || "", new RegExp(plan[1].pose || "seated"));
-  assert.match(next.clips[1].endScene || "", new RegExp(plan[1].pose || "seated"));
-  assert.match(next.clips[1].motionCamera, /camera locked/);
+  assert.equal(plan[1].angle, null);
+  assert.equal(plan[1].pose, null);
+  assert.equal(next.clips[1].startScene, hook.endScene);
+  assert.match(next.clips[1].endScene || "", /dropped down and snapped a zoom-in/);
+  assert.match(next.clips[1].endScene || "", /same pose as the previous end/);
+  assert.match(next.clips[1].motionCamera, /previous clip's end still/);
+  assert.doesNotMatch(next.clips[1].motionCamera, /Hard cut/);
   assert.doesNotMatch(next.clips[1].startScene || "", /above the head/);
+  assert.equal(next.clips[2].startScene, next.clips[1].endScene);
   assert.deepEqual(surpriseVarietyPlan(source), plan);
 });
 
@@ -99,5 +101,6 @@ test("hook video rules demand a sharp drop and zoom, person upright", () => {
   assert.match(later, /entire clip/);
   assert.match(later, /zoom out/);
   assert.match(later, /pinned at the middle/);
-  assert.match(later, /own camera angle/);
+  assert.match(later, /previous clip's end still/);
+  assert.doesNotMatch(later, /own camera angle/);
 });

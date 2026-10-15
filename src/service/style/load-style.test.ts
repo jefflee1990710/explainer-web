@@ -65,38 +65,32 @@ test("styleFromDoc returns a Style when every prompt field is filled", () => {
   assert.equal(style.letteringLayout, undefined);
 });
 
-test("styleFromDoc forces chalkboard to white chalk only", () => {
+test("styleFromDoc keeps the chalkboard row stored in Mongo", () => {
   const style = styleFromDoc({
     _id: "chalkboard",
     ...stylePromptFields(
       sampleStyle("chalkboard", {
         palette: "pastel chalk accents in yellow, pink, light blue and mint",
         look: "coloured chalk used only for accents",
-        letteringLine2: "yellow chalk",
       }),
     ),
     letteringLine2: "yellow chalk",
     updatedAt: new Date(),
   });
   assert.ok(style);
-  assert.match(style.palette, /white chalk only/i);
-  assert.doesNotMatch(style.palette, /pastel|yellow|pink|mint/i);
-  assert.match(style.negatives, /skin tones/i);
-  assert.match(style.letteringLine2 ?? "", /white chalk/);
-  assert.doesNotMatch(style.letteringLine2 ?? "", /yellow/i);
+  assert.match(style.palette, /pastel chalk accents/);
+  assert.match(style.look, /coloured chalk/);
+  assert.equal(style.letteringLine2, "yellow chalk");
 });
 
-test("styleFromDoc gives cinematic realistic the prime lens kit", () => {
+test("styleFromDoc keeps the cinematic realistic row stored in Mongo", () => {
   const style = styleFromDoc({
     _id: "realistic",
     ...stylePromptFields(sampleStyle("realistic", { look: "35mm lens look" })),
     updatedAt: new Date(),
   });
   assert.ok(style);
-  assert.match(style.look, /24mm f\/1\.2/);
-  assert.match(style.look, /80mm f\/1\.4/);
-  assert.match(style.motion, /35mm f\/1\.4 to 80mm f\/1\.4/);
-  assert.doesNotMatch(style.look, /^35mm lens look$/);
+  assert.equal(style.look, "35mm lens look");
 });
 
 test("styleFromDoc keeps pastel chalk on chalkboard-color", () => {

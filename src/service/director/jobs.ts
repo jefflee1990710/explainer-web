@@ -118,9 +118,7 @@ export async function runPhaseAJob(
       nextPhaseA.characterLock = soloCharacterLock(look);
     }
     if (wardrobeBuild) {
-      nextPhaseA.clips = sanitizeOutfitPhaseA(nextPhaseA, Math.random, {
-        lenses: project.styleId === "realistic",
-      }).clips;
+      nextPhaseA.clips = sanitizeOutfitPhaseA(nextPhaseA, Math.random).clips;
     }
     if (isSurpriseInterviewSkill(project.skillSlug)) {
       nextPhaseA.clips = sanitizeSurprisePhaseA(nextPhaseA).clips;

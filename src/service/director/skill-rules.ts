@@ -679,12 +679,12 @@ export function comparisonCardDirectorBlock(aspectRatio: AspectRatio) {
   ].join(" ");
 }
 
-// Surprise close-up, then a seated interview that chains from clip 3.
+// Surprise hook, then every later clip opens on the previous end still.
 export function surpriseInterviewDirectorBlock() {
   return [
     "This is a SURPRISE INTERVIEW. Exactly one attached character. They speak every line to the camera. No second character and no screen recording.",
     "Clip 1 is the hook, 3–4 seconds. The person stays right-side up. The camera starts above the head, looking down, then drops downward while it snaps a zoom-in onto the surprised face. Sharp and clear: no blur, no slow glide, and do not flip the picture. The face moves into a clear surprise and says one short hook. If the user pasted a script, that hook is the first sentence verbatim. If they gave only a concept, write the hook.",
-    "Clip 2 and after each hard-cut to a different camera angle and a different body pose. Do not copy the previous clip's framing, and do not copy the overhead zoom. Within a clip the angle and the pose stay locked. Only the mouth and expression move.",
+    "Clip 2 and after: startScene copies the previous endScene. Same place, same camera angle, same crop, same body pose. Do not hard-cut to a new angle, and do not repeat the overhead zoom. Only the mouth and expression move.",
     "One idea per interview clip. The last clip rests. Each clip pins the spoken line in one place: top, middle, or bottom. Neighbouring clips do not share the place. Not a white subtitle bar. Letters stay upright. Lettering follows the selected text style. Do not invent a font, and do not copy typography from the visual style. No background music.",
   ].join(" ");
 }

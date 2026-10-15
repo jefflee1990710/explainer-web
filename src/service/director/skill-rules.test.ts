@@ -442,8 +442,8 @@ test("surprise, outfit, and follow each need one character", () => {
     assert.match(briefSkillError({ skillSlug: slug, characterIds: [] }) || "", /1/);
     assert.equal(briefSkillError({ skillSlug: slug, characterIds: ["a"] }), undefined);
   }
-  assert.match(surpriseInterviewDirectorBlock(), /different camera angle/);
-  assert.match(surpriseInterviewDirectorBlock(), /different body pose/);
+  assert.match(surpriseInterviewDirectorBlock(), /startScene copies the previous endScene/);
+  assert.match(surpriseInterviewDirectorBlock(), /Do not hard-cut to a new angle/);
   assert.match(surpriseInterviewDirectorBlock(), /right-side up/);
   assert.match(surpriseInterviewDirectorBlock(), /drops downward/);
   assert.match(surpriseInterviewDirectorBlock(), /zoom-in/);

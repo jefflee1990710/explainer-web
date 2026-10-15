@@ -323,8 +323,9 @@ test("talking-head clip 2 start copies the previous end file and costs one still
   assert.equal(talkingHeadFramesCost("story-short-director", 2), FRAMES_COST);
   assert.equal(talkingHeadFramesCost("outfit-reel-director", 2), FRAMES_COST);
   assert.equal(talkingHeadFramesCost("follow-shot-director", 2), FRAME_COST);
-  assert.equal(talkingHeadFramesCost("surprise-interview-director", 2), FRAMES_COST);
-  assert.equal(talkingHeadFramesCost("surprise-interview-director", 3), FRAMES_COST);
+  assert.equal(talkingHeadFramesCost("surprise-interview-director", 1), FRAMES_COST);
+  assert.equal(talkingHeadFramesCost("surprise-interview-director", 2), FRAME_COST);
+  assert.equal(talkingHeadFramesCost("surprise-interview-director", 3), FRAME_COST);
   const frames = withInheritedTalkingHeadStarts(
     [
       { clipNumber: 1, position: "end" as const, status: "completed", blobUrl: "https://blob/end-1.png" },

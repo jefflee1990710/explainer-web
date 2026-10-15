@@ -6,11 +6,12 @@ export const OUTFIT_REEL_SKILL_SLUG = "outfit-reel-director";
 export const FOLLOW_SHOT_SKILL_SLUG = "follow-shot-director";
 
 // Outfit reels cut to a new full-body angle each clip, so they draw a new start still.
-// Surprise interviews also draw every start, so each clip can carry its own bottom subtitle.
+// Surprise interviews match talking-head after the hook: clip 2+ opens on the previous end.
 const CHAIN_FROM_CLIP_2 = new Set([
   "talking-head-director",
   "full-body-talking-head-director",
   FOLLOW_SHOT_SKILL_SLUG,
+  SURPRISE_INTERVIEW_SKILL_SLUG,
 ]);
 
 export function isSurpriseInterviewSkill(skillSlug?: string) {

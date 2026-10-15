@@ -38,7 +38,7 @@ export function isInheritedTalkingHeadStart(
   return inheritsPreviousEnd(skillSlug, clipNumber, position);
 }
 
-// A copied start is free. Clip 1, and surprise clip 2, still draw both stills.
+// A copied start is free. Clip 1 still draws both stills. Later chained starts copy the previous end.
 export function talkingHeadFramesCost(skillSlug: string | undefined, clipNumber: number) {
   return inheritsPreviousEnd(skillSlug, clipNumber, "start") ? FRAME_COST : FRAMES_COST;
 }

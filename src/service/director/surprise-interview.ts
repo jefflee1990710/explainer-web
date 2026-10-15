@@ -26,7 +26,7 @@ export const SURPRISE_HOOK_VIDEO_RULES = [
 
 export const SURPRISE_VARIETY_VIDEO_RULES = [
   "Clip 1 is always the surprise hook: the person stays right-side up, the camera drops from above and snaps a zoom-in, and the face moves into a clear surprise. Do not flip the picture.",
-  "Every later clip is a hard cut to a different camera angle and a different body pose. Do not repeat the overhead zoom and do not copy the previous clip.",
+  "Every later clip opens on the previous clip's end still. Same camera angle, same crop, same body pose. Do not hard-cut, and do not repeat the overhead zoom.",
   "Within one clip the camera and the body pose stay locked. Only the mouth and the expression move.",
   "Each clip pins the shock poster in one place, chosen from top, middle, and bottom. Neighbouring clips do not share that place. Letters stay upright. No white subtitle bar.",
   "No background music.",
@@ -35,25 +35,6 @@ export const SURPRISE_VARIETY_VIDEO_RULES = [
 export type SurpriseSubtitlePlace = "top" | "middle" | "bottom";
 
 const SUBTITLE_PLACES: SurpriseSubtitlePlace[] = ["top", "middle", "bottom"];
-
-// Later clips each take one of these. Clip 1 stays the overhead surprise.
-const INTERVIEW_ANGLES = [
-  "eye-level medium close-up, camera straight on, character centered, right-side up",
-  "low angle from below the chin on the left, right-side up",
-  "high angle from just above the eyes on the right, right-side up",
-  "three-quarter from the left at eye level, a step farther, right-side up",
-  "three-quarter from the right at eye level, a half-step closer, right-side up",
-  "medium shot from the lower-left, character still facing the lens, right-side up",
-];
-
-const INTERVIEW_POSES = [
-  "seated and leaning forward, both hands on the knees",
-  "seated upright, one hand raised in a small gesture, the other hand on the lap",
-  "seated and leaning back, one arm along the chair, chin lifted",
-  "seated with elbows on the knees and hands clasped",
-  "standing with weight on one hip, one open hand toward the lens",
-  "seated turned slightly sideways, one hand on the chair back, face toward the lens",
-];
 
 export type SurpriseClipVariety = {
   clipNumber: number;
@@ -103,16 +84,13 @@ function assignDistinct<T>(items: readonly T[], count: number, seed: number) {
 }
 
 export function surpriseVarietyPlan(phaseA: PhaseAProposal): SurpriseClipVariety[] {
-  const seed = varietySeed(phaseA);
-  const places = assignDistinct(SUBTITLE_PLACES, phaseA.clips.length, seed);
-  const later = Math.max(0, phaseA.clips.length - 1);
-  const angles = assignDistinct(INTERVIEW_ANGLES, later, seed ^ 0x9e3779b9);
-  const poses = assignDistinct(INTERVIEW_POSES, later, seed ^ 0x85ebca6b);
+  const places = assignDistinct(SUBTITLE_PLACES, phaseA.clips.length, varietySeed(phaseA));
   return phaseA.clips.map((clip, index) => ({
     clipNumber: clip.clipNumber,
     place: places[index] ?? "top",
-    angle: index === 0 ? null : (angles[index - 1] ?? INTERVIEW_ANGLES[0]),
-    pose: index === 0 ? null : (poses[index - 1] ?? INTERVIEW_POSES[0]),
+    // Later clips keep the hook's landed camera. Only the poster place changes.
+    angle: null,
+    pose: null,
   }));
 }
 
@@ -127,7 +105,7 @@ export function surprisePosterLayout(place: SurpriseSubtitlePlace) {
 }
 
 function varietyLock(place: SurpriseSubtitlePlace) {
-  return `This clip has its own camera angle and its own body pose. Do not copy the previous clip. The picture is right-side up. Within this clip the camera stays locked. Do not zoom out and do not repeat the overhead surprise move. On-canvas type is the shock poster, pinned at the ${place} for the entire clip: same words, same size, same place. Do not fade it or restyle it into a white subtitle bar.`;
+  return `This clip opens on the previous clip's end still. Same camera angle, same crop, same body pose. The picture is right-side up. Within this clip the camera stays locked. Do not zoom out, hard-cut, or repeat the overhead surprise move. Only the mouth and expression move. On-canvas type is the shock poster, pinned at the ${place} for the entire clip: same words, same size, same place. Do not fade it or restyle it into a white subtitle bar.`;
 }
 
 export function surpriseVideoMotionRules(clipNumber: number, place: SurpriseSubtitlePlace = "bottom") {
@@ -137,7 +115,7 @@ export function surpriseVideoMotionRules(clipNumber: number, place: SurpriseSubt
   return `${varietyLock(place)} ${DUAL_KEYFRAME_MOTION_RULES}`;
 }
 
-// Clip 1's end camera is a different size from its start. Later starts are a hard cut.
+// Clip 1's end camera is a different size from its start. Later starts are the previous end file.
 export function surpriseHookSkipsFrameAnchor(clipNumber: number, position: FramePosition = "start") {
   if (clipNumber <= 1) return true;
   return position === "start";
@@ -185,7 +163,7 @@ function hookMotion(seconds: number, place: SurpriseSubtitlePlace) {
 }
 
 function varietyMotion(seconds: number, place: SurpriseSubtitlePlace) {
-  return `0–${seconds}s camera locked on this clip's own angle. Hold this body pose. Only the mouth and a small expression change. Do not zoom, reframe, or repeat the overhead surprise. The shock poster stays pinned at the ${place}. Picture stays right-side up. Hard cut from the previous clip.`;
+  return `0–${seconds}s open on the previous clip's end still. Camera locked: same angle, same crop, same body pose. Only the mouth and a small expression change. Do not zoom, reframe, hard-cut, or repeat the overhead surprise. The shock poster stays pinned at the ${place}. Picture stays right-side up.`;
 }
 
 function spliceCharacter(scene: string, character: string) {
@@ -195,17 +173,13 @@ function spliceCharacter(scene: string, character: string) {
   return `Character: ${character}. ${scene}`.trim();
 }
 
-function applyVariety(
-  scene: string,
-  name: string,
-  pose: string,
-  angle: string,
-  position: FramePosition,
-  place: SurpriseSubtitlePlace,
-) {
-  const mouth = position === "end" ? "mouth just closed after the line" : "mouth closed, about to speak";
-  const withPose = spliceCharacter(stripInversion(scene), `${name}, ${pose}, eyes to the lens, ${mouth}`);
-  return spliceCamera(withPose, `${angle}. ${placeFraming(place)}`);
+// Later stills stay on the hook's landed close-up. The start file is the previous end.
+function applyContinued(scene: string, name: string, place: SurpriseSubtitlePlace) {
+  const withPose = spliceCharacter(
+    stripInversion(scene),
+    `${name}, same pose as the previous end, eyes to the lens, mouth just closed after the line`,
+  );
+  return spliceCamera(withPose, `${HOOK_END_CAMERA}. ${placeFraming(place)}`);
 }
 
 function castLabel(phaseA: PhaseAProposal) {
@@ -270,49 +244,44 @@ export function surpriseTypeLines(input: {
   ].filter(Boolean);
 }
 
-export function surpriseAngleDirective(angle: string, pose: string) {
-  return `THIS CLIP'S CAMERA AND POSE: ${angle}. Body: ${pose}. Different from the other clips. Do not copy another clip's angle or pose. The person stays upright.`;
-}
-
 export function sanitizeSurpriseFrameScene(input: {
   scene: string;
   clipNumber: number;
   position: FramePosition;
   name?: string;
-  angle?: string | null;
-  pose?: string | null;
   place?: SurpriseSubtitlePlace;
 }) {
   const place = input.place ?? "top";
   if (input.clipNumber === 1) return applyHookCamera(input.scene, input.position, place);
-  if (!input.angle || !input.pose) return input.scene;
-  return applyVariety(input.scene, input.name || "the character", input.pose, input.angle, input.position, place);
+  return applyContinued(input.scene, input.name || "the character", place);
 }
 
 export function sanitizeSurprisePhaseA(phaseA: PhaseAProposal): PhaseAProposal {
   const plan = surpriseVarietyPlan(phaseA);
   const name = castLabel(phaseA);
-  return {
-    ...phaseA,
-    clips: phaseA.clips.map((clip, index) => {
-      const item = plan[index];
-      const place = item?.place ?? "top";
-      if (index === 0) {
-        const seconds = clip.durationSeconds || 3;
-        return {
-          ...clip,
-          narrativeJob: "surprise",
-          startScene: applyHookCamera(clip.startScene || "", "start", place),
-          endScene: applyHookCamera(clip.endScene || "", "end", place),
-          motionCamera: hookMotion(seconds, place),
-        };
-      }
-      return {
+  const clips = [];
+  for (let index = 0; index < phaseA.clips.length; index += 1) {
+    const clip = phaseA.clips[index]!;
+    const place = plan[index]?.place ?? "top";
+    if (index === 0) {
+      const seconds = clip.durationSeconds || 3;
+      clips.push({
         ...clip,
-        startScene: applyVariety(clip.startScene || "", name, item?.pose || INTERVIEW_POSES[0], item?.angle || INTERVIEW_ANGLES[0], "start", place),
-        endScene: applyVariety(clip.endScene || "", name, item?.pose || INTERVIEW_POSES[0], item?.angle || INTERVIEW_ANGLES[0], "end", place),
-        motionCamera: varietyMotion(clip.durationSeconds || 4, place),
-      };
-    }),
-  };
+        narrativeJob: "surprise",
+        startScene: applyHookCamera(clip.startScene || "", "start", place),
+        endScene: applyHookCamera(clip.endScene || "", "end", place),
+        motionCamera: hookMotion(seconds, place),
+      });
+      continue;
+    }
+    // The opening picture is the previous end file, so the text matches that still.
+    const previousEnd = clips[index - 1]?.endScene || "";
+    clips.push({
+      ...clip,
+      startScene: previousEnd,
+      endScene: applyContinued(clip.endScene || previousEnd, name, place),
+      motionCamera: varietyMotion(clip.durationSeconds || 4, place),
+    });
+  }
+  return { ...phaseA, clips };
 }

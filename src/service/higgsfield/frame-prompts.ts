@@ -80,7 +80,6 @@ import { isSilentSpokenLine, subtitleText } from "@/service/director/spoken-line
 import { toWrittenChinese } from "@/service/director/written-chinese";
 import {
   sanitizeSurpriseFrameScene,
-  surpriseAngleDirective,
   surpriseHookCameraDirective,
   surpriseHookSkipsFrameAnchor,
   surprisePosterLayout,
@@ -93,11 +92,7 @@ import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plat
 import { IDEOGRAM_PROMPT_MAX, imageRouteForSceneText } from "@/service/generation/image-backend";
 import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
 import { FRAME_RENDER_DETAIL, reconcileSightline, SIGHTLINE_RULE } from "@/service/director/scene-detail";
-import {
-  isCinematicRealistic,
-  styleLinesForFrame,
-  type Style,
-} from "@/service/style";
+import { styleLinesForFrame, type Style } from "@/service/style";
 import { resolveSubtitleLook, subtitleLookLine, textStyleSampleLookLine } from "@/service/director/subtitle-look";
 import { isStyleId } from "@/model/style-id";
 import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
@@ -681,8 +676,6 @@ export function buildFramePrompt(
       clipNumber,
       position,
       name: project.cast?.[0]?.name || phaseA.characterLock.split(/[：:]/)[0]?.trim(),
-      angle: surpriseClip?.angle,
-      pose: surpriseClip?.pose,
       place: surpriseClip?.place,
     });
   }
@@ -730,9 +723,6 @@ export function buildFramePrompt(
     "This Look is only the subtitle: the quoted Subtitle lines above, which are this still's spoken line.",
     "Paint them large in the frame in this Look. They are required on-screen text. Do not omit them.",
     "Do not paint them as small type on a prop. Do not give this Look to words inside 「」.",
-    isCinematicRealistic(style)
-      ? "This subtitle is a graphic overlay on the photoreal scene. The visual style saying no illustration does not remove it."
-      : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -805,9 +795,6 @@ export function buildFramePrompt(
 
   const compose = (parts: FrameTrimmable) => [
     ...onCanvasTextBlock,
-    ...(surprise && surpriseClip?.angle && surpriseClip.pose
-      ? [surpriseAngleDirective(surpriseClip.angle, surpriseClip.pose)]
-      : []),
     ...styleLinesForFrame(style),
     ...(parts.visualWorld ? [`Visual world: ${parts.visualWorld}`] : []),
     `Palette: ${parts.palette}`,
@@ -854,7 +841,7 @@ export function buildFramePrompt(
           annotatedCount + 1,
           sceneRefUrls.length > 0,
           performance && !steady,
-          solo && options.anchor?.kind === "clip-start",
+          (solo || (surprise && clipNumber > 1)) && options.anchor?.kind === "clip-start",
           position === "end" && !solo && !wardrobeBuild && !surprise && !steady,
           steady && position === "end",
         ),

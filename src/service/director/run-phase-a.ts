@@ -496,9 +496,7 @@ Produce a complete Phase A director proposal now.`,
     next = { ...next, characterLock: soloCharacterLock(look) };
   }
   if (wardrobeBuild) {
-    next = sanitizeOutfitPhaseA(next, Math.random, {
-      lenses: input.style.id === "realistic" || input.style.name === "Cinematic realistic",
-    });
+    next = sanitizeOutfitPhaseA(next, Math.random);
   }
   if (isSurpriseInterviewSkill(input.skill.slug)) next = sanitizeSurprisePhaseA(next);
   return next;

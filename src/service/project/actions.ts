@@ -10,7 +10,6 @@ import {
   productsCollection,
   projectsCollection,
   textStylesCollection,
-  userStylesCollection,
   videosCollection,
 } from "@/dao";
 import { runPhaseAJob, runStillJob } from "@/service/director/jobs";
@@ -28,7 +27,6 @@ import {
   parseStartImageUrl,
   talkingHeadOpeningPhotoAllowed,
 } from "@/service/project/start-image";
-import { isStyleId } from "@/model/style-id";
 import {
   applySkillSceneText,
   briefSkillError,
@@ -104,7 +102,7 @@ type BriefFields = {
   referenceImages: ReferenceImage[];
   // Talking-head read only. Up to 2 room photos that replace the bookshelf.
   backgroundImageUrls: string[];
-  // Talking-head read + Cinematic realistic. One optional opening photo.
+  // Talking-head read. One optional opening photo, on any visual style.
   startImageUrl?: string;
 };
 
@@ -130,17 +128,6 @@ async function resolveTextStyleChoice(
     textStyleId: raw,
     textStyleImageUrl: doc.imageUrl,
   };
-}
-
-// A user style forked from Cinematic realistic keeps baseStyleId "realistic".
-async function openingPhotoStyle(clerkUserId: string, styleId: string) {
-  if (isStyleId(styleId) || !ObjectId.isValid(styleId)) return {};
-  const styles = await userStylesCollection();
-  const doc = await styles.findOne({
-    _id: new ObjectId(styleId),
-    ownerClerkUserId: clerkUserId,
-  });
-  return { baseStyleId: doc?.baseStyleId, styleName: doc?.name };
 }
 
 // `ruleSlug` is the behaviour slug; custom directors follow their template's rules.
@@ -227,13 +214,7 @@ async function readVideoBrief(
     (url) => isBrandAssetUrl(url, clerkUserId, storeHost),
   );
   if (!backgrounds.ok) return backgrounds;
-  const styleLook = await openingPhotoStyle(clerkUserId, styleId);
-  const startImage = talkingHeadOpeningPhotoAllowed({
-    skillSlug: ruleSlug,
-    styleId,
-    baseStyleId: styleLook.baseStyleId,
-    styleName: styleLook.styleName,
-  })
+  const startImage = talkingHeadOpeningPhotoAllowed({ skillSlug: ruleSlug })
     ? parseStartImageUrl(String(formData.get("startImageUrl") || ""), (url) =>
         isBrandAssetUrl(url, clerkUserId, storeHost),
       )
