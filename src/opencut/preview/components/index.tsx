@@ -20,6 +20,7 @@ import type {
 import { PreviewContextMenu } from "./context-menu";
 import { PreviewToolbar } from "./toolbar";
 import { MediaLoadingMark } from "@/opencut/components/loading-media-image";
+import { ScroPreviewGenerateButton } from "@/opencut/embed/scro-preview-generate-button";
 import {
 	PreviewViewportProvider,
 	usePreviewViewportState,
@@ -425,6 +426,16 @@ function PreviewCanvas({
 									instances={overlayInstances}
 									plane="over-interaction"
 								/>
+								{previewLoading || waitingForStill ? null : (
+									<ScroPreviewGenerateButton
+										scene={{
+											left: viewport.sceneLeft,
+											top: viewport.sceneTop,
+											width: viewport.sceneWidth,
+											height: viewport.sceneHeight,
+										}}
+									/>
+								)}
 							</div>
 						</ContextMenuTrigger>
 						<PreviewContextMenu
