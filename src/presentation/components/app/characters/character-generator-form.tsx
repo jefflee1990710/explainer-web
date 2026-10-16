@@ -8,18 +8,23 @@ import {
   generateCharacterPoseSheetAction,
   reviseCharacterPoseSheetAction,
 } from "@/presentation/actions/characters";
+import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { CharacterLookPicker } from "@/presentation/components/app/characters/character-look-picker";
 import { CharacterPoseComment } from "@/presentation/components/app/characters/character-pose-comment";
+import { StylePicker } from "@/presentation/components/style-picker";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import {
-  CHARACTER_LOOK_PARTS,
+  ALL_CHARACTER_LOOK_PARTS,
+  CHARACTER_VIRAL_PRESETS,
   characterLookPrompt,
   defaultCharacterLook,
   isCharacterLookId,
-  type CharacterLookPart,
+  randomizeCharacterLook,
+  type AnyCharacterLookPart,
+  type CharacterExaggerationLevel,
   type CharacterLookSelection,
 } from "@/service/character/character-look";
 import { BLUEPRINT_COST } from "@/service/production-plan";
@@ -27,8 +32,9 @@ import type { PublicStyle } from "@/presentation/serialize";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 const NAME_MAX = 40;
+const EXAGGERATION_LEVELS: readonly CharacterExaggerationLevel[] = ["1x", "3x", "10x"];
 
-// Left: picture picks. Right: name, drawing style, then the GPT Image blueprint.
+// Left: picture picks + viral tools. Right: style, pose preview, then the GPT Image blueprint.
 export function CharacterGeneratorForm({
   credits,
   subscribed,
@@ -43,9 +49,10 @@ export function CharacterGeneratorForm({
   const { t } = useI18n();
   const router = useRouter();
   const realistic = styles.find((style) => style.id === "realistic" || style.baseStyleId === "realistic");
-  const styleId = realistic?.id ?? "realistic";
+  const [styleId, setStyleId] = useState<string>(realistic?.id ?? "realistic");
   const [name, setName] = useState("");
   const [look, setLook] = useState<CharacterLookSelection>(defaultCharacterLook);
+  const [lockedParts, setLockedParts] = useState<Partial<Record<AnyCharacterLookPart, boolean>>>({});
   const [poseUrl, setPoseUrl] = useState("");
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState<"" | "generate" | "revise">("");
@@ -94,9 +101,34 @@ export function CharacterGeneratorForm({
     }
   }
 
-  function setPart(part: CharacterLookPart, id: string) {
+  function setPart(part: AnyCharacterLookPart, id: string) {
     if (!isCharacterLookId(part, id)) return;
     setLook((current) => ({ ...current, [part]: id }));
+  }
+
+  function toggleLock(part: AnyCharacterLookPart) {
+    setLockedParts((current) => ({ ...current, [part]: !current[part] }));
+  }
+
+  function onRandomize(extremeOnly: boolean) {
+    setLook((current) =>
+      randomizeCharacterLook(current, {
+        locked: lockedParts,
+        extremeOnly,
+      }),
+    );
+  }
+
+  function applyPreset(presetSelection: CharacterLookSelection) {
+    setLook((current) => {
+      const next: CharacterLookSelection = { ...presetSelection };
+      for (const part of ALL_CHARACTER_LOOK_PARTS) {
+        if (lockedParts[part] && current[part]) {
+          (next as Record<string, string>)[part] = current[part] as string;
+        }
+      }
+      return next;
+    });
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -109,6 +141,18 @@ export function CharacterGeneratorForm({
     data.set("styleId", styleId);
     data.set("prompt", characterLookPrompt(look));
     try {
+      // Attach the generated / revised pose sheet as a reference image so the blueprint
+      // preserves the exact exaggerated look and any custom comment revisions.
+      if (poseUrl.startsWith("data:image/")) {
+        const res = await fetch(poseUrl);
+        const blob = await res.blob();
+        const uploadForm = new FormData();
+        uploadForm.set("file", new File([blob], "pose-sheet.webp", { type: blob.type || "image/webp" }));
+        const uploaded = await uploadCharacterImageAction(uploadForm);
+        if (uploaded.ok && uploaded.url) {
+          data.append("referenceImageUrl", uploaded.url);
+        }
+      }
       const result = await createCharacterAction(data);
       if (!result.ok) {
         setSubmitting(false);
@@ -123,6 +167,8 @@ export function CharacterGeneratorForm({
     }
   }
 
+  const exaggeration = look.exaggeration ?? "1x";
+
   return (
     <div>
       <Link href="/app/characters" className="text-sm font-semibold text-muted transition hover:text-foreground">
@@ -131,8 +177,26 @@ export function CharacterGeneratorForm({
       <h1 className="font-display mt-2 text-3xl font-bold">{t("characters.generatorTitle")}</h1>
       <p className="mt-2 max-w-2xl text-sm text-muted">{t("characters.generatorIntro")}</p>
 
-      <form ref={formRef} onSubmit={onSubmit} className="mt-6 grid items-start gap-6 lg:grid-cols-[20%_minmax(0,1fr)]">
-        <div className="space-y-3 rounded-[1.5rem] border border-accent-ink/10 bg-paper/80 p-3">
+      {/* Viral Archetype Presets bar */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-bold tracking-wide text-muted uppercase">
+          {t("characters.look.presetsLabel")}:
+        </span>
+        {CHARACTER_VIRAL_PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            disabled={blocked}
+            onClick={() => applyPreset(preset.selection)}
+            className="cursor-pointer rounded-full border border-[#12141c]/15 bg-gradient-to-r from-[#c6f24b]/35 via-paper to-[#ff4d2e]/20 px-3.5 py-1.5 text-xs font-bold text-[#12141c] transition hover:-translate-y-0.5 hover:border-[#ff4d2e] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {t(`characters.look.presets.${preset.id}`)}
+          </button>
+        ))}
+      </div>
+
+      <form ref={formRef} onSubmit={onSubmit} className="mt-5 grid items-start gap-6 lg:grid-cols-[26%_minmax(0,1fr)]">
+        <div className="space-y-3 rounded-[1.5rem] border border-accent-ink/10 bg-paper/80 p-3.5">
           <label className="block">
             <span className="mb-1.5 block text-sm font-semibold">{t("characters.nameLabel")}</span>
             <input
@@ -146,19 +210,89 @@ export function CharacterGeneratorForm({
               className="min-h-[44px] w-full rounded-full border border-accent-ink/15 bg-paper px-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
             />
           </label>
-          {CHARACTER_LOOK_PARTS.map((part) => (
+
+          {/* Crazy Mix & Surprise Me dice buttons */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              disabled={blocked}
+              onClick={() => onRandomize(true)}
+              className="inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-full bg-[#12141c] px-3 text-xs font-bold text-[#c6f24b] shadow-[2px_2px_0_0_#ff4d2e] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {t("characters.look.crazyMix")}
+            </button>
+            <button
+              type="button"
+              disabled={blocked}
+              onClick={() => onRandomize(false)}
+              className="inline-flex min-h-[38px] cursor-pointer items-center justify-center rounded-full border border-[#12141c]/20 bg-paper px-3 text-xs font-bold text-foreground transition hover:-translate-y-0.5 hover:border-[#12141c] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {t("characters.look.surpriseMe")}
+            </button>
+          </div>
+
+          {/* Exaggeration Dial (1x / 3x / 10x) */}
+          <div className="rounded-2xl border border-accent-ink/10 bg-paper p-2.5">
+            <span className="mb-1.5 block text-xs font-bold text-muted">
+              {t("characters.look.exaggerationLabel")}
+            </span>
+            <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label={t("characters.look.exaggerationLabel")}>
+              {EXAGGERATION_LEVELS.map((level) => {
+                const active = exaggeration === level;
+                const labelKey =
+                  level === "1x"
+                    ? "characters.look.exaggeration1x"
+                    : level === "3x"
+                      ? "characters.look.exaggeration3x"
+                      : "characters.look.exaggeration10x";
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    disabled={blocked}
+                    onClick={() => setLook((current) => ({ ...current, exaggeration: level }))}
+                    className={`cursor-pointer rounded-full px-2 py-1.5 text-[11px] font-bold transition ${
+                      active
+                        ? "bg-[#12141c] text-[#c6f24b] shadow-[2px_2px_0_0_#ff4d2e]"
+                        : "border border-accent-ink/10 bg-paper text-muted hover:text-foreground"
+                    }`}
+                  >
+                    {t(labelKey)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {ALL_CHARACTER_LOOK_PARTS.map((part) => (
             <CharacterLookPicker
               key={part}
               part={part}
-              value={look[part]}
+              value={look[part] ?? defaultCharacterLook()[part] ?? ""}
               disabled={blocked}
+              locked={Boolean(lockedParts[part])}
+              onToggleLock={() => toggleLock(part)}
               onChange={(id) => setPart(part, id)}
             />
           ))}
         </div>
 
         <aside className="flex min-h-[32rem] flex-col gap-4 rounded-[1.5rem] border border-accent-ink/10 bg-paper p-5 lg:sticky lg:top-0">
-          <div className="grid min-h-0 flex-1 place-items-center overflow-hidden rounded-2xl bg-zinc-200">
+          {styles.length > 0 ? (
+            <fieldset>
+              <legend className="mb-1.5 text-sm font-semibold">{t("characters.styleLabel")}</legend>
+              <StylePicker
+                styles={styles}
+                value={styleId}
+                onChange={setStyleId}
+                disabled={blocked}
+                label={t("characters.styleLabel")}
+              />
+            </fieldset>
+          ) : null}
+          <div className="grid min-h-[22rem] flex-1 place-items-center overflow-hidden rounded-2xl border border-[#12141c]/15 bg-gradient-to-br from-[#c6f24b]/35 via-[#fff6eb] to-[#ff4d2e]/25">
             {poseUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={poseUrl} alt="" className="h-full max-h-[70vh] w-full object-contain" />

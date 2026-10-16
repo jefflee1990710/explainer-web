@@ -194,6 +194,7 @@ function compositionLockLines(
       `COMPOSITION LOCK: ${source}.`,
       "Keep the same camera, crop, distance, set, lighting, character size, and screen position.",
       "Do not zoom, reframe, or move the character to a new spot. No jump.",
+      "Preserve the attached frame's exact exposure, contrast, color grade, skin smoothness, hair texture, and film grain — do NOT add extra grain, extra sharpening, extra contrast, extra blush, or extra rim-light glare on top of it.",
       "Only small changes from the Scene: the mouth, a few degrees of the head, the free hand, and the subtitle. A handheld prop stays in the same hand.",
     ];
   }
@@ -937,7 +938,9 @@ export function frameSubmitPlan(
     surpriseHookSkipsFrameAnchor(clipNumber, position);
   const clipRow = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
   const motion = clipRow?.motionCamera;
-  const foundAnchor = clipFrameAnchor(project.frames, clipNumber, position);
+  const foundAnchor = clipFrameAnchor(project.frames, clipNumber, position, {
+    anchorToFirstClip: isTalkingHeadSkill(project.skillSlug),
+  });
   // Talking-head, outfit, and surprise keep their own still rules. The director's boolean is ignored.
   const directorChooses =
     !isTalkingHeadSkill(project.skillSlug) && !isSurpriseInterviewSkill(project.skillSlug);

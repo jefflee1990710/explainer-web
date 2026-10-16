@@ -239,8 +239,33 @@ export type Messages = {
       hair: string;
       face: string;
       body: string;
+      top: string;
       pants: string;
       shoes: string;
+      accessory: string;
+      expression: string;
+      crazyMix: string;
+      surpriseMe: string;
+      lockPart: string;
+      unlockPart: string;
+      exaggerationLabel: string;
+      exaggeration1x: string;
+      exaggeration3x: string;
+      exaggeration10x: string;
+      presetsLabel: string;
+      presets: {
+        skyscraperDiva: string;
+        muscleTitan: string;
+        bugeyeHype: string;
+        ramenGremlin: string;
+      };
+      tabs: {
+        all: string;
+        extreme: string;
+        stylized: string;
+        classic: string;
+      };
+      extremeBadge: string;
       options: {
         hair: {
           bob: string; long: string; curly: string; bun: string; crop: string;
@@ -259,6 +284,9 @@ export type Messages = {
           short: string; tall: string; heavy: string; skinny: string; woman: string; man: string; hourglass: string; athletic: string;
           strong: string; giant: string; beanpole: string; hulk: string; sumo: string; corset: string; muscle: string; wedge: string;
         };
+        top: {
+          tee: string; hoodie: string; blazer: string; puffer: string; disco: string; fur: string;
+        };
         pants: {
           jeans: string; chinos: string; shorts: string; sweatpants: string;
           cargo: string; wide: string; leggings: string; suit: string; bells: string; baggy: string;
@@ -270,6 +298,12 @@ export type Messages = {
           heels: string; oxfords: string; slippers: string; platforms: string; tstrap: string; hightops: string;
           geta: string; cowboy: string; clogs: string; brogues: string;
           clown: string; towers: string; pebble: string;
+        };
+        accessory: {
+          none: string; shades: string; crown: string; fishbowl: string; ramen: string; chain: string;
+        };
+        expression: {
+          neutral: string; smirk: string; jawdrop: string; eyeroll: string; grin: string;
         };
       };
     };

@@ -638,11 +638,13 @@ function MediaPreview({
 	}
 
 	if (item.type === "video") {
-		if (item.thumbnailUrl) {
+		const videoThumb = previewSrc ?? item.thumbnailUrl;
+		if (videoThumb) {
 			return (
 				<div className="relative size-full">
 					<LoadingMediaImage
-						src={item.thumbnailUrl}
+						key={videoThumb}
+						src={videoThumb}
 						alt={label}
 						className="rounded object-cover"
 					/>

@@ -61,8 +61,8 @@ export function scroAssetPreviewSrc({
 }): string | undefined {
 	if (scroStartStillPending(clip)) return undefined;
 	if (clip?.posterUrl && clip.stage !== "video_ready") return clip.posterUrl;
-	if (asset.type === "video") return asset.thumbnailUrl;
-	return asset.url ?? asset.thumbnailUrl;
+	if (asset.type === "video") return asset.thumbnailUrl ?? clip?.posterUrl;
+	return asset.url ?? asset.thumbnailUrl ?? clip?.posterUrl;
 }
 
 /** One library row for this clip: the new still, or the newest finished video. */

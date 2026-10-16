@@ -1,9 +1,9 @@
 "use client";
 
-import { characterLookPreviewSrc, type CharacterLookPart } from "@/service/character/character-look";
+import { characterLookPreviewSrc, type AnyCharacterLookPart } from "@/service/character/character-look";
 
 // Realistic Gemini preview for one look option.
-export function CharacterLookArt({ part, id }: { part: CharacterLookPart; id: string }) {
+export function CharacterLookArt({ part, id }: { part: AnyCharacterLookPart; id: string }) {
   const src = characterLookPreviewSrc(part, id);
   if (!src) return null;
   return (

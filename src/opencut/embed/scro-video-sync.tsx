@@ -455,22 +455,49 @@ export function ScroVideoSync() {
 			return { width: 1080, height: 1920 };
 		}
 
-		/** Swap a stretched 1×1 stand-in for the drawn waiting frame. */
+		/** Swap a stretched 1×1 stand-in or load newly finished stills/videos into Media & Timeline. */
 		async function upgradeStandIns(data: ScroVideosStateMessage) {
 			if (busy.current) return;
 			const scene = editor.scenes.getActiveScene();
+			const clipSources = readClipSources(data.videoId);
 			for (const clip of data.clips) {
-				if (clip.videoUrl || clip.posterUrl) continue;
+				const assets = editor.media.getAssets();
+				if (clip.videoUrl || clip.posterUrl) {
+					const reusable = findReusableClipAsset({
+						clip,
+						assets,
+						clipSources,
+					});
+					const existing = findScroElement(
+						scene.tracks.main.elements,
+						clip.clipNumber,
+						assets,
+						data.clips,
+					);
+					const needsTimelineSwap =
+						existing &&
+						(existing.type === "image" || existing.type === "video") &&
+						reusable &&
+						existing.mediaId !== reusable.id;
+					if (!reusable || needsTimelineSwap) {
+						await updateClip({
+							type: "scro-clip-updated",
+							videoId: data.videoId,
+							clip,
+						});
+					}
+					continue;
+				}
 				const existing = findScroElement(
 					scene.tracks.main.elements,
 					clip.clipNumber,
-					editor.media.getAssets(),
+					assets,
 					data.clips,
 				);
 				if (!existing || (existing.type !== "image" && existing.type !== "video")) {
 					continue;
 				}
-				const asset = editor.media.getAssets().find((item) => item.id === existing.mediaId);
+				const asset = assets.find((item) => item.id === existing.mediaId);
 				if (
 					asset?.scroPlaceholder &&
 					(asset.width ?? 0) > 16 &&
@@ -489,6 +516,11 @@ export function ScroVideoSync() {
 		async function updateClip(data: ScroClipUpdatedMessage) {
 			const project = editor.project.getActiveOrNull();
 			if (!project) return;
+			// Always ensure the finished still or video is registered in editor.media first
+			// so the Assets panel refreshes and reloads the preview image immediately,
+			// even if the timeline element was removed or is still a placeholder.
+			const created = await ensureMedia({ videoId: data.videoId, clip: data.clip });
+			if (!created) return;
 			const scene = editor.scenes.getActiveScene();
 			const existing = findScroElement(
 				scene.tracks.main.elements,
@@ -499,8 +531,6 @@ export function ScroVideoSync() {
 			if (!existing || (existing.type !== "video" && existing.type !== "image")) {
 				return;
 			}
-			const created = await ensureMedia({ videoId: data.videoId, clip: data.clip });
-			if (!created) return;
 			const startTime = existing.startTime;
 			if (existing.type === created.type) {
 				editor.timeline.updateElements({

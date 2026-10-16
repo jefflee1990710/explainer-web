@@ -63,13 +63,29 @@ export function videoKeyframeUrls(
 // Which completed still this frame must continue from. End always prefers
 // this clip's start; start prefers the previous clip's end, then this clip's
 // end (a start redo after the end already exists).
+// When `anchorToFirstClip` is true (locked-camera talking-head clips 2+), end
+// frames anchor to Clip 1's clean frame so multi-clip edits never suffer
+// multi-generation daisy-chain degradation across 8+ clips.
 export function clipFrameAnchor(
   frames: ClipFrame[] | undefined,
   clipNumber: number,
   position: FramePosition,
+  options?: { anchorToFirstClip?: boolean },
 ): { url: string; kind: FrameAnchorKind } | undefined {
   const rows = frames || [];
   if (position === "end") {
+    if (options?.anchorToFirstClip && clipNumber > 1) {
+      const clip1Start = rows.find(
+        (frame) => frame.clipNumber === 1 && frame.position === "start",
+      );
+      const clip1StartUrl = completedUrl(clip1Start);
+      if (clip1StartUrl) return { url: clip1StartUrl, kind: "clip-start" };
+      const clip1End = rows.find(
+        (frame) => frame.clipNumber === 1 && frame.position === "end",
+      );
+      const clip1EndUrl = completedUrl(clip1End);
+      if (clip1EndUrl) return { url: clip1EndUrl, kind: "clip-start" };
+    }
     const start = rows.find(
       (frame) => frame.clipNumber === clipNumber && frame.position === "start",
     );

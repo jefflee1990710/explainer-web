@@ -1,12 +1,48 @@
 // Picture picks for the character generator. Prompts stay in English for GPT Image.
 
 export const CHARACTER_LOOK_PARTS = ["hair", "face", "body", "pants", "shoes"] as const;
+export const CHARACTER_EXTRA_PARTS = ["top", "accessory", "expression"] as const;
+export const ALL_CHARACTER_LOOK_PARTS = [
+  ...CHARACTER_LOOK_PARTS,
+  ...CHARACTER_EXTRA_PARTS,
+] as const;
 
 export type CharacterLookPart = (typeof CHARACTER_LOOK_PARTS)[number];
+export type CharacterExtraPart = (typeof CHARACTER_EXTRA_PARTS)[number];
+export type AnyCharacterLookPart = (typeof ALL_CHARACTER_LOOK_PARTS)[number];
+
+export type CharacterExaggerationLevel = "1x" | "3x" | "10x";
+export type CharacterLookCategory = "all" | "extreme" | "stylized" | "classic";
 
 export type CharacterLookOption = {
   id: string;
   prompt: string;
+};
+
+export const CHARACTER_EXTRA_LOOKS: Record<CharacterExtraPart, readonly CharacterLookOption[]> = {
+  top: [
+    { id: "tee", prompt: "a fitted coral red-orange crew-neck t-shirt" },
+    { id: "hoodie", prompt: "an oversized streetwear hoodie in electric lime green" },
+    { id: "blazer", prompt: "a sharp tailored double-breasted blazer" },
+    { id: "puffer", prompt: "an impossibly huge inflated puffer jacket three times wider than the shoulders, like a giant lime-and-coral marshmallow" },
+    { id: "disco", prompt: "a blinding holographic sequin disco jacket with giant pointed shoulder pads wider than the head" },
+    { id: "fur", prompt: "an enormous neon monster faux-fur coat dragging on the floor" },
+  ],
+  accessory: [
+    { id: "none", prompt: "no accessories, bare head and hands" },
+    { id: "shades", prompt: "oversized neon lime shutter sunglasses twice as wide as the face" },
+    { id: "crown", prompt: "a tilted giant golden crown sitting on top of the head" },
+    { id: "fishbowl", prompt: "a transparent glass astronaut fishbowl helmet over the head with a tiny orange goldfish swimming inside" },
+    { id: "ramen", prompt: "a steaming ceramic ramen bowl balanced precariously on top of the head with chopsticks floating in the noodles" },
+    { id: "chain", prompt: "an absurdly thick cartoon-sized gold rope chain necklace with links as big as fists" },
+  ],
+  expression: [
+    { id: "neutral", prompt: "calm neutral expression looking straight into the lens" },
+    { id: "smirk", prompt: "a confident asymmetrical smirk with one eyebrow cocked high" },
+    { id: "jawdrop", prompt: "an extreme jaw-dropped shock expression with the mouth wide open and eyes popping in disbelief" },
+    { id: "eyeroll", prompt: "an exaggerated deadpan unimpressed eye-roll with half-lidded eyes" },
+    { id: "grin", prompt: "a manic ear-to-ear viral villain grin showing all teeth with wide gleaming eyes" },
+  ],
 };
 
 export const CHARACTER_LOOKS: Record<CharacterLookPart, readonly CharacterLookOption[]> = {
@@ -127,14 +163,20 @@ export const CHARACTER_LOOKS: Record<CharacterLookPart, readonly CharacterLookOp
   ],
 };
 
-export type CharacterLookSelection = Record<CharacterLookPart, string>;
+export type CharacterLookSelection = Record<CharacterLookPart, string> &
+  Partial<Record<CharacterExtraPart, string>> & {
+    exaggeration?: CharacterExaggerationLevel;
+  };
 
-const PART_LABEL: Record<CharacterLookPart, string> = {
+const PART_LABEL: Record<AnyCharacterLookPart, string> = {
   hair: "Hair",
   face: "Face",
   body: "Body",
+  top: "Top",
   pants: "Pants",
   shoes: "Shoes",
+  accessory: "Accessory",
+  expression: "Expression",
 };
 
 export function defaultCharacterLook(): CharacterLookSelection {
@@ -144,21 +186,32 @@ export function defaultCharacterLook(): CharacterLookSelection {
     body: CHARACTER_LOOKS.body[0].id,
     pants: CHARACTER_LOOKS.pants[0].id,
     shoes: CHARACTER_LOOKS.shoes[0].id,
+    top: CHARACTER_EXTRA_LOOKS.top[0].id,
+    accessory: CHARACTER_EXTRA_LOOKS.accessory[0].id,
+    expression: CHARACTER_EXTRA_LOOKS.expression[0].id,
+    exaggeration: "1x",
   };
 }
 
-export function isCharacterLookId(part: CharacterLookPart, id: string) {
-  return CHARACTER_LOOKS[part].some((option) => option.id === id);
+export function optionsForLookPart(part: AnyCharacterLookPart): readonly CharacterLookOption[] {
+  if (part in CHARACTER_LOOKS) {
+    return CHARACTER_LOOKS[part as CharacterLookPart];
+  }
+  return CHARACTER_EXTRA_LOOKS[part as CharacterExtraPart];
 }
 
-export function characterLookOption(part: CharacterLookPart, id: string) {
-  return CHARACTER_LOOKS[part].find((option) => option.id === id);
+export function isCharacterLookId(part: AnyCharacterLookPart, id: string) {
+  return optionsForLookPart(part).some((option) => option.id === id);
+}
+
+export function characterLookOption(part: AnyCharacterLookPart, id: string) {
+  return optionsForLookPart(part).find((option) => option.id === id);
 }
 
 // Public file for the Gemini preview of one option.
-export function characterLookPreviewSrc(part: CharacterLookPart, id: string) {
+export function characterLookPreviewSrc(part: AnyCharacterLookPart, id: string) {
   if (!isCharacterLookId(part, id)) return "";
-  return `/character-looks/${part}-${id}.webp?v=3`;
+  return `/character-looks/${part}-${id}.webp?v=4`;
 }
 
 const EXAGGERATED_HAIR = new Set(["tower", "spikes", "cloud", "drills", "fountain", "horns"]);
@@ -187,6 +240,139 @@ const VARIETY_BODY = new Set(["short", "tall", "heavy", "skinny", "woman", "man"
 const EXAGGERATED_BODY = new Set(["strong", "giant", "beanpole", "hulk", "sumo", "corset", "muscle", "wedge"]);
 const EXAGGERATED_PANTS = new Set(["balloon", "puddle", "micro"]);
 const EXAGGERATED_SHOES = new Set(["clown", "towers", "pebble"]);
+const EXAGGERATED_TOP = new Set(["puffer", "disco", "fur"]);
+const EXAGGERATED_ACCESSORY = new Set(["shades", "fishbowl", "ramen", "chain"]);
+const EXAGGERATED_EXPRESSION = new Set(["jawdrop", "eyeroll", "grin"]);
+
+export function isExaggeratedLookOption(part: AnyCharacterLookPart, id: string): boolean {
+  switch (part) {
+    case "hair":
+      return EXAGGERATED_HAIR.has(id);
+    case "face":
+      return EXAGGERATED_FACE.has(id);
+    case "body":
+      return EXAGGERATED_BODY.has(id) || id === "short" || id === "tall";
+    case "pants":
+      return EXAGGERATED_PANTS.has(id);
+    case "shoes":
+      return EXAGGERATED_SHOES.has(id);
+    case "top":
+      return EXAGGERATED_TOP.has(id);
+    case "accessory":
+      return EXAGGERATED_ACCESSORY.has(id);
+    case "expression":
+      return EXAGGERATED_EXPRESSION.has(id);
+  }
+}
+
+export function lookOptionCategory(part: AnyCharacterLookPart, id: string): Exclude<CharacterLookCategory, "all"> {
+  if (isExaggeratedLookOption(part, id)) return "extreme";
+  if (
+    (part === "hair" && FULL_HAIR.has(id)) ||
+    (part === "face" && (FEATURE_FACE.has(id) || REGION_FACE.has(id))) ||
+    (part === "body" && VARIETY_BODY.has(id)) ||
+    (part === "pants" && ["bells", "baggy", "hakama", "salwar", "lederhosen", "baji"].includes(id)) ||
+    (part === "shoes" && ["platforms", "tstrap", "hightops", "geta", "cowboy", "clogs", "brogues"].includes(id)) ||
+    (part === "top" && ["hoodie", "blazer"].includes(id)) ||
+    (part === "accessory" && id === "crown") ||
+    (part === "expression" && id === "smirk")
+  ) {
+    return "stylized";
+  }
+  return "classic";
+}
+
+export type ViralCharacterPreset = {
+  id: string;
+  selection: CharacterLookSelection;
+};
+
+export const CHARACTER_VIRAL_PRESETS: readonly ViralCharacterPreset[] = [
+  {
+    id: "skyscraperDiva",
+    selection: {
+      hair: "tower",
+      face: "balloon",
+      body: "corset",
+      top: "disco",
+      pants: "bells",
+      shoes: "towers",
+      accessory: "shades",
+      expression: "smirk",
+      exaggeration: "10x",
+    },
+  },
+  {
+    id: "muscleTitan",
+    selection: {
+      hair: "spikes",
+      face: "square",
+      body: "wedge",
+      top: "puffer",
+      pants: "micro",
+      shoes: "boots",
+      accessory: "chain",
+      expression: "grin",
+      exaggeration: "10x",
+    },
+  },
+  {
+    id: "bugeyeHype",
+    selection: {
+      hair: "cloud",
+      face: "bugeyes",
+      body: "short",
+      top: "hoodie",
+      pants: "balloon",
+      shoes: "clown",
+      accessory: "fishbowl",
+      expression: "jawdrop",
+      exaggeration: "10x",
+    },
+  },
+  {
+    id: "ramenGremlin",
+    selection: {
+      hair: "horns",
+      face: "dumbo",
+      body: "beanpole",
+      top: "fur",
+      pants: "puddle",
+      shoes: "pebble",
+      accessory: "ramen",
+      expression: "eyeroll",
+      exaggeration: "3x",
+    },
+  },
+];
+
+export function randomizeCharacterLook(
+  current: CharacterLookSelection,
+  options: {
+    locked?: Partial<Record<AnyCharacterLookPart, boolean>>;
+    extremeOnly?: boolean;
+    rand?: () => number;
+  } = {},
+): CharacterLookSelection {
+  const rng = options.rand ?? Math.random;
+  const next: CharacterLookSelection = {
+    ...current,
+    exaggeration: options.extremeOnly ? "10x" : current.exaggeration ?? "3x",
+  };
+  for (const part of ALL_CHARACTER_LOOK_PARTS) {
+    if (options.locked?.[part]) continue;
+    const all = optionsForLookPart(part);
+    const pool = options.extremeOnly
+      ? all.filter((item) => isExaggeratedLookOption(part, item.id))
+      : all;
+    const candidates = pool.length > 0 ? pool : all;
+    const picked = candidates[Math.floor(rng() * candidates.length)] ?? candidates[0];
+    if (picked) {
+      (next as Record<string, string>)[part] = picked.id;
+    }
+  }
+  return next;
+}
 
 // Body, pants, and shoes: ordinary options stay plain. Extremes must not be tamed.
 function bodyPreview(id: string, prompt: string) {
@@ -202,7 +388,7 @@ function bodyPreview(id: string, prompt: string) {
   if (EXAGGERATED_BODY.has(id)) {
     return [
       "Subject: one full standing person, front view, feet visible, arms hanging at the sides.",
-      "Plain grey clothes.",
+      "Vibrant coral red-orange t-shirt and deep ink-black pants with electric lime trim.",
       `The body is physically impossible and extremely exaggerated: ${prompt}.`,
       "Do not tame it into a normal body.",
       "A real photograph of an impossible body, not a cartoon drawing.",
@@ -211,14 +397,14 @@ function bodyPreview(id: string, prompt: string) {
   if (VARIETY_BODY.has(id)) {
     return [
       "Subject: one full standing person, front view, arms at the sides, feet visible.",
-      "Plain light grey t-shirt, dark navy pants, simple dark shoes. Neutral face, not the subject.",
+      "Vibrant coral red-orange t-shirt, deep ink-black pants, electric lime shoes. Neutral face, not the subject.",
       `The build must match exactly: ${prompt}.`,
       "Leave empty background where needed so the unusual height or width stays obvious. Do not zoom into a normal crop.",
     ].join(" ");
   }
   return [
     "Subject: one full standing person, front view, arms at the sides, feet visible.",
-    "Same plain outfit every time: light grey t-shirt, dark navy straight pants, simple dark shoes.",
+    "Same vibrant outfit every time: coral red-orange t-shirt, deep ink-black straight pants, electric lime shoes.",
     "Face is a simple neutral oval with short brown hair. Do not make the face the subject.",
     `Only the body build changes: ${prompt}.`,
     "The height and width of the body must be obvious.",
@@ -298,17 +484,17 @@ function facePreview(id: string, prompt: string) {
 
 const PREVIEW_FRAME = [
   "Photorealistic studio photograph, 1:1.",
-  "Plain light grey seamless background.",
-  "Centered subject, sharp focus, natural skin, hair, and fabric texture.",
+  "Vibrant colorful studio backdrop in the Scro brand color scheme: warm cream and electric lime green (#c6f24b) gradient with a punchy coral red-orange (#ff4d2e) rim accent and deep ink-black (#12141c) shadow contrast.",
+  "Centered subject, sharp focus, vivid color, natural skin, hair, and fabric texture.",
   "Real photograph. Not an illustration, not a cartoon, not a drawing, not 3D.",
   "No text, no letters, no numbers, no watermark, no border.",
 ].join(" ");
 
 // Isolated picture of one option, so the picker shows that part and nothing else.
-export function characterLookPreviewPrompt(part: CharacterLookPart, id: string) {
+export function characterLookPreviewPrompt(part: AnyCharacterLookPart, id: string) {
   const option = characterLookOption(part, id);
   if (!option) throw new Error(`Unknown ${part} look: ${id}`);
-  const subject: Record<CharacterLookPart, string> = {
+  const subject: Record<AnyCharacterLookPart, string> = {
     hair: EXAGGERATED_HAIR.has(id)
       ? [
           "Subject: one head, front view, facing the camera, light warm skin, neutral expression.",
@@ -334,11 +520,32 @@ export function characterLookPreviewPrompt(part: CharacterLookPart, id: string) 
         ].join(" "),
     face: facePreview(id, option.prompt),
     body: bodyPreview(id, option.prompt),
+    top: [
+      "Subject: only the upper-body top garment on an invisible mannequin, front view.",
+      `The garment is: ${option.prompt}.`,
+      "No head, no pants, no shoes. Centered and filling the frame.",
+    ].join(" "),
     pants: pantsPreview(id, option.prompt),
     shoes: shoesPreview(id, option.prompt),
+    accessory: [
+      "Subject: one head and shoulders mannequin wearing or holding the signature prop, front view.",
+      `The signature prop/accessory is: ${option.prompt}.`,
+      "Make the accessory huge, vivid, and unmistakable.",
+    ].join(" "),
+    expression: [
+      "Subject: one head, front view, facing the camera, short hair.",
+      `The facial expression is extremely vivid and exaggerated: ${option.prompt}.`,
+      "Do not tame it into a polite smile.",
+    ].join(" "),
   };
   return `${PREVIEW_FRAME} ${subject[part]}`;
 }
+
+const EXAGGERATION_PROMPT: Record<CharacterExaggerationLevel, string> = {
+  "1x": "",
+  "3x": "Exaggeration level 3x (Viral Streetwear Caricature): push the silhouette, contrast, and proportions 3x bolder than an ordinary person so the character grabs attention immediately.",
+  "10x": "Exaggeration level 10x (Scroll-Stopping Fever Dream): push every selected proportion to an extreme, physically impossible, viral show-stopping scale with bold 12mm wide-angle presence — never tame or normalize the silhouette.",
+};
 
 // One description for the blueprint. Every selected part is named so GPT Image keeps the combination.
 export function characterLookPrompt(selection: CharacterLookSelection) {
@@ -347,6 +554,18 @@ export function characterLookPrompt(selection: CharacterLookSelection) {
     if (!option) throw new Error(`Unknown ${part} look: ${selection[part]}`);
     return `${PART_LABEL[part]}: ${option.prompt}.`;
   });
+  for (const part of CHARACTER_EXTRA_PARTS) {
+    const id = selection[part];
+    if (!id) continue;
+    // Skip default neutral/none extras so legacy callers stay unchanged unless chosen.
+    if ((part === "top" && id === "tee") || (part === "accessory" && id === "none") || (part === "expression" && id === "neutral")) {
+      continue;
+    }
+    const option = CHARACTER_EXTRA_LOOKS[part].find((item) => item.id === id);
+    if (option) lines.push(`${PART_LABEL[part]}: ${option.prompt}.`);
+  }
+  const ex = selection.exaggeration && selection.exaggeration !== "1x" ? EXAGGERATION_PROMPT[selection.exaggeration] : "";
+  if (ex) lines.push(ex);
   lines.push(
     "Draw this exact combination on one character. Do not swap the hair, face shape, build, pants, or shoes.",
   );
@@ -357,7 +576,7 @@ export function characterLookPrompt(selection: CharacterLookSelection) {
 export function characterPoseSheetPrompt(selection: CharacterLookSelection) {
   return [
     "Photorealistic character sheet on one square canvas, two rows of four full-body figures.",
-    "Same person in every figure: same face, hair, build, pants, and shoes. Even studio light. Plain light grey seamless background.",
+    "Same person in every figure: same face, hair, build, pants, and shoes. Vibrant studio lighting with a warm cream and electric lime green (#c6f24b) backdrop and subtle coral red-orange (#ff4d2e) accent rim light.",
     "Top row, left to right, standing still with arms relaxed: front view, left side, back view, right side.",
     "Bottom row, left to right, four different poses of that same person: walking toward the camera mid-step, both arms stretched straight overhead, hands on hips with weight on one leg, and a deep squat with both feet flat.",
     "Every figure is full body, head to shoes, with space between them. Do not repeat the standing turnaround on the bottom row.",
