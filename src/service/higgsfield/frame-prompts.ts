@@ -192,10 +192,10 @@ function compositionLockLines(
   if (tightLock) {
     return [
       `COMPOSITION LOCK: ${source}.`,
-      "Keep the same camera, crop, distance, set, lighting, character size, and screen position.",
-      "Do not zoom, reframe, or move the character to a new spot. No jump.",
+      "Keep the same camera, crop, distance, set, lighting, and character identity.",
+      "Do not zoom or reframe the camera. No jump.",
       "Preserve the attached frame's exact exposure, contrast, color grade, skin smoothness, hair texture, and film grain — do NOT add extra grain, extra sharpening, extra contrast, extra blush, or extra rim-light glare on top of it.",
-      "Only small changes from the Scene: the mouth, a few degrees of the head, the free hand, and the subtitle. A handheld prop stays in the same hand.",
+      "Apply the new pose from the Scene clearly: change the head angle and head position (turned, tilted, nodded, or lifted as described), the eyeline (looking at the lens or glancing aside/down in thought as described), the seated torso posture (leaning forward, leaning back, or shifting slightly on the seat), the mouth and facial expression, the gesturing hands, and the subtitle. Do not freeze the head in the previous frame's angle. A handheld prop stays in the same hand.",
     ];
   }
   if (followMotion) {

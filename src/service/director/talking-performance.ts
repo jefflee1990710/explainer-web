@@ -38,7 +38,7 @@ export const TALKING_FACE_LOCK = talkingFaceLock(DEFAULT_PERFORMANCE.face.en);
 
 function talkingBodyRules(shot: TalkingShot, perf: PerformanceSlots) {
   const anchored = hasAnchorProp(perf);
-  const head = `Head keeps moving: ${perf.headMotion}. Never look away from the lens.`;
+  const head = `Head and eyeline keep moving: ${perf.headMotion}. Mostly looking into the lens, with natural brief glances slightly aside or down at the gesturing hands when thinking or transitioning between clauses before locking eyes back onto the lens.`;
   const hands = anchored
     ? [
         `One hand holds ${perf.anchorProp} the whole time. That hand barely moves and never swaps hands. Never a greeting wave. Never a finger jab at the lens.`,
@@ -49,14 +49,14 @@ function talkingBodyRules(shot: TalkingShot, perf: PerformanceSlots) {
     return [
       head,
       hands,
-      "Whole body keeps moving: weight shifts hip to hip, a slight torso sway, one knee soft. Feet stay in frame. Not marching, not standing at attention.",
+      "Whole body keeps moving: weight shifts hip to hip, torso angles slightly left or right, a small step or lean forward on a key point, one knee soft. Feet stay in frame. Not marching, not standing at attention.",
     ].join(" ");
   }
   return [
-    "The character stays seated.",
+    "The character stays seated, shifting seated weight and posture naturally across beats.",
     hands,
     head,
-    "Upper body keeps moving: a small lean in on the key point, then settle back into the seat. Do not freeze the neck and shoulders. Do not stand up.",
+    "Upper body and sitting position keep moving: leaning forward toward the lens on a key point, settling back into the sofa cushion, or shifting torso weight slightly left or right on the seat. Do not freeze the neck, head angle, or shoulders in one spot. Do not stand up.",
   ].join(" ");
 }
 
@@ -101,12 +101,14 @@ function leadHand(clipNumber?: number) {
 }
 
 function clipHeadMotionEn(clipNumber: number | undefined, baseHeadMotion: string) {
-  const variant = ((clipNumber ?? 1) - 1) % 4;
+  const variant = ((clipNumber ?? 1) - 1) % 6;
   const beats = [
-    `tilting slightly to the left and nodding on the stressed words (${baseHeadMotion})`,
-    `turning a few degrees to the right with a small forward lean on the key point (${baseHeadMotion})`,
-    `lifting the chin then giving a clear affirmative nod upright toward the lens (${baseHeadMotion})`,
-    `swaying gently from right to left with an expressive head tilt and brow lift (${baseHeadMotion})`,
+    `leaning forward slightly on the seat, tilting the head to the left and nodding on the stressed words (${baseHeadMotion})`,
+    `glancing briefly off to the upper-right in thought for half a second before turning the head back to lock eyes on the lens, shifting seated weight slightly to the right (${baseHeadMotion})`,
+    `settling back into the sofa cushion with a relaxed shoulder shrug, head tilting noticeably to the right as both hands open (${baseHeadMotion})`,
+    `angling the torso into a three-quarter posture, glancing down briefly at the gesturing hands before lifting the chin and smiling back at the lens (${baseHeadMotion})`,
+    `shifting seated position slightly to the left side of the cushion, turning the head 15 degrees left with a lively brow lift then nodding toward the lens (${baseHeadMotion})`,
+    `leaning in closer toward the camera as if confiding in a friend, head upright with a warm nod and expressive eyes (${baseHeadMotion})`,
   ];
   return beats[variant];
 }
@@ -120,39 +122,47 @@ function clipCloseLandingEn(
   other: string,
   anchorProp: string,
 ) {
-  const variant = ((clipNumber ?? 1) - 1) % 4;
+  const variant = ((clipNumber ?? 1) - 1) % 6;
   const closeFaces = [
-    "the mouth closes into a small real smile, eyebrows relaxed, head tilted a few degrees to the left",
-    "the mouth closes into an engaged warm smile, eyebrows softly lifted, head tilted a few degrees to the right",
-    "the mouth closes into a lively half-smile, head upright and leaning slightly forward toward the lens",
-    "the mouth closes into a warm knowing smile, chin slightly lifted and head turned a few degrees to the side",
+    "the mouth closes into a small real smile, eyebrows relaxed, head tilted noticeably to the left while leaning slightly forward on the seat, eyes on the lens",
+    "the mouth closes into a thoughtful half-smile, head turned about 15 degrees to the right with eyes glancing briefly off-camera to the side in thought",
+    "the mouth closes into an engaged warm smile, torso settled back into the sofa with shoulders relaxed and head tilted to the right, eyes on the lens",
+    "the mouth closes into a lively knowing smile, torso angled slightly three-quarter with chin lifted and head turned slightly left, eyes glancing down toward the hands",
+    "the mouth closes into a confident smile, eyebrows softly lifted, seated weight shifted slightly to the left with head upright and leaning in toward the lens",
+    "the mouth closes into a warm conversational smile, head tilted to the left with a soft nod, eyes locked on the lens",
   ];
   const closeFace = last ? `the mouth closes into ${ctaBeat}` : closeFaces[variant];
   if (anchored) {
     const anchoredHands = [
-      `the ${hand} hand still holding ${anchorProp}, the ${other} hand eases open-palm at chest height, the body stays in the same place on screen`,
-      `the ${hand} hand still holding ${anchorProp}, the ${other} hand settles at chest height with fingers slightly spread, the body stays in the same place on screen`,
-      `the ${hand} hand still holding ${anchorProp}, the ${other} hand holds a light index-finger gesture at chest height, the body stays in the same place on screen`,
-      `the ${hand} hand still holding ${anchorProp}, the ${other} hand relaxes near mid-chest, the body stays in the same place on screen`,
+      `the ${hand} hand still holding ${anchorProp}, the ${other} hand eases open-palm at chest height, the body stays in the frame`,
+      `the ${hand} hand still holding ${anchorProp}, the ${other} hand touches lightly near the chin in a thinking gesture, the body shifted slightly right on the seat`,
+      `the ${hand} hand still holding ${anchorProp}, the ${other} hand settles at chest height with fingers spread in a shrug, torso settled back`,
+      `the ${hand} hand still holding ${anchorProp}, the ${other} hand holds a light index-finger gesture at chest height, torso angled slightly`,
+      `the ${hand} hand still holding ${anchorProp}, the ${other} hand counts two fingers at chest height, seated weight shifted slightly left`,
+      `the ${hand} hand still holding ${anchorProp}, the ${other} hand rests lightly against the chest, leaning slightly toward the lens`,
     ];
     return { closeFace, closeBeat: anchoredHands[variant] };
   }
   const unanchoredHands = [
-    `the ${other} hand settles open-palm at chest height while the ${hand} hand rests low, the body stays in the same place on screen`,
-    `the ${other} hand stays raised at chest height with fingers spread while the ${hand} hand lowers, the body stays in the same place on screen`,
-    `both hands settle lightly at lower-chest height in an open conversational posture, the body stays in the same place on screen`,
-    `the ${hand} hand settles at chest height in a relaxed gesture while the ${other} hand rests low, the body stays in the same place on screen`,
+    `the ${other} hand settles open-palm at chest height while the ${hand} hand rests on the lap, leaning slightly forward`,
+    `the ${hand} hand rises lightly near the chin in a thoughtful pose while the ${other} hand lowers to the lap, torso shifted slightly right on the sofa`,
+    `both hands open wide at chest height in a relaxed two-handed shrug while the torso leans back into the sofa cushion`,
+    `the ${other} hand gestures at chest height while the ${hand} hand rests near the waist, torso angled slightly three-quarter`,
+    `the ${hand} hand holds up two fingers at chest height in a counting gesture while the ${other} hand rests on the lap, seated weight shifted slightly left`,
+    `one hand rests lightly against mid-chest while the other hand offers an open palm toward the lens, leaning in closer`,
   ];
   return { closeFace, closeBeat: unanchoredHands[variant] };
 }
 
 function clipHeadMotionYue(clipNumber: number | undefined, baseHeadMotion: string) {
-  const variant = ((clipNumber ?? 1) - 1) % 4;
+  const variant = ((clipNumber ?? 1) - 1) % 6;
   const beats = [
-    `頭向左微傾同喺重音位點頭（${baseHeadMotion}）`,
-    `頭向右微轉幾度同講到重點時微微前傾（${baseHeadMotion}）`,
-    `下巴微抬再向鏡頭清楚點頭強調（${baseHeadMotion}）`,
-    `頭由右向左輕輕擺動、歪頭挑眉（${baseHeadMotion}）`,
+    `坐姿微微前傾、頭向左明顯微傾同喺重音位點頭（${baseHeadMotion}）`,
+    `眼神自然望一望右上側邊思考半秒再轉返頭直望鏡頭，坐姿重心微微移去沙發右邊（${baseHeadMotion}）`,
+    `上身放鬆靠返後沙發背、聳一聳肩，頭向右邊傾斜、雙手自然攤開（${baseHeadMotion}）`,
+    `上身微轉成三七面角度，低頭望一望比畫緊嘅雙手再抬起下巴對鏡頭微笑（${baseHeadMotion}）`,
+    `坐姿重心微移去沙發左邊，頭向左轉約 15 度挑眉再向鏡頭點頭（${baseHeadMotion}）`,
+    `上身明顯向前傾靠近鏡頭好似同朋友講秘密，頭擺正溫柔點頭（${baseHeadMotion}）`,
   ];
   return beats[variant];
 }
@@ -166,25 +176,29 @@ function clipCloseLandingYue(
   zhOther: string,
   anchorProp: string,
 ) {
-  const variant = ((clipNumber ?? 1) - 1) % 4;
+  const variant = ((clipNumber ?? 1) - 1) % 6;
   const closeFaces = [
-    "口部合上變成自然淺笑，眉毛放鬆，頭向左邊微傾幾度",
-    "口部合上變成有神嘅淺笑，眉毛微揚，頭向右邊傾幾度",
-    "口部合上變成親切笑容，頭擺正微微前傾望住鏡頭",
-    "口部合上帶住自信淺笑，下巴微抬、頭微轉幾度",
+    "口部合上變成自然淺笑，眉毛放鬆，上身微微前傾、頭明顯向左邊傾幾度，望住鏡頭",
+    "口部合上帶住思考嘅淺笑，頭向右轉約 15 度、眼神自然望向畫面側邊思考緊",
+    "口部合上變成有神嘅淺笑，上身放鬆靠返沙發背、頭向右邊傾斜，望住鏡頭",
+    "口部合上變成親切笑容，上身微側成三七面、下巴微抬，眼神望一望手勢",
+    "口部合上帶住自信微笑，坐姿重心微移去左邊、頭擺正微微前傾望住鏡頭",
+    "口部合上變成溫柔淺笑，頭向左微傾點頭，直望鏡頭",
   ];
   const closeFace = last ? `口部合上變成${ctaBeat}` : closeFaces[variant];
   if (anchored) {
     return {
       closeFace,
-      closeBeat: `${anchorProp}仍然喺${zhHand}，${zhOther}停喺胸前，身體留喺畫面同一個位置`,
+      closeBeat: `${anchorProp}仍然喺${zhHand}，${zhOther}停喺胸前，身體留喺畫面入面`,
     };
   }
   const unanchoredHands = [
-    `${zhOther}掌心打開停喺胸前、${zhHand}自然放低，身體留喺畫面同一個位置`,
-    `${zhOther}喺胸前微張手指停住、${zhHand}放返低，身體留喺畫面同一個位置`,
-    `兩隻手一齊自然停喺胸前位置，身體留喺畫面同一個位置`,
-    `${zhHand}停喺胸前自然手勢、${zhOther}放低，身體留喺畫面同一個位置`,
+    `${zhOther}掌心打開停喺胸前、${zhHand}自然放喺大髀，上身微微前傾`,
+    `${zhHand}輕輕舉到下巴旁邊做思考手勢、${zhOther}放返落大髀，坐姿微移去右邊`,
+    `兩隻手喺胸前自然攤開聳肩，上身放鬆靠後沙發背`,
+    `${zhOther}喺胸前做手勢、${zhHand}放低，上身微側成三七面`,
+    `${zhHand}喺胸前豎起兩隻手指數數、${zhOther}放喺大髀，坐姿重心微移去左邊`,
+    `一隻手輕撫心口、另一隻手掌心向鏡頭遞出，上身向前傾近鏡頭`,
   ];
   return { closeFace, closeBeat: unanchoredHands[variant] };
 }
