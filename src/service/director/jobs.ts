@@ -137,8 +137,6 @@ export async function runPhaseAJob(
         $set: {
           phaseA: nextPhaseA,
           subtitleOverlay,
-          // Skip the old 核准分鏡 gate — frames and videos start from 製作.
-          status: "production",
           updatedAt: new Date(),
         },
         $unset: { error: "", autoVideoClips: "" },
@@ -162,6 +160,17 @@ export async function runPhaseAJob(
         console.error("[frames] auto enqueue failed", { projectId, error });
       });
     }
+    // Flip to production after locks and initial frame jobs are queued so the
+    // client poller immediately sees in-flight locks/frames and never stops early.
+    await projects.updateOne(
+      { _id: projectId },
+      {
+        $set: {
+          status: "production",
+          updatedAt: new Date(),
+        },
+      },
+    );
   } catch (error) {
     await projects.updateOne(
       { _id: projectId },

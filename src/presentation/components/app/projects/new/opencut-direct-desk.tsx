@@ -498,8 +498,11 @@ export function OpenCutDirectDesk({
 
   // Once per desk session: queue missing start stills only. Videos wait for a click.
   useEffect(() => {
+    if (!project.phaseA?.clips?.length) {
+      didAutoPlanRef.current = false;
+      return;
+    }
     if (didAutoPlanRef.current) return;
-    if (!project.phaseA?.clips?.length) return;
     const frames = planRemaining(project).frames;
     if (frames.length === 0) {
       didAutoPlanRef.current = true;

@@ -310,6 +310,15 @@ export function NewProjectForm({
     const current = projectRef.current;
     const merged = !current || current.id !== next.id ? next : mergePolledProject(current, next);
     if (current && current.id === merged.id) {
+      const phaseALanded = current.status === "phase_a" && merged.status !== "phase_a";
+      const framesQueued = (current.frames?.length ?? 0) !== (merged.frames?.length ?? 0);
+      const locksChanged =
+        Boolean(current.objectSheetUrl) !== Boolean(merged.objectSheetUrl) ||
+        (current.backgroundPlates || []).filter((p) => Boolean(p.url)).length !==
+          (merged.backgroundPlates || []).filter((p) => Boolean(p.url)).length;
+      if (phaseALanded || framesQueued || locksChanged) {
+        settledRef.current = true;
+      }
       const settled = generationTransitions(current, merged);
       if (settled.length > 0) {
         settledRef.current = true;
