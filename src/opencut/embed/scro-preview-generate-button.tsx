@@ -61,7 +61,8 @@ export function ScroPreviewGenerateButton({ scene }: { scene: PreviewSceneBox })
 		>
 			<Button
 				size="lg"
-				className="pointer-events-auto shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
+				// Translucent so the still underneath stays visible.
+				className="pointer-events-auto border border-white/40 bg-black/30 text-white backdrop-blur-sm hover:bg-black/45"
 				onPointerDown={(event) => event.stopPropagation()}
 				onClick={(event) => {
 					event.stopPropagation();
