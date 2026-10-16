@@ -239,7 +239,7 @@ test("cinematic realistic sends Seedance 2.0 with both frames", () => {
   );
 });
 
-test("Seedance omits the end image when the clip sends the start still only", () => {
+test("Seedance and MiniMax H3 omit the end image when the clip sends the start still only", () => {
   const input = seedanceClipVideoInput({
     prompt: "glide the card over",
     durationSeconds: 5,
@@ -247,6 +247,14 @@ test("Seedance omits the end image when the clip sends the start still only", ()
   });
   assert.equal(input.image_url, "https://blob/start.png");
   assert.equal("end_image_url" in input, false);
+  const h3 = h3ClipVideoInput({
+    prompt: "slide cardboard card in from right",
+    aspectRatio: "9:16",
+    durationSeconds: 5,
+    startImageUrl: "https://blob/start.png",
+  });
+  assert.equal(h3.image_url, "https://blob/start.png");
+  assert.equal("end_image_url" in h3, false);
   assert.doesNotThrow(() =>
     assertClipKeyframes(
       [frame("start", { blobUrl: "https://blob/start.png" })],

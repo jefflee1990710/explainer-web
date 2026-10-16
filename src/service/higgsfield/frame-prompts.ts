@@ -33,7 +33,7 @@ import {
   isDualBeatSkill,
   joinVoBeats,
 } from "@/service/director/dual-beat";
-import { usesSteadyStills } from "@/service/director/steady-stills";
+import { clipSkipsEndStill, usesSteadyStills } from "@/service/director/steady-stills";
 import {
   cameraChangesAngle,
   endFrameCameraLine,
@@ -1004,8 +1004,8 @@ export function framesWithClip(
 ): ClipFrame[] {
   const others = (project.frames || []).filter((frame) => frame.clipNumber !== clipNumber);
   const submittedAt = new Date().toISOString();
-  // Cinematic realistic whiteboard draws the start still only. The end scene stays text.
-  const positions: FramePosition[] = usesSteadyStills(project.skillSlug, style ?? { id: project.styleId })
+  // Only talking-head directors draw an end still; all other directors draw the start still only.
+  const positions: FramePosition[] = clipSkipsEndStill(project)
     ? ["start"]
     : ["start", "end"];
   const own = positions.map((position) => ({

@@ -146,7 +146,8 @@ export function h3ClipVideoInput(input: {
   aspectRatio: AspectRatio;
   durationSeconds: number;
   startImageUrl: string;
-  endImageUrl: string;
+  // Omitted for start-only directors: the end scene stays text, not a frame.
+  endImageUrl?: string;
 }) {
   return {
     prompt: input.prompt,
@@ -154,7 +155,7 @@ export function h3ClipVideoInput(input: {
     duration: h3DurationSeconds(input.durationSeconds),
     resolution: "2K" as const,
     image_url: input.startImageUrl,
-    end_image_url: input.endImageUrl,
+    ...(input.endImageUrl ? { end_image_url: input.endImageUrl } : {}),
     aigc_watermark: false,
   };
 }

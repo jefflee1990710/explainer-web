@@ -223,17 +223,11 @@ export async function submitClipVideo(input: {
 
   const client = assertHiggsfieldConfigured();
   const model = clipVideoModel(input.styleId);
-  // Cinematic realistic is Seedance 2.0 and may omit the end image. H3 still needs both.
+  // Start-only directors omit the end image; talking-head directors send both frames.
   const body =
     model === SEEDANCE_2_VIDEO_MODEL
       ? seedanceClipVideoInput(input)
-      : h3ClipVideoInput({
-          ...input,
-          endImageUrl: input.endImageUrl || "",
-        });
-  if (model !== SEEDANCE_2_VIDEO_MODEL && !input.endImageUrl) {
-    throw new Error("這段的起點或終點畫格還沒有檔案，無法產片");
-  }
+      : h3ClipVideoInput(input);
   return client.subscribe(model, {
     input: body,
     withPolling: false,

@@ -1,6 +1,6 @@
 import { generateText, Output } from "ai";
 import { DUAL_KEYFRAME_GLIDE_RULES, DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
-import { usesSteadyStills } from "@/service/director/steady-stills";
+import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { PHASE_B_DETAIL_RULES } from "@/service/director/scene-detail";
 import {
@@ -69,7 +69,7 @@ type PhaseBInput = {
 
 // Shared director contract for video prompts (batch and per-clip).
 function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageSublabel: string) {
-  const steady = usesSteadyStills(input.skill.slug, input.style);
+  const steady = clipSkipsEndStill({ skillSlug: input.skill.slug, styleId: input.style.id });
   return `${skillPromptForPhaseB(input.skill, input.style)}
 
 You are executing Phase B only after explicit approval of the current Phase A.
@@ -131,8 +131,8 @@ export async function runPhaseBForClip(
 ): Promise<PhaseBPrompt> {
   const language = LANGUAGE_PRESETS[input.language || "en"];
   const talkingHead = isTalkingHeadSkill(input.skill.slug);
-  // Cinematic realistic whiteboard: one glide, fixed lettering, locked camera.
-  const steady = usesSteadyStills(input.skill.slug, input.style);
+  // All non-talking-head directors generate video from the start still + camera motion only.
+  const steady = clipSkipsEndStill({ skillSlug: input.skill.slug, styleId: input.style.id });
   let output = talkingHead
     ? talkingHeadPhaseBPrompt({
         phaseA: input.phaseA,

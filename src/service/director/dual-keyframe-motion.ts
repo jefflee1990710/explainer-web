@@ -20,6 +20,8 @@ export const DUAL_KEYFRAME_GLIDE_RULES = [
   "Never call that still a reference image.",
   "Reply with the start scene and the camera motion. endScene is where this clip's one action lands: write that landing into the motion. Do not ask the video to match a second picture.",
   "Play the action across the whole duration (see the clip's durationSeconds) with a rhythm: it starts, accelerates through the change, then decelerates into the landing. The middle of the move is sharp and quick. The opening and the landing are slower. Show every in-between pose of the body, the hands, and the moved element.",
-  "Write that speed into the verbs (accelerates, drives through, eases out). Do not stretch the move as one slow constant glide. Never skip a frame and never cut. No hold-then-jump.",
+  "Whiteboard cardboard physics: every prop, card, diagram block, arrow, and tag moves as a single rigid flat cardboard/paper cutout piece in one piece. Elements slide cleanly in and out of the screen (from or to the frame edges) or snap into place without bending, melting, dissolving, or morphing into another shape. Background and set layers stay rigid and never warp, melt, or transform.",
+  "When the camera pushes in or pulls out (zooms out), use a clean multi-plane parallax zoom-out / push-in effect where rigid foreground, midground, and background cutout planes shift depth cleanly without background warping or focal-length distortion.",
+  "Write that speed into the verbs (accelerates, drives through, slides in, slides out, eases out). Do not stretch the move as one slow constant glide. Never skip a frame and never cut. No hold-then-jump.",
   "The camera follows motionCamera. The lettering painted on the start image stays fixed for the whole clip: no wipe and no new words. The character keeps the same screen position and scale.",
 ].join(" ");

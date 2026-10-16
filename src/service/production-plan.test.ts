@@ -49,9 +49,9 @@ test("fills gaps only: frames for empty/failed, video for frames_ready/video_fai
     frames: [
       ...done(1), // video done → skip
       ...done(2), // frames ready → video
-      frame(3, "start", "completed"), frame(3, "end", "in_progress"), // generating → skip
+      frame(3, "start", "in_progress"), // generating → skip
       ...done(4), // video failed → video
-      frame(5, "start", "failed"), frame(5, "end", "completed"), // frames failed → frames
+      frame(5, "start", "failed"), // frames failed → frames
       // 6: nothing → frames
     ],
     clips: [clip(1, "completed"), clip(4, "failed")],
@@ -59,7 +59,7 @@ test("fills gaps only: frames for empty/failed, video for frames_ready/video_fai
   assert.deepEqual(planRemaining(project), {
     frames: [5, 6],
     videos: [2, 4],
-    cost: 2 * FRAMES_COST + 2 * MIN_VIDEO_COST,
+    cost: sceneImageCost(project, [5, 6]) + 2 * MIN_VIDEO_COST,
   });
 });
 
@@ -82,12 +82,15 @@ test("generate all scenes redraws every clip that is not already drawing", () =>
     phaseA: { clips: [1, 2, 3].map((clipNumber) => ({ clipNumber })) },
     frames: [
       ...done(1),
-      frame(2, "start", "completed"),
-      frame(2, "end", "in_progress"),
+      frame(2, "start", "in_progress"),
     ],
     clips: [clip(1, "completed")],
   };
-  assert.deepEqual(planGenerateAllScenes(project), { frames: [1, 3], videos: [], cost: 2 * FRAMES_COST });
+  assert.deepEqual(planGenerateAllScenes(project), {
+    frames: [1, 3],
+    videos: [],
+    cost: sceneImageCost(project, [1, 3]),
+  });
 });
 
 test("generate all videos waits until every frame is ready", () => {
@@ -172,7 +175,7 @@ test("selected frames skip clips that are already generating", () => {
   assert.deepEqual(planSelected(project, [1, 2, 3], "frames"), {
     frames: [1, 3],
     videos: [],
-    cost: 2 * FRAMES_COST,
+    cost: sceneImageCost(project, [1, 3]),
   });
 });
 
@@ -186,7 +189,7 @@ test("selected frames can queue while a video is still pending", () => {
   assert.deepEqual(planSelected(project, [1, 2], "frames"), {
     frames: [1, 2],
     videos: [],
-    cost: 2 * FRAMES_COST,
+    cost: sceneImageCost(project, [1, 2]),
   });
 });
 

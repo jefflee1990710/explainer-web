@@ -72,7 +72,7 @@ test("cinematic realistic bills the Seedance video rate", () => {
 });
 
 test("one frame in flight → frames_generating", () => {
-  const p = project({ frames: [frame(1, "start", "completed"), frame(1, "end", "in_progress")] });
+  const p = project({ frames: [frame(1, "start", "in_progress")] });
   assert.equal(clipStateFor(p, 1).stage, "frames_generating");
   assert.equal(clipStateFor(p, 1).wait, "running");
 });
@@ -83,23 +83,26 @@ test("queued frames wait until the provider starts", () => {
 });
 
 test("one frame failed and none in flight → frames_failed", () => {
-  const p = project({ frames: [frame(1, "start", "completed"), frame(1, "end", "failed")] });
+  const p = project({ frames: [frame(1, "start", "failed")] });
   assert.equal(clipStateFor(p, 1).stage, "frames_failed");
 });
 
-test("whiteboard needs both stills before the clip is ready", () => {
+test("whiteboard is ready from the start still alone and ignores leftover end stills", () => {
   const p = project({
     skillSlug: "cartoon-explainer-video-director",
     styleId: "realistic",
     frames: [frame(1, "start", "completed")],
   });
-  assert.equal(clipStateFor(p, 1).stage, "no_frames");
+  assert.equal(clipStateFor(p, 1).stage, "frames_ready");
+  assert.equal(clipStateFor(p, 1).frameCost, 4);
+  const tags = clipGenerationTags(p);
+  assert.equal(tags.find((tag) => tag.clipNumber === 1 && tag.kind === "scene")?.state, "ready");
   const staleEnd = project({
     skillSlug: "cartoon-explainer-video-director",
     styleId: "realistic",
     frames: [frame(1, "start", "completed"), frame(1, "end", "failed")],
   });
-  assert.equal(clipStateFor(staleEnd, 1).stage, "frames_failed");
+  assert.equal(clipStateFor(staleEnd, 1).stage, "frames_ready");
 });
 
 test("both frames completed, no video → frames_ready", () => {
@@ -107,8 +110,11 @@ test("both frames completed, no video → frames_ready", () => {
   assert.equal(clipStateFor(p, 1).stage, "frames_ready");
 });
 
-test("only one frame completed (other missing) → no_frames", () => {
-  const p = project({ frames: [frame(1, "start", "completed")] });
+test("talking-head with only one frame completed (other missing) → no_frames", () => {
+  const p = project({
+    skillSlug: "talking-head-director",
+    frames: [frame(1, "start", "completed")],
+  });
   assert.equal(clipStateFor(p, 1).stage, "no_frames");
 });
 
@@ -207,8 +213,7 @@ test("stale.video when the row was edited after the video was submitted", () => 
 test("stale.video when a frame was redrawn after the video was submitted", () => {
   const p = project({
     frames: [
-      frame(1, "start", "completed", "2026-01-01T00:00:00.000Z"),
-      frame(1, "end", "completed", "2026-01-09T00:00:00.000Z"),
+      frame(1, "start", "completed", "2026-01-09T00:00:00.000Z"),
     ],
     clips: [clip(1, "completed", "2026-01-05T00:00:00.000Z")],
   });
@@ -284,8 +289,7 @@ test("productionCounts", () => {
   const p = project({
     frames: [
       frame(1, "start", "completed"),
-      frame(1, "end", "completed"),
-      frame(2, "start", "completed"),
+      frame(2, "start", "in_progress"),
     ],
     clips: [clip(1, "completed")],
   });
@@ -429,7 +433,7 @@ test("clips with nothing generated stay pending", () => {
 
 test("failed scene frames and a failed video are tagged", () => {
   const p = project({
-    frames: [frame(1, "start", "completed"), frame(1, "end", "failed")],
+    frames: [frame(1, "start", "failed")],
     clips: [clip(2, "failed")],
     phaseA: { clips: [{ clipNumber: 1 }, { clipNumber: 2 }] },
   });

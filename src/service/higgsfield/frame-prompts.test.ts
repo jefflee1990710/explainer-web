@@ -807,7 +807,7 @@ test("listicle item stills name only that item; the last still lists every title
   assert.match(full, /Unused subscriptions/);
 });
 
-test("whiteboard queues a start still and an end still in every visual style", () => {
+test("whiteboard queues a start still only in every visual style", () => {
   const steady = project("realistic");
   steady.skillSlug = "cartoon-explainer-video-director";
   steady.frames = [
@@ -816,14 +816,21 @@ test("whiteboard queues a start still and an end still in every visual style", (
   const next = framesWithClips(steady, [1]);
   assert.deepEqual(
     next.map((frame) => `${frame.position}:${frame.status}`),
-    ["start:queued", "end:queued"],
+    ["start:queued"],
   );
 });
 
-test("framesWithClips queues start and end for every clip", () => {
+test("framesWithClips queues start only for non-talking-head clips and start+end for talking-head", () => {
   const next = framesWithClips(project(), [1]);
   assert.deepEqual(
     next.map((frame) => `${frame.clipNumber}:${frame.position}:${frame.status}`),
+    ["1:start:queued"],
+  );
+  const th = project();
+  th.skillSlug = "talking-head-director";
+  const thNext = framesWithClips(th, [1]);
+  assert.deepEqual(
+    thNext.map((frame) => `${frame.clipNumber}:${frame.position}:${frame.status}`),
     ["1:start:queued", "1:end:queued"],
   );
 });
@@ -835,7 +842,7 @@ test("framesWithClipsReady hydrates styles before queueing prompts", async () =>
   });
   assert.deepEqual(
     next.map((frame) => `${frame.clipNumber}:${frame.position}:${frame.status}`),
-    ["1:start:queued", "1:end:queued"],
+    ["1:start:queued"],
   );
 });
 
