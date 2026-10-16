@@ -7,7 +7,6 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "seed:skills": "tsx scripts/seed-skills.ts",
     "seed:styles": "tsx scripts/seed-style-previews.ts",
     "backfill:profiles": "tsx scripts/backfill-character-profiles.ts",
     "seed:director-previews": "tsx scripts/seed-director-previews.ts",
