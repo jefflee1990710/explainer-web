@@ -37,7 +37,7 @@ test("blueprint prompt lays out turnaround, walk cycle, and expression grid", ()
   assert.doesNotMatch(prompt, /reference image/i);
 });
 
-test("blueprint prompt locks 五官比例 and 整體氣質 from one reference", () => {
+test("blueprint prompt locks 五官比例, 整體氣質, and source skin texture from one reference", () => {
   const prompt = buildBlueprintPrompt({
     style: loadedStyle("doodle"),
     description: "x",
@@ -45,9 +45,10 @@ test("blueprint prompt locks 五官比例 and 整體氣質 from one reference", 
   });
   assert.match(prompt, /五官比例/);
   assert.match(prompt, /整體氣質/);
+  assert.match(prompt, /Skin texture: focus on and faithfully preserve the source image's exact skin texture/);
   assert.match(prompt, /Style is required/);
   assert.match(prompt, /doodle name style/);
-  assert.match(prompt, /must not replace the face proportions, temperament, or the required style/);
+  assert.match(prompt, /must not replace the face proportions, skin texture, temperament, or the required style/);
   assert.doesNotMatch(prompt, /outrank the style/);
   assert.doesNotMatch(prompt, /Preserve the appearance of the character in the reference image/);
 });

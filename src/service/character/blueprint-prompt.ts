@@ -37,6 +37,11 @@ function identityFromReference(style: RenderableStyle) {
     `Keep the reference's 五官比例 and 整體氣質, and redraw every pose in the ${style.name} style.`,
     "五官比例: copy face shape, eye spacing and shape, brows, nose, mouth, lips, jaw, chin, plus moles, scars, and other marks.",
     "整體氣質: keep the same aura, presence, and how they feel to look at — not a generic stand-in.",
+    ...(style.id === "chalkboard"
+      ? []
+      : [
+          "Skin texture: focus on and faithfully preserve the source image's exact skin texture — copy natural pores, skin micro-texture, surface finish, fine lines, freckles, and skin details from the source image without airbrushing, over-smoothing, or replacing it with waxy plastic skin.",
+        ]),
     styleRule,
     "Do not drop the style to protect likeness, and do not drop likeness to apply the style.",
     ...(style.id === "chalkboard"
@@ -68,7 +73,7 @@ export function buildBlueprintPrompt(input: {
   if (description) lines.push(`Character: ${description}`);
   if (input.editInstruction) {
     lines.push(
-      "Use the reference sheet as the base. Apply only the change below; keep everything else identical, including layout, pose order, expression order, 五官比例, 整體氣質, and the same visual style.",
+      "Use the reference sheet as the base. Apply only the change below; keep everything else identical, including layout, pose order, expression order, 五官比例, 整體氣質, skin texture, and the same visual style.",
     );
     if (lightGround) {
       lines.push(
@@ -78,7 +83,7 @@ export function buildBlueprintPrompt(input: {
     if (referenceCount > 1) {
       lines.push(
         "The first reference image is that current character sheet.",
-        "Every reference image after the first is an original photo of this character. Match 五官比例 and 整體氣質 to those original photos so the face does not drift away from them.",
+        "Every reference image after the first is an original photo of this character. Match 五官比例, 整體氣質, and source skin texture to those original photos so the face does not drift away from them.",
       );
     }
     lines.push(`Change: ${input.editInstruction.trim()}`);
@@ -86,13 +91,13 @@ export function buildBlueprintPrompt(input: {
     lines.push(
       ...identityFromReference(input.style),
       "Fuse all attached reference images into one character of the same identity.",
-      "Prefer clear close-ups for 五官比例 and full-body shots for proportions and outfit.",
+      "Prefer clear close-ups for 五官比例 and skin texture, and full-body shots for proportions and outfit.",
       "Do not invent a different character or average them into a generic look.",
     );
   } else if (hasReference && description) {
     lines.push(
       ...identityFromReference(input.style),
-      "The Character line may add age, role, or clothing hints; it must not replace the face proportions, temperament, or the required style.",
+      "The Character line may add age, role, or clothing hints; it must not replace the face proportions, skin texture, temperament, or the required style.",
     );
   } else if (hasReference) {
     // Image-only create: infer identity from the photo, then redraw in style.
@@ -120,7 +125,7 @@ function boardIdentityLines(input: {
       ...(input.photoCount > 1
         ? [
             "Fuse all attached photos into one character of the same identity.",
-            "Prefer clear close-ups for 五官比例 and full-body shots for proportions and outfit.",
+            "Prefer clear close-ups for 五官比例 and skin texture, and full-body shots for proportions and outfit.",
             "Do not invent a different character or average them into a generic look.",
           ]
         : ["Derive the character entirely from the attached photo."]),
@@ -157,17 +162,17 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
     "The face fills most of the frame: top of the hair near the top edge with a small margin, shoulders cut at the bottom edge. No hands, no props, no text, no labels, no frame or border, no second person.",
     realistic
       ? REALISTIC_CHARACTER_RENDER_RULE
-      : "Even soft front light so every facial feature reads clearly: eye shape, brows, nose, lips, jaw, skin, hair line, and any marks.",
+      : "Even soft front light so every facial feature reads clearly: eye shape, brows, nose, lips, jaw, natural skin texture from the source image, hair line, and any marks.",
     ...styleLinesForBlueprint(input.style),
     ...(lightGround ? [LIGHT_SHEET_GROUND] : []),
   ];
   if (description) lines.push(`Character: ${description}`);
   if (input.editInstruction && input.parentImageCount) {
     lines.push(
-      "Use the first attached image (the current identity portrait) as the base. Apply only the change below; keep the face, hair, framing, and visual style otherwise identical.",
+      "Use the first attached image (the current identity portrait) as the base. Apply only the change below; keep the face, skin texture, hair, framing, and visual style otherwise identical.",
       ...(input.photoCount > 0
         ? [
-            "Every attached image after the first is an original photo of this character. Keep 五官比例 and 整體氣質 anchored to those photos so the face does not drift.",
+            "Every attached image after the first is an original photo of this character. Keep 五官比例, 整體氣質, and source skin texture anchored to those photos so the face does not drift.",
           ]
         : []),
       `Change: ${input.editInstruction.trim()}`,
@@ -183,7 +188,7 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
   lines.push(...boardIdentityLines(input));
   if (input.photoCount > 0 && description) {
     lines.push(
-      "The Character line may add age, role, or clothing hints; it must not replace the face proportions, temperament, or the required style.",
+      "The Character line may add age, role, or clothing hints; it must not replace the face proportions, skin texture, temperament, or the required style.",
     );
   }
   return fitReferencePrompt(lines);
@@ -198,7 +203,7 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
   const lines = [
     "One full-body standing view of the character in the first attached image (their identity portrait) on a tall canvas.",
     "One person, standing, facing the camera, neutral expression, eyes open, arms relaxed at the sides, feet slightly apart. No props, no text, no labels, no second person, no extra poses.",
-    "Copy the face, hair, skin, and the visible clothing from that portrait exactly. Complete the rest of the outfit, shoes, and accessories from the photos and the notes.",
+    "Copy the face, hair, exact skin texture, and the visible clothing from that portrait and source image(s) exactly. Complete the rest of the outfit, shoes, and accessories from the photos and the notes.",
     "Framing: the entire body is visible from the top of the hair to the soles of the feet, centered, with empty margin above the head and below the feet. Do not crop to a portrait. Do not draw the figure too small — it should fill about four fifths of the canvas height.",
     ...styleLinesForBlueprint(input.style),
     lightGround
@@ -209,7 +214,7 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
   if (description) lines.push(`Character: ${description}`);
   if (input.editInstruction && input.parentImageCount && input.parentImageCount > 1) {
     lines.push(
-      "The second attached image is the previous full-body figure. Apply only the change below to it; keep pose, framing, and everything the change does not name identical, and keep the face on the new portrait.",
+      "The second attached image is the previous full-body figure. Apply only the change below to it; keep pose, framing, skin texture, and everything the change does not name identical, and keep the face on the new portrait.",
       `Change: ${input.editInstruction.trim()}`,
     );
   } else if (input.editInstruction) {
@@ -217,7 +222,7 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
   }
   if (input.photoCount > 0) {
     lines.push(
-      "The remaining attached images are original photos of this character. Use them for body proportions, outfit, shoes, and accessories; the face stays on the portrait.",
+      "The remaining attached images are original photos of this character. Use them for body proportions, skin texture, outfit, shoes, and accessories; the face and skin texture stay faithful to the portrait and source photos.",
     );
   }
   if (input.spec) {
@@ -237,7 +242,7 @@ export function buildProfilePrompt(input: { style: RenderableStyle; description:
   const lines = [
     "One full-body standing view of the same character as the attached character sheet.",
     "Use only the front view from the sheet. One person, standing, facing the camera, neutral expression, eyes open, arms relaxed at the sides.",
-    "Copy face, hair, outfit, and rendering from that front view. Do not copy the turnaround, walk cycle, expression grid, labels, or extra poses.",
+    "Copy face, skin texture, hair, outfit, and rendering from that front view. Do not copy the turnaround, walk cycle, expression grid, labels, or extra poses.",
     "Framing: the entire body is visible, from the top of the hair to the soles of the feet, centered, with empty margin above the head and below the feet. Do not crop to a head-and-shoulders portrait.",
     ...styleLinesForBlueprint(input.style),
     lightGround

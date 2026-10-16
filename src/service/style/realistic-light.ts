@@ -53,7 +53,7 @@ const REALISTIC_SURFACE =
 // Character sheet, identity portrait, and full-body figure.
 export const REALISTIC_CHARACTER_RENDER_RULE = [
   REALISTIC_SURFACE,
-  "Show real skin pores, fine hair strands, and fabric weave.",
+  "Focus on the source image's skin texture: show real skin pores, natural skin micro-texture, fine lines, surface finish, fine hair strands, and fabric weave faithfully matched to the source photo — never over-smooth or airbrush.",
   "Camera: an identity portrait is a close-up on an 85mm portrait lens at f/1.8 with creamy background falloff; a full-body figure is a full shot on a 50mm lens at f/4; a turnaround sheet keeps that same 50mm lens and the same light direction in every pose.",
   "The empty sheet ground stays one flat light colour with no room. Directional light and texture stay on the person.",
 ].join(" ");
