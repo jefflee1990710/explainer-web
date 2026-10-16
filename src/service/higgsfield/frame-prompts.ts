@@ -91,7 +91,8 @@ import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG } from "@/service/director/
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { IDEOGRAM_PROMPT_MAX, imageRouteForSceneText } from "@/service/generation/image-backend";
 import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
-import { FRAME_RENDER_DETAIL, reconcileSightline, SIGHTLINE_RULE } from "@/service/director/scene-detail";
+import { frameRenderDetail, reconcileSightline, SIGHTLINE_RULE } from "@/service/director/scene-detail";
+import { isRealisticStyle } from "@/service/style/realistic-light";
 import { styleLinesForFrame, type Style } from "@/service/style";
 import { resolveSubtitleLook, subtitleLookLine, textStyleSampleLookLine } from "@/service/director/subtitle-look";
 import { isStyleId } from "@/model/style-id";
@@ -285,7 +286,8 @@ function trimSceneParts(scene: string, mode: "light-short" | "light-drop" | "set
     .map((part) => {
       if (/^3\)\s/.test(part)) {
         if (mode === "light-short") return `${clipAt(firstSentence(part), 120)} `;
-        return "";
+        if (mode === "light-drop") return "";
+        return part;
       }
       if (mode !== "set-short" || !/^2\)\s/.test(part)) return part;
       const short = clipAt(firstSentence(part), 200);
@@ -344,16 +346,23 @@ function fitFramePrompt(
   parts: FrameTrimmable,
   compose: (parts: FrameTrimmable) => string,
   budget = FRAME_PROMPT_BUDGET,
+  options: { keepLight?: boolean } = {},
 ) {
+  // Realistic stills keep the render rule and the Scene's Light part; light is what removes the plastic look.
+  const keepLight = options.keepLight === true;
   const steps: Array<(p: FrameTrimmable) => FrameTrimmable> = [
     (p) => ({ ...p, visualWorld: clipAt(firstSentence(p.visualWorld), 300) }),
     (p) => ({ ...p, palette: clipAt(p.palette, 160) }),
     (p) => ({ ...p, remark: clipAt(p.remark, 300) }),
-    (p) => ({ ...p, renderDetail: "" }),
-    (p) => ({ ...p, scene: trimSceneParts(p.scene, "light-short") }),
+    ...(keepLight
+      ? []
+      : [
+          (p: FrameTrimmable) => ({ ...p, renderDetail: "" }),
+          (p: FrameTrimmable) => ({ ...p, scene: trimSceneParts(p.scene, "light-short") }),
+        ]),
     (p) => ({ ...p, visualWorld: "" }),
     (p) => ({ ...p, palette: clipAt(p.palette, 80), remark: clipAt(p.remark, 200) }),
-    (p) => ({ ...p, scene: trimSceneParts(p.scene, "light-drop") }),
+    ...(keepLight ? [] : [(p: FrameTrimmable) => ({ ...p, scene: trimSceneParts(p.scene, "light-drop") })]),
     (p) => ({ ...p, scene: trimSceneParts(p.scene, "set-short") }),
     // Camera motion stays whole until the prompt is still over the cap.
     (p) => ({ ...p, motion: clipAt(p.motion, 160) }),
@@ -461,6 +470,7 @@ export function buildFramePrompt(
   project = talkingHeadFrameProject(project);
   const solo = isTalkingHeadSkill(project.skillSlug);
   const style = options.style ?? systemStyle(project);
+  const realistic = isRealisticStyle(style);
   // Cinematic realistic whiteboard: both stills share the camera and the whole subtitle.
   const steady = usesSteadyStills(project.skillSlug, style);
   const subtitleLook = resolveSubtitleLook(project.subtitleLook);
@@ -896,10 +906,11 @@ export function buildFramePrompt(
       scene: sceneDescription,
       motion: motionBeatForFrame(motionDescription, position),
       remark: options.revision?.remark?.trim() || "",
-      renderDetail: FRAME_RENDER_DETAIL,
+      renderDetail: frameRenderDetail({ realistic }),
     },
     compose,
     budget,
+    { keepLight: realistic },
   );
   // Grok spells the quoted line when that line leads a short prompt. A long
   // storyboard prompt, or the previous still, makes it copy a similar character.

@@ -47,6 +47,7 @@ import {
 } from "@/service/director/skill-rules";
 import { keyframeDeltaDirectorBlock } from "@/service/director/keyframe-delta";
 import { sceneDetailDirectorBlock } from "@/service/director/scene-detail";
+import { isRealisticStyle } from "@/service/style/realistic-light";
 import {
   CARTOON_EXPLAINER_SKILL_SLUG,
   dualBeatDirectorBlock,
@@ -268,7 +269,12 @@ You are executing Phase A only. Return structured JSON that matches the schema.
 ${language.planningSkillHint}
 ${verticalSafeAreaDirectorLine(input.aspectRatio)}
 ${keyframeDeltaDirectorBlock({ separateStills: dualBeat, language: input.language, performance: dualBeat && hasCharacter, steadyStills })}
-${sceneDetailDirectorBlock()}
+${sceneDetailDirectorBlock({
+  realistic: isRealisticStyle({
+    id: input.style.id,
+    baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
+  }),
+})}
 ${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter, steadyStills }) : ""}
 ${
   sceneText.enabled && skillForcesSceneText(input.skill.slug)

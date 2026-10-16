@@ -1,3 +1,9 @@
+import {
+  REALISTIC_FRAME_RENDER_RULE,
+  REALISTIC_LIGHT_DIRECTOR_RULE,
+  REALISTIC_VIDEO_DETAIL_RULE,
+} from "@/service/style/realistic-light";
+
 // Shared detail contract for every director: Phase A writes concrete scenes,
 // stills and clip videos carry that detail through. Character look always
 // comes from the cast reference, never from scene text.
@@ -34,13 +40,14 @@ export function reconcileSightline(scene: string) {
   return `${softened} ${SIGHTLINE_HOLD}`;
 }
 
-export function sceneDetailDirectorBlock() {
+export function sceneDetailDirectorBlock(options: { realistic?: boolean } = {}) {
   return [
     "Scene detail: write every explainerScene (and startScene / endScene when used) as four concrete parts, in this order:",
     "1) Character: expression, pose, action, and eyeline of each on-screen character.",
     "2) Set: location, set dressing, props, foreground / midground / background.",
-    "3) Light: light direction, colour temperature, mood — use grazing directional key light from the side or three-quarter angle with negative fill on the shadow side so faces and surfaces show real light-to-shadow falloff (never flat front light or even fill); keep highlights neutral or cool unless a visible warm practical lamp, sunset, or fire is in the frame; keep glowing objects below clipping (soft highlight roll-off, no blown pure-white glare); lift the black point in underwater, fog, or smoke scenes.",
+    "3) Light: light direction, colour temperature, mood.",
     "4) Camera: shot size, camera angle, composition, and where each character sits in frame (left / centre / right, near / far).",
+    ...(options.realistic ? [REALISTIC_LIGHT_DIRECTOR_RULE] : []),
     "Never describe a character's appearance, hair, or outfit — that always follows the character reference.",
     "Be specific (a chipped blue mug, warm side light from a window on the left), not generic (a nice room).",
     SIGHTLINE_RULE,
@@ -65,8 +72,16 @@ export function motionTransitionContract() {
 
 // Appended to every still so the image model renders, not sketches, the scene.
 export const FRAME_RENDER_DETAIL =
-  "Render detail: follow the Scene's shot size, angle, and composition exactly; give props and surfaces clear material and texture; keep light direction, shadows, and depth consistent with the Scene — sculpt faces and surfaces with grazing directional light and negative fill on the shadow side (never flat front beauty lighting or waxy airbrushed skin), keep glowing objects below pure-white clipping, and preserve subtle shadow grain without crushing blacks to zero; never copy a scene reference's person, face, or hairstyle — those stay on the character blueprint.";
+  "Render detail: follow the Scene's shot size, angle, and composition exactly; give props and surfaces clear material and texture; keep light direction, shadows, and depth consistent with the Scene; never copy a scene reference's person, face, or hairstyle — those stay on the character blueprint.";
+
+export function frameRenderDetail(options: { realistic?: boolean } = {}) {
+  return options.realistic ? `${FRAME_RENDER_DETAIL} ${REALISTIC_FRAME_RENDER_RULE}` : FRAME_RENDER_DETAIL;
+}
 
 // Phase B system rule so each video prompt is a precise motion brief.
 export const PHASE_B_DETAIL_RULES =
-  "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, the expression change, and the camera start and end framing. Name which hand, which direction, and which prop. The lighting stays constant and matches both keyframes, preserving grazing directional light, negative fill on the shadow side, natural skin/fabric micro-texture, and unclipped highlights without flat front fill or waxy plastic skin. Never re-describe a character's appearance or outfit; it follows the keyframes.";
+  "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, the expression change, and the camera start and end framing. Name which hand, which direction, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
+
+export function phaseBDetailRules(options: { realistic?: boolean } = {}) {
+  return options.realistic ? `${PHASE_B_DETAIL_RULES} ${REALISTIC_VIDEO_DETAIL_RULE}` : PHASE_B_DETAIL_RULES;
+}

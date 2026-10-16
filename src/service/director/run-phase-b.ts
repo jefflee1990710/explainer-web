@@ -2,7 +2,8 @@ import { generateText, Output } from "ai";
 import { DUAL_KEYFRAME_GLIDE_RULES, DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
 import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
-import { PHASE_B_DETAIL_RULES } from "@/service/director/scene-detail";
+import { phaseBDetailRules } from "@/service/director/scene-detail";
+import { isRealisticStyle } from "@/service/style/realistic-light";
 import {
   cartoonClipAction,
   cartoonNarratorVideoLock,
@@ -54,7 +55,7 @@ function usesSpokenSubtitle(skillSlug?: string) {
 
 type PhaseBInput = {
   skill: Skill;
-  style: StylePromptSlice & { id?: string; name?: string };
+  style: StylePromptSlice & { id?: string; name?: string; baseStyleId?: string };
   phaseA: PhaseAProposal;
   language?: VoLanguage;
   voiceGender?: VoiceGender;
@@ -92,7 +93,7 @@ ${
             ? DUAL_KEYFRAME_GLIDE_RULES
             : DUAL_KEYFRAME_MOTION_RULES
   } Do not invent a different final pose, camera, or composition.
-${PHASE_B_DETAIL_RULES}
+${phaseBDetailRules({ realistic: isRealisticStyle(input.style) })}
 ${
     isOutfitReelSkill(input.skill.slug)
       ? "This director is silent. Do not write a spoken line, a narrator, or lip-sync. No background music. One sound effect only."

@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   FRAME_RENDER_DETAIL,
+  frameRenderDetail,
   PHASE_B_DETAIL_RULES,
+  phaseBDetailRules,
   reconcileSightline,
   SIGHTLINE_RULE,
   sceneDetailDirectorBlock,
@@ -63,16 +65,18 @@ test("Phase B detail asks for timed action, expression change, and camera start/
   assert.match(PHASE_B_DETAIL_RULES, /expression change/);
   assert.match(PHASE_B_DETAIL_RULES, /camera start and end/);
   assert.match(PHASE_B_DETAIL_RULES, /lighting stays constant/);
-  assert.match(PHASE_B_DETAIL_RULES, /grazing directional light/);
-  assert.match(PHASE_B_DETAIL_RULES, /negative fill/);
 });
 
-test("scene detail and frame render detail enforce grazing directional light and anti-plastic rules", () => {
-  const block = sceneDetailDirectorBlock();
-  assert.match(block, /grazing directional key light/);
+test("de-plastic light rules reach realistic only, never flat styles", () => {
+  for (const text of [sceneDetailDirectorBlock(), FRAME_RENDER_DETAIL, PHASE_B_DETAIL_RULES]) {
+    assert.doesNotMatch(text, /grazing|negative fill|film grain|Realistic light/);
+  }
+  const block = sceneDetailDirectorBlock({ realistic: true });
+  assert.match(block, /grazing directional key/);
   assert.match(block, /negative fill on the shadow side/);
-  assert.match(block, /visible warm practical lamp/);
-  assert.match(block, /soft highlight roll-off/);
-  assert.match(FRAME_RENDER_DETAIL, /grazing directional light/);
-  assert.match(FRAME_RENDER_DETAIL, /never flat front beauty lighting or waxy airbrushed skin/);
+  assert.match(block, /warm practical lamp, sunset, or fire is visible/);
+  assert.match(frameRenderDetail({ realistic: true }), /never flat front beauty light or waxy airbrushed skin/);
+  assert.match(phaseBDetailRules({ realistic: true }), /No flat front fill and no waxy plastic skin/);
+  assert.equal(frameRenderDetail(), FRAME_RENDER_DETAIL);
+  assert.equal(phaseBDetailRules(), PHASE_B_DETAIL_RULES);
 });

@@ -1,6 +1,7 @@
 import { characterSpecBlock, type CharacterSpec } from "@/model/character-spec";
 import { styleLinesForBlueprint } from "@/service/style";
 import type { RenderableStyle } from "@/service/style/renderable-style";
+import { isRealisticStyle } from "@/service/style/realistic-light";
 
 // Fixed character-sheet layout so every version is comparable side by side.
 // GPT Image maps 16:9 requests to a 3:2 frame; keep the prompt aligned with that.
@@ -15,10 +16,6 @@ const SHEET_LAYOUT = [
 // Chalkboard's canvas is the drawing surface. Every other style keeps a light sheet.
 function usesDrawingSurface(style: RenderableStyle) {
   return /chalkboard/i.test(`${style.id} ${style.canvas}`);
-}
-
-function isRealisticStyle(style: RenderableStyle) {
-  return style.id === "realistic" || style.baseStyleId === "realistic";
 }
 
 // Flat light ground. The tint is chosen so it stays apart from the outfit.

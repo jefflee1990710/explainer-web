@@ -1008,6 +1008,23 @@ test("trimming drops generic rules and Light before the Scene, and Set keeps its
   assert.match(prompt, /「SUMMIT」/);
 });
 
+test("realistic stills keep the light rule and the Scene's Light under trimming; flat styles never get it", () => {
+  const long = project("realistic");
+  long.skillSlug = "cartoon-explainer-video-director";
+  long.phaseA!.visualWorld = "寒冷的山頂。".repeat(200);
+  long.phaseA!.clips[0].startScene =
+    "1) Character: Lily stands on the right, both hands on a crate. 2) Set: A snowy ridge, " +
+    "a sled waits below, ".repeat(120) +
+    "3) Light: cold side key from the left with negative fill on her right cheek. 4) Camera: medium shot from the left.";
+  long.phaseA!.clips[0].motionCamera = "0–3s: " + "she climbs the rocks, ".repeat(120) + "; 3–5s: she stops.";
+  const prompt = buildFramePrompt(long, 1, "start");
+  assert.match(prompt, /Realistic light: sculpt faces and surfaces with grazing directional light/);
+  assert.match(prompt, /3\) Light: cold side key from the left with negative fill on her right cheek\./);
+
+  const flat = buildFramePrompt(project(), 1, "start");
+  assert.doesNotMatch(flat, /Realistic light:/);
+});
+
 test("REVISION line does not attach a sibling or previous still", () => {
   const prompt = buildFramePrompt(project(), 1, "start", {
     revision: { annotatedUrl: "https://x/annotated.png" },

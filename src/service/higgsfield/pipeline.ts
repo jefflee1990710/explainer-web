@@ -29,6 +29,7 @@ import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt";
 import { hydrateStyles } from "@/service/style/load-style";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
+import { isRealisticStyle, lockRealisticVideoLight } from "@/service/style/realistic-light";
 import type { StylePromptSlice } from "@/service/style";
 import { withoutOnScreenTextInstructions } from "@/service/style/prompts";
 import {
@@ -444,10 +445,16 @@ export async function sendClipVideo(
   const talkingShot = talkingShotForSkill(project.skillSlug);
   const performance = talkingShot ? resolvePerformance(await loadSkill(project), talkingShot, "en") : undefined;
   const spokenLine = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber)?.englishVo;
+  // Stored prompts skip Phase B, so the realistic light lock is added here at send time.
+  const style = await loadRenderableStyle({
+    styleId: project.styleId,
+    ownerClerkUserId: project.clerkUserId,
+  }).catch(() => null);
+  const motionPrompt = isRealisticStyle(style) ? lockRealisticVideoLight(prompt.prompt) : prompt.prompt;
   const submitted = await submitClipVideo({
     prompt: withCantonesePronunciation(
       lockDialogueSpeech(
-        prompt.prompt,
+        motionPrompt,
         project.skillSlug,
         spokenLine,
         project.cast?.map((member) => member.name),
