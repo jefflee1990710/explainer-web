@@ -67,15 +67,26 @@ test("Phase B detail asks for timed action, expression change, and camera start/
   assert.match(PHASE_B_DETAIL_RULES, /lighting stays constant/);
 });
 
-test("de-plastic light rules reach realistic only, never flat styles", () => {
+test("de-plastic light and camera optics rules reach realistic only, never flat styles", () => {
   for (const text of [sceneDetailDirectorBlock(), FRAME_RENDER_DETAIL, PHASE_B_DETAIL_RULES]) {
-    assert.doesNotMatch(text, /grazing|negative fill|film grain|Realistic light/);
+    assert.doesNotMatch(text, /grazing|negative fill|film grain|Realistic light|85mm portrait lens|creamy bokeh/);
   }
   const block = sceneDetailDirectorBlock({ realistic: true });
   assert.match(block, /grazing directional key/);
   assert.match(block, /negative fill on the shadow side/);
+  assert.match(block, /warm amber light, muted teal shadows/);
+  assert.match(block, /never vague phrases like beautiful colors/);
   assert.match(block, /warm practical lamp, sunset, or fire is visible/);
-  assert.match(frameRenderDetail({ realistic: true }), /never flat front beauty light or waxy airbrushed skin/);
+  assert.match(block, /24mm wide-angle lens \/ 35mm lens \/ 50mm lens \/ 85mm portrait lens/);
+  assert.match(block, /deep focus, f\/11/);
+  assert.match(block, /f\/1\.4, creamy bokeh background/);
+  assert.match(block, /clean image, ISO 100 \/ subtle film grain \/ high ISO noise, grainy low-light photo/);
+  assert.match(block, /full shot \/ medium shot \/ close-up \/ extreme close-up/);
+  const render = frameRenderDetail({ realistic: true });
+  assert.match(render, /never flat front beauty light, waxy airbrushed skin, or vague 'beautiful colors'/);
+  assert.match(render, /24mm \/ 35mm \/ 50mm \/ 85mm portrait lens/);
+  assert.match(render, /deep focus f\/11 for environment or f\/4 to f\/1\.4 creamy bokeh background/);
+  assert.match(render, /clean image, ISO 100 \/ subtle film grain \/ high ISO noise, grainy low-light photo/);
   assert.match(phaseBDetailRules({ realistic: true }), /No flat front fill and no waxy plastic skin/);
   assert.equal(frameRenderDetail(), FRAME_RENDER_DETAIL);
   assert.equal(phaseBDetailRules(), PHASE_B_DETAIL_RULES);
