@@ -92,7 +92,7 @@ export function clipPhaseBUserPrompt(input: {
     ? isOutfitReelSkill(input.skillSlug)
       ? `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene}. The outfit stays the same. This clip is a hard cut to a DIFFERENT camera move. Open on THIS clip's START frame.`
       : surprise
-        ? `Open on clip ${prev.clipNumber}'s end still. Same camera angle, same crop, same body pose. Only the mouth and expression move.`
+        ? `Open on clip ${prev.clipNumber}'s end still. Same camera angle, same crop, same body pose. Only the mouth and vivid, expressive facial expressions move.`
         : `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene} (${prev.motionCamera}). Start from that resting state.`
     : "It is the first clip; open cold on the START frame.";
   const closing = next
@@ -131,7 +131,7 @@ export function clipPhaseBUserPrompt(input: {
     opening,
     closing,
     input.bansNarration
-      ? 'Mouth: only the character named in this clip\'s englishVo lip-syncs every syllable of their line. Every other on-screen character keeps their mouth closed and only reacts. Paste each supplied voice lock verbatim. Do not invent a timbre.'
+      ? 'Mouth: only the character named in this clip\'s englishVo lip-syncs every syllable of their line with vivid, expressive facial acting. Every other on-screen character keeps their mouth closed and only reacts with expressive facial expressions. Paste each supplied voice lock verbatim. Do not invent a timbre.'
       : "",
     "Return a single object { clipNumber, durationSeconds, prompt }.",
   ].join("\n\n");

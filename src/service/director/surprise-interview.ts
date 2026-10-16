@@ -27,7 +27,7 @@ export const SURPRISE_HOOK_VIDEO_RULES = [
 export const SURPRISE_VARIETY_VIDEO_RULES = [
   "Clip 1 is always the surprise hook: the person stays right-side up, the camera drops from above and snaps a zoom-in, and the face moves into a clear surprise. Do not flip the picture.",
   "Every later clip opens on the previous clip's end still. Same camera angle, same crop, same body pose. Do not hard-cut, and do not repeat the overhead zoom.",
-  "Within one clip the camera and the body pose stay locked. Only the mouth and the expression move.",
+  "Within one clip the camera and the body pose stay locked. Only the mouth and vivid, expressive facial expressions (animated eyebrows, expressive eyes, and lively emotional shifts) move.",
   "Each clip pins the shock poster in one place, chosen from top, middle, and bottom. Neighbouring clips do not share that place. Letters stay upright. No white subtitle bar.",
   "No background music.",
 ].join(" ");
@@ -105,7 +105,7 @@ export function surprisePosterLayout(place: SurpriseSubtitlePlace) {
 }
 
 function varietyLock(place: SurpriseSubtitlePlace) {
-  return `This clip opens on the previous clip's end still. Same camera angle, same crop, same body pose. The picture is right-side up. Within this clip the camera stays locked. Do not zoom out, hard-cut, or repeat the overhead surprise move. Only the mouth and expression move. On-canvas type is the shock poster, pinned at the ${place} for the entire clip: same words, same size, same place. Do not fade it or restyle it into a white subtitle bar.`;
+  return `This clip opens on the previous clip's end still. Same camera angle, same crop, same body pose. The picture is right-side up. Within this clip the camera stays locked. Do not zoom out, hard-cut, or repeat the overhead surprise move. Only the mouth and vivid, expressive facial expressions (animated eyebrows, expressive eyes, and lively emotional shifts) move. On-canvas type is the shock poster, pinned at the ${place} for the entire clip: same words, same size, same place. Do not fade it or restyle it into a white subtitle bar.`;
 }
 
 export function surpriseVideoMotionRules(clipNumber: number, place: SurpriseSubtitlePlace = "bottom") {
@@ -163,7 +163,7 @@ function hookMotion(seconds: number, place: SurpriseSubtitlePlace) {
 }
 
 function varietyMotion(seconds: number, place: SurpriseSubtitlePlace) {
-  return `0–${seconds}s open on the previous clip's end still. Camera locked: same angle, same crop, same body pose. Only the mouth and a small expression change. Do not zoom, reframe, hard-cut, or repeat the overhead surprise. The shock poster stays pinned at the ${place}. Picture stays right-side up.`;
+  return `0–${seconds}s open on the previous clip's end still. Camera locked: same angle, same crop, same body pose. Only the mouth and vivid, expressive facial expression changes (animated eyebrows, expressive eyes, and clear emotional reactions). Do not zoom, reframe, hard-cut, or repeat the overhead surprise. The shock poster stays pinned at the ${place}. Picture stays right-side up.`;
 }
 
 function spliceCharacter(scene: string, character: string) {

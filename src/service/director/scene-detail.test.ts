@@ -13,6 +13,7 @@ import {
 test("Phase A scene detail asks for four parts and a timed motion beat", () => {
   const block = sceneDetailDirectorBlock();
   assert.match(block, /expression, pose, action, and eyeline/);
+  assert.match(block, /vivid, specific facial expression/);
   assert.match(block, /location, set dressing, props, foreground \/ midground \/ background/);
   assert.match(block, /light direction, colour temperature, mood/);
   assert.match(block, /shot size, camera angle, composition/);
@@ -63,6 +64,7 @@ test("Phase A scene detail never re-describes the character look", () => {
 test("Phase B detail asks for timed action, expression change, and camera start/end", () => {
   assert.match(PHASE_B_DETAIL_RULES, /timed beats/);
   assert.match(PHASE_B_DETAIL_RULES, /expression change/);
+  assert.match(PHASE_B_DETAIL_RULES, /animate rich, expressive facial changes across the beats/);
   assert.match(PHASE_B_DETAIL_RULES, /camera start and end/);
   assert.match(PHASE_B_DETAIL_RULES, /lighting stays constant/);
 });

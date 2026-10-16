@@ -43,7 +43,7 @@ export function reconcileSightline(scene: string) {
 export function sceneDetailDirectorBlock(options: { realistic?: boolean } = {}) {
   return [
     "Scene detail: write every explainerScene (and startScene / endScene when used) as four concrete parts, in this order:",
-    "1) Character: expression, pose, action, and eyeline of each on-screen character.",
+    "1) Character: expression, pose, action, and eyeline of each on-screen character — whenever a character is present, give them a vivid, specific facial expression (active eyebrows, expressive eyes, and a clear mouth/cheek emotion matching the beat, never a blank or neutral face).",
     "2) Set: location, set dressing, props, foreground / midground / background.",
     "3) Light: light direction, colour temperature, mood.",
     "4) Camera: shot size, camera angle, composition, and where each character sits in frame (left / centre / right, near / far).",
@@ -60,7 +60,7 @@ export function sceneDetailDirectorBlock(options: { realistic?: boolean } = {}) 
 export function motionTransitionContract() {
   return [
     "motionCamera is the transition script from the start still to the end still, written as timed beats across the clip (e.g. 0–2s …; 2–5s …).",
-    "Each beat states: time window → who or what moves → from where to where → how (picked up, set down, slid in from the frame edge, written on, wiped off) → the expression change and the camera framing.",
+    "Each beat states: time window → who or what moves → from where to where → how (picked up, set down, slid in from the frame edge, written on, wiped off) → the expression change (vivid brow, eye, and mouth shifts when a character is present) and the camera framing.",
     "Every difference between the start and end still gets a beat that shows its cause on camera: pose, each hand, eyeline, expression, and every prop or label that moves, appears, disappears, or changes state.",
     "A prop that is in the end still but not in the start still is either added to the start still, or enters on camera in a beat (placed by a hand, slides in from the frame edge).",
     "A prop that is in the start still but not in the end still leaves on camera in a beat (put away, moved off frame, covered).",
@@ -72,7 +72,7 @@ export function motionTransitionContract() {
 
 // Appended to every still so the image model renders, not sketches, the scene.
 export const FRAME_RENDER_DETAIL =
-  "Render detail: follow the Scene's shot size, angle, and composition exactly; give props and surfaces clear material and texture; keep light direction, shadows, and depth consistent with the Scene; never copy a scene reference's person, face, or hairstyle — those stay on the character blueprint.";
+  "Render detail: follow the Scene's shot size, angle, and composition exactly; give any on-screen character a vivid, expressive facial expression matching the Scene; give props and surfaces clear material and texture; keep light direction, shadows, and depth consistent with the Scene; never copy a scene reference's person, face, or hairstyle — those stay on the character blueprint.";
 
 export function frameRenderDetail(options: { realistic?: boolean } = {}) {
   return options.realistic ? `${FRAME_RENDER_DETAIL} ${REALISTIC_FRAME_RENDER_RULE}` : FRAME_RENDER_DETAIL;
@@ -80,7 +80,7 @@ export function frameRenderDetail(options: { realistic?: boolean } = {}) {
 
 // Phase B system rule so each video prompt is a precise motion brief.
 export const PHASE_B_DETAIL_RULES =
-  "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, the expression change, and the camera start and end framing. Name which hand, which direction, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
+  "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, the expression change, and the camera start and end framing. Whenever a character is on screen, animate rich, expressive facial changes across the beats (lively eyebrows, expressive eyes, cheek and mouth reactions synced to the beat, never a frozen or deadpan face). Name which hand, which direction, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
 
 export function phaseBDetailRules(options: { realistic?: boolean } = {}) {
   return options.realistic ? `${PHASE_B_DETAIL_RULES} ${REALISTIC_VIDEO_DETAIL_RULE}` : PHASE_B_DETAIL_RULES;

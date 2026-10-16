@@ -30,7 +30,7 @@ function slots(shot: TalkingShot, perf?: PerformanceSlots) {
 // Phone-front-camera reel: look straight at the lens and stay alive.
 // Expression pattern (resting face, emphasis beat) comes from the performance slots.
 export function talkingFaceLock(perf: PerformanceSlots) {
-  return `On-camera speech like a real person filming a vertical reel on a phone: eyes stay locked on the lens the whole time, talking to one friend, never a news-anchor statue. The mouth articulates every syllable of the spoken line with visible lip-sync. Natural blinks. Resting face: ${perf.restingFace}. Emphasis: ${perf.emphasisBeat} — a resting, emphasis, resting cycle on every sentence. Between sentences a brief lip press, a sideways head tilt, or a blink marks the pause so the face never holds one shape. After the last syllable the mouth closes but the face stays engaged.`;
+  return `On-camera speech like a real person filming a vertical reel on a phone: eyes stay locked on the lens the whole time, talking to one friend, never a news-anchor statue. The mouth articulates every syllable of the spoken line with visible lip-sync and rich, expressive facial expressions (animated eyebrows, expressive eyes, lively cheek movement, and dynamic micro-expressions). Natural blinks. Resting face: ${perf.restingFace}. Emphasis: ${perf.emphasisBeat} — a resting, emphasis, resting cycle on every sentence. Between sentences a brief lip press, a sideways head tilt, or a blink marks the pause so the face never holds one shape. After the last syllable the mouth closes but the face stays engaged.`;
 }
 
 // Kept for callers that want the default face lock without a skill in hand.

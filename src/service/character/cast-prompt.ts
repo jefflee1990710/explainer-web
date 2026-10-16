@@ -148,10 +148,10 @@ export function castBlockForPhaseA(cast: CastMember[] | undefined, options?: Cas
         ? "characterLock MUST only list the cast names and say face and hair follow the attached character blueprint / reference sheet. Do NOT invent hair, face, gender, age, or colouring. Clothes follow the reference image only because the instruction says so. Name those garments in explainerScene. Do not copy the person in that photo."
         : "characterLock MUST only list the cast names and say their appearance follows the attached character blueprint / reference sheet. Do NOT invent or describe hair, face, clothing, accessories, gender, age, or colouring in characterLock, palette, or explainerScene.",
     wardrobeBuild
-      ? "In explainerScene and motionCamera, refer to cast members by name and describe pose and the reference garments. Never invent hair or face, and never copy the person in a clothing photo."
+      ? "In explainerScene and motionCamera, refer to cast members by name and describe vivid facial expressions, pose, and the reference garments. Never invent hair or face, and never copy the person in a clothing photo."
       : clothingFromReference
-        ? "In explainerScene and motionCamera, refer to cast members by name and describe pose, props, and the garments the instruction copies from the reference. Never invent hair or face, and never copy the person in the reference photo."
-        : "In explainerScene and motionCamera, refer to cast members by name and describe pose, props, labels, and environment only — never invent outfit or hairstyle details.",
+        ? "In explainerScene and motionCamera, refer to cast members by name and describe vivid facial expressions, pose, props, and the garments the instruction copies from the reference. Never invent hair or face, and never copy the person in the reference photo."
+        : "In explainerScene and motionCamera, refer to cast members by name and describe vivid facial expressions, pose, props, labels, and environment only — never invent outfit or hairstyle details.",
     "Reference cast members by name in explainerScene.",
     "The selected cast's reference images are attached. You MUST inspect them and follow those exact characters when planning every scene. Stage each shot around them as the subject. Do not invent a replacement hero. A scene reference never replaces their face or hair.",
     ...directorBlueprintSceneRules({ wardrobeBuild, clothingFromReference }),
@@ -213,10 +213,10 @@ export function phaseASoloCharacterNote(characterImageUrl?: string, options?: Ca
           ? "characterLock MUST only say face and hair follow the attached character image. Clothes follow the reference image only because the instruction says so. Do not copy the person in that photo."
           : "characterLock MUST only say appearance follows the attached reference image — do NOT invent hair, face, clothing, or accessories.",
       wardrobeBuild
-        ? "In explainerScene, describe pose and the reference garments. Never invent hair or face."
+        ? "In explainerScene, describe vivid facial expressions, pose, and the reference garments. Never invent hair or face."
         : clothingFromReference
-          ? "In explainerScene, describe pose, props, and the garments the instruction copies from the reference. Never invent hair or face."
-          : "In explainerScene, describe pose and props only; never invent outfit details.",
+          ? "In explainerScene, describe vivid facial expressions, pose, props, and the garments the instruction copies from the reference. Never invent hair or face."
+          : "In explainerScene, describe vivid facial expressions, pose, and props only; never invent outfit details.",
       "Do not invent a replacement hero. A scene reference never replaces their face or hair.",
       ...directorBlueprintSceneRules({ wardrobeBuild, clothingFromReference }),
     ].join(" ");

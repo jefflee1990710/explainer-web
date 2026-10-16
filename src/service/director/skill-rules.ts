@@ -106,8 +106,8 @@ export function bookendDirectorBlock(
       ? "The brand logo image is attached. It is the hero of both stills: startScene and endScene must name the logo, its placement (centered unless stated), and its size. Never redraw, restyle, translate, or invent a different logo or wordmark."
       : "No logo image is attached: build the sting around the brand or product name from the source as title lettering in the selected text style. Do not copy typography from the visual style.",
     opening
-      ? "startScene: the logo is hidden, small, or forming (drawn on, assembled from shapes, revealed behind a prop). endScene: the full logo, crisp and readable, centered."
-      : "startScene: the closing beat of the world (character or props wrapping up). endScene: the full logo centered on a calm canvas as the final card.",
+      ? "startScene: the logo is hidden, small, or forming (drawn on, assembled from shapes, revealed behind a prop). endScene: the full logo, crisp and readable, centered. If a character is on screen, give them a vivid, expressive facial expression reacting to the reveal."
+      : "startScene: the closing beat of the world (character with a warm, expressive facial expression or props wrapping up). endScene: the full logo centered on a calm canvas as the final card.",
     lockLength
       ? "motionCamera is one simple move that fits 3–4 seconds (reveal, pop, settle, or slow push-in). No cuts."
       : "motionCamera is one simple move that fits the clip length (reveal, pop, settle, or slow push-in). No cuts.",
@@ -232,7 +232,7 @@ export function dialogueOnlyDirectorBlock() {
   return [
     'There is NO narrator and NO third-person voiceover. The narrator field must start with "No narrator — characters speak." Then paste each supplied voice lock verbatim, one speaker per sentence. A speaker without their own lock uses the project voice lock verbatim. Do not invent a timbre and do not leave a speaker out.',
     'englishVo is only character dialogue written as NAME: "line", in the chosen dialogue language. Multiple speakers are allowed. A silent beat is "(no dialogue)".',
-    "motionCamera names who is speaking. That character's mouth lip-syncs every syllable of their line. Every other on-screen character keeps their mouth closed and only reacts.",
+    "motionCamera names who is speaking. That character's mouth lip-syncs every syllable of their line with vivid, expressive facial expressions (active eyebrows, expressive eyes, and clear emotional shifts). Every other on-screen character keeps their mouth closed and only reacts with expressive facial expressions (brow raises, eye shifts, nods).",
   ].join(" ");
 }
 
@@ -240,7 +240,7 @@ export function storyShortDirectorBlock() {
   return [
     "This is a SHORT FILM, not an explainer.",
     "Do not force want → obstacle → turn → resolution. Arrange clips in the order the source already tells; invent beats only when the source has no story of its own.",
-    "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. They speak to each other, to an object, or to themselves. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder).",
+    "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. They speak to each other, to an object, or to themselves. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder). Give every on-screen character rich, expressive facial expressions (nuanced brow, eye, and mouth changes that convey the emotional beat—never a blank or wooden face).",
   ].join(" ");
 }
 
@@ -490,11 +490,11 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
     "On screen, the character never speaks, never lip-syncs, and never introduces themself. No first-person lines in the character's voice (no \"Hi, I'm Scro\", \"I am…\", \"we…\" spoken as the character); the narrator may name the character or product in the third person (\"Meet Scro. Scro turns…\").",
     hasCharacter
       ? `A character is on screen. Each clip has exactly one primary body action, chosen from this list by what the clip's line means. Each entry gives the meaning, the word motionCamera's first beat must use, and the before then after of the two stills: ${directorActionMenu()}. Do not reuse an action from either of the previous two clips. Use jump at most once per video, on the key beat. The last clip never points toward the camera. Pick another action that matches the last line, and keep the hands on the graph. A different standing position, a few steps, or a walk is not a new action.`
-      : "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth closed or reacting. It may point at a diagram, stand aside reacting, or handle props — it does not have to hold three props.",
+      : "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth closed or reacting with vivid facial expressions. It may point at a diagram, stand aside reacting, or handle props — it does not have to hold three props.",
     hasCharacter
       ? smooth
-        ? "Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). They stay on that side for the whole clip; no lateral cross. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and facial expression. The camera is locked inside a clip: both stills share the same angle, shot size, and crop. A new angle (from the character's left side, from above, from the front, or from behind) is chosen only between clips, at the cut, and does not repeat the previous clip. No orbit and no move to another side inside a clip. They stay silent — expression only, no lip-sync and no greeting wave."
-        : "Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). About 80% of clips keep them on that same side for the whole clip — do not walk them from left to right every time. Only about 20% of clips are a full cross, either left to right or right to left, and those rare crosses do not all go the same way. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and facial expression. Camera angle changes every clip and does not repeat: from the character's left side, from above, from the front, or from behind as they turn around, and it may zoom in or out. One continuous move, no cut and no teleport. They stay silent — expression only, no lip-sync and no greeting wave."
+        ? "Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). They stay on that side for the whole clip; no lateral cross. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and gives a vivid, expressive facial expression (raised or furrowed eyebrows, wide or focused eyes, and a clear emotional shift from startScene to endScene—never a blank or neutral face). The camera is locked inside a clip: both stills share the same angle, shot size, and crop. A new angle (from the character's left side, from above, from the front, or from behind) is chosen only between clips, at the cut, and does not repeat the previous clip. No orbit and no move to another side inside a clip. They stay silent — expression only, no lip-sync and no greeting wave."
+        : "Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). About 80% of clips keep them on that same side for the whole clip — do not walk them from left to right every time. Only about 20% of clips are a full cross, either left to right or right to left, and those rare crosses do not all go the same way. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and gives a vivid, expressive facial expression (raised or furrowed eyebrows, wide or focused eyes, and a clear emotional shift from startScene to endScene—never a blank or neutral face). Camera angle changes every clip and does not repeat: from the character's left side, from above, from the front, or from behind as they turn around, and it may zoom in or out. One continuous move, no cut and no teleport. They stay silent — expression only, no lip-sync and no greeting wave."
       : "",
     hasCharacter
       ? "For every topic, keep a rich on-screen whiteboard explanation graph (charts, connecting lines, directional arrows, geometric shapes, diagram nodes, and conceptual objects/icons) in frame alongside the character, and add the drawn element this clip's action works on. Do not reuse the same camera angle on the next clip. A full left-to-right or right-to-left walk is rare and does not count as the primary action. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts, flow, or a clear chart with visible lines, bars, shapes, and objects. Never a near-empty canvas or a realistic room without prominent on-screen visual diagram graphics."
@@ -566,7 +566,7 @@ export function cartoonNarratorFrameLock(
     : "Camera angle may differ from the other still.";
   if (options?.hasCharacter) {
     const silent =
-      "Silent demonstrator: the character does not talk or lip-sync (a readable facial expression only when the face is toward the camera; from behind, leave the face unseen; no greeting wave).";
+      "Silent demonstrator: the character does not talk or lip-sync (a vivid, expressive facial expression with active eyebrows and eyes when the face is toward the camera; from behind, leave the face unseen; no greeting wave).";
     const labels =
       "Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.";
     const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
@@ -581,7 +581,7 @@ export function cartoonNarratorFrameLock(
     }
     return `${silent} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. ${cameraMatch} Draw the explanation graph plus the element of this action. ${labels}${hook ? ` ${hook}` : ""}`;
   }
-  const base = "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.";
+  const base = "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting with a vivid, expressive facial expression, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.";
   return hook ? `${base} ${hook}` : base;
 }
 
@@ -630,7 +630,7 @@ export function cartoonNarratorVideoLock(
           : " HOOK CAMERA: play the exaggerated zoom drawn between the two stills, sharp and fast, no slow glide and no blur."
         : "";
     const glide = smooth ? ` ${SMOOTH_MOTION}` : "";
-    return `${voice} Mouth stays closed or shows simple reactions, and reacts to the diagram or props.${glide}${graphHook}`;
+    return `${voice} Mouth stays closed or shows vivid facial expressions (active eyebrows, expressive eyes, and clear emotional reactions), and reacts to the diagram or props.${glide}${graphHook}`;
   }
   const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
   const named = spec ? ` ${spec.video}` : "";
@@ -641,14 +641,14 @@ export function cartoonNarratorVideoLock(
         : " HOOK CAMERA: play the exaggerated move drawn between the two stills, sharp and fast in the first second, no slow glide and no blur. A close view shows a surprised face. The character stays silent."
       : "";
   const beats = smooth ? SMOOTH_MOTION : SNAP_MOTION;
-  return `${voice}${named} ${beats} It must differ from the previous clip's action. Never slide the body upward, and do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. Do not repeat the previous clip's action.${hook}`;
+  return `${voice}${named} ${beats} Give the character lively, expressive facial expression changes (animated eyebrows, expressive eyes, and clear emotional shifts) across the beats while the mouth stays closed. It must differ from the previous clip's action. Never slide the body upward, and do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. Do not repeat the previous clip's action.${hook}`;
 }
 
 export function dialogueQaDirectorBlock() {
   return [
     "This director requires exactly two attached character blueprints. Assign one as ASKER and one as ANSWERER. Do not invent a third character or a replacement hero.",
     "Use each character's attached name as NAME in every dialogue line. The ASKER speaks the questions; the ANSWERER speaks the answers. No unseen host or narrator explains anything.",
-    "On a question clip only the asker's mouth moves. On an answer clip only the answerer's mouth moves. The listener's mouth stays closed.",
+    "On a question clip only the asker's mouth moves with vivid, expressive facial acting (active eyebrows, expressive eyes, emotional shifts). On an answer clip only the answerer's mouth moves with vivid, expressive facial acting. The listener's mouth stays closed while their face actively reacts (brow raises, eye shifts, nods).",
   ].join(" ");
 }
 
@@ -658,7 +658,7 @@ export function listicleDirectorBlock() {
     "Show the items one by one. One item per clip until the item count passes the duration ceiling. Above that ceiling, put 2 items on a middle clip and reveal them one by one inside that clip (start highlights the first, end highlights the last). Use 3 on a clip only when pairs would still pass the ceiling. Never more than 3 on one clip. Item 1 and the last item each stay on their own clip when there are at least two item clips. If 3 per clip still passes the ceiling, keep 3 per clip and let the clip count run over the preset.",
     "Ceilings, counting the ending: micro 2 clips, short 4, punchy 6, full 10, auto 12.",
     "Clip 1 is a clear hook: empty setting, one large count, and the spoken line written as a subtitle. That spoken line is the largest text in the whole video, bigger than the count and bigger than any later title. No items, no checklist, and no extra props.",
-    "Then introduce items one by one. An item clip holds only that item's number, a short title (the name, not the spoken sentence), and one object. Each item clip uses a different camera angle and a different composition. Do not repeat the previous item's angle, shot size, or where the object sits. In order: low angle with the object huge in front; overhead looking down; a tight side close-up; a wide three-quarter with the object off-center; a dutch tilt close to the lens; an over-the-shoulder. Within one clip the start and end share that angle. Do not draw the other items or a side list.",
+    "Then introduce items one by one. An item clip holds only that item's number, a short title (the name, not the spoken sentence), and one object. When a host or character is in frame, give them a vivid, expressive facial reaction to the item (never a blank face). Each item clip uses a different camera angle and a different composition. Do not repeat the previous item's angle, shot size, or where the object sits. In order: low angle with the object huge in front; overhead looking down; a tight side close-up; a wide three-quarter with the object off-center; a dutch tilt close to the lens; an over-the-shoulder. Within one clip the start and end share that angle. Do not draw the other items or a side list.",
     "The last clip is required and is not an item clip. narrativeJob is `full list`. It is a clean full list: short titles only, evenly spaced on an empty background, every title readable, no host and no extra props. A packed clip's englishVo joins those item lines with ` | `.",
     "Every clip also shows that clip's spoken line as a subtitle in the selected text style, clear of the count, the item, and the full list. The subtitle does not replace those graphics. Ignore any earlier line that puts the whole list on every still or that forbids the subtitle.",
   ].join(" ");
@@ -675,7 +675,7 @@ export function comparisonCardDirectorBlock(aspectRatio: AspectRatio) {
     "narrativeJob MUST be exactly `contrast: <panel A title> | <panel B title>`. Titles are short (about 2–5 words).",
     "Those two titles are the only on-canvas writing. Do not also caption the full voiceover.",
     "The hook names the contrast. Later clips may change what each half shows; the split stays. The last clip rests with both halves visible.",
-    "A host is optional. If a character is attached, they may stand in one half or point across the split, and must not cover either title.",
+    "A host is optional. If a character is attached, they may stand in one half or point across the split with a vivid, expressive facial expression reacting to the contrast, and must not cover either title.",
   ].join(" ");
 }
 
@@ -684,7 +684,7 @@ export function surpriseInterviewDirectorBlock() {
   return [
     "This is a SURPRISE INTERVIEW. Exactly one attached character. They speak every line to the camera. No second character and no screen recording.",
     "Clip 1 is the hook, 3–4 seconds. The person stays right-side up. The camera starts above the head, looking down, then drops downward while it snaps a zoom-in onto the surprised face. Sharp and clear: no blur, no slow glide, and do not flip the picture. The face moves into a clear surprise and says one short hook. If the user pasted a script, that hook is the first sentence verbatim. If they gave only a concept, write the hook.",
-    "Clip 2 and after: startScene copies the previous endScene. Same place, same camera angle, same crop, same body pose. Do not hard-cut to a new angle, and do not repeat the overhead zoom. Only the mouth and expression move.",
+    "Clip 2 and after: startScene copies the previous endScene. Same place, same camera angle, same crop, same body pose. Do not hard-cut to a new angle, and do not repeat the overhead zoom. Only the mouth and vivid, expressive facial expressions (animated eyebrows, expressive eyes, lively cheek and mouth reactions) move.",
     "One idea per interview clip. The last clip rests. Each clip pins the spoken line in one place: top, middle, or bottom. Neighbouring clips do not share the place. Not a white subtitle bar. Letters stay upright. Lettering follows the selected text style. Do not invent a font, and do not copy typography from the visual style. No background music.",
   ].join(" ");
 }
@@ -694,7 +694,7 @@ export function outfitReelDirectorBlock() {
   return [
     "This is an OUTFIT REEL. Exactly one attached character. She is already fully dressed in clip 1 and stays in that same outfit for every clip. Do not write her putting clothes on, taking clothes off, or changing garments.",
     "Clothes must follow the clothing reference images 100 percent: same style, cut, colour, pattern, and details. Copy every piece the photos show. Do not redesign, recolor, drop, or add a piece. If no clothing reference is attached, ask for the photos and stop. Do not invent clothes from the brief sentence.",
-    "The person in a clothing photo is not the character. Never copy their face, hair, hair length, haircut, skin, age, body, tattoos, pose, or room. Face, hair length, skin, age, and body stay on the character blueprint. Only the clothes change. She is energetic and happy in every clip: bright smile, lively eyes, feet planted, no bounce.",
+    "The person in a clothing photo is not the character. Never copy their face, hair, hair length, haircut, skin, age, body, tattoos, pose, or room. Face, hair length, skin, age, and body stay on the character blueprint. Only the clothes change. She is energetic and happy in every clip: bright smile, lively expressive eyes, radiant facial expression, feet planted, no bounce.",
     "Do not add one clip per garment. Clip count follows the duration preset. Every clip shows the complete outfit. One room. Each clip is 3–4 seconds and one camera rotation. Inside a clip the camera is one slow gimbal move on a single axis. Same pose, same distance, same subject size, and no handheld shake. The next clip is a hard cut to a different rotation.",
     "Default order is left to right, then top to bottom, then right to left, then bottom to top. Use a shuffle of that list each time you plan, and do not give two clips in a row the same rotation. Do not push, zoom, rise, or change the lens inside a clip. She stays planted. Head and shoes stay in frame.",
     "englishVo is \"(no dialogue)\" on every clip. No voiceover, no spoken line, no narrator. No background music. bgmDirection and every bgmSfx are one sound effect only.",
@@ -705,7 +705,7 @@ export function outfitReelDirectorBlock() {
 export function followShotDirectorBlock() {
   return [
     "This is a FOLLOW SHOT. Exactly one attached character, filmed third-person, already in motion. This is not an interview.",
-    "Each clip is 3–6 seconds and contains one beat: a few steps, one turn, or one gesture. The character stays a similar size. The background shifts only a little. Do not scroll a whole street past the lens.",
+    "Each clip is 3–6 seconds and contains one beat: a few steps, one turn, or one gesture, with a vivid, expressive facial expression matching the beat. The character stays a similar size. The background shifts only a little. Do not scroll a whole street past the lens.",
     "Clip 2 and after: startScene copies the previous endScene. Same place, same clothes, same camera angle, same body position. Do not change angle between clips.",
     "Clothes stay as they are. No whip pan, no new setup, and no required crowd.",
     "No narrator. Default englishVo is \"(no dialogue)\". Use one short line only if the user wrote one. The last clip stops and rests.",
@@ -716,7 +716,7 @@ export function talkingBrollDirectorBlock() {
   return [
     "This is TALKING-HEAD WITH B-ROLL. The rhythm is fixed: two on-camera lines, then one B-roll cutaway, then back to the same on-camera setup. Repeat until the source is covered. Never open on B-roll.",
     "narrativeJob is only `on-camera` or `b-roll`.",
-    "On-camera: the one attached character, medium close-up, eyes to the lens, same background and light as the first on-camera clip. They speak englishVo.",
+    "On-camera: the one attached character, medium close-up, eyes to the lens, rich and expressive facial expressions (animated eyebrows, expressive eyes, natural emotional shifts), same background and light as the first on-camera clip. They speak englishVo.",
     "B-roll: the character is not on screen. Show the concrete thing the previous two lines just named. englishVo is one short off-screen line or \"(no dialogue)\".",
     "Override clip inheritance for this director: a b-roll startScene is a new place, not the talking-head room. The next on-camera clip returns to the first on-camera setup, not the b-roll ending.",
   ].join(" ");

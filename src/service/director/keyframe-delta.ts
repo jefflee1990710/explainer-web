@@ -72,13 +72,13 @@ export function keyframeDeltaDirectorBlock(options?: {
         : "Write the end still from this clip's start still plus its camera motion. Same place and light. Shot size, angle, and where subjects sit are where the motion lands, and stay put only when the motion keeps the camera locked. No cut and no teleport.",
     "Each still shows exactly ONE instance of each named character — two moments of the same figure, never two bodies in one frame.",
     steady
-      ? `The two stills differ by the one action only: the acting hands, the moved element, the pose, and the expression. The subject's screen position and scale stay. ${stillRule}`
-      : `They must NOT look almost identical — under-moving makes the video freeze. ${stillRule}`,
+      ? `The two stills differ by the one action only: the acting hands, the moved element, the pose, and a vivid, expressive facial expression shift. The subject's screen position and scale stay. ${stillRule}`
+      : `They must NOT look almost identical — under-moving makes the video freeze. When a character is on screen, give start and end stills a clear, expressive facial expression change. ${stillRule}`,
     "motionCamera names the path and how far things travel so interpolation can fill the seconds (see the motionCamera contract). Do not put the in-between action inside start or end still text.",
     "Change budget by durationSeconds:",
     ...(options?.performance
       ? [
-          "- 3s: one primary action only, short and complete, plus a facial-expression change.",
+          "- 3s: one primary action only, short and complete, plus a vivid facial-expression change.",
           "- 4s: that same action lands with a brief follow-through while they stay on the same side. The drawn element has moved.",
           "- 5–6s: anticipation, the full action, then follow-through as the graph responds. A full left-to-right or right-to-left cross only if this clip is one of the rare lateral clips. Extra drawings appear.",
           "- 7–8s: the same one primary action, with follow-through, or rarely one full lateral cross. One figure, still in frame. No cut. Do not add a second unrelated action.",
@@ -123,7 +123,7 @@ export function frameEndMoment(
       : " It must visually hand off to the next clip in the same place."
     : " It is the final frame of the video: end on a clean resting payoff. Do not match or bridge back to clip 1.";
   const change = performance
-    ? "The one action has landed, with a different body pose, facial expression, and head direction."
+    ? "The one action has landed, with a different body pose, a vivid facial expression change, and head direction."
     : BUDGET[band].end;
   const camera = performance ? "" : " The camera is where this clip's motion lands. Same place and light.";
   return `This is the LAST frame of clip ${clipNumber} (t=${seconds}s). ${change}${camera}${handoff}`;
