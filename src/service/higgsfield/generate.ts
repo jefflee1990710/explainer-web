@@ -216,13 +216,14 @@ export async function submitClipVideo(input: {
   startImageUrl: string;
   endImageUrl?: string;
   styleId?: string;
+  style?: { id?: string; baseStyleId?: string } | null;
 }) {
   if (clipVideoProvider() !== "higgsfield") {
     throw new Error("clip video must use Higgsfield first and last frames");
   }
 
   const client = assertHiggsfieldConfigured();
-  const model = clipVideoModel(input.styleId);
+  const model = clipVideoModel(input.style ?? input.styleId);
   // Start-only directors omit the end image; talking-head directors send both frames.
   const body =
     model === SEEDANCE_2_VIDEO_MODEL

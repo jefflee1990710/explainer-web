@@ -27,7 +27,7 @@ function visualLine(label: string, value: string) {
 export function styleBlockForDirector(style: StylePromptSlice & { id?: string }) {
   return [
     `## Visual style: ${style.name}`,
-    "These lines replace only how the picture is drawn and how it moves.",
+    "These lines replace only how the picture is drawn and how it moves (superseding any default whiteboard or flat medium rules in the skill above).",
     visualLine("Canvas", style.canvas),
     visualLine("Look", style.look),
     visualLine("Palette", style.palette),

@@ -2,7 +2,11 @@ import type { CharacterVoice } from "@/model/character-voice";
 import type { PerformanceSlots } from "@/model/director-performance";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { isOutfitReelSkill } from "@/service/director/skill-rules";
-import { DUAL_KEYFRAME_GLIDE_RULES, DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
+import {
+  DUAL_KEYFRAME_GLIDE_RULES,
+  DUAL_KEYFRAME_MOTION_RULES,
+  REALISTIC_SINGLE_FRAME_MOTION_RULES,
+} from "@/service/director/dual-keyframe-motion";
 import { OUTFIT_VIDEO_MOTION_RULES } from "@/service/director/outfit-reel";
 import { isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
 import { surpriseVarietyPlan, surpriseVideoMotionRules } from "@/service/director/surprise-interview";
@@ -79,6 +83,8 @@ export function clipPhaseBUserPrompt(input: {
   performance?: PerformanceSlots;
   // Cinematic realistic whiteboard: accelerate through the change, then decelerate.
   smoothMotion?: boolean;
+  // Cinematic realistic style: use live-action physics for non-whiteboard skills.
+  realistic?: boolean;
 }) {
   const rows = input.phaseA.clips;
   const index = rows.findIndex((row) => row.clipNumber === input.clipNumber);
@@ -125,9 +131,11 @@ export function clipPhaseBUserPrompt(input: {
               row.clipNumber,
               surpriseVarietyPlan(input.phaseA).find((item) => item.clipNumber === row.clipNumber)?.place,
             )
-          : input.smoothMotion
-            ? DUAL_KEYFRAME_GLIDE_RULES
-            : DUAL_KEYFRAME_MOTION_RULES,
+          : input.smoothMotion && input.realistic && !isDualBeatSkill(input.skillSlug)
+            ? REALISTIC_SINGLE_FRAME_MOTION_RULES
+            : input.smoothMotion
+              ? DUAL_KEYFRAME_GLIDE_RULES
+              : DUAL_KEYFRAME_MOTION_RULES,
     opening,
     closing,
     input.bansNarration

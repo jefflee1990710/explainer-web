@@ -213,6 +213,19 @@ test("steady stills keep the lettering fixed and ask the move to accelerate then
   assert.match(prompt, /endScene is where this clip's one action lands/);
   assert.doesNotMatch(prompt, /snaps fast and decisive/);
   assert.doesNotMatch(prompt, /element-by-element/);
+
+  const realisticLiveAction = clipPhaseBUserPrompt({
+    ...base,
+    phaseA: proposal(),
+    clipNumber: 2,
+    skillSlug: "story-short-director",
+    smoothMotion: true,
+    realistic: true,
+  });
+  assert.match(realisticLiveAction, /one clean continuous shot per beat and no repeats/);
+  assert.match(realisticLiveAction, /authentic live-action physics/);
+  assert.match(realisticLiveAction, /Never use whiteboard cardboard cutout physics/);
+  assert.doesNotMatch(realisticLiveAction, /Whiteboard cardboard physics/);
 });
 
 test("dialogue Phase B names the speaking mouth and forbids an invented timbre", () => {

@@ -121,14 +121,15 @@ export async function sendStill(project: Project): Promise<Sent> {
     styleId: project.styleId,
     ownerClerkUserId: project.clerkUserId,
   });
+  const realistic = isRealisticStyle(style);
   const skill = await loadSkill(project);
   const model = imageModelForSubmit(resolveImageRoute(), Boolean(project.characterImageUrl));
   const submitted = await submitImage({
     model,
     prompt: stillPrompt(project, style),
     aspectRatio: project.aspectRatio,
-    quality: skill.higgsfieldDefaults.imageQuality || "medium",
-    resolution: skill.higgsfieldDefaults.imageResolution || "1k",
+    quality: realistic ? "high" : skill.higgsfieldDefaults.imageQuality || "medium",
+    resolution: realistic ? "2k" : skill.higgsfieldDefaults.imageResolution || "1k",
     referenceImageUrls: [project.characterImageUrl],
   });
   return toSent(model, submitted);
@@ -212,13 +213,14 @@ export async function sendFrame(
   const refs = route.model.startsWith("xai/grok-imagine")
     ? locked.filter((url) => url !== plan.anchor?.url)
     : locked;
+  const realistic = isRealisticStyle(style);
   const model = imageModelForSubmit(route, refs.length > 0);
   const submitted = await submitImage({
     model,
     prompt,
     aspectRatio: project.aspectRatio,
-    quality: skill.higgsfieldDefaults.imageQuality || "medium",
-    resolution: skill.higgsfieldDefaults.imageResolution || "1k",
+    quality: realistic ? "high" : skill.higgsfieldDefaults.imageQuality || "medium",
+    resolution: realistic ? "2k" : skill.higgsfieldDefaults.imageResolution || "1k",
     negativePrompt: sceneTextNegativePrompt(sceneText.enabled, sceneText.inWorldLabels),
     sceneTextLanguage: sceneText.language,
     referenceImageUrls: refs,
@@ -472,8 +474,9 @@ export async function sendClipVideo(
     startImageUrl: start,
     endImageUrl: startOnly ? undefined : end,
     styleId: project.styleId,
+    style,
   });
-  return toSent(clipVideoModel(project.styleId), submitted);
+  return toSent(clipVideoModel(style ?? project.styleId), submitted);
 }
 
 // ---------- status sync ----------

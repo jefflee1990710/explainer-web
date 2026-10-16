@@ -1,5 +1,9 @@
 import { generateText, Output } from "ai";
-import { DUAL_KEYFRAME_GLIDE_RULES, DUAL_KEYFRAME_MOTION_RULES } from "@/service/director/dual-keyframe-motion";
+import {
+  DUAL_KEYFRAME_GLIDE_RULES,
+  DUAL_KEYFRAME_MOTION_RULES,
+  REALISTIC_SINGLE_FRAME_MOTION_RULES,
+} from "@/service/director/dual-keyframe-motion";
 import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { phaseBDetailRules } from "@/service/director/scene-detail";
@@ -71,6 +75,7 @@ type PhaseBInput = {
 // Shared director contract for video prompts (batch and per-clip).
 function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageSublabel: string) {
   const steady = clipSkipsEndStill({ skillSlug: input.skill.slug, styleId: input.style.id });
+  const realistic = isRealisticStyle(input.style);
   return `${skillPromptForPhaseB(input.skill, input.style)}
 
 You are executing Phase B only after explicit approval of the current Phase A.
@@ -89,11 +94,13 @@ ${
         ? OUTFIT_VIDEO_MOTION_RULES
         : isSurpriseInterviewSkill(input.skill.slug)
           ? SURPRISE_VARIETY_VIDEO_RULES
-          : steady
-            ? DUAL_KEYFRAME_GLIDE_RULES
-            : DUAL_KEYFRAME_MOTION_RULES
+          : steady && realistic && !isDualBeatSkill(input.skill.slug)
+            ? REALISTIC_SINGLE_FRAME_MOTION_RULES
+            : steady
+              ? DUAL_KEYFRAME_GLIDE_RULES
+              : DUAL_KEYFRAME_MOTION_RULES
   } Do not invent a different final pose, camera, or composition.
-${phaseBDetailRules({ realistic: isRealisticStyle(input.style) })}
+${phaseBDetailRules({ realistic })}
 ${
     isOutfitReelSkill(input.skill.slug)
       ? "This director is silent. Do not write a spoken line, a narrator, or lip-sync. No background music. One sound effect only."
@@ -164,6 +171,7 @@ export async function runPhaseBForClip(
         skillSlug: input.skill.slug,
         performance: resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en"),
         smoothMotion: steady,
+        realistic: isRealisticStyle(input.style),
       }),
     });
     // Avoid NoOutputGeneratedError on `.output` when the model returns nothing or is filtered.

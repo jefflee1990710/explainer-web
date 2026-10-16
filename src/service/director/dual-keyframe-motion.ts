@@ -26,3 +26,14 @@ export const DUAL_KEYFRAME_GLIDE_RULES = [
   "Write that speed into the verbs (accelerates, drives through, slides in, slides out, snaps in, pops up, draws across, eases out). Do not stretch the move as one slow constant glide, and never leave the character or graph holding still for the second half of the clip. Never skip a frame and never cut. No hold-then-jump.",
   "The camera follows motionCamera. The lettering painted on the start image stays fixed for the whole clip: no wipe and no new words. The character keeps the same screen position and scale.",
 ].join(" ");
+
+// Cinematic realistic live-action (non-whiteboard skills): one start image plus natural human/camera motion.
+export const REALISTIC_SINGLE_FRAME_MOTION_RULES = [
+  "Only the START storyboard image is attached, as the first frame. There is no end image and no last frame.",
+  "Never call that still a reference image.",
+  "Reply with the start scene and the camera motion. endScene is where this clip's action lands: write that landing into the motion. Do not ask the video to match a second picture.",
+  "Direct in timed beats across the full duration (see the clip's durationSeconds), with one clean continuous shot per beat and no repeats (never flash the same object or action twice).",
+  "Play body and object motion with authentic live-action physics and natural human timing: genuine weight transfer, natural inertia, subtle breathing lifting the chest and shoulders, natural blinks and ocular micro-saccades, real cloth drape, and vivid, expressive facial acting synced to the beat.",
+  "Never use whiteboard cardboard cutout physics or cartoon snap/whip verbs for realistic people and sets. Background architecture and set dressing stay physically grounded and never warp or morph.",
+  "Camera motion follows motionCamera (smooth gimbal push/pull, slow dolly, or subtle handheld micro-drift with natural optical depth of field). Layer diegetic environmental sound effects matched to each physical action in the beats.",
+].join(" ");

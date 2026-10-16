@@ -64,7 +64,7 @@ export function objectSheetLockParagraph(imageIndex: number, items: ObjectSheetI
   const names = items.map((item) => item.name).filter(Boolean).join(", ");
   return [
     `OBJECT LOCK: attached image ${imageIndex} is this video's prop sheet${names ? ` (${names})` : ""}.`,
-    "Copy only shape, materials, and colours of props the Scene names. Match each named tile.",
+    "Copy only shape, materials, and colours of props the Scene names. Match each named tile; if a prop is repeated in the scene, repeat that exact tile so matching items stay identical.",
     "The sheet shows each prop from the front. Aim its working face at the person using it. If this camera cannot see that face, draw the blank back. Never move the front's content onto that blank side.",
     "Do not copy the white background, the grid, or unused tiles. Do not stage a contact sheet in the scene.",
   ].join(" ");
@@ -76,7 +76,7 @@ export function backgroundPlateLockParagraph(imageIndex: number, plate?: Pick<Ba
   return [
     `BACKGROUND LOCK: attached image ${imageIndex} is the empty set for this clip${label}.`,
     "This image is a 3x3 of the empty set. Use the cell whose angle matches this Scene's Camera line.",
-    "Match location, architecture, sky, and light direction.",
+    "Match location, architecture, lived-in surface details, sky, and light direction.",
     "Where people and props sit follows the Scene, not this plate's crop. Do not paste the empty framing or the grid.",
   ].join(" ");
 }

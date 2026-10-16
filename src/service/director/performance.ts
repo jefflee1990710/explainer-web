@@ -46,14 +46,14 @@ const FULL_BODY_EN: PerformanceSlots = {
   ...FACE_EN,
   anchorProp: "",
   set: "the same plain background in every clip, no new props",
-  light: "soft and even, unchanged",
+  light: "ordinary daylight from a window to one side, unchanged",
 };
 
 const FULL_BODY_YUE: PerformanceSlots = {
   ...FACE_YUE,
   anchorProp: "",
   set: "全程同一個簡潔背景，冇新道具",
-  light: "柔和均勻，不變",
+  light: "一邊窗嘅自然日光，不變",
 };
 
 export const DEFAULT_PERFORMANCE: Record<TalkingShot, SystemPerformance> = {

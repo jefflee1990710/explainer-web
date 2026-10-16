@@ -9,6 +9,7 @@ import {
   buildProfilePrompt,
 } from "@/service/character/blueprint-prompt";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
+import { isRealisticStyle } from "@/service/style/realistic-light";
 import { versionStyleId } from "@/service/character/character-styles";
 import { characterReferenceUrls } from "@/service/character/reference-urls";
 import { toSent, type Sent } from "@/service/generation/sent";
@@ -65,6 +66,7 @@ export async function sendCharacterVersion(
     return toSent(BLUEPRINT_MODEL, submitted);
   }
   const refs = characterReferenceUrls(version);
+  const realistic = isRealisticStyle(style);
   const submitted = await submitImage({
     model: BLUEPRINT_MODEL,
     prompt: buildBlueprintPrompt({
@@ -74,8 +76,8 @@ export async function sendCharacterVersion(
       editInstruction: version.editInstruction,
     }),
     aspectRatio: "16:9",
-    quality: "medium",
-    resolution: "1k",
+    quality: realistic ? BOARD_QUALITY : "medium",
+    resolution: realistic ? BOARD_RESOLUTION : "1k",
     referenceImageUrls: refs,
   });
   return toSent(BLUEPRINT_MODEL, submitted);
@@ -124,13 +126,14 @@ export async function sendCharacterProfile(
     styleId: versionStyleId(character, version),
     ownerClerkUserId: character.clerkUserId,
   });
+  const realistic = isRealisticStyle(style);
   const submitted = await submitImage(
     {
       model: BLUEPRINT_MODEL,
       prompt: buildProfilePrompt({ style, description: version.prompt }),
       aspectRatio: "16:9",
-      quality: "medium",
-      resolution: "1k",
+      quality: realistic ? BOARD_QUALITY : "medium",
+      resolution: realistic ? BOARD_RESOLUTION : "1k",
       referenceImageUrls: [version.blueprintUrl],
     },
     options,

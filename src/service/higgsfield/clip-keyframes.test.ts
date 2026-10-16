@@ -220,7 +220,9 @@ test("h3ClipVideoInput clamps duration to MiniMax H3 5–15s", () => {
 
 test("cinematic realistic sends Seedance 2.0 with both frames", () => {
   assert.equal(clipVideoModel("realistic"), SEEDANCE_2_VIDEO_MODEL);
+  assert.equal(clipVideoModel({ id: "user-style", baseStyleId: "realistic" }), SEEDANCE_2_VIDEO_MODEL);
   assert.equal(clipVideoModel("doodle"), MINIMAX_H3_VIDEO_MODEL);
+  assert.equal(clipVideoModel({ id: "user-style", baseStyleId: "doodle" }), MINIMAX_H3_VIDEO_MODEL);
   assert.deepEqual(
     seedanceClipVideoInput({
       prompt: "walk to the box",

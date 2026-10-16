@@ -26,6 +26,7 @@ import {
 import { persistMedia } from "@/service/higgsfield/persist";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
+import { isRealisticStyle } from "@/service/style/realistic-light";
 
 // Drop prior lock jobs so a new inventory can re-queue. Refund anything still unpaid.
 async function invalidateVideoLockJobs(projectId: ObjectId, clerkUserId: string) {
@@ -252,14 +253,15 @@ export async function sendObjectSheet(project: Project): Promise<Sent> {
     styleId: project.styleId,
     ownerClerkUserId: project.clerkUserId,
   });
+  const realistic = isRealisticStyle(style);
   const sceneText = resolveSceneText(project);
   const route = IMAGE_ROUTE_BY_SCENE_TEXT[sceneText.language] || IMAGE_ROUTE_BY_SCENE_TEXT.en;
   const submitted = await submitImage({
     model: route.model,
     prompt: buildObjectSheetPrompt({ style, items }),
     aspectRatio: "16:9",
-    quality: "medium",
-    resolution: "1k",
+    quality: realistic ? "high" : "medium",
+    resolution: realistic ? "2k" : "1k",
   });
   return toSent(route.model, submitted);
 }
@@ -271,6 +273,7 @@ export async function sendBackgroundPlate(project: Project, setId: string): Prom
     styleId: project.styleId,
     ownerClerkUserId: project.clerkUserId,
   });
+  const realistic = isRealisticStyle(style);
   const sceneText = resolveSceneText(project);
   const route = IMAGE_ROUTE_BY_SCENE_TEXT[sceneText.language] || IMAGE_ROUTE_BY_SCENE_TEXT.en;
   const submitted = await submitImage({
@@ -281,8 +284,8 @@ export async function sendBackgroundPlate(project: Project, setId: string): Prom
       aspectRatio: project.aspectRatio,
     }),
     aspectRatio: project.aspectRatio,
-    quality: "medium",
-    resolution: "1k",
+    quality: realistic ? "high" : "medium",
+    resolution: realistic ? "2k" : "1k",
   });
   return toSent(route.model, submitted);
 }

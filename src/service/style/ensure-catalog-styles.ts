@@ -1,6 +1,7 @@
 import { stylesCollection } from "@/dao";
 import { CHALKBOARD_COLOR_FIELDS, CHALKBOARD_COLOR_ID, chalkboardColorDoc } from "@/service/style/chalkboard-color";
 import { CATALOG_EXTRA_STYLES } from "@/service/style/catalog-styles";
+import { REALISTIC_STYLE_FIELDS } from "@/service/style/realistic-light";
 
 const PROMPT_KEYS = [
   "name",
@@ -49,6 +50,18 @@ export async function ensureCatalogStyles() {
     await styles.updateOne(
       { _id: spec.id },
       { $set: { ...spec.fields, updatedAt: new Date() } },
+      { upsert: true },
+    );
+  }
+  const realisticExisting = await styles.findOne({ _id: "realistic" });
+  if (
+    !hasPromptFields(realisticExisting) ||
+    realisticExisting?.look !== REALISTIC_STYLE_FIELDS.look ||
+    realisticExisting?.negatives !== REALISTIC_STYLE_FIELDS.negatives
+  ) {
+    await styles.updateOne(
+      { _id: "realistic" },
+      { $set: { ...REALISTIC_STYLE_FIELDS, updatedAt: new Date() } },
       { upsert: true },
     );
   }
