@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { ObjectId } from "mongodb";
-import { buildBlueprintPrompt, buildPortraitPrompt, buildProfilePrompt } from "@/service/character/blueprint-prompt";
+import {
+  buildBlueprintPrompt,
+  buildFullBodyPrompt,
+  buildPortraitPrompt,
+  buildProfilePrompt,
+} from "@/service/character/blueprint-prompt";
 import { resetStyleOverlay, resolvedStyle } from "@/service/style/load-style";
 import { renderableFromSystem } from "@/service/style/renderable-style";
 import { installTestStyles, testStyle, uninstallTestStyles } from "@/service/style/test-styles";
@@ -152,7 +157,30 @@ test("blueprint ground stays light and contrasts with the outfit", () => {
   });
   assert.match(portrait, /grazing directional key light/);
   assert.match(portrait, /negative fill/);
+  assert.match(portrait, /85mm portrait lens at f\/1\.8/);
+  assert.match(portrait, /skin pores/);
+  assert.match(portrait, /subtle film grain/);
   assert.doesNotMatch(portrait, /Even soft front light/);
+
+  for (const prompt of [
+    buildBlueprintPrompt({ style: realistic, description: "a woman in a black dress" }),
+    buildFullBodyPrompt({
+      style: realistic,
+      description: "a woman in a black dress",
+      photoCount: 0,
+    }),
+    buildProfilePrompt({ style: realistic, description: "a woman in a black dress" }),
+  ]) {
+    assert.match(prompt, /50mm lens at f\/4/);
+    assert.match(prompt, /warm amber light, muted teal shadows/);
+    assert.match(prompt, /Directional light and texture stay on the person/);
+  }
+
+  const flat = buildBlueprintPrompt({
+    style: loadedStyle("doodle"),
+    description: "a woman in a black dress",
+  });
+  assert.doesNotMatch(flat, /85mm portrait lens|subtle film grain|Realistic texture/);
 });
 
 test("editing a sheet replaces a scenic ground with the light sheet colour", () => {

@@ -1,8 +1,11 @@
+import { REALISTIC_PRODUCT_RENDER_RULE } from "@/service/style/realistic-light";
+
 // Realistic product sheet. The video style must never restyle this object.
 export function buildProductBlueprintPrompt(input: { name: string; description: string; referenceCount: number }) {
   const lines = [
     "Photorealistic product reference sheet on a plain white background.",
-    "Show this exact product only: a clear front view, a three-quarter view, and a side view, evenly lit, no cast shadow.",
+    "Show this exact product only: a clear front view, a three-quarter view, and a side view.",
+    REALISTIC_PRODUCT_RENDER_RULE,
     "Keep the real materials, colors, logo, packaging text, proportions, and shape from the attached photos.",
     "Do not illustrate, cartoon, restyle, redesign, or beautify the product.",
     "No lifestyle scene, no hands, no extra products, no captions, no watermark.",
