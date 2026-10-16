@@ -20,6 +20,7 @@ import { talkingShotForSkill } from "@/service/director/talking-performance";
 import { sanitizeClipReferenceIds } from "@/service/project/reference-images";
 import type { Skill } from "@/model/skill";
 import type { RenderableStyle } from "@/service/style/renderable-style";
+import { isRealisticStyle } from "@/service/style/realistic-light";
 import type { Style } from "@/service/style";
 import type { AspectRatio, SpeechPace } from "@/model/project";
 import type { CastMember } from "@/model/character";
@@ -138,6 +139,7 @@ export async function draftAppendedClips(input: AppendInput): Promise<Storyboard
       ),
       overlay: input.subtitleOverlay === true,
       noText: input.noText === true,
+      realistic: isRealisticStyle(input.style),
     });
     return planned.map((row) => inheritOpening(row, previous, skillSlug));
   }

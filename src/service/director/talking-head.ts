@@ -5,6 +5,7 @@ import { chainsClipStarts, inheritsPreviousEnd } from "@/service/director/clip-c
 import { DEFAULT_PERFORMANCE, performanceLanguage } from "@/service/director/performance";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
 import { hasAnchorProp, speakOnlyThisClip, talkingMotionLine, type TalkingShot } from "@/service/director/talking-performance";
+import { talkingRealismMotion, talkingRealismStill } from "@/service/director/talking-realism";
 import { toWrittenChinese } from "@/service/director/written-chinese";
 import { mediaSrc } from "@/util/media-src";
 
@@ -216,6 +217,8 @@ export function planTalkingHeadClips(input: {
   overlay?: boolean;
   // Brief chose None. Stills and the video stay free of every written word.
   noText?: boolean;
+  // Cinematic realistic style: add light source, skin detail, and foreground depth.
+  realistic?: boolean;
 }): TalkingHeadClipPlan[] {
   const lines = balanceTalkingHeadLines(input.source, input.pace);
   const total = lines.length;
@@ -233,7 +236,9 @@ export function planTalkingHeadClips(input: {
       openingPhoto: input.openingPhoto,
       perf,
       overlay: input.overlay || input.noText,
+      realistic: input.realistic,
     };
+    const realism = { fullBody: talkingShot === "full-body", openingPhoto: input.openingPhoto };
     const endScene = shotLine(input.language, "end", line, scene);
     const previousLine = index === 0 ? undefined : lines[index - 1];
     const nextLine = index + 1 < lines.length ? lines[index + 1] : undefined;
@@ -256,20 +261,23 @@ export function planTalkingHeadClips(input: {
       explainerScene: startScene,
       startScene,
       endScene,
-      motionCamera: talkingMotionLine({
-        language: input.language,
-        seconds,
-        line,
-        previousLine,
-        shot: talkingShot,
-        clipNumber: index + 1,
-        totalClips: total,
-        belowCenter,
-        performance: perf,
-        overlay: input.overlay,
-        noText: input.noText,
-        nextLine,
-      }),
+      motionCamera: withMotionRealism(
+        talkingMotionLine({
+          language: input.language,
+          seconds,
+          line,
+          previousLine,
+          shot: talkingShot,
+          clipNumber: index + 1,
+          totalClips: total,
+          belowCenter,
+          performance: perf,
+          overlay: input.overlay,
+          noText: input.noText,
+          nextLine,
+        }),
+        input.realistic ? talkingRealismMotion(input.language, realism) : "",
+      ),
       englishVo: line,
       bgmSfx: input.language === "en" ? "none" : "無",
     });
@@ -356,6 +364,7 @@ export function talkingHeadDirectorBlock(
   performance?: PerformanceSlots,
   overlay?: boolean,
   noText?: boolean,
+  realistic?: boolean,
 ) {
   const fullBody = skillSlug === FULL_BODY_TALKING_HEAD_SKILL_SLUG;
   const p = performance ?? DEFAULT_PERFORMANCE[fullBody ? "full-body" : "face"].en;
@@ -377,6 +386,9 @@ export function talkingHeadDirectorBlock(
       : `On-camera speech to a phone on a tripod: seated, eyes locked on the lens, continuous lip-sync, head tilting and nodding, ${hands}. Natural skin, real cloth, unposed. Never freeze the face or neck. Never a greeting wave. Never stand up.`,
     `Face pattern: resting face is ${p.restingFace}. Emphasis: ${p.emphasisBeat}. Clip 1 opens with ${p.hookBeat} as the hook. The last clip ends on ${p.ctaBeat}.`,
     `Gesture pattern: the gesturing hand changes shape every 1–2 seconds in time with the words — ${p.gestureLibrary}. Head: ${p.headMotion}.`,
+    ...(realistic
+      ? ["Realism (Cinematic realistic): every still names one motivated light source from the side with a soft rim light on the hair, real skin pores and fine facial hair, and a soft out-of-focus foreground element at one frame edge that never covers the face, hands, or subtitle. Never flat front light or plastic skin."]
+      : []),
     noText
       ? "The frame has no letters, no subtitle, no caption, no logo, and no writing. The spoken line is voice only."
       : overlay
@@ -412,7 +424,24 @@ type SceneInput = {
   openingPhoto?: boolean;
   perf: PerformanceSlots;
   overlay?: boolean;
+  realistic?: boolean;
 };
+
+// Realism goes after camera and before the subtitle, so the subtitle swap keeps it.
+function withStillRealism(still: string, language: VoLanguage | undefined, scene: SceneInput) {
+  if (!scene.realistic) return still;
+  const clause = talkingRealismStill(language, {
+    fullBody: scene.shot === "full-body",
+    openingPhoto: scene.openingPhoto,
+  });
+  return language === "en" ? `${still.trim()} ${clause}` : `${still.trim()}${clause}`;
+}
+
+function withMotionRealism(motion: string, clause: string) {
+  if (!clause) return motion;
+  const text = motion.trim();
+  return `${text}${/[.。]$/.test(text) ? "" : "."} ${clause}`;
+}
 
 // Start still: hook face, free hand mid-gesture. End still: smile relaxed, head tilted the other way.
 function shotLine(language: VoLanguage | undefined, moment: "start" | "end", line: string, scene: SceneInput) {
@@ -425,10 +454,13 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
       language === "en"
         ? "Character: the only person in the frame. Match the attached opening photo exactly: same face, hair, clothes, body, and pose. They look into the lens, mouth just opening."
         : "角色：畫面只有呢一個人。跟附上的開場照片：同一張臉、頭髮、衫、身形同姿勢。直望鏡頭，準備開口。";
-    const still =
+    const still = withStillRealism(
       language === "en"
         ? `${pose} ${setClause("en", scene)}${camera}`
-        : `${pose}${setClause("yue", scene)}${camera}`;
+        : `${pose}${setClause("yue", scene)}${camera}`,
+      language,
+      scene,
+    );
     if (scene.overlay) return still.trim();
     const painted = language === "yue" ? toWrittenChinese(line) : line;
     return language === "en"
@@ -448,7 +480,7 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
         : fullBody
           ? `Character: still the only person in the frame, eyes still locked on the lens, mouth just closed after the line, an engaged small smile, eyebrows relaxed, head nodded only a few degrees.${propEnd} ${freeHand} is still slightly raised at chest height with an open palm, weight on the other hip, feet in the same place.${sameFrame}`
           : `Character: still the only person in the frame, still seated, eyes still locked on the lens, mouth just closed into a small real smile, eyebrows relaxed, head nodded only a few degrees.${propEnd} ${freeHand} is open-palm at chest height, caught between gestures.${sameFrame}`;
-    const still = `${pose} ${setClause("en", scene)}${camera}`;
+    const still = withStillRealism(`${pose} ${setClause("en", scene)}${camera}`, language, scene);
     // Overlay subtitles are composited later, so the still is pose, set, and camera only.
     if (scene.overlay) return still.trim();
     return `${still} ${subtitleSentence("en", line, scene.belowCenter)}`;
@@ -465,7 +497,7 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
       : fullBody
         ? `角色：畫面仍然只有呢一個人，仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，眉毛放鬆，頭只再傾幾度。${propEnd}${freeHand}仲喺胸前掌心打開，重心輕輕換咗少少，腳留喺同一個位置。${sameFrame}`
         : `角色：畫面仍然只有呢一個人，仍然坐住直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，頭只再傾幾度。${propEnd}${freeHand}掌心打開停喺胸前，好似兩個手勢之間。${sameFrame}`;
-  const still = `${pose}${setClause("yue", scene)}${camera}`;
+  const still = withStillRealism(`${pose}${setClause("yue", scene)}${camera}`, language, scene);
   if (scene.overlay) return still.trim();
   return `${still}${subtitleSentence("yue", toWrittenChinese(line), scene.belowCenter)}`;
 }

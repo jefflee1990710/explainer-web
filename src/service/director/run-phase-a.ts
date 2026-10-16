@@ -335,6 +335,10 @@ ${
           resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en"),
           subtitleOverlay,
           !sceneText.enabled,
+          isRealisticStyle({
+            id: input.style.id,
+            baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
+          }),
         )
       : "",
     isSurpriseInterviewSkill(input.skill.slug) ? surpriseInterviewDirectorBlock() : "",
@@ -481,6 +485,10 @@ Produce a complete Phase A director proposal now.`,
       performance: resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", input.language),
       overlay: subtitleOverlay,
       noText: !sceneText.enabled,
+      realistic: isRealisticStyle({
+        id: input.style.id,
+        baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
+      }),
     });
     const spoken = clips.reduce((sum, clip) => {
       const units = spokenUnits(clip.englishVo);
