@@ -1383,6 +1383,10 @@ export async function refreshProjectJobs(projectId: ObjectId) {
   }
 
   await syncProjectFromJobs(projectId);
+  const { enqueueSceneImagesForNewVideo } = await import("@/service/clip/enqueue-scene-images");
+  await enqueueSceneImagesForNewVideo(projectId).catch((error) => {
+    console.error("[frames] auto enqueue on refresh failed", { projectId, error });
+  });
 }
 
 export type { GenerationJob };

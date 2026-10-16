@@ -82,6 +82,7 @@ export type PublicVideo = {
   stillError?: string;
   // Prop sheet and empty-set plates used as locks for scene stills.
   objectSheetUrl?: string;
+  objectSheetError?: string;
   objectSheetItems?: Array<{ name: string; notes: string }>;
   backgroundPlates?: Array<{
     setId: string;
@@ -90,6 +91,7 @@ export type PublicVideo = {
     clipNumbers: number[];
     url?: string;
   }>;
+  backgroundPlateError?: string;
   logoUrl?: string;
   referenceImages: NonNullable<Project["referenceImages"]>;
   backgroundImageUrls: string[];
@@ -354,8 +356,10 @@ export function toPublicVideo(video: Project): PublicVideo {
     characterStillUrl: video.characterStillUrl,
     stillError: video.stillError,
     objectSheetUrl: video.objectSheetUrl,
+    objectSheetError: video.objectSheetError,
     objectSheetItems: video.objectSheetItems,
     backgroundPlates: video.backgroundPlates,
+    backgroundPlateError: video.backgroundPlateError,
     logoUrl: video.logoUrl,
     referenceImages: video.referenceImages || [],
     backgroundImageUrls: video.backgroundImageUrls || [],

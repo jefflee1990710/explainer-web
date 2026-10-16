@@ -161,7 +161,11 @@ export async function enqueueVideoLockJobs(project: Project) {
       kind: "objectSheet",
       status: { $nin: ["failed", "nsfw"] },
     });
-    if (!existing) toQueue.push({ kind: "objectSheet" });
+    if (existing?.status === "completed" && existing.outputUrl) {
+      await syncVideoLockJob(existing, "completed", existing.outputUrl);
+    } else if (!existing) {
+      toQueue.push({ kind: "objectSheet" });
+    }
   }
 
   for (const plate of project.backgroundPlates || []) {
@@ -172,7 +176,11 @@ export async function enqueueVideoLockJobs(project: Project) {
       backgroundSetId: plate.setId,
       status: { $nin: ["failed", "nsfw"] },
     });
-    if (!existing) toQueue.push({ kind: "backgroundPlate", backgroundSetId: plate.setId });
+    if (existing?.status === "completed" && existing.outputUrl) {
+      await syncVideoLockJob(existing, "completed", existing.outputUrl);
+    } else if (!existing) {
+      toQueue.push({ kind: "backgroundPlate", backgroundSetId: plate.setId });
+    }
   }
 
   if (toQueue.length === 0) return { queued: 0, cost: 0 };
@@ -330,13 +338,10 @@ export async function syncVideoLockJob(
       },
     );
   } else if (job.kind === "backgroundPlate" && job.backgroundSetId) {
-    const plates = (project.backgroundPlates || []).map((plate) =>
-      plate.setId === job.backgroundSetId ? { ...plate, url: blobUrl } : plate,
-    );
     await projects.updateOne(
-      { _id: job.projectId },
+      { _id: job.projectId, "backgroundPlates.setId": job.backgroundSetId },
       {
-        $set: { backgroundPlates: plates, updatedAt: new Date() },
+        $set: { "backgroundPlates.$.url": blobUrl, updatedAt: new Date() },
         $unset: { backgroundPlateError: "" },
       },
     );

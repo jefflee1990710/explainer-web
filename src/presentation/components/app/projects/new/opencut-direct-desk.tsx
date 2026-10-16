@@ -18,6 +18,7 @@ import {
 import { syncOpencutSubtitlePlatesAction } from "@/presentation/actions/opencut-subtitle";
 import { generateSelectedClipsAction } from "@/presentation/actions/clip-production";
 import { sendClipSceneChatAction } from "@/presentation/actions/scene-chat";
+import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { buildSubtitleCatalog, type SubtitleCatalog } from "@/service/video-edit/subtitle-catalog";
 import { createScroOpenCutHost, type ScroOpenCutHost } from "@/service/opencut/host-channel";
 import { allFramesReady, planRemaining } from "@/service/production-plan";
@@ -507,8 +508,14 @@ export function OpenCutDirectDesk({
     didAutoPlanRef.current = true;
     void generateSelectedClipsAction(project.id, frames, "frames").then((result) => {
       if (!result.ok) {
+        if (/請稍候再試/.test(result.error)) {
+          didAutoPlanRef.current = false;
+        }
         console.warn("[scro-video] auto plan:", result.error);
+      } else {
+        productionRef.current?.onProject(result.project);
       }
+      notifyTasksChanged();
     });
   }, [project]);
 

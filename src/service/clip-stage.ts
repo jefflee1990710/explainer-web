@@ -52,6 +52,11 @@ export type ClipStageSource = {
   language?: VoLanguage;
   // Only `voiceSample` is read, to price the voice swap.
   cast?: Array<{ voiceSample?: { elevenVoiceId?: string } | null }>;
+  objectSheetItems?: Array<{ name: string; notes: string }>;
+  objectSheetUrl?: string;
+  objectSheetError?: string;
+  backgroundPlates?: Array<{ setId: string; clipNumbers: number[]; url?: string }>;
+  backgroundPlateError?: string;
 };
 
 const IN_FLIGHT = new Set<string>(["queued", "in_progress"]);
@@ -166,9 +171,20 @@ export function clipStatesFor(project: ClipStageSource): ClipState[] {
   return (project.phaseA?.clips || []).map((row) => clipStateFor(project, row.clipNumber));
 }
 
-// Poll while the director writes, or while any frame/video job is in flight.
+// Poll while the director writes, while prop/background locks are generating,
+// or while any frame/video job is in flight.
 export function isProjectBusy(project: ClipStageSource) {
   if (normalizeProjectStatus(project.status) === "phase_a") return true;
+  const objectSheetBusy =
+    (project.objectSheetItems?.length ?? 0) > 0 &&
+    !project.objectSheetUrl &&
+    !project.objectSheetError;
+  const backgroundPlatesBusy =
+    !project.backgroundPlateError &&
+    (project.backgroundPlates || []).some(
+      (plate) => plate.clipNumbers.length > 0 && !plate.url,
+    );
+  if (objectSheetBusy || backgroundPlatesBusy) return true;
   return (
     (project.frames || []).some((frame) => isInFlight(frame) || needsPersist(frame)) ||
     project.clips.some((clip) => isInFlight(clip) || needsPersist(clip))

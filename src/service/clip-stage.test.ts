@@ -504,3 +504,41 @@ test("a newer subtitle merge makes the video stale", () => {
   });
   assert.equal(clipStateFor(p, 1).stale.video, true);
 });
+
+test("isProjectBusy stays true while object sheet or background plates are generating", () => {
+  assert.equal(
+    isProjectBusy(
+      project({
+        objectSheetItems: [{ name: "mug", notes: "blue" }],
+        objectSheetUrl: undefined,
+      }),
+    ),
+    true,
+  );
+  assert.equal(
+    isProjectBusy(
+      project({
+        objectSheetItems: [{ name: "mug", notes: "blue" }],
+        objectSheetError: "failed",
+      }),
+    ),
+    false,
+  );
+  assert.equal(
+    isProjectBusy(
+      project({
+        backgroundPlates: [{ setId: "loft", clipNumbers: [1], url: undefined }],
+      }),
+    ),
+    true,
+  );
+  assert.equal(
+    isProjectBusy(
+      project({
+        backgroundPlates: [{ setId: "loft", clipNumbers: [1], url: "https://blob/loft.png" }],
+      }),
+    ),
+    false,
+  );
+});
+
