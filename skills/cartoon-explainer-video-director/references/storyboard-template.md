@@ -36,7 +36,7 @@ Present these items in order:
 
 The narrator is always an unseen off-screen voice speaking in the third person. Never write the voiceover as the on-screen character talking ("Hi, I'm Scro", "I am…"); the character is a silent demonstrator who reacts to a diagram or props. The narrator may name the character or product ("Meet Scro. Scro turns…").
 
-Lock the narrator voice: always use a warm, engaging adult male voice speaking natural American English. Infer tone from the source when the user did not specify it. Never use a female narrator. Do not invent a new hero, skin tone, wardrobe, or chalkboard inversion.
+Lock the narrator voice: when an attached character has a locked voice, the unseen off-screen narrator MUST use that character's exact locked voice timbre and gender verbatim (never switch to the opposite gender); otherwise use the user-selected adult male or female voice speaking the chosen voiceover language. Infer tone from the source when the user did not specify it. Never switch narrator gender across clips. Do not invent a new hero, skin tone, wardrobe, or chalkboard inversion.
 
 ## Narrative patterns & archetypes
 

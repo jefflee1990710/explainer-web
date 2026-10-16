@@ -27,7 +27,7 @@ Write every prompt in this order:
 6. First-frame state inherited from the previous clip (or opening hook entrance for Clip 1)
 7. Timed visual beats scaled to clip duration (e.g., `[0–3s]`, `[3–6s]`, `[6–8s]` or `[0–2s]`, `[2–4s]`), enforcing a visual change every 1.5–2.5 seconds (micro punch-in, camera push, doodle morph, icon pop, tag snap)
 8. Exact audio-only English dialogue in quotation marks
-9. Identical narrator description, emotion, and delivery (strictly locked as the user-selected adult male or female voice speaking the chosen voiceover language)
+9. Identical narrator description, emotion, and delivery (strictly locked to the attached character's locked voice timbre and gender when provided, or the user-selected adult male or female voice speaking the chosen voiceover language; never switch gender)
 10. No background music / BGM / score. Short synchronized SFX only (whoosh, pop, ding). Voice-only mix.
 11. Final-frame transition state inherited by the next clip (or a clean resting payoff on the last clip — never a loop seam back to Clip 1)
 12. Negative constraints, including no voiceover captions, no teal sunburst world, no glasses hero, and no technical color notation
@@ -66,7 +66,7 @@ Describe backgrounds as a clean solid white whiteboard canvas with hand-drawn bl
 
 ## Audio contract
 
-Repeat the same narrator specification in all prompts: lock the narrator as a warm, engaging adult voice of the gender the user selected (male or female), speaking the chosen voiceover language. Never switch gender. State delivery changes without changing voice identity. No background music, BGM, score, or underscore — spoken line plus short synced SFX only.
+Repeat the same narrator specification in all prompts: when an attached character has a locked voice, lock the off-screen narrator to that character's exact voice timbre and gender verbatim; otherwise lock the narrator as a warm, engaging adult voice of the gender the user selected (male or female), speaking the chosen voiceover language. Never switch gender. State delivery changes without changing voice identity. No background music, BGM, score, or underscore — spoken line plus short synced SFX only.
 
 Synchronize effects to visible events such as impacts, transformations, energy releases, steps, wipes, or object movement.
 
