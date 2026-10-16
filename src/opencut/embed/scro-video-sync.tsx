@@ -6,7 +6,7 @@ import { processMediaAssets } from "@/opencut/media/processing";
 import { buildElementFromMedia } from "@/opencut/timeline/element-utils";
 import { toElementDurationTicks } from "@/opencut/timeline/creation";
 import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/opencut/wasm";
-import type { MediaType } from "@/opencut/media/types";
+import type { MediaAsset, MediaType } from "@/opencut/media/types";
 import { applyScroCanvasSize } from "@/opencut/embed/scro-canvas-size";
 import { resolveElementScroClipNumber } from "@/opencut/embed/scro-clip-number";
 import {
@@ -14,6 +14,7 @@ import {
 	storyboardPlacement,
 } from "@/opencut/embed/scro-clip-duration";
 import { stillPlaceholderFile } from "@/opencut/embed/scro-still-placeholder";
+import { staleTimelineElementIds } from "@/service/scro-video/timeline-seed";
 import {
 	armScroSync,
 	rememberClipSource,
@@ -99,12 +100,16 @@ function buildScroTimelineElement({
 	});
 }
 
-function findScroElement(elements: TimelineElement[], clipNumber: number) {
-	return elements.find(
-		(element) =>
-			(element.type === "video" || element.type === "image") &&
-			element.scroClipNumber === clipNumber,
-	);
+function findScroElement(
+	elements: TimelineElement[],
+	clipNumber: number,
+	assets: Array<Pick<MediaAsset, "id" | "name" | "scroClipNumber">>,
+	clips: ScroVideoSeedClip[] | undefined,
+) {
+	return elements.find((element) => {
+		if (element.type !== "video" && element.type !== "image") return false;
+		return resolveElementScroClipNumber({ element, assets, clips }) === clipNumber;
+	});
 }
 
 /** Seeds and updates ScroVideo placeholders on the main track. */
@@ -132,6 +137,7 @@ export function ScroVideoSync() {
 			if (data.type === "scro-videos-state") {
 				setScroVideos({ videoId: data.videoId, clips: data.clips });
 				void (async () => {
+					await retireStaleCut(data);
 					await reconcileClips(data);
 					await upgradeStandIns(data);
 					fitStoryboardLengths(data.clips);
@@ -185,6 +191,9 @@ export function ScroVideoSync() {
 			let scene = editor.scenes.getActiveScene();
 			if (!data.replace && mainHasScroClip(scene.tracks.main.elements)) {
 				await applyScroCanvasSize(editor, data.aspectRatio);
+				// Recreate keeps the local cut. Drop the previous videos before
+				// the new stills and renders take their place.
+				await retireStaleCut(data);
 				armScroSync();
 				seedDone(data.videoId);
 				return;
@@ -241,6 +250,81 @@ export function ScroVideoSync() {
 				const next = pendingSeed.current;
 				pendingSeed.current = null;
 				if (next) void seedClips(next);
+			}
+		}
+
+		/**
+		 * Take the previous render off the timeline before the next one is placed.
+		 * A clip that left the storyboard goes too. The current still stays, and so
+		 * does user media such as an ending sting.
+		 */
+		async function retireStaleCut(data: { videoId: string; clips: ScroVideoSeedClip[] }) {
+			if (busy.current) return;
+			const scene = editor.scenes.getActiveScene();
+			const assets = editor.media.getAssets();
+			const refs = scene.tracks.main.elements.flatMap((element) => {
+				if (element.type !== "video" && element.type !== "image") return [];
+				return [
+					{
+						id: element.id,
+						type: element.type,
+						// Keep a "Clip 4" label even after that clip left the storyboard,
+						// so the old video can be removed instead of looking like user media.
+						clipNumber: resolveElementScroClipNumber({
+							element,
+							assets,
+							clips: undefined,
+						}),
+						startTime: element.startTime,
+					},
+				];
+			});
+			const staleIds = new Set(
+				staleTimelineElementIds({ elements: refs, clips: data.clips }),
+			);
+			if (staleIds.size === 0) return;
+			const stale = refs.filter((element) => staleIds.has(element.id));
+			busy.current = true;
+			try {
+				editor.timeline.deleteElements({
+					elements: stale.map((element) => ({
+						trackId: scene.tracks.main.id,
+						elementId: element.id,
+					})),
+				});
+				const replaced = new Set<number>();
+				for (const element of stale) {
+					if (element.clipNumber == null || replaced.has(element.clipNumber)) continue;
+					replaced.add(element.clipNumber);
+					const clip = data.clips.find((item) => item.clipNumber === element.clipNumber);
+					if (!clip) continue;
+					const fresh = editor.scenes.getActiveScene();
+					if (
+						findScroElement(
+							fresh.tracks.main.elements,
+							clip.clipNumber,
+							editor.media.getAssets(),
+							data.clips,
+						)
+					) {
+						continue;
+					}
+					const created = await ensureMedia({ videoId: data.videoId, clip });
+					if (!created) continue;
+					editor.timeline.insertElement({
+						placement: { mode: "explicit", trackId: fresh.tracks.main.id },
+						element: buildScroTimelineElement({
+							mediaId: created.id,
+							mediaType: created.type,
+							name: clip.name,
+							clip,
+							fileSeconds: created.duration,
+							startTime: element.startTime,
+						}),
+					});
+				}
+			} finally {
+				busy.current = false;
 			}
 		}
 
@@ -359,6 +443,8 @@ export function ScroVideoSync() {
 				const existing = findScroElement(
 					scene.tracks.main.elements,
 					clip.clipNumber,
+					editor.media.getAssets(),
+					data.clips,
 				);
 				if (!existing || (existing.type !== "image" && existing.type !== "video")) {
 					continue;
@@ -383,7 +469,12 @@ export function ScroVideoSync() {
 			const project = editor.project.getActiveOrNull();
 			if (!project) return;
 			const scene = editor.scenes.getActiveScene();
-			const existing = findScroElement(scene.tracks.main.elements, data.clip.clipNumber);
+			const existing = findScroElement(
+				scene.tracks.main.elements,
+				data.clip.clipNumber,
+				editor.media.getAssets(),
+				getScroVideos()?.clips,
+			);
 			if (!existing || (existing.type !== "video" && existing.type !== "image")) {
 				return;
 			}

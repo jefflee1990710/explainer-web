@@ -85,6 +85,37 @@ export function storyboardLayoutAction({
   return "keep";
 }
 
+export type TimelineClipRef = {
+  id: string;
+  type: string;
+  /** Storyboard clip, when the element is one. User media such as an ending stays null. */
+  clipNumber: number | null;
+};
+
+/**
+ * Videos left on the timeline after recreate or a new render.
+ * Drop a clip the storyboard no longer has, and drop a finished file
+ * once that clip is generating again. Keep the current still, and keep
+ * anything that is not a storyboard clip.
+ */
+export function staleTimelineElementIds({
+  elements,
+  clips,
+}: {
+  elements: TimelineClipRef[];
+  clips: Array<{ clipNumber: number; videoUrl?: string }>;
+}): string[] {
+  const byNumber = new Map(clips.map((clip) => [clip.clipNumber, clip]));
+  const ids: string[] = [];
+  for (const element of elements) {
+    if (element.type !== "video" && element.type !== "image") continue;
+    if (element.clipNumber == null) continue;
+    const clip = byNumber.get(element.clipNumber);
+    if (!clip || (element.type === "video" && !clip.videoUrl)) ids.push(element.id);
+  }
+  return ids;
+}
+
 /** Clips whose poster/video/stage changed between two snapshots. */
 export function diffScroSeedClips({
   previous,

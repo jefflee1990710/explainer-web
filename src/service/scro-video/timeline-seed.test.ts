@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   buildSeedClips,
   diffScroSeedClips,
+  staleTimelineElementIds,
   storyboardLayoutAction,
 } from "@/service/scro-video/timeline-seed";
 import type { ScroVideoSource } from "@/service/scro-video/view-model";
@@ -73,6 +74,33 @@ describe("storyboard layout", () => {
       storyboardLayoutAction({ synced: false, previousCount: 0, nextCount: 4 }),
       "keep",
     );
+  });
+});
+
+describe("staleTimelineElementIds", () => {
+  it("drops old videos before the next render and drops clips that left the storyboard", () => {
+    const ids = staleTimelineElementIds({
+      elements: [
+        { id: "v1", type: "video", clipNumber: 1 },
+        { id: "still2", type: "image", clipNumber: 2 },
+        { id: "v4", type: "video", clipNumber: 4 },
+        { id: "ending", type: "video", clipNumber: null },
+      ],
+      clips: [
+        { clipNumber: 1 },
+        { clipNumber: 2, videoUrl: undefined },
+        { clipNumber: 3, videoUrl: "https://cdn.example/3.mp4" },
+      ],
+    });
+    assert.deepEqual(ids, ["v1", "v4"]);
+  });
+
+  it("keeps a video that is still the current render", () => {
+    const ids = staleTimelineElementIds({
+      elements: [{ id: "v3", type: "video", clipNumber: 3 }],
+      clips: [{ clipNumber: 3, videoUrl: "https://cdn.example/3.mp4" }],
+    });
+    assert.deepEqual(ids, []);
   });
 });
 

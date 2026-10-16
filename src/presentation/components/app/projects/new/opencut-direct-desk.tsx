@@ -117,6 +117,7 @@ export function OpenCutDirectDesk({
   const aiRef = useRef(ai);
   aiRef.current = ai;
   const [booting, setBooting] = useState(true);
+  const [editorEpoch, setEditorEpoch] = useState(0);
   const [selectedClipNumber, setSelectedClipNumber] = useState<number | null>(null);
   const [checkedClipNumbers, setCheckedClipNumbers] = useState<number[]>([]);
 
@@ -179,6 +180,9 @@ export function OpenCutDirectDesk({
         videoId: project.id,
         aspectRatio: project.aspectRatio,
         clips,
+        // No saved cut (a recreate deleted it). Replace the local timeline
+        // so the previous videos do not stay under the new storyboard.
+        replace: true,
       });
       prevSeedRef.current = clips;
       syncedRef.current = true;
@@ -297,6 +301,7 @@ export function OpenCutDirectDesk({
       };
       if (data?.type === "scro-editor-ready") {
         readyRef.current = true;
+        setEditorEpoch((epoch) => epoch + 1);
         beginSync();
         // Properties reads this store even when the timeline was restored without clip numbers.
         channel.postToEditor({
@@ -431,7 +436,17 @@ export function OpenCutDirectDesk({
   }, [project.aspectRatio, project.id]);
 
   useEffect(() => {
-    if (!syncedRef.current) return;
+    if (!readyRef.current) return;
+    // The editor is up before a saved cut finishes restoring. Publish the
+    // storyboard anyway so a recreate can take the old videos off first.
+    if (!syncedRef.current) {
+      host.postToEditor({
+        type: "scro-videos-state",
+        videoId: project.id,
+        clips: seedClips,
+      });
+      return;
+    }
     const previous = prevSeedRef.current;
     const layout = storyboardLayoutAction({
       synced: true,
@@ -467,7 +482,7 @@ export function OpenCutDirectDesk({
         clip,
       });
     }
-  }, [seedClips, project.id, project.aspectRatio, host]);
+  }, [seedClips, project.id, project.aspectRatio, host, editorEpoch]);
 
   // Assets ⋮ menu reads this so Finish / All frames / All videos stay in sync.
   useEffect(() => {
