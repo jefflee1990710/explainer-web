@@ -452,6 +452,10 @@ export async function sendClipVideo(
         spokenLine,
         project.cast?.map((member) => member.name),
         performance,
+        {
+          voiceGender: project.voiceGender,
+          speakers: project.cast,
+        },
       ),
       project.language,
       spokenLine,

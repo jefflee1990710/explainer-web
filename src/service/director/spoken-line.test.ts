@@ -79,6 +79,37 @@ test("cartoon explainer puts the narrator line first so the clip cannot stay sil
   assert.equal(narratorSpeechLock("(no dialogue)"), "");
 });
 
+test("cartoon explainer narratorSpeechLock locks the character's female voice timbre on the unseen narrator", () => {
+  const line = "Fun AI clips are everywhere right now.";
+  const speakers = [
+    {
+      name: "Scro Official",
+      voice: {
+        gender: "female" as const,
+        age: "young-adult" as const,
+        pitch: "mid-high" as const,
+        resonance: "bright" as const,
+        texture: "soft" as const,
+        weight: "light" as const,
+        note: "youthful and clear with an airy tone",
+      },
+    },
+  ];
+  const locked = lockDialogueSpeech(
+    "AUDIO REQUIRED, spoken once by an unseen off-screen narrator, starting in the first half-second, loud and clear, word for word: \"Fun AI clips are everywhere right now.\". Sound effects never replace this voice. This clip is never silent. The on-screen character's mouth stays closed.\n\nAnimate the block.",
+    "cartoon-explainer-video-director",
+    line,
+    ["Scro Official"],
+    undefined,
+    { voiceGender: "female", speakers },
+  );
+  assert.match(
+    locked,
+    /^AUDIO REQUIRED, spoken once by an unseen off-screen narrator \(young adult female, mid-high, bright, soft, light, youthful and clear with an airy tone — never switch to a male voice\)/,
+  );
+  assert.equal(locked.split("AUDIO REQUIRED").length - 1, 1);
+});
+
 test("lockDialogueSpeech adds lip-sync rules for talking-head directors only", () => {
   const locked = lockDialogueSpeech("She reads the line.", "full-body-talking-head-director");
   assert.match(locked, /visible mouth/);

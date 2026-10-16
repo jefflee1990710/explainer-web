@@ -1,4 +1,7 @@
+import type { CharacterVoice } from "@/model/character-voice";
 import type { PerformanceSlots } from "@/model/director-performance";
+import type { VoiceGender } from "@/model/project";
+import { characterVoiceTimbre, firstLockedCharacterVoice } from "@/service/director/character-voice";
 import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import { skillBansNarration, storyShortCameraLock } from "@/service/director/skill-rules";
 import {
@@ -95,10 +98,27 @@ export function speakingMouthLock(line: string, castNames?: string[]) {
 
 // Cartoon explainer is always narrated. The line goes first so a long motion
 // prompt cannot bury it, and sound effects cannot stand in for the voice.
-export function narratorSpeechLock(line: string) {
+// Lock the narrator's gender/timbre right on the opening line so the video model
+// does not default the "unseen off-screen narrator" to a generic male voice when
+// the on-screen character's mouth is closed.
+export function narratorSpeechLock(
+  line: string,
+  options?: {
+    voiceGender?: VoiceGender;
+    speakers?: Array<{ name: string; voice?: CharacterVoice | null }>;
+  },
+) {
   const spoken = subtitleText(line).replaceAll('"', "'");
   if (!spoken) return "";
-  return `AUDIO REQUIRED, spoken once by an unseen off-screen narrator, starting in the first half-second, loud and clear, word for word: "${spoken}". Sound effects never replace this voice. This clip is never silent. The on-screen character's mouth stays closed.`;
+  const charVoice = firstLockedCharacterVoice(options?.speakers);
+  const gender: VoiceGender | undefined = charVoice?.gender ?? options?.voiceGender;
+  const opposite = gender === "female" ? "male" : gender === "male" ? "female" : undefined;
+  const voiceTag = charVoice
+    ? ` (${characterVoiceTimbre(charVoice)} — never switch to a ${opposite} voice)`
+    : gender
+      ? ` (adult ${gender} voice — never switch to a ${opposite} voice)`
+      : "";
+  return `AUDIO REQUIRED, spoken once by an unseen off-screen narrator${voiceTag}, starting in the first half-second, loud and clear, word for word: "${spoken}". Sound effects never replace this voice. This clip is never silent. The on-screen character's mouth stays closed.`;
 }
 
 // Appended when submitting a story-short / Q&A clip so the model cannot skip
@@ -110,6 +130,10 @@ export function lockDialogueSpeech(
   castNames?: string[],
   // Talking-head performance slots (English) so the appended lock matches a customised director.
   performance?: PerformanceSlots,
+  voiceOptions?: {
+    voiceGender?: VoiceGender;
+    speakers?: Array<{ name: string; voice?: CharacterVoice | null }>;
+  },
 ) {
   let body = prompt.trim();
   if (skillBansNarration(skillSlug)) {
@@ -130,8 +154,12 @@ export function lockDialogueSpeech(
     return body;
   }
   if (skillSlug === CARTOON_EXPLAINER_SKILL_SLUG) {
-    const lock = narratorSpeechLock(spokenLine ?? "");
-    if (lock && !body.includes(lock)) body = `${lock}\n\n${body}`;
+    const lock = narratorSpeechLock(spokenLine ?? "", voiceOptions);
+    if (lock) {
+      // Replace an earlier generic AUDIO REQUIRED header if one is already at the top.
+      body = body.replace(/^AUDIO REQUIRED, spoken once by an unseen off-screen narrator[^\n]*\n\n/, "");
+      if (!body.includes(lock)) body = `${lock}\n\n${body}`;
+    }
   }
   return body;
 }

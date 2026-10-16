@@ -21,7 +21,7 @@ async function main() {
     ownerClerkUserId: project.clerkUserId,
   });
   const resolved = await resolveRunSkill(skill);
-  console.log("clip", clipNumber, "model", process.env.DIRECTOR_MODEL || "gemini-4-argon");
+  console.log("clip", clipNumber, "model", process.env.DIRECTOR_MODEL || "gemini-3.8-flash");
   const out = await runPhaseBForClip({
     skill: resolved,
     style,

@@ -94,6 +94,10 @@ test("a character voice lock is pasted for narrated directors too", () => {
     ],
   });
   assert.match(lock, /Ada: adult female, mid, mixed, warm, medium/);
+  assert.match(
+    lock,
+    /The unseen off-screen narrator MUST use this exact female voice timbre \(adult female, mid, mixed, warm, medium\); never switch to a male voice/,
+  );
   assert.match(lock, /voice lock verbatim/i);
   assert.doesNotMatch(lock, /infer/i);
 });

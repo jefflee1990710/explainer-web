@@ -238,6 +238,10 @@ export async function runPhaseBForClip(
       row?.englishVo,
       input.cast?.map((member) => member.name),
       resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en"),
+      {
+        voiceGender: input.voiceGender,
+        speakers: input.cast,
+      },
     ),
   };
 }
