@@ -16,6 +16,7 @@ export { resolveScroClipNumber };
 import type { ScroVideoSeedClip, ScroVideoUiStage } from "@/opencut/embed/scro-video-types";
 import type { EditorCore } from "@/opencut/core";
 import type { MediaAsset } from "@/opencut/media/types";
+import { MediaLoadingMark } from "@/opencut/components/loading-media-image";
 import { cn } from "@/opencut/utils/ui";
 
 export const SCRO_STAGE_LABEL: Record<ScroVideoUiStage, string> = {
@@ -36,18 +37,29 @@ export function scroStageTone(stage: ScroVideoUiStage) {
 	return "bg-muted text-muted-foreground";
 }
 
+/** The new start still is not ready yet, so the previous picture must not stay up. */
+export function scroStartStillPending(
+	clip?: Pick<ScroVideoSeedClip, "stage" | "posterUrl" | "hasStartFrame"> | null,
+) {
+	if (!clip) return false;
+	if (clip.stage !== "awaiting_frames" && clip.stage !== "frames_generating") return false;
+	return !clip.posterUrl || clip.hasStartFrame === false;
+}
+
 /**
  * Thumb to show for a storyboard clip.
  * After a regenerate, the old video file stays in the library until the new
  * video exists. Once the new start still is ready, that still is the preview.
+ * While that still is drawing, return nothing so the old frame is cleared.
  */
 export function scroAssetPreviewSrc({
 	asset,
 	clip,
 }: {
 	asset: Pick<MediaAsset, "type" | "url" | "thumbnailUrl">;
-	clip?: Pick<ScroVideoSeedClip, "stage" | "posterUrl"> | null;
+	clip?: Pick<ScroVideoSeedClip, "stage" | "posterUrl" | "hasStartFrame"> | null;
 }): string | undefined {
+	if (scroStartStillPending(clip)) return undefined;
 	if (clip?.posterUrl && clip.stage !== "video_ready") return clip.posterUrl;
 	if (asset.type === "video") return asset.thumbnailUrl;
 	return asset.url ?? asset.thumbnailUrl;
@@ -138,18 +150,22 @@ export function ScroMediaOverlays({
 }) {
 	const store = useScroVideos();
 	const clip = store?.clips.find((item) => item.clipNumber === clipNumber);
-	// Once the new start still exists, show it. The veil stays only while that
+	// A new start still clears the previous picture. The veil stays while that
 	// image is missing, or while the new video itself is rendering.
+	const pendingStill = scroStartStillPending(clip);
 	const startStillVisible =
 		Boolean(clip?.posterUrl) &&
+		!pendingStill &&
 		clip?.stage !== "video_ready" &&
 		clip?.stage !== "video_generating";
-	const loading = clip
-		? (clip.stage === "awaiting_frames" ||
-				clip.stage === "frames_generating" ||
-				clip.stage === "video_generating") &&
-			!startStillVisible
-		: false;
+	const loading = pendingStill
+		? true
+		: clip
+			? (clip.stage === "awaiting_frames" ||
+					clip.stage === "frames_generating" ||
+					clip.stage === "video_generating") &&
+				!startStillVisible
+			: false;
 
 	return (
 		<div className={cn("pointer-events-none absolute inset-0 z-10", className)}>
@@ -178,9 +194,11 @@ export function ScroMediaOverlays({
 				/>
 			</span>
 			{loading ? (
-				<div className="absolute inset-0 grid place-items-center bg-black/35 text-[0.65rem] text-white">
-					Loading…
-				</div>
+				<MediaLoadingMark
+					className={
+						pendingStill ? "bg-muted text-foreground" : "bg-black/35 text-white"
+					}
+				/>
 			) : null}
 			{clip ? (
 				<span

@@ -178,6 +178,17 @@ function PreviewCanvas({
 	const slowTimerRef = useRef(0);
 	const emptySinceRef = useRef(0);
 	const [previewLoading, setPreviewLoading] = useState(true);
+	const waitingForStill = useEditor((editor) => {
+		const time = editor.playback.getCurrentTime();
+		const scene = editor.scenes.getActiveScene();
+		const element = scene.tracks.main.elements.find((item) => {
+			if (item.type !== "image" && item.type !== "video") return false;
+			return time >= item.startTime && time < item.startTime + item.duration;
+		});
+		if (!element || !("mediaId" in element)) return false;
+		const asset = editor.media.getAssets().find((item) => item.id === element.mediaId);
+		return asset?.scroPlaceholder === true;
+	});
 	const { width: nativeWidth, height: nativeHeight } = usePreviewSize();
 	const viewportSize = useContainerSize({ containerRef: viewportRef });
 	const editor = useEditor();
@@ -394,9 +405,13 @@ function PreviewCanvas({
 											: activeProject?.settings.background.color,
 								}}
 							>
-								{previewLoading ? (
+								{previewLoading || waitingForStill ? (
 									<MediaLoadingMark
-										className="z-20 bg-black/45 text-white"
+										className={
+											waitingForStill
+												? "z-20 bg-[#f4f4f5] text-muted-foreground"
+												: "z-20 bg-black/45 text-white"
+										}
 										spinnerClassName="size-6"
 									/>
 								) : null}

@@ -141,7 +141,7 @@ export async function runPhaseAJob(
           status: "production",
           updatedAt: new Date(),
         },
-        $unset: { error: "" },
+        $unset: { error: "", autoVideoClips: "" },
       },
     );
     // Same as the old approve action: lock the character still before frames.

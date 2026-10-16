@@ -16,7 +16,7 @@ import {
   uploadOpencutMediaAction,
 } from "@/presentation/actions/opencut-edit";
 import { syncOpencutSubtitlePlatesAction } from "@/presentation/actions/opencut-subtitle";
-import { generateRemainingAction } from "@/presentation/actions/clip-production";
+import { generateSelectedClipsAction } from "@/presentation/actions/clip-production";
 import { sendClipSceneChatAction } from "@/presentation/actions/scene-chat";
 import { buildSubtitleCatalog, type SubtitleCatalog } from "@/service/video-edit/subtitle-catalog";
 import { createScroOpenCutHost, type ScroOpenCutHost } from "@/service/opencut/host-channel";
@@ -495,17 +495,17 @@ export function OpenCutDirectDesk({
     });
   }, [host, production, project]);
 
-  // Once per desk session: queue remaining frames/videos like Production's auto fill.
+  // Once per desk session: queue missing start stills only. Videos wait for a click.
   useEffect(() => {
     if (didAutoPlanRef.current) return;
     if (!project.phaseA?.clips?.length) return;
-    const plan = planRemaining(project);
-    if (plan.frames.length === 0 && plan.videos.length === 0) {
+    const frames = planRemaining(project).frames;
+    if (frames.length === 0) {
       didAutoPlanRef.current = true;
       return;
     }
     didAutoPlanRef.current = true;
-    void generateRemainingAction(project.id).then((result) => {
+    void generateSelectedClipsAction(project.id, frames, "frames").then((result) => {
       if (!result.ok) {
         console.warn("[scro-video] auto plan:", result.error);
       }

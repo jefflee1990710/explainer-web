@@ -1,6 +1,8 @@
 "use client";
 
+import { MediaLoadingMark } from "@/opencut/components/loading-media-image";
 import { requestScroOpenAi } from "@/opencut/embed/scro-video-actions";
+import { scroStartStillPending } from "@/opencut/embed/scro-video-assets";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 
 /** Redraw stills. Clip text edits use the sticky input under the panel. */
@@ -30,8 +32,10 @@ export function ScroVideoAiEntry({
 					}
 					className="border-border bg-accent/40 hover:bg-accent disabled:opacity-40 flex flex-col overflow-hidden rounded-sm border text-left"
 				>
-					<div className="bg-muted aspect-video w-full overflow-hidden">
-						{clip.posterUrl ? (
+					<div className="bg-muted relative aspect-video w-full overflow-hidden">
+						{scroStartStillPending(clip) ? (
+							<MediaLoadingMark />
+						) : clip.posterUrl ? (
 							// eslint-disable-next-line @next/next/no-img-element
 							<img src={clip.posterUrl} alt="" className="size-full object-cover" />
 						) : (

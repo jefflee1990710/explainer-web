@@ -2,7 +2,7 @@
 
 import { createContext, useContext } from "react";
 import { useEditor } from "@/opencut/editor/use-editor";
-import { scroAssetPreviewSrc } from "@/opencut/embed/scro-video-assets";
+import { scroAssetPreviewSrc, scroStartStillPending } from "@/opencut/embed/scro-video-assets";
 import {
 	MediaLoadingMark,
 	useMediaImageReady,
@@ -1122,9 +1122,10 @@ function TiledMediaContent({
 		mediaAsset.width <= 1 &&
 		mediaAsset.height <= 1;
 	const waitingForStill =
-		!freshStill &&
-		(element.scroClipNumber != null || mediaAsset?.scroClipNumber != null) &&
-		(mediaAsset?.scroPlaceholder === true || tinyStandIn);
+		scroStartStillPending(clip) ||
+		(!freshStill &&
+			(element.scroClipNumber != null || mediaAsset?.scroClipNumber != null) &&
+			(mediaAsset?.scroPlaceholder === true || tinyStandIn));
 	const imageUrl = waitingForStill
 		? undefined
 		: freshStill ??

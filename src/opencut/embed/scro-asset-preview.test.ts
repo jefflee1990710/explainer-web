@@ -45,6 +45,19 @@ describe("scro asset preview after regenerate", () => {
 		assert.equal(src, NEW_STILL);
 	});
 
+	it("clears the old video thumb while the new start still is still drawing", () => {
+		const src = scroAssetPreviewSrc({
+			asset: asset({
+				id: "old-video",
+				name: "Clip 1.mp4",
+				type: "video",
+				thumbnailUrl: OLD_THUMB,
+			}),
+			clip: clip({ stage: "frames_generating", hasStartFrame: false }),
+		});
+		assert.equal(src, undefined);
+	});
+
 	it("uses the start still while a later end frame is still drawing", () => {
 		const src = scroAssetPreviewSrc({
 			asset: asset({
