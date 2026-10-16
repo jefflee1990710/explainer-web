@@ -1,8 +1,8 @@
 "use client";
 
 import Link, { useLinkStatus } from "next/link";
-import { usePathname } from "next/navigation";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { useRouteTransition } from "@/presentation/studio/route-transition";
 import type { StudioNavItem, StudioNavSection } from "@/presentation/studio/studio-shell";
 import { isStudioNavActive } from "@/presentation/studio/studio-nav-active";
 
@@ -12,7 +12,7 @@ const SECTIONS: StudioNavSection[] = ["generation", "setup", "other"];
 // The Generation heading stays for screen readers and is not shown on the rail.
 export function StudioNav({ items }: { items: StudioNavItem[] }) {
   const { t } = useI18n();
-  const pathname = usePathname();
+  const { activePathname } = useRouteTransition();
   const labels: Record<StudioNavSection, string> = {
     generation: t("production.shell.navGeneration"),
     setup: t("production.shell.navSetup"),
@@ -47,7 +47,7 @@ export function StudioNav({ items }: { items: StudioNavItem[] }) {
               {labels[section]}
             </p>
             {group.map((item) => (
-              <StudioNavLink key={item.href} item={item} active={isStudioNavActive(pathname, item.href)} />
+              <StudioNavLink key={item.href} item={item} active={isStudioNavActive(activePathname, item.href)} />
             ))}
           </div>
         );

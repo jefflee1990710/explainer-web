@@ -509,6 +509,17 @@ export const zhHant: Messages = {
     deleteBody:
       "確定要刪除「{name}」嗎？這會一併刪除所有版本的藍圖、參考圖與相關儲存檔案，且無法復原。",
     deletePendingNote: " 目前有版本仍在產生中，刪除後該次產生也會停止。",
+    selectMode: "選擇",
+    cancelSelect: "取消",
+    selectAll: "全選",
+    deselectAll: "取消全選",
+    selectedCount: "已選 {n} 個",
+    deleteSelected: "刪除（{n}）",
+    selectCardAria: "選取 {name}",
+    bulkDeleteTitle: "刪除 {n} 個角色",
+    bulkDeleteBody:
+      "確定要刪除已選取的 {n} 個角色嗎？這會一併刪除所有版本的藍圖、參考圖與相關儲存檔案，且無法復原。",
+    bulkDeletePendingNote: " 其中有角色仍在產生中，刪除後該次產生也會停止。",
     referencesUploadFailed: "上傳失敗，請再試一次",
     cardGenerating: "生成中",
     cardFailed: "失敗",

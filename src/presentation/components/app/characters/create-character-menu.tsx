@@ -1,7 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 // New character opens this menu: simple form, or the picture generator.
@@ -17,7 +17,6 @@ export function CreateCharacterMenu({
   onSimple: () => void;
 }) {
   const { t } = useI18n();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -67,18 +66,15 @@ export function CreateCharacterMenu({
             <span className="block text-sm font-semibold">{t("characters.createSimple")}</span>
             <span className="mt-0.5 block text-xs text-muted">{t("characters.createSimpleHint")}</span>
           </button>
-          <button
-            type="button"
+          <Link
+            href="/app/characters/generate"
             role="menuitem"
             className="block w-full cursor-pointer rounded-xl px-3 py-2.5 hover:bg-accent-ink/5"
-            onClick={() => {
-              setOpen(false);
-              router.push("/app/characters/generate");
-            }}
+            onClick={() => setOpen(false)}
           >
             <span className="block text-sm font-semibold">{t("characters.createGenerator")}</span>
             <span className="mt-0.5 block text-xs text-muted">{t("characters.createGeneratorHint")}</span>
-          </button>
+          </Link>
         </div>
       ) : null}
     </div>

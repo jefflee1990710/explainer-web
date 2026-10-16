@@ -1,4 +1,10 @@
+import { ObjectId } from "mongodb";
 import type { Character } from "@/model/character";
+
+// Dedupe and parse valid Mongo ObjectIds for bulk character actions.
+export function parseValidCharacterObjectIds(ids: string[]): ObjectId[] {
+  return [...new Set(ids)].filter((id) => ObjectId.isValid(id)).map((id) => new ObjectId(id));
+}
 
 // Every reference image and persisted blueprint URL on a character document.
 export function collectCharacterBlobUrls(character: Character): string[] {
@@ -11,6 +17,11 @@ export function collectCharacterBlobUrls(character: Character): string[] {
     if (version.profileUrl) urls.add(version.profileUrl);
   }
   return [...urls];
+}
+
+// Dedupe reference and blueprint URLs across a batch of character documents.
+export function collectCharactersBlobUrls(characters: Character[]): string[] {
+  return [...new Set(characters.flatMap((character) => collectCharacterBlobUrls(character)))];
 }
 
 export function isExplainerBlobUrl(url: string): boolean {

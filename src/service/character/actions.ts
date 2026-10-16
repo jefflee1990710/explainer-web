@@ -24,7 +24,11 @@ import {
   parseReferenceImageUrls,
   rootReferenceUrls,
 } from "@/service/character/reference-urls";
-import { collectCharacterBlobUrls } from "@/service/character/storage";
+import {
+  collectCharacterBlobUrls,
+  collectCharactersBlobUrls,
+  parseValidCharacterObjectIds,
+} from "@/service/character/storage";
 import { failCharacterVersion, versionCreditsCost } from "@/service/character/sync";
 import { canSetDefault } from "@/service/character/versions";
 import {
@@ -716,7 +720,7 @@ export async function renameCharacterAction(
   }
 }
 
-// Delete a character, its generation jobs, and every stored reference/blueprint.
+  // Delete a character, its generation jobs, and every stored reference/blueprint.
 export async function deleteCharacterAction(
   characterId: string,
 ): Promise<DeleteCharacterResult> {
@@ -742,6 +746,49 @@ export async function deleteCharacterAction(
     if (character.voiceSample) await dropVoiceSample(character.voiceSample);
 
     revalidateCharacter(characterId);
+    revalidatePath("/app");
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "刪除角色失敗",
+    };
+  }
+}
+
+// Bulk-delete owned characters, their generation jobs, voice samples, and stored blobs.
+export async function deleteCharactersAction(
+  characterIds: string[],
+): Promise<DeleteCharacterResult> {
+  try {
+    const user = await requireAppUser();
+    const validIds = parseValidCharacterObjectIds(characterIds);
+    if (validIds.length === 0) return { ok: false, error: "角色不存在" };
+
+    const characters = await charactersCollection();
+    const owned = (await characters
+      .find({ _id: { $in: validIds }, clerkUserId: user.clerkUserId })
+      .toArray()) as Character[];
+    if (owned.length === 0) return { ok: false, error: "角色不存在" };
+
+    const ownedObjectIds = owned.map((doc) => doc._id);
+    const blobUrls = collectCharactersBlobUrls(owned);
+    await deleteExplainerBlobUrls(blobUrls);
+
+    const jobs = await generationJobsCollection();
+    await jobs.deleteMany({ characterId: { $in: ownedObjectIds } });
+
+    await characters.deleteMany({
+      _id: { $in: ownedObjectIds },
+      clerkUserId: user.clerkUserId,
+    });
+
+    for (const doc of owned) {
+      if (doc.voiceSample) await dropVoiceSample(doc.voiceSample);
+      revalidatePath(`/app/characters/${doc._id.toHexString()}`);
+    }
+    revalidatePath("/app/characters");
+    revalidatePath("/app/billing");
     revalidatePath("/app");
     return { ok: true };
   } catch (error) {

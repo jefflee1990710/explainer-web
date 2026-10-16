@@ -3,7 +3,9 @@ import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import {
   collectCharacterBlobUrls,
+  collectCharactersBlobUrls,
   isExplainerBlobUrl,
+  parseValidCharacterObjectIds,
 } from "@/service/character/storage";
 import type { Character } from "@/model/character";
 
@@ -37,4 +39,29 @@ test("isExplainerBlobUrl accepts only our public blob paths", () => {
     false,
   );
   assert.equal(isExplainerBlobUrl("not-a-url"), false);
+});
+
+test("parseValidCharacterObjectIds dedupes and drops invalid ids", () => {
+  const id1 = new ObjectId().toHexString();
+  const id2 = new ObjectId().toHexString();
+  const parsed = parseValidCharacterObjectIds([id1, "not-an-id", id1, id2, ""]);
+  assert.deepEqual(
+    parsed.map((item) => item.toHexString()),
+    [id1, id2],
+  );
+});
+
+test("collectCharactersBlobUrls dedupes across multiple characters", () => {
+  const c1 = {
+    _id: new ObjectId(),
+    versions: [{ referenceImageUrl: blobA, blueprintUrl: blobB }],
+  } as Character;
+  const c2 = {
+    _id: new ObjectId(),
+    versions: [{ blueprintUrl: blobB, profileUrl: blobProfile }],
+  } as Character;
+  assert.deepEqual(
+    collectCharactersBlobUrls([c1, c2]).sort(),
+    [blobA, blobB, blobProfile].sort(),
+  );
 });

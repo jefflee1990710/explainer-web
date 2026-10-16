@@ -380,6 +380,16 @@ export type Messages = {
     deleteTitle: string;
     deleteBody: string;
     deletePendingNote: string;
+    selectMode: string;
+    cancelSelect: string;
+    selectAll: string;
+    deselectAll: string;
+    selectedCount: string;
+    deleteSelected: string;
+    selectCardAria: string;
+    bulkDeleteTitle: string;
+    bulkDeleteBody: string;
+    bulkDeletePendingNote: string;
     referencesUploadFailed: string;
     cardGenerating: string;
     cardFailed: string;

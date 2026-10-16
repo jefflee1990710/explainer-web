@@ -516,6 +516,17 @@ export const en: Messages = {
     deleteBody:
       'Delete “{name}”? This removes all blueprint versions, references, and stored files permanently.',
     deletePendingNote: " A version is still generating; deleting will stop it.",
+    selectMode: "Select",
+    cancelSelect: "Cancel",
+    selectAll: "Select all",
+    deselectAll: "Deselect all",
+    selectedCount: "{n} selected",
+    deleteSelected: "Delete ({n})",
+    selectCardAria: "Select {name}",
+    bulkDeleteTitle: "Delete {n} characters",
+    bulkDeleteBody:
+      "Delete the {n} selected characters? This removes all blueprint versions, references, and stored files permanently.",
+    bulkDeletePendingNote: " At least one character is still generating; deleting will stop it.",
     referencesUploadFailed: "Upload failed. Try again.",
     cardGenerating: "Generating",
     cardFailed: "Failed",

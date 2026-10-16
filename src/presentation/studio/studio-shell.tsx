@@ -1,7 +1,10 @@
 "use client";
 
 import { BrandMark } from "@/presentation/components/brand-mark";
+import { EditorLoadingOverlay } from "@/presentation/components/app/projects/new/editor-loading-overlay";
+import { RouteTransitionProvider, useRouteTransition } from "@/presentation/studio/route-transition";
 import { StudioNav } from "@/presentation/studio/studio-nav";
+import { StudioRouteSkeleton } from "@/presentation/studio/studio-route-skeleton";
 
 export type StudioNavSection = "generation" | "setup" | "other";
 
@@ -27,16 +30,37 @@ export function StudioShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="studio-app flex h-dvh w-full flex-col">
-      <div className="flex min-h-0 flex-1">
-        <StudioRail items={items}>{toolbar}</StudioRail>
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--studio-canvas)]">
-          {headerEnd}
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-6">{children}</div>
-        </main>
+    <RouteTransitionProvider>
+      <div className="studio-app flex h-dvh w-full flex-col">
+        <div className="flex min-h-0 flex-1">
+          <StudioRail items={items}>{toolbar}</StudioRail>
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--studio-canvas)]">
+            {headerEnd}
+            <StudioMainSlot>{children}</StudioMainSlot>
+          </main>
+        </div>
+        {/* Dialogs portal here so the scrim covers the rail, not only the editor. */}
+        <div id="studio-dialog-root" className="contents" />
       </div>
-      {/* Dialogs portal here so the scrim covers the rail, not only the editor. */}
-      <div id="studio-dialog-root" className="contents" />
+    </RouteTransitionProvider>
+  );
+}
+
+// Swaps to the skeleton immediately when an /app link is clicked so the user is never stuck on the old page.
+function StudioMainSlot({ children }: { children: React.ReactNode }) {
+  const { pendingHref } = useRouteTransition();
+  const isVideoEditorRoute = Boolean(pendingHref && /^\/app\/projects\/[^/]+\/videos\/[^/]+$/.test(pendingHref));
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-6">
+      {pendingHref ? (
+        isVideoEditorRoute ? (
+          <EditorLoadingOverlay />
+        ) : (
+          <StudioRouteSkeleton />
+        )
+      ) : (
+        children
+      )}
     </div>
   );
 }
