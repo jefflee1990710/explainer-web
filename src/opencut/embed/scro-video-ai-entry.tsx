@@ -1,6 +1,7 @@
 "use client";
 
 import { MediaLoadingMark } from "@/opencut/components/loading-media-image";
+import { useEditor } from "@/opencut/editor/use-editor";
 import { requestScroOpenAi } from "@/opencut/embed/scro-video-actions";
 import { scroStartStillPending } from "@/opencut/embed/scro-video-assets";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
@@ -13,6 +14,12 @@ export function ScroVideoAiEntry({
 	videoId: string;
 	clip: ScroVideoSeedClip;
 }) {
+	const canvas = useEditor((state) => state.project.getActiveOrNull()?.settings.canvasSize);
+	const aspectRatio =
+		canvas && canvas.width > 1 && canvas.height > 1
+			? `${canvas.width} / ${canvas.height}`
+			: "16 / 9";
+
 	return (
 		<div className="space-y-2">
 			<div className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
@@ -32,7 +39,10 @@ export function ScroVideoAiEntry({
 					}
 					className="border-border bg-accent/40 hover:bg-accent disabled:opacity-40 flex flex-col overflow-hidden rounded-sm border text-left"
 				>
-					<div className="bg-muted relative aspect-video w-full overflow-hidden">
+					<div
+						className="bg-muted relative w-full overflow-hidden"
+						style={{ aspectRatio }}
+					>
 						{scroStartStillPending(clip) ? (
 							<MediaLoadingMark />
 						) : clip.posterUrl ? (
@@ -59,7 +69,10 @@ export function ScroVideoAiEntry({
 					}
 					className="border-border bg-accent/40 hover:bg-accent disabled:opacity-40 flex flex-col overflow-hidden rounded-sm border text-left"
 				>
-					<div className="bg-muted aspect-video w-full overflow-hidden">
+					<div
+						className="bg-muted w-full overflow-hidden"
+						style={{ aspectRatio }}
+					>
 						{clip.endPosterUrl ? (
 							// eslint-disable-next-line @next/next/no-img-element
 							<img src={clip.endPosterUrl} alt="" className="size-full object-cover" />
