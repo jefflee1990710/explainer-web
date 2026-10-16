@@ -63,4 +63,16 @@ test("Phase B detail asks for timed action, expression change, and camera start/
   assert.match(PHASE_B_DETAIL_RULES, /expression change/);
   assert.match(PHASE_B_DETAIL_RULES, /camera start and end/);
   assert.match(PHASE_B_DETAIL_RULES, /lighting stays constant/);
+  assert.match(PHASE_B_DETAIL_RULES, /grazing directional light/);
+  assert.match(PHASE_B_DETAIL_RULES, /negative fill/);
+});
+
+test("scene detail and frame render detail enforce grazing directional light and anti-plastic rules", () => {
+  const block = sceneDetailDirectorBlock();
+  assert.match(block, /grazing directional key light/);
+  assert.match(block, /negative fill on the shadow side/);
+  assert.match(block, /visible warm practical lamp/);
+  assert.match(block, /soft highlight roll-off/);
+  assert.match(FRAME_RENDER_DETAIL, /grazing directional light/);
+  assert.match(FRAME_RENDER_DETAIL, /never flat front beauty lighting or waxy airbrushed skin/);
 });

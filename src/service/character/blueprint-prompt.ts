@@ -17,6 +17,10 @@ function usesDrawingSurface(style: RenderableStyle) {
   return /chalkboard/i.test(`${style.id} ${style.canvas}`);
 }
 
+function isRealisticStyle(style: RenderableStyle) {
+  return style.id === "realistic" || style.baseStyleId === "realistic";
+}
+
 // Flat light ground. The tint is chosen so it stays apart from the outfit.
 const LIGHT_SHEET_GROUND = [
   "Sheet ground: ignore any scene, room, street, or environment named in Background. The empty area behind every pose is one flat light solid colour, evenly lit, with no texture, gradient, cast shadow, or setting.",
@@ -147,7 +151,9 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
   const lines = [
     "Character identity portrait on a square canvas: one person, head and shoulders, facing the camera straight on, eyes open, looking into the lens, neutral relaxed expression with a hint of warmth.",
     "The face fills most of the frame: top of the hair near the top edge with a small margin, shoulders cut at the bottom edge. No hands, no props, no text, no labels, no frame or border, no second person.",
-    "Even soft front light so every facial feature reads clearly: eye shape, brows, nose, lips, jaw, skin, hair line, and any marks.",
+    isRealisticStyle(input.style)
+      ? "Sculpted three-quarter grazing directional key light with negative fill on the shadow side so nose-bridge shadow, eye sockets, pore micro-relief, and every facial feature read clearly without flat front-lit waxiness: eye shape, brows, nose, lips, jaw, skin texture, hair line, and any marks."
+      : "Even soft front light so every facial feature reads clearly: eye shape, brows, nose, lips, jaw, skin, hair line, and any marks.",
     ...styleLinesForBlueprint(input.style),
     ...(lightGround ? [LIGHT_SHEET_GROUND] : []),
   ];

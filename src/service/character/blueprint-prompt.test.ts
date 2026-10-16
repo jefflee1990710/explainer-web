@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { ObjectId } from "mongodb";
-import { buildBlueprintPrompt, buildProfilePrompt } from "@/service/character/blueprint-prompt";
+import { buildBlueprintPrompt, buildPortraitPrompt, buildProfilePrompt } from "@/service/character/blueprint-prompt";
 import { resetStyleOverlay, resolvedStyle } from "@/service/style/load-style";
 import { renderableFromSystem } from "@/service/style/renderable-style";
 import { installTestStyles, testStyle, uninstallTestStyles } from "@/service/style/test-styles";
@@ -144,6 +144,15 @@ test("blueprint ground stays light and contrasts with the outfit", () => {
   assert.match(prompt, /must not match the outfit/);
   assert.match(prompt, /sheet-ground rule, not a scene named in Background/);
   assert.doesNotMatch(prompt, /follow Background, Rendering/);
+
+  const portrait = buildPortraitPrompt({
+    style: realistic,
+    description: "a woman in a black dress",
+    photoCount: 1,
+  });
+  assert.match(portrait, /grazing directional key light/);
+  assert.match(portrait, /negative fill/);
+  assert.doesNotMatch(portrait, /Even soft front light/);
 });
 
 test("editing a sheet replaces a scenic ground with the light sheet colour", () => {
