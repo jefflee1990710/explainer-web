@@ -16,7 +16,13 @@ import {
 import { stillPlaceholderFile } from "@/opencut/embed/scro-still-placeholder";
 import { staleTimelineElementIds } from "@/service/scro-video/timeline-seed";
 import {
+	fetchMediaBlobWithTimeout,
+	findReusableClipAsset,
+	runConcurrentMediaPool,
+} from "@/opencut/embed/scro-media-load";
+import {
 	armScroSync,
+	readClipSources,
 	rememberClipSource,
 } from "@/opencut/embed/scro-media-sources";
 import { isScroEmbed, listenFromScro, sendToScro } from "@/opencut/embed/scro-transport";
@@ -219,9 +225,14 @@ export function ScroVideoSync() {
 				}
 				// Storyboard order, each clip as long as the director wrote it.
 				const ordered = [...data.clips].sort((a, b) => a.clipNumber - b.clipNumber);
+				const resolved = await runConcurrentMediaPool({
+					items: ordered,
+					worker: (clip) => ensureMedia({ videoId: data.videoId, clip }),
+				});
 				let cursor = 0;
-				for (const clip of ordered) {
-					const created = await ensureMedia({ videoId: data.videoId, clip });
+				for (let index = 0; index < ordered.length; index++) {
+					const clip = ordered[index];
+					const created = resolved[index];
 					if (!created) continue;
 					const place = storyboardPlacement({
 						storyboardSeconds: clip.durationSeconds,
@@ -375,9 +386,14 @@ export function ScroVideoSync() {
 					if (scroElements.length > 0) {
 						editor.timeline.deleteElements({ elements: scroElements });
 					}
+					const resolved = await runConcurrentMediaPool({
+						items: data.clips,
+						worker: (clip) => ensureMedia({ videoId: data.videoId, clip }),
+					});
 					let cursor = 0;
-					for (const clip of data.clips) {
-						const created = await ensureMedia({ videoId: data.videoId, clip });
+					for (let index = 0; index < data.clips.length; index++) {
+						const clip = data.clips[index];
+						const created = resolved[index];
 						if (!created) continue;
 						editor.timeline.insertElement({
 							placement: { mode: "explicit", trackId: scene.tracks.main.id },
@@ -391,18 +407,23 @@ export function ScroVideoSync() {
 							}),
 						});
 						cursor += storyboardPlacement({
-						storyboardSeconds: clip.durationSeconds,
-						fileSeconds: created.type === "video" ? created.duration : undefined,
-					}).visibleSeconds;
+							storyboardSeconds: clip.durationSeconds,
+							fileSeconds: created.type === "video" ? created.duration : undefined,
+						}).visibleSeconds;
 					}
 					return;
 				}
 
 				const present = new Set(presentList);
 				const missing = data.clips.filter((clip) => !present.has(clip.clipNumber));
+				const resolved = await runConcurrentMediaPool({
+					items: missing,
+					worker: (clip) => ensureMedia({ videoId: data.videoId, clip }),
+				});
 				let cursor = mainTrackEndSeconds(editor.scenes.getActiveScene().tracks.main.elements);
-				for (const clip of missing) {
-					const created = await ensureMedia({ videoId: data.videoId, clip });
+				for (let index = 0; index < missing.length; index++) {
+					const clip = missing[index];
+					const created = resolved[index];
 					if (!created) continue;
 					editor.timeline.insertElement({
 						placement: { mode: "explicit", trackId: scene.tracks.main.id },
@@ -572,12 +593,17 @@ export function ScroVideoSync() {
 		}) {
 			const project = editor.project.getActiveOrNull();
 			if (!project) return null;
+			const reusable = findReusableClipAsset({
+				clip,
+				assets: editor.media.getAssets(),
+				clipSources: readClipSources(videoId),
+			});
+			if (reusable) return reusable;
 			const sourceUrl = clip.videoUrl || clip.posterUrl;
 			let file: File;
 			if (sourceUrl) {
-				const response = await fetch(sourceUrl);
-				if (!response.ok) return null;
-				const blob = await response.blob();
+				const blob = await fetchMediaBlobWithTimeout({ url: sourceUrl });
+				if (!blob) return null;
 				const ext = clip.videoUrl ? "mp4" : "webp";
 				file = new File([blob], `${clip.name}.${ext}`, {
 					type: blob.type || (clip.videoUrl ? "video/mp4" : "image/webp"),

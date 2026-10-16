@@ -219,7 +219,7 @@ export function CharacterWorkspace({
 
       <section
         aria-label={t("characters.outlookHeading")}
-        className="flex min-h-[28rem] flex-col md:h-[min(40rem,calc(100dvh-9rem))]"
+        className="flex min-h-[36rem] flex-col md:h-[min(56rem,calc(100dvh-7rem))]"
       >
       <div className="grid min-h-0 flex-1 gap-6 md:grid-cols-[11rem_17.5rem_minmax(0,1fr)] md:items-stretch">
         <CharacterStyleColumn

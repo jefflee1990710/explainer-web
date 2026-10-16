@@ -422,12 +422,19 @@ export function OpenCutDirectDesk({
       if (data?.type === "scro-project-save") void persist(data as SaveMessage);
     });
 
-    void getOpencutEditAction(project.id).then((result) => {
-      if (cancel) return;
-      fetchedRef.current = true;
-      savedRef.current = result.ok ? result.edit : null;
-      beginSync();
-    });
+    void getOpencutEditAction(project.id)
+      .then((result) => {
+        if (cancel) return;
+        fetchedRef.current = true;
+        savedRef.current = result.ok ? result.edit : null;
+        beginSync();
+      })
+      .catch(() => {
+        if (cancel) return;
+        fetchedRef.current = true;
+        savedRef.current = null;
+        beginSync();
+      });
 
     return () => {
       cancel = true;

@@ -7,6 +7,10 @@ import { storageService } from "@/opencut/services/storage/service";
 import type { TProject } from "@/opencut/project/types";
 import { applyScroCanvasSize } from "@/opencut/embed/scro-canvas-size";
 import {
+	fetchMediaBlobWithTimeout,
+	runConcurrentMediaPool,
+} from "@/opencut/embed/scro-media-load";
+import {
 	armScroSync,
 	readClipSources,
 	rememberClipSource,
@@ -199,23 +203,25 @@ export function ScroProjectSync() {
 			restoring.current = true;
 			try {
 				const projectId = `scro-${data.videoId}`;
-				for (const item of data.media ?? []) {
-					if (!item.sourceUrl || !item.id) continue;
-					rememberClipSource(data.videoId, item.id, item.sourceUrl);
-					const existing = await storageService.loadMediaAsset({ projectId, id: item.id });
-					if (existing) continue;
-					const response = await fetch(item.sourceUrl);
-					if (!response.ok) continue;
-					const blob = await response.blob();
-					const file = new File([blob], item.name, { type: blob.type || "video/mp4" });
-					const processed = await processMediaAssets({ files: [file] });
-					const asset = processed[0];
-					if (!asset) continue;
-					await storageService.saveMediaAsset({
-						projectId,
-						mediaAsset: { ...asset, id: item.id },
-					});
-				}
+				await runConcurrentMediaPool({
+					items: data.media ?? [],
+					worker: async (item) => {
+						if (!item.sourceUrl || !item.id) return;
+						rememberClipSource(data.videoId, item.id, item.sourceUrl);
+						const existing = await storageService.loadMediaAsset({ projectId, id: item.id });
+						if (existing) return;
+						const blob = await fetchMediaBlobWithTimeout({ url: item.sourceUrl });
+						if (!blob) return;
+						const file = new File([blob], item.name, { type: blob.type || "video/mp4" });
+						const processed = await processMediaAssets({ files: [file] });
+						const asset = processed[0];
+						if (!asset) return;
+						await storageService.saveMediaAsset({
+							projectId,
+							mediaAsset: { ...asset, id: item.id },
+						});
+					},
+				});
 				const seen = readSeen(data.videoId);
 				for (const item of data.media ?? []) {
 					if (item.sourceUrl) seen.add(item.sourceUrl);

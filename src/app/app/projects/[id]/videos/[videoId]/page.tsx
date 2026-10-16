@@ -15,13 +15,16 @@ export default async function FolderVideoPage({
 }) {
   const { id, videoId } = await params;
   const user = await requireAppUser();
-  const folder = await loadOwnedFolder(id, user.clerkUserId);
-  if (!folder || !ObjectId.isValid(videoId)) notFound();
+  if (!ObjectId.isValid(videoId)) notFound();
 
-  const loaded = await getVideoAction(videoId);
-  if (!loaded.ok || loaded.project.projectId !== folder._id.toHexString()) notFound();
-
-  const pickers = await loadStudioPickers(user);
+  const [folder, loaded, pickers] = await Promise.all([
+    loadOwnedFolder(id, user.clerkUserId),
+    getVideoAction(videoId),
+    loadStudioPickers(user),
+  ]);
+  if (!folder || !loaded.ok || loaded.project.projectId !== folder._id.toHexString()) {
+    notFound();
+  }
 
   return (
     <VideoEditorWorkspace

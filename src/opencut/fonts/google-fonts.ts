@@ -52,6 +52,26 @@ function preloadChunkImages({ atlas }: { atlas: FontAtlas }): void {
 	}
 }
 
+const GOOGLE_FONT_LOAD_TIMEOUT_MS = 3000;
+
+export function withFontLoadTimeout<T>(
+	promise: Promise<T>,
+	timeoutMs = GOOGLE_FONT_LOAD_TIMEOUT_MS,
+): Promise<T | undefined> {
+	return new Promise<T | undefined>((resolve) => {
+		const timer = setTimeout(() => resolve(undefined), timeoutMs);
+		promise
+			.then((value) => {
+				clearTimeout(timer);
+				resolve(value);
+			})
+			.catch(() => {
+				clearTimeout(timer);
+				resolve(undefined);
+			});
+	});
+}
+
 export async function loadFullFont({
 	family,
 	weights = [400, 700],
@@ -66,13 +86,17 @@ export async function loadFullFont({
 	link.rel = "stylesheet";
 	link.href = url;
 	document.head.appendChild(link);
-	await new Promise<void>((resolve) => {
-		link.addEventListener("load", () => resolve(), { once: true });
-		link.addEventListener("error", () => resolve(), { once: true });
-	});
-	await Promise.all(
-		weights.map((weight) =>
-			document.fonts.load(`${weight} 16px "${family.replace(/"/g, '\\"')}"`),
+	await withFontLoadTimeout(
+		new Promise<void>((resolve) => {
+			link.addEventListener("load", () => resolve(), { once: true });
+			link.addEventListener("error", () => resolve(), { once: true });
+		}),
+	);
+	await withFontLoadTimeout(
+		Promise.all(
+			weights.map((weight) =>
+				document.fonts.load(`${weight} 16px "${family.replace(/"/g, '\\"')}"`),
+			),
 		),
 	);
 	fullLoaded.add(family);

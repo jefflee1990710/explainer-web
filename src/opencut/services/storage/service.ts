@@ -397,16 +397,11 @@ class StorageService {
 		});
 
 		const mediaIds = await mediaMetadataAdapter.list();
-		const mediaItems: MediaAsset[] = [];
+		const loaded = await Promise.all(
+			mediaIds.map((id) => this.loadMediaAsset({ projectId, id })),
+		);
 
-		for (const id of mediaIds) {
-			const item = await this.loadMediaAsset({ projectId, id });
-			if (item) {
-				mediaItems.push(item);
-			}
-		}
-
-		return mediaItems;
+		return loaded.filter((item): item is MediaAsset => item !== null);
 	}
 
 	async deleteMediaAsset({

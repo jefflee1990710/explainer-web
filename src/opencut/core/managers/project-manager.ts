@@ -179,7 +179,9 @@ export class ProjectManager {
 				],
 			});
 
-			if (!project.metadata.thumbnail) {
+			// Scro embed views never display OpenCut's internal project thumbnail card,
+			// and rendering t=0 requires decoding the first video frame synchronously.
+			if (!project.metadata.thumbnail && !id.startsWith("scro-")) {
 				try {
 					const didUpdateThumbnail = await this.updateThumbnailFromTimeline();
 					if (didUpdateThumbnail) {

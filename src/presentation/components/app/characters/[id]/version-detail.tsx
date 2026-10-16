@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Spinner } from "@/presentation/components/spinner";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { BlueprintBoard } from "@/presentation/components/app/characters/[id]/blueprint-board";
+import { CharacterImagePreviewDialog } from "@/presentation/components/app/characters/[id]/character-image-preview-dialog";
 import { CharacterSpecList } from "@/presentation/components/app/characters/[id]/character-spec-list";
 import type { PublicCharacter, PublicCharacterVersion } from "@/presentation/serialize";
 import { BLUEPRINT_COST, FRAME_COST } from "@/service/production-plan";
@@ -48,12 +49,21 @@ export function VersionDetail({
   const { t, locale } = useI18n();
   const [editing, setEditing] = useState(false);
   const [instruction, setInstruction] = useState("");
+  const [previewImage, setPreviewImage] = useState<{
+    src: string;
+    title: string;
+    alt: string;
+  } | null>(null);
   const isDefault = character.defaultByStyle[version.styleId] === version.id;
   const busy = version.status === "queued" || version.status === "in_progress";
   const board = version.blueprintKind === "board";
   // Boards are two images; a legacy sheet retries or edits as one.
   const cost = board ? BLUEPRINT_COST : FRAME_COST;
   const short = !subscribed || credits < cost;
+  const blueprintAlt = t("characters.versionBlueprintAlt", {
+    name: character.name,
+    n: version.number,
+  });
 
   function submitEdit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,6 +75,15 @@ export function VersionDetail({
 
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.75rem] border border-accent-ink/10 bg-paper/85 p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.08)]">
+      {previewImage ? (
+        <CharacterImagePreviewDialog
+          src={previewImage.src}
+          title={previewImage.title}
+          alt={previewImage.alt}
+          onClose={() => setPreviewImage(null)}
+        />
+      ) : null}
+
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl font-bold">
           v{version.number}
@@ -80,16 +99,33 @@ export function VersionDetail({
       </div>
 
       {/* The pane keeps its height. The sheet or board stays fully visible inside it. */}
-      <div className="relative mt-4 min-h-0 flex-1 overflow-hidden rounded-[1.25rem] border border-accent-ink/10 bg-white">
+      <div className="relative mt-4 min-h-[20rem] flex-1 overflow-hidden rounded-[1.25rem] border border-accent-ink/10 bg-white">
         {board ? (
-          <BlueprintBoard name={character.name} version={version} />
-        ) : version.blueprintUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={version.blueprintUrl}
-            alt={t("characters.versionBlueprintAlt", { name: character.name, n: version.number })}
-            className="absolute inset-0 h-full w-full object-contain"
+          <BlueprintBoard
+            name={character.name}
+            version={version}
+            onPreviewImage={setPreviewImage}
           />
+        ) : version.blueprintUrl ? (
+          <button
+            type="button"
+            onClick={() =>
+              setPreviewImage({
+                src: version.blueprintUrl!,
+                title: `${character.name} · v${version.number}`,
+                alt: blueprintAlt,
+              })
+            }
+            aria-label={blueprintAlt}
+            className="group absolute inset-0 block h-full w-full cursor-zoom-in focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={version.blueprintUrl}
+              alt={blueprintAlt}
+              className="h-full w-full object-contain transition duration-150 group-hover:scale-[1.015]"
+            />
+          </button>
         ) : (
           <div className="absolute inset-0 grid min-h-40 w-full place-items-center bg-accent-ink/5 text-sm text-muted">
             {busy ? (

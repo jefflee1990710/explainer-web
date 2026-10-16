@@ -57,7 +57,7 @@ export function CreateCharacterMenu({
           <button
             type="button"
             role="menuitem"
-            className="block w-full cursor-pointer rounded-xl px-3 py-2.5 hover:bg-accent-ink/5"
+            className="block w-full cursor-pointer rounded-xl px-3 py-2.5 text-left hover:bg-accent-ink/5"
             onClick={() => {
               setOpen(false);
               onSimple();
@@ -69,7 +69,7 @@ export function CreateCharacterMenu({
           <Link
             href="/app/characters/generate"
             role="menuitem"
-            className="block w-full cursor-pointer rounded-xl px-3 py-2.5 hover:bg-accent-ink/5"
+            className="block w-full cursor-pointer rounded-xl px-3 py-2.5 text-left hover:bg-accent-ink/5"
             onClick={() => setOpen(false)}
           >
             <span className="block text-sm font-semibold">{t("characters.createGenerator")}</span>

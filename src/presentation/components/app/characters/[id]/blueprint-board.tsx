@@ -10,9 +10,11 @@ import { translateAppError } from "@/util/i18n/translate-app-error";
 export function BlueprintBoard({
   name,
   version,
+  onPreviewImage,
 }: {
   name: string;
   version: PublicCharacterVersion;
+  onPreviewImage?: (preview: { src: string; title: string; alt: string }) => void;
 }) {
   const { t } = useI18n();
   const busy = version.status === "queued" || version.status === "in_progress";
@@ -20,20 +22,32 @@ export function BlueprintBoard({
   const portraitBusy = busy && !version.portraitUrl;
   const fullBodyBusy = busy && Boolean(version.portraitUrl) && !version.profileUrl;
   const fullBodyWaiting = busy && !version.portraitUrl;
+  const portraitAlt = t("characters.boardPortraitAlt", { name, n: version.number });
+  const fullBodyAlt = t("characters.boardFullBodyAlt", { name, n: version.number });
 
   return (
     <div className="absolute inset-0 grid grid-cols-[minmax(0,1fr)_minmax(0,0.62fr)] gap-3 p-3">
       <Panel
         label={t("characters.boardPortrait")}
         url={version.portraitUrl}
-        alt={t("characters.boardPortraitAlt", { name, n: version.number })}
+        alt={portraitAlt}
         busyText={portraitBusy ? t("characters.boardPortraitGenerating") : null}
         failedText={failed && !version.portraitUrl ? errorText(version, t) : null}
+        onPreview={
+          version.portraitUrl && onPreviewImage
+            ? () =>
+                onPreviewImage({
+                  src: version.portraitUrl!,
+                  title: `${name} · v${version.number} · ${t("characters.boardPortrait")}`,
+                  alt: portraitAlt,
+                })
+            : undefined
+        }
       />
       <Panel
         label={t("characters.boardFullBody")}
         url={version.profileUrl}
-        alt={t("characters.boardFullBodyAlt", { name, n: version.number })}
+        alt={fullBodyAlt}
         busyText={
           fullBodyBusy
             ? t("characters.boardFullBodyGenerating")
@@ -43,6 +57,16 @@ export function BlueprintBoard({
         }
         failedText={failed && version.portraitUrl && !version.profileUrl ? errorText(version, t) : null}
         tall
+        onPreview={
+          version.profileUrl && onPreviewImage
+            ? () =>
+                onPreviewImage({
+                  src: version.profileUrl!,
+                  title: `${name} · v${version.number} · ${t("characters.boardFullBody")}`,
+                  alt: fullBodyAlt,
+                })
+            : undefined
+        }
       />
     </div>
   );
@@ -60,6 +84,7 @@ function Panel({
   busyText,
   failedText,
   tall,
+  onPreview,
 }: {
   label: string;
   url?: string;
@@ -67,13 +92,25 @@ function Panel({
   busyText: string | null;
   failedText: string | null;
   tall?: boolean;
+  onPreview?: () => void;
 }) {
   return (
     <figure className="relative flex min-h-0 flex-col overflow-hidden rounded-[1rem] border border-accent-ink/10 bg-accent-ink/[0.03]">
       <div className="relative min-h-0 flex-1">
         {url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt={alt} className="absolute inset-0 h-full w-full object-contain" />
+          <button
+            type="button"
+            onClick={onPreview}
+            aria-label={alt}
+            className="group absolute inset-0 block h-full w-full cursor-zoom-in focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={url}
+              alt={alt}
+              className="h-full w-full object-contain transition duration-150 group-hover:scale-[1.015]"
+            />
+          </button>
         ) : (
           <div className="absolute inset-0 grid place-items-center px-4 text-center text-xs text-muted">
             {busyText ? (
