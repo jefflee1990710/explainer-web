@@ -32,6 +32,45 @@ test("object sheet prompt is a white contact sheet in the video style", () => {
   assert.match(prompt, /doodle look/);
 });
 
+test("realistic prop sheet and empty set carry camera, grain, and directional light", () => {
+  const style = renderableFromSystem(testStyle("realistic"));
+  const props = buildObjectSheetPrompt({
+    style,
+    items: [{ name: "mug", notes: "chipped ceramic" }],
+  });
+  assert.match(props, /grazing directional key light/);
+  assert.match(props, /50mm lens at f\/8/);
+  assert.match(props, /subtle film grain/);
+  assert.match(props, /plain white background/);
+  assert.doesNotMatch(props, /Even light, no cast shadow/);
+
+  const fork = renderableFromSystem(testStyle("doodle"));
+  fork.id = "user-style";
+  fork.baseStyleId = "realistic";
+  const forked = buildObjectSheetPrompt({
+    style: fork,
+    items: [{ name: "mug", notes: "chipped ceramic" }],
+  });
+  assert.match(forked, /material grain/);
+
+  const set = buildBackgroundPlatePrompt({
+    style,
+    plate: { name: "studio", notes: "frosted acrylic wall" },
+    aspectRatio: "9:16",
+  });
+  assert.match(set, /24mm wide-angle lens at f\/11/);
+  assert.match(set, /85mm portrait lens at f\/1\.4/);
+  assert.match(set, /Every cell shares that one light direction/);
+  assert.match(set, /Nine cells/);
+
+  const flat = buildObjectSheetPrompt({
+    style: renderableFromSystem(testStyle("doodle")),
+    items: [{ name: "mug", notes: "chipped ceramic" }],
+  });
+  assert.match(flat, /Even light, no cast shadow/);
+  assert.doesNotMatch(flat, /85mm portrait lens|subtle film grain/);
+});
+
 test("background plate prompt is a 3x3 of the empty set", () => {
   const style = renderableFromSystem(testStyle("doodle"));
   const prompt = buildBackgroundPlatePrompt({

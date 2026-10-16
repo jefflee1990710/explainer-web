@@ -1,6 +1,11 @@
 import type { BackgroundPlate, ObjectSheetItem, Project } from "@/model/project";
 import type { RenderableStyle } from "@/service/style/renderable-style";
 import { styleLinesForBlueprint } from "@/service/style/prompts";
+import {
+  isRealisticStyle,
+  REALISTIC_PROP_RENDER_RULE,
+  REALISTIC_SET_RENDER_RULE,
+} from "@/service/style/realistic-light";
 
 const MAX_OBJECT_NOTES = 120;
 
@@ -15,11 +20,15 @@ export function buildObjectSheetPrompt(input: {
       return `${index + 1}) ${item.name}${notes ? `: ${notes}` : ""}`;
     })
     .join("\n");
+  const realistic = isRealisticStyle(input.style);
   return [
     "Prop reference sheet on a plain white background.",
     ...styleLinesForBlueprint(input.style),
     "Override the style canvas: plain white background. No room, no floor, no desk, no window, no lifestyle scene.",
-    "Lay every listed prop out as its own tile in a neat grid. Even light, no cast shadow.",
+    realistic
+      ? "Lay every listed prop out as its own tile in a neat grid."
+      : "Lay every listed prop out as its own tile in a neat grid. Even light, no cast shadow.",
+    ...(realistic ? [REALISTIC_PROP_RENDER_RULE] : []),
     "Each tile shows one clear three-quarter view of that prop only. Keep materials, colours, and proportions readable.",
     "Under each prop, paint its exact name in plain black sans letters. Every listed prop must appear. Do not invent extra props.",
     "No people, no hands, no watermark, no subtitle lettering.",
@@ -35,6 +44,7 @@ export function buildBackgroundPlatePrompt(input: {
   aspectRatio: Project["aspectRatio"];
 }) {
   const notes = input.plate.notes.replace(/\s+/g, " ").trim().slice(0, 240);
+  const realistic = isRealisticStyle(input.style);
   return [
     `Empty set reference as a 3x3 contact sheet of the same ${input.style.name} place.`,
     "Aspect ratio 16:9.",
@@ -44,6 +54,7 @@ export function buildBackgroundPlatePrompt(input: {
     "Nine cells, left to right, top to bottom: 1 wide establishing, 2 medium, 3 low angle, 4 high angle, 5 from the left, 6 from the right, 7 overhead, 8 from behind, 9 architecture detail.",
     "Same architecture, sky, and light in every cell. No people, no characters, no handheld props, no product close-ups, no captions, no watermark.",
     "Show only the place: architecture, set dressing that stays put, sky, and light direction.",
+    ...(realistic ? [REALISTIC_SET_RENDER_RULE] : []),
   ]
     .filter(Boolean)
     .join("\n");

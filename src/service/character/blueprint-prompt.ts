@@ -1,7 +1,7 @@
 import { characterSpecBlock, type CharacterSpec } from "@/model/character-spec";
 import { styleLinesForBlueprint } from "@/service/style";
 import type { RenderableStyle } from "@/service/style/renderable-style";
-import { isRealisticStyle } from "@/service/style/realistic-light";
+import { isRealisticStyle, REALISTIC_CHARACTER_RENDER_RULE } from "@/service/style/realistic-light";
 
 // Fixed character-sheet layout so every version is comparable side by side.
 // GPT Image maps 16:9 requests to a 3:2 frame; keep the prompt aligned with that.
@@ -54,10 +54,12 @@ export function buildBlueprintPrompt(input: {
   const referenceCount = input.referenceCount ?? (input.hasReference ? 1 : 0);
   const hasReference = referenceCount > 0;
   const lightGround = !usesDrawingSurface(input.style);
+  const realistic = isRealisticStyle(input.style);
   const lines = [
     ...SHEET_LAYOUT,
     ...styleLinesForBlueprint(input.style),
     ...(lightGround ? [LIGHT_SHEET_GROUND] : []),
+    ...(realistic ? [REALISTIC_CHARACTER_RENDER_RULE] : []),
   ];
   if (description) lines.push(`Character: ${description}`);
   if (input.editInstruction) {
@@ -145,11 +147,12 @@ type BoardPromptInput = {
 export function buildPortraitPrompt(input: BoardPromptInput) {
   const description = input.description.trim();
   const lightGround = !usesDrawingSurface(input.style);
+  const realistic = isRealisticStyle(input.style);
   const lines = [
     "Character identity portrait on a square canvas: one person, head and shoulders, facing the camera straight on, eyes open, looking into the lens, neutral relaxed expression with a hint of warmth.",
     "The face fills most of the frame: top of the hair near the top edge with a small margin, shoulders cut at the bottom edge. No hands, no props, no text, no labels, no frame or border, no second person.",
-    isRealisticStyle(input.style)
-      ? "Sculpted three-quarter grazing directional key light with negative fill on the shadow side so nose-bridge shadow, eye sockets, pore micro-relief, and every facial feature read clearly without flat front-lit waxiness: eye shape, brows, nose, lips, jaw, skin texture, hair line, and any marks."
+    realistic
+      ? REALISTIC_CHARACTER_RENDER_RULE
       : "Even soft front light so every facial feature reads clearly: eye shape, brows, nose, lips, jaw, skin, hair line, and any marks.",
     ...styleLinesForBlueprint(input.style),
     ...(lightGround ? [LIGHT_SHEET_GROUND] : []),
@@ -187,6 +190,7 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
 export function buildFullBodyPrompt(input: BoardPromptInput) {
   const description = input.description.trim();
   const lightGround = !usesDrawingSurface(input.style);
+  const realistic = isRealisticStyle(input.style);
   const lines = [
     "One full-body standing view of the character in the first attached image (their identity portrait) on a tall canvas.",
     "One person, standing, facing the camera, neutral expression, eyes open, arms relaxed at the sides, feet slightly apart. No props, no text, no labels, no second person, no extra poses.",
@@ -196,6 +200,7 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
     lightGround
       ? LIGHT_SHEET_GROUND
       : "The figure stands on the same drawing surface as the portrait.",
+    ...(realistic ? [REALISTIC_CHARACTER_RENDER_RULE] : []),
   ];
   if (description) lines.push(`Character: ${description}`);
   if (input.editInstruction && input.parentImageCount && input.parentImageCount > 1) {
@@ -223,6 +228,7 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
 // Full-body standing preview taken from the finished sheet. Cards and pickers show this.
 export function buildProfilePrompt(input: { style: RenderableStyle; description: string }) {
   const lightGround = !usesDrawingSurface(input.style);
+  const realistic = isRealisticStyle(input.style);
   const description = input.description.trim();
   const lines = [
     "One full-body standing view of the same character as the attached character sheet.",
@@ -233,6 +239,7 @@ export function buildProfilePrompt(input: { style: RenderableStyle; description:
     lightGround
       ? LIGHT_SHEET_GROUND
       : "The figure stands on the same drawing surface as the sheet.",
+    ...(realistic ? [REALISTIC_CHARACTER_RENDER_RULE] : []),
   ];
   if (description) lines.push(`Character: ${description}`);
   return lines.join("\n");
