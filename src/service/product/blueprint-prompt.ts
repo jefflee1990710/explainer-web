@@ -1,4 +1,4 @@
-import { REALISTIC_PRODUCT_RENDER_RULE } from "@/service/style/realistic-light";
+import { fitReferencePrompt, REALISTIC_PRODUCT_RENDER_RULE } from "@/service/style/realistic-light";
 
 // Realistic product sheet. The video style must never restyle this object.
 export function buildProductBlueprintPrompt(input: { name: string; description: string; referenceCount: number }) {
@@ -15,7 +15,7 @@ export function buildProductBlueprintPrompt(input: { name: string; description: 
   if (input.referenceCount > 1) {
     lines.push("Fuse every attached photo into one product. Do not invent parts that are not visible.");
   }
-  return lines.join(" ");
+  return fitReferencePrompt(lines, 4200).replaceAll("\n", " ");
 }
 
 // Shared lock so frames and posters leave the product looking like the sheet.
