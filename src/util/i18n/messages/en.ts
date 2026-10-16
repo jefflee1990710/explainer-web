@@ -300,6 +300,9 @@ export const en: Messages = {
       exaggeration1x: "1x Normal",
       exaggeration3x: "3x Bold",
       exaggeration10x: "10x Fever Dream",
+      genderLabel: "Gender",
+      genderFemale: "Female",
+      genderMale: "Male",
       presetsLabel: "Viral Archetype Presets",
       presets: {
         skyscraperDiva: "⚡ Skyscraper Diva",

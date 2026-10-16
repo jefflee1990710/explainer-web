@@ -79,8 +79,8 @@ export function CharacterLookDialog({
                   onClick={() => setTab(category)}
                   className={`cursor-pointer rounded-full px-3 py-1.5 text-xs font-bold transition ${
                     activeTab
-                      ? "bg-[#12141c] text-[#c6f24b] shadow-[2px_2px_0_0_#ff4d2e]"
-                      : "border border-accent-ink/15 bg-paper text-muted hover:border-[#12141c]/40 hover:text-foreground"
+                      ? "bg-accent-ink text-paper"
+                      : "border border-accent-ink/15 bg-paper text-muted hover:border-accent-ink/40 hover:text-foreground"
                   }`}
                 >
                   {t(`characters.look.tabs.${category}`)}
@@ -106,16 +106,14 @@ export function CharacterLookDialog({
                 }}
                 className={`cursor-pointer rounded-2xl border bg-paper p-2 text-center transition ${
                   active
-                    ? "border-[#12141c] ring-2 ring-[#c6f24b] shadow-[3px_3px_0_0_#ff4d2e]"
-                    : extreme
-                      ? "border-[#ff4d2e]/40 hover:border-[#ff4d2e]"
-                      : "border-accent-ink/10 hover:border-[#ff4d2e]/60"
+                    ? "border-accent shadow-[3px_3px_0_0_#12141c]"
+                    : "border-accent-ink/10 hover:border-accent-ink/30"
                 }`}
               >
-                <span className="relative block aspect-square overflow-hidden rounded-xl border border-[#12141c]/10 bg-gradient-to-br from-[#c6f24b] via-[#fff6eb] to-[#ff4d2e]/35">
+                <span className="relative block aspect-square overflow-hidden rounded-xl bg-zinc-200">
                   <CharacterLookArt part={part} id={option.id} />
                   {extreme ? (
-                    <span className="absolute top-2 right-2 rounded-full bg-[#12141c] px-2 py-0.5 text-[10px] font-extrabold tracking-wider text-[#c6f24b] shadow-sm">
+                    <span className="absolute top-2 right-2 rounded-full bg-accent-ink px-2 py-0.5 text-[10px] font-extrabold tracking-wider text-paper shadow-sm">
                       {t("characters.look.extremeBadge")}
                     </span>
                   ) : null}

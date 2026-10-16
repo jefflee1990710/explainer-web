@@ -1,4 +1,5 @@
 // Picture picks for the character generator. Prompts stay in English for GPT Image.
+import { REALISTIC_CHARACTER_RENDER_RULE } from "@/service/style/realistic-light";
 
 export const CHARACTER_LOOK_PARTS = ["hair", "face", "body", "pants", "shoes"] as const;
 export const CHARACTER_EXTRA_PARTS = ["top", "accessory", "expression"] as const;
@@ -11,6 +12,7 @@ export type CharacterLookPart = (typeof CHARACTER_LOOK_PARTS)[number];
 export type CharacterExtraPart = (typeof CHARACTER_EXTRA_PARTS)[number];
 export type AnyCharacterLookPart = (typeof ALL_CHARACTER_LOOK_PARTS)[number];
 
+export type CharacterGender = "female" | "male";
 export type CharacterExaggerationLevel = "1x" | "3x" | "10x";
 export type CharacterLookCategory = "all" | "extreme" | "stylized" | "classic";
 
@@ -165,6 +167,7 @@ export const CHARACTER_LOOKS: Record<CharacterLookPart, readonly CharacterLookOp
 
 export type CharacterLookSelection = Record<CharacterLookPart, string> &
   Partial<Record<CharacterExtraPart, string>> & {
+    gender?: CharacterGender;
     exaggeration?: CharacterExaggerationLevel;
   };
 
@@ -181,6 +184,7 @@ const PART_LABEL: Record<AnyCharacterLookPart, string> = {
 
 export function defaultCharacterLook(): CharacterLookSelection {
   return {
+    gender: "female",
     hair: CHARACTER_LOOKS.hair[0].id,
     face: CHARACTER_LOOKS.face[0].id,
     body: CHARACTER_LOOKS.body[0].id,
@@ -211,7 +215,7 @@ export function characterLookOption(part: AnyCharacterLookPart, id: string) {
 // Public file for the Gemini preview of one option.
 export function characterLookPreviewSrc(part: AnyCharacterLookPart, id: string) {
   if (!isCharacterLookId(part, id)) return "";
-  return `/character-looks/${part}-${id}.webp?v=4`;
+  return `/character-looks/${part}-${id}.webp?v=5`;
 }
 
 const EXAGGERATED_HAIR = new Set(["tower", "spikes", "cloud", "drills", "fountain", "horns"]);
@@ -291,6 +295,7 @@ export const CHARACTER_VIRAL_PRESETS: readonly ViralCharacterPreset[] = [
   {
     id: "skyscraperDiva",
     selection: {
+      gender: "female",
       hair: "tower",
       face: "balloon",
       body: "corset",
@@ -305,6 +310,7 @@ export const CHARACTER_VIRAL_PRESETS: readonly ViralCharacterPreset[] = [
   {
     id: "muscleTitan",
     selection: {
+      gender: "male",
       hair: "spikes",
       face: "square",
       body: "wedge",
@@ -319,6 +325,7 @@ export const CHARACTER_VIRAL_PRESETS: readonly ViralCharacterPreset[] = [
   {
     id: "bugeyeHype",
     selection: {
+      gender: "male",
       hair: "cloud",
       face: "bugeyes",
       body: "short",
@@ -333,6 +340,7 @@ export const CHARACTER_VIRAL_PRESETS: readonly ViralCharacterPreset[] = [
   {
     id: "ramenGremlin",
     selection: {
+      gender: "female",
       hair: "horns",
       face: "dumbo",
       body: "beanpole",
@@ -388,7 +396,7 @@ function bodyPreview(id: string, prompt: string) {
   if (EXAGGERATED_BODY.has(id)) {
     return [
       "Subject: one full standing person, front view, feet visible, arms hanging at the sides.",
-      "Vibrant coral red-orange t-shirt and deep ink-black pants with electric lime trim.",
+      "Plain grey clothes.",
       `The body is physically impossible and extremely exaggerated: ${prompt}.`,
       "Do not tame it into a normal body.",
       "A real photograph of an impossible body, not a cartoon drawing.",
@@ -397,14 +405,14 @@ function bodyPreview(id: string, prompt: string) {
   if (VARIETY_BODY.has(id)) {
     return [
       "Subject: one full standing person, front view, arms at the sides, feet visible.",
-      "Vibrant coral red-orange t-shirt, deep ink-black pants, electric lime shoes. Neutral face, not the subject.",
+      "Plain light grey t-shirt, dark navy pants, simple dark shoes. Neutral face, not the subject.",
       `The build must match exactly: ${prompt}.`,
       "Leave empty background where needed so the unusual height or width stays obvious. Do not zoom into a normal crop.",
     ].join(" ");
   }
   return [
     "Subject: one full standing person, front view, arms at the sides, feet visible.",
-    "Same vibrant outfit every time: coral red-orange t-shirt, deep ink-black straight pants, electric lime shoes.",
+    "Same plain outfit every time: light grey t-shirt, dark navy straight pants, simple dark shoes.",
     "Face is a simple neutral oval with short brown hair. Do not make the face the subject.",
     `Only the body build changes: ${prompt}.`,
     "The height and width of the body must be obvious.",
@@ -484,8 +492,8 @@ function facePreview(id: string, prompt: string) {
 
 const PREVIEW_FRAME = [
   "Photorealistic studio photograph, 1:1.",
-  "Vibrant colorful studio backdrop in the Scro brand color scheme: warm cream and electric lime green (#c6f24b) gradient with a punchy coral red-orange (#ff4d2e) rim accent and deep ink-black (#12141c) shadow contrast.",
-  "Centered subject, sharp focus, vivid color, natural skin, hair, and fabric texture.",
+  "Plain light grey seamless background.",
+  "Centered subject, sharp focus, natural skin pores, peach-fuzz, hair, and fabric texture.",
   "Real photograph. Not an illustration, not a cartoon, not a drawing, not 3D.",
   "No text, no letters, no numbers, no watermark, no border.",
 ].join(" ");
@@ -549,11 +557,17 @@ const EXAGGERATION_PROMPT: Record<CharacterExaggerationLevel, string> = {
 
 // One description for the blueprint. Every selected part is named so GPT Image keeps the combination.
 export function characterLookPrompt(selection: CharacterLookSelection) {
-  const lines = CHARACTER_LOOK_PARTS.map((part) => {
+  const lines: string[] = [];
+  if (selection.gender === "male") {
+    lines.push("Gender: adult man (male).");
+  } else if (selection.gender === "female") {
+    lines.push("Gender: adult woman (female).");
+  }
+  for (const part of CHARACTER_LOOK_PARTS) {
     const option = CHARACTER_LOOKS[part].find((item) => item.id === selection[part]);
     if (!option) throw new Error(`Unknown ${part} look: ${selection[part]}`);
-    return `${PART_LABEL[part]}: ${option.prompt}.`;
-  });
+    lines.push(`${PART_LABEL[part]}: ${option.prompt}.`);
+  }
   for (const part of CHARACTER_EXTRA_PARTS) {
     const id = selection[part];
     if (!id) continue;
@@ -576,7 +590,8 @@ export function characterLookPrompt(selection: CharacterLookSelection) {
 export function characterPoseSheetPrompt(selection: CharacterLookSelection) {
   return [
     "Photorealistic character sheet on one square canvas, two rows of four full-body figures.",
-    "Same person in every figure: same face, hair, build, pants, and shoes. Vibrant studio lighting with a warm cream and electric lime green (#c6f24b) backdrop and subtle coral red-orange (#ff4d2e) accent rim light.",
+    "Same person in every figure: same face, hair, build, pants, and shoes. Plain light grey seamless background.",
+    REALISTIC_CHARACTER_RENDER_RULE,
     "Top row, left to right, standing still with arms relaxed: front view, left side, back view, right side.",
     "Bottom row, left to right, four different poses of that same person: walking toward the camera mid-step, both arms stretched straight overhead, hands on hips with weight on one leg, and a deep squat with both feet flat.",
     "Every figure is full body, head to shoes, with space between them. Do not repeat the standing turnaround on the bottom row.",

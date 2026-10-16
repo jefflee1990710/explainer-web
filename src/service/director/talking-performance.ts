@@ -100,7 +100,94 @@ function leadHand(clipNumber?: number) {
   return (clipNumber ?? 1) % 2 === 1 ? "right" : "left";
 }
 
-// The mic hand never swaps. Clip 2 was jumping because the prompt moved it to the other hand.
+function clipHeadMotionEn(clipNumber: number | undefined, baseHeadMotion: string) {
+  const variant = ((clipNumber ?? 1) - 1) % 4;
+  const beats = [
+    `tilting slightly to the left and nodding on the stressed words (${baseHeadMotion})`,
+    `turning a few degrees to the right with a small forward lean on the key point (${baseHeadMotion})`,
+    `lifting the chin then giving a clear affirmative nod upright toward the lens (${baseHeadMotion})`,
+    `swaying gently from right to left with an expressive head tilt and brow lift (${baseHeadMotion})`,
+  ];
+  return beats[variant];
+}
+
+function clipCloseLandingEn(
+  clipNumber: number | undefined,
+  last: boolean,
+  ctaBeat: string,
+  anchored: boolean,
+  hand: string,
+  other: string,
+  anchorProp: string,
+) {
+  const variant = ((clipNumber ?? 1) - 1) % 4;
+  const closeFaces = [
+    "the mouth closes into a small real smile, eyebrows relaxed, head tilted a few degrees to the left",
+    "the mouth closes into an engaged warm smile, eyebrows softly lifted, head tilted a few degrees to the right",
+    "the mouth closes into a lively half-smile, head upright and leaning slightly forward toward the lens",
+    "the mouth closes into a warm knowing smile, chin slightly lifted and head turned a few degrees to the side",
+  ];
+  const closeFace = last ? `the mouth closes into ${ctaBeat}` : closeFaces[variant];
+  if (anchored) {
+    const anchoredHands = [
+      `the ${hand} hand still holding ${anchorProp}, the ${other} hand eases open-palm at chest height, the body stays in the same place on screen`,
+      `the ${hand} hand still holding ${anchorProp}, the ${other} hand settles at chest height with fingers slightly spread, the body stays in the same place on screen`,
+      `the ${hand} hand still holding ${anchorProp}, the ${other} hand holds a light index-finger gesture at chest height, the body stays in the same place on screen`,
+      `the ${hand} hand still holding ${anchorProp}, the ${other} hand relaxes near mid-chest, the body stays in the same place on screen`,
+    ];
+    return { closeFace, closeBeat: anchoredHands[variant] };
+  }
+  const unanchoredHands = [
+    `the ${other} hand settles open-palm at chest height while the ${hand} hand rests low, the body stays in the same place on screen`,
+    `the ${other} hand stays raised at chest height with fingers spread while the ${hand} hand lowers, the body stays in the same place on screen`,
+    `both hands settle lightly at lower-chest height in an open conversational posture, the body stays in the same place on screen`,
+    `the ${hand} hand settles at chest height in a relaxed gesture while the ${other} hand rests low, the body stays in the same place on screen`,
+  ];
+  return { closeFace, closeBeat: unanchoredHands[variant] };
+}
+
+function clipHeadMotionYue(clipNumber: number | undefined, baseHeadMotion: string) {
+  const variant = ((clipNumber ?? 1) - 1) % 4;
+  const beats = [
+    `頭向左微傾同喺重音位點頭（${baseHeadMotion}）`,
+    `頭向右微轉幾度同講到重點時微微前傾（${baseHeadMotion}）`,
+    `下巴微抬再向鏡頭清楚點頭強調（${baseHeadMotion}）`,
+    `頭由右向左輕輕擺動、歪頭挑眉（${baseHeadMotion}）`,
+  ];
+  return beats[variant];
+}
+
+function clipCloseLandingYue(
+  clipNumber: number | undefined,
+  last: boolean,
+  ctaBeat: string,
+  anchored: boolean,
+  zhHand: string,
+  zhOther: string,
+  anchorProp: string,
+) {
+  const variant = ((clipNumber ?? 1) - 1) % 4;
+  const closeFaces = [
+    "口部合上變成自然淺笑，眉毛放鬆，頭向左邊微傾幾度",
+    "口部合上變成有神嘅淺笑，眉毛微揚，頭向右邊傾幾度",
+    "口部合上變成親切笑容，頭擺正微微前傾望住鏡頭",
+    "口部合上帶住自信淺笑，下巴微抬、頭微轉幾度",
+  ];
+  const closeFace = last ? `口部合上變成${ctaBeat}` : closeFaces[variant];
+  if (anchored) {
+    return {
+      closeFace,
+      closeBeat: `${anchorProp}仍然喺${zhHand}，${zhOther}停喺胸前，身體留喺畫面同一個位置`,
+    };
+  }
+  const unanchoredHands = [
+    `${zhOther}掌心打開停喺胸前、${zhHand}自然放低，身體留喺畫面同一個位置`,
+    `${zhOther}喺胸前微張手指停住、${zhHand}放返低，身體留喺畫面同一個位置`,
+    `兩隻手一齊自然停喺胸前位置，身體留喺畫面同一個位置`,
+    `${zhHand}停喺胸前自然手勢、${zhOther}放低，身體留喺畫面同一個位置`,
+  ];
+  return { closeFace, closeBeat: unanchoredHands[variant] };
+}
 function anchorSide() {
   return "right" as const;
 }
@@ -143,7 +230,7 @@ export function talkingMotionLine(input: {
       ? thisClipOnlySubtitle({ language: "en", line: input.line, belowCenter: Boolean(input.belowCenter) })
       : `The large subtitle holds ${place}: "${input.line}".`;
     const face = `a live ${seated ? "real-person" : "reel-person"} face — ${p.restingFace}, and ${p.emphasisBeat}`;
-    const head = `head tilting and nodding on the stresses — ${p.headMotion}`;
+    const head = `head tilting and nodding on the stresses — ${clipHeadMotionEn(input.clipNumber, p.headMotion)}`;
     const hands = anchored
       ? `the ${hand} hand holding ${p.anchorProp} as a fixed anchor while the ${other} hand does all the gesturing at chest height and changes shape every 1–2 seconds in time with the words (${p.gestureLibrary})`
       : `the ${hand} then ${other} hand gesturing at chest height and changing shape every 1–2 seconds in time with the words (${p.gestureLibrary})`;
@@ -160,12 +247,15 @@ export function talkingMotionLine(input: {
       : seated
         ? `0–0.4s she inhales, blinks once, seated, eyes locked on the lens, ${hook}${propReady}, the ${other} hand already rising to chest height, mouth opening${fadeInClause}`
         : `0–0.4s she inhales, blinks once, eyes locked on the lens as if talking into a phone, ${hook}${propReady}, head already tilting, one hand already rising, mouth opening${fadeInClause}`;
-    const closeFace = last
-      ? `the mouth closes into ${p.ctaBeat}`
-      : "the mouth closes into an engaged small smile, eyebrows settling";
-    const closeBeat = anchored
-      ? `the ${hand} hand still holding ${p.anchorProp}, the ${other} hand eases at chest height, the body stays in the same place on screen`
-      : "the raised hand settles at chest height, the body stays in the same place on screen";
+    const { closeFace, closeBeat } = clipCloseLandingEn(
+      input.clipNumber,
+      last,
+      p.ctaBeat,
+      anchored,
+      hand,
+      other,
+      p.anchorProp,
+    );
     const fadeOut = `the large subtitle fades and slides down out`;
     const cameraTail = seated
       ? "camera stays locked on the phone tripod, 24mm at f/1.8, from the first frame to the last frame, no zoom, no reframe, no jump."
@@ -187,7 +277,7 @@ export function talkingMotionLine(input: {
   const zhHand = hand === "right" ? "右手" : "左手";
   const zhOther = hand === "right" ? "左手" : "右手";
   const face = `神情似真人${seated ? "喺屋企拍手機片" : "拍 Reel"}，${p.restingFace}，${p.emphasisBeat}`;
-  const head = `頭部左右傾同重音位點頭，${p.headMotion}`;
+  const head = `頭部左右傾同重音位點頭，${clipHeadMotionYue(input.clipNumber, p.headMotion)}`;
   const hands = anchored
     ? `${zhHand}拎住${p.anchorProp}作為固定錨點幾乎唔郁，${zhOther}負責晒所有手勢喺胸前比畫，每 1–2 秒換一個手勢跟住說話節奏（${p.gestureLibrary}）`
     : `${zhHand}再${zhOther}喺胸前比畫，每 1–2 秒換一個手勢跟住說話節奏（${p.gestureLibrary}）`;
@@ -204,10 +294,15 @@ export function talkingMotionLine(input: {
     : seated
       ? `0–0.4s 坐住、吸一口氣、眨眼、直望鏡頭、${hook}${propReady}、${zhOther}已經提到胸前、準備開口${fadeInClause}`
       : `0–0.4s 吸一口氣、眨眼、直望鏡頭好似對住手機講、${hook}${propReady}、頭已經微傾、一隻手已經提起、準備開口${fadeInClause}`;
-  const closeFace = last ? `口部合上變成${p.ctaBeat}` : "口部合上變成有神嘅淺笑，眉毛放鬆";
-  const closeBeat = anchored
-    ? `${p.anchorProp}仍然喺${zhHand}，${zhOther}停喺胸前，身體留喺畫面同一個位置`
-    : "手停喺胸前，身體留喺畫面同一個位置";
+  const { closeFace, closeBeat } = clipCloseLandingYue(
+    input.clipNumber,
+    last,
+    p.ctaBeat,
+    anchored,
+    zhHand,
+    zhOther,
+    p.anchorProp,
+  );
   const cameraTail = seated
     ? "鏡頭由第一幀到最後一幀鎖喺手機腳架，24mm f/1.8，唔好變焦、唔好換鏡、唔好跳鏡。"
     : "鏡頭由第一幀到最後一幀鎖定同一構圖，唔好變焦、唔好換鏡、唔好跳鏡。";

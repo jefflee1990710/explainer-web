@@ -44,9 +44,8 @@ test("preview prompt isolates that one option", () => {
   assert.match(prompt, /No legs above the ankle/);
   assert.match(prompt, /Photorealistic studio photograph/);
   assert.match(prompt, /Not an illustration/);
-  assert.match(prompt, /#c6f24b/);
-  assert.match(prompt, /#ff4d2e/);
-  assert.equal(characterLookPreviewSrc("shoes", "boots"), "/character-looks/shoes-boots.webp?v=4");
+  assert.match(prompt, /Plain light grey seamless background/);
+  assert.equal(characterLookPreviewSrc("shoes", "boots"), "/character-looks/shoes-boots.webp?v=5");
   assert.match(characterLookPreviewPrompt("hair", "tower"), /physically impossible and extremely exaggerated/);
   assert.match(characterLookPreviewPrompt("hair", "tower"), /skyscraper/);
   assert.match(characterLookPreviewPrompt("hair", "beehive"), /1960s beehive/);
@@ -106,13 +105,19 @@ test("pose revision keeps the sheet and applies the comment", () => {
   assert.throws(() => poseSheetImageBuffer("https://example.com/a.webp"), /姿勢圖格式不正確/);
 });
 
-test("viral presets, extra parts, exaggeration dial, and crazy mix work as expected", () => {
+test("viral presets, extra parts, gender, exaggeration dial, and crazy mix work as expected", () => {
   assert.equal(ALL_CHARACTER_LOOK_PARTS.length, 8);
   assert.equal(CHARACTER_VIRAL_PRESETS.length, 4);
   for (const preset of CHARACTER_VIRAL_PRESETS) {
     const prompt = characterLookPrompt(preset.selection);
     assert.match(prompt, /Exaggeration level/);
+    assert.match(prompt, /Gender: adult (woman|man)/);
   }
+  const malePrompt = characterLookPrompt({ ...defaultCharacterLook(), gender: "male" });
+  assert.match(malePrompt, /Gender: adult man \(male\)\./);
+  const femaleSheet = characterPoseSheetPrompt(defaultCharacterLook());
+  assert.match(femaleSheet, /Gender: adult woman \(female\)\./);
+  assert.match(femaleSheet, /Kodak Gold 200/);
   const locked = randomizeCharacterLook(
     { ...defaultCharacterLook(), hair: "bob" },
     { locked: { hair: true }, extremeOnly: true, rand: () => 0 },
@@ -125,7 +130,7 @@ test("viral presets, extra parts, exaggeration dial, and crazy mix work as expec
   assert.equal(lookOptionCategory("hair", "bob"), "classic");
   for (const part of ALL_CHARACTER_LOOK_PARTS) {
     for (const option of optionsForLookPart(part)) {
-      assert.match(characterLookPreviewPrompt(part, option.id), /#c6f24b/);
+      assert.match(characterLookPreviewPrompt(part, option.id), /Plain light grey seamless background/);
     }
   }
 });

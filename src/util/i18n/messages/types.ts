@@ -252,6 +252,9 @@ export type Messages = {
       exaggeration1x: string;
       exaggeration3x: string;
       exaggeration10x: string;
+      genderLabel: string;
+      genderFemale: string;
+      genderMale: string;
       presetsLabel: string;
       presets: {
         skyscraperDiva: string;

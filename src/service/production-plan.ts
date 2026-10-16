@@ -144,12 +144,18 @@ export function allFramesReady(project: ClipStageSource) {
   );
 }
 
-// Videos for clips that still need one. Empty until every frame image is ready.
+// Videos for clips that still need one. When every clip already has a video,
+// include all ready clips so "All videos" can regenerate a completed video.
 export function planGenerateAllVideos(project: ClipStageSource): BulkGeneratePlan {
   if (!allFramesReady(project)) return { frames: [], videos: [], cost: 0 };
-  const videos = clipStatesFor(project)
-    .filter((state) => state.stage === "frames_ready" || state.stage === "video_failed")
+  const states = clipStatesFor(project);
+  const missing = states
+    .filter((state) => state.stage === "frames_ready" || state.stage === "video_failed" || state.stale.video)
     .map((state) => state.clipNumber);
+  const videos =
+    missing.length > 0
+      ? missing
+      : states.filter((state) => state.stage === "video_ready").map((state) => state.clipNumber);
   return { frames: [], videos, cost: videosCost(project, videos) };
 }
 

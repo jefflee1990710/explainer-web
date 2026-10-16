@@ -134,9 +134,11 @@ export async function regenerateFrameAction(
     const frame = project.frames?.find(
       (item) => item.clipNumber === clipNumber && item.position === position,
     );
-    if (!frame) return { ok: false, error: "找不到這張分鏡圖" };
-    if (position === "end" && clipSkipsEndStill(project)) {
-      return { ok: false, error: "這段不產生結尾畫格" };
+    if (!frame) {
+      if (position === "end" && clipSkipsEndStill(project)) {
+        return { ok: false, error: "這段不產生結尾畫格" };
+      }
+      return { ok: false, error: "找不到這張分鏡圖" };
     }
     // A redo deletes the frame's current job, which would strand the credit
     // already spent on it; make the user wait for it to settle instead.

@@ -237,6 +237,7 @@ export function planTalkingHeadClips(input: {
       perf,
       overlay: input.overlay || input.noText,
       realistic: input.realistic,
+      clipIndex: index,
     };
     const realism = { fullBody: talkingShot === "full-body", openingPhoto: input.openingPhoto };
     const endScene = shotLine(input.language, "end", line, scene);
@@ -385,7 +386,7 @@ export function talkingHeadDirectorBlock(
       ? `On-camera speech like a real person recording a reel: eyes locked on the lens, continuous lip-sync, head tilting and nodding, ${hands}, weight shifting hip to hip. Never freeze the face, head, hands, or body. Never a greeting wave.`
       : `On-camera speech to a phone on a tripod: seated, eyes locked on the lens, continuous lip-sync, head tilting and nodding, ${hands}. Natural skin, real cloth, unposed. Never freeze the face or neck. Never a greeting wave. Never stand up.`,
     `Face pattern: resting face is ${p.restingFace}. Emphasis: ${p.emphasisBeat}. Clip 1 opens with ${p.hookBeat} as the hook. The last clip ends on ${p.ctaBeat}.`,
-    `Gesture pattern: the gesturing hand changes shape every 1–2 seconds in time with the words — ${p.gestureLibrary}. Head: ${p.headMotion}.`,
+    `Gesture pattern: the gesturing hand changes shape every 1–2 seconds in time with the words — ${p.gestureLibrary}. Head: ${p.headMotion}. Alternate the ending head tilt and active gesturing hand across clips so two clips in a row never settle in the exact same head angle or hand pose.`,
     ...(realistic
       ? ["Realism (Cinematic realistic): every still names one motivated light source from the side with a soft rim light on the hair, real skin pores and fine facial hair, and a soft out-of-focus foreground element at one frame edge that never covers the face, hands, or subtitle. Never flat front light or plastic skin."]
       : []),
@@ -425,6 +426,7 @@ type SceneInput = {
   perf: PerformanceSlots;
   overlay?: boolean;
   realistic?: boolean;
+  clipIndex?: number;
 };
 
 // Realism goes after camera and before the subtitle, so the subtitle swap keeps it.
@@ -443,12 +445,91 @@ function withMotionRealism(motion: string, clause: string) {
   return `${text}${/[.。]$/.test(text) ? "" : "."} ${clause}`;
 }
 
+function endPoseVariationEn(clipIndex: number, fullBody: boolean, anchored: boolean, freeHand: string) {
+  const variant = clipIndex % 4;
+  if (anchored) {
+    const headMoves = [
+      "mouth just closed into a small real smile, eyebrows relaxed, head tilted a few degrees to the left",
+      "mouth just closed into an engaged warm smile, one eyebrow softly lifted, head tilted a few degrees to the right",
+      "mouth just closed into a confident half-smile, head upright and leaning slightly toward the lens",
+      "mouth just closed into a friendly knowing smile, chin slightly lifted and head nodded a few degrees",
+    ];
+    const handMoves = [
+      `${freeHand} is open-palm at chest height, caught between gestures`,
+      `${freeHand} is raised at chest height with fingers spread in an emphasis gesture`,
+      `${freeHand} is at chest height with the index finger lightly raised on the key point`,
+      `${freeHand} rests lightly near mid-chest with a relaxed open hand`,
+    ];
+    return { head: headMoves[variant], hand: handMoves[variant] };
+  }
+  const headMoves = [
+    "mouth just closed into a small real smile, eyebrows relaxed, head tilted a few degrees to the left",
+    "mouth just closed into an engaged warm smile, eyebrows softly lifted, head tilted a few degrees to the right",
+    "mouth just closed into a lively half-smile, head upright and leaning slightly forward toward the lens",
+    "mouth just closed into a warm knowing smile, chin slightly lifted and head turned a few degrees to the side",
+  ];
+  const handMoves = fullBody
+    ? [
+        "One hand is slightly raised at chest height with an open palm while the other arm relaxes at the side, weight on the other hip",
+        "The other hand is raised at chest height with an index-finger gesture while the first hand rests low, weight shifted to the right hip",
+        "Both hands are open at chest height in a natural conversational gesture, posture relaxed",
+        "One hand gestures outward at chest height with fingers relaxed while the other hand rests near the waist",
+      ]
+    : [
+        "One hand is open-palm at chest height on one side while the other hand rests on the lap, caught between gestures",
+        "The other hand is raised at chest height with fingers slightly spread while the first hand lowers to the lap",
+        "Both hands are lightly raised at lower-chest height in an open conversational gesture",
+        "One hand is at chest height with a relaxed pointing gesture while the other hand rests on the lap",
+      ];
+  return { head: headMoves[variant], hand: handMoves[variant] };
+}
+
+function endPoseVariationYue(clipIndex: number, fullBody: boolean, anchored: boolean, freeHand: string) {
+  const variant = clipIndex % 4;
+  if (anchored) {
+    const headMoves = [
+      "呢句講完、口部合上變成自然淺笑，眉毛放鬆，頭向一邊微傾幾度",
+      "呢句講完、口部合上變成有神嘅淺笑，眉毛微揚，頭向另一邊傾幾度",
+      "呢句講完、口部合上變成親切笑容，頭擺正微微傾向鏡頭",
+      "呢句講完、口部合上帶住自信微笑，下巴微抬、頭只再傾幾度",
+    ];
+    const handMoves = [
+      `${freeHand}掌心打開停喺胸前，好似兩個手勢之間`,
+      `${freeHand}喺胸前五指微張做緊強調手勢`,
+      `${freeHand}喺胸前輕輕豎起食指點出重點`,
+      `${freeHand}自然放鬆停喺胸前位置`,
+    ];
+    return { head: headMoves[variant], hand: handMoves[variant] };
+  }
+  const headMoves = [
+    "呢句講完、口部合上變成自然淺笑，眉毛放鬆，頭向左邊微傾幾度",
+    "呢句講完、口部合上變成有神嘅淺笑，眉毛微揚，頭向右邊傾幾度",
+    "呢句講完、口部合上變成親切笑容，頭擺正微微前傾望住鏡頭",
+    "呢句講完、口部合上帶住自信淺笑，下巴微抬、頭微轉幾度",
+  ];
+  const handMoves = fullBody
+    ? [
+        "一隻手仲喺胸前掌心打開，另一隻手自然垂低，重心輕輕換去左邊，腳留喺同一個位置",
+        "換另一隻手喺胸前做手勢，原本隻手放低，重心輕輕換去右邊，腳留喺同一個位置",
+        "兩隻手喺胸前自然打開比畫，身形放鬆，腳留喺同一個位置",
+        "一隻手喺胸前向外輕推做手勢，另一隻手放喺腰旁，腳留喺同一個位置",
+      ]
+    : [
+        "一隻手掌心打開停喺胸前，另一隻手放喺大髀，好似兩個手勢之間",
+        "換另一隻手提到胸前微張手指做手勢，原本隻手放返落大髀",
+        "兩隻手一齊輕輕提到胸前自然打開傾偈",
+        "一隻手喺胸前輕輕比出重點手勢，另一隻手自然放喺大髀",
+      ];
+  return { head: headMoves[variant], hand: handMoves[variant] };
+}
+
 // Start still: hook face, free hand mid-gesture. End still: smile relaxed, head tilted the other way.
 function shotLine(language: VoLanguage | undefined, moment: "start" | "end", line: string, scene: SceneInput) {
   const camera = cameraClause(language, scene.shot, scene.perf);
   const fullBody = scene.shot === "full-body";
   const anchored = hasAnchorProp(scene.perf);
   const p = scene.perf;
+  const clipIndex = scene.clipIndex ?? 0;
   if (scene.openingPhoto && moment === "start") {
     const pose =
       language === "en"
@@ -472,14 +553,15 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
     const propEnd = anchored ? ` The same hand still holds ${p.anchorProp}.` : "";
     const freeHand = anchored ? "The other hand" : "One hand";
     const sameFrame = " Same camera as the opening still: same crop, same distance, the character in the same place on screen. No zoom, no reframe, no jump.";
+    const endVar = endPoseVariationEn(clipIndex, fullBody, anchored, freeHand);
     const pose =
       moment === "start"
         ? fullBody
           ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture.`
           : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live unposed expression.${prop} ${freeHand} is already up at chest height, index finger raised mid-gesture.`
         : fullBody
-          ? `Character: still the only person in the frame, eyes still locked on the lens, mouth just closed after the line, an engaged small smile, eyebrows relaxed, head nodded only a few degrees.${propEnd} ${freeHand} is still slightly raised at chest height with an open palm, weight on the other hip, feet in the same place.${sameFrame}`
-          : `Character: still the only person in the frame, still seated, eyes still locked on the lens, mouth just closed into a small real smile, eyebrows relaxed, head nodded only a few degrees.${propEnd} ${freeHand} is open-palm at chest height, caught between gestures.${sameFrame}`;
+          ? `Character: still the only person in the frame, eyes still locked on the lens, ${endVar.head}.${propEnd} ${anchored ? `${endVar.hand}, weight on the other hip` : endVar.hand}, feet in the same place.${sameFrame}`
+          : `Character: still the only person in the frame, still seated, eyes still locked on the lens, ${endVar.head}.${propEnd} ${endVar.hand}.${sameFrame}`;
     const still = withStillRealism(`${pose} ${setClause("en", scene)}${camera}`, language, scene);
     // Overlay subtitles are composited later, so the still is pose, set, and camera only.
     if (scene.overlay) return still.trim();
@@ -489,14 +571,15 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
   const propEnd = anchored ? `同一隻手仍然拎住${p.anchorProp}。` : "";
   const freeHand = anchored ? "另一隻手" : "一隻手";
   const sameFrame = "鏡頭同開頭畫面一樣：同一個裁切、同一距離、角色留喺畫面同一個位置。唔好變焦，唔好跳鏡。";
+  const endVarYue = endPoseVariationYue(clipIndex, fullBody, anchored, freeHand);
   const pose =
     moment === "start"
       ? fullBody
         ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，準備開口，${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢。`
         : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，直望鏡頭好似喺屋企用手機實拍，準備開口，${p.hookBeat}，頭微傾，神情自然唔擺拍。${prop}${freeHand}已經提到胸前，豎起食指做緊手勢。`
       : fullBody
-        ? `角色：畫面仍然只有呢一個人，仍然直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，眉毛放鬆，頭只再傾幾度。${propEnd}${freeHand}仲喺胸前掌心打開，重心輕輕換咗少少，腳留喺同一個位置。${sameFrame}`
-        : `角色：畫面仍然只有呢一個人，仍然坐住直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，頭只再傾幾度。${propEnd}${freeHand}掌心打開停喺胸前，好似兩個手勢之間。${sameFrame}`;
+        ? `角色：畫面仍然只有呢一個人，仍然直望鏡頭，${endVarYue.head}。${propEnd}${anchored ? `${endVarYue.hand}，重心輕輕換咗少少，腳留喺同一個位置` : endVarYue.hand}。${sameFrame}`
+        : `角色：畫面仍然只有呢一個人，仍然坐住直望鏡頭，${endVarYue.head}。${propEnd}${endVarYue.hand}。${sameFrame}`;
   const still = withStillRealism(`${pose}${setClause("yue", scene)}${camera}`, language, scene);
   if (scene.overlay) return still.trim();
   return `${still}${subtitleSentence("yue", toWrittenChinese(line), scene.belowCenter)}`;

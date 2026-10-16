@@ -40,16 +40,12 @@ export function CharacterLookPicker({
           aria-expanded={open}
           disabled={disabled}
           onClick={() => setOpen(true)}
-          className={`flex w-full cursor-pointer items-center gap-3 rounded-2xl border bg-paper px-3 py-2 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60 ${
-            extreme
-              ? "border-[#ff4d2e]/60 hover:border-[#ff4d2e]"
-              : "border-accent-ink/10 hover:border-accent-ink/30"
-          }`}
+          className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-accent-ink/10 bg-paper px-3 py-2 text-left transition hover:border-accent-ink/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-[#12141c]/15 bg-gradient-to-br from-[#c6f24b] via-[#fff6eb] to-[#ff4d2e]/35">
+          <span className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-zinc-200">
             <CharacterLookArt part={part} id={value} />
             {extreme ? (
-              <span className="absolute top-1 left-1 rounded-full bg-[#12141c] px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-[#c6f24b]">
+              <span className="absolute top-1 left-1 rounded-full bg-accent-ink px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-paper">
                 {t("characters.look.extremeBadge")}
               </span>
             ) : null}
@@ -81,7 +77,7 @@ export function CharacterLookPicker({
             }
             className={`absolute right-8 grid h-7 w-7 cursor-pointer place-items-center rounded-full border text-xs transition ${
               locked
-                ? "border-[#12141c] bg-[#c6f24b] text-[#12141c]"
+                ? "border-accent-ink bg-accent-ink text-paper"
                 : "border-transparent text-muted hover:bg-accent-ink/5 hover:text-foreground"
             }`}
           >

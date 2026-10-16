@@ -293,6 +293,9 @@ export const zhHant: Messages = {
       exaggeration1x: "1x 日常",
       exaggeration3x: "3x 潮流誇張",
       exaggeration10x: "10x 突破物理",
+      genderLabel: "性別",
+      genderFemale: "女性",
+      genderMale: "男性",
       presetsLabel: "爆款吸睛角色模板",
       presets: {
         skyscraperDiva: "⚡ 摩天髮型教母",
