@@ -55,6 +55,7 @@ import {
   restartBlobUrls,
   restartBlockReason,
 } from "@/service/project/restart";
+import { cancelRestartImageJobs } from "@/service/project/restart-cancel";
 import type {
   AspectRatio,
   DurationPreset,
@@ -609,6 +610,7 @@ async function rewriteVideoBrief(
 
     // Restart drops every stored frame / clip / export file and job first.
     if (options.restart) {
+      await cancelRestartImageJobs(video);
       const jobs = await generationJobsCollection();
       const jobDocs = await jobs.find({ projectId: video._id }).toArray();
       await deleteExplainerBlobUrls(restartBlobUrls(video, jobDocs));

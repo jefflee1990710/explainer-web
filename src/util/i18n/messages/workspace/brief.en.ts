@@ -123,7 +123,7 @@ export const briefEn = {
   footer: {
     castRequired: "Pick exactly {n} characters before you start.",
     restartWarning:
-      "This deletes the storyboard, frames, and clips for this video, then runs Phase A again. Spent credits are not refunded.",
+      "This deletes the storyboard, frames, and clips for this video, then runs Phase A again. Scene images still generating are cancelled and refunded; finished work is not.",
     editBriefWarning:
       "Changing the instruction rewrites the storyboard and returns to Video. Existing frames and clips may no longer match.",
     noCharge:
@@ -145,7 +145,7 @@ export const briefEn = {
     },
     restart: {
       title: "Start this video over?",
-      body: "Permanently deletes this video’s storyboard, frames, and clips, then regenerates from the form. Spent credits are not refunded.",
+      body: "Permanently deletes this video’s storyboard, frames, and clips, then regenerates from the form. Scene images still generating are cancelled and refunded; finished work is not.",
       confirm: "Delete & regenerate",
       pending: "Restarting…",
     },

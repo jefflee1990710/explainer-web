@@ -32,6 +32,7 @@ import {
   updateVideoBriefAction,
 } from "@/presentation/actions/projects";
 import { isProjectBusy } from "@/service/clip-stage";
+import { restartBlockReason } from "@/service/project/restart";
 import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import {
   cheapestVideoCost,
@@ -827,8 +828,13 @@ export function NewProjectForm({
     if (saved == null) return;
     setViewingOverride({ id: video.id, status: video.status, step: saved });
   }, [project?.id]);
+  // Start over may cancel scene images still generating; editing the brief may not.
+  const restartBlocked = Boolean(project && restartBlockReason(project));
   const briefBusy =
-    submitting || Boolean(project && (isProjectBusy(project) || isReelBusy(project.reelStatus)));
+    submitting ||
+    (restarting
+      ? restartBlocked
+      : Boolean(project && (isProjectBusy(project) || isReelBusy(project.reelStatus))));
   const phaseAReady = Boolean(project?.phaseA?.clips?.length);
   const failedAtStep = project?.status === "failed" ? failedStepFor(project) : undefined;
 
@@ -846,11 +852,12 @@ export function NewProjectForm({
         setRestarting(false);
         pinViewingStep(step);
       },
-      canRestart: !restarting && !briefBusy,
+      canRestart: !restarting && !submitting && !restartBlocked,
       onRestart,
     });
   }, [
-    briefBusy,
+    restartBlocked,
+    submitting,
     phaseAReady,
     failedAtStep,
     liveStatus,

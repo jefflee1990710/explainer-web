@@ -5,6 +5,7 @@ import {
   RESTART_UNSET_FIELDS,
   restartBlobUrls,
   restartBlockReason,
+  restartRefundFor,
 } from "@/service/project/restart";
 import type { Project } from "@/model/project";
 
@@ -28,14 +29,16 @@ function video(overrides: Partial<Project> = {}): Project {
   };
 }
 
-test("restart is blocked while the director or any media job is running", () => {
+test("restart is blocked while the director, a clip video, or an export is running", () => {
   assert.equal(restartBlockReason(video()), null);
   assert.equal(restartBlockReason(video({ status: "ready" })), null);
   assert.equal(restartBlockReason(video({ status: "failed" })), null);
   assert.match(restartBlockReason(video({ status: "phase_a" })) || "", /請等/);
   assert.match(
     restartBlockReason(
-      video({ frames: [{ clipNumber: 1, position: "start", prompt: "p", status: "in_progress" }] }),
+      video({
+        clips: [{ clipNumber: 1, durationSeconds: 5, prompt: "p", status: "completed", outputUrl: "u" }],
+      }),
     ) || "",
     /請等/,
   );
@@ -48,6 +51,41 @@ test("restart is blocked while the director or any media job is running", () => 
   assert.match(restartBlockReason(video({ reelStatus: "in_progress" })) || "", /請等/);
   assert.match(restartBlockReason(video({ finalStatus: "queued" })) || "", /請等/);
   assert.equal(restartBlockReason(video({ reelStatus: "completed", finalStatus: "failed" })), null);
+});
+
+test("restart is allowed while scene images and locks are still generating", () => {
+  assert.equal(
+    restartBlockReason(
+      video({
+        frames: [
+          { clipNumber: 1, position: "start", prompt: "p", status: "in_progress" },
+          { clipNumber: 2, position: "start", prompt: "p", status: "queued" },
+        ],
+        objectSheetItems: [{ name: "cup", notes: "" }],
+        backgroundPlates: [{ setId: "set", clipNumbers: [1, 2], prompt: "p" } as never],
+      }),
+    ),
+    null,
+  );
+  assert.equal(
+    restartBlockReason(
+      video({
+        clips: [
+          { clipNumber: 1, durationSeconds: 5, prompt: "p", status: "completed", blobUrl: "b" },
+          { clipNumber: 2, durationSeconds: 5, prompt: "p", status: "failed" },
+        ],
+      }),
+    ),
+    null,
+  );
+});
+
+test("restart refunds a frame cost, or what the subtitle plate charged", () => {
+  const source = video({ subtitlePlates: [{ clipNumber: 2, status: "in_progress", creditsCharged: 3 }] });
+  assert.equal(restartRefundFor(source, { kind: "frame", clipIndex: 0 }, 1), 1);
+  assert.equal(restartRefundFor(source, { kind: "backgroundPlate", clipIndex: 0 }, 1), 1);
+  assert.equal(restartRefundFor(source, { kind: "subtitlePlate", clipIndex: 1 }, 1), 3);
+  assert.equal(restartRefundFor(source, { kind: "subtitlePlate", clipIndex: 4 }, 1), 1);
 });
 
 test("restart deletes generated media but keeps the uploaded character image", () => {

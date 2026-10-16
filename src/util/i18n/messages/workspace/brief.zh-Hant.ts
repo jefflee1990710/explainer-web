@@ -121,7 +121,7 @@ export const briefZhHant = {
   footer: {
     castRequired: "請先選正好 {n} 個角色，才能開始。",
     restartWarning:
-      "會刪掉這支影片的分鏡、畫格與影片，再依這份導演指示從頭產生分鏡。已花的 credits 不會退回。",
+      "會刪掉這支影片的分鏡、畫格與影片，再依這份導演指示從頭產生分鏡。已完成的 credits 不會退回；還在產生的場景圖會取消並退回。",
     editBriefWarning:
       "改導演指示會重寫分鏡並回到 Video。已產生的畫格與影片會留著，但可能對不上。",
     noCharge: "這一步不扣 credits。分鏡寫好後會直接進入 Video；產畫格與影片才扣款。",
@@ -142,7 +142,7 @@ export const briefZhHant = {
     },
     restart: {
       title: "重新開始這支影片？",
-      body: "會永久刪除這支影片目前所有的分鏡、場景圖與 clip 影片，再依表單內容從頭產生分鏡。已花的 credits 不會退回，刪除後無法復原。",
+      body: "會永久刪除這支影片目前所有的分鏡、場景圖與 clip 影片，再依表單內容從頭產生分鏡。還在產生的場景圖會取消並退回 credits，已完成的不會退回，刪除後無法復原。",
       confirm: "刪除並重新產生",
       pending: "重新開始中…",
     },
