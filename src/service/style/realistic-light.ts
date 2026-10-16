@@ -22,6 +22,23 @@ export const REALISTIC_VIDEO_DETAIL_RULE =
 export const REALISTIC_VIDEO_LIGHT_LOCK =
   "Light lock: keep the first frame's directional side light and shadow-side falloff for the whole clip; natural skin pores and fabric texture; highlights never blow out to pure white; no flat front fill, no waxy or airbrushed skin.";
 
+// Flare rejects a blueprint once the style look and this rule are both written out.
+export const REFERENCE_PROMPT_BUDGET = 4200;
+
+// Keep the realistic rule. Shorten the catalog style lines first; they repeat it.
+export function fitReferencePrompt(lines: string[], budget = REFERENCE_PROMPT_BUDGET) {
+  const kept = lines.map((line) => line.trim()).filter(Boolean);
+  const size = () => kept.join("\n").length;
+  if (size() <= budget) return kept.join("\n");
+  for (let i = 0; i < kept.length; i++) {
+    if (/^(Background|Rendering|Palette|Never):/.test(kept[i]) && kept[i].length > 220) {
+      kept[i] = `${kept[i].slice(0, 219)}…`;
+    }
+  }
+  const text = kept.join("\n");
+  return text.length <= budget ? text : text.slice(0, budget);
+}
+
 export function lockRealisticVideoLight(prompt: string) {
   const text = prompt.trim();
   if (!text || text.includes(REALISTIC_VIDEO_LIGHT_LOCK)) return text;

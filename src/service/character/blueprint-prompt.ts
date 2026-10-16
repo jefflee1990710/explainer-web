@@ -1,7 +1,11 @@
 import { characterSpecBlock, type CharacterSpec } from "@/model/character-spec";
 import { styleLinesForBlueprint } from "@/service/style";
 import type { RenderableStyle } from "@/service/style/renderable-style";
-import { isRealisticStyle, REALISTIC_CHARACTER_RENDER_RULE } from "@/service/style/realistic-light";
+import {
+  fitReferencePrompt,
+  isRealisticStyle,
+  REALISTIC_CHARACTER_RENDER_RULE,
+} from "@/service/style/realistic-light";
 
 // Fixed character-sheet layout so every version is comparable side by side.
 // GPT Image maps 16:9 requests to a 3:2 frame; keep the prompt aligned with that.
@@ -98,7 +102,7 @@ export function buildBlueprintPrompt(input: {
       `Redraw that same person or character as this ${input.style.name} model sheet.`,
     );
   }
-  return lines.join("\n");
+  return fitReferencePrompt(lines);
 }
 
 // ---------- Blueprint board (portrait + full body) ----------
@@ -174,7 +178,7 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
         characterSpecBlock(input.spec),
       );
     }
-    return lines.join("\n");
+    return fitReferencePrompt(lines);
   }
   lines.push(...boardIdentityLines(input));
   if (input.photoCount > 0 && description) {
@@ -182,7 +186,7 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
       "The Character line may add age, role, or clothing hints; it must not replace the face proportions, temperament, or the required style.",
     );
   }
-  return lines.join("\n");
+  return fitReferencePrompt(lines);
 }
 
 // Full-body standing figure drawn from the finished portrait (first image) plus the photos.
@@ -222,7 +226,7 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
       characterSpecBlock(input.spec),
     );
   }
-  return lines.join("\n");
+  return fitReferencePrompt(lines);
 }
 
 // Full-body standing preview taken from the finished sheet. Cards and pickers show this.
@@ -242,5 +246,5 @@ export function buildProfilePrompt(input: { style: RenderableStyle; description:
     ...(realistic ? [REALISTIC_CHARACTER_RENDER_RULE] : []),
   ];
   if (description) lines.push(`Character: ${description}`);
-  return lines.join("\n");
+  return fitReferencePrompt(lines);
 }

@@ -2,6 +2,7 @@ import type { BackgroundPlate, ObjectSheetItem, Project } from "@/model/project"
 import type { RenderableStyle } from "@/service/style/renderable-style";
 import { styleLinesForBlueprint } from "@/service/style/prompts";
 import {
+  fitReferencePrompt,
   isRealisticStyle,
   REALISTIC_PROP_RENDER_RULE,
   REALISTIC_SET_RENDER_RULE,
@@ -21,7 +22,7 @@ export function buildObjectSheetPrompt(input: {
     })
     .join("\n");
   const realistic = isRealisticStyle(input.style);
-  return [
+  return fitReferencePrompt([
     "Prop reference sheet on a plain white background.",
     ...styleLinesForBlueprint(input.style),
     "Override the style canvas: plain white background. No room, no floor, no desk, no window, no lifestyle scene.",
@@ -34,7 +35,7 @@ export function buildObjectSheetPrompt(input: {
     "No people, no hands, no watermark, no subtitle lettering.",
     "Props:",
     tiles,
-  ].join("\n");
+  ]);
 }
 
 // Empty location plate: architecture and light only, no cast and no handheld props.
@@ -45,7 +46,7 @@ export function buildBackgroundPlatePrompt(input: {
 }) {
   const notes = input.plate.notes.replace(/\s+/g, " ").trim().slice(0, 240);
   const realistic = isRealisticStyle(input.style);
-  return [
+  return fitReferencePrompt([
     `Empty set reference as a 3x3 contact sheet of the same ${input.style.name} place.`,
     "Aspect ratio 16:9.",
     ...styleLinesForBlueprint(input.style),
@@ -55,9 +56,7 @@ export function buildBackgroundPlatePrompt(input: {
     "Same architecture, sky, and light in every cell. No people, no characters, no handheld props, no product close-ups, no captions, no watermark.",
     "Show only the place: architecture, set dressing that stays put, sky, and light direction.",
     ...(realistic ? [REALISTIC_SET_RENDER_RULE] : []),
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ].filter(Boolean));
 }
 
 export function objectSheetLockParagraph(imageIndex: number, items: ObjectSheetItem[]) {

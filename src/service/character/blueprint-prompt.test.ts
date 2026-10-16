@@ -181,6 +181,20 @@ test("blueprint ground stays light and contrasts with the outfit", () => {
     description: "a woman in a black dress",
   });
   assert.doesNotMatch(flat, /85mm portrait lens|subtle film grain|Realistic texture/);
+
+  const huge = renderableFromSystem(testStyle("realistic", {
+    look: "photorealistic cinematic still ".repeat(80),
+    palette: "warm amber and muted teal ".repeat(40),
+    negatives: "cartoon plastic skin ".repeat(40),
+  }));
+  const fitted = buildPortraitPrompt({
+    style: huge,
+    description: "a woman in a black dress",
+    photoCount: 1,
+  });
+  assert.ok(fitted.length <= 4200, `${fitted.length} chars`);
+  assert.match(fitted, /85mm portrait lens at f\/1\.8/);
+  assert.match(fitted, /subtle film grain/);
 });
 
 test("editing a sheet replaces a scenic ground with the light sheet colour", () => {
