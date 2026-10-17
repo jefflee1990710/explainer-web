@@ -1,7 +1,7 @@
 import type { GenerationStatus } from "@/model/generation-job";
 import type { AspectRatio } from "@/model/project";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
-import { openRouterVideoCallbackUrl } from "@/service/openrouter/webhook";
+import { openRouterVideoCallbackUrl } from "@/service/openrouter/callback-url";
 
 export const OPENROUTER_BASE_URL = "https://openrouter.ai";
 export const OPENROUTER_IMAGES_URL = `${OPENROUTER_BASE_URL}/api/v1/images`;

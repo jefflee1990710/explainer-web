@@ -1,5 +1,4 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { getAppUrl, isPublicHttpUrl } from "@/util/app-url";
 
 // OpenRouter rejects signatures older than five minutes.
 const SIGNATURE_MAX_AGE_SECONDS = 300;
@@ -10,26 +9,6 @@ export type OpenRouterVideoWebhookUpdate = {
   outputUrl?: string;
   error?: string;
 };
-
-// Callback is sent only when OpenRouter can reach it and we can verify the POST.
-export function openRouterVideoCallbackUrl(
-  appUrl = getAppUrl(),
-  secret = process.env.OPENROUTER_WEBHOOK_SECRET,
-) {
-  if (!(secret || "").trim()) return undefined;
-  const url = `${appUrl.replace(/\/$/, "")}/api/webhooks/openrouter`;
-  if (!isPublicHttpsUrl(url)) return undefined;
-  return url;
-}
-
-function isPublicHttpsUrl(raw: string) {
-  if (!isPublicHttpUrl(raw)) return false;
-  try {
-    return new URL(raw).protocol === "https:";
-  } catch {
-    return false;
-  }
-}
 
 // `X-OpenRouter-Signature` is `t=<unix>,v1=<hex>` over `${timestamp},${rawBody}`.
 export function verifyOpenRouterWebhookSignature(

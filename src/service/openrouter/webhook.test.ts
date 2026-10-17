@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { test } from "node:test";
+import { openRouterVideoCallbackUrl } from "@/service/openrouter/callback-url";
 import {
-  openRouterVideoCallbackUrl,
   openRouterVideoWebhookUpdate,
   signOpenRouterWebhook,
   verifyOpenRouterWebhookSignature,
