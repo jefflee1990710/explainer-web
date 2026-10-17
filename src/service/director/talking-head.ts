@@ -467,12 +467,12 @@ function endPoseVariationEn(clipIndex: number, fullBody: boolean, anchored: bool
     return { head: headMoves[variant], hand: handMoves[variant] };
   }
   const headMoves = [
-    "eyes locked on the lens, mouth just closed into a small real smile, eyebrows relaxed, head tilted noticeably to the left while leaning slightly forward",
-    "head turned about 15 degrees to the right with eyes glancing off-camera to the upper-right in a natural thinking pause, mouth in a thoughtful half-smile, seated weight shifted slightly to the right side of the sofa",
-    "eyes locked on the lens, mouth just closed into an engaged warm smile, torso leaning back into the sofa cushion with shoulders relaxed and head tilted to the right",
-    "torso turned into a slight three-quarter angle, head tilted slightly down and left with eyes glancing briefly at her gesturing hands, a lively half-smile on the lips",
-    "eyes locked on the lens, mouth just closed into a confident smile, eyebrows softly lifted, seated position shifted slightly to the left side of the cushion with chin lifted",
-    "eyes locked on the lens, mouth just closed into a warm knowing smile, leaning noticeably forward toward the camera as if sharing a secret, head upright",
+    "torso leaning back comfortably into the sofa cushion with shoulders relaxed, head tilted noticeably 15 degrees to the right, eyes on the lens, mouth just closed into a warm engaged smile, eyebrows relaxed",
+    "seated position shifted slightly to the right side of the sofa, head turned 25 degrees to the right in a three-quarter profile view with eyes looking off-camera to the right in a natural thinking expression, mouth in a thoughtful half-smile",
+    "torso leaning noticeably forward toward the camera, head tilted 15 degrees to the left, eyes locked on the lens, eyebrows lifted with a lively confident smile",
+    "torso angled into a three-quarter posture on the sofa, head pitched downward and slightly left with eyes looking down at her gesturing hands in thought, a natural soft smile on her lips",
+    "seated position shifted slightly to the left side of the cushion, chin lifted high and head turned 20 degrees to the left with eyes glancing upward-left as if recalling an idea, mouth in a knowing smile",
+    "seated upright and leaning slightly in toward the lens, head tilted slightly right with a big expressive grin, eyebrows raised",
   ];
   const handMoves = fullBody
     ? [
@@ -484,12 +484,12 @@ function endPoseVariationEn(clipIndex: number, fullBody: boolean, anchored: bool
         "One hand touches mid-chest lightly while the other hand offers an open palm toward the lens",
       ]
     : [
-        "One hand is open-palm at chest height on one side while the other hand rests on the lap, caught between gestures",
-        "One hand is raised near the chin in a thoughtful gesture while the other hand rests on the lap",
-        "Both hands are open wide at chest height in a relaxed two-handed shrug while leaning back against the sofa",
-        "One hand gestures at chest height with fingers spread while the other hand rests near the lap, torso angled slightly",
-        "One hand holds up two fingers at chest height in a counting gesture while the other hand rests on the lap",
-        "One hand touches mid-chest lightly while the other hand is open-palm toward the lens",
+        "Both hands are open wide at chest height in a relaxed two-handed open-palm shrug",
+        "One hand is raised touching lightly near the chin in a thinking pose while the other hand rests on the lap",
+        "One hand holds up two fingers at chest height in a clear counting gesture while the other hand rests on the lap",
+        "Both hands are gesturing together at chest height with fingers spread as she looks down at them",
+        "One hand touches mid-chest lightly while the other arm rests on the sofa cushion",
+        "One hand is open-palm at chest height offered toward the lens while the other hand rests on the lap",
       ];
   return { head: headMoves[variant], hand: handMoves[variant] };
 }
@@ -572,7 +572,7 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
     const prop = anchored ? ` One hand holds ${p.anchorProp}.` : "";
     const propEnd = anchored ? ` The same hand still holds ${p.anchorProp}.` : "";
     const freeHand = anchored ? "The other hand" : "One hand";
-    const sameFrame = " Same camera as the opening still: same crop, same distance, the character in the same place on screen. No zoom, no reframe, no jump.";
+    const sameFrame = " Same camera as the opening still: same crop, same distance, while the head angle, eyeline, seated posture, and hands visibly change to this new pose. No zoom, no reframe, no jump.";
     const endVar = endPoseVariationEn(clipIndex, fullBody, anchored, freeHand);
     const pose =
       moment === "start"
@@ -590,7 +590,7 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
   const prop = anchored ? `一隻手拎住${p.anchorProp}。` : "";
   const propEnd = anchored ? `同一隻手仍然拎住${p.anchorProp}。` : "";
   const freeHand = anchored ? "另一隻手" : "一隻手";
-  const sameFrame = "鏡頭同開頭畫面一樣：同一個裁切、同一距離、角色留喺畫面同一個位置。唔好變焦，唔好跳鏡。";
+  const sameFrame = "鏡頭同開頭畫面一樣：同一個裁切、同一距離，但係頭部角度、視線方向、坐姿同手勢明顯變成呢個新姿勢。唔好變焦，唔好跳鏡。";
   const endVarYue = endPoseVariationYue(clipIndex, fullBody, anchored, freeHand);
   const pose =
     moment === "start"

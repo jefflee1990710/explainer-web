@@ -195,7 +195,7 @@ function compositionLockLines(
       "Keep the same camera, crop, distance, set, lighting, and character identity.",
       "Do not zoom or reframe the camera. No jump.",
       "Preserve the attached frame's exact exposure, contrast, color grade, skin smoothness, hair texture, and film grain — do NOT add extra grain, extra sharpening, extra contrast, extra blush, or extra rim-light glare on top of it.",
-      "Apply the new pose from the Scene clearly: change the head angle and head position (turned, tilted, nodded, or lifted as described), the eyeline (looking at the lens or glancing aside/down in thought as described), the seated torso posture (leaning forward, leaning back, or shifting slightly on the seat), the mouth and facial expression, the gesturing hands, and the subtitle. Do not freeze the head in the previous frame's angle. A handheld prop stays in the same hand.",
+      "POSE CHANGE REQUIRED: Keep the room, sofa, background, lighting, and tripod camera framing from the attached frame, but MUST redraw the character's head angle, head position, gaze direction (looking at the lens or looking aside/down as described), seated torso posture (leaning forward, leaning back, or shifted left/right on the seat), facial expression, gesturing hands, and subtitle to match the Scene above. Do NOT copy the head angle, eyeline, or hand pose from the attached frame. A handheld prop stays in the same hand.",
     ];
   }
   if (followMotion) {
@@ -715,9 +715,9 @@ export function buildFramePrompt(
     : sceneText.enabled
       ? stripSceneVoiceoverRecap(openingRaw)
       : openingRaw;
-  // Outfit and surprise already write their own end camera. Everyone else lands the motion.
+  // Outfit, surprise, and talking-head already write their own end camera. Everyone else lands the motion.
   const cameraLanding =
-    position === "end" && !wardrobeBuild && !surprise && !steady
+    position === "end" && !wardrobeBuild && !surprise && !steady && !isTalkingHeadSkill(project.skillSlug)
       ? endFrameMotionLine(openingForLanding, motionDescription)
       : "";
   // An attached opening still makes the edit model repaint that angle, so this line is text only.
