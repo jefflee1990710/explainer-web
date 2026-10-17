@@ -194,8 +194,8 @@ function compositionLockLines(
       `COMPOSITION LOCK: ${source}.`,
       "Keep the same camera, crop, distance, set, lighting, and character identity.",
       "Do not zoom or reframe the camera. No jump.",
-      "Preserve the attached frame's exact room architecture, window and bookshelf sides, sofa, foreground objects, exposure, color grade, skin texture, and film grain — never flip left/right, move furniture, or change the background.",
-      "POSE CHANGE REQUIRED: Keep the background and camera framing locked to the attached frame, but MUST redraw the character's head angle, gaze direction, seated torso posture, facial expression, gesturing hands, and subtitle to match the Scene above. Do NOT copy the head angle, eyeline, hand pose, or old subtitle words from the attached frame. A handheld prop stays in the same hand.",
+      "Preserve the attached frame's exact room architecture, window and bookshelf sides, sofa, foreground objects, directional window lighting, shadow falloff, exposure, color grade, skin texture, and film grain — never flip left/right, move furniture, or change the background.",
+      "POSE CHANGE REQUIRED: Keep the background and camera framing locked to the attached frame, but MUST redraw the character's head angle, gaze direction, seated torso posture, facial expression, gesturing hands, and subtitle to match the Scene above. Do NOT copy the head angle, eyeline, hand pose, or old subtitle words from the attached frame. Every subtitle strip must contain words (never leave a blank empty strip). A handheld prop stays in the same hand.",
     ];
   }
   if (followMotion) {
@@ -375,7 +375,12 @@ function fitFramePrompt(
     (p) => ({ ...p, styleBody: "" }),
     (p) => ({
       ...p,
-      scene: p.scene.replace(/\s*Realism:\s*[\s\S]*?(?=\s*(?:Subtitle:|字幕：)|$)/, "").trim(),
+      scene: p.scene
+        .replace(
+          /\s*Realism:\s*[\s\S]*?(?=\s*(?:Subtitle:|字幕：)|$)/,
+          " Realism: key light and any rim light come strictly from the visible window side (never from the dark side opposite the window, never copy blueprint lighting); window-facing cheek lit, far cheek in deep negative-fill shadow with clear nose-bridge shadow, overcast window light below clipping, visible pores, peach-fuzz, 35mm film grain, soft foreground edge.",
+        )
+        .trim(),
     }),
     (p) => ({
       ...p,
@@ -401,6 +406,7 @@ function fitFramePrompt(
       moment: firstSentence(p.moment),
       palette: "",
     }),
+    (p) => (/\bRealism:/.test(p.scene) ? { ...p, renderDetail: "" } : p),
   ];
   let current = parts;
   let prompt = compose(current);
@@ -735,6 +741,10 @@ export function buildFramePrompt(
   }
   // The Scene line is what the image model follows. A later rule cannot undo a contradiction inside it.
   sceneDescription = reconcileSightline(sceneDescription);
+  sceneDescription = sceneDescription.replace(
+    /Light source: the key light from the Light line comes from one side with negative fill on the far cheek so it falls off into soft shadow, and a faint rim light separates the hair and shoulders from the background\./g,
+    "Light source: the key light and faint rim light come strictly from the visible window side in the Light line (never from the dark interior or bookshelf side opposite the window, and never copy the blueprint's studio light direction), lighting the window-facing cheek while the far cheek away from the window falls into deep negative-fill shadow with a clear nose-bridge shadow (grazing contrast, no front fill, no unmotivated warm orange backlight, overcast window daylight kept soft below pure-white clipping).",
+  );
   // Cartoon only: drop a 「」 label that is the same words as this still's Subtitle.
   if (isDualBeatSkill(project.skillSlug)) {
     sceneDescription = dropRepeatedSubtitleLabels(sceneDescription);

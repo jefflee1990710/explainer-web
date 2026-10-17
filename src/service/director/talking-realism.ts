@@ -14,7 +14,7 @@ type RealismScene = {
 export function talkingRealismStill(language: VoLanguage | undefined, scene: RealismScene = {}) {
   if (language === "en" || !language) {
     const light =
-      "Light source: the key light from the Light line comes from one side with negative fill on the far cheek so it falls off into soft shadow, and a faint rim light separates the hair and shoulders from the background. Never flat, even front light.";
+      "Light source: the key light and faint rim light come strictly from the visible window side in the Light line (never from the dark interior or bookshelf side opposite the window, and never copy the blueprint's studio light direction), lighting the window-facing cheek while the far cheek away from the window falls into deep negative-fill shadow with a clear nose-bridge shadow (grazing contrast, no front fill, no unmotivated warm orange backlight, overcast window daylight kept soft below pure-white clipping). Never flat, even front light.";
     const skin =
       "Skin: visible pores, fine peach-fuzz hair catching the key light, natural uneven skin tone with tiny imperfections, a light natural sheen on the forehead and nose, loose flyaway hair strands, subtle 35mm film grain, and slight optical chromatic aberration. Never smooth porcelain or plastic skin.";
     const depth = scene.fullBody
@@ -24,7 +24,7 @@ export function talkingRealismStill(language: VoLanguage | undefined, scene: Rea
     return `Realism: ${light} ${skin} ${depth} The foreground element and light stay identical in every clip.`;
   }
   const light =
-    "光源：光線一節講嘅主光由一邊打埋嚟，塑造塊臉嘅立體感，另一邊面頰自然暗落去，頭髮同膊頭有一道淡淡嘅輪廓光，同背景分開。唔好平均正面平光。";
+    "光源：主光同淡淡嘅輪廓光必須嚴格由畫面入面睇到嘅窗嗰一邊打埋嚟（絕對唔好由對面暗處書架嗰邊打光，亦唔好照抄角色藍圖嘅影樓光方向），面向窗嗰邊面頰受光，背向窗嘅另一邊面頰自然暗落去形成明顯鼻影同負補光陰影（無正面平光補光、無不合理嘅暖橙色背光，窗外日光柔和唔過曝死白）。唔好平均正面平光。";
   const skin =
     "皮膚：睇到毛孔、主光照住嘅細汗毛、自然唔均勻嘅膚色同細微瑕疵，額頭同鼻有少少自然油光，有幾條散落髮絲，帶細緻底片顆粒感。唔好陶瓷咁滑、唔好塑膠皮膚。";
   const depth = scene.fullBody

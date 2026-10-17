@@ -265,7 +265,7 @@ export function castParagraphForFrames(
     BLUEPRINT_REFERENCE_ONLY,
     ...(hasBoard(cast) ? [BOARD_LAYOUT_NOTE] : []),
     ...(specLines.length
-      ? [`Identity notes (match these; the attached image wins on rendering): ${specLines.join(" | ")}`]
+      ? [`Identity notes (match identity only; relight from the Scene's light source, never copy blueprint lighting): ${specLines.join(" | ")}`]
       : []),
     "Ignore any clothing, hair, or style wording in the text — the blueprint wins. Do not invent a replacement hero or redesign their outfit.",
   ];

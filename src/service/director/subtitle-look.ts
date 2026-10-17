@@ -29,7 +29,7 @@ const LOOK_LINE: Record<SubtitleLook, string> = {
   bold:
     "Look: extra-bold condensed sans, all caps, white, with a scratched worn print. A short phrase may sit in black on a thick yellow dry-brush stroke. Not handwriting and not a thin font.",
   clean:
-    "Look: bold condensed sans on torn-paper strips. One strip is black with white type, another is bright green with black type. Edges are rough and ripped. Not handwriting.",
+    "Look: bold condensed sans on torn-paper strips. One strip is black with white type, another is bright green with black type; split the phrase across both strips so every strip contains words and never draw an empty blank strip. Edges are rough and ripped. Not handwriting.",
   handwritten:
     "Look: thick black marker handwriting on a torn white paper strip, slightly uneven, mixed case, large and readable. Not a printed font.",
   neon:
