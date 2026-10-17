@@ -1,6 +1,7 @@
 import type { GenerationStatus } from "@/model/generation-job";
 import type { AspectRatio } from "@/model/project";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
+import { openRouterVideoCallbackUrl } from "@/service/openrouter/webhook";
 
 export const OPENROUTER_BASE_URL = "https://openrouter.ai";
 export const OPENROUTER_IMAGES_URL = `${OPENROUTER_BASE_URL}/api/v1/images`;
@@ -198,6 +199,8 @@ export function openRouterClipVideoBody(input: {
   durationSeconds: number;
   startImageUrl: string;
   endImageUrl?: string;
+  // Public HTTPS receiver. Omitted for localhost; the refresh cron still polls.
+  callbackUrl?: string;
 }) {
   const model = input.model || OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL;
   // MiniMax Hailuo 3 on OpenRouter supports 2K resolution; Seedance 2.0 Fast supports 480p and 720p.
@@ -209,6 +212,7 @@ export function openRouterClipVideoBody(input: {
     duration: clampVideoDurationSeconds(input.durationSeconds),
     resolution,
     generate_audio: true,
+    ...(input.callbackUrl ? { callback_url: input.callbackUrl } : {}),
     frame_images: [
       {
         type: "image_url" as const,
@@ -299,17 +303,21 @@ export async function submitOpenRouterClipVideo(
     startImageUrl: string;
     endImageUrl?: string;
   },
-  options?: FetchOptions,
+  options?: FetchOptions & { callbackUrl?: string | null },
 ): Promise<GenerationSubmitResult> {
   const key = assertOpenRouterKey();
   const fetchFn = options?.fetch ?? fetch;
+  const callbackUrl =
+    options && "callbackUrl" in options
+      ? options.callbackUrl || undefined
+      : openRouterVideoCallbackUrl();
   const response = await fetchFn(OPENROUTER_VIDEOS_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(openRouterClipVideoBody(input)),
+    body: JSON.stringify(openRouterClipVideoBody({ ...input, callbackUrl })),
   });
 
   const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;

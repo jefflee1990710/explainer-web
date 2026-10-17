@@ -217,6 +217,34 @@ test("submitOpenRouterImage posts to /api/v1/images and returns completed data U
   }
 });
 
+test("submitOpenRouterClipVideo posts callback_url when one is provided", async () => {
+  const prevKey = process.env.OPENROUTER_API_KEY;
+  process.env.OPENROUTER_API_KEY = "sk-or-test";
+  let posted: Record<string, unknown> | undefined;
+  const fakeFetch: typeof fetch = async (_input, init) => {
+    posted = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    return new Response(
+      JSON.stringify({ id: "vid-job-2", polling_url: "/api/v1/videos/vid-job-2", status: "pending" }),
+      { status: 202, headers: { "content-type": "application/json" } },
+    );
+  };
+  try {
+    await submitOpenRouterClipVideo(
+      {
+        prompt: "walk",
+        aspectRatio: "16:9",
+        durationSeconds: 5,
+        startImageUrl: "https://blob/start.png",
+      },
+      { fetch: fakeFetch, callbackUrl: "https://explainer.io/api/webhooks/openrouter" },
+    );
+    assert.equal(posted?.callback_url, "https://explainer.io/api/webhooks/openrouter");
+  } finally {
+    if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = prevKey;
+  }
+});
+
 test("submitOpenRouterClipVideo and fetchOpenRouterStatus handle async video lifecycle", async () => {
   const prevKey = process.env.OPENROUTER_API_KEY;
   process.env.OPENROUTER_API_KEY = "sk-or-test";
@@ -251,7 +279,7 @@ test("submitOpenRouterClipVideo and fetchOpenRouterStatus handle async video lif
         startImageUrl: "https://blob/start.png",
         endImageUrl: "https://blob/end.png",
       },
-      { fetch: fakeSubmitFetch },
+      { fetch: fakeSubmitFetch, callbackUrl: null },
     );
     assert.equal(submitted.request_id, "vid-job-1");
     assert.equal(submitted.status_url, "https://openrouter.ai/api/v1/videos/vid-job-1");
