@@ -2,7 +2,6 @@ import { hasAlicloudKey } from "@/service/alicloud/dashscope";
 import {
   hasOpenRouterKey,
   OPENROUTER_GPT_5_IMAGE_MODEL,
-  OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL,
   OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
 } from "@/service/openrouter/generate";
 import type { SceneTextLanguage } from "@/model/project";
@@ -19,11 +18,10 @@ export type ImageRoute = {
 
 /**
  * 畫面文字語系 → OpenRouter 產圖模型。生成時只讀呢張表。
- * en / zh-Hant / zh-Hans：OpenRouter `bytedance-seed/seedream-5-0-lite`（直出 2K，最多 14 張參考圖）。
- * 角色藍圖（Blueprint）使用 `bytedance-seed/seedream-5-0-pro`。
+ * en / zh-Hant / zh-Hans 的分鏡圖，以及角色藍圖（Blueprint），都用
+ * OpenRouter `bytedance-seed/seedream-5-0-pro`（1K / 2K，最多 14 張參考圖）。
  */
 export const SEEDREAM_5_PRO_IMAGE_MODEL = OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL;
-export const SEEDREAM_5_LITE_IMAGE_MODEL = OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL;
 export const GPT_5_IMAGE_MODEL = OPENROUTER_GPT_5_IMAGE_MODEL;
 export const GROK_IMAGE_MODEL = "xai/grok-imagine-image-2.0";
 export const IDEOGRAM_V4_MODEL = "ideogram/v4.0";
@@ -32,18 +30,18 @@ export const IDEOGRAM_PROMPT_MAX = 2048;
 export const IMAGE_ROUTE_BY_SCENE_TEXT: Record<SceneTextLanguage, ImageRoute> = {
   en: {
     backend: "openrouter",
-    model: SEEDREAM_5_LITE_IMAGE_MODEL,
-    editModel: SEEDREAM_5_LITE_IMAGE_MODEL,
+    model: SEEDREAM_5_PRO_IMAGE_MODEL,
+    editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
   },
   "zh-Hant": {
     backend: "openrouter",
-    model: SEEDREAM_5_LITE_IMAGE_MODEL,
-    editModel: SEEDREAM_5_LITE_IMAGE_MODEL,
+    model: SEEDREAM_5_PRO_IMAGE_MODEL,
+    editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
   },
   "zh-Hans": {
     backend: "openrouter",
-    model: SEEDREAM_5_LITE_IMAGE_MODEL,
-    editModel: SEEDREAM_5_LITE_IMAGE_MODEL,
+    model: SEEDREAM_5_PRO_IMAGE_MODEL,
+    editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
   },
 };
 

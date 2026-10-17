@@ -99,7 +99,7 @@ export async function submitImage(input: {
   const refs = (input.referenceImageUrls || []).filter(
     (url): url is string => Boolean(url),
   );
-  // Character blueprints explicitly request Seedream 5.0 Pro; scene frames follow the route (Seedream 5.0 Lite).
+  // Blueprints pass Seedream 5.0 Pro explicitly. Scene frames follow the route, which is the same Pro model.
   const model =
     input.model === SEEDREAM_5_PRO_IMAGE_MODEL
       ? SEEDREAM_5_PRO_IMAGE_MODEL

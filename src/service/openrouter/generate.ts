@@ -96,7 +96,7 @@ export function openRouterImageBody(input: {
   const refs = (input.referenceImageUrls || []).filter((url): url is string => Boolean(url));
   const isOpenAiImage = /^openai\//i.test(input.model);
   // Seedream 5.0 Lite only accepts 2K / 4K; Seedream 5.0 Pro accepts 1K / 2K.
-  const isSeedreamLite = /seedream-5-0-lite/i.test(input.model);
+  const isSeedreamLite = input.model === OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL;
   const resolution = isSeedreamLite
     ? input.resolution === "4k"
       ? ("4K" as const)
