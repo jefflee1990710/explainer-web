@@ -67,7 +67,31 @@ export function scroAssetPreviewSrc({
 	return asset.url ?? asset.thumbnailUrl ?? clip?.posterUrl;
 }
 
-/** One library row for this clip: the new still, or the newest finished video. */
+/** Scene stills stay on the timeline. The Assets panel lists the clip video, not the picture. */
+export function isScroSceneStill({
+	asset,
+	clips,
+}: {
+	asset: Pick<
+		MediaAsset,
+		"type" | "url" | "thumbnailUrl" | "scroClipNumber" | "scroPosterUrl" | "scroPlaceholder"
+	>;
+	clips: ScroVideoSeedClip[] | undefined;
+}): boolean {
+	if (asset.type !== "image") return false;
+	if (asset.scroPlaceholder || asset.scroClipNumber != null) return true;
+	if (!clips?.length) return false;
+	const stillUrls = new Set<string>();
+	for (const clip of clips) {
+		if (clip.posterUrl) stillUrls.add(clip.posterUrl);
+		if (clip.endPosterUrl) stillUrls.add(clip.endPosterUrl);
+	}
+	return [asset.url, asset.thumbnailUrl, asset.scroPosterUrl].some(
+		(url) => Boolean(url && stillUrls.has(url)),
+	);
+}
+
+/** One library row for this clip: the newest finished video. Scene stills are not assets. */
 export function pickScroClipAsset({
 	clip,
 	assets,
@@ -78,27 +102,11 @@ export function pickScroClipAsset({
 	clips: ScroVideoSeedClip[] | undefined;
 }): MediaAsset | undefined {
 	const matches = assets.filter(
-		(asset) => resolveScroClipNumber({ asset, clips }) === clip.clipNumber,
+		(asset) =>
+			asset.type === "video" &&
+			resolveScroClipNumber({ asset, clips }) === clip.clipNumber,
 	);
 	if (matches.length === 0) return undefined;
-	if (clip.stage !== "video_ready" || clip.staleVideo) {
-		if (clip.posterUrl) {
-			const posted = [...matches].reverse().find(
-				(asset) =>
-					asset.scroPosterUrl === clip.posterUrl ||
-					asset.thumbnailUrl === clip.posterUrl ||
-					asset.url === clip.posterUrl,
-			);
-			if (posted) return posted;
-		}
-		const image = [...matches]
-			.reverse()
-			.find((asset) => asset.type === "image" && asset.scroPlaceholder !== true);
-		if (image) return image;
-	} else {
-		const video = [...matches].reverse().find((asset) => asset.type === "video");
-		if (video) return video;
-	}
 	return matches[matches.length - 1];
 }
 
@@ -121,6 +129,8 @@ export function mergeScroMediaAssets({
 	}
 	const other = assets.filter((asset) => {
 		if (used.has(asset.id)) return false;
+		// Drop start/end scene stills. Opening and Ending videos are separate cards.
+		if (isScroSceneStill({ asset, clips })) return false;
 		return resolveScroClipNumber({ asset, clips }) == null;
 	});
 	return [...orderedScro, ...other];

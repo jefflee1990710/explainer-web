@@ -132,42 +132,63 @@ describe("merge scro media after regenerate", () => {
 		scroClipNumber: 1,
 	});
 
-	it("shows the new start still instead of the previous video", () => {
+	it("keeps the clip video and hides the scene still", () => {
 		const merged = mergeScroMediaAssets({
 			assets: [oldVideo, newStill],
 			clips: [clip({ stage: "frames_ready", posterUrl: NEW_STILL })],
 		});
 		assert.deepEqual(
 			merged.map((item) => item.id),
-			["new-still"],
+			["old-video"],
 		);
 	});
 
-	it("shows the new start still instead of the previous video even when stage is video_ready with staleVideo", () => {
+	it("keeps the clip video when the still was redrawn over it", () => {
 		const merged = mergeScroMediaAssets({
 			assets: [oldVideo, newStill],
 			clips: [clip({ stage: "video_ready", staleVideo: true, posterUrl: NEW_STILL })],
 		});
 		assert.deepEqual(
 			merged.map((item) => item.id),
-			["new-still"],
+			["old-video"],
 		);
 	});
 
-	it("shows the newest video once that file is ready", () => {
+	it("shows the newest video and drops both scene stills", () => {
+		const looseStill = asset({
+			id: "loose-still",
+			name: "start.webp",
+			type: "image",
+			url: NEW_STILL,
+		});
+		const upload = asset({
+			id: "upload",
+			name: "logo.png",
+			type: "image",
+			url: "https://cdn.example/logo.png",
+		});
 		const merged = mergeScroMediaAssets({
-			assets: [oldVideo, newStill, newVideo],
+			assets: [oldVideo, newStill, looseStill, upload, newVideo],
 			clips: [
 				clip({
 					stage: "video_ready",
 					posterUrl: NEW_STILL,
+					endPosterUrl: "https://cdn.example/frames/end.jpg",
 					videoUrl: "https://cdn.example/clip-1.mp4",
 				}),
 			],
 		});
 		assert.deepEqual(
 			merged.map((item) => item.id),
-			["new-video"],
+			["new-video", "upload"],
 		);
+	});
+
+	it("omits a clip that only has a scene still", () => {
+		const merged = mergeScroMediaAssets({
+			assets: [newStill],
+			clips: [clip({ stage: "frames_ready", posterUrl: NEW_STILL })],
+		});
+		assert.deepEqual(merged, []);
 	});
 });
