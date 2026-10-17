@@ -165,6 +165,18 @@ test("openRouterClipVideoBody formats /api/v1/videos payload for bytedance/seeda
   });
   assert.equal(startOnly.frame_images.length, 1);
   assert.equal(startOnly.frame_images[0]?.frame_type, "first_frame");
+
+  const longPrompt = `HEAD_MARKER ${"a".repeat(5000)} MIDDLE ${"b".repeat(2500)} TAIL_LOCK_MARKER`;
+  const capped = openRouterClipVideoBody({
+    model: "minimax/hailuo-3",
+    prompt: longPrompt,
+    aspectRatio: "9:16",
+    durationSeconds: 5,
+    startImageUrl: "https://blob/start.png",
+  });
+  assert.ok(capped.prompt.length <= 6800);
+  assert.match(capped.prompt, /^HEAD_MARKER/);
+  assert.match(capped.prompt, /TAIL_LOCK_MARKER$/);
 });
 
 test("submitOpenRouterImage posts to /api/v1/images and returns completed data URL", async () => {

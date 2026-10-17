@@ -58,8 +58,19 @@ export function openRouterImageAspectRatio(
   return "1:1";
 }
 
+export const OPENROUTER_VIDEO_PROMPT_MAX = 6800;
+
 function clampVideoDurationSeconds(seconds: number) {
   return Math.min(15, Math.max(5, Math.round(seconds)));
+}
+
+// MiniMax Hailuo 3 enforces a 7000-char limit on prompt text. Preserve the opening
+// choreography/voice lock and the closing dialogue/pronunciation lock when trimming.
+export function capOpenRouterVideoPrompt(prompt: string, maxChars = OPENROUTER_VIDEO_PROMPT_MAX): string {
+  if (prompt.length <= maxChars) return prompt;
+  const tailBudget = Math.min(1950, Math.floor(maxChars * 0.3));
+  const headBudget = maxChars - tailBudget - 1;
+  return `${prompt.slice(0, headBudget).trimEnd()}\n${prompt.slice(prompt.length - tailBudget).trimStart()}`;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -193,7 +204,7 @@ export function openRouterClipVideoBody(input: {
   const resolution = model === OPENROUTER_HAILUO_3_VIDEO_MODEL ? ("2K" as const) : ("720p" as const);
   return {
     model,
-    prompt: input.prompt,
+    prompt: capOpenRouterVideoPrompt(input.prompt),
     aspect_ratio: input.aspectRatio,
     duration: clampVideoDurationSeconds(input.durationSeconds),
     resolution,
