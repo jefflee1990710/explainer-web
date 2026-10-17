@@ -1,11 +1,11 @@
 import type { Messages } from "@/util/i18n/messages/types";
 
 export const fr: Partial<Messages> = {
-  meta: { title: "Scro — Vidéos explicatives", description: "Transformez vos concepts en Reels, clips marketing et vidéos de présentation. Choisissez un style, validez les storyboards et exportez vos clips." },
+  meta: { title: "Scro — Studio d’AI Influencers pour Reels et Shorts", description: "Créez votre propre AI Influencer avec le même visage, la même tenue et la même voix. Publiez des Reels, Shorts et TikToks chaque jour sans filmer." },
   nav: { projects: "Vidéo", characters: "Personnages", tasks: "Tâches", mcp: "MCP", affiliate: "Affiliate", billing: "Facturation", examples: "Exemples", pricing: "Tarifs", signIn: "Se connecter", workspace: "Espace de travail", language: "Langue" },
   common: { credits: "credits", pending: "en cours", perMonth: "/ mois", cancel: "Annuler", save: "Enregistrer", close: "Fermer", create: "Créer", loading: "Chargement…", popular: "Le plus populaire", subscribe: "S’abonner" },
   landing: {
-    hero: { kicker: "Le studio de vidéos courtes", title: "Le moyen le plus rapide de créer des Reels et des Shorts regardés jusqu’au bout.", subtitle: "Déposez une idée. Le réalisateur IA de Scro écrit l’accroche, planifie chaque scène et produit une vidéo verticale 9:16 prête à publier.", ctaStart: "Créer mon premier short", ctaWorkspace: "Ouvrir l’espace de travail", ctaUseCases: "Voir ce que vous pouvez créer", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Deux téléphones lisant des vidéos courtes verticales" },
+    hero: { kicker: "Studio d’AI Influencers", title: "Créez votre propre AI Influencer et publiez des Reels et Shorts chaque jour sans filmer.", subtitle: "Verrouillez un visage, une tenue et une voix identiques. Le réalisateur IA de Scro écrit l’accroche, planifie chaque scène et produit des vidéos verticales 9:16 prêtes à convertir.", ctaStart: "Créer mon AI Influencer", ctaWorkspace: "Ouvrir le studio", ctaUseCases: "Voir les cas d’usage", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Deux téléphones lisant des vidéos courtes verticales" },
     steps: {
       step1Title: "Choisissez un style", step1Body: "Choisissez un style de réalisation adapté aux vidéos courtes, au marketing, aux présentations et plus encore.",
       step2Title: "Validez les storyboards", step2Body: "L’IA propose des titres, des accroches, des scènes et une voix off. Modifiez-les jusqu’à obtenir le résultat souhaité.",

@@ -1,11 +1,11 @@
 import type { Messages } from "@/util/i18n/messages/types";
 
 export const id: Partial<Messages> = {
-  meta: { title: "Scro — Video penjelasan", description: "Ubah konsep menjadi Reels, clips pemasaran, dan video presentasi. Pilih gaya, setujui storyboard, lalu ekspor clips." },
+  meta: { title: "Scro — Studio AI Influencer untuk Reels dan Shorts", description: "Buat AI Influencer Anda sendiri dengan wajah, pakaian, dan suara yang konsisten. Publikasikan Reels, Shorts, dan TikTok setiap hari tanpa syuting." },
   nav: { projects: "Video", characters: "Karakter", tasks: "Tugas", mcp: "MCP", affiliate: "Affiliate", billing: "Tagihan", examples: "Contoh", pricing: "Harga", signIn: "Masuk", workspace: "Ruang kerja", language: "Bahasa" },
   common: { credits: "credits", pending: "tertunda", perMonth: "/ bln", cancel: "Batal", save: "Simpan", close: "Tutup", create: "Buat", loading: "Memuat…", popular: "Paling populer", subscribe: "Berlangganan" },
   landing: {
-    hero: { kicker: "Studio video pendek", title: "Cara tercepat membuat Reels dan Shorts yang ditonton sampai habis.", subtitle: "Masukkan ide. Sutradara AI Scro menulis hook, merencanakan setiap adegan, dan merender video vertikal 9:16 yang siap diunggah.", ctaStart: "Buat short pertamaku", ctaWorkspace: "Buka ruang kerja", ctaUseCases: "Lihat apa yang bisa dibuat", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Dua ponsel memutar video pendek vertikal" },
+    hero: { kicker: "Studio AI Influencer", title: "Buat AI Influencer Anda sendiri. Posting Reels dan Shorts setiap hari tanpa syuting.", subtitle: "Kunci wajah, pakaian, dan suara yang sama. Sutradara AI Scro menulis hook, merencanakan setiap adegan, dan merender video vertikal 9:16 yang siap meningkatkan audiens dan penjualan.", ctaStart: "Buat AI Influencer saya", ctaWorkspace: "Buka studio", ctaUseCases: "Lihat contoh penggunaan", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Dua ponsel memutar video pendek vertikal" },
     steps: {
       step1Title: "Pilih gaya", step1Body: "Pilih gaya penyutradaraan untuk video pendek, pemasaran, presentasi, dan lainnya.",
       step2Title: "Setujui storyboard", step2Body: "AI mengusulkan judul, kalimat pembuka, adegan, dan sulih suara. Sunting hingga Anda puas.",

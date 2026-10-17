@@ -1,11 +1,11 @@
 import type { Messages } from "@/util/i18n/messages/types";
 
 export const ru: Partial<Messages> = {
-  meta: { title: "Scro — Объясняющие видео", description: "Превращайте идеи в Reels, маркетинговые clips и видео для презентаций. Выберите стиль, утвердите раскадровки и экспортируйте clips." },
+  meta: { title: "Scro — Студия ИИ-инфлюенсеров для Reels и Shorts", description: "Создайте собственного ИИ-инфлюенсера с постоянным лицом, образом и голосом. Публикуйте Reels, Shorts и TikTok каждый день без съёмок." },
   nav: { projects: "Видео", characters: "Персонажи", tasks: "Задачи", mcp: "MCP", affiliate: "Affiliate", billing: "Оплата", examples: "Примеры", pricing: "Тарифы", signIn: "Войти", workspace: "Рабочая область", language: "Язык" },
   common: { credits: "credits", pending: "в очереди", perMonth: "/ мес.", cancel: "Отмена", save: "Сохранить", close: "Закрыть", create: "Создать", loading: "Загрузка…", popular: "Самый популярный", subscribe: "Оформить подписку" },
   landing: {
-    hero: { kicker: "Студия коротких видео", title: "Самый быстрый способ делать Reels и Shorts, которые досматривают до конца.", subtitle: "Опишите идею. ИИ-режиссёр Scro напишет хук, распланирует каждую сцену и соберёт вертикальное видео 9:16, готовое к публикации.", ctaStart: "Создать первый short", ctaWorkspace: "Открыть рабочую область", ctaUseCases: "Что можно создать", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Два телефона с вертикальными короткими видео" },
+    hero: { kicker: "Студия ИИ-инфлюенсеров", title: "Создайте своего ИИ-инфлюенсера и публикуйте Reels и Shorts каждый день без съёмок.", subtitle: "Закрепите одно лицо, образ и голос. ИИ-режиссёр Scro напишет хук, спланирует каждую сцену и соберёт вертикальное видео 9:16 для роста аудитории и продаж.", ctaStart: "Создать ИИ-инфлюенсера", ctaWorkspace: "Открыть студию", ctaUseCases: "Посмотреть сценарии", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Два телефона с вертикальными короткими видео" },
     steps: {
       step1Title: "Выберите стиль", step1Body: "Выберите режиссёрский стиль для коротких видео, маркетинга, презентаций и других задач.",
       step2Title: "Утвердите раскадровки", step2Body: "ИИ предложит заголовки, зацепки, сцены и закадровый текст. Редактируйте их, пока результат вас не устроит.",

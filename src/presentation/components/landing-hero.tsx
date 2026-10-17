@@ -22,10 +22,10 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
   const platforms = [t("landing.hero.platformReels"), t("landing.hero.platformShorts"), t("landing.hero.platformTiktok")];
 
   return (
-    // Paper ground matches the cut-out art so the phones read as pieces on one sheet.
-    <section className="relative flex w-full flex-col overflow-hidden bg-[#f3f3f3] lg:max-h-[46rem] lg:min-h-[36rem] lg:justify-center">
+    // Studio desk canvas matches the editor shell and cut-out art.
+    <section className="relative flex w-full flex-col overflow-hidden border-b border-[#e4e4e7] bg-[#fafafa] lg:max-h-[46rem] lg:min-h-[36rem] lg:justify-center">
       <ParallaxLayer distance={-18} className="relative z-10 order-1">
-        <div className="mx-auto flex max-w-2xl flex-col items-center px-6 pb-2 pt-14 text-center lg:max-w-[36rem] lg:py-10 xl:max-w-[42rem]">
+        <div className="mx-auto flex max-w-2xl flex-col items-center px-6 pb-2 pt-14 text-center lg:max-w-[38rem] lg:py-10 xl:max-w-[44rem]">
           <motion.p
             custom={0}
             variants={fadeUp}
@@ -40,7 +40,7 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
             variants={fadeUp}
             initial="hidden"
             animate="visible"
-            className="mt-5 text-pretty text-4xl font-bold leading-[1.08] tracking-tight text-[#12141c] sm:text-5xl xl:text-6xl"
+            className="mt-5 font-display text-pretty text-4xl font-bold leading-[1.08] tracking-tight text-[#12141c] sm:text-5xl xl:text-6xl"
           >
             {t("landing.hero.title")}
           </motion.h1>
@@ -49,11 +49,11 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
             variants={fadeUp}
             initial="hidden"
             animate="visible"
-            className="mt-5 max-w-xl text-base font-medium text-zinc-600 lg:text-lg"
+            className="mt-5 max-w-xl text-base font-medium text-[#5c6170] lg:text-lg"
           >
             {t("landing.hero.subtitle")}
           </motion.p>
-          {/* Where the videos go: plain chips, no platform logos. */}
+          {/* Where the AI Influencer videos go: Studio pill chips. */}
           <motion.ul
             custom={3}
             variants={fadeUp}
@@ -64,7 +64,7 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
             {platforms.map((label) => (
               <li
                 key={label}
-                className="rounded-full border-2 border-[#12141c] bg-white px-3 py-1 text-xs font-semibold text-[#12141c]"
+                className="rounded-full border border-[#e4e4e7] bg-white px-3.5 py-1 text-xs font-semibold text-[#12141c]"
               >
                 {label}
               </li>
@@ -78,14 +78,14 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
             className="mt-8 flex flex-wrap justify-center gap-3"
           >
             <Link
-              href={signedIn ? "/app" : "/sign-up"}
-              className="inline-flex rounded-full bg-[#12141c] px-8 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black"
+              href={signedIn ? "/app/characters" : "/sign-up"}
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#12141c] px-8 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black"
             >
               {signedIn ? t("landing.hero.ctaWorkspace") : t("landing.hero.ctaStart")}
             </Link>
             <Link
               href="#use-cases"
-              className="inline-flex rounded-full border border-[#12141c]/20 bg-white px-8 py-3 text-sm font-semibold text-[#12141c] transition-colors hover:bg-[#f4fcd4]"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#e4e4e7] bg-[#f4f4f5] px-8 py-3 text-sm font-semibold text-[#12141c] transition-colors hover:bg-zinc-200/70"
             >
               {t("landing.hero.ctaUseCases")}
             </Link>

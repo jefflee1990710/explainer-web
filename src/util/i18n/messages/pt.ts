@@ -1,11 +1,11 @@
 import type { Messages } from "@/util/i18n/messages/types";
 
 export const pt: Partial<Messages> = {
-  meta: { title: "Scro — Vídeos explicativos", description: "Transforme conceitos em Reels, clips de marketing e vídeos de apresentação. Escolha um estilo, aprove os storyboards e exporte clips." },
+  meta: { title: "Scro — Estúdio de AI Influencers para Reels e Shorts", description: "Crie o seu próprio AI Influencer com rosto, roupa e voz consistentes. Publique Reels, Shorts e TikToks todos os dias sem precisar de filmar." },
   nav: { projects: "Vídeo", characters: "Personagens", tasks: "Tarefas", mcp: "MCP", affiliate: "Affiliate", billing: "Faturação", examples: "Exemplos", pricing: "Preços", signIn: "Entrar", workspace: "Área de trabalho", language: "Idioma" },
   common: { credits: "credits", pending: "pendentes", perMonth: "/ mês", cancel: "Cancelar", save: "Guardar", close: "Fechar", create: "Criar", loading: "A carregar…", popular: "Mais popular", subscribe: "Subscrever" },
   landing: {
-    hero: { kicker: "O estúdio de vídeos curtos", title: "A forma mais rápida de criar Reels e Shorts que as pessoas veem até ao fim.", subtitle: "Escreva uma ideia. O realizador de IA do Scro cria o gancho, planeia cada cena e gera um vídeo vertical 9:16 pronto a publicar.", ctaStart: "Criar o meu primeiro short", ctaWorkspace: "Abrir área de trabalho", ctaUseCases: "Veja o que pode criar", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Dois telemóveis a reproduzir vídeos curtos verticais" },
+    hero: { kicker: "Estúdio de AI Influencers", title: "Crie o seu próprio AI Influencer e publique Reels e Shorts todos os dias sem filmar.", subtitle: "Mantenha o mesmo rosto, visual e voz. O realizador de IA do Scro cria o gancho, planeia cada cena e gera vídeos verticais 9:16 prontos a converter.", ctaStart: "Criar o meu AI Influencer", ctaWorkspace: "Abrir estúdio", ctaUseCases: "Ver casos de uso", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Dois telemóveis a reproduzir vídeos curtos verticais" },
     steps: {
       step1Title: "Escolha um estilo", step1Body: "Escolha um estilo de realização para vídeos curtos, marketing, apresentações e muito mais.",
       step2Title: "Aprove os storyboards", step2Body: "A IA propõe títulos, ganchos, cenas e locução. Edite até ficar satisfeito.",

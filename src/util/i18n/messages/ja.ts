@@ -1,17 +1,17 @@
 import type { Messages } from "@/util/i18n/messages/types";
 
 export const ja: Partial<Messages> = {
-  meta: { title: "Scro — 解説動画", description: "アイデアを Reels、マーケティング用 clips、プレゼン動画に変換。スタイルを選び、絵コンテを承認して clips を書き出せます。" },
+  meta: { title: "Scro — AI インフルエンサー制作スタジオ", description: "同じ顔・衣装・声を維持する専属 AI インフルエンサーを作成。顔出し不要で Reels、Shorts、TikTok 向けの縦型ショート動画を毎日制作できます。" },
   nav: { projects: "動画", characters: "キャラクター", tasks: "タスク", mcp: "MCP", affiliate: "Affiliate", billing: "請求", examples: "作例", pricing: "料金", signIn: "ログイン", workspace: "ワークスペース", language: "言語" },
   common: { credits: "credits", pending: "処理中", perMonth: "/ 月", cancel: "キャンセル", save: "保存", close: "閉じる", create: "作成", loading: "読み込み中…", popular: "一番人気", subscribe: "登録する" },
   landing: {
     hero: {
-      kicker: "ショート動画スタジオ",
-      title: "最後まで見られるリールとショートを、いちばん速く。",
-      subtitle: "アイデアを入れるだけ。Scro の AI ディレクターがフックを書き、シーンを組み立て、そのまま投稿できる 9:16 の縦型動画を仕上げます。",
-      ctaStart: "最初のショートを作る",
-      ctaWorkspace: "ワークスペースを開く",
-      ctaUseCases: "作れるものを見る",
+      kicker: "AI インフルエンサー・スタジオ",
+      title: "専属 AI インフルエンサーを作り、顔出しなしで毎日リールとショートを投稿。",
+      subtitle: "同じ顔・服装・声をロック。Scro の AI ディレクターがフックと絵コンテを設計し、集客・販売につながる 9:16 縦型動画を仕上げます。",
+      ctaStart: "AI インフルエンサーを作る",
+      ctaWorkspace: "スタジオを開く",
+      ctaUseCases: "活用シーンを見る",
       platformReels: "Instagram Reels",
       platformShorts: "YouTube Shorts",
       platformTiktok: "TikTok",

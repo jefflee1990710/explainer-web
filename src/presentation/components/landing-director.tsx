@@ -16,16 +16,16 @@ export function LandingDirector() {
   return (
     <section id="cost" className="bg-[#12141c] px-4 py-20 md:px-8 md:py-28">
       <div className="mx-auto grid max-w-6xl items-center gap-10 md:gap-12 lg:grid-cols-2">
-        <div className="overflow-hidden rounded-3xl border-2 border-white bg-white shadow-[6px_6px_0_0_#c6f24b] lg:order-1">
+        <div className="overflow-hidden rounded-2xl border border-white/15 bg-white lg:order-1">
           <ParallaxLayer distance={20}>
             <img src="/landing/director-scro.webp" alt="" className="aspect-[4/3] w-full scale-105 object-cover" />
           </ParallaxLayer>
         </div>
         <div className="lg:order-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#c6f24b]">
+          <p className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#c6f24b]">
             {t("landing.director.eyebrow")}
           </p>
-          <h2 className="mt-3 text-pretty text-3xl font-bold leading-[1.12] tracking-tight text-white sm:text-4xl lg:text-5xl">
+          <h2 className="mt-4 font-display text-pretty text-3xl font-bold leading-[1.12] tracking-tight text-white sm:text-4xl lg:text-5xl">
             {t("landing.director.title")}
           </h2>
           <p className="mt-4 text-base leading-7 text-white/70">{t("landing.director.body")}</p>
@@ -33,7 +33,7 @@ export function LandingDirector() {
           <ol className="mt-6 flex flex-wrap items-center gap-2">
             {points.map((label, index) => (
               <li key={label} className="flex items-center gap-2">
-                <span className="rounded-full border-2 border-[#c6f24b] px-3 py-1 text-xs font-semibold text-[#c6f24b]">
+                <span className="rounded-full border border-[#c6f24b]/40 bg-white/5 px-3.5 py-1 text-xs font-semibold text-[#c6f24b]">
                   {label}
                 </span>
                 {index < points.length - 1 ? (
@@ -46,7 +46,7 @@ export function LandingDirector() {
           </ol>
           <Link
             href="/app"
-            className="mt-8 inline-flex rounded-full bg-[#c6f24b] px-8 py-3 text-sm font-semibold text-[#12141c] transition-colors hover:bg-[#d6ff5c]"
+            className="mt-8 inline-flex min-h-11 items-center justify-center rounded-full bg-[#c6f24b] px-8 py-3 text-sm font-semibold text-[#12141c] transition-colors hover:bg-[#b6e23a]"
           >
             {t("landing.director.cta")}
           </Link>

@@ -6,13 +6,13 @@ import { LandingUseCaseRow, type LandingUseCase } from "@/presentation/component
 
 const ART = "/landing/use-cases";
 
-// The five jobs Scro does for short video. Rows alternate art left and right.
+// Five AI Influencer workflows on Scro. Leads with Virtual You & Product UGC; rows alternate art left and right.
 const USE_CASES = [
-  { id: "explain", key: "explain", appHref: "/app" },
-  { id: "saas", key: "saas", appHref: "/app" },
+  { id: "virtual-you", key: "virtualYou", appHref: "/app/characters" },
   { id: "product", key: "product", appHref: "/app/products" },
   { id: "tutorial", key: "tutorial", appHref: "/app" },
-  { id: "virtual-you", key: "virtualYou", appHref: "/app/characters" },
+  { id: "explain", key: "explain", appHref: "/app" },
+  { id: "saas", key: "saas", appHref: "/app" },
 ] as const;
 
 export function LandingUseCases({ signedIn = false }: { signedIn?: boolean }) {
@@ -34,20 +34,19 @@ export function LandingUseCases({ signedIn = false }: { signedIn?: boolean }) {
   }));
 
   return (
-    // Same white paper as the hero so the cut-out art sits on one sheet.
-    <section id="use-cases" className="scroll-mt-16 bg-[#f3f3f3] px-4 py-20 md:px-8 md:py-28">
+    <section id="use-cases" className="scroll-mt-16 border-b border-[#e4e4e7] bg-[#fafafa] px-4 py-20 md:px-8 md:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#3f9a16]">
+          <p className="inline-flex items-center rounded-full bg-[#f4fcd4] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#12141c]">
             {t("landing.useCases.eyebrow")}
           </p>
-          <h2 className="mt-3 text-pretty text-3xl font-bold leading-[1.12] tracking-tight text-[#12141c] sm:text-4xl lg:text-5xl">
+          <h2 className="mt-4 font-display text-pretty text-3xl font-bold leading-[1.12] tracking-tight text-[#12141c] sm:text-4xl lg:text-5xl">
             {t("landing.useCases.title")}
           </h2>
-          <p className="mt-4 text-base text-[#12141c]/75">{t("landing.useCases.subtitle")}</p>
+          <p className="mt-4 text-base text-[#5c6170]">{t("landing.useCases.subtitle")}</p>
         </div>
         {/* Each row reveals on its own; one tall wrapper never reaches 20% in view on a phone. */}
-        <div className="mt-16 flex flex-col gap-20 md:gap-28">
+        <div className="mt-16 flex flex-col gap-12 md:gap-16">
           {items.map((item, index) => (
             <MotionStagger key={item.id}>
               <LandingUseCaseRow item={item} index={index} flip={index % 2 === 1} />

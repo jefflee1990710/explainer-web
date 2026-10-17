@@ -1,11 +1,11 @@
 import type { Messages } from "@/util/i18n/messages/types";
 
 export const de: Partial<Messages> = {
-  meta: { title: "Scro — Erklärvideos", description: "Verwandle Konzepte in Reels, Marketing-clips und Präsentationsvideos. Wähle einen Stil, gib Storyboards frei und exportiere clips." },
+  meta: { title: "Scro — KI-Influencer-Studio für Reels und Shorts", description: "Erstelle deinen eigenen KI-Influencer mit konsistentem Gesicht, Outfit und Stimme. Poste täglich Reels, Shorts und TikToks ohne selbst vor die Kamera zu treten." },
   nav: { projects: "Video", characters: "Figuren", tasks: "Aufgaben", mcp: "MCP", affiliate: "Affiliate", billing: "Abrechnung", examples: "Beispiele", pricing: "Preise", signIn: "Anmelden", workspace: "Arbeitsbereich", language: "Sprache" },
   common: { credits: "credits", pending: "ausstehend", perMonth: "/ Monat", cancel: "Abbrechen", save: "Speichern", close: "Schließen", create: "Erstellen", loading: "Wird geladen…", popular: "Am beliebtesten", subscribe: "Abonnieren" },
   landing: {
-    hero: { kicker: "Das Kurzvideo-Studio", title: "Der schnellste Weg zu Reels und Shorts, die bis zum Ende geschaut werden.", subtitle: "Gib eine Idee ein. Der KI-Regisseur von Scro schreibt den Hook, plant jede Szene und rendert ein vertikales 9:16-Video, bereit zum Posten.", ctaStart: "Mein erstes Short erstellen", ctaWorkspace: "Arbeitsbereich öffnen", ctaUseCases: "Was du erstellen kannst", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Zwei Smartphones spielen vertikale Kurzvideos" },
+    hero: { kicker: "KI-Influencer-Studio", title: "Erstelle deinen eigenen KI-Influencer und poste täglich Reels und Shorts ohne Dreharbeiten.", subtitle: "Gleiches Gesicht, gleiches Outfit, gleiche Stimme. Der KI-Regisseur von Scro schreibt den Hook, plant jede Szene und rendert vertikale 9:16-Videos für Reichweite und Produktverkäufe.", ctaStart: "Meinen KI-Influencer erstellen", ctaWorkspace: "Studio öffnen", ctaUseCases: "Anwendungsfälle ansehen", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Zwei Smartphones spielen vertikale Kurzvideos" },
     steps: {
       step1Title: "Stil auswählen", step1Body: "Wähle einen Regiestil für Kurzvideos, Marketing, Präsentationen und mehr.",
       step2Title: "Storyboards freigeben", step2Body: "Die KI schlägt Titel, Aufhänger, Szenen und Sprechertexte vor. Bearbeite alles, bis du zufrieden bist.",
