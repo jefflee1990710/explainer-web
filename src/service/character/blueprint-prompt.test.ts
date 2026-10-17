@@ -215,6 +215,8 @@ test("profile prompt is a full-body standing view on the light sheet ground", ()
     description: "一個穿藍色格子睡衣的小男孩",
   });
   assert.match(prompt, /full-body standing/);
+  assert.match(prompt, /standing straight upright/);
+  assert.match(prompt, /gentle little smile/);
   assert.match(prompt, /front view/);
   assert.match(prompt, /hair to the soles of the feet/);
   assert.match(prompt, /flat light solid colour/);

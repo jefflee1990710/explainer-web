@@ -624,6 +624,7 @@ function MediaPreview({
 			<div className="relative flex size-full items-center justify-center bg-muted">
 				{previewSrc ? (
 					<LoadingMediaImage
+						key={previewSrc}
 						src={previewSrc}
 						alt={label}
 						className={

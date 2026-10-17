@@ -95,13 +95,20 @@ export function useProjectPoll(
     let inFlight = false;
     let dirty = false;
 
-    async function pull() {
+    async function pull(advance = false) {
       if (inFlight) {
         dirty = true;
         return;
       }
       inFlight = true;
       try {
+        if (advance) {
+          const refreshed = await refreshGenerationAction(id!);
+          if (!cancelled && refreshed.ok) {
+            onUpdate(refreshed.project);
+            return;
+          }
+        }
         const result = await getProjectAction(id!);
         if (cancelled || !result.ok) return;
         onUpdate(result.project);
@@ -110,16 +117,16 @@ export function useProjectPoll(
       }
       if (dirty && !cancelled) {
         dirty = false;
-        await pull();
+        await pull(advance);
       }
     }
 
     // Open editor may still show the previous still while a background job
-    // already finished, or be queued on the server. Pull once, then again
-    // when the task list says this video settled.
-    void pull();
+    // already finished, or be queued on the server. Pull once, then reconcile
+    // and pull whenever the task list says this video settled.
+    void pull(false);
     const unsubscribe = subscribeProjectRefresh((videoId) => {
-      if (videoId === id) void pull();
+      if (videoId === id) void pull(true);
     });
     return () => {
       cancelled = true;

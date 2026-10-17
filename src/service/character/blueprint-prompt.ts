@@ -34,7 +34,7 @@ function identityFromReference(style: RenderableStyle) {
     ? `Style is required: follow Background, Rendering, Palette, and Never. The sheet must look like ${style.name}, not a photograph or an unstyled copy of the reference.`
     : `Style is required: follow Rendering, Palette, and Never. The empty ground follows the sheet-ground rule, not a scene named in Background. The character must look like ${style.name}, not an unstyled copy of the reference.`;
   return [
-    `Keep the reference's 五官比例 and 整體氣質, and redraw every pose in the ${style.name} style.`,
+    `Keep the reference's 五官比例 and 整體氣質, and redraw every pose in the ${style.name} style, always standing straight upright facing the camera with a gentle little smile (never copy a seated or angled reference pose).`,
     "五官比例: copy face shape, eye spacing and shape, brows, nose, mouth, lips, jaw, chin, plus moles, scars, and other marks.",
     "整體氣質: keep the same aura, presence, and how they feel to look at — not a generic stand-in.",
     ...(style.id === "chalkboard"
@@ -158,7 +158,7 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
   const lightGround = !usesDrawingSurface(input.style);
   const realistic = isRealisticStyle(input.style);
   const lines = [
-    "Character identity portrait on a square canvas: one person, head and shoulders, facing the camera straight on, eyes open, looking into the lens, neutral relaxed expression with a hint of warmth.",
+    "Character identity portrait on a square canvas: one person, head and shoulders, standing straight upright and facing the camera straight on (regardless of the reference photo's pose or angle), eyes open, looking into the lens, with a warm, gentle little smile.",
     "The face fills most of the frame: top of the hair near the top edge with a small margin, shoulders cut at the bottom edge. No hands, no props, no text, no labels, no frame or border, no second person.",
     realistic
       ? REALISTIC_CHARACTER_RENDER_RULE
@@ -202,7 +202,7 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
   const realistic = isRealisticStyle(input.style);
   const lines = [
     "One full-body standing view of the character in the first attached image (their identity portrait) on a tall canvas.",
-    "One person, standing, facing the camera, neutral expression, eyes open, arms relaxed at the sides, feet slightly apart. No props, no text, no labels, no second person, no extra poses.",
+    "One person, standing straight upright (站直), facing the camera directly front-on (regardless of any seated or angled pose in the reference photo), with a warm, gentle little smile, eyes open, arms relaxed at the sides, feet slightly apart. No props, no text, no labels, no second person, no extra poses.",
     "Copy the face, hair, exact skin texture, and the visible clothing from that portrait and source image(s) exactly. Complete the rest of the outfit, shoes, and accessories from the photos and the notes.",
     "Framing: the entire body is visible from the top of the hair to the soles of the feet, centered, with empty margin above the head and below the feet. Do not crop to a portrait. Do not draw the figure too small — it should fill about four fifths of the canvas height.",
     ...styleLinesForBlueprint(input.style),
@@ -241,7 +241,7 @@ export function buildProfilePrompt(input: { style: RenderableStyle; description:
   const description = input.description.trim();
   const lines = [
     "One full-body standing view of the same character as the attached character sheet.",
-    "Use only the front view from the sheet. One person, standing, facing the camera, neutral expression, eyes open, arms relaxed at the sides.",
+    "Use only the front view from the sheet. One person, standing straight upright (站直), facing the camera directly front-on, with a warm, gentle little smile, eyes open, arms relaxed at the sides.",
     "Copy face, skin texture, hair, outfit, and rendering from that front view. Do not copy the turnaround, walk cycle, expression grid, labels, or extra poses.",
     "Framing: the entire body is visible, from the top of the hair to the soles of the feet, centered, with empty margin above the head and below the feet. Do not crop to a head-and-shoulders portrait.",
     ...styleLinesForBlueprint(input.style),

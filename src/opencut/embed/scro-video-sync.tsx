@@ -676,7 +676,10 @@ export function ScroVideoSync() {
 					scroClipNumber: clip.clipNumber,
 					scroPosterUrl: clip.posterUrl,
 					scroPlaceholder: !sourceUrl,
-					thumbnailUrl: clip.posterUrl ?? asset.thumbnailUrl,
+					thumbnailUrl:
+						asset.type === "video"
+							? (asset.thumbnailUrl ?? clip.posterUrl)
+							: (clip.posterUrl ?? asset.thumbnailUrl),
 				},
 			});
 			if (!created) return null;

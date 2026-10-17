@@ -5,6 +5,7 @@ import {
   type ClipStageSource,
 } from "@/service/clip-stage";
 import { MIN_VIDEO_SECONDS } from "@/service/credit-costs";
+import { inheritsPreviousEnd } from "@/service/director/clip-continuity";
 
 /** UI stage for Assets / timeline thumbs (derived, not stored). */
 export type ScroVideoUiStage =
@@ -67,8 +68,19 @@ export function scroVideosFor(project: ScroVideoSource): ScroVideoView[] {
     const start = project.frames?.find(
       (frame) => frame.clipNumber === row.clipNumber && frame.position === "start",
     );
+    const end = project.frames?.find(
+      (frame) => frame.clipNumber === row.clipNumber && frame.position === "end",
+    );
     const clip = project.clips.find((item) => item.clipNumber === row.clipNumber);
-    const posterUrl = mediaSrc(start) || undefined;
+    // Chained clips (talking-head clip 2+) copy the previous clip's end into `start`,
+    // while this clip's own background-generated frame is `end`. Prefer `end` once completed
+    // so the Assets preview updates immediately when this clip's frame finishes.
+    const inheritedStart = inheritsPreviousEnd(project.skillSlug, row.clipNumber, "start");
+    const posterUrl =
+      (inheritedStart && end?.status === "completed" ? mediaSrc(end) : undefined) ||
+      mediaSrc(start) ||
+      mediaSrc(end) ||
+      undefined;
     const videoUrl =
       state.stage === "video_ready" ? mediaSrc(clip) || undefined : undefined;
     const failedFrame = project.frames?.find(
