@@ -118,6 +118,11 @@ export function OpenCutDirectDesk({
   const aiRef = useRef(ai);
   aiRef.current = ai;
   const [booting, setBooting] = useState(true);
+  const [loadProgress, setLoadProgress] = useState<{
+    current: number;
+    total: number;
+    label?: string;
+  } | null>(null);
   const [editorEpoch, setEditorEpoch] = useState(0);
   const [selectedClipNumber, setSelectedClipNumber] = useState<number | null>(null);
   const [checkedClipNumbers, setCheckedClipNumbers] = useState<number[]>([]);
@@ -299,9 +304,15 @@ export function OpenCutDirectDesk({
         project?: unknown;
         media?: OpencutEditMedia[];
         uploads?: SaveUpload[];
+        current?: number;
+        total?: number;
+        label?: string;
+        done?: boolean;
       };
       if (data?.type === "scro-editor-ready") {
         readyRef.current = true;
+        // Show the editor immediately once mounted; clips load one by one with live progress.
+        setBooting(false);
         setEditorEpoch((epoch) => epoch + 1);
         beginSync();
         // Properties reads this store even when the timeline was restored without clip numbers.
@@ -396,6 +407,18 @@ export function OpenCutDirectDesk({
         );
         return;
       }
+      if (data?.type === "scro-load-progress" && data.videoId === project.id) {
+        if (data.done || !data.total) {
+          setLoadProgress(null);
+        } else {
+          setLoadProgress({
+            current: Math.min(data.current ?? 1, data.total),
+            total: data.total,
+            label: data.label,
+          });
+        }
+        return;
+      }
       if (data?.type === "scro-seed-done" && data.videoId === project.id) {
         setBooting(false);
         return;
@@ -404,19 +427,32 @@ export function OpenCutDirectDesk({
         setBooting(false);
         syncedRef.current = true;
         prevSeedRef.current = seedClipsRef.current;
-        // Full storyboard first. Per-clip updates only replace one row.
+        // Full storyboard first. Per-clip updates then load one by one with progress.
         channel.postToEditor({
           type: "scro-videos-state",
           videoId: project.id,
           clips: seedClipsRef.current,
         });
-        for (const clip of seedClipsRef.current) {
-          channel.postToEditor({
-            type: "scro-clip-updated",
-            videoId: project.id,
-            clip,
-          });
-        }
+        void (async () => {
+          const list = seedClipsRef.current;
+          const total = list.length;
+          for (let index = 0; index < list.length; index++) {
+            if (cancel) return;
+            const clip = list[index];
+            setLoadProgress({
+              current: index + 1,
+              total,
+              label: clip.name,
+            });
+            channel.postToEditor({
+              type: "scro-clip-updated",
+              videoId: project.id,
+              clip,
+            });
+            await new Promise((resolve) => setTimeout(resolve, 120));
+          }
+          if (!cancel) setLoadProgress(null);
+        })();
         return;
       }
       if (data?.type === "scro-project-save") void persist(data as SaveMessage);
@@ -552,6 +588,27 @@ export function OpenCutDirectDesk({
           }}
           onProject={production.onProject}
         />
+      ) : null}
+      {loadProgress ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex shrink-0 items-center gap-3 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-4 py-1.5 text-xs"
+        >
+          <span className="font-semibold text-[var(--studio-ink)]">
+            {t("common.loading")} {loadProgress.label ? `${loadProgress.label} ` : ""}(
+            {loadProgress.current}/{loadProgress.total} ·{" "}
+            {Math.round((loadProgress.current / Math.max(1, loadProgress.total)) * 100)}%)
+          </span>
+          <div className="h-1.5 w-36 overflow-hidden rounded-full bg-zinc-200">
+            <div
+              className="h-full rounded-full bg-[#12141c] transition-all duration-200"
+              style={{
+                width: `${Math.round((loadProgress.current / Math.max(1, loadProgress.total)) * 100)}%`,
+              }}
+            />
+          </div>
+        </div>
       ) : null}
       {seedClips.length === 0 ? (
         <p className="shrink-0 px-4 py-2 text-xs text-muted">{t("video.opencut.empty")}</p>

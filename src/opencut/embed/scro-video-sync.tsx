@@ -223,23 +223,32 @@ export function ScroVideoSync() {
 					}
 					scene = editor.scenes.getActiveScene();
 				}
-				// Storyboard order, each clip as long as the director wrote it.
+				// Storyboard order, loaded and inserted one by one so the user sees each clip appear with live progress.
 				const ordered = [...data.clips].sort((a, b) => a.clipNumber - b.clipNumber);
-				const resolved = await runConcurrentMediaPool({
-					items: ordered,
-					worker: (clip) => ensureMedia({ videoId: data.videoId, clip }),
-				});
+				const total = ordered.length;
+				seedDone(data.videoId);
 				let cursor = 0;
 				for (let index = 0; index < ordered.length; index++) {
 					const clip = ordered[index];
-					const created = resolved[index];
+					sendToScro(
+						{
+							type: "scro-load-progress",
+							videoId: data.videoId,
+							current: index + 1,
+							total,
+							label: clip.name,
+						},
+						parentOrigin,
+					);
+					const created = await ensureMedia({ videoId: data.videoId, clip });
 					if (!created) continue;
+					const freshScene = editor.scenes.getActiveScene();
 					const place = storyboardPlacement({
 						storyboardSeconds: clip.durationSeconds,
 						fileSeconds: created.type === "video" ? created.duration : undefined,
 					});
 					editor.timeline.insertElement({
-						placement: { mode: "explicit", trackId: scene.tracks.main.id },
+						placement: { mode: "explicit", trackId: freshScene.tracks.main.id },
 						element: buildScroTimelineElement({
 							mediaId: created.id,
 							mediaType: created.type,
@@ -251,6 +260,16 @@ export function ScroVideoSync() {
 					});
 					cursor += place.visibleSeconds;
 				}
+				sendToScro(
+					{
+						type: "scro-load-progress",
+						videoId: data.videoId,
+						current: total,
+						total,
+						done: true,
+					},
+					parentOrigin,
+				);
 			} finally {
 				busy.current = false;
 				// Insert adopts the first image's pixel size. Re-apply after the

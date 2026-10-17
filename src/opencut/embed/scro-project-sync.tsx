@@ -203,40 +203,64 @@ export function ScroProjectSync() {
 			restoring.current = true;
 			try {
 				const projectId = `scro-${data.videoId}`;
-				await runConcurrentMediaPool({
-					items: data.media ?? [],
-					worker: async (item) => {
-						if (!item.sourceUrl || !item.id) return;
-						rememberClipSource(data.videoId, item.id, item.sourceUrl);
-						const existing = await storageService.loadMediaAsset({ projectId, id: item.id });
-						if (existing) return;
-						const blob = await fetchMediaBlobWithTimeout({ url: item.sourceUrl });
-						if (!blob) return;
-						const file = new File([blob], item.name, { type: blob.type || "video/mp4" });
-						const processed = await processMediaAssets({ files: [file] });
-						const asset = processed[0];
-						if (!asset) return;
-						await storageService.saveMediaAsset({
-							projectId,
-							mediaAsset: { ...asset, id: item.id },
-						});
-					},
-				});
+				const items = (data.media ?? []).filter((item) => item.sourceUrl && item.id);
+				for (const item of items) {
+					rememberClipSource(data.videoId, item.id, item.sourceUrl);
+				}
 				const seen = readSeen(data.videoId);
-				for (const item of data.media ?? []) {
+				for (const item of items) {
 					if (item.sourceUrl) seen.add(item.sourceUrl);
 				}
 				writeSeen(data.videoId, seen);
+				// Load project structure first so the editor shows immediately, then load media one by one.
 				await storageService.saveProject({ project: asProject(data.project) });
 				await editor.project.loadProject({ id: projectId });
 				await applyScroCanvasSize(editor, data.aspectRatio);
 				sendToScro(
 					{
 						type: "scro-restore-done",
-						sourceUrls: (data.media ?? []).map((item) => item.sourceUrl).filter(Boolean),
+						sourceUrls: items.map((item) => item.sourceUrl).filter(Boolean),
 					},
 					replyOrigin,
 				);
+				for (let index = 0; index < items.length; index++) {
+					const item = items[index];
+					sendToScro(
+						{
+							type: "scro-load-progress",
+							videoId: data.videoId,
+							current: index + 1,
+							total: items.length,
+							label: item.name,
+						},
+						replyOrigin,
+					);
+					const existing = await storageService.loadMediaAsset({ projectId, id: item.id });
+					if (existing) continue;
+					const blob = await fetchMediaBlobWithTimeout({ url: item.sourceUrl });
+					if (!blob) continue;
+					const file = new File([blob], item.name, { type: blob.type || "video/mp4" });
+					const processed = await processMediaAssets({ files: [file] });
+					const asset = processed[0];
+					if (!asset) continue;
+					await storageService.saveMediaAsset({
+						projectId,
+						mediaAsset: { ...asset, id: item.id },
+					});
+					await editor.project.loadProject({ id: projectId });
+				}
+				if (items.length > 0) {
+					sendToScro(
+						{
+							type: "scro-load-progress",
+							videoId: data.videoId,
+							current: items.length,
+							total: items.length,
+							done: true,
+						},
+						replyOrigin,
+					);
+				}
 			} catch (error) {
 				console.error("Failed to restore Scro edit:", error);
 				sendToScro({ type: "scro-restore-done", sourceUrls: [] }, replyOrigin);

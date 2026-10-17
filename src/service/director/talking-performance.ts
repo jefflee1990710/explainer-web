@@ -85,11 +85,11 @@ export function speakOnlyThisClip(motion: string, line: string, language?: VoLan
 function thisClipOnlySubtitle(input: { language?: VoLanguage; line: string; belowCenter: boolean }) {
   if (input.language === "en" || !input.language) {
     const place = input.belowCenter ? "a little below the vertical center" : "at the bottom";
-    return `Subtitle stays ${place}, this clip's line only: "${input.line}". If the opening frame still shows other words, replace them at once and do not read them. The voice says this line once and no earlier sentence.`;
+    return `Subtitle stays ${place}, this clip's line only: "${input.line}". Keep the subtitle as one single block — never duplicate, stack, or draw a second copy of the subtitle line. If the opening frame still shows other words, replace them at once and do not read them. The voice says this line once and no earlier sentence.`;
   }
   const painted = toWrittenChinese(input.line);
   const place = input.belowCenter ? "中線下面少少嘅字幕" : "底部字幕";
-  return `${place}全程只係呢句「${painted}」。如果開頭畫面仲係上一段嘅字，即刻改成呢句，唔好讀出舊字。把聲只講呢句一次，唔好再講上一段。`;
+  return `${place}全程只係呢句「${painted}」，只顯示一組字幕，唔好重複疊兩行一樣嘅字。如果開頭畫面仲係上一段嘅字，即刻改成呢句，唔好讀出舊字。把聲只講呢句一次，唔好再講上一段。`;
 }
 
 function speakEnd(seconds: number) {

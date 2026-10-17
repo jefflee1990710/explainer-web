@@ -443,6 +443,18 @@ export async function sendClipVideo(
       merged ? "字幕還沒疊上畫格，無法產片" : "這段的起點或終點畫格還沒有檔案，無法產片",
     );
   }
+  // Chained talking-head clips 2+ inherit the previous clip's end file as `start`,
+  // which has the previous clip's baked-in subtitle. Sending both frames causes
+  // Seedance to stack/duplicate the two different subtitle strips. When scene text
+  // is baked in, drive the clip from `end` (which carries this clip's own subtitle and pose).
+  const useOwnSubtitleFrameOnly =
+    !startOnly &&
+    !merged &&
+    Boolean(end) &&
+    resolveSceneText(project).enabled &&
+    isInheritedTalkingHeadStart(project.skillSlug, clipNumber, "start");
+  const startUrlForVideo = useOwnSubtitleFrameOnly && end ? end : start;
+  const endUrlForVideo = startOnly || useOwnSubtitleFrameOnly ? undefined : end;
   // Talking-head locks must match the director's (possibly customised) performance slots.
   const talkingShot = talkingShotForSkill(project.skillSlug);
   const performance = talkingShot ? resolvePerformance(await loadSkill(project), talkingShot, "en") : undefined;
@@ -471,8 +483,8 @@ export async function sendClipVideo(
     ),
     aspectRatio: project.aspectRatio,
     durationSeconds: prompt.durationSeconds,
-    startImageUrl: start,
-    endImageUrl: startOnly ? undefined : end,
+    startImageUrl: startUrlForVideo,
+    endImageUrl: endUrlForVideo,
     styleId: project.styleId,
     style,
   });
