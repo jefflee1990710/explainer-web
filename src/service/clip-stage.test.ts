@@ -69,7 +69,7 @@ test("no frames at all → no_frames", () => {
 
 test("cinematic realistic bills the Seedance video rate", () => {
   assert.equal(clipStateFor(project(), 1).videoCost, 45);
-  assert.equal(clipStateFor(project({ styleId: "realistic" }), 1).videoCost, 235);
+  assert.equal(clipStateFor(project({ styleId: "realistic" }), 1).videoCost, 75);
 });
 
 test("one frame in flight → frames_generating", () => {

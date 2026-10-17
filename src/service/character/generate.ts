@@ -1,7 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { charactersCollection, generationJobsCollection } from "@/dao";
 import { submitImage } from "@/service/higgsfield/generate";
-import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
+import { SEEDREAM_5_PRO_IMAGE_MODEL } from "@/service/generation/image-backend";
 import {
   buildBlueprintPrompt,
   buildFullBodyPrompt,
@@ -17,7 +17,7 @@ import { PermanentJobError } from "@/service/generation/task-policy";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import type { Character, CharacterVersion } from "@/model/character";
 
-export const BLUEPRINT_MODEL = IMAGE_ROUTE_BY_SCENE_TEXT.en.model;
+export const BLUEPRINT_MODEL = SEEDREAM_5_PRO_IMAGE_MODEL;
 
 // Board images carry the face every scene copies, so they run at the top tier.
 const BOARD_QUALITY = "high" as const;

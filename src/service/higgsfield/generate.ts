@@ -10,6 +10,7 @@ import {
 import { clipVideoProvider } from "@/service/generation/video-backend";
 import {
   IDEOGRAM_PROMPT_MAX,
+  SEEDREAM_5_PRO_IMAGE_MODEL,
   imageModelForSubmit,
   resolveImageRoute,
 } from "@/service/generation/image-backend";
@@ -98,7 +99,11 @@ export async function submitImage(input: {
   const refs = (input.referenceImageUrls || []).filter(
     (url): url is string => Boolean(url),
   );
-  const model = imageModelForSubmit(route, refs.length > 0);
+  // Character blueprints explicitly request Seedream 5.0 Pro; scene frames follow the route (Seedream 5.0 Lite).
+  const model =
+    input.model === SEEDREAM_5_PRO_IMAGE_MODEL
+      ? SEEDREAM_5_PRO_IMAGE_MODEL
+      : imageModelForSubmit(route, refs.length > 0);
   // Ideogram takes one image. The first URL is the composition lock, or the
   // character blueprint when this still has no lock yet. A contact sheet would
   // be drawn as a row of pictures.

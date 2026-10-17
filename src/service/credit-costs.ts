@@ -4,11 +4,10 @@ export const FRAMES_COST = 8;
 // A character blueprint board is two images: identity portrait + full-body standing.
 export const BLUEPRINT_COST = FRAME_COST * 2;
 
-// Video is billed per second like the provider: 9 credits/s, 5–15 billed seconds.
+// Video is billed per second like the provider: 9 credits/s (Seedance 2.0 Fast), 5–15 billed seconds.
 export const VIDEO_CREDITS_PER_SECOND = 9;
-// Seedance 2.0 at 1080p is about $0.68/s (1920×1080×24/1024 tokens × $0.014/1k).
-// MiniMax H3 is $0.13/s for 9 credits, so the same credit value is 47 credits/s.
-export const CINEMATIC_VIDEO_CREDITS_PER_SECOND = 47;
+// Cinematic realistic uses Seedance 2.0 at 720p (~$0.151/s vs $0.091/s for Fast = 15 : 9 ratio).
+export const CINEMATIC_VIDEO_CREDITS_PER_SECOND = 15;
 // ElevenLabs voice changer on a clip whose character has a demo voice.
 export const VOICE_SWAP_CREDITS_PER_SECOND = 1;
 export const MIN_VIDEO_SECONDS = 5;

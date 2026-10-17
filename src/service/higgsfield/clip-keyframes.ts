@@ -1,4 +1,8 @@
-import { OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL } from "@/service/openrouter/generate";
+import {
+  OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL,
+  OPENROUTER_SEEDANCE_2_VIDEO_MODEL,
+} from "@/service/openrouter/generate";
+import { isRealisticStyle } from "@/service/style/realistic-light";
 import { mediaSrc } from "@/util/media-src";
 import type { AspectRatio, ClipFrame, FramePosition } from "@/model/project";
 
@@ -6,16 +10,15 @@ import type { AspectRatio, ClipFrame, FramePosition } from "@/model/project";
 // Production V2 slug (H3 Max CLI job_type is OAuth-only).
 export const MINIMAX_H3_VIDEO_MODEL = "minimax/h3/image-to-video";
 
-// Cinematic realistic uses Seedance 2.0. Same first/last frame idea, higher cost.
-export const SEEDANCE_2_VIDEO_MODEL = "bytedance/seedance-2.0/image-to-video";
-
-// OpenRouter Seedance 2.0 Fast for all clip video generation.
+// Cinematic realistic uses Seedance 2.0 on OpenRouter; non-realistic styles use Seedance 2.0 Fast.
+export const SEEDANCE_2_VIDEO_MODEL = OPENROUTER_SEEDANCE_2_VIDEO_MODEL;
 export const SEEDANCE_2_FAST_VIDEO_MODEL = OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL;
 
 export function clipVideoModel(
-  _styleOrId?: string | { id?: string; baseStyleId?: string } | null,
+  styleOrId?: string | { id?: string; baseStyleId?: string } | null,
 ) {
-  return SEEDANCE_2_FAST_VIDEO_MODEL;
+  const style = typeof styleOrId === "string" ? { id: styleOrId } : styleOrId;
+  return isRealisticStyle(style) ? SEEDANCE_2_VIDEO_MODEL : SEEDANCE_2_FAST_VIDEO_MODEL;
 }
 
 export type FrameAnchorKind = "clip-start" | "prev-end" | "clip-end";

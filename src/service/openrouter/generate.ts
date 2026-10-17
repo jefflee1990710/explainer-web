@@ -7,8 +7,11 @@ export const OPENROUTER_IMAGES_URL = `${OPENROUTER_BASE_URL}/api/v1/images`;
 export const OPENROUTER_VIDEOS_URL = `${OPENROUTER_BASE_URL}/api/v1/videos`;
 
 export const OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL = "bytedance-seed/seedream-5-0-pro";
+export const OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL = "bytedance-seed/seedream-5-0-lite";
 export const OPENROUTER_GPT_5_IMAGE_MODEL = "openai/gpt-5-image";
+export const OPENROUTER_SEEDANCE_2_VIDEO_MODEL = "bytedance/seedance-2.0";
 export const OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL = "bytedance/seedance-2.0-fast";
+export const OPENROUTER_SEEDANCE_2_MINI_VIDEO_MODEL = "bytedance/seedance-2.0-mini";
 
 type FetchOptions = {
   fetch?: typeof fetch;
@@ -92,8 +95,15 @@ export function openRouterImageBody(input: {
 }) {
   const refs = (input.referenceImageUrls || []).filter((url): url is string => Boolean(url));
   const isOpenAiImage = /^openai\//i.test(input.model);
-  const resolution =
-    input.resolution === "2k" || input.resolution === "4k" ? ("2K" as const) : ("1K" as const);
+  // Seedream 5.0 Lite only accepts 2K / 4K; Seedream 5.0 Pro accepts 1K / 2K.
+  const isSeedreamLite = /seedream-5-0-lite/i.test(input.model);
+  const resolution = isSeedreamLite
+    ? input.resolution === "4k"
+      ? ("4K" as const)
+      : ("2K" as const)
+    : input.resolution === "2k" || input.resolution === "4k"
+      ? ("2K" as const)
+      : ("1K" as const);
   return {
     model: input.model,
     prompt: input.prompt,

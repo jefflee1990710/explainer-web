@@ -39,14 +39,14 @@ test("openRouterImageAspectRatio maps GPT-5 Image to supported 1:1 / 3:2 / 2:3",
 test("openRouterImageBody formats /api/v1/images payload with input_references", () => {
   assert.deepEqual(
     openRouterImageBody({
-      model: "bytedance-seed/seedream-5-0-pro",
+      model: "bytedance-seed/seedream-5-0-lite",
       prompt: "draw a scene",
       aspectRatio: "9:16",
-      resolution: "2k",
+      resolution: "1k",
       referenceImageUrls: ["https://blob/ref1.png", undefined, "https://blob/ref2.png"],
     }),
     {
-      model: "bytedance-seed/seedream-5-0-pro",
+      model: "bytedance-seed/seedream-5-0-lite",
       prompt: "draw a scene",
       aspect_ratio: "9:16",
       resolution: "2K",
@@ -54,6 +54,21 @@ test("openRouterImageBody formats /api/v1/images payload with input_references",
         { type: "image_url", image_url: { url: "https://blob/ref1.png" } },
         { type: "image_url", image_url: { url: "https://blob/ref2.png" } },
       ],
+    },
+  );
+
+  assert.deepEqual(
+    openRouterImageBody({
+      model: "bytedance-seed/seedream-5-0-pro",
+      prompt: "draw a blueprint",
+      aspectRatio: "1:1",
+      resolution: "1k",
+    }),
+    {
+      model: "bytedance-seed/seedream-5-0-pro",
+      prompt: "draw a blueprint",
+      aspect_ratio: "1:1",
+      resolution: "1K",
     },
   );
 
