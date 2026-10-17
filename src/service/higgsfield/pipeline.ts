@@ -213,6 +213,16 @@ export async function sendFrame(
   const prompt = route.model.startsWith("ideogram/")
     ? await ensureFramePromptFits(promptSource, undefined, IDEOGRAM_PROMPT_MAX)
     : await ensureFramePromptFits(promptSource);
+  if (!storedFrame?.promptEdited && prompt !== storedFrame?.prompt) {
+    const projects = await videosCollection();
+    await projects
+      .updateOne(
+        { _id: project._id },
+        { $set: { "frames.$[frame].prompt": prompt, updatedAt: new Date() } },
+        { arrayFilters: [{ "frame.clipNumber": clipNumber, "frame.position": position }] },
+      )
+      .catch(() => {});
+  }
   // A turnaround sheet shows the same person many times. Send one standing figure per character.
   const locked =
     project.cast && project.cast.length > 0

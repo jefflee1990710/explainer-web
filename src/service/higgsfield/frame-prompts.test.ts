@@ -1116,6 +1116,83 @@ test("talking-head stills keep only the first character", () => {
   assert.match(body.prompt, /SOLO: exactly one person/);
 });
 
+test("talking-head clip 1 start uses object sheet and background plate; clip 2+ locks to clip 1 start without conflicting plates", () => {
+  const video = project("realistic");
+  video.skillSlug = "talking-head-director";
+  video.aspectRatio = "9:16";
+  video.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Scro",
+      blueprintUrl: "https://blob/scro.png",
+      prompt: "East Asian woman, early 20s",
+    },
+  ];
+  video.objectSheetItems = [
+    { name: "Living Room Sofa", notes: "fabric couch" },
+    { name: "Bookshelf", notes: "wooden shelf" },
+  ];
+  video.objectSheetUrl = "https://blob/sheet.png";
+  video.backgroundPlates = [
+    {
+      setId: "living_room",
+      name: "Bright Home Living Room",
+      notes: "daylight from side window",
+      clipNumbers: [1, 2],
+      url: "https://blob/bg.png",
+    },
+  ];
+  video.phaseA!.clips[0].backgroundSetId = "living_room";
+  video.phaseA!.clips[0].startScene =
+    'Character: seated and centered. Set: sofa and bookshelf. Light: daylight. Camera: 24mm f/1.8 on tripod. Realism: side key light, pores, film grain, foreground mug. Subtitle: one LARGE phone-readable subtitle, exactly "Clip one."';
+  video.phaseA!.clips.push({
+    clipNumber: 2,
+    timeRange: "5-10s",
+    durationSeconds: 5,
+    narrativeJob: "clip 2",
+    explainerScene: "seated",
+    motionCamera: "locked camera",
+    englishVo: "Clip two.",
+    bgmSfx: "none",
+    backgroundSetId: "living_room",
+    startScene:
+      'Character: seated, head tilted right. Set: same sofa and bookshelf. Light: daylight. Camera: 24mm f/1.8 on tripod. Realism: side key light, pores, film grain, foreground mug. Subtitle: one LARGE phone-readable subtitle, exactly "Clip two."',
+    endScene:
+      'Character: seated, head tilted left. Set: same sofa and bookshelf. Light: daylight. Camera: 24mm f/1.8 on tripod. Realism: side key light, pores, film grain, foreground mug. Subtitle: one LARGE phone-readable subtitle, exactly "Clip two."',
+  });
+  video.frames = [
+    {
+      clipNumber: 1,
+      position: "start",
+      prompt: "p",
+      status: "completed",
+      blobUrl: "https://blob/clip1-start.png",
+    },
+  ];
+
+  const clip1 = frameSubmitPlan(video, 1, "start");
+  assert.deepEqual(clip1.refs, [
+    "https://blob/scro.png",
+    "https://blob/sheet.png",
+    "https://blob/bg.png",
+  ]);
+  assert.match(clip1.prompt, /OBJECT LOCK: attached image 2/);
+  assert.match(clip1.prompt, /BACKGROUND LOCK: attached image 3/);
+  assert.ok(clip1.prompt.length <= FRAME_PROMPT_BUDGET, `clip 1 prompt is ${clip1.prompt.length} chars`);
+
+  const clip2 = frameSubmitPlan(video, 2, "start");
+  assert.deepEqual(clip2.refs, [
+    "https://blob/clip1-start.png",
+    "https://blob/scro.png",
+  ]);
+  assert.match(clip2.prompt, /COMPOSITION LOCK: attached image 1 is THIS CLIP'S START frame\./);
+  assert.match(clip2.prompt, /POSE CHANGE REQUIRED:/);
+  assert.doesNotMatch(clip2.prompt, /OBJECT LOCK:/);
+  assert.doesNotMatch(clip2.prompt, /BACKGROUND LOCK:/);
+  assert.ok(clip2.prompt.length <= FRAME_PROMPT_BUDGET, `clip 2 prompt is ${clip2.prompt.length} chars`);
+});
+
 test("talking-head opening photo is the first reference on clip 1's start", () => {
   const video = project();
   video.skillSlug = "talking-head-director";

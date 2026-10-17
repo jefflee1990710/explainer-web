@@ -194,8 +194,8 @@ function compositionLockLines(
       `COMPOSITION LOCK: ${source}.`,
       "Keep the same camera, crop, distance, set, lighting, and character identity.",
       "Do not zoom or reframe the camera. No jump.",
-      "Preserve the attached frame's exact exposure, contrast, color grade, skin smoothness, hair texture, and film grain — do NOT add extra grain, extra sharpening, extra contrast, extra blush, or extra rim-light glare on top of it.",
-      "POSE CHANGE REQUIRED: Keep the room, sofa, background, lighting, and tripod camera framing from the attached frame, but MUST redraw the character's head angle, head position, gaze direction (looking at the lens or looking aside/down as described), seated torso posture (leaning forward, leaning back, or shifted left/right on the seat), facial expression, gesturing hands, and subtitle to match the Scene above. Do NOT copy the head angle, eyeline, or hand pose from the attached frame. A handheld prop stays in the same hand.",
+      "Preserve the attached frame's exact room architecture, window and bookshelf sides, sofa, foreground objects, exposure, color grade, skin texture, and film grain — never flip left/right, move furniture, or change the background.",
+      "POSE CHANGE REQUIRED: Keep the background and camera framing locked to the attached frame, but MUST redraw the character's head angle, gaze direction, seated torso posture, facial expression, gesturing hands, and subtitle to match the Scene above. Do NOT copy the head angle, eyeline, hand pose, or old subtitle words from the attached frame. A handheld prop stays in the same hand.",
     ];
   }
   if (followMotion) {
@@ -300,12 +300,14 @@ function trimSceneParts(scene: string, mode: "light-short" | "light-drop" | "set
 }
 
 type FrameTrimmable = {
+  styleBody: string;
   visualWorld: string;
   palette: string;
   scene: string;
   motion: string;
   remark: string;
   renderDetail: string;
+  moment: string;
 };
 
 // Cut the soft sections in priority order until the prompt fits the budget. The Scene
@@ -368,6 +370,37 @@ function fitFramePrompt(
     // Camera motion stays whole until the prompt is still over the cap.
     (p) => ({ ...p, motion: clipAt(p.motion, 160) }),
     (p) => ({ ...p, motion: "" }),
+    // Realistic catalog style lines repeat REALISTIC_FRAME_RENDER_RULE; trim them before touching locks.
+    (p) => ({ ...p, styleBody: clipAt(p.styleBody, 360) }),
+    (p) => ({ ...p, styleBody: "" }),
+    (p) => ({
+      ...p,
+      scene: p.scene.replace(/\s*Realism:\s*[\s\S]*?(?=\s*(?:Subtitle:|字幕：)|$)/, "").trim(),
+    }),
+    (p) => ({
+      ...p,
+      renderDetail: p.renderDetail.replace(/^Render detail:[\s\S]*?(?=Realistic light & camera:)/, "").trim(),
+    }),
+    (p) => ({
+      ...p,
+      renderDetail: p.renderDetail
+        ? "Realistic light & camera: sculpt faces and surfaces with grazing directional light, negative fill on the shadow side, and concrete light/shadow colour contrast (warm amber light, muted teal shadows). Match 35mm film optics from the Scene (24mm / 35mm / 50mm / 85mm portrait lens; deep focus f/11 for environment or f/4 to f/1.4 creamy bokeh background) with subtle film grain and unclipped highlights."
+        : "",
+    }),
+    (p) => ({
+      ...p,
+      scene: p.scene
+        .replace(/\s*Same camera as the opening still:[^.]*\.\s*No zoom, no reframe, no jump\./, "")
+        .replace(/\s*No pictures pasted on the frame,[^.]*\./, "")
+        .replace(/\s*Do not stand up\.\s*No microphone\.\s*Do not shoot at arm's length\.\s*Do not send an arm out of the frame\.\s*Do not crop to a face-only close-up\./, "")
+        .replace(
+          /\s*Camera: a phone fixed on a phone tripod, locked\.\s*Lens is 24mm at f\/1\.8, the face sharp and the background a little soft\.\s*Head and torso stay in frame\.\s*Both hands stay inside the frame\./,
+          " Camera: locked 24mm f/1.8 phone tripod, head, torso, and both hands in frame.",
+        )
+        .trim(),
+      moment: firstSentence(p.moment),
+      palette: "",
+    }),
   ];
   let current = parts;
   let prompt = compose(current);
@@ -396,7 +429,16 @@ export function logoReferenceUrls(project: Pick<Project, "skillSlug" | "logoUrl"
 }
 
 // Prop sheet then empty-set plate for this clip. Sit after the character so faces win.
-export function videoLockReferenceUrls(project: Project, clipNumber: number): string[] {
+// Talking-head stills anchored to Clip 1's start already lock the room and props to attached image 1;
+// attaching the 3x3 empty-set plate alongside it causes the model to pick a different cell per clip.
+export function videoLockReferenceUrls(
+  project: Project,
+  clipNumber: number,
+  options?: { anchor?: { kind: FrameAnchorKind } },
+): string[] {
+  if (isTalkingHeadSkill(project.skillSlug) && options?.anchor?.kind === "clip-start") {
+    return [];
+  }
   const urls: string[] = [];
   const sheet = objectSheetUrl(project);
   if (sheet) urls.push(sheet);
@@ -519,9 +561,10 @@ export function buildFramePrompt(
   const anchorCount = options.anchor ? 1 : 0;
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
-  const videoLockUrls = videoLockReferenceUrls(project, clipNumber);
-  const sheetUrl = objectSheetUrl(project);
-  const plate = backgroundPlateForClip(project, clipNumber);
+  const skipVideoLocks = solo && options.anchor?.kind === "clip-start";
+  const videoLockUrls = videoLockReferenceUrls(project, clipNumber, { anchor: options.anchor });
+  const sheetUrl = skipVideoLocks ? undefined : objectSheetUrl(project);
+  const plate = skipVideoLocks ? undefined : backgroundPlateForClip(project, clipNumber);
   const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
   const surprise = isSurpriseInterviewSkill(project.skillSlug);
   const clothingFromInstruction =
@@ -804,11 +847,13 @@ export function buildFramePrompt(
     steadyStills: steady,
   });
 
+  const [styleHeader, styleBody = ""] = styleLinesForFrame(style);
   const compose = (parts: FrameTrimmable) => [
     ...onCanvasTextBlock,
-    ...styleLinesForFrame(style),
+    styleHeader,
+    ...(parts.styleBody ? [parts.styleBody] : []),
     ...(parts.visualWorld ? [`Visual world: ${parts.visualWorld}`] : []),
-    `Palette: ${parts.palette}`,
+    ...(parts.palette ? [`Palette: ${parts.palette}`] : []),
     ...(wardrobeBuild ? [OUTFIT_IDENTITY_LOCK, OUTFIT_ENERGY] : []),
     ...(characterFirst ? castLines : []),
     ...(characterFirst && objectLockLine ? [objectLockLine] : []),
@@ -846,7 +891,7 @@ export function buildFramePrompt(
     ...(cameraLanding ? [cameraLanding] : []),
     ...(landedCamera ? [landedCamera] : []),
     ...(openingCamera ? [openingCamera] : []),
-    moment,
+    parts.moment,
     ...compositionLockLines(
           options.anchor,
           annotatedCount + 1,
@@ -902,12 +947,14 @@ export function buildFramePrompt(
   const budget = ideogram ? IDEOGRAM_PROMPT_MAX : FRAME_PROMPT_BUDGET;
   const prompt = fitFramePrompt(
     {
+      styleBody,
       visualWorld,
       palette: phaseA.palette,
       scene: sceneDescription,
       motion: motionBeatForFrame(motionDescription, position),
       remark: options.revision?.remark?.trim() || "",
       renderDetail: frameRenderDetail({ realistic }),
+      moment,
     },
     compose,
     budget,
@@ -955,7 +1002,9 @@ export function frameSubmitPlan(
   const castUrls = frameLockReferenceUrls(project);
   const logoUrls = logoReferenceUrls(project);
   const productUrls = productReferenceUrls(project.products);
-  const videoLockUrls = videoLockReferenceUrls(project, clipNumber);
+  const videoLockUrls = videoLockReferenceUrls(project, clipNumber, {
+    anchor: anchor ? { kind: anchor.kind } : undefined,
+  });
   // Same cap as buildFramePrompt so the URL order matches the prompt's numbering.
   const overlay = usesTalkingHeadSubtitleOverlay({
     skillSlug: project.skillSlug,

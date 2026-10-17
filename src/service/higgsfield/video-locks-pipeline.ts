@@ -283,7 +283,7 @@ export async function sendBackgroundPlate(project: Project, setId: string): Prom
       plate,
       aspectRatio: project.aspectRatio,
     }),
-    aspectRatio: project.aspectRatio,
+    aspectRatio: "16:9",
     quality: realistic ? "high" : "medium",
     resolution: realistic ? "2k" : "1k",
   });

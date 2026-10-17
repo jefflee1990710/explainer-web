@@ -72,6 +72,30 @@ test("a stored prompt is sent only after the still chat edits it", () => {
     }),
     "built",
   );
+
+  const longBuilt = [
+    "Look: torn paper.",
+    `Canvas: ${"textured wall, ".repeat(300)}`,
+    'Scene: Character sits on sofa. Subtitle: one LARGE line, exactly "Hello."',
+    "Sightline: show only what this camera can see.",
+    "COMPOSITION LOCK: attached image 1 is THIS CLIP'S START frame.",
+    "POSE CHANGE REQUIRED: Keep the room, sofa, background, lighting, and tripod camera framing from the attached frame.",
+    "Aspect ratio 9:16.",
+  ].join("\n");
+  const unedited = promptForFrameSubmit({
+    storedPrompt: "old",
+    builtPrompt: longBuilt,
+  });
+  assert.match(unedited, /COMPOSITION LOCK: attached image 1 is THIS CLIP'S START frame\./);
+  assert.match(unedited, /POSE CHANGE REQUIRED:/);
+
+  const edited = promptForFrameSubmit({
+    storedPrompt: longBuilt,
+    promptEdited: true,
+    builtPrompt: "built",
+  });
+  assert.match(edited, /COMPOSITION LOCK: attached image 1 is THIS CLIP'S START frame\./);
+  assert.match(edited, /POSE CHANGE REQUIRED:/);
 });
 
 test("an edited prompt must be a full non-blank prompt", () => {
