@@ -1,8 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { mkdir, access } from "node:fs/promises";
 import path from "node:path";
-import { generateImage } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import sharp from "sharp";
 import {
   ALL_CHARACTER_LOOK_PARTS,
@@ -10,14 +8,15 @@ import {
   optionsForLookPart,
   type AnyCharacterLookPart,
 } from "@/service/character/character-look";
+import { submitOpenRouterImage } from "@/service/openrouter/generate";
 
-loadEnvConfig(process.cwd());
+loadEnvConfig(process.cwd(), false, { info: () => {}, error: () => {} });
 
-const MODEL = process.env.CHARACTER_LOOK_PREVIEW_MODEL || "gemini-2.5-flash-image";
+const MODEL = process.env.CHARACTER_LOOK_PREVIEW_MODEL || "bytedance-seed/seedream-5-0-flash";
 const OUT_DIR = path.join(process.cwd(), "public", "character-looks");
 const force = process.argv.includes("--force");
 const recolorOnly = process.argv.includes("--recolor");
-const CONCURRENCY = Number(process.env.SEED_CONCURRENCY || 6);
+const CONCURRENCY = Number(process.env.SEED_CONCURRENCY || 8);
 
 // Tint plain studio grey backgrounds in existing WebP previews into vibrant Scro Logo colors:
 // diagonal electric lime (#c6f24b) to warm cream (#fff6eb) to coral red-orange (#ff4d2e) studio backdrop,
@@ -112,12 +111,6 @@ async function recolorPreviewFile(file: string) {
     .toFile(file);
 }
 
-function googleImage() {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!apiKey) throw new Error("尚未設定 GOOGLE_GENERATIVE_AI_API_KEY");
-  return createGoogleGenerativeAI({ apiKey }).image(MODEL);
-}
-
 async function exists(file: string) {
   try {
     await access(file);
@@ -127,7 +120,7 @@ async function exists(file: string) {
   }
 }
 
-// One Gemini still per look option, saved as a square WebP the picker can show.
+// One studio still per look option, saved as a square WebP the picker can show.
 async function seedOne(part: AnyCharacterLookPart, id: string) {
   const file = path.join(OUT_DIR, `${part}-${id}.webp`);
   if (recolorOnly && (await exists(file))) {
@@ -136,16 +129,20 @@ async function seedOne(part: AnyCharacterLookPart, id: string) {
     return;
   }
   if (!force && (await exists(file))) {
-    console.log(`skip ${part}/${id}`);
     return;
   }
   console.log(`generate ${part}/${id}…`);
-  const { image } = await generateImage({
-    model: googleImage(),
+  const result = await submitOpenRouterImage({
+    model: MODEL,
     prompt: characterLookPreviewPrompt(part, id),
     aspectRatio: "1:1",
+    resolution: "1k",
   });
-  await sharp(Buffer.from(image.uint8Array))
+  const url = result.images?.[0]?.url;
+  if (!url) throw new Error("No image returned");
+  const res = await fetch(url);
+  const buf = Buffer.from(await res.arrayBuffer());
+  await sharp(buf)
     .resize(1024, 1024, { fit: "cover" })
     .webp({ quality: 82 })
     .toFile(file);
