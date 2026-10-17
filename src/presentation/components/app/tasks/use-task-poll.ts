@@ -46,7 +46,11 @@ export function useTaskPoll(initial: PublicTask[], videoId?: string, enabled = t
     // A change signal that arrives mid-request queues one more fetch.
     let dirty = false;
     function paint() {
-      setTasks((current) => mergeOptimisticTasks(current, readOptimisticTasks(videoId)));
+      setTasks((current) => {
+        const next = mergeOptimisticTasks(current, readOptimisticTasks(videoId));
+        tasksRef.current = next;
+        return next;
+      });
     }
     async function tick(advance: boolean) {
       if (inFlight.current) {
@@ -64,11 +68,17 @@ export function useTaskPoll(initial: PublicTask[], videoId?: string, enabled = t
           setTasks(result.tasks);
           tasksRef.current = result.tasks;
           const refreshIds = new Set(settledVideoIds(previous, result.tasks));
-          // Still generating: the editor may look idle (old still on screen).
-          // Pull that video so the placeholder and the finished file both land.
+          const now = Date.now();
+          // Still generating or just settled within the last 15s: pull that video
+          // so the placeholder and the finished file both land immediately on Assets & Timeline.
           for (const task of result.tasks) {
-            if (!task.videoId || task.stage === "done" || task.stage === "failed") continue;
-            refreshIds.add(task.videoId);
+            if (!task.videoId) continue;
+            const recentlySettled =
+              (task.stage === "done" || task.stage === "failed") &&
+              now - Date.parse(task.updatedAt) <= 15_000;
+            if (task.stage !== "done" && task.stage !== "failed" || recentlySettled) {
+              refreshIds.add(task.videoId);
+            }
           }
           for (const refreshId of refreshIds) notifyProjectRefresh(refreshId);
           notifyGenerationSettled(settledGenerationTasks(previous, result.tasks));

@@ -57,10 +57,12 @@ export function scroAssetPreviewSrc({
 	clip,
 }: {
 	asset: Pick<MediaAsset, "type" | "url" | "thumbnailUrl">;
-	clip?: Pick<ScroVideoSeedClip, "stage" | "posterUrl" | "hasStartFrame"> | null;
+	clip?: Pick<ScroVideoSeedClip, "stage" | "posterUrl" | "hasStartFrame" | "staleVideo"> | null;
 }): string | undefined {
 	if (scroStartStillPending(clip)) return undefined;
-	if (clip?.posterUrl && clip.stage !== "video_ready") return clip.posterUrl;
+	if (clip?.posterUrl && (clip.stage !== "video_ready" || clip.staleVideo)) {
+		return clip.posterUrl;
+	}
 	if (asset.type === "video") return asset.thumbnailUrl ?? clip?.posterUrl;
 	return asset.url ?? asset.thumbnailUrl ?? clip?.posterUrl;
 }
@@ -79,7 +81,7 @@ export function pickScroClipAsset({
 		(asset) => resolveScroClipNumber({ asset, clips }) === clip.clipNumber,
 	);
 	if (matches.length === 0) return undefined;
-	if (clip.stage !== "video_ready") {
+	if (clip.stage !== "video_ready" || clip.staleVideo) {
 		if (clip.posterUrl) {
 			const posted = [...matches].reverse().find(
 				(asset) =>

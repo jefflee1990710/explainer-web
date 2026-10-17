@@ -7,7 +7,6 @@ import { AllFramesVideoIcon } from "@/presentation/components/project/production
 import { Spinner } from "@/presentation/components/spinner";
 import {
   AddClipIcon,
-  AllFramesIcon,
   FinishMissingIcon,
 } from "@/presentation/studio/studio-action-icons";
 import { StudioButton } from "@/presentation/studio/studio-button";
@@ -84,7 +83,6 @@ export function OpenCutExportButton({
         : t("video.export.export");
 
   const remainingLabel = t("production.bulk.mode.remaining.label");
-  const allFramesLabel = t("production.bulk.mode.scenes.label");
   const allVideosLabel = t("production.toolbar.bulkAllVideos");
   const addClipLabel = t("production.filmstrip.addClip");
 
@@ -100,17 +98,6 @@ export function OpenCutExportButton({
             onClick={() => runClipAction("remaining")}
           >
             <FinishMissingIcon className="h-4 w-4" />
-          </StudioButton>
-        </StudioHint>
-        <StudioHint hint={allFramesLabel}>
-          <StudioButton
-            variant="ghost"
-            className="w-9 !px-0"
-            disabled={!idle}
-            aria-label={allFramesLabel}
-            onClick={() => runClipAction("scenes")}
-          >
-            <AllFramesIcon className="h-4 w-4" />
           </StudioButton>
         </StudioHint>
         <StudioHint hint={allVideosLabel}>

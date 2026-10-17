@@ -617,7 +617,7 @@ function MediaPreview({
 	const previewSrc = scroAssetPreviewSrc({ asset: item, clip });
 	const showStartStill =
 		item.type === "image" ||
-		(Boolean(clip?.posterUrl) && clip?.stage !== "video_ready");
+		(Boolean(clip?.posterUrl) && (clip?.stage !== "video_ready" || Boolean(clip?.staleVideo)));
 
 	if (showStartStill) {
 		return (

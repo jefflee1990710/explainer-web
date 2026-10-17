@@ -18,8 +18,9 @@ export function findReusableClipAsset({
 	assets: MediaAsset[];
 	clipSources: Record<string, string>;
 }): MediaAsset | null {
-	const wantedUrl = clip.videoUrl || clip.posterUrl;
-	const wantedType = clip.videoUrl ? "video" : "image";
+	const useVideo = Boolean(clip.videoUrl && !clip.staleVideo);
+	const wantedUrl = useVideo ? clip.videoUrl : clip.posterUrl || clip.videoUrl;
+	const wantedType = useVideo ? "video" : "image";
 
 	if (wantedUrl) {
 		for (let i = assets.length - 1; i >= 0; i--) {

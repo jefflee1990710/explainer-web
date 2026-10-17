@@ -71,6 +71,24 @@ describe("scro asset preview after regenerate", () => {
 		assert.equal(src, NEW_STILL);
 	});
 
+	it("uses the new start still when frames were redrawn over an old video (staleVideo)", () => {
+		const src = scroAssetPreviewSrc({
+			asset: asset({
+				id: "old-video",
+				name: "Clip 1.mp4",
+				type: "video",
+				thumbnailUrl: OLD_THUMB,
+			}),
+			clip: clip({
+				stage: "video_ready",
+				staleVideo: true,
+				posterUrl: NEW_STILL,
+				videoUrl: "https://cdn.example/old-clip-1.mp4",
+			}),
+		});
+		assert.equal(src, NEW_STILL);
+	});
+
 	it("keeps the finished video thumb after the new video is ready", () => {
 		const src = scroAssetPreviewSrc({
 			asset: asset({
@@ -118,6 +136,17 @@ describe("merge scro media after regenerate", () => {
 		const merged = mergeScroMediaAssets({
 			assets: [oldVideo, newStill],
 			clips: [clip({ stage: "frames_ready", posterUrl: NEW_STILL })],
+		});
+		assert.deepEqual(
+			merged.map((item) => item.id),
+			["new-still"],
+		);
+	});
+
+	it("shows the new start still instead of the previous video even when stage is video_ready with staleVideo", () => {
+		const merged = mergeScroMediaAssets({
+			assets: [oldVideo, newStill],
+			clips: [clip({ stage: "video_ready", staleVideo: true, posterUrl: NEW_STILL })],
 		});
 		assert.deepEqual(
 			merged.map((item) => item.id),

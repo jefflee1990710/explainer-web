@@ -23,7 +23,7 @@ export const productionEn = {
     confirmShortcut: "Press Enter to start.",
     mode: {
       remaining: {
-        label: "Finish Missing",
+        label: "Start missing video generation",
         hint: "Only missing or failed clips; finished work stays.",
       },
       scenes: {
@@ -31,7 +31,7 @@ export const productionEn = {
         hint: "Redraw every start and end frame. In-progress clips are skipped.",
       },
       clips: {
-        label: "All videos",
+        label: "Generate all video",
         hint: "Render every clip that does not have a video yet. Available once every frame is ready.",
       },
     },
@@ -152,7 +152,7 @@ export const productionEn = {
     allDone: "All done — ready for final reel",
     debug: "Debug",
     bulkOpen: "Generate all",
-    bulkAllVideos: "All videos",
+    bulkAllVideos: "Generate all video",
     bulkAllVideosWaiting: "Available once every frame is ready",
   },
   queue: {

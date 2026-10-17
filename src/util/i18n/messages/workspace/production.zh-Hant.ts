@@ -23,7 +23,7 @@ export const productionZhHant = {
     confirmShortcut: "按 Enter 開始。",
     mode: {
       remaining: {
-        label: "補齊缺少",
+        label: "開始補齊缺少影片",
         hint: "只處理沒畫格、失敗的段落，已完成的不動。",
       },
       scenes: {
@@ -31,7 +31,7 @@ export const productionZhHant = {
         hint: "重畫每一段的起始與結尾畫格。正在畫的段落會略過。",
       },
       clips: {
-        label: "全部影片",
+        label: "產生全部影片",
         hint: "每一段畫格都完成後，產生還沒有影片的段落。",
       },
     },
@@ -152,7 +152,7 @@ export const productionZhHant = {
     allDone: "全部完成，可以成片",
     debug: "技術資訊",
     bulkOpen: "全部產生",
-    bulkAllVideos: "全部影片",
+    bulkAllVideos: "產生全部影片",
     bulkAllVideosWaiting: "全部畫格完成後才能產生",
   },
   queue: {

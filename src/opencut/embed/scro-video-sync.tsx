@@ -648,14 +648,15 @@ export function ScroVideoSync() {
 				clipSources: readClipSources(videoId),
 			});
 			if (reusable) return reusable;
-			const sourceUrl = clip.videoUrl || clip.posterUrl;
+			const useVideo = Boolean(clip.videoUrl && !clip.staleVideo);
+			const sourceUrl = useVideo ? clip.videoUrl : clip.posterUrl || clip.videoUrl;
 			let file: File;
 			if (sourceUrl) {
 				const blob = await fetchMediaBlobWithTimeout({ url: sourceUrl });
 				if (!blob) return null;
-				const ext = clip.videoUrl ? "mp4" : "webp";
+				const ext = useVideo ? "mp4" : "webp";
 				file = new File([blob], `${clip.name}.${ext}`, {
-					type: blob.type || (clip.videoUrl ? "video/mp4" : "image/webp"),
+					type: blob.type || (useVideo ? "video/mp4" : "image/webp"),
 				});
 			} else {
 				const frame = placeholderFrame();
