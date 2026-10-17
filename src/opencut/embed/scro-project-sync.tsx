@@ -124,6 +124,7 @@ export function ScroProjectSync() {
 			const media = [];
 			const uploads = [];
 			for (const asset of editor.media.getAssets()) {
+				if (asset.scroPlaceholder) continue;
 				const sourceUrl = sources[asset.id];
 				if (sourceUrl) {
 					media.push({
@@ -216,13 +217,6 @@ export function ScroProjectSync() {
 				await storageService.saveProject({ project: asProject(data.project) });
 				await editor.project.loadProject({ id: projectId });
 				await applyScroCanvasSize(editor, data.aspectRatio);
-				sendToScro(
-					{
-						type: "scro-restore-done",
-						sourceUrls: items.map((item) => item.sourceUrl).filter(Boolean),
-					},
-					replyOrigin,
-				);
 				for (let index = 0; index < items.length; index++) {
 					const item = items[index];
 					sendToScro(
@@ -261,6 +255,13 @@ export function ScroProjectSync() {
 						replyOrigin,
 					);
 				}
+				sendToScro(
+					{
+						type: "scro-restore-done",
+						sourceUrls: items.map((item) => item.sourceUrl).filter(Boolean),
+					},
+					replyOrigin,
+				);
 			} catch (error) {
 				console.error("Failed to restore Scro edit:", error);
 				sendToScro({ type: "scro-restore-done", sourceUrls: [] }, replyOrigin);

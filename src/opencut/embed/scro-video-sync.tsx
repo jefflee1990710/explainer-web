@@ -128,6 +128,7 @@ export function ScroVideoSync() {
 	const editor = useEditor();
 	const busy = useRef(false);
 	const pendingSeed = useRef<ScroSeedMessage | null>(null);
+	const inFlightMedia = useRef(new Map<string, Promise<MediaAsset | null>>());
 
 	useEffect(() => {
 		if (!isScroEmbed()) return;
@@ -531,10 +532,10 @@ export function ScroVideoSync() {
 					assets,
 					data.clips,
 				);
-				if (!existing || (existing.type !== "image" && existing.type !== "video")) {
-					continue;
-				}
-				const asset = assets.find((item) => item.id === existing.mediaId);
+				const asset =
+					existing && "mediaId" in existing
+						? assets.find((item) => item.id === existing.mediaId)
+						: assets.find((item) => item.scroClipNumber === clip.clipNumber);
 				if (
 					asset?.scroPlaceholder &&
 					(asset.width ?? 0) > 16 &&
@@ -700,70 +701,83 @@ export function ScroVideoSync() {
 		}: {
 			videoId: string;
 			clip: ScroVideoSeedClip;
-		}) {
-			const project = editor.project.getActiveOrNull();
-			if (!project) return null;
-			const clips = getScroVideos()?.clips;
-			const reusable = findReusableClipAsset({
-				clip,
-				assets: editor.media.getAssets(),
-				clipSources: readClipSources(videoId),
-			});
-			if (reusable) {
+		}): Promise<MediaAsset | null> {
+			const useVideo = Boolean(clip.videoUrl && !clip.staleVideo);
+			const sourceUrl = useVideo ? clip.videoUrl : clip.posterUrl || clip.videoUrl;
+			const flightKey = `${videoId}:${clip.clipNumber}:${sourceUrl ?? "placeholder"}`;
+			const activeFlight = inFlightMedia.current.get(flightKey);
+			if (activeFlight) return activeFlight;
+
+			const task = (async () => {
+				const project = editor.project.getActiveOrNull();
+				if (!project) return null;
+				const clips = getScroVideos()?.clips;
+				const reusable = findReusableClipAsset({
+					clip,
+					assets: editor.media.getAssets(),
+					clipSources: readClipSources(videoId),
+				});
+				if (reusable) {
+					await purgeStaleMediaAssets({
+						projectId: project.metadata.id,
+						videoId,
+						clipNumber: clip.clipNumber,
+						keepAssetId: reusable.id,
+						clips,
+					});
+					return reusable;
+				}
+				let file: File;
+				if (sourceUrl) {
+					const blob = await fetchMediaBlobWithTimeout({ url: sourceUrl });
+					if (!blob) return null;
+					const ext = useVideo ? "mp4" : "webp";
+					file = new File([blob], `${clip.name}.${ext}`, {
+						type: blob.type || (useVideo ? "video/mp4" : "image/webp"),
+					});
+				} else {
+					const frame = placeholderFrame();
+					file = await stillPlaceholderFile({
+						name: clip.name,
+						width: frame.width,
+						height: frame.height,
+					});
+				}
+				const processed = await processMediaAssets({ files: [file] });
+				const asset = processed[0];
+				if (!asset) return null;
+				const created = await editor.media.addMediaAsset({
+					projectId: project.metadata.id,
+					asset: {
+						...asset,
+						name: clip.name,
+						scroClipNumber: clip.clipNumber,
+						scroPosterUrl: clip.posterUrl,
+						scroPlaceholder: !sourceUrl,
+						thumbnailUrl:
+							asset.type === "video"
+								? (asset.thumbnailUrl ?? clip.posterUrl)
+								: (clip.posterUrl ?? asset.thumbnailUrl),
+					},
+				});
+				if (!created) return null;
+				if (sourceUrl) rememberClipSource(videoId, created.id, sourceUrl);
 				await purgeStaleMediaAssets({
 					projectId: project.metadata.id,
 					videoId,
 					clipNumber: clip.clipNumber,
-					keepAssetId: reusable.id,
+					keepAssetId: created.id,
 					clips,
 				});
-				return reusable;
+				return created;
+			})();
+
+			inFlightMedia.current.set(flightKey, task);
+			try {
+				return await task;
+			} finally {
+				inFlightMedia.current.delete(flightKey);
 			}
-			const useVideo = Boolean(clip.videoUrl && !clip.staleVideo);
-			const sourceUrl = useVideo ? clip.videoUrl : clip.posterUrl || clip.videoUrl;
-			let file: File;
-			if (sourceUrl) {
-				const blob = await fetchMediaBlobWithTimeout({ url: sourceUrl });
-				if (!blob) return null;
-				const ext = useVideo ? "mp4" : "webp";
-				file = new File([blob], `${clip.name}.${ext}`, {
-					type: blob.type || (useVideo ? "video/mp4" : "image/webp"),
-				});
-			} else {
-				const frame = placeholderFrame();
-				file = await stillPlaceholderFile({
-					name: clip.name,
-					width: frame.width,
-					height: frame.height,
-				});
-			}
-			const processed = await processMediaAssets({ files: [file] });
-			const asset = processed[0];
-			if (!asset) return null;
-			const created = await editor.media.addMediaAsset({
-				projectId: project.metadata.id,
-				asset: {
-					...asset,
-					name: clip.name,
-					scroClipNumber: clip.clipNumber,
-					scroPosterUrl: clip.posterUrl,
-					scroPlaceholder: !sourceUrl,
-					thumbnailUrl:
-						asset.type === "video"
-							? (asset.thumbnailUrl ?? clip.posterUrl)
-							: (clip.posterUrl ?? asset.thumbnailUrl),
-				},
-			});
-			if (!created) return null;
-			if (sourceUrl) rememberClipSource(videoId, created.id, sourceUrl);
-			await purgeStaleMediaAssets({
-				projectId: project.metadata.id,
-				videoId,
-				clipNumber: clip.clipNumber,
-				keepAssetId: created.id,
-				clips,
-			});
-			return created;
 		}
 	}, [editor]);
 

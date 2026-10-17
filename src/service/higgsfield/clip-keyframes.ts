@@ -1,6 +1,6 @@
 import {
+  OPENROUTER_HAILUO_3_VIDEO_MODEL,
   OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL,
-  OPENROUTER_SEEDANCE_2_VIDEO_MODEL,
 } from "@/service/openrouter/generate";
 import { isRealisticStyle } from "@/service/style/realistic-light";
 import { mediaSrc } from "@/util/media-src";
@@ -10,8 +10,8 @@ import type { AspectRatio, ClipFrame, FramePosition } from "@/model/project";
 // Production V2 slug (H3 Max CLI job_type is OAuth-only).
 export const MINIMAX_H3_VIDEO_MODEL = "minimax/h3/image-to-video";
 
-// Cinematic realistic uses Seedance 2.0 on OpenRouter; non-realistic styles use Seedance 2.0 Fast.
-export const SEEDANCE_2_VIDEO_MODEL = OPENROUTER_SEEDANCE_2_VIDEO_MODEL;
+// Cinematic realistic uses MiniMax Hailuo 3 (2K + audio + first/last frame) on OpenRouter; non-realistic styles use Seedance 2.0 Fast.
+export const SEEDANCE_2_VIDEO_MODEL = OPENROUTER_HAILUO_3_VIDEO_MODEL;
 export const SEEDANCE_2_FAST_VIDEO_MODEL = OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL;
 
 export function clipVideoModel(

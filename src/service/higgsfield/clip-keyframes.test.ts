@@ -285,11 +285,11 @@ test("h3ClipVideoInput clamps duration to MiniMax H3 5–15s", () => {
   );
 });
 
-test("clipVideoModel uses Seedance 2.0 for realistic and Seedance 2.0 Fast for non-realistic styles", () => {
-  assert.equal(SEEDANCE_2_VIDEO_MODEL, "bytedance/seedance-2.0");
+test("clipVideoModel uses MiniMax Hailuo 3 on OpenRouter for realistic and Seedance 2.0 Fast for non-realistic styles", () => {
+  assert.equal(SEEDANCE_2_VIDEO_MODEL, "minimax/hailuo-3");
   assert.equal(SEEDANCE_2_FAST_VIDEO_MODEL, "bytedance/seedance-2.0-fast");
-  assert.equal(clipVideoModel("realistic"), SEEDANCE_2_VIDEO_MODEL);
-  assert.equal(clipVideoModel({ id: "user-style", baseStyleId: "realistic" }), SEEDANCE_2_VIDEO_MODEL);
+  assert.equal(clipVideoModel("realistic"), "minimax/hailuo-3");
+  assert.equal(clipVideoModel({ id: "user-style", baseStyleId: "realistic" }), "minimax/hailuo-3");
   assert.equal(clipVideoModel("doodle"), SEEDANCE_2_FAST_VIDEO_MODEL);
   assert.equal(clipVideoModel({ id: "user-style", baseStyleId: "doodle" }), SEEDANCE_2_FAST_VIDEO_MODEL);
   assert.deepEqual(

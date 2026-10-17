@@ -93,7 +93,7 @@ test("openRouterImageBody formats /api/v1/images payload with input_references",
   );
 });
 
-test("openRouterClipVideoBody formats /api/v1/videos payload for bytedance/seedance-2.0-fast", () => {
+test("openRouterClipVideoBody formats /api/v1/videos payload for bytedance/seedance-2.0-fast and minimax/hailuo-3", () => {
   assert.deepEqual(
     openRouterClipVideoBody({
       model: "bytedance/seedance-2.0-fast",
@@ -109,6 +109,37 @@ test("openRouterClipVideoBody formats /api/v1/videos payload for bytedance/seeda
       aspect_ratio: "9:16",
       duration: 5,
       resolution: "720p",
+      generate_audio: true,
+      frame_images: [
+        {
+          type: "image_url",
+          image_url: { url: "https://blob/start.png" },
+          frame_type: "first_frame",
+        },
+        {
+          type: "image_url",
+          image_url: { url: "https://blob/end.png" },
+          frame_type: "last_frame",
+        },
+      ],
+    },
+  );
+
+  assert.deepEqual(
+    openRouterClipVideoBody({
+      model: "minimax/hailuo-3",
+      prompt: "talking head clip",
+      aspectRatio: "9:16",
+      durationSeconds: 5,
+      startImageUrl: "https://blob/start.png",
+      endImageUrl: "https://blob/end.png",
+    }),
+    {
+      model: "minimax/hailuo-3",
+      prompt: "talking head clip",
+      aspect_ratio: "9:16",
+      duration: 5,
+      resolution: "2K",
       generate_audio: true,
       frame_images: [
         {
