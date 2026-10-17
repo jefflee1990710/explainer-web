@@ -792,7 +792,6 @@ function MediaActions({
 				<HugeiconsIcon icon={CloudUploadIcon} />
 				Import
 			</Button>
-			<AssetsClipMenu />
 		</div>
 	);
 }

@@ -12,17 +12,19 @@ export function VideoShareCaptionsButton({ videoId }: { videoId: string }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
 
+  const label = t("video.editor.captionsButton");
   return (
     <>
-      <StudioHint hint={t("video.editor.captionsHint")}>
+      <StudioHint hint={`${label} · ${t("video.editor.captionsHint")}`}>
         <StudioButton
           variant="ghost"
+          className="w-9 !px-0"
           onClick={() => setOpen(true)}
+          aria-label={label}
           aria-haspopup="dialog"
           aria-expanded={open}
         >
           <CaptionsIcon />
-          {t("video.editor.captionsButton")}
         </StudioButton>
       </StudioHint>
       {open ? <VideoShareCaptionsDialog videoId={videoId} onClose={() => setOpen(false)} /> : null}

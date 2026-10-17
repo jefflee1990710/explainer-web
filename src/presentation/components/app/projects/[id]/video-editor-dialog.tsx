@@ -79,10 +79,14 @@ export function VideoEditorDialog({
           />
           {videoId ? <VideoShareCaptionsButton videoId={videoId} /> : null}
           {onRestart ? (
-            <StudioHint hint={t("video.editor.restartHint")}>
-              <StudioButton variant="ghost" onClick={onRestart}>
+            <StudioHint hint={`${t("video.editor.restart")} · ${t("video.editor.restartHint")}`}>
+              <StudioButton
+                variant="ghost"
+                className="w-9 !px-0"
+                onClick={onRestart}
+                aria-label={t("video.editor.restart")}
+              >
                 <RefreshIcon className="h-4 w-4" />
-                {t("video.editor.restart")}
               </StudioButton>
             </StudioHint>
           ) : null}

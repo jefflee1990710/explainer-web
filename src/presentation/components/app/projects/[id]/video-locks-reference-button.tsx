@@ -30,17 +30,19 @@ export function VideoLocksReferenceButton({
   const [open, setOpen] = useState(false);
   if (!videoHasLockReferences({ objectSheetUrl, backgroundPlates })) return null;
 
+  const label = t("video.editor.locksButton");
   return (
     <>
-      <StudioHint hint={t("video.editor.locksHint")}>
+      <StudioHint hint={`${label} · ${t("video.editor.locksHint")}`}>
         <StudioButton
           variant="ghost"
+          className="w-9 !px-0"
           onClick={() => setOpen(true)}
+          aria-label={label}
           aria-haspopup="dialog"
           aria-expanded={open}
         >
           <ReferenceStillsIcon />
-          {t("video.editor.locksButton")}
         </StudioButton>
       </StudioHint>
       {open ? (

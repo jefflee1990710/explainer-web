@@ -82,6 +82,21 @@ test("normalize merges skipped clips onto a set and caps counts", () => {
   assert.deepEqual(plan.objects, [{ name: "gimbal", notes: "metal dial" }]);
   assert.equal(plan.sets[0]?.setId, "rooftop-view");
   assert.deepEqual(plan.sets[0]?.clipNumbers, [1, 2, 3]);
+
+  const whiteboardPlan = normalizeVideoLocks(
+    clips,
+    {
+      objects: [],
+      sets: [
+        { setId: "room-a", name: "room a", notes: "light", clipNumbers: [1] },
+        { setId: "room-b", name: "room b", notes: "dark", clipNumbers: [2, 3] },
+      ],
+    },
+    "cartoon-explainer-video-director",
+  );
+  assert.equal(whiteboardPlan.sets.length, 1);
+  assert.deepEqual(whiteboardPlan.sets[0]?.clipNumbers, [1, 2, 3]);
+  assert.match(videoLocksSystem("en", "cartoon-explainer-video-director"), /ONE single shared location/);
 });
 
 test("apply writes backgroundSetId onto each clip", () => {

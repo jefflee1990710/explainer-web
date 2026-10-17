@@ -6,13 +6,17 @@ import type {
   StoryboardRow,
   VoLanguage,
 } from "@/model/project";
-import { clipEndScene, clipStartScene } from "@/service/director/dual-beat";
+import { CARTOON_EXPLAINER_SKILL_SLUG, clipEndScene, clipStartScene } from "@/service/director/dual-beat";
 import { sceneDescriptionLanguageLock } from "@/service/director/languages";
 import { directorModel } from "@/service/director/model";
 import { isTalkingHeadSkill } from "@/service/director/talking-head";
 
 const MAX_OBJECTS = 16;
 const MAX_SETS = 4;
+
+function maxSetsForSkill(skillSlug?: string) {
+  return skillSlug === CARTOON_EXPLAINER_SKILL_SLUG ? 1 : MAX_SETS;
+}
 
 const videoLocksSchema = z.object({
   objects: z.array(
@@ -40,7 +44,8 @@ export function shouldPlanVideoLocks(skillSlug?: string) {
   return !isTalkingHeadSkill(skillSlug);
 }
 
-export function videoLocksSystem(language?: VoLanguage) {
+export function videoLocksSystem(language?: VoLanguage, skillSlug?: string) {
+  const maxSets = maxSetsForSkill(skillSlug);
   return [
     "You list the invented props and unique locations for one explainer video.",
     "objects: every distinct prop the stills name — tools, cups, dials, boards, easels, whiteboards, charts, furniture, handheld items.",
@@ -48,8 +53,10 @@ export function videoLocksSystem(language?: VoLanguage) {
     "Object notes describe shape, materials, and colours. Do not describe screen content or lettering that only one side can see.",
     "Do not list characters, brand products already locked elsewhere, locations, sky, buildings, or subtitle lettering.",
     `List every named prop. At most ${MAX_OBJECTS} objects after merging true duplicates. Empty array only if the stills name none.`,
-    "sets: unique places from the Set lines. Same room or rooftop across clips shares one setId.",
-    `At most ${MAX_SETS} sets. Merge near-duplicates. Every clipNumber appears in exactly one set.`,
+    maxSets === 1
+      ? "sets: Whiteboard explainer always stays in ONE single shared location across the entire video. Output exactly 1 set containing all clipNumbers."
+      : "sets: unique places from the Set lines. Same room or rooftop across clips shares one setId.",
+    `At most ${maxSets} ${maxSets === 1 ? "set" : "sets"}. Merge near-duplicates. Every clipNumber appears in ${maxSets === 1 ? "that single set" : "exactly one set"}.`,
     "setId is a short slug like rooftop or desk. notes describe empty architecture, light, and sky — no people, no handheld props.",
     "name and notes stay short. " + sceneDescriptionLanguageLock(language),
   ].join(" ");
@@ -71,7 +78,9 @@ export function videoLocksPrompt(clips: StoryboardRow[]) {
 export function normalizeVideoLocks(
   clips: StoryboardRow[],
   raw: z.infer<typeof videoLocksSchema>,
+  skillSlug?: string,
 ): VideoLocksPlan {
+  const maxSets = maxSetsForSkill(skillSlug);
   const clipNumbers = clips.map((clip) => clip.clipNumber);
   const objects = fillMissingSceneProps(
     clips,
@@ -83,7 +92,7 @@ export function normalizeVideoLocks(
 
   const sets: VideoLocksPlan["sets"] = [];
   const used = new Set<number>();
-  for (const set of raw.sets.slice(0, MAX_SETS)) {
+  for (const set of raw.sets.slice(0, maxSets)) {
     const setId = set.setId.trim().replace(/\s+/g, "-").toLowerCase() || `set-${sets.length + 1}`;
     const assigned = [...new Set(set.clipNumbers.filter((n) => clipNumbers.includes(n) && !used.has(n)))];
     if (!set.name.trim() || assigned.length === 0) continue;
@@ -114,7 +123,7 @@ export function normalizeVideoLocks(
     }
   }
 
-  return { objects, sets: sets.slice(0, MAX_SETS) };
+  return { objects, sets: sets.slice(0, maxSets) };
 }
 
 // Scenes name a writing surface as board / easel / chart; the sheet must list Whiteboard.
@@ -199,11 +208,11 @@ export async function planVideoLocks(
   }
   try {
     const output = await generate({
-      system: videoLocksSystem(input.language),
+      system: videoLocksSystem(input.language, input.skillSlug),
       prompt: videoLocksPrompt(input.clips),
     });
     if (!output) return { objects: [], sets: [] };
-    return normalizeVideoLocks(input.clips, output);
+    return normalizeVideoLocks(input.clips, output, input.skillSlug);
   } catch (error) {
     console.error("video locks plan failed", error);
     return { objects: [], sets: [] };

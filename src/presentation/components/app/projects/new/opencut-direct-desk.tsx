@@ -535,6 +535,7 @@ export function OpenCutDirectDesk({
         project={project}
         host={host}
         disabled={readyVideos.length === 0}
+        idle={(production?.pending ?? "") === ""}
       />
       {production ? (
         <OpenCutScroToolbar
