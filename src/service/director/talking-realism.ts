@@ -14,7 +14,7 @@ type RealismScene = {
 export function talkingRealismStill(language: VoLanguage | undefined, scene: RealismScene = {}) {
   if (language === "en" || !language) {
     const light =
-      "Light source: the key light and faint rim light come strictly from the visible window side in the Light line (never from the dark interior or bookshelf side opposite the window, and never copy the blueprint's studio light direction), lighting the window-facing cheek while the far cheek away from the window falls into deep negative-fill shadow with a clear nose-bridge shadow (grazing contrast, no front fill, no unmotivated warm orange backlight, overcast window daylight kept soft below pure-white clipping). Never flat, even front light.";
+      "Light source: single directional key light and faint rim light coming strictly from the visible window side (camera-right if the window is on the right), brightly lighting the half of the face closest to the window while the opposite half of the face (camera-left, facing the dark interior/bookshelf) falls into deep, high-contrast negative-fill shadow with a dark nose-bridge shadow (at least 35% darker on the shadow cheek, zero front fill light, zero light from the dark side, never copy the blueprint's lighting). Keep the window sky soft muted overcast grey below pure-white clipping.";
     const skin =
       "Skin: visible pores, fine peach-fuzz hair catching the key light, natural uneven skin tone with tiny imperfections, a light natural sheen on the forehead and nose, loose flyaway hair strands, subtle 35mm film grain, and slight optical chromatic aberration. Never smooth porcelain or plastic skin.";
     const depth = scene.fullBody

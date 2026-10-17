@@ -378,7 +378,7 @@ function fitFramePrompt(
       scene: p.scene
         .replace(
           /\s*Realism:\s*[\s\S]*?(?=\s*(?:Subtitle:|字幕：)|$)/,
-          " Realism: key light and any rim light come strictly from the visible window side (never from the dark side opposite the window, never copy blueprint lighting); window-facing cheek lit, far cheek in deep negative-fill shadow with clear nose-bridge shadow, overcast window light below clipping, visible pores, peach-fuzz, 35mm film grain, soft foreground edge.",
+          " Realism: key and rim light strictly from the window side (camera-right), lighting the camera-right cheek while the camera-left cheek (bookshelf side) is in deep negative-fill shadow (35%+ darker, dark nose-bridge shadow, zero front fill, no blueprint light); soft overcast window below clipping, visible pores, peach-fuzz, 35mm grain, soft foreground edge.",
         )
         .trim(),
     }),
@@ -400,7 +400,19 @@ function fitFramePrompt(
         .replace(/\s*Do not stand up\.\s*No microphone\.\s*Do not shoot at arm's length\.\s*Do not send an arm out of the frame\.\s*Do not crop to a face-only close-up\./, "")
         .replace(
           /\s*Camera: a phone fixed on a phone tripod, locked\.\s*Lens is 24mm at f\/1\.8, the face sharp and the background a little soft\.\s*Head and torso stay in frame\.\s*Both hands stay inside the frame\./,
-          " Camera: locked 24mm f/1.8 phone tripod, head, torso, and both hands in frame.",
+          " Camera: locked 24mm f/1.8 tripod medium shot from seated lap up (head, torso, both hands in frame; legs/shoes off-screen below).",
+        )
+        .replace(
+          /Character: (?:still )?the only person in the frame, (?:seated and centered, head and torso in frame|still seated),\s*/,
+          "Character: seated, ",
+        )
+        .replace(
+          /Set: the same sofa at home in every clip, a bookshelf behind the head\.\s*Light: ordinary daylight from a window to one side, no studio light\./,
+          "Set: same home sofa, bookshelf behind. Light: side window daylight, no studio light.",
+        )
+        .replace(
+          /Subtitle: one LARGE phone-readable subtitle, a little below the vertical center, clear of the face and the bottom edge, exactly /,
+          "Subtitle: one LARGE subtitle below vertical center, clear of face and bottom, ",
         )
         .trim(),
       moment: firstSentence(p.moment),
