@@ -61,6 +61,7 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
 	mergeScroMediaAssets,
 	resolveScroClipNumber,
+	scroAssetPreviewSrc,
 	scroDisplayName,
 	ScroMediaOverlays,
 	selectScroMediaClip,
@@ -552,13 +553,13 @@ function MediaPreview({
 		clipNumber != null
 			? scroVideos?.clips.find((row) => row.clipNumber === clipNumber)
 			: undefined;
-	// File length when the browser has probed it; otherwise the storyboard length.
+	// File length when the browser has probed it; otherwise the storyboard length for ScroVideo cards.
 	const videoSeconds =
 		item.type === "video"
 			? item.duration && item.duration > 0
 				? item.duration
 				: clip?.durationSeconds
-			: undefined;
+			: clip?.durationSeconds;
 	const showDuration =
 		shouldShowDurationBadge && videoSeconds != null && videoSeconds > 0;
 	const durationBadge = showDuration ? (
@@ -568,27 +569,32 @@ function MediaPreview({
 		clipNumber != null ? (
 			<ScroMediaOverlays clipNumber={clipNumber} reserveCorner={showDuration} />
 		) : null;
+	const previewSrc = scroAssetPreviewSrc({ asset: item, clip });
+	const showStartStill =
+		item.type === "image" ||
+		(Boolean(clip?.posterUrl) && (clip?.stage !== "video_ready" || Boolean(clip?.staleVideo)));
 
-	// User imports only. Storyboard scene stills are filtered out before this list.
-	if (item.type === "image") {
-		const imageSrc = item.url ?? item.thumbnailUrl;
+	if (showStartStill) {
 		return (
 			<div className="relative flex size-full items-center justify-center bg-muted">
-				{imageSrc ? (
+				{previewSrc ? (
 					<LoadingMediaImage
-						key={imageSrc}
-						src={imageSrc}
+						key={previewSrc}
+						src={previewSrc}
 						alt={label}
-						className="object-cover"
+						className={
+							item.type === "video" ? "rounded object-cover" : "object-cover"
+						}
 					/>
 				) : null}
 				{scroOverlay}
+				{durationBadge}
 			</div>
 		);
 	}
 
 	if (item.type === "video") {
-		const videoThumb = item.thumbnailUrl;
+		const videoThumb = previewSrc ?? item.thumbnailUrl;
 		if (videoThumb) {
 			return (
 				<div className="relative size-full">

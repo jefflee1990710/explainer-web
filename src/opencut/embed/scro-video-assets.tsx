@@ -131,7 +131,12 @@ export function collectStaleScroAssetIds({
 	return stale;
 }
 
-/** One library row for this clip: the newest finished video. Scene stills are not assets. */
+/** True for standalone "Clip N · Start/End" frame stills that should not duplicate the ScroVideo card. */
+function isStandaloneFrameStillName(name: string): boolean {
+	return /^Clip\s+\d+\s*·\s*/i.test(name.trim());
+}
+
+/** One library row for this clip: the new still while frames/video are pending, or the newest finished video. */
 export function pickScroClipAsset({
 	clip,
 	assets,
@@ -143,14 +148,32 @@ export function pickScroClipAsset({
 }): MediaAsset | undefined {
 	const matches = assets.filter(
 		(asset) =>
-			asset.type === "video" &&
+			!isStandaloneFrameStillName(asset.name) &&
 			resolveScroClipNumber({ asset, clips }) === clip.clipNumber,
 	);
 	if (matches.length === 0) return undefined;
+	if (clip.stage !== "video_ready" || clip.staleVideo) {
+		if (clip.posterUrl) {
+			const posted = [...matches].reverse().find(
+				(asset) =>
+					asset.scroPosterUrl === clip.posterUrl ||
+					asset.thumbnailUrl === clip.posterUrl ||
+					asset.url === clip.posterUrl,
+			);
+			if (posted) return posted;
+		}
+		const image = [...matches]
+			.reverse()
+			.find((asset) => asset.type === "image" && asset.scroPlaceholder !== true);
+		if (image) return image;
+	} else {
+		const video = [...matches].reverse().find((asset) => asset.type === "video");
+		if (video) return video;
+	}
 	return matches[matches.length - 1];
 }
 
-/** Keep one media row per Scro clip, then assets that are not storyboard clips. */
+/** Keep one ScroVideo media row per storyboard clip (whether still, placeholder, or video), then user uploads. */
 export function mergeScroMediaAssets({
 	assets,
 	clips,
@@ -158,21 +181,25 @@ export function mergeScroMediaAssets({
 	assets: MediaAsset[];
 	clips: ScroVideoSeedClip[] | undefined;
 }): MediaAsset[] {
-	// Always drop scene stills, even on the first render before `scro-videos-state` arrives.
-	const withoutStills = assets.filter((asset) => !isScroSceneStill({ asset, clips }));
 	if (!clips?.length) {
-		return withoutStills.filter((asset) => resolveScroClipNumber({ asset, clips }) == null);
+		return assets.filter(
+			(asset) =>
+				!isStandaloneFrameStillName(asset.name) &&
+				!isScroSceneStill({ asset, clips }),
+		);
 	}
 	const used = new Set<string>();
 	const orderedScro: MediaAsset[] = [];
 	for (const clip of clips) {
-		const asset = pickScroClipAsset({ clip, assets: withoutStills, clips });
+		const asset = pickScroClipAsset({ clip, assets, clips });
 		if (!asset || used.has(asset.id)) continue;
 		orderedScro.push(asset);
 		used.add(asset.id);
 	}
-	const other = withoutStills.filter((asset) => {
+	const other = assets.filter((asset) => {
 		if (used.has(asset.id)) return false;
+		if (isStandaloneFrameStillName(asset.name)) return false;
+		if (isScroSceneStill({ asset, clips })) return false;
 		return resolveScroClipNumber({ asset, clips }) == null;
 	});
 	return [...orderedScro, ...other];

@@ -274,39 +274,41 @@ export type Messages = {
           bob: string; long: string; curly: string; bun: string; crop: string;
           waves: string; rolls: string; beehive: string; feathered: string; mullet: string; wolf: string;
           hime: string; korean: string; afro: string; braids: string; chignon: string; plait: string;
-          tower: string; spikes: string; cloud: string; drills: string; fountain: string; horns: string;
         };
         face: {
           round: string; oval: string; square: string; heart: string;
           monolid: string; doe: string; brows: string; ears: string; button: string; aquiline: string; full: string; thin: string;
           east: string; japan: string; korea: string; south: string; sea: string; africa: string; europe: string; usa: string; latin: string; mideast: string;
-          bugeyes: string; pin: string; beak: string; balloon: string; dumbo: string; stretch: string;
         };
         body: {
           slim: string; average: string; broad: string; petite: string;
-          short: string; tall: string; heavy: string; skinny: string; woman: string; man: string; hourglass: string; athletic: string;
-          strong: string; giant: string; beanpole: string; hulk: string; sumo: string; corset: string; muscle: string; wedge: string;
+          tall: string; woman: string; man: string; hourglass: string; athletic: string;
         };
         top: {
-          tee: string; hoodie: string; blazer: string; puffer: string; disco: string; fur: string;
+          tee: string; hoodie: string; blazer: string;
+          varsity: string; parisian: string; leather80s: string; seoulminimal: string; oldmoney: string; techwear: string;
+          neochinese: string; shanghai30s: string; bandhgala: string; batik: string; sherwani: string; ankara: string;
+          ipanema: string; jamdani: string; avanttrench: string; habesha: string; guayabera: string; noragi: string;
+          cairo: string; barong: string; sapeur: string; aodai: string; manteau: string; anatolian: string; thaisilk: string;
         };
         pants: {
           jeans: string; chinos: string; shorts: string; sweatpants: string;
-          cargo: string; wide: string; leggings: string; suit: string; bells: string; baggy: string;
+          cargo: string; wide: string; leggings: string; suit: string;
+          pleated: string; bells: string; baggy: string; techcargo: string;
           hakama: string; salwar: string; lederhosen: string; baji: string;
-          balloon: string; puddle: string; micro: string;
         };
         shoes: {
           sneakers: string; boots: string; loafers: string; sandals: string;
-          heels: string; oxfords: string; slippers: string; platforms: string; tstrap: string; hightops: string;
-          geta: string; cowboy: string; clogs: string; brogues: string;
-          clown: string; towers: string; pebble: string;
+          heels: string; oxfords: string; slippers: string;
+          platforms: string; tstrap: string; chelsea: string; hightops: string; chunky: string;
+          geta: string; tabi: string; cowboy: string; clogs: string; brogues: string; peshawari: string; huarache: string;
         };
         accessory: {
-          none: string; shades: string; crown: string; fishbowl: string; ramen: string; chain: string;
+          none: string; eyewear: string; aviators: string; cybervisors: string;
+          headphones: string; beret: string; silkscarf: string; pearlchain: string;
         };
         expression: {
-          neutral: string; smirk: string; jawdrop: string; eyeroll: string; grin: string;
+          neutral: string; smirk: string; warm: string; cool: string; focused: string;
         };
       };
     };

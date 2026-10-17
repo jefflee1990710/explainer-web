@@ -37,7 +37,7 @@ test("character look prompt names every selected part", () => {
   }
 });
 
-test("preview prompt isolates that one option", () => {
+test("preview prompt isolates that one option with stylish editorial framing and no grotesque options", () => {
   const prompt = characterLookPreviewPrompt("shoes", "boots");
   assert.match(prompt, /dark ankle boots/);
   assert.match(prompt, /No text/);
@@ -46,8 +46,6 @@ test("preview prompt isolates that one option", () => {
   assert.match(prompt, /Not an illustration/);
   assert.match(prompt, /Plain light grey seamless background/);
   assert.equal(characterLookPreviewSrc("shoes", "boots"), "/character-looks/shoes-boots.webp?v=5");
-  assert.match(characterLookPreviewPrompt("hair", "tower"), /physically impossible and extremely exaggerated/);
-  assert.match(characterLookPreviewPrompt("hair", "tower"), /skyscraper/);
   assert.match(characterLookPreviewPrompt("hair", "beehive"), /1960s beehive/);
   assert.match(characterLookPreviewPrompt("hair", "hime"), /Japanese hime cut/);
   assert.doesNotMatch(characterLookPreviewPrompt("hair", "braids"), /Do not braid it/);
@@ -55,18 +53,40 @@ test("preview prompt isolates that one option", () => {
   assert.match(characterLookPreviewPrompt("face", "round"), /Only the face shape changes/);
   assert.match(characterLookPreviewPrompt("face", "monolid"), /Only this facial feature changes/);
   assert.match(characterLookPreviewPrompt("face", "japan"), /Japanese features/);
-  assert.match(characterLookPreviewPrompt("face", "bugeyes"), /physically impossible and extremely exaggerated/);
-  assert.match(characterLookPreviewPrompt("face", "bugeyes"), /Not a caricature of any nationality/);
-  assert.match(characterLookPreviewPrompt("body", "strong"), /physically impossible and extremely exaggerated/);
-  assert.match(characterLookPreviewPrompt("body", "wedge"), /impossible inverted triangle/);
   assert.match(characterLookPreviewPrompt("body", "woman"), /adult woman/);
   assert.match(characterLookPreviewPrompt("pants", "hakama"), /Japanese hakama/);
-  assert.match(characterLookPreviewPrompt("pants", "balloon"), /physically impossible and extremely exaggerated/);
   assert.match(characterLookPreviewPrompt("shoes", "geta"), /Japanese wooden geta/);
-  assert.match(characterLookPreviewPrompt("shoes", "clown"), /physically impossible and extremely exaggerated/);
-  for (const part of CHARACTER_LOOK_PARTS) {
-    for (const option of CHARACTER_LOOKS[part]) {
-      assert.match(characterLookPreviewPrompt(part, option.id), new RegExp(option.prompt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(characterLookPreviewPrompt("top", "neochinese"), /Neo-Chinese/i);
+  assert.match(characterLookPreviewPrompt("top", "bandhgala"), /Bandhgala/i);
+  assert.match(characterLookPreviewPrompt("top", "ankara"), /Ankara/i);
+  assert.match(characterLookPreviewPrompt("top", "sapeur"), /La Sape/i);
+  assert.match(characterLookPreviewPrompt("top", "techwear"), /Berlin/i);
+
+  // Bizarre / grotesque options are removed
+  const removed = [
+    ["hair", "tower"],
+    ["hair", "horns"],
+    ["face", "bugeyes"],
+    ["face", "beak"],
+    ["body", "giant"],
+    ["body", "beanpole"],
+    ["shoes", "clown"],
+    ["accessory", "fishbowl"],
+    ["accessory", "ramen"],
+  ] as const;
+  for (const [part, id] of removed) {
+    assert.equal(
+      optionsForLookPart(part).some((opt) => opt.id === id),
+      false,
+      `${part}:${id} should be removed`,
+    );
+  }
+
+  for (const part of ALL_CHARACTER_LOOK_PARTS) {
+    for (const option of optionsForLookPart(part)) {
+      const p = characterLookPreviewPrompt(part, option.id);
+      assert.match(p, new RegExp(option.prompt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+      assert.doesNotMatch(p, /physically impossible/i);
     }
   }
 });
@@ -105,12 +125,12 @@ test("pose revision keeps the sheet and applies the comment", () => {
   assert.throws(() => poseSheetImageBuffer("https://example.com/a.webp"), /姿勢圖格式不正確/);
 });
 
-test("viral presets, extra parts, gender, exaggeration dial, and crazy mix work as expected", () => {
+test("viral presets, extra parts, gender, styling vibe dial, and global fashion mix work as expected", () => {
   assert.equal(ALL_CHARACTER_LOOK_PARTS.length, 8);
   assert.equal(CHARACTER_VIRAL_PRESETS.length, 4);
   for (const preset of CHARACTER_VIRAL_PRESETS) {
     const prompt = characterLookPrompt(preset.selection);
-    assert.match(prompt, /Exaggeration level/);
+    assert.match(prompt, /Styling vibe/);
     assert.match(prompt, /Gender: adult (woman|man)/);
   }
   const malePrompt = characterLookPrompt({ ...defaultCharacterLook(), gender: "male" });
@@ -124,8 +144,8 @@ test("viral presets, extra parts, gender, exaggeration dial, and crazy mix work 
   );
   assert.equal(locked.hair, "bob");
   assert.equal(locked.exaggeration, "10x");
-  assert.equal(isExaggeratedLookOption("face", locked.face), true);
-  assert.equal(lookOptionCategory("accessory", "fishbowl"), "extreme");
+  assert.equal(isExaggeratedLookOption("top", locked.top ?? ""), true);
+  assert.equal(lookOptionCategory("top", "neochinese"), "extreme");
   assert.equal(lookOptionCategory("top", "hoodie"), "stylized");
   assert.equal(lookOptionCategory("hair", "bob"), "classic");
   for (const part of ALL_CHARACTER_LOOK_PARTS) {

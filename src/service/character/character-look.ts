@@ -1,4 +1,4 @@
-// Picture picks for the character generator. Prompts stay in English for GPT Image.
+// Picture picks for the character generator. Prompts stay in English for image generation.
 import { REALISTIC_CHARACTER_RENDER_RULE } from "@/service/style/realistic-light";
 
 export const CHARACTER_LOOK_PARTS = ["hair", "face", "body", "pants", "shoes"] as const;
@@ -23,27 +23,54 @@ export type CharacterLookOption = {
 
 export const CHARACTER_EXTRA_LOOKS: Record<CharacterExtraPart, readonly CharacterLookOption[]> = {
   top: [
-    { id: "tee", prompt: "a fitted coral red-orange crew-neck t-shirt" },
-    { id: "hoodie", prompt: "an oversized streetwear hoodie in electric lime green" },
-    { id: "blazer", prompt: "a sharp tailored double-breasted blazer" },
-    { id: "puffer", prompt: "an impossibly huge inflated puffer jacket three times wider than the shoulders, like a giant lime-and-coral marshmallow" },
-    { id: "disco", prompt: "a blinding holographic sequin disco jacket with giant pointed shoulder pads wider than the head" },
-    { id: "fur", prompt: "an enormous neon monster faux-fur coat dragging on the floor" },
+    // Classic Essentials
+    { id: "tee", prompt: "a fitted heavyweight crew-neck t-shirt" },
+    { id: "hoodie", prompt: "a structured oversized streetwear hoodie" },
+    { id: "blazer", prompt: "a sharp tailored double-breasted wool blazer" },
+    // Multi-Era & Modern Subculture (1950s–2020s)
+    { id: "varsity", prompt: "a 1950s American Ivy League wool-and-leather varsity letterman jacket" },
+    { id: "parisian", prompt: "a 1960s Parisian Left Bank structured bouclé tweed cropped jacket" },
+    { id: "leather80s", prompt: "a 1980s vintage black leather asymmetric biker jacket" },
+    { id: "seoulminimal", prompt: "a 2020s Seoul K-fashion oversized minimalist charcoal wool blazer layered over a clean knit" },
+    { id: "oldmoney", prompt: "a 2020s Quiet Luxury cream cashmere cable-knit polo sweater" },
+    { id: "techwear", prompt: "a Berlin all-black utilitarian Gorpcore technical shell jacket with matte waterproof zips" },
+    // Global 20 Most Populous Countries — Heritage to Modern Editorial Fashion
+    { id: "neochinese", prompt: "a 2020s Neo-Chinese modern tailored black silk-jacquard stand-collar jacket with minimalist tonal frog buttons" },
+    { id: "shanghai30s", prompt: "a 1930s Shanghai vintage tailored velvet mandarin-collar Tangzhuang jacket with satin piping" },
+    { id: "bandhgala", prompt: "an Indian royal tailored Bandhgala stand-collar structured prince coat in deep midnight navy" },
+    { id: "batik", prompt: "a contemporary Indonesian tailored resort shirt with intricate modern geometric Batik motifs" },
+    { id: "sherwani", prompt: "a modern Pakistani tailored short Sherwani waistcoat layered over a crisp monochrome kurta tunic" },
+    { id: "ankara", prompt: "a Lagos Afro-luxe tailored structured jacket in bold contemporary Ankara geometric wax-print" },
+    { id: "ipanema", prompt: "a 1970s Rio Ipanema relaxed tropical open-collar linen resort blazer" },
+    { id: "jamdani", prompt: "a minimalist Dhaka heritage handloom Jamdani woven cotton-silk tunic shirt with subtle geometric weave" },
+    { id: "avanttrench", prompt: "a post-Soviet constructivist oversized double-breasted architectural trench coat" },
+    { id: "habesha", prompt: "a modern Addis Ababa tailored off-white handwoven cotton jacket with traditional Ethiopian Tibeb geometric border trim" },
+    { id: "guayabera", prompt: "a 1960s Acapulco modernist pleated linen Guayabera four-pocket resort shirt" },
+    { id: "noragi", prompt: "a Tokyo contemporary indigo-dyed sashiko denim Noragi kimono-collar work jacket" },
+    { id: "cairo", prompt: "a modern Cairo luxury sand-toned Egyptian-cotton belted safari shirt-jacket" },
+    { id: "barong", prompt: "a contemporary Manila sheer-woven piña-organza Barong Tagalog overshirt with tonal geometric embroidery layered over a clean undershirt" },
+    { id: "sapeur", prompt: "a Congolese La Sape dandy tailored vibrant double-breasted suit jacket with a crisp silk pocket square" },
+    { id: "aodai", prompt: "a modern Saigon high-slit tailored Áo Dài tunic blazer with a minimalist stand collar" },
+    { id: "manteau", prompt: "a Tehran contemporary long tailored open-front Manteau coat with subtle Persian Termeh brocade trim" },
+    { id: "anatolian", prompt: "an Istanbul modern tailored espresso suede-and-shearling aviator jacket" },
+    { id: "thaisilk", prompt: "a Bangkok contemporary structured iridescent Thai-silk boxy cropped jacket" },
   ],
   accessory: [
     { id: "none", prompt: "no accessories, bare head and hands" },
-    { id: "shades", prompt: "oversized neon lime shutter sunglasses twice as wide as the face" },
-    { id: "crown", prompt: "a tilted giant golden crown sitting on top of the head" },
-    { id: "fishbowl", prompt: "a transparent glass astronaut fishbowl helmet over the head with a tiny orange goldfish swimming inside" },
-    { id: "ramen", prompt: "a steaming ceramic ramen bowl balanced precariously on top of the head with chopsticks floating in the noodles" },
-    { id: "chain", prompt: "an absurdly thick cartoon-sized gold rope chain necklace with links as big as fists" },
+    { id: "eyewear", prompt: "sleek vintage tortoiseshell optical glasses" },
+    { id: "aviators", prompt: "1970s gold-wire amber-tinted aviator sunglasses" },
+    { id: "cybervisors", prompt: "2000s Y2K rimless metallic shield sunglasses" },
+    { id: "headphones", prompt: "minimalist brushed-aluminum over-ear studio headphones worn around the neck" },
+    { id: "beret", prompt: "a Parisian black wool beret tilted cleanly on the head" },
+    { id: "silkscarf", prompt: "a 1960s Italian printed silk neck scarf knotted neatly at the collar" },
+    { id: "pearlchain", prompt: "a modern unisex minimalist silver-and-pearl layered neck chain" },
   ],
   expression: [
-    { id: "neutral", prompt: "calm neutral expression looking straight into the lens" },
-    { id: "smirk", prompt: "a confident asymmetrical smirk with one eyebrow cocked high" },
-    { id: "jawdrop", prompt: "an extreme jaw-dropped shock expression with the mouth wide open and eyes popping in disbelief" },
-    { id: "eyeroll", prompt: "an exaggerated deadpan unimpressed eye-roll with half-lidded eyes" },
-    { id: "grin", prompt: "a manic ear-to-ear viral villain grin showing all teeth with wide gleaming eyes" },
+    { id: "neutral", prompt: "calm composed editorial gaze looking straight into the lens" },
+    { id: "smirk", prompt: "a confident charismatic half-smile with one eyebrow subtly raised" },
+    { id: "warm", prompt: "a warm approachable creator smile with bright engaged eyes" },
+    { id: "cool", prompt: "an effortless high-fashion model gaze with a relaxed jaw and composed posture" },
+    { id: "focused", prompt: "a sharp articulate founder expression speaking with conviction" },
   ],
 };
 
@@ -66,12 +93,6 @@ export const CHARACTER_LOOKS: Record<CharacterLookPart, readonly CharacterLookOp
     { id: "braids", prompt: "long thin box braids starting in a neat grid at the scalp and falling past the shoulders" },
     { id: "chignon", prompt: "three-quarter view turned slightly away so the nape is visible. Exactly one smooth round bun sits in the center of the nape. Side hair is pulled flat into that single bun. Only one bun, not a bun beside each ear" },
     { id: "plait", prompt: "one thick three-strand braid resting on the front of one shoulder, centre part, the rest of the hair gathered into that braid" },
-    { id: "tower", prompt: "a solid tower of hair rising straight up, three times taller than the head, like a skyscraper" },
-    { id: "spikes", prompt: "dozens of long rigid hair spikes shooting out in every direction, wider than the shoulders" },
-    { id: "cloud", prompt: "one enormous round cloud of hair, several times bigger than the head" },
-    { id: "drills", prompt: "two giant horizontal corkscrew drills of hair, one sticking far out from each side of the head" },
-    { id: "fountain", prompt: "hair blasting straight up then exploding outward like a fountain, filling the whole frame" },
-    { id: "horns", prompt: "two huge smooth horns of hair, each longer than the head, curving up and outward" },
   ],
   face: [
     { id: "round", prompt: "round face with soft cheeks" },
@@ -96,72 +117,56 @@ export const CHARACTER_LOOKS: Record<CharacterLookPart, readonly CharacterLookOp
     { id: "usa", prompt: "American features: light skin, double eyelids, a straight medium nose, a defined jaw, and medium lips" },
     { id: "latin", prompt: "Latin American features: warm olive skin, dark eyes, a softly rounded nose, and full lips" },
     { id: "mideast", prompt: "Middle Eastern features: olive skin, thick dark brows, large dark eyes, a prominent nose bridge, and medium lips" },
-    { id: "bugeyes", prompt: "two eyes each as large as the mouth, bulging and round" },
-    { id: "pin", prompt: "two tiny dot eyes, much smaller than the nostrils" },
-    { id: "beak", prompt: "a nose longer than the whole face, sticking straight out toward the camera" },
-    { id: "balloon", prompt: "lips larger than both cheeks, filling the lower half of the picture" },
-    { id: "dumbo", prompt: "two ears each larger than the head, sticking out sideways" },
-    { id: "stretch", prompt: "a face three times longer than it is wide, with the forehead and chin far apart" },
   ],
   body: [
     { id: "slim", prompt: "slim build" },
     { id: "average", prompt: "average build" },
     { id: "broad", prompt: "broad shoulders and a sturdy build" },
     { id: "petite", prompt: "short petite build" },
-    { id: "short", prompt: "an extremely short adult, about half a normal height, standing in the lower half of the frame with empty space above the head" },
-    { id: "tall", prompt: "an extremely tall adult whose head and feet touch the edges of the frame, with very long legs" },
-    { id: "heavy", prompt: "a very fat body with a large round belly and thick arms and legs" },
-    { id: "skinny", prompt: "an extremely skinny body, stick-thin arms and legs" },
+    { id: "tall", prompt: "a tall model-proportioned adult with long legs and an upright posture" },
     { id: "woman", prompt: "an adult woman with a feminine waist and hips" },
     { id: "man", prompt: "an adult man with a broader chest and narrower hips" },
     { id: "hourglass", prompt: "an hourglass figure, full hips and chest with a narrow waist" },
-    { id: "athletic", prompt: "a lean athletic build with visible muscle but not bulky" },
-    { id: "strong", prompt: "cartoon-strong muscles, each arm thicker than the waist, shoulders wider than two normal people" },
-    { id: "giant", prompt: "a body almost as wide as it is tall, a huge round ball of a torso" },
-    { id: "beanpole", prompt: "a body about ten times taller than it is wide, like a walking stick" },
-    { id: "hulk", prompt: "muscles bigger than the head on the chest, arms, and thighs" },
-    { id: "sumo", prompt: "a sumo wrestler body, enormous belly and thighs, very short legs" },
-    { id: "corset", prompt: "a 1900s hourglass pulled to an impossible tiny waist, small enough to circle with two hands" },
-    { id: "muscle", prompt: "a 1980s bodybuilder with balloon-sized muscles on every limb" },
-    { id: "wedge", prompt: "an impossible inverted triangle man, shoulders wider than the torso is tall, waist thinner than his head" },
+    { id: "athletic", prompt: "a lean athletic build with visible muscle tone but not bulky" },
   ],
   pants: [
     { id: "jeans", prompt: "straight blue jeans" },
     { id: "chinos", prompt: "tailored beige chinos" },
     { id: "shorts", prompt: "knee-length shorts" },
-    { id: "sweatpants", prompt: "loose grey sweatpants" },
+    { id: "sweatpants", prompt: "relaxed heather-grey loopback sweatpants" },
     { id: "cargo", prompt: "olive cargo pants with large flap pockets on the thighs" },
-    { id: "wide", prompt: "very wide-leg trousers that swing far out from the legs" },
-    { id: "leggings", prompt: "tight black leggings" },
-    { id: "suit", prompt: "tailored dark navy suit trousers with a crease" },
-    { id: "bells", prompt: "1970s bell-bottom jeans, tight at the thigh and huge flares at the hem" },
-    { id: "baggy", prompt: "1990s extremely baggy jeans pooling over the shoes" },
-    { id: "hakama", prompt: "Japanese hakama, wide pleated traditional trousers" },
-    { id: "salwar", prompt: "Indian salwar, loose trousers gathered at the ankle" },
-    { id: "lederhosen", prompt: "German lederhosen, short brown leather pants with suspenders" },
-    { id: "baji", prompt: "Korean hanbok baji, loose traditional pants tied at the ankle" },
-    { id: "balloon", prompt: "pants so wide they are wider than the wearer is tall, a huge fabric ball" },
-    { id: "puddle", prompt: "pants many times longer than the legs, piled in huge fabric pools on the floor" },
-    { id: "micro", prompt: "shorts smaller than a hand, barely covering the top of the thighs" },
+    { id: "wide", prompt: "draped high-waisted wide-leg trousers" },
+    { id: "leggings", prompt: "sleek matte black athletic leggings" },
+    { id: "suit", prompt: "tailored dark navy suit trousers with a sharp center crease" },
+    { id: "pleated", prompt: "1950s Italian high-waisted tailored double-pleated wide wool trousers" },
+    { id: "bells", prompt: "1970s vintage flare bell-bottom denim jeans" },
+    { id: "baggy", prompt: "1990s NYC streetwear relaxed baggy denim jeans" },
+    { id: "techcargo", prompt: "2020s articulated matte black technical nylon Gorpcore cargo pants" },
+    { id: "hakama", prompt: "Japanese hakama, wide pleated architectural trousers" },
+    { id: "salwar", prompt: "South Asian tailored tapered salwar trousers" },
+    { id: "lederhosen", prompt: "German heritage brown suede leather trousers with tailored seams" },
+    { id: "baji", prompt: "Korean modern hanbok baji wide-cut tapered trousers" },
   ],
   shoes: [
     { id: "sneakers", prompt: "white sneakers" },
     { id: "boots", prompt: "dark ankle boots" },
-    { id: "loafers", prompt: "brown leather loafers" },
+    { id: "loafers", prompt: "brown leather penny loafers" },
     { id: "sandals", prompt: "open sandals" },
-    { id: "heels", prompt: "black high-heeled pumps" },
-    { id: "oxfords", prompt: "black leather oxford dress shoes" },
-    { id: "slippers", prompt: "soft house slippers" },
-    { id: "platforms", prompt: "thick platform shoes with a tall sole" },
-    { id: "tstrap", prompt: "1920s T-strap heels with a strap down the front of the foot" },
-    { id: "hightops", prompt: "1980s canvas high-top sneakers with a tall ankle collar" },
-    { id: "geta", prompt: "Japanese wooden geta sandals with two teeth under the sole" },
-    { id: "cowboy", prompt: "American cowboy boots with a pointed toe and a stacked heel" },
-    { id: "clogs", prompt: "Dutch wooden clogs" },
-    { id: "brogues", prompt: "British brogues with decorative perforations on the leather" },
-    { id: "clown", prompt: "clown shoes longer than a person's legs, with huge round toes" },
-    { id: "towers", prompt: "heels taller than the shoe is long, impossibly high spikes" },
-    { id: "pebble", prompt: "a tiny pair of shoes the size of coins, surrounded by empty floor so they look miniature" },
+    { id: "heels", prompt: "sleek black pointed-toe high-heeled pumps" },
+    { id: "oxfords", prompt: "polished black leather oxford dress shoes" },
+    { id: "slippers", prompt: "minimalist suede mules" },
+    { id: "platforms", prompt: "1970s sculptural thick-sole platform shoes" },
+    { id: "tstrap", prompt: "1920s Art Deco T-strap leather heels" },
+    { id: "chelsea", prompt: "1960s London sleek black leather Chelsea ankle boots" },
+    { id: "hightops", prompt: "1980s retro leather-and-canvas high-top basketball sneakers" },
+    { id: "chunky", prompt: "2020s luxury architectural chunky-sole runner sneakers" },
+    { id: "geta", prompt: "Japanese wooden geta sandals with fabric straps" },
+    { id: "tabi", prompt: "Tokyo avant-garde split-toe black leather Tabi ankle boots" },
+    { id: "cowboy", prompt: "American heritage stitched leather western cowboy boots" },
+    { id: "clogs", prompt: "European sculptural wooden-sole leather clogs" },
+    { id: "brogues", prompt: "British and Congolese Sapeur two-tone perforated wingtip leather brogues" },
+    { id: "peshawari", prompt: "Pakistani handcrafted double-strap braided leather Peshawari chappal sandals" },
+    { id: "huarache", prompt: "Mexican artisanal hand-woven cognac leather Huarache loafers" },
   ],
 };
 
@@ -212,74 +217,98 @@ export function characterLookOption(part: AnyCharacterLookPart, id: string) {
   return optionsForLookPart(part).find((option) => option.id === id);
 }
 
-// Public file for the Gemini preview of one option.
+// Public file for the studio preview of one option.
 export function characterLookPreviewSrc(part: AnyCharacterLookPart, id: string) {
   if (!isCharacterLookId(part, id)) return "";
   return `/character-looks/${part}-${id}.webp?v=5`;
 }
 
-const EXAGGERATED_HAIR = new Set(["tower", "spikes", "cloud", "drills", "fountain", "horns"]);
-
-// Era and regional cuts that are pinned, braided, or longer than a neck crop.
-const FULL_HAIR = new Set([
-  "waves",
-  "rolls",
-  "beehive",
-  "feathered",
-  "mullet",
-  "wolf",
-  "hime",
-  "korean",
-  "afro",
-  "braids",
-  "chignon",
-  "plait",
-]);
+// Global 20-country cultural & regional signature fashion items (mapped to the "extreme" / Global Heritage tab).
+const GLOBAL_HERITAGE_HAIR = new Set(["hime", "korean", "afro", "braids", "chignon", "plait"]);
+const ERA_STYLIZED_HAIR = new Set(["waves", "rolls", "beehive", "feathered", "mullet", "wolf"]);
+const FULL_HAIR = new Set([...GLOBAL_HERITAGE_HAIR, ...ERA_STYLIZED_HAIR]);
 
 const FEATURE_FACE = new Set(["monolid", "doe", "brows", "ears", "button", "aquiline", "full", "thin"]);
 const REGION_FACE = new Set(["east", "japan", "korea", "south", "sea", "africa", "europe", "usa", "latin", "mideast"]);
-const EXAGGERATED_FACE = new Set(["bugeyes", "pin", "beak", "balloon", "dumbo", "stretch"]);
 
-const VARIETY_BODY = new Set(["short", "tall", "heavy", "skinny", "woman", "man", "hourglass", "athletic"]);
-const EXAGGERATED_BODY = new Set(["strong", "giant", "beanpole", "hulk", "sumo", "corset", "muscle", "wedge"]);
-const EXAGGERATED_PANTS = new Set(["balloon", "puddle", "micro"]);
-const EXAGGERATED_SHOES = new Set(["clown", "towers", "pebble"]);
-const EXAGGERATED_TOP = new Set(["puffer", "disco", "fur"]);
-const EXAGGERATED_ACCESSORY = new Set(["shades", "fishbowl", "ramen", "chain"]);
-const EXAGGERATED_EXPRESSION = new Set(["jawdrop", "eyeroll", "grin"]);
+const VARIETY_BODY = new Set(["tall", "woman", "man", "hourglass", "athletic"]);
 
+const GLOBAL_HERITAGE_TOP = new Set([
+  "neochinese",
+  "shanghai30s",
+  "bandhgala",
+  "batik",
+  "sherwani",
+  "ankara",
+  "ipanema",
+  "jamdani",
+  "avanttrench",
+  "habesha",
+  "guayabera",
+  "noragi",
+  "cairo",
+  "barong",
+  "sapeur",
+  "aodai",
+  "manteau",
+  "anatolian",
+  "thaisilk",
+]);
+const ERA_STYLIZED_TOP = new Set([
+  "hoodie",
+  "varsity",
+  "parisian",
+  "leather80s",
+  "seoulminimal",
+  "oldmoney",
+  "techwear",
+]);
+
+const GLOBAL_HERITAGE_PANTS = new Set(["hakama", "salwar", "lederhosen", "baji"]);
+const ERA_STYLIZED_PANTS = new Set(["pleated", "bells", "baggy", "techcargo"]);
+
+const GLOBAL_HERITAGE_SHOES = new Set(["geta", "tabi", "cowboy", "clogs", "brogues", "peshawari", "huarache"]);
+const ERA_STYLIZED_SHOES = new Set(["platforms", "tstrap", "chelsea", "hightops", "chunky"]);
+
+const GLOBAL_HERITAGE_ACCESSORY = new Set(["beret", "silkscarf", "pearlchain"]);
+const ERA_STYLIZED_ACCESSORY = new Set(["eyewear", "aviators", "cybervisors", "headphones"]);
+
+const EDITORIAL_EXPRESSION = new Set(["cool", "focused"]);
+const STYLIZED_EXPRESSION = new Set(["smirk", "warm"]);
+
+// Identifies Global 20-Country / Runway signature options (displayed under the first highlight tab & badge).
 export function isExaggeratedLookOption(part: AnyCharacterLookPart, id: string): boolean {
   switch (part) {
     case "hair":
-      return EXAGGERATED_HAIR.has(id);
+      return GLOBAL_HERITAGE_HAIR.has(id);
     case "face":
-      return EXAGGERATED_FACE.has(id);
+      return REGION_FACE.has(id);
     case "body":
-      return EXAGGERATED_BODY.has(id) || id === "short" || id === "tall";
-    case "pants":
-      return EXAGGERATED_PANTS.has(id);
-    case "shoes":
-      return EXAGGERATED_SHOES.has(id);
+      return id === "tall" || id === "athletic" || id === "hourglass";
     case "top":
-      return EXAGGERATED_TOP.has(id);
+      return GLOBAL_HERITAGE_TOP.has(id);
+    case "pants":
+      return GLOBAL_HERITAGE_PANTS.has(id);
+    case "shoes":
+      return GLOBAL_HERITAGE_SHOES.has(id);
     case "accessory":
-      return EXAGGERATED_ACCESSORY.has(id);
+      return GLOBAL_HERITAGE_ACCESSORY.has(id);
     case "expression":
-      return EXAGGERATED_EXPRESSION.has(id);
+      return EDITORIAL_EXPRESSION.has(id);
   }
 }
 
 export function lookOptionCategory(part: AnyCharacterLookPart, id: string): Exclude<CharacterLookCategory, "all"> {
   if (isExaggeratedLookOption(part, id)) return "extreme";
   if (
-    (part === "hair" && FULL_HAIR.has(id)) ||
-    (part === "face" && (FEATURE_FACE.has(id) || REGION_FACE.has(id))) ||
+    (part === "hair" && ERA_STYLIZED_HAIR.has(id)) ||
+    (part === "face" && FEATURE_FACE.has(id)) ||
     (part === "body" && VARIETY_BODY.has(id)) ||
-    (part === "pants" && ["bells", "baggy", "hakama", "salwar", "lederhosen", "baji"].includes(id)) ||
-    (part === "shoes" && ["platforms", "tstrap", "hightops", "geta", "cowboy", "clogs", "brogues"].includes(id)) ||
-    (part === "top" && ["hoodie", "blazer"].includes(id)) ||
-    (part === "accessory" && id === "crown") ||
-    (part === "expression" && id === "smirk")
+    (part === "top" && ERA_STYLIZED_TOP.has(id)) ||
+    (part === "pants" && ERA_STYLIZED_PANTS.has(id)) ||
+    (part === "shoes" && ERA_STYLIZED_SHOES.has(id)) ||
+    (part === "accessory" && ERA_STYLIZED_ACCESSORY.has(id)) ||
+    (part === "expression" && STYLIZED_EXPRESSION.has(id))
   ) {
     return "stylized";
   }
@@ -296,59 +325,59 @@ export const CHARACTER_VIRAL_PRESETS: readonly ViralCharacterPreset[] = [
     id: "skyscraperDiva",
     selection: {
       gender: "female",
-      hair: "tower",
-      face: "balloon",
-      body: "corset",
-      top: "disco",
-      pants: "bells",
-      shoes: "towers",
-      accessory: "shades",
-      expression: "smirk",
-      exaggeration: "10x",
+      hair: "korean",
+      face: "korea",
+      body: "slim",
+      top: "seoulminimal",
+      pants: "wide",
+      shoes: "chunky",
+      accessory: "eyewear",
+      expression: "warm",
+      exaggeration: "3x",
     },
   },
   {
     id: "muscleTitan",
     selection: {
       gender: "male",
-      hair: "spikes",
-      face: "square",
-      body: "wedge",
-      top: "puffer",
-      pants: "micro",
+      hair: "wolf",
+      face: "europe",
+      body: "athletic",
+      top: "techwear",
+      pants: "techcargo",
       shoes: "boots",
-      accessory: "chain",
-      expression: "grin",
-      exaggeration: "10x",
+      accessory: "headphones",
+      expression: "cool",
+      exaggeration: "3x",
     },
   },
   {
     id: "bugeyeHype",
     selection: {
-      gender: "male",
-      hair: "cloud",
-      face: "bugeyes",
-      body: "short",
-      top: "hoodie",
-      pants: "balloon",
-      shoes: "clown",
-      accessory: "fishbowl",
-      expression: "jawdrop",
-      exaggeration: "10x",
+      gender: "female",
+      hair: "hime",
+      face: "east",
+      body: "slim",
+      top: "neochinese",
+      pants: "pleated",
+      shoes: "tabi",
+      accessory: "pearlchain",
+      expression: "smirk",
+      exaggeration: "3x",
     },
   },
   {
     id: "ramenGremlin",
     selection: {
-      gender: "female",
-      hair: "horns",
-      face: "dumbo",
-      body: "beanpole",
-      top: "fur",
-      pants: "puddle",
-      shoes: "pebble",
-      accessory: "ramen",
-      expression: "eyeroll",
+      gender: "male",
+      hair: "feathered",
+      face: "usa",
+      body: "average",
+      top: "oldmoney",
+      pants: "suit",
+      shoes: "loafers",
+      accessory: "aviators",
+      expression: "focused",
       exaggeration: "3x",
     },
   },
@@ -382,32 +411,13 @@ export function randomizeCharacterLook(
   return next;
 }
 
-// Body, pants, and shoes: ordinary options stay plain. Extremes must not be tamed.
 function bodyPreview(id: string, prompt: string) {
-  if (id === "wedge") {
-    return [
-      "Subject: one shirtless adult man, front view. The entire body from head to feet is visible.",
-      "Dark pants. Exactly two arms of normal thickness hanging at his sides. No wings and no extra limbs.",
-      `The body is physically impossible and extremely exaggerated: ${prompt}.`,
-      "Do not tame it into a normal man. The shoulder-to-waist triangle fills the frame width.",
-      "A real photograph of an impossible body, not a cartoon drawing.",
-    ].join(" ");
-  }
-  if (EXAGGERATED_BODY.has(id)) {
-    return [
-      "Subject: one full standing person, front view, feet visible, arms hanging at the sides.",
-      "Plain grey clothes.",
-      `The body is physically impossible and extremely exaggerated: ${prompt}.`,
-      "Do not tame it into a normal body.",
-      "A real photograph of an impossible body, not a cartoon drawing.",
-    ].join(" ");
-  }
   if (VARIETY_BODY.has(id)) {
     return [
       "Subject: one full standing person, front view, arms at the sides, feet visible.",
       "Plain light grey t-shirt, dark navy pants, simple dark shoes. Neutral face, not the subject.",
       `The build must match exactly: ${prompt}.`,
-      "Leave empty background where needed so the unusual height or width stays obvious. Do not zoom into a normal crop.",
+      "Leave empty background where needed so the height or silhouette stays obvious. Do not zoom into a close crop.",
     ].join(" ");
   }
   return [
@@ -419,14 +429,7 @@ function bodyPreview(id: string, prompt: string) {
   ].join(" ");
 }
 
-function pantsPreview(id: string, prompt: string) {
-  if (EXAGGERATED_PANTS.has(id)) {
-    return [
-      "Subject: only the pants, front view, worn by an invisible figure.",
-      `The pants are physically impossible and extremely exaggerated: ${prompt}.`,
-      "No shirt, no shoes, no head, no hands. The pants fill the frame.",
-    ].join(" ");
-  }
+function pantsPreview(_id: string, prompt: string) {
   return [
     "Subject: only the pants, front view, as if worn by an invisible figure, from waist to hem.",
     "No shirt, no shoes, no head, no hands.",
@@ -435,14 +438,7 @@ function pantsPreview(id: string, prompt: string) {
   ].join(" ");
 }
 
-function shoesPreview(id: string, prompt: string) {
-  if (EXAGGERATED_SHOES.has(id)) {
-    return [
-      "Subject: one pair of shoes, three-quarter view, both shoes visible.",
-      `The shoes are physically impossible and extremely exaggerated: ${prompt}.`,
-      "No person. The exaggeration must dominate the picture.",
-    ].join(" ");
-  }
+function shoesPreview(_id: string, prompt: string) {
   return [
     "Subject: one pair of shoes, three-quarter view, both shoes visible, resting on the ground.",
     "No legs above the ankle, no person.",
@@ -451,17 +447,7 @@ function shoesPreview(id: string, prompt: string) {
   ].join(" ");
 }
 
-// Face previews: shape, one feature, a regional look, or an impossible proportion.
 function facePreview(id: string, prompt: string) {
-  if (EXAGGERATED_FACE.has(id)) {
-    return [
-      "Subject: one head, front view, facing the camera, short hair, neutral expression.",
-      `The face is physically impossible and extremely exaggerated: ${prompt}.`,
-      "The exaggeration must dominate the picture. Do not tame it into a normal face.",
-      "Not a caricature of any nationality. A real photograph of an impossible face.",
-      "Show the whole exaggeration.",
-    ].join(" ");
-  }
   if (REGION_FACE.has(id)) {
     return [
       "Subject: one head and neck, front view, facing the camera.",
@@ -503,23 +489,16 @@ export function characterLookPreviewPrompt(part: AnyCharacterLookPart, id: strin
   const option = characterLookOption(part, id);
   if (!option) throw new Error(`Unknown ${part} look: ${id}`);
   const subject: Record<AnyCharacterLookPart, string> = {
-    hair: EXAGGERATED_HAIR.has(id)
+    hair: FULL_HAIR.has(id)
       ? [
-          "Subject: one head, front view, facing the camera, light warm skin, neutral expression.",
-          `The hair is physically impossible and extremely exaggerated: ${option.prompt}.`,
-          "The hairstyle must be much larger than the head and dominate the picture. Do not tame it into a normal haircut.",
-          "Show the entire hairstyle, even when it extends far past the head.",
+          "Subject: one person, facing the camera, light warm skin, round face, neutral expression, no glasses.",
+          "Front view, unless the description asks for another angle.",
+          `The hairstyle is the subject and must match exactly: ${option.prompt}.`,
+          "Show the entire hairstyle, including hair piled on the head or hanging past the shoulders.",
+          "Do not replace it with a plain loose haircut.",
+          "Include only as much of the shoulders as needed to show the hair.",
         ].join(" ")
-      : FULL_HAIR.has(id)
-        ? [
-            "Subject: one person, facing the camera, light warm skin, round face, neutral expression, no glasses.",
-            "Front view, unless the description asks for another angle.",
-            `The hairstyle is the subject and must match exactly: ${option.prompt}.`,
-            "Show the entire hairstyle, including hair piled on the head or hanging past the shoulders.",
-            "Do not replace it with a plain loose haircut.",
-            "Include only as much of the shoulders as needed to show the hair.",
-          ].join(" ")
-        : [
+      : [
           "Subject: one head and neck, front view, facing the camera.",
           "Same person every time: light warm skin, round face, neutral expression, no glasses.",
           `Only the hair changes: ${option.prompt}.`,
@@ -531,19 +510,19 @@ export function characterLookPreviewPrompt(part: AnyCharacterLookPart, id: strin
     top: [
       "Subject: only the upper-body top garment on an invisible mannequin, front view.",
       `The garment is: ${option.prompt}.`,
-      "No head, no pants, no shoes. Centered and filling the frame.",
+      "No head, no pants, no shoes. Centered and filling the frame with crisp fabric drape and tailoring detail.",
     ].join(" "),
     pants: pantsPreview(id, option.prompt),
     shoes: shoesPreview(id, option.prompt),
     accessory: [
-      "Subject: one head and shoulders mannequin wearing or holding the signature prop, front view.",
-      `The signature prop/accessory is: ${option.prompt}.`,
-      "Make the accessory huge, vivid, and unmistakable.",
+      "Subject: one head and shoulders mannequin wearing the fashion accessory, front view.",
+      `The fashion accessory is: ${option.prompt}.`,
+      "Make the accessory clean, stylish, and unmistakable.",
     ].join(" "),
     expression: [
       "Subject: one head, front view, facing the camera, short hair.",
-      `The facial expression is extremely vivid and exaggerated: ${option.prompt}.`,
-      "Do not tame it into a polite smile.",
+      `The facial expression is charismatic and editorial: ${option.prompt}.`,
+      "Natural photorealistic camera presence.",
     ].join(" "),
   };
   return `${PREVIEW_FRAME} ${subject[part]}`;
@@ -551,11 +530,11 @@ export function characterLookPreviewPrompt(part: AnyCharacterLookPart, id: strin
 
 const EXAGGERATION_PROMPT: Record<CharacterExaggerationLevel, string> = {
   "1x": "",
-  "3x": "Exaggeration level 3x (Viral Streetwear Caricature): push the silhouette, contrast, and proportions 3x bolder than an ordinary person so the character grabs attention immediately.",
-  "10x": "Exaggeration level 10x (Scroll-Stopping Fever Dream): push every selected proportion to an extreme, physically impossible, viral show-stopping scale with bold 12mm wide-angle presence — never tame or normalize the silhouette.",
+  "3x": "Styling vibe: Editorial Street Chic — sharp tailored silhouette, crisp fabric drape, confident creator posture, and magazine-ready lighting contrast.",
+  "10x": "Styling vibe: High-Fashion Runway Campaign — bold luxury campaign presence, impeccable sartorial structure, and striking editorial charisma with natural human proportions.",
 };
 
-// One description for the blueprint. Every selected part is named so GPT Image keeps the combination.
+// One description for the blueprint. Every selected part is named so the image model keeps the combination.
 export function characterLookPrompt(selection: CharacterLookSelection) {
   const lines: string[] = [];
   if (selection.gender === "male") {

@@ -133,29 +133,29 @@ describe("merge scro media after regenerate", () => {
 		scroClipNumber: 1,
 	});
 
-	it("keeps the clip video and hides the scene still", () => {
+	it("displays the ScroVideo card when only the scene still exists (frames_ready) and swaps to the new still on regenerate", () => {
 		const merged = mergeScroMediaAssets({
 			assets: [oldVideo, newStill],
 			clips: [clip({ stage: "frames_ready", posterUrl: NEW_STILL })],
 		});
 		assert.deepEqual(
 			merged.map((item) => item.id),
-			["old-video"],
+			["new-still"],
 		);
 	});
 
-	it("keeps the clip video when the still was redrawn over it", () => {
+	it("displays the new start still card when frames were redrawn over an old video (staleVideo)", () => {
 		const merged = mergeScroMediaAssets({
 			assets: [oldVideo, newStill],
 			clips: [clip({ stage: "video_ready", staleVideo: true, posterUrl: NEW_STILL })],
 		});
 		assert.deepEqual(
 			merged.map((item) => item.id),
-			["old-video"],
+			["new-still"],
 		);
 	});
 
-	it("shows the newest video and drops both scene stills", () => {
+	it("shows the newest video when video_ready and drops loose scene stills", () => {
 		const looseStill = asset({
 			id: "loose-still",
 			name: "start.webp",
@@ -185,26 +185,30 @@ describe("merge scro media after regenerate", () => {
 		);
 	});
 
-	it("omits a clip that only has a scene still", () => {
+	it("displays a ScroVideo clip that only has a scene still (frames_ready)", () => {
 		const merged = mergeScroMediaAssets({
 			assets: [newStill],
 			clips: [clip({ stage: "frames_ready", posterUrl: NEW_STILL })],
 		});
-		assert.deepEqual(merged, []);
+		assert.deepEqual(
+			merged.map((item) => item.id),
+			["new-still"],
+		);
 	});
 
-	it("drops restored Clip N · Start stills and /frames/ images even before clips load", () => {
+	it("drops standalone Clip N · Start stills while keeping one ScroVideo card per clip", () => {
 		const restoredStartStill = asset({
 			id: "restored-start",
 			name: "Clip 1 · Start",
 			type: "image",
 			url: "https://cdn.example/explainer/v1/opencut/restored-start",
 		});
-		const restoredFrame = asset({
-			id: "restored-frame",
-			name: "Clip 2.webp",
+		const clip2Still = asset({
+			id: "clip2-still",
+			name: "Clip 2",
 			type: "image",
 			url: "https://cdn.example/explainer/v1/frames/f2",
+			scroClipNumber: 2,
 		});
 		const upload = asset({
 			id: "upload",
@@ -214,17 +218,13 @@ describe("merge scro media after regenerate", () => {
 		});
 		assert.deepEqual(
 			mergeScroMediaAssets({
-				assets: [restoredStartStill, restoredFrame, upload, newVideo],
-				clips: undefined,
+				assets: [restoredStartStill, clip2Still, upload, newVideo],
+				clips: [
+					clip({ clipNumber: 1, stage: "video_ready", videoUrl: "https://cdn.example/clip-1.mp4" }),
+					clip({ clipNumber: 2, stage: "frames_ready", posterUrl: "https://cdn.example/explainer/v1/frames/f2" }),
+				],
 			}).map((item) => item.id),
-			["upload"],
-		);
-		assert.deepEqual(
-			mergeScroMediaAssets({
-				assets: [restoredStartStill, restoredFrame, upload, newVideo],
-				clips: [clip({ stage: "video_ready", videoUrl: "https://cdn.example/clip-1.mp4" })],
-			}).map((item) => item.id),
-			["new-video", "upload"],
+			["new-video", "clip2-still", "upload"],
 		);
 	});
 
