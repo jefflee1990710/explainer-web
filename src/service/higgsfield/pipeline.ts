@@ -63,6 +63,11 @@ import {
 } from "@/service/higgsfield/reconcile";
 import { scheduleGenerationFinishedEmail } from "@/service/notify/generation-email";
 import { queueReelIfReady } from "@/service/reel/enqueue";
+import {
+  collectClipVideoBlobUrls,
+  collectFrameBlobUrls,
+} from "@/service/video/storage";
+import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { retimeMp4 } from "@/service/reel/retime";
 import { swapClipVoice } from "@/service/voice/voice-swap";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
@@ -280,14 +285,71 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
     ownerClerkUserId: project.clerkUserId,
   });
 
-  await jobs.deleteMany({
+  const frameJobFilter = {
     projectId: project._id,
-    kind: "frame",
+    kind: "frame" as const,
     $or: targets.map((target) => ({
       clipIndex: target.clipNumber - 1,
       framePosition: target.position,
     })),
+  };
+  const targetClipNumbers = [...new Set(targets.map((target) => target.clipNumber))];
+  const removableVideoClips = targetClipNumbers.filter((clipNumber) => {
+    const existing = project.clips.find((clip) => clip.clipNumber === clipNumber);
+    return existing && existing.status !== "queued" && existing.status !== "in_progress";
   });
+  const [oldFrameJobs, oldVideoJobs] = await Promise.all([
+    jobs.find(frameJobFilter).toArray(),
+    removableVideoClips.length > 0
+      ? jobs
+          .find({
+            projectId: project._id,
+            kind: "video",
+            clipIndex: { $in: removableVideoClips.map((clipNumber) => clipNumber - 1) },
+          })
+          .toArray()
+      : Promise.resolve([]),
+  ]);
+  const keepRevisionUrls = targets
+    .map((target) => target.revision?.annotatedUrl)
+    .filter((url): url is string => Boolean(url));
+  const oldUrls = [
+    ...collectFrameBlobUrls(project.frames, targets, oldFrameJobs, keepRevisionUrls),
+    ...collectClipVideoBlobUrls(project, removableVideoClips, oldVideoJobs),
+  ];
+
+  await Promise.all([
+    jobs.deleteMany(frameJobFilter),
+    removableVideoClips.length > 0
+      ? jobs.deleteMany({
+          projectId: project._id,
+          kind: "video",
+          clipIndex: { $in: removableVideoClips.map((clipNumber) => clipNumber - 1) },
+        })
+      : Promise.resolve(),
+    deleteExplainerBlobUrls(oldUrls),
+  ]);
+  if (removableVideoClips.length > 0) {
+    await projects.updateOne(
+      { _id: project._id },
+      {
+        $pull: { clips: { clipNumber: { $in: removableVideoClips } } },
+        $unset: {
+          reelUrl: "",
+          reelStatus: "",
+          reelFingerprint: "",
+          reelError: "",
+          reelStep: "",
+          reelAttempts: "",
+          finalUrl: "",
+          finalStatus: "",
+          finalFingerprint: "",
+          finalError: "",
+          finalQueuedAt: "",
+        },
+      },
+    );
+  }
   // Frames first, then the jobs: reconcile only trusts jobs created at or
   // after `submittedAt`. `$unset` rather than `$set: undefined` so the
   // previous failure message never lingers as `null`.
@@ -324,6 +386,10 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
           "frames.$[frame].error": "",
           "frames.$[frame].blobUrl": "",
           "frames.$[frame].outputUrl": "",
+          "frames.$[frame].mergedUrl": "",
+          "frames.$[frame].mergedSceneUrl": "",
+          "frames.$[frame].mergedPlateUrl": "",
+          "frames.$[frame].mergedAt": "",
           ...(useStored ? {} : { "frames.$[frame].promptEdited": "" }),
         },
       },
@@ -360,15 +426,71 @@ export async function enqueueClipFrameJobs(project: Project, clipNumbers: number
   });
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
+  const clipIndices = clipNumbers.map((clipNumber) => clipNumber - 1);
+  const removableVideoClips = clipNumbers.filter((clipNumber) => {
+    const existing = project.clips.find((clip) => clip.clipNumber === clipNumber);
+    return existing && existing.status !== "queued" && existing.status !== "in_progress";
+  });
+  const [oldFrameJobs, oldVideoJobs] = await Promise.all([
+    jobs.find({ projectId: project._id, kind: "frame", clipIndex: { $in: clipIndices } }).toArray(),
+    removableVideoClips.length > 0
+      ? jobs
+          .find({
+            projectId: project._id,
+            kind: "video",
+            clipIndex: { $in: removableVideoClips.map((clipNumber) => clipNumber - 1) },
+          })
+          .toArray()
+      : Promise.resolve([]),
+  ]);
+  const oldUrls = [
+    ...collectFrameBlobUrls(
+      project.frames,
+      clipNumbers.map((clipNumber) => ({ clipNumber })),
+      oldFrameJobs,
+    ),
+    ...collectClipVideoBlobUrls(project, removableVideoClips, oldVideoJobs),
+  ];
+
   await projects.updateOne(
     { _id: project._id },
-    { $set: { frames, status: "production", updatedAt: new Date() } },
+    {
+      $set: { frames, status: "production", updatedAt: new Date() },
+      ...(removableVideoClips.length > 0
+        ? {
+            $pull: { clips: { clipNumber: { $in: removableVideoClips } } },
+            $unset: {
+              reelUrl: "",
+              reelStatus: "",
+              reelFingerprint: "",
+              reelError: "",
+              reelStep: "",
+              reelAttempts: "",
+              finalUrl: "",
+              finalStatus: "",
+              finalFingerprint: "",
+              finalError: "",
+              finalQueuedAt: "",
+            },
+          }
+        : {}),
+    },
   );
-  await jobs.deleteMany({
-    projectId: project._id,
-    kind: "frame",
-    clipIndex: { $in: clipNumbers.map((clipNumber) => clipNumber - 1) },
-  });
+  await Promise.all([
+    jobs.deleteMany({
+      projectId: project._id,
+      kind: "frame",
+      clipIndex: { $in: clipIndices },
+    }),
+    removableVideoClips.length > 0
+      ? jobs.deleteMany({
+          projectId: project._id,
+          kind: "video",
+          clipIndex: { $in: removableVideoClips.map((clipNumber) => clipNumber - 1) },
+        })
+      : Promise.resolve(),
+    deleteExplainerBlobUrls(oldUrls),
+  ]);
   await insertFrameJobs(project, ready, deferred);
   return { deferred };
 }
@@ -567,6 +689,8 @@ export async function applyJobStatus(input: {
   if (nowFailed) {
     errorMessage = userFacingJobError(status, errorMessage);
   }
+  // Avoid storing multi-megabyte data: URLs from sync image APIs in MongoDB job rows.
+  const storedJobOutputUrl = outputUrl?.startsWith("data:") ? undefined : outputUrl;
 
   if (job.kind === "reelCover") {
     await syncReelCoverJob(job, status, outputUrl);
@@ -576,13 +700,13 @@ export async function applyJobStatus(input: {
         ? {
             $set: {
               status,
-              outputUrl,
+              outputUrl: storedJobOutputUrl,
               error: errorMessage || status,
               updatedAt: new Date(),
             },
           }
         : {
-            $set: { status, outputUrl, updatedAt: new Date() },
+            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
             $unset: { error: "" },
           },
     );
@@ -598,13 +722,13 @@ export async function applyJobStatus(input: {
         ? {
             $set: {
               status,
-              outputUrl,
+              outputUrl: storedJobOutputUrl,
               error: errorMessage || status,
               updatedAt: new Date(),
             },
           }
         : {
-            $set: { status, outputUrl, updatedAt: new Date() },
+            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
             $unset: { error: "" },
           },
     );
@@ -619,13 +743,13 @@ export async function applyJobStatus(input: {
         ? {
             $set: {
               status,
-              outputUrl,
+              outputUrl: storedJobOutputUrl,
               error: errorMessage || status,
               updatedAt: new Date(),
             },
           }
         : {
-            $set: { status, outputUrl, updatedAt: new Date() },
+            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
             $unset: { error: "" },
           },
     );
@@ -638,13 +762,13 @@ export async function applyJobStatus(input: {
       ? {
           $set: {
             status,
-            outputUrl,
+            outputUrl: storedJobOutputUrl,
             error: errorMessage || status,
             updatedAt: new Date(),
           },
         }
       : {
-          $set: { status, outputUrl, updatedAt: new Date() },
+          $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
           $unset: { error: "" as const },
         };
     const claimedLockFailure = nowFailed
@@ -671,13 +795,13 @@ export async function applyJobStatus(input: {
         ? {
             $set: {
               status,
-              outputUrl,
+              outputUrl: storedJobOutputUrl,
               error: errorMessage || status,
               updatedAt: new Date(),
             },
           }
         : {
-            $set: { status, outputUrl, updatedAt: new Date() },
+            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
             $unset: { error: "" },
           },
     );
@@ -693,13 +817,13 @@ export async function applyJobStatus(input: {
         ? {
             $set: {
               status,
-              outputUrl,
+              outputUrl: storedJobOutputUrl,
               error: errorMessage || status,
               updatedAt: new Date(),
             },
           }
         : {
-            $set: { status, outputUrl, updatedAt: new Date() },
+            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
             $unset: { error: "" },
           },
     );
@@ -715,13 +839,13 @@ export async function applyJobStatus(input: {
         ? {
             $set: {
               status,
-              outputUrl,
+              outputUrl: storedJobOutputUrl,
               error: errorMessage || status,
               updatedAt: new Date(),
             },
           }
         : {
-            $set: { status, outputUrl, updatedAt: new Date() },
+            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
             $unset: { error: "" },
           },
     );
@@ -737,13 +861,13 @@ export async function applyJobStatus(input: {
         ? {
             $set: {
               status,
-              outputUrl,
+              outputUrl: storedJobOutputUrl,
               error: errorMessage || status,
               updatedAt: new Date(),
             },
           }
         : {
-            $set: { status, outputUrl, updatedAt: new Date() },
+            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
             $unset: { error: "" },
           },
     );
@@ -760,13 +884,13 @@ export async function applyJobStatus(input: {
         ? {
             $set: {
               status,
-              outputUrl,
+              outputUrl: storedJobOutputUrl,
               error: errorMessage || status,
               updatedAt: new Date(),
             },
           }
         : {
-            $set: { status, outputUrl, updatedAt: new Date() },
+            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
             $unset: { error: "" },
           },
     );
@@ -869,7 +993,7 @@ export async function applyJobStatus(input: {
 
   const set = {
     status,
-    outputUrl,
+    outputUrl: outputUrl?.startsWith("data:") ? blobUrl : outputUrl,
     blobUrl,
     updatedAt: new Date(),
   };

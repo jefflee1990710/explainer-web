@@ -8,6 +8,7 @@ import {
 } from "@/service/higgsfield/reference-sheet";
 
 test("language models accept more than one blueprint reference", () => {
+  assert.equal(referenceLimitForModel("openai/gpt-5-image"), 16);
   assert.equal(referenceLimitForModel("marketing-studio/image/flare"), 16);
   assert.equal(referenceLimitForModel("marketing-studio/image/sunburst"), 16);
   assert.equal(referenceLimitForModel("xai/grok-imagine-image-2.0"), 10);

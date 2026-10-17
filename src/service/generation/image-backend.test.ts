@@ -1,32 +1,50 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  GPT_5_IMAGE_MODEL,
   IMAGE_ROUTE_BY_SCENE_TEXT,
   imageModelForSubmit,
   imageRouteForSceneText,
+  resolveImageRoute,
 } from "@/service/generation/image-backend";
 
-test("each scene-text language uses a Higgsfield model that accepts blueprint refs", () => {
-  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT.en.backend, "higgsfield");
-  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT.en.model, "marketing-studio/image/flare");
-  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT.en.editModel, "marketing-studio/image/flare");
+test("each scene-text language uses OpenRouter GPT-5 Image that accepts blueprint refs", () => {
+  assert.equal(GPT_5_IMAGE_MODEL, "openai/gpt-5-image");
 
-  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hant"].backend, "higgsfield");
-  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hant"].model, "marketing-studio/image/sunburst");
-  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hant"].editModel, "marketing-studio/image/sunburst");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT.en.backend, "openrouter");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT.en.model, "openai/gpt-5-image");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT.en.editModel, "openai/gpt-5-image");
 
-  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hans"].backend, "higgsfield");
-  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hans"].model, "marketing-studio/image/sunburst");
-  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hans"].editModel, "marketing-studio/image/sunburst");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hant"].backend, "openrouter");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hant"].model, "openai/gpt-5-image");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hant"].editModel, "openai/gpt-5-image");
+
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hans"].backend, "openrouter");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hans"].model, "openai/gpt-5-image");
+  assert.equal(IMAGE_ROUTE_BY_SCENE_TEXT["zh-Hans"].editModel, "openai/gpt-5-image");
 });
 
-test("generation looks up the route and keeps ChatGPT image when Chinese frames have references", () => {
+test("generation looks up the route and keeps OpenRouter GPT-5 Image when frames have references", () => {
   const en = imageRouteForSceneText("en");
   const hant = imageRouteForSceneText("zh-Hant");
-  assert.equal(imageModelForSubmit(en, false), "marketing-studio/image/flare");
-  assert.equal(imageModelForSubmit(en, true), "marketing-studio/image/flare");
-  assert.equal(imageModelForSubmit(hant, false), "marketing-studio/image/sunburst");
-  assert.equal(imageModelForSubmit(hant, true), "marketing-studio/image/sunburst");
-  assert.equal(imageRouteForSceneText(undefined).model, "marketing-studio/image/flare");
-  assert.equal(imageRouteForSceneText(undefined).backend, "higgsfield");
+  assert.equal(imageModelForSubmit(en, false), "openai/gpt-5-image");
+  assert.equal(imageModelForSubmit(en, true), "openai/gpt-5-image");
+  assert.equal(imageModelForSubmit(hant, false), "openai/gpt-5-image");
+  assert.equal(imageModelForSubmit(hant, true), "openai/gpt-5-image");
+  assert.equal(imageRouteForSceneText(undefined).model, "openai/gpt-5-image");
+  assert.equal(imageRouteForSceneText(undefined).backend, "openrouter");
+});
+
+test("resolveImageRoute requires OPENROUTER_API_KEY for OpenRouter routes", () => {
+  const prev = process.env.OPENROUTER_API_KEY;
+  try {
+    delete process.env.OPENROUTER_API_KEY;
+    assert.throws(() => resolveImageRoute("en"), /OPENROUTER_API_KEY/);
+
+    process.env.OPENROUTER_API_KEY = "sk-or-test";
+    assert.equal(resolveImageRoute("en").model, "openai/gpt-5-image");
+  } finally {
+    if (prev === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = prev;
+  }
 });

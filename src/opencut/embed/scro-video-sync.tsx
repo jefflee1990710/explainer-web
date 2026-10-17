@@ -3,12 +3,15 @@
 import { useEffect, useRef } from "react";
 import { useEditor } from "@/opencut/editor/use-editor";
 import { processMediaAssets } from "@/opencut/media/processing";
+import { storageService } from "@/opencut/services/storage/service";
+import { videoCache } from "@/opencut/services/video-cache/service";
 import { buildElementFromMedia } from "@/opencut/timeline/element-utils";
 import { toElementDurationTicks } from "@/opencut/timeline/creation";
 import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/opencut/wasm";
 import type { MediaAsset, MediaType } from "@/opencut/media/types";
 import { applyScroCanvasSize } from "@/opencut/embed/scro-canvas-size";
 import { resolveElementScroClipNumber } from "@/opencut/embed/scro-clip-number";
+import { collectStaleScroAssetIds } from "@/opencut/embed/scro-video-assets";
 import {
 	fitFullLengthPlacements,
 	storyboardPlacement,
@@ -22,6 +25,8 @@ import {
 } from "@/opencut/embed/scro-media-load";
 import {
 	armScroSync,
+	clearClipSources,
+	forgetClipSources,
 	readClipSources,
 	rememberClipSource,
 } from "@/opencut/embed/scro-media-sources";
@@ -221,6 +226,8 @@ export function ScroVideoSync() {
 					if (victims.length > 0) {
 						editor.timeline.deleteElements({ elements: victims });
 					}
+					await editor.media.clearProjectMedia({ projectId: project.metadata.id });
+					clearClipSources(data.videoId);
 					scene = editor.scenes.getActiveScene();
 				}
 				// Storyboard order, loaded and inserted one by one so the user sees each clip appear with live progress.
@@ -327,7 +334,18 @@ export function ScroVideoSync() {
 					if (element.clipNumber == null || replaced.has(element.clipNumber)) continue;
 					replaced.add(element.clipNumber);
 					const clip = data.clips.find((item) => item.clipNumber === element.clipNumber);
-					if (!clip) continue;
+					if (!clip) {
+						const project = editor.project.getActiveOrNull();
+						if (project) {
+							await purgeStaleMediaAssets({
+								projectId: project.metadata.id,
+								videoId: data.videoId,
+								clipNumber: element.clipNumber,
+								clips: data.clips,
+							});
+						}
+						continue;
+					}
 					const fresh = editor.scenes.getActiveScene();
 					if (
 						findScroElement(
@@ -633,6 +651,49 @@ export function ScroVideoSync() {
 			});
 		}
 
+		async function purgeStaleMediaAssets({
+			projectId,
+			videoId,
+			clipNumber,
+			keepAssetId,
+			clips,
+		}: {
+			projectId: string;
+			videoId: string;
+			clipNumber?: number;
+			keepAssetId?: string;
+			clips: ScroVideoSeedClip[] | undefined;
+		}) {
+			const currentAssets = editor.media.getAssets();
+			const staleIds = collectStaleScroAssetIds({
+				assets: currentAssets,
+				clips,
+				clipNumber,
+				keepAssetId,
+			});
+			if (staleIds.length === 0) return;
+			const staleSet = new Set(staleIds);
+			for (const asset of currentAssets) {
+				if (!staleSet.has(asset.id)) continue;
+				videoCache.clearVideo({ mediaId: asset.id });
+				if (asset.url?.startsWith("blob:")) {
+					URL.revokeObjectURL(asset.url);
+				}
+				if (asset.thumbnailUrl?.startsWith("blob:")) {
+					URL.revokeObjectURL(asset.thumbnailUrl);
+				}
+			}
+			editor.media.setAssets({
+				assets: currentAssets.filter((asset) => !staleSet.has(asset.id)),
+			});
+			forgetClipSources(videoId, staleIds);
+			await Promise.all(
+				staleIds.map((id) =>
+					storageService.deleteMediaAsset({ projectId, id }).catch(() => undefined),
+				),
+			);
+		}
+
 		async function ensureMedia({
 			videoId,
 			clip,
@@ -642,12 +703,22 @@ export function ScroVideoSync() {
 		}) {
 			const project = editor.project.getActiveOrNull();
 			if (!project) return null;
+			const clips = getScroVideos()?.clips;
 			const reusable = findReusableClipAsset({
 				clip,
 				assets: editor.media.getAssets(),
 				clipSources: readClipSources(videoId),
 			});
-			if (reusable) return reusable;
+			if (reusable) {
+				await purgeStaleMediaAssets({
+					projectId: project.metadata.id,
+					videoId,
+					clipNumber: clip.clipNumber,
+					keepAssetId: reusable.id,
+					clips,
+				});
+				return reusable;
+			}
 			const useVideo = Boolean(clip.videoUrl && !clip.staleVideo);
 			const sourceUrl = useVideo ? clip.videoUrl : clip.posterUrl || clip.videoUrl;
 			let file: File;
@@ -685,6 +756,13 @@ export function ScroVideoSync() {
 			});
 			if (!created) return null;
 			if (sourceUrl) rememberClipSource(videoId, created.id, sourceUrl);
+			await purgeStaleMediaAssets({
+				projectId: project.metadata.id,
+				videoId,
+				clipNumber: clip.clipNumber,
+				keepAssetId: created.id,
+				clips,
+			});
 			return created;
 		}
 	}, [editor]);

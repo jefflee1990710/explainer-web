@@ -4,6 +4,7 @@ import { videosCollection } from "@/dao/videos";
 import type { OpencutEditMedia } from "@/model/opencut-edit";
 import { requireClerkUserId } from "@/service/auth";
 import { sanitizeOpencutEdit } from "@/service/opencut/edit-document";
+import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 
 export type OpencutEditSnapshot = {
   project: Record<string, unknown>;
@@ -31,12 +32,19 @@ export async function getOpencutEdit(videoId: string): Promise<OpencutEditSnapsh
   };
 }
 
-/** Drop the saved cut so the next open follows the new storyboard. */
+/** Drop the saved cut and any OpenCut-uploaded media blobs so the next open follows the new storyboard. */
 export async function deleteOpencutEdit(videoId: string): Promise<void> {
   const clerkUserId = await requireClerkUserId();
   const video = await ownedVideo(videoId, clerkUserId);
   if (!video) return;
   const edits = await opencutEditsCollection();
+  const existing = await edits.findOne({ _id: video._id, clerkUserId });
+  if (existing?.media?.length) {
+    const opencutBlobUrls = existing.media
+      .map((item) => item.sourceUrl)
+      .filter((url): url is string => Boolean(url && url.includes("/opencut/")));
+    await deleteExplainerBlobUrls(opencutBlobUrls);
+  }
   await edits.deleteOne({ _id: video._id, clerkUserId });
 }
 
@@ -51,6 +59,15 @@ export async function saveOpencutEdit(input: {
   const clean = sanitizeOpencutEdit({ project: input.project, media: input.media });
   if (!clean) return { ok: false, error: "剪輯內容無法儲存" };
   const edits = await opencutEditsCollection();
+  const existing = await edits.findOne({ _id: video._id, clerkUserId });
+  const nextUrls = new Set(clean.media.map((item) => item.sourceUrl));
+  const removedOpencutUrls = (existing?.media || [])
+    .map((item) => item.sourceUrl)
+    .filter(
+      (url): url is string =>
+        Boolean(url && url.includes("/opencut/") && !nextUrls.has(url)),
+    );
+
   await edits.updateOne(
     { _id: video._id },
     {
@@ -63,5 +80,8 @@ export async function saveOpencutEdit(input: {
     },
     { upsert: true },
   );
+  if (removedOpencutUrls.length > 0) {
+    await deleteExplainerBlobUrls(removedOpencutUrls);
+  }
   return { ok: true };
 }

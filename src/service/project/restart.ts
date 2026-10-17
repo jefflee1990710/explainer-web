@@ -4,6 +4,7 @@ import type { GenerationKind } from "@/model/generation-job";
 import type { Project } from "@/model/project";
 
 type JobBlob = { blobUrl?: string };
+type OpencutMediaBlob = { sourceUrl?: string };
 
 // Fields read by the guard, so both the Mongo `Project` and `PublicVideo` fit.
 type RestartGuardSource = Pick<Project, "status" | "clips" | "reelStatus" | "finalStatus">;
@@ -48,8 +49,14 @@ export function restartRefundFor(
 }
 
 // Generated media to delete. The uploaded character image is part of the brief.
-export function restartBlobUrls(video: Project, jobs: JobBlob[] = []) {
-  return collectVideoBlobUrls(video, jobs).filter((url) => url !== video.characterImageUrl);
+export function restartBlobUrls(
+  video: Project,
+  jobs: JobBlob[] = [],
+  opencutMedia: OpencutMediaBlob[] = [],
+) {
+  return collectVideoBlobUrls(video, jobs, opencutMedia).filter(
+    (url) => url !== video.characterImageUrl,
+  );
 }
 
 // Storyboard and every generated output. Brief, cast, and branding edit stay.

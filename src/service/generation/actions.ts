@@ -159,6 +159,7 @@ export async function regenerateFrameAction(
     }
 
     // Build the revision before charging so an upload failure costs nothing.
+    const oldFrameSnapshot = [...(project.frames || [])];
     const remark = revisionInput?.remark?.trim().slice(0, MAX_REMARK_LENGTH);
     let revision: FrameRevision | undefined;
     if (revisionInput?.sketchDataUrl) {
@@ -205,7 +206,12 @@ export async function regenerateFrameAction(
           arrayFilters: [{ "frame.clipNumber": clipNumber, "frame.position": position }],
         },
       );
-      await regenerateFrame(project, clipNumber, position, revision);
+      await regenerateFrame(
+        { ...project, frames: oldFrameSnapshot },
+        clipNumber,
+        position,
+        revision,
+      );
     } catch (error) {
       // A job queued by this attempt owns the credit (it refunds itself on
       // failure). Only when none exists, fail this frame and refund here; the
@@ -452,7 +458,8 @@ export async function updateClipStoryboardAction(
         startsFollowFirstClip: isTalkingHeadSkill(project.skillSlug),
       });
       try {
-        await regenerateFrames({ ...nextProject, frames }, targets);
+        // Pass locked.frames so regenerateFrames can collect and delete old frame/video blobs.
+        await regenerateFrames({ ...nextProject, frames: locked.frames }, targets);
       } catch (error) {
         // The two frames go out one at a time, so the first may already have a
         // live job: that one is reconciliation's to finish and refund. Fail and

@@ -1,7 +1,8 @@
 import { hasAlicloudKey } from "@/service/alicloud/dashscope";
+import { hasOpenRouterKey, OPENROUTER_GPT_5_IMAGE_MODEL } from "@/service/openrouter/generate";
 import type { SceneTextLanguage } from "@/model/project";
 
-export type ImageBackend = "alicloud" | "higgsfield";
+export type ImageBackend = "alicloud" | "higgsfield" | "openrouter";
 
 export type ImageRoute = {
   backend: ImageBackend;
@@ -12,31 +13,30 @@ export type ImageRoute = {
 };
 
 /**
- * 畫面文字語系 → Higgsfield 產圖模型。生成時只讀呢張表。
- * 三支都收 image_urls。
- * en：GPT Image 2.5 Flare，最多 16 張。
- * zh-Hant / zh-Hans：GPT Image 2.5 Sunburst（ChatGPT image），最多 16 張。
- * 粵語口白畫面上的字先改成書面語，再交給 Sunburst 逐字畫。
+ * 畫面文字語系 → OpenRouter 產圖模型。生成時只讀呢張表。
+ * en / zh-Hant / zh-Hans：OpenRouter `openai/gpt-5-image`，最多 16 張參考圖。
+ * 粵語口白畫面上的字先改成書面語，再交給模型逐字畫。
  */
+export const GPT_5_IMAGE_MODEL = OPENROUTER_GPT_5_IMAGE_MODEL;
 export const GROK_IMAGE_MODEL = "xai/grok-imagine-image-2.0";
 export const IDEOGRAM_V4_MODEL = "ideogram/v4.0";
 export const IDEOGRAM_PROMPT_MAX = 2048;
 
 export const IMAGE_ROUTE_BY_SCENE_TEXT: Record<SceneTextLanguage, ImageRoute> = {
   en: {
-    backend: "higgsfield",
-    model: "marketing-studio/image/flare",
-    editModel: "marketing-studio/image/flare",
+    backend: "openrouter",
+    model: GPT_5_IMAGE_MODEL,
+    editModel: GPT_5_IMAGE_MODEL,
   },
   "zh-Hant": {
-    backend: "higgsfield",
-    model: "marketing-studio/image/sunburst",
-    editModel: "marketing-studio/image/sunburst",
+    backend: "openrouter",
+    model: GPT_5_IMAGE_MODEL,
+    editModel: GPT_5_IMAGE_MODEL,
   },
   "zh-Hans": {
-    backend: "higgsfield",
-    model: "marketing-studio/image/sunburst",
-    editModel: "marketing-studio/image/sunburst",
+    backend: "openrouter",
+    model: GPT_5_IMAGE_MODEL,
+    editModel: GPT_5_IMAGE_MODEL,
   },
 };
 
@@ -51,6 +51,9 @@ export function imageRouteForSceneText(language?: SceneTextLanguage): ImageRoute
 
 export function resolveImageRoute(language?: SceneTextLanguage): ImageRoute {
   const route = imageRouteForSceneText(language);
+  if (route.backend === "openrouter" && !hasOpenRouterKey()) {
+    throw new Error(`尚未設定 OPENROUTER_API_KEY（${route.model}）`);
+  }
   if (route.backend === "alicloud" && !hasAlicloudKey()) {
     throw new Error(`畫面文字為中文時需要 ALICLOUD_API_KEY（${route.model}）`);
   }

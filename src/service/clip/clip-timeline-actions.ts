@@ -26,6 +26,12 @@ import { isProjectBusy } from "@/service/clip-stage";
 import { isReelBusy } from "@/service/reel/fingerprint";
 import { isProductionLike } from "@/service/project-status";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
+import {
+  collectClipVideoBlobUrls,
+  collectFrameBlobUrls,
+  collectSubtitlePlateBlobUrls,
+} from "@/service/video/storage";
+import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 
 const CONTENT_MAX = 2000;
 
@@ -301,7 +307,7 @@ export async function deleteClipAction(videoId: string, clipNumber: number): Pro
       },
     );
     if (wrote.matchedCount !== 1) return { ok: false, error: "專案不存在" };
-    await shiftDeletedClipJobs(project._id, clipNumber);
+    await shiftDeletedClipJobs(project, clipNumber);
     const updated = await videos.findOne({ _id: project._id });
     if (!updated) return { ok: false, error: "專案不存在" };
     revalidateVideo(String(project.projectId));
@@ -325,11 +331,30 @@ async function shiftInsertedClipJobs(videoId: ObjectId, insertAt: number, added:
 }
 
 // Finished jobs stay labeled with the clip they belong to after the gap closes.
-async function shiftDeletedClipJobs(videoId: ObjectId, clipNumber: number) {
+async function shiftDeletedClipJobs(
+  project: Parameters<typeof collectClipVideoBlobUrls>[0] & {
+    _id: ObjectId;
+    frames?: Parameters<typeof collectFrameBlobUrls>[0];
+    subtitlePlates?: Parameters<typeof collectSubtitlePlateBlobUrls>[0]["subtitlePlates"];
+  },
+  clipNumber: number,
+) {
   const removedIndex = clipNumber - 1;
   const jobs = await generationJobsCollection();
-  const clipJobs = { projectId: videoId, kind: { $in: ["frame", "video", "subtitlePlate"] as const } };
-  await jobs.deleteMany({ ...clipJobs, clipIndex: removedIndex });
+  const clipJobs = {
+    projectId: project._id,
+    kind: { $in: ["frame", "video", "subtitlePlate"] as const },
+  };
+  const removedJobs = await jobs.find({ ...clipJobs, clipIndex: removedIndex }).toArray();
+  const oldUrls = [
+    ...collectFrameBlobUrls(project.frames, [{ clipNumber }], removedJobs),
+    ...collectClipVideoBlobUrls(project, [clipNumber], removedJobs),
+    ...collectSubtitlePlateBlobUrls(project, [clipNumber], removedJobs),
+  ];
+  await Promise.all([
+    jobs.deleteMany({ ...clipJobs, clipIndex: removedIndex }),
+    deleteExplainerBlobUrls(oldUrls),
+  ]);
   await jobs.updateMany(
     { ...clipJobs, clipIndex: { $gt: removedIndex } },
     { $inc: { clipIndex: -1 } },

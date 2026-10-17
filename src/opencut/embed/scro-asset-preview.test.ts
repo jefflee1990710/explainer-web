@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+	collectStaleScroAssetIds,
 	mergeScroMediaAssets,
 	scroAssetPreviewSrc,
 } from "@/opencut/embed/scro-video-assets";
@@ -190,5 +191,107 @@ describe("merge scro media after regenerate", () => {
 			clips: [clip({ stage: "frames_ready", posterUrl: NEW_STILL })],
 		});
 		assert.deepEqual(merged, []);
+	});
+
+	it("drops restored Clip N · Start stills and /frames/ images even before clips load", () => {
+		const restoredStartStill = asset({
+			id: "restored-start",
+			name: "Clip 1 · Start",
+			type: "image",
+			url: "https://cdn.example/explainer/v1/opencut/restored-start",
+		});
+		const restoredFrame = asset({
+			id: "restored-frame",
+			name: "Clip 2.webp",
+			type: "image",
+			url: "https://cdn.example/explainer/v1/frames/f2",
+		});
+		const upload = asset({
+			id: "upload",
+			name: "logo.png",
+			type: "image",
+			url: "https://cdn.example/explainer/v1/opencut/upload",
+		});
+		assert.deepEqual(
+			mergeScroMediaAssets({
+				assets: [restoredStartStill, restoredFrame, upload, newVideo],
+				clips: undefined,
+			}).map((item) => item.id),
+			["upload"],
+		);
+		assert.deepEqual(
+			mergeScroMediaAssets({
+				assets: [restoredStartStill, restoredFrame, upload, newVideo],
+				clips: [clip({ stage: "video_ready", videoUrl: "https://cdn.example/clip-1.mp4" })],
+			}).map((item) => item.id),
+			["new-video", "upload"],
+		);
+	});
+
+	it("collectStaleScroAssetIds finds all old video and image assets for a regenerated clip while keeping active asset and user uploads", () => {
+		const oldStill = asset({
+			id: "old-still-1",
+			name: "Clip 1 · Start",
+			type: "image",
+			url: "https://cdn.example/frames/old-1.jpg",
+			scroClipNumber: 1,
+		});
+		const oldPlaceholder = asset({
+			id: "old-placeholder-1",
+			name: "Clip 1",
+			type: "image",
+			scroClipNumber: 1,
+			scroPlaceholder: true,
+		});
+		const keepVideo = asset({
+			id: "keep-video-1",
+			name: "Clip 1.mp4",
+			type: "video",
+			scroClipNumber: 1,
+		});
+		const clip2Video = asset({
+			id: "video-2",
+			name: "Clip 2.mp4",
+			type: "video",
+			scroClipNumber: 2,
+		});
+		const orphanClip9Video = asset({
+			id: "orphan-9",
+			name: "Clip 9.mp4",
+			type: "video",
+			scroClipNumber: 9,
+		});
+		const userUpload = asset({
+			id: "user-upload",
+			name: "brand.png",
+			type: "image",
+			url: "https://cdn.example/brand.png",
+		});
+
+		const clips = [
+			clip({ clipNumber: 1, stage: "video_ready", videoUrl: "https://cdn.example/c1.mp4" }),
+			clip({ clipNumber: 2, stage: "video_ready", videoUrl: "https://cdn.example/c2.mp4" }),
+		];
+
+		// When clip 1 updates to keep-video-1, old-video, old-still-1, old-placeholder-1, and orphan-9 are stale
+		const staleIds = collectStaleScroAssetIds({
+			assets: [
+				oldVideo,
+				oldStill,
+				oldPlaceholder,
+				keepVideo,
+				clip2Video,
+				orphanClip9Video,
+				userUpload,
+			],
+			clips,
+			clipNumber: 1,
+			keepAssetId: "keep-video-1",
+		});
+
+		assert.deepEqual(
+			new Set(staleIds),
+			new Set(["old-video", "old-still-1", "old-placeholder-1", "orphan-9"]),
+		);
 	});
 });

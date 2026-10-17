@@ -26,6 +26,8 @@ import { submitImage } from "@/service/higgsfield/generate";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import { mergeReadySubtitleFrames } from "@/service/higgsfield/merge-subtitle-frames";
 import { PLATE_LINE_CHANGED_ERROR, plateLineStale } from "@/service/video-edit/subtitle-export";
+import { collectSubtitlePlateBlobUrls } from "@/service/video/storage";
+import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 
 // The graphic is a wide strip; the export filter scales it to the frame width.
 const PLATE_ASPECT_RATIO = "16:9" as const;
@@ -111,12 +113,24 @@ export async function enqueueSubtitlePlateJobs(
 
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
-  // A re-run replaces any earlier plate job for these clips.
-  await jobs.deleteMany({
-    projectId: project._id,
-    kind: "subtitlePlate",
-    clipIndex: { $in: clips.map((clip) => clip.clipNumber - 1) },
-  });
+  const clipIndices = clips.map((clip) => clip.clipNumber - 1);
+  // A re-run replaces any earlier plate job and deletes old plate / merged frame blobs.
+  const oldPlateJobs = await jobs
+    .find({
+      projectId: project._id,
+      kind: "subtitlePlate",
+      clipIndex: { $in: clipIndices },
+    })
+    .toArray();
+  const oldUrls = collectSubtitlePlateBlobUrls(project, numbers, oldPlateJobs);
+  await Promise.all([
+    jobs.deleteMany({
+      projectId: project._id,
+      kind: "subtitlePlate",
+      clipIndex: { $in: clipIndices },
+    }),
+    deleteExplainerBlobUrls(oldUrls),
+  ]);
   const ids = await insertPendingJobs(
     clips.map((clip) => ({
       projectId: project._id,
@@ -150,6 +164,17 @@ export async function invalidatePlatesForChangedVo(
   if (clipNumbers.length === 0) return;
   const projects = await videosCollection();
   const jobs = await generationJobsCollection();
+  const project = await projects.findOne({ _id: projectId });
+  const clipIndices = clipNumbers.map((number) => number - 1);
+  const oldPlateJobs = await jobs
+    .find({
+      projectId,
+      kind: "subtitlePlate",
+      clipIndex: { $in: clipIndices },
+    })
+    .toArray();
+  const oldUrls = project ? collectSubtitlePlateBlobUrls(project, clipNumbers, oldPlateJobs) : [];
+
   let failed = false;
   for (const clipNumber of clipNumbers) {
     const result = await projects.updateOne(
@@ -166,11 +191,14 @@ export async function invalidatePlatesForChangedVo(
     if (result.matchedCount > 0) failed = true;
   }
   if (!failed) return;
-  await jobs.deleteMany({
-    projectId,
-    kind: "subtitlePlate",
-    clipIndex: { $in: clipNumbers.map((number) => number - 1) },
-  });
+  await Promise.all([
+    jobs.deleteMany({
+      projectId,
+      kind: "subtitlePlate",
+      clipIndex: { $in: clipIndices },
+    }),
+    deleteExplainerBlobUrls(oldUrls),
+  ]);
 }
 
 // Send one plate to the image provider. Never a video: the kind has its own branch in sendJob.
@@ -298,7 +326,7 @@ export async function syncSubtitlePlateJob(
     {
       $set: {
         "subtitlePlates.$.status": "completed",
-        "subtitlePlates.$.outputUrl": outputUrl,
+        "subtitlePlates.$.outputUrl": outputUrl.startsWith("data:") ? blobUrl : outputUrl,
         "subtitlePlates.$.blobUrl": blobUrl,
         updatedAt: new Date(),
       },

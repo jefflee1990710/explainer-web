@@ -3,6 +3,7 @@ import { test } from "node:test";
 import type { ClipFrame } from "@/model/project";
 import {
   MINIMAX_H3_VIDEO_MODEL,
+  SEEDANCE_2_FAST_VIDEO_MODEL,
   SEEDANCE_2_VIDEO_MODEL,
   assertClipKeyframes,
   clipFrameAnchor,
@@ -284,11 +285,12 @@ test("h3ClipVideoInput clamps duration to MiniMax H3 5–15s", () => {
   );
 });
 
-test("cinematic realistic sends Seedance 2.0 with both frames", () => {
-  assert.equal(clipVideoModel("realistic"), SEEDANCE_2_VIDEO_MODEL);
-  assert.equal(clipVideoModel({ id: "user-style", baseStyleId: "realistic" }), SEEDANCE_2_VIDEO_MODEL);
-  assert.equal(clipVideoModel("doodle"), MINIMAX_H3_VIDEO_MODEL);
-  assert.equal(clipVideoModel({ id: "user-style", baseStyleId: "doodle" }), MINIMAX_H3_VIDEO_MODEL);
+test("clipVideoModel uses OpenRouter Seedance 2.0 Fast for all styles", () => {
+  assert.equal(SEEDANCE_2_FAST_VIDEO_MODEL, "bytedance/seedance-2.0-fast");
+  assert.equal(clipVideoModel("realistic"), SEEDANCE_2_FAST_VIDEO_MODEL);
+  assert.equal(clipVideoModel({ id: "user-style", baseStyleId: "realistic" }), SEEDANCE_2_FAST_VIDEO_MODEL);
+  assert.equal(clipVideoModel("doodle"), SEEDANCE_2_FAST_VIDEO_MODEL);
+  assert.equal(clipVideoModel({ id: "user-style", baseStyleId: "doodle" }), SEEDANCE_2_FAST_VIDEO_MODEL);
   assert.deepEqual(
     seedanceClipVideoInput({
       prompt: "walk to the box",

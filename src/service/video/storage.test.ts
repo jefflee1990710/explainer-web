@@ -1,48 +1,210 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import test from "node:test";
 import { ObjectId } from "mongodb";
-import { collectVideoBlobUrls } from "@/service/video/storage";
 import type { Project } from "@/model/project";
+import {
+  collectClipVideoBlobUrls,
+  collectFrameBlobUrls,
+  collectSubtitlePlateBlobUrls,
+  collectVideoBlobUrls,
+} from "@/service/video/storage";
 
-const still = "https://blob/still.webp";
-const frameStart = "https://blob/start.webp";
-const annotated = "https://blob/annotated.png";
-const clip = "https://blob/clip.mp4";
-const reel = "https://blob/reel.mp4";
-const final = "https://blob/final.mp4";
-const jobBlob = "https://blob/job.webp";
-
-test("collectVideoBlobUrls gathers frames, clips, reel, locks, and job blobs", () => {
-  const sheet = "https://blob/object-sheet.png";
-  const plate = "https://blob/bg-roof.png";
-  const video = {
+function makeProject(overrides: Partial<Project> = {}): Project {
+  return {
     _id: new ObjectId(),
-    characterStillUrl: still,
-    characterImageUrl: still,
-    reelUrl: reel,
-    finalUrl: final,
-    objectSheetUrl: sheet,
-    backgroundPlates: [{ url: plate }],
+    userId: new ObjectId(),
+    clerkUserId: "user_1",
+    projectId: new ObjectId(),
+    skillId: new ObjectId(),
+    skillSlug: "story-short-director",
+    source: "A story",
+    aspectRatio: "9:16",
+    durationPreset: "short",
+    status: "production",
+    clips: [],
+    creditsCharged: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  };
+}
+
+test("collectVideoBlobUrls includes frame mergedUrl and opencut edit media urls", () => {
+  const project = makeProject({
     frames: [
-      { blobUrl: frameStart, revision: { annotatedUrl: annotated } },
-      { blobUrl: frameStart },
+      {
+        clipNumber: 1,
+        position: "start",
+        prompt: "p",
+        status: "completed",
+        blobUrl: "https://blob/f1-raw.png",
+        mergedUrl: "https://blob/f1-merged.png",
+        revision: { annotatedUrl: "https://blob/f1-ann.png" },
+      },
     ],
-    clips: [{ blobUrl: clip }, { blobUrl: undefined }],
-  } as Project;
+    clips: [
+      {
+        clipNumber: 1,
+        durationSeconds: 5,
+        prompt: "p",
+        status: "completed",
+        blobUrl: "https://blob/c1.mp4",
+      },
+    ],
+  });
+
+  const urls = collectVideoBlobUrls(
+    project,
+    [{ blobUrl: "https://blob/job1.png" }],
+    [{ sourceUrl: "https://blob/explainer/v1/opencut/m1.mp4" }],
+  );
 
   assert.deepEqual(
-    collectVideoBlobUrls(video, [{ blobUrl: jobBlob }, { blobUrl: frameStart }]).sort(),
-    [still, frameStart, annotated, clip, reel, final, sheet, plate, jobBlob].sort(),
+    new Set(urls),
+    new Set([
+      "https://blob/f1-raw.png",
+      "https://blob/f1-merged.png",
+      "https://blob/f1-ann.png",
+      "https://blob/c1.mp4",
+      "https://blob/job1.png",
+      "https://blob/explainer/v1/opencut/m1.mp4",
+    ]),
   );
 });
 
-test("collectVideoBlobUrls ignores character cast blueprints", () => {
-  const video = {
-    _id: new ObjectId(),
-    frames: [],
-    clips: [],
-    cast: [{ blueprintUrl: "https://blob/character-blueprint.webp" }],
-  } as unknown as Project;
+test("collectFrameBlobUrls collects old frame images, merged images, and job blobs for target clips while preserving kept urls", () => {
+  const project = makeProject({
+    frames: [
+      {
+        clipNumber: 1,
+        position: "start",
+        prompt: "p1",
+        status: "completed",
+        blobUrl: "https://blob/f1-start.png",
+        mergedUrl: "https://blob/f1-merged.png",
+        revision: { annotatedUrl: "https://blob/f1-old-ann.png" },
+      },
+      {
+        clipNumber: 1,
+        position: "end",
+        prompt: "p1-end",
+        status: "completed",
+        blobUrl: "https://blob/f1-end.png",
+      },
+      {
+        clipNumber: 2,
+        position: "start",
+        prompt: "p2",
+        status: "completed",
+        blobUrl: "https://blob/f2-start.png",
+      },
+    ],
+  });
 
-  assert.deepEqual(collectVideoBlobUrls(video), []);
+  // Regenerating clip 1 start only, with a new revision annotatedUrl that must be kept
+  const singleUrls = collectFrameBlobUrls(
+    project.frames,
+    [{ clipNumber: 1, position: "start" }],
+    [{ blobUrl: "https://blob/f1-job.png" }],
+    ["https://blob/f1-new-ann.png"],
+  );
+  assert.deepEqual(
+    new Set(singleUrls),
+    new Set([
+      "https://blob/f1-start.png",
+      "https://blob/f1-merged.png",
+      "https://blob/f1-old-ann.png",
+      "https://blob/f1-job.png",
+    ]),
+  );
+
+  // Regenerating all frames of clip 1 (e.g. enqueueClipFrameJobs) collects both start and legacy end
+  const clipUrls = collectFrameBlobUrls(
+    project.frames,
+    [{ clipNumber: 1 }],
+    [{ blobUrl: "https://blob/f1-job.png" }],
+  );
+  assert.deepEqual(
+    new Set(clipUrls),
+    new Set([
+      "https://blob/f1-start.png",
+      "https://blob/f1-merged.png",
+      "https://blob/f1-old-ann.png",
+      "https://blob/f1-end.png",
+      "https://blob/f1-job.png",
+    ]),
+  );
+});
+
+test("collectClipVideoBlobUrls collects old clip video blobs, job blobs, and stale reel/final urls", () => {
+  const project = makeProject({
+    reelUrl: "https://blob/reel.mp4",
+    finalUrl: "https://blob/final.mp4",
+    clips: [
+      {
+        clipNumber: 1,
+        durationSeconds: 5,
+        prompt: "p1",
+        status: "completed",
+        blobUrl: "https://blob/c1-old.mp4",
+      },
+      {
+        clipNumber: 2,
+        durationSeconds: 5,
+        prompt: "p2",
+        status: "completed",
+        blobUrl: "https://blob/c2-keep.mp4",
+      },
+    ],
+  });
+
+  const urls = collectClipVideoBlobUrls(
+    project,
+    [1],
+    [{ blobUrl: "https://blob/c1-job.mp4" }],
+  );
+
+  assert.deepEqual(
+    new Set(urls),
+    new Set([
+      "https://blob/c1-old.mp4",
+      "https://blob/c1-job.mp4",
+      "https://blob/reel.mp4",
+      "https://blob/final.mp4",
+    ]),
+  );
+});
+
+test("collectSubtitlePlateBlobUrls collects old plate blobs, job blobs, and frame mergedUrl for target clips", () => {
+  const project = makeProject({
+    subtitlePlates: [
+      { clipNumber: 1, status: "completed", blobUrl: "https://blob/plate-1.png" },
+      { clipNumber: 2, status: "completed", blobUrl: "https://blob/plate-2.png" },
+    ],
+    frames: [
+      {
+        clipNumber: 1,
+        position: "start",
+        prompt: "p1",
+        status: "completed",
+        blobUrl: "https://blob/f1-raw.png",
+        mergedUrl: "https://blob/f1-merged.png",
+      },
+    ],
+  });
+
+  const urls = collectSubtitlePlateBlobUrls(
+    project,
+    [1],
+    [{ blobUrl: "https://blob/plate-1-job.png" }],
+  );
+
+  assert.deepEqual(
+    new Set(urls),
+    new Set([
+      "https://blob/plate-1.png",
+      "https://blob/plate-1-job.png",
+      "https://blob/f1-merged.png",
+    ]),
+  );
 });

@@ -11,7 +11,9 @@ import { clipEndIsNextStart, clipSkipsEndStill } from "@/service/director/steady
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { chargedVideoCredits, STUCK_CLAIM_MS, videoCost } from "@/service/production-plan";
 import type { Project, ProjectClip } from "@/model/project";
+import { collectClipVideoBlobUrls } from "@/service/video/storage";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
+import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 
 const IN_FLIGHT = new Set<ProjectClip["status"]>(["queued", "in_progress"]);
 
@@ -107,6 +109,17 @@ export async function claimAndStartClipVideo(
             "clips.$.error": "",
             "clips.$.blobUrl": "",
             "clips.$.outputUrl": "",
+            reelUrl: "",
+            reelStatus: "",
+            reelFingerprint: "",
+            reelError: "",
+            reelStep: "",
+            reelAttempts: "",
+            finalUrl: "",
+            finalStatus: "",
+            finalFingerprint: "",
+            finalError: "",
+            finalQueuedAt: "",
           },
         },
       )
@@ -152,9 +165,16 @@ export async function claimAndStartClipVideo(
   }
 
   try {
-    // Old video jobs would outrank the new claim in reconcile; replace them.
+    // Old video jobs would outrank the new claim in reconcile; replace them and delete old blobs.
     const jobs = await generationJobsCollection();
-    await jobs.deleteMany({ projectId: project._id, kind: "video", clipIndex: clipNumber - 1 });
+    const oldVideoJobs = await jobs
+      .find({ projectId: project._id, kind: "video", clipIndex: clipNumber - 1 })
+      .toArray();
+    const oldUrls = collectClipVideoBlobUrls(project, [clipNumber], oldVideoJobs);
+    await Promise.all([
+      jobs.deleteMany({ projectId: project._id, kind: "video", clipIndex: clipNumber - 1 }),
+      deleteExplainerBlobUrls(oldUrls),
+    ]);
     const id = await insertPendingJob({
       projectId: project._id,
       clipIndex: clipNumber - 1,

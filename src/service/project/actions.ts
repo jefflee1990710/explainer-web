@@ -7,6 +7,7 @@ import { characterStyleIds, resolveVersionForStyle } from "@/service/character/c
 import {
   charactersCollection,
   generationJobsCollection,
+  opencutEditsCollection,
   productsCollection,
   projectsCollection,
   textStylesCollection,
@@ -507,10 +508,11 @@ export async function createVideoAction(
 export const createProjectAction = createVideoAction;
 
 // Rewrite the brief of an existing video and re-run Phase A (back to 分鏡).
+// Rewriting the brief also wipes old generated frames, videos, jobs, and OpenCut edits.
 export async function updateVideoBriefAction(
   formData: FormData,
 ): Promise<VideoResult> {
-  return rewriteVideoBrief(formData, { restart: false });
+  return rewriteVideoBrief(formData, { restart: true });
 }
 
 // Lettering only. An existing video never reopens the brief, so this saves the
@@ -608,13 +610,22 @@ async function rewriteVideoBrief(
     const productResult = await buildProducts(user.clerkUserId, brief.productIds);
     if (!productResult.ok) return productResult;
 
-    // Restart drops every stored frame / clip / export file and job first.
+    // Restart drops every stored frame / clip / export / OpenCut file and job first.
     if (options.restart) {
       await cancelRestartImageJobs(video);
-      const jobs = await generationJobsCollection();
-      const jobDocs = await jobs.find({ projectId: video._id }).toArray();
-      await deleteExplainerBlobUrls(restartBlobUrls(video, jobDocs));
-      await jobs.deleteMany({ projectId: video._id });
+      const [jobs, edits] = await Promise.all([
+        generationJobsCollection(),
+        opencutEditsCollection(),
+      ]);
+      const [jobDocs, editDoc] = await Promise.all([
+        jobs.find({ projectId: video._id }).toArray(),
+        edits.findOne({ _id: video._id }),
+      ]);
+      await deleteExplainerBlobUrls(restartBlobUrls(video, jobDocs, editDoc?.media));
+      await Promise.all([
+        jobs.deleteMany({ projectId: video._id }),
+        edits.deleteOne({ _id: video._id }),
+      ]);
     }
 
     await videos.updateOne(
@@ -880,10 +891,19 @@ export async function deleteVideoAction(
     });
     if (!video) return { ok: false, error: "影片不存在" };
 
-    const jobs = await generationJobsCollection();
-    const jobDocs = await jobs.find({ projectId: video._id }).toArray();
-    await deleteExplainerBlobUrls(collectVideoBlobUrls(video, jobDocs));
-    await jobs.deleteMany({ projectId: video._id });
+    const [jobs, edits] = await Promise.all([
+      generationJobsCollection(),
+      opencutEditsCollection(),
+    ]);
+    const [jobDocs, editDoc] = await Promise.all([
+      jobs.find({ projectId: video._id }).toArray(),
+      edits.findOne({ _id: video._id }),
+    ]);
+    await deleteExplainerBlobUrls(collectVideoBlobUrls(video, jobDocs, editDoc?.media));
+    await Promise.all([
+      jobs.deleteMany({ projectId: video._id }),
+      edits.deleteOne({ _id: video._id }),
+    ]);
 
     const removed = await videos.deleteOne({
       _id: video._id,

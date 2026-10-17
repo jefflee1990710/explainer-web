@@ -74,12 +74,16 @@ export function isScroSceneStill({
 }: {
 	asset: Pick<
 		MediaAsset,
-		"type" | "url" | "thumbnailUrl" | "scroClipNumber" | "scroPosterUrl" | "scroPlaceholder"
+		"name" | "type" | "url" | "thumbnailUrl" | "scroClipNumber" | "scroPosterUrl" | "scroPlaceholder"
 	>;
 	clips: ScroVideoSeedClip[] | undefined;
 }): boolean {
 	if (asset.type !== "image") return false;
 	if (asset.scroPlaceholder || asset.scroClipNumber != null) return true;
+	if (resolveScroClipNumber({ asset, clips }) != null) return true;
+	if ([asset.url, asset.thumbnailUrl, asset.scroPosterUrl].some((url) => Boolean(url && /\/frames\//.test(url)))) {
+		return true;
+	}
 	if (!clips?.length) return false;
 	const stillUrls = new Set<string>();
 	for (const clip of clips) {
@@ -89,6 +93,42 @@ export function isScroSceneStill({
 	return [asset.url, asset.thumbnailUrl, asset.scroPosterUrl].some(
 		(url) => Boolean(url && stillUrls.has(url)),
 	);
+}
+
+/**
+ * Identify old Scro media assets (videos, scene stills, placeholders, or clips removed
+ * from the storyboard) that should be deleted from IndexedDB and memory when a clip
+ * is regenerated or reconciled.
+ */
+export function collectStaleScroAssetIds({
+	assets,
+	clips,
+	clipNumber,
+	keepAssetId,
+}: {
+	assets: MediaAsset[];
+	clips: ScroVideoSeedClip[] | undefined;
+	clipNumber?: number;
+	keepAssetId?: string;
+}): string[] {
+	const activeClipNumbers = clips ? new Set(clips.map((clip) => clip.clipNumber)) : null;
+	const stale: string[] = [];
+
+	for (const asset of assets) {
+		if (keepAssetId && asset.id === keepAssetId) continue;
+		const assetClip = resolveScroClipNumber({ asset, clips });
+		// If this asset belongs to the target regenerated clip, any previous asset for that clip is stale.
+		if (clipNumber != null && assetClip === clipNumber) {
+			stale.push(asset.id);
+			continue;
+		}
+		// If this asset belongs to a Scro clip number that no longer exists in the storyboard, it is stale.
+		if (assetClip != null && activeClipNumbers && !activeClipNumbers.has(assetClip)) {
+			stale.push(asset.id);
+		}
+	}
+
+	return stale;
 }
 
 /** One library row for this clip: the newest finished video. Scene stills are not assets. */
@@ -118,19 +158,21 @@ export function mergeScroMediaAssets({
 	assets: MediaAsset[];
 	clips: ScroVideoSeedClip[] | undefined;
 }): MediaAsset[] {
-	if (!clips?.length) return assets;
+	// Always drop scene stills, even on the first render before `scro-videos-state` arrives.
+	const withoutStills = assets.filter((asset) => !isScroSceneStill({ asset, clips }));
+	if (!clips?.length) {
+		return withoutStills.filter((asset) => resolveScroClipNumber({ asset, clips }) == null);
+	}
 	const used = new Set<string>();
 	const orderedScro: MediaAsset[] = [];
 	for (const clip of clips) {
-		const asset = pickScroClipAsset({ clip, assets, clips });
+		const asset = pickScroClipAsset({ clip, assets: withoutStills, clips });
 		if (!asset || used.has(asset.id)) continue;
 		orderedScro.push(asset);
 		used.add(asset.id);
 	}
-	const other = assets.filter((asset) => {
+	const other = withoutStills.filter((asset) => {
 		if (used.has(asset.id)) return false;
-		// Drop start/end scene stills. Opening and Ending videos are separate cards.
-		if (isScroSceneStill({ asset, clips })) return false;
 		return resolveScroClipNumber({ asset, clips }) == null;
 	});
 	return [...orderedScro, ...other];

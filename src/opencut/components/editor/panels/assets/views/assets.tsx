@@ -92,6 +92,19 @@ export function MediaView() {
 
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [progress, setProgress] = useState(0);
+	const [bookends, setBookends] = useState<FolderBookendVideo[]>([]);
+
+	useEffect(() => {
+		const videoId = scroVideos?.videoId;
+		if (!videoId) return;
+		let cancelled = false;
+		void listFolderBookendVideosAction(videoId).then((result) => {
+			if (!cancelled && result.ok) setBookends(result.videos);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [scroVideos?.videoId]);
 
 	const processFiles = async ({ files }: { files: File[] }) => {
 		if (!files || files.length === 0) return;
@@ -240,7 +253,7 @@ export function MediaView() {
 				contentClassName="h-full"
 				{...dragProps}
 			>
-				{isDragOver || filteredMediaItems.length === 0 ? (
+				{isDragOver || (filteredMediaItems.length === 0 && bookends.length === 0) ? (
 					<MediaDragOverlay
 						isVisible={true}
 						isProcessing={isProcessing}
@@ -257,6 +270,7 @@ export function MediaView() {
 						<MediaScopeRegistrar />
 						<MediaItemList
 							items={filteredMediaItems}
+							bookends={bookends}
 							mode={mediaViewMode}
 							onRemove={handleRemove}
 						/>
@@ -389,10 +403,12 @@ function MediaItemWithContextMenu({
 
 function MediaItemList({
 	items,
+	bookends,
 	mode,
 	onRemove,
 }: {
 	items: MediaAsset[];
+	bookends: FolderBookendVideo[];
 	mode: MediaViewMode;
 	onRemove: ({
 		event,
@@ -406,19 +422,6 @@ function MediaItemList({
 	const editor = useEditor();
 	const scroVideos = useScroVideos();
 	const isGrid = mode === "grid";
-	const [bookends, setBookends] = useState<FolderBookendVideo[]>([]);
-
-	useEffect(() => {
-		const videoId = scroVideos?.videoId;
-		if (!videoId) return;
-		let cancelled = false;
-		void listFolderBookendVideosAction(videoId).then((result) => {
-			if (!cancelled && result.ok) setBookends(result.videos);
-		});
-		return () => {
-			cancelled = true;
-		};
-	}, [scroVideos?.videoId]);
 
 	const bookendNames = new Set(
 		bookends.map((video) => `${localizedVideoType(t, video.skillSlug)} · ${video.title}`),

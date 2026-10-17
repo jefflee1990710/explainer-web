@@ -1,6 +1,12 @@
 import { getAppUrl, isPublicHttpUrl } from "@/util/app-url";
 import { isAlicloudStatusUrl } from "@/service/alicloud/dashscope";
 import { fetchAlicloudStatus, submitAlicloudImage } from "@/service/alicloud/generate";
+import {
+  fetchOpenRouterStatus,
+  isOpenRouterStatusUrl,
+  submitOpenRouterClipVideo,
+  submitOpenRouterImage,
+} from "@/service/openrouter/generate";
 import { clipVideoProvider } from "@/service/generation/video-backend";
 import {
   IDEOGRAM_PROMPT_MAX,
@@ -99,6 +105,16 @@ export async function submitImage(input: {
   const imageUrls = isIdeogram(model)
     ? refs.slice(0, 1)
     : await referenceUrlsForModel(model, refs);
+
+  if (route.backend === "openrouter") {
+    return submitOpenRouterImage({
+      model,
+      prompt: input.prompt,
+      aspectRatio: input.aspectRatio,
+      quality: input.quality || "medium",
+      referenceImageUrls: imageUrls,
+    });
+  }
 
   if (route.backend === "alicloud") {
     if (input.aspectRatio === "2:3") {
@@ -218,12 +234,23 @@ export async function submitClipVideo(input: {
   styleId?: string;
   style?: { id?: string; baseStyleId?: string } | null;
 }) {
-  if (clipVideoProvider() !== "higgsfield") {
-    throw new Error("clip video must use Higgsfield first and last frames");
+  const provider = clipVideoProvider();
+  const model = clipVideoModel(input.style ?? input.styleId);
+  if (provider === "openrouter") {
+    return submitOpenRouterClipVideo({
+      model,
+      prompt: input.prompt,
+      aspectRatio: input.aspectRatio,
+      durationSeconds: input.durationSeconds,
+      startImageUrl: input.startImageUrl,
+      endImageUrl: input.endImageUrl,
+    });
+  }
+  if (provider !== "higgsfield") {
+    throw new Error("clip video must use OpenRouter or Higgsfield first and last frames");
   }
 
   const client = assertHiggsfieldConfigured();
-  const model = clipVideoModel(input.style ?? input.styleId);
   // Start-only directors omit the end image; talking-head directors send both frames.
   const body =
     model === SEEDANCE_2_VIDEO_MODEL
@@ -237,6 +264,9 @@ export async function submitClipVideo(input: {
 }
 
 export async function fetchHiggsfieldStatus(statusUrl: string) {
+  if (isOpenRouterStatusUrl(statusUrl)) {
+    return fetchOpenRouterStatus(statusUrl);
+  }
   if (isAlicloudStatusUrl(statusUrl)) {
     return fetchAlicloudStatus(statusUrl);
   }

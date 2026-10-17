@@ -28,6 +28,38 @@ export function rememberClipSource(videoId: string, mediaId: string, url: string
 	}
 }
 
+export function forgetClipSources(videoId: string, mediaIds: Iterable<string>) {
+	const ids = [...mediaIds];
+	if (ids.length === 0) return;
+	const sources = readJson(SOURCE_KEY + videoId);
+	const seen = readSeen(videoId);
+	let changed = false;
+	for (const id of ids) {
+		const url = sources[id];
+		if (url) {
+			delete sources[id];
+			seen.delete(url);
+			changed = true;
+		}
+	}
+	if (!changed) return;
+	try {
+		localStorage.setItem(SOURCE_KEY + videoId, JSON.stringify(sources));
+		writeSeen(videoId, seen);
+	} catch {
+		// Private mode can block storage.
+	}
+}
+
+export function clearClipSources(videoId: string) {
+	try {
+		localStorage.removeItem(SOURCE_KEY + videoId);
+		localStorage.removeItem(SEEN_KEY + videoId);
+	} catch {
+		// Private mode can block storage.
+	}
+}
+
 export function readClipSources(videoId: string) {
 	return readJson(SOURCE_KEY + videoId);
 }

@@ -102,6 +102,7 @@ test("restart deletes generated media but keeps the uploaded character image", (
           prompt: "p",
           status: "completed",
           blobUrl: "https://blob/f1.png",
+          mergedUrl: "https://blob/f1-merged.png",
           revision: { annotatedUrl: "https://blob/ann.png" },
         },
       ],
@@ -110,15 +111,18 @@ test("restart deletes generated media but keeps the uploaded character image", (
       ],
     }),
     [{ blobUrl: "https://blob/job.png" }],
+    [{ sourceUrl: "https://blob/explainer/v1/opencut/edit-media.mp4" }],
   );
   assert.deepEqual(new Set(urls), new Set([
     "https://blob/still.png",
     "https://blob/reel.mp4",
     "https://blob/final.mp4",
     "https://blob/f1.png",
+    "https://blob/f1-merged.png",
     "https://blob/ann.png",
     "https://blob/c1.mp4",
     "https://blob/job.png",
+    "https://blob/explainer/v1/opencut/edit-media.mp4",
   ]));
 });
 
