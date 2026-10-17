@@ -1,6 +1,8 @@
 import { mediaSrc } from "@/util/media-src";
 import { clipStateFor } from "@/service/clip-stage";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
+import { clipEndIsNextStart } from "@/service/director/steady-stills";
+import { videoEndFrame } from "@/service/higgsfield/clip-keyframes";
 import {
   scroVideosFor,
   type ScroVideoSource,
@@ -34,15 +36,17 @@ export function buildSeedClips(project: SeedSource): ScroVideoSeedClip[] {
     const start = project.frames?.find(
       (frame) => frame.clipNumber === view.clipNumber && frame.position === "start",
     );
-    const end = project.frames?.find(
-      (frame) => frame.clipNumber === view.clipNumber && frame.position === "end",
-    );
+    // Talking-head clips before the last end on the next clip's start still.
+    const endFromNextStart = clipEndIsNextStart(project, view.clipNumber);
+    const end = videoEndFrame(project.frames, view.clipNumber, endFromNextStart);
     return {
       clipNumber: view.clipNumber,
       durationSeconds: view.durationSeconds,
       stage: view.stage,
       posterUrl: view.posterUrl,
       endPosterUrl: end?.status === "completed" ? mediaSrc(end) : undefined,
+      endFromClipNumber: endFromNextStart ? view.clipNumber + 1 : undefined,
+      endPending: end?.status === "queued" || end?.status === "in_progress",
       videoUrl: view.videoUrl,
       name: `Clip ${view.clipNumber}`,
       timeRange: row?.timeRange,
@@ -133,6 +137,7 @@ export function diffScroSeedClips({
       before.stage !== clip.stage ||
       before.posterUrl !== clip.posterUrl ||
       before.endPosterUrl !== clip.endPosterUrl ||
+      before.endPending !== clip.endPending ||
       before.videoUrl !== clip.videoUrl ||
       before.durationSeconds !== clip.durationSeconds ||
       before.error !== clip.error ||

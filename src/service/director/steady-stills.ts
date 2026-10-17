@@ -13,3 +13,20 @@ export function clipSkipsEndStill(project: { skillSlug?: string; styleId?: strin
   if (!project.skillSlug) return true;
   return !isTalkingHeadSkill(project.skillSlug);
 }
+
+type StoryboardOwner = {
+  skillSlug?: string;
+  styleId?: string;
+  phaseA?: { clips: Array<{ clipNumber: number }> };
+};
+
+// Talking-head clip with a later clip: its video lands on that clip's start still.
+export function clipEndIsNextStart(project: StoryboardOwner, clipNumber: number) {
+  if (!isTalkingHeadSkill(project.skillSlug)) return false;
+  return Boolean(project.phaseA?.clips.some((clip) => clip.clipNumber === clipNumber + 1));
+}
+
+// This clip draws no end still of its own. Talking-head draws one for the last clip only.
+export function clipDrawsNoEndStill(project: StoryboardOwner, clipNumber: number) {
+  return clipSkipsEndStill(project) || clipEndIsNextStart(project, clipNumber);
+}

@@ -27,7 +27,7 @@ import {
 } from "@/service/production-plan";
 import { isInheritedTalkingHeadStart } from "@/service/director/talking-head";
 import { clipFrameCost } from "@/service/clip-stage";
-import { clipSkipsEndStill } from "@/service/director/steady-stills";
+import { clipDrawsNoEndStill } from "@/service/director/steady-stills";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import { folderVideoPath } from "@/service/folder-video-path";
 import type { Project } from "@/model/project";
@@ -117,7 +117,7 @@ export async function generateClipFramesAction(
       // `queued` forever); a frame that did get one is reconciliation's.
       const message = error instanceof Error ? error.message : "分鏡圖送出失敗";
       const inherited = isInheritedTalkingHeadStart(project.skillSlug, clipNumber, "start");
-      const skipEnd = clipSkipsEndStill(project);
+      const skipEnd = clipDrawsNoEndStill(project, clipNumber);
       const missed = await failUnsubmittedFrames(
         project._id,
         clipNumber,

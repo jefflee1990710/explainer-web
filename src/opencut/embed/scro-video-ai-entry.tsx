@@ -19,6 +19,9 @@ export function ScroVideoAiEntry({
 		canvas && canvas.width > 1 && canvas.height > 1
 			? `${canvas.width} / ${canvas.height}`
 			: "16 / 9";
+	// Talking-head: the video ends on the next clip's start, so the end tile edits that still.
+	const endClipNumber = clip.endFromClipNumber ?? clip.clipNumber;
+	const endPosition = clip.endFromClipNumber ? "start" : "end";
 
 	return (
 		<div className="space-y-2">
@@ -62,18 +65,20 @@ export function ScroVideoAiEntry({
 					onClick={() =>
 						requestScroOpenAi({
 							videoId,
-							clipNumber: clip.clipNumber,
+							clipNumber: endClipNumber,
 							kind: "frame-edit",
-							position: "end",
+							position: endPosition,
 						})
 					}
 					className="border-border bg-accent/40 hover:bg-accent disabled:opacity-40 flex flex-col overflow-hidden rounded-sm border text-left"
 				>
 					<div
-						className="bg-muted w-full overflow-hidden"
+						className="bg-muted relative w-full overflow-hidden"
 						style={{ aspectRatio }}
 					>
-						{clip.endPosterUrl ? (
+						{clip.endPending ? (
+							<MediaLoadingMark />
+						) : clip.endPosterUrl ? (
 							// eslint-disable-next-line @next/next/no-img-element
 							<img src={clip.endPosterUrl} alt="" className="size-full object-cover" />
 						) : (
@@ -82,7 +87,11 @@ export function ScroVideoAiEntry({
 							</div>
 						)}
 					</div>
-					<span className="px-1.5 py-1 text-[0.65rem]">Redraw end</span>
+					<span className="px-1.5 py-1 text-[0.65rem]">
+						{clip.endFromClipNumber
+							? `Redraw end · Clip ${clip.endFromClipNumber} start`
+							: "Redraw end"}
+					</span>
 				</button>
 			</div>
 		</div>

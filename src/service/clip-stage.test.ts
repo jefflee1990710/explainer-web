@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ClipFrame, ProjectClip } from "@/model/project";
+import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
 import {
   canGenerateAllVideos,
   cardGenerationBadge,
@@ -171,19 +172,49 @@ test("stale.frames when the row was edited after a frame was submitted", () => {
   assert.deepEqual(clipStateFor(p, 1).stale, { frames: true, video: false });
 });
 
-test("a copied talking-head start does not keep frames stale after the end still is redrawn", () => {
+test("talking-head clips land on the next start; only the last clip draws an end", () => {
+  const p = project({
+    skillSlug: "talking-head-director",
+    phaseA: { clips: [{ clipNumber: 1 }, { clipNumber: 2 }] },
+    frames: [frame(1, "start", "completed"), frame(2, "start", "completed")],
+  });
+  assert.equal(clipStateFor(p, 1).stage, "frames_ready");
+  assert.equal(clipStateFor(p, 1).frameCost, FRAME_COST);
+  assert.equal(clipStateFor(p, 2).stage, "no_frames");
+  assert.equal(clipStateFor(p, 2).frameCost, FRAMES_COST);
+  p.frames!.push(frame(2, "end", "completed"));
+  assert.equal(clipStateFor(p, 2).stage, "frames_ready");
+});
+
+test("talking-head clip waits while the next start draws, and is not failed by it", () => {
+  const drawing = project({
+    skillSlug: "talking-head-director",
+    phaseA: { clips: [{ clipNumber: 1 }, { clipNumber: 2 }] },
+    frames: [frame(1, "start", "completed"), frame(2, "start", "in_progress")],
+  });
+  assert.equal(clipStateFor(drawing, 1).stage, "frames_generating");
+  const failed = project({
+    skillSlug: "talking-head-director",
+    phaseA: { clips: [{ clipNumber: 1 }, { clipNumber: 2 }] },
+    frames: [frame(1, "start", "completed"), frame(2, "start", "failed")],
+  });
+  assert.equal(clipStateFor(failed, 1).stage, "no_frames");
+  assert.equal(clipStateFor(failed, 2).stage, "frames_failed");
+});
+
+test("redrawing the next talking-head start makes this video stale, not these frames", () => {
   const p = project({
     skillSlug: "talking-head-director",
     phaseA: {
-      clips: [{ clipNumber: 2, editedAt: "2026-10-12T06:29:35.121Z" }],
+      clips: [{ clipNumber: 1, editedAt: "2026-10-11T00:00:00.000Z" }, { clipNumber: 2 }],
     },
     frames: [
-      frame(2, "start", "completed", "2026-10-11T15:58:54.992Z"),
-      frame(2, "end", "completed", "2026-10-12T07:28:55.989Z"),
+      frame(1, "start", "completed", "2026-10-11T15:58:54.992Z"),
+      frame(2, "start", "completed", "2026-10-12T07:28:55.989Z"),
     ],
-    clips: [clip(2, "completed", "2026-10-11T18:14:14.287Z")],
+    clips: [clip(1, "completed", "2026-10-11T18:14:14.287Z")],
   });
-  assert.deepEqual(clipStateFor(p, 2).stale, { frames: false, video: true });
+  assert.deepEqual(clipStateFor(p, 1).stale, { frames: false, video: true });
 });
 
 test("a talking-head end still stays stale when the line was edited after it was drawn", () => {

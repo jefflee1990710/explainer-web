@@ -23,7 +23,7 @@ import {
 } from "@/service/clip/frame-prompt-chat";
 import { directorModel } from "@/service/director/model";
 import { isInheritedTalkingHeadStart } from "@/service/director/talking-head";
-import { clipSkipsEndStill } from "@/service/director/steady-stills";
+import { clipDrawsNoEndStill } from "@/service/director/steady-stills";
 import { clipKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { failUnsubmittedFrames, regenerateFrame } from "@/service/higgsfield/pipeline";
 import { FRAME_COST } from "@/service/production-plan";
@@ -274,7 +274,7 @@ export async function regenerateFramePromptAction(
     if (isInheritedTalkingHeadStart(project.skillSlug, target.clipNumber, target.position)) {
       return { ok: false, error: "這張起始圖沿用上一段的結尾，請重畫上一段的結尾圖。" };
     }
-    if (!frame && target.position === "end" && clipSkipsEndStill(project)) {
+    if (!frame && target.position === "end" && clipDrawsNoEndStill(project, target.clipNumber)) {
       return { ok: false, error: "這段不產生結尾畫格" };
     }
     if (target.position === "end" && !clipKeyframeUrls(project.frames, target.clipNumber).start) {

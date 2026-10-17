@@ -23,7 +23,11 @@ import {
 } from "@/service/generation/image-backend";
 import { promptForFrameSubmit } from "@/service/clip/frame-prompt-chat";
 import { frameSubmitPlan, framesWithClipsReady } from "@/service/higgsfield/frame-prompts";
-import { clipSkipsEndStill } from "@/service/director/steady-stills";
+import {
+  clipDrawsNoEndStill,
+  clipEndIsNextStart,
+  clipSkipsEndStill,
+} from "@/service/director/steady-stills";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt";
@@ -77,6 +81,7 @@ import {
 } from "@/service/director/talking-head";
 import { chargedVideoCredits, FRAME_COST, STUCK_CLAIM_MS } from "@/service/production-plan";
 import { lockDialogueSpeech } from "@/service/director/spoken-line";
+import { withTalkingSubtitleHandoff } from "@/service/director/talking-subtitle-handoff";
 import { withCantonesePronunciation } from "@/service/voice/cantonese-pronunciation";
 import { toSent, type Sent } from "@/service/generation/sent";
 import { frameJobDocs } from "@/service/generation/frame-jobs";
@@ -245,7 +250,11 @@ async function insertFrameJobs(
   ready: FrameTarget[],
   deferred: FrameTarget[],
 ) {
-  const ids = await insertPendingJobs(frameJobDocs(project._id, ready, deferred));
+  const ids = await insertPendingJobs(
+    frameJobDocs(project._id, ready, deferred, new Date(), {
+      startsFollowFirstClip: isTalkingHeadSkill(project.skillSlug),
+    }),
+  );
   ids.slice(0, ready.length).forEach((id) => kickJob(id));
 }
 
@@ -263,7 +272,9 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
   const submittedAt = new Date().toISOString();
-  const { ready, deferred } = planFrameSubmissions(targets, project.frames);
+  const { ready, deferred } = planFrameSubmissions(targets, project.frames, {
+    startsFollowFirstClip: isTalkingHeadSkill(project.skillSlug),
+  });
   const style = await loadRenderableStyle({
     styleId: project.styleId,
     ownerClerkUserId: project.clerkUserId,
@@ -337,16 +348,16 @@ export async function enqueueClipFrameJobs(project: Project, clipNumbers: number
     await framesWithClipsReady(project, clipNumbers),
     project.skillSlug,
   );
-  // Talking-head clip 2+ starts are copied from the previous end, never submitted.
-  const positions = clipSkipsEndStill(project)
-    ? (["start"] as const)
-    : (["start", "end"] as const);
+  // Chained starts are copied from the previous end, never submitted. Talking-head
+  // draws every start, and an end only on the last clip.
   const targets: FrameTarget[] = clipNumbers.flatMap((clipNumber) =>
-    positions
+    (clipDrawsNoEndStill(project, clipNumber) ? (["start"] as const) : (["start", "end"] as const))
       .filter((position) => !isInheritedTalkingHeadStart(project.skillSlug, clipNumber, position))
       .map((position) => ({ clipNumber, position })),
   );
-  const { ready, deferred } = planFrameSubmissions(targets, frames);
+  const { ready, deferred } = planFrameSubmissions(targets, frames, {
+    startsFollowFirstClip: isTalkingHeadSkill(project.skillSlug),
+  });
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
   await projects.updateOne(
@@ -437,34 +448,37 @@ export async function sendClipVideo(
     skillSlug: project.skillSlug,
     styleId: project.styleId,
   });
-  const { start, end } = videoKeyframeUrls(project.frames, clipNumber, { merged });
+  // Talking-head: clip N runs from its own start still to clip N+1's start still.
+  const endFromNextStart = clipEndIsNextStart(project, clipNumber);
+  const { start, end } = videoKeyframeUrls(project.frames, clipNumber, { merged, endFromNextStart });
   if (!start || (!startOnly && !end)) {
     throw new Error(
       merged ? "字幕還沒疊上畫格，無法產片" : "這段的起點或終點畫格還沒有檔案，無法產片",
     );
   }
-  // Chained talking-head clips 2+ inherit the previous clip's end file as `start`,
-  // which has the previous clip's baked-in subtitle. Sending both frames causes
-  // Seedance to stack/duplicate the two different subtitle strips. When scene text
-  // is baked in, drive the clip from `end` (which carries this clip's own subtitle and pose).
-  const useOwnSubtitleFrameOnly =
-    !startOnly &&
-    !merged &&
-    Boolean(end) &&
-    resolveSceneText(project).enabled &&
-    isInheritedTalkingHeadStart(project.skillSlug, clipNumber, "start");
-  const startUrlForVideo = useOwnSubtitleFrameOnly && end ? end : start;
-  const endUrlForVideo = startOnly || useOwnSubtitleFrameOnly ? undefined : end;
+  const endUrlForVideo = startOnly ? undefined : end;
   // Talking-head locks must match the director's (possibly customised) performance slots.
   const talkingShot = talkingShotForSkill(project.skillSlug);
   const performance = talkingShot ? resolvePerformance(await loadSkill(project), talkingShot, "en") : undefined;
   const spokenLine = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber)?.englishVo;
+  const nextLine = endFromNextStart
+    ? project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber + 1)?.englishVo
+    : undefined;
+  // Painted talking-head subtitles stay in their lettering and hand off to the next line.
+  const subtitlePrompt =
+    isTalkingHeadSkill(project.skillSlug) && !merged && resolveSceneText(project).enabled
+      ? withTalkingSubtitleHandoff(prompt.prompt, {
+          line: spokenLine || "",
+          nextLine,
+          language: project.language,
+        })
+      : prompt.prompt;
   // Stored prompts skip Phase B, so the realistic light lock is added here at send time.
   const style = await loadRenderableStyle({
     styleId: project.styleId,
     ownerClerkUserId: project.clerkUserId,
   }).catch(() => null);
-  const motionPrompt = isRealisticStyle(style) ? lockRealisticVideoLight(prompt.prompt) : prompt.prompt;
+  const motionPrompt = isRealisticStyle(style) ? lockRealisticVideoLight(subtitlePrompt) : subtitlePrompt;
   const submitted = await submitClipVideo({
     prompt: withCantonesePronunciation(
       lockDialogueSpeech(
@@ -483,7 +497,7 @@ export async function sendClipVideo(
     ),
     aspectRatio: project.aspectRatio,
     durationSeconds: prompt.durationSeconds,
-    startImageUrl: startUrlForVideo,
+    startImageUrl: start,
     endImageUrl: endUrlForVideo,
     styleId: project.styleId,
     style,
@@ -900,6 +914,8 @@ export async function applyJobStatus(input: {
     (blobUrl || outputUrl)
   ) {
     await submitDeferredEndIfNeeded(projectId, job.clipIndex + 1);
+    // Talking-head later starts lock to Clip 1's start.
+    if (job.clipIndex === 0) await submitStartsAwaitingFirstStart(projectId);
   }
 
   // Previous end landed, so the next clip's start can use it as the place reference.
@@ -934,6 +950,7 @@ export async function refundClaimedFailure(
   }
   if (job.kind === "frame" && job.framePosition === "start") {
     await failDeferredEndIfNeeded(project._id, job.clipIndex + 1, error);
+    if (job.clipIndex === 0) await failStartsAwaitingFirstStart(project._id, error);
   }
   if (job.kind === "frame" && job.framePosition === "end") {
     await failDeferredNextStartIfNeeded(project._id, job.clipIndex + 1, error);
@@ -1108,6 +1125,45 @@ export async function submitDeferredNextStartIfNeeded(projectId: ObjectId, clipN
     );
     if (released.modifiedCount > 0) kickJob(existing._id);
   }
+}
+
+// Clip 1's start landed: send every talking-head start parked on it.
+export async function submitStartsAwaitingFirstStart(projectId: ObjectId) {
+  const jobs = await generationJobsCollection();
+  const projects = await videosCollection();
+  const project = await projects.findOne({ _id: projectId });
+  if (!clipKeyframeUrls(project?.frames, 1).start) return;
+  const waiting = await jobs
+    .find({ projectId, kind: "frame", framePosition: "start", status: "pending", awaits: "first-start" })
+    .toArray();
+  for (const job of waiting) {
+    const released = await jobs.updateOne(
+      { _id: job._id, status: "pending", awaits: "first-start" },
+      { $set: { nextAttemptAt: new Date(), updatedAt: new Date() }, $unset: { awaits: "" } },
+    );
+    if (released.modifiedCount > 0) kickJob(job._id);
+  }
+}
+
+// Clip 1's start failed: fail and refund every start parked on it.
+export async function failStartsAwaitingFirstStart(projectId: ObjectId, error: string) {
+  const jobs = await generationJobsCollection();
+  const projects = await videosCollection();
+  const project = await projects.findOne({ _id: projectId });
+  if (!project) return;
+  const waiting = await jobs
+    .find({ projectId, kind: "frame", framePosition: "start", status: "pending", awaits: "first-start" })
+    .toArray();
+  let failedAny = false;
+  for (const job of waiting) {
+    const failed = await claimFailure(job._id, error, "failed", { awaits: "first-start" });
+    if (!failed) continue;
+    failedAny = true;
+    await refundCredits(project.clerkUserId, FRAME_COST);
+    // The last clip's end was parked on this start.
+    await failDeferredEndIfNeeded(projectId, job.clipIndex + 1, error);
+  }
+  if (failedAny) await syncProjectFromJobs(projectId);
 }
 
 // Previous end failed: the next start was waiting on it, so fail and refund that still.

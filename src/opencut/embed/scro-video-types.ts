@@ -9,8 +9,12 @@ export type ScroVideoSeedClip = {
 	durationSeconds: number;
 	stage: ScroVideoUiStage;
 	posterUrl?: string;
-	/** Completed end still. Shown beside the start so it can be added on its own. */
+	/** Completed still the video ends on. Shown beside the start so it can be added on its own. */
 	endPosterUrl?: string;
+	/** Talking-head: the end is this later clip's start still, not an end of its own. */
+	endFromClipNumber?: number;
+	/** The still the video ends on is drawing. */
+	endPending?: boolean;
 	videoUrl?: string;
 	name: string;
 	timeRange?: string;

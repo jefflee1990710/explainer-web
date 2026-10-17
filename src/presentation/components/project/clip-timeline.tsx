@@ -2,7 +2,7 @@ import { formatTimecode } from "@/presentation/studio/format-timecode";
 import type { StudioClipItem, StudioClipTone } from "@/presentation/studio/clip-item";
 import type { ClipStage, ClipState } from "@/service/clip-stage";
 import { displayMediaSrc, mediaSrc } from "@/util/media-src";
-import { clipSkipsEndStill } from "@/service/director/steady-stills";
+import { clipDrawsNoEndStill } from "@/service/director/steady-stills";
 import type { PublicVideo } from "@/presentation/serialize";
 
 const BUSY: ReadonlySet<ClipStage> = new Set(["frames_generating", "video_generating"]);
@@ -44,7 +44,7 @@ export function clipStudioItems(
       busy,
       stale,
       tone: clipTone(state.stage, busy, stale),
-      hasScene: clipSkipsEndStill(project)
+      hasScene: clipDrawsNoEndStill(project, state.clipNumber)
         ? Boolean(mediaSrc(start))
         : Boolean(mediaSrc(start) && mediaSrc(end)),
       hasVideo: Boolean(mediaSrc(clip)),

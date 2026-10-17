@@ -36,6 +36,23 @@ test("frameJobDocs parks a later start until the previous end lands", () => {
   );
 });
 
+test("frameJobDocs parks talking-head later starts on Clip 1's start", () => {
+  const docs = frameJobDocs(
+    new ObjectId(),
+    [{ clipNumber: 1, position: "start" }],
+    [
+      { clipNumber: 2, position: "start" },
+      { clipNumber: 2, position: "end" },
+    ],
+    new Date(),
+    { startsFollowFirstClip: true },
+  );
+  assert.deepEqual(
+    docs.map((doc) => `${doc.clipIndex}:${doc.framePosition}:${doc.awaits ?? "-"}`),
+    ["0:start:-", "1:start:first-start", "1:end:start"],
+  );
+});
+
 test("frameJobDocs with a start file already present sends both immediately", () => {
   const docs = frameJobDocs(
     new ObjectId(),

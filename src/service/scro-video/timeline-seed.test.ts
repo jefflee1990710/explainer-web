@@ -48,6 +48,27 @@ describe("buildSeedClips", () => {
     assert.equal(rows[0].endPosterUrl, "https://cdn.example/end.webp");
     assert.equal(rows[1].endPosterUrl, undefined);
   });
+
+  it("shows the next clip's start as a talking-head clip's end", () => {
+    const rows = buildSeedClips({
+      ...sampleProject,
+      skillSlug: "talking-head-director",
+      frames: [
+        { clipNumber: 1, position: "start", status: "completed", prompt: "", blobUrl: "s1" },
+        { clipNumber: 2, position: "start", status: "completed", prompt: "", blobUrl: "s2" },
+        { clipNumber: 3, position: "start", status: "in_progress", prompt: "" },
+        { clipNumber: 3, position: "end", status: "completed", prompt: "", blobUrl: "e3" },
+      ],
+    });
+    assert.deepEqual(
+      rows.map((row) => [row.posterUrl, row.endPosterUrl, row.endFromClipNumber, row.endPending]),
+      [
+        ["s1", "s2", 2, false],
+        ["s2", undefined, 3, true],
+        ["e3", "e3", undefined, false],
+      ],
+    );
+  });
 });
 
 describe("storyboard layout", () => {

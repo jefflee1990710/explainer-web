@@ -43,19 +43,29 @@ export function clipKeyframeUrls(
   return { start, end };
 }
 
+// The still a clip video lands on: this clip's end, or the next clip's start
+// when `endFromNextStart` (talking-head clips before the last one).
+export function videoEndFrame(
+  frames: ClipFrame[] | undefined,
+  clipNumber: number,
+  endFromNextStart?: boolean,
+) {
+  return endFromNextStart
+    ? frames?.find((frame) => frame.clipNumber === clipNumber + 1 && frame.position === "start")
+    : frames?.find((frame) => frame.clipNumber === clipNumber && frame.position === "end");
+}
+
 // Video sends the clean still, unless this clip burns the subtitle onto the still first.
 // `merged` then returns only the composited file, never the clean one.
 export function videoKeyframeUrls(
   frames: ClipFrame[] | undefined,
   clipNumber: number,
-  options?: { merged?: boolean },
+  options?: { merged?: boolean; endFromNextStart?: boolean },
 ) {
   const startFrame = frames?.find(
     (frame) => frame.clipNumber === clipNumber && frame.position === "start",
   );
-  const endFrame = frames?.find(
-    (frame) => frame.clipNumber === clipNumber && frame.position === "end",
-  );
+  const endFrame = videoEndFrame(frames, clipNumber, options?.endFromNextStart);
   const pick = (frame?: ClipFrame) => (options?.merged ? frame?.mergedUrl : mediaSrc(frame));
   return { start: pick(startFrame), end: pick(endFrame) };
 }
@@ -63,8 +73,8 @@ export function videoKeyframeUrls(
 // Which completed still this frame must continue from. End always prefers
 // this clip's start; start prefers the previous clip's end, then this clip's
 // end (a start redo after the end already exists).
-// When `anchorToFirstClip` is true (locked-camera talking-head clips 2+), end
-// frames anchor to Clip 1's clean frame so multi-clip edits never suffer
+// When `anchorToFirstClip` is true (locked-camera talking-head clips 2+), start
+// and end frames anchor to Clip 1's clean frame so multi-clip edits never suffer
 // multi-generation daisy-chain degradation across 8+ clips.
 export function clipFrameAnchor(
   frames: ClipFrame[] | undefined,
@@ -73,6 +83,12 @@ export function clipFrameAnchor(
   options?: { anchorToFirstClip?: boolean },
 ): { url: string; kind: FrameAnchorKind } | undefined {
   const rows = frames || [];
+  if (position === "start" && options?.anchorToFirstClip && clipNumber > 1) {
+    const clip1StartUrl = completedUrl(
+      rows.find((frame) => frame.clipNumber === 1 && frame.position === "start"),
+    );
+    return clip1StartUrl ? { url: clip1StartUrl, kind: "clip-start" } : undefined;
+  }
   if (position === "end") {
     if (options?.anchorToFirstClip && clipNumber > 1) {
       const clip1Start = rows.find(
@@ -104,24 +120,40 @@ export function clipFrameAnchor(
   return endUrl ? { url: endUrl, kind: "clip-end" } : undefined;
 }
 
-function previousEndStillRunning(frames: ClipFrame[] | undefined, clipNumber: number) {
-  const prev = frames?.find(
-    (frame) => frame.clipNumber === clipNumber && frame.position === "end",
+function frameStillRunning(
+  frames: ClipFrame[] | undefined,
+  clipNumber: number,
+  position: FramePosition,
+) {
+  const frame = frames?.find(
+    (item) => item.clipNumber === clipNumber && item.position === position,
   );
-  return prev?.status === "queued" || prev?.status === "in_progress";
+  return frame?.status === "queued" || frame?.status === "in_progress";
 }
 
 // End stills wait until this clip's start file exists. Later start stills wait
 // until the previous clip's end file exists, so the new shot can keep that place.
+// `startsFollowFirstClip` (talking-head): later starts wait for Clip 1's start instead.
 export function planFrameSubmissions<T extends FrameSubmitTarget>(
   targets: T[],
   frames: ClipFrame[] | undefined,
+  options?: { startsFollowFirstClip?: boolean },
 ) {
   const ready: T[] = [];
   const deferred: T[] = [];
   for (const target of targets) {
     if (target.position === "end" && !clipKeyframeUrls(frames, target.clipNumber).start) {
       deferred.push(target);
+      continue;
+    }
+    if (options?.startsFollowFirstClip) {
+      const waitsForFirst =
+        target.position === "start" &&
+        target.clipNumber > 1 &&
+        !clipKeyframeUrls(frames, 1).start &&
+        (targets.some((item) => item.clipNumber === 1 && item.position === "start") ||
+          frameStillRunning(frames, 1, "start"));
+      (waitsForFirst ? deferred : ready).push(target);
       continue;
     }
     const prevClip = target.clipNumber - 1;
@@ -132,7 +164,7 @@ export function planFrameSubmissions<T extends FrameSubmitTarget>(
       target.position === "start" &&
       prevClip >= 1 &&
       !clipKeyframeUrls(frames, prevClip).end &&
-      (prevEndInBatch || previousEndStillRunning(frames, prevClip))
+      (prevEndInBatch || frameStillRunning(frames, prevClip, "end"))
     ) {
       deferred.push(target);
       continue;

@@ -28,9 +28,13 @@ import {
 import { enqueueSubtitlePlateJobs } from "@/service/higgsfield/subtitle-plate-job";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { isProductionLike } from "@/service/project-status";
-import { isInheritedTalkingHeadStart, withInheritedTalkingHeadStarts } from "@/service/director/talking-head";
+import {
+  isInheritedTalkingHeadStart,
+  isTalkingHeadSkill,
+  withInheritedTalkingHeadStarts,
+} from "@/service/director/talking-head";
 import { clipFrameCost } from "@/service/clip-stage";
-import { clipSkipsEndStill } from "@/service/director/steady-stills";
+import { clipDrawsNoEndStill } from "@/service/director/steady-stills";
 import { FRAME_COST } from "@/service/production-plan";
 import { toPublicVideo, type PublicVideo } from "@/presentation/serialize";
 import type {
@@ -135,7 +139,7 @@ export async function regenerateFrameAction(
       (item) => item.clipNumber === clipNumber && item.position === position,
     );
     if (!frame) {
-      if (position === "end" && clipSkipsEndStill(project)) {
+      if (position === "end" && clipDrawsNoEndStill(project, clipNumber)) {
         return { ok: false, error: "這段不產生結尾畫格" };
       }
       return { ok: false, error: "找不到這張分鏡圖" };
@@ -371,7 +375,7 @@ export async function updateClipStoryboardAction(
       return { ok: false, error: "這一段的分鏡圖還在產生中，請稍後再重畫" };
     }
 
-    const skipEnd = clipSkipsEndStill(project);
+    const skipEnd = clipDrawsNoEndStill(project, clipNumber);
     const cost = regenerate ? clipFrameCost(project, clipNumber) : 0;
     if (regenerate) await assertCanSpendCredits(user, cost);
 
@@ -444,7 +448,9 @@ export async function updateClipStoryboardAction(
             { clipNumber, position: "start" as const },
             { clipNumber, position: "end" as const },
           ];
-      const { deferred } = planFrameSubmissions(targets, frames);
+      const { deferred } = planFrameSubmissions(targets, frames, {
+        startsFollowFirstClip: isTalkingHeadSkill(project.skillSlug),
+      });
       try {
         await regenerateFrames({ ...nextProject, frames }, targets);
       } catch (error) {

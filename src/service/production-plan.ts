@@ -1,6 +1,7 @@
 import { mediaSrc } from "@/util/media-src";
 import { canQueueFrames, clipFrameCost, clipStatesFor, type ClipStageSource } from "@/service/clip-stage";
 import type { ClipFrame, ProjectClip } from "@/model/project";
+import { videoEndFrame } from "@/service/higgsfield/clip-keyframes";
 
 import { FRAME_COST, MIN_VIDEO_COST, MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
@@ -18,7 +19,7 @@ export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
   );
 }
 
-// Scene-image credits. Talking-head clip 2+ pays for the end still only.
+// Scene-image credits. Talking-head clips pay for their start; the last clip pays for its end too.
 export function sceneImageCost(project: ClipStageSource, clipNumbers: number[]) {
   return clipNumbers.reduce((sum, clipNumber) => sum + clipFrameCost(project, clipNumber), 0);
 }
@@ -166,14 +167,14 @@ export function autoVideoDecision(
   frames: ClipFrame[] | undefined,
   clips: ProjectClip[],
   clipNumber: number,
-  options?: { startOnly?: boolean; merged?: boolean },
+  options?: { startOnly?: boolean; merged?: boolean; endFromNextStart?: boolean },
 ): "start" | "wait" | "drop" | "done" {
   const start = frames?.find(
     (frame) => frame.clipNumber === clipNumber && frame.position === "start",
   );
   const end = options?.startOnly
     ? undefined
-    : frames?.find((frame) => frame.clipNumber === clipNumber && frame.position === "end");
+    : videoEndFrame(frames, clipNumber, options?.endFromNextStart);
   const pair = [start, end].filter((frame): frame is ClipFrame => Boolean(frame));
   if (pair.some((frame) => IN_FLIGHT.has(frame.status))) return "wait";
   if (!start || (!options?.startOnly && !end)) return "wait";

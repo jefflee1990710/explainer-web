@@ -7,7 +7,7 @@ import { hasJobSince } from "@/service/higgsfield/job-attempts";
 import { videoKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { mergeReadySubtitleFrames } from "@/service/higgsfield/merge-subtitle-frames";
 import { autoVideoDecision } from "@/service/production-plan";
-import { clipSkipsEndStill } from "@/service/director/steady-stills";
+import { clipEndIsNextStart, clipSkipsEndStill } from "@/service/director/steady-stills";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
 import { chargedVideoCredits, STUCK_CLAIM_MS, videoCost } from "@/service/production-plan";
 import type { Project, ProjectClip } from "@/model/project";
@@ -56,7 +56,10 @@ export async function claimAndStartClipVideo(
   }
   const merged = overlay;
   const startOnly = clipSkipsEndStill(project);
-  const { start, end } = videoKeyframeUrls(project.frames, clipNumber, { merged });
+  const { start, end } = videoKeyframeUrls(project.frames, clipNumber, {
+    merged,
+    endFromNextStart: clipEndIsNextStart(project, clipNumber),
+  });
   if (!start || (!startOnly && !end)) {
     return {
       ok: false,
@@ -201,6 +204,7 @@ export async function queueAutoClipVideos(projectId: ObjectId) {
   for (const clipNumber of pending) {
     const decision = autoVideoDecision(project.frames, project.clips, clipNumber, {
       startOnly: clipSkipsEndStill(project),
+      endFromNextStart: clipEndIsNextStart(project, clipNumber),
       merged: usesTalkingHeadSubtitleOverlay({
         skillSlug: project.skillSlug,
         styleId: project.styleId,

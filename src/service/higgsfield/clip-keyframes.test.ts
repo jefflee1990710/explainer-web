@@ -42,6 +42,22 @@ test("videoKeyframeUrls sends the merged still and never the clean one", () => {
   });
 });
 
+test("videoKeyframeUrls lands a talking-head clip on the next clip's start", () => {
+  const frames = [
+    frame("start", { blobUrl: "clip1-start" }),
+    frame("end", { blobUrl: "clip1-old-end" }),
+    frame("start", { clipNumber: 2, blobUrl: "clip2-start" }),
+  ];
+  assert.deepEqual(videoKeyframeUrls(frames, 1, { endFromNextStart: true }), {
+    start: "clip1-start",
+    end: "clip2-start",
+  });
+  assert.deepEqual(videoKeyframeUrls(frames, 2, { endFromNextStart: true }), {
+    start: "clip2-start",
+    end: undefined,
+  });
+});
+
 test("clipKeyframeUrls prefers blob over provider URL and ignores empty completed rows", () => {
   assert.deepEqual(
     clipKeyframeUrls(
@@ -85,6 +101,24 @@ test("clipFrameAnchor: end locks to this clip's completed start, or Clip 1 when 
     url: "clip1-start",
     kind: "clip-start",
   });
+});
+
+test("clipFrameAnchor: talking-head later starts lock to Clip 1's start", () => {
+  const frames = [
+    frame("start", { clipNumber: 1, blobUrl: "clip1-start" }),
+    frame("end", { clipNumber: 2, blobUrl: "clip2-end" }),
+    frame("start", { clipNumber: 3, status: "queued" }),
+  ];
+  assert.deepEqual(clipFrameAnchor(frames, 3, "start", { anchorToFirstClip: true }), {
+    url: "clip1-start",
+    kind: "clip-start",
+  });
+  assert.equal(
+    clipFrameAnchor([frame("start", { clipNumber: 1, status: "queued" })], 3, "start", {
+      anchorToFirstClip: true,
+    }),
+    undefined,
+  );
 });
 
 test("clipFrameAnchor: start inherits the previous clip's completed end", () => {
@@ -168,6 +202,28 @@ test("planFrameSubmissions sends the next start once the previous end file exist
     ["start"],
   );
   assert.deepEqual(plan.deferred, []);
+});
+
+test("planFrameSubmissions holds talking-head later starts until Clip 1's start exists", () => {
+  const targets = [
+    { clipNumber: 1, position: "start" as const },
+    { clipNumber: 2, position: "start" as const },
+    { clipNumber: 3, position: "start" as const },
+    { clipNumber: 3, position: "end" as const },
+  ];
+  const plan = planFrameSubmissions(targets, [], { startsFollowFirstClip: true });
+  assert.deepEqual(plan.ready, [{ clipNumber: 1, position: "start" }]);
+  assert.deepEqual(plan.deferred, [
+    { clipNumber: 2, position: "start" },
+    { clipNumber: 3, position: "start" },
+    { clipNumber: 3, position: "end" },
+  ]);
+  const later = planFrameSubmissions(
+    [{ clipNumber: 2, position: "start" }],
+    [frame("start", { clipNumber: 1, blobUrl: "clip1-start" })],
+    { startsFollowFirstClip: true },
+  );
+  assert.deepEqual(later.ready, [{ clipNumber: 2, position: "start" }]);
 });
 
 test("planFrameSubmissions sends end immediately when start file is already there", () => {

@@ -316,27 +316,28 @@ test("talking-head evens word count and keeps a named shot", () => {
   assert.equal(talkingHeadShot(undefined), undefined);
 });
 
-test("talking-head clip 2 start copies the previous end file and costs one still", () => {
+test("chained directors copy the previous end; talking-head draws its own start", () => {
   assert.equal(talkingHeadFramesCost("talking-head-director", 1), FRAMES_COST);
-  assert.equal(talkingHeadFramesCost("talking-head-director", 2), FRAME_COST);
-  assert.equal(talkingHeadFramesCost("full-body-talking-head-director", 2), FRAME_COST);
+  assert.equal(talkingHeadFramesCost("talking-head-director", 2), FRAMES_COST);
+  assert.equal(talkingHeadFramesCost("full-body-talking-head-director", 2), FRAMES_COST);
   assert.equal(talkingHeadFramesCost("story-short-director", 2), FRAMES_COST);
   assert.equal(talkingHeadFramesCost("outfit-reel-director", 2), FRAMES_COST);
   assert.equal(talkingHeadFramesCost("follow-shot-director", 2), FRAME_COST);
   assert.equal(talkingHeadFramesCost("surprise-interview-director", 1), FRAMES_COST);
   assert.equal(talkingHeadFramesCost("surprise-interview-director", 2), FRAME_COST);
   assert.equal(talkingHeadFramesCost("surprise-interview-director", 3), FRAME_COST);
-  const frames = withInheritedTalkingHeadStarts(
-    [
-      { clipNumber: 1, position: "end" as const, status: "completed", blobUrl: "https://blob/end-1.png" },
-      { clipNumber: 2, position: "start" as const, status: "queued" },
-      { clipNumber: 2, position: "end" as const, status: "queued" },
-    ],
-    "talking-head-director",
-  );
-  assert.equal(frames[1].status, "completed");
-  assert.equal(frames[1].blobUrl, "https://blob/end-1.png");
-  assert.equal(frames[2].status, "queued");
+  const rows = [
+    { clipNumber: 1, position: "end" as const, status: "completed", blobUrl: "https://blob/end-1.png" },
+    { clipNumber: 2, position: "start" as const, status: "queued" },
+    { clipNumber: 2, position: "end" as const, status: "queued" },
+  ];
+  const talking = withInheritedTalkingHeadStarts(rows, "talking-head-director");
+  assert.equal(talking[1].status, "queued");
+  assert.equal(talking[1].blobUrl, undefined);
+  const chained = withInheritedTalkingHeadStarts(rows, "follow-shot-director");
+  assert.equal(chained[1].status, "completed");
+  assert.equal(chained[1].blobUrl, "https://blob/end-1.png");
+  assert.equal(chained[2].status, "queued");
 });
 
 test("overlay talking-head scenes keep the voice line and drop the subtitle", () => {

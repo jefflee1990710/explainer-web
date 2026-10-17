@@ -3,8 +3,13 @@ import { normalizeProjectStatus } from "@/service/project-status";
 import { MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
 import { inheritsPreviousEnd } from "@/service/director/clip-continuity";
 import { talkingHeadFramesCost } from "@/service/director/talking-head";
-import { clipSkipsEndStill } from "@/service/director/steady-stills";
+import {
+  clipDrawsNoEndStill,
+  clipEndIsNextStart,
+  clipSkipsEndStill,
+} from "@/service/director/steady-stills";
 import { FRAME_COST } from "@/service/credit-costs";
+import { videoEndFrame } from "@/service/higgsfield/clip-keyframes";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import type {
   ClipFrame,
@@ -37,7 +42,7 @@ export type ClipState = {
   videoCost?: number;
   // The video job is still pending in our queue, so the user may cancel it.
   videoUnsent?: boolean;
-  // Credits to draw this clip's stills. Talking-head clip 2+ draws only the end.
+  // Credits to draw this clip's stills. Talking-head draws only the start, plus the end on the last clip.
   frameCost?: number;
 };
 
@@ -86,12 +91,12 @@ function isLater(a?: string, b?: string) {
   return Boolean(a && b && a > b);
 }
 
-// One still when the clip sends no end image; otherwise the talking-head pair rule.
+// One still when the clip draws no end of its own; otherwise the talking-head pair rule.
 export function clipFrameCost(
-  project: { skillSlug?: string; styleId?: string },
+  project: { skillSlug?: string; styleId?: string; phaseA?: { clips: Array<{ clipNumber: number }> } },
   clipNumber: number,
 ) {
-  if (clipSkipsEndStill(project)) return FRAME_COST;
+  if (clipDrawsNoEndStill(project, clipNumber)) return FRAME_COST;
   return talkingHeadFramesCost(project.skillSlug, clipNumber);
 }
 
@@ -100,18 +105,22 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
   const start = project.frames?.find(
     (item) => item.clipNumber === clipNumber && item.position === "start",
   );
-  const storedEnd = project.frames?.find(
-    (item) => item.clipNumber === clipNumber && item.position === "end",
-  );
+  // Talking-head clips before the last land on the next clip's start still.
+  const endFromNextStart = clipEndIsNextStart(project, clipNumber);
   // An old end file is ignored: this clip is ready once the start image exists.
-  const end = clipSkipsEndStill(project) ? undefined : storedEnd;
+  const end = clipSkipsEndStill(project)
+    ? undefined
+    : videoEndFrame(project.frames, clipNumber, endFromNextStart);
   const clip = project.clips.find((item) => item.clipNumber === clipNumber);
   const frames = [start, end].filter((item): item is ClipFrame => Boolean(item));
 
   // A chained start is a copy of the previous end. Its old timestamp must not
   // keep this clip on "redraw frames" after the end still has been redrawn.
+  // The next clip's start is that clip's own still, so it never marks these frames stale.
   const drawnFrames = frames.filter(
-    (frame) => !inheritsPreviousEnd(project.skillSlug, clipNumber, frame.position),
+    (frame) =>
+      !inheritsPreviousEnd(project.skillSlug, clipNumber, frame.position) &&
+      !(endFromNextStart && frame === end),
   );
   const stale = {
     frames: drawnFrames.some((frame) => isLater(row?.editedAt, frame.submittedAt)),
@@ -128,10 +137,11 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
   // Precedence: active frames > active video > failed frames > finished video
   // > failed video > frames ready > nothing. Frame activity outranks a video
   // so the user can redraw stills while a clip is still in the video queue.
+  // A failed next start belongs to that clip; here it only keeps the video waiting.
   let stage: ClipStage;
   if (frames.some((frame) => isInFlight(frame))) stage = "frames_generating";
   else if (isInFlight(clip)) stage = "video_generating";
-  else if (frames.some((frame) => frame.status === "failed")) stage = "frames_failed";
+  else if (drawnFrames.some((frame) => frame.status === "failed")) stage = "frames_failed";
   else if (isCompleted(clip)) stage = "video_ready";
   else if (clip?.status === "failed") stage = "video_failed";
   else if (isCompleted(start) && (clipSkipsEndStill(project) || isCompleted(end))) stage = "frames_ready";
@@ -258,7 +268,7 @@ export function clipGenerationTags(project: ClipStageSource): GenerationDetailTa
     tags.push({
       clipNumber,
       kind: "scene",
-      state: sceneTagState(frames, clipSkipsEndStill(project)),
+      state: sceneTagState(frames, clipDrawsNoEndStill(project, clipNumber)),
     });
     tags.push({
       clipNumber,

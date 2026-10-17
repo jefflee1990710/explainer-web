@@ -33,7 +33,7 @@ import {
   isDualBeatSkill,
   joinVoBeats,
 } from "@/service/director/dual-beat";
-import { clipSkipsEndStill, usesSteadyStills } from "@/service/director/steady-stills";
+import { clipDrawsNoEndStill, usesSteadyStills } from "@/service/director/steady-stills";
 import {
   cameraChangesAngle,
   endFrameCameraLine,
@@ -1018,8 +1018,8 @@ export function framesWithClip(
 ): ClipFrame[] {
   const others = (project.frames || []).filter((frame) => frame.clipNumber !== clipNumber);
   const submittedAt = new Date().toISOString();
-  // Only talking-head directors draw an end still; all other directors draw the start still only.
-  const positions: FramePosition[] = clipSkipsEndStill(project)
+  // Only the last talking-head clip draws an end still; earlier clips land on the next start.
+  const positions: FramePosition[] = clipDrawsNoEndStill(project, clipNumber)
     ? ["start"]
     : ["start", "end"];
   const own = positions.map((position) => ({

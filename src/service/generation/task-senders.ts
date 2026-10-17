@@ -10,7 +10,7 @@ import { runPhaseBForClip } from "@/service/director/run-phase-b";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { MissingTemplateError, resolveRunSkill } from "@/service/director/run-skill";
 import { videoKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
-import { clipSkipsEndStill } from "@/service/director/steady-stills";
+import { clipEndIsNextStart, clipSkipsEndStill } from "@/service/director/steady-stills";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { submitImage } from "@/service/higgsfield/generate";
 import { hydrateStyles } from "@/service/style/load-style";
@@ -152,7 +152,10 @@ async function sendVideo(project: Project, clipNumber: number) {
     skillSlug: project.skillSlug,
     styleId: project.styleId,
   });
-  const { start, end } = videoKeyframeUrls(project.frames, clipNumber, { merged });
+  const { start, end } = videoKeyframeUrls(project.frames, clipNumber, {
+    merged,
+    endFromNextStart: clipEndIsNextStart(project, clipNumber),
+  });
   if (!start || (!startOnly && !end)) {
     throw new PermanentJobError(
       merged ? "字幕還沒疊上畫格，無法產片" : "這段的起點或終點畫格還沒有檔案，無法產片",

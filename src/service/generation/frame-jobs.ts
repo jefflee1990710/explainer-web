@@ -13,7 +13,10 @@ export function frameJobDocs(
   ready: FrameSubmitTarget[],
   deferred: FrameSubmitTarget[],
   now = new Date(),
+  // Talking-head: a later start waits for Clip 1's start, not the previous end.
+  options?: { startsFollowFirstClip?: boolean },
 ): NewJob[] {
+  const startAwaits = options?.startsFollowFirstClip ? ("first-start" as const) : ("prev-end" as const);
   const base = (target: FrameSubmitTarget) => ({
     projectId,
     clipIndex: target.clipNumber - 1,
@@ -24,8 +27,8 @@ export function frameJobDocs(
     ...ready.map((target) => ({ ...base(target), nextAttemptAt: now })),
     ...deferred.map((target) => ({
       ...base(target),
-      // A later start waits for the previous end; an end waits for this clip's start.
-      awaits: target.position === "start" ? ("prev-end" as const) : ("start" as const),
+      // A later start waits for the previous end (or Clip 1's start); an end waits for this clip's start.
+      awaits: target.position === "start" ? startAwaits : ("start" as const),
       nextAttemptAt: WAIT_FOR_START,
     })),
   ];
