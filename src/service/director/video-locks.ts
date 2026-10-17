@@ -15,7 +15,7 @@ const MAX_OBJECTS = 16;
 const MAX_SETS = 4;
 
 function maxSetsForSkill(skillSlug?: string) {
-  return skillSlug === CARTOON_EXPLAINER_SKILL_SLUG ? 1 : MAX_SETS;
+  return skillSlug === CARTOON_EXPLAINER_SKILL_SLUG || isTalkingHeadSkill(skillSlug) ? 1 : MAX_SETS;
 }
 
 const videoLocksSchema = z.object({
@@ -41,11 +41,13 @@ export type VideoLocksPlan = {
 };
 
 export function shouldPlanVideoLocks(skillSlug?: string) {
-  return !isTalkingHeadSkill(skillSlug);
+  void skillSlug;
+  return true;
 }
 
 export function videoLocksSystem(language?: VoLanguage, skillSlug?: string) {
   const maxSets = maxSetsForSkill(skillSlug);
+  const singleSetLabel = isTalkingHeadSkill(skillSlug) ? "Talking-head" : "Whiteboard explainer";
   return [
     "You list the invented props and unique locations for one explainer video.",
     "objects: every distinct prop the stills name — tools, cups, dials, boards, easels, whiteboards, charts, furniture, handheld items.",
@@ -54,7 +56,7 @@ export function videoLocksSystem(language?: VoLanguage, skillSlug?: string) {
     "Do not list characters, brand products already locked elsewhere, locations, sky, buildings, or subtitle lettering.",
     `List every named prop. At most ${MAX_OBJECTS} objects after merging true duplicates. Empty array only if the stills name none.`,
     maxSets === 1
-      ? "sets: Whiteboard explainer always stays in ONE single shared location across the entire video. Output exactly 1 set containing all clipNumbers."
+      ? `sets: ${singleSetLabel} always stays in ONE single shared location across the entire video. Output exactly 1 set containing all clipNumbers.`
       : "sets: unique places from the Set lines. Same room or rooftop across clips shares one setId.",
     `At most ${maxSets} ${maxSets === 1 ? "set" : "sets"}. Merge near-duplicates. Every clipNumber appears in ${maxSets === 1 ? "that single set" : "exactly one set"}.`,
     "setId is a short slug like rooftop or desk. notes describe empty architecture, light, and sky — no people, no handheld props.",
@@ -198,7 +200,7 @@ async function generateVideoLocks(input: { system: string; prompt: string }) {
   return output ?? undefined;
 }
 
-// One Flash call after the storyboard lands. Talking-head and failures return empty locks.
+// One Flash call after the storyboard lands. Failures return empty locks.
 export async function planVideoLocks(
   input: { clips: StoryboardRow[]; language?: VoLanguage; skillSlug?: string },
   generate: VideoLocksGenerate = generateVideoLocks,

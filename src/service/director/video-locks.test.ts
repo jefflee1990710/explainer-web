@@ -25,8 +25,9 @@ function clip(partial: Partial<StoryboardRow> & Pick<StoryboardRow, "clipNumber"
   };
 }
 
-test("talking-head skips video locks; others plan them", () => {
-  assert.equal(shouldPlanVideoLocks("talking-head-director"), false);
+test("talking-head and other directors plan video locks", () => {
+  assert.equal(shouldPlanVideoLocks("talking-head-director"), true);
+  assert.equal(shouldPlanVideoLocks("full-body-talking-head-director"), true);
   assert.equal(shouldPlanVideoLocks("cartoon-explainer-video-director"), true);
 });
 
@@ -97,6 +98,21 @@ test("normalize merges skipped clips onto a set and caps counts", () => {
   assert.equal(whiteboardPlan.sets.length, 1);
   assert.deepEqual(whiteboardPlan.sets[0]?.clipNumbers, [1, 2, 3]);
   assert.match(videoLocksSystem("en", "cartoon-explainer-video-director"), /ONE single shared location/);
+
+  const talkingHeadPlan = normalizeVideoLocks(
+    clips,
+    {
+      objects: [],
+      sets: [
+        { setId: "room-a", name: "room a", notes: "light", clipNumbers: [1] },
+        { setId: "room-b", name: "room b", notes: "dark", clipNumbers: [2, 3] },
+      ],
+    },
+    "talking-head-director",
+  );
+  assert.equal(talkingHeadPlan.sets.length, 1);
+  assert.deepEqual(talkingHeadPlan.sets[0]?.clipNumbers, [1, 2, 3]);
+  assert.match(videoLocksSystem("en", "talking-head-director"), /ONE single shared location/);
 });
 
 test("apply writes backgroundSetId onto each clip", () => {
@@ -144,14 +160,18 @@ test("planVideoLocks calls the model once and failures return empty locks", asyn
   );
   assert.deepEqual(kept, { objects: [], sets: [] });
 
-  let skipped = 0;
+  let talkingCalls = 0;
   const talking = await planVideoLocks(
     { clips: [clip({ clipNumber: 1 })], skillSlug: "talking-head-director" },
     async () => {
-      skipped += 1;
-      return { objects: [], sets: [] };
+      talkingCalls += 1;
+      return {
+        objects: [{ name: "mug", notes: "ceramic" }],
+        sets: [{ setId: "sofa", name: "sofa", notes: "warm lamp", clipNumbers: [1] }],
+      };
     },
   );
-  assert.equal(skipped, 0);
-  assert.deepEqual(talking, { objects: [], sets: [] });
+  assert.equal(talkingCalls, 1);
+  assert.equal(talking.objects[0]?.name, "mug");
+  assert.equal(talking.sets[0]?.setId, "sofa");
 });

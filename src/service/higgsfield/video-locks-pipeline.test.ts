@@ -96,7 +96,7 @@ test("videoLocksReady waits for planned props and plates", () => {
       ...base,
       skillSlug: "talking-head-director",
     }),
-    true,
+    false,
   );
 });
 
