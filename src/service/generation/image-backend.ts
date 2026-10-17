@@ -1,5 +1,9 @@
 import { hasAlicloudKey } from "@/service/alicloud/dashscope";
-import { hasOpenRouterKey, OPENROUTER_GPT_5_IMAGE_MODEL } from "@/service/openrouter/generate";
+import {
+  hasOpenRouterKey,
+  OPENROUTER_GPT_5_IMAGE_MODEL,
+  OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
+} from "@/service/openrouter/generate";
 import type { SceneTextLanguage } from "@/model/project";
 
 export type ImageBackend = "alicloud" | "higgsfield" | "openrouter";
@@ -14,9 +18,10 @@ export type ImageRoute = {
 
 /**
  * 畫面文字語系 → OpenRouter 產圖模型。生成時只讀呢張表。
- * en / zh-Hant / zh-Hans：OpenRouter `openai/gpt-5-image`，最多 16 張參考圖。
+ * en / zh-Hant / zh-Hans：OpenRouter `bytedance-seed/seedream-5-0-pro`，最多 14 張參考圖。
  * 粵語口白畫面上的字先改成書面語，再交給模型逐字畫。
  */
+export const SEEDREAM_5_PRO_IMAGE_MODEL = OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL;
 export const GPT_5_IMAGE_MODEL = OPENROUTER_GPT_5_IMAGE_MODEL;
 export const GROK_IMAGE_MODEL = "xai/grok-imagine-image-2.0";
 export const IDEOGRAM_V4_MODEL = "ideogram/v4.0";
@@ -25,18 +30,18 @@ export const IDEOGRAM_PROMPT_MAX = 2048;
 export const IMAGE_ROUTE_BY_SCENE_TEXT: Record<SceneTextLanguage, ImageRoute> = {
   en: {
     backend: "openrouter",
-    model: GPT_5_IMAGE_MODEL,
-    editModel: GPT_5_IMAGE_MODEL,
+    model: SEEDREAM_5_PRO_IMAGE_MODEL,
+    editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
   },
   "zh-Hant": {
     backend: "openrouter",
-    model: GPT_5_IMAGE_MODEL,
-    editModel: GPT_5_IMAGE_MODEL,
+    model: SEEDREAM_5_PRO_IMAGE_MODEL,
+    editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
   },
   "zh-Hans": {
     backend: "openrouter",
-    model: GPT_5_IMAGE_MODEL,
-    editModel: GPT_5_IMAGE_MODEL,
+    model: SEEDREAM_5_PRO_IMAGE_MODEL,
+    editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
   },
 };
 

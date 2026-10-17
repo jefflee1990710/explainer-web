@@ -6,6 +6,7 @@ export const OPENROUTER_BASE_URL = "https://openrouter.ai";
 export const OPENROUTER_IMAGES_URL = `${OPENROUTER_BASE_URL}/api/v1/images`;
 export const OPENROUTER_VIDEOS_URL = `${OPENROUTER_BASE_URL}/api/v1/videos`;
 
+export const OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL = "bytedance-seed/seedream-5-0-pro";
 export const OPENROUTER_GPT_5_IMAGE_MODEL = "openai/gpt-5-image";
 export const OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL = "bytedance/seedance-2.0-fast";
 
@@ -86,15 +87,25 @@ export function openRouterImageBody(input: {
   prompt: string;
   aspectRatio: AspectRatio | "2:3";
   quality?: "low" | "medium" | "high";
+  resolution?: "1k" | "2k" | "4k";
   referenceImageUrls?: Array<string | undefined>;
 }) {
   const refs = (input.referenceImageUrls || []).filter((url): url is string => Boolean(url));
+  const isOpenAiImage = /^openai\//i.test(input.model);
+  const resolution =
+    input.resolution === "2k" || input.resolution === "4k" ? ("2K" as const) : ("1K" as const);
   return {
     model: input.model,
     prompt: input.prompt,
     aspect_ratio: openRouterImageAspectRatio(input.model, input.aspectRatio),
-    quality: input.quality || "medium",
-    background: "opaque" as const,
+    ...(isOpenAiImage
+      ? {
+          quality: input.quality || "medium",
+          background: "opaque" as const,
+        }
+      : {
+          resolution,
+        }),
     ...(refs.length > 0
       ? {
           input_references: refs.map((url) => ({
@@ -112,6 +123,7 @@ export async function submitOpenRouterImage(
     prompt: string;
     aspectRatio: AspectRatio | "2:3";
     quality?: "low" | "medium" | "high";
+    resolution?: "1k" | "2k" | "4k";
     referenceImageUrls?: Array<string | undefined>;
   },
   options?: FetchOptions,

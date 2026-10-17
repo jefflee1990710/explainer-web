@@ -112,6 +112,7 @@ export async function submitImage(input: {
       prompt: input.prompt,
       aspectRatio: input.aspectRatio,
       quality: input.quality || "medium",
+      resolution: input.resolution || "1k",
       referenceImageUrls: imageUrls,
     });
   }

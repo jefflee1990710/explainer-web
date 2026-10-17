@@ -3,6 +3,7 @@ import { persistBuffer } from "@/service/higgsfield/persist";
 
 // How many separate reference URLs each image model accepts.
 export function referenceLimitForModel(model: string) {
+  if (model.startsWith("bytedance-seed/seedream")) return 14;
   if (model === "openai/gpt-5-image" || model.startsWith("openai/gpt-image")) return 16;
   if (model.startsWith("marketing-studio/image")) return 16;
   if (model.startsWith("xai/grok-imagine")) return 10;
