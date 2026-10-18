@@ -102,16 +102,16 @@ export const zhHant: Messages = {
   },
   landing: {
     hero: {
-      kicker: "AI 網紅創作工作室 · AI Influencer Studio",
-      title: "打造你的專屬 AI 網紅，不用真人上鏡也能日更 Reels 與 Shorts。",
-      subtitle: "鎖定同一張臉、穿搭與專屬聲線。Scro 的 AI 導演幫你寫好黃金前 3 秒鉤子與連戲分鏡，一鍵產出能漲粉、能帶貨的 9:16 直式短片。",
+      kicker: "AI Influencer Studio",
+      title: "專屬 AI 網紅，免上鏡日更短片。",
+      subtitle: "挑選角色與不同姿態，一鍵生成連戲的 9:16 Reels 與 TikTok。",
       ctaStart: "建立我的 AI 網紅",
       ctaWorkspace: "進入創作工作台",
       ctaUseCases: "看看 AI 網紅能拍什麼",
       platformReels: "Instagram Reels",
       platformShorts: "YouTube Shorts",
       platformTiktok: "TikTok",
-      artLabel: "兩部手機正在播放 AI 網紅直式短影音",
+      artLabel: "左側為多款角色與姿態選擇，右側為手機顯示 AI KOL 短影音生成畫面",
     },
     useCases: {
       eyebrow: "AI 網紅變現與漲粉場景",

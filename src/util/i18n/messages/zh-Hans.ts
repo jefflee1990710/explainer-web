@@ -33,16 +33,16 @@ export const zhHans: Partial<Messages> = {
   },
   landing: {
     hero: {
-      kicker: "AI 网红创作工作室 · AI Influencer Studio",
-      title: "打造你的专属 AI 网红，不用真人出镜也能日更 Reels 和 Shorts。",
-      subtitle: "锁定同一张脸、穿搭与专属声线。Scro 的 AI 导演帮你写好黄金前 3 秒钩子与连戏分镜，一键产出能涨粉、能带货的 9:16 竖屏短片。",
+      kicker: "AI Influencer Studio",
+      title: "专属 AI 网红，免出镜日更短片。",
+      subtitle: "挑选角色与不同姿态，一键生成连戏的 9:16 Reels 与 TikTok。",
       ctaStart: "创建我的 AI 网红",
       ctaWorkspace: "打开创作工作区",
       ctaUseCases: "看看 AI 网红能拍什么",
       platformReels: "Instagram Reels",
       platformShorts: "YouTube Shorts",
       platformTiktok: "TikTok",
-      artLabel: "两部手机正在播放 AI 网红竖屏短视频",
+      artLabel: "左侧为多款角色与姿态选择，右侧为手机显示 AI KOL 短视频生成画面",
     },
     steps: {
       step1Title: "锁定专属 AI 网红",

@@ -2,7 +2,8 @@
 
 import { ParallaxLayer } from "@/presentation/components/parallax-layer";
 
-// Scro Style paper cut-out: two vertical phones playing short videos, empty paper in the middle.
+// Scro Style hero backdrop: character selection cards on the left, empty studio paper in the middle,
+// and a vertical phone generating an AI KOL short video on the right.
 // Desktop fills the hero behind the headline. Mobile stacks it under the copy.
 export function LandingHeroArt() {
   return (

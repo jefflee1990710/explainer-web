@@ -25,7 +25,7 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
     // Studio desk canvas matches the editor shell and cut-out art.
     <section className="relative flex w-full flex-col overflow-hidden border-b border-[#e4e4e7] bg-[#fafafa] lg:max-h-[46rem] lg:min-h-[36rem] lg:justify-center">
       <ParallaxLayer distance={-18} className="relative z-10 order-1">
-        <div className="mx-auto flex max-w-2xl flex-col items-center px-6 pb-2 pt-14 text-center lg:max-w-[38rem] lg:py-10 xl:max-w-[44rem]">
+        <div className="mx-auto flex max-w-xl flex-col items-center px-6 pb-2 pt-14 text-center lg:max-w-[30rem] lg:py-10 xl:max-w-[34rem]">
           <motion.p
             custom={0}
             variants={fadeUp}
@@ -40,7 +40,7 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
             variants={fadeUp}
             initial="hidden"
             animate="visible"
-            className="mt-5 font-display text-pretty text-4xl font-bold leading-[1.08] tracking-tight text-[#12141c] sm:text-5xl xl:text-6xl"
+            className="mt-5 font-display text-balance text-3xl font-bold leading-[1.1] tracking-tight text-[#12141c] sm:text-4xl xl:text-5xl"
           >
             {t("landing.hero.title")}
           </motion.h1>
@@ -49,7 +49,7 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
             variants={fadeUp}
             initial="hidden"
             animate="visible"
-            className="mt-5 max-w-xl text-base font-medium text-[#5c6170] lg:text-lg"
+            className="mt-4 max-w-md text-pretty text-base font-medium text-[#5c6170]"
           >
             {t("landing.hero.subtitle")}
           </motion.p>

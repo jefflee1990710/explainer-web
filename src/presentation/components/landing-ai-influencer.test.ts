@@ -12,11 +12,15 @@ test("landing messages reposition Scro around AI Influencers in English and Chin
   assert.match(en.meta.title, /AI Influencer/i);
   assert.match(en.landing.hero.kicker, /AI Influencer/i);
   assert.match(en.landing.hero.title, /AI Influencer/i);
+  assert.ok(en.landing.hero.title.length <= 60, "en hero title should stay concise");
+  assert.ok(en.landing.hero.subtitle.length <= 100, "en hero subtitle should stay concise");
   assert.match(en.landing.cast.title, /AI Influencer/i);
 
   assert.match(zhHant.meta.title, /AI 網紅|AI Influencer/);
   assert.match(zhHant.landing.hero.kicker, /AI 網紅|AI Influencer/);
   assert.match(zhHant.landing.hero.title, /AI 網紅|AI Influencer/);
+  assert.ok(zhHant.landing.hero.title.length <= 24, "zhHant hero title should stay concise");
+  assert.ok(zhHant.landing.hero.subtitle.length <= 45, "zhHant hero subtitle should stay concise");
   assert.match(zhHant.landing.cast.title, /AI 網紅|AI Influencer/);
 
   assert.match(zhHans.meta?.title ?? "", /AI 网红|AI Influencer/);

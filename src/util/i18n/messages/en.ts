@@ -103,16 +103,16 @@ export const en: Messages = {
   landing: {
     hero: {
       kicker: "AI Influencer Studio",
-      title: "Build your own AI Influencer. Post daily Reels and Shorts without filming.",
+      title: "Your AI Influencer. Daily Shorts, Zero Filming.",
       subtitle:
-        "Lock one consistent face, outfit, and voice. Scro's AI director writes the hook, plans every scene, and renders vertical 9:16 videos that grow your audience and sell products.",
+        "Pick a character and pose, then generate vertical Reels & TikToks in minutes.",
       ctaStart: "Create my AI Influencer",
       ctaWorkspace: "Open studio",
       ctaUseCases: "See AI Influencer use cases",
       platformReels: "Instagram Reels",
       platformShorts: "YouTube Shorts",
       platformTiktok: "TikTok",
-      artLabel: "Two phones playing vertical AI Influencer short videos",
+      artLabel: "Character selection cards on the left and a smartphone generating an AI KOL short video on the right",
     },
     useCases: {
       eyebrow: "AI Influencer Use Cases",

@@ -7,15 +7,15 @@ export const ja: Partial<Messages> = {
   landing: {
     hero: {
       kicker: "AI インフルエンサー・スタジオ",
-      title: "専属 AI インフルエンサーを作り、顔出しなしで毎日リールとショートを投稿。",
-      subtitle: "同じ顔・服装・声をロック。Scro の AI ディレクターがフックと絵コンテを設計し、集客・販売につながる 9:16 縦型動画を仕上げます。",
+      title: "専属 AI インフルエンサーで、顔出しなしの毎日ショート動画。",
+      subtitle: "キャラとポーズを選ぶだけ。一貫した 9:16 Reels・TikTok を数分で生成。",
       ctaStart: "AI インフルエンサーを作る",
       ctaWorkspace: "スタジオを開く",
       ctaUseCases: "活用シーンを見る",
       platformReels: "Instagram Reels",
       platformShorts: "YouTube Shorts",
       platformTiktok: "TikTok",
-      artLabel: "縦型ショート動画を再生する二台のスマホ",
+      artLabel: "左側にキャラクターとポーズの選択、右側に AI KOL ショート動画生成を表示するスマホ",
     },
     steps: {
       step1Title: "スタイルを選ぶ",

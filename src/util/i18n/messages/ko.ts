@@ -5,7 +5,7 @@ export const ko: Partial<Messages> = {
   nav: { projects: "동영상", characters: "AI Influencer", tasks: "작업", mcp: "MCP", affiliate: "Affiliate", billing: "결제", examples: "예시", pricing: "요금제", signIn: "로그인", workspace: "작업 공간", language: "언어" },
   common: { credits: "credits", pending: "진행 중", perMonth: "/월", cancel: "취소", save: "저장", close: "닫기", create: "만들기", loading: "불러오는 중…", popular: "가장 인기 있음", subscribe: "구독" },
   landing: {
-    hero: { kicker: "AI 인플루언서 스튜디오", title: "나만의 AI 인플루언서로 촬영 없이 매일 릴스와 쇼츠를 올리세요.", subtitle: "같은 얼굴, 착장, 목소리를 고정하세요. Scro의 AI 디렉터가 훅과 장면을 설계하고 바로 올릴 수 있는 9:16 세로 영상을 완성합니다.", ctaStart: "내 AI 인플루언서 만들기", ctaWorkspace: "스튜디오 열기", ctaUseCases: "활용 사례 보기", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "세로 숏폼 영상을 재생하는 두 대의 휴대폰" },
+    hero: { kicker: "AI 인플루언서 스튜디오", title: "나만의 AI 인플루언서, 촬영 없이 매일 쇼츠 발행.", subtitle: "캐릭터와 포즈를 고르고 9:16 릴스와 틱톡 영상을 몇 분 만에 생성하세요.", ctaStart: "내 AI 인플루언서 만들기", ctaWorkspace: "스튜디오 열기", ctaUseCases: "활용 사례 보기", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "왼쪽의 캐릭터·포즈 선택과 오른쪽의 AI KOL 숏폼 영상 생성 스마트폰" },
     steps: {
       step1Title: "스타일 선택", step1Body: "숏폼 영상, 마케팅, 프레젠테이션 등에 어울리는 연출 스타일을 선택하세요.",
       step2Title: "스토리보드 승인", step2Body: "AI가 제목, 도입부, 장면, 내레이션을 제안합니다. 만족할 때까지 편집하세요.",
