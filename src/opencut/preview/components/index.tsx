@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { EditorCore } from "@/opencut/core";
 import { useEditor } from "@/opencut/editor/use-editor";
 import { useRafLoop } from "@/opencut/hooks/use-raf-loop";
 import { useContainerSize } from "@/opencut/hooks/use-container-size";
@@ -20,6 +21,11 @@ import { PreviewContextMenu } from "./context-menu";
 import { PreviewToolbar } from "./toolbar";
 import { MediaLoadingMark } from "@/opencut/components/loading-media-image";
 import { ScroPreviewGenerateButton } from "@/opencut/embed/scro-preview-generate-button";
+import {
+	previewLoadDecision,
+	previewSampleRects,
+	rgbaRegionIsPainted,
+} from "@/opencut/preview/preview-frame-ready";
 import {
 	PreviewViewportProvider,
 	usePreviewViewportState,
@@ -56,28 +62,42 @@ function normalizeWheelDelta({
 	return delta;
 }
 
-/** True while the preview canvas is still the empty background. */
+/** Media under the playhead. A change means a different clip may still be decoding. */
+function previewMediaId(editor: EditorCore): string | null {
+	const time = editor.playback.getCurrentTime();
+	const element = editor.scenes.getActiveScene().tracks.main.elements.find((item) => {
+		if (item.type !== "image" && item.type !== "video") return false;
+		return time >= item.startTime && time < item.startTime + item.duration;
+	});
+	if (!element || !("mediaId" in element)) return null;
+	return element.mediaId;
+}
+
+/** True while every probe is still the empty background. One painted probe is enough. */
 function previewFrameIsEmpty(canvas: HTMLCanvasElement) {
 	try {
+		const rects = previewSampleRects(canvas.width, canvas.height);
+		const first = rects[0];
+		if (!first) return false;
 		const probe = document.createElement("canvas");
-		probe.width = 8;
-		probe.height = 8;
+		probe.width = first.size;
+		probe.height = first.size;
 		const context = probe.getContext("2d", { willReadFrequently: true });
-		if (!context || canvas.width < 1 || canvas.height < 1) return false;
-		context.drawImage(
-			canvas,
-			Math.max(0, canvas.width / 2 - 4),
-			Math.max(0, canvas.height / 2 - 4),
-			8,
-			8,
-			0,
-			0,
-			8,
-			8,
-		);
-		const pixels = context.getImageData(0, 0, 8, 8).data;
-		for (let index = 0; index < pixels.length; index += 4) {
-			if (pixels[index] > 16 || pixels[index + 1] > 16 || pixels[index + 2] > 16) {
+		if (!context) return false;
+		for (const rect of rects) {
+			context.clearRect(0, 0, rect.size, rect.size);
+			context.drawImage(
+				canvas,
+				rect.x,
+				rect.y,
+				rect.size,
+				rect.size,
+				0,
+				0,
+				rect.size,
+				rect.size,
+			);
+			if (rgbaRegionIsPainted(context.getImageData(0, 0, rect.size, rect.size).data)) {
 				return false;
 			}
 		}
@@ -177,6 +197,8 @@ function PreviewCanvas({
 	const previewLoadingRef = useRef(true);
 	const slowTimerRef = useRef(0);
 	const emptySinceRef = useRef(0);
+	const seenFrameRef = useRef(false);
+	const mediaIdRef = useRef<string | null | undefined>(undefined);
 	const [previewLoading, setPreviewLoading] = useState(true);
 	const waitingForStill = useEditor((editor) => {
 		const time = editor.playback.getCurrentTime();
@@ -242,6 +264,14 @@ function PreviewCanvas({
 			(TICKS_PER_SECOND * renderer.fps.denominator) / renderer.fps.numerator,
 		);
 		const frame = Math.floor(renderTime / ticksPerFrame);
+		// A new clip may still be decoding. The previous clip's dark frames must not count.
+		const mediaId = previewMediaId(editor);
+		if (mediaId !== mediaIdRef.current) {
+			mediaIdRef.current = mediaId;
+			seenFrameRef.current = false;
+			emptySinceRef.current = 0;
+			lastFrameRef.current = -1;
+		}
 
 		if (
 			frame === lastFrameRef.current &&
@@ -256,7 +286,7 @@ function PreviewCanvas({
 		// A fast cached frame stays clear. A slow image or video decode shows loading.
 		window.clearTimeout(slowTimerRef.current);
 		slowTimerRef.current = window.setTimeout(() => {
-			if (previewLoadingRef.current) return;
+			if (previewLoadingRef.current || seenFrameRef.current) return;
 			previewLoadingRef.current = true;
 			setPreviewLoading(true);
 		}, 200);
@@ -268,27 +298,27 @@ function PreviewCanvas({
 			.finally(() => {
 				renderingRef.current = false;
 				window.clearTimeout(slowTimerRef.current);
-				const canvas = renderer.getOutputCanvas();
-				const empty = previewFrameIsEmpty(canvas);
-				if (empty) {
-					if (emptySinceRef.current === 0) emptySinceRef.current = performance.now();
-					// Keep the spinner while the still or video frame is still black.
-					if (performance.now() - emptySinceRef.current < 8000) {
-						lastFrameRef.current = -1;
-						if (!previewLoadingRef.current) {
-							previewLoadingRef.current = true;
-							setPreviewLoading(true);
-						}
-						return;
+				const painted = seenFrameRef.current || !previewFrameIsEmpty(renderer.getOutputCanvas());
+				if (!painted && emptySinceRef.current === 0) emptySinceRef.current = performance.now();
+				const decision = previewLoadDecision({
+					seenFrame: seenFrameRef.current,
+					painted,
+					emptyForMs: emptySinceRef.current === 0 ? 0 : performance.now() - emptySinceRef.current,
+				});
+				seenFrameRef.current = decision.seenFrame;
+				if (decision.retry) lastFrameRef.current = -1;
+				if (decision.showLoading) {
+					if (!previewLoadingRef.current) {
+						previewLoadingRef.current = true;
+						setPreviewLoading(true);
 					}
-				} else {
-					emptySinceRef.current = 0;
+					return;
 				}
 				if (!previewLoadingRef.current) return;
 				previewLoadingRef.current = false;
 				setPreviewLoading(false);
 			});
-	}, [renderer, renderTree, editor.playback, editor.timeline]);
+	}, [renderer, renderTree, editor]);
 
 	useEffect(() => {
 		return () => window.clearTimeout(slowTimerRef.current);
