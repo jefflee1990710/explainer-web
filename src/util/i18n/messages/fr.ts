@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const fr: Partial<Messages> = {
   meta: { title: "Scro — Studio d’AI Influencers pour Reels et Shorts", description: "Créez votre propre AI Influencer avec le même visage, la même tenue et la même voix. Publiez des Reels, Shorts et TikToks chaque jour sans filmer." },
-  nav: { projects: "Vidéo", characters: "Personnages", tasks: "Tâches", mcp: "MCP", affiliate: "Affiliate", billing: "Facturation", examples: "Exemples", pricing: "Tarifs", signIn: "Se connecter", workspace: "Espace de travail", language: "Langue" },
+  nav: { projects: "Vidéo", characters: "AI Influencer", tasks: "Tâches", mcp: "MCP", affiliate: "Affiliate", billing: "Facturation", examples: "Exemples", pricing: "Tarifs", signIn: "Se connecter", workspace: "Espace de travail", language: "Langue" },
   common: { credits: "credits", pending: "en cours", perMonth: "/ mois", cancel: "Annuler", save: "Enregistrer", close: "Fermer", create: "Créer", loading: "Chargement…", popular: "Le plus populaire", subscribe: "S’abonner" },
   landing: {
     hero: { kicker: "Studio d’AI Influencers", title: "Créez votre propre AI Influencer et publiez des Reels et Shorts chaque jour sans filmer.", subtitle: "Verrouillez un visage, une tenue et une voix identiques. Le réalisateur IA de Scro écrit l’accroche, planifie chaque scène et produit des vidéos verticales 9:16 prêtes à convertir.", ctaStart: "Créer mon AI Influencer", ctaWorkspace: "Ouvrir le studio", ctaUseCases: "Voir les cas d’usage", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Deux téléphones lisant des vidéos courtes verticales" },

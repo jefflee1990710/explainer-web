@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const es: Partial<Messages> = {
   meta: { title: "Scro — Estudio de AI Influencers para Reels y Shorts", description: "Crea tu propio AI Influencer con rostro, atuendo y voz consistentes. Publica Reels, Shorts y TikToks diarios sin salir en cámara." },
-  nav: { projects: "Vídeo", characters: "Personajes", tasks: "Tareas", mcp: "MCP", affiliate: "Affiliate", billing: "Facturación", examples: "Ejemplos", pricing: "Precios", signIn: "Iniciar sesión", workspace: "Espacio de trabajo", language: "Idioma" },
+  nav: { projects: "Vídeo", characters: "AI Influencer", tasks: "Tareas", mcp: "MCP", affiliate: "Affiliate", billing: "Facturación", examples: "Ejemplos", pricing: "Precios", signIn: "Iniciar sesión", workspace: "Espacio de trabajo", language: "Idioma" },
   common: { credits: "credits", pending: "pendientes", perMonth: "/ mes", cancel: "Cancelar", save: "Guardar", close: "Cerrar", create: "Crear", loading: "Cargando…", popular: "Más popular", subscribe: "Suscribirse" },
   landing: {
     hero: { kicker: "Estudio de AI Influencers", title: "Crea tu propio AI Influencer y publica Reels y Shorts a diario sin grabar.", subtitle: "Fija el mismo rostro, vestuario y voz. El director de IA de Scro escribe el gancho, planifica cada escena y renderiza vídeos verticales 9:16 listos para vender y crecer.", ctaStart: "Crear mi AI Influencer", ctaWorkspace: "Abrir estudio", ctaUseCases: "Ver casos de uso", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Dos móviles reproduciendo vídeos cortos verticales" },

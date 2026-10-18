@@ -8,7 +8,7 @@ export const zhHans: Partial<Messages> = {
   nav: {
     projects: "视频",
     directors: "Director",
-    characters: "角色",
+    characters: "AI Influencer",
     tasks: "生成任务",
     mcp: "MCP",
     affiliate: "Affiliate",

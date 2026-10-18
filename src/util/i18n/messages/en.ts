@@ -20,7 +20,7 @@ export const en: Messages = {
     projects: "Video",
     directors: "Director",
     styles: "Style",
-    characters: "Characters",
+    characters: "AI Influencer",
     tasks: "Tasks",
     mcp: "MCP",
     affiliate: "Affiliate",

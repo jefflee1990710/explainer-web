@@ -20,7 +20,7 @@ export const zhHant: Messages = {
     projects: "影片",
     directors: "導演",
     styles: "風格",
-    characters: "角色",
+    characters: "AI Influencer",
     tasks: "生成任務",
     mcp: "MCP",
     affiliate: "聯盟",

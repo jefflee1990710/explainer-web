@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const ko: Partial<Messages> = {
   meta: { title: "Scro — AI 인플루언서 스튜디오", description: "동일한 얼굴, 의상, 목소리를 유지하는 나만의 AI 인플루언서를 만드세요. 직접 출연하지 않고도 매일 Reels, Shorts, TikTok 영상을 제작할 수 있습니다." },
-  nav: { projects: "동영상", characters: "캐릭터", tasks: "작업", mcp: "MCP", affiliate: "Affiliate", billing: "결제", examples: "예시", pricing: "요금제", signIn: "로그인", workspace: "작업 공간", language: "언어" },
+  nav: { projects: "동영상", characters: "AI Influencer", tasks: "작업", mcp: "MCP", affiliate: "Affiliate", billing: "결제", examples: "예시", pricing: "요금제", signIn: "로그인", workspace: "작업 공간", language: "언어" },
   common: { credits: "credits", pending: "진행 중", perMonth: "/월", cancel: "취소", save: "저장", close: "닫기", create: "만들기", loading: "불러오는 중…", popular: "가장 인기 있음", subscribe: "구독" },
   landing: {
     hero: { kicker: "AI 인플루언서 스튜디오", title: "나만의 AI 인플루언서로 촬영 없이 매일 릴스와 쇼츠를 올리세요.", subtitle: "같은 얼굴, 착장, 목소리를 고정하세요. Scro의 AI 디렉터가 훅과 장면을 설계하고 바로 올릴 수 있는 9:16 세로 영상을 완성합니다.", ctaStart: "내 AI 인플루언서 만들기", ctaWorkspace: "스튜디오 열기", ctaUseCases: "활용 사례 보기", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "세로 숏폼 영상을 재생하는 두 대의 휴대폰" },

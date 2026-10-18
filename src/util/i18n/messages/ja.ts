@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const ja: Partial<Messages> = {
   meta: { title: "Scro — AI インフルエンサー制作スタジオ", description: "同じ顔・衣装・声を維持する専属 AI インフルエンサーを作成。顔出し不要で Reels、Shorts、TikTok 向けの縦型ショート動画を毎日制作できます。" },
-  nav: { projects: "動画", characters: "キャラクター", tasks: "タスク", mcp: "MCP", affiliate: "Affiliate", billing: "請求", examples: "作例", pricing: "料金", signIn: "ログイン", workspace: "ワークスペース", language: "言語" },
+  nav: { projects: "動画", characters: "AI Influencer", tasks: "タスク", mcp: "MCP", affiliate: "Affiliate", billing: "請求", examples: "作例", pricing: "料金", signIn: "ログイン", workspace: "ワークスペース", language: "言語" },
   common: { credits: "credits", pending: "処理中", perMonth: "/ 月", cancel: "キャンセル", save: "保存", close: "閉じる", create: "作成", loading: "読み込み中…", popular: "一番人気", subscribe: "登録する" },
   landing: {
     hero: {
