@@ -59,7 +59,7 @@ function insertAfterScene(prompt: string, line: string) {
 }
 
 const PROTECTED_LINE =
-  /^(?:Scene:|Sightline:|Look:|Aspect ratio|OBJECT LOCK|BACKGROUND LOCK|WARDROBE|COMPOSITION LOCK|CONTINUITY REFERENCE|ENVIRONMENT REFERENCE|POSE CHANGE REQUIRED|Keep the same|Do not zoom|Preserve the attached|Attached image|BLUEPRINT|A character board|Identity notes|Ignore any clothing|SOLO:|OPENING PHOTO:|SCENE REFERENCE:|BACKGROUND REFERENCE:|CLOTHING REFERENCE:)/;
+  /^(?:Scene:|Sightline:|Look:|Aspect ratio|OBJECT LOCK|BACKGROUND LOCK|WARDROBE|COMPOSITION LOCK|CONTINUITY REFERENCE|ENVIRONMENT REFERENCE|POSE CHANGE REQUIRED|Keep the same|Do not zoom|Preserve the attached|Attached image|BLUEPRINT|A character board|Identity notes|Ignore any clothing|SOLO:|OPENING PHOTO:|SCENE REFERENCE:|BACKGROUND REFERENCE:|CLOTHING REFERENCE:|SUBTITLE SPELLING GUIDE:)/;
 
 function fitPromptLines(prompt: string, max: number) {
   const lines = prompt.split("\n");

@@ -24,6 +24,11 @@ import {
 import { promptForFrameSubmit } from "@/service/clip/frame-prompt-chat";
 import { frameSubmitPlan, framesWithClipsReady } from "@/service/higgsfield/frame-prompts";
 import {
+  extractProjectFrameSubtitle,
+  renderSubtitleGuideDataUrl,
+  subtitleGuidePromptLine,
+} from "@/service/higgsfield/subtitle-guide-image";
+import {
   clipDrawsNoEndStill,
   clipEndIsNextStart,
   clipSkipsEndStill,
@@ -230,14 +235,25 @@ export async function sendFrame(
       : plan.refs;
   // The previous still's caption is what Grok copies. Keep the character
   // blueprint and drop that still so the quoted line is drawn fresh.
-  const refs = route.model.startsWith("xai/grok-imagine")
+  const baseRefs = route.model.startsWith("xai/grok-imagine")
     ? locked.filter((url) => url !== plan.anchor?.url)
     : locked;
+  const subtitleLine = route.model.startsWith("ideogram/")
+    ? undefined
+    : extractProjectFrameSubtitle(canvasProject, clipNumber, position, style);
+  const subtitleGuideUrl = subtitleLine
+    ? await renderSubtitleGuideDataUrl({ line: subtitleLine, look: project.subtitleLook })
+    : undefined;
+  const refs = subtitleGuideUrl ? [...baseRefs, subtitleGuideUrl] : baseRefs;
+  const finalPrompt =
+    subtitleLine && subtitleGuideUrl
+      ? `${prompt}\n${subtitleGuidePromptLine(refs.length, subtitleLine)}`
+      : prompt;
   const realistic = isRealisticStyle(style);
   const model = imageModelForSubmit(route, refs.length > 0);
   const submitted = await submitImage({
     model,
-    prompt,
+    prompt: finalPrompt,
     aspectRatio: project.aspectRatio,
     quality: realistic ? "high" : skill.higgsfieldDefaults.imageQuality || "medium",
     resolution: realistic ? "2k" : skill.higgsfieldDefaults.imageResolution || "1k",
