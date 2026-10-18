@@ -59,12 +59,16 @@ export async function shortenFramePromptWithGemini(
   prompt: string,
   maxChars = FRAME_PROMPT_BUDGET,
 ) {
+  const labels = framePromptSectionLabels(prompt);
   const { text } = await generateText({
     model: directorModel(),
     system: [
       "You shorten an image-generation prompt.",
       `The result must be under ${maxChars} characters.`,
       "Keep every section label, including the words before each colon, and keep Aspect ratio.",
+      ...(labels.length
+        ? [`You MUST keep these exact headings verbatim: ${labels.join(", ")}.`]
+        : []),
       "Keep every double-quoted string and every 「」 string exactly, character for character.",
       "Compress only the prose between those labels. Do not drop a section, do not add sections, and do not change the order.",
       "Return only the shortened prompt. No commentary and no code fence.",

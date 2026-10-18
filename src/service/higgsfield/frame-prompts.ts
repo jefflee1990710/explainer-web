@@ -312,6 +312,11 @@ type FrameTrimmable = {
   remark: string;
   renderDetail: string;
   moment: string;
+  castLines: string[];
+  objectLockLine: string;
+  backgroundLockLine: string;
+  sightline: string;
+  safeArea: string;
 };
 
 // Cut the soft sections in priority order until the prompt fits the budget. The Scene
@@ -423,6 +428,39 @@ function fitFramePrompt(
       palette: "",
     }),
     (p) => (/\bRealism:/.test(p.scene) ? { ...p, renderDetail: "" } : p),
+    // When cast + prop sheet + background plate + logo + realistic light push the prompt past the
+    // budget, compact the verbose lock boilerplate while keeping every lock header and rule intact.
+    (p) => ({
+      ...p,
+      objectLockLine: p.objectLockLine
+        ? p.objectLockLine.replace(
+            /Copy only shape, materials, and colours[\s\S]*$/,
+            "Copy only shape, materials, and colours of props the Scene names (aiming their working face at the user; draw blank back if facing away). Ignore the white background, grid, and unused tiles.",
+          )
+        : "",
+      backgroundLockLine: p.backgroundLockLine
+        ? p.backgroundLockLine.replace(
+            /This image is a 3x3 of the empty set\.[\s\S]*$/,
+            "Match the 3x3 cell whose angle fits this Scene's Camera line for location, architecture, sky, and light direction; do not paste the empty framing or grid.",
+          )
+        : "",
+      sightline:
+        "Sightline: show only what this camera can see. Keep faces, screens, pages, and labels aimed at whoever uses them; if facing away from the camera, draw the blank back.",
+      safeArea: p.safeArea
+        ? "9:16 IG Reel safe area: keep the top 20% and bottom 20% empty; place all text, characters, and main subjects in the middle 60%."
+        : "",
+      castLines: p.castLines.map((line) =>
+        line
+          .replace(
+            /^Identity notes \([^)]+\):/,
+            "Identity notes (match identity only; relight from Scene and render matte porous skin):",
+          )
+          .replace(
+            /^A character board shows the SAME person twice:[\s\S]*$/,
+            "Character board = SAME person twice (face close-up left, full-body right); draw one figure only.",
+          ),
+      ),
+    }),
   ];
   let current = parts;
   let prompt = compose(current);
@@ -881,14 +919,14 @@ export function buildFramePrompt(
     ...(parts.visualWorld ? [`Visual world: ${parts.visualWorld}`] : []),
     ...(parts.palette ? [`Palette: ${parts.palette}`] : []),
     ...(wardrobeBuild ? [OUTFIT_IDENTITY_LOCK, OUTFIT_ENERGY] : []),
-    ...(characterFirst ? castLines : []),
-    ...(characterFirst && objectLockLine ? [objectLockLine] : []),
-    ...(characterFirst && backgroundLockLine ? [backgroundLockLine] : []),
+    ...(characterFirst ? parts.castLines : []),
+    ...(characterFirst && parts.objectLockLine ? [parts.objectLockLine] : []),
+    ...(characterFirst && parts.backgroundLockLine ? [parts.backgroundLockLine] : []),
     ...sceneRefLines,
     ...(openingPhotoLine ? [openingPhotoLine] : []),
-    ...(characterFirst ? [] : castLines),
-    ...(!characterFirst && objectLockLine ? [objectLockLine] : []),
-    ...(!characterFirst && backgroundLockLine ? [backgroundLockLine] : []),
+    ...(characterFirst ? [] : parts.castLines),
+    ...(!characterFirst && parts.objectLockLine ? [parts.objectLockLine] : []),
+    ...(!characterFirst && parts.backgroundLockLine ? [parts.backgroundLockLine] : []),
     ...(solo ? [TALKING_HEAD_SOLO] : []),
     ...(productLine ? [productLine] : []),
     ...logoLines,
@@ -898,7 +936,7 @@ export function buildFramePrompt(
       : sceneTextFrameLines(false, sceneText.language)),
     `Scene: ${parts.scene}`,
     // Stays after the Scene when generic lines such as Render detail are trimmed away.
-    SIGHTLINE_RULE,
+    ...(parts.sightline ? [parts.sightline] : []),
     ...(parts.motion ? [`${motionLabel}: ${parts.motion}`] : []),
     ...(storyShortCameraLock(project.skillSlug) ? [storyShortCameraLock(project.skillSlug)] : []),
     ...(narratorLock ? [narratorLock] : []),
@@ -963,7 +1001,7 @@ export function buildFramePrompt(
               : FRAME_WARDROBE_CHECK,
         ]
       : []),
-    ...(project.aspectRatio === "9:16" ? [VERTICAL_FRAME_SAFE_AREA] : []),
+    ...(parts.safeArea ? [parts.safeArea] : []),
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
 
@@ -982,6 +1020,11 @@ export function buildFramePrompt(
       remark: options.revision?.remark?.trim() || "",
       renderDetail: frameRenderDetail({ realistic }),
       moment,
+      castLines,
+      objectLockLine,
+      backgroundLockLine,
+      sightline: SIGHTLINE_RULE,
+      safeArea: project.aspectRatio === "9:16" ? VERTICAL_FRAME_SAFE_AREA : "",
     },
     compose,
     budget,

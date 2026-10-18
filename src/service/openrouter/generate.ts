@@ -213,7 +213,13 @@ export function openRouterClipVideoBody(input: {
   callbackUrl?: string;
 }) {
   const model = input.model || OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL;
-  const resolution = clipVideoResolution();
+  const configured = clipVideoResolution();
+  // OpenRouter's minimax/hailuo-3 endpoint only accepts "2K" in supported_resolutions;
+  // Seedance models and Higgsfield endpoints use clipVideoResolution() (default "720p").
+  const resolution =
+    model === OPENROUTER_HAILUO_3_VIDEO_MODEL && configured !== "2K"
+      ? "2K"
+      : configured;
   return {
     model,
     prompt: capOpenRouterVideoPrompt(input.prompt),

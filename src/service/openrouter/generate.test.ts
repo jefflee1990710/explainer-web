@@ -139,7 +139,7 @@ test("openRouterClipVideoBody formats /api/v1/videos payload for bytedance/seeda
       prompt: "talking head clip",
       aspect_ratio: "9:16",
       duration: 5,
-      resolution: "720p",
+      resolution: "2K",
       generate_audio: true,
       frame_images: [
         {
@@ -157,17 +157,17 @@ test("openRouterClipVideoBody formats /api/v1/videos payload for bytedance/seeda
   );
 
   const prevRes = process.env.VIDEO_GENERATION_RESOLUTION;
-  process.env.VIDEO_GENERATION_RESOLUTION = "2K";
+  process.env.VIDEO_GENERATION_RESOLUTION = "480p";
   try {
     assert.equal(
       openRouterClipVideoBody({
-        model: "minimax/hailuo-3",
+        model: "bytedance/seedance-2.0-fast",
         prompt: "talking head clip",
         aspectRatio: "9:16",
         durationSeconds: 5,
         startImageUrl: "https://blob/start.png",
       }).resolution,
-      "2K",
+      "480p",
     );
   } finally {
     if (prevRes === undefined) delete process.env.VIDEO_GENERATION_RESOLUTION;
