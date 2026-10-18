@@ -25,6 +25,21 @@ test("splitSubtitleGuideLines splits 4+ English words and 6+ CJK characters into
   ]);
 });
 
+test("splitSubtitleGuideLines never breaks an English word or number inside a Chinese line", () => {
+  assert.deepEqual(splitSubtitleGuideLines("有無諗過你個Instagram都可以變成你的生財工具？"), [
+    "有無諗過你個Instagram",
+    "都可以變成你的生財工具？",
+  ]);
+  assert.deepEqual(splitSubtitleGuideLines("用Scro.io每日出片，粉絲由0去到10000"), [
+    "用Scro.io每日出片，",
+    "粉絲由0去到10000",
+  ]);
+  assert.deepEqual(splitSubtitleGuideLines("其實你部iPhone 17 Pro已經夠晒用"), [
+    "其實你部iPhone 17 Pro",
+    "已經夠晒用",
+  ]);
+});
+
 test("extractSubtitleForGuide reads the quoted Subtitle sentence from the scene or falls back to spoken line", () => {
   assert.equal(
     extractSubtitleForGuide({

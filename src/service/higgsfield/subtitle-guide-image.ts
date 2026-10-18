@@ -1,6 +1,7 @@
 import sharp from "sharp";
 import type { FramePosition, Project } from "@/model/project";
 import type { SubtitleLook } from "@/model/subtitle-look-id";
+import { splitCjkLineInTwo } from "@/service/director/cjk-line-split";
 import {
   clipEndScene,
   clipEndVo,
@@ -45,18 +46,8 @@ export function splitSubtitleGuideLines(raw: string): string[] {
   if (!text) return [];
 
   if (isMostlyCjk(text)) {
-    const chars = [...text];
-    if (chars.length < 6) return [text];
-    // Prefer splitting right after a clause punctuation mark near the middle.
-    const mid = Math.ceil(chars.length / 2);
-    for (let offset = 0; offset <= 4; offset += 1) {
-      for (const idx of [mid - offset, mid + offset]) {
-        if (idx > 1 && idx < chars.length - 1 && /[，,、；;：:！？!?。]/.test(chars[idx - 1])) {
-          return [chars.slice(0, idx).join("").trim(), chars.slice(idx).join("").trim()].filter(Boolean);
-        }
-      }
-    }
-    return [chars.slice(0, mid).join("").trim(), chars.slice(mid).join("").trim()].filter(Boolean);
+    if ([...text].length < 6) return [text];
+    return splitCjkLineInTwo(text).filter(Boolean);
   }
 
   const words = text.split(/\s+/).filter(Boolean);

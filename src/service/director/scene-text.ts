@@ -1,4 +1,5 @@
 import type { AspectRatio, VoLanguage } from "@/model/project";
+import { splitCjkLineInTwo } from "@/service/director/cjk-line-split";
 import {
   comparisonPanels,
   comparisonSplitAxis,
@@ -391,9 +392,8 @@ export function formatVoiceoverForMarker(line: string) {
     };
   }
   if (!latin && [...display].length > 16) {
-    const chars = [...display];
-    const mid = Math.ceil(chars.length / 2);
-    return { line1: chars.slice(0, mid).join(""), line2: chars.slice(mid).join("") };
+    const [line1, line2] = splitCjkLineInTwo(display);
+    return { line1, line2 };
   }
   return { line1: display, line2: "" };
 }

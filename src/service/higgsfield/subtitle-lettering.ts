@@ -31,11 +31,11 @@ export function letteringLookFor(project: Pick<Project, "subtitleLook" | "textSt
     : { kind: "system", look: resolveSubtitleLook(project.subtitleLook) };
 }
 
-// Same words + same look reuse one card; any change to either draws a new one.
+// Same words, line breaks, and look reuse one card; a change to any of them draws a new one.
 export function subtitleLetteringKey(line: string, look: LetteringLook): string {
   const lookId = look.kind === "custom" ? `custom:${look.sampleUrl}` : `system:${look.look}`;
-  const words = line.replace(/\s+/g, " ").trim();
-  return createHash("sha256").update(`${lookId}\n${words}`).digest("hex").slice(0, 24);
+  const layout = splitSubtitleGuideLines(line).join("\n");
+  return createHash("sha256").update(`${lookId}\n${layout}`).digest("hex").slice(0, 24);
 }
 
 // Text-only card prompt. Image 1 is the font-rendered spelling guide; image 2 (when sent) is the look sample.
@@ -60,7 +60,7 @@ export function subtitleLetteringPrompt(input: {
       ? "Attached image 2 is the lettering look sample. Copy its font weight, letter shapes, colours, paper or stroke treatment, texture, and edges. Do not copy the words in that sample."
       : "",
     "Attached image 1 is a plain font-rendered spelling guide. Copy its words, punctuation, and line breaks exactly, letter for letter. Do not copy its flat font, smooth boxes, or colours; restyle them in the Look.",
-    `The only words are ${layout}. No typos, no doubled or missing letters, no empty strip.`,
+    `The only words are ${layout}. No typos, no doubled or missing letters, no empty strip. Never split an English word across two lines.`,
     "Plain flat light grey background around the lettering. Aspect ratio 16:9.",
   ]
     .filter(Boolean)
