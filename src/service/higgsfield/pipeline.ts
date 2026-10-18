@@ -74,7 +74,6 @@ import {
   collectFrameBlobUrls,
 } from "@/service/video/storage";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
-import { retimeMp4 } from "@/service/reel/retime";
 import { swapClipVoice } from "@/service/voice/voice-swap";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import { mediaSrc } from "@/util/media-src";
@@ -804,21 +803,8 @@ export async function applyJobStatus(input: {
   if (outputUrl && status === "completed") {
     const folder =
       job.kind === "still" ? "stills" : job.kind === "frame" ? "frames" : "clips";
-    const storyboardSeconds =
-      project && job.kind === "video"
-        ? project.phaseA?.clips.find((row) => row.clipNumber === job.clipIndex + 1)?.durationSeconds
-        : undefined;
-    // Bookends always play at 3–4s. Talking-head sentences under 5s are sped up
-    // after the provider's 5s minimum render.
-    const bookendSeconds =
-      project &&
-      storyboardSeconds &&
-      (isBookendSkill(project.skillSlug) ||
-        (isTalkingHeadSkill(project.skillSlug) && storyboardSeconds < 5))
-        ? storyboardSeconds
-        : undefined;
     const canvasColor =
-      project && !bookendSeconds && (job.kind === "still" || job.kind === "frame")
+      project && (job.kind === "still" || job.kind === "frame")
         ? (
             await loadRenderableStyle({
               styleId: project.styleId,
@@ -826,8 +812,8 @@ export async function applyJobStatus(input: {
             })
           ).canvasColor
         : undefined;
-    // Re-voice before any retime. A cloned demo wins. Cantonese on every
-    // director, including bookends, converts on ElevenLabs without a sample.
+    // A cloned demo wins. Cantonese on every director, including bookends,
+    // converts on ElevenLabs without a sample.
     const voiceId =
       project &&
       job.kind === "video" &&
@@ -844,24 +830,9 @@ export async function applyJobStatus(input: {
             return buffer;
           })
         : Promise.resolve(buffer);
-    const transformOptions =
-      bookendSeconds
-        ? {
-            // Provider renders ≥5s; bookends play at their 3–4s storyboard length.
-            transform: async (buffer: Buffer) => {
-              const voiced = await swapVoice(buffer);
-              return retimeMp4(voiced, bookendSeconds).catch((error: unknown) => {
-                console.error("[higgsfield] bookend retime failed; persisting original", {
-                  requestId: job.requestId,
-                  error,
-                });
-                return voiced;
-              });
-            },
-          }
-        : voiceId
-        ? { transform: swapVoice }
-        : canvasColor
+    const transformOptions = voiceId
+      ? { transform: swapVoice }
+      : canvasColor
         ? {
             transform: (buffer: Buffer) =>
               flattenToCanvas(buffer, canvasColor).catch(
