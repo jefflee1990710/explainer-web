@@ -29,6 +29,10 @@ import {
   subtitleGuidePromptLine,
 } from "@/service/higgsfield/subtitle-guide-image";
 import {
+  ensureSubtitleLetteringUrl,
+  subtitleLetteringPromptLine,
+} from "@/service/higgsfield/subtitle-lettering";
+import {
   clipDrawsNoEndStill,
   clipEndIsNextStart,
   clipSkipsEndStill,
@@ -241,13 +245,24 @@ export async function sendFrame(
   const subtitleLine = route.model.startsWith("ideogram/")
     ? undefined
     : extractProjectFrameSubtitle(canvasProject, clipNumber, position, style);
+  // The prompt's Look line alone is not enough: a still with no earlier frame (Clip 1) draws a
+  // plain caption. An AI card already in the look carries the style; the font guide always rides
+  // along last because the AI card itself can misspell.
+  const letteringUrl = subtitleLine
+    ? await ensureSubtitleLetteringUrl(project, subtitleLine)
+    : undefined;
   const subtitleGuideUrl = subtitleLine
     ? await renderSubtitleGuideDataUrl({ line: subtitleLine, look: project.subtitleLook })
     : undefined;
-  const refs = subtitleGuideUrl ? [...baseRefs, subtitleGuideUrl] : baseRefs;
+  const subtitleRefs = [letteringUrl, subtitleGuideUrl].filter((url): url is string => Boolean(url));
+  const refs = [...baseRefs, ...subtitleRefs];
   const finalPrompt =
     subtitleLine && subtitleGuideUrl
-      ? `${prompt}\n${subtitleGuidePromptLine(refs.length, subtitleLine)}`
+      ? `${prompt}\n${
+          letteringUrl
+            ? subtitleLetteringPromptLine(refs.length - 1, refs.length, subtitleLine)
+            : subtitleGuidePromptLine(refs.length, subtitleLine)
+        }`
       : prompt;
   const realistic = isRealisticStyle(style);
   const model = imageModelForSubmit(route, refs.length > 0);

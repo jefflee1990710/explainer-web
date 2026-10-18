@@ -31,6 +31,9 @@ export function collectVideoBlobUrls(
   for (const plate of video.subtitlePlates || []) {
     add(plate.blobUrl);
   }
+  for (const lettering of video.subtitleLetterings || []) {
+    add(lettering.url);
+  }
   for (const clip of video.clips || []) {
     add(clip.blobUrl);
   }

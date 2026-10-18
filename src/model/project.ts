@@ -248,6 +248,13 @@ export type SubtitlePlate = {
   line?: string;
 };
 
+// AI-drawn text-only subtitle card in the video's lettering look, reused as a still reference.
+// `key` covers the words and the look, so an edited line or a new text style draws a fresh card.
+export type SubtitleLettering = {
+  key: string;
+  url: string;
+};
+
 // Concatenated reel of every storyboard clip, produced on the export step.
 export type ReelStatus = "queued" | "in_progress" | "completed" | "failed";
 // Social / reel thumbnail generated from the storyboard.
@@ -288,6 +295,8 @@ export type Project = {
   subtitleOverlay?: boolean;
   // Per-clip subtitle plates for that overlay. Absent until a plate job is queued.
   subtitlePlates?: SubtitlePlate[];
+  // Painted-subtitle stills: one lettering card per subtitle line and look.
+  subtitleLetterings?: SubtitleLettering[];
   characterImageUrl?: string;
   // Opening / Ending bookends: brand logo used as a reference in every still.
   logoUrl?: string;
@@ -465,6 +474,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   textStyleImageUrl: z.string().optional(),
   subtitleOverlay: z.boolean().optional(),
   subtitlePlates: z.array(subtitlePlateSchema).optional(),
+  subtitleLetterings: z.array(z.object({ key: z.string(), url: z.string() })).optional(),
   characterImageUrl: z.string().optional(),
   logoUrl: z.string().optional(),
   referenceImages: z
