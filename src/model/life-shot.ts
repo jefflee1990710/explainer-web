@@ -1,12 +1,14 @@
 import type { ObjectId } from "mongodb";
 import { z } from "zod";
+import {
+  LIFE_SHOT_KINDS,
+  LIFE_SHOT_SOURCES,
+  type LifeShotKind,
+  type LifeShotSource,
+} from "@/model/life-shot-kind";
 import { objectIdSchema } from "@/model/primitives";
 
-export const LIFE_SHOT_KINDS = ["selfie", "food", "street", "hobby"] as const;
-export const LIFE_SHOT_SOURCES = ["search", "upload"] as const;
-
-export type LifeShotKind = (typeof LIFE_SHOT_KINDS)[number];
-export type LifeShotSource = (typeof LIFE_SHOT_SOURCES)[number];
+export { LIFE_SHOT_KINDS, LIFE_SHOT_SOURCES, type LifeShotKind, type LifeShotSource };
 
 // A generated day-in-the-life still. Not a blueprint version.
 export type LifeShot = {

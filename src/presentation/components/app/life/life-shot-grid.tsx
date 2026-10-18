@@ -1,6 +1,6 @@
 "use client";
 
-import type { LifeShotKind } from "@/model/life-shot";
+import type { LifeShotKind } from "@/model/life-shot-kind";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicLifeShot } from "@/service/character/life";
 

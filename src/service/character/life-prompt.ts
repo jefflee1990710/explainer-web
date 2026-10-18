@@ -1,4 +1,4 @@
-import type { LifeShotKind } from "@/model/life-shot";
+import type { LifeShotKind } from "@/model/life-shot-kind";
 
 const FRAMING: Record<LifeShotKind, string> = {
   selfie: "A phone selfie at arm's length. The character looks into the lens. The place is visible behind them.",

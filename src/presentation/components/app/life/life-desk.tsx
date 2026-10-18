@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { LIFE_SHOT_KINDS, type LifeShotKind } from "@/model/life-shot";
+import { LIFE_SHOT_KINDS, type LifeShotKind } from "@/model/life-shot-kind";
 import { generateLifeShotAction, searchLifeScenesAction } from "@/presentation/actions/life";
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
