@@ -388,7 +388,7 @@ export function talkingHeadDirectorBlock(
     `Face pattern: resting face is ${p.restingFace}. Emphasis: ${p.emphasisBeat}. Clip 1 opens with ${p.hookBeat} as the hook. The last clip ends on ${p.ctaBeat}.`,
     `Gesture pattern: the gesturing hand changes shape every 1–2 seconds in time with the words — ${p.gestureLibrary}. Head: ${p.headMotion}. Alternate the ending head tilt and active gesturing hand across clips so two clips in a row never settle in the exact same head angle or hand pose.`,
     ...(realistic
-      ? ["Realism (Cinematic realistic): every still names one motivated light source from the side with a soft rim light on the hair, real skin pores and fine facial hair, and a soft out-of-focus foreground element at one frame edge that never covers the face, hands, or subtitle. Never flat front light or plastic skin."]
+      ? ["Realism (Cinematic realistic): every still names one motivated directional key light and faint rim light coming strictly from the visible window side, lighting the window-facing cheek while the opposite cheek falls into deep negative-fill shadow with a clear nose-bridge shadow (never flat front light, never unmotivated rim light from the dark side, never copy blueprint lighting, and keep overcast window light soft below clipping), real skin pores and fine facial hair, and a soft out-of-focus foreground element at one frame edge that never covers the face, hands, or subtitle."]
       : []),
     noText
       ? "The frame has no letters, no subtitle, no caption, no logo, and no writing. The spoken line is voice only."
