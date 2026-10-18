@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+	isScroClipLengthLocked,
 	resolveElementScroClipNumber,
 	resolveScroClipNumber,
 } from "@/opencut/embed/scro-clip-number";
@@ -35,6 +36,33 @@ describe("scro clip number", () => {
 				clips,
 			}),
 			null,
+		);
+	});
+
+	it("locks storyboard clips and leaves other media trimmable", () => {
+		assert.equal(
+			isScroClipLengthLocked({
+				element: { type: "video", name: "Clip 1.mp4", mediaId: "m1" },
+				assets: [{ id: "m1", name: "take.mp4" }],
+				clips,
+			}),
+			true,
+		);
+		assert.equal(
+			isScroClipLengthLocked({
+				element: { type: "video", name: "b-roll.mp4" },
+				assets: [],
+				clips,
+			}),
+			false,
+		);
+		assert.equal(
+			isScroClipLengthLocked({
+				element: { type: "effect", name: "Fade" },
+				assets: [],
+				clips,
+			}),
+			false,
 		);
 	});
 

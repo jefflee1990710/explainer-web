@@ -70,3 +70,16 @@ export function resolveElementScroClipNumber({
 	if (fromName == null) return null;
 	return acceptedClipNumber({ clipNumber: fromName, clips });
 }
+
+/** Storyboard clips keep their length. Timeline edge drags must not trim them. */
+export function isScroClipLengthLocked({
+	element,
+	assets,
+	clips,
+}: {
+	element: ClipCarrier;
+	assets: Array<Pick<MediaAsset, "id" | "name" | "scroClipNumber">>;
+	clips: ScroVideoSeedClip[] | undefined;
+}): boolean {
+	return resolveElementScroClipNumber({ element, assets, clips }) != null;
+}

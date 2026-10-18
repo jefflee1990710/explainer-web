@@ -23,6 +23,7 @@ import type {
 import type { CharacterSpec } from "@/model/character-spec";
 import type { Product } from "@/model/product";
 import type { TextStyleDoc } from "@/model/text-style";
+import { parseCharacterPersona, type CharacterPersona } from "@/model/character-persona";
 import { parseCharacterVoice, type CharacterVoice } from "@/model/character-voice";
 import type { Folder } from "@/model/folder";
 import type { Project, ProjectStatus, SubtitlePlate } from "@/model/project";
@@ -591,6 +592,7 @@ export type PublicCharacter = {
   id: string;
   name: string;
   styleId: string;
+  persona: CharacterPersona | null;
   // Every style on this character, original first.
   styleIds: string[];
   styleName: string;
@@ -663,6 +665,7 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     id: character._id.toHexString(),
     name: character.name,
     styleId: character.styleId,
+    persona: parseCharacterPersona(character.persona),
     styleIds: characterStyleIds(character),
     styleName: character.styleId,
     voice: parseCharacterVoice(character.voice),

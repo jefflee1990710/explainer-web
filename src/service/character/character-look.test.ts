@@ -4,6 +4,7 @@ import {
   ALL_CHARACTER_LOOK_PARTS,
   CHARACTER_LOOKS,
   CHARACTER_LOOK_PARTS,
+  CHARACTER_WARDROBE_PARTS,
   CHARACTER_VIRAL_PRESETS,
   characterLookPreviewPrompt,
   characterLookPreviewSrc,
@@ -143,6 +144,40 @@ test("characterWardrobeEditInstruction and detectCharacterWardrobePicks handle h
     shoes: "boots",
     accessory: "eyewear",
   });
+});
+
+test("extra wardrobe options stay unique so one prompt cannot hide inside another", () => {
+  assert.equal(optionsForLookPart("top").length, 28 + 90);
+  assert.equal(optionsForLookPart("pants").length, 16 + 45);
+  assert.equal(optionsForLookPart("shoes").length, 19 + 40);
+  assert.equal(optionsForLookPart("accessory").length, 8 + 25);
+  assert.equal(lookOptionCategory("top", "kimono"), "extreme");
+  assert.equal(lookOptionCategory("top", "bomber"), "stylized");
+  assert.equal(lookOptionCategory("top", "oxford"), "classic");
+  assert.equal(lookOptionCategory("pants", "kilt"), "extreme");
+  assert.equal(lookOptionCategory("pants", "culottes"), "stylized");
+  assert.equal(lookOptionCategory("pants", "pencilskirt"), "classic");
+  assert.equal(lookOptionCategory("shoes", "juttis"), "extreme");
+  assert.equal(lookOptionCategory("shoes", "maryjanes"), "stylized");
+  assert.equal(lookOptionCategory("shoes", "derby"), "classic");
+  assert.equal(lookOptionCategory("accessory", "hijab"), "extreme");
+  assert.equal(lookOptionCategory("accessory", "bucket"), "stylized");
+  assert.equal(lookOptionCategory("accessory", "fedora"), "classic");
+
+  for (const part of CHARACTER_WARDROBE_PARTS) {
+    const options = optionsForLookPart(part);
+    assert.equal(new Set(options.map((option) => option.id)).size, options.length, part);
+    for (let i = 0; i < options.length; i++) {
+      for (let j = 0; j < options.length; j++) {
+        if (i === j) continue;
+        assert.equal(
+          options[j].prompt.includes(options[i].prompt),
+          false,
+          `${part} prompt of ${options[i].id} sits inside ${options[j].id}`,
+        );
+      }
+    }
+  }
 });
 
 test("viral presets, extra parts, gender, styling vibe dial, and global fashion mix work as expected", () => {

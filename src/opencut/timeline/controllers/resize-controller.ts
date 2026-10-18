@@ -60,6 +60,8 @@ export interface ResizeConfig {
 	getSceneTracks: () => SceneTracks;
 	getCurrentPlayheadTime: () => MediaTime;
 	getActiveProjectFps: () => FrameRate | null;
+	/** ScroVideo blocks keep a fixed length, so their edges cannot trim. */
+	isDurationLocked?: (element: TimelineElement) => boolean;
 	selectedElements: ElementRef[];
 	discardPreview: () => void;
 	previewElements: (updates: GroupResizeUpdate[]) => void;
@@ -175,6 +177,19 @@ export function buildResizeMembers({
 	});
 }
 
+function findElement({
+	tracks,
+	ref,
+}: {
+	tracks: SceneTracks;
+	ref: ElementRef;
+}): TimelineElement | undefined {
+	const track = [...tracks.overlay, tracks.main, ...tracks.audio].find(
+		(item) => item.id === ref.trackId,
+	);
+	return track?.elements.find((item) => item.id === ref.elementId);
+}
+
 function hasResizeChanges({
 	members,
 	result,
@@ -250,6 +265,7 @@ export class ResizeController {
 
 		const fps = this.config.getActiveProjectFps();
 		if (!fps) return;
+		if (this.config.isDurationLocked?.(element)) return;
 
 		const ref = { trackId: track.id, elementId: element.id };
 		const activeSelection = this.config.selectedElements.some(
@@ -257,10 +273,15 @@ export class ResizeController {
 		)
 			? this.config.selectedElements
 			: [ref];
+		const tracks = this.config.getSceneTracks();
+		const selectedElements = activeSelection.filter((item) => {
+			const found = findElement({ tracks, ref: item });
+			return found != null && !this.config.isDurationLocked?.(found);
+		});
 
 		const members = buildResizeMembers({
-			tracks: this.config.getSceneTracks(),
-			selectedElements: activeSelection,
+			tracks,
+			selectedElements,
 		});
 		if (members.length === 0) return;
 

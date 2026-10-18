@@ -6,7 +6,7 @@ import type { EffectElement, OverlayTrack, SceneTracks } from "@/opencut/timelin
 import { generateUUID } from "@/opencut/utils/id";
 import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/opencut/wasm";
 
-/** Drop existing transitions, then place this one on every cut and the ending. */
+/** Drop existing transitions, then place this one on the heading, every cut, and the ending. */
 export function tracksWithTransitionOnAllCuts({
 	tracks,
 	effectType,

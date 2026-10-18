@@ -11,7 +11,7 @@ import { TracksSnapshotCommand } from "@/opencut/commands/timeline/tracks-snapsh
 import { tracksWithTransitionOnAllCuts } from "@/opencut/effects/apply-all-transitions";
 import { useEditor } from "@/opencut/editor/use-editor";
 
-/** Right-click a transition card to place it on every cut and the ending. */
+/** Right-click a transition card to place it on the heading, every cut, and the ending. */
 export function TransitionCatalogMenu({
 	effectType,
 	onAddHere,
@@ -40,10 +40,22 @@ export function TransitionCatalogMenu({
 			<ContextMenuTrigger asChild>
 				<div className="w-full">{children}</div>
 			</ContextMenuTrigger>
-			<ContextMenuContent className="w-56">
-				<ContextMenuItem onSelect={onAddHere}>Add at playhead</ContextMenuItem>
-				<ContextMenuItem onSelect={applyEverywhere}>
-					Apply to all cuts and ending
+			<ContextMenuContent className="w-64">
+				<ContextMenuItem
+					onClick={(event) => {
+						event.stopPropagation();
+						onAddHere();
+					}}
+				>
+					Add at playhead
+				</ContextMenuItem>
+				<ContextMenuItem
+					onClick={(event) => {
+						event.stopPropagation();
+						applyEverywhere();
+					}}
+				>
+					Apply to all cuts, heading, and ending
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

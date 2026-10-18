@@ -1,14 +1,11 @@
 import { ObjectId } from "mongodb";
-import { syncCharacterJob } from "@/service/character/sync";
-import { syncDirectorPreviewJob } from "@/service/director/director-preview";
-import { syncPostPreviewJob } from "@/service/post/sync-preview";
-import { syncProductJob } from "@/service/product/sync";
 import { syncVideoLockJob } from "@/service/higgsfield/video-locks-pipeline";
-import { syncSubtitlePlateJob } from "@/service/higgsfield/subtitle-plate-job";
 import { mergeReadySubtitleFrames } from "@/service/higgsfield/merge-subtitle-frames";
-import { syncStylePreviewJob } from "@/service/style/user-style-preview";
-import { syncTextStylePreviewJob } from "@/service/text-style/preview";
-import { syncReelCoverJob } from "@/service/video-edit/reel-cover";
+import {
+  dispatchSelfSyncingJobStatus,
+  isSelfSyncingJobKind,
+  isVideoLockJobKind,
+} from "@/service/generation/job-registry";
 import {
   generationJobsCollection,
   videosCollection,
@@ -733,8 +730,13 @@ export async function applyJobStatus(input: {
   // Avoid storing multi-megabyte data: URLs from sync image APIs in MongoDB job rows.
   const storedJobOutputUrl = outputUrl?.startsWith("data:") ? undefined : outputUrl;
 
-  if (job.kind === "reelCover") {
-    await syncReelCoverJob(job, status, outputUrl);
+  if (isSelfSyncingJobKind(job.kind)) {
+    await dispatchSelfSyncingJobStatus({
+      job: job as GenerationJob & { kind: typeof job.kind },
+      status,
+      outputUrl,
+      errorMessage: nowFailed ? errorMessage : undefined,
+    });
     await jobs.updateOne(
       { _id: job._id },
       nowFailed
@@ -757,56 +759,7 @@ export async function applyJobStatus(input: {
     return;
   }
 
-  // Director previews persist onto the custom director and return before the video path.
-  if (job.kind === "directorPreview") {
-    await syncDirectorPreviewJob(job, status, outputUrl);
-    await jobs.updateOne(
-      { _id: job._id },
-      nowFailed
-        ? {
-            $set: {
-              status,
-              outputUrl: storedJobOutputUrl,
-              error: errorMessage || status,
-              updatedAt: new Date(),
-            },
-          }
-        : {
-            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
-            $unset: { error: "" },
-          },
-    );
-    if (status === "completed" && outputUrl) {
-      scheduleGenerationFinishedEmail(job._id);
-    }
-    return;
-  }
-
-  if (job.kind === "product") {
-    await syncProductJob(job, status, outputUrl);
-    await jobs.updateOne(
-      { _id: job._id },
-      nowFailed
-        ? {
-            $set: {
-              status,
-              outputUrl: storedJobOutputUrl,
-              error: errorMessage || status,
-              updatedAt: new Date(),
-            },
-          }
-        : {
-            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
-            $unset: { error: "" },
-          },
-    );
-    if (status === "completed" && outputUrl) {
-      scheduleGenerationFinishedEmail(job._id);
-    }
-    return;
-  }
-
-  if (job.kind === "objectSheet" || job.kind === "backgroundPlate") {
+  if (isVideoLockJobKind(job.kind)) {
     await syncVideoLockJob(job, status, outputUrl);
     const lockUpdate = nowFailed
       ? {
@@ -834,131 +787,6 @@ export async function applyJobStatus(input: {
       const lockProject = await (await videosCollection()).findOne({ _id: job.projectId });
       if (lockProject) await refundCredits(lockProject.clerkUserId, FRAME_COST);
     }
-    if (status === "completed" && outputUrl) {
-      scheduleGenerationFinishedEmail(job._id);
-    }
-    return;
-  }
-
-  if (job.kind === "postPreview") {
-    await syncPostPreviewJob(job, status, outputUrl);
-    await jobs.updateOne(
-      { _id: job._id },
-      nowFailed
-        ? {
-            $set: {
-              status,
-              outputUrl: storedJobOutputUrl,
-              error: errorMessage || status,
-              updatedAt: new Date(),
-            },
-          }
-        : {
-            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
-            $unset: { error: "" },
-          },
-    );
-    if (status === "completed" && outputUrl) {
-      scheduleGenerationFinishedEmail(job._id);
-    }
-    return;
-  }
-
-  // Style previews persist onto the user style and return before the video path.
-  if (job.kind === "stylePreview") {
-    await syncStylePreviewJob(job, status, outputUrl);
-    await jobs.updateOne(
-      { _id: job._id },
-      nowFailed
-        ? {
-            $set: {
-              status,
-              outputUrl: storedJobOutputUrl,
-              error: errorMessage || status,
-              updatedAt: new Date(),
-            },
-          }
-        : {
-            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
-            $unset: { error: "" },
-          },
-    );
-    if (status === "completed" && outputUrl) {
-      scheduleGenerationFinishedEmail(job._id);
-    }
-    return;
-  }
-
-  // Text-style sample previews replace imageUrl on the lettering doc.
-  if (job.kind === "textStylePreview") {
-    await syncTextStylePreviewJob(job, status, outputUrl);
-    await jobs.updateOne(
-      { _id: job._id },
-      nowFailed
-        ? {
-            $set: {
-              status,
-              outputUrl: storedJobOutputUrl,
-              error: errorMessage || status,
-              updatedAt: new Date(),
-            },
-          }
-        : {
-            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
-            $unset: { error: "" },
-          },
-    );
-    if (status === "completed" && outputUrl) {
-      scheduleGenerationFinishedEmail(job._id);
-    }
-    return;
-  }
-
-  // Subtitle plates key onto their own plate row and refund there; never the frame/clip path.
-  if (job.kind === "subtitlePlate") {
-    await syncSubtitlePlateJob(job, status, outputUrl, nowFailed ? errorMessage : undefined);
-    await jobs.updateOne(
-      { _id: job._id },
-      nowFailed
-        ? {
-            $set: {
-              status,
-              outputUrl: storedJobOutputUrl,
-              error: errorMessage || status,
-              updatedAt: new Date(),
-            },
-          }
-        : {
-            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
-            $unset: { error: "" },
-          },
-    );
-    if (status === "completed" && outputUrl) {
-      scheduleGenerationFinishedEmail(job._id);
-    }
-    return;
-  }
-
-  // Character sheets persist and refund in their own sync; no video to touch.
-  if (job.kind === "character") {
-    await syncCharacterJob(job, status, outputUrl);
-    // `$set: { error: undefined }` would store null; clear the field instead.
-    await jobs.updateOne(
-      { _id: job._id },
-      nowFailed
-        ? {
-            $set: {
-              status,
-              outputUrl: storedJobOutputUrl,
-              error: errorMessage || status,
-              updatedAt: new Date(),
-            },
-          }
-        : {
-            $set: { status, outputUrl: storedJobOutputUrl, updatedAt: new Date() },
-            $unset: { error: "" },
-          },
-    );
     if (status === "completed" && outputUrl) {
       scheduleGenerationFinishedEmail(job._id);
     }
@@ -1130,7 +958,7 @@ export async function refundClaimedFailure(
   error: string,
 ) {
   if (job.kind === "frame") await refundCredits(project.clerkUserId, FRAME_COST);
-  if (job.kind === "objectSheet" || job.kind === "backgroundPlate") {
+  if (isVideoLockJobKind(job.kind)) {
     await refundCredits(project.clerkUserId, FRAME_COST);
   }
   if (job.kind === "video") {

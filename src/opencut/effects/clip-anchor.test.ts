@@ -152,7 +152,7 @@ describe("anchorEffectToClips", () => {
 		assert.deepEqual(span, { kind: "between", start: 9.5, duration: 1 });
 	});
 
-	it("lists a cut between each joined clip and the last tail", () => {
+	it("lists the heading, a cut between each joined clip, and the last tail", () => {
 		assert.deepEqual(
 			listApplyAllTransitionSlots([
 				{ start: 0, end: 10 },
@@ -160,6 +160,7 @@ describe("anchorEffectToClips", () => {
 				{ start: 16, end: 20 },
 			]),
 			[
+				{ start: 0, duration: 1 },
 				{ start: 9.5, duration: 1 },
 				{ start: 15.5, duration: 1 },
 				{ start: 19, duration: 1 },
@@ -167,21 +168,24 @@ describe("anchorEffectToClips", () => {
 		);
 	});
 
-	it("uses the outgoing tail when clips are far apart", () => {
+	it("uses the outgoing tail and the next heading when clips are far apart", () => {
 		assert.deepEqual(
 			listApplyAllTransitionSlots([
 				{ start: 0, end: 10 },
 				{ start: 14, end: 18 },
 			]),
 			[
+				{ start: 0, duration: 1 },
 				{ start: 9, duration: 1 },
+				{ start: 14, duration: 1 },
 				{ start: 17, duration: 1 },
 			],
 		);
 	});
 
-	it("places only the ending when there is one clip", () => {
+	it("places the heading and the ending when there is one clip", () => {
 		assert.deepEqual(listApplyAllTransitionSlots([{ start: 0, end: 10 }]), [
+			{ start: 0, duration: 1 },
 			{ start: 9, duration: 1 },
 		]);
 	});

@@ -82,6 +82,8 @@ export interface ElementInteractionDeps {
 	playback: PlaybackReader;
 	timeline: TimelineOps;
 	snap: SnapConfig;
+	/** Scro clips: show the clicked element in the center preview and play it. */
+	onPreviewElement?: (element: TimelineElement) => void;
 }
 
 export interface ElementInteractionDepsRef {
@@ -481,10 +483,10 @@ export class ElementInteractionController {
 			this.deps.selection.getSelected().length > 1
 		) {
 			this.deps.selection.select(ref);
-			return;
+		} else {
+			this.deps.selection.clearKeyframeSelection();
 		}
-
-		this.deps.selection.clearKeyframeSelection();
+		this.deps.onPreviewElement?.(element);
 	};
 
 	private activate(): void {

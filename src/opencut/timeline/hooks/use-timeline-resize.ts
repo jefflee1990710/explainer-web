@@ -1,4 +1,6 @@
 import { useEffect, useReducer, useState } from "react";
+import { isScroClipLengthLocked } from "@/opencut/embed/scro-clip-number";
+import { getScroVideos } from "@/opencut/embed/scro-video-store";
 import { useEditor } from "@/opencut/editor/use-editor";
 import { useCommittedRef } from "@/opencut/hooks/use-committed-ref";
 import { useShiftKey } from "@/opencut/hooks/use-shift-key";
@@ -36,6 +38,12 @@ export function useTimelineResize({
 		getSceneTracks: () => editor.scenes.getActiveScene().tracks,
 		getCurrentPlayheadTime: () => editor.playback.getCurrentTime(),
 		getActiveProjectFps: () => editor.project.getActive()?.settings.fps ?? null,
+		isDurationLocked: (element) =>
+			isScroClipLengthLocked({
+				element,
+				assets: editor.media.getAssets(),
+				clips: getScroVideos()?.clips,
+			}),
 		selectedElements,
 		discardPreview: () => editor.timeline.discardPreview(),
 		previewElements: (updates) =>

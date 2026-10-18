@@ -1,12 +1,5 @@
 import type { Filter, ObjectId } from "mongodb";
 import { generationJobsCollection, videosCollection } from "@/dao";
-import { failCharacterVersion, markCharacterProfileFailed } from "@/service/character/sync";
-import { syncDirectorPreviewJob } from "@/service/director/director-preview";
-import { syncPostPreviewJob } from "@/service/post/sync-preview";
-import { failProduct } from "@/service/product/sync";
-import { syncStylePreviewJob } from "@/service/style/user-style-preview";
-import { syncTextStylePreviewJob } from "@/service/text-style/preview";
-import { syncReelCoverJob } from "@/service/video-edit/reel-cover";
 import { fetchHiggsfieldStatus, mediaUrlFromResponse } from "@/service/higgsfield/generate";
 import {
   jobNeedsRefresh,
@@ -21,7 +14,12 @@ import {
   syncProjectFromJobs,
 } from "@/service/higgsfield/pipeline";
 import { syncVideoLockJob } from "@/service/higgsfield/video-locks-pipeline";
-import { syncSubtitlePlateJob } from "@/service/higgsfield/subtitle-plate-job";
+import {
+  dispatchSelfSyncingJobFailure,
+  isSelfSyncingJobKind,
+  isStandalonePolledJobKind,
+  isVideoLockJobKind,
+} from "@/service/generation/job-registry";
 import {
   MAX_SUBMIT_ATTEMPTS,
   PROVIDER_TIMEOUT_MS,
@@ -107,48 +105,14 @@ export async function failJob(
   const claimed = await claimFailure(job._id, error, "failed", onlyIf);
   if (!claimed) return false;
 
-  if (job.kind === "character" && job.characterSlot === "profile") {
-    if (job.characterId && job.versionId) {
-      await markCharacterProfileFailed(job.characterId, job.versionId);
-    }
+  if (isSelfSyncingJobKind(job.kind)) {
+    await dispatchSelfSyncingJobFailure(
+      job as GenerationJob & { kind: typeof job.kind },
+      error,
+    );
     return true;
   }
-  if (job.kind === "character") {
-    if (job.characterId && job.versionId) {
-      await failCharacterVersion(job.characterId, job.versionId, error);
-    }
-    return true;
-  }
-  if (job.kind === "stylePreview") {
-    await syncStylePreviewJob(job, "failed");
-    return true;
-  }
-  if (job.kind === "textStylePreview") {
-    await syncTextStylePreviewJob(job, "failed");
-    return true;
-  }
-  if (job.kind === "directorPreview") {
-    await syncDirectorPreviewJob(job, "failed");
-    return true;
-  }
-  if (job.kind === "postPreview") {
-    await syncPostPreviewJob(job, "failed");
-    return true;
-  }
-  if (job.kind === "product") {
-    if (job.productId) await failProduct(job.productId, error);
-    return true;
-  }
-  if (job.kind === "reelCover") {
-    await syncReelCoverJob(job, "failed");
-    return true;
-  }
-  if (job.kind === "subtitlePlate") {
-    // The plate row refunds its own credit; frames and clip video stay as they are.
-    await syncSubtitlePlateJob(job, "failed", undefined, error);
-    return true;
-  }
-  if (job.kind === "objectSheet" || job.kind === "backgroundPlate") {
+  if (isVideoLockJobKind(job.kind)) {
     await syncVideoLockJob(job, "failed");
     if (!job.projectId) return true;
     const projects = await videosCollection();
@@ -254,7 +218,7 @@ export async function refreshSubmittedJobs() {
     );
   }
 
-  for (const job of due.filter((item) => item.kind === "character" || item.kind === "stylePreview" || item.kind === "textStylePreview" || item.kind === "directorPreview" || item.kind === "reelCover" || item.kind === "postPreview" || item.kind === "product")) {
+  for (const job of due.filter((item) => isStandalonePolledJobKind(item.kind))) {
     if (!job.statusUrl || !job.requestId) continue;
     try {
       const remote = await fetchHiggsfieldStatus(job.statusUrl);

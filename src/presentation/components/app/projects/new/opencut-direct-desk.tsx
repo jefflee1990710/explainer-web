@@ -5,22 +5,35 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { OpenCutExportButton } from "@/presentation/components/app/projects/new/opencut-export-button";
 import {
+  OpenCutLoadProgressBar,
+  type OpenCutLoadProgress,
+} from "@/presentation/components/app/projects/new/opencut-load-progress-bar";
+import {
+  persistOpencutProjectSave,
+  pollOpencutSubtitlePlates,
+} from "@/presentation/components/app/projects/new/opencut-desk-actions";
+import {
   OpenCutScroAiShell,
   useOpenCutScroAiState,
 } from "@/presentation/components/app/projects/new/opencut-scro-ai-shell";
 import { OpenCutScroToolbar } from "@/presentation/components/app/projects/new/opencut-scro-toolbar";
 import type { BulkMode } from "@/presentation/components/project/bulk-generate-dialog";
-import {
-  getOpencutEditAction,
-  saveOpencutEditAction,
-  uploadOpencutMediaAction,
-} from "@/presentation/actions/opencut-edit";
-import { syncOpencutSubtitlePlatesAction } from "@/presentation/actions/opencut-subtitle";
+import { getOpencutEditAction } from "@/presentation/actions/opencut-edit";
 import { generateSelectedClipsAction } from "@/presentation/actions/clip-production";
 import { sendClipSceneChatAction } from "@/presentation/actions/scene-chat";
 import { notifyTasksChanged } from "@/presentation/components/app/tasks/task-signal";
 import { buildSubtitleCatalog, type SubtitleCatalog } from "@/service/video-edit/subtitle-catalog";
-import { createScroOpenCutHost, type ScroOpenCutHost } from "@/service/opencut/host-channel";
+import {
+  beginAutosave,
+  finishAutosave,
+  type AutosaveQueue,
+} from "@/service/opencut/autosave";
+import { createScroOpenCutHost } from "@/service/opencut/host-channel";
+import {
+  isEditorToHostMessage,
+  type ScroProjectSaveMessage,
+  type ScroVideoSeedClip,
+} from "@/service/opencut/messages";
 import { allFramesReady, planRemaining } from "@/service/production-plan";
 import {
   buildSeedClips,
@@ -33,7 +46,6 @@ import type { FramePosition, FrameRevisionInput } from "@/model/project";
 import type { PublicTextStyle, PublicVideo } from "@/presentation/serialize";
 import { EditorLoadingOverlay } from "@/presentation/components/app/projects/new/editor-loading-overlay";
 import { OpenCutEditorLoading } from "@/presentation/components/app/projects/new/opencut-editor-loading";
-import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 import "./opencut-direct-host.css";
 
 const OpenCutInlineEditor = dynamic(() => import("@/opencut/embed/scro-inline-editor"), {
@@ -45,24 +57,6 @@ type SavedEdit = {
   project: Record<string, unknown>;
   media: OpencutEditMedia[];
   updatedAt: string;
-};
-
-type SaveUpload = {
-  id: string;
-  name: string;
-  type: OpencutEditMedia["type"];
-  width?: number;
-  height?: number;
-  duration?: number;
-  blob: Blob;
-};
-
-type SaveMessage = {
-  type: "scro-project-save";
-  videoId: string;
-  project: unknown;
-  media?: OpencutEditMedia[];
-  uploads?: SaveUpload[];
 };
 
 export type OpenCutProductionHandlers = {
@@ -93,10 +87,7 @@ export function OpenCutDirectDesk({
   production?: OpenCutProductionHandlers;
 }) {
   const { t } = useI18n();
-  const hostRef = useRef<ScroOpenCutHost | null>(null);
-  if (!hostRef.current) hostRef.current = createScroOpenCutHost();
-  const host = hostRef.current;
-  if (typeof window !== "undefined") window.__SCRO_OPENCUT_HOST__ = host;
+  const [host] = useState(createScroOpenCutHost);
   const catalogRef = useRef<SubtitleCatalog | null>(null);
   const storyClips = project.phaseA?.clips;
   const savedRef = useRef<SavedEdit | null>(null);
@@ -104,32 +95,33 @@ export function OpenCutDirectDesk({
   const readyRef = useRef(false);
   const startedRef = useRef(false);
   const syncedRef = useRef(false);
-  const savingRef = useRef(false);
-  const pendingSave = useRef<SaveMessage | null>(null);
+  const saveQueue = useRef<AutosaveQueue<ScroProjectSaveMessage>>({
+    busy: false,
+    pending: null,
+  });
   const seedClips = useMemo(() => buildSeedClips(project), [project]);
   const seedClipsRef = useRef(seedClips);
-  seedClipsRef.current = seedClips;
   const prevSeedRef = useRef<ScroVideoSeedClip[]>([]);
   const didAutoPlanRef = useRef(false);
   const readyVideos = seedClips.filter((clip) => clip.videoUrl);
+  const projectRef = useRef(project);
   const productionRef = useRef(production);
-  productionRef.current = production;
   const ai = useOpenCutScroAiState();
   const aiRef = useRef(ai);
-  aiRef.current = ai;
+  const [saving, setSaving] = useState(false);
   const [booting, setBooting] = useState(true);
-  const [loadProgress, setLoadProgress] = useState<{
-    current: number;
-    total: number;
-    label?: string;
-  } | null>(null);
+  const [loadProgress, setLoadProgress] = useState<OpenCutLoadProgress | null>(null);
   const [editorEpoch, setEditorEpoch] = useState(0);
   const [selectedClipNumber, setSelectedClipNumber] = useState<number | null>(null);
   const [checkedClipNumbers, setCheckedClipNumbers] = useState<number[]>([]);
 
-  const post = (message: unknown) => {
-    host.postToEditor(message);
-  };
+  // Keep latest values accessible to channel listeners without mutating refs during render.
+  useLayoutEffect(() => {
+    seedClipsRef.current = seedClips;
+    projectRef.current = project;
+    productionRef.current = production;
+    aiRef.current = ai;
+  }, [seedClips, project, production, ai]);
 
   useEffect(() => {
     const catalog = buildSubtitleCatalog({
@@ -151,8 +143,8 @@ export function OpenCutDirectDesk({
       },
     });
     catalogRef.current = catalog;
-    post({ type: "scro-subtitle-catalog", videoId: project.id, catalog });
-  }, [project.id, project.subtitleLook, project.textStyleId, storyClips, textStyles, t]);
+    host.postToEditor({ type: "scro-subtitle-catalog", videoId: project.id, catalog });
+  }, [host, project.id, project.subtitleLook, project.textStyleId, storyClips, textStyles, t]);
 
   useLayoutEffect(() => {
     const channel = host;
@@ -194,242 +186,173 @@ export function OpenCutDirectDesk({
       syncedRef.current = true;
     };
 
-    const persist = async (data: SaveMessage) => {
+    const persist = async (data: ScroProjectSaveMessage) => {
       if (data.videoId !== project.id) return;
-      if (savingRef.current) {
-        pendingSave.current = data;
-        return;
-      }
-      savingRef.current = true;
+      const began = beginAutosave(saveQueue.current, data);
+      saveQueue.current = began.queue;
+      if (!began.run) return;
+      setSaving(true);
+      let current: ScroProjectSaveMessage | null = began.run;
       try {
-        const uploaded: OpencutEditMedia[] = [];
-        for (const item of data.uploads ?? []) {
-          if (!item.blob || !item.id) continue;
-          const body = new FormData();
-          body.set("videoId", project.id);
-          body.set("mediaId", item.id);
-          body.set("file", new File([item.blob], item.name || "asset", { type: item.blob.type || "application/octet-stream" }));
-          const result = await uploadOpencutMediaAction(body);
-          if (!result.ok) continue;
-          uploaded.push({
-            id: item.id,
-            name: item.name,
-            type: item.type,
-            sourceUrl: result.url,
-            width: item.width,
-            height: item.height,
-            duration: item.duration,
-          });
+        while (current) {
+          await persistOpencutProjectSave(project.id, current);
+          const finished = finishAutosave(saveQueue.current);
+          saveQueue.current = finished.queue;
+          current = finished.run;
         }
-        await saveOpencutEditAction({
-          videoId: project.id,
-          project: data.project,
-          media: [...(data.media ?? []), ...uploaded],
-        });
+      } catch (error) {
+        console.warn("[opencut] autosave failed:", error);
+        saveQueue.current = { busy: false, pending: null };
       } finally {
-        savingRef.current = false;
-        const next = pendingSave.current;
-        pendingSave.current = null;
-        if (next) void persist(next);
+        setSaving(saveQueue.current.busy);
       }
-    };
-
-    const runSubtitleGenerate = async (payload: {
-      videoId: string;
-      textStyleId: string;
-      clipNumbers: number[];
-    }) => {
-      if (payload.videoId !== project.id) return;
-      const wanted = [...new Set(payload.clipNumbers)];
-      const urlByClip = new Map<number, string>();
-      const deadline = Date.now() + 8 * 60 * 1000;
-      let lastError: string | undefined;
-
-      while (Date.now() < deadline) {
-        const missing = wanted.filter((clipNumber) => !urlByClip.has(clipNumber));
-        if (missing.length === 0) break;
-        const result = await syncOpencutSubtitlePlatesAction({
-          videoId: payload.videoId,
-          textStyleId: payload.textStyleId,
-          clipNumbers: missing,
-        });
-        if (!result.ok) {
-          lastError = result.error;
-          break;
-        }
-        for (const plate of result.plates) urlByClip.set(plate.clipNumber, plate.url);
-        if (result.failed.length > 0) {
-          lastError = result.failed.map((item) => item.error).join("；");
-          break;
-        }
-        if (result.pending.length === 0 && missing.some((clipNumber) => !urlByClip.has(clipNumber))) {
-          lastError = "部分字幕圖無法產生";
-          break;
-        }
-        if (result.pending.length === 0) break;
-        await new Promise((resolve) => setTimeout(resolve, 2500));
-      }
-
-      if (!lastError && wanted.some((clipNumber) => !urlByClip.has(clipNumber))) {
-        lastError = "字幕圖產生逾時";
-      }
-
-      channel.postToEditor({
-        type: "scro-subtitle-generate-result",
-        videoId: payload.videoId,
-        ok: !lastError && wanted.every((clipNumber) => urlByClip.has(clipNumber)),
-        plates: wanted.flatMap((clipNumber) => {
-          const url = urlByClip.get(clipNumber);
-          return url ? [{ clipNumber, url }] : [];
-        }),
-        error: lastError,
-      });
     };
 
     const stop = channel.subscribeScro((payload) => {
-      const data = payload as {
-        type?: string;
-        sourceUrls?: string[];
-        videoId?: string;
-        textStyleId?: string;
-        clipNumbers?: number[];
-        clipNumber?: number;
-        action?: string;
-        kind?: string;
-        message?: string;
-        requestId?: string;
-        position?: FramePosition;
-        selectedClipNumber?: number | null;
-        checkedClipNumbers?: number[];
-        project?: unknown;
-        media?: OpencutEditMedia[];
-        uploads?: SaveUpload[];
-        current?: number;
-        total?: number;
-        label?: string;
-        done?: boolean;
-      };
-      if (data?.type === "scro-editor-ready") {
-        readyRef.current = true;
-        // Show the editor immediately once mounted; clips load one by one with live progress.
-        setBooting(false);
-        setEditorEpoch((epoch) => epoch + 1);
-        beginSync();
-        postCatalog();
-        channel.postToEditor({
-          type: "scro-clip-menu-state",
-          videoId: project.id,
-          idle: (productionRef.current?.pending ?? "") === "",
-          videosEnabled: allFramesReady(project),
-        });
-        return;
-      }
-      if (data?.type === "scro-subtitle-request") {
-        postCatalog();
-        return;
-      }
-      if (data?.type === "scro-subtitle-generate") {
-        const clipNumbers = Array.isArray(data.clipNumbers)
-          ? data.clipNumbers.filter((n): n is number => typeof n === "number" && Number.isInteger(n))
-          : [];
-        if (typeof data.videoId === "string" && typeof data.textStyleId === "string" && clipNumbers.length > 0) {
-          void runSubtitleGenerate({
-            videoId: data.videoId,
-            textStyleId: data.textStyleId,
-            clipNumbers,
-          });
-        }
-        return;
-      }
-      if (data?.type === "scro-clip-action" && data.videoId === project.id && typeof data.clipNumber === "number") {
-        const handlers = productionRef.current;
-        if (!handlers) return;
-        if (data.action === "generate-frames") handlers.onGenerateFrames(data.clipNumber);
-        else if (data.action === "generate-video") handlers.onGenerateVideo(data.clipNumber);
-        else if (data.action === "cancel-video") void handlers.onCancelVideo(data.clipNumber);
-        return;
-      }
-      if (
-        data?.type === "scro-scene-edit" &&
-        data.videoId === project.id &&
-        typeof data.clipNumber === "number" &&
-        typeof data.requestId === "string"
-      ) {
-        const clipNumber = data.clipNumber;
-        const requestId = data.requestId;
-        const message = data.message ?? "";
-        void sendClipSceneChatAction({
-          videoId: project.id,
-          clipNumber,
-          message,
-        }).then((result) => {
-          if (result.ok) productionRef.current?.onProject(result.project);
+      if (!isEditorToHostMessage(payload)) return;
+
+      switch (payload.type) {
+        case "scro-editor-ready": {
+          readyRef.current = true;
+          // Show the editor immediately once mounted; clips load one by one with live progress.
+          setBooting(false);
+          setEditorEpoch((epoch) => epoch + 1);
+          beginSync();
+          postCatalog();
           channel.postToEditor({
-            type: "scro-scene-edit-result",
+            type: "scro-clip-menu-state",
             videoId: project.id,
-            clipNumber,
-            requestId,
-            ok: result.ok,
-            error: result.ok ? undefined : result.error,
+            idle: (productionRef.current?.pending ?? "") === "",
+            videosEnabled: allFramesReady(projectRef.current),
           });
-        });
-        return;
-      }
-      if (data?.type === "scro-open-ai" && data.videoId === project.id && typeof data.clipNumber === "number") {
-        if (data.kind === "scene-chat") {
-          aiRef.current.setSceneChatClip(data.clipNumber);
           return;
         }
-        if (data.kind === "frame-edit" && (data.position === "start" || data.position === "end")) {
-          aiRef.current.setEditingFrame({
-            clipNumber: data.clipNumber,
-            position: data.position,
-          });
+        case "scro-subtitle-request": {
+          postCatalog();
+          return;
         }
-        return;
-      }
-      if (data?.type === "scro-selection-state" && data.videoId === project.id) {
-        setSelectedClipNumber(
-          typeof data.selectedClipNumber === "number" ? data.selectedClipNumber : null,
-        );
-        setCheckedClipNumbers(
-          Array.isArray(data.checkedClipNumbers)
-            ? data.checkedClipNumbers.filter(
+        case "scro-subtitle-generate": {
+          const clipNumbers = Array.isArray(payload.clipNumbers)
+            ? payload.clipNumbers.filter(
                 (n): n is number => typeof n === "number" && Number.isInteger(n),
               )
-            : [],
-        );
-        return;
-      }
-      if (data?.type === "scro-load-progress" && data.videoId === project.id) {
-        if (data.done || !data.total) {
-          setLoadProgress(null);
-        } else {
-          setLoadProgress({
-            current: Math.min(data.current ?? 1, data.total),
-            total: data.total,
-            label: data.label,
-          });
+            : [];
+          if (
+            typeof payload.videoId === "string" &&
+            typeof payload.textStyleId === "string" &&
+            clipNumbers.length > 0
+          ) {
+            void pollOpencutSubtitlePlates(project.id, {
+              videoId: payload.videoId,
+              textStyleId: payload.textStyleId,
+              clipNumbers,
+            }).then((result) => {
+              if (result) channel.postToEditor(result);
+            });
+          }
+          return;
         }
-        return;
+        case "scro-clip-action": {
+          if (payload.videoId !== project.id || typeof payload.clipNumber !== "number") return;
+          const handlers = productionRef.current;
+          if (!handlers) return;
+          if (payload.action === "generate-frames") handlers.onGenerateFrames(payload.clipNumber);
+          else if (payload.action === "generate-video") handlers.onGenerateVideo(payload.clipNumber);
+          else if (payload.action === "cancel-video") void handlers.onCancelVideo(payload.clipNumber);
+          return;
+        }
+        case "scro-scene-edit": {
+          if (
+            payload.videoId !== project.id ||
+            typeof payload.clipNumber !== "number" ||
+            typeof payload.requestId !== "string"
+          ) {
+            return;
+          }
+          const { clipNumber, requestId, message = "" } = payload;
+          void sendClipSceneChatAction({
+            videoId: project.id,
+            clipNumber,
+            message,
+          }).then((result) => {
+            if (result.ok) productionRef.current?.onProject(result.project);
+            channel.postToEditor({
+              type: "scro-scene-edit-result",
+              videoId: project.id,
+              clipNumber,
+              requestId,
+              ok: result.ok,
+              error: result.ok ? undefined : result.error,
+            });
+          });
+          return;
+        }
+        case "scro-open-ai": {
+          if (payload.videoId !== project.id || typeof payload.clipNumber !== "number") return;
+          if (payload.kind === "scene-chat") {
+            aiRef.current.setSceneChatClip(payload.clipNumber);
+            return;
+          }
+          if (
+            payload.kind === "frame-edit" &&
+            (payload.position === "start" || payload.position === "end")
+          ) {
+            aiRef.current.setEditingFrame({
+              clipNumber: payload.clipNumber,
+              position: payload.position,
+            });
+          }
+          return;
+        }
+        case "scro-selection-state": {
+          if (payload.videoId !== project.id) return;
+          setSelectedClipNumber(
+            typeof payload.selectedClipNumber === "number" ? payload.selectedClipNumber : null,
+          );
+          setCheckedClipNumbers(
+            Array.isArray(payload.checkedClipNumbers)
+              ? payload.checkedClipNumbers.filter(
+                  (n): n is number => typeof n === "number" && Number.isInteger(n),
+                )
+              : [],
+          );
+          return;
+        }
+        case "scro-load-progress": {
+          if (payload.videoId !== project.id) return;
+          if (payload.done || !payload.total) {
+            setLoadProgress(null);
+          } else {
+            setLoadProgress({
+              current: Math.min(payload.current ?? 1, payload.total),
+              total: payload.total,
+              label: payload.label,
+            });
+          }
+          return;
+        }
+        case "scro-seed-done": {
+          if (payload.videoId !== project.id) return;
+          setBooting(false);
+          return;
+        }
+        case "scro-restore-done": {
+          setBooting(false);
+          syncedRef.current = true;
+          prevSeedRef.current = seedClipsRef.current;
+          // Reconcile restored timeline against the latest storyboard/video URLs.
+          channel.postToEditor({
+            type: "scro-videos-state",
+            videoId: project.id,
+            clips: seedClipsRef.current,
+          });
+          return;
+        }
+        case "scro-project-save": {
+          void persist(payload);
+          return;
+        }
       }
-      if (data?.type === "scro-seed-done" && data.videoId === project.id) {
-        setBooting(false);
-        return;
-      }
-      if (data?.type === "scro-restore-done") {
-        setBooting(false);
-        syncedRef.current = true;
-        prevSeedRef.current = seedClipsRef.current;
-        // Reconcile restored timeline against the latest storyboard/video URLs.
-        channel.postToEditor({
-          type: "scro-videos-state",
-          videoId: project.id,
-          clips: seedClipsRef.current,
-        });
-        return;
-      }
-      if (data?.type === "scro-project-save") void persist(data as SaveMessage);
     });
 
     void getOpencutEditAction(project.id)
@@ -451,7 +374,7 @@ export function OpenCutDirectDesk({
       stop();
       if (window.__SCRO_OPENCUT_HOST__ === channel) delete window.__SCRO_OPENCUT_HOST__;
     };
-  }, [project.aspectRatio, project.id]);
+  }, [host, project.aspectRatio, project.id]);
 
   useEffect(() => {
     if (!readyRef.current || !syncedRef.current) return;
@@ -536,6 +459,7 @@ export function OpenCutDirectDesk({
         host={host}
         disabled={readyVideos.length === 0}
         idle={(production?.pending ?? "") === ""}
+        saving={saving}
       />
       {production ? (
         <OpenCutScroToolbar
@@ -553,27 +477,7 @@ export function OpenCutDirectDesk({
           onProject={production.onProject}
         />
       ) : null}
-      {loadProgress ? (
-        <div
-          role="status"
-          aria-live="polite"
-          className="flex shrink-0 items-center gap-3 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-4 py-1.5 text-xs"
-        >
-          <span className="font-semibold text-[var(--studio-ink)]">
-            {t("common.loading")} {loadProgress.label ? `${loadProgress.label} ` : ""}(
-            {loadProgress.current}/{loadProgress.total} ·{" "}
-            {Math.round((loadProgress.current / Math.max(1, loadProgress.total)) * 100)}%)
-          </span>
-          <div className="h-1.5 w-36 overflow-hidden rounded-full bg-zinc-200">
-            <div
-              className="h-full rounded-full bg-[#12141c] transition-all duration-200"
-              style={{
-                width: `${Math.round((loadProgress.current / Math.max(1, loadProgress.total)) * 100)}%`,
-              }}
-            />
-          </div>
-        </div>
-      ) : null}
+      <OpenCutLoadProgressBar progress={loadProgress} />
       {seedClips.length === 0 ? (
         <p className="shrink-0 px-4 py-2 text-xs text-muted">{t("video.opencut.empty")}</p>
       ) : null}

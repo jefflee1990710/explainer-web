@@ -113,6 +113,12 @@ export function DraggableItem({
 								isDraggable && "[&::-webkit-drag-ghost]:opacity-0",
 							)}
 							draggable={isDraggable}
+							onMouseDown={(event) => {
+								// A right-click opens the transition menu. HTML drag would swallow it.
+								if (event.currentTarget instanceof HTMLElement) {
+									event.currentTarget.draggable = isDraggable && event.button !== 2;
+								}
+							}}
 							onDragStart={isDraggable ? handleDragStart : undefined}
 							onDragEnd={isDraggable ? handleDragEnd : undefined}
 						>

@@ -1,4 +1,10 @@
-import { charactersCollection, textStylesCollection, userDirectorsCollection, videosCollection } from "@/dao";
+import {
+  charactersCollection,
+  saveClipPhaseBPrompt,
+  textStylesCollection,
+  userDirectorsCollection,
+  videosCollection,
+} from "@/dao";
 import { userStylesCollection } from "@/dao/user-styles";
 import {
   sendCharacterFullBody,
@@ -198,17 +204,6 @@ async function sendVideo(project: Project, clipNumber: number) {
       project.skillSlug === TALKING_HEAD_SKILL_SLUG,
     sceneTextOff: !resolveSceneText(project).enabled,
   });
-  const projects = await videosCollection();
-  await projects.updateOne(
-    { _id: project._id },
-    {
-      $set: {
-        "clips.$[clip].prompt": prompt.prompt,
-        "clips.$[clip].durationSeconds": prompt.durationSeconds,
-        updatedAt: new Date(),
-      },
-    },
-    { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
-  );
+  await saveClipPhaseBPrompt(project._id, clipNumber, prompt);
   return sendClipVideo(project, clipNumber, prompt);
 }

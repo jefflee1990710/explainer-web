@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { z } from "zod";
 import { characterSpecSchema, type CharacterSpec } from "@/model/character-spec";
+import { characterPersonaSchema, type CharacterPersona } from "@/model/character-persona";
 import { characterVoiceSchema, type CharacterVoice } from "@/model/character-voice";
 import {
   castVoiceSampleSchema,
@@ -69,6 +70,8 @@ export type Character = {
   clerkUserId: string;
   name: string;
   styleId: string;
+  // City, tone, and hobbies. Not part of the blueprint or the voice timbre.
+  persona?: CharacterPersona;
   // Fixed acoustic lock pasted into dialogue clips. Not part of the blueprint.
   voice?: CharacterVoice;
   // Demo voice the clip audio is converted to after generation.
@@ -94,6 +97,7 @@ export type CastMember = {
   spec?: CharacterSpec;
   voice?: CharacterVoice;
   voiceSample?: CastVoiceSample;
+  persona?: CharacterPersona;
 };
 
 const characterVersionStatusSchema = z.enum([
@@ -132,6 +136,7 @@ export const characterSchema: z.ZodType<Character> = z.object({
   clerkUserId: z.string(),
   name: z.string(),
   styleId: z.string(),
+  persona: characterPersonaSchema.optional(),
   voice: characterVoiceSchema.optional(),
   voiceSample: characterVoiceSampleSchema.optional(),
   defaultVersionId: objectIdSchema.optional(),
@@ -151,4 +156,5 @@ export const castMemberSchema: z.ZodType<CastMember> = z.object({
   spec: characterSpecSchema.optional(),
   voice: characterVoiceSchema.optional(),
   voiceSample: castVoiceSampleSchema.optional(),
+  persona: characterPersonaSchema.optional(),
 });

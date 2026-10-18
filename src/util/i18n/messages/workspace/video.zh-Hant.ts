@@ -281,5 +281,6 @@ export const videoZhHant = {
     placedPartial: "已貼上 {count} 張。有 {missing} 段不在時間軸上。",
     noLines: "這支影片沒有對白。",
     noMatch: "這些片段還沒有在時間軸上。",
+    saving: "儲存中",
   },
 } satisfies VideoMessages;

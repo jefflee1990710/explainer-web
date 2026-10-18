@@ -11,6 +11,7 @@ import {
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { CharacterLookArt } from "@/presentation/components/app/characters/character-look-art";
+import { CharacterPersonaFields } from "@/presentation/components/app/characters/character-persona-fields";
 import { CharacterPoseComment } from "@/presentation/components/app/characters/character-pose-comment";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
@@ -31,6 +32,7 @@ import {
   type CharacterLookCategory,
   type CharacterLookSelection,
 } from "@/service/character/character-look";
+import { emptyPersonaDraft, personaFromFields, type PersonaDraft } from "@/service/character/persona";
 import { BLUEPRINT_COST } from "@/service/production-plan";
 import type { PublicStyle } from "@/presentation/serialize";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -67,6 +69,7 @@ export function CharacterGeneratorForm({
   const realistic = styles.find((style) => style.id === "realistic" || style.baseStyleId === "realistic");
   const styleId = realistic?.id ?? "realistic";
   const [name, setName] = useState("");
+  const [persona, setPersona] = useState<PersonaDraft>(emptyPersonaDraft);
   const [look, setLook] = useState<CharacterLookSelection>(defaultCharacterLook);
   const [activePart, setActivePart] = useState<AnyCharacterLookPart>("face");
   const [categoryTab, setCategoryTab] = useState<CharacterLookCategory>("all");
@@ -158,6 +161,8 @@ export function CharacterGeneratorForm({
     data.set("name", name);
     data.set("styleId", styleId);
     data.set("prompt", characterLookPrompt(look));
+    const packedPersona = personaFromFields(persona);
+    if (packedPersona) data.set("persona", JSON.stringify(packedPersona));
     try {
       if (poseUrl.startsWith("data:image/")) {
         const res = await fetch(poseUrl);
@@ -313,6 +318,10 @@ export function CharacterGeneratorForm({
             {t(`characters.look.presets.${preset.id}`)}
           </button>
         ))}
+      </div>
+
+      <div className="shrink-0 rounded-2xl border border-accent-ink/10 bg-paper/80 px-4 py-3">
+        <CharacterPersonaFields draft={persona} onChange={setPersona} disabled={blocked} compact />
       </div>
 
       {/* 3-Column Single-Screen Studio */}

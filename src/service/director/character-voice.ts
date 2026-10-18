@@ -3,6 +3,8 @@ import {
   VOICE_NOTE_MAX,
   type CharacterVoice,
 } from "@/model/character-voice";
+import { parseCharacterPersona, type CharacterPersona } from "@/model/character-persona";
+import { personaDeliveryLine } from "@/service/character/persona";
 
 export const DEFAULT_CHARACTER_VOICE: CharacterVoice = {
   gender: "male",
@@ -13,7 +15,11 @@ export const DEFAULT_CHARACTER_VOICE: CharacterVoice = {
   weight: "medium",
 };
 
-type NamedVoice = { name: string; voice?: CharacterVoice | null };
+type NamedVoice = {
+  name: string;
+  voice?: CharacterVoice | null;
+  persona?: CharacterPersona | null;
+};
 
 // Timbre descriptor without the character name prefix, for narrator or speaker locks.
 export function characterVoiceTimbre(voice: CharacterVoice): string {
@@ -56,7 +62,7 @@ export function dialogueVoiceLock(
   options?: { keepNarrator?: boolean },
 ): string | null {
   const lines = lockedSpeakerLines(cast);
-  if (!lines.length || !cast) return null;
+  if (!lines.length || !cast) return appendPersonaTone(null, cast);
   const lockedNames = new Set(
     cast.flatMap((member) => {
       const name = member.name.trim();
@@ -77,5 +83,24 @@ export function dialogueVoiceLock(
   const preamble = options?.keepNarrator
     ? "Copy each voice lock verbatim. Same accent as the spoken language. Change only emotion or volume."
     : "No narrator. Copy each voice lock verbatim. Same accent as the spoken language. Change only emotion or volume.";
-  return [preamble, ...lines, narratorLine, fallback].filter(Boolean).join("\n");
+  const lock = [preamble, ...lines, narratorLine, fallback].filter(Boolean).join("\n");
+  return appendPersonaTone(lock, cast);
+}
+
+function personaToneLines(cast?: NamedVoice[]) {
+  if (!cast) return [];
+  return cast.flatMap((member) => {
+    const name = member.name.trim();
+    const persona = parseCharacterPersona(member.persona);
+    if (!name || !persona) return [];
+    return [`${name}: ${personaDeliveryLine(persona)}`];
+  });
+}
+
+// Personality changes wording and delivery. It does not rewrite the timbre lock.
+function appendPersonaTone(lock: string | null, cast?: NamedVoice[]) {
+  const tones = personaToneLines(cast);
+  if (!tones.length) return lock;
+  const block = ["Tone and wording only. Keep the timbre lock unchanged.", ...tones].join("\n");
+  return lock ? `${lock}\n${block}` : block;
 }

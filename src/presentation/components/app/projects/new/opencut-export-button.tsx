@@ -5,6 +5,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { VideoEditorHeaderExport } from "@/presentation/components/app/projects/new/video-edit-summary-end";
 import { AllFramesVideoIcon } from "@/presentation/components/project/production-bulk-action-icons";
 import { Spinner } from "@/presentation/components/spinner";
+import { OpenCutSaveIndicator } from "@/presentation/components/app/projects/new/opencut-save-indicator";
 import {
   AddClipIcon,
   FinishMissingIcon,
@@ -28,11 +29,13 @@ export function OpenCutExportButton({
   host,
   disabled,
   idle = true,
+  saving = false,
 }: {
   project: PublicVideo;
   host: ScroOpenCutHost;
   disabled: boolean;
   idle?: boolean;
+  saving?: boolean;
 }) {
   const { t } = useI18n();
   const [phase, setPhase] = useState<"idle" | "exporting" | "error">("idle");
@@ -89,6 +92,7 @@ export function OpenCutExportButton({
   return (
     <VideoEditorHeaderExport>
       <div className="flex items-center gap-1.5 sm:gap-2">
+        <OpenCutSaveIndicator saving={saving} />
         <StudioHint hint={remainingLabel}>
           <StudioButton
             variant="ghost"

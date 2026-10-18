@@ -1,4 +1,5 @@
 import { useEffect, useReducer, useState, type RefObject } from "react";
+import { showScroClipInPreview } from "@/opencut/embed/scro-clip-preview";
 import { useEditor } from "@/opencut/editor/use-editor";
 import { useCommittedRef } from "@/opencut/hooks/use-committed-ref";
 import { useShiftKey } from "@/opencut/hooks/use-shift-key";
@@ -62,6 +63,9 @@ export function useElementInteraction({
 		snap: {
 			isEnabled: () => snappingEnabled,
 			onChange: onSnapPointChange,
+		},
+		onPreviewElement: (element) => {
+			showScroClipInPreview({ editor, element });
 		},
 	};
 	const depsRef = useCommittedRef(deps) as ElementInteractionDepsRef;

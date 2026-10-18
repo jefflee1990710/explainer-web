@@ -17,6 +17,7 @@ import {
   versionStyleId,
 } from "@/service/character/character-styles";
 import { characterAllowance } from "@/service/character/character-limit";
+import { parseCharacterPersona, type CharacterPersona } from "@/model/character-persona";
 import { characterStyleAllowance, isCharacterStyleLimitUnlocked } from "@/service/character/style-limit";
 import { extractCharacterSpec } from "@/service/character/extract-spec";
 import {
@@ -36,6 +37,7 @@ import { canSetDefault } from "@/service/character/versions";
 import {
   charactersCollection,
   generationJobsCollection,
+  lifeShotsCollection,
   usersCollection,
   videosCollection,
 } from "@/dao";
@@ -143,6 +145,8 @@ export async function createCharacterAction(
     }
     const chosen = readCharacterVoice(formData.get("voice"));
     if (chosen === "invalid") return { ok: false, error: "聲線設定無效" };
+    const persona = readPersona(formData.get("persona"));
+    if (persona === "invalid") return { ok: false, error: "人設設定無效" };
     // No manual lock: infer one so the character is created with the lock on.
     // The appearance spec reads the same photos; both run before the charge.
     const [inferredVoice, spec] = await Promise.all([
@@ -178,6 +182,7 @@ export async function createCharacterAction(
         clerkUserId: user.clerkUserId,
         name,
         styleId,
+        ...(persona ? { persona } : {}),
         ...(voice ? { voice } : {}),
         versions: [version],
         createdAt: now,
@@ -689,6 +694,42 @@ async function dropVoiceSample(sample: NonNullable<Character["voiceSample"]>) {
   if (inUse === 0) await deleteVoiceClone(sample.elevenVoiceId);
 }
 
+function readPersona(value: FormDataEntryValue | null): CharacterPersona | null | "invalid" {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return parseCharacterPersona(parsed) ?? "invalid";
+  } catch {
+    return "invalid";
+  }
+}
+
+export async function saveCharacterPersonaAction(
+  characterId: string,
+  persona: CharacterPersona | null,
+): Promise<CharacterResult> {
+  try {
+    const user = await requireAppUser();
+    const character = await ownedCharacter(characterId, user.clerkUserId);
+    if (!character) return { ok: false, error: "角色不存在" };
+    const parsed = persona === null ? null : parseCharacterPersona(persona);
+    if (persona !== null && !parsed) return { ok: false, error: "人設設定無效" };
+    const characters = await charactersCollection();
+    await characters.updateOne(
+      { _id: character._id },
+      parsed
+        ? { $set: { persona: parsed, updatedAt: new Date() } }
+        : { $unset: { persona: "" }, $set: { updatedAt: new Date() } },
+    );
+    revalidateCharacter(characterId);
+    revalidatePath("/app/life");
+    return reload(character._id);
+  } catch (error) {
+    return fail(error, "儲存人設失敗");
+  }
+}
+
 function readCharacterVoice(value: FormDataEntryValue | null): CharacterVoice | null | "invalid" {
   const raw = String(value || "").trim();
   if (!raw) return null;
@@ -757,6 +798,8 @@ export async function deleteCharacterAction(
 
     const jobs = await generationJobsCollection();
     await jobs.deleteMany({ characterId: character._id });
+    const lifeShots = await lifeShotsCollection();
+    await lifeShots.deleteMany({ characterId: character._id, clerkUserId: user.clerkUserId });
 
     const characters = await charactersCollection();
     const removed = await characters.deleteOne({
@@ -769,6 +812,7 @@ export async function deleteCharacterAction(
     if (character.voiceSample) await dropVoiceSample(character.voiceSample);
 
     revalidateCharacter(characterId);
+    revalidatePath("/app/life");
     revalidatePath("/app");
     return { ok: true };
   } catch (error) {
@@ -799,6 +843,8 @@ export async function deleteCharactersAction(
 
     const jobs = await generationJobsCollection();
     await jobs.deleteMany({ characterId: { $in: ownedObjectIds } });
+    const lifeShots = await lifeShotsCollection();
+    await lifeShots.deleteMany({ characterId: { $in: ownedObjectIds }, clerkUserId: user.clerkUserId });
 
     await characters.deleteMany({
       _id: { $in: ownedObjectIds },
@@ -810,6 +856,7 @@ export async function deleteCharactersAction(
       revalidatePath(`/app/characters/${doc._id.toHexString()}`);
     }
     revalidatePath("/app/characters");
+    revalidatePath("/app/life");
     revalidatePath("/app/billing");
     revalidatePath("/app");
     return { ok: true };

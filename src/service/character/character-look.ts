@@ -1,5 +1,19 @@
 // Picture picks for the character generator. Prompts stay in English for image generation.
 import { REALISTIC_CHARACTER_RENDER_RULE } from "@/service/style/realistic-light";
+import {
+  EXTRA_ACCESSORIES,
+  EXTRA_HERITAGE_ACCESSORY_IDS,
+  EXTRA_HERITAGE_PANTS_IDS,
+  EXTRA_HERITAGE_SHOES_IDS,
+  EXTRA_HERITAGE_TOP_IDS,
+  EXTRA_PANTS,
+  EXTRA_SHOES,
+  EXTRA_STYLIZED_ACCESSORY_IDS,
+  EXTRA_STYLIZED_PANTS_IDS,
+  EXTRA_STYLIZED_SHOES_IDS,
+  EXTRA_STYLIZED_TOP_IDS,
+  EXTRA_TOPS,
+} from "@/service/character/character-wardrobe-extra";
 
 export const CHARACTER_LOOK_PARTS = ["hair", "face", "body", "pants", "shoes"] as const;
 export const CHARACTER_EXTRA_PARTS = ["top", "accessory", "expression"] as const;
@@ -57,6 +71,7 @@ export const CHARACTER_EXTRA_LOOKS: Record<CharacterExtraPart, readonly Characte
     { id: "manteau", prompt: "a Tehran contemporary long tailored open-front Manteau coat with subtle Persian Termeh brocade trim" },
     { id: "anatolian", prompt: "an Istanbul modern tailored espresso suede-and-shearling aviator jacket" },
     { id: "thaisilk", prompt: "a Bangkok contemporary structured iridescent Thai-silk boxy cropped jacket" },
+    ...EXTRA_TOPS,
   ],
   accessory: [
     { id: "none", prompt: "no accessories, bare head and hands" },
@@ -67,6 +82,7 @@ export const CHARACTER_EXTRA_LOOKS: Record<CharacterExtraPart, readonly Characte
     { id: "beret", prompt: "a Parisian black wool beret tilted cleanly on the head" },
     { id: "silkscarf", prompt: "a 1960s Italian printed silk neck scarf knotted neatly at the collar" },
     { id: "pearlchain", prompt: "a modern unisex minimalist silver-and-pearl layered neck chain" },
+    ...EXTRA_ACCESSORIES,
   ],
   expression: [
     { id: "neutral", prompt: "calm composed editorial gaze looking straight into the lens" },
@@ -149,6 +165,7 @@ export const CHARACTER_LOOKS: Record<CharacterLookPart, readonly CharacterLookOp
     { id: "salwar", prompt: "South Asian tailored tapered salwar trousers" },
     { id: "lederhosen", prompt: "German heritage brown suede leather trousers with tailored seams" },
     { id: "baji", prompt: "Korean modern hanbok baji wide-cut tapered trousers" },
+    ...EXTRA_PANTS,
   ],
   shoes: [
     { id: "sneakers", prompt: "white sneakers" },
@@ -170,6 +187,7 @@ export const CHARACTER_LOOKS: Record<CharacterLookPart, readonly CharacterLookOp
     { id: "brogues", prompt: "British and Congolese Sapeur two-tone perforated wingtip leather brogues" },
     { id: "peshawari", prompt: "Pakistani handcrafted double-strap braided leather Peshawari chappal sandals" },
     { id: "huarache", prompt: "Mexican artisanal hand-woven cognac leather Huarache loafers" },
+    ...EXTRA_SHOES,
   ],
 };
 
@@ -256,6 +274,7 @@ const GLOBAL_HERITAGE_TOP = new Set([
   "manteau",
   "anatolian",
   "thaisilk",
+  ...EXTRA_HERITAGE_TOP_IDS,
 ]);
 const ERA_STYLIZED_TOP = new Set([
   "hoodie",
@@ -265,16 +284,39 @@ const ERA_STYLIZED_TOP = new Set([
   "seoulminimal",
   "oldmoney",
   "techwear",
+  ...EXTRA_STYLIZED_TOP_IDS,
 ]);
 
-const GLOBAL_HERITAGE_PANTS = new Set(["hakama", "salwar", "lederhosen", "baji"]);
-const ERA_STYLIZED_PANTS = new Set(["pleated", "bells", "baggy", "techcargo"]);
+const GLOBAL_HERITAGE_PANTS = new Set(["hakama", "salwar", "lederhosen", "baji", ...EXTRA_HERITAGE_PANTS_IDS]);
+const ERA_STYLIZED_PANTS = new Set(["pleated", "bells", "baggy", "techcargo", ...EXTRA_STYLIZED_PANTS_IDS]);
 
-const GLOBAL_HERITAGE_SHOES = new Set(["geta", "tabi", "cowboy", "clogs", "brogues", "peshawari", "huarache"]);
-const ERA_STYLIZED_SHOES = new Set(["platforms", "tstrap", "chelsea", "hightops", "chunky"]);
+const GLOBAL_HERITAGE_SHOES = new Set([
+  "geta",
+  "tabi",
+  "cowboy",
+  "clogs",
+  "brogues",
+  "peshawari",
+  "huarache",
+  ...EXTRA_HERITAGE_SHOES_IDS,
+]);
+const ERA_STYLIZED_SHOES = new Set([
+  "platforms",
+  "tstrap",
+  "chelsea",
+  "hightops",
+  "chunky",
+  ...EXTRA_STYLIZED_SHOES_IDS,
+]);
 
-const GLOBAL_HERITAGE_ACCESSORY = new Set(["beret", "silkscarf", "pearlchain"]);
-const ERA_STYLIZED_ACCESSORY = new Set(["eyewear", "aviators", "cybervisors", "headphones"]);
+const GLOBAL_HERITAGE_ACCESSORY = new Set(["beret", "silkscarf", "pearlchain", ...EXTRA_HERITAGE_ACCESSORY_IDS]);
+const ERA_STYLIZED_ACCESSORY = new Set([
+  "eyewear",
+  "aviators",
+  "cybervisors",
+  "headphones",
+  ...EXTRA_STYLIZED_ACCESSORY_IDS,
+]);
 
 const EDITORIAL_EXPRESSION = new Set(["cool", "focused"]);
 const STYLIZED_EXPRESSION = new Set(["smirk", "warm"]);

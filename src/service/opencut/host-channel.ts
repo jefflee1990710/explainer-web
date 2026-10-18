@@ -1,10 +1,11 @@
 // In-window channel shared with OpenCut. Replaces iframe postMessage.
+import type { EditorToHostMessage, HostToEditorMessage } from "@/service/opencut/messages";
 
-type Handler = (message: unknown) => void;
+type Handler<T = unknown> = (message: T) => void;
 
 export type ScroOpenCutHost = {
-  postToEditor: (message: unknown) => void;
-  postToScro: (message: unknown) => void;
+  postToEditor: (message: HostToEditorMessage | unknown) => void;
+  postToScro: (message: EditorToHostMessage | unknown) => void;
   subscribeEditor: (handler: Handler) => () => void;
   subscribeScro: (handler: Handler) => () => void;
 };

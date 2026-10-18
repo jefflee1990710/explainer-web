@@ -18,6 +18,7 @@ import {
 	readSeen,
 } from "@/opencut/embed/scro-media-sources";
 import { isScroEmbed, listenFromScro, scroHost, sendToScro } from "@/opencut/embed/scro-transport";
+import { OPENCUT_AUTOSAVE_DELAY_MS } from "@/service/opencut/autosave";
 
 const PARENT_ORIGINS = new Set([
 	"http://localhost:3000",
@@ -160,7 +161,7 @@ export function ScroProjectSync() {
 		const schedule = () => {
 			if (!armed.current || restoring.current) return;
 			window.clearTimeout(timer);
-			timer = window.setTimeout(postSave, 1200);
+			timer = window.setTimeout(postSave, OPENCUT_AUTOSAVE_DELAY_MS);
 		};
 		const onArm = () => {
 			armed.current = true;

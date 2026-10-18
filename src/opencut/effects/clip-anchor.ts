@@ -191,8 +191,9 @@ function joinCut({
 }
 
 /**
- * One transition on every clip-to-clip join, plus the tail of the last clip.
- * A wide gap uses the outgoing clip's tail instead of a centered cut.
+ * Opening heading, every clip-to-clip join, and the closing tail.
+ * A wide gap cannot hold one centered cut, so the outgoing tail and the
+ * next clip's heading each get their own transition.
  */
 export function listApplyAllTransitionSlots(
 	clips: ClipSpan[],
@@ -202,21 +203,30 @@ export function listApplyAllTransitionSlots(
 		.sort((a, b) => a.start - b.start);
 	if (sorted.length === 0) return [];
 
-	const slots: Array<{ start: number; duration: number }> = [];
+	const slots: Array<{ start: number; duration: number }> = [
+		headSpan({ clip: sorted[0] }),
+	];
 	for (let i = 0; i < sorted.length - 1; i++) {
 		const previous = sorted[i];
 		const next = sorted[i + 1];
 		if (next.start - previous.end <= JOIN_GAP_SECONDS) {
 			slots.push(betweenSpan({ previous, next }));
 		} else {
-			const duration = edgeDuration({ clip: previous });
-			slots.push({ start: previous.end - duration, duration });
+			slots.push(tailSpan({ clip: previous }));
+			slots.push(headSpan({ clip: next }));
 		}
 	}
-	const last = sorted[sorted.length - 1];
-	const duration = edgeDuration({ clip: last });
-	slots.push({ start: last.end - duration, duration });
+	slots.push(tailSpan({ clip: sorted[sorted.length - 1] }));
 	return packSlots(slots);
+}
+
+function headSpan({ clip }: { clip: ClipSpan }): { start: number; duration: number } {
+	return { start: clip.start, duration: edgeDuration({ clip }) };
+}
+
+function tailSpan({ clip }: { clip: ClipSpan }): { start: number; duration: number } {
+	const duration = edgeDuration({ clip });
+	return { start: clip.end - duration, duration };
 }
 
 /** Keep earlier slots when a short clip would stack two transitions. */

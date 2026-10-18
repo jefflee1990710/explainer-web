@@ -43,6 +43,12 @@ export async function suggestCharacterVoiceAction(
   return service.suggestCharacterVoiceAction(...args);
 }
 
+export async function saveCharacterPersonaAction(
+  ...args: Parameters<typeof service.saveCharacterPersonaAction>
+) {
+  return service.saveCharacterPersonaAction(...args);
+}
+
 export async function saveCharacterVoiceAction(
   ...args: Parameters<typeof service.saveCharacterVoiceAction>
 ) {

@@ -21,6 +21,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import { localizedStyleName } from "@/util/style-i18n";
 import { isStyleId, type StyleId } from "@/model/style-id";
+import { CharacterPersonaPanel } from "@/presentation/components/app/characters/[id]/character-persona-panel";
 import { CharacterStyleColumn } from "@/presentation/components/app/characters/[id]/character-style-column";
 import { CharacterVoicePanel } from "@/presentation/components/app/characters/[id]/character-voice-panel";
 import { CharacterVoiceSamplePanel } from "@/presentation/components/app/characters/[id]/character-voice-sample-panel";
@@ -56,7 +57,7 @@ export function CharacterWorkspace({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [character, setCharacter] = useState(initial);
-  const [activeTab, setActiveTab] = useState<"look" | "voice">("look");
+  const [activeTab, setActiveTab] = useState<"look" | "voice" | "persona">("look");
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   const [name, setName] = useState(initial.name);
@@ -213,6 +214,19 @@ export function CharacterWorkspace({
             >
               {t("characters.voiceTitle")}
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "persona"}
+              onClick={() => setActiveTab("persona")}
+              className={`cursor-pointer rounded-full px-3.5 py-1 text-xs font-bold transition ${
+                activeTab === "persona"
+                  ? "bg-accent-ink text-paper"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              {t("persona.title")}
+            </button>
           </div>
 
           <button
@@ -238,7 +252,11 @@ export function CharacterWorkspace({
         <DeleteCharacterDialog character={character} onClose={() => setDeleteOpen(false)} />
       ) : null}
 
-      {activeTab === "look" ? (
+      {activeTab === "persona" ? (
+        <section aria-label={t("persona.title")} className="min-h-0 flex-1 overflow-y-auto">
+          <CharacterPersonaPanel character={character} onSaved={setCharacter} />
+        </section>
+      ) : activeTab === "look" ? (
         <section
           aria-label={t("characters.outlookHeading")}
           className="flex min-h-0 flex-1 flex-col"

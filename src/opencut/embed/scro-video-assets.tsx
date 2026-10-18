@@ -14,6 +14,7 @@ import {
 
 export { resolveScroClipNumber };
 import type { ScroVideoSeedClip, ScroVideoUiStage } from "@/opencut/embed/scro-video-types";
+import { showScroClipInPreview } from "@/opencut/embed/scro-clip-preview";
 import type { EditorCore } from "@/opencut/core";
 import type { MediaAsset } from "@/opencut/media/types";
 import { MediaLoadingMark } from "@/opencut/components/loading-media-image";
@@ -296,7 +297,7 @@ export function ScroMediaOverlays({
 	);
 }
 
-/** Select timeline element + Properties focus for a Scro media asset. */
+/** Select a Scro clip, then show it in the center preview and play. */
 export function selectScroMediaClip({
 	clipNumber,
 	editor,
@@ -317,6 +318,7 @@ export function selectScroMediaClip({
 		editor.selection.setSelectedElements({
 			elements: [{ trackId: scene.tracks.main.id, elementId: hit.id }],
 		});
+		showScroClipInPreview({ editor, element: hit });
 		return;
 	}
 	// Asset-only focus: clear timeline so Properties reads the Scro store selection.

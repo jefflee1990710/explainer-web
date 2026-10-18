@@ -1,11 +1,16 @@
 export { usersCollection } from "@/dao/users";
 export { subscriptionsCollection } from "@/dao/subscriptions";
 export { skillsCollection } from "@/dao/skills";
-export { projectsCollection } from "@/dao/projects";
-export { videosCollection } from "@/dao/videos";
+export { projectsCollection, foldersCollection } from "@/dao/projects";
+export {
+  videosCollection,
+  videoProjectsCollection,
+  saveClipPhaseBPrompt,
+} from "@/dao/videos";
 export { generationJobsCollection } from "@/dao/generation-jobs";
 export { billingSettingsCollection } from "@/dao/billing-settings";
 export { charactersCollection } from "@/dao/characters";
+export { lifeShotsCollection } from "@/dao/life-shots";
 export { stylesCollection } from "@/dao/styles";
 export { affiliatesCollection } from "@/dao/affiliates";
 export { affiliateLedgerCollection } from "@/dao/affiliate-ledger";

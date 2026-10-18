@@ -281,6 +281,7 @@ export const videoEn = {
     placedPartial: "Placed {count}. {missing} clips are not on the timeline.",
     noLines: "This video has no spoken lines.",
     noMatch: "Those clips are not on the timeline yet.",
+    saving: "Saving",
   },
 } as const;
 

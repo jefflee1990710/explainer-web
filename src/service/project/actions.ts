@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { ObjectId } from "mongodb";
 import { requireAppUser, requireClerkUserId } from "@/service/auth";
+import { parseCharacterPersona } from "@/model/character-persona";
 import { isCharacterVoice } from "@/model/character-voice";
 import { characterStyleIds, resolveVersionForStyle } from "@/service/character/character-styles";
 import {
@@ -276,6 +277,7 @@ async function buildCast(
     if (!version?.blueprintUrl) {
       return { ok: false, error: `角色 ${character.name} 尚未有可用藍圖` };
     }
+    const persona = parseCharacterPersona(character.persona);
     cast.push({
       characterId: character._id,
       versionId: version.id,
@@ -286,6 +288,7 @@ async function buildCast(
       // Appearance notes travel with the video so prompts stay stable after later edits.
       ...(version.spec ? { spec: version.spec } : {}),
       ...(isCharacterVoice(character.voice) ? { voice: character.voice } : {}),
+      ...(persona ? { persona } : {}),
       // Snapshot so a later sample change does not re-voice this video.
       ...(character.voiceSample
         ? {

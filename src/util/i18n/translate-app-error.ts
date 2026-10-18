@@ -114,6 +114,14 @@ const EXACT: Record<string, string> = {
   "姿勢圖格式不正確": "errors.poseImageInvalid",
   "姿勢圖太大": "errors.poseImageTooLarge",
   "更新姿勢圖失敗": "errors.poseUpdateFailed",
+  "人設設定無效": "errors.personaInvalid",
+  "儲存人設失敗": "errors.personaSaveFailed",
+  "請輸入地點": "errors.lifePlaceRequired",
+  "請選擇生活照類型": "errors.lifeKindRequired",
+  "請選擇場景照片": "errors.lifeSceneRequired",
+  "找不到這個地方的照片": "errors.lifeSearchEmpty",
+  "搜尋地點照片失敗": "errors.lifeSearchFailed",
+  "生活照生成失敗": "errors.lifeGenerateFailed",
 };
 
 const PATTERNS: Array<{ re: RegExp; key: string; params?: (m: RegExpMatchArray) => Record<string, string | number> }> = [

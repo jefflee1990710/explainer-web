@@ -1,19 +1,7 @@
 // Same-window bus when Scro mounts this editor directly. Iframe keeps postMessage.
+import type { ScroOpenCutHost } from "@/service/opencut/host-channel";
 
-type Handler = (message: unknown) => void;
-
-export type ScroOpenCutHost = {
-	postToEditor: (message: unknown) => void;
-	postToScro: (message: unknown) => void;
-	subscribeEditor: (handler: Handler) => () => void;
-	subscribeScro: (handler: Handler) => () => void;
-};
-
-declare global {
-	interface Window {
-		__SCRO_OPENCUT_HOST__?: ScroOpenCutHost;
-	}
-}
+export type { ScroOpenCutHost };
 
 export function scroHost(): ScroOpenCutHost | null {
 	if (typeof window === "undefined") return null;

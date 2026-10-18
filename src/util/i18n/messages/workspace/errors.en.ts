@@ -114,6 +114,14 @@ export const errorsEn = {
   poseImageInvalid: "This pose picture cannot be edited",
   poseImageTooLarge: "This pose picture is too large",
   poseUpdateFailed: "Could not update the picture. Try again.",
+  personaInvalid: "Persona is not valid",
+  personaSaveFailed: "Could not save the persona",
+  lifePlaceRequired: "Enter a place",
+  lifeKindRequired: "Choose a life-photo type",
+  lifeSceneRequired: "Choose a place photo",
+  lifeSearchEmpty: "No place photos found",
+  lifeSearchFailed: "Could not search place photos",
+  lifeGenerateFailed: "Could not generate the life photo",
 } as const;
 
 

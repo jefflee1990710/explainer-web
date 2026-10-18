@@ -2,7 +2,10 @@
 
 import { createContext, useContext } from "react";
 import { useEditor } from "@/opencut/editor/use-editor";
-import { resolveElementScroClipNumber } from "@/opencut/embed/scro-clip-number";
+import {
+	isScroClipLengthLocked,
+	resolveElementScroClipNumber,
+} from "@/opencut/embed/scro-clip-number";
 import { scroAssetPreviewSrc, scroStartStillPending } from "@/opencut/embed/scro-video-assets";
 import {
 	MediaLoadingMark,
@@ -240,6 +243,13 @@ export function TimelineElement({
 	overlay = false,
 }: TimelineElementProps) {
 	const mediaAssets = useEditor((e) => e.media.getAssets());
+	const scroVideos = useScroVideos();
+	// ScroVideo length is the storyboard length. Hide the trim handles.
+	const lengthLocked = isScroClipLengthLocked({
+		element,
+		assets: mediaAssets,
+		clips: scroVideos?.clips,
+	});
 	const { selectedElements } = useElementSelection();
 	const requestRevealMedia = useAssetsPanelStore((s) => s.requestRevealMedia);
 	const { renderElement } = useElementPreview({
@@ -414,8 +424,8 @@ export function TimelineElement({
 							onElementMouseDown={onElementMouseDown}
 							onResizeStart={onResizeStart}
 							isDropTarget={isDropTarget}
-							allowResize
-							showResizeHandles={isSelected || overlay}
+							allowResize={!lengthLocked}
+							showResizeHandles={!lengthLocked && (isSelected || overlay)}
 						/>
 						{isSelected && (
 							<div

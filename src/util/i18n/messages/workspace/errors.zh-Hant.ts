@@ -114,4 +114,12 @@ export const errorsZhHant = {
   poseImageInvalid: "這張姿勢圖無法修改",
   poseImageTooLarge: "這張姿勢圖太大",
   poseUpdateFailed: "更新姿勢圖失敗，請再試一次",
+  personaInvalid: "人設設定無效",
+  personaSaveFailed: "儲存人設失敗",
+  lifePlaceRequired: "請輸入地點",
+  lifeKindRequired: "請選擇生活照類型",
+  lifeSceneRequired: "請選擇場景照片",
+  lifeSearchEmpty: "找不到這個地方的照片",
+  lifeSearchFailed: "搜尋地點照片失敗",
+  lifeGenerateFailed: "生活照生成失敗",
 } satisfies ErrorsMessages;
