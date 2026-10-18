@@ -17,6 +17,17 @@ const SHEET_LAYOUT = [
   "Final check: every drawing must be fully visible with an empty margin between the artwork and all four edges of the canvas.",
 ];
 
+// Strip scene-only dramatic lighting terms from style lines on character blueprints.
+function characterBlueprintStyleLines(style: RenderableStyle) {
+  if (!isRealisticStyle(style)) return styleLinesForBlueprint(style);
+  return styleLinesForBlueprint({
+    ...style,
+    look: style.look
+      .replace(/sculpted by[^.]+?\([^)]+\),\s*/i, "lit by soft diffused wrap-around natural daylight with generous fill on both cheeks, ")
+      .replace(/grazing directional key light|negative fill|nose-bridge and eye-socket shadows|nose-bridge shadow/gi, "soft diffused daylight"),
+    palette: "neutral true-to-life daylight colour on Kodak Gold 200 film stock with natural skin tones and soft contrast (no warm orange or sunset cast)",
+  });
+}
 // Chalkboard's canvas is the drawing surface. Every other style keeps a light sheet.
 function usesDrawingSurface(style: RenderableStyle) {
   return /chalkboard/i.test(`${style.id} ${style.canvas}`);
@@ -66,7 +77,7 @@ export function buildBlueprintPrompt(input: {
   const realistic = isRealisticStyle(input.style);
   const lines = [
     ...SHEET_LAYOUT,
-    ...styleLinesForBlueprint(input.style),
+    ...characterBlueprintStyleLines(input.style),
     ...(lightGround ? [LIGHT_SHEET_GROUND] : []),
     ...(realistic ? [REALISTIC_CHARACTER_RENDER_RULE] : []),
   ];
@@ -163,7 +174,7 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
     realistic
       ? REALISTIC_CHARACTER_RENDER_RULE
       : "Even soft front light so every facial feature reads clearly: eye shape, brows, nose, lips, jaw, natural skin texture from the source image, hair line, and any marks.",
-    ...styleLinesForBlueprint(input.style),
+    ...characterBlueprintStyleLines(input.style),
     ...(lightGround ? [LIGHT_SHEET_GROUND] : []),
   ];
   if (description) lines.push(`Character: ${description}`);
@@ -205,7 +216,7 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
     "One person, standing straight upright (站直), facing the camera directly front-on (regardless of any seated or angled pose in the reference photo), with a warm, gentle little smile, eyes open, arms relaxed at the sides, feet slightly apart. No props, no text, no labels, no second person, no extra poses.",
     "Copy the face, hair, exact skin texture, and the visible clothing from that portrait and source image(s) exactly. Complete the rest of the outfit, shoes, and accessories from the photos and the notes.",
     "Framing: the entire body is visible from the top of the hair to the soles of the feet, centered, with empty margin above the head and below the feet. Do not crop to a portrait. Do not draw the figure too small — it should fill about four fifths of the canvas height.",
-    ...styleLinesForBlueprint(input.style),
+    ...characterBlueprintStyleLines(input.style),
     lightGround
       ? LIGHT_SHEET_GROUND
       : "The figure stands on the same drawing surface as the portrait.",
@@ -244,7 +255,7 @@ export function buildProfilePrompt(input: { style: RenderableStyle; description:
     "Use only the front view from the sheet. One person, standing straight upright (站直), facing the camera directly front-on, with a warm, gentle little smile, eyes open, arms relaxed at the sides.",
     "Copy face, skin texture, hair, outfit, and rendering from that front view. Do not copy the turnaround, walk cycle, expression grid, labels, or extra poses.",
     "Framing: the entire body is visible, from the top of the hair to the soles of the feet, centered, with empty margin above the head and below the feet. Do not crop to a head-and-shoulders portrait.",
-    ...styleLinesForBlueprint(input.style),
+    ...characterBlueprintStyleLines(input.style),
     lightGround
       ? LIGHT_SHEET_GROUND
       : "The figure stands on the same drawing surface as the sheet.",

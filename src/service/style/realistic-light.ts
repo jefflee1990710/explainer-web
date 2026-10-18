@@ -70,10 +70,10 @@ const REALISTIC_SURFACE =
 
 // Character sheet, identity portrait, and full-body figure.
 export const REALISTIC_CHARACTER_RENDER_RULE = [
-  "Realistic texture: captured on 35mm film (Kodak Gold 200 / Ektachrome) with a soft, gentle three-quarter grazing directional key light and subtle negative fill (a mild ~1.25:1 modelling ratio so both eyes and both cheeks stay clearly lit and readable — never harsh split lighting, never dark shadows hiding half the face or eyes, never flat front beauty light, and never waxy airbrushed plastic skin). Use natural daylight tones (warm amber light, muted teal shadows; no harsh sunset glare). Add subtle film grain (ISO 100) and slight optical chromatic aberration, keeping highlights unclipped.",
+  "Realistic texture: captured on 35mm film (Kodak Gold 200 / Ektachrome) in soft, diffused, wrap-around natural daylight with generous fill light on both sides of the face (only a very subtle, barely-there 10% softness for natural 3D contour — both eyes, both cheeks, and the nose bridge are brightly, softly, and evenly illuminated with ZERO harsh shadows, ZERO split lighting, ZERO dark half-face shadow, ZERO hard nose shadow, and ZERO cast shadow on the background or floor). Never waxy airbrushed plastic skin or glamour retouching. Neutral, true-to-life daylight colour balance (no warm orange or sunset tint). Add subtle film grain (ISO 100) and slight optical chromatic aberration, keeping highlights unclipped.",
   "Cast a believable everyday non-model person and focus on the source image's skin texture: show real skin pores, peach-fuzz, natural skin micro-texture, fine lines, loose flyaway hair strands, and real fabric weave faithfully matched to the source photo — never over-smooth or airbrush.",
-  "Camera: an identity portrait is a close-up on an 85mm portrait lens at f/1.8 with creamy background falloff; a full-body figure is a full shot on a 50mm lens at f/4; a turnaround sheet keeps that same 50mm lens and the same light direction in every pose.",
-  "The empty sheet ground stays one flat light colour with no room and no hard floor shadow. Directional light and texture stay on the person.",
+  "Camera: an identity portrait is a close-up on an 85mm portrait lens at f/1.8 with creamy background falloff; a full-body figure is a full shot on a 50mm lens at f/4; a turnaround sheet keeps that same 50mm lens and the same soft diffused light in every pose.",
+  "The empty sheet ground stays one flat light colour with no room and no floor shadow. Soft natural light and real skin texture stay on the person.",
 ].join(" ");
 
 // Prop contact sheet. White grid stays; each object is photographed, not illustrated.

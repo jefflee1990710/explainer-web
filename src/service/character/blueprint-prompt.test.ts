@@ -156,8 +156,8 @@ test("blueprint ground stays light and contrasts with the outfit", () => {
     description: "a woman in a black dress",
     photoCount: 1,
   });
-  assert.match(portrait, /grazing directional key light/);
-  assert.match(portrait, /negative fill/);
+  assert.match(portrait, /soft, diffused, wrap-around natural daylight/);
+  assert.match(portrait, /ZERO harsh shadows/);
   assert.match(portrait, /85mm portrait lens at f\/1\.8/);
   assert.match(portrait, /skin pores/);
   assert.match(portrait, /subtle film grain/);
@@ -173,8 +173,7 @@ test("blueprint ground stays light and contrasts with the outfit", () => {
     buildProfilePrompt({ style: realistic, description: "a woman in a black dress" }),
   ]) {
     assert.match(prompt, /50mm lens at f\/4/);
-    assert.match(prompt, /warm amber light, muted teal shadows/);
-    assert.match(prompt, /Directional light and texture stay on the person/);
+    assert.match(prompt, /Soft natural light and real skin texture stay on the person/);
   }
 
   const flat = buildBlueprintPrompt({
