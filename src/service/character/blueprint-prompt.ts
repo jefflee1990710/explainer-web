@@ -23,9 +23,14 @@ function characterBlueprintStyleLines(style: RenderableStyle) {
   return styleLinesForBlueprint({
     ...style,
     look: style.look
-      .replace(/sculpted by[^.]+?\([^)]+\),\s*/i, "lit by soft diffused wrap-around natural daylight with generous fill on both cheeks, ")
-      .replace(/grazing directional key light|negative fill|nose-bridge and eye-socket shadows|nose-bridge shadow/gi, "soft diffused daylight"),
-    palette: "neutral true-to-life daylight colour on Kodak Gold 200 film stock with natural skin tones and soft contrast (no warm orange or sunset cast)",
+      .replace(
+        /sculpted by[^.]+?\([^)]+\),\s*/i,
+        "sculpted by soft 45-degree directional window key light with a gentle 2:1 portrait contrast ratio (soft light-to-shadow falloff across the cheekbone and nose bridge that highlights skin pores and micro-relief while keeping both eyes open and readable), ",
+      ),
+    palette:
+      style.palette.length > 100
+        ? "rich daylight skin tones and natural 2:1 contrast on Kodak Gold 200 film stock (warm-neutral key light on skin with soft cool-neutral shadow falloff)"
+        : style.palette,
   });
 }
 // Chalkboard's canvas is the drawing surface. Every other style keeps a light sheet.
