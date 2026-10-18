@@ -9,8 +9,7 @@ export function CharacterPageSkeleton() {
         </div>
         <div className="h-10 w-28 animate-pulse rounded-full bg-accent-ink/10" />
       </div>
-      <div className="grid min-h-[36rem] gap-6 md:grid-cols-[11rem_17.5rem_minmax(0,1fr)]">
-        <div className="animate-pulse rounded-[1.5rem] bg-accent-ink/10" />
+      <div className="grid min-h-[36rem] gap-6 md:grid-cols-[10.5rem_minmax(0,1fr)]">
         <div className="animate-pulse rounded-[1.5rem] bg-accent-ink/10" />
         <div className="animate-pulse rounded-[1.5rem] bg-accent-ink/10" />
       </div>

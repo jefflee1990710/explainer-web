@@ -9,7 +9,6 @@ import {
   getCharacterAction,
   renameCharacterAction,
   retryCharacterVersionAction,
-  setDefaultVersionAction,
   type CharacterResult,
 } from "@/presentation/actions/characters";
 import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
@@ -26,7 +25,6 @@ import { CharacterStyleColumn } from "@/presentation/components/app/characters/[
 import { CharacterVoicePanel } from "@/presentation/components/app/characters/[id]/character-voice-panel";
 import { CharacterVoiceSamplePanel } from "@/presentation/components/app/characters/[id]/character-voice-sample-panel";
 import { VersionDetail } from "@/presentation/components/app/characters/[id]/version-detail";
-import { VersionList } from "@/presentation/components/app/characters/[id]/version-list";
 import type { PlanId } from "@/model/subscription";
 import { characterStyleLimit } from "@/service/character/style-limit";
 import { isPlanId } from "@/service/billing/plans";
@@ -96,36 +94,21 @@ export function CharacterWorkspace({
   );
   useCharacterPoll(character, onPoll, onPollError);
 
-  const versionParam = searchParams.get("version");
   const styleParam = searchParams.get("style");
-  const requestedVersion = character.versions.find((version) => version.id === versionParam);
   const activeStyleId =
     (styleParam && character.styleIds.includes(styleParam) && styleParam) ||
-    requestedVersion?.styleId ||
     character.styleIds[0] ||
     character.styleId;
   const styleVersions = character.versions.filter((version) => version.styleId === activeStyleId);
-  const selected =
-    styleVersions.find((version) => version.id === versionParam) ||
-    styleVersions.find((version) => version.id === character.defaultByStyle[activeStyleId]) ||
-    styleVersions[0];
-
-  function select(id: string) {
-    router.replace(`${pathname}?style=${activeStyleId}&version=${id}`);
-  }
+  const selected = styleVersions[0];
 
   function selectStyle(styleId: string) {
-    const versions = character.versions.filter((version) => version.styleId === styleId);
-    const next =
-      versions.find((version) => version.id === character.defaultByStyle[styleId]) || versions[0];
-    router.replace(`${pathname}?style=${styleId}${next ? `&version=${next.id}` : ""}`);
+    router.replace(`${pathname}?style=${styleId}`);
   }
 
   function showAdded(next: PublicCharacter, styleId: string) {
     setCharacter(next);
-    const versions = next.versions.filter((version) => version.styleId === styleId);
-    const added = versions[0];
-    router.replace(`${pathname}?style=${styleId}${added ? `&version=${added.id}` : ""}`);
+    router.replace(`${pathname}?style=${styleId}`);
   }
 
   async function run(key: string, action: () => Promise<CharacterResult>) {
@@ -157,10 +140,9 @@ export function CharacterWorkspace({
 
   async function onEdit(instruction: string) {
     if (!selected) return;
-    const next = await run("edit", () =>
+    await run("edit", () =>
       editCharacterVersionAction(character.id, selected.id, instruction),
     );
-    if (next) select(next.versions[0].id);
   }
 
   function onRename() {
@@ -199,8 +181,6 @@ export function CharacterWorkspace({
             {character.styleIds.length > 1
               ? t("characters.styleCount", { n: character.styleIds.length })
               : styleLabel(character.styleIds[0] || character.styleId, styles)}
-            {" · "}
-            {t("characters.versionCount", { n: character.versions.length })}
           </span>
         </div>
 
@@ -239,9 +219,17 @@ export function CharacterWorkspace({
             type="button"
             onClick={() => setDeleteOpen(true)}
             disabled={pending !== ""}
-            className="inline-flex h-8 cursor-pointer items-center rounded-full border border-accent/30 px-3 text-xs font-semibold text-accent transition hover:bg-accent/5 disabled:opacity-60"
+            aria-label={t("characters.deleteCharacter")}
+            title={t("characters.deleteCharacter")}
+            className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-red-600/30 bg-red-50/70 text-red-600 transition hover:border-red-600 hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {t("characters.deleteCharacter")}
+            <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3.5 5.5h13" />
+              <path d="M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5" />
+              <path d="M5.5 5.5l.7 10.1a1.5 1.5 0 0 0 1.5 1.4h4.6a1.5 1.5 0 0 0 1.5-1.4l.7-10.1" />
+              <path d="M8.5 9v4.5" />
+              <path d="M11.5 9v4.5" />
+            </svg>
           </button>
         </div>
       </header>
@@ -255,7 +243,7 @@ export function CharacterWorkspace({
           aria-label={t("characters.outlookHeading")}
           className="flex min-h-0 flex-1 flex-col"
         >
-          <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[10.5rem_15.5rem_minmax(0,1fr)] md:items-stretch">
+          <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[10.5rem_minmax(0,1fr)] md:items-stretch">
             <CharacterStyleColumn
               character={character}
               styles={styles}
@@ -275,12 +263,6 @@ export function CharacterWorkspace({
                 });
               }}
             />
-            <VersionList
-              character={character}
-              styleId={activeStyleId}
-              selectedId={selected?.id ?? null}
-              onSelect={select}
-            />
             {selected ? (
               <VersionDetail
                 key={selected.id}
@@ -290,9 +272,6 @@ export function CharacterWorkspace({
                 subscribed={walletSubscribed}
                 pending={pending}
                 error={error}
-                onSetDefault={() =>
-                  void run("default", () => setDefaultVersionAction(character.id, selected.id))
-                }
                 onEdit={(instruction) => void onEdit(instruction)}
                 onRetry={() =>
                   void run("retry", () => retryCharacterVersionAction(character.id, selected.id))

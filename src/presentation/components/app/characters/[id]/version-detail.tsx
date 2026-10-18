@@ -6,6 +6,17 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { BlueprintBoard } from "@/presentation/components/app/characters/[id]/blueprint-board";
 import { CharacterImagePreviewDialog } from "@/presentation/components/app/characters/[id]/character-image-preview-dialog";
 import { CharacterSpecList } from "@/presentation/components/app/characters/[id]/character-spec-list";
+import { CharacterLookArt } from "@/presentation/components/app/characters/character-look-art";
+import { CharacterLookDialog } from "@/presentation/components/app/characters/character-look-dialog";
+import {
+  CHARACTER_WARDROBE_PARTS,
+  characterWardrobeEditInstruction,
+  defaultCharacterLook,
+  detectCharacterWardrobePicks,
+  isExaggeratedLookOption,
+  type CharacterWardrobePart,
+  type CharacterWardrobePicks,
+} from "@/service/character/character-look";
 import type { PublicCharacter, PublicCharacterVersion } from "@/presentation/serialize";
 import { BLUEPRINT_COST, FRAME_COST } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -32,7 +43,6 @@ export function VersionDetail({
   subscribed,
   pending,
   error,
-  onSetDefault,
   onEdit,
   onRetry,
 }: {
@@ -42,19 +52,22 @@ export function VersionDetail({
   subscribed: boolean;
   pending: string;
   error: string;
-  onSetDefault: () => void;
   onEdit: (instruction: string) => void;
   onRetry: () => void;
 }) {
   const { t, locale } = useI18n();
   const [showSpec, setShowSpec] = useState(false);
   const [instruction, setInstruction] = useState("");
+  const currentWardrobe = detectCharacterWardrobePicks(
+    [version.prompt, version.editInstruction].filter(Boolean).join("\n"),
+  );
+  const [wardrobePicks, setWardrobePicks] = useState<CharacterWardrobePicks>({});
+  const [dialogPart, setDialogPart] = useState<CharacterWardrobePart | null>(null);
   const [previewImage, setPreviewImage] = useState<{
     src: string;
     title: string;
     alt: string;
   } | null>(null);
-  const isDefault = character.defaultByStyle[version.styleId] === version.id;
   const busy = version.status === "queued" || version.status === "in_progress";
   const board = version.blueprintKind === "board";
   const cost = board ? BLUEPRINT_COST : FRAME_COST;
@@ -66,12 +79,14 @@ export function VersionDetail({
   const hasDetails = Boolean(
     version.spec || version.editInstruction || version.prompt || version.referenceImageUrl,
   );
+  const composedEdit = characterWardrobeEditInstruction(wardrobePicks, instruction);
 
   function submitEdit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!instruction.trim()) return;
-    onEdit(instruction.trim());
+    if (!composedEdit) return;
+    onEdit(composedEdit);
     setInstruction("");
+    setWardrobePicks({});
   }
 
   return (
@@ -85,17 +100,9 @@ export function VersionDetail({
         />
       ) : null}
 
-      {/* Compact Top Bar: Version title + Default / Retry / Details buttons */}
+      {/* Compact Top Bar: Timestamp + Retry / Details buttons */}
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="font-display text-lg font-bold">
-            v{version.number}
-            {isDefault ? (
-              <span className="ml-2 rounded-full bg-lime px-2 py-0.5 text-xs font-bold">
-                {t("characters.defaultBadge")}
-              </span>
-            ) : null}
-          </h2>
           <span className="text-xs text-muted">
             {new Date(version.createdAt).toLocaleString(locale)}
           </span>
@@ -119,17 +126,6 @@ export function VersionDetail({
               }`}
             >
               {t("characters.specHeading")}
-            </button>
-          ) : null}
-          {version.status === "completed" && !isDefault ? (
-            <button
-              type="button"
-              onClick={onSetDefault}
-              disabled={pending !== ""}
-              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/15 bg-paper px-3 text-xs font-semibold transition hover:border-accent-ink/40 disabled:opacity-60"
-            >
-              {pending === "default" ? <Spinner className="h-3.5 w-3.5" /> : null}
-              {t("characters.setDefault")}
             </button>
           ) : null}
           {version.status === "failed" ? (
@@ -234,10 +230,29 @@ export function VersionDetail({
         </p>
       ) : null}
 
-      {/* Always-Visible Quick Edit Dock (no need to toggle a button or scroll!) */}
+      {dialogPart ? (
+        <CharacterLookDialog
+          part={dialogPart}
+          value={
+            wardrobePicks[dialogPart] ??
+            currentWardrobe[dialogPart] ??
+            defaultCharacterLook()[dialogPart] ??
+            ""
+          }
+          onChange={(id) =>
+            setWardrobePicks((current) => ({
+              ...current,
+              [dialogPart]: id,
+            }))
+          }
+          onClose={() => setDialogPart(null)}
+        />
+      ) : null}
+
+      {/* Always-Visible Quick Edit Dock: Hair / Top / Pants / Shoes / Accessory + Text Input */}
       {version.status === "completed" ? (
         <form onSubmit={submitEdit} className="mt-3 shrink-0 border-t border-accent-ink/10 pt-3">
-          <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs font-semibold text-foreground">
               {t("characters.editWhatLabel")}
               {hasOriginalPhoto(character, version) ? (
@@ -254,6 +269,68 @@ export function VersionDetail({
                 : t("characters.creditsRemaining", { remaining: credits })}
             </span>
           </div>
+
+          <div className="mb-2.5 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {CHARACTER_WARDROBE_PARTS.map((part) => {
+              const pickedId = wardrobePicks[part];
+              const activeId = pickedId ?? currentWardrobe[part];
+              const thumbId = activeId ?? defaultCharacterLook()[part] ?? "";
+              const partLabel = t(`characters.look.${part}`);
+              const optionName = activeId
+                ? t(`characters.look.options.${part}.${activeId}`)
+                : "—";
+              const extreme = activeId ? isExaggeratedLookOption(part, activeId) : false;
+              return (
+                <div key={part} className="relative flex items-center">
+                  <button
+                    type="button"
+                    disabled={pending !== ""}
+                    onClick={() => setDialogPart(part)}
+                    className={`flex w-full cursor-pointer items-center gap-2 rounded-xl border px-2 py-1.5 text-left transition ${
+                      pickedId
+                        ? "border-accent bg-accent/8 shadow-[2px_2px_0_0_#12141c]"
+                        : "border-accent-ink/10 bg-paper hover:border-accent-ink/30"
+                    } disabled:cursor-not-allowed disabled:opacity-60`}
+                  >
+                    <span
+                      className={`relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-zinc-200 ${
+                        activeId ? "" : "opacity-65"
+                      }`}
+                    >
+                      <CharacterLookArt part={part} id={thumbId} />
+                      {extreme ? (
+                        <span className="absolute top-0.5 left-0.5 rounded bg-accent-ink px-1 py-0.2 text-[8px] font-extrabold text-paper">
+                          !
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="min-w-0 flex-1 pr-4">
+                      <span className="block text-[10px] font-semibold text-muted">{partLabel}</span>
+                      <span className="block truncate text-xs font-bold">{optionName}</span>
+                    </span>
+                  </button>
+                  {pickedId ? (
+                    <button
+                      type="button"
+                      disabled={pending !== ""}
+                      onClick={() =>
+                        setWardrobePicks((current) => {
+                          const next = { ...current };
+                          delete next[part];
+                          return next;
+                        })
+                      }
+                      aria-label={`${partLabel} reset`}
+                      className="absolute right-1.5 grid h-5 w-5 cursor-pointer place-items-center rounded-full bg-accent-ink/10 text-[11px] font-bold text-muted transition hover:bg-accent-ink hover:text-paper"
+                    >
+                      ×
+                    </button>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -266,7 +343,7 @@ export function VersionDetail({
             />
             <button
               type="submit"
-              disabled={!instruction.trim() || pending !== ""}
+              disabled={!composedEdit || pending !== ""}
               className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full bg-accent px-4 text-xs font-bold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {pending === "edit" ? <Spinner className="h-3.5 w-3.5" /> : null}

@@ -7,10 +7,13 @@ export const ALL_CHARACTER_LOOK_PARTS = [
   ...CHARACTER_LOOK_PARTS,
   ...CHARACTER_EXTRA_PARTS,
 ] as const;
+export const CHARACTER_WARDROBE_PARTS = ["hair", "top", "pants", "shoes", "accessory"] as const;
 
 export type CharacterLookPart = (typeof CHARACTER_LOOK_PARTS)[number];
 export type CharacterExtraPart = (typeof CHARACTER_EXTRA_PARTS)[number];
 export type AnyCharacterLookPart = (typeof ALL_CHARACTER_LOOK_PARTS)[number];
+export type CharacterWardrobePart = (typeof CHARACTER_WARDROBE_PARTS)[number];
+export type CharacterWardrobePicks = Partial<Record<CharacterWardrobePart, string>>;
 
 export type CharacterGender = "female" | "male";
 export type CharacterExaggerationLevel = "1x" | "3x" | "10x";
@@ -565,28 +568,61 @@ export function characterLookPrompt(selection: CharacterLookSelection) {
   return lines.join("\n");
 }
 
-// One still: four standing views on top, four different action poses below.
+// One full-body portrait in a real-world environment that fits the character's look.
 export function characterPoseSheetPrompt(selection: CharacterLookSelection) {
   return [
-    "Photorealistic character sheet on one square canvas, two rows of four full-body figures.",
-    "Same person in every figure: same face, hair, build, pants, and shoes. Plain light grey seamless background.",
+    "Photorealistic full-body portrait photograph of a single character, framed from head to shoes.",
+    "Natural, confident full-body pose facing the camera, showing the entire person clearly from hair down to shoes.",
+    "Set in a real-world environmental background with natural lighting and atmosphere that fits the outfit, era, and styling vibe of the character.",
     REALISTIC_CHARACTER_RENDER_RULE,
-    "Top row, left to right, standing still with arms relaxed: front view, left side, back view, right side.",
-    "Bottom row, left to right, four different poses of that same person: walking toward the camera mid-step, both arms stretched straight overhead, hands on hips with weight on one leg, and a deep squat with both feet flat.",
-    "Every figure is full body, head to shoes, with space between them. Do not repeat the standing turnaround on the bottom row.",
-    "No text, no labels, no props, no extra people.",
+    "Single person only — do not draw multiple views, a grid, or an 8-pose sheet.",
+    "No text, no labels, no watermark, no extra people.",
     characterLookPrompt(selection),
   ].join("\n");
 }
 
-// Edit the current sheet from a user comment. Unmentioned details stay.
+// Edit the current full-body portrait from a user comment. Unmentioned details stay.
 export function characterPoseRevisionPrompt(selection: CharacterLookSelection, comment: string) {
   return [
-    "Edit the attached photorealistic photograph.",
-    "Change only what this comment asks. Keep the same person, clothes, background, framing, and every pose the comment does not mention.",
+    "Edit the attached photorealistic full-body photograph.",
+    "Change only what this comment asks. Keep the same person, clothes, background, framing, and pose the comment does not mention.",
     `Comment: ${comment.trim()}`,
-    "Stay a real photograph. No text, no labels, no watermark.",
+    "Stay a single full-body real photograph with a fitting background. No text, no labels, no watermark.",
     "The person should still match this look, unless the comment changes it:",
     characterLookPrompt(selection),
   ].join("\n");
+}
+
+// Detect which wardrobe/hair option ids are currently present in a version prompt/editInstruction.
+export function detectCharacterWardrobePicks(text?: string): CharacterWardrobePicks {
+  if (!text) return {};
+  const picks: CharacterWardrobePicks = {};
+  for (const part of CHARACTER_WARDROBE_PARTS) {
+    const options = optionsForLookPart(part);
+    for (const option of options) {
+      if (text.includes(`${PART_LABEL[part]}: ${option.prompt}`)) {
+        picks[part] = option.id;
+      }
+    }
+  }
+  return picks;
+}
+
+// Compose an edit instruction from selected hair / top / pants / shoes / accessory + optional note.
+export function characterWardrobeEditInstruction(
+  picks: CharacterWardrobePicks,
+  customNote = "",
+): string {
+  const parts: string[] = [];
+  for (const part of CHARACTER_WARDROBE_PARTS) {
+    const id = picks[part];
+    if (!id) continue;
+    const option = characterLookOption(part, id);
+    if (option) {
+      parts.push(`${PART_LABEL[part]}: ${option.prompt}`);
+    }
+  }
+  const note = customNote.trim();
+  if (note) parts.push(note);
+  return parts.join("; ");
 }

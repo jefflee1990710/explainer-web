@@ -78,8 +78,6 @@ export function CharacterCard({
           {character.styleIds.length > 1
             ? t("characters.styleCount", { n: character.styleIds.length })
             : localizedStyleName(character.styleId)}
-          {" · "}
-          {t("characters.versionCount", { n: character.versions.length })}
         </p>
       </span>
     </>

@@ -284,12 +284,12 @@ export const en: Messages = {
     createGeneratorHint: "Pick hair, face, body, pants, and shoes from pictures.",
     generatorTitle: "Character Generator",
     generatorIntro:
-      "Choose a look on the left. Generate a realistic sheet on the right: four views, plus four different poses.",
-    poseGenerate: "Generate 8 poses",
+      "Choose a look on the left. Generate a realistic full-body portrait with a matching background on the right.",
+    poseGenerate: "Generate full-body preview",
     poseGenerating: "Generating…",
-    poseEmpty: "The eight-pose sheet shows here.",
+    poseEmpty: "A full-body preview with a matching background shows here.",
     poseCommentLabel: "Change this picture",
-    poseCommentPlaceholder: "Describe what to change, for example a red jacket or one pose waving.",
+    poseCommentPlaceholder: "Describe what to change, for example a red jacket or a street café background.",
     poseUpdate: "Update image",
     poseUpdating: "Updating…",
     look: {

@@ -15,10 +15,10 @@ function version(over: Partial<CharacterVersion>): CharacterVersion {
   };
 }
 
-test("explicit completed default wins", () => {
+test("newest completed version always wins as default", () => {
   const a = version({ createdAt: new Date(1) });
   const b = version({ createdAt: new Date(2) });
-  assert.equal(resolveDefaultVersion({ defaultVersionId: a.id, versions: [a, b] }), a);
+  assert.equal(resolveDefaultVersion({ defaultVersionId: a.id, versions: [a, b] }), b);
 });
 
 test("without a default the newest completed version is used", () => {

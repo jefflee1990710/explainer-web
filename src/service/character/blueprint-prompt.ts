@@ -238,12 +238,16 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
   }
   if (input.photoCount > 0) {
     lines.push(
-      "The remaining attached images are original photos of this character. Use them for body proportions, skin texture, outfit, shoes, and accessories; the face and skin texture stay faithful to the portrait and source photos.",
+      input.editInstruction
+        ? "The remaining attached images are original photos of this character. Keep the face, body proportions, and skin texture faithful to the portrait and source photos, while replacing any hair, top, pants, shoes, or accessories named in Change above."
+        : "The remaining attached images are original photos of this character. Use them for body proportions, skin texture, outfit, shoes, and accessories; the face and skin texture stay faithful to the portrait and source photos.",
     );
   }
   if (input.spec) {
     lines.push(
-      "Appearance notes for this character:",
+      input.editInstruction
+        ? "Appearance notes for this character (still true unless the change above says otherwise):"
+        : "Appearance notes for this character:",
       characterSpecBlock(input.spec),
     );
   }

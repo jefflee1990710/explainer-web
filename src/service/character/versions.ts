@@ -5,17 +5,10 @@ export function canSetDefault(version: CharacterVersion) {
   return version.status === "completed";
 }
 
-// Explicit default if it is completed; otherwise the newest completed version.
+// Always the newest completed version.
 export function resolveDefaultVersion(
   character: Pick<Character, "defaultVersionId" | "versions">,
 ): CharacterVersion | null {
-  if (character.defaultVersionId) {
-    const explicit = character.versions.find(
-      (version) =>
-        version.id.equals(character.defaultVersionId!) && version.status === "completed",
-    );
-    if (explicit) return explicit;
-  }
   const completed = character.versions
     .filter((version) => version.status === "completed")
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());

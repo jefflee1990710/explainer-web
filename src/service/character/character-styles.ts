@@ -56,7 +56,7 @@ export function styleHasDefault(character: StyleDefaultCharacter, styleId: strin
   );
 }
 
-// Completed sheet for one style. That style's own default wins; otherwise the newest sheet.
+// Completed sheet for one style: always the newest completed sheet.
 export function resolveVersionForStyle(
   character: StyleDefaultCharacter,
   styleId: string,
@@ -67,14 +67,5 @@ export function resolveVersionForStyle(
       version.status === "completed" &&
       Boolean(version.blueprintUrl),
   );
-  const explicitId = character.styleDefaults?.[styleId];
-  const explicit = explicitId
-    ? matches.find((version) => version.id.equals(explicitId))
-    : undefined;
-  if (explicit) return explicit;
-  if (character.defaultVersionId) {
-    const legacy = matches.find((version) => version.id.equals(character.defaultVersionId!));
-    if (legacy) return legacy;
-  }
   return matches.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] ?? null;
 }

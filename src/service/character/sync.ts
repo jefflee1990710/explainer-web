@@ -13,7 +13,7 @@ import {
   enqueueCharacterProfile,
   isBoardVersion,
 } from "@/service/character/generate";
-import { styleHasDefault, versionStyleId } from "@/service/character/character-styles";
+import { versionStyleId } from "@/service/character/character-styles";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { FRAME_COST } from "@/service/credit-costs";
 import type { Character, CharacterVersion } from "@/model/character";
@@ -131,14 +131,11 @@ async function syncCharacterProfile(
   }
 }
 
-// Set the version's default flags on first completion of its style.
+// Always promote the latest completed blueprint of its style to default.
 function completionDefaults(character: Character, versionId: ObjectId, styleId: string) {
   return {
-    // First finished blueprint of this style becomes that style's default.
-    ...(styleHasDefault(character, styleId) ? {} : { [`styleDefaults.${styleId}`]: versionId }),
-    ...(character.defaultVersionId || styleId !== character.styleId
-      ? {}
-      : { defaultVersionId: versionId }),
+    [`styleDefaults.${styleId}`]: versionId,
+    ...(styleId !== character.styleId ? {} : { defaultVersionId: versionId }),
   };
 }
 

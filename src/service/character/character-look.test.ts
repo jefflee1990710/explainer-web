@@ -10,7 +10,9 @@ import {
   characterLookPrompt,
   characterPoseRevisionPrompt,
   characterPoseSheetPrompt,
+  characterWardrobeEditInstruction,
   defaultCharacterLook,
+  detectCharacterWardrobePicks,
   isExaggeratedLookOption,
   lookOptionCategory,
   optionsForLookPart,
@@ -98,22 +100,18 @@ test("default look is a complete selection", () => {
   assert.match(prompt, /Shoes: white sneakers/);
 });
 
-test("pose sheet asks for four views plus four different poses", () => {
+test("pose sheet asks for a single full-body portrait with a matching background", () => {
   const prompt = characterPoseSheetPrompt(defaultCharacterLook());
-  assert.match(prompt, /two rows of four full-body figures/);
-  assert.match(prompt, /front view, left side, back view, right side/);
-  assert.match(prompt, /walking toward the camera mid-step/);
-  assert.match(prompt, /both arms stretched straight overhead/);
-  assert.match(prompt, /hands on hips/);
-  assert.match(prompt, /deep squat/);
-  assert.match(prompt, /Do not repeat the standing turnaround/);
+  assert.match(prompt, /Photorealistic full-body portrait photograph of a single character/);
+  assert.match(prompt, /real-world environmental background/);
+  assert.match(prompt, /do not draw multiple views, a grid, or an 8-pose sheet/);
   assert.match(prompt, /Hair: chin-length straight bob/);
   assert.match(prompt, /No text/);
 });
 
-test("pose revision keeps the sheet and applies the comment", () => {
+test("pose revision keeps the full-body portrait and applies the comment", () => {
   const prompt = characterPoseRevisionPrompt(defaultCharacterLook(), "  give her a red jacket  ");
-  assert.match(prompt, /Edit the attached photorealistic photograph/);
+  assert.match(prompt, /Edit the attached photorealistic full-body photograph/);
   assert.match(prompt, /Change only what this comment asks/);
   assert.match(prompt, /Comment: give her a red jacket/);
   assert.match(prompt, /Hair: chin-length straight bob/);
@@ -123,6 +121,28 @@ test("pose revision keeps the sheet and applies the comment", () => {
   const bytes = poseSheetImageBuffer("data:image/webp;base64,AAAA");
   assert.equal(bytes.length, 3);
   assert.throws(() => poseSheetImageBuffer("https://example.com/a.webp"), /姿勢圖格式不正確/);
+});
+
+test("characterWardrobeEditInstruction and detectCharacterWardrobePicks handle hair, top, pants, shoes, and accessory", () => {
+  const edit = characterWardrobeEditInstruction(
+    { hair: "hime", top: "neochinese", pants: "wide", shoes: "boots", accessory: "eyewear" },
+    "keep warm smile",
+  );
+  assert.match(edit, /Hair: Japanese hime cut/);
+  assert.match(edit, /Top: a 2020s Neo-Chinese/);
+  assert.match(edit, /Pants: draped high-waisted wide-leg trousers/);
+  assert.match(edit, /Shoes: dark ankle boots/);
+  assert.match(edit, /Accessory: sleek vintage tortoiseshell optical glasses/);
+  assert.match(edit, /keep warm smile$/);
+
+  const detected = detectCharacterWardrobePicks(edit);
+  assert.deepEqual(detected, {
+    hair: "hime",
+    top: "neochinese",
+    pants: "wide",
+    shoes: "boots",
+    accessory: "eyewear",
+  });
 });
 
 test("viral presets, extra parts, gender, styling vibe dial, and global fashion mix work as expected", () => {

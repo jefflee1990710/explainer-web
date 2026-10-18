@@ -71,7 +71,7 @@ test("the default sheet is used only when it matches the requested style", () =>
   assert.equal(resolveVersionForStyle(character, "clay"), null);
 });
 
-test("a style default stays on that style's older sheet", () => {
+test("resolveVersionForStyle always picks the newest completed sheet for that style", () => {
   const older = version({
     styleId: "pixel",
     blueprintUrl: "https://blob/pixel-old.png",
@@ -90,5 +90,5 @@ test("a style default stays on that style's older sheet", () => {
     },
     "pixel",
   );
-  assert.equal(sheet?.blueprintUrl, "https://blob/pixel-old.png");
+  assert.equal(sheet?.blueprintUrl, "https://blob/pixel-new.png");
 });
