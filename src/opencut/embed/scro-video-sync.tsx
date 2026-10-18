@@ -10,7 +10,10 @@ import { toElementDurationTicks } from "@/opencut/timeline/creation";
 import { mediaTimeFromSeconds, mediaTimeToSeconds, ZERO_MEDIA_TIME } from "@/opencut/wasm";
 import type { MediaAsset, MediaType } from "@/opencut/media/types";
 import { applyScroCanvasSize } from "@/opencut/embed/scro-canvas-size";
-import { resolveElementScroClipNumber } from "@/opencut/embed/scro-clip-number";
+import {
+	resolveElementScroClipNumber,
+	resolveScroClipNumber,
+} from "@/opencut/embed/scro-clip-number";
 import { collectStaleScroAssetIds } from "@/opencut/embed/scro-video-assets";
 import {
 	fitFullLengthPlacements,
@@ -52,11 +55,15 @@ const PARENT_ORIGINS = new Set([
 	"https://scro.io",
 ]);
 
-function mainHasScroClip(elements: TimelineElement[]) {
+function mainHasScroClip(
+	elements: TimelineElement[],
+	assets: Array<Pick<MediaAsset, "id" | "name" | "scroClipNumber">>,
+	clips: ScroVideoSeedClip[] | undefined,
+) {
 	return elements.some(
 		(element) =>
 			(element.type === "video" || element.type === "image") &&
-			element.scroClipNumber != null,
+			resolveElementScroClipNumber({ element, assets, clips }) != null,
 	);
 }
 
@@ -210,7 +217,10 @@ export function ScroVideoSync() {
 				return;
 			}
 			let scene = editor.scenes.getActiveScene();
-			if (!data.replace && mainHasScroClip(scene.tracks.main.elements)) {
+			if (
+				!data.replace &&
+				mainHasScroClip(scene.tracks.main.elements, editor.media.getAssets(), data.clips)
+			) {
 				await applyScroCanvasSize(editor, data.aspectRatio);
 				// Recreate keeps the local cut. Drop the previous videos before
 				// the new stills and renders take their place.
@@ -393,17 +403,21 @@ export function ScroVideoSync() {
 			const project = editor.project.getActiveOrNull();
 			if (!project) return;
 			const scene = editor.scenes.getActiveScene();
-			if (!mainHasScroClip(scene.tracks.main.elements)) return;
+			const assets = editor.media.getAssets();
+			if (!mainHasScroClip(scene.tracks.main.elements, assets, data.clips)) return;
 
 			const wantedList = data.clips.map((clip) => clip.clipNumber);
 			const presentList: number[] = [];
 			const scroElements: Array<{ trackId: string; elementId: string }> = [];
 			for (const element of scene.tracks.main.elements) {
-				if (
-					(element.type === "video" || element.type === "image") &&
-					element.scroClipNumber != null
-				) {
-					presentList.push(element.scroClipNumber);
+				if (element.type !== "video" && element.type !== "image") continue;
+				const clipNumber = resolveElementScroClipNumber({
+					element,
+					assets,
+					clips: data.clips,
+				});
+				if (clipNumber != null) {
+					presentList.push(clipNumber);
 					scroElements.push({
 						trackId: scene.tracks.main.id,
 						elementId: element.id,
@@ -424,7 +438,7 @@ export function ScroVideoSync() {
 			const hasManualClip = scene.tracks.main.elements.some(
 				(element) =>
 					(element.type === "video" || element.type === "image") &&
-					element.scroClipNumber == null,
+					resolveElementScroClipNumber({ element, assets, clips: data.clips }) == null,
 			);
 			if (hasManualClip && !isAppendOnly) return;
 
@@ -546,7 +560,11 @@ export function ScroVideoSync() {
 				const asset =
 					existing && "mediaId" in existing
 						? assets.find((item) => item.id === existing.mediaId)
-						: assets.find((item) => item.scroClipNumber === clip.clipNumber);
+						: assets.find(
+								(item) =>
+									resolveScroClipNumber({ asset: item, clips: data.clips }) ===
+									clip.clipNumber,
+							);
 				if (
 					asset?.scroPlaceholder &&
 					(asset.width ?? 0) > 16 &&

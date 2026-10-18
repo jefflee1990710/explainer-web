@@ -5,10 +5,12 @@ import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   addCharacterStyleAction,
+  deleteCharacterPresetAction,
   editCharacterVersionAction,
   getCharacterAction,
   renameCharacterAction,
   retryCharacterVersionAction,
+  saveCharacterPresetAction,
   type CharacterResult,
 } from "@/presentation/actions/characters";
 import type { PublicCharacter, PublicStyle } from "@/presentation/serialize";
@@ -58,6 +60,7 @@ export function CharacterWorkspace({
   const searchParams = useSearchParams();
   const [character, setCharacter] = useState(initial);
   const [activeTab, setActiveTab] = useState<"look" | "voice" | "persona">("look");
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   const [name, setName] = useState(initial.name);
@@ -101,14 +104,17 @@ export function CharacterWorkspace({
     character.styleIds[0] ||
     character.styleId;
   const styleVersions = character.versions.filter((version) => version.styleId === activeStyleId);
-  const selected = styleVersions[0];
+  const selected =
+    styleVersions.find((version) => version.id === selectedVersionId) || styleVersions[0];
 
   function selectStyle(styleId: string) {
+    setSelectedVersionId(null);
     router.replace(`${pathname}?style=${styleId}`);
   }
 
   function showAdded(next: PublicCharacter, styleId: string) {
     setCharacter(next);
+    setSelectedVersionId(null);
     router.replace(`${pathname}?style=${styleId}`);
   }
 
@@ -141,8 +147,24 @@ export function CharacterWorkspace({
 
   async function onEdit(instruction: string) {
     if (!selected) return;
-    await run("edit", () =>
+    const next = await run("edit", () =>
       editCharacterVersionAction(character.id, selected.id, instruction),
+    );
+    if (next) {
+      setSelectedVersionId(null);
+    }
+  }
+
+  async function onSavePreset(versionId: string, presetName: string) {
+    const next = await run("save-preset", () =>
+      saveCharacterPresetAction(character.id, versionId, presetName),
+    );
+    return Boolean(next);
+  }
+
+  function onDeletePreset(presetId: string) {
+    void run("delete-preset", () =>
+      deleteCharacterPresetAction(character.id, presetId),
     );
   }
 
@@ -286,10 +308,14 @@ export function CharacterWorkspace({
                 key={selected.id}
                 character={character}
                 version={selected}
+                styleVersions={styleVersions}
                 credits={walletCredits}
                 subscribed={walletSubscribed}
                 pending={pending}
                 error={error}
+                onSelectVersion={setSelectedVersionId}
+                onSavePreset={onSavePreset}
+                onDeletePreset={onDeletePreset}
                 onEdit={(instruction) => void onEdit(instruction)}
                 onRetry={() =>
                   void run("retry", () => retryCharacterVersionAction(character.id, selected.id))

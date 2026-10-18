@@ -4,7 +4,12 @@ import { ObjectId } from "mongodb";
 import { requireAppUser, requireClerkUserId } from "@/service/auth";
 import { parseCharacterPersona } from "@/model/character-persona";
 import { isCharacterVoice } from "@/model/character-voice";
-import { characterStyleIds, resolveVersionForStyle } from "@/service/character/character-styles";
+import { characterStyleIds } from "@/service/character/character-styles";
+import {
+  parseCharacterSelections,
+  resolveCastVersion,
+  type CharacterSelectionMap,
+} from "@/service/character/character-presets";
 import {
   charactersCollection,
   generationJobsCollection,
@@ -98,6 +103,7 @@ type BriefFields = {
   textStyleId: string;
   textStyleImageUrl?: string;
   characterIds: string[];
+  characterSelections: CharacterSelectionMap;
   productIds: string[];
   // Bookend skills only; undefined clears it.
   logoUrl?: string;
@@ -246,6 +252,9 @@ async function readVideoBrief(
       textStyleId: textStyle.textStyleId,
       ...(textStyle.textStyleImageUrl ? { textStyleImageUrl: textStyle.textStyleImageUrl } : {}),
       characterIds,
+      characterSelections: parseCharacterSelections(
+        String(formData.get("characterSelections") || ""),
+      ),
       productIds,
     },
   };
@@ -255,6 +264,7 @@ async function buildCast(
   clerkUserId: string,
   styleId: string,
   characterIds: string[],
+  characterSelections: CharacterSelectionMap = {},
 ): Promise<{ ok: true; cast: CastMember[] } | { ok: false; error: string }> {
   if (characterIds.length === 0) return { ok: true, cast: [] };
   const characters = await charactersCollection();
@@ -273,7 +283,11 @@ async function buildCast(
   const cast: CastMember[] = [];
   for (const id of characterIds) {
     const character = docs.find((doc) => doc._id.toHexString() === id)!;
-    const version = resolveVersionForStyle(character, styleId);
+    const { version, preset } = resolveCastVersion(
+      character,
+      styleId,
+      characterSelections[id],
+    );
     if (!version?.blueprintUrl) {
       return { ok: false, error: `角色 ${character.name} 尚未有可用藍圖` };
     }
@@ -281,6 +295,7 @@ async function buildCast(
     cast.push({
       characterId: character._id,
       versionId: version.id,
+      ...(preset ? { presetId: preset.id, presetName: preset.name } : {}),
       name: character.name,
       blueprintUrl: version.blueprintUrl,
       blueprintKind: version.blueprintKind ?? "sheet",
@@ -445,7 +460,12 @@ export async function createVideoAction(
     });
     if (skillError) return { ok: false, error: skillError };
 
-    const castResult = await buildCast(user.clerkUserId, brief.styleId, brief.characterIds);
+    const castResult = await buildCast(
+      user.clerkUserId,
+      brief.styleId,
+      brief.characterIds,
+      brief.characterSelections,
+    );
     if (!castResult.ok) return castResult;
     const { cast } = castResult;
     const productResult = await buildProducts(user.clerkUserId, brief.productIds);
@@ -608,7 +628,12 @@ async function rewriteVideoBrief(
     });
     if (skillError) return { ok: false, error: skillError };
 
-    const castResult = await buildCast(user.clerkUserId, brief.styleId, brief.characterIds);
+    const castResult = await buildCast(
+      user.clerkUserId,
+      brief.styleId,
+      brief.characterIds,
+      brief.characterSelections,
+    );
     if (!castResult.ok) return castResult;
     const productResult = await buildProducts(user.clerkUserId, brief.productIds);
     if (!productResult.ok) return productResult;

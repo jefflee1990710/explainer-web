@@ -662,6 +662,19 @@ export const en: Messages = {
     characterFromReferences: "From references and style",
     setDefault: "Set as default",
     editFromVersion: "Edit from this version",
+    savePresetButton: "Save as preset",
+    savePresetTitle: "Save blueprint preset",
+    savePresetHint:
+      "Give this outfit, hairstyle, or look a name so you can pick it directly when generating a video.",
+    savePresetPlaceholder: "e.g. Casual white tee, Navy blazer look…",
+    savePresetSubmit: "Save preset",
+    savePresetSaving: "Saving…",
+    savePresetSaved: "Preset saved",
+    presetsHeading: "Saved presets",
+    presetsEmpty:
+      "No presets saved yet. Save the current blueprint or edit hair, top, or outfit below to save another preset.",
+    deletePresetAria: "Delete preset {name}",
+    versionsAndPresetsHeading: "Blueprint versions",
     retryCredits: "Retry · {cost} credits",
     creditsShortSubscribed:
       "Not enough credits ({remaining} left). Click to top up and continue.",

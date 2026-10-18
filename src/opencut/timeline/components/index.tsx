@@ -89,6 +89,7 @@ import { DragLine } from "./drag-line";
 import { invokeAction } from "@/opencut/actions";
 import {
 	transitionOverlayElements,
+	transitionOverlapsTrack,
 	visibleTimelineTracks,
 } from "@/opencut/effects/transition-layout";
 import { resolveTimelineElementIntersections } from "./selection-hit-testing";
@@ -868,7 +869,11 @@ function TimelineTrackRows({
 										: null
 								}
 								overlayElements={
-									track.id === mainTrackId ? overlays : []
+									track.type === "video"
+										? overlays.filter(({ element }) =>
+												transitionOverlapsTrack({ element, track }),
+											)
+										: []
 								}
 							/>
 						</div>

@@ -101,6 +101,9 @@ export type PublicVideo = {
   // `voiceSample` carries the clone id so clip prices include the voice swap.
   cast: Array<{
     characterId: string;
+    versionId?: string;
+    presetId?: string;
+    presetName?: string;
     name: string;
     blueprintUrl: string;
     voiceSample?: { elevenVoiceId: string };
@@ -382,6 +385,9 @@ export function toPublicVideo(video: Project): PublicVideo {
     startImageUrl: video.startImageUrl,
     cast: (video.cast || []).map((member) => ({
       characterId: member.characterId.toHexString(),
+      ...(member.versionId ? { versionId: member.versionId.toHexString() } : {}),
+      ...(member.presetId ? { presetId: member.presetId.toHexString() } : {}),
+      ...(member.presetName ? { presetName: member.presetName } : {}),
       name: member.name,
       blueprintUrl: member.blueprintUrl,
       ...(member.voiceSample
@@ -615,6 +621,20 @@ export type PublicCharacterVersion = {
   createdAt: string;
 };
 
+// Saved named preset pointing to a completed blueprint version.
+export type PublicCharacterPreset = {
+  id: string;
+  name: string;
+  versionId: string;
+  styleId: string;
+  versionNumber: number;
+  blueprintUrl?: string;
+  profileUrl?: string;
+  portraitUrl?: string;
+  editInstruction?: string;
+  createdAt: string;
+};
+
 export type PublicCharacter = {
   id: string;
   name: string;
@@ -637,6 +657,8 @@ export type PublicCharacter = {
   profilePending: boolean;
   // Newest first.
   versions: PublicCharacterVersion[];
+  // User-saved named presets across blueprint versions, newest first.
+  presets: PublicCharacterPreset[];
   pending: boolean;
   failed: boolean;
   createdAt: string;
@@ -688,6 +710,27 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     if (sheet) defaultByStyle[styleId] = sheet.id.toHexString();
   }
   const preview = characterPreview(resolved);
+  const presets: PublicCharacterPreset[] = (character.presets || [])
+    .flatMap((preset) => {
+      const target = character.versions.find((v) => v.id.equals(preset.versionId));
+      if (!target || target.status !== "completed" || !target.blueprintUrl) return [];
+      const styleId = preset.styleId || versionStyleId(character, target);
+      return [
+        {
+          id: preset.id.toHexString(),
+          name: preset.name,
+          versionId: preset.versionId.toHexString(),
+          styleId,
+          versionNumber: versionNumber(character, target.id),
+          blueprintUrl: target.blueprintUrl,
+          profileUrl: target.profileUrl,
+          portraitUrl: target.portraitUrl,
+          editInstruction: target.editInstruction,
+          createdAt: preset.createdAt.toISOString(),
+        },
+      ];
+    })
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
   return {
     id: character._id.toHexString(),
     name: character.name,
@@ -705,6 +748,7 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     previewIsProfile: preview.isProfile,
     profilePending: character.versions.some((version) => version.profileStatus === "queued"),
     versions,
+    presets,
     pending: character.versions.some(
       (version) => version.status === "queued" || version.status === "in_progress",
     ),

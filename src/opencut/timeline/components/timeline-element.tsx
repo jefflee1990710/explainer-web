@@ -414,11 +414,11 @@ export function TimelineElement({
 							left: `${elementLeft}px`,
 							width: `${elementWidth}px`,
 							height: overlay
-								? `${baseTrackHeight}px`
+								? "100%"
 								: expandedRows.length > 0
 									? `${baseTrackHeight + expansionHeight}px`
 									: "100%",
-							zIndex: overlay ? 3 : undefined,
+							zIndex: overlay ? 4 : undefined,
 							transform:
 								!overlay && isDragging && isBeingDragged
 									? `translate3d(0, ${dragOffsetY}px, 0)`
@@ -432,6 +432,7 @@ export function TimelineElement({
 							isSelected={isSelected}
 							isExpanded={expandedRows.length > 0}
 							baseTrackHeight={baseTrackHeight}
+							fillHeight={overlay}
 							expandedContent={expandedContent}
 							onElementClick={onElementClick}
 							onElementMouseDown={onElementMouseDown}
@@ -557,6 +558,7 @@ function ElementInner({
 	isSelected,
 	isExpanded,
 	baseTrackHeight,
+	fillHeight = false,
 	expandedContent,
 	onElementClick,
 	onElementMouseDown,
@@ -571,6 +573,8 @@ function ElementInner({
 	isSelected: boolean;
 	isExpanded: boolean;
 	baseTrackHeight: number;
+	/** Transition drawn on a video row fills that row, not the short effect-track height. */
+	fillHeight?: boolean;
 	expandedContent: React.ReactNode;
 	onElementClick: (params: {
 		event: React.MouseEvent;
@@ -628,7 +632,8 @@ function ElementInner({
 					>
 						<div
 							className={cn(
-								"flex shrink-0 items-center overflow-hidden",
+								"flex items-center overflow-hidden",
+								fillHeight ? "h-full min-h-0 flex-1" : "shrink-0",
 								getTimelineElementClassName({
 									type: getTrackTypeForElementType({
 										elementType: element.type,
@@ -636,7 +641,7 @@ function ElementInner({
 								}),
 								isReducedOpacity && "opacity-50",
 							)}
-							style={{ height: `${baseTrackHeight}px` }}
+							style={fillHeight ? undefined : { height: `${baseTrackHeight}px` }}
 						>
 							<div className="flex flex-1 min-h-0 h-full items-center overflow-hidden">
 								<ElementContent element={visibleElement} track={track} />

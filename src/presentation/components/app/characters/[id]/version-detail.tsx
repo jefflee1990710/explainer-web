@@ -5,6 +5,7 @@ import { Spinner } from "@/presentation/components/spinner";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { BlueprintBoard } from "@/presentation/components/app/characters/[id]/blueprint-board";
 import { CharacterImagePreviewDialog } from "@/presentation/components/app/characters/[id]/character-image-preview-dialog";
+import { CharacterPresetsBar } from "@/presentation/components/app/characters/[id]/character-presets-bar";
 import { CharacterSpecList } from "@/presentation/components/app/characters/[id]/character-spec-list";
 import { CharacterLookArt } from "@/presentation/components/app/characters/character-look-art";
 import { CharacterLookDialog } from "@/presentation/components/app/characters/character-look-dialog";
@@ -39,19 +40,27 @@ function hasOriginalPhoto(character: PublicCharacter, version: PublicCharacterVe
 export function VersionDetail({
   character,
   version,
+  styleVersions,
   credits,
   subscribed,
   pending,
   error,
+  onSelectVersion,
+  onSavePreset,
+  onDeletePreset,
   onEdit,
   onRetry,
 }: {
   character: PublicCharacter;
   version: PublicCharacterVersion;
+  styleVersions: PublicCharacterVersion[];
   credits: number;
   subscribed: boolean;
   pending: string;
   error: string;
+  onSelectVersion: (versionId: string) => void;
+  onSavePreset: (versionId: string, name: string) => Promise<boolean>;
+  onDeletePreset: (presetId: string) => void;
   onEdit: (instruction: string) => void;
   onRetry: () => void;
 }) {
@@ -141,6 +150,17 @@ export function VersionDetail({
           ) : null}
         </div>
       </div>
+
+      {/* Presets & Versions Bar */}
+      <CharacterPresetsBar
+        character={character}
+        activeVersion={version}
+        styleVersions={styleVersions}
+        pending={pending}
+        onSelectVersion={onSelectVersion}
+        onSavePreset={onSavePreset}
+        onDeletePreset={onDeletePreset}
+      />
 
       {/* Collapsible Spec / Prompt Drawer */}
       {showSpec && hasDetails ? (

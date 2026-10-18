@@ -40,7 +40,7 @@ describe("scro clip number and edit locking", () => {
 		);
 	});
 
-	it("ignores a Clip label that is not in the storyboard", () => {
+	it("ignores a Clip label or scroClipNumber that is not in the storyboard", () => {
 		assert.equal(
 			resolveElementScroClipNumber({
 				element: { type: "video", name: "Clip 9.mp4" },
@@ -48,6 +48,28 @@ describe("scro clip number and edit locking", () => {
 				clips,
 			}),
 			null,
+		);
+		assert.equal(
+			resolveElementScroClipNumber({
+				element: { type: "video", name: "Clip 9", scroClipNumber: 9 },
+				assets: [{ id: "m9", name: "Clip 9", scroClipNumber: 9 }],
+				clips,
+			}),
+			null,
+		);
+		assert.equal(
+			resolveScroClipNumber({
+				asset: { name: "Clip 9", scroClipNumber: 9 },
+				clips,
+			}),
+			null,
+		);
+		assert.equal(
+			resolveScroClipNumber({
+				asset: { name: "Clip 9" },
+				clips: undefined,
+			}),
+			9,
 		);
 	});
 

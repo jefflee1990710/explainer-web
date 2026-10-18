@@ -23,7 +23,24 @@ export function visibleTimelineTracks(tracks: TimelineTrack[]): TimelineTrack[] 
 	return tracks.filter((track) => !isTransitionOnlyTrack(track));
 }
 
-/** Transition blocks to paint on top of the main video row. */
+/** True when this transition covers any clip on the video row. */
+export function transitionOverlapsTrack({
+	element,
+	track,
+}: {
+	element: TimelineElement;
+	track: TimelineTrack;
+}): boolean {
+	if (track.type !== "video") return false;
+	const start = element.startTime;
+	const end = start + element.duration;
+	return track.elements.some((clip) => {
+		const clipEnd = clip.startTime + clip.duration;
+		return start < clipEnd && end > clip.startTime;
+	});
+}
+
+/** Transition blocks to paint on top of a video row. */
 export function transitionOverlayElements({
 	tracks,
 }: {

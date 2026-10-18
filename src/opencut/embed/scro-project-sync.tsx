@@ -6,6 +6,7 @@ import { processMediaAssets } from "@/opencut/media/processing";
 import { storageService } from "@/opencut/services/storage/service";
 import type { TProject } from "@/opencut/project/types";
 import { applyScroCanvasSize } from "@/opencut/embed/scro-canvas-size";
+import { resolveScroClipNumber } from "@/opencut/embed/scro-clip-number";
 import {
 	fetchMediaBlobWithTimeout,
 	runConcurrentMediaPool,
@@ -233,7 +234,19 @@ export function ScroProjectSync() {
 						replyOrigin,
 					);
 					const existing = await storageService.loadMediaAsset({ projectId, id: item.id });
-					if (existing) continue;
+					const itemClipNumber = resolveScroClipNumber({
+						asset: { name: item.name },
+						clips: undefined,
+					});
+					if (existing) {
+						if (itemClipNumber != null && existing.scroClipNumber == null) {
+							await storageService.saveMediaAsset({
+								projectId,
+								mediaAsset: { ...existing, scroClipNumber: itemClipNumber },
+							});
+						}
+						continue;
+					}
 					const blob = await fetchMediaBlobWithTimeout({ url: item.sourceUrl });
 					if (!blob) continue;
 					const file = new File([blob], item.name, { type: blob.type || "video/mp4" });
@@ -242,7 +255,11 @@ export function ScroProjectSync() {
 					if (!asset) continue;
 					await storageService.saveMediaAsset({
 						projectId,
-						mediaAsset: { ...asset, id: item.id },
+						mediaAsset: {
+							...asset,
+							id: item.id,
+							...(itemClipNumber != null ? { scroClipNumber: itemClipNumber } : {}),
+						},
 					});
 					savedAnyMedia = true;
 				}

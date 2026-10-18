@@ -37,6 +37,18 @@ export async function setDefaultVersionAction(
   return service.setDefaultVersionAction(...args);
 }
 
+export async function saveCharacterPresetAction(
+  ...args: Parameters<typeof service.saveCharacterPresetAction>
+) {
+  return service.saveCharacterPresetAction(...args);
+}
+
+export async function deleteCharacterPresetAction(
+  ...args: Parameters<typeof service.deleteCharacterPresetAction>
+) {
+  return service.deleteCharacterPresetAction(...args);
+}
+
 export async function suggestCharacterVoiceAction(
   ...args: Parameters<typeof service.suggestCharacterVoiceAction>
 ) {

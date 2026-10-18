@@ -186,6 +186,56 @@ test("talking-head clips land on the next start; only the last clip draws an end
   assert.equal(clipStateFor(p, 2).stage, "frames_ready");
 });
 
+test("every director submits drawable frame targets for every clip (no clip is silently skipped)", async () => {
+  const { clipDrawsNoEndStill } = await import("@/service/director/steady-stills");
+  const { isInheritedTalkingHeadStart } = await import("@/service/director/talking-head");
+  const { planFrameSubmissions } = await import("@/service/higgsfield/clip-keyframes");
+  const { isTalkingHeadSkill } = await import("@/service/director/talking-head");
+
+  const ALL_DIRECTORS = [
+    "cartoon-explainer-video-director",
+    "story-short-director",
+    "product-demo-director",
+    "dialogue-qa-director",
+    "listicle-director",
+    "tutorial-director",
+    "opening-director",
+    "ending-director",
+    "talking-head-director",
+    "comparison-card-director",
+    "talking-broll-director",
+    "surprise-interview-director",
+    "outfit-reel-director",
+    "follow-shot-director",
+    "full-body-talking-head-director",
+  ];
+
+  for (const skillSlug of ALL_DIRECTORS) {
+    const clipNumbers = [1, 2, 3, 4];
+    const proj = {
+      skillSlug,
+      styleId: "realistic",
+      phaseA: { clips: clipNumbers.map((clipNumber) => ({ clipNumber })) },
+    };
+    const targets = clipNumbers.flatMap((clipNumber) =>
+      (clipDrawsNoEndStill(proj, clipNumber) ? (["start"] as const) : (["start", "end"] as const))
+        .filter((position) => !isInheritedTalkingHeadStart(skillSlug, clipNumber, position))
+        .map((position) => ({ clipNumber, position })),
+    );
+    // Every clip 1..4 must have at least one submitted frame job target!
+    for (const clipNumber of clipNumbers) {
+      assert.ok(
+        targets.some((t) => t.clipNumber === clipNumber),
+        `${skillSlug} clip ${clipNumber} had no frame job targets!`,
+      );
+    }
+    const { ready, deferred } = planFrameSubmissions(targets, [], {
+      startsFollowFirstClip: isTalkingHeadSkill(skillSlug),
+    });
+    assert.equal(ready.length + deferred.length, targets.length, `${skillSlug} lost frame targets`);
+  }
+});
+
 test("talking-head clip waits while the next start draws, and is not failed by it", () => {
   const drawing = project({
     skillSlug: "talking-head-director",

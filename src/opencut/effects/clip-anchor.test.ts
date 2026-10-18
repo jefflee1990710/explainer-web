@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
 	anchorEffectToClips,
 	listApplyAllTransitionSlots,
+	listPictureTransitionSlots,
 	placeTransitionWithDuration,
 	transitionResizeLimits,
 	type ClipSpan,
@@ -179,6 +180,39 @@ describe("anchorEffectToClips", () => {
 				{ start: 9, duration: 1 },
 				{ start: 14, duration: 1 },
 				{ start: 17, duration: 1 },
+			],
+		);
+	});
+
+	it("keeps the heading, each cut, and the ending on short joined clips", () => {
+		assert.deepEqual(
+			listApplyAllTransitionSlots([
+				{ start: 0, end: 3 },
+				{ start: 3, end: 6 },
+				{ start: 6, end: 9 },
+			]),
+			[
+				{ start: 0, duration: 1 },
+				{ start: 2.5, duration: 1 },
+				{ start: 5.5, duration: 1 },
+				{ start: 8, duration: 1 },
+			],
+		);
+	});
+
+	it("uses clips on a video row when the main row is empty", () => {
+		assert.deepEqual(
+			listPictureTransitionSlots([
+				[],
+				[
+					{ start: 0, end: 4 },
+					{ start: 4, end: 8 },
+				],
+			]),
+			[
+				{ start: 0, duration: 1 },
+				{ start: 3.5, duration: 1 },
+				{ start: 7, duration: 1 },
 			],
 		);
 	});

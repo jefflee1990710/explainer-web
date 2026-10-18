@@ -18,6 +18,7 @@ export const VIDEO_LIST_FILTER_PARAM = "filter";
 
 // First visit, with no query, shows work still in flight plus videos still to make or post.
 export const DEFAULT_VIDEO_LIST_FILTERS: VideoListFilter[] = [
+  "director",
   "scenes",
   "videos",
   "pending_video",

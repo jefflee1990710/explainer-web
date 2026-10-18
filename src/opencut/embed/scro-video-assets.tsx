@@ -117,7 +117,7 @@ export function collectStaleScroAssetIds({
 
 	for (const asset of assets) {
 		if (keepAssetId && asset.id === keepAssetId) continue;
-		const assetClip = resolveScroClipNumber({ asset, clips });
+		const assetClip = resolveScroClipNumber({ asset, clips: undefined });
 		// If this asset belongs to the target regenerated clip, any previous asset for that clip is stale.
 		if (clipNumber != null && assetClip === clipNumber) {
 			stale.push(asset.id);
@@ -201,7 +201,7 @@ export function mergeScroMediaAssets({
 		if (used.has(asset.id)) return false;
 		if (isStandaloneFrameStillName(asset.name)) return false;
 		if (isScroSceneStill({ asset, clips })) return false;
-		return resolveScroClipNumber({ asset, clips }) == null;
+		return resolveScroClipNumber({ asset, clips: undefined }) == null;
 	});
 	return [...orderedScro, ...other];
 }

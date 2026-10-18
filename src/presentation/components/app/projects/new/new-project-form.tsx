@@ -106,6 +106,7 @@ import type {
   VoiceGender,
 } from "@/model/project";
 import { CharacterPicker } from "@/presentation/components/app/projects/[id]/character-picker";
+import type { CharacterSelectionMap } from "@/service/character/character-presets";
 import { ProductDropdown } from "@/presentation/components/app/projects/new/product-dropdown";
 import { SkillPicker } from "@/presentation/components/app/projects/[id]/skill-picker";
 import { AspectRatioPicker } from "@/presentation/components/app/projects/new/aspect-ratio-picker";
@@ -237,6 +238,19 @@ export function NewProjectForm({
   const [characterIds, setCharacterIds] = useState<string[]>(
     initialVideo?.cast.map((member) => member.characterId) || lastBrief?.characterIds || [],
   );
+  const [characterSelections, setCharacterSelections] = useState<CharacterSelectionMap>(() => {
+    const initialMap: CharacterSelectionMap = {};
+    for (const member of initialVideo?.cast || []) {
+      if (member.versionId || member.presetId || member.presetName) {
+        initialMap[member.characterId] = {
+          ...(member.versionId ? { versionId: member.versionId } : {}),
+          ...(member.presetId ? { presetId: member.presetId } : {}),
+          ...(member.presetName ? { presetName: member.presetName } : {}),
+        };
+      }
+    }
+    return initialMap;
+  });
   const [productIds, setProductIds] = useState<string[]>(
     initialVideo?.products?.map((item) => item.productId) || [],
   );
@@ -412,6 +426,13 @@ export function NewProjectForm({
       (project.startImageUrl || "") === (talkingHeadStartImage ? startImageUrl : "") &&
       currentIds.length === nextIds.length &&
       currentIds.every((id, index) => id === nextIds[index]) &&
+      project.cast.every((member) => {
+        const sel = characterSelections[member.characterId];
+        return (
+          (sel?.presetId || "") === (member.presetId || "") &&
+          (!sel?.versionId || !member.versionId || sel.versionId === member.versionId)
+        );
+      }) &&
       currentProducts.length === nextProducts.length &&
       currentProducts.every((id, index) => id === nextProducts[index])
     );
@@ -442,6 +463,9 @@ export function NewProjectForm({
       formData.set("startImageUrl", startImageUrl);
     }
     for (const id of characterIds) formData.append("characterIds", id);
+    if (Object.keys(characterSelections).length > 0) {
+      formData.set("characterSelections", JSON.stringify(characterSelections));
+    }
     for (const id of productIds) formData.append("productIds", id);
     return formData;
   }
@@ -769,6 +793,7 @@ export function NewProjectForm({
 
   function onStyleChange(id: string) {
     setStyleId(id);
+    setCharacterSelections({});
     setCharacterIds((ids) =>
       ids.filter((cid) => {
         const character = characters.find((c) => c.id === cid);
@@ -965,6 +990,8 @@ export function NewProjectForm({
                     styleId={styleId}
                     value={characterIds}
                     onChange={setCharacterIds}
+                    selections={characterSelections}
+                    onSelectionsChange={setCharacterSelections}
                     disabled={briefBusy}
                     max={castNeed > 0 ? castNeed : 4}
                     required={castNeed}

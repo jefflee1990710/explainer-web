@@ -31,7 +31,9 @@ export function resolveScroClipNumber({
 	asset: Pick<MediaAsset, "name" | "scroClipNumber">;
 	clips: ScroVideoSeedClip[] | undefined;
 }): number | null {
-	if (asset.scroClipNumber != null) return asset.scroClipNumber;
+	if (asset.scroClipNumber != null) {
+		return acceptedClipNumber({ clipNumber: asset.scroClipNumber, clips });
+	}
 	const fromName = clipNumberFromName(asset.name);
 	if (fromName == null) return null;
 	return acceptedClipNumber({ clipNumber: fromName, clips });
@@ -63,7 +65,9 @@ export function resolveElementScroClipNumber({
 	clips: ScroVideoSeedClip[] | undefined;
 }): number | null {
 	if (element.type !== "video" && element.type !== "image") return null;
-	if (element.scroClipNumber != null) return element.scroClipNumber;
+	if (element.scroClipNumber != null) {
+		return acceptedClipNumber({ clipNumber: element.scroClipNumber, clips });
+	}
 	const asset = element.mediaId
 		? assets.find((item) => item.id === element.mediaId)
 		: undefined;

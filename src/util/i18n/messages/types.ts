@@ -511,6 +511,17 @@ export type Messages = {
     characterFromReferences: string;
     setDefault: string;
     editFromVersion: string;
+    savePresetButton: string;
+    savePresetTitle: string;
+    savePresetHint: string;
+    savePresetPlaceholder: string;
+    savePresetSubmit: string;
+    savePresetSaving: string;
+    savePresetSaved: string;
+    presetsHeading: string;
+    presetsEmpty: string;
+    deletePresetAria: string;
+    versionsAndPresetsHeading: string;
     retryCredits: string;
     creditsShortSubscribed: string;
     creditsNeedSubscribe: string;

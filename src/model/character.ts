@@ -63,6 +63,15 @@ export type CharacterVersion = {
   submittedAt?: Date;
 };
 
+// Named outfit/look preset saved from a completed blueprint version.
+export type CharacterPreset = {
+  id: ObjectId;
+  name: string;
+  versionId: ObjectId;
+  styleId: string;
+  createdAt: Date;
+};
+
 // Reusable character owned by one user.
 export type Character = {
   _id: ObjectId;
@@ -81,6 +90,7 @@ export type Character = {
   // One chosen sheet per style. Missing styles fall back to defaultVersionId when it belongs to that style.
   styleDefaults?: Record<string, ObjectId>;
   versions: CharacterVersion[];
+  presets?: CharacterPreset[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -89,6 +99,8 @@ export type Character = {
 export type CastMember = {
   characterId: ObjectId;
   versionId: ObjectId;
+  presetId?: ObjectId;
+  presetName?: string;
   name: string;
   blueprintUrl: string;
   // Missing on videos cast before boards existed (a sheet).
@@ -130,6 +142,14 @@ export const characterVersionSchema: z.ZodType<CharacterVersion> = z.object({
   submittedAt: z.date().optional(),
 });
 
+export const characterPresetSchema: z.ZodType<CharacterPreset> = z.object({
+  id: objectIdSchema,
+  name: z.string(),
+  versionId: objectIdSchema,
+  styleId: z.string(),
+  createdAt: z.date(),
+});
+
 export const characterSchema: z.ZodType<Character> = z.object({
   _id: objectIdSchema,
   userId: objectIdSchema,
@@ -142,6 +162,7 @@ export const characterSchema: z.ZodType<Character> = z.object({
   defaultVersionId: objectIdSchema.optional(),
   styleDefaults: z.record(z.string(), objectIdSchema).optional(),
   versions: z.array(characterVersionSchema),
+  presets: z.array(characterPresetSchema).optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -149,6 +170,8 @@ export const characterSchema: z.ZodType<Character> = z.object({
 export const castMemberSchema: z.ZodType<CastMember> = z.object({
   characterId: objectIdSchema,
   versionId: objectIdSchema,
+  presetId: objectIdSchema.optional(),
+  presetName: z.string().optional(),
   name: z.string(),
   blueprintUrl: z.string(),
   blueprintKind: z.enum(["sheet", "board"]).optional(),

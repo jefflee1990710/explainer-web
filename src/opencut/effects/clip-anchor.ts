@@ -217,7 +217,17 @@ export function listApplyAllTransitionSlots(
 		}
 	}
 	slots.push(tailSpan({ clip: sorted[sorted.length - 1] }));
-	return packSlots(slots);
+	return packTransitionSlots(slots);
+}
+
+/**
+ * Heading, cuts, and ending for every picture row.
+ * Cuts stay inside one row. A later row only adds a slot that does not cover an earlier one.
+ */
+export function listPictureTransitionSlots(
+	rows: ClipSpan[][],
+): Array<{ start: number; duration: number }> {
+	return packTransitionSlots(rows.flatMap((row) => listApplyAllTransitionSlots(row)));
 }
 
 function headSpan({ clip }: { clip: ClipSpan }): { start: number; duration: number } {
@@ -230,7 +240,7 @@ function tailSpan({ clip }: { clip: ClipSpan }): { start: number; duration: numb
 }
 
 /** Keep earlier slots when a short clip would stack two transitions. */
-function packSlots(
+export function packTransitionSlots(
 	slots: Array<{ start: number; duration: number }>,
 ): Array<{ start: number; duration: number }> {
 	const kept: Array<{ start: number; duration: number }> = [];

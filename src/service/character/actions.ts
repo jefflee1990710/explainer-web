@@ -519,6 +519,79 @@ export async function setDefaultVersionAction(
   }
 }
 
+const PRESET_NAME_MAX = 60;
+
+// Save a named preset pointing to a completed blueprint version.
+export async function saveCharacterPresetAction(
+  characterId: string,
+  versionId: string,
+  name: string,
+): Promise<CharacterResult> {
+  try {
+    const user = await requireAppUser();
+    const trimmed = name.trim().slice(0, PRESET_NAME_MAX);
+    if (!trimmed) return { ok: false, error: "請輸入 Preset 名稱" };
+    const character = await ownedCharacter(characterId, user.clerkUserId);
+    if (!character) return { ok: false, error: "角色不存在" };
+    if (!ObjectId.isValid(versionId)) return { ok: false, error: "版本不存在" };
+    const version = character.versions.find((item) =>
+      item.id.equals(new ObjectId(versionId)),
+    );
+    if (!version) return { ok: false, error: "版本不存在" };
+    if (!canSetDefault(version)) {
+      return { ok: false, error: "只有已完成的藍圖版本可以儲存為 Preset" };
+    }
+
+    const now = new Date();
+    const styleId = versionStyleId(character, version);
+    const preset = {
+      id: new ObjectId(),
+      name: trimmed,
+      versionId: version.id,
+      styleId,
+      createdAt: now,
+    };
+    const characters = await charactersCollection();
+    await characters.updateOne(
+      { _id: character._id },
+      {
+        $push: { presets: preset },
+        $set: { updatedAt: now },
+      },
+    );
+    revalidateCharacter(characterId);
+    return reload(character._id);
+  } catch (error) {
+    return fail(error, "儲存 Preset 失敗");
+  }
+}
+
+// Delete a saved preset record from a character (keeps the underlying version intact).
+export async function deleteCharacterPresetAction(
+  characterId: string,
+  presetId: string,
+): Promise<CharacterResult> {
+  try {
+    const user = await requireAppUser();
+    const character = await ownedCharacter(characterId, user.clerkUserId);
+    if (!character) return { ok: false, error: "角色不存在" };
+    if (!ObjectId.isValid(presetId)) return { ok: false, error: "Preset 不存在" };
+
+    const characters = await charactersCollection();
+    await characters.updateOne(
+      { _id: character._id },
+      {
+        $pull: { presets: { id: new ObjectId(presetId) } },
+        $set: { updatedAt: new Date() },
+      },
+    );
+    revalidateCharacter(characterId);
+    return reload(character._id);
+  } catch (error) {
+    return fail(error, "刪除 Preset 失敗");
+  }
+}
+
 // Claims one fill inside the 5-minute window. False when the user is already at the cap.
 async function reserveVoiceFill(clerkUserId: string, now: Date): Promise<boolean> {
   const since = new Date(now.getTime() - VOICE_FILL_WINDOW_MS);

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -22,6 +22,17 @@ export function TransitionCatalogMenu({
 	children: ReactNode;
 }) {
 	const editor = useEditor();
+	// Pointer-up and select can both fire for one click. Run the action once.
+	const ranRef = useRef(false);
+
+	const runOnce = (action: () => void) => {
+		if (ranRef.current) return;
+		ranRef.current = true;
+		action();
+		window.setTimeout(() => {
+			ranRef.current = false;
+		}, 0);
+	};
 
 	const applyEverywhere = () => {
 		const before = editor.scenes.getActiveScene().tracks;
@@ -42,17 +53,18 @@ export function TransitionCatalogMenu({
 			</ContextMenuTrigger>
 			<ContextMenuContent className="w-64">
 				<ContextMenuItem
-					onClick={(event) => {
-						event.stopPropagation();
-						onAddHere();
+					onSelect={() => runOnce(onAddHere)}
+					onPointerUp={() => {
+						// Click can be dropped while the menu disables pointer events on the page.
+						runOnce(onAddHere);
 					}}
 				>
 					Add at playhead
 				</ContextMenuItem>
 				<ContextMenuItem
-					onClick={(event) => {
-						event.stopPropagation();
-						applyEverywhere();
+					onSelect={() => runOnce(applyEverywhere)}
+					onPointerUp={() => {
+						runOnce(applyEverywhere);
 					}}
 				>
 					Apply to all cuts, heading, and ending

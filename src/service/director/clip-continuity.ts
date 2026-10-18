@@ -26,9 +26,6 @@ export function isFollowShotSkill(skillSlug?: string) {
   return skillSlug === FOLLOW_SHOT_SKILL_SLUG;
 }
 
-// Talking-head draws every start still itself; its video lands on the next clip's start.
-const DRAWS_OWN_STARTS = new Set(["talking-head-director", "full-body-talking-head-director"]);
-
 // True when any clip after the opener continues from the previous end pose.
 export function chainsClipStarts(skillSlug?: string) {
   if (!skillSlug) return false;
@@ -36,11 +33,15 @@ export function chainsClipStarts(skillSlug?: string) {
 }
 
 // Start still is not drawn: production copies the previous clip's end file.
+// Since non-talking-head directors are start-only (no end still is drawn) and
+// talking-head draws its own starts, no director skips drawing its start still.
 export function inheritsPreviousEnd(
   skillSlug: string | undefined,
   clipNumber: number,
   position: FramePosition,
 ) {
-  if (position !== "start" || clipNumber < 2 || !skillSlug) return false;
-  return CHAIN_FROM_CLIP_2.has(skillSlug) && !DRAWS_OWN_STARTS.has(skillSlug);
+  void skillSlug;
+  void clipNumber;
+  void position;
+  return false;
 }

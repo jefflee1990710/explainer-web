@@ -1,10 +1,13 @@
-import { listApplyAllTransitionSlots } from "@/opencut/effects/clip-anchor";
+import {
+	listPictureTransitionSlots,
+	type ClipSpan,
+} from "@/opencut/effects/clip-anchor";
 import { isTransitionElement } from "@/opencut/effects/transition-layout";
 import { applyPlacement, getDefaultInsertIndexForTrack } from "@/opencut/timeline/placement";
 import { buildEffectElement } from "@/opencut/timeline/element-utils";
-import type { EffectElement, OverlayTrack, SceneTracks } from "@/opencut/timeline";
+import type { EffectElement, OverlayTrack, SceneTracks, TimelineElement } from "@/opencut/timeline";
 import { generateUUID } from "@/opencut/utils/id";
-import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/opencut/wasm";
+import { mediaTimeFromSeconds, mediaTimeToSeconds, type MediaTime } from "@/opencut/wasm";
 
 /** Drop existing transitions, then place this one on the heading, every cut, and the ending. */
 export function tracksWithTransitionOnAllCuts({
@@ -14,15 +17,8 @@ export function tracksWithTransitionOnAllCuts({
 	tracks: SceneTracks;
 	effectType: string;
 }): SceneTracks | null {
-	const slots = listApplyAllTransitionSlots(
-		tracks.main.elements.map((element) => {
-			const start = mediaTimeToSeconds({ time: element.startTime });
-			return {
-				start,
-				end: start + mediaTimeToSeconds({ time: element.duration }),
-			};
-		}),
-	);
+	// Main track, and any video row above it. A cut only exists between clips on the same row.
+	const slots = listPictureTransitionSlots(pictureRows({ tracks }));
 	if (slots.length === 0) return null;
 
 	const cleaned = stripTransitions({ tracks });
@@ -48,6 +44,38 @@ export function tracksWithTransitionOnAllCuts({
 		elements,
 	});
 	return placed?.updatedTracks ?? null;
+}
+
+function pictureRows({ tracks }: { tracks: SceneTracks }): ClipSpan[][] {
+	const rows: ClipSpan[][] = [];
+	const main = spansFrom({ elements: tracks.main.elements });
+	if (main.length > 0) rows.push(main);
+	for (const track of tracks.overlay) {
+		if (track.type !== "video") continue;
+		const clips = spansFrom({ elements: track.elements });
+		if (clips.length > 0) rows.push(clips);
+	}
+	return rows;
+}
+
+function spansFrom({
+	elements,
+}: {
+	elements: Array<Pick<TimelineElement, "startTime" | "duration">>;
+}): ClipSpan[] {
+	return elements.map((element) => spanFrom({ element }));
+}
+
+function spanFrom({
+	element,
+}: {
+	element: { startTime: MediaTime; duration: MediaTime };
+}): ClipSpan {
+	const start = mediaTimeToSeconds({ time: element.startTime });
+	return {
+		start,
+		end: start + mediaTimeToSeconds({ time: element.duration }),
+	};
 }
 
 function stripTransitions({ tracks }: { tracks: SceneTracks }): SceneTracks {
