@@ -43,7 +43,7 @@ export function LandingCast() {
         </div>
         <div className="overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white transition-shadow duration-200 hover:shadow-[0_8px_24px_rgba(22,24,35,0.08)]">
           <ParallaxLayer distance={20}>
-            <img src="/landing/cast-scro.webp" alt="" className="aspect-[4/3] w-full scale-105 object-cover" />
+            <img src="/landing/cast-scro.webp" alt="" className="aspect-square w-full object-cover" />
           </ParallaxLayer>
         </div>
       </div>

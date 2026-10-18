@@ -25,7 +25,7 @@ export function LandingUseCaseRow({ item, index, flip }: { item: LandingUseCase;
       >
         <div className={`overflow-hidden rounded-xl border border-[#e4e4e7] bg-[#fafafa] ${flip ? "lg:order-2" : ""}`}>
           <ParallaxLayer distance={20}>
-            <img src={item.art} alt="" className="aspect-[4/3] w-full scale-105 object-cover" />
+            <img src={item.art} alt="" className="aspect-square w-full object-cover" />
           </ParallaxLayer>
         </div>
         <div className={flip ? "lg:order-1" : ""}>

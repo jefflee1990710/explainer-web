@@ -172,6 +172,15 @@ export const zhHant: Messages = {
       cta: "立即領取免費 credits",
       ctaPricing: "查看方案",
     },
+    kol: {
+      eyebrow: "看起來像真實帳號",
+      title: "像人氣 KOL 一樣，每天發日常。",
+      body: "同一個 AI 網紅連載咖啡、穿搭、旅行和桌前日常。帳號像真的創作者：貼文牆排滿、追蹤人數明顯、通知一直進來。",
+      posts: "日常貼文牆",
+      followers: "追蹤人數",
+      notifications: "通知紅點",
+      cta: "打造這個帳號",
+    },
   },
   examples: {
     title: "看看成果",

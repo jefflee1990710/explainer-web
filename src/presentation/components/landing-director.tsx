@@ -18,7 +18,7 @@ export function LandingDirector() {
       <div className="mx-auto grid max-w-6xl items-center gap-10 md:gap-12 lg:grid-cols-2">
         <div className="overflow-hidden rounded-2xl border border-white/15 bg-white lg:order-1">
           <ParallaxLayer distance={20}>
-            <img src="/landing/director-scro.webp" alt="" className="aspect-[4/3] w-full scale-105 object-cover" />
+            <img src="/landing/director-scro.webp" alt="" className="aspect-square w-full object-cover" />
           </ParallaxLayer>
         </div>
         <div className="lg:order-2">

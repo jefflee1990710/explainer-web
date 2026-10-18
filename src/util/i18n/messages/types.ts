@@ -142,6 +142,15 @@ export type Messages = {
       cta: string;
       ctaPricing: string;
     };
+    kol: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      posts: string;
+      followers: string;
+      notifications: string;
+      cta: string;
+    };
   };
   examples: {
     title: string;

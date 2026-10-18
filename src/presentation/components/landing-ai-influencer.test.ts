@@ -28,7 +28,8 @@ test("HomePage puts LandingCast right after LandingHero and LandingUseCases lead
   const heroIdx = homePage.indexOf("<LandingHero");
   const castIdx = homePage.indexOf("<LandingCast");
   const useCasesIdx = homePage.indexOf("<LandingUseCases");
-  assert.ok(heroIdx >= 0 && castIdx > heroIdx && useCasesIdx > castIdx);
+  const kolIdx = homePage.indexOf("<LandingKol");
+  assert.ok(heroIdx >= 0 && castIdx > heroIdx && kolIdx > castIdx && useCasesIdx > kolIdx);
 
   const useCases = fs.readFileSync(
     path.join(ROOT, "src/presentation/components/landing-use-cases.tsx"),
@@ -48,6 +49,7 @@ test("landing components use the clean Studio / Editor design style without brut
     "src/presentation/components/landing-steps.tsx",
     "src/presentation/components/landing-director.tsx",
     "src/presentation/components/landing-free-credit.tsx",
+    "src/presentation/components/landing-kol.tsx",
   ];
   for (const rel of files) {
     const content = fs.readFileSync(path.join(ROOT, rel), "utf8");

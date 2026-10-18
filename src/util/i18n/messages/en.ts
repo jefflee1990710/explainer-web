@@ -176,6 +176,15 @@ export const en: Messages = {
       cta: "Claim free credits now",
       ctaPricing: "See pricing",
     },
+    kol: {
+      eyebrow: "Looks like a real account",
+      title: "A popular KOL feed, posted every day.",
+      body: "Your AI Influencer keeps one face across daily life: coffee, outfits, travel, and desk days. The profile reads like a real creator account, with a full grid, a follower count, and a stack of notifications.",
+      posts: "Daily-life grid",
+      followers: "Follower count",
+      notifications: "Notification badge",
+      cta: "Build this account",
+    },
   },
   examples: {
     title: "See the results",

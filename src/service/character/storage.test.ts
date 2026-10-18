@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import {
+  blobUrlsSafeToDelete,
   collectCharacterBlobUrls,
   collectCharactersBlobUrls,
   isExplainerBlobUrl,
   parseValidCharacterObjectIds,
+  videoCharacterBlobUrls,
 } from "@/service/character/storage";
 import type { Character } from "@/model/character";
 
@@ -48,6 +50,21 @@ test("parseValidCharacterObjectIds dedupes and drops invalid ids", () => {
   assert.deepEqual(
     parsed.map((item) => item.toHexString()),
     [id1, id2],
+  );
+});
+
+test("blobUrlsSafeToDelete keeps a blueprint a video still uses", () => {
+  const referenced = videoCharacterBlobUrls({
+    cast: [{ blueprintUrl: blobB, voiceSample: { url: blobProfile } }],
+    characterImageUrl: blobA,
+  });
+  assert.deepEqual(blobUrlsSafeToDelete([blobA, blobB, blobProfile, blobA], referenced), []);
+  assert.deepEqual(
+    blobUrlsSafeToDelete(
+      [blobA, "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/characters/only-on-character.png"],
+      referenced,
+    ),
+    ["https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/characters/only-on-character.png"],
   );
 });
 

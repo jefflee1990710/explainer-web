@@ -25,9 +25,11 @@ import {
   rootReferenceUrls,
 } from "@/service/character/reference-urls";
 import {
+  blobUrlsSafeToDelete,
   collectCharacterBlobUrls,
   collectCharactersBlobUrls,
   parseValidCharacterObjectIds,
+  videoCharacterBlobUrls,
 } from "@/service/character/storage";
 import { failCharacterVersion, versionCreditsCost } from "@/service/character/sync";
 import { canSetDefault } from "@/service/character/versions";
@@ -720,7 +722,29 @@ export async function renameCharacterAction(
   }
 }
 
-  // Delete a character, its generation jobs, and every stored reference/blueprint.
+// Keep blueprint and voice files a video still references. The rest can go.
+async function deleteUnusedCharacterBlobs(urls: string[]) {
+  const unique = [...new Set(urls)];
+  if (unique.length === 0) return;
+  const videos = await videosCollection();
+  const docs = await videos
+    .find(
+      {
+        $or: [
+          { "cast.blueprintUrl": { $in: unique } },
+          { "cast.voiceSample.url": { $in: unique } },
+          { characterImageUrl: { $in: unique } },
+          { characterStillUrl: { $in: unique } },
+        ],
+      },
+      { projection: { cast: 1, characterImageUrl: 1, characterStillUrl: 1 } },
+    )
+    .toArray();
+  const referenced = docs.flatMap((video) => videoCharacterBlobUrls(video));
+  await deleteExplainerBlobUrls(blobUrlsSafeToDelete(unique, referenced));
+}
+
+// Delete a character, its generation jobs, and stored files no video still uses.
 export async function deleteCharacterAction(
   characterId: string,
 ): Promise<DeleteCharacterResult> {
@@ -729,8 +753,7 @@ export async function deleteCharacterAction(
     const character = await ownedCharacter(characterId, user.clerkUserId);
     if (!character) return { ok: false, error: "角色不存在" };
 
-    const blobUrls = collectCharacterBlobUrls(character);
-    await deleteExplainerBlobUrls(blobUrls);
+    await deleteUnusedCharacterBlobs(collectCharacterBlobUrls(character));
 
     const jobs = await generationJobsCollection();
     await jobs.deleteMany({ characterId: character._id });
@@ -772,8 +795,7 @@ export async function deleteCharactersAction(
     if (owned.length === 0) return { ok: false, error: "角色不存在" };
 
     const ownedObjectIds = owned.map((doc) => doc._id);
-    const blobUrls = collectCharactersBlobUrls(owned);
-    await deleteExplainerBlobUrls(blobUrls);
+    await deleteUnusedCharacterBlobs(collectCharactersBlobUrls(owned));
 
     const jobs = await generationJobsCollection();
     await jobs.deleteMany({ characterId: { $in: ownedObjectIds } });
