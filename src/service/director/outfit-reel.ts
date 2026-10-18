@@ -117,6 +117,9 @@ const PLANTED_POSE =
 const OUTFIT_ROOM =
   "one bright concrete studio: tall window on the left, one plant, one framed print, one black shelf on the right. Do not change this room.";
 
+const REALISTIC_OUTFIT_LIGHT =
+  "grazing directional overcast daylight from the tall window on the left with negative fill on the right shadow side, neutral-cool highlights kept below pure-white clipping, never flat front beauty light.";
+
 function shuffle<T>(items: readonly T[], random: () => number) {
   const next = [...items];
   for (let index = next.length - 1; index > 0; index -= 1) {
@@ -264,12 +267,18 @@ function splicePart(scene: string, label: "Set" | "Light", value: string) {
 }
 
 // The room and light stay on the end still, so a rotation cannot change the set.
-function lockRoom(scene: string) {
-  return splicePart(scene, "Set", OUTFIT_ROOM);
+function lockRoom(scene: string, lenses?: boolean) {
+  const lockedSet = splicePart(scene, "Set", OUTFIT_ROOM);
+  if (!lenses) return lockedSet;
+  const currentLight = scenePart(lockedSet, "Light");
+  if (!currentLight || /^(?:daylight|ordinary daylight|bright daylight)\.?$/i.test(currentLight)) {
+    return splicePart(lockedSet, "Light", REALISTIC_OUTFIT_LIGHT);
+  }
+  return lockedSet;
 }
 
-function shareSetAndLight(startScene: string, endScene: string) {
-  return lockRoom(splicePart(endScene, "Light", scenePart(startScene, "Light")));
+function shareSetAndLight(startScene: string, endScene: string, lenses?: boolean) {
+  return lockRoom(splicePart(endScene, "Light", scenePart(startScene, "Light")), lenses);
 }
 
 // Keep each clip's assigned rotation, and rewrite it so only the camera angle changes.
@@ -291,14 +300,14 @@ export function relockOutfitPhaseA(
       const seconds = clip.durationSeconds || 3;
       const startCamera = shotLine(move, "start", lenses);
       const endCamera = shotLine(move, "end", lenses);
-      const startScene = lockRoom(applyMove(clip.startScene || "", name, PLANTED_POSE, startCamera));
+      const startScene = lockRoom(applyMove(clip.startScene || "", name, PLANTED_POSE, startCamera), lenses);
       return {
         ...clip,
         narrativeJob: move.label,
         englishVo: "(no dialogue)",
         bgmSfx: `No background music. No voice. One sound effect only: ${move.sfx}.`,
         startScene,
-        endScene: shareSetAndLight(startScene, applyMove(clip.endScene || "", name, PLANTED_POSE, endCamera)),
+        endScene: shareSetAndLight(startScene, applyMove(clip.endScene || "", name, PLANTED_POSE, endCamera), lenses),
         explainerScene: `Start: ${name} is already wearing the complete reference outfit. Camera: ${startCamera}. End: the same outfit, same pose, same room. Camera: ${endCamera}.`,
         motionCamera: cameraMotion(seconds, move, lenses),
       };
@@ -325,7 +334,7 @@ export function sanitizeOutfitPhaseA(
       const seconds = clip.durationSeconds || 3;
       const startCamera = shotLine(move, "start", lenses);
       const endCamera = shotLine(move, "end", lenses);
-      const startScene = lockRoom(applyMove(clip.startScene || "", name, PLANTED_POSE, startCamera));
+      const startScene = lockRoom(applyMove(clip.startScene || "", name, PLANTED_POSE, startCamera), lenses);
       return {
         ...clip,
         narrativeJob: move.label,
@@ -333,7 +342,7 @@ export function sanitizeOutfitPhaseA(
         bgmSfx: `No background music. No voice. One sound effect only: ${move.sfx}.`,
         referenceImageIds: referenceImageIds.length ? referenceImageIds : clip.referenceImageIds,
         startScene,
-        endScene: shareSetAndLight(startScene, applyMove(clip.endScene || "", name, PLANTED_POSE, endCamera)),
+        endScene: shareSetAndLight(startScene, applyMove(clip.endScene || "", name, PLANTED_POSE, endCamera), lenses),
         explainerScene: `Start: ${name} is already wearing the complete reference outfit. Camera: ${startCamera}. End: the same outfit, same pose, same room. Camera: ${endCamera}.`,
         motionCamera: cameraMotion(seconds, move, lenses),
       };

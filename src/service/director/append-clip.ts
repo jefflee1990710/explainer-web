@@ -10,6 +10,7 @@ import { LANGUAGE_PRESETS, sceneDescriptionLanguageLock } from "@/service/direct
 import { skillPromptForPhaseA } from "@/service/director/load-skill-prompt";
 import { directorModel } from "@/service/director/model";
 import { resolvePerformance } from "@/service/director/performance";
+import { sceneDetailDirectorBlock } from "@/service/director/scene-detail";
 import {
   isTalkingHeadSkill,
   planTalkingHeadClips,
@@ -155,6 +156,7 @@ export async function draftAppendedClips(input: AppendInput): Promise<Storyboard
 
 ${appendClipPlacement(input.phaseA, insertAt)}
 ${language.planningSkillHint}
+${sceneDetailDirectorBlock({ realistic: isRealisticStyle(input.style) })}
 ${sceneDescriptionLanguageLock(input.language)}
 durationSeconds is ${dualBeat ? "5 to 8" : "3 to 8"}.
 The englishVo field is the spoken line in ${language.label}. Leave referenceTranslation empty.

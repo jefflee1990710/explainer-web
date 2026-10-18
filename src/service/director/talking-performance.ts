@@ -30,7 +30,7 @@ function slots(shot: TalkingShot, perf?: PerformanceSlots) {
 // Phone-front-camera reel: look straight at the lens and stay alive.
 // Expression pattern (resting face, emphasis beat) comes from the performance slots.
 export function talkingFaceLock(perf: PerformanceSlots) {
-  return `On-camera speech like a real person filming a vertical reel on a phone: eyes stay locked on the lens the whole time, talking to one friend, never a news-anchor statue. The mouth articulates every syllable of the spoken line with visible lip-sync and rich, expressive facial expressions (animated eyebrows, expressive eyes, lively cheek movement, and dynamic micro-expressions). Natural blinks. Resting face: ${perf.restingFace}. Emphasis: ${perf.emphasisBeat} — a resting, emphasis, resting cycle on every sentence. Between sentences a brief lip press, a sideways head tilt, or a blink marks the pause so the face never holds one shape. After the last syllable the mouth closes but the face stays engaged.`;
+  return `On-camera speech like a real person filming a vertical reel on a phone at natural 1.0x real-time conversational speed: eyes stay locked on the lens the whole time (both pupils centered on the camera lens, never glancing off-camera, upward, sideways, or down at the hands), talking to one friend, never a news-anchor statue and never in slow-motion. The mouth articulates every syllable of the spoken line with visible lip-sync and rich, expressive facial expressions (animated eyebrows, expressive eyes, lively cheek movement, and dynamic micro-expressions). Natural blinks. Resting face: ${perf.restingFace}. Emphasis: ${perf.emphasisBeat} — a resting, emphasis, resting cycle on every sentence. Between sentences a brief lip press, a sideways head tilt, or a blink marks the pause so the face never holds one shape. After the last syllable the mouth closes but the face stays engaged.`;
 }
 
 // Kept for callers that want the default face lock without a skill in hand.
@@ -38,13 +38,13 @@ export const TALKING_FACE_LOCK = talkingFaceLock(DEFAULT_PERFORMANCE.face.en);
 
 function talkingBodyRules(shot: TalkingShot, perf: PerformanceSlots) {
   const anchored = hasAnchorProp(perf);
-  const head = `Head and eyeline keep moving: ${perf.headMotion}. Mostly looking into the lens, with natural brief glances slightly aside or down at the gesturing hands when thinking or transitioning between clauses before locking eyes back onto the lens.`;
+  const head = `Head keeps moving while gaze stays locked directly on the lens: ${perf.headMotion}. Both eyes look straight into the camera lens center at all times — never glance off-camera, upward, sideways, or down at the gesturing hands.`;
   const hands = anchored
     ? [
         `One hand holds ${perf.anchorProp} the whole time. That hand barely moves and never swaps hands. Never a greeting wave. Never a finger jab at the lens.`,
-        `The other hand does all the gesturing and changes shape every 1–2 seconds in time with the words: ${perf.gestureLibrary}. It may enter and leave the frame edge between gestures. It never stays still through a whole sentence.`,
+        `The other hand does all the gesturing at brisk real-time conversational speed and changes shape every 1–2 seconds in time with the words: ${perf.gestureLibrary}. It may enter and leave the frame edge between gestures. It never stays still through a whole sentence and never floats in slow-motion.`,
       ].join(" ")
-    : `Hands keep moving at chest height and change shape every 1–2 seconds in time with the words: one hand leads, the other follows — ${perf.gestureLibrary}. A hand may enter and leave the frame edge between gestures. Never freeze both arms at the sides. Never a greeting wave. Never a finger jab at the lens.`;
+    : `Hands keep moving at chest height at brisk real-time conversational speed and change shape every 1–2 seconds in time with the words: one hand leads, the other follows — ${perf.gestureLibrary}. A hand may enter and leave the frame edge between gestures. Never freeze both arms at the sides, and never move in slow-motion or float aimlessly. Never a greeting wave. Never a finger jab at the lens.`;
   if (shot === "full-body") {
     return [
       head,
@@ -53,7 +53,7 @@ function talkingBodyRules(shot: TalkingShot, perf: PerformanceSlots) {
     ].join(" ");
   }
   return [
-    "The character stays seated, shifting seated weight and posture naturally across beats.",
+    "The character stays seated, shifting seated weight and posture naturally across beats at real-time human speed.",
     hands,
     head,
     "Upper body and sitting position keep moving: leaning forward toward the lens on a key point, settling back into the sofa cushion, or shifting torso weight slightly left or right on the seat. Do not freeze the neck, head angle, or shoulders in one spot. Do not stand up.",
@@ -63,10 +63,10 @@ function talkingBodyRules(shot: TalkingShot, perf: PerformanceSlots) {
 export function talkingVideoMotionRules(shot: TalkingShot, perf?: PerformanceSlots) {
   const p = slots(shot, perf);
   return [
-    "This clip is on-camera speech, like a real person recording a reel, not a snap action and not a frozen pose.",
+    "This clip is on-camera speech, like a real person recording a reel at natural 1.0x real-time speed, not a snap action, not slow-motion, and not a frozen pose.",
     talkingFaceLock(p),
     talkingBodyRules(shot, p),
-    "Do not write snaps, flicks, whips, or pops for the face or body. Speech is conversational and sustained through the line. Camera locked.",
+    "Do not write snaps, flicks, whips, or pops for the face or body. Move at natural real-time conversational pace — never slow-motion or drifting hands. Speech is conversational and sustained through the line. Camera locked.",
   ].join(" ");
 }
 
@@ -102,13 +102,31 @@ function leadHand(clipNumber?: number) {
 
 function clipHeadMotionEn(clipNumber: number | undefined, baseHeadMotion: string) {
   const variant = ((clipNumber ?? 1) - 1) % 6;
+  const isDefault = baseHeadMotion === DEFAULT_PERFORMANCE.face.en.headMotion;
+  const coreHead = isDefault
+    ? "a natural small side-to-side sway of a few degrees with nods on stressed words, both eyes locked directly on the lens center the whole time"
+    : baseHeadMotion;
   const beats = [
-    `leaning forward slightly on the seat, tilting the head to the left and nodding on the stressed words (${baseHeadMotion})`,
-    `glancing briefly off to the upper-right in thought for half a second before turning the head back to lock eyes on the lens, shifting seated weight slightly to the right (${baseHeadMotion})`,
-    `settling back into the sofa cushion with a relaxed shoulder shrug, head tilting noticeably to the right as both hands open (${baseHeadMotion})`,
-    `angling the torso into a three-quarter posture, glancing down briefly at the gesturing hands before lifting the chin and smiling back at the lens (${baseHeadMotion})`,
-    `shifting seated position slightly to the left side of the cushion, turning the head 15 degrees left with a lively brow lift then nodding toward the lens (${baseHeadMotion})`,
-    `leaning in closer toward the camera as if confiding in a friend, head upright with a warm nod and expressive eyes (${baseHeadMotion})`,
+    `leaning forward slightly on the seat, tilting the head gently to the left and nodding on the stressed words while keeping eyes locked directly on the lens (${coreHead})`,
+    `shifting seated weight slightly to the right on the sofa, tilting the head gently to the right and nodding on the stressed words with both eyes locked straight on the lens center — never glancing upward or off-camera (${coreHead})`,
+    `settling back into the sofa cushion with a relaxed shoulder shrug, head tilting gently to the right as both hands open while keeping eyes locked on the lens (${coreHead})`,
+    `leaning slightly forward toward the camera with a lively chin lift and nod on the key words, facing the camera straight-on with eyes locked directly on the lens (${coreHead})`,
+    `shifting seated position slightly to the left side of the cushion, tilting the head gently left with a lively brow lift then nodding toward the lens (${coreHead})`,
+    `leaning in closer toward the camera as if confiding in a friend, head upright with a warm nod and expressive eyes locked on the lens (${coreHead})`,
+  ];
+  return beats[variant];
+}
+
+function clipGestureBeatEn(clipNumber: number | undefined, gestureLibrary: string) {
+  const variant = ((clipNumber ?? 1) - 1) % 6;
+  if (gestureLibrary !== DEFAULT_PERFORMANCE.face.en.gestureLibrary) return gestureLibrary;
+  const beats = [
+    "a raised index finger on the hook point, then opening into an expressive palm toward the lens on the key word",
+    "an open conversational palm gesturing toward the lens on the main point, then both hands opening in a natural chest-height emphasis beat",
+    "a relaxed two-handed open-palm shrug at chest height, then one hand settling with an open palm on the stressed phrase",
+    "a small finger count on the point, then an open palm pushed forward slightly at chest height in time with the syllables",
+    "an open palm gesturing at chest height on the claim, then the other hand joining in a warm conversational beat",
+    "one hand touching mid-chest briefly on the personal point, then offering an open upward palm toward the lens",
   ];
   return beats[variant];
 }
@@ -124,20 +142,20 @@ function clipCloseLandingEn(
 ) {
   const variant = ((clipNumber ?? 1) - 1) % 6;
   const closeFaces = [
-    "the mouth closes into a small real smile, eyebrows relaxed, head tilted noticeably to the left while leaning slightly forward on the seat, eyes on the lens",
-    "the mouth closes into a thoughtful half-smile, head turned about 12 degrees to the right with eyes locked on the lens",
-    "the mouth closes into an engaged warm smile, torso settled back into the sofa with shoulders relaxed and head tilted to the right, eyes on the lens",
-    "the mouth closes into a lively knowing smile, torso angled slightly three-quarter with chin lifted and head turned slightly left, eyes locked on the lens",
+    "the mouth closes into a small real smile, eyebrows relaxed, head tilted gently 5 degrees to the left while leaning slightly forward on the seat, facing the camera with eyes on the lens",
+    "the mouth closes into a thoughtful half-smile, facing the camera straight-on with head tilted gently 5 degrees to the right and both eyes locked on the lens",
+    "the mouth closes into an engaged warm smile, torso settled back into the sofa with shoulders relaxed and head tilted gently to the right, eyes on the lens",
+    "the mouth closes into a lively knowing smile, facing the camera with chin slightly lifted and head tilted gently left, eyes locked on the lens",
     "the mouth closes into a confident smile, eyebrows softly lifted, seated weight shifted slightly to the left with head upright and leaning in toward the lens, eyes locked on the lens",
-    "the mouth closes into a warm conversational smile, head tilted to the left with a soft nod, eyes locked on the lens",
+    "the mouth closes into a warm conversational smile, head tilted gently to the left with a soft nod, eyes locked on the lens",
   ];
   const closeFace = last ? `the mouth closes into ${ctaBeat}` : closeFaces[variant];
   if (anchored) {
     const anchoredHands = [
       `the ${hand} hand still holding ${anchorProp}, the ${other} hand eases open-palm at chest height, the body stays in the frame`,
-      `the ${hand} hand still holding ${anchorProp}, the ${other} hand touches lightly near the chin in a thinking gesture, the body shifted slightly right on the seat`,
+      `the ${hand} hand still holding ${anchorProp}, the ${other} hand settles in a relaxed open-palm gesture at chest height, the body shifted slightly right on the seat`,
       `the ${hand} hand still holding ${anchorProp}, the ${other} hand settles at chest height with fingers spread in a shrug, torso settled back`,
-      `the ${hand} hand still holding ${anchorProp}, the ${other} hand holds a light index-finger gesture at chest height, torso angled slightly`,
+      `the ${hand} hand still holding ${anchorProp}, the ${other} hand holds a light index-finger gesture at chest height, facing the camera`,
       `the ${hand} hand still holding ${anchorProp}, the ${other} hand settles open-palm at chest height, seated weight shifted slightly left`,
       `the ${hand} hand still holding ${anchorProp}, the ${other} hand rests lightly against the chest, leaning slightly toward the lens`,
     ];
@@ -145,9 +163,9 @@ function clipCloseLandingEn(
   }
   const unanchoredHands = [
     `the ${other} hand settles open-palm at chest height while the ${hand} hand rests on the lap, leaning slightly forward`,
-    `the ${hand} hand rises lightly near the chin in a thoughtful pose while the ${other} hand lowers to the lap, torso shifted slightly right on the sofa`,
+    `the ${hand} hand settles in a natural open-palm conversational gesture at chest height while the ${other} hand rests on the lap, torso shifted slightly right on the sofa`,
     `both hands open wide at chest height in a relaxed two-handed shrug while the torso leans back into the sofa cushion`,
-    `the ${other} hand gestures at chest height while the ${hand} hand rests near the waist, torso angled slightly three-quarter`,
+    `the ${other} hand gestures softly at chest height while the ${hand} hand rests near the lap, facing the camera`,
     `the ${hand} hand settles open-palm at chest height while the ${other} hand rests on the lap, seated weight shifted slightly left`,
     `one hand rests lightly against mid-chest while the other hand offers an open palm toward the lens, leaning in closer`,
   ];
@@ -156,13 +174,31 @@ function clipCloseLandingEn(
 
 function clipHeadMotionYue(clipNumber: number | undefined, baseHeadMotion: string) {
   const variant = ((clipNumber ?? 1) - 1) % 6;
+  const isDefault = baseHeadMotion === DEFAULT_PERFORMANCE.face.yue.headMotion;
+  const coreHead = isDefault
+    ? "全程有幾度嘅細幅左右搖擺同重音位點頭，雙眼全程直望鏡頭中心"
+    : baseHeadMotion;
   const beats = [
-    `坐姿微微前傾、頭向左明顯微傾同喺重音位點頭（${baseHeadMotion}）`,
-    `眼神自然望一望右上側邊思考半秒再轉返頭直望鏡頭，坐姿重心微微移去沙發右邊（${baseHeadMotion}）`,
-    `上身放鬆靠返後沙發背、聳一聳肩，頭向右邊傾斜、雙手自然攤開（${baseHeadMotion}）`,
-    `上身微轉成三七面角度，低頭望一望比畫緊嘅雙手再抬起下巴對鏡頭微笑（${baseHeadMotion}）`,
-    `坐姿重心微移去沙發左邊，頭向左轉約 15 度挑眉再向鏡頭點頭（${baseHeadMotion}）`,
-    `上身明顯向前傾靠近鏡頭好似同朋友講秘密，頭擺正溫柔點頭（${baseHeadMotion}）`,
+    `坐姿微微前傾、頭向左微傾同喺重音位點頭，雙眼全程直望鏡頭（${coreHead}）`,
+    `坐姿重心微微移去沙發右邊、頭向右微傾同喺重音位點頭，雙眼全程穩定直望鏡頭中心、唔好望向側邊或上方（${coreHead}）`,
+    `上身放鬆靠返後沙發背、聳一聳肩，頭向右邊微傾、雙手自然攤開，雙眼直望鏡頭（${coreHead}）`,
+    `上身微微前傾、下巴微抬喺重音位點頭，正面對住鏡頭微笑、雙眼全程直望鏡頭（${coreHead}）`,
+    `坐姿重心微移去沙發左邊，頭向左微傾約 5 度挑眉再向鏡頭點頭，雙眼直望鏡頭（${coreHead}）`,
+    `上身明顯向前傾靠近鏡頭好似同朋友講秘密，頭擺正溫柔點頭，雙眼直望鏡頭（${coreHead}）`,
+  ];
+  return beats[variant];
+}
+
+function clipGestureBeatYue(clipNumber: number | undefined, gestureLibrary: string) {
+  const variant = ((clipNumber ?? 1) - 1) % 6;
+  if (gestureLibrary !== DEFAULT_PERFORMANCE.face.yue.gestureLibrary) return gestureLibrary;
+  const beats = [
+    "講重點時豎起食指，然後掌心自然打開向鏡頭比畫",
+    "掌心向鏡頭自然打開強調重點，然後雙手喺胸前自然攤開配合語氣",
+    "雙手喺胸前自然攤開聳肩，然後一隻手掌心打開停喺胸前",
+    "手指輕點數出重點，然後掌心向鏡頭自然推出配合說話節奏",
+    "一隻手喺胸前掌心向上自然比畫，另一隻手自然配合節奏郁動",
+    "一隻手輕觸心口，然後掌心向上遞向鏡頭好似邀請朋友",
   ];
   return beats[variant];
 }
@@ -178,10 +214,10 @@ function clipCloseLandingYue(
 ) {
   const variant = ((clipNumber ?? 1) - 1) % 6;
   const closeFaces = [
-    "口部合上變成自然淺笑，眉毛放鬆，上身微微前傾、頭明顯向左邊傾幾度，望住鏡頭",
-    "口部合上帶住思考嘅淺笑，頭向右轉約 12 度、直望鏡頭",
-    "口部合上變成有神嘅淺笑，上身放鬆靠返沙發背、頭向右邊傾斜，望住鏡頭",
-    "口部合上變成親切笑容，上身微側成三七面、下巴微抬，直望鏡頭",
+    "口部合上變成自然淺笑，眉毛放鬆，上身微微前傾、頭向左邊微傾幾度，正面直望鏡頭",
+    "口部合上帶住思考嘅淺笑，正面對住鏡頭、頭向右微傾約 5 度，雙眼直望鏡頭",
+    "口部合上變成有神嘅淺笑，上身放鬆靠返沙發背、頭向右邊微傾，直望鏡頭",
+    "口部合上變成親切笑容，正面對住鏡頭、下巴微抬，雙眼直望鏡頭",
     "口部合上帶住自信微笑，坐姿重心微移去左邊、頭擺正微微前傾望住鏡頭",
     "口部合上變成溫柔淺笑，頭向左微傾點頭，直望鏡頭",
   ];
@@ -194,9 +230,9 @@ function clipCloseLandingYue(
   }
   const unanchoredHands = [
     `${zhOther}掌心打開停喺胸前、${zhHand}自然放喺大髀，上身微微前傾`,
-    `${zhHand}輕輕舉到下巴旁邊做思考手勢、${zhOther}放返落大髀，坐姿微移去右邊`,
+    `${zhHand}喺胸前掌心自然打開做傾偈手勢、${zhOther}放返落大髀，坐姿微移去右邊`,
     `兩隻手喺胸前自然攤開聳肩，上身放鬆靠後沙發背`,
-    `${zhOther}喺胸前做手勢、${zhHand}放低，上身微側成三七面`,
+    `${zhOther}喺胸前自然做手勢、${zhHand}放喺大髀旁，正面對住鏡頭`,
     `${zhHand}喺胸前掌心向上自然打開、${zhOther}放喺大髀，坐姿重心微移去左邊`,
     `一隻手輕撫心口、另一隻手掌心向鏡頭遞出，上身向前傾近鏡頭`,
   ];
@@ -245,12 +281,13 @@ export function talkingMotionLine(input: {
       : `The large subtitle holds ${place}: "${input.line}".`;
     const face = `a live ${seated ? "real-person" : "reel-person"} face — ${p.restingFace}, and ${p.emphasisBeat}`;
     const head = `head tilting and nodding on the stresses — ${clipHeadMotionEn(input.clipNumber, p.headMotion)}`;
+    const gestureBeat = clipGestureBeatEn(input.clipNumber, p.gestureLibrary);
     const hands = anchored
-      ? `the ${hand} hand holding ${p.anchorProp} as a fixed anchor while the ${other} hand does all the gesturing at chest height and changes shape every 1–2 seconds in time with the words (${p.gestureLibrary})`
-      : `the ${hand} then ${other} hand gesturing at chest height and changing shape every 1–2 seconds in time with the words (${p.gestureLibrary})`;
+      ? `the ${hand} hand holding ${p.anchorProp} as a fixed anchor while the ${other} hand does all the gesturing at chest height at brisk real-time conversational speed and changes shape every 1–2 seconds in time with the words (${gestureBeat})`
+      : `the ${hand} then ${other} hand gesturing at chest height at brisk real-time conversational speed and changing shape every 1–2 seconds in time with the words (${gestureBeat})`;
     const body = seated
-      ? `speaks "${input.line}" with continuous lip-sync, ${face}, seated the whole time, ${head}, ${hands}`
-      : `speaks "${input.line}" with continuous lip-sync, ${face}, ${head}, ${hands}, and weight shifting hip to hip; feet stay in frame`;
+      ? `speaks "${input.line}" with continuous lip-sync at natural 1.0x real-time human speed (never slow-motion), ${face}, seated the whole time, ${head}, ${hands}`
+      : `speaks "${input.line}" with continuous lip-sync at natural 1.0x real-time human speed (never slow-motion), ${face}, ${head}, ${hands}, and weight shifting hip to hip; feet stay in frame`;
     const hook = first ? `${p.hookBeat} as the hook` : "eyebrows lifting into a warm half-smile";
     const propReady = anchored ? `, the ${hand} hand already holding ${p.anchorProp}` : "";
     const hideSubtitle = input.overlay || input.noText;
@@ -293,12 +330,13 @@ export function talkingMotionLine(input: {
   const zhOther = hand === "right" ? "左手" : "右手";
   const face = `神情似真人${seated ? "喺屋企拍手機片" : "拍 Reel"}，${p.restingFace}，${p.emphasisBeat}`;
   const head = `頭部左右傾同重音位點頭，${clipHeadMotionYue(input.clipNumber, p.headMotion)}`;
+  const gestureBeat = clipGestureBeatYue(input.clipNumber, p.gestureLibrary);
   const hands = anchored
-    ? `${zhHand}拎住${p.anchorProp}作為固定錨點幾乎唔郁，${zhOther}負責晒所有手勢喺胸前比畫，每 1–2 秒換一個手勢跟住說話節奏（${p.gestureLibrary}）`
-    : `${zhHand}再${zhOther}喺胸前比畫，每 1–2 秒換一個手勢跟住說話節奏（${p.gestureLibrary}）`;
+    ? `${zhHand}拎住${p.anchorProp}作為固定錨點幾乎唔郁，${zhOther}負責晒所有手勢喺胸前以自然真人語速比畫，每 1–2 秒換一個手勢跟住說話節奏（${gestureBeat}）`
+    : `${zhHand}再${zhOther}喺胸前以自然真人語速比畫，每 1–2 秒換一個手勢跟住說話節奏（${gestureBeat}）`;
   const body = seated
-    ? `坐住唔起身，口型跟住講「${input.line}」，${face}，${head}，${hands}`
-    : `口型跟住講「${input.line}」，${face}，${head}，${hands}，重心左右移；頭到腳留喺畫面`;
+    ? `坐住唔起身，以自然 1.0x 真人說話速度（唔好慢動作）口型跟住講「${input.line}」，${face}，${head}，${hands}`
+    : `以自然 1.0x 真人說話速度（唔好慢動作）口型跟住講「${input.line}」，${face}，${head}，${hands}，重心左右移；頭到腳留喺畫面`;
   const hook = first ? `${p.hookBeat}做 hook` : "眉毛揚起、帶住半笑";
   const propReady = anchored ? `、${p.anchorProp}已經喺${zhHand}` : "";
   const hideSubtitle = input.overlay || input.noText;

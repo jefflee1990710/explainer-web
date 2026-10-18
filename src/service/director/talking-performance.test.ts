@@ -160,3 +160,34 @@ test("continued talking-head clips begin lip-sync from 0s without holding the fi
   assert.doesNotMatch(motion, /eyes glancing down toward the hands/);
   assert.doesNotMatch(motion, /two fingers/);
 });
+
+test("every clip variant locks gaze straight on the lens center and moves at natural 1.0x real-time speed", () => {
+  for (let clipNumber = 1; clipNumber <= 6; clipNumber += 1) {
+    const en = talkingMotionLine({
+      language: "en",
+      seconds: 5,
+      line: `Clip ${clipNumber} spoken line.`,
+      shot: "face",
+      clipNumber,
+      totalClips: 6,
+    });
+    assert.match(en, /natural 1\.0x real-time human speed/);
+    assert.match(en, /eyes (?:locked (?:directly )?on|on) the lens/);
+    assert.doesNotMatch(
+      en,
+      /glancing briefly off to the upper-right|glancing down briefly at the gesturing hands|three-quarter|15 degrees|12 degrees/i,
+    );
+
+    const yue = talkingMotionLine({
+      language: "yue",
+      seconds: 5,
+      line: `第${clipNumber}段講稿。`,
+      shot: "face",
+      clipNumber,
+      totalClips: 6,
+    });
+    assert.match(yue, /自然 1\.0x 真人說話速度/);
+    assert.match(yue, /直望鏡頭/);
+    assert.doesNotMatch(yue, /望一望右上|低頭望一望比畫緊嘅雙手|三七面|15 度|12 度/);
+  }
+});

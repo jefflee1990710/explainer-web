@@ -382,7 +382,7 @@ function fitFramePrompt(
       scene: p.scene
         .replace(
           /\s*Realism:\s*[\s\S]*?(?=\s*(?:Subtitle:|字幕：)|$)/,
-          " Realism: key and rim light strictly from the window side (camera-right), lighting the camera-right cheek while the camera-left cheek (bookshelf side) is in deep negative-fill shadow (35%+ darker, dark nose-bridge shadow, zero front fill, no blueprint light); soft overcast window below clipping, visible pores, peach-fuzz, 35mm grain, soft background bokeh (no foreground obstructions).",
+          " Realism: grazing directional window key and rim light strictly from the window side (camera-right) with negative fill and natural shadow roll-off on the camera-left cheek (no flat front fill, no blueprint light, neutral/cool highlights unless a warm practical lamp is in frame, soft overcast window below pure-white clipping); visible skin pores, fine peach-fuzz, matte-natural human skin with zero oily or plastic specular sheen, 35mm grain with slightly lifted shadow blacks, soft background bokeh (no foreground obstructions).",
         )
         .trim(),
     }),
@@ -393,7 +393,7 @@ function fitFramePrompt(
     (p) => ({
       ...p,
       renderDetail: p.renderDetail
-        ? "Realistic light & camera: sculpt faces and surfaces with grazing directional light, negative fill on the shadow side, and concrete light/shadow colour contrast (warm amber light, muted teal shadows). Match 35mm film optics from the Scene (24mm / 35mm / 50mm / 85mm portrait lens; deep focus f/11 for environment or f/4 to f/1.4 creamy bokeh background) with subtle film grain and unclipped highlights."
+        ? "Realistic light & camera: sculpt faces and surfaces with grazing directional light, negative fill on the shadow side, and concrete light/shadow colour contrast (warm amber light, muted teal shadows; neutral/cool highlights unless a warm practical lamp, fire, or sunset is visible; in dark scenes keep 90% of shadows neutral; lift black point in underwater/fog/smoke). Match 35mm film optics from the Scene (24mm / 35mm / 50mm / 85mm portrait lens; deep focus f/11 for environment or f/4 to f/1.4 creamy bokeh background) with matte-natural skin pores (zero oily sheen), subtle film grain, slightly lifted shadow blacks, and unclipped highlights."
         : "",
     }),
     (p) => ({

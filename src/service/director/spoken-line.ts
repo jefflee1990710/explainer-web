@@ -142,7 +142,7 @@ export function talkingSpeakerSpeechLock(
 }
 
 const COMPACT_TALKING_MOTION_LOCK =
-  "This clip is on-camera speech, like a real person recording a reel, not a snap action and not a frozen pose. The mouth articulates every syllable of the spoken line with visible lip-sync from 0s and never speaks while the mouth is closed. Do not freeze the neck, head angle, or shoulders in one spot. Do not write snaps, flicks, whips, or pops for the face or body. Camera locked.";
+  "This clip is on-camera speech, like a real person recording a reel at natural 1.0x real-time conversational speed, not a snap action, not slow-motion, and not a frozen pose. Both eyes stay locked directly on the camera lens center the whole time (never glancing off-camera, upward, sideways, or down at the hands). The mouth articulates every syllable of the spoken line with visible lip-sync from 0s and never speaks while the mouth is closed. Hands and head move at brisk, natural real-time human speed synced to the spoken words — never slow-motion or floating. Do not freeze the neck, head angle, or shoulders in one spot. Do not write snaps, flicks, whips, or pops for the face or body. Camera locked.";
 
 // Appended when submitting a story-short / Q&A clip so the model cannot skip
 // speech; story shorts also get the third-person camera lock.

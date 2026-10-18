@@ -4,6 +4,7 @@ import { instructionFollowsReferenceClothes } from "@/service/project/reference-
 import { isOutfitReelSkill, isSurpriseInterviewSkill } from "@/service/director/skill-rules";
 import { sanitizeOutfitPhaseA } from "@/service/director/outfit-reel";
 import { sanitizeSurprisePhaseA } from "@/service/director/surprise-interview";
+import { isRealisticStyle } from "@/service/style/realistic-light";
 import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { videosCollection } from "@/dao";
 import { loadStoredSkill } from "@/service/director/load-skill";
@@ -118,7 +119,9 @@ export async function runPhaseAJob(
       nextPhaseA.characterLock = soloCharacterLock(look);
     }
     if (wardrobeBuild) {
-      nextPhaseA.clips = sanitizeOutfitPhaseA(nextPhaseA, Math.random).clips;
+      nextPhaseA.clips = sanitizeOutfitPhaseA(nextPhaseA, Math.random, {
+        lenses: isRealisticStyle(style),
+      }).clips;
     }
     if (isSurpriseInterviewSkill(project.skillSlug)) {
       nextPhaseA.clips = sanitizeSurprisePhaseA(nextPhaseA).clips;

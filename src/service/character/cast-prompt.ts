@@ -4,7 +4,7 @@ import { characterSpecLine } from "@/model/character-spec";
 // Text the director and image prompts share so every stage names the same cast.
 
 // Frame prompts share a tight cap with the scene text; notes stay short there.
-const FRAME_SPEC_CHARS = 220;
+const FRAME_SPEC_CHARS = 320;
 const DIRECTOR_SPEC_CHARS = 400;
 
 function hasBoard(cast: CastMember[] | undefined) {
@@ -265,7 +265,7 @@ export function castParagraphForFrames(
     BLUEPRINT_REFERENCE_ONLY,
     ...(hasBoard(cast) ? [BOARD_LAYOUT_NOTE] : []),
     ...(specLines.length
-      ? [`Identity notes (match identity only; relight from the Scene's light source, never copy blueprint lighting): ${specLines.join(" | ")}`]
+      ? [`Identity notes (match identity only; relight from the Scene's light source and render real porous human skin micro-texture, never copy blueprint lighting or airbrushed plastic skin): ${specLines.join(" | ")}`]
       : []),
     "Ignore any clothing, hair, or style wording in the text — the blueprint wins. Do not invent a replacement hero or redesign their outfit.",
   ];

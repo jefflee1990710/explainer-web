@@ -60,6 +60,7 @@ export type DeplasticIssue = {
   code:
     | "not_true_monochrome"
     | "underwater_shadow_not_blue"
+    | "night_shadow_not_neutral"
     | "scattering_black_crushed"
     | "dark_scene_neon_shadows"
     | "glowing_emitter_clipped"
@@ -70,6 +71,11 @@ export type DeplasticIssue = {
   measured: number;
   target: string;
 };
+
+// Rule 2: Models leave residual chroma when prompted for B&W; convert to true 0.00-chroma grayscale in post.
+export async function applyTrueMonochromePass(imageBuffer: Buffer): Promise<Buffer> {
+  return sharp(imageBuffer).grayscale().toColorspace("srgb").png().toBuffer();
+}
 
 // Rec.709 luminance in 0..255 range.
 export function rec709Luminance(r: number, g: number, b: number): number {
@@ -272,6 +278,15 @@ export function evaluateDeplasticRules(
       message: "水下畫面的暗部不夠藍（水下暗部 R−B 應落在 −38 到 −63）",
       measured: metrics.shadowRedMinusBlue,
       target: "shadowRedMinusBlue <= -20",
+    });
+  }
+  if (context.medium === "night" && Math.abs(metrics.shadowRedMinusBlue) > 15) {
+    issues.push({
+      rule: 3,
+      code: "night_shadow_not_neutral",
+      message: "夜景畫面的暗部偏色過重（夜景暗部應維持中性黑，R−B 約落在 −1 到 −7）",
+      measured: metrics.shadowRedMinusBlue,
+      target: "abs(shadowRedMinusBlue) <= 15",
     });
   }
 

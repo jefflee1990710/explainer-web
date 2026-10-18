@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { characterSpecLine, sanitizeSpecSkinTone } from "@/model/character-spec";
 import { planTalkingHeadClips, talkingHeadDirectorBlock } from "@/service/director/talking-head";
 
 const SCRIPT =
@@ -57,4 +58,33 @@ test("Cantonese realistic stills use the Cantonese realism clause", () => {
 test("full-body realism keeps the foreground off the body", () => {
   const clips = planTalkingHeadClips({ source: SCRIPT, language: "en", shot: "full-body", realistic: true });
   assert.match(clips[0].startScene, /no foreground objects blocking any corner/);
+});
+
+test("realistic talking-head skin forbids glossy or oily sheen and sanitizes beauty-smoothed character specs", () => {
+  const clips = planTalkingHeadClips({ source: SCRIPT, language: "en", aspectRatio: "9:16", realistic: true });
+  for (const clip of clips) {
+    assert.match(clip.startScene, /zero oily, waxy, or glossy specular sheen/);
+    assert.doesNotMatch(clip.startScene, /light natural sheen on the forehead/i);
+    assert.match(clip.motionCamera, /zero plastic or oily specular sheen/);
+  }
+  const yue = planTalkingHeadClips({ source: "今日教你一招。記住試下。", language: "yue", realistic: true });
+  assert.doesNotMatch(yue[0].startScene, /額頭同鼻有少少自然油光/);
+  assert.match(yue[0].startScene, /絕對唔好有油光/);
+
+  assert.equal(
+    sanitizeSpecSkinTone("fair, pinkish undertones, smooth matte finish, rosy cheeks"),
+    "fair, pinkish undertones, visible natural pores, matte-natural skin micro-texture, rosy cheeks",
+  );
+  const line = characterSpecLine({
+    identity: "East Asian woman, early 20s",
+    face: "oval face, large dark brown almond eyes, soft curved dark brows, small rounded nose, full pink lips",
+    hair: "long straight dark brown hair with see-through wispy bangs",
+    skinTone: "fair, pinkish undertones, smooth matte finish, rosy cheeks",
+    body: "slender petite build",
+    marks: "none",
+    outfit: "black vest",
+    palette: [],
+  });
+  assert.match(line, /visible natural pores/);
+  assert.doesNotMatch(line, /smooth matte finish/);
 });

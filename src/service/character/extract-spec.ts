@@ -12,7 +12,7 @@ Write short noun phrases in English, separated by commas. No sentences, no opini
 identity: apparent gender and age range, e.g. "woman, late 20s".
 face: face shape, eye shape and spacing, eyebrows, nose, lips, jaw and chin — proportions an artist needs.
 hair: style, length, parting, texture, colour.
-skinTone: skin tone and natural skin texture from the source image(s), e.g. "light warm beige, visible natural pores, matte skin texture with subtle fine lines" — focus on pore detail, surface finish (matte, dewy, weathered), fine lines, and natural skin micro-texture.
+skinTone: skin tone and natural unretouched human skin micro-texture, e.g. "light warm beige, visible natural pores, matte-natural skin micro-texture with subtle fine lines" — always describe organic pore detail and natural skin micro-texture; never write "smooth", "flawless", "porcelain", "airbrushed", or "glossy" even if the source photo has a phone beauty filter or flash.
 body: build, height impression, shoulders, posture.
 marks: moles, scars, freckles, dimples, glasses, piercings, facial hair — anything that identifies the person. Write "none" if nothing stands out.
 outfit: garments, colours, shoes, accessories as seen in the clearest photo. If the photos disagree, pick the most common outfit.

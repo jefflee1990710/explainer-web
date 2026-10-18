@@ -69,14 +69,27 @@ export const CHARACTER_SPEC_FIELDS = [
 
 export type CharacterSpecField = (typeof CHARACTER_SPEC_FIELDS)[number];
 
+// Strip beauty-filter terms ("smooth matte finish", "flawless", "porcelain") from stored specs
+// so image models do not render waxy plastic skin from a filtered reference selfie.
+export function sanitizeSpecSkinTone(skinTone: string) {
+  return skinTone
+    .replace(
+      /\bsmooth(?:\s+matte)?(?:\s+finish|\s+skin|\s+complexion)?\b|\b(?:flawless|porcelain|airbrushed|glossy|dewy|glass)\s*(?:skin|finish|complexion|texture)?\b/gi,
+      "visible natural pores, matte-natural skin micro-texture",
+    )
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 // One compact line for image prompts. Frame prompts share a tight character cap,
 // so this stays short and skips the palette (the attached image carries colour).
 export function characterSpecLine(spec: CharacterSpec, maxChars = 320) {
+  const skin = spec.skinTone ? sanitizeSpecSkinTone(spec.skinTone) : "";
   const parts = [
     spec.identity,
     spec.face && `face: ${spec.face}`,
     spec.hair && `hair: ${spec.hair}`,
-    spec.skinTone && `skin: ${spec.skinTone}`,
+    skin && `skin: ${skin}`,
     spec.body && `build: ${spec.body}`,
     spec.marks && `marks: ${spec.marks}`,
     spec.outfit && `outfit: ${spec.outfit}`,
@@ -88,10 +101,11 @@ export function characterSpecLine(spec: CharacterSpec, maxChars = 320) {
 // Multi-line block for the blueprint prompts, where there is room for every field.
 export function characterSpecBlock(spec: CharacterSpec) {
   const rows: string[] = [];
+  const skin = spec.skinTone ? sanitizeSpecSkinTone(spec.skinTone) : "";
   if (spec.identity) rows.push(`- Identity: ${spec.identity}`);
   if (spec.face) rows.push(`- Face: ${spec.face}`);
   if (spec.hair) rows.push(`- Hair: ${spec.hair}`);
-  if (spec.skinTone) rows.push(`- Skin: ${spec.skinTone}`);
+  if (skin) rows.push(`- Skin: ${skin}`);
   if (spec.body) rows.push(`- Body: ${spec.body}`);
   if (spec.marks) rows.push(`- Marks: ${spec.marks}`);
   if (spec.outfit) rows.push(`- Outfit: ${spec.outfit}`);

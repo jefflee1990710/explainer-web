@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import sharp from "sharp";
 import {
+  applyTrueMonochromePass,
   evaluateDeplasticRules,
   measureDeplasticMetrics,
   rec709Luminance,
@@ -80,7 +81,7 @@ test("Rule 3 & 4: validates underwater lifted black point and blue shadow tint",
   assert.ok(!goodIssues.some((issue) => issue.code === "scattering_black_crushed"));
 });
 
-test("Rule 2: detects residual chroma in pseudo-monochrome images", async () => {
+test("Rule 2: detects residual chroma in pseudo-monochrome images and fixes it to 0.00 with applyTrueMonochromePass", async () => {
   const tintedGray = await makeSyntheticPng(32, 32, (x) =>
     x < 16 ? [120, 119, 118] : [40, 39, 38],
   );
@@ -88,4 +89,20 @@ test("Rule 2: detects residual chroma in pseudo-monochrome images", async () => 
   assert.ok(tintedMetrics.meanChroma > 0.5);
   const issues = evaluateDeplasticRules(tintedMetrics, { monochrome: true });
   assert.ok(issues.some((issue) => issue.code === "not_true_monochrome"));
+
+  const trueMono = await applyTrueMonochromePass(tintedGray);
+  const monoMetrics = await measureDeplasticMetrics(trueMono);
+  assert.equal(monoMetrics.meanChroma, 0);
+  assert.equal(evaluateDeplasticRules(monoMetrics, { monochrome: true }).some((i) => i.code === "not_true_monochrome"), false);
+});
+
+test("Rule 3 & 5: flags tinted night shadows and neon shadows in extreme dark scenes", async () => {
+  // Extreme dark scene (>75% pixels < 16) with saturated blue-purple shadows (chroma > 12)
+  const neonDark = await makeSyntheticPng(64, 64, (x) =>
+    x < 56 ? [2, 0, 26] : [180, 140, 90],
+  );
+  const metrics = await measureDeplasticMetrics(neonDark);
+  const issues = evaluateDeplasticRules(metrics, { medium: "night" });
+  assert.ok(issues.some((issue) => issue.code === "dark_scene_neon_shadows"));
+  assert.ok(issues.some((issue) => issue.code === "night_shadow_not_neutral"));
 });

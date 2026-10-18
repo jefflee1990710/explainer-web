@@ -23,7 +23,7 @@ const FACE_EN: PerformanceSlots = {
   gestureLibrary:
     "a raised index finger or a small finger count on a list or a number, an open palm pushed out toward the lens on 'look at this', a two-handed open-palm shrug, a hand touching the chest or chin in thought, a palm facing the lens swaying side to side on a negative, fingers spread beside the face on a big claim, a palm turned up and offered to the lens on an invitation",
   headMotion:
-    "a constant small side-to-side sway of a few degrees, distinct head turns and tilts left and right, brief thoughtful glances slightly off-camera or down at the hands before looking back into the lens, nods on stressed words, a chin drop then lift, leaning forward toward the lens on a key point then settling back or shifting seated weight slightly left and right on the sofa; shoulders rock",
+    "a constant small side-to-side sway of a few degrees, natural head tilts left and right while facing the camera, nods on stressed words, a chin drop then lift, leaning forward toward the lens on a key point then settling back or shifting seated weight slightly left and right on the sofa; shoulders rock, eyes locked directly on the lens the whole time",
   anchorProp: "",
   set: "the same sofa at home in every clip, a bookshelf behind the head",
   light: "ordinary daylight from a window to one side, no studio light",
@@ -37,7 +37,7 @@ const FACE_YUE: PerformanceSlots = {
   gestureLibrary:
     "數數或者講數字時豎食指、「睇呢個」時掌心向鏡頭推出、雙手攤開聳肩、思考時手指輕觸下巴或心口、否定時掌心對鏡頭左右擺、誇張強調時五指張開喺臉旁、邀請時掌心向上遞向鏡頭",
   headMotion:
-    "全程有幾度嘅細幅左右搖擺，頭部明顯左右轉向同傾斜、思考時眼神短暫望向側邊或者望一望雙手再望返鏡頭、重音位點頭、下巴跌一跌再抬起，講到重點時上身明顯前傾靠近鏡頭、再坐返後或者喺沙發微移重心；膊頭自然郁動",
+    "全程有幾度嘅細幅左右搖擺，面向鏡頭自然左右微傾、重音位點頭、下巴跌一跌再抬起，講到重點時上身明顯前傾靠近鏡頭、再坐返後或者喺沙發微移重心；膊頭自然郁動，雙眼全程直望鏡頭中心",
   anchorProp: "",
   set: "全程同一張屋企沙發，書架喺頭後面",
   light: "一邊窗嘅普通日光，冇影樓燈",
