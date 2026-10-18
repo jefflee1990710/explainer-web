@@ -24,7 +24,7 @@ test("video mail names the clip and keeps the studio link", () => {
   assert.match(html, /folder\/videos\/vid/);
 });
 
-test("frame mail waits for the pair copy, not a single still", () => {
+test("frame mail sends for every completed frame", () => {
   const copy = {
     kind: "frames" as const,
     title: "預測下一個字",
@@ -32,7 +32,7 @@ test("frame mail waits for the pair copy, not a single still", () => {
     clipNumber: 2,
   };
   assert.equal(generationEmailSubject(copy), "畫格完成 · 預測下一個字 · Clip 2");
-  assert.match(generationEmailBody(copy), /起始與結尾畫格/);
+  assert.match(generationEmailBody(copy), /起始與結尾畫格都好了/);
 });
 
 test("html escapes title text", () => {

@@ -450,9 +450,9 @@ function endPoseVariationEn(clipIndex: number, fullBody: boolean, anchored: bool
   if (anchored) {
     const headMoves = [
       "eyes on the lens, mouth just closed into a small real smile, eyebrows relaxed, head tilted noticeably to the left and torso leaning slightly forward",
-      "head turned about 15 degrees to the right with eyes glancing off-camera to the side in a thoughtful pause, mouth in a soft half-smile, seated weight shifted slightly right",
+      "head turned about 12 degrees to the right with eyes locked on the lens in a thoughtful pause, mouth in a soft half-smile, seated weight shifted slightly right",
       "eyes on the lens, mouth just closed into an engaged warm smile, torso settled back into the cushion with head tilted to the right",
-      "torso angled slightly three-quarter, chin lifted, eyes glancing briefly down toward the gesturing hand with a lively knowing smile",
+      "torso angled slightly three-quarter, chin lifted, eyes locked on the lens with a lively knowing smile",
       "eyes locked on the lens, mouth just closed into a confident smile, eyebrows softly lifted, seated weight shifted slightly left with head upright",
       "eyes locked on the lens, mouth just closed into a warm conversational smile, leaning in closer toward the camera with head tilted slightly left",
     ];
@@ -461,18 +461,18 @@ function endPoseVariationEn(clipIndex: number, fullBody: boolean, anchored: bool
       `${freeHand} is raised near the chin in a thoughtful gesture`,
       `${freeHand} is at chest height with fingers spread in a relaxed shrug`,
       `${freeHand} is at chest height with the index finger lightly raised on the key point`,
-      `${freeHand} holds up two fingers at chest height in a counting gesture`,
+      `${freeHand} is at chest height with an open palm angled toward the lens`,
       `${freeHand} rests lightly near mid-chest with a relaxed open hand`,
     ];
     return { head: headMoves[variant], hand: handMoves[variant] };
   }
   const headMoves = [
     "torso leaning back comfortably into the sofa cushion with shoulders relaxed, head tilted noticeably 15 degrees to the right, eyes on the lens, mouth just closed into a warm engaged smile, eyebrows relaxed",
-    "seated position shifted slightly to the right side of the sofa, head turned 25 degrees to the right in a three-quarter profile view with eyes looking off-camera to the right in a natural thinking expression, mouth in a thoughtful half-smile",
-    "torso leaning noticeably forward toward the camera, head tilted 15 degrees to the left, eyes locked on the lens, eyebrows lifted with a lively confident smile",
-    "torso angled into a three-quarter posture on the sofa, head pitched downward and slightly left with eyes looking down at her gesturing hands in thought, a natural soft smile on her lips",
-    "seated position shifted slightly to the left side of the cushion, chin lifted high and head turned 20 degrees to the left with eyes glancing upward-left as if recalling an idea, mouth in a knowing smile",
-    "seated upright and leaning slightly in toward the lens, head tilted slightly right with a big expressive grin, eyebrows raised",
+    "seated position shifted slightly to the right side of the sofa, head turned 15 degrees to the right in a slight three-quarter view with eyes locked on the lens, mouth in a thoughtful half-smile",
+    "torso leaning noticeably forward toward the camera, head tilted 12 degrees to the left, eyes locked on the lens, eyebrows lifted with a lively confident smile",
+    "torso angled into a slight three-quarter posture on the sofa, head tilted gently left with eyes locked on the lens, a natural soft smile on her lips",
+    "seated position shifted slightly to the left side of the cushion, chin lifted slightly and head turned 12 degrees to the left with eyes locked on the lens, mouth in a knowing smile",
+    "seated upright and leaning slightly in toward the lens, head tilted slightly right with a big expressive grin, eyes locked on the lens, eyebrows raised",
   ];
   const handMoves = fullBody
     ? [
@@ -480,14 +480,14 @@ function endPoseVariationEn(clipIndex: number, fullBody: boolean, anchored: bool
         "The left hand is raised near chin height in a thinking gesture while the right hand rests low, weight shifted to the right hip",
         "Both hands are open wide at chest height in a relaxed two-handed shrug, posture relaxed",
         "One hand gestures outward at chest height with fingers spread while the other hand rests near the waist, torso angled three-quarter",
-        "The right hand holds up two fingers at chest height while the left arm relaxes at the side, weight on the left hip",
+        "The right hand is raised at chest height with an open conversational palm while the left arm relaxes at the side, weight on the left hip",
         "One hand touches mid-chest lightly while the other hand offers an open palm toward the lens",
       ]
     : [
         "Both hands are open wide at chest height in a relaxed two-handed open-palm shrug",
         "One hand is raised touching lightly near the chin in a thinking pose while the other hand rests on the lap",
-        "One hand holds up two fingers at chest height in a clear counting gesture while the other hand rests on the lap",
-        "Both hands are gesturing together at chest height with fingers spread as she looks down at them",
+        "One hand is raised at chest height with an open conversational palm while the other hand rests on the lap",
+        "Both hands are held softly open at chest height in a natural mid-conversation gesture while the other arm relaxes",
         "One hand touches mid-chest lightly while the other arm rests on the sofa cushion",
         "One hand is open-palm at chest height offered toward the lens while the other hand rests on the lap",
       ];
@@ -499,9 +499,9 @@ function endPoseVariationYue(clipIndex: number, fullBody: boolean, anchored: boo
   if (anchored) {
     const headMoves = [
       "直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，上身微微前傾、頭明顯向左邊傾幾度",
-      "頭向右轉約 15 度、眼神自然望向畫面側邊思考緊，口部合上帶住淺笑，坐姿微移去右邊",
+      "頭向右轉約 12 度、直望鏡頭帶住思考神情，口部合上帶住淺笑，坐姿微移去右邊",
       "直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，上身放鬆靠返後、頭向右邊傾幾度",
-      "上身微側成三七面，頭微低望一望隻手、帶住親切笑容",
+      "上身微側成三七面，直望鏡頭、帶住親切笑容",
       "直望鏡頭，呢句講完、口部合上帶住自信微笑，坐姿微移去左邊、下巴微抬",
       "直望鏡頭，呢句講完、口部合上變成溫柔淺笑，上身向前傾近鏡頭",
     ];
@@ -510,16 +510,16 @@ function endPoseVariationYue(clipIndex: number, fullBody: boolean, anchored: boo
       `${freeHand}輕輕舉到下巴旁邊做思考手勢`,
       `${freeHand}喺胸前五指微張做緊攤手聳肩手勢`,
       `${freeHand}喺胸前輕輕豎起食指點出重點`,
-      `${freeHand}喺胸前豎起兩隻手指數數`,
+      `${freeHand}喺胸前掌心自然打開向鏡頭比畫`,
       `${freeHand}自然放鬆貼近心口位置`,
     ];
     return { head: headMoves[variant], hand: handMoves[variant] };
   }
   const headMoves = [
     "直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，上身微微前傾、頭明顯向左邊傾幾度",
-    "頭向右轉約 15 度、眼神自然望向右上側邊思考緊，口部合上帶住思考淺笑，坐姿重心微移去沙發右邊",
+    "頭向右轉約 12 度、直望鏡頭，口部合上帶住思考淺笑，坐姿重心微移去沙發右邊",
     "直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，上身放鬆靠返後沙發背、頭向右邊傾斜",
-    "上身微轉成三七面角度，頭微低望一望比畫緊嘅雙手，嘴角帶住親切笑容",
+    "上身微轉成三七面角度，直望鏡頭，嘴角帶住親切笑容",
     "直望鏡頭，呢句講完、口部合上帶住自信微笑，坐姿重心微移去沙發左邊、下巴微抬",
     "直望鏡頭，呢句講完、口部合上變成溫柔淺笑，上身明顯向前傾靠近鏡頭好似講緊秘密",
   ];
@@ -529,7 +529,7 @@ function endPoseVariationYue(clipIndex: number, fullBody: boolean, anchored: boo
         "一隻手舉到下巴旁邊做思考手勢，另一隻手放低，重心換去右邊，腳留喺同一個位置",
         "兩隻手喺胸前自然攤開聳肩，身形放鬆，腳留喺同一個位置",
         "一隻手喺胸前向外輕推做手勢，另一隻手放喺腰旁，上身微側，腳留喺同一個位置",
-        "一隻手喺胸前豎起兩隻手指數數，另一隻手自然垂低，腳留喺同一個位置",
+        "一隻手喺胸前掌心自然打開比畫，另一隻手自然垂低，腳留喺同一個位置",
         "一隻手輕撫心口，另一隻手掌心向鏡頭遞出，腳留喺同一個位置",
       ]
     : [
@@ -537,7 +537,7 @@ function endPoseVariationYue(clipIndex: number, fullBody: boolean, anchored: boo
         "一隻手輕輕舉到下巴旁邊做思考手勢，另一隻手放喺大髀",
         "兩隻手喺胸前自然攤開聳肩，上身放鬆靠喺沙發背",
         "一隻手喺胸前微張手指做手勢，另一隻手放喺大髀，上身微側",
-        "一隻手喺胸前豎起兩隻手指數數，另一隻手自然放喺大髀",
+        "一隻手喺胸前掌心向上自然打開，另一隻手自然放喺大髀",
         "一隻手輕撫心口，另一隻手掌心向鏡頭打開",
       ];
   return { head: headMoves[variant], hand: handMoves[variant] };

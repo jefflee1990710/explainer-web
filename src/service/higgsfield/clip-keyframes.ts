@@ -95,6 +95,11 @@ export function clipFrameAnchor(
     return clip1StartUrl ? { url: clip1StartUrl, kind: "clip-start" } : undefined;
   }
   if (position === "end") {
+    const start = rows.find(
+      (frame) => frame.clipNumber === clipNumber && frame.position === "start",
+    );
+    const url = completedUrl(start);
+    if (url) return { url, kind: "clip-start" };
     if (options?.anchorToFirstClip && clipNumber > 1) {
       const clip1Start = rows.find(
         (frame) => frame.clipNumber === 1 && frame.position === "start",
@@ -107,11 +112,7 @@ export function clipFrameAnchor(
       const clip1EndUrl = completedUrl(clip1End);
       if (clip1EndUrl) return { url: clip1EndUrl, kind: "clip-start" };
     }
-    const start = rows.find(
-      (frame) => frame.clipNumber === clipNumber && frame.position === "start",
-    );
-    const url = completedUrl(start);
-    return url ? { url, kind: "clip-start" } : undefined;
+    return undefined;
   }
   const prevEnd = rows.find(
     (frame) => frame.clipNumber === clipNumber - 1 && frame.position === "end",

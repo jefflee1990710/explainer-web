@@ -143,3 +143,20 @@ test("talking video rules forbid snap verbs and a frozen statue", () => {
   assert.match(rules, /Do not write snaps/);
   assert.doesNotMatch(rules, /Feet stay planted. One conversational gesture only/);
 });
+
+test("continued talking-head clips begin lip-sync from 0s without holding the first frame frozen", () => {
+  const motion = talkingMotionLine({
+    language: "en",
+    seconds: 5,
+    line: "That's why you use Scro.io.",
+    previousLine: "but who has time to script and edit every day?",
+    shot: "face",
+    clipNumber: 4,
+    totalClips: 7,
+    belowCenter: true,
+  });
+  assert.match(motion, /0–4\.2s she speaks "That's why you use Scro\.io\."/);
+  assert.match(motion, /never holding the first frame frozen/);
+  assert.doesNotMatch(motion, /eyes glancing down toward the hands/);
+  assert.doesNotMatch(motion, /two fingers/);
+});

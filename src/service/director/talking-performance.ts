@@ -125,10 +125,10 @@ function clipCloseLandingEn(
   const variant = ((clipNumber ?? 1) - 1) % 6;
   const closeFaces = [
     "the mouth closes into a small real smile, eyebrows relaxed, head tilted noticeably to the left while leaning slightly forward on the seat, eyes on the lens",
-    "the mouth closes into a thoughtful half-smile, head turned about 15 degrees to the right with eyes glancing briefly off-camera to the side in thought",
+    "the mouth closes into a thoughtful half-smile, head turned about 12 degrees to the right with eyes locked on the lens",
     "the mouth closes into an engaged warm smile, torso settled back into the sofa with shoulders relaxed and head tilted to the right, eyes on the lens",
-    "the mouth closes into a lively knowing smile, torso angled slightly three-quarter with chin lifted and head turned slightly left, eyes glancing down toward the hands",
-    "the mouth closes into a confident smile, eyebrows softly lifted, seated weight shifted slightly to the left with head upright and leaning in toward the lens",
+    "the mouth closes into a lively knowing smile, torso angled slightly three-quarter with chin lifted and head turned slightly left, eyes locked on the lens",
+    "the mouth closes into a confident smile, eyebrows softly lifted, seated weight shifted slightly to the left with head upright and leaning in toward the lens, eyes locked on the lens",
     "the mouth closes into a warm conversational smile, head tilted to the left with a soft nod, eyes locked on the lens",
   ];
   const closeFace = last ? `the mouth closes into ${ctaBeat}` : closeFaces[variant];
@@ -138,7 +138,7 @@ function clipCloseLandingEn(
       `the ${hand} hand still holding ${anchorProp}, the ${other} hand touches lightly near the chin in a thinking gesture, the body shifted slightly right on the seat`,
       `the ${hand} hand still holding ${anchorProp}, the ${other} hand settles at chest height with fingers spread in a shrug, torso settled back`,
       `the ${hand} hand still holding ${anchorProp}, the ${other} hand holds a light index-finger gesture at chest height, torso angled slightly`,
-      `the ${hand} hand still holding ${anchorProp}, the ${other} hand counts two fingers at chest height, seated weight shifted slightly left`,
+      `the ${hand} hand still holding ${anchorProp}, the ${other} hand settles open-palm at chest height, seated weight shifted slightly left`,
       `the ${hand} hand still holding ${anchorProp}, the ${other} hand rests lightly against the chest, leaning slightly toward the lens`,
     ];
     return { closeFace, closeBeat: anchoredHands[variant] };
@@ -148,7 +148,7 @@ function clipCloseLandingEn(
     `the ${hand} hand rises lightly near the chin in a thoughtful pose while the ${other} hand lowers to the lap, torso shifted slightly right on the sofa`,
     `both hands open wide at chest height in a relaxed two-handed shrug while the torso leans back into the sofa cushion`,
     `the ${other} hand gestures at chest height while the ${hand} hand rests near the waist, torso angled slightly three-quarter`,
-    `the ${hand} hand holds up two fingers at chest height in a counting gesture while the ${other} hand rests on the lap, seated weight shifted slightly left`,
+    `the ${hand} hand settles open-palm at chest height while the ${other} hand rests on the lap, seated weight shifted slightly left`,
     `one hand rests lightly against mid-chest while the other hand offers an open palm toward the lens, leaning in closer`,
   ];
   return { closeFace, closeBeat: unanchoredHands[variant] };
@@ -179,9 +179,9 @@ function clipCloseLandingYue(
   const variant = ((clipNumber ?? 1) - 1) % 6;
   const closeFaces = [
     "口部合上變成自然淺笑，眉毛放鬆，上身微微前傾、頭明顯向左邊傾幾度，望住鏡頭",
-    "口部合上帶住思考嘅淺笑，頭向右轉約 15 度、眼神自然望向畫面側邊思考緊",
+    "口部合上帶住思考嘅淺笑，頭向右轉約 12 度、直望鏡頭",
     "口部合上變成有神嘅淺笑，上身放鬆靠返沙發背、頭向右邊傾斜，望住鏡頭",
-    "口部合上變成親切笑容，上身微側成三七面、下巴微抬，眼神望一望手勢",
+    "口部合上變成親切笑容，上身微側成三七面、下巴微抬，直望鏡頭",
     "口部合上帶住自信微笑，坐姿重心微移去左邊、頭擺正微微前傾望住鏡頭",
     "口部合上變成溫柔淺笑，頭向左微傾點頭，直望鏡頭",
   ];
@@ -197,7 +197,7 @@ function clipCloseLandingYue(
     `${zhHand}輕輕舉到下巴旁邊做思考手勢、${zhOther}放返落大髀，坐姿微移去右邊`,
     `兩隻手喺胸前自然攤開聳肩，上身放鬆靠後沙發背`,
     `${zhOther}喺胸前做手勢、${zhHand}放低，上身微側成三七面`,
-    `${zhHand}喺胸前豎起兩隻手指數數、${zhOther}放喺大髀，坐姿重心微移去左邊`,
+    `${zhHand}喺胸前掌心向上自然打開、${zhOther}放喺大髀，坐姿重心微移去左邊`,
     `一隻手輕撫心口、另一隻手掌心向鏡頭遞出，上身向前傾近鏡頭`,
   ];
   return { closeFace, closeBeat: unanchoredHands[variant] };
@@ -257,7 +257,7 @@ export function talkingMotionLine(input: {
     const fadeIn = `the large subtitle fades and slides up into place ${place}`;
     const fadeInClause = hideSubtitle ? "" : `, ${fadeIn}`;
     const open = !first
-      ? `0–0.4s she stays in the exact framing of the first frame, ${seated ? "seated, " : ""}same crop, same distance, eyes locked on the lens, ${hook}${propReady}, mouth opening into this line${fadeInClause}, no cut and no jump`
+      ? `0–0.4s she stays in the exact framing of the first frame, ${seated ? "seated, " : ""}same crop, same distance, eyes locked on the lens, ${hook}${propReady}, mouth immediately opening into this line (never holding the first frame frozen)${fadeInClause}, no cut and no jump`
       : seated
         ? `0–0.4s she inhales, blinks once, seated, eyes locked on the lens, ${hook}${propReady}, the ${other} hand already rising to chest height, mouth opening${fadeInClause}`
         : `0–0.4s she inhales, blinks once, eyes locked on the lens as if talking into a phone, ${hook}${propReady}, head already tilting, one hand already rising, mouth opening${fadeInClause}`;
@@ -278,7 +278,8 @@ export function talkingMotionLine(input: {
     const fadeOutClause = hideSubtitle ? "" : `, ${fadeOut}`;
     const subtitleTail = hideSubtitle ? "" : ` ${subtitle}`;
     const transition = input.noText ? "" : overlaySubtitleTransition("en", input);
-    return `${open}; 0.4–${close}s she ${body}${hold}; ${close}–${input.seconds}s ${closeFace}, ${closeBeat}${fadeOutClause}${transition}; ${cameraTail}${subtitleTail}`;
+    const speakStart = first ? "0.4" : "0";
+    return `${open}; ${speakStart}–${close}s she ${body}${hold}; ${close}–${input.seconds}s ${closeFace}, ${closeBeat}${fadeOutClause}${transition}; ${cameraTail}${subtitleTail}`;
   }
   const p = input.performance ?? DEFAULT_PERFORMANCE[input.shot].yue;
   const anchored = hasAnchorProp(p);
@@ -304,7 +305,7 @@ export function talkingMotionLine(input: {
   const fadeIn = `大字幕由下向上淡入到${place}`;
   const fadeInClause = hideSubtitle ? "" : `、${fadeIn}`;
   const open = !first
-    ? `0–0.4s 保持第一幀嘅構圖，${seated ? "坐住、" : ""}同一個裁切、同一距離、直望鏡頭、${hook}${propReady}、開口講呢句${fadeInClause}、冇切鏡、冇跳鏡`
+    ? `0–0.4s 保持第一幀嘅構圖，${seated ? "坐住、" : ""}同一個裁切、同一距離、直望鏡頭、${hook}${propReady}、第一幀即刻開口講呢句（唔好將第一幀定格）${fadeInClause}、冇切鏡、冇跳鏡`
     : seated
       ? `0–0.4s 坐住、吸一口氣、眨眼、直望鏡頭、${hook}${propReady}、${zhOther}已經提到胸前、準備開口${fadeInClause}`
       : `0–0.4s 吸一口氣、眨眼、直望鏡頭好似對住手機講、${hook}${propReady}、頭已經微傾、一隻手已經提起、準備開口${fadeInClause}`;
@@ -324,7 +325,8 @@ export function talkingMotionLine(input: {
   const fadeOutClause = hideSubtitle ? "" : "，大字幕向下淡出";
   const subtitleTail = hideSubtitle ? "" : subtitle;
   const transition = input.noText ? "" : overlaySubtitleTransition("yue", input);
-  return `${open}；0.4–${close}s ${body}${hold}；${close}–${input.seconds}s ${closeFace}，${closeBeat}${fadeOutClause}${transition}；${cameraTail}${subtitleTail}`;
+  const speakStart = first ? "0.4" : "0";
+  return `${open}；${speakStart}–${close}s ${body}${hold}；${close}–${input.seconds}s ${closeFace}，${closeBeat}${fadeOutClause}${transition}；${cameraTail}${subtitleTail}`;
 }
 
 // Talking-head overlay: the end still already shows the next line, so the

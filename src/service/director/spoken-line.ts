@@ -121,6 +121,29 @@ export function narratorSpeechLock(
   return `AUDIO REQUIRED, spoken once by an unseen off-screen narrator${voiceTag}, starting in the first half-second, loud and clear, word for word: "${spoken}". Sound effects never replace this voice. This clip is never silent. The on-screen character's mouth stays closed.`;
 }
 
+export function talkingSpeakerSpeechLock(
+  line: string,
+  options?: {
+    voiceGender?: VoiceGender;
+    speakers?: Array<{ name: string; voice?: CharacterVoice | null }>;
+  },
+) {
+  const spoken = subtitleText(line).replaceAll('"', "'");
+  if (!spoken) return "";
+  const charVoice = firstLockedCharacterVoice(options?.speakers);
+  const gender: VoiceGender | undefined = charVoice?.gender ?? options?.voiceGender;
+  const opposite = gender === "female" ? "male" : gender === "male" ? "female" : undefined;
+  const voiceTag = charVoice
+    ? ` (${characterVoiceTimbre(charVoice)} — never switch to a ${opposite} voice, no off-screen narrator, no sound effects)`
+    : gender
+      ? ` (adult ${gender} voice — never switch to a ${opposite} voice, no off-screen narrator, no sound effects)`
+      : " (no off-screen narrator, no sound effects)";
+  return `ON-SCREEN SPEECH REQUIRED${voiceTag}: from 0s the character on screen speaks aloud with continuous visible lip-sync: "${spoken}".`;
+}
+
+const COMPACT_TALKING_MOTION_LOCK =
+  "This clip is on-camera speech, like a real person recording a reel, not a snap action and not a frozen pose. The mouth articulates every syllable of the spoken line with visible lip-sync from 0s and never speaks while the mouth is closed. Do not freeze the neck, head angle, or shoulders in one spot. Do not write snaps, flicks, whips, or pops for the face or body. Camera locked.";
+
 // Appended when submitting a story-short / Q&A clip so the model cannot skip
 // speech; story shorts also get the third-person camera lock.
 export function lockDialogueSpeech(
@@ -148,8 +171,31 @@ export function lockDialogueSpeech(
   }
   if (clipUsesTalkingPerformance(skillSlug)) {
     const shot = talkingShotForSkill(skillSlug) ?? "face";
-    for (const lock of [DIALOGUE_SPEAK_LOCK, talkingVideoMotionRules(shot, performance)]) {
+    body = body
+      .replace(/^ON-SCREEN SPEECH REQUIRED[^\n]*\n\n/, "")
+      .replace(/The unseen off-screen narrator MUST use/g, "The on-screen speaker MUST use")
+      .replace(
+        /Spoken audio and short synced SFX only\./g,
+        "Clean spoken voice only — no sound effects (no clapping, tapping, typing, or Foley SFX).",
+      );
+    const hasInlineTalkingChoreography =
+      /with continuous lip-sync|口型跟住講/.test(body) &&
+      /changing shape every 1–2 seconds|每 1–2 秒換一個手勢/.test(body);
+    if (hasInlineTalkingChoreography) {
+      body = body.replace(
+        /\n\nThis clip is on-camera speech, like a real person recording a reel[\s\S]*?Camera locked\./g,
+        "",
+      );
+    }
+    const motionRule = hasInlineTalkingChoreography
+      ? COMPACT_TALKING_MOTION_LOCK
+      : talkingVideoMotionRules(shot, performance);
+    for (const lock of [DIALOGUE_SPEAK_LOCK, motionRule]) {
       if (lock && !body.includes(lock)) body = `${body}\n\n${lock}`;
+    }
+    const topLock = talkingSpeakerSpeechLock(spokenLine ?? "", voiceOptions);
+    if (topLock && !body.includes(topLock)) {
+      body = `${topLock}\n\n${body}`;
     }
     return body;
   }

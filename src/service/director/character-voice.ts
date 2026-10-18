@@ -67,10 +67,12 @@ export function dialogueVoiceLock(
   const fallback = missing.length
     ? `Unlocked (${missing.join(", ")}): ${unlockedLock || "use the project voice lock verbatim. Do not invent a timbre from the look."}`
     : "Do not invent a timbre for a locked speaker.";
-  const firstVoice = options?.keepNarrator ? firstLockedCharacterVoice(cast) : undefined;
+  const firstVoice = firstLockedCharacterVoice(cast);
   const oppositeGender = firstVoice ? (firstVoice.gender === "female" ? "male" : "female") : undefined;
   const narratorLine = firstVoice
-    ? `The unseen off-screen narrator MUST use this exact ${firstVoice.gender} voice timbre (${characterVoiceTimbre(firstVoice)}); never switch to a ${oppositeGender} voice.`
+    ? options?.keepNarrator
+      ? `The unseen off-screen narrator MUST use this exact ${firstVoice.gender} voice timbre (${characterVoiceTimbre(firstVoice)}); never switch to a ${oppositeGender} voice.`
+      : `The on-screen speaker MUST use this exact ${firstVoice.gender} voice timbre (${characterVoiceTimbre(firstVoice)}); never switch to a ${oppositeGender} voice.`
     : "";
   const preamble = options?.keepNarrator
     ? "Copy each voice lock verbatim. Same accent as the spoken language. Change only emotion or volume."

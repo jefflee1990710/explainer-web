@@ -188,10 +188,11 @@ export async function runPhaseBForClip(
   const lock = phaseBAudioLock({
     voiceGender: input.voiceGender,
     languageLabel: language.label,
-    bansNarration: skillBansNarration(input.skill.slug),
+    bansNarration: skillBansNarration(input.skill.slug) || talkingHead,
     speechPace: input.speechPace,
     speakers: input.cast,
     silent: isOutfitReelSkill(input.skill.slug),
+    noSfx: talkingHead,
   });
   const row = input.phaseA.clips.find((clip) => clip.clipNumber === input.clipNumber);
   // Overlay-era talking-head stills say "no extra writing" and have no Subtitle sentence.

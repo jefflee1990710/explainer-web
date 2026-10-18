@@ -3,19 +3,23 @@ import { test } from "node:test";
 import { withTalkingSubtitleHandoff } from "@/service/director/talking-subtitle-handoff";
 
 const motion =
-  '0–0.4s she stays in the exact framing of the first frame, mouth opening into this line, the large subtitle fades and slides up into place a little below the vertical center, no cut and no jump; 0.4–4.2s she speaks "Reels organic reach is insane right now," and the large subtitle holds still; 4.2–5s the mouth closes, both hands open, the large subtitle fades and slides down out; camera stays locked.\n\nSubtitle: keep this clip\'s spoken line a little below the vertical center for the whole clip. Same words, same place, from the first frame to the last.';
+  '0–0.4s she stays in the exact framing of the first frame, mouth opening into this line, the large subtitle fades and slides up into place a little below the vertical center, no cut and no jump; 0.4–4.2s she speaks "That\'s why you use Scro.io." and the large subtitle holds still; 4.2–5s the mouth closes, both hands open, the large subtitle fades and slides down out; camera stays locked. Subtitle stays a little below the vertical center, this clip\'s line only: "That\'s why you use Scro.io.". Keep the subtitle as one single block — never duplicate, stack, or draw a second copy of the subtitle line. If the opening frame still shows other words, replace them at once and do not read them. The voice says this line once and no earlier sentence.\n\nSubtitle: keep this clip\'s spoken line a little below the vertical center for the whole clip. Clear of the face and clear of the bottom edge. Do not move it to the bottom. Same words, same place, from the first frame to the last.';
 
-test("talking-head handoff swaps to the next line instead of fading the subtitle", () => {
+test("talking-head handoff swaps to the next line instead of fading the subtitle and strips conflicting single-line locks", () => {
   const out = withTalkingSubtitleHandoff(motion, {
-    line: "Reels organic reach is insane right now,",
-    nextLine: "but who has time to script and edit every day?",
+    line: "That's why you use Scro.io.",
+    nextLine: "It turns your raw marketing ideas into professional Reel clips.",
     language: "en",
   });
   assert.doesNotMatch(out, /fades and slides up into place/);
   assert.doesNotMatch(out, /fades and slides down out/);
+  assert.doesNotMatch(out, /this clip's line only:/);
+  assert.doesNotMatch(out, /If the opening frame still shows other words/);
+  assert.doesNotMatch(out, /keep this clip's spoken line [^\n]* for the whole clip/);
   assert.match(out, /already sits in place a little below the vertical center/);
-  assert.match(out, /slides and fades into the next subtitle "but who has time to script and edit every day\?"/);
+  assert.match(out, /slides and fades into the next subtitle "It turns your raw marketing ideas into professional Reel clips\."/);
   assert.match(out, /words change to the next clip's line only in the last moment/);
+  assert.match(out, /never hide, blank out, or erase the subtitle mid-clip/i);
   assert.match(out, /Never redraw it as a plain white caption/);
   assert.match(out, /never speaks the next subtitle/);
   // Re-sending the same prompt does not stack the lock twice.
@@ -23,9 +27,10 @@ test("talking-head handoff swaps to the next line instead of fading the subtitle
 });
 
 test("last talking-head clip holds its own subtitle to the end", () => {
-  const out = withTalkingSubtitleHandoff(motion, { line: "Reels organic reach is insane right now,", language: "en" });
+  const out = withTalkingSubtitleHandoff(motion, { line: "That's why you use Scro.io.", language: "en" });
   assert.doesNotMatch(out, /fades and slides down out/);
   assert.doesNotMatch(out, /next subtitle/);
+  assert.doesNotMatch(out, /If the opening frame still shows other words/);
   assert.match(out, /, and the large subtitle holds;/);
   assert.match(out, /Same words, same place, from the first frame to the last\./);
 });

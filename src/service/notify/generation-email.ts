@@ -36,16 +36,9 @@ export async function notifyGenerationFinished(jobId: ObjectId) {
   const job = await jobs.findOne({ _id: jobId });
   if (!job || job.status !== "completed") return;
 
-  // Pair stills: wait until start + end are both done, then send one mail.
+  // Every completed frame sends a notice immediately.
   if (job.kind === "frame") {
-    const sibling = await jobs.findOne({
-      projectId: job.projectId,
-      kind: "frame",
-      clipIndex: job.clipIndex,
-      framePosition: job.framePosition === "start" ? "end" : "start",
-      status: "completed",
-    });
-    if (!sibling) return;
+    // no sibling check needed
   }
 
   const copy = await emailCopyFor(job);

@@ -83,22 +83,27 @@ test("assertClipKeyframes refuses a missing end file", () => {
   );
 });
 
-test("clipFrameAnchor: end locks to this clip's completed start, or Clip 1 when anchorToFirstClip is set", () => {
+test("clipFrameAnchor: end locks to this clip's completed start first, falling back to Clip 1 when anchorToFirstClip is set", () => {
   const frames = [
     frame("start", { clipNumber: 1, blobUrl: "clip1-start" }),
     frame("end", { clipNumber: 1, blobUrl: "clip1-end" }),
-    frame("start", { clipNumber: 4, blobUrl: "clip3-end" }),
+    frame("start", { clipNumber: 4, blobUrl: "clip4-start" }),
     frame("end", { clipNumber: 4, status: "queued" }),
+    frame("end", { clipNumber: 7, status: "queued" }),
   ];
   assert.deepEqual(clipFrameAnchor(frames, 1, "end"), {
     url: "clip1-start",
     kind: "clip-start",
   });
   assert.deepEqual(clipFrameAnchor(frames, 4, "end"), {
-    url: "clip3-end",
+    url: "clip4-start",
     kind: "clip-start",
   });
   assert.deepEqual(clipFrameAnchor(frames, 4, "end", { anchorToFirstClip: true }), {
+    url: "clip4-start",
+    kind: "clip-start",
+  });
+  assert.deepEqual(clipFrameAnchor(frames, 7, "end", { anchorToFirstClip: true }), {
     url: "clip1-start",
     kind: "clip-start",
   });

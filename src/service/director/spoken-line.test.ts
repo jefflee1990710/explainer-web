@@ -118,6 +118,51 @@ test("lockDialogueSpeech adds lip-sync rules for talking-head directors only", (
   assert.equal(lockDialogueSpeech(locked, "full-body-talking-head-director"), locked);
 });
 
+test("lockDialogueSpeech for talking-head locks on-screen female voice at the top, strips narrator/SFX contradictions, and deduplicates motion rules under 6800 chars", () => {
+  const line = "That's why you use Scro.io.";
+  const speakers = [
+    {
+      name: "Scro",
+      voice: {
+        gender: "female" as const,
+        age: "young-adult" as const,
+        pitch: "mid-high" as const,
+        resonance: "mixed" as const,
+        texture: "soft" as const,
+        weight: "light" as const,
+        note: "airy and quiet delivery",
+      },
+    },
+  ];
+  const fullMotion =
+    '0–0.4s she stays in the exact framing; 0–4.2s she speaks "That\'s why you use Scro.io." with continuous lip-sync, a live real-person face — a warm, chatty smile with a hint of teeth, changing shape every 1–2 seconds in time with the words.\n\nCopy each voice lock verbatim.\nScro: young adult female, mid-high, mixed, soft, light, airy and quiet delivery.\nThe unseen off-screen narrator MUST use this exact female voice timbre (young adult female, mid-high, mixed, soft, light, airy and quiet delivery); never switch to a male voice.\nSpoken audio and short synced SFX only.\n\nOn-screen characters MUST speak the dialogue aloud with visible mouth movement. No off-screen narrator. If a line is NAME: "text", that named character in the frame says it. A silent beat stays silent.\n\nThis clip is on-camera speech, like a real person recording a reel, not a snap action and not a frozen pose. On-camera speech like a real person filming a vertical reel on a phone: eyes stay locked on the lens the whole time, talking to one friend, never a news-anchor statue. ' +
+    "x ".repeat(1200) +
+    "Camera locked.";
+  const locked = lockDialogueSpeech(
+    fullMotion,
+    "talking-head-director",
+    line,
+    ["Scro"],
+    undefined,
+    { voiceGender: "female", speakers },
+  );
+  assert.match(
+    locked,
+    /^ON-SCREEN SPEECH REQUIRED \(young adult female, mid-high, mixed, soft, light, airy and quiet delivery — never switch to a male voice, no off-screen narrator, no sound effects\): from 0s the character on screen speaks aloud with continuous visible lip-sync: "That's why you use Scro\.io\."\./,
+  );
+  assert.doesNotMatch(locked, /unseen off-screen narrator/i);
+  assert.doesNotMatch(locked, /short synced SFX/i);
+  assert.match(locked, /no sound effects \(no clapping, tapping, typing, or Foley SFX\)/i);
+  assert.ok(locked.length < 4000, `expected deduplicated prompt < 4000 chars, got ${locked.length}`);
+  assert.equal(
+    lockDialogueSpeech(locked, "talking-head-director", line, ["Scro"], undefined, {
+      voiceGender: "female",
+      speakers,
+    }),
+    locked,
+  );
+});
+
 test("DIALOGUE_SPEAK_LOCK tells MiniMax the on-screen character speaks", () => {
   assert.match(DIALOGUE_SPEAK_LOCK, /On-screen characters MUST speak/);
   assert.match(DIALOGUE_SPEAK_LOCK, /visible mouth/);

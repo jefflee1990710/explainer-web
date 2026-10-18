@@ -281,6 +281,12 @@ test("a long talking-head line becomes short clips, and both hands stay free", (
   assert.match(clips[1].startScene, /LARGE/);
   assert.match(clips[1].motionCamera, /fades and slides up/);
   assert.match(clips[1].motionCamera, /fades and slides down out/);
+  for (const clip of clips) {
+    assert.match(clip.startScene, /eyes (?:locked (?:into|on)|on) the lens/);
+    assert.match(clip.endScene, /eyes (?:locked (?:into|on)|on) the lens/);
+    assert.doesNotMatch(clip.startScene, /looking down at her gesturing hands|glancing upward-left|looking off-camera|two fingers/);
+    assert.doesNotMatch(clip.endScene, /looking down at her gesturing hands|glancing upward-left|looking off-camera|two fingers/);
+  }
 });
 
 test("talking-head evens word count and keeps a named shot", () => {

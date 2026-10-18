@@ -121,3 +121,33 @@ test("finalizePhaseBPrompt appends the audio lock once", () => {
   const twice = finalizePhaseBPrompt(once, lock);
   assert.equal(twice.split(NO_BGM_RULE).length - 1, 1);
 });
+
+test("talking-head Phase B lock locks the on-screen speaker gender/timbre and forbids Foley SFX", () => {
+  const lock = phaseBAudioLock({
+    voiceGender: "female",
+    languageLabel: "English",
+    bansNarration: true,
+    noSfx: true,
+    speakers: [
+      {
+        name: "Scro",
+        voice: {
+          gender: "female",
+          age: "young-adult",
+          pitch: "mid-high",
+          resonance: "mixed",
+          texture: "soft",
+          weight: "light",
+          note: "airy and quiet delivery",
+        },
+      },
+    ],
+  });
+  assert.match(
+    lock,
+    /The on-screen speaker MUST use this exact female voice timbre \(young adult female, mid-high, mixed, soft, light, airy and quiet delivery\); never switch to a male voice/,
+  );
+  assert.doesNotMatch(lock, /unseen off-screen narrator/i);
+  assert.doesNotMatch(lock, /short synced SFX/i);
+  assert.match(lock, /no sound effects \(no clapping, tapping, typing, or Foley SFX\)/i);
+});

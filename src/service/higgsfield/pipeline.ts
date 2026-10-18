@@ -751,6 +751,9 @@ export async function applyJobStatus(input: {
             $unset: { error: "" },
           },
     );
+    if (status === "completed" && outputUrl) {
+      scheduleGenerationFinishedEmail(job._id);
+    }
     return;
   }
 
@@ -773,6 +776,9 @@ export async function applyJobStatus(input: {
             $unset: { error: "" },
           },
     );
+    if (status === "completed" && outputUrl) {
+      scheduleGenerationFinishedEmail(job._id);
+    }
     return;
   }
 
@@ -794,6 +800,9 @@ export async function applyJobStatus(input: {
             $unset: { error: "" },
           },
     );
+    if (status === "completed" && outputUrl) {
+      scheduleGenerationFinishedEmail(job._id);
+    }
     return;
   }
 
@@ -825,6 +834,9 @@ export async function applyJobStatus(input: {
       const lockProject = await (await videosCollection()).findOne({ _id: job.projectId });
       if (lockProject) await refundCredits(lockProject.clerkUserId, FRAME_COST);
     }
+    if (status === "completed" && outputUrl) {
+      scheduleGenerationFinishedEmail(job._id);
+    }
     return;
   }
 
@@ -846,6 +858,9 @@ export async function applyJobStatus(input: {
             $unset: { error: "" },
           },
     );
+    if (status === "completed" && outputUrl) {
+      scheduleGenerationFinishedEmail(job._id);
+    }
     return;
   }
 
@@ -868,6 +883,9 @@ export async function applyJobStatus(input: {
             $unset: { error: "" },
           },
     );
+    if (status === "completed" && outputUrl) {
+      scheduleGenerationFinishedEmail(job._id);
+    }
     return;
   }
 
@@ -890,6 +908,9 @@ export async function applyJobStatus(input: {
             $unset: { error: "" },
           },
     );
+    if (status === "completed" && outputUrl) {
+      scheduleGenerationFinishedEmail(job._id);
+    }
     return;
   }
 
@@ -912,6 +933,9 @@ export async function applyJobStatus(input: {
             $unset: { error: "" },
           },
     );
+    if (status === "completed" && outputUrl) {
+      scheduleGenerationFinishedEmail(job._id);
+    }
     return;
   }
 

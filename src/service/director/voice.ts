@@ -46,6 +46,9 @@ export const VOICE_IDS = Object.keys(VOICE_PRESETS) as VoiceGender[];
 export const NO_BGM_RULE =
   "No background music, no BGM, no musical score, no underscore. Spoken audio and short synced SFX only.";
 
+export const NO_BGM_NO_SFX_RULE =
+  "No background music, no BGM, no musical score, no underscore, and no sound effects (no clapping, tapping, typing, or Foley SFX). Clean spoken voice only.";
+
 export function isVoiceGender(value: string): value is VoiceGender {
   return VOICE_IDS.includes(value as VoiceGender);
 }
@@ -86,10 +89,12 @@ export function phaseBAudioLock(input: {
   speechPace?: string;
   speakers?: NamedVoice[];
   silent?: boolean;
+  noSfx?: boolean;
 }) {
   if (input.silent) {
     return `No spoken words, no voiceover, no narrator, and no lip-sync. ${NO_BGM_RULE}`;
   }
+  const bgmRule = input.noSfx ? NO_BGM_NO_SFX_RULE : NO_BGM_RULE;
   const pace = `Speaking pace on every clip: ${speechPaceDelivery(input.speechPace)}.`;
   const voice = projectVoice(input.voiceGender);
   const projectFingerprint = `adult ${voice.en}, ${voice.fingerprint}`;
@@ -104,7 +109,7 @@ export function phaseBAudioLock(input: {
     : input.bansNarration
       ? `There is no narrator. Every named speaker uses this voice lock verbatim: ${projectFingerprint} Do not invent a timbre from the frames or the look. The same NAME keeps this voice on every clip. ${DIALOGUE_SPEAK_LOCK}`
       : projectLock;
-  return `${speaker} ${pace} ${NO_BGM_RULE}`;
+  return `${speaker} ${pace} ${bgmRule}`;
 }
 
 export function finalizePhaseBPrompt(prompt: string, lock: string) {
