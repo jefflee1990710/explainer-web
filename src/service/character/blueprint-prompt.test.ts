@@ -156,8 +156,8 @@ test("blueprint ground stays light and contrasts with the outfit", () => {
     description: "a woman in a black dress",
     photoCount: 1,
   });
-  assert.match(portrait, /soft 45-degree directional window key light/);
-  assert.match(portrait, /gentle 2:1 portrait contrast ratio/);
+  assert.match(portrait, /1\.15:1 portrait contrast ratio/);
+  assert.match(portrait, /10–15% shadow falloff/);
   assert.match(portrait, /85mm portrait lens at f\/1\.8/);
   assert.match(portrait, /skin pores/);
   assert.match(portrait, /subtle film grain/);

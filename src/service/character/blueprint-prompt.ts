@@ -25,11 +25,11 @@ function characterBlueprintStyleLines(style: RenderableStyle) {
     look: style.look
       .replace(
         /sculpted by[^.]+?\([^)]+\),\s*/i,
-        "sculpted by soft 45-degree directional window key light with a gentle 2:1 portrait contrast ratio (soft light-to-shadow falloff across the cheekbone and nose bridge that highlights skin pores and micro-relief while keeping both eyes open and readable), ",
+        "sculpted by soft diffused three-quarter window daylight with a gentle 1.15:1 portrait contrast ratio (only a subtle 10–15% shadow falloff with generous fill light that highlights skin pores and micro-relief while keeping both cheeks and both eyes bright and open), ",
       ),
     palette:
       style.palette.length > 100
-        ? "rich daylight skin tones and natural 2:1 contrast on Kodak Gold 200 film stock (warm-neutral key light on skin with soft cool-neutral shadow falloff)"
+        ? "rich daylight skin tones and gentle 10–15% contrast on Kodak Gold 200 film stock (warm-neutral key light on skin with soft bright fill)"
         : style.palette,
   });
 }
