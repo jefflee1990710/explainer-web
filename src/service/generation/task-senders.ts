@@ -162,21 +162,11 @@ async function sendVideo(project: Project, clipNumber: number) {
     );
   }
   const clip = project.clips.find((item) => item.clipNumber === clipNumber);
-  if (clip?.prompt) {
+  if (clip?.prompt && !isTalkingHeadSkill(project.skillSlug)) {
     const story = project.phaseA?.clips.find((item) => item.clipNumber === clipNumber);
-    const prompt =
-      isTalkingHeadSkill(project.skillSlug) &&
-      !storyboardAsksForSubtitle(story?.startScene, story?.endScene, story?.explainerScene)
-        ? dropInventedSubtitleLock(clip.prompt)
-        : clip.prompt;
-    if (prompt !== clip.prompt) {
-      const projects = await videosCollection();
-      await projects.updateOne(
-        { _id: project._id },
-        { $set: { "clips.$[clip].prompt": prompt, updatedAt: new Date() } },
-        { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
-      );
-    }
+    const prompt = !storyboardAsksForSubtitle(story?.startScene, story?.endScene, story?.explainerScene)
+      ? dropInventedSubtitleLock(clip.prompt)
+      : clip.prompt;
     return sendClipVideo(project, clipNumber, {
       clipNumber,
       prompt,

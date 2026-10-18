@@ -12,7 +12,7 @@ test("realistic talking-head stills carry light source, skin detail, and foregro
     for (const scene of [clip.startScene, clip.endScene]) {
       assert.match(scene, /Light source: .*rim light/);
       assert.match(scene, /Skin: visible pores/);
-      assert.match(scene, /Depth: one soft, out-of-focus foreground element/);
+      assert.match(scene, /Depth: natural shallow depth of field/);
       // Subtitle stays last so the clip 2+ subtitle swap keeps the realism clause.
       assert.ok(scene.indexOf("Realism:") < scene.indexOf("Subtitle:"));
     }
@@ -56,5 +56,5 @@ test("Cantonese realistic stills use the Cantonese realism clause", () => {
 
 test("full-body realism keeps the foreground off the body", () => {
   const clips = planTalkingHeadClips({ source: SCRIPT, language: "en", shot: "full-body", realistic: true });
-  assert.match(clips[0].startScene, /never covering the body or the subtitle/);
+  assert.match(clips[0].startScene, /no foreground objects blocking any corner/);
 });

@@ -194,12 +194,12 @@ function compositionLockLines(
   if (tightLock) {
     return [
       `COMPOSITION LOCK: ${source}.`,
-      "Keep the same camera, crop, distance, set, lighting, and character identity.",
-      "Do not zoom or reframe the camera. No jump.",
-      "Preserve the attached frame's exact room architecture, window and bookshelf sides, sofa, foreground objects, directional window lighting, shadow falloff, exposure, color grade, skin texture, and film grain — never flip left/right, move furniture, or change the background.",
+      "Keep the exact same camera distance, focal length, crop, head-and-body scale, set, lighting, and character identity.",
+      "Do not zoom in, zoom out, or reframe the camera. No jump.",
+      "Preserve the attached frame's exact room architecture, window and bookshelf sides, sofa, floor/rug visibility, directional window lighting, shadow falloff, exposure, color grade, skin texture, and film grain — never add or remove foreground plants/leaves/objects, never flip left/right, move furniture, or change the background.",
       keepAttachedSubtitle
         ? "POSE CHANGE REQUIRED: Keep the background, camera crop, head size, and the exact on-screen subtitle strips (same words, font, colors, paper-strip width, angle, and position) locked to the attached frame, and redraw only the character's head angle, facial expression, and gesturing hands to match the Scene above. Do NOT zoom in, crop closer, or resize/redraw the subtitle strips. A handheld prop stays in the same hand."
-        : "POSE CHANGE REQUIRED: Keep the background and camera framing locked to the attached frame, but MUST redraw the character's head angle, gaze direction, seated torso posture, facial expression, gesturing hands, and subtitle to match the Scene above. Do NOT copy the head angle, eyeline, hand pose, or old subtitle words from the attached frame. Every subtitle strip must contain words (never leave a blank empty strip). A handheld prop stays in the same hand.",
+        : "POSE CHANGE REQUIRED: Keep the background, camera crop, and character scale locked to the attached frame, and redraw only the character's head angle, gaze direction, seated torso posture, facial expression, gesturing hands, and subtitle to match the Scene above. Do NOT copy the head angle, eyeline, hand pose, or old subtitle words from the attached frame, and do NOT add any new foreground plant or object in the corners. Every subtitle strip must contain words (never leave a blank empty strip). A handheld prop stays in the same hand.",
     ];
   }
   if (followMotion) {
@@ -382,7 +382,7 @@ function fitFramePrompt(
       scene: p.scene
         .replace(
           /\s*Realism:\s*[\s\S]*?(?=\s*(?:Subtitle:|字幕：)|$)/,
-          " Realism: key and rim light strictly from the window side (camera-right), lighting the camera-right cheek while the camera-left cheek (bookshelf side) is in deep negative-fill shadow (35%+ darker, dark nose-bridge shadow, zero front fill, no blueprint light); soft overcast window below clipping, visible pores, peach-fuzz, 35mm grain, soft foreground edge.",
+          " Realism: key and rim light strictly from the window side (camera-right), lighting the camera-right cheek while the camera-left cheek (bookshelf side) is in deep negative-fill shadow (35%+ darker, dark nose-bridge shadow, zero front fill, no blueprint light); soft overcast window below clipping, visible pores, peach-fuzz, 35mm grain, soft background bokeh (no foreground obstructions).",
         )
         .trim(),
     }),

@@ -44,11 +44,15 @@ export function withTalkingSubtitleHandoff(
   }
   const handedOff = /slides and fades into the next subtitle/.test(prompt);
   const landing = next && !handedOff
-    ? `, and in the last moment the subtitle slides and fades into the next subtitle "${next}", so the last frame shows only that next line`
+    ? `, smoothly and continuously transitioning her head, expression, and hands into the final frame's pose while the subtitle slides and fades into the next subtitle "${next}" without any abrupt jump cut or frame skip`
     : handedOff
       ? ""
       : ", and the large subtitle holds";
   let body = prompt
+    .replace(
+      /0–0\.4s she stays in the exact framing of the first frame([^;]*);\s*0\.4–/gi,
+      "0–0.4s she stays in the exact framing of the first frame$1 (never holding the first frame frozen); 0–",
+    )
     .replace(/the large subtitle fades and slides up into place /g, "the large subtitle already sits in place ")
     .replace(/, the large subtitle fades and slides down out/g, landing)
     .replace(/\s*If the opening frame still shows other words, replace them at once and do not read them\./g, "");
