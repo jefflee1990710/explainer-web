@@ -315,12 +315,6 @@ export function OpenCutDirectDesk({
         setBooting(false);
         setEditorEpoch((epoch) => epoch + 1);
         beginSync();
-        // Properties reads this store even when the timeline was restored without clip numbers.
-        channel.postToEditor({
-          type: "scro-videos-state",
-          videoId: project.id,
-          clips: seedClipsRef.current,
-        });
         postCatalog();
         channel.postToEditor({
           type: "scro-clip-menu-state",
@@ -427,32 +421,12 @@ export function OpenCutDirectDesk({
         setBooting(false);
         syncedRef.current = true;
         prevSeedRef.current = seedClipsRef.current;
-        // Full storyboard first. Per-clip updates then load one by one with progress.
+        // Reconcile restored timeline against the latest storyboard/video URLs.
         channel.postToEditor({
           type: "scro-videos-state",
           videoId: project.id,
           clips: seedClipsRef.current,
         });
-        void (async () => {
-          const list = seedClipsRef.current;
-          const total = list.length;
-          for (let index = 0; index < list.length; index++) {
-            if (cancel) return;
-            const clip = list[index];
-            setLoadProgress({
-              current: index + 1,
-              total,
-              label: clip.name,
-            });
-            channel.postToEditor({
-              type: "scro-clip-updated",
-              videoId: project.id,
-              clip,
-            });
-            await new Promise((resolve) => setTimeout(resolve, 120));
-          }
-          if (!cancel) setLoadProgress(null);
-        })();
         return;
       }
       if (data?.type === "scro-project-save") void persist(data as SaveMessage);
@@ -480,17 +454,7 @@ export function OpenCutDirectDesk({
   }, [project.aspectRatio, project.id]);
 
   useEffect(() => {
-    if (!readyRef.current) return;
-    // The editor is up before a saved cut finishes restoring. Publish the
-    // storyboard anyway so a recreate can take the old videos off first.
-    if (!syncedRef.current) {
-      host.postToEditor({
-        type: "scro-videos-state",
-        videoId: project.id,
-        clips: seedClips,
-      });
-      return;
-    }
+    if (!readyRef.current || !syncedRef.current) return;
     const previous = prevSeedRef.current;
     const layout = storyboardLayoutAction({
       synced: true,

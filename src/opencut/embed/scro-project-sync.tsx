@@ -168,6 +168,8 @@ export function ScroProjectSync() {
 		};
 
 		const stopProject = editor.project.subscribe(schedule);
+		const stopScenes = editor.scenes.subscribe(schedule);
+		const stopTimeline = editor.timeline.subscribe(schedule);
 		const stopMedia = editor.media.subscribe(schedule);
 		window.addEventListener("scro-sync-arm", onArm);
 
@@ -180,6 +182,8 @@ export function ScroProjectSync() {
 		return () => {
 			window.clearTimeout(timer);
 			stopProject();
+			stopScenes();
+			stopTimeline();
 			stopMedia();
 			window.removeEventListener("scro-sync-arm", onArm);
 			stopMessages();
@@ -192,12 +196,11 @@ export function ScroProjectSync() {
 			const localTime = local?.metadata.updatedAt.getTime() ?? 0;
 			if (local && hasTimeline(local) && localTime > remoteTime) {
 				await applyScroCanvasSize(editor, data.aspectRatio);
-				armed.current = true;
-				postSave();
 				sendToScro(
 					{ type: "scro-restore-done", sourceUrls: Object.values(readClipSources(data.videoId)) },
 					replyOrigin,
 				);
+				armScroSync();
 				return;
 			}
 
@@ -213,10 +216,9 @@ export function ScroProjectSync() {
 					if (item.sourceUrl) seen.add(item.sourceUrl);
 				}
 				writeSeen(data.videoId, seen);
-				// Load project structure first so the editor shows immediately, then load media one by one.
+				// Load project structure first, then save any missing media assets and reload media once.
 				await storageService.saveProject({ project: asProject(data.project) });
-				await editor.project.loadProject({ id: projectId });
-				await applyScroCanvasSize(editor, data.aspectRatio);
+				let savedAnyMedia = false;
 				for (let index = 0; index < items.length; index++) {
 					const item = items[index];
 					sendToScro(
@@ -241,8 +243,11 @@ export function ScroProjectSync() {
 						projectId,
 						mediaAsset: { ...asset, id: item.id },
 					});
-					await editor.project.loadProject({ id: projectId });
+					savedAnyMedia = true;
 				}
+				await editor.project.loadProject({ id: projectId });
+				await applyScroCanvasSize(editor, data.aspectRatio);
+				void savedAnyMedia;
 				if (items.length > 0) {
 					sendToScro(
 						{

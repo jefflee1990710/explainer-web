@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import useDeepCompareEffect from "use-deep-compare-effect";
 import { useEditor } from "@/opencut/editor/use-editor";
 import { useRafLoop } from "@/opencut/hooks/use-raf-loop";
 import { useContainerSize } from "@/opencut/hooks/use-container-size";
@@ -135,7 +134,7 @@ function RenderTreeController() {
 
 	const { width, height } = usePreviewSize();
 
-	useDeepCompareEffect(() => {
+	useEffect(() => {
 		if (!activeProject) return;
 
 		const duration = editor.timeline.getTotalDuration();
@@ -149,7 +148,7 @@ function RenderTreeController() {
 		});
 
 		editor.renderer.setRenderTree({ renderTree });
-	}, [tracks, mediaAssets, activeProject?.settings.background, width, height]);
+	}, [editor, tracks, mediaAssets, activeProject, width, height]);
 
 	return null;
 }
