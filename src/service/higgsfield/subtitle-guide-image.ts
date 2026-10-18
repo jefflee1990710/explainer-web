@@ -127,38 +127,145 @@ function fontSizeForLine(line: string): number {
   return 32;
 }
 
+type GuideLookPalette = {
+  bg: string;
+  strip1Bg: string;
+  strip1Text: string;
+  strip2Bg: string;
+  strip2Text: string;
+  stroke?: string;
+};
+
+const GUIDE_LOOK_PALETTES: Record<SubtitleLook, GuideLookPalette> = {
+  clean: {
+    bg: "#f4f4f0",
+    strip1Bg: "#141414",
+    strip1Text: "#ffffff",
+    strip2Bg: "#5ce65c",
+    strip2Text: "#111111",
+  },
+  bold: {
+    bg: "#f4f4f0",
+    strip1Bg: "#141414",
+    strip1Text: "#ffffff",
+    strip2Bg: "#ffe14d",
+    strip2Text: "#111111",
+  },
+  handwritten: {
+    bg: "#ffffff",
+    strip1Bg: "#141414",
+    strip1Text: "#ffffff",
+    strip2Bg: "#141414",
+    strip2Text: "#ffe14d",
+  },
+  neon: {
+    bg: "#0b0b12",
+    strip1Bg: "#121324",
+    strip1Text: "#00f0ff",
+    strip2Bg: "#121324",
+    strip2Text: "#ff4dff",
+  },
+  comic: {
+    bg: "#ffffff",
+    strip1Bg: "#141414",
+    strip1Text: "#ffe14d",
+    strip2Bg: "#141414",
+    strip2Text: "#ffe14d",
+    stroke: "#000000",
+  },
+  chalk: {
+    bg: "#1b3b2b",
+    strip1Bg: "#1b3b2b",
+    strip1Text: "#f7f7f2",
+    strip2Bg: "#1b3b2b",
+    strip2Text: "#f7f7f2",
+  },
+  gold: {
+    bg: "#0d0d0d",
+    strip1Bg: "#141414",
+    strip1Text: "#f5c84c",
+    strip2Bg: "#141414",
+    strip2Text: "#f5c84c",
+  },
+  typewriter: {
+    bg: "#f6f0dd",
+    strip1Bg: "#f6f0dd",
+    strip1Text: "#181818",
+    strip2Bg: "#f6f0dd",
+    strip2Text: "#181818",
+  },
+  graffiti: {
+    bg: "#d8d8d8",
+    strip1Bg: "#1c1c1c",
+    strip1Text: "#ff2e93",
+    strip2Bg: "#1c1c1c",
+    strip2Text: "#ff2e93",
+    stroke: "#000000",
+  },
+  sticker: {
+    bg: "#dceeff",
+    strip1Bg: "#ffffff",
+    strip1Text: "#e6192e",
+    strip2Bg: "#ffffff",
+    strip2Text: "#e6192e",
+  },
+  glitch: {
+    bg: "#0a0a0f",
+    strip1Bg: "#12121a",
+    strip1Text: "#ffffff",
+    strip2Bg: "#12121a",
+    strip2Text: "#00f0ff",
+  },
+  brush: {
+    bg: "#f7f3eb",
+    strip1Bg: "#f7f3eb",
+    strip1Text: "#111111",
+    strip2Bg: "#f7f3eb",
+    strip2Text: "#111111",
+  },
+  outline: {
+    bg: "#e9ecef",
+    strip1Bg: "#ffffff",
+    strip1Text: "#102a56",
+    strip2Bg: "#ffffff",
+    strip2Text: "#102a56",
+  },
+};
+
 export function renderSubtitleGuideSvg(input: { line: string; look?: SubtitleLook | string | null }): string {
   const lines = splitSubtitleGuideLines(input.line);
   const look = resolveSubtitleLook(input.look);
+  const palette = GUIDE_LOOK_PALETTES[look];
   const line1 = lines[0] || "";
   const line2 = lines[1] || "";
   const size1 = fontSizeForLine(line1);
   const size2 = line2 ? fontSizeForLine(line2) : size1;
   const fontSize = Math.min(size1, size2);
+  const strokeAttr = palette.stroke ? ` stroke="${palette.stroke}" stroke-width="2" paint-order="stroke"` : "";
 
-  if (look === "clean" && line2) {
+  if ((look === "clean" || look === "bold") && line2) {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${GUIDE_WIDTH}" height="${GUIDE_HEIGHT}" viewBox="0 0 ${GUIDE_WIDTH} ${GUIDE_HEIGHT}">
-  <rect width="${GUIDE_WIDTH}" height="${GUIDE_HEIGHT}" fill="#f4f4f0"/>
-  <rect x="48" y="52" width="864" height="114" rx="6" fill="#141414"/>
-  <text x="480" y="126" text-anchor="middle" font-family="${FONT_FAMILY}" font-weight="800" font-size="${fontSize}" fill="#ffffff">${escapeXml(line1)}</text>
-  <rect x="36" y="186" width="888" height="114" rx="6" fill="#5ce65c"/>
-  <text x="480" y="260" text-anchor="middle" font-family="${FONT_FAMILY}" font-weight="800" font-size="${fontSize}" fill="#111111">${escapeXml(line2)}</text>
+  <rect width="${GUIDE_WIDTH}" height="${GUIDE_HEIGHT}" fill="${palette.bg}"/>
+  <rect x="48" y="52" width="864" height="114" rx="6" fill="${palette.strip1Bg}"/>
+  <text x="480" y="126" text-anchor="middle" font-family="${FONT_FAMILY}" font-weight="800" font-size="${fontSize}" fill="${palette.strip1Text}"${strokeAttr}>${escapeXml(line1)}</text>
+  <rect x="36" y="186" width="888" height="114" rx="6" fill="${palette.strip2Bg}"/>
+  <text x="480" y="260" text-anchor="middle" font-family="${FONT_FAMILY}" font-weight="800" font-size="${fontSize}" fill="${palette.strip2Text}"${strokeAttr}>${escapeXml(line2)}</text>
 </svg>`;
   }
 
   if (line2) {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${GUIDE_WIDTH}" height="${GUIDE_HEIGHT}" viewBox="0 0 ${GUIDE_WIDTH} ${GUIDE_HEIGHT}">
-  <rect width="${GUIDE_WIDTH}" height="${GUIDE_HEIGHT}" fill="#ffffff"/>
-  <rect x="36" y="44" width="888" height="272" rx="12" fill="#141414"/>
-  <text x="480" y="150" text-anchor="middle" font-family="${FONT_FAMILY}" font-weight="800" font-size="${fontSize}" fill="#ffffff">${escapeXml(line1)}</text>
-  <text x="480" y="246" text-anchor="middle" font-family="${FONT_FAMILY}" font-weight="800" font-size="${fontSize}" fill="#ffe14d">${escapeXml(line2)}</text>
+  <rect width="${GUIDE_WIDTH}" height="${GUIDE_HEIGHT}" fill="${palette.bg}"/>
+  <rect x="36" y="44" width="888" height="272" rx="12" fill="${palette.strip1Bg}"/>
+  <text x="480" y="150" text-anchor="middle" font-family="${FONT_FAMILY}" font-weight="800" font-size="${fontSize}" fill="${palette.strip1Text}"${strokeAttr}>${escapeXml(line1)}</text>
+  <text x="480" y="246" text-anchor="middle" font-family="${FONT_FAMILY}" font-weight="800" font-size="${fontSize}" fill="${palette.strip2Text}"${strokeAttr}>${escapeXml(line2)}</text>
 </svg>`;
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${GUIDE_WIDTH}" height="${GUIDE_HEIGHT}" viewBox="0 0 ${GUIDE_WIDTH} ${GUIDE_HEIGHT}">
-  <rect width="${GUIDE_WIDTH}" height="${GUIDE_HEIGHT}" fill="#f4f4f0"/>
-  <rect x="48" y="110" width="864" height="140" rx="8" fill="#141414"/>
-  <text x="480" y="198" text-anchor="middle" font-family="${FONT_FAMILY}" font-weight="800" font-size="${fontSize}" fill="#ffffff">${escapeXml(line1)}</text>
+  <rect width="${GUIDE_WIDTH}" height="${GUIDE_HEIGHT}" fill="${palette.bg}"/>
+  <rect x="48" y="110" width="864" height="140" rx="8" fill="${palette.strip1Bg}"/>
+  <text x="480" y="198" text-anchor="middle" font-family="${FONT_FAMILY}" font-weight="800" font-size="${fontSize}" fill="${palette.strip1Text}"${strokeAttr}>${escapeXml(line1)}</text>
 </svg>`;
 }
 

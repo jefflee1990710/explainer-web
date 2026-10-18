@@ -22,6 +22,7 @@ import { computeDropTarget } from "@/opencut/timeline/components/drop-target";
 import { getMouseTimeFromClientX } from "@/opencut/timeline/drag-utils";
 import { fixedTransitionStart } from "@/opencut/effects/effect-timing";
 import { isTransitionElement } from "@/opencut/effects/transition-layout";
+import { canPlaceTimeSpansOnTrack } from "@/opencut/timeline/placement/overlap";
 import { generateUUID } from "@/opencut/utils/id";
 import type { SnapPoint } from "@/opencut/timeline/snapping";
 import type {
@@ -84,6 +85,10 @@ export interface ElementInteractionDeps {
 	snap: SnapConfig;
 	/** Scro clips: show the clicked element in the center preview and play it. */
 	onPreviewElement?: (element: TimelineElement) => void;
+	/** True when an element cannot be dragged/edited (e.g., ScroVideo before video is generated). */
+	isElementEditLocked?: (element: TimelineElement) => boolean;
+	/** True when an element must stay on the main track (#1) and never overlap or open a new track. */
+	isElementPinnedToMainTrack?: (element: TimelineElement) => boolean;
 }
 
 export interface ElementInteractionDepsRef {
@@ -253,6 +258,161 @@ function pinnedTransitionDropTarget({
 	};
 }
 
+function isMoveGroupEditLocked({
+	group,
+	tracks,
+	isElementEditLocked,
+}: {
+	group: MoveGroup;
+	tracks: SceneTracks;
+	isElementEditLocked?: (element: TimelineElement) => boolean;
+}): boolean {
+	if (!isElementEditLocked) return false;
+	const ordered = orderedTracks(tracks);
+	return group.members.some((member) => {
+		const track = ordered.find((item) => item.id === member.trackId);
+		const element = track?.elements.find((item) => item.id === member.elementId);
+		return element ? isElementEditLocked(element) : false;
+	});
+}
+
+function isMoveGroupPinnedToMainTrack({
+	group,
+	tracks,
+	isElementPinnedToMainTrack,
+}: {
+	group: MoveGroup;
+	tracks: SceneTracks;
+	isElementPinnedToMainTrack?: (element: TimelineElement) => boolean;
+}): boolean {
+	if (!isElementPinnedToMainTrack) return false;
+	const ordered = orderedTracks(tracks);
+	return group.members.some((member) => {
+		const track = ordered.find((item) => item.id === member.trackId);
+		const element = track?.elements.find((item) => item.id === member.elementId);
+		return element ? isElementPinnedToMainTrack(element) : false;
+	});
+}
+
+/**
+ * Clamp a main-track move group's anchor start time so it never overlaps
+ * stationary elements on the main track.
+ */
+export function clampMainTrackGroupTime({
+	group,
+	tracks,
+	originStartTime,
+	proposedStartTime,
+}: {
+	group: MoveGroup;
+	tracks: SceneTracks;
+	originStartTime: MediaTime;
+	proposedStartTime: MediaTime;
+}): MediaTime {
+	const movingIds = new Set(group.members.map((member) => member.elementId));
+	const mainElementsById = new Map(
+		tracks.main.elements.map((element) => [element.id, element] as const),
+	);
+	const mainMembers = group.members.flatMap((member) => {
+		const element = mainElementsById.get(member.elementId);
+		return element ? [{ member, element }] : [];
+	});
+	if (mainMembers.length === 0) return proposedStartTime;
+
+	const minOffset = mainMembers.reduce(
+		(min, { member }) => Math.min(min, member.timeOffset),
+		0,
+	);
+	const maxEndOffset = mainMembers.reduce(
+		(max, { member, element }) =>
+			Math.max(max, member.timeOffset + element.duration),
+		0,
+	);
+	const groupSpan = Math.max(0, maxEndOffset - minOffset);
+	const minAnchorTime = mediaTime({ ticks: Math.max(0, -minOffset) });
+	const candidateAnchorTime = maxMediaTime({
+		a: minAnchorTime,
+		b: proposedStartTime,
+	});
+
+	const stationaryTrack = {
+		elements: tracks.main.elements.filter(
+			(element) => !movingIds.has(element.id),
+		),
+	};
+	if (stationaryTrack.elements.length === 0) {
+		return minAnchorTime;
+	}
+
+	const candidateSpans = mainMembers.map(({ member, element }) => ({
+		startTime: mediaTime({ ticks: candidateAnchorTime + member.timeOffset }),
+		duration: element.duration,
+	}));
+	if (
+		canPlaceTimeSpansOnTrack({
+			track: stationaryTrack,
+			timeSpans: candidateSpans,
+		})
+	) {
+		return candidateAnchorTime;
+	}
+
+	const originGroupStart = originStartTime + minOffset;
+	const originGroupEnd = originStartTime + maxEndOffset;
+	const leftBound = stationaryTrack.elements
+		.filter((el) => el.startTime + el.duration <= originGroupStart)
+		.reduce((bound, el) => Math.max(bound, el.startTime + el.duration), 0);
+	const rightBound = stationaryTrack.elements
+		.filter((el) => el.startTime >= originGroupEnd)
+		.reduce(
+			(bound, el) => Math.min(bound, el.startTime),
+			Number.POSITIVE_INFINITY,
+		);
+
+	const maxAllowedGroupStart = Number.isFinite(rightBound)
+		? Math.max(leftBound, rightBound - groupSpan)
+		: Number.POSITIVE_INFINITY;
+	const desiredGroupStart = candidateAnchorTime + minOffset;
+	const clampedGroupStart = Math.max(
+		leftBound,
+		Math.min(desiredGroupStart, maxAllowedGroupStart),
+	);
+	return mediaTime({ ticks: Math.max(0, clampedGroupStart - minOffset) });
+}
+
+/** Keep ScroVideo elements fixed on the main track (#1) so dragging never creates an overlay track. */
+function pinnedMainTrackDropTarget({
+	group,
+	tracks,
+	snappedTime,
+	isElementPinnedToMainTrack,
+}: {
+	group: MoveGroup;
+	tracks: SceneTracks;
+	snappedTime: MediaTime;
+	isElementPinnedToMainTrack?: (element: TimelineElement) => boolean;
+}): DropTarget | null {
+	if (
+		!isMoveGroupPinnedToMainTrack({
+			group,
+			tracks,
+			isElementPinnedToMainTrack,
+		})
+	) {
+		return null;
+	}
+	const ordered = orderedTracks(tracks);
+	const trackIndex = ordered.findIndex((item) => item.id === tracks.main.id);
+	if (trackIndex < 0) return null;
+	return {
+		trackIndex,
+		isNewTrack: false,
+		insertPosition: null,
+		xPosition: snappedTime,
+		targetElement: null,
+	};
+}
+
 function resolveDropTarget({
 	clientX,
 	clientY,
@@ -312,24 +472,28 @@ function resolveGroupMoveForDrop({
 	anchorStartTime,
 	dropTarget,
 	reservedNewTrackIds,
+	allowNewTracks = true,
 }: {
 	group: MoveGroup;
 	tracks: SceneTracks;
 	anchorStartTime: MediaTime;
 	dropTarget: DropTarget;
 	reservedNewTrackIds: readonly string[];
+	allowNewTracks?: boolean;
 }): GroupMoveResult | null {
 	const newTracksFallback = () =>
-		resolveGroupMove({
-			group,
-			tracks,
-			anchorStartTime,
-			target: {
-				kind: "newTracks",
-				anchorInsertIndex: dropTarget.trackIndex,
-				newTrackIds: [...reservedNewTrackIds],
-			},
-		});
+		allowNewTracks
+			? resolveGroupMove({
+					group,
+					tracks,
+					anchorStartTime,
+					target: {
+						kind: "newTracks",
+						anchorInsertIndex: dropTarget.trackIndex,
+						newTrackIds: [...reservedNewTrackIds],
+					},
+				})
+			: null;
 
 	if (dropTarget.isNewTrack) return newTracksFallback();
 
@@ -550,9 +714,15 @@ export class ElementInteractionController {
 		drag: DragProgress;
 		snappedTime: MediaTime;
 	}): void {
-		const { scene, viewport } = this.deps;
+		const { scene, viewport, isElementPinnedToMainTrack } = this.deps;
 		const tracks = scene.getTracks();
 		const zoomLevel = viewport.getZoomLevel();
+		const pinnedMain = pinnedMainTrackDropTarget({
+			group: drag.moveGroup,
+			tracks,
+			snappedTime,
+			isElementPinnedToMainTrack,
+		});
 
 		const anchorDropTarget =
 			pinnedTransitionDropTarget({
@@ -560,6 +730,7 @@ export class ElementInteractionController {
 				tracks,
 				snappedTime,
 			}) ??
+			pinnedMain ??
 			resolveDropTarget({
 				clientX,
 				clientY,
@@ -582,12 +753,15 @@ export class ElementInteractionController {
 					anchorStartTime: snappedTime,
 					dropTarget: anchorDropTarget,
 					reservedNewTrackIds: drag.reservedNewTrackIds,
+					allowNewTracks: !pinnedMain,
 				})
 			: null;
 
 		drag.groupMoveResult = nextGroupMoveResult;
 		drag.dropTarget =
-			anchorDropTarget && (anchorDropTarget.isNewTrack || !nextGroupMoveResult)
+			!pinnedMain &&
+			anchorDropTarget &&
+			(anchorDropTarget.isNewTrack || !nextGroupMoveResult)
 				? { ...anchorDropTarget, isNewTrack: true }
 				: null;
 	}
@@ -640,15 +814,25 @@ export class ElementInteractionController {
 		const fps = this.deps.scene.getActiveFps();
 		if (!fps) return;
 
+		const tracks = this.deps.scene.getTracks();
 		const moveGroup = buildMoveGroup({
 			anchorRef: {
 				trackId: mousedown.trackId,
 				elementId: mousedown.elementId,
 			},
 			selectedElements: [...mousedown.selectedElements],
-			tracks: this.deps.scene.getTracks(),
+			tracks,
 		});
 		if (!moveGroup) return;
+		if (
+			isMoveGroupEditLocked({
+				group: moveGroup,
+				tracks,
+				isElementEditLocked: this.deps.isElementEditLocked,
+			})
+		) {
+			return;
+		}
 
 		const zoomLevel = this.deps.viewport.getZoomLevel();
 		const frameSnappedTime = frameSnappedMouseTime({
@@ -658,7 +842,6 @@ export class ElementInteractionController {
 			clickOffsetTime: mousedown.clickOffsetTime,
 			fps,
 		});
-		const tracks = this.deps.scene.getTracks();
 		const lockedTime = lockedTransitionTime({
 			elementId: mousedown.elementId,
 			trackId: mousedown.trackId,
@@ -666,13 +849,26 @@ export class ElementInteractionController {
 			tracks,
 			fps,
 		});
-		const { snappedTime, snapPoint } =
+		const rawSnap =
 			lockedTime !== null
 				? { snappedTime: lockedTime, snapPoint: null }
 				: this.snapResult({
 						frameSnappedTime,
 						group: moveGroup,
 					});
+		const snappedTime = isMoveGroupPinnedToMainTrack({
+			group: moveGroup,
+			tracks,
+			isElementPinnedToMainTrack: this.deps.isElementPinnedToMainTrack,
+		})
+			? clampMainTrackGroupTime({
+					group: moveGroup,
+					tracks,
+					originStartTime: mousedown.startElementTime,
+					proposedStartTime: rawSnap.snappedTime,
+				})
+			: rawSnap.snappedTime;
+		const snapPoint = rawSnap.snapPoint;
 
 		// Ensure the anchor is selected before we render the drag — covers the
 		// case where the selection store hasn't committed the mousedown-time
@@ -733,20 +929,34 @@ export class ElementInteractionController {
 			clickOffsetTime: mousedown.clickOffsetTime,
 			fps,
 		});
+		const tracks = this.deps.scene.getTracks();
 		const lockedTime = lockedTransitionTime({
 			elementId: mousedown.elementId,
 			trackId: mousedown.trackId,
 			proposedTime: frameSnappedTime,
-			tracks: this.deps.scene.getTracks(),
+			tracks,
 			fps,
 		});
-		const { snappedTime, snapPoint } =
+		const rawSnap =
 			lockedTime !== null
 				? { snappedTime: lockedTime, snapPoint: null }
 				: this.snapResult({
 						frameSnappedTime,
 						group: drag.moveGroup,
 					});
+		const snappedTime = isMoveGroupPinnedToMainTrack({
+			group: drag.moveGroup,
+			tracks,
+			isElementPinnedToMainTrack: this.deps.isElementPinnedToMainTrack,
+		})
+			? clampMainTrackGroupTime({
+					group: drag.moveGroup,
+					tracks,
+					originStartTime: mousedown.startElementTime,
+					proposedStartTime: rawSnap.snappedTime,
+				})
+			: rawSnap.snappedTime;
+		const snapPoint = rawSnap.snapPoint;
 
 		drag.currentTime = snappedTime;
 		drag.currentMouseX = clientX;

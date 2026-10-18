@@ -1,4 +1,6 @@
 import { useEditor } from "@/opencut/editor/use-editor";
+import { isScroClipEditLocked } from "@/opencut/embed/scro-clip-number";
+import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { useElementSelection } from "@/opencut/timeline/hooks/element/use-element-selection";
 import {
 	TooltipProvider,
@@ -90,16 +92,25 @@ function ToolbarLeftSection() {
 	const mediaAssets = useEditor((currentEditor) =>
 		currentEditor.media.getAssets(),
 	);
+	const scroVideos = useScroVideos();
 	const { selectedElements } = useElementSelection();
 	const graphEditor = useGraphEditorController();
 	const isCurrentlyBookmarked = useEditor((e) =>
 		e.scenes.isBookmarked({ time: e.playback.getCurrentTime() }),
 	);
+	const selectedElementsWithTracks = editor.timeline.getElementsWithTracks({
+		elements: selectedElements,
+	});
+	const hasEditLockedSelection = selectedElementsWithTracks.some(({ element }) =>
+		isScroClipEditLocked({
+			element,
+			assets: mediaAssets,
+			clips: scroVideos?.clips,
+		}),
+	);
 	const selectedElement =
 		selectedElements.length === 1
-			? (editor.timeline.getElementsWithTracks({
-					elements: selectedElements,
-				})[0] ?? null)
+			? (selectedElementsWithTracks[0] ?? null)
 			: null;
 	const selectedMediaAsset = (() => {
 		if (!selectedElement) {
@@ -114,6 +125,7 @@ function ToolbarLeftSection() {
 		return mediaAssets.find((asset) => asset.id === element.mediaId) ?? null;
 	})();
 	const canToggleSelectedSourceAudio =
+		!hasEditLockedSelection &&
 		!!selectedElement &&
 		canToggleSourceAudio(selectedElement.element, selectedMediaAsset);
 	const sourceAudioLabel =
@@ -145,18 +157,21 @@ function ToolbarLeftSection() {
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={ScissorIcon} />}
 					tooltip="Split element"
+					disabled={hasEditLockedSelection}
 					onClick={({ event }) => handleAction({ action: "split", event })}
 				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={AlignLeftIcon} />}
 					tooltip="Split left"
+					disabled={hasEditLockedSelection}
 					onClick={({ event }) => handleAction({ action: "split-left", event })}
 				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={AlignRightIcon} />}
 					tooltip="Split right"
+					disabled={hasEditLockedSelection}
 					onClick={({ event }) =>
 						handleAction({ action: "split-right", event })
 					}
@@ -178,6 +193,7 @@ function ToolbarLeftSection() {
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={Copy01Icon} />}
 					tooltip="Duplicate element"
+					disabled={hasEditLockedSelection}
 					onClick={({ event }) =>
 						handleAction({ action: "duplicate-selected", event })
 					}
@@ -193,6 +209,7 @@ function ToolbarLeftSection() {
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={Delete02Icon} />}
 					tooltip="Delete element"
+					disabled={hasEditLockedSelection}
 					onClick={({ event }) =>
 						handleAction({ action: "delete-selected", event })
 					}

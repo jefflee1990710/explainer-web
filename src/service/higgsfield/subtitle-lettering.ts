@@ -1,24 +1,13 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-import { videosCollection } from "@/dao";
-import type { Project, SubtitleLettering } from "@/model/project";
+import type { Project } from "@/model/project";
 import {
   resolveSubtitleLook,
   subtitleLookLine,
-  systemTextStylePreview,
 } from "@/service/director/subtitle-look";
-import {
-  hasOpenRouterKey,
-  OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
-  submitOpenRouterImage,
-} from "@/service/openrouter/generate";
-import { persistBuffer, persistMedia } from "@/service/higgsfield/persist";
 import {
   renderSubtitleGuideDataUrl,
   splitSubtitleGuideLines,
 } from "@/service/higgsfield/subtitle-guide-image";
-import { getAppUrl, isPublicHttpUrl } from "@/util/app-url";
 
 // Which lettering look a card is drawn in: a custom sample image, or a system look id.
 export type LetteringLook =
@@ -75,70 +64,20 @@ export function subtitleLetteringPromptLine(cardIndex: number, guideIndex: numbe
   return `SUBTITLE LETTERING: attached image ${cardIndex} is the finished subtitle lettering look for this still; attached image ${guideIndex} is the font-rendered spelling guide, ${layout}. Paint the subtitle into the scene at the place and size the Scene's Subtitle sentence gives, in the font, strips, colours, texture, and edges of attached image ${cardIndex}. Spell every character and line break exactly as attached image ${guideIndex}; if the two images differ in any letter, attached image ${guideIndex} wins. Do not copy attached image ${guideIndex}'s flat font or boxes, do not draw a plain white caption, and do not copy either image's background.`;
 }
 
-// System preview PNGs live in /public. A public deploy sends the URL; local dev inlines the file.
-async function systemSampleUrl(look: ReturnType<typeof resolveSubtitleLook>): Promise<string | undefined> {
-  const preview = systemTextStylePreview(look);
-  const absolute = `${getAppUrl()}${preview}`;
-  if (isPublicHttpUrl(absolute)) return absolute;
-  try {
-    const file = await readFile(path.join(process.cwd(), "public", preview));
-    return `data:image/png;base64,${file.toString("base64")}`;
-  } catch {
-    return undefined;
-  }
-}
-
-async function saveLetteringImage(imageUrl: string, pathname: string): Promise<string> {
-  if (imageUrl.startsWith("data:")) {
-    const [meta, data] = imageUrl.split(",", 2);
-    const contentType = meta.match(/^data:([^;]+)/)?.[1] || "image/png";
-    return persistBuffer(Buffer.from(data || "", "base64"), pathname, contentType);
-  }
-  return persistMedia(imageUrl, pathname);
-}
-
-// Cached card URL for this line, or a freshly drawn one. Undefined means "use the font guide":
-// no OpenRouter key, or the draw failed. The still never fails because of this card.
+// Render the subtitle lettering card locally via sharp SVG so subtitle characters and line breaks
+// are 100% accurate without an extra AI image-generation round-trip.
 export async function ensureSubtitleLetteringUrl(
   project: Pick<Project, "_id" | "subtitleLook" | "textStyleImageUrl" | "subtitleLetterings">,
   line: string,
 ): Promise<string | undefined> {
-  const look = letteringLookFor(project);
-  const key = subtitleLetteringKey(line, look);
-  const cached = project.subtitleLetterings?.find((item) => item.key === key);
-  if (cached?.url) return cached.url;
-  if (!hasOpenRouterKey()) return undefined;
-
   try {
-    const guideUrl = await renderSubtitleGuideDataUrl({
+    const look = letteringLookFor(project);
+    return await renderSubtitleGuideDataUrl({
       line,
-      look: look.kind === "system" ? look.look : undefined,
+      look: look.kind === "system" ? look.look : project.subtitleLook,
     });
-    const sampleUrl = look.kind === "custom" ? look.sampleUrl : await systemSampleUrl(look.look);
-    const submitted = await submitOpenRouterImage({
-      model: OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
-      prompt: subtitleLetteringPrompt({ line, look, hasSample: Boolean(sampleUrl) }),
-      aspectRatio: "16:9",
-      resolution: "1k",
-      referenceImageUrls: sampleUrl ? [guideUrl, sampleUrl] : [guideUrl],
-    });
-    const imageUrl = submitted.images?.[0]?.url;
-    if (submitted.status !== "completed" || !imageUrl) return undefined;
-
-    const url = await saveLetteringImage(
-      imageUrl,
-      `explainer/${project._id.toHexString()}/subtitle-lettering/${key}.png`,
-    );
-    const entry: SubtitleLettering = { key, url };
-    const projects = await videosCollection();
-    // Two stills of the same line can race; the first saved card wins and the blob path is shared.
-    await projects.updateOne(
-      { _id: project._id, "subtitleLetterings.key": { $ne: key } },
-      { $push: { subtitleLetterings: entry } },
-    );
-    return url;
   } catch (error) {
-    console.error("[subtitle-lettering] card failed, using font guide", { projectId: project._id, error });
+    console.error("[subtitle-lettering] local sharp SVG card failed", { projectId: project._id, error });
     return undefined;
   }
 }

@@ -6,7 +6,12 @@ import {
 	toElementDurationTicks,
 } from "@/opencut/timeline/creation";
 import { placementForScroMedia } from "@/opencut/embed/scro-clip-duration";
+import {
+	isScroAssetEditLocked,
+	resolveScroClipNumber,
+} from "@/opencut/embed/scro-clip-number";
 import { getScroVideos } from "@/opencut/embed/scro-video-store";
+import { findNonOverlappingMainTrackStartTime } from "@/opencut/timeline/placement";
 import { BASE_TIMELINE_PIXELS_PER_SECOND } from "@/opencut/timeline/scale";
 import type { FrameRate } from "opencut-wasm";
 import {
@@ -242,9 +247,27 @@ export class DragDropController {
 
 		const elementType = elementTypeFromDrag({ dragData });
 		const sceneTracks = this.config.getSceneTracks();
+		const mediaAssets = this.config.getMediaAssets();
+		const scroClips = getScroVideos()?.clips;
+		const draggedMediaAsset =
+			dragData.type === "media"
+				? mediaAssets.find((asset) => asset.id === dragData.id)
+				: undefined;
+		if (
+			draggedMediaAsset &&
+			isScroAssetEditLocked({ asset: draggedMediaAsset, clips: scroClips })
+		) {
+			this.setOver({ dropTarget: null, elementType: null });
+			event.dataTransfer.dropEffect = "none";
+			return;
+		}
+		const isDraggedScroMedia =
+			draggedMediaAsset != null &&
+			resolveScroClipNumber({ asset: draggedMediaAsset, clips: scroClips }) !=
+				null;
 		let duration = getDurationForDrag({
 			dragData,
-			mediaAssets: this.config.getMediaAssets(),
+			mediaAssets,
 		});
 		let targetElementTypes = getTargetElementTypesForDrag({ dragData });
 		let startTimeOverride: MediaTime | undefined;
@@ -279,7 +302,7 @@ export class DragDropController {
 			elementDuration: duration,
 			pixelsPerSecond: BASE_TIMELINE_PIXELS_PER_SECOND,
 			zoomLevel: this.config.zoomLevel,
-			targetElementTypes,
+			targetElementTypes: isDraggedScroMedia ? [] : targetElementTypes,
 			startTimeOverride,
 		});
 		const fps = this.config.getActiveProjectFps();
@@ -287,6 +310,16 @@ export class DragDropController {
 			// Keep the block on the clip edge if track placement moves x.
 			target.xPosition = startTimeOverride;
 			target.anchoredDuration = duration;
+		}
+		if (isDraggedScroMedia) {
+			target.trackIndex = sceneTracks.overlay.length;
+			target.isNewTrack = false;
+			target.targetElement = null;
+			target.xPosition = findNonOverlappingMainTrackStartTime({
+				mainTrack: sceneTracks.main,
+				requestedStartTime: target.xPosition,
+				duration,
+			});
 		}
 		target.xPosition = fps
 			? roundFrameTime({ time: target.xPosition, fps })
@@ -505,6 +538,32 @@ export class DragDropController {
 			.getMediaAssets()
 			.find((asset) => asset.id === dragData.id);
 		if (!mediaAsset) return;
+		const scroClips = getScroVideos()?.clips;
+		if (isScroAssetEditLocked({ asset: mediaAsset, clips: scroClips })) {
+			return;
+		}
+		const isScroMedia =
+			resolveScroClipNumber({ asset: mediaAsset, clips: scroClips }) != null;
+		if (isScroMedia) {
+			const sceneTracks = this.config.getSceneTracks();
+			const draft = buildDroppedMediaElement({
+				asset: mediaAsset,
+				startTime: target.xPosition,
+			});
+			const nonOverlappingStart = findNonOverlappingMainTrackStartTime({
+				mainTrack: sceneTracks.main,
+				requestedStartTime: target.xPosition,
+				duration: draft.duration,
+			});
+			this.config.insertElement({
+				placement: { mode: "explicit", trackId: sceneTracks.main.id },
+				element: {
+					...draft,
+					startTime: nonOverlappingStart,
+				},
+			});
+			return;
+		}
 
 		const trackType: TrackType =
 			dragData.mediaType === "audio" ? "audio" : "video";

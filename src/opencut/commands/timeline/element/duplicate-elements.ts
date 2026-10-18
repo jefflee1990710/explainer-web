@@ -6,9 +6,18 @@ import {
 import type { SceneTracks, TimelineElement } from "@/opencut/timeline";
 import { generateUUID } from "@/opencut/utils/id";
 import { EditorCore } from "@/opencut/core";
-import { applyPlacement, resolveTrackPlacement } from "@/opencut/timeline/placement";
+import {
+	isScroClipEditLocked,
+	isScroElement,
+} from "@/opencut/embed/scro-clip-number";
+import { getScroVideos } from "@/opencut/embed/scro-video-store";
+import {
+	applyPlacement,
+	findNonOverlappingMainTrackStartTime,
+	resolveTrackPlacement,
+} from "@/opencut/timeline/placement";
 import { cloneAnimations } from "@/opencut/animation";
-import type { MediaTime } from "@/opencut/wasm";
+import { addMediaTime, type MediaTime } from "@/opencut/wasm";
 
 interface DuplicateElementsParams {
 	elements: { trackId: string; elementId: string }[];
@@ -28,6 +37,8 @@ export class DuplicateElementsCommand extends Command {
 		const editor = EditorCore.getInstance();
 		this.savedState = editor.scenes.getActiveScene().tracks;
 		this.duplicatedElements = [];
+		const assets = editor.media.getAssets();
+		const clips = getScroVideos()?.clips;
 
 		let updatedTracks = this.savedState;
 
@@ -48,20 +59,68 @@ export class DuplicateElementsCommand extends Command {
 				elementsToDuplicate.map((element) => element.elementId),
 			);
 			const newTrackElements: TimelineElement[] = [];
+			const mainPinnedElements: TimelineElement[] = [];
 
 			for (const element of track.elements) {
 				if (!elementIdsToDuplicate.has(element.id)) {
 					continue;
 				}
+				if (isScroClipEditLocked({ element, assets, clips })) {
+					continue;
+				}
 
 				const newId = generateUUID();
-				newTrackElements.push(
-					buildDuplicateElement({
-						element,
-						id: newId,
-						startTime: element.startTime,
-					}),
-				);
+				if (isScroElement({ element, assets, clips })) {
+					mainPinnedElements.push(
+						buildDuplicateElement({
+							element,
+							id: newId,
+							startTime: addMediaTime({
+								a: element.startTime,
+								b: element.duration,
+							}),
+						}),
+					);
+				} else {
+					newTrackElements.push(
+						buildDuplicateElement({
+							element,
+							id: newId,
+							startTime: element.startTime,
+						}),
+					);
+				}
+			}
+
+			if (mainPinnedElements.length > 0) {
+				for (const element of mainPinnedElements) {
+					const startTime = findNonOverlappingMainTrackStartTime({
+						mainTrack: updatedTracks.main,
+						requestedStartTime: element.startTime,
+						duration: element.duration,
+					});
+					const placedElement = { ...element, startTime };
+					const applied = applyPlacement({
+						tracks: updatedTracks,
+						placementResult: {
+							kind: "existingTrack",
+							trackId: updatedTracks.main.id,
+							trackIndex: updatedTracks.overlay.length,
+							trackType: "video",
+						},
+						elements: [placedElement],
+					});
+					if (!applied) continue;
+					updatedTracks = applied.updatedTracks;
+					this.duplicatedElements.push({
+						trackId: applied.targetTrackId,
+						elementId: placedElement.id,
+					});
+				}
+			}
+
+			if (newTrackElements.length === 0) {
+				continue;
 			}
 
 			const placementResult = resolveTrackPlacement({

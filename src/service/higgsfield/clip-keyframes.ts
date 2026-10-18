@@ -1,6 +1,7 @@
 import {
   OPENROUTER_HAILUO_3_VIDEO_MODEL,
   OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL,
+  clipVideoResolution,
 } from "@/service/openrouter/generate";
 import { isRealisticStyle } from "@/service/style/realistic-light";
 import { mediaSrc } from "@/util/media-src";
@@ -211,7 +212,7 @@ export function h3ClipVideoInput(input: {
     prompt: input.prompt,
     aspect_ratio: input.aspectRatio,
     duration: h3DurationSeconds(input.durationSeconds),
-    resolution: "2K" as const,
+    resolution: clipVideoResolution(),
     image_url: input.startImageUrl,
     ...(input.endImageUrl ? { end_image_url: input.endImageUrl } : {}),
     aigc_watermark: false,
@@ -230,7 +231,7 @@ export function seedanceClipVideoInput(input: {
   return {
     prompt: input.prompt,
     duration: h3DurationSeconds(input.durationSeconds),
-    resolution: "1080p" as const,
+    resolution: clipVideoResolution(),
     image_url: input.startImageUrl,
     ...(input.endImageUrl ? { end_image_url: input.endImageUrl } : {}),
     generate_audio: true,

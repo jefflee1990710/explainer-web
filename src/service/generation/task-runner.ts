@@ -161,17 +161,27 @@ export async function drainPendingJobs(limit = SUBMIT_BATCH) {
 
   let sent = 0;
   let retried = 0;
+  const claimedJobs: GenerationJob[] = [];
   for (let index = 0; index < limit; index += 1) {
     const job = await claimNextJob();
     if (!job) break;
-    try {
-      const outcome = await runClaimedJob(job);
-      if (outcome === "sent") sent += 1;
-      else if (outcome === "retried") retried += 1;
-      else if (outcome === "failed") failed += 1;
-    } catch (error) {
+    claimedJobs.push(job);
+  }
+  const outcomes = await Promise.allSettled(
+    claimedJobs.map((job) => runClaimedJob(job)),
+  );
+  for (let index = 0; index < outcomes.length; index += 1) {
+    const result = outcomes[index];
+    if (result.status === "fulfilled") {
+      if (result.value === "sent") sent += 1;
+      else if (result.value === "retried") retried += 1;
+      else if (result.value === "failed") failed += 1;
+    } else {
       // Left `submitting`; the lock expires and the job is retried or failed later.
-      console.error("[queue] job run threw", { jobId: job._id, error });
+      console.error("[queue] job run threw", {
+        jobId: claimedJobs[index]?._id,
+        error: result.reason,
+      });
     }
   }
   return { sent, failed, retried };
@@ -189,16 +199,18 @@ export async function refreshSubmittedJobs() {
     .toArray();
   const due = candidates.filter(jobNeedsRefresh);
 
-  // Project jobs refresh per project so the project sync runs once each.
+  // Project jobs refresh per project in parallel so the project sync runs once each.
   const projectIds = new Map<string, ObjectId>();
   for (const job of due) {
     if (job.projectId) projectIds.set(job.projectId.toHexString(), job.projectId);
   }
-  for (const projectId of projectIds.values()) {
-    await refreshProjectJobs(projectId).catch((error) =>
-      console.error("[queue] project refresh failed", { projectId, error }),
-    );
-  }
+  await Promise.allSettled(
+    [...projectIds.values()].map((projectId) =>
+      refreshProjectJobs(projectId).catch((error) =>
+        console.error("[queue] project refresh failed", { projectId, error }),
+      ),
+    ),
+  );
   // Projects with no due job still need a sync when a charged clip claim went
   // stale (e.g. its job was never inserted), so the orphan sweep can refund it.
   const staleClaimCutoff = new Date(Date.now() - STUCK_CLAIM_MS).toISOString();
@@ -218,19 +230,22 @@ export async function refreshSubmittedJobs() {
     );
   }
 
-  for (const job of due.filter((item) => isStandalonePolledJobKind(item.kind))) {
-    if (!job.statusUrl || !job.requestId) continue;
-    try {
-      const remote = await fetchHiggsfieldStatus(job.statusUrl);
-      await applyJobStatus({
-        requestId: job.requestId,
-        status: remote.status,
-        outputUrl: mediaUrlFromResponse(remote),
-      });
-    } catch (error) {
-      console.error("[queue] job refresh failed", { jobId: job._id, kind: job.kind, error });
-    }
-  }
+  const standaloneJobs = due.filter((item) => isStandalonePolledJobKind(item.kind));
+  await Promise.allSettled(
+    standaloneJobs.map(async (job) => {
+      if (!job.statusUrl || !job.requestId) return;
+      try {
+        const remote = await fetchHiggsfieldStatus(job.statusUrl);
+        await applyJobStatus({
+          requestId: job.requestId,
+          status: remote.status,
+          outputUrl: mediaUrlFromResponse(remote),
+        });
+      } catch (error) {
+        console.error("[queue] job refresh failed", { jobId: job._id, kind: job.kind, error });
+      }
+    }),
+  );
 
   // Re-read: the refresh above may have just finished some of them.
   const now = Date.now();

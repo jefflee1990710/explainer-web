@@ -8,7 +8,13 @@ import type { SceneTracks, TimelineElement } from "@/opencut/timeline";
 import type { ElementClipboardItem } from "@/opencut/clipboard";
 import { generateUUID } from "@/opencut/utils/id";
 import {
+	isScroClipEditLocked,
+	isScroElement,
+} from "@/opencut/embed/scro-clip-number";
+import { getScroVideos } from "@/opencut/embed/scro-video-store";
+import {
 	applyPlacement,
+	findNonOverlappingMainTrackStartTime,
 	resolveTrackPlacement,
 	enforceMainTrackStart,
 } from "@/opencut/timeline/placement";
@@ -55,16 +61,64 @@ export class PasteCommand extends Command {
 		);
 
 		let updatedTracks = this.savedState;
+		const assets = editor.media.getAssets();
+		const clips = getScroVideos()?.clips;
+		const editableClipboardItems = this.clipboardItems.filter(
+			(item) =>
+				!isScroClipEditLocked({
+					element: item.element,
+					assets,
+					clips,
+				}),
+		);
+		if (editableClipboardItems.length === 0) return undefined;
+
 		const itemsByTrackId = groupClipboardItemsByTrackId({
-			clipboardItems: this.clipboardItems,
+			clipboardItems: editableClipboardItems,
 		});
 
 		for (const [trackId, items] of itemsByTrackId) {
-			const elementsToAdd = buildPastedElements({
+			const builtElements = buildPastedElements({
 				items,
 				minStart,
 				time: this.time,
 			});
+
+			if (builtElements.length === 0) {
+				continue;
+			}
+
+			const mainPinnedElements = builtElements.filter((element) =>
+				isScroElement({ element, assets, clips }),
+			);
+			const elementsToAdd = builtElements.filter(
+				(element) => !isScroElement({ element, assets, clips }),
+			);
+
+			for (const element of mainPinnedElements) {
+				const startTime = findNonOverlappingMainTrackStartTime({
+					mainTrack: updatedTracks.main,
+					requestedStartTime: element.startTime,
+					duration: element.duration,
+				});
+				const placedElement = { ...element, startTime };
+				const applied = applyPlacement({
+					tracks: updatedTracks,
+					placementResult: {
+						kind: "existingTrack",
+						trackId: updatedTracks.main.id,
+						trackIndex: updatedTracks.overlay.length,
+						trackType: "video",
+					},
+					elements: [placedElement],
+				});
+				if (!applied) continue;
+				updatedTracks = applied.updatedTracks;
+				this.pastedElements.push({
+					trackId: applied.targetTrackId,
+					elementId: placedElement.id,
+				});
+			}
 
 			if (elementsToAdd.length === 0) {
 				continue;

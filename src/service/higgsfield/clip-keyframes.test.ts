@@ -259,7 +259,7 @@ test("h3ClipVideoInput matches Mentalok harness: MiniMax H3 first + last frames"
       prompt: "walk to the box",
       aspect_ratio: "9:16",
       duration: 5,
-      resolution: "2K",
+      resolution: "720p",
       image_url: "https://blob/start.png",
       end_image_url: "https://blob/end.png",
       aigc_watermark: false,
@@ -307,7 +307,7 @@ test("clipVideoModel uses MiniMax Hailuo 3 on OpenRouter for realistic and Seeda
     {
       prompt: "walk to the box",
       duration: 5,
-      resolution: "1080p",
+      resolution: "720p",
       image_url: "https://blob/start.png",
       end_image_url: "https://blob/end.png",
       generate_audio: true,

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { ObjectId } from "mongodb";
 import {
+  ensureSubtitleLetteringUrl,
   letteringLookFor,
   subtitleLetteringKey,
   subtitleLetteringPrompt,
@@ -56,4 +58,13 @@ test("subtitleLetteringPromptLine takes the look from the card and the spelling 
   assert.match(line, /"What if you have" \/ "zero budget for marketing\?"/);
   assert.match(line, /attached image 5 wins/);
   assert.match(line, /do not draw a plain white caption/);
+});
+
+test("ensureSubtitleLetteringUrl renders a local sharp SVG PNG data URL without AI calls", async () => {
+  const url = await ensureSubtitleLetteringUrl(
+    { _id: new ObjectId(), subtitleLook: "clean" },
+    "零預算做行銷，怎樣每天出片？",
+  );
+  assert.ok(url);
+  assert.match(url, /^data:image\/png;base64,/);
 });

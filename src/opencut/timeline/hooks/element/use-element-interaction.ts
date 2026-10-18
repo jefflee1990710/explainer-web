@@ -1,5 +1,10 @@
 import { useEffect, useReducer, useState, type RefObject } from "react";
+import {
+	isScroClipEditLocked,
+	isScroElement,
+} from "@/opencut/embed/scro-clip-number";
 import { showScroClipInPreview } from "@/opencut/embed/scro-clip-preview";
+import { getScroVideos } from "@/opencut/embed/scro-video-store";
 import { useEditor } from "@/opencut/editor/use-editor";
 import { useCommittedRef } from "@/opencut/hooks/use-committed-ref";
 import { useShiftKey } from "@/opencut/hooks/use-shift-key";
@@ -67,6 +72,18 @@ export function useElementInteraction({
 		onPreviewElement: (element) => {
 			showScroClipInPreview({ editor, element });
 		},
+		isElementEditLocked: (element) =>
+			isScroClipEditLocked({
+				element,
+				assets: editor.media.getAssets(),
+				clips: getScroVideos()?.clips,
+			}),
+		isElementPinnedToMainTrack: (element) =>
+			isScroElement({
+				element,
+				assets: editor.media.getAssets(),
+				clips: getScroVideos()?.clips,
+			}),
 	};
 	const depsRef = useCommittedRef(deps) as ElementInteractionDepsRef;
 	const [controller] = useState(

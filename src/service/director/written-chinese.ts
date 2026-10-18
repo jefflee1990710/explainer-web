@@ -72,11 +72,34 @@ function unwrapLines(text: string, count: number) {
   return rows;
 }
 
+const REWRITTEN_LINE_CACHE_MAX = 2000;
+const rewrittenLineCache = new Map<string, string>();
+
+function setCachedRewrittenLine(colloquial: string, written: string) {
+  if (rewrittenLineCache.size >= REWRITTEN_LINE_CACHE_MAX) {
+    const oldestKey = rewrittenLineCache.keys().next().value;
+    if (oldestKey !== undefined) rewrittenLineCache.delete(oldestKey);
+  }
+  rewrittenLineCache.set(colloquial, written);
+}
+
 // One rewrite for every distinct colloquial line. Same order comes back.
+// Cached in memory so repeated `sendFrame` / `regenerateFrames` calls on the same
+// Cantonese storyboard skip redundant LLM round-trips.
 export async function rewriteToWrittenChinese(lines: string[]): Promise<Map<string, string>> {
   const unique = [...new Set(lines.map((line) => line.trim()).filter(looksColloquial))];
   const mapped = new Map<string, string>();
   if (unique.length === 0) return mapped;
+  const uncached: string[] = [];
+  for (const line of unique) {
+    const cached = rewrittenLineCache.get(line);
+    if (cached !== undefined) {
+      mapped.set(line, cached);
+    } else {
+      uncached.push(line);
+    }
+  }
+  if (uncached.length === 0) return mapped;
   const { text } = await generateText({
     model: directorModel(),
     system: [
@@ -85,11 +108,15 @@ export async function rewriteToWrittenChinese(lines: string[]): Promise<Map<stri
       "Return one rewritten line per input line, same order, nothing else.",
       "If a line is already 書面語 or English, copy it unchanged.",
     ].join("\n"),
-    prompt: unique.map((line, index) => `${index + 1}. ${line}`).join("\n"),
+    prompt: uncached.map((line, index) => `${index + 1}. ${line}`).join("\n"),
   });
-  const rows = unwrapLines(text, unique.length);
+  const rows = unwrapLines(text, uncached.length);
   if (!rows) throw new Error("書面語行數不符");
-  unique.forEach((line, index) => mapped.set(line, rows[index]));
+  uncached.forEach((line, index) => {
+    const written = rows[index];
+    setCachedRewrittenLine(line, written);
+    mapped.set(line, written);
+  });
   return mapped;
 }
 

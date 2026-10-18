@@ -1,3 +1,4 @@
+import { nonOverlappingMainTrackStart } from "@/opencut/embed/scro-clip-duration";
 import type { SceneTracks, TimelineElement, VideoTrack } from "@/opencut/timeline";
 import { type MediaTime, ZERO_MEDIA_TIME } from "@/opencut/wasm";
 
@@ -52,4 +53,25 @@ export function enforceMainTrackStart({
 	}
 
 	return requestedStartTime;
+}
+
+/**
+ * Find the earliest start time on the main track at or after `requestedStartTime`
+ * where a span of `duration` does not overlap any existing element.
+ * When the main track is empty, returns `ZERO_MEDIA_TIME`.
+ */
+export function findNonOverlappingMainTrackStartTime({
+	mainTrack,
+	requestedStartTime,
+	duration,
+}: {
+	mainTrack: Pick<VideoTrack, "elements">;
+	requestedStartTime: MediaTime;
+	duration: MediaTime;
+}): MediaTime {
+	return nonOverlappingMainTrackStart({
+		spans: mainTrack.elements,
+		requestedStart: requestedStartTime,
+		duration,
+	}) as MediaTime;
 }

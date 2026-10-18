@@ -44,6 +44,11 @@ type ClipCarrier = {
 	scroClipNumber?: number;
 };
 
+type ScroAssetCarrier = Pick<
+	MediaAsset,
+	"id" | "name" | "type" | "scroClipNumber" | "scroPlaceholder"
+>;
+
 /**
  * Timeline elements restored from an older edit often lack scroClipNumber.
  * Fall back to the media asset, then to the "Clip N.mp4" label.
@@ -71,15 +76,87 @@ export function resolveElementScroClipNumber({
 	return acceptedClipNumber({ clipNumber: fromName, clips });
 }
 
-/** Storyboard clips keep their length. Timeline edge drags must not trim them. */
+/** True when the timeline element belongs to a ScroVideo storyboard clip. */
+export function isScroElement({
+	element,
+	assets,
+	clips,
+}: {
+	element: ClipCarrier;
+	assets: Array<Partial<ScroAssetCarrier> & Pick<MediaAsset, "id" | "name">>;
+	clips: ScroVideoSeedClip[] | undefined;
+}): boolean {
+	return resolveElementScroClipNumber({ element, assets, clips }) != null;
+}
+
+/** True once the ScroVideo clip has a confirmed generated video on the timeline. */
+export function isScroClipVideoReady({
+	element,
+	assets,
+	clips,
+}: {
+	element: ClipCarrier;
+	assets: Array<Partial<ScroAssetCarrier> & Pick<MediaAsset, "id" | "name">>;
+	clips: ScroVideoSeedClip[] | undefined;
+}): boolean {
+	const clipNumber = resolveElementScroClipNumber({ element, assets, clips });
+	if (clipNumber == null) return true;
+	if (element.type !== "video") return false;
+	const asset = element.mediaId
+		? assets.find((item) => item.id === element.mediaId)
+		: undefined;
+	if (asset && ((asset.type != null && asset.type !== "video") || asset.scroPlaceholder === true)) {
+		return false;
+	}
+	const clip = clips?.find((item) => item.clipNumber === clipNumber);
+	if (clip) {
+		if (clip.staleVideo) return false;
+		if (clip.stage !== "video_ready") return false;
+	}
+	return true;
+}
+
+/** Before a ScroVideo clip's video is generated, the user cannot edit it on the timeline. */
+export function isScroClipEditLocked({
+	element,
+	assets,
+	clips,
+}: {
+	element: ClipCarrier;
+	assets: Array<Partial<ScroAssetCarrier> & Pick<MediaAsset, "id" | "name">>;
+	clips: ScroVideoSeedClip[] | undefined;
+}): boolean {
+	if (!isScroElement({ element, assets, clips })) return false;
+	return !isScroClipVideoReady({ element, assets, clips });
+}
+
+/** True when a ScroVideo media asset does not have its generated video ready yet. */
+export function isScroAssetEditLocked({
+	asset,
+	clips,
+}: {
+	asset: Pick<MediaAsset, "name" | "type" | "scroClipNumber" | "scroPlaceholder">;
+	clips: ScroVideoSeedClip[] | undefined;
+}): boolean {
+	const clipNumber = resolveScroClipNumber({ asset, clips });
+	if (clipNumber == null) return false;
+	if (asset.type !== "video" || asset.scroPlaceholder === true) return true;
+	const clip = clips?.find((item) => item.clipNumber === clipNumber);
+	if (clip && (clip.stage !== "video_ready" || Boolean(clip.staleVideo))) {
+		return true;
+	}
+	return false;
+}
+
+/** Before video is generated, ScroVideo clips keep their storyboard length and cannot be trimmed. */
 export function isScroClipLengthLocked({
 	element,
 	assets,
 	clips,
 }: {
 	element: ClipCarrier;
-	assets: Array<Pick<MediaAsset, "id" | "name" | "scroClipNumber">>;
+	assets: Array<Partial<ScroAssetCarrier> & Pick<MediaAsset, "id" | "name">>;
 	clips: ScroVideoSeedClip[] | undefined;
 }): boolean {
-	return resolveElementScroClipNumber({ element, assets, clips }) != null;
+	return isScroClipEditLocked({ element, assets, clips });
 }

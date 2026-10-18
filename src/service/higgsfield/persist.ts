@@ -9,13 +9,17 @@ export type WaitForPublicUrlOptions = {
 
 // put() can return before the object is readable; a first <img> GET 404s
 // and the browser will not retry without a remount or cache-bust.
+// Use HEAD first so checking readability does not re-download the full image/video payload.
 export async function waitForPublicUrl(url: string, options?: WaitForPublicUrlOptions) {
   const tries = options?.tries ?? 5;
-  const delayMs = options?.delayMs ?? 200;
+  const delayMs = options?.delayMs ?? 100;
   const fetchFn = options?.fetch ?? fetch;
   for (let attempt = 1; attempt <= tries; attempt += 1) {
     try {
-      const response = await fetchFn(url);
+      let response = await fetchFn(url, { method: "HEAD" });
+      if (response.status === 405) {
+        response = await fetchFn(url);
+      }
       if (response.ok) return true;
     } catch {
       // Transient 404 / network blip — try again.

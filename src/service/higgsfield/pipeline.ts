@@ -27,7 +27,6 @@ import {
 } from "@/service/higgsfield/subtitle-guide-image";
 import {
   ensureSubtitleLetteringUrl,
-  subtitleLetteringPromptLine,
 } from "@/service/higgsfield/subtitle-lettering";
 import {
   clipDrawsNoEndStill,
@@ -241,24 +240,16 @@ export async function sendFrame(
   const subtitleLine = route.model.startsWith("ideogram/")
     ? undefined
     : extractProjectFrameSubtitle(canvasProject, clipNumber, position, style);
-  // The prompt's Look line alone is not enough: a still with no earlier frame (Clip 1) draws a
-  // plain caption. An AI card already in the look carries the style; the font guide always rides
-  // along last because the AI card itself can misspell.
-  const letteringUrl = subtitleLine
-    ? await ensureSubtitleLetteringUrl(project, subtitleLine)
-    : undefined;
+  // Render the subtitle lettering card locally via sharp SVG so every character and line break is
+  // 100% accurate with zero AI image-generation latency before the frame submit.
   const subtitleGuideUrl = subtitleLine
-    ? await renderSubtitleGuideDataUrl({ line: subtitleLine, look: project.subtitleLook })
+    ? (await ensureSubtitleLetteringUrl(project, subtitleLine)) ??
+      (await renderSubtitleGuideDataUrl({ line: subtitleLine, look: project.subtitleLook }))
     : undefined;
-  const subtitleRefs = [letteringUrl, subtitleGuideUrl].filter((url): url is string => Boolean(url));
-  const refs = [...baseRefs, ...subtitleRefs];
+  const refs = subtitleGuideUrl ? [...baseRefs, subtitleGuideUrl] : baseRefs;
   const finalPrompt =
     subtitleLine && subtitleGuideUrl
-      ? `${prompt}\n${
-          letteringUrl
-            ? subtitleLetteringPromptLine(refs.length - 1, refs.length, subtitleLine)
-            : subtitleGuidePromptLine(refs.length, subtitleLine)
-        }`
+      ? `${prompt}\n${subtitleGuidePromptLine(refs.length, subtitleLine)}`
       : prompt;
   const realistic = isRealisticStyle(style);
   const model = imageModelForSubmit(route, refs.length > 0);
@@ -391,52 +382,54 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
   // after `submittedAt`. `$unset` rather than `$set: undefined` so the
   // previous failure message never lingers as `null`.
   const canvasProject = await withWrittenCanvas(project);
-  for (const target of targets) {
-    const stored = (project.frames || []).find(
-      (frame) => frame.clipNumber === target.clipNumber && frame.position === target.position,
-    );
-    const built = frameSubmitPlan(
-      canvasProject,
-      target.clipNumber,
-      target.position,
-      target.revision,
-      style,
-    ).prompt;
-    const useStored = Boolean(target.useStoredPrompt && stored?.prompt?.trim());
-    const prompt = promptForFrameSubmit({
-      storedPrompt: stored?.prompt,
-      useStoredPrompt: target.useStoredPrompt,
-      builtPrompt: built,
-    });
-    await projects.updateOne(
-      { _id: project._id },
-      {
-        $set: {
-          "frames.$[frame].status": "queued",
-          "frames.$[frame].submittedAt": submittedAt,
-          "frames.$[frame].prompt": prompt,
-          status: "production",
-          updatedAt: new Date(),
-          ...(useStored ? { "frames.$[frame].promptEdited": true } : {}),
+  await Promise.all(
+    targets.map((target) => {
+      const stored = (project.frames || []).find(
+        (frame) => frame.clipNumber === target.clipNumber && frame.position === target.position,
+      );
+      const built = frameSubmitPlan(
+        canvasProject,
+        target.clipNumber,
+        target.position,
+        target.revision,
+        style,
+      ).prompt;
+      const useStored = Boolean(target.useStoredPrompt && stored?.prompt?.trim());
+      const prompt = promptForFrameSubmit({
+        storedPrompt: stored?.prompt,
+        useStoredPrompt: target.useStoredPrompt,
+        builtPrompt: built,
+      });
+      return projects.updateOne(
+        { _id: project._id },
+        {
+          $set: {
+            "frames.$[frame].status": "queued",
+            "frames.$[frame].submittedAt": submittedAt,
+            "frames.$[frame].prompt": prompt,
+            status: "production",
+            updatedAt: new Date(),
+            ...(useStored ? { "frames.$[frame].promptEdited": true } : {}),
+          },
+          $unset: {
+            "frames.$[frame].error": "",
+            "frames.$[frame].blobUrl": "",
+            "frames.$[frame].outputUrl": "",
+            "frames.$[frame].mergedUrl": "",
+            "frames.$[frame].mergedSceneUrl": "",
+            "frames.$[frame].mergedPlateUrl": "",
+            "frames.$[frame].mergedAt": "",
+            ...(useStored ? {} : { "frames.$[frame].promptEdited": "" }),
+          },
         },
-        $unset: {
-          "frames.$[frame].error": "",
-          "frames.$[frame].blobUrl": "",
-          "frames.$[frame].outputUrl": "",
-          "frames.$[frame].mergedUrl": "",
-          "frames.$[frame].mergedSceneUrl": "",
-          "frames.$[frame].mergedPlateUrl": "",
-          "frames.$[frame].mergedAt": "",
-          ...(useStored ? {} : { "frames.$[frame].promptEdited": "" }),
+        {
+          arrayFilters: [
+            { "frame.clipNumber": target.clipNumber, "frame.position": target.position },
+          ],
         },
-      },
-      {
-        arrayFilters: [
-          { "frame.clipNumber": target.clipNumber, "frame.position": target.position },
-        ],
-      },
-    );
-  }
+      );
+    }),
+  );
   await insertFrameJobs(project, ready, deferred);
   // Do not reconcile here: enqueue should return after the jobs are written.
   // Cron / webhook / poll call syncProjectFromJobs once the provider moves.

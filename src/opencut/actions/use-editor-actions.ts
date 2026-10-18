@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useTimelineStore } from "@/opencut/timeline/timeline-store";
 import { useActionHandler } from "@/opencut/actions/use-action-handler";
 import { useEditor } from "@/opencut/editor/use-editor";
+import { isScroClipEditLocked } from "@/opencut/embed/scro-clip-number";
+import { getScroVideos } from "@/opencut/embed/scro-video-store";
 import { useElementSelection } from "@/opencut/timeline/hooks/element/use-element-selection";
 import {
 	addMediaTime,
@@ -217,18 +219,36 @@ export function useEditorActions() {
 		undefined,
 	);
 
+	const filterEditableElements = (
+		refs: { trackId: string; elementId: string }[],
+	) => {
+		const assets = editor.media.getAssets();
+		const clips = getScroVideos()?.clips;
+		const withTracks = editor.timeline.getElementsWithTracks({ elements: refs });
+		return withTracks
+			.filter(
+				({ element }) =>
+					!isScroClipEditLocked({ element, assets, clips }),
+			)
+			.map(({ track, element }) => ({
+				trackId: track.id,
+				elementId: element.id,
+			}));
+	};
+
 	useActionHandler(
 		"split",
 		() => {
 			const currentTime = editor.playback.getCurrentTime();
 			const tracks = editor.scenes.getActiveScene().tracks;
-			const elementsToSplit =
+			const elementsToSplit = filterEditableElements(
 				selectedElements.length > 0
 					? selectedElements
 					: getElementsAtTime({
 							tracks,
 							time: currentTime,
-						});
+						}),
+			);
 
 			if (elementsToSplit.length === 0) return;
 
@@ -245,13 +265,14 @@ export function useEditorActions() {
 		() => {
 			const currentTime = editor.playback.getCurrentTime();
 			const tracks = editor.scenes.getActiveScene().tracks;
-			const elementsToSplit =
+			const elementsToSplit = filterEditableElements(
 				selectedElements.length > 0
 					? selectedElements
 					: getElementsAtTime({
 							tracks,
 							time: currentTime,
-						});
+						}),
+			);
 
 			if (elementsToSplit.length === 0) return;
 
@@ -278,13 +299,14 @@ export function useEditorActions() {
 		() => {
 			const currentTime = editor.playback.getCurrentTime();
 			const tracks = editor.scenes.getActiveScene().tracks;
-			const elementsToSplit =
+			const elementsToSplit = filterEditableElements(
 				selectedElements.length > 0
 					? selectedElements
 					: getElementsAtTime({
 							tracks,
 							time: currentTime,
-						});
+						}),
+			);
 
 			if (elementsToSplit.length === 0) return;
 
@@ -319,14 +341,16 @@ export function useEditorActions() {
 					editor.timeline.removeKeyframes({ keyframes: selectedKeyframes });
 					clearKeyframeSelection();
 					return;
-				case "elements":
-					if (selectedElements.length === 0) {
+				case "elements": {
+					const editableElements = filterEditableElements(selectedElements);
+					if (editableElements.length === 0) {
 						return;
 					}
 					editor.timeline.deleteElements({
-						elements: selectedElements,
+						elements: editableElements,
 					});
 					return;
+				}
 				default:
 					return;
 			}
@@ -348,6 +372,17 @@ export function useEditorActions() {
 				return;
 			}
 
+			const assets = editor.media.getAssets();
+			if (
+				isScroClipEditLocked({
+					element: selectedElement.element,
+					assets,
+					clips: getScroVideos()?.clips,
+				})
+			) {
+				return;
+			}
+
 			const mediaAsset = (() => {
 				const { element } = selectedElement;
 				if (!hasMediaId(element)) {
@@ -355,9 +390,7 @@ export function useEditorActions() {
 				}
 
 				return (
-					editor.media
-						.getAssets()
-						.find((asset) => asset.id === element.mediaId) ?? null
+					assets.find((asset) => asset.id === element.mediaId) ?? null
 				);
 			})();
 			if (!canToggleSourceAudio(selectedElement.element, mediaAsset)) {
@@ -414,8 +447,10 @@ export function useEditorActions() {
 	useActionHandler(
 		"duplicate-selected",
 		() => {
+			const editableElements = filterEditableElements(selectedElements);
+			if (editableElements.length === 0) return;
 			editor.timeline.duplicateElements({
-				elements: selectedElements,
+				elements: editableElements,
 			});
 		},
 		undefined,

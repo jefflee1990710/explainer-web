@@ -38,7 +38,9 @@ import {
 	useSelectionScope,
 } from "@/opencut/selection";
 import { buildElementFromMedia } from "@/opencut/timeline/element-utils";
+import { findNonOverlappingMainTrackStartTime } from "@/opencut/timeline/placement";
 import { placementForScroMedia } from "@/opencut/embed/scro-clip-duration";
+import { isScroAssetEditLocked } from "@/opencut/embed/scro-clip-number";
 import {
 	type MediaSortKey,
 	type MediaSortOrder,
@@ -309,19 +311,31 @@ function MediaAssetDraggable({
 		asset: MediaAsset;
 		startTime: MediaTime;
 	}) => {
-		// A generated file is often longer than the storyboard clip. Place the storyboard slice.
+		if (isScroAssetEditLocked({ asset, clips: scroVideos?.clips })) {
+			return;
+		}
 		const placed = placementForScroMedia({ asset, clips: scroVideos?.clips });
 		const duration = placed
 			? mediaTimeFromSeconds({ seconds: placed.visibleSeconds })
 			: asset.duration != null
 				? mediaTimeFromSeconds({ seconds: asset.duration })
 				: DEFAULT_NEW_ELEMENT_DURATION;
+		const isScro =
+			resolveScroClipNumber({ asset, clips: scroVideos?.clips }) != null;
+		const mainTrack = editor.scenes.getActiveScene().tracks.main;
+		const resolvedStartTime = isScro
+			? findNonOverlappingMainTrackStartTime({
+					mainTrack,
+					requestedStartTime: startTime,
+					duration,
+				})
+			: startTime;
 		const element = buildElementFromMedia({
 			mediaId: asset.id,
 			mediaType: asset.type,
 			name: label,
 			duration,
-			startTime,
+			startTime: resolvedStartTime,
 			scroClipNumber: placed?.clipNumber ?? asset.scroClipNumber,
 			...(placed
 				? {
@@ -332,7 +346,9 @@ function MediaAssetDraggable({
 		});
 		editor.timeline.insertElement({
 			element,
-			placement: { mode: "auto" },
+			placement: isScro
+				? { mode: "explicit", trackId: mainTrack.id }
+				: { mode: "auto" },
 		});
 	};
 

@@ -7,7 +7,7 @@ import { storageService } from "@/opencut/services/storage/service";
 import { videoCache } from "@/opencut/services/video-cache/service";
 import { buildElementFromMedia } from "@/opencut/timeline/element-utils";
 import { toElementDurationTicks } from "@/opencut/timeline/creation";
-import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/opencut/wasm";
+import { mediaTimeFromSeconds, mediaTimeToSeconds, ZERO_MEDIA_TIME } from "@/opencut/wasm";
 import type { MediaAsset, MediaType } from "@/opencut/media/types";
 import { applyScroCanvasSize } from "@/opencut/embed/scro-canvas-size";
 import { resolveElementScroClipNumber } from "@/opencut/embed/scro-clip-number";
@@ -215,6 +215,7 @@ export function ScroVideoSync() {
 				// Recreate keeps the local cut. Drop the previous videos before
 				// the new stills and renders take their place.
 				await retireStaleCut(data);
+				fitStoryboardLengths(data.clips);
 				armScroSync();
 				seedDone(data.videoId);
 				return;
@@ -594,7 +595,24 @@ export function ScroVideoSync() {
 			}
 			const startTime = existing.startTime;
 			if (existing.type === created.type) {
-				if (existing.mediaId !== created.id || existing.name !== data.clip.name) {
+				const place = storyboardPlacement({
+					storyboardSeconds: data.clip.durationSeconds,
+					fileSeconds: created.type === "video" ? created.duration : undefined,
+				});
+				const nextDuration = toElementDurationTicks({ seconds: place.visibleSeconds });
+				const nextSourceDuration =
+					created.type === "video"
+						? toElementDurationTicks({ seconds: place.sourceSeconds })
+						: undefined;
+				const nextTrimEnd =
+					created.type === "video"
+						? toElementDurationTicks({ seconds: place.trimEndSeconds })
+						: ZERO_MEDIA_TIME;
+				if (
+					existing.mediaId !== created.id ||
+					existing.name !== data.clip.name ||
+					existing.duration !== nextDuration
+				) {
 					editor.timeline.updateElements({
 						updates: [
 							{
@@ -604,6 +622,12 @@ export function ScroVideoSync() {
 									mediaId: created.id,
 									name: data.clip.name,
 									scroClipNumber: data.clip.clipNumber,
+									duration: nextDuration,
+									trimStart: ZERO_MEDIA_TIME,
+									trimEnd: nextTrimEnd,
+									...(nextSourceDuration !== undefined
+										? { sourceDuration: nextSourceDuration }
+										: {}),
 								},
 							},
 						],
@@ -613,7 +637,7 @@ export function ScroVideoSync() {
 				armScroSync();
 				return;
 			}
-			// Image ↔ video: replace the element at the storyboard length, not the file length.
+			// Image ↔ video: replace the element with its confirmed video or storyboard length, then rearrange.
 			editor.timeline.deleteElements({
 				elements: [{ trackId: scene.tracks.main.id, elementId: existing.id }],
 			});
@@ -632,7 +656,7 @@ export function ScroVideoSync() {
 			armScroSync();
 		}
 
-		/** Pull full-file drops back to the storyboard length and close the gap. */
+		/** Rearrange main-track clips to confirmed video lengths or storyboard lengths with no overlap. */
 		function fitStoryboardLengths(clips: ScroVideoSeedClip[]) {
 			if (clips.length === 0) return;
 			const scene = editor.scenes.getActiveScene();
@@ -671,11 +695,17 @@ export function ScroVideoSync() {
 						elementId: patch.id,
 						patch: {
 							startTime: mediaTimeFromSeconds({ seconds: patch.startSeconds }),
-							...(patch.durationChanged && element?.type === "video"
+							...(patch.durationChanged
 								? {
 										duration: mediaTimeFromSeconds({ seconds: patch.durationSeconds }),
 										trimEnd: mediaTimeFromSeconds({ seconds: patch.trimEndSeconds }),
-										sourceDuration: mediaTimeFromSeconds({ seconds: patch.sourceSeconds }),
+										...(element?.type === "video"
+											? {
+													sourceDuration: mediaTimeFromSeconds({
+														seconds: patch.sourceSeconds,
+													}),
+												}
+											: {}),
 									}
 								: {}),
 						},

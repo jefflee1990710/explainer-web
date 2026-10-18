@@ -3,7 +3,9 @@
 import { createContext, useContext } from "react";
 import { useEditor } from "@/opencut/editor/use-editor";
 import {
+	isScroClipEditLocked,
 	isScroClipLengthLocked,
+	isScroElement,
 	resolveElementScroClipNumber,
 } from "@/opencut/embed/scro-clip-number";
 import { scroAssetPreviewSrc, scroStartStillPending } from "@/opencut/embed/scro-video-assets";
@@ -244,8 +246,18 @@ export function TimelineElement({
 }: TimelineElementProps) {
 	const mediaAssets = useEditor((e) => e.media.getAssets());
 	const scroVideos = useScroVideos();
-	// ScroVideo length is the storyboard length. Hide the trim handles.
+	// Before video is generated, ScroVideo cannot be trimmed or edited.
 	const lengthLocked = isScroClipLengthLocked({
+		element,
+		assets: mediaAssets,
+		clips: scroVideos?.clips,
+	});
+	const editLocked = isScroClipEditLocked({
+		element,
+		assets: mediaAssets,
+		clips: scroVideos?.clips,
+	});
+	const pinnedMain = isScroElement({
 		element,
 		assets: mediaAssets,
 		clips: scroVideos?.clips,
@@ -278,7 +290,7 @@ export function TimelineElement({
 		: undefined;
 	const isBeingDragged = dragTimeOffset !== undefined;
 	const dragOffsetY =
-		overlay || !isDragging || !isBeingDragged
+		overlay || pinnedMain || !isDragging || !isBeingDragged
 			? 0
 			: dragView.currentMouseY - dragView.startMouseY;
 	const elementStartTime =
@@ -356,6 +368,7 @@ export function TimelineElement({
 
 	const isMuted = canElementHaveAudio(element) && isElementMuted({ element });
 	const canToggleCurrentSourceAudio =
+		!editLocked &&
 		selectedElements.length === 1 &&
 		isCurrentElementSelected &&
 		canToggleSourceAudio(element, mediaAsset);
@@ -448,14 +461,16 @@ export function TimelineElement({
 				<ContextMenuContent className="w-64">
 					<ActionMenuItem
 						action="split"
+						disabled={editLocked}
 						icon={<HugeiconsIcon icon={ScissorIcon} />}
 					>
 						Split
 					</ActionMenuItem>
-					<CopyMenuItem />
+					<CopyMenuItem disabled={editLocked} />
 					{selectedElements.length === 1 && (
 						<ActionMenuItem
 							action="duplicate-selected"
+							disabled={editLocked}
 							icon={<HugeiconsIcon icon={Copy01Icon} />}
 						>
 							Duplicate
@@ -527,6 +542,7 @@ export function TimelineElement({
 						isCurrentElementSelected={isCurrentElementSelected}
 						elementType={element.type}
 						selectedCount={selectedElements.length}
+						disabled={editLocked}
 					/>
 				</ContextMenuContent>
 			</ContextMenu>
@@ -1246,10 +1262,11 @@ function ElementContent({ element, track }: ElementContentProps) {
 	}
 }
 
-function CopyMenuItem() {
+function CopyMenuItem({ disabled }: { disabled?: boolean }) {
 	return (
 		<ActionMenuItem
 			action="copy-selected"
+			disabled={disabled}
 			icon={<HugeiconsIcon icon={Copy01Icon} />}
 		>
 			Copy
@@ -1321,16 +1338,19 @@ function DeleteMenuItem({
 	isCurrentElementSelected,
 	elementType,
 	selectedCount,
+	disabled,
 }: {
 	isMultipleSelected: boolean;
 	isCurrentElementSelected: boolean;
 	elementType: TimelineElementType["type"];
 	selectedCount: number;
+	disabled?: boolean;
 }) {
 	return (
 		<ActionMenuItem
 			action="delete-selected"
 			variant="destructive"
+			disabled={disabled}
 			icon={<HugeiconsIcon icon={Delete02Icon} />}
 		>
 			{isMultipleSelected && isCurrentElementSelected

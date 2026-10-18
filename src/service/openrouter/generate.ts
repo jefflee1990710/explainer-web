@@ -192,6 +192,16 @@ export async function submitOpenRouterImage(
   };
 }
 
+export const DEFAULT_VIDEO_GENERATION_RESOLUTION = "720p";
+
+// Clip video generation resolution (e.g. 720p, 1080p, 2K). Defaults to 720p and can be overridden via VIDEO_GENERATION_RESOLUTION in .env.
+export function clipVideoResolution(
+  envValue = process.env.VIDEO_GENERATION_RESOLUTION,
+): string {
+  const trimmed = (envValue || "").trim();
+  return trimmed || DEFAULT_VIDEO_GENERATION_RESOLUTION;
+}
+
 export function openRouterClipVideoBody(input: {
   model?: string;
   prompt: string;
@@ -203,8 +213,7 @@ export function openRouterClipVideoBody(input: {
   callbackUrl?: string;
 }) {
   const model = input.model || OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL;
-  // MiniMax Hailuo 3 on OpenRouter supports 2K resolution; Seedance 2.0 Fast supports 480p and 720p.
-  const resolution = model === OPENROUTER_HAILUO_3_VIDEO_MODEL ? ("2K" as const) : ("720p" as const);
+  const resolution = clipVideoResolution();
   return {
     model,
     prompt: capOpenRouterVideoPrompt(input.prompt),
