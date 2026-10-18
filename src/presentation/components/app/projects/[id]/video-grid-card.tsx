@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { generateAllClipsAction } from "@/presentation/actions/clip-production";
@@ -26,7 +26,9 @@ import { translateAppError } from "@/util/i18n/translate-app-error";
 import { PreviewStrip } from "@/presentation/components/app/preview-strip";
 import type { PublicVideoCard } from "@/presentation/serialize";
 import { canGenerateAllVideos, type GenerationDetailTag } from "@/service/clip-stage";
+import { computeCardPipelineProgress } from "@/service/video-progress-steps";
 import { folderVideoPath } from "@/service/folder-video-path";
+import type { TranslateFn } from "@/util/i18n";
 import type { VideoListFilter } from "@/service/video/list-stage";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -42,6 +44,55 @@ function videosAsBusy(tags: GenerationDetailTag[]): GenerationDetailTag[] {
       ? { ...tag, state: "busy" }
       : tag,
   );
+}
+
+// Detailed 5-step (1/5 .. 5/5) description for a video card.
+function cardStepDetailText(
+  video: PublicVideoCard,
+  tags: GenerationDetailTag[],
+  t: TranslateFn,
+): string | null {
+  if (video.status === "failed" && video.error) return video.error;
+  const info = computeCardPipelineProgress({ ...video, tags });
+  if (info.stageId === "storyboard") {
+    return t("video.card.step1Detail");
+  }
+  if (info.stageId === "locks") {
+    const done = info.propsDone + info.platesDone;
+    const total = Math.max(1, info.propsTotal + info.platesTotal);
+    return t("video.card.step2Detail", { done, total });
+  }
+  if (info.stageId === "frames") {
+    if (info.busy) {
+      return t("video.card.step3DetailBusy", {
+        done: info.scenesDone,
+        total: info.scenesTotal,
+        busy: info.scenesBusy,
+      });
+    }
+    return t("video.card.step3DetailIdle", {
+      done: info.scenesDone,
+      total: info.scenesTotal,
+    });
+  }
+  if (info.stageId === "videos") {
+    if (info.busy) {
+      return t("video.card.step4DetailBusy", {
+        done: info.videosDone,
+        total: info.videosTotal,
+        busy: info.videosBusy,
+      });
+    }
+    return t("video.card.step4DetailIdle", {
+      scenesTotal: info.scenesTotal,
+      done: info.videosDone,
+      total: info.videosTotal,
+    });
+  }
+  if (info.videosTotal > 0) {
+    return t("video.card.step5Detail", { total: info.videosTotal });
+  }
+  return null;
 }
 
 // One video in the folder grid. Click opens the editor in this tab.
@@ -67,14 +118,11 @@ export function VideoGridCard({
   const [archiving, setArchiving] = useState(false);
   const [error, setError] = useState("");
   const ready = canGenerateAllVideos(video.tags);
-  const tags = submitting ? videosAsBusy(video.tags) : video.tags;
-
-  useEffect(() => {
-    if (submitting && !canGenerateAllVideos(video.tags)) setSubmitting(false);
-  }, [submitting, video.tags]);
+  const isSubmitting = submitting && ready;
+  const tags = isSubmitting ? videosAsBusy(video.tags) : video.tags;
 
   async function generateAll() {
-    if (submitting) return;
+    if (isSubmitting) return;
     armBrowserNotifications();
     setError("");
     setSubmitting(true);
@@ -174,12 +222,7 @@ export function VideoGridCard({
 
   const previews = video.previewUrls;
   const title = video.title || t("video.card.unnamed");
-  const progress =
-    (video.status === "production" || video.status === "ready") && video.videosTotal > 0
-      ? t("video.card.progress", { done: video.videosDone, total: video.videosTotal })
-      : video.status === "failed" && video.error
-        ? video.error
-        : null;
+  const progress = cardStepDetailText(video, tags, t);
   const duration = durationPresetLabel(t, video.durationPreset).label;
   const language = voLanguageLabel(t, video.language).label;
   const created = new Date(video.createdAt).toLocaleString(locale, {
@@ -210,7 +253,13 @@ export function VideoGridCard({
             </span>
           )}
           <VideoGenerationProgress tags={tags} status={video.status} />
-          {ready && !submitting ? null : <VideoGenerationBadge tags={tags} />}
+          {ready && !isSubmitting ? null : (
+            <VideoGenerationBadge
+              tags={tags}
+              status={video.status}
+              locksBusy={video.locksBusy}
+            />
+          )}
         </span>
         <span className="flex flex-1 flex-col gap-1.5 p-2.5 pb-10">
           <span className="line-clamp-2 text-xs font-medium leading-snug">{title}</span>
@@ -223,7 +272,7 @@ export function VideoGridCard({
         </span>
       </Link>
       <span className="absolute bottom-2 right-2 z-20 flex max-w-[calc(100%-1rem)] flex-wrap justify-end gap-1">
-        {ready && !submitting && stage !== "archived" ? (
+        {ready && !isSubmitting && stage !== "archived" ? (
           <button
             type="button"
             onClick={() => void generateAll()}

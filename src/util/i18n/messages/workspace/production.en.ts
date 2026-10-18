@@ -154,6 +154,41 @@ export const productionEn = {
     bulkOpen: "Generate all",
     bulkAllVideos: "Generate all video",
     bulkAllVideosWaiting: "Available once every frame is ready",
+    pipeline: {
+      stepBadge: "Step {step}/5",
+      step1Short: "1/5 Storyboard",
+      step2Short: "2/5 Prop & Set Locks",
+      step3Short: "3/5 Keyframes",
+      step4Short: "4/5 AI Videos",
+      step5Short: "5/5 Ready",
+      stage1Title: "Step 1/5 · Planning storyboard & timeline",
+      stage1Detail:
+        "AI director is structuring hooks, clip durations, camera moves, and spoken lines.",
+      stage2Title: "Step 2/5 · Generating prop sheet & 3×3 background plates",
+      stage2DetailBoth:
+        "Drawing prop sheet ({propsDone}/{propsTotal}: {props}) and 3×3 set plates ({platesDone}/{platesTotal}: {plates}) so all scene frames stay consistent…",
+      stage2DetailProps:
+        "Drawing prop reference sheet ({propsDone}/{propsTotal}: {props}) before locking scene keyframes…",
+      stage2DetailPlates:
+        "Drawing 3×3 multi-angle background plates ({platesDone}/{platesTotal}: {plates}) before locking scene keyframes…",
+      stage3Title: "Step 3/5 · Generating scene keyframes & subtitle cards ({done}/{total} clips)",
+      stage3DetailBusy:
+        "Drawing start/end keyframes with locked references & compositing crisp local subtitle cards ({queued} queued · {running} generating)…",
+      stage3DetailIdle:
+        "{done}/{total} clips have completed keyframes. Click a clip or Generate all to draw the remaining frames.",
+      stage3DetailFailed:
+        "Some scene frames failed ({done}/{total} clips ready). Credits were refunded — click retry to redraw.",
+      stage4Title: "Step 4/5 · Generating AI clip videos & synced audio ({done}/{total} clips)",
+      stage4DetailBusy:
+        "Rendering motion video and lip-synced audio from your keyframes ({queued} queued · {running} rendering)…",
+      stage4DetailIdle:
+        "All {framesDone}/{total} clip keyframes are ready ({done}/{total} videos done). Review frames or click Generate all video to render.",
+      stage4DetailFailed:
+        "Some clip videos failed ({done}/{total} videos done). Credits were refunded — click retry to render again.",
+      stage5Title: "Step 5/5 · All clips complete ({done}/{total} videos ready)",
+      stage5Detail:
+        "All {total} clip videos are placed on the timeline. Preview playback, add overlays, or click Export video.",
+    },
   },
   queue: {
     viewTasks: "View tasks",

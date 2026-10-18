@@ -9,6 +9,7 @@ import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plat
 import { resolveVoiceGender } from "@/service/director/voice";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
 import { clipGenerationTags, productionCounts, type GenerationDetailTag } from "@/service/clip-stage";
+import { summarizeVideoLocks } from "@/service/video-progress-steps";
 import { displayMediaSrc } from "@/util/media-src";
 import { folderRollupStatus } from "@/service/folder";
 import { normalizeProjectStatus } from "@/service/project-status";
@@ -165,6 +166,12 @@ export type PublicVideoCard = {
   videosTotal: number;
   // Per-clip scene and video steps for the card progress bar.
   tags: GenerationDetailTag[];
+  // Step 2/5 lock progress (prop sheet & 3x3 background plates) for card display.
+  locksBusy?: boolean;
+  propsTotal?: number;
+  propsDone?: number;
+  platesTotal?: number;
+  platesDone?: number;
   // ISO time the user marked this finished video as posted.
   postedAt?: string;
   // ISO time the user archived this video. Any stage can be archived.
@@ -201,6 +208,14 @@ export const VIDEO_LIST_PROJECTION = {
   error: 1,
   characterStillUrl: 1,
   characterImageUrl: 1,
+  objectSheetUrl: 1,
+  objectSheetError: 1,
+  "objectSheetItems.name": 1,
+  backgroundPlateError: 1,
+  "backgroundPlates.setId": 1,
+  "backgroundPlates.name": 1,
+  "backgroundPlates.clipNumbers": 1,
+  "backgroundPlates.url": 1,
   "phaseA.localizedTitle": 1,
   "phaseA.englishTitle": 1,
   "phaseA.clips.clipNumber": 1,
@@ -410,6 +425,7 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
   const clips = video.clips || [];
   const source = { ...video, frames, clips };
   const counts = productionCounts(source);
+  const locks = summarizeVideoLocks(video);
   const previewUrls = previewUrlsFromVideo({
     frames,
     subtitleOverlay:
@@ -433,6 +449,11 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
     videosDone: counts.videosDone,
     videosTotal: counts.total,
     tags: clipGenerationTags(source),
+    locksBusy: locks.locksBusy,
+    propsTotal: locks.propsTotal,
+    propsDone: locks.propsDone,
+    platesTotal: locks.platesTotal,
+    platesDone: locks.platesDone,
     postedAt: video.postedAt?.toISOString(),
     archivedAt: video.archivedAt?.toISOString(),
   };
@@ -441,6 +462,7 @@ export function toPublicVideoCard(video: Project): PublicVideoCard {
 // Same card shape from an already-serialized editor video (optimistic create).
 export function toPublicVideoCardFromPublic(video: PublicVideo): PublicVideoCard {
   const counts = productionCounts(video);
+  const locks = summarizeVideoLocks(video);
   return {
     id: video.id,
     title: video.phaseA?.localizedTitle || "",
@@ -456,6 +478,11 @@ export function toPublicVideoCardFromPublic(video: PublicVideo): PublicVideoCard
     videosDone: counts.videosDone,
     videosTotal: counts.total,
     tags: clipGenerationTags(video),
+    locksBusy: locks.locksBusy,
+    propsTotal: locks.propsTotal,
+    propsDone: locks.propsDone,
+    platesTotal: locks.platesTotal,
+    platesDone: locks.platesDone,
   };
 }
 

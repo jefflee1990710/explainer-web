@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { TaskListDialog } from "@/presentation/components/app/tasks/task-list-dialog";
 import {
   BulkGenerateDialog,
@@ -8,6 +8,7 @@ import {
 } from "@/presentation/components/project/bulk-generate-dialog";
 import { AddClipDialog } from "@/presentation/components/project/add-clip-dialog";
 import { SelectionBar } from "@/presentation/components/project/selection-bar";
+import { VideoStageStepper } from "@/presentation/components/app/projects/new/video-stage-stepper";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { ScroVideoQueue } from "@/opencut/embed/scro-video-queue";
 import { scroHost } from "@/opencut/embed/scro-transport";
@@ -93,8 +94,10 @@ export function OpenCutScroToolbar({
   const videosEnabled = allFramesReady(project);
   const idleRef = useRef(idle);
   const videosEnabledRef = useRef(videosEnabled);
-  idleRef.current = idle;
-  videosEnabledRef.current = videosEnabled;
+  useLayoutEffect(() => {
+    idleRef.current = idle;
+    videosEnabledRef.current = videosEnabled;
+  }, [idle, videosEnabled]);
 
   // Assets header menu asks for the same dialogs that used to be buttons here.
   useEffect(() => {
@@ -122,25 +125,28 @@ export function OpenCutScroToolbar({
 
   return (
     <>
-      <div className="relative z-20 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-3 py-2 text-xs">
-        <button
-          type="button"
-          disabled={firstUnfinished === undefined}
-          className="flex cursor-pointer items-center gap-2 disabled:cursor-default disabled:opacity-50"
-          title={
-            firstUnfinished !== undefined
-              ? t("production.toolbar.jumpToClip", { n: firstUnfinished })
-              : undefined
-          }
-        >
-          <span className="font-semibold">
-            {t("production.toolbar.progressFrames")} {counts.framesDone}/{counts.total}
-          </span>
-          <span className="font-semibold">
-            {t("production.toolbar.progressVideos")} {counts.videosDone}/{counts.total}
-          </span>
-        </button>
-        <ScroVideoQueue {...queue} onOpen={() => setTasksOpen(true)} />
+      <div className="relative z-20 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-3 py-2 text-xs">
+        <VideoStageStepper project={project} onOpenTasks={() => setTasksOpen(true)} />
+        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1">
+          <button
+            type="button"
+            disabled={firstUnfinished === undefined}
+            className="flex cursor-pointer items-center gap-2 disabled:cursor-default disabled:opacity-50"
+            title={
+              firstUnfinished !== undefined
+                ? t("production.toolbar.jumpToClip", { n: firstUnfinished })
+                : undefined
+            }
+          >
+            <span className="font-semibold tabular-nums">
+              {t("production.toolbar.progressFrames")} {counts.framesDone}/{counts.total}
+            </span>
+            <span className="font-semibold tabular-nums">
+              {t("production.toolbar.progressVideos")} {counts.videosDone}/{counts.total}
+            </span>
+          </button>
+          <ScroVideoQueue {...queue} onOpen={() => setTasksOpen(true)} />
+        </div>
         {tasksOpen ? (
           <TaskListDialog videoId={project.id} onClose={() => setTasksOpen(false)} />
         ) : null}

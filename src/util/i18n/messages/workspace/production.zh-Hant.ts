@@ -154,6 +154,40 @@ export const productionZhHant = {
     bulkOpen: "全部產生",
     bulkAllVideos: "產生全部影片",
     bulkAllVideosWaiting: "全部畫格完成後才能產生",
+    pipeline: {
+      stepBadge: "步驟 {step}/5",
+      step1Short: "1/5 分鏡規劃",
+      step2Short: "2/5 道具與場景鎖",
+      step3Short: "3/5 分鏡畫格",
+      step4Short: "4/5 影片生成",
+      step5Short: "5/5 成片就緒",
+      stage1Title: "步驟 1/5 · 導演正在規劃分鏡與時間軸",
+      stage1Detail: "AI 導演正在設計開場鉤子、切分每段秒數、運鏡動作與旁白台詞。",
+      stage2Title: "步驟 2/5 · 正在產生道具表與 3×3 場景鎖定圖",
+      stage2DetailBoth:
+        "正在繪製道具參考表（{propsDone}/{propsTotal}：{props}）與 3×3 場景空景圖（{platesDone}/{platesTotal}：{plates}），完成後將自動鎖定各段畫格連戲…",
+      stage2DetailProps:
+        "正在繪製道具參考表（{propsDone}/{propsTotal}：{props}），確保跨鏡頭道具外觀一致…",
+      stage2DetailPlates:
+        "正在繪製 3×3 多角度場景空景圖（{platesDone}/{platesTotal}：{plates}），確保跨鏡頭環境光影一致…",
+      stage3Title: "步驟 3/5 · 產生分鏡畫格與精準字卡（已完成 {done}/{total} 段）",
+      stage3DetailBusy:
+        "正在依鎖定參考圖繪製首尾關鍵畫格，並由本地引擎合成無錯字字幕卡（排隊中 {queued} 張 · 繪製中 {running} 張）…",
+      stage3DetailIdle:
+        "已完成 {done}/{total} 段畫格。可點選單段或按「全部產生」繼續繪製剩餘畫格。",
+      stage3DetailFailed:
+        "部分分鏡畫格產生失敗（已完成 {done}/{total} 段），失敗點數已自動退回，請點擊重試。",
+      stage4Title: "步驟 4/5 · 產生 AI 動態影片與同步配音（已完成 {done}/{total} 段）",
+      stage4DetailBusy:
+        "正在由首尾關鍵畫格生成動態影片、自然肢體動作與同步配音（排隊中 {queued} 段 · 產片中 {running} 段）…",
+      stage4DetailIdle:
+        "全部 {framesDone}/{total} 段畫格已就緒（影片已完成 {done}/{total} 段）。確認畫格無誤後即可點擊產生影片。",
+      stage4DetailFailed:
+        "部分影片產生失敗（已完成 {done}/{total} 段），失敗點數已自動退回，請點擊重試。",
+      stage5Title: "步驟 5/5 · 全部片段已完成（{done}/{total} 段影片就緒）",
+      stage5Detail:
+        "全部 {total} 段影片已排入時間軸，可直接預覽播放、調整圖層或點擊右上角匯出成片。",
+    },
   },
   queue: {
     viewTasks: "查看生成任務",

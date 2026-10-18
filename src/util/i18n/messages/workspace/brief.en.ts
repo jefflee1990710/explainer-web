@@ -379,11 +379,29 @@ export const briefEn = {
   },
   director: {
     title: "Director is writing the storyboard",
+    stepBadge: "Step {step}/5 · Storyboard planning",
+    subStepCounter: "Director sub-step {step}/5",
     stageReadSource: "Reading the brief and core message…",
+    stageReadSourceDetail:
+      "Parsing your instructions, target length, cast/product references, and key takeaways.",
     stageHook: "Designing hook and delayed payoff…",
+    stageHookDetail:
+      "Crafting a scroll-stopping 3-second opening hook and pacing the narrative arc.",
     stageTimeline: "Breaking into clips and timeline…",
+    stageTimelineDetail:
+      "Splitting the story into timed clips with start/end keyframe compositions and camera moves.",
     stageVo: "Writing voiceover and reference translation…",
+    stageVoDetail:
+      "Writing spoken lines matched to speaking pace, tone tags, and on-screen subtitle cards.",
     stageLocks: "Checking cast lock and visual world…",
+    stageLocksDetail:
+      "Planning consistent prop reference sheets and 3×3 multi-angle background plates across clips.",
+    pipelineTitle: "5-Step Production Pipeline",
+    pipelineStep1: "1/5 Storyboard & script",
+    pipelineStep2: "2/5 Prop & 3×3 set locks",
+    pipelineStep3: "3/5 Scene keyframes & text",
+    pipelineStep4: "4/5 AI video & synced audio",
+    pipelineStep5: "5/5 Timeline preview & export",
     eta: "Usually 20–60 seconds. Video opens automatically when the storyboard is ready.",
   },
   aspectRatioHints: {
