@@ -24,7 +24,7 @@ function hasOriginalPhoto(character: PublicCharacter, version: PublicCharacterVe
   return Boolean(root.referenceImageUrl) && !root.parentVersionId;
 }
 
-// Right pane: big preview + set-default / edit / retry actions.
+// Right pane: full-height preview + collapsible spec + always-visible quick edit dock at bottom.
 export function VersionDetail({
   character,
   version,
@@ -47,7 +47,7 @@ export function VersionDetail({
   onRetry: () => void;
 }) {
   const { t, locale } = useI18n();
-  const [editing, setEditing] = useState(false);
+  const [showSpec, setShowSpec] = useState(false);
   const [instruction, setInstruction] = useState("");
   const [previewImage, setPreviewImage] = useState<{
     src: string;
@@ -57,24 +57,25 @@ export function VersionDetail({
   const isDefault = character.defaultByStyle[version.styleId] === version.id;
   const busy = version.status === "queued" || version.status === "in_progress";
   const board = version.blueprintKind === "board";
-  // Boards are two images; a legacy sheet retries or edits as one.
   const cost = board ? BLUEPRINT_COST : FRAME_COST;
   const short = !subscribed || credits < cost;
   const blueprintAlt = t("characters.versionBlueprintAlt", {
     name: character.name,
     n: version.number,
   });
+  const hasDetails = Boolean(
+    version.spec || version.editInstruction || version.prompt || version.referenceImageUrl,
+  );
 
   function submitEdit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!instruction.trim()) return;
     onEdit(instruction.trim());
     setInstruction("");
-    setEditing(false);
   }
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.75rem] border border-accent-ink/10 bg-paper/85 p-6 shadow-[8px_8px_0_0_rgba(18,20,28,0.08)]">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90 p-4 shadow-[6px_6px_0_0_rgba(18,20,28,0.06)]">
       {previewImage ? (
         <CharacterImagePreviewDialog
           src={previewImage.src}
@@ -84,22 +85,108 @@ export function VersionDetail({
         />
       ) : null}
 
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <h2 className="font-display text-xl font-bold">
-          v{version.number}
-          {isDefault ? (
-            <span className="ml-2 rounded-full bg-lime px-2 py-0.5 text-xs font-bold">
-              {t("characters.defaultBadge")}
+      {/* Compact Top Bar: Version title + Default / Retry / Details buttons */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="font-display text-lg font-bold">
+            v{version.number}
+            {isDefault ? (
+              <span className="ml-2 rounded-full bg-lime px-2 py-0.5 text-xs font-bold">
+                {t("characters.defaultBadge")}
+              </span>
+            ) : null}
+          </h2>
+          <span className="text-xs text-muted">
+            {new Date(version.createdAt).toLocaleString(locale)}
+          </span>
+          {version.editInstruction ? (
+            <span className="max-w-xs truncate rounded-full bg-accent-ink/8 px-2.5 py-0.5 text-xs text-muted">
+              {version.editInstruction}
             </span>
           ) : null}
-        </h2>
-        <p className="text-xs text-muted">
-          {new Date(version.createdAt).toLocaleString(locale)}
-        </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {hasDetails ? (
+            <button
+              type="button"
+              onClick={() => setShowSpec((value) => !value)}
+              aria-expanded={showSpec}
+              className={`inline-flex h-8 cursor-pointer items-center rounded-full border px-3 text-xs font-semibold transition ${
+                showSpec
+                  ? "border-accent-ink bg-accent-ink text-paper"
+                  : "border-accent-ink/15 bg-paper text-muted hover:text-foreground"
+              }`}
+            >
+              {t("characters.specHeading")}
+            </button>
+          ) : null}
+          {version.status === "completed" && !isDefault ? (
+            <button
+              type="button"
+              onClick={onSetDefault}
+              disabled={pending !== ""}
+              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/15 bg-paper px-3 text-xs font-semibold transition hover:border-accent-ink/40 disabled:opacity-60"
+            >
+              {pending === "default" ? <Spinner className="h-3.5 w-3.5" /> : null}
+              {t("characters.setDefault")}
+            </button>
+          ) : null}
+          {version.status === "failed" ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              disabled={pending !== ""}
+              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-accent-ink px-3.5 text-xs font-semibold text-lime transition hover:-translate-y-0.5 disabled:opacity-60"
+            >
+              {pending === "retry" ? <Spinner className="h-3.5 w-3.5" /> : null}
+              {t("characters.retryCredits", { cost })}
+            </button>
+          ) : null}
+        </div>
       </div>
 
-      {/* The pane keeps its height. The sheet or board stays fully visible inside it. */}
-      <div className="relative mt-4 min-h-[20rem] flex-1 overflow-hidden rounded-[1.25rem] border border-accent-ink/10 bg-white">
+      {/* Collapsible Spec / Prompt Drawer */}
+      {showSpec && hasDetails ? (
+        <dl className="mt-2.5 max-h-32 shrink-0 space-y-1.5 overflow-y-auto rounded-xl border border-accent-ink/10 bg-paper p-3 text-xs">
+          {version.spec ? (
+            <div>
+              <dt className="font-semibold uppercase tracking-[0.1em] text-muted">
+                {t("characters.specHeading")}
+              </dt>
+              <dd className="mt-1">
+                <CharacterSpecList spec={version.spec} />
+              </dd>
+            </div>
+          ) : null}
+          {version.editInstruction ? (
+            <div>
+              <dt className="font-semibold uppercase tracking-[0.1em] text-muted">
+                {t("characters.changeThisRun")}
+              </dt>
+              <dd className="mt-0.5">{version.editInstruction}</dd>
+            </div>
+          ) : null}
+          {version.prompt ? (
+            <div>
+              <dt className="font-semibold uppercase tracking-[0.1em] text-muted">
+                {t("characters.characterDescription")}
+              </dt>
+              <dd className="mt-0.5 whitespace-pre-wrap text-muted">{version.prompt}</dd>
+            </div>
+          ) : version.referenceImageUrl ? (
+            <div>
+              <dt className="font-semibold uppercase tracking-[0.1em] text-muted">
+                {t("characters.characterSource")}
+              </dt>
+              <dd className="mt-0.5 text-muted">{t("characters.characterFromReferences")}</dd>
+            </div>
+          ) : null}
+        </dl>
+      ) : null}
+
+      {/* Main Blueprint Preview Canvas (takes all available height) */}
+      <div className="relative mt-3 min-h-[16rem] flex-1 overflow-hidden rounded-xl border border-accent-ink/10 bg-white">
         {board ? (
           <BlueprintBoard
             name={character.name}
@@ -141,120 +228,49 @@ export function VersionDetail({
         )}
       </div>
 
-      <dl className="mt-4 max-h-36 shrink-0 space-y-2 overflow-y-auto text-sm">
-        {version.spec ? (
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-              {t("characters.specHeading")}
-            </dt>
-            <dd className="mt-1">
-              <CharacterSpecList spec={version.spec} />
-            </dd>
-          </div>
-        ) : null}
-        {version.editInstruction ? (
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-              {t("characters.changeThisRun")}
-            </dt>
-            <dd className="mt-1">{version.editInstruction}</dd>
-          </div>
-        ) : null}
-        {version.prompt ? (
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-              {t("characters.characterDescription")}
-            </dt>
-            <dd className="mt-1 whitespace-pre-wrap text-muted">{version.prompt}</dd>
-          </div>
-        ) : version.referenceImageUrl ? (
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-              {t("characters.characterSource")}
-            </dt>
-            <dd className="mt-1 text-muted">{t("characters.characterFromReferences")}</dd>
-          </div>
-        ) : null}
-      </dl>
-
       {error ? (
-        <p role="alert" className="mt-4 shrink-0 text-sm font-medium text-accent">
+        <p role="alert" className="mt-2.5 shrink-0 text-xs font-medium text-accent">
           {translateAppError(error, t)}
         </p>
       ) : null}
 
-      <div className="mt-5 flex shrink-0 flex-wrap items-center gap-3 border-t border-accent-ink/10 pt-5">
-        {version.status === "completed" && !isDefault ? (
-          <button
-            type="button"
-            onClick={onSetDefault}
-            disabled={pending !== ""}
-            className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/15 bg-paper px-4 text-sm font-semibold transition hover:-translate-y-0.5 disabled:opacity-60"
-          >
-            {pending === "default" ? <Spinner className="h-4 w-4" /> : null}
-            {t("characters.setDefault")}
-          </button>
-        ) : null}
-        {version.status === "completed" ? (
-          <button
-            type="button"
-            onClick={() => setEditing((value) => !value)}
-            disabled={pending !== ""}
-            className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent px-4 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:opacity-60"
-          >
-            {t("characters.editFromVersion")}
-          </button>
-        ) : null}
-        {version.status === "failed" ? (
-          <button
-            type="button"
-            onClick={onRetry}
-            disabled={pending !== ""}
-            className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent-ink px-4 text-sm font-semibold text-lime transition hover:-translate-y-0.5 disabled:opacity-60"
-          >
-            {pending === "retry" ? <Spinner className="h-4 w-4" /> : null}
-            {t("characters.retryCredits", { cost })}
-          </button>
-        ) : null}
-        <p className="text-xs text-muted">
-          {short
-            ? subscribed
-              ? t("characters.creditsShortSubscribed", { remaining: credits })
-              : t("characters.creditsNeedSubscribe")
-            : t("characters.creditsRemaining", { remaining: credits })}
-        </p>
-      </div>
-
-      {editing ? (
-        <form onSubmit={submitEdit} className="mt-4 shrink-0 space-y-3">
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold">{t("characters.editWhatLabel")}</span>
-            {hasOriginalPhoto(character, version) ? (
-              <span className="mb-1.5 block text-xs leading-5 text-muted">{t("characters.editKeepsOriginal")}</span>
-            ) : null}
-            <textarea
-              rows={3}
+      {/* Always-Visible Quick Edit Dock (no need to toggle a button or scroll!) */}
+      {version.status === "completed" ? (
+        <form onSubmit={submitEdit} className="mt-3 shrink-0 border-t border-accent-ink/10 pt-3">
+          <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-foreground">
+              {t("characters.editWhatLabel")}
+              {hasOriginalPhoto(character, version) ? (
+                <span className="ml-2 font-normal text-muted">
+                  ({t("characters.editKeepsOriginal")})
+                </span>
+              ) : null}
+            </span>
+            <span className="text-[11px] text-muted">
+              {short
+                ? subscribed
+                  ? t("characters.creditsShortSubscribed", { remaining: credits })
+                  : t("characters.creditsNeedSubscribe")
+                : t("characters.creditsRemaining", { remaining: credits })}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
               value={instruction}
               onChange={(event) => setInstruction(event.target.value)}
+              disabled={pending !== ""}
               placeholder={t("characters.editWhatPlaceholder")}
-              className="w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              aria-label={t("characters.editWhatLabel")}
+              className="h-10 min-w-0 flex-1 rounded-full border border-accent-ink/15 bg-paper px-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
             />
-          </label>
-          <div className="flex items-center gap-2">
             <button
               type="submit"
               disabled={!instruction.trim() || pending !== ""}
-              className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full bg-accent px-4 text-xs font-bold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {pending === "edit" ? <Spinner className="h-4 w-4" /> : null}
+              {pending === "edit" ? <Spinner className="h-3.5 w-3.5" /> : null}
               {t("characters.generateNewVersion", { cost })}
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className="min-h-[44px] cursor-pointer rounded-full px-3 text-sm font-semibold text-muted hover:text-foreground"
-            >
-              {t("common.cancel")}
             </button>
           </div>
         </form>

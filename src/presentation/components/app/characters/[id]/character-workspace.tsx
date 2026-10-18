@@ -37,7 +37,7 @@ function styleLabel(styleId: string, styles: PublicStyle[]) {
   return localizedStyleName(styleId as StyleId);
 }
 
-// Style column, then versions of that style, then the selected blueprint.
+// Single-screen Studio workspace: top bar with Look / Voice tabs, zero full-page scrolling.
 export function CharacterWorkspace({
   character: initial,
   credits,
@@ -50,7 +50,6 @@ export function CharacterWorkspace({
   credits: number;
   subscribed: boolean;
   planId: PlanId | null;
-  // This account can add styles past the plan cap.
   unlimitedStyles?: boolean;
   styles: PublicStyle[];
 }) {
@@ -59,6 +58,7 @@ export function CharacterWorkspace({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [character, setCharacter] = useState(initial);
+  const [activeTab, setActiveTab] = useState<"look" | "voice">("look");
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
   const [name, setName] = useState(initial.name);
@@ -77,7 +77,6 @@ export function CharacterWorkspace({
   const walletPlanId = paidSnap?.planId ?? planId;
   const styleLimit = unlimitedStyles ? null : characterStyleLimit(walletPlanId);
 
-  // SSR gives a first paint; refresh in the background after navigation.
   useEffect(() => {
     let cancelled = false;
     void getCharacterAction(initial.id).then((result) => {
@@ -88,7 +87,7 @@ export function CharacterWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [initial.id]);
+  }, [initial.id, t]);
 
   const onPoll = useCallback((next: PublicCharacter) => setCharacter(next), []);
   const onPollError = useCallback(
@@ -161,7 +160,6 @@ export function CharacterWorkspace({
     const next = await run("edit", () =>
       editCharacterVersionAction(character.id, selected.id, instruction),
     );
-    // Jump to the new version so the user watches it generate.
     if (next) select(next.versions[0].id);
   }
 
@@ -175,10 +173,14 @@ export function CharacterWorkspace({
   }
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <Link href="/app/characters" className="text-sm font-semibold text-muted transition hover:text-foreground">
+    <div className="flex flex-col gap-3 md:h-[calc(100dvh-4.5rem)] md:overflow-hidden">
+      {/* Compact Single-Row Studio Header */}
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-accent-ink/10 bg-paper/90 px-4 py-2.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <Link
+            href="/app/characters"
+            className="shrink-0 text-xs font-semibold text-muted transition hover:text-foreground"
+          >
             {t("characters.backToList")}
           </Link>
           <input
@@ -191,22 +193,53 @@ export function CharacterWorkspace({
             onKeyDown={(event) => {
               if (event.key === "Enter") (event.target as HTMLInputElement).blur();
             }}
-            className="font-display mt-2 block w-full max-w-md rounded-lg border border-transparent bg-transparent text-3xl font-bold hover:border-accent-ink/15 focus-visible:border-accent-ink/30 focus-visible:outline-none"
+            className="font-display w-44 rounded-lg border border-transparent bg-transparent px-1.5 py-0.5 text-xl font-bold hover:border-accent-ink/15 focus-visible:border-accent-ink/30 focus-visible:outline-none sm:w-60"
           />
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="text-sm text-muted">
+          <span className="rounded-full bg-accent-ink/8 px-2.5 py-0.5 text-xs font-medium text-muted">
             {character.styleIds.length > 1
               ? t("characters.styleCount", { n: character.styleIds.length })
               : styleLabel(character.styleIds[0] || character.styleId, styles)}
             {" · "}
             {t("characters.versionCount", { n: character.versions.length })}
-          </p>
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Look vs Voice Studio Tab Switcher */}
+          <div className="inline-flex rounded-full border border-accent-ink/15 bg-paper p-0.5" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "look"}
+              onClick={() => setActiveTab("look")}
+              className={`cursor-pointer rounded-full px-3.5 py-1 text-xs font-bold transition ${
+                activeTab === "look"
+                  ? "bg-accent-ink text-paper"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              {t("characters.outlookHeading")}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "voice"}
+              onClick={() => setActiveTab("voice")}
+              className={`cursor-pointer rounded-full px-3.5 py-1 text-xs font-bold transition ${
+                activeTab === "voice"
+                  ? "bg-accent-ink text-paper"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              {t("characters.voiceTitle")}
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => setDeleteOpen(true)}
             disabled={pending !== ""}
-            className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-accent/30 px-4 text-sm font-semibold text-accent transition hover:-translate-y-0.5 disabled:opacity-60"
+            className="inline-flex h-8 cursor-pointer items-center rounded-full border border-accent/30 px-3 text-xs font-semibold text-accent transition hover:bg-accent/5 disabled:opacity-60"
           >
             {t("characters.deleteCharacter")}
           </button>
@@ -217,63 +250,71 @@ export function CharacterWorkspace({
         <DeleteCharacterDialog character={character} onClose={() => setDeleteOpen(false)} />
       ) : null}
 
-      <section
-        aria-label={t("characters.outlookHeading")}
-        className="flex min-h-[36rem] flex-col md:h-[min(56rem,calc(100dvh-7rem))]"
-      >
-      <div className="grid min-h-0 flex-1 gap-6 md:grid-cols-[11rem_17.5rem_minmax(0,1fr)] md:items-stretch">
-        <CharacterStyleColumn
-          character={character}
-          styles={styles}
-          styleLimit={styleLimit}
-          activeStyleId={activeStyleId}
-          onSelect={selectStyle}
-          onAdded={showAdded}
-          onNeedCredits={(styleId) => {
-            setCreditGate({
-              needed: BLUEPRINT_COST,
-              resume: () => {
-                void addCharacterStyleAction(character.id, styleId).then((result) => {
-                  if (result.ok) showAdded(result.character, styleId);
-                  else setError(translateAppError(result.error, t));
+      {activeTab === "look" ? (
+        <section
+          aria-label={t("characters.outlookHeading")}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[10.5rem_15.5rem_minmax(0,1fr)] md:items-stretch">
+            <CharacterStyleColumn
+              character={character}
+              styles={styles}
+              styleLimit={styleLimit}
+              activeStyleId={activeStyleId}
+              onSelect={selectStyle}
+              onAdded={showAdded}
+              onNeedCredits={(styleId) => {
+                setCreditGate({
+                  needed: BLUEPRINT_COST,
+                  resume: () => {
+                    void addCharacterStyleAction(character.id, styleId).then((result) => {
+                      if (result.ok) showAdded(result.character, styleId);
+                      else setError(translateAppError(result.error, t));
+                    });
+                  },
                 });
-              },
-            });
-          }}
-        />
-        <VersionList
-          character={character}
-          styleId={activeStyleId}
-          selectedId={selected?.id ?? null}
-          onSelect={select}
-        />
-        {selected ? (
-          <VersionDetail
-            key={selected.id}
-            character={character}
-            version={selected}
-            credits={walletCredits}
-            subscribed={walletSubscribed}
-            pending={pending}
-            error={error}
-            onSetDefault={() =>
-              void run("default", () => setDefaultVersionAction(character.id, selected.id))
-            }
-            onEdit={(instruction) => void onEdit(instruction)}
-            onRetry={() =>
-              void run("retry", () => retryCharacterVersionAction(character.id, selected.id))
-            }
-          />
-        ) : (
-          <p className="text-sm text-muted">{t("characters.noVersions")}</p>
-        )}
-      </div>
-      </section>
+              }}
+            />
+            <VersionList
+              character={character}
+              styleId={activeStyleId}
+              selectedId={selected?.id ?? null}
+              onSelect={select}
+            />
+            {selected ? (
+              <VersionDetail
+                key={selected.id}
+                character={character}
+                version={selected}
+                credits={walletCredits}
+                subscribed={walletSubscribed}
+                pending={pending}
+                error={error}
+                onSetDefault={() =>
+                  void run("default", () => setDefaultVersionAction(character.id, selected.id))
+                }
+                onEdit={(instruction) => void onEdit(instruction)}
+                onRetry={() =>
+                  void run("retry", () => retryCharacterVersionAction(character.id, selected.id))
+                }
+              />
+            ) : (
+              <p className="text-sm text-muted">{t("characters.noVersions")}</p>
+            )}
+          </div>
+        </section>
+      ) : (
+        <section
+          aria-label={t("characters.voiceTitle")}
+          className="grid min-h-0 flex-1 gap-4 overflow-y-auto md:grid-cols-2 md:items-start"
+        >
+          <CharacterVoicePanel character={character} onSaved={setCharacter} />
+          <div className="[&>div]:mt-0">
+            <CharacterVoiceSamplePanel character={character} onSaved={setCharacter} />
+          </div>
+        </section>
+      )}
 
-      <section aria-label={t("characters.voiceTitle")}>
-        <CharacterVoicePanel character={character} onSaved={setCharacter} />
-        <CharacterVoiceSamplePanel character={character} onSaved={setCharacter} />
-      </section>
       {creditGate ? (
         <InsufficientCreditsDialog
           needed={creditGate.needed}
