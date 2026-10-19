@@ -71,6 +71,7 @@ import {
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { AssetsClipMenu } from "@/opencut/components/editor/panels/assets/views/assets-clip-menu";
 import { BookendVideoCard } from "@/opencut/components/editor/panels/assets/views/assets-bookend-card";
+import { ScroStoryboardClipCard } from "@/opencut/components/editor/panels/assets/views/scro-storyboard-clip-card";
 import { listFolderBookendVideosAction } from "@/presentation/actions/video-edit";
 import type { FolderBookendVideo } from "@/service/video-edit/edit-state";
 import { localizedVideoType } from "@/util/video-type-i18n";
@@ -450,6 +451,55 @@ function MediaItemList({
 			!bookendNames.has(item.name) &&
 			!(item.scroPosterUrl && bookendUrls.has(item.scroPosterUrl)),
 	);
+	const storyboard = scroVideos?.clips ?? [];
+	const assetByClip = new Map<number, MediaAsset>();
+	const otherItems: MediaAsset[] = [];
+	for (const item of shown) {
+		const clipNumber = resolveScroClipNumber({
+			asset: item,
+			clips: storyboard,
+		});
+		if (clipNumber == null || assetByClip.has(clipNumber)) {
+			if (clipNumber == null) otherItems.push(item);
+			continue;
+		}
+		assetByClip.set(clipNumber, item);
+	}
+	const canvas = editor.project.getActiveOrNull()?.settings.canvasSize;
+	const storyboardAspect =
+		canvas && canvas.width > 0 && canvas.height > 0 ? canvas.width / canvas.height : 9 / 16;
+	const variant = isGrid ? "grid" : "compact";
+
+	function renderLibraryItem(item: MediaAsset) {
+		const clipNumber = resolveScroClipNumber({
+			asset: item,
+			clips: storyboard,
+		});
+		return (
+			<div key={item.id} className={cn(isGrid && "contents")}>
+				<MediaItemWithContextMenu item={item} onRemove={onRemove}>
+					<SelectableItem
+						className={cn(!isGrid && "w-full")}
+						id={item.id}
+						onClick={() => {
+							if (clipNumber == null) return;
+							selectScroMediaClip({
+								clipNumber,
+								editor,
+							});
+						}}
+					>
+						<MediaAssetDraggable
+							item={item}
+							preview={<MediaPreview item={item} variant={variant} />}
+							variant={variant === "grid" ? "card" : "compact"}
+							isRounded={isGrid ? false : undefined}
+						/>
+					</SelectableItem>
+				</MediaItemWithContextMenu>
+			</div>
+		);
+	}
 
 	return (
 		<div
@@ -458,41 +508,27 @@ function MediaItemList({
 				isGrid ? { gridTemplateColumns: "repeat(auto-fill, 7rem)" } : undefined
 			}
 		>
-			{shown.map((item) => {
-				const clipNumber = resolveScroClipNumber({
-					asset: item,
-					clips: scroVideos?.clips,
-				});
-				return (
-					<div key={item.id} className={cn(isGrid && "contents")}>
-						<MediaItemWithContextMenu item={item} onRemove={onRemove}>
-							<SelectableItem
-								className={cn(!isGrid && "w-full")}
-								id={item.id}
-								onClick={() => {
-									if (clipNumber == null) return;
+			{storyboard.length > 0
+				? storyboard.map((clip) => {
+						const item = assetByClip.get(clip.clipNumber);
+						if (item) return renderLibraryItem(item);
+						return (
+							<ScroStoryboardClipCard
+								key={`scro-clip-${clip.clipNumber}`}
+								clip={clip}
+								variant={variant === "grid" ? "card" : "compact"}
+								aspectRatio={storyboardAspect}
+								onSelect={() =>
 									selectScroMediaClip({
-										clipNumber,
+										clipNumber: clip.clipNumber,
 										editor,
-									});
-								}}
-							>
-								<MediaAssetDraggable
-									item={item}
-									preview={
-										<MediaPreview
-											item={item}
-											variant={isGrid ? "grid" : "compact"}
-										/>
-									}
-									variant={isGrid ? "card" : "compact"}
-									isRounded={isGrid ? false : undefined}
-								/>
-							</SelectableItem>
-						</MediaItemWithContextMenu>
-					</div>
-				);
-			})}
+									})
+								}
+							/>
+						);
+					})
+				: shown.map((item) => renderLibraryItem(item))}
+			{storyboard.length > 0 ? otherItems.map((item) => renderLibraryItem(item)) : null}
 			{isGrid
 				? bookends.map((video) => <BookendVideoCard key={video.id} video={video} />)
 				: null}

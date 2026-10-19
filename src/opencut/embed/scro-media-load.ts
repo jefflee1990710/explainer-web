@@ -1,3 +1,4 @@
+import { clipNumberFromName } from "@/opencut/embed/scro-clip-number";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 import type { MediaAsset } from "@/opencut/media/types";
 
@@ -26,6 +27,10 @@ export function findReusableClipAsset({
 		for (let i = assets.length - 1; i >= 0; i--) {
 			const asset = assets[i];
 			if (asset.type !== wantedType) continue;
+			// A shared poster URL must not let Clip 2 reuse Clip 1's file.
+			// The Assets panel keeps one row per clip, so a shared id hides the rest.
+			const owner = asset.scroClipNumber ?? clipNumberFromName(asset.name);
+			if (owner !== clip.clipNumber) continue;
 			const recordedUrl = clipSources[asset.id];
 			const matchesSource =
 				recordedUrl === wantedUrl ||

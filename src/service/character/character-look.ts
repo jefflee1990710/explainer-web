@@ -2,13 +2,16 @@
 import { REALISTIC_CHARACTER_RENDER_RULE } from "@/service/style/realistic-light";
 import {
   EXTRA_ACCESSORIES,
+  EXTRA_HAIR,
   EXTRA_HERITAGE_ACCESSORY_IDS,
+  EXTRA_HERITAGE_HAIR_IDS,
   EXTRA_HERITAGE_PANTS_IDS,
   EXTRA_HERITAGE_SHOES_IDS,
   EXTRA_HERITAGE_TOP_IDS,
   EXTRA_PANTS,
   EXTRA_SHOES,
   EXTRA_STYLIZED_ACCESSORY_IDS,
+  EXTRA_STYLIZED_HAIR_IDS,
   EXTRA_STYLIZED_PANTS_IDS,
   EXTRA_STYLIZED_SHOES_IDS,
   EXTRA_STYLIZED_TOP_IDS,
@@ -112,6 +115,7 @@ export const CHARACTER_LOOKS: Record<CharacterLookPart, readonly CharacterLookOp
     { id: "braids", prompt: "long thin box braids starting in a neat grid at the scalp and falling past the shoulders" },
     { id: "chignon", prompt: "three-quarter view turned slightly away so the nape is visible. Exactly one smooth round bun sits in the center of the nape. Side hair is pulled flat into that single bun. Only one bun, not a bun beside each ear" },
     { id: "plait", prompt: "one thick three-strand braid resting on the front of one shoulder, centre part, the rest of the hair gathered into that braid" },
+    ...EXTRA_HAIR,
   ],
   face: [
     { id: "round", prompt: "round face with soft cheeks" },
@@ -245,8 +249,8 @@ export function characterLookPreviewSrc(part: AnyCharacterLookPart, id: string) 
 }
 
 // Global 20-country cultural & regional signature fashion items (mapped to the "extreme" / Global Heritage tab).
-const GLOBAL_HERITAGE_HAIR = new Set(["hime", "korean", "afro", "braids", "chignon", "plait"]);
-const ERA_STYLIZED_HAIR = new Set(["waves", "rolls", "beehive", "feathered", "mullet", "wolf"]);
+const GLOBAL_HERITAGE_HAIR = new Set(["hime", "korean", "afro", "braids", "chignon", "plait", ...EXTRA_HERITAGE_HAIR_IDS]);
+const ERA_STYLIZED_HAIR = new Set(["waves", "rolls", "beehive", "feathered", "mullet", "wolf", ...EXTRA_STYLIZED_HAIR_IDS]);
 const FULL_HAIR = new Set([...GLOBAL_HERITAGE_HAIR, ...ERA_STYLIZED_HAIR]);
 
 const FEATURE_FACE = new Set(["monolid", "doe", "brows", "ears", "button", "aquiline", "full", "thin"]);

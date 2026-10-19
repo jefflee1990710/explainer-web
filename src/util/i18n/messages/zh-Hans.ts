@@ -18,6 +18,7 @@ export const zhHans: Partial<Messages> = {
     signIn: "登录",
     workspace: "工作区",
     language: "语言",
+    room: "更衣室",
   },
   common: {
     credits: "credits",

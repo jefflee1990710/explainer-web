@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   ALL_CHARACTER_LOOK_PARTS,
-  CHARACTER_LOOKS,
   CHARACTER_LOOK_PARTS,
   CHARACTER_WARDROBE_PARTS,
   CHARACTER_VIRAL_PRESETS,
@@ -147,10 +146,14 @@ test("characterWardrobeEditInstruction and detectCharacterWardrobePicks handle h
 });
 
 test("extra wardrobe options stay unique so one prompt cannot hide inside another", () => {
-  assert.equal(optionsForLookPart("top").length, 28 + 90);
-  assert.equal(optionsForLookPart("pants").length, 16 + 45);
-  assert.equal(optionsForLookPart("shoes").length, 19 + 40);
-  assert.equal(optionsForLookPart("accessory").length, 8 + 25);
+  assert.equal(optionsForLookPart("hair").length, 17 + 14);
+  assert.equal(optionsForLookPart("top").length, 28 + 99);
+  assert.equal(optionsForLookPart("pants").length, 16 + 51);
+  assert.equal(optionsForLookPart("shoes").length, 19 + 46);
+  assert.equal(optionsForLookPart("accessory").length, 8 + 33);
+  assert.equal(lookOptionCategory("hair", "dreadlocks"), "extreme");
+  assert.equal(lookOptionCategory("hair", "pompadour"), "stylized");
+  assert.equal(lookOptionCategory("hair", "pixie"), "classic");
   assert.equal(lookOptionCategory("top", "kimono"), "extreme");
   assert.equal(lookOptionCategory("top", "bomber"), "stylized");
   assert.equal(lookOptionCategory("top", "oxford"), "classic");

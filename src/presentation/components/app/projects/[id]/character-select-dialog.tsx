@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useId, useMemo, useState } from "react";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { castPickStatus } from "@/presentation/components/app/projects/[id]/cast-pick-status";
+import { CharacterManageDialog } from "@/presentation/components/app/projects/[id]/character-manage-dialog";
 import type {
   PublicCharacter,
   PublicCharacterPreset,
@@ -82,7 +82,7 @@ export function presetsForCharacterStyle(
 
 // Modal dialog for selecting characters and their saved blueprint presets during video generation.
 export function CharacterSelectDialog({
-  characters,
+  characters: initialCharacters,
   styleId,
   value,
   selections,
@@ -90,6 +90,7 @@ export function CharacterSelectDialog({
   required,
   onChange,
   onSelectionsChange,
+  onCharacterUpdated,
   onClose,
 }: {
   characters: PublicCharacter[];
@@ -100,10 +101,19 @@ export function CharacterSelectDialog({
   required: number;
   onChange: (ids: string[]) => void;
   onSelectionsChange: (next: CharacterSelectionMap) => void;
+  onCharacterUpdated?: (next: PublicCharacter) => void;
   onClose: () => void;
 }) {
   const { t } = useI18n();
   const titleId = useId();
+  const [overrides, setOverrides] = useState<Record<string, PublicCharacter>>(
+    {},
+  );
+  const characters = useMemo(
+    () => initialCharacters.map((c) => overrides[c.id] ?? c),
+    [initialCharacters, overrides],
+  );
+  const [managingCharId, setManagingCharId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [recentIds, setRecentIds] = useState<string[]>(() =>
     readRecentPresetIds(),
@@ -114,11 +124,16 @@ export function CharacterSelectDialog({
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && !managingCharId) onClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, managingCharId]);
+
+  const managingCharacter = useMemo(
+    () => characters.find((c) => c.id === managingCharId) || null,
+    [characters, managingCharId],
+  );
 
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -376,7 +391,7 @@ export function CharacterSelectDialog({
                             presetSelected ? "text-paper/75" : "text-muted"
                           }`}
                         >
-                          {character.name} · v{preset.versionNumber}
+                          {character.name}
                         </span>
                       </span>
                     </button>
@@ -427,12 +442,13 @@ export function CharacterSelectDialog({
                           })}
                         </span>
                       </div>
-                      <Link
-                        href={`/app/characters/${character.id}`}
-                        className="text-xs font-semibold text-muted underline underline-offset-4 hover:text-foreground"
+                      <button
+                        type="button"
+                        onClick={() => setManagingCharId(character.id)}
+                        className="cursor-pointer rounded-full border border-accent-ink/20 bg-paper px-3 py-1 text-xs font-semibold text-foreground transition hover:border-accent-ink"
                       >
                         {t("brief.castPicker.linkManage")}
-                      </Link>
+                      </button>
                     </div>
 
                     {presets.length === 0 ? (
@@ -476,7 +492,7 @@ export function CharacterSelectDialog({
                                 defaultSelected ? "text-paper/75" : "text-muted"
                               }`}
                             >
-                              v{defaultSheet.number}
+                              {character.name}
                             </span>
                           </span>
                         </button>
@@ -522,18 +538,17 @@ export function CharacterSelectDialog({
                               <span className="block truncate text-xs font-bold">
                                 {preset.name}
                               </span>
-                              <span
-                                className={`mt-0.5 block truncate text-[11px] ${
-                                  isPresetSelected
-                                    ? "text-paper/75"
-                                    : "text-muted"
-                                }`}
-                              >
-                                v{preset.versionNumber}
-                                {preset.editInstruction
-                                  ? ` · ${preset.editInstruction}`
-                                  : ""}
-                              </span>
+                              {preset.editInstruction ? (
+                                <span
+                                  className={`mt-0.5 block truncate text-[11px] ${
+                                    isPresetSelected
+                                      ? "text-paper/75"
+                                      : "text-muted"
+                                  }`}
+                                >
+                                  {preset.editInstruction}
+                                </span>
+                              ) : null}
                             </span>
                           </button>
                         );
@@ -548,12 +563,19 @@ export function CharacterSelectDialog({
 
         {/* Dialog Footer */}
         <div className="flex shrink-0 items-center justify-between border-t border-accent-ink/10 bg-paper px-6 py-3.5">
-          <Link
-            href="/app/characters"
-            className="text-xs font-semibold text-muted underline underline-offset-4 hover:text-foreground"
-          >
-            {t("brief.castPicker.linkManage")}
-          </Link>
+          {characters[0] ? (
+            <button
+              type="button"
+              onClick={() =>
+                setManagingCharId(value[0] || characters[0]!.id)
+              }
+              className="cursor-pointer text-xs font-semibold text-muted underline underline-offset-4 hover:text-foreground"
+            >
+              {t("brief.castPicker.linkManage")}
+            </button>
+          ) : (
+            <span />
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -563,6 +585,41 @@ export function CharacterSelectDialog({
           </button>
         </div>
       </div>
+
+      {managingCharacter ? (
+        <CharacterManageDialog
+          character={managingCharacter}
+          styleId={styleId}
+          initialSelection={selections[managingCharacter.id]}
+          onCharacterUpdated={(updated) => {
+            setOverrides((prev) => ({ ...prev, [updated.id]: updated }));
+            onCharacterUpdated?.(updated);
+          }}
+          onSelectAndClose={(option) => {
+            setManagingCharId(null);
+            if (option.presetId) {
+              setRecentIds(recordRecentPresetId(option.presetId));
+            }
+            if (!multiple) {
+              onChange([managingCharacter.id]);
+              onSelectionsChange({ [managingCharacter.id]: option });
+              onClose();
+              return;
+            }
+            const nextIds = value.includes(managingCharacter.id)
+              ? value
+              : value.length < max
+                ? [...value, managingCharacter.id]
+                : value;
+            onChange(nextIds);
+            onSelectionsChange({
+              ...selections,
+              [managingCharacter.id]: option,
+            });
+          }}
+          onClose={() => setManagingCharId(null)}
+        />
+      ) : null}
     </DialogBackdrop>
   );
 }

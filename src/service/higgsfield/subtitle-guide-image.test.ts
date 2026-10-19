@@ -94,8 +94,8 @@ test("renderSubtitleGuideSvg and renderSubtitleGuideDataUrl render a valid PNG d
   assert.equal(meta.width, 960);
   assert.equal(meta.height, 360);
 
-  assert.match(
-    subtitleGuidePromptLine(3, "but who has time to script and edit every day?"),
-    /SUBTITLE SPELLING GUIDE: attached image 3/,
-  );
+  const guideLine = subtitleGuidePromptLine(3, "but who has time to script and edit every day?");
+  assert.match(guideLine, /SUBTITLE SPELLING GUIDE: attached image 3/);
+  assert.match(guideLine, /do NOT copy the plain font, flat colors, or rectangular box/);
+  assert.match(guideLine, /strictly following the user's selected text style in the Look line/);
 });

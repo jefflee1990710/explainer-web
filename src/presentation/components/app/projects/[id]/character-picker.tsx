@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { castPickStatus } from "@/presentation/components/app/projects/[id]/cast-pick-status";
+import { CharacterManageDialog } from "@/presentation/components/app/projects/[id]/character-manage-dialog";
 import {
   CharacterSelectDialog,
   defaultSheetForStyle,
@@ -13,7 +14,7 @@ import type { CharacterSelectionMap } from "@/service/character/character-preset
 
 // Clickable trigger that opens the Character & Preset Selection Dialog.
 export function CharacterPicker({
-  characters,
+  characters: initialCharacters,
   styleId,
   value,
   onChange,
@@ -35,11 +36,20 @@ export function CharacterPicker({
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const [overrides, setOverrides] = useState<Record<string, PublicCharacter>>(
+    {},
+  );
+  const characters = useMemo(
+    () => initialCharacters.map((c) => overrides[c.id] ?? c),
+    [initialCharacters, overrides],
+  );
+  const [managingCharId, setManagingCharId] = useState<string | null>(null);
   const [internalSelections, setInternalSelections] =
     useState<CharacterSelectionMap>({});
   const selections = controlledSelections ?? internalSelections;
   const setSelections = onSelectionsChange ?? setInternalSelections;
   const allowNone = required === 0;
+  const multiple = max > 1;
 
   const anyReady = characters.some((character) => character.previewUrl);
   const ready = characters.filter((character) => {
@@ -126,10 +136,9 @@ export function CharacterPicker({
                 })}
               </span>
             ) : (
-              <VersionLine
-                version={defaultSheetForStyle(firstSelected, styleId)}
-                muted
-              />
+              <span className="block text-xs text-muted">
+                {t("brief.castPicker.defaultLookBadge")}
+              </span>
             )
           ) : null}
           {selected.length > 1 ? (
@@ -151,7 +160,40 @@ export function CharacterPicker({
           required={required}
           onChange={onChange}
           onSelectionsChange={setSelections}
+          onCharacterUpdated={(updated) =>
+            setOverrides((prev) => ({ ...prev, [updated.id]: updated }))
+          }
           onClose={() => setOpen(false)}
+        />
+      ) : null}
+
+      {managingCharId ? (
+        <CharacterManageDialog
+          character={
+            ready.find((c) => c.id === managingCharId) || ready[0]!
+          }
+          styleId={styleId}
+          initialSelection={selections[managingCharId]}
+          onCharacterUpdated={(updated) =>
+            setOverrides((prev) => ({ ...prev, [updated.id]: updated }))
+          }
+          onSelectAndClose={(option) => {
+            const targetId = managingCharId;
+            setManagingCharId(null);
+            if (!multiple) {
+              onChange([targetId]);
+              setSelections({ [targetId]: option });
+              return;
+            }
+            const nextIds = value.includes(targetId)
+              ? value
+              : value.length < max
+                ? [...value, targetId]
+                : value;
+            onChange(nextIds);
+            setSelections({ ...selections, [targetId]: option });
+          }}
+          onClose={() => setManagingCharId(null)}
         />
       ) : null}
 
@@ -161,14 +203,24 @@ export function CharacterPicker({
         }`}
       >
         {ready.length === 0 ? t("brief.castPicker.errorNone") : pick.text}
-        <Link
-          href="/app/characters"
-          className="ml-1 underline underline-offset-4"
-        >
-          {ready.length === 0
-            ? t("brief.castPicker.linkCreate")
-            : t("brief.castPicker.linkManage")}
-        </Link>
+        {ready.length === 0 ? (
+          <Link
+            href="/app/characters"
+            className="ml-1 underline underline-offset-4"
+          >
+            {t("brief.castPicker.linkCreate")}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() =>
+              setManagingCharId(firstSelected?.id || ready[0]!.id)
+            }
+            className="ml-1 cursor-pointer underline underline-offset-4 hover:text-foreground"
+          >
+            {t("brief.castPicker.linkManage")}
+          </button>
+        )}
       </p>
     </div>
   );
@@ -229,21 +281,6 @@ function displayForSelection(
     sheet?.blueprintUrl ||
     character.previewUrl ||
     ""
-  );
-}
-
-function VersionLine({
-  version,
-  muted,
-}: {
-  version: PublicCharacter["versions"][number] | null;
-  muted?: boolean;
-}) {
-  if (!version) return null;
-  return (
-    <span className={`block text-xs ${muted ? "text-muted" : ""}`}>
-      v{version.number}
-    </span>
   );
 }
 

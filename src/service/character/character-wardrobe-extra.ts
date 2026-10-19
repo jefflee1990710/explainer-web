@@ -1,6 +1,29 @@
 // Extra wardrobe picks. Prompts stay unique inside each part so detection can match them exactly.
 import type { CharacterLookOption } from "@/service/character/character-look";
 
+const HERITAGE_HAIR: readonly CharacterLookOption[] = [
+  { id: "dreadlocks", prompt: "shoulder-length natural dreadlocks parted in the center and falling cleanly around the shoulders" },
+  { id: "cornrows", prompt: "neat scalp-braided cornrows running straight back from the forehead to the nape" },
+  { id: "bantu", prompt: "sculptural parted Bantu knots arranged symmetrically across the crown of the head" },
+  { id: "spacebuns", prompt: "two high symmetrical double space buns on the top of the head with wispy face-framing strands" },
+];
+
+const STYLIZED_HAIR: readonly CharacterLookOption[] = [
+  { id: "pompadour", prompt: "a classic rockabilly swept-back high-volume pompadour with clean tapered sides" },
+  { id: "curtain", prompt: "90s heartthrob center-parted medium-length curtain bangs flowing past the cheekbones" },
+  { id: "shag", prompt: "1970s rock-and-roll textured layered shag haircut with choppy fringe and tousled volume" },
+  { id: "buzzfade", prompt: "ultra-clean barbershop skin-fade buzzcut with a razor-sharp hairline" },
+];
+
+const CLASSIC_HAIR: readonly CharacterLookOption[] = [
+  { id: "pixie", prompt: "a chic gamine short tapered pixie cut with soft textured layers on top and exposed ears" },
+  { id: "ponytail", prompt: "a sleek high ponytail pulled taut at the crown with a smooth wrap around the base" },
+  { id: "frenchtwist", prompt: "an elegant vertical French twist updo pinned neatly along the back of the head" },
+  { id: "beachwaves", prompt: "effortless collar-length sun-kissed beach waves with a relaxed side part" },
+  { id: "slickback", prompt: "wet-look editorial slicked-back hair combed smoothly straight back from the forehead" },
+  { id: "sidepart", prompt: "a classic gentleman's side-parted tapered haircut with a neat combed finish" },
+];
+
 const HERITAGE_TOPS: readonly CharacterLookOption[] = [
   { id: "qipaotop", prompt: "a hip-length silk qipao cheongsam top in blush floral jacquard, with a high mandarin collar and diagonal frog buttons" },
   { id: "jeogori", prompt: "a Korean hanbok jeogori, a short cropped wrap jacket in pale pink silk with wide sleeves and a long ribbon goreum tie" },
@@ -75,6 +98,11 @@ const STYLIZED_TOPS: readonly CharacterLookOption[] = [
   { id: "utilityvest", prompt: "a khaki photographer utility vest covered in flap pockets, shown with no shirt under it" },
   { id: "punkvest", prompt: "a black denim vest with a row of silver studs along both lapels" },
   { id: "windshirt", prompt: "a cropped matte-grey technical wind shirt with articulated seams and a short zip placket" },
+  { id: "puffer", prompt: "a glossy cropped down puffer jacket with high-volume quilted baffles and a stand collar" },
+  { id: "corsettop", prompt: "a structured architectural satin bustier corset top with boning seams and a square neckline" },
+  { id: "varsitycardigan", prompt: "an oversized collegiate preppy cable-knit varsity cardigan with contrast sleeve stripes" },
+  { id: "meshlayer", prompt: "a Y2K streetwear long-sleeve graphic mesh top layered under a matte black utility vest" },
+  { id: "motojacket", prompt: "a color-blocked racing moto leather jacket with mandarin snap collar and padded shoulders" },
 ];
 
 const CLASSIC_TOPS: readonly CharacterLookOption[] = [
@@ -98,6 +126,10 @@ const CLASSIC_TOPS: readonly CharacterLookOption[] = [
   { id: "linenshirt", prompt: "a relaxed white linen shirt with the sleeves rolled once and the collar open" },
   { id: "tank", prompt: "a white ribbed tank top with a high round neck and wide armholes" },
   { id: "camisole", prompt: "a black silk camisole with thin spaghetti straps and a straight neckline" },
+  { id: "silkshirt", prompt: "a fluid champagne silk button-down dress shirt with a relaxed open collar" },
+  { id: "cashmerecrew", prompt: "a soft oatmeal cashmere crewneck sweater with fine ribbed trim" },
+  { id: "haltertop", prompt: "a sleek minimalist black knit halter-neck top with clean tailored lines" },
+  { id: "safarijacket", prompt: "an olive cotton cuatro-pocket belted safari field jacket" },
 ];
 
 const HERITAGE_PANTS: readonly CharacterLookOption[] = [
@@ -134,6 +166,10 @@ const STYLIZED_PANTS: readonly CharacterLookOption[] = [
   { id: "paperbag", prompt: "high-waisted paperbag trousers in beige with a gathered waist and a self-fabric tie belt" },
   { id: "sailorpants", prompt: "navy sailor trousers with a flared leg and a buttoned front flap" },
   { id: "bikershorts", prompt: "matte black bike shorts ending at mid-thigh" },
+  { id: "leatherpants", prompt: "sleek straight-leg black nappa leather trousers with knee seam detailing" },
+  { id: "cargoskirt", prompt: "a utilitarian Y2K olive cotton midi cargo skirt with side flap pockets and a drawstring waist" },
+  { id: "metallicpants", prompt: "futuristic brushed-silver metallic straight-cut streetwear trousers" },
+  { id: "distresseddenim", prompt: "vintage light-wash relaxed denim jeans with artistic sashiko patchwork repairs" },
 ];
 
 const CLASSIC_PANTS: readonly CharacterLookOption[] = [
@@ -152,6 +188,8 @@ const CLASSIC_PANTS: readonly CharacterLookOption[] = [
   { id: "momjeans", prompt: "high-waisted medium-wash mom jeans with a relaxed thigh and a tapered ankle" },
   { id: "cigarette", prompt: "cigarette trousers in black stretch wool, narrow and straight to the ankle" },
   { id: "bermudas", prompt: "tailored taupe Bermuda shorts with a hem at the lower thigh" },
+  { id: "satinskirt", prompt: "a bias-cut champagne silk-satin slip midi skirt with a fluid drape" },
+  { id: "khakichinos", prompt: "classic preppy pleated stone-khaki cotton chinos with a cuffed hem" },
 ];
 
 const HERITAGE_SHOES: readonly CharacterLookOption[] = [
@@ -186,6 +224,10 @@ const STYLIZED_SHOES: readonly CharacterLookOption[] = [
   { id: "ridingboots", prompt: "tall black leather riding boots with a smooth shaft to the knee" },
   { id: "moonboots", prompt: "puffy nylon moon boots in silver with a rounded toe and a thick white sole" },
   { id: "spectators", prompt: "two-tone spectator shoes in white leather with black wingtip overlays" },
+  { id: "kittenheels", prompt: "sleek 1990s minimalist burgundy patent-leather kitten-heel mules" },
+  { id: "platformboots", prompt: "chunky black leather platform ankle boots with a side zip and lugged sole" },
+  { id: "retrotrainers", prompt: "1970s vintage suede-and-nylon low-profile gum-sole terrace trainers" },
+  { id: "gladiator", prompt: "artisanal crisscrossed tan leather strappy flat gladiator sandals" },
 ];
 
 const CLASSIC_SHOES: readonly CharacterLookOption[] = [
@@ -201,6 +243,8 @@ const CLASSIC_SHOES: readonly CharacterLookOption[] = [
   { id: "espadrilles", prompt: "navy canvas espadrilles with a braided jute wedge and a closed toe" },
   { id: "chukka", prompt: "olive suede chukka boots, ankle height, with two pairs of eyelets" },
   { id: "bitloafers", prompt: "black leather horsebit loafers with a gold-tone metal bit across the vamp" },
+  { id: "drivingmoc", prompt: "supple navy suede driving moccasins with a pebbled rubber heel outsole" },
+  { id: "courtshoe", prompt: "classic white leather tennis court shoes with forest-green heel tabs" },
 ];
 
 const HERITAGE_ACCESSORIES: readonly CharacterLookOption[] = [
@@ -217,6 +261,7 @@ const HERITAGE_ACCESSORIES: readonly CharacterLookOption[] = [
   { id: "gele", prompt: "a sculptural Nigerian gele headwrap in bright yellow ankara, rising above the forehead" },
   { id: "songkok", prompt: "a plain black Malay songkok, a brimless velvet cap with a slightly tapered crown" },
   { id: "gat", prompt: "a Korean gat of black horsehair, with a tall cylindrical crown and a wide flat brim" },
+  { id: "jadebangle", prompt: "a translucent imperial-green jadeite cabochon pendant on a braided silk cord at the collarbone" },
 ];
 
 const STYLIZED_ACCESSORIES: readonly CharacterLookOption[] = [
@@ -226,6 +271,11 @@ const STYLIZED_ACCESSORIES: readonly CharacterLookOption[] = [
   { id: "newsboy", prompt: "a tweed newsboy cap in brown with a short stiff brim" },
   { id: "bandana", prompt: "a red cotton bandana folded into a triangle and tied at the back of the neck" },
   { id: "hoops", prompt: "large thin gold hoop earrings, one on each ear" },
+  { id: "cateye", prompt: "1950s retro upswept glossy black acetate cat-eye sunglasses" },
+  { id: "choker", prompt: "a 1990s black velvet ribbon choker necklace with a small silver charm" },
+  { id: "chain", prompt: "a chunky heavyweight polished Cuban-link sterling silver neck chain" },
+  { id: "crossbody", prompt: "a sleek matte-black technical nylon crossbody chest bag strap worn diagonally across the torso" },
+  { id: "earcuff", prompt: "sculptural modernist polished silver ear cuffs worn along the outer ear" },
 ];
 
 const CLASSIC_ACCESSORIES: readonly CharacterLookOption[] = [
@@ -235,12 +285,19 @@ const CLASSIC_ACCESSORIES: readonly CharacterLookOption[] = [
   { id: "necktie", prompt: "a solid navy silk necktie in a four-in-hand knot" },
   { id: "pearearrings", prompt: "small round pearl stud earrings, one on each earlobe" },
   { id: "pendant", prompt: "a single fine gold chain with a small oval locket resting at the collarbone" },
+  { id: "panamahat", prompt: "a handwoven cream Toquilla straw Panama hat with a black grosgrain ribbon band" },
+  { id: "cashmerescarf", prompt: "a soft camel cashmere winter scarf draped once around the neck" },
 ];
 
 function ids(options: readonly CharacterLookOption[]) {
   return options.map((option) => option.id);
 }
 
+export const EXTRA_HAIR: readonly CharacterLookOption[] = [
+  ...HERITAGE_HAIR,
+  ...STYLIZED_HAIR,
+  ...CLASSIC_HAIR,
+];
 export const EXTRA_TOPS: readonly CharacterLookOption[] = [
   ...HERITAGE_TOPS,
   ...STYLIZED_TOPS,
@@ -262,6 +319,8 @@ export const EXTRA_ACCESSORIES: readonly CharacterLookOption[] = [
   ...CLASSIC_ACCESSORIES,
 ];
 
+export const EXTRA_HERITAGE_HAIR_IDS = ids(HERITAGE_HAIR);
+export const EXTRA_STYLIZED_HAIR_IDS = ids(STYLIZED_HAIR);
 export const EXTRA_HERITAGE_TOP_IDS = ids(HERITAGE_TOPS);
 export const EXTRA_STYLIZED_TOP_IDS = ids(STYLIZED_TOPS);
 export const EXTRA_HERITAGE_PANTS_IDS = ids(HERITAGE_PANTS);

@@ -196,6 +196,30 @@ describe("merge scro media after regenerate", () => {
 		);
 	});
 
+	it("keeps a lone Clip N · Start still as that clip's ScroVideo card", () => {
+		const onlyStill = asset({
+			id: "clip2-start",
+			name: "Clip 2 · Start",
+			type: "image",
+			url: "https://cdn.example/explainer/v1/frames/f2",
+			scroClipNumber: 2,
+		});
+		assert.deepEqual(
+			mergeScroMediaAssets({
+				assets: [onlyStill],
+				clips: [
+					clip({
+						clipNumber: 2,
+						name: "Clip 2",
+						stage: "frames_ready",
+						posterUrl: "https://cdn.example/explainer/v1/frames/f2",
+					}),
+				],
+			}).map((item) => item.id),
+			["clip2-start"],
+		);
+	});
+
 	it("drops standalone Clip N · Start stills while keeping one ScroVideo card per clip", () => {
 		const restoredStartStill = asset({
 			id: "restored-start",
@@ -287,6 +311,7 @@ describe("merge scro media after regenerate", () => {
 			clips,
 			clipNumber: 1,
 			keepAssetId: "keep-video-1",
+			dropMissingClips: true,
 		});
 
 		assert.deepEqual(

@@ -129,4 +129,20 @@ describe("character presets", () => {
     const noMatch = filterCharacterPresets([pub], "realistic", "hoodie");
     assert.equal(noMatch.length, 0);
   });
+
+  it("paginates character history versions and clamps out-of-range pages", async () => {
+    const { paginateHistoryVersions, HISTORY_PAGE_SIZE } = await import(
+      "@/presentation/components/app/characters/[id]/character-history-dialog"
+    );
+    assert.equal(HISTORY_PAGE_SIZE, 4);
+    const items = ["h1", "h2", "h3", "h4", "h5", "h6"];
+    const page1 = paginateHistoryVersions(items, 1, 4);
+    assert.deepEqual(page1, { items: ["h1", "h2", "h3", "h4"], page: 1, totalPages: 2 });
+
+    const page2 = paginateHistoryVersions(items, 2, 4);
+    assert.deepEqual(page2, { items: ["h5", "h6"], page: 2, totalPages: 2 });
+
+    const clamped = paginateHistoryVersions(items, 99, 4);
+    assert.deepEqual(clamped, { items: ["h5", "h6"], page: 2, totalPages: 2 });
+  });
 });

@@ -985,7 +985,7 @@ export function buildFramePrompt(
                 "Final check: the quoted Subtitle lines are painted large in the subtitle Look above. They are required on-screen text. Do not omit them. Words inside 「」 stay ordinary writing on their object.",
               ]
             : [
-                "Final check: subtitle place and size follow the Scene's Subtitle sentence. Paint those words with the subtitle Look line above. Do not replace that lettering with a plain white caption or the visual style.",
+                "Final check: subtitle place and size follow the Scene's Subtitle sentence. Paint those words strictly in the user's selected text style from the subtitle Look line above (exact font, colors, paper strip or backing, texture, and edges; every subtitle strip must contain words, never leave a blank empty strip). Use the attached spelling guide only for how each word is written and broken across lines — do NOT copy the guide's plain font, colors, or box, and do not replace that lettering with a plain white caption or the visual style.",
               ]
         : keepSceneLabels
           ? [

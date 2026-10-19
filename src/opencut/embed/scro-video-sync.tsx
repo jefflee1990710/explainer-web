@@ -185,11 +185,14 @@ export function ScroVideoSync() {
 			}
 			if (data.type === "scro-clip-updated") {
 				const current = getScroVideos();
-				const nextClips =
-					current?.videoId === data.videoId
-						? upsertScroClip({ clips: current.clips, clip: data.clip })
-						: [data.clip];
-				setScroVideos({ videoId: data.videoId, clips: nextClips });
+				// A single clip update must not replace the storyboard. A one-clip store
+				// makes the Assets panel hide every other ScroVideo.
+				if (current?.videoId === data.videoId) {
+					setScroVideos({
+						videoId: data.videoId,
+						clips: upsertScroClip({ clips: current.clips, clip: data.clip }),
+					});
+				}
 				enqueueSync(() => updateClip(data));
 			}
 		}, PARENT_ORIGINS);
@@ -363,6 +366,7 @@ export function ScroVideoSync() {
 								videoId: data.videoId,
 								clipNumber: element.clipNumber,
 								clips: data.clips,
+								dropMissingClips: true,
 							});
 						}
 						continue;
@@ -738,12 +742,14 @@ export function ScroVideoSync() {
 			clipNumber,
 			keepAssetId,
 			clips,
+			dropMissingClips = false,
 		}: {
 			projectId: string;
 			videoId: string;
 			clipNumber?: number;
 			keepAssetId?: string;
 			clips: ScroVideoSeedClip[] | undefined;
+			dropMissingClips?: boolean;
 		}) {
 			const currentAssets = editor.media.getAssets();
 			const staleIds = collectStaleScroAssetIds({
@@ -751,6 +757,7 @@ export function ScroVideoSync() {
 				clips,
 				clipNumber,
 				keepAssetId,
+				dropMissingClips,
 			});
 			if (staleIds.length === 0) return;
 			const staleSet = new Set(staleIds);
@@ -764,8 +771,9 @@ export function ScroVideoSync() {
 					URL.revokeObjectURL(asset.thumbnailUrl);
 				}
 			}
+			// Read again so a clip that finished loading during this purge stays in the library.
 			editor.media.setAssets({
-				assets: currentAssets.filter((asset) => !staleSet.has(asset.id)),
+				assets: editor.media.getAssets().filter((asset) => !staleSet.has(asset.id)),
 			});
 			forgetClipSources(videoId, staleIds);
 			await Promise.all(
@@ -812,9 +820,17 @@ export function ScroVideoSync() {
 					const blob = await fetchMediaBlobWithTimeout({ url: sourceUrl });
 					if (!blob) return null;
 					const ext = useVideo ? "mp4" : "webp";
-					file = new File([blob], `${clip.name}.${ext}`, {
-						type: blob.type || (useVideo ? "video/mp4" : "image/webp"),
-					});
+					// Extensionless CDN files often arrive as octet-stream. The Assets importer only accepts image/video/audio.
+					const blobType = blob.type;
+					const mediaType =
+						blobType.startsWith("image/") ||
+						blobType.startsWith("video/") ||
+						blobType.startsWith("audio/")
+							? blobType
+							: useVideo
+								? "video/mp4"
+								: "image/webp";
+					file = new File([blob], `${clip.name}.${ext}`, { type: mediaType });
 				} else {
 					const frame = placeholderFrame();
 					file = await stillPlaceholderFile({

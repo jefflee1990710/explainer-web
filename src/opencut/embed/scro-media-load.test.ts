@@ -87,6 +87,27 @@ describe("findReusableClipAsset", () => {
 		assert.equal(found?.id, "asset-s1");
 	});
 
+	it("does not reuse another clip's still when the poster URL is the same", () => {
+		const clip1Still = asset({
+			id: "asset-s1",
+			name: "Clip 1",
+			type: "image",
+			scroClipNumber: 1,
+			scroPosterUrl: "https://cdn.example/shared.webp",
+		});
+		const found = findReusableClipAsset({
+			clip: clip({
+				clipNumber: 2,
+				name: "Clip 2",
+				stage: "frames_ready",
+				posterUrl: "https://cdn.example/shared.webp",
+			}),
+			assets: [clip1Still],
+			clipSources: {},
+		});
+		assert.equal(found, null);
+	});
+
 	it("reuses a non-stretched placeholder asset when clip has no media URL yet", () => {
 		const placeholder = asset({
 			id: "asset-p1",

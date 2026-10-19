@@ -282,5 +282,5 @@ export function subtitleGuidePromptLine(imageIndex: number, line: string): strin
   const lines = splitSubtitleGuideLines(line);
   const layout =
     lines.length === 2 ? `two lines ("${lines[0]}" / "${lines[1]}")` : `one line ("${lines[0] || line}")`;
-  return `SUBTITLE SPELLING GUIDE: attached image ${imageIndex} is a font-rendered guide showing the exact subtitle spelling and ${layout}. Copy every character and line break from attached image ${imageIndex} verbatim (no typos, no doubled or missing letters, no blank strip) and style the subtitle in the scene using the Look line above.`;
+  return `SUBTITLE SPELLING GUIDE: attached image ${imageIndex} is a plain font-rendered spelling reference showing ONLY how the characters and ${layout} are spelled and broken across lines. Copy every character and line break from attached image ${imageIndex} verbatim (no typos, no doubled or missing letters, no blank empty strip), but do NOT copy the plain font, flat colors, or rectangular box from attached image ${imageIndex} — render the subtitle strictly following the user's selected text style in the Look line at the top (exact font/marker/brush style, colors, paper-strip or background treatment, texture, and edges).`;
 }

@@ -106,11 +106,14 @@ export function collectStaleScroAssetIds({
 	clips,
 	clipNumber,
 	keepAssetId,
+	dropMissingClips = false,
 }: {
 	assets: MediaAsset[];
 	clips: ScroVideoSeedClip[] | undefined;
 	clipNumber?: number;
 	keepAssetId?: string;
+	/** Also drop assets whose clip left the storyboard. Off for a one-clip refresh so a short store cannot wipe the rest. */
+	dropMissingClips?: boolean;
 }): string[] {
 	const activeClipNumbers = clips ? new Set(clips.map((clip) => clip.clipNumber)) : null;
 	const stale: string[] = [];
@@ -124,7 +127,12 @@ export function collectStaleScroAssetIds({
 			continue;
 		}
 		// If this asset belongs to a Scro clip number that no longer exists in the storyboard, it is stale.
-		if (assetClip != null && activeClipNumbers && !activeClipNumbers.has(assetClip)) {
+		if (
+			dropMissingClips &&
+			assetClip != null &&
+			activeClipNumbers &&
+			!activeClipNumbers.has(assetClip)
+		) {
 			stale.push(asset.id);
 		}
 	}
@@ -147,11 +155,12 @@ export function pickScroClipAsset({
 	assets: MediaAsset[];
 	clips: ScroVideoSeedClip[] | undefined;
 }): MediaAsset | undefined {
-	const matches = assets.filter(
-		(asset) =>
-			!isStandaloneFrameStillName(asset.name) &&
-			resolveScroClipNumber({ asset, clips }) === clip.clipNumber,
+	const tagged = assets.filter(
+		(asset) => resolveScroClipNumber({ asset, clips }) === clip.clipNumber,
 	);
+	// Prefer the clip card over a loose "Clip N · Start" still, but that still is the card when it is all we have.
+	const preferred = tagged.filter((asset) => !isStandaloneFrameStillName(asset.name));
+	const matches = preferred.length > 0 ? preferred : tagged;
 	if (matches.length === 0) return undefined;
 	if (clip.stage !== "video_ready" || clip.staleVideo) {
 		if (clip.posterUrl) {

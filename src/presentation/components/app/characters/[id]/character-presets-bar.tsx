@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { CharacterHistoryDialog } from "@/presentation/components/app/characters/[id]/character-history-dialog";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
@@ -10,7 +11,7 @@ import type {
   PublicCharacterVersion,
 } from "@/presentation/serialize";
 
-// Bar of saved presets and blueprint versions for the active style, plus a Save Preset modal.
+// Bar of saved presets and a History button (opening the paged history dialog), plus a Save Preset modal.
 export function CharacterPresetsBar({
   character,
   activeVersion,
@@ -30,6 +31,7 @@ export function CharacterPresetsBar({
 }) {
   const { t } = useI18n();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const stylePresets = (character.presets || []).filter(
     (preset) => preset.styleId === activeVersion.styleId,
@@ -63,34 +65,26 @@ export function CharacterPresetsBar({
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          {styleVersions.length > 1 ? (
-            <div
-              className="inline-flex items-center gap-1 rounded-full border border-accent-ink/10 bg-paper px-1.5 py-0.5"
-              aria-label={t("characters.versionsAndPresetsHeading")}
+          <button
+            type="button"
+            onClick={() => setHistoryOpen(true)}
+            className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/20 bg-paper px-3 text-xs font-bold text-foreground transition hover:border-accent-ink"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              className="h-3.5 w-3.5 text-muted"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              aria-hidden="true"
             >
-              {styleVersions.map((ver) => {
-                const isSelected = ver.id === activeVersion.id;
-                const isDefault =
-                  character.defaultByStyle[ver.styleId] === ver.id;
-                return (
-                  <button
-                    key={ver.id}
-                    type="button"
-                    onClick={() => onSelectVersion(ver.id)}
-                    title={ver.editInstruction || `v${ver.number}`}
-                    className={`cursor-pointer rounded-full px-2 py-0.5 text-[11px] font-bold transition ${
-                      isSelected
-                        ? "bg-accent-ink text-paper"
-                        : "text-muted hover:text-foreground"
-                    }`}
-                  >
-                    v{ver.number}
-                    {isDefault ? "★" : ""}
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
+              <circle cx="8" cy="8" r="6" />
+              <path d="M8 4.8v3.4l2.3 1.4" strokeLinecap="round" />
+            </svg>
+            <span>
+              {t("characters.historyButton", { n: styleVersions.length })}
+            </span>
+          </button>
 
           {canSavePreset ? (
             <button
@@ -106,10 +100,21 @@ export function CharacterPresetsBar({
         </div>
       </div>
 
+      {historyOpen ? (
+        <CharacterHistoryDialog
+          character={character}
+          activeVersion={activeVersion}
+          styleVersions={styleVersions}
+          pending={pending}
+          onSelectVersion={onSelectVersion}
+          onSavePreset={onSavePreset}
+          onClose={() => setHistoryOpen(false)}
+        />
+      ) : null}
+
       {dialogOpen ? (
         <SaveCharacterPresetDialog
           defaultSuggestion={activeVersion.editInstruction || ""}
-          versionNumber={activeVersion.number}
           saving={pending === "save-preset"}
           onClose={() => setDialogOpen(false)}
           onSubmit={async (name) => {
@@ -161,13 +166,6 @@ function PresetChip({
           />
         ) : null}
         <span className="max-w-36 truncate font-semibold">{preset.name}</span>
-        <span
-          className={`text-[10px] ${
-            selected ? "text-paper/75" : "text-muted"
-          }`}
-        >
-          v{preset.versionNumber}
-        </span>
       </button>
       <button
         type="button"
@@ -192,13 +190,11 @@ function PresetChip({
 // Modal dialog to name and save the current blueprint version as a preset.
 function SaveCharacterPresetDialog({
   defaultSuggestion,
-  versionNumber,
   saving,
   onClose,
   onSubmit,
 }: {
   defaultSuggestion: string;
-  versionNumber: number;
   saving: boolean;
   onClose: () => void;
   onSubmit: (name: string) => Promise<void>;
@@ -238,7 +234,7 @@ function SaveCharacterPresetDialog({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 id={titleId} className="font-display text-lg font-bold">
-              {t("characters.savePresetTitle")} · v{versionNumber}
+              {t("characters.savePresetTitle")}
             </h3>
             <p className="mt-1 text-xs text-muted">
               {t("characters.savePresetHint")}
