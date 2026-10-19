@@ -122,11 +122,16 @@ export function bookendLogoFrameLines(imageIndex: number) {
   ];
 }
 
-// Directors whose audio is character dialogue only: no narrator, no voice picker.
-const DIALOGUE_ONLY_SKILLS = new Set([STORY_SHORT_SKILL_SLUG, DIALOGUE_QA_SKILL_SLUG]);
+// Only talking-head and surprise-interview use on-screen character lip-sync.
+// Every other speaking director uses an unseen off-screen narrator while character mouths stay closed.
+const DIALOGUE_ONLY_SKILLS = new Set([SURPRISE_INTERVIEW_SKILL_SLUG]);
 
 export function skillBansNarration(skillSlug?: string) {
   return Boolean(skillSlug && DIALOGUE_ONLY_SKILLS.has(skillSlug));
+}
+
+export function skillUsesOnScreenLipSync(skillSlug?: string) {
+  return isTalkingHeadSkill(skillSlug) || isSurpriseInterviewSkill(skillSlug);
 }
 
 // Dialogue Q&A is the only director that uses two people. Every other director
@@ -240,7 +245,8 @@ export function storyShortDirectorBlock() {
   return [
     "This is a SHORT FILM, not an explainer.",
     "Do not force want → obstacle → turn → resolution. Arrange clips in the order the source already tells; invent beats only when the source has no story of its own.",
-    "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. They speak to each other, to an object, or to themselves. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder). Give every on-screen character rich, expressive facial expressions (nuanced brow, eye, and mouth changes that convey the emotional beat—never a blank or wooden face).",
+    "Voiceover is spoken by an unseen off-screen narrator. On-screen characters NEVER speak, NEVER move their mouths to talk, and NEVER lip-sync — their mouths stay closed while they act out the scene.",
+    "Film every clip as a third-person observer camera: characters live inside the scene and never look at or talk to the camera. Describe eyelines in explainerScene and motionCamera (profile, three-quarter, over-the-shoulder). Give every on-screen character rich, expressive facial expressions (nuanced brow and eye changes that convey the emotional beat with mouths closed—never a blank or wooden face, and never lip-sync).",
   ].join(" ");
 }
 
@@ -648,8 +654,7 @@ export function cartoonNarratorVideoLock(
 export function dialogueQaDirectorBlock() {
   return [
     "This director requires exactly two attached character blueprints. Assign one as ASKER and one as ANSWERER. Do not invent a third character or a replacement hero.",
-    "Use each character's attached name as NAME in every dialogue line. The ASKER speaks the questions; the ANSWERER speaks the answers. No unseen host or narrator explains anything.",
-    "On a question clip only the asker's mouth moves with vivid, expressive facial acting (active eyebrows, expressive eyes, emotional shifts). On an answer clip only the answerer's mouth moves with vivid, expressive facial acting. The listener's mouth stays closed while their face actively reacts (brow raises, eye shifts, nods).",
+    "Voiceover is spoken by an unseen off-screen narrator. On-screen characters NEVER speak and NEVER lip-sync — both characters' mouths stay closed while their faces and body language actively react (animated eyebrows, expressive eyes, nods, and gestures).",
   ].join(" ");
 }
 
@@ -659,7 +664,7 @@ export function listicleDirectorBlock() {
     "Show the items one by one. One item per clip until the item count passes the duration ceiling. Above that ceiling, put 2 items on a middle clip and reveal them one by one inside that clip (start highlights the first, end highlights the last). Use 3 on a clip only when pairs would still pass the ceiling. Never more than 3 on one clip. Item 1 and the last item each stay on their own clip when there are at least two item clips. If 3 per clip still passes the ceiling, keep 3 per clip and let the clip count run over the preset.",
     "Ceilings, counting the ending: micro 2 clips, short 4, punchy 6, full 10, auto 12.",
     "Clip 1 is a clear hook: empty setting, one large count, and the spoken line written as a subtitle. That spoken line is the largest text in the whole video, bigger than the count and bigger than any later title. No items, no checklist, and no extra props.",
-    "Then introduce items one by one. An item clip holds only that item's number, a short title (the name, not the spoken sentence), and one object. When a host or character is in frame, give them a vivid, expressive facial reaction to the item (never a blank face). Each item clip uses a different camera angle and a different composition. Do not repeat the previous item's angle, shot size, or where the object sits. In order: low angle with the object huge in front; overhead looking down; a tight side close-up; a wide three-quarter with the object off-center; a dutch tilt close to the lens; an over-the-shoulder. Within one clip the start and end share that angle. Do not draw the other items or a side list.",
+    "Then introduce items one by one. An item clip holds only that item's number, a short title (the name, not the spoken sentence), and one object. When a host or character is in frame, give them a vivid, expressive facial reaction to the item while their mouth stays closed (no lip-sync, never a blank face). Each item clip uses a different camera angle and a different composition. Do not repeat the previous item's angle, shot size, or where the object sits. In order: low angle with the object huge in front; overhead looking down; a tight side close-up; a wide three-quarter with the object off-center; a dutch tilt close to the lens; an over-the-shoulder. Within one clip the start and end share that angle. Do not draw the other items or a side list.",
     "The last clip is required and is not an item clip. narrativeJob is `full list`. It is a clean full list: short titles only, evenly spaced on an empty background, every title readable, no host and no extra props. A packed clip's englishVo joins those item lines with ` | `.",
     "Every clip also shows that clip's spoken line as a subtitle in the selected text style, clear of the count, the item, and the full list. The subtitle does not replace those graphics. Ignore any earlier line that puts the whole list on every still or that forbids the subtitle.",
   ].join(" ");
@@ -676,7 +681,7 @@ export function comparisonCardDirectorBlock(aspectRatio: AspectRatio) {
     "narrativeJob MUST be exactly `contrast: <panel A title> | <panel B title>`. Titles are short (about 2–5 words).",
     "Those two titles are the only on-canvas writing. Do not also caption the full voiceover.",
     "The hook names the contrast. Later clips may change what each half shows; the split stays. The last clip rests with both halves visible.",
-    "A host is optional. If a character is attached, they may stand in one half or point across the split with a vivid, expressive facial expression reacting to the contrast, and must not cover either title.",
+    "A host is optional. If a character is attached, they may stand in one half or point across the split with a vivid, expressive facial expression reacting to the contrast while their mouth stays closed (no lip-sync), and must not cover either title.",
   ].join(" ");
 }
 
@@ -717,7 +722,7 @@ export function talkingBrollDirectorBlock() {
   return [
     "This is TALKING-HEAD WITH B-ROLL. The rhythm is fixed: two on-camera lines, then one B-roll cutaway, then back to the same on-camera setup. Repeat until the source is covered. Never open on B-roll.",
     "narrativeJob is only `on-camera` or `b-roll`.",
-    "On-camera: the one attached character, medium close-up, eyes to the lens, rich and expressive facial expressions (animated eyebrows, expressive eyes, natural emotional shifts), same background and light as the first on-camera clip. They speak englishVo.",
+    "Voiceover is spoken by an unseen off-screen narrator across all clips. On-camera: the one attached character, medium close-up, eyes to the lens, rich and expressive facial expressions (animated eyebrows, expressive eyes, natural emotional shifts) while their mouth stays closed (no lip-sync), same background and light as the first on-camera clip.",
     "B-roll: the character is not on screen. Show the concrete thing the previous two lines just named. englishVo is one short off-screen line or \"(no dialogue)\".",
     "Override clip inheritance for this director: a b-roll startScene is a new place, not the talking-head room. The next on-camera clip returns to the first on-camera setup, not the b-roll ending.",
   ].join(" ");

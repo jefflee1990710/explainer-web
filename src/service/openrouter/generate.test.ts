@@ -3,7 +3,9 @@ import { test } from "node:test";
 import {
   fetchOpenRouterStatus,
   isOpenRouterStatusUrl,
+  OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
   openRouterClipVideoBody,
+  openRouterHeyGenAudioVideoBody,
   openRouterImageAspectRatio,
   openRouterImageBody,
   submitOpenRouterClipVideo,
@@ -195,6 +197,19 @@ test("openRouterClipVideoBody formats /api/v1/videos payload for bytedance/seeda
   assert.ok(capped.prompt.length <= 6800);
   assert.match(capped.prompt, /^HEAD_MARKER/);
   assert.match(capped.prompt, /TAIL_LOCK_MARKER$/);
+
+  const heygenBody = openRouterHeyGenAudioVideoBody({
+    model: OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
+    prompt: "Speak to camera",
+    aspectRatio: "9:16",
+    startImageUrl: "https://blob/start.png",
+    audioUrl: "https://blob/vo.mp3",
+  });
+  assert.equal(heygenBody.model, "heygen/avatar-iv");
+  assert.deepEqual(heygenBody.input_references, [
+    { type: "image_url", image_url: { url: "https://blob/start.png" } },
+    { type: "audio_url", audio_url: { url: "https://blob/vo.mp3" } },
+  ]);
 });
 
 test("submitOpenRouterImage posts to /api/v1/images and returns completed data URL", async () => {

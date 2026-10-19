@@ -4,6 +4,7 @@ import { fetchAlicloudStatus, submitAlicloudImage } from "@/service/alicloud/gen
 import {
   fetchOpenRouterStatus,
   isOpenRouterStatusUrl,
+  OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
   submitOpenRouterClipVideo,
   submitOpenRouterImage,
 } from "@/service/openrouter/generate";
@@ -237,11 +238,17 @@ export async function submitClipVideo(input: {
   durationSeconds: number;
   startImageUrl: string;
   endImageUrl?: string;
+  audioUrl?: string;
+  model?: string;
   styleId?: string;
   style?: { id?: string; baseStyleId?: string } | null;
 }) {
   const provider = clipVideoProvider();
-  const model = clipVideoModel(input.style ?? input.styleId);
+  const model =
+    input.model ||
+    (input.audioUrl
+      ? OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL
+      : clipVideoModel(input.style ?? input.styleId));
   if (provider === "openrouter") {
     return submitOpenRouterClipVideo({
       model,
@@ -250,6 +257,7 @@ export async function submitClipVideo(input: {
       durationSeconds: input.durationSeconds,
       startImageUrl: input.startImageUrl,
       endImageUrl: input.endImageUrl,
+      audioUrl: input.audioUrl,
     });
   }
   if (provider !== "higgsfield") {

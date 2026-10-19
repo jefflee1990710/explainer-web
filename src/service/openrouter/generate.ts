@@ -11,6 +11,8 @@ export const OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL = "bytedance-seed/seedream-5-
 export const OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL = "bytedance-seed/seedream-5-0-lite";
 export const OPENROUTER_GPT_5_IMAGE_MODEL = "openai/gpt-5-image";
 export const OPENROUTER_HAILUO_3_VIDEO_MODEL = "minimax/hailuo-3";
+export const OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL = "heygen/avatar-iv";
+export const OPENROUTER_HEYGEN_VIDEO_1_MODEL = "heygen/heygen-video-1";
 export const OPENROUTER_SEEDANCE_2_VIDEO_MODEL = "bytedance/seedance-2.0";
 export const OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL = "bytedance/seedance-2.0-fast";
 export const OPENROUTER_SEEDANCE_2_MINI_VIDEO_MODEL = "bytedance/seedance-2.0-mini";
@@ -202,6 +204,70 @@ export function clipVideoResolution(
   return trimmed || DEFAULT_VIDEO_GENERATION_RESOLUTION;
 }
 
+export type OpenRouterVideoInputReference =
+  | { type: "image_url"; image_url: { url: string } }
+  | { type: "audio_url"; audio_url: { url: string } };
+
+export type OpenRouterVideoFrameImage = {
+  type: "image_url";
+  image_url: { url: string };
+  frame_type: "first_frame" | "last_frame";
+};
+
+export type OpenRouterClipVideoRequestBody = {
+  model: string;
+  prompt: string;
+  aspect_ratio: AspectRatio;
+  duration?: number;
+  resolution: string;
+  generate_audio?: boolean;
+  callback_url?: string;
+  frame_images?: OpenRouterVideoFrameImage[];
+  input_references?: OpenRouterVideoInputReference[];
+};
+
+export function openRouterHeyGenAudioVideoBody(input: {
+  model?: string;
+  prompt: string;
+  aspectRatio: AspectRatio;
+  durationSeconds?: number;
+  startImageUrl: string;
+  audioUrl: string;
+  callbackUrl?: string;
+}): OpenRouterClipVideoRequestBody {
+  const model = input.model || OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL;
+  const configured = clipVideoResolution();
+  const isAvatarIv = model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL;
+  return {
+    model,
+    prompt: capOpenRouterVideoPrompt(input.prompt),
+    aspect_ratio: input.aspectRatio,
+    ...(isAvatarIv
+      ? {}
+      : { duration: clampVideoDurationSeconds(input.durationSeconds ?? 5) }),
+    resolution: isAvatarIv
+      ? configured === "2K" || configured === "1080p"
+        ? "1080p"
+        : "720p"
+      : configured === "480p"
+        ? "480p"
+        : configured === "720p"
+          ? "768p"
+          : "2K",
+    ...(input.callbackUrl ? { callback_url: input.callbackUrl } : {}),
+    input_references: [
+      {
+        type: "image_url" as const,
+        image_url: { url: input.startImageUrl },
+      },
+      {
+        type: "audio_url" as const,
+        audio_url: { url: input.audioUrl },
+      },
+    ],
+  };
+}
+
 export function openRouterClipVideoBody(input: {
   model?: string;
   prompt: string;
@@ -317,6 +383,7 @@ export async function submitOpenRouterClipVideo(
     durationSeconds: number;
     startImageUrl: string;
     endImageUrl?: string;
+    audioUrl?: string;
   },
   options?: FetchOptions & { callbackUrl?: string | null },
 ): Promise<GenerationSubmitResult> {
@@ -326,13 +393,29 @@ export async function submitOpenRouterClipVideo(
     options && "callbackUrl" in options
       ? options.callbackUrl || undefined
       : openRouterVideoCallbackUrl();
+  const useHeyGenAudio =
+    Boolean(input.audioUrl) &&
+    (input.model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL ||
+      input.model === OPENROUTER_HEYGEN_VIDEO_1_MODEL);
+  const reqBody =
+    useHeyGenAudio && input.audioUrl
+      ? openRouterHeyGenAudioVideoBody({
+          model: input.model,
+          prompt: input.prompt,
+          aspectRatio: input.aspectRatio,
+          durationSeconds: input.durationSeconds,
+          startImageUrl: input.startImageUrl,
+          audioUrl: input.audioUrl,
+          callbackUrl,
+        })
+      : openRouterClipVideoBody({ ...input, callbackUrl });
   const response = await fetchFn(OPENROUTER_VIDEOS_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(openRouterClipVideoBody({ ...input, callbackUrl })),
+    body: JSON.stringify(reqBody),
   });
 
   const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;

@@ -29,6 +29,7 @@ import {
   talkingBrollDirectorBlock,
   skillBansNarration,
   skillForcesSceneText,
+  skillUsesOnScreenLipSync,
   storyShortCameraLock,
   storyShortDirectorBlock,
 } from "@/service/director/skill-rules";
@@ -87,10 +88,23 @@ test("bookend director block uses the logo only when one is attached", () => {
   assert.match(bookendDirectorBlock("ending-director", true), /ENDING bookend/);
 });
 
-test("story short is a no-narrator short film", () => {
-  assert.equal(skillBansNarration("story-short-director"), true);
+test("only talking-head and surprise-interview use on-screen lip-sync; story short and Q&A use off-screen narration with mouths closed", () => {
+  assert.equal(skillUsesOnScreenLipSync("talking-head-director"), true);
+  assert.equal(skillUsesOnScreenLipSync("full-body-talking-head-director"), true);
+  assert.equal(skillUsesOnScreenLipSync("surprise-interview-director"), true);
+  assert.equal(skillUsesOnScreenLipSync("story-short-director"), false);
+  assert.equal(skillUsesOnScreenLipSync("dialogue-qa-director"), false);
+  assert.equal(skillUsesOnScreenLipSync("cartoon-explainer-video-director"), false);
+  assert.equal(skillUsesOnScreenLipSync("listicle-director"), false);
+  assert.equal(skillUsesOnScreenLipSync("talking-broll-director"), false);
+
+  assert.equal(skillBansNarration("surprise-interview-director"), true);
+  assert.equal(skillBansNarration("story-short-director"), false);
+  assert.equal(skillBansNarration("dialogue-qa-director"), false);
   assert.equal(skillBansNarration("cartoon-explainer-video-director"), false);
   assert.match(storyShortDirectorBlock(), /Do not force want/);
+  assert.match(storyShortDirectorBlock(), /mouths stay closed/i);
+  assert.match(storyShortDirectorBlock(), /never lip-sync/i);
 });
 
 test("story short is filmed third-person: characters never address the camera", () => {
@@ -373,14 +387,15 @@ test("a detected push draws only that action, aimed away from the character", ()
   assert.doesNotMatch(video, /for the whole clip/);
 });
 
-test("Q&A is dialogue-only like story short: no narrator, character lines", () => {
-  assert.equal(skillBansNarration("dialogue-qa-director"), true);
+test("Q&A and non-talking-head directors use off-screen narration and keep character mouths closed", () => {
+  assert.equal(skillBansNarration("dialogue-qa-director"), false);
   assert.match(dialogueOnlyDirectorBlock(), /NO narrator/);
   assert.match(dialogueOnlyDirectorBlock(), /NAME: "line"/);
   assert.match(dialogueOnlyDirectorBlock(), /voice lock verbatim/);
   assert.match(dialogueOnlyDirectorBlock(), /keeps their mouth closed/);
-  assert.match(dialogueQaDirectorBlock(), /ASKER/);
-  assert.match(dialogueQaDirectorBlock(), /mouth stays closed/);
+  assert.match(dialogueQaDirectorBlock(), /off-screen narrator/i);
+  assert.match(dialogueQaDirectorBlock(), /mouths stay closed/i);
+  assert.match(dialogueQaDirectorBlock(), /never lip-sync/i);
   assert.doesNotMatch(dialogueQaDirectorBlock(), /SHORT FILM/);
 });
 

@@ -2,8 +2,11 @@ import type { CharacterVoice } from "@/model/character-voice";
 import type { PerformanceSlots } from "@/model/director-performance";
 import type { VoiceGender } from "@/model/project";
 import { characterVoiceTimbre, firstLockedCharacterVoice } from "@/service/director/character-voice";
-import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
-import { skillBansNarration, storyShortCameraLock } from "@/service/director/skill-rules";
+import {
+  isOutfitReelSkill,
+  skillBansNarration,
+  storyShortCameraLock,
+} from "@/service/director/skill-rules";
 import {
   clipUsesTalkingPerformance,
   talkingShotForSkill,
@@ -118,7 +121,7 @@ export function narratorSpeechLock(
     : gender
       ? ` (adult ${gender} voice — never switch to a ${opposite} voice)`
       : "";
-  return `AUDIO REQUIRED, spoken once by an unseen off-screen narrator${voiceTag}, starting in the first half-second, loud and clear, word for word: "${spoken}". Sound effects never replace this voice. This clip is never silent. The on-screen character's mouth stays closed.`;
+  return `AUDIO REQUIRED, spoken once by an unseen off-screen narrator${voiceTag}, starting in the first half-second, loud and clear, word for word: "${spoken}". Sound effects never replace this voice. This clip is never silent. The on-screen character's mouth stays closed and never lip-syncs.`;
 }
 
 export function talkingSpeakerSpeechLock(
@@ -199,12 +202,16 @@ export function lockDialogueSpeech(
     }
     return body;
   }
-  if (skillSlug === CARTOON_EXPLAINER_SKILL_SLUG) {
+  if (!isOutfitReelSkill(skillSlug)) {
     const lock = narratorSpeechLock(spokenLine ?? "", voiceOptions);
     if (lock) {
       // Replace an earlier generic AUDIO REQUIRED header if one is already at the top.
       body = body.replace(/^AUDIO REQUIRED, spoken once by an unseen off-screen narrator[^\n]*\n\n/, "");
       if (!body.includes(lock)) body = `${lock}\n\n${body}`;
+    }
+    const cameraLock = storyShortCameraLock(skillSlug);
+    if (cameraLock && !body.includes(cameraLock)) {
+      body = `${body}\n\n${cameraLock}`;
     }
   }
   return body;

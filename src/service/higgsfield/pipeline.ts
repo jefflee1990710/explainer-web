@@ -67,6 +67,7 @@ import {
   planFrameSubmissions,
   videoKeyframeUrls,
 } from "@/service/higgsfield/clip-keyframes";
+import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
 import {
   nextProjectStatus,
   reconcileClips,
@@ -83,7 +84,7 @@ import { swapClipVoice } from "@/service/voice/voice-swap";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { mediaSrc } from "@/util/media-src";
-import { isBookendSkill } from "@/service/director/skill-rules";
+import { isBookendSkill, skillUsesOnScreenLipSync } from "@/service/director/skill-rules";
 import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lock";
 import { resolvePerformance } from "@/service/director/performance";
 import { resolveRunSkill } from "@/service/director/run-skill";
@@ -655,20 +656,26 @@ export async function sendClipVideo(
     spokenLine,
   );
 
-  // Pre-synthesize ElevenLabs VO with character timestamps so the video generation
-  // prompt includes exact per-character/word timing and the VO is ready to merge.
+  // Pre-synthesize ElevenLabs VO so it is ready to merge onto the finished video.
+  // Only talking-head and surprise-interview inject the per-character lip-sync schedule;
+  // all other directors use off-screen narration with character mouths closed.
   const voiceId =
     project.language === "yue" || !isBookendSkill(project.skillSlug)
       ? resolveVoiceSwapId({ ...project, cast: currentCast })
       : null;
+  const usesLipSync = skillUsesOnScreenLipSync(project.skillSlug);
+  const voOnsetSeconds = usesLipSync ? DEFAULT_SPEECH_ONSET_SECONDS : 0;
+  let preGeneratedVoUrl: string | undefined;
   if (voiceId && spokenLine?.trim() && isElevenLabsConfigured()) {
     try {
       const { audio, alignment } = await synthesizeSpeechWithTimestamps(voiceId, spokenLine);
-      videoPrompt = withTimedLipSyncPrompt(videoPrompt, alignment, {
-        onsetSeconds: DEFAULT_SPEECH_ONSET_SECONDS,
-        clipDurationSeconds: prompt.durationSeconds,
-      });
-      const voUrl = await persistBuffer(
+      if (usesLipSync) {
+        videoPrompt = withTimedLipSyncPrompt(videoPrompt, alignment, {
+          onsetSeconds: voOnsetSeconds,
+          clipDurationSeconds: prompt.durationSeconds,
+        });
+      }
+      preGeneratedVoUrl = await persistBuffer(
         audio,
         `explainer/${project._id.toHexString()}/vo/clip-${clipNumber}-${Date.now()}.mp3`,
         "audio/mpeg",
@@ -679,8 +686,8 @@ export async function sendClipVideo(
         {
           $set: {
             "clips.$[clip].prompt": videoPrompt,
-            "clips.$[clip].voUrl": voUrl,
-            "clips.$[clip].voOnsetSeconds": DEFAULT_SPEECH_ONSET_SECONDS,
+            "clips.$[clip].voUrl": preGeneratedVoUrl,
+            "clips.$[clip].voOnsetSeconds": voOnsetSeconds,
             updatedAt: new Date(),
           },
         },
@@ -695,16 +702,22 @@ export async function sendClipVideo(
     }
   }
 
+  const audioUrlForLipSync = usesLipSync && preGeneratedVoUrl ? preGeneratedVoUrl : undefined;
+  const targetModel = audioUrlForLipSync
+    ? OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL
+    : clipVideoModel(style ?? project.styleId);
   const submitted = await submitClipVideo({
+    model: targetModel,
     prompt: videoPrompt,
     aspectRatio: project.aspectRatio,
     durationSeconds: prompt.durationSeconds,
     startImageUrl: start,
     endImageUrl: endUrlForVideo,
+    audioUrl: audioUrlForLipSync,
     styleId: project.styleId,
     style,
   });
-  return toSent(clipVideoModel(style ?? project.styleId), submitted);
+  return toSent(targetModel, submitted);
 }
 
 // ---------- status sync ----------
@@ -855,11 +868,12 @@ export async function applyJobStatus(input: {
             })
           ).canvasColor
         : undefined;
-    // A cloned demo wins. Cantonese on every director, including bookends,
-    // converts on ElevenLabs without a sample.
+    // heygen/avatar-iv already bakes in the pre-generated ElevenLabs VO audio with
+    // exact lip-sync, so skip re-muxing when the job model is heygen/avatar-iv.
     const voiceId =
       project &&
       job.kind === "video" &&
+      job.model !== OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL &&
       (project.language === "yue" || !isBookendSkill(project.skillSlug))
         ? resolveVoiceSwapId({
             ...project,

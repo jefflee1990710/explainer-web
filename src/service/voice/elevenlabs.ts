@@ -228,6 +228,22 @@ export function withTimedLipSyncPrompt(
   return updated;
 }
 
+async function fetchWithRateLimitRetry(
+  fetchFn: typeof fetch,
+  url: string,
+  init: RequestInit,
+  maxRetries = 3,
+): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetchFn(url, init);
+    if (response.status !== 429 || attempt === maxRetries) {
+      return response;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+  }
+  return fetchFn(url, init);
+}
+
 // Text-to-speech with character-level timestamps using Eleven v4 (100% stability & similarity).
 export async function synthesizeSpeechWithTimestamps(
   voiceId: string,
@@ -237,7 +253,8 @@ export async function synthesizeSpeechWithTimestamps(
   const fetchFn = options?.fetch ?? fetch;
   const cleaned = cleanSpokenDialogueLine(text);
   if (!cleaned) throw new Error("語音合成缺少台詞文字");
-  const response = await fetchFn(
+  const response = await fetchWithRateLimitRetry(
+    fetchFn,
     `${BASE_URL}/text-to-speech/${encodeURIComponent(voiceId)}/with-timestamps?output_format=mp3_44100_128`,
     {
       method: "POST",
@@ -275,7 +292,8 @@ export async function synthesizeSpeech(
   const fetchFn = options?.fetch ?? fetch;
   const cleaned = cleanSpokenDialogueLine(text);
   if (!cleaned) throw new Error("語音合成缺少台詞文字");
-  const response = await fetchFn(
+  const response = await fetchWithRateLimitRetry(
+    fetchFn,
     `${BASE_URL}/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
     {
       method: "POST",
