@@ -1,8 +1,9 @@
 import { z } from "zod";
 
-// Uploaded demo voice. Cloned once on ElevenLabs; clip audio is converted to it.
+// Uploaded demo voice. Cloned on ElevenLabs; clip audio is synthesized / converted to it.
 export const VOICE_SAMPLE_MIN_SECONDS = 5;
-export const VOICE_SAMPLE_MAX_SECONDS = 120;
+export const VOICE_SAMPLE_MAX_SECONDS = 300;
+export const VOICE_SAMPLE_MAX_FILES = 10;
 export const VOICE_SAMPLE_MAX_BYTES = 10 * 1024 * 1024;
 export const VOICE_SAMPLE_MIME_TYPES = [
   "audio/mpeg",
@@ -14,20 +15,60 @@ export const VOICE_SAMPLE_MIME_TYPES = [
   "audio/x-m4a",
 ] as const;
 
-export type CharacterVoiceSample = {
+export type CharacterVoiceSampleClip = {
   url: string;
   durationSeconds: number;
-  // ElevenLabs Instant Voice Clone made from `url`.
+  name?: string;
+};
+
+export const characterVoiceSampleClipSchema: z.ZodType<CharacterVoiceSampleClip> = z.object({
+  url: z.string(),
+  durationSeconds: z.number(),
+  name: z.string().optional(),
+});
+
+export type CharacterVoiceSample = {
+  url: string;
+  urls?: string[];
+  clips?: CharacterVoiceSampleClip[];
+  durationSeconds: number;
+  // ElevenLabs Instant Voice Clone made from `clips` / `url`.
   elevenVoiceId: string;
   uploadedAt: Date;
 };
 
 export const characterVoiceSampleSchema: z.ZodType<CharacterVoiceSample> = z.object({
   url: z.string(),
+  urls: z.array(z.string()).optional(),
+  clips: z.array(characterVoiceSampleClipSchema).optional(),
   durationSeconds: z.number(),
   elevenVoiceId: z.string(),
   uploadedAt: z.date(),
 });
+
+export function normalizeVoiceSampleClips(
+  sample?: Pick<CharacterVoiceSample, "url" | "durationSeconds" | "clips"> | null,
+): CharacterVoiceSampleClip[] {
+  if (!sample) return [];
+  if (sample.clips && sample.clips.length > 0) return sample.clips;
+  if (!sample.url) return [];
+  return [{ url: sample.url, durationSeconds: sample.durationSeconds }];
+}
+
+export function voiceSampleUrls(
+  sample?: Pick<CharacterVoiceSample, "url" | "urls" | "clips"> | null,
+): string[] {
+  if (!sample) return [];
+  const urls = new Set<string>();
+  if (sample.url) urls.add(sample.url);
+  for (const url of sample.urls || []) {
+    if (url) urls.add(url);
+  }
+  for (const clip of sample.clips || []) {
+    if (clip.url) urls.add(clip.url);
+  }
+  return [...urls];
+}
 
 // Copied onto a video's cast so later sample changes do not touch existing clips.
 export type CastVoiceSample = Pick<CharacterVoiceSample, "url" | "elevenVoiceId">;

@@ -23,30 +23,46 @@ export function CharacterVoiceSamplePanel({
 }) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
+  const modeRef = useRef<"append" | "replace">("replace");
   const [pending, setPending] = useState<"upload" | "remove" | null>(null);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const sample = character.voiceSample;
+  const clips =
+    sample?.clips && sample.clips.length > 0
+      ? sample.clips
+      : sample
+        ? [{ url: sample.url, durationSeconds: sample.durationSeconds }]
+        : [];
+
+  function openPicker(mode: "append" | "replace") {
+    modeRef.current = mode;
+    inputRef.current?.click();
+  }
 
   async function onPick(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const picked = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (!file) return;
+    if (picked.length === 0) return;
     setError("");
     setSaved(false);
-    // Same checks as the server, so a bad file fails before the upload.
-    if (!isVoiceSampleMime(file.type)) {
-      setError(t("errors.voiceSampleType"));
-      return;
-    }
-    if (file.size > VOICE_SAMPLE_MAX_BYTES) {
-      setError(t("errors.voiceSampleTooLarge"));
-      return;
+    for (const file of picked) {
+      if (!isVoiceSampleMime(file.type)) {
+        setError(t("errors.voiceSampleType"));
+        return;
+      }
+      if (file.size > VOICE_SAMPLE_MAX_BYTES) {
+        setError(t("errors.voiceSampleTooLarge"));
+        return;
+      }
     }
     setPending("upload");
     try {
       const form = new FormData();
-      form.append("file", file);
+      form.append("mode", modeRef.current);
+      for (const file of picked) {
+        form.append("files", file);
+      }
       const result = await uploadCharacterVoiceSampleAction(character.id, form);
       if (!result.ok) {
         setError(translateAppError(result.error, t));
@@ -61,12 +77,12 @@ export function CharacterVoiceSamplePanel({
     }
   }
 
-  async function onRemove() {
+  async function onRemove(clipUrl?: string) {
     setError("");
     setSaved(false);
     setPending("remove");
     try {
-      const result = await removeCharacterVoiceSampleAction(character.id);
+      const result = await removeCharacterVoiceSampleAction(character.id, clipUrl);
       if (!result.ok) {
         setError(translateAppError(result.error, t));
         return;
@@ -83,34 +99,61 @@ export function CharacterVoiceSamplePanel({
     <div className="mt-4 rounded-2xl border border-accent-ink/10 bg-paper p-4">
       <h3 className="text-sm font-semibold">{t("characters.voiceSampleTitle")}</h3>
       <p className="mt-1 text-sm text-muted">{t("characters.voiceSampleHint")}</p>
-      {sample ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <audio controls preload="none" src={sample.url} className="h-10 max-w-full" />
-          <span className="text-sm text-muted">
-            {t("characters.voiceSampleSeconds", { seconds: Math.round(sample.durationSeconds) })}
-          </span>
+      {clips.length > 0 ? (
+        <div className="mt-3 space-y-2">
+          {clips.map((clip, index) => (
+            <div key={clip.url} className="flex flex-wrap items-center gap-3">
+              <audio controls preload="none" src={clip.url} className="h-10 max-w-full" />
+              <span className="text-sm text-muted">
+                {clip.name ? `${clip.name} · ` : `#${index + 1} · `}
+                {t("characters.voiceSampleSeconds", {
+                  seconds: Math.round(clip.durationSeconds),
+                })}
+              </span>
+              {clips.length > 1 ? (
+                <button
+                  type="button"
+                  onClick={() => void onRemove(clip.url)}
+                  disabled={pending !== null}
+                  className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-1 text-xs font-semibold text-muted transition hover:text-accent-ink disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {t("characters.voiceSampleRemove")}
+                </button>
+              ) : null}
+            </div>
+          ))}
         </div>
       ) : null}
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <button
           type="button"
-          onClick={() => inputRef.current?.click()}
+          onClick={() => openPicker(sample ? "append" : "replace")}
           disabled={pending !== null}
           className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-4 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending === "upload" ? <Spinner className="h-4 w-4" /> : null}
-          {sample ? t("characters.voiceSampleReplace") : t("characters.voiceSampleUpload")}
+          {sample ? `+ ${t("characters.voiceSampleUpload")}` : t("characters.voiceSampleUpload")}
         </button>
         {sample ? (
-          <button
-            type="button"
-            onClick={() => void onRemove()}
-            disabled={pending !== null}
-            className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/15 bg-paper px-4 text-sm font-semibold transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {pending === "remove" ? <Spinner className="h-4 w-4" /> : null}
-            {t("characters.voiceSampleRemove")}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => openPicker("replace")}
+              disabled={pending !== null}
+              className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/15 bg-paper px-4 text-sm font-semibold transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {t("characters.voiceSampleReplace")}
+            </button>
+            <button
+              type="button"
+              onClick={() => void onRemove()}
+              disabled={pending !== null}
+              className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/15 bg-paper px-4 text-sm font-semibold transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {pending === "remove" ? <Spinner className="h-4 w-4" /> : null}
+              {t("characters.voiceSampleRemove")}
+            </button>
+          </>
         ) : null}
         {saved ? <p className="text-sm text-muted">{t("characters.voiceSampleSaved")}</p> : null}
         {error ? (
@@ -122,6 +165,7 @@ export function CharacterVoiceSamplePanel({
       <input
         ref={inputRef}
         type="file"
+        multiple
         accept={ACCEPT}
         className="hidden"
         onChange={(event) => void onPick(event)}

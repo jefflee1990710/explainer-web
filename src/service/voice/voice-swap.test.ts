@@ -1,12 +1,42 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { voiceSwapVoiceId } from "@/model/character-voice-sample";
+import {
+  normalizeVoiceSampleClips,
+  voiceSampleUrls,
+  voiceSwapVoiceId,
+} from "@/model/character-voice-sample";
 import { videoCost } from "@/service/credit-costs";
 import { mixVoiceArgs, VOICE_SWAP_FILTER } from "@/service/voice/voice-swap-args";
 import {
   CANTONESE_VOICE_ID,
   resolveVoiceSwapId,
 } from "@/service/voice/voice-swap-target";
+
+test("normalizeVoiceSampleClips and voiceSampleUrls handle single and multi-file samples", () => {
+  const legacy = {
+    url: "https://example.com/v1.wav",
+    durationSeconds: 15,
+    elevenVoiceId: "id1",
+    uploadedAt: new Date(),
+  };
+  assert.deepEqual(normalizeVoiceSampleClips(legacy), [
+    { url: "https://example.com/v1.wav", durationSeconds: 15 },
+  ]);
+  assert.deepEqual(voiceSampleUrls(legacy), ["https://example.com/v1.wav"]);
+
+  const multi = {
+    ...legacy,
+    clips: [
+      { url: "https://example.com/v1.wav", durationSeconds: 15, name: "a.wav" },
+      { url: "https://example.com/v2.mp3", durationSeconds: 20, name: "b.mp3" },
+    ],
+  };
+  assert.equal(normalizeVoiceSampleClips(multi).length, 2);
+  assert.deepEqual(voiceSampleUrls(multi), [
+    "https://example.com/v1.wav",
+    "https://example.com/v2.mp3",
+  ]);
+});
 
 test("voice swap runs only for a one-character cast with a demo voice", () => {
   assert.equal(voiceSwapVoiceId(undefined), null);

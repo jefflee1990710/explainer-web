@@ -44,14 +44,19 @@ import {
 import { persistBuffer } from "@/service/higgsfield/persist";
 import {
   isVoiceSampleMime,
+  normalizeVoiceSampleClips,
   VOICE_SAMPLE_MAX_BYTES,
+  VOICE_SAMPLE_MAX_FILES,
   VOICE_SAMPLE_MAX_SECONDS,
   VOICE_SAMPLE_MIN_SECONDS,
+  voiceSampleUrls,
+  type CharacterVoiceSampleClip,
 } from "@/model/character-voice-sample";
 import {
   createVoiceClone,
   deleteVoiceClone,
   isElevenLabsConfigured,
+  type VoiceCloneFileInput,
 } from "@/service/voice/elevenlabs";
 import { probeAudioSeconds } from "@/service/voice/voice-swap";
 import {
@@ -687,7 +692,7 @@ export async function saveCharacterVoiceAction(
   }
 }
 
-// Stores the demo voice on Blob and clones it on ElevenLabs. Replaces any older sample.
+// Stores one or more demo voice files on Blob and clones them together on ElevenLabs.
 export async function uploadCharacterVoiceSampleAction(
   characterId: string,
   formData: FormData,
@@ -696,36 +701,115 @@ export async function uploadCharacterVoiceSampleAction(
     const user = await requireAppUser();
     const character = await ownedCharacter(characterId, user.clerkUserId);
     if (!character) return { ok: false, error: "角色不存在" };
-    const file = formData.get("file");
-    if (!(file instanceof File) || file.size === 0) return { ok: false, error: "請選擇聲音檔" };
-    if (!isVoiceSampleMime(file.type)) return { ok: false, error: "只支援 MP3、WAV、M4A 聲音檔" };
-    if (file.size > VOICE_SAMPLE_MAX_BYTES) return { ok: false, error: "聲音檔不可超過 10MB" };
+
+    const rawEntries = [
+      ...formData.getAll("files"),
+      ...(formData.getAll("files").length === 0 ? formData.getAll("file") : []),
+    ];
+    const pickedFiles = rawEntries.filter(
+      (entry): entry is File => entry instanceof File && entry.size > 0,
+    );
+    if (pickedFiles.length === 0) return { ok: false, error: "請選擇聲音檔" };
     if (!isElevenLabsConfigured()) return { ok: false, error: "尚未設定 ELEVENLABS_API_KEY" };
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = (file.name.split(".").pop() || "mp3").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const seconds = await probeAudioSeconds(buffer, ext || "mp3");
-    if (seconds === null) return { ok: false, error: "無法讀取聲音檔" };
-    if (seconds < VOICE_SAMPLE_MIN_SECONDS || seconds > VOICE_SAMPLE_MAX_SECONDS) {
+    const mode = formData.get("mode") === "append" ? "append" : "replace";
+    const existingClips =
+      mode === "append" ? normalizeVoiceSampleClips(character.voiceSample) : [];
+    if (existingClips.length + pickedFiles.length > VOICE_SAMPLE_MAX_FILES) {
+      return { ok: false, error: "聲音檔不可超過 10MB" };
+    }
+
+    const preparedNew: Array<{
+      file: File;
+      buffer: Buffer;
+      ext: string;
+      seconds: number;
+    }> = [];
+
+    for (const file of pickedFiles) {
+      if (!isVoiceSampleMime(file.type)) {
+        return { ok: false, error: "只支援 MP3、WAV、M4A 聲音檔" };
+      }
+      if (file.size > VOICE_SAMPLE_MAX_BYTES) {
+        return { ok: false, error: "聲音檔不可超過 10MB" };
+      }
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const ext = (file.name.split(".").pop() || "mp3").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const seconds = await probeAudioSeconds(buffer, ext || "mp3");
+      if (seconds === null) return { ok: false, error: "無法讀取聲音檔" };
+      preparedNew.push({ file, buffer, ext: ext || "mp3", seconds });
+    }
+
+    const existingTotalSeconds = existingClips.reduce(
+      (sum, item) => sum + item.durationSeconds,
+      0,
+    );
+    const newTotalSeconds = preparedNew.reduce((sum, item) => sum + item.seconds, 0);
+    const totalSeconds = existingTotalSeconds + newTotalSeconds;
+    if (totalSeconds < VOICE_SAMPLE_MIN_SECONDS || totalSeconds > VOICE_SAMPLE_MAX_SECONDS) {
       return { ok: false, error: "示範聲音需為 5–120 秒" };
     }
 
+    const existingCloneInputs: VoiceCloneFileInput[] = [];
+    for (let index = 0; index < existingClips.length; index++) {
+      const clip = existingClips[index];
+      const response = await fetch(clip.url);
+      if (response.ok) {
+        const bytes = await response.arrayBuffer();
+        const contentType = response.headers.get("content-type") || "audio/mpeg";
+        existingCloneInputs.push({
+          file: new Blob([bytes], { type: contentType }),
+          filename: clip.name || `existing-${index + 1}.mp3`,
+        });
+      }
+    }
+
+    const cloneFiles: VoiceCloneFileInput[] = [
+      ...existingCloneInputs,
+      ...preparedNew.map((item, idx) => ({
+        file: item.file,
+        filename: item.file.name || `sample-${idx + 1}.${item.ext}`,
+      })),
+    ];
+
     const elevenVoiceId = await createVoiceClone({
       name: `${character.name} (${character._id.toHexString()})`,
-      file,
-      filename: file.name || `sample.${ext}`,
+      files: cloneFiles,
     });
-    const url = await persistBuffer(
-      buffer,
-      `explainer/characters/${character._id.toHexString()}/voice-${Date.now()}.${ext || "mp3"}`,
-      file.type,
-    );
+
+    const nowMs = Date.now();
+    const uploadedNewClips: CharacterVoiceSampleClip[] = [];
+    for (let index = 0; index < preparedNew.length; index++) {
+      const item = preparedNew[index];
+      const url = await persistBuffer(
+        item.buffer,
+        `explainer/characters/${character._id.toHexString()}/voice-${nowMs}-${index + 1}.${item.ext}`,
+        item.file.type,
+      );
+      uploadedNewClips.push({
+        url,
+        durationSeconds: item.seconds,
+        name: item.file.name || `sample-${index + 1}.${item.ext}`,
+      });
+    }
+
+    const allClips = [...existingClips, ...uploadedNewClips];
+    const allUrls = allClips.map((clip) => clip.url);
+    const primaryUrl = allUrls[0];
+
     const characters = await charactersCollection();
     await characters.updateOne(
       { _id: character._id },
       {
         $set: {
-          voiceSample: { url, durationSeconds: seconds, elevenVoiceId, uploadedAt: new Date() },
+          voiceSample: {
+            url: primaryUrl,
+            urls: allUrls,
+            clips: allClips,
+            durationSeconds: totalSeconds,
+            elevenVoiceId,
+            uploadedAt: new Date(),
+          },
           updatedAt: new Date(),
         },
       },
@@ -735,14 +819,15 @@ export async function uploadCharacterVoiceSampleAction(
       { "cast.characterId": character._id },
       {
         $set: {
-          "cast.$[member].voiceSample": { url, elevenVoiceId },
+          "cast.$[member].voiceSample": { url: primaryUrl, elevenVoiceId },
           updatedAt: new Date(),
         },
       },
       { arrayFilters: [{ "member.characterId": character._id }] },
     );
-    // Videos already cast are updated to the new clone, so the old clone and file can go.
-    if (character.voiceSample) await dropVoiceSample(character.voiceSample);
+    if (character.voiceSample) {
+      await dropVoiceSample(character.voiceSample, allUrls);
+    }
     revalidateCharacter(characterId);
     return reload(character._id);
   } catch (error) {
@@ -752,23 +837,86 @@ export async function uploadCharacterVoiceSampleAction(
 
 export async function removeCharacterVoiceSampleAction(
   characterId: string,
+  clipUrl?: string,
 ): Promise<CharacterResult> {
   try {
     const user = await requireAppUser();
     const character = await ownedCharacter(characterId, user.clerkUserId);
     if (!character) return { ok: false, error: "角色不存在" };
+    const existingClips = normalizeVoiceSampleClips(character.voiceSample);
+    const remainingClips = clipUrl
+      ? existingClips.filter((clip) => clip.url !== clipUrl)
+      : [];
+
     const characters = await charactersCollection();
+    const videos = await videosCollection();
+
+    if (remainingClips.length > 0 && character.voiceSample) {
+      const cloneInputs: VoiceCloneFileInput[] = [];
+      for (let index = 0; index < remainingClips.length; index++) {
+        const clip = remainingClips[index];
+        const response = await fetch(clip.url);
+        if (response.ok) {
+          const bytes = await response.arrayBuffer();
+          const contentType = response.headers.get("content-type") || "audio/mpeg";
+          cloneInputs.push({
+            file: new Blob([bytes], { type: contentType }),
+            filename: clip.name || `sample-${index + 1}.mp3`,
+          });
+        }
+      }
+      if (cloneInputs.length > 0) {
+        const elevenVoiceId = await createVoiceClone({
+          name: `${character.name} (${character._id.toHexString()})`,
+          files: cloneInputs,
+        });
+        const remainingUrls = remainingClips.map((clip) => clip.url);
+        const primaryUrl = remainingUrls[0];
+        const totalSeconds = remainingClips.reduce(
+          (sum, clip) => sum + clip.durationSeconds,
+          0,
+        );
+        await characters.updateOne(
+          { _id: character._id },
+          {
+            $set: {
+              voiceSample: {
+                url: primaryUrl,
+                urls: remainingUrls,
+                clips: remainingClips,
+                durationSeconds: totalSeconds,
+                elevenVoiceId,
+                uploadedAt: new Date(),
+              },
+              updatedAt: new Date(),
+            },
+          },
+        );
+        await videos.updateMany(
+          { "cast.characterId": character._id },
+          {
+            $set: {
+              "cast.$[member].voiceSample": { url: primaryUrl, elevenVoiceId },
+              updatedAt: new Date(),
+            },
+          },
+          { arrayFilters: [{ "member.characterId": character._id }] },
+        );
+        await dropVoiceSample(character.voiceSample, remainingUrls);
+        revalidateCharacter(characterId);
+        return reload(character._id);
+      }
+    }
+
     await characters.updateOne(
       { _id: character._id },
       { $unset: { voiceSample: "" }, $set: { updatedAt: new Date() } },
     );
-    const videos = await videosCollection();
     await videos.updateMany(
       { "cast.characterId": character._id },
       {
         $unset: { "cast.$[member].voiceSample": "" },
-        $set: { updatedAt: new Date(),
-        },
+        $set: { updatedAt: new Date() },
       },
       { arrayFilters: [{ "member.characterId": character._id }] },
     );
@@ -780,11 +928,18 @@ export async function removeCharacterVoiceSampleAction(
   }
 }
 
-// The file always goes. The clone stays while any video cast still swaps to it.
-async function dropVoiceSample(sample: NonNullable<Character["voiceSample"]>) {
-  await deleteExplainerBlobUrls([sample.url]);
+// Unused files go; the old clone is deleted once no video cast references it.
+async function dropVoiceSample(
+  sample: NonNullable<Character["voiceSample"]>,
+  keepUrls: string[] = [],
+) {
+  const keepSet = new Set(keepUrls);
+  const toDelete = voiceSampleUrls(sample).filter((url) => !keepSet.has(url));
+  if (toDelete.length > 0) await deleteExplainerBlobUrls(toDelete);
   const videos = await videosCollection();
-  const inUse = await videos.countDocuments({ "cast.voiceSample.elevenVoiceId": sample.elevenVoiceId });
+  const inUse = await videos.countDocuments({
+    "cast.voiceSample.elevenVoiceId": sample.elevenVoiceId,
+  });
   if (inUse === 0) await deleteVoiceClone(sample.elevenVoiceId);
 }
 

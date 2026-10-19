@@ -26,6 +26,10 @@ import type { Product } from "@/model/product";
 import type { TextStyleDoc } from "@/model/text-style";
 import { parseCharacterPersona, type CharacterPersona } from "@/model/character-persona";
 import { parseCharacterVoice, type CharacterVoice } from "@/model/character-voice";
+import {
+  normalizeVoiceSampleClips,
+  type CharacterVoiceSampleClip,
+} from "@/model/character-voice-sample";
 import type { Folder } from "@/model/folder";
 import type { Project, ProjectStatus, SubtitlePlate } from "@/model/project";
 import type { PerformanceSlots } from "@/model/director-performance";
@@ -645,7 +649,11 @@ export type PublicCharacter = {
   styleName: string;
   voice: CharacterVoice | null;
   // Uploaded demo voice. The clone id stays on the server.
-  voiceSample: { url: string; durationSeconds: number } | null;
+  voiceSample: {
+    url: string;
+    durationSeconds: number;
+    clips?: CharacterVoiceSampleClip[];
+  } | null;
   defaultVersionId: string | null;
   // Chosen sheet for each style that has a completed blueprint.
   defaultByStyle: Record<string, string>;
@@ -740,7 +748,11 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     styleName: character.styleId,
     voice: parseCharacterVoice(character.voice),
     voiceSample: character.voiceSample
-      ? { url: character.voiceSample.url, durationSeconds: character.voiceSample.durationSeconds }
+      ? {
+          url: character.voiceSample.url,
+          durationSeconds: character.voiceSample.durationSeconds,
+          clips: normalizeVoiceSampleClips(character.voiceSample),
+        }
       : null,
     defaultVersionId: resolved ? resolved.id.toHexString() : null,
     defaultByStyle,

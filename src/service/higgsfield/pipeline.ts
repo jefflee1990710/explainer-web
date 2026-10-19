@@ -817,9 +817,13 @@ export async function applyJobStatus(input: {
             cast: await withCurrentCharacterVoices(project.cast),
           })
         : null;
+    const spokenLine =
+      project && job.kind === "video"
+        ? project.phaseA?.clips.find((clip) => clip.clipNumber === job.clipIndex + 1)?.englishVo
+        : undefined;
     const swapVoice = (buffer: Buffer) =>
       voiceId
-        ? swapClipVoice(buffer, voiceId).catch((error: unknown) => {
+        ? swapClipVoice(buffer, voiceId, { text: spokenLine }).catch((error: unknown) => {
             console.error("[higgsfield] voice swap failed; keeping clip audio", {
               requestId: job.requestId,
               error,

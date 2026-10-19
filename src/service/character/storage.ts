@@ -26,7 +26,10 @@ export function collectCharactersBlobUrls(characters: Character[]): string[] {
 
 // Character files a video still points at. Deleting these breaks later frame submits.
 export type VideoCharacterBlobSource = {
-  cast?: Array<{ blueprintUrl?: string; voiceSample?: { url?: string } }>;
+  cast?: Array<{
+    blueprintUrl?: string;
+    voiceSample?: { url?: string; urls?: string[] };
+  }>;
   characterImageUrl?: string;
   characterStillUrl?: string;
 };
@@ -36,6 +39,9 @@ export function videoCharacterBlobUrls(video: VideoCharacterBlobSource): string[
   for (const member of video.cast || []) {
     if (member.blueprintUrl) urls.push(member.blueprintUrl);
     if (member.voiceSample?.url) urls.push(member.voiceSample.url);
+    for (const url of member.voiceSample?.urls || []) {
+      if (url) urls.push(url);
+    }
   }
   if (video.characterImageUrl) urls.push(video.characterImageUrl);
   if (video.characterStillUrl) urls.push(video.characterStillUrl);
