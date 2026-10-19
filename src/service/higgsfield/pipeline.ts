@@ -67,7 +67,6 @@ import {
   planFrameSubmissions,
   videoKeyframeUrls,
 } from "@/service/higgsfield/clip-keyframes";
-import { OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL } from "@/service/openrouter/generate";
 import {
   nextProjectStatus,
   reconcileClips,
@@ -665,7 +664,6 @@ export async function sendClipVideo(
       : null;
   const usesLipSync = skillUsesOnScreenLipSync(project.skillSlug);
   const voOnsetSeconds = usesLipSync ? DEFAULT_SPEECH_ONSET_SECONDS : 0;
-  let preGeneratedVoUrl: string | undefined;
   if (voiceId && spokenLine?.trim() && isElevenLabsConfigured()) {
     try {
       const { audio, alignment } = await synthesizeSpeechWithTimestamps(voiceId, spokenLine);
@@ -675,7 +673,7 @@ export async function sendClipVideo(
           clipDurationSeconds: prompt.durationSeconds,
         });
       }
-      preGeneratedVoUrl = await persistBuffer(
+      const preGeneratedVoUrl = await persistBuffer(
         audio,
         `explainer/${project._id.toHexString()}/vo/clip-${clipNumber}-${Date.now()}.mp3`,
         "audio/mpeg",
@@ -702,10 +700,7 @@ export async function sendClipVideo(
     }
   }
 
-  const audioUrlForLipSync = usesLipSync && preGeneratedVoUrl ? preGeneratedVoUrl : undefined;
-  const targetModel = audioUrlForLipSync
-    ? OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL
-    : clipVideoModel(style ?? project.styleId);
+  const targetModel = clipVideoModel(style ?? project.styleId);
   const submitted = await submitClipVideo({
     model: targetModel,
     prompt: videoPrompt,
@@ -713,7 +708,6 @@ export async function sendClipVideo(
     durationSeconds: prompt.durationSeconds,
     startImageUrl: start,
     endImageUrl: endUrlForVideo,
-    audioUrl: audioUrlForLipSync,
     styleId: project.styleId,
     style,
   });
@@ -868,12 +862,9 @@ export async function applyJobStatus(input: {
             })
           ).canvasColor
         : undefined;
-    // heygen/avatar-iv already bakes in the pre-generated ElevenLabs VO audio with
-    // exact lip-sync, so skip re-muxing when the job model is heygen/avatar-iv.
     const voiceId =
       project &&
       job.kind === "video" &&
-      job.model !== OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL &&
       (project.language === "yue" || !isBookendSkill(project.skillSlug))
         ? resolveVoiceSwapId({
             ...project,
@@ -894,6 +885,7 @@ export async function applyJobStatus(input: {
             text: spokenLine,
             voUrl: storedClip?.voUrl,
             onsetSeconds: storedClip?.voOnsetSeconds,
+            lipSync: Boolean(project && skillUsesOnScreenLipSync(project.skillSlug)),
           }).catch((error: unknown) => {
             console.error("[higgsfield] voice swap failed; keeping clip audio", {
               requestId: job.requestId,

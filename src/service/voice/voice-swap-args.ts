@@ -1,3 +1,52 @@
+// HeyGen Avatar IV generates a ~0.36s warmup from a neutral resting pose before
+// locking onto the reference image's subtitle card and hand pose. Padding the VO
+// by 450ms and trimming the first 0.40s of the returned video removes the warmup.
+export const HEYGEN_WARMUP_PAD_MS = 450;
+export const HEYGEN_WARMUP_TRIM_SECONDS = 0.4;
+
+export function padAudioLeadingSilenceArgs(inPath: string, outPath: string, delayMs = HEYGEN_WARMUP_PAD_MS) {
+  const ms = Math.max(0, Math.round(delayMs));
+  return [
+    "-y",
+    "-i",
+    inPath,
+    "-af",
+    `adelay=${ms}|${ms}`,
+    "-c:a",
+    "libmp3lame",
+    "-b:a",
+    "128k",
+    outPath,
+  ];
+}
+
+export function trimLeadingVideoArgs(
+  inPath: string,
+  outPath: string,
+  trimSeconds = HEYGEN_WARMUP_TRIM_SECONDS,
+) {
+  return [
+    "-y",
+    "-ss",
+    trimSeconds.toFixed(2),
+    "-i",
+    inPath,
+    "-c:v",
+    "libx264",
+    "-preset",
+    "fast",
+    "-crf",
+    "18",
+    "-c:a",
+    "aac",
+    "-b:a",
+    "192k",
+    "-movflags",
+    "+faststart",
+    outPath,
+  ];
+}
+
 // Mono 44.1k WAV of the clip's soundtrack, sent to the voice changer.
 export function extractSpeechArgs(source: string, out: string) {
   return ["-y", "-i", source, "-vn", "-ac", "1", "-ar", "44100", "-c:a", "pcm_s16le", out];

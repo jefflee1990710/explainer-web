@@ -6,7 +6,12 @@ import {
   voiceSwapVoiceId,
 } from "@/model/character-voice-sample";
 import { videoCost } from "@/service/credit-costs";
-import { mixVoiceArgs, VOICE_SWAP_FILTER } from "@/service/voice/voice-swap-args";
+import {
+  mixVoiceArgs,
+  padAudioLeadingSilenceArgs,
+  trimLeadingVideoArgs,
+  VOICE_SWAP_FILTER,
+} from "@/service/voice/voice-swap-args";
 import {
   CANTONESE_VOICE_ID,
   resolveVoiceSwapId,
@@ -99,4 +104,11 @@ test("mix keeps the video stream and directly uses the ElevenLabs voice track wi
   assert.doesNotMatch(VOICE_SWAP_FILTER, /sidechaincompress/);
   assert.doesNotMatch(VOICE_SWAP_FILTER, /amix/);
   assert.match(VOICE_SWAP_FILTER, /^\[1:a\]aresample=44100,aformat=channel_layouts=stereo\[a\]$/);
+});
+
+test("HeyGen warmup helpers pad leading VO silence and trim leading warmup video frames", () => {
+  const padArgs = padAudioLeadingSilenceArgs("in.mp3", "out.mp3", 450);
+  assert.ok(padArgs.includes("adelay=450|450"));
+  const trimArgs = trimLeadingVideoArgs("in.mp4", "out.mp4", 0.4);
+  assert.equal(trimArgs[trimArgs.indexOf("-ss") + 1], "0.40");
 });

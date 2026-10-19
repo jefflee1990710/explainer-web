@@ -206,6 +206,7 @@ export function clipVideoResolution(
 
 export type OpenRouterVideoInputReference =
   | { type: "image_url"; image_url: { url: string } }
+  | { type: "video_url"; video_url: { url: string } }
   | { type: "audio_url"; audio_url: { url: string } };
 
 export type OpenRouterVideoFrameImage = {
@@ -226,6 +227,41 @@ export type OpenRouterClipVideoRequestBody = {
   input_references?: OpenRouterVideoInputReference[];
 };
 
+export const HEYGEN_AVATAR_IV_MOTION_PROMPT =
+  "Keep the exact framing, lighting, background, and the on-screen subtitle card from the reference image completely fixed and visible from 0.0s through the final frame — never erase, hide, fade, or alter the on-screen subtitle text. The speaker talks directly to the camera in sync with the audio, with natural blinks, warm facial expressions, subtle head nods, and natural hand gestures.";
+
+export function openRouterVideoAudioLipSyncBody(input: {
+  model?: string;
+  prompt?: string;
+  aspectRatio: AspectRatio;
+  durationSeconds: number;
+  videoUrl: string;
+  audioUrl: string;
+  callbackUrl?: string;
+}): OpenRouterClipVideoRequestBody {
+  const model = input.model || OPENROUTER_HEYGEN_VIDEO_1_MODEL;
+  return {
+    model,
+    prompt:
+      input.prompt ||
+      "Synchronize the speaker lip movement to the reference audio while keeping the source video framing, motion from start to end, lighting, and on-screen subtitle unchanged.",
+    aspect_ratio: input.aspectRatio,
+    duration: clampVideoDurationSeconds(input.durationSeconds),
+    resolution: "2K",
+    ...(input.callbackUrl ? { callback_url: input.callbackUrl } : {}),
+    input_references: [
+      {
+        type: "video_url" as const,
+        video_url: { url: input.videoUrl },
+      },
+      {
+        type: "audio_url" as const,
+        audio_url: { url: input.audioUrl },
+      },
+    ],
+  };
+}
+
 export function openRouterHeyGenAudioVideoBody(input: {
   model?: string;
   prompt: string;
@@ -238,9 +274,12 @@ export function openRouterHeyGenAudioVideoBody(input: {
   const model = input.model || OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL;
   const configured = clipVideoResolution();
   const isAvatarIv = model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL;
+  const effectivePrompt = isAvatarIv
+    ? HEYGEN_AVATAR_IV_MOTION_PROMPT
+    : capOpenRouterVideoPrompt(input.prompt);
   return {
     model,
-    prompt: capOpenRouterVideoPrompt(input.prompt),
+    prompt: effectivePrompt,
     aspect_ratio: input.aspectRatio,
     ...(isAvatarIv
       ? {}
