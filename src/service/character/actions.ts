@@ -730,7 +730,18 @@ export async function uploadCharacterVoiceSampleAction(
         },
       },
     );
-    // Videos already cast keep their own snapshot, so the old clone and file can go.
+    const videos = await videosCollection();
+    await videos.updateMany(
+      { "cast.characterId": character._id },
+      {
+        $set: {
+          "cast.$[member].voiceSample": { url, elevenVoiceId },
+          updatedAt: new Date(),
+        },
+      },
+      { arrayFilters: [{ "member.characterId": character._id }] },
+    );
+    // Videos already cast are updated to the new clone, so the old clone and file can go.
     if (character.voiceSample) await dropVoiceSample(character.voiceSample);
     revalidateCharacter(characterId);
     return reload(character._id);
@@ -750,6 +761,16 @@ export async function removeCharacterVoiceSampleAction(
     await characters.updateOne(
       { _id: character._id },
       { $unset: { voiceSample: "" }, $set: { updatedAt: new Date() } },
+    );
+    const videos = await videosCollection();
+    await videos.updateMany(
+      { "cast.characterId": character._id },
+      {
+        $unset: { "cast.$[member].voiceSample": "" },
+        $set: { updatedAt: new Date(),
+        },
+      },
+      { arrayFilters: [{ "member.characterId": character._id }] },
     );
     if (character.voiceSample) await dropVoiceSample(character.voiceSample);
     revalidateCharacter(characterId);

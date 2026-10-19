@@ -2,8 +2,22 @@ const BASE_URL = "https://api.elevenlabs.io/v1";
 // Voice changer model that keeps the source timing, so lips stay in sync.
 const STS_MODEL = "eleven_multilingual_sts_v2";
 
-function apiKey() {
-  const key = process.env.ELEVENLABS_API_KEY;
+// Lock stability and similarity to 1.0 so Speech-to-Speech preserves the source
+// Cantonese 9-tone contours and timing verbatim without Mandarin tone-flattening.
+export const STS_VOICE_SETTINGS = {
+  stability: 1,
+  similarity_boost: 1,
+  style: 0,
+  use_speaker_boost: true,
+} as const;
+
+type FetchOptions = {
+  apiKey?: string;
+  fetch?: typeof fetch;
+};
+
+function apiKey(override?: string) {
+  const key = override ?? process.env.ELEVENLABS_API_KEY;
   if (!key) throw new Error("尚未設定 ELEVENLABS_API_KEY");
   return key;
 }
@@ -53,16 +67,22 @@ export async function deleteVoiceClone(voiceId: string) {
 }
 
 // Speech-to-speech. Background is stripped so only the new voice comes back.
-export async function convertSpeech(voiceId: string, audio: Buffer): Promise<Buffer> {
+export async function convertSpeech(
+  voiceId: string,
+  audio: Buffer,
+  options?: FetchOptions,
+): Promise<Buffer> {
+  const fetchFn = options?.fetch ?? fetch;
   const form = new FormData();
   form.append("audio", new Blob([new Uint8Array(audio)], { type: "audio/wav" }), "speech.wav");
   form.append("model_id", STS_MODEL);
   form.append("remove_background_noise", "true");
-  const response = await fetch(
+  form.append("voice_settings", JSON.stringify(STS_VOICE_SETTINGS));
+  const response = await fetchFn(
     `${BASE_URL}/speech-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
     {
       method: "POST",
-      headers: { "xi-api-key": apiKey() },
+      headers: { "xi-api-key": apiKey(options?.apiKey) },
       body: form,
       signal: AbortSignal.timeout(120_000),
     },

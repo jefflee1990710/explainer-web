@@ -75,6 +75,7 @@ import {
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { swapClipVoice } from "@/service/voice/voice-swap";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
+import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { mediaSrc } from "@/util/media-src";
 import { isBookendSkill } from "@/service/director/skill-rules";
 import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lock";
@@ -811,7 +812,10 @@ export async function applyJobStatus(input: {
       project &&
       job.kind === "video" &&
       (project.language === "yue" || !isBookendSkill(project.skillSlug))
-        ? resolveVoiceSwapId(project)
+        ? resolveVoiceSwapId({
+            ...project,
+            cast: await withCurrentCharacterVoices(project.cast),
+          })
         : null;
     const swapVoice = (buffer: Buffer) =>
       voiceId

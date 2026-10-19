@@ -56,15 +56,17 @@ test("Cantonese voiceover always converts on ElevenLabs, and a cloned demo voice
 
 test("voice swap adds 1 credit per billed second", () => {
   assert.equal(videoCost(5, undefined, true), 50);
-  assert.equal(videoCost(8, "realistic", true), 384);
+  assert.equal(videoCost(8, "realistic", true), 128);
   assert.equal(videoCost(3, undefined, true), 50);
   assert.equal(videoCost(5), 45);
 });
 
-test("mix keeps the video stream and ducks the original track under the new voice", () => {
+test("mix keeps the video stream and directly uses the ElevenLabs voice track without mixing original audio", () => {
   const args = mixVoiceArgs("in.mp4", "voice.mp3", "out.mp4");
   assert.deepEqual(args.slice(args.indexOf("-map"), args.indexOf("-map") + 4), ["-map", "0:v", "-map", "[a]"]);
   assert.equal(args[args.indexOf("-c:v") + 1], "copy");
-  assert.match(VOICE_SWAP_FILTER, /\[bed\]\[key\]sidechaincompress/);
-  assert.match(VOICE_SWAP_FILTER, /amix=inputs=2:duration=first/);
+  assert.doesNotMatch(VOICE_SWAP_FILTER, /\[0:a\]/);
+  assert.doesNotMatch(VOICE_SWAP_FILTER, /sidechaincompress/);
+  assert.doesNotMatch(VOICE_SWAP_FILTER, /amix/);
+  assert.match(VOICE_SWAP_FILTER, /^\[1:a\]aresample=44100,aformat=channel_layouts=stereo\[a\]$/);
 });
