@@ -7,18 +7,46 @@ export function extractSpeechArgs(source: string, out: string) {
 export const VOICE_SWAP_FILTER =
   "[1:a]aresample=44100,aformat=channel_layouts=stereo[a]";
 
-export function alignedVoiceSwapFilter(options?: {
+export type VoiceSwapAlignOptions = {
+  trimStart?: number;
+  trimEnd?: number;
   delayMs?: number;
   tempo?: number;
-}): string {
-  if (!options?.delayMs && (!options?.tempo || options.tempo <= 1.001)) {
+  durationSeconds?: number;
+};
+
+function fmtNum(value: number) {
+  return value.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+export function alignedVoiceSwapFilter(options?: VoiceSwapAlignOptions): string {
+  const hasTrim =
+    (options?.trimStart !== undefined && options.trimStart > 0) ||
+    (options?.trimEnd !== undefined && options.trimEnd > 0);
+  const hasTempo =
+    options?.tempo !== undefined && Math.abs(options.tempo - 1) > 0.005;
+  const hasDelay = options?.delayMs !== undefined && options.delayMs > 0;
+  if (!hasTrim && !hasTempo && !hasDelay) {
     return VOICE_SWAP_FILTER;
   }
   const steps = ["[1:a]aresample=44100,aformat=channel_layouts=stereo"];
-  if (options.tempo && options.tempo > 1.001) {
-    steps.push(`atempo=${Math.min(2, options.tempo).toFixed(4).replace(/0+$/, "").replace(/\.$/, "")}`);
+  if (hasTrim) {
+    const startPart =
+      options?.trimStart !== undefined ? `start=${fmtNum(options.trimStart)}` : "";
+    const endPart =
+      options?.trimEnd !== undefined && options.trimEnd > (options?.trimStart ?? 0)
+        ? `end=${fmtNum(options.trimEnd)}`
+        : "";
+    const range = [startPart, endPart].filter(Boolean).join(":");
+    if (range) {
+      steps.push(`atrim=${range}`, "asetpts=PTS-STARTPTS");
+    }
   }
-  if (options.delayMs && options.delayMs > 0) {
+  if (hasTempo && options?.tempo) {
+    const clamped = Math.min(1.45, Math.max(0.75, options.tempo));
+    steps.push(`atempo=${fmtNum(clamped)}`);
+  }
+  if (hasDelay && options?.delayMs) {
     const ms = Math.round(options.delayMs);
     steps.push(`adelay=${ms}|${ms}`);
   }
@@ -31,7 +59,7 @@ export function mixVoiceArgs(
   clip: string,
   voice: string,
   out: string,
-  options?: { delayMs?: number; tempo?: number; durationSeconds?: number },
+  options?: VoiceSwapAlignOptions,
 ) {
   const filter = alignedVoiceSwapFilter(options);
   return [

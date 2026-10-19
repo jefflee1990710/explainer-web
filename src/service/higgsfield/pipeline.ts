@@ -54,7 +54,13 @@ import {
   submitImage,
 } from "@/service/higgsfield/generate";
 import { jobNeedsRefresh, settleProviderStatus, userFacingJobError } from "@/service/higgsfield/job-status";
-import { persistMedia } from "@/service/higgsfield/persist";
+import { persistBuffer, persistMedia } from "@/service/higgsfield/persist";
+import {
+  DEFAULT_SPEECH_ONSET_SECONDS,
+  isElevenLabsConfigured,
+  synthesizeSpeechWithTimestamps,
+  withTimedLipSyncPrompt,
+} from "@/service/voice/elevenlabs";
 import {
   clipVideoModel,
   clipKeyframeUrls,
@@ -632,22 +638,65 @@ export async function sendClipVideo(
     ownerClerkUserId: project.clerkUserId,
   }).catch(() => null);
   const motionPrompt = isRealisticStyle(style) ? lockRealisticVideoLight(subtitlePrompt) : subtitlePrompt;
-  const submitted = await submitClipVideo({
-    prompt: withCantonesePronunciation(
-      lockDialogueSpeech(
-        motionPrompt,
-        project.skillSlug,
-        spokenLine,
-        project.cast?.map((member) => member.name),
-        performance,
-        {
-          voiceGender: project.voiceGender,
-          speakers: project.cast,
-        },
-      ),
-      project.language,
+  const currentCast = await withCurrentCharacterVoices(project.cast);
+  let videoPrompt = withCantonesePronunciation(
+    lockDialogueSpeech(
+      motionPrompt,
+      project.skillSlug,
       spokenLine,
+      currentCast?.map((member) => member.name),
+      performance,
+      {
+        voiceGender: project.voiceGender,
+        speakers: currentCast,
+      },
     ),
+    project.language,
+    spokenLine,
+  );
+
+  // Pre-synthesize ElevenLabs VO with character timestamps so the video generation
+  // prompt includes exact per-character/word timing and the VO is ready to merge.
+  const voiceId =
+    project.language === "yue" || !isBookendSkill(project.skillSlug)
+      ? resolveVoiceSwapId({ ...project, cast: currentCast })
+      : null;
+  if (voiceId && spokenLine?.trim() && isElevenLabsConfigured()) {
+    try {
+      const { audio, alignment } = await synthesizeSpeechWithTimestamps(voiceId, spokenLine);
+      videoPrompt = withTimedLipSyncPrompt(videoPrompt, alignment, {
+        onsetSeconds: DEFAULT_SPEECH_ONSET_SECONDS,
+        clipDurationSeconds: prompt.durationSeconds,
+      });
+      const voUrl = await persistBuffer(
+        audio,
+        `explainer/${project._id.toHexString()}/vo/clip-${clipNumber}-${Date.now()}.mp3`,
+        "audio/mpeg",
+      );
+      const projects = await videosCollection();
+      await projects.updateOne(
+        { _id: project._id },
+        {
+          $set: {
+            "clips.$[clip].prompt": videoPrompt,
+            "clips.$[clip].voUrl": voUrl,
+            "clips.$[clip].voOnsetSeconds": DEFAULT_SPEECH_ONSET_SECONDS,
+            updatedAt: new Date(),
+          },
+        },
+        { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
+      );
+    } catch (error) {
+      console.error("[higgsfield] pre-video ElevenLabs with-timestamps failed; continuing", {
+        projectId: project._id.toHexString(),
+        clipNumber,
+        error,
+      });
+    }
+  }
+
+  const submitted = await submitClipVideo({
+    prompt: videoPrompt,
     aspectRatio: project.aspectRatio,
     durationSeconds: prompt.durationSeconds,
     startImageUrl: start,
@@ -821,9 +870,17 @@ export async function applyJobStatus(input: {
       project && job.kind === "video"
         ? project.phaseA?.clips.find((clip) => clip.clipNumber === job.clipIndex + 1)?.englishVo
         : undefined;
+    const storedClip =
+      project && job.kind === "video"
+        ? project.clips.find((clip) => clip.clipNumber === job.clipIndex + 1)
+        : undefined;
     const swapVoice = (buffer: Buffer) =>
       voiceId
-        ? swapClipVoice(buffer, voiceId, { text: spokenLine }).catch((error: unknown) => {
+        ? swapClipVoice(buffer, voiceId, {
+            text: spokenLine,
+            voUrl: storedClip?.voUrl,
+            onsetSeconds: storedClip?.voOnsetSeconds,
+          }).catch((error: unknown) => {
             console.error("[higgsfield] voice swap failed; keeping clip audio", {
               requestId: job.requestId,
               error,

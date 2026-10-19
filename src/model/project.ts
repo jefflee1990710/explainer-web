@@ -232,6 +232,9 @@ export type ProjectClip = {
   unsent?: boolean;
   // True when this video was sent from stills that already had the subtitle burned in.
   mergedKeyframes?: boolean;
+  // Pre-generated ElevenLabs TTS audio URL and speech onset used to time the video prompt.
+  voUrl?: string;
+  voOnsetSeconds?: number;
 };
 
 // One talking-head subtitle plate. Burned onto the start and end stills before video.
@@ -554,6 +557,8 @@ export const projectSchema: z.ZodType<Project> = z.object({
       creditsCharged: z.number().optional(),
       unsent: z.boolean().optional(),
       mergedKeyframes: z.boolean().optional(),
+      voUrl: z.string().optional(),
+      voOnsetSeconds: z.number().optional(),
     }),
   ),
   reelUrl: z.string().optional(),

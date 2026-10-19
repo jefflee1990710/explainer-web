@@ -137,6 +137,135 @@ export async function deleteVoiceClone(voiceId: string) {
   }
 }
 
+export type ElevenLabsAlignment = {
+  characters: string[];
+  character_start_times_seconds: number[];
+  character_end_times_seconds: number[];
+};
+
+export type TimedLipSyncToken = {
+  token: string;
+  start: number;
+  end: number;
+};
+
+export const DEFAULT_SPEECH_ONSET_SECONDS = 0.4;
+
+// Group per-character timestamps into spoken tokens (each Chinese character or contiguous ASCII word).
+export function groupAlignmentTokens(
+  alignment?: ElevenLabsAlignment | null,
+  onsetSeconds = DEFAULT_SPEECH_ONSET_SECONDS,
+): TimedLipSyncToken[] {
+  if (!alignment?.characters?.length) return [];
+  const chars = alignment.characters;
+  const starts = alignment.character_start_times_seconds || [];
+  const ends = alignment.character_end_times_seconds || [];
+  const tokens: TimedLipSyncToken[] = [];
+
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i] ?? "";
+    const rawStart = Number(starts[i] ?? 0);
+    const rawEnd = Number(ends[i] ?? rawStart);
+    if (!ch.trim() || /^[，。！？、；：「」『』（）()"'.,!?;:\s-]+$/.test(ch)) {
+      continue;
+    }
+    const isAsciiWord = /^[A-Za-z0-9]$/.test(ch);
+    const prev = tokens[tokens.length - 1];
+    if (isAsciiWord && prev && /^[A-Za-z0-9]+$/.test(prev.token)) {
+      prev.token += ch;
+      prev.end = Number((onsetSeconds + rawEnd).toFixed(3));
+    } else {
+      tokens.push({
+        token: ch,
+        start: Number((onsetSeconds + rawStart).toFixed(3)),
+        end: Number((onsetSeconds + rawEnd).toFixed(3)),
+      });
+    }
+  }
+  return tokens;
+}
+
+export function buildTimedLipSyncPromptBlock(
+  alignment?: ElevenLabsAlignment | null,
+  options?: { onsetSeconds?: number; clipDurationSeconds?: number },
+): string {
+  const onset = options?.onsetSeconds ?? DEFAULT_SPEECH_ONSET_SECONDS;
+  const clipDur = options?.clipDurationSeconds ?? 5;
+  const tokens = groupAlignmentTokens(alignment, onset);
+  if (tokens.length === 0) return "";
+  const speechEnd = tokens[tokens.length - 1].end;
+  const lines = [
+    `EXACT LIP-SYNC TIMING SCHEDULE (the on-screen speaker's mouth MUST articulate each syllable/word at these exact timestamps and stay completely closed after ${speechEnd.toFixed(2)}s):`,
+    `- 0.00s–${onset.toFixed(2)}s: mouth closed, brief inhale before speaking`,
+    ...tokens.map(
+      (item) => `- ${item.start.toFixed(2)}s–${item.end.toFixed(2)}s: "${item.token}"`,
+    ),
+    `- ${speechEnd.toFixed(2)}s–${clipDur.toFixed(2)}s: speech finished, mouth closed in a natural smile (ZERO lip movement after ${speechEnd.toFixed(2)}s).`,
+  ];
+  return lines.join("\n");
+}
+
+export function withTimedLipSyncPrompt(
+  prompt: string,
+  alignment?: ElevenLabsAlignment | null,
+  options?: { onsetSeconds?: number; clipDurationSeconds?: number },
+): string {
+  const onset = options?.onsetSeconds ?? DEFAULT_SPEECH_ONSET_SECONDS;
+  const tokens = groupAlignmentTokens(alignment, onset);
+  if (tokens.length === 0) return prompt;
+  const speechEnd = tokens[tokens.length - 1].end;
+  const onsetStr = onset.toFixed(2);
+  const endStr = speechEnd.toFixed(2);
+
+  let updated = prompt
+    .replace(/0\.4[–-]4\.2s/g, `${onsetStr}–${endStr}s`)
+    .replace(/4\.2[–-](\d+(?:\.\d+)?)s/g, `${endStr}–$1s`);
+
+  const block = buildTimedLipSyncPromptBlock(alignment, options);
+  if (block && !updated.includes("EXACT LIP-SYNC TIMING SCHEDULE")) {
+    updated = `${updated}\n\n${block}`;
+  }
+  return updated;
+}
+
+// Text-to-speech with character-level timestamps using Eleven v4 (100% stability & similarity).
+export async function synthesizeSpeechWithTimestamps(
+  voiceId: string,
+  text: string,
+  options?: FetchOptions & { modelId?: string },
+): Promise<{ audio: Buffer; alignment?: ElevenLabsAlignment }> {
+  const fetchFn = options?.fetch ?? fetch;
+  const cleaned = cleanSpokenDialogueLine(text);
+  if (!cleaned) throw new Error("語音合成缺少台詞文字");
+  const response = await fetchFn(
+    `${BASE_URL}/text-to-speech/${encodeURIComponent(voiceId)}/with-timestamps?output_format=mp3_44100_128`,
+    {
+      method: "POST",
+      headers: {
+        "xi-api-key": apiKey(options?.apiKey),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text: cleaned,
+        model_id: options?.modelId || ELEVENLABS_TTS_MODEL,
+        voice_settings: STS_VOICE_SETTINGS,
+      }),
+      signal: AbortSignal.timeout(120_000),
+    },
+  );
+  if (!response.ok) throw await failure(response, "語音合成失敗");
+  const body = (await response.json()) as {
+    audio_base64?: string;
+    alignment?: ElevenLabsAlignment;
+    normalized_alignment?: ElevenLabsAlignment;
+  };
+  if (!body.audio_base64) throw new Error("ElevenLabs 未回傳音訊資料");
+  return {
+    audio: Buffer.from(body.audio_base64, "base64"),
+    alignment: body.alignment ?? body.normalized_alignment,
+  };
+}
+
 // Text-to-speech using Eleven v4 with 100% stability and similarity.
 export async function synthesizeSpeech(
   voiceId: string,

@@ -1,13 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  buildTimedLipSyncPromptBlock,
   cleanSpokenDialogueLine,
   convertSpeech,
   createVoiceClone,
   ELEVENLABS_TTS_MODEL,
+  groupAlignmentTokens,
   parseSpeechWindowFromStderr,
   STS_VOICE_SETTINGS,
   synthesizeSpeech,
+  synthesizeSpeechWithTimestamps,
+  withTimedLipSyncPrompt,
 } from "@/service/voice/elevenlabs";
 import { alignedVoiceSwapFilter, mixVoiceArgs } from "@/service/voice/voice-swap-args";
 
@@ -97,7 +101,7 @@ test("cleanSpokenDialogueLine strips speaker prefix and outer quotes", () => {
   );
 });
 
-test("parseSpeechWindowFromStderr and alignedVoiceSwapFilter align TTS to mouth opening", () => {
+test("parseSpeechWindowFromStderr and alignedVoiceSwapFilter trim TTS silence and 1:1 lock to source mouth window", () => {
   const stderr = `
   Duration: 00:00:05.17, start: 0.000000, bitrate: 5559 kb/s
   [silencedetect @ 0x1] silence_start: 0
@@ -112,15 +116,76 @@ test("parseSpeechWindowFromStderr and alignedVoiceSwapFilter align TTS to mouth 
   assert.ok(Math.abs(win.start - 0.885281) < 0.001);
   assert.ok(Math.abs(win.end - 4.603562) < 0.001);
 
-  const filter = alignedVoiceSwapFilter({ delayMs: 885, tempo: 1 });
+  const filter = alignedVoiceSwapFilter({
+    trimStart: 0.08,
+    trimEnd: 3.49,
+    delayMs: 885,
+    tempo: 0.9167,
+  });
+  assert.match(filter, /atrim=start=0\.08:end=3\.49,asetpts=PTS-STARTPTS/);
+  assert.match(filter, /atempo=0\.9167/);
   assert.match(filter, /adelay=885\|885/);
-  assert.doesNotMatch(filter, /atempo/);
-  assert.match(filter, /apad/);
+  assert.match(filter, /apad\[a\]$/);
 
   const args = mixVoiceArgs("in.mp4", "voice.mp3", "out.mp4", {
+    trimStart: 0.08,
+    trimEnd: 3.49,
     delayMs: 885,
+    tempo: 0.9167,
     durationSeconds: 5.17,
   });
   assert.ok(args.includes("-t"));
   assert.equal(args[args.indexOf("-t") + 1], "5.170000");
+});
+
+test("synthesizeSpeechWithTimestamps retrieves audio and character timestamps and builds timed lip-sync prompt", async () => {
+  const alignment = {
+    characters: ["有", "無", "你", "I", "G", "？"],
+    character_start_times_seconds: [0.0, 0.16, 0.32, 0.5, 0.65, 0.8],
+    character_end_times_seconds: [0.16, 0.32, 0.5, 0.65, 0.8, 0.85],
+  };
+  let capturedUrl = "";
+  const fakeFetch: typeof fetch = async (input) => {
+    capturedUrl = typeof input === "string" ? input : input.toString();
+    return new Response(
+      JSON.stringify({
+        audio_base64: Buffer.from("mp3-bytes").toString("base64"),
+        alignment,
+      }),
+      { status: 200 },
+    );
+  };
+
+  const res = await synthesizeSpeechWithTimestamps("AlY88XuxqPLuBzrEimDn", "有無你IG？", {
+    apiKey: "test-xi-key",
+    fetch: fakeFetch,
+  });
+
+  assert.match(capturedUrl, /\/v1\/text-to-speech\/AlY88XuxqPLuBzrEimDn\/with-timestamps\?output_format=mp3_44100_128$/);
+  assert.equal(res.audio.toString(), "mp3-bytes");
+  const tokens = groupAlignmentTokens(res.alignment, 0.4);
+  assert.deepEqual(tokens, [
+    { token: "有", start: 0.4, end: 0.56 },
+    { token: "無", start: 0.56, end: 0.72 },
+    { token: "你", start: 0.72, end: 0.9 },
+    { token: "IG", start: 0.9, end: 1.2 },
+  ]);
+
+  const block = buildTimedLipSyncPromptBlock(res.alignment, {
+    onsetSeconds: 0.4,
+    clipDurationSeconds: 5,
+  });
+  assert.match(block, /0\.00s–0\.40s: mouth closed/);
+  assert.match(block, /0\.40s–0\.56s: "有"/);
+  assert.match(block, /0\.90s–1\.20s: "IG"/);
+  assert.match(block, /1\.20s–5\.00s: speech finished, mouth closed/);
+
+  const basePrompt = "0–0.4s 坐住準備開口；0.4–4.2s 口型跟住講；4.2–5s 口部合上。";
+  const updated = withTimedLipSyncPrompt(basePrompt, res.alignment, {
+    onsetSeconds: 0.4,
+    clipDurationSeconds: 5,
+  });
+  assert.match(updated, /0\.40–1\.20s 口型跟住講/);
+  assert.match(updated, /1\.20–5s 口部合上/);
+  assert.match(updated, /EXACT LIP-SYNC TIMING SCHEDULE/);
 });

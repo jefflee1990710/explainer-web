@@ -5,6 +5,7 @@ import { ffmpegStderr, runFfmpeg } from "@/service/reel/concat";
 import {
   cleanSpokenDialogueLine,
   convertSpeech,
+  DEFAULT_SPEECH_ONSET_SECONDS,
   parseSpeechWindowFromStderr,
   synthesizeSpeech,
 } from "@/service/voice/elevenlabs";
@@ -12,10 +13,23 @@ import { extractSpeechArgs, mixVoiceArgs } from "@/service/voice/voice-swap-args
 
 export type SwapClipVoiceOptions = {
   text?: string;
+  voUrl?: string;
+  onsetSeconds?: number;
 };
 
-// Re-voice a finished clip with the character's cloned voice using Eleven v4 TTS
-// (with 100% stability & similarity) aligned to the source mouth-opening onset.
+async function fetchPreGeneratedVo(voUrl?: string): Promise<Buffer | null> {
+  if (!voUrl) return null;
+  try {
+    const response = await fetch(voUrl);
+    if (!response.ok) return null;
+    return Buffer.from(await response.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+// Merge the ElevenLabs VO track (at natural 1.0x speed) onto the video stream,
+// discarding any provider-generated audio track.
 export async function swapClipVoice(
   buffer: Buffer,
   voiceId: string,
@@ -24,47 +38,27 @@ export async function swapClipVoice(
   const dir = await mkdtemp(join(tmpdir(), "voice-"));
   try {
     await writeFile(join(dir, "in.mp4"), buffer);
-    const probe = await ffmpegStderr(dir, [
-      "-i",
-      "in.mp4",
-      "-af",
-      "silencedetect=noise=-32dB:d=0.08",
-      "-f",
-      "null",
-      "-",
-    ]);
-    if (!/Audio:/.test(probe)) return buffer;
+    const probe = await ffmpegStderr(dir, ["-i", "in.mp4"]);
 
     const spokenText = cleanSpokenDialogueLine(options?.text);
-    if (spokenText) {
+    const preGenerated = await fetchPreGeneratedVo(options?.voUrl);
+    if (preGenerated || spokenText) {
       const clipWindow = parseSpeechWindowFromStderr(probe);
-      const voice = await synthesizeSpeech(voiceId, spokenText);
+      const voice = preGenerated ?? (await synthesizeSpeech(voiceId, spokenText));
       await writeFile(join(dir, "voice.mp3"), voice);
-      const ttsProbe = await ffmpegStderr(dir, [
-        "-i",
-        "voice.mp3",
-        "-af",
-        "silencedetect=noise=-32dB:d=0.05",
-        "-f",
-        "null",
-        "-",
-      ]);
-      const ttsWindow = parseSpeechWindowFromStderr(ttsProbe);
-      const delayMs = Math.round(clipWindow.start * 1000);
-      const availableSeconds = Math.max(0.5, clipWindow.duration * 0.96 - clipWindow.start);
-      const tempo =
-        ttsWindow.end > availableSeconds ? ttsWindow.end / availableSeconds : 1;
+      const onsetSeconds = options?.onsetSeconds ?? DEFAULT_SPEECH_ONSET_SECONDS;
+      const delayMs = Math.round(onsetSeconds * 1000);
       await runFfmpeg(
         dir,
         mixVoiceArgs("in.mp4", "voice.mp3", "out.mp4", {
           delayMs,
-          tempo,
           durationSeconds: clipWindow.duration,
         }),
       );
       return await readFile(join(dir, "out.mp4"));
     }
 
+    if (!/Audio:/.test(probe)) return buffer;
     await runFfmpeg(dir, extractSpeechArgs("in.mp4", "speech.wav"));
     const voice = await convertSpeech(voiceId, await readFile(join(dir, "speech.wav")));
     await writeFile(join(dir, "voice.mp3"), voice);
