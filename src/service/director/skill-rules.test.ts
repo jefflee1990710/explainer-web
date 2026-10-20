@@ -137,10 +137,7 @@ test("whiteboard explainer is always narrated; every topic uses an explanation g
   assert.match(block, /explanation graph/);
   assert.match(block, /every topic/);
   assert.match(block, /beat title/);
-  assert.match(block, /must not repeat the Subtitle/);
-  assert.match(block, /spoken line is the subtitle/);
-  assert.match(block, /selected text style/);
-  assert.match(block, /do not use the subtitle text style/);
+  assert.match(block, /never write Subtitle:/);
   assert.doesNotMatch(block, /STEP N|STEP 1/);
   assert.doesNotMatch(block, /at least 3 concrete props/);
   assert.doesNotMatch(block, /SYSTOLIC|TPU|walk-forward/i);
@@ -321,18 +318,18 @@ test("Cinematic realistic accelerates then decelerates; other styles keep the sn
   assert.match(cartoonExplainerDirectorBlock({ hasCharacter: true }), /three beats/);
 });
 
-test("Cinematic realistic locks the camera and keeps one subtitle on both stills", () => {
-  // Phase A: no angle change inside a clip, one whole subtitle, gentle hook only.
+test("Cinematic realistic locks the camera and forbids spoken subtitles on stills", () => {
+  // Phase A: no angle change inside a clip, gentle hook only, no spoken subtitle.
   const block = cartoonExplainerDirectorBlock({ hasCharacter: true, smoothMotion: true });
   assert.match(block, /camera is locked inside a clip/);
   assert.match(block, /No orbit/);
-  assert.match(block, /"<startVo> <endVo>"/);
+  assert.match(block, /never write Subtitle:/);
   assert.match(block, /at most one push-in or pull-out/);
   assert.doesNotMatch(block, /Camera angle changes every clip/);
   assert.doesNotMatch(block, /fast 360 orbit/);
   const doodle = cartoonExplainerDirectorBlock({ hasCharacter: true });
   assert.match(doodle, /Camera angle changes every clip/);
-  assert.match(doodle, /"<startVo or endVo>"/);
+  assert.match(doodle, /never write Subtitle:/);
   // Stills: the two frames of a clip share the camera.
   const still = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
     hasCharacter: true,

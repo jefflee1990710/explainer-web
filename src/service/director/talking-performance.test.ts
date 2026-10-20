@@ -51,7 +51,7 @@ test("face talking motion still uses the hands and head, eyes on the lens", () =
   assert.match(motion, /eyes locked on the lens/);
 });
 
-test("talking motion carries the reel expression and gesture pattern", () => {
+test("talking motion carries calm, natural reel expression and smooth single-beat gesture pattern", () => {
   const motion = talkingMotionLine({
     language: "en",
     seconds: 7,
@@ -60,19 +60,17 @@ test("talking motion carries the reel expression and gesture pattern", () => {
     clipNumber: 1,
     totalClips: 3,
   });
-  // Resting smile, brow-pop on stresses, free hand changing every 1–2 seconds.
   assert.match(motion, /warm, chatty smile with a hint of teeth/);
-  assert.match(motion, /eyes widen, the eyebrows pop up/);
-  assert.match(motion, /changing shape every 1–2 seconds/);
-  assert.match(motion, /side-to-side sway/);
-  // Clip 1 hooks with a big smile; both hands gesture because the phone is on a tripod.
+  assert.match(motion, /subtle brow lift/);
+  assert.match(motion, /one smooth, unhurried conversational gesture/);
+  assert.doesNotMatch(motion, /every 1–2 seconds/);
+  assert.doesNotMatch(motion, /two-handed open-palm shrug/);
   assert.match(motion, /big warm smile as the hook/);
-  assert.match(motion, /right then left hand gesturing/);
   assert.doesNotMatch(motion, /unseen phone/);
   assert.doesNotMatch(motion, /sharing a secret/);
 });
 
-test("the last talking clip closes on a softer CTA beat", () => {
+test("the last talking clip closes on a softer CTA beat without hyperactive hand switching", () => {
   const en = talkingMotionLine({
     language: "en",
     seconds: 6,
@@ -92,8 +90,8 @@ test("the last talking clip closes on a softer CTA beat", () => {
     totalClips: 2,
   });
   assert.match(yue, /講緊秘密/);
-  assert.match(yue, /每 1–2 秒換一個手勢/);
-  assert.match(yue, /眼睛睜大、眉毛快速上挑/);
+  assert.doesNotMatch(yue, /每 1–2 秒換一個手勢/);
+  assert.doesNotMatch(yue, /口張大約半秒/);
 });
 
 test("custom performance slots replace the default text in motion and rules", () => {
@@ -115,7 +113,7 @@ test("custom performance slots replace the default text in motion and rules", ()
   assert.match(rules, /one hand leads, the other follows/);
 });
 
-test("a continued clip never quotes the previous spoken line", () => {
+test("a continued clip never quotes the previous spoken line or embeds subtitles", () => {
   const previous = "有無諗過你個Instagram都可以變成你嘅生財工具？";
   const line = "係呢個市況唔好嘅大環境，大家更加要學多一個技能啦。";
   const motion = talkingMotionLine({
@@ -131,8 +129,7 @@ test("a continued clip never quotes the previous spoken line", () => {
   assert.doesNotMatch(motion, /由「/);
   assert.doesNotMatch(motion, /生財/);
   assert.match(motion, /口型跟住講「係呢個市況唔好嘅大環境/);
-  assert.match(motion, /唔好讀出舊字/);
-  assert.match(motion, /市況不好的大環境/);
+  assert.doesNotMatch(motion, /字幕/);
 });
 
 test("talking video rules forbid snap verbs and a frozen statue", () => {
@@ -144,7 +141,7 @@ test("talking video rules forbid snap verbs and a frozen statue", () => {
   assert.doesNotMatch(rules, /Feet stay planted. One conversational gesture only/);
 });
 
-test("continued talking-head clips begin lip-sync from 0s without holding the first frame frozen", () => {
+test("continued talking-head clips begin lip-sync from 0s and speak through 4.7s without a long end pause", () => {
   const motion = talkingMotionLine({
     language: "en",
     seconds: 5,
@@ -155,7 +152,7 @@ test("continued talking-head clips begin lip-sync from 0s without holding the fi
     totalClips: 7,
     belowCenter: true,
   });
-  assert.match(motion, /0–4\.2s she speaks "That's why you use Scro\.io\."/);
+  assert.match(motion, /0–4\.7s she speaks "That's why you use Scro\.io\."/);
   assert.match(motion, /never holding the first frame frozen/);
   assert.doesNotMatch(motion, /eyes glancing down toward the hands/);
   assert.doesNotMatch(motion, /two fingers/);

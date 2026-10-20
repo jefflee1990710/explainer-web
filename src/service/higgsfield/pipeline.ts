@@ -21,14 +21,6 @@ import {
 import { promptForFrameSubmit } from "@/service/clip/frame-prompt-chat";
 import { frameSubmitPlan, framesWithClipsReady } from "@/service/higgsfield/frame-prompts";
 import {
-  extractProjectFrameSubtitle,
-  renderSubtitleGuideDataUrl,
-  subtitleGuidePromptLine,
-} from "@/service/higgsfield/subtitle-guide-image";
-import {
-  ensureSubtitleLetteringUrl,
-} from "@/service/higgsfield/subtitle-lettering";
-import {
   clipDrawsNoEndStill,
   clipEndIsNextStart,
   clipSkipsEndStill,
@@ -97,7 +89,6 @@ import {
 } from "@/service/director/talking-head";
 import { chargedVideoCredits, FRAME_COST, STUCK_CLAIM_MS } from "@/service/production-plan";
 import { lockDialogueSpeech } from "@/service/director/spoken-line";
-import { withTalkingSubtitleHandoff } from "@/service/director/talking-subtitle-handoff";
 import { withCantonesePronunciation } from "@/service/voice/cantonese-pronunciation";
 import { toSent, type Sent } from "@/service/generation/sent";
 import { frameJobDocs } from "@/service/generation/frame-jobs";
@@ -241,23 +232,10 @@ export async function sendFrame(
       : plan.refs;
   // The previous still's caption is what Grok copies. Keep the character
   // blueprint and drop that still so the quoted line is drawn fresh.
-  const baseRefs = route.model.startsWith("xai/grok-imagine")
+  const refs = route.model.startsWith("xai/grok-imagine")
     ? locked.filter((url) => url !== plan.anchor?.url)
     : locked;
-  const subtitleLine = route.model.startsWith("ideogram/")
-    ? undefined
-    : extractProjectFrameSubtitle(canvasProject, clipNumber, position, style);
-  // Render the subtitle lettering card locally via sharp SVG so every character and line break is
-  // 100% accurate with zero AI image-generation latency before the frame submit.
-  const subtitleGuideUrl = subtitleLine
-    ? (await ensureSubtitleLetteringUrl(project, subtitleLine)) ??
-      (await renderSubtitleGuideDataUrl({ line: subtitleLine, look: project.subtitleLook }))
-    : undefined;
-  const refs = subtitleGuideUrl ? [...baseRefs, subtitleGuideUrl] : baseRefs;
-  const finalPrompt =
-    subtitleLine && subtitleGuideUrl
-      ? `${prompt}\n${subtitleGuidePromptLine(refs.length, subtitleLine)}`
-      : prompt;
+  const finalPrompt = prompt;
   const realistic = isRealisticStyle(style);
   const model = imageModelForSubmit(route, refs.length > 0);
   const submitted = await submitImage({
@@ -653,18 +631,7 @@ export async function sendClipVideo(
   const talkingShot = talkingShotForSkill(project.skillSlug);
   const performance = talkingShot ? resolvePerformance(await loadSkill(project), talkingShot, "en") : undefined;
   const spokenLine = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber)?.englishVo;
-  const nextLine = endFromNextStart
-    ? project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber + 1)?.englishVo
-    : undefined;
-  // Painted talking-head subtitles stay in their lettering and hand off to the next line.
-  const subtitlePrompt =
-    isTalkingHeadSkill(project.skillSlug) && !merged && resolveSceneText(project).enabled
-      ? withTalkingSubtitleHandoff(prompt.prompt, {
-          line: spokenLine || "",
-          nextLine,
-          language: project.language,
-        })
-      : prompt.prompt;
+  const subtitlePrompt = prompt.prompt;
   // Stored prompts skip Phase B, so the realistic light lock is added here at send time.
   const style = await loadRenderableStyle({
     styleId: project.styleId,

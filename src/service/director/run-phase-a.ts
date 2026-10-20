@@ -278,13 +278,9 @@ ${sceneDetailDirectorBlock({
 ${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter, steadyStills }) : ""}
 ${
   sceneText.enabled && skillForcesSceneText(input.skill.slug)
-    ? "On-canvas text is required: a numbered item list must appear in every still."
+    ? "On-canvas text is required: a numbered item list must appear in every still. Never write spoken subtitles."
     : sceneText.enabled
-      ? dualBeat
-        ? steadyStills
-          ? "On-canvas text: both stills quote the same whole line, startVo then endVo, as one identical Subtitle."
-          : "On-canvas text: start still quotes only startVo; end still quotes only endVo."
-        : "On-canvas text may stay the same line from start to end; motion is pose, props, and lettering placement only."
+      ? "On-canvas text is allowed for short in-scene labels, signs, or diagram elements only — never write Subtitle: or caption the spoken line on screen."
       : sceneText.inWorldLabels
         ? "Motion is pose, props, and short in-world labels / tags popping or snapping in — never a voiceover caption."
         : "Motion is pose and props only — no written labels."

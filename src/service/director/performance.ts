@@ -17,13 +17,13 @@ const FACE_EN: PerformanceSlots = {
   restingFace:
     "a warm, chatty smile with a hint of teeth, eyebrows relaxed and slightly lifted, eyes locked on the lens like talking to one friend",
   emphasisBeat:
-    "on every stressed word or number the eyes widen, the eyebrows pop up, and the mouth opens bigger for about half a second, then the face relaxes back into the smile",
+    "a subtle brow lift and natural expressive articulation on key words, relaxing smoothly back into a warm smile",
   hookBeat: "eyebrows already lifting into a big warm smile",
   ctaBeat: "a softer, closer smile, eyebrows settling, the torso leaning a little toward the lens like sharing a secret",
   gestureLibrary:
-    "a raised index finger or a small finger count on a list or a number, an open palm pushed out toward the lens on 'look at this', a two-handed open-palm shrug, a hand touching the chest or chin in thought, a palm facing the lens swaying side to side on a negative, fingers spread beside the face on a big claim, a palm turned up and offered to the lens on an invitation",
+    "one smooth, unhurried conversational hand gesture per sentence at lower-chest height — a gentle open palm or a soft finger point on the key word while the other hand rests calmly on the lap",
   headMotion:
-    "a constant small side-to-side sway of a few degrees, natural head tilts left and right while facing the camera, nods on stressed words, a chin drop then lift, leaning forward toward the lens on a key point then settling back or shifting seated weight slightly left and right on the sofa; shoulders rock, eyes locked directly on the lens the whole time",
+    "a calm, subtle head tilt of 2–3 degrees and a gentle nod on stressed words while keeping the torso centered and both eyes locked directly on the lens the whole time",
   anchorProp: "",
   set: "the same sofa at home in every clip, a bookshelf behind the head",
   light: "ordinary daylight from a window to one side, no studio light",
@@ -31,13 +31,13 @@ const FACE_EN: PerformanceSlots = {
 
 const FACE_YUE: PerformanceSlots = {
   restingFace: "露少少牙嘅親切笑容，眉毛放鬆微微揚起，直望鏡頭好似同一個朋友傾偈",
-  emphasisBeat: "每到重音字或者數字，眼睛睜大、眉毛快速上挑、口張大約半秒，然後放鬆返落笑容",
+  emphasisBeat: "講到重點字眼時眉毛自然微揚、眼神專注有神，語氣過渡平順自然",
   hookBeat: "眉毛已經揚起、展開一個大笑容",
   ctaBeat: "更柔和、更親近嘅淺笑，眉毛放鬆，上身微微傾向鏡頭好似講緊秘密",
   gestureLibrary:
-    "數數或者講數字時豎食指、「睇呢個」時掌心向鏡頭推出、雙手攤開聳肩、思考時手指輕觸下巴或心口、否定時掌心對鏡頭左右擺、誇張強調時五指張開喺臉旁、邀請時掌心向上遞向鏡頭",
+    "每句只做一個從容自然嘅單手傾偈手勢（另一隻手自然放喺大髀保持穩定），講重點時掌心輕輕打開再自然收回，唔好頻繁切換手勢",
   headMotion:
-    "全程有幾度嘅細幅左右搖擺，面向鏡頭自然左右微傾、重音位點頭、下巴跌一跌再抬起，講到重點時上身明顯前傾靠近鏡頭、再坐返後或者喺沙發微移重心；膊頭自然郁動，雙眼全程直望鏡頭中心",
+    "面向鏡頭保持穩定坐姿，配合說話節奏有 2–3 度嘅輕微自然點頭，雙眼全程穩定直望鏡頭中心",
   anchorProp: "",
   set: "全程同一張屋企沙發，書架喺頭後面",
   light: "一邊窗嘅普通日光，冇影樓燈",
@@ -114,7 +114,7 @@ export function resolvePerformance(
   shot: TalkingShot,
   language?: VoLanguage,
 ): PerformanceSlots {
-  const system = skill?.performance ?? DEFAULT_PERFORMANCE[shot];
+  const system = DEFAULT_PERFORMANCE[shot];
   const base = system[performanceLanguage(language)];
   const custom = skill?.customPerformance;
   if (!custom) return { ...base };
@@ -122,7 +122,8 @@ export function resolvePerformance(
   for (const key of PERFORMANCE_KEYS) {
     const edited = custom[key] ?? "";
     const template = system.en[key];
-    if (edited === template) continue;
+    const storedTemplate = skill?.performance?.en?.[key];
+    if (edited === template || (storedTemplate && edited === storedTemplate)) continue;
     if (!edited.trim() && key !== "anchorProp") continue;
     out[key] = edited;
   }

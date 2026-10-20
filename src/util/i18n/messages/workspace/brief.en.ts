@@ -83,7 +83,7 @@ export const briefEn = {
   section04: {
     title: "On-screen text",
     hintListicle: "Listicle directors show item titles on screen — pick the text language.",
-    hintDefault: "Each storyboard still can show on-screen text. Pick a language, or None so the picture and the video have no writing.",
+    hintDefault: "Choose whether scene images and videos allow on-screen text in this language, or None so the picture and the video have no writing (subtitles are never burned into scene images or videos).",
     lookTitle: "Subtitle look",
     lookHint: "Lettering only. Where the subtitle sits depends on the director.",
     lookAria: "Subtitle look",

@@ -102,20 +102,21 @@ test("talking-head keeps instruction and spoken script as separate fields", () =
   assert.match(withPhoto[1].startScene, /opening photo/);
 });
 
-test("clip 2 keeps clip 1's pose but speaks only its own line", () => {
+test("clip 2 keeps clip 1's pose, speaks only its own line, and never embeds subtitles", () => {
   const clips = planTalkingHeadClips({ source: SCRIPT, pace: "medium", language: "yue" });
   assert.ok(clips.length >= 2);
   assert.match(clips[1].startScene, /口部合上/);
-  assert.equal(clips[1].startScene.match(/逐字係「[^」]+」/)?.[0], clips[1].endScene.match(/逐字係「[^」]+」/)?.[0]);
-  assert.notEqual(clips[1].startScene.match(/逐字係「[^」]+」/)?.[0], clips[0].endScene.match(/逐字係「[^」]+」/)?.[0]);
+  assert.doesNotMatch(clips[0].startScene, /字幕：|Subtitle:/);
+  assert.doesNotMatch(clips[0].endScene, /字幕：|Subtitle:/);
+  assert.doesNotMatch(clips[1].startScene, /字幕：|Subtitle:/);
+  assert.doesNotMatch(clips[1].endScene, /字幕：|Subtitle:/);
   assert.doesNotMatch(clips[1].motionCamera, /由「/);
-  assert.match(clips[1].motionCamera, /唔好讀出舊字/);
+  assert.doesNotMatch(clips[1].motionCamera, /大字幕|底部字幕|中線下面少少嘅字幕/);
   assert.match(clips[1].motionCamera, /唔好跳鏡/);
-  assert.match(clips[1].motionCamera, /大字幕/);
   assert.match(clips[1].endScene, /唔好跳鏡/);
   assert.doesNotMatch(clips[1].motionCamera, /左手拎住/);
   assert.equal(clips[1].motionCamera.includes(clips[0].englishVo), false);
-  assert.match(clips[0].motionCamera, /底部字幕/);
+  assert.doesNotMatch(clips[0].motionCamera, /底部字幕|大字幕|中線下面少少嘅字幕/);
   assert.match(clips[0].motionCamera, /口型跟住講/);
   assert.match(clips.map((clip) => clip.englishVo).join(""), /大家好，我係 Jeff/);
   assert.ok(clips.every((clip) => clip.durationSeconds >= 5 && clip.durationSeconds <= 12));
@@ -128,7 +129,7 @@ test("clip 2 keeps clip 1's pose but speaks only its own line", () => {
 const FULL_BODY_VISUAL =
   "One locked full-body shot with the character centered and facing the camera.";
 
-test("9:16 talking-head subtitles sit a little below center; 16:9 stays at the bottom", () => {
+test("talking-head stills and motion never generate on-screen subtitles in 9:16 or 16:9", () => {
   const script = "Hi, everyone. I am Scro.";
   const reel = planTalkingHeadClips({
     source: script,
@@ -136,12 +137,9 @@ test("9:16 talking-head subtitles sit a little below center; 16:9 stays at the b
     language: "en",
     aspectRatio: "9:16",
   });
-  assert.match(reel[0].startScene, /a little below the vertical center/);
-  assert.match(reel[0].startScene, /LARGE/);
-  assert.match(reel[0].motionCamera, /fades and slides up/);
-  assert.match(reel[0].motionCamera, /fades and slides down out/);
-  assert.match(reel[0].motionCamera, /a little below the vertical center/);
-  assert.doesNotMatch(reel[0].startScene, /one bottom line/);
+  assert.doesNotMatch(reel[0].startScene, /Subtitle:|字幕：/i);
+  assert.doesNotMatch(reel[0].endScene, /Subtitle:|字幕：/i);
+  assert.doesNotMatch(reel[0].motionCamera, /subtitle|fades and slides/i);
   const wide = planTalkingHeadClips({
     source: script,
     pace: "medium",
@@ -149,10 +147,10 @@ test("9:16 talking-head subtitles sit a little below center; 16:9 stays at the b
     aspectRatio: "16:9",
     shot: "full-body",
   });
-  assert.match(wide[0].startScene, /LARGE bottom line/);
-  assert.match(wide[0].motionCamera, /at the bottom/);
-  assert.match(talkingHeadDirectorBlock("talking-head-director", "9:16"), /a little below the vertical center/);
-  assert.match(talkingHeadDirectorBlock("full-body-talking-head-director", "16:9"), /across the bottom/);
+  assert.doesNotMatch(wide[0].startScene, /Subtitle:|字幕：/i);
+  assert.doesNotMatch(wide[0].motionCamera, /subtitle/i);
+  assert.match(talkingHeadDirectorBlock("talking-head-director", "9:16"), /no letters, no subtitle/i);
+  assert.match(talkingHeadDirectorBlock("full-body-talking-head-director", "16:9"), /no letters, no subtitle/i);
 });
 
 test("none on-screen text keeps talking-head stills and motion free of writing", () => {
@@ -168,7 +166,7 @@ test("none on-screen text keeps talking-head stills and motion free of writing",
   assert.match(talkingHeadDirectorBlock("talking-head-director", "9:16", undefined, false, true), /no letters/);
 });
 
-test("subtitle handoff is added once when the stored motion has none", () => {
+test("talking-head Phase B never injects subtitle handoff", () => {
   const prompt = talkingHeadPhaseBPrompt({
     subtitleHandoff: true,
     language: "en",
@@ -180,24 +178,7 @@ test("subtitle handoff is added once when the stored motion has none", () => {
       ],
     },
   });
-  assert.match(prompt?.prompt || "", /slides and fades into the next subtitle "See you\."/);
-  const again = talkingHeadPhaseBPrompt({
-    subtitleHandoff: true,
-    language: "en",
-    clipNumber: 1,
-    phaseA: {
-      clips: [
-        {
-          clipNumber: 1,
-          durationSeconds: 5,
-          englishVo: "Hello there.",
-          motionCamera: prompt?.prompt,
-        },
-      ],
-    },
-  });
-  const hits = again?.prompt?.match(/slides and fades into the next subtitle/g) || [];
-  assert.equal(hits.length, 1);
+  assert.doesNotMatch(prompt?.prompt || "", /subtitle/i);
 });
 
 test("talking-head Phase B reuses motionCamera from Phase A", () => {
@@ -248,8 +229,7 @@ test("talking-head keeps a full English word inside a Cantonese line", () => {
   const voiced = clips.find((clip) => clip.englishVo.includes("嘅"));
   assert.ok(voiced);
   assert.match(voiced.motionCamera, /口型跟住講「[^」]*嘅/);
-  assert.match(voiced.startScene, /逐字係「[^」]*的/);
-  assert.doesNotMatch(voiced.startScene, /逐字係「[^」]*嘅/);
+  assert.doesNotMatch(voiced.startScene, /逐字係「/);
   assert.doesNotMatch(spoken, /Instagra\s/);
   assert.doesNotMatch(spoken, /Webi\s/);
   assert.ok(clips.every((clip) => clip.durationSeconds >= 5 && clip.durationSeconds <= 12));
@@ -278,14 +258,13 @@ test("a long talking-head line becomes short clips, and both hands stay free", (
   assert.match(clips[1].motionCamera, /left then right hand gesturing/);
   assert.doesNotMatch(clips[1].motionCamera, /hand holding/);
   assert.match(clips[1].endScene, /No zoom, no reframe, no jump/);
-  assert.match(clips[1].startScene, /LARGE/);
-  assert.match(clips[1].motionCamera, /fades and slides up/);
-  assert.match(clips[1].motionCamera, /fades and slides down out/);
+  assert.doesNotMatch(clips[1].startScene, /Subtitle:/);
+  assert.doesNotMatch(clips[1].motionCamera, /fades and slides/);
   for (const clip of clips) {
     assert.match(clip.startScene, /eyes (?:locked (?:into|on)|on) the lens/);
     assert.match(clip.endScene, /eyes (?:locked (?:into|on)|on) the lens/);
-    assert.doesNotMatch(clip.startScene, /looking down at her gesturing hands|glancing upward-left|looking off-camera|two fingers/);
-    assert.doesNotMatch(clip.endScene, /looking down at her gesturing hands|glancing upward-left|looking off-camera|two fingers/);
+    assert.doesNotMatch(clip.startScene, /looking down at her gesturing hands|glancing upward-left|looking off-camera|two fingers|two-handed open-palm shrug/);
+    assert.doesNotMatch(clip.endScene, /looking down at her gesturing hands|glancing upward-left|looking off-camera|two fingers|two-handed open-palm shrug/);
   }
 });
 
@@ -359,24 +338,8 @@ test("overlay talking-head scenes keep the voice line and drop the subtitle", ()
   assert.match(clips[0].motionCamera, /Hello there/);
   assert.doesNotMatch(clips[0].startScene, /Subtitle:/);
   assert.doesNotMatch(clips[0].endScene, /Subtitle:/);
-  assert.match(clips[0].motionCamera, /on-screen subtitle holds/);
-  assert.doesNotMatch(clips[0].motionCamera, /next subtitle/);
-  // That pair is under 8s, so it stays one clip. Clip 2 needs a longer script.
-  const continued = planTalkingHeadClips({
-    source: "Hello there. This opening line should stand alone as the first spoken clip today because it has plenty of words to fill a full eight second slot. See you in the next clip right now.",
-    pace: "medium",
-    language: "en",
-    aspectRatio: "9:16",
-    overlay: true,
-  });
-  assert.ok(continued.length >= 2);
-  assert.doesNotMatch(continued[1].startScene, /Subtitle:/);
-  assert.match(continued[0].motionCamera, /slides and fades into the next subtitle/);
-  assert.ok(continued[0].motionCamera.includes(continued[1].englishVo));
-  assert.match(continued[0].motionCamera, /does not speak the next subtitle/);
-  assert.doesNotMatch(continued.at(-1)!.motionCamera, /slides and fades into the next subtitle/);
+  assert.doesNotMatch(clips[0].motionCamera, /subtitle/i);
   const block = talkingHeadDirectorBlock("talking-head-director", "9:16", undefined, true);
   assert.match(block, /no letters/i);
-  assert.match(block, /next clip's subtitle/);
   assert.doesNotMatch(block, /Write the subtitle into startScene/);
 });

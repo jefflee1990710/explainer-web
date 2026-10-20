@@ -100,68 +100,38 @@ test("normalizeDualBeatRow fills missing dedicated fields from combined text", (
   assert.equal(row.endVo, "Two.");
 });
 
-test("dual-beat director block mentions two VO beats and does not invent lettering copy", () => {
+test("dual-beat director block allows diagram labels when on-screen text is on and never generates subtitles", () => {
   const on = dualBeatDirectorBlock(true);
-  assert.match(on, /ONLY startVo/);
-  assert.match(on, /ONLY endVo/);
-  assert.doesNotMatch(on, /52%/);
-  assert.doesNotMatch(on, /warm-yellow/);
-  assert.match(on, /Subtitle placement stays with this director/);
   assert.match(on, /one frozen pose/);
   assert.match(on, /landed resting pose/);
   assert.match(on, /motionCamera/);
-  assert.match(on, /startVo lettering wipes off and the endVo lettering writes on/);
-  assert.match(on, /Subtitle \(spell exactly\)/);
-  assert.match(on, /what the still paints/);
-  assert.match(on, /spoken line is the subtitle/);
-  assert.match(on, /selected text style/);
-  assert.match(on, /do not use the subtitle text style/);
   assert.match(on, /beat title/);
-  assert.match(on, /must not repeat that still's Subtitle/);
-  assert.doesNotMatch(on, /STEP N|STEP 1/);
   assert.match(on, /diagram labels/);
+  assert.match(on, /never transcribe the voiceover|no subtitle/i);
+  assert.doesNotMatch(on, /Subtitle \(spell exactly\)/);
+  assert.doesNotMatch(on, /STEP N|STEP 1/);
   assert.doesNotMatch(on, /SYSTOLIC|TPU/i);
-  assert.doesNotMatch(on, /Do not invent a title card besides the beat voiceover/);
   assert.doesNotMatch(dualBeatDirectorBlock(false), /lettering writes on/);
   assert.match(dualBeatDirectorBlock(false), /no writing/);
   assert.match(dualBeatDirectorBlock(false), /Do not invent extra titles/);
 });
 
-test("steady stills paint one whole subtitle on both stills and copy the camera", () => {
+test("steady stills copy the camera and never paint spoken subtitles", () => {
   const steady = dualBeatDirectorBlock(true, { steadyStills: true, hasCharacter: true });
-  assert.match(steady, /BOTH stills quote the whole spoken line/);
-  assert.match(steady, /"<startVo> <endVo>"/);
-  assert.match(steady, /lettering never changes inside the clip/);
   assert.match(steady, /Camera line is a copy of the start Camera line/);
   assert.match(steady, /chosen only between clips, at the cut/);
-  assert.doesNotMatch(steady, /ONLY startVo/);
-  assert.doesNotMatch(steady, /wipes off/);
-  assert.doesNotMatch(steady, /Never both voiceover lines on one still/);
+  assert.doesNotMatch(steady, /Subtitle \(spell exactly\)/);
   assert.doesNotMatch(steady, /exaggerated hook camera/);
-  // Without the flag the two-beat swap stays.
-  assert.match(dualBeatDirectorBlock(true, { hasCharacter: true }), /wipes off/);
-});
-
-test("dual-beat director block uses the subtitle look and keeps its own placement", () => {
-  const on = dualBeatDirectorBlock(true, { look: "bold" });
-  assert.match(on, /condensed sans/);
-  assert.match(on, /not a bottom bar/);
-  assert.doesNotMatch(on, /40%|70%|20%/);
-  assert.doesNotMatch(on, /52%/);
 });
 
 test("dual-beat director block keeps in-world labels when only captions are off", () => {
   const block = dualBeatDirectorBlock(false, { inWorldLabels: true });
   assert.match(block, /captions OFF/);
   assert.match(block, /short in-world labels/);
-  assert.match(block, /selected text style/);
   assert.match(block, /beat title/);
   assert.doesNotMatch(block, /STEP N|STEP 1/);
   assert.match(block, /3–4 visual devices/);
   assert.doesNotMatch(block, /no writing on either still/);
-  // ON wins over the option: labels mode only exists when captions are off.
-  assert.match(dualBeatDirectorBlock(true, { inWorldLabels: true }), /ONLY startVo/);
-  assert.doesNotMatch(dualBeatDirectorBlock(true, { inWorldLabels: true }), /captions OFF/);
 });
 
 test("English scene descriptions use Start/End labels", () => {

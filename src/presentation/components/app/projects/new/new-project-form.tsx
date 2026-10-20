@@ -70,7 +70,6 @@ import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { DEFAULT_VOICE_GENDER, VOICE_PRESETS } from "@/service/director/voice";
 import { SCENE_TEXT_PRESETS } from "@/service/director/scene-text";
 import { DEFAULT_SUBTITLE_LOOK, isSubtitleLook } from "@/service/director/subtitle-look";
-import { TextStylePicker } from "@/presentation/components/app/projects/new/text-style-picker";
 import {
   isBookendSkill,
   requiredCastCount,
@@ -995,16 +994,6 @@ export function NewProjectForm({
                     disabled={briefBusy}
                     max={castNeed > 0 ? castNeed : 4}
                     required={castNeed}
-                  />
-                </div>
-                <p className="mt-5 text-sm font-semibold">{t("brief.section04.lookTitle")}</p>
-                <p className="mt-1 text-xs text-muted">{t("brief.section04.lookHint")}</p>
-                <div className="mt-3">
-                  <TextStylePicker
-                    value={textStyleId}
-                    styles={textStyles}
-                    onChange={setTextStyleId}
-                    disabled={briefBusy}
                   />
                 </div>
                 <p className="mt-5 text-sm font-semibold">{t("brief.products.title")}</p>

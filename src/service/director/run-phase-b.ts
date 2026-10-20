@@ -11,11 +11,9 @@ import { isRealisticStyle } from "@/service/style/realistic-light";
 import {
   cartoonClipAction,
   cartoonNarratorVideoLock,
-  isComparisonCardSkill,
   isOutfitReelSkill,
   isSurpriseInterviewSkill,
   skillBansNarration,
-  skillForcesSceneText,
 } from "@/service/director/skill-rules";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { lockedSpeakerLines } from "@/service/director/character-voice";
@@ -26,7 +24,6 @@ import { directorModel } from "@/service/director/model";
 import {
   clipPhaseBUserPrompt,
   phaseBCharacterLine,
-  phaseBLetteringLock,
   phaseBWardrobeLock,
 } from "@/service/director/phase-b-clip-prompt";
 import { phaseBClipSchema } from "@/model/director";
@@ -37,7 +34,7 @@ import { speechPaceDelivery } from "@/service/director/speech-pace";
 import type { Skill } from "@/model/skill";
 import { resolvePerformance } from "@/service/director/performance";
 import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG, talkingHeadPhaseBPrompt } from "@/service/director/talking-head";
-import { NO_ONSCREEN_WRITING, spokenSubtitleLock, storyboardAsksForSubtitle } from "@/service/director/scene-text";
+import { NO_ONSCREEN_WRITING, storyboardAsksForSubtitle } from "@/service/director/scene-text";
 import {
   OUTFIT_COVERED_SWAP,
   OUTFIT_VIDEO_MOTION_RULES,
@@ -48,14 +45,6 @@ import {
   talkingShotForSkill,
   talkingVideoMotionRules,
 } from "@/service/director/talking-performance";
-
-// Spoken subtitles follow the aspect rule. Posters, lists, splits, and marker beats do not.
-function usesSpokenSubtitle(skillSlug?: string) {
-  if (!skillSlug) return false;
-  if (isOutfitReelSkill(skillSlug) || isSurpriseInterviewSkill(skillSlug)) return false;
-  if (isDualBeatSkill(skillSlug) || isComparisonCardSkill(skillSlug) || skillForcesSceneText(skillSlug)) return false;
-  return true;
-}
 
 type PhaseBInput = {
   skill: Skill;
@@ -218,23 +207,10 @@ export async function runPhaseBForClip(
       characterImageUrl: input.characterImageUrl,
       skillSlug: input.skill.slug,
     }),
-    input.sceneTextOff || talkingHeadWithoutSubtitle
+    input.sceneTextOff || talkingHeadWithoutSubtitle || isTalkingHeadSkill(input.skill.slug)
       ? NO_ONSCREEN_WRITING
-      : phaseBLetteringLock({
-          skillSlug: input.skill.slug,
-          durationSeconds: row?.durationSeconds ?? output.durationSeconds,
-          fixedLettering: steady,
-        }),
+      : "No subtitles or voiceover captions on screen.",
     isOutfitReelSkill(input.skill.slug) ? OUTFIT_COVERED_SWAP : "",
-    input.sceneTextOff || talkingHeadWithoutSubtitle
-      ? ""
-      : usesSpokenSubtitle(input.skill.slug)
-        ? input.language === "yue"
-          ? isTalkingHeadSkill(input.skill.slug)
-            ? "Subtitle: show only this clip's Traditional written Chinese (書面語), in the same place from the first moment to the last. If the opening frame still shows the previous clip's words, replace those letters at once and do not read them. The voice speaks this clip's Hong Kong colloquial line once, and no earlier sentence."
-            : "Subtitle: keep the Traditional written Chinese (書面語) already painted on the first and last frames. Do not repaint colloquial particles. The voice speaks Hong Kong colloquial Cantonese; the letters stay written Chinese, same place from the first frame to the last."
-          : spokenSubtitleLock(input.phaseA.aspectRatio)
-        : "",
   ]
     .filter(Boolean)
     .reduce(finalizePhaseBPrompt, modelPrompt);

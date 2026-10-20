@@ -62,7 +62,7 @@ test("listicle forces on-canvas text even when the toggle is off", () => {
   );
 });
 
-test("an item clip spells only the item it introduces", () => {
+test("an item clip spells only the item it introduces without a voiceover subtitle", () => {
   const clips = [
     { clipNumber: 1, narrativeJob: "hook", englishVo: "Three morning mistakes." },
     { clipNumber: 2, narrativeJob: "item 1 of 3", englishVo: "Snooze the alarm." },
@@ -77,8 +77,8 @@ test("an item clip spells only the item it introduces", () => {
   assert.match(item, /only this item/i);
   assert.match(item, /low angle/);
   assert.match(item, /Snooze the alarm/);
-  assert.match(item, /On-canvas subtitles ON/);
-  assert.match(item, /Subtitle \(spell exactly\): "Snooze the alarm\."/);
+  assert.doesNotMatch(item, /On-canvas subtitles ON/);
+  assert.doesNotMatch(item, /Subtitle \(spell exactly\)/);
   assert.doesNotMatch(item, /Skip water/);
   assert.doesNotMatch(item, /Three morning mistakes/);
   const next = listicleOnCanvasLines({ clips, clipNumber: 3 }).join("\n");
@@ -94,9 +94,8 @@ test("an item clip spells only the item it introduces", () => {
     clipNumber: 1,
     subtitle: "Three morning mistakes.",
   }).join("\n");
-  assert.match(hook, /largest text/i);
   assert.match(hook, /Count \(spell exactly\): "2"/);
-  assert.match(hook, /Subtitle \(spell exactly\): "Three morning mistakes\."/);
+  assert.doesNotMatch(hook, /Subtitle \(spell exactly\)/);
   assert.match(hook, /Do not draw item titles/);
   assert.doesNotMatch(hook, /Snooze the alarm/);
 });
@@ -186,133 +185,19 @@ test("stripSceneVoiceoverRecap drops the lettering recap and keeps the pose", ()
   assert.equal(stripSceneVoiceoverRecap(scene), "Exactly one instance of Scro stands at center.");
 });
 
-test("enabled scene text quotes the clip narration on canvas", () => {
-  const lines = sceneTextFrameLines(true, "zh-Hans", "你好世界");
-  assert.match(lines.join("\n"), /subtitles ON/i);
-  assert.match(lines.join("\n"), /你好世界/);
-  assert.match(lines.join("\n"), /Mental Health/);
-  assert.match(sceneTextSkillHint(true, "en"), /spoken line/);
-  assert.match(sceneTextSkillHint(true, "en"), /image prompt/);
+test("enabled scene text allows in-scene text in the chosen language and forbids spoken subtitles", () => {
+  const hint = sceneTextSkillHint(true, "en");
+  assert.match(hint, /On-canvas text is ON/i);
+  assert.match(hint, /Never generate spoken subtitles or voiceover captions/i);
+  assert.doesNotMatch(hint, /Subtitle \(spell exactly\)/);
+  const dualHint = sceneTextSkillHint(true, "en", { dualBeat: true });
+  assert.match(dualHint, /diagram/i);
+  assert.match(dualHint, /Never generate spoken subtitles/i);
+  assert.doesNotMatch(dualHint, /Subtitle \(spell exactly\)/);
 });
 
-test("reel safe zone stays in the center and does not take placement from a style", () => {
-  const lines = sceneTextFrameLines(true, "en", "We made it", undefined, {
-    reelSafeZone: true,
-    look: "clean",
-  });
-  const text = lines.join("\n");
-  assert.match(text, /top 20%/);
-  assert.match(text, /bottom 20%/);
-  assert.match(text, /torn-paper strips/);
-  assert.match(text, /We made it/);
-  assert.doesNotMatch(text, /70%/);
-  assert.doesNotMatch(text, /bottom 18%/);
-  assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true, look: "bold" }), /top 20%/);
-  assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true, look: "bold" }), /bottom 20%/);
-  assert.match(sceneTextSkillHint(true, "en", { reelSafeZone: true, look: "bold" }), /condensed sans/);
-  const bare = sceneTextFrameLines(true, "en", "We made it", undefined, { reelSafeZone: true }).join("\n");
-  assert.doesNotMatch(bare, /bottom 18%/);
-});
-
-test("talking-head 9:16 subtitles sit a little below center, not in the bottom band", () => {
-  const text = sceneTextFrameLines(true, "en", "We made it", undefined, {
-    subtitlePlace: "below-center",
-  }).join("\n");
-  assert.match(text, /a little below the vertical center/);
-  assert.match(text, /55%/);
-  assert.match(text, /We made it/);
-  assert.doesNotMatch(text, /bottom 18%/);
-});
-
-test("cartoon marker safe zone keeps spoken casing and drops the bottom band", () => {
-  const lines = sceneTextFrameLines(
-    true,
-    "en",
-    "Every quant trader starts with this one tool",
-    undefined,
-    { markerSafeZone: true },
-  );
-  const text = lines.join("\n");
-  assert.match(text, /marker lettering ON/i);
-  assert.doesNotMatch(text, /52% and 60%/);
-  assert.match(text, /Every quant trader starts/);
-  assert.match(text, /with this one tool/);
-  assert.doesNotMatch(text, /EVERY QUANT TRADER STARTS/);
-  assert.doesNotMatch(text, /warm-yellow/);
-  assert.doesNotMatch(text, /bottom 18%/);
-  assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /52%/);
-  assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /mixed-case/);
-  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /beat title/);
-  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /must not repeat that still's Subtitle/);
-  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /spoken line is the subtitle/);
-  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /do not use the subtitle text style/);
-  assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /STEP N|STEP 1/);
-  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /diagram/);
-  assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /SYSTOLIC|TPU/i);
-  assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true }), /Do NOT invent a title card/);
-  assert.match(text, /beat title/);
-  assert.doesNotMatch(text, /STEP N|STEP 1/);
-  assert.match(text, /diagram labels/);
-  assert.doesNotMatch(text, /No title card/);
-});
-
-test("sceneTextNegativePrompt only when off", () => {
-  assert.equal(sceneTextNegativePrompt(false)?.includes("subtitles"), true);
-  assert.equal(sceneTextNegativePrompt(true), undefined);
-});
-
-test("a talking-head video prompt drops a subtitle lock the storyboard never asked for", () => {
-  assert.equal(storyboardAsksForSubtitle("No extra writing.", undefined), false);
-  const prompt = [
-    '0.4s she speaks "You can use Scro to create one easily. Try now."',
-    "Subtitle: keep this clip's spoken line a little below the vertical center for the whole clip. Clear of the face and clear of the bottom edge. Do not move it to the bottom. Same words, same place, from the first frame to the last.",
-    "On-screen characters MUST speak the dialogue aloud.",
-  ].join("\n\n");
-  const cleaned = dropInventedSubtitleLock(prompt);
-  assert.doesNotMatch(cleaned, /Subtitle:/);
-  assert.match(cleaned, /No letters, subtitles, captions/);
-  assert.match(cleaned, /speaks "You can use Scro/);
-});
-
-test("stripStoryboardWriting removes embedded label quotes", () => {
-  const raw =
-    "Lily 靜立，右上方浮現細緻深褐色墨水手寫字「Mental Health?」。隨著水彩擴散";
-  const stripped = stripStoryboardWriting(raw);
-  assert.doesNotMatch(stripped, /Mental Health/);
-  assert.match(stripped, /Lily/);
-});
-
-test("voiceoverLineLooksLatin detects English narration", () => {
-  assert.equal(voiceoverLineLooksLatin("Hello world"), true);
-  assert.equal(voiceoverLineLooksLatin("你好"), false);
-});
-
-test("subtitle look changes lettering and never the director placement", () => {
-  const marker = sceneTextFrameLines(true, "en", "Hello world now", undefined, {
-    markerSafeZone: true,
-    look: "bold",
-  }).join("\n");
-  assert.match(marker, /condensed sans/);
-  assert.match(marker, /No bottom subtitle band/);
-  assert.doesNotMatch(marker, /40%|70%|20%/);
-  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /torn-paper strips/);
-  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /not a bottom bar/);
-  assert.doesNotMatch(sceneTextSkillHint(true, "en", { dualBeat: true, look: "clean" }), /40%/);
-});
-
-test("steady dual-beat stills quote the same whole line on both stills", () => {
-  const hint = sceneTextSkillHint(true, "en", { dualBeat: true, steadyStills: true });
-  assert.match(hint, /SAME whole line/);
-  assert.match(hint, /"<startVo> <endVo>"/);
-  assert.match(hint, /lettering never changes inside the clip/);
-  assert.doesNotMatch(hint, /ONLY startVo/);
-  assert.doesNotMatch(hint, /switch at the midpoint/);
-});
-
-test("director revision note asks to drop invented labels when toggling", () => {
-  assert.match(sceneTextDirectorRevisionNote(true, "en"), /englishVo/);
+test("director revision note toggles on-screen text allowance without adding subtitles", () => {
+  assert.match(sceneTextDirectorRevisionNote(true, "en"), /On-canvas text is now ON/);
+  assert.match(sceneTextDirectorRevisionNote(true, "en"), /Never write Subtitle:/);
   assert.match(sceneTextDirectorRevisionNote(false, "en"), /OFF/);
-  assert.match(sceneTextSkillHint(true, "en"), /only writing is that spoken line/i);
-  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /ONLY startVo/);
-  assert.match(sceneTextSkillHint(true, "en", { dualBeat: true }), /visual style/);
 });

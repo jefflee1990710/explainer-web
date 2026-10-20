@@ -66,6 +66,7 @@ export function withInheritedTalkingHeadStarts<T extends CopyableFrame>(
     );
     if (!prev || prev.status !== "completed" || !mediaSrc(prev)) return frame;
     const { error: _error, ...rest } = frame;
+    void _error;
     return {
       ...rest,
       status: "completed",
@@ -234,7 +235,7 @@ export function planTalkingHeadClips(input: {
       background: input.background,
       openingPhoto: input.openingPhoto,
       perf,
-      overlay: input.overlay || input.noText,
+      overlay: true,
       realistic: input.realistic,
       clipIndex: index,
     };
@@ -242,7 +243,7 @@ export function planTalkingHeadClips(input: {
     const endScene = shotLine(input.language, "end", line, scene);
     const previousLine = index === 0 ? undefined : lines[index - 1];
     const nextLine = index + 1 < lines.length ? lines[index + 1] : undefined;
-    // Pose continues from the previous end. The subtitle is this clip's own line.
+    // Pose continues from the previous end. Subtitles are never drawn into stills.
     const startScene =
       index === 0
         ? shotLine(input.language, "start", line, scene)
@@ -251,7 +252,7 @@ export function planTalkingHeadClips(input: {
             input.language,
             line,
             belowCenter,
-            input.overlay || input.noText,
+            true,
           );
     clips.push({
       clipNumber: index + 1,
@@ -272,8 +273,8 @@ export function planTalkingHeadClips(input: {
           totalClips: total,
           belowCenter,
           performance: perf,
-          overlay: input.overlay,
-          noText: input.noText,
+          overlay: false,
+          noText: true,
           nextLine,
         }),
         input.realistic ? talkingRealismMotion(input.language, realism) : "",
@@ -294,7 +295,6 @@ export function talkingHeadPhaseBPrompt(input: {
   };
   clipNumber: number;
   language?: VoLanguage;
-  // Talking-head read burns the next line onto the end still.
   subtitleHandoff?: boolean;
 }) {
   const row = input.phaseA.clips.find((clip) => clip.clipNumber === input.clipNumber);
@@ -303,33 +303,11 @@ export function talkingHeadPhaseBPrompt(input: {
   const index = input.phaseA.clips.findIndex((clip) => clip.clipNumber === input.clipNumber);
   const previous = index > 0 ? input.phaseA.clips[index - 1]?.englishVo : undefined;
   const spoken = previous ? speakOnlyThisClip(prompt, row.englishVo || "", input.language) : prompt;
-  const next = input.phaseA.clips[index + 1]?.englishVo;
   return {
     clipNumber: input.clipNumber,
     durationSeconds: row.durationSeconds,
-    prompt: input.subtitleHandoff
-      ? withSubtitleHandoff(spoken, row.englishVo || "", next, input.language)
-      : spoken,
+    prompt: spoken,
   };
-}
-
-// Older motion text has no handoff. Add it once so a re-render still moves the subtitle.
-function withSubtitleHandoff(prompt: string, line: string, nextLine: string | undefined, language?: VoLanguage) {
-  if (/slides and fades into the next subtitle|滑動淡入下一段字幕|on-screen subtitle holds|畫面字幕一直係/.test(prompt)) {
-    return prompt;
-  }
-  const next = nextLine?.trim();
-  if (language === "yue") {
-    const painted = toWrittenChinese(line);
-    const sentence = next
-      ? `。畫面字幕由「${painted}」喺最後一刻滑動淡入下一段字幕「${toWrittenChinese(next)}」，最後一幀只係下一段嗰句。把聲只講「${line}」一次，唔好講下一段字幕`
-      : `。畫面字幕一直係「${painted}」，去到最後一幀都係`;
-    return `${prompt}${sentence}`;
-  }
-  const sentence = next
-    ? `, and the on-screen subtitle starts as "${line}" and in the last moment slides and fades into the next subtitle "${next}", so the last frame shows only that next line. The voice says "${line}" once and does not speak the next subtitle`
-    : `, and the on-screen subtitle holds "${line}" through the last frame`;
-  return `${prompt}${sentence}`;
 }
 
 export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
@@ -347,23 +325,14 @@ export function talkingHeadDurationHint(pace?: SpeechPace, skillSlug?: string) {
   ].join(" ");
 }
 
-function talkingSubtitleRule(aspectRatio?: string) {
-  const place = talkingHeadSubtitleBelowCenter(aspectRatio)
-    ? "a little below the vertical center of the frame, clear of the face and clear of the bottom edge"
-    : aspectRatio === "16:9"
-      ? "across the bottom of the frame"
-      : "a little below the vertical center on a 9:16 Instagram Reel, and across the bottom on a 16:9 landscape frame";
-  return `Write the subtitle into startScene and endScene as one LARGE phone-readable subtitle, ${place}. Spell the spoken line exactly. It fades and slides in at the start of the clip and fades and slides out at the end. The camera stays on the same framing from the start still to the end still. Nothing else written.`;
-}
-
 // Phase A director block. Performance slots (English) describe the style layer the
 // user may have customised; the pipeline rules around them are fixed.
 export function talkingHeadDirectorBlock(
   skillSlug?: string,
-  aspectRatio?: string,
+  _aspectRatio?: string,
   performance?: PerformanceSlots,
-  overlay?: boolean,
-  noText?: boolean,
+  _overlay?: boolean,
+  _noText?: boolean,
   realistic?: boolean,
 ) {
   const fullBody = skillSlug === FULL_BODY_TALKING_HEAD_SKILL_SLUG;
@@ -389,14 +358,8 @@ export function talkingHeadDirectorBlock(
     ...(realistic
       ? ["Realism (Cinematic realistic): every still names one motivated directional key light and faint rim light coming strictly from the visible window side, lighting the window-facing cheek while the opposite cheek falls into deep negative-fill shadow with a clear nose-bridge shadow (never flat front light, never unmotivated rim light from the dark side, never copy blueprint lighting, and keep overcast window light soft below clipping), real skin pores and fine facial hair, and a soft out-of-focus foreground element at one frame edge that never covers the face, hands, or subtitle."]
       : []),
-    noText
-      ? "The frame has no letters, no subtitle, no caption, no logo, and no writing. The spoken line is voice only."
-      : overlay
-        ? fullBody
-          ? "The frame has no letters, no subtitle, no caption, no logo, and no writing. The spoken line is voice only."
-          : "The stills have no letters, no subtitle, no caption, no logo, and no writing. The video shows this clip's subtitle on the opening frame and the next clip's subtitle on the end frame, with a short slide-and-fade between them. The last clip keeps its own subtitle on the end frame. The voice says only this clip's line and never speaks the next subtitle."
-        : talkingSubtitleRule(aspectRatio),
-    "Each clip's voice says only that clip's own line, once. Never repeat the previous clip's sentence, even when the opening frame still shows it.",
+    "The frame has no letters, no subtitle, no caption, no logo, and no writing. The spoken line is voice only.",
+    "Each clip's voice says only that clip's own line, once. Never repeat the previous clip's sentence.",
   ].join(" ");
 }
 
@@ -466,29 +429,29 @@ function endPoseVariationEn(clipIndex: number, fullBody: boolean, anchored: bool
     return { head: headMoves[variant], hand: handMoves[variant] };
   }
   const headMoves = [
-    "torso leaning back comfortably into the sofa cushion with shoulders relaxed, facing the camera with head tilted gently 5 degrees to the right, both pupils centered and eyes on the lens, mouth just closed into a warm engaged smile, eyebrows relaxed",
-    "seated position shifted slightly to the right side of the sofa, facing the camera straight-on with head tilted gently 5 degrees to the left and both eyes locked on the lens, mouth in a thoughtful half-smile",
-    "torso leaning slightly forward toward the camera, facing the camera with head tilted gently 5 degrees to the left, eyes locked on the lens, eyebrows lifted with a lively confident smile",
-    "seated comfortably on the sofa facing the camera straight-on, head tilted gently right with both eyes locked on the lens, a natural soft smile on her lips",
-    "seated position shifted slightly to the left side of the cushion, facing the camera with chin lifted slightly and head tilted gently 5 degrees to the left, eyes locked on the lens, mouth in a knowing smile",
-    "seated upright and leaning slightly in toward the lens, facing the camera with head tilted gently right and a warm expressive grin, eyes locked on the lens, eyebrows raised",
+    "seated centered and relaxed on the sofa, facing the camera with head tilted gently 2–3 degrees to the right, both pupils centered and eyes on the lens, mouth just closed into a warm engaged smile, eyebrows relaxed",
+    "seated centered on the sofa, facing the camera straight-on with head tilted gently 2–3 degrees to the left and both eyes locked on the lens, mouth in a thoughtful half-smile",
+    "seated centered on the sofa, facing the camera with head tilted gently 2–3 degrees to the left, eyes locked on the lens, eyebrows lifted with a lively confident smile",
+    "seated comfortably and centered on the sofa facing the camera straight-on, head tilted gently 2–3 degrees right with both eyes locked on the lens, a natural soft smile on her lips",
+    "seated centered on the cushion, facing the camera with head tilted gently 2–3 degrees to the left, eyes locked on the lens, mouth in a knowing smile",
+    "seated upright and centered, facing the camera with head tilted gently 2–3 degrees right and a warm expressive smile, eyes locked on the lens",
   ];
   const handMoves = fullBody
     ? [
         "One hand is slightly raised at chest height with an open palm while the other arm relaxes at the side, weight on the other hip",
         "The left hand gestures at chest height with a relaxed open conversational palm while the right hand rests low, weight shifted to the right hip",
-        "Both hands are open wide at chest height in a relaxed two-handed shrug, posture relaxed",
+        "One hand gestures softly at chest height with an open palm while the other arm relaxes at the side, posture relaxed",
         "One hand gestures outward at chest height with fingers spread while the other hand rests near the waist, facing the camera",
         "The right hand is raised at chest height with an open conversational palm while the left arm relaxes at the side, weight on the left hip",
-        "One hand touches mid-chest lightly while the other hand offers an open palm toward the lens",
+        "One hand offers a calm open palm at chest height toward the lens while the other arm relaxes at the side",
       ]
     : [
-        "Both hands are open wide at chest height in a relaxed two-handed open-palm shrug",
-        "One hand is held at chest height with a relaxed open conversational palm while the other hand rests on the lap",
-        "One hand is raised at chest height with an open conversational palm while the other hand rests on the lap",
-        "Both hands are held softly open at chest height in a natural mid-conversation gesture while the shoulders relax",
-        "One hand touches mid-chest lightly while the other arm rests on the sofa cushion",
-        "One hand is open-palm at chest height offered toward the lens while the other hand rests on the lap",
+        "One hand is held softly at lower-chest height with a relaxed open palm while the other hand rests on the lap",
+        "One hand is held at lower-chest height with a relaxed open conversational palm while the other hand rests on the lap",
+        "One hand is raised slightly at lower-chest height with an open conversational palm while the other hand rests on the lap",
+        "One hand gestures softly at lower-chest height while the other hand rests on the lap, shoulders relaxed",
+        "One hand rests in a calm open-palm gesture at lower-chest height while the other hand rests on the lap",
+        "One hand is open-palm at lower-chest height offered toward the lens while the other hand rests on the lap",
       ];
   return { head: headMoves[variant], hand: handMoves[variant] };
 }
@@ -497,47 +460,47 @@ function endPoseVariationYue(clipIndex: number, fullBody: boolean, anchored: boo
   const variant = clipIndex % 6;
   if (anchored) {
     const headMoves = [
-      "正面直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，上身微微前傾、頭向左邊微傾幾度",
-      "正面對住鏡頭、頭向右微傾約 5 度，雙眼直望鏡頭帶住思考神情，口部合上帶住淺笑，坐姿微移去右邊",
-      "正面直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，上身放鬆靠返後、頭向右邊微傾幾度",
-      "正面對住鏡頭、下巴微抬，雙眼直望鏡頭、帶住親切笑容",
-      "正面直望鏡頭，呢句講完、口部合上帶住自信微笑，坐姿微移去左邊、下巴微抬",
-      "正面直望鏡頭，呢句講完、口部合上變成溫柔淺笑，上身向前傾近鏡頭",
+      "正面直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，坐姿保持置中、頭向左邊微傾 2–3 度",
+      "正面對住鏡頭、頭向右微傾 2–3 度，雙眼直望鏡頭帶住思考神情，口部合上帶住淺笑，坐姿保持置中",
+      "正面直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，坐姿保持置中放鬆、頭向右邊微傾 2–3 度",
+      "正面對住鏡頭，雙眼直望鏡頭、帶住親切笑容",
+      "正面直望鏡頭，呢句講完、口部合上帶住自信微笑，坐姿保持置中",
+      "正面直望鏡頭，呢句講完、口部合上變成溫柔淺笑，上身微微傾近鏡頭",
     ];
     const handMoves = [
-      `${freeHand}掌心打開停喺胸前，好似兩個手勢之間`,
-      `${freeHand}喺胸前掌心自然打開做傾偈手勢`,
-      `${freeHand}喺胸前五指微張做緊攤手聳肩手勢`,
-      `${freeHand}喺胸前輕輕豎起食指點出重點`,
-      `${freeHand}喺胸前掌心自然打開向鏡頭比畫`,
-      `${freeHand}自然放鬆貼近心口位置`,
+      `${freeHand}掌心自然打開停喺胸前下方`,
+      `${freeHand}喺胸前下方掌心自然打開做傾偈手勢`,
+      `${freeHand}喺胸前下方掌心自然微開`,
+      `${freeHand}喺胸前下方輕輕點出重點`,
+      `${freeHand}喺胸前下方掌心自然打開向鏡頭比畫`,
+      `${freeHand}自然放鬆停喺胸前下方`,
     ];
     return { head: headMoves[variant], hand: handMoves[variant] };
   }
   const headMoves = [
-    "正面直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，上身微微前傾、頭向左邊微傾幾度",
-    "正面對住鏡頭、頭向右微傾約 5 度，雙眼直望鏡頭，口部合上帶住思考淺笑，坐姿重心微移去沙發右邊",
-    "正面直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，上身放鬆靠返後沙發背、頭向右邊微傾",
-    "正面對住鏡頭、頭向左微傾，雙眼直望鏡頭，嘴角帶住親切笑容",
-    "正面直望鏡頭，呢句講完、口部合上帶住自信微笑，坐姿重心微移去沙發左邊、下巴微抬",
-    "正面直望鏡頭，呢句講完、口部合上變成溫柔淺笑，上身明顯向前傾靠近鏡頭好似講緊秘密",
+    "正面直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，坐姿保持置中、頭向左邊微傾 2–3 度",
+    "正面對住鏡頭、頭向右微傾 2–3 度，雙眼直望鏡頭，口部合上帶住思考淺笑，坐姿保持置中穩定",
+    "正面直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，坐姿保持置中放鬆、頭向右邊微傾 2–3 度",
+    "正面對住鏡頭、頭向左微傾 2–3 度，雙眼直望鏡頭，嘴角帶住親切笑容",
+    "正面直望鏡頭，呢句講完、口部合上帶住自信微笑，坐姿保持置中穩定",
+    "正面直望鏡頭，呢句講完、口部合上變成溫柔淺笑，上身微微傾近鏡頭好似講緊秘密",
   ];
   const handMoves = fullBody
     ? [
         "一隻手仲喺胸前掌心打開，另一隻手自然垂低，重心輕輕換去另一邊，腳留喺同一個位置",
         "一隻手喺胸前掌心自然打開做傾偈手勢，另一隻手放低，重心換去右邊，腳留喺同一個位置",
-        "兩隻手喺胸前自然攤開聳肩，身形放鬆，腳留喺同一個位置",
+        "一隻手喺胸前自然微開，另一隻手自然垂低，身形放鬆，腳留喺同一個位置",
         "一隻手喺胸前向外輕推做手勢，另一隻手放喺腰旁，正面對住鏡頭，腳留喺同一個位置",
         "一隻手喺胸前掌心自然打開比畫，另一隻手自然垂低，腳留喺同一個位置",
-        "一隻手輕撫心口，另一隻手掌心向鏡頭遞出，腳留喺同一個位置",
+        "一隻手掌心向鏡頭自然遞出，另一隻手自然垂低，腳留喺同一個位置",
       ]
     : [
-        "一隻手掌心打開停喺胸前，另一隻手放喺大髀，好似兩個手勢之間",
-        "一隻手喺胸前掌心自然打開做傾偈手勢，另一隻手放喺大髀",
-        "兩隻手喺胸前自然攤開聳肩，上身放鬆靠喺沙發背",
-        "一隻手喺胸前微張手指做手勢，另一隻手放喺大髀，正面對住鏡頭",
-        "一隻手喺胸前掌心向上自然打開，另一隻手自然放喺大髀",
-        "一隻手輕撫心口，另一隻手掌心向鏡頭打開",
+        "一隻手掌心自然打開停喺胸前下方，另一隻手自然放喺大髀",
+        "一隻手喺胸前下方掌心自然打開做傾偈手勢，另一隻手自然放喺大髀",
+        "一隻手喺胸前下方自然微開，另一隻手自然放喺大髀",
+        "一隻手喺胸前下方自然做手勢，另一隻手自然放喺大髀，正面對住鏡頭",
+        "一隻手喺胸前下方掌心向上自然打開，另一隻手自然放喺大髀",
+        "一隻手掌心向鏡頭自然打開停喺胸前下方，另一隻手自然放喺大髀",
       ];
   return { head: headMoves[variant], hand: handMoves[variant] };
 }
@@ -576,8 +539,8 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
     const pose =
       moment === "start"
         ? fullBody
-          ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture${anchored ? "" : ", the other arm relaxed at the side (hands never hold or touch the subtitle overlay)"}.`
-          : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live unposed expression.${prop} ${freeHand} is already up at chest height, index finger raised mid-gesture${anchored ? "" : ", the other hand resting naturally on the lap (hands never hold or touch the subtitle overlay)"}.`
+          ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture${anchored ? "" : ", the other arm relaxed at the side"}.`
+          : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live unposed expression.${prop} ${freeHand} is already up at chest height, index finger raised mid-gesture${anchored ? "" : ", the other hand resting naturally on the lap"}.`
         : fullBody
           ? `Character: still the only person in the frame, ${endVar.head}.${propEnd} ${anchored ? `${endVar.hand}, weight on the other hip` : endVar.hand}, feet in the same place.${sameFrame}`
           : `Character: still the only person in the frame, still seated, ${endVar.head}.${propEnd} ${endVar.hand}.${sameFrame}`;
@@ -594,8 +557,8 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
   const pose =
     moment === "start"
       ? fullBody
-        ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，準備開口，${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢${anchored ? "" : "，另一隻手自然垂低（雙手絕對唔好拎住或掂到字幕 overlay）"}。`
-        : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，直望鏡頭好似喺屋企用手機實拍，準備開口，${p.hookBeat}，頭微傾，神情自然唔擺拍。${prop}${freeHand}已經提到胸前，豎起食指做緊手勢${anchored ? "" : "，另一隻手自然放喺大髀（雙手絕對唔好拎住或掂到字幕 overlay）"}。`
+        ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，準備開口，${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢${anchored ? "" : "，另一隻手自然垂低"}。`
+        : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，直望鏡頭好似喺屋企用手機實拍，準備開口，${p.hookBeat}，頭微傾，神情自然唔擺拍。${prop}${freeHand}已經提到胸前，豎起食指做緊手勢${anchored ? "" : "，另一隻手自然放喺大髀"}。`
       : fullBody
         ? `角色：畫面仍然只有呢一個人，${endVarYue.head}。${propEnd}${anchored ? `${endVarYue.hand}，重心輕輕換咗少少，腳留喺同一個位置` : endVarYue.hand}。${sameFrame}`
         : `角色：畫面仍然只有呢一個人，仍然坐住，${endVarYue.head}。${propEnd}${endVarYue.hand}。${sameFrame}`;

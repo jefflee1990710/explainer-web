@@ -14,16 +14,12 @@ test("realistic talking-head stills carry light source, skin detail, and foregro
       assert.match(scene, /Light source: .*rim light/);
       assert.match(scene, /Skin: visible pores/);
       assert.match(scene, /Depth: natural shallow depth of field/);
-      // Subtitle stays last so the clip 2+ subtitle swap keeps the realism clause.
-      assert.ok(scene.indexOf("Realism:") < scene.indexOf("Subtitle:"));
+      assert.doesNotMatch(scene, /Subtitle:/);
     }
     assert.match(clip.motionCamera, /Realism: natural blinks/);
   }
-  // Clip 2 still opens on clip 1's end, with only the subtitle swapped.
-  assert.equal(
-    clips[1].startScene.replace(/\s*Subtitle:.*$/u, ""),
-    clips[0].endScene.replace(/\s*Subtitle:.*$/u, ""),
-  );
+  // Clip 2 still opens on clip 1's end without any embedded subtitle.
+  assert.equal(clips[1].startScene, clips[0].endScene);
 });
 
 test("non-realistic styles keep the old talking-head prompts", () => {

@@ -250,8 +250,8 @@ export function withTimedLipSyncPrompt(
   const endStr = speechEnd.toFixed(2);
 
   let updated = prompt
-    .replace(/0\.4[–-]4\.2s/g, `${onsetStr}–${endStr}s`)
-    .replace(/4\.2[–-](\d+(?:\.\d+)?)s/g, `${endStr}–$1s`);
+    .replace(/0\.[24][–-]4\.[27]s/g, `${onsetStr}–${endStr}s`)
+    .replace(/4\.[27][–-](\d+(?:\.\d+)?)s/g, `${endStr}–$1s`);
 
   const block = buildTimedLipSyncPromptBlock(alignment, options);
   if (block && !updated.includes("EXACT LIP-SYNC TIMING SCHEDULE")) {

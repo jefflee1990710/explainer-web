@@ -160,20 +160,12 @@ export function dualBeatDirectorBlock(
     "motionCamera: the transition script between those two stills (see the motionCamera contract). Never a still prompt.",
     "startVo: first spoken sentence (0s → midpoint). endVo: second spoken sentence (midpoint → end).",
     `englishVo must be exactly startVo then endVo. ${sceneCompat}`,
-    sceneTextEnabled
-      ? steady
-        ? `On-canvas text ON: the spoken line is the subtitle. BOTH stills quote the whole spoken line, startVo then endVo, as one identical Subtitle (spell exactly): "<startVo> <endVo>", with the same words, the same place, and the same size in startScene and endScene. ${lookLine} That sentence is what the still paints, in the selected text style, large in the frame, not as small type on a prop. Words inside 「」 are ordinary writing on the object. They do not use the subtitle text style. Default place is not a bottom bar; set place and size in the sentence. Keep the spoken line's own casing. The lettering never changes inside the clip: motionCamera has no wipe, rewrite, or new words. The voice alone moves from startVo to endVo.`
-        : `On-canvas text ON: the spoken line is the subtitle. startScene quotes ONLY startVo and endScene quotes ONLY endVo, each as Subtitle (spell exactly): "<that beat>". ${lookLine} That sentence is what the still paints, in the selected text style, large in the frame, not as small type on a prop. Words inside 「」 are ordinary writing on the object. They do not use the subtitle text style. Default place is not a bottom bar; set place and size in the sentence. Keep the spoken line's own casing. Two beats switch at the midpoint. Never both voiceover lines on one still. motionCamera includes a midpoint beat where the startVo lettering wipes off and the endVo lettering writes on in the same spot.`
-      : inWorldLabels
-        ? `Voiceover captions OFF: no subtitle band on either still. A short beat title, diagram labels, and short in-world labels (tags, arrow labels, box or bin names, cell numbers in 「」) ARE allowed and encouraged — they count toward the 3–4 visual devices per still. ${lookLine} Lettering follows that Look. Do not copy typography from the visual style.`
-        : "On-canvas text OFF: no writing on either still.",
-    sceneTextEnabled
-      ? "Subtitle placement stays with this director: not a bottom subtitle bar. Do not copy placement from the visual style. The spoken line is the subtitle and uses the selected text style, not the visual style. Words inside 「」 do not use the subtitle text style."
-      : "Do not take lettering from the visual style. Any label that is allowed follows the selected text style.",
-    sceneTextEnabled
-      ? "A beat title may name diagram labels, nodes, arrows, or props inside 「」 on the graph they belong to. A 「」 label must not repeat that still's Subtitle. Do not dump the full voiceover into startScene or endScene."
-      : inWorldLabels
-        ? "Labels must name a step, mechanism, or part of the diagram; never transcribe the voiceover."
-        : "Do not invent extra titles besides the beat voiceover.",
+    sceneTextEnabled || inWorldLabels
+      ? `Voiceover captions OFF: no subtitle band and no Subtitle sentence on either still; never transcribe the voiceover on canvas. A short beat title, diagram labels, and short in-world labels (tags, arrow labels, box or bin names, cell numbers in 「」) ARE allowed and encouraged — they count toward the 3–4 visual devices per still. ${lookLine} Lettering follows that Look. Do not copy typography from the visual style.`
+      : "On-canvas text OFF: no writing on either still.",
+    "Do not take lettering from the visual style.",
+    sceneTextEnabled || inWorldLabels
+      ? "Labels must name a step, mechanism, or part of the diagram inside 「」; never transcribe the voiceover."
+      : "Do not invent extra titles besides the beat voiceover.",
   ].join("\n");
 }

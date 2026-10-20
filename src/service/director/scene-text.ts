@@ -23,21 +23,21 @@ export const SCENE_TEXT_PRESETS: Record<SceneTextLanguage, SceneTextPreset> = {
     label: "English",
     sublabel: "英文標籤",
     skillHint:
-      "On-canvas text language: English. Never invent extra English titles besides the clip's englishVo. Lettering follows the selected text style.",
+      "On-canvas text language: English. In-scene labels, signs, or short titles are in English. Never generate spoken subtitles or voiceover captions on screen.",
   },
   "zh-Hant": {
     id: "zh-Hant",
     label: "繁體中文",
     sublabel: "畫面文字",
     skillHint:
-      "On-canvas text language: Traditional Chinese (繁體中文). Never invent extra titles besides the clip's englishVo (keep that line in its own script). Lettering follows the selected text style.",
+      "On-canvas text language: Traditional Chinese (繁體中文). In-scene labels, signs, or short titles are in Traditional Chinese (繁體中文). Never generate spoken subtitles or voiceover captions on screen.",
   },
   "zh-Hans": {
     id: "zh-Hans",
     label: "简体中文",
     sublabel: "画面文字",
     skillHint:
-      "On-canvas text language: Simplified Chinese (简体中文). Never invent extra titles besides the clip's englishVo (keep that line in its own script). Lettering follows the selected text style.",
+      "On-canvas text language: Simplified Chinese (简体中文). In-scene labels, signs, or short titles are in Simplified Chinese (简体中文). Never generate spoken subtitles or voiceover captions on screen.",
   },
 };
 
@@ -101,34 +101,6 @@ export function listicleCanvasTitle(spoken: string) {
   return head || spoken.trim();
 }
 
-// The spoken line sits with the list graphic. It does not replace the count, the item, or the full list.
-function listicleSubtitleLines(
-  subtitle: string | undefined,
-  place?: "below-center" | "bottom",
-  scale?: "hook" | "later",
-) {
-  const line = subtitle?.trim();
-  if (!line) return [];
-  const formatted = formatVoiceoverForCanvas(line);
-  const quoted = formatted.line2
-    ? [
-        `Subtitle line 1 (spell exactly): "${formatted.line1}"`,
-        `Subtitle line 2 (spell exactly): "${formatted.line2}"`,
-      ]
-    : [`Subtitle (spell exactly): "${formatted.line1}"`];
-  return [
-    "On-canvas subtitles ON — in addition to the graphic above.",
-    place === "below-center"
-      ? "Layout: one subtitle a little below the vertical center of the frame, centered horizontally, clear of the face and the bottom edge."
-      : "Layout: a band across the bottom 18% of the frame; the subtitle is centered in that band.",
-    scale === "hook"
-      ? "Size: this spoken line is the largest text in the whole video, bigger than the count and bigger than any title or subtitle on a later clip. Do not shrink it into a small caption."
-      : "Size: this subtitle is clearly smaller than the hook text on clip 1.",
-    ...quoted,
-    "The subtitle is this clip's spoken line. Keep the count, the item title, or the full list as well.",
-  ];
-}
-
 // Item clips spell only the item they introduce. The last clip spells every title.
 export function listicleOnCanvasLines(input: {
   clips: Array<{ clipNumber: number; narrativeJob: string; englishVo: string }>;
@@ -143,7 +115,6 @@ export function listicleOnCanvasLines(input: {
   const showFull =
     input.clipNumber === lastNumber || /full list|完整清單/i.test(clip?.narrativeJob || "");
   const look = input.typography?.trim() || "";
-  const subtitle = listicleSubtitleLines(input.subtitle, input.subtitlePlace, "later");
   if (showFull) {
     const titles = entries.flatMap((entry) => listicleTitles(entry.title).map(listicleCanvasTitle));
     return [
@@ -151,8 +122,7 @@ export function listicleOnCanvasLines(input: {
       ...titles.map((title, index) => `List item ${index + 1} (spell exactly): "${title}"`),
       "Every title is readable. Do not leave one off. Ignore any extra objects written in the Scene.",
       look,
-      "The list itself is these short titles. The spoken line is a separate subtitle.",
-      ...subtitle,
+      "The list itself is these short titles. Do not add a voiceover subtitle or caption.",
     ].filter(Boolean);
   }
   const current = entries.find((entry) => entry.clipNumber === input.clipNumber);
@@ -161,22 +131,19 @@ export function listicleOnCanvasLines(input: {
     return [
       "On-canvas item ON — this clip introduces only this item. One number, this short title, and one object.",
       `Camera and composition, higher priority than a repeated straight-on setup in the Scene: ${listicleItemShot(current.index)}.`,
-      "Within this clip keep that angle. The title and the subtitle stay smaller than the hook text.",
+      "Within this clip keep that angle. The title stays smaller than the hook text.",
       ...titles.map((title, index) => `Item ${current.index + index} (spell exactly): "${title}"`),
-      "Do not draw the other items, a side list, the full list, or extra props. Ignore any checklist written in the Scene. The spoken line is a separate subtitle.",
+      "Do not draw the other items, a side list, the full list, or extra props. Ignore any checklist written in the Scene. Do not add a voiceover subtitle or caption.",
       look,
-      "Only this short title and the subtitle may appear as writing.",
-      ...subtitle,
+      "Only this short title and item number may appear as writing.",
     ].filter(Boolean);
   }
   const count = entries.flatMap((entry) => listicleTitles(entry.title)).length;
   return [
-    "HOOK — on-screen text required. Empty background. The spoken line is the largest text in the whole video.",
+    "HOOK — on-screen count required. Empty background.",
     count > 0 ? `Count (spell exactly): "${count}"` : "",
-    "The count is large, but the spoken subtitle is bigger than the count and bigger than any later title. Do not leave the frame without writing.",
-    "Do not draw item titles, a checklist, the first item, or extra props. Ignore any side list written in the Scene. The spoken line is a subtitle, not optional.",
+    "The count is large. Do not draw item titles, a checklist, the first item, or extra props. Ignore any side list written in the Scene. Do not add a voiceover subtitle or caption.",
     look,
-    ...listicleSubtitleLines(input.subtitle, input.subtitlePlace, "hook"),
   ].filter(Boolean);
 }
 
@@ -235,20 +202,11 @@ export function spokenSubtitleLock(aspectRatio?: string) {
   return "Subtitle: keep this clip's spoken line in a band across the bottom of the frame for the whole clip. Same words, same place, from the first frame to the last.";
 }
 
-function spokenSubtitlePlace(aspectRatio?: string) {
-  if (subtitleSitsBelowCenter(aspectRatio)) {
-    return "a little below the vertical center of the frame, clear of the face and the bottom edge";
-  }
-  if (aspectRatio === "16:9") return "across the bottom of the frame";
-  return "a little below the vertical center on a 9:16 Instagram Reel, and across the bottom on a 16:9 landscape frame";
-}
-
 export function sceneTextSkillHint(
   enabled: boolean,
   language: SceneTextLanguage,
   options?: {
     dualBeat?: boolean;
-    // Dual-beat on Cinematic realistic: one identical subtitle on both stills.
     steadyStills?: boolean;
     listicle?: boolean;
     comparison?: boolean;
@@ -262,10 +220,8 @@ export function sceneTextSkillHint(
   const lookLine = options?.lookLine || subtitleLookLine(options?.look);
   if (options?.listicle) {
     return [
-      "On-canvas text is REQUIRED. The hook's spoken line is the largest text in the video, with a large count. Each later clip introduces one item with its own camera angle and composition: its number, a short title, and one object.",
-      "Show items one by one. The last clip is a clean full list: short titles only, evenly spaced on an empty background. Every clip also shows the spoken line as a subtitle, clear of that graphic.",
-      lookLine,
-      "Lettering follows that Look. Do not copy typography from the visual style.",
+      "On-canvas text is REQUIRED. The hook shows a large count. Each later clip introduces one item with its own camera angle and composition: its number, a short title, and one object.",
+      "Show items one by one. The last clip is a clean full list: short titles only, evenly spaced on an empty background. Never generate spoken subtitles or voiceover captions on screen.",
       SCENE_TEXT_PRESETS[language].skillHint,
     ].join(" ");
   }
@@ -273,8 +229,6 @@ export function sceneTextSkillHint(
     return [
       "On-canvas text is the two panel titles only. narrativeJob must be `contrast: <panel A title> | <panel B title>`.",
       "16:9 is left | right. 9:16 and 1:1 are top | bottom. Do not also caption the full voiceover.",
-      lookLine,
-      "Lettering follows that Look. Do not copy typography from the visual style.",
       SCENE_TEXT_PRESETS[language].skillHint,
     ].join(" ");
   }
@@ -293,28 +247,14 @@ export function sceneTextSkillHint(
   }
   if (options?.dualBeat) {
     return [
-      options.steadyStills
-        ? `When on-canvas text is ON, the spoken line is the subtitle. startScene and endScene quote the SAME whole line, startVo then endVo, as one identical Subtitle (spell exactly): "<startVo> <endVo>", same words, place, and size on both stills. ${lookLine} The still paints that sentence in the selected text style, large in the frame, not as small type on a prop. Keep the spoken line's own casing. The lettering never changes inside the clip.`
-        : `When on-canvas text is ON, the spoken line is the subtitle. startScene quotes ONLY startVo and endScene quotes ONLY endVo, each as Subtitle (spell exactly): "<that beat's line>". ${lookLine} The still paints that sentence in the selected text style, large in the frame, not as small type on a prop. Keep the spoken line's own casing. Two beats switch at the midpoint.`,
-      "That Subtitle sentence is the image prompt. A later step does not move, resize, or restyle it. Default place is not a bottom bar; set the place and size in the sentence when the instruction asks.",
-      "A beat title may name a diagram label, node, arrow, or prop inside 「」 on the graph they belong to. Words inside 「」 are ordinary writing on that object. They do not use the subtitle text style. A 「」 label must not repeat that still's Subtitle. Do not dump a second transcript of the spoken line into those fields.",
-      "Do not copy typography or placement from the visual style.",
+      "On-canvas text is ON for whiteboard in-scene labels only: a short beat title and diagram labels (node names, arrow names, tags, box or bin names) written inside 「」 on the graph they belong to.",
+      "Never generate spoken subtitles or voiceover captions on screen (do not write Subtitle: or transcribe startVo / endVo onto the stills).",
       markerLanguageHint(language),
     ].join(" ");
   }
-  if (options?.reelSafeZone) {
-    return [
-      `When on-canvas text is ON, write the subtitle into the scene the still paints: Subtitle (spell exactly): "<this clip's englishVo>", inside the middle 60%, clear of the top 20% and the bottom 20%. ${lookLine}`,
-      "That Subtitle sentence is the image prompt. A later step does not move, resize, or restyle it.",
-      "The only writing is that spoken line. Do not add extra titles, signs, or labels.",
-      SCENE_TEXT_PRESETS[language].skillHint,
-    ].join(" ");
-  }
   return [
-    `When on-canvas text is ON, write the subtitle into the scene the still paints (explainerScene, and startScene / endScene when this skill has them): Subtitle (spell exactly): "<this clip's spoken line>". Default place: ${spokenSubtitlePlace(options?.aspectRatio)}. ${lookLine}`,
-    "That Subtitle sentence is the image prompt. A later step does not move, resize, or restyle it. Change the place or size in that sentence when the instruction asks.",
-    "The only writing is that spoken line. Do not add extra titles, signs, or labels.",
-    "Lettering follows that Look. Do not copy typography or placement from the visual style.",
+    "On-canvas text is ON. Short in-scene text, labels, signs, or titles that belong to the scene are allowed in the selected language.",
+    "Never generate spoken subtitles or voiceover captions on screen (do not write Subtitle: or transcribe the spoken line onto the stills or video).",
     SCENE_TEXT_PRESETS[language].skillHint,
   ].join(" ");
 }
@@ -325,17 +265,9 @@ export function sceneTextDirectorRevisionNote(
   language: SceneTextLanguage,
 ) {
   if (!enabled) {
-    return "On-canvas text is now OFF. Rewrite every clip's explainerScene and motionCamera so they contain zero quoted words, labels, signs, or lettering (no 「」 quotes). Keep the same story, characters, and titles. Visuals and motion only.";
+    return "On-canvas text is now OFF. Rewrite every clip's explainerScene and motionCamera so they contain zero quoted words, labels, signs, or lettering (no 「」 quotes and no Subtitle:). Keep the same story, characters, and titles. Visuals and motion only.";
   }
-  const voScript =
-    language === "zh-Hant"
-      ? "Rewrite every clip's englishVo into Traditional Chinese (繁體中文) — that Chinese line is the subtitle."
-      : language === "zh-Hans"
-        ? "Rewrite every clip's englishVo into Simplified Chinese (简体中文) — that Chinese line is the subtitle."
-        : "Keep each clip's englishVo as the spoken English line; that line is the subtitle.";
-  const place =
-    "On a 9:16 Instagram Reel place it a little below the vertical center. On a 16:9 landscape frame place it across the bottom.";
-  return `On-canvas text is now ON (${SCENE_TEXT_PRESETS[language].label}). ${voScript} Write that line into each scene as Subtitle (spell exactly): "...". ${place} That sentence is what the still paints. The only writing is that clip's spoken line — never invent short titles such as 「Mental Health?」. Keep the same story, characters, and proposal titles.`;
+  return `On-canvas text is now ON (${SCENE_TEXT_PRESETS[language].label}). Short in-scene text, labels, or titles in ${SCENE_TEXT_PRESETS[language].label} are allowed when appropriate for the scene. Never write Subtitle: or caption the spoken voiceover/dialogue line on screen. Keep the same story, characters, and proposal titles.`;
 }
 
 // Typography locale for lettering style; the quoted voiceover keeps its own script.

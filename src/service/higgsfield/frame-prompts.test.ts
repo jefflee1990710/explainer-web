@@ -28,45 +28,30 @@ test("bookend stills attach the logo after the character refs and name it", () =
   assert.match(plan.prompt, /BRAND LOGO: attached image 1 is the brand logo/);
 });
 
-test("custom text style is the last reference and only describes lettering", () => {
+test("scene image generation never attaches textStyleImageUrl or paints spoken subtitles", () => {
   const image = "https://blob/lettering.png";
   const plan = frameSubmitPlan({ ...project(), textStyleImageUrl: image, subtitleLook: "clean" }, 1, "start");
-  assert.deepEqual(plan.refs, [image]);
-  assert.match(plan.prompt, /attached image 1, a lettering sample/);
-  assert.doesNotMatch(plan.prompt, /geometric sans/);
+  assert.deepEqual(plan.refs, []);
+  assert.doesNotMatch(plan.prompt, /lettering sample/);
+  assert.doesNotMatch(plan.prompt, /torn-paper strips/);
 });
 
-test("the selected text style stays while the scene sentence keeps place and size", () => {
-  const bold = buildFramePrompt({ ...project(), subtitleLook: "bold" }, 1, "start");
-  const clean = buildFramePrompt({ ...project(), subtitleLook: "clean" }, 1, "start");
-  assert.match(bold, /yellow dry-brush/);
-  assert.match(clean, /torn-paper strips/);
-  assert.doesNotMatch(bold, /bottom 18%/);
-  assert.doesNotMatch(clean, /55% of the way/);
+test("scene prompts strip Subtitle sentences while keeping scene descriptions", () => {
   const written = project();
   written.subtitleLook = "clean";
-  written.phaseA!.clips[0].explainerScene = 'Subtitle: large text in the dead center, exactly "vo".';
+  written.phaseA!.clips[0].explainerScene = 'Alice runs in the park. Subtitle: large text in the dead center, exactly "vo".';
   const prompt = buildFramePrompt(written, 1, "start");
-  assert.match(prompt, /torn-paper strips/);
-  assert.match(prompt, /dead center/);
-  assert.match(prompt, /subtitle Look line above/);
-
-  const custom = frameSubmitPlan(
-    { ...project(), subtitleLook: "handwritten", textStyleImageUrl: "https://blob/mine.png" },
-    1,
-    "start",
-  );
-  assert.deepEqual(custom.refs, ["https://blob/mine.png"]);
-  assert.match(custom.prompt, /attached image 1, a lettering sample/);
-  assert.doesNotMatch(custom.prompt, /yellow dry-brush|torn-paper strips|thick black marker/);
+  assert.match(prompt, /Alice runs in the park\./);
+  assert.doesNotMatch(prompt, /Subtitle:/);
+  assert.doesNotMatch(prompt, /dead center/);
 });
 
-test("every director attaches the selected text-style sample", () => {
+test("directors never attach a subtitle look sample to scene image references", () => {
   const image = "https://blob/lettering.png";
   for (const skillSlug of ["outfit-reel-director", "listicle-director", "surprise-interview-director"]) {
     const plan = frameSubmitPlan({ ...project(), skillSlug, textStyleImageUrl: image }, 1, "start");
-    assert.ok(plan.refs.includes(image), skillSlug);
-    assert.match(plan.prompt, /lettering sample/);
+    assert.ok(!plan.refs.includes(image), skillSlug);
+    assert.doesNotMatch(plan.prompt, /lettering sample/);
   }
 });
 
@@ -126,23 +111,24 @@ function project(styleId?: Project["styleId"]): Project {
   };
 }
 
-test("a cartoon still paints the subtitle once when the bracket label repeats it", () => {
+test("a cartoon still keeps in-scene bracket labels and strips Subtitle sentences", () => {
   const cartoon = project();
   cartoon.skillSlug = "cartoon-explainer-video-director";
   cartoon.sceneTextEnabled = true;
   cartoon.phaseA!.clips[0].explainerScene =
     'floating label 「5 Camera Motions You Need to Know!」. Subtitle: "5 Camera Motions You Need to Know!"';
   const prompt = buildFramePrompt(cartoon, 1, "start");
-  assert.doesNotMatch(prompt, /「5 Camera Motions You Need to Know!」/);
-  assert.match(prompt, /5 Camera Motions You Need to Know!/);
+  assert.match(prompt, /「5 Camera Motions You Need to Know!」/);
+  assert.doesNotMatch(prompt, /Subtitle:/);
 
   const other = project();
   other.sceneTextEnabled = true;
   other.phaseA!.clips[0].explainerScene = cartoon.phaseA!.clips[0].explainerScene;
   assert.match(buildFramePrompt(other, 1, "start"), /「5 Camera Motions You Need to Know!」/);
+  assert.doesNotMatch(buildFramePrompt(other, 1, "start"), /Subtitle:/);
 });
 
-test("whiteboard stills keep the spoken subtitle in the text style after the scene is trimmed", () => {
+test("whiteboard stills keep diagram labels after the scene is trimmed and omit spoken subtitles", () => {
   const cartoon = project("realistic");
   cartoon.skillSlug = "cartoon-explainer-video-director";
   cartoon.subtitleLook = "clean";
@@ -156,16 +142,12 @@ test("whiteboard stills keep the spoken subtitle in the text style after the sce
     englishVo: "Four lighting techniques you must know. Everything begins inside a dark studio.",
   };
   const prompt = buildFramePrompt(cartoon, 1, "start");
-  assert.match(prompt, /torn-paper strips/);
-  assert.match(prompt, /Four lighting techniques you must know/);
-  assert.match(prompt, /Everything begins inside a dark studio/);
-  assert.match(prompt, /required on-screen text/);
-  assert.doesNotMatch(prompt, /no illustration does not remove it/);
+  assert.doesNotMatch(prompt, /Four lighting techniques you must know/);
+  assert.doesNotMatch(prompt, /Everything begins inside a dark studio/);
   assert.match(prompt, /「LIGHT CONTROL」/);
-  assert.match(prompt, /Do not give this Look to words inside 「」/);
 });
 
-test("cartoon stills paint the spoken subtitle in the text style, not the bracket labels", () => {
+test("cartoon stills keep bracket labels on props and omit spoken subtitles", () => {
   const cartoon = project();
   cartoon.skillSlug = "cartoon-explainer-video-director";
   cartoon.subtitleLook = "clean";
@@ -173,16 +155,8 @@ test("cartoon stills paint the spoken subtitle in the text style, not the bracke
     'card labeled 「VIRAL SHOTS」. Subtitle (spell exactly): "Save it now!"';
   cartoon.phaseA!.clips[0].startVo = "Save it now!";
   const prompt = buildFramePrompt(cartoon, 1, "start");
-  assert.match(prompt, /This Look is only the subtitle/);
-  assert.match(prompt, /Do not give this Look to words inside 「」/);
-  assert.match(prompt, /Save it now!/);
+  assert.doesNotMatch(prompt, /Save it now!/);
   assert.match(prompt, /「VIRAL SHOTS」/);
-
-  const other = project();
-  other.subtitleLook = "clean";
-  other.phaseA!.clips[0].explainerScene =
-    'card labeled 「VIRAL SHOTS」. Subtitle (spell exactly): "Save it now!"';
-  assert.doesNotMatch(buildFramePrompt(other, 1, "start"), /This Look is only the subtitle/);
 });
 
 test("doodle frame prompt uses the loaded style, no hard-coded whiteboard literal", () => {
@@ -194,11 +168,11 @@ test("doodle frame prompt uses the loaded style, no hard-coded whiteboard litera
   assert.doesNotMatch(prompt, /whiteboard-doodle cartoon explainer video/);
 });
 
-test("pixel video keeps its canvas while subtitle look stays independent", () => {
+test("pixel video keeps its canvas and omits subtitle look lines", () => {
   const prompt = buildFramePrompt(project("pixel"), 1, "end");
   assert.match(prompt, /pixel name short video/);
   assert.match(prompt, /pixel canvas/);
-  assert.match(prompt, /thick black marker/);
+  assert.doesNotMatch(prompt, /thick black marker/);
   assert.doesNotMatch(prompt, /pixel typography/);
 });
 
@@ -290,45 +264,42 @@ test("whiteboard explainer with a cast zooms, walks, and draws extra objects", (
   assert.equal(end.match(/Camera angle/gi)?.length, 2);
 });
 
-test("the still paints the director's subtitle sentence and does not add a second layout", () => {
+test("stills strip the director's subtitle sentence and keep the 9:16 safe area", () => {
   const story = project();
   story.skillSlug = "story-short-director";
   story.aspectRatio = "9:16";
   story.sceneTextEnabled = true;
   story.phaseA!.clips[0].englishVo = 'Lily: "We made it."';
   story.phaseA!.clips[0].explainerScene =
-    'Subtitle (spell exactly): "We made it." Giant text in the dead center of the frame.';
+    'Lily stands on the ridge. Subtitle (spell exactly): "We made it." Giant text in the dead center of the frame.';
   const prompt = buildFramePrompt(story, 1, "start");
-  assert.match(prompt, /dead center/);
-  assert.match(prompt, /We made it\./);
-  assert.doesNotMatch(prompt, /bottom 18%/);
-  assert.doesNotMatch(prompt, /55% of the way/);
-  assert.doesNotMatch(prompt, /Ignore any storyboard/);
-  assert.doesNotMatch(prompt, /not in a bottom band/);
+  assert.match(prompt, /Lily stands on the ridge\./);
+  assert.doesNotMatch(prompt, /We made it\./);
+  assert.doesNotMatch(prompt, /Subtitle/i);
 
   const face = project();
   face.skillSlug = "talking-head-director";
   face.aspectRatio = "9:16";
   face.sceneTextEnabled = true;
-  face.phaseA!.clips[0].explainerScene = 'Subtitle: one giant line in the dead center, exactly "We made it."';
+  face.phaseA!.clips[0].explainerScene = 'Seated on sofa. Subtitle: one giant line in the dead center, exactly "We made it."';
   const reel = buildFramePrompt(face, 1, "start");
-  assert.match(reel, /dead center/);
-  assert.doesNotMatch(reel, /a little below the vertical center/);
-  assert.doesNotMatch(reel, /bottom 18%/);
+  assert.doesNotMatch(reel, /We made it\./);
+  assert.doesNotMatch(reel, /Subtitle:/);
   assert.match(reel, /9:16 IG Reel safe area/);
   assert.match(reel, /top 20%/);
   assert.match(reel, /bottom 20%/);
   assert.doesNotMatch(buildFramePrompt(project(), 1, "start"), /9:16 IG Reel safe area/);
 });
 
-test("story-short subtitles show only the spoken words, never the speaker name", () => {
+test("story-short stills omit spoken subtitles and speaker names", () => {
   const story = project();
   story.skillSlug = "story-short-director";
   story.sceneTextEnabled = true;
   story.phaseA!.clips[0].englishVo = 'Scro - Cinematic: "One clone, unlimited environments."';
-  story.phaseA!.clips[0].explainerScene = 'Subtitle (spell exactly): "One clone, unlimited environments."';
+  story.phaseA!.clips[0].explainerScene = 'Scro walks down the hall. Subtitle (spell exactly): "One clone, unlimited environments."';
   const prompt = buildFramePrompt(story, 1, "start");
-  assert.match(prompt, /One clone,/);
+  assert.match(prompt, /Scro walks down the hall\./);
+  assert.doesNotMatch(prompt, /One clone,/);
   assert.doesNotMatch(prompt, /Scro - Cinematic/);
 });
 
@@ -635,7 +606,7 @@ test("whiteboard explainer dual-beat uses start/end scene and VO per still", () 
   assert.doesNotMatch(end, /First beat/);
 });
 
-test("whiteboard stills keep the selected subtitle look instead of the visual style lettering", () => {
+test("whiteboard stills ignore visual style lettering and never embed subtitles", () => {
   installTestStyles(
     STYLE_IDS.map((id) =>
       id === "paper-cutout"
@@ -660,13 +631,13 @@ test("whiteboard stills keep the selected subtitle look instead of the visual st
   const start = buildFramePrompt(dual, 1, "start");
   assert.doesNotMatch(start, /40% height/);
   assert.doesNotMatch(start, /torn dark-ink paper/);
-  assert.match(start, /thick black marker/);
   assert.doesNotMatch(start, /52% and 60%/);
   assert.doesNotMatch(start, /hand-drawn all-caps marker/);
+  assert.doesNotMatch(start, /Subtitle \(spell exactly\)/);
   installTestStyles();
 });
 
-test("legacy captions-off whiteboard video keeps prop labels, paints the marker beat, and strips text policy from visualWorld", () => {
+test("legacy captions-off whiteboard video keeps prop labels and strips text policy from visualWorld", () => {
   const dual = project();
   dual.skillSlug = "cartoon-explainer-video-director";
   dual.sceneTextEnabled = false;
@@ -683,8 +654,7 @@ test("legacy captions-off whiteboard video keeps prop labels, paints the marker 
   };
   const start = buildFramePrompt(dual, 1, "start");
   assert.match(start, /「OLS」/);
-  assert.match(start, /Subtitle \(spell exactly\): "First beat\."/);
-  assert.match(start, /thick black marker/);
+  assert.doesNotMatch(start, /Subtitle \(spell exactly\)/);
   assert.doesNotMatch(start, /52% and 60%/);
   assert.doesNotMatch(start, /No on-canvas text/);
   assert.match(start, /Visual world: 白板塗鴉風格。純白背景黑色墨線。/);
@@ -715,7 +685,7 @@ test("story-short stills are third-person: no one looks into the camera", () => 
   assert.doesNotMatch(buildFramePrompt(project(), 1, "start"), /third-person observer camera/);
 });
 
-test("other skills keep a single scene and full voiceover on both stills", () => {
+test("other skills keep a single scene on both stills and strip Subtitle sentences", () => {
   const story = project();
   story.skillSlug = "story-short-director";
   story.sceneTextEnabled = true;
@@ -725,8 +695,8 @@ test("other skills keep a single scene and full voiceover on both stills", () =>
   const end = buildFramePrompt(story, 1, "end");
   assert.match(start, /Scene: 整段同一個畫面描述/);
   assert.match(end, /Scene: 整段同一個畫面描述/);
-  assert.match(start, /Whole line/);
-  assert.match(end, /Whole line/);
+  assert.doesNotMatch(start, /Whole line/);
+  assert.doesNotMatch(end, /Whole line/);
   assert.doesNotMatch(start, /55% of the way/);
 });
 
@@ -743,27 +713,24 @@ test("a long Cantonese prompt keeps the exact line inside Ideogram's cap", () =>
   assert.match(compact, /「好產品」/);
 });
 
-test("Cantonese voiceover is painted as written Chinese", () => {
+test("Cantonese scene keeps in-scene labels as written Chinese and strips subtitles", () => {
   const video = project();
   video.language = "yue";
   video.phaseA!.clips[0].englishVo = "你啲貨幾靚都好喎";
   video.phaseA!.clips[0].explainerScene = "紙箱寫住「好產品」。字幕：你些貨幾漂亮都好。";
   const prompt = buildFramePrompt(video, 1, "start");
-  assert.match(prompt, /你些貨幾漂亮都好/);
+  assert.doesNotMatch(prompt, /你些貨幾漂亮都好/);
   assert.match(prompt, /好產品/);
 });
 
-test("enabled scene text keeps the director subtitle inside the scene", () => {
+test("enabled scene text strips the director subtitle from the scene while allowing in-scene labels", () => {
   const on = project();
   on.sceneTextEnabled = true;
   on.sceneTextLanguage = "zh-Hant";
-  on.phaseA!.clips[0].explainerScene = 'Subtitle (spell exactly): "vo"。置中放大。';
+  on.phaseA!.clips[0].explainerScene = '木牌寫著「歡迎」。Subtitle (spell exactly): "vo"。置中放大。';
   const prompt = buildFramePrompt(on, 1, "start");
-  assert.match(prompt, /Subtitle \(spell exactly\): "vo"/);
-  assert.match(prompt, /置中放大/);
-  const sceneAt = prompt.indexOf("Scene:");
-  const subAt = prompt.indexOf("spell exactly");
-  assert.ok(sceneAt >= 0 && subAt > sceneAt, "subtitle stays inside the scene");
+  assert.match(prompt, /木牌寫著「歡迎」/);
+  assert.doesNotMatch(prompt, /Subtitle \(spell exactly\)/);
   assert.doesNotMatch(prompt, /On-canvas subtitles ON/);
   assert.doesNotMatch(prompt, /never subtitles or captions/i);
 });
@@ -798,8 +765,8 @@ test("listicle item stills name only that item; the last still lists every title
   assert.match(item, /only this item/i);
   assert.match(item, /low angle/);
   assert.match(item, /Unused subscriptions/);
-  assert.match(item, /On-canvas subtitles ON/);
-  assert.match(item, /Subtitle \(spell exactly\): "Unused subscriptions\."/);
+  assert.doesNotMatch(item, /On-canvas subtitles ON/);
+  assert.doesNotMatch(item, /Subtitle \(spell exactly\)/);
   assert.doesNotMatch(item, /Two money leaks/);
   assert.doesNotMatch(item, /No on-canvas text/);
   const full = buildFramePrompt(list, 3, "start");
@@ -979,7 +946,7 @@ test("an oversized storyboard is trimmed under budget, keeping locks and subtitl
       annotatedUrl: "https://x/a.png",
     }).prompt;
     assert.ok(prompt.length <= FRAME_PROMPT_BUDGET, `${position} is ${prompt.length} chars`);
-    assert.match(prompt, /We made it to the top\./);
+    assert.doesNotMatch(prompt, /We made it to the top\./);
     assert.match(prompt, /WARDROBE LOCK/);
     assert.match(prompt, /1\) Character: Lily 神情專注/);
     assert.match(prompt, /4\) Camera: 中景/);
@@ -1038,7 +1005,7 @@ test("REVISION line does not attach a sibling or previous still", () => {
   assert.doesNotMatch(prompt, /previous still/);
 });
 
-test("talking-head realistic stills paint the subtitle even when an old overlay flag is set", () => {
+test("talking-head realistic stills never paint subtitles or attach a lettering sample", () => {
   const video = project("realistic");
   video.skillSlug = "talking-head-director";
   video.subtitleOverlay = true;
@@ -1046,12 +1013,12 @@ test("talking-head realistic stills paint the subtitle even when an old overlay 
   video.phaseA!.clips[0].englishVo = "Hello there.";
   video.phaseA!.clips[0].startScene = 'Person seated. Subtitle: one LARGE line, exactly "Hello there."';
   const prompt = buildFramePrompt(video, 1, "start");
-  assert.doesNotMatch(prompt, /no letters, no subtitle, no caption bar, no watermark/);
-  assert.match(prompt, /Subtitle:/);
-  assert.match(prompt, /Hello there\./);
-  assert.match(prompt, /lettering sample/);
+  assert.match(prompt, /No on-canvas text/);
+  assert.doesNotMatch(prompt, /Subtitle:/);
+  assert.doesNotMatch(prompt, /Hello there\./);
+  assert.doesNotMatch(prompt, /lettering sample/);
   const plan = frameSubmitPlan(video, 1, "start");
-  assert.equal(plan.refs.includes("https://blob/look.png"), true);
+  assert.equal(plan.refs.includes("https://blob/look.png"), false);
 
   video.phaseA!.clips[0].startScene = "Person seated. No extra writing.";
   const blank = buildFramePrompt(video, 1, "start");
@@ -1077,21 +1044,16 @@ test("none on-screen text strips writing from the still prompt", () => {
   assert.equal(plan.refs.includes("https://blob/look.png"), false);
 });
 
-test("talking-head stills attach the Look line only when the storyboard asks for a subtitle", () => {
+test("talking-head stills never attach a lettering sample even when the storyboard has a Subtitle sentence", () => {
   const video = project("realistic");
   video.skillSlug = "talking-head-director";
   video.textStyleImageUrl = "https://blob/look.png";
   video.phaseA!.clips[0].englishVo = "Hello there.";
   video.phaseA!.clips[0].startScene = 'Person seated. Subtitle: one LARGE line, exactly "Hello there."';
   const prompt = buildFramePrompt(video, 1, "start");
-  assert.match(prompt, /lettering sample/);
+  assert.doesNotMatch(prompt, /lettering sample/);
   const plan = frameSubmitPlan(video, 1, "start");
-  assert.equal(plan.refs.includes("https://blob/look.png"), true);
-
-  video.phaseA!.clips[0].startScene = "Person seated. No extra writing.";
-  const bare = frameSubmitPlan(video, 1, "start");
-  assert.equal(bare.refs.includes("https://blob/look.png"), false);
-  assert.doesNotMatch(bare.prompt, /lettering sample/);
+  assert.equal(plan.refs.includes("https://blob/look.png"), false);
 });
 
 test("talking-head stills keep only the first character", () => {
@@ -1372,7 +1334,7 @@ test("next clip's opening with a scene reference drops the same-place rule", () 
   assert.doesNotMatch(prompt, /Do not invent a new room/);
 });
 
-test("a preloaded user style supplies look and lettering", () => {
+test("a preloaded user style supplies look and omits subtitle lettering", () => {
   const custom = renderableFromSystem(testStyle("paper-cutout", {
     look: "torn kraft edges",
     letteringLayout: "Layout: cut-paper VO at 40% height.",
@@ -1386,7 +1348,7 @@ test("a preloaded user style supplies look and lettering", () => {
   assert.match(prompt, /torn kraft edges/);
   assert.doesNotMatch(prompt, /torn dark-ink paper/);
   assert.doesNotMatch(prompt, /40% height/);
-  assert.match(prompt, /thick black marker/);
+  assert.doesNotMatch(prompt, /thick black marker/);
 });
 
 test("clips without assigned references attach none", () => {
@@ -1485,7 +1447,7 @@ test("outfit reel later starts are a hard cut and do not attach the previous end
   assert.doesNotMatch(start.prompt, /previous clip's END frame/);
 });
 
-test("surprise hook stills drop from above, zoom in, and use shock-poster type", () => {
+test("surprise hook stills drop from above, zoom in, and never paint spoken subtitles", () => {
   const video = project();
   video.skillSlug = "surprise-interview-director";
   video.phaseA!.clips[0].englishVo = 'Ada: "I spent $0 on ads and got 37 clients."';
@@ -1506,12 +1468,10 @@ test("surprise hook stills drop from above, zoom in, and use shock-poster type",
   assert.match(start.prompt, /HOOK CAMERA/);
   assert.match(start.prompt, /looking down/);
   assert.match(start.prompt, /Do not flip the picture/);
-  assert.match(start.prompt, /thick black marker/);
   assert.doesNotMatch(start.prompt, /ultra-bold ultra-condensed/);
   assert.doesNotMatch(start.prompt, /solid black rectangle/);
   assert.doesNotMatch(start.prompt, /mustard/);
-  assert.match(start.prompt, /37 clients/);
-  assert.match(start.prompt, /I spent \$0 on ads and got 37 clients/);
+  assert.doesNotMatch(start.prompt, /I spent \$0 on ads and got 37 clients/);
   assert.doesNotMatch(start.prompt, /subtitle band across the bottom/);
   const end = frameSubmitPlan(video, 1, "end");
   assert.equal(end.anchor, undefined);
@@ -1519,7 +1479,7 @@ test("surprise hook stills drop from above, zoom in, and use shock-poster type",
   assert.doesNotMatch(end.prompt, /Keep the same camera/);
 });
 
-test("later surprise clips keep the previous end and change the poster place", () => {
+test("later surprise clips keep the previous end without painting spoken subtitles", () => {
   const video = project();
   video.skillSlug = "surprise-interview-director";
   video.sceneTextEnabled = true;
@@ -1552,15 +1512,12 @@ test("later surprise clips keep the previous end and change the poster place", (
       blobUrl: "https://blob/prev-end.png",
     },
   ];
-  const place = surpriseVarietyPlan(video.phaseA!).find((item) => item.clipNumber === 2)?.place;
   const end = frameSubmitPlan(video, 2, "end");
   assert.equal(end.anchor?.kind, "clip-start");
   assert.equal(end.anchor?.url, "https://blob/prev-end.png");
   assert.match(end.prompt, /COMPOSITION LOCK/);
   assert.match(end.prompt, /dropped down and snapped a zoom-in/);
-  assert.match(end.prompt, /thick black marker/);
-  assert.match(end.prompt, /first client told a friend/);
-  assert.match(end.prompt, new RegExp(place === "top" ? "SUBTITLE PLACE: TOP" : place === "middle" ? "SUBTITLE PLACE: MIDDLE" : "SUBTITLE PLACE: BOTTOM"));
+  assert.doesNotMatch(end.prompt, /first client told a friend/);
   assert.doesNotMatch(end.prompt, /THIS CLIP'S CAMERA AND POSE/);
   assert.doesNotMatch(end.prompt, /HOOK CAMERA/);
   assert.doesNotMatch(end.prompt, /white band/);

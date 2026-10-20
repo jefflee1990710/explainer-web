@@ -192,7 +192,7 @@ test("synthesizeSpeechWithTimestamps retrieves audio and character timestamps an
   assert.match(block, /0\.90s–1\.20s: "IG"/);
   assert.match(block, /1\.20s–5\.00s: speech finished, mouth closed/);
 
-  const basePrompt = "0–0.4s 坐住準備開口；0.4–4.2s 口型跟住講；4.2–5s 口部合上。";
+  const basePrompt = "0–0.2s 坐住準備開口；0.2–4.7s 口型跟住講；4.7–5s 口部合上。";
   const updated = withTimedLipSyncPrompt(basePrompt, res.alignment, {
     onsetSeconds: 0.4,
     clipDurationSeconds: 5,

@@ -15,6 +15,29 @@ test("resolvePerformance falls back to the shot defaults without a skill", () =>
   assert.deepEqual(resolvePerformance(undefined, "full-body", "zh"), DEFAULT_PERFORMANCE["full-body"].yue);
 });
 
+test("resolvePerformance ignores stale DB skill.performance and uses current DEFAULT_PERFORMANCE unless customPerformance changed it", () => {
+  const staleSkill = {
+    performance: {
+      en: {
+        ...DEFAULT_PERFORMANCE.face.en,
+        headMotion: "stale hyperactive head motion with chin drop and glancing at hands",
+      },
+      yue: {
+        ...DEFAULT_PERFORMANCE.face.yue,
+        headMotion: "思考時眼神短暫望向側邊或者望一望雙手再望返鏡頭、下巴跌一跌再抬起",
+      },
+    },
+  };
+  assert.equal(
+    resolvePerformance(staleSkill, "face", "yue").headMotion,
+    DEFAULT_PERFORMANCE.face.yue.headMotion,
+  );
+  assert.doesNotMatch(DEFAULT_PERFORMANCE.face.yue.headMotion, /望一望雙手|下巴跌一跌|明顯前傾/);
+  assert.doesNotMatch(DEFAULT_PERFORMANCE.face.yue.emphasisBeat, /口張大約半秒/);
+  assert.doesNotMatch(DEFAULT_PERFORMANCE.face.en.headMotion, /chin drop|shoulders rock/);
+  assert.doesNotMatch(DEFAULT_PERFORMANCE.face.en.emphasisBeat, /half a second/);
+});
+
 test("a custom English edit wins per key in every language; untouched keys keep template text", () => {
   const skill = {
     performance: DEFAULT_PERFORMANCE.face,

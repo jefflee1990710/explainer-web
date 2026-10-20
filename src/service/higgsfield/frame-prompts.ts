@@ -46,9 +46,7 @@ import {
   listicleOnCanvasLines,
   resolveSceneText,
   sceneTextFrameLines,
-  storyboardAsksForSubtitle,
   subtitleSitsBelowCenter,
-  formatVoiceoverForMarker,
   stripSceneVoiceoverRecap,
   stripStoryboardWriting,
   stripVisualWorldStyleEcho,
@@ -58,7 +56,6 @@ import {
   bookendLogoFrameLines,
   cartoonClipAction,
   cartoonNarratorFrameLock,
-  dropRepeatedSubtitleLabels,
   isBookendSkill,
   VERTICAL_FRAME_SAFE_AREA,
   isComparisonCardSkill,
@@ -82,8 +79,6 @@ import {
   sanitizeSurpriseFrameScene,
   surpriseHookCameraDirective,
   surpriseHookSkipsFrameAnchor,
-  surprisePosterLayout,
-  surpriseTypeLines,
   surpriseVarietyPlan,
 } from "@/service/director/surprise-interview";
 import { clipReferenceImageUrls } from "@/service/project/reference-images";
@@ -94,7 +89,7 @@ import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
 import { frameRenderDetail, reconcileSightline, SIGHTLINE_RULE } from "@/service/director/scene-detail";
 import { isRealisticStyle } from "@/service/style/realistic-light";
 import { styleLinesForFrame, type Style } from "@/service/style";
-import { resolveSubtitleLook, subtitleLookLine, textStyleSampleLookLine } from "@/service/director/subtitle-look";
+import { resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { isStyleId } from "@/model/style-id";
 import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
 import { loadRenderableStyle, type RenderableStyle } from "@/service/style/renderable-style";
@@ -259,27 +254,9 @@ function clipAt(text: string, max: number) {
 // Scene rows follow "1) Character … 2) Set … 3) Light … 4) Camera …".
 // Character and Camera never trim. Light may go; Set holds where a pushed or pulled
 // element goes, so it only shortens and keeps every 「」 label it named.
-function spellSubtitleLines(lines: string[]) {
-  const kept = lines.map((line) => line.trim()).filter(Boolean);
-  if (kept.length === 0) return [];
-  if (kept.length === 1) return [`Subtitle (spell exactly): "${kept[0]}"`];
-  return kept.map((line, index) => `Subtitle line ${index + 1} (spell exactly): "${line}"`);
-}
-
-// Prefer the director's Subtitle sentence. Fall back to the spoken line so a still
-// with no sentence still gets on-screen text. Either way it leaves the trimmable Scene.
-function whiteboardSubtitleSpellLines(scene: string, spoken: string) {
-  const quoted = [...scene.matchAll(/Subtitle\b[^"]*"([^"]*)"/gi)]
-    .map((match) => match[1]?.trim() || "")
-    .filter(Boolean);
-  if (quoted.length > 0) return spellSubtitleLines(quoted);
-  const formatted = formatVoiceoverForMarker(spoken);
-  return spellSubtitleLines([formatted.line1, formatted.line2]);
-}
-
 function stripSceneSubtitleSentence(scene: string) {
   return scene
-    .replace(/\s*Subtitle\b(?:(?!")[\s\S])*?"[^"]*"/gi, " ")
+    .replace(/\s*(?:Subtitle\b|字幕[：:])[\s\S]*$/iu, "")
     .replace(/[ \t]{2,}/g, " ")
     .trim();
 }
@@ -653,13 +630,8 @@ export function buildFramePrompt(
     skillSlug: project.skillSlug,
     styleId: project.styleId,
   });
-  const textOff = !sceneText.enabled;
-  // A talking-head storyboard with no Subtitle sentence already turned lettering off.
-  const frameScene = position === "start" ? clipStartScene(row) : clipEndScene(row);
-  const talkingHeadSkipsLettering =
-    solo && sceneText.enabled && !storyboardAsksForSubtitle(frameScene);
-  const textStyleUrl =
-    overlay || textOff || talkingHeadSkipsLettering ? undefined : project.textStyleImageUrl || undefined;
+  // Subtitles are never generated into scene images; talking-head stills are always text-free.
+  const talkingHeadSkipsLettering = solo;
   // User's opening photo sits in front of the character so that face is the person who talks.
   const openingPhotoUrl = openingPhotoReference(project, clipNumber, position);
   const openingCount = openingPhotoUrl ? 1 : 0;
@@ -672,23 +644,9 @@ export function buildFramePrompt(
       lockUrls.length +
       videoLockUrls.length +
       logoUrls.length +
-      productUrls.length +
-      (textStyleUrl ? 1 : 0),
+      productUrls.length,
   );
-  const textStyleIndex = textStyleUrl
-    ? annotatedCount +
-      anchorCount +
-      openingCount +
-      lockUrls.length +
-      videoLockUrls.length +
-      sceneRefUrls.length +
-      productUrls.length +
-      logoUrls.length +
-      1
-    : 0;
-  const sampleLookLine = textStyleUrl ? textStyleSampleLookLine(textStyleIndex) : undefined;
-  // Lettering comes from the video's text style, not the visual style catalog.
-  const letteringLine = sampleLookLine || subtitleLookLine(subtitleLook);
+  const sampleLookLine = undefined;
   // The character blueprint comes before any scene photo so that photo's face does not win.
   const characterFirst = lockUrls.length > 0;
   const copyClothes = clothingFromInstruction && sceneRefUrls.length > 0;
@@ -813,29 +771,18 @@ export function buildFramePrompt(
     /Light source: the key light from the Light line comes from one side with negative fill on the far cheek so it falls off into soft shadow, and a faint rim light separates the hair and shoulders from the background\./g,
     "Light source: the key light and faint rim light come strictly from the visible window side in the Light line (never from the dark interior or bookshelf side opposite the window, and never copy the blueprint's studio light direction), lighting the window-facing cheek while the far cheek away from the window falls into deep negative-fill shadow with a clear nose-bridge shadow (grazing contrast, no front fill, no unmotivated warm orange backlight, overcast window daylight kept soft below pure-white clipping).",
   );
-  // Cartoon only: drop a 「」 label that is the same words as this still's Subtitle.
-  if (isDualBeatSkill(project.skillSlug)) {
-    sceneDescription = dropRepeatedSubtitleLabels(sceneDescription);
-  }
-  // Spell the spoken line beside the text style. The Scene copy is what a long Set trims away.
-  const whiteboardSpells =
-    dualBeat && sceneText.enabled && voForFrame && !silentClip
-      ? whiteboardSubtitleSpellLines(sceneDescription, voForFrame)
-      : [];
-  if (whiteboardSpells.length > 0) {
-    sceneDescription = stripSceneSubtitleSentence(sceneDescription);
-  }
-  if (overlay || !sceneText.enabled || talkingHeadSkipsLettering) {
-    sceneDescription = sceneDescription.replace(/\s*(?:Subtitle:|字幕：).*$/u, "").trim();
-  }
+  // Always strip spoken Subtitle sentences from scene descriptions; subtitles are never painted into scene stills.
+  sceneDescription = stripSceneSubtitleSentence(sceneDescription);
   const openingRaw = directorWritesLettering || keepSceneLabels
     ? clipStartScene(row).trim()
     : stripStoryboardWriting(clipStartScene(row));
-  const openingForLanding = directorWritesLettering
-    ? openingRaw
-    : sceneText.enabled
-      ? stripSceneVoiceoverRecap(openingRaw)
-      : openingRaw;
+  const openingForLanding = stripSceneSubtitleSentence(
+    directorWritesLettering
+      ? openingRaw
+      : sceneText.enabled
+        ? stripSceneVoiceoverRecap(openingRaw)
+        : openingRaw,
+  );
   // Outfit, surprise, and talking-head already write their own end camera. Everyone else lands the motion.
   const cameraLanding =
     position === "end" && !wardrobeBuild && !surprise && !steady && !isTalkingHeadSkill(project.skillSlug)
@@ -847,24 +794,14 @@ export function buildFramePrompt(
   const landedCamera =
     position === "end" && angleText ? endFrameCameraLine(motionDescription, row.endUsesStartStill) : "";
   const openingCamera = position === "start" && angleText ? openingCameraDirective(motionDescription) : "";
-  // Every 9:16 spoken subtitle sits a little below center. Landscape stays in the bottom band.
   const subtitleBelowCenter = subtitleSitsBelowCenter(project.aspectRatio);
-  const paintSurpriseType = surprise && Boolean(voForFrame);
-  // Cartoon only: the text style is the spoken subtitle. 「」 labels stay on the prop.
-  const cartoonSubtitleLook = [
-    "This Look is only the subtitle: the quoted Subtitle lines above, which are this still's spoken line.",
-    "Paint them large in the frame in this Look. They are required on-screen text. Do not omit them.",
-    "Do not paint them as small type on a prop. Do not give this Look to words inside 「」.",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const paintSurpriseType = false;
   const onCanvasTextBlock = !sceneText.enabled || talkingHeadSkipsLettering
     ? sceneTextFrameLines(false, sceneText.language)
     : overlay
     ? []
     : listicle
     ? [
-        letteringLine,
         ...listicleOnCanvasLines({
           clips: canvasClips,
           clipNumber,
@@ -874,33 +811,18 @@ export function buildFramePrompt(
       ]
     : comparison
       ? [
-          letteringLine,
           ...comparisonOnCanvasLines({
             narrativeJob: row.narrativeJob,
             aspectRatio: project.aspectRatio,
           }),
         ]
-    : paintSurpriseType
-      ? surpriseTypeLines({
-          line: subtitleText(voForFrame) || voForFrame,
-          place: surpriseClip?.place ?? "top",
-          lookLine: letteringLine,
+    : keepSceneLabels && !sceneText.enabled
+      ? sceneTextFrameLines(false, sceneText.language, undefined, undefined, {
+          inWorldLabels: true,
+          look: subtitleLook,
+          lookLine: sampleLookLine,
         })
-      : sceneText.enabled
-      // Place and size stay in the scene sentence. The selected 字幕外觀 still applies.
-      ? silentClip
-        ? []
-        : dualBeat
-          ? [letteringLine, ...whiteboardSpells, cartoonSubtitleLook]
-          : [letteringLine]
-      : keepSceneLabels
-        ? // Catalog typography already says "never subtitles or captions" — exactly this mode.
-          sceneTextFrameLines(false, sceneText.language, undefined, undefined, {
-            inWorldLabels: true,
-            look: subtitleLook,
-            lookLine: sampleLookLine,
-          })
-        : [];
+      : [];
 
   const visualWorld = stripVisualWorldStyleEcho(
     stripVisualWorldTextPolicy(phaseA.visualWorld),
@@ -987,21 +909,9 @@ export function buildFramePrompt(
       ? ["Final check: no letters, no subtitle, no caption bar, no watermark."]
       : listicle
       ? ["Final check: the numbered item list is visible and spelled exactly."]
-      : paintSurpriseType
-        ? [
-            `Final check: ${surprisePosterLayout(surpriseClip?.place ?? "top")} Spell only this clip's spoken line. Lettering matches the Look line above, not the visual style. No white subtitle bar. No SHOCK label. Letters stay upright.`,
-          ]
-      : sceneText.enabled
-        ? silentClip
-          ? ["Final check: no subtitle band and no letters in the frame."]
-          : dualBeat
-            ? [
-                "Final check: the quoted Subtitle lines are painted large in the subtitle Look above. They are required on-screen text. Do not omit them. Words inside 「」 stay ordinary writing on their object.",
-              ]
-            : [
-                "Final check: subtitle place and size follow the Scene's Subtitle sentence as a flat 2D screen-overlay graphic floating on the camera lens plane (NEVER a physical card or paper strip held in the scene; the character's hands must NEVER hold, pinch, or touch the subtitle). Paint those words strictly in the user's selected text style from the subtitle Look line above (exact font, colors, paper strip or backing, texture, and edges; every subtitle strip must contain words, never leave a blank empty strip). Use the attached spelling guide only for how each word is written and broken across lines — do NOT copy the guide's plain font, colors, or box, and do not replace that lettering with a plain white caption or the visual style.",
-              ]
-        : keepSceneLabels
+      : sceneText.enabled && silentClip
+        ? ["Final check: no subtitle band and no letters in the frame."]
+        : keepSceneLabels && !sceneText.enabled
           ? [
               "Final check: the only lettering is the short in-world label(s) named in the Scene; no subtitle band, no voiceover transcript.",
             ]
@@ -1089,25 +999,8 @@ export function frameSubmitPlan(
   const videoLockUrls = videoLockReferenceUrls(project, clipNumber, {
     anchor: anchor ? { kind: anchor.kind } : undefined,
   });
-  // Same cap as buildFramePrompt so the URL order matches the prompt's numbering.
-  const overlay = usesTalkingHeadSubtitleOverlay({
-    skillSlug: project.skillSlug,
-    styleId: project.styleId,
-  });
-  const textOff = !resolveSceneText(project).enabled;
-  const frameScene = clipRow
-    ? position === "start"
-      ? clipStartScene(clipRow)
-      : clipEndScene(clipRow)
-    : "";
-  const talkingHeadSkipsLettering =
-    isTalkingHeadSkill(project.skillSlug) &&
-    !textOff &&
-    !storyboardAsksForSubtitle(frameScene);
-  const textStyleUrls =
-    overlay || textOff || talkingHeadSkipsLettering || !project.textStyleImageUrl
-      ? []
-      : [project.textStyleImageUrl];
+  // Subtitles are never generated into scene images, so no lettering-sample slot is reserved.
+  const textStyleUrls: string[] = [];
   const openingPhotoUrl = openingPhotoReference(project, clipNumber, position);
   const sceneRefUrls = frameSceneReferenceUrls(
     project,
