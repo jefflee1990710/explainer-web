@@ -43,6 +43,7 @@ import {
 } from "@/dao";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import {
+  isVoiceSampleLanguage,
   isVoiceSampleMime,
   normalizeVoiceSampleClips,
   VOICE_SAMPLE_MAX_BYTES,
@@ -51,6 +52,7 @@ import {
   VOICE_SAMPLE_MIN_SECONDS,
   voiceSampleUrls,
   type CharacterVoiceSampleClip,
+  type VoiceSampleLanguage,
 } from "@/model/character-voice-sample";
 import {
   createVoiceClone,
@@ -712,9 +714,16 @@ export async function uploadCharacterVoiceSampleAction(
     if (pickedFiles.length === 0) return { ok: false, error: "請選擇聲音檔" };
     if (!isElevenLabsConfigured()) return { ok: false, error: "尚未設定 ELEVENLABS_API_KEY" };
 
+    const rawLang = formData.get("language");
+    const language: VoiceSampleLanguage = isVoiceSampleLanguage(rawLang) ? rawLang : "yue";
     const mode = formData.get("mode") === "append" ? "append" : "replace";
+    const currentLangSample =
+      character.voiceSamples?.[language] ??
+      ((character.voiceSample?.language ?? "yue") === language
+        ? character.voiceSample
+        : undefined);
     const existingClips =
-      mode === "append" ? normalizeVoiceSampleClips(character.voiceSample) : [];
+      mode === "append" ? normalizeVoiceSampleClips(currentLangSample) : [];
     if (existingClips.length + pickedFiles.length > VOICE_SAMPLE_MAX_FILES) {
       return { ok: false, error: "聲音檔不可超過 10MB" };
     }
@@ -773,8 +782,10 @@ export async function uploadCharacterVoiceSampleAction(
     ];
 
     const elevenVoiceId = await createVoiceClone({
-      name: `${character.name} (${character._id.toHexString()})`,
+      name: `${character.name} [${language}] (${character._id.toHexString()})`,
       files: cloneFiles,
+      language,
+      gender: character.voice?.gender,
     });
 
     const nowMs = Date.now();
@@ -783,7 +794,7 @@ export async function uploadCharacterVoiceSampleAction(
       const item = preparedNew[index];
       const url = await persistBuffer(
         item.buffer,
-        `explainer/characters/${character._id.toHexString()}/voice-${nowMs}-${index + 1}.${item.ext}`,
+        `explainer/characters/${character._id.toHexString()}/voice-${language}-${nowMs}-${index + 1}.${item.ext}`,
         item.file.type,
       );
       uploadedNewClips.push({
@@ -796,20 +807,23 @@ export async function uploadCharacterVoiceSampleAction(
     const allClips = [...existingClips, ...uploadedNewClips];
     const allUrls = allClips.map((clip) => clip.url);
     const primaryUrl = allUrls[0];
+    const newSampleDoc = {
+      url: primaryUrl,
+      urls: allUrls,
+      clips: allClips,
+      durationSeconds: totalSeconds,
+      elevenVoiceId,
+      language,
+      uploadedAt: new Date(),
+    };
 
     const characters = await charactersCollection();
     await characters.updateOne(
       { _id: character._id },
       {
         $set: {
-          voiceSample: {
-            url: primaryUrl,
-            urls: allUrls,
-            clips: allClips,
-            durationSeconds: totalSeconds,
-            elevenVoiceId,
-            uploadedAt: new Date(),
-          },
+          voiceSample: newSampleDoc,
+          [`voiceSamples.${language}`]: newSampleDoc,
           updatedAt: new Date(),
         },
       },
@@ -820,13 +834,14 @@ export async function uploadCharacterVoiceSampleAction(
       {
         $set: {
           "cast.$[member].voiceSample": { url: primaryUrl, elevenVoiceId },
+          [`cast.$[member].voiceSamples.${language}`]: { url: primaryUrl, elevenVoiceId },
           updatedAt: new Date(),
         },
       },
       { arrayFilters: [{ "member.characterId": character._id }] },
     );
-    if (character.voiceSample) {
-      await dropVoiceSample(character.voiceSample, allUrls);
+    if (currentLangSample) {
+      await dropVoiceSample(currentLangSample, allUrls);
     }
     revalidateCharacter(characterId);
     return reload(character._id);
@@ -838,12 +853,18 @@ export async function uploadCharacterVoiceSampleAction(
 export async function removeCharacterVoiceSampleAction(
   characterId: string,
   clipUrl?: string,
+  language: VoiceSampleLanguage = "yue",
 ): Promise<CharacterResult> {
   try {
     const user = await requireAppUser();
     const character = await ownedCharacter(characterId, user.clerkUserId);
     if (!character) return { ok: false, error: "角色不存在" };
-    const existingClips = normalizeVoiceSampleClips(character.voiceSample);
+    const currentLangSample =
+      character.voiceSamples?.[language] ??
+      ((character.voiceSample?.language ?? "yue") === language
+        ? character.voiceSample
+        : undefined);
+    const existingClips = normalizeVoiceSampleClips(currentLangSample);
     const remainingClips = clipUrl
       ? existingClips.filter((clip) => clip.url !== clipUrl)
       : [];
@@ -851,7 +872,7 @@ export async function removeCharacterVoiceSampleAction(
     const characters = await charactersCollection();
     const videos = await videosCollection();
 
-    if (remainingClips.length > 0 && character.voiceSample) {
+    if (remainingClips.length > 0 && currentLangSample) {
       const cloneInputs: VoiceCloneFileInput[] = [];
       for (let index = 0; index < remainingClips.length; index++) {
         const clip = remainingClips[index];
@@ -867,8 +888,10 @@ export async function removeCharacterVoiceSampleAction(
       }
       if (cloneInputs.length > 0) {
         const elevenVoiceId = await createVoiceClone({
-          name: `${character.name} (${character._id.toHexString()})`,
+          name: `${character.name} [${language}] (${character._id.toHexString()})`,
           files: cloneInputs,
+          language,
+          gender: character.voice?.gender,
         });
         const remainingUrls = remainingClips.map((clip) => clip.url);
         const primaryUrl = remainingUrls[0];
@@ -876,18 +899,21 @@ export async function removeCharacterVoiceSampleAction(
           (sum, clip) => sum + clip.durationSeconds,
           0,
         );
+        const updatedSampleDoc = {
+          url: primaryUrl,
+          urls: remainingUrls,
+          clips: remainingClips,
+          durationSeconds: totalSeconds,
+          elevenVoiceId,
+          language,
+          uploadedAt: new Date(),
+        };
         await characters.updateOne(
           { _id: character._id },
           {
             $set: {
-              voiceSample: {
-                url: primaryUrl,
-                urls: remainingUrls,
-                clips: remainingClips,
-                durationSeconds: totalSeconds,
-                elevenVoiceId,
-                uploadedAt: new Date(),
-              },
+              voiceSample: updatedSampleDoc,
+              [`voiceSamples.${language}`]: updatedSampleDoc,
               updatedAt: new Date(),
             },
           },
@@ -897,30 +923,66 @@ export async function removeCharacterVoiceSampleAction(
           {
             $set: {
               "cast.$[member].voiceSample": { url: primaryUrl, elevenVoiceId },
+              [`cast.$[member].voiceSamples.${language}`]: { url: primaryUrl, elevenVoiceId },
               updatedAt: new Date(),
             },
           },
           { arrayFilters: [{ "member.characterId": character._id }] },
         );
-        await dropVoiceSample(character.voiceSample, remainingUrls);
+        await dropVoiceSample(currentLangSample, remainingUrls);
         revalidateCharacter(characterId);
         return reload(character._id);
       }
     }
 
-    await characters.updateOne(
-      { _id: character._id },
-      { $unset: { voiceSample: "" }, $set: { updatedAt: new Date() } },
-    );
-    await videos.updateMany(
-      { "cast.characterId": character._id },
-      {
-        $unset: { "cast.$[member].voiceSample": "" },
-        $set: { updatedAt: new Date() },
-      },
-      { arrayFilters: [{ "member.characterId": character._id }] },
-    );
-    if (character.voiceSample) await dropVoiceSample(character.voiceSample);
+    const otherLangs = (["yue", "zh", "en"] as const).filter((l) => l !== language);
+    const fallbackSample = otherLangs
+      .map((l) => character.voiceSamples?.[l])
+      .find((s) => Boolean(s?.url && s?.elevenVoiceId));
+
+    if (fallbackSample) {
+      await characters.updateOne(
+        { _id: character._id },
+        {
+          $unset: { [`voiceSamples.${language}`]: "" },
+          $set: { voiceSample: fallbackSample, updatedAt: new Date() },
+        },
+      );
+      await videos.updateMany(
+        { "cast.characterId": character._id },
+        {
+          $unset: { [`cast.$[member].voiceSamples.${language}`]: "" },
+          $set: {
+            "cast.$[member].voiceSample": {
+              url: fallbackSample.url,
+              elevenVoiceId: fallbackSample.elevenVoiceId,
+            },
+            updatedAt: new Date(),
+          },
+        },
+        { arrayFilters: [{ "member.characterId": character._id }] },
+      );
+    } else {
+      await characters.updateOne(
+        { _id: character._id },
+        {
+          $unset: { voiceSample: "", [`voiceSamples.${language}`]: "" },
+          $set: { updatedAt: new Date() },
+        },
+      );
+      await videos.updateMany(
+        { "cast.characterId": character._id },
+        {
+          $unset: {
+            "cast.$[member].voiceSample": "",
+            [`cast.$[member].voiceSamples.${language}`]: "",
+          },
+          $set: { updatedAt: new Date() },
+        },
+        { arrayFilters: [{ "member.characterId": character._id }] },
+      );
+    }
+    if (currentLangSample) await dropVoiceSample(currentLangSample);
     revalidateCharacter(characterId);
     return reload(character._id);
   } catch (error) {

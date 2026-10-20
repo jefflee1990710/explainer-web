@@ -155,15 +155,34 @@ export async function submitOpenRouterImage(
 ): Promise<GenerationSubmitResult> {
   const key = assertOpenRouterKey();
   const fetchFn = options?.fetch ?? fetch;
-  const response = await fetchFn(OPENROUTER_IMAGES_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(openRouterImageBody(input)),
-    signal: AbortSignal.timeout(8 * 60_000),
-  });
+  const payload = JSON.stringify(openRouterImageBody(input));
+  let response: Response;
+  try {
+    response = await fetchFn(OPENROUTER_IMAGES_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: payload,
+      signal: AbortSignal.timeout(8 * 60_000),
+    });
+  } catch (error) {
+    if (options?.fetch) throw error;
+    const fallbackBody = openRouterImageBody({
+      ...input,
+      resolution: "1k",
+    });
+    response = await fetchFn(OPENROUTER_IMAGES_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(fallbackBody),
+      signal: AbortSignal.timeout(8 * 60_000),
+    });
+  }
 
   const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
   const error = openRouterError(body);

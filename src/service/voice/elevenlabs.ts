@@ -17,10 +17,26 @@ type FetchOptions = {
   fetch?: typeof fetch;
 };
 
+import type { VoiceSampleLanguage } from "@/model/character-voice-sample";
+
 export type VoiceCloneFileInput = {
   file: Blob;
   filename: string;
 };
+
+export function elevenLabsVoiceLabels(
+  language: VoiceSampleLanguage = "yue",
+  gender?: "male" | "female",
+): Record<string, string> {
+  const base: Record<string, string> =
+    language === "en"
+      ? { language: "en", accent: "american" }
+      : language === "zh"
+        ? { language: "zh", accent: "mandarin" }
+        : { language: "zh", accent: "zh-hong-kong-cantonese" };
+  if (gender) base.gender = gender;
+  return base;
+}
 
 function apiKey(override?: string) {
   const key = override ?? process.env.ELEVENLABS_API_KEY;
@@ -93,6 +109,8 @@ export async function createVoiceClone(
     file?: Blob;
     filename?: string;
     files?: VoiceCloneFileInput[];
+    language?: VoiceSampleLanguage;
+    gender?: "male" | "female";
   },
   options?: FetchOptions,
 ): Promise<string> {
@@ -108,6 +126,7 @@ export async function createVoiceClone(
   const form = new FormData();
   form.append("name", input.name.slice(0, 100));
   form.append("remove_background_noise", "true");
+  form.append("labels", JSON.stringify(elevenLabsVoiceLabels(input.language, input.gender)));
   for (const item of list) {
     form.append("files", item.file, item.filename);
   }
@@ -147,6 +166,19 @@ export type TimedLipSyncToken = {
   token: string;
   start: number;
   end: number;
+};
+
+export type ForcedAlignmentWord = {
+  text: string;
+  start: number;
+  end: number;
+};
+
+export type ClauseAlignmentWindow = {
+  ttsStart: number;
+  ttsEnd: number;
+  targetStart: number;
+  targetEnd: number;
 };
 
 export const DEFAULT_SPEECH_ONSET_SECONDS = 0.4;
@@ -281,6 +313,78 @@ export async function synthesizeSpeechWithTimestamps(
     audio: Buffer.from(body.audio_base64, "base64"),
     alignment: body.alignment ?? body.normalized_alignment,
   };
+}
+
+// Forced alignment of source video audio against the transcript to get exact per-word mouth timing.
+export async function fetchForcedAlignment(
+  audio: Buffer,
+  text: string,
+  options?: FetchOptions,
+): Promise<ForcedAlignmentWord[]> {
+  const fetchFn = options?.fetch ?? fetch;
+  const cleaned = cleanSpokenDialogueLine(text);
+  if (!cleaned) return [];
+  const form = new FormData();
+  form.append("file", new Blob([new Uint8Array(audio)], { type: "audio/wav" }), "speech.wav");
+  form.append("text", cleaned);
+  const response = await fetchWithRateLimitRetry(
+    fetchFn,
+    `${BASE_URL}/forced-alignment`,
+    {
+      method: "POST",
+      headers: { "xi-api-key": apiKey(options?.apiKey) },
+      body: form,
+      signal: AbortSignal.timeout(60_000),
+    },
+  );
+  if (!response.ok) throw await failure(response, "語音對齊失敗");
+  const body = (await response.json()) as {
+    words?: Array<{ text?: string; start?: number; end?: number }>;
+  };
+  return (body.words || [])
+    .map((item) => ({
+      text: (item.text ?? "").trim(),
+      start: Number(item.start ?? 0),
+      end: Number(item.end ?? item.start ?? 0),
+    }))
+    .filter(
+      (item) =>
+        Boolean(item.text) &&
+        !/^[，。！？、；：「」『』（）()"'.,!?;:\s-]+$/.test(item.text),
+    );
+}
+
+// Group matched TTS tokens and source forced-alignment words into continuous clauses,
+// breaking ONLY at genuine sentence pauses (>= 120ms in both tracks) so words like
+// "生財工具" are never sliced mid-phrase.
+export function matchClauseWindows(
+  ttsTokens: TimedLipSyncToken[],
+  faWords: ForcedAlignmentWord[],
+): ClauseAlignmentWindow[] {
+  const count = Math.min(ttsTokens.length, faWords.length);
+  if (count === 0) return [];
+  const clauses: ClauseAlignmentWindow[] = [];
+  let startIdx = 0;
+
+  for (let i = 0; i < count; i++) {
+    const isLast = i === count - 1;
+    const nextFaGap = !isLast ? faWords[i + 1].start - faWords[i].end : 0;
+    const nextTtsGap = !isLast ? ttsTokens[i + 1].start - ttsTokens[i].end : 0;
+    const hasNaturalPause = nextFaGap >= 0.12 && nextTtsGap >= 0.08;
+    const shouldBreak = isLast || (hasNaturalPause && i - startIdx + 1 >= 3 && count - (i + 1) >= 3);
+
+    if (shouldBreak) {
+      const ttsStart = ttsTokens[startIdx].start;
+      const ttsEnd = ttsTokens[i].end;
+      const targetStart = faWords[startIdx].start;
+      const targetEnd = faWords[i].end;
+      if (ttsEnd > ttsStart && targetEnd > targetStart) {
+        clauses.push({ ttsStart, ttsEnd, targetStart, targetEnd });
+      }
+      startIdx = i + 1;
+    }
+  }
+  return clauses;
 }
 
 // Text-to-speech using Eleven v4 with 100% stability and similarity.

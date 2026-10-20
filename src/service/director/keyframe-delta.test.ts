@@ -8,10 +8,11 @@ import {
   keyframeDeltaDirectorBlock,
 } from "@/service/director/keyframe-delta";
 
-test("clip seconds clamp to the 3–8 storyboard range", () => {
-  assert.equal(clampClipSeconds(2), 3);
+test("clip seconds clamp to the 5–12 storyboard range", () => {
+  assert.equal(clampClipSeconds(2), 5);
   assert.equal(clampClipSeconds(5.4), 5);
-  assert.equal(clampClipSeconds(12), 8);
+  assert.equal(clampClipSeconds(12), 12);
+  assert.equal(clampClipSeconds(15), 12);
 });
 
 test("duration maps onto a change-budget band", () => {

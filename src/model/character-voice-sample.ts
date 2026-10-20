@@ -15,6 +15,16 @@ export const VOICE_SAMPLE_MIME_TYPES = [
   "audio/x-m4a",
 ] as const;
 
+export const VOICE_SAMPLE_LANGUAGES = ["yue", "zh", "en"] as const;
+export type VoiceSampleLanguage = (typeof VOICE_SAMPLE_LANGUAGES)[number];
+
+export function isVoiceSampleLanguage(value: unknown): value is VoiceSampleLanguage {
+  return (
+    typeof value === "string" &&
+    (VOICE_SAMPLE_LANGUAGES as readonly string[]).includes(value)
+  );
+}
+
 export type CharacterVoiceSampleClip = {
   url: string;
   durationSeconds: number;
@@ -34,6 +44,7 @@ export type CharacterVoiceSample = {
   durationSeconds: number;
   // ElevenLabs Instant Voice Clone made from `clips` / `url`.
   elevenVoiceId: string;
+  language?: VoiceSampleLanguage;
   uploadedAt: Date;
 };
 
@@ -43,7 +54,16 @@ export const characterVoiceSampleSchema: z.ZodType<CharacterVoiceSample> = z.obj
   clips: z.array(characterVoiceSampleClipSchema).optional(),
   durationSeconds: z.number(),
   elevenVoiceId: z.string(),
+  language: z.enum(VOICE_SAMPLE_LANGUAGES).optional(),
   uploadedAt: z.date(),
+});
+
+export type CharacterVoiceSamplesMap = Partial<Record<VoiceSampleLanguage, CharacterVoiceSample>>;
+
+export const characterVoiceSamplesMapSchema: z.ZodType<CharacterVoiceSamplesMap> = z.object({
+  yue: characterVoiceSampleSchema.optional(),
+  zh: characterVoiceSampleSchema.optional(),
+  en: characterVoiceSampleSchema.optional(),
 });
 
 export function normalizeVoiceSampleClips(
@@ -78,12 +98,29 @@ export const castVoiceSampleSchema: z.ZodType<CastVoiceSample> = z.object({
   elevenVoiceId: z.string(),
 });
 
+export type CastVoiceSamplesMap = Partial<Record<VoiceSampleLanguage, CastVoiceSample>>;
+
+export const castVoiceSamplesMapSchema: z.ZodType<CastVoiceSamplesMap> = z.object({
+  yue: castVoiceSampleSchema.optional(),
+  zh: castVoiceSampleSchema.optional(),
+  en: castVoiceSampleSchema.optional(),
+});
+
 // Voice changer converts every voice on the track, so it only runs on a one-character cast.
+// Prefers the sample matching `language` when `voiceSamples` has one; falls back to `voiceSample`.
 export function voiceSwapVoiceId(
-  cast?: Array<{ voiceSample?: { elevenVoiceId?: string } | null }>,
+  cast?: Array<{
+    voiceSample?: { url?: string; elevenVoiceId?: string } | null;
+    voiceSamples?: Partial<Record<string, { url?: string; elevenVoiceId?: string } | undefined>> | null;
+  }>,
+  language?: string,
 ): string | null {
   if (!cast || cast.length !== 1) return null;
-  return cast[0].voiceSample?.elevenVoiceId || null;
+  const member = cast[0];
+  if (language && member.voiceSamples?.[language]?.elevenVoiceId) {
+    return member.voiceSamples[language]!.elevenVoiceId!;
+  }
+  return member.voiceSample?.elevenVoiceId || null;
 }
 
 export function isVoiceSampleMime(type: string) {

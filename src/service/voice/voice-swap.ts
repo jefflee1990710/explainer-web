@@ -5,8 +5,12 @@ import { ffmpegStderr, runFfmpeg } from "@/service/reel/concat";
 import {
   cleanSpokenDialogueLine,
   convertSpeech,
+  fetchForcedAlignment,
+  groupAlignmentTokens,
+  matchClauseWindows,
   parseSpeechWindowFromStderr,
   synthesizeSpeech,
+  synthesizeSpeechWithTimestamps,
 } from "@/service/voice/elevenlabs";
 import {
   extractSpeechArgs,
@@ -63,10 +67,10 @@ async function fetchPreGeneratedVo(voUrl?: string): Promise<Buffer | null> {
   }
 }
 
-// Re-voice a finished clip with the character's cloned voice:
+// Re-voice a finished clip with the character's cloned voice using Eleven v4 TTS:
 // - When `lipSync` is true (talking-head / surprise-interview generated with minimax/hailuo-3
-//   start+end frames), use ElevenLabs Speech-to-Speech (stability=1, similarity=1) so every
-//   syllable stays 100% locked to the video's mouth movements.
+//   start+end frames), align Eleven v4 TTS clauses to the source video's per-word mouth timing
+//   via ElevenLabs Forced Alignment, copying the 2K video stream untouched.
 // - When `lipSync` is false (all other directors: off-screen narration with mouths closed),
 //   mux the ElevenLabs eleven_v4 TTS track directly onto the video stream.
 export async function swapClipVoice(
@@ -77,13 +81,58 @@ export async function swapClipVoice(
   const dir = await mkdtemp(join(tmpdir(), "voice-"));
   try {
     await writeFile(join(dir, "in.mp4"), buffer);
-    const probe = await ffmpegStderr(dir, ["-i", "in.mp4"]);
+    const probe = await ffmpegStderr(dir, [
+      "-i",
+      "in.mp4",
+      "-af",
+      "silencedetect=noise=-32dB:d=0.08",
+      "-f",
+      "null",
+      "-",
+    ]);
+    const clipWindow = parseSpeechWindowFromStderr(probe);
+    const spokenText = cleanSpokenDialogueLine(options?.text);
+
+    if (options?.lipSync && spokenText && /Audio:/.test(probe)) {
+      await runFfmpeg(dir, extractSpeechArgs("in.mp4", "speech.wav"));
+      const speechWav = await readFile(join(dir, "speech.wav"));
+      const [{ audio, alignment }, faWords] = await Promise.all([
+        synthesizeSpeechWithTimestamps(voiceId, spokenText),
+        fetchForcedAlignment(speechWav, spokenText).catch(() => []),
+      ]);
+      await writeFile(join(dir, "voice.mp3"), audio);
+      const ttsTokens = groupAlignmentTokens(alignment, 0);
+      const clauses = matchClauseWindows(ttsTokens, faWords);
+      if (clauses.length > 0) {
+        await runFfmpeg(
+          dir,
+          mixVoiceArgs("in.mp4", "voice.mp3", "out.mp4", {
+            clauses,
+            durationSeconds: clipWindow.duration,
+          }),
+        );
+        return await readFile(join(dir, "out.mp4"));
+      }
+      const ttsStart = ttsTokens[0]?.start ?? 0;
+      const ttsEnd = ttsTokens[ttsTokens.length - 1]?.end ?? clipWindow.duration;
+      const targetSpan = Math.max(0.5, clipWindow.end - clipWindow.start);
+      const ttsSpan = Math.max(0.2, ttsEnd - ttsStart);
+      await runFfmpeg(
+        dir,
+        mixVoiceArgs("in.mp4", "voice.mp3", "out.mp4", {
+          trimStart: ttsStart,
+          trimEnd: ttsEnd,
+          delayMs: Math.round(clipWindow.start * 1000),
+          tempo: Math.min(1.45, Math.max(0.75, ttsSpan / targetSpan)),
+          durationSeconds: clipWindow.duration,
+        }),
+      );
+      return await readFile(join(dir, "out.mp4"));
+    }
 
     if (!options?.lipSync) {
-      const spokenText = cleanSpokenDialogueLine(options?.text);
       const preGenerated = await fetchPreGeneratedVo(options?.voUrl);
       if (preGenerated || spokenText) {
-        const clipWindow = parseSpeechWindowFromStderr(probe);
         const voice = preGenerated ?? (await synthesizeSpeech(voiceId, spokenText));
         await writeFile(join(dir, "voice.mp3"), voice);
         const onsetSeconds = options?.onsetSeconds ?? 0;

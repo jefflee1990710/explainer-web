@@ -28,7 +28,9 @@ import { parseCharacterPersona, type CharacterPersona } from "@/model/character-
 import { parseCharacterVoice, type CharacterVoice } from "@/model/character-voice";
 import {
   normalizeVoiceSampleClips,
+  VOICE_SAMPLE_LANGUAGES,
   type CharacterVoiceSampleClip,
+  type VoiceSampleLanguage,
 } from "@/model/character-voice-sample";
 import type { Folder } from "@/model/folder";
 import type { Project, ProjectStatus, SubtitlePlate } from "@/model/project";
@@ -653,7 +655,19 @@ export type PublicCharacter = {
     url: string;
     durationSeconds: number;
     clips?: CharacterVoiceSampleClip[];
+    language?: VoiceSampleLanguage;
   } | null;
+  voiceSamples?: Partial<
+    Record<
+      VoiceSampleLanguage,
+      {
+        url: string;
+        durationSeconds: number;
+        clips?: CharacterVoiceSampleClip[];
+        language?: VoiceSampleLanguage;
+      }
+    >
+  >;
   defaultVersionId: string | null;
   // Chosen sheet for each style that has a completed blueprint.
   defaultByStyle: Record<string, string>;
@@ -752,8 +766,35 @@ export function toPublicCharacter(character: Character): PublicCharacter {
           url: character.voiceSample.url,
           durationSeconds: character.voiceSample.durationSeconds,
           clips: normalizeVoiceSampleClips(character.voiceSample),
+          language: character.voiceSample.language ?? "yue",
         }
       : null,
+    voiceSamples: (() => {
+      const out: NonNullable<PublicCharacter["voiceSamples"]> = {};
+      for (const lang of VOICE_SAMPLE_LANGUAGES) {
+        const s = character.voiceSamples?.[lang];
+        if (s?.url) {
+          out[lang] = {
+            url: s.url,
+            durationSeconds: s.durationSeconds,
+            clips: normalizeVoiceSampleClips(s),
+            language: lang,
+          };
+        }
+      }
+      if (character.voiceSample?.url) {
+        const fallbackLang = character.voiceSample.language ?? "yue";
+        if (!out[fallbackLang]) {
+          out[fallbackLang] = {
+            url: character.voiceSample.url,
+            durationSeconds: character.voiceSample.durationSeconds,
+            clips: normalizeVoiceSampleClips(character.voiceSample),
+            language: fallbackLang,
+          };
+        }
+      }
+      return Object.keys(out).length > 0 ? out : undefined;
+    })(),
     defaultVersionId: resolved ? resolved.id.toHexString() : null,
     defaultByStyle,
     previewUrl: preview.url,

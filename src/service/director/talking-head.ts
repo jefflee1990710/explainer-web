@@ -13,10 +13,9 @@ export const TALKING_HEAD_SKILL_SLUG = "talking-head-director";
 export const FULL_BODY_TALKING_HEAD_SKILL_SLUG = "full-body-talking-head-director";
 export const TALKING_HEAD_MAX_CLIPS = 20;
 export const TALKING_HEAD_MAX_SECONDS = 12;
-// One short line per clip so the on-screen subtitle stays large.
-// Speech can be under the 5s render floor; the clip still lasts at least 5s.
-const SPEECH_TARGET_SECONDS = 4;
-const SPEECH_MAX_SECONDS = 5;
+// Minimum 5s speech target per clip, expandable up to TALKING_HEAD_MAX_SECONDS (12s).
+const SPEECH_TARGET_SECONDS = 5;
+const SPEECH_MAX_SECONDS = 8;
 
 // Medium pace: ~2.4 English words/s, ~4 Chinese characters/s.
 const ENGLISH_WORDS_PER_SECOND = 2.4;
@@ -378,7 +377,7 @@ export function talkingHeadDirectorBlock(
       ? "This is a FULL-BODY TALKING-HEAD READ. Exactly one character is on screen for the whole video: they face the camera, head to feet in frame, and speak. There is no cutaway, no crowd, and no second character."
       : `This is a TALKING-HEAD READ. Exactly one character is on screen for the whole video: they sit in front of a phone on a tripod, face the camera${anchored ? `, and hold ${p.anchorProp}` : ""}, and speak. There is no cutaway, no crowd, and no second character. No microphone.`,
     "The director instruction is planning notes only (tone, emphasis, must-have looks). It is NOT spoken.",
-    "The spoken script is locked. Each clip's englishVo is a verbatim slice of that script. Do not paraphrase. Give every clip a similar amount of speech.",
+    "The spoken script is locked. Give every clip a full, well-paced spoken line (~22–28 Chinese/Cantonese characters or ~12–16 English words per 5s clip) so speech fills the entire clip from 0s to the end without dead silence at the start or end; if a clause is too short for a 5s clip, combine or naturally expand it so no clip has a short VO.",
     fullBody
       ? `Camera is a locked full-body shot. Do not crop to a close-up or a medium shot. Set: ${p.set}. Light: ${p.light}. Set and light stay identical across every clip. Clip 2 and after open on the previous clip's end still.`
       : `Camera is a phone fixed on a phone tripod. The lens is 24mm at f/1.8, the face sharp and the background a little soft. Head and torso${anchored ? " and the handheld prop" : ""} stay in frame. Both hands stay inside the frame. Set: ${p.set}. Light: ${p.light}. Same set and light in every clip. No pictures pasted on the frame. No microphone. Do not stand the character up. Do not shoot at arm's length. Do not send an arm out of the frame. Do not crop to a face-only close-up. Clip 2 and after open on the previous clip's end still.`,
@@ -577,8 +576,8 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
     const pose =
       moment === "start"
         ? fullBody
-          ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture.`
-          : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live unposed expression.${prop} ${freeHand} is already up at chest height, index finger raised mid-gesture.`
+          ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture${anchored ? "" : ", the other arm relaxed at the side (hands never hold or touch the subtitle overlay)"}.`
+          : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live unposed expression.${prop} ${freeHand} is already up at chest height, index finger raised mid-gesture${anchored ? "" : ", the other hand resting naturally on the lap (hands never hold or touch the subtitle overlay)"}.`
         : fullBody
           ? `Character: still the only person in the frame, ${endVar.head}.${propEnd} ${anchored ? `${endVar.hand}, weight on the other hip` : endVar.hand}, feet in the same place.${sameFrame}`
           : `Character: still the only person in the frame, still seated, ${endVar.head}.${propEnd} ${endVar.hand}.${sameFrame}`;
@@ -595,8 +594,8 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
   const pose =
     moment === "start"
       ? fullBody
-        ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，準備開口，${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢。`
-        : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，直望鏡頭好似喺屋企用手機實拍，準備開口，${p.hookBeat}，頭微傾，神情自然唔擺拍。${prop}${freeHand}已經提到胸前，豎起食指做緊手勢。`
+        ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，準備開口，${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢${anchored ? "" : "，另一隻手自然垂低（雙手絕對唔好拎住或掂到字幕 overlay）"}。`
+        : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，直望鏡頭好似喺屋企用手機實拍，準備開口，${p.hookBeat}，頭微傾，神情自然唔擺拍。${prop}${freeHand}已經提到胸前，豎起食指做緊手勢${anchored ? "" : "，另一隻手自然放喺大髀（雙手絕對唔好拎住或掂到字幕 overlay）"}。`
       : fullBody
         ? `角色：畫面仍然只有呢一個人，${endVarYue.head}。${propEnd}${anchored ? `${endVarYue.hand}，重心輕輕換咗少少，腳留喺同一個位置` : endVarYue.hand}。${sameFrame}`
         : `角色：畫面仍然只有呢一個人，仍然坐住，${endVarYue.head}。${propEnd}${endVarYue.hand}。${sameFrame}`;

@@ -3,7 +3,7 @@ import { z } from "zod";
 export const storyboardRowSchema = z.object({
   clipNumber: z.number().int().min(1),
   timeRange: z.string(),
-  durationSeconds: z.number().min(3).max(8),
+  durationSeconds: z.number().min(5).max(12),
   narrativeJob: z.string(),
   explainerScene: z.string(),
   motionCamera: z.string(),
@@ -62,12 +62,12 @@ export const startOnlyPhaseASchema = phaseASchema.extend({
 // Talking-head clips share the script evenly: 5–12s, at most 20 (enforced in talkingHeadPlanError, not
 // on this schema — Gemini structured output rejects maxItems on nested arrays).
 export const talkingHeadPhaseASchema = phaseASchema.extend({
-  clips: z.array(storyboardRowSchema.extend({ durationSeconds: z.number().min(1).max(12) })).min(1),
+  clips: z.array(storyboardRowSchema.extend({ durationSeconds: z.number().min(5).max(12) })).min(1),
 });
 
 // One clip's video prompt (per-clip Phase B).
 export const phaseBClipSchema = z.object({
   clipNumber: z.number().int().min(1),
-  durationSeconds: z.number().min(3).max(8),
+  durationSeconds: z.number().min(5).max(12),
   prompt: z.string(),
 });

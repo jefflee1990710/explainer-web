@@ -7,11 +7,11 @@ import { sceneStateLabels } from "@/service/director/languages";
 export type KeyframeDeltaBand = "3s" | "4s" | "5-6s" | "7-8s";
 
 export function clampClipSeconds(durationSeconds: number) {
-  return Math.min(8, Math.max(3, Math.round(durationSeconds)));
+  return Math.min(12, Math.max(5, Math.round(durationSeconds)));
 }
 
 export function keyframeDeltaBand(durationSeconds: number): KeyframeDeltaBand {
-  const seconds = clampClipSeconds(durationSeconds);
+  const seconds = Math.round(durationSeconds);
   if (seconds <= 3) return "3s";
   if (seconds <= 4) return "4s";
   if (seconds <= 6) return "5-6s";

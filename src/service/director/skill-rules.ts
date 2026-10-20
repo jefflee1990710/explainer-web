@@ -27,10 +27,10 @@ export {
   isSurpriseInterviewSkill,
 };
 
-// Opening / Ending bookends. Auto keeps the skill's 1×3–4s sting; a chosen length does not.
+// Opening / Ending bookends. Auto keeps the skill's 1×5–8s sting; a chosen length does not.
 const BOOKEND_SKILLS = new Set([OPENING_SKILL_SLUG, ENDING_SKILL_SLUG]);
-export const BOOKEND_MIN_SECONDS = 3;
-export const BOOKEND_MAX_SECONDS = 4;
+export const BOOKEND_MIN_SECONDS = 5;
+export const BOOKEND_MAX_SECONDS = 8;
 
 export function isBookendSkill(skillSlug?: string) {
   return Boolean(skillSlug && BOOKEND_SKILLS.has(skillSlug));

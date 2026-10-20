@@ -67,17 +67,17 @@ test("auto leaves length to the director; a chosen preset keeps its clip budget"
   assert.match(open, /duration preset/);
 });
 
-test("bookend storyboards collapse to one 3–4s clip", () => {
+test("bookend storyboards collapse to one 5–8s clip", () => {
   const row = (clipNumber: number, durationSeconds: number) => ({
     clipNumber,
     durationSeconds,
     timeRange: "x",
   });
-  assert.deepEqual(normalizeBookendClips([row(1, 6), row(2, 5)]), [
-    { clipNumber: 1, durationSeconds: 4, timeRange: "0–4s" },
+  assert.deepEqual(normalizeBookendClips([row(1, 10), row(2, 5)]), [
+    { clipNumber: 1, durationSeconds: 8, timeRange: "0–8s" },
   ]);
   assert.deepEqual(normalizeBookendClips([row(1, 1)]), [
-    { clipNumber: 1, durationSeconds: 3, timeRange: "0–3s" },
+    { clipNumber: 1, durationSeconds: 5, timeRange: "0–5s" },
   ]);
   assert.deepEqual(normalizeBookendClips([]), []);
 });

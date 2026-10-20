@@ -7,12 +7,20 @@ export const CANTONESE_VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
 type VoiceSwapProject = {
   skillSlug?: string;
   language?: string;
-  cast?: Array<{ voiceSample?: { elevenVoiceId?: string } | null }>;
+  cast?: Array<{
+    voiceSample?: { elevenVoiceId?: string } | null;
+    voiceSamples?: Partial<Record<string, { elevenVoiceId?: string } | undefined>> | null;
+  }>;
 };
 
 // Only Cantonese leaves the video model's voice. A one-character clone wins;
 // every other Cantonese director still converts on the premade voice.
 export function resolveVoiceSwapId(project: VoiceSwapProject): string | null {
-  if (project.language !== "yue") return null;
-  return voiceSwapVoiceId(project.cast) || CANTONESE_VOICE_ID;
+  if (project.language !== "yue") {
+    const langSample = project.language
+      ? project.cast?.[0]?.voiceSamples?.[project.language]?.elevenVoiceId
+      : undefined;
+    return project.cast?.length === 1 && langSample ? langSample : null;
+  }
+  return voiceSwapVoiceId(project.cast, project.language) || CANTONESE_VOICE_ID;
 }

@@ -57,5 +57,5 @@ export function speechPaceSkillHint(value?: string) {
     preset.budget === 1
       ? "Use the duration preset's spoken-word budget as written."
       : `Multiply the duration preset's spoken-word budget (and every clip's spoken units) by about ${preset.budget}.`;
-  return `Speaking pace: ${preset.id} — ${preset.delivery}. ${scale} Clip durations stay the same; only how much is spoken changes.`;
+  return `Speaking pace: ${preset.id} — ${preset.delivery}. ${scale} Every clip MUST be at least 5 seconds long (up to 12s max) and its englishVo MUST contain enough spoken words/characters to fill the entire clip duration without dead silence at the start or end (~22–28 Chinese/Cantonese characters or ~12–16 English words per 5 seconds at medium pace). Expand or combine short phrases so no clip has an under-filled VO.`;
 }

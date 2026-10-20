@@ -5,9 +5,13 @@ import { characterPersonaSchema, type CharacterPersona } from "@/model/character
 import { characterVoiceSchema, type CharacterVoice } from "@/model/character-voice";
 import {
   castVoiceSampleSchema,
+  castVoiceSamplesMapSchema,
   characterVoiceSampleSchema,
+  characterVoiceSamplesMapSchema,
   type CastVoiceSample,
+  type CastVoiceSamplesMap,
   type CharacterVoiceSample,
+  type CharacterVoiceSamplesMap,
 } from "@/model/character-voice-sample";
 import { objectIdSchema } from "@/model/primitives";
 
@@ -85,6 +89,8 @@ export type Character = {
   voice?: CharacterVoice;
   // Demo voice the clip audio is converted to after generation.
   voiceSample?: CharacterVoiceSample;
+  // Per-language demo voices (Cantonese yue, Mandarin zh, English en).
+  voiceSamples?: CharacterVoiceSamplesMap;
   // Character-level preview. Matches the original style's chosen sheet.
   defaultVersionId?: ObjectId;
   // One chosen sheet per style. Missing styles fall back to defaultVersionId when it belongs to that style.
@@ -109,6 +115,7 @@ export type CastMember = {
   spec?: CharacterSpec;
   voice?: CharacterVoice;
   voiceSample?: CastVoiceSample;
+  voiceSamples?: CastVoiceSamplesMap;
   persona?: CharacterPersona;
 };
 
@@ -159,6 +166,7 @@ export const characterSchema: z.ZodType<Character> = z.object({
   persona: characterPersonaSchema.optional(),
   voice: characterVoiceSchema.optional(),
   voiceSample: characterVoiceSampleSchema.optional(),
+  voiceSamples: characterVoiceSamplesMapSchema.optional(),
   defaultVersionId: objectIdSchema.optional(),
   styleDefaults: z.record(z.string(), objectIdSchema).optional(),
   versions: z.array(characterVersionSchema),
@@ -179,5 +187,6 @@ export const castMemberSchema: z.ZodType<CastMember> = z.object({
   spec: characterSpecSchema.optional(),
   voice: characterVoiceSchema.optional(),
   voiceSample: castVoiceSampleSchema.optional(),
+  voiceSamples: castVoiceSamplesMapSchema.optional(),
   persona: characterPersonaSchema.optional(),
 });

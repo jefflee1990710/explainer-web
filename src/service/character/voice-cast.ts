@@ -4,7 +4,7 @@ import { isCharacterVoice } from "@/model/character-voice";
 
 export function mergeCurrentCharacterVoices(
   cast: CastMember[] | undefined,
-  docs: Array<Pick<Character, "_id" | "voice" | "voiceSample">>,
+  docs: Array<Pick<Character, "_id" | "voice" | "voiceSample" | "voiceSamples">>,
 ): CastMember[] | undefined {
   if (!cast?.length) return cast;
   const byId = new Map(docs.map((doc) => [doc._id.toHexString(), doc]));
@@ -21,6 +21,19 @@ export function mergeCurrentCharacterVoices(
       };
     } else {
       delete next.voiceSample;
+    }
+    if (doc.voiceSamples) {
+      const mapped: NonNullable<CastMember["voiceSamples"]> = {};
+      for (const lang of ["yue", "zh", "en"] as const) {
+        const s = doc.voiceSamples[lang];
+        if (s?.elevenVoiceId && s?.url) {
+          mapped[lang] = { url: s.url, elevenVoiceId: s.elevenVoiceId };
+        }
+      }
+      if (Object.keys(mapped).length > 0) next.voiceSamples = mapped;
+      else delete next.voiceSamples;
+    } else {
+      delete next.voiceSamples;
     }
     return next;
   });

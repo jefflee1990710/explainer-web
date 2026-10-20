@@ -6,14 +6,21 @@ import {
   convertSpeech,
   createVoiceClone,
   ELEVENLABS_TTS_MODEL,
+  elevenLabsVoiceLabels,
+  fetchForcedAlignment,
   groupAlignmentTokens,
+  matchClauseWindows,
   parseSpeechWindowFromStderr,
   STS_VOICE_SETTINGS,
   synthesizeSpeech,
   synthesizeSpeechWithTimestamps,
   withTimedLipSyncPrompt,
 } from "@/service/voice/elevenlabs";
-import { alignedVoiceSwapFilter, mixVoiceArgs } from "@/service/voice/voice-swap-args";
+import {
+  alignedVoiceSwapFilter,
+  clauseAlignedVoiceFilter,
+  mixVoiceArgs,
+} from "@/service/voice/voice-swap-args";
 
 test("convertSpeech sends high-stability voice_settings so Cantonese tones and prosody stay locked to source speech", async () => {
   let capturedForm: FormData | undefined;
@@ -88,6 +95,10 @@ test("createVoiceClone appends multiple audio files to ElevenLabs Instant Voice 
   assert.equal(voiceId, "cloned_multi_id");
   const uploadedFiles = capturedForm?.getAll("files") ?? [];
   assert.equal(uploadedFiles.length, 2);
+  assert.deepEqual(JSON.parse(String(capturedForm?.get("labels"))), {
+    language: "zh",
+    accent: "zh-hong-kong-cantonese",
+  });
 });
 
 test("cleanSpokenDialogueLine strips speaker prefix and outer quotes", () => {
@@ -121,11 +132,12 @@ test("parseSpeechWindowFromStderr and alignedVoiceSwapFilter trim TTS silence an
     trimEnd: 3.49,
     delayMs: 885,
     tempo: 0.9167,
+    durationSeconds: 5.17,
   });
-  assert.match(filter, /atrim=start=0\.08:end=3\.49,asetpts=PTS-STARTPTS/);
+  assert.match(filter, /atrim=start=0\.08:end=3\.49,asetpts=N\/SR\/TB/);
   assert.match(filter, /atempo=0\.9167/);
-  assert.match(filter, /adelay=885\|885/);
-  assert.match(filter, /apad\[a\]$/);
+  assert.match(filter, /aevalsrc=0:c=stereo:s=44100:d=0\.885/);
+  assert.match(filter, /concat=n=2:v=0:a=1,apad,atrim=0:5\.17,asetpts=N\/SR\/TB\[a\]$/);
 
   const args = mixVoiceArgs("in.mp4", "voice.mp3", "out.mp4", {
     trimStart: 0.08,
@@ -188,4 +200,68 @@ test("synthesizeSpeechWithTimestamps retrieves audio and character timestamps an
   assert.match(updated, /0\.40–1\.20s 口型跟住講/);
   assert.match(updated, /1\.20–5s 口部合上/);
   assert.match(updated, /EXACT LIP-SYNC TIMING SCHEDULE/);
+});
+
+test("fetchForcedAlignment and matchClauseWindows align Eleven v4 TTS clauses to source video mouth timing", async () => {
+  const faWords = [
+    { text: "有", start: 0.94, end: 1.04 },
+    { text: "無", start: 1.04, end: 1.18 },
+    { text: "諗", start: 1.18, end: 1.42 },
+    { text: "過", start: 1.42, end: 1.64 },
+    { text: "你", start: 1.64, end: 1.76 },
+    { text: "個", start: 1.76, end: 1.9 },
+    { text: "Instagram", start: 1.9, end: 2.62 },
+    { text: "都", start: 2.62, end: 2.76 },
+    { text: "可", start: 2.76, end: 2.88 },
+    { text: "以", start: 2.88, end: 3.02 },
+  ];
+  const ttsTokens = [
+    { token: "有", start: 0, end: 0.16 },
+    { token: "無", start: 0.16, end: 0.32 },
+    { token: "諗", start: 0.32, end: 0.56 },
+    { token: "過", start: 0.56, end: 0.96 },
+    { token: "你", start: 0.96, end: 1.04 },
+    { token: "個", start: 1.04, end: 1.2 },
+    { token: "Instagram", start: 1.2, end: 1.92 },
+    { token: "都", start: 1.92, end: 2.133 },
+    { token: "可", start: 2.133, end: 2.267 },
+    { token: "以", start: 2.267, end: 2.4 },
+  ];
+
+  const fakeFetch: typeof fetch = async () =>
+    new Response(JSON.stringify({ words: faWords }), { status: 200 });
+
+  const words = await fetchForcedAlignment(Buffer.from("wav"), "有無諗過你個Instagram都可以", {
+    apiKey: "test-key",
+    fetch: fakeFetch,
+  });
+  assert.equal(words.length, 10);
+
+  const clauses = matchClauseWindows(ttsTokens, words);
+  assert.equal(clauses.length, 1);
+  assert.equal(clauses[0].targetStart, 0.94);
+  assert.equal(clauses[0].targetEnd, 3.02);
+
+  const filter = clauseAlignedVoiceFilter(clauses, 5.17);
+  assert.match(filter, /atrim=start=/);
+  assert.match(filter, /aevalsrc=0:c=stereo:s=44100:d=0\.94/);
+  assert.match(filter, /concat=n=/);
+  assert.match(filter, /asetpts=N\/SR\/TB\[a\]$/);
+});
+
+test("elevenLabsVoiceLabels maps yue, zh, and en to their ElevenLabs language and accent labels", () => {
+  assert.deepEqual(elevenLabsVoiceLabels("yue", "female"), {
+    language: "zh",
+    accent: "zh-hong-kong-cantonese",
+    gender: "female",
+  });
+  assert.deepEqual(elevenLabsVoiceLabels("zh", "male"), {
+    language: "zh",
+    accent: "mandarin",
+    gender: "male",
+  });
+  assert.deepEqual(elevenLabsVoiceLabels("en"), {
+    language: "en",
+    accent: "american",
+  });
 });

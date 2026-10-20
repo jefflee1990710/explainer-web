@@ -43,11 +43,27 @@ test("normalizeVoiceSampleClips and voiceSampleUrls handle single and multi-file
   ]);
 });
 
-test("voice swap runs only for a one-character cast with a demo voice", () => {
+test("voice swap runs only for a one-character cast with a demo voice and prefers language-matched sample", () => {
   assert.equal(voiceSwapVoiceId(undefined), null);
   assert.equal(voiceSwapVoiceId([]), null);
   assert.equal(voiceSwapVoiceId([{}]), null);
   assert.equal(voiceSwapVoiceId([{ voiceSample: { elevenVoiceId: "v1" } }]), "v1");
+  assert.equal(
+    voiceSwapVoiceId(
+      [
+        {
+          voiceSample: { elevenVoiceId: "v_default" },
+          voiceSamples: {
+            yue: { url: "https://a/yue.wav", elevenVoiceId: "v_yue" },
+            zh: { url: "https://a/zh.wav", elevenVoiceId: "v_zh" },
+            en: { url: "https://a/en.wav", elevenVoiceId: "v_en" },
+          },
+        },
+      ],
+      "zh",
+    ),
+    "v_zh",
+  );
   assert.equal(
     voiceSwapVoiceId([{ voiceSample: { elevenVoiceId: "v1" } }, { voiceSample: { elevenVoiceId: "v2" } }]),
     null,

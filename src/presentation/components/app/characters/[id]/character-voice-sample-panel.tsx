@@ -8,10 +8,21 @@ import {
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicCharacter } from "@/presentation/serialize";
-import { isVoiceSampleMime, VOICE_SAMPLE_MAX_BYTES } from "@/model/character-voice-sample";
+import {
+  isVoiceSampleMime,
+  VOICE_SAMPLE_LANGUAGES,
+  VOICE_SAMPLE_MAX_BYTES,
+  type VoiceSampleLanguage,
+} from "@/model/character-voice-sample";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 const ACCEPT = ".mp3,.wav,.m4a,audio/mpeg,audio/wav,audio/mp4";
+
+const LANGUAGE_LABELS: Record<VoiceSampleLanguage, string> = {
+  yue: "廣東話",
+  zh: "普通話",
+  en: "English",
+};
 
 // Demo voice upload + preview. Clips of a one-character video are re-voiced to it.
 export function CharacterVoiceSamplePanel({
@@ -24,10 +35,18 @@ export function CharacterVoiceSamplePanel({
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const modeRef = useRef<"append" | "replace">("replace");
+  const [selectedLang, setSelectedLang] = useState<VoiceSampleLanguage>(
+    character.voiceSample?.language ?? "yue",
+  );
   const [pending, setPending] = useState<"upload" | "remove" | null>(null);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
-  const sample = character.voiceSample;
+
+  const sample =
+    character.voiceSamples?.[selectedLang] ??
+    ((character.voiceSample?.language ?? "yue") === selectedLang
+      ? character.voiceSample
+      : null);
   const clips =
     sample?.clips && sample.clips.length > 0
       ? sample.clips
@@ -60,6 +79,7 @@ export function CharacterVoiceSamplePanel({
     try {
       const form = new FormData();
       form.append("mode", modeRef.current);
+      form.append("language", selectedLang);
       for (const file of picked) {
         form.append("files", file);
       }
@@ -82,7 +102,11 @@ export function CharacterVoiceSamplePanel({
     setSaved(false);
     setPending("remove");
     try {
-      const result = await removeCharacterVoiceSampleAction(character.id, clipUrl);
+      const result = await removeCharacterVoiceSampleAction(
+        character.id,
+        clipUrl,
+        selectedLang,
+      );
       if (!result.ok) {
         setError(translateAppError(result.error, t));
         return;
@@ -99,6 +123,41 @@ export function CharacterVoiceSamplePanel({
     <div className="mt-4 rounded-2xl border border-accent-ink/10 bg-paper p-4">
       <h3 className="text-sm font-semibold">{t("characters.voiceSampleTitle")}</h3>
       <p className="mt-1 text-sm text-muted">{t("characters.voiceSampleHint")}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {VOICE_SAMPLE_LANGUAGES.map((lang) => {
+          const active = selectedLang === lang;
+          const hasLangSample = Boolean(
+            character.voiceSamples?.[lang] ||
+              (!character.voiceSamples &&
+                character.voiceSample &&
+                (character.voiceSample.language ?? "yue") === lang),
+          );
+          return (
+            <button
+              key={lang}
+              type="button"
+              onClick={() => {
+                setSelectedLang(lang);
+                setError("");
+                setSaved(false);
+              }}
+              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                active
+                  ? "bg-accent-ink text-white"
+                  : "border border-accent-ink/15 bg-paper text-accent-ink hover:bg-accent-ink/5"
+              }`}
+            >
+              <span>{LANGUAGE_LABELS[lang]}</span>
+              {hasLangSample ? (
+                <span
+                  aria-hidden="true"
+                  className={`h-2 w-2 rounded-full ${active ? "bg-emerald-400" : "bg-emerald-500"}`}
+                />
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
       {clips.length > 0 ? (
         <div className="mt-3 space-y-2">
           {clips.map((clip, index) => (

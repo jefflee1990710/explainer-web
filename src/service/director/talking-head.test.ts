@@ -361,9 +361,9 @@ test("overlay talking-head scenes keep the voice line and drop the subtitle", ()
   assert.doesNotMatch(clips[0].endScene, /Subtitle:/);
   assert.match(clips[0].motionCamera, /on-screen subtitle holds/);
   assert.doesNotMatch(clips[0].motionCamera, /next subtitle/);
-  // That pair is under 5s, so it stays one clip. Clip 2 needs a longer script.
+  // That pair is under 8s, so it stays one clip. Clip 2 needs a longer script.
   const continued = planTalkingHeadClips({
-    source: "Hello there. This opening line should stand alone as the first spoken clip today. See you.",
+    source: "Hello there. This opening line should stand alone as the first spoken clip today because it has plenty of words to fill a full eight second slot. See you in the next clip right now.",
     pace: "medium",
     language: "en",
     aspectRatio: "9:16",

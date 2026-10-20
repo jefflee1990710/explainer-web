@@ -274,7 +274,9 @@ export async function renderSubtitleGuideDataUrl(input: {
   look?: SubtitleLook | string | null;
 }): Promise<string> {
   const svg = renderSubtitleGuideSvg(input);
-  const png = await sharp(Buffer.from(svg)).png().toBuffer();
+  const png = await sharp(Buffer.from(svg))
+    .png({ palette: true, colors: 16, compressionLevel: 9 })
+    .toBuffer();
   return `data:image/png;base64,${png.toString("base64")}`;
 }
 
@@ -282,5 +284,5 @@ export function subtitleGuidePromptLine(imageIndex: number, line: string): strin
   const lines = splitSubtitleGuideLines(line);
   const layout =
     lines.length === 2 ? `two lines ("${lines[0]}" / "${lines[1]}")` : `one line ("${lines[0] || line}")`;
-  return `SUBTITLE SPELLING GUIDE: attached image ${imageIndex} is a plain font-rendered spelling reference showing ONLY how the characters and ${layout} are spelled and broken across lines. Copy every character and line break from attached image ${imageIndex} verbatim (no typos, no doubled or missing letters, no blank empty strip), but do NOT copy the plain font, flat colors, or rectangular box from attached image ${imageIndex} — render the subtitle strictly following the user's selected text style in the Look line at the top (exact font/marker/brush style, colors, paper-strip or background treatment, texture, and edges).`;
+  return `SUBTITLE SPELLING GUIDE: attached image ${imageIndex} is a plain font-rendered spelling reference showing ONLY how the characters and ${layout} are spelled and broken across lines. Copy every character and line break from attached image ${imageIndex} verbatim (no typos, no doubled or missing letters, no blank empty strip), but do NOT copy the plain font, flat colors, or rectangular box from attached image ${imageIndex} — render the subtitle strictly following the user's selected text style in the Look line at the top (exact font/marker/brush style, colors, paper-strip or background treatment, texture, and edges). 2D SCREEN OVERLAY ONLY: the subtitle strip is a flat 2D graphic overlay floating on the camera screen in front of the scene — NEVER a physical paper sign or card in the room. The character's hands and fingers must NEVER hold, pinch, touch, or support the subtitle strip.`;
 }

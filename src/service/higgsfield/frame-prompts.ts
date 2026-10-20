@@ -386,7 +386,7 @@ function fitFramePrompt(
       ...p,
       scene: p.scene
         .replace(
-          /\s*Realism:\s*[\s\S]*?(?=\s*(?:Subtitle:|字幕：)|$)/,
+          /\s*(?:Realism:|真實感：)\s*[\s\S]*?(?=\s*(?:Subtitle:|字幕：)|$)/,
           " Realism: grazing directional window key and rim light strictly from the window side (camera-right) with negative fill and natural shadow roll-off on the camera-left cheek (no flat front fill, no blueprint light, neutral/cool highlights unless a warm practical lamp is in frame, soft overcast window below pure-white clipping); visible skin pores, fine peach-fuzz, matte-natural human skin with zero oily or plastic specular sheen, 35mm grain with slightly lifted shadow blacks, soft background bokeh (no foreground obstructions).",
         )
         .trim(),
@@ -423,11 +423,25 @@ function fitFramePrompt(
           /Subtitle: one LARGE phone-readable subtitle, a little below the vertical center, clear of the face and the bottom edge, exactly /,
           "Subtitle: one LARGE subtitle below vertical center, clear of face and bottom, ",
         )
+        .replace(/\s*鏡頭同開頭畫面一樣：[^。]*。(?:唔好|不要)變焦，(?:唔好|不要)跳鏡。/g, "")
+        .replace(/\s*畫面上面(?:唔好|不要)貼圖、(?:唔好|不要)加字，(?:冇|沒有)新道具。/g, "")
+        .replace(
+          /\s*(?:唔好|不要)企起身，(?:冇|沒有)咪。(?:唔好|不要)用手臂距離，(?:唔好|不要)伸隻手出畫面，(?:唔好|不要)裁成淨係塊臉。/g,
+          "",
+        )
+        .replace(
+          /\s*鏡頭：手機固定(?:喺|在)手機腳架，鎖定(?:唔|不)郁。鏡頭係 24mm f\/1\.8，塊臉清楚、背景少少朦。頭同上身留(?:喺|在)畫面。兩隻手都留(?:喺|在)畫面入面。/g,
+          " 鏡頭：鎖定 24mm f/1.8 腳架中景（頭、上身、雙手喺畫面）。",
+        )
+        .replace(
+          /\s*場景：全程同一張屋企沙發，書架(?:喺|在)頭後面。\s*光：一邊窗(?:嘅|的)普通日光，(?:冇|沒有)影樓燈。/g,
+          " 場景：屋企沙發，頭後書架。光：單邊窗自然日光。",
+        )
         .trim(),
       moment: firstSentence(p.moment),
       palette: "",
     }),
-    (p) => (/\bRealism:/.test(p.scene) ? { ...p, renderDetail: "" } : p),
+    (p) => (/(?:\bRealism:|真實感：)/.test(p.scene) ? { ...p, renderDetail: "" } : p),
     // When cast + prop sheet + background plate + logo + realistic light push the prompt past the
     // budget, compact the verbose lock boilerplate while keeping every lock header and rule intact.
     (p) => ({
@@ -985,7 +999,7 @@ export function buildFramePrompt(
                 "Final check: the quoted Subtitle lines are painted large in the subtitle Look above. They are required on-screen text. Do not omit them. Words inside 「」 stay ordinary writing on their object.",
               ]
             : [
-                "Final check: subtitle place and size follow the Scene's Subtitle sentence. Paint those words strictly in the user's selected text style from the subtitle Look line above (exact font, colors, paper strip or backing, texture, and edges; every subtitle strip must contain words, never leave a blank empty strip). Use the attached spelling guide only for how each word is written and broken across lines — do NOT copy the guide's plain font, colors, or box, and do not replace that lettering with a plain white caption or the visual style.",
+                "Final check: subtitle place and size follow the Scene's Subtitle sentence as a flat 2D screen-overlay graphic floating on the camera lens plane (NEVER a physical card or paper strip held in the scene; the character's hands must NEVER hold, pinch, or touch the subtitle). Paint those words strictly in the user's selected text style from the subtitle Look line above (exact font, colors, paper strip or backing, texture, and edges; every subtitle strip must contain words, never leave a blank empty strip). Use the attached spelling guide only for how each word is written and broken across lines — do NOT copy the guide's plain font, colors, or box, and do not replace that lettering with a plain white caption or the visual style.",
               ]
         : keepSceneLabels
           ? [
