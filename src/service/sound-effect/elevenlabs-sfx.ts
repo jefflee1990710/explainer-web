@@ -1,24 +1,21 @@
 import { ObjectId } from "mongodb";
 import { soundEffectsCollection } from "@/dao/sound-effects";
+import {
+  SOUND_EFFECT_CATEGORIES,
+  type SoundEffectCategoryId,
+  type SoundEffectSourceFilter,
+} from "@/opencut/sounds/types";
 import { persistBuffer } from "@/service/higgsfield/persist";
 import type { LibrarySound } from "@/service/sound-effect/library";
 import { probeAudioSeconds } from "@/service/voice/voice-swap";
 
+export {
+  SOUND_EFFECT_CATEGORIES,
+  type SoundEffectCategoryId,
+  type SoundEffectSourceFilter,
+};
+
 const ELEVENLABS_SFX_URL = "https://api.elevenlabs.io/v1/sound-generation";
-
-export const SOUND_EFFECT_CATEGORIES = [
-  { id: "all", label: "All", query: "" },
-  { id: "whoosh", label: "Whoosh & Transitions", query: "whoosh transition swoosh" },
-  { id: "impacts", label: "Impacts & Hits", query: "impact hit boom thud" },
-  { id: "ui", label: "UI & Clicks", query: "ui click pop ding notification" },
-  { id: "foley", label: "Foley & Steps", query: "foley footsteps cloth rustle" },
-  { id: "ambience", label: "Ambience", query: "ambience room tone nature" },
-  { id: "cinematic", label: "Cinematic", query: "cinematic riser braam tension" },
-  { id: "cartoon", label: "Cartoon & Comedy", query: "cartoon boing pop slide whistle" },
-] as const;
-
-export type SoundEffectCategoryId = (typeof SOUND_EFFECT_CATEGORIES)[number]["id"];
-export type SoundEffectSourceFilter = "all" | "elevenlabs" | "library";
 
 type FetchOptions = {
   apiKey?: string;

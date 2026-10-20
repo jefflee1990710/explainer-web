@@ -24,13 +24,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/opencut/components/u
 import { useInfiniteScroll } from "@/opencut/hooks/use-infinite-scroll";
 import { useSoundSearch } from "@/opencut/sounds/use-sound-search";
 import { useSoundsStore } from "@/opencut/sounds/sounds-store";
-import type { SavedSound, SoundEffect } from "@/opencut/sounds/types";
-import { cn } from "@/opencut/utils/ui";
-import { generateElevenLabsSoundEffectAction } from "@/presentation/actions/sound-effects";
 import {
 	SOUND_EFFECT_CATEGORIES,
+	type SavedSound,
+	type SoundEffect,
 	type SoundEffectSourceFilter,
-} from "@/service/sound-effect/elevenlabs-sfx";
+} from "@/opencut/sounds/types";
+import { cn } from "@/opencut/utils/ui";
+import { generateElevenLabsSoundEffectAction } from "@/presentation/actions/sound-effects";
 import { toast } from "sonner";
 import {
 	FavouriteIcon,

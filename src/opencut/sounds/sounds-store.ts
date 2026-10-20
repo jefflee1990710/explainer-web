@@ -1,9 +1,10 @@
 import { create } from "zustand";
-import type { SoundEffect, SavedSound } from "@/opencut/sounds/types";
 import type {
+	SoundEffect,
+	SavedSound,
 	SoundEffectCategoryId,
 	SoundEffectSourceFilter,
-} from "@/service/sound-effect/elevenlabs-sfx";
+} from "@/opencut/sounds/types";
 import { storageService } from "@/opencut/services/storage/service";
 import { toast } from "sonner";
 import { EditorCore } from "@/opencut/core";
