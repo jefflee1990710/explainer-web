@@ -66,7 +66,7 @@ export async function listLifePage(clerkUserId: string) {
   const shots = await lifeShotsCollection();
   const [docs, recent] = await Promise.all([
     characters.find({ clerkUserId }).sort({ updatedAt: -1 }).toArray() as Promise<Character[]>,
-    shots.find({ clerkUserId }).sort({ createdAt: -1 }).limit(24).toArray() as Promise<LifeShot[]>,
+    shots.find({ clerkUserId }).sort({ createdAt: -1 }).limit(120).toArray() as Promise<LifeShot[]>,
   ]);
   const people: PublicLifeCharacter[] = docs.map((character) => {
     const identity = characterIdentityUrl(character);

@@ -10,7 +10,6 @@ import {
 } from "@/presentation/actions/life";
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
-import { CharacterImagePreviewDialog } from "@/presentation/components/app/characters/[id]/character-image-preview-dialog";
 import { LifeCharacterStrip } from "@/presentation/components/app/life/life-character-strip";
 import { LifeSceneSource } from "@/presentation/components/app/life/life-scene-source";
 import { LifeShotGrid } from "@/presentation/components/app/life/life-shot-grid";
@@ -178,13 +177,9 @@ export function LifeDesk({
   const [kind] = useState<LifeShotKind>("selfie");
   const [mode, setMode] = useState<"search" | "upload">("upload");
   const [hits, setHits] = useState<LifeSceneHit[]>([]);
-  const [uploadUrl, setUploadUrl] = useState("");
   const [sceneUrl, setSceneUrl] = useState("");
   const [shots, setShots] = useState(initialShots);
-  const [activeShotId, setActiveShotId] = useState<string>(
-    initialShots[0]?.id || "",
-  );
-  const [lightboxShot, setLightboxShot] = useState<PublicLifeShot | null>(null);
+  const [dialogShot, setDialogShot] = useState<PublicLifeShot | null>(null);
   const [pending, setPending] = useState<
     "search" | "upload" | "generate" | "regenerate" | ""
   >("");
@@ -209,14 +204,10 @@ export function LifeDesk({
     [characters, characterId],
   );
 
-  const visibleShots = shots;
-
-  const activeShot = useMemo(
-    () =>
-      visibleShots.find((item) => item.id === activeShotId) ||
-      visibleShots[0] ||
-      null,
-    [visibleShots, activeShotId],
+  // Each character has its own independent Recent history grid.
+  const visibleShots = useMemo(
+    () => shots.filter((item) => item.characterId === characterId),
+    [shots, characterId],
   );
 
   useEffect(() => {
@@ -329,6 +320,7 @@ export function LifeDesk({
     const next = characters.find((item) => item.id === id);
     setCharacterId(id);
     if (next?.persona?.city) setPlace(next.persona.city);
+    setDialogShot(null);
     setError("");
   }
 
@@ -373,7 +365,6 @@ export function LifeDesk({
         setError(translateAppError(uploaded.ok ? "" : uploaded.error, t));
         return;
       }
-      setUploadUrl(uploaded.url);
       setSceneUrl(uploaded.url);
       setMode("upload");
       resetRemarks();
@@ -420,7 +411,6 @@ export function LifeDesk({
         return;
       }
       setShots((current) => [result.shot, ...current]);
-      setActiveShotId(result.shot.id);
     } catch {
       setPending("");
       setError(t("errors.lifeGenerateFailed"));
@@ -428,9 +418,9 @@ export function LifeDesk({
   }
 
   async function onRegenerateFromHistory() {
-    if (!activeShot) return;
+    if (!dialogShot) return;
     const targetChar =
-      characters.find((c) => c.id === activeShot.characterId) || character;
+      characters.find((c) => c.id === dialogShot.characterId) || character;
     if (!targetChar?.ready) {
       setError(t("life.needBlueprint"));
       return;
@@ -440,9 +430,9 @@ export function LifeDesk({
     try {
       const result = await generateLifeShotAction({
         characterId: targetChar.id,
-        place: activeShot.place || "Edited Shot",
-        kind: activeShot.kind,
-        sceneImageUrl: activeShot.resultUrl,
+        place: dialogShot.place || "Edited Shot",
+        kind: dialogShot.kind,
+        sceneImageUrl: dialogShot.resultUrl,
         source: "upload",
         customInstruction:
           historyEditPrompt.trim() ||
@@ -455,7 +445,7 @@ export function LifeDesk({
         return;
       }
       setShots((current) => [result.shot, ...current]);
-      setActiveShotId(result.shot.id);
+      setDialogShot(result.shot);
       setHistoryEditPrompt("");
     } catch {
       setPending("");
@@ -487,16 +477,7 @@ export function LifeDesk({
 
   return (
     <div className="flex flex-col gap-3 lg:h-[calc(100dvh-4.5rem)] lg:overflow-hidden">
-      {lightboxShot ? (
-        <CharacterImagePreviewDialog
-          src={lightboxShot.resultUrl}
-          title={`${lightboxShot.characterName} · ${lightboxShot.place}`}
-          alt={lightboxShot.characterName}
-          onClose={() => setLightboxShot(null)}
-        />
-      ) : null}
-
-      {/* Compact Single-Row Studio Header (Removed Selfie / Food / Street / Hobby buttons) */}
+      {/* Compact Single-Row Studio Header */}
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-accent-ink/10 bg-paper/90 px-4 py-2.5">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           <h1 className="font-display text-lg font-bold">{t("life.title")}</h1>
@@ -811,14 +792,14 @@ export function LifeDesk({
           </div>
         </section>
 
-        {/* Right Column: Wider Recent Panel with Active Preview + AI Edit & Regenerate Input + IG Grid */}
+        {/* Right Column: Wider Recent Panel showing full Instagram-Style Grid View */}
         <aside
           aria-label={t("life.recent")}
           className="flex min-h-[24rem] flex-col gap-2.5 overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper p-3.5"
         >
           <div className="flex shrink-0 items-center justify-between">
             <h2 className="font-display text-sm font-bold">
-              {t("life.recent")}
+              {character ? `${character.name} · ${t("life.recent")}` : t("life.recent")}
             </h2>
             {visibleShots.length > 0 ? (
               <span className="rounded-full bg-accent-ink/8 px-2 py-0.5 text-[10px] font-bold text-muted">
@@ -827,52 +808,63 @@ export function LifeDesk({
             ) : null}
           </div>
 
-          {/* Featured Selected Shot Preview */}
-          <div className="relative grid h-52 shrink-0 place-items-center overflow-hidden rounded-xl border border-accent-ink/10 bg-zinc-200/70">
-            {activeShot ? (
-              <div className="relative h-full w-full">
-                <button
-                  type="button"
-                  onClick={() => setLightboxShot(activeShot)}
-                  className="group relative h-full w-full cursor-zoom-in"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={activeShot.resultUrl}
-                    alt={activeShot.characterName}
-                    className="h-full w-full object-contain transition duration-150 group-hover:scale-[1.015]"
-                  />
-                  <span className="absolute right-2 bottom-2 left-2 truncate rounded-lg bg-black/65 px-2.5 py-1 text-left text-[11px] font-medium text-white backdrop-blur-xs">
-                    <strong className="font-bold">
-                      {activeShot.characterName}
-                    </strong>
-                    {activeShot.place ? ` · ${activeShot.place}` : ""}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSceneUrl(activeShot.resultUrl);
-                    setUploadUrl(activeShot.resultUrl);
-                    setMode("upload");
-                    resetRemarks();
-                  }}
-                  className="absolute top-2 right-2 cursor-pointer rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-xs transition hover:bg-black"
-                >
-                  載入畫布標註修改
-                </button>
-              </div>
-            ) : (
-              <p className="px-4 text-center text-xs text-muted">
-                {t("life.emptyShots")}
-              </p>
-            )}
+          <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+            <LifeShotGrid
+              shots={visibleShots}
+              selectedId={dialogShot?.id}
+              onSelect={(shot) => {
+                setDialogShot(shot);
+                setHistoryEditPrompt("");
+                setGeneratedCaption("");
+                setCaptionCopied(false);
+              }}
+              compact
+            />
           </div>
+        </aside>
+      </div>
 
-          {/* Input Field to Edit & Generate Again with AI from Selected History Shot */}
-          {activeShot ? (
-            <div className="space-y-1.5">
-              <div className="flex shrink-0 items-center gap-1.5">
+      {dialogShot ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={dialogShot.characterName}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-xs"
+          onClick={() => setDialogShot(null)}
+        >
+          <div
+            className="flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-accent-ink/15 bg-paper shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-accent-ink/10 px-5 py-3">
+              <div className="min-w-0 truncate text-xs font-bold text-foreground">
+                {dialogShot.characterName}
+                {dialogShot.place ? (
+                  <span className="ml-1.5 font-medium text-muted">
+                    · {dialogShot.place}
+                  </span>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => setDialogShot(null)}
+                className="cursor-pointer rounded-full px-2.5 py-1 text-xs font-bold text-muted hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
+              <div className="relative mx-auto max-h-[52dvh] overflow-hidden rounded-xl border border-accent-ink/10 bg-zinc-900">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={dialogShot.resultUrl}
+                  alt={dialogShot.characterName}
+                  className="max-h-[52dvh] w-auto object-contain"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={historyEditPrompt}
@@ -884,22 +876,35 @@ export function LifeDesk({
                       void onRegenerateFromHistory();
                     }
                   }}
-                  placeholder="輸入修改指令，用 AI 修改此圖重新生成..."
-                  className="h-8 min-w-0 flex-1 rounded-full border border-accent-ink/15 bg-paper px-3 text-xs font-medium text-foreground focus-visible:outline-1 focus-visible:outline-accent disabled:opacity-60"
+                  placeholder="輸入修改指令，用 AI 修改此圖並重新生成..."
+                  className="h-9 min-w-0 flex-1 rounded-full border border-accent-ink/15 bg-paper px-3.5 text-xs font-medium text-foreground focus-visible:outline-1 focus-visible:outline-accent disabled:opacity-60"
                 />
                 <button
                   type="button"
                   disabled={pending !== ""}
                   onClick={() => void onRegenerateFromHistory()}
-                  className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full bg-accent-ink px-3 text-[11px] font-bold text-lime transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-9 shrink-0 cursor-pointer items-center rounded-full bg-accent px-4 text-xs font-bold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {pending === "regenerate" ? (
-                    <Spinner className="mr-1 h-3 w-3" />
+                    <Spinner className="mr-1.5 h-3.5 w-3.5" />
                   ) : null}
-                  AI 重新生成
+                  AI 重新生成 · {t("life.cost", { cost: FRAME_COST })}
                 </button>
               </div>
-              <div className="flex flex-wrap items-center gap-1.5">
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSceneUrl(dialogShot.resultUrl);
+                    setMode("upload");
+                    resetRemarks();
+                    setDialogShot(null);
+                  }}
+                  className="cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent-ink"
+                >
+                  載入至主畫布塗鴉標註修改
+                </button>
                 <button
                   type="button"
                   disabled={captionLoading}
@@ -908,7 +913,7 @@ export function LifeDesk({
                     setCaptionCopied(false);
                     try {
                       const res = await generateLifeCaptionAction({
-                        shotId: activeShot.id,
+                        shotId: dialogShot.id,
                         language: "yue",
                       });
                       if (res.ok) setGeneratedCaption(res.caption);
@@ -916,23 +921,24 @@ export function LifeDesk({
                       setCaptionLoading(false);
                     }
                   }}
-                  className="cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-2.5 py-1 text-[11px] font-semibold text-foreground transition hover:border-accent-ink"
+                  className="cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent-ink"
                 >
                   {captionLoading ? "生成文案中..." : "✍️ AI 生成 IG 貼文文案"}
                 </button>
                 <a
-                  href={activeShot.resultUrl}
+                  href={dialogShot.resultUrl}
                   target="_blank"
                   rel="noreferrer"
                   download
-                  className="rounded-full border border-accent-ink/15 bg-paper px-2.5 py-1 text-[11px] font-semibold text-foreground transition hover:border-accent-ink"
+                  className="rounded-full border border-accent-ink/15 bg-paper px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent-ink"
                 >
                   下載原圖
                 </a>
               </div>
+
               {generatedCaption ? (
-                <div className="rounded-xl border border-accent-ink/15 bg-paper p-2 text-[11px]">
-                  <p className="max-h-20 overflow-y-auto whitespace-pre-wrap text-foreground">
+                <div className="rounded-xl border border-accent-ink/15 bg-paper p-3 text-xs">
+                  <p className="max-h-28 overflow-y-auto whitespace-pre-wrap text-foreground">
                     {generatedCaption}
                   </p>
                   <button
@@ -941,26 +947,16 @@ export function LifeDesk({
                       void navigator.clipboard.writeText(generatedCaption);
                       setCaptionCopied(true);
                     }}
-                    className="mt-1.5 cursor-pointer rounded-full bg-accent-ink px-2.5 py-0.5 text-[10px] font-bold text-lime"
+                    className="mt-2 cursor-pointer rounded-full bg-accent-ink px-3 py-1 text-[11px] font-bold text-lime"
                   >
                     {captionCopied ? "已複製！" : "複製 IG 文案"}
                   </button>
                 </div>
               ) : null}
             </div>
-          ) : null}
-
-          {/* Instagram-Style 3-Column Scrollable Grid of Historical Generations */}
-          <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
-            <LifeShotGrid
-              shots={visibleShots}
-              selectedId={activeShot?.id}
-              onSelect={(shot) => setActiveShotId(shot.id)}
-              compact
-            />
           </div>
-        </aside>
-      </div>
+        </div>
+      ) : null}
 
       {placeDialogOpen ? (
         <div
