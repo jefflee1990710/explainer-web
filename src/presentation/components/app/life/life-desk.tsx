@@ -11,10 +11,7 @@ import {
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { CharacterImagePreviewDialog } from "@/presentation/components/app/characters/[id]/character-image-preview-dialog";
-import {
-  LIFE_ALL_CHARACTERS_ID,
-  LifeCharacterStrip,
-} from "@/presentation/components/app/life/life-character-strip";
+import { LifeCharacterStrip } from "@/presentation/components/app/life/life-character-strip";
 import { LifeSceneSource } from "@/presentation/components/app/life/life-scene-source";
 import { LifeShotGrid } from "@/presentation/components/app/life/life-shot-grid";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -176,9 +173,7 @@ export function LifeDesk({
   const { t } = useI18n();
   const first =
     characters.find((item) => item.id === initialCharacterId) || characters[0];
-  const [characterId, setCharacterId] = useState(
-    initialCharacterId || LIFE_ALL_CHARACTERS_ID,
-  );
+  const [characterId, setCharacterId] = useState(first?.id || "");
   const [place, setPlace] = useState(first?.persona?.city || "");
   const [kind] = useState<LifeShotKind>("selfie");
   const [mode, setMode] = useState<"search" | "upload">("upload");
@@ -217,21 +212,11 @@ export function LifeDesk({
   const drawingRef = useRef(false);
 
   const character = useMemo(
-    () =>
-      characters.find((item) => item.id === characterId) ||
-      characters.find((item) => item.ready) ||
-      characters[0] ||
-      null,
+    () => characters.find((item) => item.id === characterId) || null,
     [characters, characterId],
   );
 
-  const visibleShots = useMemo(
-    () =>
-      characterId === LIFE_ALL_CHARACTERS_ID
-        ? shots
-        : shots.filter((item) => item.characterId === characterId),
-    [shots, characterId],
-  );
+  const visibleShots = shots;
 
   const activeShot = useMemo(
     () =>
