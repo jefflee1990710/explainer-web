@@ -6,6 +6,7 @@ import { settledAutoVideoClips } from "@/service/clip/auto-video-list";
 import { hasJobSince } from "@/service/higgsfield/job-attempts";
 import { videoKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { mergeReadySubtitleFrames } from "@/service/higgsfield/merge-subtitle-frames";
+import { submitDeferredEndIfNeeded } from "@/service/higgsfield/pipeline";
 import { autoVideoDecision } from "@/service/production-plan";
 import { clipEndIsNextStart, clipSkipsEndStill } from "@/service/director/steady-stills";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
@@ -63,6 +64,9 @@ export async function claimAndStartClipVideo(
     endFromNextStart: clipEndIsNextStart(project, clipNumber),
   });
   if (!start || (!startOnly && !end)) {
+    if (start && !startOnly && !end) {
+      await submitDeferredEndIfNeeded(project._id, clipNumber).catch(() => {});
+    }
     return {
       ok: false,
       error: merged ? "字幕還沒疊上畫格" : "這段的畫格還沒完成",

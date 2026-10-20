@@ -39,6 +39,8 @@ export function useSoundSearch({ query }: { query: string }) {
 		isLoadingMore,
 		totalCount,
 		showCommercialOnly,
+		selectedCategory,
+		selectedSource,
 		setTopSoundEffects,
 		setLoading,
 		setHasLoaded,
@@ -66,6 +68,8 @@ export function useSoundSearch({ query }: { query: string }) {
 			const page = await listSoundEffectsAction({
 				page: nextPage,
 				query,
+				category: selectedCategory,
+				source: selectedSource,
 				commercialOnly: showCommercialOnly,
 			});
 			if (!page.ok) {
@@ -106,6 +110,8 @@ export function useSoundSearch({ query }: { query: string }) {
 				const page = await listSoundEffectsAction({
 					page: 1,
 					query: trimmed,
+					category: selectedCategory,
+					source: selectedSource,
 					commercialOnly: showCommercialOnly,
 				});
 				if (ignore) return;
@@ -147,6 +153,8 @@ export function useSoundSearch({ query }: { query: string }) {
 	}, [
 		query,
 		showCommercialOnly,
+		selectedCategory,
+		selectedSource,
 		resetPagination,
 		setCurrentPage,
 		setHasLoaded,

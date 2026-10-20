@@ -1,5 +1,9 @@
 import { create } from "zustand";
 import type { SoundEffect, SavedSound } from "@/opencut/sounds/types";
+import type {
+	SoundEffectCategoryId,
+	SoundEffectSourceFilter,
+} from "@/service/sound-effect/elevenlabs-sfx";
 import { storageService } from "@/opencut/services/storage/service";
 import { toast } from "sonner";
 import { EditorCore } from "@/opencut/core";
@@ -13,6 +17,11 @@ interface SoundsStore {
 	hasLoaded: boolean;
 	showCommercialOnly: boolean;
 	toggleCommercialFilter: () => void;
+	selectedCategory: SoundEffectCategoryId;
+	setSelectedCategory: ({ category }: { category: SoundEffectCategoryId }) => void;
+	selectedSource: SoundEffectSourceFilter;
+	setSelectedSource: ({ source }: { source: SoundEffectSourceFilter }) => void;
+	prependSoundEffect: ({ sound }: { sound: SoundEffect }) => void;
 	searchQuery: string;
 	searchResults: SoundEffect[];
 	isSearching: boolean;
@@ -68,10 +77,21 @@ export const useSoundsStore = create<SoundsStore>((set, get) => ({
 	error: null,
 	hasLoaded: false,
 	showCommercialOnly: true,
+	selectedCategory: "all",
+	selectedSource: "all",
 
 	toggleCommercialFilter: () => {
 		set((state) => ({ showCommercialOnly: !state.showCommercialOnly }));
 	},
+	setSelectedCategory: ({ category }) => set({ selectedCategory: category }),
+	setSelectedSource: ({ source }) => set({ selectedSource: source }),
+	prependSoundEffect: ({ sound }) =>
+		set((state) => ({
+			topSoundEffects: [sound, ...state.topSoundEffects],
+			searchResults: state.searchQuery.trim()
+				? [sound, ...state.searchResults]
+				: state.searchResults,
+		})),
 
 	searchQuery: "",
 	searchResults: [],

@@ -308,7 +308,23 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
     (target) => !isInheritedTalkingHeadStart(project.skillSlug, target.clipNumber, target.position),
   );
   if (drawable.length === 0) return { deferred: [] as FrameTarget[] };
-  targets = drawable;
+  targets = [...drawable];
+  // For talking-head, if a clip has no next clip's start scene (last clip) and its start
+  // is being generated while no completed end frame exists, automatically include its end frame.
+  for (const target of drawable) {
+    if (
+      target.position === "start" &&
+      !clipDrawsNoEndStill(project, target.clipNumber) &&
+      !targets.some((t) => t.clipNumber === target.clipNumber && t.position === "end")
+    ) {
+      const existingEnd = project.frames?.find(
+        (f) => f.clipNumber === target.clipNumber && f.position === "end",
+      );
+      if (!existingEnd || !mediaSrc(existingEnd)) {
+        targets.push({ clipNumber: target.clipNumber, position: "end" });
+      }
+    }
+  }
   const jobs = await generationJobsCollection();
   const projects = await videosCollection();
   const submittedAt = new Date().toISOString();
@@ -407,6 +423,23 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
         useStoredPrompt: target.useStoredPrompt,
         builtPrompt: built,
       });
+      if (!stored) {
+        return projects.updateOne(
+          { _id: project._id },
+          {
+            $push: {
+              frames: {
+                clipNumber: target.clipNumber,
+                position: target.position,
+                status: "queued" as const,
+                submittedAt,
+                prompt,
+              },
+            },
+            $set: { status: "production", updatedAt: new Date() },
+          },
+        );
+      }
       return projects.updateOne(
         { _id: project._id },
         {
@@ -1081,9 +1114,29 @@ export async function submitDeferredEndIfNeeded(
   const project = await projects.findOne({ _id: projectId });
   if (!project) return;
 
-  const end = project.frames?.find(
+  let end = project.frames?.find(
     (frame) => frame.clipNumber === clipNumber && frame.position === "end",
   );
+  if (!end && !clipDrawsNoEndStill(project, clipNumber)) {
+    const style = await loadRenderableStyle({
+      styleId: project.styleId,
+      ownerClerkUserId: project.clerkUserId,
+    });
+    const canvasProject = await withWrittenCanvas(project);
+    const { prompt } = frameSubmitPlan(canvasProject, clipNumber, "end", undefined, style);
+    const newEnd = {
+      clipNumber,
+      position: "end" as const,
+      status: "queued" as const,
+      submittedAt: new Date().toISOString(),
+      prompt,
+    };
+    await projects.updateOne(
+      { _id: projectId },
+      { $push: { frames: newEnd }, $set: { updatedAt: new Date() } },
+    );
+    end = newEnd;
+  }
   if (!end || end.status === "completed" || end.status === "in_progress") return;
 
   const claimedAt = end.submittedAt ? Date.parse(end.submittedAt) : NaN;

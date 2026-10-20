@@ -26,6 +26,12 @@ import { useSoundSearch } from "@/opencut/sounds/use-sound-search";
 import { useSoundsStore } from "@/opencut/sounds/sounds-store";
 import type { SavedSound, SoundEffect } from "@/opencut/sounds/types";
 import { cn } from "@/opencut/utils/ui";
+import { generateElevenLabsSoundEffectAction } from "@/presentation/actions/sound-effects";
+import {
+	SOUND_EFFECT_CATEGORIES,
+	type SoundEffectSourceFilter,
+} from "@/service/sound-effect/elevenlabs-sfx";
+import { toast } from "sonner";
 import {
 	FavouriteIcon,
 	FilterMailIcon,
@@ -74,8 +80,14 @@ function SoundEffectsView() {
 		loadSavedSounds,
 		showCommercialOnly,
 		toggleCommercialFilter,
+		selectedCategory,
+		setSelectedCategory,
+		selectedSource,
+		setSelectedSource,
+		prependSoundEffect,
 		error,
 	} = useSoundsStore();
+	const [isGeneratingSfx, setIsGeneratingSfx] = useState(false);
 	const {
 		results: searchResults,
 		isLoading: isSearching,
@@ -170,11 +182,59 @@ function SoundEffectsView() {
 		}
 	};
 
+	const handleGenerateElevenLabsSfx = async () => {
+		const prompt =
+			searchQuery.trim() ||
+			SOUND_EFFECT_CATEGORIES.find((c) => c.id === selectedCategory)?.query ||
+			"cinematic whoosh transition";
+		if (isGeneratingSfx) return;
+		setIsGeneratingSfx(true);
+		try {
+			const res = await generateElevenLabsSoundEffectAction({
+				text: prompt,
+				category: selectedCategory,
+				durationSeconds: 2.5,
+			});
+			if (!res.ok) {
+				toast.error(res.error);
+				return;
+			}
+			const created: SoundEffect = {
+				id: res.sound.id,
+				name: res.sound.name,
+				description: res.sound.description,
+				url: res.sound.previewUrl,
+				previewUrl: res.sound.previewUrl,
+				downloadUrl: res.sound.previewUrl,
+				duration: res.sound.duration,
+				filesize: 0,
+				type: "audio",
+				channels: 2,
+				bitrate: 128000,
+				bitdepth: 16,
+				samplerate: 44100,
+				username: res.sound.username,
+				tags: res.sound.tags,
+				license: res.sound.license,
+				created: new Date().toISOString(),
+				downloads: 0,
+				rating: 5,
+				ratingCount: 1,
+			};
+			prependSoundEffect({ sound: created });
+			toast.success("Generated sound effect with ElevenLabs AI");
+		} catch {
+			toast.error("Failed to generate sound effect");
+		} finally {
+			setIsGeneratingSfx(false);
+		}
+	};
+
 	return (
-		<div className="mt-1 flex h-full flex-col gap-5">
-			<div className="flex items-center gap-3">
+		<div className="mt-1 flex h-full flex-col gap-3">
+			<div className="flex items-center gap-2">
 				<Input
-					placeholder="Search sound effects"
+					placeholder="Search or describe sound effect for ElevenLabs AI..."
 					className="w-full"
 					containerClassName="w-full"
 					value={searchQuery}
@@ -208,6 +268,59 @@ function SoundEffectsView() {
 						</div>
 					</DropdownMenuContent>
 				</DropdownMenu>
+			</div>
+
+			<div className="flex flex-wrap items-center justify-between gap-2">
+				<div className="flex items-center gap-1">
+					{(
+						[
+							{ id: "all", label: "All Sources" },
+							{ id: "elevenlabs", label: "ElevenLabs AI" },
+							{ id: "library", label: "Library" },
+						] as Array<{ id: SoundEffectSourceFilter; label: string }>
+					).map((src) => (
+						<button
+							key={src.id}
+							type="button"
+							onClick={() => setSelectedSource({ source: src.id })}
+							className={cn(
+								"cursor-pointer rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+								selectedSource === src.id
+									? "bg-primary text-primary-foreground"
+									: "bg-accent/60 text-muted-foreground hover:text-foreground",
+							)}
+						>
+							{src.label}
+						</button>
+					))}
+				</div>
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={isGeneratingSfx}
+					onClick={() => void handleGenerateElevenLabsSfx()}
+					className="h-7 text-xs"
+				>
+					{isGeneratingSfx ? "Generating..." : "✨ ElevenLabs AI Generate"}
+				</Button>
+			</div>
+
+			<div className="flex flex-wrap gap-1.5">
+				{SOUND_EFFECT_CATEGORIES.map((cat) => (
+					<button
+						key={cat.id}
+						type="button"
+						onClick={() => setSelectedCategory({ category: cat.id })}
+						className={cn(
+							"cursor-pointer rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors",
+							selectedCategory === cat.id
+								? "border-primary bg-primary/15 text-primary"
+								: "border-border/60 text-muted-foreground hover:text-foreground",
+						)}
+					>
+						{cat.label}
+					</button>
+				))}
 			</div>
 
 			<div className="relative h-full overflow-hidden">

@@ -11,7 +11,7 @@ const KIND_KEY = {
   hobby: "life.hobby",
 } as const;
 
-// Finished life photos grid, with optional active selection for the right-hand preview dock.
+// Finished life photos grid in an Instagram-style 3-column grid view.
 export function LifeShotGrid({
   shots,
   selectedId,
@@ -31,8 +31,8 @@ export function LifeShotGrid({
     <div
       className={
         compact
-          ? "grid grid-cols-3 gap-2"
-          : "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+          ? "grid grid-cols-3 gap-1.5"
+          : "grid grid-cols-3 gap-2 sm:grid-cols-3 lg:grid-cols-4"
       }
     >
       {shots.map((shot) => {
@@ -41,35 +41,23 @@ export function LifeShotGrid({
           <figure
             key={shot.id}
             onClick={onSelect ? () => onSelect(shot) : undefined}
-            className={`overflow-hidden rounded-xl border bg-paper transition ${
+            className={`group relative overflow-hidden rounded-xl border bg-paper transition ${
               onSelect ? "cursor-pointer" : ""
             } ${
               active
-                ? "border-accent ring-2 ring-accent/30 shadow-[2px_2px_0_0_#12141c]"
+                ? "border-accent ring-2 ring-accent/40 shadow-[2px_2px_0_0_#12141c]"
                 : "border-accent-ink/10 hover:border-accent-ink/30"
             }`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={shot.resultUrl}
-              alt=""
-              className="aspect-[9/16] w-full object-cover"
+              alt={shot.place || shot.characterName}
+              className="aspect-square w-full object-cover transition duration-150 group-hover:scale-[1.03]"
             />
-            {!compact ? (
-              <figcaption className="px-2.5 py-2 text-[11px] leading-snug text-muted">
-                <span className="font-bold text-foreground">
-                  {shot.characterName}
-                </span>
-                <span className="mx-1">·</span>
-                {t(KIND_KEY[shot.kind as LifeShotKind])}
-                <span className="mx-1">·</span>
-                {shot.place}
-              </figcaption>
-            ) : (
-              <figcaption className="truncate px-1.5 py-1 text-[10px] font-semibold text-muted">
-                {shot.place || shot.characterName}
-              </figcaption>
-            )}
+            <figcaption className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/75 via-black/35 to-transparent px-1.5 pt-4 pb-1 text-[10px] font-semibold text-white opacity-0 transition group-hover:opacity-100">
+              {shot.place || shot.characterName || t(KIND_KEY[shot.kind as LifeShotKind])}
+            </figcaption>
           </figure>
         );
       })}

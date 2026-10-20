@@ -14,7 +14,11 @@ import {
 import { requireAppUser } from "@/service/auth";
 import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/billing/credits";
 import { characterIdentityUrl } from "@/service/character/identity";
-import { lifeSceneQuery, lifeShotPrompt } from "@/service/character/life-prompt";
+import {
+  lifeSceneQuery,
+  lifeShotPrompt,
+  type LifeRemarkInput,
+} from "@/service/character/life-prompt";
 import { searchPlaceScenes } from "@/service/character/life-search";
 import { FRAME_COST } from "@/service/credit-costs";
 import { persistMedia } from "@/service/higgsfield/persist";
@@ -101,22 +105,24 @@ function httpsUrl(value: string) {
   return trimmed;
 }
 
-// One charged still. The character portrait locks the face; the scene photo is only the place.
+// One charged still. The character portrait locks the face; the scene photo is the base image.
 export async function generateLifeShotAction(input: {
   characterId: string;
-  place: string;
-  kind: LifeShotKind;
+  place?: string;
+  kind?: LifeShotKind;
   sceneImageUrl: string;
   source: LifeShotSource;
+  customInstruction?: string;
+  annotatedSceneDataUrl?: string;
+  remarks?: LifeRemarkInput[];
 }) {
   const user = await requireAppUser();
-  const place = input.place.trim().slice(0, 40);
-  const kind = lifeShotKindSchema.safeParse(input.kind);
+  const place = (input.place ?? "").trim().slice(0, 60);
+  const kindParsed = lifeShotKindSchema.safeParse(input.kind || "selfie");
   const source = lifeShotSourceSchema.safeParse(input.source);
   const sceneImageUrl = httpsUrl(input.sceneImageUrl);
   if (!ObjectId.isValid(input.characterId)) return { ok: false as const, error: "角色不存在" };
-  if (!place) return { ok: false as const, error: "請輸入地點" };
-  if (!kind.success) return { ok: false as const, error: "請選擇生活照類型" };
+  if (!kindParsed.success) return { ok: false as const, error: "請選擇生活照類型" };
   if (!source.success) return { ok: false as const, error: "請選擇場景照片" };
   if (!sceneImageUrl) return { ok: false as const, error: "請選擇場景照片" };
 
@@ -130,20 +136,43 @@ export async function generateLifeShotAction(input: {
   if (!identity) return { ok: false as const, error: "還沒有完成的藍圖" };
   const persona = parseCharacterPersona(character.persona);
 
+  const annotatedDataUrl =
+    typeof input.annotatedSceneDataUrl === "string" &&
+    input.annotatedSceneDataUrl.startsWith("data:image/")
+      ? input.annotatedSceneDataUrl
+      : undefined;
+  const cleanRemarks = (input.remarks || [])
+    .filter((r) => r && typeof r.comment === "string" && r.comment.trim().length > 0)
+    .slice(0, 10)
+    .map((r, idx) => ({
+      number: Number.isInteger(r.number) ? r.number : idx + 1,
+      colorName: String(r.colorName || `#${idx + 1}`).slice(0, 40),
+      comment: r.comment.trim().slice(0, 240),
+    }));
+  const customInstruction = (input.customInstruction ?? "").trim().slice(0, 400);
+
   await assertCanSpendCredits(user, FRAME_COST);
   const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
   try {
+    const refs = [
+      identity,
+      sceneImageUrl,
+      ...(annotatedDataUrl && cleanRemarks.length > 0 ? [annotatedDataUrl] : []),
+    ];
     const submitted = await submitOpenRouterImage({
       model: SEEDREAM_5_PRO_IMAGE_MODEL,
       prompt: lifeShotPrompt({
         name: character.name,
-        kind: kind.data,
+        kind: kindParsed.data,
         place,
         interests: persona?.interests ?? [],
+        customInstruction,
+        hasAnnotatedImage: Boolean(annotatedDataUrl && cleanRemarks.length > 0),
+        remarks: cleanRemarks,
       }),
       aspectRatio: "9:16",
       resolution: "2k",
-      referenceImageUrls: [identity, sceneImageUrl],
+      referenceImageUrls: refs,
     });
     const imageUrl = submitted.images?.[0]?.url;
     if (!imageUrl) throw new Error("生活照生成失敗");
@@ -152,14 +181,19 @@ export async function generateLifeShotAction(input: {
       imageUrl,
       `explainer/life/${character._id.toHexString()}/${shotId.toHexString()}`,
     );
+    const displayLabel =
+      customInstruction.slice(0, 40) ||
+      cleanRemarks[0]?.comment.slice(0, 40) ||
+      place ||
+      character.name;
     const shot: LifeShot = {
       _id: shotId,
       userId: user._id,
       clerkUserId: user.clerkUserId,
       characterId: character._id,
       characterName: character.name,
-      place,
-      kind: kind.data,
+      place: displayLabel,
+      kind: kindParsed.data,
       source: source.data,
       sceneImageUrl,
       resultUrl,
