@@ -190,6 +190,7 @@ export function LifeDesk({
   >("");
   const [error, setError] = useState("");
   const [creditGate, setCreditGate] = useState(false);
+  const [placeDialogOpen, setPlaceDialogOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [customInstruction, setCustomInstruction] = useState("");
   const [historyEditPrompt, setHistoryEditPrompt] = useState("");
@@ -197,17 +198,9 @@ export function LifeDesk({
   const [captionLoading, setCaptionLoading] = useState(false);
   const [captionCopied, setCaptionCopied] = useState(false);
 
-  // Multi-color numbered remarks (#1, #2, #3...)
-  const [remarks, setRemarks] = useState<RemarkItem[]>([
-    {
-      number: 1,
-      color: REMARK_PALETTE[0].color,
-      colorName: REMARK_PALETTE[0].name,
-      comment: "",
-      strokes: [],
-    },
-  ]);
-  const [activeRemarkNumber, setActiveRemarkNumber] = useState(1);
+  // Multi-color numbered remarks (#1, #2, #3...) — empty by default until user draws or adds one
+  const [remarks, setRemarks] = useState<RemarkItem[]>([]);
+  const [activeRemarkNumber, setActiveRemarkNumber] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawingRef = useRef(false);
 
@@ -235,16 +228,8 @@ export function LifeDesk({
   }, [remarks, sceneUrl]);
 
   function resetRemarks() {
-    setRemarks([
-      {
-        number: 1,
-        color: REMARK_PALETTE[0].color,
-        colorName: REMARK_PALETTE[0].name,
-        comment: "",
-        strokes: [],
-      },
-    ]);
-    setActiveRemarkNumber(1);
+    setRemarks([]);
+    setActiveRemarkNumber(0);
   }
 
   function addRemarkSlot() {
@@ -278,19 +263,9 @@ export function LifeDesk({
             colorName: palette.name,
           };
         });
-      if (filtered.length === 0) {
-        setActiveRemarkNumber(1);
-        return [
-          {
-            number: 1,
-            color: REMARK_PALETTE[0].color,
-            colorName: REMARK_PALETTE[0].name,
-            comment: "",
-            strokes: [],
-          },
-        ];
-      }
-      setActiveRemarkNumber(filtered[filtered.length - 1].number);
+      setActiveRemarkNumber(
+        filtered.length > 0 ? filtered[filtered.length - 1].number : 0,
+      );
       return filtered;
     });
   }
@@ -308,13 +283,26 @@ export function LifeDesk({
     e.currentTarget.setPointerCapture(e.pointerId);
     drawingRef.current = true;
     const pt = canvasNormPoint(e);
-    setRemarks((prev) =>
-      prev.map((item) =>
+    setRemarks((prev) => {
+      if (prev.length === 0 || activeRemarkNumber <= 0) {
+        const palette = REMARK_PALETTE[0];
+        setActiveRemarkNumber(1);
+        return [
+          {
+            number: 1,
+            color: palette.color,
+            colorName: palette.name,
+            comment: "",
+            strokes: [[pt]],
+          },
+        ];
+      }
+      return prev.map((item) =>
         item.number === activeRemarkNumber
           ? { ...item, strokes: [...item.strokes, [pt]] }
           : item,
-      ),
-    );
+      );
+    });
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -552,51 +540,38 @@ export function LifeDesk({
           aria-label={t("life.place")}
           className="flex min-h-[22rem] flex-col overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90"
         >
-          {/* Top Search & Upload Bar */}
-          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-accent-ink/10 px-4 py-2.5">
-            <input
-              type="text"
-              value={place}
-              maxLength={40}
-              disabled={pending !== ""}
-              placeholder={t("life.placePlaceholder")}
-              aria-label={t("life.place")}
-              onChange={(event) => setPlace(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  void onSearch();
-                }
-              }}
-              className="h-8 min-w-[9rem] flex-1 rounded-full border border-accent-ink/15 bg-paper px-3 text-xs font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-            />
-            <button
-              type="button"
-              disabled={pending !== ""}
-              onClick={() => void onSearch()}
-              className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-xs font-bold text-foreground transition hover:border-accent-ink disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {pending === "search" ? (
-                <Spinner className="mr-1.5 h-3.5 w-3.5" />
+          {/* Top Upload & Find Place Photos Dialog Trigger Bar */}
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-accent-ink/10 px-4 py-2.5">
+            <span className="text-xs font-bold text-foreground">
+              {t("life.place")}
+              {place ? (
+                <span className="ml-2 font-medium text-muted">· {place}</span>
               ) : null}
-              {pending === "search"
-                ? t("life.searching")
-                : t("life.searchAction")}
-            </button>
-            <label className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-xs font-bold text-foreground transition hover:border-accent-ink">
-              {pending === "upload" ? t("common.loading") : t("life.upload")}
-              <input
-                type="file"
-                accept="image/*"
-                className="sr-only"
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
                 disabled={pending !== ""}
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  void onUpload(file);
-                }}
-              />
-            </label>
+                onClick={() => setPlaceDialogOpen(true)}
+                className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-xs font-bold text-foreground transition hover:border-accent-ink disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {t("life.searchAction")}
+              </button>
+              <label className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-xs font-bold text-foreground transition hover:border-accent-ink">
+                {pending === "upload" ? t("common.loading") : t("life.upload")}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  disabled={pending !== ""}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    void onUpload(file);
+                  }}
+                />
+              </label>
+            </div>
           </div>
 
           {/* Center Scrollable Body */}
@@ -678,13 +653,15 @@ export function LifeDesk({
                       ) : null}
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={resetRemarks}
-                        className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 text-[11px] font-semibold text-muted hover:text-foreground"
-                      >
-                        清除塗鴉
-                      </button>
+                      {remarks.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={resetRemarks}
+                          className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 text-[11px] font-semibold text-muted hover:text-foreground"
+                        >
+                          清除塗鴉
+                        </button>
+                      ) : null}
                       <label className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 text-[11px] font-semibold text-muted hover:text-foreground">
                         更換圖片
                         <input
@@ -725,8 +702,8 @@ export function LifeDesk({
               )}
             </div>
 
-            {/* Numbered Remark Comment Inputs (#1, #2, #3...) */}
-            {sceneUrl ? (
+            {/* Numbered Remark Comment Inputs (#1, #2, #3...) — shown only when remarks exist */}
+            {sceneUrl && remarks.length > 0 ? (
               <div className="space-y-1.5 rounded-xl border border-accent-ink/10 bg-paper p-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-foreground">
@@ -760,16 +737,14 @@ export function LifeDesk({
                       placeholder={`#${r.number} 修改說明（例：將此處人物換成角色 / 加上道具...）`}
                       className="h-8 flex-1 rounded-lg border border-accent-ink/15 bg-paper px-2.5 text-xs text-foreground focus-visible:outline-1 focus-visible:outline-accent"
                     />
-                    {remarks.length > 1 ? (
-                      <button
-                        type="button"
-                        onClick={() => removeRemarkSlot(r.number)}
-                        className="cursor-pointer px-1.5 text-xs font-bold text-muted hover:text-red-600"
-                        aria-label={`Remove #${r.number}`}
-                      >
-                        ×
-                      </button>
-                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => removeRemarkSlot(r.number)}
+                      className="cursor-pointer px-1.5 text-xs font-bold text-muted hover:text-red-600"
+                      aria-label={`Remove #${r.number}`}
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
@@ -806,20 +781,6 @@ export function LifeDesk({
                 })}
               </div>
             </div>
-
-            {/* Search Hits (when user searches place photos) */}
-            {hits.length > 0 ? (
-              <LifeSceneSource
-                mode={mode}
-                hits={hits}
-                selectedUrl={sceneUrl}
-                uploadUrl={uploadUrl}
-                onPick={(url) => {
-                  setSceneUrl(url);
-                  resetRemarks();
-                }}
-              />
-            ) : null}
           </div>
 
           {/* Bottom Action Dock inside Center Pane */}
@@ -1000,6 +961,80 @@ export function LifeDesk({
           </div>
         </aside>
       </div>
+
+      {placeDialogOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("life.searchAction")}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+          onClick={() => setPlaceDialogOpen(false)}
+        >
+          <div
+            className="flex max-h-[82dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-accent-ink/15 bg-paper shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-accent-ink/10 px-5 py-3.5">
+              <h2 className="font-display text-sm font-bold text-foreground">
+                {t("life.searchAction")}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setPlaceDialogOpen(false)}
+                className="cursor-pointer rounded-full px-2.5 py-1 text-xs font-bold text-muted hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 border-b border-accent-ink/10 px-5 py-3">
+              <input
+                type="text"
+                value={place}
+                maxLength={40}
+                autoFocus
+                disabled={pending === "search"}
+                placeholder={t("life.placePlaceholder")}
+                aria-label={t("life.place")}
+                onChange={(event) => setPlace(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void onSearch();
+                  }
+                }}
+                className="h-9 min-w-[12rem] flex-1 rounded-full border border-accent-ink/15 bg-paper px-3.5 text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+              />
+              <button
+                type="button"
+                disabled={pending === "search"}
+                onClick={() => void onSearch()}
+                className="inline-flex h-9 shrink-0 cursor-pointer items-center rounded-full bg-accent px-4 text-xs font-bold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {pending === "search" ? (
+                  <Spinner className="mr-1.5 h-3.5 w-3.5" />
+                ) : null}
+                {pending === "search"
+                  ? t("life.searching")
+                  : t("life.searchAction")}
+              </button>
+            </div>
+            <div className="min-h-[16rem] flex-1 overflow-y-auto p-4">
+              <LifeSceneSource
+                mode="search"
+                hits={hits}
+                selectedUrl={sceneUrl}
+                uploadUrl=""
+                onPick={(url) => {
+                  setSceneUrl(url);
+                  setMode("search");
+                  resetRemarks();
+                  setPlaceDialogOpen(false);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {creditGate ? (
         <InsufficientCreditsDialog

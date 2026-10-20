@@ -39,19 +39,13 @@ export function LifeSceneSource({
   }
 
   return (
-    <div
-      role="radiogroup"
-      aria-label={t("life.place")}
-      className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4"
-    >
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
       {items.map((hit) => {
         const active = hit.thumbUrl === selectedUrl;
         return (
           <button
             key={hit.thumbUrl}
             type="button"
-            role="radio"
-            aria-checked={active}
             onClick={() => onPick(hit.thumbUrl)}
             className={`group flex cursor-pointer flex-col overflow-hidden rounded-2xl border bg-paper p-1.5 text-left transition ${
               active
