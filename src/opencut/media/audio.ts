@@ -19,7 +19,8 @@ import { canElementHaveAudio, hasMediaId } from "@/opencut/timeline/element-util
 import { canTrackHaveAudio } from "@/opencut/timeline";
 import { mediaSupportsAudio } from "@/opencut/media/media-utils";
 import { getSourceTimeAtClipTime, renderRetimedBuffer } from "@/opencut/retime";
-import { Input, ALL_FORMATS, BlobSource, AudioBufferSink } from "mediabunny";
+import { Input, ALL_FORMATS, AudioBufferSink } from "mediabunny";
+import { createMediaInputSource } from "@/opencut/embed/scro-media-load";
 import { TICKS_PER_SECOND } from "@/opencut/wasm";
 import {
 	computeRmsBuckets,
@@ -263,7 +264,7 @@ async function resolveAudioBufferForAsset({
 	}
 
 	const input = new Input({
-		source: new BlobSource(asset.file),
+		source: createMediaInputSource({ file: asset.file, url: asset.url }),
 		formats: ALL_FORMATS,
 	});
 
@@ -341,6 +342,7 @@ async function resolveAudioBufferForAsset({
 interface AudioMixSource {
 	timelineElement: AudioCapableElement;
 	file: File;
+	url?: string;
 	startTime: number;
 	duration: number;
 	trimStart: number;
@@ -354,6 +356,7 @@ export interface AudioClipSource {
 	id: string;
 	sourceKey: string;
 	file: File;
+	url?: string;
 	startTime: number;
 	duration: number;
 	trimStart: number;
@@ -448,6 +451,7 @@ function collectMediaAudioSource({
 	return {
 		timelineElement: element,
 		file: mediaAsset.file,
+		url: mediaAsset.url,
 		startTime: element.startTime / TICKS_PER_SECOND,
 		duration: element.duration / TICKS_PER_SECOND,
 		trimStart: element.trimStart / TICKS_PER_SECOND,
@@ -473,6 +477,7 @@ function collectMediaAudioClip({
 		id: element.id,
 		sourceKey: mediaAsset.id,
 		file: mediaAsset.file,
+		url: mediaAsset.url,
 		startTime: element.startTime / TICKS_PER_SECOND,
 		duration: element.duration / TICKS_PER_SECOND,
 		trimStart: element.trimStart / TICKS_PER_SECOND,

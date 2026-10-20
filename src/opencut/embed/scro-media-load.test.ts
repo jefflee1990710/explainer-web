@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+	createMediaInputSource,
+	createStreamingVideoAsset,
 	fetchMediaBlobWithTimeout,
 	findReusableClipAsset,
 	runConcurrentMediaPool,
@@ -186,4 +188,66 @@ describe("withFontLoadTimeout", () => {
 		assert.equal(result, undefined);
 	});
 });
+
+describe("createStreamingVideoAsset & createMediaInputSource", () => {
+	it("creates a 0-byte streaming video asset with remote HTTP URL and falls back to storyboard metadata when header probe times out", async () => {
+		const asset = await createStreamingVideoAsset({
+			url: "https://cdn.example/clip-1.mp4",
+			name: "Clip 1",
+			posterUrl: "https://cdn.example/poster-1.png",
+			fallbackDuration: 5,
+			fallbackWidth: 1080,
+			fallbackHeight: 1920,
+			probeTimeoutMs: 20,
+			probeImpl: () => new Promise(() => {}),
+		});
+		assert.equal(asset.type, "video");
+		assert.equal(asset.url, "https://cdn.example/clip-1.mp4");
+		assert.equal(asset.file.size, 0);
+		assert.equal(asset.thumbnailUrl, "https://cdn.example/poster-1.png");
+		assert.equal(asset.duration, 5);
+		assert.equal(asset.width, 1080);
+		assert.equal(asset.height, 1920);
+		assert.equal(asset.hasAudio, true);
+	});
+
+	it("uses probed header duration and dimensions when header probe succeeds quickly", async () => {
+		const asset = await createStreamingVideoAsset({
+			url: "https://cdn.example/clip-2.mp4",
+			name: "Clip 2",
+			posterUrl: "https://cdn.example/poster-2.png",
+			fallbackDuration: 5,
+			fallbackWidth: 1080,
+			fallbackHeight: 1920,
+			probeImpl: async () => ({
+				duration: 5.17,
+				width: 1440,
+				height: 2560,
+				fps: 24,
+				hasAudio: true,
+			}),
+		});
+		assert.equal(asset.duration, 5.17);
+		assert.equal(asset.width, 1440);
+		assert.equal(asset.height, 2560);
+		assert.equal(asset.fps, 24);
+	});
+
+	it("createMediaInputSource returns UrlSource for 0-byte HTTP assets and BlobSource for local files", () => {
+		const emptyFile = new File([], "Clip 1.mp4", { type: "video/mp4" });
+		const urlSource = createMediaInputSource({
+			file: emptyFile,
+			url: "https://cdn.example/clip-1.mp4",
+		});
+		assert.equal(urlSource.constructor.name.includes("UrlSource"), true);
+
+		const localFile = new File(["bytes"], "local.mp4", { type: "video/mp4" });
+		const blobSource = createMediaInputSource({
+			file: localFile,
+			url: "blob:http://localhost:3000/123",
+		});
+		assert.equal(blobSource.constructor.name.includes("BlobSource"), true);
+	});
+});
+
 

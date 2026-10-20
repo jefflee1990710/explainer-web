@@ -1149,8 +1149,8 @@ test("talking-head clip 1 start uses object sheet and background plate; clip 2+ 
     "https://blob/scro.png",
   ]);
   assert.match(clip2.prompt, /COMPOSITION LOCK: attached image 1 is THIS CLIP'S START frame\./);
-  assert.match(clip2.prompt, /POSE CHANGE REQUIRED:/);
-  assert.match(clip2.prompt, /Do NOT copy the head angle, eyeline, hand pose, or old subtitle words/);
+  assert.match(clip2.prompt, /ZERO-DISPLACEMENT CONTINUITY:/);
+  assert.match(clip2.prompt, /resting hand position on the lap locked to the attached frame/);
   assert.doesNotMatch(clip2.prompt, /OBJECT LOCK:/);
   assert.doesNotMatch(clip2.prompt, /BACKGROUND LOCK:/);
   assert.ok(clip2.prompt.length <= FRAME_PROMPT_BUDGET, `clip 2 prompt is ${clip2.prompt.length} chars`);
@@ -1167,8 +1167,7 @@ test("talking-head clip 1 start uses object sheet and background plate; clip 2+ 
     "https://blob/clip2-start.png",
     "https://blob/scro.png",
   ]);
-  assert.match(clip2End.prompt, /exact on-screen subtitle strips/);
-  assert.doesNotMatch(clip2End.prompt, /old subtitle words/);
+  assert.match(clip2End.prompt, /ZERO-DISPLACEMENT CONTINUITY:/);
 });
 
 test("talking-head opening photo is the first reference on clip 1's start", () => {

@@ -36,6 +36,8 @@ test("resolvePerformance ignores stale DB skill.performance and uses current DEF
   assert.doesNotMatch(DEFAULT_PERFORMANCE.face.yue.emphasisBeat, /口張大約半秒/);
   assert.doesNotMatch(DEFAULT_PERFORMANCE.face.en.headMotion, /chin drop|shoulders rock/);
   assert.doesNotMatch(DEFAULT_PERFORMANCE.face.en.emphasisBeat, /half a second/);
+  assert.match(DEFAULT_PERFORMANCE.face.en.gestureLibrary, /preparation.*stroke.*hold.*retraction/i);
+  assert.match(DEFAULT_PERFORMANCE.face.yue.gestureLibrary, /起手.*拍點.*停留.*收返/);
 });
 
 test("a custom English edit wins per key in every language; untouched keys keep template text", () => {

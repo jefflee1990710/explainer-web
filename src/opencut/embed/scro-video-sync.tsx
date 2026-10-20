@@ -22,6 +22,7 @@ import {
 import { stillPlaceholderFile } from "@/opencut/embed/scro-still-placeholder";
 import { staleTimelineElementIds } from "@/service/scro-video/timeline-seed";
 import {
+	createStreamingVideoAsset,
 	fetchMediaBlobWithTimeout,
 	findReusableClipAsset,
 	runConcurrentMediaPool,
@@ -815,32 +816,45 @@ export function ScroVideoSync() {
 					});
 					return reusable;
 				}
-				let file: File;
-				if (sourceUrl) {
-					const blob = await fetchMediaBlobWithTimeout({ url: sourceUrl });
-					if (!blob) return null;
-					const ext = useVideo ? "mp4" : "webp";
-					// Extensionless CDN files often arrive as octet-stream. The Assets importer only accepts image/video/audio.
-					const blobType = blob.type;
-					const mediaType =
-						blobType.startsWith("image/") ||
-						blobType.startsWith("video/") ||
-						blobType.startsWith("audio/")
-							? blobType
-							: useVideo
-								? "video/mp4"
-								: "image/webp";
-					file = new File([blob], `${clip.name}.${ext}`, { type: mediaType });
-				} else {
+				let asset;
+				if (useVideo && sourceUrl && /^https?:\/\//i.test(sourceUrl)) {
 					const frame = placeholderFrame();
-					file = await stillPlaceholderFile({
+					asset = await createStreamingVideoAsset({
+						url: sourceUrl,
 						name: clip.name,
-						width: frame.width,
-						height: frame.height,
+						posterUrl: clip.posterUrl,
+						fallbackDuration: clip.durationSeconds,
+						fallbackWidth: frame.width,
+						fallbackHeight: frame.height,
 					});
+				} else {
+					let file: File;
+					if (sourceUrl) {
+						const blob = await fetchMediaBlobWithTimeout({ url: sourceUrl });
+						if (!blob) return null;
+						const ext = useVideo ? "mp4" : "webp";
+						// Extensionless CDN files often arrive as octet-stream. The Assets importer only accepts image/video/audio.
+						const blobType = blob.type;
+						const mediaType =
+							blobType.startsWith("image/") ||
+							blobType.startsWith("video/") ||
+							blobType.startsWith("audio/")
+								? blobType
+								: useVideo
+									? "video/mp4"
+									: "image/webp";
+						file = new File([blob], `${clip.name}.${ext}`, { type: mediaType });
+					} else {
+						const frame = placeholderFrame();
+						file = await stillPlaceholderFile({
+							name: clip.name,
+							width: frame.width,
+							height: frame.height,
+						});
+					}
+					const processed = await processMediaAssets({ files: [file] });
+					asset = processed[0];
 				}
-				const processed = await processMediaAssets({ files: [file] });
-				const asset = processed[0];
 				if (!asset) return null;
 				const created = await editor.media.addMediaAsset({
 					projectId: project.metadata.id,

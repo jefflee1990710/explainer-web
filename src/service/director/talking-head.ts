@@ -429,12 +429,12 @@ function endPoseVariationEn(clipIndex: number, fullBody: boolean, anchored: bool
     return { head: headMoves[variant], hand: handMoves[variant] };
   }
   const headMoves = [
-    "seated centered and relaxed on the sofa, facing the camera with head tilted gently 2–3 degrees to the right, both pupils centered and eyes on the lens, mouth just closed into a warm engaged smile, eyebrows relaxed",
-    "seated centered on the sofa, facing the camera straight-on with head tilted gently 2–3 degrees to the left and both eyes locked on the lens, mouth in a thoughtful half-smile",
-    "seated centered on the sofa, facing the camera with head tilted gently 2–3 degrees to the left, eyes locked on the lens, eyebrows lifted with a lively confident smile",
-    "seated comfortably and centered on the sofa facing the camera straight-on, head tilted gently 2–3 degrees right with both eyes locked on the lens, a natural soft smile on her lips",
-    "seated centered on the cushion, facing the camera with head tilted gently 2–3 degrees to the left, eyes locked on the lens, mouth in a knowing smile",
-    "seated upright and centered, facing the camera with head tilted gently 2–3 degrees right and a warm expressive smile, eyes locked on the lens",
+    "seated centered and relaxed on the sofa, facing the camera with head tilted gently 1–2 degrees to the right, both pupils centered and eyes on the lens, mouth just closed into a warm engaged smile, eyebrows relaxed",
+    "seated centered on the sofa, facing the camera straight-on with head tilted gently 1–2 degrees to the left and both eyes locked on the lens, mouth in a thoughtful half-smile",
+    "seated centered on the sofa, facing the camera with head tilted gently 1–2 degrees to the left, eyes locked on the lens, eyebrows lifted with a lively confident smile",
+    "seated comfortably and centered on the sofa facing the camera straight-on, head tilted gently 1–2 degrees right with both eyes locked on the lens, a natural soft smile on her lips",
+    "seated centered on the cushion, facing the camera with head tilted gently 1–2 degrees to the left, eyes locked on the lens, mouth in a knowing smile",
+    "seated upright and centered, facing the camera with head tilted gently 1–2 degrees right and a warm expressive smile, eyes locked on the lens",
   ];
   const handMoves = fullBody
     ? [
@@ -446,12 +446,12 @@ function endPoseVariationEn(clipIndex: number, fullBody: boolean, anchored: bool
         "One hand offers a calm open palm at chest height toward the lens while the other arm relaxes at the side",
       ]
     : [
-        "One hand is held softly at lower-chest height with a relaxed open palm while the other hand rests on the lap",
-        "One hand is held at lower-chest height with a relaxed open conversational palm while the other hand rests on the lap",
-        "One hand is raised slightly at lower-chest height with an open conversational palm while the other hand rests on the lap",
-        "One hand gestures softly at lower-chest height while the other hand rests on the lap, shoulders relaxed",
-        "One hand rests in a calm open-palm gesture at lower-chest height while the other hand rests on the lap",
-        "One hand is open-palm at lower-chest height offered toward the lens while the other hand rests on the lap",
+        "Both hands resting calmly on the lap in a natural neutral rest position, shoulders relaxed",
+        "Both hands resting calmly on the lap in a natural neutral rest position, posture steady",
+        "Both hands resting calmly on the lap in a natural neutral rest position, torso centered",
+        "Both hands resting calmly on the lap in a natural neutral rest position, facing the camera",
+        "Both hands resting calmly on the lap in a natural neutral rest position, shoulders anchored",
+        "Both hands resting calmly on the lap in a natural neutral rest position, relaxed and unposed",
       ];
   return { head: headMoves[variant], hand: handMoves[variant] };
 }
@@ -460,28 +460,28 @@ function endPoseVariationYue(clipIndex: number, fullBody: boolean, anchored: boo
   const variant = clipIndex % 6;
   if (anchored) {
     const headMoves = [
-      "正面直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，坐姿保持置中、頭向左邊微傾 2–3 度",
-      "正面對住鏡頭、頭向右微傾 2–3 度，雙眼直望鏡頭帶住思考神情，口部合上帶住淺笑，坐姿保持置中",
-      "正面直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，坐姿保持置中放鬆、頭向右邊微傾 2–3 度",
+      "正面直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，坐姿保持置中、頭向左邊微傾 1–2 度",
+      "正面對住鏡頭、頭向右微傾 1–2 度，雙眼直望鏡頭帶住思考神情，口部合上帶住淺笑，坐姿保持置中",
+      "正面直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，坐姿保持置中放鬆、頭向右邊微傾 1–2 度",
       "正面對住鏡頭，雙眼直望鏡頭、帶住親切笑容",
       "正面直望鏡頭，呢句講完、口部合上帶住自信微笑，坐姿保持置中",
       "正面直望鏡頭，呢句講完、口部合上變成溫柔淺笑，上身微微傾近鏡頭",
     ];
     const handMoves = [
-      `${freeHand}掌心自然打開停喺胸前下方`,
-      `${freeHand}喺胸前下方掌心自然打開做傾偈手勢`,
-      `${freeHand}喺胸前下方掌心自然微開`,
-      `${freeHand}喺胸前下方輕輕點出重點`,
-      `${freeHand}喺胸前下方掌心自然打開向鏡頭比畫`,
-      `${freeHand}自然放鬆停喺胸前下方`,
+      `${freeHand}自然放鬆放喺大髀休息位`,
+      `${freeHand}自然放鬆放喺大髀休息位`,
+      `${freeHand}自然放鬆放喺大髀休息位`,
+      `${freeHand}自然放鬆放喺大髀休息位`,
+      `${freeHand}自然放鬆放喺大髀休息位`,
+      `${freeHand}自然放鬆放喺大髀休息位`,
     ];
     return { head: headMoves[variant], hand: handMoves[variant] };
   }
   const headMoves = [
-    "正面直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，坐姿保持置中、頭向左邊微傾 2–3 度",
-    "正面對住鏡頭、頭向右微傾 2–3 度，雙眼直望鏡頭，口部合上帶住思考淺笑，坐姿保持置中穩定",
-    "正面直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，坐姿保持置中放鬆、頭向右邊微傾 2–3 度",
-    "正面對住鏡頭、頭向左微傾 2–3 度，雙眼直望鏡頭，嘴角帶住親切笑容",
+    "正面直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，坐姿保持置中、頭向左邊微傾 1–2 度",
+    "正面對住鏡頭、頭向右微傾 1–2 度，雙眼直望鏡頭，口部合上帶住思考淺笑，坐姿保持置中穩定",
+    "正面直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，坐姿保持置中放鬆、頭向右邊微傾 1–2 度",
+    "正面對住鏡頭、頭向左微傾 1–2 度，雙眼直望鏡頭，嘴角帶住親切笑容",
     "正面直望鏡頭，呢句講完、口部合上帶住自信微笑，坐姿保持置中穩定",
     "正面直望鏡頭，呢句講完、口部合上變成溫柔淺笑，上身微微傾近鏡頭好似講緊秘密",
   ];
@@ -495,12 +495,12 @@ function endPoseVariationYue(clipIndex: number, fullBody: boolean, anchored: boo
         "一隻手掌心向鏡頭自然遞出，另一隻手自然垂低，腳留喺同一個位置",
       ]
     : [
-        "一隻手掌心自然打開停喺胸前下方，另一隻手自然放喺大髀",
-        "一隻手喺胸前下方掌心自然打開做傾偈手勢，另一隻手自然放喺大髀",
-        "一隻手喺胸前下方自然微開，另一隻手自然放喺大髀",
-        "一隻手喺胸前下方自然做手勢，另一隻手自然放喺大髀，正面對住鏡頭",
-        "一隻手喺胸前下方掌心向上自然打開，另一隻手自然放喺大髀",
-        "一隻手掌心向鏡頭自然打開停喺胸前下方，另一隻手自然放喺大髀",
+        "雙手已經自然收返落大髀休息位置，坐姿同雙肩保持置中穩定",
+        "雙手已經自然收返落大髀休息位置，坐姿同雙肩保持置中穩定",
+        "雙手已經自然收返落大髀休息位置，坐姿同雙肩保持置中穩定",
+        "雙手已經自然收返落大髀休息位置，正面對住鏡頭，坐姿保持置中穩定",
+        "雙手已經自然收返落大髀休息位置，坐姿同雙肩保持置中穩定",
+        "雙手已經自然收返落大髀休息位置，坐姿同雙肩保持置中穩定",
       ];
   return { head: headMoves[variant], hand: handMoves[variant] };
 }
@@ -534,13 +534,13 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
     const prop = anchored ? ` One hand holds ${p.anchorProp}.` : "";
     const propEnd = anchored ? ` The same hand still holds ${p.anchorProp}.` : "";
     const freeHand = anchored ? "The other hand" : "One hand";
-    const sameFrame = " Same camera as the opening still: same crop, same distance, while the head angle, eyeline, seated posture, and hands visibly change to this new pose. No zoom, no reframe, no jump.";
+    const sameFrame = " Same camera, seated torso position, and resting hand position on the lap as the opening still: same crop, same distance, with only a subtle 1–2 degree natural head and facial expression transition. No zoom, no reframe, no jump.";
     const endVar = endPoseVariationEn(clipIndex, fullBody, anchored, freeHand);
     const pose =
       moment === "start"
         ? fullBody
           ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture${anchored ? "" : ", the other arm relaxed at the side"}.`
-          : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live unposed expression.${prop} ${freeHand} is already up at chest height, index finger raised mid-gesture${anchored ? "" : ", the other hand resting naturally on the lap"}.`
+          : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, mouth just opening, ${p.hookBeat}, head tilted 1–2 degrees, a live unposed expression.${prop} ${anchored ? `${freeHand} is resting calmly on the lap` : "both hands resting calmly on the lap in a natural neutral rest position"}.`
         : fullBody
           ? `Character: still the only person in the frame, ${endVar.head}.${propEnd} ${anchored ? `${endVar.hand}, weight on the other hip` : endVar.hand}, feet in the same place.${sameFrame}`
           : `Character: still the only person in the frame, still seated, ${endVar.head}.${propEnd} ${endVar.hand}.${sameFrame}`;
@@ -552,13 +552,13 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
   const prop = anchored ? `一隻手拎住${p.anchorProp}。` : "";
   const propEnd = anchored ? `同一隻手仍然拎住${p.anchorProp}。` : "";
   const freeHand = anchored ? "另一隻手" : "一隻手";
-  const sameFrame = "鏡頭同開頭畫面一樣：同一個裁切、同一距離，但係頭部角度、視線方向、坐姿同手勢明顯變成呢個新姿勢。唔好變焦，唔好跳鏡。";
+  const sameFrame = "鏡頭、軀幹坐姿同雙手放喺大髀嘅休息位置同開頭畫面一致：同一個裁切、同一距離，只有 1–2 度極細微嘅頭部與表情自然過渡。唔好變焦，唔好跳鏡。";
   const endVarYue = endPoseVariationYue(clipIndex, fullBody, anchored, freeHand);
   const pose =
     moment === "start"
       ? fullBody
         ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，準備開口，${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢${anchored ? "" : "，另一隻手自然垂低"}。`
-        : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，直望鏡頭好似喺屋企用手機實拍，準備開口，${p.hookBeat}，頭微傾，神情自然唔擺拍。${prop}${freeHand}已經提到胸前，豎起食指做緊手勢${anchored ? "" : "，另一隻手自然放喺大髀"}。`
+        : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，直望鏡頭好似喺屋企用手機實拍，準備開口，${p.hookBeat}，頭微傾 1–2 度，神情自然唔擺拍。${prop}${anchored ? `${freeHand}自然放鬆放喺大髀休息位` : "雙手自然放鬆放喺大髀休息位置"}。`
       : fullBody
         ? `角色：畫面仍然只有呢一個人，${endVarYue.head}。${propEnd}${anchored ? `${endVarYue.hand}，重心輕輕換咗少少，腳留喺同一個位置` : endVarYue.hand}。${sameFrame}`
         : `角色：畫面仍然只有呢一個人，仍然坐住，${endVarYue.head}。${propEnd}${endVarYue.hand}。${sameFrame}`;

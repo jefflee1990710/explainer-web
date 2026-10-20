@@ -1,9 +1,118 @@
+import { ALL_FORMATS, BlobSource, Input, UrlSource } from "mediabunny";
 import { clipNumberFromName } from "@/opencut/embed/scro-clip-number";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 import type { MediaAsset } from "@/opencut/media/types";
+import type { ProcessedMediaAsset } from "@/opencut/media/processing";
 
 export const DEFAULT_MEDIA_FETCH_TIMEOUT_MS = 20_000;
+export const DEFAULT_VIDEO_PROBE_TIMEOUT_MS = 3_000;
 export const DEFAULT_MEDIA_POOL_CONCURRENCY = 4;
+
+export type ProbedVideoMetadata = {
+	duration?: number;
+	width?: number;
+	height?: number;
+	fps?: number;
+	hasAudio?: boolean;
+};
+
+/**
+ * Use HTTP Range streaming (`UrlSource`) when the MediaAsset is backed by a remote URL
+ * with a 0-byte placeholder File, and `BlobSource` when backed by local File bytes.
+ */
+export function createMediaInputSource({
+	file,
+	url,
+}: {
+	file: File;
+	url?: string;
+}): BlobSource | UrlSource {
+	if (file.size === 0 && url && /^https?:\/\//i.test(url)) {
+		return new UrlSource(url);
+	}
+	return new BlobSource(file);
+}
+
+/**
+ * Probe only the MP4 header over HTTP Range requests (`UrlSource`) without downloading
+ * the full video file or decoding 100 packets.
+ */
+export async function probeRemoteVideoMetadata(
+	url: string,
+): Promise<ProbedVideoMetadata> {
+	const input = new Input({
+		source: new UrlSource(url),
+		formats: ALL_FORMATS,
+	});
+	try {
+		const [duration, videoTrack, audioTrack] = await Promise.all([
+			input.computeDuration(),
+			input.getPrimaryVideoTrack(),
+			input.getPrimaryAudioTrack(),
+		]);
+		return {
+			duration: Number.isFinite(duration) && duration > 0 ? duration : undefined,
+			width: videoTrack?.displayWidth || undefined,
+			height: videoTrack?.displayHeight || undefined,
+			fps: 24,
+			hasAudio: audioTrack !== null,
+		};
+	} finally {
+		input.dispose();
+	}
+}
+
+/**
+ * Build a streaming video MediaAsset backed by `UrlSource` (HTTP Range requests) so the
+ * editor can play immediately without downloading the entire MP4 file first.
+ */
+export async function createStreamingVideoAsset({
+	url,
+	name,
+	posterUrl,
+	fallbackDuration,
+	fallbackWidth = 1080,
+	fallbackHeight = 1920,
+	probeTimeoutMs = DEFAULT_VIDEO_PROBE_TIMEOUT_MS,
+	probeImpl = probeRemoteVideoMetadata,
+}: {
+	url: string;
+	name: string;
+	posterUrl?: string;
+	fallbackDuration?: number;
+	fallbackWidth?: number;
+	fallbackHeight?: number;
+	probeTimeoutMs?: number;
+	probeImpl?: (url: string) => Promise<ProbedVideoMetadata>;
+}): Promise<ProcessedMediaAsset> {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	let probed: ProbedVideoMetadata | null = null;
+	try {
+		probed = await Promise.race([
+			probeImpl(url).catch(() => null),
+			new Promise<null>((resolve) => {
+				timer = setTimeout(() => resolve(null), probeTimeoutMs);
+			}),
+		]);
+	} finally {
+		if (timer !== undefined) clearTimeout(timer);
+	}
+
+	const fileName = /\.mp4$/i.test(name) ? name : `${name}.mp4`;
+	const file = new File([], fileName, { type: "video/mp4" });
+	return {
+		name,
+		type: "video",
+		file,
+		url,
+		thumbnailUrl: posterUrl,
+		duration: probed?.duration ?? fallbackDuration,
+		width: probed?.width ?? fallbackWidth,
+		height: probed?.height ?? fallbackHeight,
+		fps: probed?.fps ?? 24,
+		hasAudio: probed?.hasAudio ?? true,
+	};
+}
 
 /**
  * Find an already-loaded media asset in OpenCut's MediaManager that matches

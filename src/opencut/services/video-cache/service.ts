@@ -1,10 +1,10 @@
 import {
 	Input,
 	ALL_FORMATS,
-	BlobSource,
 	CanvasSink,
 	type WrappedCanvas,
 } from "mediabunny";
+import { createMediaInputSource } from "@/opencut/embed/scro-media-load";
 
 interface VideoSinkData {
 	input: Input;
@@ -26,13 +26,15 @@ export class VideoCache {
 	async getFrameAt({
 		mediaId,
 		file,
+		url,
 		time,
 	}: {
 		mediaId: string;
 		file: File;
+		url?: string;
 		time: number;
 	}): Promise<WrappedCanvas | null> {
-		await this.ensureSink({ mediaId, file });
+		await this.ensureSink({ mediaId, file, url });
 
 		const sinkData = this.sinks.get(mediaId);
 		if (!sinkData) return null;
@@ -235,9 +237,11 @@ export class VideoCache {
 	private async ensureSink({
 		mediaId,
 		file,
+		url,
 	}: {
 		mediaId: string;
 		file: File;
+		url?: string;
 	}): Promise<void> {
 		if (this.sinks.has(mediaId)) return;
 
@@ -246,7 +250,7 @@ export class VideoCache {
 			return;
 		}
 
-		const initPromise = this.initializeSink({ mediaId, file });
+		const initPromise = this.initializeSink({ mediaId, file, url });
 		this.initPromises.set(mediaId, initPromise);
 
 		try {
@@ -258,12 +262,14 @@ export class VideoCache {
 	private async initializeSink({
 		mediaId,
 		file,
+		url,
 	}: {
 		mediaId: string;
 		file: File;
+		url?: string;
 	}): Promise<void> {
 		const input = new Input({
-			source: new BlobSource(file),
+			source: createMediaInputSource({ file, url }),
 			formats: ALL_FORMATS,
 		});
 

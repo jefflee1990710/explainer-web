@@ -27,6 +27,8 @@ export interface MediaAssetData {
 	hasAudio?: boolean;
 	ephemeral?: boolean;
 	thumbnailUrl?: string;
+	/** Remote HTTP(S) streaming URL when backed by a 0-byte placeholder File. */
+	sourceUrl?: string;
 	/** Scro storyboard clip this asset belongs to. */
 	scroClipNumber?: number;
 	/** Last known start-still URL for loading thumbs. */

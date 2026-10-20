@@ -18,7 +18,7 @@ test("only the two talking-head directors use talking performance", () => {
   assert.equal(clipUsesTalkingPerformance("outfit-reel-director"), false);
 });
 
-test("full-body talking motion has lip-sync, head, hands, and a weight shift", () => {
+test("full-body talking motion has lip-sync, single-hand co-speech gesture excursion, and a weight shift", () => {
   const motion = talkingMotionLine({
     language: "en",
     seconds: 5,
@@ -29,7 +29,8 @@ test("full-body talking motion has lip-sync, head, hands, and a weight shift", (
   assert.match(motion, /continuous lip-sync/);
   assert.match(motion, /reel-person face/);
   assert.match(motion, /head tilting and nodding/);
-  assert.match(motion, /right then left hand gesturing at chest height/);
+  assert.match(motion, /right hand makes one brief ~0\.5s co-speech gesture excursion/);
+  assert.doesNotMatch(motion, /right then left hand/);
   assert.match(motion, /weight shifting hip to hip/);
   assert.match(motion, /eyes locked on the lens/);
   assert.doesNotMatch(motion, /snap|flick|whip/i);
@@ -51,7 +52,7 @@ test("face talking motion still uses the hands and head, eyes on the lens", () =
   assert.match(motion, /eyes locked on the lens/);
 });
 
-test("talking motion carries calm, natural reel expression and smooth single-beat gesture pattern", () => {
+test("talking motion follows 5-phase co-speech gesture kinematics (rest -> preparation -> stroke -> hold -> retraction) with one dominant hand", () => {
   const motion = talkingMotionLine({
     language: "en",
     seconds: 7,
@@ -62,7 +63,9 @@ test("talking motion carries calm, natural reel expression and smooth single-bea
   });
   assert.match(motion, /warm, chatty smile with a hint of teeth/);
   assert.match(motion, /subtle brow lift/);
-  assert.match(motion, /one smooth, unhurried conversational gesture/);
+  assert.match(motion, /preparation.*stroke.*hold.*retraction/i);
+  assert.match(motion, /both hands resting calmly on the lap/);
+  assert.doesNotMatch(motion, /right then left hand|left then right hand/);
   assert.doesNotMatch(motion, /every 1–2 seconds/);
   assert.doesNotMatch(motion, /two-handed open-palm shrug/);
   assert.match(motion, /big warm smile as the hook/);
@@ -90,7 +93,7 @@ test("the last talking clip closes on a softer CTA beat without hyperactive hand
     totalClips: 2,
   });
   assert.match(yue, /講緊秘密/);
-  assert.doesNotMatch(yue, /每 1–2 秒換一個手勢/);
+  assert.doesNotMatch(yue, /每 1–2 秒換一個手勢|右手再左手|左手再右手/);
   assert.doesNotMatch(yue, /口張大約半秒/);
 });
 
@@ -105,12 +108,11 @@ test("custom performance slots replace the default text in motion and rules", ()
   const motion = talkingMotionLine({ language: "en", seconds: 6, line: "Listen.", shot: "face", performance: perf });
   assert.match(motion, /serious, furrowed brow/);
   assert.doesNotMatch(motion, /homemade microphone/);
-  // No prop → both hands gesture, even on the seated shot.
-  assert.match(motion, /right then left hand gesturing at chest height/);
+  assert.match(motion, /right hand makes one brief ~0\.5s co-speech gesture excursion/);
   const rules = talkingVideoMotionRules("face", perf);
   assert.match(rules, /serious, furrowed brow/);
   assert.doesNotMatch(rules, /homemade microphone/);
-  assert.match(rules, /one hand leads, the other follows/);
+  assert.match(rules, /dominant hand/);
 });
 
 test("a continued clip never quotes the previous spoken line or embeds subtitles", () => {

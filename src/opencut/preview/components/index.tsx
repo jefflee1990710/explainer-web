@@ -9,6 +9,9 @@ import { useFullscreen } from "@/opencut/hooks/use-fullscreen";
 import { CanvasRenderer } from "@/opencut/services/renderer/canvas-renderer";
 import { TICKS_PER_SECOND } from "@/opencut/wasm";
 import type { RootNode } from "@/opencut/services/renderer/nodes/root-node";
+import type { AnyBaseNode } from "@/opencut/services/renderer/nodes/base-node";
+import { VideoNode } from "@/opencut/services/renderer/nodes/video-node";
+import { ImageNode } from "@/opencut/services/renderer/nodes/image-node";
 import { buildScene } from "@/opencut/services/renderer/scene-builder";
 import { PreviewOverlayLayer } from "./overlay-layer";
 import { PreviewInteractionOverlay } from "./preview-interaction-overlay";
@@ -71,6 +74,17 @@ function previewMediaId(editor: EditorCore): string | null {
 	});
 	if (!element || !("mediaId" in element)) return null;
 	return element.mediaId;
+}
+
+/** True when any VideoNode or ImageNode in the tree resolved a decoded frame/image for this render. */
+function hasResolvedVisualFrame(node: AnyBaseNode): boolean {
+	if (
+		(node instanceof VideoNode || node instanceof ImageNode) &&
+		node.resolved?.source != null
+	) {
+		return true;
+	}
+	return node.children.some((child) => hasResolvedVisualFrame(child));
 }
 
 /** True while every probe is still the empty background. One painted probe is enough. */
@@ -298,7 +312,10 @@ function PreviewCanvas({
 			.finally(() => {
 				renderingRef.current = false;
 				window.clearTimeout(slowTimerRef.current);
-				const painted = seenFrameRef.current || !previewFrameIsEmpty(renderer.getOutputCanvas());
+				const painted =
+					seenFrameRef.current ||
+					hasResolvedVisualFrame(renderTree) ||
+					!previewFrameIsEmpty(renderer.getOutputCanvas());
 				if (!painted && emptySinceRef.current === 0) emptySinceRef.current = performance.now();
 				const decision = previewLoadDecision({
 					seenFrame: seenFrameRef.current,

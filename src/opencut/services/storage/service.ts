@@ -304,6 +304,10 @@ class StorageService {
 			height: mediaAsset.height,
 			duration: mediaAsset.duration,
 			thumbnailUrl: mediaAsset.thumbnailUrl,
+			sourceUrl:
+				mediaAsset.url && /^https?:\/\//i.test(mediaAsset.url)
+					? mediaAsset.url
+					: undefined,
 			ephemeral: mediaAsset.ephemeral,
 			scroClipNumber: mediaAsset.scroClipNumber,
 			scroPosterUrl: mediaAsset.scroPosterUrl,
@@ -354,7 +358,9 @@ class StorageService {
 		if (!file || !metadata) return null;
 
 		let url: string;
-		if (metadata.type === "image" && (!file.type || file.type === "")) {
+		if (file.size === 0 && metadata.sourceUrl && /^https?:\/\//i.test(metadata.sourceUrl)) {
+			url = metadata.sourceUrl;
+		} else if (metadata.type === "image" && (!file.type || file.type === "")) {
 			try {
 				const text = await file.text();
 				if (text.trim().startsWith("<svg")) {

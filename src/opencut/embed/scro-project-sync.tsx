@@ -8,8 +8,8 @@ import type { TProject } from "@/opencut/project/types";
 import { applyScroCanvasSize } from "@/opencut/embed/scro-canvas-size";
 import { resolveScroClipNumber } from "@/opencut/embed/scro-clip-number";
 import {
+	createStreamingVideoAsset,
 	fetchMediaBlobWithTimeout,
-	runConcurrentMediaPool,
 } from "@/opencut/embed/scro-media-load";
 import {
 	armScroSync,
@@ -239,19 +239,55 @@ export function ScroProjectSync() {
 						clips: undefined,
 					});
 					if (existing) {
-						if (itemClipNumber != null && existing.scroClipNumber == null) {
+						const needsUrlRestore =
+							item.type === "video" &&
+							existing.file.size === 0 &&
+							/^https?:\/\//i.test(item.sourceUrl) &&
+							existing.url !== item.sourceUrl;
+						if (
+							needsUrlRestore ||
+							(itemClipNumber != null && existing.scroClipNumber == null)
+						) {
 							await storageService.saveMediaAsset({
 								projectId,
-								mediaAsset: { ...existing, scroClipNumber: itemClipNumber },
+								mediaAsset: {
+									...existing,
+									...(needsUrlRestore ? { url: item.sourceUrl } : {}),
+									...(itemClipNumber != null ? { scroClipNumber: itemClipNumber } : {}),
+								},
 							});
 						}
 						continue;
 					}
-					const blob = await fetchMediaBlobWithTimeout({ url: item.sourceUrl });
-					if (!blob) continue;
-					const file = new File([blob], item.name, { type: blob.type || "video/mp4" });
-					const processed = await processMediaAssets({ files: [file] });
-					const asset = processed[0];
+					let asset;
+					if (item.type === "video" && /^https?:\/\//i.test(item.sourceUrl)) {
+						asset = await createStreamingVideoAsset({
+							url: item.sourceUrl,
+							name: item.name,
+							fallbackDuration: item.duration,
+							fallbackWidth: item.width,
+							fallbackHeight: item.height,
+						});
+					} else {
+						const blob = await fetchMediaBlobWithTimeout({ url: item.sourceUrl });
+						if (!blob) continue;
+						const blobType = blob.type;
+						const fallbackMime =
+							item.type === "image"
+								? "image/webp"
+								: item.type === "audio"
+									? "audio/mpeg"
+									: "video/mp4";
+						const mime =
+							blobType.startsWith("image/") ||
+							blobType.startsWith("video/") ||
+							blobType.startsWith("audio/")
+								? blobType
+								: fallbackMime;
+						const file = new File([blob], item.name, { type: mime });
+						const processed = await processMediaAssets({ files: [file] });
+						asset = processed[0];
+					}
 					if (!asset) continue;
 					await storageService.saveMediaAsset({
 						projectId,

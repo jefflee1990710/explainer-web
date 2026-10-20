@@ -255,7 +255,8 @@ test("a long talking-head line becomes short clips, and both hands stay free", (
   assert.ok(Math.max(...words) <= 14);
   assert.ok(clips[1]);
   assert.match(clips[1].motionCamera, /no jump/);
-  assert.match(clips[1].motionCamera, /left then right hand gesturing/);
+  assert.match(clips[1].motionCamera, /left hand makes one brief ~0\.5s co-speech gesture excursion/);
+  assert.doesNotMatch(clips[1].motionCamera, /left then right hand|right then left hand/);
   assert.doesNotMatch(clips[1].motionCamera, /hand holding/);
   assert.match(clips[1].endScene, /No zoom, no reframe, no jump/);
   assert.doesNotMatch(clips[1].startScene, /Subtitle:/);
@@ -263,8 +264,10 @@ test("a long talking-head line becomes short clips, and both hands stay free", (
   for (const clip of clips) {
     assert.match(clip.startScene, /eyes (?:locked (?:into|on)|on) the lens/);
     assert.match(clip.endScene, /eyes (?:locked (?:into|on)|on) the lens/);
-    assert.doesNotMatch(clip.startScene, /looking down at her gesturing hands|glancing upward-left|looking off-camera|two fingers|two-handed open-palm shrug/);
-    assert.doesNotMatch(clip.endScene, /looking down at her gesturing hands|glancing upward-left|looking off-camera|two fingers|two-handed open-palm shrug/);
+    assert.match(clip.startScene, /both hands resting calmly on the lap/i);
+    assert.match(clip.endScene, /both hands resting calmly on the lap/i);
+    assert.doesNotMatch(clip.startScene, /index finger raised mid-gesture|looking down at her gesturing hands|glancing upward-left|looking off-camera|two fingers|two-handed open-palm shrug/);
+    assert.doesNotMatch(clip.endScene, /index finger raised mid-gesture|looking down at her gesturing hands|glancing upward-left|looking off-camera|two fingers|two-handed open-palm shrug/);
   }
 });
 

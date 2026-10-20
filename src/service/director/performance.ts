@@ -21,9 +21,9 @@ const FACE_EN: PerformanceSlots = {
   hookBeat: "eyebrows already lifting into a big warm smile",
   ctaBeat: "a softer, closer smile, eyebrows settling, the torso leaning a little toward the lens like sharing a secret",
   gestureLibrary:
-    "one smooth, unhurried conversational hand gesture per sentence at lower-chest height — a gentle open palm or a soft finger point on the key word while the other hand rests calmly on the lap",
+    "most of the time (~90%) both hands rest calmly on the lap in a neutral rest position; only on the single main key word of the sentence, one dominant hand makes a brief ~0.5s co-speech gesture excursion (preparation lift from the lap, a soft open-palm stroke on the stressed word, a brief hold, then smooth retraction back to rest on the lap) while the other hand stays completely still",
   headMotion:
-    "a calm, subtle head tilt of 2–3 degrees and a gentle nod on stressed words while keeping the torso centered and both eyes locked directly on the lens the whole time",
+    "proximal torso, pelvis, and shoulders stay anchored and stable in the exact same spot with only subtle breathing movement; the head stays facing the camera with a subtle 1–2 degree prosodic nod on stressed words and both eyes locked directly on the lens center the whole time",
   anchorProp: "",
   set: "the same sofa at home in every clip, a bookshelf behind the head",
   light: "ordinary daylight from a window to one side, no studio light",
@@ -35,9 +35,9 @@ const FACE_YUE: PerformanceSlots = {
   hookBeat: "眉毛已經揚起、展開一個大笑容",
   ctaBeat: "更柔和、更親近嘅淺笑，眉毛放鬆，上身微微傾向鏡頭好似講緊秘密",
   gestureLibrary:
-    "每句只做一個從容自然嘅單手傾偈手勢（另一隻手自然放喺大髀保持穩定），講重點時掌心輕輕打開再自然收回，唔好頻繁切換手勢",
+    "近九成時間雙手自然放鬆放喺大髀休息位（Neutral Rest）；只喺整句最核心嗰一個重點詞出現時，單一慣用手由大髀輕輕抬起做一個約 0.5 秒嘅自然拍點手勢（起手 → 重音拍點 → 短暫停留 → 自然收返落大髀原位），另一隻手全程放喺大髀唔郁，絕對唔好雙手輪流喺半空比畫",
   headMotion:
-    "面向鏡頭保持穩定坐姿，配合說話節奏有 2–3 度嘅輕微自然點頭，雙眼全程穩定直望鏡頭中心",
+    "腰部、軀幹同雙肩保持固定喺同一位置（僅有自然呼吸微幅起伏，唔好左右挪動或前後搖晃）；頭部正對鏡頭，只喺重音字有 1–2 度嘅微幅點頭，雙眼全程穩定直望鏡頭中心",
   anchorProp: "",
   set: "全程同一張屋企沙發，書架喺頭後面",
   light: "一邊窗嘅普通日光，冇影樓燈",
