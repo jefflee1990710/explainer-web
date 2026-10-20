@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { LifeShotKind } from "@/model/life-shot-kind";
 import {
+  generateLifeCaptionAction,
   generateLifeShotAction,
   searchLifeScenesAction,
 } from "@/presentation/actions/life";
@@ -197,6 +198,9 @@ export function LifeDesk({
   const [isDragging, setIsDragging] = useState(false);
   const [customInstruction, setCustomInstruction] = useState("");
   const [historyEditPrompt, setHistoryEditPrompt] = useState("");
+  const [generatedCaption, setGeneratedCaption] = useState("");
+  const [captionLoading, setCaptionLoading] = useState(false);
+  const [captionCopied, setCaptionCopied] = useState(false);
 
   // Multi-color numbered remarks (#1, #2, #3...)
   const [remarks, setRemarks] = useState<RemarkItem[]>([
@@ -921,32 +925,82 @@ export function LifeDesk({
 
           {/* Input Field to Edit & Generate Again with AI from Selected History Shot */}
           {activeShot ? (
-            <div className="flex shrink-0 items-center gap-1.5">
-              <input
-                type="text"
-                value={historyEditPrompt}
-                disabled={pending !== ""}
-                onChange={(e) => setHistoryEditPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void onRegenerateFromHistory();
-                  }
-                }}
-                placeholder="輸入修改指令，用 AI 修改此圖重新生成..."
-                className="h-8 min-w-0 flex-1 rounded-full border border-accent-ink/15 bg-paper px-3 text-xs font-medium text-foreground focus-visible:outline-1 focus-visible:outline-accent disabled:opacity-60"
-              />
-              <button
-                type="button"
-                disabled={pending !== ""}
-                onClick={() => void onRegenerateFromHistory()}
-                className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full bg-accent-ink px-3 text-[11px] font-bold text-lime transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {pending === "regenerate" ? (
-                  <Spinner className="mr-1 h-3 w-3" />
-                ) : null}
-                AI 重新生成
-              </button>
+            <div className="space-y-1.5">
+              <div className="flex shrink-0 items-center gap-1.5">
+                <input
+                  type="text"
+                  value={historyEditPrompt}
+                  disabled={pending !== ""}
+                  onChange={(e) => setHistoryEditPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void onRegenerateFromHistory();
+                    }
+                  }}
+                  placeholder="輸入修改指令，用 AI 修改此圖重新生成..."
+                  className="h-8 min-w-0 flex-1 rounded-full border border-accent-ink/15 bg-paper px-3 text-xs font-medium text-foreground focus-visible:outline-1 focus-visible:outline-accent disabled:opacity-60"
+                />
+                <button
+                  type="button"
+                  disabled={pending !== ""}
+                  onClick={() => void onRegenerateFromHistory()}
+                  className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full bg-accent-ink px-3 text-[11px] font-bold text-lime transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {pending === "regenerate" ? (
+                    <Spinner className="mr-1 h-3 w-3" />
+                  ) : null}
+                  AI 重新生成
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={captionLoading}
+                  onClick={async () => {
+                    setCaptionLoading(true);
+                    setCaptionCopied(false);
+                    try {
+                      const res = await generateLifeCaptionAction({
+                        shotId: activeShot.id,
+                        language: "yue",
+                      });
+                      if (res.ok) setGeneratedCaption(res.caption);
+                    } finally {
+                      setCaptionLoading(false);
+                    }
+                  }}
+                  className="cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-2.5 py-1 text-[11px] font-semibold text-foreground transition hover:border-accent-ink"
+                >
+                  {captionLoading ? "生成文案中..." : "✍️ AI 生成 IG 貼文文案"}
+                </button>
+                <a
+                  href={activeShot.resultUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  download
+                  className="rounded-full border border-accent-ink/15 bg-paper px-2.5 py-1 text-[11px] font-semibold text-foreground transition hover:border-accent-ink"
+                >
+                  下載原圖
+                </a>
+              </div>
+              {generatedCaption ? (
+                <div className="rounded-xl border border-accent-ink/15 bg-paper p-2 text-[11px]">
+                  <p className="max-h-20 overflow-y-auto whitespace-pre-wrap text-foreground">
+                    {generatedCaption}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(generatedCaption);
+                      setCaptionCopied(true);
+                    }}
+                    className="mt-1.5 cursor-pointer rounded-full bg-accent-ink px-2.5 py-0.5 text-[10px] font-bold text-lime"
+                  >
+                    {captionCopied ? "已複製！" : "複製 IG 文案"}
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : null}
 

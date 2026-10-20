@@ -1,3 +1,4 @@
+import { generateText } from "ai";
 import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 import { charactersCollection } from "@/dao/characters";
@@ -21,6 +22,7 @@ import {
 } from "@/service/character/life-prompt";
 import { searchPlaceScenes } from "@/service/character/life-search";
 import { FRAME_COST } from "@/service/credit-costs";
+import { directorModel } from "@/service/director/model";
 import { persistMedia } from "@/service/higgsfield/persist";
 import { SEEDREAM_5_PRO_IMAGE_MODEL } from "@/service/generation/image-backend";
 import { submitOpenRouterImage } from "@/service/openrouter/generate";
@@ -212,5 +214,58 @@ export async function generateLifeShotAction(input: {
     }
     const message = error instanceof Error ? error.message : "生活照生成失敗";
     return { ok: false as const, error: message };
+  }
+}
+
+export async function generateLifeCaptionAction(input: {
+  shotId: string;
+  language?: "yue" | "zh" | "en";
+}) {
+  try {
+    const user = await requireAppUser();
+    if (!ObjectId.isValid(input.shotId)) {
+      return { ok: false as const, error: "找不到照片" };
+    }
+    const shots = await lifeShotsCollection();
+    const shot = await shots.findOne({
+      _id: new ObjectId(input.shotId),
+      clerkUserId: user.clerkUserId,
+    });
+    if (!shot) return { ok: false as const, error: "找不到照片" };
+
+    const characters = await charactersCollection();
+    const character = (await characters.findOne({
+      _id: shot.characterId,
+      clerkUserId: user.clerkUserId,
+    })) as Character | null;
+    const persona = parseCharacterPersona(character?.persona);
+    const lang = input.language ?? "yue";
+    const langRule =
+      lang === "en"
+        ? "Write in natural, engaging English suitable for Instagram."
+        : lang === "zh"
+          ? "使用自然、有感染力的繁體中文撰寫 IG 貼文。"
+          : "使用道地香港廣東話口語（繁體字，如「嘅、喺、真係、今日」）撰寫自然親切的 IG 貼文。";
+
+    const { text } = await generateText({
+      model: directorModel(),
+      prompt: [
+        `You are writing a high-engagement Instagram post caption and hashtags for AI KOL "${shot.characterName}".`,
+        persona
+          ? `Persona: city=${persona.city || "Hong Kong"}, warmth=${persona.warmth}, humor=${persona.humor}, summary=${persona.summary || ""}, interests=${(persona.interests || []).join(", ")}.`
+          : "",
+        `Photo context / scene: ${shot.place || "daily lifestyle moment"}.`,
+        langRule,
+        "Include a short catchy opening hook, 2–3 natural sentences in first person, a question to drive comments, and 6–8 relevant hashtags at the bottom. Return only the caption text.",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    });
+    return { ok: true as const, caption: text.trim() };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "產生貼文文案失敗",
+    };
   }
 }

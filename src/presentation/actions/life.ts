@@ -13,3 +13,9 @@ export async function generateLifeShotAction(
 ) {
   return service.generateLifeShotAction(...args);
 }
+
+export async function generateLifeCaptionAction(
+  ...args: Parameters<typeof service.generateLifeCaptionAction>
+) {
+  return service.generateLifeCaptionAction(...args);
+}
