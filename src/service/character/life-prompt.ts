@@ -22,38 +22,38 @@ export type LifeRemarkInput = {
   comment: string;
 };
 
-// 12 De-Plastic Rules ("去塑膠感的十二條") for /app/life candid lifestyle photography:
-// - Rule 01: Honest 35mm camera capture (Kodak Gold 200 / Ektachrome on Ricoh GR III / Canon AE-1; no 8K/hyperrealistic buzzwords).
-// - Rule 03 & 04: Lift black point in underwater/fog/smoke scenes (blue-shifted underwater shadows, neutral night shadows).
-// - Rule 05: In extreme dark scenes keep 90% of shadows neutral-desaturated with chroma only on the light source.
-// - Rule 06: Keep glowing light sources and bright skies below pure-white clipping with subtle halation.
-// - Rule 07: Subtle 35mm film grain with slightly lifted shadow blacks so grain is never swallowed by crushed zero-blacks.
-// - Rule 09 & 10: Per-shot scene-motivated contrast; neutral/cool highlights by default (warm only when a warm practical lamp, sunset, or fire is visible).
-// - Rule 11: Grazing directional key light from the scene's light source with 1.4:1 to 1.8:1 cheek-to-cheek contrast ratio, 25–40% shadow roll-off, negative fill on the far cheek, clear nose-bridge shadow, overriding flat blueprint lighting, and matte-natural skin pores with zero oily/plastic sheen.
+// Real human camera capture rules for /app/life candid lifestyle photography:
+// - Shot on modern human camera equipment (iPhone 16 Pro 24mm f/1.8 main camera, Sony ZV-E1 / A7C II mirrorless, or Ricoh GR III digital CMOS sensor; no heavy vintage 35mm film filter, no 8K/hyperrealistic buzzwords).
+// - Natural available light from the scene's light source with clean, dimensional 1.2:1 to 1.5:1 portrait contrast, soft natural shadow roll-off on the far cheek, and clear nose-bridge shadow (overriding flat blueprint lighting).
+// - Unfiltered real human skin with visible pores, fine peach-fuzz, and matte-natural finish with zero oily/plastic sheen or beauty-filter smoothing.
+// - Clean true-to-life modern digital CMOS sensor color, unclipped highlights, neutral/cool highlights by default (warm only when a warm practical lamp, sunset, or fire is visible), and subtle natural ISO micro-texture without heavy 35mm film grain.
 export const LIFE_REALISTIC_RENDER_RULE = [
-  "Realistic light & camera (35mm film capture on Kodak Gold 200 or Ektachrome with Ricoh GR III / Canon AE-1 optics; never 8K, ultra-realistic, hyperrealistic, masterpiece, or AI beauty-mode):",
-  "re-light the character's face and body strictly from the base scene's natural light source, sculpting the light-facing cheek with grazing directional key light, a 1.4:1 to 1.8:1 cheek-to-cheek contrast ratio, 25–40% natural shadow falloff, negative fill on the far cheek, and a clear nose-bridge shadow (override any flat front lighting from the first identity reference image; never flat front beauty light, never even front fill, zero unmotivated rim light from the dark shadow side).",
-  "Skin & texture: authentic unretouched human skin with visible pores, fine peach-fuzz catching the key light, natural uneven skin tone with subsurface scattering, matte-natural finish with zero oily, waxy, or plastic specular sheen on the forehead, nose, cheeks, or collarbones (override any beauty-filter smoothing), loose flyaway hair strands, and real fabric weave.",
-  "Colour & exposure: keep highlights neutral or cool by default, reserving warm highlights strictly for scenes with a visible warm practical lamp, fire, or sunset in frame; keep glowing sources and bright skies below pure-white clipping with subtle halation; in extreme dark scenes keep 90% of shadows neutral-desaturated with colour only on the light source; lift the black point in underwater, fog, or smoke scenes (with blue-shifted underwater shadows and neutral night shadows); add subtle 35mm film grain with slightly lifted shadow blacks so grain is never swallowed by crushed zero-blacks, plus slight optical chromatic aberration and natural optical depth of field.",
+  "Real human camera capture (shot on modern smartphone or creator camera equipment — iPhone 16 Pro 24mm f/1.8 main camera, Sony ZV-E1 mirrorless, or Ricoh GR III digital CMOS sensor; never heavy vintage 35mm film filter, never 8K, ultra-realistic, hyperrealistic, masterpiece, or AI beauty-mode):",
+  "re-light the character's face and body strictly from the base scene's natural light source, sculpting the light-facing cheek with honest directional key light, a clean 1.2:1 to 1.5:1 cheek-to-cheek contrast ratio, soft natural shadow falloff on the far cheek, and a clear nose-bridge shadow (override any flat front lighting from the first identity reference image; never flat front beauty-ring light, never dark moody cinema blackouts, zero unmotivated rim light from the dark shadow side).",
+  "Skin & texture: unfiltered real human skin with visible pores, fine peach-fuzz catching the light, natural uneven skin tone with subsurface scattering, matte-natural finish with zero oily, waxy, or plastic specular sheen on the forehead, nose, cheeks, or collarbones (override any beauty-filter smoothing), loose flyaway hair strands, and real fabric weave.",
+  "Colour & exposure: clean true-to-life modern digital CMOS sensor color (no heavy 35mm film grain or retro Kodak LUT); keep highlights neutral or cool by default, reserving warm highlights strictly for scenes with a visible warm practical lamp, fire, or sunset in frame; keep glowing sources and bright skies below pure-white clipping; in extreme dark scenes keep 90% of shadows neutral-desaturated with colour only on the light source; lift the black point in underwater, fog, or smoke scenes (with blue-shifted underwater shadows and neutral night shadows); add subtle natural ISO 100–400 digital sensor micro-texture and natural optical depth of field.",
 ].join(" ");
 
 const ORDINALS = ["first", "second", "third", "fourth", "fifth"];
 
-// Reference order: identity, scene (optional), annotated scene (only with a scene), composition (optional).
+// Reference order: identity, scene (optional), annotated scene (only with a scene),
+// composition (optional), pose skeleton (optional).
 export function lifeReferenceOrder(input: {
   hasScene: boolean;
   hasAnnotatedImage: boolean;
   hasCompositionRef: boolean;
+  hasPose?: boolean;
 }) {
   let next = 1;
   const scene = input.hasScene ? ++next : 0;
   const annotated = input.hasScene && input.hasAnnotatedImage ? ++next : 0;
   const composition = input.hasCompositionRef ? ++next : 0;
-  return { scene, annotated, composition };
+  const pose = input.hasPose ? ++next : 0;
+  return { scene, annotated, composition, pose };
 }
 
-// Identity is the first reference. The scene photo, the numbered annotation guide and a
-// composition reference follow in that order when present (see lifeReferenceOrder).
+// Identity is the first reference. The scene photo, the numbered annotation guide, a
+// composition reference and a pose skeleton follow in that order when present (see lifeReferenceOrder).
 export function lifeShotPrompt(input: {
   name: string;
   kind: LifeShotKind;
@@ -65,12 +65,15 @@ export function lifeShotPrompt(input: {
   hasScene?: boolean;
   templateGuide?: string;
   hasCompositionRef?: boolean;
+  poseText?: string;
 }) {
   const hasScene = input.hasScene ?? true;
+  const poseText = input.poseText?.trim() || "";
   const order = lifeReferenceOrder({
     hasScene,
     hasAnnotatedImage: Boolean(input.hasAnnotatedImage),
     hasCompositionRef: Boolean(input.hasCompositionRef),
+    hasPose: Boolean(poseText),
   });
   const ordinal = (n: number) => ORDINALS[n - 1] || `#${n}`;
   const hobby = input.interests[0] ? `Hobby: ${input.interests[0]}.` : "";
@@ -92,13 +95,18 @@ export function lifeShotPrompt(input: {
       : "";
 
   return [
-    "Authentic candid 35mm vertical photograph.",
+    "Authentic candid vertical photograph shot on modern human camera equipment (iPhone 16 Pro / Sony ZV-E1).",
     `The main person is ${input.name}. The first reference image is their identity blueprint — keep that exact face, hair, skin tone, and build, but re-light their face to match the scene's directional light rather than copying flat reference-sheet lighting.`,
     hasScene
       ? `The ${ordinal(order.scene)} reference image is the base scene/photograph (lighting direction, environment${order.composition ? "" : ", composition"}, and props).`
       : "No scene photo is given: build a believable real-world location that fits the location and post type below.",
     order.composition
-      ? `The ${ordinal(order.composition)} reference image is a composition reference ONLY: copy its pose, body angle, camera angle, framing and crop. Do NOT copy that person's face, hair, outfit, or the background from it.`
+      ? order.pose
+        ? `The ${ordinal(order.composition)} reference image is a camera reference ONLY: copy its camera angle, framing and crop. Do NOT copy that person's pose, face, hair, outfit, or the background from it.`
+        : `The ${ordinal(order.composition)} reference image is a composition reference ONLY: copy its pose, body angle, camera angle, framing and crop. Do NOT copy that person's face, hair, outfit, or the background from it.`
+      : "",
+    order.pose
+      ? `The ${ordinal(order.pose)} reference image is a stick-figure pose skeleton (white circle = head, warm colours = the person's left limbs, cool colours = right limbs). Put ${input.name} in exactly this body pose: ${poseText} The skeleton is a guide only — never draw its lines, dots or circle in the photo.`
       : "",
     instruction
       ? `Edit / Scene instruction: ${instruction}`

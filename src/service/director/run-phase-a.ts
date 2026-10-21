@@ -47,7 +47,7 @@ import {
 } from "@/service/director/skill-rules";
 import { keyframeDeltaDirectorBlock } from "@/service/director/keyframe-delta";
 import { sceneDetailDirectorBlock } from "@/service/director/scene-detail";
-import { isRealisticStyle } from "@/service/style/realistic-light";
+import { isRealisticStyle, isSelfShotCreatorSkill } from "@/service/style/realistic-light";
 import {
   CARTOON_EXPLAINER_SKILL_SLUG,
   dualBeatDirectorBlock,
@@ -274,6 +274,7 @@ ${sceneDetailDirectorBlock({
     id: input.style.id,
     baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
   }),
+  selfShot: isSelfShotCreatorSkill(input.skill.slug),
 })}
 ${dualBeat ? dualBeatDirectorBlock(sceneText.enabled, { inWorldLabels: sceneText.inWorldLabels, language: input.language, look: subtitleLook, lookLine: sampleLookLine, hasCharacter, steadyStills }) : ""}
 ${

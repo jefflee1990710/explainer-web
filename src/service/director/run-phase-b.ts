@@ -7,7 +7,7 @@ import {
 import { clipSkipsEndStill } from "@/service/director/steady-stills";
 import { LANGUAGE_PRESETS } from "@/service/director/languages";
 import { phaseBDetailRules } from "@/service/director/scene-detail";
-import { isRealisticStyle } from "@/service/style/realistic-light";
+import { isRealisticStyle, isSelfShotCreatorSkill } from "@/service/style/realistic-light";
 import {
   cartoonClipAction,
   cartoonNarratorVideoLock,
@@ -89,7 +89,7 @@ ${
               ? DUAL_KEYFRAME_GLIDE_RULES
               : DUAL_KEYFRAME_MOTION_RULES
   } Do not invent a different final pose, camera, or composition.
-${phaseBDetailRules({ realistic })}
+${phaseBDetailRules({ realistic, selfShot: isSelfShotCreatorSkill(input.skill.slug) })}
 ${
     isOutfitReelSkill(input.skill.slug)
       ? "This director is silent. Do not write a spoken line, a narrator, or lip-sync. No background music. One sound effect only."

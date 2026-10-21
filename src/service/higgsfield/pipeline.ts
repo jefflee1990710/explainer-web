@@ -34,7 +34,7 @@ import {
   gradeRealisticImageBuffer,
   gradeRealisticVideoBuffer,
 } from "@/service/style/realistic-grade";
-import { isRealisticStyle, lockRealisticVideoLight } from "@/service/style/realistic-light";
+import { isRealisticStyle, isSelfShotCreatorSkill, lockRealisticVideoLight } from "@/service/style/realistic-light";
 import type { StylePromptSlice } from "@/service/style";
 import { withoutOnScreenTextInstructions } from "@/service/style/prompts";
 import {
@@ -641,7 +641,10 @@ export async function sendClipVideo(
     styleId: project.styleId,
     ownerClerkUserId: project.clerkUserId,
   }).catch(() => null);
-  const motionPrompt = isRealisticStyle(style) ? lockRealisticVideoLight(subtitlePrompt) : subtitlePrompt;
+  const selfShot = isSelfShotCreatorSkill(project.skillSlug);
+  const motionPrompt = isRealisticStyle(style)
+    ? lockRealisticVideoLight(subtitlePrompt, { selfShot })
+    : subtitlePrompt;
   const currentCast = await withCurrentCharacterVoices(project.cast);
   let videoPrompt = withCantonesePronunciation(
     lockDialogueSpeech(
@@ -864,6 +867,9 @@ export async function applyJobStatus(input: {
         })
       : undefined;
     const realistic = isRealisticStyle(renderableStyle);
+    // Self-shot creator skills (Talking Head & Surprise Hook) use clean modern smartphone/mirrorless
+    // sensor capture without heavy post-process 35mm film grain or cinema LUT grading.
+    const applyFilmGrade = realistic && !isSelfShotCreatorSkill(project?.skillSlug);
     const canvasColor =
       renderableStyle && (job.kind === "still" || job.kind === "frame")
         ? renderableStyle.canvasColor
@@ -901,10 +907,10 @@ export async function applyJobStatus(input: {
           })
         : Promise.resolve(buffer);
     const transformVideo =
-      job.kind === "video" && (voiceId || realistic)
+      job.kind === "video" && (voiceId || applyFilmGrade)
         ? async (buffer: Buffer) => {
             const voiced = await swapVoice(buffer);
-            if (!realistic) return voiced;
+            if (!applyFilmGrade) return voiced;
             return gradeRealisticVideoBuffer(voiced).catch((error: unknown) => {
               console.error(
                 "[higgsfield] realistic video grade failed; keeping clip bytes",
@@ -915,7 +921,7 @@ export async function applyJobStatus(input: {
           }
         : undefined;
     const transformImage =
-      (job.kind === "still" || job.kind === "frame") && (canvasColor || realistic)
+      (job.kind === "still" || job.kind === "frame") && (canvasColor || applyFilmGrade)
         ? async (buffer: Buffer) => {
             const flat = canvasColor
               ? await flattenToCanvas(buffer, canvasColor).catch(
@@ -930,7 +936,7 @@ export async function applyJobStatus(input: {
                   },
                 )
               : buffer;
-            if (!realistic) return flat;
+            if (!applyFilmGrade) return flat;
             return gradeRealisticImageBuffer(flat).catch((error: unknown) => {
               console.error(
                 "[higgsfield] realistic image grade failed; keeping flattened bytes",

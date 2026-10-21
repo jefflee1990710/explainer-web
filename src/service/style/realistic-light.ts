@@ -6,6 +6,18 @@ export function isRealisticStyle(style?: { id?: string; baseStyleId?: string } |
   return style.id === "realistic" || style.baseStyleId === "realistic";
 }
 
+const SELF_SHOT_CREATOR_SKILLS = new Set([
+  "talking-head-director",
+  "full-body-talking-head-director",
+  "surprise-interview-director",
+]);
+
+// Talking-head and surprise-hook videos are self-recorded creator / vlog captures
+// (iPhone 16 Pro / Sony ZV-E1 / DJI Osmo Pocket 3) rather than vintage 35mm cinema film.
+export function isSelfShotCreatorSkill(skillSlug?: string | null) {
+  return Boolean(skillSlug && SELF_SHOT_CREATOR_SKILLS.has(skillSlug));
+}
+
 // Canonical Mongo fields for `realistic` style so ensureCatalogStyles keeps DB in sync.
 export const REALISTIC_STYLE_FIELDS = {
   name: "Cinematic realistic",
@@ -40,6 +52,34 @@ export const REALISTIC_VIDEO_DETAIL_RULE =
 export const REALISTIC_VIDEO_LIGHT_LOCK =
   "Light lock: one clean shot per beat, no repeats; keep the first frame's grazing directional side light, negative-fill shadow falloff, and subtle film grain with slightly lifted shadow blacks for the whole clip; natural skin pores, peach-fuzz, matte-natural skin with zero oily or plastic sheen, natural blinks, breathing chest movement, restrained natural mouth and jaw articulation when speaking (no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks), and real fabric texture; highlights stay below pure-white clipping; no flat front fill, no waxy or airbrushed skin.";
 
+// Self-shot creator / vlog capture rules (Talking Head & Surprise Hook) — modern human camera
+// equipment (iPhone 16 Pro / Sony ZV-E1 / DJI Osmo Pocket 3) with clean true-to-life digital sensor
+// colour and available room light, without heavy vintage 35mm film grain or moody cinema LUTs.
+export const SELF_SHOT_LIGHT_DIRECTOR_RULE =
+  "Real human creator camera capture: describe authentic everyday recording on modern creator camera equipment (iPhone 16 Pro 24mm f/1.8 main camera on a tripod, Sony ZV-E1 full-frame vlog camera, or DJI Osmo Pocket 3 1-inch CMOS sensor; never heavy vintage 35mm film stock, never 8K/hyperrealistic buzzwords, never AI beauty-mode). In every Character and Set part, direct candid, unposed human expressions, unfiltered real skin with visible pores and fine peach-fuzz (zero oily or plastic specular sheen, zero beauty-filter smoothing), and lived-in everyday room details. In every Light part, use honest available room light (soft directional window daylight from one side mixed with natural indoor room light, giving a clean, bright, dimensional 1.2:1 to 1.5:1 natural facial shading on the far cheek and nose bridge — never dark moody cinema blackouts, never flat beauty-ring front fill). Keep highlights neutral or cool unless a warm practical lamp is visible in frame, and keep bright windows below pure-white clipping. In every Camera part, name the modern creator camera and optics (24mm f/1.8 smartphone/vlog lens or 35mm f/1.8 mirrorless lens, natural shallow depth of field with tack-sharp face and soft background bokeh, clean modern digital CMOS sensor readout with subtle natural ISO 100–400 sensor micro-texture, zero heavy vintage film grain or retro colour filter).";
+
+export const SELF_SHOT_FRAME_RENDER_RULE =
+  "Real human camera capture: shot on modern creator camera equipment (iPhone 16 Pro 24mm f/1.8 main camera, Sony ZV-E1 mirrorless vlog camera, or DJI Osmo Pocket 3 CMOS sensor; never vintage 35mm film filter, never 8K/hyperrealistic buzzwords, never AI beauty-mode). Light faces and surfaces with honest available daylight from the visible window side mixed with natural indoor room light, sculpting a clean, bright, dimensional 1.2:1 to 1.5:1 cheek-to-cheek portrait contrast with soft natural shadow roll-off on the far cheek and a clear nose-bridge shadow (override any flat lighting from the character reference sheet; never flat front beauty light, never dark theatrical cinema shadows). Keep highlights neutral or cool unless a warm practical lamp is visible in frame, and keep glowing windows below pure-white clipping. Show unfiltered human skin with visible pores, fine peach-fuzz, and matte-natural skin micro-relief (zero oily, waxy, or plastic specular sheen), tack-sharp focus on the eyes with natural optical background bokeh, and clean modern CMOS sensor color with subtle natural ISO micro-texture (no heavy 35mm film grain or retro LUT).";
+
+export const SELF_SHOT_VIDEO_DETAIL_RULE =
+  "Real human camera & live-action capture: one clean continuous shot per beat, no repeats, filmed on a modern smartphone or mirrorless creator camera (iPhone 16 Pro / Sony ZV-E1 / DJI Osmo Pocket 3). Keep the keyframes' clean available window daylight, soft dimensional facial shading, unfiltered matte-natural skin pores and peach-fuzz (zero oily or plastic specular sheen), clean modern digital sensor color (no heavy film grain or vintage color cast), and unclipped window highlights. Animate real human micro-physiology (natural blinks, subtle ocular micro-saccades, small breaths lifting the chest and shoulders, genuine weight transfer, natural cloth drape, and restrained real-person lip and jaw articulation whenever a character speaks — ~30–40% conversational mouth opening, clean lip closure on bilabial m/b/p sounds and pauses, zero exaggerated wide-open mouth, zero excessive jaw swing, and zero rubbery cheeks). No flat beauty-filter fill and no waxy plastic skin.";
+
+export const SELF_SHOT_VIDEO_LIGHT_LOCK =
+  "Light lock: one clean shot per beat, no repeats; keep the first frame's clean modern creator-camera look (iPhone 16 Pro / Sony ZV-E1 CMOS sensor), natural available window light, and soft dimensional facial shading for the whole clip; unfiltered skin pores, peach-fuzz, matte-natural skin with zero oily or plastic sheen, natural blinks, breathing chest movement, restrained natural mouth and jaw articulation when speaking (no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks), and real fabric texture; clean true-to-life digital color with no heavy film grain or vintage tint; highlights stay below pure-white clipping; no flat beauty-filter fill, no waxy or airbrushed skin.";
+
+export function styleForSelfShotSkill<
+  T extends { id?: string; baseStyleId?: string; look: string; palette: string; negatives: string },
+>(style: T): T {
+  if (!isRealisticStyle(style)) return style;
+  return {
+    ...style,
+    look: "authentic self-recorded creator video & photograph shot on modern human camera equipment (iPhone 16 Pro 24mm f/1.8 main camera on a tripod, Sony ZV-E1 full-frame mirrorless vlog camera, or DJI Osmo Pocket 3 1-inch CMOS sensor; never AI beauty-mode, glossy studio stock, or heavy vintage 35mm film filter): unfiltered natural skin pores, fine peach-fuzz, and fabric micro-relief lit by honest available window daylight and indoor room light with soft dimensional facial shading (clear natural nose-bridge and far-cheek shadow roll-off, matte-natural skin finish with zero oily or plastic specular sheen, never flat front beauty-ring light, never dark moody cinema shadows), clean modern digital CMOS sensor readout with subtle natural ISO 100–400 micro-texture, gentle highlight roll-off keeping bright windows below pure-white clipping, candid unposed framing with lived-in everyday background details, and natural optical shallow depth of field (24mm f/1.8 or 35mm f/1.8, tack-sharp face with soft optical background bokeh).",
+    palette:
+      "true-to-life modern digital camera color (natural Rec.709 / iPhone 16 Pro / Sony ZV-E1 color science) with honest mixed available light (soft daylight from a side window balanced with natural indoor room tone; never heavy vintage film LUT, never muddy yellow-green film cast, never vague beautiful colors): neutral or cool daylight highlights by default, reserving warm highlights strictly for visible warm indoor lamps; clean, natural shadow tones with full detail.",
+    negatives: `${style.negatives}, heavy 35mm film grain, vintage film stock filter, retro Kodak LUT, muddy faded blacks, dark moody cinema lighting`,
+  };
+}
+
 // Flare rejects a blueprint once the style look and this rule are both written out.
 export const REFERENCE_PROMPT_BUDGET = 4200;
 
@@ -57,10 +97,13 @@ export function fitReferencePrompt(lines: string[], budget = REFERENCE_PROMPT_BU
   return text.length <= budget ? text : text.slice(0, budget);
 }
 
-export function lockRealisticVideoLight(prompt: string) {
+export function lockRealisticVideoLight(prompt: string, options?: { selfShot?: boolean }) {
   const text = prompt.trim();
-  if (!text || text.includes(REALISTIC_VIDEO_LIGHT_LOCK)) return text;
-  return `${text}\n${REALISTIC_VIDEO_LIGHT_LOCK}`;
+  const lock = options?.selfShot ? SELF_SHOT_VIDEO_LIGHT_LOCK : REALISTIC_VIDEO_LIGHT_LOCK;
+  if (!text || text.includes(REALISTIC_VIDEO_LIGHT_LOCK) || text.includes(SELF_SHOT_VIDEO_LIGHT_LOCK)) {
+    return text;
+  }
+  return `${text}\n${lock}`;
 }
 
 // Shared by every realistic reference image the scene still copies from.

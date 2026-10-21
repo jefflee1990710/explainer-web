@@ -87,7 +87,7 @@ import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plat
 import { IDEOGRAM_PROMPT_MAX, imageRouteForSceneText } from "@/service/generation/image-backend";
 import { referenceLimitForModel } from "@/service/higgsfield/reference-sheet";
 import { frameRenderDetail, reconcileSightline, SIGHTLINE_RULE } from "@/service/director/scene-detail";
-import { isRealisticStyle } from "@/service/style/realistic-light";
+import { isRealisticStyle, isSelfShotCreatorSkill, styleForSelfShotSkill } from "@/service/style/realistic-light";
 import { styleLinesForFrame, type Style } from "@/service/style";
 import { resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { isStyleId } from "@/model/style-id";
@@ -191,7 +191,7 @@ function compositionLockLines(
       `COMPOSITION LOCK: ${source}.`,
       "Keep the exact same camera distance, focal length, crop, head-and-body scale, set, lighting, and character identity.",
       "Do not zoom in, zoom out, or reframe the camera. No jump.",
-      "Preserve the attached frame's exact room architecture, window and background layout, furniture/seat, floor/rug visibility, directional window lighting, shadow falloff, exposure, color grade, skin texture, and film grain — never add or remove foreground plants/leaves/objects, never flip left/right, move furniture, or change the background.",
+      "Preserve the attached frame's exact room architecture, window and background layout, furniture/seat, floor/rug visibility, natural window lighting, shadow falloff, exposure, color tone, and skin texture — never add or remove foreground plants/leaves/objects, never flip left/right, move furniture, or change the background.",
       keepAttachedSubtitle
         ? "ZERO-DISPLACEMENT CONTINUITY: Keep the background, camera crop, head size, seated torso and shoulder position, and resting hand position on the lap locked to the attached frame, adjusting only a subtle 1–2 degree natural head angle and facial expression to match the Scene above. Do NOT zoom in or crop closer. A handheld prop stays in the same hand."
         : "ZERO-DISPLACEMENT CONTINUITY: Keep the background, camera crop, character scale, seated torso and shoulder position, and resting hand position on the lap locked to the attached frame, adjusting only a subtle 1–2 degree natural head angle and facial expression to match the Scene above. Never lift hands into mid-air on the still, and do NOT add any new foreground plant or object in the corners. A handheld prop stays in the same hand.",
@@ -364,18 +364,20 @@ function fitFramePrompt(
       scene: p.scene
         .replace(
           /\s*(?:Realism:|真實感：)\s*[\s\S]*?(?=\s*(?:Subtitle:|字幕：)|$)/,
-          " Realism: grazing directional window key and rim light strictly from the window side (camera-right) with negative fill and natural shadow roll-off on the camera-left cheek (no flat front fill, no blueprint light, neutral/cool highlights unless a warm practical lamp is in frame, soft overcast window below pure-white clipping); visible skin pores, fine peach-fuzz, matte-natural human skin with zero oily or plastic specular sheen, 35mm grain with slightly lifted shadow blacks, soft background bokeh (no foreground obstructions).",
+          " Realism: natural available window daylight and soft rim light from the window side (camera-right) mixed with indoor room light for a clean, bright 1.2:1–1.5:1 facial shading on the far cheek and nose bridge (no flat beauty-ring light, no dark moody cinema shadows, neutral/cool highlights unless a warm practical lamp is in frame, soft overcast window below clipping); modern creator camera (iPhone 16 Pro 24mm f/1.8 / Sony ZV-E1 CMOS sensor — clean digital color, no heavy 35mm film grain), unfiltered skin pores, fine peach-fuzz, matte-natural human skin with zero oily or plastic sheen, soft background bokeh (no foreground obstructions).",
         )
         .trim(),
     }),
     (p) => ({
       ...p,
-      renderDetail: p.renderDetail.replace(/^Render detail:[\s\S]*?(?=Realistic light & camera:)/, "").trim(),
+      renderDetail: p.renderDetail.replace(/^Render detail:[\s\S]*?(?=(?:Realistic light & camera|Real human camera capture):)/, "").trim(),
     }),
     (p) => ({
       ...p,
       renderDetail: p.renderDetail
-        ? "Realistic light & camera: sculpt faces and surfaces with grazing directional light, negative fill on the shadow side, and concrete light/shadow colour contrast (warm amber light, muted teal shadows; neutral/cool highlights unless a warm practical lamp, fire, or sunset is visible; in dark scenes keep 90% of shadows neutral; lift black point in underwater/fog/smoke). Match 35mm film optics from the Scene (24mm / 35mm / 50mm / 85mm portrait lens; deep focus f/11 for environment or f/4 to f/1.4 creamy bokeh background) with matte-natural skin pores (zero oily sheen), subtle film grain, slightly lifted shadow blacks, and unclipped highlights."
+        ? p.renderDetail.startsWith("Real human camera capture:")
+          ? "Real human camera capture: shot on modern creator camera equipment (iPhone 16 Pro 24mm f/1.8 / Sony ZV-E1 / DJI Osmo Pocket 3 CMOS sensor; no heavy 35mm film grain or retro LUT). Light faces with natural available window daylight and indoor room light (clean 1.2:1–1.5:1 facial shading, neutral/cool highlights unless a warm lamp is visible, unclipped windows) and unfiltered matte-natural skin pores (zero oily sheen) with soft background bokeh."
+          : "Realistic light & camera: sculpt faces and surfaces with grazing directional light, negative fill on the shadow side, and concrete light/shadow colour contrast (warm amber light, muted teal shadows; neutral/cool highlights unless a warm practical lamp, fire, or sunset is visible; in dark scenes keep 90% of shadows neutral; lift black point in underwater/fog/smoke). Match 35mm film optics from the Scene (24mm / 35mm / 50mm / 85mm portrait lens; deep focus f/11 for environment or f/4 to f/1.4 creamy bokeh background) with matte-natural skin pores (zero oily sheen), subtle film grain, slightly lifted shadow blacks, and unclipped highlights."
         : "",
     }),
     (p) => ({
@@ -563,7 +565,9 @@ export function buildFramePrompt(
 ) {
   project = talkingHeadFrameProject(project);
   const solo = isTalkingHeadSkill(project.skillSlug);
-  const style = options.style ?? systemStyle(project);
+  const selfShot = isSelfShotCreatorSkill(project.skillSlug);
+  const rawStyle = options.style ?? systemStyle(project);
+  const style = selfShot ? styleForSelfShotSkill(rawStyle) : rawStyle;
   const realistic = isRealisticStyle(style);
   // Cinematic realistic whiteboard: both stills share the camera and the whole subtitle.
   const steady = usesSteadyStills(project.skillSlug, style);
@@ -942,7 +946,7 @@ export function buildFramePrompt(
       scene: sceneDescription,
       motion: motionBeatForFrame(motionDescription, position),
       remark: options.revision?.remark?.trim() || "",
-      renderDetail: frameRenderDetail({ realistic }),
+      renderDetail: frameRenderDetail({ realistic, selfShot }),
       moment,
       castLines,
       objectLockLine,

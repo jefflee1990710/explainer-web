@@ -5,6 +5,7 @@ import { charactersCollection } from "@/dao/characters";
 import { lifeShotsCollection } from "@/dao/life-shots";
 import type { Character } from "@/model/character";
 import { parseCharacterPersona, type CharacterPersona } from "@/model/character-persona";
+import { lifePoseById } from "@/model/life-pose";
 import { lifePostTemplateById } from "@/model/life-post-template";
 import {
   lifeShotKindSchema,
@@ -21,13 +22,13 @@ import {
   lifeShotPrompt,
   type LifeRemarkInput,
 } from "@/service/character/life-prompt";
+import { lifePoseReferenceUrl } from "@/service/character/life-pose-ref";
 import { searchPlaceScenes } from "@/service/character/life-search";
 import { FRAME_COST } from "@/service/credit-costs";
 import { directorModel } from "@/service/director/model";
 import { persistMedia } from "@/service/higgsfield/persist";
 import { SEEDREAM_5_PRO_IMAGE_MODEL } from "@/service/generation/image-backend";
 import { submitOpenRouterImage } from "@/service/openrouter/generate";
-import { gradeRealisticImageBuffer } from "@/service/style/realistic-grade";
 
 export type PublicLifeCharacter = {
   id: string;
@@ -123,10 +124,12 @@ export async function generateLifeShotAction(input: {
   remarks?: LifeRemarkInput[];
   templateId?: string;
   compositionRefUrl?: string;
+  poseId?: string;
 }) {
   const user = await requireAppUser();
   const place = (input.place ?? "").trim().slice(0, 60);
   const template = lifePostTemplateById(input.templateId);
+  const pose = lifePoseById(input.poseId);
   const kindParsed = lifeShotKindSchema.safeParse(template?.kind || input.kind || "selfie");
   const source = lifeShotSourceSchema.safeParse(input.source);
   const sceneImageUrl = httpsUrl(input.sceneImageUrl);
@@ -134,8 +137,8 @@ export async function generateLifeShotAction(input: {
   if (!ObjectId.isValid(input.characterId)) return { ok: false as const, error: "角色不存在" };
   if (!kindParsed.success) return { ok: false as const, error: "請選擇生活照類型" };
   if (!source.success) return { ok: false as const, error: "請選擇場景照片" };
-  // A post template can stand in for the scene photo; without one the scene is required.
-  if (!sceneImageUrl && !template) return { ok: false as const, error: "請選擇場景照片" };
+  // A post template or pose can stand in for the scene photo; otherwise the scene is required.
+  if (!sceneImageUrl && !template && !pose) return { ok: false as const, error: "請選擇場景照片" };
 
   const characters = await charactersCollection();
   const character = (await characters.findOne({
@@ -166,12 +169,14 @@ export async function generateLifeShotAction(input: {
   const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
   try {
     const hasAnnotatedImage = Boolean(sceneImageUrl && annotatedDataUrl && cleanRemarks.length > 0);
+    const poseRefUrl = pose ? await lifePoseReferenceUrl(pose.id) : "";
     // Order must match lifeReferenceOrder in life-prompt.ts.
     const refs = [
       identity,
       ...(sceneImageUrl ? [sceneImageUrl] : []),
       ...(hasAnnotatedImage && annotatedDataUrl ? [annotatedDataUrl] : []),
       ...(compositionRefUrl ? [compositionRefUrl] : []),
+      ...(poseRefUrl ? [poseRefUrl] : []),
     ];
     const submitted = await submitOpenRouterImage({
       model: SEEDREAM_5_PRO_IMAGE_MODEL,
@@ -186,6 +191,7 @@ export async function generateLifeShotAction(input: {
         hasScene: Boolean(sceneImageUrl),
         templateGuide: template?.promptGuide,
         hasCompositionRef: Boolean(compositionRefUrl),
+        poseText: pose?.promptText,
       }),
       aspectRatio: "9:16",
       resolution: "2k",
@@ -197,16 +203,6 @@ export async function generateLifeShotAction(input: {
     const resultUrl = await persistMedia(
       imageUrl,
       `explainer/life/${character._id.toHexString()}/${shotId.toHexString()}`,
-      {
-        transform: (buffer: Buffer) =>
-          gradeRealisticImageBuffer(buffer).catch((error: unknown) => {
-            console.error(
-              "[life] realistic image grade failed; keeping original bytes",
-              { shotId: shotId.toHexString(), error },
-            );
-            return buffer;
-          }),
-      },
     );
     const displayLabel =
       customInstruction.slice(0, 40) ||
@@ -226,6 +222,7 @@ export async function generateLifeShotAction(input: {
       resultUrl,
       ...(template ? { templateId: template.id } : {}),
       ...(compositionRefUrl ? { compositionRefUrl } : {}),
+      ...(pose ? { poseId: pose.id } : {}),
       createdAt: new Date(),
     };
     const shots = await lifeShotsCollection();

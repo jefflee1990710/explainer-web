@@ -166,10 +166,23 @@ test("all directors receive realistic de-plastic rules for both built-in realist
     } as unknown as Project;
 
     const framePrompt = buildFramePrompt(mockProject, 1, "start", { style: userForkStyle });
-    assert.match(framePrompt, /Realistic light & camera:/, `missing realistic frame render rule for ${skillSlug}`);
-    assert.match(framePrompt, /grazing directional light, negative fill on the shadow side/, `missing Rule 11 in ${skillSlug}`);
-    assert.match(framePrompt, /below pure-white clipping/, `missing Rule 06 in ${skillSlug}`);
-    assert.match(framePrompt, /keep shadow blacks slightly lifted/, `missing Rule 07 in ${skillSlug}`);
-    assert.match(framePrompt, /neutral or cool by default/, `missing Rule 10 in ${skillSlug}`);
+    if (
+      skillSlug === "talking-head-director" ||
+      skillSlug === "full-body-talking-head-director" ||
+      skillSlug === "surprise-interview-director"
+    ) {
+      // Self-shot creator skills use modern human camera equipment (iPhone 16 Pro / Sony ZV-E1 / DJI Osmo Pocket 3)
+      // without heavy vintage 35mm film grain or Kodak LUTs
+      assert.match(framePrompt, /Real human camera capture:/, `missing self-shot camera rule for ${skillSlug}`);
+      assert.match(framePrompt, /iPhone 16 Pro 24mm f\/1\.8|Sony ZV-E1/, `missing modern camera equipment in ${skillSlug}`);
+      assert.match(framePrompt, /no heavy 35mm film grain/, `should forbid heavy 35mm film grain in ${skillSlug}`);
+      assert.match(framePrompt, /below pure-white clipping/, `missing highlight protection in ${skillSlug}`);
+    } else {
+      assert.match(framePrompt, /Realistic light & camera:/, `missing realistic frame render rule for ${skillSlug}`);
+      assert.match(framePrompt, /grazing directional light, negative fill on the shadow side/, `missing Rule 11 in ${skillSlug}`);
+      assert.match(framePrompt, /below pure-white clipping/, `missing Rule 06 in ${skillSlug}`);
+      assert.match(framePrompt, /keep shadow blacks slightly lifted/, `missing Rule 07 in ${skillSlug}`);
+      assert.match(framePrompt, /neutral or cool by default/, `missing Rule 10 in ${skillSlug}`);
+    }
   }
 });

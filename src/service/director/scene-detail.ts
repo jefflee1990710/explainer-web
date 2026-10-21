@@ -2,6 +2,9 @@ import {
   REALISTIC_FRAME_RENDER_RULE,
   REALISTIC_LIGHT_DIRECTOR_RULE,
   REALISTIC_VIDEO_DETAIL_RULE,
+  SELF_SHOT_FRAME_RENDER_RULE,
+  SELF_SHOT_LIGHT_DIRECTOR_RULE,
+  SELF_SHOT_VIDEO_DETAIL_RULE,
 } from "@/service/style/realistic-light";
 
 // Shared detail contract for every director: Phase A writes concrete scenes,
@@ -40,14 +43,16 @@ export function reconcileSightline(scene: string) {
   return `${softened} ${SIGHTLINE_HOLD}`;
 }
 
-export function sceneDetailDirectorBlock(options: { realistic?: boolean } = {}) {
+export function sceneDetailDirectorBlock(options: { realistic?: boolean; selfShot?: boolean } = {}) {
   return [
     "Scene detail: write every explainerScene (and startScene / endScene when used) as four concrete parts, in this order:",
     "1) Character: expression, pose, action, and eyeline of each on-screen character — whenever a character is present, give them a vivid, specific facial expression (active eyebrows, expressive eyes, and a clear mouth/cheek emotion matching the beat, never a blank or neutral face).",
     "2) Set: location, set dressing, props, foreground / midground / background.",
     "3) Light: light direction, colour temperature, mood.",
     "4) Camera: shot size, camera angle, composition, and where each character sits in frame (left / centre / right, near / far).",
-    ...(options.realistic ? [REALISTIC_LIGHT_DIRECTOR_RULE] : []),
+    ...(options.realistic
+      ? [options.selfShot ? SELF_SHOT_LIGHT_DIRECTOR_RULE : REALISTIC_LIGHT_DIRECTOR_RULE]
+      : []),
     "Never describe a character's appearance, hair, or outfit — that always follows the character reference.",
     "Be specific (a chipped blue mug, warm side light from a window on the left), not generic (a nice room).",
     SIGHTLINE_RULE,
@@ -74,14 +79,18 @@ export function motionTransitionContract() {
 export const FRAME_RENDER_DETAIL =
   "Render detail: follow the Scene's shot size, angle, and composition exactly; give any on-screen character a vivid, expressive facial expression matching the Scene; give props and surfaces clear material and texture; keep light direction, shadows, and depth consistent with the Scene; never copy a scene reference's person, face, or hairstyle — those stay on the character blueprint.";
 
-export function frameRenderDetail(options: { realistic?: boolean } = {}) {
-  return options.realistic ? `${FRAME_RENDER_DETAIL} ${REALISTIC_FRAME_RENDER_RULE}` : FRAME_RENDER_DETAIL;
+export function frameRenderDetail(options: { realistic?: boolean; selfShot?: boolean } = {}) {
+  if (!options.realistic) return FRAME_RENDER_DETAIL;
+  const rule = options.selfShot ? SELF_SHOT_FRAME_RENDER_RULE : REALISTIC_FRAME_RENDER_RULE;
+  return `${FRAME_RENDER_DETAIL} ${rule}`;
 }
 
 // Phase B system rule so each video prompt is a precise motion brief.
 export const PHASE_B_DETAIL_RULES =
   "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, the expression change, and the camera start and end framing. Whenever a character is on screen, animate rich, expressive facial changes across the beats (lively eyebrows, expressive eyes, cheek and mouth reactions synced to the beat, never a frozen or deadpan face). Name which hand, which direction, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
 
-export function phaseBDetailRules(options: { realistic?: boolean } = {}) {
-  return options.realistic ? `${PHASE_B_DETAIL_RULES} ${REALISTIC_VIDEO_DETAIL_RULE}` : PHASE_B_DETAIL_RULES;
+export function phaseBDetailRules(options: { realistic?: boolean; selfShot?: boolean } = {}) {
+  if (!options.realistic) return PHASE_B_DETAIL_RULES;
+  const rule = options.selfShot ? SELF_SHOT_VIDEO_DETAIL_RULE : REALISTIC_VIDEO_DETAIL_RULE;
+  return `${PHASE_B_DETAIL_RULES} ${rule}`;
 }
