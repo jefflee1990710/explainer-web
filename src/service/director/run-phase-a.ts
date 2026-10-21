@@ -470,6 +470,8 @@ Produce a complete Phase A director proposal now.`,
   if (talkingHead) {
     const clips = planTalkingHeadClips({
       source: input.spokenScript || "",
+      directorInstruction: input.source,
+      visualWorld: next.visualWorld,
       pace: input.speechPace,
       language: input.language,
       aspectRatio: input.aspectRatio,

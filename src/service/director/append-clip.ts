@@ -127,6 +127,8 @@ export async function draftAppendedClips(input: AppendInput): Promise<Storyboard
   if (isTalkingHeadSkill(skillSlug)) {
     const planned = planTalkingHeadClips({
       source: input.content,
+      directorInstruction: input.source,
+      visualWorld: input.phaseA.visualWorld,
       pace: input.speechPace,
       language: input.language,
       aspectRatio: input.aspectRatio,

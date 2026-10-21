@@ -191,7 +191,7 @@ function compositionLockLines(
       `COMPOSITION LOCK: ${source}.`,
       "Keep the exact same camera distance, focal length, crop, head-and-body scale, set, lighting, and character identity.",
       "Do not zoom in, zoom out, or reframe the camera. No jump.",
-      "Preserve the attached frame's exact room architecture, window and bookshelf sides, sofa, floor/rug visibility, directional window lighting, shadow falloff, exposure, color grade, skin texture, and film grain — never add or remove foreground plants/leaves/objects, never flip left/right, move furniture, or change the background.",
+      "Preserve the attached frame's exact room architecture, window and background layout, furniture/seat, floor/rug visibility, directional window lighting, shadow falloff, exposure, color grade, skin texture, and film grain — never add or remove foreground plants/leaves/objects, never flip left/right, move furniture, or change the background.",
       keepAttachedSubtitle
         ? "ZERO-DISPLACEMENT CONTINUITY: Keep the background, camera crop, head size, seated torso and shoulder position, and resting hand position on the lap locked to the attached frame, adjusting only a subtle 1–2 degree natural head angle and facial expression to match the Scene above. Do NOT zoom in or crop closer. A handheld prop stays in the same hand."
         : "ZERO-DISPLACEMENT CONTINUITY: Keep the background, camera crop, character scale, seated torso and shoulder position, and resting hand position on the lap locked to the attached frame, adjusting only a subtle 1–2 degree natural head angle and facial expression to match the Scene above. Never lift hands into mid-air on the still, and do NOT add any new foreground plant or object in the corners. A handheld prop stays in the same hand.",
@@ -769,7 +769,7 @@ export function buildFramePrompt(
   sceneDescription = reconcileSightline(sceneDescription);
   sceneDescription = sceneDescription.replace(
     /Light source: the key light from the Light line comes from one side with negative fill on the far cheek so it falls off into soft shadow, and a faint rim light separates the hair and shoulders from the background\./g,
-    "Light source: the key light and faint rim light come strictly from the visible window side in the Light line (never from the dark interior or bookshelf side opposite the window, and never copy the blueprint's studio light direction), lighting the window-facing cheek while the far cheek away from the window falls into deep negative-fill shadow with a clear nose-bridge shadow (grazing contrast, no front fill, no unmotivated warm orange backlight, overcast window daylight kept soft below pure-white clipping).",
+    "Light source: the key light and faint rim light come strictly from the visible window side in the Light line (never from the dark interior side opposite the window, and never copy the blueprint's flat reference light direction), lighting the window-facing cheek with a 1.4:1 to 1.8:1 cheek-to-cheek contrast ratio while the far cheek away from the window falls into deep negative-fill shadow with a clear nose-bridge shadow (grazing contrast, no front fill, no unmotivated warm orange backlight, overcast window daylight kept soft below pure-white clipping).",
   );
   // Always strip spoken Subtitle sentences from scene descriptions; subtitles are never painted into scene stills.
   sceneDescription = stripSceneSubtitleSentence(sceneDescription);

@@ -227,7 +227,7 @@ export function buildTimedLipSyncPromptBlock(
   if (tokens.length === 0) return "";
   const speechEnd = tokens[tokens.length - 1].end;
   const lines = [
-    `EXACT LIP-SYNC TIMING SCHEDULE (the on-screen speaker's mouth MUST articulate each syllable/word at these exact timestamps and stay completely closed after ${speechEnd.toFixed(2)}s):`,
+    `EXACT LIP-SYNC TIMING SCHEDULE (the on-screen speaker's mouth MUST articulate each syllable/word at these exact timestamps with restrained, natural small jaw and lip opening — ~30–40% conversational mouth opening, clean lip closure on bilabial m/b/p consonants, never exaggerated wide-open mouth or excessive jaw swing — and stay completely closed after ${speechEnd.toFixed(2)}s):`,
     `- 0.00s–${onset.toFixed(2)}s: mouth closed, brief inhale before speaking`,
     ...tokens.map(
       (item) => `- ${item.start.toFixed(2)}s–${item.end.toFixed(2)}s: "${item.token}"`,

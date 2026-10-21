@@ -71,12 +71,18 @@ test("realistic style fields and rules enforce the 12 de-plastic rules across Ph
   assert.match(REALISTIC_PRODUCT_RENDER_RULE, /keep highlights neutral or cool unless a warm practical lamp, sunset, or fire is visible/);
   assert.match(REALISTIC_SET_RENDER_RULE, /Keep highlights neutral or cool unless a warm practical lamp, sunset, or fire is visible/);
 
-  // Rule 11: grazing directional key light + negative fill on the shadow side + matte-natural skin (no flat front beauty light, no oily sheen)
+  // Rule 11: grazing directional key light + negative fill on the shadow side + 1.4:1-1.8:1 face contrast + matte-natural skin (no flat front beauty light, no oily sheen)
   assert.match(REALISTIC_STYLE_FIELDS.look, /grazing directional key light from the visible light-source side with negative fill on the shadow side/);
   assert.match(REALISTIC_STYLE_FIELDS.look, /matte-natural skin finish with zero oily or plastic specular sheen/);
   assert.match(REALISTIC_LIGHT_DIRECTOR_RULE, /grazing directional key from the side or three-quarter angle with negative fill on the shadow side/);
-  assert.match(REALISTIC_FRAME_RENDER_RULE, /sculpt faces and surfaces with grazing directional light, negative fill on the shadow side/);
+  assert.match(REALISTIC_FRAME_RENDER_RULE, /sculpt faces and surfaces with grazing directional light, negative fill on the shadow side \(1\.4:1 to 1\.8:1 cheek-to-cheek contrast ratio/);
   assert.match(REALISTIC_VIDEO_DETAIL_RULE, /grazing directional light, negative fill on the shadow side, matte-natural skin pores/);
+
+  // Restrained real-person mouth and jaw articulation across all realistic style videos
+  assert.match(REALISTIC_STYLE_FIELDS.motion, /restrained real-person facial and mouth articulation/);
+  assert.match(REALISTIC_STYLE_FIELDS.negatives, /exaggerated wide-open mouth, excessive jaw swing, rubbery cheeks/);
+  assert.match(REALISTIC_VIDEO_DETAIL_RULE, /restrained real-person lip and jaw articulation whenever a character speaks/);
+  assert.match(REALISTIC_VIDEO_LIGHT_LOCK, /restrained natural mouth and jaw articulation when speaking \(no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks\)/);
 });
 
 test("all directors receive realistic de-plastic rules for both built-in realistic and user forks of realistic", () => {

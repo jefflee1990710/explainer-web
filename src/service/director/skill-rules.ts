@@ -237,7 +237,7 @@ export function dialogueOnlyDirectorBlock() {
   return [
     'There is NO narrator and NO third-person voiceover. The narrator field must start with "No narrator — characters speak." Then paste each supplied voice lock verbatim, one speaker per sentence. A speaker without their own lock uses the project voice lock verbatim. Do not invent a timbre and do not leave a speaker out.',
     'englishVo is only character dialogue written as NAME: "line", in the chosen dialogue language. Multiple speakers are allowed. A silent beat is "(no dialogue)".',
-    "motionCamera names who is speaking. That character's mouth lip-syncs every syllable of their line with vivid, expressive facial expressions (active eyebrows, expressive eyes, and clear emotional shifts). Every other on-screen character keeps their mouth closed and only reacts with expressive facial expressions (brow raises, eye shifts, nods).",
+    "motionCamera names who is speaking. That character's mouth lip-syncs every syllable of their line with precise, restrained lip articulation and natural small jaw movement (~30–40% conversational mouth opening, clean lip closure on bilabials and pauses, no exaggerated wide-open mouth, no excessive jaw swing, no rubbery cheeks), while emotion shows in active eyebrows and expressive eyes. Every other on-screen character keeps their mouth closed and only reacts with expressive facial expressions (brow raises, eye shifts, nods).",
   ].join(" ");
 }
 
@@ -687,8 +687,8 @@ export function comparisonCardDirectorBlock(aspectRatio: AspectRatio) {
 export function surpriseInterviewDirectorBlock() {
   return [
     "This is a SURPRISE INTERVIEW. Exactly one attached character. They speak every line to the camera. No second character and no screen recording.",
-    "Clip 1 is the hook, 3–4 seconds. The person stays right-side up. The camera starts above the head, looking down, then drops downward while it snaps a zoom-in onto the surprised face. Sharp and clear: no blur, no slow glide, and do not flip the picture. The face moves into a clear surprise and says one short hook. If the user pasted a script, that hook is the first sentence verbatim. If they gave only a concept, write the hook.",
-    "Clip 2 and after: startScene copies the previous endScene. Same place, same camera angle, same crop, same body pose. Do not hard-cut to a new angle, and do not repeat the overhead zoom. Only the mouth and vivid, expressive facial expressions (animated eyebrows, expressive eyes, lively cheek and mouth reactions) move.",
+    "Clip 1 is the hook, 3–4 seconds. The person stays right-side up. The camera starts above the head, looking down, then drops downward while it snaps a zoom-in onto the surprised face. Sharp and clear: no blur, no slow glide, and do not flip the picture. The eyes and eyebrows move into a clear surprise while the mouth speaks one short hook with precise, restrained lip articulation and small natural jaw movement (no exaggerated wide-open mouth or excessive jaw swing). If the user pasted a script, that hook is the first sentence verbatim. If they gave only a concept, write the hook.",
+    "Clip 2 and after: startScene copies the previous endScene. Same place, same camera angle, same crop, same body pose. Do not hard-cut to a new angle, and do not repeat the overhead zoom. Only the mouth (precise, restrained lip-sync with small natural jaw movement — no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks) and expressive upper-face reactions (animated eyebrows and expressive eyes) move.",
     "One idea per interview clip. The last clip rests. Each clip pins the spoken line in one place: top, middle, or bottom. Neighbouring clips do not share the place. Not a white subtitle bar. Letters stay upright. Lettering follows the selected text style. Do not invent a font, and do not copy typography from the visual style. No background music.",
   ].join(" ");
 }

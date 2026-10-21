@@ -15,7 +15,7 @@ import {
 
 // MiniMax must hear on-screen speech, not an off-camera narrator.
 export const DIALOGUE_SPEAK_LOCK =
-  'On-screen characters MUST speak the dialogue aloud with visible mouth movement. No off-screen narrator. If a line is NAME: "text", that named character in the frame says it. A silent beat stays silent.';
+  'On-screen characters MUST speak the dialogue aloud with visible mouth movement and precise, restrained lip articulation (small natural jaw opening ~30–40%, clean lip closure on bilabial m/b/p sounds and pauses, no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks). No off-screen narrator. If a line is NAME: "text", that named character in the frame says it. A silent beat stays silent.';
 
 export function spokenLineCopy(skillSlug?: string) {
   if (skillBansNarration(skillSlug)) {
@@ -83,7 +83,7 @@ export function speakingMouthLock(line: string, castNames?: string[]) {
   if (!turns.length) {
     const spoken = subtitleText(text);
     if (!spoken) return "";
-    return `Mouth: the on-screen speaker lip-syncs every syllable of "${spoken}". Every other character's mouth stays closed. No off-screen narrator.`;
+    return `Mouth: the on-screen speaker lip-syncs every syllable of "${spoken}" with precise, restrained lip and jaw articulation (small natural mouth opening, clean lip closure on pauses, no exaggerated wide-open mouth, no excessive jaw swing, no rubbery cheeks). Every other character's mouth stays closed. No off-screen narrator.`;
   }
   const speaking = new Set(turns.map((turn) => turn.name));
   const listeners = (castNames ?? []).map((name) => name.trim()).filter((name) => name && !speaking.has(name));
@@ -94,7 +94,7 @@ export function speakingMouthLock(line: string, castNames?: string[]) {
         ? `${listeners.join(" and ")}'s mouths stay closed`
         : "every other character's mouth stays closed";
   const beats = turns
-    .map((turn) => `${turn.name}'s mouth lip-syncs every syllable of "${turn.line}". While ${turn.name} speaks, ${closed}.`)
+    .map((turn) => `${turn.name}'s mouth lip-syncs every syllable of "${turn.line}" with precise, restrained lip and jaw articulation (no exaggerated mouth opening or excessive jaw swing). While ${turn.name} speaks, ${closed}.`)
     .join(" ");
   return `Mouth: only the speaking character lip-syncs. ${beats} Do not move a listener's mouth as if they are talking.`;
 }
@@ -141,11 +141,11 @@ export function talkingSpeakerSpeechLock(
     : gender
       ? ` (adult ${gender} voice — never switch to a ${opposite} voice, no off-screen narrator, no sound effects)`
       : " (no off-screen narrator, no sound effects)";
-  return `ON-SCREEN SPEECH REQUIRED${voiceTag}: from 0s the character on screen speaks aloud with continuous visible lip-sync: "${spoken}".`;
+  return `ON-SCREEN SPEECH REQUIRED${voiceTag}: from 0s the character on screen speaks aloud with continuous visible lip-sync: "${spoken}". Use calm, restrained lip and jaw articulation (~30–40% conversational mouth opening, clean lip closure on bilabial m/b/p sounds and pauses, no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks).`;
 }
 
 const COMPACT_TALKING_MOTION_LOCK =
-  "This clip is on-camera speech, like a real person recording a reel at natural 1.0x real-time conversational speed, not a snap action, not slow-motion, and not a frozen pose. Both eyes stay locked directly on the camera lens center the whole time (never glancing off-camera, upward, sideways, or down at the hands). The mouth articulates every syllable of the spoken line with visible lip-sync from 0s and never speaks while the mouth is closed. Hands and head move at brisk, natural real-time human speed synced to the spoken words — never slow-motion or floating. Do not freeze the neck, head angle, or shoulders in one spot. Do not write snaps, flicks, whips, or pops for the face or body. Camera locked.";
+  "This clip is on-camera speech, like a real person recording a reel at natural 1.0x real-time conversational speed, not a snap action, not slow-motion, and not a frozen pose. Both eyes stay locked directly on the camera lens center the whole time (never glancing off-camera, upward, sideways, or down at the hands). The mouth articulates every syllable of the spoken line with visible lip-sync from 0s, precise restrained lip and jaw movement (~30–40% mouth opening, no exaggerated wide-open mouth, no excessive jaw swing, no rubbery cheeks), and never speaks while the mouth is closed. Hands and head move at brisk, natural real-time human speed synced to the spoken words — never slow-motion or floating. Do not freeze the neck, head angle, or shoulders in one spot. Do not write snaps, flicks, whips, or pops for the face or body. Camera locked.";
 
 // Appended when submitting a story-short / Q&A clip so the model cannot skip
 // speech; story shorts also get the third-person camera lock.

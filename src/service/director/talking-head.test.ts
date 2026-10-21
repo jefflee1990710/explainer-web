@@ -346,3 +346,38 @@ test("overlay talking-head scenes keep the voice line and drop the subtitle", ()
   assert.match(block, /no letters/i);
   assert.doesNotMatch(block, /Write the subtitle into startScene/);
 });
+
+test("talking-head honours a custom background instruction in directorInstruction or visualWorld instead of hardcoding home sofa and bookshelf", () => {
+  const yueClips = planTalkingHeadClips({
+    source: "好多老闆成日問我，點解請極人都請唔到？其實問題唔在於人工，而係公司無一套清晰嘅自動化流程。",
+    directorInstruction: "Change the background at office, with HK sea view",
+    visualWorld: "現代寫字樓室內自然光環境，背景有落地玻璃窗透出真實香港維港海景，配搭35mm電影級自然逆光與淺景深效果，全程單一固定機位，畫面乾淨無任何文字或字幕。",
+    pace: "medium",
+    language: "yue",
+    aspectRatio: "9:16",
+    realistic: true,
+  });
+  assert.ok(yueClips.length >= 2);
+  for (const clip of yueClips) {
+    assert.match(clip.startScene, /現代寫字樓室內自然光環境/);
+    assert.match(clip.startScene, /office, with HK sea view/);
+    assert.match(clip.startScene, /唔好再畫書架、屋企沙發/);
+    assert.doesNotMatch(clip.startScene, /全程同一張屋企沙發，書架喺頭後面/);
+    assert.doesNotMatch(clip.endScene, /全程同一張屋企沙發，書架喺頭後面/);
+  }
+
+  const enClips = planTalkingHeadClips({
+    source: "Stop scrolling right now. Here is why your team is stuck.",
+    directorInstruction: "Change the background at office, with HK sea view",
+    pace: "medium",
+    language: "en",
+    aspectRatio: "9:16",
+    realistic: true,
+  });
+  for (const clip of enClips) {
+    assert.match(clip.startScene, /Set: the same setting in every clip \(office, with HK sea view\)/);
+    assert.match(clip.startScene, /Do not draw a bookshelf, a home sofa/);
+    assert.doesNotMatch(clip.startScene, /the same sofa at home in every clip, a bookshelf behind the head/);
+    assert.doesNotMatch(clip.endScene, /on the sofa/);
+  }
+});

@@ -30,7 +30,7 @@ function slots(shot: TalkingShot, perf?: PerformanceSlots) {
 // Phone-front-camera reel: look straight at the lens and stay alive.
 // Expression pattern (resting face, emphasis beat) comes from the performance slots.
 export function talkingFaceLock(perf: PerformanceSlots) {
-  return `On-camera speech like a real person filming a vertical reel on a phone at natural 1.0x real-time conversational speed: eyes stay locked on the lens the whole time (both pupils centered on the camera lens, never glancing off-camera, upward, sideways, or down at the hands), talking to one friend, never a news-anchor statue and never in slow-motion. The mouth articulates every syllable of the spoken line with visible lip-sync and rich, expressive facial expressions (animated eyebrows, expressive eyes, lively cheek movement, and dynamic micro-expressions). Natural blinks. Resting face: ${perf.restingFace}. Emphasis: ${perf.emphasisBeat} — a resting, emphasis, resting cycle on every sentence. Between sentences a brief lip press, a sideways head tilt, or a blink marks the pause so the face never holds one shape. After the last syllable the mouth closes but the face stays engaged.`;
+  return `On-camera speech like a real person filming a vertical reel on a phone at natural 1.0x real-time conversational speed: eyes stay locked on the lens the whole time (both pupils centered on the camera lens, never glancing off-camera, upward, sideways, or down at the hands), talking to one friend, never a news-anchor statue and never in slow-motion. The mouth articulates every syllable of the spoken line with visible lip-sync, precise restrained lip articulation, and small natural jaw movement (~30–40% conversational mouth opening, clean lip closure on bilabial m/b/p sounds, and natural upper-face eyebrow and eye micro-expressions — no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks, no changing teeth). Natural blinks. Resting face: ${perf.restingFace}. Emphasis: ${perf.emphasisBeat} — a resting, emphasis, resting cycle on every sentence. Between sentences a brief lip press, a sideways head tilt, or a blink marks the pause so the face never holds one shape. After the last syllable the mouth closes cleanly but the face stays engaged.`;
 }
 
 // Kept for callers that want the default face lock without a skill in hand.
@@ -288,8 +288,8 @@ export function talkingMotionLine(input: {
       ? `the ${hand} hand holding ${p.anchorProp} as a fixed anchor while the ${other} hand makes one brief ~0.5s co-speech gesture excursion on the key word (${gestureBeat})`
       : `the ${hand} hand makes one brief ~0.5s co-speech gesture excursion on the key word (${gestureBeat})`;
     const body = seated
-      ? `speaks "${input.line}" with continuous lip-sync at natural 1.0x real-time human speed (never slow-motion), ${face}, seated the whole time, ${head}, ${hands}`
-      : `speaks "${input.line}" with continuous lip-sync at natural 1.0x real-time human speed (never slow-motion), ${face}, ${head}, ${hands}, and weight shifting hip to hip; feet stay in frame`;
+      ? `speaks "${input.line}" with continuous lip-sync and restrained, natural small jaw movement at natural 1.0x real-time human speed (never slow-motion, no exaggerated mouth opening or excessive jaw swing), ${face}, seated the whole time, ${head}, ${hands}`
+      : `speaks "${input.line}" with continuous lip-sync and restrained, natural small jaw movement at natural 1.0x real-time human speed (never slow-motion, no exaggerated mouth opening or excessive jaw swing), ${face}, ${head}, ${hands}, and weight shifting hip to hip; feet stay in frame`;
     const hook = first ? `${p.hookBeat} as the hook` : "eyebrows lifting into a warm half-smile";
     const propReady = anchored ? `, the ${hand} hand already holding ${p.anchorProp}` : "";
     const fadeIn = `the large subtitle fades and slides up into place ${place}`;
@@ -336,8 +336,8 @@ export function talkingMotionLine(input: {
     ? `${zhHand}拎住${p.anchorProp}作為固定錨點幾乎唔郁，${zhOther}只喺核心重點詞做一次約 0.5 秒嘅自然拍點手勢（${gestureBeat}）`
     : `${zhHand}只喺核心重點詞做一次約 0.5 秒嘅自然拍點手勢（${gestureBeat}）`;
   const body = seated
-    ? `坐住唔起身，以自然 1.0x 真人說話速度（唔好慢動作）口型跟住講「${input.line}」，${face}，${head}，${hands}`
-    : `以自然 1.0x 真人說話速度（唔好慢動作）口型跟住講「${input.line}」，${face}，${head}，${hands}，重心左右移；頭到腳留喺畫面`;
+    ? `坐住唔起身，以自然 1.0x 真人說話速度（唔好慢動作）口型跟住講「${input.line}」（口型精準克制、下巴同唇部開合細緻自然、無誇張大嘴或歪嘴變形），${face}，${head}，${hands}`
+    : `以自然 1.0x 真人說話速度（唔好慢動作）口型跟住講「${input.line}」（口型精準克制、下巴同唇部開合細緻自然、無誇張大嘴或歪嘴變形），${face}，${head}，${hands}，重心左右移；頭到腳留喺畫面`;
   const hook = first ? `${p.hookBeat}做 hook` : "眉毛揚起、帶住半笑";
   const propReady = anchored ? `、${p.anchorProp}已經喺${zhHand}` : "";
   const fadeIn = `大字幕由下向上淡入到${place}`;

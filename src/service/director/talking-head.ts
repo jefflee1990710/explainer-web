@@ -200,8 +200,66 @@ function talkingHeadSubtitleBelowCenter(aspectRatio?: string) {
   return aspectRatio === "9:16";
 }
 
+// Detect when the director instruction or Phase A visualWorld specifies a custom background/location
+// (e.g. "Change the background at office, with HK sea view" or "中環海景寫字樓") so we do not
+// overwrite it with the default home sofa + bookshelf slot.
+const CUSTOM_SET_INSTRUCTION_RE =
+  /\b(background|backdrop|setting|set\s+(?:in|at|to)|scene\s+(?:in|at)|location|office|sea\s*view|harbou?r|studio|cafe|coffee\s*shop|restaurant|classroom|library|kitchen|gym|park|street|rooftop|beach|hotel|hospital|clinic|lab|laboratory|workshop|store|shop|showroom|conference\s*room|boardroom|balcony|garden)\b|背景|場景|環境|辦公室|寫字樓|海景|維港|課室|教室|圖書館|咖啡店|餐廳|廚房|健身室|公園|街頭|戶外|天台|海灘|酒店|診所|醫院|實驗室|工作室|會議室|露台|花園|商場|車廂/i;
+
+const DEFAULT_HOME_SET_RE = /\b(sofa|couch|bookshelf|bookcase)\b|沙發|梳化|書架|書櫃/i;
+
+export function extractCustomTalkingHeadSet(
+  directorInstruction?: string,
+  visualWorld?: string,
+): string | undefined {
+  const rawInstruction = (directorInstruction || "").trim();
+  const hasInstructionSet =
+    rawInstruction.length > 0 &&
+    CUSTOM_SET_INSTRUCTION_RE.test(rawInstruction) &&
+    !DEFAULT_HOME_SET_RE.test(rawInstruction);
+
+  const cleanedInstruction = hasInstructionSet
+    ? rawInstruction
+        .replace(
+          /^(?:please\s+)?(?:change|set|switch|move|put|make|use|keep)\s+(?:the\s+)?(?:background|backdrop|setting|scene|location|room)\s*(?:to|at|in|as|with|for|:|—|-)?\s*/i,
+          "",
+        )
+        .replace(/^(?:background|backdrop|setting|scene|location|room)\s*(?:is|at|in|to|:|：|-|—)\s*/i, "")
+        .replace(
+          /^(?:請)?(?:將|把|幫我將|幫我把)?(?:背景|場景|環境|房間)(?:改為|改成|改做|換成|換做|設為|設定為|設喺|喺|在)?\s*[:：]?\s*/u,
+          "",
+        )
+        .replace(/[.。!！]+$/u, "")
+        .trim()
+    : "";
+
+  const rawWorld = (visualWorld || "").trim();
+  const cleanedWorld = rawWorld
+    .split(/(?:[。.]|，(?=全程單一|畫面乾淨|無任何文字|配搭\s*35mm))/u)[0]
+    ?.trim()
+    .replace(/[.。，,]+$/u, "")
+    .trim();
+  const hasWorldSet =
+    Boolean(cleanedWorld) &&
+    CUSTOM_SET_INSTRUCTION_RE.test(cleanedWorld) &&
+    !DEFAULT_HOME_SET_RE.test(cleanedWorld);
+
+  if (hasWorldSet && cleanedInstruction) {
+    if (cleanedWorld.toLowerCase().includes(cleanedInstruction.toLowerCase())) {
+      return cleanedWorld;
+    }
+    return `${cleanedWorld} (${cleanedInstruction})`;
+  }
+  if (cleanedInstruction) return cleanedInstruction;
+  if (hasWorldSet) return cleanedWorld;
+  return undefined;
+}
+
 export function planTalkingHeadClips(input: {
   source: string;
+  // Optional director instruction (e.g. custom background/setting notes) and Phase A visualWorld.
+  directorInstruction?: string;
+  visualWorld?: string;
   pace?: SpeechPace;
   language?: VoLanguage;
   aspectRatio?: string;
@@ -225,6 +283,7 @@ export function planTalkingHeadClips(input: {
   const clips: TalkingHeadClipPlan[] = [];
   const talkingShot: TalkingShot = input.shot === "full-body" ? "full-body" : "face";
   const perf = input.performance ?? DEFAULT_PERFORMANCE[talkingShot][performanceLanguage(input.language)];
+  const customSet = extractCustomTalkingHeadSet(input.directorInstruction, input.visualWorld);
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
     const seconds = plannedClipSeconds(line, input.pace);
@@ -234,6 +293,7 @@ export function planTalkingHeadClips(input: {
       belowCenter,
       background: input.background,
       openingPhoto: input.openingPhoto,
+      customSet,
       perf,
       overlay: true,
       realistic: input.realistic,
@@ -385,6 +445,7 @@ type SceneInput = {
   belowCenter?: boolean;
   background?: boolean;
   openingPhoto?: boolean;
+  customSet?: string;
   perf: PerformanceSlots;
   overlay?: boolean;
   realistic?: boolean;
@@ -407,7 +468,13 @@ function withMotionRealism(motion: string, clause: string) {
   return `${text}${/[.。]$/.test(text) ? "" : "."} ${clause}`;
 }
 
-function endPoseVariationEn(clipIndex: number, fullBody: boolean, anchored: boolean, freeHand: string) {
+function endPoseVariationEn(
+  clipIndex: number,
+  fullBody: boolean,
+  anchored: boolean,
+  freeHand: string,
+  omitDefaultSofa?: boolean,
+) {
   const variant = clipIndex % 6;
   if (anchored) {
     const headMoves = [
@@ -428,7 +495,7 @@ function endPoseVariationEn(clipIndex: number, fullBody: boolean, anchored: bool
     ];
     return { head: headMoves[variant], hand: handMoves[variant] };
   }
-  const headMoves = [
+  const rawHeadMoves = [
     "seated centered and relaxed on the sofa, facing the camera with head tilted gently 1–2 degrees to the right, both pupils centered and eyes on the lens, mouth just closed into a warm engaged smile, eyebrows relaxed",
     "seated centered on the sofa, facing the camera straight-on with head tilted gently 1–2 degrees to the left and both eyes locked on the lens, mouth in a thoughtful half-smile",
     "seated centered on the sofa, facing the camera with head tilted gently 1–2 degrees to the left, eyes locked on the lens, eyebrows lifted with a lively confident smile",
@@ -436,6 +503,9 @@ function endPoseVariationEn(clipIndex: number, fullBody: boolean, anchored: bool
     "seated centered on the cushion, facing the camera with head tilted gently 1–2 degrees to the left, eyes locked on the lens, mouth in a knowing smile",
     "seated upright and centered, facing the camera with head tilted gently 1–2 degrees right and a warm expressive smile, eyes locked on the lens",
   ];
+  const headMoves = omitDefaultSofa
+    ? rawHeadMoves.map((move) => move.replace(/\s+on the (?:sofa|cushion)/g, ""))
+    : rawHeadMoves;
   const handMoves = fullBody
     ? [
         "One hand is slightly raised at chest height with an open palm while the other arm relaxes at the side, weight on the other hip",
@@ -535,7 +605,13 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
     const propEnd = anchored ? ` The same hand still holds ${p.anchorProp}.` : "";
     const freeHand = anchored ? "The other hand" : "One hand";
     const sameFrame = " Same camera, seated torso position, and resting hand position on the lap as the opening still: same crop, same distance, with only a subtle 1–2 degree natural head and facial expression transition. No zoom, no reframe, no jump.";
-    const endVar = endPoseVariationEn(clipIndex, fullBody, anchored, freeHand);
+    const endVar = endPoseVariationEn(
+      clipIndex,
+      fullBody,
+      anchored,
+      freeHand,
+      Boolean(scene.customSet || scene.background || scene.openingPhoto),
+    );
     const pose =
       moment === "start"
         ? fullBody
@@ -554,11 +630,12 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
   const freeHand = anchored ? "另一隻手" : "一隻手";
   const sameFrame = "鏡頭、軀幹坐姿同雙手放喺大髀嘅休息位置同開頭畫面一致：同一個裁切、同一距離，只有 1–2 度極細微嘅頭部與表情自然過渡。唔好變焦，唔好跳鏡。";
   const endVarYue = endPoseVariationYue(clipIndex, fullBody, anchored, freeHand);
+  const lensPlaceYue = scene.customSet || scene.background ? "直望鏡頭好似用手機實拍" : "直望鏡頭好似喺屋企用手機實拍";
   const pose =
     moment === "start"
       ? fullBody
         ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，準備開口，${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢${anchored ? "" : "，另一隻手自然垂低"}。`
-        : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，直望鏡頭好似喺屋企用手機實拍，準備開口，${p.hookBeat}，頭微傾 1–2 度，神情自然唔擺拍。${prop}${anchored ? `${freeHand}自然放鬆放喺大髀休息位` : "雙手自然放鬆放喺大髀休息位置"}。`
+        : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，${lensPlaceYue}，準備開口，${p.hookBeat}，頭微傾 1–2 度，神情自然唔擺拍。${prop}${anchored ? `${freeHand}自然放鬆放喺大髀休息位` : "雙手自然放鬆放喺大髀休息位置"}。`
       : fullBody
         ? `角色：畫面仍然只有呢一個人，${endVarYue.head}。${propEnd}${anchored ? `${endVarYue.hand}，重心輕輕換咗少少，腳留喺同一個位置` : endVarYue.hand}。${sameFrame}`
         : `角色：畫面仍然只有呢一個人，仍然坐住，${endVarYue.head}。${propEnd}${endVarYue.hand}。${sameFrame}`;
@@ -611,6 +688,11 @@ function setClause(language: "en" | "yue", scene: SceneInput) {
     return language === "en"
       ? `Set: the background is the attached scene reference photo. Do not draw a bookshelf, a bed, or a different room. The same background stays in every clip. No pictures pasted on the frame, no extra writing, ${noProps}. Light follows the reference photo.`
       : `場景：背景用附上的場景參考圖，唔好再畫書架、床或者其他房間。全程同一個背景。畫面上面唔好貼圖、唔好加字，${noProps}。光跟參考圖。`;
+  }
+  if (scene.customSet) {
+    return language === "en"
+      ? `Set: the same setting in every clip (${scene.customSet}). Do not draw a bookshelf, a home sofa, a bed, or a different room. No pictures pasted on the frame, no extra writing, ${noProps}. Light: ${p.light}.`
+      : `場景：全程同一個場景（${scene.customSet}），唔好再畫書架、屋企沙發、床或者其他房間。畫面上面唔好貼圖、唔好加字，${noProps}。光：${p.light}。`;
   }
   return language === "en"
     ? `Set: ${p.set}. No pictures pasted on the frame, no extra writing, ${noProps}. Light: ${p.light}.`

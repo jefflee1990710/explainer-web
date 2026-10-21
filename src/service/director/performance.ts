@@ -15,13 +15,13 @@ export const PERFORMANCE_FIELD_MAX = 600;
 // Mirrors skills/<dir>/performance.json — the seeded copy is the editable source.
 const FACE_EN: PerformanceSlots = {
   restingFace:
-    "a warm, chatty smile with a hint of teeth, eyebrows relaxed and slightly lifted, eyes locked on the lens like talking to one friend",
+    "a warm, chatty smile with a hint of teeth and relaxed lips, eyebrows relaxed and slightly lifted, eyes locked on the lens like talking to one friend",
   emphasisBeat:
-    "a subtle brow lift and natural expressive articulation on key words, relaxing smoothly back into a warm smile",
+    "a subtle brow lift and restrained, phoneme-accurate lip articulation with small natural jaw movement (no exaggerated mouth opening or wide jaw drop), relaxing smoothly back into a warm smile",
   hookBeat: "eyebrows already lifting into a big warm smile",
   ctaBeat: "a softer, closer smile, eyebrows settling, the torso leaning a little toward the lens like sharing a secret",
   gestureLibrary:
-    "most of the time (~90%) both hands rest calmly on the lap in a neutral rest position; only on the single main key word of the sentence, one dominant hand makes a brief ~0.5s co-speech gesture excursion (preparation lift from the lap, a soft open-palm stroke on the stressed word, a brief hold, then smooth retraction back to rest on the lap) while the other hand stays completely still",
+    "most of the time (~90%) both hands rest calmly on the lap in a neutral rest position; only on the single main key word of the sentence, one dominant hand makes a brief ~0.5s co-speech gesture excursion (preparation lift from the lap, a soft open-palm stroke at lower-chest height on the stressed word, a brief hold, then smooth retraction back to rest on the lap) while the other hand stays completely still",
   headMotion:
     "proximal torso, pelvis, and shoulders stay anchored and stable in the exact same spot with only subtle breathing movement; the head stays facing the camera with a subtle 1–2 degree prosodic nod on stressed words and both eyes locked directly on the lens center the whole time",
   anchorProp: "",
@@ -30,9 +30,9 @@ const FACE_EN: PerformanceSlots = {
 };
 
 const FACE_YUE: PerformanceSlots = {
-  restingFace: "露少少牙嘅親切笑容，眉毛放鬆微微揚起，直望鏡頭好似同一個朋友傾偈",
-  emphasisBeat: "講到重點字眼時眉毛自然微揚、眼神專注有神，語氣過渡平順自然",
-  hookBeat: "眉毛已經揚起、展開一個大笑容",
+  restingFace: "露少少牙嘅親切笑容、唇部同下巴自然放鬆，眉毛放鬆微微揚起，直望鏡頭好似同一個朋友傾偈",
+  emphasisBeat: "講到重點字眼時眉毛自然微揚、眼神專注有神，口型精準克制、下巴同嘴部開合幅度自然細緻（無誇張張大嘴），語氣過渡平順自然",
+  hookBeat: "眉毛已經揚起、展開一個親切笑容",
   ctaBeat: "更柔和、更親近嘅淺笑，眉毛放鬆，上身微微傾向鏡頭好似講緊秘密",
   gestureLibrary:
     "近九成時間雙手自然放鬆放喺大髀休息位（Neutral Rest）；只喺整句最核心嗰一個重點詞出現時，單一慣用手由大髀輕輕抬起做一個約 0.5 秒嘅自然拍點手勢（起手 → 重音拍點 → 短暫停留 → 自然收返落大髀原位），另一隻手全程放喺大髀唔郁，絕對唔好雙手輪流喺半空比畫",

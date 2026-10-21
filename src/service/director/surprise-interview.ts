@@ -20,14 +20,14 @@ export const SURPRISE_HOOK_VIDEO_RULES = [
   "Clip 1 is the surprise hook. The person stays right-side up, head toward the top edge. Do not flip the picture.",
   "The camera starts above and travels downward while it snaps a zoom-in: a tiny hold, then one fast drop-and-punch that lands well under a second, then a hold on the tight face. Do not call the move smooth, slow, gentle, or a glide.",
   "Focus stays sharp and clear. No motion blur and no soft focus.",
-  "The face moves into a clear surprise. On-canvas type uses the shock-poster style and stays upright.",
+  "The face moves into a clear surprise in the eyes and eyebrows while the mouth speaks the hook with precise, restrained lip articulation and natural small jaw movement (no exaggerated wide-open mouth, no excessive jaw swing, no rubbery cheeks). On-canvas type uses the shock-poster style and stays upright.",
   "No background music.",
 ].join(" ");
 
 export const SURPRISE_VARIETY_VIDEO_RULES = [
-  "Clip 1 is always the surprise hook: the person stays right-side up, the camera drops from above and snaps a zoom-in, and the face moves into a clear surprise. Do not flip the picture.",
+  "Clip 1 is always the surprise hook: the person stays right-side up, the camera drops from above and snaps a zoom-in, and the face moves into a clear surprise in the eyes and eyebrows with restrained, natural lip articulation. Do not flip the picture.",
   "Every later clip opens on the previous clip's end still. Same camera angle, same crop, same body pose. Do not hard-cut, and do not repeat the overhead zoom.",
-  "Within one clip the camera and the body pose stay locked. Only the mouth and vivid, expressive facial expressions (animated eyebrows, expressive eyes, and lively emotional shifts) move.",
+  "Within one clip the camera and the body pose stay locked. Only the mouth (with precise, restrained lip-sync and small natural jaw movement — no exaggerated mouth opening or wide jaw drop) and expressive upper-face reactions (animated eyebrows and expressive eyes) move.",
   "Each clip pins the shock poster in one place, chosen from top, middle, and bottom. Neighbouring clips do not share that place. Letters stay upright. No white subtitle bar.",
   "No background music.",
 ].join(" ");
@@ -105,7 +105,7 @@ export function surprisePosterLayout(place: SurpriseSubtitlePlace) {
 }
 
 function varietyLock(place: SurpriseSubtitlePlace) {
-  return `This clip opens on the previous clip's end still. Same camera angle, same crop, same body pose. The picture is right-side up. Within this clip the camera stays locked. Do not zoom out, hard-cut, or repeat the overhead surprise move. Only the mouth and vivid, expressive facial expressions (animated eyebrows, expressive eyes, and lively emotional shifts) move. On-canvas type is the shock poster, pinned at the ${place} for the entire clip: same words, same size, same place. Do not fade it or restyle it into a white subtitle bar.`;
+  return `This clip opens on the previous clip's end still. Same camera angle, same crop, same body pose. The picture is right-side up. Within this clip the camera stays locked. Do not zoom out, hard-cut, or repeat the overhead surprise move. Only the mouth (precise, restrained lip-sync with small natural jaw movement — no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks) and expressive eyebrows and eyes move. On-canvas type is the shock poster, pinned at the ${place} for the entire clip: same words, same size, same place. Do not fade it or restyle it into a white subtitle bar.`;
 }
 
 export function surpriseVideoMotionRules(clipNumber: number, place: SurpriseSubtitlePlace = "bottom") {
@@ -159,11 +159,11 @@ function applyHookCamera(scene: string, position: FramePosition, place: Surprise
 
 function hookMotion(seconds: number, place: SurpriseSubtitlePlace) {
   const arrive = Math.min(1.2, Math.max(0.9, seconds - 1.5));
-  return `0–0.15s hold the high start, person upright, sharp and clear; 0.15–${arrive}s the camera drops from above and snaps a zoom-in, picture stays right-side up, focus stays crisp; ${arrive}–${seconds}s hold the tight close-up while the face shows a clear surprise. The shock poster stays pinned at the ${place}. Sharp and quick, not a slow glide, not a flip.`;
+  return `0–0.15s hold the high start, person upright, sharp and clear; 0.15–${arrive}s the camera drops from above and snaps a zoom-in, picture stays right-side up, focus stays crisp; ${arrive}–${seconds}s hold the tight close-up while the eyes and eyebrows show a clear surprise and the mouth speaks with restrained, natural lip articulation (no exaggerated wide-open mouth or excessive jaw swing). The shock poster stays pinned at the ${place}. Sharp and quick, not a slow glide, not a flip.`;
 }
 
 function varietyMotion(seconds: number, place: SurpriseSubtitlePlace) {
-  return `0–${seconds}s open on the previous clip's end still. Camera locked: same angle, same crop, same body pose. Only the mouth and vivid, expressive facial expression changes (animated eyebrows, expressive eyes, and clear emotional reactions). Do not zoom, reframe, hard-cut, or repeat the overhead surprise. The shock poster stays pinned at the ${place}. Picture stays right-side up.`;
+  return `0–${seconds}s open on the previous clip's end still. Camera locked: same angle, same crop, same body pose. Only the mouth (precise, restrained lip-sync with small natural jaw movement — no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks) and expressive eyebrow and eye reactions move. Do not zoom, reframe, hard-cut, or repeat the overhead surprise. The shock poster stays pinned at the ${place}. Picture stays right-side up.`;
 }
 
 function spliceCharacter(scene: string, character: string) {

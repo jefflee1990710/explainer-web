@@ -26,6 +26,7 @@ import { directorModel } from "@/service/director/model";
 import { persistMedia } from "@/service/higgsfield/persist";
 import { SEEDREAM_5_PRO_IMAGE_MODEL } from "@/service/generation/image-backend";
 import { submitOpenRouterImage } from "@/service/openrouter/generate";
+import { gradeRealisticImageBuffer } from "@/service/style/realistic-grade";
 
 export type PublicLifeCharacter = {
   id: string;
@@ -182,6 +183,16 @@ export async function generateLifeShotAction(input: {
     const resultUrl = await persistMedia(
       imageUrl,
       `explainer/life/${character._id.toHexString()}/${shotId.toHexString()}`,
+      {
+        transform: (buffer: Buffer) =>
+          gradeRealisticImageBuffer(buffer).catch((error: unknown) => {
+            console.error(
+              "[life] realistic image grade failed; keeping original bytes",
+              { shotId: shotId.toHexString(), error },
+            );
+            return buffer;
+          }),
+      },
     );
     const displayLabel =
       customInstruction.slice(0, 40) ||

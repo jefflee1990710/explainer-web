@@ -188,5 +188,7 @@ test("every clip variant locks gaze straight on the lens center and moves at nat
     assert.match(yue, /自然 1\.0x 真人說話速度/);
     assert.match(yue, /直望鏡頭/);
     assert.doesNotMatch(yue, /望一望右上|低頭望一望比畫緊嘅雙手|三七面|15 度|12 度/);
+    assert.match(en, /no exaggerated mouth opening or excessive jaw swing/);
+    assert.match(yue, /口型精準克制、下巴同唇部開合細緻自然、無誇張大嘴/);
   }
 });

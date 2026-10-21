@@ -103,4 +103,6 @@ test("hook video rules demand a sharp drop and zoom, person upright", () => {
   assert.match(later, /pinned at the middle/);
   assert.match(later, /previous clip's end still/);
   assert.doesNotMatch(later, /own camera angle/);
+  assert.match(hook, /no exaggerated wide-open mouth, no excessive jaw swing/);
+  assert.match(later, /no exaggerated mouth opening, no excessive jaw swing/);
 });

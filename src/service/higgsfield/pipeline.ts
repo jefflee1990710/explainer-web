@@ -30,6 +30,10 @@ import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt";
 import { hydrateStyles } from "@/service/style/load-style";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
+import {
+  gradeRealisticImageBuffer,
+  gradeRealisticVideoBuffer,
+} from "@/service/style/realistic-grade";
 import { isRealisticStyle, lockRealisticVideoLight } from "@/service/style/realistic-light";
 import type { StylePromptSlice } from "@/service/style";
 import { withoutOnScreenTextInstructions } from "@/service/style/prompts";
@@ -853,14 +857,16 @@ export async function applyJobStatus(input: {
   if (outputUrl && status === "completed") {
     const folder =
       job.kind === "still" ? "stills" : job.kind === "frame" ? "frames" : "clips";
+    const renderableStyle = project
+      ? await loadRenderableStyle({
+          styleId: project.styleId,
+          ownerClerkUserId: project.clerkUserId,
+        })
+      : undefined;
+    const realistic = isRealisticStyle(renderableStyle);
     const canvasColor =
-      project && (job.kind === "still" || job.kind === "frame")
-        ? (
-            await loadRenderableStyle({
-              styleId: project.styleId,
-              ownerClerkUserId: project.clerkUserId,
-            })
-          ).canvasColor
+      renderableStyle && (job.kind === "still" || job.kind === "frame")
+        ? renderableStyle.canvasColor
         : undefined;
     const voiceId =
       project &&
@@ -894,23 +900,50 @@ export async function applyJobStatus(input: {
             return buffer;
           })
         : Promise.resolve(buffer);
-    const transformOptions = voiceId
-      ? { transform: swapVoice }
-      : canvasColor
-        ? {
-            transform: (buffer: Buffer) =>
-              flattenToCanvas(buffer, canvasColor).catch(
-                (error: unknown) => {
-                  // Keep the original bytes rather than failing the job, but
-                  // leave a trace so a broken flatten is not invisible.
-                  console.error(
-                    "[higgsfield] flatten failed; persisting original bytes",
-                    { requestId: job.requestId, error },
-                  );
-                  return buffer;
-                },
-              ),
+    const transformVideo =
+      job.kind === "video" && (voiceId || realistic)
+        ? async (buffer: Buffer) => {
+            const voiced = await swapVoice(buffer);
+            if (!realistic) return voiced;
+            return gradeRealisticVideoBuffer(voiced).catch((error: unknown) => {
+              console.error(
+                "[higgsfield] realistic video grade failed; keeping clip bytes",
+                { requestId: job.requestId, error },
+              );
+              return voiced;
+            });
           }
+        : undefined;
+    const transformImage =
+      (job.kind === "still" || job.kind === "frame") && (canvasColor || realistic)
+        ? async (buffer: Buffer) => {
+            const flat = canvasColor
+              ? await flattenToCanvas(buffer, canvasColor).catch(
+                  (error: unknown) => {
+                    // Keep the original bytes rather than failing the job, but
+                    // leave a trace so a broken flatten is not invisible.
+                    console.error(
+                      "[higgsfield] flatten failed; persisting original bytes",
+                      { requestId: job.requestId, error },
+                    );
+                    return buffer;
+                  },
+                )
+              : buffer;
+            if (!realistic) return flat;
+            return gradeRealisticImageBuffer(flat).catch((error: unknown) => {
+              console.error(
+                "[higgsfield] realistic image grade failed; keeping flattened bytes",
+                { requestId: job.requestId, error },
+              );
+              return flat;
+            });
+          }
+        : undefined;
+    const transformOptions = transformVideo
+      ? { transform: transformVideo }
+      : transformImage
+        ? { transform: transformImage }
         : undefined;
     blobUrl = await persistMedia(
       outputUrl,
