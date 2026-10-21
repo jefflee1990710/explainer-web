@@ -9,11 +9,13 @@ import {
   realisticVideoGradeArgs,
 } from "@/service/style/realistic-grade";
 
-test("buildRealisticToneLut lifts black point above 8 and compresses white point below 200", () => {
-  const lut = buildRealisticToneLut(10, 192);
-  assert.equal(lut[0], 10);
-  assert.equal(lut[255], 192);
-  assert.ok(lut[128] > 95 && lut[128] < 130);
+test("buildRealisticToneLut lifts black point above 8, preserves midtones near 1:1, and compresses highlights", () => {
+  const lut = buildRealisticToneLut(12, 205);
+  assert.equal(lut[0], 12);
+  assert.equal(lut[255], 205);
+  // Midtones (e.g. 115 and 128) stay bright and are never darkened by a global 0.72 multiplier
+  assert.ok(lut[115] >= 115 && lut[115] <= 126, `expected lut[115] in [115, 126], got ${lut[115]}`);
+  assert.ok(lut[128] >= 128 && lut[128] <= 138, `expected lut[128] in [128, 138], got ${lut[128]}`);
   // Monotonically non-decreasing across all 256 values
   for (let i = 1; i < 256; i += 1) {
     assert.ok(lut[i] >= lut[i - 1], `LUT not monotonic at index ${i}`);
@@ -63,10 +65,10 @@ test("gradeRealisticImageBuffer fixes blown highlights (Rule 06), crushed blacks
   const gradedPng = await gradeRealisticImageBuffer(inputPng, { seed: 42 });
   const after = await measureDePlasticMetrics(gradedPng);
 
-  // Rule 06: White point compressed below 205, zero pixels > 235
+  // Rule 06: White point compressed <= 212, zero pixels > 235
   assert.ok(
-    after.whitePoint <= 205,
-    `expected graded whitePoint <= 205, got ${after.whitePoint.toFixed(2)}`,
+    after.whitePoint <= 212,
+    `expected graded whitePoint <= 212, got ${after.whitePoint.toFixed(2)}`,
   );
   assert.equal(after.over235Pct, 0, "expected 0% pixels over 235 after grading");
 
@@ -83,10 +85,12 @@ test("gradeRealisticImageBuffer fixes blown highlights (Rule 06), crushed blacks
   );
 });
 
-test("realisticVideoGradeArgs applies LUT black-lift, highlight roll-off, and temporal film grain", () => {
+test("realisticVideoGradeArgs applies knee LUT (preserving midtones <=170 and rolling off highlights >170) and temporal film grain", () => {
   const args = realisticVideoGradeArgs("in.mp4", "out.mp4");
   assert.ok(args.includes("-vf"));
   assert.ok(args.includes(REALISTIC_VIDEO_GRADE_FILTER));
   assert.match(REALISTIC_VIDEO_GRADE_FILTER, /lutrgb=/);
+  assert.match(REALISTIC_VIDEO_GRADE_FILTER, /lte\(val,170\)/);
+  assert.doesNotMatch(REALISTIC_VIDEO_GRADE_FILTER, /val\*0\.72/);
   assert.match(REALISTIC_VIDEO_GRADE_FILTER, /noise=c0s=9:c0f=t\+u/);
 });

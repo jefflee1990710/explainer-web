@@ -33,23 +33,35 @@ export type RealisticGradeOptions = {
 };
 
 const DEFAULT_BLACK_FLOOR = 12;
-const DEFAULT_WHITE_CEILING = 192;
-const DEFAULT_GRAIN_STRENGTH = 11.5;
+const DEFAULT_WHITE_CEILING = 205;
+const DEFAULT_GRAIN_STRENGTH = 12.2;
 
-// Soft filmic toe + shoulder tone curve mapping 0..255 -> blackFloor..whiteCeiling.
-// Lifts zero-blacks above 8-10 (Rule 07) and rolls off highlights below 195 (Rule 06).
+// Soft filmic toe + knee-shoulder tone curve mapping 0..255 -> blackFloor..whiteCeiling.
+// Keeps shadows/midtones (0..170, faces/skin/room) near 1:1 original brightness while
+// lifting zero-blacks above 10-12 (Rule 07) and rolling off only high highlights above 170 (Rule 06).
 export function buildRealisticToneLut(
   blackFloor = DEFAULT_BLACK_FLOOR,
   whiteCeiling = DEFAULT_WHITE_CEILING,
 ): Uint8Array {
   const lut = new Uint8Array(256);
-  const span = Math.max(1, whiteCeiling - blackFloor);
+  const knee = 170;
+  // Map input knee (170) to ~85% of the output range (~176 when blackFloor=12, whiteCeiling=205)
+  // so midtones (e.g. 115 -> ~122, 128 -> ~135) are never darkened.
+  const kneeTarget = Math.min(whiteCeiling - 8, Math.max(blackFloor + 1, Math.round(blackFloor + (knee - blackFloor) * 1.03)));
+  const midSlope = (kneeTarget - blackFloor) / knee;
+  const hiSpan = Math.max(1, 255 - knee);
+  const hiOutSpan = Math.max(0, whiteCeiling - kneeTarget);
+
   for (let i = 0; i < 256; i += 1) {
-    const x = i / 255;
-    // Gentle S-shoulder: linear through shadows/midtones, smooth roll-off in top 25% highlights.
-    const shoulder = x / (1 + 0.28 * x * x);
-    const norm = shoulder / (1 / 1.28);
-    const mapped = Math.round(blackFloor + span * Math.min(1, Math.max(0, norm)));
+    let mapped: number;
+    if (i <= knee) {
+      mapped = Math.round(blackFloor + i * midSlope);
+    } else {
+      const t = (i - knee) / hiSpan;
+      // Smooth quadratic knee roll-off in the top highlights (170..255 -> kneeTarget..whiteCeiling)
+      const rolled = 1 - (1 - t) * (1 - t) * 0.35 - 0.65 * (1 - t);
+      mapped = Math.round(kneeTarget + hiOutSpan * Math.min(1, Math.max(0, rolled)));
+    }
     lut[i] = Math.min(255, Math.max(0, mapped));
   }
   return lut;
@@ -211,7 +223,7 @@ export async function gradeRealisticImageBuffer(
 
   const out = Buffer.allocUnsafe(data.length);
   const minClamp = Math.max(8, blackFloor - 4);
-  const maxClamp = Math.min(205, whiteCeiling + 12);
+  const maxClamp = Math.min(212, whiteCeiling + 7);
 
   for (let offset = 0; offset < data.length; offset += 3) {
     let r = lut[data[offset]];
@@ -261,10 +273,15 @@ export async function gradeRealisticImageBuffer(
 }
 
 // FFmpeg video filter for realistic clips (Hailuo 3 / Seedance):
-// - Lifts crushed shadow blacks (P1 >= 10) and compresses blown highlights (P99 <= 195)
+// - Preserves natural midtone brightness (0..170 stays ~1:1 with a lifted black floor at 10)
+//   so faces, skin, and indoor rooms never look darkened
+// - Compresses only highlights above 170 with a soft knee (170..255 -> 175..204, never > 235)
 // - Restores 35mm temporal film grain (noise=c0s=9:c0f=t+u) that video diffusion models smooth away.
+const VIDEO_KNEE_LUT_EXPR =
+  "clip(if(lte(val,170),10+val*0.97,175+(val-170)*0.34),8,206)";
+
 export const REALISTIC_VIDEO_GRADE_FILTER =
-  "lutrgb=r='clip(10+val*0.72,8,198)':g='clip(10+val*0.72,8,198)':b='clip(10+val*0.72,8,198)',noise=c0s=9:c0f=t+u";
+  `lutrgb=r='${VIDEO_KNEE_LUT_EXPR}':g='${VIDEO_KNEE_LUT_EXPR}':b='${VIDEO_KNEE_LUT_EXPR}',noise=c0s=9:c0f=t+u`;
 
 export function realisticVideoGradeArgs(inPath: string, outPath: string): string[] {
   return [
