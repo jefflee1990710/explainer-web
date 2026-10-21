@@ -1,5 +1,6 @@
 // Extra wardrobe picks. Prompts stay unique inside each part so detection can match them exactly.
 import type { CharacterLookOption } from "@/service/character/character-look";
+import { AMENDA_PANTS, AMENDA_TOPS } from "@/service/character/amenda-wardrobe";
 
 const HERITAGE_HAIR: readonly CharacterLookOption[] = [
   { id: "dreadlocks", prompt: "shoulder-length natural dreadlocks parted in the center and falling cleanly around the shoulders" },
@@ -130,6 +131,7 @@ const CLASSIC_TOPS: readonly CharacterLookOption[] = [
   { id: "cashmerecrew", prompt: "a soft oatmeal cashmere crewneck sweater with fine ribbed trim" },
   { id: "haltertop", prompt: "a sleek minimalist black knit halter-neck top with clean tailored lines" },
   { id: "safarijacket", prompt: "an olive cotton cuatro-pocket belted safari field jacket" },
+  ...AMENDA_TOPS,
 ];
 
 const HERITAGE_PANTS: readonly CharacterLookOption[] = [
@@ -190,6 +192,7 @@ const CLASSIC_PANTS: readonly CharacterLookOption[] = [
   { id: "bermudas", prompt: "tailored taupe Bermuda shorts with a hem at the lower thigh" },
   { id: "satinskirt", prompt: "a bias-cut champagne silk-satin slip midi skirt with a fluid drape" },
   { id: "khakichinos", prompt: "classic preppy pleated stone-khaki cotton chinos with a cuffed hem" },
+  ...AMENDA_PANTS,
 ];
 
 const HERITAGE_SHOES: readonly CharacterLookOption[] = [

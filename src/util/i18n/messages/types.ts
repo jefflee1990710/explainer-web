@@ -330,6 +330,13 @@ export type Messages = {
         classic: string;
       };
       extremeBadge: string;
+      searchPlaceholder: string;
+      searchLabel: string;
+      favourites: string;
+      favouriteAdd: string;
+      favouriteRemove: string;
+      emptySearch: string;
+      emptyFavourites: string;
       options: {
         hair: Record<string, string>;
         face: Record<string, string>;

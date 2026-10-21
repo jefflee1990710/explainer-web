@@ -1,4 +1,5 @@
 import type { Messages } from "@/util/i18n/messages/types";
+import { AMENDA_LABELS_ZH } from "@/service/character/amenda-wardrobe";
 import { briefZhHant } from "@/util/i18n/messages/workspace/brief.zh-Hant";
 import { directorsZhHant } from "@/util/i18n/messages/workspace/directors.zh-Hant";
 import { stylesZhHant } from "@/util/i18n/messages/workspace/styles.zh-Hant";
@@ -371,6 +372,13 @@ export const zhHant: Messages = {
         classic: "👤 經典百搭",
       },
       extremeBadge: "全球時裝",
+      searchPlaceholder: "用名稱搜尋",
+      searchLabel: "搜尋造型",
+      favourites: "收藏",
+      favouriteAdd: "收藏 {name}",
+      favouriteRemove: "取消收藏 {name}",
+      emptySearch: "沒有符合的造型。",
+      emptyFavourites: "這個清單還沒有收藏。",
       options: {
         hair: {
           bob: "波波頭",
@@ -441,6 +449,7 @@ export const zhHant: Messages = {
           athletic: "精實運動線條",
         },
         top: {
+          ...AMENDA_LABELS_ZH.top,
           tee: "重磅修身純色 Tee",
           hoodie: "廓形街頭連帽衛衣",
           blazer: "挺版雙排扣西裝外套",
@@ -570,6 +579,7 @@ export const zhHant: Messages = {
           safarijacket: "橄欖綠四口袋腰帶獵裝夾克",
         },
         pants: {
+          ...AMENDA_LABELS_ZH.pants,
           jeans: "經典直筒牛仔褲",
           chinos: "修身卡其休閒褲",
           shorts: "剪裁及膝百慕達短褲",

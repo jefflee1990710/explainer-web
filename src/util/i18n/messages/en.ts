@@ -1,4 +1,5 @@
 import type { Messages } from "@/util/i18n/messages/types";
+import { AMENDA_LABELS_EN } from "@/service/character/amenda-wardrobe";
 import { briefEn } from "@/util/i18n/messages/workspace/brief.en";
 import { directorsEn } from "@/util/i18n/messages/workspace/directors.en";
 import { stylesEn } from "@/util/i18n/messages/workspace/styles.en";
@@ -378,6 +379,13 @@ export const en: Messages = {
         classic: "👤 Essentials",
       },
       extremeBadge: "GLOBAL",
+      searchPlaceholder: "Search by name",
+      searchLabel: "Search looks",
+      favourites: "Favourites",
+      favouriteAdd: "Save {name}",
+      favouriteRemove: "Remove {name} from favourites",
+      emptySearch: "No looks match that search.",
+      emptyFavourites: "No favourites in this list yet.",
       options: {
         hair: {
           bob: "Bob",
@@ -448,6 +456,7 @@ export const en: Messages = {
           athletic: "Athletic",
         },
         top: {
+          ...AMENDA_LABELS_EN.top,
           tee: "Heavyweight Tee",
           hoodie: "Streetwear Hoodie",
           blazer: "Double-Breasted Blazer",
@@ -577,6 +586,7 @@ export const en: Messages = {
           safarijacket: "Olive Belted Safari Jacket",
         },
         pants: {
+          ...AMENDA_LABELS_EN.pants,
           jeans: "Straight Jeans",
           chinos: "Tailored Chinos",
           shorts: "Tailored Shorts",

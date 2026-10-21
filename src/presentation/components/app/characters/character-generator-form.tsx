@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createCharacterAction,
@@ -11,6 +11,14 @@ import {
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { CharacterLookArt } from "@/presentation/components/app/characters/character-look-art";
+import {
+  LOOK_DIALOG_PAGE_SIZE,
+  filterLookDialogOptions,
+  nextLookDialogCount,
+  pageLookDialogOptions,
+} from "@/presentation/components/app/characters/character-look-dialog-list";
+import { CharacterLookOptionGrid } from "@/presentation/components/app/characters/character-look-option-grid";
+import { useCharacterLookFavourites } from "@/presentation/components/app/characters/use-character-look-favourites";
 import { CharacterPersonaFields } from "@/presentation/components/app/characters/character-persona-fields";
 import { CharacterPoseComment } from "@/presentation/components/app/characters/character-pose-comment";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -73,6 +81,8 @@ export function CharacterGeneratorForm({
   const [look, setLook] = useState<CharacterLookSelection>(defaultCharacterLook);
   const [activePart, setActivePart] = useState<AnyCharacterLookPart>("face");
   const [categoryTab, setCategoryTab] = useState<CharacterLookCategory>("all");
+  const [query, setQuery] = useState("");
+  const [favouritesOnly, setFavouritesOnly] = useState(false);
   const [lockedParts, setLockedParts] = useState<Partial<Record<AnyCharacterLookPart, boolean>>>({});
   const [poseUrl, setPoseUrl] = useState("");
   const [comment, setComment] = useState("");
@@ -192,11 +202,43 @@ export function CharacterGeneratorForm({
   const gender = look.gender ?? "female";
   const activeValue = look[activePart] ?? defaultCharacterLook()[activePart] ?? "";
   const activePartLabel = t(`characters.look.${activePart}`);
-  const allOptions = optionsForLookPart(activePart);
-  const visibleOptions = useMemo(() => {
-    if (categoryTab === "all") return allOptions;
-    return allOptions.filter((option) => lookOptionCategory(activePart, option.id) === categoryTab);
-  }, [activePart, allOptions, categoryTab]);
+  const { ids: favouriteIds, toggle: toggleFavourite } = useCharacterLookFavourites(activePart);
+  const filterKey = `${activePart}|${categoryTab}|${query}|${favouritesOnly}`;
+  const [page, setPage] = useState({ filterKey, visibleCount: LOOK_DIALOG_PAGE_SIZE });
+  if (page.filterKey !== filterKey) {
+    setPage({ filterKey, visibleCount: LOOK_DIALOG_PAGE_SIZE });
+  }
+  const namedOptions = useMemo(
+    () =>
+      optionsForLookPart(activePart)
+        .filter((option) => categoryTab === "all" || lookOptionCategory(activePart, option.id) === categoryTab)
+        .map((option) => ({
+          id: option.id,
+          name: t(`characters.look.options.${activePart}.${option.id}`),
+        })),
+    [activePart, categoryTab, t],
+  );
+  const filteredOptions = useMemo(
+    () =>
+      filterLookDialogOptions({
+        options: namedOptions,
+        query,
+        favouriteIds,
+        favouritesOnly,
+      }),
+    [favouriteIds, favouritesOnly, namedOptions, query],
+  );
+  const visibleOptions = pageLookDialogOptions(filteredOptions, page.visibleCount);
+  const hasMoreOptions = visibleOptions.length < filteredOptions.length;
+  const loadMoreOptions = useCallback(() => {
+    setPage((current) => ({
+      ...current,
+      visibleCount: nextLookDialogCount(current.visibleCount, filteredOptions.length),
+    }));
+  }, [filteredOptions.length]);
+  const emptyMessage = query.trim()
+    ? t("characters.look.emptySearch")
+    : t("characters.look.emptyFavourites");
 
   return (
     <div className="flex flex-col gap-3 lg:h-[calc(100dvh-4.5rem)] lg:overflow-hidden">
@@ -399,74 +441,75 @@ export function CharacterGeneratorForm({
         {/* Center Column: Inline Visual Option Grid (no modal jumping!) */}
         <section
           aria-label={activePartLabel}
-          className="flex min-h-[24rem] flex-col overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90"
+          className="flex min-h-[24rem] min-w-0 flex-col overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90"
         >
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-accent-ink/10 px-4 py-3">
+          <div className="shrink-0 space-y-2 border-b border-accent-ink/10 px-3 py-2.5">
             <div className="flex items-center gap-2">
               <h2 className="font-display text-lg font-bold">{activePartLabel}</h2>
-              <span className="rounded-full bg-accent-ink/8 px-2.5 py-0.5 text-xs font-semibold text-muted">
+              <span className="truncate rounded-full bg-accent-ink/8 px-2.5 py-0.5 text-xs font-semibold text-muted">
                 {t(`characters.look.options.${activePart}.${activeValue}`)}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-1" role="tablist">
-              {CATEGORIES.map((category) => {
-                const active = categoryTab === category;
-                return (
-                  <button
-                    key={category}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => setCategoryTab(category)}
-                    className={`cursor-pointer rounded-full px-2.5 py-1 text-xs font-bold transition ${
-                      active
-                        ? "bg-accent-ink text-paper"
-                        : "border border-accent-ink/15 bg-paper text-muted hover:border-accent-ink/40 hover:text-foreground"
-                    }`}
-                  >
-                    {t(`characters.look.tabs.${category}`)}
-                  </button>
-                );
-              })}
+                {CATEGORIES.map((category) => {
+                  const active = categoryTab === category;
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setCategoryTab(category)}
+                      className={`cursor-pointer rounded-full px-2.5 py-1 text-xs font-bold transition ${
+                        active
+                          ? "bg-accent-ink text-paper"
+                          : "border border-accent-ink/15 bg-paper text-muted hover:border-accent-ink/40 hover:text-foreground"
+                      }`}
+                    >
+                      {t(`characters.look.tabs.${category}`)}
+                    </button>
+                  );
+                })}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={t("characters.look.searchPlaceholder")}
+                aria-label={t("characters.look.searchLabel")}
+                className="h-8 min-w-0 flex-1 rounded-full border border-accent-ink/20 bg-white px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              />
+              <button
+                type="button"
+                aria-pressed={favouritesOnly}
+                onClick={() => setFavouritesOnly((current) => !current)}
+                className={`h-8 shrink-0 cursor-pointer rounded-full px-3 text-xs font-bold ${
+                  favouritesOnly
+                    ? "bg-accent-ink text-paper"
+                    : "border border-accent-ink/15 bg-paper text-muted hover:text-foreground"
+                }`}
+              >
+                {t("characters.look.favourites")}
+              </button>
             </div>
           </div>
 
-          <div
-            role="radiogroup"
-            aria-label={activePartLabel}
-            className="grid min-h-0 flex-1 grid-cols-2 gap-2.5 overflow-y-auto p-3.5 sm:grid-cols-3 xl:grid-cols-4"
-          >
-            {visibleOptions.map((option) => {
-              const active = option.id === activeValue;
-              const extreme = isExaggeratedLookOption(activePart, option.id);
-              const optionName = t(`characters.look.options.${activePart}.${option.id}`);
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  disabled={blocked}
-                  onClick={() => setPart(activePart, option.id)}
-                  className={`flex cursor-pointer flex-col rounded-2xl border bg-paper p-2 text-center transition ${
-                    active
-                      ? "border-accent ring-2 ring-accent/30 shadow-[3px_3px_0_0_#12141c]"
-                      : "border-accent-ink/10 hover:border-accent-ink/30"
-                  } disabled:cursor-not-allowed disabled:opacity-60`}
-                >
-                  <span className="relative block aspect-square w-full overflow-hidden rounded-xl bg-zinc-200">
-                    <CharacterLookArt part={activePart} id={option.id} />
-                    {extreme ? (
-                      <span className="absolute top-1.5 right-1.5 rounded-full bg-accent-ink px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-paper shadow-sm">
-                        {t("characters.look.extremeBadge")}
-                      </span>
-                    ) : null}
-                  </span>
-                  <span className="mt-1.5 line-clamp-2 text-xs font-semibold leading-4">{optionName}</span>
-                </button>
-              );
-            })}
-          </div>
+          {visibleOptions.length === 0 ? (
+            <p className="px-4 py-10 text-center text-sm text-muted">{emptyMessage}</p>
+          ) : (
+            <CharacterLookOptionGrid
+              part={activePart}
+              options={visibleOptions}
+              value={activeValue}
+              favouriteIds={favouriteIds}
+              hasMore={hasMoreOptions}
+              disabled={blocked}
+              onLoadMore={loadMoreOptions}
+              onToggleFavourite={toggleFavourite}
+              onSelect={(id) => setPart(activePart, id)}
+            />
+          )}
         </section>
 
         {/* Right Column: Live Pose Preview + Revision + Create Blueprint Dock */}

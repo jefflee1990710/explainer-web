@@ -47,7 +47,7 @@ test("preview prompt isolates that one option with stylish editorial framing and
   assert.match(prompt, /Photorealistic studio photograph/);
   assert.match(prompt, /Not an illustration/);
   assert.match(prompt, /Plain light grey seamless background/);
-  assert.equal(characterLookPreviewSrc("shoes", "boots"), "/character-looks/shoes-boots.webp?v=5");
+  assert.equal(characterLookPreviewSrc("shoes", "boots"), "/character-looks/shoes-boots.webp?v=6");
   assert.match(characterLookPreviewPrompt("hair", "beehive"), /1960s beehive/);
   assert.match(characterLookPreviewPrompt("hair", "hime"), /Japanese hime cut/);
   assert.doesNotMatch(characterLookPreviewPrompt("hair", "braids"), /Do not braid it/);
@@ -147,8 +147,8 @@ test("characterWardrobeEditInstruction and detectCharacterWardrobePicks handle h
 
 test("extra wardrobe options stay unique so one prompt cannot hide inside another", () => {
   assert.equal(optionsForLookPart("hair").length, 17 + 14);
-  assert.equal(optionsForLookPart("top").length, 28 + 99);
-  assert.equal(optionsForLookPart("pants").length, 16 + 51);
+  assert.equal(optionsForLookPart("top").length, 28 + 99 + 166);
+  assert.equal(optionsForLookPart("pants").length, 16 + 51 + 97);
   assert.equal(optionsForLookPart("shoes").length, 19 + 46);
   assert.equal(optionsForLookPart("accessory").length, 8 + 33);
   assert.equal(lookOptionCategory("hair", "dreadlocks"), "extreme");

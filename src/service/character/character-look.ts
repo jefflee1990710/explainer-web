@@ -245,7 +245,7 @@ export function characterLookOption(part: AnyCharacterLookPart, id: string) {
 // Public file for the studio preview of one option.
 export function characterLookPreviewSrc(part: AnyCharacterLookPart, id: string) {
   if (!isCharacterLookId(part, id)) return "";
-  return `/character-looks/${part}-${id}.webp?v=5`;
+  return `/character-looks/${part}-${id}.webp?v=6`;
 }
 
 // Global 20-country cultural & regional signature fashion items (mapped to the "extreme" / Global Heritage tab).
