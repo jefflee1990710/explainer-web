@@ -37,8 +37,23 @@ export const LIFE_REALISTIC_RENDER_RULE = [
   "Colour & exposure: keep highlights neutral or cool by default, reserving warm highlights strictly for scenes with a visible warm practical lamp, fire, or sunset in frame; keep glowing sources and bright skies below pure-white clipping with subtle halation; in extreme dark scenes keep 90% of shadows neutral-desaturated with colour only on the light source; lift the black point in underwater, fog, or smoke scenes (with blue-shifted underwater shadows and neutral night shadows); add subtle 35mm film grain with slightly lifted shadow blacks so grain is never swallowed by crushed zero-blacks, plus slight optical chromatic aberration and natural optical depth of field.",
 ].join(" ");
 
-// Identity is the first reference. The second image supplies the clean scene/base photo,
-// and an optional third image carries numbered color annotations (#1, #2, #3...) for spatial guidance.
+const ORDINALS = ["first", "second", "third", "fourth", "fifth"];
+
+// Reference order: identity, scene (optional), annotated scene (only with a scene), composition (optional).
+export function lifeReferenceOrder(input: {
+  hasScene: boolean;
+  hasAnnotatedImage: boolean;
+  hasCompositionRef: boolean;
+}) {
+  let next = 1;
+  const scene = input.hasScene ? ++next : 0;
+  const annotated = input.hasScene && input.hasAnnotatedImage ? ++next : 0;
+  const composition = input.hasCompositionRef ? ++next : 0;
+  return { scene, annotated, composition };
+}
+
+// Identity is the first reference. The scene photo, the numbered annotation guide and a
+// composition reference follow in that order when present (see lifeReferenceOrder).
 export function lifeShotPrompt(input: {
   name: string;
   kind: LifeShotKind;
@@ -47,16 +62,27 @@ export function lifeShotPrompt(input: {
   customInstruction?: string;
   hasAnnotatedImage?: boolean;
   remarks?: LifeRemarkInput[];
+  hasScene?: boolean;
+  templateGuide?: string;
+  hasCompositionRef?: boolean;
 }) {
+  const hasScene = input.hasScene ?? true;
+  const order = lifeReferenceOrder({
+    hasScene,
+    hasAnnotatedImage: Boolean(input.hasAnnotatedImage),
+    hasCompositionRef: Boolean(input.hasCompositionRef),
+  });
+  const ordinal = (n: number) => ORDINALS[n - 1] || `#${n}`;
   const hobby = input.interests[0] ? `Hobby: ${input.interests[0]}.` : "";
   const placeLine = input.place?.trim() ? `Location: ${input.place.trim()}.` : "";
   const instruction = input.customInstruction?.trim() || "";
+  const templateGuide = input.templateGuide?.trim() || "";
   const activeRemarks = (input.remarks || []).filter((r) => r.comment.trim().length > 0);
   const remarkLines =
     activeRemarks.length > 0
       ? [
-          input.hasAnnotatedImage
-            ? "The third reference image is an annotated guide of the second image with numbered colored markings (#1, #2, #3...). Each colored mark shows the exact area to modify according to its numbered instruction below:"
+          order.annotated
+            ? `The ${ordinal(order.annotated)} reference image is an annotated guide of the ${ordinal(order.scene)} image with numbered colored markings (#1, #2, #3...). Each colored mark shows the exact area to modify according to its numbered instruction below:`
             : "Apply these numbered edits to the scene:",
           ...activeRemarks.map(
             (r) => `- #${r.number} (${r.colorName}): ${r.comment.trim()}`,
@@ -68,13 +94,20 @@ export function lifeShotPrompt(input: {
   return [
     "Authentic candid 35mm vertical photograph.",
     `The main person is ${input.name}. The first reference image is their identity blueprint — keep that exact face, hair, skin tone, and build, but re-light their face to match the scene's directional light rather than copying flat reference-sheet lighting.`,
-    "The second reference image is the base scene/photograph (lighting direction, environment, composition, and props).",
+    hasScene
+      ? `The ${ordinal(order.scene)} reference image is the base scene/photograph (lighting direction, environment${order.composition ? "" : ", composition"}, and props).`
+      : "No scene photo is given: build a believable real-world location that fits the location and post type below.",
+    order.composition
+      ? `The ${ordinal(order.composition)} reference image is a composition reference ONLY: copy its pose, body angle, camera angle, framing and crop. Do NOT copy that person's face, hair, outfit, or the background from it.`
+      : "",
     instruction
       ? `Edit / Scene instruction: ${instruction}`
-      : "If the second image contains a person, replace that person with this character. Do not keep the other face.",
+      : hasScene
+        ? `If the ${ordinal(order.scene)} image contains a person, replace that person with this character. Do not keep the other face.`
+        : "",
     placeLine,
-    !instruction ? FRAMING[input.kind] : "",
-    !instruction ? hobby : "",
+    templateGuide ? `Post type: ${templateGuide}` : !instruction ? FRAMING[input.kind] : "",
+    !instruction && !templateGuide ? hobby : "",
     LIFE_REALISTIC_RENDER_RULE,
     remarkLines,
     "Output a clean, candid photograph with no text, no watermark, and no annotation marks.",

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { LIFE_REALISTIC_RENDER_RULE, lifeShotPrompt } from "@/service/character/life-prompt";
+import { LIFE_REALISTIC_RENDER_RULE, lifeReferenceOrder, lifeShotPrompt } from "@/service/character/life-prompt";
 
 test("lifeShotPrompt includes numbered color remarks and forbids rendering annotation marks in output", () => {
   const prompt = lifeShotPrompt({
@@ -46,4 +46,56 @@ test("lifeShotPrompt enforces the 12 de-plastic realism rules for /app/life imag
   assert.match(prompt, /subtle 35mm film grain with slightly lifted shadow blacks/);
   assert.match(prompt, /keep highlights neutral or cool by default/);
   assert.ok(prompt.includes(LIFE_REALISTIC_RENDER_RULE));
+});
+
+test("lifeReferenceOrder skips missing images and keeps identity first", () => {
+  assert.deepEqual(lifeReferenceOrder({ hasScene: true, hasAnnotatedImage: true, hasCompositionRef: true }), {
+    scene: 2,
+    annotated: 3,
+    composition: 4,
+  });
+  assert.deepEqual(lifeReferenceOrder({ hasScene: false, hasAnnotatedImage: true, hasCompositionRef: true }), {
+    scene: 0,
+    annotated: 0,
+    composition: 2,
+  });
+});
+
+test("lifeShotPrompt without a template keeps the legacy scene wording", () => {
+  const prompt = lifeShotPrompt({ name: "Alice", kind: "selfie", interests: [] });
+  assert.match(prompt, /The second reference image is the base scene\/photograph \(lighting direction, environment, composition, and props\)/);
+  assert.match(prompt, /If the second image contains a person/);
+  assert.match(prompt, /phone selfie at arm's length/);
+  assert.doesNotMatch(prompt, /composition reference ONLY/);
+});
+
+test("lifeShotPrompt with a template and composition reference names the right image", () => {
+  const prompt = lifeShotPrompt({
+    name: "Alice",
+    kind: "street",
+    interests: ["coffee"],
+    templateGuide: "Look-back pose: glance over the shoulder.",
+    hasScene: true,
+    hasCompositionRef: true,
+  });
+  assert.match(prompt, /Post type: Look-back pose/);
+  assert.match(prompt, /The third reference image is a composition reference ONLY/);
+  assert.match(prompt, /Do NOT copy that person's face, hair, outfit, or the background/);
+  assert.doesNotMatch(prompt, /candid three-quarter street photo/);
+});
+
+test("lifeShotPrompt with a template and no scene asks for an invented location", () => {
+  const prompt = lifeShotPrompt({
+    name: "Alice",
+    kind: "food",
+    place: "Tokyo",
+    interests: [],
+    templateGuide: "Seated cafe portrait.",
+    hasScene: false,
+    hasCompositionRef: true,
+  });
+  assert.match(prompt, /No scene photo is given/);
+  assert.match(prompt, /The second reference image is a composition reference ONLY/);
+  assert.doesNotMatch(prompt, /base scene\/photograph/);
+  assert.doesNotMatch(prompt, /If the .* image contains a person/);
 });

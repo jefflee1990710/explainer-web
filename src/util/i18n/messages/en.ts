@@ -1,5 +1,6 @@
 import type { Messages } from "@/util/i18n/messages/types";
 import { AMENDA_LABELS_EN } from "@/service/character/amenda-wardrobe";
+import { LIFE_TEMPLATES_EN } from "@/util/i18n/messages/life-templates";
 import { briefEn } from "@/util/i18n/messages/workspace/brief.en";
 import { directorsEn } from "@/util/i18n/messages/workspace/directors.en";
 import { stylesEn } from "@/util/i18n/messages/workspace/styles.en";
@@ -88,6 +89,7 @@ export const en: Messages = {
     cost: "{cost} credits",
     uploadHint: "If your photo includes your face, the result uses the pose and place, and the character's face.",
     recent: "Recent",
+    templates: LIFE_TEMPLATES_EN,
   },
   common: {
     credits: "credits",

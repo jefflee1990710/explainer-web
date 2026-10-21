@@ -5,6 +5,7 @@ import { charactersCollection } from "@/dao/characters";
 import { lifeShotsCollection } from "@/dao/life-shots";
 import type { Character } from "@/model/character";
 import { parseCharacterPersona, type CharacterPersona } from "@/model/character-persona";
+import { lifePostTemplateById } from "@/model/life-post-template";
 import {
   lifeShotKindSchema,
   lifeShotSourceSchema,
@@ -45,6 +46,7 @@ export type PublicLifeShot = {
   source: LifeShotSource;
   sceneImageUrl: string;
   resultUrl: string;
+  templateId: string | null;
   createdAt: string;
 };
 
@@ -58,6 +60,7 @@ function toPublicShot(shot: LifeShot): PublicLifeShot {
     source: shot.source,
     sceneImageUrl: shot.sceneImageUrl,
     resultUrl: shot.resultUrl,
+    templateId: shot.templateId ?? null,
     createdAt: shot.createdAt.toISOString(),
   };
 }
@@ -118,16 +121,21 @@ export async function generateLifeShotAction(input: {
   customInstruction?: string;
   annotatedSceneDataUrl?: string;
   remarks?: LifeRemarkInput[];
+  templateId?: string;
+  compositionRefUrl?: string;
 }) {
   const user = await requireAppUser();
   const place = (input.place ?? "").trim().slice(0, 60);
-  const kindParsed = lifeShotKindSchema.safeParse(input.kind || "selfie");
+  const template = lifePostTemplateById(input.templateId);
+  const kindParsed = lifeShotKindSchema.safeParse(template?.kind || input.kind || "selfie");
   const source = lifeShotSourceSchema.safeParse(input.source);
   const sceneImageUrl = httpsUrl(input.sceneImageUrl);
+  const compositionRefUrl = httpsUrl(input.compositionRefUrl ?? "");
   if (!ObjectId.isValid(input.characterId)) return { ok: false as const, error: "角色不存在" };
   if (!kindParsed.success) return { ok: false as const, error: "請選擇生活照類型" };
   if (!source.success) return { ok: false as const, error: "請選擇場景照片" };
-  if (!sceneImageUrl) return { ok: false as const, error: "請選擇場景照片" };
+  // A post template can stand in for the scene photo; without one the scene is required.
+  if (!sceneImageUrl && !template) return { ok: false as const, error: "請選擇場景照片" };
 
   const characters = await charactersCollection();
   const character = (await characters.findOne({
@@ -157,10 +165,13 @@ export async function generateLifeShotAction(input: {
   await assertCanSpendCredits(user, FRAME_COST);
   const spendKey = await consumeCredits(user.clerkUserId, FRAME_COST);
   try {
+    const hasAnnotatedImage = Boolean(sceneImageUrl && annotatedDataUrl && cleanRemarks.length > 0);
+    // Order must match lifeReferenceOrder in life-prompt.ts.
     const refs = [
       identity,
-      sceneImageUrl,
-      ...(annotatedDataUrl && cleanRemarks.length > 0 ? [annotatedDataUrl] : []),
+      ...(sceneImageUrl ? [sceneImageUrl] : []),
+      ...(hasAnnotatedImage && annotatedDataUrl ? [annotatedDataUrl] : []),
+      ...(compositionRefUrl ? [compositionRefUrl] : []),
     ];
     const submitted = await submitOpenRouterImage({
       model: SEEDREAM_5_PRO_IMAGE_MODEL,
@@ -170,8 +181,11 @@ export async function generateLifeShotAction(input: {
         place,
         interests: persona?.interests ?? [],
         customInstruction,
-        hasAnnotatedImage: Boolean(annotatedDataUrl && cleanRemarks.length > 0),
+        hasAnnotatedImage,
         remarks: cleanRemarks,
+        hasScene: Boolean(sceneImageUrl),
+        templateGuide: template?.promptGuide,
+        hasCompositionRef: Boolean(compositionRefUrl),
       }),
       aspectRatio: "9:16",
       resolution: "2k",
@@ -210,6 +224,8 @@ export async function generateLifeShotAction(input: {
       source: source.data,
       sceneImageUrl,
       resultUrl,
+      ...(template ? { templateId: template.id } : {}),
+      ...(compositionRefUrl ? { compositionRefUrl } : {}),
       createdAt: new Date(),
     };
     const shots = await lifeShotsCollection();

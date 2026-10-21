@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { lifePostTemplateById } from "@/model/life-post-template";
 import type { LifeShotKind } from "@/model/life-shot-kind";
 import {
   generateLifeCaptionAction,
@@ -13,6 +14,8 @@ import { InsufficientCreditsDialog } from "@/presentation/components/app/billing
 import { LifeCharacterStrip } from "@/presentation/components/app/life/life-character-strip";
 import { LifeSceneSource } from "@/presentation/components/app/life/life-scene-source";
 import { LifeShotGrid } from "@/presentation/components/app/life/life-shot-grid";
+import { LifeTemplateDialog } from "@/presentation/components/app/life/life-template-dialog";
+import { LifeTemplateGuide } from "@/presentation/components/app/life/life-template-guide";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { isCreditGateError } from "@/service/billing/credit-gate";
@@ -174,14 +177,18 @@ export function LifeDesk({
     characters.find((item) => item.id === initialCharacterId) || characters[0];
   const [characterId, setCharacterId] = useState(first?.id || "");
   const [place, setPlace] = useState(first?.persona?.city || "");
-  const [kind] = useState<LifeShotKind>("selfie");
+  // Post-type template and its optional pose/framing reference photo.
+  const [templateId, setTemplateId] = useState("");
+  const [compositionRefUrl, setCompositionRefUrl] = useState("");
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const kind: LifeShotKind = lifePostTemplateById(templateId)?.kind ?? "selfie";
   const [mode, setMode] = useState<"search" | "upload">("upload");
   const [hits, setHits] = useState<LifeSceneHit[]>([]);
   const [sceneUrl, setSceneUrl] = useState("");
   const [shots, setShots] = useState(initialShots);
   const [dialogShot, setDialogShot] = useState<PublicLifeShot | null>(null);
   const [pending, setPending] = useState<
-    "search" | "upload" | "generate" | "regenerate" | ""
+    "search" | "upload" | "refUpload" | "generate" | "regenerate" | ""
   >("");
   const [error, setError] = useState("");
   const [creditGate, setCreditGate] = useState(false);
@@ -374,22 +381,42 @@ export function LifeDesk({
     }
   }
 
+  // Uploads the composition reference used only for pose, angle and crop.
+  async function onUploadCompositionRef(file: File | undefined) {
+    if (!file) return;
+    setPending("refUpload");
+    setError("");
+    try {
+      const data = new FormData();
+      data.set("file", file);
+      const uploaded = await uploadCharacterImageAction(data);
+      setPending("");
+      if (!uploaded.ok || !uploaded.url) {
+        setError(translateAppError(uploaded.ok ? "" : uploaded.error, t));
+        return;
+      }
+      setCompositionRefUrl(uploaded.url);
+    } catch {
+      setPending("");
+      setError(t("errors.genericRetry"));
+    }
+  }
+
   async function onGenerate(overrideInstruction?: string) {
     if (!character?.ready) {
       setError(t("life.needBlueprint"));
       return;
     }
-    if (!sceneUrl) {
+    if (!sceneUrl && !templateId) {
       setError(t("life.needScene"));
       return;
     }
     setPending("generate");
     setError("");
     try {
-      const annotatedSceneDataUrl = await renderAnnotatedSceneDataUrl(
-        sceneUrl,
-        remarks,
-      );
+      const annotatedSceneDataUrl = sceneUrl
+        ? await renderAnnotatedSceneDataUrl(sceneUrl, remarks)
+        : undefined;
       const result = await generateLifeShotAction({
         characterId: character.id,
         place: place || character.persona?.city || "Scene",
@@ -403,6 +430,8 @@ export function LifeDesk({
           colorName: r.colorName,
           comment: r.comment,
         })),
+        templateId: templateId || undefined,
+        compositionRefUrl: templateId && compositionRefUrl ? compositionRefUrl : undefined,
       });
       setPending("");
       if (!result.ok) {
@@ -557,6 +586,21 @@ export function LifeDesk({
 
           {/* Center Scrollable Body */}
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3.5">
+            {/* Post-type template, shooting tips and composition reference */}
+            <LifeTemplateGuide
+              templateId={templateId}
+              compositionRefUrl={compositionRefUrl}
+              uploading={pending === "refUpload"}
+              disabled={pending !== ""}
+              onOpenPicker={() => setTemplateDialogOpen(true)}
+              onClear={() => {
+                setTemplateId("");
+                setCompositionRefUrl("");
+              }}
+              onUploadRef={(file) => void onUploadCompositionRef(file)}
+              onRemoveRef={() => setCompositionRefUrl("")}
+            />
+
             {/* Drag & Drop Upload Zone + Interactive Remark Drawing Canvas */}
             <div
               onDragOver={(e) => {
@@ -1030,6 +1074,14 @@ export function LifeDesk({
             </div>
           </div>
         </div>
+      ) : null}
+
+      {templateDialogOpen ? (
+        <LifeTemplateDialog
+          value={templateId}
+          onChange={setTemplateId}
+          onClose={() => setTemplateDialogOpen(false)}
+        />
       ) : null}
 
       {creditGate ? (

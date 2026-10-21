@@ -1,3 +1,4 @@
+import type { LifeTemplateLabels } from "@/util/i18n/messages/life-templates";
 import type { BriefMessages } from "@/util/i18n/messages/workspace/brief.en";
 import type { DirectorsMessages } from "@/util/i18n/messages/workspace/directors.en";
 import type { ErrorsMessages } from "@/util/i18n/messages/workspace/errors.en";
@@ -97,6 +98,7 @@ export type Messages = {
     cost: string;
     uploadHint: string;
     recent: string;
+    templates: LifeTemplateLabels;
   };
   common: {
     credits: string;
