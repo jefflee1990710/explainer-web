@@ -12,7 +12,6 @@ import {
 } from "@/presentation/actions/life";
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
-import { downloadLifeShotAsPng } from "@/presentation/components/app/life/download-life-png";
 import { LifeCharacterStrip } from "@/presentation/components/app/life/life-character-strip";
 import { LifeCreateTabs } from "@/presentation/components/app/life/life-create-tabs";
 import {
@@ -22,6 +21,7 @@ import {
 import { LifeSceneSource } from "@/presentation/components/app/life/life-scene-source";
 import { LifePoseBar } from "@/presentation/components/app/life/life-pose-bar";
 import { LifePoseDialog } from "@/presentation/components/app/life/life-pose-dialog";
+import { LifePhotoEditor } from "@/presentation/components/app/life/life-photo-editor";
 import { LifeShotGrid } from "@/presentation/components/app/life/life-shot-grid";
 import { LifeTemplateDialog } from "@/presentation/components/app/life/life-template-dialog";
 import { LifeTemplateGuide } from "@/presentation/components/app/life/life-template-guide";
@@ -240,7 +240,6 @@ export function LifeDesk({
     };
   }, [generatingCount]);
   const [captionCopied, setCaptionCopied] = useState(false);
-  const [downloadingPng, setDownloadingPng] = useState(false);
 
   // Multi-color numbered remarks (#1, #2, #3...) — empty by default until user draws or adds one
   const [remarks, setRemarks] = useState<RemarkItem[]>([]);
@@ -1174,14 +1173,19 @@ export function LifeDesk({
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
-              <div className="relative mx-auto max-h-[52dvh] overflow-hidden rounded-xl border border-accent-ink/10 bg-zinc-900">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={dialogShot.resultUrl}
-                  alt={dialogShot.characterName}
-                  className="max-h-[52dvh] w-auto object-contain"
-                />
-              </div>
+              {/* Filter editor: B&W / film looks, download, and save as a new photo */}
+              <LifePhotoEditor
+                key={dialogShot.id}
+                shot={dialogShot}
+                disabled={pending !== ""}
+                onError={setError}
+                onSaved={(saved) => {
+                  setShots((current) => [saved, ...current]);
+                  setDialogShot(saved);
+                  setGeneratedCaption("");
+                  setCaptionCopied(false);
+                }}
+              />
 
               <div className="flex items-center gap-2">
                 <input
@@ -1243,32 +1247,6 @@ export function LifeDesk({
                   className="cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent-ink"
                 >
                   {captionLoading ? "生成文案中..." : "✍️ AI 生成 IG 貼文文案"}
-                </button>
-                <button
-                  type="button"
-                  disabled={downloadingPng}
-                  onClick={async () => {
-                    setDownloadingPng(true);
-                    try {
-                      await downloadLifeShotAsPng({
-                        url: dialogShot.resultUrl,
-                        characterName: dialogShot.characterName,
-                        place: dialogShot.place,
-                        id: dialogShot.id,
-                      });
-                    } catch (caught) {
-                      setError(
-                        caught instanceof Error
-                          ? translateAppError(caught.message, t)
-                          : t("errors.genericRetry"),
-                      );
-                    } finally {
-                      setDownloadingPng(false);
-                    }
-                  }}
-                  className="cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent-ink disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {downloadingPng ? "下載 PNG 中..." : "下載原圖"}
                 </button>
               </div>
 

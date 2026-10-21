@@ -38,6 +38,21 @@ async function ensurePngBlob(source: Blob): Promise<Blob> {
   }
 }
 
+// Trigger a browser download for an in-memory image (e.g. a filtered Life photo).
+export function downloadLifeBlob(blob: Blob, filename: string) {
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 // Fetch a remote Life photo, convert to PNG if needed, and trigger a browser download.
 export async function downloadLifeShotAsPng(input: {
   url: string;

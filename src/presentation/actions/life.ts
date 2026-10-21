@@ -18,6 +18,12 @@ export async function listLifeShotsAction() {
   return service.listLifeShotsAction();
 }
 
+export async function saveEditedLifeShotAction(
+  ...args: Parameters<typeof service.saveEditedLifeShotAction>
+) {
+  return service.saveEditedLifeShotAction(...args);
+}
+
 export async function generateLifeCaptionAction(
   ...args: Parameters<typeof service.generateLifeCaptionAction>
 ) {

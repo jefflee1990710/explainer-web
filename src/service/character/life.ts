@@ -509,3 +509,43 @@ export async function generateLifeCaptionAction(input: {
     };
   }
 }
+
+// Saves a filtered copy of a finished life shot as a new completed shot. No credits: the edit ran in the browser.
+export async function saveEditedLifeShotAction(input: {
+  sourceShotId: string;
+  imageUrl: string;
+  filterLabel: string;
+}) {
+  const user = await requireAppUser();
+  const imageUrl = httpsUrl(input.imageUrl ?? "");
+  if (!imageUrl) return { ok: false as const, error: "圖片上傳失敗" };
+  if (!ObjectId.isValid(input.sourceShotId)) {
+    return { ok: false as const, error: "找不到照片" };
+  }
+  const shots = await lifeShotsCollection();
+  const source = await shots.findOne({
+    _id: new ObjectId(input.sourceShotId),
+    clerkUserId: user.clerkUserId,
+  });
+  if (!source || !source.resultUrl) return { ok: false as const, error: "找不到照片" };
+  const label = (input.filterLabel ?? "").trim().slice(0, 30);
+  const shot: LifeShot = {
+    _id: new ObjectId(),
+    userId: user._id,
+    clerkUserId: user.clerkUserId,
+    characterId: source.characterId,
+    characterName: source.characterName,
+    place: [source.place, label].filter(Boolean).join(" · ").slice(0, 80),
+    kind: source.kind,
+    source: "upload",
+    sceneImageUrl: source.resultUrl,
+    resultUrl: imageUrl,
+    status: "completed",
+    ...(source.templateId ? { templateId: source.templateId } : {}),
+    ...(source.poseId ? { poseId: source.poseId } : {}),
+    createdAt: new Date(),
+  };
+  await shots.insertOne(shot);
+  revalidatePath("/app/life");
+  return { ok: true as const, shot: toPublicShot(shot) };
+}
