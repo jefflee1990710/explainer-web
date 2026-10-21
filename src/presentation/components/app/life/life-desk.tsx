@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { lifePostTemplateById } from "@/model/life-post-template";
-import type { LifeShotKind } from "@/model/life-shot-kind";
+import type { LifeCreateMode, LifeShotKind } from "@/model/life-shot-kind";
 import {
   generateLifeCaptionAction,
   generateLifeShotAction,
@@ -13,6 +13,7 @@ import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { downloadLifeShotAsPng } from "@/presentation/components/app/life/download-life-png";
 import { LifeCharacterStrip } from "@/presentation/components/app/life/life-character-strip";
+import { LifeCreateTabs } from "@/presentation/components/app/life/life-create-tabs";
 import { LifeSceneSource } from "@/presentation/components/app/life/life-scene-source";
 import { LifePoseBar } from "@/presentation/components/app/life/life-pose-bar";
 import { LifePoseDialog } from "@/presentation/components/app/life/life-pose-dialog";
@@ -39,32 +40,29 @@ const REMARK_PALETTE = [
   { color: "#00c7be", name: "teal (#00c7be)" },
 ] as const;
 
-const LIFE_SHORTCUTS = [
-  {
-    id: "replace-person",
-    label: "將圖中人物換成角色 (Replace person with character)",
-    prompt:
-      "Replace the person in the reference image with the selected character while keeping the exact pose, lighting, background, and composition.",
-  },
-  {
-    id: "selfie-view",
-    label: "讓角色在此場景自拍 (Make character selfie with this view)",
-    prompt:
-      "Make the selected character take a natural arm's-length phone selfie looking into the lens with this exact view and background behind them.",
-  },
+const SCENE_PLACE_SHORTCUTS = [
   {
     id: "candid-scene",
-    label: "讓角色自然融入此場景 (Place character naturally in scene)",
+    label: "讓角色自然融入此場景",
     prompt:
       "Place the selected character naturally inside this scene with matching directional lighting, realistic shadows, and candid posture.",
   },
   {
-    id: "wear-outfit",
-    label: "換穿圖中服裝 (Wear outfit from this image)",
+    id: "selfie-view",
+    label: "讓角色在此場景自拍",
     prompt:
-      "Keep the selected character's face and hair, and dress them in the exact outfit shown in the reference image.",
+      "Make the selected character take a natural arm's-length phone selfie looking into the lens with this exact view and background behind them.",
+  },
+  {
+    id: "foreground-look",
+    label: "站在場景前景看向鏡頭",
+    prompt:
+      "Have the selected character stand naturally in the foreground facing the camera with a relaxed smile against this exact background.",
   },
 ] as const;
+
+const DEFAULT_REPLACE_PERSON_COMMENT =
+  "將此標記處的人物替換為所選角色（保留姿勢，換上角色的臉孔、髮型與預設服裝）";
 
 type Point = { x: number; y: number };
 
@@ -179,6 +177,7 @@ export function LifeDesk({
   const first =
     characters.find((item) => item.id === initialCharacterId) || characters[0];
   const [characterId, setCharacterId] = useState(first?.id || "");
+  const [createMode, setCreateMode] = useState<LifeCreateMode>("replace-person");
   const [place, setPlace] = useState(first?.persona?.city || "");
   // Post-type template and its optional pose/framing reference photo.
   const [templateId, setTemplateId] = useState("");
@@ -297,7 +296,10 @@ export function LifeDesk({
             number: 1,
             color: palette.color,
             colorName: palette.name,
-            comment: "",
+            comment:
+              createMode === "replace-person"
+                ? DEFAULT_REPLACE_PERSON_COMMENT
+                : "",
             strokes: [[pt]],
           },
         ];
@@ -414,7 +416,13 @@ export function LifeDesk({
       setError(t("life.needBlueprint"));
       return;
     }
-    if (!sceneUrl) {
+    if (createMode === "post-template") {
+      if (!templateId) {
+        setError("請先選擇貼文類型 (Post Type)");
+        setTemplateDialogOpen(true);
+        return;
+      }
+    } else if (!sceneUrl) {
       setError(t("life.needScene"));
       return;
     }
@@ -426,19 +434,26 @@ export function LifeDesk({
         : undefined;
       const result = await generateLifeShotAction({
         characterId: character.id,
+        createMode,
         place: place || character.persona?.city || "Scene",
         kind,
-        sceneImageUrl: sceneUrl,
+        sceneImageUrl: sceneUrl || undefined,
         source: mode,
-        customInstruction: overrideInstruction ?? customInstruction,
+        customInstruction:
+          createMode === "scene-place"
+            ? overrideInstruction ?? customInstruction
+            : "",
         annotatedSceneDataUrl,
         remarks: remarks.map((r) => ({
           number: r.number,
           colorName: r.colorName,
           comment: r.comment,
         })),
-        templateId: templateId || undefined,
-        compositionRefUrl: templateId && compositionRefUrl ? compositionRefUrl : undefined,
+        templateId: createMode === "post-template" && templateId ? templateId : undefined,
+        compositionRefUrl:
+          createMode === "post-template" && templateId && compositionRefUrl
+            ? compositionRefUrl
+            : undefined,
         poseId: poseId || undefined,
       });
       setPending("");
@@ -553,30 +568,52 @@ export function LifeDesk({
           ) : null}
         </aside>
 
-        {/* Center Column: Drag & Drop Upload, Numbered Remark Drawing Canvas, Comment Inputs & Shortcuts */}
+        {/* Center Column: 3-Tab Creation Studio */}
         <section
           aria-label={t("life.place")}
           className="flex min-h-[22rem] flex-col overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90"
         >
-          {/* Top Upload & Find Place Photos Dialog Trigger Bar */}
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-accent-ink/10 px-4 py-2.5">
+          {/* 3-Tab Switcher */}
+          <LifeCreateTabs
+            value={createMode}
+            disabled={pending !== ""}
+            onChange={(nextMode) => {
+              setCreateMode(nextMode);
+              setError("");
+            }}
+          />
+
+          {/* Top Action Bar for Scene / Photo Upload */}
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-accent-ink/10 px-4 py-2">
             <span className="text-xs font-bold text-foreground">
-              {t("life.place")}
+              {createMode === "replace-person"
+                ? "上傳含人物照片"
+                : createMode === "scene-place"
+                  ? "選擇或上傳場景照片"
+                  : "貼文類型與選填場景背景"}
               {place ? (
                 <span className="ml-2 font-medium text-muted">· {place}</span>
               ) : null}
             </span>
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                disabled={pending !== ""}
-                onClick={() => setPlaceDialogOpen(true)}
-                className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-xs font-bold text-foreground transition hover:border-accent-ink disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {t("life.searchAction")}
-              </button>
+              {createMode !== "replace-person" ? (
+                <button
+                  type="button"
+                  disabled={pending !== ""}
+                  onClick={() => setPlaceDialogOpen(true)}
+                  className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-xs font-bold text-foreground transition hover:border-accent-ink disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {t("life.searchAction")}
+                </button>
+              ) : null}
               <label className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-xs font-bold text-foreground transition hover:border-accent-ink">
-                {pending === "upload" ? t("common.loading") : t("life.upload")}
+                {pending === "upload"
+                  ? t("common.loading")
+                  : createMode === "replace-person"
+                    ? "上傳含人物照片"
+                    : createMode === "post-template"
+                      ? "選填：上傳場景背景"
+                      : t("life.upload")}
                 <input
                   type="file"
                   accept="image/*"
@@ -589,25 +626,42 @@ export function LifeDesk({
                   }}
                 />
               </label>
+              {createMode === "post-template" && sceneUrl ? (
+                <button
+                  type="button"
+                  disabled={pending !== ""}
+                  onClick={() => {
+                    setSceneUrl("");
+                    resetRemarks();
+                  }}
+                  className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/15 px-3 text-xs font-semibold text-muted hover:text-red-600"
+                >
+                  移除場景圖
+                </button>
+              ) : null}
             </div>
           </div>
 
           {/* Center Scrollable Body */}
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3.5">
-            {/* Post-type template, shooting tips and composition reference */}
-            <LifeTemplateGuide
-              templateId={templateId}
-              compositionRefUrl={compositionRefUrl}
-              uploading={pending === "refUpload"}
-              disabled={pending !== ""}
-              onOpenPicker={() => setTemplateDialogOpen(true)}
-              onClear={() => {
-                setTemplateId("");
-                setCompositionRefUrl("");
-              }}
-              onUploadRef={(file) => void onUploadCompositionRef(file)}
-              onRemoveRef={() => setCompositionRefUrl("")}
-            />
+            {/* Tab 3 only: Post-type template, shooting tips and composition reference */}
+            {createMode === "post-template" ? (
+              <LifeTemplateGuide
+                templateId={templateId}
+                compositionRefUrl={compositionRefUrl}
+                uploading={pending === "refUpload"}
+                disabled={pending !== ""}
+                onOpenPicker={() => setTemplateDialogOpen(true)}
+                onClear={() => {
+                  setTemplateId("");
+                  setCompositionRefUrl("");
+                }}
+                onUploadRef={(file) => void onUploadCompositionRef(file)}
+                onRemoveRef={() => setCompositionRefUrl("")}
+              />
+            ) : null}
+
+            {/* Optional Pose Picker across all 3 tabs */}
             <LifePoseBar
               poseId={poseId}
               disabled={pending !== ""}
@@ -615,7 +669,7 @@ export function LifeDesk({
               onClear={() => setPoseId("")}
             />
 
-            {/* Drag & Drop Upload Zone + Interactive Remark Drawing Canvas */}
+            {/* Drag & Drop Upload Zone + Interactive Remark / Person Selection Canvas */}
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -637,12 +691,20 @@ export function LifeDesk({
               }`}
             >
               {!sceneUrl ? (
-                <label className="flex min-h-[12rem] w-full cursor-pointer flex-col items-center justify-center gap-2 text-center">
+                <label className="flex min-h-[11rem] w-full cursor-pointer flex-col items-center justify-center gap-2 text-center">
                   <span className="rounded-full bg-accent-ink/10 px-3 py-1 text-xs font-bold text-foreground">
-                    拖放圖片至此或點擊上傳 (Drag & Drop or Click to Upload Image)
+                    {createMode === "replace-person"
+                      ? "拖放含人物的照片至此，或點擊上傳"
+                      : createMode === "scene-place"
+                        ? "拖放場景照片至此，或點擊上傳場景"
+                        : "選填：拖放背景場景照片至此（未上傳則依貼文類型自動生成背景）"}
                   </span>
-                  <span className="max-w-xs text-[11px] text-muted">
-                    上傳後可在圖片上塗鴉標註 #1, #2, #3 位置並輸入修改說明，AI 生成的圖片不會顯示標註線條
+                  <span className="max-w-sm text-[11px] text-muted">
+                    {createMode === "replace-person"
+                      ? "上傳後可在圖中人物身上點擊或塗抹圈選要替換的人物，AI 將替換為所選角色的臉、髮型與預設服裝"
+                      : createMode === "scene-place"
+                        ? "上傳後 AI 會將角色自然放入此場景，亦可塗鴉標註角色站位或輸入文字描述"
+                        : "若上傳場景圖，生成時會以該場景作為背景，並依照所選貼文類型與姿勢拍攝"}
                   </span>
                   <input
                     type="file"
@@ -661,7 +723,9 @@ export function LifeDesk({
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="text-[11px] font-bold text-muted">
-                        畫筆標註 (在圖上塗鴉標記修改位置)：
+                        {createMode === "replace-person"
+                          ? "點擊或塗抹圈選要替換的人物（未圈選則替換主要人物）："
+                          : "畫筆標註（在圖上塗鴉標記位置）："}
                       </span>
                       {remarks.map((r) => {
                         const isActive = r.number === activeRemarkNumber;
@@ -698,7 +762,7 @@ export function LifeDesk({
                           onClick={resetRemarks}
                           className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 text-[11px] font-semibold text-muted hover:text-foreground"
                         >
-                          清除塗鴉
+                          清除圈選
                         </button>
                       ) : null}
                       <label className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 text-[11px] font-semibold text-muted hover:text-foreground">
@@ -746,7 +810,9 @@ export function LifeDesk({
               <div className="space-y-1.5 rounded-xl border border-accent-ink/10 bg-paper p-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-foreground">
-                    標註修改說明 (生成結果不會顯示塗鴉線條與編號)
+                    {createMode === "replace-person"
+                      ? "已圈選要替換的人物（生成結果不會顯示塗鴉線條與編號）"
+                      : "標註修改說明（生成結果不會顯示塗鴉線條與編號）"}
                   </span>
                 </div>
                 {remarks.map((r) => (
@@ -789,37 +855,42 @@ export function LifeDesk({
               </div>
             ) : null}
 
-            {/* AI Prompt & Quick Shortcuts */}
-            <div className="space-y-2 rounded-xl border border-accent-ink/10 bg-paper p-2.5">
-              <input
-                type="text"
-                value={customInstruction}
-                onChange={(e) => setCustomInstruction(e.target.value)}
-                placeholder="輸入整體指令，或點擊下方快捷按鈕..."
-                className="h-8 w-full rounded-lg border border-accent-ink/15 bg-paper px-2.5 text-xs font-medium text-foreground focus-visible:outline-1 focus-visible:outline-accent"
-              />
-              <div className="flex flex-wrap gap-1.5">
-                {LIFE_SHORTCUTS.map((sc) => {
-                  const active = customInstruction === sc.prompt;
-                  return (
-                    <button
-                      key={sc.id}
-                      type="button"
-                      onClick={() =>
-                        setCustomInstruction(active ? "" : sc.prompt)
-                      }
-                      className={`cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
-                        active
-                          ? "border-accent bg-accent text-white"
-                          : "border-accent-ink/15 bg-paper text-foreground hover:border-accent-ink/40"
-                      }`}
-                    >
-                      {sc.label}
-                    </button>
-                  );
-                })}
+            {/* Tab 2 only: Optional Scene Description & Quick Shortcuts */}
+            {createMode === "scene-place" ? (
+              <div className="space-y-2 rounded-xl border border-accent-ink/10 bg-paper p-2.5">
+                <label className="block text-[11px] font-bold text-foreground">
+                  場景描述（選填：描述如何將角色放入此場景）
+                </label>
+                <input
+                  type="text"
+                  value={customInstruction}
+                  onChange={(e) => setCustomInstruction(e.target.value)}
+                  placeholder="例：讓角色坐在窗邊看著窗外、手拿咖啡站在街道中央..."
+                  className="h-8 w-full rounded-lg border border-accent-ink/15 bg-paper px-2.5 text-xs font-medium text-foreground focus-visible:outline-1 focus-visible:outline-accent"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {SCENE_PLACE_SHORTCUTS.map((sc) => {
+                    const active = customInstruction === sc.prompt;
+                    return (
+                      <button
+                        key={sc.id}
+                        type="button"
+                        onClick={() =>
+                          setCustomInstruction(active ? "" : sc.prompt)
+                        }
+                        className={`cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
+                          active
+                            ? "border-accent bg-accent text-white"
+                            : "border-accent-ink/15 bg-paper text-foreground hover:border-accent-ink/40"
+                        }`}
+                      >
+                        {sc.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
 
           {/* Bottom Action Dock inside Center Pane */}

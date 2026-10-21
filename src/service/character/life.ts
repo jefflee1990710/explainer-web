@@ -15,6 +15,7 @@ import {
   type LifeShotKind,
   type LifeShotSource,
 } from "@/model/life-shot";
+import type { LifeCreateMode } from "@/model/life-shot-kind";
 import { requireAppUser } from "@/service/auth";
 import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/billing/credits";
 import { characterIdentityUrl } from "@/service/character/identity";
@@ -114,12 +115,13 @@ function httpsUrl(value: string) {
   return trimmed;
 }
 
-// One charged still. The character portrait locks the face; the scene photo is the base image.
+// One charged still. The character portrait locks the face; the scene photo is the base image (optional in post-template mode).
 export async function generateLifeShotAction(input: {
   characterId: string;
+  createMode?: LifeCreateMode;
   place?: string;
   kind?: LifeShotKind;
-  sceneImageUrl: string;
+  sceneImageUrl?: string;
   source: LifeShotSource;
   customInstruction?: string;
   annotatedSceneDataUrl?: string;
@@ -134,13 +136,16 @@ export async function generateLifeShotAction(input: {
   const pose = lifePoseById(input.poseId);
   const kindParsed = lifeShotKindSchema.safeParse(template?.kind || input.kind || "selfie");
   const source = lifeShotSourceSchema.safeParse(input.source);
-  const sceneImageUrl = httpsUrl(input.sceneImageUrl);
+  const sceneImageUrl = httpsUrl(input.sceneImageUrl ?? "");
   const compositionRefUrl = httpsUrl(input.compositionRefUrl ?? "");
   if (!ObjectId.isValid(input.characterId)) return { ok: false as const, error: "角色不存在" };
   if (!kindParsed.success) return { ok: false as const, error: "請選擇生活照類型" };
   if (!source.success) return { ok: false as const, error: "請選擇場景照片" };
-  // The place always comes from the user's scene photo.
-  if (!sceneImageUrl) return { ok: false as const, error: "請選擇場景照片" };
+  if (input.createMode === "post-template") {
+    if (!template) return { ok: false as const, error: "請選擇貼文類型" };
+  } else if (!sceneImageUrl) {
+    return { ok: false as const, error: "請選擇場景照片" };
+  }
 
   const characters = await charactersCollection();
   const character = (await characters.findOne({
@@ -191,6 +196,7 @@ export async function generateLifeShotAction(input: {
       prompt: lifeShotPrompt({
         name: character.name,
         kind: kindParsed.data,
+        createMode: input.createMode,
         place,
         interests: persona?.interests ?? [],
         customInstruction,

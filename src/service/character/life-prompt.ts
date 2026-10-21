@@ -1,5 +1,5 @@
 import type { LifePoseFraming } from "@/model/life-pose";
-import type { LifeShotKind } from "@/model/life-shot-kind";
+import type { LifeCreateMode, LifeShotKind } from "@/model/life-shot-kind";
 
 const FRAMING: Record<LifeShotKind, string> = {
   selfie: "A phone selfie at arm's length. The character looks into the lens. The place is visible behind them.",
@@ -74,6 +74,7 @@ export function lifeReferenceOrder(input: {
 export function lifeShotPrompt(input: {
   name: string;
   kind: LifeShotKind;
+  createMode?: LifeCreateMode;
   place?: string;
   interests: string[];
   customInstruction?: string;
@@ -141,11 +142,28 @@ export function lifeShotPrompt(input: {
     order.pose
       ? `The ${ordinal(order.pose)} reference image is a stick-figure pose skeleton (white circle = head, warm colours = the person's left limbs, cool colours = right limbs). Put ${input.name} in exactly this body pose: ${poseText} The skeleton pose wins over any pose described in the post type. Do NOT copy the skeleton's size on the canvas — scale ${input.name} to match the scene's perspective and nearby walls, railings, or furniture. The skeleton is a guide only — never draw its lines, dots or circle in the photo.`
       : "",
-    instruction
-      ? `Edit / Scene instruction: ${instruction}`
-      : hasScene
-        ? `If the ${ordinal(order.scene)} image contains a person, replace that person with this character. Do not keep the other face.`
-        : "",
+    input.createMode === "replace-person" && hasScene
+      ? [
+          `Replace the selected person in the ${ordinal(order.scene)} reference image with ${input.name} (matching ${input.name}'s exact face, hair, and preset outfit; keep any other unselected people and the exact background untouched).`,
+          !order.pose
+            ? `Keep the exact body pose, head angle, and hand gesture of the replaced person in the ${ordinal(order.scene)} image.`
+            : "",
+          instruction ? `Additional edit instruction: ${instruction}` : "",
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : input.createMode === "scene-place" && hasScene
+        ? [
+            `Place ${input.name} naturally into the ${ordinal(order.scene)} reference scene photograph with matching directional lighting, ground shadows, and perspective.`,
+            instruction ? `Scene placement description: ${instruction}` : "",
+          ]
+            .filter(Boolean)
+            .join(" ")
+        : instruction
+          ? `Edit / Scene instruction: ${instruction}`
+          : hasScene
+            ? `If the ${ordinal(order.scene)} image contains a person, replace that person with this character. Do not keep the other face.`
+            : "",
     placeLine,
     templateGuide
       ? `Post type: ${templateGuide}`

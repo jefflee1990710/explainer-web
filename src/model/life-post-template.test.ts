@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
 import {
   LIFE_POST_CATEGORIES,
   LIFE_POST_TEMPLATES,
   lifePostTemplateById,
+  lifePostTemplatePreviewSrc,
   lifePostTemplatesInCategory,
 } from "@/model/life-post-template";
 import { LIFE_SHOT_KINDS } from "@/model/life-shot-kind";
@@ -18,10 +21,12 @@ test("life post template ids are unique and every category has templates", () =>
   }
 });
 
-test("every template has a valid kind and a prompt guide", () => {
+test("every template has a valid kind, prompt guide, and Scro preview webp", () => {
   for (const t of LIFE_POST_TEMPLATES) {
     assert.ok((LIFE_SHOT_KINDS as readonly string[]).includes(t.kind), t.id);
     assert.ok(t.promptGuide.length > 40, t.id);
+    const previewFile = lifePostTemplatePreviewSrc(t.id).split("?")[0];
+    assert.ok(existsSync(path.join(process.cwd(), "public", previewFile)), `preview ${t.id}`);
   }
 });
 

@@ -245,7 +245,7 @@ export function lifePostTemplatesInCategory(categoryId: LifePostCategoryId) {
   return LIFE_POST_TEMPLATES.filter((template) => template.categoryId === categoryId);
 }
 
-// Gemini-generated example still for the picker card.
+// Gemini-generated Scro example still for the picker card.
 export function lifePostTemplatePreviewSrc(id: string) {
-  return `/life-templates/${id}.webp?v=1`;
+  return `/life-templates/${id}.webp?v=2`;
 }

@@ -243,3 +243,73 @@ test("lifeShotPrompt with a template and no scene asks for an invented location"
   assert.doesNotMatch(prompt, /base scene\/photograph/);
   assert.doesNotMatch(prompt, /If the .* image contains a person/);
 });
+
+test("createMode replace-person keeps the target person's pose when no poseId is selected, while applying character hair and outfit", () => {
+  const prompt = lifeShotPrompt({
+    name: "Scro",
+    kind: "street",
+    createMode: "replace-person",
+    interests: [],
+    hasScene: true,
+    hasOutfitRef: true,
+    outfitText: "white ribbed tank top, blue jeans",
+    hairText: "chin-length wolf-cut bob",
+  });
+  assert.match(prompt, /Replace the selected person in the third reference image with Scro/i);
+  assert.match(prompt, /keep the exact body pose, head angle, and hand gesture of the replaced person/i);
+  assert.match(prompt, /Outfit: white ribbed tank top, blue jeans/);
+  assert.match(prompt, /Hair: chin-length wolf-cut bob/);
+});
+
+test("createMode replace-person overrides the replaced person's pose when a skeleton pose is selected", () => {
+  const prompt = lifeShotPrompt({
+    name: "Scro",
+    kind: "street",
+    createMode: "replace-person",
+    interests: [],
+    hasScene: true,
+    poseText: "Standing with the right hand on the hip.",
+  });
+  assert.match(prompt, /Replace the selected person in the second reference image with Scro/i);
+  assert.match(prompt, /Put Scro in exactly this body pose: Standing with the right hand on the hip\./);
+  assert.doesNotMatch(prompt, /keep the exact body pose, head angle, and hand gesture of the replaced person/i);
+});
+
+test("createMode scene-place places the character into the uploaded scene with optional description and pose", () => {
+  const prompt = lifeShotPrompt({
+    name: "Scro",
+    kind: "street",
+    createMode: "scene-place",
+    interests: [],
+    hasScene: true,
+    customInstruction: "Standing near the coffee counter holding an iced latte.",
+    poseText: "Standing with one hand raised.",
+  });
+  assert.match(prompt, /Place Scro naturally into the second reference scene photograph/i);
+  assert.match(prompt, /Standing near the coffee counter holding an iced latte/);
+  assert.match(prompt, /Put Scro in exactly this body pose: Standing with one hand raised\./);
+});
+
+test("createMode post-template uses optional scene as background or invents one when omitted", () => {
+  const withScene = lifeShotPrompt({
+    name: "Scro",
+    kind: "street",
+    createMode: "post-template",
+    interests: [],
+    hasScene: true,
+    templateGuide: "Look-back street walk.",
+  });
+  assert.match(withScene, /The second reference image is the base scene/);
+  assert.match(withScene, /Post type: Look-back street walk\./);
+
+  const withoutScene = lifeShotPrompt({
+    name: "Scro",
+    kind: "street",
+    createMode: "post-template",
+    interests: [],
+    hasScene: false,
+    templateGuide: "Look-back street walk.",
+  });
+  assert.match(withoutScene, /No scene photo is given: build a believable real-world location/);
+  assert.match(withoutScene, /Post type: Look-back street walk\./);
+});

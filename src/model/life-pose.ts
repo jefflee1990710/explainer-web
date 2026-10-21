@@ -45,7 +45,12 @@ export function filterLifePoses(group: LifePoseGroup, hand?: string) {
   return LIFE_POSES.filter((pose) => pose.group === group && (!hand || pose.hands.includes(hand)));
 }
 
-// Stick-figure skeleton: card thumbnail and model reference image.
+// Stick-figure skeleton sent to the generation model as a pose reference.
 export function lifePoseImagePath(id: string) {
   return `/life-poses/${id}.png`;
+}
+
+// Gemini-generated Scro pose preview still for the picker card.
+export function lifePosePreviewSrc(id: string) {
+  return `/life-pose-previews/${id}.webp?v=1`;
 }

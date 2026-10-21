@@ -6,9 +6,9 @@ import {
   LIFE_POSE_HANDS,
   filterLifePoses,
   lifePoseById,
-  lifePoseImagePath,
   type LifePoseGroup,
 } from "@/model/life-pose";
+import { LifePoseArt } from "@/presentation/components/app/life/life-pose-art";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
@@ -136,9 +136,8 @@ export function LifePoseDialog({
                       : "border-accent-ink/10 hover:border-accent-ink/30"
                   }`}
                 >
-                  <span className="relative block aspect-[3/4] overflow-hidden rounded-lg bg-[#0c0e16]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={lifePoseImagePath(pose.id)} alt="" loading="lazy" className="h-full w-full object-contain" />
+                  <span className="relative block aspect-[3/4] overflow-hidden rounded-lg bg-zinc-200">
+                    <LifePoseArt id={pose.id} />
                     <span className="absolute top-1 right-1 rounded-full bg-paper/90 px-1.5 py-0.5 text-[9px] font-bold text-foreground">
                       {t(`life.poses.framing.${pose.framing}`)}
                     </span>

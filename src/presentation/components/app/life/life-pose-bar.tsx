@@ -1,6 +1,7 @@
 "use client";
 
-import { lifePoseById, lifePoseImagePath } from "@/model/life-pose";
+import { lifePoseById } from "@/model/life-pose";
+import { LifePoseArt } from "@/presentation/components/app/life/life-pose-art";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 // Compact row showing the chosen pose, or a button to open the pose library.
@@ -44,10 +45,9 @@ export function LifePoseBar({
         disabled={disabled}
         onClick={onOpenPicker}
         aria-label={t("life.poses.change")}
-        className="block aspect-[3/4] w-12 shrink-0 cursor-pointer overflow-hidden rounded-lg bg-[#0c0e16] disabled:cursor-not-allowed"
+        className="block aspect-[3/4] w-12 shrink-0 cursor-pointer overflow-hidden rounded-lg bg-zinc-200 disabled:cursor-not-allowed"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={lifePoseImagePath(pose.id)} alt="" className="h-full w-full object-contain" />
+        <LifePoseArt id={pose.id} />
       </button>
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-bold text-foreground">
