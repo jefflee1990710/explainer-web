@@ -271,6 +271,22 @@ export function LifeDesk({
     setActiveRemarkNumber(0);
   }
 
+  // After a shot is queued, empty the create form so the next photo starts clean.
+  // The selected character and the current tab stay put.
+  function resetCreateForm() {
+    setSceneUrl("");
+    setHits([]);
+    setMode("upload");
+    setCustomInstruction("");
+    setPoseId("");
+    setWardrobe({});
+    setTemplateId("");
+    setCompositionRefUrl("");
+    setPlace(character?.persona?.city || "");
+    setIsDragging(false);
+    resetRemarks();
+  }
+
   function addRemarkSlot() {
     setRemarks((prev) => {
       const nextNum = prev.length > 0 ? Math.max(...prev.map((r) => r.number)) + 1 : 1;
@@ -496,6 +512,7 @@ export function LifeDesk({
         return;
       }
       setShots((current) => [result.shot, ...current]);
+      resetCreateForm();
     } catch {
       setPending("");
       setError(t("errors.lifeGenerateFailed"));
