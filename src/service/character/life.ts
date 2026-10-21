@@ -21,6 +21,11 @@ import type { LifeCreateMode } from "@/model/life-shot-kind";
 import { requireAppUser } from "@/service/auth";
 import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/billing/credits";
 import { characterIdentityUrl } from "@/service/character/identity";
+import {
+  sanitizeWardrobePicks,
+  wardrobePickPrompts,
+  type CharacterWardrobePicks,
+} from "@/service/character/character-look";
 import { resolveDefaultVersion } from "@/service/character/versions";
 import {
   lifeSceneQuery,
@@ -287,8 +292,11 @@ export async function generateLifeShotAction(input: {
   templateId?: string;
   compositionRefUrl?: string;
   poseId?: string;
+  wardrobe?: CharacterWardrobePicks;
 }) {
   const user = await requireAppUser();
+  // Optional hair / top / pants / shoes / accessory picks that override the preset look.
+  const wardrobe = wardrobePickPrompts(sanitizeWardrobePicks(input.wardrobe));
   const place = (input.place ?? "").trim().slice(0, 60);
   const template = lifePostTemplateById(input.templateId);
   const pose = lifePoseById(input.poseId);
@@ -381,6 +389,7 @@ export async function generateLifeShotAction(input: {
       hasOutfitRef: Boolean(outfitRefUrl),
       outfitText,
       hairText,
+      wardrobe,
     });
 
     const shotId = new ObjectId();

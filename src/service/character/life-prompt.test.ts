@@ -313,3 +313,40 @@ test("createMode post-template uses optional scene as background or invents one 
   assert.match(withoutScene, /No scene photo is given: build a believable real-world location/);
   assert.match(withoutScene, /Post type: Look-back street walk\./);
 });
+
+test("lifeShotPrompt applies picked hair and clothes over the outfit preset without contradictions", () => {
+  const prompt = lifeShotPrompt({
+    name: "Mia",
+    kind: "selfie",
+    createMode: "replace-person",
+    interests: [],
+    hasScene: true,
+    hasOutfitRef: true,
+    outfitText: "pink tank top, blue jeans",
+    hairText: "long straight hair",
+    wardrobe: { hair: "a short bob", top: "a denim halter top", shoes: "white sneakers" },
+  });
+
+  assert.match(prompt, /Wardrobe change for this photo/);
+  assert.match(prompt, /Hair: a short bob\. Top: a denim halter top\. Shoes: white sneakers\./);
+  assert.match(prompt, /except the items under Wardrobe change/);
+  // Preset hair lines would fight the picked hair.
+  assert.doesNotMatch(prompt, /Copy the hairstyle exactly from the outfit preset/);
+  assert.doesNotMatch(prompt, /Hair: long straight hair/);
+  assert.doesNotMatch(prompt, /preset outfit; keep/);
+  assert.match(prompt, /the Wardrobe change items/);
+});
+
+test("lifeShotPrompt keeps the preset look when no wardrobe is picked", () => {
+  const prompt = lifeShotPrompt({
+    name: "Mia",
+    kind: "selfie",
+    interests: [],
+    hasScene: true,
+    hasOutfitRef: true,
+    hairText: "long straight hair",
+  });
+  assert.doesNotMatch(prompt, /Wardrobe change/);
+  assert.match(prompt, /Copy the hairstyle exactly from the outfit preset/);
+  assert.match(prompt, /Hair: long straight hair/);
+});

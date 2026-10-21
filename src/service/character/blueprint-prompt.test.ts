@@ -314,3 +314,62 @@ test("chalkboard blueprint sits on a chalkboard, not white", () => {
     .join("\n");
   assert.doesNotMatch(layoutInstructions, /white/i);
 });
+
+// Real catalog realistic lines are long; the board prompt must still keep every identity line.
+function longRealisticStyle() {
+  return renderableFromSystem(
+    testStyle("realistic", {
+      canvas: `realistic canvas ${"c".repeat(400)}`,
+      look: `realistic look ${"l".repeat(900)}`,
+      palette: `realistic palette ${"p".repeat(300)}`,
+      negatives: `realistic negatives ${"n".repeat(500)}`,
+    }),
+  );
+}
+
+const DETAILED_SPEC = {
+  identity: "East Asian woman, early 20s",
+  face: "oval face, narrow chin, almond eyes, straight brows, slender nose, soft lips",
+  faceDetail:
+    "face slightly longer than wide, low forehead, medium eyes about one eye-width apart, slight upward tilt, hooded double lids with a low crease, thin straight brows close above the eyes, low soft nose bridge, nose as wide as the gap between the eyes, short philtrum, mouth reaching the pupils, fuller lower lip, soft cheekbones, narrow tapered chin",
+  hair: "reddish-brown, low ponytail, wispy face-framing strands",
+  skinTone: "light warm beige, visible natural pores",
+  body: "slender, petite",
+  marks: "ear piercings",
+  outfit: "blue pinstripe bikini top, distressed denim shorts, beaded belly chain",
+  palette: ["#3b231d", "#e3bfa6"],
+};
+
+test("realistic portrait keeps face geometry and the photo spec within the prompt budget", () => {
+  const prompt = buildPortraitPrompt({
+    style: longRealisticStyle(),
+    description: "",
+    spec: DETAILED_SPEC,
+    photoCount: 1,
+  });
+  assert.ok(prompt.length <= 4200, `prompt is ${prompt.length} chars`);
+  assert.match(prompt, /- Face geometry: face slightly longer than wide/);
+  assert.match(prompt, /- Outfit: blue pinstripe bikini top/);
+  assert.match(prompt, /gap between the eyes compared with one eye's width/);
+  assert.match(prompt, /Do not beautify/);
+  // Likeness comes before the style and light lines, so trimming never cuts it.
+  assert.ok(prompt.indexOf("Face geometry") < prompt.indexOf("Realistic texture"));
+  assert.ok(prompt.indexOf("Sheet ground") > 0, "light sheet ground survives");
+  // A forced smile changes mouth width and eye shape.
+  assert.doesNotMatch(prompt, /warm, gentle little smile/);
+  assert.match(prompt, /at most a faint closed-lip smile/);
+});
+
+test("realistic full body keeps face geometry within the prompt budget", () => {
+  const prompt = buildFullBodyPrompt({
+    style: longRealisticStyle(),
+    description: "",
+    spec: DETAILED_SPEC,
+    photoCount: 1,
+    parentImageCount: 1,
+  });
+  assert.ok(prompt.length <= 4200, `prompt is ${prompt.length} chars`);
+  assert.match(prompt, /- Face geometry:/);
+  assert.match(prompt, /Copy the face and skin texture from the portrait/);
+  assert.ok(prompt.indexOf("Face geometry") < prompt.indexOf("Realistic texture"));
+});

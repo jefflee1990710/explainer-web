@@ -9,8 +9,9 @@ const MAX_SPEC_PHOTOS = 6;
 const SYSTEM = `You describe one person's appearance so an image model can redraw them consistently.
 Read every attached photo as the same person. Return only the fields.
 Write short noun phrases in English, separated by commas. No sentences, no opinions, no guesses about personality.
-identity: apparent gender and age range, e.g. "woman, late 20s".
+identity: apparent gender, age range, and ethnic appearance, e.g. "East Asian woman, late 20s".
 face: face shape, eye shape and spacing, eyebrows, nose, lips, jaw and chin — proportions an artist needs.
+faceDetail: measured face geometry so a portrait is recognisably this exact person, each item relative to the face: face length vs width; forehead height; eye size; gap between the eyes vs one eye's width; eye tilt; eyelid type (monolid, hooded, or double) and crease height; brow shape, thickness, and gap above the eyes; nose bridge height, nose length, nose width vs the gap between the eyes, tip shape; philtrum length; mouth width vs the pupils; upper vs lower lip fullness; cheekbones; jaw; chin length and shape; any asymmetry. If the eyes are closed in every photo, describe the closed-eye shape and length. Read the clearest face; ignore beauty-filter smoothing.
 hair: style, length, parting, texture, colour.
 skinTone: skin tone and natural unretouched human skin micro-texture, e.g. "light warm beige, visible natural pores, matte-natural skin micro-texture with subtle fine lines" — always describe organic pore detail and natural skin micro-texture; never write "smooth", "flawless", "porcelain", "airbrushed", or "glossy" even if the source photo has a phone beauty filter or flash.
 body: build, height impression, shoulders, posture.

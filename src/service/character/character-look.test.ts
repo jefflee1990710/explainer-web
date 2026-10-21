@@ -10,6 +10,8 @@ import {
   characterLookPrompt,
   characterPoseRevisionPrompt,
   characterPoseSheetPrompt,
+  sanitizeWardrobePicks,
+  wardrobePickPrompts,
   characterWardrobeEditInstruction,
   defaultCharacterLook,
   detectCharacterWardrobePicks,
@@ -211,4 +213,19 @@ test("viral presets, extra parts, gender, styling vibe dial, and global fashion 
       assert.match(characterLookPreviewPrompt(part, option.id), /Plain light grey seamless background/);
     }
   }
+});
+
+test("sanitizeWardrobePicks keeps only known wardrobe ids", () => {
+  assert.deepEqual(
+    sanitizeWardrobePicks({ hair: "bob", top: "nope", shoes: "sneakers", face: "round", pants: 3 }),
+    { hair: "bob", shoes: "sneakers" },
+  );
+  assert.deepEqual(sanitizeWardrobePicks(null), {});
+});
+
+test("wardrobePickPrompts maps picked ids to prompt text", () => {
+  assert.deepEqual(wardrobePickPrompts({ hair: "bob", shoes: "sneakers" }), {
+    hair: "chin-length straight bob with a centre part",
+    shoes: "white sneakers",
+  });
 });

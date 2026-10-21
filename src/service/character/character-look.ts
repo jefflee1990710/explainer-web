@@ -654,6 +654,31 @@ export function detectCharacterWardrobePicks(text?: string): CharacterWardrobePi
   return picks;
 }
 
+// Drops unknown parts and option ids from client-sent wardrobe picks.
+export function sanitizeWardrobePicks(raw: unknown): CharacterWardrobePicks {
+  if (!raw || typeof raw !== "object") return {};
+  const input = raw as Record<string, unknown>;
+  const picks: CharacterWardrobePicks = {};
+  for (const part of CHARACTER_WARDROBE_PARTS) {
+    const id = input[part];
+    if (typeof id === "string" && isCharacterLookId(part, id)) picks[part] = id;
+  }
+  return picks;
+}
+
+// Picked wardrobe ids → English prompt text per part.
+export function wardrobePickPrompts(
+  picks: CharacterWardrobePicks,
+): Partial<Record<CharacterWardrobePart, string>> {
+  const prompts: Partial<Record<CharacterWardrobePart, string>> = {};
+  for (const part of CHARACTER_WARDROBE_PARTS) {
+    const id = picks[part];
+    const option = id ? characterLookOption(part, id) : undefined;
+    if (option) prompts[part] = option.prompt;
+  }
+  return prompts;
+}
+
 // Compose an edit instruction from selected hair / top / pants / shoes / accessory + optional note.
 export function characterWardrobeEditInstruction(
   picks: CharacterWardrobePicks,

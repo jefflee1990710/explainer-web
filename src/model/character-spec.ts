@@ -8,6 +8,8 @@ export type CharacterSpec = {
   identity: string;
   // Face shape, eyes, brows, nose, mouth, jaw — proportions only, no judgement.
   face: string;
+  // Measured face geometry (eye spacing, mouth width, lid type...). Blueprint prompts only; too long for frame prompts.
+  faceDetail?: string;
   // Style, length, colour, parting, texture.
   hair: string;
   skinTone: string;
@@ -28,6 +30,7 @@ const line = z.string().trim().max(240);
 export const characterSpecSchema: z.ZodType<CharacterSpec> = z.object({
   identity: line,
   face: line,
+  faceDetail: z.string().trim().max(600).optional(),
   hair: line,
   skinTone: line,
   body: line,
@@ -47,6 +50,7 @@ export function parseCharacterSpec(value: unknown): CharacterSpec | null {
   return {
     ...spec,
     palette: spec.palette.filter((item) => /^#?[0-9a-f]{6}$/i.test(item)).map(normalizeHex),
+    faceDetail: spec.faceDetail || undefined,
     notes: spec.notes || undefined,
   };
 }
@@ -104,6 +108,7 @@ export function characterSpecBlock(spec: CharacterSpec) {
   const skin = spec.skinTone ? sanitizeSpecSkinTone(spec.skinTone) : "";
   if (spec.identity) rows.push(`- Identity: ${spec.identity}`);
   if (spec.face) rows.push(`- Face: ${spec.face}`);
+  if (spec.faceDetail) rows.push(`- Face geometry: ${spec.faceDetail}`);
   if (spec.hair) rows.push(`- Hair: ${spec.hair}`);
   if (skin) rows.push(`- Skin: ${skin}`);
   if (spec.body) rows.push(`- Body: ${spec.body}`);

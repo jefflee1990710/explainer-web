@@ -5,6 +5,7 @@ import {
   fitReferencePrompt,
   isRealisticStyle,
   REALISTIC_CHARACTER_RENDER_RULE,
+  REFERENCE_PROMPT_BUDGET,
 } from "@/service/style/realistic-light";
 import {
   cleanWardrobeEditText,
@@ -68,11 +69,52 @@ const LIGHT_SHEET_GROUND = [
 // Hairstyle is part of the identity. A new pose or a tight crop must not restyle it.
 function hairFromReference(style: RenderableStyle) {
   const shape =
-    "Hair: copy the reference exactly (length, colour, parting, and how it is worn). Do not tie it back, add a ponytail, or restyle it.";
+    "Hair: copy the reference exactly (length, colour, parting, and how it is worn). Do not tie it back, add a ponytail, or restyle it unless the reference shows it that way.";
   if (style.id === "chalkboard") {
     return "Hair: copy the reference exactly (length, parting, and how it is worn) as chalk strokes. Do not tie it back or restyle it, and do not copy hair dye colour.";
   }
   return shape;
+}
+
+// A forced smile widens the mouth and narrows the eyes, which reads as a different person.
+const EXPRESSION =
+  "a relaxed natural expression with at most a faint closed-lip smile that does not widen the mouth or narrow the eyes";
+
+// "Copy the face" alone lets the model drift to a stock face; name the measurements it must match.
+const FACE_GEOMETRY_LOCK = [
+  "五官比例: the same person, not a look-alike. Match the face geometry, each part measured against the face: face length vs width, forehead, eye size, the gap between the eyes compared with one eye's width, eye tilt, eyelid type, brows, nose bridge and width, philtrum, mouth width compared with the pupils, lip fullness, cheekbones, jaw, chin, plus moles, scars, and marks.",
+  "Keep ethnicity, age, and natural asymmetry. Do not beautify, slim the face, enlarge the eyes, raise the nose bridge, westernise, or use a generic model face.",
+  "If a photo shows the face small or with eyes closed, still read every feature; draw open eyes in the same shape.",
+].join(" ");
+
+// Board images only. The full realistic rule plus catalog lines used to push the likeness lines past the budget.
+const REALISTIC_BOARD_RENDER_RULE =
+  "Realistic texture: a real photograph on 35mm film (Kodak Gold 200), directional three-quarter window key light with a 1.4:1 to 1.8:1 portrait contrast ratio and 25–40% natural shadow falloff that keeps the whole face and both eyes readable and never reshapes the face; a believable non-model person with real skin pores, peach-fuzz, fine lines, matte-natural skin, loose flyaway strands, and real fabric weave; subtle film grain; never airbrushed, waxy, glossy, or beauty-filtered. Identity portrait: 85mm portrait lens at f/1.8. Full body: 50mm lens at f/4. Soft directional light and real skin texture stay on the person.";
+
+// Shorter sheet-ground rule for board images, which carry the long likeness block.
+const BOARD_SHEET_GROUND =
+  "Sheet ground: one flat light solid colour behind the person, evenly lit, with no scene, texture, gradient, or cast shadow; ignore any setting in Background. Pick a light tint that must not match the outfit: warm off-white for dark clothes, light grey for pale clothes.";
+
+// Catalog style lines for board images, each capped. Background is dropped on the light sheet ground, which ignores it.
+function boardStyleLines(style: RenderableStyle, lightGround: boolean) {
+  return characterBlueprintStyleLines(style)
+    .filter((line) => !(lightGround && /^Background:/.test(line)))
+    .map((line) => (line.length > 220 ? `${line.slice(0, 219)}…` : line));
+}
+
+// Head (framing + likeness) is never cut; style lines in the tail are dropped first when over budget.
+function fitBoardPrompt(head: string[], tail: string[]) {
+  const kept = tail.map((line) => line.trim()).filter(Boolean);
+  const text = () => [...head.map((line) => line.trim()).filter(Boolean), ...kept].join("\n");
+  for (const pattern of [/^Palette:/, /^Rendering:/, /^Never:/]) {
+    if (text().length <= REFERENCE_PROMPT_BUDGET) break;
+    const index = kept.findIndex((line) => pattern.test(line));
+    if (index >= 0) kept.splice(index, 1);
+  }
+  // Whole lines only: a half sentence confuses the model more than a missing one.
+  while (kept.length && text().length > REFERENCE_PROMPT_BUDGET) kept.pop();
+  const out = text();
+  return out.length <= REFERENCE_PROMPT_BUDGET ? out : out.slice(0, REFERENCE_PROMPT_BUDGET);
 }
 
 // Likeness from the photo; rendering must still follow the chosen style.
@@ -81,14 +123,15 @@ function identityFromReference(style: RenderableStyle) {
     ? `Style is required: follow Background, Rendering, Palette, and Never. The sheet must look like ${style.name}, not a photograph or an unstyled copy of the reference.`
     : `Style is required: follow Rendering, Palette, and Never. The empty ground follows the sheet-ground rule, not a scene named in Background. The character must look like ${style.name}, not an unstyled copy of the reference.`;
   return [
-    `Keep the reference's 五官比例 and 整體氣質, and redraw every pose in the ${style.name} style, always standing straight upright facing the camera with a gentle little smile (never copy a seated or angled reference pose).`,
-    "五官比例: copy face shape, eye spacing and shape, brows, nose, mouth, lips, jaw, chin, plus moles, scars, and other marks.",
+    `Keep the reference's 五官比例 and 整體氣質, and redraw every pose in the ${style.name} style, always standing straight upright facing the camera with ${EXPRESSION} (never copy a seated or angled reference pose).`,
+    FACE_GEOMETRY_LOCK,
     hairFromReference(style),
     "整體氣質: keep the same aura, presence, and how they feel to look at — not a generic stand-in.",
-    ...(style.id === "chalkboard"
+    // Realistic styles get skin texture from their render rule.
+    ...(style.id === "chalkboard" || isRealisticStyle(style)
       ? []
       : [
-          "Skin texture: focus on and faithfully preserve the source image's exact skin texture — copy natural pores, skin micro-texture, surface finish, fine lines, freckles, and skin details from the source image without airbrushing, over-smoothing, or replacing it with waxy plastic skin.",
+          "Skin texture: focus on and faithfully preserve the source image's exact skin texture — pores, fine lines, freckles, and finish — never airbrushed or waxy.",
         ]),
     styleRule,
     "Do not drop the style to protect likeness, and do not drop likeness to apply the style.",
@@ -112,8 +155,9 @@ export function buildBlueprintPrompt(input: {
   const hasReference = referenceCount > 0;
   const lightGround = !usesDrawingSurface(input.style);
   const realistic = isRealisticStyle(input.style);
-  const lines = [
-    ...SHEET_LAYOUT,
+  const lines = [...SHEET_LAYOUT];
+  // Style after the likeness lines so budget trimming only ever cuts style.
+  const styleTail = [
     ...characterBlueprintStyleLines(input.style),
     ...(lightGround ? [LIGHT_SHEET_GROUND] : []),
     ...(realistic ? [REALISTIC_CHARACTER_RENDER_RULE] : []),
@@ -155,7 +199,7 @@ export function buildBlueprintPrompt(input: {
       `Redraw that same person or character as this ${input.style.name} model sheet.`,
     );
   }
-  return fitReferencePrompt(lines);
+  return fitBoardPrompt(lines, styleTail.map((line) => (/^(Background|Rendering|Palette|Never):/.test(line) && line.length > 220 ? `${line.slice(0, 219)}…` : line)));
 }
 
 // ---------- Blueprint board (portrait + full body) ----------
@@ -181,7 +225,7 @@ function boardIdentityLines(input: {
   }
   if (input.spec) {
     lines.push(
-      "Appearance notes read from the photos (keep every one of them; they describe the same person):",
+      "Appearance notes from the photos (keep every one; all describe this person):",
       characterSpecBlock(input.spec),
     );
   }
@@ -206,13 +250,16 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
   const lightGround = !usesDrawingSurface(input.style);
   const realistic = isRealisticStyle(input.style);
   const lines = [
-    "Character identity portrait on a square canvas: one person, head and shoulders, standing straight upright and facing the camera straight on (regardless of the reference photo's pose or angle), eyes open, looking into the lens, with a warm, gentle little smile. Changing the pose to front-on does not change the hair.",
+    `Character identity portrait on a square canvas: one person, head and shoulders, standing straight upright and facing the camera straight on (regardless of the reference photo's pose or angle), eyes open, looking into the lens, with ${EXPRESSION}. Changing the pose to front-on does not change the hair.`,
     "The face fills most of the frame: top of the hair near the top edge with a small margin, shoulders cut at the bottom edge. Cutting long hair at the frame edge is fine; do not tie it back to fit. No hands, no props, no text, no labels, no frame or border, no second person.",
+  ];
+  // Light and style come after the likeness lines so budget trimming only ever cuts style.
+  const styleTail = [
     realistic
-      ? REALISTIC_CHARACTER_RENDER_RULE
+      ? REALISTIC_BOARD_RENDER_RULE
       : "Even soft front light so every facial feature reads clearly: eye shape, brows, nose, lips, jaw, natural skin texture from the source image, hair line, and any marks.",
-    ...characterBlueprintStyleLines(input.style),
-    ...(lightGround ? [LIGHT_SHEET_GROUND] : []),
+    ...(lightGround ? [BOARD_SHEET_GROUND] : []),
+    ...boardStyleLines(input.style, lightGround),
   ];
   if (description) lines.push(`Character: ${description}`);
   if (input.editInstruction && input.parentImageCount) {
@@ -229,7 +276,7 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
     if (input.spec) {
       lines.push("Appearance notes for this character after the change:", editSpecBlock(input.spec, change));
     }
-    return fitReferencePrompt(lines);
+    return fitBoardPrompt(lines, styleTail);
   }
   lines.push(...boardIdentityLines(input));
   if (input.photoCount > 0 && description) {
@@ -237,7 +284,7 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
       "The Character line may add age, role, or clothing hints; it must not replace the face proportions, skin texture, temperament, or the required style.",
     );
   }
-  return fitReferencePrompt(lines);
+  return fitBoardPrompt(lines, styleTail);
 }
 
 // Full-body standing figure drawn from the finished portrait (first image) plus the photos.
@@ -249,18 +296,22 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
   const change = input.editInstruction ? cleanWardrobeEditText(input.editInstruction) : "";
   const lines = [
     "One full-body standing view of the character in the first attached image (their identity portrait) on a tall canvas.",
-    "One person, standing straight upright (站直), facing the camera directly front-on (regardless of any seated or angled pose in the reference photo), with a warm, gentle little smile, eyes open, arms relaxed at the sides, feet slightly apart. No props, no text, no labels, no second person, no extra poses.",
+    `One person, standing straight upright (站直), facing the camera directly front-on (regardless of any seated or angled pose in the reference photo), with ${EXPRESSION}, eyes open, arms relaxed at the sides, feet slightly apart. No props, no text, no labels, no second person, no extra poses.`,
     change
       ? "Copy the face and skin texture from the portrait."
       : input.photoCount > 0
         ? "Copy the face and skin texture from the portrait. Copy the hair exactly from the original photos — length, colour, parting, and how it is worn — even when the portrait shows a different hairstyle. Complete the outfit, shoes, and accessories from the photos."
         : "Copy the face, hair, and visible clothing from that portrait exactly. Do not restyle the hair.",
+    "The face is small in a full-body view, so keep its geometry exactly as in the portrait: eye size and spacing, nose, mouth width, lips, jaw, and chin. Do not beautify, slim, or replace it with a generic face.",
     "Framing: the entire body is visible from the top of the hair to the soles of the feet, centered, with empty margin above the head and below the feet. Do not crop to a portrait. Do not draw the figure too small — it should fill about four fifths of the canvas height.",
-    ...characterBlueprintStyleLines(input.style),
+  ];
+  // Light and style come after the likeness lines so budget trimming only ever cuts style.
+  const styleTail = [
+    ...(realistic ? [REALISTIC_BOARD_RENDER_RULE] : []),
     lightGround
-      ? LIGHT_SHEET_GROUND
+      ? BOARD_SHEET_GROUND
       : "The figure stands on the same drawing surface as the portrait.",
-    ...(realistic ? [REALISTIC_CHARACTER_RENDER_RULE] : []),
+    ...boardStyleLines(input.style, lightGround),
   ];
   if (description) lines.push(`Character: ${description}`);
   if (change && input.parentImageCount && input.parentImageCount > 1) {
@@ -284,7 +335,7 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
       change ? editSpecBlock(input.spec, change) : characterSpecBlock(input.spec),
     );
   }
-  return fitReferencePrompt(lines);
+  return fitBoardPrompt(lines, styleTail);
 }
 
 // Full-body standing preview taken from the finished sheet. Cards and pickers show this.

@@ -25,6 +25,7 @@ import { LifePoseDialog } from "@/presentation/components/app/life/life-pose-dia
 import { LifeShotGrid } from "@/presentation/components/app/life/life-shot-grid";
 import { LifeTemplateDialog } from "@/presentation/components/app/life/life-template-dialog";
 import { LifeTemplateGuide } from "@/presentation/components/app/life/life-template-guide";
+import { LifeWardrobePicker } from "@/presentation/components/app/life/life-wardrobe-picker";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { isCreditGateError } from "@/service/billing/credit-gate";
@@ -34,6 +35,7 @@ import type {
   PublicLifeShot,
 } from "@/service/character/life";
 import type { LifeSceneHit } from "@/service/character/life-prompt";
+import type { CharacterWardrobePicks } from "@/service/character/character-look";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 const REMARK_PALETTE = [
@@ -67,7 +69,7 @@ const SCENE_PLACE_SHORTCUTS = [
 ] as const;
 
 const DEFAULT_REPLACE_PERSON_COMMENT =
-  "將此標記處的人物替換為所選角色（保留姿勢，換上角色的臉孔、髮型與預設服裝）";
+  "將此標記處的人物替換為所選角色（保留原圖姿勢）";
 
 type Point = { x: number; y: number };
 
@@ -191,6 +193,8 @@ export function LifeDesk({
   // Body pose from the pose library (independent of the template).
   const [poseId, setPoseId] = useState("");
   const [poseDialogOpen, setPoseDialogOpen] = useState(false);
+  // Optional hair / clothes overrides shared by all 3 creation modes.
+  const [wardrobe, setWardrobe] = useState<CharacterWardrobePicks>({});
   const kind: LifeShotKind = lifePostTemplateById(templateId)?.kind ?? "selfie";
   const [mode, setMode] = useState<"search" | "upload">("upload");
   const [hits, setHits] = useState<LifeSceneHit[]>([]);
@@ -484,6 +488,7 @@ export function LifeDesk({
             ? compositionRefUrl
             : undefined,
         poseId: poseId || undefined,
+        wardrobe,
       });
       setPending("");
       if (!result.ok) {
@@ -607,6 +612,18 @@ export function LifeDesk({
         </button>
       ) : null}
     </>
+  );
+
+  // Optional wardrobe field; the same picks apply in every creation mode.
+  const wardrobeField = (step: number) => (
+    <LifeFormField
+      step={step}
+      label="角色造型 (Hair & Outfit)"
+      required={false}
+      hint="可選填更換髮型、上衣、褲子、鞋子或配件；未選的部位沿用角色預設造型。"
+    >
+      <LifeWardrobePicker value={wardrobe} disabled={pending !== ""} onChange={setWardrobe} />
+    </LifeFormField>
   );
 
   const sceneUploadAndCanvasSection = (
@@ -889,8 +906,12 @@ export function LifeDesk({
 
                 <LifeFormSeparator />
 
+                {wardrobeField(3)}
+
+                <LifeFormSeparator />
+
                 <LifeFormField
-                  step={3}
+                  step={4}
                   label="補充替換說明 (Additional Instruction)"
                   required={false}
                   hint="若有多位人物或特殊要求，可在此輸入補充說明（不填寫亦可直接生成）。"
@@ -974,6 +995,10 @@ export function LifeDesk({
                     onClear={() => setPoseId("")}
                   />
                 </LifeFormField>
+
+                <LifeFormSeparator />
+
+                {wardrobeField(4)}
               </>
             ) : (
               <>
@@ -1016,8 +1041,12 @@ export function LifeDesk({
 
                 <LifeFormSeparator />
 
+                {wardrobeField(3)}
+
+                <LifeFormSeparator />
+
                 <LifeFormField
-                  step={3}
+                  step={4}
                   label="背景場景照片 (Scene Background)"
                   required={false}
                   hint="可選填上傳或搜尋場景照片作為背景；若未上傳，AI 會根據所選貼文類型自動生成真實背景。"
@@ -1029,7 +1058,7 @@ export function LifeDesk({
                 <LifeFormSeparator />
 
                 <LifeFormField
-                  step={4}
+                  step={5}
                   label="補充細節說明 (Custom Note)"
                   required={false}
                   hint="可選填補充光線、時間、道具或氛圍等細節要求。"

@@ -1,5 +1,14 @@
 import type { LifePoseFraming } from "@/model/life-pose";
 import type { LifeCreateMode, LifeShotKind } from "@/model/life-shot-kind";
+import { CHARACTER_WARDROBE_PARTS, type CharacterWardrobePart } from "@/service/character/character-look";
+
+const WARDROBE_LABEL: Record<CharacterWardrobePart, string> = {
+  hair: "Hair",
+  top: "Top",
+  pants: "Pants",
+  shoes: "Shoes",
+  accessory: "Accessory",
+};
 
 const FRAMING: Record<LifeShotKind, string> = {
   selfie: "A phone selfie at arm's length. The character looks into the lens. The place is visible behind them.",
@@ -89,10 +98,26 @@ export function lifeShotPrompt(input: {
   hasOutfitRef?: boolean;
   outfitText?: string;
   hairText?: string;
+  // Prompt text per picked wardrobe part; overrides the preset item of that part.
+  wardrobe?: Partial<Record<CharacterWardrobePart, string>>;
 }) {
   const hasScene = input.hasScene ?? true;
   const outfitText = input.outfitText?.trim() || "";
-  const hairText = input.hairText?.trim() || "";
+  const wardrobeParts = CHARACTER_WARDROBE_PARTS.filter((part) => input.wardrobe?.[part]?.trim());
+  const hairPicked = wardrobeParts.includes("hair");
+  const clothesPicked = wardrobeParts.some((part) => part !== "hair");
+  // A picked hairstyle replaces the preset hair, so the preset hair line would contradict it.
+  const hairText = hairPicked ? "" : input.hairText?.trim() || "";
+  const wardrobeLine = wardrobeParts.length
+    ? `Wardrobe change for this photo (clearly visible; replaces the matching items from the reference images): ${wardrobeParts
+        .map((part) => `${WARDROBE_LABEL[part]}: ${input.wardrobe![part]!.trim().replace(/\.$/, "")}.`)
+        .join(" ")} Keep every other item as in the preset.`
+    : "";
+  const outfitException = clothesPicked
+    ? ", except the items under Wardrobe change below"
+    : input.customInstruction?.trim()
+      ? ", unless the edit instruction below asks for a different outfit"
+      : "";
   const poseProps = (input.poseHands || []).map((h) => POSE_PROPS[h]).filter(Boolean);
   const poseText = [input.poseText?.trim() || "", ...(input.poseText?.trim() ? poseProps : [])]
     .filter(Boolean)
@@ -125,12 +150,23 @@ export function lifeShotPrompt(input: {
 
   return [
     "A real vertical Instagram photo shot on an iPhone.",
-    `The main person is ${input.name}. The first reference image is their identity blueprint — keep that exact face${order.outfit ? " and skin tone. Copy the hairstyle exactly from the outfit preset image: same length, colour, parting, and how it is worn (down, tied, or braided); do not restyle it" : ", hair, skin tone, and build"}, lit by the place's light rather than the flat reference-sheet lighting.`,
+    `The main person is ${input.name}. The first reference image is their identity blueprint — keep that exact face${
+      order.outfit
+        ? hairPicked
+          ? " and skin tone"
+          : " and skin tone. Copy the hairstyle exactly from the outfit preset image: same length, colour, parting, and how it is worn (down, tied, or braided); do not restyle it"
+        : hairPicked
+          ? ", skin tone, and build"
+          : ", hair, skin tone, and build"
+    }, lit by the place's light rather than the flat reference-sheet lighting.`,
     order.outfit
-      ? `The ${ordinal(order.outfit)} reference image is ${input.name}'s outfit preset (full body): dress them in exactly this outfit — same garments, colours, fit, shoes and accessories; do not add, remove or swap any item${instruction ? ", unless the edit instruction below asks for a different outfit" : ""}.`
-      : `Dress them in exactly the outfit shown in the identity blueprint${instruction ? ", unless the edit instruction below asks for a different outfit" : ""}.`,
+      ? `The ${ordinal(order.outfit)} reference image is ${input.name}'s outfit preset (full body): dress them in exactly this outfit — same garments, colours, fit, shoes and accessories; do not add, remove or swap any item${outfitException}.`
+      : `Dress them in exactly the outfit shown in the identity blueprint${outfitException}.`,
     hairText ? `Hair: ${hairText.replace(/\.$/, "")} (keep this exact hairstyle, do not tie it up unless the preset shows it tied).` : "",
-    outfitText ? `Outfit: ${outfitText.replace(/\.$/, "")}.` : "",
+    outfitText
+      ? `${clothesPicked ? "Preset outfit (Wardrobe change items replace the matching pieces)" : "Outfit"}: ${outfitText.replace(/\.$/, "")}.`
+      : "",
+    wardrobeLine,
     hasScene
       ? `The ${ordinal(order.scene)} reference image is the base scene/photograph (lighting direction, environment${order.composition ? "" : ", composition"}, and props). Keep this exact place — the same location, background, furniture and objects; never move them to a different location or add a new setting. Scale & perspective: size ${input.name} to true human height (~165 cm) for the camera distance and perspective of this scene — check parapet walls, railings, doorways, tables, tiles, and floor grid so the person is never oversized or giant against the background, with feet planted naturally on the ground plane.`
       : "No scene photo is given: build a believable real-world location that fits the location and post type below.",
@@ -144,7 +180,7 @@ export function lifeShotPrompt(input: {
       : "",
     input.createMode === "replace-person" && hasScene
       ? [
-          `Replace the selected person in the ${ordinal(order.scene)} reference image with ${input.name} (matching ${input.name}'s exact face, hair, and preset outfit; keep any other unselected people and the exact background untouched).`,
+          `Replace the selected person in the ${ordinal(order.scene)} reference image with ${input.name} (matching ${input.name}'s exact face, ${wardrobeParts.length ? "the Wardrobe change items, and otherwise the preset hair and outfit" : "hair, and preset outfit"}; keep any other unselected people and the exact background untouched).`,
           !order.pose
             ? `Keep the exact body pose, head angle, and hand gesture of the replaced person in the ${ordinal(order.scene)} image.`
             : "",
