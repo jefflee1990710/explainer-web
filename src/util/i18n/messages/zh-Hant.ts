@@ -1,5 +1,6 @@
 import type { Messages } from "@/util/i18n/messages/types";
 import { AMENDA_LABELS_ZH } from "@/service/character/amenda-wardrobe";
+import { LIFE_POSES_ZH } from "@/util/i18n/messages/life-poses";
 import { LIFE_TEMPLATES_ZH } from "@/util/i18n/messages/life-templates";
 import { briefZhHant } from "@/util/i18n/messages/workspace/brief.zh-Hant";
 import { directorsZhHant } from "@/util/i18n/messages/workspace/directors.zh-Hant";
@@ -90,6 +91,7 @@ export const zhHant: Messages = {
     uploadHint: "如果相入面有你的臉，生成時只借姿勢同地方，臉會換成角色。",
     recent: "最近",
     templates: LIFE_TEMPLATES_ZH,
+    poses: LIFE_POSES_ZH,
   },
   common: {
     credits: "credits",

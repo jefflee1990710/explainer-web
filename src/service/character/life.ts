@@ -17,6 +17,7 @@ import {
 import { requireAppUser } from "@/service/auth";
 import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/billing/credits";
 import { characterIdentityUrl } from "@/service/character/identity";
+import { resolveDefaultVersion } from "@/service/character/versions";
 import {
   lifeSceneQuery,
   lifeShotPrompt,
@@ -137,8 +138,8 @@ export async function generateLifeShotAction(input: {
   if (!ObjectId.isValid(input.characterId)) return { ok: false as const, error: "角色不存在" };
   if (!kindParsed.success) return { ok: false as const, error: "請選擇生活照類型" };
   if (!source.success) return { ok: false as const, error: "請選擇場景照片" };
-  // A post template or pose can stand in for the scene photo; otherwise the scene is required.
-  if (!sceneImageUrl && !template && !pose) return { ok: false as const, error: "請選擇場景照片" };
+  // The place always comes from the user's scene photo.
+  if (!sceneImageUrl) return { ok: false as const, error: "請選擇場景照片" };
 
   const characters = await charactersCollection();
   const character = (await characters.findOne({
@@ -149,6 +150,10 @@ export async function generateLifeShotAction(input: {
   const identity = characterIdentityUrl(character);
   if (!identity) return { ok: false as const, error: "還沒有完成的藍圖" };
   const persona = parseCharacterPersona(character.persona);
+  // The portrait is a close-up, so the full-body figure carries the preset outfit.
+  const version = resolveDefaultVersion(character);
+  const outfitRefUrl = version?.profileUrl && version.profileUrl !== identity ? version.profileUrl : "";
+  const outfitText = version?.spec?.outfit ?? "";
 
   const annotatedDataUrl =
     typeof input.annotatedSceneDataUrl === "string" &&
@@ -173,6 +178,7 @@ export async function generateLifeShotAction(input: {
     // Order must match lifeReferenceOrder in life-prompt.ts.
     const refs = [
       identity,
+      ...(outfitRefUrl ? [outfitRefUrl] : []),
       ...(sceneImageUrl ? [sceneImageUrl] : []),
       ...(hasAnnotatedImage && annotatedDataUrl ? [annotatedDataUrl] : []),
       ...(compositionRefUrl ? [compositionRefUrl] : []),
@@ -192,6 +198,10 @@ export async function generateLifeShotAction(input: {
         templateGuide: template?.promptGuide,
         hasCompositionRef: Boolean(compositionRefUrl),
         poseText: pose?.promptText,
+        poseFraming: pose?.framing,
+        poseHands: pose?.hands,
+        hasOutfitRef: Boolean(outfitRefUrl),
+        outfitText,
       }),
       aspectRatio: "9:16",
       resolution: "2k",
@@ -231,6 +241,7 @@ export async function generateLifeShotAction(input: {
     revalidatePath("/app/billing");
     return { ok: true as const, shot: toPublicShot(shot) };
   } catch (error) {
+    console.error("[life] generate failed", error);
     try {
       await refundCredits(user.clerkUserId, FRAME_COST, spendKey);
     } catch {

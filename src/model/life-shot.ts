@@ -25,6 +25,8 @@ export type LifeShot = {
   // Post-type template id from LIFE_POST_TEMPLATES, and the optional pose/framing reference.
   templateId?: string;
   compositionRefUrl?: string;
+  // Pose library id from LIFE_POSES.
+  poseId?: string;
   createdAt: Date;
 };
 
@@ -44,5 +46,6 @@ export const lifeShotSchema: z.ZodType<LifeShot> = z.object({
   resultUrl: z.string(),
   templateId: z.string().optional(),
   compositionRefUrl: z.string().optional(),
+  poseId: z.string().optional(),
   createdAt: z.date(),
 });

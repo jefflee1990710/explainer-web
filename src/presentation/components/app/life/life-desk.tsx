@@ -13,6 +13,8 @@ import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { LifeCharacterStrip } from "@/presentation/components/app/life/life-character-strip";
 import { LifeSceneSource } from "@/presentation/components/app/life/life-scene-source";
+import { LifePoseBar } from "@/presentation/components/app/life/life-pose-bar";
+import { LifePoseDialog } from "@/presentation/components/app/life/life-pose-dialog";
 import { LifeShotGrid } from "@/presentation/components/app/life/life-shot-grid";
 import { LifeTemplateDialog } from "@/presentation/components/app/life/life-template-dialog";
 import { LifeTemplateGuide } from "@/presentation/components/app/life/life-template-guide";
@@ -181,6 +183,9 @@ export function LifeDesk({
   const [templateId, setTemplateId] = useState("");
   const [compositionRefUrl, setCompositionRefUrl] = useState("");
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  // Body pose from the pose library (independent of the template).
+  const [poseId, setPoseId] = useState("");
+  const [poseDialogOpen, setPoseDialogOpen] = useState(false);
   const kind: LifeShotKind = lifePostTemplateById(templateId)?.kind ?? "selfie";
   const [mode, setMode] = useState<"search" | "upload">("upload");
   const [hits, setHits] = useState<LifeSceneHit[]>([]);
@@ -407,7 +412,7 @@ export function LifeDesk({
       setError(t("life.needBlueprint"));
       return;
     }
-    if (!sceneUrl && !templateId) {
+    if (!sceneUrl) {
       setError(t("life.needScene"));
       return;
     }
@@ -432,6 +437,7 @@ export function LifeDesk({
         })),
         templateId: templateId || undefined,
         compositionRefUrl: templateId && compositionRefUrl ? compositionRefUrl : undefined,
+        poseId: poseId || undefined,
       });
       setPending("");
       if (!result.ok) {
@@ -599,6 +605,12 @@ export function LifeDesk({
               }}
               onUploadRef={(file) => void onUploadCompositionRef(file)}
               onRemoveRef={() => setCompositionRefUrl("")}
+            />
+            <LifePoseBar
+              poseId={poseId}
+              disabled={pending !== ""}
+              onOpenPicker={() => setPoseDialogOpen(true)}
+              onClear={() => setPoseId("")}
             />
 
             {/* Drag & Drop Upload Zone + Interactive Remark Drawing Canvas */}
@@ -1082,6 +1094,10 @@ export function LifeDesk({
           onChange={setTemplateId}
           onClose={() => setTemplateDialogOpen(false)}
         />
+      ) : null}
+
+      {poseDialogOpen ? (
+        <LifePoseDialog value={poseId} onChange={setPoseId} onClose={() => setPoseDialogOpen(false)} />
       ) : null}
 
       {creditGate ? (

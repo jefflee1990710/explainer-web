@@ -28,7 +28,7 @@ export const LIFE_POST_TEMPLATES: readonly LifePostTemplate[] = [
     categoryId: "street",
     kind: "street",
     promptGuide:
-      "Knee-up street portrait: the character stands facing the camera, framed from the knees up, natural smile, shallow depth of field on the street behind.",
+      "Knee-up street portrait: the character stands facing the camera, framed from the knees up, natural smile, the street behind still readable.",
   },
   {
     id: "street-walking",

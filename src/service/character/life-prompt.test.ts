@@ -22,7 +22,7 @@ test("lifeShotPrompt includes numbered color remarks and forbids rendering annot
   assert.match(prompt, /NEVER reproduce, draw, or leave any colored annotation strokes, circles, arrows, or #1\/#2\/#3 numbers/i);
 });
 
-test("lifeShotPrompt enforces real human camera capture rules (without heavy 35mm film filter) for /app/life image generation", () => {
+test("lifeShotPrompt asks for a bright phone snapshot like a real Instagram post", () => {
   const prompt = lifeShotPrompt({
     name: "Scro",
     kind: "street",
@@ -30,37 +30,96 @@ test("lifeShotPrompt enforces real human camera capture rules (without heavy 35m
     interests: ["photography"],
   });
 
-  // Real human modern camera equipment (iPhone 16 Pro / Sony ZV-E1) and no AI quality buzzwords or heavy vintage film filter
-  assert.match(prompt, /iPhone 16 Pro 24mm f\/1\.8 main camera, Sony ZV-E1/);
-  assert.match(prompt, /never heavy vintage 35mm film filter, never 8K, ultra-realistic, hyperrealistic, masterpiece/);
-  assert.match(prompt, /no heavy 35mm film grain or retro Kodak LUT/);
+  // iPhone main camera only: deep focus, no mirrorless bokeh or AI quality buzzwords.
+  assert.match(prompt, /iPhone main camera/);
+  assert.match(prompt, /background stays in focus/);
+  assert.doesNotMatch(prompt, /ZV-E1|shallow depth of field|optical depth of field/);
+  assert.match(prompt, /never 8K, ultra-realistic, hyperrealistic, masterpiece/);
 
-  // Clean 1.2:1-1.5:1 natural facial contrast + matte-natural skin pores
-  assert.match(prompt, /1\.2:1 to 1\.5:1 cheek-to-cheek contrast ratio/);
-  assert.match(prompt, /override any flat front lighting from the first identity reference image/);
-  assert.match(prompt, /visible pores, fine peach-fuzz/);
-  assert.match(prompt, /zero oily, waxy, or plastic specular sheen/);
+  // Bright, even phone HDR exposure instead of dramatic side light.
+  assert.match(prompt, /bright phone auto-exposure with HDR/);
+  assert.match(prompt, /face evenly lit/);
+  assert.doesNotMatch(prompt, /cheek-to-cheek contrast ratio|nose-bridge shadow/);
 
-  // Unclipped highlights, clean CMOS sensor micro-texture, neutral/cool highlights by default
-  assert.match(prompt, /below pure-white clipping/);
-  assert.match(prompt, /subtle natural ISO 100–400 digital sensor micro-texture/);
-  assert.match(prompt, /keep highlights neutral or cool by default/);
+  // Clean phone-processed skin, not hyper-detailed pores; bright true-to-life colour.
+  assert.match(prompt, /light phone noise reduction/);
+  assert.doesNotMatch(prompt, /visible pores/);
+  assert.match(prompt, /clean whites/);
+
+  // Off-centre, slightly imperfect framing and a natural expression.
+  assert.match(prompt, /not perfectly centred/);
+  assert.match(prompt, /relaxed natural expression/);
   assert.ok(prompt.includes(LIFE_REALISTIC_RENDER_RULE));
+});
+
+test("the scene photo fixes the place; the model does not invent or move it", () => {
+  const prompt = lifeShotPrompt({ name: "Alice", kind: "selfie", interests: [] });
+  assert.match(prompt, /Keep this exact place/);
+  assert.match(prompt, /never move them to a different location/);
+  assert.doesNotMatch(prompt, /lived-in real place|one or two props/);
+});
+
+test("the outfit preset image locks the clothes exactly", () => {
+  const prompt = lifeShotPrompt({
+    name: "Alice",
+    kind: "selfie",
+    interests: [],
+    hasOutfitRef: true,
+    outfitText: "white blouse, navy pleated skirt, loafers",
+  });
+  assert.match(prompt, /The second reference image is Alice's outfit preset/);
+  assert.match(prompt, /exactly this outfit — same garments, colours, fit, shoes and accessories/);
+  assert.match(prompt, /Outfit: white blouse, navy pleated skirt, loafers\./);
+  assert.match(prompt, /The third reference image is the base scene/);
+  assert.doesNotMatch(prompt, /everyday outfit that suits the place/);
+});
+
+test("without a separate outfit image the identity blueprint carries the outfit", () => {
+  const prompt = lifeShotPrompt({ name: "Alice", kind: "selfie", interests: [] });
+  assert.match(prompt, /exactly the outfit shown in the identity blueprint/);
+});
+
+test("an explicit outfit instruction can still change the clothes", () => {
+  const prompt = lifeShotPrompt({
+    name: "Alice",
+    kind: "selfie",
+    interests: [],
+    hasOutfitRef: true,
+    customInstruction: "Wear the outfit from this image.",
+  });
+  assert.match(prompt, /unless the edit instruction below asks for a different outfit/);
+});
+
+test("the selected pose overrides pose words in the post type", () => {
+  const prompt = lifeShotPrompt({
+    name: "Alice",
+    kind: "street",
+    interests: [],
+    templateGuide: "Lean on wall with one knee bent.",
+    poseText: "Seated, chin on hand.",
+  });
+  assert.match(prompt, /The skeleton pose wins over any pose described in the post type/);
 });
 
 test("lifeReferenceOrder skips missing images and keeps identity first", () => {
   assert.deepEqual(lifeReferenceOrder({ hasScene: true, hasAnnotatedImage: true, hasCompositionRef: true }), {
+    outfit: 0,
     scene: 2,
     annotated: 3,
     composition: 4,
     pose: 0,
   });
   assert.deepEqual(lifeReferenceOrder({ hasScene: false, hasAnnotatedImage: true, hasCompositionRef: true }), {
+    outfit: 0,
     scene: 0,
     annotated: 0,
     composition: 2,
     pose: 0,
   });
+  assert.deepEqual(
+    lifeReferenceOrder({ hasOutfitRef: true, hasScene: true, hasAnnotatedImage: false, hasCompositionRef: false, hasPose: true }),
+    { outfit: 2, scene: 3, annotated: 0, composition: 0, pose: 4 },
+  );
 });
 
 test("lifeShotPrompt without a template keeps the legacy scene wording", () => {
@@ -89,7 +148,7 @@ test("lifeShotPrompt with a template and composition reference names the right i
 test("lifeReferenceOrder puts the pose skeleton last", () => {
   assert.deepEqual(
     lifeReferenceOrder({ hasScene: true, hasAnnotatedImage: false, hasCompositionRef: true, hasPose: true }),
-    { scene: 2, annotated: 0, composition: 3, pose: 4 },
+    { outfit: 0, scene: 2, annotated: 0, composition: 3, pose: 4 },
   );
   assert.equal(lifeReferenceOrder({ hasScene: false, hasAnnotatedImage: false, hasCompositionRef: false, hasPose: true }).pose, 2);
 });
@@ -105,6 +164,45 @@ test("lifeShotPrompt with a pose names the skeleton image and forbids drawing it
   assert.match(prompt, /The third reference image is a stick-figure pose skeleton/);
   assert.match(prompt, /Put Alice in exactly this body pose: Standing with the right hand on the hip\./);
   assert.match(prompt, /never draw its lines, dots or circle/);
+});
+
+test("a full-body pose replaces the selfie framing with a head-to-feet frame", () => {
+  const prompt = lifeShotPrompt({
+    name: "Alice",
+    kind: "selfie",
+    interests: [],
+    hasScene: false,
+    poseText: "Standing with the right hand on the hip.",
+    poseFraming: "full",
+  });
+  assert.match(prompt, /whole body from head to feet/);
+  assert.doesNotMatch(prompt, /selfie at arm's length/);
+});
+
+test("pose prop tags become words in the pose sentence", () => {
+  const prompt = lifeShotPrompt({
+    name: "Alice",
+    kind: "food",
+    interests: [],
+    hasScene: false,
+    poseText: "Sitting upright with the right hand near the chest.",
+    poseHands: ["drink", "face"],
+  });
+  assert.match(prompt, /near the chest\. The raised hand holds a cup or glass\./);
+});
+
+test("a post type keeps its own framing even with a pose", () => {
+  const prompt = lifeShotPrompt({
+    name: "Alice",
+    kind: "selfie",
+    interests: [],
+    hasScene: false,
+    templateGuide: "Mirror selfie.",
+    poseText: "Standing.",
+    poseFraming: "full",
+  });
+  assert.match(prompt, /Post type: Mirror selfie\./);
+  assert.doesNotMatch(prompt, /head to feet/);
 });
 
 test("with a pose, the composition reference only drives the camera", () => {

@@ -1,3 +1,4 @@
+import type { LifePoseFraming } from "@/model/life-pose";
 import type { LifeShotKind } from "@/model/life-shot-kind";
 
 const FRAMING: Record<LifeShotKind, string> = {
@@ -5,6 +6,20 @@ const FRAMING: Record<LifeShotKind, string> = {
   food: "A table-level food photo. The dish is in front. The character sits beside it with their face visible.",
   street: "A candid three-quarter street photo of the character walking, with the place readable behind them.",
   hobby: "A photo of the character doing the hobby named below, in this place.",
+};
+
+// Crop that matches the pose skeleton; replaces the shot-kind framing when no post type is set.
+const POSE_FRAMING: Record<LifePoseFraming, string> = {
+  full: "Photographed by a friend: frame the whole body from head to feet, with a little space above the head and below the shoes.",
+  knee: "Photographed by a friend: frame the body from the head down to just below the knees.",
+  half: "Frame the upper body from the head down to the waist.",
+};
+
+// Objects a skeleton cannot show; spelled out so the hand is not left empty.
+const POSE_PROPS: Record<string, string> = {
+  drink: "The raised hand holds a cup or glass.",
+  phone: "One hand holds a smartphone.",
+  bag: "One hand holds a handbag or its strap.",
 };
 
 // Search words for a real place photo. The hit is a scene reference, not the final picture.
@@ -22,38 +37,39 @@ export type LifeRemarkInput = {
   comment: string;
 };
 
-// Real human camera capture rules for /app/life candid lifestyle photography:
-// - Shot on modern human camera equipment (iPhone 16 Pro 24mm f/1.8 main camera, Sony ZV-E1 / A7C II mirrorless, or Ricoh GR III digital CMOS sensor; no heavy vintage 35mm film filter, no 8K/hyperrealistic buzzwords).
-// - Natural available light from the scene's light source with clean, dimensional 1.2:1 to 1.5:1 portrait contrast, soft natural shadow roll-off on the far cheek, and clear nose-bridge shadow (overriding flat blueprint lighting).
-// - Unfiltered real human skin with visible pores, fine peach-fuzz, and matte-natural finish with zero oily/plastic sheen or beauty-filter smoothing.
-// - Clean true-to-life modern digital CMOS sensor color, unclipped highlights, neutral/cool highlights by default (warm only when a warm practical lamp, sunset, or fire is visible), and subtle natural ISO micro-texture without heavy 35mm film grain.
+// Look of a real Hong Kong / Taiwan creator's Instagram post, taken from the downloaded IG set:
+// - A friend's iPhone snapshot: deep focus, bright HDR exposure, evenly lit face (no dramatic side light).
+// - Clean phone-processed skin, bright true-to-life colour, slightly imperfect off-centre framing.
 export const LIFE_REALISTIC_RENDER_RULE = [
-  "Real human camera capture (shot on modern smartphone or creator camera equipment — iPhone 16 Pro 24mm f/1.8 main camera, Sony ZV-E1 mirrorless, or Ricoh GR III digital CMOS sensor; never heavy vintage 35mm film filter, never 8K, ultra-realistic, hyperrealistic, masterpiece, or AI beauty-mode):",
-  "re-light the character's face and body strictly from the base scene's natural light source, sculpting the light-facing cheek with honest directional key light, a clean 1.2:1 to 1.5:1 cheek-to-cheek contrast ratio, soft natural shadow falloff on the far cheek, and a clear nose-bridge shadow (override any flat front lighting from the first identity reference image; never flat front beauty-ring light, never dark moody cinema blackouts, zero unmotivated rim light from the dark shadow side).",
-  "Skin & texture: unfiltered real human skin with visible pores, fine peach-fuzz catching the light, natural uneven skin tone with subsurface scattering, matte-natural finish with zero oily, waxy, or plastic specular sheen on the forehead, nose, cheeks, or collarbones (override any beauty-filter smoothing), loose flyaway hair strands, and real fabric weave.",
-  "Colour & exposure: clean true-to-life modern digital CMOS sensor color (no heavy 35mm film grain or retro Kodak LUT); keep highlights neutral or cool by default, reserving warm highlights strictly for scenes with a visible warm practical lamp, fire, or sunset in frame; keep glowing sources and bright skies below pure-white clipping; in extreme dark scenes keep 90% of shadows neutral-desaturated with colour only on the light source; lift the black point in underwater, fog, or smoke scenes (with blue-shifted underwater shadows and neutral night shadows); add subtle natural ISO 100–400 digital sensor micro-texture and natural optical depth of field.",
+  "Camera: a real Instagram photo taken by a friend on an iPhone main camera (24mm wide lens) — the person and the background stays in focus together, with the slight wide-angle perspective of a phone held a couple of metres away; never a mirrorless or studio look, never 8K, ultra-realistic, hyperrealistic, masterpiece, cinematic, or editorial fashion shoot.",
+  "Light: bright phone auto-exposure with HDR — shadows lifted, face evenly lit and well exposed by the place's own light (daylight, open shade, or bright indoor light); never dramatic side light, a half-dark face, moody low-key shadows, or rim light.",
+  "Skin & styling: natural clean skin with the light phone noise reduction and gentle retouch a real creator posts, real hair with a few loose strands, real fabric folds; never waxy, plastic, or oily skin.",
+  "Colour: bright, clean, true-to-life phone colour with clean whites and natural saturation; no film grain, retro filter, beige wash, or desaturated grade.",
+  "Framing & expression: casual and slightly imperfect — the person not perfectly centred, the place filling a good part of the frame, the horizon maybe a little tilted; a relaxed natural expression (an easy smile showing teeth, laughing, or glancing away), not a fixed model smirk.",
 ].join(" ");
 
-const ORDINALS = ["first", "second", "third", "fourth", "fifth"];
+const ORDINALS = ["first", "second", "third", "fourth", "fifth", "sixth"];
 
-// Reference order: identity, scene (optional), annotated scene (only with a scene),
-// composition (optional), pose skeleton (optional).
+// Reference order: identity, outfit preset (optional), scene (optional), annotated scene
+// (only with a scene), composition (optional), pose skeleton (optional).
 export function lifeReferenceOrder(input: {
+  hasOutfitRef?: boolean;
   hasScene: boolean;
   hasAnnotatedImage: boolean;
   hasCompositionRef: boolean;
   hasPose?: boolean;
 }) {
   let next = 1;
+  const outfit = input.hasOutfitRef ? ++next : 0;
   const scene = input.hasScene ? ++next : 0;
   const annotated = input.hasScene && input.hasAnnotatedImage ? ++next : 0;
   const composition = input.hasCompositionRef ? ++next : 0;
   const pose = input.hasPose ? ++next : 0;
-  return { scene, annotated, composition, pose };
+  return { outfit, scene, annotated, composition, pose };
 }
 
-// Identity is the first reference. The scene photo, the numbered annotation guide, a
-// composition reference and a pose skeleton follow in that order when present (see lifeReferenceOrder).
+// Identity is the first reference. The outfit preset, scene photo, numbered annotation guide,
+// composition reference and pose skeleton follow in that order when present (see lifeReferenceOrder).
 export function lifeShotPrompt(input: {
   name: string;
   kind: LifeShotKind;
@@ -66,10 +82,19 @@ export function lifeShotPrompt(input: {
   templateGuide?: string;
   hasCompositionRef?: boolean;
   poseText?: string;
+  poseFraming?: LifePoseFraming;
+  poseHands?: string[];
+  hasOutfitRef?: boolean;
+  outfitText?: string;
 }) {
   const hasScene = input.hasScene ?? true;
-  const poseText = input.poseText?.trim() || "";
+  const outfitText = input.outfitText?.trim() || "";
+  const poseProps = (input.poseHands || []).map((h) => POSE_PROPS[h]).filter(Boolean);
+  const poseText = [input.poseText?.trim() || "", ...(input.poseText?.trim() ? poseProps : [])]
+    .filter(Boolean)
+    .join(" ");
   const order = lifeReferenceOrder({
+    hasOutfitRef: Boolean(input.hasOutfitRef),
     hasScene,
     hasAnnotatedImage: Boolean(input.hasAnnotatedImage),
     hasCompositionRef: Boolean(input.hasCompositionRef),
@@ -95,10 +120,14 @@ export function lifeShotPrompt(input: {
       : "";
 
   return [
-    "Authentic candid vertical photograph shot on modern human camera equipment (iPhone 16 Pro / Sony ZV-E1).",
-    `The main person is ${input.name}. The first reference image is their identity blueprint — keep that exact face, hair, skin tone, and build, but re-light their face to match the scene's directional light rather than copying flat reference-sheet lighting.`,
+    "A real vertical Instagram photo shot on an iPhone.",
+    `The main person is ${input.name}. The first reference image is their identity blueprint — keep that exact face, hair, skin tone, and build, lit by the place's light rather than the flat reference-sheet lighting.`,
+    order.outfit
+      ? `The ${ordinal(order.outfit)} reference image is ${input.name}'s outfit preset (full body): dress them in exactly this outfit — same garments, colours, fit, shoes and accessories; do not add, remove or swap any item${instruction ? ", unless the edit instruction below asks for a different outfit" : ""}.`
+      : `Dress them in exactly the outfit shown in the identity blueprint${instruction ? ", unless the edit instruction below asks for a different outfit" : ""}.`,
+    outfitText ? `Outfit: ${outfitText.replace(/\.$/, "")}.` : "",
     hasScene
-      ? `The ${ordinal(order.scene)} reference image is the base scene/photograph (lighting direction, environment${order.composition ? "" : ", composition"}, and props).`
+      ? `The ${ordinal(order.scene)} reference image is the base scene/photograph (lighting direction, environment${order.composition ? "" : ", composition"}, and props). Keep this exact place — the same location, background, furniture and objects; never move them to a different location or add a new setting.`
       : "No scene photo is given: build a believable real-world location that fits the location and post type below.",
     order.composition
       ? order.pose
@@ -106,7 +135,7 @@ export function lifeShotPrompt(input: {
         : `The ${ordinal(order.composition)} reference image is a composition reference ONLY: copy its pose, body angle, camera angle, framing and crop. Do NOT copy that person's face, hair, outfit, or the background from it.`
       : "",
     order.pose
-      ? `The ${ordinal(order.pose)} reference image is a stick-figure pose skeleton (white circle = head, warm colours = the person's left limbs, cool colours = right limbs). Put ${input.name} in exactly this body pose: ${poseText} The skeleton is a guide only — never draw its lines, dots or circle in the photo.`
+      ? `The ${ordinal(order.pose)} reference image is a stick-figure pose skeleton (white circle = head, warm colours = the person's left limbs, cool colours = right limbs). Put ${input.name} in exactly this body pose: ${poseText} The skeleton pose wins over any pose described in the post type. The skeleton is a guide only — never draw its lines, dots or circle in the photo.`
       : "",
     instruction
       ? `Edit / Scene instruction: ${instruction}`
@@ -114,7 +143,13 @@ export function lifeShotPrompt(input: {
         ? `If the ${ordinal(order.scene)} image contains a person, replace that person with this character. Do not keep the other face.`
         : "",
     placeLine,
-    templateGuide ? `Post type: ${templateGuide}` : !instruction ? FRAMING[input.kind] : "",
+    templateGuide
+      ? `Post type: ${templateGuide}`
+      : poseText && input.poseFraming
+        ? POSE_FRAMING[input.poseFraming]
+        : !instruction
+          ? FRAMING[input.kind]
+          : "",
     !instruction && !templateGuide ? hobby : "",
     LIFE_REALISTIC_RENDER_RULE,
     remarkLines,

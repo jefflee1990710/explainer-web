@@ -10,7 +10,7 @@ export type LifeTemplateLabels = {
   compositionRefHint: string;
   compositionRefUpload: string;
   compositionRefRemove: string;
-  sceneOptional: string;
+  sceneRequired: string;
   categories: Record<string, string>;
   names: Record<string, string>;
   tips: Record<string, string>;
@@ -18,7 +18,7 @@ export type LifeTemplateLabels = {
 
 export const LIFE_TEMPLATES_EN: LifeTemplateLabels = {
   title: "Post type",
-  hint: "Pick a post type. Its pose and framing guide the photo.",
+  hint: "Pick a post type. Its framing and mood guide the photo; a selected pose sets the body.",
   none: "Free style",
   clear: "Clear",
   tipsTitle: "How to shoot",
@@ -26,7 +26,7 @@ export const LIFE_TEMPLATES_EN: LifeTemplateLabels = {
   compositionRefHint: "Optional. Upload any photo with the pose and angle you want. Only the pose, angle and crop are copied — never the face, outfit or background.",
   compositionRefUpload: "Upload reference",
   compositionRefRemove: "Remove",
-  sceneOptional: "With a post type, the place photo is optional.",
+  sceneRequired: "The place comes from your photo. Outfit follows the character preset.",
   categories: {
     street: "Street style",
     cafe: "Cafe & food",
@@ -103,7 +103,7 @@ export const LIFE_TEMPLATES_EN: LifeTemplateLabels = {
 
 export const LIFE_TEMPLATES_ZH: LifeTemplateLabels = {
   title: "貼文類型",
-  hint: "選一種貼文類型，照片會跟隨它的姿勢和構圖。",
+  hint: "選一種貼文類型，照片會跟隨它的構圖和氛圍；姿勢以你選的姿勢為準。",
   none: "自由發揮",
   clear: "清除",
   tipsTitle: "拍攝指引",
@@ -111,7 +111,7 @@ export const LIFE_TEMPLATES_ZH: LifeTemplateLabels = {
   compositionRefHint: "選填。上傳任何一張你想要的姿勢和角度的照片。只會參考姿勢、角度和取景，不會抄臉、衣服或背景。",
   compositionRefUpload: "上傳參考圖",
   compositionRefRemove: "移除",
-  sceneOptional: "選了貼文類型後，地點照片可以不上傳。",
+  sceneRequired: "地點來自你上傳的照片，服裝跟隨角色預設造型。",
   categories: {
     street: "街頭穿搭",
     cafe: "咖啡廳與美食",

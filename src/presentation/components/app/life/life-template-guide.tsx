@@ -126,7 +126,7 @@ export function LifeTemplateGuide({
             </label>
           )}
         </div>
-        <p className="text-[10px] text-muted">{t("life.templates.sceneOptional")}</p>
+        <p className="text-[10px] text-muted">{t("life.templates.sceneRequired")}</p>
       </div>
     </div>
   );
