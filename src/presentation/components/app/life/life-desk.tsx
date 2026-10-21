@@ -14,6 +14,10 @@ import { InsufficientCreditsDialog } from "@/presentation/components/app/billing
 import { downloadLifeShotAsPng } from "@/presentation/components/app/life/download-life-png";
 import { LifeCharacterStrip } from "@/presentation/components/app/life/life-character-strip";
 import { LifeCreateTabs } from "@/presentation/components/app/life/life-create-tabs";
+import {
+  LifeFormField,
+  LifeFormSeparator,
+} from "@/presentation/components/app/life/life-form-field";
 import { LifeSceneSource } from "@/presentation/components/app/life/life-scene-source";
 import { LifePoseBar } from "@/presentation/components/app/life/life-pose-bar";
 import { LifePoseDialog } from "@/presentation/components/app/life/life-pose-dialog";
@@ -439,10 +443,7 @@ export function LifeDesk({
         kind,
         sceneImageUrl: sceneUrl || undefined,
         source: mode,
-        customInstruction:
-          createMode === "scene-place"
-            ? overrideInstruction ?? customInstruction
-            : "",
+        customInstruction: overrideInstruction ?? customInstruction,
         annotatedSceneDataUrl,
         remarks: remarks.map((r) => ({
           number: r.number,
@@ -527,6 +528,250 @@ export function LifeDesk({
     );
   }
 
+  const uploadHeaderButtons = (
+    <>
+      {place ? (
+        <span className="rounded-full bg-accent-ink/6 px-2.5 py-0.5 text-[11px] font-medium text-muted">
+          {place}
+        </span>
+      ) : null}
+      {createMode !== "replace-person" ? (
+        <button
+          type="button"
+          disabled={pending !== ""}
+          onClick={() => setPlaceDialogOpen(true)}
+          className="inline-flex h-7 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-[11px] font-bold text-foreground transition hover:border-accent-ink disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {t("life.searchAction")}
+        </button>
+      ) : null}
+      <label className="inline-flex h-7 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-[11px] font-bold text-foreground transition hover:border-accent-ink">
+        {pending === "upload"
+          ? t("common.loading")
+          : createMode === "replace-person"
+            ? "上傳人物照片"
+            : createMode === "post-template"
+              ? "上傳背景照片"
+              : t("life.upload")}
+        <input
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          disabled={pending !== ""}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            void onUpload(file);
+          }}
+        />
+      </label>
+      {sceneUrl ? (
+        <button
+          type="button"
+          disabled={pending !== ""}
+          onClick={() => {
+            setSceneUrl("");
+            resetRemarks();
+          }}
+          className="inline-flex h-7 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/15 px-2.5 text-[11px] font-semibold text-muted hover:text-red-600"
+        >
+          移除圖片
+        </button>
+      ) : null}
+    </>
+  );
+
+  const sceneUploadAndCanvasSection = (
+    <div className="space-y-2.5">
+      {/* Drag & Drop Upload Zone + Interactive Remark / Person Selection Canvas */}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+          const file = e.dataTransfer.files?.[0];
+          if (file && file.type.startsWith("image/")) {
+            void onUpload(file);
+          }
+        }}
+        className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-3 transition ${
+          isDragging
+            ? "border-accent bg-accent/10"
+            : "border-accent-ink/20 bg-paper/60"
+        }`}
+      >
+        {!sceneUrl ? (
+          <label className="flex min-h-[10rem] w-full cursor-pointer flex-col items-center justify-center gap-2 text-center">
+            <span className="rounded-full bg-accent-ink/10 px-3 py-1 text-xs font-bold text-foreground">
+              {createMode === "replace-person"
+                ? "拖放含人物的照片至此，或點擊上傳"
+                : createMode === "scene-place"
+                  ? "拖放場景照片至此，或點擊上傳場景"
+                  : "拖放背景場景照片至此，或點擊上傳（未上傳則自動生成背景）"}
+            </span>
+            <span className="max-w-sm text-[11px] text-muted">
+              {createMode === "replace-person"
+                ? "上傳後可在圖中人物身上點擊或塗抹圈選要替換的人物，AI 將替換為所選角色的臉、髮型與預設服裝"
+                : createMode === "scene-place"
+                  ? "上傳後 AI 會將角色自然放入此場景，亦可直接在圖上塗鴉標記角色站位"
+                  : "若上傳場景圖，生成時會以該場景作為背景，並依照所選貼文類型與姿勢拍攝"}
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              disabled={pending !== ""}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                void onUpload(file);
+              }}
+            />
+          </label>
+        ) : (
+          <div className="flex w-full flex-col gap-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-bold text-muted">
+                  {createMode === "replace-person"
+                    ? "點擊或塗抹圈選要替換的人物（未圈選則替換主要人物）："
+                    : "畫筆標註（選填：在圖上塗鴉標記位置）："}
+                </span>
+                {remarks.map((r) => {
+                  const isActive = r.number === activeRemarkNumber;
+                  return (
+                    <button
+                      key={r.number}
+                      type="button"
+                      onClick={() => setActiveRemarkNumber(r.number)}
+                      style={{
+                        backgroundColor: isActive ? r.color : "transparent",
+                        borderColor: r.color,
+                        color: isActive ? "#ffffff" : r.color,
+                      }}
+                      className="cursor-pointer rounded-full border-2 px-2.5 py-0.5 text-xs font-bold transition"
+                    >
+                      #{r.number}
+                    </button>
+                  );
+                })}
+                {remarks.length < 6 ? (
+                  <button
+                    type="button"
+                    onClick={addRemarkSlot}
+                    className="cursor-pointer rounded-full border border-accent-ink/20 bg-paper px-2.5 py-0.5 text-xs font-bold text-foreground hover:border-accent-ink"
+                  >
+                    + 新增 #{remarks.length + 1}
+                  </button>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-1.5">
+                {remarks.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={resetRemarks}
+                    className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 text-[11px] font-semibold text-muted hover:text-foreground"
+                  >
+                    清除圈選
+                  </button>
+                ) : null}
+                <label className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 text-[11px] font-semibold text-muted hover:text-foreground">
+                  更換圖片
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      void onUpload(file);
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Image + Drawing Overlay Canvas */}
+            <div className="relative mx-auto max-h-[16rem] overflow-hidden rounded-xl border border-accent-ink/15 bg-zinc-900 select-none">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={sceneUrl}
+                alt="Scene reference"
+                draggable={false}
+                className="max-h-[16rem] w-auto object-contain"
+              />
+              <canvas
+                ref={canvasRef}
+                width={720}
+                height={960}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerUp}
+                className="absolute inset-0 h-full w-full cursor-crosshair touch-none"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Numbered Remark Comment Inputs (#1, #2, #3...) — shown only when remarks exist */}
+      {sceneUrl && remarks.length > 0 ? (
+        <div className="space-y-1.5 rounded-xl border border-accent-ink/12 bg-paper p-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-1.5">
+            <span className="text-[11px] font-bold text-foreground">
+              {createMode === "replace-person"
+                ? "已圈選要替換的人物說明（生成結果不會顯示塗鴉線條與編號）"
+                : "標註位置說明（生成結果不會顯示塗鴉線條與編號）"}
+            </span>
+            <span className="inline-flex items-center rounded-full border border-accent-ink/12 bg-accent-ink/6 px-2 py-0.5 text-[10px] font-bold text-muted">
+              圈選說明 · 可微調文字
+            </span>
+          </div>
+          {remarks.map((r) => (
+            <div key={r.number} className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveRemarkNumber(r.number)}
+                style={{ backgroundColor: r.color }}
+                className="inline-flex h-6 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-[11px] font-bold text-white"
+              >
+                #{r.number}
+              </button>
+              <input
+                type="text"
+                value={r.comment}
+                onFocus={() => setActiveRemarkNumber(r.number)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setRemarks((prev) =>
+                    prev.map((item) =>
+                      item.number === r.number ? { ...item, comment: val } : item,
+                    ),
+                  );
+                }}
+                placeholder={`#${r.number} 修改說明（例：將此處人物換成角色 / 加上道具...）`}
+                className="h-8 flex-1 rounded-lg border border-accent-ink/15 bg-paper px-2.5 text-xs text-foreground focus-visible:outline-1 focus-visible:outline-accent"
+              />
+              <button
+                type="button"
+                onClick={() => removeRemarkSlot(r.number)}
+                className="cursor-pointer px-1.5 text-xs font-bold text-muted hover:text-red-600"
+                aria-label={`Remove #${r.number}`}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-3 lg:h-[calc(100dvh-4.5rem)] lg:overflow-hidden">
       {/* Compact Single-Row Studio Header */}
@@ -583,314 +828,194 @@ export function LifeDesk({
             }}
           />
 
-          {/* Top Action Bar for Scene / Photo Upload */}
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-accent-ink/10 px-4 py-2">
-            <span className="text-xs font-bold text-foreground">
-              {createMode === "replace-person"
-                ? "上傳含人物照片"
-                : createMode === "scene-place"
-                  ? "選擇或上傳場景照片"
-                  : "貼文類型與選填場景背景"}
-              {place ? (
-                <span className="ml-2 font-medium text-muted">· {place}</span>
-              ) : null}
-            </span>
-            <div className="flex flex-wrap items-center gap-2">
-              {createMode !== "replace-person" ? (
-                <button
-                  type="button"
-                  disabled={pending !== ""}
-                  onClick={() => setPlaceDialogOpen(true)}
-                  className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-xs font-bold text-foreground transition hover:border-accent-ink disabled:cursor-not-allowed disabled:opacity-60"
+          {/* Center Scrollable Form Body */}
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+            {createMode === "replace-person" ? (
+              <>
+                <LifeFormField
+                  step={1}
+                  label="上傳含人物照片 & 圈選替換目標"
+                  required
+                  hint="請上傳包含人物的照片，並在圖中點擊或塗抹圈選要替換的人物（若未圈選，系統會自動替換主體人物）。"
+                  headerRight={uploadHeaderButtons}
                 >
-                  {t("life.searchAction")}
-                </button>
-              ) : null}
-              <label className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-xs font-bold text-foreground transition hover:border-accent-ink">
-                {pending === "upload"
-                  ? t("common.loading")
-                  : createMode === "replace-person"
-                    ? "上傳含人物照片"
-                    : createMode === "post-template"
-                      ? "選填：上傳場景背景"
-                      : t("life.upload")}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  disabled={pending !== ""}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    event.target.value = "";
-                    void onUpload(file);
-                  }}
-                />
-              </label>
-              {createMode === "post-template" && sceneUrl ? (
-                <button
-                  type="button"
-                  disabled={pending !== ""}
-                  onClick={() => {
-                    setSceneUrl("");
-                    resetRemarks();
-                  }}
-                  className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/15 px-3 text-xs font-semibold text-muted hover:text-red-600"
+                  {sceneUploadAndCanvasSection}
+                </LifeFormField>
+
+                <LifeFormSeparator />
+
+                <LifeFormField
+                  step={2}
+                  label="角色姿勢 (Pose)"
+                  required={false}
+                  hint="預設會保留原圖中被替換人物的姿勢與手勢；若想改用其他姿勢，可在此選填覆寫。"
                 >
-                  移除場景圖
-                </button>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Center Scrollable Body */}
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3.5">
-            {/* Tab 3 only: Post-type template, shooting tips and composition reference */}
-            {createMode === "post-template" ? (
-              <LifeTemplateGuide
-                templateId={templateId}
-                compositionRefUrl={compositionRefUrl}
-                uploading={pending === "refUpload"}
-                disabled={pending !== ""}
-                onOpenPicker={() => setTemplateDialogOpen(true)}
-                onClear={() => {
-                  setTemplateId("");
-                  setCompositionRefUrl("");
-                }}
-                onUploadRef={(file) => void onUploadCompositionRef(file)}
-                onRemoveRef={() => setCompositionRefUrl("")}
-              />
-            ) : null}
-
-            {/* Optional Pose Picker across all 3 tabs */}
-            <LifePoseBar
-              poseId={poseId}
-              disabled={pending !== ""}
-              onOpenPicker={() => setPoseDialogOpen(true)}
-              onClear={() => setPoseId("")}
-            />
-
-            {/* Drag & Drop Upload Zone + Interactive Remark / Person Selection Canvas */}
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setIsDragging(true);
-              }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setIsDragging(false);
-                const file = e.dataTransfer.files?.[0];
-                if (file && file.type.startsWith("image/")) {
-                  void onUpload(file);
-                }
-              }}
-              className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-3 transition ${
-                isDragging
-                  ? "border-accent bg-accent/10"
-                  : "border-accent-ink/20 bg-paper/60"
-              }`}
-            >
-              {!sceneUrl ? (
-                <label className="flex min-h-[11rem] w-full cursor-pointer flex-col items-center justify-center gap-2 text-center">
-                  <span className="rounded-full bg-accent-ink/10 px-3 py-1 text-xs font-bold text-foreground">
-                    {createMode === "replace-person"
-                      ? "拖放含人物的照片至此，或點擊上傳"
-                      : createMode === "scene-place"
-                        ? "拖放場景照片至此，或點擊上傳場景"
-                        : "選填：拖放背景場景照片至此（未上傳則依貼文類型自動生成背景）"}
-                  </span>
-                  <span className="max-w-sm text-[11px] text-muted">
-                    {createMode === "replace-person"
-                      ? "上傳後可在圖中人物身上點擊或塗抹圈選要替換的人物，AI 將替換為所選角色的臉、髮型與預設服裝"
-                      : createMode === "scene-place"
-                        ? "上傳後 AI 會將角色自然放入此場景，亦可塗鴉標註角色站位或輸入文字描述"
-                        : "若上傳場景圖，生成時會以該場景作為背景，並依照所選貼文類型與姿勢拍攝"}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
+                  <LifePoseBar
+                    poseId={poseId}
                     disabled={pending !== ""}
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      event.target.value = "";
-                      void onUpload(file);
-                    }}
+                    emptyHint="未選擇時將保留原圖被替換人物的姿勢；選擇後將改用新姿勢"
+                    onOpenPicker={() => setPoseDialogOpen(true)}
+                    onClear={() => setPoseId("")}
                   />
-                </label>
-              ) : (
-                <div className="flex w-full flex-col gap-2.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[11px] font-bold text-muted">
-                        {createMode === "replace-person"
-                          ? "點擊或塗抹圈選要替換的人物（未圈選則替換主要人物）："
-                          : "畫筆標註（在圖上塗鴉標記位置）："}
+                </LifeFormField>
+
+                <LifeFormSeparator />
+
+                <LifeFormField
+                  step={3}
+                  label="補充替換說明 (Additional Instruction)"
+                  required={false}
+                  hint="若有多位人物或特殊要求，可在此輸入補充說明（不填寫亦可直接生成）。"
+                >
+                  <input
+                    type="text"
+                    value={customInstruction}
+                    onChange={(e) => setCustomInstruction(e.target.value)}
+                    placeholder="選填：例如「只替換左邊穿深色外套的人物，保留右側朋友」、「面帶微笑看鏡頭」..."
+                    className="h-9 w-full rounded-xl border border-accent-ink/15 bg-paper px-3 text-xs font-medium text-foreground focus-visible:outline-1 focus-visible:outline-accent"
+                  />
+                </LifeFormField>
+              </>
+            ) : createMode === "scene-place" ? (
+              <>
+                <LifeFormField
+                  step={1}
+                  label="場景照片 (Scene Image)"
+                  required
+                  hint="請上傳一張環境或風景照片（或搜尋地點照片），AI 會將所選角色自然放入此場景中；亦可直接在圖上塗鴉標記站位。"
+                  headerRight={uploadHeaderButtons}
+                >
+                  {sceneUploadAndCanvasSection}
+                </LifeFormField>
+
+                <LifeFormSeparator />
+
+                <LifeFormField
+                  step={2}
+                  label="場景融入描述 (Scene Description)"
+                  required={false}
+                  hint="描述希望角色如何出現在場景中（例如位置、互動動作或神情），或直接點選下方快捷標籤。"
+                >
+                  <div className="space-y-2 rounded-xl border border-accent-ink/12 bg-paper p-3">
+                    <input
+                      type="text"
+                      value={customInstruction}
+                      onChange={(e) => setCustomInstruction(e.target.value)}
+                      placeholder="選填：例「讓角色坐在窗邊看著窗外」、「手拿咖啡自然走在街道中央」..."
+                      className="h-9 w-full rounded-lg border border-accent-ink/15 bg-paper px-3 text-xs font-medium text-foreground focus-visible:outline-1 focus-visible:outline-accent"
+                    />
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                      <span className="text-[10px] font-bold text-muted">
+                        快捷描述：
                       </span>
-                      {remarks.map((r) => {
-                        const isActive = r.number === activeRemarkNumber;
+                      {SCENE_PLACE_SHORTCUTS.map((sc) => {
+                        const active = customInstruction === sc.prompt;
                         return (
                           <button
-                            key={r.number}
+                            key={sc.id}
                             type="button"
-                            onClick={() => setActiveRemarkNumber(r.number)}
-                            style={{
-                              backgroundColor: isActive ? r.color : "transparent",
-                              borderColor: r.color,
-                              color: isActive ? "#ffffff" : r.color,
-                            }}
-                            className="cursor-pointer rounded-full border-2 px-2.5 py-0.5 text-xs font-bold transition"
+                            onClick={() =>
+                              setCustomInstruction(active ? "" : sc.prompt)
+                            }
+                            className={`cursor-pointer rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition ${
+                              active
+                                ? "border-accent bg-accent text-white"
+                                : "border-accent-ink/15 bg-paper text-foreground hover:border-accent-ink/40"
+                            }`}
                           >
-                            #{r.number}
+                            {sc.label}
                           </button>
                         );
                       })}
-                      {remarks.length < 6 ? (
-                        <button
-                          type="button"
-                          onClick={addRemarkSlot}
-                          className="cursor-pointer rounded-full border border-accent-ink/20 bg-paper px-2.5 py-0.5 text-xs font-bold text-foreground hover:border-accent-ink"
-                        >
-                          + 新增 #{remarks.length + 1}
-                        </button>
-                      ) : null}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {remarks.length > 0 ? (
-                        <button
-                          type="button"
-                          onClick={resetRemarks}
-                          className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 text-[11px] font-semibold text-muted hover:text-foreground"
-                        >
-                          清除圈選
-                        </button>
-                      ) : null}
-                      <label className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 text-[11px] font-semibold text-muted hover:text-foreground">
-                        更換圖片
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="sr-only"
-                          onChange={(event) => {
-                            const file = event.target.files?.[0];
-                            event.target.value = "";
-                            void onUpload(file);
-                          }}
-                        />
-                      </label>
                     </div>
                   </div>
+                </LifeFormField>
 
-                  {/* Image + Drawing Overlay Canvas */}
-                  <div className="relative mx-auto max-h-[17rem] overflow-hidden rounded-xl border border-accent-ink/15 bg-zinc-900 select-none">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={sceneUrl}
-                      alt="Scene reference"
-                      draggable={false}
-                      className="max-h-[17rem] w-auto object-contain"
-                    />
-                    <canvas
-                      ref={canvasRef}
-                      width={720}
-                      height={960}
-                      onPointerDown={onPointerDown}
-                      onPointerMove={onPointerMove}
-                      onPointerUp={onPointerUp}
-                      onPointerCancel={onPointerUp}
-                      className="absolute inset-0 h-full w-full cursor-crosshair touch-none"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+                <LifeFormSeparator />
 
-            {/* Numbered Remark Comment Inputs (#1, #2, #3...) — shown only when remarks exist */}
-            {sceneUrl && remarks.length > 0 ? (
-              <div className="space-y-1.5 rounded-xl border border-accent-ink/10 bg-paper p-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-foreground">
-                    {createMode === "replace-person"
-                      ? "已圈選要替換的人物（生成結果不會顯示塗鴉線條與編號）"
-                      : "標註修改說明（生成結果不會顯示塗鴉線條與編號）"}
-                  </span>
-                </div>
-                {remarks.map((r) => (
-                  <div key={r.number} className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setActiveRemarkNumber(r.number)}
-                      style={{ backgroundColor: r.color }}
-                      className="inline-flex h-6 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-[11px] font-bold text-white"
-                    >
-                      #{r.number}
-                    </button>
-                    <input
-                      type="text"
-                      value={r.comment}
-                      onFocus={() => setActiveRemarkNumber(r.number)}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setRemarks((prev) =>
-                          prev.map((item) =>
-                            item.number === r.number
-                              ? { ...item, comment: val }
-                              : item,
-                          ),
-                        );
-                      }}
-                      placeholder={`#${r.number} 修改說明（例：將此處人物換成角色 / 加上道具...）`}
-                      className="h-8 flex-1 rounded-lg border border-accent-ink/15 bg-paper px-2.5 text-xs text-foreground focus-visible:outline-1 focus-visible:outline-accent"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeRemarkSlot(r.number)}
-                      className="cursor-pointer px-1.5 text-xs font-bold text-muted hover:text-red-600"
-                      aria-label={`Remove #${r.number}`}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : null}
+                <LifeFormField
+                  step={3}
+                  label="角色姿勢 (Pose)"
+                  required={false}
+                  hint="可選填指定角色在場景中的身體姿勢與取景比例。"
+                >
+                  <LifePoseBar
+                    poseId={poseId}
+                    disabled={pending !== ""}
+                    onOpenPicker={() => setPoseDialogOpen(true)}
+                    onClear={() => setPoseId("")}
+                  />
+                </LifeFormField>
+              </>
+            ) : (
+              <>
+                <LifeFormField
+                  step={1}
+                  label="貼文類型 (Post Type)"
+                  required
+                  hint="選擇一種 IG 貼文構圖與情境指南，決定鏡頭角度、距離與畫面氛圍。"
+                >
+                  <LifeTemplateGuide
+                    templateId={templateId}
+                    compositionRefUrl={compositionRefUrl}
+                    uploading={pending === "refUpload"}
+                    disabled={pending !== ""}
+                    onOpenPicker={() => setTemplateDialogOpen(true)}
+                    onClear={() => {
+                      setTemplateId("");
+                      setCompositionRefUrl("");
+                    }}
+                    onUploadRef={(file) => void onUploadCompositionRef(file)}
+                    onRemoveRef={() => setCompositionRefUrl("")}
+                  />
+                </LifeFormField>
 
-            {/* Tab 2 only: Optional Scene Description & Quick Shortcuts */}
-            {createMode === "scene-place" ? (
-              <div className="space-y-2 rounded-xl border border-accent-ink/10 bg-paper p-2.5">
-                <label className="block text-[11px] font-bold text-foreground">
-                  場景描述（選填：描述如何將角色放入此場景）
-                </label>
-                <input
-                  type="text"
-                  value={customInstruction}
-                  onChange={(e) => setCustomInstruction(e.target.value)}
-                  placeholder="例：讓角色坐在窗邊看著窗外、手拿咖啡站在街道中央..."
-                  className="h-8 w-full rounded-lg border border-accent-ink/15 bg-paper px-2.5 text-xs font-medium text-foreground focus-visible:outline-1 focus-visible:outline-accent"
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  {SCENE_PLACE_SHORTCUTS.map((sc) => {
-                    const active = customInstruction === sc.prompt;
-                    return (
-                      <button
-                        key={sc.id}
-                        type="button"
-                        onClick={() =>
-                          setCustomInstruction(active ? "" : sc.prompt)
-                        }
-                        className={`cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
-                          active
-                            ? "border-accent bg-accent text-white"
-                            : "border-accent-ink/15 bg-paper text-foreground hover:border-accent-ink/40"
-                        }`}
-                      >
-                        {sc.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
+                <LifeFormSeparator />
+
+                <LifeFormField
+                  step={2}
+                  label="角色姿勢 (Pose)"
+                  required={false}
+                  hint="可選填搭配特定骨架姿勢；若未選擇則依照貼文類型自然擺拍。"
+                >
+                  <LifePoseBar
+                    poseId={poseId}
+                    disabled={pending !== ""}
+                    onOpenPicker={() => setPoseDialogOpen(true)}
+                    onClear={() => setPoseId("")}
+                  />
+                </LifeFormField>
+
+                <LifeFormSeparator />
+
+                <LifeFormField
+                  step={3}
+                  label="背景場景照片 (Scene Background)"
+                  required={false}
+                  hint="可選填上傳或搜尋場景照片作為背景；若未上傳，AI 會根據所選貼文類型自動生成真實背景。"
+                  headerRight={uploadHeaderButtons}
+                >
+                  {sceneUploadAndCanvasSection}
+                </LifeFormField>
+
+                <LifeFormSeparator />
+
+                <LifeFormField
+                  step={4}
+                  label="補充細節說明 (Custom Note)"
+                  required={false}
+                  hint="可選填補充光線、時間、道具或氛圍等細節要求。"
+                >
+                  <input
+                    type="text"
+                    value={customInstruction}
+                    onChange={(e) => setCustomInstruction(e.target.value)}
+                    placeholder="選填：例如「傍晚暖陽逆光」、「桌上放著一杯冰拿鐵與書本」..."
+                    className="h-9 w-full rounded-xl border border-accent-ink/15 bg-paper px-3 text-xs font-medium text-foreground focus-visible:outline-1 focus-visible:outline-accent"
+                  />
+                </LifeFormField>
+              </>
+            )}
           </div>
 
           {/* Bottom Action Dock inside Center Pane */}

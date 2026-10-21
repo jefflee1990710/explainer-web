@@ -8,11 +8,13 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 export function LifePoseBar({
   poseId,
   disabled,
+  emptyHint,
   onOpenPicker,
   onClear,
 }: {
   poseId: string;
   disabled: boolean;
+  emptyHint?: string;
   onOpenPicker: () => void;
   onClear: () => void;
 }) {
@@ -21,10 +23,14 @@ export function LifePoseBar({
 
   if (!pose) {
     return (
-      <div className="flex items-center justify-between gap-2 rounded-xl border border-accent-ink/10 bg-paper p-2.5">
+      <div className="flex items-center justify-between gap-2 rounded-xl border border-accent-ink/12 bg-paper p-2.5">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold text-foreground">{t("life.poses.title")}</p>
-          <p className="truncate text-[11px] text-muted">{t("life.poses.hint")}</p>
+          <p className="text-[11px] font-bold text-foreground">
+            尚未選擇特定姿勢（使用預設自然姿勢）
+          </p>
+          <p className="truncate text-[11px] text-muted">
+            {emptyHint ?? t("life.poses.hint")}
+          </p>
         </div>
         <button
           type="button"

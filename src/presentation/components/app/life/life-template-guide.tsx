@@ -29,9 +29,11 @@ export function LifeTemplateGuide({
 
   if (!template) {
     return (
-      <div className="flex items-center justify-between gap-2 rounded-xl border border-accent-ink/10 bg-paper p-2.5">
+      <div className="flex items-center justify-between gap-2 rounded-xl border border-accent-ink/15 bg-paper p-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold text-foreground">{t("life.templates.title")}</p>
+          <p className="text-xs font-bold text-foreground">
+            尚未選擇貼文類型（請先選擇一種構圖模板）
+          </p>
           <p className="truncate text-[11px] text-muted">{t("life.templates.hint")}</p>
         </div>
         <button
@@ -87,7 +89,7 @@ export function LifeTemplateGuide({
           <span className="font-bold">{t("life.templates.tipsTitle")}：</span>
           {t(`life.templates.tips.${template.id}`)}
         </p>
-        <div className="flex items-center gap-2 rounded-lg bg-accent-ink/5 p-2">
+        <div className="flex items-center gap-2 rounded-lg border border-accent-ink/10 bg-accent-ink/5 p-2">
           {compositionRefUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -97,7 +99,14 @@ export function LifeTemplateGuide({
             />
           ) : null}
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold text-foreground">{t("life.templates.compositionRef")}</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <p className="text-[11px] font-bold text-foreground">
+                {t("life.templates.compositionRef")}
+              </p>
+              <span className="inline-flex items-center rounded-full border border-accent-ink/12 bg-paper/80 px-1.5 py-0.2 text-[9px] font-bold text-muted">
+                選填 Optional
+              </span>
+            </div>
             <p className="text-[10px] leading-snug text-muted">{t("life.templates.compositionRefHint")}</p>
           </div>
           {compositionRefUrl ? (
@@ -126,7 +135,6 @@ export function LifeTemplateGuide({
             </label>
           )}
         </div>
-        <p className="text-[10px] text-muted">{t("life.templates.sceneRequired")}</p>
       </div>
     </div>
   );
