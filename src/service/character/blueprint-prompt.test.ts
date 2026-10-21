@@ -211,6 +211,52 @@ test("editing a sheet replaces a scenic ground with the light sheet colour", () 
   assert.match(prompt, /把裙子改成白色/);
 });
 
+test("board wardrobe edit puts the previous images first and ignores the photos' clothes and hair", () => {
+  const style = loadedStyle("doodle");
+  const spec = {
+    identity: "woman",
+    face: "oval",
+    hair: "black wolf cut",
+    skinTone: "light",
+    body: "slim",
+    marks: "",
+    outfit: "black spaghetti strap dress",
+    palette: ["#000000"],
+  };
+  const editInstruction =
+    "Hair: curtain bangs; Top: denim halter top. Isolated wardrobe piece alwasheddenimtop.";
+  const fullBody = buildFullBodyPrompt({
+    style,
+    description: "x",
+    spec,
+    photoCount: 3,
+    editInstruction,
+    parentImageCount: 2,
+  });
+  assert.doesNotMatch(fullBody, /Complete the outfit, shoes, and accessories from the photos/);
+  assert.doesNotMatch(fullBody, /even when the portrait shows a different hairstyle/);
+  assert.match(fullBody, /previous full-body figure/);
+  assert.match(fullBody, /Ignore the hair and clothing in the original photos/);
+  assert.doesNotMatch(fullBody, /- Outfit: black spaghetti strap dress/);
+  assert.doesNotMatch(fullBody, /- Hair: black wolf cut/);
+  assert.doesNotMatch(fullBody, /Isolated wardrobe piece/);
+  assert.match(fullBody, /denim halter top/);
+
+  const portrait = buildPortraitPrompt({
+    style,
+    description: "x",
+    spec,
+    photoCount: 3,
+    editInstruction,
+    parentImageCount: 1,
+  });
+  assert.doesNotMatch(portrait, /keep the face, skin texture, hair, framing/);
+  assert.match(portrait, /Ignore the hair and clothing in the original photos/);
+  assert.doesNotMatch(portrait, /- Outfit: black spaghetti strap dress/);
+  assert.doesNotMatch(portrait, /- Hair: black wolf cut/);
+  assert.match(portrait, /curtain bangs/);
+});
+
 test("portrait and full body keep the reference hairstyle", () => {
   const style = loadedStyle("doodle");
   const portrait = buildPortraitPrompt({ style, description: "x", photoCount: 1 });

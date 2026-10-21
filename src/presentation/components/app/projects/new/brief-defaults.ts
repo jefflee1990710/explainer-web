@@ -5,7 +5,7 @@ import { isSubtitleLook, resolveSubtitleLook } from "@/service/director/subtitle
 import { isSpeechPace } from "@/service/director/speech-pace";
 import { requiredCastCount } from "@/service/director/skill-rules";
 import { isVoiceGender } from "@/service/director/voice";
-import { DEFAULT_STYLE_ID } from "@/service/style";
+import { pickerDefaultStyleId } from "@/service/style";
 import type {
   AspectRatio,
   DurationPreset,
@@ -58,7 +58,7 @@ export function sanitizeBriefDefaults(
   const styleId =
     typeof input.styleId === "string" && catalog.styles.some((style) => style.id === input.styleId)
       ? input.styleId
-      : catalog.styles[0]?.id || DEFAULT_STYLE_ID;
+      : pickerDefaultStyleId(catalog.styles);
   const language = typeof input.language === "string" && isVoLanguage(input.language) ? input.language : "en";
   const voiceGender =
     typeof input.voiceGender === "string" && isVoiceGender(input.voiceGender) ? input.voiceGender : "male";

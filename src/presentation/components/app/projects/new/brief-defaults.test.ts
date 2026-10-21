@@ -49,6 +49,14 @@ test("sanitize drops unknown skill, style, and leftover characters", () => {
   assert.deepEqual(next?.characterIds, ["a"]);
 });
 
+test("sanitize falls back to realistic for an unknown style when realistic is offered", () => {
+  const next = sanitizeBriefDefaults(
+    raw({ styleId: "neon" as BriefDefaults["styleId"], characterIds: [] }),
+    { skills, styles: [...styles, { id: "realistic" as const }], characters },
+  );
+  assert.equal(next?.styleId, "realistic");
+});
+
 test("sanitize keeps Q&A to exactly two matching-style characters", () => {
   const next = sanitizeBriefDefaults(
     raw({ characterIds: ["a", "b", "c"] }),

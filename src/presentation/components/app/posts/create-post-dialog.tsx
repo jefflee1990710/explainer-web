@@ -9,7 +9,7 @@ import { CharacterPicker } from "@/presentation/components/app/projects/[id]/cha
 import { ProductPicker } from "@/presentation/components/app/products/product-picker";
 import { StylePicker } from "@/presentation/components/style-picker";
 import { INSTRUCTION_MAX, type PosterLayoutId } from "@/model/post-layers";
-import { DEFAULT_STYLE_ID } from "@/service/style";
+import { pickerDefaultStyleId } from "@/service/style";
 import type { PublicCharacter, PublicProduct, PublicStyle } from "@/presentation/serialize";
 
 export type PosterLayoutChoice = {
@@ -35,7 +35,7 @@ export function CreatePostDialog({
   const router = useRouter();
   const titleId = useId();
   const [layoutId, setLayoutId] = useState<PosterLayoutId>("layout-01");
-  const [styleId, setStyleId] = useState<string>(DEFAULT_STYLE_ID);
+  const [styleId, setStyleId] = useState<string>(() => pickerDefaultStyleId(styles));
   const [characterIds, setCharacterIds] = useState<string[]>([]);
   const [productIds, setProductIds] = useState<string[]>([]);
   const [instruction, setInstruction] = useState("");

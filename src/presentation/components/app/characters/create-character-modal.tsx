@@ -14,7 +14,7 @@ import { MAX_CHARACTER_REFERENCES } from "@/service/character/reference-urls";
 import type { CharacterVoice } from "@/model/character-voice";
 import { DEFAULT_CHARACTER_VOICE } from "@/service/director/character-voice";
 import type { PublicStyle } from "@/presentation/serialize";
-import { DEFAULT_STYLE_ID } from "@/service/style";
+import { pickerDefaultStyleId } from "@/service/style";
 import { Spinner } from "@/presentation/components/spinner";
 import { StylePicker } from "@/presentation/components/style-picker";
 import { CreateCharacterMenu } from "@/presentation/components/app/characters/create-character-menu";
@@ -83,7 +83,7 @@ export function CreateCharacterModal({
   const inputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const [name, setName] = useState("");
-  const [styleId, setStyleId] = useState<string>(DEFAULT_STYLE_ID);
+  const [styleId, setStyleId] = useState<string>(() => pickerDefaultStyleId(styles));
   const [prompt, setPrompt] = useState("");
   const [voiceOn, setVoiceOn] = useState(false);
   const [voice, setVoice] = useState<CharacterVoice>(DEFAULT_CHARACTER_VOICE);

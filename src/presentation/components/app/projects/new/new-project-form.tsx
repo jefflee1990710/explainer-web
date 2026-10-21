@@ -93,7 +93,7 @@ import type {
   PublicTextStyle,
   PublicVideo,
 } from "@/presentation/serialize";
-import { DEFAULT_STYLE_ID } from "@/service/style";
+import { DEFAULT_STYLE_ID, pickerDefaultStyleId } from "@/service/style";
 import type {
   AspectRatio,
   DurationPreset,
@@ -203,7 +203,7 @@ export function NewProjectForm({
   const ruleSlug = ruleSlugFor(skillSlug, skills);
   // Visual style; the cast must share it, so changing it prunes mismatches.
   const [styleId, setStyleId] = useState<string>(
-    initialVideo?.styleId || lastBrief?.styleId || DEFAULT_STYLE_ID,
+    initialVideo?.styleId || lastBrief?.styleId || pickerDefaultStyleId(styles),
   );
   const [source, setSource] = useState(initialVideo?.source || "");
   const [spokenScript, setSpokenScript] = useState(

@@ -33,6 +33,7 @@ import {
   videoCharacterBlobUrls,
 } from "@/service/character/storage";
 import { failCharacterVersion, versionCreditsCost } from "@/service/character/sync";
+import { specAfterWardrobeEdit } from "@/service/character/wardrobe-edit";
 import { canSetDefault } from "@/service/character/versions";
 import {
   charactersCollection,
@@ -261,7 +262,7 @@ export async function editCharacterVersionAction(
         ? {
             blueprintKind: "board" as const,
             stage: "portrait" as const,
-            ...(parent.spec ? { spec: parent.spec } : {}),
+            ...(parent.spec ? { spec: specAfterWardrobeEdit(parent.spec, instruction) } : {}),
           }
         : {}),
       status: "queued",

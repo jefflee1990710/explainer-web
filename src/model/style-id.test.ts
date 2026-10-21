@@ -2,10 +2,19 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   DEFAULT_STYLE_ID,
+  PICKER_DEFAULT_STYLE_ID,
   STYLE_IDS,
   isStyleId,
+  pickerDefaultStyleId,
   resolveStyleId,
 } from "@/model/style-id";
+
+test("pickers default to realistic when it is offered, else the first offered style", () => {
+  assert.equal(PICKER_DEFAULT_STYLE_ID, "realistic");
+  assert.equal(pickerDefaultStyleId([{ id: "doodle" }, { id: "realistic" }]), "realistic");
+  assert.equal(pickerDefaultStyleId([{ id: "doodle" }, { id: "pixel" }]), "doodle");
+  assert.equal(pickerDefaultStyleId([]), "realistic");
+});
 
 test("STYLE_IDS lists every allowed style id", () => {
   assert.deepEqual(STYLE_IDS, [

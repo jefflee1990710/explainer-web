@@ -6,6 +6,27 @@ import {
   isRealisticStyle,
   REALISTIC_CHARACTER_RENDER_RULE,
 } from "@/service/style/realistic-light";
+import {
+  cleanWardrobeEditText,
+  parseWardrobeChanges,
+  specAfterWardrobeEdit,
+} from "@/service/character/wardrobe-edit";
+
+const IGNORE_PHOTO_LOOK =
+  "Ignore the hair and clothing in the original photos; they show an older look.";
+
+// Spec for an edit prompt: the base image carries hair and clothes, so only lines this change sets stay.
+function editSpecBlock(spec: CharacterSpec, instruction: string) {
+  const changes = parseWardrobeChanges(instruction);
+  const edited = specAfterWardrobeEdit(spec, instruction) ?? spec;
+  const clothesChanged = Boolean(changes.top || changes.pants || changes.shoes || changes.accessory);
+  return characterSpecBlock({
+    ...edited,
+    hair: changes.hair ? edited.hair : "",
+    outfit: clothesChanged ? edited.outfit : "",
+    palette: [],
+  });
+}
 
 // Fixed character-sheet layout so every version is comparable side by side.
 // GPT Image maps 16:9 requests to a 3:2 frame; keep the prompt aligned with that.
@@ -195,20 +216,18 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
   ];
   if (description) lines.push(`Character: ${description}`);
   if (input.editInstruction && input.parentImageCount) {
+    const change = cleanWardrobeEditText(input.editInstruction);
     lines.push(
-      "Use the first attached image (the current identity portrait) as the base. Apply only the change below; keep the face, skin texture, hair, framing, and visual style otherwise identical.",
+      "Use the first attached image (the current identity portrait) as the base. Keep the face, skin texture, framing, and visual style identical. Apply the change below so it is clearly visible; anything it does not name stays as in the base image.",
       ...(input.photoCount > 0
         ? [
-            "Every attached image after the first is an original photo of this character. Keep 五官比例, 整體氣質, and source skin texture anchored to those photos so the face does not drift.",
+            `Every attached image after the first is an original photo of this character. Keep 五官比例, 整體氣質, and source skin texture anchored to those photos so the face does not drift. ${IGNORE_PHOTO_LOOK}`,
           ]
         : []),
-      `Change: ${input.editInstruction.trim()}`,
+      `Change: ${change}`,
     );
     if (input.spec) {
-      lines.push(
-        "Appearance notes for this character (still true unless the change above says otherwise):",
-        characterSpecBlock(input.spec),
-      );
+      lines.push("Appearance notes for this character after the change:", editSpecBlock(input.spec, change));
     }
     return fitReferencePrompt(lines);
   }
@@ -227,12 +246,15 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
   const description = input.description.trim();
   const lightGround = !usesDrawingSurface(input.style);
   const realistic = isRealisticStyle(input.style);
+  const change = input.editInstruction ? cleanWardrobeEditText(input.editInstruction) : "";
   const lines = [
     "One full-body standing view of the character in the first attached image (their identity portrait) on a tall canvas.",
     "One person, standing straight upright (站直), facing the camera directly front-on (regardless of any seated or angled pose in the reference photo), with a warm, gentle little smile, eyes open, arms relaxed at the sides, feet slightly apart. No props, no text, no labels, no second person, no extra poses.",
-    input.photoCount > 0
-      ? "Copy the face and skin texture from the portrait. Copy the hair exactly from the original photos — length, colour, parting, and how it is worn — even when the portrait shows a different hairstyle. Complete the outfit, shoes, and accessories from the photos."
-      : "Copy the face, hair, and visible clothing from that portrait exactly. Do not restyle the hair.",
+    change
+      ? "Copy the face and skin texture from the portrait."
+      : input.photoCount > 0
+        ? "Copy the face and skin texture from the portrait. Copy the hair exactly from the original photos — length, colour, parting, and how it is worn — even when the portrait shows a different hairstyle. Complete the outfit, shoes, and accessories from the photos."
+        : "Copy the face, hair, and visible clothing from that portrait exactly. Do not restyle the hair.",
     "Framing: the entire body is visible from the top of the hair to the soles of the feet, centered, with empty margin above the head and below the feet. Do not crop to a portrait. Do not draw the figure too small — it should fill about four fifths of the canvas height.",
     ...characterBlueprintStyleLines(input.style),
     lightGround
@@ -241,27 +263,25 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
     ...(realistic ? [REALISTIC_CHARACTER_RENDER_RULE] : []),
   ];
   if (description) lines.push(`Character: ${description}`);
-  if (input.editInstruction && input.parentImageCount && input.parentImageCount > 1) {
+  if (change && input.parentImageCount && input.parentImageCount > 1) {
     lines.push(
-      "The second attached image is the previous full-body figure. Apply only the change below to it; keep pose, framing, skin texture, and everything the change does not name identical, and keep the face on the new portrait.",
-      `Change: ${input.editInstruction.trim()}`,
+      "The second attached image is the previous full-body figure. Use it as the base: keep pose, body, framing, skin texture, and every piece the change does not name. Replace exactly the items named below so the new pieces are clearly visible, and keep the face on the new portrait.",
+      `Change: ${change}`,
     );
-  } else if (input.editInstruction) {
-    lines.push(`Change already applied to the portrait, also apply it here: ${input.editInstruction.trim()}`);
+  } else if (change) {
+    lines.push(`Change already applied to the portrait, also apply it here: ${change}`);
   }
   if (input.photoCount > 0) {
     lines.push(
-      input.editInstruction
-        ? "The remaining attached images are original photos of this character. Keep the face, body proportions, and skin texture faithful to the portrait and source photos, while replacing any hair, top, pants, shoes, or accessories named in Change above."
+      change
+        ? `The remaining attached images are original photos of this character, for face and body proportions only. ${IGNORE_PHOTO_LOOK}`
         : "The remaining attached images are original photos of this character. Use them for body proportions, skin texture, outfit, shoes, and accessories; the face and skin texture stay faithful to the portrait and source photos.",
     );
   }
   if (input.spec) {
     lines.push(
-      input.editInstruction
-        ? "Appearance notes for this character (still true unless the change above says otherwise):"
-        : "Appearance notes for this character:",
-      characterSpecBlock(input.spec),
+      change ? "Appearance notes for this character after the change:" : "Appearance notes for this character:",
+      change ? editSpecBlock(input.spec, change) : characterSpecBlock(input.spec),
     );
   }
   return fitReferencePrompt(lines);

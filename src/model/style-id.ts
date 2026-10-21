@@ -44,6 +44,17 @@ export type StyleId = z.infer<typeof styleIdSchema>;
 
 export const DEFAULT_STYLE_ID: StyleId = "doodle";
 
+// Style pre-selected in pickers when the user has no saved preference. DEFAULT_STYLE_ID stays the legacy fallback.
+export const PICKER_DEFAULT_STYLE_ID: StyleId = "realistic";
+
+// Picker default limited to the styles on offer.
+export function pickerDefaultStyleId(offered: ReadonlyArray<{ id: string }>): string {
+  if (offered.length === 0 || offered.some((style) => style.id === PICKER_DEFAULT_STYLE_ID)) {
+    return PICKER_DEFAULT_STYLE_ID;
+  }
+  return offered[0].id;
+}
+
 export function isStyleId(value: string | undefined): value is StyleId {
   return Boolean(value && (STYLE_IDS as readonly string[]).includes(value));
 }

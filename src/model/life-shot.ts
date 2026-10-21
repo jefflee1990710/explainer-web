@@ -10,6 +10,10 @@ import { objectIdSchema } from "@/model/primitives";
 
 export { LIFE_SHOT_KINDS, LIFE_SHOT_SOURCES, type LifeShotKind, type LifeShotSource };
 
+export const LIFE_SHOT_STATUSES = ["generating", "completed", "failed"] as const;
+export type LifeShotStatus = (typeof LIFE_SHOT_STATUSES)[number];
+export const lifeShotStatusSchema = z.enum(LIFE_SHOT_STATUSES);
+
 // A generated day-in-the-life still. Not a blueprint version.
 export type LifeShot = {
   _id: ObjectId;
@@ -22,6 +26,9 @@ export type LifeShot = {
   source: LifeShotSource;
   sceneImageUrl: string;
   resultUrl: string;
+  status?: LifeShotStatus;
+  error?: string;
+  spendKey?: string;
   // Post-type template id from LIFE_POST_TEMPLATES, and the optional pose/framing reference.
   templateId?: string;
   compositionRefUrl?: string;
@@ -44,6 +51,9 @@ export const lifeShotSchema: z.ZodType<LifeShot> = z.object({
   source: lifeShotSourceSchema,
   sceneImageUrl: z.string(),
   resultUrl: z.string(),
+  status: lifeShotStatusSchema.optional(),
+  error: z.string().optional(),
+  spendKey: z.string().optional(),
   templateId: z.string().optional(),
   compositionRefUrl: z.string().optional(),
   poseId: z.string().optional(),

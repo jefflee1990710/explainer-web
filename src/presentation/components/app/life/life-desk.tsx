@@ -7,6 +7,7 @@ import type { LifeCreateMode, LifeShotKind } from "@/model/life-shot-kind";
 import {
   generateLifeCaptionAction,
   generateLifeShotAction,
+  listLifeShotsAction,
   searchLifeScenesAction,
 } from "@/presentation/actions/life";
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
@@ -207,6 +208,33 @@ export function LifeDesk({
   const [historyEditPrompt, setHistoryEditPrompt] = useState("");
   const [generatedCaption, setGeneratedCaption] = useState("");
   const [captionLoading, setCaptionLoading] = useState(false);
+
+  // Count of life photos currently generating in the background.
+  const generatingCount = shots.filter((s) => s.status === "generating").length;
+
+  // Poll every 3 seconds while any life shot is generating in the background.
+  useEffect(() => {
+    if (generatingCount === 0) return;
+    let cancelled = false;
+    const timer = setInterval(async () => {
+      try {
+        const res = await listLifeShotsAction();
+        if (cancelled || !res.ok) return;
+        setShots(res.shots);
+        setDialogShot((current) => {
+          if (!current) return current;
+          const updated = res.shots.find((s) => s.id === current.id);
+          return updated ?? current;
+        });
+      } catch {
+        // Ignore transient polling errors.
+      }
+    }, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [generatingCount]);
   const [captionCopied, setCaptionCopied] = useState(false);
   const [downloadingPng, setDownloadingPng] = useState(false);
 
@@ -498,7 +526,7 @@ export function LifeDesk({
         return;
       }
       setShots((current) => [result.shot, ...current]);
-      setDialogShot(result.shot);
+      setDialogShot(null);
       setHistoryEditPrompt("");
     } catch {
       setPending("");
@@ -1037,7 +1065,7 @@ export function LifeDesk({
                 <Spinner className="mr-2 h-3.5 w-3.5" />
               ) : null}
               {pending === "generate"
-                ? t("life.generating")
+                ? "排入背景佇列中..."
                 : t("life.generate")}
               <span className="ml-2 font-medium opacity-85">
                 · {t("life.cost", { cost: FRAME_COST })}
@@ -1051,15 +1079,23 @@ export function LifeDesk({
           aria-label={t("life.recent")}
           className="flex min-h-[24rem] flex-col gap-2.5 overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper p-3.5"
         >
-          <div className="flex shrink-0 items-center justify-between">
+          <div className="flex shrink-0 items-center justify-between gap-2">
             <h2 className="font-display text-sm font-bold">
               {character ? `${character.name} · ${t("life.recent")}` : t("life.recent")}
             </h2>
-            {visibleShots.length > 0 ? (
-              <span className="rounded-full bg-accent-ink/8 px-2 py-0.5 text-[10px] font-bold text-muted">
-                {visibleShots.length}
-              </span>
-            ) : null}
+            <div className="flex items-center gap-1.5">
+              {generatingCount > 0 ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-accent-ink px-2 py-0.5 text-[10px] font-bold text-lime">
+                  <Spinner className="h-3 w-3" />
+                  {generatingCount} 張背景生成中
+                </span>
+              ) : null}
+              {visibleShots.length > 0 ? (
+                <span className="rounded-full bg-accent-ink/8 px-2 py-0.5 text-[10px] font-bold text-muted">
+                  {visibleShots.length}
+                </span>
+              ) : null}
+            </div>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">

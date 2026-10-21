@@ -11,7 +11,7 @@ import { isCreditGateError } from "@/service/billing/credit-gate";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 import { localizedStyleName } from "@/util/style-i18n";
 import type { StyleId } from "@/model/style-id";
-import { isStyleId } from "@/model/style-id";
+import { isStyleId, pickerDefaultStyleId } from "@/model/style-id";
 
 function styleName(style: PublicStyle) {
   return style.isCustom || !isStyleId(style.id) ? style.name : localizedStyleName(style.id as StyleId);
@@ -34,7 +34,7 @@ export function AddCharacterStyleDialog({
   const { t } = useI18n();
   const titleId = useId();
   const available = styles.filter((style) => !character.styleIds.includes(style.id));
-  const [styleId, setStyleId] = useState(available[0]?.id ?? "");
+  const [styleId, setStyleId] = useState(() => (available.length ? pickerDefaultStyleId(available) : ""));
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
