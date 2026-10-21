@@ -1,6 +1,7 @@
 import { generateText } from "ai";
 import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
+import sharp from "sharp";
 import { charactersCollection } from "@/dao/characters";
 import { lifeShotsCollection } from "@/dao/life-shots";
 import type { Character } from "@/model/character";
@@ -154,6 +155,7 @@ export async function generateLifeShotAction(input: {
   const version = resolveDefaultVersion(character);
   const outfitRefUrl = version?.profileUrl && version.profileUrl !== identity ? version.profileUrl : "";
   const outfitText = version?.spec?.outfit ?? "";
+  const hairText = version?.spec?.hair ?? "";
 
   const annotatedDataUrl =
     typeof input.annotatedSceneDataUrl === "string" &&
@@ -202,6 +204,7 @@ export async function generateLifeShotAction(input: {
         poseHands: pose?.hands,
         hasOutfitRef: Boolean(outfitRefUrl),
         outfitText,
+        hairText,
       }),
       aspectRatio: "9:16",
       resolution: "2k",
@@ -212,7 +215,11 @@ export async function generateLifeShotAction(input: {
     const shotId = new ObjectId();
     const resultUrl = await persistMedia(
       imageUrl,
-      `explainer/life/${character._id.toHexString()}/${shotId.toHexString()}`,
+      `explainer/life/${character._id.toHexString()}/${shotId.toHexString()}.png`,
+      {
+        transform: (buffer) => sharp(buffer).png().toBuffer(),
+        contentType: "image/png",
+      },
     );
     const displayLabel =
       customInstruction.slice(0, 40) ||

@@ -52,23 +52,29 @@ test("lifeShotPrompt asks for a bright phone snapshot like a real Instagram post
   assert.ok(prompt.includes(LIFE_REALISTIC_RENDER_RULE));
 });
 
-test("the scene photo fixes the place; the model does not invent or move it", () => {
+test("the scene photo fixes the place and enforces natural human scale in the scene", () => {
   const prompt = lifeShotPrompt({ name: "Alice", kind: "selfie", interests: [] });
   assert.match(prompt, /Keep this exact place/);
   assert.match(prompt, /never move them to a different location/);
+  assert.match(prompt, /Scale & perspective: size Alice to true human height/);
+  assert.match(prompt, /parapet walls, railings, doorways, tables, tiles/);
   assert.doesNotMatch(prompt, /lived-in real place|one or two props/);
 });
 
-test("the outfit preset image locks the clothes exactly", () => {
+test("the outfit preset image locks the clothes and hair exactly", () => {
   const prompt = lifeShotPrompt({
     name: "Alice",
     kind: "selfie",
     interests: [],
     hasOutfitRef: true,
     outfitText: "white blouse, navy pleated skirt, loafers",
+    hairText: "long straight dark brown hair, center part",
   });
   assert.match(prompt, /The second reference image is Alice's outfit preset/);
+  assert.match(prompt, /Copy the hairstyle exactly from the outfit preset image/);
+  assert.doesNotMatch(prompt, /keep that exact face, hair/);
   assert.match(prompt, /exactly this outfit — same garments, colours, fit, shoes and accessories/);
+  assert.match(prompt, /Hair: long straight dark brown hair, center part/);
   assert.match(prompt, /Outfit: white blouse, navy pleated skirt, loafers\./);
   assert.match(prompt, /The third reference image is the base scene/);
   assert.doesNotMatch(prompt, /everyday outfit that suits the place/);
@@ -171,11 +177,13 @@ test("a full-body pose replaces the selfie framing with a head-to-feet frame", (
     name: "Alice",
     kind: "selfie",
     interests: [],
-    hasScene: false,
+    hasScene: true,
     poseText: "Standing with the right hand on the hip.",
     poseFraming: "full",
   });
   assert.match(prompt, /whole body from head to feet/);
+  assert.match(prompt, /sized to match the scene's architecture/);
+  assert.match(prompt, /Do NOT copy the skeleton's size on the canvas/);
   assert.doesNotMatch(prompt, /selfie at arm's length/);
 });
 

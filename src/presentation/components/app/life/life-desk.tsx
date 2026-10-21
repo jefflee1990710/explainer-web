@@ -11,6 +11,7 @@ import {
 } from "@/presentation/actions/life";
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
+import { downloadLifeShotAsPng } from "@/presentation/components/app/life/download-life-png";
 import { LifeCharacterStrip } from "@/presentation/components/app/life/life-character-strip";
 import { LifeSceneSource } from "@/presentation/components/app/life/life-scene-source";
 import { LifePoseBar } from "@/presentation/components/app/life/life-pose-bar";
@@ -204,6 +205,7 @@ export function LifeDesk({
   const [generatedCaption, setGeneratedCaption] = useState("");
   const [captionLoading, setCaptionLoading] = useState(false);
   const [captionCopied, setCaptionCopied] = useState(false);
+  const [downloadingPng, setDownloadingPng] = useState(false);
 
   // Multi-color numbered remarks (#1, #2, #3...) — empty by default until user draws or adds one
   const [remarks, setRemarks] = useState<RemarkItem[]>([]);
@@ -981,15 +983,32 @@ export function LifeDesk({
                 >
                   {captionLoading ? "生成文案中..." : "✍️ AI 生成 IG 貼文文案"}
                 </button>
-                <a
-                  href={dialogShot.resultUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  download
-                  className="rounded-full border border-accent-ink/15 bg-paper px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent-ink"
+                <button
+                  type="button"
+                  disabled={downloadingPng}
+                  onClick={async () => {
+                    setDownloadingPng(true);
+                    try {
+                      await downloadLifeShotAsPng({
+                        url: dialogShot.resultUrl,
+                        characterName: dialogShot.characterName,
+                        place: dialogShot.place,
+                        id: dialogShot.id,
+                      });
+                    } catch (caught) {
+                      setError(
+                        caught instanceof Error
+                          ? translateAppError(caught.message, t)
+                          : t("errors.genericRetry"),
+                      );
+                    } finally {
+                      setDownloadingPng(false);
+                    }
+                  }}
+                  className="cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-accent-ink disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  下載原圖
-                </a>
+                  {downloadingPng ? "下載 PNG 中..." : "下載原圖"}
+                </button>
               </div>
 
               {generatedCaption ? (

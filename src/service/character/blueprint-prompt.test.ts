@@ -46,6 +46,8 @@ test("blueprint prompt locks 五官比例, 整體氣質, and source skin texture
   assert.match(prompt, /五官比例/);
   assert.match(prompt, /整體氣質/);
   assert.match(prompt, /Skin texture: focus on and faithfully preserve the source image's exact skin texture/);
+  assert.match(prompt, /Hair: copy the reference exactly/);
+  assert.match(prompt, /Do not tie it back/);
   assert.match(prompt, /Style is required/);
   assert.match(prompt, /doodle name style/);
   assert.match(prompt, /must not replace the face proportions, skin texture, temperament, or the required style/);
@@ -131,6 +133,7 @@ test("chalkboard with a reference stays white chalk, not photo colour", () => {
     referenceCount: 1,
   });
   assert.match(prompt, /Chalkboard is monochrome/);
+  assert.match(prompt, /do not copy hair dye colour/);
   assert.match(prompt, /white chalk stroke/);
   assert.match(prompt, /never as skin tone/);
 });
@@ -206,6 +209,17 @@ test("editing a sheet replaces a scenic ground with the light sheet colour", () 
   });
   assert.match(prompt, /replace only that ground with the light sheet-ground colour/);
   assert.match(prompt, /把裙子改成白色/);
+});
+
+test("portrait and full body keep the reference hairstyle", () => {
+  const style = loadedStyle("doodle");
+  const portrait = buildPortraitPrompt({ style, description: "x", photoCount: 1 });
+  assert.match(portrait, /does not change the hair/);
+  assert.match(portrait, /Cutting long hair at the frame edge is fine/);
+  const fromPhotos = buildFullBodyPrompt({ style, description: "x", photoCount: 1 });
+  assert.match(fromPhotos, /even when the portrait shows a different hairstyle/);
+  const fromPortrait = buildFullBodyPrompt({ style, description: "x", photoCount: 0 });
+  assert.match(fromPortrait, /Copy the face, hair, and visible clothing from that portrait exactly/);
 });
 
 test("profile prompt is a full-body standing view on the light sheet ground", () => {

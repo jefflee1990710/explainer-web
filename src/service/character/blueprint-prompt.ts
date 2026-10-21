@@ -11,8 +11,8 @@ import {
 // GPT Image maps 16:9 requests to a 3:2 frame; keep the prompt aligned with that.
 const SHEET_LAYOUT = [
   "Character model sheet on a single 3:2 landscape canvas, no text, no labels, no drop shadows, consistent scale across all drawings.",
-  "Framing: zoom out. Draw the entire sheet small and centered with wide empty margins on every side. Leave at least 12% blank margin on the top, bottom, left, and right. Nothing may touch, clip, or extend beyond the image border — no cropped heads, hair, hands, or feet.",
-  "Left two thirds: top row is a full-body turnaround of the same character standing in front, back, left, and right views; bottom row is a 4-pose walk cycle of the same character moving left to right. Keep each pose small enough that all four turnaround views and all four walk poses are completely visible.",
+  "Framing: zoom out, the sheet small and centered. Leave at least 12% blank margin on the top, bottom, left, and right. Nothing may touch, clip, or extend beyond the image border.",
+  "Left two thirds: top row is a full-body turnaround of the same character standing in front, back, left, and right views; bottom row is a 4-pose walk cycle of the same character moving left to right. Keep every pose fully visible.",
   "Right third: a 3 by 4 grid of head-and-shoulders expressions in this order: neutral, smile, frown, laugh, angry, surprised, curious, worried, sad, focused, shy, sleepy. Each expression must fit entirely inside its cell with clear spacing.",
   "Final check: every drawing must be fully visible with an empty margin between the artwork and all four edges of the canvas.",
 ];
@@ -44,6 +44,16 @@ const LIGHT_SHEET_GROUND = [
   "Choose that light colour from the character's clothing. It must stay light, and it must not match the outfit. Dark or saturated clothes get a warm off-white. Pale or light clothes get a light grey or a faint contrasting tint so the silhouette still reads. Use that same ground colour for the whole canvas.",
 ].join(" ");
 
+// Hairstyle is part of the identity. A new pose or a tight crop must not restyle it.
+function hairFromReference(style: RenderableStyle) {
+  const shape =
+    "Hair: copy the reference exactly (length, colour, parting, and how it is worn). Do not tie it back, add a ponytail, or restyle it.";
+  if (style.id === "chalkboard") {
+    return "Hair: copy the reference exactly (length, parting, and how it is worn) as chalk strokes. Do not tie it back or restyle it, and do not copy hair dye colour.";
+  }
+  return shape;
+}
+
 // Likeness from the photo; rendering must still follow the chosen style.
 function identityFromReference(style: RenderableStyle) {
   const styleRule = usesDrawingSurface(style)
@@ -52,6 +62,7 @@ function identityFromReference(style: RenderableStyle) {
   return [
     `Keep the reference's 五官比例 and 整體氣質, and redraw every pose in the ${style.name} style, always standing straight upright facing the camera with a gentle little smile (never copy a seated or angled reference pose).`,
     "五官比例: copy face shape, eye spacing and shape, brows, nose, mouth, lips, jaw, chin, plus moles, scars, and other marks.",
+    hairFromReference(style),
     "整體氣質: keep the same aura, presence, and how they feel to look at — not a generic stand-in.",
     ...(style.id === "chalkboard"
       ? []
@@ -107,7 +118,7 @@ export function buildBlueprintPrompt(input: {
     lines.push(
       ...identityFromReference(input.style),
       "Fuse all attached reference images into one character of the same identity.",
-      "Prefer clear close-ups for 五官比例 and skin texture, and full-body shots for proportions and outfit.",
+      "Prefer clear close-ups for 五官比例 and skin texture, and full-body shots for proportions, outfit, and the hairstyle.",
       "Do not invent a different character or average them into a generic look.",
     );
   } else if (hasReference && description) {
@@ -141,7 +152,7 @@ function boardIdentityLines(input: {
       ...(input.photoCount > 1
         ? [
             "Fuse all attached photos into one character of the same identity.",
-            "Prefer clear close-ups for 五官比例 and skin texture, and full-body shots for proportions and outfit.",
+            "Prefer clear close-ups for 五官比例 and skin texture, and full-body shots for proportions, outfit, and the hairstyle.",
             "Do not invent a different character or average them into a generic look.",
           ]
         : ["Derive the character entirely from the attached photo."]),
@@ -174,8 +185,8 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
   const lightGround = !usesDrawingSurface(input.style);
   const realistic = isRealisticStyle(input.style);
   const lines = [
-    "Character identity portrait on a square canvas: one person, head and shoulders, standing straight upright and facing the camera straight on (regardless of the reference photo's pose or angle), eyes open, looking into the lens, with a warm, gentle little smile.",
-    "The face fills most of the frame: top of the hair near the top edge with a small margin, shoulders cut at the bottom edge. No hands, no props, no text, no labels, no frame or border, no second person.",
+    "Character identity portrait on a square canvas: one person, head and shoulders, standing straight upright and facing the camera straight on (regardless of the reference photo's pose or angle), eyes open, looking into the lens, with a warm, gentle little smile. Changing the pose to front-on does not change the hair.",
+    "The face fills most of the frame: top of the hair near the top edge with a small margin, shoulders cut at the bottom edge. Cutting long hair at the frame edge is fine; do not tie it back to fit. No hands, no props, no text, no labels, no frame or border, no second person.",
     realistic
       ? REALISTIC_CHARACTER_RENDER_RULE
       : "Even soft front light so every facial feature reads clearly: eye shape, brows, nose, lips, jaw, natural skin texture from the source image, hair line, and any marks.",
@@ -219,7 +230,9 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
   const lines = [
     "One full-body standing view of the character in the first attached image (their identity portrait) on a tall canvas.",
     "One person, standing straight upright (站直), facing the camera directly front-on (regardless of any seated or angled pose in the reference photo), with a warm, gentle little smile, eyes open, arms relaxed at the sides, feet slightly apart. No props, no text, no labels, no second person, no extra poses.",
-    "Copy the face, hair, exact skin texture, and the visible clothing from that portrait and source image(s) exactly. Complete the rest of the outfit, shoes, and accessories from the photos and the notes.",
+    input.photoCount > 0
+      ? "Copy the face and skin texture from the portrait. Copy the hair exactly from the original photos — length, colour, parting, and how it is worn — even when the portrait shows a different hairstyle. Complete the outfit, shoes, and accessories from the photos."
+      : "Copy the face, hair, and visible clothing from that portrait exactly. Do not restyle the hair.",
     "Framing: the entire body is visible from the top of the hair to the soles of the feet, centered, with empty margin above the head and below the feet. Do not crop to a portrait. Do not draw the figure too small — it should fill about four fifths of the canvas height.",
     ...characterBlueprintStyleLines(input.style),
     lightGround

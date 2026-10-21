@@ -9,10 +9,11 @@ const FRAMING: Record<LifeShotKind, string> = {
 };
 
 // Crop that matches the pose skeleton; replaces the shot-kind framing when no post type is set.
+// Keep the person at natural human scale inside the scene — never blow them up to fill the frame.
 const POSE_FRAMING: Record<LifePoseFraming, string> = {
-  full: "Photographed by a friend: frame the whole body from head to feet, with a little space above the head and below the shoes.",
-  knee: "Photographed by a friend: frame the body from the head down to just below the knees.",
-  half: "Frame the upper body from the head down to the waist.",
+  full: "Photographed by a friend standing a few metres back: show the whole body from head to feet standing on the scene's ground plane, sized to match the scene's architecture, walls, and railings, with generous room above the head and the surrounding environment visible.",
+  knee: "Photographed by a friend: frame the body from the head down to just below the knees, keeping the person at natural scale against the surrounding walls, railings, and furniture.",
+  half: "Frame the upper body from the head down to the waist, keeping the person at natural scale against the surrounding table, chairs, and room.",
 };
 
 // Objects a skeleton cannot show; spelled out so the hand is not left empty.
@@ -86,9 +87,11 @@ export function lifeShotPrompt(input: {
   poseHands?: string[];
   hasOutfitRef?: boolean;
   outfitText?: string;
+  hairText?: string;
 }) {
   const hasScene = input.hasScene ?? true;
   const outfitText = input.outfitText?.trim() || "";
+  const hairText = input.hairText?.trim() || "";
   const poseProps = (input.poseHands || []).map((h) => POSE_PROPS[h]).filter(Boolean);
   const poseText = [input.poseText?.trim() || "", ...(input.poseText?.trim() ? poseProps : [])]
     .filter(Boolean)
@@ -121,13 +124,14 @@ export function lifeShotPrompt(input: {
 
   return [
     "A real vertical Instagram photo shot on an iPhone.",
-    `The main person is ${input.name}. The first reference image is their identity blueprint — keep that exact face, hair, skin tone, and build, lit by the place's light rather than the flat reference-sheet lighting.`,
+    `The main person is ${input.name}. The first reference image is their identity blueprint — keep that exact face${order.outfit ? " and skin tone. Copy the hairstyle exactly from the outfit preset image: same length, colour, parting, and how it is worn (down, tied, or braided); do not restyle it" : ", hair, skin tone, and build"}, lit by the place's light rather than the flat reference-sheet lighting.`,
     order.outfit
       ? `The ${ordinal(order.outfit)} reference image is ${input.name}'s outfit preset (full body): dress them in exactly this outfit — same garments, colours, fit, shoes and accessories; do not add, remove or swap any item${instruction ? ", unless the edit instruction below asks for a different outfit" : ""}.`
       : `Dress them in exactly the outfit shown in the identity blueprint${instruction ? ", unless the edit instruction below asks for a different outfit" : ""}.`,
+    hairText ? `Hair: ${hairText.replace(/\.$/, "")} (keep this exact hairstyle, do not tie it up unless the preset shows it tied).` : "",
     outfitText ? `Outfit: ${outfitText.replace(/\.$/, "")}.` : "",
     hasScene
-      ? `The ${ordinal(order.scene)} reference image is the base scene/photograph (lighting direction, environment${order.composition ? "" : ", composition"}, and props). Keep this exact place — the same location, background, furniture and objects; never move them to a different location or add a new setting.`
+      ? `The ${ordinal(order.scene)} reference image is the base scene/photograph (lighting direction, environment${order.composition ? "" : ", composition"}, and props). Keep this exact place — the same location, background, furniture and objects; never move them to a different location or add a new setting. Scale & perspective: size ${input.name} to true human height (~165 cm) for the camera distance and perspective of this scene — check parapet walls, railings, doorways, tables, tiles, and floor grid so the person is never oversized or giant against the background, with feet planted naturally on the ground plane.`
       : "No scene photo is given: build a believable real-world location that fits the location and post type below.",
     order.composition
       ? order.pose
@@ -135,7 +139,7 @@ export function lifeShotPrompt(input: {
         : `The ${ordinal(order.composition)} reference image is a composition reference ONLY: copy its pose, body angle, camera angle, framing and crop. Do NOT copy that person's face, hair, outfit, or the background from it.`
       : "",
     order.pose
-      ? `The ${ordinal(order.pose)} reference image is a stick-figure pose skeleton (white circle = head, warm colours = the person's left limbs, cool colours = right limbs). Put ${input.name} in exactly this body pose: ${poseText} The skeleton pose wins over any pose described in the post type. The skeleton is a guide only — never draw its lines, dots or circle in the photo.`
+      ? `The ${ordinal(order.pose)} reference image is a stick-figure pose skeleton (white circle = head, warm colours = the person's left limbs, cool colours = right limbs). Put ${input.name} in exactly this body pose: ${poseText} The skeleton pose wins over any pose described in the post type. Do NOT copy the skeleton's size on the canvas — scale ${input.name} to match the scene's perspective and nearby walls, railings, or furniture. The skeleton is a guide only — never draw its lines, dots or circle in the photo.`
       : "",
     instruction
       ? `Edit / Scene instruction: ${instruction}`
