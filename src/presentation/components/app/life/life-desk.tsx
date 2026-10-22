@@ -23,6 +23,10 @@ import { LifePoseBar } from "@/presentation/components/app/life/life-pose-bar";
 import { LifePoseDialog } from "@/presentation/components/app/life/life-pose-dialog";
 import { LifePhotoEditor } from "@/presentation/components/app/life/life-photo-editor";
 import { LifeShotGrid } from "@/presentation/components/app/life/life-shot-grid";
+import {
+  LifeRecentDrawer,
+  LifeRecentOpenButton,
+} from "@/presentation/components/app/life/life-recent-drawer";
 import { LifeTemplateDialog } from "@/presentation/components/app/life/life-template-dialog";
 import { LifeTemplateGuide } from "@/presentation/components/app/life/life-template-guide";
 import { LifeWardrobePicker } from "@/presentation/components/app/life/life-wardrobe-picker";
@@ -207,6 +211,7 @@ export function LifeDesk({
   const [error, setError] = useState("");
   const [creditGate, setCreditGate] = useState(false);
   const [placeDialogOpen, setPlaceDialogOpen] = useState(false);
+  const [recentOpen, setRecentOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [customInstruction, setCustomInstruction] = useState("");
   const [historyEditPrompt, setHistoryEditPrompt] = useState("");
@@ -512,6 +517,7 @@ export function LifeDesk({
         return;
       }
       setShots((current) => [result.shot, ...current]);
+      setRecentOpen(true);
       resetCreateForm();
     } catch {
       setPending("");
@@ -547,6 +553,7 @@ export function LifeDesk({
         return;
       }
       setShots((current) => [result.shot, ...current]);
+      setRecentOpen(true);
       setDialogShot(null);
       setHistoryEditPrompt("");
     } catch {
@@ -843,10 +850,15 @@ export function LifeDesk({
             {t("life.subtitle")}
           </span>
         </div>
+        <LifeRecentOpenButton
+          count={visibleShots.length}
+          generatingCount={generatingCount}
+          onClick={() => setRecentOpen(true)}
+        />
       </header>
 
-      {/* 3-Column Single-Screen Studio (Right Recent Column Widened to 30rem) */}
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[13.5rem_minmax(0,1fr)_30rem] lg:items-stretch">
+      {/* 2-Column Studio: characters + create; Recent lives in a right drawer */}
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:items-stretch">
         {/* Left Column: Character Rail */}
         <aside
           aria-label={t("life.character")}
@@ -1119,45 +1131,40 @@ export function LifeDesk({
           </div>
         </section>
 
-        {/* Right Column: Wider Recent Panel showing full Instagram-Style Grid View */}
-        <aside
-          aria-label={t("life.recent")}
-          className="flex min-h-[24rem] flex-col gap-2.5 overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper p-3.5"
-        >
-          <div className="flex shrink-0 items-center justify-between gap-2">
-            <h2 className="font-display text-sm font-bold">
-              {character ? `${character.name} · ${t("life.recent")}` : t("life.recent")}
-            </h2>
-            <div className="flex items-center gap-1.5">
-              {generatingCount > 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-accent-ink px-2 py-0.5 text-[10px] font-bold text-lime">
-                  <Spinner className="h-3 w-3" />
-                  {generatingCount} 張背景生成中
-                </span>
-              ) : null}
-              {visibleShots.length > 0 ? (
-                <span className="rounded-full bg-accent-ink/8 px-2 py-0.5 text-[10px] font-bold text-muted">
-                  {visibleShots.length}
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
-            <LifeShotGrid
-              shots={visibleShots}
-              selectedId={dialogShot?.id}
-              onSelect={(shot) => {
-                setDialogShot(shot);
-                setHistoryEditPrompt("");
-                setGeneratedCaption("");
-                setCaptionCopied(false);
-              }}
-              compact
-            />
-          </div>
-        </aside>
       </div>
+
+      <LifeRecentDrawer
+        open={recentOpen}
+        onOpenChange={setRecentOpen}
+        title={character ? `${character.name} · ${t("life.recent")}` : t("life.recent")}
+        badge={
+          <>
+            {generatingCount > 0 ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent-ink px-2 py-0.5 text-[10px] font-bold text-lime">
+                <Spinner className="h-3 w-3" />
+                {generatingCount}
+              </span>
+            ) : null}
+            {visibleShots.length > 0 ? (
+              <span className="rounded-full bg-accent-ink/8 px-2 py-0.5 text-[10px] font-bold text-muted">
+                {visibleShots.length}
+              </span>
+            ) : null}
+          </>
+        }
+      >
+        <LifeShotGrid
+          shots={visibleShots}
+          selectedId={dialogShot?.id}
+          onSelect={(shot) => {
+            setDialogShot(shot);
+            setHistoryEditPrompt("");
+            setGeneratedCaption("");
+            setCaptionCopied(false);
+          }}
+          compact
+        />
+      </LifeRecentDrawer>
 
       {dialogShot ? (
         <div

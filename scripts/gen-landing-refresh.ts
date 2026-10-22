@@ -20,84 +20,85 @@ type Shot = {
 const NO_TEXT =
   "No watermark, no logo, no letters, no numbers, no captions, no UI chrome except what the prompt explicitly asks to draw.";
 
+// All faces must be brand-new fictional cast — never reuse account library characters (Alice, etc.).
 const SHOTS: Shot[] = [
   {
     id: "hero",
     file: "public/hero/scro-shorts.webp",
     aspectRatio: "16:9",
-    prompt: `Cinematic photoreal ultra-wide studio composition on a seamless light gray (#f4f4f5) background. Flush against the far-left edge (occupying only the leftmost 18% of the frame): a narrow vertical stack of three small rounded portrait cards for character selection showing different kinds of creators in different poses and posts (top card: a stylish East Asian woman in a cream blazer holding a skincare bottle, highlighted with a crisp lime-green #c6f24b border and checkmark badge; middle card: a bearded man in streetwear pointing at a camera; bottom card: a cheerful 3D stylized cartoon creator waving). Flush against the far-right edge (occupying only the rightmost 18% of the frame): one modern smartphone standing upright near the right margin, screen displaying a vertical 9:16 AI KOL short video generation view of the selected woman from the top card talking to camera, with a sleek bottom video timeline bar, a play icon, and floating pink heart icons. CRITICAL LAYOUT RULE: The entire middle 64% of the image (between the narrow left card stack and the right phone) is 100% empty, blank seamless light gray background with no cards, no objects, and no text. Soft studio daylight, crisp edges. ${NO_TEXT}`,
+    prompt: `Cinematic photoreal ultra-wide on a dark olive ink studio backdrop. Theme: injecting a soul into a virtual KOL. Leftmost 18%: stack of three rounded portrait cards of brand-new fictional creators (curly-haired woman with lime #c6f24b border, clay-style young man, watercolor teen) — original faces only. Rightmost 18%: smartphone showing the curly-haired woman talking to camera. Middle 64% empty dark ink for headline. ${NO_TEXT}`,
   },
   {
     id: "cast",
     file: "public/landing/cast-scro.webp",
     aspectRatio: "1:1",
-    prompt: `High-fashion editorial photograph, not illustration. The same young woman appears three times side by side in three different outfits: a tailored black blazer, a cream silk dress, and a streetwear jacket. Same face, same hair, studio gray backdrop, sharp fabric texture, magazine lighting. ${NO_TEXT}`,
+    prompt: `High-fashion editorial. Brand-new fictional young woman with voluminous dark curly hair appears three times in charcoal turtleneck, cream satin dress, olive utility jacket — same original face. Dark olive ink studio, subtle lime rim light. ${NO_TEXT}`,
   },
   {
     id: "virtual-you",
     file: "public/landing/use-cases/virtual-you.webp",
     aspectRatio: "1:1",
-    prompt: `Soft watercolor illustration on white paper. Left: a taped portrait photo of a young woman. A green arrow points right to a smartphone whose screen shows the same woman waving, with two small hearts. Gentle pigment blooms, visible paper. ${NO_TEXT}`,
+    prompt: `Soft watercolor on off-white paper. Brand-new South Asian woman with long black braid. Notebook polaroid left, lime #c6f24b arrow to phone showing her as a waving virtual KOL. Original face only. ${NO_TEXT}`,
   },
   {
     id: "product",
     file: "public/landing/use-cases/product.webp",
     aspectRatio: "1:1",
-    prompt: `Cinematic photoreal vertical-ad still. A young creator holds a real matte skincare bottle toward the camera in a bright apartment. The bottle label is a plain solid color with no readable words. Natural window light, authentic hands, product shape stays crisp. ${NO_TEXT}`,
+    prompt: `Cinematic photoreal. Brand-new young Black man with short twists holds a blank-label matte skincare bottle in a bright loft. Original face only. ${NO_TEXT}`,
   },
   {
     id: "tutorial",
     file: "public/landing/use-cases/tutorial.webp",
     aspectRatio: "1:1",
-    prompt: `Colored-pencil storybook illustration. A friendly host stands beside three numbered step cards (blank shapes only, no writing) and a smartphone showing the same host. Warm paper texture, visible pencil strokes. ${NO_TEXT}`,
+    prompt: `Colored-pencil storybook. Brand-new Latina host with curly auburn hair and freckles beside three blank step cards and a phone showing the same host. Original face only. ${NO_TEXT}`,
   },
   {
     id: "explain",
     file: "public/landing/use-cases/explain.webp",
     aspectRatio: "1:1",
-    prompt: `Bold pop-art illustration, Ben-Day dots, flat yellow and magenta. A creator on a phone screen points at one simple chart made of shapes, not words. Thick black outlines, energetic but clean. ${NO_TEXT}`,
+    prompt: `Bold pop-art, Ben-Day dots, yellow and magenta. Brand-new East Asian creator with silver undercut and glasses on a phone screen points at a shape-only chart. Original face only. ${NO_TEXT}`,
   },
   {
     id: "saas",
     file: "public/landing/use-cases/saas.webp",
     aspectRatio: "1:1",
-    prompt: `Bauhaus graphic illustration. A geometric person stands next to a simplified app window of rectangles and circles, and a small brand mark that is a solid green square, not a wordmark. Primary red, blue, yellow, black on off-white. ${NO_TEXT}`,
+    prompt: `Bauhaus graphic. Brand-new geometric person (lime circle head, indigo torso, coral arms) beside a simplified app window and a solid lime square mark. ${NO_TEXT}`,
   },
   {
-    id: "step-style",
-    file: "public/landing/steps/style.webp",
+    id: "step-character",
+    file: "public/landing/steps/character.webp",
     aspectRatio: "16:9",
-    prompt: `High-fashion lookbook still, wide frame. Left: a close portrait. Right: the same person full length in one locked outfit. Center stays a quiet gray gap. Editorial lighting, real fabric. ${NO_TEXT}`,
+    prompt: `Wide editorial lookbook. Brand-new curly-haired woman: left lime-bordered portrait, right full-body cream dress beside wardrobe rail. Dark olive ink studio. Original face only. ${NO_TEXT}`,
   },
   {
-    id: "step-storyboard",
-    file: "public/landing/steps/storyboard.webp",
+    id: "step-life",
+    file: "public/landing/steps/life.webp",
     aspectRatio: "16:9",
-    prompt: `Ink manga storyboard on a desk, wide frame. Six empty panel frames in two rows, a hand holding a pen, one panel showing a simple face sketch. Black ink on warm paper, no writing. ${NO_TEXT}`,
+    prompt: `Wide photoreal lifestyle collage without borders: same brand-new curly-haired woman in café, city street, sunset travel — identical original face. ${NO_TEXT}`,
   },
   {
-    id: "step-export",
-    file: "public/landing/steps/export.webp",
+    id: "step-video",
+    file: "public/landing/steps/video.webp",
     aspectRatio: "16:9",
-    prompt: `Claymation still, wide frame. A chunky clay smartphone stands up, its screen a vertical video of a clay creator, with a small clay play triangle. Soft studio light, fingerprints in the clay. ${NO_TEXT}`,
+    prompt: `Wide clean Videos screen mock: two folder cards with mosaics of brand-new curly-haired woman and clay-style young man. Titles as abstract lime bars only. Original faces only. ${NO_TEXT}`,
   },
   {
     id: "director",
     file: "public/landing/director-scro.webp",
     aspectRatio: "1:1",
-    prompt: `Ukiyo-e woodblock print. Left: a pile of crossed-out sketch sheets. Right: a woman pointing at one approved portrait print with a simple check mark shape, not a letter. Flat washi colors, black keylines. ${NO_TEXT}`,
+    prompt: `Ukiyo-e woodblock. Brand-new Japanese woman with asymmetrical bob points at one approved portrait; rejected sketches stacked left with X shapes. Original faces only. ${NO_TEXT}`,
   },
   {
     id: "free-credit",
     file: "public/cta/free-credit-scro.webp",
     aspectRatio: "16:9",
-    prompt: `Pixel-art still, wide frame. A small pixel creator stands beside an open gift box and a chunky phone showing a play triangle. Limited palette of lime, black, and warm gray on a pale background. Crisp pixels, no letters. ${NO_TEXT}`,
+    prompt: `Wide pixel-art. Brand-new teal-bob pixel woman beside open gift box and phone with lime play triangle on charcoal ground. Crisp pixels. ${NO_TEXT}`,
   },
   {
     id: "kol",
     file: "public/landing/kol-ig.webp",
     aspectRatio: "1:1",
-    prompt: `Photoreal product photo of one modern smartphone on a light gray table, filling the frame, slight three-quarter angle. The screen is an Instagram profile of a popular lifestyle KOL in her twenties: round avatar photo, the follower number 2.4M, a bell icon with a red badge 18, and a 3 by 3 grid of everyday photos (coffee, street outfit, gym, sunset travel, cooking, friends, mirror selfie, desk, night market). Realistic glass, metal frame, soft shadow. No extra phones. The only readable text is 2.4M and 18.`,
+    prompt: `Photoreal smartphone on dark charcoal table. Screen is an Instagram-like profile of a brand-new curly-haired lifestyle virtual KOL: avatar, follower text 2.4M, bell badge 18, 3x3 everyday grid. Original face only. Only readable text is 2.4M and 18.`,
   },
 ];
 

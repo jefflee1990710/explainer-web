@@ -5,6 +5,7 @@ import { BrandMark } from "@/presentation/components/brand-mark";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { LanguageSwitcher } from "@/presentation/components/language-switcher";
 import { SiteAccountMenu, type SiteAccount } from "@/presentation/components/site-account-menu";
+import { SiteFeaturesMenu } from "@/presentation/components/site-features-menu";
 
 // Sticky translucent bar, same chrome as mentalok.io.
 export function SiteHeader({
@@ -35,6 +36,7 @@ export function SiteHeader({
           >
             {t("nav.examples")}
           </Link>
+          <SiteFeaturesMenu />
           {showAffiliate ? (
             <Link
               href="/affiliate"

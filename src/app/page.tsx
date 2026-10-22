@@ -4,17 +4,19 @@ import { LandingCast } from "@/presentation/components/landing-cast";
 import { LandingFreeCredit } from "@/presentation/components/landing-free-credit";
 import { LandingHero } from "@/presentation/components/landing-hero";
 import { LandingDirector } from "@/presentation/components/landing-director";
+import { LandingIp } from "@/presentation/components/landing-ip";
 import { LandingKol } from "@/presentation/components/landing-kol";
 import { LandingSteps } from "@/presentation/components/landing-steps";
 import { LandingUseCases } from "@/presentation/components/landing-use-cases";
 
-// Plans live on /pricing. The landing page leads with AI Influencer identity & character lock, then use cases, workflow, cost control, and the free-credit sign-up band.
+// Plans live on /pricing. Landing leads with soul injection for virtual KOLs, then identity lock, brand IP wardrobe/posts, Life feed, use cases, steps, cost control, and free credits.
 export default async function HomePage() {
   const session = await getAuthSession();
   return (
     <PolicyLayout>
       <LandingHero signedIn={Boolean(session)} />
       <LandingCast />
+      <LandingIp />
       <LandingKol />
       <LandingUseCases signedIn={Boolean(session)} />
       <LandingSteps />

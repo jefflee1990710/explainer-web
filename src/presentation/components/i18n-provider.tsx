@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { usePathname } from "next/navigation";
 import {
   resolveLocale,
   readStoredLocale,
@@ -19,6 +20,7 @@ import {
   type LocaleId,
   type TranslateFn,
 } from "@/util/i18n";
+import { marketingSeoTitle } from "@/util/i18n/marketing-seo-paths";
 
 type I18nContextValue = {
   locale: LocaleId;
@@ -37,6 +39,7 @@ export function I18nProvider({
   children: ReactNode;
   initialLocale?: LocaleId;
 }) {
+  const pathname = usePathname() ?? "";
   const [locale, setLocaleState] = useState<LocaleId>(initialLocale);
 
   useEffect(() => {
@@ -56,15 +59,21 @@ export function I18nProvider({
 
   const value = useMemo(() => {
     const messages = getMessages(locale);
-    return { locale, setLocale, t: createTranslate(messages) };
+    return { locale, setLocale, t: createTranslate(messages), messages };
   }, [locale, setLocale]);
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.title = value.t("meta.title");
-  }, [locale, value]);
+    // Feature SEO landings keep their own title when the user switches locale.
+    document.title =
+      marketingSeoTitle(value.messages, pathname) ?? value.t("meta.title");
+  }, [locale, pathname, value]);
 
-  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+  return (
+    <I18nContext.Provider value={{ locale: value.locale, setLocale: value.setLocale, t: value.t }}>
+      {children}
+    </I18nContext.Provider>
+  );
 }
 
 export function useI18n() {

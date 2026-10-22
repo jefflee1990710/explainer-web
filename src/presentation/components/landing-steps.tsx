@@ -3,8 +3,12 @@
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
 
-// Paper cut-out art for each step: pick a style, approve the storyboard, export.
-const STEP_ART = ["/landing/steps/style.webp", "/landing/steps/storyboard.webp", "/landing/steps/export.webp"] as const;
+// Fresh-cast marketing stills (no account library faces): wardrobe → Life → videos.
+const STEP_ART = [
+  "/landing/steps/character.webp",
+  "/landing/steps/life.webp",
+  "/landing/steps/video.webp",
+] as const;
 
 export function LandingSteps() {
   const { t } = useI18n();
@@ -29,7 +33,12 @@ export function LandingSteps() {
           {steps.map((item, index) => (
             <MotionItem key={item.step}>
               <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#e4e4e7] bg-[#fafafa] text-center transition-shadow duration-200 hover:shadow-[0_8px_24px_rgba(22,24,35,0.08)]">
-                <img src={STEP_ART[index]} alt="" className="aspect-video w-full border-b border-[#e4e4e7] object-cover" />
+                {/* Fresh-cast stills in a 16:9 frame; cover fills the card cleanly. */}
+                <img
+                  src={STEP_ART[index]}
+                  alt=""
+                  className="aspect-video w-full border-b border-[#e4e4e7] bg-[#f4f4f5] object-cover"
+                />
                 <div className="flex flex-1 flex-col items-center p-8">
                   <span className="-mt-14 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e4e4e7] bg-[#12141c] text-xs font-bold text-[#c6f24b]">
                     {item.step}

@@ -53,6 +53,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
                 <h2 id={titleId} className="text-xl font-bold text-[#12141c]">
                   {t("nav.language")}
                 </h2>
+                {/* Primary UI languages: EN · 繁中 · 简中 · 日本語 · 한국어 */}
                 <ul className="mt-4 grid max-h-[70vh] gap-1 overflow-y-auto">
                   {LOCALE_OPTIONS.map((option) => {
                     const selected = option.id === locale;

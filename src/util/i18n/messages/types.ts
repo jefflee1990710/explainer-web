@@ -22,6 +22,12 @@ export type LandingUseCaseMessages = {
   cta: string;
 };
 
+// Feature marketing pages used for SEO + Google Ads landings.
+export type MarketingSeoMessages = {
+  title: string;
+  description: string;
+};
+
 // Shared message shape — every locale file must satisfy this interface.
 export type Messages = {
   meta: {
@@ -49,6 +55,19 @@ export type Messages = {
     textStyles: string;
     life: string;
     room: string;
+    rightTool: string;
+    talkingHead: string;
+    cantonese: string;
+    explainer: string;
+    aiInfluencer: string;
+    productPromo: string;
+    features: string;
+    featuresRightTool: string;
+    featuresTalkingHead: string;
+    featuresCantonese: string;
+    featuresExplainer: string;
+    featuresAiInfluencer: string;
+    featuresProductPromo: string;
   };
   persona: {
     title: string;
@@ -205,6 +224,23 @@ export type Messages = {
       posts: string;
       followers: string;
       notifications: string;
+      cta: string;
+    };
+    // Brand IP: many outfits + Life posts, daily refresh, custom fashion.
+    ip: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      wardrobeLabel: string;
+      postsLabel: string;
+      dailyLabel: string;
+      customLabel: string;
+      p1Title: string;
+      p1Body: string;
+      p2Title: string;
+      p2Body: string;
+      p3Title: string;
+      p3Body: string;
       cta: string;
     };
   };
@@ -672,6 +708,331 @@ export type Messages = {
     levelBody: string;
     whoTitle: string;
     whoBody: string;
+  };
+  // Marketing page: pick the right tool vs courses + blind AI retries.
+  rightTool: {
+    seo: MarketingSeoMessages;
+    hero: {
+      brand: string;
+      kicker: string;
+      title: string;
+      subtitle: string;
+      ctaStart: string;
+      ctaWorkspace: string;
+      ctaSecondary: string;
+    };
+    pain: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      diyLabel: string;
+      diy1: string;
+      diy2: string;
+      diy3: string;
+      scroLabel: string;
+      scro1: string;
+      scro2: string;
+      scro3: string;
+    };
+    directors: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      d1Title: string;
+      d1Body: string;
+      d2Title: string;
+      d2Body: string;
+      d3Title: string;
+      d3Body: string;
+      d4Title: string;
+      d4Body: string;
+      d5Title: string;
+      d5Body: string;
+      d6Title: string;
+      d6Body: string;
+    };
+    influencer: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      f1Title: string;
+      f1Body: string;
+      f2Title: string;
+      f2Body: string;
+      f3Title: string;
+      f3Body: string;
+    };
+    // Built-in editor after generation — one pipeline to the final cut.
+    edit: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      p1Title: string;
+      p1Body: string;
+      p2Title: string;
+      p2Body: string;
+      p3Title: string;
+      p3Body: string;
+      deskLabel: string;
+      timelineLabel: string;
+    };
+    cta: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      cta: string;
+      ctaPricing: string;
+    };
+  };
+  // Marketing: talking-head clips with captions, then human finish in editor.
+  talkingHeadPage: {
+    seo: MarketingSeoMessages;
+    hero: {
+      brand: string;
+      kicker: string;
+      title: string;
+      subtitle: string;
+      ctaStart: string;
+      ctaWorkspace: string;
+      ctaSecondary: string;
+    };
+    steps: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      s1Title: string;
+      s1Body: string;
+      s2Title: string;
+      s2Body: string;
+      s3Title: string;
+      s3Body: string;
+    };
+    finish: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      p1Title: string;
+      p1Body: string;
+      p2Title: string;
+      p2Body: string;
+      p3Title: string;
+      p3Body: string;
+      deskLabel: string;
+    };
+    cta: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      cta: string;
+      ctaCantonese: string;
+      ctaPricing: string;
+    };
+  };
+  // Marketing: upload product, virtual host promotes anywhere (iceberg → Mars).
+  productPromoPage: {
+    seo: MarketingSeoMessages;
+    hero: {
+      brand: string;
+      kicker: string;
+      title: string;
+      subtitle: string;
+      ctaStart: string;
+      ctaWorkspace: string;
+      ctaSecondary: string;
+    };
+    cost: {
+      eyebrow: string;
+      title: string;
+      body: string;
+    };
+    flow: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      s1Title: string;
+      s1Body: string;
+      s2Title: string;
+      s2Body: string;
+      s3Title: string;
+      s3Body: string;
+    };
+    wild: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      w1Title: string;
+      w1Body: string;
+      w2Title: string;
+      w2Body: string;
+      w3Title: string;
+      w3Body: string;
+    };
+    cta: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      cta: string;
+      ctaPricing: string;
+    };
+  };
+  // Marketing: your experience is the soul of an AI Influencer.
+  aiInfluencerPage: {
+    seo: MarketingSeoMessages;
+    hero: {
+      brand: string;
+      kicker: string;
+      title: string;
+      subtitle: string;
+      ctaStart: string;
+      ctaWorkspace: string;
+      ctaSecondary: string;
+    };
+    soul: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      p1Title: string;
+      p1Body: string;
+      p2Title: string;
+      p2Body: string;
+      p3Title: string;
+      p3Body: string;
+    };
+    // Brand IP: many outfits + Life posts, daily refresh, custom fashion.
+    ip: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      wardrobeLabel: string;
+      postsLabel: string;
+      dailyLabel: string;
+      customLabel: string;
+      p1Title: string;
+      p1Body: string;
+      p2Title: string;
+      p2Body: string;
+      p3Title: string;
+      p3Body: string;
+      cta: string;
+    };
+    earn: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      e1Title: string;
+      e1Body: string;
+      e2Title: string;
+      e2Body: string;
+      e3Title: string;
+      e3Body: string;
+    };
+    shift: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      oldLabel: string;
+      oldBody: string;
+      newLabel: string;
+      newBody: string;
+    };
+    cta: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      cta: string;
+      ctaPricing: string;
+    };
+  };
+  // Marketing: whiteboard explainer director for product concepts.
+  explainerPage: {
+    seo: MarketingSeoMessages;
+    hero: {
+      brand: string;
+      kicker: string;
+      title: string;
+      subtitle: string;
+      ctaStart: string;
+      ctaWorkspace: string;
+      ctaSecondary: string;
+    };
+    style: {
+      eyebrow: string;
+      title: string;
+      body: string;
+    };
+    uses: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      u1Title: string;
+      u1Body: string;
+      u2Title: string;
+      u2Body: string;
+      u3Title: string;
+      u3Body: string;
+    };
+    flow: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      s1Title: string;
+      s1Body: string;
+      s2Title: string;
+      s2Body: string;
+      s3Title: string;
+      s3Body: string;
+    };
+    cta: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      cta: string;
+      ctaFeatures: string;
+      ctaPricing: string;
+    };
+  };
+  // Marketing: HK Cantonese talking-head for SME / solo founders.
+  cantonesePage: {
+    seo: MarketingSeoMessages;
+    hero: {
+      brand: string;
+      kicker: string;
+      title: string;
+      subtitle: string;
+      ctaStart: string;
+      ctaWorkspace: string;
+      ctaSecondary: string;
+    };
+    fit: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      f1Title: string;
+      f1Body: string;
+      f2Title: string;
+      f2Body: string;
+      f3Title: string;
+      f3Body: string;
+    };
+    flow: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      s1Title: string;
+      s1Body: string;
+      s2Title: string;
+      s2Body: string;
+      s3Title: string;
+      s3Body: string;
+    };
+    cta: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      cta: string;
+      ctaTalkingHead: string;
+      ctaPricing: string;
+    };
   };
   affiliate: {
     title: string;
