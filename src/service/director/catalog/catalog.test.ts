@@ -21,8 +21,9 @@ test("all 15 DIRECTOR_SLUGS exist in hardcoded catalog and satisfy IDirector", (
     assert.ok(director.systemPrompt.trim().length > 0, `${slug} systemPrompt`);
     assert.ok(director.references.length > 0, `${slug} references`);
     assert.equal(getDirectorBySlug(slug), director);
+    assert.match(director._id, /^[a-f0-9]{24}$/);
     assert.equal(getDirectorById(director._id), director);
-    assert.equal(DIRECTORS_BY_ID[director._id.toHexString()], director);
+    assert.equal(DIRECTORS_BY_ID[director._id], director);
   }
 });
 

@@ -1,4 +1,3 @@
-import { ObjectId } from "mongodb";
 import type { IDirector } from "@/model/director";
 
 const raw = {
@@ -73,7 +72,7 @@ const raw = {
 
 // Hardcoded director definition for "surprise-interview-director".
 export const surpriseInterviewDirector: IDirector = {
-  _id: new ObjectId("6ac3a9a18eb5511915a38e00"),
+  _id: "6ac3a9a18eb5511915a38e00",
   ...raw,
   inputSchema: {
     ...raw.inputSchema,

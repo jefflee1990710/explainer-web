@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import type { Skill } from "@/model/skill";
 import { getDirectorById, resolveDirector } from "@/service/director/catalog";
+import { directorAsSkill } from "@/service/director/catalog-skill";
 
 type SkillFinders = {
   findInSkills: (id: ObjectId) => Promise<Skill | null>;
@@ -14,5 +15,5 @@ export async function loadStoredSkill(id: ObjectId, finders?: SkillFinders): Pro
     if (system) return system;
     return finders.findInUserDirectors(id);
   }
-  return getDirectorById(id) ?? resolveDirector(id);
+  return directorAsSkill(getDirectorById(id) ?? resolveDirector(id));
 }

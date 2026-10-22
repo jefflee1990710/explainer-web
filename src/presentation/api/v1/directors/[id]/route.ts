@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getDirectorById, getDirectorBySlug } from "@/service/director/catalog";
+import { directorAsSkill } from "@/service/director/catalog-skill";
 import { apiError, apiJson, withApiUser } from "@/service/api/respond";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { toPublicDirector } from "@/presentation/serialize";
@@ -11,7 +12,7 @@ export const GET = withApiUser<Params>(async ({ auth, params }) => {
   if (!skill) return apiError("找不到 Director", 404);
   const sub = await getActiveSubscription(auth.user.clerkUserId);
   return apiJson({
-    director: toPublicDirector(skill),
+    director: toPublicDirector(directorAsSkill(skill)),
     subscribed: isSubscriptionActive(sub),
   });
 });

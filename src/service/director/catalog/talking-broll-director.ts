@@ -1,4 +1,3 @@
-import { ObjectId } from "mongodb";
 import type { IDirector } from "@/model/director";
 
 const raw = {
@@ -73,7 +72,7 @@ const raw = {
 
 // Hardcoded director definition for "talking-broll-director".
 export const talkingBrollDirector: IDirector = {
-  _id: new ObjectId("6ac1fde88eb5511915a27fd8"),
+  _id: "6ac1fde88eb5511915a27fd8",
   ...raw,
   inputSchema: {
     ...raw.inputSchema,

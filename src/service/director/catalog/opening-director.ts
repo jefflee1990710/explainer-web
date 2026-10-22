@@ -1,4 +1,3 @@
-import { ObjectId } from "mongodb";
 import type { IDirector } from "@/model/director";
 
 const raw = {
@@ -71,7 +70,7 @@ const raw = {
 
 // Hardcoded director definition for "opening-director".
 export const openingDirector: IDirector = {
-  _id: new ObjectId("6abe134cebdb844ee2ce5b51"),
+  _id: "6abe134cebdb844ee2ce5b51",
   ...raw,
   inputSchema: {
     ...raw.inputSchema,

@@ -1,6 +1,7 @@
 import type { Skill } from "@/model/skill";
 import { isCustomSkill } from "@/service/director/behavior-slug";
 import { DIRECTORS, getDirectorBySlug } from "@/service/director/catalog";
+import { directorAsSkill } from "@/service/director/catalog-skill";
 import { OUTFIT_REEL_SKILL_SLUG } from "@/service/director/clip-continuity";
 
 // 試衫 stays in the codebase. New videos and the director list do not offer it.
@@ -44,7 +45,7 @@ export function sortSelectableSkills(skills: Skill[]): Skill[] {
 
 // Picker list from hardcoded directors.
 export async function listSelectableSkills(_clerkUserId?: string): Promise<Skill[]> {
-  return DIRECTORS.filter((director) => director.isActive && !isHiddenPickerSkill(director));
+  return DIRECTORS.filter((director) => director.isActive && !isHiddenPickerSkill(director)).map(directorAsSkill);
 }
 
 // One built-in director by slug, only if active and selectable in the picker.
@@ -52,5 +53,5 @@ export async function findSelectableSkill(_clerkUserId: string, slug: string): P
   if (!slug) return null;
   const director = getDirectorBySlug(slug);
   if (!director || !director.isActive || isHiddenPickerSkill(director)) return null;
-  return director;
+  return directorAsSkill(director);
 }

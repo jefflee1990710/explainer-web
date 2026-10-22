@@ -1,4 +1,3 @@
-import { ObjectId } from "mongodb";
 import type { IDirector } from "@/model/director";
 
 const raw = {
@@ -73,7 +72,7 @@ const raw = {
 
 // Hardcoded director definition for "comparison-card-director".
 export const comparisonCardDirector: IDirector = {
-  _id: new ObjectId("6ac1fde78eb5511915a27fd7"),
+  _id: "6ac1fde78eb5511915a27fd7",
   ...raw,
   inputSchema: {
     ...raw.inputSchema,

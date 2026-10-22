@@ -43,7 +43,7 @@ export const DIRECTORS_BY_SLUG: Record<DirectorSlug, IDirector> = Object.fromEnt
 ) as Record<DirectorSlug, IDirector>;
 
 export const DIRECTORS_BY_ID: Record<string, IDirector> = Object.fromEntries(
-  DIRECTORS.map((director) => [director._id.toHexString(), director]),
+  DIRECTORS.map((director) => [director._id, director]),
 );
 
 export function getDirectorBySlug(slug: string | undefined | null): IDirector | null {

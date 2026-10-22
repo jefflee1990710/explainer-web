@@ -1,4 +1,3 @@
-import { ObjectId } from "mongodb";
 import type { IDirector } from "@/model/director";
 
 const raw = {
@@ -81,7 +80,7 @@ const raw = {
 
 // Hardcoded director definition for "cartoon-explainer-video-director".
 export const cartoonExplainerVideoDirector: IDirector = {
-  _id: new ObjectId("6aa638b869984c5f26804543"),
+  _id: "6aa638b869984c5f26804543",
   ...raw,
   inputSchema: {
     ...raw.inputSchema,

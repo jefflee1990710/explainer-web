@@ -1,4 +1,3 @@
-import { ObjectId } from "mongodb";
 import type { IDirector } from "@/model/director";
 
 const raw = {
@@ -73,7 +72,7 @@ const raw = {
 
 // Hardcoded director definition for "listicle-director".
 export const listicleDirector: IDirector = {
-  _id: new ObjectId("6aaf603269984c5f26856959"),
+  _id: "6aaf603269984c5f26856959",
   ...raw,
   inputSchema: {
     ...raw.inputSchema,

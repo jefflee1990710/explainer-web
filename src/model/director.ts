@@ -1,4 +1,3 @@
-import type { ObjectId } from "mongodb";
 import { z } from "zod";
 import type { SystemProfile } from "@/model/director-profile";
 import type { SystemPerformance } from "@/model/director-performance";
@@ -151,8 +150,8 @@ export interface IDirectorBehavior {
 }
 
 export interface IDirector {
-  /** Fixed 24-hex ObjectId preserved from system seed for backward compatibility with existing video documents. */
-  _id: ObjectId;
+  /** Fixed 24-hex id preserved from the system seed so existing video documents still match. Stored as a string so client bundles never import mongodb. */
+  _id: string;
   slug: DirectorSlug;
   title: string;
   description: string;

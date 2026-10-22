@@ -1,4 +1,3 @@
-import { ObjectId } from "mongodb";
 import type { IDirector } from "@/model/director";
 
 const raw = {
@@ -73,7 +72,7 @@ const raw = {
 
 // Hardcoded director definition for "follow-shot-director".
 export const followShotDirector: IDirector = {
-  _id: new ObjectId("6ac3a9a18eb5511915a38e02"),
+  _id: "6ac3a9a18eb5511915a38e02",
   ...raw,
   inputSchema: {
     ...raw.inputSchema,
