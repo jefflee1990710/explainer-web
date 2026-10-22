@@ -35,10 +35,11 @@ export function RightToolInfluencer() {
           {features.map((item, index) => (
             <MotionItem key={item.title}>
               <article>
+                {/* All three stills are 16:9 composites — keep the native ratio so no panel is cut. */}
                 <img
                   src={FEATURE_ART[index]}
                   alt=""
-                  className="aspect-[4/5] w-full object-cover"
+                  className="aspect-video w-full rounded-2xl object-cover ring-1 ring-[#e4e4e7]"
                 />
                 <h3 className="mt-5 font-display text-xl font-semibold text-[#12141c]">{item.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-[#5c6170]">{item.body}</p>

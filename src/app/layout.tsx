@@ -44,7 +44,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <body
-        className={`${notoSansTc.className} flex min-h-dvh flex-col bg-background text-foreground`}
+        className="flex min-h-dvh flex-col bg-background font-sans text-foreground"
       >
         <GoogleAnalytics />
         <I18nProvider initialLocale={initialLocale}>{children}</I18nProvider>

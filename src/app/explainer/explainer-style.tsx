@@ -12,7 +12,7 @@ export function ExplainerStyle() {
         <img
           src="/landing/explainer/whiteboard.jpg"
           alt=""
-          className="aspect-video w-full object-cover"
+          className="aspect-video w-full rounded-2xl object-cover"
         />
         <div>
           <p className="inline-flex items-center rounded-full bg-[#f4fcd4] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#12141c]">

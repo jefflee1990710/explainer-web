@@ -21,7 +21,7 @@ export function ProductPromoCost() {
         <img
           src="/landing/product-promo/cost.jpg"
           alt=""
-          className="aspect-video w-full object-cover"
+          className="aspect-video w-full rounded-2xl object-cover"
         />
       </div>
     </section>

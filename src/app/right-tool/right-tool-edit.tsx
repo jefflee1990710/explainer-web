@@ -44,17 +44,6 @@ export function RightToolEdit() {
             </MotionItem>
           ))}
         </MotionStagger>
-
-        <figure className="mt-12 overflow-hidden rounded-xl border border-[#e4e4e7] bg-[#fafafa]">
-          <img
-            src="/landing/right-tool/editor-timeline.png"
-            alt={t("rightTool.edit.timelineLabel")}
-            className="block w-full"
-          />
-          <figcaption className="border-t border-[#e4e4e7] px-4 py-3 text-center text-xs font-medium text-[#5c6170]">
-            {t("rightTool.edit.timelineLabel")}
-          </figcaption>
-        </figure>
       </div>
     </section>
   );

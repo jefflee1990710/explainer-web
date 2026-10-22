@@ -1,5 +1,6 @@
 "use client";
 
+import { ArtFrame } from "@/presentation/components/art-frame";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
 
@@ -35,7 +36,7 @@ export function ProductPromoWild() {
           {items.map((item, index) => (
             <MotionItem key={item.title}>
               <article>
-                <img src={WILD_ART[index]} alt="" className="aspect-[4/3] w-full object-cover" />
+                <ArtFrame src={WILD_ART[index]} className="aspect-video w-full rounded-2xl" />
                 <h3 className="mt-5 font-display text-xl font-semibold text-[#12141c]">{item.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-[#5c6170]">{item.body}</p>
               </article>

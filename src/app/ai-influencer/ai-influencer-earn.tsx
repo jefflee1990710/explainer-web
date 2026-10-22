@@ -35,7 +35,7 @@ export function AiInfluencerEarn() {
               ))}
             </MotionStagger>
           </div>
-          <img src="/landing/ai-influencer/earn.jpg" alt="" className="aspect-[4/3] w-full object-cover" />
+          <img src="/landing/ai-influencer/earn.jpg" alt="" className="aspect-[4/3] w-full rounded-2xl object-cover ring-1 ring-white/10" />
         </div>
       </div>
     </section>

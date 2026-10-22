@@ -1,5 +1,6 @@
 "use client";
 
+import { ArtFrame } from "@/presentation/components/art-frame";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
 
@@ -35,11 +36,7 @@ export function TalkingHeadSteps() {
           {steps.map((item, index) => (
             <MotionItem key={item.title}>
               <article>
-                <img
-                  src={STEP_ART[index]}
-                  alt=""
-                  className="aspect-[4/3] w-full object-cover"
-                />
+                <ArtFrame src={STEP_ART[index]} className="aspect-video w-full rounded-2xl" />
                 <p className="mt-5 font-display text-xs font-bold tracking-[0.14em] text-[#5c6170]">
                   {String(index + 1).padStart(2, "0")}
                 </p>

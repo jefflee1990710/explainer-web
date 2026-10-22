@@ -23,18 +23,8 @@ const CAST: CastTile[] = [
   { src: "/hero/cast/fresh/zoe-portrait.webp", name: "Zoe", look: "Pop" },
 ];
 
-// Style mosaic uses the same Asian female faces so the site never shows account characters.
+// Video style stills (16:9) — the cast grid above already shows every face, so no repeats here.
 const STYLES = [
-  { src: "/hero/cast/fresh/mei-portrait.webp", label: "Realistic" },
-  { src: "/hero/cast/fresh/yuna-portrait.webp", label: "Clay" },
-  { src: "/hero/cast/fresh/hana-portrait.webp", label: "Water" },
-  { src: "/hero/cast/fresh/linh-portrait.webp", label: "Chalk" },
-  { src: "/hero/cast/fresh/sora-portrait.webp", label: "Cutout" },
-  { src: "/hero/cast/fresh/aiko-portrait.webp", label: "Doodle" },
-  { src: "/hero/cast/fresh/mina-portrait.webp", label: "Pencil" },
-  { src: "/hero/cast/fresh/zoe-portrait.webp", label: "Pop" },
-  { src: "/hero/cast/fresh/mei-standing.webp", label: "Look A" },
-  { src: "/hero/cast/fresh/yuna-standing.webp", label: "Look B" },
   { src: "/hero/styles/eight-bit.webp", label: "8-bit" },
   { src: "/hero/styles/ukiyo-e.webp", label: "Ukiyo" },
   { src: "/hero/styles/low-poly.webp", label: "Low-poly" },
@@ -90,10 +80,10 @@ export function LandingHeroCastRail() {
         transition={{ delay: 0.45, duration: 0.45, ease }}
         className="min-h-0 flex-1"
       >
-        <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#c6f24b]/85">
-          Styles · fresh cast
+        <p className="mb-1 mt-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#c6f24b]/85">
+          Video styles
         </p>
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-2 gap-1 sm:grid-cols-3">
           {STYLES.map((look, index) => (
             <motion.div
               key={`${look.label}-${index}`}
@@ -102,7 +92,7 @@ export function LandingHeroCastRail() {
               transition={{ delay: 0.48 + index * 0.02, duration: 0.3, ease }}
               className="relative overflow-hidden rounded-sm ring-1 ring-white/15"
             >
-              <img src={look.src} alt="" className="aspect-square w-full object-cover object-top" />
+              <img src={look.src} alt="" className="aspect-video w-full object-cover" />
               <span className="absolute inset-x-0 bottom-0 bg-black/75 py-px text-center text-[6.5px] font-semibold uppercase tracking-wide text-white">
                 {look.label}
               </span>

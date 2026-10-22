@@ -39,9 +39,9 @@ export function TalkingHeadFinish() {
             <img
               src="/landing/talking-head/balance.jpg"
               alt=""
-              className="aspect-video w-full object-cover"
+              className="aspect-video w-full rounded-2xl object-cover"
             />
-            <figure className="overflow-hidden border border-white/15 bg-white">
+            <figure className="overflow-hidden rounded-2xl border border-white/15 bg-white">
               <img
                 src="/landing/talking-head/editor-desk.png"
                 alt={t("talkingHeadPage.finish.deskLabel")}

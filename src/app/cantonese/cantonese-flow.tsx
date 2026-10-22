@@ -38,12 +38,12 @@ export function CantoneseFlow() {
           <img
             src="/landing/cantonese/reel.jpg"
             alt=""
-            className="aspect-[3/4] w-full max-w-md object-cover lg:ml-auto"
+            className="aspect-[3/4] w-full max-w-md rounded-2xl object-cover lg:ml-auto"
           />
           <img
             src="/landing/talking-head/captions.jpg"
             alt=""
-            className="absolute -bottom-6 -left-2 hidden w-[55%] border-4 border-[#12141c] object-cover shadow-2xl sm:block lg:-left-8"
+            className="absolute -bottom-6 -left-2 hidden w-[55%] rounded-xl border-4 border-[#12141c] object-cover shadow-2xl sm:block lg:-left-8"
           />
         </div>
       </div>

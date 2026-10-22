@@ -46,15 +46,22 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-sidebar: var(--sidebar);
-  --font-sans: var(--font-body);
+  --font-sans: "Latin Quotes", var(--font-body);
   --font-display: var(--font-display);
   --font-mono: var(--font-mono);
+}
+
+/* Noto Sans TC draws curly quotes full-width ("don’ t"); borrow Latin glyphs for quote marks only. */
+@font-face {
+  font-family: "Latin Quotes";
+  src: local("Helvetica Neue"), local("HelveticaNeue"), local("Segoe UI"), local("Roboto"), local("Arial");
+  unicode-range: U+2018-201F;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-body), "Noto Sans TC", sans-serif;
+  font-family: "Latin Quotes", var(--font-body), "Noto Sans TC", sans-serif;
 }
 
 .studio-canvas {
@@ -69,7 +76,7 @@ body {
 }
 
 .font-display {
-  font-family: var(--font-body), "Noto Sans TC", sans-serif;
+  font-family: "Latin Quotes", var(--font-body), "Noto Sans TC", sans-serif;
   letter-spacing: -0.02em;
 }
 

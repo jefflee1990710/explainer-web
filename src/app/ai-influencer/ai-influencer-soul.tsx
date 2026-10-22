@@ -37,12 +37,17 @@ export function AiInfluencerSoul() {
             ))}
           </MotionStagger>
         </div>
-        <div className="space-y-4">
-          <img src="/landing/ai-influencer/inject.jpg" alt="" className="aspect-video w-full object-cover" />
+        {/* 16:9 + 3:4 side by side; column ratio (16/9 : 3/4) gives both the same height at native aspect. */}
+        <div className="grid grid-cols-[2.37fr_1fr] gap-3">
+          <img
+            src="/landing/ai-influencer/inject.jpg"
+            alt=""
+            className="aspect-video w-full rounded-2xl object-cover ring-1 ring-[#e4e4e7]"
+          />
           <img
             src="/landing/ai-influencer/social.jpg"
             alt=""
-            className="aspect-[4/5] w-full max-w-sm object-cover lg:ml-auto"
+            className="aspect-[3/4] w-full rounded-2xl object-cover ring-1 ring-[#e4e4e7]"
           />
         </div>
       </div>

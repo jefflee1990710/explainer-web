@@ -37,7 +37,7 @@ export function ProductPromoFlow() {
         <img
           src="/landing/product-promo/upload.jpg"
           alt=""
-          className="aspect-video w-full object-cover"
+          className="aspect-video w-full rounded-2xl object-cover"
         />
       </div>
     </section>

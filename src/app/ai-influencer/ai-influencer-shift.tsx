@@ -22,7 +22,7 @@ export function AiInfluencerShift() {
         <img
           src="/landing/ai-influencer/offcamera.jpg"
           alt=""
-          className="mx-auto mt-12 aspect-video w-full max-w-4xl object-cover"
+          className="mx-auto mt-12 aspect-video w-full max-w-4xl rounded-2xl object-cover"
         />
 
         <div className="mx-auto mt-10 grid max-w-4xl gap-6 md:grid-cols-2">

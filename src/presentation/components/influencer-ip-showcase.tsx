@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArtFrame } from "@/presentation/components/art-frame";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { INFLUENCER_IP_ART } from "@/presentation/components/influencer-ip-art";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
@@ -52,11 +53,8 @@ export function InfluencerIpShowcase({
           </MotionItem>
           <MotionItem>
             <figure className="overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white">
-              <img
-                src={INFLUENCER_IP_ART.lifeFeed}
-                alt=""
-                className="aspect-square w-full object-cover object-top"
-              />
+              {/* 4:3 feed grid inside the square slot — contained so edge posts are not sliced. */}
+              <ArtFrame src={INFLUENCER_IP_ART.lifeFeed} className="aspect-square w-full" />
               <figcaption className="border-t border-[#e4e4e7] px-4 py-3 text-sm font-semibold text-[#12141c]">
                 {t(`${copyKey}.postsLabel`)}
               </figcaption>
@@ -70,7 +68,7 @@ export function InfluencerIpShowcase({
               <img
                 src={INFLUENCER_IP_ART.daily}
                 alt=""
-                className="aspect-[21/6] w-full object-cover object-center sm:aspect-[24/6]"
+                className="aspect-[1512/368] w-full object-cover"
               />
               <figcaption className="border-t border-[#e4e4e7] px-4 py-3 text-sm font-semibold text-[#12141c]">
                 {t(`${copyKey}.dailyLabel`)}

@@ -9,17 +9,18 @@ const LIFE_POSTS = [
   {
     src: "/landing/steps/life.webp",
     caption: "Café · morning",
-    object: "object-[18%_center]",
+    // 16:9 triptych — crop to the café panel (was missing object-cover, so it stretched).
+    object: "object-cover object-[12%_center]",
   },
   {
     src: "/hero/cast/fresh/mei-standing.webp",
     caption: "Street · OOTD",
-    object: "object-cover",
+    object: "object-cover object-top",
   },
   {
     src: "/hero/cast/fresh/yuna-standing.webp",
     caption: "City · evening",
-    object: "object-cover",
+    object: "object-cover object-top",
   },
   {
     src: "/landing/ai-influencer/wardrobe-grid.jpg",
