@@ -2,7 +2,7 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
-import { SectionCtaRow } from "@/presentation/components/section-cta-row";
+import { CardCta, SectionCtaRow } from "@/presentation/components/section-cta-row";
 
 const USE_ART = [
   "/landing/explainer/present.jpg",
@@ -14,9 +14,9 @@ const USE_ART = [
 export function ExplainerUses({ signedIn = false }: { signedIn?: boolean }) {
   const { t } = useI18n();
   const uses = [
-    { step: "01", title: t("explainerPage.uses.u1Title"), body: t("explainerPage.uses.u1Body") },
-    { step: "02", title: t("explainerPage.uses.u2Title"), body: t("explainerPage.uses.u2Body") },
-    { step: "03", title: t("explainerPage.uses.u3Title"), body: t("explainerPage.uses.u3Body") },
+    { step: "01", title: t("explainerPage.uses.u1Title"), body: t("explainerPage.uses.u1Body"), href: signedIn ? "/app" : "/sign-up", cta: t("explainerPage.hero.ctaStart") },
+    { step: "02", title: t("explainerPage.uses.u2Title"), body: t("explainerPage.uses.u2Body"), href: "/cantonese", cta: t("cantonesePage.hero.ctaStart") },
+    { step: "03", title: t("explainerPage.uses.u3Title"), body: t("explainerPage.uses.u3Body"), href: "/talking-head", cta: t("talkingHeadPage.hero.ctaStart") },
   ];
 
   return (
@@ -47,6 +47,7 @@ export function ExplainerUses({ signedIn = false }: { signedIn?: boolean }) {
                   </span>
                   <h3 className="mt-4 font-display text-xl font-semibold text-[#12141c]">{item.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-[#5c6170]">{item.body}</p>
+                  <CardCta href={item.href} label={item.cta} />
                 </div>
               </article>
             </MotionItem>

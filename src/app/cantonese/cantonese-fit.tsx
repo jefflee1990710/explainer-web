@@ -2,7 +2,7 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
-import { SectionCtaRow } from "@/presentation/components/section-cta-row";
+import { CardCta, SectionCtaRow } from "@/presentation/components/section-cta-row";
 
 const FIT_ART = [
   "/landing/cantonese/sme.jpg",
@@ -14,9 +14,9 @@ const FIT_ART = [
 export function CantoneseFit({ signedIn = false }: { signedIn?: boolean }) {
   const { t } = useI18n();
   const cards = [
-    { step: "01", title: t("cantonesePage.fit.f1Title"), body: t("cantonesePage.fit.f1Body") },
-    { step: "02", title: t("cantonesePage.fit.f2Title"), body: t("cantonesePage.fit.f2Body") },
-    { step: "03", title: t("cantonesePage.fit.f3Title"), body: t("cantonesePage.fit.f3Body") },
+    { step: "01", title: t("cantonesePage.fit.f1Title"), body: t("cantonesePage.fit.f1Body"), href: signedIn ? "/app" : "/sign-up", cta: t("cantonesePage.hero.ctaStart") },
+    { step: "02", title: t("cantonesePage.fit.f2Title"), body: t("cantonesePage.fit.f2Body"), href: "/product-promo", cta: t("productPromoPage.hero.ctaStart") },
+    { step: "03", title: t("cantonesePage.fit.f3Title"), body: t("cantonesePage.fit.f3Body"), href: "/talking-head", cta: t("talkingHeadPage.hero.ctaStart") },
   ];
 
   return (
@@ -47,6 +47,7 @@ export function CantoneseFit({ signedIn = false }: { signedIn?: boolean }) {
                   </span>
                   <h3 className="mt-4 font-display text-xl font-semibold text-[#12141c]">{item.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-[#5c6170]">{item.body}</p>
+                  <CardCta href={item.href} label={item.cta} />
                 </div>
               </article>
             </MotionItem>

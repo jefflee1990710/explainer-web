@@ -48,6 +48,7 @@ export function RightToolInfluencer() {
                   </span>
                   <h3 className="mt-4 font-display text-xl font-semibold text-[#12141c]">{item.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-[#5c6170]">{item.body}</p>
+                  <CardCta href={item.href} label={item.cta} />
                 </div>
               </article>
             </MotionItem>

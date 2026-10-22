@@ -2,7 +2,7 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
-import { SectionCtaRow } from "@/presentation/components/section-cta-row";
+import { CardCta, SectionCtaRow } from "@/presentation/components/section-cta-row";
 
 const STEP_ART = [
   "/landing/talking-head/wardrobe.jpg",
@@ -14,9 +14,9 @@ const STEP_ART = [
 export function TalkingHeadSteps({ signedIn = false }: { signedIn?: boolean }) {
   const { t } = useI18n();
   const steps = [
-    { step: "01", title: t("talkingHeadPage.steps.s1Title"), body: t("talkingHeadPage.steps.s1Body") },
-    { step: "02", title: t("talkingHeadPage.steps.s2Title"), body: t("talkingHeadPage.steps.s2Body") },
-    { step: "03", title: t("talkingHeadPage.steps.s3Title"), body: t("talkingHeadPage.steps.s3Body") },
+    { step: "01", title: t("talkingHeadPage.steps.s1Title"), body: t("talkingHeadPage.steps.s1Body"), href: signedIn ? "/app/characters" : "/sign-up", cta: t("landing.cast.cta") },
+    { step: "02", title: t("talkingHeadPage.steps.s2Title"), body: t("talkingHeadPage.steps.s2Body"), href: signedIn ? "/app" : "/sign-up", cta: t("talkingHeadPage.hero.ctaStart") },
+    { step: "03", title: t("talkingHeadPage.steps.s3Title"), body: t("talkingHeadPage.steps.s3Body"), href: "/cantonese", cta: t("cantonesePage.hero.ctaStart") },
   ];
 
   return (
@@ -47,6 +47,7 @@ export function TalkingHeadSteps({ signedIn = false }: { signedIn?: boolean }) {
                   </span>
                   <h3 className="mt-4 font-display text-xl font-semibold text-[#12141c]">{item.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-[#5c6170]">{item.body}</p>
+                  <CardCta href={item.href} label={item.cta} />
                 </div>
               </article>
             </MotionItem>

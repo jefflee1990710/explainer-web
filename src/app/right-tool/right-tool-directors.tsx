@@ -2,18 +2,18 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
-import { SectionCtaRow } from "@/presentation/components/section-cta-row";
+import { CardCta, SectionCtaRow } from "@/presentation/components/section-cta-row";
 
 // Built-in popular AI directors — dark studio cards with lime badge numbers.
 export function RightToolDirectors() {
   const { t } = useI18n();
   const directors = [
-    { title: t("rightTool.directors.d1Title"), body: t("rightTool.directors.d1Body") },
-    { title: t("rightTool.directors.d2Title"), body: t("rightTool.directors.d2Body") },
-    { title: t("rightTool.directors.d3Title"), body: t("rightTool.directors.d3Body") },
-    { title: t("rightTool.directors.d4Title"), body: t("rightTool.directors.d4Body") },
-    { title: t("rightTool.directors.d5Title"), body: t("rightTool.directors.d5Body") },
-    { title: t("rightTool.directors.d6Title"), body: t("rightTool.directors.d6Body") },
+    { title: t("rightTool.directors.d1Title"), body: t("rightTool.directors.d1Body"), href: "/talking-head", cta: t("talkingHeadPage.hero.ctaStart") },
+    { title: t("rightTool.directors.d2Title"), body: t("rightTool.directors.d2Body"), href: "/explainer", cta: t("explainerPage.hero.ctaStart") },
+    { title: t("rightTool.directors.d3Title"), body: t("rightTool.directors.d3Body"), href: "/product-promo", cta: t("productPromoPage.hero.ctaStart") },
+    { title: t("rightTool.directors.d4Title"), body: t("rightTool.directors.d4Body"), href: "/ai-influencer", cta: t("aiInfluencerPage.hero.ctaStart") },
+    { title: t("rightTool.directors.d5Title"), body: t("rightTool.directors.d5Body"), href: "/cantonese", cta: t("cantonesePage.hero.ctaStart") },
+    { title: t("rightTool.directors.d6Title"), body: t("rightTool.directors.d6Body"), href: "/right-tool#edit", cta: t("rightTool.hero.ctaSecondary") },
   ];
 
   return (
@@ -38,6 +38,7 @@ export function RightToolDirectors() {
                 </span>
                 <h3 className="mt-4 font-display text-xl font-semibold text-white">{item.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-white/65">{item.body}</p>
+                <CardCta href={item.href} label={item.cta} tone="dark" />
               </article>
             </MotionItem>
           ))}
