@@ -192,11 +192,33 @@ export function mergeScroMediaAssets({
 	clips: ScroVideoSeedClip[] | undefined;
 }): MediaAsset[] {
 	if (!clips?.length) {
-		return assets.filter(
+		// Before the ScroVideo store is populated on first load, keep one asset per
+		// clipNumber (even when it is still a scene image and no video is generated yet).
+		const byClip = new Map<number, MediaAsset>();
+		for (const asset of assets) {
+			const clipNumber = resolveScroClipNumber({ asset, clips: undefined });
+			if (clipNumber == null) continue;
+			const prev = byClip.get(clipNumber);
+			if (
+				!prev ||
+				(isStandaloneFrameStillName(prev.name) && !isStandaloneFrameStillName(asset.name)) ||
+				(prev.type !== "video" && asset.type === "video")
+			) {
+				byClip.set(clipNumber, asset);
+			}
+		}
+		const orderedScro = [...byClip.entries()]
+			.sort((a, b) => a[0] - b[0])
+			.map(([, asset]) => asset);
+		const used = new Set(orderedScro.map((asset) => asset.id));
+		const other = assets.filter(
 			(asset) =>
+				!used.has(asset.id) &&
 				!isStandaloneFrameStillName(asset.name) &&
-				!isScroSceneStill({ asset, clips }),
+				!isScroSceneStill({ asset, clips }) &&
+				resolveScroClipNumber({ asset, clips: undefined }) == null,
 		);
+		return [...orderedScro, ...other];
 	}
 	const used = new Set<string>();
 	const orderedScro: MediaAsset[] = [];

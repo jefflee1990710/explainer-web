@@ -257,7 +257,10 @@ export function MediaView() {
 				contentClassName="h-full"
 				{...dragProps}
 			>
-				{isDragOver || (filteredMediaItems.length === 0 && bookends.length === 0) ? (
+				{isDragOver ||
+				(filteredMediaItems.length === 0 &&
+					bookends.length === 0 &&
+					(scroVideos?.clips.length ?? 0) === 0) ? (
 					<MediaDragOverlay
 						isVisible={true}
 						isProcessing={isProcessing}

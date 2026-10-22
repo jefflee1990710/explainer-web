@@ -255,6 +255,34 @@ test("board wardrobe edit puts the previous images first and ignores the photos'
   assert.doesNotMatch(portrait, /- Outfit: black spaghetti strap dress/);
   assert.doesNotMatch(portrait, /- Hair: black wolf cut/);
   assert.match(portrait, /curtain bangs/);
+
+  // Lower-body-only wardrobe edits must not ask the portrait to draw a skirt or shoes,
+  // and chained "\n變更：..." history on `description` must not leak into `Character:`.
+  const lowerBodyEdit =
+    "Pants: a white tennis skirt with sharp knife pleats; Shoes: Argentine alpargatas";
+  const chainedDescription = `a young woman\n變更：${editInstruction}\n變更：${lowerBodyEdit}`;
+  const lowerOnlyPortrait = buildPortraitPrompt({
+    style,
+    description: chainedDescription,
+    spec,
+    photoCount: 1,
+    editInstruction: lowerBodyEdit,
+    parentImageCount: 1,
+  });
+  assert.doesNotMatch(lowerOnlyPortrait, /tennis skirt|alpargatas|denim halter top/);
+  assert.match(lowerOnlyPortrait, /Character: a young woman/);
+  assert.match(lowerOnlyPortrait, /Never zoom out to full-body/);
+
+  const mixedPortrait = buildPortraitPrompt({
+    style,
+    description: chainedDescription,
+    spec,
+    photoCount: 1,
+    editInstruction: `${editInstruction}; ${lowerBodyEdit}`,
+    parentImageCount: 1,
+  });
+  assert.match(mixedPortrait, /denim halter top/);
+  assert.doesNotMatch(mixedPortrait, /tennis skirt|alpargatas/);
 });
 
 test("portrait and full body keep the reference hairstyle", () => {

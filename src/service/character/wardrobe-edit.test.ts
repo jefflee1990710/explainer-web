@@ -4,6 +4,7 @@ import type { CharacterSpec } from "@/model/character-spec";
 import {
   cleanWardrobeEditText,
   parseWardrobeChanges,
+  portraitWardrobeEditText,
   specAfterWardrobeEdit,
 } from "@/service/character/wardrobe-edit";
 
@@ -49,4 +50,18 @@ test("specAfterWardrobeEdit replaces the stale hair and outfit with the picked i
 test("specAfterWardrobeEdit keeps the spec when the edit names no wardrobe part", () => {
   assert.deepEqual(specAfterWardrobeEdit(SPEC, "make her smile more"), SPEC);
   assert.equal(specAfterWardrobeEdit(undefined, EDIT), undefined);
+});
+
+test("portraitWardrobeEditText strips Pants and Shoes so head-and-shoulders portraits do not zoom out", () => {
+  assert.equal(
+    portraitWardrobeEditText(EDIT),
+    "Hair: 90s center-parted curtain bangs; Top: Washed light blue denim halter top.",
+  );
+  assert.equal(
+    portraitWardrobeEditText(
+      "Pants: a white tennis skirt with sharp knife pleats; Shoes: Argentine alpargatas",
+    ),
+    "",
+  );
+  assert.equal(portraitWardrobeEditText("make her smile more"), "make her smile more");
 });

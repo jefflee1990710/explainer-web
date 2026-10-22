@@ -27,6 +27,17 @@ export function parseWardrobeChanges(instruction: string): WardrobeChanges {
   return changes;
 }
 
+// Portrait is a head-and-shoulders crop, so lower-body parts (Pants / Shoes) are out of frame.
+// Dropping them stops the image model from zooming out to a full-body shot just to show a skirt or shoes.
+export function portraitWardrobeEditText(instruction: string): string {
+  const segments = cleanWardrobeEditText(instruction)
+    .split(/;\s*/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+  const kept = segments.filter((segment) => !/^(Pants|Shoes):\s*/.test(segment));
+  return kept.join("; ");
+}
+
 // The new version's spec: picked hair / clothes replace the stale lines read from the root photos.
 export function specAfterWardrobeEdit(
   spec: CharacterSpec | undefined,

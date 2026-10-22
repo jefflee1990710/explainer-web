@@ -12,6 +12,7 @@ import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { isRealisticStyle } from "@/service/style/realistic-light";
 import { versionStyleId } from "@/service/character/character-styles";
 import { characterReferenceUrls } from "@/service/character/reference-urls";
+import { portraitWardrobeEditText } from "@/service/character/wardrobe-edit";
 import { toSent, type Sent } from "@/service/generation/sent";
 import { PermanentJobError } from "@/service/generation/task-policy";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
@@ -48,6 +49,20 @@ export async function sendCharacterVersion(
   if (isBoardVersion(version)) {
     const photos = characterReferenceUrls(version);
     const parentImages = parentBoardImages(character, version).slice(0, 1);
+    // Lower-body-only wardrobe edits (Pants / Shoes) do not touch the head-and-shoulders crop;
+    // reuse the parent's portrait so the model never zooms out to show a skirt or shoes.
+    if (
+      version.editInstruction &&
+      parentImages[0] &&
+      !portraitWardrobeEditText(version.editInstruction)
+    ) {
+      return {
+        requestId: `reuse-portrait-${version.id.toHexString()}`,
+        status: "completed",
+        model: BLUEPRINT_MODEL,
+        images: [{ url: parentImages[0] }],
+      };
+    }
     const submitted = await submitImage({
       model: BLUEPRINT_MODEL,
       prompt: buildPortraitPrompt({

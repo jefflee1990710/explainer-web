@@ -43,12 +43,12 @@ export default function OpenCutInlineEditor({ projectId }: { projectId: string }
 		// OpenCut's app layout supplies TooltipProvider. This mount skips that layout.
 		<TooltipProvider>
 			<EditorProvider projectId={projectId}>
-				<ScroVideoSync />
 				<ScroVideoSelectionSync />
 				<ScroVideoToolbarBridge />
 				<ScroExportBridge />
 				<ScroProjectSync />
 				<ScroSubtitleBridge />
+				<ScroVideoSync />
 				<div className="opencut-direct-host bg-background flex h-full min-h-0 w-full flex-col overflow-hidden">
 					<DegradedRendererBanner />
 					<div className="min-h-0 min-w-0 flex-1">

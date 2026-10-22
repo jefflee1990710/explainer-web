@@ -160,8 +160,16 @@ export function OpenCutDirectDesk({
     const beginSync = () => {
       if (startedRef.current || !fetchedRef.current || !readyRef.current) return;
       startedRef.current = true;
+      const clips = seedClipsRef.current;
       const saved = savedRef.current;
       if (saved) {
+        // Populate the ScroVideo store immediately so the Assets panel can show
+        // storyboard clip cards while the saved project and still blobs restore.
+        channel.postToEditor({
+          type: "scro-videos-state",
+          videoId: project.id,
+          clips,
+        });
         channel.postToEditor({
           type: "scro-restore",
           videoId: project.id,
@@ -172,7 +180,6 @@ export function OpenCutDirectDesk({
         });
         return;
       }
-      const clips = seedClipsRef.current;
       channel.postToEditor({
         type: "scro-seed-videos",
         videoId: project.id,

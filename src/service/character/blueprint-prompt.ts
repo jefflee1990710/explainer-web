@@ -10,11 +10,18 @@ import {
 import {
   cleanWardrobeEditText,
   parseWardrobeChanges,
+  portraitWardrobeEditText,
   specAfterWardrobeEdit,
 } from "@/service/character/wardrobe-edit";
 
 const IGNORE_PHOTO_LOOK =
   "Ignore the hair and clothing in the original photos; they show an older look.";
+
+// Version history appends "\n變更：..." to `version.prompt`, which is already passed via `editInstruction`.
+// Strip those history suffixes from `Character:` so older wardrobe edits never leak into a new edit.
+function baseCharacterDescription(description: string) {
+  return description.replace(/(?:^|\n)變更：[\s\S]*$/, "").trim();
+}
 
 // Spec for an edit prompt: the base image carries hair and clothes, so only lines this change sets stay.
 function editSpecBlock(spec: CharacterSpec, instruction: string) {
@@ -246,12 +253,12 @@ type BoardPromptInput = {
 // Identity portrait: head-and-shoulders, front, the face as large as the canvas allows.
 // This is the image every later scene copies the face from, so nothing else is on it.
 export function buildPortraitPrompt(input: BoardPromptInput) {
-  const description = input.description.trim();
+  const description = baseCharacterDescription(input.description);
   const lightGround = !usesDrawingSurface(input.style);
   const realistic = isRealisticStyle(input.style);
   const lines = [
     `Character identity portrait on a square canvas: one person, head and shoulders, standing straight upright and facing the camera straight on (regardless of the reference photo's pose or angle), eyes open, looking into the lens, with ${EXPRESSION}. Changing the pose to front-on does not change the hair.`,
-    "The face fills most of the frame: top of the hair near the top edge with a small margin, shoulders cut at the bottom edge. Cutting long hair at the frame edge is fine; do not tie it back to fit. No hands, no props, no text, no labels, no frame or border, no second person.",
+    "The face fills most of the frame: top of the hair near the top edge with a small margin, shoulders cut at the bottom edge. Never zoom out to full-body or three-quarter length, and never show the waist, hips, pants, skirt, legs, or shoes. Cutting long hair at the frame edge is fine; do not tie it back to fit. No hands, no props, no text, no labels, no frame or border, no second person.",
   ];
   // Light and style come after the likeness lines so budget trimming only ever cuts style.
   const styleTail = [
@@ -263,9 +270,15 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
   ];
   if (description) lines.push(`Character: ${description}`);
   if (input.editInstruction && input.parentImageCount) {
-    const change = cleanWardrobeEditText(input.editInstruction);
+    const change = portraitWardrobeEditText(input.editInstruction);
+    if (!change) {
+      lines.push(
+        "Use the first attached image (the current identity portrait) as the base. This edit changes only lower-body clothing outside the head-and-shoulders crop, so keep the portrait's face, skin texture, hair, visible top, framing, and visual style identical.",
+      );
+      return fitBoardPrompt(lines, styleTail);
+    }
     lines.push(
-      "Use the first attached image (the current identity portrait) as the base. Keep the face, skin texture, framing, and visual style identical. Apply the change below so it is clearly visible; anything it does not name stays as in the base image.",
+      "Use the first attached image (the current identity portrait) as the base. Keep the face, skin texture, head-and-shoulders framing, and visual style identical. Apply the change below so it is clearly visible within the head-and-shoulders crop; anything it does not name stays as in the base image.",
       ...(input.photoCount > 0
         ? [
             `Every attached image after the first is an original photo of this character. Keep 五官比例, 整體氣質, and source skin texture anchored to those photos so the face does not drift. ${IGNORE_PHOTO_LOOK}`,
@@ -290,7 +303,7 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
 // Full-body standing figure drawn from the finished portrait (first image) plus the photos.
 // Cards, pickers, and scene stills use this one; it must be one whole person, nothing else.
 export function buildFullBodyPrompt(input: BoardPromptInput) {
-  const description = input.description.trim();
+  const description = baseCharacterDescription(input.description);
   const lightGround = !usesDrawingSurface(input.style);
   const realistic = isRealisticStyle(input.style);
   const change = input.editInstruction ? cleanWardrobeEditText(input.editInstruction) : "";

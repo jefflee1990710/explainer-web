@@ -196,6 +196,17 @@ describe("merge scro media after regenerate", () => {
 		);
 	});
 
+	it("keeps scene still cards on first load before clips store arrives (clips undefined)", () => {
+		const merged = mergeScroMediaAssets({
+			assets: [newStill],
+			clips: undefined,
+		});
+		assert.deepEqual(
+			merged.map((item) => item.id),
+			["new-still"],
+		);
+	});
+
 	it("keeps a lone Clip N · Start still as that clip's ScroVideo card", () => {
 		const onlyStill = asset({
 			id: "clip2-start",
