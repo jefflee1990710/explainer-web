@@ -147,6 +147,20 @@ test("characterWardrobeEditInstruction and detectCharacterWardrobePicks handle h
   });
 });
 
+test("detectCharacterWardrobePicks follows the most recent change, not catalog order", () => {
+  const tops = optionsForLookPart("top");
+  const older = tops[tops.length - 1]!.id;
+  const newer = tops[0]!.id;
+  const pants = optionsForLookPart("pants")[0]!.id;
+  // Version prompt keeps every past change; the new edit comes last.
+  const history = [
+    `變更：${characterWardrobeEditInstruction({ top: older, pants })}`,
+    `變更：${characterWardrobeEditInstruction({ pants })}`,
+    characterWardrobeEditInstruction({ top: newer }),
+  ].join("\n");
+  assert.deepEqual(detectCharacterWardrobePicks(history), { top: newer, pants });
+});
+
 test("extra wardrobe options stay unique so one prompt cannot hide inside another", () => {
   assert.equal(optionsForLookPart("hair").length, 17 + 14);
   assert.equal(optionsForLookPart("top").length, 28 + 99 + 166);

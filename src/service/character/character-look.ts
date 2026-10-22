@@ -639,14 +639,17 @@ export function characterPoseRevisionPrompt(selection: CharacterLookSelection, c
   ].join("\n");
 }
 
-// Detect which wardrobe/hair option ids are currently present in a version prompt/editInstruction.
+// Detect which wardrobe/hair option ids are currently worn, from a version prompt + editInstruction.
+// The prompt keeps every past change in order, so the option mentioned last for a part is the one worn now.
 export function detectCharacterWardrobePicks(text?: string): CharacterWardrobePicks {
   if (!text) return {};
   const picks: CharacterWardrobePicks = {};
   for (const part of CHARACTER_WARDROBE_PARTS) {
-    const options = optionsForLookPart(part);
-    for (const option of options) {
-      if (text.includes(`${PART_LABEL[part]}: ${option.prompt}`)) {
+    let latestAt = -1;
+    for (const option of optionsForLookPart(part)) {
+      const at = text.lastIndexOf(`${PART_LABEL[part]}: ${option.prompt}`);
+      if (at > latestAt) {
+        latestAt = at;
         picks[part] = option.id;
       }
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Spinner } from "@/presentation/components/spinner";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { BlueprintBoard } from "@/presentation/components/app/characters/[id]/blueprint-board";
@@ -65,6 +65,7 @@ export function VersionDetail({
   onRetry: () => void;
 }) {
   const { t, locale } = useI18n();
+  const editFormId = useId();
   const [showSpec, setShowSpec] = useState(false);
   const [instruction, setInstruction] = useState("");
   const currentWardrobe = detectCharacterWardrobePicks(
@@ -92,7 +93,8 @@ export function VersionDetail({
 
   function submitEdit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!composedEdit) return;
+    event.stopPropagation();
+    if (!composedEdit || pending !== "") return;
     onEdit(composedEdit);
     setInstruction("");
     setWardrobePicks({});
@@ -271,7 +273,11 @@ export function VersionDetail({
 
       {/* Always-Visible Quick Edit Dock: Hair / Top / Pants / Shoes / Accessory + Text Input */}
       {version.status === "completed" ? (
-        <form onSubmit={submitEdit} className="mt-3 shrink-0 border-t border-accent-ink/10 pt-3">
+        <form
+          id={editFormId}
+          onSubmit={submitEdit}
+          className="mt-3 shrink-0 border-t border-accent-ink/10 pt-3"
+        >
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs font-semibold text-foreground">
               {t("characters.editWhatLabel")}
@@ -363,7 +369,9 @@ export function VersionDetail({
             />
             <button
               type="submit"
+              form={editFormId}
               disabled={!composedEdit || pending !== ""}
+              onClick={(event) => event.stopPropagation()}
               className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full bg-accent px-4 text-xs font-bold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {pending === "edit" ? <Spinner className="h-3.5 w-3.5" /> : null}

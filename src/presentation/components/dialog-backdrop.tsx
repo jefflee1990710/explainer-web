@@ -27,7 +27,12 @@ export function DialogBackdrop({
   if (!host) return null;
 
   return createPortal(
-    <div className={`pointer-events-auto fixed inset-0 ${className}`} style={{ zIndex }} onClick={onClick}>
+    <div
+      className={`pointer-events-auto fixed inset-0 ${className}`}
+      style={{ zIndex }}
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={onClick}
+    >
       {children}
     </div>,
     host,

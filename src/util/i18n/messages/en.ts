@@ -944,6 +944,13 @@ export const en: Messages = {
     roomTitle: "My Room",
     roomSubtitle: "Switch between your AI Influencers, try on hair, tops, pants, shoes, and fashion accessories, and save presets.",
     roomSelectAndBack: "Use selected look & return",
+    roomSwitchCharacter: "Switch character",
+    roomWardrobeHeading: "Outfit",
+    roomWardrobeWaiting: "Wait for this look to finish before changing it.",
+    roomTabPresets: "Presets ({n})",
+    roomTabHistory: "History ({n})",
+    roomHistoryLimit: "Latest {n} looks",
+    roomPresetsEmpty: "No presets yet. Save the current look or one from History.",
     retryCredits: "Retry · {cost} credits",
     creditsShortSubscribed:
       "Not enough credits ({remaining} left). Click to top up and continue.",

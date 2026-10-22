@@ -39,8 +39,11 @@ export function StudioShell({
             <StudioMainSlot>{children}</StudioMainSlot>
           </main>
         </div>
-        {/* Dialogs portal here so the scrim covers the rail, not only the editor. */}
-        <div id="studio-dialog-root" className="contents" />
+        {/* Dialogs portal here so the scrim covers the rail, not only the editor.
+            Not display:contents: that drops the overlay out of hit testing, so a click
+            on a dialog button also hits the control underneath. Zero size so the empty
+            host never sits on top of the page. */}
+        <div id="studio-dialog-root" className="pointer-events-none fixed top-0 left-0 z-[100] h-0 w-0" />
       </div>
     </RouteTransitionProvider>
   );

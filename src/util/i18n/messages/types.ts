@@ -513,6 +513,13 @@ export type Messages = {
     roomTitle: string;
     roomSubtitle: string;
     roomSelectAndBack: string;
+    roomSwitchCharacter: string;
+    roomWardrobeHeading: string;
+    roomWardrobeWaiting: string;
+    roomTabPresets: string;
+    roomTabHistory: string;
+    roomHistoryLimit: string;
+    roomPresetsEmpty: string;
     retryCredits: string;
     creditsShortSubscribed: string;
     creditsNeedSubscribe: string;

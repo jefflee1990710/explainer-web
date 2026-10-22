@@ -188,7 +188,7 @@ function PresetChip({
 }
 
 // Modal dialog to name and save the current blueprint version as a preset.
-function SaveCharacterPresetDialog({
+export function SaveCharacterPresetDialog({
   defaultSuggestion,
   saving,
   onClose,
