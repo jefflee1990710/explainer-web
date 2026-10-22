@@ -1,8 +1,9 @@
 import { timingSafeEqual } from "crypto";
 import { authenticateApiRequest } from "@/service/api/auth";
+import { authenticateApiKey } from "@/service/mcp/api-keys";
 
 // Verify API key from `x-api-key` or `Authorization: Bearer <secret>` against POST_API_KEY,
-// or fall back to standard `/api/v1` user authentication.
+// an `exp_live_*` MongoDB API key, or standard `/api/v1` user authentication.
 export async function isAuthorizedPostAdmin(request: Request): Promise<boolean> {
   const configuredSecret = process.env.POST_API_KEY?.trim();
   const headerKey =
@@ -17,6 +18,12 @@ export async function isAuthorizedPostAdmin(request: Request): Promise<boolean> 
     if (a.length === b.length && timingSafeEqual(a, b)) {
       return true;
     }
+  }
+
+  // Support passing a never-expiring `exp_live_*` key via `x-api-key` as well as `Authorization: Bearer`.
+  if (headerKey.startsWith("exp_live_")) {
+    const keyAuth = await authenticateApiKey(`Bearer ${headerKey}`);
+    if (keyAuth) return true;
   }
 
   const userAuth = await authenticateApiRequest(request);
