@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  applyWardrobePick,
+  isFullBodyTop,
   ALL_CHARACTER_LOOK_PARTS,
   CHARACTER_LOOK_PARTS,
   CHARACTER_WARDROBE_PARTS,
@@ -164,7 +166,7 @@ test("detectCharacterWardrobePicks follows the most recent change, not catalog o
 test("extra wardrobe options stay unique so one prompt cannot hide inside another", () => {
   assert.equal(optionsForLookPart("hair").length, 17 + 14);
   assert.equal(optionsForLookPart("top").length, 28 + 99 + 166);
-  assert.equal(optionsForLookPart("pants").length, 16 + 51 + 97);
+  assert.equal(optionsForLookPart("pants").length, 1 + 16 + 51 + 97);
   assert.equal(optionsForLookPart("shoes").length, 19 + 46);
   assert.equal(optionsForLookPart("accessory").length, 8 + 33);
   assert.equal(lookOptionCategory("hair", "dreadlocks"), "extreme");
@@ -235,6 +237,46 @@ test("sanitizeWardrobePicks keeps only known wardrobe ids", () => {
     { hair: "bob", shoes: "sneakers" },
   );
   assert.deepEqual(sanitizeWardrobePicks(null), {});
+});
+
+test("pants 'none' is dropped under a one-piece top and becomes short black pants under a half top", () => {
+  // One-piece dress: no pants line at all.
+  const dressEdit = characterWardrobeEditInstruction({ top: "alredscoopdress", pants: "none" });
+  assert.match(dressEdit, /^Top: Bright red form-fitting milkmaid mini dress/);
+  assert.doesNotMatch(dressEdit, /Pants:/);
+  // Pants-only change while already wearing a dress also says nothing about pants.
+  assert.equal(characterWardrobeEditInstruction({ pants: "none" }, "", "kaftan"), "");
+
+  // Half top: "none" renders skinny short black pants.
+  const teeEdit = characterWardrobeEditInstruction({ top: "alwhitebabycroptee", pants: "none" });
+  assert.match(teeEdit, /Pants: skinny black short pants, fitted and ending at mid-thigh/);
+  assert.match(characterWardrobeEditInstruction({ pants: "none" }, "", "tee"), /Pants: skinny black short pants/);
+
+  // Detection: a dress put on after the last pants line reads as "none"; the short-pants line reads as "none" too.
+  const history = [characterWardrobeEditInstruction({ pants: "jeans" }), dressEdit].join("\n");
+  assert.equal(detectCharacterWardrobePicks(history).pants, "none");
+  assert.equal(detectCharacterWardrobePicks(teeEdit).pants, "none");
+  assert.equal(detectCharacterWardrobePicks(characterWardrobeEditInstruction({ top: "alredscoopdress", pants: "jeans" })).pants, "jeans");
+
+  // Generator prompt and Life photo prompts follow the same rule.
+  const dressLook = characterLookPrompt({ ...defaultCharacterLook(), top: "abaya", pants: "none" });
+  assert.doesNotMatch(dressLook, /Pants:/);
+  assert.match(characterLookPrompt({ ...defaultCharacterLook(), pants: "none" }), /Pants: skinny black short pants/);
+  assert.deepEqual(wardrobePickPrompts({ top: "thobe", pants: "none" }), { top: "a Gulf thobe in crisp white cotton with a stand collar and a narrow buttoned placket" });
+
+  // Picking a one-piece top auto-sets pants to "none"; an explicit pants pick is kept.
+  assert.deepEqual(applyWardrobePick({}, "top", "alsmokyqipaotop", { pants: "jeans" }), { top: "alsmokyqipaotop", pants: "none" });
+  assert.deepEqual(applyWardrobePick({ pants: "wide" }, "top", "kaftan", {}), { pants: "wide", top: "kaftan" });
+  assert.deepEqual(applyWardrobePick({}, "top", "tee", { pants: "none" }), { top: "tee", pants: "none" });
+  assert.deepEqual(applyWardrobePick({}, "top", "tee", { pants: "jeans" }), { top: "tee" });
+
+  // Random looks never pick "none" by themselves; a random one-piece top drops pants.
+  for (let i = 0; i < 20; i++) {
+    const look = randomizeCharacterLook(defaultCharacterLook(), { rand: () => i / 20 });
+    assert.equal(look.pants === "none", isFullBodyTop(look.top));
+  }
+  assert.equal(characterLookPreviewSrc("pants", "none"), "");
+  assert.equal(defaultCharacterLook().pants, "jeans");
 });
 
 test("wardrobePickPrompts maps picked ids to prompt text", () => {

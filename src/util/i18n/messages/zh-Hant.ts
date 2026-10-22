@@ -584,6 +584,7 @@ export const zhHant: Messages = {
         },
         pants: {
           ...AMENDA_LABELS_ZH.pants,
+          none: "無",
           jeans: "經典直筒牛仔褲",
           chinos: "修身卡其休閒褲",
           shorts: "剪裁及膝百慕達短褲",

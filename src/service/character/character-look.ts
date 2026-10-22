@@ -153,6 +153,8 @@ export const CHARACTER_LOOKS: Record<CharacterLookPart, readonly CharacterLookOp
     { id: "athletic", prompt: "a lean athletic build with visible muscle tone but not bulky" },
   ],
   pants: [
+    // "None": skipped under a one-piece top, otherwise drawn as plain short black pants.
+    { id: "none", prompt: "skinny black short pants, fitted and ending at mid-thigh" },
     { id: "jeans", prompt: "straight blue jeans" },
     { id: "chinos", prompt: "tailored beige chinos" },
     { id: "shorts", prompt: "knee-length shorts" },
@@ -218,7 +220,7 @@ export function defaultCharacterLook(): CharacterLookSelection {
     hair: CHARACTER_LOOKS.hair[0].id,
     face: CHARACTER_LOOKS.face[0].id,
     body: CHARACTER_LOOKS.body[0].id,
-    pants: CHARACTER_LOOKS.pants[0].id,
+    pants: "jeans",
     shoes: CHARACTER_LOOKS.shoes[0].id,
     top: CHARACTER_EXTRA_LOOKS.top[0].id,
     accessory: CHARACTER_EXTRA_LOOKS.accessory[0].id,
@@ -245,7 +247,39 @@ export function characterLookOption(part: AnyCharacterLookPart, id: string) {
 // Public file for the studio preview of one option.
 export function characterLookPreviewSrc(part: AnyCharacterLookPart, id: string) {
   if (!isCharacterLookId(part, id)) return "";
+  // "No pants" has no photo; the picker shows the plain pants glyph instead.
+  if (part === "pants" && id === NO_PANTS_ID) return "";
   return `/character-looks/${part}-${id}.webp?v=6`;
+}
+
+export const NO_PANTS_ID = "none";
+
+// One-piece tops (dresses, robes, long gowns) already cover the legs, so they need no pants.
+const FULL_BODY_TOP = new Set([
+  "alredscoopdress",
+  "alsportyjerseytop",
+  "alsmokyqipaotop",
+  "alinkbambooqipao",
+  "kaftan",
+  "djellaba",
+  "thobe",
+  "galabeya",
+  "abaya",
+  "deel",
+  "chuba",
+  "gho",
+  "changshan",
+]);
+
+export function isFullBodyTop(topId?: string) {
+  return Boolean(topId && FULL_BODY_TOP.has(topId));
+}
+
+// Pants prompt for a pick; undefined means "say nothing about pants" (no pants under a one-piece top).
+export function pantsPromptFor(pantsId: string | undefined, topId: string | undefined) {
+  if (!pantsId) return undefined;
+  if (pantsId === NO_PANTS_ID && isFullBodyTop(topId)) return undefined;
+  return characterLookOption("pants", pantsId)?.prompt;
 }
 
 // Global 20-country cultural & regional signature fashion items (mapped to the "extreme" / Global Heritage tab).
@@ -447,7 +481,7 @@ export function randomizeCharacterLook(
   };
   for (const part of ALL_CHARACTER_LOOK_PARTS) {
     if (options.locked?.[part]) continue;
-    const all = optionsForLookPart(part);
+    const all = optionsForLookPart(part).filter((item) => !(part === "pants" && item.id === NO_PANTS_ID));
     const pool = options.extremeOnly
       ? all.filter((item) => isExaggeratedLookOption(part, item.id))
       : all;
@@ -457,6 +491,8 @@ export function randomizeCharacterLook(
       (next as Record<string, string>)[part] = picked.id;
     }
   }
+  // A random one-piece top drops the random pants.
+  if (!options.locked?.pants && isFullBodyTop(next.top)) next.pants = NO_PANTS_ID;
   return next;
 }
 
@@ -594,6 +630,11 @@ export function characterLookPrompt(selection: CharacterLookSelection) {
   for (const part of CHARACTER_LOOK_PARTS) {
     const option = CHARACTER_LOOKS[part].find((item) => item.id === selection[part]);
     if (!option) throw new Error(`Unknown ${part} look: ${selection[part]}`);
+    if (part === "pants") {
+      const pants = pantsPromptFor(option.id, selection.top);
+      if (pants) lines.push(`${PART_LABEL[part]}: ${pants}.`);
+      continue;
+    }
     lines.push(`${PART_LABEL[part]}: ${option.prompt}.`);
   }
   for (const part of CHARACTER_EXTRA_PARTS) {
@@ -644,6 +685,7 @@ export function characterPoseRevisionPrompt(selection: CharacterLookSelection, c
 export function detectCharacterWardrobePicks(text?: string): CharacterWardrobePicks {
   if (!text) return {};
   const picks: CharacterWardrobePicks = {};
+  const foundAt: Partial<Record<CharacterWardrobePart, number>> = {};
   for (const part of CHARACTER_WARDROBE_PARTS) {
     let latestAt = -1;
     for (const option of optionsForLookPart(part)) {
@@ -653,8 +695,28 @@ export function detectCharacterWardrobePicks(text?: string): CharacterWardrobePi
         picks[part] = option.id;
       }
     }
+    foundAt[part] = latestAt;
+  }
+  // A one-piece top put on after the last pants line means no pants are worn now.
+  if (isFullBodyTop(picks.top) && (foundAt.top ?? -1) > (foundAt.pants ?? -1)) {
+    picks.pants = NO_PANTS_ID;
   }
   return picks;
+}
+
+// Apply one picker choice. Picking a top also settles pants the user has not picked:
+// a one-piece top sets "none", and a half top over current "none" keeps it (drawn as short black pants).
+export function applyWardrobePick(
+  prev: CharacterWardrobePicks,
+  part: CharacterWardrobePart,
+  id: string,
+  worn: CharacterWardrobePicks,
+): CharacterWardrobePicks {
+  const next: CharacterWardrobePicks = { ...prev, [part]: id };
+  if (part === "top" && !prev.pants && (isFullBodyTop(id) || worn.pants === NO_PANTS_ID)) {
+    next.pants = NO_PANTS_ID;
+  }
+  return next;
 }
 
 // Drops unknown parts and option ids from client-sent wardrobe picks.
@@ -676,24 +738,26 @@ export function wardrobePickPrompts(
   const prompts: Partial<Record<CharacterWardrobePart, string>> = {};
   for (const part of CHARACTER_WARDROBE_PARTS) {
     const id = picks[part];
-    const option = id ? characterLookOption(part, id) : undefined;
-    if (option) prompts[part] = option.prompt;
+    const prompt = part === "pants" ? pantsPromptFor(id, picks.top) : id ? characterLookOption(part, id)?.prompt : undefined;
+    if (prompt) prompts[part] = prompt;
   }
   return prompts;
 }
 
 // Compose an edit instruction from selected hair / top / pants / shoes / accessory + optional note.
+// `wornTop` is the top already on the character, used when the top itself is not being changed.
 export function characterWardrobeEditInstruction(
   picks: CharacterWardrobePicks,
   customNote = "",
+  wornTop?: string,
 ): string {
   const parts: string[] = [];
   for (const part of CHARACTER_WARDROBE_PARTS) {
     const id = picks[part];
     if (!id) continue;
-    const option = characterLookOption(part, id);
-    if (option) {
-      parts.push(`${PART_LABEL[part]}: ${option.prompt}`);
+    const prompt = part === "pants" ? pantsPromptFor(id, picks.top ?? wornTop) : characterLookOption(part, id)?.prompt;
+    if (prompt) {
+      parts.push(`${PART_LABEL[part]}: ${prompt}`);
     }
   }
   const note = customNote.trim();

@@ -591,6 +591,7 @@ export const en: Messages = {
         },
         pants: {
           ...AMENDA_LABELS_EN.pants,
+          none: "None",
           jeans: "Straight Jeans",
           chinos: "Tailored Chinos",
           shorts: "Tailored Shorts",

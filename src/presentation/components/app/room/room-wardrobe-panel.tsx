@@ -7,6 +7,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicCharacterVersion } from "@/presentation/serialize";
 import {
+  applyWardrobePick,
   CHARACTER_WARDROBE_PARTS,
   characterWardrobeEditInstruction,
   defaultCharacterLook,
@@ -43,7 +44,7 @@ export function RoomWardrobePanel({
   const current = detectCharacterWardrobePicks(
     [version.prompt, version.editInstruction].filter(Boolean).join("\n"),
   );
-  const composedEdit = characterWardrobeEditInstruction(picks, instruction);
+  const composedEdit = characterWardrobeEditInstruction(picks, instruction, current.top);
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -156,7 +157,7 @@ export function RoomWardrobePanel({
         <CharacterLookDialog
           part={dialogPart}
           value={picks[dialogPart] ?? current[dialogPart] ?? defaultCharacterLook()[dialogPart] ?? ""}
-          onChange={(id) => setPicks((prev) => ({ ...prev, [dialogPart]: id }))}
+          onChange={(id) => setPicks((prev) => applyWardrobePick(prev, dialogPart, id, current))}
           onClose={() => setDialogPart(null)}
         />
       ) : null}

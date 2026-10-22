@@ -10,6 +10,7 @@ import { CharacterSpecList } from "@/presentation/components/app/characters/[id]
 import { CharacterLookArt } from "@/presentation/components/app/characters/character-look-art";
 import { CharacterLookDialog } from "@/presentation/components/app/characters/character-look-dialog";
 import {
+  applyWardrobePick,
   CHARACTER_WARDROBE_PARTS,
   characterWardrobeEditInstruction,
   defaultCharacterLook,
@@ -89,7 +90,7 @@ export function VersionDetail({
   const hasDetails = Boolean(
     version.spec || version.editInstruction || version.prompt || version.referenceImageUrl,
   );
-  const composedEdit = characterWardrobeEditInstruction(wardrobePicks, instruction);
+  const composedEdit = characterWardrobeEditInstruction(wardrobePicks, instruction, currentWardrobe.top);
 
   function submitEdit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -262,10 +263,7 @@ export function VersionDetail({
             ""
           }
           onChange={(id) =>
-            setWardrobePicks((current) => ({
-              ...current,
-              [dialogPart]: id,
-            }))
+            setWardrobePicks((current) => applyWardrobePick(current, dialogPart, id, currentWardrobe))
           }
           onClose={() => setDialogPart(null)}
         />
