@@ -70,6 +70,14 @@ export function CharacterCard({
           >
             {t("characters.cardFailed")}
           </span>
+        ) : character.starterGift ? (
+          <span
+            className={`absolute top-2 rounded-full bg-[#c6f24b] px-2 py-0.5 text-[11px] font-semibold text-[#12141c] ${
+              onToggleSelect ? "left-10" : "left-2"
+            }`}
+          >
+            {t("signupPromo.giftBadge")}
+          </span>
         ) : null}
       </span>
       <span className="flex flex-1 flex-col gap-1 px-3 py-2.5 text-left">

@@ -35,65 +35,78 @@ const STYLES = [
 
 export function LandingHeroCastRail() {
   return (
-    <div className="relative flex h-full flex-col justify-start gap-2 overflow-hidden py-4 pl-2 pr-1 sm:pl-3 lg:justify-center lg:py-6 lg:pl-4 xl:pl-6">
-      <motion.p
-        initial={{ opacity: 0, x: -12 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.15, duration: 0.5, ease }}
-        className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#c6f24b]/85"
-      >
-        Character design
-      </motion.p>
+    <div data-hero-side="cast" className="relative flex h-full min-h-0 flex-col gap-4 overflow-hidden px-3 py-5 lg:gap-4 lg:px-4 lg:py-4 xl:gap-5 xl:px-5">
+      {/* Same vertical share as Life posts on the right, so the two rails start and end together. */}
+      <div className="flex min-h-0 flex-col lg:flex-[1.15]">
+        <motion.p
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.15, duration: 0.5, ease }}
+          className="mb-2 shrink-0 text-[9px] font-bold uppercase tracking-[0.18em] text-[#c6f24b]"
+        >
+          Character design
+        </motion.p>
 
-      <ul className="grid grid-cols-4 gap-1">
-        {CAST.map((tile, index) => (
-          <motion.li
-            key={tile.name}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.16 + index * 0.03, duration: 0.4, ease }}
-          >
-            <div
-              className={[
-                "relative overflow-hidden rounded-md bg-[#1a1c24] shadow-[0_6px_18px_rgba(0,0,0,0.4)]",
-                tile.selected ? "ring-2 ring-[#c6f24b]" : "ring-1 ring-white/12",
-              ].join(" ")}
+        <ul className="grid min-h-0 flex-1 grid-cols-4 gap-1.5 lg:grid-rows-2 lg:gap-2">
+          {CAST.map((tile, index) => (
+            <motion.li
+              key={tile.name}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.16 + index * 0.03, duration: 0.4, ease }}
+              className="min-h-0"
             >
-              <img src={tile.src} alt="" className="aspect-[3/4] w-full object-cover object-top" />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent px-1 pb-1 pt-5">
-                <p className="truncate text-[8px] font-semibold leading-tight text-white">{tile.name}</p>
-                <p className="truncate text-[7px] font-medium text-white/65">{tile.look}</p>
+              <div
+                className={[
+                  "relative h-full overflow-hidden rounded-xl bg-[#1a1c24] shadow-[0_10px_24px_rgba(0,0,0,0.4)]",
+                  tile.selected ? "ring-2 ring-[#c6f24b]" : "ring-1 ring-white/15",
+                ].join(" ")}
+              >
+                <img
+                  src={tile.src}
+                  alt=""
+                  className="aspect-[3/4] h-full w-full object-cover object-top lg:absolute lg:inset-0 lg:aspect-auto"
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent px-1.5 pb-1.5 pt-5">
+                  <p className="truncate text-[8px] font-semibold leading-tight text-white">{tile.name}</p>
+                  <p className="truncate text-[7px] font-medium text-white/65">{tile.look}</p>
+                </div>
+                {tile.selected ? (
+                  <span className="absolute right-1 top-1 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#c6f24b] text-[7px] font-bold text-[#12141c]">
+                    ✓
+                  </span>
+                ) : null}
               </div>
-              {tile.selected ? (
-                <span className="absolute right-0.5 top-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#c6f24b] text-[7px] font-bold text-[#12141c]">
-                  ✓
-                </span>
-              ) : null}
-            </div>
-          </motion.li>
-        ))}
-      </ul>
+            </motion.li>
+          ))}
+        </ul>
+      </div>
 
+      {/* Same vertical share as the Explainer card, so style stills carry the same weight. */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.45, duration: 0.45, ease }}
-        className="min-h-0 flex-1"
+        className="flex min-h-0 flex-col lg:flex-1"
       >
-        <p className="mb-1 mt-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#c6f24b]/85">
+        <p className="mb-2 shrink-0 text-[9px] font-bold uppercase tracking-[0.18em] text-[#c6f24b]">
           Video styles
         </p>
-        <div className="grid grid-cols-2 gap-1 sm:grid-cols-3">
+        <div className="grid min-h-0 flex-1 grid-cols-3 gap-1.5 lg:grid-rows-2 lg:gap-2">
           {STYLES.map((look, index) => (
             <motion.div
               key={`${look.label}-${index}`}
               initial={{ opacity: 0, scale: 0.94 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.48 + index * 0.02, duration: 0.3, ease }}
-              className="relative overflow-hidden rounded-sm ring-1 ring-white/15"
+              className="relative min-h-0 overflow-hidden rounded-xl bg-[#12141c] shadow-[0_10px_24px_rgba(0,0,0,0.4)] ring-1 ring-white/15"
             >
-              <img src={look.src} alt="" className="aspect-video w-full object-cover" />
-              <span className="absolute inset-x-0 bottom-0 bg-black/75 py-px text-center text-[6.5px] font-semibold uppercase tracking-wide text-white">
+              <img
+                src={look.src}
+                alt=""
+                className="aspect-video h-full w-full object-cover lg:absolute lg:inset-0 lg:aspect-auto"
+              />
+              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 pb-1 pt-4 text-center text-[8px] font-semibold uppercase tracking-wide text-white">
                 {look.label}
               </span>
             </motion.div>

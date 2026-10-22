@@ -2,6 +2,7 @@ import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { getAuthSession } from "@/service/auth";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { CantoneseCta } from "./cantonese-cta";
+import { CantoneseExamples } from "./cantonese-examples";
 import { CantoneseFit } from "./cantonese-fit";
 import { CantoneseFlow } from "./cantonese-flow";
 import { CantoneseHero } from "./cantonese-hero";
@@ -17,6 +18,7 @@ export default async function CantoneseMarketingPage() {
       <CantoneseHero signedIn={signedIn} />
       <CantoneseFit signedIn={signedIn} />
       <CantoneseFlow signedIn={signedIn} />
+      <CantoneseExamples />
       <CantoneseCta signedIn={signedIn} />
     </PolicyLayout>
   );

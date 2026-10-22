@@ -20,6 +20,7 @@ export function StudioShell({
   items,
   headerEnd,
   toolbar,
+  banner,
   children,
 }: {
   items: StudioNavItem[];
@@ -27,11 +28,14 @@ export function StudioShell({
   headerEnd: React.ReactNode;
   // Account controls pinned to the bottom of the rail.
   toolbar: React.ReactNode;
+  // Offer strip across the top of the signed-in app.
+  banner?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <RouteTransitionProvider>
       <div className="studio-app flex h-dvh w-full flex-col">
+        {banner}
         <div className="flex min-h-0 flex-1">
           <StudioRail items={items}>{toolbar}</StudioRail>
           <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--studio-canvas)]">

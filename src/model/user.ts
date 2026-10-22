@@ -13,6 +13,8 @@ export type AppUser = {
   credits: number;
   // Unspent one-time packs that survive monthly refill.
   bonusCredits?: number;
+  // Permanent subscription percent off, locked when the account was created during a signup promo.
+  signupDiscountPercent?: number;
   // Current period bar denominator (monthly allotment + packs).
   creditLimit?: number;
   processedCheckoutIds?: string[];
@@ -41,6 +43,7 @@ export const appUserSchema: z.ZodType<AppUser> = z.object({
   stripeCustomerId: z.string().optional(),
   credits: z.number(),
   bonusCredits: z.number().optional(),
+  signupDiscountPercent: z.number().optional(),
   creditLimit: z.number().optional(),
   processedCheckoutIds: z.array(z.string()).optional(),
   affiliateEnabled: z.boolean().optional(),

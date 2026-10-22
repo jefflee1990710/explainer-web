@@ -6,6 +6,8 @@ import { useEffect, useId, useState } from "react";
 import { startPackCheckoutAction } from "@/presentation/actions/billing";
 import { track } from "@/presentation/components/analytics/track";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { useAdhocBonusPercent } from "@/presentation/components/adhoc-bonus";
+import { packCreditsWithBonus } from "@/service/billing/promo";
 import { CREDIT_PACKS } from "@/service/billing/packs";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PackId } from "@/model/billing-settings";
@@ -42,6 +44,7 @@ export function AddCreditModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const packs = Object.values(CREDIT_PACKS);
+  const bonusPercent = useAdhocBonusPercent();
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -91,6 +94,9 @@ export function AddCreditModal({ onClose }: { onClose: () => void }) {
         </p>
         {/* Same per-image / per-second rates as the billing page. */}
         <p className="mt-1 text-xs text-muted">{t("billing.clipCostNote")}</p>
+        {bonusPercent > 0 ? (
+          <p className="mt-1 text-xs font-semibold text-[#3d4a12]">{t("signupPromo.packBonus", { bonus: bonusPercent })}</p>
+        ) : null}
         <form onSubmit={onSubmit} className="mt-5 space-y-4">
           <fieldset disabled={submitting} className="space-y-2">
             <legend className="mb-1.5 text-sm font-semibold">選擇加購包</legend>
@@ -113,7 +119,7 @@ export function AddCreditModal({ onClose }: { onClose: () => void }) {
                 />
                 <span className="flex-1">
                   <span className="block text-sm font-semibold">
-                    {pack.nameZh} · {pack.credits} credits
+                    {pack.nameZh} · {packCreditsWithBonus(pack.credits, bonusPercent)} credits
                   </span>
                 </span>
                 <span className="font-display text-lg font-bold">

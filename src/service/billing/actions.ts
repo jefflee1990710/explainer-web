@@ -1,6 +1,8 @@
 import type Stripe from "stripe";
 import { requireAppUser } from "@/service/auth";
 import { checkoutUrls } from "@/service/billing/checkout-urls";
+import { adhocBonusPercent, packCreditsWithBonus } from "@/service/billing/promo";
+import { ensureSignupCoupon } from "@/service/billing/signup-coupon";
 import { CREDIT_PACKS, isPackId } from "@/service/billing/packs";
 import { isPlanId, PLAN_RANK, PLANS, priceIdForPlan } from "@/service/billing/plans";
 import {
@@ -49,12 +51,15 @@ export async function startCheckoutAction(planId: PlanId, options: CheckoutOptio
   }
 
   const urls = checkoutUrls({ planId }, options.popup);
+  const discount = user.signupDiscountPercent ?? 0;
+  const coupon = discount > 0 ? await ensureSignupCoupon(stripe, discount) : null;
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: urls.success_url,
     cancel_url: urls.cancel_url,
+    ...(coupon ? { discounts: [{ coupon }] } : {}),
     metadata: { clerkUserId: user.clerkUserId, planId },
     subscription_data: {
       metadata: { clerkUserId: user.clerkUserId, planId },
@@ -100,9 +105,12 @@ export async function startPlanUpgradeAction(planId: PlanId, options: CheckoutOp
   }
 
   try {
+    const discount = user.signupDiscountPercent ?? 0;
+    const coupon = discount > 0 ? await ensureSignupCoupon(stripe, discount) : null;
     const updated = await stripe.subscriptions.update(sub.stripeSubscriptionId, {
       items: [{ id: itemId, price: priceId }],
       metadata: { clerkUserId: user.clerkUserId, planId },
+      ...(coupon ? { discounts: [{ coupon }] } : {}),
       proration_behavior: "always_invoice",
       payment_behavior: "pending_if_incomplete",
       expand: ["latest_invoice"],
@@ -148,6 +156,7 @@ export async function startPackCheckoutAction(packId: PackId, options: CheckoutO
   }
 
   const pack = CREDIT_PACKS[packId];
+  const grantedCredits = packCreditsWithBonus(pack.credits, adhocBonusPercent());
   const stripe = getStripe();
   const prices = await getOrCreateStripePrices();
   const priceId = prices.creditPacks[packId]?.priceId;
@@ -177,10 +186,19 @@ export async function startPackCheckoutAction(packId: PackId, options: CheckoutO
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: urls.success_url,
     cancel_url: urls.cancel_url,
+    ...(grantedCredits > pack.credits
+      ? {
+          custom_text: {
+            submit: {
+              message: `This pack adds ${grantedCredits} credits, including the extra bonus.`,
+            },
+          },
+        }
+      : {}),
     metadata: {
       clerkUserId: user.clerkUserId,
       packId,
-      credits: String(pack.credits),
+      credits: String(grantedCredits),
     },
   });
 

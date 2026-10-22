@@ -22,6 +22,8 @@ import {
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { creditGrantLanded } from "@/service/billing/credit-gate";
+import { useAdhocBonusPercent } from "@/presentation/components/adhoc-bonus";
+import { packCreditsWithBonus } from "@/service/billing/promo";
 import { CREDIT_PACKS } from "@/service/billing/packs";
 import { isPlanId, PLANS, upgradeablePlans } from "@/service/billing/plans";
 import type { PackId } from "@/model/billing-settings";
@@ -55,6 +57,7 @@ export function InsufficientCreditsDialog({
   onPaid: (snapshot: CreditsChangedDetail) => void;
 }) {
   const { t } = useI18n();
+  const bonusPercent = useAdhocBonusPercent();
   const titleId = useId();
   const [currentPlanId, setCurrentPlanId] = useState<PlanId | null>(null);
   const [planLoading, setPlanLoading] = useState(subscribed);
@@ -225,6 +228,11 @@ export function InsufficientCreditsDialog({
             : t("billing.subscribeBody", { credits: needed })}
         </p>
         <p className="mt-1 text-xs text-muted">{t("billing.clipCostNote")}</p>
+        {subscribed && bonusPercent > 0 ? (
+          <p className="mt-1 text-xs font-semibold text-[#3d4a12]">
+            {t("signupPromo.packBonus", { bonus: bonusPercent })}
+          </p>
+        ) : null}
         <form onSubmit={(event) => void onSubmit(event)} className="mt-5 space-y-5">
           {subscribed ? (
             <CreditOfferCards
@@ -235,7 +243,7 @@ export function InsufficientCreditsDialog({
               onChange={(id) => setOffer({ kind: "pack", id })}
               items={Object.values(CREDIT_PACKS).map((pack) => ({
                 id: pack.id,
-                title: `${pack.nameZh} · ${pack.credits} credits`,
+                title: `${pack.nameZh} · ${packCreditsWithBonus(pack.credits, bonusPercent)} credits`,
                 price: `$${pack.amountUsd}`,
               }))}
             />

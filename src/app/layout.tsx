@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Geist_Mono, Noto_Sans_TC } from "next/font/google";
 import { GoogleAnalytics } from "@/presentation/components/analytics/google-analytics";
+import { AdhocBonusProvider } from "@/presentation/components/adhoc-bonus";
 import { I18nProvider } from "@/presentation/components/i18n-provider";
+import { adhocBonusPercent } from "@/service/billing/promo";
 import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY, type LocaleId } from "@/util/i18n";
 import "./globals.css";
 
@@ -47,7 +49,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         className="flex min-h-dvh flex-col bg-background font-sans text-foreground"
       >
         <GoogleAnalytics />
-        <I18nProvider initialLocale={initialLocale}>{children}</I18nProvider>
+        <I18nProvider initialLocale={initialLocale}>
+          <AdhocBonusProvider percent={adhocBonusPercent()}>{children}</AdhocBonusProvider>
+        </I18nProvider>
       </body>
     </html>
   );

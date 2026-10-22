@@ -3,6 +3,7 @@ import { getAuthSession } from "@/service/auth";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { ProductPromoCost } from "./product-promo-cost";
 import { ProductPromoCta } from "./product-promo-cta";
+import { ProductPromoExamples } from "./product-promo-examples";
 import { ProductPromoFlow } from "./product-promo-flow";
 import { ProductPromoHero } from "./product-promo-hero";
 import { ProductPromoWild } from "./product-promo-wild";
@@ -19,6 +20,7 @@ export default async function ProductPromoMarketingPage() {
       <ProductPromoCost />
       <ProductPromoFlow signedIn={signedIn} />
       <ProductPromoWild signedIn={signedIn} />
+      <ProductPromoExamples />
       <ProductPromoCta signedIn={signedIn} />
     </PolicyLayout>
   );

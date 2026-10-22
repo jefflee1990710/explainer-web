@@ -3,7 +3,7 @@ import { readFormData } from "@/service/api/form";
 import { apiJson, fromResult, withApiUser } from "@/service/api/respond";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { createCharacterAction } from "@/service/character/actions";
-import { characterAllowance } from "@/service/character/character-limit";
+import { characterAllowance, countedCharacterFilter } from "@/service/character/character-limit";
 import { listSelectableStyles } from "@/service/style/list";
 import { toPublicCharacter } from "@/presentation/serialize";
 import type { Character } from "@/model/character";
@@ -15,7 +15,7 @@ export const GET = withApiUser(async ({ auth }) => {
   const [sub, docs, count, selectable] = await Promise.all([
     getActiveSubscription(user.clerkUserId),
     characters.find({ clerkUserId: user.clerkUserId }).sort({ updatedAt: -1 }).toArray() as Promise<Character[]>,
-    characters.countDocuments({ clerkUserId: user.clerkUserId }),
+    characters.countDocuments(countedCharacterFilter(user.clerkUserId)),
     listSelectableStyles(user.clerkUserId),
   ]);
   const subscribed = isSubscriptionActive(sub);

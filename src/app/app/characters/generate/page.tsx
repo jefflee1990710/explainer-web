@@ -1,6 +1,6 @@
 import { requireAppUser } from "@/service/auth";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
-import { characterAllowance } from "@/service/character/character-limit";
+import { characterAllowance, countedCharacterFilter } from "@/service/character/character-limit";
 import { charactersCollection } from "@/dao";
 import { listSelectableStyles } from "@/service/style/list";
 import { CharacterGeneratorForm } from "@/presentation/components/app/characters/character-generator-form";
@@ -10,7 +10,7 @@ export default async function CharacterGeneratorPage() {
   const characters = await charactersCollection();
   const [sub, characterCount, selectableStyles] = await Promise.all([
     getActiveSubscription(user.clerkUserId),
-    characters.countDocuments({ clerkUserId: user.clerkUserId }),
+    characters.countDocuments(countedCharacterFilter(user.clerkUserId)),
     listSelectableStyles(user.clerkUserId),
   ]);
   const styles = [...selectableStyles.system, ...selectableStyles.mine];

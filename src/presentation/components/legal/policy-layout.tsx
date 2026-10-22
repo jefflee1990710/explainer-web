@@ -4,6 +4,12 @@ import { SiteFooter } from "@/presentation/components/site-footer";
 import { SiteHeader } from "@/presentation/components/site-header";
 import { isAffiliateAccount } from "@/service/affiliate/enabled";
 import { getAuthSession } from "@/service/auth";
+import {
+  adhocBonusPercent,
+  signupDiscountPercent,
+  signupPromoEnabled,
+} from "@/service/billing/promo";
+import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
 
 // Public pages share the marketing header and footer.
 export async function PolicyLayout({ children }: { children: ReactNode }) {
@@ -19,6 +25,10 @@ export async function PolicyLayout({ children }: { children: ReactNode }) {
       <SiteHeader
         signedIn={Boolean(session)}
         showAffiliate={showAffiliate}
+        showPromo={signupPromoEnabled()}
+        promoDiscountPercent={signupDiscountPercent()}
+        promoCredits={WELCOME_CREDITS}
+        promoBonusPercent={adhocBonusPercent()}
         account={
           session
             ? {

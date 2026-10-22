@@ -27,7 +27,7 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
         <LandingHeroArt />
       </div>
 
-      <div className="relative z-10 order-1 mx-auto flex w-full max-w-xl flex-col items-center px-6 pb-4 pt-14 text-center lg:absolute lg:inset-x-0 lg:top-1/2 lg:max-w-[34rem] lg:-translate-y-[54%] lg:px-8 lg:py-0 xl:max-w-[38rem]">
+      <div className="relative z-10 order-1 mx-auto flex w-full max-w-xl flex-col items-center px-6 pb-4 pt-14 text-center lg:absolute lg:inset-x-0 lg:top-1/2 lg:max-w-[30rem] lg:-translate-y-1/2 lg:px-8 lg:py-0 xl:max-w-[34rem]">
         <motion.div
           custom={0}
           variants={fadeUp}

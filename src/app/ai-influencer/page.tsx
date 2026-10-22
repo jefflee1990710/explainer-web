@@ -2,6 +2,7 @@ import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { getAuthSession } from "@/service/auth";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { AiInfluencerCta } from "./ai-influencer-cta";
+import { AiInfluencerExamples } from "./ai-influencer-examples";
 import { AiInfluencerEarn } from "./ai-influencer-earn";
 import { AiInfluencerHero } from "./ai-influencer-hero";
 import { AiInfluencerIp } from "./ai-influencer-ip";
@@ -21,6 +22,7 @@ export default async function AiInfluencerMarketingPage() {
       <AiInfluencerIp />
       <AiInfluencerEarn />
       <AiInfluencerShift signedIn={signedIn} />
+      <AiInfluencerExamples />
       <AiInfluencerCta signedIn={signedIn} />
     </PolicyLayout>
   );

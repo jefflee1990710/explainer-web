@@ -4,6 +4,7 @@ import { AcceptPoliciesDialog } from "@/presentation/components/legal/accept-pol
 import { isAffiliateAccount } from "@/service/affiliate/enabled";
 import { getAuthSession, requireAppUser } from "@/service/auth";
 import { countActiveTasks } from "@/service/generation/task-list";
+import { adhocBonusPercent } from "@/service/billing/promo";
 import { needsPolicyAcceptance } from "@/service/legal/versions";
 
 // Session cookie is only available per request, so do not prerender /app at build time.
@@ -38,6 +39,8 @@ export default async function AppLayout({
         name={user.name}
         avatarUrl={session.picture}
         affiliateEnabled={isAffiliateAccount(user)}
+        signupDiscountPercent={user.signupDiscountPercent}
+        promoBonusPercent={adhocBonusPercent()}
       >
         {children}
       </AppShell>

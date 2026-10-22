@@ -47,13 +47,13 @@ const SHOTS: Shot[] = [
     id: "ai-ip-wardrobe",
     file: "public/landing/ai-influencer/ip-wardrobe.jpg",
     aspectRatio: "1:1",
-    prompt: `Square photo, 3 by 3 grid, thin lime gaps, dark studio. Nine DIFFERENT people, each a new outfit. Full head in every cell. Silk drape and black trousers. Ivory suit. Silver cropped jacket and wide indigo pants. Cherry leather jacket and cream knit mini. Olive trench and silk scarf. Tangerine knit and charcoal pleated skirt. Yellow polo and tennis skirt. Black turtleneck and sand overcoat. Navy cropped blazer and plaid kilt. No words. ${NO_TEXT}`,
+    prompt: `Square photo, 3 by 3 grid, thin lime gaps, dark studio. Nine DIFFERENT people, full head in every cell. Six are East or Southeast Asian. Three are not. East Asian woman, silk drape, black trousers. East Asian man, ivory suit. Black woman, silver cropped jacket, wide indigo pants. East Asian woman, cherry leather jacket, cream knit mini. Southeast Asian woman, olive trench, silk scarf. White woman, tangerine knit, charcoal pleated skirt. East Asian woman, yellow polo, tennis skirt. Black man, black turtleneck, sand overcoat. East Asian woman, navy cropped blazer, plaid kilt. No words. ${NO_TEXT}`,
   },
   {
     id: "ai-ip-life",
     file: "public/landing/ai-influencer/ip-life.jpg",
     aspectRatio: "1:1",
-    prompt: `Square photo, 3 by 3 grid, thin white gaps. Same woman in all 9 cells: late-20s, wavy dark-brown shoulder-length hair, honey-brown eyes. Each cell is a different life post with a different outfit, place, and light. Gym mirror selfie. Neon night-market food. Airplane window. Home kitchen cooking. Rainy night with a yellow umbrella. Sunny beach. Dark podcast desk. Flower market. Purple concert. Full head in every cell. No words. ${NO_TEXT}`,
+    prompt: `Square photo, 3 by 3 grid, thin white gaps. Same East Asian woman in all 9 cells: late 20s, straight black shoulder-length hair, dark brown eyes, light-medium skin. Each cell a different life post and outfit. Gym mirror selfie. Neon night-market food. Airplane window. Home kitchen cooking. Rainy night with a yellow umbrella. Sunny beach. Dark podcast desk. Flower market. Purple concert. Full head in every cell. No words. ${NO_TEXT}`,
   },
   {
     id: "ai-ip-daily",
@@ -233,6 +233,32 @@ const SHOTS: Shot[] = [
     aspectRatio: "16:9",
     prompt: `16:9 crisp overhead & angled studio illustration of a whiteboard doodle storyboard in action: off-white paper canvas with bold black marker illustrations of a friendly original cartoon female scientist (goggles on forehead, lab coat, lime #c6f24b scarf) connecting four visual concept nodes with hand-drawn lime arrows and stars. Clean, high-contrast, full character visible. ${NO_TEXT}`,
   },
+
+  // Extra example stills. New East / Southeast Asian faces, not the landing cast.
+  { id: "ai-ex-cafe", file: "public/landing/ai-influencer/ex-cafe.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian woman, late 20s, black bob, linen shirt, sitting in a bright café with a ceramic cup, smiling at camera. Full head. ${NO_TEXT}` },
+  { id: "ai-ex-desk", file: "public/landing/ai-influencer/ex-desk.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian man, early 30s, short black hair, olive cardigan, explaining at a home desk with a notebook. Full head. ${NO_TEXT}` },
+  { id: "ai-ex-street", file: "public/landing/ai-influencer/ex-street.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New Southeast Asian woman, mid 20s, long black hair, cream trench, walking a sunny city street. Full head. ${NO_TEXT}` },
+  { id: "ai-ex-unbox", file: "public/landing/ai-influencer/ex-unbox.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian woman, late 20s, low ponytail, holding a frosted skincare bottle toward camera on a pale table. Full head. ${NO_TEXT}` },
+  { id: "pp-ex-serum", file: "public/landing/product-promo/ex-serum.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian woman, bathroom shelf, presenting a glass serum bottle, soft daylight. Full head. ${NO_TEXT}` },
+  { id: "pp-ex-phones", file: "public/landing/product-promo/ex-phones.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian man, city crosswalk, wearing matte black headphones, charcoal jacket. Full head. ${NO_TEXT}` },
+  { id: "pp-ex-snack", file: "public/landing/product-promo/ex-snack.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New Southeast Asian woman at a neon night market, holding a snack pouch, warm lights. Full head. ${NO_TEXT}` },
+  { id: "pp-ex-sneaker", file: "public/landing/product-promo/ex-sneaker.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian man in a dark studio, holding a white sneaker, lime rim light. Full head. ${NO_TEXT}` },
+  { id: "rt-ex-talk", file: "public/landing/right-tool/ex-talk.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian woman speaking to camera in a small dark studio, sage blazer. Full head. ${NO_TEXT}` },
+  { id: "rt-ex-board", file: "public/landing/right-tool/ex-board.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian man beside a whiteboard of simple doodle arrows and a lightbulb, no letters. Full head. ${NO_TEXT}` },
+  { id: "rt-ex-promo", file: "public/landing/right-tool/ex-promo.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian woman on a dark set holding a matte bottle, lime rim light. Full head. ${NO_TEXT}` },
+  { id: "rt-ex-edit", file: "public/landing/right-tool/ex-edit.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian editor at a desk, large monitor with a blurred timeline, no readable text. Full head. ${NO_TEXT}` },
+  { id: "th-ex-room", file: "public/landing/talking-head/ex-room.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian woman talking to camera from a bright living room sofa. Full head. ${NO_TEXT}` },
+  { id: "th-ex-phone", file: "public/landing/talking-head/ex-phone.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian man framed like a vertical phone video, standing in a tidy apartment. Full head. ${NO_TEXT}` },
+  { id: "th-ex-wardrobe", file: "public/landing/talking-head/ex-wardrobe.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian woman in a navy blazer in front of a clothing rack, studio light. Full head. ${NO_TEXT}` },
+  { id: "th-ex-podcast", file: "public/landing/talking-head/ex-podcast.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian man with headphones at a podcast mic, dark desk. Full head. ${NO_TEXT}` },
+  { id: "hk-ex-cafe", file: "public/landing/cantonese/ex-cafe.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New Hong Kong woman in a cha chaan teng, apron, talking to camera beside milk tea. Full head. ${NO_TEXT}` },
+  { id: "hk-ex-shop", file: "public/landing/cantonese/ex-shop.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New Hong Kong woman in a small fashion boutique, holding a folded shirt. Full head. ${NO_TEXT}` },
+  { id: "hk-ex-workshop", file: "public/landing/cantonese/ex-workshop.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New Hong Kong man in a small repair workshop, explaining a gadget on the bench. Full head. ${NO_TEXT}` },
+  { id: "hk-ex-stall", file: "public/landing/cantonese/ex-stall.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New Hong Kong man at a street food stall at night, talking to camera. Full head. ${NO_TEXT}` },
+  { id: "ex-ex-funnel", file: "public/landing/explainer/ex-funnel.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian woman pointing at a whiteboard funnel drawn in marker, no letters. Full head. ${NO_TEXT}` },
+  { id: "ex-ex-nodes", file: "public/landing/explainer/ex-nodes.jpg", aspectRatio: "16:9", prompt: `16:9 illustration. Clean whiteboard doodle of four icon nodes linked by arrows, lime accents, no letters, no words. ${NO_TEXT}` },
+  { id: "ex-ex-deck", file: "public/landing/explainer/ex-deck.jpg", aspectRatio: "16:9", prompt: `16:9 photo. New East Asian man presenting in a bright meeting room, screen shows a simple doodle diagram, no readable text. Full head. ${NO_TEXT}` },
+  { id: "ex-ex-phones", file: "public/landing/explainer/ex-phones.jpg", aspectRatio: "16:9", prompt: `16:9 photo. Three phones on a dark desk showing colorful doodle frames, no readable text, lime edge light. ${NO_TEXT}` },
 ];
 
 const only = process.argv

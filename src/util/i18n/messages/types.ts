@@ -22,6 +22,20 @@ export type LandingUseCaseMessages = {
   cta: string;
 };
 
+// Four pictured examples under one feature-page heading.
+export type FeatureExampleSet = {
+  title: string;
+  body: string;
+  e1Title: string;
+  e1Body: string;
+  e2Title: string;
+  e2Body: string;
+  e3Title: string;
+  e3Body: string;
+  e4Title: string;
+  e4Body: string;
+};
+
 // Feature marketing pages used for SEO + Google Ads landings.
 export type MarketingSeoMessages = {
   title: string;
@@ -1034,6 +1048,44 @@ export type Messages = {
       ctaPricing: string;
     };
   };
+  // Extra example stills shown on each feature landing.
+  featureExamples: {
+    eyebrow: string;
+    ai: FeatureExampleSet;
+    promo: FeatureExampleSet;
+    tool: FeatureExampleSet;
+    talk: FeatureExampleSet;
+    canto: FeatureExampleSet;
+    explain: FeatureExampleSet;
+  };
+  contactPage: {
+    navLabel: string;
+    seoTitle: string;
+    seoDescription: string;
+    eyebrow: string;
+    title: string;
+    body: string;
+    supportTitle: string;
+    supportBody: string;
+    salesTitle: string;
+    salesBody: string;
+    formTitle: string;
+    name: string;
+    email: string;
+    topic: string;
+    topicSupport: string;
+    topicEnterprise: string;
+    topicOther: string;
+    message: string;
+    submit: string;
+    sending: string;
+    success: string;
+    errorName: string;
+    errorEmail: string;
+    errorMessage: string;
+    errorSend: string;
+    mailInstead: string;
+  };
   affiliate: {
     title: string;
     subtitle: string;
@@ -1149,6 +1201,16 @@ export type Messages = {
   pickers: PickersMessages;
   errors: ErrorsMessages;
   directors: DirectorsMessages;
+  signupPromo: {
+    badge: string;
+    banner: string;
+    locked: string;
+    cta: string;
+    ctaPricing: string;
+    ctaBilling: string;
+    giftBadge: string;
+    packBonus: string;
+  };
   auth: {
     signInTitle: string;
     signUpTitle: string;

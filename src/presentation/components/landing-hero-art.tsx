@@ -23,7 +23,7 @@ export function LandingHeroArt() {
         />
         {/* Keep drama on the sides; soft vignette so center copy stays readable. */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgba(10,12,16,0.28)_0%,rgba(10,12,16,0.55)_55%,rgba(10,12,16,0.82)_100%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_12%_40%,rgba(198,242,75,0.22),transparent_42%),radial-gradient(ellipse_at_88%_60%,rgba(198,242,75,0.12),transparent_40%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_14%_48%,rgba(198,242,75,0.16),transparent_42%),radial-gradient(ellipse_at_86%_48%,rgba(198,242,75,0.16),transparent_42%)]" />
         <div
           aria-hidden
           className="absolute inset-0 opacity-[0.05] mix-blend-soft-light"
@@ -34,18 +34,19 @@ export function LandingHeroArt() {
         />
       </ParallaxLayer>
 
-      <div className="relative mx-auto grid h-full max-w-[96rem] grid-cols-1 lg:grid-cols-[minmax(16rem,28%)_minmax(0,1fr)_minmax(17rem,30%)]">
-        <ParallaxLayer distance={12} className="relative z-[1] hidden h-full min-h-0 lg:block">
+      {/* Equal side tracks so the cast rail and the output rail share width, height, and gutter. */}
+      <div className="relative mx-auto grid h-full max-w-[96rem] grid-cols-1 lg:grid-cols-[minmax(14rem,1fr)_minmax(0,40rem)_minmax(14rem,1fr)]">
+        <div className="relative z-[1] hidden h-full min-h-0 lg:block">
           <LandingHeroCastRail />
-        </ParallaxLayer>
+        </div>
 
         <div className="hidden lg:block" />
 
-        <ParallaxLayer distance={8} className="relative z-[1] hidden h-full min-h-0 lg:block">
+        <div className="relative z-[1] hidden h-full min-h-0 lg:block">
           <LandingHeroOutputs />
-        </ParallaxLayer>
+        </div>
 
-        <div className="relative z-[1] grid grid-cols-[1.05fr_1.1fr] items-stretch gap-0 lg:hidden">
+        <div className="relative z-[1] grid grid-cols-2 items-stretch gap-0 lg:hidden">
           <LandingHeroCastRail />
           <LandingHeroOutputs />
         </div>

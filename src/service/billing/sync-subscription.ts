@@ -5,6 +5,7 @@ import {
 } from "@/service/billing/stripe";
 import { isPlanId, planByPriceId, PLANS } from "@/service/billing/plans";
 import { grantPackCredits, resetMonthlyCredits } from "@/service/billing/credits";
+import { adhocBonusPercent, packCreditsWithBonus } from "@/service/billing/promo";
 import { CREDIT_PACKS, isPackId } from "@/service/billing/packs";
 import { recordPurchaseCommission } from "@/service/affiliate/engine";
 import { scheduleOperatorSubscriptionEmail } from "@/service/notify/operator-email";
@@ -173,7 +174,8 @@ export async function grantPackFromCheckout(session: Stripe.Checkout.Session) {
   const clerkUserId = session.metadata?.clerkUserId;
   if (!isPackId(packId) || !clerkUserId) return;
   const pack = CREDIT_PACKS[packId];
-  await grantPackCredits(clerkUserId, pack.credits, session.id);
+  const grantedCredits = packCreditsWithBonus(pack.credits, adhocBonusPercent());
+  await grantPackCredits(clerkUserId, grantedCredits, session.id);
 
   const amountPaidCents =
     typeof session.amount_total === "number"
@@ -182,11 +184,11 @@ export async function grantPackFromCheckout(session: Stripe.Checkout.Session) {
   await recordPurchaseCommission({
     buyerClerkUserId: clerkUserId,
     amountPaidCents,
-    credits: pack.credits,
+    credits: grantedCredits,
     lot: {
       source: "pack",
       sourceId: session.id,
-      credits: pack.credits,
+      credits: grantedCredits,
       amountPaidCents,
     },
     eventKey: `pack:${session.id}`,

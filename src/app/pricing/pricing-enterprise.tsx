@@ -1,7 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { salesMailto } from "@/service/billing/plans";
 
 // Enterprise sits under the plan cards, not inside the grid.
 export function PricingEnterprise() {
@@ -21,12 +21,12 @@ export function PricingEnterprise() {
           </p>
           <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">{t("landing.enterprise.title")}</h2>
           <p className="mt-3 max-w-xl text-sm leading-6 text-white/70">{t("landing.enterprise.body")}</p>
-          <a
-            href={salesMailto()}
+          <Link
+            href="/contact"
             className="mt-7 inline-flex w-fit items-center rounded-full bg-[#c6f24b] px-6 py-2.5 text-sm font-semibold text-[#12141c] transition hover:bg-[#d6ff5c]"
           >
             {t("landing.enterprise.cta")}
-          </a>
+          </Link>
         </div>
       </div>
     </section>

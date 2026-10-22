@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { ENTERPRISE, salesMailto } from "@/service/billing/plans";
+import { ENTERPRISE } from "@/service/billing/plans";
 
 // Shared enterprise CTA used on landing and billing.
 export function EnterpriseCta({
@@ -31,14 +32,14 @@ export function EnterpriseCta({
       </h3>
       <p className="mt-3 font-display text-3xl font-bold">{t("landing.enterprise.quote")}</p>
       <p className="mt-3 flex-1 text-sm leading-6 text-muted">{t("landing.enterprise.body")}</p>
-      <a
-        href={salesMailto()}
+      <Link
+        href="/contact"
         className={`mt-7 inline-flex min-h-[44px] w-fit items-center rounded-full border border-zinc-300 bg-white px-5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-100 ${
           compact ? "py-2" : "py-2.5"
         }`}
       >
         {t("landing.enterprise.cta")}
-      </a>
+      </Link>
     </article>
   );
 }

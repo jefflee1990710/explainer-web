@@ -6,6 +6,8 @@ import { TaskQueueBanner } from "@/presentation/components/app/tasks/task-queue-
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { StudioShell, type StudioNavItem } from "@/presentation/studio/studio-shell";
 import { POSTS_FEATURE_ENABLED } from "@/service/post/feature";
+import { SignupPromoBanner } from "@/presentation/components/signup-promo-banner";
+import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
 // Logged-in chrome. Page content sits in the studio shell.
 export function AppShell({
   credits,
@@ -15,6 +17,8 @@ export function AppShell({
   name,
   avatarUrl,
   affiliateEnabled = false,
+  signupDiscountPercent = 0,
+  promoBonusPercent = 0,
   children,
 }: {
   credits: number;
@@ -26,6 +30,9 @@ export function AppShell({
   avatarUrl?: string;
   // Rail item only. The page and actions check the same user flag.
   affiliateEnabled?: boolean;
+  // Permanent rate locked at signup. Zero when this account has no promo.
+  signupDiscountPercent?: number;
+  promoBonusPercent?: number;
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
@@ -50,6 +57,16 @@ export function AppShell({
   return (
     <StudioShell
       items={items}
+      banner={
+        signupDiscountPercent > 0 ? (
+          <SignupPromoBanner
+            variant="locked"
+            discountPercent={signupDiscountPercent}
+            credits={WELCOME_CREDITS}
+            bonusPercent={promoBonusPercent}
+          />
+        ) : null
+      }
       headerEnd={<TaskQueueBanner initialPending={activeTasks} />}
       toolbar={
         <SignedInAccount

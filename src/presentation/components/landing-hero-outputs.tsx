@@ -36,7 +36,8 @@ export function LandingHeroOutputs() {
       initial={{ opacity: 0, x: 36 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.35, duration: 0.85, ease }}
-      className="relative mx-auto flex h-full min-h-0 w-full max-w-[22rem] items-center justify-center px-3 py-5 sm:max-w-[24rem] lg:max-w-none lg:px-4 lg:py-4 xl:px-6"
+      data-hero-side="outputs"
+      className="relative mx-auto flex h-full min-h-0 w-full max-w-[22rem] items-center justify-center px-3 py-5 sm:max-w-[24rem] lg:max-w-none lg:px-4 lg:py-4 xl:px-5"
     >
       <div
         aria-hidden
@@ -48,7 +49,7 @@ export function LandingHeroOutputs() {
       />
 
       {/* On lg the two blocks share the hero height, so the Explainer is never pushed below the fold. */}
-      <div className="relative flex w-full flex-col gap-8 sm:gap-10 lg:h-full lg:min-h-0 lg:gap-4 xl:gap-5">
+      <div className="relative flex w-full flex-col gap-4 lg:h-full lg:min-h-0 lg:gap-4 xl:gap-5">
         {/* Top — Life posts side by side, no rotate / no overlap. */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}

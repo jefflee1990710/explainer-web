@@ -7,8 +7,10 @@ import {
 } from "@/service/affiliate/engine";
 import { AFFILIATE_ENABLED, isAffiliateAccount } from "@/service/affiliate/enabled";
 import { REFERRAL_COOKIE } from "@/service/affiliate/rates";
+import { signupDiscountPercent, signupPromoEnabled } from "@/service/billing/promo";
 import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
 import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
+import { seedStarterCharacters } from "@/service/character/starter-cast";
 import { usersCollection } from "@/dao";
 import { adminAuth } from "@/service/firebase/admin";
 import { SESSION_COOKIE } from "@/service/firebase/session";
@@ -76,7 +78,10 @@ export async function upsertAppUserFromIdentity(
   }
 
   // Terms and privacy are accepted in the first-login dialog, not at account creation.
-  await users.updateOne(
+  // The discount is written only on insert, so turning the promo off later does not remove it.
+  const promoOn = signupPromoEnabled();
+  const discountPercent = signupDiscountPercent();
+  const inserted = await users.updateOne(
     { clerkUserId: uid },
     {
       $set: { email, name, updatedAt: now },
@@ -84,6 +89,7 @@ export async function upsertAppUserFromIdentity(
         clerkUserId: uid,
         credits: WELCOME_CREDITS,
         createdAt: now,
+        ...(promoOn && discountPercent > 0 ? { signupDiscountPercent: discountPercent } : {}),
       },
     },
     { upsert: true },
@@ -92,6 +98,17 @@ export async function upsertAppUserFromIdentity(
   let user = await users.findOne({ clerkUserId: uid });
   if (!user) {
     throw new Error("無法建立使用者");
+  }
+
+  if (inserted.upsertedCount > 0) {
+    try {
+      await seedStarterCharacters(user);
+    } catch (error) {
+      console.error(
+        "seedStarterCharacters failed",
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
 
   if (AFFILIATE_ENABLED) {

@@ -20,6 +20,11 @@ export function isCharacterLimitUnlocked(email: string | null | undefined) {
   return (email || "").trim().toLowerCase() === CHARACTER_LIMIT_UNLOCK_EMAIL;
 }
 
+// Gift characters shipped with a new account do not use the plan's character slots.
+export function countedCharacterFilter(clerkUserId: string) {
+  return { clerkUserId, starterGift: { $ne: true as const } };
+}
+
 // null means this account has no character cap.
 export function characterAllowance(
   planId: PlanId | null | undefined,

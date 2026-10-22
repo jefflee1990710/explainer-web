@@ -83,6 +83,8 @@ export type Character = {
   clerkUserId: string;
   name: string;
   styleId: string;
+  // Seeded onto a new account. Does not consume a plan character slot.
+  starterGift?: boolean;
   // City, tone, and hobbies. Not part of the blueprint or the voice timbre.
   persona?: CharacterPersona;
   // Fixed acoustic lock pasted into dialogue clips. Not part of the blueprint.
@@ -163,6 +165,7 @@ export const characterSchema: z.ZodType<Character> = z.object({
   clerkUserId: z.string(),
   name: z.string(),
   styleId: z.string(),
+  starterGift: z.boolean().optional(),
   persona: characterPersonaSchema.optional(),
   voice: characterVoiceSchema.optional(),
   voiceSample: characterVoiceSampleSchema.optional(),

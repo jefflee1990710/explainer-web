@@ -16,7 +16,7 @@ import {
   originalCharacterSource,
   versionStyleId,
 } from "@/service/character/character-styles";
-import { characterAllowance } from "@/service/character/character-limit";
+import { characterAllowance, countedCharacterFilter } from "@/service/character/character-limit";
 import { parseCharacterPersona, type CharacterPersona } from "@/model/character-persona";
 import { characterStyleAllowance, isCharacterStyleLimitUnlocked } from "@/service/character/style-limit";
 import { extractCharacterSpec } from "@/service/character/extract-spec";
@@ -148,7 +148,7 @@ export async function createCharacterAction(
     );
     if (allowance != null) {
       const existing = await charactersCollection();
-      const count = await existing.countDocuments({ clerkUserId: user.clerkUserId });
+      const count = await existing.countDocuments(countedCharacterFilter(user.clerkUserId));
       if (count >= allowance) return { ok: false, error: "已達這個方案的角色上限" };
     }
     const chosen = readCharacterVoice(formData.get("voice"));

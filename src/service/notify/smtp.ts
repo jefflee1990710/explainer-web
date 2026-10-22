@@ -19,6 +19,7 @@ export async function sendMail(input: {
   subject: string;
   text: string;
   html: string;
+  replyTo?: string;
 }) {
   if (!isSmtpConfigured()) return false;
   const transporter = nodemailer.createTransport({
@@ -39,6 +40,7 @@ export async function sendMail(input: {
     subject: input.subject,
     text: input.text,
     html: input.html,
+    replyTo: input.replyTo,
   });
   return true;
 }

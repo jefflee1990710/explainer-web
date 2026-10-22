@@ -645,6 +645,7 @@ export type PublicCharacter = {
   id: string;
   name: string;
   styleId: string;
+  starterGift?: boolean;
   persona: CharacterPersona | null;
   // Every style on this character, original first.
   styleIds: string[];
@@ -757,6 +758,7 @@ export function toPublicCharacter(character: Character): PublicCharacter {
     id: character._id.toHexString(),
     name: character.name,
     styleId: character.styleId,
+    starterGift: character.starterGift === true,
     persona: parseCharacterPersona(character.persona),
     styleIds: characterStyleIds(character),
     styleName: character.styleId,
