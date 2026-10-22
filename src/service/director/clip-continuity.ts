@@ -1,12 +1,11 @@
 import type { FramePosition } from "@/model/project";
+import { getDirectorBySlug } from "@/service/director/catalog";
 
 // Directors whose later clips open on the previous clip's finished still.
 export const SURPRISE_INTERVIEW_SKILL_SLUG = "surprise-interview-director";
 export const OUTFIT_REEL_SKILL_SLUG = "outfit-reel-director";
 export const FOLLOW_SHOT_SKILL_SLUG = "follow-shot-director";
 
-// Outfit reels cut to a new full-body angle each clip, so they draw a new start still.
-// Surprise interviews match talking-head after the hook: clip 2+ opens on the previous end.
 const CHAIN_FROM_CLIP_2 = new Set([
   "talking-head-director",
   "full-body-talking-head-director",
@@ -26,9 +25,11 @@ export function isFollowShotSkill(skillSlug?: string) {
   return skillSlug === FOLLOW_SHOT_SKILL_SLUG;
 }
 
-// True when any clip after the opener continues from the previous end pose.
+// Driven by `IDirector.behavior.chainsClipStarts`: true when any clip after the opener continues from the previous end pose.
 export function chainsClipStarts(skillSlug?: string) {
   if (!skillSlug) return false;
+  const director = getDirectorBySlug(skillSlug);
+  if (director) return director.behavior.chainsClipStarts;
   return CHAIN_FROM_CLIP_2.has(skillSlug);
 }
 

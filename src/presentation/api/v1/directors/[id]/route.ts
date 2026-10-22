@@ -1,94 +1,29 @@
-import { apiError, apiJson, fromResult, readJson, withApiUser } from "@/service/api/respond";
+import { notFound } from "next/navigation";
+import { getDirectorById, getDirectorBySlug } from "@/service/director/catalog";
+import { apiError, apiJson, withApiUser } from "@/service/api/respond";
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
-import {
-  deleteDirectorAction,
-  loadDirectorForUser,
-  saveDirectorAction,
-  sendDirectorChatAction,
-  toPublicDirectorWithPreview,
-} from "@/service/director/director-actions";
-import { generateDirectorPreviewAction } from "@/service/director/director-preview";
-import type { DirectorDraft } from "@/service/director/director-edits";
-import { emptyProfile } from "@/service/director/profile";
+import { toPublicDirector } from "@/presentation/serialize";
 
 type Params = { id: string };
 
-type DirectorActionBody = {
-  action?: string;
-  message?: string;
-  imageUrl?: string;
-  draft?: Partial<DirectorDraft>;
-  chatCreatedAt?: string;
-};
-
-function draftFrom(raw?: Partial<DirectorDraft>): DirectorDraft {
-  return {
-    customProfile: { ...emptyProfile(), ...(raw?.customProfile ?? {}) },
-    extraInstructions: String(raw?.extraInstructions ?? ""),
-    // Performance slots are optional; parseDraft validates keys and lengths.
-    ...(raw?.customPerformance ? { customPerformance: raw.customPerformance } : {}),
-  };
-}
-
-// Director workspace payload (profile, preview, chat). Never the system prompt.
 export const GET = withApiUser<Params>(async ({ auth, params }) => {
-  const [skill, sub] = await Promise.all([
-    loadDirectorForUser(auth.user.clerkUserId, params.id),
-    getActiveSubscription(auth.user.clerkUserId),
-  ]);
+  const skill = getDirectorById(params.id) ?? getDirectorBySlug(params.id);
   if (!skill) return apiError("找不到 Director", 404);
+  const sub = await getActiveSubscription(auth.user.clerkUserId);
   return apiJson({
-    director: await toPublicDirectorWithPreview(skill),
+    director: toPublicDirector(skill),
     subscribed: isSubscriptionActive(sub),
   });
 });
 
-// Save title, description, profile, and extra instructions of a custom director.
-export const PUT = withApiUser<Params>(async ({ request, params }) => {
-  const body = await readJson<{
-    title?: string;
-    description?: string;
-    customProfile?: DirectorDraft["customProfile"];
-    extraInstructions?: string;
-    customPerformance?: DirectorDraft["customPerformance"];
-  }>(request);
-  const draft = draftFrom(body);
-  return fromResult(
-    await saveDirectorAction({
-      id: params.id,
-      title: String(body.title ?? ""),
-      description: String(body.description ?? ""),
-      customProfile: draft.customProfile,
-      extraInstructions: draft.extraInstructions,
-      customPerformance: draft.customPerformance,
-    }),
-  );
+export const PUT = withApiUser<Params>(async () => {
+  notFound();
 });
 
-// Director actions. `action` picks one:
-//   chat    – AI edit of the draft ({ message, imageUrl?, draft })
-//   preview – generate the preview still ({ chatCreatedAt? })
-export const POST = withApiUser<Params>(async ({ request, params }) => {
-  const body = await readJson<DirectorActionBody>(request);
-  switch (body.action) {
-    case "chat":
-      return fromResult(
-        await sendDirectorChatAction({
-          id: params.id,
-          message: String(body.message ?? ""),
-          imageUrl: body.imageUrl,
-          draft: draftFrom(body.draft),
-        }),
-      );
-    case "preview":
-      return fromResult(
-        await generateDirectorPreviewAction({ id: params.id, chatCreatedAt: body.chatCreatedAt }),
-      );
-    default:
-      return apiError(`未知的 action: ${String(body.action ?? "")}`);
-  }
+export const POST = withApiUser<Params>(async () => {
+  notFound();
 });
 
-export const DELETE = withApiUser<Params>(async ({ params }) => {
-  return fromResult(await deleteDirectorAction(params.id));
+export const DELETE = withApiUser<Params>(async () => {
+  notFound();
 });

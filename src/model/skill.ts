@@ -1,5 +1,6 @@
 import type { ObjectId } from "mongodb";
 import { z } from "zod";
+import type { IDirectorBehavior } from "@/model/director";
 import { PROFILE_KEYS, type DirectorProfile, type ProfileKey, type SystemProfile } from "@/model/director-profile";
 import {
   PERFORMANCE_KEYS,
@@ -77,6 +78,7 @@ export type Skill = {
   // per prompt language; a fork copies the English set into `customPerformance` to edit.
   performance?: SystemPerformance;
   customPerformance?: PerformanceSlots;
+  behavior?: IDirectorBehavior;
   // System-director card still. Custom directors inherit the template's url at serialize time.
   previewUrl?: string;
   previewHash?: string;

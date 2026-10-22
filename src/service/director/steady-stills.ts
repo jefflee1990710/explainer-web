@@ -1,3 +1,4 @@
+import { getDirectorBySlug } from "@/service/director/catalog";
 import { isTalkingHeadSkill } from "@/service/director/talking-head";
 
 // Style does not change the storyboard.
@@ -8,9 +9,11 @@ export function usesSteadyStills(
   return false;
 }
 
-// Except talking-head directors, all directors skip the end still and generate video from start still + camera motion.
+// Driven by `IDirector.behavior.keyframeMode`: start-only directors skip the end still.
 export function clipSkipsEndStill(project: { skillSlug?: string; styleId?: string }) {
   if (!project.skillSlug) return true;
+  const director = getDirectorBySlug(project.skillSlug);
+  if (director) return director.behavior.keyframeMode === "start-only";
   return !isTalkingHeadSkill(project.skillSlug);
 }
 
@@ -20,9 +23,13 @@ type StoryboardOwner = {
   phaseA?: { clips: Array<{ clipNumber: number }> };
 };
 
-// Talking-head clip with a later clip: its video lands on that clip's start still.
+// Driven by `IDirector.behavior.keyframeMode === "end-is-next-start"`: a clip with a later clip lands on that clip's start still.
 export function clipEndIsNextStart(project: StoryboardOwner, clipNumber: number) {
-  if (!isTalkingHeadSkill(project.skillSlug)) return false;
+  const director = getDirectorBySlug(project.skillSlug);
+  const usesNextStart = director
+    ? director.behavior.keyframeMode === "end-is-next-start"
+    : isTalkingHeadSkill(project.skillSlug);
+  if (!usesNextStart) return false;
   return Boolean(project.phaseA?.clips.some((clip) => clip.clipNumber === clipNumber + 1));
 }
 

@@ -37,8 +37,6 @@ export function AppShell({
     ...(POSTS_FEATURE_ENABLED
       ? [{ href: "/app/posts", label: t("nav.posts"), icon: "posts" as const, section: "generation" as const }]
       : []),
-    { href: "/app/directors", label: t("nav.directors"), icon: "directors", section: "setup" },
-    { href: "/app/styles", label: t("nav.styles"), icon: "styles", section: "setup" },
     { href: "/app/text-styles", label: t("nav.textStyles"), icon: "text", section: "setup" },
     { href: "/app/products", label: t("nav.products"), icon: "products", section: "setup" },
     { href: "/app/mcp", label: t("nav.mcp"), icon: "mcp", section: "other" },

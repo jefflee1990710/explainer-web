@@ -1,8 +1,14 @@
 // De-plastic light & camera capture rules for Cinematic realistic (and user forks of it) only.
 // Flat, outlined, or chalk styles must not get grazing light or film grain.
 
-export function isRealisticStyle(style?: { id?: string; baseStyleId?: string } | null) {
+import { getDirectorBySlug } from "@/service/director/catalog";
+import type { IStyleBehavior } from "@/model/style";
+
+export function isRealisticStyle(
+  style?: { id?: string; baseStyleId?: string; behavior?: IStyleBehavior } | null,
+) {
   if (!style) return false;
+  if (style.behavior) return style.behavior.realistic;
   return style.id === "realistic" || style.baseStyleId === "realistic";
 }
 
@@ -15,6 +21,8 @@ const SELF_SHOT_CREATOR_SKILLS = new Set([
 // Talking-head and surprise-hook videos are self-recorded creator / vlog captures
 // (iPhone 16 Pro / Sony ZV-E1 / DJI Osmo Pocket 3) rather than vintage 35mm cinema film.
 export function isSelfShotCreatorSkill(skillSlug?: string | null) {
+  const director = getDirectorBySlug(skillSlug);
+  if (director) return director.behavior.selfShotCreatorCamera;
   return Boolean(skillSlug && SELF_SHOT_CREATOR_SKILLS.has(skillSlug));
 }
 

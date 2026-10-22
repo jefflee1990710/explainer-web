@@ -7,6 +7,7 @@ import type {
   VoLanguage,
 } from "@/model/project";
 import { CARTOON_EXPLAINER_SKILL_SLUG, clipEndScene, clipStartScene } from "@/service/director/dual-beat";
+import { getDirectorBySlug } from "@/service/director/catalog";
 import { sceneDescriptionLanguageLock } from "@/service/director/languages";
 import { directorModel } from "@/service/director/model";
 import { isTalkingHeadSkill } from "@/service/director/talking-head";
@@ -15,6 +16,8 @@ const MAX_OBJECTS = 16;
 const MAX_SETS = 4;
 
 function maxSetsForSkill(skillSlug?: string) {
+  const director = getDirectorBySlug(skillSlug);
+  if (director) return director.behavior.maxBackgroundSets;
   return skillSlug === CARTOON_EXPLAINER_SKILL_SLUG || isTalkingHeadSkill(skillSlug) ? 1 : MAX_SETS;
 }
 

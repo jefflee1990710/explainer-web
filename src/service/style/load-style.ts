@@ -1,15 +1,15 @@
-import { stylesCollection } from "@/dao";
 import {
   isStyleId,
   resolveStyleId,
   type StyleId,
 } from "@/model/style-id";
 import type { StyleDoc } from "@/model/style-doc";
-import { ensureCatalogStyles } from "@/service/style/ensure-catalog-styles";
+import { defaultStyleBehavior } from "@/model/style";
+import { STYLES_BY_ID } from "@/service/style/catalog";
 import { LETTERING_KEYS } from "@/service/style/lettering";
 import type { Style } from "@/service/style/types";
 
-// Prompt-driving fields stored on Mongo `styles` (previews stay separate).
+// Prompt-driving fields on a style definition (previews stay separate).
 export const STYLE_PROMPT_KEYS = [
   "name",
   "description",
@@ -24,7 +24,6 @@ export const STYLE_PROMPT_KEYS = [
 
 export type StylePromptFields = Pick<Style, (typeof STYLE_PROMPT_KEYS)[number]>;
 
-// $set payload for seed / patch — never includes preview* fields.
 export function stylePromptFields(style: StylePromptFields): StylePromptFields {
   return {
     name: style.name,
@@ -48,7 +47,6 @@ function optionalLettering(style: Partial<Style> | StyleDoc): Pick<Style, (typeo
   return next;
 }
 
-// Complete Mongo style → runtime Style; incomplete docs are not usable.
 export function styleFromDoc(doc: StyleDoc | null | undefined): Style | null {
   if (!doc || !isStyleId(doc._id)) return null;
   for (const key of STYLE_PROMPT_KEYS) {
@@ -58,19 +56,20 @@ export function styleFromDoc(doc: StyleDoc | null | undefined): Style | null {
     id: doc._id,
     ...stylePromptFields(doc as StyleDoc & StylePromptFields),
     ...optionalLettering(doc),
+    behavior: defaultStyleBehavior(doc._id, doc.canvas),
   };
 }
 
-let overlay: Partial<Record<StyleId, Style>> = {};
+let overlay: Partial<Record<StyleId, Style>> | null = null;
 
-// Requires hydrateStyles (or replaceStyleOverlay) to have loaded this id.
+// Resolves from test overlay when installed, otherwise directly from the hardcoded catalog.
 export function resolvedStyle(id: string | undefined): Style {
   const key = resolveStyleId(id);
-  const style = overlay[key];
-  if (!style) {
-    throw new Error(`Style "${key}" is missing from Mongo`);
+  if (overlay) {
+    const overridden = overlay[key];
+    if (overridden) return overridden;
   }
-  return style;
+  return STYLES_BY_ID[key];
 }
 
 export function replaceStyleOverlay(styles: Style[]) {
@@ -78,23 +77,14 @@ export function replaceStyleOverlay(styles: Style[]) {
 }
 
 export function resetStyleOverlay() {
-  overlay = {};
+  overlay = null;
 }
 
-// Load every complete style doc into the overlay used by resolvedStyle.
+// No-op: all 35 built-in styles now live in `src/service/style/catalog/*.ts`.
 export async function hydrateStyles() {
-  await ensureCatalogStyles();
-  const docs = await (await stylesCollection()).find({}).toArray();
-  const next: Partial<Record<StyleId, Style>> = {};
-  for (const doc of docs) {
-    const style = styleFromDoc(doc);
-    if (style) next[style.id] = style;
-  }
-  overlay = next;
+  return;
 }
 
-// Mongo style if complete; throws when the doc is missing or incomplete.
 export async function loadStyle(id: string | undefined): Promise<Style> {
-  await hydrateStyles();
   return resolvedStyle(id);
 }

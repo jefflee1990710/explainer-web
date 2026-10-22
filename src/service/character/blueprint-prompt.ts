@@ -64,6 +64,7 @@ function characterBlueprintStyleLines(style: RenderableStyle) {
 }
 // Chalkboard's canvas is the drawing surface. Every other style keeps a light sheet.
 function usesDrawingSurface(style: RenderableStyle) {
+  if (style.behavior) return style.behavior.usesDrawingSurface;
   return /chalkboard/i.test(`${style.id} ${style.canvas}`);
 }
 

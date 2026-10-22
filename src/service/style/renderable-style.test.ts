@@ -26,28 +26,19 @@ function userDoc(id: ObjectId, look: string, deletedAt?: Date): UserStyleDoc {
   };
 }
 
-test("missing styleId is doodle; a system id is that style; a user id uses the doc even if deleted", async () => {
+test("missing or unknown styleId falls back to doodle; a system id returns that style", async () => {
   installTestStyles();
-  const id = new ObjectId();
-  const findUserStyle = async (styleId: string, clerkUserId: string) => {
-    if (styleId === id.toHexString() && clerkUserId === owner) return userDoc(id, "torn paper", new Date());
-    return null;
-  };
-  const missing = await loadRenderableStyle({ ownerClerkUserId: owner, findUserStyle });
+  const missing = await loadRenderableStyle({ ownerClerkUserId: owner });
   assert.equal(missing.id, "doodle");
-  const pixel = await loadRenderableStyle({ styleId: "pixel", ownerClerkUserId: owner, findUserStyle });
+  const pixel = await loadRenderableStyle({ styleId: "pixel", ownerClerkUserId: owner });
   assert.match(pixel.look, /pixel/);
-  const custom = await loadRenderableStyle({ styleId: id.toHexString(), ownerClerkUserId: owner, findUserStyle });
-  assert.equal(custom.look, "torn paper");
-  assert.equal(custom.letteringLine1, "Line 1 is torn paper.");
-  await assert.rejects(
-    () => loadRenderableStyle({ styleId: new ObjectId().toHexString(), ownerClerkUserId: "other", findUserStyle }),
-    /style/i,
-  );
-  await assert.rejects(
-    () => loadRenderableStyle({ styleId: "not-a-style", ownerClerkUserId: owner, findUserStyle }),
-    /style/i,
-  );
+  const legacyCustom = await loadRenderableStyle({
+    styleId: new ObjectId().toHexString(),
+    ownerClerkUserId: owner,
+  });
+  assert.equal(legacyCustom.id, "doodle");
+  const unknown = await loadRenderableStyle({ styleId: "not-a-style", ownerClerkUserId: owner });
+  assert.equal(unknown.id, "doodle");
   uninstallTestStyles();
 });
 

@@ -1,5 +1,6 @@
 import type { PerformanceSlots } from "@/model/director-performance";
 import type { VoLanguage } from "@/model/project";
+import { getDirectorBySlug } from "@/service/director/catalog";
 import { DEFAULT_PERFORMANCE } from "@/service/director/performance";
 import { toWrittenChinese } from "@/service/director/written-chinese";
 
@@ -9,6 +10,8 @@ const FULL_BODY_TALKING_HEAD_SLUG = "full-body-talking-head-director";
 export type TalkingShot = "face" | "full-body";
 
 export function talkingShotForSkill(skillSlug?: string): TalkingShot | undefined {
+  const director = getDirectorBySlug(skillSlug);
+  if (director) return director.behavior.talkingHeadShot;
   if (skillSlug === FULL_BODY_TALKING_HEAD_SLUG) return "full-body";
   if (skillSlug === TALKING_HEAD_SLUG) return "face";
   return undefined;

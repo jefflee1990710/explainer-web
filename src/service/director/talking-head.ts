@@ -4,7 +4,7 @@ import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
 import { chainsClipStarts, inheritsPreviousEnd } from "@/service/director/clip-continuity";
 import { DEFAULT_PERFORMANCE, performanceLanguage } from "@/service/director/performance";
 import { resolveSpeechPace } from "@/service/director/speech-pace";
-import { hasAnchorProp, speakOnlyThisClip, talkingMotionLine, type TalkingShot } from "@/service/director/talking-performance";
+import { hasAnchorProp, speakOnlyThisClip, talkingMotionLine, talkingShotForSkill, type TalkingShot } from "@/service/director/talking-performance";
 import { talkingRealismMotion, talkingRealismStill } from "@/service/director/talking-realism";
 import { toWrittenChinese } from "@/service/director/written-chinese";
 import { mediaSrc } from "@/util/media-src";
@@ -26,7 +26,7 @@ const PROVIDER_MIN_SECONDS = 5;
 const TALKING_HEAD_SKILLS = new Set([TALKING_HEAD_SKILL_SLUG, FULL_BODY_TALKING_HEAD_SKILL_SLUG]);
 
 export function isTalkingHeadSkill(skillSlug?: string) {
-  return Boolean(skillSlug && TALKING_HEAD_SKILLS.has(skillSlug));
+  return Boolean(talkingShotForSkill(skillSlug) || (skillSlug && TALKING_HEAD_SKILLS.has(skillSlug)));
 }
 
 // Chained directors do not draw a start that copies the previous end still.

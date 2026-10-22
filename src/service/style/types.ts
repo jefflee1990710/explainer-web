@@ -1,24 +1,10 @@
 import type { StyleId } from "@/model/style-id";
+import { defaultStyleBehavior, type IStyle, type IStyleBehavior } from "@/model/style";
 
-export type { StyleId };
+export { defaultStyleBehavior, type IStyle, type IStyleBehavior, type StyleId };
 
 // Prompt-driving visual style. Colour words only in prompt fields;
 // `canvasColor` is for UI cards and alpha-flattening and never reaches a prompt.
-export type Style = {
-  id: StyleId;
-  name: string;
-  description: string;
-  canvas: string;
-  canvasColor: string;
-  look: string;
-  palette: string;
-  typography: string;
-  motion: string;
-  negatives: string;
-  // On-canvas VO layout from Mongo. Empty when the style doc omits the field.
-  letteringLayout?: string;
-  letteringLine1?: string;
-  letteringLine2?: string;
-  beatTitleLayout?: string;
-  reelLayout?: string;
+export type Style = Omit<IStyle, "behavior"> & {
+  behavior?: IStyleBehavior;
 };

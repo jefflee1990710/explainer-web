@@ -1,8 +1,7 @@
-import { ObjectId } from "mongodb";
-import { userStylesCollection } from "@/dao/user-styles";
-import { isStyleId, type StyleId } from "@/model/style-id";
+import { defaultStyleBehavior, type IStyleBehavior } from "@/model/style";
+import type { StyleId } from "@/model/style-id";
 import type { UserStyleDoc } from "@/model/user-style";
-import { hydrateStyles, resolvedStyle } from "@/service/style/load-style";
+import { resolvedStyle } from "@/service/style/load-style";
 import type { Style } from "@/service/style/types";
 import {
   copyUserStyleFields,
@@ -11,10 +10,18 @@ import {
   type UserStyleFields,
 } from "@/service/style/user-style-fields";
 
-export type RenderableStyle = { id: string; baseStyleId?: StyleId } & UserStyleFields;
+export type RenderableStyle = {
+  id: string;
+  baseStyleId?: StyleId;
+  behavior?: IStyleBehavior;
+} & UserStyleFields;
 
 export function renderableFromSystem(style: Style): RenderableStyle {
-  return { id: style.id, ...copyUserStyleFields(style) };
+  return {
+    id: style.id,
+    ...copyUserStyleFields(style),
+    behavior: style.behavior ?? defaultStyleBehavior(style.id, style.canvas),
+  };
 }
 
 function userStyleFieldsFromDoc(doc: UserStyleDoc): UserStyleFields {
@@ -29,56 +36,19 @@ function userStyleFieldsFromDoc(doc: UserStyleDoc): UserStyleFields {
 }
 
 export function renderableFromUserStyle(doc: UserStyleDoc): RenderableStyle {
-  // Keep the system template id so a user fork of cinematic realistic still gates overlay.
   return {
     id: doc._id.toHexString(),
     ...userStyleFieldsFromDoc(doc),
     baseStyleId: doc.baseStyleId,
+    behavior: defaultStyleBehavior(doc.baseStyleId, doc.canvas),
   };
 }
 
-async function defaultFindUserStyle(
-  styleId: string,
-  ownerClerkUserId: string,
-): Promise<UserStyleDoc | null> {
-  const collection = await userStylesCollection();
-  return collection.findOne({
-    _id: new ObjectId(styleId),
-    ownerClerkUserId,
-  });
-}
-
-async function loadSystemRenderable(styleId: string | undefined): Promise<RenderableStyle> {
-  try {
-    return renderableFromSystem(resolvedStyle(styleId));
-  } catch {
-    await hydrateStyles();
-    return renderableFromSystem(resolvedStyle(styleId));
-  }
-}
-
+// Loads the hardcoded built-in style, automatically falling back unknown/legacy custom IDs to the default style.
 export async function loadRenderableStyle(input: {
   styleId?: string;
   ownerClerkUserId: string;
   findUserStyle?: (id: string, owner: string) => Promise<UserStyleDoc | null>;
 }): Promise<RenderableStyle> {
-  const { styleId, ownerClerkUserId, findUserStyle = defaultFindUserStyle } = input;
-
-  if (!styleId || styleId === "") {
-    return loadSystemRenderable(undefined);
-  }
-
-  if (isStyleId(styleId)) {
-    return loadSystemRenderable(styleId);
-  }
-
-  if (ObjectId.isValid(styleId)) {
-    const doc = await findUserStyle(styleId, ownerClerkUserId);
-    if (!doc) {
-      throw new Error(`Style "${styleId}" is missing`);
-    }
-    return renderableFromUserStyle(doc);
-  }
-
-  throw new Error(`Style "${styleId}" is missing`);
+  return renderableFromSystem(resolvedStyle(input.styleId));
 }

@@ -1,4 +1,5 @@
 import type { AspectRatio, DurationPreset, SpeechPace } from "@/model/project";
+import { getDirectorBySlug } from "@/service/director/catalog";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import {
@@ -33,6 +34,8 @@ export const BOOKEND_MIN_SECONDS = 5;
 export const BOOKEND_MAX_SECONDS = 8;
 
 export function isBookendSkill(skillSlug?: string) {
+  const director = getDirectorBySlug(skillSlug);
+  if (director) return Boolean(director.behavior.bookendRole);
   return Boolean(skillSlug && BOOKEND_SKILLS.has(skillSlug));
 }
 
@@ -127,10 +130,14 @@ export function bookendLogoFrameLines(imageIndex: number) {
 const DIALOGUE_ONLY_SKILLS = new Set([SURPRISE_INTERVIEW_SKILL_SLUG]);
 
 export function skillBansNarration(skillSlug?: string) {
+  const director = getDirectorBySlug(skillSlug);
+  if (director) return director.behavior.bansNarration;
   return Boolean(skillSlug && DIALOGUE_ONLY_SKILLS.has(skillSlug));
 }
 
 export function skillUsesOnScreenLipSync(skillSlug?: string) {
+  const director = getDirectorBySlug(skillSlug);
+  if (director) return director.behavior.speechMode === "lip-sync";
   return isTalkingHeadSkill(skillSlug) || isSurpriseInterviewSkill(skillSlug);
 }
 
@@ -138,6 +145,8 @@ export function skillUsesOnScreenLipSync(skillSlug?: string) {
 // is a single on-screen character.
 export function requiredCastCount(skillSlug?: string) {
   if (!skillSlug) return 0;
+  const director = getDirectorBySlug(skillSlug);
+  if (director) return director.behavior.requiredCastCount;
   if (skillSlug === DIALOGUE_QA_SKILL_SLUG) return 2;
   return 1;
 }
@@ -165,12 +174,16 @@ export function comparisonPanels(narrativeJob: string): { a: string; b: string }
 }
 
 export function skillForcesSceneText(skillSlug?: string) {
+  const director = getDirectorBySlug(skillSlug);
+  if (director) return director.behavior.forcesSceneText;
   return skillSlug === LISTICLE_SKILL_SLUG;
 }
 
 // 白板概念解說：畫面文字 OFF 只代表「不做旁白字幕」；場景內的短手寫標籤
 // （黃色 tag、箭頭字、道具名，1–3 個字）是這個風格的核心視覺語彙，仍然允許。
 export function skillAllowsInWorldLabels(skillSlug?: string) {
+  const director = getDirectorBySlug(skillSlug);
+  if (director) return director.behavior.allowsInWorldLabels;
   return skillSlug === CARTOON_EXPLAINER_SKILL_SLUG;
 }
 

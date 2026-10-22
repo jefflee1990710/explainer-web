@@ -1,4 +1,5 @@
 import type { ClipStoryboardInput, StoryboardRow, VoLanguage } from "@/model/project";
+import { getDirectorBySlug } from "@/service/director/catalog";
 import { sceneStateLabels } from "@/service/director/languages";
 import { subtitleLookLine, type SubtitleLook } from "@/service/director/subtitle-look";
 
@@ -6,6 +7,8 @@ import { subtitleLookLine, type SubtitleLook } from "@/service/director/subtitle
 export const CARTOON_EXPLAINER_SKILL_SLUG = "cartoon-explainer-video-director";
 
 export function isDualBeatSkill(skillSlug?: string) {
+  const director = getDirectorBySlug(skillSlug);
+  if (director) return director.behavior.dualBeat;
   return skillSlug === CARTOON_EXPLAINER_SKILL_SLUG;
 }
 

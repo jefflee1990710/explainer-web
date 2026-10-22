@@ -123,10 +123,10 @@ test("styleFromDoc copies optional lettering fields when present", () => {
   assert.equal(style.letteringLine2, undefined);
 });
 
-test("resolvedStyle throws when Mongo overlay is missing", () => {
+test("resolvedStyle returns the hardcoded catalog style when overlay is reset", () => {
   resetStyleOverlay();
-  assert.throws(() => resolvedStyle("pixel"), /pixel.*Mongo/i);
-  assert.throws(() => resolvedStyle(undefined), /doodle.*Mongo/i);
+  assert.equal(resolvedStyle("pixel").id, "pixel");
+  assert.equal(resolvedStyle(undefined).id, "doodle");
 });
 
 test("resolvedStyle uses the overlay after hydrate", () => {
