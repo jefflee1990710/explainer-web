@@ -22,19 +22,20 @@ export type DePlasticMetrics = {
 };
 
 export type RealisticGradeOptions = {
-  // Target 1st-percentile shadow floor (Rule 07: keep >= 8 so grain is never crushed).
+  // Target 1st-percentile shadow floor (Rule 07: slightly above zero so blacks never crush).
   blackFloor?: number;
-  // Target 99th-percentile highlight ceiling (Rule 06: keep <= 190-205, never > 235).
+  // Target 99th-percentile highlight ceiling (Rule 06: never > 235).
   whiteCeiling?: number;
-  // Target 35mm luminance grain amplitude (Rule 07: produces measured grain sigma ~ 8-10).
+  // Luminance grain amplitude (Rule 07: produces a faint measured grain sigma ~ 3-5).
   grainStrength?: number;
   // Deterministic seed for reproducible grain in unit tests.
   seed?: number;
 };
 
-const DEFAULT_BLACK_FLOOR = 12;
-const DEFAULT_WHITE_CEILING = 205;
-const DEFAULT_GRAIN_STRENGTH = 12.2;
+// Light film feel: faint grain, near-true blacks, and highlights only gently rolled off.
+const DEFAULT_BLACK_FLOOR = 6;
+const DEFAULT_WHITE_CEILING = 226;
+const DEFAULT_GRAIN_STRENGTH = 5.5;
 
 // Soft filmic toe + knee-shoulder tone curve mapping 0..255 -> blackFloor..whiteCeiling.
 // Keeps shadows/midtones (0..170, faces/skin/room) near 1:1 original brightness while
@@ -45,7 +46,7 @@ export function buildRealisticToneLut(
 ): Uint8Array {
   const lut = new Uint8Array(256);
   const knee = 170;
-  // Map input knee (170) to ~85% of the output range (~176 when blackFloor=12, whiteCeiling=205)
+  // Map input knee (170) to ~1:1 output (~176 when blackFloor=12, ~175 when blackFloor=6)
   // so midtones (e.g. 115 -> ~122, 128 -> ~135) are never darkened.
   const kneeTarget = Math.min(whiteCeiling - 8, Math.max(blackFloor + 1, Math.round(blackFloor + (knee - blackFloor) * 1.03)));
   const midSlope = (kneeTarget - blackFloor) / knee;
@@ -202,9 +203,9 @@ export async function measureDePlasticMetrics(buffer: Buffer): Promise<DePlastic
 }
 
 // Post-processing grading & 35mm grain layer for realistic stills/frames (Rules 01, 05, 06, 07, 12):
-// 1. Filmic toe & shoulder LUT: lifts P1 black point to ~10-14 and compresses P99 white point below ~195.
+// 1. Filmic toe & shoulder LUT: lifts P1 black point to ~5-8 and rolls P99 white point below ~230.
 // 2. Deep-shadow desaturation: keeps deep shadows (< 28 luma) neutral so dark areas don't hold plastic colour noise.
-// 3. 35mm film grain: injects luminance-weighted Gaussian grain so measured sigma sits around 8-10.
+// 3. Faint film grain: injects luminance-weighted Gaussian grain so measured sigma sits around 3-5.
 export async function gradeRealisticImageBuffer(
   buffer: Buffer,
   options?: RealisticGradeOptions,
@@ -222,8 +223,8 @@ export async function gradeRealisticImageBuffer(
     .toBuffer({ resolveWithObject: true });
 
   const out = Buffer.allocUnsafe(data.length);
-  const minClamp = Math.max(8, blackFloor - 4);
-  const maxClamp = Math.min(212, whiteCeiling + 7);
+  const minClamp = Math.max(4, blackFloor - 2);
+  const maxClamp = Math.min(232, whiteCeiling + 6);
 
   for (let offset = 0; offset < data.length; offset += 3) {
     let r = lut[data[offset]];
@@ -273,15 +274,15 @@ export async function gradeRealisticImageBuffer(
 }
 
 // FFmpeg video filter for realistic clips (Hailuo 3 / Seedance):
-// - Preserves natural midtone brightness (0..170 stays ~1:1 with a lifted black floor at 10)
-//   so faces, skin, and indoor rooms never look darkened
-// - Compresses only highlights above 170 with a soft knee (170..255 -> 175..204, never > 235)
-// - Restores 35mm temporal film grain (noise=c0s=9:c0f=t+u) that video diffusion models smooth away.
+// - Preserves natural midtone brightness (0..180 stays ~1:1 with a near-true black floor at 5)
+//   so faces, skin, and indoor rooms never look darkened or faded
+// - Gently rolls off only highlights above 180 (180..255 -> 180..225, never > 235)
+// - Adds faint temporal grain (noise=c0s=4:c0f=t+u) that video diffusion models smooth away.
 const VIDEO_KNEE_LUT_EXPR =
-  "clip(if(lte(val,170),10+val*0.97,175+(val-170)*0.34),8,206)";
+  "clip(if(lte(val,180),5+val*0.975,180+(val-180)*0.6),4,228)";
 
 export const REALISTIC_VIDEO_GRADE_FILTER =
-  `lutrgb=r='${VIDEO_KNEE_LUT_EXPR}':g='${VIDEO_KNEE_LUT_EXPR}':b='${VIDEO_KNEE_LUT_EXPR}',noise=c0s=9:c0f=t+u`;
+  `lutrgb=r='${VIDEO_KNEE_LUT_EXPR}':g='${VIDEO_KNEE_LUT_EXPR}':b='${VIDEO_KNEE_LUT_EXPR}',noise=c0s=4:c0f=t+u`;
 
 export function realisticVideoGradeArgs(inPath: string, outPath: string): string[] {
   return [

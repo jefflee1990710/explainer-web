@@ -65,32 +65,32 @@ test("gradeRealisticImageBuffer fixes blown highlights (Rule 06), crushed blacks
   const gradedPng = await gradeRealisticImageBuffer(inputPng, { seed: 42 });
   const after = await measureDePlasticMetrics(gradedPng);
 
-  // Rule 06: White point compressed <= 212, zero pixels > 235
+  // Rule 06: White point gently rolled off <= 232, zero pixels > 235
   assert.ok(
-    after.whitePoint <= 212,
-    `expected graded whitePoint <= 212, got ${after.whitePoint.toFixed(2)}`,
+    after.whitePoint <= 232,
+    `expected graded whitePoint <= 232, got ${after.whitePoint.toFixed(2)}`,
   );
   assert.equal(after.over235Pct, 0, "expected 0% pixels over 235 after grading");
 
-  // Rule 07: Black point lifted >= 8 so film grain is never swallowed by crushed zero-blacks
+  // Rule 07: Black point only slightly lifted (4..10) — never crushed, never faded
   assert.ok(
-    after.blackPoint >= 8,
-    `expected graded blackPoint >= 8, got ${after.blackPoint.toFixed(2)}`,
+    after.blackPoint >= 4 && after.blackPoint <= 10,
+    `expected graded blackPoint in [4, 10], got ${after.blackPoint.toFixed(2)}`,
   );
 
-  // Rule 07 & 12: Real 35mm film grain sigma in the 7.0 - 11.5 range
+  // Rule 07 & 12: Faint film grain sigma in the 2.5 - 5.5 range
   assert.ok(
-    after.grainSigma >= 7.0 && after.grainSigma <= 11.5,
-    `expected graded grainSigma in [7.0, 11.5], got ${after.grainSigma.toFixed(2)}`,
+    after.grainSigma >= 2.5 && after.grainSigma <= 5.5,
+    `expected graded grainSigma in [2.5, 5.5], got ${after.grainSigma.toFixed(2)}`,
   );
 });
 
-test("realisticVideoGradeArgs applies knee LUT (preserving midtones <=170 and rolling off highlights >170) and temporal film grain", () => {
+test("realisticVideoGradeArgs applies knee LUT (preserving midtones <=180 and rolling off highlights >180) and faint temporal grain", () => {
   const args = realisticVideoGradeArgs("in.mp4", "out.mp4");
   assert.ok(args.includes("-vf"));
   assert.ok(args.includes(REALISTIC_VIDEO_GRADE_FILTER));
   assert.match(REALISTIC_VIDEO_GRADE_FILTER, /lutrgb=/);
-  assert.match(REALISTIC_VIDEO_GRADE_FILTER, /lte\(val,170\)/);
+  assert.match(REALISTIC_VIDEO_GRADE_FILTER, /lte\(val,180\)/);
   assert.doesNotMatch(REALISTIC_VIDEO_GRADE_FILTER, /val\*0\.72/);
-  assert.match(REALISTIC_VIDEO_GRADE_FILTER, /noise=c0s=9:c0f=t\+u/);
+  assert.match(REALISTIC_VIDEO_GRADE_FILTER, /noise=c0s=4:c0f=t\+u/);
 });

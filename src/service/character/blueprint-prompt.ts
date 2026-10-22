@@ -58,7 +58,7 @@ function characterBlueprintStyleLines(style: RenderableStyle) {
       ),
     palette:
       style.palette.length > 100
-        ? "rich daylight skin tones and dimensional 1.4:1–1.8:1 three-quarter contrast on Kodak Gold 200 film stock (neutral-cool key light on skin with negative fill on the shadow side)"
+        ? "rich daylight skin tones and dimensional 1.4:1–1.8:1 three-quarter contrast in clean natural Kodak Portra-style colour (neutral-cool key light on skin with negative fill on the shadow side)"
         : style.palette,
   });
 }
@@ -97,7 +97,7 @@ const FACE_GEOMETRY_LOCK = [
 
 // Board images only. The full realistic rule plus catalog lines used to push the likeness lines past the budget.
 const REALISTIC_BOARD_RENDER_RULE =
-  "Realistic texture: a real photograph on 35mm film (Kodak Gold 200), directional three-quarter window key light with a 1.4:1 to 1.8:1 portrait contrast ratio and 25–40% natural shadow falloff that keeps the whole face and both eyes readable and never reshapes the face; a believable non-model person with real skin pores, peach-fuzz, fine lines, matte-natural skin, loose flyaway strands, and real fabric weave; subtle film grain; never airbrushed, waxy, glossy, or beauty-filtered. Identity portrait: 85mm portrait lens at f/1.8. Full body: 50mm lens at f/4. Soft directional light and real skin texture stay on the person.";
+  "Realistic texture: a real photograph on a modern full-frame camera with a light natural film feel (Kodak Portra-style colour), directional three-quarter window key light with a 1.4:1 to 1.8:1 portrait contrast ratio and 25–40% natural shadow falloff that keeps the whole face and both eyes readable and never reshapes the face; a believable non-model person with real skin pores, peach-fuzz, fine lines, matte-natural skin, loose flyaway strands, and real fabric weave; very faint subtle film grain; never airbrushed, waxy, glossy, or beauty-filtered. Identity portrait: 85mm portrait lens at f/1.8. Full body: 50mm lens at f/4. Soft directional light and real skin texture stay on the person.";
 
 // Shorter sheet-ground rule for board images, which carry the long likeness block.
 const BOARD_SHEET_GROUND =

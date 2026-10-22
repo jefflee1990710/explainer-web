@@ -47,17 +47,21 @@ test("realistic style fields and rules enforce the 12 de-plastic rules across Ph
   assert.match(REALISTIC_LIGHT_DIRECTOR_RULE, /keep 90% of shadow areas neutral-desaturated and put chroma only on the light source/);
   assert.match(REALISTIC_FRAME_RENDER_RULE, /keep 90% of shadows neutral-desaturated with colour only on the light source/);
 
-  // Rule 06: glowing emitters stay below pure-white clipping with subtle halation
+  // Rule 06: glowing emitters stay below pure-white clipping with a soft roll-off, no halation glow
   assert.match(REALISTIC_STYLE_FIELDS.look, /keeping glowing sources below pure-white clipping/);
-  assert.match(REALISTIC_LIGHT_DIRECTOR_RULE, /Keep glowing objects below pure-white clipping with subtle halation/);
+  assert.match(REALISTIC_LIGHT_DIRECTOR_RULE, /Keep glowing objects below pure-white clipping with soft roll-off and no blown-out glare or halation glow/);
   assert.match(REALISTIC_FRAME_RENDER_RULE, /keep glowing objects below pure-white clipping/);
   assert.match(REALISTIC_VIDEO_LIGHT_LOCK, /highlights stay below pure-white clipping/);
 
-  // Rule 07: film grain and crushed blacks are mutually exclusive — slightly lift shadow blacks
-  assert.match(REALISTIC_STYLE_FIELDS.look, /slightly lifted shadow blacks so 35mm film grain is never swallowed by crushed zero-blacks/);
-  assert.match(REALISTIC_LIGHT_DIRECTOR_RULE, /keep shadow blacks slightly lifted whenever film grain is present so crushed blacks never swallow the grain/);
-  assert.match(REALISTIC_FRAME_RENDER_RULE, /keep shadow blacks slightly lifted so film grain is never swallowed by crushed zero-blacks/);
-  assert.match(REALISTIC_VIDEO_LIGHT_LOCK, /subtle film grain with slightly lifted shadow blacks/);
+  // Rule 07: only a light film feel — faint grain, clean neutral blacks (never faded or crushed), no vintage film optics
+  assert.match(REALISTIC_STYLE_FIELDS.look, /very faint fine film grain/);
+  assert.match(REALISTIC_STYLE_FIELDS.look, /clean neutral shadow blacks with full shadow detail, never faded, milky, or crushed/);
+  assert.match(REALISTIC_LIGHT_DIRECTOR_RULE, /keep shadow blacks clean and neutral with full detail \(never faded, milky, or crushed\)/);
+  assert.match(REALISTIC_FRAME_RENDER_RULE, /keep shadow blacks clean and neutral with full detail \(never faded, milky, or crushed\)/);
+  assert.match(REALISTIC_VIDEO_LIGHT_LOCK, /very faint fine grain with clean neutral shadow blacks/);
+  for (const text of [REALISTIC_STYLE_FIELDS.look, REALISTIC_STYLE_FIELDS.palette, REALISTIC_LIGHT_DIRECTOR_RULE, REALISTIC_FRAME_RENDER_RULE]) {
+    assert.doesNotMatch(text, /Kodak Gold 200|Ektachrome|Canon AE-1|Ricoh GR III|slight chromatic aberration|gentle vignetting|subtle halation/);
+  }
 
   // Rule 09: per-shot contrast and black point from each shot's own scene light
   assert.match(REALISTIC_STYLE_FIELDS.palette, /scene-motivated honest colour and contrast per shot/);
@@ -181,7 +185,8 @@ test("all directors receive realistic de-plastic rules for both built-in realist
       assert.match(framePrompt, /Realistic light & camera:/, `missing realistic frame render rule for ${skillSlug}`);
       assert.match(framePrompt, /grazing directional light, negative fill on the shadow side/, `missing Rule 11 in ${skillSlug}`);
       assert.match(framePrompt, /below pure-white clipping/, `missing Rule 06 in ${skillSlug}`);
-      assert.match(framePrompt, /keep shadow blacks slightly lifted/, `missing Rule 07 in ${skillSlug}`);
+      assert.match(framePrompt, /keep shadow blacks clean and neutral/, `missing Rule 07 in ${skillSlug}`);
+      assert.doesNotMatch(framePrompt, /Kodak Gold 200|Canon AE-1|halation on bright sources/, `film look too heavy in ${skillSlug}`);
       assert.match(framePrompt, /neutral or cool by default/, `missing Rule 10 in ${skillSlug}`);
     }
   }

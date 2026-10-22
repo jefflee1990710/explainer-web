@@ -988,7 +988,8 @@ test("realistic stills keep the light & camera rule and the Scene's Light under 
   assert.match(prompt, /Realistic light & camera: sculpt faces and surfaces with grazing directional light/);
   assert.match(prompt, /24mm \/ 35mm \/ 50mm \/ 85mm portrait lens/);
   assert.match(prompt, /deep focus f\/11 for environment or f\/4 to f\/1\.4 creamy bokeh background/);
-  assert.match(prompt, /warm amber light, muted teal shadows/);
+  assert.match(prompt, /soft neutral daylight with gently cooler shadows/);
+  assert.doesNotMatch(prompt, /Kodak Gold 200|halation on bright sources|gentle vignetting/);
   assert.match(prompt, /3\) Light: cold side key from the left with negative fill on her right cheek\./);
   assert.match(prompt, /4\) Camera: medium shot from the left, 85mm portrait lens, f\/1\.4, creamy bokeh background, subtle film grain\./);
 
