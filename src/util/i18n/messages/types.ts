@@ -23,6 +23,14 @@ export type LandingUseCaseMessages = {
 };
 
 // Four pictured examples under one feature-page heading.
+export type FeaturePostCopy = {
+  title: string;
+  lede: string;
+  p1: string;
+  p2: string;
+  p3: string;
+};
+
 export type FeatureExampleSet = {
   title: string;
   body: string;
@@ -1047,6 +1055,17 @@ export type Messages = {
       ctaTalkingHead: string;
       ctaPricing: string;
     };
+  };
+  // One editorial post on each feature landing.
+  featurePosts: {
+    eyebrow: string;
+    igLabel: string;
+    ai: FeaturePostCopy;
+    promo: FeaturePostCopy;
+    tool: FeaturePostCopy;
+    talk: FeaturePostCopy;
+    canto: FeaturePostCopy;
+    explain: FeaturePostCopy;
   };
   // Extra example stills shown on each feature landing.
   featureExamples: {

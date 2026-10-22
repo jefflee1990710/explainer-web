@@ -3,6 +3,7 @@ import { getAuthSession } from "@/service/auth";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { AiInfluencerCta } from "./ai-influencer-cta";
 import { AiInfluencerExamples } from "./ai-influencer-examples";
+import { AiInfluencerPost } from "./ai-influencer-post";
 import { AiInfluencerEarn } from "./ai-influencer-earn";
 import { AiInfluencerHero } from "./ai-influencer-hero";
 import { AiInfluencerIp } from "./ai-influencer-ip";
@@ -23,6 +24,7 @@ export default async function AiInfluencerMarketingPage() {
       <AiInfluencerEarn />
       <AiInfluencerShift signedIn={signedIn} />
       <AiInfluencerExamples />
+      <AiInfluencerPost />
       <AiInfluencerCta signedIn={signedIn} />
     </PolicyLayout>
   );

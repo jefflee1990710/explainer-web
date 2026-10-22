@@ -3,6 +3,7 @@ import { getAuthSession } from "@/service/auth";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { RightToolCta } from "./right-tool-cta";
 import { RightToolExamples } from "./right-tool-examples";
+import { RightToolPost } from "./right-tool-post";
 import { RightToolDirectors } from "./right-tool-directors";
 import { RightToolEdit } from "./right-tool-edit";
 import { RightToolHero } from "./right-tool-hero";
@@ -23,6 +24,7 @@ export default async function RightToolPage() {
       <RightToolInfluencer />
       <RightToolEdit signedIn={signedIn} />
       <RightToolExamples />
+      <RightToolPost />
       <RightToolCta signedIn={signedIn} />
     </PolicyLayout>
   );

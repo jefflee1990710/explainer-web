@@ -3,6 +3,7 @@ import { getAuthSession } from "@/service/auth";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { CantoneseCta } from "./cantonese-cta";
 import { CantoneseExamples } from "./cantonese-examples";
+import { CantonesePost } from "./cantonese-post";
 import { CantoneseFit } from "./cantonese-fit";
 import { CantoneseFlow } from "./cantonese-flow";
 import { CantoneseHero } from "./cantonese-hero";
@@ -19,6 +20,7 @@ export default async function CantoneseMarketingPage() {
       <CantoneseFit signedIn={signedIn} />
       <CantoneseFlow signedIn={signedIn} />
       <CantoneseExamples />
+      <CantonesePost />
       <CantoneseCta signedIn={signedIn} />
     </PolicyLayout>
   );

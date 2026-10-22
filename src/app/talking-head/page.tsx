@@ -3,6 +3,7 @@ import { getAuthSession } from "@/service/auth";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { TalkingHeadCta } from "./talking-head-cta";
 import { TalkingHeadExamples } from "./talking-head-examples";
+import { TalkingHeadPost } from "./talking-head-post";
 import { TalkingHeadFinish } from "./talking-head-finish";
 import { TalkingHeadHero } from "./talking-head-hero";
 import { TalkingHeadSteps } from "./talking-head-steps";
@@ -19,6 +20,7 @@ export default async function TalkingHeadMarketingPage() {
       <TalkingHeadSteps signedIn={signedIn} />
       <TalkingHeadFinish signedIn={signedIn} />
       <TalkingHeadExamples />
+      <TalkingHeadPost />
       <TalkingHeadCta signedIn={signedIn} />
     </PolicyLayout>
   );

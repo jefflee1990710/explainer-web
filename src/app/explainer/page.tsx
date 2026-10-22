@@ -3,6 +3,7 @@ import { getAuthSession } from "@/service/auth";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { ExplainerCta } from "./explainer-cta";
 import { ExplainerExamples } from "./explainer-examples";
+import { ExplainerPost } from "./explainer-post";
 import { ExplainerFlow } from "./explainer-flow";
 import { ExplainerHero } from "./explainer-hero";
 import { ExplainerStyle } from "./explainer-style";
@@ -21,6 +22,7 @@ export default async function ExplainerMarketingPage() {
       <ExplainerUses signedIn={signedIn} />
       <ExplainerFlow signedIn={signedIn} />
       <ExplainerExamples />
+      <ExplainerPost />
       <ExplainerCta signedIn={signedIn} />
     </PolicyLayout>
   );
