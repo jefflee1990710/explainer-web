@@ -15,8 +15,8 @@ export default async function CantoneseMarketingPage() {
   return (
     <PolicyLayout>
       <CantoneseHero signedIn={signedIn} />
-      <CantoneseFit />
-      <CantoneseFlow />
+      <CantoneseFit signedIn={signedIn} />
+      <CantoneseFlow signedIn={signedIn} />
       <CantoneseCta signedIn={signedIn} />
     </PolicyLayout>
   );

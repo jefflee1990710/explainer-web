@@ -17,10 +17,10 @@ export default async function RightToolPage() {
   return (
     <PolicyLayout>
       <RightToolHero signedIn={signedIn} />
-      <RightToolPain />
+      <RightToolPain signedIn={signedIn} />
       <RightToolDirectors />
       <RightToolInfluencer />
-      <RightToolEdit />
+      <RightToolEdit signedIn={signedIn} />
       <RightToolCta signedIn={signedIn} />
     </PolicyLayout>
   );

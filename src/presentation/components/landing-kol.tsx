@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { ParallaxLayer } from "@/presentation/components/parallax-layer";
+import { SectionCtaRow } from "@/presentation/components/section-cta-row";
 
 // Realistic phone whose screen is a popular KOL's Instagram: grid, followers, notifications.
 export function LandingKol() {
@@ -43,12 +43,10 @@ export function LandingKol() {
               </li>
             ))}
           </ul>
-          <Link
-            href="/app/characters"
-            className="mt-8 inline-flex min-h-11 items-center justify-center rounded-full bg-[#12141c] px-8 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black"
-          >
-            {t("landing.kol.cta")}
-          </Link>
+          <SectionCtaRow
+            primary={{ href: "/app/characters", label: t("landing.kol.cta") }}
+            secondary={{ href: "/ai-influencer", label: t("aiInfluencerPage.hero.ctaStart") }}
+          />
         </div>
       </div>
     </section>

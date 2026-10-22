@@ -1,22 +1,41 @@
 "use client";
 
-import { ArtFrame } from "@/presentation/components/art-frame";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
+import { CardCta, SectionCtaRow } from "@/presentation/components/section-cta-row";
 
+// Three distinct 16:9 commercial sets (iceberg, fire, Mars) — no hero image reuse.
 const WILD_ART = [
-  "/landing/product-promo/hero.jpg",
+  "/landing/product-promo/iceberg.jpg",
   "/landing/product-promo/fire.jpg",
   "/landing/product-promo/mars.jpg",
 ] as const;
 
-// Iceberg / fire / Mars — exaggerated sets that earn attention.
-export function ProductPromoWild() {
+// Iceberg / fire / Mars — exaggerated sets that earn attention, styled after LandingSteps cards.
+export function ProductPromoWild({ signedIn = false }: { signedIn?: boolean }) {
   const { t } = useI18n();
   const items = [
-    { title: t("productPromoPage.wild.w1Title"), body: t("productPromoPage.wild.w1Body") },
-    { title: t("productPromoPage.wild.w2Title"), body: t("productPromoPage.wild.w2Body") },
-    { title: t("productPromoPage.wild.w3Title"), body: t("productPromoPage.wild.w3Body") },
+    {
+      step: "01",
+      title: t("productPromoPage.wild.w1Title"),
+      body: t("productPromoPage.wild.w1Body"),
+      href: signedIn ? "/app/products" : "/sign-up",
+      cta: t("landing.useCases.product.cta"),
+    },
+    {
+      step: "02",
+      title: t("productPromoPage.wild.w2Title"),
+      body: t("productPromoPage.wild.w2Body"),
+      href: "/ai-influencer",
+      cta: t("aiInfluencerPage.hero.ctaStart"),
+    },
+    {
+      step: "03",
+      title: t("productPromoPage.wild.w3Title"),
+      body: t("productPromoPage.wild.w3Body"),
+      href: "/explainer",
+      cta: t("explainerPage.hero.ctaStart"),
+    },
   ];
 
   return (
@@ -32,17 +51,35 @@ export function ProductPromoWild() {
           <p className="mt-4 text-base leading-7 text-[#5c6170]">{t("productPromoPage.wild.body")}</p>
         </div>
 
-        <MotionStagger className="mt-14 grid gap-10 md:grid-cols-3">
+        <MotionStagger className="mt-14 grid gap-6 md:grid-cols-3">
           {items.map((item, index) => (
             <MotionItem key={item.title}>
-              <article>
-                <ArtFrame src={WILD_ART[index]} className="aspect-video w-full rounded-2xl" />
-                <h3 className="mt-5 font-display text-xl font-semibold text-[#12141c]">{item.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-[#5c6170]">{item.body}</p>
+              <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white text-center transition-shadow duration-200 hover:shadow-[0_8px_24px_rgba(22,24,35,0.08)]">
+                <img
+                  src={WILD_ART[index]}
+                  alt=""
+                  className="aspect-video w-full border-b border-[#e4e4e7] bg-[#12141c] object-cover"
+                />
+                <div className="flex flex-1 flex-col items-center p-8">
+                  <span className="-mt-14 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e4e4e7] bg-[#12141c] text-xs font-bold text-[#c6f24b]">
+                    {item.step}
+                  </span>
+                  <h3 className="mt-4 font-display text-xl font-semibold text-[#12141c]">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[#5c6170]">{item.body}</p>
+                  <CardCta href={item.href} label={item.cta} />
+                </div>
               </article>
             </MotionItem>
           ))}
         </MotionStagger>
+        <SectionCtaRow
+          align="center"
+          primary={{
+            href: signedIn ? "/app/products" : "/sign-up",
+            label: t("productPromoPage.hero.ctaStart"),
+          }}
+          secondary={{ href: "/ai-influencer", label: t("aiInfluencerPage.hero.ctaStart") }}
+        />
       </div>
     </section>
   );

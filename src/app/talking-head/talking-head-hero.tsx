@@ -3,7 +3,7 @@
 import { FeatureHero } from "@/presentation/components/feature-hero";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
-// Talking-head hero — brand first, script-to-clip promise; portrait still shown whole (caption bar included).
+// Talking-head hero — brand first, script-to-clip promise; 16:9 presenter + captioned preview.
 export function TalkingHeadHero({ signedIn = false }: { signedIn?: boolean }) {
   const { t } = useI18n();
 
@@ -18,7 +18,7 @@ export function TalkingHeadHero({ signedIn = false }: { signedIn?: boolean }) {
         label: signedIn ? t("talkingHeadPage.hero.ctaWorkspace") : t("talkingHeadPage.hero.ctaStart"),
       }}
       secondary={{ href: "#steps", label: t("talkingHeadPage.hero.ctaSecondary") }}
-      art={{ src: "/landing/talking-head/hero.jpg", width: 768, height: 1024, widthClass: "max-w-[22rem] lg:max-w-sm" }}
+      art={{ src: "/landing/talking-head/hero.jpg", width: 1440, height: 810 }}
     />
   );
 }

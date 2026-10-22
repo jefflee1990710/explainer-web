@@ -35,13 +35,13 @@ export function LandingHeroArt() {
       </ParallaxLayer>
 
       <div className="relative mx-auto grid h-full max-w-[96rem] grid-cols-1 lg:grid-cols-[minmax(16rem,28%)_minmax(0,1fr)_minmax(17rem,30%)]">
-        <ParallaxLayer distance={28} className="relative z-[1] hidden lg:block">
+        <ParallaxLayer distance={12} className="relative z-[1] hidden h-full min-h-0 lg:block">
           <LandingHeroCastRail />
         </ParallaxLayer>
 
         <div className="hidden lg:block" />
 
-        <ParallaxLayer distance={20} className="relative z-[1] hidden lg:block">
+        <ParallaxLayer distance={8} className="relative z-[1] hidden h-full min-h-0 lg:block">
           <LandingHeroOutputs />
         </ParallaxLayer>
 

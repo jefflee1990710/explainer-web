@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { ArtFrame } from "@/presentation/components/art-frame";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { INFLUENCER_IP_ART } from "@/presentation/components/influencer-ip-art";
+import { INFLUENCER_IP_ART, type InfluencerIpArtSet } from "@/presentation/components/influencer-ip-art";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
+import { SectionCtaRow } from "@/presentation/components/section-cta-row";
 
 type CopyKey =
   | "landing.ip"
@@ -14,9 +14,11 @@ type CopyKey =
 export function InfluencerIpShowcase({
   copyKey,
   id = "ip",
+  art = INFLUENCER_IP_ART,
 }: {
   copyKey: CopyKey;
   id?: string;
+  art?: InfluencerIpArtSet;
 }) {
   const { t } = useI18n();
   const points = [
@@ -40,9 +42,9 @@ export function InfluencerIpShowcase({
 
         <MotionStagger className="mt-14 grid gap-4 md:grid-cols-2">
           <MotionItem>
-            <figure className="overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white">
+            <figure className="overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white transition-shadow duration-200 hover:shadow-[0_8px_24px_rgba(22,24,35,0.08)]">
               <img
-                src={INFLUENCER_IP_ART.wardrobe}
+                src={art.wardrobe}
                 alt=""
                 className="aspect-square w-full object-cover"
               />
@@ -52,9 +54,9 @@ export function InfluencerIpShowcase({
             </figure>
           </MotionItem>
           <MotionItem>
-            <figure className="overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white">
-              {/* 4:3 feed grid inside the square slot — contained so edge posts are not sliced. */}
-              <ArtFrame src={INFLUENCER_IP_ART.lifeFeed} className="aspect-square w-full" />
+            <figure className="overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white transition-shadow duration-200 hover:shadow-[0_8px_24px_rgba(22,24,35,0.08)]">
+              {/* Contained inside the square slot so edge posts are never sliced. */}
+              <ArtFrame src={art.lifeFeed} className="aspect-square w-full" />
               <figcaption className="border-t border-[#e4e4e7] px-4 py-3 text-sm font-semibold text-[#12141c]">
                 {t(`${copyKey}.postsLabel`)}
               </figcaption>
@@ -64,11 +66,11 @@ export function InfluencerIpShowcase({
 
         <MotionStagger className="mt-4 grid gap-4">
           <MotionItem>
-            <figure className="overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white">
+            <figure className="overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white transition-shadow duration-200 hover:shadow-[0_8px_24px_rgba(22,24,35,0.08)]">
               <img
-                src={INFLUENCER_IP_ART.daily}
+                src={art.daily}
                 alt=""
-                className="aspect-[1512/368] w-full object-cover"
+                className={`${art.dailyAspectClass ?? "aspect-[1512/368]"} w-full object-cover`}
               />
               <figcaption className="border-t border-[#e4e4e7] px-4 py-3 text-sm font-semibold text-[#12141c]">
                 {t(`${copyKey}.dailyLabel`)}
@@ -76,9 +78,9 @@ export function InfluencerIpShowcase({
             </figure>
           </MotionItem>
           <MotionItem>
-            <figure className="overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white">
+            <figure className="overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white transition-shadow duration-200 hover:shadow-[0_8px_24px_rgba(22,24,35,0.08)]">
               <img
-                src={INFLUENCER_IP_ART.custom}
+                src={art.custom}
                 alt=""
                 className="aspect-video w-full object-cover"
               />
@@ -89,28 +91,25 @@ export function InfluencerIpShowcase({
           </MotionItem>
         </MotionStagger>
 
-        <MotionStagger className="mt-12 grid gap-8 md:grid-cols-3">
+        <MotionStagger className="mt-10 grid gap-6 md:grid-cols-3">
           {points.map((item, index) => (
             <MotionItem key={item.title}>
-              <article>
-                <p className="font-display text-xs font-bold tracking-[0.12em] text-[#5c6170]">
+              <article className="flex h-full flex-col rounded-2xl border border-[#e4e4e7] bg-white p-6 transition-shadow duration-200 hover:shadow-[0_8px_24px_rgba(22,24,35,0.06)]">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#12141c] text-xs font-bold text-[#c6f24b]">
                   {String(index + 1).padStart(2, "0")}
-                </p>
-                <h3 className="mt-2 font-display text-xl font-semibold text-[#12141c]">{item.title}</h3>
+                </span>
+                <h3 className="mt-4 font-display text-xl font-semibold text-[#12141c]">{item.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-[#5c6170]">{item.body}</p>
               </article>
             </MotionItem>
           ))}
         </MotionStagger>
 
-        <div className="mt-10 flex justify-center">
-          <Link
-            href="/app/characters"
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#12141c] px-8 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black"
-          >
-            {t(`${copyKey}.cta`)}
-          </Link>
-        </div>
+        <SectionCtaRow
+          align="center"
+          primary={{ href: "/app/characters", label: t(`${copyKey}.cta`) }}
+          secondary={{ href: "/product-promo", label: t("productPromoPage.hero.ctaStart") }}
+        />
       </div>
     </section>
   );

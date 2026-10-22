@@ -2,8 +2,9 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
+import { SectionCtaRow } from "@/presentation/components/section-cta-row";
 
-// Built-in popular AI directors — storyboard formats already packed in.
+// Built-in popular AI directors — dark studio cards with lime badge numbers.
 export function RightToolDirectors() {
   const { t } = useI18n();
   const directors = [
@@ -28,19 +29,25 @@ export function RightToolDirectors() {
           <p className="mt-4 text-base leading-7 text-white/70">{t("rightTool.directors.body")}</p>
         </div>
 
-        <MotionStagger className="mt-14 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+        <MotionStagger className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {directors.map((item, index) => (
             <MotionItem key={item.title}>
-              <article className="border-t border-[#c6f24b]/35 pt-5">
-                <p className="font-display text-xs font-bold tracking-[0.12em] text-[#c6f24b]">
+              <article className="flex h-full flex-col rounded-2xl border border-white/12 bg-white/[0.04] p-6 transition-colors hover:border-[#c6f24b]/40">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#c6f24b]/40 bg-[#c6f24b]/15 font-display text-xs font-bold text-[#c6f24b]">
                   {String(index + 1).padStart(2, "0")}
-                </p>
-                <h3 className="mt-2 font-display text-xl font-semibold text-white">{item.title}</h3>
+                </span>
+                <h3 className="mt-4 font-display text-xl font-semibold text-white">{item.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-white/65">{item.body}</p>
               </article>
             </MotionItem>
           ))}
         </MotionStagger>
+        <SectionCtaRow
+          align="center"
+          tone="dark"
+          primary={{ href: "/explainer", label: t("explainerPage.hero.ctaStart") }}
+          secondary={{ href: "/talking-head", label: t("talkingHeadPage.hero.ctaStart") }}
+        />
       </div>
     </section>
   );

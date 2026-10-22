@@ -20,8 +20,9 @@ export function LandingHero({ signedIn = false }: { signedIn?: boolean }) {
   };
   const platforms = [t("landing.hero.platformReels"), t("landing.hero.platformShorts"), t("landing.hero.platformTiktok")];
 
+  // Exactly the viewport under the sticky header, so Life posts and the Explainer both stay on screen.
   return (
-    <section className="relative flex w-full flex-col overflow-hidden border-b border-black/40 bg-[#0a0c10] lg:min-h-[44rem] xl:min-h-[48rem]">
+    <section className="relative flex w-full flex-col overflow-hidden border-b border-black/40 bg-[#0a0c10] lg:h-[calc(100dvh-4rem)]">
       <div className="order-2 lg:order-1 lg:contents">
         <LandingHeroArt />
       </div>

@@ -2,6 +2,7 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
+import { CardCta, SectionCtaRow } from "@/presentation/components/section-cta-row";
 
 // Fresh-cast marketing stills (no account library faces): wardrobe → Life → videos.
 const STEP_ART = [
@@ -10,12 +11,30 @@ const STEP_ART = [
   "/landing/steps/video.webp",
 ] as const;
 
-export function LandingSteps() {
+export function LandingSteps({ signedIn = false }: { signedIn?: boolean }) {
   const { t } = useI18n();
   const steps = [
-    { step: "01", title: t("landing.steps.step1Title"), body: t("landing.steps.step1Body") },
-    { step: "02", title: t("landing.steps.step2Title"), body: t("landing.steps.step2Body") },
-    { step: "03", title: t("landing.steps.step3Title"), body: t("landing.steps.step3Body") },
+    {
+      step: "01",
+      title: t("landing.steps.step1Title"),
+      body: t("landing.steps.step1Body"),
+      href: signedIn ? "/app/characters" : "/sign-up",
+      cta: t("landing.cast.cta"),
+    },
+    {
+      step: "02",
+      title: t("landing.steps.step2Title"),
+      body: t("landing.steps.step2Body"),
+      href: "/ai-influencer",
+      cta: t("landing.ip.cta"),
+    },
+    {
+      step: "03",
+      title: t("landing.steps.step3Title"),
+      body: t("landing.steps.step3Body"),
+      href: "/explainer",
+      cta: t("explainerPage.hero.ctaStart"),
+    },
   ];
 
   return (
@@ -45,11 +64,20 @@ export function LandingSteps() {
                   </span>
                   <h3 className="mt-4 font-display text-xl font-semibold text-[#12141c]">{item.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-[#5c6170]">{item.body}</p>
+                  <CardCta href={item.href} label={item.cta} />
                 </div>
               </article>
             </MotionItem>
           ))}
         </MotionStagger>
+        <SectionCtaRow
+          align="center"
+          primary={{
+            href: signedIn ? "/app/characters" : "/sign-up",
+            label: signedIn ? t("landing.hero.ctaWorkspace") : t("landing.hero.ctaStart"),
+          }}
+          secondary={{ href: "/pricing", label: t("landing.freeCredit.ctaPricing") }}
+        />
       </div>
     </section>
   );

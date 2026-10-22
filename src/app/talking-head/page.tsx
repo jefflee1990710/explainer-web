@@ -15,8 +15,8 @@ export default async function TalkingHeadMarketingPage() {
   return (
     <PolicyLayout>
       <TalkingHeadHero signedIn={signedIn} />
-      <TalkingHeadSteps />
-      <TalkingHeadFinish />
+      <TalkingHeadSteps signedIn={signedIn} />
+      <TalkingHeadFinish signedIn={signedIn} />
       <TalkingHeadCta signedIn={signedIn} />
     </PolicyLayout>
   );

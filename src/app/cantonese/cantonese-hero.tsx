@@ -3,7 +3,7 @@
 import { FeatureHero } from "@/presentation/components/feature-hero";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
-// HK Cantonese hero for SME / solo founders — brand-led, hero still shown uncropped.
+// Cantonese page hero — native HK phrasing + 16:9 Hong Kong boutique studio scene.
 export function CantoneseHero({ signedIn = false }: { signedIn?: boolean }) {
   const { t } = useI18n();
 
@@ -18,7 +18,7 @@ export function CantoneseHero({ signedIn = false }: { signedIn?: boolean }) {
         label: signedIn ? t("cantonesePage.hero.ctaWorkspace") : t("cantonesePage.hero.ctaStart"),
       }}
       secondary={{ href: "#fit", label: t("cantonesePage.hero.ctaSecondary") }}
-      art={{ src: "/landing/cantonese/hero.jpg", width: 1280, height: 720 }}
+      art={{ src: "/landing/cantonese/hero.jpg", width: 1440, height: 810 }}
     />
   );
 }

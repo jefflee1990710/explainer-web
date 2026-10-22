@@ -18,7 +18,7 @@ export function AiInfluencerHero({ signedIn = false }: { signedIn?: boolean }) {
         label: signedIn ? t("aiInfluencerPage.hero.ctaWorkspace") : t("aiInfluencerPage.hero.ctaStart"),
       }}
       secondary={{ href: "#earn", label: t("aiInfluencerPage.hero.ctaSecondary") }}
-      art={{ src: "/landing/ai-influencer/hero.jpg", width: 1280, height: 720 }}
+      art={{ src: "/landing/ai-influencer/hero.jpg", width: 1440, height: 810 }}
     />
   );
 }

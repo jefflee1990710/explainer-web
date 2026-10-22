@@ -18,7 +18,7 @@ export function ExplainerHero({ signedIn = false }: { signedIn?: boolean }) {
         label: signedIn ? t("explainerPage.hero.ctaWorkspace") : t("explainerPage.hero.ctaStart"),
       }}
       secondary={{ href: "#uses", label: t("explainerPage.hero.ctaSecondary") }}
-      art={{ src: "/landing/explainer/hero.jpg", width: 1280, height: 720 }}
+      art={{ src: "/landing/explainer/hero.jpg", width: 1440, height: 810 }}
     />
   );
 }

@@ -2,9 +2,10 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
+import { SectionCtaRow } from "@/presentation/components/section-cta-row";
 
-// Contrast: expensive DIY learning loop vs Scro one-shot path.
-export function RightToolPain() {
+// Contrast: expensive DIY learning loop vs Scro one-shot path, styled with Studio desk cards.
+export function RightToolPain({ signedIn = false }: { signedIn?: boolean }) {
   const { t } = useI18n();
   const diy = [t("rightTool.pain.diy1"), t("rightTool.pain.diy2"), t("rightTool.pain.diy3")];
   const scro = [t("rightTool.pain.scro1"), t("rightTool.pain.scro2"), t("rightTool.pain.scro3")];
@@ -24,36 +25,48 @@ export function RightToolPain() {
 
         <MotionStagger className="mt-14 grid gap-6 lg:grid-cols-2">
           <MotionItem>
-            <div className="h-full border-l-4 border-zinc-300 bg-zinc-50 px-6 py-8 md:px-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
+            <div className="h-full rounded-2xl border border-[#e4e4e7] bg-[#fafafa] p-6 transition-shadow duration-200 hover:shadow-[0_8px_24px_rgba(22,24,35,0.06)] md:p-8">
+              <span className="inline-flex items-center rounded-full border border-[#e4e4e7] bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#5c6170]">
                 {t("rightTool.pain.diyLabel")}
-              </p>
-              <ol className="mt-5 space-y-4">
+              </span>
+              <ol className="mt-6 space-y-4">
                 {diy.map((line, i) => (
-                  <li key={line} className="flex gap-3 text-sm leading-6 text-zinc-600">
-                    <span className="mt-0.5 font-display text-sm font-bold text-zinc-400">0{i + 1}</span>
-                    <span>{line}</span>
+                  <li key={line} className="flex items-start gap-3.5 text-sm leading-6 text-[#5c6170]">
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#e4e4e7] bg-white font-display text-xs font-bold text-[#5c6170]">
+                      0{i + 1}
+                    </span>
+                    <span className="pt-0.5">{line}</span>
                   </li>
                 ))}
               </ol>
             </div>
           </MotionItem>
           <MotionItem>
-            <div className="h-full border-l-4 border-[#c6f24b] bg-[#12141c] px-6 py-8 md:px-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#c6f24b]">
+            <div className="h-full rounded-2xl border border-[#12141c] bg-[#12141c] p-6 shadow-[0_12px_32px_rgba(18,20,28,0.14)] md:p-8">
+              <span className="inline-flex items-center rounded-full border border-[#c6f24b]/40 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#c6f24b]">
                 {t("rightTool.pain.scroLabel")}
-              </p>
-              <ol className="mt-5 space-y-4">
+              </span>
+              <ol className="mt-6 space-y-4">
                 {scro.map((line, i) => (
-                  <li key={line} className="flex gap-3 text-sm leading-6 text-white/85">
-                    <span className="mt-0.5 font-display text-sm font-bold text-[#c6f24b]">0{i + 1}</span>
-                    <span>{line}</span>
+                  <li key={line} className="flex items-start gap-3.5 text-sm leading-6 text-white/85">
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#c6f24b] font-display text-xs font-bold text-[#12141c]">
+                      0{i + 1}
+                    </span>
+                    <span className="pt-0.5">{line}</span>
                   </li>
                 ))}
               </ol>
             </div>
           </MotionItem>
         </MotionStagger>
+        <SectionCtaRow
+          align="center"
+          primary={{
+            href: signedIn ? "/app" : "/sign-up",
+            label: signedIn ? t("rightTool.hero.ctaWorkspace") : t("rightTool.hero.ctaStart"),
+          }}
+          secondary={{ href: "/pricing", label: t("rightTool.cta.ctaPricing") }}
+        />
       </div>
     </section>
   );

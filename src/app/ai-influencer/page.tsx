@@ -17,10 +17,10 @@ export default async function AiInfluencerMarketingPage() {
   return (
     <PolicyLayout>
       <AiInfluencerHero signedIn={signedIn} />
-      <AiInfluencerSoul />
+      <AiInfluencerSoul signedIn={signedIn} />
       <AiInfluencerIp />
       <AiInfluencerEarn />
-      <AiInfluencerShift />
+      <AiInfluencerShift signedIn={signedIn} />
       <AiInfluencerCta signedIn={signedIn} />
     </PolicyLayout>
   );

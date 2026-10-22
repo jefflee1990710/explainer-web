@@ -36,7 +36,7 @@ export function LandingHeroOutputs() {
       initial={{ opacity: 0, x: 36 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.35, duration: 0.85, ease }}
-      className="relative mx-auto flex h-full w-full max-w-[22rem] items-center justify-center px-3 py-5 sm:max-w-[24rem] lg:max-w-none lg:px-4 xl:px-6"
+      className="relative mx-auto flex h-full min-h-0 w-full max-w-[22rem] items-center justify-center px-3 py-5 sm:max-w-[24rem] lg:max-w-none lg:px-4 lg:py-4 xl:px-6"
     >
       <div
         aria-hidden
@@ -47,27 +47,28 @@ export function LandingHeroOutputs() {
         className="absolute bottom-[10%] left-[8%] h-32 w-32 rounded-full bg-[#c6f24b]/10 blur-2xl"
       />
 
-      <div className="relative flex w-full flex-col gap-8 sm:gap-10 xl:gap-12">
+      {/* On lg the two blocks share the hero height, so the Explainer is never pushed below the fold. */}
+      <div className="relative flex w-full flex-col gap-8 sm:gap-10 lg:h-full lg:min-h-0 lg:gap-4 xl:gap-5">
         {/* Top — Life posts side by side, no rotate / no overlap. */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45, duration: 0.65, ease }}
-          className="w-full"
+          className="flex w-full flex-col lg:min-h-0 lg:flex-[1.15]"
         >
-          <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[#c6f24b]">
+          <p className="mb-2 shrink-0 text-[9px] font-bold uppercase tracking-[0.18em] text-[#c6f24b]">
             Life posts
           </p>
-          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+          <div className="grid grid-cols-2 gap-2 sm:gap-2.5 lg:min-h-0 lg:flex-1 lg:grid-rows-2">
             {LIFE_POSTS.map((post, index) => (
               <motion.article
                 key={post.caption}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 + index * 0.1, duration: 0.6, ease }}
-                className="relative overflow-hidden rounded-xl bg-[#12141c] shadow-[0_14px_36px_rgba(0,0,0,0.4)] ring-1 ring-white/15"
+                className="relative overflow-hidden rounded-xl bg-[#12141c] shadow-[0_14px_36px_rgba(0,0,0,0.4)] ring-1 ring-white/15 lg:h-full lg:min-h-0"
               >
-                <div className="aspect-square overflow-hidden">
+                <div className="aspect-square overflow-hidden lg:absolute lg:inset-0 lg:aspect-auto">
                   <img src={post.src} alt="" className={`h-full w-full ${post.object}`} />
                 </div>
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pb-2 pt-7">
@@ -86,12 +87,12 @@ export function LandingHeroOutputs() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.65, duration: 0.7, ease }}
-          className="w-full"
+          className="flex w-full flex-col lg:min-h-0 lg:flex-1"
         >
-          <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[#c6f24b]">
+          <p className="mb-2 shrink-0 text-[9px] font-bold uppercase tracking-[0.18em] text-[#c6f24b]">
             Explainer
           </p>
-          <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-[#0b0c10] shadow-[0_22px_56px_rgba(0,0,0,0.48)] ring-1 ring-white/20">
+          <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-[#0b0c10] shadow-[0_22px_56px_rgba(0,0,0,0.48)] ring-1 ring-white/20 lg:aspect-auto lg:min-h-0 lg:flex-1">
             <img
               src="/hero/outputs/explainer.webp"
               alt=""

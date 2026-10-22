@@ -1,9 +1,11 @@
 "use client";
 
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { MotionItem, MotionStagger } from "@/presentation/components/motion-reveal";
+import { SectionCtaRow } from "@/presentation/components/section-cta-row";
 
-// Fast path: director → whiteboard style → approve & generate.
-export function ExplainerFlow() {
+// Fast path: director → whiteboard style → approve & generate, styled with dark studio cards.
+export function ExplainerFlow({ signedIn = false }: { signedIn?: boolean }) {
   const { t } = useI18n();
   const steps = [
     { n: "01", title: t("explainerPage.flow.s1Title"), body: t("explainerPage.flow.s1Body") },
@@ -18,20 +20,34 @@ export function ExplainerFlow() {
           <p className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#c6f24b]">
             {t("explainerPage.flow.eyebrow")}
           </p>
-          <h2 className="mt-4 font-display text-pretty text-3xl font-bold leading-[1.12] tracking-tight text-white sm:text-4xl">
+          <h2 className="mt-4 font-display text-pretty text-3xl font-bold leading-[1.12] tracking-tight text-white sm:text-4xl lg:text-5xl">
             {t("explainerPage.flow.title")}
           </h2>
           <p className="mt-4 text-base leading-7 text-white/70">{t("explainerPage.flow.body")}</p>
         </div>
-        <ol className="mx-auto mt-14 grid max-w-4xl gap-8 md:grid-cols-3">
+
+        <MotionStagger className="mt-14 grid gap-6 md:grid-cols-3">
           {steps.map((item) => (
-            <li key={item.n} className="border-t border-[#c6f24b]/40 pt-5 text-center md:text-left">
-              <p className="font-display text-xs font-bold tracking-[0.14em] text-[#c6f24b]">{item.n}</p>
-              <h3 className="mt-2 font-display text-lg font-semibold text-white">{item.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-white/65">{item.body}</p>
-            </li>
+            <MotionItem key={item.n}>
+              <article className="flex h-full flex-col rounded-2xl border border-white/12 bg-white/[0.04] p-6 transition-colors hover:border-[#c6f24b]/40">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#c6f24b]/40 bg-[#c6f24b]/15 font-display text-xs font-bold text-[#c6f24b]">
+                  {item.n}
+                </span>
+                <h3 className="mt-4 font-display text-xl font-semibold text-white">{item.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-white/65">{item.body}</p>
+              </article>
+            </MotionItem>
           ))}
-        </ol>
+        </MotionStagger>
+        <SectionCtaRow
+          align="center"
+          tone="dark"
+          primary={{
+            href: signedIn ? "/app" : "/sign-up",
+            label: t("explainerPage.cta.cta"),
+          }}
+          secondary={{ href: "/pricing", label: t("explainerPage.cta.ctaPricing") }}
+        />
       </div>
     </section>
   );

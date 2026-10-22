@@ -17,8 +17,8 @@ export default async function ExplainerMarketingPage() {
     <PolicyLayout>
       <ExplainerHero signedIn={signedIn} />
       <ExplainerStyle />
-      <ExplainerUses />
-      <ExplainerFlow />
+      <ExplainerUses signedIn={signedIn} />
+      <ExplainerFlow signedIn={signedIn} />
       <ExplainerCta signedIn={signedIn} />
     </PolicyLayout>
   );

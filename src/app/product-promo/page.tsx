@@ -17,8 +17,8 @@ export default async function ProductPromoMarketingPage() {
     <PolicyLayout>
       <ProductPromoHero signedIn={signedIn} />
       <ProductPromoCost />
-      <ProductPromoFlow />
-      <ProductPromoWild />
+      <ProductPromoFlow signedIn={signedIn} />
+      <ProductPromoWild signedIn={signedIn} />
       <ProductPromoCta signedIn={signedIn} />
     </PolicyLayout>
   );

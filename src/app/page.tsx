@@ -19,7 +19,7 @@ export default async function HomePage() {
       <LandingIp />
       <LandingKol />
       <LandingUseCases signedIn={Boolean(session)} />
-      <LandingSteps />
+      <LandingSteps signedIn={Boolean(session)} />
       <LandingDirector />
       <LandingFreeCredit signedIn={Boolean(session)} />
     </PolicyLayout>

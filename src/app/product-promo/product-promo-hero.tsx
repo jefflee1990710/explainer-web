@@ -18,7 +18,7 @@ export function ProductPromoHero({ signedIn = false }: { signedIn?: boolean }) {
         label: signedIn ? t("productPromoPage.hero.ctaWorkspace") : t("productPromoPage.hero.ctaStart"),
       }}
       secondary={{ href: "#wild", label: t("productPromoPage.hero.ctaSecondary") }}
-      art={{ src: "/landing/product-promo/hero.jpg", width: 1280, height: 720 }}
+      art={{ src: "/landing/product-promo/hero.jpg", width: 1440, height: 810 }}
     />
   );
 }

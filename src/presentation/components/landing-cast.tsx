@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { ParallaxLayer } from "@/presentation/components/parallax-layer";
+import { SectionCtaRow } from "@/presentation/components/section-cta-row";
 
 // One character across three shorts: copy on the left, cut-out art card on the right.
 export function LandingCast() {
@@ -34,12 +34,10 @@ export function LandingCast() {
               </li>
             ))}
           </ul>
-          <Link
-            href="/app/characters"
-            className="mt-8 inline-flex min-h-11 items-center justify-center rounded-full bg-[#12141c] px-8 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black"
-          >
-            {t("landing.cast.cta")}
-          </Link>
+          <SectionCtaRow
+            primary={{ href: "/app/characters", label: t("landing.cast.cta") }}
+            secondary={{ href: "/product-promo", label: t("productPromoPage.hero.ctaStart") }}
+          />
         </div>
         <div className="overflow-hidden rounded-2xl border border-[#e4e4e7] bg-white transition-shadow duration-200 hover:shadow-[0_8px_24px_rgba(22,24,35,0.08)]">
           <ParallaxLayer distance={20}>

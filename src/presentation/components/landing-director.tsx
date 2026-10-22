@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { ParallaxLayer } from "@/presentation/components/parallax-layer";
+import { SectionCtaRow } from "@/presentation/components/section-cta-row";
 
 // The cost of retries. The one dark band on the page: white copy, green accents, paper art card.
 export function LandingDirector() {
@@ -44,12 +44,11 @@ export function LandingDirector() {
               </li>
             ))}
           </ol>
-          <Link
-            href="/app"
-            className="mt-8 inline-flex min-h-11 items-center justify-center rounded-full bg-[#c6f24b] px-8 py-3 text-sm font-semibold text-[#12141c] transition-colors hover:bg-[#b6e23a]"
-          >
-            {t("landing.director.cta")}
-          </Link>
+          <SectionCtaRow
+            tone="dark"
+            primary={{ href: "/app", label: t("landing.director.cta") }}
+            secondary={{ href: "/right-tool", label: t("rightTool.hero.ctaStart") }}
+          />
         </div>
       </div>
     </section>
