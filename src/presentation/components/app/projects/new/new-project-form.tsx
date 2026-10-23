@@ -137,6 +137,13 @@ import {
   ReferenceImagesField,
   type ReferenceImageDraft,
 } from "@/presentation/components/app/projects/new/reference-images-field";
+import { BriefWizardStepper } from "@/presentation/components/app/projects/new/brief-wizard-stepper";
+import {
+  canAdvanceFromWizardStep,
+  maxReachableWizardStep,
+  type BriefWizardStepIndex,
+  type BriefWizardValidationState,
+} from "@/presentation/components/app/projects/new/brief-wizard-steps";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -291,6 +298,8 @@ export function NewProjectForm({
   );
   const restoredEditorTab = useRef<string | null>(null);
   const [confirmBrief, setConfirmBrief] = useState(false);
+  // 3-step brief wizard state (0: Style & Cast, 1: Script & Assets, 2: Voice & Specs).
+  const [wizardStep, setWizardStep] = useState<BriefWizardStepIndex>(0);
   // 重新開始: brief form shown again for an existing video; submit wipes and reruns Phase A.
   const [restarting, setRestarting] = useState(false);
   const [confirmRestart, setConfirmRestart] = useState(false);
@@ -469,8 +478,43 @@ export function NewProjectForm({
     return formData;
   }
 
+  function goToWizardStep(nextStep: BriefWizardStepIndex) {
+    setError("");
+    setWizardStep(nextStep);
+  }
+
+  function onNextWizardStep() {
+    if (wizardStep === 0) {
+      if (castNeed > 0 && characterIds.length !== castNeed) {
+        setError(t("brief.error.castCount", { n: castNeed }));
+        return;
+      }
+      goToWizardStep(1);
+      return;
+    }
+    if (wizardStep === 1) {
+      if (!source.trim()) {
+        setError(t("brief.error.sourceRequired"));
+        return;
+      }
+      if (talkingHead && !spokenScript.trim()) {
+        setError(t("brief.error.spokenScriptRequired"));
+        return;
+      }
+      if (referenceImages.some((item) => !item.description.trim())) {
+        setError(t("brief.references.descriptionRequired"));
+        return;
+      }
+      goToWizardStep(2);
+    }
+  }
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (wizardStep < 2) {
+      onNextWizardStep();
+      return;
+    }
     if (!aspectRatio) {
       setError(t("brief.error.aspectRatioRequired"));
       return;
@@ -563,12 +607,14 @@ export function NewProjectForm({
     if (!project) return;
     resetBriefFromProject(project, skills);
     setError("");
+    setWizardStep(0);
     setRestarting(true);
   }, [project, skills]);
 
   function cancelRestart() {
     if (project) resetBriefFromProject(project, skills);
     setError("");
+    setWizardStep(0);
     setRestarting(false);
   }
 
@@ -897,6 +943,27 @@ export function NewProjectForm({
     return () => onStepNav?.(null);
   }, [onStepNav]);
 
+  const wizardValidationState: BriefWizardValidationState = {
+    skillSlug,
+    castNeed,
+    characterIds,
+    source,
+    talkingHead,
+    spokenScript,
+    referenceImages,
+    aspectRatio,
+  };
+  const maxWizardStep = maxReachableWizardStep(wizardValidationState);
+  const canAdvanceStep =
+    canAdvanceFromWizardStep(wizardStep, wizardValidationState) && !briefBusy;
+  const wizardSummaries: Partial<Record<BriefWizardStepIndex, string>> = {
+    0: [skillTitle, styleName].filter(Boolean).join(" · "),
+    1: source.trim()
+      ? t("brief.source.charCount", { n: source.trim().length.toLocaleString() })
+      : undefined,
+    2: [LANGUAGE_PRESETS[language].label, aspectRatio].filter(Boolean).join(" · "),
+  };
+
   const canSubmit =
     source.trim().length > 0 &&
     (!talkingHead || spokenScript.trim().length > 0) &&
@@ -931,203 +998,258 @@ export function NewProjectForm({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10, scale: 0.99, transition: { duration: 0.2 } }}
               transition={{ duration: 0.4, ease }}
-              className="space-y-7 p-6 sm:p-8"
+              className="space-y-6 p-6 sm:p-8"
             >
               <input type="hidden" name="projectId" value={projectId} />
 
-              <Section step="01" title={t("brief.section01.title")} hint={t("brief.section01.hint")}>
-                <SkillPicker
-                  skills={skills}
-                  value={skillSlug}
-                  onChange={setSkillSlug}
-                  disabled={briefBusy}
-                />
-                {bookend ? (
-                  <>
-                    <p className="mt-5 text-sm font-semibold">{t("brief.logo.title")}</p>
-                    <p className="mt-1 text-xs text-muted">{t("brief.logo.hint")}</p>
-                    <div className="mt-3">
-                      <LogoPicker
-                        value={logoUrl}
-                        onChange={setLogoUrl}
+              <BriefWizardStepper
+                currentStep={wizardStep}
+                maxReachableStep={maxWizardStep}
+                disabled={briefBusy}
+                summaries={wizardSummaries}
+                onSelectStep={goToWizardStep}
+              />
+
+              <AnimatePresence mode="wait" initial={false}>
+                {wizardStep === 0 ? (
+                  <motion.div
+                    key="wizard-step-0"
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
+                    transition={{ duration: 0.25, ease }}
+                    className="space-y-5"
+                  >
+                    <Section step="01" title={t("brief.section01.title")} hint={t("brief.section01.hint")}>
+                      <SkillPicker
+                        skills={skills}
+                        value={skillSlug}
+                        onChange={setSkillSlug}
+                        disabled={briefBusy}
+                      />
+                      {talkingHead ? (
+                        <p className="mt-3 text-xs text-muted">{t("brief.talkingHead.hint")}</p>
+                      ) : null}
+
+                      {/* 2-column grid keeps visual style, cast, products & logo compact without scrolling. */}
+                      <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                        <div>
+                          <p className="text-sm font-semibold">{t("brief.visualStyle.title")}</p>
+                          <p className="mt-1 text-xs text-muted">{t("brief.visualStyle.hint")}</p>
+                          <div className="mt-2.5">
+                            <StylePicker
+                              styles={styles}
+                              value={styleId}
+                              onChange={onStyleChange}
+                              disabled={briefBusy}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-sm font-semibold">{t("brief.cast.title")}</p>
+                          <p className="mt-1 text-xs text-muted">
+                            {castNeed === 2
+                              ? t("brief.cast.hintRequiredTwo")
+                              : castNeed === 1
+                                ? t("brief.cast.hintRequiredOne")
+                                : t("brief.cast.hintOptional")}
+                          </p>
+                          <div className="mt-2.5">
+                            <CharacterPicker
+                              characters={characters}
+                              styleId={styleId}
+                              value={characterIds}
+                              onChange={setCharacterIds}
+                              selections={characterSelections}
+                              onSelectionsChange={setCharacterSelections}
+                              disabled={briefBusy}
+                              max={castNeed > 0 ? castNeed : 4}
+                              required={castNeed}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-sm font-semibold">{t("brief.products.title")}</p>
+                          <p className="mt-1 text-xs text-muted">{t("brief.products.hint")}</p>
+                          <div className="mt-2.5">
+                            <ProductDropdown
+                              products={products}
+                              value={productIds}
+                              onChange={setProductIds}
+                              disabled={briefBusy}
+                            />
+                          </div>
+                        </div>
+
+                        {bookend ? (
+                          <div>
+                            <p className="text-sm font-semibold">{t("brief.logo.title")}</p>
+                            <p className="mt-1 text-xs text-muted">{t("brief.logo.hint")}</p>
+                            <div className="mt-2.5">
+                              <LogoPicker
+                                value={logoUrl}
+                                onChange={setLogoUrl}
+                                onError={setError}
+                                disabled={briefBusy}
+                              />
+                            </div>
+                            {durationPreset === "auto" ? (
+                              <p className="mt-2 text-xs text-muted">{t("brief.logo.fixedLength")}</p>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    </Section>
+                  </motion.div>
+                ) : wizardStep === 1 ? (
+                  <motion.div
+                    key="wizard-step-1"
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
+                    transition={{ duration: 0.25, ease }}
+                    className="space-y-5"
+                  >
+                    <Section step="02" title={t("brief.section02.title")} hint={t("brief.section02.hint")}>
+                      <label htmlFor="source" className="sr-only">
+                        {t("brief.source.label")}
+                      </label>
+                      <textarea
+                        id="source"
+                        name="source"
+                        required
+                        rows={5}
+                        value={source}
+                        onChange={(event) => setSource(event.target.value)}
+                        disabled={briefBusy}
+                        className="w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-base leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+                        placeholder={t("brief.source.placeholder")}
+                      />
+                      <p className="mt-2 text-right text-xs tabular-nums text-muted">
+                        {t("brief.source.charCount", { n: source.length.toLocaleString() })}
+                      </p>
+                      {talkingHead ? (
+                        <TalkingHeadScriptField
+                          value={spokenScript}
+                          onChange={setSpokenScript}
+                          disabled={briefBusy}
+                        />
+                      ) : null}
+                      {talkingHeadBackground ? (
+                        <TalkingHeadBackgroundField
+                          value={backgroundImageUrls}
+                          onChange={setBackgroundImageUrls}
+                          onError={setError}
+                          disabled={briefBusy}
+                        />
+                      ) : null}
+                      {talkingHeadStartImage ? (
+                        <TalkingHeadStartImageField
+                          value={startImageUrl}
+                          onChange={setStartImageUrl}
+                          onError={setError}
+                          disabled={briefBusy}
+                        />
+                      ) : null}
+                      <ReferenceImagesField
+                        value={referenceImages}
+                        onChange={setReferenceImages}
                         onError={setError}
                         disabled={briefBusy}
                       />
-                    </div>
-                    {durationPreset === "auto" ? (
-                      <p className="mt-2 text-xs text-muted">{t("brief.logo.fixedLength")}</p>
-                    ) : null}
-                  </>
-                ) : null}
-                {talkingHead ? (
-                  <p className="mt-3 text-xs text-muted">{t("brief.talkingHead.hint")}</p>
-                ) : null}
-                {/* Visual style sits under the narrative skill in the same step. */}
-                <p className="mt-5 text-sm font-semibold">{t("brief.visualStyle.title")}</p>
-                <p className="mt-1 text-xs text-muted">
-                  {t("brief.visualStyle.hint")}
-                </p>
-                <div className="mt-3">
-                  <StylePicker
-                    styles={styles}
-                    value={styleId}
-                    onChange={onStyleChange}
-                    disabled={briefBusy}
-                  />
-                </div>
-                <p className="mt-5 text-sm font-semibold">{t("brief.cast.title")}</p>
-                <p className="mt-1 text-xs text-muted">
-                  {castNeed === 2
-                    ? t("brief.cast.hintRequiredTwo")
-                    : castNeed === 1
-                      ? t("brief.cast.hintRequiredOne")
-                      : t("brief.cast.hintOptional")}
-                </p>
-                <div className="mt-3">
-                  <CharacterPicker
-                    characters={characters}
-                    styleId={styleId}
-                    value={characterIds}
-                    onChange={setCharacterIds}
-                    selections={characterSelections}
-                    onSelectionsChange={setCharacterSelections}
-                    disabled={briefBusy}
-                    max={castNeed > 0 ? castNeed : 4}
-                    required={castNeed}
-                  />
-                </div>
-                <p className="mt-5 text-sm font-semibold">{t("brief.products.title")}</p>
-                <p className="mt-1 text-xs text-muted">{t("brief.products.hint")}</p>
-                <div className="mt-3">
-                  <ProductDropdown
-                    products={products}
-                    value={productIds}
-                    onChange={setProductIds}
-                    disabled={briefBusy}
-                  />
-                </div>
-              </Section>
+                      {referenceImages.some((item) => !item.description.trim()) ? (
+                        <p className="mt-2 text-xs text-muted">{t("brief.references.descriptionRequired")}</p>
+                      ) : null}
+                    </Section>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="wizard-step-2"
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
+                    transition={{ duration: 0.25, ease }}
+                    className="space-y-6"
+                  >
+                    <Section
+                      step="03"
+                      title={dialogueOnly ? t("brief.section03.titleDialogue") : t("brief.section03.titleNarration")}
+                      hint={
+                        dialogueOnly
+                          ? t("brief.section03.hintDialogue")
+                          : t("brief.section03.hintNarration")
+                      }
+                    >
+                      <LanguagePicker
+                        value={language}
+                        onChange={setLanguage}
+                        disabled={briefBusy}
+                        dialogueOnly={dialogueOnly}
+                      />
+                      <div className={`mt-4 grid gap-4 ${dialogueOnly ? "" : "sm:grid-cols-2"}`}>
+                        <div>
+                          <p className="text-sm font-semibold">{t("brief.speechPaceSection.title")}</p>
+                          <p className="mt-1 text-xs text-muted">
+                            {t("brief.speechPaceSection.hint")}
+                          </p>
+                          <div className="mt-2.5">
+                            <SpeechPacePicker value={speechPace} onChange={setSpeechPace} disabled={briefBusy} />
+                          </div>
+                        </div>
+                        {dialogueOnly ? null : (
+                          <div>
+                            <p className="text-sm font-semibold">{t("brief.voiceSection.title")}</p>
+                            <p className="mt-1 text-xs text-muted">
+                              {t("brief.voiceSection.hint")}
+                            </p>
+                            <div className="mt-2.5">
+                              <VoicePicker value={voiceGender} onChange={setVoiceGender} disabled={briefBusy} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </Section>
 
-              <Section step="02" title={t("brief.section02.title")} hint={t("brief.section02.hint")}>
-                <label htmlFor="source" className="sr-only">
-                  {t("brief.source.label")}
-                </label>
-                <textarea
-                  id="source"
-                  name="source"
-                  required
-                  rows={7}
-                  value={source}
-                  onChange={(event) => setSource(event.target.value)}
-                  disabled={briefBusy}
-                  className="w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-base leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-                  placeholder={t("brief.source.placeholder")}
-                />
-                <p className="mt-2 text-right text-xs tabular-nums text-muted">
-                  {t("brief.source.charCount", { n: source.length.toLocaleString() })}
-                </p>
-                {talkingHead ? (
-                  <TalkingHeadScriptField
-                    value={spokenScript}
-                    onChange={setSpokenScript}
-                    disabled={briefBusy}
-                  />
-                ) : null}
-                {talkingHeadBackground ? (
-                  <TalkingHeadBackgroundField
-                    value={backgroundImageUrls}
-                    onChange={setBackgroundImageUrls}
-                    onError={setError}
-                    disabled={briefBusy}
-                  />
-                ) : null}
-                {talkingHeadStartImage ? (
-                  <TalkingHeadStartImageField
-                    value={startImageUrl}
-                    onChange={setStartImageUrl}
-                    onError={setError}
-                    disabled={briefBusy}
-                  />
-                ) : null}
-                <ReferenceImagesField
-                  value={referenceImages}
-                  onChange={setReferenceImages}
-                  onError={setError}
-                  disabled={briefBusy}
-                />
-                {referenceImages.some((item) => !item.description.trim()) ? (
-                  <p className="mt-2 text-xs text-muted">{t("brief.references.descriptionRequired")}</p>
-                ) : null}
-              </Section>
+                    <Section
+                      step="04"
+                      title={t("brief.section04.title")}
+                      hint={
+                        forceSceneText
+                          ? t("brief.section04.hintListicle")
+                          : t("brief.section04.hintDefault")
+                      }
+                    >
+                      <SceneTextPicker
+                        language={sceneTextLanguage}
+                        onLanguageChange={setSceneTextLanguage}
+                        disabled={briefBusy}
+                      />
+                    </Section>
 
-              <Section
-                step="03"
-                title={dialogueOnly ? t("brief.section03.titleDialogue") : t("brief.section03.titleNarration")}
-                hint={
-                  dialogueOnly
-                    ? t("brief.section03.hintDialogue")
-                    : t("brief.section03.hintNarration")
-                }
-              >
-                <LanguagePicker
-                  value={language}
-                  onChange={setLanguage}
-                  disabled={briefBusy}
-                  dialogueOnly={dialogueOnly}
-                />
-                <p className="mt-4 text-sm font-semibold">{t("brief.speechPaceSection.title")}</p>
-                <p className="mt-1 text-xs text-muted">
-                  {t("brief.speechPaceSection.hint")}
-                </p>
-                <div className="mt-3">
-                  <SpeechPacePicker value={speechPace} onChange={setSpeechPace} disabled={briefBusy} />
-                </div>
-                {dialogueOnly ? null : (
-                  <>
-                    <p className="mt-4 text-sm font-semibold">{t("brief.voiceSection.title")}</p>
-                    <p className="mt-1 text-xs text-muted">
-                      {t("brief.voiceSection.hint")}
-                    </p>
-                    <div className="mt-3">
-                      <VoicePicker value={voiceGender} onChange={setVoiceGender} disabled={briefBusy} />
+                    <div className={`grid gap-6 ${talkingHead ? "" : "sm:grid-cols-2"}`}>
+                      <Section step="05" title={t("brief.section05.title")} hint={t("brief.section05.hint")}>
+                        <AspectRatioPicker
+                          value={aspectRatio}
+                          onChange={setAspectRatio}
+                          disabled={briefBusy}
+                        />
+                      </Section>
+
+                      {talkingHead ? null : (
+                        <Section step="06" title={t("brief.section06.title")} hint={t("brief.section06.hint")}>
+                          <DurationPicker
+                            value={durationPreset}
+                            onChange={setDurationPreset}
+                            disabled={briefBusy}
+                          />
+                        </Section>
+                      )}
                     </div>
-                  </>
+                  </motion.div>
                 )}
-              </Section>
-
-              <Section
-                step="04"
-                title={t("brief.section04.title")}
-                hint={
-                  forceSceneText
-                    ? t("brief.section04.hintListicle")
-                    : t("brief.section04.hintDefault")
-                }
-              >
-                <SceneTextPicker
-                  language={sceneTextLanguage}
-                  onLanguageChange={setSceneTextLanguage}
-                  disabled={briefBusy}
-                />
-              </Section>
-
-              <Section step="05" title={t("brief.section05.title")} hint={t("brief.section05.hint")}>
-                <AspectRatioPicker
-                  value={aspectRatio}
-                  onChange={setAspectRatio}
-                  disabled={briefBusy}
-                />
-              </Section>
-
-              {talkingHead ? null : (
-                <Section step="06" title={t("brief.section06.title")} hint={t("brief.section06.hint")}>
-                  <DurationPicker
-                    value={durationPreset}
-                    onChange={setDurationPreset}
-                    disabled={briefBusy}
-                  />
-                </Section>
-              )}
+              </AnimatePresence>
 
               {error ? (
                 <p role="alert" className="text-sm font-medium text-accent">
@@ -1135,41 +1257,72 @@ export function NewProjectForm({
                 </p>
               ) : null}
 
-              <div className="flex flex-wrap items-center gap-4 border-t border-accent-ink/10 pt-6">
-                <motion.button
-                  type="submit"
-                  disabled={!canSubmit}
-                  whileTap={{ scale: 0.98 }}
-                  className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-                >
-                  {submitting ? <Spinner /> : null}
-                  {submitting
-                    ? t("brief.submit.submitting")
-                    : restarting
-                      ? t("brief.submit.regenerate")
-                      : project
-                        ? t("brief.submit.saveAndRegenerateStoryboard")
-                        : t("brief.submit.start")}
-                </motion.button>
-                {restarting ? (
-                  <button
-                    type="button"
-                    onClick={cancelRestart}
-                    disabled={submitting}
-                    className="inline-flex min-h-[48px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:opacity-60"
-                  >
-                    {t("common.cancel")}
-                  </button>
-                ) : null}
-                <p className="text-xs text-muted">
-                  {castNeed > 0 && characterIds.length !== castNeed
-                    ? t("brief.footer.castRequired", { n: castNeed })
-                    : restarting
-                      ? t("brief.footer.restartWarning")
-                      : project
-                        ? t("brief.footer.editBriefWarning")
-                        : t("brief.footer.noCharge")}
-                </p>
+              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-accent-ink/10 pt-5">
+                <div className="flex flex-wrap items-center gap-3">
+                  {wizardStep > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => goToWizardStep((wizardStep - 1) as BriefWizardStepIndex)}
+                      disabled={briefBusy}
+                      className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/20 bg-paper px-5 py-2.5 text-sm font-semibold text-foreground transition hover:border-accent-ink/40 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      ← {t("brief.wizard.back")}
+                    </button>
+                  ) : null}
+
+                  {restarting ? (
+                    <button
+                      type="button"
+                      onClick={cancelRestart}
+                      disabled={submitting}
+                      className="inline-flex min-h-[48px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:opacity-60"
+                    >
+                      {t("common.cancel")}
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4">
+                  <p className="text-xs text-muted">
+                    {castNeed > 0 && characterIds.length !== castNeed
+                      ? t("brief.footer.castRequired", { n: castNeed })
+                      : wizardStep === 2
+                        ? restarting
+                          ? t("brief.footer.restartWarning")
+                          : project
+                            ? t("brief.footer.editBriefWarning")
+                            : t("brief.footer.noCharge")
+                        : t("brief.wizard.stepCount", { current: wizardStep + 1, total: 3 })}
+                  </p>
+
+                  {wizardStep < 2 ? (
+                    <motion.button
+                      type="button"
+                      onClick={onNextWizardStep}
+                      disabled={!canAdvanceStep}
+                      whileTap={{ scale: 0.98 }}
+                      className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent-ink px-6 py-3 text-sm font-semibold text-lime shadow-[4px_4px_0_0_rgba(255,77,46,0.9)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                    >
+                      {t("brief.wizard.next")} →
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      type="submit"
+                      disabled={!canSubmit}
+                      whileTap={{ scale: 0.98 }}
+                      className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                    >
+                      {submitting ? <Spinner /> : null}
+                      {submitting
+                        ? t("brief.submit.submitting")
+                        : restarting
+                          ? t("brief.submit.regenerate")
+                          : project
+                            ? t("brief.submit.saveAndRegenerateStoryboard")
+                            : t("brief.submit.start")}
+                    </motion.button>
+                  )}
+                </div>
               </div>
             </motion.form>
             </StudioPanel>

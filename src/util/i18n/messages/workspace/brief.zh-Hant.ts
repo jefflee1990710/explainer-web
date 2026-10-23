@@ -4,6 +4,19 @@ export const briefZhHant = {
   error: {
     aspectRatioRequired: "請選擇畫面比例",
     castCount: "這個導演需要正好 {n} 個角色",
+    sourceRequired: "請先輸入導演指示或腳本內容",
+    spokenScriptRequired: "請先填寫角色講稿",
+  },
+  wizard: {
+    step1Title: "風格與角色",
+    step1Subtitle: "導演、畫風、角色與產品",
+    step2Title: "腳本與素材",
+    step2Subtitle: "導演指示與參考圖片",
+    step3Title: "語音與規格",
+    step3Subtitle: "語言、字幕、比例與片長",
+    back: "上一步",
+    next: "下一步",
+    stepCount: "步驟 {current} / {total}",
   },
   fallback: {
     unnamedVideo: "未命名影片",

@@ -4,6 +4,19 @@ export const briefEn = {
   error: {
     aspectRatioRequired: "Choose an aspect ratio.",
     castCount: "This director requires exactly {n} characters.",
+    sourceRequired: "Enter instructions or a script to continue.",
+    spokenScriptRequired: "Enter the script the character will read.",
+  },
+  wizard: {
+    step1Title: "Style & Cast",
+    step1Subtitle: "Director, visual style, cast & products",
+    step2Title: "Script & Assets",
+    step2Subtitle: "Instructions & reference images",
+    step3Title: "Voice & Specs",
+    step3Subtitle: "Language, text, ratio & length",
+    back: "Back",
+    next: "Next",
+    stepCount: "Step {current} of {total}",
   },
   fallback: {
     unnamedVideo: "Untitled video",
