@@ -10,6 +10,10 @@ import {
 } from "@/model/blog-post";
 import { derivePostExcerpt, slugifyBlogPost } from "@/service/blog-post/slug";
 
+export function sanitizeBlogPostTags(tags?: string[]): string[] {
+  return (tags ?? []).filter((tag) => !/^novax$/i.test(tag.trim()));
+}
+
 // Convert a MongoDB BlogPost document into a serializable PublicBlogPost DTO.
 export function toPublicBlogPost(doc: BlogPost): PublicBlogPost {
   return {
@@ -19,7 +23,7 @@ export function toPublicBlogPost(doc: BlogPost): PublicBlogPost {
     excerpt: doc.excerpt?.trim() || derivePostExcerpt(doc.content),
     content: doc.content,
     featureImage: doc.featureImage,
-    tags: doc.tags ?? [],
+    tags: sanitizeBlogPostTags(doc.tags),
     published: doc.published,
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),
@@ -86,7 +90,7 @@ export async function createBlogPost(
     excerpt: data.excerpt || derivePostExcerpt(data.content),
     content: data.content,
     featureImage: data.featureImage,
-    tags: data.tags && data.tags.length > 0 ? data.tags : undefined,
+    tags: sanitizeBlogPostTags(data.tags).length > 0 ? sanitizeBlogPostTags(data.tags) : undefined,
     published: data.published ?? true,
     createdAt: now,
     updatedAt: now,
@@ -187,6 +191,63 @@ export async function getPublishedBlogPostBySlug(
 ): Promise<PublicBlogPost | null> {
   const doc = await findBlogPostDoc(slug, includeUnpublished);
   return doc ? toPublicBlogPost(doc) : null;
+}
+
+// Fetch recommended reading posts matching shared tags (or recent posts fallback), excluding the current slug.
+export async function listRecommendedBlogPosts(
+  currentPost: Pick<PublicBlogPost, "slug" | "tags">,
+  limit = 4,
+): Promise<PublicBlogPost[]> {
+  const collection = await blogPostsCollection();
+  const cleanTags = sanitizeBlogPostTags(currentPost.tags);
+  const picked: BlogPost[] = [];
+  const seenSlugs = new Set<string>([currentPost.slug]);
+
+  if (cleanTags.length > 0) {
+    const byTags = (await collection
+      .find({
+        published: true,
+        slug: { $ne: currentPost.slug },
+        tags: { $in: cleanTags },
+      })
+      .sort({ createdAt: -1 })
+      .limit(limit * 2)
+      .toArray()) as BlogPost[];
+
+    // Rank by number of overlapping tags first, then newest date
+    const tagSet = new Set(cleanTags.map((t) => t.toLowerCase()));
+    byTags.sort((a, b) => {
+      const aOverlap = sanitizeBlogPostTags(a.tags).filter((t) =>
+        tagSet.has(t.toLowerCase()),
+      ).length;
+      const bOverlap = sanitizeBlogPostTags(b.tags).filter((t) =>
+        tagSet.has(t.toLowerCase()),
+      ).length;
+      if (bOverlap !== aOverlap) return bOverlap - aOverlap;
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    });
+
+    for (const doc of byTags) {
+      if (picked.length >= limit) break;
+      if (seenSlugs.has(doc.slug)) continue;
+      seenSlugs.add(doc.slug);
+      picked.push(doc);
+    }
+  }
+
+  if (picked.length < limit) {
+    const recent = (await collection
+      .find({
+        published: true,
+        slug: { $nin: [...seenSlugs] },
+      })
+      .sort({ createdAt: -1 })
+      .limit(limit - picked.length)
+      .toArray()) as BlogPost[];
+    picked.push(...recent);
+  }
+
+  return picked.slice(0, limit).map(toPublicBlogPost);
 }
 
 export type UpdateBlogPostParams = {

@@ -24,11 +24,11 @@ export function TalkingHeadScriptField({
         id="spokenScript"
         name="spokenScript"
         required
-        rows={6}
+        rows={8}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
-        className="mt-3 w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-base leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+        className="mt-3 min-h-[12rem] w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-base leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
         placeholder={t("brief.talkingHead.scriptPlaceholder")}
       />
       <p className="mt-2 text-right text-xs tabular-nums text-muted">

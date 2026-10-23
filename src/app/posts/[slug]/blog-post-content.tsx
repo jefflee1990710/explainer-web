@@ -132,15 +132,29 @@ function tokenizeMarkdownBlocks(content: string): string[] {
   return blocks;
 }
 
-// Render Markdown (tables, checklists, ordered/unordered lists, headings, quotes, images, code) cleanly.
-export function BlogPostContent({ content }: { content: string }) {
+// Render Markdown (tables, checklists, ordered/unordered lists, headings, quotes, images, code) cleanly,
+// with an optional mid-article and end-of-article CTA slot.
+export function BlogPostContent({
+  content,
+  inlineCta,
+  bottomCta,
+}: {
+  content: string;
+  inlineCta?: ReactNode;
+  bottomCta?: ReactNode;
+}) {
   const blocks = tokenizeMarkdownBlocks(content);
+  const midCtaIndex =
+    inlineCta && blocks.length >= 6
+      ? Math.max(2, Math.floor(blocks.length * 0.45))
+      : -1;
 
   return (
     <div className="space-y-5 text-base leading-relaxed text-zinc-700">
       {blocks.map((block, idx) => {
         if (!block) return null;
 
+        const renderedBlock = (() => {
         if (block.startsWith("```") && block.endsWith("```")) {
           const lines = block.split("\n");
           const code = lines.slice(1, -1).join("\n");
@@ -325,7 +339,20 @@ export function BlogPostContent({ content }: { content: string }) {
             {renderInline(block)}
           </p>
         );
+        })();
+
+        if (idx === midCtaIndex && inlineCta) {
+          return (
+            <div key={`block-with-cta-${idx}`} className="space-y-5">
+              {renderedBlock}
+              {inlineCta}
+            </div>
+          );
+        }
+
+        return renderedBlock;
       })}
+      {bottomCta ? <div className="pt-4">{bottomCta}</div> : null}
     </div>
   );
 }

@@ -10,9 +10,9 @@ export function SkillGuideRows({ slug }: { slug: string }) {
   if (!guide) return null;
 
   return (
-    <dl className="grid gap-1.5 sm:grid-cols-2">
+    <dl className="grid gap-x-4 gap-y-1.5 rounded-xl border border-accent-ink/10 bg-paper/60 px-3.5 py-2.5 sm:grid-cols-2">
       {SKILL_GUIDE_FIELDS.map((field) => (
-        <div key={field.key} className="grid grid-cols-[4.5rem_1fr] gap-2 text-[11px] leading-4">
+        <div key={field.key} className="grid grid-cols-[4.25rem_1fr] gap-2 text-[11px] leading-4">
           <dt className="font-semibold text-muted">{t(field.labelKey)}</dt>
           <dd className="text-foreground/85">{guide[field.key]}</dd>
         </div>
