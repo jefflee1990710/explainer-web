@@ -74,6 +74,45 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
               </a>
             ))}
           </nav>
+          <p className="mt-4 text-xs font-medium uppercase tracking-wide text-zinc-400">Badges</p>
+          <nav
+            aria-label="Directory listing badges"
+            className="mt-2 flex flex-wrap items-center gap-4"
+          >
+            <a
+              href="https://tulimoa.com/discover/scro"
+              target="_blank"
+              rel="noopener"
+              data-tulimoa-badge="light"
+            >
+              <img
+                src="https://tulimoa.com/badge/light.svg"
+                alt="Listed on Tulimoa"
+                width={150}
+                height={41}
+                style={{ maxWidth: "100%", height: "auto" }}
+              />
+            </a>
+            <a
+              href="https://turbo0.com/item/scro"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img
+                src="https://img.turbo0.com/badge-listed-light.svg"
+                alt="Listed on Turbo0"
+                style={{ height: 54, width: "auto" }}
+              />
+            </a>
+            <a href="https://tooldisk.com" target="_blank" rel="noopener noreferrer">
+              <img
+                src="https://tooldisk.com/badge/badge_light.svg"
+                alt="Featured on ToolDisk.com"
+                width={200}
+                height={54}
+              />
+            </a>
+          </nav>
         </div>
       </div>
     </footer>
