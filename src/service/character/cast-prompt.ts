@@ -20,7 +20,7 @@ export function castSpecLines(cast: CastMember[] | undefined, maxChars: number) 
 
 // What a board reference is, so the model reads both panels as one person.
 const BOARD_LAYOUT_NOTE =
-  "A character board shows the SAME person twice: a face close-up on the left and one full-body standing figure on the right. Copy the face from the close-up and the body, outfit, and proportions from the standing figure. Never draw both panels.";
+  "A character board shows the SAME person twice: a face close-up on the left and one full-body standing figure on the right. Copy the face from the close-up (facial identity and features only — override the blueprint's neutral expression with the Scene's emotion) and the body, outfit, and proportions from the standing figure. Never draw both panels.";
 
 export type CharacterLockSource = {
   cast?: CastMember[];

@@ -8,6 +8,8 @@ import {
   phaseADurationHint,
   briefSkillError,
   cartoonClipAction,
+  cartoonClipExpressionArc,
+  CARTOON_EXPRESSION_ARCS,
   cartoonExplainerDirectorBlock,
   dropRepeatedSubtitleLabels,
   cartoonNarratorFrameLock,
@@ -280,6 +282,51 @@ test("every action has a short still line for both stills and a video line", () 
     }),
     /HOOK CAMERA/,
   );
+});
+
+test("whiteboard explainer assigns distinct facial expression arcs across consecutive clips", () => {
+  assert.ok(CARTOON_EXPRESSION_ARCS.length >= 6);
+  const clip1Start = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    clipNumber: 1,
+    position: "start",
+    action: "push",
+  });
+  const clip1End = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    clipNumber: 1,
+    position: "end",
+    action: "push",
+  });
+  const clip2Start = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    clipNumber: 2,
+    position: "start",
+    action: "pull",
+  });
+  const clip3Start = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    clipNumber: 3,
+    position: "start",
+    action: "stack",
+  });
+  assert.match(clip1Start, /FACIAL EXPRESSION LOCK \(Clip 1/);
+  assert.match(clip1Start, /wide saucer eyes/);
+  assert.match(clip1End, /intrigued asymmetrical smirk/);
+  assert.match(clip2Start, /FACIAL EXPRESSION LOCK \(Clip 2/);
+  assert.match(clip2Start, /deeply furrowed V-shaped eyebrows/);
+  assert.match(clip3Start, /FACIAL EXPRESSION LOCK \(Clip 3/);
+  assert.match(clip3Start, /eureka realization/);
+  assert.notEqual(cartoonClipExpressionArc(1)?.label, cartoonClipExpressionArc(2)?.label);
+  assert.notEqual(cartoonClipExpressionArc(2)?.label, cartoonClipExpressionArc(3)?.label);
+
+  const video2 = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    clipNumber: 2,
+    action: "pull",
+  });
+  assert.match(video2, /Facial expression arc for Clip 2:/);
+  assert.match(video2, /puzzled V-brow frown/);
 });
 
 test("Cinematic realistic accelerates then decelerates; other styles keep the snap", () => {

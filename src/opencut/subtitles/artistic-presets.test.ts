@@ -6,6 +6,7 @@ import {
 	ARTISTIC_SUBTITLE_PRESETS,
 	quoteFontFamily,
 	resolveSubtitleStyleOverrides,
+	scaleSubtitleFontSizeForCanvas,
 	splitVoIntoSubtitleSegments,
 	tokenizeMixedSubtitleLine,
 	wrapSubtitleTextWithMeasure,
@@ -106,4 +107,29 @@ test("matchSubtitleSlots matches both video and still image clips and isScroSubt
 	assert.equal(isScroSubtitleName({ name: "Subtitle 1" }), true);
 	assert.equal(isScroSubtitleName({ name: "Subtitle 1-2" }), true);
 	assert.equal(isScroSubtitleName({ name: "Clip 1" }), false);
+});
+
+test("scaleSubtitleFontSizeForCanvas keeps 9:16 vertical subtitle pixel height compact (~50-54px) and splits long English VO lines", () => {
+	const base = ARTISTIC_SUBTITLE_PRESETS.graffiti.style.fontSize!;
+	assert.ok(base <= 4.6, `expected compact base fontSize <= 4.6, got ${base}`);
+	const verticalSize = scaleSubtitleFontSizeForCanvas({
+		baseFontSize: base,
+		canvasSize: { width: 1080, height: 1920 },
+	});
+	const horizontalSize = scaleSubtitleFontSizeForCanvas({
+		baseFontSize: base,
+		canvasSize: { width: 1920, height: 1080 },
+	});
+	assert.equal(verticalSize, 2.5);
+	assert.equal(horizontalSize, 4.5);
+	// Pixel height on 9:16 (1920 / 90 * 2.5 = 53.3px) matches 16:9 (1080 / 90 * 4.5 = 54px)
+	assert.ok(Math.abs(verticalSize * (1920 / 90) - horizontalSize * (1080 / 90)) < 2);
+
+	const englishSegments = splitVoIntoSubtitleSegments({
+		line: "Your finished viral video directly. Go to Scro.io and create your first masterpiece right now!",
+		startTime: 35,
+		duration: 5,
+	});
+	assert.ok(englishSegments.length >= 3, `expected >= 3 short cues, got ${englishSegments.length}`);
+	assert.ok(englishSegments.some((seg) => seg.text.includes("Scro.io")));
 });

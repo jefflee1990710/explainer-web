@@ -65,9 +65,9 @@ export async function insertStockMediaOnOverlayTrack({
 	durationSeconds: number;
 	elementName?: string;
 	explicitTrackId?: string;
-}): Promise<boolean> {
+}): Promise<string | null> {
 	const project = editor.project.getActiveOrNull();
-	if (!project) return false;
+	if (!project) return null;
 
 	let createdAsset = null;
 	if (item.type === "video") {
@@ -88,13 +88,13 @@ export async function insertStockMediaOnOverlayTrack({
 		});
 	} else {
 		const blob = await fetchMediaBlobWithTimeout({ url: item.sourceUrl });
-		if (!blob) return false;
+		if (!blob) return null;
 		const mime = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
 		const ext = mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg";
 		const file = new File([blob], `${item.title.slice(0, 40)}.${ext}`, { type: mime });
 		const processed = await processMediaAssets({ files: [file] });
 		const first = processed[0];
-		if (!first) return false;
+		if (!first) return null;
 		createdAsset = await editor.media.addMediaAsset({
 			projectId: project.metadata.id,
 			asset: {
@@ -104,13 +104,16 @@ export async function insertStockMediaOnOverlayTrack({
 		});
 	}
 
-	if (!createdAsset) return false;
+	if (!createdAsset) return null;
 	if (videoId) {
 		rememberClipSource(videoId, createdAsset.id, item.sourceUrl);
 	}
 
 	const scene = editor.scenes.getActiveScene();
-	let trackId = explicitTrackId;
+	const liveExplicitTrack = explicitTrackId
+		? scene.tracks.overlay.find((track) => track.id === explicitTrackId)
+		: undefined;
+	let trackId = liveExplicitTrack?.id;
 	let addTrackCmd: AddTrackCommand | null = null;
 
 	if (!trackId) {
@@ -120,7 +123,8 @@ export async function insertStockMediaOnOverlayTrack({
 		if (existingOverlayVideoTrack) {
 			trackId = existingOverlayVideoTrack.id;
 		} else {
-			// Place the B-roll overlay video track right above main track (at the bottom of overlay tracks so text tracks stay on top)
+			// Create the track and insert the first element inside ONE BatchCommand so
+			// EditorCore's post-command empty-track pruner never deletes the track before the element lands.
 			addTrackCmd = new AddTrackCommand({
 				type: "video",
 				index: scene.tracks.overlay.length,
@@ -145,8 +149,16 @@ export async function insertStockMediaOnOverlayTrack({
 	editor.command.execute({
 		command: addTrackCmd ? new BatchCommand([addTrackCmd, insertCmd]) : insertCmd,
 	});
+	const actualTrackId = insertCmd.getTrackId() ?? trackId;
+	const verifyScene = editor.scenes.getActiveScene();
+	const landed = verifyScene.tracks.overlay.some(
+		(track) =>
+			track.id === actualTrackId &&
+			track.elements.some((el) => el.id === insertCmd.getElementId()),
+	);
+	if (!landed) return null;
 	armScroSync();
-	return true;
+	return actualTrackId;
 }
 
 /**
@@ -200,19 +212,13 @@ export async function runAutoInsertBrollOnTimeline({
 		editor.timeline.deleteElements({ elements: stale });
 	}
 
-	// Ensure a single shared overlay video track for all B-roll cutaways
-	const afterDeleteScene = editor.scenes.getActiveScene();
-	let sharedTrackId = afterDeleteScene.tracks.overlay.find(
-		(track) => track.type === "video",
-	)?.id;
-	if (!sharedTrackId) {
-		const addTrackCmd = new AddTrackCommand({
-			type: "video",
-			index: afterDeleteScene.tracks.overlay.length,
-		});
-		editor.command.execute({ command: addTrackCmd });
-		sharedTrackId = addTrackCmd.getTrackId();
-	}
+	// Note: Do NOT execute a standalone AddTrackCommand here — EditorCore's post-command
+	// reactor immediately prunes empty overlay tracks. Instead, let the first
+	// insertStockMediaOnOverlayTrack create the track + element together in a BatchCommand,
+	// then reuse its returned trackId for subsequent B-Roll clips.
+	let sharedTrackId = editor.scenes
+		.getActiveScene()
+		.tracks.overlay.find((track) => track.type === "video")?.id;
 
 	let insertedCount = 0;
 	for (const ins of planRes.insertions) {
@@ -225,7 +231,7 @@ export async function runAutoInsertBrollOnTimeline({
 		const brollDurSec =
 			clipDurSec > 2.2 ? Math.max(1.2, clipDurSec - 0.55) : Math.max(1.0, clipDurSec);
 
-		const ok = await insertStockMediaOnOverlayTrack({
+		const usedTrackId = await insertStockMediaOnOverlayTrack({
 			editor,
 			videoId,
 			item: ins.media,
@@ -234,7 +240,14 @@ export async function runAutoInsertBrollOnTimeline({
 			elementName: `B-Roll ${ins.clipNumber} · ${ins.query}`,
 			explicitTrackId: sharedTrackId,
 		});
-		if (ok) insertedCount++;
+		if (usedTrackId) {
+			sharedTrackId = usedTrackId;
+			insertedCount++;
+		}
+	}
+
+	if (insertedCount === 0) {
+		return { insertedCount: 0, error: "無法載入並加插 B-Roll 素材到時間軸" };
 	}
 
 	return { insertedCount };

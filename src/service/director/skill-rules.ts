@@ -482,6 +482,94 @@ const MENU_ORDER: CartoonAction[] = [
   "flip", "dial", "stretch", "squeeze", "magnify", "jump", "point",
 ];
 
+type CartoonExpressionArc = {
+  label: string;
+  start: string;
+  end: string;
+  video: string;
+};
+
+// Distinct per-clip facial expression arcs so the whiteboard character never repeats the same face across clips.
+export const CARTOON_EXPRESSION_ARCS: readonly CartoonExpressionArc[] = [
+  {
+    label: "shocked disbelief → intrigued smirk",
+    start:
+      "wide saucer eyes, high arched eyebrows, and a stunned O-shaped closed gasp reaction (override the blueprint's neutral smile)",
+    end:
+      "one eyebrow raised high in curiosity, focused eyes, and an intrigued asymmetrical smirk",
+    video:
+      "the face shifts from wide-eyed shocked disbelief (high arched brows) into a curious single-brow smirk",
+  },
+  {
+    label: "puzzled furrow → sharp analytical squint",
+    start:
+      "deeply furrowed V-shaped eyebrows, squinted questioning eyes, and a tight side-pursed thinking mouth (override the blueprint's neutral smile)",
+    end:
+      "focused analytical eyes, angled determined eyebrows, and a firm nod expression",
+    video:
+      "the face shifts from a puzzled V-brow frown and side-pursed mouth into a sharp analytical squint",
+  },
+  {
+    label: "lightbulb eureka → proud confident grin",
+    start:
+      "eyebrows shooting high up in a sudden 'aha!' eureka realization, bright wide-open eyes, and an excited closed-lip smile",
+    end:
+      "relaxed confident eyebrows, sparkling eyes, and a broad proud closed-mouth grin",
+    video:
+      "the face lights up from a sudden wide-eyed 'aha!' eureka reaction into a proud confident grin",
+  },
+  {
+    label: "skeptical side-eye → relieved warm smile",
+    start:
+      "asymmetric skeptical eyebrows (one brow cocked high, one lowered), side-glancing eyes, and a crooked wry mouth (override the blueprint's default expression)",
+    end:
+      "softly lifted eyebrows, warm bright eyes, and a relieved closed-mouth smile",
+    video:
+      "the face transitions from a skeptical single-raised-brow side-eye and wry mouth into a relieved warm smile",
+  },
+  {
+    label: "intense effort grit → triumphant beam",
+    start:
+      "steeply angled determined eyebrows, narrowed focused eyes, and slightly puffed cheeks with tight grit lips (override the blueprint's neutral face)",
+    end:
+      "high celebratory eyebrows, wide cheerful eyes, and a triumphant closed-lip beam",
+    video:
+      "the face strains with furrowed determined brows and puffed cheeks, then pops into a triumphant beam",
+  },
+  {
+    label: "alarmed overwhelm → calm mastery",
+    start:
+      "upward-slanted worried inner eyebrows, startled wide eyes, and a tense wavy grimace (override the blueprint's neutral smile)",
+    end:
+      "composed confident eyebrows, steady bright eyes, and a calm knowing smile",
+    video:
+      "the face shifts from an alarmed, worried grimace with slanted brows into a calm, assured knowing smile",
+  },
+  {
+    label: "playful wink → enthusiastic grin",
+    start:
+      "one eye playfully crinkled/winking with a high arched brow and a cheeky lopsided smile",
+    end:
+      "both eyes wide and bright with raised eyebrows and an enthusiastic broad closed-mouth grin",
+    video:
+      "the face moves from a playful cheeky wink into an enthusiastic wide-eyed grin",
+  },
+  {
+    label: "curious lean-in wonder → satisfied nod",
+    start:
+      "high curious eyebrows, wide fascinated eyes leaning toward the diagram, and a small intrigued 'ooh' mouth shape",
+    end:
+      "warm arched eyebrows, crinkling smiling eyes, and a satisfied closed-lip smile",
+    video:
+      "the face shifts from wide-eyed curious wonder into a warm, satisfied smiling nod",
+  },
+];
+
+export function cartoonClipExpressionArc(clipNumber?: number): CartoonExpressionArc | undefined {
+  if (!clipNumber || clipNumber < 1) return undefined;
+  return CARTOON_EXPRESSION_ARCS[(clipNumber - 1) % CARTOON_EXPRESSION_ARCS.length];
+}
+
 // Clip 1 only. The two stills must show the before and after, or the video will not move the lens.
 export function cartoonHookCameraRule(hasCharacter: boolean, smoothMotion?: boolean) {
   if (smoothMotion) {
@@ -515,8 +603,8 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
       : "The character is a silent demonstrator: no greeting wave or talking to the viewer, mouth closed or reacting with vivid facial expressions. It may point at a diagram, stand aside reacting, or handle props — it does not have to hold three props.",
     hasCharacter
       ? smooth
-        ? "Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). They stay on that side for the whole clip; no lateral cross. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and gives a vivid, expressive facial expression (raised or furrowed eyebrows, wide or focused eyes, and a clear emotional shift from startScene to endScene—never a blank or neutral face). The camera is locked inside a clip: both stills share the same angle, shot size, and crop. A new angle (from the character's left side, from above, from the front, or from behind) is chosen only between clips, at the cut, and does not repeat the previous clip. No orbit and no move to another side inside a clip. They stay silent — expression only, no lip-sync and no greeting wave."
-        : "Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). About 80% of clips keep them on that same side for the whole clip — do not walk them from left to right every time. Only about 20% of clips are a full cross, either left to right or right to left, and those rare crosses do not all go the same way. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and gives a vivid, expressive facial expression (raised or furrowed eyebrows, wide or focused eyes, and a clear emotional shift from startScene to endScene—never a blank or neutral face). Camera angle changes every clip and does not repeat: from the character's left side, from above, from the front, or from behind as they turn around, and it may zoom in or out. One continuous move, no cut and no teleport. They stay silent — expression only, no lip-sync and no greeting wave."
+        ? "Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). They stay on that side for the whole clip; no lateral cross. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and gives a vivid, expressive facial expression that is DISTINCT from the previous clip (never repeat the same face twice in a row, and never keep the blueprint's default neutral smile — rotate across contrasted emotions such as Clip 1 shocked wide saucer eyes & arched brows → intrigued smirk; Clip 2 puzzled V-furrowed brows & side-pursed mouth → analytical squint; Clip 3 'aha!' eureka raised brows → proud grin; Clip 4 skeptical single-cocked eyebrow & wry mouth → relieved smile; Clip 5 intense grit with puffed cheeks → triumphant beam; Clip 6 worried slanted brows & tense grimace → calm knowing smile, with a clear emotional shift from startScene to endScene). The camera is locked inside a clip: both stills share the same angle, shot size, and crop. A new angle (from the character's left side, from above, from the front, or from behind) is chosen only between clips, at the cut, and does not repeat the previous clip. No orbit and no move to another side inside a clip. They stay silent — expression only, no lip-sync and no greeting wave."
+        : "Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). About 80% of clips keep them on that same side for the whole clip — do not walk them from left to right every time. Only about 20% of clips are a full cross, either left to right or right to left, and those rare crosses do not all go the same way. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and gives a vivid, expressive facial expression that is DISTINCT from the previous clip (never repeat the same face twice in a row, and never keep the blueprint's default neutral smile — rotate across contrasted emotions such as Clip 1 shocked wide saucer eyes & arched brows → intrigued smirk; Clip 2 puzzled V-furrowed brows & side-pursed mouth → analytical squint; Clip 3 'aha!' eureka raised brows → proud grin; Clip 4 skeptical single-cocked eyebrow & wry mouth → relieved smile; Clip 5 intense grit with puffed cheeks → triumphant beam; Clip 6 worried slanted brows & tense grimace → calm knowing smile, with a clear emotional shift from startScene to endScene). Camera angle changes every clip and does not repeat: from the character's left side, from above, from the front, or from behind as they turn around, and it may zoom in or out. One continuous move, no cut and no teleport. They stay silent — expression only, no lip-sync and no greeting wave."
       : "",
     hasCharacter
       ? "For every topic, keep a rich on-screen whiteboard explanation graph (charts, connecting lines, directional arrows, geometric shapes, diagram nodes, and conceptual objects/icons) in frame alongside the character, and add the drawn element this clip's action works on. Do not reuse the same camera angle on the next clip. A full left-to-right or right-to-left walk is rare and does not count as the primary action. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts, flow, or a clear chart with visible lines, bars, shapes, and objects. Never a near-empty canvas or a realistic room without prominent on-screen visual diagram graphics."
@@ -587,8 +675,12 @@ export function cartoonNarratorFrameLock(
   const whiteboard2dRule =
     "Whiteboard 2D canvas lock (every style): the whole frame edge-to-edge is like a flat 2D whiteboard surface (no 3D room, studio, easel, or letterbox bars), the character on the whiteboard is in 2D, and the concept is explained with 2D drawings.";
   if (options?.hasCharacter) {
+    const expArc = cartoonClipExpressionArc(options.clipNumber);
+    const expStill = expArc
+      ? ` FACIAL EXPRESSION LOCK (Clip ${options.clipNumber} — ${expArc.label}): draw the face with ${options.position === "end" ? expArc.end : expArc.start}; never copy the character blueprint's neutral/default expression.`
+      : "";
     const silent =
-      `${whiteboard2dRule} Silent demonstrator: the character does not talk or lip-sync (a vivid, expressive facial expression with active eyebrows and eyes when the face is toward the camera; from behind, leave the face unseen; no greeting wave).`;
+      `${whiteboard2dRule} Silent demonstrator: the character does not talk or lip-sync (a vivid, expressive facial expression with active eyebrows and eyes when the face is toward the camera; from behind, leave the face unseen; no greeting wave).${expStill}`;
     const labels =
       "Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.";
     const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
@@ -603,7 +695,11 @@ export function cartoonNarratorFrameLock(
     }
     return `${silent} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. ${cameraMatch} Draw the explanation graph plus the element of this action. ${labels}${hook ? ` ${hook}` : ""}`;
   }
-  const base = `${whiteboard2dRule} Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting with a vivid, expressive facial expression, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.`;
+  const expArcNoCast = cartoonClipExpressionArc(options?.clipNumber);
+  const expNoCastLine = expArcNoCast
+    ? ` FACIAL EXPRESSION LOCK (Clip ${options?.clipNumber} — ${expArcNoCast.label}): draw the character's face with ${options?.position === "end" ? expArcNoCast.end : expArcNoCast.start}.`
+    : "";
+  const base = `${whiteboard2dRule} Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting with a vivid, expressive facial expression, no greeting wave).${expNoCastLine} Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.`;
   return hook ? `${base} ${hook}` : base;
 }
 
@@ -656,6 +752,8 @@ export function cartoonNarratorVideoLock(
   }
   const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
   const named = spec ? ` ${spec.video}` : "";
+  const expArc = cartoonClipExpressionArc(options.clipNumber);
+  const expVideo = expArc ? ` Facial expression arc for Clip ${options.clipNumber}: ${expArc.video}.` : "";
   const hook =
     options?.clipNumber === 1
       ? smooth
@@ -663,7 +761,7 @@ export function cartoonNarratorVideoLock(
         : " HOOK CAMERA: play the exaggerated move drawn between the two stills, sharp and fast in the first second, no slow glide and no blur. A close view shows a surprised face. The character stays silent."
       : "";
   const beats = smooth ? SMOOTH_MOTION : SNAP_MOTION;
-  return `${voice}${named} ${beats} Give the character lively, expressive facial expression changes (animated eyebrows, expressive eyes, and clear emotional shifts) across the beats while the mouth stays closed. It must differ from the previous clip's action. Never slide the body upward, and do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. Do not repeat the previous clip's action.${hook}`;
+  return `${voice}${named} ${beats} Give the character lively, expressive facial expression changes (animated eyebrows, expressive eyes, and clear emotional shifts) across the beats while the mouth stays closed.${expVideo} It must differ from the previous clip's action. Never slide the body upward, and do not turn the clip into a walk between two standing poses. Usually keep them on the same side. Cross from left to right or right to left only when the stills already show that rare lateral move. Match the camera angle in the stills (from the side, from above, from the front, or from behind as they turn around) and zoom in or out only if the stills change shot size. Do not repeat the previous clip's action.${hook}`;
 }
 
 export function dialogueQaDirectorBlock() {

@@ -106,7 +106,7 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 		sampleText: "爆款金句 POP",
 		style: {
 			fontFamily: "Anton, Dela Gothic One, Noto Sans TC",
-			fontSize: 8.5,
+			fontSize: 4.5,
 			fontWeight: "bold",
 			color: "#FFE600",
 			strokeColor: "#000000",
@@ -125,7 +125,7 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 		sampleText: "清晰重點 Clean",
 		style: {
 			fontFamily: "Montserrat, Noto Sans TC",
-			fontSize: 7.5,
+			fontSize: 4.2,
 			fontWeight: "bold",
 			color: "#FFFFFF",
 			strokeColor: "#000000",
@@ -138,8 +138,8 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 				enabled: true,
 				color: "#12141C",
 				cornerRadius: 35,
-				paddingX: 28,
-				paddingY: 18,
+				paddingX: 24,
+				paddingY: 14,
 			},
 		},
 	},
@@ -150,7 +150,7 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 		sampleText: "手寫筆記 Note",
 		style: {
 			fontFamily: "Caveat, LXGW WenKai TC, Noto Sans TC",
-			fontSize: 8,
+			fontSize: 4.4,
 			fontWeight: "bold",
 			color: "#12141C",
 			strokeColor: "#000000",
@@ -163,8 +163,8 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 				enabled: true,
 				color: "#FFFDF7",
 				cornerRadius: 18,
-				paddingX: 30,
-				paddingY: 18,
+				paddingX: 26,
+				paddingY: 14,
 			},
 		},
 	},
@@ -175,7 +175,7 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 		sampleText: "霓虹發光 Neon",
 		style: {
 			fontFamily: "Chakra Petch, Zen Maru Gothic, Noto Sans TC",
-			fontSize: 8,
+			fontSize: 4.4,
 			fontWeight: "bold",
 			color: "#00F5FF",
 			strokeColor: "#081B33",
@@ -194,7 +194,7 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 		sampleText: "熱血漫畫 Comic!",
 		style: {
 			fontFamily: "Oswald, Reggae One, Noto Sans TC",
-			fontSize: 8.5,
+			fontSize: 4.5,
 			fontWeight: "bold",
 			fontStyle: "italic",
 			color: "#FFEB3B",
@@ -214,7 +214,7 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 		sampleText: "黑板粉筆 Chalk",
 		style: {
 			fontFamily: "Permanent Marker, Yomogi, LXGW WenKai TC, Noto Sans TC",
-			fontSize: 8,
+			fontSize: 4.4,
 			fontWeight: "bold",
 			color: "#F8FAFC",
 			strokeColor: "#0F172A",
@@ -233,7 +233,7 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 		sampleText: "黑金質感 Gold",
 		style: {
 			fontFamily: "Playfair Display, Noto Serif TC",
-			fontSize: 8,
+			fontSize: 4.4,
 			fontWeight: "bold",
 			color: "#FFD54F",
 			strokeColor: "#2A1B00",
@@ -252,7 +252,7 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 		sampleText: "復古打字 Type",
 		style: {
 			fontFamily: "Source Code Pro, Noto Serif TC",
-			fontSize: 7,
+			fontSize: 4.0,
 			fontWeight: "bold",
 			color: "#1C1917",
 			strokeColor: "#000000",
@@ -265,8 +265,8 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 				enabled: true,
 				color: "#F5F0E1",
 				cornerRadius: 12,
-				paddingX: 26,
-				paddingY: 16,
+				paddingX: 24,
+				paddingY: 14,
 			},
 		},
 	},
@@ -277,14 +277,14 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 		sampleText: "街頭塗鴉 Vibe",
 		style: {
 			fontFamily: "Bebas Neue, RocknRoll One, Noto Sans TC",
-			fontSize: 8.5,
+			fontSize: 4.5,
 			fontWeight: "bold",
 			color: "#FF2E93",
 			strokeColor: "#FFFFFF",
-			strokeWidth: 3.5,
+			strokeWidth: 3,
 			shadowColor: "#12141C",
-			shadowOffsetX: 3,
-			shadowOffsetY: 4,
+			shadowOffsetX: 2.5,
+			shadowOffsetY: 3.5,
 			shadowBlur: 0,
 			background: { enabled: false, color: "#000000" },
 		},
@@ -296,15 +296,15 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 		sampleText: "立體貼紙 Cute",
 		style: {
 			fontFamily: "Fredoka, Mochiy Pop One, Zen Maru Gothic, Noto Sans TC",
-			fontSize: 8,
+			fontSize: 4.4,
 			fontWeight: "bold",
 			color: "#FF2E2E",
 			strokeColor: "#FFFFFF",
-			strokeWidth: 4.5,
+			strokeWidth: 3.5,
 			shadowColor: "#12141C",
 			shadowOffsetX: 2,
-			shadowOffsetY: 4,
-			shadowBlur: 5,
+			shadowOffsetY: 3.5,
+			shadowBlur: 4,
 			background: { enabled: false, color: "#000000" },
 		},
 	},
@@ -315,13 +315,13 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 		sampleText: "數碼故障 AI",
 		style: {
 			fontFamily: "Chakra Petch, DotGothic16, Noto Sans TC",
-			fontSize: 8,
+			fontSize: 4.4,
 			fontWeight: "bold",
 			color: "#FFFFFF",
 			strokeColor: "#00F0FF",
 			strokeWidth: 2,
 			shadowColor: "#FF0055",
-			shadowOffsetX: 3,
+			shadowOffsetX: 2.5,
 			shadowOffsetY: 2,
 			shadowBlur: 0,
 			background: { enabled: false, color: "#000000" },
@@ -334,15 +334,15 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 		sampleText: "書法勁筆 Ink",
 		style: {
 			fontFamily: "Caveat, LXGW WenKai TC, Noto Serif TC",
-			fontSize: 8.5,
+			fontSize: 4.5,
 			fontWeight: "bold",
 			color: "#FFFFFF",
 			strokeColor: "#111111",
-			strokeWidth: 3.5,
+			strokeWidth: 3,
 			shadowColor: "#000000",
 			shadowOffsetX: 0,
-			shadowOffsetY: 3,
-			shadowBlur: 8,
+			shadowOffsetY: 2.5,
+			shadowBlur: 6,
 			background: { enabled: false, color: "#000000" },
 		},
 	},
@@ -353,14 +353,14 @@ export const ARTISTIC_SUBTITLE_PRESETS: Record<string, ArtisticSubtitlePreset> =
 		sampleText: "立體空心 3D",
 		style: {
 			fontFamily: "Anton, Rampart One, Dela Gothic One, Noto Sans TC",
-			fontSize: 8.5,
+			fontSize: 4.5,
 			fontWeight: "bold",
 			color: "#FFFFFF",
 			strokeColor: "#1E3A8A",
-			strokeWidth: 4,
+			strokeWidth: 3.5,
 			shadowColor: "#C6F24B",
-			shadowOffsetX: 3,
-			shadowOffsetY: 3,
+			shadowOffsetX: 2.5,
+			shadowOffsetY: 2.5,
 			shadowBlur: 0,
 			background: { enabled: false, color: "#000000" },
 		},
@@ -372,6 +372,27 @@ export function resolveArtisticSubtitlePreset(lookId?: string): ArtisticSubtitle
 		return ARTISTIC_SUBTITLE_PRESETS[lookId];
 	}
 	return ARTISTIC_SUBTITLE_PRESETS.bold;
+}
+
+/**
+ * OpenCut scales fontSize against `canvasHeight / 90`. On a 9:16 vertical canvas
+ * (1080×1920), `canvasHeight` is 1.78× larger while `canvasWidth` is 0.56× narrower.
+ * Scaling the base subtitle fontSize by `min(width, height) / height` keeps the
+ * rendered pixel height (~48–54px on 1080p) consistent across 9:16, 1:1, and 16:9.
+ */
+export function scaleSubtitleFontSizeForCanvas({
+	baseFontSize,
+	canvasSize,
+}: {
+	baseFontSize: number;
+	canvasSize: { width: number; height: number };
+}): number {
+	if (canvasSize.height <= 0 || canvasSize.width <= 0) return baseFontSize;
+	const aspectFactor =
+		canvasSize.height > canvasSize.width
+			? canvasSize.width / canvasSize.height
+			: 1;
+	return Math.max(1.5, Math.round(baseFontSize * aspectFactor * 10) / 10);
 }
 
 export function resolveSubtitleStyleOverrides({
@@ -395,9 +416,42 @@ export type TimedVoSubtitleSegment = {
 	duration: number;
 };
 
+function splitLongClauseIntoChunks(clause: string, maxLatinWords = 7, maxCjkChars = 18): string[] {
+	const hasCjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(clause);
+	if (hasCjk) {
+		if (clause.length <= maxCjkChars) return [clause];
+		const tokens = tokenizeMixedSubtitleLine(clause);
+		const parts = Math.max(2, Math.ceil(clause.length / 15));
+		const targetLen = Math.ceil(clause.length / parts);
+		const chunks: string[] = [];
+		let current = "";
+		for (const tok of tokens) {
+			if (!current && /^\s+$/.test(tok)) continue;
+			if (current.length + tok.length > targetLen && current.trim().length >= 6 && chunks.length < parts - 1) {
+				chunks.push(current.trim());
+				current = /^\s+$/.test(tok) ? "" : tok;
+			} else {
+				current += tok;
+			}
+		}
+		if (current.trim()) chunks.push(current.trim());
+		return chunks;
+	}
+
+	const words = clause.split(/\s+/).filter(Boolean);
+	if (words.length <= maxLatinWords) return [clause];
+	const parts = Math.max(2, Math.ceil(words.length / 6));
+	const wordsPerPart = Math.ceil(words.length / parts);
+	const chunks: string[] = [];
+	for (let i = 0; i < words.length; i += wordsPerPart) {
+		chunks.push(words.slice(i, i + wordsPerPart).join(" "));
+	}
+	return chunks;
+}
+
 /**
  * Splits a clip's spoken VO line into natural timed subtitle segments when it contains
- * multiple clauses/sentences, keeping each cue concise and timed proportionally by character weight.
+ * multiple clauses/sentences, keeping each cue concise (1–2 lines) and timed proportionally.
  */
 export function splitVoIntoSubtitleSegments({
 	line,
@@ -413,14 +467,21 @@ export function splitVoIntoSubtitleSegments({
 	const cleaned = line.trim().replace(/\s+/g, " ");
 	if (!cleaned || duration <= 0) return [];
 
-	// Split at major sentence/clause punctuation while keeping terminal ! and ?
+	// Split at major CJK/Latin punctuation and English sentence-ending periods (without splitting "Scro.io")
 	const rawClauses = cleaned
-		.split(/(?<=[。！？!?；;，,])\s*/u)
-		.map((part) => part.replace(/[，,。；;]+$/u, "").trim())
-		.filter(Boolean);
+		.split(/(?:(?<=[。！？!?；;，,])\s*|(?<=\b[A-Za-z0-9'")\]]{2,}\.)\s+)/u)
+		.map((part) => part.replace(/[，,。；;]+$/u, "").replace(/\.$/u, "").trim())
+		.filter(Boolean)
+		.flatMap((clause) => splitLongClauseIntoChunks(clause));
 
 	if (rawClauses.length <= 1) {
-		return [{ text: cleaned.replace(/[，,。；;]+$/u, ""), startTime, duration }];
+		return [
+			{
+				text: (rawClauses[0] ?? cleaned).replace(/[，,。；;]+$/u, ""),
+				startTime,
+				duration,
+			},
+		];
 	}
 
 	// Merge very short adjacent clauses so subtitles don't flash too fast

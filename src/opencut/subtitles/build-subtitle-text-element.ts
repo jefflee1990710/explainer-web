@@ -16,16 +16,22 @@ import {
 	type TextFontWeight,
 } from "@/opencut/text/primitives";
 import {
+	scaleSubtitleFontSizeForCanvas,
 	tokenizeMixedSubtitleLine,
 	wrapSubtitleTextWithMeasure,
 } from "./artistic-presets";
 import type { SubtitleCue, SubtitleStyleOverrides } from "./types";
 
-export { tokenizeMixedSubtitleLine, wrapSubtitleTextWithMeasure };
+export {
+	scaleSubtitleFontSizeForCanvas,
+	tokenizeMixedSubtitleLine,
+	wrapSubtitleTextWithMeasure,
+};
 
 const SUBTITLE_MAX_WIDTH_RATIO = 0.84;
 const SUBTITLE_BOTTOM_MARGIN_RATIO = 0.08;
-const SUBTITLE_FONT_SIZE = 7;
+const SUBTITLE_VERTICAL_BOTTOM_MARGIN_RATIO = 0.12;
+const SUBTITLE_FONT_SIZE = 4.2;
 const MEASUREMENT_CANVAS_SIZE = 4096;
 
 function createMeasurementContext(): CanvasRenderingContext2D | null {
@@ -103,8 +109,10 @@ function measureWrappedTextBlock({
 
 function resolveSubtitleStyle({
 	style,
+	canvasSize,
 }: {
 	style: SubtitleStyleOverrides | undefined;
+	canvasSize: { width: number; height: number };
 }): {
 	fontFamily: string;
 	fontSize: number;
@@ -124,10 +132,18 @@ function resolveSubtitleStyle({
 	background: TextBackground;
 	placement: NonNullable<SubtitleStyleOverrides["placement"]>;
 } {
-	const fontSize =
+	const baseFontSize =
 		style?.fontSizeRatioOfPlayHeight != null
 			? style.fontSizeRatioOfPlayHeight * FONT_SIZE_SCALE_REFERENCE
 			: (style?.fontSize ?? SUBTITLE_FONT_SIZE);
+	const fontSize = scaleSubtitleFontSizeForCanvas({
+		baseFontSize,
+		canvasSize,
+	});
+	const defaultBottomMargin =
+		canvasSize.height > canvasSize.width
+			? SUBTITLE_VERTICAL_BOTTOM_MARGIN_RATIO
+			: SUBTITLE_BOTTOM_MARGIN_RATIO;
 
 	return {
 		fontFamily: style?.fontFamily ?? "Arial",
@@ -154,7 +170,8 @@ function resolveSubtitleStyle({
 			verticalAlign: style?.placement?.verticalAlign ?? "bottom",
 			marginLeftRatio: style?.placement?.marginLeftRatio,
 			marginRightRatio: style?.placement?.marginRightRatio,
-			marginVerticalRatio: style?.placement?.marginVerticalRatio,
+			marginVerticalRatio:
+				style?.placement?.marginVerticalRatio ?? defaultBottomMargin,
 		},
 	};
 }
@@ -254,6 +271,7 @@ export function buildSubtitleTextElement({
 	const ctx = createMeasurementContext();
 	const style = resolveSubtitleStyle({
 		style: caption.style,
+		canvasSize,
 	});
 	const fontFamily = quoteFontFamily({
 		fontFamily: style.fontFamily,

@@ -210,18 +210,20 @@ export function drawMeasuredTextLayout({
 		}
 	}
 
-	const scale = layout.canvasScale || 1;
+	// Scale stroke and shadow proportionally to the actual rendered font size (~54px reference)
+	// rather than raw canvasHeight so 9:16 vertical canvases never inflate strokes to 150px.
+	const fontScale = Math.max(0.25, layout.scaledFontSize / 54);
 	const strokeWidth = Math.max(0, artStyle?.strokeWidth ?? 0);
 	const strokeColor = artStyle?.strokeColor || "#000000";
 	const shadowColor = artStyle?.shadowColor || "#000000";
-	const shadowOffsetX = (artStyle?.shadowOffsetX ?? 0) * scale;
-	const shadowOffsetY = (artStyle?.shadowOffsetY ?? 0) * scale;
-	const shadowBlur = Math.max(0, (artStyle?.shadowBlur ?? 0) * scale);
+	const shadowOffsetX = (artStyle?.shadowOffsetX ?? 0) * fontScale * 1.5;
+	const shadowOffsetY = (artStyle?.shadowOffsetY ?? 0) * fontScale * 1.5;
+	const shadowBlur = Math.max(0, (artStyle?.shadowBlur ?? 0) * fontScale * 1.5);
 	const hasShadow =
 		Boolean(artStyle?.shadowColor) &&
 		shadowColor !== "transparent" &&
 		(shadowBlur > 0 || shadowOffsetX !== 0 || shadowOffsetY !== 0);
-	const scaledStrokePx = strokeWidth * scale * 2;
+	const scaledStrokePx = strokeWidth * fontScale * 2;
 
 	// 1. Shadow / 3D Block / Neon Glow pass
 	if (hasShadow) {
