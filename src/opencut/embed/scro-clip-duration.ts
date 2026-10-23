@@ -3,21 +3,44 @@ import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 
 /**
  * Before video is generated (`fileSeconds` absent), use the storyboard duration.
- * Once the generated video is ready (`fileSeconds > 0`), use the real video length.
+ * Once the generated video is ready (`fileSeconds > 0`), use the real video length,
+ * automatically trimming detected leading/trailing dead air (`speechTrimStart` / `speechTrimEnd`)
+ * so consecutive Talking-Head / VO clips join smoothly without awkward pauses.
  */
 export function storyboardPlacement({
 	storyboardSeconds,
 	fileSeconds,
+	speechTrimStart = 0,
+	speechTrimEnd = 0,
 }: {
 	storyboardSeconds: number;
 	fileSeconds?: number;
-}): { visibleSeconds: number; sourceSeconds: number; trimEndSeconds: number } {
+	speechTrimStart?: number;
+	speechTrimEnd?: number;
+}): {
+	visibleSeconds: number;
+	sourceSeconds: number;
+	trimStartSeconds: number;
+	trimEndSeconds: number;
+} {
 	const storyboard = Math.max(0, storyboardSeconds);
-	const file = fileSeconds != null && fileSeconds > 0 ? fileSeconds : storyboard;
+	if (fileSeconds == null || fileSeconds <= 0) {
+		return {
+			visibleSeconds: storyboard,
+			sourceSeconds: storyboard,
+			trimStartSeconds: 0,
+			trimEndSeconds: 0,
+		};
+	}
+	const file = fileSeconds;
+	const trimStart = Math.max(0, Math.min(file - 0.5, speechTrimStart || 0));
+	const trimEnd = Math.max(0, Math.min(file - trimStart - 0.5, speechTrimEnd || 0));
+	const visible = Math.max(0.5, Math.round((file - trimStart - trimEnd) * 1000) / 1000);
 	return {
-		visibleSeconds: file,
+		visibleSeconds: visible,
 		sourceSeconds: file,
-		trimEndSeconds: 0,
+		trimStartSeconds: trimStart,
+		trimEndSeconds: trimEnd,
 	};
 }
 
@@ -26,6 +49,8 @@ type ScroMediaLike = {
 	type: string;
 	duration?: number;
 	scroClipNumber?: number;
+	speechTrimStart?: number;
+	speechTrimEnd?: number;
 };
 
 /** Storyboard or confirmed video timing for a Scro clip file. Null when this asset is not one. */
@@ -43,7 +68,12 @@ export function placementForScroMedia({
 	if (storyboardSeconds == null) return null;
 	return {
 		clipNumber,
-		...storyboardPlacement({ storyboardSeconds, fileSeconds: asset.duration }),
+		...storyboardPlacement({
+			storyboardSeconds,
+			fileSeconds: asset.duration,
+			speechTrimStart: asset.speechTrimStart,
+			speechTrimEnd: asset.speechTrimEnd,
+		}),
 	};
 }
 
@@ -56,12 +86,15 @@ export type FitElement = {
 	trimEndSeconds: number;
 	sourceSeconds: number | null;
 	fileSeconds: number | null;
+	speechTrimStart?: number;
+	speechTrimEnd?: number;
 };
 
 export type FitPatch = {
 	id: string;
 	startSeconds: number;
 	durationSeconds: number;
+	trimStartSeconds: number;
 	trimEndSeconds: number;
 	sourceSeconds: number;
 	durationChanged: boolean;
@@ -70,7 +103,7 @@ export type FitPatch = {
 /**
  * Rearranges main-track clips sequentially with no overlap.
  * Before video generation, clips use their storyboard duration; once a real video length
- * is confirmed (`fileSeconds > 0`), untouched clips expand/shrink to their real video length
+ * is confirmed (`fileSeconds > 0`), untouched clips adopt their speech-trimmed visible length
  * and subsequent clips shift so the timeline stays contiguous without overlap.
  */
 export function fitFullLengthPlacements({
@@ -95,7 +128,10 @@ export function fitFullLengthPlacements({
 		}
 		return a.id.localeCompare(b.id);
 	});
-	const fitted = new Map<string, { duration: number; trimEnd: number; source: number }>();
+	const fitted = new Map<
+		string,
+		{ duration: number; trimStart: number; trimEnd: number; source: number }
+	>();
 	const clipCounts = new Map<number, number>();
 	for (const element of sorted) {
 		if (element.clipNumber == null) continue;
@@ -111,36 +147,45 @@ export function fitFullLengthPlacements({
 			element.fileSeconds != null && element.fileSeconds > 0
 				? element.fileSeconds
 				: undefined;
+		const place = storyboardPlacement({
+			storyboardSeconds,
+			fileSeconds,
+			speechTrimStart: element.speechTrimStart,
+			speechTrimEnd: element.speechTrimEnd,
+		});
 		const isUntrimmed =
 			element.trimStartSeconds <= 0.05 && element.trimEndSeconds <= 0.05;
+		const matchesAutoSpeechTrim =
+			Math.abs(element.trimStartSeconds - place.trimStartSeconds) <= 0.05 &&
+			Math.abs(element.trimEndSeconds - place.trimEndSeconds) <= 0.05;
 		const isLegacyStoryboardTrim =
 			fileSeconds != null &&
 			element.trimStartSeconds <= 0.05 &&
 			Math.abs(element.durationSeconds - storyboardSeconds) <= 0.05 &&
 			Math.abs(element.durationSeconds + element.trimEndSeconds - fileSeconds) <= 0.1;
-		if (!isUntrimmed && !isLegacyStoryboardTrim) continue;
+		if (!isUntrimmed && !matchesAutoSpeechTrim && !isLegacyStoryboardTrim) continue;
 
-		// A split piece whose duration is neither the storyboard duration nor the full file
-		// should keep its split duration.
+		// A split piece whose duration is neither the storyboard duration, the full file,
+		// nor the speech-trimmed visible duration should keep its split duration.
 		if (
 			fileSeconds != null &&
 			!isLegacyStoryboardTrim &&
+			!matchesAutoSpeechTrim &&
 			Math.abs(element.durationSeconds - storyboardSeconds) > 0.3 &&
-			Math.abs(element.durationSeconds - fileSeconds) > 0.3
+			Math.abs(element.durationSeconds - fileSeconds) > 0.3 &&
+			Math.abs(element.durationSeconds - place.visibleSeconds) > 0.3
 		) {
 			continue;
 		}
 
-		const place = storyboardPlacement({
-			storyboardSeconds,
-			fileSeconds,
-		});
 		if (
 			Math.abs(element.durationSeconds - place.visibleSeconds) > 0.02 ||
+			Math.abs(element.trimStartSeconds - place.trimStartSeconds) > 0.02 ||
 			Math.abs(element.trimEndSeconds - place.trimEndSeconds) > 0.02
 		) {
 			fitted.set(element.id, {
 				duration: place.visibleSeconds,
+				trimStart: place.trimStartSeconds,
 				trimEnd: place.trimEndSeconds,
 				source: place.sourceSeconds,
 			});
@@ -154,6 +199,7 @@ export function fitFullLengthPlacements({
 		const duration = next?.duration ?? element.durationSeconds;
 		const start = index === 0 ? 0 : previousNewEnd;
 		const source = next?.source ?? element.sourceSeconds ?? duration;
+		const trimStart = next?.trimStart ?? element.trimStartSeconds;
 		const trimEnd = next?.trimEnd ?? element.trimEndSeconds;
 		const durationChanged = next != null;
 		const startChanged = Math.abs(start - element.startSeconds) > 0.02;
@@ -162,6 +208,7 @@ export function fitFullLengthPlacements({
 				id: element.id,
 				startSeconds: start,
 				durationSeconds: duration,
+				trimStartSeconds: trimStart,
 				trimEndSeconds: trimEnd,
 				sourceSeconds: source,
 				durationChanged,

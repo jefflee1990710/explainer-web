@@ -17,7 +17,7 @@ const longFetch = ((input: RequestInfo | URL, init?: RequestInit) =>
   undiciFetch(input as string, {
     ...(init as object),
     dispatcher: agent,
-  })) as typeof fetch;
+  })) as unknown as typeof fetch;
 
 async function main() {
   const portrait = readFileSync("/tmp/scro-ig-reel/stills/portrait.jpg");

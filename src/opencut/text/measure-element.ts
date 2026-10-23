@@ -9,6 +9,7 @@ import {
 import {
 	measureTextLayout,
 	type MeasuredTextLayout,
+	type ResolvedTextArtStyle,
 	type TextAlign,
 	type TextDecoration,
 	type TextFontStyle,
@@ -26,6 +27,7 @@ export interface ResolvedTextBackground extends TextBackground {
 
 export interface MeasuredTextElement extends MeasuredTextLayout {
 	resolvedBackground: ResolvedTextBackground;
+	resolvedArtStyle: ResolvedTextArtStyle;
 	visualRect: { left: number; top: number; width: number; height: number };
 }
 
@@ -122,9 +124,43 @@ export function measureTextElement({
 		fontSizeRatio: measuredLayout.fontSizeRatio,
 	});
 
+	const resolvedArtStyle: ResolvedTextArtStyle = {
+		strokeColor: readStringParam({
+			params: element.params,
+			key: "strokeColor",
+			fallback: "#000000",
+		}),
+		strokeWidth: readNumberParam({
+			params: element.params,
+			key: "strokeWidth",
+			fallback: 0,
+		}),
+		shadowColor: readStringParam({
+			params: element.params,
+			key: "shadowColor",
+			fallback: "#000000",
+		}),
+		shadowOffsetX: readNumberParam({
+			params: element.params,
+			key: "shadowOffsetX",
+			fallback: 0,
+		}),
+		shadowOffsetY: readNumberParam({
+			params: element.params,
+			key: "shadowOffsetY",
+			fallback: 0,
+		}),
+		shadowBlur: readNumberParam({
+			params: element.params,
+			key: "shadowBlur",
+			fallback: 0,
+		}),
+	};
+
 	return {
 		...measuredLayout,
 		resolvedBackground,
+		resolvedArtStyle,
 		visualRect,
 	};
 }

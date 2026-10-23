@@ -41,11 +41,22 @@ export function buildObjectSheetPrompt(input: {
 // Empty location plate: architecture and light only, no cast and no handheld props.
 export function buildBackgroundPlatePrompt(input: {
   style: RenderableStyle;
-  plate: Pick<BackgroundPlate, "name" | "notes">;
+  plate: Pick<BackgroundPlate, "name" | "notes"> & { setId?: string };
   aspectRatio: Project["aspectRatio"];
 }) {
   const notes = input.plate.notes.replace(/\s+/g, " ").trim().slice(0, 240);
   const realistic = isRealisticStyle(input.style);
+  const isWhiteboardCanvas =
+    input.plate.setId === "whiteboard-canvas" ||
+    /whiteboard|2D.*白板|白板畫布/i.test(`${input.plate.name} ${notes}`);
+  if (isWhiteboardCanvas) {
+    return fitReferencePrompt([
+      "Empty flat 2D whiteboard surface reference plate, full-bleed edge-to-edge.",
+      `Aspect ratio ${input.aspectRatio || "9:16"}.`,
+      "A clean, flat, evenly illuminated pure off-white 2D whiteboard canvas surface filling 100% of the frame edge-to-edge.",
+      "No 3D room, no studio, no house, no buildings, no sky, no physical easel, no borders, no grid, no people, no props, no text.",
+    ]);
+  }
   return fitReferencePrompt([
     `Empty set reference as a 3x3 contact sheet of the same ${input.style.name} place.`,
     "Aspect ratio 16:9.",
@@ -87,6 +98,16 @@ export function objectSheetUrl(project: Pick<Project, "objectSheetUrl" | "object
     : undefined;
 }
 
+export function isWhiteboardCanvasPlate(
+  plate?: Pick<BackgroundPlate, "name" | "notes" | "setId">,
+): boolean {
+  if (!plate) return false;
+  return (
+    plate.setId === "whiteboard-canvas" ||
+    /whiteboard|2D.*白板|白板畫布/i.test(`${plate.name ?? ""} ${plate.notes ?? ""}`)
+  );
+}
+
 export function backgroundPlateForClip(
   project: Pick<Project, "backgroundPlates" | "phaseA">,
   clipNumber: number,
@@ -94,5 +115,6 @@ export function backgroundPlateForClip(
   const setId = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber)?.backgroundSetId;
   if (!setId) return undefined;
   const plate = (project.backgroundPlates || []).find((item) => item.setId === setId);
-  return plate?.url ? plate : undefined;
+  if (!plate?.url || isWhiteboardCanvasPlate(plate)) return undefined;
+  return plate;
 }

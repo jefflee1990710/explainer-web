@@ -159,7 +159,7 @@ export async function swapClipVoice(
   }
 }
 
-// Seconds of an uploaded audio file, read from ffmpeg's probe header.
+// Seconds of an uploaded audio file, read from ffmpeg's probe header (with full-decode fallback for WebM/streaming containers).
 export async function probeAudioSeconds(buffer: Buffer, ext: string): Promise<number | null> {
   const dir = await mkdtemp(join(tmpdir(), "voice-probe-"));
   try {
@@ -168,8 +168,14 @@ export async function probeAudioSeconds(buffer: Buffer, ext: string): Promise<nu
     const stderr = await ffmpegStderr(dir, ["-i", name]);
     if (!/Audio:/.test(stderr)) return null;
     const match = stderr.match(/Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/);
-    if (!match) return null;
-    return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
+    if (match) {
+      return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
+    }
+    const fullStderr = await ffmpegStderr(dir, ["-i", name, "-f", "null", "-"]);
+    const timeMatches = [...fullStderr.matchAll(/time=(\d+):(\d+):(\d+(?:\.\d+)?)/g)];
+    const last = timeMatches[timeMatches.length - 1];
+    if (!last) return null;
+    return Number(last[1]) * 3600 + Number(last[2]) * 60 + Number(last[3]);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

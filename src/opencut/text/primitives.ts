@@ -29,6 +29,7 @@ export interface TextLayoutParams {
 
 export interface ResolvedTextLayout {
 	scaledFontSize: number;
+	canvasScale: number;
 	fontString: string;
 	letterSpacing: number;
 	lineHeightPx: number;
@@ -53,9 +54,18 @@ export interface ResolvedTextBackgroundLike {
 	cornerRadius: number;
 }
 
-export function quoteFontFamily({ fontFamily }: { fontFamily: string }): string {
-	return `"${fontFamily.replace(/"/g, '\\"')}"`;
+export interface ResolvedTextArtStyle {
+	strokeColor?: string;
+	strokeWidth?: number;
+	shadowColor?: string;
+	shadowOffsetX?: number;
+	shadowOffsetY?: number;
+	shadowBlur?: number;
 }
+
+import { quoteFontFamily } from "@/opencut/subtitles/artistic-presets";
+
+export { quoteFontFamily };
 
 export function buildTextFontString({
 	fontFamily,
@@ -78,8 +88,8 @@ export function resolveTextLayout({
 	text: TextLayoutParams;
 	canvasHeight: number;
 }): ResolvedTextLayout {
-	const scaledFontSize =
-		text.fontSize * (canvasHeight / FONT_SIZE_SCALE_REFERENCE);
+	const canvasScale = canvasHeight / FONT_SIZE_SCALE_REFERENCE;
+	const scaledFontSize = text.fontSize * canvasScale;
 	const fontWeight = text.fontWeight === "bold" ? "bold" : "normal";
 	const fontStyle = text.fontStyle === "italic" ? "italic" : "normal";
 	const letterSpacing = text.letterSpacing ?? DEFAULTS.text.letterSpacing;
@@ -89,6 +99,7 @@ export function resolveTextLayout({
 
 	return {
 		scaledFontSize,
+		canvasScale,
 		fontString: buildTextFontString({
 			fontFamily: text.fontFamily,
 			fontWeight,
@@ -144,6 +155,7 @@ export function drawMeasuredTextLayout({
 	textColor,
 	background,
 	backgroundColor,
+	artStyle,
 	textBaseline = "middle",
 }: {
 	ctx: TextCanvasContext;
@@ -151,6 +163,7 @@ export function drawMeasuredTextLayout({
 	textColor: string;
 	background?: ResolvedTextBackgroundLike | null;
 	backgroundColor?: string;
+	artStyle?: ResolvedTextArtStyle | null;
 	textBaseline?: CanvasTextBaseline;
 }): void {
 	ctx.font = layout.fontString;
@@ -197,6 +210,93 @@ export function drawMeasuredTextLayout({
 		}
 	}
 
+	const scale = layout.canvasScale || 1;
+	const strokeWidth = Math.max(0, artStyle?.strokeWidth ?? 0);
+	const strokeColor = artStyle?.strokeColor || "#000000";
+	const shadowColor = artStyle?.shadowColor || "#000000";
+	const shadowOffsetX = (artStyle?.shadowOffsetX ?? 0) * scale;
+	const shadowOffsetY = (artStyle?.shadowOffsetY ?? 0) * scale;
+	const shadowBlur = Math.max(0, (artStyle?.shadowBlur ?? 0) * scale);
+	const hasShadow =
+		Boolean(artStyle?.shadowColor) &&
+		shadowColor !== "transparent" &&
+		(shadowBlur > 0 || shadowOffsetX !== 0 || shadowOffsetY !== 0);
+	const scaledStrokePx = strokeWidth * scale * 2;
+
+	// 1. Shadow / 3D Block / Neon Glow pass
+	if (hasShadow) {
+		ctx.save();
+		ctx.font = layout.fontString;
+		ctx.textAlign = layout.textAlign;
+		ctx.textBaseline = textBaseline;
+		setCanvasLetterSpacing({ ctx, letterSpacingPx: layout.letterSpacing });
+
+		if (shadowBlur > 0) {
+			ctx.shadowColor = shadowColor;
+			ctx.shadowBlur = shadowBlur;
+			ctx.shadowOffsetX = shadowOffsetX;
+			ctx.shadowOffsetY = shadowOffsetY;
+			if (scaledStrokePx > 0) {
+				ctx.strokeStyle = strokeColor;
+				ctx.lineWidth = scaledStrokePx;
+				ctx.lineJoin = "round";
+				ctx.lineCap = "round";
+				ctx.miterLimit = 2;
+				for (let index = 0; index < layout.lines.length; index++) {
+					const lineY = index * layout.lineHeightPx - layout.block.visualCenterOffset;
+					ctx.strokeText(layout.lines[index], 0, lineY);
+				}
+			} else {
+				ctx.fillStyle = textColor;
+				for (let index = 0; index < layout.lines.length; index++) {
+					const lineY = index * layout.lineHeightPx - layout.block.visualCenterOffset;
+					ctx.fillText(layout.lines[index], 0, lineY);
+				}
+			}
+		} else {
+			// Crisp 3D hard block shadow (retro / comic / pop variety look)
+			if (scaledStrokePx > 0) {
+				ctx.strokeStyle = shadowColor;
+				ctx.lineWidth = scaledStrokePx;
+				ctx.lineJoin = "round";
+				ctx.lineCap = "round";
+				ctx.miterLimit = 2;
+				for (let index = 0; index < layout.lines.length; index++) {
+					const lineY = index * layout.lineHeightPx - layout.block.visualCenterOffset;
+					ctx.strokeText(layout.lines[index], shadowOffsetX, lineY + shadowOffsetY);
+				}
+			}
+			ctx.fillStyle = shadowColor;
+			for (let index = 0; index < layout.lines.length; index++) {
+				const lineY = index * layout.lineHeightPx - layout.block.visualCenterOffset;
+				ctx.fillText(layout.lines[index], shadowOffsetX, lineY + shadowOffsetY);
+			}
+		}
+		ctx.restore();
+	}
+
+	// 2. Outer Stroke pass (drawn before fill so inner letterforms stay sharp)
+	if (scaledStrokePx > 0 && strokeColor !== "transparent") {
+		ctx.save();
+		ctx.font = layout.fontString;
+		ctx.textAlign = layout.textAlign;
+		ctx.textBaseline = textBaseline;
+		ctx.strokeStyle = strokeColor;
+		ctx.lineWidth = scaledStrokePx;
+		ctx.lineJoin = "round";
+		ctx.lineCap = "round";
+		ctx.miterLimit = 2;
+		setCanvasLetterSpacing({ ctx, letterSpacingPx: layout.letterSpacing });
+
+		for (let index = 0; index < layout.lines.length; index++) {
+			const lineY = index * layout.lineHeightPx - layout.block.visualCenterOffset;
+			ctx.strokeText(layout.lines[index], 0, lineY);
+		}
+		ctx.restore();
+	}
+
+	// 3. Main Fill & Decoration pass
+	ctx.fillStyle = textColor;
 	for (let index = 0; index < layout.lines.length; index++) {
 		const lineY = index * layout.lineHeightPx - layout.block.visualCenterOffset;
 		ctx.fillText(layout.lines[index], 0, lineY);

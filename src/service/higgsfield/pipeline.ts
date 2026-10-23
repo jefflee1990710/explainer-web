@@ -11,7 +11,7 @@ import {
   videosCollection,
 } from "@/dao";
 import { refundCredits } from "@/service/billing/credits";
-import { flattenToCanvas } from "@/service/higgsfield/flatten";
+import { flattenToCanvas, stripLetterboxBars } from "@/service/higgsfield/flatten";
 import { sceneTextNegativePrompt, resolveSceneText } from "@/service/director/scene-text";
 import {
   IDEOGRAM_PROMPT_MAX,
@@ -923,8 +923,12 @@ export async function applyJobStatus(input: {
     const transformImage =
       (job.kind === "still" || job.kind === "frame") && (canvasColor || applyFilmGrade)
         ? async (buffer: Buffer) => {
+            const unboxed =
+              job.kind === "frame"
+                ? await stripLetterboxBars(buffer).catch(() => buffer)
+                : buffer;
             const flat = canvasColor
-              ? await flattenToCanvas(buffer, canvasColor).catch(
+              ? await flattenToCanvas(unboxed, canvasColor).catch(
                   (error: unknown) => {
                     // Keep the original bytes rather than failing the job, but
                     // leave a trace so a broken flatten is not invisible.
@@ -932,10 +936,10 @@ export async function applyJobStatus(input: {
                       "[higgsfield] flatten failed; persisting original bytes",
                       { requestId: job.requestId, error },
                     );
-                    return buffer;
+                    return unboxed;
                   },
                 )
-              : buffer;
+              : unboxed;
             if (!applyFilmGrade) return flat;
             return gradeRealisticImageBuffer(flat).catch((error: unknown) => {
               console.error(

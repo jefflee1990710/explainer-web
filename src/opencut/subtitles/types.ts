@@ -38,10 +38,17 @@ export interface SubtitleStyleOverrides {
 	textDecoration?: TextDecoration;
 	letterSpacing?: number;
 	lineHeight?: number;
+	strokeColor?: string;
+	strokeWidth?: number;
+	shadowColor?: string;
+	shadowOffsetX?: number;
+	shadowOffsetY?: number;
+	shadowBlur?: number;
 	placement?: SubtitlePlacementStyle;
 }
 
 export interface SubtitleCue extends CaptionChunk {
+	name?: string;
 	style?: SubtitleStyleOverrides;
 }
 

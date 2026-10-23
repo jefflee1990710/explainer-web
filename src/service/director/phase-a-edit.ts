@@ -17,7 +17,7 @@ export function cleanPhaseAField(value: unknown, max = MAX_PHASE_A_FIELD_LENGTH)
 export function spokenUnits(text: string, language?: VoLanguage) {
   const trimmed = text.trim();
   if (!trimmed) return 0;
-  if (language === "zh" || language === "yue") {
+  if (language === "zh" || language === "yue" || language === "ja" || language === "th") {
     return trimmed.replace(/\s+/g, "").length;
   }
   return trimmed.split(/\s+/).filter(Boolean).length;

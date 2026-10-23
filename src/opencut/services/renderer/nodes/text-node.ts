@@ -54,6 +54,7 @@ export function renderTextToContext({
 		textColor: resolved.textColor,
 		background: resolved.measuredText.resolvedBackground,
 		backgroundColor: resolved.backgroundColor,
+		artStyle: resolved.measuredText.resolvedArtStyle,
 		textBaseline: baseline,
 	});
 

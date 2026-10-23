@@ -39,15 +39,15 @@ export function isBookendSkill(skillSlug?: string) {
   return Boolean(skillSlug && BOOKEND_SKILLS.has(skillSlug));
 }
 
-// IG Reel stills (9:16). Top 20% and bottom 20% stay empty of foreground subjects for every director,
-// while the background canvas or environment fills 100% of the vertical frame edge-to-edge.
+// IG Reel stills (9:16). Top 20% and bottom 20% stay free of text/UI overlays for every director,
+// while the character/subject and background fill 100% of the vertical frame edge-to-edge.
 export const VERTICAL_FRAME_SAFE_AREA =
-  "9:16 IG Reel safe area: fill 100% of the 9:16 vertical frame edge-to-edge with the background canvas or environment (no letterbox bars or inner box), while the top 20% and the bottom 20% of the frame stay empty. Place all on-screen text, every character, and the main subject only in the middle 60%. Do not put them in the top 20% or the bottom 20%, and do not crop them into either band.";
+  "9:16 IG Reel safe area: the photograph or scene must fill 100% of the 9:16 vertical frame edge-to-edge from the very top edge to the very bottom edge (strictly NO top or bottom letterbox bars, NO solid white/grey padding bands, and NO square/4:5 inner frame). Keep text, characters, or the main subject focal points in the middle 60% vertical safe zone so Reel UI overlays at the top 20% and the bottom 20% do not cover them.";
 
 // Director plan for every skill. Empty unless the video is a vertical reel.
 export function verticalSafeAreaDirectorLine(aspectRatio?: string) {
   if (aspectRatio !== "9:16") return "";
-  return "This video is a full-bleed vertical 9:16 IG Reel. The background canvas or environment fills 100% of the 9:16 frame edge-to-edge (never write that the Set or canvas itself is restricted to the middle 60%, and never frame a horizontal or square box inside the vertical canvas). In every still, reserve the top 20% and the bottom 20%. Do not place text, characters, or the main subject in those bands. Keep all of them in the middle 60%.";
+  return "This video is a full-bleed vertical 9:16 IG Reel. The background canvas or environment fills 100% of the 9:16 frame edge-to-edge (never add top/bottom letterbox bars or frame a horizontal or square box inside the vertical canvas). In every still, reserve the top 20% and the bottom 20% for UI safe margins: keep text, characters, or the main subject focal points in the middle 60%.";
 }
 
 // Auto on a bookend still follows that director's own short-sting plan.

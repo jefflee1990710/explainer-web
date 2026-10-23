@@ -70,10 +70,15 @@ import type {
   ReferenceImage,
   SceneTextChoice,
   SpeechPace,
+  StoryboardClipDraft,
   SubtitleLook,
   VoLanguage,
   VoiceGender,
 } from "@/model/project";
+import {
+  sanitizeClipDraftsInput,
+  uploadClipDraftSketches,
+} from "@/service/director/storyboard-draft-chat";
 import { parseReferenceImages } from "@/service/project/reference-images";
 
 const CAST_MAX = 4;
@@ -109,6 +114,8 @@ type BriefFields = {
   logoUrl?: string;
   // Up to 4 described scene references, ids R1..Rn.
   referenceImages: ReferenceImage[];
+  // Optional user-sketched or AI-drafted clip breakdowns created in Step 03.
+  clipDrafts: StoryboardClipDraft[];
   // Talking-head read only. Up to 2 room photos that replace the bookshelf.
   backgroundImageUrls: string[];
   // Talking-head read. One optional opening photo, on any visual style.
@@ -229,6 +236,19 @@ async function readVideoBrief(
       )
     : { ok: true as const, url: undefined };
   if (!startImage.ok) return startImage;
+  let parsedClipDrafts: StoryboardClipDraft[] = [];
+  const rawClipDrafts = String(formData.get("clipDrafts") || "").trim();
+  if (rawClipDrafts) {
+    try {
+      parsedClipDrafts = sanitizeClipDraftsInput(JSON.parse(rawClipDrafts));
+    } catch {
+      parsedClipDrafts = [];
+    }
+  }
+  const clipDrafts =
+    parsedClipDrafts.length > 0
+      ? await uploadClipDraftSketches(clerkUserId, parsedClipDrafts)
+      : [];
   return {
     ok: true,
     brief: {
@@ -240,6 +260,7 @@ async function readVideoBrief(
       durationPreset,
       logoUrl,
       referenceImages: references.images,
+      clipDrafts,
       backgroundImageUrls: backgrounds.urls,
       startImageUrl: startImage.url,
       language,
@@ -312,6 +333,20 @@ async function buildCast(
               elevenVoiceId: character.voiceSample.elevenVoiceId,
             },
           }
+        : {}),
+      ...(character.voiceSamples
+        ? (() => {
+            const voiceSamples: NonNullable<CastMember["voiceSamples"]> = {};
+            for (const [lang, s] of Object.entries(character.voiceSamples)) {
+              if (s?.url && s?.elevenVoiceId) {
+                voiceSamples[lang as keyof typeof voiceSamples] = {
+                  url: s.url,
+                  elevenVoiceId: s.elevenVoiceId,
+                };
+              }
+            }
+            return Object.keys(voiceSamples).length > 0 ? { voiceSamples } : {};
+          })()
         : {}),
     });
   }
@@ -498,6 +533,7 @@ export async function createVideoAction(
       ...(brief.textStyleImageUrl ? { textStyleImageUrl: brief.textStyleImageUrl } : {}),
       ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
       ...(brief.referenceImages.length ? { referenceImages: brief.referenceImages } : {}),
+      ...(brief.clipDrafts.length ? { clipDrafts: brief.clipDrafts } : {}),
       ...(brief.backgroundImageUrls.length ? { backgroundImageUrls: brief.backgroundImageUrls } : {}),
       ...(brief.startImageUrl ? { startImageUrl: brief.startImageUrl } : {}),
       cast,
@@ -683,6 +719,7 @@ async function rewriteVideoBrief(
           products: productResult.products,
           ...(brief.logoUrl ? { logoUrl: brief.logoUrl } : {}),
           ...(brief.referenceImages.length ? { referenceImages: brief.referenceImages } : {}),
+          ...(brief.clipDrafts.length ? { clipDrafts: brief.clipDrafts } : {}),
           ...(brief.backgroundImageUrls.length
             ? { backgroundImageUrls: brief.backgroundImageUrls }
             : {}),
@@ -694,6 +731,7 @@ async function rewriteVideoBrief(
           ...(options.restart ? RESTART_UNSET_FIELDS : { error: "", stillError: "" }),
           ...(brief.logoUrl ? {} : { logoUrl: "" }),
           ...(brief.referenceImages.length ? {} : { referenceImages: "" }),
+          ...(brief.clipDrafts.length ? {} : { clipDrafts: "" }),
           ...(brief.backgroundImageUrls.length ? {} : { backgroundImageUrls: "" }),
           ...(brief.startImageUrl ? {} : { startImageUrl: "" }),
           ...(brief.spokenScript ? {} : { spokenScript: "" }),

@@ -102,6 +102,7 @@ export type PublicVideo = {
   backgroundPlateError?: string;
   logoUrl?: string;
   referenceImages: NonNullable<Project["referenceImages"]>;
+  clipDrafts?: NonNullable<Project["clipDrafts"]>;
   backgroundImageUrls: string[];
   startImageUrl?: string;
   // `voiceSample` carries the clone id so clip prices include the voice swap.
@@ -387,6 +388,7 @@ export function toPublicVideo(video: Project): PublicVideo {
     backgroundPlateError: video.backgroundPlateError,
     logoUrl: video.logoUrl,
     referenceImages: video.referenceImages || [],
+    clipDrafts: video.clipDrafts || [],
     backgroundImageUrls: video.backgroundImageUrls || [],
     startImageUrl: video.startImageUrl,
     cast: (video.cast || []).map((member) => ({

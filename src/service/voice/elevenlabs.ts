@@ -24,16 +24,39 @@ export type VoiceCloneFileInput = {
   filename: string;
 };
 
+const ELEVENLABS_LANGUAGE_LABELS: Record<
+  VoiceSampleLanguage,
+  { language: string; accent: string }
+> = {
+  yue: { language: "zh", accent: "zh-hong-kong-cantonese" },
+  zh: { language: "zh", accent: "mandarin" },
+  en: { language: "en", accent: "american" },
+  ja: { language: "ja", accent: "japanese" },
+  ko: { language: "ko", accent: "korean" },
+  id: { language: "id", accent: "indonesian" },
+  es: { language: "es", accent: "latin-american" },
+  pt: { language: "pt", accent: "brazilian" },
+  fr: { language: "fr", accent: "parisian" },
+  de: { language: "de", accent: "standard" },
+  ru: { language: "ru", accent: "standard" },
+  vi: { language: "vi", accent: "vietnamese" },
+  th: { language: "th", accent: "thai" },
+  ms: { language: "ms", accent: "malay" },
+  fil: { language: "fil", accent: "filipino" },
+  hi: { language: "hi", accent: "indian" },
+  ar: { language: "ar", accent: "modern-standard" },
+  it: { language: "it", accent: "standard" },
+  nl: { language: "nl", accent: "dutch" },
+  pl: { language: "pl", accent: "polish" },
+  tr: { language: "tr", accent: "turkish" },
+};
+
 export function elevenLabsVoiceLabels(
   language: VoiceSampleLanguage = "yue",
   gender?: "male" | "female",
 ): Record<string, string> {
-  const base: Record<string, string> =
-    language === "en"
-      ? { language: "en", accent: "american" }
-      : language === "zh"
-        ? { language: "zh", accent: "mandarin" }
-        : { language: "zh", accent: "zh-hong-kong-cantonese" };
+  const entry = ELEVENLABS_LANGUAGE_LABELS[language] ?? ELEVENLABS_LANGUAGE_LABELS.yue;
+  const base: Record<string, string> = { ...entry };
   if (gender) base.gender = gender;
   return base;
 }

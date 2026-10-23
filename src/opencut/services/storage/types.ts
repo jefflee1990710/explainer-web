@@ -35,6 +35,10 @@ export interface MediaAssetData {
 	scroPosterUrl?: string;
 	/** Drawn stand-in while this clip is still waiting for a frame. */
 	scroPlaceholder?: boolean;
+	/** Auto-detected leading silence (seconds) before speech onset. */
+	speechTrimStart?: number;
+	/** Auto-detected trailing silence (seconds) after speech ends. */
+	speechTrimEnd?: number;
 }
 
 export type SerializedScene = Omit<TScene, "createdAt" | "updatedAt"> & {

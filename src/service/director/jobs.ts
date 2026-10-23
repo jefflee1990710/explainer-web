@@ -93,6 +93,7 @@ export async function runPhaseAJob(
       products: project.products,
       logoUrl: project.logoUrl,
       referenceImages: project.referenceImages,
+      clipDrafts: project.clipDrafts,
       backgroundImageUrls: project.backgroundImageUrls,
       startImageUrl: project.startImageUrl,
       currentDraft: project.phaseA,

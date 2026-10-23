@@ -6,12 +6,9 @@ import { useEditor } from "@/opencut/editor/use-editor";
 import { loadFullFont } from "@/opencut/fonts/google-fonts";
 import { SYSTEM_FONTS } from "@/opencut/fonts/system-fonts";
 import { TEXT_FONT_PRESETS, type TextFontPreset } from "@/opencut/text/font-presets";
+import { quoteFontFamily } from "@/opencut/text/primitives";
 import { buildTextElement } from "@/opencut/timeline/element-utils";
 import type { MediaTime } from "@/opencut/wasm";
-
-function quoteFamily(family: string) {
-	return `"${family.replace(/"/g, '\\"')}"`;
-}
 
 /** Text cards that insert a clip in that Google (or system) font. */
 export function TextFontGrid() {
@@ -33,7 +30,7 @@ export function TextFontGrid() {
 	}) => {
 		const element = buildTextElement({
 			raw: {
-				name: preset.family,
+				name: preset.label ?? preset.family,
 				params: {
 					content: preset.sample,
 					fontFamily: preset.family,
@@ -53,14 +50,14 @@ export function TextFontGrid() {
 			{TEXT_FONT_PRESETS.map((preset) => (
 				<DraggableItem
 					key={preset.id}
-					name={preset.family}
+					name={preset.label ?? preset.family}
 					containerClassName="w-full"
 					preview={
 						<div className="bg-accent flex size-full items-center justify-center rounded px-1">
 							<span
 								className="text-center text-base leading-tight select-none"
 								style={{
-									fontFamily: `${quoteFamily(preset.family)}, sans-serif`,
+									fontFamily: `${quoteFontFamily({ fontFamily: preset.family })}, sans-serif`,
 									fontWeight: preset.fontWeight === "bold" ? 700 : 400,
 								}}
 							>
@@ -71,7 +68,7 @@ export function TextFontGrid() {
 					dragData={{
 						id: `text-${preset.id}`,
 						type: "text",
-						name: preset.family,
+						name: preset.label ?? preset.family,
 						content: preset.sample,
 						fontFamily: preset.family,
 						fontWeight: preset.fontWeight ?? "normal",

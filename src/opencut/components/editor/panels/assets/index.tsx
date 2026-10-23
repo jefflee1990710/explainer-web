@@ -4,6 +4,7 @@ import { Separator } from "@/opencut/components/ui/separator";
 import { type Tab, useAssetsPanelStore } from "@/opencut/components/editor/panels/assets/assets-panel-store";
 import { TabBar } from "./tabbar";
 import { MediaView } from "./views/assets";
+import { StockMediaView } from "./views/stock-media-view";
 import { SettingsView } from "./views/settings";
 import { SoundsView } from "@/opencut/sounds/components/assets-view";
 import { StickersView } from "@/opencut/stickers/components/assets-view";
@@ -21,6 +22,7 @@ export function AssetsPanel() {
 
 	const viewMap: Record<Tab, React.ReactNode> = {
 		media: <MediaView />,
+		stock: <StockMediaView />,
 		sounds: <SoundsView />,
 		text: <TextView />,
 		stickers: <StickersView />,

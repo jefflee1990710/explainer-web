@@ -8,24 +8,28 @@ import { DEFAULTS } from "@/opencut/timeline/defaults";
 import { mediaTimeFromSeconds } from "@/opencut/wasm";
 import type { CreateTextElement } from "@/opencut/timeline";
 import type { TextBackground } from "@/opencut/text/background";
-import type {
-	TextAlign,
-	TextDecoration,
-	TextFontStyle,
-	TextFontWeight,
+import {
+	quoteFontFamily,
+	type TextAlign,
+	type TextDecoration,
+	type TextFontStyle,
+	type TextFontWeight,
 } from "@/opencut/text/primitives";
+import {
+	tokenizeMixedSubtitleLine,
+	wrapSubtitleTextWithMeasure,
+} from "./artistic-presets";
 import type { SubtitleCue, SubtitleStyleOverrides } from "./types";
 
-const SUBTITLE_MAX_WIDTH_RATIO = 0.8;
-const SUBTITLE_BOTTOM_MARGIN_RATIO = 0.05;
-const SUBTITLE_FONT_SIZE = 5;
+export { tokenizeMixedSubtitleLine, wrapSubtitleTextWithMeasure };
+
+const SUBTITLE_MAX_WIDTH_RATIO = 0.84;
+const SUBTITLE_BOTTOM_MARGIN_RATIO = 0.08;
+const SUBTITLE_FONT_SIZE = 7;
 const MEASUREMENT_CANVAS_SIZE = 4096;
 
-function quoteFontFamily({ fontFamily }: { fontFamily: string }): string {
-	return `"${fontFamily.replace(/"/g, '\\"')}"`;
-}
-
 function createMeasurementContext(): CanvasRenderingContext2D | null {
+	if (typeof document === "undefined") return null;
 	const canvas = document.createElement("canvas");
 	canvas.width = MEASUREMENT_CANVAS_SIZE;
 	canvas.height = MEASUREMENT_CANVAS_SIZE;
@@ -51,37 +55,11 @@ function wrapSubtitleText({
 	text: string;
 	maxWidth: number;
 }): string {
-	const normalized = text.trim().replace(/\r\n/g, "\n");
-	const paragraphs = normalized.split("\n");
-	const wrappedParagraphs: string[] = [];
-
-	for (const paragraph of paragraphs) {
-		const trimmedParagraph = paragraph.trim();
-		if (!trimmedParagraph) {
-			wrappedParagraphs.push("");
-			continue;
-		}
-
-		const words = trimmedParagraph.split(/\s+/);
-		let currentLine = words[0] ?? "";
-		const lines: string[] = [];
-
-		for (let i = 1; i < words.length; i++) {
-			const nextLine = `${currentLine} ${words[i]}`;
-			if (measureLineWidth({ ctx, text: nextLine }) <= maxWidth) {
-				currentLine = nextLine;
-				continue;
-			}
-
-			lines.push(currentLine);
-			currentLine = words[i];
-		}
-
-		lines.push(currentLine);
-		wrappedParagraphs.push(lines.join("\n"));
-	}
-
-	return wrappedParagraphs.join("\n");
+	return wrapSubtitleTextWithMeasure({
+		text,
+		maxWidth,
+		measure: (value) => measureLineWidth({ ctx, text: value }),
+	});
 }
 
 function measureWrappedTextBlock({
@@ -137,6 +115,12 @@ function resolveSubtitleStyle({
 	textDecoration: TextDecoration;
 	letterSpacing: number;
 	lineHeight: number;
+	strokeColor: string;
+	strokeWidth: number;
+	shadowColor: string;
+	shadowOffsetX: number;
+	shadowOffsetY: number;
+	shadowBlur: number;
 	background: TextBackground;
 	placement: NonNullable<SubtitleStyleOverrides["placement"]>;
 } {
@@ -155,6 +139,12 @@ function resolveSubtitleStyle({
 		textDecoration: style?.textDecoration ?? "none",
 		letterSpacing: style?.letterSpacing ?? DEFAULTS.text.letterSpacing,
 		lineHeight: style?.lineHeight ?? DEFAULTS.text.lineHeight,
+		strokeColor: style?.strokeColor ?? "#000000",
+		strokeWidth: style?.strokeWidth ?? 0,
+		shadowColor: style?.shadowColor ?? "#000000",
+		shadowOffsetX: style?.shadowOffsetX ?? 0,
+		shadowOffsetY: style?.shadowOffsetY ?? 0,
+		shadowBlur: style?.shadowBlur ?? 0,
 		background: {
 			...DEFAULTS.text.background,
 			enabled: false,
@@ -314,7 +304,7 @@ export function buildSubtitleTextElement({
 
 	return {
 		...DEFAULTS.text.element,
-		name: `Caption ${index + 1}`,
+		name: caption.name ?? `Caption ${index + 1}`,
 		duration: mediaTimeFromSeconds({ seconds: caption.duration }),
 		startTime: mediaTimeFromSeconds({ seconds: caption.startTime }),
 		params: {
@@ -329,6 +319,12 @@ export function buildSubtitleTextElement({
 			textDecoration: style.textDecoration,
 			letterSpacing: style.letterSpacing,
 			lineHeight: style.lineHeight,
+			strokeColor: style.strokeColor,
+			strokeWidth: style.strokeWidth,
+			shadowColor: style.shadowColor,
+			shadowOffsetX: style.shadowOffsetX,
+			shadowOffsetY: style.shadowOffsetY,
+			shadowBlur: style.shadowBlur,
 			"background.enabled": style.background.enabled,
 			"background.color": style.background.color,
 			"background.cornerRadius":

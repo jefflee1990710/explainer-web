@@ -16,8 +16,31 @@ export type CoverSafeArea = (typeof COVER_SAFE_AREA_IDS)[number];
 export const DURATION_PRESET_IDS = ["auto", "micro", "short", "punchy", "full"] as const;
 export type DurationPreset = (typeof DURATION_PRESET_IDS)[number];
 export type LoopMode = "linear" | "infinite";
-// Voiceover language: American English, Hong Kong Cantonese colloquial, Traditional Chinese (Mandarin).
-export type VoLanguage = "en" | "yue" | "zh";
+// Voiceover language supported across video creation and character demo voices.
+export const VO_LANGUAGE_IDS = [
+  "en",
+  "yue",
+  "zh",
+  "ja",
+  "ko",
+  "id",
+  "es",
+  "pt",
+  "fr",
+  "de",
+  "ru",
+  "vi",
+  "th",
+  "ms",
+  "fil",
+  "hi",
+  "ar",
+  "it",
+  "nl",
+  "pl",
+  "tr",
+] as const;
+export type VoLanguage = (typeof VO_LANGUAGE_IDS)[number];
 // Narrator / spoken-voice gender chosen on the input step.
 export type VoiceGender = "male" | "female";
 // How fast the narrator / characters speak; scales the spoken-word budget.
@@ -93,6 +116,14 @@ export type ReferenceImage = {
   id: string;
   url: string;
   description: string;
+};
+
+// Optional pre-storyboard clip draft with hand-drawn layout sketch and text explanation.
+export type StoryboardClipDraft = {
+  clipNumber: number;
+  explanation: string;
+  voDraft?: string;
+  sketchUrl?: string;
 };
 
 export type StoryboardRow = {
@@ -305,6 +336,8 @@ export type Project = {
   logoUrl?: string;
   // Scene references from the brief; the director assigns them per clip.
   referenceImages?: ReferenceImage[];
+  // Optional user-sketched or AI-drafted clip breakdowns created in the brief wizard.
+  clipDrafts?: StoryboardClipDraft[];
   // Talking-head only: up to 2 room photos. They replace the bookshelf set.
   backgroundImageUrls?: string[];
   // Talking-head read + Cinematic realistic: one optional photo for the opening still.
@@ -467,7 +500,7 @@ export const projectSchema: z.ZodType<Project> = z.object({
   aspectRatio: aspectRatioSchema,
   durationPreset: z.enum(DURATION_PRESET_IDS),
   styleId: z.string().optional(),
-  language: z.enum(["en", "yue", "zh"]).optional(),
+  language: z.enum(VO_LANGUAGE_IDS).optional(),
   voiceGender: z.enum(["male", "female"]).optional(),
   speechPace: z.enum(["slow", "medium", "fast"]).optional(),
   sceneTextEnabled: z.boolean().optional(),
@@ -482,6 +515,16 @@ export const projectSchema: z.ZodType<Project> = z.object({
   logoUrl: z.string().optional(),
   referenceImages: z
     .array(z.object({ id: z.string(), url: z.string(), description: z.string() }))
+    .optional(),
+  clipDrafts: z
+    .array(
+      z.object({
+        clipNumber: z.number().int().min(1),
+        explanation: z.string(),
+        voDraft: z.string().optional(),
+        sketchUrl: z.string().optional(),
+      }),
+    )
     .optional(),
   backgroundImageUrls: z.array(z.string()).max(2).optional(),
   startImageUrl: z.string().optional(),

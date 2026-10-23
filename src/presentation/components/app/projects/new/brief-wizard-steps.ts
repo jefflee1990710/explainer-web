@@ -1,17 +1,17 @@
 import type { AspectRatio } from "@/model/project";
 import type { ReferenceImageDraft } from "@/presentation/components/app/projects/new/reference-images-field";
 
-export type BriefWizardStepIndex = 0 | 1 | 2;
+export type BriefWizardStepIndex = 0 | 1 | 2 | 3;
 
 export type BriefWizardStepMeta = {
   index: BriefWizardStepIndex;
-  id: "style" | "script" | "specs";
-  number: "01" | "02" | "03";
+  id: "style" | "script" | "drafts" | "specs";
+  number: "01" | "02" | "03" | "04";
   titleKey: string;
   subtitleKey: string;
 };
 
-// Ordered 3-step structure for the create-video brief wizard.
+// Ordered 4-step structure for the create-video brief wizard (Step 03 Storyboard Drafts is optional).
 export const BRIEF_WIZARD_STEPS: readonly BriefWizardStepMeta[] = [
   {
     index: 0,
@@ -29,8 +29,15 @@ export const BRIEF_WIZARD_STEPS: readonly BriefWizardStepMeta[] = [
   },
   {
     index: 2,
-    id: "specs",
+    id: "drafts",
     number: "03",
+    titleKey: "brief.wizard.step3DraftsTitle",
+    subtitleKey: "brief.wizard.step3DraftsSubtitle",
+  },
+  {
+    index: 3,
+    id: "specs",
+    number: "04",
     titleKey: "brief.wizard.step3Title",
     subtitleKey: "brief.wizard.step3Subtitle",
   },
@@ -64,26 +71,28 @@ export function isStep2Valid(state: BriefWizardValidationState): boolean {
   );
 }
 
-// Step 3: Aspect ratio selected.
+// Final specs step: Aspect ratio selected.
 export function isStep3Valid(state: BriefWizardValidationState): boolean {
   return state.aspectRatio !== "";
 }
 
 // Highest wizard step index unlocked by the user's current form state.
+// Step 2 (03 Storyboard Drafts) is optional, so valid Step 1 + Step 2 unlocks both Step 2 and Step 3.
 export function maxReachableWizardStep(
   state: BriefWizardValidationState,
 ): BriefWizardStepIndex {
   if (!isStep1Valid(state)) return 0;
   if (!isStep2Valid(state)) return 1;
-  return 2;
+  return 3;
 }
 
-// Whether the user can advance from the given wizard step (or submit on Step 2).
+// Whether the user can advance from the given wizard step (or submit on the final step).
 export function canAdvanceFromWizardStep(
   step: BriefWizardStepIndex,
   state: BriefWizardValidationState,
 ): boolean {
   if (step === 0) return isStep1Valid(state);
   if (step === 1) return isStep1Valid(state) && isStep2Valid(state);
+  if (step === 2) return isStep1Valid(state) && isStep2Valid(state);
   return isStep1Valid(state) && isStep2Valid(state) && isStep3Valid(state);
 }

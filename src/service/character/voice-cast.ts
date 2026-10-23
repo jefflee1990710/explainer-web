@@ -1,6 +1,7 @@
 import { charactersCollection } from "@/dao";
 import type { CastMember, Character } from "@/model/character";
 import { isCharacterVoice } from "@/model/character-voice";
+import { VOICE_SAMPLE_LANGUAGES } from "@/model/character-voice-sample";
 
 export function mergeCurrentCharacterVoices(
   cast: CastMember[] | undefined,
@@ -24,7 +25,7 @@ export function mergeCurrentCharacterVoices(
     }
     if (doc.voiceSamples) {
       const mapped: NonNullable<CastMember["voiceSamples"]> = {};
-      for (const lang of ["yue", "zh", "en"] as const) {
+      for (const lang of VOICE_SAMPLE_LANGUAGES) {
         const s = doc.voiceSamples[lang];
         if (s?.elevenVoiceId && s?.url) {
           mapped[lang] = { url: s.url, elevenVoiceId: s.elevenVoiceId };

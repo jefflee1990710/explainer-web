@@ -54,6 +54,55 @@ function preloadChunkImages({ atlas }: { atlas: FontAtlas }): void {
 
 const GOOGLE_FONT_LOAD_TIMEOUT_MS = 3000;
 
+/**
+ * Display/artistic Google Fonts that only publish weight 400 (or specific weights).
+ * Requesting unsupported weights (like 700 on Anton or Dela Gothic One) causes Google Fonts CSS2 API to return HTTP 400.
+ */
+const KNOWN_GOOGLE_FONT_WEIGHTS: Record<string, number[]> = {
+	Anton: [400],
+	"Bebas Neue": [400],
+	"Dela Gothic One": [400],
+	"Mochiy Pop One": [400],
+	DotGothic16: [400],
+	Pacifico: [400],
+	"Permanent Marker": [400],
+	"RocknRoll One": [400],
+	"Reggae One": [400],
+	"Rampart One": [400],
+	Yomogi: [400],
+	"Kosugi Maru": [400],
+	"Potta One": [400],
+	"Hachi Maru Pop": [400],
+	Stick: [400],
+	Chokokutai: [400],
+	"ZCOOL KuaiLe": [400],
+	"ZCOOL QingKe HuangYou": [400],
+	"ZCOOL XiaoWei": [400],
+	"Ma Shan Zheng": [400],
+	"Noto Sans TC": [400, 700, 900],
+	"Noto Serif TC": [400, 700, 900],
+	"Zen Maru Gothic": [400, 700, 900],
+	"LXGW WenKai TC": [400, 700],
+	"M PLUS Rounded 1c": [400, 700, 800],
+	Montserrat: [400, 700, 900],
+	Inter: [400, 700, 900],
+	Poppins: [400, 700, 900],
+	Oswald: [400, 700],
+	Fredoka: [400, 600, 700],
+	"Chakra Petch": [400, 700],
+	Caveat: [400, 700],
+	"Playfair Display": [400, 700, 900],
+	Lora: [400, 700],
+	"Source Code Pro": [400, 700],
+};
+
+export function splitFontStack(family: string): string[] {
+	return family
+		.split(",")
+		.map((part) => part.trim().replace(/^["']|["']$/g, "").trim())
+		.filter(Boolean);
+}
+
 export function withFontLoadTimeout<T>(
 	promise: Promise<T>,
 	timeoutMs = GOOGLE_FONT_LOAD_TIMEOUT_MS,
@@ -72,16 +121,17 @@ export function withFontLoadTimeout<T>(
 	});
 }
 
-export async function loadFullFont({
+async function loadSingleGoogleFont({
 	family,
-	weights = [400, 700],
+	weights,
 }: {
 	family: string;
 	weights?: number[];
 }): Promise<void> {
-	if (fullLoaded.has(family)) return;
+	if (SYSTEM_FONTS.has(family) || fullLoaded.has(family)) return;
 
-	const url = `${GOOGLE_FONTS_CSS}?family=${encodeGoogleFontsFamily(family)}:wght@${weights.join(";")}&display=swap`;
+	const resolvedWeights = KNOWN_GOOGLE_FONT_WEIGHTS[family] ?? weights ?? [400, 700];
+	const url = `${GOOGLE_FONTS_CSS}?family=${encodeGoogleFontsFamily(family)}:wght@${resolvedWeights.join(";")}&display=swap`;
 	const link = document.createElement("link");
 	link.rel = "stylesheet";
 	link.href = url;
@@ -94,7 +144,7 @@ export async function loadFullFont({
 	);
 	await withFontLoadTimeout(
 		Promise.all(
-			weights.map((weight) =>
+			resolvedWeights.map((weight) =>
 				document.fonts.load(`${weight} 16px "${family.replace(/"/g, '\\"')}"`),
 			),
 		),
@@ -102,11 +152,29 @@ export async function loadFullFont({
 	fullLoaded.add(family);
 }
 
+export async function loadFullFont({
+	family,
+	weights = [400, 700],
+}: {
+	family: string;
+	weights?: number[];
+}): Promise<void> {
+	const parts = splitFontStack(family);
+	if (parts.length === 0) return;
+	await Promise.all(
+		parts.map((singleFamily) =>
+			loadSingleGoogleFont({ family: singleFamily, weights }),
+		),
+	);
+}
+
 export async function loadFonts({
 	families,
 }: {
 	families: string[];
 }): Promise<void> {
-	const googleFonts = families.filter((family) => !SYSTEM_FONTS.has(family));
-	await Promise.all(googleFonts.map((family) => loadFullFont({ family })));
+	const singleFamilies = [
+		...new Set(families.flatMap((family) => splitFontStack(family))),
+	].filter((family) => !SYSTEM_FONTS.has(family));
+	await Promise.all(singleFamilies.map((family) => loadSingleGoogleFont({ family })));
 }

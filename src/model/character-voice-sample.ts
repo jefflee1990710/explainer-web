@@ -13,9 +13,33 @@ export const VOICE_SAMPLE_MIME_TYPES = [
   "audio/wave",
   "audio/mp4",
   "audio/x-m4a",
+  "audio/webm",
+  "audio/ogg",
 ] as const;
 
-export const VOICE_SAMPLE_LANGUAGES = ["yue", "zh", "en"] as const;
+export const VOICE_SAMPLE_LANGUAGES = [
+  "yue",
+  "zh",
+  "en",
+  "ja",
+  "ko",
+  "id",
+  "es",
+  "pt",
+  "fr",
+  "de",
+  "ru",
+  "vi",
+  "th",
+  "ms",
+  "fil",
+  "hi",
+  "ar",
+  "it",
+  "nl",
+  "pl",
+  "tr",
+] as const;
 export type VoiceSampleLanguage = (typeof VOICE_SAMPLE_LANGUAGES)[number];
 
 export function isVoiceSampleLanguage(value: unknown): value is VoiceSampleLanguage {
@@ -64,6 +88,24 @@ export const characterVoiceSamplesMapSchema: z.ZodType<CharacterVoiceSamplesMap>
   yue: characterVoiceSampleSchema.optional(),
   zh: characterVoiceSampleSchema.optional(),
   en: characterVoiceSampleSchema.optional(),
+  ja: characterVoiceSampleSchema.optional(),
+  ko: characterVoiceSampleSchema.optional(),
+  id: characterVoiceSampleSchema.optional(),
+  es: characterVoiceSampleSchema.optional(),
+  pt: characterVoiceSampleSchema.optional(),
+  fr: characterVoiceSampleSchema.optional(),
+  de: characterVoiceSampleSchema.optional(),
+  ru: characterVoiceSampleSchema.optional(),
+  vi: characterVoiceSampleSchema.optional(),
+  th: characterVoiceSampleSchema.optional(),
+  ms: characterVoiceSampleSchema.optional(),
+  fil: characterVoiceSampleSchema.optional(),
+  hi: characterVoiceSampleSchema.optional(),
+  ar: characterVoiceSampleSchema.optional(),
+  it: characterVoiceSampleSchema.optional(),
+  nl: characterVoiceSampleSchema.optional(),
+  pl: characterVoiceSampleSchema.optional(),
+  tr: characterVoiceSampleSchema.optional(),
 });
 
 export function normalizeVoiceSampleClips(
@@ -104,6 +146,24 @@ export const castVoiceSamplesMapSchema: z.ZodType<CastVoiceSamplesMap> = z.objec
   yue: castVoiceSampleSchema.optional(),
   zh: castVoiceSampleSchema.optional(),
   en: castVoiceSampleSchema.optional(),
+  ja: castVoiceSampleSchema.optional(),
+  ko: castVoiceSampleSchema.optional(),
+  id: castVoiceSampleSchema.optional(),
+  es: castVoiceSampleSchema.optional(),
+  pt: castVoiceSampleSchema.optional(),
+  fr: castVoiceSampleSchema.optional(),
+  de: castVoiceSampleSchema.optional(),
+  ru: castVoiceSampleSchema.optional(),
+  vi: castVoiceSampleSchema.optional(),
+  th: castVoiceSampleSchema.optional(),
+  ms: castVoiceSampleSchema.optional(),
+  fil: castVoiceSampleSchema.optional(),
+  hi: castVoiceSampleSchema.optional(),
+  ar: castVoiceSampleSchema.optional(),
+  it: castVoiceSampleSchema.optional(),
+  nl: castVoiceSampleSchema.optional(),
+  pl: castVoiceSampleSchema.optional(),
+  tr: castVoiceSampleSchema.optional(),
 });
 
 // Voice changer converts every voice on the track, so it only runs on a one-character cast.
@@ -124,5 +184,6 @@ export function voiceSwapVoiceId(
 }
 
 export function isVoiceSampleMime(type: string) {
-  return (VOICE_SAMPLE_MIME_TYPES as readonly string[]).includes(type);
+  const base = type.split(";")[0]?.trim().toLowerCase() ?? "";
+  return (VOICE_SAMPLE_MIME_TYPES as readonly string[]).includes(base);
 }

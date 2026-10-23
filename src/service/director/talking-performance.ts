@@ -86,7 +86,7 @@ export function speakOnlyThisClip(motion: string, line: string, language?: VoLan
 }
 
 function thisClipOnlySubtitle(input: { language?: VoLanguage; line: string; belowCenter: boolean }) {
-  if (input.language === "en" || !input.language) {
+  if (input.language !== "yue" && input.language !== "zh") {
     const place = input.belowCenter ? "a little below the vertical center" : "at the bottom";
     return `Subtitle stays ${place}, this clip's line only: "${input.line}". Keep the subtitle as one single block — never duplicate, stack, or draw a second copy of the subtitle line. If the opening frame still shows other words, replace them at once and do not read them. The voice says this line once and no earlier sentence.`;
   }
@@ -276,7 +276,7 @@ export function talkingMotionLine(input: {
   const seated = input.shot !== "full-body";
   // Subtitles are never generated into scene stills or videos.
   const hideSubtitle = true;
-  if (input.language === "en" || !input.language) {
+  if (input.language !== "yue" && input.language !== "zh") {
     const p = pEn;
     const anchored = anchoredEn;
     const place = input.belowCenter ? "a little below the vertical center" : "at the bottom";

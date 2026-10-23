@@ -62,9 +62,9 @@ export const DEFAULT_PERFORMANCE: Record<TalkingShot, SystemPerformance> = {
   "full-body": { en: FULL_BODY_EN, yue: FULL_BODY_YUE },
 };
 
-// Prompt language for slot text: English, or Cantonese scaffolding for yue and zh.
+// Prompt language for slot text: Cantonese scaffolding for yue and zh, English for all other languages.
 export function performanceLanguage(language?: VoLanguage): PerformanceLanguage {
-  return language === "en" || !language ? "en" : "yue";
+  return language === "yue" || language === "zh" ? "yue" : "en";
 }
 
 export function emptyPerformance(): PerformanceSlots {

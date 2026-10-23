@@ -16,6 +16,8 @@ import { resetStyleOverlay } from "@/service/style/load-style";
 import { renderableFromSystem } from "@/service/style/renderable-style";
 import { installTestStyles, testStyle, uninstallTestStyles } from "@/service/style/test-styles";
 import { surpriseVarietyPlan } from "@/service/director/surprise-interview";
+import { stripLetterboxBars } from "@/service/higgsfield/flatten";
+import sharp from "sharp";
 
 before(() => installTestStyles());
 after(() => uninstallTestStyles());
@@ -1536,9 +1538,70 @@ test("9:16 whiteboard stills rewrite middle-60%-canvas phrasing into full-bleed 
     assert.doesNotMatch(prompt, /canvas in middle 60% safe zone/i);
     assert.match(prompt, /full-bleed canvas \(keep foreground subjects in the middle 60% safe zone\)/);
     assert.match(prompt, /fill 100% of the 9:16 vertical frame edge-to-edge/);
-    assert.match(prompt, /no letterbox bars/);
+    assert.match(prompt, /no (?:top or bottom )?letterbox bars/i);
     assert.match(prompt, /flat 2D whiteboard surface/);
     assert.match(prompt, /character on the whiteboard is in 2D/);
     assert.match(prompt, /concept is explained with 2D drawings/);
   }
 });
+
+test("whiteboard-canvas background plates are never attached as 3x3 set locks", () => {
+  const video = project("realistic");
+  video.skillSlug = "cartoon-explainer-video-director";
+  video.cast = [
+    { characterId: new ObjectId(), versionId: new ObjectId(), name: "Scro", blueprintUrl: "https://blob/c.png", prompt: "" },
+  ];
+  video.backgroundPlates = [
+    {
+      setId: "whiteboard-canvas",
+      name: "2D 全幅白板畫布",
+      notes: "純白或極淺米白（#FAF8F4）全幅無邊框 2D 白板表面",
+      clipNumbers: [1, 2],
+      url: "https://blob/whiteboard-plate.png",
+    },
+  ];
+  video.phaseA!.clips[0].backgroundSetId = "whiteboard-canvas";
+  const plan = frameSubmitPlan(video, 1, "start");
+  assert.deepEqual(plan.refs, ["https://blob/c.png"]);
+  assert.doesNotMatch(plan.prompt, /BACKGROUND LOCK/);
+});
+
+test("stripLetterboxBars crops top and bottom solid letterbox bands back to full-bleed 9:16", async () => {
+  const w = 180;
+  const h = 320;
+  const topBar = 52; // ~16.25%
+  const bottomBar = 64; // 20%
+  const raw = Buffer.alloc(w * h * 3);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 3;
+      if (y < topBar || y >= h - bottomBar) {
+        // Solid light-grey letterbox bar
+        raw[idx] = 236;
+        raw[idx + 1] = 236;
+        raw[idx + 2] = 236;
+      } else {
+        // Textured gradient inner photograph
+        raw[idx] = (x * 3 + y) % 200;
+        raw[idx + 1] = (x + y * 2) % 180;
+        raw[idx + 2] = (x * 5) % 220;
+      }
+    }
+  }
+  const inputPng = await sharp(raw, { raw: { width: w, height: h, channels: 3 } }).png().toBuffer();
+  const stripped = await stripLetterboxBars(inputPng);
+  const { data: outData, info: outInfo } = await sharp(stripped).raw().toBuffer({ resolveWithObject: true });
+  assert.equal(outInfo.width, w);
+  assert.equal(outInfo.height, h);
+  // Top row should now have texture rather than flat grey (spread > 36)
+  let minTop = 255;
+  let maxTop = 0;
+  for (let x = 0; x < w; x++) {
+    const idx = x * outInfo.channels;
+    const v = Math.round((outData[idx] + outData[idx + 1] + outData[idx + 2]) / 3);
+    if (v < minTop) minTop = v;
+    if (v > maxTop) maxTop = v;
+  }
+  assert.ok(maxTop - minTop > 36, `Expected top row to be full-bleed textured, got spread ${maxTop - minTop}`);
+});
+

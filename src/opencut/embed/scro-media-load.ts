@@ -1,11 +1,12 @@
-import { ALL_FORMATS, BlobSource, Input, UrlSource } from "mediabunny";
+import { ALL_FORMATS, AudioBufferSink, BlobSource, Input, UrlSource } from "mediabunny";
 import { clipNumberFromName } from "@/opencut/embed/scro-clip-number";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
+import { detectSpeechTrimBounds } from "@/opencut/media/silence-trim";
 import type { MediaAsset } from "@/opencut/media/types";
 import type { ProcessedMediaAsset } from "@/opencut/media/processing";
 
 export const DEFAULT_MEDIA_FETCH_TIMEOUT_MS = 20_000;
-export const DEFAULT_VIDEO_PROBE_TIMEOUT_MS = 3_000;
+export const DEFAULT_VIDEO_PROBE_TIMEOUT_MS = 4_500;
 export const DEFAULT_MEDIA_POOL_CONCURRENCY = 4;
 
 export type ProbedVideoMetadata = {
@@ -14,6 +15,8 @@ export type ProbedVideoMetadata = {
 	height?: number;
 	fps?: number;
 	hasAudio?: boolean;
+	speechTrimStart?: number;
+	speechTrimEnd?: number;
 };
 
 /**
@@ -34,14 +37,14 @@ export function createMediaInputSource({
 }
 
 /**
- * Probe only the MP4 header over HTTP Range requests (`UrlSource`) without downloading
- * the full video file or decoding 100 packets.
+ * Probe the MP4 metadata and decode its audio track to detect leading/trailing silence
+ * (`speechTrimStart` / `speechTrimEnd`) so Talking-Head and VO clips join seamlessly.
  */
-export async function probeRemoteVideoMetadata(
-	url: string,
+export async function probeVideoSpeechBoundsFromSource(
+	source: BlobSource | UrlSource,
 ): Promise<ProbedVideoMetadata> {
 	const input = new Input({
-		source: new UrlSource(url),
+		source,
 		formats: ALL_FORMATS,
 	});
 	try {
@@ -50,16 +53,69 @@ export async function probeRemoteVideoMetadata(
 			input.getPrimaryVideoTrack(),
 			input.getPrimaryAudioTrack(),
 		]);
+		const validDuration = Number.isFinite(duration) && duration > 0 ? duration : undefined;
+		let speechTrimStart: number | undefined;
+		let speechTrimEnd: number | undefined;
+
+		if (audioTrack) {
+			try {
+				const sink = new AudioBufferSink(audioTrack);
+				const chunks: AudioBuffer[] = [];
+				let totalSamples = 0;
+				for await (const { buffer } of sink.buffers(0)) {
+					chunks.push(buffer);
+					totalSamples += buffer.length;
+				}
+				if (chunks.length > 0 && totalSamples > 0) {
+					const sampleRate = chunks[0].sampleRate;
+					const numChannels = Math.min(2, chunks[0].numberOfChannels);
+					const channels = Array.from(
+						{ length: numChannels },
+						() => new Float32Array(totalSamples),
+					);
+					let offset = 0;
+					for (const chunk of chunks) {
+						for (let ch = 0; ch < numChannels; ch++) {
+							channels[ch].set(
+								chunk.getChannelData(Math.min(ch, chunk.numberOfChannels - 1)),
+								offset,
+							);
+						}
+						offset += chunk.length;
+					}
+					const bounds = detectSpeechTrimBounds({
+						channels,
+						sampleRate,
+						durationSeconds: validDuration,
+					});
+					if (bounds.speechDetected) {
+						speechTrimStart = bounds.trimStartSeconds;
+						speechTrimEnd = bounds.trimEndSeconds;
+					}
+				}
+			} catch {
+				// Ignore audio decode errors and fall back to untrimmed duration
+			}
+		}
+
 		return {
-			duration: Number.isFinite(duration) && duration > 0 ? duration : undefined,
+			duration: validDuration,
 			width: videoTrack?.displayWidth || undefined,
 			height: videoTrack?.displayHeight || undefined,
 			fps: 24,
 			hasAudio: audioTrack !== null,
+			speechTrimStart,
+			speechTrimEnd,
 		};
 	} finally {
 		input.dispose();
 	}
+}
+
+export async function probeRemoteVideoMetadata(
+	url: string,
+): Promise<ProbedVideoMetadata> {
+	return probeVideoSpeechBoundsFromSource(new UrlSource(url));
 }
 
 /**
@@ -111,6 +167,8 @@ export async function createStreamingVideoAsset({
 		height: probed?.height ?? fallbackHeight,
 		fps: probed?.fps ?? 24,
 		hasAudio: probed?.hasAudio ?? true,
+		speechTrimStart: probed?.speechTrimStart,
+		speechTrimEnd: probed?.speechTrimEnd,
 	};
 }
 

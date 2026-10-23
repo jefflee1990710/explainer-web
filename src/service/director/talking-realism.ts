@@ -12,7 +12,7 @@ type RealismScene = {
 
 // Appended to every talking-head still. Clip 2+ starts copy the previous end, so it carries over.
 export function talkingRealismStill(language: VoLanguage | undefined, scene: RealismScene = {}) {
-  if (language === "en" || !language) {
+  if (language !== "yue" && language !== "zh") {
     const light =
       "Light source: natural available window daylight and soft rim light coming from the visible window side (camera-right if the window is on the right) mixed with natural indoor room light, giving a clean, bright, dimensional 1.2:1 to 1.5:1 portrait contrast ratio and soft natural shadow roll-off on the far cheek and nose bridge (override any flat lighting from the character reference sheet; never flat beauty-ring front light, never dark moody cinema shadows, zero unmotivated light from the dark side). Keep highlights neutral or cool unless a warm practical lamp is visible in frame, and keep the window sky and any glowing source below pure-white clipping.";
     const skin =
@@ -36,7 +36,7 @@ export function talkingRealismStill(language: VoLanguage | undefined, scene: Rea
 
 // Appended to each talking-head motion prompt so the clip keeps the stills' realism.
 export function talkingRealismMotion(language: VoLanguage | undefined, scene: RealismScene = {}) {
-  if (language === "en" || !language) {
+  if (language !== "yue" && language !== "zh") {
     const hold = scene.openingPhoto
       ? "the light stays as in the first frame"
       : "the natural window light and clean digital camera color stay fixed, the background bokeh stays steady, and focus stays tack-sharp on the face (no heavy vintage film grain or cinematic LUT)";

@@ -24,6 +24,8 @@ import {
 import { usePropertyDraft } from "../hooks/use-property-draft";
 import { KeyframeToggle } from "./keyframe-toggle";
 import { Textarea } from "@/opencut/components/ui/textarea";
+import { loadFullFont } from "@/opencut/fonts/google-fonts";
+import { TEXT_FONT_PRESETS } from "@/opencut/text/font-presets";
 
 export function PropertyParamField({
 	param,
@@ -147,13 +149,33 @@ function ParamInput({
 	}
 
 	if (param.type === "font") {
+		const currentFont = String(value);
+		const inPresets = TEXT_FONT_PRESETS.some((item) => item.family === currentFont);
 		return (
-			<input
-				className="border-input bg-white text-[#12141c] h-9 w-full rounded-md border px-3 text-sm outline-none"
-				value={String(value)}
-				onChange={(event) => onPreview(event.currentTarget.value)}
-				onBlur={onCommit}
-			/>
+			<Select
+				value={currentFont}
+				onValueChange={(selected) => {
+					const preset = TEXT_FONT_PRESETS.find((item) => item.family === selected);
+					void loadFullFont({ family: selected, weights: preset?.weights }).finally(() => {
+						onPreview(selected);
+						onCommit();
+					});
+				}}
+			>
+				<SelectTrigger className="w-full">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					{!inPresets && currentFont ? (
+						<SelectItem value={currentFont}>{currentFont}</SelectItem>
+					) : null}
+					{TEXT_FONT_PRESETS.map((preset) => (
+						<SelectItem key={preset.id} value={preset.family}>
+							{preset.label ?? preset.family}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
 		);
 	}
 

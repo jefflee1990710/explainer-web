@@ -4,14 +4,18 @@ type SlotElement = {
 	name: string;
 	startTime: number;
 	duration: number;
+	scroClipNumber?: number;
 };
 
-function clipNumberFromName({ name }: { name: string }) {
-	const match = /^clip\s+(\d+)\b/i.exec(name.trim());
+function clipNumberFromElement({ element }: { element: SlotElement }) {
+	if (typeof element.scroClipNumber === "number" && element.scroClipNumber > 0) {
+		return element.scroClipNumber;
+	}
+	const match = /^clip\s+(\d+)\b/i.exec(element.name.trim());
 	return match ? Number(match[1]) : null;
 }
 
-// Each spoken line goes on its "Clip N" video. Unnamed videos fill the rest in timeline order.
+// Each spoken line goes on its "Clip N" video (or still placeholder). Unnamed clips fill the rest in timeline order.
 export function matchSubtitleSlots<T extends SlotElement>({
 	elements,
 	clipNumbers,
@@ -19,19 +23,28 @@ export function matchSubtitleSlots<T extends SlotElement>({
 	elements: T[];
 	clipNumbers: number[];
 }): Map<number, T> {
-	const videos = elements.filter((element) => element.type === "video" && element.duration > 0);
+	const clips = elements.filter(
+		(element) =>
+			(element.type === "video" || element.type === "image") &&
+			element.duration > 0,
+	);
 	const used = new Set<string>();
 	const slots = new Map<number, T>();
 	for (const clipNumber of clipNumbers) {
-		const hit = videos.find(
-			(element) => !used.has(element.id) && clipNumberFromName({ name: element.name }) === clipNumber,
+		const hit = clips.find(
+			(element) =>
+				!used.has(element.id) &&
+				clipNumberFromElement({ element }) === clipNumber,
 		);
 		if (!hit) continue;
 		used.add(hit.id);
 		slots.set(clipNumber, hit);
 	}
-	const leftovers = videos
-		.filter((element) => !used.has(element.id) && clipNumberFromName({ name: element.name }) == null)
+	const leftovers = clips
+		.filter(
+			(element) =>
+				!used.has(element.id) && clipNumberFromElement({ element }) == null,
+		)
 		.sort((a, b) => a.startTime - b.startTime);
 	const missing = clipNumbers.filter((clipNumber) => !slots.has(clipNumber));
 	missing.forEach((clipNumber, index) => {
@@ -41,7 +54,7 @@ export function matchSubtitleSlots<T extends SlotElement>({
 	return slots;
 }
 
-// Names this panel gives its images, so a second Generate replaces them.
+// Names this panel gives its subtitle elements, so a second Generate replaces them cleanly.
 export function isScroSubtitleName({ name }: { name: string }) {
-	return /^Subtitle \d+$/.test(name);
+	return /^Subtitle \d+(?:[.-]\d+)?$/.test(name);
 }

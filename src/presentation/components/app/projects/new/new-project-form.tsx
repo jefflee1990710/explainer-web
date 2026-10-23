@@ -101,6 +101,7 @@ import type {
   FrameRevisionInput,
   SceneTextChoice,
   SpeechPace,
+  StoryboardClipDraft,
   VoLanguage,
   VoiceGender,
 } from "@/model/project";
@@ -137,6 +138,7 @@ import {
   ReferenceImagesField,
   type ReferenceImageDraft,
 } from "@/presentation/components/app/projects/new/reference-images-field";
+import { StoryboardDraftsStep } from "@/presentation/components/app/projects/new/storyboard-drafts-step";
 import { BriefWizardStepper } from "@/presentation/components/app/projects/new/brief-wizard-stepper";
 import {
   canAdvanceFromWizardStep,
@@ -264,6 +266,9 @@ export function NewProjectForm({
   const [logoUrl, setLogoUrl] = useState(initialVideo?.logoUrl || "");
   const [referenceImages, setReferenceImages] = useState<ReferenceImageDraft[]>(
     () => toReferenceDrafts(initialVideo?.referenceImages),
+  );
+  const [clipDrafts, setClipDrafts] = useState<StoryboardClipDraft[]>(
+    () => initialVideo?.clipDrafts || [],
   );
   const [backgroundImageUrls, setBackgroundImageUrls] = useState<string[]>(
     initialVideo?.backgroundImageUrls || [],
@@ -429,6 +434,7 @@ export function NewProjectForm({
       (project.logoUrl || "") === (bookend ? logoUrl : "") &&
       JSON.stringify(toReferenceDrafts(project.referenceImages)) ===
         JSON.stringify(referenceImages.map((item) => ({ ...item, description: item.description.trim() }))) &&
+      JSON.stringify(project.clipDrafts || []) === JSON.stringify(clipDrafts) &&
       JSON.stringify(project.backgroundImageUrls || []) ===
         JSON.stringify(talkingHeadBackground ? backgroundImageUrls : []) &&
       (project.startImageUrl || "") === (talkingHeadStartImage ? startImageUrl : "") &&
@@ -464,6 +470,9 @@ export function NewProjectForm({
     formData.set("durationPreset", durationPreset);
     if (bookend && logoUrl) formData.set("logoUrl", logoUrl);
     formData.set("referenceImages", JSON.stringify(referenceImages));
+    if (clipDrafts.length > 0) {
+      formData.set("clipDrafts", JSON.stringify(clipDrafts));
+    }
     if (talkingHeadBackground) {
       formData.set("backgroundImageUrls", JSON.stringify(backgroundImageUrls));
     }
@@ -506,12 +515,16 @@ export function NewProjectForm({
         return;
       }
       goToWizardStep(2);
+      return;
+    }
+    if (wizardStep === 2) {
+      goToWizardStep(3);
     }
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (wizardStep < 2) {
+    if (wizardStep < 3) {
       onNextWizardStep();
       return;
     }
@@ -599,6 +612,7 @@ export function NewProjectForm({
     setProductIds((video.products ?? []).map((item) => item.productId));
     setLogoUrl(video.logoUrl || "");
     setReferenceImages(toReferenceDrafts(video.referenceImages));
+    setClipDrafts(video.clipDrafts || []);
     setBackgroundImageUrls(video.backgroundImageUrls || []);
     setStartImageUrl(video.startImageUrl || "");
   }
@@ -961,7 +975,11 @@ export function NewProjectForm({
     1: source.trim()
       ? t("brief.source.charCount", { n: source.trim().length.toLocaleString() })
       : undefined,
-    2: [LANGUAGE_PRESETS[language].label, aspectRatio].filter(Boolean).join(" · "),
+    2:
+      clipDrafts.length > 0
+        ? t("brief.drafts.countSummary", { n: clipDrafts.length })
+        : t("brief.drafts.skipSummary"),
+    3: [LANGUAGE_PRESETS[language].label, aspectRatio].filter(Boolean).join(" · "),
   };
 
   const canSubmit =
@@ -990,7 +1008,12 @@ export function NewProjectForm({
         >
         <AnimatePresence mode="wait" initial={false}>
           {viewing === 0 ? (
-            <StudioPanel key="form" className="mx-auto w-full max-w-3xl">
+            <StudioPanel
+              key="form"
+              className={`mx-auto w-full transition-all ${
+                wizardStep === 2 ? "max-w-5xl" : "max-w-3xl"
+              }`}
+            >
             <motion.form
               key="form"
               onSubmit={onSubmit}
@@ -1164,9 +1187,29 @@ export function NewProjectForm({
                       ) : null}
                     </Section>
                   </motion.div>
-                ) : (
+                ) : wizardStep === 2 ? (
                   <motion.div
                     key="wizard-step-2"
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
+                    transition={{ duration: 0.25, ease }}
+                    className="space-y-5"
+                  >
+                    <StoryboardDraftsStep
+                      skillSlug={skillSlug}
+                      styleId={styleId}
+                      source={source}
+                      spokenScript={talkingHead ? spokenScript : undefined}
+                      language={language}
+                      drafts={clipDrafts}
+                      disabled={briefBusy}
+                      onChange={setClipDrafts}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="wizard-step-3"
                     initial={{ opacity: 0, x: -12 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
@@ -1286,16 +1329,16 @@ export function NewProjectForm({
                   <p className="text-xs text-muted">
                     {castNeed > 0 && characterIds.length !== castNeed
                       ? t("brief.footer.castRequired", { n: castNeed })
-                      : wizardStep === 2
+                      : wizardStep === 3
                         ? restarting
                           ? t("brief.footer.restartWarning")
                           : project
                             ? t("brief.footer.editBriefWarning")
                             : t("brief.footer.noCharge")
-                        : t("brief.wizard.stepCount", { current: wizardStep + 1, total: 3 })}
+                        : t("brief.wizard.stepCount", { current: wizardStep + 1, total: 4 })}
                   </p>
 
-                  {wizardStep < 2 ? (
+                  {wizardStep < 3 ? (
                     <motion.button
                       key="wizard-next-button"
                       type="button"

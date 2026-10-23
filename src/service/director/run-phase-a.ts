@@ -92,9 +92,11 @@ import type {
   ReferenceImage,
   SceneTextChoice,
   SpeechPace,
+  StoryboardClipDraft,
   VoLanguage,
   VoiceGender,
 } from "@/model/project";
+import { buildStoryboardDraftPhaseABlock } from "@/service/director/storyboard-draft-chat";
 import type { Skill } from "@/model/skill";
 
 // Gemini sometimes returns PROHIBITED_CONTENT and no JSON for a normal
@@ -171,6 +173,8 @@ export async function runPhaseA(input: {
   logoUrl?: string;
   // Brief scene references; the director tags clips with their ids.
   referenceImages?: ReferenceImage[];
+  // Optional user-sketched or AI-drafted clip breakdowns created in the brief wizard.
+  clipDrafts?: StoryboardClipDraft[];
   // Talking-head room photos. When present, the bookshelf set is not used.
   backgroundImageUrls?: string[];
   // Talking-head read + Cinematic realistic. Clip 1's start matches this photo.
@@ -232,6 +236,22 @@ export async function runPhaseA(input: {
   const productImages = productUrls.length ? await loadDirectorImageParts(productUrls) : [];
   const productNames = (input.products ?? []).map((item) => item.name).filter(Boolean).join(", ");
   const references = await loadReferenceImageContent(input.referenceImages);
+  const clipDraftsBlock = buildStoryboardDraftPhaseABlock(input.clipDrafts);
+  const sketchDrafts = (input.clipDrafts ?? []).filter((d) => Boolean(d.sketchUrl));
+  const sketchImageParts = sketchDrafts.length
+    ? await loadDirectorImageParts(sketchDrafts.map((d) => d.sketchUrl!))
+    : [];
+  const sketchPartsWithLabels = sketchDrafts.flatMap((draft, index) => {
+    const imgPart = sketchImageParts[index];
+    if (!imgPart) return [];
+    return [
+      {
+        type: "text" as const,
+        text: `[Clip ${draft.clipNumber} Hand-Drawn Sketch]${draft.explanation ? ` — ${draft.explanation}` : ""}:`,
+      },
+      imgPart,
+    ];
+  });
   // R ids are positional, so ids from an older draft may now name a different image;
   // drop them and let the director assign against the current list.
   const draftForPrompt = input.currentDraft && {
@@ -401,11 +421,12 @@ On-canvas text: ${
       : "off"
 }
 ${characterNote}
-${productImages.length ? `Product references (${productNames}) are attached after the character blueprints and before any brand logo. Keep the product photorealistic and identical to those images in every scene that shows it. Do not restyle the product into the visual style.\n` : ""}${logoImages.length ? `Brand logo: the LAST attached image is the brand logo (after any scene, character, and product references). Use it as-is in startScene / endScene.\n` : ""}${draftNote}${revisionNote}${clipsOnlyNote}
+${productImages.length ? `Product references (${productNames}) are attached after the character blueprints and before any brand logo. Keep the product photorealistic and identical to those images in every scene that shows it. Do not restyle the product into the visual style.\n` : ""}${logoImages.length ? `Brand logo: the LAST attached image is the brand logo (after any scene, character, and product references). Use it as-is in startScene / endScene.\n` : ""}${clipDraftsBlock}${draftNote}${revisionNote}${clipsOnlyNote}
 Produce a complete Phase A director proposal now.`,
           },
           ...references.parts,
-          ...(references.parts.length && characterImages.length
+          ...sketchPartsWithLabels,
+          ...((references.parts.length || sketchPartsWithLabels.length) && characterImages.length
             ? [{ type: "text" as const, text: "Character blueprints follow (not scene references):" }]
             : []),
           ...characterImages,

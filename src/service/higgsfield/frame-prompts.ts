@@ -440,7 +440,7 @@ function fitFramePrompt(
       sightline:
         "Sightline: show only what this camera can see. Keep faces, screens, pages, and labels aimed at whoever uses them; if facing away from the camera, draw the blank back.",
       safeArea: p.safeArea
-        ? "9:16 IG Reel safe area: fill 100% of the 9:16 frame edge-to-edge with the background/canvas (no letterbox bars or inner box), while the top 20% and bottom 20% stay empty; place all text, characters, and main subjects in the middle 60%."
+        ? "9:16 IG Reel safe area: fill 100% of the 9:16 vertical frame from top edge to bottom edge with the scene (NO top/bottom letterbox bars or padding bands); keep text and faces in the middle 60%."
         : "",
       castLines: p.castLines.map((line) =>
         line
@@ -485,6 +485,8 @@ export function logoReferenceUrls(project: Pick<Project, "skillSlug" | "logoUrl"
 // Prop sheet then empty-set plate for this clip. Sit after the character so faces win.
 // Talking-head stills anchored to Clip 1's start already lock the room and props to attached image 1;
 // attaching the 3x3 empty-set plate alongside it causes the model to pick a different cell per clip.
+// Whiteboard concept explainers (2D full-bleed whiteboard canvas) also skip the 3x3 architectural
+// background plate so the model never draws a 3D building/landscape or copies a 16:9 cell aspect ratio.
 export function videoLockReferenceUrls(
   project: Project,
   clipNumber: number,

@@ -83,13 +83,15 @@ function upsertScroClip({
 	return clips.map((item) => (item.clipNumber === clip.clipNumber ? clip : item));
 }
 
-/** Visible length is the storyboard. A longer generated file keeps its tail trimmed off. */
+/** Visible length is the storyboard (or speech-trimmed video). */
 function buildScroTimelineElement({
 	mediaId,
 	mediaType,
 	name,
 	clip,
 	fileSeconds,
+	speechTrimStart,
+	speechTrimEnd,
 	startTime,
 }: {
 	mediaId: string;
@@ -97,13 +99,17 @@ function buildScroTimelineElement({
 	name: string;
 	clip: ScroVideoSeedClip;
 	fileSeconds?: number;
+	speechTrimStart?: number;
+	speechTrimEnd?: number;
 	startTime: ReturnType<typeof mediaTimeFromSeconds>;
 }) {
 	const place = storyboardPlacement({
 		storyboardSeconds: clip.durationSeconds,
 		fileSeconds: mediaType === "video" ? fileSeconds : undefined,
+		speechTrimStart: mediaType === "video" ? speechTrimStart : undefined,
+		speechTrimEnd: mediaType === "video" ? speechTrimEnd : undefined,
 	});
-	return buildElementFromMedia({
+	const built = buildElementFromMedia({
 		mediaId,
 		mediaType,
 		name,
@@ -117,6 +123,13 @@ function buildScroTimelineElement({
 				}
 			: {}),
 	});
+	if (mediaType === "video" && place.trimStartSeconds > 0) {
+		return {
+			...built,
+			trimStart: toElementDurationTicks({ seconds: place.trimStartSeconds }),
+		};
+	}
+	return built;
 }
 
 function findScroElement(
@@ -278,6 +291,8 @@ export function ScroVideoSync() {
 					const place = storyboardPlacement({
 						storyboardSeconds: clip.durationSeconds,
 						fileSeconds: created.type === "video" ? created.duration : undefined,
+						speechTrimStart: created.type === "video" ? created.speechTrimStart : undefined,
+						speechTrimEnd: created.type === "video" ? created.speechTrimEnd : undefined,
 					});
 					editor.timeline.insertElement({
 						placement: { mode: "explicit", trackId: freshScene.tracks.main.id },
@@ -287,6 +302,8 @@ export function ScroVideoSync() {
 							name: clip.name,
 							clip,
 							fileSeconds: created.duration,
+							speechTrimStart: created.speechTrimStart,
+							speechTrimEnd: created.speechTrimEnd,
 							startTime: mediaTimeFromSeconds({ seconds: cursor }),
 						}),
 					});
@@ -393,6 +410,8 @@ export function ScroVideoSync() {
 							name: clip.name,
 							clip,
 							fileSeconds: created.duration,
+							speechTrimStart: created.speechTrimStart,
+							speechTrimEnd: created.speechTrimEnd,
 							startTime: element.startTime,
 						}),
 					});
@@ -470,12 +489,16 @@ export function ScroVideoSync() {
 								name: clip.name,
 								clip,
 								fileSeconds: created.duration,
+								speechTrimStart: created.speechTrimStart,
+								speechTrimEnd: created.speechTrimEnd,
 								startTime: mediaTimeFromSeconds({ seconds: cursor }),
 							}),
 						});
 						cursor += storyboardPlacement({
 							storyboardSeconds: clip.durationSeconds,
 							fileSeconds: created.type === "video" ? created.duration : undefined,
+							speechTrimStart: created.type === "video" ? created.speechTrimStart : undefined,
+							speechTrimEnd: created.type === "video" ? created.speechTrimEnd : undefined,
 						}).visibleSeconds;
 					}
 					return;
@@ -500,12 +523,16 @@ export function ScroVideoSync() {
 							name: clip.name,
 							clip,
 							fileSeconds: created.duration,
+							speechTrimStart: created.speechTrimStart,
+							speechTrimEnd: created.speechTrimEnd,
 							startTime: mediaTimeFromSeconds({ seconds: cursor }),
 						}),
 					});
 					cursor += storyboardPlacement({
 						storyboardSeconds: clip.durationSeconds,
 						fileSeconds: created.type === "video" ? created.duration : undefined,
+						speechTrimStart: created.type === "video" ? created.speechTrimStart : undefined,
+						speechTrimEnd: created.type === "video" ? created.speechTrimEnd : undefined,
 					}).visibleSeconds;
 				}
 			} finally {
@@ -621,12 +648,18 @@ export function ScroVideoSync() {
 				const place = storyboardPlacement({
 					storyboardSeconds: data.clip.durationSeconds,
 					fileSeconds: created.type === "video" ? created.duration : undefined,
+					speechTrimStart: created.type === "video" ? created.speechTrimStart : undefined,
+					speechTrimEnd: created.type === "video" ? created.speechTrimEnd : undefined,
 				});
 				const nextDuration = toElementDurationTicks({ seconds: place.visibleSeconds });
 				const nextSourceDuration =
 					created.type === "video"
 						? toElementDurationTicks({ seconds: place.sourceSeconds })
 						: undefined;
+				const nextTrimStart =
+					created.type === "video"
+						? toElementDurationTicks({ seconds: place.trimStartSeconds })
+						: ZERO_MEDIA_TIME;
 				const nextTrimEnd =
 					created.type === "video"
 						? toElementDurationTicks({ seconds: place.trimEndSeconds })
@@ -634,7 +667,9 @@ export function ScroVideoSync() {
 				if (
 					existing.mediaId !== created.id ||
 					existing.name !== data.clip.name ||
-					existing.duration !== nextDuration
+					existing.duration !== nextDuration ||
+					existing.trimStart !== nextTrimStart ||
+					existing.trimEnd !== nextTrimEnd
 				) {
 					editor.timeline.updateElements({
 						updates: [
@@ -646,7 +681,7 @@ export function ScroVideoSync() {
 									name: data.clip.name,
 									scroClipNumber: data.clip.clipNumber,
 									duration: nextDuration,
-									trimStart: ZERO_MEDIA_TIME,
+									trimStart: nextTrimStart,
 									trimEnd: nextTrimEnd,
 									...(nextSourceDuration !== undefined
 										? { sourceDuration: nextSourceDuration }
@@ -672,6 +707,8 @@ export function ScroVideoSync() {
 					name: data.clip.name,
 					clip: data.clip,
 					fileSeconds: created.duration,
+					speechTrimStart: created.speechTrimStart,
+					speechTrimEnd: created.speechTrimEnd,
 					startTime,
 				}),
 			});
@@ -699,6 +736,8 @@ export function ScroVideoSync() {
 					sourceSeconds:
 						sourceDuration != null ? mediaTimeToSeconds({ time: sourceDuration }) : null,
 					fileSeconds: asset?.type === "video" ? (asset.duration ?? null) : null,
+					speechTrimStart: asset?.type === "video" ? asset.speechTrimStart : undefined,
+					speechTrimEnd: asset?.type === "video" ? asset.speechTrimEnd : undefined,
 				};
 			});
 			const patches = fitFullLengthPlacements({
@@ -721,6 +760,7 @@ export function ScroVideoSync() {
 							...(patch.durationChanged
 								? {
 										duration: mediaTimeFromSeconds({ seconds: patch.durationSeconds }),
+										trimStart: mediaTimeFromSeconds({ seconds: patch.trimStartSeconds }),
 										trimEnd: mediaTimeFromSeconds({ seconds: patch.trimEndSeconds }),
 										...(element?.type === "video"
 											? {

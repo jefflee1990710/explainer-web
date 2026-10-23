@@ -26,6 +26,7 @@ import {
 	computeRmsBuckets,
 	type SampleBucket,
 } from "@/opencut/media/waveform-summary";
+import { AUDIO_BOUNDARY_FADE_SECONDS } from "@/opencut/media/silence-trim";
 
 const MAX_AUDIO_CHANNELS = 2;
 const EXPORT_SAMPLE_RATE = 44100;
@@ -857,12 +858,22 @@ function mixAudioChannels({
 			const lowerIndex = Math.floor(sourceIndex);
 			const upperIndex = Math.min(sourceData.length - 1, lowerIndex + 1);
 			const fraction = sourceIndex - lowerIndex;
-			const gain = hasAnimatedVolume({ element: element.timelineElement })
+			const baseGain = hasAnimatedVolume({ element: element.timelineElement })
 				? resolveEffectiveAudioGain({
 						element: element.timelineElement,
 						localTime: clipTime,
 					})
 				: element.volume;
+			const fadeSamples = Math.max(1, Math.floor(AUDIO_BOUNDARY_FADE_SECONDS * sampleRate));
+			let edgeFade = 1;
+			if (renderedLength > fadeSamples * 2) {
+				if (i < fadeSamples) {
+					edgeFade = i / fadeSamples;
+				} else if (renderedLength - 1 - i < fadeSamples) {
+					edgeFade = (renderedLength - 1 - i) / fadeSamples;
+				}
+			}
+			const gain = baseGain * edgeFade;
 			outputData[outputIndex] +=
 				(sourceData[lowerIndex] * (1 - fraction) +
 					sourceData[upperIndex] * fraction) *

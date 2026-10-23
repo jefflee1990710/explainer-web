@@ -59,7 +59,10 @@ export function CharacterWorkspace({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [character, setCharacter] = useState(initial);
-  const [activeTab, setActiveTab] = useState<"look" | "voice" | "persona">("look");
+  const initialTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<"look" | "voice" | "persona">(
+    initialTab === "voice" || initialTab === "persona" ? initialTab : "look",
+  );
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
@@ -228,12 +231,27 @@ export function CharacterWorkspace({
               role="tab"
               aria-selected={activeTab === "voice"}
               onClick={() => setActiveTab("voice")}
-              className={`cursor-pointer rounded-full px-3.5 py-1 text-xs font-bold transition ${
+              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold transition ${
                 activeTab === "voice"
                   ? "bg-accent-ink text-paper"
                   : "text-muted hover:text-foreground"
               }`}
             >
+              <svg
+                viewBox="0 0 20 20"
+                className="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="7" y="2.5" width="6" height="9.5" rx="3" />
+                <path d="M4.5 9.5a5.5 5.5 0 0 0 11 0" />
+                <path d="M10 15v2.5" />
+                <path d="M7 17.5h6" />
+              </svg>
               {t("characters.voiceTitle")}
             </button>
             <button

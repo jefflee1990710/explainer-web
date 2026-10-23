@@ -18,8 +18,16 @@ export function insertCaptionChunksAsTextTrack({
 		return null;
 	}
 
-	const addTrackCommand = new AddTrackCommand({ type: "text", index: 0 });
-	const trackId = addTrackCommand.getTrackId();
+	const scene = editor.scenes.getActiveScene();
+	const reusableTrack = scene.tracks.overlay.find(
+		(track) => track.type === "text" && track.elements.length === 0,
+	);
+	const addTrackCommand = reusableTrack
+		? null
+		: new AddTrackCommand({ type: "text", index: 0 });
+	const trackId = reusableTrack
+		? reusableTrack.id
+		: addTrackCommand!.getTrackId();
 	const canvasSize = editor.project.getActive().settings.canvasSize;
 	const insertCommands = captions.map(
 		(caption, index) =>
@@ -33,7 +41,10 @@ export function insertCaptionChunksAsTextTrack({
 			}),
 	);
 	editor.command.execute({
-		command: new BatchCommand([addTrackCommand, ...insertCommands]),
+		command: new BatchCommand([
+			...(addTrackCommand ? [addTrackCommand] : []),
+			...insertCommands,
+		]),
 	});
 
 	return trackId;

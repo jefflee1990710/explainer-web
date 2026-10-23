@@ -25,7 +25,7 @@ export function BriefWizardStepper({
   return (
     <div className="border-b border-accent-ink/10 pb-5">
       <ol
-        className="grid grid-cols-3 gap-2 sm:gap-3"
+        className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3"
         aria-label={t("brief.wizard.stepCount", {
           current: currentStep + 1,
           total: BRIEF_WIZARD_STEPS.length,

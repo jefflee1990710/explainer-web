@@ -340,7 +340,7 @@ export function planTalkingHeadClips(input: {
         input.realistic ? talkingRealismMotion(input.language, realism) : "",
       ),
       englishVo: line,
-      bgmSfx: input.language === "en" ? "none" : "無",
+      bgmSfx: input.language === "yue" || input.language === "zh" ? "無" : "none",
     });
   }
   return clips;
@@ -430,8 +430,12 @@ function paceNote(pace?: SpeechPace) {
   return "keep that number because the pace is medium";
 }
 
+function isChineseScaffolding(language?: VoLanguage) {
+  return language === "yue" || language === "zh";
+}
+
 function jobLine(language: VoLanguage | undefined, index: number, total: number) {
-  if (language === "en") return `clip ${index} of ${total}`;
+  if (!isChineseScaffolding(language)) return `clip ${index} of ${total}`;
   return `第 ${index} 段，共 ${total} 段`;
 }
 
@@ -459,7 +463,7 @@ function withStillRealism(still: string, language: VoLanguage | undefined, scene
     fullBody: scene.shot === "full-body",
     openingPhoto: scene.openingPhoto,
   });
-  return language === "en" ? `${still.trim()} ${clause}` : `${still.trim()}${clause}`;
+  return !isChineseScaffolding(language) ? `${still.trim()} ${clause}` : `${still.trim()}${clause}`;
 }
 
 function withMotionRealism(motion: string, clause: string) {
@@ -582,13 +586,13 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
   const anchored = hasAnchorProp(scene.perf);
   const p = scene.perf;
   const clipIndex = scene.clipIndex ?? 0;
+  const useEn = !isChineseScaffolding(language);
   if (scene.openingPhoto && moment === "start") {
-    const pose =
-      language === "en"
-        ? "Character: the only person in the frame. Match the attached opening photo exactly: same face, hair, clothes, body, and pose. They look into the lens, mouth just opening."
-        : "角色：畫面只有呢一個人。跟附上的開場照片：同一張臉、頭髮、衫、身形同姿勢。直望鏡頭，準備開口。";
+    const pose = useEn
+      ? "Character: the only person in the frame. Match the attached opening photo exactly: same face, hair, clothes, body, and pose. They look into the lens, mouth just opening."
+      : "角色：畫面只有呢一個人。跟附上的開場照片：同一張臉、頭髮、衫、身形同姿勢。直望鏡頭，準備開口。";
     const still = withStillRealism(
-      language === "en"
+      useEn
         ? `${pose} ${setClause("en", scene)}${camera}`
         : `${pose}${setClause("yue", scene)}${camera}`,
       language,
@@ -596,11 +600,11 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
     );
     if (scene.overlay) return still.trim();
     const painted = language === "yue" ? toWrittenChinese(line) : line;
-    return language === "en"
+    return useEn
       ? `${still} ${subtitleSentence("en", painted, scene.belowCenter)}`
       : `${still}${subtitleSentence("yue", painted, scene.belowCenter)}`;
   }
-  if (language === "en") {
+  if (useEn) {
     const prop = anchored ? ` One hand holds ${p.anchorProp}.` : "";
     const propEnd = anchored ? ` The same hand still holds ${p.anchorProp}.` : "";
     const freeHand = anchored ? "The other hand" : "One hand";
@@ -655,7 +659,7 @@ function withThisClipSubtitle(
   if (overlay) return previousEnd.replace(/\s*(?:Subtitle:|字幕：).*$/u, "").trim();
   const painted = language === "yue" ? toWrittenChinese(line) : line;
   const body = previousEnd.replace(/\s*(?:Subtitle:|字幕：).*$/u, "").trim();
-  const lang = language === "en" ? "en" : "yue";
+  const lang = !isChineseScaffolding(language) ? "en" : "yue";
   return `${body} ${subtitleSentence(lang, painted, belowCenter)}`.replace(/\s{2,}/g, " ");
 }
 
@@ -703,7 +707,7 @@ function cameraClause(language: VoLanguage | undefined, shot: string | undefined
   const size = shot?.trim() || "";
   const fullBody = size === "full-body";
   const anchored = hasAnchorProp(perf);
-  if (language === "en") {
+  if (!isChineseScaffolding(language)) {
     if (fullBody) return " Camera: locked full-body, character centered, head to feet in frame.";
     const inFrame = anchored
       ? "Head and torso stay in frame, and the handheld prop stays in frame."
