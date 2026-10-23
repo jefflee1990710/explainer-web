@@ -58,8 +58,8 @@ export function LandingSteps({ signedIn = false }: { signedIn?: boolean }) {
                   alt=""
                   className="aspect-video w-full border-b border-[#e4e4e7] bg-[#f4f4f5] object-cover"
                 />
-                <div className="flex flex-1 flex-col items-center p-8">
-                  <span className="-mt-14 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e4e4e7] bg-[#12141c] text-xs font-bold text-[#c6f24b]">
+                <div className="flex flex-1 flex-col items-center p-5 sm:p-8">
+                  <span className="-mt-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e4e4e7] bg-[#12141c] text-xs font-bold text-[#c6f24b] sm:-mt-14">
                     {item.step}
                   </span>
                   <h3 className="mt-4 font-display text-xl font-semibold text-[#12141c]">{item.title}</h3>

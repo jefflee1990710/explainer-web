@@ -35,7 +35,7 @@ export function LandingHeroArt() {
       </ParallaxLayer>
 
       {/* Equal side tracks so the cast rail and the output rail share width, height, and gutter. */}
-      <div className="relative mx-auto grid h-full max-w-[96rem] grid-cols-1 lg:grid-cols-[minmax(16rem,1fr)_minmax(0,36rem)_minmax(16rem,1fr)]">
+      <div className="relative mx-auto grid h-full max-w-[96rem] grid-cols-1 lg:grid-cols-[minmax(15rem,1fr)_minmax(0,32rem)_minmax(15rem,1fr)] xl:grid-cols-[minmax(16rem,1fr)_minmax(0,36rem)_minmax(16rem,1fr)]">
         <div className="relative z-[1] hidden h-full min-h-0 lg:block">
           <LandingHeroCastRail />
         </div>
@@ -46,7 +46,8 @@ export function LandingHeroArt() {
           <LandingHeroOutputs />
         </div>
 
-        <div className="relative z-[1] grid grid-cols-2 items-stretch gap-0 lg:hidden">
+        {/* Stacked on phones (< 640px) so 4-column cast cards stay readable; 2 columns on sm/md tablets. */}
+        <div className="relative z-[1] mx-auto grid w-full max-w-3xl grid-cols-1 items-start gap-2 px-1 pb-4 sm:grid-cols-2 sm:items-stretch sm:gap-2 sm:px-3 lg:hidden">
           <LandingHeroCastRail />
           <LandingHeroOutputs />
         </div>

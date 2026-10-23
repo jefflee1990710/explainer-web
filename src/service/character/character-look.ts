@@ -260,6 +260,8 @@ const FULL_BODY_TOP = new Set([
   "alsportyjerseytop",
   "alsmokyqipaotop",
   "alinkbambooqipao",
+  "vcnavybuttondress",
+  "sptennisdress",
   "kaftan",
   "djellaba",
   "thobe",
@@ -719,26 +721,38 @@ export function applyWardrobePick(
   return next;
 }
 
-// Drops unknown parts and option ids from client-sent wardrobe picks.
+// Drops unknown parts and option ids from client-sent wardrobe picks (allows custom `cw_<hex24>` ids).
 export function sanitizeWardrobePicks(raw: unknown): CharacterWardrobePicks {
   if (!raw || typeof raw !== "object") return {};
   const input = raw as Record<string, unknown>;
   const picks: CharacterWardrobePicks = {};
   for (const part of CHARACTER_WARDROBE_PARTS) {
     const id = input[part];
-    if (typeof id === "string" && isCharacterLookId(part, id)) picks[part] = id;
+    if (
+      typeof id === "string" &&
+      (isCharacterLookId(part, id) || /^cw_[a-f0-9]{24}$/i.test(id))
+    ) {
+      picks[part] = id;
+    }
   }
   return picks;
 }
 
-// Picked wardrobe ids → English prompt text per part.
+// Picked wardrobe ids → English prompt text per part (supports customPromptMap for `cw_*` items).
 export function wardrobePickPrompts(
   picks: CharacterWardrobePicks,
+  customPromptMap?: ReadonlyMap<string, string>,
 ): Partial<Record<CharacterWardrobePart, string>> {
   const prompts: Partial<Record<CharacterWardrobePart, string>> = {};
   for (const part of CHARACTER_WARDROBE_PARTS) {
     const id = picks[part];
-    const prompt = part === "pants" ? pantsPromptFor(id, picks.top) : id ? characterLookOption(part, id)?.prompt : undefined;
+    if (!id) continue;
+    const customPrompt = customPromptMap?.get(id);
+    const prompt =
+      customPrompt ??
+      (part === "pants"
+        ? pantsPromptFor(id, picks.top)
+        : characterLookOption(part, id)?.prompt);
     if (prompt) prompts[part] = prompt;
   }
   return prompts;
@@ -750,12 +764,18 @@ export function characterWardrobeEditInstruction(
   picks: CharacterWardrobePicks,
   customNote = "",
   wornTop?: string,
+  customPromptMap?: ReadonlyMap<string, string>,
 ): string {
   const parts: string[] = [];
   for (const part of CHARACTER_WARDROBE_PARTS) {
     const id = picks[part];
     if (!id) continue;
-    const prompt = part === "pants" ? pantsPromptFor(id, picks.top ?? wornTop) : characterLookOption(part, id)?.prompt;
+    const customPrompt = customPromptMap?.get(id);
+    const prompt =
+      customPrompt ??
+      (part === "pants"
+        ? pantsPromptFor(id, picks.top ?? wornTop)
+        : characterLookOption(part, id)?.prompt);
     if (prompt) {
       parts.push(`${PART_LABEL[part]}: ${prompt}`);
     }

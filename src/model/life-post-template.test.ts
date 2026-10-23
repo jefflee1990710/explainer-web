@@ -15,7 +15,7 @@ import { LIFE_TEMPLATES_EN, LIFE_TEMPLATES_ZH } from "@/util/i18n/messages/life-
 test("life post template ids are unique and every category has templates", () => {
   const ids = LIFE_POST_TEMPLATES.map((t) => t.id);
   assert.equal(new Set(ids).size, ids.length);
-  assert.equal(ids.length, 30);
+  assert.equal(ids.length, 46);
   for (const category of LIFE_POST_CATEGORIES) {
     assert.ok(lifePostTemplatesInCategory(category).length >= 3, category);
   }

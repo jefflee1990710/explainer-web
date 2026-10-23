@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { DialogBackdrop } from "@/presentation/components/dialog-backdrop";
 import { CharacterLookOptionGrid } from "@/presentation/components/app/characters/character-look-option-grid";
@@ -10,12 +11,15 @@ import {
   pageLookDialogOptions,
 } from "@/presentation/components/app/characters/character-look-dialog-list";
 import { useCharacterLookFavourites } from "@/presentation/components/app/characters/use-character-look-favourites";
+import { useCustomWardrobeItems } from "@/presentation/components/app/characters/use-custom-wardrobe-items";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import {
+  CHARACTER_WARDROBE_PARTS,
   lookOptionCategory,
   optionsForLookPart,
   type AnyCharacterLookPart,
   type CharacterLookCategory,
+  type CharacterWardrobePart,
 } from "@/service/character/character-look";
 
 const CATEGORIES: readonly CharacterLookCategory[] = ["all", "extreme", "stylized", "classic"];
@@ -32,7 +36,7 @@ export function CharacterLookDialog({
   onChange: (id: string) => void;
   onClose: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const label = t(`characters.look.${part}`);
@@ -46,6 +50,8 @@ export function CharacterLookDialog({
   }
   const visibleCount = page.visibleCount;
   const { ids: favouriteIds, toggle: toggleFavourite } = useCharacterLookFavourites(part);
+  const { partItems: customItems } = useCustomWardrobeItems(part);
+  const isWardrobePart = CHARACTER_WARDROBE_PARTS.includes(part as CharacterWardrobePart);
 
   useEffect(() => {
     dialogRef.current?.focus();
@@ -58,16 +64,21 @@ export function CharacterLookDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const namedOptions = useMemo(
-    () =>
-      optionsForLookPart(part)
-        .filter((option) => tab === "all" || lookOptionCategory(part, option.id) === tab)
-        .map((option) => ({
-          id: option.id,
-          name: t(`characters.look.options.${part}.${option.id}`),
-        })),
-    [part, tab, t],
-  );
+  const namedOptions = useMemo(() => {
+    const customMapped = customItems
+      .filter((item) => tab === "all" || item.category === tab)
+      .map((item) => ({
+        id: item.optionId,
+        name: locale === "en" ? item.name : item.nameZh || item.name,
+      }));
+    const builtInMapped = optionsForLookPart(part)
+      .filter((option) => tab === "all" || lookOptionCategory(part, option.id) === tab)
+      .map((option) => ({
+        id: option.id,
+        name: t(`characters.look.options.${part}.${option.id}`),
+      }));
+    return [...customMapped, ...builtInMapped];
+  }, [customItems, locale, part, tab, t]);
 
   const filtered = useMemo(
     () =>
@@ -108,9 +119,20 @@ export function CharacterLookDialog({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="shrink-0 space-y-2 border-b border-accent-ink/10 px-4 py-3">
-          <h2 id={titleId} className="font-display text-xl font-bold">
-            {label}
-          </h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 id={titleId} className="font-display text-xl font-bold">
+              {label}
+            </h2>
+            {isWardrobePart ? (
+              <Link
+                href={`/app/wardrobe?part=${part}`}
+                onClick={onClose}
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-accent-ink px-3.5 text-xs font-bold text-lime transition hover:-translate-y-0.5"
+              >
+                <span>＋ 上傳自訂{label}</span>
+              </Link>
+            ) : null}
+          </div>
           <div className="flex flex-wrap items-center gap-1.5" role="tablist">
               {CATEGORIES.map((category) => {
                 const activeTab = tab === category;

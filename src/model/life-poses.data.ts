@@ -127,7 +127,7 @@ export const LIFE_POSES: readonly LifePose[] = [
   },
   {
     "id": "running-forward-stride",
-    "group": "stand-full",
+    "group": "walk-full",
     "framing": "full",
     "hands": [],
     "popularity": 8,
@@ -728,5 +728,307 @@ export const LIFE_POSES: readonly LifePose[] = [
     ],
     "popularity": 5,
     "promptText": "A person sitting with their knees drawn up, torso leaning forward over their thighs, resting their chin on their hand with both feet angled downward."
+  },
+  {
+    "id": "tailored-pocket-stance",
+    "group": "stand-full",
+    "framing": "full",
+    "hands": [
+      "pocket"
+    ],
+    "popularity": 34,
+    "promptText": "A person stands confidently facing forward with feet slightly apart, one hand tucked neatly into the trouser pocket while the other arm rests naturally along the side."
+  },
+  {
+    "id": "closet-mic-present",
+    "group": "stand-full",
+    "framing": "full",
+    "hands": [
+      "phone"
+    ],
+    "popularity": 28,
+    "promptText": "A person stands upright facing the camera in a full-length styling stance with weight balanced, one arm bent at chest height holding a mini microphone while the other arm hangs relaxed by the hip."
+  },
+  {
+    "id": "stylist-bag-showcase",
+    "group": "stand-full",
+    "framing": "full",
+    "hands": [
+      "bag"
+    ],
+    "popularity": 26,
+    "promptText": "A person stands full-length facing the camera with one knee slightly relaxed, holding a structured handbag at waist level with a composed editorial posture."
+  },
+  {
+    "id": "walking-stride-blazer",
+    "group": "walk-full",
+    "framing": "full",
+    "hands": [
+      "pocket",
+      "bag"
+    ],
+    "popularity": 24,
+    "promptText": "A person is captured mid-stride walking forward with one leg stepping ahead, torso upright and shoulders relaxed, arms swinging naturally in a candid street-style motion."
+  },
+  {
+    "id": "founder-desk-gesture",
+    "group": "stand-half",
+    "framing": "half",
+    "hands": [],
+    "popularity": 31,
+    "promptText": "A waist-up portrait of a person facing the camera with an engaged upright torso and both elbows bent, hands raised open at chest level in a natural conversational speaking gesture."
+  },
+  {
+    "id": "street-coffee-stride",
+    "group": "stand-half",
+    "framing": "knee",
+    "hands": [
+      "drink"
+    ],
+    "popularity": 25,
+    "promptText": "A knee-up pose of a person standing with relaxed shoulders, one elbow bent holding a coffee cup near chest height while the other hand rests near the waist."
+  },
+  {
+    "id": "blazer-lapel-adjust",
+    "group": "stand-half",
+    "framing": "knee",
+    "hands": [
+      "hip"
+    ],
+    "popularity": 22,
+    "promptText": "A knee-up portrait of a person standing upright with both elbows gently bent in front of the torso, hands brought together at waist level adjusting a jacket button or cuff."
+  },
+  {
+    "id": "podcast-mic-lean",
+    "group": "stand-half",
+    "framing": "half",
+    "hands": [
+      "face"
+    ],
+    "popularity": 21,
+    "promptText": "A waist-up pose of a person leaning slightly forward toward the lens with head attentively angled and one hand raised expressively while speaking in a studio setup."
+  },
+  {
+    "id": "book-hold-present",
+    "group": "stand-half",
+    "framing": "half",
+    "hands": [
+      "phone"
+    ],
+    "popularity": 19,
+    "promptText": "A waist-up portrait of a person facing directly into the camera with one or both hands raised at chest height holding a book outward toward the viewer."
+  },
+  {
+    "id": "park-bench-crossed-talk",
+    "group": "sit",
+    "framing": "full",
+    "hands": [],
+    "popularity": 23,
+    "promptText": "A full-body seated pose on a bench with legs crossed comfortably at the knee, torso upright facing the camera, and hands resting naturally on the lap while speaking."
+  },
+  {
+    "id": "playful-leg-kick-stand",
+    "group": "stand-full",
+    "framing": "full",
+    "hands": [
+      "pocket",
+      "bag"
+    ],
+    "popularity": 27,
+    "promptText": "A full-body standing pose on one leg with the other leg kicked up playfully behind, torso slightly twisted toward the camera and hands resting near the waist."
+  },
+  {
+    "id": "boutique-mirror-full",
+    "group": "stand-full",
+    "framing": "full",
+    "hands": [
+      "phone",
+      "bag"
+    ],
+    "popularity": 30,
+    "promptText": "A full-length boutique mirror selfie pose with one arm raised holding a smartphone at chest or face level and the other hand holding a handbag by the hip."
+  },
+  {
+    "id": "thumbs-in-belt-loops",
+    "group": "stand-half",
+    "framing": "knee",
+    "hands": [
+      "pocket"
+    ],
+    "popularity": 26,
+    "promptText": "A knee-up street pose standing cheerfully facing the camera with both elbows slightly bent and thumbs hooked into the front jeans pockets."
+  },
+  {
+    "id": "rooftop-ledge-lean",
+    "group": "stand-half",
+    "framing": "knee",
+    "hands": [
+      "face"
+    ],
+    "popularity": 24,
+    "promptText": "A knee-up pose leaning casually back against a terrace railing or ledge with one arm resting on the ledge and the other hand raised near the brow."
+  },
+  {
+    "id": "sunglasses-peek-tilt",
+    "group": "stand-half",
+    "framing": "half",
+    "hands": [
+      "face",
+      "drink"
+    ],
+    "popularity": 25,
+    "promptText": "A waist-up editorial pose with head slightly tilted forward, one hand raised touching the frame of sunglasses while holding a coffee cup in the other hand."
+  },
+  {
+    "id": "concert-peace-flash",
+    "group": "stand-half",
+    "framing": "half",
+    "hands": [
+      "peace"
+    ],
+    "popularity": 29,
+    "promptText": "A waist-up snapshot pose facing the camera with a bright smile and one or both hands raised near cheek level flashing a playful peace sign."
+  },
+  {
+    "id": "bistro-fork-smile",
+    "group": "stand-half",
+    "framing": "half",
+    "hands": [
+      "drink"
+    ],
+    "popularity": 22,
+    "promptText": "A waist-up dining portrait seated at a bistro table with one hand holding up a dessert fork near chest height and head softly tilted with a candid smile."
+  },
+  {
+    "id": "gallery-crouch-snap",
+    "group": "sit",
+    "framing": "full",
+    "hands": [
+      "phone"
+    ],
+    "popularity": 21,
+    "promptText": "A full-body low crouch pose with knees bent, one elbow propped on the knee and the other hand extended slightly forward in an exhibition space."
+  },
+  {
+    "id": "walk-coffee-bag-stride",
+    "group": "walk-full",
+    "framing": "full",
+    "hands": [
+      "drink",
+      "bag"
+    ],
+    "popularity": 38,
+    "promptText": "A full-body mid-stride walking pose stepping forward along the street, holding a takeaway coffee cup in one hand and a handbag in the other with a natural upright posture."
+  },
+  {
+    "id": "walk-crosswalk-glance",
+    "group": "walk-full",
+    "framing": "full",
+    "hands": [
+      "bag"
+    ],
+    "popularity": 36,
+    "promptText": "A full-body pose walking across a pedestrian crosswalk in mid-stride with legs scissored apart, holding a clutch bag at waist height while turning the head toward the camera."
+  },
+  {
+    "id": "walk-pockets-side-glance",
+    "group": "walk-full",
+    "framing": "full",
+    "hands": [
+      "pocket"
+    ],
+    "popularity": 33,
+    "promptText": "A full-body walking pose stepping forward with one foot ahead, both hands tucked casually into the coat or trouser pockets and head turned slightly to the side."
+  },
+  {
+    "id": "walk-clutch-runway",
+    "group": "walk-full",
+    "framing": "full",
+    "hands": [
+      "bag"
+    ],
+    "popularity": 31,
+    "promptText": "A confident full-body runway-style stride walking directly toward the camera with one leg stepping forward and one hand holding a structured clutch bag at the hip."
+  },
+  {
+    "id": "walk-sunglasses-tote",
+    "group": "walk-full",
+    "framing": "full",
+    "hands": [
+      "face",
+      "bag"
+    ],
+    "popularity": 29,
+    "promptText": "A full-body outdoor walking pose mid-step with one hand raised to touch sunglasses on the face while the other arm carries a shoulder tote bag."
+  },
+  {
+    "id": "walk-touching-hair",
+    "group": "walk-full",
+    "framing": "full",
+    "hands": [
+      "hair"
+    ],
+    "popularity": 28,
+    "promptText": "A full-body candid walking pose stepping forward toward the lens, one hand raised to brush hair back near the temple while the other arm swings naturally at the side."
+  },
+  {
+    "id": "walk-wave-greeting",
+    "group": "walk-full",
+    "framing": "full",
+    "hands": [
+      "wave",
+      "bag"
+    ],
+    "popularity": 26,
+    "promptText": "A cheerful full-body walking pose stepping toward the camera with one hand raised in a friendly greeting wave and a shoulder bag tucked under the other arm."
+  },
+  {
+    "id": "walk-iced-drink-toast",
+    "group": "walk-full",
+    "framing": "full",
+    "hands": [
+      "drink",
+      "bag"
+    ],
+    "popularity": 25,
+    "promptText": "A radiant full-body summer walking pose mid-stride, extending one hand forward holding an iced drink cup while a tote bag hangs over the opposite shoulder."
+  },
+  {
+    "id": "walk-flower-bouquet",
+    "group": "walk-full",
+    "framing": "full",
+    "hands": [
+      "bag"
+    ],
+    "popularity": 23,
+    "promptText": "A full-body candid street walk with one foot stepping ahead, cradling a wrapped flower bouquet against the chest with one arm while looking softly to the side."
+  },
+  {
+    "id": "walk-breezy-open-shirt",
+    "group": "walk-full",
+    "framing": "full",
+    "hands": [],
+    "popularity": 22,
+    "promptText": "A breezy full-body walking pose striding toward the camera with a wide smile, both arms swinging relaxed and slightly outward as if catching the wind."
+  },
+  {
+    "id": "walk-down-stairs-arms-out",
+    "group": "walk-full",
+    "framing": "full",
+    "hands": [
+      "arms-up"
+    ],
+    "popularity": 20,
+    "promptText": "A dynamic full-body pose walking down outdoor steps with one foot on a lower step and both arms stretched playfully outward for balance."
+  },
+  {
+    "id": "walk-away-look-back",
+    "group": "walk-full",
+    "framing": "full",
+    "hands": [
+      "bag"
+    ],
+    "popularity": 19,
+    "promptText": "A full-body back-view walking pose mid-stride with one foot kicked slightly up behind and the head glancing back over the shoulder toward the camera."
   }
 ];

@@ -1,7 +1,7 @@
 // Client-safe pose library types and helpers. Data lives in life-poses.data.ts (generated).
 import { LIFE_POSES } from "@/model/life-poses.data";
 
-export const LIFE_POSE_GROUPS = ["stand-full", "stand-half", "sit"] as const;
+export const LIFE_POSE_GROUPS = ["stand-full", "walk-full", "stand-half", "sit"] as const;
 export type LifePoseGroup = (typeof LIFE_POSE_GROUPS)[number];
 
 export const LIFE_POSE_HANDS = [

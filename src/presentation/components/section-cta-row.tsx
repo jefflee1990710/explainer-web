@@ -16,12 +16,12 @@ export function SectionCtaRow({
 }) {
   const primaryClass =
     tone === "dark"
-      ? "inline-flex min-h-11 items-center justify-center rounded-full bg-[#c6f24b] px-7 py-3 text-sm font-semibold text-[#12141c] transition-colors hover:bg-[#b6e23a]"
-      : "inline-flex min-h-11 items-center justify-center rounded-full bg-[#12141c] px-7 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black";
+      ? "inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#c6f24b] px-7 py-3 text-sm font-semibold text-[#12141c] transition-colors hover:bg-[#b6e23a] sm:w-auto"
+      : "inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#12141c] px-7 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black sm:w-auto";
   const secondaryClass =
     tone === "dark"
-      ? "inline-flex min-h-11 items-center justify-center rounded-full border border-white/20 bg-white/10 px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/15"
-      : "inline-flex min-h-11 items-center justify-center rounded-full border border-[#e4e4e7] bg-white px-7 py-3 text-sm font-semibold text-[#12141c] transition-colors hover:bg-zinc-100";
+      ? "inline-flex min-h-11 w-full items-center justify-center rounded-full border border-white/20 bg-white/10 px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/15 sm:w-auto"
+      : "inline-flex min-h-11 w-full items-center justify-center rounded-full border border-[#e4e4e7] bg-white px-7 py-3 text-sm font-semibold text-[#12141c] transition-colors hover:bg-zinc-100 sm:w-auto";
 
   return (
     <div className={`mt-8 flex flex-wrap gap-3 ${align === "center" ? "justify-center" : ""}`}>

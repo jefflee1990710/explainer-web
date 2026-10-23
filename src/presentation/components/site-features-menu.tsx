@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
-type FeatureLink = {
+export type FeatureLink = {
   href: string;
   labelKey:
     | "nav.aiInfluencer"
@@ -22,7 +22,7 @@ type FeatureLink = {
     | "nav.featuresExplainer";
 };
 
-const FEATURES: FeatureLink[] = [
+export const SITE_FEATURE_LINKS: readonly FeatureLink[] = [
   {
     href: "/ai-influencer",
     labelKey: "nav.aiInfluencer",
@@ -120,7 +120,7 @@ export function SiteFeaturesMenu() {
           if (pointerType.current === "mouse") return;
           setOpen((v) => !v);
         }}
-        className="inline-flex shrink-0 items-center gap-1 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
+        className="inline-flex shrink-0 cursor-pointer items-center gap-1 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
       >
         {t("nav.features")}
         <Chevron open={open} />
@@ -128,9 +128,9 @@ export function SiteFeaturesMenu() {
       {open ? (
         <div
           role="menu"
-          className="absolute left-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border border-zinc-200 bg-white py-2 shadow-[0_12px_40px_rgba(18,20,28,0.12)] sm:w-80"
+          className="absolute left-1/2 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-xl border border-zinc-200 bg-white py-2 shadow-[0_12px_40px_rgba(18,20,28,0.12)] md:left-0 md:translate-x-0"
         >
-          {FEATURES.map((item) => (
+          {SITE_FEATURE_LINKS.map((item) => (
             <Link
               key={item.href}
               href={item.href}

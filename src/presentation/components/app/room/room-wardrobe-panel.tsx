@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useState } from "react";
 import { CharacterLookArt } from "@/presentation/components/app/characters/character-look-art";
 import { CharacterLookDialog } from "@/presentation/components/app/characters/character-look-dialog";
+import { useCustomWardrobeItems } from "@/presentation/components/app/characters/use-custom-wardrobe-items";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import type { PublicCharacterVersion } from "@/presentation/serialize";
@@ -33,18 +35,19 @@ export function RoomWardrobePanel({
   pending: string;
   onEdit: (instruction: string) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const formId = useId();
   const [instruction, setInstruction] = useState("");
   const [picks, setPicks] = useState<CharacterWardrobePicks>({});
   const [dialogPart, setDialogPart] = useState<CharacterWardrobePart | null>(null);
+  const { byOptionId, promptMap } = useCustomWardrobeItems();
   const ready = version.status === "completed";
   const locked = !ready || pending !== "";
   const short = !subscribed || credits < cost;
   const current = detectCharacterWardrobePicks(
     [version.prompt, version.editInstruction].filter(Boolean).join("\n"),
   );
-  const composedEdit = characterWardrobeEditInstruction(picks, instruction, current.top);
+  const composedEdit = characterWardrobeEditInstruction(picks, instruction, current.top, promptMap);
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -62,9 +65,17 @@ export function RoomWardrobePanel({
       aria-label={t("characters.roomWardrobeHeading")}
       className="flex min-h-0 flex-col gap-2 overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90 p-3"
     >
-      <span className="shrink-0 px-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
-        {t("characters.roomWardrobeHeading")}
-      </span>
+      <div className="flex shrink-0 items-center justify-between gap-2 px-1">
+        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
+          {t("characters.roomWardrobeHeading")}
+        </span>
+        <Link
+          href="/app/wardrobe"
+          className="text-[11px] font-bold text-accent hover:underline"
+        >
+          ＋ 自訂造型庫
+        </Link>
+      </div>
 
       <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-0.5">
         {CHARACTER_WARDROBE_PARTS.map((part) => {
@@ -72,8 +83,15 @@ export function RoomWardrobePanel({
           const activeId = pickedId ?? current[part];
           const thumbId = activeId ?? defaultCharacterLook()[part] ?? "";
           const partLabel = t(`characters.look.${part}`);
-          const optionName = activeId ? t(`characters.look.options.${part}.${activeId}`) : "—";
-          const extreme = activeId ? isExaggeratedLookOption(part, activeId) : false;
+          const customOption = activeId?.startsWith("cw_") ? byOptionId.get(activeId) : undefined;
+          const optionName = customOption
+            ? locale === "en"
+              ? customOption.name
+              : customOption.nameZh || customOption.name
+            : activeId
+              ? t(`characters.look.options.${part}.${activeId}`)
+              : "—";
+          const extreme = activeId && !customOption ? isExaggeratedLookOption(part, activeId) : false;
           return (
             <div key={part} className="relative flex items-center">
               <button

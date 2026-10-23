@@ -26,6 +26,7 @@ import {
   wardrobePickPrompts,
   type CharacterWardrobePicks,
 } from "@/service/character/character-look";
+import { resolveCustomWardrobePickPrompts } from "@/service/character/custom-wardrobe";
 import { lifeVersionFaceUrl, resolveLifeShotVersion } from "@/service/character/life-version";
 import {
   lifeSceneQuery,
@@ -328,7 +329,15 @@ export async function generateLifeShotAction(input: {
 }) {
   const user = await requireAppUser();
   // Optional hair / top / pants / shoes / accessory picks that override the preset look.
-  const wardrobe = wardrobePickPrompts(sanitizeWardrobePicks(input.wardrobe));
+  const sanitizedPicks = sanitizeWardrobePicks(input.wardrobe);
+  const customPrompts = await resolveCustomWardrobePickPrompts(
+    user.clerkUserId,
+    sanitizedPicks,
+  );
+  const wardrobe = {
+    ...wardrobePickPrompts(sanitizedPicks),
+    ...customPrompts,
+  };
   const place = (input.place ?? "").trim().slice(0, 60);
   const template = lifePostTemplateById(input.templateId);
   const pose = lifePoseById(input.poseId);

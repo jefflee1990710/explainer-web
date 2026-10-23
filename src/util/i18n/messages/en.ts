@@ -1,5 +1,7 @@
 import type { Messages } from "@/util/i18n/messages/types";
 import { AMENDA_LABELS_EN } from "@/service/character/amenda-wardrobe";
+import { BRANDING_LABELS_EN } from "@/service/character/branding-styling-wardrobe";
+import { SPORTS_LABELS_EN } from "@/service/character/sports-wardrobe";
 import { LIFE_POSES_EN } from "@/util/i18n/messages/life-poses";
 import { LIFE_TEMPLATES_EN } from "@/util/i18n/messages/life-templates";
 import { briefEn } from "@/util/i18n/messages/workspace/brief.en";
@@ -429,6 +431,7 @@ export const en: Messages = {
       emptyFavourites: "No favourites in this list yet.",
       options: {
         hair: {
+          ...BRANDING_LABELS_EN.hair,
           bob: "Bob",
           long: "Long",
           curly: "Curly",
@@ -498,6 +501,8 @@ export const en: Messages = {
         },
         top: {
           ...AMENDA_LABELS_EN.top,
+          ...BRANDING_LABELS_EN.top,
+          ...SPORTS_LABELS_EN.top,
           tee: "Heavyweight Tee",
           hoodie: "Streetwear Hoodie",
           blazer: "Double-Breasted Blazer",
@@ -628,6 +633,8 @@ export const en: Messages = {
         },
         pants: {
           ...AMENDA_LABELS_EN.pants,
+          ...BRANDING_LABELS_EN.pants,
+          ...SPORTS_LABELS_EN.pants,
           none: "None",
           jeans: "Straight Jeans",
           chinos: "Tailored Chinos",
@@ -698,6 +705,8 @@ export const en: Messages = {
           khakichinos: "Preppy Cuffed Khaki Chinos",
         },
         shoes: {
+          ...BRANDING_LABELS_EN.shoes,
+          ...SPORTS_LABELS_EN.shoes,
           sneakers: "Minimalist White Sneakers",
           boots: "Leather Ankle Boots",
           loafers: "Penny Loafers",
@@ -765,6 +774,8 @@ export const en: Messages = {
           courtshoe: "White & Green Tennis Court Shoes",
         },
         accessory: {
+          ...BRANDING_LABELS_EN.accessory,
+          ...SPORTS_LABELS_EN.accessory,
           none: "None",
           eyewear: "Tortoiseshell Glasses",
           aviators: "1970s Gold Aviators",

@@ -23,6 +23,7 @@ export const LIFE_POSES_EN: LifePoseLabels = {
   selectedHint: "The character copies this body pose.",
   groups: {
     "stand-full": "Standing · full body",
+    "walk-full": "Walking · full body",
     "stand-half": "Standing · upper body",
     sit: "Sitting & crouching",
   },
@@ -51,6 +52,7 @@ export const LIFE_POSES_ZH: LifePoseLabels = {
   selectedHint: "角色會照這個姿勢擺。",
   groups: {
     "stand-full": "站姿・全身",
+    "walk-full": "走路・全身",
     "stand-half": "站姿・半身",
     sit: "坐姿與蹲姿",
   },

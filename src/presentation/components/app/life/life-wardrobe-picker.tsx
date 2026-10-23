@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CharacterLookArt } from "@/presentation/components/app/characters/character-look-art";
 import { CharacterLookDialog } from "@/presentation/components/app/characters/character-look-dialog";
+import { useCustomWardrobeItems } from "@/presentation/components/app/characters/use-custom-wardrobe-items";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import {
   CHARACTER_WARDROBE_PARTS,
@@ -22,8 +23,9 @@ export function LifeWardrobePicker({
   disabled?: boolean;
   onChange: (next: CharacterWardrobePicks) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [dialogPart, setDialogPart] = useState<CharacterWardrobePart | null>(null);
+  const { byOptionId } = useCustomWardrobeItems();
   const pickedCount = CHARACTER_WARDROBE_PARTS.filter((part) => value[part]).length;
 
   // Removes one part so it falls back to the character's preset.
@@ -40,7 +42,15 @@ export function LifeWardrobePicker({
           const pickedId = value[part];
           const thumbId = pickedId ?? defaultCharacterLook()[part] ?? "";
           const partLabel = t(`characters.look.${part}`);
-          const extreme = pickedId ? isExaggeratedLookOption(part, pickedId) : false;
+          const customOption = pickedId?.startsWith("cw_") ? byOptionId.get(pickedId) : undefined;
+          const pickedName = customOption
+            ? locale === "en"
+              ? customOption.name
+              : customOption.nameZh || customOption.name
+            : pickedId
+              ? t(`characters.look.options.${part}.${pickedId}`)
+              : "沿用預設";
+          const extreme = pickedId && !customOption ? isExaggeratedLookOption(part, pickedId) : false;
           return (
             <div key={part} className="relative flex items-center">
               <button
@@ -68,7 +78,7 @@ export function LifeWardrobePicker({
                 <span className="min-w-0 flex-1 pr-4">
                   <span className="block text-[10px] font-semibold text-muted">{partLabel}</span>
                   <span className={`block truncate text-xs ${pickedId ? "font-bold" : "font-medium text-muted"}`}>
-                    {pickedId ? t(`characters.look.options.${part}.${pickedId}`) : "沿用預設"}
+                    {pickedName}
                   </span>
                 </span>
               </button>

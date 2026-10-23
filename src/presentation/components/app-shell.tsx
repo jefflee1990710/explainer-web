@@ -41,6 +41,7 @@ export function AppShell({
     { href: "/app/characters", label: t("nav.characters"), icon: "characters", section: "generation" },
     { href: "/app/life", label: t("nav.life"), icon: "life", section: "generation" },
     { href: "/app/room", label: t("nav.room"), icon: "room", section: "generation" },
+    { href: "/app/wardrobe", label: "自訂衣櫥", icon: "styles", section: "generation" },
     ...(POSTS_FEATURE_ENABLED
       ? [{ href: "/app/posts", label: t("nav.posts"), icon: "posts" as const, section: "generation" as const }]
       : []),

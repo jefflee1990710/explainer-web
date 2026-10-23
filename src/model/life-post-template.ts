@@ -1,7 +1,15 @@
 // Client-safe catalog of Life post-type templates, distilled from ~3.7k labelled creator posts.
 import type { LifeShotKind } from "@/model/life-shot-kind";
 
-export const LIFE_POST_CATEGORIES = ["street", "cafe", "selfie", "home", "travel", "social"] as const;
+export const LIFE_POST_CATEGORIES = [
+  "branding",
+  "street",
+  "cafe",
+  "selfie",
+  "home",
+  "travel",
+  "social",
+] as const;
 
 export type LifePostCategoryId = (typeof LIFE_POST_CATEGORIES)[number];
 
@@ -15,6 +23,119 @@ export type LifePostTemplate = {
 };
 
 export const LIFE_POST_TEMPLATES: readonly LifePostTemplate[] = [
+  // Personal branding & styling
+  {
+    id: "branding-closet-guide",
+    categoryId: "branding",
+    kind: "hobby",
+    promptGuide:
+      "Closet styling guide: the character stands full-length in front of a warm-lit wooden open wardrobe lined with neatly hung garments, presenting a curated outfit while holding a compact wireless lapel microphone to speak into the camera.",
+  },
+  {
+    id: "branding-rack-showcase",
+    categoryId: "branding",
+    kind: "hobby",
+    promptGuide:
+      "Styling rack showcase: the character stands full-body beside a minimalist boutique garment rack hung with neutral capsule clothing in a bright studio room, demonstrating a tailored layered look head-to-toe.",
+  },
+  {
+    id: "branding-founder-desk",
+    categoryId: "branding",
+    kind: "hobby",
+    promptGuide:
+      "Founder desk talk: the character sits at a clean modern creator workspace desk with an open laptop and desktop podcast microphone, using natural conversational hand gestures while speaking directly into the camera.",
+  },
+  {
+    id: "branding-podcast-mic",
+    categoryId: "branding",
+    kind: "hobby",
+    promptGuide:
+      "Podcast studio portrait: the character sits in a warm acoustic studio wearing over-ear monitor headphones and speaking earnestly into a broadcast boom-arm microphone, framed upper-body with expressive hand gestures.",
+  },
+  {
+    id: "branding-book-share",
+    categoryId: "branding",
+    kind: "hobby",
+    promptGuide:
+      "Book recommendation share: the character stands or sits in a bright contemporary office holding up a physical book near chest level with the cover facing out, smiling warmly and speaking directly into the lens.",
+  },
+  {
+    id: "branding-street-mic",
+    categoryId: "branding",
+    kind: "street",
+    promptGuide:
+      "Street creator vox-pop: the character stands centered on a lively urban sidewalk or crosswalk holding a mini wireless clip microphone in one hand and an iced coffee in the other, addressing the viewer directly, framed knee-up.",
+  },
+  {
+    id: "branding-park-bench-talk",
+    categoryId: "branding",
+    kind: "street",
+    promptGuide:
+      "Outdoor park bench talk: the character sits casually with legs crossed on a wooden park bench surrounded by lush green foliage in natural daylight, speaking conversationally toward the camera with relaxed hand gestures.",
+  },
+  {
+    id: "branding-cafe-work",
+    categoryId: "branding",
+    kind: "food",
+    promptGuide:
+      "Founder cafe work session: the character sits by a sunlit cafe window table with an open laptop, leather notebook, and ceramic coffee cup, looking up into the camera with a composed, confident creator smile, framed half-body.",
+  },
+  {
+    id: "branding-boutique-mirror",
+    categoryId: "branding",
+    kind: "selfie",
+    promptGuide:
+      "Boutique fitting mirror selfie: the character captures a full-length mirror reflection inside a minimalist designer concept store with soft warm architectural lighting, showcasing a layered seasonal outfit and handbag.",
+  },
+  {
+    id: "branding-gallery-exhibit",
+    categoryId: "branding",
+    kind: "hobby",
+    promptGuide:
+      "Art gallery exhibit visit: the character stands or sits in a clean contemporary museum or art gallery beside a minimalist framed artwork or illuminated vitrine, holding an exhibition brochure and looking thoughtfully toward the lens, framed knee-up.",
+  },
+  {
+    id: "branding-rooftop-terrace",
+    categoryId: "cafe",
+    kind: "food",
+    promptGuide:
+      "Rooftop terrace cafe portrait: the character stands or leans by an outdoor high-top terrace table overlooking a panoramic city skyline, holding an iced drink with one arm resting on the ledge and smiling toward the camera, framed knee-up.",
+  },
+  {
+    id: "branding-bistro-night",
+    categoryId: "cafe",
+    kind: "food",
+    promptGuide:
+      "Candlelit bistro dining moment: the character sits at an intimate French or Italian bistro table set with shared dishes and wine glasses under warm ambient evening light, holding a fork or glass with a soft candid smile, framed half-body.",
+  },
+  {
+    id: "branding-vanity-glam",
+    categoryId: "selfie",
+    kind: "selfie",
+    promptGuide:
+      "Backstage vanity beauty portrait: the character sits in front of an illuminated dressing room vanity mirror with makeup brushes on the counter, one hand lightly resting near the cheek while gazing into the lens, framed upper-body.",
+  },
+  {
+    id: "branding-crosswalk-snap",
+    categoryId: "street",
+    kind: "street",
+    promptGuide:
+      "City crosswalk snapshot: the character stands or steps across a sunlit urban pedestrian zebra crossing in a layered coat or street outfit, turning to smile directly into the camera with city architecture softly behind, framed full-body.",
+  },
+  {
+    id: "branding-concert-night",
+    categoryId: "social",
+    kind: "hobby",
+    promptGuide:
+      "Concert arena night snapshot: the character poses by a stadium or live-house spectator railing illuminated by direct camera flash against glowing stage lights in the background, flashing a peace sign with a bright excited smile, framed half-body.",
+  },
+  {
+    id: "branding-car-cabin",
+    categoryId: "travel",
+    kind: "street",
+    promptGuide:
+      "Car cabin passenger portrait: the character sits belted in the leather passenger seat of a sleek modern car with soft daylight coming through the side window, wearing statement eyewear and glancing toward the camera, framed upper-body.",
+  },
   // Street style
   {
     id: "street-ootd-full",

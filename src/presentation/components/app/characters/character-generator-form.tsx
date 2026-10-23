@@ -19,6 +19,7 @@ import {
 } from "@/presentation/components/app/characters/character-look-dialog-list";
 import { CharacterLookOptionGrid } from "@/presentation/components/app/characters/character-look-option-grid";
 import { useCharacterLookFavourites } from "@/presentation/components/app/characters/use-character-look-favourites";
+import { useCustomWardrobeItems } from "@/presentation/components/app/characters/use-custom-wardrobe-items";
 import { CharacterPersonaFields } from "@/presentation/components/app/characters/character-persona-fields";
 import { CharacterPoseComment } from "@/presentation/components/app/characters/character-pose-comment";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -72,7 +73,7 @@ export function CharacterGeneratorForm({
   styles: PublicStyle[];
   atCharacterLimit: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const realistic = styles.find((style) => style.id === "realistic" || style.baseStyleId === "realistic");
   const styleId = realistic?.id ?? "realistic";
@@ -133,7 +134,7 @@ export function CharacterGeneratorForm({
   }
 
   function setPart(part: AnyCharacterLookPart, id: string) {
-    if (!isCharacterLookId(part, id)) return;
+    if (!isCharacterLookId(part, id) && !/^cw_[a-f0-9]{24}$/i.test(id)) return;
     setLook((current) => ({ ...current, [part]: id }));
   }
 
@@ -203,21 +204,27 @@ export function CharacterGeneratorForm({
   const activeValue = look[activePart] ?? defaultCharacterLook()[activePart] ?? "";
   const activePartLabel = t(`characters.look.${activePart}`);
   const { ids: favouriteIds, toggle: toggleFavourite } = useCharacterLookFavourites(activePart);
+  const { partItems: customPartItems, byOptionId } = useCustomWardrobeItems(activePart);
   const filterKey = `${activePart}|${categoryTab}|${query}|${favouritesOnly}`;
   const [page, setPage] = useState({ filterKey, visibleCount: LOOK_DIALOG_PAGE_SIZE });
   if (page.filterKey !== filterKey) {
     setPage({ filterKey, visibleCount: LOOK_DIALOG_PAGE_SIZE });
   }
-  const namedOptions = useMemo(
-    () =>
-      optionsForLookPart(activePart)
-        .filter((option) => categoryTab === "all" || lookOptionCategory(activePart, option.id) === categoryTab)
-        .map((option) => ({
-          id: option.id,
-          name: t(`characters.look.options.${activePart}.${option.id}`),
-        })),
-    [activePart, categoryTab, t],
-  );
+  const namedOptions = useMemo(() => {
+    const customMapped = customPartItems
+      .filter((item) => categoryTab === "all" || item.category === categoryTab)
+      .map((item) => ({
+        id: item.optionId,
+        name: locale === "en" ? item.name : item.nameZh || item.name,
+      }));
+    const builtInMapped = optionsForLookPart(activePart)
+      .filter((option) => categoryTab === "all" || lookOptionCategory(activePart, option.id) === categoryTab)
+      .map((option) => ({
+        id: option.id,
+        name: t(`characters.look.options.${activePart}.${option.id}`),
+      }));
+    return [...customMapped, ...builtInMapped];
+  }, [activePart, categoryTab, customPartItems, locale, t]);
   const filteredOptions = useMemo(
     () =>
       filterLookDialogOptions({
@@ -381,10 +388,15 @@ export function CharacterGeneratorForm({
           {ORDERED_PARTS.map((part) => {
             const value = look[part] ?? defaultCharacterLook()[part] ?? "";
             const partLabel = t(`characters.look.${part}`);
-            const optionName = t(`characters.look.options.${part}.${value}`);
+            const customOpt = value.startsWith("cw_") ? byOptionId.get(value) : undefined;
+            const optionName = customOpt
+              ? locale === "en"
+                ? customOpt.name
+                : customOpt.nameZh || customOpt.name
+              : t(`characters.look.options.${part}.${value}`);
             const isSelected = activePart === part;
             const isLocked = Boolean(lockedParts[part]);
-            const extreme = isExaggeratedLookOption(part, value);
+            const extreme = !customOpt && isExaggeratedLookOption(part, value);
             return (
               <div key={part} className="relative flex items-center">
                 <button
@@ -444,11 +456,25 @@ export function CharacterGeneratorForm({
           className="flex min-h-[24rem] min-w-0 flex-col overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90"
         >
           <div className="shrink-0 space-y-2 border-b border-accent-ink/10 px-3 py-2.5">
-            <div className="flex items-center gap-2">
-              <h2 className="font-display text-lg font-bold">{activePartLabel}</h2>
-              <span className="truncate rounded-full bg-accent-ink/8 px-2.5 py-0.5 text-xs font-semibold text-muted">
-                {t(`characters.look.options.${activePart}.${activeValue}`)}
-              </span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <h2 className="font-display text-lg font-bold">{activePartLabel}</h2>
+                <span className="truncate rounded-full bg-accent-ink/8 px-2.5 py-0.5 text-xs font-semibold text-muted">
+                  {activeValue.startsWith("cw_")
+                    ? locale === "en"
+                      ? byOptionId.get(activeValue)?.name
+                      : byOptionId.get(activeValue)?.nameZh || byOptionId.get(activeValue)?.name
+                    : t(`characters.look.options.${activePart}.${activeValue}`)}
+                </span>
+              </div>
+              {["hair", "top", "pants", "shoes", "accessory"].includes(activePart) ? (
+                <Link
+                  href={`/app/wardrobe?part=${activePart}`}
+                  className="inline-flex h-7 shrink-0 items-center rounded-full bg-accent-ink px-3 text-[11px] font-bold text-lime transition hover:-translate-y-0.5"
+                >
+                  ＋ 上傳自訂{activePartLabel}
+                </Link>
+              ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-1" role="tablist">
                 {CATEGORIES.map((category) => {

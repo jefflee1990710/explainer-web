@@ -17,7 +17,7 @@ import { LIFE_POSES_EN, LIFE_POSES_ZH } from "@/util/i18n/messages/life-poses";
 test("pose ids are unique, grouped, and have a skeleton png and Scro preview webp", () => {
   const ids = LIFE_POSES.map((p) => p.id);
   assert.equal(new Set(ids).size, ids.length);
-  assert.ok(ids.length >= 60 && ids.length <= 100, `count ${ids.length}`);
+  assert.ok(ids.length >= 60 && ids.length <= 130, `count ${ids.length}`);
   for (const group of LIFE_POSE_GROUPS) assert.ok(filterLifePoses(group).length >= 10, group);
   for (const pose of LIFE_POSES) {
     assert.ok(existsSync(path.join(process.cwd(), "public", lifePoseImagePath(pose.id))), pose.id);

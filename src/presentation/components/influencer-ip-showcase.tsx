@@ -70,7 +70,7 @@ export function InfluencerIpShowcase({
               <img
                 src={art.daily}
                 alt=""
-                className={`${art.dailyAspectClass ?? "aspect-[1512/368]"} w-full object-cover`}
+                className={`${art.dailyAspectClass ?? "aspect-[1512/368]"} min-h-[7.5rem] w-full object-cover sm:min-h-0`}
               />
               <figcaption className="border-t border-[#e4e4e7] px-4 py-3 text-sm font-semibold text-[#12141c]">
                 {t(`${copyKey}.dailyLabel`)}

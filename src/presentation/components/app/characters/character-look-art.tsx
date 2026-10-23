@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useCustomWardrobeItems } from "@/presentation/components/app/characters/use-custom-wardrobe-items";
 import {
   characterLookPreviewSrc,
   lookOptionCategory,
@@ -64,8 +65,21 @@ function PartGlyph({ part }: { part: AnyCharacterLookPart }) {
 }
 
 // Realistic Gemini preview for one look option, with clean Studio SVG fallback.
-export function CharacterLookArt({ part, id }: { part: AnyCharacterLookPart; id: string }) {
-  const src = characterLookPreviewSrc(part, id);
+export function CharacterLookArt({
+  part,
+  id,
+  previewUrl,
+}: {
+  part: AnyCharacterLookPart;
+  id: string;
+  previewUrl?: string;
+}) {
+  const { byOptionId } = useCustomWardrobeItems();
+  const customItem = id.startsWith("cw_") ? byOptionId.get(id) : undefined;
+  const src =
+    previewUrl ||
+    customItem?.previewImageUrl ||
+    characterLookPreviewSrc(part, id);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   if (!src || failedSrc === src) {
     return <FallbackArt part={part} id={id} />;

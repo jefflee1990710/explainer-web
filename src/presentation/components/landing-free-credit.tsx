@@ -27,13 +27,13 @@ export function LandingFreeCredit({ signedIn = false }: { signedIn?: boolean }) 
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href={signedIn ? "/app/characters" : "/sign-up"}
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#12141c] px-8 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-[#12141c] px-8 py-3 text-sm font-semibold text-[#c6f24b] transition-colors hover:bg-black sm:w-auto"
             >
               {t("landing.freeCredit.cta")}
             </Link>
             <Link
               href="/pricing"
-              className="inline-flex min-h-11 items-center justify-center rounded-full border border-[#e4e4e7] bg-[#f4f4f5] px-8 py-3 text-sm font-semibold text-[#12141c] transition-colors hover:bg-zinc-200/70"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-[#e4e4e7] bg-[#f4f4f5] px-8 py-3 text-sm font-semibold text-[#12141c] transition-colors hover:bg-zinc-200/70 sm:w-auto"
             >
               {t("landing.freeCredit.ctaPricing")}
             </Link>

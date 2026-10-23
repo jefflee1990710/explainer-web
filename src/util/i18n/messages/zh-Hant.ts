@@ -1,5 +1,7 @@
 import type { Messages } from "@/util/i18n/messages/types";
 import { AMENDA_LABELS_ZH } from "@/service/character/amenda-wardrobe";
+import { BRANDING_LABELS_ZH } from "@/service/character/branding-styling-wardrobe";
+import { SPORTS_LABELS_ZH } from "@/service/character/sports-wardrobe";
 import { LIFE_POSES_ZH } from "@/util/i18n/messages/life-poses";
 import { LIFE_TEMPLATES_ZH } from "@/util/i18n/messages/life-templates";
 import { briefZhHant } from "@/util/i18n/messages/workspace/brief.zh-Hant";
@@ -421,6 +423,7 @@ export const zhHant: Messages = {
       emptyFavourites: "這個清單還沒有收藏。",
       options: {
         hair: {
+          ...BRANDING_LABELS_ZH.hair,
           bob: "波波頭",
           long: "長直髮",
           curly: "捲髮",
@@ -490,6 +493,8 @@ export const zhHant: Messages = {
         },
         top: {
           ...AMENDA_LABELS_ZH.top,
+          ...BRANDING_LABELS_ZH.top,
+          ...SPORTS_LABELS_ZH.top,
           tee: "重磅修身純色 Tee",
           hoodie: "廓形街頭連帽衛衣",
           blazer: "挺版雙排扣西裝外套",
@@ -620,6 +625,8 @@ export const zhHant: Messages = {
         },
         pants: {
           ...AMENDA_LABELS_ZH.pants,
+          ...BRANDING_LABELS_ZH.pants,
+          ...SPORTS_LABELS_ZH.pants,
           none: "無",
           jeans: "經典直筒牛仔褲",
           chinos: "修身卡其休閒褲",
@@ -690,6 +697,8 @@ export const zhHant: Messages = {
           khakichinos: "學院風反摺石卡其打褶休閒褲",
         },
         shoes: {
+          ...BRANDING_LABELS_ZH.shoes,
+          ...SPORTS_LABELS_ZH.shoes,
           sneakers: "極簡白皮革休閒鞋",
           boots: "深色真皮短靴",
           loafers: "復古棕皮革樂福鞋",
@@ -757,6 +766,8 @@ export const zhHant: Messages = {
           courtshoe: "白綠撞色經典皮革網球板鞋",
         },
         accessory: {
+          ...BRANDING_LABELS_ZH.accessory,
+          ...SPORTS_LABELS_ZH.accessory,
           none: "無配件",
           eyewear: "復古玳瑁框光學眼鏡",
           aviators: "1970s 金絲琥珀色飛行員墨鏡",

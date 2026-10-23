@@ -1,6 +1,19 @@
 // Extra wardrobe picks. Prompts stay unique inside each part so detection can match them exactly.
 import type { CharacterLookOption } from "@/service/character/character-look";
 import { AMENDA_PANTS, AMENDA_TOPS } from "@/service/character/amenda-wardrobe";
+import {
+  BRANDING_ACCESSORIES,
+  BRANDING_HAIR,
+  BRANDING_PANTS,
+  BRANDING_SHOES,
+  BRANDING_TOPS,
+} from "@/service/character/branding-styling-wardrobe";
+import {
+  SPORTS_ACCESSORIES,
+  SPORTS_PANTS,
+  SPORTS_SHOES,
+  SPORTS_TOPS,
+} from "@/service/character/sports-wardrobe";
 
 const HERITAGE_HAIR: readonly CharacterLookOption[] = [
   { id: "dreadlocks", prompt: "shoulder-length natural dreadlocks parted in the center and falling cleanly around the shoulders" },
@@ -23,6 +36,7 @@ const CLASSIC_HAIR: readonly CharacterLookOption[] = [
   { id: "beachwaves", prompt: "effortless collar-length sun-kissed beach waves with a relaxed side part" },
   { id: "slickback", prompt: "wet-look editorial slicked-back hair combed smoothly straight back from the forehead" },
   { id: "sidepart", prompt: "a classic gentleman's side-parted tapered haircut with a neat combed finish" },
+  ...BRANDING_HAIR,
 ];
 
 const HERITAGE_TOPS: readonly CharacterLookOption[] = [
@@ -104,6 +118,7 @@ const STYLIZED_TOPS: readonly CharacterLookOption[] = [
   { id: "varsitycardigan", prompt: "an oversized collegiate preppy cable-knit varsity cardigan with contrast sleeve stripes" },
   { id: "meshlayer", prompt: "a Y2K streetwear long-sleeve graphic mesh top layered under a matte black utility vest" },
   { id: "motojacket", prompt: "a color-blocked racing moto leather jacket with mandarin snap collar and padded shoulders" },
+  ...SPORTS_TOPS,
 ];
 
 const CLASSIC_TOPS: readonly CharacterLookOption[] = [
@@ -132,6 +147,7 @@ const CLASSIC_TOPS: readonly CharacterLookOption[] = [
   { id: "haltertop", prompt: "a sleek minimalist black knit halter-neck top with clean tailored lines" },
   { id: "safarijacket", prompt: "an olive cotton cuatro-pocket belted safari field jacket" },
   ...AMENDA_TOPS,
+  ...BRANDING_TOPS,
 ];
 
 const HERITAGE_PANTS: readonly CharacterLookOption[] = [
@@ -172,6 +188,7 @@ const STYLIZED_PANTS: readonly CharacterLookOption[] = [
   { id: "cargoskirt", prompt: "a utilitarian Y2K olive cotton midi cargo skirt with side flap pockets and a drawstring waist" },
   { id: "metallicpants", prompt: "futuristic brushed-silver metallic straight-cut streetwear trousers" },
   { id: "distresseddenim", prompt: "vintage light-wash relaxed denim jeans with artistic sashiko patchwork repairs" },
+  ...SPORTS_PANTS,
 ];
 
 const CLASSIC_PANTS: readonly CharacterLookOption[] = [
@@ -193,6 +210,7 @@ const CLASSIC_PANTS: readonly CharacterLookOption[] = [
   { id: "satinskirt", prompt: "a bias-cut champagne silk-satin slip midi skirt with a fluid drape" },
   { id: "khakichinos", prompt: "classic preppy pleated stone-khaki cotton chinos with a cuffed hem" },
   ...AMENDA_PANTS,
+  ...BRANDING_PANTS,
 ];
 
 const HERITAGE_SHOES: readonly CharacterLookOption[] = [
@@ -231,6 +249,7 @@ const STYLIZED_SHOES: readonly CharacterLookOption[] = [
   { id: "platformboots", prompt: "chunky black leather platform ankle boots with a side zip and lugged sole" },
   { id: "retrotrainers", prompt: "1970s vintage suede-and-nylon low-profile gum-sole terrace trainers" },
   { id: "gladiator", prompt: "artisanal crisscrossed tan leather strappy flat gladiator sandals" },
+  ...SPORTS_SHOES,
 ];
 
 const CLASSIC_SHOES: readonly CharacterLookOption[] = [
@@ -248,6 +267,7 @@ const CLASSIC_SHOES: readonly CharacterLookOption[] = [
   { id: "bitloafers", prompt: "black leather horsebit loafers with a gold-tone metal bit across the vamp" },
   { id: "drivingmoc", prompt: "supple navy suede driving moccasins with a pebbled rubber heel outsole" },
   { id: "courtshoe", prompt: "classic white leather tennis court shoes with forest-green heel tabs" },
+  ...BRANDING_SHOES,
 ];
 
 const HERITAGE_ACCESSORIES: readonly CharacterLookOption[] = [
@@ -279,6 +299,7 @@ const STYLIZED_ACCESSORIES: readonly CharacterLookOption[] = [
   { id: "chain", prompt: "a chunky heavyweight polished Cuban-link sterling silver neck chain" },
   { id: "crossbody", prompt: "a sleek matte-black technical nylon crossbody chest bag strap worn diagonally across the torso" },
   { id: "earcuff", prompt: "sculptural modernist polished silver ear cuffs worn along the outer ear" },
+  ...SPORTS_ACCESSORIES,
 ];
 
 const CLASSIC_ACCESSORIES: readonly CharacterLookOption[] = [
@@ -290,6 +311,7 @@ const CLASSIC_ACCESSORIES: readonly CharacterLookOption[] = [
   { id: "pendant", prompt: "a single fine gold chain with a small oval locket resting at the collarbone" },
   { id: "panamahat", prompt: "a handwoven cream Toquilla straw Panama hat with a black grosgrain ribbon band" },
   { id: "cashmerescarf", prompt: "a soft camel cashmere winter scarf draped once around the neck" },
+  ...BRANDING_ACCESSORIES,
 ];
 
 function ids(options: readonly CharacterLookOption[]) {
