@@ -66,6 +66,7 @@ test("landing and feature page components use the clean Studio / Editor design s
     "src/presentation/components/landing-use-cases.tsx",
     "src/presentation/components/landing-use-case-row.tsx",
     "src/presentation/components/landing-steps.tsx",
+    "src/presentation/components/studio-powertools-band.tsx",
     "src/presentation/components/landing-director.tsx",
     "src/presentation/components/landing-free-credit.tsx",
     "src/presentation/components/landing-kol.tsx",

@@ -8,8 +8,9 @@ import { LandingIp } from "@/presentation/components/landing-ip";
 import { LandingKol } from "@/presentation/components/landing-kol";
 import { LandingSteps } from "@/presentation/components/landing-steps";
 import { LandingUseCases } from "@/presentation/components/landing-use-cases";
+import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
 
-// Plans live on /pricing. Landing leads with soul injection for virtual KOLs, then identity lock, brand IP wardrobe/posts, Life feed, use cases, steps, cost control, and free credits.
+// Plans live on /pricing. Landing leads with soul injection for virtual KOLs, then identity lock, brand IP wardrobe/posts, Life feed, use cases, steps, studio powertools, cost control, and free credits.
 export default async function HomePage() {
   const session = await getAuthSession();
   return (
@@ -20,6 +21,7 @@ export default async function HomePage() {
       <LandingKol />
       <LandingUseCases signedIn={Boolean(session)} />
       <LandingSteps signedIn={Boolean(session)} />
+      <StudioPowertoolsBand signedIn={Boolean(session)} />
       <LandingDirector />
       <LandingFreeCredit signedIn={Boolean(session)} />
     </PolicyLayout>

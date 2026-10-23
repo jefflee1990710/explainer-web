@@ -1,4 +1,5 @@
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
+import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
 import { getAuthSession } from "@/service/auth";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { CantoneseCta } from "./cantonese-cta";
@@ -19,6 +20,7 @@ export default async function CantoneseMarketingPage() {
       <CantoneseHero signedIn={signedIn} />
       <CantoneseFit signedIn={signedIn} />
       <CantoneseFlow signedIn={signedIn} />
+      <StudioPowertoolsBand signedIn={signedIn} />
       <CantoneseExamples />
       <CantonesePost />
       <CantoneseCta signedIn={signedIn} />

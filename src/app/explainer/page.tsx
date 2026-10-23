@@ -1,4 +1,5 @@
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
+import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
 import { getAuthSession } from "@/service/auth";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { ExplainerCta } from "./explainer-cta";
@@ -21,6 +22,7 @@ export default async function ExplainerMarketingPage() {
       <ExplainerStyle />
       <ExplainerUses signedIn={signedIn} />
       <ExplainerFlow signedIn={signedIn} />
+      <StudioPowertoolsBand signedIn={signedIn} />
       <ExplainerExamples />
       <ExplainerPost />
       <ExplainerCta signedIn={signedIn} />

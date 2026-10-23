@@ -1,4 +1,5 @@
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
+import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
 import { getAuthSession } from "@/service/auth";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { RightToolCta } from "./right-tool-cta";
@@ -23,6 +24,7 @@ export default async function RightToolPage() {
       <RightToolDirectors />
       <RightToolInfluencer />
       <RightToolEdit signedIn={signedIn} />
+      <StudioPowertoolsBand signedIn={signedIn} tone="dark" />
       <RightToolExamples />
       <RightToolPost />
       <RightToolCta signedIn={signedIn} />

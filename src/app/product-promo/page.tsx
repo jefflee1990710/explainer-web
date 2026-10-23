@@ -1,4 +1,5 @@
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
+import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
 import { getAuthSession } from "@/service/auth";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { ProductPromoCost } from "./product-promo-cost";
@@ -21,6 +22,7 @@ export default async function ProductPromoMarketingPage() {
       <ProductPromoCost />
       <ProductPromoFlow signedIn={signedIn} />
       <ProductPromoWild signedIn={signedIn} />
+      <StudioPowertoolsBand signedIn={signedIn} />
       <ProductPromoExamples />
       <ProductPromoPost />
       <ProductPromoCta signedIn={signedIn} />

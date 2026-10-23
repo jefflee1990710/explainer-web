@@ -1,4 +1,5 @@
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
+import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
 import { getAuthSession } from "@/service/auth";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { TalkingHeadCta } from "./talking-head-cta";
@@ -19,6 +20,7 @@ export default async function TalkingHeadMarketingPage() {
       <TalkingHeadHero signedIn={signedIn} />
       <TalkingHeadSteps signedIn={signedIn} />
       <TalkingHeadFinish signedIn={signedIn} />
+      <StudioPowertoolsBand signedIn={signedIn} />
       <TalkingHeadExamples />
       <TalkingHeadPost />
       <TalkingHeadCta signedIn={signedIn} />

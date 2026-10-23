@@ -1,4 +1,5 @@
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
+import { StudioPowertoolsBand } from "@/presentation/components/studio-powertools-band";
 import { getAuthSession } from "@/service/auth";
 import { marketingPageMetadata } from "@/util/i18n/marketing-page-meta";
 import { AiInfluencerCta } from "./ai-influencer-cta";
@@ -21,6 +22,7 @@ export default async function AiInfluencerMarketingPage() {
       <AiInfluencerHero signedIn={signedIn} />
       <AiInfluencerSoul signedIn={signedIn} />
       <AiInfluencerIp />
+      <StudioPowertoolsBand signedIn={signedIn} tone="dark" />
       <AiInfluencerEarn />
       <AiInfluencerShift signedIn={signedIn} />
       <AiInfluencerExamples />
