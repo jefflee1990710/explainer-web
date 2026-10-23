@@ -13,11 +13,13 @@ export function SkillPicker({
   value,
   onChange,
   disabled,
+  sideBySideGuide = false,
 }: {
   skills: PublicSkill[];
   value: string;
   onChange: (slug: string) => void;
   disabled?: boolean;
+  sideBySideGuide?: boolean;
 }) {
   const { t } = useI18n();
   const listboxId = useId();
@@ -106,8 +108,17 @@ export function SkillPicker({
   }
 
   return (
-    <div className="space-y-3">
-      <div ref={rootRef} className="relative">
+    <div
+      className={
+        sideBySideGuide
+          ? "grid gap-4 lg:grid-cols-12 lg:items-stretch"
+          : "space-y-3"
+      }
+    >
+      <div
+        ref={rootRef}
+        className={`relative ${sideBySideGuide ? "lg:col-span-5" : ""}`}
+      >
         <button
           type="button"
           id={`${listboxId}-trigger`}
@@ -117,7 +128,7 @@ export function SkillPicker({
           aria-controls={listboxId}
           disabled={disabled}
           onClick={() => setOpen((current) => !current)}
-          className="flex w-full min-h-[4.5rem] cursor-pointer items-center gap-3 rounded-xl border border-accent-ink/15 bg-paper/70 px-3 py-2.5 text-left transition-colors hover:border-accent-ink/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-full min-h-[4.5rem] w-full cursor-pointer items-center gap-3 rounded-xl border border-accent-ink/15 bg-paper/70 px-3 py-2.5 text-left transition-colors hover:border-accent-ink/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
         >
           {selected ? <DirectorPreviewThumb previewUrl={selected.previewUrl} label={selectedLabel} /> : null}
           <span className="min-w-0 flex-1">
@@ -140,7 +151,11 @@ export function SkillPicker({
           </ul>
         ) : null}
       </div>
-      {selected || value ? <SkillGuideRows slug={selected?.behaviorSlug || value} /> : null}
+      {selected || value ? (
+        <div className={sideBySideGuide ? "lg:col-span-7" : ""}>
+          <SkillGuideRows slug={selected?.behaviorSlug || value} />
+        </div>
+      ) : null}
     </div>
   );
 }

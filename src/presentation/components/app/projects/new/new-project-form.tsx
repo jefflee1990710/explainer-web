@@ -1042,37 +1042,50 @@ export function NewProjectForm({
                     transition={{ duration: 0.25, ease }}
                     className="space-y-4"
                   >
-                    {/* Row 1: Video Type (01) + Visual Style (02) aligned side-by-side */}
-                    <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
-                      <div className="rounded-2xl border border-accent-ink/10 bg-paper/40 p-5">
-                        <Section step="01" title={t("brief.section01.title")} hint={t("brief.section01.hint")}>
-                          <SkillPicker
-                            skills={skills}
-                            value={skillSlug}
-                            onChange={setSkillSlug}
-                            disabled={briefBusy}
-                          />
-                          {talkingHead ? (
-                            <p className="mt-3 text-xs text-muted">{t("brief.talkingHead.hint")}</p>
-                          ) : null}
-                        </Section>
-                      </div>
+                    {/* Row 1: Full-width Director Banner Card (Dropdown left, 4-point Director Spec right) */}
+                    <div className="rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                      <Section step="01" title={t("brief.section01.title")} hint={t("brief.section01.hint")}>
+                        <SkillPicker
+                          skills={skills}
+                          value={skillSlug}
+                          onChange={setSkillSlug}
+                          disabled={briefBusy}
+                          sideBySideGuide
+                        />
+                        {talkingHead ? (
+                          <p className="mt-3 text-xs text-muted">{t("brief.talkingHead.hint")}</p>
+                        ) : null}
+                      </Section>
+                    </div>
 
-                      <div className="rounded-2xl border border-accent-ink/10 bg-paper/40 p-5">
-                        <Section step="02" title={t("brief.visualStyle.title")} hint={t("brief.visualStyle.hint")}>
+                    {/* Row 2: Equal-height 3-column Studio Cards (02 Visual Style · 03 Characters · 04 Products) */}
+                    <div
+                      className={`grid gap-4 lg:items-stretch ${
+                        bookend
+                          ? "md:grid-cols-2 xl:grid-cols-4"
+                          : "md:grid-cols-2 lg:grid-cols-3"
+                      }`}
+                    >
+                      <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                        <Section
+                          step="02"
+                          title={t("brief.visualStyle.title")}
+                          hint={t("brief.visualStyle.hint")}
+                          equalHeaderHeight
+                        >
                           <StylePicker
                             styles={styles}
                             value={styleId}
                             onChange={onStyleChange}
                             disabled={briefBusy}
                           />
+                          <p className="mt-2 text-xs text-muted">
+                            {styleName}
+                          </p>
                         </Section>
                       </div>
-                    </div>
 
-                    {/* Row 2: Characters (03) + Products (04) (+ Brand Logo 05 when bookend) */}
-                    <div className={`grid gap-4 ${bookend ? "lg:grid-cols-3" : "lg:grid-cols-2"} lg:items-stretch`}>
-                      <div className="rounded-2xl border border-accent-ink/10 bg-paper/40 p-5">
+                      <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
                         <Section
                           step="03"
                           title={t("brief.cast.title")}
@@ -1083,6 +1096,7 @@ export function NewProjectForm({
                                 ? t("brief.cast.hintRequiredOne")
                                 : t("brief.cast.hintOptional")
                           }
+                          equalHeaderHeight
                         >
                           <CharacterPicker
                             characters={characters}
@@ -1098,8 +1112,13 @@ export function NewProjectForm({
                         </Section>
                       </div>
 
-                      <div className="rounded-2xl border border-accent-ink/10 bg-paper/40 p-5">
-                        <Section step="04" title={t("brief.products.title")} hint={t("brief.products.hint")}>
+                      <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                        <Section
+                          step="04"
+                          title={t("brief.products.title")}
+                          hint={t("brief.products.hint")}
+                          equalHeaderHeight
+                        >
                           <ProductDropdown
                             products={products}
                             value={productIds}
@@ -1110,8 +1129,13 @@ export function NewProjectForm({
                       </div>
 
                       {bookend ? (
-                        <div className="rounded-2xl border border-accent-ink/10 bg-paper/40 p-5">
-                          <Section step="05" title={t("brief.logo.title")} hint={t("brief.logo.hint")}>
+                        <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                          <Section
+                            step="05"
+                            title={t("brief.logo.title")}
+                            hint={t("brief.logo.hint")}
+                            equalHeaderHeight
+                          >
                             <LogoPicker
                               value={logoUrl}
                               onChange={setLogoUrl}
@@ -1133,9 +1157,9 @@ export function NewProjectForm({
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
                     transition={{ duration: 0.25, ease }}
-                    className="grid gap-4 lg:grid-cols-12 lg:items-start"
+                    className="grid gap-4 lg:grid-cols-12 lg:items-stretch"
                   >
-                    <div className="rounded-2xl border border-accent-ink/10 bg-paper/40 p-5 lg:col-span-7">
+                    <div className="flex flex-col rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6 lg:col-span-7">
                       <Section step="01" title={t("brief.section02.title")} hint={t("brief.section02.hint")}>
                         <label htmlFor="source" className="sr-only">
                           {t("brief.source.label")}
@@ -1153,9 +1177,11 @@ export function NewProjectForm({
                           }`}
                           placeholder={t("brief.source.placeholder")}
                         />
-                        <p className="mt-2 text-right text-xs tabular-nums text-muted">
-                          {t("brief.source.charCount", { n: source.length.toLocaleString() })}
-                        </p>
+                        <div className="mt-2 flex items-center justify-end gap-2">
+                          <span className="rounded-full bg-accent-ink/5 px-2.5 py-0.5 text-xs font-medium tabular-nums text-muted">
+                            {t("brief.source.charCount", { n: source.length.toLocaleString() })}
+                          </span>
+                        </div>
                         {talkingHead ? (
                           <TalkingHeadScriptField
                             value={spokenScript}
@@ -1166,31 +1192,45 @@ export function NewProjectForm({
                       </Section>
                     </div>
 
-                    <div className="space-y-4 rounded-2xl border border-accent-ink/10 bg-paper/40 p-5 lg:col-span-5 [&>div]:mt-0">
-                      {talkingHeadBackground ? (
-                        <TalkingHeadBackgroundField
-                          value={backgroundImageUrls}
-                          onChange={setBackgroundImageUrls}
+                    <div className="flex flex-col space-y-5 rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6 lg:col-span-5 [&>div]:mt-0">
+                      <Section
+                        step="02"
+                        title={t("brief.references.title")}
+                        hint={t("brief.references.hint", { max: "4" })}
+                      >
+                        <ReferenceImagesField
+                          value={referenceImages}
+                          onChange={setReferenceImages}
                           onError={setError}
                           disabled={briefBusy}
+                          hideHeader
                         />
+                        {referenceImages.some((item) => !item.description.trim()) ? (
+                          <p className="mt-2 text-xs font-medium text-accent">
+                            {t("brief.references.descriptionRequired")}
+                          </p>
+                        ) : null}
+                      </Section>
+
+                      {talkingHeadBackground ? (
+                        <div className="border-t border-accent-ink/10 pt-4">
+                          <TalkingHeadBackgroundField
+                            value={backgroundImageUrls}
+                            onChange={setBackgroundImageUrls}
+                            onError={setError}
+                            disabled={briefBusy}
+                          />
+                        </div>
                       ) : null}
                       {talkingHeadStartImage ? (
-                        <TalkingHeadStartImageField
-                          value={startImageUrl}
-                          onChange={setStartImageUrl}
-                          onError={setError}
-                          disabled={briefBusy}
-                        />
-                      ) : null}
-                      <ReferenceImagesField
-                        value={referenceImages}
-                        onChange={setReferenceImages}
-                        onError={setError}
-                        disabled={briefBusy}
-                      />
-                      {referenceImages.some((item) => !item.description.trim()) ? (
-                        <p className="mt-2 text-xs text-muted">{t("brief.references.descriptionRequired")}</p>
+                        <div className="border-t border-accent-ink/10 pt-4">
+                          <TalkingHeadStartImageField
+                            value={startImageUrl}
+                            onChange={setStartImageUrl}
+                            onError={setError}
+                            disabled={briefBusy}
+                          />
+                        </div>
                       ) : null}
                     </div>
                   </motion.div>
@@ -1201,7 +1241,7 @@ export function NewProjectForm({
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
                     transition={{ duration: 0.25, ease }}
-                    className="space-y-5"
+                    className="space-y-4"
                   >
                     <StoryboardDraftsStep
                       skillSlug={skillSlug}
@@ -1223,49 +1263,49 @@ export function NewProjectForm({
                     transition={{ duration: 0.25, ease }}
                     className="grid gap-4 lg:grid-cols-12 lg:items-start"
                   >
-                    <div className="rounded-2xl border border-accent-ink/10 bg-paper/40 p-5 lg:col-span-7">
-                      <Section
-                        step="01"
-                        title={dialogueOnly ? t("brief.section03.titleDialogue") : t("brief.section03.titleNarration")}
-                        hint={
-                          dialogueOnly
-                            ? t("brief.section03.hintDialogue")
-                            : t("brief.section03.hintNarration")
-                        }
-                      >
-                        <LanguagePicker
-                          value={language}
-                          onChange={setLanguage}
-                          disabled={briefBusy}
-                          dialogueOnly={dialogueOnly}
-                        />
-                        <div className={`mt-4 grid gap-4 ${dialogueOnly ? "" : "sm:grid-cols-2"}`}>
-                          <div>
-                            <p className="text-sm font-semibold">{t("brief.speechPaceSection.title")}</p>
-                            <p className="mt-1 text-xs text-muted">
-                              {t("brief.speechPaceSection.hint")}
-                            </p>
-                            <div className="mt-2.5">
-                              <SpeechPacePicker value={speechPace} onChange={setSpeechPace} disabled={briefBusy} />
-                            </div>
-                          </div>
-                          {dialogueOnly ? null : (
+                    <div className="space-y-4 lg:col-span-7">
+                      <div className="rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                        <Section
+                          step="01"
+                          title={dialogueOnly ? t("brief.section03.titleDialogue") : t("brief.section03.titleNarration")}
+                          hint={
+                            dialogueOnly
+                              ? t("brief.section03.hintDialogue")
+                              : t("brief.section03.hintNarration")
+                          }
+                        >
+                          <LanguagePicker
+                            value={language}
+                            onChange={setLanguage}
+                            disabled={briefBusy}
+                            dialogueOnly={dialogueOnly}
+                          />
+                          <div className={`mt-5 grid gap-4 border-t border-accent-ink/10 pt-4 ${dialogueOnly ? "" : "sm:grid-cols-2"}`}>
                             <div>
-                              <p className="text-sm font-semibold">{t("brief.voiceSection.title")}</p>
+                              <p className="text-sm font-semibold">{t("brief.speechPaceSection.title")}</p>
                               <p className="mt-1 text-xs text-muted">
-                                {t("brief.voiceSection.hint")}
+                                {t("brief.speechPaceSection.hint")}
                               </p>
                               <div className="mt-2.5">
-                                <VoicePicker value={voiceGender} onChange={setVoiceGender} disabled={briefBusy} />
+                                <SpeechPacePicker value={speechPace} onChange={setSpeechPace} disabled={briefBusy} />
                               </div>
                             </div>
-                          )}
-                        </div>
-                      </Section>
-                    </div>
+                            {dialogueOnly ? null : (
+                              <div>
+                                <p className="text-sm font-semibold">{t("brief.voiceSection.title")}</p>
+                                <p className="mt-1 text-xs text-muted">
+                                  {t("brief.voiceSection.hint")}
+                                </p>
+                                <div className="mt-2.5">
+                                  <VoicePicker value={voiceGender} onChange={setVoiceGender} disabled={briefBusy} />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </Section>
+                      </div>
 
-                    <div className="space-y-4 lg:col-span-5">
-                      <div className="rounded-2xl border border-accent-ink/10 bg-paper/40 p-5">
+                      <div className="rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
                         <Section
                           step="02"
                           title={t("brief.section04.title")}
@@ -1282,30 +1322,30 @@ export function NewProjectForm({
                           />
                         </Section>
                       </div>
+                    </div>
 
-                      <div className={`grid gap-4 ${talkingHead ? "" : "sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2"}`}>
-                        <div className="rounded-2xl border border-accent-ink/10 bg-paper/40 p-5">
-                          <Section step="03" title={t("brief.section05.title")} hint={t("brief.section05.hint")}>
-                            <AspectRatioPicker
-                              value={aspectRatio}
-                              onChange={setAspectRatio}
+                    <div className="space-y-4 lg:col-span-5">
+                      <div className="rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                        <Section step="03" title={t("brief.section05.title")} hint={t("brief.section05.hint")}>
+                          <AspectRatioPicker
+                            value={aspectRatio}
+                            onChange={setAspectRatio}
+                            disabled={briefBusy}
+                          />
+                        </Section>
+                      </div>
+
+                      {talkingHead ? null : (
+                        <div className="rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                          <Section step="04" title={t("brief.section06.title")} hint={t("brief.section06.hint")}>
+                            <DurationPicker
+                              value={durationPreset}
+                              onChange={setDurationPreset}
                               disabled={briefBusy}
                             />
                           </Section>
                         </div>
-
-                        {talkingHead ? null : (
-                          <div className="rounded-2xl border border-accent-ink/10 bg-paper/40 p-5">
-                            <Section step="04" title={t("brief.section06.title")} hint={t("brief.section06.hint")}>
-                              <DurationPicker
-                                value={durationPreset}
-                                onChange={setDurationPreset}
-                                disabled={briefBusy}
-                              />
-                            </Section>
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
@@ -1318,7 +1358,7 @@ export function NewProjectForm({
               ) : null}
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-accent-ink/10 pt-5">
+              <div className="sticky bottom-0 z-20 -mx-6 -mb-6 mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-accent-ink/10 bg-[var(--studio-panel)]/95 px-6 py-4 backdrop-blur-sm sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10">
                 <div className="flex flex-wrap items-center gap-3">
                   {wizardStep > 0 ? (
                     <button
@@ -1540,23 +1580,27 @@ function Section({
   step,
   title,
   hint,
+  equalHeaderHeight = false,
   children,
 }: {
   step: string;
   title: string;
   hint: string;
+  equalHeaderHeight?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <fieldset className="min-w-0">
-      <legend className="flex items-center gap-3">
-        <span className="font-display rounded-full bg-lime px-2.5 py-0.5 text-xs font-bold">
-          {step}
-        </span>
-        <span className="font-display text-base font-bold">{title}</span>
-      </legend>
-      <p className="mt-1 text-xs text-muted">{hint}</p>
-      <div className="mt-3">{children}</div>
+    <fieldset className="flex h-full min-w-0 flex-col">
+      <div className={equalHeaderHeight ? "min-h-[3.75rem]" : ""}>
+        <legend className="flex items-center gap-2.5">
+          <span className="font-display rounded-full bg-lime px-2.5 py-0.5 text-xs font-bold text-accent-ink">
+            {step}
+          </span>
+          <span className="font-display text-base font-bold text-foreground">{title}</span>
+        </legend>
+        <p className="mt-1 line-clamp-2 text-xs leading-4 text-muted">{hint}</p>
+      </div>
+      <div className="mt-3 flex-1">{children}</div>
     </fieldset>
   );
 }

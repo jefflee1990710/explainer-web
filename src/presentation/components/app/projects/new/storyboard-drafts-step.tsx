@@ -67,29 +67,27 @@ export function StoryboardDraftsStep({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <span className="font-display rounded-full bg-lime px-2.5 py-0.5 text-xs font-bold">
-              03
-            </span>
-            <h2 className="font-display text-base font-bold">
-              {t("brief.drafts.title")}
-            </h2>
-            <span className="rounded-full border border-accent-ink/20 bg-paper px-2 py-0.5 text-[11px] font-semibold text-muted">
-              {t("brief.drafts.optionalBadge")}
-            </span>
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_440px] lg:items-stretch">
+      <div className="flex min-w-0 flex-col space-y-4 rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <span className="font-display rounded-full bg-lime px-2.5 py-0.5 text-xs font-bold text-accent-ink">
+                01
+              </span>
+              <h2 className="font-display text-base font-bold">
+                {t("brief.drafts.title")}
+              </h2>
+              <span className="rounded-full border border-accent-ink/20 bg-paper px-2 py-0.5 text-[11px] font-semibold text-muted">
+                {t("brief.drafts.optionalBadge")}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-muted">{t("brief.drafts.hint")}</p>
           </div>
-          <p className="mt-1 text-xs text-muted">{t("brief.drafts.hint")}</p>
         </div>
-      </div>
 
-      {/* Main 2-column workspace: Left = Multi-Clip Sketch + Explanation, Right = AI Draft Chatroom */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_440px]">
-        <div className="min-w-0 space-y-4">
-          {/* Clip tabs + Add Clip button */}
-          <div className="flex flex-wrap items-center gap-1.5">
+        {/* Clip tabs + Add Clip button */}
+        <div className="flex flex-wrap items-center gap-1.5">
             {drafts.map((item, idx) => {
               const active = idx === safeIndex;
               return (
@@ -205,7 +203,7 @@ export function StoryboardDraftsStep({
               </div>
             </div>
           ) : (
-            <div className="flex min-h-[20rem] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-accent-ink/15 bg-paper/50 p-6 text-center">
+            <div className="flex min-h-[22rem] flex-1 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-accent-ink/15 bg-paper/50 p-6 text-center">
               <p className="font-display text-sm font-bold text-foreground">
                 {t("brief.drafts.emptyStateTitle")}
               </p>
@@ -222,25 +220,24 @@ export function StoryboardDraftsStep({
               </button>
             </div>
           )}
-        </div>
-
-        {/* Right column: AI Storyboard Draft Chatroom */}
-        <StoryboardDraftChatPanel
-          skillSlug={skillSlug}
-          styleId={styleId}
-          source={source}
-          spokenScript={spokenScript}
-          language={language}
-          drafts={drafts}
-          disabled={disabled}
-          onApplyDrafts={(nextDrafts) => {
-            onChange(nextDrafts);
-            if (nextDrafts.length > 0 && safeIndex >= nextDrafts.length) {
-              setActiveIndex(0);
-            }
-          }}
-        />
       </div>
+
+      {/* Right column: AI Storyboard Draft Chatroom */}
+      <StoryboardDraftChatPanel
+        skillSlug={skillSlug}
+        styleId={styleId}
+        source={source}
+        spokenScript={spokenScript}
+        language={language}
+        drafts={drafts}
+        disabled={disabled}
+        onApplyDrafts={(nextDrafts) => {
+          onChange(nextDrafts);
+          if (nextDrafts.length > 0 && safeIndex >= nextDrafts.length) {
+            setActiveIndex(0);
+          }
+        }}
+      />
     </div>
   );
 }

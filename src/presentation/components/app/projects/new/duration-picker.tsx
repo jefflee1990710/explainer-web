@@ -22,6 +22,7 @@ export function DurationPicker({
       {Object.values(DURATION_PRESETS).map((preset) => {
         const active = preset.id === value;
         const labels = durationPresetLabel(t, preset.id);
+        const isAuto = preset.id === "auto";
         return (
           <motion.button
             key={preset.id}
@@ -32,6 +33,8 @@ export function DurationPicker({
             onClick={() => onChange(preset.id)}
             whileTap={{ scale: 0.98 }}
             className={`flex min-h-[52px] cursor-pointer items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60 ${
+              isAuto ? "sm:col-span-2" : ""
+            } ${
               active
                 ? "border-accent-ink bg-accent-ink text-paper"
                 : "border-accent-ink/10 bg-paper/70 hover:border-accent-ink/30"
@@ -39,7 +42,7 @@ export function DurationPicker({
           >
             <span className="text-sm font-semibold">{labels.label}</span>
             <span
-              className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
+              className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
                 active ? "bg-lime text-accent-ink" : "bg-accent-ink/5 text-muted"
               }`}
             >
