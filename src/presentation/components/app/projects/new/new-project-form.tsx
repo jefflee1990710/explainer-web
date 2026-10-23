@@ -1010,9 +1010,7 @@ export function NewProjectForm({
           {viewing === 0 ? (
             <StudioPanel
               key="form"
-              className={`mx-auto w-full transition-all ${
-                wizardStep === 2 ? "max-w-5xl" : "max-w-3xl"
-              }`}
+              className="flex min-h-full w-full flex-col transition-all"
             >
             <motion.form
               key="form"
@@ -1021,8 +1019,9 @@ export function NewProjectForm({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10, scale: 0.99, transition: { duration: 0.2 } }}
               transition={{ duration: 0.4, ease }}
-              className="space-y-6 p-6 sm:p-8"
+              className="flex min-h-full w-full flex-1 flex-col justify-between gap-6 p-6 sm:px-8 sm:py-7 lg:px-10"
             >
+              <div className="space-y-6">
               <input type="hidden" name="projectId" value={projectId} />
 
               <BriefWizardStepper
@@ -1044,85 +1043,89 @@ export function NewProjectForm({
                     className="space-y-5"
                   >
                     <Section step="01" title={t("brief.section01.title")} hint={t("brief.section01.hint")}>
-                      <SkillPicker
-                        skills={skills}
-                        value={skillSlug}
-                        onChange={setSkillSlug}
-                        disabled={briefBusy}
-                      />
-                      {talkingHead ? (
-                        <p className="mt-3 text-xs text-muted">{t("brief.talkingHead.hint")}</p>
-                      ) : null}
-
-                      {/* 2-column grid keeps visual style, cast, products & logo compact without scrolling. */}
-                      <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                        <div>
-                          <p className="text-sm font-semibold">{t("brief.visualStyle.title")}</p>
-                          <p className="mt-1 text-xs text-muted">{t("brief.visualStyle.hint")}</p>
-                          <div className="mt-2.5">
-                            <StylePicker
-                              styles={styles}
-                              value={styleId}
-                              onChange={onStyleChange}
-                              disabled={briefBusy}
-                            />
-                          </div>
+                      <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
+                        <div className="lg:col-span-5">
+                          <SkillPicker
+                            skills={skills}
+                            value={skillSlug}
+                            onChange={setSkillSlug}
+                            disabled={briefBusy}
+                          />
+                          {talkingHead ? (
+                            <p className="mt-3 text-xs text-muted">{t("brief.talkingHead.hint")}</p>
+                          ) : null}
                         </div>
 
-                        <div>
-                          <p className="text-sm font-semibold">{t("brief.cast.title")}</p>
-                          <p className="mt-1 text-xs text-muted">
-                            {castNeed === 2
-                              ? t("brief.cast.hintRequiredTwo")
-                              : castNeed === 1
-                                ? t("brief.cast.hintRequiredOne")
-                                : t("brief.cast.hintOptional")}
-                          </p>
-                          <div className="mt-2.5">
-                            <CharacterPicker
-                              characters={characters}
-                              styleId={styleId}
-                              value={characterIds}
-                              onChange={setCharacterIds}
-                              selections={characterSelections}
-                              onSelectionsChange={setCharacterSelections}
-                              disabled={briefBusy}
-                              max={castNeed > 0 ? castNeed : 4}
-                              required={castNeed}
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <p className="text-sm font-semibold">{t("brief.products.title")}</p>
-                          <p className="mt-1 text-xs text-muted">{t("brief.products.hint")}</p>
-                          <div className="mt-2.5">
-                            <ProductDropdown
-                              products={products}
-                              value={productIds}
-                              onChange={setProductIds}
-                              disabled={briefBusy}
-                            />
-                          </div>
-                        </div>
-
-                        {bookend ? (
+                        {/* 2-column grid keeps visual style, cast, products & logo compact without scrolling. */}
+                        <div className="grid gap-5 sm:grid-cols-2 lg:col-span-7">
                           <div>
-                            <p className="text-sm font-semibold">{t("brief.logo.title")}</p>
-                            <p className="mt-1 text-xs text-muted">{t("brief.logo.hint")}</p>
+                            <p className="text-sm font-semibold">{t("brief.visualStyle.title")}</p>
+                            <p className="mt-1 text-xs text-muted">{t("brief.visualStyle.hint")}</p>
                             <div className="mt-2.5">
-                              <LogoPicker
-                                value={logoUrl}
-                                onChange={setLogoUrl}
-                                onError={setError}
+                              <StylePicker
+                                styles={styles}
+                                value={styleId}
+                                onChange={onStyleChange}
                                 disabled={briefBusy}
                               />
                             </div>
-                            {durationPreset === "auto" ? (
-                              <p className="mt-2 text-xs text-muted">{t("brief.logo.fixedLength")}</p>
-                            ) : null}
                           </div>
-                        ) : null}
+
+                          <div>
+                            <p className="text-sm font-semibold">{t("brief.cast.title")}</p>
+                            <p className="mt-1 text-xs text-muted">
+                              {castNeed === 2
+                                ? t("brief.cast.hintRequiredTwo")
+                                : castNeed === 1
+                                  ? t("brief.cast.hintRequiredOne")
+                                  : t("brief.cast.hintOptional")}
+                            </p>
+                            <div className="mt-2.5">
+                              <CharacterPicker
+                                characters={characters}
+                                styleId={styleId}
+                                value={characterIds}
+                                onChange={setCharacterIds}
+                                selections={characterSelections}
+                                onSelectionsChange={setCharacterSelections}
+                                disabled={briefBusy}
+                                max={castNeed > 0 ? castNeed : 4}
+                                required={castNeed}
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="text-sm font-semibold">{t("brief.products.title")}</p>
+                            <p className="mt-1 text-xs text-muted">{t("brief.products.hint")}</p>
+                            <div className="mt-2.5">
+                              <ProductDropdown
+                                products={products}
+                                value={productIds}
+                                onChange={setProductIds}
+                                disabled={briefBusy}
+                              />
+                            </div>
+                          </div>
+
+                          {bookend ? (
+                            <div>
+                              <p className="text-sm font-semibold">{t("brief.logo.title")}</p>
+                              <p className="mt-1 text-xs text-muted">{t("brief.logo.hint")}</p>
+                              <div className="mt-2.5">
+                                <LogoPicker
+                                  value={logoUrl}
+                                  onChange={setLogoUrl}
+                                  onError={setError}
+                                  disabled={briefBusy}
+                                />
+                              </div>
+                              {durationPreset === "auto" ? (
+                                <p className="mt-2 text-xs text-muted">{t("brief.logo.fixedLength")}</p>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                     </Section>
                   </motion.div>
@@ -1136,55 +1139,62 @@ export function NewProjectForm({
                     className="space-y-5"
                   >
                     <Section step="02" title={t("brief.section02.title")} hint={t("brief.section02.hint")}>
-                      <label htmlFor="source" className="sr-only">
-                        {t("brief.source.label")}
-                      </label>
-                      <textarea
-                        id="source"
-                        name="source"
-                        required
-                        rows={5}
-                        value={source}
-                        onChange={(event) => setSource(event.target.value)}
-                        disabled={briefBusy}
-                        className="w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-base leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-                        placeholder={t("brief.source.placeholder")}
-                      />
-                      <p className="mt-2 text-right text-xs tabular-nums text-muted">
-                        {t("brief.source.charCount", { n: source.length.toLocaleString() })}
-                      </p>
-                      {talkingHead ? (
-                        <TalkingHeadScriptField
-                          value={spokenScript}
-                          onChange={setSpokenScript}
-                          disabled={briefBusy}
-                        />
-                      ) : null}
-                      {talkingHeadBackground ? (
-                        <TalkingHeadBackgroundField
-                          value={backgroundImageUrls}
-                          onChange={setBackgroundImageUrls}
-                          onError={setError}
-                          disabled={briefBusy}
-                        />
-                      ) : null}
-                      {talkingHeadStartImage ? (
-                        <TalkingHeadStartImageField
-                          value={startImageUrl}
-                          onChange={setStartImageUrl}
-                          onError={setError}
-                          disabled={briefBusy}
-                        />
-                      ) : null}
-                      <ReferenceImagesField
-                        value={referenceImages}
-                        onChange={setReferenceImages}
-                        onError={setError}
-                        disabled={briefBusy}
-                      />
-                      {referenceImages.some((item) => !item.description.trim()) ? (
-                        <p className="mt-2 text-xs text-muted">{t("brief.references.descriptionRequired")}</p>
-                      ) : null}
+                      <div className="grid gap-6 lg:grid-cols-12 lg:items-start">
+                        <div className="lg:col-span-7">
+                          <label htmlFor="source" className="sr-only">
+                            {t("brief.source.label")}
+                          </label>
+                          <textarea
+                            id="source"
+                            name="source"
+                            required
+                            rows={8}
+                            value={source}
+                            onChange={(event) => setSource(event.target.value)}
+                            disabled={briefBusy}
+                            className="w-full resize-y rounded-2xl border border-accent-ink/15 bg-paper px-4 py-3 text-base leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+                            placeholder={t("brief.source.placeholder")}
+                          />
+                          <p className="mt-2 text-right text-xs tabular-nums text-muted">
+                            {t("brief.source.charCount", { n: source.length.toLocaleString() })}
+                          </p>
+                          {talkingHead ? (
+                            <TalkingHeadScriptField
+                              value={spokenScript}
+                              onChange={setSpokenScript}
+                              disabled={briefBusy}
+                            />
+                          ) : null}
+                        </div>
+
+                        <div className="space-y-4 lg:col-span-5 [&>div]:mt-0">
+                          {talkingHeadBackground ? (
+                            <TalkingHeadBackgroundField
+                              value={backgroundImageUrls}
+                              onChange={setBackgroundImageUrls}
+                              onError={setError}
+                              disabled={briefBusy}
+                            />
+                          ) : null}
+                          {talkingHeadStartImage ? (
+                            <TalkingHeadStartImageField
+                              value={startImageUrl}
+                              onChange={setStartImageUrl}
+                              onError={setError}
+                              disabled={briefBusy}
+                            />
+                          ) : null}
+                          <ReferenceImagesField
+                            value={referenceImages}
+                            onChange={setReferenceImages}
+                            onError={setError}
+                            disabled={briefBusy}
+                          />
+                          {referenceImages.some((item) => !item.description.trim()) ? (
+                            <p className="mt-2 text-xs text-muted">{t("brief.references.descriptionRequired")}</p>
+                          ) : null}
+                        </div>
+                      </div>
                     </Section>
                   </motion.div>
                 ) : wizardStep === 2 ? (
@@ -1214,81 +1224,85 @@ export function NewProjectForm({
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
                     transition={{ duration: 0.25, ease }}
-                    className="space-y-6"
+                    className="grid gap-6 lg:grid-cols-12 lg:items-start"
                   >
-                    <Section
-                      step="03"
-                      title={dialogueOnly ? t("brief.section03.titleDialogue") : t("brief.section03.titleNarration")}
-                      hint={
-                        dialogueOnly
-                          ? t("brief.section03.hintDialogue")
-                          : t("brief.section03.hintNarration")
-                      }
-                    >
-                      <LanguagePicker
-                        value={language}
-                        onChange={setLanguage}
-                        disabled={briefBusy}
-                        dialogueOnly={dialogueOnly}
-                      />
-                      <div className={`mt-4 grid gap-4 ${dialogueOnly ? "" : "sm:grid-cols-2"}`}>
-                        <div>
-                          <p className="text-sm font-semibold">{t("brief.speechPaceSection.title")}</p>
-                          <p className="mt-1 text-xs text-muted">
-                            {t("brief.speechPaceSection.hint")}
-                          </p>
-                          <div className="mt-2.5">
-                            <SpeechPacePicker value={speechPace} onChange={setSpeechPace} disabled={briefBusy} />
-                          </div>
-                        </div>
-                        {dialogueOnly ? null : (
+                    <div className="lg:col-span-7">
+                      <Section
+                        step="03"
+                        title={dialogueOnly ? t("brief.section03.titleDialogue") : t("brief.section03.titleNarration")}
+                        hint={
+                          dialogueOnly
+                            ? t("brief.section03.hintDialogue")
+                            : t("brief.section03.hintNarration")
+                        }
+                      >
+                        <LanguagePicker
+                          value={language}
+                          onChange={setLanguage}
+                          disabled={briefBusy}
+                          dialogueOnly={dialogueOnly}
+                        />
+                        <div className={`mt-4 grid gap-4 ${dialogueOnly ? "" : "sm:grid-cols-2"}`}>
                           <div>
-                            <p className="text-sm font-semibold">{t("brief.voiceSection.title")}</p>
+                            <p className="text-sm font-semibold">{t("brief.speechPaceSection.title")}</p>
                             <p className="mt-1 text-xs text-muted">
-                              {t("brief.voiceSection.hint")}
+                              {t("brief.speechPaceSection.hint")}
                             </p>
                             <div className="mt-2.5">
-                              <VoicePicker value={voiceGender} onChange={setVoiceGender} disabled={briefBusy} />
+                              <SpeechPacePicker value={speechPace} onChange={setSpeechPace} disabled={briefBusy} />
                             </div>
                           </div>
-                        )}
-                      </div>
-                    </Section>
+                          {dialogueOnly ? null : (
+                            <div>
+                              <p className="text-sm font-semibold">{t("brief.voiceSection.title")}</p>
+                              <p className="mt-1 text-xs text-muted">
+                                {t("brief.voiceSection.hint")}
+                              </p>
+                              <div className="mt-2.5">
+                                <VoicePicker value={voiceGender} onChange={setVoiceGender} disabled={briefBusy} />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </Section>
+                    </div>
 
-                    <Section
-                      step="04"
-                      title={t("brief.section04.title")}
-                      hint={
-                        forceSceneText
-                          ? t("brief.section04.hintListicle")
-                          : t("brief.section04.hintDefault")
-                      }
-                    >
-                      <SceneTextPicker
-                        language={sceneTextLanguage}
-                        onLanguageChange={setSceneTextLanguage}
-                        disabled={briefBusy}
-                      />
-                    </Section>
-
-                    <div className={`grid gap-6 ${talkingHead ? "" : "sm:grid-cols-2"}`}>
-                      <Section step="05" title={t("brief.section05.title")} hint={t("brief.section05.hint")}>
-                        <AspectRatioPicker
-                          value={aspectRatio}
-                          onChange={setAspectRatio}
+                    <div className="space-y-6 lg:col-span-5">
+                      <Section
+                        step="04"
+                        title={t("brief.section04.title")}
+                        hint={
+                          forceSceneText
+                            ? t("brief.section04.hintListicle")
+                            : t("brief.section04.hintDefault")
+                        }
+                      >
+                        <SceneTextPicker
+                          language={sceneTextLanguage}
+                          onLanguageChange={setSceneTextLanguage}
                           disabled={briefBusy}
                         />
                       </Section>
 
-                      {talkingHead ? null : (
-                        <Section step="06" title={t("brief.section06.title")} hint={t("brief.section06.hint")}>
-                          <DurationPicker
-                            value={durationPreset}
-                            onChange={setDurationPreset}
+                      <div className={`grid gap-6 ${talkingHead ? "" : "sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2"}`}>
+                        <Section step="05" title={t("brief.section05.title")} hint={t("brief.section05.hint")}>
+                          <AspectRatioPicker
+                            value={aspectRatio}
+                            onChange={setAspectRatio}
                             disabled={briefBusy}
                           />
                         </Section>
-                      )}
+
+                        {talkingHead ? null : (
+                          <Section step="06" title={t("brief.section06.title")} hint={t("brief.section06.hint")}>
+                            <DurationPicker
+                              value={durationPreset}
+                              onChange={setDurationPreset}
+                              disabled={briefBusy}
+                            />
+                          </Section>
+                        )}
+                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -1299,6 +1313,7 @@ export function NewProjectForm({
                   {translateAppError(error, t)}
                 </p>
               ) : null}
+              </div>
 
               <div className="flex flex-wrap items-center justify-between gap-4 border-t border-accent-ink/10 pt-5">
                 <div className="flex flex-wrap items-center gap-3">

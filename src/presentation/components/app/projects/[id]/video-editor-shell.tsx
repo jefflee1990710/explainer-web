@@ -77,7 +77,7 @@ export function VideoEditorShell({ video }: { video: PublicVideoCard }) {
   if (clipCount === 0) {
     return (
       <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--studio-canvas)]">
-        <div className="mx-auto w-full max-w-3xl">{inspector}</div>
+        <div className="w-full px-6 py-4">{inspector}</div>
       </div>
     );
   }

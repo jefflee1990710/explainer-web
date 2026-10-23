@@ -86,7 +86,7 @@ export function StoryboardDraftsStep({
       </div>
 
       {/* Main 2-column workspace: Left = Multi-Clip Sketch + Explanation, Right = AI Draft Chatroom */}
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_440px]">
         <div className="min-w-0 space-y-4">
           {/* Clip tabs + Add Clip button */}
           <div className="flex flex-wrap items-center gap-1.5">
@@ -128,7 +128,7 @@ export function StoryboardDraftsStep({
           </div>
 
           {currentDraft ? (
-            <div className="space-y-4 rounded-2xl border border-accent-ink/15 bg-paper/70 p-4">
+            <div className="space-y-4 rounded-2xl border border-accent-ink/15 bg-paper/70 p-4 sm:p-5">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-display text-sm font-bold">
                   {t("brief.drafts.clipTab", { n: currentDraft.clipNumber })}
@@ -143,61 +143,65 @@ export function StoryboardDraftsStep({
                 </button>
               </div>
 
-              {/* Remount sketchpad when switching clips so each clip has its own clean canvas */}
-              <StoryboardSketchPad
-                key={`sketch-clip-${currentDraft.clipNumber}`}
-                clipNumber={currentDraft.clipNumber}
-                sketchUrl={currentDraft.sketchUrl}
-                disabled={disabled}
-                onSketchChange={(dataUrl) =>
-                  updateCurrentDraft({ sketchUrl: dataUrl })
-                }
-              />
-
-              <div>
-                <label
-                  htmlFor={`clip-draft-explanation-${currentDraft.clipNumber}`}
-                  className="block text-xs font-bold text-foreground"
-                >
-                  {t("brief.drafts.explanationLabel", {
-                    n: currentDraft.clipNumber,
-                  })}
-                </label>
-                <textarea
-                  id={`clip-draft-explanation-${currentDraft.clipNumber}`}
-                  rows={3}
-                  value={currentDraft.explanation}
+              <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] xl:items-start">
+                {/* Remount sketchpad when switching clips so each clip has its own clean canvas */}
+                <StoryboardSketchPad
+                  key={`sketch-clip-${currentDraft.clipNumber}`}
+                  clipNumber={currentDraft.clipNumber}
+                  sketchUrl={currentDraft.sketchUrl}
                   disabled={disabled}
-                  onChange={(event) =>
-                    updateCurrentDraft({ explanation: event.target.value })
+                  onSketchChange={(dataUrl) =>
+                    updateCurrentDraft({ sketchUrl: dataUrl })
                   }
-                  placeholder={t("brief.drafts.explanationPlaceholder", {
-                    n: currentDraft.clipNumber,
-                  })}
-                  className="mt-1.5 w-full resize-y rounded-xl border border-accent-ink/15 bg-white px-3.5 py-2.5 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
                 />
-              </div>
 
-              <div>
-                <label
-                  htmlFor={`clip-draft-vo-${currentDraft.clipNumber}`}
-                  className="block text-xs font-bold text-foreground"
-                >
-                  {t("brief.drafts.voLabel")}
-                </label>
-                <input
-                  id={`clip-draft-vo-${currentDraft.clipNumber}`}
-                  type="text"
-                  value={currentDraft.voDraft ?? ""}
-                  disabled={disabled}
-                  onChange={(event) =>
-                    updateCurrentDraft({ voDraft: event.target.value })
-                  }
-                  placeholder={t("brief.drafts.voPlaceholder", {
-                    n: currentDraft.clipNumber,
-                  })}
-                  className="mt-1.5 w-full rounded-xl border border-accent-ink/15 bg-white px-3.5 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-                />
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor={`clip-draft-explanation-${currentDraft.clipNumber}`}
+                      className="block text-xs font-bold text-foreground"
+                    >
+                      {t("brief.drafts.explanationLabel", {
+                        n: currentDraft.clipNumber,
+                      })}
+                    </label>
+                    <textarea
+                      id={`clip-draft-explanation-${currentDraft.clipNumber}`}
+                      rows={5}
+                      value={currentDraft.explanation}
+                      disabled={disabled}
+                      onChange={(event) =>
+                        updateCurrentDraft({ explanation: event.target.value })
+                      }
+                      placeholder={t("brief.drafts.explanationPlaceholder", {
+                        n: currentDraft.clipNumber,
+                      })}
+                      className="mt-1.5 w-full resize-y rounded-xl border border-accent-ink/15 bg-white px-3.5 py-2.5 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor={`clip-draft-vo-${currentDraft.clipNumber}`}
+                      className="block text-xs font-bold text-foreground"
+                    >
+                      {t("brief.drafts.voLabel")}
+                    </label>
+                    <textarea
+                      id={`clip-draft-vo-${currentDraft.clipNumber}`}
+                      rows={3}
+                      value={currentDraft.voDraft ?? ""}
+                      disabled={disabled}
+                      onChange={(event) =>
+                        updateCurrentDraft({ voDraft: event.target.value })
+                      }
+                      placeholder={t("brief.drafts.voPlaceholder", {
+                        n: currentDraft.clipNumber,
+                      })}
+                      className="mt-1.5 w-full resize-y rounded-xl border border-accent-ink/15 bg-white px-3.5 py-2.5 text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
