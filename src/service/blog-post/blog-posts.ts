@@ -8,7 +8,30 @@ import {
   type PaginatedBlogPostsResult,
   type PublicBlogPost,
 } from "@/model/blog-post";
+import {
+  getBundledBlogPostBySlug,
+  listBundledBlogPosts,
+  type BundledBlogPost,
+} from "@/service/blog-post/bundled-posts";
 import { derivePostExcerpt, slugifyBlogPost } from "@/service/blog-post/slug";
+
+function bundledMatchesListFilter(
+  post: BundledBlogPost,
+  options: ListBlogPostsOptions,
+): boolean {
+  if (!options.includeUnpublished && !post.published) return false;
+  if (options.tag?.trim()) {
+    const tag = options.tag.trim();
+    if (!post.tags.some((t) => t === tag)) return false;
+  }
+  if (options.q?.trim()) {
+    const escaped = options.q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escaped, "i");
+    const haystack = [post.title, post.excerpt, post.content, post.slug].join("\n");
+    if (!regex.test(haystack)) return false;
+  }
+  return true;
+}
 
 // Convert a MongoDB BlogPost document into a serializable PublicBlogPost DTO.
 export function toPublicBlogPost(doc: BlogPost): PublicBlogPost {
@@ -105,6 +128,24 @@ export type ListBlogPostsOptions = {
   includeUnpublished?: boolean;
 };
 
+function paginatedBundledPostsOnly(options: ListBlogPostsOptions): PaginatedBlogPostsResult {
+  const page = Math.max(1, Math.floor(Number(options.page) || 1));
+  const limit = Math.min(100, Math.max(1, Math.floor(Number(options.limit) || 12)));
+  const skip = (page - 1) * limit;
+  const bundled = listBundledBlogPosts().filter((b) => bundledMatchesListFilter(b, options));
+  const total = bundled.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  return {
+    posts: bundled.slice(skip, skip + limit),
+    page,
+    limit,
+    total,
+    totalPages,
+    hasNextPage: page < totalPages,
+    hasPrevPage: page > 1,
+  };
+}
+
 // List blog posts with pagination, tag filtering, and search query.
 export async function listBlogPostsPaginated(
   options: ListBlogPostsOptions = {},
@@ -126,27 +167,44 @@ export async function listBlogPostsPaginated(
     filter.$or = [{ title: regex }, { excerpt: regex }, { content: regex }, { slug: regex }];
   }
 
-  const collection = await blogPostsCollection();
-  const [docs, total] = await Promise.all([
-    collection
-      .find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray() as Promise<BlogPost[]>,
-    collection.countDocuments(filter),
-  ]);
+  try {
+    const collection = await blogPostsCollection();
+    const [docs, total] = await Promise.all([
+      collection
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray() as Promise<BlogPost[]>,
+      collection.countDocuments(filter),
+    ]);
 
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-  return {
-    posts: docs.map(toPublicBlogPost),
-    page,
-    limit,
-    total,
-    totalPages,
-    hasNextPage: page < totalPages,
-    hasPrevPage: page > 1,
-  };
+    let posts = docs.map(toPublicBlogPost);
+    const mongoSlugs = new Set(posts.map((p) => p.slug));
+    const bundledForList = listBundledBlogPosts().filter(
+      (b) => bundledMatchesListFilter(b, options) && !mongoSlugs.has(b.slug),
+    );
+    const totalWithBundled = total + bundledForList.length;
+
+    if (page === 1 && bundledForList.length > 0) {
+      posts = [...bundledForList, ...posts].slice(0, limit);
+    }
+
+    const totalPages = Math.max(1, Math.ceil(totalWithBundled / limit));
+    return {
+      posts,
+      page,
+      limit,
+      total: totalWithBundled,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    };
+  } catch (error) {
+    if (options.includeUnpublished) throw error;
+    console.error("[blog-posts] MongoDB unavailable; listing bundled posts only", error);
+    return paginatedBundledPostsOnly(options);
+  }
 }
 
 // List all published blog posts ordered from newest to oldest.
@@ -185,8 +243,20 @@ export async function getPublishedBlogPostBySlug(
   slug: string,
   includeUnpublished = false,
 ): Promise<PublicBlogPost | null> {
-  const doc = await findBlogPostDoc(slug, includeUnpublished);
-  return doc ? toPublicBlogPost(doc) : null;
+  let doc: BlogPost | null = null;
+  try {
+    doc = await findBlogPostDoc(slug, includeUnpublished);
+  } catch (error) {
+    if (includeUnpublished) throw error;
+    console.error("[blog-posts] MongoDB unavailable; resolving bundled post fallback", error);
+  }
+  if (doc) return toPublicBlogPost(doc);
+
+  const normalized = decodeURIComponent(slug).trim();
+  const bundled = normalized ? getBundledBlogPostBySlug(normalized) : null;
+  if (!bundled) return null;
+  if (!includeUnpublished && !bundled.published) return null;
+  return bundled;
 }
 
 export type UpdateBlogPostParams = {

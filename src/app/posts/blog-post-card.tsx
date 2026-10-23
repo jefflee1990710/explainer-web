@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { PublicBlogPost } from "@/model/blog-post";
+import { getBlogPostPublicPath } from "@/service/blog-post/public-path";
 
 // Format ISO date string into a readable date label.
 function formatPostDate(iso: string): string {
@@ -18,7 +19,7 @@ function formatPostDate(iso: string): string {
 export function BlogPostCard({ post }: { post: PublicBlogPost }) {
   return (
     <Link
-      href={`/posts/${encodeURIComponent(post.slug)}`}
+      href={getBlogPostPublicPath(post.slug)}
       className="group flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xs transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md"
     >
       <div className="relative aspect-16/10 w-full overflow-hidden bg-zinc-100">

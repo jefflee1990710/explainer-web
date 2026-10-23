@@ -12,6 +12,9 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
         <p className="text-sm text-zinc-500">{t("legal.rights")}</p>
         <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-zinc-600">
+          <Link href="/articles" className="hover:text-[#12141c]">
+            Articles
+          </Link>
           <Link href="/posts" className="hover:text-[#12141c]">
             Post
           </Link>

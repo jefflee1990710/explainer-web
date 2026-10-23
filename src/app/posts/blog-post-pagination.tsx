@@ -7,16 +7,17 @@ type BlogPostPaginationProps = {
   hasNextPage: boolean;
   tag?: string;
   q?: string;
+  basePath?: string;
 };
 
-// Build href for `/posts` while preserving optional `tag` and `q` filters.
-function buildPageHref(page: number, tag?: string, q?: string): string {
+// Build href for listing pages while preserving optional `tag` and `q` filters.
+function buildPageHref(page: number, basePath: string, tag?: string, q?: string): string {
   const params = new URLSearchParams();
   if (page > 1) params.set("page", String(page));
   if (tag) params.set("tag", tag);
   if (q) params.set("q", q);
   const query = params.toString();
-  return query ? `/posts?${query}` : "/posts";
+  return query ? `${basePath}?${query}` : basePath;
 }
 
 // Pagination bar for the public `/posts` listing page.
@@ -27,6 +28,7 @@ export function BlogPostPagination({
   hasNextPage,
   tag,
   q,
+  basePath = "/posts",
 }: BlogPostPaginationProps) {
   if (totalPages <= 1) return null;
 
@@ -38,7 +40,7 @@ export function BlogPostPagination({
       <div>
         {hasPrevPage ? (
           <Link
-            href={buildPageHref(page - 1, tag, q)}
+            href={buildPageHref(page - 1, basePath, tag, q)}
             className="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50"
           >
             ← Previous
@@ -58,7 +60,7 @@ export function BlogPostPagination({
       <div>
         {hasNextPage ? (
           <Link
-            href={buildPageHref(page + 1, tag, q)}
+            href={buildPageHref(page + 1, basePath, tag, q)}
             className="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50"
           >
             Next →
