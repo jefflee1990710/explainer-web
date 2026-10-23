@@ -1,0 +1,172 @@
+"use client";
+
+import type { PublicCharacterPreset } from "@/presentation/serialize";
+import { useI18n } from "@/presentation/components/i18n-provider";
+import type { PublicLifeCharacter, PublicLifePreset } from "@/service/character/life";
+
+// Look pinned for the next life post. Null versionId means the character's default blueprint.
+export type LifeLookSelection = {
+  versionId: string | null;
+  presetId: string | null;
+  thumbUrl: string | null;
+};
+
+export const EMPTY_LIFE_LOOK: LifeLookSelection = {
+  versionId: null,
+  presetId: null,
+  thumbUrl: null,
+};
+
+// Presets coming back from the wardrobe dialog use the full character serializer.
+export function lifePresetsFromPublic(presets: PublicCharacterPreset[]): PublicLifePreset[] {
+  return [...presets]
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))
+    .map((preset) => ({
+      id: preset.id,
+      name: preset.name,
+      versionId: preset.versionId,
+      thumbUrl: preset.portraitUrl || preset.profileUrl || preset.blueprintUrl || null,
+      detail: preset.editInstruction?.trim() || null,
+    }));
+}
+
+// Tree under the selected character: default look, then each saved preset.
+export function LifePresetTree({
+  character,
+  look,
+  disabled,
+  onSelectDefault,
+  onSelectPreset,
+  onManage,
+}: {
+  character: PublicLifeCharacter;
+  look: LifeLookSelection;
+  disabled?: boolean;
+  onSelectDefault: () => void;
+  onSelectPreset: (preset: PublicLifePreset) => void;
+  onManage: () => void;
+}) {
+  const { t } = useI18n();
+  const pinned =
+    character.presets.find((preset) => preset.id === look.presetId) ||
+    (look.versionId
+      ? character.presets.find((preset) => preset.versionId === look.versionId)
+      : undefined);
+  const defaultActive = !look.versionId;
+  const customActive = Boolean(look.versionId) && !pinned;
+
+  return (
+    <section
+      aria-label={t("life.presetHeading")}
+      className="shrink-0 rounded-2xl border border-accent-ink/10 bg-paper/90 px-3 py-2.5"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <LookThumb src={character.previewUrl} />
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
+              {t("life.presetHeading")}
+            </p>
+            <p className="truncate text-sm font-bold">{character.name}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onManage}
+          className="inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-3 text-[11px] font-bold text-foreground transition hover:border-accent-ink"
+        >
+          {t("life.manageDress")}
+        </button>
+      </div>
+
+      <ul role="radiogroup" aria-label={t("life.presetHeading")} className="mt-2 max-h-44 overflow-y-auto">
+        <TreeChoice
+          active={defaultActive}
+          disabled={disabled}
+          thumb={character.previewUrl}
+          label={t("life.defaultLook")}
+          onSelect={onSelectDefault}
+        />
+        {customActive ? (
+          <TreeChoice
+            active
+            disabled={disabled}
+            thumb={look.thumbUrl}
+            label={t("life.selectedLook")}
+            onSelect={() => {}}
+          />
+        ) : null}
+        {character.presets.map((preset) => (
+          <TreeChoice
+            key={preset.id}
+            active={pinned?.id === preset.id}
+            disabled={disabled}
+            thumb={preset.thumbUrl}
+            label={preset.name}
+            detail={preset.detail}
+            onSelect={() => onSelectPreset(preset)}
+          />
+        ))}
+      </ul>
+
+      {character.presets.length === 0 ? (
+        <p className="mt-1.5 pl-4 text-[11px] text-muted">{t("life.presetsEmpty")}</p>
+      ) : null}
+    </section>
+  );
+}
+
+function TreeChoice({
+  active,
+  disabled,
+  thumb,
+  label,
+  detail,
+  onSelect,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  thumb: string | null;
+  label: string;
+  detail?: string | null;
+  onSelect: () => void;
+}) {
+  return (
+    <li className="relative py-0.5 pl-5 before:absolute before:top-0 before:bottom-0 before:left-[7px] before:w-px before:bg-accent-ink/15 last:before:bottom-1/2">
+      <span className="absolute top-1/2 left-[7px] h-px w-3 -translate-y-1/2 bg-accent-ink/15" />
+      <button
+        type="button"
+        role="radio"
+        aria-checked={active}
+        disabled={disabled}
+        onClick={onSelect}
+        className={`flex w-full cursor-pointer items-center gap-2 rounded-xl px-2 py-1 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
+          active ? "bg-accent-ink text-paper" : "hover:bg-accent-ink/5"
+        }`}
+      >
+        <LookThumb src={thumb} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-xs font-bold">{label}</span>
+          {detail ? (
+            <span className={`block truncate text-[11px] ${active ? "text-paper/75" : "text-muted"}`}>
+              {detail}
+            </span>
+          ) : null}
+        </span>
+      </button>
+    </li>
+  );
+}
+
+function LookThumb({ src }: { src: string | null }) {
+  return src ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt=""
+      className="h-7 w-7 shrink-0 rounded-lg border border-accent-ink/10 bg-white object-cover object-top"
+    />
+  ) : (
+    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-zinc-200 text-[10px] text-muted">—</span>
+  );
+}

@@ -30,6 +30,7 @@ export const POST = withApiUser(async ({ request }) => {
     compositionRefUrl?: string;
     poseId?: string;
     wardrobe?: CharacterWardrobePicks;
+    versionId?: string;
   }>(request);
 
   if (!body.characterId || !body.source) {
@@ -51,6 +52,7 @@ export const POST = withApiUser(async ({ request }) => {
       compositionRefUrl: body.compositionRefUrl,
       poseId: body.poseId,
       wardrobe: body.wardrobe,
+      versionId: body.versionId,
     }),
     201,
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { lifePostTemplateById } from "@/model/life-post-template";
 import type { LifeCreateMode, LifeShotKind } from "@/model/life-shot-kind";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@/presentation/actions/life";
 import { uploadCharacterImageAction } from "@/presentation/actions/upload";
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
-import { LifeCharacterStrip } from "@/presentation/components/app/life/life-character-strip";
+import { LifeCharacterMenu } from "@/presentation/components/app/life/life-character-menu";
 import { LifeCreateTabs } from "@/presentation/components/app/life/life-create-tabs";
 import {
   LifeFormField,
@@ -29,11 +29,19 @@ import {
 } from "@/presentation/components/app/life/life-recent-drawer";
 import { LifeTemplateDialog } from "@/presentation/components/app/life/life-template-dialog";
 import { LifeTemplateGuide } from "@/presentation/components/app/life/life-template-guide";
+import { LifeDressDialog } from "@/presentation/components/app/life/life-dress-dialog";
+import {
+  EMPTY_LIFE_LOOK,
+  LifePresetTree,
+  lifePresetsFromPublic,
+  type LifeLookSelection,
+} from "@/presentation/components/app/life/life-preset-tree";
 import { LifeWardrobePicker } from "@/presentation/components/app/life/life-wardrobe-picker";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import { FRAME_COST } from "@/service/credit-costs";
+import type { PublicCharacter } from "@/presentation/serialize";
 import type {
   PublicLifeCharacter,
   PublicLifeShot,
@@ -187,7 +195,10 @@ export function LifeDesk({
   const { t } = useI18n();
   const first =
     characters.find((item) => item.id === initialCharacterId) || characters[0];
+  const [people, setPeople] = useState(characters);
   const [characterId, setCharacterId] = useState(first?.id || "");
+  const [look, setLook] = useState<LifeLookSelection>(EMPTY_LIFE_LOOK);
+  const [dressOpen, setDressOpen] = useState(false);
   const [createMode, setCreateMode] = useState<LifeCreateMode>("replace-person");
   const [place, setPlace] = useState(first?.persona?.city || "");
   // Post-type template and its optional pose/framing reference photo.
@@ -253,9 +264,32 @@ export function LifeDesk({
   const drawingRef = useRef(false);
 
   const character = useMemo(
-    () => characters.find((item) => item.id === characterId) || null,
-    [characters, characterId],
+    () => people.find((item) => item.id === characterId) || null,
+    [people, characterId],
   );
+
+  // Wardrobe dialog edits presets in place, so the tree stays current without a reload.
+  const onDressUpdated = useCallback((next: PublicCharacter) => {
+    const presets = lifePresetsFromPublic(next.presets);
+    const newest = [...next.versions]
+      .filter((version) => version.status === "completed")
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))[0];
+    setPeople((current) =>
+      current.map((item) => {
+        if (item.id !== next.id) return item;
+        const previewUrl = newest
+          ? newest.portraitUrl || newest.profileUrl || newest.blueprintUrl || item.previewUrl
+          : item.previewUrl;
+        return { ...item, name: next.name, previewUrl, ready: Boolean(previewUrl), presets };
+      }),
+    );
+    setLook((current) => {
+      if (!current.presetId) return current;
+      const match = presets.find((preset) => preset.id === current.presetId);
+      if (!match) return EMPTY_LIFE_LOOK;
+      return { versionId: match.versionId, presetId: match.id, thumbUrl: match.thumbUrl };
+    });
+  }, []);
 
   // Each character has its own independent Recent history grid.
   const visibleShots = useMemo(
@@ -389,11 +423,20 @@ export function LifeDesk({
   }
 
   function selectCharacter(id: string) {
-    const next = characters.find((item) => item.id === id);
+    const next = people.find((item) => item.id === id);
     setCharacterId(id);
+    setLook(EMPTY_LIFE_LOOK);
+    setDressOpen(false);
     if (next?.persona?.city) setPlace(next.persona.city);
     setDialogShot(null);
     setError("");
+  }
+
+  function openShot(shot: PublicLifeShot) {
+    setDialogShot(shot);
+    setHistoryEditPrompt("");
+    setGeneratedCaption("");
+    setCaptionCopied(false);
   }
 
   async function onSearch() {
@@ -509,6 +552,7 @@ export function LifeDesk({
             : undefined,
         poseId: poseId || undefined,
         wardrobe,
+        versionId: look.versionId || undefined,
       });
       setPending("");
       if (!result.ok) {
@@ -528,7 +572,7 @@ export function LifeDesk({
   async function onRegenerateFromHistory() {
     if (!dialogShot) return;
     const targetChar =
-      characters.find((c) => c.id === dialogShot.characterId) || character;
+      people.find((c) => c.id === dialogShot.characterId) || character;
     if (!targetChar?.ready) {
       setError(t("life.needBlueprint"));
       return;
@@ -545,6 +589,7 @@ export function LifeDesk({
         customInstruction:
           historyEditPrompt.trim() ||
           "Keep the character identity and refine this photograph naturally.",
+        versionId: targetChar.id === characterId ? look.versionId || undefined : undefined,
       });
       setPending("");
       if (!result.ok) {
@@ -562,7 +607,7 @@ export function LifeDesk({
     }
   }
 
-  if (!characters.length) {
+  if (!people.length) {
     return (
       <div className="flex flex-col gap-3 lg:h-[calc(100dvh-4.5rem)] lg:overflow-hidden">
         <header className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-accent-ink/10 bg-paper/90 px-4 py-2.5">
@@ -643,7 +688,7 @@ export function LifeDesk({
       step={step}
       label="角色造型 (Hair & Outfit)"
       required={false}
-      hint="可選填更換髮型、上衣、褲子、鞋子或配件；未選的部位沿用角色預設造型。"
+      hint="可選填更換髮型、上衣、褲子、鞋子或配件；未選的部位沿用上方所選造型。"
     >
       <LifeWardrobePicker value={wardrobe} disabled={pending !== ""} onChange={setWardrobe} />
     </LifeFormField>
@@ -842,54 +887,56 @@ export function LifeDesk({
 
   return (
     <div className="flex flex-col gap-3 lg:h-[calc(100dvh-4.5rem)] lg:overflow-hidden">
-      {/* Compact Single-Row Studio Header */}
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-accent-ink/10 bg-paper/90 px-4 py-2.5">
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
-          <h1 className="font-display text-lg font-bold">{t("life.title")}</h1>
-          <span className="hidden text-xs text-muted sm:inline">
-            {t("life.subtitle")}
-          </span>
+      {/* Character picker sits at the top left. Recent opens a drawer only on small screens. */}
+      <header className="relative z-20 flex shrink-0 flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-accent-ink/10 bg-paper/90 px-3 py-2.5 sm:px-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <LifeCharacterMenu
+            characters={people}
+            selectedId={characterId}
+            onSelect={selectCharacter}
+          />
+          <div className="min-w-0 max-sm:sr-only sm:block">
+            <h1 className="font-display text-lg font-bold">{t("life.title")}</h1>
+            <p className="truncate text-xs text-muted">{t("life.subtitle")}</p>
+          </div>
         </div>
         <LifeRecentOpenButton
           count={visibleShots.length}
           generatingCount={generatingCount}
           onClick={() => setRecentOpen(true)}
+          className="lg:hidden"
         />
       </header>
 
-      {/* 2-Column Studio: characters + create; Recent lives in a right drawer */}
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[13.5rem_minmax(0,1fr)] lg:items-stretch">
-        {/* Left Column: Character Rail */}
-        <aside
-          aria-label={t("life.character")}
-          className="flex flex-col gap-2 overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/80 p-3"
-        >
-          <div className="flex shrink-0 items-center justify-between px-1">
-            <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
-              {t("life.character")}
-            </span>
-            <span className="rounded-full bg-accent-ink/8 px-2 py-0.5 text-[10px] font-bold text-muted">
-              {characters.length}
-            </span>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <LifeCharacterStrip
-              characters={characters}
-              selectedId={characterId}
-              onSelect={selectCharacter}
-            />
-          </div>
-          {character && !character.ready ? (
-            <p className="shrink-0 rounded-xl bg-red-50 px-2.5 py-1.5 text-[11px] font-semibold text-red-600">
-              {t("life.needBlueprint")}
-            </p>
-          ) : null}
-        </aside>
+      {character && !character.ready ? (
+        <p className="shrink-0 rounded-xl bg-red-50 px-3 py-2 text-[11px] font-semibold text-red-600">
+          {t("life.needBlueprint")}
+        </p>
+      ) : null}
 
+      {/* Create stays in the main column. Recent is a right rail from the lg breakpoint up. */}
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-stretch">
+        <div className="flex min-h-0 min-w-0 flex-col gap-3">
+          {character ? (
+            <LifePresetTree
+              character={character}
+              look={look}
+              disabled={pending !== ""}
+              onSelectDefault={() => setLook(EMPTY_LIFE_LOOK)}
+              onSelectPreset={(preset) =>
+                setLook({
+                  versionId: preset.versionId,
+                  presetId: preset.id,
+                  thumbUrl: preset.thumbUrl,
+                })
+              }
+              onManage={() => setDressOpen(true)}
+            />
+          ) : null}
         {/* Center Column: 3-Tab Creation Studio */}
         <section
           aria-label={t("life.place")}
-          className="flex min-h-[22rem] flex-col overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90"
+          className="flex min-h-[22rem] min-w-0 flex-col overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90 lg:min-h-0 lg:flex-1"
         >
           {/* 3-Tab Switcher */}
           <LifeCreateTabs
@@ -1130,9 +1177,42 @@ export function LifeDesk({
             </button>
           </div>
         </section>
+        </div>
 
+        <aside
+          aria-label={t("life.recent")}
+          className="hidden min-h-0 flex-col overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90 lg:flex"
+        >
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-accent-ink/10 px-3.5 py-3">
+            <h2 className="min-w-0 truncate font-display text-sm font-bold">
+              {character ? `${character.name} · ${t("life.recent")}` : t("life.recent")}
+            </h2>
+            <div className="flex shrink-0 items-center gap-1.5">
+              {generatingCount > 0 ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-accent-ink px-2 py-0.5 text-[10px] font-bold text-lime">
+                  <Spinner className="h-3 w-3" />
+                  {generatingCount}
+                </span>
+              ) : null}
+              {visibleShots.length > 0 ? (
+                <span className="rounded-full bg-accent-ink/8 px-2 py-0.5 text-[10px] font-bold text-muted">
+                  {visibleShots.length}
+                </span>
+              ) : null}
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            <LifeShotGrid
+              shots={visibleShots}
+              selectedId={dialogShot?.id}
+              onSelect={openShot}
+              compact
+            />
+          </div>
+        </aside>
       </div>
 
+      <div className="lg:hidden">
       <LifeRecentDrawer
         open={recentOpen}
         onOpenChange={setRecentOpen}
@@ -1156,15 +1236,11 @@ export function LifeDesk({
         <LifeShotGrid
           shots={visibleShots}
           selectedId={dialogShot?.id}
-          onSelect={(shot) => {
-            setDialogShot(shot);
-            setHistoryEditPrompt("");
-            setGeneratedCaption("");
-            setCaptionCopied(false);
-          }}
+          onSelect={openShot}
           compact
         />
       </LifeRecentDrawer>
+      </div>
 
       {dialogShot ? (
         <div
@@ -1294,6 +1370,24 @@ export function LifeDesk({
             </div>
           </div>
         </div>
+      ) : null}
+
+      {dressOpen && character ? (
+        <LifeDressDialog
+          characterId={character.id}
+          initialVersionId={look.versionId}
+          initialPresetId={look.presetId}
+          onUpdated={onDressUpdated}
+          onUseLook={(selection) => {
+            setLook({
+              versionId: selection.versionId,
+              presetId: selection.presetId ?? null,
+              thumbUrl: selection.thumbUrl,
+            });
+            setDressOpen(false);
+          }}
+          onClose={() => setDressOpen(false)}
+        />
       ) : null}
 
       {placeDialogOpen ? (

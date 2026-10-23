@@ -92,20 +92,20 @@ export function LandingHeroCastRail() {
         <p className="mb-2 shrink-0 text-[9px] font-bold uppercase tracking-[0.18em] text-[#c6f24b]">
           Video styles
         </p>
-        {/* 2x3 grid keeps each 16:9 style preview wide (~1.76 ratio) so left and right edges are not cropped. */}
-        <div className="grid min-h-0 flex-1 grid-cols-2 gap-1.5 lg:grid-rows-3 lg:gap-2">
+        {/* Tiles are locked to 16:9; stretching rows to the rail height made them narrower and cropped the sides. */}
+        <div className="grid grid-cols-2 content-start gap-1.5 lg:gap-2">
           {STYLES.map((look, index) => (
             <motion.div
               key={`${look.label}-${index}`}
               initial={{ opacity: 0, scale: 0.94 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.48 + index * 0.02, duration: 0.3, ease }}
-              className="relative min-h-0 overflow-hidden rounded-xl bg-[#12141c] shadow-[0_10px_24px_rgba(0,0,0,0.4)] ring-1 ring-white/15"
+              className="relative aspect-video overflow-hidden rounded-xl bg-[#12141c] shadow-[0_10px_24px_rgba(0,0,0,0.4)] ring-1 ring-white/15"
             >
               <img
                 src={look.src}
                 alt=""
-                className="aspect-video h-full w-full object-cover lg:absolute lg:inset-0 lg:aspect-auto"
+                className="absolute inset-0 h-full w-full object-cover"
               />
               <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 pb-1 pt-4 text-center text-[8px] font-semibold uppercase tracking-wide text-white">
                 {look.label}

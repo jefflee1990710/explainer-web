@@ -140,6 +140,11 @@ export type Messages = {
     cost: string;
     uploadHint: string;
     recent: string;
+    presetHeading: string;
+    defaultLook: string;
+    selectedLook: string;
+    manageDress: string;
+    presetsEmpty: string;
     templates: LifeTemplateLabels;
     poses: LifePoseLabels;
   };
@@ -271,6 +276,8 @@ export type Messages = {
     heroTitle: string;
     subtitle: string;
     cta: string;
+    galleryTitle: string;
+    galleryBody: string;
     scroReel: { title: string; body: string };
     scroDeck: { title: string; body: string };
     productMarketing: { title: string; body: string };

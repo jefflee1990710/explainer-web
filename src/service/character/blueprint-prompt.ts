@@ -280,6 +280,7 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
     }
     lines.push(
       "Use the first attached image (the current identity portrait) as the base. Keep the face, skin texture, head-and-shoulders framing, and visual style identical. Apply the change below so it is clearly visible within the head-and-shoulders crop; anything it does not name stays as in the base image.",
+      FACE_GEOMETRY_LOCK,
       ...(input.photoCount > 0
         ? [
             `Every attached image after the first is an original photo of this character. Keep 五官比例, 整體氣質, and source skin texture anchored to those photos so the face does not drift. ${IGNORE_PHOTO_LOOK}`,

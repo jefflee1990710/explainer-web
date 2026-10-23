@@ -103,6 +103,11 @@ export const en: Messages = {
     cost: "{cost} credits",
     uploadHint: "If your photo includes your face, the result uses the pose and place, and the character's face.",
     recent: "Recent",
+    presetHeading: "Look",
+    defaultLook: "Default look",
+    selectedLook: "Selected look",
+    manageDress: "Manage outfits",
+    presetsEmpty: "No saved looks yet. Manage outfits to add one.",
     templates: LIFE_TEMPLATES_EN,
     poses: LIFE_POSES_EN,
   },
@@ -177,9 +182,9 @@ export const en: Messages = {
       virtualYou: {
         eyebrow: "Your Digital Twin / Virtual KOL",
         title: "Stay off camera. Pour your experience into a virtual host.",
-        body: "Upload a photo or design a persona from scratch. Lock face, wardrobe, and voice — then feed the character your knowledge so the soul feels like you.",
+        body: "Upload a photo or design a persona from scratch. Add several clips of your voice, lock the face and wardrobe, then generate videos that speak in that voice.",
         point1: "Zero camera setup, lighting, or retakes",
-        point2: "Identical face, wardrobe, and voice across every clip",
+        point2: "Several voice clips, one face and wardrobe, on every video",
         point3: "Built for founders, coaches, faceless creators, and agencies",
         cta: "Build my AI Influencer",
       },
@@ -189,7 +194,7 @@ export const en: Messages = {
       title: "Three steps from body to soul to published content.",
       step1Title: "Create a character & wardrobe",
       step1Body:
-        "Pick face, hair, clothes, and accessories. Lock a body your audience can recognize every day.",
+        "Pick face, hair, clothes, and accessories. Upload several clips of your voice, then generate videos that speak in that voice.",
       step2Title: "Shoot daily Life photos",
       step2Body:
         "Drop the same character into cafés, streets, and travel scenes — a real-looking KOL grid.",
@@ -225,7 +230,7 @@ export const en: Messages = {
     cast: {
       eyebrow: "Looks first. Soul next.",
       title: "Build an AI Influencer body — then inject your knowledge as the soul.",
-      body: "Appearance is only the shell. Scro locks portrait, wardrobe, and voice so your virtual KOL stays recognizable — then you fill them with your expertise, stories, and brand personality across every short.",
+      body: "Appearance is only the shell. Upload several clips of your voice. Scro locks the portrait, wardrobe, and that voice, then generates videos that speak in it — filled with your expertise, stories, and brand personality.",
       product: "Product UGC",
       service: "Brand Spokesperson",
       knowledge: "Creator Series",
@@ -275,9 +280,11 @@ export const en: Messages = {
   },
   examples: {
     title: "See the results",
-    heroTitle: "See How Scro Work",
+    heroTitle: "See how Scro works",
     subtitle: "Each type is a different job: the frame, the style, and where the video will play.",
     cta: "See the results",
+    galleryTitle: "Four finished cuts. Four different jobs.",
+    galleryBody: "A Reel, a deck clip, a square post, and a wide stage. Same studio, different frame.",
     scroReel: {
       title: "How Scro works, as a Reel",
       body: "A vertical 9:16 doodle for social. One scene: pick a style, pin a storyboard, and the frames become a short video. Use this type when the idea has to land in a few seconds on a phone.",
@@ -1301,14 +1308,14 @@ export const en: Messages = {
     seo: {
       title: "Scro — Build an AI Influencer with a Soul",
       description:
-        "Your knowledge and experience become the personality. Create a virtual KOL, publish on social, attract attention, and monetize — without living on camera.",
+        "Upload several clips of your voice, then generate videos that speak in it. Your knowledge becomes the personality of a virtual KOL — without living on camera.",
     },
     hero: {
       brand: "Scro",
       kicker: "AI Influencer · Soul first",
       title: "Soon everyone will have an AI Influencer. Yours needs a soul.",
       subtitle:
-        "Your knowledge and life experience become the personality. Build a character on Scro, promote them on social, and let them express your content — so your story earns the attention it deserves.",
+        "Upload several clips of your voice, build the character, and generate videos that speak in that voice. Your knowledge becomes the personality.",
       ctaStart: "Build my AI Influencer",
       ctaWorkspace: "Open studio",
       ctaSecondary: "How attention turns into income",
@@ -1317,12 +1324,12 @@ export const en: Messages = {
       eyebrow: "Content is the soul",
       title: "Create the face. Inject what only you know.",
       body: "Looks are the shell. The soul is your expertise, calendar, and stories — published daily through one locked virtual host.",
-      p1Title: "Design the character",
-      p1Body: "Lock face, wardrobe, and voice so the audience always recognizes them.",
+      p1Title: "Upload your voice",
+      p1Body: "Lock the face and wardrobe, then upload several clips of your voice. New videos speak in that voice.",
       p2Title: "Publish on social",
       p2Body: "Life posts and shorts that feel like a real creator account.",
       p3Title: "Speak your content",
-      p3Body: "Explainers, pitches, and opinions — in their voice, from your mind.",
+      p3Body: "Explainers, pitches, and opinions — in your voice, from your mind.",
     },
     ip: {
       eyebrow: "Brand IP · Wardrobe · Life posts",
@@ -1424,14 +1431,14 @@ export const en: Messages = {
     seo: {
       title: "Scro — Hong Kong Cantonese Talking-Head Videos for SMEs",
       description:
-        "Authentic Cantonese talking-heads for Hong Kong SMEs and solo founders. Type your pitch, generate captioned clips, polish with music and SFX.",
+        "Upload your Cantonese voice — several clips — and generate talking-head videos in that voice. Built for Hong Kong SMEs and solo founders.",
     },
     hero: {
       brand: "Scro",
       kicker: "Hong Kong Cantonese · SME ready",
       title: "Authentic Cantonese talking-heads for your product.",
       subtitle:
-        "Built for Hong Kong SMEs and one-person companies. Pick a virtual host, type the Cantonese pitch, generate captioned clips — then finish with music and SFX before you post.",
+        "Built for Hong Kong SMEs and one-person companies. Upload several clips of your Cantonese voice, then generate captioned videos that speak in that voice.",
       ctaStart: "Make a Cantonese reel",
       ctaWorkspace: "Open studio",
       ctaSecondary: "Why this fits SMEs",
@@ -1444,15 +1451,15 @@ export const en: Messages = {
       f1Body: "Record-quality talking-heads without leaving the shop or workshop.",
       f2Title: "Product-first pitches",
       f2Body: "Show the item, speak the offer, keep captions readable on mute.",
-      f3Title: "Local tone",
-      f3Body: "Write the line in Cantonese the way you’d say it to a customer.",
+      f3Title: "Your voice",
+      f3Body: "Upload several clips of your Cantonese voice. The host speaks with it on every new video.",
     },
     flow: {
       eyebrow: "Same simple path",
       title: "Outfit → Cantonese script → captioned clip.",
       body: "Then open the edit desk to add a music bed or SFX — AI speed with a human final pass.",
-      s1Title: "Lock your virtual host",
-      s1Body: "Face and wardrobe stay consistent across every product drop.",
+      s1Title: "Upload your voice",
+      s1Body: "Add several clips of your Cantonese voice. New videos with this host speak in that voice.",
       s2Title: "Type the Cantonese lines",
       s2Body: "Your pitch, your wording — the host reads what you write.",
       s3Title: "Generate, then polish",

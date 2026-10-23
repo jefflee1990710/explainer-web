@@ -11,8 +11,8 @@ import {
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { isRealisticStyle } from "@/service/style/realistic-light";
 import { versionStyleId } from "@/service/character/character-styles";
-import { characterReferenceUrls } from "@/service/character/reference-urls";
-import { portraitWardrobeEditText } from "@/service/character/wardrobe-edit";
+import { characterReferenceUrls, rootVersionOf } from "@/service/character/reference-urls";
+import { cumulativeWardrobeEdit, portraitWardrobeEditText } from "@/service/character/wardrobe-edit";
 import { toSent, type Sent } from "@/service/generation/sent";
 import { PermanentJobError } from "@/service/generation/task-policy";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
@@ -28,12 +28,23 @@ export function isBoardVersion(version: Pick<CharacterVersion, "blueprintKind">)
   return version.blueprintKind === "board";
 }
 
-// Parent board images for an edit: portrait, then full body. Empty for a root version.
+// Immediate parent board images (used when reusing an unchanged portrait on lower-body-only edits).
 function parentBoardImages(character: Character, version: CharacterVersion) {
   if (!version.parentVersionId) return [];
   const parent = character.versions.find((item) => item.id.equals(version.parentVersionId!));
   if (!parent || !isBoardVersion(parent)) return [];
   return [parent.portraitUrl, parent.profileUrl].filter((url): url is string => Boolean(url));
+}
+
+// Root v1 board images for an edit: anchor every generation to v1's original portrait and full body
+// (falling back to the parent if the root is missing one) so multi-version wardrobe edits never chain-degrade the face.
+function rootBoardImages(character: Character, version: CharacterVersion) {
+  if (!version.parentVersionId) return [];
+  const root = rootVersionOf(character.versions, version);
+  const parent = character.versions.find((item) => item.id.equals(version.parentVersionId!));
+  const portraitUrl = (isBoardVersion(root) ? root.portraitUrl : undefined) ?? parent?.portraitUrl;
+  const profileUrl = (isBoardVersion(root) ? root.profileUrl : undefined) ?? parent?.profileUrl;
+  return [portraitUrl, profileUrl].filter((url): url is string => Boolean(url));
 }
 
 // Send one version's main image to the provider. No job write.
@@ -48,21 +59,25 @@ export async function sendCharacterVersion(
   });
   if (isBoardVersion(version)) {
     const photos = characterReferenceUrls(version);
-    const parentImages = parentBoardImages(character, version).slice(0, 1);
+    const immediateParentPortrait = parentBoardImages(character, version)[0];
     // Lower-body-only wardrobe edits (Pants / Shoes) do not touch the head-and-shoulders crop;
     // reuse the parent's portrait so the model never zooms out to show a skirt or shoes.
     if (
       version.editInstruction &&
-      parentImages[0] &&
+      immediateParentPortrait &&
       !portraitWardrobeEditText(version.editInstruction)
     ) {
       return {
         requestId: `reuse-portrait-${version.id.toHexString()}`,
         status: "completed",
         model: BLUEPRINT_MODEL,
-        images: [{ url: parentImages[0] }],
+        images: [{ url: immediateParentPortrait }],
       };
     }
+    const baseImages = rootBoardImages(character, version).slice(0, 1);
+    const effectiveEdit = version.editInstruction
+      ? cumulativeWardrobeEdit(character.versions, version) || version.editInstruction
+      : undefined;
     const submitted = await submitImage({
       model: BLUEPRINT_MODEL,
       prompt: buildPortraitPrompt({
@@ -70,13 +85,13 @@ export async function sendCharacterVersion(
         description: version.prompt,
         spec: version.spec,
         photoCount: photos.length,
-        editInstruction: version.editInstruction,
-        parentImageCount: parentImages.length,
+        editInstruction: effectiveEdit,
+        parentImageCount: baseImages.length,
       }),
       aspectRatio: "1:1",
       quality: BOARD_QUALITY,
       resolution: BOARD_RESOLUTION,
-      referenceImageUrls: [...parentImages, ...photos],
+      referenceImageUrls: [...baseImages, ...photos],
     });
     return toSent(BLUEPRINT_MODEL, submitted);
   }
@@ -109,9 +124,12 @@ export async function sendCharacterFullBody(
     ownerClerkUserId: character.clerkUserId,
   });
   const photos = characterReferenceUrls(version);
-  // Edit: the parent's full body rides along so pose and framing stay put.
-  const parentFullBody = version.editInstruction ? parentBoardImages(character, version)[1] : undefined;
-  const parentImages = [version.portraitUrl, parentFullBody].filter((url): url is string => Boolean(url));
+  // Edit: anchor to the root v1 full body so multi-version edits keep the original body/pose without generational drift.
+  const baseFullBody = version.editInstruction ? rootBoardImages(character, version)[1] : undefined;
+  const parentImages = [version.portraitUrl, baseFullBody].filter((url): url is string => Boolean(url));
+  const effectiveEdit = version.editInstruction
+    ? cumulativeWardrobeEdit(character.versions, version) || version.editInstruction
+    : undefined;
   const submitted = await submitImage({
     model: BLUEPRINT_MODEL,
     prompt: buildFullBodyPrompt({
@@ -119,7 +137,7 @@ export async function sendCharacterFullBody(
       description: version.prompt,
       spec: version.spec,
       photoCount: photos.length,
-      editInstruction: version.editInstruction,
+      editInstruction: effectiveEdit,
       parentImageCount: parentImages.length,
     }),
     aspectRatio: "9:16",

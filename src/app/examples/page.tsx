@@ -1,10 +1,12 @@
 import { ExamplesView } from "@/presentation/components/examples-view";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
+import { getAuthSession } from "@/service/auth";
 
-export default function ExamplesPage() {
+export default async function ExamplesPage() {
+  const session = await getAuthSession();
   return (
     <PolicyLayout>
-      <ExamplesView />
+      <ExamplesView signedIn={Boolean(session)} />
     </PolicyLayout>
   );
 }

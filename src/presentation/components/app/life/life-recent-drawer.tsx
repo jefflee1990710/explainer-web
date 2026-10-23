@@ -116,17 +116,19 @@ export function LifeRecentOpenButton({
   count,
   generatingCount,
   onClick,
+  className = "",
 }: {
   count: number;
   generatingCount: number;
   onClick: () => void;
+  className?: string;
 }) {
   const { t } = useI18n();
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/15 bg-paper px-3 text-[11px] font-bold text-foreground transition hover:border-accent-ink"
+      className={`inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-accent-ink/15 bg-paper px-3 text-[11px] font-bold text-foreground transition hover:border-accent-ink ${className}`}
     >
       {t("life.recent")}
       {generatingCount > 0 ? (

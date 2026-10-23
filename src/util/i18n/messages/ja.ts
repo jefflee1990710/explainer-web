@@ -481,6 +481,8 @@ export const ja: Partial<Messages> = {
     heroTitle: "Scro の仕組みを見る",
     subtitle: "種類ごとに仕事が違います。画面比率、スタイル、動画を置く場所。",
     cta: "結果を見る",
+    galleryTitle: "完成した4本。仕事は4種類。",
+    galleryBody: "リール、スライド、正方形の投稿、横長の舞台。同じスタジオで、画面だけが違います。",
     scroReel: {
       title: "Scro の使い方をリールで",
       body: "縦型 9:16 のホワイトボード落書き。スタイルを選び、絵コンテを貼り、フレームが短い動画になる。",

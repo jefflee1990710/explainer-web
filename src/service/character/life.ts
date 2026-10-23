@@ -26,7 +26,7 @@ import {
   wardrobePickPrompts,
   type CharacterWardrobePicks,
 } from "@/service/character/character-look";
-import { resolveDefaultVersion } from "@/service/character/versions";
+import { lifeVersionFaceUrl, resolveLifeShotVersion } from "@/service/character/life-version";
 import {
   lifeSceneQuery,
   lifeShotPrompt,
@@ -42,13 +42,42 @@ import { submitOpenRouterImage } from "@/service/openrouter/generate";
 
 const STALE_LIFE_GENERATING_MS = 10 * 60_000;
 
+// Saved outfit the life page can pin onto a post. Newest first.
+export type PublicLifePreset = {
+  id: string;
+  name: string;
+  versionId: string;
+  thumbUrl: string | null;
+  detail: string | null;
+};
+
 export type PublicLifeCharacter = {
   id: string;
   name: string;
   previewUrl: string | null;
   persona: CharacterPersona | null;
   ready: boolean;
+  presets: PublicLifePreset[];
 };
+
+// Completed presets only. A preset whose blueprint is missing or still generating is hidden.
+export function toPublicLifePresets(character: Character): PublicLifePreset[] {
+  return [...(character.presets || [])]
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .flatMap((preset) => {
+      const target = character.versions.find((version) => version.id.equals(preset.versionId));
+      if (!target || target.status !== "completed" || !target.blueprintUrl) return [];
+      return [
+        {
+          id: preset.id.toHexString(),
+          name: preset.name,
+          versionId: preset.versionId.toHexString(),
+          thumbUrl: target.portraitUrl || target.profileUrl || target.blueprintUrl || null,
+          detail: target.editInstruction?.trim() || null,
+        },
+      ];
+    });
+}
 
 export type PublicLifeShot = {
   id: string;
@@ -126,6 +155,7 @@ export async function listLifePage(clerkUserId: string) {
       previewUrl: identity,
       persona: parseCharacterPersona(character.persona),
       ready: Boolean(identity),
+      presets: toPublicLifePresets(character),
     };
   });
   return { characters: people, shots: recent.map(toPublicShot) };
@@ -293,6 +323,8 @@ export async function generateLifeShotAction(input: {
   compositionRefUrl?: string;
   poseId?: string;
   wardrobe?: CharacterWardrobePicks;
+  // Saved preset or history look. Omitted uses the character's newest completed blueprint.
+  versionId?: string;
 }) {
   const user = await requireAppUser();
   // Optional hair / top / pants / shoes / accessory picks that override the preset look.
@@ -327,11 +359,13 @@ export async function generateLifeShotAction(input: {
     clerkUserId: user.clerkUserId,
   })) as Character | null;
   if (!character) return { ok: false as const, error: "角色不存在" };
-  const identity = characterIdentityUrl(character);
+  const resolved = resolveLifeShotVersion(character, input.versionId);
+  if (!resolved.ok) return { ok: false as const, error: resolved.error };
+  const version = resolved.version;
+  const identity = lifeVersionFaceUrl(version);
   if (!identity) return { ok: false as const, error: "還沒有完成的藍圖" };
   const persona = parseCharacterPersona(character.persona);
-  // The portrait is a close-up, so the full-body figure carries the preset outfit.
-  const version = resolveDefaultVersion(character);
+  // The portrait is a close-up, so the full-body figure carries the chosen outfit.
   const outfitRefUrl =
     version?.profileUrl && version.profileUrl !== identity
       ? version.profileUrl

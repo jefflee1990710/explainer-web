@@ -3,6 +3,7 @@ import test from "node:test";
 import type { CharacterSpec } from "@/model/character-spec";
 import {
   cleanWardrobeEditText,
+  cumulativeWardrobeEdit,
   parseWardrobeChanges,
   portraitWardrobeEditText,
   specAfterWardrobeEdit,
@@ -64,4 +65,52 @@ test("portraitWardrobeEditText strips Pants and Shoes so head-and-shoulders port
     "",
   );
   assert.equal(portraitWardrobeEditText("make her smile more"), "make her smile more");
+});
+
+function id(hex: string) {
+  return { toHexString: () => hex };
+}
+
+test("cumulativeWardrobeEdit merges multi-version wardrobe edits from the root version", () => {
+  const v1 = { id: id("v1") };
+  const v2 = {
+    id: id("v2"),
+    parentVersionId: id("v1"),
+    editInstruction:
+      "Hair: short tight curls; Top: a structured oversized streetwear hoodie; Pants: matte black bike shorts; Shoes: white sneakers",
+  };
+  const v3 = {
+    id: id("v3"),
+    parentVersionId: id("v2"),
+    editInstruction: "Top: a lightweight navy windbreaker",
+  };
+  const v4 = {
+    id: id("v4"),
+    parentVersionId: id("v3"),
+    editInstruction: "Hair: 90s center-parted curtain bangs; Pants: straight blue jeans",
+  };
+  const versions = [v1, v2, v3, v4];
+  assert.equal(
+    cumulativeWardrobeEdit(versions, v4),
+    "Hair: 90s center-parted curtain bangs; Top: a lightweight navy windbreaker; Pants: straight blue jeans; Shoes: white sneakers",
+  );
+});
+
+test("cumulativeWardrobeEdit drops earlier pants when a full-body one-piece dress top is picked", () => {
+  const v1 = { id: id("v1") };
+  const v2 = {
+    id: id("v2"),
+    parentVersionId: id("v1"),
+    editInstruction: "Top: a structured oversized streetwear hoodie; Pants: straight blue jeans",
+  };
+  const v3 = {
+    id: id("v3"),
+    parentVersionId: id("v2"),
+    editInstruction:
+      "Top: Bright red form-fitting milkmaid mini dress featuring short cap sleeves, a gathered scoop neckline, and ruched bodice detailing. Isolated wardrobe piece alredscoopdress.",
+  };
+  assert.equal(
+    cumulativeWardrobeEdit([v1, v2, v3], v3),
+    "Top: Bright red form-fitting milkmaid mini dress featuring short cap sleeves, a gathered scoop neckline, and ruched bodice detailing.",
+  );
 });

@@ -24,6 +24,7 @@ import {
   editReferenceUrls,
   parseReferenceImageUrls,
   rootReferenceUrls,
+  rootVersionOf,
 } from "@/service/character/reference-urls";
 import {
   blobUrlsSafeToDelete,
@@ -33,7 +34,7 @@ import {
   videoCharacterBlobUrls,
 } from "@/service/character/storage";
 import { failCharacterVersion, versionCreditsCost } from "@/service/character/sync";
-import { specAfterWardrobeEdit } from "@/service/character/wardrobe-edit";
+import { cumulativeWardrobeEdit, specAfterWardrobeEdit } from "@/service/character/wardrobe-edit";
 import { canSetDefault } from "@/service/character/versions";
 import {
   charactersCollection,
@@ -246,12 +247,21 @@ export async function editCharacterVersionAction(
     const spendKey = await consumeCredits(user.clerkUserId, cost);
 
     const now = new Date();
-    // Board edits store only the root photos; the sender adds the parent images itself.
+    const newVersionId = new ObjectId();
+    // Board edits store only the root photos; the sender adds the root board images itself.
     const refs = board
       ? rootReferenceUrls(character.versions, parent)
       : editReferenceUrls(character.versions, parent);
+    const root = rootVersionOf(character.versions, parent);
+    const baseSpec = root.spec ?? parent.spec;
+    const cumulativeEdit =
+      cumulativeWardrobeEdit(character.versions, {
+        id: newVersionId,
+        parentVersionId: parent.id,
+        editInstruction: instruction,
+      }) || instruction;
     const version: CharacterVersion = {
-      id: new ObjectId(),
+      id: newVersionId,
       styleId: versionStyleId(character, parent),
       parentVersionId: parent.id,
       prompt: `${parent.prompt}\n變更：${instruction}`,
@@ -262,7 +272,7 @@ export async function editCharacterVersionAction(
         ? {
             blueprintKind: "board" as const,
             stage: "portrait" as const,
-            ...(parent.spec ? { spec: specAfterWardrobeEdit(parent.spec, instruction) } : {}),
+            ...(baseSpec ? { spec: specAfterWardrobeEdit(baseSpec, cumulativeEdit) } : {}),
           }
         : {}),
       status: "queued",

@@ -22,6 +22,8 @@ export const pt: Partial<Messages> = {
     heroTitle: "Veja como o Scro funciona",
     subtitle: "Cada tipo faz um trabalho diferente: o formato, o estilo e onde o vídeo vai passar.",
     cta: "Ver os resultados",
+    galleryTitle: "Quatro cortes prontos. Quatro trabalhos diferentes.",
+    galleryBody: "Um Reel, um clip para slides, um post quadrado e um palco largo. O mesmo estúdio, outro formato.",
     scroReel: { title: "Como o Scro funciona, num Reel", body: "Um doodle vertical 9:16 para redes. Uma cena: escolher um estilo, fixar um storyboard e os fotogramas viram um vídeo curto. Quando a ideia tem de chegar em poucos segundos no telemóvel." },
     scroDeck: { title: "Como o Scro funciona, para uma apresentação", body: "A mesma história em flat vector 16:9, feita para um slide. Três passos num plano: estilo, storyboard, exportação. Quando o vídeo vive dentro de uma apresentação." },
     productMarketing: { title: "Uma demo de produto para um post quadrado", body: "Um clip de claymation 1:1. Um produto, um instante: a garrafa sai da caixa e acende. Para anúncios de feed em que o produto é o protagonista." },

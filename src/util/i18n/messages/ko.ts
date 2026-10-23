@@ -480,6 +480,8 @@ export const ko: Partial<Messages> = {
     heroTitle: "Scro가 어떻게 작동하는지 보기",
     subtitle: "유형마다 일이 다릅니다. 화면 비율, 스타일, 영상을 어디에 둘지.",
     cta: "결과 보기",
+    galleryTitle: "완성본 네 편. 서로 다른 네 가지 일.",
+    galleryBody: "릴스, 슬라이드, 정사각 게시물, 가로 무대. 같은 스튜디오, 다른 화면.",
     scroReel: {
       title: "릴스로 보는 Scro 사용법",
       body: "세로 9:16 화이트보드 낙서. 스타일을 고르고 스토리보드를 붙이면 짧은 영상이 됩니다.",

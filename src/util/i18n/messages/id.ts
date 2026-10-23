@@ -22,6 +22,8 @@ export const id: Partial<Messages> = {
     heroTitle: "Lihat cara kerja Scro",
     subtitle: "Setiap jenis punya pekerjaan sendiri: rasio, gaya, dan di mana videonya diputar.",
     cta: "Lihat hasilnya",
+    galleryTitle: "Empat potongan jadi. Empat pekerjaan berbeda.",
+    galleryBody: "Reel, klip presentasi, unggahan persegi, dan panggung lebar. Studio yang sama, bingkai yang berbeda.",
     scroReel: { title: "Cara kerja Scro, sebagai Reel", body: "Doodle vertikal 9:16 untuk media sosial. Satu adegan: pilih gaya, sematkan storyboard, frame menjadi video pendek. Saat ide harus sampai dalam beberapa detik di ponsel." },
     scroDeck: { title: "Cara kerja Scro, untuk presentasi", body: "Cerita yang sama dalam flat vector 16:9 untuk slide. Tiga langkah dalam satu bidikan: gaya, storyboard, ekspor. Saat video hidup di dalam presentasi." },
     productMarketing: { title: "Demo produk untuk unggahan persegi", body: "Klip claymation 1:1. Satu produk, satu momen: botol keluar dari kotak dan menyala. Untuk iklan feed yang menempatkan produk sebagai tokoh utama." },

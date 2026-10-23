@@ -1297,8 +1297,12 @@ export function NewProjectForm({
 
                   {wizardStep < 2 ? (
                     <motion.button
+                      key="wizard-next-button"
                       type="button"
-                      onClick={onNextWizardStep}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        onNextWizardStep();
+                      }}
                       disabled={!canAdvanceStep}
                       whileTap={{ scale: 0.98 }}
                       className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent-ink px-6 py-3 text-sm font-semibold text-lime shadow-[4px_4px_0_0_rgba(255,77,46,0.9)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
@@ -1307,6 +1311,7 @@ export function NewProjectForm({
                     </motion.button>
                   ) : (
                     <motion.button
+                      key="wizard-submit-button"
                       type="submit"
                       disabled={!canSubmit}
                       whileTap={{ scale: 0.98 }}
