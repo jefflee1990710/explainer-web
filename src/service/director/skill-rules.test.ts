@@ -503,10 +503,41 @@ test("listicle forces on-canvas listing text", () => {
 
 test("every director keeps a 9:16 middle safe area and leaves landscape alone", () => {
   const vertical = verticalSafeAreaDirectorLine("9:16");
+  assert.match(vertical, /full-bleed/i);
+  assert.match(vertical, /fills 100% of the 9:16 frame edge-to-edge/);
   assert.match(vertical, /top 20%/);
   assert.match(vertical, /bottom 20%/);
   assert.match(vertical, /middle 60%/);
   assert.match(vertical, /text, characters, or the main subject/);
   assert.equal(verticalSafeAreaDirectorLine("16:9"), "");
   assert.equal(verticalSafeAreaDirectorLine("1:1"), "");
+});
+
+test("whiteboard concept explainer enforces full-canvas 2D whiteboard, 2D character, and drawn concept in every style", () => {
+  for (const smoothMotion of [false, true]) {
+    for (const hasCharacter of [false, true]) {
+      const directorBlock = cartoonExplainerDirectorBlock({ hasCharacter, smoothMotion });
+      assert.match(directorBlock, /flat 2D whiteboard surface/);
+      assert.match(directorBlock, /drawn in flat 2D directly on the whiteboard/);
+      assert.match(directorBlock, /explained with 2D drawings/);
+    }
+  }
+  for (const steadyStills of [false, true]) {
+    for (const hasCharacter of [false, true]) {
+      const frameLock = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
+        hasCharacter,
+        steadyStills,
+      });
+      assert.match(frameLock, /flat 2D whiteboard surface/);
+      assert.match(frameLock, /character on the whiteboard is in 2D/);
+      assert.match(frameLock, /concept is explained with 2D drawings/);
+    }
+  }
+  const videoLock = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    smoothMotion: true,
+  });
+  assert.match(videoLock, /flat 2D whiteboard surface/);
+  assert.match(videoLock, /character in 2D on the whiteboard/);
+  assert.match(videoLock, /concept explained with 2D whiteboard drawings/);
 });

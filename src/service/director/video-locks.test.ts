@@ -85,9 +85,17 @@ test("normalize merges skipped clips onto a set and caps counts", () => {
   assert.deepEqual(plan.sets[0]?.clipNumbers, [1, 2, 3]);
 
   const whiteboardPlan = normalizeVideoLocks(
-    clips,
+    [
+      clip({
+        clipNumber: 1,
+        startScene: "Set: whiteboard with chart and marker.",
+        endScene: "Set: whiteboard with chart and marker.",
+      }),
+      clip({ clipNumber: 2 }),
+      clip({ clipNumber: 3 }),
+    ],
     {
-      objects: [],
+      objects: [{ name: "Whiteboard", notes: "easel" }],
       sets: [
         { setId: "room-a", name: "room a", notes: "light", clipNumbers: [1] },
         { setId: "room-b", name: "room b", notes: "dark", clipNumbers: [2, 3] },
@@ -97,7 +105,16 @@ test("normalize merges skipped clips onto a set and caps counts", () => {
   );
   assert.equal(whiteboardPlan.sets.length, 1);
   assert.deepEqual(whiteboardPlan.sets[0]?.clipNumbers, [1, 2, 3]);
+  assert.equal(
+    whiteboardPlan.objects.some((item) => /whiteboard|easel/i.test(item.name)),
+    false,
+  );
+  assert.equal(
+    whiteboardPlan.objects.some((item) => /marker/i.test(item.name)),
+    true,
+  );
   assert.match(videoLocksSystem("en", "cartoon-explainer-video-director"), /ONE single shared location/);
+  assert.match(videoLocksSystem("en", "cartoon-explainer-video-director"), /flat 2D full-bleed whiteboard surface/);
 
   const talkingHeadPlan = normalizeVideoLocks(
     clips,

@@ -77,7 +77,7 @@ export function backgroundPlateLockParagraph(imageIndex: number, plate?: Pick<Ba
     `BACKGROUND LOCK: attached image ${imageIndex} is the empty set for this clip${label}.`,
     "This image is a 3x3 of the empty set. Use the cell whose angle matches this Scene's Camera line.",
     "Match location, architecture, lived-in surface details, sky, and light direction.",
-    "Where people and props sit follows the Scene, not this plate's crop. Do not paste the empty framing or the grid.",
+    "Where people and props sit follows the Scene, not this plate's crop. Expand the chosen cell's environment to fill 100% of the target frame edge-to-edge (no letterbox bars or inner box). Do not paste the empty framing or the grid.",
   ].join(" ");
 }
 

@@ -151,4 +151,15 @@ test("landing and feature page components use the clean Studio / Editor design s
   );
   assert.match(productPromoWild, /\/landing\/product-promo\/iceberg\.jpg/);
   assert.doesNotMatch(productPromoWild, /\/landing\/product-promo\/hero\.jpg/);
+
+  // Video styles in the hero cast rail use a 2x3 wide grid so 16:9 style previews are not cropped on the left and right.
+  const castRail = fs.readFileSync(
+    path.join(ROOT, "src/presentation/components/landing-hero-cast-rail.tsx"),
+    "utf8",
+  );
+  const videoStylesIdx = castRail.indexOf("Video styles");
+  assert.ok(videoStylesIdx >= 0);
+  const videoStylesBlock = castRail.slice(videoStylesIdx);
+  assert.match(videoStylesBlock, /grid-cols-2/);
+  assert.match(videoStylesBlock, /lg:grid-rows-3/);
 });

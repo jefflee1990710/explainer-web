@@ -50,19 +50,30 @@ export function shouldPlanVideoLocks(skillSlug?: string) {
 
 export function videoLocksSystem(language?: VoLanguage, skillSlug?: string) {
   const maxSets = maxSetsForSkill(skillSlug);
+  const isWhiteboardExplainer = skillSlug === CARTOON_EXPLAINER_SKILL_SLUG;
   const singleSetLabel = isTalkingHeadSkill(skillSlug) ? "Talking-head" : "Whiteboard explainer";
   return [
     "You list the invented props and unique locations for one explainer video.",
-    "objects: every distinct prop the stills name — tools, cups, dials, boards, easels, whiteboards, charts, furniture, handheld items.",
-    "A board, a whiteboard, and an easel are separate if the scenes name them separately. Call a writing surface Whiteboard when the scene writes on a board, chart, or easel.",
+    isWhiteboardExplainer
+      ? "objects: every distinct handheld or drawn prop the stills name (such as a marker or pointer). Because the entire video canvas IS a flat 2D whiteboard surface, NEVER list a physical Whiteboard, Board, Easel, or Chart stand as a prop."
+      : "objects: every distinct prop the stills name — tools, cups, dials, boards, easels, whiteboards, charts, furniture, handheld items.",
+    ...(isWhiteboardExplainer
+      ? []
+      : [
+          "A board, a whiteboard, and an easel are separate if the scenes name them separately. Call a writing surface Whiteboard when the scene writes on a board, chart, or easel.",
+        ]),
     "Object notes describe shape, materials, and colours. Do not describe screen content or lettering that only one side can see.",
     "Do not list characters, brand products already locked elsewhere, locations, sky, buildings, or subtitle lettering.",
     `List every named prop. At most ${MAX_OBJECTS} objects after merging true duplicates. Empty array only if the stills name none.`,
     maxSets === 1
-      ? `sets: ${singleSetLabel} always stays in ONE single shared location across the entire video. Output exactly 1 set containing all clipNumbers.`
+      ? isWhiteboardExplainer
+        ? "sets: Whiteboard explainer always stays in ONE single shared location across the entire video — the flat 2D full-bleed whiteboard surface itself (never a 3D room, studio building, easel, or outdoor location with sky). Output exactly 1 set containing all clipNumbers."
+        : `sets: ${singleSetLabel} always stays in ONE single shared location across the entire video. Output exactly 1 set containing all clipNumbers.`
       : "sets: unique places from the Set lines. Same room or rooftop across clips shares one setId.",
     `At most ${maxSets} ${maxSets === 1 ? "set" : "sets"}. Merge near-duplicates. Every clipNumber appears in ${maxSets === 1 ? "that single set" : "exactly one set"}.`,
-    "setId is a short slug like rooftop or desk. notes describe empty architecture, light, and sky — no people, no handheld props.",
+    isWhiteboardExplainer
+      ? "setId is whiteboard-canvas. notes describe a flat 2D full-bleed whiteboard surface with even flat illumination — no room, no architecture, no sky, no physical easel, no people, no handheld props."
+      : "setId is a short slug like rooftop or desk. notes describe empty architecture, light, and sky — no people, no handheld props.",
     "name and notes stay short. " + sceneDescriptionLanguageLock(language),
   ].join(" ");
 }
@@ -86,14 +97,14 @@ export function normalizeVideoLocks(
   skillSlug?: string,
 ): VideoLocksPlan {
   const maxSets = maxSetsForSkill(skillSlug);
+  const isWhiteboardExplainer = skillSlug === CARTOON_EXPLAINER_SKILL_SLUG;
   const clipNumbers = clips.map((clip) => clip.clipNumber);
-  const objects = fillMissingSceneProps(
-    clips,
-    raw.objects
-      .map((item) => ({ name: item.name.trim(), notes: item.notes.trim() }))
-      .filter((item) => item.name)
-      .slice(0, MAX_OBJECTS),
-  );
+  const rawObjects = raw.objects
+    .map((item) => ({ name: item.name.trim(), notes: item.notes.trim() }))
+    .filter((item) => item.name)
+    .filter((item) => !(isWhiteboardExplainer && /^(?:whiteboard|白板|easel|畫架|board)$/i.test(item.name)))
+    .slice(0, MAX_OBJECTS);
+  const objects = fillMissingSceneProps(clips, rawObjects, { skipWhiteboardSurface: isWhiteboardExplainer });
 
   const sets: VideoLocksPlan["sets"] = [];
   const used = new Set<number>();
@@ -137,14 +148,18 @@ const NAMED_AS_WHITEBOARD = /whiteboard|白板/i;
 const NAMED_AS_SURFACE = /easel|chart|(?<![A-Za-z])board\b/i;
 const NAMED_AS_MARKER = /marker|麥克筆/i;
 
-export function fillMissingSceneProps(clips: StoryboardRow[], objects: ObjectSheetItem[]): ObjectSheetItem[] {
+export function fillMissingSceneProps(
+  clips: StoryboardRow[],
+  objects: ObjectSheetItem[],
+  options?: { skipWhiteboardSurface?: boolean },
+): ObjectSheetItem[] {
   const text = clips
     .map((clip) => [clipStartScene(clip), clipEndScene(clip), clip.motionCamera].join("\n"))
     .join("\n");
   const next = objects.map((item) => ({ ...item }));
   const has = (pattern: RegExp) => next.some((item) => pattern.test(item.name));
 
-  if (WRITING_SURFACE.test(text) && !has(NAMED_AS_WHITEBOARD)) {
+  if (!options?.skipWhiteboardSurface && WRITING_SURFACE.test(text) && !has(NAMED_AS_WHITEBOARD)) {
     const existing = next.find((item) => NAMED_AS_SURFACE.test(item.name));
     if (existing) existing.name = "Whiteboard";
     else next.push({ name: "Whiteboard", notes: "Writing surface named in the scenes." });

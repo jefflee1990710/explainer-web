@@ -358,7 +358,7 @@ function fitFramePrompt(
     (p) => ({ ...p, motion: "" }),
     // Realistic catalog style lines repeat REALISTIC_FRAME_RENDER_RULE; trim them before touching locks.
     (p) => ({ ...p, styleBody: clipAt(p.styleBody, 360) }),
-    (p) => ({ ...p, styleBody: "" }),
+    ...(keepLight ? [(p: FrameTrimmable) => ({ ...p, styleBody: "" })] : []),
     (p) => ({
       ...p,
       scene: p.scene
@@ -376,8 +376,8 @@ function fitFramePrompt(
       ...p,
       renderDetail: p.renderDetail
         ? p.renderDetail.startsWith("Real human camera capture:")
-          ? "Real human camera capture: shot on modern creator camera equipment (iPhone 16 Pro 24mm f/1.8 / Sony ZV-E1 / DJI Osmo Pocket 3 CMOS sensor; no heavy 35mm film grain or retro LUT). Light faces with natural available window daylight and indoor room light (clean 1.2:1–1.5:1 facial shading, neutral/cool highlights unless a warm lamp is visible, unclipped windows) and unfiltered matte-natural skin pores (zero oily sheen) with soft background bokeh."
-          : "Realistic light & camera: keep daytime and indoor scenes brightly well-exposed with clear midtones (never dim or underexposed unless explicitly night); sculpt faces and surfaces with grazing directional light, negative fill on the shadow side, and concrete light/shadow colour contrast (soft neutral daylight, gently cooler shadows, no amber vintage cast; neutral/cool highlights unless a warm practical lamp, fire, or sunset is visible; in dark scenes keep 90% of shadows neutral; lift black point in underwater/fog/smoke). Match real camera optics from the Scene (24mm / 35mm / 50mm / 85mm portrait lens; deep focus f/11 for environment or f/4 to f/1.4 creamy bokeh background) with a light natural film feel, matte-natural skin pores (zero oily sheen), very faint fine grain, clean neutral shadow blacks, and unclipped highlights."
+          ? "Real human camera capture: shot on modern creator camera equipment (iPhone 16 Pro 24mm f/1.8 / Sony ZV-E1 / DJI Osmo Pocket 3 CMOS sensor; no heavy 35mm film grain or retro LUT). Light faces with natural available window daylight and indoor room light (clean 1.2:1–1.5:1 facial shading, neutral/cool highlights unless a warm lamp is visible, below pure-white clipping) and unfiltered matte-natural skin pores (zero oily sheen) with soft background bokeh."
+          : "Realistic light & camera: keep daytime and indoor scenes brightly well-exposed with clear midtones (never dim or underexposed unless explicitly night); sculpt faces and surfaces with grazing directional light, negative fill on the shadow side, and concrete light/shadow colour contrast (soft neutral daylight with gently cooler shadows, no amber vintage cast; neutral or cool by default unless a warm practical lamp, fire, or sunset is visible; in dark scenes keep 90% of shadows neutral; lift black point in underwater/fog/smoke). Match real camera optics from the Scene (24mm / 35mm / 50mm / 85mm portrait lens; deep focus f/11 for environment or f/4 to f/1.4 creamy bokeh background) with a light natural film feel, matte-natural skin pores (zero oily sheen), very faint fine grain, keep shadow blacks clean and neutral, and keep glowing objects below pure-white clipping."
         : "",
     }),
     (p) => ({
@@ -440,7 +440,7 @@ function fitFramePrompt(
       sightline:
         "Sightline: show only what this camera can see. Keep faces, screens, pages, and labels aimed at whoever uses them; if facing away from the camera, draw the blank back.",
       safeArea: p.safeArea
-        ? "9:16 IG Reel safe area: keep the top 20% and bottom 20% empty; place all text, characters, and main subjects in the middle 60%."
+        ? "9:16 IG Reel safe area: fill 100% of the 9:16 frame edge-to-edge with the background/canvas (no letterbox bars or inner box), while the top 20% and bottom 20% stay empty; place all text, characters, and main subjects in the middle 60%."
         : "",
       castLines: p.castLines.map((line) =>
         line
@@ -454,6 +454,7 @@ function fitFramePrompt(
           ),
       ),
     }),
+    (p) => ({ ...p, styleBody: "" }),
   ];
   let current = parts;
   let prompt = compose(current);
@@ -776,7 +777,10 @@ export function buildFramePrompt(
     "Light source: the key light and faint rim light come strictly from the visible window side in the Light line (never from the dark interior side opposite the window, and never copy the blueprint's flat reference light direction), lighting the window-facing cheek with a 1.4:1 to 1.8:1 cheek-to-cheek contrast ratio while the far cheek away from the window falls into deep negative-fill shadow with a clear nose-bridge shadow (grazing contrast, no front fill, no unmotivated warm orange backlight, overcast window daylight kept soft below pure-white clipping).",
   );
   // Always strip spoken Subtitle sentences from scene descriptions; subtitles are never painted into scene stills.
-  sceneDescription = stripSceneSubtitleSentence(sceneDescription);
+  sceneDescription = stripSceneSubtitleSentence(sceneDescription).replace(
+    /\bcanvas\s+in\s+(?:the\s+)?middle\s+60%\s+safe\s+(?:zone|area)\b/gi,
+    "full-bleed canvas (keep foreground subjects in the middle 60% safe zone)",
+  );
   const openingRaw = directorWritesLettering || keepSceneLabels
     ? clipStartScene(row).trim()
     : stripStoryboardWriting(clipStartScene(row));

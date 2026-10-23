@@ -39,14 +39,15 @@ export function isBookendSkill(skillSlug?: string) {
   return Boolean(skillSlug && BOOKEND_SKILLS.has(skillSlug));
 }
 
-// IG Reel stills (9:16). Top 20% and bottom 20% stay empty for every director.
+// IG Reel stills (9:16). Top 20% and bottom 20% stay empty of foreground subjects for every director,
+// while the background canvas or environment fills 100% of the vertical frame edge-to-edge.
 export const VERTICAL_FRAME_SAFE_AREA =
-  "9:16 IG Reel safe area: the top 20% and the bottom 20% of the frame stay empty. Place all on-screen text, every character, and the main subject only in the middle 60%. Do not put them in the top 20% or the bottom 20%, and do not crop them into either band.";
+  "9:16 IG Reel safe area: fill 100% of the 9:16 vertical frame edge-to-edge with the background canvas or environment (no letterbox bars or inner box), while the top 20% and the bottom 20% of the frame stay empty. Place all on-screen text, every character, and the main subject only in the middle 60%. Do not put them in the top 20% or the bottom 20%, and do not crop them into either band.";
 
 // Director plan for every skill. Empty unless the video is a vertical reel.
 export function verticalSafeAreaDirectorLine(aspectRatio?: string) {
   if (aspectRatio !== "9:16") return "";
-  return "This video is a vertical 9:16 IG Reel. In every still, reserve the top 20% and the bottom 20%. Do not place text, characters, or the main subject in those bands. Keep all of them in the middle 60%.";
+  return "This video is a full-bleed vertical 9:16 IG Reel. The background canvas or environment fills 100% of the 9:16 frame edge-to-edge (never write that the Set or canvas itself is restricted to the middle 60%, and never frame a horizontal or square box inside the vertical canvas). In every still, reserve the top 20% and the bottom 20%. Do not place text, characters, or the main subject in those bands. Keep all of them in the middle 60%.";
 }
 
 // Auto on a bookend still follows that director's own short-sting plan.
@@ -506,6 +507,7 @@ export function cartoonExplainerDirectorBlock(options?: { hasCharacter?: boolean
   const smooth = Boolean(options?.smoothMotion);
   return [
     "This director is ALWAYS narrated: an unseen off-screen narrator speaks every englishVo line in the third person, using the attached character's locked voice timbre and gender verbatim when a character is attached (or the project's chosen male/female voice when no character is attached; never switch gender).",
+    "Whole-canvas 2D whiteboard lock (applies to EVERY visual style): no matter what kind of visual style is selected, the entire video frame edge-to-edge (100% of the canvas) is like a flat 2D whiteboard surface, every on-screen character is drawn in flat 2D directly on the whiteboard, and every concept is explained with 2D drawings on the whiteboard (never stage a 3D room, studio building, sky, or a physical whiteboard on an easel/stand inside a room, and never write that the canvas itself is restricted to the middle 60%).",
     "Single location lock: keep the entire video in ONE single consistent background environment / set from Clip 1 through the final clip (exactly one background plate shared by all clips; never switch rooms or locations mid-video).",
     "On screen, the character never speaks, never lip-syncs, and never introduces themself. No first-person lines in the character's voice (no \"Hi, I'm Scro\", \"I am…\", \"we…\" spoken as the character); the narrator may name the character or product in the third person (\"Meet Scro. Scro turns…\").",
     hasCharacter
@@ -582,9 +584,11 @@ export function cartoonNarratorFrameLock(
   const cameraMatch = steady
     ? "Camera angle, shot size, and side match the other still of this clip."
     : "Camera angle may differ from the other still.";
+  const whiteboard2dRule =
+    "Whiteboard 2D canvas lock (every style): the whole frame edge-to-edge is like a flat 2D whiteboard surface (no 3D room, studio, easel, or letterbox bars), the character on the whiteboard is in 2D, and the concept is explained with 2D drawings.";
   if (options?.hasCharacter) {
     const silent =
-      "Silent demonstrator: the character does not talk or lip-sync (a vivid, expressive facial expression with active eyebrows and eyes when the face is toward the camera; from behind, leave the face unseen; no greeting wave).";
+      `${whiteboard2dRule} Silent demonstrator: the character does not talk or lip-sync (a vivid, expressive facial expression with active eyebrows and eyes when the face is toward the camera; from behind, leave the face unseen; no greeting wave).`;
     const labels =
       "Draw every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.";
     const spec = options.action ? ACTION_BY_NAME.get(options.action) : undefined;
@@ -599,7 +603,7 @@ export function cartoonNarratorFrameLock(
     }
     return `${silent} Draw the before or after of this clip's one action as the Scene describes it, not a neutral standing pose: the hands act on the drawn element and it moves the way the Scene names; a jump has both feet off the ground, and a point toward the camera aims at the lens. They usually stay on the same side of the frame; they stand on the other side only when this scene is a rare left-to-right or right-to-left cross. The head may face left or the right. ${cameraMatch} Draw the explanation graph plus the element of this action. ${labels}${hook ? ` ${hook}` : ""}`;
   }
-  const base = "Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting with a vivid, expressive facial expression, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.";
+  const base = `${whiteboard2dRule} Silent demonstrator: the character does not talk to the viewer (mouth closed or reacting with a vivid, expressive facial expression, no greeting wave). Draw the explanation graph named in the Scene as the primary graphic. Draw every prop and every beat title or diagram label written in 「」 as ordinary writing on that object, clearly readable. Those words are not the subtitle.`;
   return hook ? `${base} ${hook}` : base;
 }
 
@@ -639,7 +643,7 @@ export function cartoonNarratorVideoLock(
   if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
   const smooth = Boolean(options?.smoothMotion);
   const voice =
-    "Voice: an unseen off-screen narrator speaks every line aloud. The on-screen character never speaks or lip-syncs. Sound effects never replace the narrator. The clip is never silent.";
+    "Voice: an unseen off-screen narrator speaks every line aloud. The on-screen character never speaks or lip-syncs. Sound effects never replace the narrator. The clip is never silent. Keep the whole canvas edge-to-edge as a flat 2D whiteboard surface with the character in 2D on the whiteboard and the concept explained with 2D whiteboard drawings.";
   if (!options?.hasCharacter) {
     const graphHook =
       options?.clipNumber === 1

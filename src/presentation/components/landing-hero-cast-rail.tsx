@@ -92,7 +92,8 @@ export function LandingHeroCastRail() {
         <p className="mb-2 shrink-0 text-[9px] font-bold uppercase tracking-[0.18em] text-[#c6f24b]">
           Video styles
         </p>
-        <div className="grid min-h-0 flex-1 grid-cols-3 gap-1.5 lg:grid-rows-2 lg:gap-2">
+        {/* 2x3 grid keeps each 16:9 style preview wide (~1.76 ratio) so left and right edges are not cropped. */}
+        <div className="grid min-h-0 flex-1 grid-cols-2 gap-1.5 lg:grid-rows-3 lg:gap-2">
           {STYLES.map((look, index) => (
             <motion.div
               key={`${look.label}-${index}`}

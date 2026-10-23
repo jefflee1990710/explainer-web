@@ -35,7 +35,7 @@ export function LandingHeroArt() {
       </ParallaxLayer>
 
       {/* Equal side tracks so the cast rail and the output rail share width, height, and gutter. */}
-      <div className="relative mx-auto grid h-full max-w-[96rem] grid-cols-1 lg:grid-cols-[minmax(14rem,1fr)_minmax(0,40rem)_minmax(14rem,1fr)]">
+      <div className="relative mx-auto grid h-full max-w-[96rem] grid-cols-1 lg:grid-cols-[minmax(16rem,1fr)_minmax(0,36rem)_minmax(16rem,1fr)]">
         <div className="relative z-[1] hidden h-full min-h-0 lg:block">
           <LandingHeroCastRail />
         </div>

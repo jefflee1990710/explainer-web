@@ -8,8 +8,9 @@ export function isRealisticStyle(
   style?: { id?: string; baseStyleId?: string; behavior?: IStyleBehavior } | null,
 ) {
   if (!style) return false;
+  if (style.id === "realistic" || style.baseStyleId === "realistic") return true;
   if (style.behavior) return style.behavior.realistic;
-  return style.id === "realistic" || style.baseStyleId === "realistic";
+  return false;
 }
 
 const SELF_SHOT_CREATOR_SKILLS = new Set([

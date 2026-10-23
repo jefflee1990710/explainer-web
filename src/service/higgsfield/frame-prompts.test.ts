@@ -1523,3 +1523,22 @@ test("later surprise clips keep the previous end without painting spoken subtitl
   assert.doesNotMatch(end.prompt, /white band/);
   assert.doesNotMatch(end.prompt, /hand-lettered/);
 });
+
+test("9:16 whiteboard stills rewrite middle-60%-canvas phrasing into full-bleed canvas and enforce 2D whiteboard in any style", () => {
+  for (const styleId of ["doodle", "realistic"] as const) {
+    const video = project(styleId);
+    video.skillSlug = "cartoon-explainer-video-director";
+    video.aspectRatio = "9:16";
+    video.phaseA!.aspectRatio = "9:16";
+    video.phaseA!.clips[0].startScene =
+      "1) Character: Scro points at a chart. 2) Set: Solid white canvas in middle 60% safe zone; diagram 「STEP 1」 -> 「STEP 2」. 3) Light: even flat light. 4) Camera: medium shot.";
+    const prompt = buildFramePrompt(video, 1, "start");
+    assert.doesNotMatch(prompt, /canvas in middle 60% safe zone/i);
+    assert.match(prompt, /full-bleed canvas \(keep foreground subjects in the middle 60% safe zone\)/);
+    assert.match(prompt, /fill 100% of the 9:16 vertical frame edge-to-edge/);
+    assert.match(prompt, /no letterbox bars/);
+    assert.match(prompt, /flat 2D whiteboard surface/);
+    assert.match(prompt, /character on the whiteboard is in 2D/);
+    assert.match(prompt, /concept is explained with 2D drawings/);
+  }
+});
