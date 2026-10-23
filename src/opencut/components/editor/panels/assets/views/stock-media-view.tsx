@@ -29,7 +29,11 @@ import {
 	autoPlanOpencutBrollAction,
 	searchOpencutStockMediaAction,
 } from "@/presentation/actions/opencut-stock-media";
-import type { FreeStockMediaItem } from "@/service/opencut/stock-media";
+import {
+	computeBrollPlacement,
+	type BrollLayoutMode,
+	type FreeStockMediaItem,
+} from "@/service/opencut/stock-media";
 import { cn } from "@/opencut/utils/ui";
 
 const QUICK_TOPICS = [
@@ -57,6 +61,7 @@ export async function insertStockMediaOnOverlayTrack({
 	durationSeconds,
 	elementName,
 	explicitTrackId,
+	layoutMode = "pip",
 }: {
 	editor: EditorCore;
 	videoId?: string | null;
@@ -65,6 +70,7 @@ export async function insertStockMediaOnOverlayTrack({
 	durationSeconds: number;
 	elementName?: string;
 	explicitTrackId?: string;
+	layoutMode?: BrollLayoutMode;
 }): Promise<string | null> {
 	const project = editor.project.getActiveOrNull();
 	if (!project) return null;
@@ -123,8 +129,8 @@ export async function insertStockMediaOnOverlayTrack({
 		if (existingOverlayVideoTrack) {
 			trackId = existingOverlayVideoTrack.id;
 		} else {
-			// Create the track and insert the first element inside ONE BatchCommand so
-			// EditorCore's post-command empty-track pruner never deletes the track before the element lands.
+			// Create the track at the bottom of overlay tracks (below text tracks so subtitles stay on top)
+			// and insert the first element inside ONE BatchCommand so EditorCore's empty-track pruner keeps it.
 			addTrackCmd = new AddTrackCommand({
 				type: "video",
 				index: scene.tracks.overlay.length,
@@ -133,13 +139,33 @@ export async function insertStockMediaOnOverlayTrack({
 		}
 	}
 
-	const element = buildElementFromMedia({
+	const canvasSize = project.settings.canvasSize;
+	const placement = computeBrollPlacement({
+		clipStartSec: startTimeSeconds,
+		clipDurSec: durationSeconds,
+		canvasSize,
+		sourceWidth: createdAsset.width ?? item.width,
+		sourceHeight: createdAsset.height ?? item.height,
+		layoutMode,
+	});
+
+	const baseElement = buildElementFromMedia({
 		mediaId: createdAsset.id,
 		mediaType: createdAsset.type,
 		name: elementName ?? `B-Roll · ${item.title.slice(0, 28)}`,
 		startTime: mediaTimeFromSeconds({ seconds: Math.max(0, startTimeSeconds) }),
 		duration: mediaTimeFromSeconds({ seconds: Math.max(0.8, durationSeconds) }),
 	});
+	const element = {
+		...baseElement,
+		params: {
+			...baseElement.params,
+			"transform.scaleX": placement.scaleX,
+			"transform.scaleY": placement.scaleY,
+			"transform.positionX": placement.positionX,
+			"transform.positionY": placement.positionY,
+		},
+	};
 
 	const insertCmd = new InsertElementCommand({
 		placement: { mode: "explicit", trackId },
@@ -171,14 +197,20 @@ export async function runAutoInsertBrollOnTimeline({
 	lines,
 	videoId,
 	mediaType = "image",
+	layoutMode = "pip",
 }: {
 	editor: EditorCore;
 	lines: Array<{ clipNumber: number; line: string }>;
 	videoId?: string | null;
 	mediaType?: "all" | "image" | "video";
+	layoutMode?: BrollLayoutMode;
 }): Promise<{ insertedCount: number; error?: string }> {
 	if (lines.length === 0) {
 		return { insertedCount: 0, error: "這支影片沒有對白可分析插圖" };
+	}
+	const project = editor.project.getActiveOrNull();
+	if (!project) {
+		return { insertedCount: 0, error: "專案尚未載入" };
 	}
 	const scene = editor.scenes.getActiveScene();
 	const slots = matchSubtitleSlots({
@@ -212,33 +244,35 @@ export async function runAutoInsertBrollOnTimeline({
 		editor.timeline.deleteElements({ elements: stale });
 	}
 
-	// Note: Do NOT execute a standalone AddTrackCommand here — EditorCore's post-command
-	// reactor immediately prunes empty overlay tracks. Instead, let the first
-	// insertStockMediaOnOverlayTrack create the track + element together in a BatchCommand,
-	// then reuse its returned trackId for subsequent B-Roll clips.
 	let sharedTrackId = editor.scenes
 		.getActiveScene()
 		.tracks.overlay.find((track) => track.type === "video")?.id;
 
+	const canvasSize = project.settings.canvasSize;
 	let insertedCount = 0;
 	for (const ins of planRes.insertions) {
 		const slot = slots.get(ins.clipNumber);
 		if (!slot) continue;
 		const clipStartSec = mediaTimeToSeconds({ time: slot.startTime });
 		const clipDurSec = mediaTimeToSeconds({ time: slot.duration });
-		// Place cutaway over the middle ~70% of the clip (or full clip if short) so the speaker transition feels natural
-		const offsetSec = clipDurSec > 2.2 ? 0.35 : 0;
-		const brollDurSec =
-			clipDurSec > 2.2 ? Math.max(1.2, clipDurSec - 0.55) : Math.max(1.0, clipDurSec);
+		const placement = computeBrollPlacement({
+			clipStartSec,
+			clipDurSec,
+			canvasSize,
+			sourceWidth: ins.media.width,
+			sourceHeight: ins.media.height,
+			layoutMode,
+		});
 
 		const usedTrackId = await insertStockMediaOnOverlayTrack({
 			editor,
 			videoId,
 			item: ins.media,
-			startTimeSeconds: clipStartSec + offsetSec,
-			durationSeconds: brollDurSec,
+			startTimeSeconds: placement.startTimeSeconds,
+			durationSeconds: placement.durationSeconds,
 			elementName: `B-Roll ${ins.clipNumber} · ${ins.query}`,
 			explicitTrackId: sharedTrackId,
+			layoutMode,
 		});
 		if (usedTrackId) {
 			sharedTrackId = usedTrackId;
@@ -259,6 +293,7 @@ export function StockMediaView() {
 	const videoId = useScroSubtitleVideoId();
 	const [query, setQuery] = useState("business technology");
 	const [mediaType, setMediaType] = useState<"all" | "image" | "video">("all");
+	const [layoutMode, setLayoutMode] = useState<BrollLayoutMode>("pip");
 	const [items, setItems] = useState<FreeStockMediaItem[]>([]);
 	const [searching, setSearching] = useState(false);
 	const [insertingId, setInsertingId] = useState<string | null>(null);
@@ -306,7 +341,8 @@ export function StockMediaView() {
 				videoId,
 				item,
 				startTimeSeconds: playheadSeconds,
-				durationSeconds: item.duration ?? 3.0,
+				durationSeconds: item.duration ?? 2.4,
+				layoutMode,
 			});
 			if (ok) {
 				toast.success(`已加插「${item.title.slice(0, 24)}」到上方覆疊軌道`);
@@ -331,6 +367,7 @@ export function StockMediaView() {
 				lines,
 				videoId,
 				mediaType: mediaType === "video" ? "video" : "image",
+				layoutMode,
 			});
 			if (res.error) {
 				setError(res.error);
@@ -392,7 +429,7 @@ export function StockMediaView() {
 					</Button>
 				</form>
 
-				<div className="flex items-center justify-between gap-1">
+				<div className="flex flex-wrap items-center justify-between gap-1.5">
 					<div className="flex items-center gap-1">
 						{(
 							[
@@ -416,6 +453,29 @@ export function StockMediaView() {
 								)}
 							>
 								{tab.label}
+							</button>
+						))}
+					</div>
+
+					<div className="flex items-center gap-1" title="B-Roll 畫面覆疊排版模式">
+						{(
+							[
+								{ id: "pip", label: "上方插圖卡 PiP" },
+								{ id: "cover", label: "滿版覆蓋 Full" },
+							] as const
+						).map((mode) => (
+							<button
+								key={mode.id}
+								type="button"
+								onClick={() => setLayoutMode(mode.id)}
+								className={cn(
+									"cursor-pointer rounded-full px-2 py-0.5 text-[10px] font-medium transition",
+									layoutMode === mode.id
+										? "bg-primary text-primary-foreground"
+										: "bg-accent/60 text-muted-foreground hover:text-foreground",
+								)}
+							>
+								{mode.label}
 							</button>
 						))}
 					</div>

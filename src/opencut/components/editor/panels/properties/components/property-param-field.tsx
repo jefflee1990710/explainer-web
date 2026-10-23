@@ -229,6 +229,60 @@ function NumberParamField({
 		onCommit();
 	};
 
+	const showLimeSlider =
+		(param.key === "volume" || param.key === "opacity") &&
+		max !== undefined &&
+		Number.isFinite(min) &&
+		Number.isFinite(max) &&
+		max > min;
+
+	if (showLimeSlider) {
+		const pct = Math.min(
+			100,
+			Math.max(0, ((displayValue - min) / (max - min)) * 100),
+		);
+		return (
+			<div className="space-y-2">
+				<NumberField
+					icon={param.shortLabel}
+					value={draft.displayValue}
+					dragSensitivity="slow"
+					isDefault={value === param.default}
+					onFocus={draft.onFocus}
+					onChange={draft.onChange}
+					onBlur={draft.onBlur}
+					onScrub={previewFromDisplay}
+					onScrubEnd={onCommit}
+					onReset={handleReset}
+				/>
+				<div className="relative flex h-4 items-center">
+					<div className="bg-muted relative h-1.5 w-full rounded-full">
+						<div
+							className="h-full rounded-full bg-[#a3e635]"
+							style={{ width: `${pct}%` }}
+						/>
+						<div
+							className="border-background bg-foreground pointer-events-none absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 shadow-sm"
+							style={{ left: `${pct}%` }}
+						/>
+					</div>
+					<input
+						type="range"
+						min={min}
+						max={max}
+						step={step}
+						value={displayValue}
+						aria-label={param.label}
+						onChange={(e) => previewFromDisplay(parseFloat(e.currentTarget.value))}
+						onMouseUp={onCommit}
+						onTouchEnd={onCommit}
+						className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+					/>
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<NumberField
 			icon={param.shortLabel}

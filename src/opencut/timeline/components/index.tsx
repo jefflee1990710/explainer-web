@@ -620,6 +620,14 @@ export function Timeline() {
 	);
 }
 
+const TRACK_TYPE_LABELS: Record<TimelineTrack["type"], string> = {
+	video: "Video",
+	audio: "Audio",
+	text: "Text",
+	graphic: "Graphic",
+	effect: "Effect",
+};
+
 function TrackLabelsPanel({
 	trackLabelsRef,
 	trackLabelsScrollRef,
@@ -692,11 +700,13 @@ function TrackLabelsPanel({
 										}}
 									>
 										<div
-											className="flex shrink-0 items-center justify-between gap-2 px-3"
+											className="flex shrink-0 items-center justify-between gap-1.5 px-3"
 											style={{ height: `${baseHeight}px` }}
 										>
-											<TrackLayerNumber layer={index + 1} />
-											<div className="flex items-center gap-2">
+											<span className="text-muted-foreground truncate text-xs font-medium">
+												{TRACK_TYPE_LABELS[track.type] ?? "Track"}
+											</span>
+											<div className="flex items-center gap-1.5">
 												{canTrackHaveAudio(track) && (
 													<TrackToggleIcon
 														isOff={track.muted}
@@ -725,7 +735,6 @@ function TrackLabelsPanel({
 														}
 													/>
 												)}
-												<TrackIcon track={track} />
 											</div>
 										</div>
 										{expandedRows.length > 0 && (

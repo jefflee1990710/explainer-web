@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseWikimediaMediaSearch } from "@/service/opencut/stock-media";
+import {
+  computeBrollPlacement,
+  parseWikimediaMediaSearch,
+} from "@/service/opencut/stock-media";
 
 const MOCK_COMMONS_PAYLOAD = {
   query: {
@@ -46,11 +49,23 @@ const MOCK_COMMONS_PAYLOAD = {
           },
         ],
       },
+      "104": {
+        pageid: 104,
+        title: "File:Oil_price_chronology-june2007.gif",
+        imageinfo: [
+          {
+            url: "https://upload.wikimedia.org/wikipedia/commons/5/50/Oil_price_chronology-june2007.gif",
+            mime: "image/gif",
+            width: 610,
+            height: 417,
+          },
+        ],
+      },
     },
   },
 };
 
-test("parseWikimediaMediaSearch parses free images and videos and filters out non-media scans", () => {
+test("parseWikimediaMediaSearch parses free images and videos and filters out non-media scans and low-res GIF charts", () => {
   const all = parseWikimediaMediaSearch(MOCK_COMMONS_PAYLOAD, "all");
   assert.equal(all.length, 2);
   assert.equal(all[0].type, "image");
@@ -65,4 +80,31 @@ test("parseWikimediaMediaSearch parses free images and videos and filters out no
   const videosOnly = parseWikimediaMediaSearch(MOCK_COMMONS_PAYLOAD, "video");
   assert.equal(videosOnly.length, 1);
   assert.equal(videosOnly[0].id, "commons-102");
+});
+
+test("computeBrollPlacement schedules a 2.0-2.5s payoff-beat window and positions PiP or full-cover transforms", () => {
+  const pip = computeBrollPlacement({
+    clipStartSec: 5.17,
+    clipDurSec: 5.17,
+    canvasSize: { width: 1080, height: 1920 },
+    sourceWidth: 1280,
+    sourceHeight: 960,
+    layoutMode: "pip",
+  });
+  // Starts ~1.96s into Clip 2 (at ~7.13s) and runs 2.5s so it doesn't cover the whole clip wall-to-wall
+  assert.ok(pip.startTimeSeconds > 6.8 && pip.startTimeSeconds < 7.5);
+  assert.equal(pip.durationSeconds, 2.5);
+  assert.equal(pip.scaleX, 0.84);
+  assert.equal(pip.positionY, -422);
+
+  const cover = computeBrollPlacement({
+    clipStartSec: 5.17,
+    clipDurSec: 5.17,
+    canvasSize: { width: 1080, height: 1920 },
+    sourceWidth: 1280,
+    sourceHeight: 960,
+    layoutMode: "cover",
+  });
+  assert.ok(cover.scaleX > 2.3 && cover.scaleX < 2.4);
+  assert.equal(cover.positionY, 0);
 });

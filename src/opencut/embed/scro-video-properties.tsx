@@ -40,7 +40,13 @@ function Detail({ clip }: { clip: ScroVideoSeedClip }) {
 }
 
 /** Properties panel body for a selected ScroVideo clip. */
-export function ScroVideoProperties({ clipNumber }: { clipNumber: number }) {
+export function ScroVideoProperties({
+	clipNumber,
+	showInspectorHeader = true,
+}: {
+	clipNumber: number;
+	showInspectorHeader?: boolean;
+}) {
 	const store = useScroVideos();
 	const clip = store?.clips.find((item) => item.clipNumber === clipNumber);
 	if (!store || !clip) {
@@ -53,20 +59,52 @@ export function ScroVideoProperties({ clipNumber }: { clipNumber: number }) {
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
-			<div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
-				<div className="flex flex-col gap-4 p-3">
-					<header className="space-y-1">
-						<p className="text-sm font-semibold">{clip.name}</p>
-						<p className="text-muted-foreground text-xs tabular-nums">
-							{clip.timeRange
-								? `${clip.timeRange} · ${clip.durationSeconds}s`
-								: `${clip.durationSeconds}s`}
+			{showInspectorHeader ? (
+				<div className="shrink-0">
+					<div className="border-border flex h-10 items-center justify-between border-b px-3.5">
+						<span className="text-foreground text-[13px] font-semibold tracking-tight">
+							Inspector
+						</span>
+						<span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-medium">
+							{STAGE_LABEL[clip.stage]}
+						</span>
+					</div>
+					<div className="border-border space-y-1 border-b px-3.5 py-2.5">
+						<p className="text-muted-foreground text-[11px] font-medium">
+							Selected
 						</p>
-						<p className="text-xs">{STAGE_LABEL[clip.stage]}</p>
-					</header>
-					<ScroVideoPrimaryActions videoId={store.videoId} clip={clip} />
-					<ScroVideoAiEntry videoId={store.videoId} clip={clip} />
-					<Detail clip={clip} />
+						<p className="text-foreground truncate text-[13px] font-semibold">
+							{clip.name}
+							<span className="text-muted-foreground font-medium">
+								{" "}
+								· {clip.durationSeconds}s
+							</span>
+						</p>
+						{clip.timeRange ? (
+							<p className="text-muted-foreground text-[11px] tabular-nums">
+								{clip.timeRange}
+							</p>
+						) : null}
+					</div>
+				</div>
+			) : null}
+			<div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
+				<div className="divide-border flex flex-col divide-y">
+					<div className="flex items-center justify-between px-3.5 py-2.5">
+						<span className="text-muted-foreground text-[11px] font-medium">
+							Stage
+						</span>
+						<span className="bg-muted text-foreground rounded-full px-2 py-0.5 text-[11px] font-medium">
+							{STAGE_LABEL[clip.stage]}
+						</span>
+					</div>
+					<div className="space-y-3 px-3.5 py-3">
+						<ScroVideoPrimaryActions videoId={store.videoId} clip={clip} />
+						<ScroVideoAiEntry videoId={store.videoId} clip={clip} />
+					</div>
+					<div className="px-3.5 py-3">
+						<Detail clip={clip} />
+					</div>
 				</div>
 			</div>
 			<ScroSceneEditInput videoId={store.videoId} clipNumber={clip.clipNumber} />

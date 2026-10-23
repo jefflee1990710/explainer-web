@@ -47,7 +47,6 @@ const IMAGE_MIMES = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
-  "image/gif",
 ]);
 
 const VIDEO_MIMES = new Set([
@@ -56,6 +55,9 @@ const VIDEO_MIMES = new Set([
   "application/ogg",
   "video/ogg",
 ]);
+
+const LOW_QUALITY_TITLE_RE =
+  /\b(djvu|pdf|page\s+\d+|scan|chronology|diagram|chart|plot|graph\b|map_of|coat_of_arms|flag_of|logo|icon|symbol|signature|stamp|usmc\s+\d+|geograph\.org\.uk)\b/i;
 
 export function parseWikimediaMediaSearch(
   payload: unknown,
@@ -79,11 +81,13 @@ export function parseWikimediaMediaSearch(
 
     const width = info.width ?? 1280;
     const height = info.height ?? 720;
-    if (width < 240 || height < 240) continue;
+    const minWidth = isImage ? 800 : 480;
+    const minHeight = isImage ? 500 : 360;
+    if (width < minWidth || height < minHeight) continue;
 
     const title = cleanCommonsTitle(page.title) || "Stock Media";
-    // Skip scanned book pages or document scans
-    if (/\b(djvu|pdf|page\s+\d+|scan)\b/i.test(title)) continue;
+    // Skip scanned book pages, old spreadsheet GIF charts, military archive serials, or icons
+    if (LOW_QUALITY_TITLE_RE.test(title)) continue;
 
     items.push({
       id: `commons-${page.pageid ?? items.length + 1}`,
@@ -194,10 +198,10 @@ export async function planAutoBrollInsertions({
     const generated = await generateText({
       model: directorModel(),
       output: Output.object({ schema: brollPlanSchema }),
-      system: `You are a video editor choosing B-roll cutaway overlays for a talking-head / explainer video.
+      system: `You are a senior short-form video editor choosing B-roll cutaway overlays for a Reel / TikTok video.
 Given the spoken lines per clip:
-1. Pick the best clips to overlay B-roll images/videos on (usually Clip 2, Clip 3, etc., or ~50-70% of the clips so the speaker is still seen on the opening hook and closing CTA; if there are only 1-2 clips, pick at least 1).
-2. For each chosen clip, write a simple, concrete 2-3 word English visual search query ("englishSearchQuery") that finds good real-world photography on Wikimedia Commons (e.g. "office teamwork", "financial chart", "smartphone app", "city street"). Avoid abstract words.`,
+1. Pick the best clips to overlay B-roll on (never Clip 1 hook and never the final CTA clip when there are >= 3 clips; pick at most ~50% of the clips, preferring non-adjacent clips or the strongest 2-3 middle beats so B-roll never covers the video wall-to-wall).
+2. For each chosen clip, write a concrete 2-3 word English photography search query ("englishSearchQuery") that finds high-resolution real-world photography on Wikimedia Commons (e.g. "modern office workspace", "person using smartphone", "busy shopping street", "coffee shop laptop"). NEVER use words like "chart", "graph", "diagram", or "chronology" because those return low-res spreadsheet scans.`,
       prompt: validClips
         .map((c) => `Clip ${c.clipNumber}: ${c.line}`)
         .join("\n"),
@@ -216,32 +220,34 @@ Given the spoken lines per clip:
   }
 
   const results: PlannedBrollInsertion[] = [];
+  const usedMediaIds = new Set<string>();
   for (const item of plannedQueries) {
     try {
       let hits = await searchFreeStockMedia({
         query: item.englishSearchQuery,
         mediaType,
-        limit: 4,
+        limit: 8,
         fetchFn,
       });
       if (hits.length === 0 && mediaType !== "all") {
         hits = await searchFreeStockMedia({
           query: item.englishSearchQuery,
           mediaType: "all",
-          limit: 4,
+          limit: 8,
           fetchFn,
         });
       }
       if (hits.length === 0) {
         hits = await searchFreeStockMedia({
-          query: "modern city technology",
+          query: "modern office workspace",
           mediaType: "image",
-          limit: 2,
+          limit: 6,
           fetchFn,
         });
       }
-      const picked = hits[0];
+      const picked = hits.find((h) => !usedMediaIds.has(h.id)) ?? hits[0];
       if (picked) {
+        usedMediaIds.add(picked.id);
         results.push({
           clipNumber: item.clipNumber,
           query: item.englishSearchQuery,
@@ -255,4 +261,100 @@ Given the spoken lines per clip:
   }
 
   return results;
+}
+
+export type BrollLayoutMode = "pip" | "cover";
+
+/**
+ * Computes the optimal timing window (impact beat on the second half of the clip so the opening
+ * setup and clip transition stay visible) and 9:16 / 16:9 canvas transform for a B-roll overlay.
+ */
+export function computeBrollPlacement({
+  clipStartSec,
+  clipDurSec,
+  canvasSize,
+  sourceWidth,
+  sourceHeight,
+  layoutMode = "pip",
+}: {
+  clipStartSec: number;
+  clipDurSec: number;
+  canvasSize: { width: number; height: number };
+  sourceWidth: number;
+  sourceHeight: number;
+  layoutMode?: BrollLayoutMode;
+}): {
+  startTimeSeconds: number;
+  durationSeconds: number;
+  scaleX: number;
+  scaleY: number;
+  positionX: number;
+  positionY: number;
+} {
+  // Show the main character/whiteboard for the first ~38% of the clip (setup beat),
+  // then pop in the B-roll on the payoff beat for ~2.0–2.5s, ending 0.35s before the cut.
+  let offsetSec = 0;
+  let durationSeconds = clipDurSec;
+  if (clipDurSec >= 3.2) {
+    offsetSec = Math.round(clipDurSec * 0.38 * 100) / 100;
+    const maxWindow = Math.max(1.4, clipDurSec - offsetSec - 0.35);
+    durationSeconds = Math.round(Math.min(2.5, maxWindow) * 100) / 100;
+  } else if (clipDurSec > 2.0) {
+    offsetSec = 0.5;
+    durationSeconds = Math.round(Math.max(1.2, clipDurSec - 0.75) * 100) / 100;
+  }
+
+  const startTimeSeconds = Math.round((clipStartSec + offsetSec) * 100) / 100;
+  const safeSrcW = Math.max(1, sourceWidth);
+  const safeSrcH = Math.max(1, sourceHeight);
+  const isVerticalCanvas = canvasSize.height > canvasSize.width;
+
+  if (layoutMode === "cover") {
+    // OpenCut's renderer applies `containScale = min(canvasW/srcW, canvasH/srcH)` first.
+    // Multiplying by `coverScale / containScale` makes any aspect-ratio photo fill 100% of the canvas.
+    const containScale = Math.min(
+      canvasSize.width / safeSrcW,
+      canvasSize.height / safeSrcH,
+    );
+    const coverScale = Math.max(
+      canvasSize.width / safeSrcW,
+      canvasSize.height / safeSrcH,
+    );
+    const ratio =
+      containScale > 0
+        ? Math.round((coverScale / containScale) * 1000) / 1000
+        : 1;
+    return {
+      startTimeSeconds,
+      durationSeconds,
+      scaleX: ratio,
+      scaleY: ratio,
+      positionX: 0,
+      positionY: 0,
+    };
+  }
+
+  // Default "pip" (Floating Picture-in-Picture Card):
+  // On 9:16 vertical canvases, place the B-roll at 84% width in the upper showcase zone
+  // (`positionY = -22%` of canvasHeight) so the character and bottom subtitles remain visible.
+  if (isVerticalCanvas) {
+    return {
+      startTimeSeconds,
+      durationSeconds,
+      scaleX: 0.84,
+      scaleY: 0.84,
+      positionX: 0,
+      positionY: Math.round(-canvasSize.height * 0.22),
+    };
+  }
+
+  // On 16:9 / 1:1 canvases, place PiP card in the upper-right quadrant
+  return {
+    startTimeSeconds,
+    durationSeconds,
+    scaleX: 0.48,
+    scaleY: 0.48,
+    positionX: Math.round(canvasSize.width * 0.22),
+    positionY: Math.round(-canvasSize.height * 0.18),
+  };
 }

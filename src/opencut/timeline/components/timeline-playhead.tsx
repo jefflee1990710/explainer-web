@@ -122,12 +122,16 @@ export function TimelinePlayhead({
 			}}
 			onKeyDown={handlePlayheadKeyDown}
 		>
-			<div className="bg-primary pointer-events-none absolute left-0 h-full w-0.5" />
+			<div className="pointer-events-none absolute left-0 h-full w-0.5 bg-[#a3e635] shadow-[0_0_6px_rgba(163,230,53,0.5)]" />
 
 			<button
 				type="button"
 				aria-label="Drag playhead"
-				className={`pointer-events-auto absolute top-1 left-1/2 size-3 -translate-x-1/2 transform cursor-col-resize rounded-full border-2 shadow-xs ${isSnappingToPlayhead ? "bg-primary border-primary" : "bg-primary border-primary/50"}`}
+				className={`pointer-events-auto absolute top-0.5 left-1/2 size-3 -translate-x-1/2 rotate-45 transform cursor-col-resize rounded-[2px] border shadow-xs ${
+					isSnappingToPlayhead
+						? "border-[#12141c] bg-[#c6f24b]"
+						: "border-[#12141c]/40 bg-[#a3e635]"
+				}`}
 				onMouseDown={handlePlayheadMouseDown}
 			/>
 		</div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { resolveAnimationPathValueAtTime } from "@/opencut/animation";
-import { Section, SectionContent, SectionFields } from "@/opencut/components/section";
 import { useElementPlayhead } from "@/opencut/components/editor/panels/properties/hooks/use-element-playhead";
 import { useKeyframedParamProperty } from "@/opencut/components/editor/panels/properties/hooks/use-keyframed-param-property";
 import { PropertyParamField } from "@/opencut/components/editor/panels/properties/components/property-param-field";
@@ -14,6 +13,34 @@ import {
 } from "@/opencut/params/registry";
 import type { TimelineElement } from "@/opencut/timeline";
 import type { MediaTime } from "@/opencut/wasm";
+
+/** Pairs of parameters rendered side-by-side in a 2-column grid row. */
+const PAIRED_NEXT_KEY: Record<string, string> = {
+	"transform.positionX": "transform.positionY",
+	"transform.scaleX": "transform.scaleY",
+	fontSize: "color",
+	fontWeight: "fontStyle",
+	textAlign: "textDecoration",
+	letterSpacing: "lineHeight",
+	strokeWidth: "strokeColor",
+	shadowColor: "shadowBlur",
+	shadowOffsetX: "shadowOffsetY",
+	"background.color": "background.cornerRadius",
+	"background.paddingX": "background.paddingY",
+	"background.offsetX": "background.offsetY",
+};
+
+/** Optional section header inserted above specific parameter keys. */
+const SECTION_GROUP_TITLE: Record<string, string> = {
+	content: "Caption text",
+	fontFamily: "Typography",
+	strokeWidth: "Outline stroke",
+	shadowColor: "Drop shadow",
+	"background.enabled": "Background plate",
+	"transform.positionX": "Position & scale",
+	opacity: "Blending & opacity",
+	volume: "Audio level",
+};
 
 export function ElementParamsTab({
 	element,
@@ -34,27 +61,81 @@ export function ElementParamsTab({
 		(param) => !paramKeys || paramKeys.includes(param.key),
 	);
 	const baseValues = buildValues({ element, params });
+	const visibleParams = params.filter((param) =>
+		isVisible({ param, values: baseValues }),
+	);
+
+	// Group visible params into rows (single full-width or 2-column paired row)
+	const rows: Array<{
+		groupTitle?: string;
+		items: ElementParamDefinition[];
+	}> = [];
+	const consumed = new Set<string>();
+
+	for (let i = 0; i < visibleParams.length; i++) {
+		const param = visibleParams[i];
+		if (!param || consumed.has(param.key)) continue;
+		consumed.add(param.key);
+
+		const groupTitle = SECTION_GROUP_TITLE[param.key];
+		const partnerKey = PAIRED_NEXT_KEY[param.key];
+		const partner = partnerKey
+			? visibleParams.find((p) => p.key === partnerKey && !consumed.has(p.key))
+			: undefined;
+
+		if (partner) {
+			consumed.add(partner.key);
+			rows.push({ groupTitle, items: [param, partner] });
+		} else {
+			rows.push({ groupTitle, items: [param] });
+		}
+	}
 
 	return (
-		<Section sectionKey={`${element.id}:${sectionKey}`}>
-			<SectionContent className="pt-4">
-				<SectionFields>
-					{params
-						.filter((param) => isVisible({ param, values: baseValues }))
-						.map((param) => (
-							<ElementParamField
-								key={param.key}
-								element={element}
-								trackId={trackId}
-								param={param}
-								baseValue={baseValues[param.key] ?? param.default}
-								localTime={localTime}
-								isPlayheadWithinElementRange={isPlayheadWithinElementRange}
-							/>
-						))}
-				</SectionFields>
-			</SectionContent>
-		</Section>
+		<div
+			key={`${element.id}:${sectionKey}`}
+			className="divide-border flex flex-col divide-y"
+		>
+			{rows.map((row) => {
+				const rowKey = row.items.map((item) => item.key).join("+");
+				return (
+					<div key={rowKey} className="space-y-2.5 px-3.5 py-3">
+						{row.groupTitle ? (
+							<p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+								{row.groupTitle}
+							</p>
+						) : null}
+						{row.items.length === 2 ? (
+							<div className="grid grid-cols-2 gap-2.5">
+								{row.items.map((param) => (
+									<ElementParamField
+										key={param.key}
+										element={element}
+										trackId={trackId}
+										param={param}
+										baseValue={baseValues[param.key] ?? param.default}
+										localTime={localTime}
+										isPlayheadWithinElementRange={isPlayheadWithinElementRange}
+									/>
+								))}
+							</div>
+						) : (
+							row.items.map((param) => (
+								<ElementParamField
+									key={param.key}
+									element={element}
+									trackId={trackId}
+									param={param}
+									baseValue={baseValues[param.key] ?? param.default}
+									localTime={localTime}
+									isPlayheadWithinElementRange={isPlayheadWithinElementRange}
+								/>
+							))
+						)}
+					</div>
+				);
+			})}
+		</div>
 	);
 }
 

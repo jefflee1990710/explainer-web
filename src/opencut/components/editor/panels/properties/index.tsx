@@ -1,27 +1,24 @@
 "use client";
 
+import { SparklesIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { ScrollArea } from "@/opencut/components/ui/scroll-area";
-import { Button } from "@/opencut/components/ui/button";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/opencut/components/ui/tooltip";
 import { useEditor } from "@/opencut/editor/use-editor";
 import { resolveElementScroClipNumber } from "@/opencut/embed/scro-clip-number";
 import { ScroVideoProperties } from "@/opencut/embed/scro-video-properties";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { useElementSelection } from "@/opencut/timeline/hooks/element/use-element-selection";
 import { usePropertiesStore } from "./stores/properties-store";
-import { getPropertiesConfig } from "./registry";
+import { getPropertiesConfig, type PropertiesTabDef } from "./registry";
 import { cn } from "@/opencut/utils/ui";
 import { EmptyView } from "./empty-view";
+import { InspectorHeader } from "./components/inspector-header";
 
 export function PropertiesPanel() {
 	const editor = useEditor();
 	useEditor((e) => e.scenes.getActiveSceneOrNull());
 	useEditor((e) => e.media.getAssets());
+	const totalDuration = useEditor((e) => e.timeline.getTotalDuration());
 	const { selectedElements } = useElementSelection();
 	const { activeTabPerType, setActiveTab } = usePropertiesStore();
 	const scroStore = useScroVideos();
@@ -52,23 +49,29 @@ export function PropertiesPanel() {
 		if (scroClipNumber != null) {
 			return (
 				<div className="panel bg-background flex h-full min-h-0 flex-col overflow-hidden rounded-none border">
-					<ScroVideoProperties clipNumber={scroClipNumber} />
+					<ScroVideoProperties clipNumber={scroClipNumber} showInspectorHeader />
 				</div>
 			);
 		}
 		return (
-			<div className="panel bg-background flex h-full flex-col items-center justify-center overflow-hidden rounded-none border">
-				<EmptyView />
+			<div className="panel bg-background flex h-full flex-col overflow-hidden rounded-none border">
+				<InspectorHeader />
+				<div className="flex flex-1 items-center justify-center">
+					<EmptyView />
+				</div>
 			</div>
 		);
 	}
 
 	if (selectedElements.length > 1) {
 		return (
-			<div className="panel bg-background flex h-full flex-col items-center justify-center overflow-hidden rounded-none border">
-				<p className="text-muted-foreground text-sm">
-					{selectedElements.length} elements selected.0
-				</p>
+			<div className="panel bg-background flex h-full flex-col overflow-hidden rounded-none border">
+				<InspectorHeader />
+				<div className="flex flex-1 items-center justify-center p-4">
+					<p className="text-muted-foreground text-sm font-medium">
+						{selectedElements.length} elements selected
+					</p>
+				</div>
 			</div>
 		);
 	}
@@ -82,59 +85,89 @@ export function PropertiesPanel() {
 
 	const { element, track } = elementWithTrack;
 
-	if (timelineScroClip != null) {
-		return (
-			<div className="panel bg-background flex h-full min-h-0 flex-col overflow-hidden rounded-none border">
-				<ScroVideoProperties clipNumber={timelineScroClip} />
-			</div>
-		);
-	}
-
 	const config = getPropertiesConfig({ element, mediaAssets });
-	const visibleTabs = config.tabs;
+	const scroTab: PropertiesTabDef | null =
+		timelineScroClip != null
+			? {
+					id: "scro-scene",
+					label: "Scene AI",
+					icon: <HugeiconsIcon icon={SparklesIcon} size={14} />,
+					content: () => (
+						<ScroVideoProperties
+							clipNumber={timelineScroClip}
+							showInspectorHeader={false}
+						/>
+					),
+				}
+			: null;
 
+	const visibleTabs: PropertiesTabDef[] = scroTab
+		? [scroTab, ...config.tabs]
+		: config.tabs;
+
+	const defaultTabId = scroTab ? scroTab.id : config.defaultTab;
 	const storedTabId = activeTabPerType[element.type];
 	const isStoredTabVisible = visibleTabs.some((t) => t.id === storedTabId);
-	const activeTabId = isStoredTabVisible ? storedTabId : config.defaultTab;
+	const activeTabId = isStoredTabVisible ? storedTabId : defaultTabId;
 	const activeTab =
 		visibleTabs.find((t) => t.id === activeTabId) ?? visibleTabs[0];
 
 	if (!activeTab) return null;
 
+	const scroClipMeta =
+		timelineScroClip != null
+			? scroStore?.clips.find((c) => c.clipNumber === timelineScroClip)
+			: undefined;
+
 	return (
-		<div className="panel bg-background flex h-full overflow-hidden rounded-none border">
-			<TooltipProvider delayDuration={0}>
-				<div className="flex shrink-0 flex-col gap-0.5 border-r p-1 scrollbar-hidden overflow-y-auto">
-					{visibleTabs.map((tab) => (
-						<Tooltip key={tab.id}>
-							<TooltipTrigger asChild>
-								<Button
-									variant={tab.id === activeTab.id ? "secondary" : "ghost"}
-									size="icon"
-									onClick={() =>
-										setActiveTab({
-											elementType: element.type,
-											tabId: tab.id,
-										})
-									}
-									aria-label={tab.label}
-									className={cn(
-										"shrink-0",
-										"h-8 w-8",
-										tab.id !== activeTab.id && "text-muted-foreground",
-									)}
-								>
-									{tab.icon}
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="right">{tab.label}</TooltipContent>
-						</Tooltip>
-					))}
+		<div className="panel bg-background flex h-full min-h-0 flex-col overflow-hidden rounded-none border">
+			<InspectorHeader
+				element={element}
+				totalDuration={totalDuration}
+				subtitleOverride={
+					scroClipMeta ? "talking head / scene" : undefined
+				}
+			/>
+
+			{/* Horizontal segmented pill tab bar */}
+			{visibleTabs.length > 1 ? (
+				<div className="border-border bg-muted/25 scrollbar-hidden flex shrink-0 items-center gap-1 overflow-x-auto border-b px-2.5 py-1.5">
+					{visibleTabs.map((tab) => {
+						const isActive = tab.id === activeTab.id;
+						return (
+							<button
+								key={tab.id}
+								type="button"
+								onClick={() =>
+									setActiveTab({
+										elementType: element.type,
+										tabId: tab.id,
+									})
+								}
+								className={cn(
+									"inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+									isActive
+										? "bg-foreground text-background shadow-xs"
+										: "text-muted-foreground hover:bg-muted hover:text-foreground",
+								)}
+							>
+								<span className="flex shrink-0 items-center">{tab.icon}</span>
+								<span>{tab.label}</span>
+							</button>
+						);
+					})}
 				</div>
-			</TooltipProvider>
-			<ScrollArea className="flex-1 scrollbar-hidden">
-				{activeTab.content({ trackId: track.id })}
-			</ScrollArea>
+			) : null}
+
+			{activeTab.id === "scro-scene" ? (
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					{activeTab.content({ trackId: track.id })}
+				</div>
+			) : (
+				<ScrollArea className="min-h-0 flex-1 scrollbar-hidden">
+					{activeTab.content({ trackId: track.id })}
+				</ScrollArea>
+			)}
 		</div>
 	);
 }

@@ -608,18 +608,18 @@ function ElementInner({
 			}}
 		>
 			<div
-				className="absolute inset-0 rounded-sm"
+				className="absolute inset-0 rounded-lg"
 				style={
 					isSelected
 						? {
-								boxShadow: `0 0 0 ${ELEMENT_RING_WIDTH_PX}px var(--primary)`,
+								boxShadow: `0 0 0 ${ELEMENT_RING_WIDTH_PX}px #a3e635`,
 							}
 						: undefined
 				}
 			>
 				<div
 					className={cn(
-						"absolute inset-0 overflow-hidden rounded-sm",
+						"absolute inset-0 overflow-hidden rounded-lg",
 						isExpanded && "bg-background",
 					)}
 				>
@@ -955,10 +955,14 @@ function TextElementContent({
 }: {
 	element: Extract<TimelineElementType, { type: "text" }>;
 }) {
+	const raw =
+		typeof element.params.content === "string"
+			? element.params.content.replace(/\n+/g, " ").trim()
+			: "";
 	return (
-		<div className="flex size-full items-center justify-start pl-2">
-			<span className="truncate text-xs text-white">
-				{typeof element.params.content === "string" ? element.params.content : ""}
+		<div className="flex size-full items-center justify-start px-3">
+			<span className="truncate text-xs font-semibold text-white">
+				{raw || element.name}
 			</span>
 		</div>
 	);
@@ -1067,9 +1071,8 @@ function AudioElementContent({
 	);
 	if (audioBuffer || audioUrl || sourceFile) {
 		return (
-			<div className="group/audio relative size-full">
-				<MediaElementHeader name={mediaLabel} hasFade={false} />
-				<div className="absolute inset-x-0 top-5 bottom-0 overflow-hidden">
+			<div className="group/audio relative flex size-full items-center bg-[#1b1f2a]">
+				<div className="pointer-events-none absolute inset-0 opacity-35">
 					<AudioWaveform
 						sourceKey={sourceKey}
 						sourceFile={sourceFile}
@@ -1082,19 +1085,20 @@ function AudioElementContent({
 						sourceStartSec={element.trimStart / TICKS_PER_SECOND}
 						color={TIMELINE_TRACK_THEME.audio.waveformColor}
 					/>
-					<AudioVolumeLine element={element} trackId={trackId} />
 				</div>
+				<span className="relative z-10 truncate px-3 text-xs font-semibold text-white">
+					{mediaLabel}
+				</span>
+				<AudioVolumeLine element={element} trackId={trackId} />
 			</div>
 		);
 	}
 
 	return (
-		<div className="group/audio relative size-full">
-			<div className="flex size-full items-center pl-2">
-				<span className="text-foreground/80 truncate text-xs">
-					{element.name}
-				</span>
-			</div>
+		<div className="group/audio relative flex size-full items-center bg-[#1b1f2a] px-3">
+			<span className="truncate text-xs font-semibold text-white">
+				{element.name}
+			</span>
 			<AudioVolumeLine element={element} trackId={trackId} />
 		</div>
 	);
@@ -1178,44 +1182,40 @@ function TiledMediaContent({
 
 	if (!imageUrl) {
 		return (
-			<span className="text-foreground/80 truncate text-xs">
-				{element.name}
-			</span>
+			<div className="flex size-full items-center gap-2 bg-[#2b303c] px-2.5">
+				<span className="truncate text-xs font-semibold text-white">
+					{element.name || mediaAsset?.name || "Clip"}
+				</span>
+			</div>
 		);
 	}
 
-	const trackHeight = getTrackHeight({ type: track.type });
-	// Width follows the thumbnail so a 9:16 frame is not stretched into 16:9.
-	const aspect =
-		mediaAsset?.width && mediaAsset.height
-			? mediaAsset.width / mediaAsset.height
-			: 16 / 9;
-	const tileWidth = trackHeight * aspect;
+	const displayLabel = element.name || mediaAsset?.name || "Clip";
 
 	return (
-		<>
-			<div
-				className="absolute inset-0"
-				style={{
-					backgroundColor: "var(--muted)",
-					backgroundImage: imageReady ? `url(${imageUrl})` : undefined,
-					backgroundRepeat: "repeat-x",
-					backgroundSize: `${tileWidth}px ${trackHeight}px`,
-					backgroundPosition: "left center",
-					pointerEvents: "none",
-				}}
-			/>
-			{imageReady ? null : <MediaLoadingMark className="text-white" />}
-			<MediaElementHeader
-				name={mediaAsset?.name}
-				leading={
-					hasElementEffects({ element }) ? (
-						<EffectsButton element={element} track={track} />
-					) : null
-				}
-				hasFade={true}
-			/>
-		</>
+		<div className="relative flex size-full items-center gap-2.5 bg-[#2b303c] px-1.5">
+			<div className="relative h-[calc(100%-8px)] w-7 shrink-0 overflow-hidden rounded-[5px] bg-black/30">
+				{imageReady ? (
+					// eslint-disable-next-line @next/next/no-img-element
+					<img
+						src={imageUrl}
+						alt=""
+						className="size-full object-cover"
+						draggable={false}
+					/>
+				) : (
+					<MediaLoadingMark className="text-white" />
+				)}
+			</div>
+			<span className="min-w-0 flex-1 truncate text-xs font-semibold text-white">
+				{displayLabel}
+			</span>
+			{hasElementEffects({ element }) ? (
+				<div className="pr-1.5">
+					<EffectsButton element={element} track={track} />
+				</div>
+			) : null}
+		</div>
 	);
 }
 
