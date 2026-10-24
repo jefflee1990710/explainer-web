@@ -456,6 +456,7 @@ export const zhHant: Messages = {
         hair: {
           ...BRANDING_LABELS_ZH.hair,
           ...CASUAL_LABELS_ZH.hair,
+          none: "無",
           bob: "波波頭",
           long: "長直髮",
           curly: "捲髮",
@@ -734,6 +735,7 @@ export const zhHant: Messages = {
           ...BRANDING_LABELS_ZH.shoes,
           ...SPORTS_LABELS_ZH.shoes,
           ...CASUAL_LABELS_ZH.shoes,
+          none: "無",
           sneakers: "極簡白皮革休閒鞋",
           boots: "深色真皮短靴",
           loafers: "復古棕皮革樂福鞋",

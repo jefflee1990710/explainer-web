@@ -39,6 +39,10 @@ export function filterLookDialogOptions({
       return haystack.includes(needle);
     });
   matched.sort((a, b) => {
+    // "none" is always pinned as the very first choice before custom items and favourites.
+    const aNone = a.option.id === "none" ? 0 : 1;
+    const bNone = b.option.id === "none" ? 0 : 1;
+    if (aNone !== bNone) return aNone - bNone;
     const aRank = favouriteIds.has(a.option.id) ? 0 : 1;
     const bRank = favouriteIds.has(b.option.id) ? 0 : 1;
     if (aRank !== bRank) return aRank - bRank;

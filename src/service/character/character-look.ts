@@ -103,6 +103,7 @@ export const CHARACTER_EXTRA_LOOKS: Record<CharacterExtraPart, readonly Characte
 
 export const CHARACTER_LOOKS: Record<CharacterLookPart, readonly CharacterLookOption[]> = {
   hair: [
+    { id: "none", prompt: "clean bald head, no hair" },
     { id: "bob", prompt: "chin-length straight bob with a centre part" },
     { id: "long", prompt: "long straight hair past the shoulders" },
     { id: "curly", prompt: "short tight curls" },
@@ -179,6 +180,7 @@ export const CHARACTER_LOOKS: Record<CharacterLookPart, readonly CharacterLookOp
     ...EXTRA_PANTS,
   ],
   shoes: [
+    { id: "none", prompt: "barefoot, no shoes" },
     { id: "sneakers", prompt: "white sneakers" },
     { id: "boots", prompt: "dark ankle boots" },
     { id: "loafers", prompt: "brown leather penny loafers" },
@@ -222,11 +224,11 @@ const PART_LABEL: Record<AnyCharacterLookPart, string> = {
 export function defaultCharacterLook(): CharacterLookSelection {
   return {
     gender: "female",
-    hair: CHARACTER_LOOKS.hair[0].id,
+    hair: "bob",
     face: CHARACTER_LOOKS.face[0].id,
     body: CHARACTER_LOOKS.body[0].id,
     pants: "jeans",
-    shoes: CHARACTER_LOOKS.shoes[0].id,
+    shoes: "sneakers",
     top: CHARACTER_EXTRA_LOOKS.top[0].id,
     accessory: CHARACTER_EXTRA_LOOKS.accessory[0].id,
     expression: CHARACTER_EXTRA_LOOKS.expression[0].id,
@@ -252,8 +254,8 @@ export function characterLookOption(part: AnyCharacterLookPart, id: string) {
 // Public file for the studio preview of one option.
 export function characterLookPreviewSrc(part: AnyCharacterLookPart, id: string) {
   if (!isCharacterLookId(part, id)) return "";
-  // "No pants" has no photo; the picker shows the plain pants glyph instead.
-  if (part === "pants" && id === NO_PANTS_ID) return "";
+  // "None" has no photo; the picker shows the plain part glyph instead.
+  if (id === NO_PANTS_ID) return "";
   return `/character-looks/${part}-${id}.webp?v=6`;
 }
 
@@ -489,7 +491,9 @@ export function randomizeCharacterLook(
   };
   for (const part of ALL_CHARACTER_LOOK_PARTS) {
     if (options.locked?.[part]) continue;
-    const all = optionsForLookPart(part).filter((item) => !(part === "pants" && item.id === NO_PANTS_ID));
+    const all = optionsForLookPart(part).filter(
+      (item) => !(item.id === NO_PANTS_ID && (part === "hair" || part === "pants" || part === "shoes")),
+    );
     const pool = options.extremeOnly
       ? all.filter((item) => isExaggeratedLookOption(part, item.id))
       : all;

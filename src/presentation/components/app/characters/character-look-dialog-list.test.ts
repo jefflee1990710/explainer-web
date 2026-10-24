@@ -78,3 +78,24 @@ test("tag filters and description search narrow the grid", () => {
   });
   assert.deepEqual(byDesc.map((option) => option.id), ["tee"]);
 });
+
+test("'none' is always pinned first even before custom items and favourites", () => {
+  const mixed = [
+    { id: "cw_custom1", name: "Navy Mini Skirt" },
+    { id: "cw_custom2", name: "Navy Cropped Trousers" },
+    { id: "none", name: "None" },
+    { id: "jeans", name: "Straight Jeans" },
+  ];
+  const ranked = filterLookDialogOptions({
+    options: mixed,
+    query: "",
+    favouriteIds: new Set(["jeans"]),
+    favouritesOnly: false,
+  });
+  assert.deepEqual(ranked.map((option) => option.id), [
+    "none",
+    "jeans",
+    "cw_custom1",
+    "cw_custom2",
+  ]);
+});

@@ -464,6 +464,7 @@ export const en: Messages = {
         hair: {
           ...BRANDING_LABELS_EN.hair,
           ...CASUAL_LABELS_EN.hair,
+          none: "None",
           bob: "Bob",
           long: "Long",
           curly: "Curly",
@@ -742,6 +743,7 @@ export const en: Messages = {
           ...BRANDING_LABELS_EN.shoes,
           ...SPORTS_LABELS_EN.shoes,
           ...CASUAL_LABELS_EN.shoes,
+          none: "None",
           sneakers: "Minimalist White Sneakers",
           boots: "Leather Ankle Boots",
           loafers: "Penny Loafers",

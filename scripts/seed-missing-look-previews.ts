@@ -8,6 +8,7 @@ import sharp from "sharp";
 import {
   ALL_CHARACTER_LOOK_PARTS,
   characterLookPreviewPrompt,
+  NO_PANTS_ID,
   optionsForLookPart,
   type AnyCharacterLookPart,
 } from "@/service/character/character-look";
@@ -52,6 +53,7 @@ async function main() {
   const tasks: Array<{ part: AnyCharacterLookPart; id: string }> = [];
   for (const part of ALL_CHARACTER_LOOK_PARTS) {
     for (const option of optionsForLookPart(part)) {
+      if (option.id === NO_PANTS_ID) continue;
       const file = path.join(OUT_DIR, `${part}-${option.id}.webp`);
       if (!(await exists(file))) tasks.push({ part, id: option.id });
     }
