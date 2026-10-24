@@ -32,7 +32,7 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
           <p className="text-sm text-zinc-500">{t("legal.rights")}</p>
           <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-zinc-600">
             <Link href="/posts" className="hover:text-[#12141c]">
-              Post
+              {t("nav.blog")}
             </Link>
             <Link href="/examples" className="hover:text-[#12141c]">
               {t("nav.examples")}

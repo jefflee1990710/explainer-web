@@ -588,3 +588,48 @@ test("whiteboard concept explainer enforces full-canvas 2D whiteboard, 2D charac
   assert.match(videoLock, /character in 2D on the whiteboard/);
   assert.match(videoLock, /concept explained with 2D whiteboard drawings/);
 });
+
+test("realistic whiteboard explainer uses calm, normal facial expressions with mouth closed while non-realistic styles keep exaggerated arcs", () => {
+  assert.equal(cartoonClipExpressionArc(1, { realistic: true }), undefined);
+  assert.equal(cartoonClipExpressionArc(5, { realistic: true }), undefined);
+  assert.ok(cartoonClipExpressionArc(1, { realistic: false }));
+  assert.ok(cartoonClipExpressionArc(5));
+
+  // Non-realistic arcs never instruct open-mouth shapes ('O-shaped' or 'ooh' mouth)
+  for (const arc of CARTOON_EXPRESSION_ARCS) {
+    assert.doesNotMatch(arc.start, /O-shaped|'ooh' mouth/i);
+    assert.doesNotMatch(arc.end, /O-shaped|'ooh' mouth/i);
+  }
+
+  const realisticDirector = cartoonExplainerDirectorBlock({ hasCharacter: true, realistic: true });
+  assert.match(realisticDirector, /calm, natural, understated real-person facial expression/);
+  assert.match(realisticDirector, /never exaggerated cartoon grimaces/);
+  assert.doesNotMatch(realisticDirector, /shocked wide saucer eyes/);
+  assert.doesNotMatch(realisticDirector, /intense grit with puffed cheeks/);
+
+  const cartoonDirector = cartoonExplainerDirectorBlock({ hasCharacter: true, realistic: false });
+  assert.match(cartoonDirector, /vivid, expressive facial expression/);
+  assert.match(cartoonDirector, /shocked wide saucer eyes/);
+
+  const realisticStill1 = cartoonNarratorFrameLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    clipNumber: 1,
+    position: "start",
+    action: "push",
+    realistic: true,
+  });
+  assert.match(realisticStill1, /normal, calm, natural real-person expression with lips firmly closed/);
+  assert.doesNotMatch(realisticStill1, /wide saucer eyes/);
+  assert.doesNotMatch(realisticStill1, /surprised face/);
+
+  const realisticVideo5 = cartoonNarratorVideoLock("cartoon-explainer-video-director", {
+    hasCharacter: true,
+    clipNumber: 5,
+    action: "squeeze",
+    realistic: true,
+  });
+  assert.match(realisticVideo5, /lips stay firmly closed with zero mouth or jaw speech movement/);
+  assert.match(realisticVideo5, /calm, natural, and normal with lips firmly closed/);
+  assert.doesNotMatch(realisticVideo5, /puffed cheeks/);
+  assert.doesNotMatch(realisticVideo5, /lively, expressive facial expression changes/);
+});

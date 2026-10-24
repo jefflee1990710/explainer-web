@@ -14,6 +14,7 @@ import {
   isOutfitReelSkill,
   isSurpriseInterviewSkill,
   skillBansNarration,
+  skillUsesOnScreenLipSync,
 } from "@/service/director/skill-rules";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { lockedSpeakerLines } from "@/service/director/character-voice";
@@ -89,7 +90,11 @@ ${
               ? DUAL_KEYFRAME_GLIDE_RULES
               : DUAL_KEYFRAME_MOTION_RULES
   } Do not invent a different final pose, camera, or composition.
-${phaseBDetailRules({ realistic, selfShot: isSelfShotCreatorSkill(input.skill.slug) })}
+${phaseBDetailRules({
+  realistic,
+  selfShot: isSelfShotCreatorSkill(input.skill.slug),
+  narratorOnly: !skillUsesOnScreenLipSync(input.skill.slug) && !isOutfitReelSkill(input.skill.slug),
+})}
 ${
     isOutfitReelSkill(input.skill.slug)
       ? "This director is silent. Do not write a spoken line, a narrator, or lip-sync. No background music. One sound effect only."
@@ -103,6 +108,7 @@ ${
   } ${cartoonNarratorVideoLock(input.skill.slug, {
     hasCharacter: Boolean(input.cast?.length || input.characterImageUrl),
     smoothMotion: steady,
+    realistic,
   })} ${
     isOutfitReelSkill(input.skill.slug) ? "" : `Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. `
   }${
@@ -201,6 +207,7 @@ export async function runPhaseBForClip(
       action: cartoonClipAction(row?.motionCamera),
       clipNumber: input.clipNumber,
       smoothMotion: steady,
+      realistic: isRealisticStyle(input.style),
     }),
     phaseBWardrobeLock({
       cast: input.cast,

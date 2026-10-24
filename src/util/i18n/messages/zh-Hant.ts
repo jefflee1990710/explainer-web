@@ -14,6 +14,7 @@ import { tasksPageZhHant } from "@/util/i18n/messages/workspace/tasks.zh-Hant";
 import { videoZhHant } from "@/util/i18n/messages/workspace/video.zh-Hant";
 import { postZhHant } from "@/util/i18n/messages/workspace/post.zh-Hant";
 import { productsZhHant } from "@/util/i18n/messages/workspace/products.zh-Hant";
+import { wardrobeZhHant } from "@/util/i18n/messages/workspace/wardrobe.zh-Hant";
 
 export const zhHant: Messages = {
   meta: {
@@ -38,10 +39,12 @@ export const zhHant: Messages = {
     workspace: "工作台",
     language: "語言",
     posts: "海報",
+    blog: "文章",
     products: "產品",
     textStyles: "文字樣式",
     life: "生活",
     room: "更衣室",
+    wardrobe: "自訂衣櫥",
     rightTool: "揀對工具",
     talkingHead: "口播",
     cantonese: "粵語",
@@ -1621,6 +1624,36 @@ export const zhHant: Messages = {
     errorSend: "而家送唔出。請直接電郵下面嘅地址。",
     mailInstead: "或者直接電郵我哋",
   },
+  blogPage: {
+    seoTitle: "文章 | Scro",
+    seoDescription: "閱讀 Scro 的最新文章、教學指南與產品更新。",
+    notFoundTitle: "找不到文章 | Scro",
+    eyebrow: "文章專欄",
+    title: "最新文章",
+    subtitle: "關於 AI 短片製作、虛擬網紅與品牌內容變現的實戰文章與教學。",
+    emptyTitle: "目前尚無已發佈的文章。",
+    emptyBody: "透過 POST /api/v1/posts 建立你的第一篇文章。",
+    readArticle: "閱讀全文 →",
+    backToPosts: "← 返回文章列表",
+    prevPage: "← 上一頁",
+    nextPage: "下一頁 →",
+    pageOf: "第 {page} / {total} 頁",
+    recommendedHeading: "推薦閱讀 · Recommended",
+    allPosts: "全部文章 →",
+    ctaEyebrow: "免費體驗 Scro AI Studio",
+    ctaTitleSidebar: "把你的專業變成日更 AI 短片",
+    ctaTitleInline: "不用親自上鏡，用你的知識打造專屬 AI 網紅與高留存 Explainer 短片",
+    ctaBodySidebar:
+      "立即免費註冊領取體驗 Credits。支援麥克風錄音複製聲線、21 國語言配音、白板解說與一鍵字幕剪輯。",
+    ctaBodyInline:
+      "註冊即送免費體驗 Credits。內建麥克風即時錄音複製聲線（支援廣東話、國語、英文等 21 種語言）、手繪分鏡草稿與 AI 導演，幾分鐘產出 Reels、Shorts 與 TikTok 成片。",
+    ctaPrimarySignedIn: "進入創作工作台 →",
+    ctaPrimarySignedOut: "免費註冊 Scro 領取 Credits →",
+    ctaSecondary: "查看範例成果",
+    ctaBullet1: "免信用卡立即試用",
+    ctaBullet2: "21 種語言聲線複製",
+    ctaBullet3: "內建 AI 導演與字幕剪輯",
+  },
   affiliatePage: {
     eyebrow: "自媒體導師",
     title: "教 Scro，學生使用就有分潤。",
@@ -1732,6 +1765,7 @@ export const zhHant: Messages = {
   video: videoZhHant,
   post: postZhHant,
   products: productsZhHant,
+  wardrobe: wardrobeZhHant,
   textStyles: {
     title: "文字樣式",
     subtitle: "字幕的字體。從系統樣式開始，再用 AI 改成你的。字放在哪裡仍由導演決定。",

@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const de: Partial<Messages> = {
   meta: { title: "Scro — KI-Influencer-Studio für Reels und Shorts", description: "Erstelle deinen eigenen KI-Influencer mit konsistentem Gesicht, Outfit und Stimme. Poste täglich Reels, Shorts und TikToks ohne selbst vor die Kamera zu treten." },
-  nav: { projects: "Video", characters: "AI Influencer", tasks: "Aufgaben", mcp: "MCP", affiliate: "Affiliate", billing: "Abrechnung", examples: "Beispiele", pricing: "Preise", signIn: "Anmelden", workspace: "Arbeitsbereich", language: "Sprache" },
+  nav: { projects: "Video", characters: "AI Influencer", tasks: "Aufgaben", mcp: "MCP", affiliate: "Affiliate", billing: "Abrechnung", examples: "Beispiele", pricing: "Preise", signIn: "Anmelden", workspace: "Arbeitsbereich", language: "Sprache", posts: "Poster", blog: "Beiträge", wardrobe: "Eigene Garderobe" },
   common: { credits: "credits", pending: "ausstehend", perMonth: "/ Monat", cancel: "Abbrechen", save: "Speichern", close: "Schließen", create: "Erstellen", loading: "Wird geladen…", popular: "Am beliebtesten", subscribe: "Abonnieren" },
   landing: {
     hero: { kicker: "KI-Influencer-Studio", title: "Dein KI-Influencer. Tägliche Shorts ohne Dreharbeiten.", subtitle: "Charakter und Pose wählen – vertikale 9:16-Reels & TikToks in Minuten generieren.", ctaStart: "Meinen KI-Influencer erstellen", ctaWorkspace: "Studio öffnen", ctaUseCases: "Anwendungsfälle ansehen", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Charakterauswahl links und Smartphone mit KI-KOL-Kurzvideogenerierung rechts" },

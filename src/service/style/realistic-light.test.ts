@@ -25,11 +25,20 @@ test("realistic and its user forks count as realistic; flat styles do not", () =
   assert.equal(isRealisticStyle(null), false);
 });
 
-test("the video light lock is appended once", () => {
+test("the video light lock is appended once and narratorOnly suppresses speaking mouth articulation", () => {
   const locked = lockRealisticVideoLight("0–2s she lifts the mug.");
   assert.ok(locked.endsWith(REALISTIC_VIDEO_LIGHT_LOCK));
   assert.equal(lockRealisticVideoLight(locked), locked);
   assert.equal(lockRealisticVideoLight("  "), "");
+
+  const narratorLocked = lockRealisticVideoLight("0–2s she points at the chart.", { narratorOnly: true });
+  assert.match(narratorLocked, /lips firmly closed and zero mouth or jaw speech movement/);
+  assert.doesNotMatch(narratorLocked, /when speaking/);
+  assert.equal(lockRealisticVideoLight(narratorLocked, { narratorOnly: true }), narratorLocked);
+
+  const detailNarrator = phaseBDetailRules({ realistic: true, narratorOnly: true });
+  assert.match(detailNarrator, /lips firmly closed/);
+  assert.doesNotMatch(detailNarrator, /whenever a character speaks/);
 });
 
 test("realistic style fields and rules enforce the 12 de-plastic rules across Phase A, frames, reference sheets, and video", () => {

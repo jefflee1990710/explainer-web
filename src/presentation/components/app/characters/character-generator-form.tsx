@@ -472,7 +472,7 @@ export function CharacterGeneratorForm({
                   href={`/app/wardrobe?part=${activePart}`}
                   className="inline-flex h-7 shrink-0 items-center rounded-full bg-accent-ink px-3 text-[11px] font-bold text-lime transition hover:-translate-y-0.5"
                 >
-                  ＋ 上傳自訂{activePartLabel}
+                  {t("wardrobe.uploadCustomPart", { part: activePartLabel })}
                 </Link>
               ) : null}
             </div>

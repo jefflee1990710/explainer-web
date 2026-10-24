@@ -5,9 +5,9 @@ import type { PublicBlogPost } from "@/model/blog-post";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { BlogPostRegisterCta } from "@/app/posts/[slug]/blog-post-register-cta";
 
-function formatShortDate(iso: string): string {
+function formatShortDate(iso: string, locale: string): string {
   try {
-    return new Intl.DateTimeFormat("en-US", {
+    return new Intl.DateTimeFormat(locale || "en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -25,8 +25,7 @@ export function BlogPostSidebar({
   recommendedPosts: PublicBlogPost[];
   signedIn?: boolean;
 }) {
-  const { locale } = useI18n();
-  const isZh = locale.startsWith("zh");
+  const { t, locale } = useI18n();
 
   return (
     <aside className="space-y-6 lg:sticky lg:top-24">
@@ -34,13 +33,13 @@ export function BlogPostSidebar({
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-2xs">
           <div className="flex items-center justify-between gap-2 border-b border-zinc-100 pb-3">
             <h2 className="font-display text-sm font-bold uppercase tracking-wider text-zinc-900">
-              {isZh ? "推薦閱讀 · Recommended" : "Recommended Reading"}
+              {t("blogPage.recommendedHeading")}
             </h2>
             <Link
               href="/posts"
               className="text-xs font-semibold text-zinc-500 transition hover:text-zinc-900"
             >
-              {isZh ? "全部文章 →" : "All posts →"}
+              {t("blogPage.allPosts")}
             </Link>
           </div>
 
@@ -65,7 +64,7 @@ export function BlogPostSidebar({
                     {item.title}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-500">
-                    <time dateTime={item.createdAt}>{formatShortDate(item.createdAt)}</time>
+                    <time dateTime={item.createdAt}>{formatShortDate(item.createdAt, locale)}</time>
                     {item.tags[0] ? (
                       <>
                         <span>·</span>

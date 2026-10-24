@@ -81,7 +81,7 @@ import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { mediaSrc } from "@/util/media-src";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
-import { isBookendSkill, skillUsesOnScreenLipSync } from "@/service/director/skill-rules";
+import { isBookendSkill, isOutfitReelSkill, skillUsesOnScreenLipSync } from "@/service/director/skill-rules";
 import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lock";
 import { resolvePerformance } from "@/service/director/performance";
 import { resolveRunSkill } from "@/service/director/run-skill";
@@ -644,8 +644,10 @@ export async function sendClipVideo(
     ownerClerkUserId: project.clerkUserId,
   }).catch(() => null);
   const selfShot = isSelfShotCreatorSkill(project.skillSlug);
+  const usesLipSync = skillUsesOnScreenLipSync(project.skillSlug);
+  const narratorOnly = !usesLipSync && !isOutfitReelSkill(project.skillSlug);
   const motionPrompt = isRealisticStyle(style)
-    ? lockRealisticVideoLight(subtitlePrompt, { selfShot })
+    ? lockRealisticVideoLight(subtitlePrompt, { selfShot, narratorOnly })
     : subtitlePrompt;
   const currentCast = await withCurrentCharacterVoices(project.cast);
   let videoPrompt = withCantonesePronunciation(
@@ -671,7 +673,6 @@ export async function sendClipVideo(
     project.language === "yue" || !isBookendSkill(project.skillSlug)
       ? resolveVoiceSwapId({ ...project, cast: currentCast })
       : null;
-  const usesLipSync = skillUsesOnScreenLipSync(project.skillSlug);
   const voOnsetSeconds = usesLipSync ? DEFAULT_SPEECH_ONSET_SECONDS : 0;
   const expandVideoToVo = isDualBeatSkill(project.skillSlug);
   let durationSeconds = prompt.durationSeconds;

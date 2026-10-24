@@ -77,7 +77,7 @@ export function dialogueVoiceLock(
   const oppositeGender = firstVoice ? (firstVoice.gender === "female" ? "male" : "female") : undefined;
   const narratorLine = firstVoice
     ? options?.keepNarrator
-      ? `The unseen off-screen narrator MUST use this exact ${firstVoice.gender} voice timbre (${characterVoiceTimbre(firstVoice)}); never switch to a ${oppositeGender} voice.`
+      ? `The unseen off-screen narrator MUST use this exact ${firstVoice.gender} voice timbre (${characterVoiceTimbre(firstVoice)}); never switch to a ${oppositeGender} voice. The on-screen character is silent and keeps their mouth firmly closed (no lip-sync).`
       : `The on-screen speaker MUST use this exact ${firstVoice.gender} voice timbre (${characterVoiceTimbre(firstVoice)}); never switch to a ${oppositeGender} voice.`
     : "";
   const preamble = options?.keepNarrator

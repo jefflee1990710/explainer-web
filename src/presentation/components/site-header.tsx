@@ -90,7 +90,7 @@ export function SiteHeader({
               href="/posts"
               className="shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
             >
-              Blog
+              {t("nav.blog")}
             </Link>
           </nav>
 
@@ -160,7 +160,7 @@ export function SiteHeader({
                 onClick={() => setMobileMenuOpen(false)}
                 className="rounded-xl px-3 py-2.5 text-sm font-semibold text-[#12141c] transition-colors hover:bg-zinc-100"
               >
-                Blog
+                {t("nav.blog")}
               </Link>
               {showAffiliate ? (
                 <Link

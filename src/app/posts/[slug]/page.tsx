@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
@@ -10,6 +11,7 @@ import {
 import { BlogPostContent } from "@/app/posts/[slug]/blog-post-content";
 import { BlogPostRegisterCta } from "@/app/posts/[slug]/blog-post-register-cta";
 import { BlogPostSidebar } from "@/app/posts/[slug]/blog-post-sidebar";
+import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY } from "@/util/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -17,13 +19,23 @@ type PostDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+async function getBlogLocaleAndCopy() {
+  const jar = await cookies();
+  const stored = jar.get(LOCALE_STORAGE_KEY)?.value;
+  const locale = isLocaleId(stored) ? stored : DEFAULT_LOCALE;
+  return { locale, copy: getMessages(locale).blogPage };
+}
+
 // Generate SEO metadata (title, description, OpenGraph, Twitter Card, canonical URL) from the post slug.
 export async function generateMetadata({ params }: PostDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = await getPublishedBlogPostBySlug(slug);
+  const [post, { copy }] = await Promise.all([
+    getPublishedBlogPostBySlug(slug),
+    getBlogLocaleAndCopy(),
+  ]);
   if (!post) {
     return {
-      title: "Post Not Found | Scro",
+      title: copy.notFoundTitle,
     };
   }
 
@@ -53,9 +65,9 @@ export async function generateMetadata({ params }: PostDetailPageProps): Promise
   };
 }
 
-function formatDetailDate(iso: string): string {
+function formatDetailDate(iso: string, locale: string): string {
   try {
-    return new Intl.DateTimeFormat("en-US", {
+    return new Intl.DateTimeFormat(locale || "en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -68,9 +80,10 @@ function formatDetailDate(iso: string): string {
 // SEO-friendly blog post detail page resolved by `slug`, with right-hand Recommended Reading + Scro registration CTAs.
 export default async function PostDetailPage({ params }: PostDetailPageProps) {
   const { slug } = await params;
-  const [post, session] = await Promise.all([
+  const [post, session, { locale, copy }] = await Promise.all([
     getPublishedBlogPostBySlug(slug),
     getAuthSession(),
+    getBlogLocaleAndCopy(),
   ]);
   if (!post) {
     notFound();
@@ -102,7 +115,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
             href="/posts"
             className="inline-flex items-center text-sm font-medium text-zinc-500 hover:text-zinc-900"
           >
-            ← Back to Posts
+            {copy.backToPosts}
           </Link>
         </div>
 
@@ -111,7 +124,7 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
           <article className="min-w-0 lg:col-span-8">
             <header className="mb-8">
               <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                <time dateTime={post.createdAt}>{formatDetailDate(post.createdAt)}</time>
+                <time dateTime={post.createdAt}>{formatDetailDate(post.createdAt, locale)}</time>
                 {post.tags.map((tag) => (
                   <span
                     key={tag}

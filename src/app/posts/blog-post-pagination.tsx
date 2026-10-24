@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useI18n } from "@/presentation/components/i18n-provider";
 
 type BlogPostPaginationProps = {
   page: number;
@@ -28,6 +31,8 @@ export function BlogPostPagination({
   tag,
   q,
 }: BlogPostPaginationProps) {
+  const { t } = useI18n();
+
   if (totalPages <= 1) return null;
 
   return (
@@ -41,18 +46,17 @@ export function BlogPostPagination({
             href={buildPageHref(page - 1, tag, q)}
             className="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50"
           >
-            ← Previous
+            {t("blogPage.prevPage")}
           </Link>
         ) : (
           <span className="inline-flex items-center rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-400">
-            ← Previous
+            {t("blogPage.prevPage")}
           </span>
         )}
       </div>
 
-      <p className="text-sm text-zinc-600">
-        Page <span className="font-semibold text-zinc-900">{page}</span> of{" "}
-        <span className="font-semibold text-zinc-900">{totalPages}</span>
+      <p className="text-sm font-medium text-zinc-700">
+        {t("blogPage.pageOf", { page, total: totalPages })}
       </p>
 
       <div>
@@ -61,11 +65,11 @@ export function BlogPostPagination({
             href={buildPageHref(page + 1, tag, q)}
             className="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50"
           >
-            Next →
+            {t("blogPage.nextPage")}
           </Link>
         ) : (
           <span className="inline-flex items-center rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-400">
-            Next →
+            {t("blogPage.nextPage")}
           </span>
         )}
       </div>

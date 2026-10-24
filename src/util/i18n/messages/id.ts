@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const id: Partial<Messages> = {
   meta: { title: "Scro — Studio AI Influencer untuk Reels dan Shorts", description: "Buat AI Influencer Anda sendiri dengan wajah, pakaian, dan suara yang konsisten. Publikasikan Reels, Shorts, dan TikTok setiap hari tanpa syuting." },
-  nav: { projects: "Video", characters: "AI Influencer", tasks: "Tugas", mcp: "MCP", affiliate: "Affiliate", billing: "Tagihan", examples: "Contoh", pricing: "Harga", signIn: "Masuk", workspace: "Ruang kerja", language: "Bahasa" },
+  nav: { projects: "Video", characters: "AI Influencer", tasks: "Tugas", mcp: "MCP", affiliate: "Affiliate", billing: "Tagihan", examples: "Contoh", pricing: "Harga", signIn: "Masuk", workspace: "Ruang kerja", language: "Bahasa", posts: "Poster", blog: "Artikel", wardrobe: "Lemari Kustom" },
   common: { credits: "credits", pending: "tertunda", perMonth: "/ bln", cancel: "Batal", save: "Simpan", close: "Tutup", create: "Buat", loading: "Memuat…", popular: "Paling populer", subscribe: "Berlangganan" },
   landing: {
     hero: { kicker: "Studio AI Influencer", title: "AI Influencer Anda. Shorts Harian Tanpa Syuting.", subtitle: "Pilih karakter dan pose, lalu buat Reels & TikTok 9:16 dalam hitungan menit.", ctaStart: "Buat AI Influencer saya", ctaWorkspace: "Buka studio", ctaUseCases: "Lihat contoh penggunaan", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Pilihan karakter di kiri dan ponsel yang membuat video pendek AI KOL di kanan" },

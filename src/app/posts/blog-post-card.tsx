@@ -1,10 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import type { PublicBlogPost } from "@/model/blog-post";
+import { useI18n } from "@/presentation/components/i18n-provider";
 
 // Format ISO date string into a readable date label.
-function formatPostDate(iso: string): string {
+function formatPostDate(iso: string, locale: string): string {
   try {
-    return new Intl.DateTimeFormat("en-US", {
+    return new Intl.DateTimeFormat(locale || "en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -16,6 +19,8 @@ function formatPostDate(iso: string): string {
 
 // Single blog post card displayed in the /posts grid view with its feature image.
 export function BlogPostCard({ post }: { post: PublicBlogPost }) {
+  const { t, locale } = useI18n();
+
   return (
     <Link
       href={`/posts/${encodeURIComponent(post.slug)}`}
@@ -32,7 +37,7 @@ export function BlogPostCard({ post }: { post: PublicBlogPost }) {
       <div className="flex flex-1 flex-col justify-between p-5">
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-            <time dateTime={post.createdAt}>{formatPostDate(post.createdAt)}</time>
+            <time dateTime={post.createdAt}>{formatPostDate(post.createdAt, locale)}</time>
             {post.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
@@ -52,7 +57,7 @@ export function BlogPostCard({ post }: { post: PublicBlogPost }) {
           ) : null}
         </div>
         <span className="mt-4 inline-flex items-center text-sm font-medium text-zinc-900">
-          Read article →
+          {t("blogPage.readArticle")}
         </span>
       </div>
     </Link>

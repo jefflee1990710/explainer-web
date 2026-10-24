@@ -319,10 +319,10 @@ ${
             ? "characterLock must ONLY name the cast and say face and hair follow the attached blueprint. Do not invent hair or face. Clothes follow the reference image only because the instruction says so."
             : "characterLock must ONLY name the cast and say appearance follows the attached blueprint — never invent hair, face, clothing, or accessories.",
         wardrobeBuild
-          ? "In explainerScene and motionCamera describe vivid facial expressions, pose, the room, and the garments copied from the clothing references. Do not invent a replacement hero, hair, or face, and do not copy the person in a clothing photo."
+          ? `In explainerScene and motionCamera describe ${isRealisticStyle(input.style) ? "natural, calm facial expressions" : "vivid facial expressions"}, pose, the room, and the garments copied from the clothing references. Do not invent a replacement hero, hair, or face, and do not copy the person in a clothing photo.`
           : clothingFromReference
-            ? "In explainerScene and motionCamera describe vivid facial expressions, pose, props, and the garments the instruction copies from the reference. Do not invent a replacement hero, hair, or face, and do not copy the person in the reference photo."
-            : "In explainerScene and motionCamera describe vivid facial expressions, pose, props, labels, and environment only. Plan each scene around those characters as the subject. Do not invent a replacement hero. A scene reference never replaces their face or hair.",
+            ? `In explainerScene and motionCamera describe ${isRealisticStyle(input.style) ? "natural, calm facial expressions" : "vivid facial expressions"}, pose, props, and the garments the instruction copies from the reference. Do not invent a replacement hero, hair, or face, and do not copy the person in the reference photo.`
+            : `In explainerScene and motionCamera describe ${isRealisticStyle(input.style) ? "natural, calm facial expressions" : "vivid facial expressions"}, pose, props, labels, and environment only. Plan each scene around those characters as the subject. Do not invent a replacement hero. A scene reference never replaces their face or hair.`,
         ...directorBlueprintSceneRules(look),
       ].join(" ")
     : ""
@@ -336,6 +336,10 @@ ${
       ? cartoonExplainerDirectorBlock({
           hasCharacter,
           smoothMotion: steadyStills,
+          realistic: isRealisticStyle({
+            id: input.style.id,
+            baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
+          }),
         })
       : "",
     input.skill.slug === DIALOGUE_QA_SKILL_SLUG ? dialogueQaDirectorBlock() : "",

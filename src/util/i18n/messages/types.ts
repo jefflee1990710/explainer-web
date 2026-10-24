@@ -10,6 +10,7 @@ import type { TasksPageMessages } from "@/util/i18n/messages/workspace/tasks.en"
 import type { VideoMessages } from "@/util/i18n/messages/workspace/video.en";
 import type { PostMessages } from "@/util/i18n/messages/workspace/post.en";
 import type { ProductsMessages } from "@/util/i18n/messages/workspace/products.en";
+import type { WardrobeMessages } from "@/util/i18n/messages/workspace/wardrobe.en";
 
 // One landing use-case row: label, headline, pitch, three bullets, and a button.
 export type LandingUseCaseMessages = {
@@ -73,10 +74,12 @@ export type Messages = {
     workspace: string;
     language: string;
     posts: string;
+    blog: string;
     products: string;
     textStyles: string;
     life: string;
     room: string;
+    wardrobe: string;
     rightTool: string;
     talkingHead: string;
     cantonese: string;
@@ -1112,6 +1115,34 @@ export type Messages = {
     errorSend: string;
     mailInstead: string;
   };
+  blogPage: {
+    seoTitle: string;
+    seoDescription: string;
+    notFoundTitle: string;
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    emptyTitle: string;
+    emptyBody: string;
+    readArticle: string;
+    backToPosts: string;
+    prevPage: string;
+    nextPage: string;
+    pageOf: string;
+    recommendedHeading: string;
+    allPosts: string;
+    ctaEyebrow: string;
+    ctaTitleSidebar: string;
+    ctaTitleInline: string;
+    ctaBodySidebar: string;
+    ctaBodyInline: string;
+    ctaPrimarySignedIn: string;
+    ctaPrimarySignedOut: string;
+    ctaSecondary: string;
+    ctaBullet1: string;
+    ctaBullet2: string;
+    ctaBullet3: string;
+  };
   affiliate: {
     title: string;
     subtitle: string;
@@ -1188,6 +1219,7 @@ export type Messages = {
   video: VideoMessages;
   post: PostMessages;
   products: ProductsMessages;
+  wardrobe: WardrobeMessages;
   textStyles: {
     title: string;
     subtitle: string;

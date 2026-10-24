@@ -17,23 +17,14 @@ import {
   type CharacterWardrobePart,
 } from "@/service/character/character-look";
 
-const PART_ICONS: Record<CharacterWardrobePart, string> = {
-  hair: "髮型 Hair",
-  top: "上衣／洋裝 Top",
-  pants: "褲款／裙款 Pants",
-  shoes: "鞋款 Shoes",
-  accessory: "配飾 Accessory",
+const CATEGORY_KEYS: Record<
+  Exclude<CharacterLookCategory, "all">,
+  "wardrobe.categoryClassic" | "wardrobe.categoryStylized" | "wardrobe.categoryExtreme"
+> = {
+  classic: "wardrobe.categoryClassic",
+  stylized: "wardrobe.categoryStylized",
+  extreme: "wardrobe.categoryExtreme",
 };
-
-const CATEGORY_OPTIONS: Array<{
-  id: Exclude<CharacterLookCategory, "all">;
-  labelZh: string;
-  labelEn: string;
-}> = [
-  { id: "classic", labelZh: "經典日常 Classic", labelEn: "Classic Essentials" },
-  { id: "stylized", labelZh: "潮流造型 Stylized", labelEn: "Stylized & Era" },
-  { id: "extreme", labelZh: "高訂／文化特色 Runway", labelEn: "Global & Runway" },
-];
 
 export function CustomWardrobeStudio({
   initialItems,
@@ -42,7 +33,7 @@ export function CustomWardrobeStudio({
   initialItems: PublicCustomWardrobeItem[];
   initialPart?: CharacterWardrobePart;
 }) {
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<PublicCustomWardrobeItem[]>(initialItems);
   const [part, setPart] = useState<CharacterWardrobePart>(initialPart);
@@ -63,6 +54,13 @@ export function CustomWardrobeStudio({
   function updateItemsList(next: PublicCustomWardrobeItem[]) {
     setItems(next);
     notifyCustomWardrobeChanged(next);
+  }
+
+  function displayItemName(item: PublicCustomWardrobeItem): string {
+    if (locale === "zh-Hant" || locale === "zh-Hans") {
+      return item.nameZh || item.name;
+    }
+    return item.name || item.nameZh;
   }
 
   async function onFileSelected(file: File | undefined) {
@@ -87,7 +85,7 @@ export function CustomWardrobeStudio({
       setPrompt(res.prompt);
       setReferenceImageUrl(res.referenceImageUrl);
     } catch {
-      setError("分析圖片失敗，請重試");
+      setError(t("wardrobe.analyzeError"));
     } finally {
       setAnalyzing(false);
     }
@@ -121,12 +119,12 @@ export function CustomWardrobeStudio({
       setReferenceImageUrl("");
       setLocalPreview("");
       setSuccessMsg(
-        locale === "en"
-          ? `Added "${res.item.name}" to your wardrobe library!`
-          : `已成功將「${res.item.nameZh}」加入你的專屬造型庫！`,
+        t("wardrobe.addedSuccess", {
+          name: displayItemName(res.item),
+        }),
       );
     } catch {
-      setError("儲存失敗，請重試");
+      setError(t("wardrobe.saveError"));
     } finally {
       setSaving(false);
     }
@@ -138,7 +136,7 @@ export function CustomWardrobeStudio({
     try {
       const res = await deleteCustomWardrobeItemAction(id);
       if (!res.ok) {
-        setError(res.error || "刪除失敗");
+        setError(res.error || t("wardrobe.deleteError"));
         return;
       }
       updateItemsList(items.filter((item) => item.id !== id));
@@ -157,20 +155,16 @@ export function CustomWardrobeStudio({
       {/* Header Bar */}
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-ink/10 bg-paper/90 px-5 py-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-accent-ink px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-lime uppercase">
-              Custom Wardrobe Studio
+              {t("wardrobe.badge")}
             </span>
             <h1 className="font-display text-xl font-bold sm:text-2xl">
-              {locale === "en"
-                ? "Upload Custom Clothes, Hairstyles & Accessories"
-                : "上傳自訂服裝、髮型與配飾"}
+              {t("wardrobe.title")}
             </h1>
           </div>
           <p className="mt-1 text-xs text-muted sm:text-sm">
-            {locale === "en"
-              ? "Upload any reference photo — AI extracts the exact garment, hairstyle, or accessory and generates a clean 1:1 studio card ready for My Room & Life photos."
-              : "上傳任何穿搭、髮型或配件參考圖，AI 會自動提取版型材質並生成 1:1 棚拍單品卡，直接用於「試衣間」與「生活照」。"}
+            {t("wardrobe.subtitle")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -178,13 +172,13 @@ export function CustomWardrobeStudio({
             href="/app/room"
             className="inline-flex h-9 items-center rounded-full border border-accent-ink/20 bg-paper px-4 text-xs font-bold text-foreground transition hover:border-accent-ink"
           >
-            {locale === "en" ? "Open My Room →" : "前往試衣間 →"}
+            {t("wardrobe.openRoom")}
           </Link>
           <Link
             href="/app/life"
             className="inline-flex h-9 items-center rounded-full bg-accent-ink px-4 text-xs font-bold text-lime transition hover:-translate-y-0.5"
           >
-            {locale === "en" ? "Open Life Studio →" : "前往生活照 →"}
+            {t("wardrobe.openLife")}
           </Link>
         </div>
       </header>
@@ -197,7 +191,7 @@ export function CustomWardrobeStudio({
         >
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-muted">
-              Step 1 · 選擇要提取的單品部位
+              {t("wardrobe.step1")}
             </span>
             <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
               {CHARACTER_WARDROBE_PARTS.map((p) => {
@@ -213,7 +207,7 @@ export function CustomWardrobeStudio({
                         : "border-accent-ink/12 bg-paper text-foreground hover:border-accent-ink/35"
                     }`}
                   >
-                    {PART_ICONS[p]}
+                    {t(`characters.look.${p}`)}
                   </button>
                 );
               })}
@@ -223,7 +217,7 @@ export function CustomWardrobeStudio({
           {/* Image Upload Dropzone */}
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-muted">
-              Step 2 · 上傳參考圖片（AI 自動識別）
+              {t("wardrobe.step2")}
             </span>
             <input
               ref={fileInputRef}
@@ -253,7 +247,7 @@ export function CustomWardrobeStudio({
                     <div className="absolute inset-0 grid place-items-center bg-black/55 text-xs font-bold text-white">
                       <div className="flex flex-col items-center gap-2">
                         <Spinner className="h-5 w-5" />
-                        <span>AI 正在提取服裝／髮型細節...</span>
+                        <span>{t("wardrobe.analyzing")}</span>
                       </div>
                     </div>
                   ) : null}
@@ -264,10 +258,10 @@ export function CustomWardrobeStudio({
                     ＋
                   </span>
                   <p className="text-xs font-bold text-foreground">
-                    點擊或拖曳上傳服裝、髮型、鞋款或配件照片
+                    {t("wardrobe.dropzoneTitle")}
                   </p>
                   <p className="text-[11px] text-muted">
-                    支援 JPG / PNG / WebP（最高 12MB），可上傳街拍、全身照或單品圖
+                    {t("wardrobe.dropzoneHint")}
                   </p>
                 </>
               )}
@@ -277,32 +271,32 @@ export function CustomWardrobeStudio({
           {/* Extracted Metadata Fields */}
           <div className="space-y-3 border-t border-accent-ink/10 pt-3">
             <span className="text-xs font-bold uppercase tracking-wider text-muted">
-              Step 3 · 確認名稱與造型描述
+              {t("wardrobe.step3")}
             </span>
 
             <div className="grid grid-cols-2 gap-2.5">
               <label className="block">
                 <span className="text-[11px] font-semibold text-muted">
-                  繁體中文名稱
+                  {t("wardrobe.nameZhLabel")}
                 </span>
                 <input
                   type="text"
                   required
                   value={nameZh}
                   onChange={(e) => setNameZh(e.target.value)}
-                  placeholder="例如：法式粗花呢短外套"
+                  placeholder={t("wardrobe.nameZhPlaceholder")}
                   className="mt-1 h-9 w-full rounded-xl border border-accent-ink/15 bg-white px-3 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-accent"
                 />
               </label>
               <label className="block">
                 <span className="text-[11px] font-semibold text-muted">
-                  英文名稱 (English Name)
+                  {t("wardrobe.nameEnLabel")}
                 </span>
                 <input
                   type="text"
                   value={nameEn}
                   onChange={(e) => setNameEn(e.target.value)}
-                  placeholder="e.g. Tweed Cropped Jacket"
+                  placeholder={t("wardrobe.nameEnPlaceholder")}
                   className="mt-1 h-9 w-full rounded-xl border border-accent-ink/15 bg-white px-3 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-accent"
                 />
               </label>
@@ -310,7 +304,7 @@ export function CustomWardrobeStudio({
 
             <label className="block">
               <span className="text-[11px] font-semibold text-muted">
-                分類標籤
+                {t("wardrobe.categoryLabel")}
               </span>
               <select
                 value={category}
@@ -319,9 +313,9 @@ export function CustomWardrobeStudio({
                 }
                 className="mt-1 h-9 w-full rounded-xl border border-accent-ink/15 bg-white px-3 text-xs font-semibold"
               >
-                {CATEGORY_OPTIONS.map((opt) => (
-                  <option key={opt.id} value={opt.id}>
-                    {opt.labelZh}
+                {(["classic", "stylized", "extreme"] as const).map((catId) => (
+                  <option key={catId} value={catId}>
+                    {t(CATEGORY_KEYS[catId])}
                   </option>
                 ))}
               </select>
@@ -329,14 +323,14 @@ export function CustomWardrobeStudio({
 
             <label className="block">
               <span className="text-[11px] font-semibold text-muted">
-                AI 造型細節描述（英文 Prompt，可自由微調）
+                {t("wardrobe.promptLabel")}
               </span>
               <textarea
                 rows={3}
                 required
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="上傳照片後 AI 會自動填寫，或直接輸入服裝材質、剪裁與顏色..."
+                placeholder={t("wardrobe.promptPlaceholder")}
                 className="mt-1 w-full rounded-xl border border-accent-ink/15 bg-white p-2.5 text-xs leading-5 focus-visible:outline-2 focus-visible:outline-accent"
               />
             </label>
@@ -348,7 +342,7 @@ export function CustomWardrobeStudio({
                 onChange={(e) => setGenerateStudioPreview(e.target.checked)}
                 className="h-4 w-4 rounded accent-accent-ink"
               />
-              <span>自動生成 1:1 乾淨灰底棚拍單品預覽圖（推薦）</span>
+              <span>{t("wardrobe.studioPreviewCheck")}</span>
             </label>
           </div>
 
@@ -369,9 +363,7 @@ export function CustomWardrobeStudio({
             className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-5 text-sm font-bold text-white shadow-[2px_2px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? <Spinner className="h-4 w-4" /> : null}
-            {saving
-              ? "正在生成單品卡並加入造型庫..."
-              : "加入我的專屬造型庫"}
+            {saving ? t("wardrobe.submitSaving") : t("wardrobe.submitIdle")}
           </button>
         </form>
 
@@ -380,10 +372,10 @@ export function CustomWardrobeStudio({
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-accent-ink/10 pb-3">
             <div>
               <h2 className="font-display text-lg font-bold">
-                我的自訂造型庫（{items.length} 件單品）
+                {t("wardrobe.libraryHeading", { count: items.length })}
               </h2>
               <p className="text-xs text-muted">
-                這裡的單品會自動出現在「試衣間」、「角色生成器」及「生活照」的對應部位選擇器最上方
+                {t("wardrobe.librarySubtitle")}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-1">
@@ -396,7 +388,7 @@ export function CustomWardrobeStudio({
                     : "border border-accent-ink/15 bg-paper text-muted hover:text-foreground"
                 }`}
               >
-                全部 ({items.length})
+                {t("wardrobe.filterAll", { count: items.length })}
               </button>
               {CHARACTER_WARDROBE_PARTS.map((p) => {
                 const count = items.filter((item) => item.part === p).length;
@@ -411,7 +403,7 @@ export function CustomWardrobeStudio({
                         : "border border-accent-ink/15 bg-paper text-muted hover:text-foreground"
                     }`}
                   >
-                    {PART_ICONS[p].split(" ")[0]} ({count})
+                    {t(`characters.look.${p}`)} ({count})
                   </button>
                 );
               })}
@@ -422,53 +414,60 @@ export function CustomWardrobeStudio({
             <div className="grid min-h-[18rem] place-items-center rounded-2xl border border-dashed border-accent-ink/15 p-8 text-center">
               <div className="max-w-sm space-y-1.5">
                 <p className="text-sm font-bold text-foreground">
-                  尚無自訂造型單品
+                  {t("wardrobe.emptyTitle")}
                 </p>
                 <p className="text-xs text-muted">
-                  從左側上傳任何衣服、髮型、褲裙、鞋款或配件照片，AI 會自動提取並建立專屬單品卡。
+                  {t("wardrobe.emptyBody")}
                 </p>
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-              {filteredItems.map((item) => (
-                <article
-                  key={item.id}
-                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-accent-ink/12 bg-paper p-2 transition hover:border-accent-ink/35"
-                >
-                  <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-zinc-100">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={item.previewImageUrl}
-                      alt={item.nameZh}
-                      className="h-full w-full object-cover"
-                    />
-                    <span className="absolute top-1.5 left-1.5 rounded-full bg-accent-ink/85 px-2 py-0.5 text-[10px] font-bold text-lime">
-                      {PART_ICONS[item.part].split(" ")[0]}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={deletingId === item.id}
-                      onClick={() => void onDelete(item.id)}
-                      aria-label={`刪除 ${item.nameZh}`}
-                      className="absolute top-1.5 right-1.5 grid h-6 w-6 cursor-pointer place-items-center rounded-full bg-black/65 text-xs font-bold text-white opacity-0 transition group-hover:opacity-100 hover:bg-red-600 disabled:opacity-50"
-                    >
-                      ×
-                    </button>
-                  </div>
-                  <div className="mt-2 min-w-0 flex-1 px-0.5">
-                    <p className="truncate text-xs font-bold text-foreground">
-                      {item.nameZh}
-                    </p>
-                    <p className="truncate text-[10px] font-medium text-muted">
-                      {item.name}
-                    </p>
-                    <p className="mt-1 line-clamp-2 text-[10px] leading-3.5 text-muted">
-                      {item.prompt.replace(/\s*Isolated wardrobe piece [\w-]+\.?/g, "")}
-                    </p>
-                  </div>
-                </article>
-              ))}
+              {filteredItems.map((item) => {
+                const primaryName = displayItemName(item);
+                const secondaryName =
+                  locale === "zh-Hant" || locale === "zh-Hans" ? item.name : item.nameZh;
+                return (
+                  <article
+                    key={item.id}
+                    className="group relative flex flex-col overflow-hidden rounded-2xl border border-accent-ink/12 bg-paper p-2 transition hover:border-accent-ink/35"
+                  >
+                    <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-zinc-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={item.previewImageUrl}
+                        alt={primaryName}
+                        className="h-full w-full object-cover"
+                      />
+                      <span className="absolute top-1.5 left-1.5 rounded-full bg-accent-ink/85 px-2 py-0.5 text-[10px] font-bold text-lime">
+                        {t(`characters.look.${item.part}`)}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={deletingId === item.id}
+                        onClick={() => void onDelete(item.id)}
+                        aria-label={t("wardrobe.deleteAria", { name: primaryName })}
+                        className="absolute top-1.5 right-1.5 grid h-6 w-6 cursor-pointer place-items-center rounded-full bg-black/65 text-xs font-bold text-white opacity-0 transition group-hover:opacity-100 hover:bg-red-600 disabled:opacity-50"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="mt-2 min-w-0 flex-1 px-0.5">
+                      <p className="truncate text-xs font-bold text-foreground">
+                        {primaryName}
+                      </p>
+                      {secondaryName && secondaryName !== primaryName ? (
+                        <p className="truncate text-[10px] font-medium text-muted">
+                          {secondaryName}
+                        </p>
+                      ) : null}
+                      <p className="mt-1 line-clamp-2 text-[10px] leading-3.5 text-muted">
+                        {item.prompt.replace(/\s*Isolated wardrobe piece [\w-]+\.?/g, "")}
+                      </p>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>

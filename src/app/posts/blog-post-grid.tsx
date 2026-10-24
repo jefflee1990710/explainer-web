@@ -1,14 +1,19 @@
+"use client";
+
 import type { PublicBlogPost } from "@/model/blog-post";
 import { BlogPostCard } from "@/app/posts/blog-post-card";
+import { useI18n } from "@/presentation/components/i18n-provider";
 
 // Grid view displaying all published blog posts with their feature images.
 export function BlogPostGrid({ posts }: { posts: PublicBlogPost[] }) {
+  const { t } = useI18n();
+
   if (posts.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/60 px-6 py-16 text-center">
-        <p className="text-base font-medium text-zinc-700">No posts published yet.</p>
+        <p className="text-base font-medium text-zinc-700">{t("blogPage.emptyTitle")}</p>
         <p className="mt-1 text-sm text-zinc-500">
-          Create your first post via <code className="rounded bg-zinc-200/70 px-1.5 py-0.5 text-xs">POST /api/v1/posts</code>.
+          {t("blogPage.emptyBody")}
         </p>
       </div>
     );

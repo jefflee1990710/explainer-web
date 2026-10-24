@@ -49,7 +49,7 @@ export function LifeWardrobePicker({
               : customOption.nameZh || customOption.name
             : pickedId
               ? t(`characters.look.options.${part}.${pickedId}`)
-              : "沿用預設";
+              : t("wardrobe.keepDefault");
           const extreme = pickedId && !customOption ? isExaggeratedLookOption(part, pickedId) : false;
           return (
             <div key={part} className="relative flex items-center">
@@ -100,14 +100,14 @@ export function LifeWardrobePicker({
 
       {pickedCount > 0 ? (
         <div className="flex items-center justify-between gap-2 text-[11px] text-muted">
-          <span>已選 {pickedCount} 項，未選的部位沿用角色預設造型</span>
+          <span>{t("wardrobe.pickedSummary", { count: pickedCount })}</span>
           <button
             type="button"
             disabled={disabled}
             onClick={() => onChange({})}
             className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 font-semibold hover:text-foreground disabled:cursor-not-allowed"
           >
-            全部清除
+            {t("wardrobe.clearAll")}
           </button>
         </div>
       ) : null}

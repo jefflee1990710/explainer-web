@@ -57,9 +57,15 @@ export const REALISTIC_FRAME_RENDER_RULE =
 export const REALISTIC_VIDEO_DETAIL_RULE =
   "Realistic light & live-action capture: one clean continuous shot per beat, no repeats. The video keeps the keyframes' grazing directional light, negative fill on the shadow side, matte-natural skin pores, peach-fuzz (zero oily or plastic specular sheen), and fabric micro-texture, very faint fine grain with clean neutral shadow blacks, neutral/cool highlights (warm only when a practical warm source is in frame), and unclipped glowing sources. Animate real human micro-physiology (natural blinks, subtle ocular micro-saccades, small breaths lifting the chest and shoulders, genuine muscle weight transfer, natural cloth drape, and restrained real-person lip and jaw articulation whenever a character speaks — ~30–40% conversational mouth opening, clean lip closure on bilabial m/b/p sounds and pauses, zero exaggerated wide-open mouth, zero excessive jaw swing, and zero rubbery cheeks) plus diegetic environmental sound effects synced to each physical action. No cartoon snap verbs. No flat front fill and no waxy plastic skin.";
 
+export const REALISTIC_NARRATOR_VIDEO_DETAIL_RULE =
+  "Realistic light & live-action capture: one clean continuous shot per beat, no repeats. The video keeps the keyframes' grazing directional light, negative fill on the shadow side, matte-natural skin pores, peach-fuzz (zero oily or plastic specular sheen), and fabric micro-texture, very faint fine grain with clean neutral shadow blacks, neutral/cool highlights (warm only when a practical warm source is in frame), and unclipped glowing sources. Animate real human micro-physiology (natural blinks, subtle ocular micro-saccades, small breaths lifting the chest and shoulders, genuine muscle weight transfer, natural cloth drape, and a calm, natural facial expression with lips firmly closed and zero mouth or jaw speech articulation — the on-screen character never speaks or lip-syncs) plus diegetic environmental sound effects synced to each physical action. No cartoon snap verbs. No flat front fill and no waxy plastic skin.";
+
 // Appended at send time so even a stored or model-written prompt carries it.
 export const REALISTIC_VIDEO_LIGHT_LOCK =
   "Light lock: one clean shot per beat, no repeats; keep the first frame's grazing directional side light, negative-fill shadow falloff, and very faint fine grain with clean neutral shadow blacks for the whole clip; natural skin pores, peach-fuzz, matte-natural skin with zero oily or plastic sheen, natural blinks, breathing chest movement, restrained natural mouth and jaw articulation when speaking (no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks), and real fabric texture; highlights stay below pure-white clipping; no flat front fill, no waxy or airbrushed skin.";
+
+export const REALISTIC_NARRATOR_VIDEO_LIGHT_LOCK =
+  "Light lock: one clean shot per beat, no repeats; keep the first frame's grazing directional side light, negative-fill shadow falloff, and very faint fine grain with clean neutral shadow blacks for the whole clip; natural skin pores, peach-fuzz, matte-natural skin with zero oily or plastic sheen, natural blinks, breathing chest movement, calm natural facial expression with lips firmly closed and zero mouth or jaw speech movement (the on-screen character is silent and never lip-syncs to the off-screen narrator), and real fabric texture; highlights stay below pure-white clipping; no flat front fill, no waxy or airbrushed skin.";
 
 // Self-shot creator / vlog capture rules (Talking Head & Surprise Hook) — modern human camera
 // equipment (iPhone 16 Pro / Sony ZV-E1 / DJI Osmo Pocket 3) with clean true-to-life digital sensor
@@ -106,10 +112,22 @@ export function fitReferencePrompt(lines: string[], budget = REFERENCE_PROMPT_BU
   return text.length <= budget ? text : text.slice(0, budget);
 }
 
-export function lockRealisticVideoLight(prompt: string, options?: { selfShot?: boolean }) {
+export function lockRealisticVideoLight(
+  prompt: string,
+  options?: { selfShot?: boolean; narratorOnly?: boolean },
+) {
   const text = prompt.trim();
-  const lock = options?.selfShot ? SELF_SHOT_VIDEO_LIGHT_LOCK : REALISTIC_VIDEO_LIGHT_LOCK;
-  if (!text || text.includes(REALISTIC_VIDEO_LIGHT_LOCK) || text.includes(SELF_SHOT_VIDEO_LIGHT_LOCK)) {
+  const lock = options?.selfShot
+    ? SELF_SHOT_VIDEO_LIGHT_LOCK
+    : options?.narratorOnly
+      ? REALISTIC_NARRATOR_VIDEO_LIGHT_LOCK
+      : REALISTIC_VIDEO_LIGHT_LOCK;
+  if (
+    !text ||
+    text.includes(REALISTIC_VIDEO_LIGHT_LOCK) ||
+    text.includes(REALISTIC_NARRATOR_VIDEO_LIGHT_LOCK) ||
+    text.includes(SELF_SHOT_VIDEO_LIGHT_LOCK)
+  ) {
     return text;
   }
   return `${text}\n${lock}`;

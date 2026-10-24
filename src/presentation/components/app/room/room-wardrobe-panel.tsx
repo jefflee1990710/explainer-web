@@ -73,7 +73,7 @@ export function RoomWardrobePanel({
           href="/app/wardrobe"
           className="text-[11px] font-bold text-accent hover:underline"
         >
-          ＋ 自訂造型庫
+          {t("wardrobe.openLibrary")}
         </Link>
       </div>
 

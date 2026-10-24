@@ -129,7 +129,7 @@ export function CharacterLookDialog({
                 onClick={onClose}
                 className="inline-flex h-8 items-center gap-1.5 rounded-full bg-accent-ink px-3.5 text-xs font-bold text-lime transition hover:-translate-y-0.5"
               >
-                <span>＋ 上傳自訂{label}</span>
+                <span>{t("wardrobe.uploadCustomPart", { part: label })}</span>
               </Link>
             ) : null}
           </div>

@@ -121,7 +121,7 @@ export function narratorSpeechLock(
     : gender
       ? ` (adult ${gender} voice — never switch to a ${opposite} voice)`
       : "";
-  return `AUDIO REQUIRED, spoken once by an unseen off-screen narrator${voiceTag}, starting in the first half-second, loud and clear, word for word: "${spoken}". Sound effects never replace this voice. This clip is never silent. The on-screen character's mouth stays closed and never lip-syncs.`;
+  return `AUDIO REQUIRED, spoken once by an unseen off-screen narrator${voiceTag}, starting in the first half-second, loud and clear, word for word: "${spoken}". Sound effects never replace this voice. This clip is never silent. The on-screen character's mouth stays closed (lips firmly closed with zero lip-sync and zero jaw speech movement; off-screen voiceover only, the person on screen never lip-syncs or speaks).`;
 }
 
 export function talkingSpeakerSpeechLock(
@@ -207,6 +207,11 @@ export function lockDialogueSpeech(
     if (lock) {
       // Replace an earlier generic AUDIO REQUIRED header if one is already at the top.
       body = body.replace(/^AUDIO REQUIRED, spoken once by an unseen off-screen narrator[^\n]*\n\n/, "");
+      // Strip any speaking-mouth articulation wording from realistic light locks when the skill is narrator-only.
+      body = body.replace(
+        /restrained natural mouth and jaw articulation when speaking \(no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks\)/g,
+        "calm natural facial expression with lips firmly closed and zero mouth or jaw speech movement (the on-screen character is silent and never lip-syncs to the off-screen narrator)",
+      );
       if (!body.includes(lock)) body = `${lock}\n\n${body}`;
     }
     const cameraLock = storyShortCameraLock(skillSlug);

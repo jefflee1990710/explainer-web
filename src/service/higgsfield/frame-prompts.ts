@@ -855,6 +855,7 @@ export function buildFramePrompt(
     position,
     clipNumber,
     steadyStills: steady,
+    realistic,
   });
 
   const [styleHeader, styleBody = ""] = styleLinesForFrame(style);

@@ -14,6 +14,7 @@ import { tasksPageEn } from "@/util/i18n/messages/workspace/tasks.en";
 import { videoEn } from "@/util/i18n/messages/workspace/video.en";
 import { postEn } from "@/util/i18n/messages/workspace/post.en";
 import { productsEn } from "@/util/i18n/messages/workspace/products.en";
+import { wardrobeEn } from "@/util/i18n/messages/workspace/wardrobe.en";
 
 export const en: Messages = {
   meta: {
@@ -38,10 +39,12 @@ export const en: Messages = {
     workspace: "Workspace",
     language: "Language",
     posts: "Post",
+    blog: "Post",
     products: "Product",
     textStyles: "Text style",
     life: "Life",
     room: "My Room",
+    wardrobe: "Custom Wardrobe",
     rightTool: "Right tool",
     talkingHead: "Talking head",
     cantonese: "Cantonese",
@@ -1634,6 +1637,36 @@ export const en: Messages = {
     errorSend: "We couldn’t send that. Use the address below.",
     mailInstead: "Or email us directly",
   },
+  blogPage: {
+    seoTitle: "Posts | Scro",
+    seoDescription: "Read the latest articles, guides, and updates from Scro.",
+    notFoundTitle: "Post Not Found | Scro",
+    eyebrow: "Blog",
+    title: "Posts",
+    subtitle: "Insights, tutorials, and stories on AI video creation and virtual influencers.",
+    emptyTitle: "No posts published yet.",
+    emptyBody: "Create your first post via POST /api/v1/posts.",
+    readArticle: "Read article →",
+    backToPosts: "← Back to Posts",
+    prevPage: "← Previous",
+    nextPage: "Next →",
+    pageOf: "Page {page} of {total}",
+    recommendedHeading: "Recommended Reading",
+    allPosts: "All posts →",
+    ctaEyebrow: "Try Scro AI Studio for Free",
+    ctaTitleSidebar: "Turn your expertise into daily AI reels",
+    ctaTitleInline: "Turn your knowledge into high-retention AI Influencer & Explainer videos",
+    ctaBodySidebar:
+      "Create a free account to claim starter credits. Clone your voice in-browser across 21 languages, plan storyboards with AI, and ship ready-to-post Reels.",
+    ctaBodyInline:
+      "Register now and claim free starter credits. Record your voice with the built-in mic across 21 languages, lock your AI Influencer's face & wardrobe, and ship scroll-stopping Reels, Shorts, and TikToks in minutes.",
+    ctaPrimarySignedIn: "Open Studio Workspace →",
+    ctaPrimarySignedOut: "Register Free & Claim Credits →",
+    ctaSecondary: "See Examples",
+    ctaBullet1: "Free starter credits",
+    ctaBullet2: "21-language voice cloning",
+    ctaBullet3: "Built-in AI directors & editor",
+  },
   affiliatePage: {
     eyebrow: "Creator mentors",
     title: "Teach Scro. Earn when your students use it.",
@@ -1745,6 +1778,7 @@ export const en: Messages = {
   video: videoEn,
   post: postEn,
   products: productsEn,
+  wardrobe: wardrobeEn,
   textStyles: {
     title: "Text style",
     subtitle: "Lettering for subtitles. Start from a system look, then refine it with AI. Placement still follows the director.",

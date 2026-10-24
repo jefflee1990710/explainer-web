@@ -1,0 +1,47 @@
+// Custom Wardrobe Studio (/app/wardrobe) and fitting-room / life wardrobe picker copy.
+export const wardrobeEn = {
+  badge: "Custom Wardrobe Studio",
+  title: "Upload Custom Clothes, Hairstyles & Accessories",
+  subtitle:
+    "Upload any reference photo — AI extracts the exact garment, hairstyle, or accessory and generates a clean 1:1 studio card ready for My Room & Life photos.",
+  openRoom: "Open My Room →",
+  openLife: "Open Life Studio →",
+  step1: "Step 1 · Choose item part",
+  step2: "Step 2 · Upload reference photo (AI auto-detects)",
+  step3: "Step 3 · Confirm name & look description",
+  analyzing: "AI is extracting outfit / hairstyle details...",
+  dropzoneTitle: "Click or drag to upload clothes, hairstyle, shoes, or accessory photo",
+  dropzoneHint: "Supports JPG / PNG / WebP (up to 12MB) — street snaps, full-body photos, or flat-lays",
+  nameZhLabel: "Traditional Chinese Name",
+  nameZhPlaceholder: "e.g. 法式粗花呢短外套",
+  nameEnLabel: "English Name",
+  nameEnPlaceholder: "e.g. Tweed Cropped Jacket",
+  categoryLabel: "Category",
+  categoryClassic: "Classic Essentials",
+  categoryStylized: "Stylized & Era",
+  categoryExtreme: "Global & Runway",
+  promptLabel: "AI Look Description (English Prompt, editable)",
+  promptPlaceholder: "AI fills this automatically after upload, or describe fabric, cut, and color...",
+  studioPreviewCheck: "Auto-generate 1:1 clean grey-studio item preview card (Recommended)",
+  submitSaving: "Generating item card & saving to wardrobe...",
+  submitIdle: "Add to My Custom Wardrobe",
+  addedSuccess: 'Added "{name}" to your wardrobe library!',
+  analyzeError: "Failed to analyze image, please try again.",
+  saveError: "Failed to save item, please try again.",
+  deleteError: "Failed to delete item.",
+  libraryHeading: "My Custom Wardrobe ({count})",
+  librarySubtitle:
+    "Items saved here automatically appear at the top of the corresponding part picker in My Room, Character Generator, and Life Studio.",
+  filterAll: "All ({count})",
+  emptyTitle: "No custom wardrobe items yet",
+  emptyBody:
+    "Upload any clothes, hairstyle, pants, shoes, or accessory photo on the left — AI extracts it and builds a studio item card.",
+  deleteAria: "Delete {name}",
+  openLibrary: "＋ Custom Wardrobe",
+  uploadCustomPart: "＋ Upload Custom {part}",
+  keepDefault: "Keep default",
+  pickedSummary: "{count} selected; unpicked parts keep the character's default look",
+  clearAll: "Clear all",
+};
+
+export type WardrobeMessages = typeof wardrobeEn;
