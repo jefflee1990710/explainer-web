@@ -1,11 +1,34 @@
-export const DEFAULT_SITE_URL = "https://www.scro.io";
+export const DEFAULT_SITE_URL = "https://scro.io";
+
+function isVercelAppHost(hostname: string) {
+  const host = hostname.toLowerCase();
+  return host === "vercel.app" || host.endsWith(".vercel.app");
+}
+
+function isCustomPublicSiteUrl(raw: string | undefined): raw is string {
+  if (!raw || !isPublicHttpUrl(raw)) return false;
+  try {
+    const url = new URL(raw);
+    return !isVercelAppHost(url.hostname) && url.hostname.toLowerCase() !== "www.scro.io";
+  } catch {
+    return false;
+  }
+}
 
 export function getAppUrl() {
   if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+    const cleaned = process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+    // Ignore legacy explainer-web.vercel.app production env var in favor of scro.io
+    if (!cleaned.includes("explainer-web.vercel.app")) {
+      return cleaned;
+    }
+    return DEFAULT_SITE_URL;
   }
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+    if (!isVercelAppHost(process.env.VERCEL_PROJECT_PRODUCTION_URL)) {
+      return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+    }
+    return DEFAULT_SITE_URL;
   }
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
@@ -15,11 +38,11 @@ export function getAppUrl() {
 
 // Public canonical base URL used for sitemaps, robots.txt, llms.txt, and SEO metadata.
 export function getSiteUrl() {
-  if (process.env.NEXT_PUBLIC_APP_URL && isPublicHttpUrl(process.env.NEXT_PUBLIC_APP_URL)) {
-    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  if (isCustomPublicSiteUrl(process.env.NEXT_PUBLIC_SITE_URL)) {
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
   }
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  if (isCustomPublicSiteUrl(process.env.NEXT_PUBLIC_APP_URL)) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   }
   return DEFAULT_SITE_URL;
 }

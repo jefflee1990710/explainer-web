@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isPublicHttpUrl } from "@/util/app-url";
+import { DEFAULT_SITE_URL, getAppUrl, getSiteUrl, isPublicHttpUrl } from "@/util/app-url";
 
 test("isPublicHttpUrl accepts public HTTP(S) hosts", () => {
   assert.equal(isPublicHttpUrl("https://explainer.io/api/webhooks/higgsfield"), true);
@@ -18,4 +18,21 @@ test("isPublicHttpUrl rejects localhost, private IPs, and URL credentials", () =
   assert.equal(isPublicHttpUrl("http://[::1]/hook"), false);
   assert.equal(isPublicHttpUrl("https://user:pass@explainer.io/hook"), false);
   assert.equal(isPublicHttpUrl("not-a-url"), false);
+});
+
+test("getSiteUrl and getAppUrl resolve to https://scro.io instead of explainer-web.vercel.app", () => {
+  const prevAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const prevProdUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  try {
+    assert.equal(DEFAULT_SITE_URL, "https://scro.io");
+    process.env.NEXT_PUBLIC_APP_URL = "https://explainer-web.vercel.app";
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = "explainer-web.vercel.app";
+    assert.equal(getSiteUrl(), "https://scro.io");
+    assert.equal(getAppUrl(), "https://scro.io");
+  } finally {
+    if (prevAppUrl === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+    else process.env.NEXT_PUBLIC_APP_URL = prevAppUrl;
+    if (prevProdUrl === undefined) delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    else process.env.VERCEL_PROJECT_PRODUCTION_URL = prevProdUrl;
+  }
 });

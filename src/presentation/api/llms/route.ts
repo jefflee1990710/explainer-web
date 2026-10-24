@@ -83,7 +83,7 @@ export function buildLlmsFullTxt(
   return [
     "# Scro — Full Documentation for LLMs & AI Agents",
     "",
-    "> Scro (`https://www.scro.io`) is an all-in-one AI Influencer, Virtual KOL, and Explainer Video Production Studio. It combines character identity locking, custom wardrobe management, 21-language voice cloning (with first-class Hong Kong Cantonese support), AI storyboard directing, keyframe-first video generation, and a built-in multi-track timeline editor.",
+    "> Scro (`https://scro.io`) is an all-in-one AI Influencer, Virtual KOL, and Explainer Video Production Studio. It combines character identity locking, custom wardrobe management, 21-language voice cloning (with first-class Hong Kong Cantonese support), AI storyboard directing, keyframe-first video generation, and a built-in multi-track timeline editor.",
     "",
     "---",
     "",
