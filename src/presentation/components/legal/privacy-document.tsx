@@ -1,6 +1,7 @@
 import { PRIVACY_VERSION } from "@/service/legal/versions";
 
 const CONTACT_EMAIL = "cs@thenovax.com";
+const COMPANY_SITE = "https://www.thenovax.com";
 
 // Published Privacy Policy. Bump PRIVACY_VERSION when this text changes.
 export function PrivacyDocument() {
@@ -11,6 +12,16 @@ export function PrivacyDocument() {
       </p>
       <h1 className="mt-3 text-4xl font-bold tracking-tight text-[#12141c]">Privacy Policy</h1>
       <div className="mt-8 space-y-8 text-base leading-7 text-zinc-700">
+        <section>
+          <h2 className="text-xl font-semibold text-[#12141c]">Who we are</h2>
+          <p className="mt-2">
+            <strong>NOVAX Limited</strong>, a Hong Kong software company, operates Scro and is the
+            data controller for the personal information described in this policy.{" "}
+            <a className="font-semibold text-[#12141c] underline" href={COMPANY_SITE}>
+              thenovax.com
+            </a>
+          </p>
+        </section>
         <section>
           <h2 className="text-xl font-semibold text-[#12141c]">What we collect</h2>
           <p className="mt-2">
@@ -44,9 +55,11 @@ export function PrivacyDocument() {
         <section>
           <h2 className="text-xl font-semibold text-[#12141c]">Contact</h2>
           <p className="mt-2">
+            Privacy questions? Contact <strong>NOVAX Limited</strong> at{" "}
             <a className="font-semibold text-[#12141c] underline" href={`mailto:${CONTACT_EMAIL}`}>
               {CONTACT_EMAIL}
             </a>
+            .
           </p>
         </section>
       </div>

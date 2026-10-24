@@ -1,6 +1,7 @@
 import { TERMS_VERSION } from "@/service/legal/versions";
 
 const CONTACT_EMAIL = "cs@thenovax.com";
+const COMPANY_SITE = "https://www.thenovax.com";
 
 // Published Terms. Bump TERMS_VERSION when this text changes.
 export function TermsDocument() {
@@ -11,6 +12,16 @@ export function TermsDocument() {
       </p>
       <h1 className="mt-3 text-4xl font-bold tracking-tight text-[#12141c]">Terms of Service</h1>
       <div className="mt-8 space-y-8 text-base leading-7 text-zinc-700">
+        <section>
+          <h2 className="text-xl font-semibold text-[#12141c]">Who we are</h2>
+          <p className="mt-2">
+            Scro is a product of <strong>NOVAX Limited</strong>, a Hong Kong software company. NOVAX
+            Limited is the seller and operator of the Scro service.{" "}
+            <a className="font-semibold text-[#12141c] underline" href={COMPANY_SITE}>
+              thenovax.com
+            </a>
+          </p>
+        </section>
         <section>
           <h2 className="text-xl font-semibold text-[#12141c]">The service</h2>
           <p className="mt-2">
@@ -50,9 +61,11 @@ export function TermsDocument() {
         <section>
           <h2 className="text-xl font-semibold text-[#12141c]">Contact</h2>
           <p className="mt-2">
+            Questions about these terms? Contact <strong>NOVAX Limited</strong> at{" "}
             <a className="font-semibold text-[#12141c] underline" href={`mailto:${CONTACT_EMAIL}`}>
               {CONTACT_EMAIL}
             </a>
+            .
           </p>
         </section>
       </div>
