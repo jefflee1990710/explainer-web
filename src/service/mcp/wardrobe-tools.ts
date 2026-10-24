@@ -59,10 +59,17 @@ export function registerWardrobeTools({ server, user, apiKey }: Ctx) {
     {
       title: "List wardrobe catalog",
       description:
-        "List built-in hair, top, pants, shoes, and accessory options. Prefer search_looks when the agent has a text query.",
+        "List built-in hair, top, pants, shoes, and accessory options (includes description + tags). Prefer search_looks when the agent has a text query.",
       inputSchema: {
         part: wardrobePartSchema.optional().describe("Limit to one part. Omit for every part."),
         category: categorySchema.optional().describe("Limit to classic, stylized, or extreme."),
+        tags: z
+          .array(z.string().min(1).max(40))
+          .max(8)
+          .optional()
+          .describe(
+            'Require all of these tags, e.g. ["pickleball"], ["yoga","casual"], ["korea","street"].',
+          ),
       },
     },
     wrapTool(user, apiKey, "list_wardrobe_catalog", 0, async (args) => {
@@ -91,17 +98,22 @@ export function registerWardrobeTools({ server, user, apiKey }: Ctx) {
     {
       title: "Search looks",
       description:
-        "Search styles, hairstyles, clothes, shoes, and accessories by free text (English or Chinese). Returns ranked option ids for apply_character_wardrobe, create_character.styleId, or generate_life_shot.wardrobe.",
+        "Search styles, hairstyles, clothes, shoes, and accessories by free text or tags (English or Chinese). Matches names, descriptions, prompts, and tags. Returns ranked option ids for apply_character_wardrobe, create_character.styleId, or generate_life_shot.wardrobe.",
       inputSchema: {
         query: z
           .string()
           .min(1)
           .max(80)
-          .describe('Search text, e.g. "bob", "皮衣", "tennis", "chalkboard".'),
+          .describe('Search text, e.g. "bob", "皮衣", "tennis", "pickleball", "chalkboard".'),
         part: wardrobePartSchema
           .optional()
           .describe("Limit wardrobe hits to hair / top / pants / shoes / accessory."),
         category: categorySchema.optional(),
+        tags: z
+          .array(z.string().min(1).max(40))
+          .max(8)
+          .optional()
+          .describe('Require catalog tags such as "casual", "yoga", "pickleball", "heritage".'),
         includeStyles: z
           .boolean()
           .optional()
@@ -126,6 +138,7 @@ export function registerWardrobeTools({ server, user, apiKey }: Ctx) {
         query: args.query,
         part: args.part,
         category: args.category,
+        tags: args.tags,
         includeStyles,
         styles,
         customItems: custom,

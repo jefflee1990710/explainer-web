@@ -5,6 +5,8 @@ export const LOOK_DIALOG_PAGE_SIZE = 24;
 export type LookDialogOption = {
   id: string;
   name: string;
+  description?: string;
+  tags?: readonly string[];
 };
 
 export function filterLookDialogOptions({
@@ -12,19 +14,29 @@ export function filterLookDialogOptions({
   query,
   favouriteIds,
   favouritesOnly,
+  tags,
 }: {
   options: readonly LookDialogOption[];
   query: string;
   favouriteIds: ReadonlySet<string>;
   favouritesOnly: boolean;
+  tags?: readonly string[];
 }): LookDialogOption[] {
   const needle = query.trim().toLowerCase();
+  const requiredTags = (tags ?? []).map((tag) => tag.trim().toLowerCase()).filter(Boolean);
   const matched = options
     .map((option, index) => ({ option, index }))
     .filter(({ option }) => {
       if (favouritesOnly && !favouriteIds.has(option.id)) return false;
-      if (needle && !option.name.toLowerCase().includes(needle)) return false;
-      return true;
+      if (requiredTags.length) {
+        const have = new Set((option.tags ?? []).map((tag) => tag.toLowerCase()));
+        if (!requiredTags.every((tag) => have.has(tag))) return false;
+      }
+      if (!needle) return true;
+      const haystack = [option.name, option.description ?? "", ...(option.tags ?? [])]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(needle);
     });
   matched.sort((a, b) => {
     const aRank = favouriteIds.has(a.option.id) ? 0 : 1;

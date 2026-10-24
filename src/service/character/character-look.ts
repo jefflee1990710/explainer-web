@@ -38,7 +38,12 @@ export type CharacterLookCategory = "all" | "extreme" | "stylized" | "classic";
 
 export type CharacterLookOption = {
   id: string;
+  /** English fragment sent to the image model. */
   prompt: string;
+  /** Short searchable description; defaults to `prompt` when omitted. */
+  description?: string;
+  /** Free-form + controlled tags for UI filters and MCP search. */
+  tags?: readonly string[];
 };
 
 export const CHARACTER_EXTRA_LOOKS: Record<CharacterExtraPart, readonly CharacterLookOption[]> = {
@@ -262,6 +267,7 @@ const FULL_BODY_TOP = new Set([
   "alinkbambooqipao",
   "vcnavybuttondress",
   "sptennisdress",
+  "sppeekaboodress",
   "kaftan",
   "djellaba",
   "thobe",
