@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   computeBrollPlacement,
+  inferCharacterHorizontalSide,
   parseWikimediaMediaSearch,
 } from "@/service/opencut/stock-media";
 
@@ -82,7 +83,7 @@ test("parseWikimediaMediaSearch parses free images and videos and filters out no
   assert.equal(videosOnly[0].id, "commons-102");
 });
 
-test("computeBrollPlacement schedules a 2.0-2.5s payoff-beat window and positions PiP or full-cover transforms", () => {
+test("computeBrollPlacement schedules a 2.0-2.5s payoff-beat window and positions face-safe PiP or full-cover transforms", () => {
   const pip = computeBrollPlacement({
     clipStartSec: 5.17,
     clipDurSec: 5.17,
@@ -90,12 +91,16 @@ test("computeBrollPlacement schedules a 2.0-2.5s payoff-beat window and position
     sourceWidth: 1280,
     sourceHeight: 960,
     layoutMode: "pip",
+    characterSide: "right",
   });
   // Starts ~1.96s into Clip 2 (at ~7.13s) and runs 2.5s so it doesn't cover the whole clip wall-to-wall
   assert.ok(pip.startTimeSeconds > 6.8 && pip.startTimeSeconds < 7.5);
   assert.equal(pip.durationSeconds, 2.5);
-  assert.equal(pip.scaleX, 0.84);
-  assert.equal(pip.positionY, -422);
+  assert.equal(pip.scaleX, 0.72);
+  // Lower-middle zone (+14% of 1920 = +269) below the character's face and above bottom subtitles
+  assert.equal(pip.positionY, 269);
+  // Shifted left (-8% of 1080 = -86) because the character is on the right side
+  assert.equal(pip.positionX, -86);
 
   const cover = computeBrollPlacement({
     clipStartSec: 5.17,
@@ -107,4 +112,20 @@ test("computeBrollPlacement schedules a 2.0-2.5s payoff-beat window and position
   });
   assert.ok(cover.scaleX > 2.3 && cover.scaleX < 2.4);
   assert.equal(cover.positionY, 0);
+});
+
+test("inferCharacterHorizontalSide detects left or right character placement from Chinese and English scene text", () => {
+  assert.equal(
+    inferCharacterHorizontalSide(
+      "起始：1) Character: Alice立於畫面右側，單邊眉毛挑起。2) Set: 純白背景板。",
+    ),
+    "right",
+  );
+  assert.equal(
+    inferCharacterHorizontalSide(
+      "起始：1) Character: Alice側身立於左側，嘴角微微翹起。2) Set: 滿幅無瑕白板。",
+    ),
+    "left",
+  );
+  assert.equal(inferCharacterHorizontalSide("Medium close-up centered"), "center");
 });

@@ -264,6 +264,30 @@ Given the spoken lines per clip:
 }
 
 export type BrollLayoutMode = "pip" | "cover";
+export type CharacterHorizontalSide = "left" | "right" | "center";
+
+const CHAR_RIGHT_RE =
+  /(?:立於|位於|置於|偏向|企喺|站在|在)(?:畫面)?右側|\b(?:on the right|frame right|right side of (?:the )?frame|stands? right)\b/i;
+const CHAR_LEFT_RE =
+  /(?:立於|位於|置於|偏向|企喺|站在|在)(?:畫面)?左側|\b(?:on the left|frame left|left side of (?:the )?frame|stands? left)\b/i;
+
+/**
+ * Infers which horizontal side of the frame the character occupies from the storyboard scene description,
+ * so floating PiP B-roll cards can shift toward the opposite open space.
+ */
+export function inferCharacterHorizontalSide(
+  explainerScene?: string | null,
+): CharacterHorizontalSide {
+  if (!explainerScene) return "center";
+  // Inspect the opening "1) Character:" and "4) Camera:" clauses (before "結尾：" if present)
+  const startPart = explainerScene.split(/結尾[：:]/)[0] ?? explainerScene;
+  const charBlock = startPart.split(/2\)\s*Set[：:]/i)[0] ?? startPart.slice(0, 260);
+  const camBlock = startPart.split(/4\)\s*Camera[：:]/i)[1] ?? "";
+  const combined = `${charBlock} ${camBlock}`;
+  if (CHAR_RIGHT_RE.test(combined)) return "right";
+  if (CHAR_LEFT_RE.test(combined)) return "left";
+  return "center";
+}
 
 /**
  * Computes the optimal timing window (impact beat on the second half of the clip so the opening
@@ -276,6 +300,7 @@ export function computeBrollPlacement({
   sourceWidth,
   sourceHeight,
   layoutMode = "pip",
+  characterSide = "center",
 }: {
   clipStartSec: number;
   clipDurSec: number;
@@ -283,6 +308,7 @@ export function computeBrollPlacement({
   sourceWidth: number;
   sourceHeight: number;
   layoutMode?: BrollLayoutMode;
+  characterSide?: CharacterHorizontalSide;
 }): {
   startTimeSeconds: number;
   durationSeconds: number;
@@ -335,26 +361,38 @@ export function computeBrollPlacement({
   }
 
   // Default "pip" (Floating Picture-in-Picture Card):
-  // On 9:16 vertical canvases, place the B-roll at 84% width in the upper showcase zone
-  // (`positionY = -22%` of canvasHeight) so the character and bottom subtitles remain visible.
+  // On 9:16 vertical canvases, characters' heads & faces occupy the upper-middle band (y = 20%..45%),
+  // while subtitles sit near the bottom (y = 80%..88%). Place the B-roll card at 72% width in the
+  // lower-middle showcase zone (`positionY = +14%` of canvasHeight) and shift slightly opposite
+  // the character's standing side so both the face and bottom subtitles stay completely unobstructed.
   if (isVerticalCanvas) {
+    const horizontalShift =
+      characterSide === "right"
+        ? Math.round(-canvasSize.width * 0.08)
+        : characterSide === "left"
+          ? Math.round(canvasSize.width * 0.08)
+          : 0;
     return {
       startTimeSeconds,
       durationSeconds,
-      scaleX: 0.84,
-      scaleY: 0.84,
-      positionX: 0,
-      positionY: Math.round(-canvasSize.height * 0.22),
+      scaleX: 0.72,
+      scaleY: 0.72,
+      positionX: horizontalShift,
+      positionY: Math.round(canvasSize.height * 0.14),
     };
   }
 
-  // On 16:9 / 1:1 canvases, place PiP card in the upper-right quadrant
+  // On 16:9 / 1:1 canvases, place PiP card in the upper quadrant opposite the character
+  const landscapeX =
+    characterSide === "right"
+      ? Math.round(-canvasSize.width * 0.22)
+      : Math.round(canvasSize.width * 0.22);
   return {
     startTimeSeconds,
     durationSeconds,
     scaleX: 0.48,
     scaleY: 0.48,
-    positionX: Math.round(canvasSize.width * 0.22),
+    positionX: landscapeX,
     positionY: Math.round(-canvasSize.height * 0.18),
   };
 }

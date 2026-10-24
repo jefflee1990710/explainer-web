@@ -22,6 +22,60 @@ test("sanitizeOpencutEdit keeps the timeline and blob urls", () => {
   assert.equal(clean.media[0].sourceUrl, "https://blob.example/clip.mp4");
 });
 
+test("sanitizeOpencutEdit preserves dotted OpenCut param keys like transform.* and background.*", () => {
+  const clean = sanitizeOpencutEdit({
+    project: {
+      metadata: { id: "scro-1", name: "Scro" },
+      scenes: [
+        {
+          tracks: {
+            overlay: [
+              {
+                id: "track-overlay-1",
+                type: "video",
+                elements: [
+                  {
+                    id: "broll-1",
+                    type: "image",
+                    name: "B-Roll 2",
+                    params: {
+                      opacity: 1,
+                      blendMode: "normal",
+                      "transform.scaleX": 0.72,
+                      "transform.scaleY": 0.72,
+                      "transform.positionX": -86,
+                      "transform.positionY": 269,
+                      "background.enabled": true,
+                      $illegalOperator: "blocked",
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    },
+    media: [],
+  });
+  assert.ok(clean);
+  const overlayEl = (
+    clean.project.scenes as Array<{
+      tracks: {
+        overlay: Array<{
+          elements: Array<{ params: Record<string, unknown> }>;
+        }>;
+      };
+    }>
+  )[0].tracks.overlay[0].elements[0];
+  assert.equal(overlayEl.params["transform.scaleX"], 0.72);
+  assert.equal(overlayEl.params["transform.scaleY"], 0.72);
+  assert.equal(overlayEl.params["transform.positionX"], -86);
+  assert.equal(overlayEl.params["transform.positionY"], 269);
+  assert.equal(overlayEl.params["background.enabled"], true);
+  assert.equal(overlayEl.params.$illegalOperator, undefined);
+});
+
 test("sanitizeOpencutEdit rejects a timeline with no metadata", () => {
   assert.equal(sanitizeOpencutEdit({ project: { scenes: [] }, media: [] }), null);
 });

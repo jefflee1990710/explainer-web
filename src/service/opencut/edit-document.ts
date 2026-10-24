@@ -21,7 +21,9 @@ function stripHeavy(value: unknown): unknown {
   const next: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(value)) {
     if (key === "buffer" || key === "file" || key === "thumbnail" || key === "thumbnailUrl") continue;
-    if (key.startsWith("$") || key.includes(".")) continue;
+    // Block Mongo operator keys ($set, $where, etc.), but preserve dotted OpenCut param keys
+    // such as "transform.positionX", "transform.positionY", "transform.scaleX", and "background.enabled".
+    if (key.startsWith("$")) continue;
     next[key] = stripHeavy(item);
   }
   return next;

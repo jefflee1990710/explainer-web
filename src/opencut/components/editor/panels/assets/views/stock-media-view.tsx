@@ -18,6 +18,7 @@ import {
 	useScroSubtitleCatalog,
 	useScroSubtitleVideoId,
 } from "@/opencut/embed/scro-subtitle-store";
+import { getScroVideos } from "@/opencut/embed/scro-video-store";
 import { matchSubtitleSlots } from "@/opencut/embed/scro-subtitle-slots";
 import { processMediaAssets } from "@/opencut/media/processing";
 import { buildElementFromMedia } from "@/opencut/timeline/element-utils";
@@ -31,7 +32,9 @@ import {
 } from "@/presentation/actions/opencut-stock-media";
 import {
 	computeBrollPlacement,
+	inferCharacterHorizontalSide,
 	type BrollLayoutMode,
+	type CharacterHorizontalSide,
 	type FreeStockMediaItem,
 } from "@/service/opencut/stock-media";
 import { cn } from "@/opencut/utils/ui";
@@ -62,6 +65,7 @@ export async function insertStockMediaOnOverlayTrack({
 	elementName,
 	explicitTrackId,
 	layoutMode = "pip",
+	characterSide = "center",
 }: {
 	editor: EditorCore;
 	videoId?: string | null;
@@ -71,6 +75,7 @@ export async function insertStockMediaOnOverlayTrack({
 	elementName?: string;
 	explicitTrackId?: string;
 	layoutMode?: BrollLayoutMode;
+	characterSide?: CharacterHorizontalSide;
 }): Promise<string | null> {
 	const project = editor.project.getActiveOrNull();
 	if (!project) return null;
@@ -147,6 +152,7 @@ export async function insertStockMediaOnOverlayTrack({
 		sourceWidth: createdAsset.width ?? item.width,
 		sourceHeight: createdAsset.height ?? item.height,
 		layoutMode,
+		characterSide,
 	});
 
 	const baseElement = buildElementFromMedia({
@@ -249,12 +255,15 @@ export async function runAutoInsertBrollOnTimeline({
 		.tracks.overlay.find((track) => track.type === "video")?.id;
 
 	const canvasSize = project.settings.canvasSize;
+	const seedClips = getScroVideos()?.clips ?? [];
 	let insertedCount = 0;
 	for (const ins of planRes.insertions) {
 		const slot = slots.get(ins.clipNumber);
 		if (!slot) continue;
 		const clipStartSec = mediaTimeToSeconds({ time: slot.startTime });
 		const clipDurSec = mediaTimeToSeconds({ time: slot.duration });
+		const seedClip = seedClips.find((c) => c.clipNumber === ins.clipNumber);
+		const characterSide = inferCharacterHorizontalSide(seedClip?.explainerScene);
 		const placement = computeBrollPlacement({
 			clipStartSec,
 			clipDurSec,
@@ -262,6 +271,7 @@ export async function runAutoInsertBrollOnTimeline({
 			sourceWidth: ins.media.width,
 			sourceHeight: ins.media.height,
 			layoutMode,
+			characterSide,
 		});
 
 		const usedTrackId = await insertStockMediaOnOverlayTrack({
@@ -273,6 +283,7 @@ export async function runAutoInsertBrollOnTimeline({
 			elementName: `B-Roll ${ins.clipNumber} · ${ins.query}`,
 			explicitTrackId: sharedTrackId,
 			layoutMode,
+			characterSide,
 		});
 		if (usedTrackId) {
 			sharedTrackId = usedTrackId;
@@ -460,7 +471,7 @@ export function StockMediaView() {
 					<div className="flex items-center gap-1" title="B-Roll 畫面覆疊排版模式">
 						{(
 							[
-								{ id: "pip", label: "上方插圖卡 PiP" },
+								{ id: "pip", label: "避臉插圖卡 PiP" },
 								{ id: "cover", label: "滿版覆蓋 Full" },
 							] as const
 						).map((mode) => (
