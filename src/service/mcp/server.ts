@@ -25,8 +25,8 @@ import {
 import { getActiveSubscription, isSubscriptionActive } from "@/service/billing/credits";
 import { listPublicStyles } from "@/service/style/list";
 import {
+  BLUEPRINT_COST,
   clipVideoCost,
-  FRAME_COST,
   FRAMES_COST,
   CINEMATIC_VIDEO_CREDITS_PER_SECOND,
   MIN_VIDEO_COST,
@@ -36,8 +36,11 @@ import type { PublicVideo } from "@/presentation/serialize";
 import type { AppUser } from "@/model/user";
 import type { McpApiKey } from "@/model/mcp";
 import { registerBriefTools } from "@/service/mcp/brief-tools";
+import { registerCharacterTools } from "@/service/mcp/character-tools";
 import { registerGenerationTools } from "@/service/mcp/generation-tools";
+import { registerLifeTools } from "@/service/mcp/life-tools";
 import { registerReelEditTools } from "@/service/mcp/reel-edit-tools";
+import { registerWardrobeTools } from "@/service/mcp/wardrobe-tools";
 import { fillVideoBrief, videoBriefFields } from "@/service/mcp/video-brief";
 import { requireVideoApproval } from "@/service/mcp/video-approval";
 import { wrapTool } from "@/service/mcp/wrap-tool";
@@ -329,7 +332,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
     "create_character",
     {
       title: "Create character",
-      description: `Create a character blueprint (costs ${FRAME_COST} credits).`,
+      description: `Create a character blueprint (costs ${BLUEPRINT_COST} credits).`,
       inputSchema: {
         name: z.string().min(1).max(40),
         styleId: z.string(),
@@ -337,7 +340,7 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
         referenceImageUrl: z.string().url().optional(),
       },
     },
-    wrapTool(user, apiKey, "create_character", FRAME_COST, async (args) => {
+    wrapTool(user, apiKey, "create_character", BLUEPRINT_COST, async (args) => {
       const form = new FormData();
       form.set("name", args.name);
       form.set("styleId", args.styleId);
@@ -355,6 +358,9 @@ export function createExplainerMcpServer(user: AppUser, apiKey: McpApiKey) {
   registerBriefTools(ctx);
   registerGenerationTools(ctx);
   registerReelEditTools(ctx);
+  registerWardrobeTools(ctx);
+  registerCharacterTools(ctx);
+  registerLifeTools(ctx);
 
   return server;
 }
