@@ -26,13 +26,7 @@ import {
   setDefaultVersionAction,
   suggestCharacterVoiceAction,
 } from "@/service/character/actions";
-import {
-  CHARACTER_WARDROBE_PARTS,
-  characterWardrobeEditInstruction,
-  detectCharacterWardrobePicks,
-  sanitizeWardrobePicks,
-} from "@/service/character/character-look";
-import { resolveCustomWardrobePickPrompts } from "@/service/character/custom-wardrobe";
+import { applyWardrobeToCharacter } from "@/service/mcp/apply-wardrobe";
 import { BLUEPRINT_COST, FRAME_COST } from "@/service/production-plan";
 import { unwrap, wrapTool } from "@/service/mcp/wrap-tool";
 
@@ -128,7 +122,7 @@ export function registerCharacterTools({ server, user, apiKey }: Ctx) {
     "apply_character_wardrobe",
     {
       title: "Apply character wardrobe",
-      description: `Fitting-room edit: apply hair / top / pants / shoes / accessory picks from list_wardrobe_catalog or list_custom_wardrobe onto a completed version (costs ${BLUEPRINT_COST} credits for board versions, ${FRAME_COST} for legacy sheets).`,
+      description: `Fitting-room edit: apply hair / top / pants / shoes / accessory picks from search_looks or list_custom_wardrobe onto a completed version (costs ${BLUEPRINT_COST} credits for board versions, ${FRAME_COST} for legacy sheets).`,
       inputSchema: {
         characterId: z.string(),
         versionId: z.string().describe("Completed version id to branch from."),
@@ -139,41 +133,13 @@ export function registerCharacterTools({ server, user, apiKey }: Ctx) {
       },
     },
     wrapTool(user, apiKey, "apply_character_wardrobe", chargedCredits, async (args) => {
-      const picks = sanitizeWardrobePicks(args.wardrobe);
-      if (!CHARACTER_WARDROBE_PARTS.some((part) => picks[part])) {
-        throw new Error("請至少選擇一個造型部位");
-      }
-      const current = unwrap(await getCharacterAction(args.characterId)).character;
-      const version = current.versions.find((item) => item.id === args.versionId);
-      if (!version) throw new Error("版本不存在");
-      if (version.status !== "completed") throw new Error("只能從已完成的版本編輯");
-
-      const worn = detectCharacterWardrobePicks(
-        [version.prompt, version.editInstruction].filter(Boolean).join("\n"),
-      );
-      const customPrompts = await resolveCustomWardrobePickPrompts(user.clerkUserId, picks);
-      const customPromptMap = new Map(
-        Object.entries(customPrompts).flatMap(([part, prompt]) => {
-          const id = picks[part as keyof typeof picks];
-          return id && prompt ? [[id, prompt] as const] : [];
-        }),
-      );
-      const instruction = characterWardrobeEditInstruction(
-        picks,
-        args.note ?? "",
-        worn.top,
-        customPromptMap,
-      );
-      if (!instruction) throw new Error("請至少選擇一個造型部位");
-
-      const creditsCharged =
-        version.blueprintKind === "board" ? BLUEPRINT_COST : FRAME_COST;
-      const character = unwrap(
-        await editCharacterVersionAction(args.characterId, args.versionId, instruction),
-      ).character;
-      return { character, creditsCharged, editInstruction: instruction } satisfies ChargedCharacter & {
-        editInstruction: string;
-      };
+      return applyWardrobeToCharacter({
+        clerkUserId: user.clerkUserId,
+        characterId: args.characterId,
+        versionId: args.versionId,
+        wardrobe: args.wardrobe,
+        note: args.note,
+      });
     }),
   );
 
