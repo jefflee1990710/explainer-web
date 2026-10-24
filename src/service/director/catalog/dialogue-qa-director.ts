@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "dialogue-qa-director",
   "title": "Two-character Q&A",
-  "description": "Exactly two characters ask and answer. Questions build curiosity; answers deliver the point.",
+  "description": "Stages a lively back-and-forth conversation between two characters in fixed left/right positions with explanatory props in the middle — one asks curious questions while the other delivers clear answers.",
+  "suggestedUseCase": "FAQ videos, myth-busting dialogues, customer vs. expert conversations, onboarding explainers, podcast-style animated clips, and language/interview practice shorts.",
   "sortOrder": 4,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/dialogue-qa-director-preview-78b6e17122.webp",
@@ -66,6 +67,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": false,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;

@@ -243,7 +243,7 @@ export function ScroSubtitlePanel() {
 
 				<div className="space-y-1.5">
 					<label className="text-xs font-medium">
-						Font · 中英字體 (Google Fonts)
+						Font · 中英字體
 					</label>
 					<Select
 						value={fontOverride}

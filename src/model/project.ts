@@ -166,6 +166,8 @@ export type StoryboardRow = {
   bgmSfx: string;
   // Reference images (R1..R4) the director assigned to this clip's stills.
   referenceImageIds?: string[];
+  // Per-clip visual style override for multi-style directors (e.g., style-switch-director).
+  styleId?: string;
   // Director's choice: attach this clip's start still when drawing the end.
   // Absent on older videos and after a user edits the camera text.
   endUsesStartStill?: boolean;
@@ -332,8 +334,12 @@ export type Project = {
   durationPreset: DurationPreset;
   // Visual style. Missing or empty resolves to doodle; a user ObjectId names that user's style.
   styleId?: string;
+  // Ordered visual styles when a multi-style director is selected (up to maxStyleCount).
+  styleIds?: string[];
   // Optional for legacy documents; defaults to "en" when absent.
   language?: VoLanguage;
+  // Optional for legacy documents; defaults to true when absent.
+  narrationEnabled?: boolean;
   // Optional for legacy documents; defaults to male when absent.
   voiceGender?: VoiceGender;
   // Optional for legacy documents; defaults to medium when absent.
@@ -473,6 +479,7 @@ const storyboardRowSchema = z.object({
   referenceTranslation: z.string().optional(),
   bgmSfx: z.string(),
   referenceImageIds: z.array(z.string()).optional(),
+  styleId: z.string().optional(),
   editedAt: z.string().optional(),
   endUsesStartStill: z.boolean().optional(),
   backgroundSetId: z.string().optional(),
@@ -522,7 +529,9 @@ export const projectSchema: z.ZodType<Project> = z.object({
   aspectRatio: aspectRatioSchema,
   durationPreset: z.enum(DURATION_PRESET_IDS),
   styleId: z.string().optional(),
+  styleIds: z.array(z.string()).optional(),
   language: z.enum(VO_LANGUAGE_IDS).optional(),
+  narrationEnabled: z.boolean().optional(),
   voiceGender: z.enum(["male", "female"]).optional(),
   speechPace: z.enum(["slow", "medium", "fast"]).optional(),
   sceneTextEnabled: z.boolean().optional(),

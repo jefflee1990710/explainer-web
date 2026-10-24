@@ -30,6 +30,8 @@ export const OPENING_SKILL_SLUG = "opening-director";
 export const ENDING_SKILL_SLUG = "ending-director";
 export const COMPARISON_CARD_SKILL_SLUG = "comparison-card-director";
 export const TALKING_BROLL_SKILL_SLUG = "talking-broll-director";
+export const WORKFLOW_PROMO_SKILL_SLUG = "workflow-promo-director";
+export const STYLE_SWITCH_SKILL_SLUG = "style-switch-director";
 export {
   FOLLOW_SHOT_SKILL_SLUG,
   OUTFIT_CHANGE_SKILL_SLUG,
@@ -173,6 +175,22 @@ export function isComparisonCardSkill(skillSlug?: string) {
 
 export function isTalkingBrollSkill(skillSlug?: string) {
   return skillSlug === TALKING_BROLL_SKILL_SLUG;
+}
+
+export function isWorkflowPromoSkill(skillSlug?: string) {
+  return skillSlug === WORKFLOW_PROMO_SKILL_SLUG;
+}
+
+export function isStyleSwitchSkill(skillSlug?: string) {
+  return skillSlug === STYLE_SWITCH_SKILL_SLUG;
+}
+
+export function maxStyleCountForSkill(skillSlug?: string) {
+  if (!skillSlug) return 1;
+  const director = getDirectorBySlug(skillSlug);
+  if (director) return director.behavior.maxStyleCount;
+  if (skillSlug === STYLE_SWITCH_SKILL_SLUG) return 4;
+  return 1;
 }
 
 // 16:9 reads left | right. Portrait and square read top | bottom.
@@ -935,3 +953,25 @@ export function talkingBrollDirectorBlock() {
     "Override clip inheritance for this director: a b-roll startScene is a new place, not the talking-head room. The next on-camera clip returns to the first on-camera setup, not the b-roll ending.",
   ].join(" ");
 }
+
+export function workflowPromoDirectorBlock() {
+  return [
+    "This is a WORKFLOW & ROI PROMO. Never hardcode a dark void, whiteboard, or specific colour hexes — all canvas surfaces, line rendering, lighting, and palette come 100% from the selected visual style.",
+    "Structure: Clip 1 opens with a pattern-interrupt hook in Beat 1 (startScene / startVo) and snaps into a bold thesis over the old messy workflow in Beat 2 (endScene / endVo). Middle clips walk linearly through the 3-step workflow (Step 1 → Step 2 → Step 3) with numbered step cards or pipeline nodes inside the chosen visual style, using short labels in 「」 (1–3 words). The final clip shows the finished deliverable inside a device frame with rising ROI/analytics indicators in Beat 1, then settles onto a clean brand sign-off card in Beat 2.",
+    "Voiceover is spoken by an energetic unseen off-screen narrator across both beats. On-screen characters keep their mouths closed (no lip-sync) with expressive brow and eye reactions while interacting with workflow cards and devices.",
+  ].join(" ");
+}
+
+export function styleSwitchDirectorBlock(styles: Array<{ id: string; name: string }>) {
+  const styleList = styles.length > 0
+    ? styles.map((s, i) => `Style #${i + 1}: id="${s.id}" (${s.name})`).join("; ")
+    : "Style #1: default style";
+  const idsOnly = styles.map((s) => `"${s.id}"`).join(", ");
+  return [
+    `This is a MULTI-STYLE CHARACTER SHOWCASE. The user selected ${styles.length || 1} visual style(s): ${styleList}.`,
+    `Every clip row in clips MUST set the "styleId" field to one of [${idsOnly}].`,
+    "Clip 1 MUST use Style #1 (the first style in the list) for the opening hook. Subsequent clips MUST cycle through the remaining selected styles in order so each clip hard-cuts into a contrasting visual world while keeping the character's identity (face, hair, eyewear/accessories, and core outfit design) 100% locked to the attached character blueprint.",
+    "Do not write contradicting style rendering rules inside startScene or endScene — let each clip's assigned styleId govern the rendering medium while your scene description defines the character pose, expression, environment, lighting, and camera.",
+  ].join(" ");
+}
+

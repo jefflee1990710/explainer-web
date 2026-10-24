@@ -37,6 +37,8 @@ import {
   isSurpriseInterviewSkill,
   isWardrobeBuildSkill,
   isTalkingBrollSkill,
+  isWorkflowPromoSkill,
+  isStyleSwitchSkill,
   listicleDirectorBlock,
   outfitChangeDirectorBlock,
   outfitReelDirectorBlock,
@@ -44,9 +46,11 @@ import {
   skillForcesSceneText,
   STORY_SHORT_SKILL_SLUG,
   storyShortDirectorBlock,
+  styleSwitchDirectorBlock,
   surpriseInterviewDirectorBlock,
   talkingBrollDirectorBlock,
   verticalSafeAreaDirectorLine,
+  workflowPromoDirectorBlock,
 } from "@/service/director/skill-rules";
 import { keyframeDeltaDirectorBlock } from "@/service/director/keyframe-delta";
 import { sceneDetailDirectorBlock } from "@/service/director/scene-detail";
@@ -160,12 +164,15 @@ export async function runPhaseA(input: {
   skill: Skill;
   // System styles and user forks. Style.id is a catalog id, so a user hex cannot be Style.
   style: Style | RenderableStyle;
+  // Ordered visual styles when a multi-style director is selected (up to maxStyleCount).
+  styles?: Array<Style | RenderableStyle>;
   source: string;
   // Talking-head: exact words the character reads. Ignored for other skills.
   spokenScript?: string;
   aspectRatio: AspectRatio;
   durationPreset: DurationPreset;
   language?: VoLanguage;
+  narrationEnabled?: boolean;
   voiceGender?: VoiceGender;
   speechPace?: SpeechPace;
   sceneTextEnabled?: boolean;
@@ -374,6 +381,15 @@ ${
     isOutfitReelSkill(input.skill.slug) ? outfitReelDirectorBlock() : "",
     isOutfitChangeSkill(input.skill.slug) ? outfitChangeDirectorBlock() : "",
     isFollowShotSkill(input.skill.slug) ? followShotDirectorBlock() : "",
+    isWorkflowPromoSkill(input.skill.slug) ? workflowPromoDirectorBlock() : "",
+    isStyleSwitchSkill(input.skill.slug)
+      ? styleSwitchDirectorBlock(
+          (input.styles && input.styles.length > 0 ? input.styles : [input.style]).map((s) => ({
+            id: s.id,
+            name: s.name,
+          })),
+        )
+      : "",
   ]
     .filter(Boolean)
     .join("\n")
@@ -384,7 +400,11 @@ ${
     ? "Speaking pace changes each sentence's durationSeconds. Do not keep a fixed clip length."
     : speechPaceSkillHint(input.speechPace)
 }
-${phaseAAudioHint(input.voiceGender, { bansNarration: dialogueOnly, speakers: input.cast })}
+${phaseAAudioHint(input.voiceGender, {
+  bansNarration: dialogueOnly,
+  speakers: input.cast,
+  silent: input.narrationEnabled === false && !talkingHead && !dialogueOnly,
+})}
 ${sceneTextSkillHint(sceneText.enabled, sceneText.language, {
   dualBeat,
   steadyStills,
@@ -419,11 +439,13 @@ ${dialogueOnly ? "Dialogue language" : "Voiceover language"}: ${language.label} 
 ${sceneDescriptionLanguageLock(input.language)}
 Speaking pace: ${resolveSpeechPace(input.speechPace)} (${SPEECH_PACE_PRESETS[resolveSpeechPace(input.speechPace)].delivery})
 ${
-  speakerLocks.length
-    ? `Voice lock: copy these character locks verbatim into every spoken clip. Do not invent a timbre from the look:\n${speakerLocks.join("\n")}\nAny speaker without a lock uses: adult ${voice.en}, ${voice.fingerprint}`
-    : dialogueOnly
-      ? `Voice lock: every speaker uses this verbatim: adult ${voice.en}, ${voice.fingerprint}. Do not invent a timbre from the look. No narrator.`
-      : `Narrator voice lock: ${voice.label} (adult ${voice.en}), ${voice.fingerprint}. Copy it verbatim. Do not invent a timbre from the look.`
+  input.narrationEnabled === false && !talkingHead && !dialogueOnly
+    ? 'Voiceover / Narration: OFF — every clip englishVo MUST be "(no dialogue)" (leave startVo and endVo empty if present). No narrator and no spoken words.'
+    : speakerLocks.length
+      ? `Voice lock: copy these character locks verbatim into every spoken clip. Do not invent a timbre from the look:\n${speakerLocks.join("\n")}\nAny speaker without a lock uses: adult ${voice.en}, ${voice.fingerprint}`
+      : dialogueOnly
+        ? `Voice lock: every speaker uses this verbatim: adult ${voice.en}, ${voice.fingerprint}. Do not invent a timbre from the look. No narrator.`
+        : `Narrator voice lock: ${voice.label} (adult ${voice.en}), ${voice.fingerprint}. Copy it verbatim. Do not invent a timbre from the look.`
 }
 Audio: no background music. bgmDirection and each clip bgmSfx are SFX-only.
 On-canvas text: ${
@@ -536,6 +558,19 @@ Produce a complete Phase A director proposal now.`,
       targetDuration: `${totalSeconds}s`,
     };
   }
+  if (input.narrationEnabled === false && !talkingHead && !dialogueOnly) {
+    next = {
+      ...next,
+      narrator: "No narrator — voiceover disabled.",
+      englishWordCount: 0,
+      clips: next.clips.map((clip) => ({
+        ...clip,
+        englishVo: "(no dialogue)",
+        ...(clip.startVo !== undefined ? { startVo: "" } : {}),
+        ...(clip.endVo !== undefined ? { endVo: "" } : {}),
+      })),
+    };
+  }
   // Overwrite any invented look text so frame prompts never inherit a wrong outfit.
   if (input.cast && input.cast.length > 0) {
     next = { ...next, characterLock: characterLockFromCast(input.cast, look) };
@@ -554,5 +589,19 @@ Produce a complete Phase A director proposal now.`,
     next = sanitizeOutfitChangePhaseA(next);
   }
   if (isSurpriseInterviewSkill(input.skill.slug)) next = sanitizeSurprisePhaseA(next);
+  if (isStyleSwitchSkill(input.skill.slug)) {
+    const allowedStyles =
+      input.styles && input.styles.length > 0 ? input.styles : [input.style];
+    const allowedIds = allowedStyles.map((s) => s.id);
+    next = {
+      ...next,
+      clips: next.clips.map((clip, index) => {
+        const fallbackId = allowedIds[index % allowedIds.length] || input.style.id;
+        const validStyleId =
+          clip.styleId && allowedIds.includes(clip.styleId) ? clip.styleId : fallbackId;
+        return { ...clip, styleId: validStyleId };
+      }),
+    };
+  }
   return next;
 }

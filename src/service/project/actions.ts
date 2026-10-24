@@ -4,6 +4,7 @@ import { ObjectId } from "mongodb";
 import { requireAppUser, requireClerkUserId } from "@/service/auth";
 import { parseCharacterPersona } from "@/model/character-persona";
 import { isCharacterVoice } from "@/model/character-voice";
+import { inferFallbackCharacterVoice } from "@/service/director/character-voice";
 import { characterStyleIds } from "@/service/character/character-styles";
 import {
   parseCharacterSelections,
@@ -38,6 +39,7 @@ import {
   applySkillSceneText,
   briefSkillError,
   isBookendSkill,
+  maxStyleCountForSkill,
   skillBansNarration,
 } from "@/service/director/skill-rules";
 import { blobStoreHost, isBrandAssetUrl } from "@/service/video-edit/edit-state";
@@ -95,11 +97,13 @@ function canEditStoryboard(status: string) {
 type BriefFields = {
   skillSlug: string;
   styleId: string;
+  styleIds: string[];
   source: string;
   spokenScript?: string;
   aspectRatio: AspectRatio;
   durationPreset: DurationPreset;
   language: VoLanguage;
+  narrationEnabled: boolean;
   voiceGender: VoiceGender;
   speechPace: SpeechPace;
   sceneTextEnabled: boolean;
@@ -153,12 +157,27 @@ async function readVideoBrief(
   ruleSlug: string,
 ): Promise<{ ok: true; brief: BriefFields } | { ok: false; error: string }> {
   const skillSlug = String(formData.get("skillSlug") || "");
-  const styleId = String(formData.get("styleId") || "");
+  const rawStyleId = String(formData.get("styleId") || "");
+  const maxStyles = maxStyleCountForSkill(ruleSlug);
+  const rawStyleIds = Array.from(
+    new Set(
+      [
+        ...formData.getAll("styleIds").map(String),
+        ...(rawStyleId ? [rawStyleId] : []),
+      ].filter(Boolean),
+    ),
+  ).slice(0, maxStyles);
+  const styleId = rawStyleIds[0] || rawStyleId;
   const source = String(formData.get("source") || "").trim();
   const spokenScript = String(formData.get("spokenScript") || "").trim();
   const aspectRatio = String(formData.get("aspectRatio") || "") as AspectRatio;
   const durationPreset = String(formData.get("durationPreset") || "") as DurationPreset;
   const language = String(formData.get("language") || "en");
+  const rawNarrationEnabled = formData.get("narrationEnabled");
+  const narrationEnabled =
+    rawNarrationEnabled === null
+      ? true
+      : rawNarrationEnabled !== "false" && rawNarrationEnabled !== "0";
   const voiceGender = String(formData.get("voiceGender") || "male");
   const speechPace = String(formData.get("speechPace") || "medium");
   const sceneTextLanguage = String(formData.get("sceneTextLanguage") || "en");
@@ -198,7 +217,12 @@ async function readVideoBrief(
   if (!isVoLanguage(language)) {
     return { ok: false, error: skillBansNarration(ruleSlug) ? "請選擇對白語言" : "請選擇旁白語言" };
   }
-  if (!skillBansNarration(ruleSlug) && !isVoiceGender(voiceGender)) {
+  if (
+    !skillBansNarration(ruleSlug) &&
+    narrationEnabled &&
+    characterIds.length === 0 &&
+    !isVoiceGender(voiceGender)
+  ) {
     return { ok: false, error: "請選擇旁白聲線" };
   }
   if (!isSpeechPace(speechPace)) {
@@ -210,9 +234,10 @@ async function readVideoBrief(
   const textStyle = await resolveTextStyleChoice(clerkUserId, textStyleRaw);
   if (!textStyle.ok) return textStyle;
   // Catalog ids and user-style ObjectId hex strings. Unknown strings are rejected, never doodle.
-  if (!isListedStyleId(styleId)) {
+  if (!isListedStyleId(styleId) || rawStyleIds.some((id) => !isListedStyleId(id))) {
     return { ok: false, error: "請選擇視覺風格" };
   }
+  const styleIds = rawStyleIds.length > 0 ? rawStyleIds : [styleId];
   // Logo is downloaded by image gen, so only this user's brand uploads are allowed.
   const storeHost = blobStoreHost(process.env.BLOB_READ_WRITE_TOKEN);
   const rawLogo = String(formData.get("logoUrl") || "").trim();
@@ -254,6 +279,7 @@ async function readVideoBrief(
     brief: {
       skillSlug,
       styleId,
+      styleIds,
       source,
       ...(isTalkingHeadSkill(ruleSlug) ? { spokenScript } : {}),
       aspectRatio,
@@ -264,6 +290,7 @@ async function readVideoBrief(
       backgroundImageUrls: backgrounds.urls,
       startImageUrl: startImage.url,
       language,
+      narrationEnabled,
       voiceGender: resolveVoiceGender(voiceGender),
       speechPace,
       // None turns writing off. Any language keeps it on.
@@ -313,6 +340,11 @@ async function buildCast(
       return { ok: false, error: `角色 ${character.name} 尚未有可用藍圖` };
     }
     const persona = parseCharacterPersona(character.persona);
+    const resolvedVoice = isCharacterVoice(character.voice)
+      ? character.voice
+      : inferFallbackCharacterVoice(
+          [character.name, version.spec?.identity, version.prompt].filter(Boolean).join("\n"),
+        );
     cast.push({
       characterId: character._id,
       versionId: version.id,
@@ -323,7 +355,7 @@ async function buildCast(
       prompt: version.prompt,
       // Appearance notes travel with the video so prompts stay stable after later edits.
       ...(version.spec ? { spec: version.spec } : {}),
-      ...(isCharacterVoice(character.voice) ? { voice: character.voice } : {}),
+      voice: resolvedVoice,
       ...(persona ? { persona } : {}),
       // Snapshot so a later sample change does not re-voice this video.
       ...(character.voiceSample
@@ -516,12 +548,14 @@ export async function createVideoAction(
       skillId: skill._id,
       skillSlug: ruleSlug,
       styleId: brief.styleId,
+      ...(brief.styleIds.length > 1 ? { styleIds: brief.styleIds } : {}),
       source: brief.source,
       ...(brief.spokenScript ? { spokenScript: brief.spokenScript } : {}),
       aspectRatio: brief.aspectRatio,
       durationPreset: brief.durationPreset,
       language: brief.language,
-      voiceGender: brief.voiceGender,
+      narrationEnabled: brief.narrationEnabled,
+      voiceGender: cast[0]?.voice?.gender ?? brief.voiceGender,
       speechPace: brief.speechPace,
       sceneTextEnabled:
         brief.sceneTextLanguage === SCENE_TEXT_OFF
@@ -700,12 +734,14 @@ async function rewriteVideoBrief(
           skillId: skill._id,
           skillSlug: ruleSlug,
           styleId: brief.styleId,
+          ...(brief.styleIds.length > 1 ? { styleIds: brief.styleIds } : {}),
           source: brief.source,
           ...(brief.spokenScript ? { spokenScript: brief.spokenScript } : {}),
           aspectRatio: brief.aspectRatio,
           durationPreset: brief.durationPreset,
           language: brief.language,
-          voiceGender: brief.voiceGender,
+          narrationEnabled: brief.narrationEnabled,
+          voiceGender: castResult.cast[0]?.voice?.gender ?? brief.voiceGender,
           speechPace: brief.speechPace,
           sceneTextEnabled:
         brief.sceneTextLanguage === SCENE_TEXT_OFF
@@ -736,6 +772,7 @@ async function rewriteVideoBrief(
           ...(brief.startImageUrl ? {} : { startImageUrl: "" }),
           ...(brief.spokenScript ? {} : { spokenScript: "" }),
           ...(brief.textStyleImageUrl ? {} : { textStyleImageUrl: "" }),
+          ...(brief.styleIds.length > 1 ? {} : { styleIds: "" }),
         },
       },
     );

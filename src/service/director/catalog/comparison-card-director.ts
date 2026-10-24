@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "comparison-card-director",
   "title": "Comparison card",
-  "description": "One comparison per clip: two views of the same thing, left/right or top/bottom.",
+  "description": "Splits every clip into two simultaneous side-by-side (16:9) or top-and-bottom (9:16 / 1:1) panels with persistent corner titles so viewers immediately see two contrasting realities at once.",
+  "suggestedUseCase": "Before vs. After transformations, Myth vs. Fact breakdowns, Amateur vs. Pro comparisons, Expectation vs. Reality skits, and Old Way vs. New Way product contrasts.",
   "sortOrder": 11,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/comparison-card-director-preview-a2aa0a3cf2.webp",
@@ -66,6 +67,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": false,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;

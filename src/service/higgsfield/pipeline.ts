@@ -19,7 +19,7 @@ import {
   resolveImageRoute,
 } from "@/service/generation/image-backend";
 import { promptForFrameSubmit } from "@/service/clip/frame-prompt-chat";
-import { frameSubmitPlan, framesWithClipsReady } from "@/service/higgsfield/frame-prompts";
+import { frameSubmitPlan, framesWithClipsReady, resolveClipStyleId } from "@/service/higgsfield/frame-prompts";
 import {
   clipDrawsNoEndStill,
   clipEndIsNextStart,
@@ -198,8 +198,9 @@ export async function sendFrame(
   clipNumber: number,
   position: FramePosition,
 ): Promise<Sent> {
+  const clipStyleId = resolveClipStyleId(project, clipNumber) ?? project.styleId;
   const style = await loadRenderableStyle({
-    styleId: project.styleId,
+    styleId: clipStyleId,
     ownerClerkUserId: project.clerkUserId,
   });
   const skill = await loadSkill(project);
@@ -315,10 +316,24 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
   const { ready, deferred } = planFrameSubmissions(targets, project.frames, {
     startsFollowFirstClip: isTalkingHeadSkill(project.skillSlug),
   });
-  const style = await loadRenderableStyle({
-    styleId: project.styleId,
-    ownerClerkUserId: project.clerkUserId,
-  });
+  const styleById = new Map<string, Awaited<ReturnType<typeof loadRenderableStyle>>>();
+  const targetStyleIds = Array.from(
+    new Set(
+      targets
+        .map((t) => resolveClipStyleId(project, t.clipNumber) || project.styleId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
+  await Promise.all(
+    (targetStyleIds.length > 0 ? targetStyleIds : [project.styleId]).map(async (id) => {
+      const loaded = await loadRenderableStyle({
+        styleId: id,
+        ownerClerkUserId: project.clerkUserId,
+      });
+      styleById.set(id || "", loaded);
+    }),
+  );
+  const fallbackStyle = styleById.values().next().value!;
 
   const frameJobFilter = {
     projectId: project._id,
@@ -394,12 +409,15 @@ export async function regenerateFrames(project: Project, targets: FrameTarget[])
       const stored = (project.frames || []).find(
         (frame) => frame.clipNumber === target.clipNumber && frame.position === target.position,
       );
+      const clipStyle =
+        styleById.get(resolveClipStyleId(project, target.clipNumber) || project.styleId || "") ??
+        fallbackStyle;
       const built = frameSubmitPlan(
         canvasProject,
         target.clipNumber,
         target.position,
         target.revision,
-        style,
+        clipStyle,
       ).prompt;
       const useStored = Boolean(target.useStoredPrompt && stored?.prompt?.trim());
       const prompt = promptForFrameSubmit({
@@ -639,8 +657,9 @@ export async function sendClipVideo(
   const spokenLine = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber)?.englishVo;
   const subtitlePrompt = prompt.prompt;
   // Stored prompts skip Phase B, so the realistic light lock is added here at send time.
+  const clipStyleId = resolveClipStyleId(project, clipNumber) ?? project.styleId;
   const style = await loadRenderableStyle({
-    styleId: project.styleId,
+    styleId: clipStyleId,
     ownerClerkUserId: project.clerkUserId,
   }).catch(() => null);
   const selfShot = isSelfShotCreatorSkill(project.skillSlug);
@@ -670,7 +689,7 @@ export async function sendClipVideo(
   // Only talking-head and surprise-interview inject the per-character lip-sync schedule;
   // all other directors use off-screen narration with character mouths closed.
   const voiceId =
-    project.language === "yue" || !isBookendSkill(project.skillSlug)
+    project.narrationEnabled !== false && (project.language === "yue" || !isBookendSkill(project.skillSlug))
       ? resolveVoiceSwapId({ ...project, cast: currentCast })
       : null;
   const voOnsetSeconds = usesLipSync ? DEFAULT_SPEECH_ONSET_SECONDS : 0;
@@ -719,7 +738,7 @@ export async function sendClipVideo(
     }
   }
 
-  const targetModel = clipVideoModel(style ?? project.styleId);
+  const targetModel = clipVideoModel(style ?? clipStyleId);
   const submitted = await submitClipVideo({
     model: targetModel,
     prompt: videoPrompt,
@@ -727,7 +746,7 @@ export async function sendClipVideo(
     durationSeconds,
     startImageUrl: start,
     endImageUrl: endUrlForVideo,
-    styleId: project.styleId,
+    styleId: clipStyleId,
     style,
   });
   return toSent(targetModel, submitted);

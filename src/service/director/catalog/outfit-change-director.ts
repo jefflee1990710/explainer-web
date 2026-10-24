@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "outfit-change-director",
   "title": "Outfit change",
-  "description": "Same empty white room and locked camera. Each clip hard-cuts to a new complete look.",
+  "description": "Stages one character in a minimal cream-white studio on a locked waist-up camera, hard-cutting to a brand-new complete outfit from your reference photos on every clip.",
+  "suggestedUseCase": "Multi-look fashion transitions, seasonal collection lookbooks, styling comparison reels (buttoned vs. unbuttoned), and e-commerce catalog showcases.",
   "sortOrder": 16,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/outfit-reel-director-preview-1bcd6983e1.webp",
@@ -66,6 +67,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": false,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;

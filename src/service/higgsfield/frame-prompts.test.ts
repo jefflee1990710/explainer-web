@@ -1634,3 +1634,33 @@ test("stripLetterboxBars crops top and bottom solid letterbox bands back to full
   assert.ok(maxTop - minTop > 36, `Expected top row to be full-bleed textured, got spread ${maxTop - minTop}`);
 });
 
+test("multi-style director resolves per-clip styleId for frame prompts", async () => {
+  const video = project();
+  video.skillSlug = "style-switch-director";
+  video.styleId = "doodle";
+  video.styleIds = ["doodle", "pixel"];
+  video.phaseA!.clipCount = 2;
+  video.phaseA!.clips[0].styleId = "doodle";
+  video.phaseA!.clips.push({
+    clipNumber: 2,
+    timeRange: "5-10s",
+    durationSeconds: 5,
+    narrativeJob: "Style Switch #2",
+    explainerScene: "Hero jumps into pixel world",
+    motionCamera: "Camera tracks hero",
+    englishVo: "Same face, pixel world.",
+    startScene: "Character: Hero stands ready. Set: pixel street. Light: neon. Camera: medium shot.",
+    endScene: "Character: Hero smiles. Set: pixel street. Light: neon. Camera: medium shot.",
+    bgmSfx: "Whoosh",
+    styleId: "pixel",
+  });
+  const frames = await framesWithClipsReady(video, [1, 2], async () => {});
+  const clip1Start = frames.find((f) => f.clipNumber === 1 && f.position === "start");
+  const clip2Start = frames.find((f) => f.clipNumber === 2 && f.position === "start");
+  assert.ok(clip1Start);
+  assert.ok(clip2Start);
+  assert.notEqual(clip1Start.prompt, clip2Start.prompt);
+  assert.match(clip2Start.prompt, /pixel/i);
+});
+
+

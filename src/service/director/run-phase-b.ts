@@ -58,6 +58,7 @@ type PhaseBInput = {
   style: StylePromptSlice & { id?: string; name?: string; baseStyleId?: string };
   phaseA: PhaseAProposal;
   language?: VoLanguage;
+  narrationEnabled?: boolean;
   voiceGender?: VoiceGender;
   speechPace?: SpeechPace;
   characterImageUrl?: string;
@@ -72,13 +73,16 @@ type PhaseBInput = {
 function phaseBSystemPrompt(input: PhaseBInput, languageLabel: string, languageSublabel: string) {
   const steady = clipSkipsEndStill({ skillSlug: input.skill.slug, styleId: input.style.id });
   const realistic = isRealisticStyle(input.style);
+  const silent =
+    isSilentOutfitSkill(input.skill.slug) ||
+    (input.narrationEnabled === false && !isTalkingHeadSkill(input.skill.slug) && !skillBansNarration(input.skill.slug));
   return `${skillPromptForPhaseB(input.skill, input.style)}
 
 You are executing Phase B only after explicit approval of the current Phase A.
 Return standalone video prompts that follow the skill prompt contract. Do not invent new facts.
 ${
   steady
-    ? "Each clip is image-to-video from the approved START image only. That image is attached as the first frame. There is no end image. Reply with the start scene and the camera motion. endScene is the landing the motion reaches; write that landing into the motion, and do not treat it as a frame the model can see."
+    ? "Each clip is image-to-video from the approved START image only. That image is attached as the first frame. There is no end image. Reply with the start scene and the camera motion. endScene is the landing the motion reaches; write that landing into the motion, and not treat it as a frame the model can see."
     : "Each clip is dual-keyframe image-to-video: the approved START image is already attached as the first frame and the approved END image is already attached as the last frame. Describe only the motion that interpolates between those two locked images. Never call those stills a reference image."
 } ${
     isTalkingHeadSkill(input.skill.slug)
@@ -101,14 +105,14 @@ ${
 ${phaseBDetailRules({
   realistic,
   selfShot: isSelfShotCreatorSkill(input.skill.slug),
-  narratorOnly: !skillUsesOnScreenLipSync(input.skill.slug) && !isSilentOutfitSkill(input.skill.slug),
+  narratorOnly: !skillUsesOnScreenLipSync(input.skill.slug) && !silent,
 })}
 ${
-    isSilentOutfitSkill(input.skill.slug)
+    silent
       ? "This director is silent. Do not write a spoken line, a narrator, or lip-sync. No background music. One sound effect only."
       : `Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}).`
   } ${
-    isSilentOutfitSkill(input.skill.slug)
+    silent
       ? "Do not copy a narrator voice."
       : lockedSpeakerLines(input.cast).length
         ? "Copy each character voice lock verbatim into every clip prompt. Do not invent or rephrase a timbre from the look."
@@ -118,13 +122,13 @@ ${
     smoothMotion: steady,
     realistic,
   })} ${
-    isSilentOutfitSkill(input.skill.slug) ? "" : `Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. `
+    silent ? "" : `Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. `
   }${
     input.sceneTextOff
       ? "On-screen text is OFF. Do not ask for letters, subtitles, captions, signs, labels, or numbers. The picture stays free of writing. "
       : ""
   }Never request background music, BGM, a musical score, or an underscore. ${
-    isSilentOutfitSkill(input.skill.slug) ? "Sound effects only. No voice." : "Voice and short synced SFX only."
+    silent ? "Sound effects only. No voice." : "Voice and short synced SFX only."
   }`;
 }
 
@@ -188,13 +192,16 @@ export async function runPhaseBForClip(
       throw new Error("產片 prompt 產生失敗");
     }
   }
+  const silent =
+    isSilentOutfitSkill(input.skill.slug) ||
+    (input.narrationEnabled === false && !talkingHead && !skillBansNarration(input.skill.slug));
   const lock = phaseBAudioLock({
     voiceGender: input.voiceGender,
     languageLabel: language.label,
     bansNarration: skillBansNarration(input.skill.slug) || talkingHead,
     speechPace: input.speechPace,
     speakers: input.cast,
-    silent: isSilentOutfitSkill(input.skill.slug),
+    silent,
     noSfx: talkingHead,
   });
   const row = input.phaseA.clips.find((clip) => clip.clipNumber === input.clipNumber);

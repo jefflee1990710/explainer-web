@@ -75,14 +75,27 @@ export async function runPhaseAJob(
       styleId: project.styleId,
       ownerClerkUserId: project.clerkUserId,
     });
+    const styles =
+      project.styleIds && project.styleIds.length > 0
+        ? await Promise.all(
+            project.styleIds.map((styleId) =>
+              loadRenderableStyle({
+                styleId,
+                ownerClerkUserId: project.clerkUserId,
+              }),
+            ),
+          )
+        : [style];
     const phaseA = await runPhaseA({
       skill,
       style,
+      styles,
       source: project.source,
       spokenScript: project.spokenScript,
       aspectRatio: project.aspectRatio,
       durationPreset: project.durationPreset,
       language: project.language,
+      narrationEnabled: project.narrationEnabled,
       voiceGender: project.voiceGender,
       speechPace: project.speechPace,
       sceneTextEnabled: project.sceneTextEnabled,

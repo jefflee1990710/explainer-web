@@ -9,6 +9,8 @@ import type {
 } from "../types";
 
 const SHAPES_PROVIDER_ID = "shapes";
+// High-contrast dark fill for shape thumbnails on the light studio asset cards.
+const SHAPE_PREVIEW_FILL = "#12141c";
 
 type ShapeGraphicPreset = {
 	shapeKey: string;
@@ -17,37 +19,44 @@ type ShapeGraphicPreset = {
 	params?: ParamValues;
 };
 
-const LEGACY_SHAPE_PRESETS: Record<string, ShapeGraphicPreset> = {
-	square: { shapeKey: "square", name: "Square", definitionId: "rectangle" },
-	circle: { shapeKey: "circle", name: "Circle", definitionId: "ellipse" },
-	triangle: {
+const EXTRA_SHAPE_PRESETS: ShapeGraphicPreset[] = [
+	{
 		shapeKey: "triangle",
 		name: "Triangle",
 		definitionId: "polygon",
 		params: { sides: 3 },
 	},
-	hexagon: {
-		shapeKey: "hexagon",
-		name: "Hexagon",
-		definitionId: "polygon",
-		params: { sides: 6 },
-	},
-	diamond: {
+	{
 		shapeKey: "diamond",
 		name: "Diamond",
 		definitionId: "polygon",
 		params: { sides: 4 },
 	},
+	{
+		shapeKey: "hexagon",
+		name: "Hexagon",
+		definitionId: "polygon",
+		params: { sides: 6 },
+	},
+];
+
+const LEGACY_SHAPE_PRESETS: Record<string, ShapeGraphicPreset> = {
+	square: { shapeKey: "square", name: "Square", definitionId: "rectangle" },
+	circle: { shapeKey: "circle", name: "Circle", definitionId: "ellipse" },
+	triangle: EXTRA_SHAPE_PRESETS[0],
+	diamond: EXTRA_SHAPE_PRESETS[1],
+	hexagon: EXTRA_SHAPE_PRESETS[2],
 	star: { shapeKey: "star", name: "Star", definitionId: "star" },
 };
 
 function getShapePresets(): ShapeGraphicPreset[] {
 	registerDefaultGraphics();
-	return graphicsRegistry.getAll().map((definition) => ({
+	const base = graphicsRegistry.getAll().map((definition) => ({
 		shapeKey: definition.id,
 		name: definition.name,
 		definitionId: definition.id,
 	}));
+	return [...base, ...EXTRA_SHAPE_PRESETS];
 }
 
 function getShapePreset({
@@ -89,11 +98,17 @@ export function parseShapeStickerId({
 function buildShapeUrl({ shapeKey }: { shapeKey: string }): string {
 	const preset = getShapePreset({ shapeKey });
 	if (!preset) {
-		return buildGraphicPreviewUrl({ definitionId: "rectangle" });
+		return buildGraphicPreviewUrl({
+			definitionId: "rectangle",
+			params: { fill: SHAPE_PREVIEW_FILL },
+		});
 	}
 	return buildGraphicPreviewUrl({
 		definitionId: preset.definitionId,
-		params: getShapeParams({ preset }),
+		params: {
+			...getShapeParams({ preset }),
+			fill: SHAPE_PREVIEW_FILL,
+		},
 	});
 }
 

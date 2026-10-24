@@ -64,13 +64,16 @@ function projectVoice(voiceGender?: string) {
 // Phase A: every speaking director copies a voice lock. Silent skills ignore this.
 export function phaseAAudioHint(
   voiceGender?: string,
-  options?: { bansNarration?: boolean; speakers?: NamedVoice[] },
+  options?: { bansNarration?: boolean; speakers?: NamedVoice[]; silent?: boolean },
 ) {
+  const tail = `${NO_BGM_RULE} bgmDirection and every clip bgmSfx must state there is no background music; SFX only.`;
+  if (options?.silent) {
+    return `No voiceover, no narrator, and no spoken words. Every clip's englishVo MUST be "(no dialogue)". ${tail}`;
+  }
   const voice = projectVoice(voiceGender);
   const locked = dialogueVoiceLock(options?.speakers, `adult ${voice.en}, ${voice.fingerprint}`, {
     keepNarrator: !options?.bansNarration,
   });
-  const tail = `${NO_BGM_RULE} bgmDirection and every clip bgmSfx must state there is no background music; SFX only.`;
   if (options?.bansNarration) {
     const voices = locked
       ? locked

@@ -20,6 +20,7 @@ export type BriefDefaults = {
   skillSlug: string;
   styleId: string;
   language: VoLanguage;
+  narrationEnabled?: boolean;
   voiceGender: VoiceGender;
   speechPace: SpeechPace;
   sceneTextLanguage: SceneTextChoice;
@@ -60,6 +61,8 @@ export function sanitizeBriefDefaults(
       ? input.styleId
       : pickerDefaultStyleId(catalog.styles);
   const language = typeof input.language === "string" && isVoLanguage(input.language) ? input.language : "en";
+  const narrationEnabled =
+    typeof input.narrationEnabled === "boolean" ? input.narrationEnabled : undefined;
   const voiceGender =
     typeof input.voiceGender === "string" && isVoiceGender(input.voiceGender) ? input.voiceGender : "male";
   const speechPace =
@@ -99,6 +102,7 @@ export function sanitizeBriefDefaults(
     skillSlug,
     styleId,
     language,
+    ...(narrationEnabled !== undefined ? { narrationEnabled } : {}),
     voiceGender,
     speechPace,
     sceneTextLanguage,

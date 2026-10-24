@@ -15,6 +15,38 @@ export const DEFAULT_CHARACTER_VOICE: CharacterVoice = {
   weight: "medium",
 };
 
+// Pure fallback voice lock inferred from character name/identity/description when no explicit voice lock is stored.
+export function inferFallbackCharacterVoice(description: string): CharacterVoice {
+  const text = description.toLowerCase();
+  const female = /女|姐|姊|妹|媽|娘|woman|girl|female|lady|she|her\b/.test(text);
+  const child = /小孩|兒童|男孩|女孩|\d+\s*歲|year-old|child|kid/.test(text);
+  const older = /老人|爺|奶|elderly|older/.test(text);
+  if (child) {
+    return {
+      gender: female ? "female" : "male",
+      age: "young-adult",
+      pitch: "mid-high",
+      resonance: "bright",
+      texture: "crisp",
+      weight: "light",
+    };
+  }
+  if (older) {
+    return {
+      gender: female ? "female" : "male",
+      age: "older",
+      pitch: "low",
+      resonance: "chesty",
+      texture: "warm",
+      weight: "heavy",
+    };
+  }
+  return {
+    ...DEFAULT_CHARACTER_VOICE,
+    gender: female ? "female" : "male",
+  };
+}
+
 type NamedVoice = {
   name: string;
   voice?: CharacterVoice | null;

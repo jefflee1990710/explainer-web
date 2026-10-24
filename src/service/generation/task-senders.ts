@@ -195,6 +195,7 @@ async function sendVideo(project: Project, clipNumber: number) {
     phaseA: project.phaseA,
     clipNumber,
     language: project.language,
+    narrationEnabled: project.narrationEnabled,
     voiceGender: project.voiceGender,
     speechPace: project.speechPace,
     characterImageUrl: project.characterImageUrl,

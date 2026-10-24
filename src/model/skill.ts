@@ -61,6 +61,7 @@ export type Skill = {
   slug: string;
   title: string;
   description: string;
+  suggestedUseCase?: string;
   systemPrompt: string;
   references: SkillReference[];
   inputSchema: SkillInputSchema;
@@ -105,6 +106,7 @@ export const skillSchema: z.ZodType<Skill> = z.object({
   slug: z.string(),
   title: z.string(),
   description: z.string(),
+  suggestedUseCase: z.string().optional(),
   systemPrompt: z.string(),
   references: z.array(z.object({ path: z.string(), content: z.string() })),
   inputSchema: z.object({

@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "product-demo-director",
   "title": "Product demo / unboxing",
-  "description": "Pain → unbox → feature demo → result, with the product look locked throughout.",
+  "description": "Structured commercial arc (pain point → unboxing/reveal → hands-on feature demo → visible result) that keeps your attached product's exact appearance locked while demonstrating real benefits.",
+  "suggestedUseCase": "E-commerce product ads, physical product unboxings, crowdfunding launch videos, landing page hero demos, and before/after problem-solving commercials.",
   "sortOrder": 3,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/product-demo-director-preview-644e0a159f.webp",
@@ -66,6 +67,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": false,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;

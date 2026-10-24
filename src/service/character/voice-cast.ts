@@ -2,6 +2,7 @@ import { charactersCollection } from "@/dao";
 import type { CastMember, Character } from "@/model/character";
 import { isCharacterVoice } from "@/model/character-voice";
 import { VOICE_SAMPLE_LANGUAGES } from "@/model/character-voice-sample";
+import { inferFallbackCharacterVoice } from "@/service/director/character-voice";
 
 export function mergeCurrentCharacterVoices(
   cast: CastMember[] | undefined,
@@ -13,8 +14,13 @@ export function mergeCurrentCharacterVoices(
     const doc = byId.get(member.characterId.toHexString());
     if (!doc) return member;
     const next = { ...member };
-    if (isCharacterVoice(doc.voice)) next.voice = doc.voice;
-    else delete next.voice;
+    if (isCharacterVoice(doc.voice)) {
+      next.voice = doc.voice;
+    } else if (!isCharacterVoice(next.voice)) {
+      next.voice = inferFallbackCharacterVoice(
+        [member.name, member.spec?.identity, member.prompt].filter(Boolean).join("\n"),
+      );
+    }
     if (doc.voiceSample?.elevenVoiceId && doc.voiceSample?.url) {
       next.voiceSample = {
         url: doc.voiceSample.url,

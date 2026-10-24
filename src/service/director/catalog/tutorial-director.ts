@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "tutorial-director",
   "title": "Step-by-step tutorial",
-  "description": "Show the finished result, then one step per clip, and return to the finished piece.",
+  "description": "Opens by showing the finished result first, walks through one actionable step per clip with clear state changes in a single workspace, and returns to the completed piece at the end.",
+  "suggestedUseCase": "How-to guides, recipes, DIY crafts, software/setup walkthroughs, help-center onboarding videos, and standard operating procedure (SOP) training clips.",
   "sortOrder": 6,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/tutorial-director-preview-e20b0f5bbd.webp",
@@ -66,6 +67,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": false,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;

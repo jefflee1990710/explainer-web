@@ -10,7 +10,7 @@ import {
   resolveDirector,
 } from "@/service/director/catalog";
 
-test("all 16 DIRECTOR_SLUGS exist in hardcoded catalog and satisfy IDirector", () => {
+test("all 18 DIRECTOR_SLUGS exist in hardcoded catalog and satisfy IDirector", () => {
   assert.equal(DIRECTORS.length, DIRECTOR_SLUGS.length);
   for (const slug of DIRECTOR_SLUGS) {
     const director = DIRECTORS_BY_SLUG[slug];
@@ -18,12 +18,18 @@ test("all 16 DIRECTOR_SLUGS exist in hardcoded catalog and satisfy IDirector", (
     assert.equal(director.slug, slug);
     assert.ok(director.title.trim().length > 0, `${slug} title`);
     assert.ok(director.description.trim().length > 0, `${slug} description`);
+    assert.ok(director.suggestedUseCase.trim().length > 0, `${slug} suggestedUseCase`);
     assert.ok(director.systemPrompt.trim().length > 0, `${slug} systemPrompt`);
     assert.ok(director.references.length > 0, `${slug} references`);
     assert.equal(getDirectorBySlug(slug), director);
     assert.match(director._id, /^[a-f0-9]{24}$/);
     assert.equal(getDirectorById(director._id), director);
     assert.equal(DIRECTORS_BY_ID[director._id], director);
+    assert.equal(
+      director.behavior.maxStyleCount,
+      slug === "style-switch-director" ? 4 : 1,
+      `${slug} maxStyleCount`,
+    );
   }
 });
 
@@ -41,6 +47,9 @@ test("IDirector.behavior encodes keyframeMode, continuity, cast count, speechMod
   assert.equal(DIRECTORS_BY_SLUG["outfit-change-director"].behavior.hiddenInPicker, false);
   assert.equal(DIRECTORS_BY_SLUG["outfit-change-director"].behavior.chainsClipStarts, false);
   assert.equal(DIRECTORS_BY_SLUG["outfit-change-director"].behavior.maxBackgroundSets, 1);
+  assert.equal(DIRECTORS_BY_SLUG["workflow-promo-director"].behavior.dualBeat, true);
+  assert.equal(DIRECTORS_BY_SLUG["workflow-promo-director"].behavior.maxStyleCount, 1);
+  assert.equal(DIRECTORS_BY_SLUG["style-switch-director"].behavior.maxStyleCount, 4);
 });
 
 test("resolveDirector falls back unknown or legacy custom IDs to cartoon-explainer-video-director", () => {

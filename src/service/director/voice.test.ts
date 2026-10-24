@@ -103,6 +103,9 @@ test("a character voice lock is pasted for narrated directors too", () => {
 });
 
 test("a silent director does not receive a speaking voice lock", () => {
+  const hint = phaseAAudioHint("male", { silent: true });
+  assert.match(hint, /No voiceover, no narrator, and no spoken words/);
+  assert.match(hint, /\(no dialogue\)/);
   const lock = phaseBAudioLock({
     voiceGender: "male",
     languageLabel: "English",

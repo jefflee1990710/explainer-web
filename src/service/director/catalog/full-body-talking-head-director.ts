@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "full-body-talking-head-director",
   "title": "Full body Talking-head read",
-  "description": "One character reads to camera in a locked full-body shot. Clips share a similar length, up to 20, with subtitles.",
+  "description": "Frames one character head-to-toe in a locked full-body shot reading your exact script directly into the lens with expressive posture, hand gestures, and continuous frame chaining across up to 20 clips.",
+  "suggestedUseCase": "Presenter-style explainers, fashion/wardrobe commentary, stage or studio announcements, fitness/posture coaching, and full-body virtual spokesperson reels.",
   "sortOrder": 10,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/6ac24a2e1690e9acb2fe527f-preview-c2081d61d3.webp",
@@ -88,6 +89,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": false,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;

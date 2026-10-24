@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "opening-director",
   "title": "Opening",
-  "description": "A single 3–4 second bumper: the brand logo enters and holds, placed before the main video.",
+  "description": "Creates a punchy 3–4 second intro bumper where your uploaded brand logo and optional mascot animate into frame and settle cleanly on a hero title card before your main video begins.",
+  "suggestedUseCase": "YouTube channel intros, podcast video bumpers, course module openers, brand reveal stings, and series title cards.",
   "sortOrder": 7,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/opening-director-preview-40cb80e51d.webp",
@@ -64,6 +65,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": true,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;

@@ -12,3 +12,10 @@ export function localizedVideoBlurb(t: TranslateFn, slug: string, fallback = "")
   const value = t(key);
   return value && value !== key ? value : fallback;
 }
+
+// Suggested use case for a system director in the active locale. Falls back to stored English suggestedUseCase.
+export function localizedVideoUseCase(t: TranslateFn, slug: string, fallback = ""): string {
+  const key = `brief.videoTypeUseCases.${slug}`;
+  const value = t(key);
+  return value && value !== key ? value : fallback;
+}

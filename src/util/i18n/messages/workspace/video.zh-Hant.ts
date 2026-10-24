@@ -284,7 +284,7 @@ export const videoZhHant = {
   opencut: {
     empty: "分鏡完成後，各段會以 ScroVideo 出現在此時間軸與素材庫。",
     subtitles: "字幕",
-    subtitleHint: "選擇藝術字幕設計與中英 Google 字體，直接從分鏡 VO 台詞生成可編輯的原生文字字幕。",
+    subtitleHint: "選擇藝術字幕設計與中英字體，直接從分鏡 VO 台詞生成可編輯的原生文字字幕。",
     generate: "從 VO 產生字幕",
     generating: "產生中…",
     placed: "已從 VO 產生 {count} 段字幕。",

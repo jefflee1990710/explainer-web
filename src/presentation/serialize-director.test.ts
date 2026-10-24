@@ -60,13 +60,19 @@ test("toPublicSkill exposes the stored preview url", () => {
   assert.equal(skill.previewUrl, "https://blob/opening.webp");
 });
 
-test("toPublicSkills lets a custom director inherit its template preview", () => {
+test("toPublicSkills lets a custom director inherit its template preview and suggestedUseCase", () => {
   const [system, custom] = toPublicSkills([
-    base({ slug: "opening-director", previewUrl: "https://blob/opening.webp" }),
+    base({
+      slug: "opening-director",
+      previewUrl: "https://blob/opening.webp",
+      suggestedUseCase: "YouTube channel intros and podcast bumpers",
+    }),
     base({ slug: "custom-1", baseSlug: "opening-director", ownerClerkUserId: "u1" }),
   ]);
   assert.equal(system.previewUrl, "https://blob/opening.webp");
+  assert.equal(system.suggestedUseCase, "YouTube channel intros and podcast bumpers");
   assert.equal(custom.previewUrl, "https://blob/opening.webp");
+  assert.equal(custom.suggestedUseCase, "YouTube channel intros and podcast bumpers");
   assert.equal(custom.isCustom, true);
 });
 

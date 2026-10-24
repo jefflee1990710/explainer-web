@@ -21,6 +21,7 @@ export const storyboardRowSchema = z.object({
   endVo: z.string().optional(),
   referenceTranslation: z.string().optional(),
   referenceImageIds: z.array(z.string()).optional(),
+  styleId: z.string().optional(),
   bgmSfx: z.string(),
 });
 
@@ -97,6 +98,8 @@ export const DIRECTOR_SLUGS = [
   "outfit-reel-director",
   "follow-shot-director",
   "outfit-change-director",
+  "workflow-promo-director",
+  "style-switch-director",
 ] as const;
 
 export type DirectorSlug = (typeof DIRECTOR_SLUGS)[number];
@@ -141,6 +144,8 @@ export interface IDirectorBehavior {
   allowsInWorldLabels: boolean;
   /** Whether frame generation attaches the selected text-style reference image. */
   attachesTextStyleReference: boolean;
+  /** Maximum number of visual styles selectable for a single video (1 for single-style directors, 4 for multi-style switching). */
+  maxStyleCount: number;
   /** Bookend role when the director is an opening or ending sting. */
   bookendRole?: "opening" | "ending";
   /** Brief form capabilities: spoken script input, room background upload, opening photo upload, brand logo upload, hidden in picker. */
@@ -157,6 +162,8 @@ export interface IDirector {
   slug: DirectorSlug;
   title: string;
   description: string;
+  /** Concrete scenarios, formats, and topics this director is best suited for. */
+  suggestedUseCase: string;
   sortOrder: number;
   isActive: boolean;
   previewUrl?: string;

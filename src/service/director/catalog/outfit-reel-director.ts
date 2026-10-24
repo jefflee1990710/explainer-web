@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "outfit-reel-director",
   "title": "Outfit reel",
-  "description": "Already wearing the full outfit from the reference image. Each clip is one camera rotation, with sound effects only.",
+  "description": "Showcases one character already dressed in the complete outfit from your reference image across dynamic camera rotations and angles, accompanied by foley sound effects only.",
+  "suggestedUseCase": "Single-look fashion showcases, OOTD (Outfit of the Day) reels, apparel product pages, virtual model lookbooks, and streetwear/luxury garment highlights.",
   "sortOrder": 14,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/outfit-reel-director-preview-1bcd6983e1.webp",
@@ -66,6 +67,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": false,
+    "maxStyleCount": 1,
     "hiddenInPicker": true
   }
 } as const;

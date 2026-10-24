@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "cartoon-explainer-video-director",
   "title": "Whiteboard concept explainer",
-  "description": "Turn a concept into a whiteboard doodle explainer for Reels, marketing, and decks. Approve the storyboard, then export the clips.",
+  "description": "Turns complex concepts, frameworks, or articles into high-retention whiteboard doodle explainers with explanation graphs, dynamic camera hooks, and two-beat visual progressions per clip.",
+  "suggestedUseCase": "Educational Reels & Shorts, finance/business breakdowns, psychology & productivity tips, SaaS concept explainers, pitch deck summaries, and turning blog posts into visual diagrams.",
   "sortOrder": 1,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/cartoon-explainer-video-director-preview-4d101020d1.webp",
@@ -74,6 +75,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": false,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;

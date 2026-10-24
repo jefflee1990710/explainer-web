@@ -4,7 +4,9 @@ const raw = {
   slug: "paper-cutout-explainer-video-director",
   title: "Paper-cutout concept explainer",
   description:
-    "Turn a concept or product into a paper-cutout collage explainer — cutout objects paste onto a craft board to teach the idea. Approve the storyboard, then export the clips.",
+    "Turns a concept or product into a tactile paper-cutout collage explainer — cutout objects, arrows, and diagram pieces with crisp white scissor borders paste onto a craft board across two beats per clip.",
+  suggestedUseCase:
+    "Creative brand explainers, tactile product storytelling, history & culture shorts, editorial social videos, and concept breakdowns that stand out with stop-motion craft aesthetics.",
   sortOrder: 1.5,
   isActive: true,
   previewUrl:
@@ -182,6 +184,7 @@ Start and end stills are one continuous paste-motion shot. Animate the one actio
     allowsRoomBackgroundUpload: false,
     allowsOpeningPhotoUpload: false,
     allowsBrandLogoUpload: false,
+    maxStyleCount: 1,
     hiddenInPicker: false,
   },
 } as const;

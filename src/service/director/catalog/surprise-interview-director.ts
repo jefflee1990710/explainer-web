@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "surprise-interview-director",
   "title": "Surprise interview",
-  "description": "Opens with a camera drop from above and a sharp zoom-in, then a seated interview. On-screen type is a black, white, and yellow shock poster.",
+  "description": "Opens with a dramatic overhead camera drop and crash zoom into a surprised face, then settles into a seated creator interview with bold white-on-black and yellow brush-stroke poster typography.",
+  "suggestedUseCase": "Viral hook reels, street/studio interview style explainers, contrarian hot takes, myth-busting hooks, and high-retention creator shorts.",
   "sortOrder": 13,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/surprise-interview-director-preview-2c1f56ba79.webp",
@@ -66,6 +67,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": false,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;

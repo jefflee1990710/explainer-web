@@ -4,7 +4,10 @@ import type { Character } from "@/model/character";
 import { characterVoiceSchema, parseCharacterVoice, type CharacterVoice } from "@/model/character-voice";
 import { loadDirectorImageParts } from "@/service/character/cast-prompt";
 import { resolveDefaultVersion } from "@/service/character/versions";
-import { DEFAULT_CHARACTER_VOICE } from "@/service/director/character-voice";
+import {
+  DEFAULT_CHARACTER_VOICE,
+  inferFallbackCharacterVoice,
+} from "@/service/director/character-voice";
 import { directorModel } from "@/service/director/model";
 
 const SYSTEM = `Pick one voice lock for this one character.
@@ -21,36 +24,7 @@ const inferVoiceSchema = characterVoiceSchema.omit({ note: true }).extend({
 });
 
 // Used when the model call fails, so create still turns a lock on.
-export function fallbackCharacterVoice(description: string): CharacterVoice {
-  const text = description.toLowerCase();
-  const female = /女|姐|姊|妹|媽|娘|woman|girl|female|lady/.test(text);
-  const child = /小孩|兒童|男孩|女孩|\d+\s*歲|year-old|child|kid/.test(text);
-  const older = /老人|爺|奶|elderly|older/.test(text);
-  if (child) {
-    return {
-      gender: female ? "female" : "male",
-      age: "young-adult",
-      pitch: "mid-high",
-      resonance: "bright",
-      texture: "crisp",
-      weight: "light",
-    };
-  }
-  if (older) {
-    return {
-      gender: female ? "female" : "male",
-      age: "older",
-      pitch: "low",
-      resonance: "chesty",
-      texture: "warm",
-      weight: "heavy",
-    };
-  }
-  return {
-    ...DEFAULT_CHARACTER_VOICE,
-    gender: female ? "female" : "male",
-  };
-}
+export const fallbackCharacterVoice = inferFallbackCharacterVoice;
 
 // Default completed blueprint, then one reference photo. Null when no sheet exists yet.
 export function characterBlueprintVoiceInput(

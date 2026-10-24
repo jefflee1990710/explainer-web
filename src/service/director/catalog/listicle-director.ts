@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "listicle-director",
   "title": "Listicle",
-  "description": "A numbered list, one item per clip. Pack two or three only when the list is too long. The last clip shows the full list.",
+  "description": "Builds a high-retention numbered countdown or tip list with bold on-screen item titles, presenting one item per clip with distinct camera angles and concluding on a complete summary list card.",
+  "suggestedUseCase": "Top N tools/tips/mistakes, carousel-to-reel conversions, book takeaways, resource roundups, habit checklists, and educational social media series.",
   "sortOrder": 5,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/listicle-director-preview-b9848ca7b9.webp",
@@ -66,6 +67,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": false,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;

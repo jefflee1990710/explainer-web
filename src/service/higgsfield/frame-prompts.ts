@@ -473,9 +473,21 @@ function fitFramePrompt(
   return prompt;
 }
 
+export function resolveClipStyleId(
+  project: Pick<Project, "styleId" | "styleIds" | "phaseA">,
+  clipNumber: number,
+): string | undefined {
+  const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
+  if (row?.styleId) return row.styleId;
+  if (project.styleIds && project.styleIds.length > 0) {
+    return project.styleIds[(clipNumber - 1) % project.styleIds.length];
+  }
+  return project.styleId;
+}
+
 // Catalog styles only. A user id must be loaded and passed in; it must not become doodle.
-export function systemStyle(project: Pick<Project, "styleId">): Style {
-  const id = project.styleId;
+export function systemStyle(project: Pick<Project, "styleId" | "styleIds" | "phaseA">, clipNumber?: number): Style {
+  const id = clipNumber != null ? resolveClipStyleId(project, clipNumber) : project.styleId;
   if (!id || isStyleId(id)) return resolvedStyle(id);
   throw new Error(`Style "${id}" must be loaded`);
 }
@@ -576,7 +588,7 @@ export function buildFramePrompt(
   project = talkingHeadFrameProject(project);
   const solo = isTalkingHeadSkill(project.skillSlug);
   const selfShot = isSelfShotCreatorSkill(project.skillSlug);
-  const rawStyle = options.style ?? systemStyle(project);
+  const rawStyle = options.style ?? systemStyle(project, clipNumber);
   const style = selfShot ? styleForSelfShotSkill(rawStyle) : rawStyle;
   const realistic = isRealisticStyle(style);
   // Cinematic realistic whiteboard: both stills share the camera and the whole subtitle.
@@ -1018,7 +1030,7 @@ export function frameSubmitPlan(
   const directorChooses =
     !isTalkingHeadSkill(project.skillSlug) && !isSurpriseInterviewSkill(project.skillSlug);
   // Cinematic realistic whiteboard never changes angle inside a clip, so the start still always rides along.
-  const steady = usesSteadyStills(project.skillSlug, style ?? systemStyle(project));
+  const steady = usesSteadyStills(project.skillSlug, style ?? systemStyle(project, clipNumber));
   // Another still glued on makes the image model copy its camera, so a new angle is drawn without it.
   const dropEndStill =
     position === "end" && directorChooses && !steady && !endStillUsesOpeningStill(clipRow);
@@ -1111,11 +1123,35 @@ export async function framesWithClipsReady(
   hydrate: () => Promise<void> = hydrateStyles,
 ) {
   await hydrate();
-  const style = await loadRenderableStyle({
-    styleId: project.styleId,
-    ownerClerkUserId: project.clerkUserId,
-  });
-  return framesWithClips(project, clipNumbers, style);
+  const uniqueStyleIds = Array.from(
+    new Set(
+      clipNumbers
+        .map((clipNumber) => resolveClipStyleId(project, clipNumber) || project.styleId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
+  if (uniqueStyleIds.length <= 1) {
+    const style = await loadRenderableStyle({
+      styleId: uniqueStyleIds[0] ?? project.styleId,
+      ownerClerkUserId: project.clerkUserId,
+    });
+    return framesWithClips(project, clipNumbers, style);
+  }
+  const styleById = new Map<string, RenderableStyle>();
+  await Promise.all(
+    uniqueStyleIds.map(async (id) => {
+      const loaded = await loadRenderableStyle({
+        styleId: id,
+        ownerClerkUserId: project.clerkUserId,
+      });
+      styleById.set(id, loaded);
+    }),
+  );
+  return clipNumbers.reduce((frames, clipNumber) => {
+    const cid = resolveClipStyleId(project, clipNumber) || project.styleId;
+    const clipStyle = cid ? styleById.get(cid) : undefined;
+    return framesWithClip({ ...project, frames }, clipNumber, clipStyle);
+  }, project.frames || []);
 }
 
 export function frameKey(clipNumber: number, position: FramePosition) {

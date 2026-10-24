@@ -45,8 +45,10 @@ export type PublicSkill = {
   slug: string;
   title: string;
   description: string;
+  suggestedUseCase: string;
   // Template slug for custom directors; drives skill-specific form rules.
   behaviorSlug: string;
+  maxStyleCount: number;
   isCustom: boolean;
   previewUrl?: string;
   updatedAt: string;
@@ -74,7 +76,9 @@ export type PublicVideo = {
   aspectRatio: Project["aspectRatio"];
   durationPreset: Project["durationPreset"];
   styleId: string;
+  styleIds?: string[];
   language: NonNullable<Project["language"]>;
+  narrationEnabled: boolean;
   voiceGender: NonNullable<Project["voiceGender"]>;
   speechPace: NonNullable<Project["speechPace"]>;
   sceneTextEnabled: boolean;
@@ -253,19 +257,24 @@ function publicPreviewUrl(url?: string, hash?: string) {
 }
 
 export function toPublicSkill(skill: Skill, inheritedPreviewUrl?: string): PublicSkill {
+  const bSlug = behaviorSlug(skill);
+  const suggestedUseCase =
+    skill.suggestedUseCase || skill.customProfile?.bestFor || skill.profile?.bestFor || "";
   return {
     id: skill._id.toHexString(),
     slug: skill.slug,
     title: skill.title,
     description: skill.description,
-    behaviorSlug: behaviorSlug(skill),
+    suggestedUseCase,
+    behaviorSlug: bSlug,
+    maxStyleCount: skill.behavior?.maxStyleCount ?? (bSlug === "style-switch-director" ? 4 : 1),
     isCustom: isCustomSkill(skill),
     previewUrl: publicPreviewUrl(skill.previewUrl || inheritedPreviewUrl, skill.previewHash),
     updatedAt: skill.updatedAt.toISOString(),
   };
 }
 
-// Custom directors reuse the system template's card still.
+// Custom directors reuse the system template's card still and suggested use case when unset.
 export function toPublicSkills(skills: Skill[]): PublicSkill[] {
   const published = skills.map((skill) => toPublicSkill(skill));
   const systemPreview = new Map(
@@ -273,10 +282,20 @@ export function toPublicSkills(skills: Skill[]): PublicSkill[] {
       .filter((skill) => !skill.isCustom && skill.previewUrl)
       .map((skill) => [skill.slug, skill.previewUrl!]),
   );
+  const systemUseCase = new Map(
+    published
+      .filter((skill) => !skill.isCustom && skill.suggestedUseCase)
+      .map((skill) => [skill.slug, skill.suggestedUseCase]),
+  );
   return published.map((skill) => {
-    if (skill.previewUrl || !skill.isCustom) return skill;
-    const inherited = systemPreview.get(skill.behaviorSlug);
-    return inherited ? { ...skill, previewUrl: inherited } : skill;
+    if (!skill.isCustom) return skill;
+    const inheritedPreview = skill.previewUrl || systemPreview.get(skill.behaviorSlug);
+    const inheritedUseCase = skill.suggestedUseCase || systemUseCase.get(skill.behaviorSlug) || "";
+    return {
+      ...skill,
+      ...(inheritedPreview ? { previewUrl: inheritedPreview } : {}),
+      suggestedUseCase: inheritedUseCase,
+    };
   });
 }
 
@@ -366,7 +385,9 @@ export function toPublicVideo(video: Project): PublicVideo {
     aspectRatio: video.aspectRatio,
     durationPreset: video.durationPreset,
     styleId: video.styleId || DEFAULT_STYLE_ID,
+    ...(video.styleIds && video.styleIds.length > 0 ? { styleIds: video.styleIds } : {}),
     language: video.language || "en",
+    narrationEnabled: video.narrationEnabled !== false,
     voiceGender: resolveVoiceGender(video.voiceGender),
     speechPace: resolveSpeechPace(video.speechPace),
     sceneTextEnabled: sceneText.enabled,

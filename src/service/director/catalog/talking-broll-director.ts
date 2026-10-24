@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "talking-broll-director",
   "title": "Talking-head with B-roll",
-  "description": "Two lines to camera, a cutaway of what those lines named, then back to the same close-up.",
+  "description": "Alternates between an on-camera speaker close-up (two spoken lines) and an illustrative B-roll cutaway showing what was just described, before returning to the exact same speaker setup.",
+  "suggestedUseCase": "Storytelling commentary, news & tech recaps, case study breakdowns, educational vlogs, and creator videos that blend face-to-camera trust with visual proof.",
   "sortOrder": 12,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/talking-broll-director-preview-e3fa049bf3.webp",
@@ -66,6 +67,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": false,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;

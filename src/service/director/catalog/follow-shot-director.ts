@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "follow-shot-director",
   "title": "Follow shot",
-  "description": "A third-person continuous shot. Each clip starts on the previous clip's end.",
+  "description": "Films one character in a continuous third-person locked camera shot where each clip's start frame seamlessly continues from the previous clip's end frame as the action unfolds.",
+  "suggestedUseCase": "Cinematic character walks, atmospheric B-roll sequences, physical action progressions, ambient storytelling reels, and seamless motion loops.",
   "sortOrder": 15,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/follow-shot-director-preview-9e94db7569.webp",
@@ -66,6 +67,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": false,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;

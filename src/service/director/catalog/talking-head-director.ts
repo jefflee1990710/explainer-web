@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "talking-head-director",
   "title": "Talking-head read",
-  "description": "One character reads to camera: one line per clip, timed to word count, up to 20 clips, with subtitles.",
+  "description": "Stages one character seated comfortably on a sofa reading your exact script directly to camera with natural hand gestures, continuous clip-to-clip pose chaining, and large readable subtitles.",
+  "suggestedUseCase": "Founder updates, AI influencer commentary, daily tips, personal brand Reels/TikToks, direct-to-camera announcements, and thought-leadership scripts.",
   "sortOrder": 9,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/talking-head-director-preview-eb4a22b081.webp",
@@ -88,6 +89,7 @@ const raw = {
     "allowsRoomBackgroundUpload": true,
     "allowsOpeningPhotoUpload": true,
     "allowsBrandLogoUpload": false,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;

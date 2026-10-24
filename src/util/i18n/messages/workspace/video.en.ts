@@ -284,7 +284,7 @@ export const videoEn = {
   opencut: {
     empty: "Storyboard clips will appear here as ScroVideos once Phase A finishes.",
     subtitles: "Subtitles",
-    subtitleHint: "Pick an artistic style and bilingual Google Font to generate editable subtitles directly from VO lines.",
+    subtitleHint: "Pick an artistic style and bilingual font to generate editable subtitles directly from VO lines.",
     generate: "Generate from VO",
     generating: "Generating…",
     placed: "Generated {count} VO subtitle clips.",

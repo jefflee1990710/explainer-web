@@ -35,13 +35,19 @@ function StylePreviewThumb({ style, label }: { style: PublicStyle; label: string
 export function StylePicker({
   styles,
   value,
+  values,
+  maxSelect = 1,
   onChange,
+  onMultiChange,
   disabled,
   label,
 }: {
   styles: PublicStyle[];
   value: string;
+  values?: string[];
+  maxSelect?: number;
   onChange: (id: PublicStyle["id"]) => void;
+  onMultiChange?: (ids: PublicStyle["id"][]) => void;
   disabled?: boolean;
   label?: string;
 }) {
@@ -51,8 +57,19 @@ export function StylePicker({
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
 
-  const selected = styles.find((item) => item.id === value) ?? styles[0];
-  const selectedName = selected ? styleLabel(selected) : groupLabel;
+  const isMulti = maxSelect > 1 && Boolean(onMultiChange);
+  const selectedIds = isMulti && values && values.length > 0 ? values : [value];
+  const selected = styles.find((item) => item.id === selectedIds[0]) ?? styles[0];
+  const selectedNames = selectedIds
+    .map((id) => styles.find((item) => item.id === id))
+    .filter((item): item is PublicStyle => Boolean(item))
+    .map(styleLabel);
+  const selectedName =
+    selectedNames.length > 1
+      ? `${selectedNames.join(" → ")} (${selectedNames.length}/${maxSelect})`
+      : selected
+        ? styleLabel(selected)
+        : groupLabel;
   const selectedDescription = selected?.description || "";
   const grouped = styles.some((style) => style.isCustom);
   const systemStyles = styles.filter((style) => !style.isCustom);
@@ -79,6 +96,18 @@ export function StylePicker({
   }
 
   function pick(id: PublicStyle["id"]) {
+    if (isMulti && onMultiChange) {
+      if (selectedIds.includes(id)) {
+        if (selectedIds.length > 1) {
+          onMultiChange(selectedIds.filter((item) => item !== id));
+        }
+      } else if (selectedIds.length < maxSelect) {
+        onMultiChange([...selectedIds, id]);
+      } else {
+        onMultiChange([...selectedIds.slice(0, maxSelect - 1), id]);
+      }
+      return;
+    }
     onChange(id);
     setOpen(false);
   }
@@ -91,16 +120,22 @@ export function StylePicker({
           <p className="px-1 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
         ) : null}
         <ul role="group" aria-label={label ?? undefined} className="grid grid-cols-3 gap-1.5">
-          {rows.map((style) => (
-            <li key={style.id} role="presentation">
-              <StylePickerOption
-                style={style}
-                name={styleLabel(style)}
-                active={style.id === value}
-                onPick={pick}
-              />
-            </li>
-          ))}
+          {rows.map((style) => {
+            const orderIndex = selectedIds.indexOf(style.id);
+            const active = orderIndex !== -1;
+            const displayName =
+              isMulti && active ? `#${orderIndex + 1} ${styleLabel(style)}` : styleLabel(style);
+            return (
+              <li key={style.id} role="presentation">
+                <StylePickerOption
+                  style={style}
+                  name={displayName}
+                  active={active}
+                  onPick={pick}
+                />
+              </li>
+            );
+          })}
         </ul>
       </li>
     );

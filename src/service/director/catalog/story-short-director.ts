@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "story-short-director",
   "title": "Short film",
-  "description": "A short film driven by character dialogue. Structure follows the source — no narrator.",
+  "description": "Directs a character-driven narrative short film where characters speak their own dialogue on camera with zero third-person narrator, pacing scenes around emotional beats and visual storytelling.",
+  "suggestedUseCase": "Brand origin stories, customer transformation anecdotes, moral lessons, relatable workplace/life skits, dramatic hooks, and narrative Reels or TikToks.",
   "sortOrder": 2,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/story-short-director-preview-9086fc52a3.webp",
@@ -66,6 +67,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": false,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;

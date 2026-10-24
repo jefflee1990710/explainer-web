@@ -3,7 +3,8 @@ import type { IDirector } from "@/model/director";
 const raw = {
   "slug": "ending-director",
   "title": "Ending",
-  "description": "A single 3–4 second closer: the frame settles on the brand logo as the last beat.",
+  "description": "Creates a clean 3–4 second outro sting that resolves the action onto your centered brand logo and optional call-to-action sign-off as the final resting frame.",
+  "suggestedUseCase": "Video outros, social media call-to-action cards, branded sign-offs for Reels/Shorts, pitch deck closers, and ad end-cards.",
   "sortOrder": 8,
   "isActive": true,
   "previewUrl": "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/ending-director-preview-8affd4fb58.webp",
@@ -64,6 +65,7 @@ const raw = {
     "allowsRoomBackgroundUpload": false,
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": true,
+    "maxStyleCount": 1,
     "hiddenInPicker": false
   }
 } as const;
