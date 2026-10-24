@@ -212,6 +212,7 @@ export const briefZhHant = {
   skill: { empty: "目前沒有可用的影片類型。", aria: "影片類型" },
   videoTypes: {
     "cartoon-explainer-video-director": "白板概念解說",
+    "paper-cutout-explainer-video-director": "剪紙拼貼概念解說",
     "story-short-director": "故事短片",
     "product-demo-director": "產品 Demo / 開箱",
     "dialogue-qa-director": "對話式 Q&A",
@@ -230,6 +231,8 @@ export const briefZhHant = {
   },
   videoTypeBlurbs: {
     "cartoon-explainer-video-director": "把概念做成白板塗鴉解說。先核准分鏡，再輸出 clips。",
+    "paper-cutout-explainer-video-director":
+      "把概念或產品做成剪紙拼貼解說——把剪下的物件貼上畫板來解釋。先核准分鏡，再輸出 clips。",
     "story-short-director": "以角色對白推動的短片，結構跟題材走，沒有旁白。",
     "product-demo-director": "痛點、開箱、功能示範、結果。產品外觀全程鎖定。",
     "dialogue-qa-director": "正好兩個角色，一問一答。",
@@ -258,6 +261,12 @@ export const briefZhHant = {
         voice: "旁白講 VO（你選的男／女聲）",
         structure: "鉤子 → 拆解概念 → 延後亮點",
         picture: "白板塗鴉、說明圖、手寫步驟標籤",
+        frames: "每段兩拍，起始／結尾各一句旁白",
+      },
+      "paper-cutout-explainer-video-director": {
+        voice: "旁白講 VO（你選的男／女聲）",
+        structure: "鉤子 → 用拼貼圖拆解概念 → 延後亮點",
+        picture: "白邊剪紙拼貼；彩色主角壓在黑白／牛皮紙背景上",
         frames: "每段兩拍，起始／結尾各一句旁白",
       },
       "story-short-director": {

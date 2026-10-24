@@ -20,7 +20,35 @@ export type LifePostTemplate = {
   kind: LifeShotKind;
   // English composition / pose recipe appended to the life shot prompt.
   promptGuide: string;
+  /** Optional curated tags for UI filters and MCP search. */
+  tags?: readonly string[];
 };
+
+/** Category + kind + curated tags, plus a few id-derived activity tags. */
+export function lifePostTemplateTags(template: LifePostTemplate): string[] {
+  const tags = new Set<string>([template.categoryId, template.kind, ...(template.tags ?? [])]);
+  const id = template.id.toLowerCase();
+  if (id.includes("sport") || id.includes("pickle") || id.includes("yoga") || id.includes("tennis")) {
+    tags.add("athletic");
+  }
+  if (id.includes("pickle") || id.includes("peek")) tags.add("pickleball");
+  if (id.includes("yoga")) tags.add("yoga");
+  if (id.includes("ootd") || id.includes("street") || id.includes("crosswalk")) tags.add("street");
+  if (id.includes("selfie") || id.includes("mirror") || id.includes("vanity")) tags.add("selfie");
+  if (id.includes("cafe") || id.includes("bistro") || id.includes("dessert") || id.includes("drink")) {
+    tags.add("cafe");
+  }
+  if (id.includes("travel") || id.includes("beach") || id.includes("landmark") || id.includes("nature")) {
+    tags.add("travel");
+  }
+  if (id.includes("branding") || id.includes("founder") || id.includes("podcast") || id.includes("closet")) {
+    tags.add("branding");
+  }
+  if (id.includes("casual") || id.includes("lounge") || id.includes("sofa") || id.includes("home")) {
+    tags.add("casual");
+  }
+  return [...tags];
+}
 
 export const LIFE_POST_TEMPLATES: readonly LifePostTemplate[] = [
   // Personal branding & styling
@@ -349,8 +377,33 @@ export const LIFE_POST_TEMPLATES: readonly LifePostTemplate[] = [
     id: "social-sport",
     categoryId: "social",
     kind: "hobby",
+    tags: ["athletic", "casual"],
     promptGuide:
       "Sport day: the character in activewear at a gym, court or running track, caught mid-activity or in a post-workout pose, full body.",
+  },
+  {
+    id: "social-pickleball",
+    categoryId: "social",
+    kind: "hobby",
+    tags: ["athletic", "pickleball", "tennis", "summer"],
+    promptGuide:
+      "Pickleball Peek-A-Boo court moment: the character stands on an outdoor pickleball court in a layered athletic skort or court dress, holding a paddle, sunny hard-court lines visible, full body eye-level.",
+  },
+  {
+    id: "social-yoga-mat",
+    categoryId: "social",
+    kind: "hobby",
+    tags: ["athletic", "yoga", "casual", "lounge"],
+    promptGuide:
+      "Yoga studio cool-down: the character sits or stands on a rolled yoga mat in soft studio light wearing stretch activewear, calm post-practice pose, framed full or knee-up.",
+  },
+  {
+    id: "street-casual-weekend",
+    categoryId: "street",
+    kind: "street",
+    tags: ["casual", "street", "summer"],
+    promptGuide:
+      "Casual weekend street stroll: the character walks a sunny neighborhood sidewalk in relaxed everyday layers (linen, henley, or fleece), coffee in hand, candid knee-up or full body.",
   },
 ];
 

@@ -50,3 +50,31 @@ test("the dialog pages a fixed batch and stops at the end", () => {
   assert.equal(nextLookDialogCount(LOOK_DIALOG_PAGE_SIZE, many.length), 30);
   assert.equal(nextLookDialogCount(30, many.length), 30);
 });
+
+test("tag filters and description search narrow the grid", () => {
+  const tagged = [
+    { id: "tee", name: "Heavyweight Tee", description: "casual cotton tee", tags: ["casual"] },
+    {
+      id: "skort",
+      name: "Peek-A-Boo Skort",
+      description: "pickleball court skort",
+      tags: ["pickleball", "athletic"],
+    },
+  ];
+  const byTag = filterLookDialogOptions({
+    options: tagged,
+    query: "",
+    favouriteIds: new Set(),
+    favouritesOnly: false,
+    tags: ["pickleball"],
+  });
+  assert.deepEqual(byTag.map((option) => option.id), ["skort"]);
+
+  const byDesc = filterLookDialogOptions({
+    options: tagged,
+    query: "cotton",
+    favouriteIds: new Set(),
+    favouritesOnly: false,
+  });
+  assert.deepEqual(byDesc.map((option) => option.id), ["tee"]);
+});

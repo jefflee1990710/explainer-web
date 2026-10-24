@@ -10,6 +10,7 @@ import {
   nextLookDialogCount,
   pageLookDialogOptions,
 } from "@/presentation/components/app/characters/character-look-dialog-list";
+import { LookTagFilterChips } from "@/presentation/components/app/characters/look-tag-filter-chips";
 import { useCharacterLookFavourites } from "@/presentation/components/app/characters/use-character-look-favourites";
 import { useCustomWardrobeItems } from "@/presentation/components/app/characters/use-custom-wardrobe-items";
 import { useI18n } from "@/presentation/components/i18n-provider";
@@ -21,6 +22,12 @@ import {
   type CharacterLookCategory,
   type CharacterWardrobePart,
 } from "@/service/character/character-look";
+import {
+  availableLookFilterTags,
+  lookOptionDescription,
+  lookOptionTags,
+  type LookFilterTag,
+} from "@/service/character/look-tags";
 
 const CATEGORIES: readonly CharacterLookCategory[] = ["all", "extreme", "stylized", "classic"];
 
@@ -42,8 +49,9 @@ export function CharacterLookDialog({
   const label = t(`characters.look.${part}`);
   const [tab, setTab] = useState<CharacterLookCategory>("all");
   const [query, setQuery] = useState("");
+  const [selectedTags, setSelectedTags] = useState<LookFilterTag[]>([]);
   const [favouritesOnly, setFavouritesOnly] = useState(false);
-  const filterKey = `${part}|${tab}|${query}|${favouritesOnly}`;
+  const filterKey = `${part}|${tab}|${query}|${favouritesOnly}|${selectedTags.join(",")}`;
   const [page, setPage] = useState({ filterKey, visibleCount: LOOK_DIALOG_PAGE_SIZE });
   if (page.filterKey !== filterKey) {
     setPage({ filterKey, visibleCount: LOOK_DIALOG_PAGE_SIZE });
@@ -70,15 +78,24 @@ export function CharacterLookDialog({
       .map((item) => ({
         id: item.optionId,
         name: locale === "en" ? item.name : item.nameZh || item.name,
+        description: item.prompt,
+        tags: [item.part, item.category],
       }));
     const builtInMapped = optionsForLookPart(part)
       .filter((option) => tab === "all" || lookOptionCategory(part, option.id) === tab)
       .map((option) => ({
         id: option.id,
         name: t(`characters.look.options.${part}.${option.id}`),
+        description: lookOptionDescription(option),
+        tags: lookOptionTags(part, option),
       }));
     return [...customMapped, ...builtInMapped];
   }, [customItems, locale, part, tab, t]);
+
+  const tagChips = useMemo(() => {
+    if (!isWardrobePart) return [];
+    return availableLookFilterTags(part as CharacterWardrobePart, optionsForLookPart(part));
+  }, [isWardrobePart, part]);
 
   const filtered = useMemo(
     () =>
@@ -87,9 +104,16 @@ export function CharacterLookDialog({
         query,
         favouriteIds,
         favouritesOnly,
+        tags: selectedTags,
       }),
-    [favouriteIds, favouritesOnly, namedOptions, query],
+    [favouriteIds, favouritesOnly, namedOptions, query, selectedTags],
   );
+
+  const toggleTag = useCallback((tag: LookFilterTag) => {
+    setSelectedTags((current) =>
+      current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag],
+    );
+  }, []);
 
   const visible = pageLookDialogOptions(filtered, visibleCount);
   const hasMore = visible.length < filtered.length;
@@ -176,6 +200,9 @@ export function CharacterLookDialog({
               {t("characters.look.favourites")}
             </button>
           </div>
+          {isWardrobePart ? (
+            <LookTagFilterChips tags={tagChips} selected={selectedTags} onToggle={toggleTag} />
+          ) : null}
         </div>
         {visible.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-muted">{emptyMessage}</p>

@@ -4,6 +4,7 @@ import {
   LIFE_POST_CATEGORIES,
   LIFE_POST_TEMPLATES,
   lifePostTemplatePreviewSrc,
+  lifePostTemplateTags,
 } from "@/model/life-post-template";
 import {
   LIFE_POSE_GROUPS,
@@ -11,6 +12,7 @@ import {
   LIFE_POSES,
   filterLifePoses,
   lifePosePreviewSrc,
+  lifePoseTags,
   type LifePoseGroup,
 } from "@/model/life-pose";
 import {
@@ -79,23 +81,35 @@ export function registerLifeTools({ server, user, apiKey }: Ctx) {
     {
       title: "List life post templates",
       description:
-        "List Life post-type templates for generate_life_shot with createMode=post-template.",
+        "List Life post-type templates for generate_life_shot with createMode=post-template. Each row includes searchable tags (street, athletic, pickleball, casual, …).",
       inputSchema: {
         categoryId: z
           .enum(LIFE_POST_CATEGORIES)
           .optional()
           .describe("Limit to one category (branding, street, cafe, selfie, home, travel, social)."),
+        tags: z
+          .array(z.string().min(1).max(40))
+          .max(8)
+          .optional()
+          .describe('Require tags such as "athletic", "pickleball", "casual", "cafe".'),
       },
     },
-    wrapTool(user, apiKey, "list_life_post_templates", 0, async ({ categoryId }) => {
-      const templates = categoryId
+    wrapTool(user, apiKey, "list_life_post_templates", 0, async ({ categoryId, tags }) => {
+      const required = (tags ?? []).map((tag) => tag.trim().toLowerCase()).filter(Boolean);
+      const templates = (categoryId
         ? LIFE_POST_TEMPLATES.filter((item) => item.categoryId === categoryId)
-        : LIFE_POST_TEMPLATES;
+        : LIFE_POST_TEMPLATES
+      ).filter((template) => {
+        if (!required.length) return true;
+        const have = new Set(lifePostTemplateTags(template));
+        return required.every((tag) => have.has(tag));
+      });
       return templates.map((template) => ({
         id: template.id,
         categoryId: template.categoryId,
         kind: template.kind,
         promptGuide: template.promptGuide,
+        tags: lifePostTemplateTags(template),
         previewPath: lifePostTemplatePreviewSrc(template.id),
       }));
     }),
@@ -106,26 +120,38 @@ export function registerLifeTools({ server, user, apiKey }: Ctx) {
     {
       title: "List life poses",
       description:
-        "List body-pose references for generate_life_shot.poseId. Optionally filter by group and hand action.",
+        "List body-pose references for generate_life_shot.poseId. Optionally filter by group, hand action, or tags.",
       inputSchema: {
         group: z.enum(LIFE_POSE_GROUPS).optional(),
         hand: z
           .enum(LIFE_POSE_HANDS)
           .optional()
           .describe("Hand / prop action filter (face, hair, hip, phone, …)."),
+        tags: z
+          .array(z.string().min(1).max(40))
+          .max(8)
+          .optional()
+          .describe('Require tags such as "walk", "sit", "phone", "athletic".'),
         limit: z.number().int().positive().max(120).optional().describe("Max rows (default 40)."),
       },
     },
     wrapTool(user, apiKey, "list_life_poses", 0, async (args) => {
       const limit = args.limit ?? 40;
-      const poses = args.group
+      const required = (args.tags ?? []).map((tag) => tag.trim().toLowerCase()).filter(Boolean);
+      const poses = (args.group
         ? filterLifePoses(args.group as LifePoseGroup, args.hand)
-        : LIFE_POSES.filter((pose) => !args.hand || pose.hands.includes(args.hand));
+        : LIFE_POSES.filter((pose) => !args.hand || pose.hands.includes(args.hand))
+      ).filter((pose) => {
+        if (!required.length) return true;
+        const have = new Set(lifePoseTags(pose));
+        return required.every((tag) => have.has(tag));
+      });
       return poses.slice(0, limit).map((pose) => ({
         id: pose.id,
         group: pose.group,
         framing: pose.framing,
         hands: pose.hands,
+        tags: lifePoseTags(pose),
         popularity: pose.popularity,
         promptText: pose.promptText,
         previewPath: lifePosePreviewSrc(pose.id),

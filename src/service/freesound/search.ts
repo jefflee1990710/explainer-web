@@ -104,11 +104,37 @@ function freesoundApiKey() {
 	return apiKey;
 }
 
+function buildFreesoundFilter(input: {
+	commercialOnly?: boolean;
+	durationMinSec?: number;
+	durationMaxSec?: number;
+}) {
+	const parts: string[] = [];
+	const license = freesoundCommercialFilter(input.commercialOnly !== false);
+	if (license) parts.push(license);
+	const min =
+		typeof input.durationMinSec === "number" && Number.isFinite(input.durationMinSec)
+			? Math.max(0, input.durationMinSec)
+			: null;
+	const max =
+		typeof input.durationMaxSec === "number" && Number.isFinite(input.durationMaxSec)
+			? Math.max(0, input.durationMaxSec)
+			: null;
+	if (min != null || max != null) {
+		const lo = min ?? 0;
+		const hi = max ?? 10_000;
+		parts.push(`duration:[${lo} TO ${hi}]`);
+	}
+	return parts.length ? parts.join(" ") : undefined;
+}
+
 /** Search Freesound. The API key stays on the server (Token auth). */
 export async function searchFreesoundSounds(input: {
 	page?: number;
 	query?: string;
 	commercialOnly?: boolean;
+	durationMinSec?: number;
+	durationMaxSec?: number;
 }) {
 	const { page, pageSize } = soundEffectPageBounds(input.page ?? 1);
 	const browse = freesoundBrowse({ query: input.query ?? "" });
@@ -119,7 +145,7 @@ export async function searchFreesoundSounds(input: {
 		page: String(page),
 		page_size: String(pageSize),
 	});
-	const filter = freesoundCommercialFilter(input.commercialOnly !== false);
+	const filter = buildFreesoundFilter(input);
 	if (filter) params.set("filter", filter);
 
 	const response = await fetch(`${FREESOUND_SEARCH_URL}?${params.toString()}`, {

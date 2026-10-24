@@ -3,6 +3,7 @@
 import { Separator } from "@/opencut/components/ui/separator";
 import { type Tab, useAssetsPanelStore } from "@/opencut/components/editor/panels/assets/assets-panel-store";
 import { TabBar } from "./tabbar";
+import { AiToolsView } from "./views/ai-tools-view";
 import { MediaView } from "./views/assets";
 import { StockMediaView } from "./views/stock-media-view";
 import { SettingsView } from "./views/settings";
@@ -21,6 +22,7 @@ export function AssetsPanel() {
 	const embedded = isScroEmbed(useSearchParams().get("embed"));
 
 	const viewMap: Record<Tab, React.ReactNode> = {
+		ai: <AiToolsView />,
 		media: <MediaView />,
 		stock: <StockMediaView />,
 		sounds: <SoundsView />,

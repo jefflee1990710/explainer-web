@@ -273,6 +273,19 @@ export type Messages = {
       p3Body: string;
       cta: string;
     };
+    // Built-in wardrobe / pose / post-type database as a product pillar.
+    catalog: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      statLooks: string;
+      statPoses: string;
+      statPosts: string;
+      statTags: string;
+      footnote: string;
+      cta: string;
+      ctaSecondary: string;
+    };
   };
   examples: {
     title: string;
@@ -404,6 +417,21 @@ export type Messages = {
       extremeBadge: string;
       searchPlaceholder: string;
       searchLabel: string;
+      tagsLabel: string;
+      tags: {
+        casual: string;
+        athletic: string;
+        yoga: string;
+        tennis: string;
+        pickleball: string;
+        street: string;
+        heritage: string;
+        editorial: string;
+        formal: string;
+        lounge: string;
+        summer: string;
+        winter: string;
+      };
       favourites: string;
       favouriteAdd: string;
       favouriteRemove: string;

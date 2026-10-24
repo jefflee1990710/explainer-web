@@ -1,6 +1,6 @@
-// Multi-sport athletic apparel, footwear, and gear across Tennis, Basketball, Football/Soccer,
-// Running/Marathon, Yoga/Pilates, Cycling, Golf, Boxing/MMA, Swimming/Surfing, Skiing/Snowboarding,
-// Baseball, and Hiking/Trail.
+// Multi-sport athletic apparel, footwear, and gear across Tennis, Pickleball (Peek-A-Boo skorts),
+// Basketball, Football/Soccer, Running/Marathon, Yoga/Pilates, Cycling, Golf, Boxing/MMA,
+// Swimming/Surfing, Skiing/Snowboarding, Baseball, Hiking/Trail, and Climbing.
 // Each prompt ends with "Isolated wardrobe piece <id>." so detection matches uniquely.
 import type { CharacterLookOption } from "@/service/character/character-look";
 
@@ -75,6 +75,27 @@ export const SPORTS_TOPS: readonly CharacterLookOption[] = [
     prompt:
       "Matte carbon-black long-sleeve athletic compression base-layer training top with ergonomic flatlock silver seams. Isolated wardrobe piece spcompressiontop.",
   },
+  {
+    id: "sppickleballtank",
+    description: "Color-block pickleball performance tank for court sports.",
+    tags: ["pickleball", "tennis", "athletic", "summer"],
+    prompt:
+      "Bright coral-and-white color-block pickleball performance tank with a racerback mesh panel and UPF sun-protective stretch fabric. Isolated wardrobe piece sppickleballtank.",
+  },
+  {
+    id: "sppeekaboodress",
+    description: "Peek-A-Boo layered pickleball tennis dress with built-in shorts.",
+    tags: ["pickleball", "tennis", "athletic", "summer"],
+    prompt:
+      "Sleek black athletic Peek-A-Boo pickleball tennis dress with a faux layered white under-tank, side slits that reveal built-in white compression shorts, and a fit-and-flare skirt hem. Isolated wardrobe piece sppeekaboodress.",
+  },
+  {
+    id: "spclimbingtank",
+    description: "Climbing and bouldering stretch tank.",
+    tags: ["climbing", "athletic", "casual"],
+    prompt:
+      "Dusty terracotta stretch climbing tank with a scooped back, reinforced bust seam, and chalk-friendly matte fabric. Isolated wardrobe piece spclimbingtank.",
+  },
 ];
 
 export const SPORTS_PANTS: readonly CharacterLookOption[] = [
@@ -137,6 +158,27 @@ export const SPORTS_PANTS: readonly CharacterLookOption[] = [
     id: "spcompressiontights",
     prompt:
       "Full-length matte black athletic running and gym compression tights with ergonomic knee paneling and ankle zips. Isolated wardrobe piece spcompressiontights.",
+  },
+  {
+    id: "sppeekabooskort",
+    description: "Peek-A-Boo pickleball skort with flowing skirt over built-in shorts.",
+    tags: ["pickleball", "tennis", "athletic", "summer"],
+    prompt:
+      "Flowing coral athletic Peek-A-Boo pickleball skort with a 17-inch skirt layer, side vents that reveal matching built-in compression shorts, and deep side ball pockets. Isolated wardrobe piece sppeekabooskort.",
+  },
+  {
+    id: "sppicklepleatskort",
+    description: "Pleated pickleball court skort with ball pockets.",
+    tags: ["pickleball", "tennis", "athletic"],
+    prompt:
+      "Crisp white high-waisted pleated pickleball court skort with navy waistband piping, built-in shorts, and dual side pockets sized for pickleballs. Isolated wardrobe piece sppicklepleatskort.",
+  },
+  {
+    id: "spclimbingpants",
+    description: "Stretch climbing pants with articulated knees.",
+    tags: ["climbing", "athletic", "casual"],
+    prompt:
+      "Olive stretch climbing pants with articulated knees, a gusseted crotch, tapered ankles, and brushed softshell panels. Isolated wardrobe piece spclimbingpants.",
   },
 ];
 
@@ -201,6 +243,20 @@ export const SPORTS_SHOES: readonly CharacterLookOption[] = [
     prompt:
       "Lightweight indoor badminton and volleyball court shoes in white and royal blue with non-marking gum rubber hex-grip soles. Isolated wardrobe piece spbadmintoncourt.",
   },
+  {
+    id: "sppicklecourt",
+    description: "Court shoes for pickleball and tennis with lateral support.",
+    tags: ["pickleball", "tennis", "athletic"],
+    prompt:
+      "White and neon-lime outdoor pickleball court shoes with wide lateral stability straps, durable herringbone outsoles, and breathable mesh uppers. Isolated wardrobe piece sppicklecourt.",
+  },
+  {
+    id: "spclimbingshoe",
+    description: "Aggressive downturned climbing shoes.",
+    tags: ["climbing", "athletic"],
+    prompt:
+      "Bright orange downturned climbing shoes with sticky rubber rands, a snug ballet-like closure, and a pointed toe box. Isolated wardrobe piece spclimbingshoe.",
+  },
 ];
 
 export const SPORTS_ACCESSORIES: readonly CharacterLookOption[] = [
@@ -234,6 +290,20 @@ export const SPORTS_ACCESSORIES: readonly CharacterLookOption[] = [
     prompt:
       "Ultralight marathon trail-running hydration vest pack with dual soft-flask water bottles on the chest straps. Isolated wardrobe piece sprunningvest.",
   },
+  {
+    id: "sppicklepaddle",
+    description: "Pickleball paddle carried as a court accessory.",
+    tags: ["pickleball", "athletic", "summer"],
+    prompt:
+      "Graphite-faced neon pickleball paddle held casually at the side with a matching wrist leash cord. Isolated wardrobe piece sppicklepaddle.",
+  },
+  {
+    id: "spclimbingchalkbag",
+    description: "Climbing chalk bag worn at the waist.",
+    tags: ["climbing", "athletic"],
+    prompt:
+      "Compact chalk bag in dusty teal corduroy worn on a webbing waist belt with a drawstring closure. Isolated wardrobe piece spclimbingchalkbag.",
+  },
 ];
 
 export const SPORTS_LABELS_EN = {
@@ -252,6 +322,9 @@ export const SPORTS_LABELS_EN = {
     spskiparka: "Alpine Gore-Tex Ski Jacket",
     spbaseballjersey: "Pinstripe Baseball Jersey",
     spcompressiontop: "Pro Compression Base Layer",
+    sppickleballtank: "Pickleball Color-Block Tank",
+    sppeekaboodress: "Peek-A-Boo Court Dress",
+    spclimbingtank: "Climbing Stretch Tank",
   },
   pants: {
     sptennispleatskort: "Pleated Tennis Skort",
@@ -266,6 +339,9 @@ export const SPORTS_LABELS_EN = {
     spsurfboardshorts: "Striped Surf Boardshorts",
     spskisnowpants: "Waterproof Alpine Ski Pants",
     spcompressiontights: "Pro Running Compression Tights",
+    sppeekabooskort: "Peek-A-Boo Pickleball Skort",
+    sppicklepleatskort: "Pleated Pickleball Skort",
+    spclimbingpants: "Articulated Climbing Pants",
   },
   shoes: {
     spcarbonmarathonz: "Carbon-Plate Marathon Runners",
@@ -280,6 +356,8 @@ export const SPORTS_LABELS_EN = {
     spsnowboardboots: "Alpine Snowboard & Ski Boots",
     spliftingflat: "Wedge-Heel Gym Lifting Shoes",
     spbadmintoncourt: "Gum-Sole Indoor Court Shoes",
+    sppicklecourt: "Pickleball Court Shoes",
+    spclimbingshoe: "Downturned Climbing Shoes",
   },
   accessory: {
     sptennisvisor: "Tennis Sun Visor & Wristbands",
@@ -288,6 +366,8 @@ export const SPORTS_LABELS_EN = {
     spskogoggles: "Mirrored Alpine Ski Goggles",
     spyogamatstrap: "Rolled Yoga Mat & Sling",
     sprunningvest: "Marathon Hydration Vest",
+    sppicklepaddle: "Pickleball Paddle",
+    spclimbingchalkbag: "Climbing Chalk Bag",
   },
 } as const;
 
@@ -307,6 +387,9 @@ export const SPORTS_LABELS_ZH = {
     spskiparka: "高山防水機能滑雪衝鋒外套",
     spbaseballjersey: "經典細條紋排釦棒球球衣",
     spcompressiontop: "碳黑專業高彈力運動緊身長袖",
+    sppickleballtank: "撞色匹克球運動背心",
+    sppeekaboodress: "Peek-A-Boo 分層球場連身裙",
+    spclimbingtank: "攀岩彈性運動背心",
   },
   pants: {
     sptennispleatskort: "高腰百褶防走光網球短裙",
@@ -321,6 +404,9 @@ export const SPORTS_LABELS_ZH = {
     spsurfboardshorts: "快乾撞色綁帶海灘衝浪短褲",
     spskisnowpants: "防水保暖高山滑雪吊帶長褲",
     spcompressiontights: "專業全掌壓縮慢跑訓練長褲",
+    sppeekabooskort: "Peek-A-Boo 匹克球短裙褲",
+    sppicklepleatskort: "百褶匹克球場短裙",
+    spclimbingpants: "立體剪裁攀岩長褲",
   },
   shoes: {
     spcarbonmarathonz: "螢光綠碳板厚底馬拉松跑鞋",
@@ -335,6 +421,8 @@ export const SPORTS_LABELS_ZH = {
     spsnowboardboots: "旋鈕鎖緊保暖滑雪雪靴",
     spliftingflat: "魔鬼氈木跟重訓深蹲舉重鞋",
     spbadmintoncourt: "生膠底防滑室內羽球／排球鞋",
+    sppicklecourt: "匹克球室外場地鞋",
+    spclimbingshoe: "下彎攀岩鞋",
   },
   accessory: {
     sptennisvisor: "網球遮陽空頂帽配護腕",
@@ -343,5 +431,7 @@ export const SPORTS_LABELS_ZH = {
     spskogoggles: "無框炫彩鍍膜滑雪護目鏡",
     spyogamatstrap: "鼠尾草綠背帶瑜珈墊",
     sprunningvest: "越野馬拉松雙水壺補給背心",
+    sppicklepaddle: "匹克球拍",
+    spclimbingchalkbag: "攀岩粉袋",
   },
 } as const;

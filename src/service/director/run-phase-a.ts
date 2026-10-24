@@ -53,11 +53,14 @@ import { sceneDetailDirectorBlock } from "@/service/director/scene-detail";
 import { sanitizeOutfitChangePhaseA } from "@/service/director/outfit-change";
 import { isRealisticStyle, isSelfShotCreatorSkill } from "@/service/style/realistic-light";
 import {
-  CARTOON_EXPLAINER_SKILL_SLUG,
   dualBeatDirectorBlock,
   isDualBeatSkill,
   normalizeDualBeatRow,
 } from "@/service/director/dual-beat";
+import {
+  explainerCanvasKind,
+  isDiagramExplainerSkill,
+} from "@/service/director/explainer-family";
 import { loadReferenceImageContent } from "@/service/director/reference-image-content";
 import { rewriteEndScenes } from "@/service/director/end-scene-rewrite";
 import { directorModel } from "@/service/director/model";
@@ -336,10 +339,11 @@ ${
   [
     dialogueOnly ? dialogueOnlyDirectorBlock() : "",
     input.skill.slug === STORY_SHORT_SKILL_SLUG ? storyShortDirectorBlock() : "",
-    input.skill.slug === CARTOON_EXPLAINER_SKILL_SLUG
+    isDiagramExplainerSkill(input.skill.slug)
       ? cartoonExplainerDirectorBlock({
           hasCharacter,
           smoothMotion: steadyStills,
+          canvas: explainerCanvasKind(input.skill.slug) ?? "whiteboard",
           realistic: isRealisticStyle({
             id: input.style.id,
             baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,

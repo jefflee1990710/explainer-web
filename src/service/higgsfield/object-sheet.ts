@@ -57,6 +57,17 @@ export function buildBackgroundPlatePrompt(input: {
       "No 3D room, no studio, no house, no buildings, no sky, no physical easel, no borders, no grid, no people, no props, no text.",
     ]);
   }
+  const isPaperCutoutCanvas =
+    input.plate.setId === "paper-cutout-canvas" ||
+    /paper[- ]?cutout|craft board|cutting mat|剪紙畫布/i.test(`${input.plate.name} ${notes}`);
+  if (isPaperCutoutCanvas) {
+    return fitReferencePrompt([
+      "Empty paper-cutout craft board reference plate, full-bleed edge-to-edge.",
+      `Aspect ratio ${input.aspectRatio || "9:16"}.`,
+      "A flat dark craft board or black paper collage surface filling 100% of the frame edge-to-edge, with faint cutting-mat grid lines and subtle paper grain.",
+      "No 3D room, no studio, no sky, no people, no cutout props, no text, no pasted pieces.",
+    ]);
+  }
   return fitReferencePrompt([
     `Empty set reference as a 3x3 contact sheet of the same ${input.style.name} place.`,
     "Aspect ratio 16:9.",
@@ -108,6 +119,25 @@ export function isWhiteboardCanvasPlate(
   );
 }
 
+/** Flat craft-board collage set — skip 3x3 architecture attachment like whiteboard-canvas. */
+export function isPaperCutoutCanvasPlate(
+  plate?: Pick<BackgroundPlate, "name" | "notes" | "setId">,
+): boolean {
+  if (!plate) return false;
+  return (
+    plate.setId === "paper-cutout-canvas" ||
+    /paper[- ]?cutout|craft board|cutting mat|剪紙畫布/i.test(
+      `${plate.name ?? ""} ${plate.notes ?? ""}`,
+    )
+  );
+}
+
+export function isFlatExplainerCanvasPlate(
+  plate?: Pick<BackgroundPlate, "name" | "notes" | "setId">,
+): boolean {
+  return isWhiteboardCanvasPlate(plate) || isPaperCutoutCanvasPlate(plate);
+}
+
 export function backgroundPlateForClip(
   project: Pick<Project, "backgroundPlates" | "phaseA">,
   clipNumber: number,
@@ -115,6 +145,6 @@ export function backgroundPlateForClip(
   const setId = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber)?.backgroundSetId;
   if (!setId) return undefined;
   const plate = (project.backgroundPlates || []).find((item) => item.setId === setId);
-  if (!plate?.url || isWhiteboardCanvasPlate(plate)) return undefined;
+  if (!plate?.url || isFlatExplainerCanvasPlate(plate)) return undefined;
   return plate;
 }

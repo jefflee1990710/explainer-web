@@ -215,6 +215,7 @@ export const briefEn = {
   skill: { empty: "No video types available.", aria: "Video type" },
   videoTypes: {
     "cartoon-explainer-video-director": "Whiteboard concept explainer",
+    "paper-cutout-explainer-video-director": "Paper-cutout concept explainer",
     "story-short-director": "Short film",
     "product-demo-director": "Product demo / unboxing",
     "dialogue-qa-director": "Two-character Q&A",
@@ -233,6 +234,8 @@ export const briefEn = {
   },
   videoTypeBlurbs: {
     "cartoon-explainer-video-director": "Turn a concept into a whiteboard doodle explainer. Approve the storyboard, then export the clips.",
+    "paper-cutout-explainer-video-director":
+      "Turn a concept or product into a paper-cutout collage explainer — cutout objects paste onto a craft board. Approve the storyboard, then export the clips.",
     "story-short-director": "A short film driven by character dialogue. Structure follows the source — no narrator.",
     "product-demo-director": "Pain, unbox, feature demo, result. The product look stays locked.",
     "dialogue-qa-director": "Exactly two characters ask and answer.",
@@ -262,6 +265,12 @@ export const briefEn = {
         voice: "Narrator reads the VO (the male or female voice you picked)",
         structure: "Hook → unpack the idea → delay the payoff",
         picture: "Whiteboard doodles, explanation graphs, handwritten step labels",
+        frames: "Two beats per clip: one VO line on the start frame, one on the end",
+      },
+      "paper-cutout-explainer-video-director": {
+        voice: "Narrator reads the VO (the male or female voice you picked)",
+        structure: "Hook → paste the idea as a collage graph → delay the payoff",
+        picture: "Paper cutouts with white scissor borders; colour hero on mono craft board",
         frames: "Two beats per clip: one VO line on the start frame, one on the end",
       },
       "story-short-director": {

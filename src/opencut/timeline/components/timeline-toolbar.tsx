@@ -55,9 +55,7 @@ import { PopoverTrigger } from "@/opencut/components/ui/popover";
 import { useGraphEditorController } from "./graph-editor/use-controller";
 import { useState } from "react";
 import { toast } from "sonner";
-import { createMediaInputSource, probeVideoSpeechBoundsFromSource } from "@/opencut/embed/scro-media-load";
-import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/opencut/wasm";
-import { armScroSync } from "@/opencut/embed/scro-media-sources";
+import { runSmoothSilenceGapsOnTimeline } from "@/opencut/embed/scro-smooth-silence";
 import {
 	useScroSubtitleCatalog,
 	useScroSubtitleVideoId,
@@ -144,111 +142,16 @@ function ToolbarLeftSection() {
 
 	const handleSmoothSilenceGaps = async () => {
 		if (smoothingPauses) return;
-		const scene = editor.scenes.getActiveScene();
-		const mainElements = [...scene.tracks.main.elements].sort(
-			(a, b) => a.startTime - b.startTime,
-		);
-		const videoCount = mainElements.filter((el) => el.type === "video").length;
-		if (videoCount === 0) {
-			toast.info("No video clips on the main track yet");
-			return;
-		}
-
 		setSmoothingPauses(true);
 		try {
-			const assets = editor.media.getAssets();
-			const byId = new Map(assets.map((a) => [a.id, a]));
-			const trimBoundsByAssetId = new Map<
-				string,
-				{ duration: number; trimStart: number; trimEnd: number }
-			>();
-
-			for (const el of mainElements) {
-				if (el.type !== "video" || trimBoundsByAssetId.has(el.mediaId)) continue;
-				const asset = byId.get(el.mediaId);
-				if (!asset) continue;
-				if (
-					asset.duration &&
-					(asset.speechTrimStart !== undefined || asset.speechTrimEnd !== undefined)
-				) {
-					trimBoundsByAssetId.set(asset.id, {
-						duration: asset.duration,
-						trimStart: asset.speechTrimStart ?? 0,
-						trimEnd: asset.speechTrimEnd ?? 0,
-					});
-					continue;
-				}
-				const probed = await probeVideoSpeechBoundsFromSource(
-					createMediaInputSource({ file: asset.file, url: asset.url }),
-				);
-				const dur = probed.duration ?? asset.duration ?? mediaTimeToSeconds({ time: el.duration });
-				trimBoundsByAssetId.set(asset.id, {
-					duration: dur,
-					trimStart: probed.speechTrimStart ?? 0,
-					trimEnd: probed.speechTrimEnd ?? 0,
-				});
-			}
-
-			let cursorSeconds = 0;
-			let trimmedClipsCount = 0;
-			const updates: Array<{
-				trackId: string;
-				elementId: string;
-				patch: Record<string, unknown>;
-			}> = [];
-
-			for (const el of mainElements) {
-				if (el.type === "video") {
-					const bounds = trimBoundsByAssetId.get(el.mediaId);
-					if (bounds && bounds.duration > 0) {
-						const trimStart = Math.max(0, Math.min(bounds.duration - 0.5, bounds.trimStart));
-						const trimEnd = Math.max(
-							0,
-							Math.min(bounds.duration - trimStart - 0.5, bounds.trimEnd),
-						);
-						const visible = Math.max(
-							0.5,
-							Math.round((bounds.duration - trimStart - trimEnd) * 1000) / 1000,
-						);
-						if (trimStart > 0.04 || trimEnd > 0.04) {
-							trimmedClipsCount++;
-						}
-						updates.push({
-							trackId: scene.tracks.main.id,
-							elementId: el.id,
-							patch: {
-								startTime: mediaTimeFromSeconds({ seconds: cursorSeconds }),
-								duration: mediaTimeFromSeconds({ seconds: visible }),
-								trimStart: mediaTimeFromSeconds({ seconds: trimStart }),
-								trimEnd: mediaTimeFromSeconds({ seconds: trimEnd }),
-								sourceDuration: mediaTimeFromSeconds({ seconds: bounds.duration }),
-							},
-						});
-						cursorSeconds += visible;
-						continue;
-					}
-				}
-				const durSec = mediaTimeToSeconds({ time: el.duration });
-				updates.push({
-					trackId: scene.tracks.main.id,
-					elementId: el.id,
-					patch: {
-						startTime: mediaTimeFromSeconds({ seconds: cursorSeconds }),
-					},
-				});
-				cursorSeconds += durSec;
-			}
-
-			if (updates.length > 0) {
-				editor.timeline.updateElements({
-					pushHistory: true,
-					updates,
-				});
-				armScroSync();
+			const res = await runSmoothSilenceGapsOnTimeline({ editor });
+			if (res.error) {
+				toast.info(res.error);
+				return;
 			}
 			toast.success(
-				trimmedClipsCount > 0
-					? `已平滑 ${trimmedClipsCount} 段影片接口靜音停頓`
+				res.trimmedClipsCount > 0
+					? `已平滑 ${res.trimmedClipsCount} 段影片接口靜音停頓`
 					: "已完成片段接口對齊（未偵測到多餘前後靜音）",
 			);
 		} catch (error) {

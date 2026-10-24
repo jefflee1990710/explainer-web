@@ -171,6 +171,18 @@ export const zhHans: Partial<Messages> = {
       p3Body: "把品牌衣着加进衣柜，角色穿你的东西，不是通用衣柜。",
       cta: "开始建立品牌 IP",
     },
+    catalog: {
+      eyebrow: "内建强大数据库",
+      title: "够深的衣柜，才能天天都有新鲜感。",
+      body: "发型、上身、下身、鞋、配饰、人体姿势、帖文类型全部可搜索、可标签——休闲、瑜伽、网球、Peek-A-Boo 匹克球、各地传统服饰，你和 MCP Agent 几秒就能找到合适选择。",
+      statLooks: "衣柜造型",
+      statPoses: "人体姿势",
+      statPosts: "帖文模板",
+      statTags: "筛选标签",
+      footnote: "在工作室用标签筛选，或让 Agent 用 search_looks／list_life_post_templates 的 tags 参数查找。",
+      cta: "去看衣柜",
+      ctaSecondary: "打开 Life 工作台",
+    },
     director: {
       eyebrow: "精准控制制作成本",
       title: "请真人 KOL 很贵，盲抽 AI 视频重试更贵。",
