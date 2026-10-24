@@ -438,6 +438,38 @@ export const LIFE_POST_TEMPLATES: readonly LifePostTemplate[] = [
     promptGuide:
       "Minimalist architectural lookbook: the character stands in a clean sunlit stone doorway or against a neutral paneled wall in structured outerwear and wide-leg trousers, one hand in the pocket, framed full-body.",
   },
+  {
+    id: "selfie-car-golden-hour",
+    categoryId: "selfie",
+    kind: "selfie",
+    tags: ["selfie", "casual", "travel"],
+    promptGuide:
+      "Golden-hour car passenger-seat selfie: the character sits belted in a modern car cabin with warm sunset window light across the face, holding the phone slightly above eye level for an effortless candid selfie, framed upper-body.",
+  },
+  {
+    id: "cafe-night-flash-toast",
+    categoryId: "cafe",
+    kind: "food",
+    tags: ["cafe", "casual"],
+    promptGuide:
+      "Night flash bistro toast: direct camera flash in a dimly lit wooden dining booth or izakaya, the character holds up a cocktail glass or iced drink near the cheek with a playful wink or warm smile, framed half-body.",
+  },
+  {
+    id: "travel-inflight-cabin",
+    categoryId: "travel",
+    kind: "street",
+    tags: ["travel", "casual", "lounge"],
+    promptGuide:
+      "In-flight cabin window seat: the character sits curled up comfortably in an airplane window seat in cozy travel knitwear, holding a coffee cup or snack with soft oval window daylight, framed knee-up.",
+  },
+  {
+    id: "travel-yacht-deck",
+    categoryId: "travel",
+    kind: "street",
+    tags: ["travel", "casual", "summer"],
+    promptGuide:
+      "Yacht deck & pier sunset: the character sits or leans on a white boat deck or seaside pier edge with turquoise water and sunlit coastline behind, breeze in the hair, framed knee-up or full-body.",
+  },
 ];
 
 const BY_ID = new Map(LIFE_POST_TEMPLATES.map((template) => [template.id, template]));

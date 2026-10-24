@@ -117,7 +117,11 @@ export const LIFE_POSE_NAMES_EN: Record<string, string> = {
   "sport-sound-bath-sit": "Sound Bath Meditation Sit",
   "sport-climbing-overhang": "Climbing Wall Hold",
   "casual-armchair-curl": "Armchair Curled-Up Lounge",
-  "casual-wainscot-clutch-lean": "Minimalist Pocket & Clutch Lean"
+  "casual-wainscot-clutch-lean": "Minimalist Pocket & Clutch Lean",
+  "casual-tatami-matcha-kneel": "Tatami Matcha Bowl Kneel",
+  "sport-archery-draw": "Archery Bow Draw Stance",
+  "casual-inflight-curl": "In-Flight Window Seat Curl",
+  "casual-table-ankle-cross": "Table Lean Crossed-Ankle Pose"
 };
 
 export const LIFE_POSE_NAMES_ZH: Record<string, string> = {
@@ -237,5 +241,9 @@ export const LIFE_POSE_NAMES_ZH: Record<string, string> = {
   "sport-sound-bath-sit": "頌缽靜心盤坐",
   "sport-climbing-overhang": "攀岩牆抓點回眸",
   "casual-armchair-curl": "扶手椅蜷腿慵懶坐姿",
-  "casual-wainscot-clutch-lean": "極簡單手插袋倚牆"
+  "casual-wainscot-clutch-lean": "極簡單手插袋倚牆",
+  "casual-tatami-matcha-kneel": "榻榻米捧抹茶碗跪坐",
+  "sport-archery-draw": "射箭拉弓瞄準站姿",
+  "casual-inflight-curl": "機艙窗邊蜷坐拿杯",
+  "casual-table-ankle-cross": "倚桌交叉腳輕撫髮"
 };

@@ -105,6 +105,10 @@ export const LIFE_TEMPLATES_EN: LifeTemplateLabels = {
     "social-country-club": "Country-club court side",
     "street-casual-weekend": "Casual weekend stroll",
     "street-minimal-lookbook": "Minimalist doorway lookbook",
+    "selfie-car-golden-hour": "Golden-hour car selfie",
+    "cafe-night-flash-toast": "Night flash bistro toast",
+    "travel-inflight-cabin": "In-flight window seat",
+    "travel-yacht-deck": "Yacht deck & pier breeze",
   },
   tips: {
     "branding-closet-guide": "Stand full-length in front of an open wardrobe while holding a mini wireless mic to explain the outfit formula.",
@@ -160,6 +164,10 @@ export const LIFE_TEMPLATES_EN: LifeTemplateLabels = {
     "social-country-club": "Preppy court-side look with layered knit, polo, and canvas racket tote.",
     "street-casual-weekend": "Relaxed neighborhood stroll in everyday layers with a coffee in hand.",
     "street-minimal-lookbook": "Full-body minimalist lookbook in a sunlit doorway or against a clean wall.",
+    "selfie-car-golden-hour": "Seated in the passenger seat with warm sunset light across the face.",
+    "cafe-night-flash-toast": "Direct flash in a cozy dining booth while raising a glass or iced drink.",
+    "travel-inflight-cabin": "Cozy travel look curled up by the airplane window with a drink or snack.",
+    "travel-yacht-deck": "Breezy seaside pier or boat deck shot with open water and sky behind.",
   },
 };
 
@@ -250,6 +258,10 @@ export const LIFE_TEMPLATES_ZH: LifeTemplateLabels = {
     "social-country-club": "網球俱樂部場邊",
     "street-casual-weekend": "休閒週末散步",
     "street-minimal-lookbook": "極簡門廊穿搭誌",
+    "selfie-car-golden-hour": "車內夕陽逆光自拍",
+    "cafe-night-flash-toast": "夜間閃光燈舉杯隨拍",
+    "travel-inflight-cabin": "機艙窗邊舒適旅途",
+    "travel-yacht-deck": "遊艇甲板與海風碼頭",
   },
   tips: {
     "branding-closet-guide": "站在燈光溫暖的開放式衣櫃前全身入鏡，手拿迷你無線麥克風講解穿搭公式。",
@@ -305,5 +317,9 @@ export const LIFE_TEMPLATES_ZH: LifeTemplateLabels = {
     "social-country-club": "場邊老錢學院風疊穿針織衫、球拍托特包與陽光球場。",
     "street-casual-weekend": "社區街道休閒散步，日常層次穿搭，手拿咖啡。",
     "street-minimal-lookbook": "在採光石造門廊或極簡牆面前單手插袋拍全身 Lookbook。",
+    "selfie-car-golden-hour": "坐在車內副駕繫上安全帶，利用夕陽車窗斜射暖光拍出隨性自拍。",
+    "cafe-night-flash-toast": "在昏暗木質卡座或餐酒館開直閃，手拿酒杯或特調飲品靠近臉頰微笑。",
+    "travel-inflight-cabin": "穿著舒適針織或休閒套裝蜷坐在飛機窗邊座位，手拿咖啡杯展現旅途感。",
+    "travel-yacht-deck": "坐在遊艇甲板或海邊碼頭邊緣回眸，讓海面與陽光填滿背景。",
   },
 };

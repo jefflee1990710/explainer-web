@@ -165,11 +165,11 @@ test("detectCharacterWardrobePicks follows the most recent change, not catalog o
 
 test("extra wardrobe options stay unique so one prompt cannot hide inside another", () => {
   // Base + heritage/era extras + branding/amenda/sports + casual / pickleball / IG-distilled expansions.
-  assert.equal(optionsForLookPart("hair").length, 17 + 14 + 20 + 2);
-  assert.equal(optionsForLookPart("top").length, 28 + 99 + 166 + 30 + 14 + 10 + 5 + 5);
-  assert.equal(optionsForLookPart("pants").length, 1 + 16 + 51 + 97 + 22 + 12 + 7 + 4 + 4);
-  assert.equal(optionsForLookPart("shoes").length, 19 + 46 + 18 + 12 + 5 + 3 + 3);
-  assert.equal(optionsForLookPart("accessory").length, 8 + 33 + 18 + 6 + 5 + 4 + 3);
+  assert.equal(optionsForLookPart("hair").length, 17 + 14 + 20 + 2 + 2);
+  assert.equal(optionsForLookPart("top").length, 28 + 99 + 166 + 30 + 14 + 10 + 5 + 5 + 8);
+  assert.equal(optionsForLookPart("pants").length, 1 + 16 + 51 + 97 + 22 + 12 + 7 + 4 + 4 + 6);
+  assert.equal(optionsForLookPart("shoes").length, 19 + 46 + 18 + 12 + 5 + 3 + 3 + 5);
+  assert.equal(optionsForLookPart("accessory").length, 8 + 33 + 18 + 6 + 5 + 4 + 3 + 6);
   assert.equal(lookOptionCategory("hair", "dreadlocks"), "extreme");
   assert.equal(lookOptionCategory("hair", "pompadour"), "stylized");
   assert.equal(lookOptionCategory("hair", "pixie"), "classic");

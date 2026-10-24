@@ -26,6 +26,18 @@ const ACCOUNT_BUCKETS: Record<string, string[]> = {
   tennis: ["wilson", "sportyandrich"],
   pickleball: ["ppa_tour", "pickleballcentral", "blogilates"],
   climbing: ["blackdiamond"],
+  lifestyle: [
+    "yeyedamei",
+    "_tnnn26",
+    "formunawei",
+    "wtingv_",
+    "j876my",
+    "chloeceyi_",
+    "natalieyuung",
+    "maggielee2xys",
+    "pparadeee",
+    "tammyy.tm",
+  ],
 };
 
 function parseArg(name: string, fallback = "") {

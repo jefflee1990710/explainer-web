@@ -34,6 +34,20 @@ export const CASUAL_HAIR: readonly CharacterLookOption[] = [
     prompt:
       "Short brown hair styled forward with natural airy texture, a slightly disheveled micro fringe above the brows, and a clean matte finish. Isolated wardrobe piece cscasualmicrofringe.",
   },
+  {
+    id: "cscasualsoftupdo",
+    description: "Relaxed casual updo with loose face-framing wisps along the cheeks (distilled from _tnnn26).",
+    tags: ["casual", "lounge", "korea", "summer"],
+    prompt:
+      "Dark brunette hair styled in a relaxed casual low updo with soft, loose face-framing wisps falling naturally along the cheeks and ears. Isolated wardrobe piece cscasualsoftupdo.",
+  },
+  {
+    id: "cscasualribbonbraid",
+    description: "Half-up romantic waves tied with a sheer dusty-blue organza ribbon bow (distilled from tammyy.tm).",
+    tags: ["casual", "summer", "korea"],
+    prompt:
+      "Long dark brunette wavy hair styled half-up and tied at the crown with a sheer dusty-blue organza ribbon bow, soft curls cascading over the shoulders. Isolated wardrobe piece cscasualribbonbraid.",
+  },
 ];
 
 export const CASUAL_TOPS: readonly CharacterLookOption[] = [
@@ -121,6 +135,62 @@ export const CASUAL_TOPS: readonly CharacterLookOption[] = [
     prompt:
       "Vibrant crimson-red fine-gauge knit crewneck cardigan sweater featuring tonal front buttons and neat ribbed detailing at the collar, cuffs, and hem. Isolated wardrobe piece cscasualredcardigan.",
   },
+  {
+    id: "cscasualboleroshrug",
+    description: "Cropped open-knit cream bolero shrug layered over a fitted tank (distilled from wtingv_ & _tnnn26).",
+    tags: ["casual", "lounge", "korea", "summer"],
+    prompt:
+      "Cropped cream-white pointelle open-knit long-sleeve bolero shrug cardigan layered casually over a fitted scoop-neck ribbed tank top. Isolated wardrobe piece cscasualboleroshrug.",
+  },
+  {
+    id: "cscasualsatinjersey",
+    description: "Oversized icy-blue satin sporty jersey top with ribbed collar (distilled from _tnnn26).",
+    tags: ["casual", "street", "athletic", "korea"],
+    prompt:
+      "Oversized metallic icy-blue satin sporty V-neck jersey top featuring a grey ribbed polo collar accent and subtle tonal athletic numerals. Isolated wardrobe piece cscasualsatinjersey.",
+  },
+  {
+    id: "cscasualchiffonhalter",
+    description: "Fluid light-beige pleated chiffon halter-neck sleeveless top (distilled from pparadeee).",
+    tags: ["casual", "summer", "formal", "sea"],
+    prompt:
+      "Fluid light-beige sheer chiffon halter-neck sleeveless top featuring delicate vertical micro-pleats and an airy gathered tie neckline. Isolated wardrobe piece cscasualchiffonhalter.",
+  },
+  {
+    id: "cscasualcobaltknit",
+    description: "Form-fitting royal cobalt-blue fine-ribbed knit long-sleeve top (distilled from maggielee2xys).",
+    tags: ["casual", "street", "korea"],
+    prompt:
+      "Form-fitting royal cobalt-blue fine-ribbed knit long-sleeve top featuring a wide scoop neckline and sleek elongated cuffs. Isolated wardrobe piece cscasualcobaltknit.",
+  },
+  {
+    id: "cscasualraglanheart",
+    description: "Baby-pink and white raglan long-sleeve tee with a mini chest heart (distilled from tammyy.tm).",
+    tags: ["casual", "lounge", "korea", "street"],
+    prompt:
+      "Fitted long-sleeve raglan crewneck tee with pastel baby-pink contrast sleeves, a crisp white torso, and a tiny embroidered red heart on the chest. Isolated wardrobe piece cscasualraglanheart.",
+  },
+  {
+    id: "cscasualoliveshacket",
+    description: "Oversized olive-drab cotton-canvas utility safari shacket (distilled from j876my).",
+    tags: ["casual", "street", "winter"],
+    prompt:
+      "Oversized olive-drab washed cotton-canvas utility safari shacket featuring four buttoned flap pockets, a pointed collar, and relaxed dropped shoulders. Isolated wardrobe piece cscasualoliveshacket.",
+  },
+  {
+    id: "cscasualfloralcamiset",
+    description: "Pale-blue watercolor floral ruffled camisole layered under a soft knit cardigan (distilled from wtingv_).",
+    tags: ["casual", "summer", "korea"],
+    prompt:
+      "Pale-blue watercolor ditsy-floral camisole top with a ruffled square neckline layered beneath a soft slouchy cream knit cardigan. Isolated wardrobe piece cscasualfloralcamiset.",
+  },
+  {
+    id: "cscasualcharcoalvneck",
+    description: "Charcoal-grey form-fitting athletic V-neck short-sleeve crop top (distilled from formunawei).",
+    tags: ["casual", "athletic", "tennis", "pickleball", "summer"],
+    prompt:
+      "Charcoal-grey form-fitting short-sleeve athletic V-neck crop top in smooth four-way stretch jersey with contoured waist seaming. Isolated wardrobe piece cscasualcharcoalvneck.",
+  },
 ];
 
 export const CASUAL_PANTS: readonly CharacterLookOption[] = [
@@ -180,6 +250,48 @@ export const CASUAL_PANTS: readonly CharacterLookOption[] = [
     prompt:
       "Deep burgundy relaxed-fit heavyweight cotton fleece sweatpants with an elasticized drawstring waistband, cinched ankle cuffs, and discreet crest embroidery. Isolated wardrobe piece cscasualburgundysweat.",
   },
+  {
+    id: "cscasualginghamshorts",
+    description: "Light-blue and white micro-gingham cotton lounge shorts with ruffled hem (distilled from yeyedamei).",
+    tags: ["casual", "lounge", "summer", "korea"],
+    prompt:
+      "Light-blue and white micro-gingham woven cotton lounge shorts featuring an elasticated drawstring waist and a soft ruffled hemline. Isolated wardrobe piece cscasualginghamshorts.",
+  },
+  {
+    id: "cscasualstrappedcargo",
+    description: "Loose light-grey technical parachute cargo pants with buckle straps (distilled from formunawei).",
+    tags: ["casual", "street", "korea"],
+    prompt:
+      "Loose-fitting light heather-grey technical nylon parachute cargo pants featuring bellows thigh pockets and cinched webbing buckle straps around the lower legs. Isolated wardrobe piece cscasualstrappedcargo.",
+  },
+  {
+    id: "cscasualchampagneskirt",
+    description: "Shimmering champagne-gold satin draped mini wrap skirt (distilled from tammyy.tm).",
+    tags: ["casual", "formal", "summer", "sea"],
+    prompt:
+      "Lustrous champagne-gold silk-satin mini wrap skirt featuring asymmetrical side ruching and a fluid bias-cut hemline. Isolated wardrobe piece cscasualchampagneskirt.",
+  },
+  {
+    id: "cscasualflarelounge",
+    description: "Black low-rise soft jersey flare lounge trousers with drawstring waist (distilled from pparadeee).",
+    tags: ["casual", "lounge", "yoga", "street"],
+    prompt:
+      "Sleek black low-rise soft modal-jersey flare lounge trousers featuring a wide fold-over waist with an adjustable cream drawstring tie. Isolated wardrobe piece cscasualflarelounge.",
+  },
+  {
+    id: "cscasualtierlaceskirt",
+    description: "Delicate white cotton tiered mini skirt with floral lace embroidery (distilled from _tnnn26).",
+    tags: ["casual", "summer", "korea", "japan"],
+    prompt:
+      "Delicate crisp white cotton tiered mini skirt featuring gathered ruffled layers and subtle floral broderie anglaise lace trim. Isolated wardrobe piece cscasualtierlaceskirt.",
+  },
+  {
+    id: "cscasualfloralshorts",
+    description: "High-waisted multicolored floral jacquard knit mini shorts (distilled from j876my).",
+    tags: ["casual", "street", "summer"],
+    prompt:
+      "High-waisted tailored knit mini shorts featuring an intricate multicolored vintage floral tapestry jacquard pattern and ribbed trim. Isolated wardrobe piece cscasualfloralshorts.",
+  },
 ];
 
 export const CASUAL_SHOES: readonly CharacterLookOption[] = [
@@ -224,6 +336,41 @@ export const CASUAL_SHOES: readonly CharacterLookOption[] = [
     tags: ["casual", "street", "japan"],
     prompt:
       "Minimalist smooth black leather split-toe ballet flat shoes with a sleek low-profile sole and soft vamp. Isolated wardrobe piece cscasualtabiflat.",
+  },
+  {
+    id: "cscasualleopardflats",
+    description: "Leopard-print calf-hair slip-on flat mules paired with ribbed white crew socks (distilled from j876my).",
+    tags: ["casual", "street", "korea"],
+    prompt:
+      "Rounded-toe slip-on flat ballet mules in spotted leopard-print calf hair styled with thick ribbed white cotton crew socks pulled to mid-calf. Isolated wardrobe piece cscasualleopardflats.",
+  },
+  {
+    id: "cscasualvelcrosneak",
+    description: "Slim low-profile white leather sneaker flats with triple velcro straps (distilled from formunawei).",
+    tags: ["casual", "street", "athletic", "korea"],
+    prompt:
+      "Slim low-profile crisp white leather sneaker flats fastened with triple hook-and-loop velcro straps over a thin gum-rubber outsole. Isolated wardrobe piece cscasualvelcrosneak.",
+  },
+  {
+    id: "cscasualcrystalpumps",
+    description: "Glossy black pointed-toe slingback kitten heels with a crystal buckle (distilled from yeyedamei).",
+    tags: ["casual", "formal", "korea"],
+    prompt:
+      "Glossy black patent-leather pointed-toe slingback kitten heels adorned with a sparkling rectangular crystal-embellished buckle on the vamp. Isolated wardrobe piece cscasualcrystalpumps.",
+  },
+  {
+    id: "cscasualshearlingboot",
+    description: "Cream suede mini shearling snow boots with plush fleece trim and scrunched socks (distilled from j876my).",
+    tags: ["casual", "lounge", "winter"],
+    prompt:
+      "Light cream suede ankle-height mini shearling platform boots lined with plush fluffy wool fleece, worn with scrunched white ribbed knit leg-warmer socks. Isolated wardrobe piece cscasualshearlingboot.",
+  },
+  {
+    id: "cscasualyellowretro",
+    description: "Vibrant mustard-yellow retro low-profile suede sneakers with black stripes (distilled from formunawei).",
+    tags: ["casual", "street", "athletic"],
+    prompt:
+      "Vibrant mustard-yellow low-profile retro suede terrace sneakers featuring contrast black leather side stripes and slim dark gum soles. Isolated wardrobe piece cscasualyellowretro.",
   },
 ];
 
@@ -270,6 +417,48 @@ export const CASUAL_ACCESSORIES: readonly CharacterLookOption[] = [
     prompt:
       "Soft off-white diamond-quilted puffy nylon crescent shoulder bag slung effortlessly across the body or over one shoulder. Isolated wardrobe piece cscasualpuffybag.",
   },
+  {
+    id: "cscasualbutterflychain",
+    description: "Intricate silver butterfly and star charm layered collarbone necklace (distilled from wtingv_).",
+    tags: ["casual", "street", "korea"],
+    prompt:
+      "Multi-layered polished sterling-silver collarbone chain necklace adorned with delicate dangling butterfly and star charms. Isolated wardrobe piece cscasualbutterflychain.",
+  },
+  {
+    id: "cscasualcharmminibag",
+    description: "Structured cream leather mini handbag adorned with a cute plush bag charm (distilled from yeyedamei).",
+    tags: ["casual", "street", "korea", "japan"],
+    prompt:
+      "Structured cream-white leather mini top-handle handbag decorated with a cute fluffy pastel plush keychain charm clipped to the handle. Isolated wardrobe piece cscasualcharmminibag.",
+  },
+  {
+    id: "cscasualtullescarf",
+    description: "Gossamer sheer off-white tulle skinny neck scarf with fringe trim (distilled from formunawei).",
+    tags: ["casual", "street", "korea"],
+    prompt:
+      "Gossamer sheer off-white tulle skinny neck scarf with delicate wispy fringe trim draped loosely once around the neck with long trailing ends. Isolated wardrobe piece cscasualtullescarf.",
+  },
+  {
+    id: "cscasualstuddedbag",
+    description: "Vivid cyan-blue studded leather barrel shoulder bag (distilled from j876my).",
+    tags: ["casual", "street", "korea"],
+    prompt:
+      "Vivid cyan-blue leather east-west barrel shoulder bag embellished with polished silver round metal studs and dual long shoulder straps. Isolated wardrobe piece cscasualstuddedbag.",
+  },
+  {
+    id: "cscasualbakerboycap",
+    description: "Structured black wool-blend baker boy newsboy cap (distilled from j876my).",
+    tags: ["casual", "street", "europe"],
+    prompt:
+      "Structured matte-black wool-blend eight-panel baker boy newsboy cap with a short curved visor and side button detail. Isolated wardrobe piece cscasualbakerboycap.",
+  },
+  {
+    id: "cscasualorganzabow",
+    description: "Sheer dusty-blue organza hair ribbon bow paired with a pearl charm necklace (distilled from tammyy.tm).",
+    tags: ["casual", "summer", "korea"],
+    prompt:
+      "Sheer dusty-blue organza ribbon tied into a wide romantic bow in the hair, paired with a dainty white seed-pearl charm necklace at the collarbone. Isolated wardrobe piece cscasualorganzabow.",
+  },
 ];
 
 export const CASUAL_LABELS_EN = {
@@ -278,6 +467,8 @@ export const CASUAL_LABELS_EN = {
     cscasualtopknot: "Messy Casual Top Knot",
     cscasualsleektuck: "Sleek Ear-Tucked Center Part",
     cscasualmicrofringe: "Textured Crop Micro-Fringe",
+    cscasualsoftupdo: "Soft Wispy Low Updo",
+    cscasualribbonbraid: "Organza Ribbon Half-Up Waves",
   },
   top: {
     cscasualhenley: "Oatmeal Waffle Henley",
@@ -292,6 +483,14 @@ export const CASUAL_LABELS_EN = {
     cscasualscarfcoat: "Draped Scarf Wool Coat",
     cscasualhoundstooth: "Houndstooth Wool Blouson",
     cscasualredcardigan: "Crimson Fine-Knit Cardigan",
+    cscasualboleroshrug: "Cream Pointelle Bolero Shrug Set",
+    cscasualsatinjersey: "Icy-Blue Satin Sporty Jersey",
+    cscasualchiffonhalter: "Pleated Chiffon Halter Top",
+    cscasualcobaltknit: "Cobalt-Blue Ribbed Scoop Knit",
+    cscasualraglanheart: "Baby-Pink Heart Raglan Long-Sleeve",
+    cscasualoliveshacket: "Olive Canvas Utility Shacket",
+    cscasualfloralcamiset: "Watercolor Floral Cami & Cardigan",
+    cscasualcharcoalvneck: "Charcoal Athletic V-Neck Crop",
   },
   pants: {
     cscasualjoggers: "Everyday Tapered Joggers",
@@ -302,6 +501,12 @@ export const CASUAL_LABELS_EN = {
     cscasualcorduroywide: "Chocolate Wide-Leg Corduroys",
     cscasualolivepleat: "Olive Accordion Pleated Skirt",
     cscasualburgundysweat: "Burgundy Fleece Sweatpants",
+    cscasualginghamshorts: "Blue Gingham Ruffle Lounge Shorts",
+    cscasualstrappedcargo: "Buckle-Strap Parachute Cargos",
+    cscasualchampagneskirt: "Champagne Satin Mini Wrap Skirt",
+    cscasualflarelounge: "Drawstring Low-Rise Flare Pants",
+    cscasualtierlaceskirt: "White Tiered Broderie Mini Skirt",
+    cscasualfloralshorts: "Vintage Floral Jacquard Shorts",
   },
   shoes: {
     cscasualslipon: "Cream Canvas Slip-Ons",
@@ -310,6 +515,11 @@ export const CASUAL_LABELS_EN = {
     cscasualredretro: "Crimson Suede Retro Sneakers",
     cscasualsuedeclog: "Suede Lug-Sole Platform Clogs",
     cscasualtabiflat: "Black Split-Toe Tabi Flats",
+    cscasualleopardflats: "Leopard Calf-Hair Flats & Crew Socks",
+    cscasualvelcrosneak: "Triple-Velcro White Sneaker Flats",
+    cscasualcrystalpumps: "Crystal-Buckle Slingback Kitten Heels",
+    cscasualshearlingboot: "Cream Shearling Mini Boots & Socks",
+    cscasualyellowretro: "Mustard-Yellow Retro Terrace Sneakers",
   },
   accessory: {
     cscasualbeanie: "Ribbed Everyday Beanie",
@@ -318,6 +528,12 @@ export const CASUAL_LABELS_EN = {
     cscasualretroheadset: "Retro Metal On-Ear Headphones",
     cscasualtartanscarf: "Brushed Tartan Mohair Scarf",
     cscasualpuffybag: "Quilted Puffy Crescent Bag",
+    cscasualbutterflychain: "Silver Butterfly Layered Necklace",
+    cscasualcharmminibag: "Cream Mini Bag with Plush Charm",
+    cscasualtullescarf: "Sheer Tulle Fringe Skinny Scarf",
+    cscasualstuddedbag: "Cyan Studded Barrel Shoulder Bag",
+    cscasualbakerboycap: "Black Wool Baker Boy Cap",
+    cscasualorganzabow: "Dusty-Blue Organza Bow & Pearl Chain",
   },
 } as const;
 
@@ -327,6 +543,8 @@ export const CASUAL_LABELS_ZH = {
     cscasualtopknot: "鬆散隨性高丸子頭",
     cscasualsleektuck: "中分耳後俐落順髮",
     cscasualmicrofringe: "隨性微碎眉上短瀏海",
+    cscasualsoftupdo: "慵懶碎髮低盤髮",
+    cscasualribbonbraid: "霧藍歐根紗蝴蝶結半紮捲髮",
   },
   top: {
     cscasualhenley: "燕麥色華夫格亨利衫",
@@ -341,6 +559,14 @@ export const CASUAL_LABELS_ZH = {
     cscasualscarfcoat: "圍巾領立體羊毛短大衣",
     cscasualhoundstooth: "千鳥格羊毛短夾克",
     cscasualredcardigan: "緋紅細針織圓領開襟衫",
+    cscasualboleroshrug: "米白鏤空短版罩衫背心套裝",
+    cscasualsatinjersey: "冰藍緞面運動風翻領球衣",
+    cscasualchiffonhalter: "淺米細褶雪紡削肩綁帶上衣",
+    cscasualcobaltknit: "寶藍修身細羅紋大圓領針織衫",
+    cscasualraglanheart: "粉白拼色愛心刺繡插肩長袖 Tee",
+    cscasualoliveshacket: "橄欖綠水洗帆布多袋工裝襯衫外套",
+    cscasualfloralcamiset: "水彩藍碎花吊帶配軟糯針織開襟衫",
+    cscasualcharcoalvneck: "炭灰修身運動 V 領短版上衣",
   },
   pants: {
     cscasualjoggers: "日常修腳運動棉褲",
@@ -351,6 +577,12 @@ export const CASUAL_LABELS_ZH = {
     cscasualcorduroywide: "巧克力棕打褶燈芯絨闊褲",
     cscasualolivepleat: "橄欖綠風琴百褶中長裙",
     cscasualburgundysweat: "酒紅重磅束口休閒棉褲",
+    cscasualginghamshorts: "淺藍格紋荷葉邊居家短褲",
+    cscasualstrappedcargo: "淺灰綁帶扣環降落傘工裝長褲",
+    cscasualchampagneskirt: "香檳金緞面抓皺裹身短裙",
+    cscasualflarelounge: "黑色低腰抽繩軟糯微喇休閒褲",
+    cscasualtierlaceskirt: "純白蕾絲鏤空蛋糕百褶短裙",
+    cscasualfloralshorts: "復古繁花提花針織高腰短褲",
   },
   shoes: {
     cscasualslipon: "米白帆布懶人鞋",
@@ -359,6 +591,11 @@ export const CASUAL_LABELS_ZH = {
     cscasualredretro: "復古紅麂皮薄底德訓鞋",
     cscasualsuedeclog: "駝色麂皮厚齒底穆勒鞋",
     cscasualtabiflat: "極簡黑皮革分趾芭蕾平底鞋",
+    cscasualleopardflats: "豹紋馬毛平底瑪莉珍配白長襪",
+    cscasualvelcrosneak: "純白三魔鬼氈薄底運動平底鞋",
+    cscasualcrystalpumps: "亮黑方鑽釦尖頭後空低跟鞋",
+    cscasualshearlingboot: "奶油麂皮羊羔毛短雪靴配堆堆襪",
+    cscasualyellowretro: "芥末黃黑條紋復古薄底德訓鞋",
   },
   accessory: {
     cscasualbeanie: "羅紋日常冷帽",
@@ -367,5 +604,11 @@ export const CASUAL_LABELS_ZH = {
     cscasualretroheadset: "復古金屬頭戴式泡棉耳機",
     cscasualtartanscarf: "蘇格蘭格紋馬海毛流蘇圍巾",
     cscasualpuffybag: "米白菱格絎縫雲朵單肩包",
+    cscasualbutterflychain: "純銀蝴蝶星星疊戴鎖骨項鍊",
+    cscasualcharmminibag: "奶油白毛絨掛飾迷你手提包",
+    cscasualtullescarf: "透膚白薄紗流蘇細長頸巾",
+    cscasualstuddedbag: "亮青藍鉚釘圓筒單肩腋下包",
+    cscasualbakerboycap: "黑色羊毛八角報童帽",
+    cscasualorganzabow: "霧藍歐根紗髮帶配珍珠細項鍊",
   },
 } as const;

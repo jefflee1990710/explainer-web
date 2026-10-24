@@ -1103,5 +1103,44 @@ export const LIFE_POSES: readonly LifePose[] = [
     ],
     "popularity": 33,
     "promptText": "A minimalist full-body lookbook pose leaning casually against a paneled wall with one hand slipped into the front trouser pocket and the other holding a clutch bag at the side."
+  },
+  {
+    "id": "casual-tatami-matcha-kneel",
+    "group": "sit",
+    "framing": "knee",
+    "hands": [
+      "drink"
+    ],
+    "popularity": 28,
+    "promptText": "A knee-up seated pose kneeling gracefully on a tatami floor cushion beside a low wooden table, holding a ceramic matcha bowl with both hands near chest height."
+  },
+  {
+    "id": "sport-archery-draw",
+    "group": "stand-half",
+    "framing": "knee",
+    "hands": [],
+    "popularity": 26,
+    "promptText": "A dynamic knee-up athletic archery stance in three-quarter profile, extending the bow arm straight forward while drawing the string hand cleanly back to the cheek."
+  },
+  {
+    "id": "casual-inflight-curl",
+    "group": "sit",
+    "framing": "knee",
+    "hands": [
+      "drink",
+      "face"
+    ],
+    "popularity": 29,
+    "promptText": "A cozy knee-up travel pose curled up in a window passenger seat with knees drawn up, holding a takeaway cup in one hand and a small snack near the mouth."
+  },
+  {
+    "id": "casual-table-ankle-cross",
+    "group": "stand-full",
+    "framing": "full",
+    "hands": [
+      "hair"
+    ],
+    "popularity": 31,
+    "promptText": "A relaxed full-body pose leaning back gently against the edge of a table with legs crossed at the ankles and one hand raised softly touching the hair."
   }
 ];

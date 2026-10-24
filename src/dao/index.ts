@@ -29,4 +29,6 @@ export { soundEffectsCollection } from "@/dao/sound-effects";
 export { freesoundGrantsCollection } from "@/dao/freesound-grants";
 export { blogPostsCollection } from "@/dao/blog-posts";
 export { customWardrobeItemsCollection } from "@/dao/custom-wardrobe-items";
+export { wardrobeCombinationsCollection } from "@/dao/wardrobe-combinations";
+
 

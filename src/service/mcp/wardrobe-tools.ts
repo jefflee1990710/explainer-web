@@ -19,6 +19,11 @@ import {
 } from "@/service/mcp/image-input";
 import { searchLooks, searchStyles } from "@/service/mcp/look-search";
 import { listWardrobeCatalogOptions } from "@/service/mcp/wardrobe-catalog";
+import {
+  listWardrobeCombinations,
+  recommendCombinationsForWardrobePicks,
+} from "@/service/character/wardrobe-combinations";
+import { IG_POST_SETTINGS } from "@/model/wardrobe-combination";
 import { BLUEPRINT_COST, FRAME_COST } from "@/service/production-plan";
 import { unwrap, wrapTool } from "@/service/mcp/wrap-tool";
 
@@ -74,6 +79,65 @@ export function registerWardrobeTools({ server, user, apiKey }: Ctx) {
     },
     wrapTool(user, apiKey, "list_wardrobe_catalog", 0, async (args) => {
       return listWardrobeCatalogOptions(args);
+    }),
+  );
+
+  server.registerTool(
+    "list_wardrobe_combinations",
+    {
+      title: "List recommended wardrobe combinations from IG posts",
+      description:
+        "List recommended full outfit combinations (top, pants, shoes, accessory, hair, plus recommendedTemplateId and recommendedPoseId) distilled from downloaded Instagram post images. Pass itemId or current picks to get complementary outfit recommendations, or filter by query, tags, account, or setting.",
+      inputSchema: {
+        query: z
+          .string()
+          .max(80)
+          .optional()
+          .describe('Free-text search across title, description, IG account, or garments, e.g. "bolero", "pickleball", "matcha".'),
+        tags: z
+          .array(z.string().min(1).max(40))
+          .max(8)
+          .optional()
+          .describe('Filter by tags such as ["casual","korea"], ["pickleball"], ["yoga"].'),
+        account: z
+          .string()
+          .max(60)
+          .optional()
+          .describe('Source Instagram handle, e.g. "_tnnn26", "yeyedamei", "formunawei", "tammyy.tm".'),
+        setting: z
+          .enum(IG_POST_SETTINGS)
+          .optional()
+          .describe("Scene setting of the source IG post (e.g. cafe_restaurant, street_urban, gym_sport)."),
+        itemId: z
+          .string()
+          .max(60)
+          .optional()
+          .describe("Catalog option id (top, pants, shoes, accessory, or hair) to find combinations using that item."),
+        recommendForPicks: z
+          .object({
+            top: z.string().optional(),
+            pants: z.string().optional(),
+            shoes: z.string().optional(),
+            accessory: z.string().optional(),
+            hair: z.string().optional(),
+          })
+          .optional()
+          .describe("Optional partial wardrobe picks to score and recommend complementary IG combinations."),
+        limit: z.number().int().positive().max(64).optional().describe("Max combinations (default 20)."),
+      },
+    },
+    wrapTool(user, apiKey, "list_wardrobe_combinations", 0, async (args) => {
+      if (args.recommendForPicks && Object.values(args.recommendForPicks).some(Boolean)) {
+        return recommendCombinationsForWardrobePicks(args.recommendForPicks, args.limit ?? 10);
+      }
+      return listWardrobeCombinations({
+        query: args.query,
+        tags: args.tags,
+        account: args.account,
+        setting: args.setting,
+        itemId: args.itemId,
+        limit: args.limit ?? 20,
+      });
     }),
   );
 
