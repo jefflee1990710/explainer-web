@@ -145,7 +145,7 @@ export async function swapClipVoice(
           videoSeconds: clipWindow.duration,
           voSeconds,
           onsetSeconds,
-          expandToVo: Boolean(options.expandVideoToVo),
+          expandToVo: Boolean(options?.expandVideoToVo),
         });
         await runFfmpeg(
           dir,
@@ -153,7 +153,7 @@ export async function swapClipVoice(
             delayMs,
             durationSeconds,
             videoSeconds: clipWindow.duration,
-            expandVideoToVo: Boolean(options.expandVideoToVo),
+            expandVideoToVo: Boolean(options?.expandVideoToVo),
           }),
         );
         return await readFile(join(dir, "out.mp4"));
