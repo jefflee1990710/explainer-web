@@ -14,6 +14,7 @@ import {
 } from "@/service/voice/elevenlabs";
 import {
   extractSpeechArgs,
+  fitOffscreenVoiceDuration,
   HEYGEN_WARMUP_PAD_MS,
   HEYGEN_WARMUP_TRIM_SECONDS,
   mixVoiceArgs,
@@ -54,6 +55,8 @@ export type SwapClipVoiceOptions = {
   voUrl?: string;
   onsetSeconds?: number;
   lipSync?: boolean;
+  // Whiteboard explainer: freeze the last frame when VO is longer than the clip.
+  expandVideoToVo?: boolean;
 };
 
 async function fetchPreGeneratedVo(voUrl?: string): Promise<Buffer | null> {
@@ -137,11 +140,20 @@ export async function swapClipVoice(
         await writeFile(join(dir, "voice.mp3"), voice);
         const onsetSeconds = options?.onsetSeconds ?? 0;
         const delayMs = Math.round(onsetSeconds * 1000);
+        const voSeconds = (await probeAudioSeconds(voice, "mp3")) ?? 0;
+        const durationSeconds = fitOffscreenVoiceDuration({
+          videoSeconds: clipWindow.duration,
+          voSeconds,
+          onsetSeconds,
+          expandToVo: Boolean(options.expandVideoToVo),
+        });
         await runFfmpeg(
           dir,
           mixVoiceArgs("in.mp4", "voice.mp3", "out.mp4", {
             delayMs,
-            durationSeconds: clipWindow.duration,
+            durationSeconds,
+            videoSeconds: clipWindow.duration,
+            expandVideoToVo: Boolean(options.expandVideoToVo),
           }),
         );
         return await readFile(join(dir, "out.mp4"));

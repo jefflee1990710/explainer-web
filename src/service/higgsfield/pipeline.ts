@@ -75,10 +75,12 @@ import {
   collectFrameBlobUrls,
 } from "@/service/video/storage";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
-import { swapClipVoice } from "@/service/voice/voice-swap";
+import { probeAudioSeconds, swapClipVoice } from "@/service/voice/voice-swap";
+import { whiteboardSubmitDurationSeconds } from "@/service/voice/voice-swap-args";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { mediaSrc } from "@/util/media-src";
+import { isDualBeatSkill } from "@/service/director/dual-beat";
 import { isBookendSkill, skillUsesOnScreenLipSync } from "@/service/director/skill-rules";
 import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lock";
 import { resolvePerformance } from "@/service/director/performance";
@@ -671,6 +673,8 @@ export async function sendClipVideo(
       : null;
   const usesLipSync = skillUsesOnScreenLipSync(project.skillSlug);
   const voOnsetSeconds = usesLipSync ? DEFAULT_SPEECH_ONSET_SECONDS : 0;
+  const expandVideoToVo = isDualBeatSkill(project.skillSlug);
+  let durationSeconds = prompt.durationSeconds;
   if (voiceId && spokenLine?.trim() && isElevenLabsConfigured()) {
     try {
       const { audio, alignment } = await synthesizeSpeechWithTimestamps(voiceId, spokenLine);
@@ -679,6 +683,10 @@ export async function sendClipVideo(
           onsetSeconds: voOnsetSeconds,
           clipDurationSeconds: prompt.durationSeconds,
         });
+      }
+      const voSeconds = expandVideoToVo ? await probeAudioSeconds(audio, "mp3") : null;
+      if (expandVideoToVo) {
+        durationSeconds = whiteboardSubmitDurationSeconds(prompt.durationSeconds, voSeconds);
       }
       const preGeneratedVoUrl = await persistBuffer(
         audio,
@@ -693,6 +701,9 @@ export async function sendClipVideo(
             "clips.$[clip].prompt": videoPrompt,
             "clips.$[clip].voUrl": preGeneratedVoUrl,
             "clips.$[clip].voOnsetSeconds": voOnsetSeconds,
+            ...(expandVideoToVo && durationSeconds !== prompt.durationSeconds
+              ? { "clips.$[clip].durationSeconds": durationSeconds }
+              : {}),
             updatedAt: new Date(),
           },
         },
@@ -712,7 +723,7 @@ export async function sendClipVideo(
     model: targetModel,
     prompt: videoPrompt,
     aspectRatio: project.aspectRatio,
-    durationSeconds: prompt.durationSeconds,
+    durationSeconds,
     startImageUrl: start,
     endImageUrl: endUrlForVideo,
     styleId: project.styleId,
@@ -898,6 +909,7 @@ export async function applyJobStatus(input: {
             voUrl: storedClip?.voUrl,
             onsetSeconds: storedClip?.voOnsetSeconds,
             lipSync: Boolean(project && skillUsesOnScreenLipSync(project.skillSlug)),
+            expandVideoToVo: Boolean(project && isDualBeatSkill(project.skillSlug)),
           }).catch((error: unknown) => {
             console.error("[higgsfield] voice swap failed; keeping clip audio", {
               requestId: job.requestId,
