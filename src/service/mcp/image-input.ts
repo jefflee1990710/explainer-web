@@ -27,7 +27,8 @@ function typeForExt(ext: string) {
 // Decode a data URL or raw base64 payload into image bytes.
 export function decodeImageBase64(imageBase64: string, mimeType?: string): DecodedImage {
   const trimmed = imageBase64.trim();
-  const dataUrl = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/s.exec(trimmed);
+  // No /s flag: tsconfig target is ES2017.
+  const dataUrl = /^data:(image\/[a-zA-Z0-9.+-]+);base64,([\s\S]+)$/.exec(trimmed);
   let type = mimeType?.trim() || "";
   let raw = trimmed;
   if (dataUrl) {
@@ -70,7 +71,9 @@ export async function loadAgentImage(input: {
 }
 
 export function imageToFormFile(image: DecodedImage, filename = "upload") {
-  return new File([image.buffer], `${filename}.${image.ext}`, { type: image.type });
+  // Copy into a plain Uint8Array so DOM File accepts the bytes under strict Buffer typings.
+  const bytes = Uint8Array.from(image.buffer);
+  return new File([bytes], `${filename}.${image.ext}`, { type: image.type });
 }
 
 // Host a base64/URL image on the account blob so later tools can reuse the https URL.
