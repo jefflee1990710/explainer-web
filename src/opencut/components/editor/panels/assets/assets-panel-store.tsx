@@ -8,16 +8,13 @@ import {
 	HeadphonesIcon,
 	Image02Icon,
 	MagicWand05Icon,
-	SparklesIcon,
 	TextIcon,
 	Settings01Icon,
 	SlidersHorizontalIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
-// AI automations sit at the top of the left rail so SFX / BGM / B-roll / captions share one entry.
 export const TAB_KEYS = [
-	"ai",
 	"media",
 	"stock",
 	"sounds",
@@ -38,10 +35,6 @@ const createHugeiconsIcon =
 	);
 
 export const tabs = {
-	ai: {
-		icon: createHugeiconsIcon({ icon: SparklesIcon }),
-		label: "AI Tools",
-	},
 	media: {
 		icon: createHugeiconsIcon({ icon: Folder03Icon }),
 		label: "Media",
@@ -105,7 +98,7 @@ interface AssetsPanelStore {
 export const useAssetsPanelStore = create<AssetsPanelStore>()(
 	persist(
 		(set) => ({
-			activeTab: "ai",
+			activeTab: "media",
 			setActiveTab: (tab) => set({ activeTab: tab }),
 			highlightMediaId: null,
 			requestRevealMedia: (mediaId) =>

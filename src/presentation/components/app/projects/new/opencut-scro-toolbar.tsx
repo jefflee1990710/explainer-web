@@ -8,16 +8,13 @@ import {
 } from "@/presentation/components/project/bulk-generate-dialog";
 import { AddClipDialog } from "@/presentation/components/project/add-clip-dialog";
 import { SelectionBar } from "@/presentation/components/project/selection-bar";
+import { OpenCutAiToolbarActions } from "@/presentation/components/app/projects/new/opencut-ai-toolbar-actions";
 import { VideoStageStepper } from "@/presentation/components/app/projects/new/video-stage-stepper";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { ScroVideoQueue } from "@/opencut/embed/scro-video-queue";
 import { scroHost } from "@/opencut/embed/scro-transport";
 import type { ScroClipMenuAction } from "@/opencut/embed/scro-video-actions";
-import {
-  clipStatesFor,
-  inFlightCounts,
-  productionCounts,
-} from "@/service/clip-stage";
+import { inFlightCounts } from "@/service/clip-stage";
 import { allFramesReady } from "@/service/production-plan";
 import { appendDirectorClipAction } from "@/presentation/actions/clip-timeline";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -54,7 +51,6 @@ export function OpenCutScroToolbar({
   onProject: (project: PublicVideo) => void;
 }) {
   const { t } = useI18n();
-  const counts = productionCounts(project);
   const queue = inFlightCounts(project);
   const idle = pending === "";
   const [tasksOpen, setTasksOpen] = useState(false);
@@ -88,9 +84,6 @@ export function OpenCutScroToolbar({
     setAddOpen(false);
   }
 
-  const firstUnfinished = clipStatesFor(project).find(
-    (state) => state.stage !== "video_ready" || state.stale.frames || state.stale.video,
-  )?.clipNumber;
   const videosEnabled = allFramesReady(project);
   const idleRef = useRef(idle);
   const videosEnabledRef = useRef(videosEnabled);
@@ -125,28 +118,12 @@ export function OpenCutScroToolbar({
 
   return (
     <>
-      <div className="relative z-20 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-3 py-2 text-xs">
-        <VideoStageStepper project={project} onOpenTasks={() => setTasksOpen(true)} />
-        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1">
-          <button
-            type="button"
-            disabled={firstUnfinished === undefined}
-            className="flex cursor-pointer items-center gap-2 disabled:cursor-default disabled:opacity-50"
-            title={
-              firstUnfinished !== undefined
-                ? t("production.toolbar.jumpToClip", { n: firstUnfinished })
-                : undefined
-            }
-          >
-            <span className="font-semibold tabular-nums">
-              {t("production.toolbar.progressFrames")} {counts.framesDone}/{counts.total}
-            </span>
-            <span className="font-semibold tabular-nums">
-              {t("production.toolbar.progressVideos")} {counts.videosDone}/{counts.total}
-            </span>
-          </button>
+      <div className="relative z-20 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-[var(--studio-line)] bg-[var(--studio-panel)] px-3 py-1.5 text-xs">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+          <VideoStageStepper project={project} onOpenTasks={() => setTasksOpen(true)} />
           <ScroVideoQueue {...queue} onOpen={() => setTasksOpen(true)} />
         </div>
+        <OpenCutAiToolbarActions />
         {tasksOpen ? (
           <TaskListDialog videoId={project.id} onClose={() => setTasksOpen(false)} />
         ) : null}
