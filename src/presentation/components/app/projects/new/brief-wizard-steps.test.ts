@@ -26,11 +26,15 @@ function baseState(
   };
 }
 
-test("BRIEF_WIZARD_STEPS exposes 4 ordered steps including optional storyboard drafts", () => {
+test("BRIEF_WIZARD_STEPS exposes 4 ordered steps with specs (03) before optional storyboard drafts (04)", () => {
   assert.equal(BRIEF_WIZARD_STEPS.length, 4);
   assert.deepEqual(
     BRIEF_WIZARD_STEPS.map((s) => s.number),
     ["01", "02", "03", "04"],
+  );
+  assert.deepEqual(
+    BRIEF_WIZARD_STEPS.map((s) => s.id),
+    ["style", "script", "specs", "drafts"],
   );
 });
 
@@ -88,13 +92,16 @@ test("step 3 requires aspectRatio and maxReachableWizardStep unlocks progressive
     maxReachableWizardStep(baseState({ source: "" })),
     1,
   );
-  // Step 1 & Step 2 valid -> unlocks both Step 2 (optional drafts) and Step 3 (specs)
-  assert.equal(maxReachableWizardStep(baseState({ aspectRatio: "" })), 3);
+  // Step 1 & Step 2 valid, Step 3 (aspectRatio) incomplete -> unlocks up to step 2 (specs)
+  assert.equal(maxReachableWizardStep(baseState({ aspectRatio: "" })), 2);
+  // Step 1, Step 2 & Step 3 valid -> unlocks step 3 (storyboard drafts)
+  assert.equal(maxReachableWizardStep(baseState({ aspectRatio: "9:16" })), 3);
 
   assert.equal(canAdvanceFromWizardStep(0, baseState({ source: "" })), true);
   assert.equal(canAdvanceFromWizardStep(1, baseState({ source: "" })), false);
   assert.equal(canAdvanceFromWizardStep(1, baseState()), true);
-  assert.equal(canAdvanceFromWizardStep(2, baseState({ aspectRatio: "" })), true);
+  assert.equal(canAdvanceFromWizardStep(2, baseState({ aspectRatio: "" })), false);
+  assert.equal(canAdvanceFromWizardStep(2, baseState({ aspectRatio: "9:16" })), true);
   assert.equal(canAdvanceFromWizardStep(3, baseState({ aspectRatio: "" })), false);
   assert.equal(canAdvanceFromWizardStep(3, baseState()), true);
 });

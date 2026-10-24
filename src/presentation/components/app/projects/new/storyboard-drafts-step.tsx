@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import type { StoryboardClipDraft, VoLanguage } from "@/model/project";
+import type { AspectRatio, StoryboardClipDraft, VoLanguage } from "@/model/project";
 import { StoryboardDraftChatPanel } from "@/presentation/components/app/projects/new/storyboard-draft-chat-panel";
 import { StoryboardSketchPad } from "@/presentation/components/app/projects/new/storyboard-sketch-pad";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { MAX_CLIP_DRAFTS } from "@/service/director/storyboard-draft-chat";
 
-// Step 03 of the create-video wizard: optional multi-clip sketchpad + explanations on the left,
+// Step 04 of the create-video wizard: optional multi-clip sketchpad + explanations on the left,
 // paired with an AI storyboard draft assistant chatroom on the right.
 export function StoryboardDraftsStep({
   skillSlug,
@@ -15,6 +15,7 @@ export function StoryboardDraftsStep({
   source,
   spokenScript,
   language,
+  aspectRatio,
   drafts,
   disabled,
   onChange,
@@ -24,6 +25,7 @@ export function StoryboardDraftsStep({
   source: string;
   spokenScript?: string;
   language: VoLanguage;
+  aspectRatio: AspectRatio;
   drafts: StoryboardClipDraft[];
   disabled?: boolean;
   onChange: (next: StoryboardClipDraft[]) => void;
@@ -142,10 +144,11 @@ export function StoryboardDraftsStep({
               </div>
 
               <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] xl:items-start">
-                {/* Remount sketchpad when switching clips so each clip has its own clean canvas */}
+                {/* Remount sketchpad when switching clips or aspect ratio so each clip has its own clean canvas */}
                 <StoryboardSketchPad
-                  key={`sketch-clip-${currentDraft.clipNumber}`}
+                  key={`sketch-clip-${currentDraft.clipNumber}-${aspectRatio}`}
                   clipNumber={currentDraft.clipNumber}
+                  aspectRatio={aspectRatio}
                   sketchUrl={currentDraft.sketchUrl}
                   disabled={disabled}
                   onSketchChange={(dataUrl) =>

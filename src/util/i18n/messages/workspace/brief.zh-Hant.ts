@@ -30,7 +30,7 @@ export const briefZhHant = {
     removeClip: "刪除 Clip {n}",
     clipTab: "Clip {n}",
     emptyStateTitle: "尚未新增分鏡草稿（可選填）",
-    emptyStateBody: "你可以點擊「+ 新增 Clip 1」手繪構圖與填寫解說細節，或使用右側 AI 聊天室一鍵從劇本起草分鏡；若不需指定，直接按「下一步」即可完全交由導演 AI 設計。",
+    emptyStateBody: "你可以點擊「+ 新增 Clip 1」手繪構圖與填寫解說細節，或使用右側 AI 聊天室一鍵從劇本起草分鏡；若不需指定，直接按下方按鈕開始製作即可完全交由導演 AI 設計。",
     sketchLabel: "分鏡構圖畫板（Clip {n}）",
     sketchHint: "在畫板上畫出人物站位、箭頭、圖表草稿，或點兩下加入文字標註。",
     toolDraw: "畫筆",
@@ -191,6 +191,11 @@ export const briefZhHant = {
       body: "會永久刪除這支影片目前所有的分鏡、場景圖與 clip 影片，再依表單內容從頭產生分鏡。還在產生的場景圖會取消並退回 credits，已完成的不會退回，刪除後無法復原。",
       confirm: "刪除並重新產生",
       pending: "重新開始中…",
+    },
+    changeAspectRatio: {
+      title: "切換畫面比例並清空分鏡草稿？",
+      body: "切換畫面比例會清空目前所有已建立的分鏡草稿畫板與內容，以便用新的畫面比例重新建立草稿。確定要切換嗎？",
+      confirm: "清空草稿並切換",
     },
   },
   failed: {

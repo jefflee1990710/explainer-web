@@ -11,7 +11,7 @@ export type BriefWizardStepMeta = {
   subtitleKey: string;
 };
 
-// Ordered 4-step structure for the create-video brief wizard (Step 03 Storyboard Drafts is optional).
+// Ordered 4-step structure for the create-video brief wizard (Step 04 Storyboard Drafts is optional and uses the aspect ratio chosen in Step 03).
 export const BRIEF_WIZARD_STEPS: readonly BriefWizardStepMeta[] = [
   {
     index: 0,
@@ -29,17 +29,17 @@ export const BRIEF_WIZARD_STEPS: readonly BriefWizardStepMeta[] = [
   },
   {
     index: 2,
-    id: "drafts",
+    id: "specs",
     number: "03",
-    titleKey: "brief.wizard.step3DraftsTitle",
-    subtitleKey: "brief.wizard.step3DraftsSubtitle",
+    titleKey: "brief.wizard.step3Title",
+    subtitleKey: "brief.wizard.step3Subtitle",
   },
   {
     index: 3,
-    id: "specs",
+    id: "drafts",
     number: "04",
-    titleKey: "brief.wizard.step3Title",
-    subtitleKey: "brief.wizard.step3Subtitle",
+    titleKey: "brief.wizard.step3DraftsTitle",
+    subtitleKey: "brief.wizard.step3DraftsSubtitle",
   },
 ] as const;
 
@@ -71,18 +71,19 @@ export function isStep2Valid(state: BriefWizardValidationState): boolean {
   );
 }
 
-// Final specs step: Aspect ratio selected.
+// Step 3 (Voice & Specs): Aspect ratio selected so Step 4 (Storyboard Drafts) knows the canvas aspect ratio.
 export function isStep3Valid(state: BriefWizardValidationState): boolean {
   return state.aspectRatio !== "";
 }
 
 // Highest wizard step index unlocked by the user's current form state.
-// Step 2 (03 Storyboard Drafts) is optional, so valid Step 1 + Step 2 unlocks both Step 2 and Step 3.
+// Step 3 (04 Storyboard Drafts) unlocks once Step 1, Step 2, and Step 3 (aspect ratio) are valid.
 export function maxReachableWizardStep(
   state: BriefWizardValidationState,
 ): BriefWizardStepIndex {
   if (!isStep1Valid(state)) return 0;
   if (!isStep2Valid(state)) return 1;
+  if (!isStep3Valid(state)) return 2;
   return 3;
 }
 
@@ -93,6 +94,6 @@ export function canAdvanceFromWizardStep(
 ): boolean {
   if (step === 0) return isStep1Valid(state);
   if (step === 1) return isStep1Valid(state) && isStep2Valid(state);
-  if (step === 2) return isStep1Valid(state) && isStep2Valid(state);
+  if (step === 2) return isStep1Valid(state) && isStep2Valid(state) && isStep3Valid(state);
   return isStep1Valid(state) && isStep2Valid(state) && isStep3Valid(state);
 }

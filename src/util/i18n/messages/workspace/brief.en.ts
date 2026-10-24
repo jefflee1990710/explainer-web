@@ -30,7 +30,7 @@ export const briefEn = {
     removeClip: "Remove Clip {n}",
     clipTab: "Clip {n}",
     emptyStateTitle: "No clip drafts added yet",
-    emptyStateBody: "You can click “+ Add Clip 1” to draw a sketch and write scene notes, use the AI chatroom on the right to auto-draft clips from your script, or simply click Next to let the AI Director design everything.",
+    emptyStateBody: "You can click “+ Add Clip 1” to draw a sketch and write scene notes, use the AI chatroom on the right to auto-draft clips from your script, or simply click Start below to let the AI Director design everything.",
     sketchLabel: "Scene sketchpad (Clip {n})",
     sketchHint: "Draw layout, stick figures, arrows, or double-click to place text labels for Clip {n}.",
     toolDraw: "Draw",
@@ -194,6 +194,11 @@ export const briefEn = {
       body: "Permanently deletes this video’s storyboard, frames, and clips, then regenerates from the form. Scene images still generating are cancelled and refunded; finished work is not.",
       confirm: "Delete & regenerate",
       pending: "Restarting…",
+    },
+    changeAspectRatio: {
+      title: "Switch aspect ratio and clear draft canvases?",
+      body: "Changing the aspect ratio will clear all existing storyboard draft canvases so you can create new canvases matching the new aspect ratio. Are you sure you want to continue?",
+      confirm: "Clear drafts & switch",
     },
   },
   failed: {

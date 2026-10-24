@@ -270,6 +270,7 @@ export function NewProjectForm({
   const [clipDrafts, setClipDrafts] = useState<StoryboardClipDraft[]>(
     () => initialVideo?.clipDrafts || [],
   );
+  const [pendingAspectRatio, setPendingAspectRatio] = useState<AspectRatio | null>(null);
   const [backgroundImageUrls, setBackgroundImageUrls] = useState<string[]>(
     initialVideo?.backgroundImageUrls || [],
   );
@@ -518,8 +519,21 @@ export function NewProjectForm({
       return;
     }
     if (wizardStep === 2) {
+      if (!aspectRatio) {
+        setError(t("brief.error.aspectRatioRequired"));
+        return;
+      }
       goToWizardStep(3);
     }
+  }
+
+  function onAspectRatioSelect(nextRatio: AspectRatio) {
+    if (nextRatio === aspectRatio) return;
+    if (aspectRatio !== "" && clipDrafts.length > 0) {
+      setPendingAspectRatio(nextRatio);
+      return;
+    }
+    setAspectRatio(nextRatio);
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -975,11 +989,11 @@ export function NewProjectForm({
     1: source.trim()
       ? t("brief.source.charCount", { n: source.trim().length.toLocaleString() })
       : undefined,
-    2:
+    2: [LANGUAGE_PRESETS[language].label, aspectRatio].filter(Boolean).join(" · "),
+    3:
       clipDrafts.length > 0
         ? t("brief.drafts.countSummary", { n: clipDrafts.length })
         : t("brief.drafts.skipSummary"),
-    3: [LANGUAGE_PRESETS[language].label, aspectRatio].filter(Boolean).join(" · "),
   };
 
   const canSubmit =
@@ -1241,26 +1255,6 @@ export function NewProjectForm({
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
                     transition={{ duration: 0.25, ease }}
-                    className="space-y-4"
-                  >
-                    <StoryboardDraftsStep
-                      skillSlug={skillSlug}
-                      styleId={styleId}
-                      source={source}
-                      spokenScript={talkingHead ? spokenScript : undefined}
-                      language={language}
-                      drafts={clipDrafts}
-                      disabled={briefBusy}
-                      onChange={setClipDrafts}
-                    />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="wizard-step-3"
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
-                    transition={{ duration: 0.25, ease }}
                     className="grid gap-4 lg:grid-cols-12 lg:items-start"
                   >
                     <div className="space-y-4 lg:col-span-7">
@@ -1329,7 +1323,7 @@ export function NewProjectForm({
                         <Section step="03" title={t("brief.section05.title")} hint={t("brief.section05.hint")}>
                           <AspectRatioPicker
                             value={aspectRatio}
-                            onChange={setAspectRatio}
+                            onChange={onAspectRatioSelect}
                             disabled={briefBusy}
                           />
                         </Section>
@@ -1347,6 +1341,27 @@ export function NewProjectForm({
                         </div>
                       )}
                     </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="wizard-step-3"
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
+                    transition={{ duration: 0.25, ease }}
+                    className="space-y-4"
+                  >
+                    <StoryboardDraftsStep
+                      skillSlug={skillSlug}
+                      styleId={styleId}
+                      source={source}
+                      spokenScript={talkingHead ? spokenScript : undefined}
+                      language={language}
+                      aspectRatio={aspectRatio || "16:9"}
+                      drafts={clipDrafts}
+                      disabled={briefBusy}
+                      onChange={setClipDrafts}
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1534,6 +1549,20 @@ export function NewProjectForm({
               const resume = creditGate.resume;
               setCreditGate(null);
               resume();
+            }}
+          />
+        ) : null}
+        {pendingAspectRatio ? (
+          <ReviseStoryboardDialog
+            pending={false}
+            title={t("brief.confirm.changeAspectRatio.title")}
+            body={t("brief.confirm.changeAspectRatio.body")}
+            confirmLabel={t("brief.confirm.changeAspectRatio.confirm")}
+            onCancel={() => setPendingAspectRatio(null)}
+            onConfirm={() => {
+              setClipDrafts([]);
+              setAspectRatio(pendingAspectRatio);
+              setPendingAspectRatio(null);
             }}
           />
         ) : null}
