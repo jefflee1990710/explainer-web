@@ -7,10 +7,13 @@ import {
 } from "@/model/character-voice-sample";
 import { videoCost } from "@/service/credit-costs";
 import {
+  fitOffscreenVoiceDuration,
   mixVoiceArgs,
   padAudioLeadingSilenceArgs,
   trimLeadingVideoArgs,
+  videoPadSeconds,
   VOICE_SWAP_FILTER,
+  whiteboardSubmitDurationSeconds,
 } from "@/service/voice/voice-swap-args";
 import {
   CANTONESE_VOICE_ID,
@@ -110,6 +113,51 @@ test("voice swap adds 1 credit per billed second", () => {
   assert.equal(videoCost(8, "realistic", true), 128);
   assert.equal(videoCost(3, undefined, true), 50);
   assert.equal(videoCost(5), 45);
+});
+
+test("whiteboard submit duration grows to cover a longer VO and stays put when VO fits", () => {
+  assert.equal(whiteboardSubmitDurationSeconds(5, 6.6), 7);
+  assert.equal(whiteboardSubmitDurationSeconds(5, 5.41), 6);
+  assert.equal(whiteboardSubmitDurationSeconds(5, 5.0), 5);
+  assert.equal(whiteboardSubmitDurationSeconds(5, 5.04), 5);
+  assert.equal(whiteboardSubmitDurationSeconds(5, 12.8), 12);
+  assert.equal(whiteboardSubmitDurationSeconds(8, null), 8);
+});
+
+test("off-screen mux grows the clip to VO length only when expand is on and VO overruns", () => {
+  assert.equal(
+    fitOffscreenVoiceDuration({ videoSeconds: 5.17, voSeconds: 6.6, expandToVo: true }),
+    6.6,
+  );
+  assert.equal(
+    fitOffscreenVoiceDuration({ videoSeconds: 5.17, voSeconds: 6.6, expandToVo: false }),
+    5.17,
+  );
+  assert.equal(
+    fitOffscreenVoiceDuration({ videoSeconds: 5.17, voSeconds: 5.2, expandToVo: true }),
+    5.17,
+  );
+  assert.equal(videoPadSeconds(5.17, 6.6), 1.43);
+  assert.equal(videoPadSeconds(5.17, 5.2), 0);
+});
+
+test("mix freezes the last frame when expanding a short whiteboard clip to a longer VO", () => {
+  const args = mixVoiceArgs("in.mp4", "voice.mp3", "out.mp4", {
+    durationSeconds: 6.6,
+    videoSeconds: 5.17,
+    expandVideoToVo: true,
+  });
+  const filter = args[args.indexOf("-filter_complex") + 1];
+  assert.match(String(filter), /tpad=stop_mode=clone:stop_duration=1\.43/);
+  assert.equal(args[args.indexOf("-c:v") + 1], "libx264");
+  assert.equal(args[args.indexOf("-t") + 1], "6.600000");
+
+  const fitting = mixVoiceArgs("in.mp4", "voice.mp3", "out.mp4", {
+    durationSeconds: 5.17,
+    videoSeconds: 5.17,
+    expandVideoToVo: true,
+  });
+  assert.equal(fitting[fitting.indexOf("-c:v") + 1], "copy");
 });
 
 test("mix keeps the video stream and directly uses the ElevenLabs voice track without mixing original audio", () => {

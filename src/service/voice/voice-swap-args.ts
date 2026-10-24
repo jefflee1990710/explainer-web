@@ -65,10 +65,57 @@ export type VoiceSwapAlignOptions = {
   tempo?: number;
   durationSeconds?: number;
   clauses?: ClauseAlignmentWindow[];
+  // Source video length. Used with expandVideoToVo to freeze the last frame
+  // when the ElevenLabs VO is longer than the generated clip.
+  videoSeconds?: number;
+  expandVideoToVo?: boolean;
 };
+
+// Ignore sub-frame VO overruns so a 5.17s Hailuo clip is not padded for 5.20s audio.
+export const VO_OVERSHOOT_SECONDS = 0.05;
 
 function fmtNum(value: number) {
   return value.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+// Last-frame pad needed so a short clip covers a longer voiceover.
+export function videoPadSeconds(videoSeconds: number, outputSeconds: number): number {
+  if (!Number.isFinite(videoSeconds) || videoSeconds <= 0) return 0;
+  if (!Number.isFinite(outputSeconds) || outputSeconds <= 0) return 0;
+  const pad = outputSeconds - videoSeconds;
+  return pad > VO_OVERSHOOT_SECONDS ? Math.round(pad * 1000) / 1000 : 0;
+}
+
+// Off-screen mux length: keep the picture when VO fits; grow to VO when asked.
+export function fitOffscreenVoiceDuration({
+  videoSeconds,
+  voSeconds,
+  onsetSeconds = 0,
+  expandToVo = false,
+}: {
+  videoSeconds: number;
+  voSeconds: number;
+  onsetSeconds?: number;
+  expandToVo?: boolean;
+}): number {
+  const video = Number.isFinite(videoSeconds) && videoSeconds > 0 ? videoSeconds : 0;
+  const voiceSpan = Math.max(0, Number(voSeconds) || 0) + Math.max(0, onsetSeconds);
+  if (!expandToVo || voiceSpan <= video + VO_OVERSHOOT_SECONDS) {
+    return video || voiceSpan;
+  }
+  return Math.round(voiceSpan * 1000) / 1000;
+}
+
+// Whiteboard submit length: if VO overruns the storyboard, ask Hailuo for enough seconds.
+export function whiteboardSubmitDurationSeconds(
+  storyboardSeconds: number,
+  voSeconds?: number | null,
+): number {
+  const storyboard = Math.min(12, Math.max(5, Math.round(storyboardSeconds)));
+  if (voSeconds == null || !Number.isFinite(voSeconds) || voSeconds <= storyboard + VO_OVERSHOOT_SECONDS) {
+    return storyboard;
+  }
+  return Math.min(12, Math.max(5, Math.ceil(voSeconds)));
 }
 
 export function clauseAlignedVoiceFilter(
@@ -158,7 +205,7 @@ export function alignedVoiceSwapFilter(options?: VoiceSwapAlignOptions): string 
   return steps.join(",");
 }
 
-// Video is copied untouched; only the audio is rebuilt.
+// Video is copied untouched unless the VO is longer and we freeze the last frame.
 export function mixVoiceArgs(
   clip: string,
   voice: string,
@@ -166,6 +213,42 @@ export function mixVoiceArgs(
   options?: VoiceSwapAlignOptions,
 ) {
   const filter = alignedVoiceSwapFilter(options);
+  const outputSeconds = options?.durationSeconds;
+  const padSeconds =
+    options?.expandVideoToVo && outputSeconds && options.videoSeconds
+      ? videoPadSeconds(options.videoSeconds, outputSeconds)
+      : 0;
+  const durationArgs =
+    outputSeconds && outputSeconds > 0 ? (["-t", outputSeconds.toFixed(6)] as const) : [];
+  if (padSeconds > 0) {
+    return [
+      "-y",
+      "-i",
+      clip,
+      "-i",
+      voice,
+      "-filter_complex",
+      `[0:v]tpad=stop_mode=clone:stop_duration=${fmtNum(padSeconds)}[v];${filter}`,
+      "-map",
+      "[v]",
+      "-map",
+      "[a]",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "fast",
+      "-crf",
+      "18",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "192k",
+      ...durationArgs,
+      "-movflags",
+      "+faststart",
+      out,
+    ];
+  }
   return [
     "-y",
     "-i",
@@ -184,9 +267,7 @@ export function mixVoiceArgs(
     "aac",
     "-b:a",
     "192k",
-    ...(options?.durationSeconds && options.durationSeconds > 0
-      ? ["-t", options.durationSeconds.toFixed(6)]
-      : []),
+    ...durationArgs,
     "-movflags",
     "+faststart",
     out,
