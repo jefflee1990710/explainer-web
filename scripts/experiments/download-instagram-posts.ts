@@ -1,30 +1,31 @@
 /**
- * Offline helper: download recent Instagram posts for fashion / pose research.
+ * Offline helper: download recent public Instagram posts for fashion / pose research.
  *
  * Usage:
- *   npx tsx scripts/experiments/download-instagram-posts.ts --accounts=yoga,tennis --limit=30
+ *   npx tsx scripts/experiments/download-instagram-posts.ts --accounts=casual,yoga,tennis,pickleball,climbing --limit=24
  *
- * Auth (pick one, never put secrets on argv):
- *   INSTAGRAM_SESSION_ID=...   cookie sessionid from a logged-in browser
- *   APIFY_TOKEN=...            optional Apify Instagram scraper actor
+ * Uses the public Instagram GraphQL cover endpoint by default (via experiments/fetch-instagram-posts.py),
+ * or falls back to Apify when APIFY_TOKEN is set and --provider=apify is passed.
  *
- * Output lands under experiments/ig-posts/<account>/ and is gitignored.
+ * Output lands under experiments/<account>-instagram/posts/ and is gitignored.
  */
 import { loadEnvConfig } from "@next/env";
+import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 loadEnvConfig(process.cwd(), false, { info: () => {}, error: () => {} });
 
-const OUT_ROOT = path.join(process.cwd(), "experiments", "ig-posts");
+const OUT_ROOT = path.join(process.cwd(), "experiments");
 
 /** Taste buckets used to expand wardrobe + Life templates. */
 const ACCOUNT_BUCKETS: Record<string, string[]> = {
-  casual: ["lydiajanetomlinson", "wendyslookbook", "anoukyve"],
-  yoga: ["yogajournal", "blogilates"],
-  tennis: ["nikecourt", "wilson"],
-  pickleball: ["pickleballcentral", "ppa_tour"],
-  climbing: ["thenorthface", "blackdiamond"],
+  casual: ["uniqlo", "cosstores", "arketofficial", "sportyandrich", "varley", "vuoriclothing"],
+  yoga: ["aloyoga", "blogilates"],
+  tennis: ["wilson", "sportyandrich"],
+  pickleball: ["ppa_tour", "pickleballcentral", "blogilates"],
+  climbing: ["blackdiamond"],
 };
 
 function parseArg(name: string, fallback = "") {
@@ -34,74 +35,76 @@ function parseArg(name: string, fallback = "") {
 }
 
 async function downloadViaApify(account: string, limit: number, token: string) {
-  // Apify "apify/instagram-scraper" — results vary by actor version; keep offline-only.
-  const response = await fetch(`https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${encodeURIComponent(token)}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      directUrls: [`https://www.instagram.com/${account}/`],
-      resultsType: "posts",
-      resultsLimit: limit,
-    }),
-    signal: AbortSignal.timeout(120_000),
-  });
+  const response = await fetch(
+    `https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${encodeURIComponent(token)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        directUrls: [`https://www.instagram.com/${account}/`],
+        resultsType: "posts",
+        resultsLimit: limit,
+      }),
+      signal: AbortSignal.timeout(120_000),
+    },
+  );
   if (!response.ok) {
     throw new Error(`Apify ${account}: HTTP ${response.status}`);
   }
   return (await response.json()) as Array<{ displayUrl?: string; url?: string; id?: string }>;
 }
 
-async function saveImage(account: string, id: string, imageUrl: string) {
-  const dir = path.join(OUT_ROOT, account);
+async function saveImage(account: string, index: number, id: string, imageUrl: string) {
+  const dir = path.join(OUT_ROOT, `${account}-instagram`, "posts");
   await mkdir(dir, { recursive: true });
   const response = await fetch(imageUrl, { signal: AbortSignal.timeout(60_000) });
   if (!response.ok) throw new Error(`image ${id}: HTTP ${response.status}`);
   const buffer = Buffer.from(await response.arrayBuffer());
-  const file = path.join(dir, `${id}.jpg`);
+  const file = path.join(dir, `${String(index).padStart(3, "0")}_${id}.jpg`);
   await writeFile(file, buffer);
   return file;
 }
 
 async function main() {
-  const bucketList = parseArg("accounts", "casual,yoga,tennis,pickleball")
+  const bucketList = parseArg("accounts", "casual,yoga,tennis,pickleball,climbing")
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
-  const limit = Math.min(Math.max(Number(parseArg("limit", "20")) || 20, 1), 80);
-  const apifyToken = process.env.APIFY_TOKEN?.trim();
-  const sessionId = process.env.INSTAGRAM_SESSION_ID?.trim();
-
-  if (!apifyToken && !sessionId) {
-    console.error(
-      "Missing APIFY_TOKEN or INSTAGRAM_SESSION_ID. Catalogs were expanded from curated fashion research instead; re-run locally when credentials are available.",
-    );
-    process.exitCode = 2;
-    return;
-  }
-
-  if (!apifyToken) {
-    console.error(
-      "INSTAGRAM_SESSION_ID-only mode is not automated in cloud agents (login walls). Set APIFY_TOKEN for batch download, or run a browser session locally.",
-    );
-    process.exitCode = 2;
-    return;
-  }
-
+  const limit = Math.min(Math.max(Number(parseArg("limit", "24")) || 24, 1), 80);
+  const provider = parseArg("provider", "graphql");
   const accounts = [...new Set(bucketList.flatMap((bucket) => ACCOUNT_BUCKETS[bucket] ?? [bucket]))];
-  console.log(`Downloading up to ${limit} posts for: ${accounts.join(", ")}`);
 
+  const pyScript = path.join(OUT_ROOT, "fetch-instagram-posts.py");
+  if (provider !== "apify" && existsSync(pyScript)) {
+    console.log(`Fetching up to ${limit} public posts via GraphQL for: ${accounts.join(", ")}`);
+    const result = spawnSync("python3", [pyScript, ...accounts], {
+      stdio: "inherit",
+      env: { ...process.env, IG_MAX_POSTS: String(limit) },
+    });
+    process.exitCode = result.status ?? 0;
+    return;
+  }
+
+  const apifyToken = process.env.APIFY_TOKEN?.trim();
+  if (!apifyToken) {
+    console.error("Missing experiments/fetch-instagram-posts.py or APIFY_TOKEN.");
+    process.exitCode = 2;
+    return;
+  }
+
+  console.log(`Downloading up to ${limit} posts via Apify for: ${accounts.join(", ")}`);
   for (const account of accounts) {
     try {
       const posts = await downloadViaApify(account, limit, apifyToken);
       let saved = 0;
       for (const post of posts) {
         const imageUrl = post.displayUrl || post.url;
-        const id = String(post.id || saved);
+        const id = String(post.id || saved + 1);
         if (!imageUrl) continue;
-        await saveImage(account, id, imageUrl);
         saved += 1;
+        await saveImage(account, saved, id, imageUrl);
       }
-      console.log(`${account}: saved ${saved} images → experiments/ig-posts/${account}/`);
+      console.log(`${account}: saved ${saved} images → experiments/${account}-instagram/posts/`);
     } catch (error) {
       console.error(`${account}:`, error instanceof Error ? error.message : error);
     }

@@ -6,6 +6,7 @@ const LIFE_TEMPLATE_FILTER_TAGS = [
   "athletic",
   "pickleball",
   "yoga",
+  "climbing",
   "casual",
   "street",
   "cafe",

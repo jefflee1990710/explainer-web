@@ -28,11 +28,12 @@ export type LifePostTemplate = {
 export function lifePostTemplateTags(template: LifePostTemplate): string[] {
   const tags = new Set<string>([template.categoryId, template.kind, ...(template.tags ?? [])]);
   const id = template.id.toLowerCase();
-  if (id.includes("sport") || id.includes("pickle") || id.includes("yoga") || id.includes("tennis")) {
+  if (id.includes("sport") || id.includes("pickle") || id.includes("yoga") || id.includes("tennis") || id.includes("climb")) {
     tags.add("athletic");
   }
   if (id.includes("pickle") || id.includes("peek")) tags.add("pickleball");
-  if (id.includes("yoga")) tags.add("yoga");
+  if (id.includes("yoga") || id.includes("sound-bath")) tags.add("yoga");
+  if (id.includes("climb")) tags.add("climbing");
   if (id.includes("ootd") || id.includes("street") || id.includes("crosswalk")) tags.add("street");
   if (id.includes("selfie") || id.includes("mirror") || id.includes("vanity")) tags.add("selfie");
   if (id.includes("cafe") || id.includes("bistro") || id.includes("dessert") || id.includes("drink")) {
@@ -398,12 +399,44 @@ export const LIFE_POST_TEMPLATES: readonly LifePostTemplate[] = [
       "Yoga studio cool-down: the character sits or stands on a rolled yoga mat in soft studio light wearing stretch activewear, calm post-practice pose, framed full or knee-up.",
   },
   {
+    id: "social-sound-bath",
+    categoryId: "social",
+    kind: "hobby",
+    tags: ["yoga", "casual", "lounge"],
+    promptGuide:
+      "Sound bath meditation session: the character sits cross-legged on a floor cushion surrounded by frosted crystal singing bowls under warm low studio lighting, gently holding a suede mallet with a serene expression, framed knee-up.",
+  },
+  {
+    id: "social-climbing-wall",
+    categoryId: "social",
+    kind: "hobby",
+    tags: ["athletic", "climbing"],
+    promptGuide:
+      "Bouldering & climbing session: the character stands or hangs at an indoor bouldering wall or sunlit rock crag wearing a climbing harness and chalk bag, gripping colorful holds and looking back toward the camera, framed full-body.",
+  },
+  {
+    id: "social-country-club",
+    categoryId: "social",
+    kind: "hobby",
+    tags: ["athletic", "tennis", "pickleball", "casual"],
+    promptGuide:
+      "Country-club court lifestyle: the character stands court-side or leans against the net in preppy layered knitwear or court polo with a striped canvas racket tote, warm afternoon sun, framed full-body or knee-up.",
+  },
+  {
     id: "street-casual-weekend",
     categoryId: "street",
     kind: "street",
     tags: ["casual", "street", "summer"],
     promptGuide:
       "Casual weekend street stroll: the character walks a sunny neighborhood sidewalk in relaxed everyday layers (linen, henley, or fleece), coffee in hand, candid knee-up or full body.",
+  },
+  {
+    id: "street-minimal-lookbook",
+    categoryId: "street",
+    kind: "street",
+    tags: ["street", "casual", "branding"],
+    promptGuide:
+      "Minimalist architectural lookbook: the character stands in a clean sunlit stone doorway or against a neutral paneled wall in structured outerwear and wide-leg trousers, one hand in the pocket, framed full-body.",
   },
 ];
 

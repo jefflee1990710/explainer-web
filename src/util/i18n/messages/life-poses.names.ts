@@ -109,7 +109,15 @@ export const LIFE_POSE_NAMES_EN: Record<string, string> = {
   "walk-flower-bouquet": "Bouquet Stroll Walk",
   "walk-breezy-open-shirt": "Carefree Street Stride",
   "walk-down-stairs-arms-out": "Walking Down Steps",
-  "walk-away-look-back": "Walking Away Glance"
+  "walk-away-look-back": "Walking Away Glance",
+  "sport-pickleball-ready": "Pickleball Ready Stance",
+  "sport-pickleball-swing": "Pickleball Two-Hand Swing",
+  "sport-court-net-lean": "Court Net Crossed-Ankle Lean",
+  "sport-yoga-upward-salute": "Yoga Upward Salute",
+  "sport-sound-bath-sit": "Sound Bath Meditation Sit",
+  "sport-climbing-overhang": "Climbing Wall Hold",
+  "casual-armchair-curl": "Armchair Curled-Up Lounge",
+  "casual-wainscot-clutch-lean": "Minimalist Pocket & Clutch Lean"
 };
 
 export const LIFE_POSE_NAMES_ZH: Record<string, string> = {
@@ -221,5 +229,13 @@ export const LIFE_POSE_NAMES_ZH: Record<string, string> = {
   "walk-flower-bouquet": "抱花束街頭漫步",
   "walk-breezy-open-shirt": "微風隨性大步走",
   "walk-down-stairs-arms-out": "走下樓梯張開手",
-  "walk-away-look-back": "背影邁步回眸"
+  "walk-away-look-back": "背影邁步回眸",
+  "sport-pickleball-ready": "匹克球持拍準備姿",
+  "sport-pickleball-swing": "匹克球雙手揮拍",
+  "sport-court-net-lean": "球網旁交叉腳倚靠",
+  "sport-yoga-upward-salute": "瑜珈向上致敬式",
+  "sport-sound-bath-sit": "頌缽靜心盤坐",
+  "sport-climbing-overhang": "攀岩牆抓點回眸",
+  "casual-armchair-curl": "扶手椅蜷腿慵懶坐姿",
+  "casual-wainscot-clutch-lean": "極簡單手插袋倚牆"
 };

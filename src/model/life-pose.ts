@@ -42,6 +42,11 @@ export function lifePoseTags(pose: LifePose): string[] {
   if (id.includes("stand")) tags.add("stand");
   if (id.includes("selfie") || id.includes("phone")) tags.add("selfie");
   if (id.includes("sport") || id.includes("run") || id.includes("stretch")) tags.add("athletic");
+  if (id.includes("pickle")) tags.add("pickleball");
+  if (id.includes("yoga") || id.includes("sound-bath")) tags.add("yoga");
+  if (id.includes("climb")) tags.add("climbing");
+  if (id.includes("court")) tags.add("tennis");
+  if (id.includes("casual") || id.includes("armchair")) tags.add("casual");
   return [...tags];
 }
 

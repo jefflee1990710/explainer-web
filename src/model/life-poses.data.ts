@@ -1030,5 +1030,78 @@ export const LIFE_POSES: readonly LifePose[] = [
     ],
     "popularity": 19,
     "promptText": "A full-body back-view walking pose mid-stride with one foot kicked slightly up behind and the head glancing back over the shoulder toward the camera."
+  },
+  {
+    "id": "sport-pickleball-ready",
+    "group": "stand-full",
+    "framing": "full",
+    "hands": [],
+    "popularity": 34,
+    "promptText": "A full-body athletic court ready stance with knees bent, feet planted shoulder-width apart, and both hands holding a pickleball paddle in front of the torso facing the camera."
+  },
+  {
+    "id": "sport-pickleball-swing",
+    "group": "stand-full",
+    "framing": "full",
+    "hands": [],
+    "popularity": 31,
+    "promptText": "A dynamic full-body outdoor court action stance with a wide athletic base, rotating the torso to swing a pickleball paddle with both hands while tracking the ball."
+  },
+  {
+    "id": "sport-court-net-lean",
+    "group": "stand-full",
+    "framing": "full",
+    "hands": [],
+    "popularity": 29,
+    "promptText": "A relaxed full-body post-match court pose leaning back casually against the net with ankles crossed, one hand resting near the hip holding a ball."
+  },
+  {
+    "id": "sport-yoga-upward-salute",
+    "group": "stand-full",
+    "framing": "full",
+    "hands": [
+      "arms-up"
+    ],
+    "popularity": 32,
+    "promptText": "An upright full-body yoga upward salute pose standing centered on a mat in side profile with both arms extended straight overhead and palms pressed together."
+  },
+  {
+    "id": "sport-sound-bath-sit",
+    "group": "sit",
+    "framing": "knee",
+    "hands": [],
+    "popularity": 27,
+    "promptText": "A serene seated floor meditation pose on a cushion, leaning gently forward with both hands guiding singing bowl mallets in front of the crossed legs."
+  },
+  {
+    "id": "sport-climbing-overhang",
+    "group": "stand-full",
+    "framing": "full",
+    "hands": [
+      "arms-up"
+    ],
+    "popularity": 28,
+    "promptText": "A full-body vertical climbing pose suspended on a harness with both feet planted wide on wall holds, one hand gripping above and smiling back toward the camera."
+  },
+  {
+    "id": "casual-armchair-curl",
+    "group": "sit",
+    "framing": "full",
+    "hands": [
+      "hair"
+    ],
+    "popularity": 30,
+    "promptText": "A cozy full-body seated pose curled up sideways in a wide armchair with both legs drawn up onto the cushion and hands relaxed behind the head."
+  },
+  {
+    "id": "casual-wainscot-clutch-lean",
+    "group": "stand-full",
+    "framing": "full",
+    "hands": [
+      "pocket",
+      "bag"
+    ],
+    "popularity": 33,
+    "promptText": "A minimalist full-body lookbook pose leaning casually against a paneled wall with one hand slipped into the front trouser pocket and the other holding a clutch bag at the side."
   }
 ];
