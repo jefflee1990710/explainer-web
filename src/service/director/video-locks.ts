@@ -6,7 +6,13 @@ import type {
   StoryboardRow,
   VoLanguage,
 } from "@/model/project";
-import { CARTOON_EXPLAINER_SKILL_SLUG, clipEndScene, clipStartScene } from "@/service/director/dual-beat";
+import { clipEndScene, clipStartScene } from "@/service/director/dual-beat";
+import {
+  explainerCanvasKind,
+  isDiagramExplainerSkill,
+  PAPER_CUTOUT_CANVAS_SET_ID,
+  WHITEBOARD_CANVAS_SET_ID,
+} from "@/service/director/explainer-family";
 import { getDirectorBySlug } from "@/service/director/catalog";
 import { sceneDescriptionLanguageLock } from "@/service/director/languages";
 import { directorModel } from "@/service/director/model";
@@ -18,7 +24,9 @@ const MAX_SETS = 4;
 function maxSetsForSkill(skillSlug?: string) {
   const director = getDirectorBySlug(skillSlug);
   if (director) return director.behavior.maxBackgroundSets;
-  return skillSlug === CARTOON_EXPLAINER_SKILL_SLUG || isTalkingHeadSkill(skillSlug) ? 1 : MAX_SETS;
+  return (
+    isDiagramExplainerSkill(skillSlug) || isTalkingHeadSkill(skillSlug) ? 1 : MAX_SETS
+  );
 }
 
 const videoLocksSchema = z.object({
@@ -50,14 +58,22 @@ export function shouldPlanVideoLocks(skillSlug?: string) {
 
 export function videoLocksSystem(language?: VoLanguage, skillSlug?: string) {
   const maxSets = maxSetsForSkill(skillSlug);
-  const isWhiteboardExplainer = skillSlug === CARTOON_EXPLAINER_SKILL_SLUG;
-  const singleSetLabel = isTalkingHeadSkill(skillSlug) ? "Talking-head" : "Whiteboard explainer";
+  const canvasKind = explainerCanvasKind(skillSlug);
+  const isWhiteboardExplainer = canvasKind === "whiteboard";
+  const isPaperCutoutExplainer = canvasKind === "paper-cutout";
+  const singleSetLabel = isTalkingHeadSkill(skillSlug)
+    ? "Talking-head"
+    : isPaperCutoutExplainer
+      ? "Paper-cutout explainer"
+      : "Whiteboard explainer";
   return [
     "You list the invented props and unique locations for one explainer video.",
     isWhiteboardExplainer
       ? "objects: every distinct handheld or drawn prop the stills name (such as a marker or pointer). Because the entire video canvas IS a flat 2D whiteboard surface, NEVER list a physical Whiteboard, Board, Easel, or Chart stand as a prop."
-      : "objects: every distinct prop the stills name — tools, cups, dials, boards, easels, whiteboards, charts, furniture, handheld items.",
-    ...(isWhiteboardExplainer
+      : isPaperCutoutExplainer
+        ? "objects: every distinct handheld or pasted cutout prop the stills name (tags, arrows, product pieces, icons). Because the entire video canvas IS the craft collage board, NEVER list a Cutting Board, Cutting Mat, Craft Board, Easel, or Room as a prop."
+        : "objects: every distinct prop the stills name — tools, cups, dials, boards, easels, whiteboards, charts, furniture, handheld items.",
+    ...(isWhiteboardExplainer || isPaperCutoutExplainer
       ? []
       : [
           "A board, a whiteboard, and an easel are separate if the scenes name them separately. Call a writing surface Whiteboard when the scene writes on a board, chart, or easel.",
@@ -68,12 +84,16 @@ export function videoLocksSystem(language?: VoLanguage, skillSlug?: string) {
     maxSets === 1
       ? isWhiteboardExplainer
         ? "sets: Whiteboard explainer always stays in ONE single shared location across the entire video — the flat 2D full-bleed whiteboard surface itself (never a 3D room, studio building, easel, or outdoor location with sky). Output exactly 1 set containing all clipNumbers."
-        : `sets: ${singleSetLabel} always stays in ONE single shared location across the entire video. Output exactly 1 set containing all clipNumbers.`
+        : isPaperCutoutExplainer
+          ? "sets: Paper-cutout explainer always stays in ONE single shared location — the flat dark craft board / cutting-mat collage surface itself (never a 3D room, studio, or outdoor sky). Output exactly 1 set containing all clipNumbers."
+          : `sets: ${singleSetLabel} always stays in ONE single shared location across the entire video. Output exactly 1 set containing all clipNumbers.`
       : "sets: unique places from the Set lines. Same room or rooftop across clips shares one setId.",
     `At most ${maxSets} ${maxSets === 1 ? "set" : "sets"}. Merge near-duplicates. Every clipNumber appears in ${maxSets === 1 ? "that single set" : "exactly one set"}.`,
     isWhiteboardExplainer
-      ? "setId is whiteboard-canvas. notes describe a flat 2D full-bleed whiteboard surface with even flat illumination — no room, no architecture, no sky, no physical easel, no people, no handheld props."
-      : "setId is a short slug like rooftop or desk. notes describe empty architecture, light, and sky — no people, no handheld props.",
+      ? `setId is ${WHITEBOARD_CANVAS_SET_ID}. notes describe a flat 2D full-bleed whiteboard surface with even flat illumination — no room, no architecture, no sky, no physical easel, no people, no handheld props.`
+      : isPaperCutoutExplainer
+        ? `setId is ${PAPER_CUTOUT_CANVAS_SET_ID}. notes describe a flat dark craft board / black paper collage surface with even craft-table illumination — no room, no sky, no easel, no people, no handheld props (cutouts are listed as objects).`
+        : "setId is a short slug like rooftop or desk. notes describe empty architecture, light, and sky — no people, no handheld props.",
     "name and notes stay short. " + sceneDescriptionLanguageLock(language),
   ].join(" ");
 }
@@ -97,19 +117,46 @@ export function normalizeVideoLocks(
   skillSlug?: string,
 ): VideoLocksPlan {
   const maxSets = maxSetsForSkill(skillSlug);
-  const isWhiteboardExplainer = skillSlug === CARTOON_EXPLAINER_SKILL_SLUG;
+  const canvasKind = explainerCanvasKind(skillSlug);
+  const isWhiteboardExplainer = canvasKind === "whiteboard";
+  const isPaperCutoutExplainer = canvasKind === "paper-cutout";
   const clipNumbers = clips.map((clip) => clip.clipNumber);
   const rawObjects = raw.objects
     .map((item) => ({ name: item.name.trim(), notes: item.notes.trim() }))
     .filter((item) => item.name)
-    .filter((item) => !(isWhiteboardExplainer && /^(?:whiteboard|白板|easel|畫架|board)$/i.test(item.name)))
+    .filter(
+      (item) =>
+        !(
+          isWhiteboardExplainer &&
+          /^(?:whiteboard|白板|easel|畫架|board)$/i.test(item.name)
+        ),
+    )
+    .filter(
+      (item) =>
+        !(
+          isPaperCutoutExplainer &&
+          /^(?:cutting[- ]?board|cutting[- ]?mat|craft[- ]?board|easel|畫架|room|studio)$/i.test(
+            item.name,
+          )
+        ),
+    )
     .slice(0, MAX_OBJECTS);
-  const objects = fillMissingSceneProps(clips, rawObjects, { skipWhiteboardSurface: isWhiteboardExplainer });
+  const objects = fillMissingSceneProps(clips, rawObjects, {
+    skipWhiteboardSurface: isWhiteboardExplainer || isPaperCutoutExplainer,
+  });
+
+  const forcedSetId = isWhiteboardExplainer
+    ? WHITEBOARD_CANVAS_SET_ID
+    : isPaperCutoutExplainer
+      ? PAPER_CUTOUT_CANVAS_SET_ID
+      : null;
 
   const sets: VideoLocksPlan["sets"] = [];
   const used = new Set<number>();
   for (const set of raw.sets.slice(0, maxSets)) {
-    const setId = set.setId.trim().replace(/\s+/g, "-").toLowerCase() || `set-${sets.length + 1}`;
+    const setId =
+      forcedSetId ??
+      (set.setId.trim().replace(/\s+/g, "-").toLowerCase() || `set-${sets.length + 1}`);
     const assigned = [...new Set(set.clipNumbers.filter((n) => clipNumbers.includes(n) && !used.has(n)))];
     if (!set.name.trim() || assigned.length === 0) continue;
     assigned.forEach((n) => used.add(n));

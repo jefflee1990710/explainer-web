@@ -5,6 +5,7 @@ import {
   type IDirector,
 } from "@/model/director";
 import { cartoonExplainerVideoDirector } from "@/service/director/catalog/cartoon-explainer-video-director";
+import { paperCutoutExplainerVideoDirector } from "@/service/director/catalog/paper-cutout-explainer-video-director";
 import { storyShortDirector } from "@/service/director/catalog/story-short-director";
 import { productDemoDirector } from "@/service/director/catalog/product-demo-director";
 import { dialogueQaDirector } from "@/service/director/catalog/dialogue-qa-director";
@@ -22,6 +23,7 @@ import { followShotDirector } from "@/service/director/catalog/follow-shot-direc
 
 export const DIRECTORS: readonly IDirector[] = [
   cartoonExplainerVideoDirector,
+  paperCutoutExplainerVideoDirector,
   storyShortDirector,
   productDemoDirector,
   dialogueQaDirector,
