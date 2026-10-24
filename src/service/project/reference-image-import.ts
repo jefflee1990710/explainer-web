@@ -61,6 +61,17 @@ async function fetchPublicAsset(url: string, maxBytes: number, timeoutMs: number
   return { buffer, type };
 }
 
+// MCP / API helpers: download a public image with the same SSRF and size checks as importReferenceImage.
+export async function fetchPublicImageBytes(url: string) {
+  try {
+    return await fetchPublicAsset(url, EDIT_LIMITS.imageBytes, 15_000);
+  } catch (error) {
+    if (error instanceof Error && error.message === "檔案太大") throw new Error("圖片不可超過 5MB");
+    if (error instanceof Error && error.message === "無法下載素材") throw new Error("無法下載參考圖");
+    throw error;
+  }
+}
+
 // MCP has no upload tool: copy a public image into the user's brand folder.
 export async function importReferenceImage(url: string, clerkUserId: string): Promise<string> {
   if (isBrandAssetUrl(url, clerkUserId, blobStoreHost(process.env.BLOB_READ_WRITE_TOKEN))) return url;
