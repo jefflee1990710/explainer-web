@@ -81,6 +81,7 @@ export const phaseBClipSchema = z.object({
 
 export const DIRECTOR_SLUGS = [
   "cartoon-explainer-video-director",
+  "paper-cutout-explainer-video-director",
   "story-short-director",
   "product-demo-director",
   "dialogue-qa-director",

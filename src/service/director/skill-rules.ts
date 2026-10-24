@@ -3,6 +3,13 @@ import { getDirectorBySlug } from "@/service/director/catalog";
 import { DURATION_PRESETS } from "@/service/director/duration-presets";
 import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import {
+  explainerCanvasKind,
+  isDiagramExplainerSkill,
+  PAPER_CUTOUT_CANVAS_LOCK,
+  WHITEBOARD_CANVAS_LOCK,
+  type ExplainerCanvasKind,
+} from "@/service/director/explainer-family";
+import {
   FOLLOW_SHOT_SKILL_SLUG,
   isFollowShotSkill,
   isOutfitReelSkill,
@@ -606,16 +613,28 @@ export function cartoonExplainerDirectorBlock(options?: {
   hasCharacter?: boolean;
   smoothMotion?: boolean;
   realistic?: boolean;
+  canvas?: ExplainerCanvasKind;
 }) {
   const hasCharacter = Boolean(options?.hasCharacter);
   const smooth = Boolean(options?.smoothMotion);
   const realistic = Boolean(options?.realistic);
+  const canvas: ExplainerCanvasKind = options?.canvas ?? "whiteboard";
+  const canvasLock =
+    canvas === "paper-cutout"
+      ? PAPER_CUTOUT_CANVAS_LOCK
+      : "Whole-canvas 2D whiteboard lock (applies to EVERY visual style): no matter what kind of visual style is selected, the entire video frame edge-to-edge (100% of the canvas) is like a flat 2D whiteboard surface, every on-screen character is drawn in flat 2D directly on the whiteboard, and every concept is explained with 2D drawings on the whiteboard (never stage a 3D room, studio building, sky, or a physical whiteboard on an easel/stand inside a room, and never write that the canvas itself is restricted to the middle 60%).";
+  const graphNoun = canvas === "paper-cutout" ? "paper-cutout explanation collage" : "whiteboard explanation graph";
+  const pieceNoun = canvas === "paper-cutout" ? "cutout piece" : "drawn element";
+  const physicsNoun =
+    canvas === "paper-cutout"
+      ? "Paper-cutout collage physics: every diagram card, prop, chart bar, shape, object, label, and graphic element is a rigid paper cutout with a thick irregular white scissor border, sliding briskly in and out of the screen (from or to the frame edges) rather than morphing, melting, or dissolving"
+      : "Whiteboard cardboard style: every diagram card, prop, chart bar, shape, object, label, and graphic element stays in one rigid piece like a flat cardboard cutout, sliding briskly in and out of the screen (from or to the frame edges) rather than morphing, melting, or dissolving";
   const expressionGuidance = realistic
     ? "gives a calm, natural, understated real-person facial expression (relaxed brows, natural focused gaze, and a subtle closed-lip expression; never exaggerated cartoon grimaces, wide saucer eyes, puffed cheeks, or open-mouth gasps, and keep the mouth firmly closed at all times)"
     : "gives a vivid, expressive facial expression that is DISTINCT from the previous clip (never repeat the same face twice in a row, and never keep the blueprint's default neutral smile — rotate across contrasted emotions such as Clip 1 shocked wide saucer eyes & arched brows → intrigued smirk; Clip 2 puzzled V-furrowed brows & side-pursed mouth → analytical squint; Clip 3 'aha!' eureka raised brows → proud grin; Clip 4 skeptical single-cocked eyebrow & wry mouth → relieved smile; Clip 5 intense grit with puffed cheeks → triumphant beam; Clip 6 worried slanted brows & tense grimace → calm knowing smile, with a clear emotional shift from startScene to endScene)";
   return [
     "This director is ALWAYS narrated: an unseen off-screen narrator speaks every englishVo line in the third person, using the attached character's locked voice timbre and gender verbatim when a character is attached (or the project's chosen male/female voice when no character is attached; never switch gender).",
-    "Whole-canvas 2D whiteboard lock (applies to EVERY visual style): no matter what kind of visual style is selected, the entire video frame edge-to-edge (100% of the canvas) is like a flat 2D whiteboard surface, every on-screen character is drawn in flat 2D directly on the whiteboard, and every concept is explained with 2D drawings on the whiteboard (never stage a 3D room, studio building, sky, or a physical whiteboard on an easel/stand inside a room, and never write that the canvas itself is restricted to the middle 60%).",
+    canvasLock,
     "Single location lock: keep the entire video in ONE single consistent background environment / set from Clip 1 through the final clip (exactly one background plate shared by all clips; never switch rooms or locations mid-video).",
     "On screen, the character never speaks, never lip-syncs, and never introduces themself. No first-person lines in the character's voice (no \"Hi, I'm Scro\", \"I am…\", \"we…\" spoken as the character); the narrator may name the character or product in the third person (\"Meet Scro. Scro turns…\").",
     hasCharacter
@@ -629,8 +648,8 @@ export function cartoonExplainerDirectorBlock(options?: {
         : `Alternate the starting side: if one clip starts on the left side, the next starts on the right side (the first clip's side is free, not always left). About 80% of clips keep them on that same side for the whole clip — do not walk them from left to right every time. Only about 20% of clips are a full cross, either left to right or right to left, and those rare crosses do not all go the same way. The head may turn. Every clip still changes their body (arms, hands, torso, and legs) and ${expressionGuidance}. Camera angle changes every clip and does not repeat: from the character's left side, from above, from the front, or from behind as they turn around, and it may zoom in or out. One continuous move, no cut and no teleport. They stay silent — expression only, mouth closed, no lip-sync and no greeting wave.`
       : "",
     hasCharacter
-      ? "For every topic, keep a rich on-screen whiteboard explanation graph (charts, connecting lines, directional arrows, geometric shapes, diagram nodes, and conceptual objects/icons) in frame alongside the character, and add the drawn element this clip's action works on. Do not reuse the same camera angle on the next clip. A full left-to-right or right-to-left walk is rare and does not count as the primary action. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts, flow, or a clear chart with visible lines, bars, shapes, and objects. Never a near-empty canvas or a realistic room without prominent on-screen visual diagram graphics."
-      : "For every topic, make a rich on-screen whiteboard explanation graph the main subject of the canvas — not a character holding metaphor props. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts of a whole, flow or cycle, or a simple chart with visible lines, arrows, geometric shapes, and conceptual objects. Topic does not matter: food, money, health, product, habit, or science all get a graph. Metaphor props (boxes, bins, arrows, yellow tags) are only a fallback when a graph would hide the idea. Density is the graph — never a three-prop quota. Never a near-empty canvas with one floating label.",
+      ? `For every topic, keep a rich on-screen ${graphNoun} (charts, connecting lines, directional arrows, geometric shapes, diagram nodes, and conceptual objects/icons) in frame alongside the character, and add the ${pieceNoun} this clip's action works on. Do not reuse the same camera angle on the next clip. A full left-to-right or right-to-left walk is rare and does not count as the primary action. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts, flow, or a clear chart with visible lines, bars, shapes, and objects. Never a near-empty canvas or a realistic room without prominent on-screen visual diagram graphics.`
+      : `For every topic, make a rich on-screen ${graphNoun} the main subject of the canvas — not a character holding metaphor props. Map the claim onto a comparison, before/after, cause→effect chain, numbered steps, labeled parts of a whole, flow or cycle, or a simple chart with visible lines, arrows, geometric shapes, and conceptual objects. Topic does not matter: food, money, health, product, habit, or science all get a graph. Metaphor props (boxes, bins, arrows, yellow tags) are only a fallback when a graph would hide the idea. Density is the graph — never a three-prop quota. Never a near-empty canvas with one floating label.`,
     hasCharacter
       ? "startScene and endScene are the before and after of that one action as listed, not two standing poses. They usually stay on the same side; they finish on the opposite side only on a rare lateral cross. Do not write that the character stands in both stills. The travel lives only in motionCamera."
       : "",
@@ -639,9 +658,9 @@ export function cartoonExplainerDirectorBlock(options?: {
       : "",
     hasCharacter
       ? smooth
-        ? "motionCamera plays the one action with a fast, energetic rhythm: it starts, accelerates through the change, then decelerates into the landing. The middle is sharp and quick. The opening and the landing are slower. Timestamp the speed-up and the slow-down, and pack the clip with rapid on-screen visual effects every 1–1.5 seconds (connecting lines drawing across between nodes, directional arrows snapping in, chart bars/lines rising or falling, geometric shapes and conceptual objects sliding in from the frame edges) so there is zero dead hold. Show every in-between pose. Whiteboard cardboard style: every diagram card, prop, chart bar, shape, object, label, and graphic element stays in one rigid piece like a flat cardboard cutout, sliding briskly in and out of the screen (from or to the frame edges) rather than morphing, melting, or dissolving. Any camera zoom-out or push-in uses a clean multi-plane parallax effect with rigid background layers that never warp or transform. A card flip rotates through its edge as a rigid card. Never a cut or a skipped frame. Do not describe the move as one slow constant glide."
+        ? `motionCamera plays the one action with a fast, energetic rhythm: it starts, accelerates through the change, then decelerates into the landing. The middle is sharp and quick. The opening and the landing are slower. Timestamp the speed-up and the slow-down, and pack the clip with rapid on-screen visual effects every 1–1.5 seconds (connecting lines drawing across between nodes, directional arrows snapping in, chart bars/lines rising or falling, geometric shapes and conceptual objects sliding in from the frame edges) so there is zero dead hold. Show every in-between pose. ${physicsNoun}. Any camera zoom-out or push-in uses a clean multi-plane parallax effect with rigid background layers that never warp or transform. A card flip rotates through its edge as a rigid card. Never a cut or a skipped frame. Do not describe the move as one slow constant glide.`
         : "motionCamera plays the action in three beats with real human timing, never one constant speed: a quick anticipation (wind-up or crouch, about a quarter to half a second), the action snapping fast and sharp (well under a second), then a small overshoot, a settle with a wobble, and a brisk sequence of on-screen whiteboard visual effects every 1–1.5 seconds while the graph responds (connecting lines and arrows drawing themselves across, chart bars or trend lines shooting up or down, labeled geometric shapes and conceptual objects popping or sliding in from the frame edges—never a static 2–3 second hold). Timestamp each beat. Never describe the body as moving smoothly, slowly, gently, or steadily. Clip 1 opens already moving: its startScene is the wound-up pose of its action, so the first second has motion."
-      : "Whiteboard cardboard style: every diagram card, prop, chart bar, shape, object, label, and graphic element stays in one rigid piece like a flat cardboard cutout, sliding briskly in and out of the screen (from or to the frame edges) rather than morphing, melting, or dissolving, with connecting lines, arrows, charts, and shapes animating every 1–1.5 seconds. Any camera zoom-out or push-in uses a clean multi-plane parallax effect with rigid background layers that never warp or transform.",
+      : `${physicsNoun}, with connecting lines, arrows, charts, and shapes animating every 1–1.5 seconds. Any camera zoom-out or push-in uses a clean multi-plane parallax effect with rigid background layers that never warp or transform.`,
     cartoonHookCameraRule(hasCharacter, smooth, realistic),
     "On-canvas beat text: never write Subtitle: or caption the spoken voiceover on the stills. A beat title may name a diagram label, node, arrow, or prop inside 「」 on the object it belongs to as ordinary writing on that object.",
   ]
@@ -684,9 +703,10 @@ export function cartoonNarratorFrameLock(
     realistic?: boolean;
   },
 ) {
-  if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
+  if (!isDiagramExplainerSkill(skillSlug)) return "";
   const steady = Boolean(options?.steadyStills);
   const realistic = Boolean(options?.realistic);
+  const canvas = explainerCanvasKind(skillSlug) ?? "whiteboard";
   const hookFace = realistic ? "a calm, natural closed-lip expression" : "a surprised face";
   const hook =
     options?.clipNumber === 1
@@ -698,7 +718,7 @@ export function cartoonNarratorFrameLock(
     ? "Camera angle, shot size, and side match the other still of this clip."
     : "Camera angle may differ from the other still.";
   const whiteboard2dRule =
-    "Whiteboard 2D canvas lock (every style): the whole frame edge-to-edge is like a flat 2D whiteboard surface (no 3D room, studio, easel, or letterbox bars), the character on the whiteboard is in 2D, and the concept is explained with 2D drawings.";
+    canvas === "paper-cutout" ? PAPER_CUTOUT_CANVAS_LOCK : WHITEBOARD_CANVAS_LOCK;
   if (options?.hasCharacter) {
     const expArc = cartoonClipExpressionArc(options.clipNumber, { realistic });
     const expStill = expArc
@@ -774,11 +794,16 @@ export function cartoonNarratorVideoLock(
     realistic?: boolean;
   },
 ) {
-  if (skillSlug !== CARTOON_EXPLAINER_SKILL_SLUG) return "";
+  if (!isDiagramExplainerSkill(skillSlug)) return "";
   const smooth = Boolean(options?.smoothMotion);
   const realistic = Boolean(options?.realistic);
+  const canvas = explainerCanvasKind(skillSlug) ?? "whiteboard";
+  const canvasVoice =
+    canvas === "paper-cutout"
+      ? "Keep the whole canvas edge-to-edge as a paper-cutout craft collage: thick irregular white scissor borders on every piece, colour hero on mono/kraft background cutouts, rigid paste motion (no morphing)."
+      : "Keep the whole canvas edge-to-edge as a flat 2D whiteboard surface with the character in 2D on the whiteboard and the concept explained with 2D whiteboard drawings.";
   const voice =
-    "Voice: an unseen off-screen narrator speaks every line aloud. The on-screen character never speaks or lip-syncs — lips stay firmly closed with zero mouth or jaw speech movement for the entire clip. Sound effects never replace the narrator. The clip is never silent. Keep the whole canvas edge-to-edge as a flat 2D whiteboard surface with the character in 2D on the whiteboard and the concept explained with 2D whiteboard drawings.";
+    `Voice: an unseen off-screen narrator speaks every line aloud. The on-screen character never speaks or lip-syncs — lips stay firmly closed with zero mouth or jaw speech movement for the entire clip. Sound effects never replace the narrator. The clip is never silent. ${canvasVoice}`;
   if (!options?.hasCharacter) {
     const graphHook =
       options?.clipNumber === 1
