@@ -19,8 +19,8 @@ import {
 	isAiSfxElementName,
 	type PlannedBgmSelection,
 	type PlannedSfxInsertion,
-} from "@/service/opencut/auto-audio";
-import type { LibrarySound } from "@/service/sound-effect/library";
+	type LibrarySound,
+} from "@/service/opencut/auto-audio-shared";
 
 export { AI_BGM_VOLUME_DB, AI_SFX_VOLUME_DB };
 

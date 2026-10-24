@@ -4,7 +4,7 @@ import {
 	computeSfxStartSeconds,
 	isAiBgmElementName,
 	isAiSfxElementName,
-} from "@/service/opencut/auto-audio";
+} from "@/service/opencut/auto-audio-shared";
 
 test("computeSfxStartSeconds places start / mid / end beats inside the clip window", () => {
 	assert.equal(

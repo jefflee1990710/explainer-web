@@ -3,22 +3,23 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 import { directorModel } from "@/service/director/model";
 import { searchFreesoundSounds } from "@/service/freesound/search";
-import { listSoundEffects, type LibrarySound } from "@/service/sound-effect/library";
+import { listSoundEffects } from "@/service/sound-effect/library";
+import type { LibrarySound } from "@/service/sound-effect/library-sound";
+import type {
+  PlannedBgmSelection,
+  PlannedSfxInsertion,
+} from "@/service/opencut/auto-audio-shared";
 
-export type PlannedSfxInsertion = {
-  clipNumber: number;
-  query: string;
-  reason: string;
-  beat: "start" | "mid" | "end";
-  sound: LibrarySound;
-};
-
-export type PlannedBgmSelection = {
-  mood: string;
-  englishSearchQuery: string;
-  reason: string;
-  sound: LibrarySound;
-};
+export type { PlannedBgmSelection, PlannedSfxInsertion } from "@/service/opencut/auto-audio-shared";
+export {
+  AI_BGM_NAME_PREFIX,
+  AI_BGM_VOLUME_DB,
+  AI_SFX_NAME_PREFIX,
+  AI_SFX_VOLUME_DB,
+  computeSfxStartSeconds,
+  isAiBgmElementName,
+  isAiSfxElementName,
+} from "@/service/opencut/auto-audio-shared";
 
 const sfxPlanSchema = z.object({
   insertions: z
@@ -38,23 +39,6 @@ const bgmPlanSchema = z.object({
   englishSearchQuery: z.string().min(2).max(80),
   reason: z.string().min(1).max(160),
 });
-
-/** Resolve when an SFX should start inside a clip window. */
-export function computeSfxStartSeconds({
-  clipStartSec,
-  clipDurSec,
-  beat,
-}: {
-  clipStartSec: number;
-  clipDurSec: number;
-  beat: "start" | "mid" | "end";
-}) {
-  if (beat === "start") return Math.round(clipStartSec * 100) / 100;
-  if (beat === "end") {
-    return Math.round(Math.max(clipStartSec, clipStartSec + clipDurSec - 0.45) * 100) / 100;
-  }
-  return Math.round((clipStartSec + clipDurSec * 0.42) * 100) / 100;
-}
 
 async function pickSoundForQuery(query: string): Promise<LibrarySound | null> {
   const trimmed = query.trim();
@@ -209,19 +193,4 @@ Avoid lyrics, avoid aggressive trap/EDM, avoid horror. Prefer calm beds that sit
   const sound = await pickBgmForQuery(englishSearchQuery);
   if (!sound) return null;
   return { mood, englishSearchQuery, reason, sound };
-}
-
-export const AI_SFX_NAME_PREFIX = "SFX";
-export const AI_BGM_NAME_PREFIX = "BGM";
-/** Short Foley hits — a bit under speech (0 dB = unity). */
-export const AI_SFX_VOLUME_DB = -6;
-/** Underscore bed — sit well under VO. */
-export const AI_BGM_VOLUME_DB = -18;
-
-export function isAiSfxElementName(name: string) {
-  return /^SFX\b/i.test(name.trim());
-}
-
-export function isAiBgmElementName(name: string) {
-  return /^BGM\b/i.test(name.trim());
 }
