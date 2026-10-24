@@ -11,6 +11,8 @@ export type LifeTemplateLabels = {
   compositionRefUpload: string;
   compositionRefRemove: string;
   sceneRequired: string;
+  tagsLabel: string;
+  tags: Record<string, string>;
   categories: Record<string, string>;
   names: Record<string, string>;
   tips: Record<string, string>;
@@ -27,6 +29,18 @@ export const LIFE_TEMPLATES_EN: LifeTemplateLabels = {
   compositionRefUpload: "Upload reference",
   compositionRefRemove: "Remove",
   sceneRequired: "The place comes from your photo. Outfit follows the character preset.",
+  tagsLabel: "Filter by tag",
+  tags: {
+    athletic: "Athletic",
+    pickleball: "Pickleball",
+    yoga: "Yoga",
+    casual: "Casual",
+    street: "Street",
+    cafe: "Cafe",
+    selfie: "Selfie",
+    travel: "Travel",
+    branding: "Branding",
+  },
   categories: {
     branding: "Personal branding & styling",
     street: "Street style",
@@ -83,6 +97,9 @@ export const LIFE_TEMPLATES_EN: LifeTemplateLabels = {
     "social-friends": "With friends",
     "social-party-flash": "Party flash",
     "social-sport": "Sport day",
+    "social-pickleball": "Pickleball Peek-A-Boo court",
+    "social-yoga-mat": "Yoga cool-down",
+    "street-casual-weekend": "Casual weekend stroll",
   },
   tips: {
     "branding-closet-guide": "Stand full-length in front of an open wardrobe while holding a mini wireless mic to explain the outfit formula.",
@@ -131,6 +148,9 @@ export const LIFE_TEMPLATES_EN: LifeTemplateLabels = {
     "social-friends": "Pose with two or three friends, everyone facing the camera.",
     "social-party-flash": "Indoor party with flash, drink or peace sign in hand.",
     "social-sport": "Activewear at the gym, court or track, mid-move or after a workout.",
+    "social-pickleball": "Outdoor pickleball court with paddle and Peek-A-Boo skort or court dress.",
+    "social-yoga-mat": "Studio cool-down on a yoga mat in soft activewear.",
+    "street-casual-weekend": "Relaxed neighborhood stroll in everyday layers with a coffee in hand.",
   },
 };
 
@@ -145,6 +165,18 @@ export const LIFE_TEMPLATES_ZH: LifeTemplateLabels = {
   compositionRefUpload: "上傳參考圖",
   compositionRefRemove: "移除",
   sceneRequired: "地點來自你上傳的照片，服裝跟隨角色預設造型。",
+  tagsLabel: "依標籤篩選",
+  tags: {
+    athletic: "運動",
+    pickleball: "Peek-A-Boo／匹克球",
+    yoga: "瑜珈",
+    casual: "休閒",
+    street: "街頭",
+    cafe: "咖啡廳",
+    selfie: "自拍",
+    travel: "旅行",
+    branding: "個人品牌",
+  },
   categories: {
     branding: "個人品牌與穿搭",
     street: "街頭穿搭",
@@ -201,6 +233,9 @@ export const LIFE_TEMPLATES_ZH: LifeTemplateLabels = {
     "social-friends": "朋友合照",
     "social-party-flash": "派對閃光燈",
     "social-sport": "運動日常",
+    "social-pickleball": "Peek-A-Boo 匹克球場",
+    "social-yoga-mat": "瑜珈課後放鬆",
+    "street-casual-weekend": "休閒週末散步",
   },
   tips: {
     "branding-closet-guide": "站在燈光溫暖的開放式衣櫃前全身入鏡，手拿迷你無線麥克風講解穿搭公式。",
@@ -249,5 +284,8 @@ export const LIFE_TEMPLATES_ZH: LifeTemplateLabels = {
     "social-friends": "跟兩三個朋友合照，大家看鏡頭。",
     "social-party-flash": "室內派對直閃，手拿飲品或比 V。",
     "social-sport": "穿運動服在健身室、球場或跑道，動作中或運動後擺姿勢。",
+    "social-pickleball": "室外匹克球場，手持球拍，穿 Peek-A-Boo 短裙褲或球場連身裙。",
+    "social-yoga-mat": "在瑜珈墊上課後放鬆，穿柔軟運動服，柔光棚感。",
+    "street-casual-weekend": "社區街道休閒散步，日常層次穿搭，手拿咖啡。",
   },
 };

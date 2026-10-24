@@ -1,6 +1,7 @@
 import type { Messages } from "@/util/i18n/messages/types";
 import { AMENDA_LABELS_ZH } from "@/service/character/amenda-wardrobe";
 import { BRANDING_LABELS_ZH } from "@/service/character/branding-styling-wardrobe";
+import { CASUAL_LABELS_ZH } from "@/service/character/casual-wardrobe";
 import { SPORTS_LABELS_ZH } from "@/service/character/sports-wardrobe";
 import { LIFE_POSES_ZH } from "@/util/i18n/messages/life-poses";
 import { LIFE_TEMPLATES_ZH } from "@/util/i18n/messages/life-templates";
@@ -268,6 +269,18 @@ export const zhHant: Messages = {
       p3Body: "把品牌衣著加進衣櫃，角色着你嘅嘢，唔係通用衣櫃。",
       cta: "開始建立品牌 IP",
     },
+    catalog: {
+      eyebrow: "內建強大資料庫",
+      title: "夠深嘅衣櫃，先至日日都有新鮮感。",
+      body: "髮型、上身、下身、鞋、配飾、人體姿勢、貼文類型全部可搜尋、可標籤——休閒、瑜珈、網球、Peek-A-Boo 匹克球、各地傳統服飾，你同 MCP Agent 幾秒就搵到合適選擇。",
+      statLooks: "衣櫃造型",
+      statPoses: "人體姿勢",
+      statPosts: "貼文模板",
+      statTags: "篩選標籤",
+      footnote: "喺工作室用標籤篩選，或者叫 Agent 用 search_looks／list_life_post_templates 嘅 tags 參數搵。",
+      cta: "去睇衣櫃",
+      ctaSecondary: "打開 Life 工作台",
+    },
     kol: {
       eyebrow: "有靈魂，才會天天出現",
       title: "用你的內容驅動虛擬 KOL 帳號。",
@@ -417,8 +430,23 @@ export const zhHant: Messages = {
         classic: "👤 經典百搭",
       },
       extremeBadge: "全球時裝",
-      searchPlaceholder: "用名稱搜尋",
+      searchPlaceholder: "用名稱、描述或標籤搜尋",
       searchLabel: "搜尋造型",
+      tagsLabel: "依標籤篩選",
+      tags: {
+        casual: "休閒",
+        athletic: "運動",
+        yoga: "瑜珈",
+        tennis: "網球",
+        pickleball: "Peek-A-Boo／匹克球",
+        street: "街頭",
+        heritage: "傳統文化",
+        editorial: "編輯風",
+        formal: "正式",
+        lounge: "居家／慵懶",
+        summer: "夏日",
+        winter: "冬日",
+      },
       favourites: "收藏",
       favouriteAdd: "收藏 {name}",
       favouriteRemove: "取消收藏 {name}",
@@ -427,6 +455,7 @@ export const zhHant: Messages = {
       options: {
         hair: {
           ...BRANDING_LABELS_ZH.hair,
+          ...CASUAL_LABELS_ZH.hair,
           bob: "波波頭",
           long: "長直髮",
           curly: "捲髮",
@@ -498,6 +527,7 @@ export const zhHant: Messages = {
           ...AMENDA_LABELS_ZH.top,
           ...BRANDING_LABELS_ZH.top,
           ...SPORTS_LABELS_ZH.top,
+          ...CASUAL_LABELS_ZH.top,
           tee: "重磅修身純色 Tee",
           hoodie: "廓形街頭連帽衛衣",
           blazer: "挺版雙排扣西裝外套",
@@ -630,6 +660,7 @@ export const zhHant: Messages = {
           ...AMENDA_LABELS_ZH.pants,
           ...BRANDING_LABELS_ZH.pants,
           ...SPORTS_LABELS_ZH.pants,
+          ...CASUAL_LABELS_ZH.pants,
           none: "無",
           jeans: "經典直筒牛仔褲",
           chinos: "修身卡其休閒褲",
@@ -702,6 +733,7 @@ export const zhHant: Messages = {
         shoes: {
           ...BRANDING_LABELS_ZH.shoes,
           ...SPORTS_LABELS_ZH.shoes,
+          ...CASUAL_LABELS_ZH.shoes,
           sneakers: "極簡白皮革休閒鞋",
           boots: "深色真皮短靴",
           loafers: "復古棕皮革樂福鞋",
@@ -771,6 +803,7 @@ export const zhHant: Messages = {
         accessory: {
           ...BRANDING_LABELS_ZH.accessory,
           ...SPORTS_LABELS_ZH.accessory,
+          ...CASUAL_LABELS_ZH.accessory,
           none: "無配件",
           eyewear: "復古玳瑁框光學眼鏡",
           aviators: "1970s 金絲琥珀色飛行員墨鏡",

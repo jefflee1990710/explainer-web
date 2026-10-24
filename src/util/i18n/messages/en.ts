@@ -1,6 +1,7 @@
 import type { Messages } from "@/util/i18n/messages/types";
 import { AMENDA_LABELS_EN } from "@/service/character/amenda-wardrobe";
 import { BRANDING_LABELS_EN } from "@/service/character/branding-styling-wardrobe";
+import { CASUAL_LABELS_EN } from "@/service/character/casual-wardrobe";
 import { SPORTS_LABELS_EN } from "@/service/character/sports-wardrobe";
 import { LIFE_POSES_EN } from "@/util/i18n/messages/life-poses";
 import { LIFE_TEMPLATES_EN } from "@/util/i18n/messages/life-templates";
@@ -273,6 +274,18 @@ export const en: Messages = {
       p3Body: "Add custom looks into the wardrobe so the character wears your brand, not a generic closet.",
       cta: "Build my brand IP",
     },
+    catalog: {
+      eyebrow: "Built-in creative database",
+      title: "A wardrobe deep enough to stay original every day.",
+      body: "Hair, tops, bottoms, shoes, accessories, Life poses, and post types — tagged for search so you and your MCP agent can find casual, yoga, tennis, Peek-A-Boo pickleball, heritage, and more in seconds.",
+      statLooks: "Wardrobe looks",
+      statPoses: "Body poses",
+      statPosts: "Post templates",
+      statTags: "Filter tags",
+      footnote: "Filter by tag in the studio, or ask an agent via search_looks / list_life_post_templates with tags.",
+      cta: "Browse the wardrobe",
+      ctaSecondary: "Open Life desk",
+    },
     kol: {
       eyebrow: "A soul that shows up daily",
       title: "A virtual KOL feed powered by your content.",
@@ -425,8 +438,23 @@ export const en: Messages = {
         classic: "👤 Essentials",
       },
       extremeBadge: "GLOBAL",
-      searchPlaceholder: "Search by name",
+      searchPlaceholder: "Search by name, description, or tag",
       searchLabel: "Search looks",
+      tagsLabel: "Filter by tag",
+      tags: {
+        casual: "Casual",
+        athletic: "Athletic",
+        yoga: "Yoga",
+        tennis: "Tennis",
+        pickleball: "Pickleball",
+        street: "Street",
+        heritage: "Heritage",
+        editorial: "Editorial",
+        formal: "Formal",
+        lounge: "Lounge",
+        summer: "Summer",
+        winter: "Winter",
+      },
       favourites: "Favourites",
       favouriteAdd: "Save {name}",
       favouriteRemove: "Remove {name} from favourites",
@@ -435,6 +463,7 @@ export const en: Messages = {
       options: {
         hair: {
           ...BRANDING_LABELS_EN.hair,
+          ...CASUAL_LABELS_EN.hair,
           bob: "Bob",
           long: "Long",
           curly: "Curly",
@@ -506,6 +535,7 @@ export const en: Messages = {
           ...AMENDA_LABELS_EN.top,
           ...BRANDING_LABELS_EN.top,
           ...SPORTS_LABELS_EN.top,
+          ...CASUAL_LABELS_EN.top,
           tee: "Heavyweight Tee",
           hoodie: "Streetwear Hoodie",
           blazer: "Double-Breasted Blazer",
@@ -638,6 +668,7 @@ export const en: Messages = {
           ...AMENDA_LABELS_EN.pants,
           ...BRANDING_LABELS_EN.pants,
           ...SPORTS_LABELS_EN.pants,
+          ...CASUAL_LABELS_EN.pants,
           none: "None",
           jeans: "Straight Jeans",
           chinos: "Tailored Chinos",
@@ -710,6 +741,7 @@ export const en: Messages = {
         shoes: {
           ...BRANDING_LABELS_EN.shoes,
           ...SPORTS_LABELS_EN.shoes,
+          ...CASUAL_LABELS_EN.shoes,
           sneakers: "Minimalist White Sneakers",
           boots: "Leather Ankle Boots",
           loafers: "Penny Loafers",
@@ -779,6 +811,7 @@ export const en: Messages = {
         accessory: {
           ...BRANDING_LABELS_EN.accessory,
           ...SPORTS_LABELS_EN.accessory,
+          ...CASUAL_LABELS_EN.accessory,
           none: "None",
           eyewear: "Tortoiseshell Glasses",
           aviators: "1970s Gold Aviators",

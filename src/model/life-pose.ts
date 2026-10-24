@@ -33,6 +33,18 @@ export type LifePose = {
 
 export { LIFE_POSES };
 
+/** Searchable tags for MCP / UI: group, framing, hand actions, and id hints. */
+export function lifePoseTags(pose: LifePose): string[] {
+  const tags = new Set<string>([pose.group, pose.framing, ...pose.hands]);
+  const id = pose.id.toLowerCase();
+  if (id.includes("walk")) tags.add("walk");
+  if (id.includes("sit") || id.includes("seated")) tags.add("sit");
+  if (id.includes("stand")) tags.add("stand");
+  if (id.includes("selfie") || id.includes("phone")) tags.add("selfie");
+  if (id.includes("sport") || id.includes("run") || id.includes("stretch")) tags.add("athletic");
+  return [...tags];
+}
+
 const BY_ID = new Map(LIFE_POSES.map((pose) => [pose.id, pose]));
 
 export function lifePoseById(id: string | undefined | null): LifePose | null {

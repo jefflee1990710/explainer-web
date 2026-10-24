@@ -15,6 +15,8 @@ test("listWardrobeCatalogOptions returns every wardrobe part by default", () => 
   for (const row of rows) {
     assert.ok(row.id);
     assert.ok(row.prompt);
+    assert.ok(row.description);
+    assert.ok(Array.isArray(row.tags) && row.tags.length > 0);
     assert.ok(["classic", "stylized", "extreme"].includes(row.category));
   }
 });
@@ -28,6 +30,12 @@ test("listWardrobeCatalogOptions filters by part and category", () => {
   assert.ok(classicHair.length > 0);
   assert.ok(classicHair.every((row) => row.category === "classic"));
   assert.ok(classicHair.length < hair.length);
+});
+
+test("listWardrobeCatalogOptions filters by tags", () => {
+  const pickle = listWardrobeCatalogOptions({ tags: ["pickleball"] });
+  assert.ok(pickle.length > 0);
+  assert.ok(pickle.every((row) => row.tags.includes("pickleball")));
 });
 
 test("decodeImageBase64 accepts data URLs and raw base64", () => {

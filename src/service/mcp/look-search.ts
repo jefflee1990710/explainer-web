@@ -19,6 +19,7 @@ export type LookSearchHit = {
   nameZh?: string;
   prompt?: string;
   description?: string;
+  tags?: string[];
   score: number;
 };
 
@@ -38,7 +39,7 @@ function labelsFor(part: CharacterWardrobePart, id: string) {
   };
 }
 
-// Tokenize a free-text query for id / label / prompt matching.
+// Tokenize a free-text query for id / label / prompt / tag matching.
 export function normalizeSearchQuery(query: string) {
   return query
     .trim()
@@ -61,6 +62,14 @@ function scoreText(haystack: string, tokens: string[]) {
   return score;
 }
 
+function scoreTagList(tags: readonly string[], tokens: string[]) {
+  let score = 0;
+  for (const tag of tags) {
+    score += scoreText(tag, tokens) * 2;
+  }
+  return score;
+}
+
 function scoreCatalogOption(option: PublicWardrobeCatalogOption, tokens: string[]): LookSearchHit | null {
   const { nameEn, nameZh } = labelsFor(option.part, option.id);
   const score =
@@ -68,6 +77,8 @@ function scoreCatalogOption(option: PublicWardrobeCatalogOption, tokens: string[
     scoreText(nameEn, tokens) * 3 +
     scoreText(nameZh, tokens) * 3 +
     scoreText(option.prompt, tokens) +
+    scoreText(option.description, tokens) * 2 +
+    scoreTagList(option.tags, tokens) +
     scoreText(option.part, tokens) +
     scoreText(option.category, tokens);
   if (score <= 0) return null;
@@ -79,6 +90,8 @@ function scoreCatalogOption(option: PublicWardrobeCatalogOption, tokens: string[
     name: nameEn,
     nameZh: nameZh || undefined,
     prompt: option.prompt,
+    description: option.description,
+    tags: option.tags,
     score,
   };
 }
@@ -124,6 +137,7 @@ export function searchWardrobeCatalog(input: {
   query: string;
   part?: CharacterWardrobePart;
   category?: PublicWardrobeCatalogOption["category"];
+  tags?: readonly string[];
   limit?: number;
 }): LookSearchHit[] {
   const tokens = normalizeSearchQuery(input.query);
@@ -132,6 +146,7 @@ export function searchWardrobeCatalog(input: {
   const rows = listWardrobeCatalogOptions({
     part: input.part,
     category: input.category,
+    tags: input.tags,
   });
   return rows
     .map((row) => scoreCatalogOption(row, tokens))
@@ -174,6 +189,7 @@ export function searchLooks(input: {
   query: string;
   part?: CharacterWardrobePart;
   category?: PublicWardrobeCatalogOption["category"];
+  tags?: readonly string[];
   includeStyles?: boolean;
   styles?: PublicStyle[];
   customItems?: PublicCustomWardrobeItem[];
@@ -185,6 +201,7 @@ export function searchLooks(input: {
       query: input.query,
       part: input.part,
       category: input.category,
+      tags: input.tags,
       limit,
     }),
     ...searchCustomWardrobeItems(input.customItems ?? [], {

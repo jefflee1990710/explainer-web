@@ -9,6 +9,13 @@ import {
   BRANDING_TOPS,
 } from "@/service/character/branding-styling-wardrobe";
 import {
+  CASUAL_ACCESSORIES,
+  CASUAL_HAIR,
+  CASUAL_PANTS,
+  CASUAL_SHOES,
+  CASUAL_TOPS,
+} from "@/service/character/casual-wardrobe";
+import {
   SPORTS_ACCESSORIES,
   SPORTS_PANTS,
   SPORTS_SHOES,
@@ -37,6 +44,7 @@ const CLASSIC_HAIR: readonly CharacterLookOption[] = [
   { id: "slickback", prompt: "wet-look editorial slicked-back hair combed smoothly straight back from the forehead" },
   { id: "sidepart", prompt: "a classic gentleman's side-parted tapered haircut with a neat combed finish" },
   ...BRANDING_HAIR,
+  ...CASUAL_HAIR,
 ];
 
 const HERITAGE_TOPS: readonly CharacterLookOption[] = [
@@ -148,6 +156,7 @@ const CLASSIC_TOPS: readonly CharacterLookOption[] = [
   { id: "safarijacket", prompt: "an olive cotton cuatro-pocket belted safari field jacket" },
   ...AMENDA_TOPS,
   ...BRANDING_TOPS,
+  ...CASUAL_TOPS,
 ];
 
 const HERITAGE_PANTS: readonly CharacterLookOption[] = [
@@ -211,6 +220,7 @@ const CLASSIC_PANTS: readonly CharacterLookOption[] = [
   { id: "khakichinos", prompt: "classic preppy pleated stone-khaki cotton chinos with a cuffed hem" },
   ...AMENDA_PANTS,
   ...BRANDING_PANTS,
+  ...CASUAL_PANTS,
 ];
 
 const HERITAGE_SHOES: readonly CharacterLookOption[] = [
@@ -268,6 +278,7 @@ const CLASSIC_SHOES: readonly CharacterLookOption[] = [
   { id: "drivingmoc", prompt: "supple navy suede driving moccasins with a pebbled rubber heel outsole" },
   { id: "courtshoe", prompt: "classic white leather tennis court shoes with forest-green heel tabs" },
   ...BRANDING_SHOES,
+  ...CASUAL_SHOES,
 ];
 
 const HERITAGE_ACCESSORIES: readonly CharacterLookOption[] = [
@@ -312,6 +323,7 @@ const CLASSIC_ACCESSORIES: readonly CharacterLookOption[] = [
   { id: "panamahat", prompt: "a handwoven cream Toquilla straw Panama hat with a black grosgrain ribbon band" },
   { id: "cashmerescarf", prompt: "a soft camel cashmere winter scarf draped once around the neck" },
   ...BRANDING_ACCESSORIES,
+  ...CASUAL_ACCESSORIES,
 ];
 
 function ids(options: readonly CharacterLookOption[]) {
