@@ -207,6 +207,7 @@ test("every director submits drawable frame targets for every clip (no clip is s
     "surprise-interview-director",
     "outfit-reel-director",
     "follow-shot-director",
+    "outfit-change-director",
     "full-body-talking-head-director",
   ];
 

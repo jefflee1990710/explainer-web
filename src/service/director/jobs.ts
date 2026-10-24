@@ -1,7 +1,8 @@
 import type { ObjectId } from "mongodb";
 import { characterLockFromCast, soloCharacterLock } from "@/service/character/cast-prompt";
 import { instructionFollowsReferenceClothes } from "@/service/project/reference-images";
-import { isOutfitReelSkill, isSurpriseInterviewSkill } from "@/service/director/skill-rules";
+import { isOutfitChangeSkill, isOutfitReelSkill, isSurpriseInterviewSkill, isWardrobeBuildSkill } from "@/service/director/skill-rules";
+import { sanitizeOutfitChangePhaseA } from "@/service/director/outfit-change";
 import { sanitizeOutfitPhaseA } from "@/service/director/outfit-reel";
 import { sanitizeSurprisePhaseA } from "@/service/director/surprise-interview";
 import { isRealisticStyle } from "@/service/style/realistic-light";
@@ -106,7 +107,7 @@ export async function runPhaseAJob(
         : phaseA;
     // Always pin characterLock to the cast blueprint rule, including clips-only
     // regenerations that would otherwise keep a previously invented outfit.
-    const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
+    const wardrobeBuild = isWardrobeBuildSkill(project.skillSlug);
     const clothingFromReference =
       !wardrobeBuild &&
       instructionFollowsReferenceClothes([
@@ -119,10 +120,13 @@ export async function runPhaseAJob(
     } else if (project.characterImageUrl) {
       nextPhaseA.characterLock = soloCharacterLock(look);
     }
-    if (wardrobeBuild) {
+    if (isOutfitReelSkill(project.skillSlug)) {
       nextPhaseA.clips = sanitizeOutfitPhaseA(nextPhaseA, Math.random, {
         lenses: isRealisticStyle(style),
       }).clips;
+    }
+    if (isOutfitChangeSkill(project.skillSlug)) {
+      nextPhaseA.clips = sanitizeOutfitChangePhaseA(nextPhaseA).clips;
     }
     if (isSurpriseInterviewSkill(project.skillSlug)) {
       nextPhaseA.clips = sanitizeSurprisePhaseA(nextPhaseA).clips;

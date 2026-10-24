@@ -81,7 +81,7 @@ import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { mediaSrc } from "@/util/media-src";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
-import { isBookendSkill, isOutfitReelSkill, skillUsesOnScreenLipSync } from "@/service/director/skill-rules";
+import { isBookendSkill, isSilentOutfitSkill, skillUsesOnScreenLipSync } from "@/service/director/skill-rules";
 import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lock";
 import { resolvePerformance } from "@/service/director/performance";
 import { resolveRunSkill } from "@/service/director/run-skill";
@@ -645,7 +645,7 @@ export async function sendClipVideo(
   }).catch(() => null);
   const selfShot = isSelfShotCreatorSkill(project.skillSlug);
   const usesLipSync = skillUsesOnScreenLipSync(project.skillSlug);
-  const narratorOnly = !usesLipSync && !isOutfitReelSkill(project.skillSlug);
+  const narratorOnly = !usesLipSync && !isSilentOutfitSkill(project.skillSlug);
   const motionPrompt = isRealisticStyle(style)
     ? lockRealisticVideoLight(subtitlePrompt, { selfShot, narratorOnly })
     : subtitlePrompt;

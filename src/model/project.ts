@@ -119,11 +119,33 @@ export type ReferenceImage = {
 };
 
 // Optional pre-storyboard clip draft with hand-drawn layout sketch and text explanation.
+export type StoryboardSketchElementType =
+  | "person"
+  | "rect"
+  | "circle"
+  | "arrow"
+  | "line"
+  | "text";
+
+export type StoryboardSketchElement = {
+  type: StoryboardSketchElementType;
+  // Normalized coordinates (0..100) across the clip canvas.
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  x2?: number;
+  y2?: number;
+  label?: string;
+  color?: string;
+};
+
 export type StoryboardClipDraft = {
   clipNumber: number;
   explanation: string;
   voDraft?: string;
   sketchUrl?: string;
+  sketchElements?: StoryboardSketchElement[];
 };
 
 export type StoryboardRow = {
@@ -523,6 +545,21 @@ export const projectSchema: z.ZodType<Project> = z.object({
         explanation: z.string(),
         voDraft: z.string().optional(),
         sketchUrl: z.string().optional(),
+        sketchElements: z
+          .array(
+            z.object({
+              type: z.enum(["person", "rect", "circle", "arrow", "line", "text"]),
+              x: z.number(),
+              y: z.number(),
+              width: z.number().optional(),
+              height: z.number().optional(),
+              x2: z.number().optional(),
+              y2: z.number().optional(),
+              label: z.string().optional(),
+              color: z.string().optional(),
+            }),
+          )
+          .optional(),
       }),
     )
     .optional(),

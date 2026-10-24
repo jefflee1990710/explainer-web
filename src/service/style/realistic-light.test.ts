@@ -111,6 +111,7 @@ test("all directors receive realistic de-plastic rules for both built-in realist
     "surprise-interview-director",
     "outfit-reel-director",
     "follow-shot-director",
+    "outfit-change-director",
     "opening-director",
   ];
   const userForkStyle: RenderableStyle = {

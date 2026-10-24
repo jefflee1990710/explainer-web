@@ -50,7 +50,7 @@ test("scene prompts strip Subtitle sentences while keeping scene descriptions", 
 
 test("directors never attach a subtitle look sample to scene image references", () => {
   const image = "https://blob/lettering.png";
-  for (const skillSlug of ["outfit-reel-director", "listicle-director", "surprise-interview-director"]) {
+  for (const skillSlug of ["outfit-reel-director", "outfit-change-director", "listicle-director", "surprise-interview-director"]) {
     const plan = frameSubmitPlan({ ...project(), skillSlug, textStyleImageUrl: image }, 1, "start");
     assert.ok(!plan.refs.includes(image), skillSlug);
     assert.doesNotMatch(plan.prompt, /lettering sample/);
@@ -1401,6 +1401,35 @@ test("outfit reel stills copy the clothing photo on start and end", () => {
   assert.deepEqual(end.refs, ["https://blob/c.png", "https://blob/r1.png"]);
   assert.match(end.prompt, /END FRAME CAMERA/);
   assert.doesNotMatch(end.prompt, /Keep the same camera/);
+});
+
+test("outfit change stills lock identity, the empty room, and a calm editorial hold", () => {
+  const video = project();
+  video.skillSlug = "outfit-change-director";
+  video.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Lynn",
+      blueprintUrl: "https://blob/c.png",
+      prompt: "",
+    },
+  ];
+  video.referenceImages = [{ id: "R1", url: "https://blob/look1.png", description: "sweater" }];
+  video.phaseA!.clips[0].referenceImageIds = ["R1"];
+  video.phaseA!.clips[0].startScene =
+    "Character: Lynn stands calm and editorial, wearing the complete look assigned to THIS clip from its clothing reference. Set: one empty cream-white room: plain wall. Light: soft even indoor daylight. Camera: locked eye-level three-quarter, waist-up to mid-thigh, centered, same crop, same subject size, no tilt, no push, no zoom.";
+  video.phaseA!.clips[0].endScene = video.phaseA!.clips[0].startScene;
+  const start = frameSubmitPlan(video, 1, "start");
+  assert.deepEqual(start.refs, ["https://blob/c.png", "https://blob/look1.png"]);
+  assert.match(start.prompt, /IDENTITY LOCK/);
+  assert.match(start.prompt, /calm and editorial/);
+  assert.match(start.prompt, /empty cream-white room/);
+  assert.match(start.prompt, /START FRAME CAMERA/);
+  assert.match(start.prompt, /locked eye-level three-quarter/);
+  assert.doesNotMatch(start.prompt, /energetic and happy/);
+  assert.doesNotMatch(start.prompt, /NEW CAMERA/);
+  assert.doesNotMatch(start.prompt, /gimbal/);
 });
 
 test("outfit reel later starts are a hard cut and do not attach the previous end", () => {

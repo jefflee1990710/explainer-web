@@ -91,6 +91,22 @@ test("talking-head Phase B uses speech motion instead of snap verbs", () => {
   assert.doesNotMatch(prompt, /snaps fast and decisive/);
 });
 
+test("outfit-change Phase B hard-cuts to a new look on a locked camera", () => {
+  const prompt = clipPhaseBUserPrompt({
+    ...base,
+    skillSlug: "outfit-change-director",
+    phaseA: proposal(),
+    clipNumber: 2,
+  });
+  assert.match(prompt, /THIS clip's complete look/);
+  assert.match(prompt, /hard cut to a different complete look/i);
+  assert.match(prompt, /Same locked camera/);
+  assert.match(prompt, /No spoken words/);
+  assert.match(prompt, /No background music/);
+  assert.doesNotMatch(prompt, /slow gimbal move/);
+  assert.doesNotMatch(prompt, /DIFFERENT camera move/);
+});
+
 test("outfit-reel Phase B keeps the outfit on and moves only the camera", () => {
   const prompt = clipPhaseBUserPrompt({
     ...base,
@@ -185,6 +201,14 @@ test("Phase B with a cast forbids describing or changing clothing", () => {
   assert.match(
     phaseBCharacterLine({ cast: [{ name: "Ada" }], skillSlug: "outfit-reel-director" }),
     /Do not dress her/,
+  );
+  assert.match(
+    phaseBWardrobeLock({ cast: [{ name: "Ada" }], skillSlug: "outfit-change-director" }),
+    /THIS clip's complete look/,
+  );
+  assert.match(
+    phaseBCharacterLine({ cast: [{ name: "Ada" }], skillSlug: "outfit-change-director" }),
+    /Do not keep the previous clip's clothes/,
   );
 });
 

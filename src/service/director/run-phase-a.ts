@@ -32,10 +32,13 @@ import {
   isComparisonCardSkill,
   followShotDirectorBlock,
   isFollowShotSkill,
+  isOutfitChangeSkill,
   isOutfitReelSkill,
   isSurpriseInterviewSkill,
+  isWardrobeBuildSkill,
   isTalkingBrollSkill,
   listicleDirectorBlock,
+  outfitChangeDirectorBlock,
   outfitReelDirectorBlock,
   skillBansNarration,
   skillForcesSceneText,
@@ -47,6 +50,7 @@ import {
 } from "@/service/director/skill-rules";
 import { keyframeDeltaDirectorBlock } from "@/service/director/keyframe-delta";
 import { sceneDetailDirectorBlock } from "@/service/director/scene-detail";
+import { sanitizeOutfitChangePhaseA } from "@/service/director/outfit-change";
 import { isRealisticStyle, isSelfShotCreatorSkill } from "@/service/style/realistic-light";
 import {
   CARTOON_EXPLAINER_SKILL_SLUG,
@@ -204,7 +208,7 @@ export async function runPhaseA(input: {
     ...input,
     skillSlug: input.skill.slug,
   });
-  const wardrobeBuild = isOutfitReelSkill(input.skill.slug);
+  const wardrobeBuild = isWardrobeBuildSkill(input.skill.slug);
   const clothingFromReference =
     !wardrobeBuild &&
     instructionFollowsReferenceClothes([
@@ -363,7 +367,8 @@ ${
         )
       : "",
     isSurpriseInterviewSkill(input.skill.slug) ? surpriseInterviewDirectorBlock() : "",
-    wardrobeBuild ? outfitReelDirectorBlock() : "",
+    isOutfitReelSkill(input.skill.slug) ? outfitReelDirectorBlock() : "",
+    isOutfitChangeSkill(input.skill.slug) ? outfitChangeDirectorBlock() : "",
     isFollowShotSkill(input.skill.slug) ? followShotDirectorBlock() : "",
   ]
     .filter(Boolean)
@@ -533,13 +538,16 @@ Produce a complete Phase A director proposal now.`,
   } else if (input.characterImageUrl) {
     next = { ...next, characterLock: soloCharacterLock(look) };
   }
-  if (wardrobeBuild) {
+  if (isOutfitReelSkill(input.skill.slug)) {
     next = sanitizeOutfitPhaseA(next, Math.random, {
       lenses: isRealisticStyle({
         id: input.style.id,
         baseStyleId: "baseStyleId" in input.style ? input.style.baseStyleId : undefined,
       }),
     });
+  }
+  if (isOutfitChangeSkill(input.skill.slug)) {
+    next = sanitizeOutfitChangePhaseA(next);
   }
   if (isSurpriseInterviewSkill(input.skill.slug)) next = sanitizeSurprisePhaseA(next);
   return next;

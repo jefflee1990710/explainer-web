@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/presentation/components/app-shell";
 import { AcceptPoliciesDialog } from "@/presentation/components/legal/accept-policies-dialog";
@@ -9,6 +10,14 @@ import { needsPolicyAcceptance } from "@/service/legal/versions";
 
 // Session cookie is only available per request, so do not prerender /app at build time.
 export const dynamic = "force-dynamic";
+
+// Private studio routes should never be indexed by search engines.
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 // Header meter count; a DB hiccup must not take down the whole app shell.
 async function safeCountActiveTasks(clerkUserId: string) {

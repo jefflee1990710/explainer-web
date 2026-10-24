@@ -226,6 +226,7 @@ export const briefZhHant = {
     "surprise-interview-director": "驚訝開場訪談",
     "outfit-reel-director": "試衫",
     "follow-shot-director": "第三人稱連續",
+    "outfit-change-director": "換裝快切",
   },
   videoTypeBlurbs: {
     "cartoon-explainer-video-director": "把概念做成白板塗鴉解說。先核准分鏡，再輸出 clips。",
@@ -243,6 +244,7 @@ export const briefZhHant = {
     "surprise-interview-director": "開場鏡頭由上往下並急推近，再坐下來把概念講清楚。",
     "outfit-reel-director": "第一段已經穿好參考圖的整套衣服。每段換一個鏡頭。",
     "follow-shot-director": "第三人稱連續鏡頭。下一段從上一段的結尾開始。",
+    "outfit-change-director": "同一間空白白房、鏡頭鎖死。每段硬切到一套全新造型。",
   },
   skillGuide: {
     labels: {
@@ -341,6 +343,12 @@ export const briefZhHant = {
         structure: "第三人稱連續動作，一段一小步，最後停住",
         picture: "鏡頭鎖死、同一地點，人物大小差不多",
         frames: "下一段的起始圖就是上一段的結尾，中間不換角度",
+      },
+      "outfit-change-director": {
+        voice: "沒有旁白。只有音效，沒有背景音樂",
+        structure: "每段一套完整造型，硬切換裝。段數跟片長走",
+        picture: "空白乳白房間、鎖死腰上鏡頭。衣服跟該段參考圖。臉留在角色藍圖",
+        frames: "每張靜幀同一鏡頭同一房間，只換衣服",
       },
     },
   },

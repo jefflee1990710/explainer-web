@@ -7,7 +7,10 @@ import {
   LOCALE_STORAGE_KEY,
   type LocaleId,
 } from "@/util/i18n";
-import type { MarketingPageKey } from "@/util/i18n/marketing-seo-paths";
+import {
+  KEY_TO_PATH,
+  type MarketingPageKey,
+} from "@/util/i18n/marketing-seo-paths";
 
 export type { MarketingPageKey } from "@/util/i18n/marketing-seo-paths";
 
@@ -22,12 +25,18 @@ export async function marketingPageMetadata(key: MarketingPageKey): Promise<Meta
   const locale = await localeFromCookie();
   const messages = getMessages(locale);
   const seo = messages[key].seo;
+  const canonicalPath = KEY_TO_PATH[key];
   return {
     title: seo.title,
     description: seo.description,
+    alternates: {
+      canonical: canonicalPath,
+    },
     openGraph: {
       title: seo.title,
       description: seo.description,
+      url: canonicalPath,
+      siteName: "Scro",
       type: "website",
       locale,
     },

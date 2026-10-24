@@ -10,7 +10,7 @@ import {
   resolveDirector,
 } from "@/service/director/catalog";
 
-test("all 15 DIRECTOR_SLUGS exist in hardcoded catalog and satisfy IDirector", () => {
+test("all 16 DIRECTOR_SLUGS exist in hardcoded catalog and satisfy IDirector", () => {
   assert.equal(DIRECTORS.length, DIRECTOR_SLUGS.length);
   for (const slug of DIRECTOR_SLUGS) {
     const director = DIRECTORS_BY_SLUG[slug];
@@ -37,6 +37,10 @@ test("IDirector.behavior encodes keyframeMode, continuity, cast count, speechMod
   assert.equal(DIRECTORS_BY_SLUG["surprise-interview-director"].behavior.bansNarration, true);
   assert.equal(DIRECTORS_BY_SLUG["outfit-reel-director"].behavior.speechMode, "silent");
   assert.equal(DIRECTORS_BY_SLUG["outfit-reel-director"].behavior.hiddenInPicker, true);
+  assert.equal(DIRECTORS_BY_SLUG["outfit-change-director"].behavior.speechMode, "silent");
+  assert.equal(DIRECTORS_BY_SLUG["outfit-change-director"].behavior.hiddenInPicker, false);
+  assert.equal(DIRECTORS_BY_SLUG["outfit-change-director"].behavior.chainsClipStarts, false);
+  assert.equal(DIRECTORS_BY_SLUG["outfit-change-director"].behavior.maxBackgroundSets, 1);
 });
 
 test("resolveDirector falls back unknown or legacy custom IDs to cartoon-explainer-video-director", () => {

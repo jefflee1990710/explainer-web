@@ -17,6 +17,15 @@ const PATH_TO_KEY: Record<string, MarketingPageKey> = {
   "/product-promo": "productPromoPage",
 };
 
+export const KEY_TO_PATH: Record<MarketingPageKey, string> = {
+  rightTool: "/right-tool",
+  talkingHeadPage: "/talking-head",
+  cantonesePage: "/cantonese",
+  explainerPage: "/explainer",
+  aiInfluencerPage: "/ai-influencer",
+  productPromoPage: "/product-promo",
+};
+
 // Client-safe: feature SEO landings keep their title when locale switches.
 export function marketingSeoTitle(messages: Messages, pathname: string): string | null {
   const key = PATH_TO_KEY[pathname];

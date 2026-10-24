@@ -1,3 +1,5 @@
+export const DEFAULT_SITE_URL = "https://www.scro.io";
+
 export function getAppUrl() {
   if (process.env.NEXT_PUBLIC_APP_URL) {
     return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
@@ -9,6 +11,17 @@ export function getAppUrl() {
     return `https://${process.env.VERCEL_URL}`;
   }
   return "http://localhost:3000";
+}
+
+// Public canonical base URL used for sitemaps, robots.txt, llms.txt, and SEO metadata.
+export function getSiteUrl() {
+  if (process.env.NEXT_PUBLIC_APP_URL && isPublicHttpUrl(process.env.NEXT_PUBLIC_APP_URL)) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  }
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  return DEFAULT_SITE_URL;
 }
 
 function ipv4Octets(hostname: string): number[] | undefined {

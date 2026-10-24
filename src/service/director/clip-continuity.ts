@@ -4,6 +4,7 @@ import { getDirectorBySlug } from "@/service/director/catalog";
 // Directors whose later clips open on the previous clip's finished still.
 export const SURPRISE_INTERVIEW_SKILL_SLUG = "surprise-interview-director";
 export const OUTFIT_REEL_SKILL_SLUG = "outfit-reel-director";
+export const OUTFIT_CHANGE_SKILL_SLUG = "outfit-change-director";
 export const FOLLOW_SHOT_SKILL_SLUG = "follow-shot-director";
 
 const CHAIN_FROM_CLIP_2 = new Set([
@@ -19,6 +20,20 @@ export function isSurpriseInterviewSkill(skillSlug?: string) {
 
 export function isOutfitReelSkill(skillSlug?: string) {
   return skillSlug === OUTFIT_REEL_SKILL_SLUG;
+}
+
+export function isOutfitChangeSkill(skillSlug?: string) {
+  return skillSlug === OUTFIT_CHANGE_SKILL_SLUG;
+}
+
+// Clothes come from clothing photos; face stays on the character blueprint.
+export function isWardrobeBuildSkill(skillSlug?: string) {
+  return isOutfitReelSkill(skillSlug) || isOutfitChangeSkill(skillSlug);
+}
+
+// No voiceover, no narrator lock, SFX only.
+export function isSilentOutfitSkill(skillSlug?: string) {
+  return isOutfitReelSkill(skillSlug) || isOutfitChangeSkill(skillSlug);
 }
 
 export function isFollowShotSkill(skillSlug?: string) {

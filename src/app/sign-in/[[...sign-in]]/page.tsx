@@ -1,5 +1,22 @@
+import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { AuthForm } from "@/presentation/components/auth/auth-form";
+import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY } from "@/util/i18n";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const jar = await cookies();
+  const stored = jar.get(LOCALE_STORAGE_KEY)?.value;
+  const locale = isLocaleId(stored) ? stored : DEFAULT_LOCALE;
+  const auth = getMessages(locale).auth;
+  return {
+    title: `${auth.signInTitle} | Scro`,
+    robots: {
+      index: false,
+      follow: true,
+    },
+  };
+}
 
 export default async function SignInPage({
   searchParams,

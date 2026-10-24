@@ -43,6 +43,7 @@ test("試衫 is hidden from the picker, including a custom fork of it", () => {
   assert.equal(isHiddenPickerSkill({ slug: "outfit-reel-director" }), true);
   assert.equal(isHiddenPickerSkill({ slug: "custom-1", baseSlug: "outfit-reel-director" }), true);
   assert.equal(isHiddenPickerSkill({ slug: "dialogue-qa-director" }), false);
+  assert.equal(isHiddenPickerSkill({ slug: "outfit-change-director" }), false);
 });
 
 test("system skills by sortOrder first, then custom newest first", () => {

@@ -95,6 +95,7 @@ export const DIRECTOR_SLUGS = [
   "surprise-interview-director",
   "outfit-reel-director",
   "follow-shot-director",
+  "outfit-change-director",
 ] as const;
 
 export type DirectorSlug = (typeof DIRECTOR_SLUGS)[number];

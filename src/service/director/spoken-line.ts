@@ -3,7 +3,7 @@ import type { PerformanceSlots } from "@/model/director-performance";
 import type { VoiceGender } from "@/model/project";
 import { characterVoiceTimbre, firstLockedCharacterVoice } from "@/service/director/character-voice";
 import {
-  isOutfitReelSkill,
+  isSilentOutfitSkill,
   skillBansNarration,
   storyShortCameraLock,
 } from "@/service/director/skill-rules";
@@ -202,7 +202,7 @@ export function lockDialogueSpeech(
     }
     return body;
   }
-  if (!isOutfitReelSkill(skillSlug)) {
+  if (!isSilentOutfitSkill(skillSlug)) {
     const lock = narratorSpeechLock(spokenLine ?? "", voiceOptions);
     if (lock) {
       // Replace an earlier generic AUDIO REQUIRED header if one is already at the top.

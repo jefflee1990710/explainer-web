@@ -25,6 +25,7 @@ import {
   listicleListEntries,
   requiredCastCount,
   followShotDirectorBlock,
+  outfitChangeDirectorBlock,
   outfitReelDirectorBlock,
   surpriseInterviewDirectorBlock,
   verticalSafeAreaDirectorLine,
@@ -496,7 +497,7 @@ test("comparison card is a split, and talking-head b-roll needs one face", () =>
 });
 
 test("surprise, outfit, and follow each need one character", () => {
-  for (const slug of ["surprise-interview-director", "outfit-reel-director", "follow-shot-director"]) {
+  for (const slug of ["surprise-interview-director", "outfit-reel-director", "outfit-change-director", "follow-shot-director"]) {
     assert.equal(requiredCastCount(slug), 1);
     assert.match(briefSkillError({ skillSlug: slug, characterIds: [] }) || "", /1/);
     assert.equal(briefSkillError({ skillSlug: slug, characterIds: ["a"] }), undefined);
@@ -523,6 +524,14 @@ test("surprise, outfit, and follow each need one character", () => {
   assert.doesNotMatch(outfitReelDirectorBlock(), /one garment/);
   assert.doesNotMatch(outfitReelDirectorBlock(), /tight shorts/);
   assert.doesNotMatch(outfitReelDirectorBlock(), /startScene copies the previous endScene/);
+  assert.match(outfitChangeDirectorBlock(), /OUTFIT CHANGE lookbook/);
+  assert.match(outfitChangeDirectorBlock(), /hard cut to a different complete look/);
+  assert.match(outfitChangeDirectorBlock(), /empty cream-white room/);
+  assert.match(outfitChangeDirectorBlock(), /locked for the whole video/);
+  assert.match(outfitChangeDirectorBlock(), /calm and editorial/);
+  assert.match(outfitChangeDirectorBlock(), /\(no dialogue\)/);
+  assert.doesNotMatch(outfitChangeDirectorBlock(), /slow gimbal/);
+  assert.doesNotMatch(outfitChangeDirectorBlock(), /startScene copies the previous endScene/);
   assert.match(followShotDirectorBlock(), /startScene copies the previous endScene/);
   assert.match(followShotDirectorBlock(), /Do not scroll a whole street/);
 });

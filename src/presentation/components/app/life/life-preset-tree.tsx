@@ -30,7 +30,7 @@ export function lifePresetsFromPublic(presets: PublicCharacterPreset[]): PublicL
     }));
 }
 
-// Tree under the selected character: default look, then each saved preset.
+// Clickable outfit cards under the selected character: default look, then each saved preset.
 export function LifePresetTree({
   character,
   look,
@@ -79,8 +79,12 @@ export function LifePresetTree({
         </button>
       </div>
 
-      <ul role="radiogroup" aria-label={t("life.presetHeading")} className="mt-2 max-h-44 overflow-y-auto">
-        <TreeChoice
+      <div
+        role="radiogroup"
+        aria-label={t("life.presetHeading")}
+        className="mt-2 flex gap-2 overflow-x-auto pb-1"
+      >
+        <OutfitCard
           active={defaultActive}
           disabled={disabled}
           thumb={character.previewUrl}
@@ -88,7 +92,7 @@ export function LifePresetTree({
           onSelect={onSelectDefault}
         />
         {customActive ? (
-          <TreeChoice
+          <OutfitCard
             active
             disabled={disabled}
             thumb={look.thumbUrl}
@@ -97,7 +101,7 @@ export function LifePresetTree({
           />
         ) : null}
         {character.presets.map((preset) => (
-          <TreeChoice
+          <OutfitCard
             key={preset.id}
             active={pinned?.id === preset.id}
             disabled={disabled}
@@ -107,7 +111,7 @@ export function LifePresetTree({
             onSelect={() => onSelectPreset(preset)}
           />
         ))}
-      </ul>
+      </div>
 
       {character.presets.length === 0 ? (
         <p className="mt-1.5 pl-4 text-[11px] text-muted">{t("life.presetsEmpty")}</p>
@@ -116,7 +120,7 @@ export function LifePresetTree({
   );
 }
 
-function TreeChoice({
+function OutfitCard({
   active,
   disabled,
   thumb,
@@ -132,29 +136,29 @@ function TreeChoice({
   onSelect: () => void;
 }) {
   return (
-    <li className="relative py-0.5 pl-5 before:absolute before:top-0 before:bottom-0 before:left-[7px] before:w-px before:bg-accent-ink/15 last:before:bottom-1/2">
-      <span className="absolute top-1/2 left-[7px] h-px w-3 -translate-y-1/2 bg-accent-ink/15" />
-      <button
-        type="button"
-        role="radio"
-        aria-checked={active}
-        disabled={disabled}
-        onClick={onSelect}
-        className={`flex w-full cursor-pointer items-center gap-2 rounded-xl px-2 py-1 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
-          active ? "bg-accent-ink text-paper" : "hover:bg-accent-ink/5"
-        }`}
-      >
-        <LookThumb src={thumb} />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-xs font-bold">{label}</span>
-          {detail ? (
-            <span className={`block truncate text-[11px] ${active ? "text-paper/75" : "text-muted"}`}>
-              {detail}
-            </span>
-          ) : null}
-        </span>
-      </button>
-    </li>
+    <button
+      type="button"
+      role="radio"
+      aria-checked={active}
+      disabled={disabled}
+      onClick={onSelect}
+      title={detail || label}
+      className={`flex w-[5.75rem] shrink-0 cursor-pointer flex-col overflow-hidden rounded-xl border text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
+        active
+          ? "border-accent-ink bg-accent-ink text-paper shadow-[2px_2px_0_0_#12141c]"
+          : "border-accent-ink/12 bg-paper text-foreground hover:border-accent-ink/40"
+      }`}
+    >
+      {thumb ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={thumb} alt="" className="aspect-[3/4] w-full bg-zinc-200 object-cover object-top" />
+      ) : (
+        <span className="grid aspect-[3/4] w-full place-items-center bg-zinc-200 text-xs text-muted">—</span>
+      )}
+      <span className="min-w-0 px-1.5 py-1.5">
+        <span className="block truncate text-[11px] font-bold">{label}</span>
+      </span>
+    </button>
   );
 }
 
@@ -164,9 +168,9 @@ function LookThumb({ src }: { src: string | null }) {
     <img
       src={src}
       alt=""
-      className="h-7 w-7 shrink-0 rounded-lg border border-accent-ink/10 bg-white object-cover object-top"
+      className="h-8 w-8 shrink-0 rounded-lg border border-accent-ink/10 bg-white object-cover object-top"
     />
   ) : (
-    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-zinc-200 text-[10px] text-muted">—</span>
+    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-zinc-200 text-[10px] text-muted">—</span>
   );
 }

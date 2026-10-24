@@ -1,12 +1,13 @@
 import type { CharacterVoice } from "@/model/character-voice";
 import type { PerformanceSlots } from "@/model/director-performance";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
-import { isOutfitReelSkill } from "@/service/director/skill-rules";
+import { isOutfitChangeSkill, isOutfitReelSkill, isSilentOutfitSkill } from "@/service/director/skill-rules";
 import {
   DUAL_KEYFRAME_GLIDE_RULES,
   DUAL_KEYFRAME_MOTION_RULES,
   REALISTIC_SINGLE_FRAME_MOTION_RULES,
 } from "@/service/director/dual-keyframe-motion";
+import { OUTFIT_CHANGE_VIDEO_MOTION_RULES } from "@/service/director/outfit-change";
 import { OUTFIT_VIDEO_MOTION_RULES } from "@/service/director/outfit-reel";
 import { isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
 import { surpriseVarietyPlan, surpriseVideoMotionRules } from "@/service/director/surprise-interview";
@@ -27,6 +28,9 @@ export function phaseBCharacterLine(input: {
   skillSlug?: string;
 }) {
   const names = input.cast?.map((member) => member.name).filter(Boolean).join(", ");
+  if (names && isOutfitChangeSkill(input.skillSlug)) {
+    return `Keep ${names}'s face, hair, and proportions as in the first and last frames. THIS clip's look is already complete in both frames and must stay identical, including style and colour. Do not dress her. Do not keep the previous clip's clothes. Do not mention reference images or reference sheets — MiniMax H3 only receives this clip's first and last frames.`;
+  }
   if (names && isOutfitReelSkill(input.skillSlug)) {
     return `Keep ${names}'s face, hair, and proportions as in the first and last frames. The outfit is already complete in both frames and must stay identical, including style and colour. Do not dress her. Do not mention reference images or reference sheets — MiniMax H3 only receives this clip's first and last frames.`;
   }
@@ -43,6 +47,9 @@ export function phaseBWardrobeLock(input: {
   skillSlug?: string;
 }) {
   if (!input.cast?.length && !input.characterImageUrl) return "";
+  if (isOutfitChangeSkill(input.skillSlug)) {
+    return "Wardrobe: this clip's frames already show THIS clip's complete look from its clothing reference, same style and colour. Nothing goes on or comes off during the clip. Do not keep the previous clip's clothes. Do not change face or hair.";
+  }
   if (isOutfitReelSkill(input.skillSlug)) {
     return "Wardrobe: both frames already show the complete outfit from the clothing reference, same style and colour. Nothing goes on or comes off during the clip. Do not change face or hair.";
   }
@@ -95,14 +102,18 @@ export function clipPhaseBUserPrompt(input: {
 
   const surprise = isSurpriseInterviewSkill(input.skillSlug);
   const opening = prev
-    ? isOutfitReelSkill(input.skillSlug)
+    ? isOutfitChangeSkill(input.skillSlug)
+      ? `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene}. This clip is a hard cut to a DIFFERENT complete look. Same locked camera, same empty room. Open on THIS clip's START frame.`
+      : isOutfitReelSkill(input.skillSlug)
       ? `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene}. The outfit stays the same. This clip is a hard cut to a DIFFERENT camera move. Open on THIS clip's START frame.`
       : surprise
         ? `Open on clip ${prev.clipNumber}'s end still. Same camera angle, same crop, same body pose. Only the mouth and vivid, expressive facial expressions move.`
         : `It follows clip ${prev.clipNumber}, which ends on: ${prev.explainerScene} (${prev.motionCamera}). Start from that resting state.`
     : "It is the first clip; open cold on the START frame.";
   const closing = next
-    ? isOutfitReelSkill(input.skillSlug)
+    ? isOutfitChangeSkill(input.skillSlug)
+      ? `The next clip will hard-cut to a different complete look. End this clip on the same locked camera. No voice. No background music.`
+      : isOutfitReelSkill(input.skillSlug)
       ? `The next clip will hard-cut to a different camera move. End this clip on its own end camera. No voice. No background music.`
       : surprise
         ? `The next clip opens on this clip's end still. Keep this angle and pose. Do not hard-cut to a new setup.`
@@ -118,13 +129,15 @@ export function clipPhaseBUserPrompt(input: {
       bansNarration: input.bansNarration,
       speechPace: input.speechPace,
       speakers: input.speakers,
-      silent: isOutfitReelSkill(input.skillSlug),
+      silent: isSilentOutfitSkill(input.skillSlug),
     }),
     input.characterLine,
     `Write the Phase B video prompt for clip ${row.clipNumber} ONLY (${row.timeRange}, ${row.durationSeconds}s).`,
     clipUsesTalkingPerformance(input.skillSlug)
       ? talkingVideoMotionRules(talkingShotForSkill(input.skillSlug) ?? "face", input.performance)
-      : isOutfitReelSkill(input.skillSlug)
+      : isOutfitChangeSkill(input.skillSlug)
+        ? OUTFIT_CHANGE_VIDEO_MOTION_RULES
+        : isOutfitReelSkill(input.skillSlug)
         ? OUTFIT_VIDEO_MOTION_RULES
         : isSurpriseInterviewSkill(input.skillSlug)
           ? surpriseVideoMotionRules(

@@ -28,6 +28,7 @@ test("end stills use the stronger model except directors that already own the ca
   assert.equal(shouldRewriteEndScenes("talking-head-director"), false);
   assert.equal(shouldRewriteEndScenes("full-body-talking-head-director"), false);
   assert.equal(shouldRewriteEndScenes("outfit-reel-director"), false);
+  assert.equal(shouldRewriteEndScenes("outfit-change-director"), false);
   assert.equal(shouldRewriteEndScenes("surprise-interview-director"), false);
 });
 

@@ -11,6 +11,7 @@ import {
 import { BlogPostContent } from "@/app/posts/[slug]/blog-post-content";
 import { BlogPostRegisterCta } from "@/app/posts/[slug]/blog-post-register-cta";
 import { BlogPostSidebar } from "@/app/posts/[slug]/blog-post-sidebar";
+import { getSiteUrl } from "@/util/app-url";
 import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY } from "@/util/i18n";
 
 export const dynamic = "force-dynamic";
@@ -91,15 +92,35 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
 
   const signedIn = Boolean(session);
   const recommendedPosts = await listRecommendedBlogPosts(post, 5);
+  const siteUrl = getSiteUrl();
+  const postUrl = `${siteUrl}/posts/${encodeURIComponent(post.slug)}`;
 
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": postUrl,
+    },
     headline: post.title,
     description: post.excerpt,
-    image: [post.featureImage],
+    image: post.featureImage ? [post.featureImage] : undefined,
     datePublished: post.createdAt,
     dateModified: post.updatedAt,
+    author: {
+      "@type": "Organization",
+      name: "Scro",
+      url: siteUrl,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Scro",
+      url: siteUrl,
+      logo: {
+        "@type": "ImageObject",
+        url: `${siteUrl}/icon.svg`,
+      },
+    },
     keywords: post.tags.join(", "),
   };
 

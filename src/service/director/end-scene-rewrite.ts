@@ -1,7 +1,7 @@
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import type { StoryboardRow, VoLanguage } from "@/model/project";
-import { isFollowShotSkill, isOutfitReelSkill, isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
+import { isFollowShotSkill, isSilentOutfitSkill, isSurpriseInterviewSkill } from "@/service/director/clip-continuity";
 import { clearEndStillChoice } from "@/service/director/camera-move";
 import { clipEndScene, clipStartScene, isDualBeatSkill, normalizeDualBeatRow } from "@/service/director/dual-beat";
 import { sceneDescriptionLanguageLock } from "@/service/director/languages";
@@ -22,7 +22,7 @@ const endSceneRewriteSchema = z.object({
 // These directors already set the end camera in code, or never ask a model for stills.
 export function shouldRewriteEndScenes(skillSlug?: string) {
   if (!skillSlug) return true;
-  return !isTalkingHeadSkill(skillSlug) && !isOutfitReelSkill(skillSlug) && !isSurpriseInterviewSkill(skillSlug);
+  return !isTalkingHeadSkill(skillSlug) && !isSilentOutfitSkill(skillSlug) && !isSurpriseInterviewSkill(skillSlug);
 }
 
 export function endSceneRewriteSystem(language?: VoLanguage, options?: { lockedCamera?: boolean }) {

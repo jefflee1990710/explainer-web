@@ -67,6 +67,10 @@ test("lockDialogueSpeech leaves explainer prompts unchanged until a spoken line 
     lockDialogueSpeech("She puts on the skirt.", "outfit-reel-director"),
     "She puts on the skirt.",
   );
+  assert.equal(
+    lockDialogueSpeech("She changes into the next look.", "outfit-change-director"),
+    "She changes into the next look.",
+  );
 });
 
 test("cartoon explainer puts the narrator line first so the clip cannot stay silent", () => {

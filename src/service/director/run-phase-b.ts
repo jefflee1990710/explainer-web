@@ -11,7 +11,9 @@ import { isRealisticStyle, isSelfShotCreatorSkill } from "@/service/style/realis
 import {
   cartoonClipAction,
   cartoonNarratorVideoLock,
+  isOutfitChangeSkill,
   isOutfitReelSkill,
+  isSilentOutfitSkill,
   isSurpriseInterviewSkill,
   skillBansNarration,
   skillUsesOnScreenLipSync,
@@ -36,6 +38,10 @@ import type { Skill } from "@/model/skill";
 import { resolvePerformance } from "@/service/director/performance";
 import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG, talkingHeadPhaseBPrompt } from "@/service/director/talking-head";
 import { NO_ONSCREEN_WRITING, storyboardAsksForSubtitle } from "@/service/director/scene-text";
+import {
+  OUTFIT_CHANGE_COVERED_SWAP,
+  OUTFIT_CHANGE_VIDEO_MOTION_RULES,
+} from "@/service/director/outfit-change";
 import {
   OUTFIT_COVERED_SWAP,
   OUTFIT_VIDEO_MOTION_RULES,
@@ -80,7 +86,9 @@ ${
           talkingShotForSkill(input.skill.slug) ?? "face",
           resolvePerformance(input.skill, talkingShotForSkill(input.skill.slug) ?? "face", "en"),
         )
-      : isOutfitReelSkill(input.skill.slug)
+      : isOutfitChangeSkill(input.skill.slug)
+        ? OUTFIT_CHANGE_VIDEO_MOTION_RULES
+        : isOutfitReelSkill(input.skill.slug)
         ? OUTFIT_VIDEO_MOTION_RULES
         : isSurpriseInterviewSkill(input.skill.slug)
           ? SURPRISE_VARIETY_VIDEO_RULES
@@ -93,14 +101,14 @@ ${
 ${phaseBDetailRules({
   realistic,
   selfShot: isSelfShotCreatorSkill(input.skill.slug),
-  narratorOnly: !skillUsesOnScreenLipSync(input.skill.slug) && !isOutfitReelSkill(input.skill.slug),
+  narratorOnly: !skillUsesOnScreenLipSync(input.skill.slug) && !isSilentOutfitSkill(input.skill.slug),
 })}
 ${
-    isOutfitReelSkill(input.skill.slug)
+    isSilentOutfitSkill(input.skill.slug)
       ? "This director is silent. Do not write a spoken line, a narrator, or lip-sync. No background music. One sound effect only."
       : `Spoken lines in every prompt must be quoted verbatim from the approved englishVo field, which is in ${languageLabel} (${languageSublabel}).`
   } ${
-    isOutfitReelSkill(input.skill.slug)
+    isSilentOutfitSkill(input.skill.slug)
       ? "Do not copy a narrator voice."
       : lockedSpeakerLines(input.cast).length
         ? "Copy each character voice lock verbatim into every clip prompt. Do not invent or rephrase a timbre from the look."
@@ -110,13 +118,13 @@ ${
     smoothMotion: steady,
     realistic,
   })} ${
-    isOutfitReelSkill(input.skill.slug) ? "" : `Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. `
+    isSilentOutfitSkill(input.skill.slug) ? "" : `Every speaker delivers at a ${speechPaceDelivery(input.speechPace)}. `
   }${
     input.sceneTextOff
       ? "On-screen text is OFF. Do not ask for letters, subtitles, captions, signs, labels, or numbers. The picture stays free of writing. "
       : ""
   }Never request background music, BGM, a musical score, or an underscore. ${
-    isOutfitReelSkill(input.skill.slug) ? "Sound effects only. No voice." : "Voice and short synced SFX only."
+    isSilentOutfitSkill(input.skill.slug) ? "Sound effects only. No voice." : "Voice and short synced SFX only."
   }`;
 }
 
@@ -186,7 +194,7 @@ export async function runPhaseBForClip(
     bansNarration: skillBansNarration(input.skill.slug) || talkingHead,
     speechPace: input.speechPace,
     speakers: input.cast,
-    silent: isOutfitReelSkill(input.skill.slug),
+    silent: isSilentOutfitSkill(input.skill.slug),
     noSfx: talkingHead,
   });
   const row = input.phaseA.clips.find((clip) => clip.clipNumber === input.clipNumber);
@@ -197,7 +205,7 @@ export async function runPhaseBForClip(
     !storyboardAsksForSubtitle(row?.startScene, row?.endScene, row?.explainerScene);
   // Audio, narrator, wardrobe, and lettering locks ride on every clip; empty locks are skipped.
   // Rewrite the model action first so "Never pull" locks appended below stay intact.
-  const modelPrompt = isOutfitReelSkill(input.skill.slug)
+  const modelPrompt = isSilentOutfitSkill(input.skill.slug)
     ? rewriteOutfitSafetyText(output.prompt)
     : output.prompt;
   const prompt = [
@@ -217,7 +225,11 @@ export async function runPhaseBForClip(
     input.sceneTextOff || talkingHeadWithoutSubtitle || isTalkingHeadSkill(input.skill.slug)
       ? NO_ONSCREEN_WRITING
       : "No subtitles or voiceover captions on screen.",
-    isOutfitReelSkill(input.skill.slug) ? OUTFIT_COVERED_SWAP : "",
+    isOutfitChangeSkill(input.skill.slug)
+      ? OUTFIT_CHANGE_COVERED_SWAP
+      : isOutfitReelSkill(input.skill.slug)
+        ? OUTFIT_COVERED_SWAP
+        : "",
   ]
     .filter(Boolean)
     .reduce(finalizePhaseBPrompt, modelPrompt);

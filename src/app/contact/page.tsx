@@ -12,7 +12,26 @@ export async function generateMetadata(): Promise<Metadata> {
   const stored = jar.get(LOCALE_STORAGE_KEY)?.value;
   const locale = isLocaleId(stored) ? stored : DEFAULT_LOCALE;
   const copy = getMessages(locale).contactPage;
-  return { title: copy.seoTitle, description: copy.seoDescription };
+  return {
+    title: copy.seoTitle,
+    description: copy.seoDescription,
+    alternates: {
+      canonical: "/contact",
+    },
+    openGraph: {
+      title: copy.seoTitle,
+      description: copy.seoDescription,
+      url: "/contact",
+      siteName: "Scro",
+      type: "website",
+      locale,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: copy.seoTitle,
+      description: copy.seoDescription,
+    },
+  };
 }
 
 // Public contact page. Support and sales addresses stay visible if the form cannot send.

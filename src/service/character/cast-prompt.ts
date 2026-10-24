@@ -195,7 +195,7 @@ export const FRAME_WARDROBE_FROM_REFERENCE_CHECK =
 
 // Outfit reel: the scene's garment list is the clothes. The blueprint still locks the face.
 export const FRAME_WARDROBE_BUILD =
-  "WARDROBE: the character image is the person. Copy that face, haircut, hair length, skin, age, and body. Wear the complete outfit in the clothing reference exactly — same style, cut, colour, pattern, and details. Do not copy clothes from the character image. Do not copy the person, face, hair, hair length, pose, or background in the clothing photo. Only the clothes change. She is already dressed, energetic and happy.";
+  "WARDROBE: the character image is the person. Copy that face, haircut, hair length, skin, age, and body. Wear the complete outfit in the clothing reference exactly — same style, cut, colour, pattern, and details. Do not copy clothes from the character image. Do not copy the person, face, hair, hair length, pose, or background in the clothing photo. Only the clothes change. She is already dressed.";
 
 export const FRAME_WARDROBE_BUILD_CHECK =
   "Final check: every garment matches the clothing reference in style and colour. Face and hair still match the character blueprint. She is not putting clothes on.";

@@ -5,8 +5,12 @@ import { CARTOON_EXPLAINER_SKILL_SLUG } from "@/service/director/dual-beat";
 import {
   FOLLOW_SHOT_SKILL_SLUG,
   isFollowShotSkill,
+  isOutfitChangeSkill,
   isOutfitReelSkill,
+  isSilentOutfitSkill,
   isSurpriseInterviewSkill,
+  isWardrobeBuildSkill,
+  OUTFIT_CHANGE_SKILL_SLUG,
   OUTFIT_REEL_SKILL_SLUG,
   SURPRISE_INTERVIEW_SKILL_SLUG,
 } from "@/service/director/clip-continuity";
@@ -21,11 +25,15 @@ export const COMPARISON_CARD_SKILL_SLUG = "comparison-card-director";
 export const TALKING_BROLL_SKILL_SLUG = "talking-broll-director";
 export {
   FOLLOW_SHOT_SKILL_SLUG,
+  OUTFIT_CHANGE_SKILL_SLUG,
   OUTFIT_REEL_SKILL_SLUG,
   SURPRISE_INTERVIEW_SKILL_SLUG,
   isFollowShotSkill,
+  isOutfitChangeSkill,
   isOutfitReelSkill,
+  isSilentOutfitSkill,
   isSurpriseInterviewSkill,
+  isWardrobeBuildSkill,
 };
 
 // Opening / Ending bookends. Auto keeps the skill's 1×5–8s sting; a chosen length does not.
@@ -866,6 +874,18 @@ export function outfitReelDirectorBlock() {
     "The person in a clothing photo is not the character. Never copy their face, hair, hair length, haircut, skin, age, body, tattoos, pose, or room. Face, hair length, skin, age, and body stay on the character blueprint. Only the clothes change. She is energetic and happy in every clip: bright smile, lively expressive eyes, radiant facial expression, feet planted, no bounce.",
     "Do not add one clip per garment. Clip count follows the duration preset. Every clip shows the complete outfit. One room. Each clip is 3–4 seconds and one camera rotation. Inside a clip the camera is one slow gimbal move on a single axis. Same pose, same distance, same subject size, and no handheld shake. The next clip is a hard cut to a different rotation.",
     "Default order is left to right, then top to bottom, then right to left, then bottom to top. Use a shuffle of that list each time you plan, and do not give two clips in a row the same rotation. Do not push, zoom, rise, or change the lens inside a clip. She stays planted. Head and shoes stay in frame.",
+    "englishVo is \"(no dialogue)\" on every clip. No voiceover, no spoken line, no narrator. No background music. bgmDirection and every bgmSfx are one sound effect only.",
+  ].join(" ");
+}
+
+// Same empty white room, locked camera. Each clip hard-cuts to a new complete look.
+export function outfitChangeDirectorBlock() {
+  return [
+    "This is an OUTFIT CHANGE lookbook. Exactly one attached character. Each clip is already fully dressed in THAT clip's complete look. Do not write her putting clothes on, taking clothes off, or changing garments inside a clip.",
+    "Clothes must follow the clothing reference assigned to that clip 100 percent: same style, cut, colour, pattern, and details. Copy every piece the photo shows. Do not redesign, recolor, drop, or add a piece. If no clothing reference is attached, ask for the photos and stop. Do not invent clothes from the brief sentence.",
+    "The person in a clothing photo is not the character. Never copy their face, hair, hair length, haircut, skin, age, body, tattoos, pose, or room. Face, hair length, skin, age, and body stay on the character blueprint. Only the clothes change. She is calm and editorial in every clip: soft closed-mouth expression, eyes to camera, feet planted, no bounce and no bright grin.",
+    "One empty cream-white room: plain wall, no furniture, no window props, no shelf. The camera is locked for the whole video: eye-level three-quarter, waist-up to mid-thigh, centered, same crop, same subject size. No gimbal rotation, no push, no zoom, no handheld shake.",
+    "Clip count follows the duration preset. Prefer one clothing photo per clip. If the brief asks buttoned or unbuttoned of the same piece, alternate those two styling variants. The next clip is a hard cut to a different complete look, not a camera move on the same outfit.",
     "englishVo is \"(no dialogue)\" on every clip. No voiceover, no spoken line, no narrator. No background music. bgmDirection and every bgmSfx are one sound effect only.",
   ].join(" ");
 }

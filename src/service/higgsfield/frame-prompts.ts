@@ -59,12 +59,19 @@ import {
   isBookendSkill,
   VERTICAL_FRAME_SAFE_AREA,
   isComparisonCardSkill,
+  isOutfitChangeSkill,
   isOutfitReelSkill,
   isSurpriseInterviewSkill,
+  isWardrobeBuildSkill,
   skillBansNarration,
   skillForcesSceneText,
   storyShortCameraLock,
 } from "@/service/director/skill-rules";
+import {
+  outfitChangeCameraDirective,
+  OUTFIT_CHANGE_ENERGY,
+  sanitizeOutfitChangeFrameScene,
+} from "@/service/director/outfit-change";
 import {
   rewriteOutfitSafetyText,
   sanitizeOutfitFrameScene,
@@ -623,7 +630,9 @@ export function buildFramePrompt(
   const videoLockUrls = videoLockReferenceUrls(project, clipNumber, { anchor: options.anchor });
   const sheetUrl = skipVideoLocks ? undefined : objectSheetUrl(project);
   const plate = skipVideoLocks ? undefined : backgroundPlateForClip(project, clipNumber);
-  const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
+  const outfitReel = isOutfitReelSkill(project.skillSlug);
+  const outfitChange = isOutfitChangeSkill(project.skillSlug);
+  const wardrobeBuild = isWardrobeBuildSkill(project.skillSlug);
   const surprise = isSurpriseInterviewSkill(project.skillSlug);
   const clothingFromInstruction =
     !wardrobeBuild &&
@@ -752,8 +761,17 @@ export function buildFramePrompt(
   let motionDescription = sceneText.enabled
     ? stripSceneVoiceoverRecap(motionRaw)
     : motionRaw;
-  if (wardrobeBuild) {
+  if (outfitReel) {
     sceneDescription = sanitizeOutfitFrameScene({
+      scene: sceneDescription,
+      clipNumber,
+      position,
+      name: project.cast?.[0]?.name,
+    });
+    motionDescription = rewriteOutfitSafetyText(motionDescription);
+  }
+  if (outfitChange) {
+    sceneDescription = sanitizeOutfitChangeFrameScene({
       scene: sceneDescription,
       clipNumber,
       position,
@@ -865,7 +883,9 @@ export function buildFramePrompt(
     ...(parts.styleBody ? [parts.styleBody] : []),
     ...(parts.visualWorld ? [`Visual world: ${parts.visualWorld}`] : []),
     ...(parts.palette ? [`Palette: ${parts.palette}`] : []),
-    ...(wardrobeBuild ? [OUTFIT_IDENTITY_LOCK, OUTFIT_ENERGY] : []),
+    ...(wardrobeBuild ? [OUTFIT_IDENTITY_LOCK] : []),
+    ...(outfitReel ? [OUTFIT_ENERGY] : []),
+    ...(outfitChange ? [OUTFIT_CHANGE_ENERGY] : []),
     ...(characterFirst ? parts.castLines : []),
     ...(characterFirst && parts.objectLockLine ? [parts.objectLockLine] : []),
     ...(characterFirst && parts.backgroundLockLine ? [parts.backgroundLockLine] : []),
@@ -896,7 +916,8 @@ export function buildFramePrompt(
               : FRAME_WARDROBE_LOCK,
         ]
       : []),
-    ...(wardrobeBuild ? [outfitAngleDirective(clipNumber, position, sceneDescription)] : []),
+    ...(outfitReel ? [outfitAngleDirective(clipNumber, position, sceneDescription)] : []),
+    ...(outfitChange ? [outfitChangeCameraDirective(clipNumber, position, sceneDescription)] : []),
     ...(surprise && clipNumber === 1 ? [surpriseHookCameraDirective(position)] : []),
     ...(parts.renderDetail ? [parts.renderDetail] : []),
     ...(cameraLanding ? [cameraLanding] : []),
@@ -984,7 +1005,7 @@ export function frameSubmitPlan(
   style?: RenderableStyle,
 ) {
   project = talkingHeadFrameProject(project);
-  const wardrobeBuild = isOutfitReelSkill(project.skillSlug);
+  const wardrobeBuild = isWardrobeBuildSkill(project.skillSlug);
   const surpriseHook =
     isSurpriseInterviewSkill(project.skillSlug) &&
     surpriseHookSkipsFrameAnchor(clipNumber, position);

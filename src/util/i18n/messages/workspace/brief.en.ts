@@ -229,6 +229,7 @@ export const briefEn = {
     "surprise-interview-director": "Surprise interview",
     "outfit-reel-director": "Outfit reel",
     "follow-shot-director": "Follow shot",
+    "outfit-change-director": "Outfit change",
   },
   videoTypeBlurbs: {
     "cartoon-explainer-video-director": "Turn a concept into a whiteboard doodle explainer. Approve the storyboard, then export the clips.",
@@ -247,6 +248,7 @@ export const briefEn = {
     "surprise-interview-director": "Opens with a camera drop from above and a sharp zoom-in, then the character explains the concept.",
     "outfit-reel-director": "Already wearing the full outfit from the reference image. Each clip is a different camera move.",
     "follow-shot-director": "A third-person continuous shot. Each clip starts where the last one ended.",
+    "outfit-change-director": "Same empty white room and locked camera. Each clip hard-cuts to a new complete look.",
   },
   skillGuide: {
     labels: {
@@ -345,6 +347,12 @@ export const briefEn = {
         structure: "One continuous third-person action, a small beat per clip, then a rest",
         picture: "Locked camera, same place, the character stays a similar size",
         frames: "Each start frame is the previous end frame. The angle does not change",
+      },
+      "outfit-change-director": {
+        voice: "No voiceover. Sound effects only. No background music",
+        structure: "One complete look per clip. Hard cut between looks. Clip count follows the duration",
+        picture: "Empty cream-white room, locked waist-up camera. Clothes match that clip's reference. Face stays on the blueprint",
+        frames: "Same camera and room on every still. Only the outfit changes",
       },
     },
   },

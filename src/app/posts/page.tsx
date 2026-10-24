@@ -8,22 +8,33 @@ import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY } from "@/u
 
 export const dynamic = "force-dynamic";
 
-async function getBlogCopy() {
+async function getBlogLocaleAndCopy() {
   const jar = await cookies();
   const stored = jar.get(LOCALE_STORAGE_KEY)?.value;
   const locale = isLocaleId(stored) ? stored : DEFAULT_LOCALE;
-  return getMessages(locale).blogPage;
+  return { locale, copy: getMessages(locale).blogPage };
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const copy = await getBlogCopy();
+  const { locale, copy } = await getBlogLocaleAndCopy();
   return {
     title: copy.seoTitle,
     description: copy.seoDescription,
+    alternates: {
+      canonical: "/posts",
+    },
     openGraph: {
       title: copy.seoTitle,
       description: copy.seoDescription,
+      url: "/posts",
+      siteName: "Scro",
       type: "website",
+      locale,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: copy.seoTitle,
+      description: copy.seoDescription,
     },
   };
 }
@@ -40,9 +51,9 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const tag = typeof sp.tag === "string" ? sp.tag : undefined;
   const q = typeof sp.q === "string" ? sp.q : undefined;
 
-  const [paginated, copy] = await Promise.all([
+  const [paginated, { copy }] = await Promise.all([
     listBlogPostsPaginated({ page, limit, tag, q }),
-    getBlogCopy(),
+    getBlogLocaleAndCopy(),
   ]);
 
   return (

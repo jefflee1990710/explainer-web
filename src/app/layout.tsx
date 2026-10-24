@@ -5,6 +5,7 @@ import { GoogleAnalytics } from "@/presentation/components/analytics/google-anal
 import { AdhocBonusProvider } from "@/presentation/components/adhoc-bonus";
 import { I18nProvider } from "@/presentation/components/i18n-provider";
 import { adhocBonusPercent } from "@/service/billing/promo";
+import { getSiteUrl } from "@/util/app-url";
 import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY, type LocaleId } from "@/util/i18n";
 import "./globals.css";
 
@@ -29,10 +30,45 @@ const geistMono = Geist_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const messages = getMessages(await localeFromCookie());
+  const locale = await localeFromCookie();
+  const messages = getMessages(locale);
+  const siteUrl = getSiteUrl();
   return {
-    title: messages.meta.title,
+    metadataBase: new URL(siteUrl),
+    applicationName: "Scro",
+    title: {
+      default: messages.meta.title,
+      template: "%s",
+    },
     description: messages.meta.description,
+    keywords: [
+      "Scro",
+      "AI Influencer",
+      "Virtual KOL",
+      "Explainer Video",
+      "Talking Head Video",
+      "Cantonese AI Video",
+      "Product Promo Video",
+      "UGC Video Generator",
+      "Whiteboard Explainer",
+      "Custom Wardrobe AI",
+    ],
+    authors: [{ name: "Scro", url: siteUrl }],
+    creator: "Scro",
+    publisher: "Scro",
+    openGraph: {
+      title: messages.meta.title,
+      description: messages.meta.description,
+      url: siteUrl,
+      siteName: "Scro",
+      type: "website",
+      locale,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: messages.meta.title,
+      description: messages.meta.description,
+    },
   };
 }
 
