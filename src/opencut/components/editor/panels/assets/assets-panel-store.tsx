@@ -8,7 +8,6 @@ import {
 	HeadphonesIcon,
 	Image02Icon,
 	MagicWand05Icon,
-	TextIcon,
 	Settings01Icon,
 	SlidersHorizontalIcon,
 } from "@hugeicons/core-free-icons";
@@ -18,7 +17,6 @@ export const TAB_KEYS = [
 	"media",
 	"stock",
 	"sounds",
-	"text",
 	"stickers",
 	"effects",
 	"transitions",
@@ -27,6 +25,14 @@ export const TAB_KEYS = [
 ] as const;
 
 export type Tab = (typeof TAB_KEYS)[number];
+
+// Left-rail groups: media, audio, graphics, then project tools.
+export const TAB_SECTIONS: readonly (readonly Tab[])[] = [
+	["media", "stock"],
+	["sounds"],
+	["stickers", "effects", "transitions"],
+	["adjustment", "settings"],
+];
 
 const createHugeiconsIcon =
 	({ icon }: { icon: IconSvgElement }) =>
@@ -46,10 +52,6 @@ export const tabs = {
 	sounds: {
 		icon: createHugeiconsIcon({ icon: HeadphonesIcon }),
 		label: "Sounds",
-	},
-	text: {
-		icon: createHugeiconsIcon({ icon: TextIcon }),
-		label: "Text",
 	},
 	stickers: {
 		icon: createHugeiconsIcon({ icon: Happy01Icon }),

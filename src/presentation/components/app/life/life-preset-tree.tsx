@@ -143,20 +143,25 @@ function OutfitCard({
       disabled={disabled}
       onClick={onSelect}
       title={detail || label}
-      className={`flex w-[5.75rem] shrink-0 cursor-pointer flex-col overflow-hidden rounded-xl border text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
-        active
-          ? "border-accent-ink bg-accent-ink text-paper shadow-[2px_2px_0_0_#12141c]"
-          : "border-accent-ink/12 bg-paper text-foreground hover:border-accent-ink/40"
-      }`}
+      className="flex w-[7rem] shrink-0 cursor-pointer flex-col text-left text-foreground transition disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {thumb ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={thumb} alt="" className="aspect-[3/4] w-full bg-zinc-200 object-cover object-top" />
-      ) : (
-        <span className="grid aspect-[3/4] w-full place-items-center bg-zinc-200 text-xs text-muted">—</span>
-      )}
-      <span className="min-w-0 px-1.5 py-1.5">
-        <span className="block truncate text-[11px] font-bold">{label}</span>
+      <span
+        className={`relative block overflow-hidden rounded-[1.75rem] border bg-zinc-200 ${
+          active
+            ? "border-accent-ink shadow-[2px_2px_0_0_#12141c]"
+            : "border-accent-ink/12 hover:border-accent-ink/40"
+        }`}
+      >
+        {thumb ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={thumb} alt="" className="aspect-[3/4] w-full object-cover object-top" />
+        ) : (
+          <span className="grid aspect-[3/4] w-full place-items-center text-xs text-muted">—</span>
+        )}
+      </span>
+      {/* Label sits outside the clipped photo so rounded corners cannot eat the first letters. */}
+      <span className="mt-1.5 line-clamp-2 min-h-[2rem] px-0.5 text-center text-[11px] font-semibold leading-4">
+        {label}
       </span>
     </button>
   );

@@ -1,11 +1,15 @@
 import { resolveScroClipNumber } from "@/opencut/embed/scro-clip-number";
+import {
+	SMOOTH_SILENCE_GAP_SECONDS,
+	naturalSpeechTrim,
+} from "@/opencut/embed/scro-smooth-silence-pack";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 
 /**
  * Before video is generated (`fileSeconds` absent), use the storyboard duration.
  * Once the generated video is ready (`fileSeconds > 0`), use the real video length,
- * automatically trimming detected leading/trailing dead air (`speechTrimStart` / `speechTrimEnd`)
- * so consecutive Talking-Head / VO clips join smoothly without awkward pauses.
+ * automatically applying a natural speech trim (`speechTrimStart` / `speechTrimEnd`)
+ * so Talking-Head / VO clips keep a spoken pause without a manual Smooth Silence click.
  */
 export function storyboardPlacement({
 	storyboardSeconds,
@@ -22,6 +26,7 @@ export function storyboardPlacement({
 	sourceSeconds: number;
 	trimStartSeconds: number;
 	trimEndSeconds: number;
+	packAdvanceSeconds: number;
 } {
 	const storyboard = Math.max(0, storyboardSeconds);
 	if (fileSeconds == null || fileSeconds <= 0) {
@@ -30,17 +35,32 @@ export function storyboardPlacement({
 			sourceSeconds: storyboard,
 			trimStartSeconds: 0,
 			trimEndSeconds: 0,
+			packAdvanceSeconds: storyboard,
 		};
 	}
 	const file = fileSeconds;
-	const trimStart = Math.max(0, Math.min(file - 0.5, speechTrimStart || 0));
-	const trimEnd = Math.max(0, Math.min(file - trimStart - 0.5, speechTrimEnd || 0));
-	const visible = Math.max(0.5, Math.round((file - trimStart - trimEnd) * 1000) / 1000);
+	const rawStart = speechTrimStart || 0;
+	const rawEnd = speechTrimEnd || 0;
+	if (rawStart > 0 || rawEnd > 0) {
+		const natural = naturalSpeechTrim({
+			duration: file,
+			trimStart: rawStart,
+			trimEnd: rawEnd,
+		});
+		return {
+			visibleSeconds: natural.visible,
+			sourceSeconds: file,
+			trimStartSeconds: natural.trimStart,
+			trimEndSeconds: natural.trimEnd,
+			packAdvanceSeconds: natural.visible + SMOOTH_SILENCE_GAP_SECONDS,
+		};
+	}
 	return {
-		visibleSeconds: visible,
+		visibleSeconds: file,
 		sourceSeconds: file,
-		trimStartSeconds: trimStart,
-		trimEndSeconds: trimEnd,
+		trimStartSeconds: 0,
+		trimEndSeconds: 0,
+		packAdvanceSeconds: file,
 	};
 }
 
@@ -158,12 +178,18 @@ export function fitFullLengthPlacements({
 		const matchesAutoSpeechTrim =
 			Math.abs(element.trimStartSeconds - place.trimStartSeconds) <= 0.05 &&
 			Math.abs(element.trimEndSeconds - place.trimEndSeconds) <= 0.05;
+		// Older auto-trims used the raw detector bounds; still treat them as auto so
+		// talking-head clips pick up the natural keep + inter-clip gap.
+		const matchesRawSpeechTrim =
+			Math.abs(element.trimStartSeconds - (element.speechTrimStart ?? 0)) <= 0.05 &&
+			Math.abs(element.trimEndSeconds - (element.speechTrimEnd ?? 0)) <= 0.05 &&
+			((element.speechTrimStart ?? 0) > 0.02 || (element.speechTrimEnd ?? 0) > 0.02);
 		const isLegacyStoryboardTrim =
 			fileSeconds != null &&
 			element.trimStartSeconds <= 0.05 &&
 			Math.abs(element.durationSeconds - storyboardSeconds) <= 0.05 &&
 			Math.abs(element.durationSeconds + element.trimEndSeconds - fileSeconds) <= 0.1;
-		if (!isUntrimmed && !matchesAutoSpeechTrim && !isLegacyStoryboardTrim) continue;
+		if (!isUntrimmed && !matchesAutoSpeechTrim && !matchesRawSpeechTrim && !isLegacyStoryboardTrim) continue;
 
 		// A split piece whose duration is neither the storyboard duration, the full file,
 		// nor the speech-trimmed visible duration should keep its split duration.
@@ -214,7 +240,11 @@ export function fitFullLengthPlacements({
 				durationChanged,
 			});
 		}
-		previousNewEnd = start + duration;
+		const speechGap =
+			(element.speechTrimStart ?? 0) > 0.02 || (element.speechTrimEnd ?? 0) > 0.02
+				? SMOOTH_SILENCE_GAP_SECONDS
+				: 0;
+		previousNewEnd = start + duration + (index < sorted.length - 1 ? speechGap : 0);
 	});
 	return patches;
 }

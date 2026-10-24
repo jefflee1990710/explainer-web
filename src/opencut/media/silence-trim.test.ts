@@ -40,9 +40,9 @@ test("detectSpeechTrimBounds trims leading and trailing dead air while keeping n
 		durationSeconds: 5.0,
 	});
 	assert.equal(bounds.speechDetected, true);
-	// Expect ~0.43s trimStart (0.50 - 0.07 head pad) and ~0.79s trimEnd (5.0 - (4.10 + 0.11 tail pad))
-	assert.ok(bounds.trimStartSeconds >= 0.38 && bounds.trimStartSeconds <= 0.46, `trimStart=${bounds.trimStartSeconds}`);
-	assert.ok(bounds.trimEndSeconds >= 0.74 && bounds.trimEndSeconds <= 0.82, `trimEnd=${bounds.trimEndSeconds}`);
+	// Expect ~0.28s trimStart (0.50 - 0.22 head pad) and ~0.55s trimEnd (5.0 - (4.10 + 0.35 tail pad))
+	assert.ok(bounds.trimStartSeconds >= 0.24 && bounds.trimStartSeconds <= 0.32, `trimStart=${bounds.trimStartSeconds}`);
+	assert.ok(bounds.trimEndSeconds >= 0.50 && bounds.trimEndSeconds <= 0.60, `trimEnd=${bounds.trimEndSeconds}`);
 	assert.ok(
 		Math.abs(bounds.visibleSeconds + bounds.trimStartSeconds + bounds.trimEndSeconds - 5.0) < 0.01,
 	);
@@ -68,10 +68,11 @@ test("storyboardPlacement and fitFullLengthPlacements apply detected speech trim
 		speechTrimStart: 0.4,
 		speechTrimEnd: 0.8,
 	});
-	assert.equal(place.trimStartSeconds, 0.4);
-	assert.equal(place.trimEndSeconds, 0.8);
-	assert.equal(place.visibleSeconds, 3.8);
+	assert.equal(place.trimStartSeconds, 0.18);
+	assert.equal(place.trimEndSeconds, 0.48);
+	assert.equal(place.visibleSeconds, 4.34);
 	assert.equal(place.sourceSeconds, 5.0);
+	assert.equal(place.packAdvanceSeconds, 4.52);
 
 	const patches = fitFullLengthPlacements({
 		storyboard: [
@@ -107,15 +108,15 @@ test("storyboardPlacement and fitFullLengthPlacements apply detected speech trim
 	});
 
 	assert.equal(patches.length, 2);
-	// Clip 1 trimmed to 4.0s (5 - 0.3 - 0.7) at start=0
+	// Clip 1 keeps extra head/tail room (0.3-0.22 / 0.7-0.32) at start=0
 	assert.equal(patches[0].startSeconds, 0);
-	assert.equal(patches[0].durationSeconds, 4.0);
-	assert.equal(patches[0].trimStartSeconds, 0.3);
-	assert.equal(patches[0].trimEndSeconds, 0.7);
+	assert.equal(patches[0].durationSeconds, 4.54);
+	assert.equal(patches[0].trimStartSeconds, 0.08);
+	assert.equal(patches[0].trimEndSeconds, 0.38);
 
-	// Clip 2 rippled to start=4.0s, trimmed to 4.0s (5 - 0.4 - 0.6)
-	assert.equal(patches[1].startSeconds, 4.0);
-	assert.equal(patches[1].durationSeconds, 4.0);
-	assert.equal(patches[1].trimStartSeconds, 0.4);
-	assert.equal(patches[1].trimEndSeconds, 0.6);
+	// Clip 2 starts after clip 1 plus the spoken pause gap.
+	assert.equal(patches[1].startSeconds, 4.72);
+	assert.equal(patches[1].durationSeconds, 4.54);
+	assert.equal(patches[1].trimStartSeconds, 0.18);
+	assert.equal(patches[1].trimEndSeconds, 0.28);
 });

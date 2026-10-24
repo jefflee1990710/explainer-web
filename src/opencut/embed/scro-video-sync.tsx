@@ -307,7 +307,7 @@ export function ScroVideoSync() {
 							startTime: mediaTimeFromSeconds({ seconds: cursor }),
 						}),
 					});
-					cursor += place.visibleSeconds;
+					cursor += place.packAdvanceSeconds;
 				}
 				sendToScro(
 					{
@@ -499,7 +499,7 @@ export function ScroVideoSync() {
 							fileSeconds: created.type === "video" ? created.duration : undefined,
 							speechTrimStart: created.type === "video" ? created.speechTrimStart : undefined,
 							speechTrimEnd: created.type === "video" ? created.speechTrimEnd : undefined,
-						}).visibleSeconds;
+						}).packAdvanceSeconds;
 					}
 					return;
 				}
@@ -533,7 +533,7 @@ export function ScroVideoSync() {
 						fileSeconds: created.type === "video" ? created.duration : undefined,
 						speechTrimStart: created.type === "video" ? created.speechTrimStart : undefined,
 						speechTrimEnd: created.type === "video" ? created.speechTrimEnd : undefined,
-					}).visibleSeconds;
+					}).packAdvanceSeconds;
 				}
 			} finally {
 				busy.current = false;

@@ -12,6 +12,20 @@ describe("storyboard placement", () => {
 		assert.equal(place.visibleSeconds, 4);
 		assert.equal(place.sourceSeconds, 4);
 		assert.equal(place.trimEndSeconds, 0);
+		assert.equal(place.packAdvanceSeconds, 4);
+	});
+
+	it("applies a natural speech trim and pack gap when talking-head bounds are present", () => {
+		const place = storyboardPlacement({
+			storyboardSeconds: 5,
+			fileSeconds: 5,
+			speechTrimStart: 0.4,
+			speechTrimEnd: 0.8,
+		});
+		assert.equal(place.trimStartSeconds, 0.18);
+		assert.equal(place.trimEndSeconds, 0.48);
+		assert.equal(place.visibleSeconds, 4.34);
+		assert.equal(place.packAdvanceSeconds, 4.52);
 	});
 
 	it("uses the confirmed real video length after video is generated", () => {

@@ -6,11 +6,15 @@ import {
 	probeVideoSpeechBoundsFromSource,
 } from "@/opencut/embed/scro-media-load";
 import { armScroSync } from "@/opencut/embed/scro-media-sources";
+import {
+	naturalSpeechTrim,
+	nextPackedStartSeconds,
+} from "@/opencut/embed/scro-smooth-silence-pack";
 import { mediaTimeFromSeconds, mediaTimeToSeconds } from "@/opencut/wasm";
 
 /**
  * Trim leading/trailing speech silence on main-track video clips and pack them
- * back-to-back so clip junctions don't stack dead air.
+ * with a short natural pause so talking-head cuts do not feel rushed.
  */
 export async function runSmoothSilenceGapsOnTimeline({
 	editor,
@@ -69,23 +73,13 @@ export async function runSmoothSilenceGapsOnTimeline({
 		elementId: string;
 		patch: Record<string, unknown>;
 	}> = [];
+	const lastVideoIndex = mainElements.findLastIndex((el) => el.type === "video");
 
-	for (const el of mainElements) {
+	for (const [index, el] of mainElements.entries()) {
 		if (el.type === "video") {
 			const bounds = trimBoundsByAssetId.get(el.mediaId);
 			if (bounds && bounds.duration > 0) {
-				const trimStart = Math.max(
-					0,
-					Math.min(bounds.duration - 0.5, bounds.trimStart),
-				);
-				const trimEnd = Math.max(
-					0,
-					Math.min(bounds.duration - trimStart - 0.5, bounds.trimEnd),
-				);
-				const visible = Math.max(
-					0.5,
-					Math.round((bounds.duration - trimStart - trimEnd) * 1000) / 1000,
-				);
+				const { trimStart, trimEnd, visible } = naturalSpeechTrim(bounds);
 				if (trimStart > 0.04 || trimEnd > 0.04) {
 					trimmedClipsCount++;
 				}
@@ -100,7 +94,11 @@ export async function runSmoothSilenceGapsOnTimeline({
 						sourceDuration: mediaTimeFromSeconds({ seconds: bounds.duration }),
 					},
 				});
-				cursorSeconds += visible;
+				cursorSeconds = nextPackedStartSeconds(
+					cursorSeconds,
+					visible,
+					index === lastVideoIndex,
+				);
 				continue;
 			}
 		}

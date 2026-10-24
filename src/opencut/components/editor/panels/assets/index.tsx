@@ -8,7 +8,6 @@ import { StockMediaView } from "./views/stock-media-view";
 import { SettingsView } from "./views/settings";
 import { SoundsView } from "@/opencut/sounds/components/assets-view";
 import { StickersView } from "@/opencut/stickers/components/assets-view";
-import { TextView } from "@/opencut/text/components/assets-view";
 import { AdjustmentsView, EffectsView, TransitionsView } from "@/opencut/effects/components/assets-view";
 import { useSearchParams } from "next/navigation";
 import { isScroEmbed } from "@/opencut/embed/scro-transport";
@@ -24,7 +23,6 @@ export function AssetsPanel() {
 		media: <MediaView />,
 		stock: <StockMediaView />,
 		sounds: <SoundsView />,
-		text: <TextView />,
 		stickers: <StickersView />,
 		effects: <EffectsView />,
 		transitions: <TransitionsView />,

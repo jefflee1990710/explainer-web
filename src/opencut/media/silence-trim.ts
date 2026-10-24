@@ -7,13 +7,13 @@
  * into an awkward 1–1.5s freeze at every cut.
  *
  * This module detects the active speech span `[speechStart, speechEnd]` using short-window RMS
- * energy relative to the clip's peak RMS, and leaves a natural breath pad (e.g. 70ms at the start
- * and 110ms at the end) so consecutive clips flow seamlessly (~180ms total inter-clip pause).
+ * energy relative to the clip's peak RMS, and leaves a natural breath pad (e.g. 220ms at the start
+ * and 350ms at the end) so consecutive clips keep a natural spoken pause.
  */
 
 export const SILENCE_WINDOW_SECONDS = 0.02; // 20ms analysis window
-export const DEFAULT_SPEECH_HEAD_PAD_SECONDS = 0.07; // 70ms pre-speech breath pad
-export const DEFAULT_SPEECH_TAIL_PAD_SECONDS = 0.11; // 110ms post-speech consonant release pad
+export const DEFAULT_SPEECH_HEAD_PAD_SECONDS = 0.22; // 220ms pre-speech breath pad
+export const DEFAULT_SPEECH_TAIL_PAD_SECONDS = 0.35; // 350ms post-speech landing pad
 export const MIN_TRIMMED_CLIP_DURATION_SECONDS = 0.8; // Never trim a clip shorter than 0.8s
 export const MIN_SILENCE_TO_TRIM_SECONDS = 0.06; // Ignore tiny <60ms trims
 export const AUDIO_BOUNDARY_FADE_SECONDS = 0.015; // 15ms micro-fade at clip edges to prevent clicks
