@@ -6,20 +6,11 @@ import {
   SOUND_EFFECT_EMBEDDING_MODEL,
   SOUND_EFFECT_VECTOR_INDEX,
 } from "@/model/sound-effect";
+import type { LibrarySound } from "@/service/sound-effect/library-sound";
 
 export const SOUND_EFFECT_PAGE_SIZE = 24;
 
-// What the editor list needs. Embeddings stay in MongoDB.
-export type LibrarySound = {
-  id: string;
-  name: string;
-  description: string;
-  previewUrl: string;
-  duration: number;
-  username: string;
-  tags: string[];
-  license: string;
-};
+export type { LibrarySound };
 
 type LibraryDoc = {
   sourceId?: string;
