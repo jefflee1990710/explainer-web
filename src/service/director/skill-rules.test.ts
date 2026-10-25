@@ -598,7 +598,7 @@ test("whiteboard concept explainer enforces full-canvas 2D whiteboard, 2D charac
   assert.match(videoLock, /concept explained with 2D whiteboard drawings/);
 });
 
-test("realistic whiteboard explainer uses calm, normal facial expressions with mouth closed while non-realistic styles keep exaggerated arcs", () => {
+test("realistic whiteboard explainer uses normal, alive facial expressions with mouth closed while non-realistic styles keep exaggerated arcs", () => {
   assert.equal(cartoonClipExpressionArc(1, { realistic: true }), undefined);
   assert.equal(cartoonClipExpressionArc(5, { realistic: true }), undefined);
   assert.ok(cartoonClipExpressionArc(1, { realistic: false }));
@@ -611,8 +611,10 @@ test("realistic whiteboard explainer uses calm, normal facial expressions with m
   }
 
   const realisticDirector = cartoonExplainerDirectorBlock({ hasCharacter: true, realistic: true });
-  assert.match(realisticDirector, /calm, natural, understated real-person facial expression/);
+  assert.match(realisticDirector, /normal, alive, engaged real-person facial expression/);
+  assert.match(realisticDirector, /never a blank, deadpan, or expressionless stare/);
   assert.match(realisticDirector, /never exaggerated cartoon grimaces/);
+  assert.doesNotMatch(realisticDirector, /understated/);
   assert.doesNotMatch(realisticDirector, /shocked wide saucer eyes/);
   assert.doesNotMatch(realisticDirector, /intense grit with puffed cheeks/);
 
@@ -627,7 +629,8 @@ test("realistic whiteboard explainer uses calm, normal facial expressions with m
     action: "push",
     realistic: true,
   });
-  assert.match(realisticStill1, /normal, calm, natural real-person expression with lips firmly closed/);
+  assert.match(realisticStill1, /normal, alive, engaged real-person expression with lips firmly closed/);
+  assert.match(realisticStill1, /never a blank, deadpan, or expressionless face/);
   assert.doesNotMatch(realisticStill1, /wide saucer eyes/);
   assert.doesNotMatch(realisticStill1, /surprised face/);
 
@@ -638,7 +641,8 @@ test("realistic whiteboard explainer uses calm, normal facial expressions with m
     realistic: true,
   });
   assert.match(realisticVideo5, /lips stay firmly closed with zero mouth or jaw speech movement/);
-  assert.match(realisticVideo5, /calm, natural, and normal with lips firmly closed/);
+  assert.match(realisticVideo5, /normal, alive, and engaged with lips firmly closed/);
+  assert.match(realisticVideo5, /never a blank or deadpan stare/);
   assert.doesNotMatch(realisticVideo5, /puffed cheeks/);
   assert.doesNotMatch(realisticVideo5, /lively, expressive facial expression changes/);
 });

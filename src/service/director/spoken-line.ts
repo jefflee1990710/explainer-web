@@ -210,7 +210,7 @@ export function lockDialogueSpeech(
       // Strip any speaking-mouth articulation wording from realistic light locks when the skill is narrator-only.
       body = body.replace(
         /restrained natural mouth and jaw articulation when speaking \(no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks\)/g,
-        "calm natural facial expression with lips firmly closed and zero mouth or jaw speech movement (the on-screen character is silent and never lip-syncs to the off-screen narrator)",
+        "normal, alive, engaged facial expression with lips firmly closed and zero mouth or jaw speech movement (the on-screen character is silent and never lip-syncs to the off-screen narrator)",
       );
       if (!body.includes(lock)) body = `${lock}\n\n${body}`;
     }
