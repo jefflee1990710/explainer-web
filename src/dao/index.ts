@@ -31,5 +31,6 @@ export { blogPostsCollection } from "@/dao/blog-posts";
 export { academyCoursesCollection } from "@/dao/academy-courses";
 export { customWardrobeItemsCollection } from "@/dao/custom-wardrobe-items";
 export { wardrobeCombinationsCollection } from "@/dao/wardrobe-combinations";
+export { poseEditsCollection } from "@/dao/pose-edits";
 
 
