@@ -1,6 +1,7 @@
 "use server";
 
 import type { StoryboardClipDraft, VoLanguage } from "@/model/project";
+import { logServerUxEvent } from "@/service/analytics/ux-tracker";
 import { requireAppUser } from "@/service/auth";
 import {
   draftStoryboardClipsWithAi,
@@ -31,15 +32,24 @@ export async function sendStoryboardDraftChatAction(input: {
       ...input,
       message,
     });
+    logServerUxEvent("video_storyboard_chat_drafted", {
+      skillSlug: input.skillSlug,
+      draftCount: result.drafts.length,
+    });
     return {
       ok: true,
       reply: result.reply,
       drafts: result.drafts,
     };
   } catch (error) {
+    const errMessage = error instanceof Error ? error.message : "AI 分鏡草稿產生失敗";
+    logServerUxEvent("ux_blocker_storyboard_chat_failed", {
+      skillSlug: input.skillSlug,
+      error: errMessage,
+    });
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "AI 分鏡草稿產生失敗",
+      error: errMessage,
     };
   }
 }

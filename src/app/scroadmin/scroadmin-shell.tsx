@@ -18,6 +18,7 @@ export function ScroAdminShell({
   const pathname = usePathname();
   const links = [
     { href: "/scroadmin", label: t("scroAdmin.dashboard"), exact: true },
+    { href: "/scroadmin/analytics", label: "UX 追蹤分析", exact: false },
     { href: "/scroadmin/courses", label: t("scroAdmin.courses"), exact: false },
   ];
 

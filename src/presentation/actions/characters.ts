@@ -1,5 +1,6 @@
 "use server";
 
+import { logServerUxEvent } from "@/service/analytics/ux-tracker";
 import * as service from "@/service/character/actions";
 import type { CharacterLookSelection } from "@/service/character/character-look";
 import { requireAppUser } from "@/service/auth";
@@ -10,37 +11,77 @@ export type { CharacterResult, DeleteCharacterResult } from "@/service/character
 export async function createCharacterAction(
   ...args: Parameters<typeof service.createCharacterAction>
 ) {
-  return service.createCharacterAction(...args);
+  const res = await service.createCharacterAction(...args);
+  if (res.ok) {
+    logServerUxEvent("character_created", {
+      characterId: res.character.id,
+      styleId: res.character.styleId,
+    });
+  } else {
+    logServerUxEvent("ux_blocker_character_create_failed", {
+      error: res.error,
+      neededCredits: "neededCredits" in res ? res.neededCredits : undefined,
+    });
+  }
+  return res;
 }
 
 export async function addCharacterStyleAction(
   ...args: Parameters<typeof service.addCharacterStyleAction>
 ) {
-  return service.addCharacterStyleAction(...args);
+  const res = await service.addCharacterStyleAction(...args);
+  if (res.ok) {
+    logServerUxEvent("character_style_added", {
+      characterId: args[0],
+      styleId: args[1],
+    });
+  } else {
+    logServerUxEvent("ux_blocker_character_style_failed", { error: res.error });
+  }
+  return res;
 }
 
 export async function editCharacterVersionAction(
   ...args: Parameters<typeof service.editCharacterVersionAction>
 ) {
-  return service.editCharacterVersionAction(...args);
+  const res = await service.editCharacterVersionAction(...args);
+  if (res.ok) {
+    logServerUxEvent("character_version_edited", { characterId: args[0] });
+  } else {
+    logServerUxEvent("ux_blocker_character_edit_failed", { error: res.error });
+  }
+  return res;
 }
 
 export async function retryCharacterVersionAction(
   ...args: Parameters<typeof service.retryCharacterVersionAction>
 ) {
-  return service.retryCharacterVersionAction(...args);
+  const res = await service.retryCharacterVersionAction(...args);
+  logServerUxEvent(res.ok ? "character_version_retried" : "ux_blocker_character_retry_failed", {
+    characterId: args[0],
+    error: res.ok ? undefined : res.error,
+  });
+  return res;
 }
 
 export async function setDefaultVersionAction(
   ...args: Parameters<typeof service.setDefaultVersionAction>
 ) {
-  return service.setDefaultVersionAction(...args);
+  const res = await service.setDefaultVersionAction(...args);
+  if (res.ok) {
+    logServerUxEvent("character_default_version_set", { characterId: args[0] });
+  }
+  return res;
 }
 
 export async function saveCharacterPresetAction(
   ...args: Parameters<typeof service.saveCharacterPresetAction>
 ) {
-  return service.saveCharacterPresetAction(...args);
+  const res = await service.saveCharacterPresetAction(...args);
+  if (res.ok) {
+    logServerUxEvent("character_preset_saved", { characterId: args[0] });
+  }
+  return res;
 }
 
 export async function deleteCharacterPresetAction(

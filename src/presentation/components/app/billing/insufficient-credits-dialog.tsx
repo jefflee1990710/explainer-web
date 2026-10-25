@@ -68,6 +68,13 @@ export function InsufficientCreditsDialog({
   const [waiting, setWaiting] = useState(false);
 
   useEffect(() => {
+    track("ux_blocker_insufficient_credits", {
+      needed_credits: needed,
+      subscribed,
+    });
+  }, [needed, subscribed]);
+
+  useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key !== "Escape" || waiting) return;
       event.preventDefault();

@@ -4,10 +4,8 @@ import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { listPublishedAcademySummaries } from "@/service/academy/courses";
 import { AcademyCatalog } from "@/app/academy/academy-catalog";
 import { AcademyCourseGrid } from "@/app/academy/academy-course-grid";
-import { AcademyCreatorDatabase } from "@/app/academy/academy-creator-database";
 import { AcademyHookDatabase } from "@/app/academy/academy-hook-database";
 import { AcademyOutline } from "@/app/academy/academy-outline";
-import { AcademyPostTypeDatabase } from "@/app/academy/academy-post-type-database";
 import { AcademyShell } from "@/app/academy/academy-shell";
 import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY } from "@/util/i18n";
 
@@ -57,9 +55,6 @@ export default async function AcademyPage() {
         <AcademyCatalog
           courseLabel={copy.tabCourse}
           databaseLabel={copy.tabDatabase}
-          hookLabel={copy.menuHook}
-          postTypeLabel={copy.menuPostType}
-          creatorLabel={copy.menuCreator}
           course={
             courses.length === 0 ? (
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-6 py-16 text-center">
@@ -102,41 +97,6 @@ export default async function AcademyPage() {
                 pov: copy.hookPov,
                 listicle: copy.hookListicle,
                 series: copy.hookSeries,
-              }}
-            />
-          }
-          postType={
-            <AcademyPostTypeDatabase
-              eyebrow={copy.postTypeEyebrow}
-              title={copy.postTypeTitle}
-              subtitle={copy.postTypeSubtitle}
-              allLabel={copy.postTypeAll}
-              beatsLabel={copy.postTypeBeats}
-              groupLabels={{
-                talk: copy.postTypeTalk,
-                teach: copy.postTypeTeach,
-                sell: copy.postTypeSell,
-                brand: copy.postTypeBrand,
-                look: copy.postTypeLook,
-              }}
-            />
-          }
-          creator={
-            <AcademyCreatorDatabase
-              eyebrow={copy.creatorEyebrow}
-              title={copy.creatorTitle}
-              subtitle={copy.creatorSubtitle}
-              allLabel={copy.creatorAll}
-              signatureHookLabel={copy.creatorSignatureHook}
-              stealThisLabel={copy.creatorStealThis}
-              profileLabel={copy.creatorProfile}
-              exampleLabel={copy.creatorExample}
-              categoryLabels={{
-                aiSpokesperson: copy.creatorAiSpokesperson,
-                hookStrategy: copy.creatorHookStrategy,
-                visualHooks: copy.creatorVisualHooks,
-                ugcProduct: copy.creatorUgcProduct,
-                storySeries: copy.creatorStorySeries,
               }}
             />
           }

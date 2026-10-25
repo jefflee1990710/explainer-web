@@ -1,6 +1,7 @@
 "use server";
 
 import { usersCollection } from "@/dao";
+import { logServerUxEvent } from "@/service/analytics/ux-tracker";
 import { requireAppUser } from "@/service/auth";
 import { currentLegalAcceptance } from "@/service/legal/versions";
 
@@ -8,6 +9,7 @@ import { currentLegalAcceptance } from "@/service/legal/versions";
 // The dialog reloads /app itself; a redirect to the same URL leaves the popup mounted.
 export async function acceptCurrentPolicies(input: { terms: boolean; privacy: boolean }) {
   if (!input.terms || !input.privacy) {
+    logServerUxEvent("ux_blocker_legal_incomplete", { terms: input.terms, privacy: input.privacy });
     return { ok: false as const, error: "請先同意服務條款與私隱政策" };
   }
   const user = await requireAppUser();
@@ -17,5 +19,9 @@ export async function acceptCurrentPolicies(input: { terms: boolean; privacy: bo
     { _id: user._id },
     { $set: { legalAcceptance: currentLegalAcceptance(now), updatedAt: now } },
   );
+  logServerUxEvent("legal_accepted", undefined, {
+    clerkUserId: user.clerkUserId,
+    userEmail: user.email,
+  });
   return { ok: true as const };
 }

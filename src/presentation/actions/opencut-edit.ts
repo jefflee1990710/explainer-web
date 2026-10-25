@@ -3,6 +3,7 @@
 import { put } from "@vercel/blob";
 import { ObjectId } from "mongodb";
 import { videosCollection } from "@/dao/videos";
+import { logServerUxEvent } from "@/service/analytics/ux-tracker";
 import { requireClerkUserId } from "@/service/auth";
 import { getOpencutEdit, saveOpencutEdit } from "@/service/opencut/edit-store";
 
@@ -11,6 +12,7 @@ const MAX_UPLOAD_BYTES = 25_000_000;
 export async function getOpencutEditAction(videoId: string) {
   try {
     const edit = await getOpencutEdit(videoId);
+    logServerUxEvent("opencut_editor_opened", { videoId });
     return { ok: true as const, edit };
   } catch (error) {
     return { ok: false as const, error: error instanceof Error ? error.message : "讀取剪輯失敗" };
@@ -23,7 +25,9 @@ export async function saveOpencutEditAction(input: {
   media: unknown;
 }) {
   try {
-    return await saveOpencutEdit(input);
+    const res = await saveOpencutEdit(input);
+    logServerUxEvent("opencut_edit_saved", { videoId: input.videoId });
+    return res;
   } catch (error) {
     return { ok: false as const, error: error instanceof Error ? error.message : "儲存剪輯失敗" };
   }
