@@ -44,8 +44,8 @@ export function evaluateCreditSpendGate({
   if (hasUnlimitedCredits(email)) {
     return sub;
   }
-  // Users who have enough credits in their wallet (including free 20 welcome credits)
-  // can spend them on affordable actions (e.g. character blueprint = 8, life photo = 4, scene frame = 4).
+  // Users who have enough credits in their wallet (including free 80 welcome credits)
+  // can spend them on affordable actions (e.g. character blueprint = 8, life photo = 4, scene frame = 4, first 5s clip preview = 45).
   if (credits >= cost) {
     return sub;
   }
@@ -53,6 +53,23 @@ export function evaluateCreditSpendGate({
     throw new Error("請先訂閱方案才能產片");
   }
   throw new Error("credits 不足，請加購或升級方案");
+}
+
+// Free-trial accounts (no active subscription) may render Clip 1 as a 5s animated preview,
+// while Clip 2+ requires subscribing to unlock the full multi-clip video.
+export function assertFreeTrialClipAllowed({
+  email,
+  sub,
+  clipNumber,
+}: {
+  email?: string | null;
+  sub: Subscription | null;
+  clipNumber: number;
+}): void {
+  if (hasUnlimitedCredits(email)) return;
+  if (isSubscriptionActive(sub)) return;
+  if (clipNumber <= 1) return;
+  throw new Error("免費體驗僅支援預覽第 1 段動態影片，請先訂閱方案以解鎖完整影片");
 }
 
 export async function assertCanSpendCredits(

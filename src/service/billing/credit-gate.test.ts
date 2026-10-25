@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ObjectId } from "mongodb";
 import { creditGrantLanded, isCreditGateError } from "@/service/billing/credit-gate";
-import { evaluateCreditSpendGate } from "@/service/billing/credits";
+import {
+  assertFreeTrialClipAllowed,
+  evaluateCreditSpendGate,
+} from "@/service/billing/credits";
 import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
 import { checkoutUrls } from "@/service/billing/checkout-urls";
 import { upgradeablePlans } from "@/service/billing/plans";
@@ -64,8 +67,8 @@ test("checkoutUrls send popup returns to the done page", () => {
   assert.match(page.cancel_url, /\/app\/billing\?checkout=cancel/);
 });
 
-test("evaluateCreditSpendGate allows unsubscribed users to spend welcome credits on images/characters/life photos, and prompts subscription for video clips", () => {
-  // Unsubscribed user with 20 welcome credits can create a character (8 cr) or life photo (4 cr)
+test("evaluateCreditSpendGate and assertFreeTrialClipAllowed allow unsubscribed users to spend welcome credits on images and Clip 1 preview, then prompt subscription on Clip 2+", () => {
+  // Unsubscribed user with 80 welcome credits can create a character (8 cr), life photo (4 cr), or 1st 5s clip (45 cr)
   assert.equal(
     evaluateCreditSpendGate({
       email: "newuser@example.com",
@@ -84,13 +87,42 @@ test("evaluateCreditSpendGate allows unsubscribed users to spend welcome credits
     }),
     null,
   );
+  assert.equal(
+    evaluateCreditSpendGate({
+      email: "newuser@example.com",
+      credits: WELCOME_CREDITS,
+      cost: MIN_VIDEO_COST,
+      sub: null,
+    }),
+    null,
+  );
 
-  // Unsubscribed user trying to render a video clip (45 cr > 20 cr) gets subscription prompt
+  // Free trial user is allowed to render Clip 1
+  assert.doesNotThrow(() =>
+    assertFreeTrialClipAllowed({
+      email: "newuser@example.com",
+      sub: null,
+      clipNumber: 1,
+    }),
+  );
+
+  // Free trial user trying to render Clip 2 gets subscription paywall
+  assert.throws(
+    () =>
+      assertFreeTrialClipAllowed({
+        email: "newuser@example.com",
+        sub: null,
+        clipNumber: 2,
+      }),
+    /請先訂閱方案/,
+  );
+
+  // Unsubscribed user after exhausting welcome credits gets subscription prompt
   assert.throws(
     () =>
       evaluateCreditSpendGate({
         email: "newuser@example.com",
-        credits: WELCOME_CREDITS,
+        credits: 11,
         cost: MIN_VIDEO_COST,
         sub: null,
       }),

@@ -11,7 +11,10 @@ import {
 	resolveScroClipNumber,
 } from "@/opencut/embed/scro-clip-number";
 import { getScroVideos } from "@/opencut/embed/scro-video-store";
+import { addBookendVideoToTimeline } from "@/opencut/embed/scro-bookend-video";
+import { EditorCore } from "@/opencut/core";
 import { findNonOverlappingMainTrackStartTime } from "@/opencut/timeline/placement";
+import { timelineTimeToPixels } from "@/opencut/timeline/pixel-utils";
 import { BASE_TIMELINE_PIXELS_PER_SECOND } from "@/opencut/timeline/scale";
 import type { FrameRate } from "opencut-wasm";
 import {
@@ -134,6 +137,24 @@ function getDurationForDrag({
 		? placementForScroMedia({ asset: media, clips: getScroVideos()?.clips })
 		: null;
 	return toElementDurationTicks({ seconds: placed?.visibleSeconds ?? media?.duration });
+}
+
+/** Keep a newly placed Opening or Ending inside the timeline viewport. */
+function revealTimelineTime({
+	time,
+	scrollEl,
+	zoomLevel,
+}: {
+	time: MediaTime;
+	scrollEl: HTMLElement | null;
+	zoomLevel: number;
+}): void {
+	if (!scrollEl) return;
+	const px = timelineTimeToPixels({ time, zoomLevel });
+	const viewStart = scrollEl.scrollLeft;
+	const viewEnd = viewStart + scrollEl.clientWidth;
+	if (px >= viewStart + 32 && px <= viewEnd - 140) return;
+	scrollEl.scrollLeft = Math.max(0, px - scrollEl.clientWidth * 0.2);
 }
 
 /** Storyboard length for a Scro clip; the generated file's extra seconds stay trimmed. */
@@ -265,6 +286,11 @@ export class DragDropController {
 			draggedMediaAsset != null &&
 			resolveScroClipNumber({ asset: draggedMediaAsset, clips: scroClips }) !=
 				null;
+		// Bookends are not storyboard clips. A full video row would otherwise
+		// treat the drop as a replace and discard it.
+		const placeOnMainTrack =
+			dragData.type === "media" && dragData.placeOnMainTrack === true;
+		const pinToMainTrack = isDraggedScroMedia || placeOnMainTrack;
 		let duration = getDurationForDrag({
 			dragData,
 			mediaAssets,
@@ -302,7 +328,7 @@ export class DragDropController {
 			elementDuration: duration,
 			pixelsPerSecond: BASE_TIMELINE_PIXELS_PER_SECOND,
 			zoomLevel: this.config.zoomLevel,
-			targetElementTypes: isDraggedScroMedia ? [] : targetElementTypes,
+			targetElementTypes: pinToMainTrack ? [] : targetElementTypes,
 			startTimeOverride,
 		});
 		const fps = this.config.getActiveProjectFps();
@@ -311,7 +337,7 @@ export class DragDropController {
 			target.xPosition = startTimeOverride;
 			target.anchoredDuration = duration;
 		}
-		if (isDraggedScroMedia) {
+		if (pinToMainTrack) {
 			target.trackIndex = sceneTracks.overlay.length;
 			target.isNewTrack = false;
 			target.targetElement = null;
@@ -346,11 +372,34 @@ export class DragDropController {
 		const hasFiles = event.dataTransfer.files?.length > 0;
 		if (!dragData && !hasFiles) return;
 
-		const currentTarget = this.dropTarget;
+		let currentTarget = this.dropTarget;
 		this.setIdle();
 
 		try {
 			if (dragData) {
+				// Hover state can clear before drop. An Ending still belongs on the video row.
+				if (
+					!currentTarget &&
+					dragData.type === "media" &&
+					dragData.placeOnMainTrack
+				) {
+					const sceneTracks = this.config.getSceneTracks();
+					const duration = getDurationForDrag({
+						dragData,
+						mediaAssets: this.config.getMediaAssets(),
+					});
+					currentTarget = {
+						trackIndex: sceneTracks.overlay.length,
+						isNewTrack: false,
+						insertPosition: null,
+						xPosition: findNonOverlappingMainTrackStartTime({
+							mainTrack: sceneTracks.main,
+							requestedStartTime: this.config.getCurrentPlayheadTime(),
+							duration,
+						}),
+						targetElement: null,
+					};
+				}
 				if (!currentTarget) return;
 				this.executeAssetDrop({ target: currentTarget, dragData });
 				return;
@@ -529,22 +578,36 @@ export class DragDropController {
 		target: DropTarget;
 		dragData: Extract<TimelineDragData, { type: "media" }>;
 	}): void {
-		if (target.targetElement) {
-			// Replace media source — not yet implemented
-			return;
-		}
-
 		const mediaAsset = this.config
 			.getMediaAssets()
 			.find((asset) => asset.id === dragData.id);
-		if (!mediaAsset) return;
+		if (!mediaAsset) {
+			// The sting card is visible from its poster before the mp4 is in the library.
+			if (dragData.placeOnMainTrack && dragData.bookend) {
+				void addBookendVideoToTimeline({
+					editor: EditorCore.getInstance(),
+					editorVideoId: dragData.bookend.editorVideoId,
+					url: dragData.bookend.url,
+					name: dragData.name,
+					posterUrl: dragData.bookend.posterUrl,
+					startTime: target.xPosition,
+				});
+			}
+			return;
+		}
 		const scroClips = getScroVideos()?.clips;
 		if (isScroAssetEditLocked({ asset: mediaAsset, clips: scroClips })) {
 			return;
 		}
 		const isScroMedia =
 			resolveScroClipNumber({ asset: mediaAsset, clips: scroClips }) != null;
-		if (isScroMedia) {
+		const placeOnMainTrack = dragData.placeOnMainTrack === true;
+		// Dropping onto a clip used to mean "replace", which is not implemented,
+		// so an Ending dragged onto the full video row disappeared.
+		if (target.targetElement && !placeOnMainTrack && !isScroMedia) {
+			return;
+		}
+		if (isScroMedia || placeOnMainTrack) {
 			const sceneTracks = this.config.getSceneTracks();
 			const draft = buildDroppedMediaElement({
 				asset: mediaAsset,
@@ -562,6 +625,14 @@ export class DragDropController {
 					startTime: nonOverlappingStart,
 				},
 			});
+			if (placeOnMainTrack) {
+				EditorCore.getInstance().playback.seek({ time: nonOverlappingStart });
+				revealTimelineTime({
+					time: nonOverlappingStart,
+					scrollEl: this.config.getTracksScrollEl(),
+					zoomLevel: this.config.zoomLevel,
+				});
+			}
 			return;
 		}
 

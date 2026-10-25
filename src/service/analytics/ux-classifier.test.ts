@@ -175,4 +175,15 @@ describe("User Stuck Stage Classifier & Funnel", () => {
     assert.equal(funnel[funnel.length - 1]?.stepId, "reel_or_life_completed");
     assert.equal(funnel[funnel.length - 1]?.userCount, 1);
   });
+
+  it("classifies free preview and wizard telemetry events into onboarding and blocker categories", () => {
+    assert.equal(inferUxEventCategory("free_preview_clip_submitted"), "onboarding");
+    assert.equal(inferUxEventCategory("free_preview_clip_completed"), "onboarding");
+    assert.equal(inferUxEventCategory("wizard_step_changed"), "onboarding");
+    assert.equal(inferUxEventCategory("sample_script_applied"), "onboarding");
+    assert.equal(
+      inferUxEventCategory("ux_blocker_free_preview_second_clip_locked"),
+      "blocker",
+    );
+  });
 });

@@ -3,10 +3,32 @@ import { processMediaAssets } from "@/opencut/media/processing";
 import type { MediaAsset } from "@/opencut/media/types";
 import { rememberClipSource } from "@/opencut/embed/scro-media-sources";
 import { buildElementFromMedia } from "@/opencut/timeline/element-utils";
+import { findNonOverlappingMainTrackStartTime } from "@/opencut/timeline/placement";
 import { mediaTimeFromSeconds, type MediaTime } from "@/opencut/wasm";
 
+const bookendDownloads = new Map<string, Promise<MediaAsset | null>>();
+
 /** Download an Opening or Ending mp4 once and keep it in the library. */
-export async function ensureBookendVideo({
+export function ensureBookendVideo(
+	args: {
+		editor: EditorCore;
+		editorVideoId: string;
+		url: string;
+		name: string;
+		posterUrl?: string;
+	},
+): Promise<MediaAsset | null> {
+	const key = `${args.editorVideoId}:${args.url}`;
+	const pending = bookendDownloads.get(key);
+	if (pending) return pending;
+	const job = downloadBookendVideo(args).finally(() => {
+		bookendDownloads.delete(key);
+	});
+	bookendDownloads.set(key, job);
+	return job;
+}
+
+async function downloadBookendVideo({
 	editor,
 	editorVideoId,
 	url,
@@ -47,7 +69,7 @@ export async function ensureBookendVideo({
 	return created;
 }
 
-/** Place an Opening or Ending video at the playhead. It is not a storyboard clip. */
+/** Place an Opening or Ending on the main video track, after any clip it would overlap. */
 export async function addBookendVideoToTimeline({
 	editor,
 	editorVideoId,
@@ -65,16 +87,27 @@ export async function addBookendVideoToTimeline({
 }): Promise<MediaAsset | null> {
 	const asset = await ensureBookendVideo({ editor, editorVideoId, url, name, posterUrl });
 	if (!asset) return null;
+	const scene = editor.scenes.getActiveSceneOrNull();
+	if (!scene) return null;
 	const seconds = asset.duration && asset.duration > 0 ? asset.duration : 4;
+	const duration = mediaTimeFromSeconds({ seconds });
+	// The video row is already full of storyboard clips. Sit after them
+	// instead of opening a second track or overlapping a clip.
+	const resolvedStart = findNonOverlappingMainTrackStartTime({
+		mainTrack: scene.tracks.main,
+		requestedStartTime: startTime,
+		duration,
+	});
 	editor.timeline.insertElement({
-		placement: { mode: "auto" },
+		placement: { mode: "explicit", trackId: scene.tracks.main.id },
 		element: buildElementFromMedia({
 			mediaId: asset.id,
 			mediaType: "video",
 			name,
-			duration: mediaTimeFromSeconds({ seconds }),
-			startTime,
+			duration,
+			startTime: resolvedStart,
 		}),
 	});
+	editor.playback.seek({ time: resolvedStart });
 	return asset;
 }

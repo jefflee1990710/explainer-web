@@ -22,6 +22,32 @@ export class VideoCache {
 	private initPromises = new Map<string, Promise<void>>();
 	private frameChain = new Map<string, Promise<unknown>>();
 	private seekGenerations = new Map<string, number>();
+	private warming = new Set<string>();
+
+	/** Decode the next clip's first frame before the playhead reaches it. */
+	warm({
+		mediaId,
+		file,
+		url,
+		time,
+	}: {
+		mediaId: string;
+		file: File;
+		url?: string;
+		time: number;
+	}): void {
+		if (this.warming.has(mediaId)) return;
+		const sink = this.sinks.get(mediaId);
+		if (sink?.currentFrame && this.isFrameValid({ frame: sink.currentFrame, time })) {
+			return;
+		}
+		this.warming.add(mediaId);
+		void this.getFrameAt({ mediaId, file, url, time })
+			.catch(() => {})
+			.finally(() => {
+				this.warming.delete(mediaId);
+			});
+	}
 
 	async getFrameAt({
 		mediaId,

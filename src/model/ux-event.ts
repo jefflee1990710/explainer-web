@@ -98,6 +98,13 @@ export function inferUxEventCategory(event: string): UxEventCategory {
     return "life";
   }
   if (
+    normalized.startsWith("free_preview_") ||
+    normalized.startsWith("wizard_") ||
+    normalized.startsWith("sample_script_")
+  ) {
+    return "onboarding";
+  }
+  if (
     normalized.startsWith("opencut_") ||
     normalized.startsWith("editor_") ||
     normalized.startsWith("subtitle_")

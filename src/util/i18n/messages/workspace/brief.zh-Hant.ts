@@ -161,6 +161,7 @@ export const briefZhHant = {
   submit: {
     submitting: "送出中…",
     regenerate: "重新產生",
+    createNew: "建立新的一支",
     saveAndRegenerateStoryboard: "儲存並重新產生分鏡",
     start: "開始製作",
   },

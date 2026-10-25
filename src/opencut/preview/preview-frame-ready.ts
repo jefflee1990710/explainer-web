@@ -4,6 +4,9 @@ export const PREVIEW_EMPTY_CHANNEL = 16;
 /** How long a still-blank canvas may keep the spinner before the frame is shown anyway. */
 export const PREVIEW_EMPTY_HOLD_MS = 8000;
 
+/** A packed breath between clips. Hold the last picture instead of flashing black. */
+export const PREVIEW_HOLD_GAP_SECONDS = 0.45;
+
 const SAMPLE_SIZE = 8;
 
 export type PreviewSampleRect = { x: number; y: number; size: number };
@@ -62,4 +65,29 @@ export function previewLoadDecision({
 		return { seenFrame: false, showLoading: true, retry: true };
 	}
 	return { seenFrame: false, showLoading: false, retry: false };
+}
+
+/**
+ * The spinner is only for the first frame. A later clip, including a short
+ * gap between clips, keeps the picture that is already on screen.
+ */
+export function previewClipHandoff({
+	seenFrame,
+	mediaChanged,
+	inGap,
+	gapSeconds,
+}: {
+	seenFrame: boolean;
+	mediaChanged: boolean;
+	inGap: boolean;
+	gapSeconds: number;
+}): { resetSeenFrame: boolean; holdLastFrame: boolean } {
+	if (!seenFrame) {
+		return { resetSeenFrame: mediaChanged, holdLastFrame: false };
+	}
+	return {
+		resetSeenFrame: false,
+		holdLastFrame:
+			inGap && gapSeconds > 0 && gapSeconds <= PREVIEW_HOLD_GAP_SECONDS,
+	};
 }

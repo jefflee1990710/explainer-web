@@ -313,7 +313,10 @@ export async function getUxDiagnosticsReport(): Promise<UxDiagnosticsReport> {
     }
 
     if (ev.clerkUserId) {
-      if (ev.event.includes("insufficient_credits")) {
+      if (
+        ev.event.includes("insufficient_credits") ||
+        ev.event.includes("second_clip_locked")
+      ) {
         creditBlockByUser.set(
           ev.clerkUserId,
           (creditBlockByUser.get(ev.clerkUserId) ?? 0) + 1,

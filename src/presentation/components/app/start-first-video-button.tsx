@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { track } from "@/presentation/components/analytics/track";
 import { ensureDefaultFolderAction } from "@/presentation/actions/projects";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { Spinner } from "@/presentation/components/spinner";
@@ -41,6 +42,9 @@ export function StartFirstVideoButton({
   async function handleStart() {
     if (busy) return;
     setBusy(true);
+    track("onboarding_start_first_video_click", {
+      has_existing_folder: Boolean(existingFolderId),
+    });
     if (existingFolderId) {
       router.push(folderVideoPath(existingFolderId));
       return;

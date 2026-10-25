@@ -6,7 +6,6 @@ import { useEditor } from "@/opencut/editor/use-editor";
 import { addBookendVideoToTimeline, ensureBookendVideo } from "@/opencut/embed/scro-bookend-video";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { LoadingMediaImage } from "@/opencut/components/loading-media-image";
-import { MASKABLE_ELEMENT_TYPES } from "@/opencut/timeline";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { FolderBookendVideo } from "@/service/video-edit/edit-state";
 import { localizedVideoType } from "@/util/video-type-i18n";
@@ -49,13 +48,18 @@ export function BookendVideoCard({ video }: { video: FolderBookendVideo }) {
 		<DraggableItem
 			name={name}
 			aspectRatio={aspectRatio}
-			isDraggable={assetId != null}
+			isDraggable
 			dragData={{
 				id: assetId ?? video.id,
 				type: "media",
 				mediaType: "video",
 				name,
-				targetElementTypes: [...MASKABLE_ELEMENT_TYPES],
+				placeOnMainTrack: true,
+				bookend: {
+					url: video.videoUrl,
+					posterUrl: video.posterUrl,
+					editorVideoId,
+				},
 			}}
 			onAddToTimeline={({ currentTime }) => {
 				if (!editorVideoId) return;

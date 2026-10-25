@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@/presentation/components/analytics/track";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
 type SamplePreset = {
@@ -91,7 +92,13 @@ export function SampleScriptBar({
             key={preset.id}
             type="button"
             disabled={disabled}
-            onClick={() => onApply(text)}
+            onClick={() => {
+              track("sample_script_applied", {
+                preset_id: preset.id,
+                talking_head: Boolean(talkingHead),
+              });
+              onApply(text);
+            }}
             data-talking-head={talkingHead ? "true" : undefined}
             className="inline-flex cursor-pointer items-center rounded-full border border-accent-ink/15 bg-paper px-3 py-1 text-xs font-semibold text-foreground transition hover:border-accent-ink/35 hover:bg-accent-ink/5 disabled:cursor-not-allowed disabled:opacity-50"
           >

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
 	PREVIEW_EMPTY_HOLD_MS,
+	previewClipHandoff,
 	previewLoadDecision,
 	previewSampleRects,
 	rgbaRegionIsPainted,
@@ -66,6 +67,53 @@ describe("previewLoadDecision", () => {
 		assert.deepEqual(
 			previewLoadDecision({ seenFrame: true, painted: false, emptyForMs: 0 }),
 			{ seenFrame: true, showLoading: false, retry: false },
+		);
+	});
+});
+
+describe("previewClipHandoff", () => {
+	it("still waits on the first clip", () => {
+		assert.deepEqual(
+			previewClipHandoff({
+				seenFrame: false,
+				mediaChanged: true,
+				inGap: false,
+				gapSeconds: 0,
+			}),
+			{ resetSeenFrame: true, holdLastFrame: false },
+		);
+	});
+
+	it("keeps the last frame across a short gap and does not reload the next clip", () => {
+		assert.deepEqual(
+			previewClipHandoff({
+				seenFrame: true,
+				mediaChanged: true,
+				inGap: true,
+				gapSeconds: 0.18,
+			}),
+			{ resetSeenFrame: false, holdLastFrame: true },
+		);
+		assert.deepEqual(
+			previewClipHandoff({
+				seenFrame: true,
+				mediaChanged: true,
+				inGap: false,
+				gapSeconds: 0,
+			}),
+			{ resetSeenFrame: false, holdLastFrame: false },
+		);
+	});
+
+	it("does not freeze the preview across a long empty stretch", () => {
+		assert.deepEqual(
+			previewClipHandoff({
+				seenFrame: true,
+				mediaChanged: true,
+				inGap: true,
+				gapSeconds: 2,
+			}),
+			{ resetSeenFrame: false, holdLastFrame: false },
 		);
 	});
 });

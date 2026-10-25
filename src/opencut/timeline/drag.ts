@@ -10,6 +10,14 @@ export interface MediaDragData extends BaseDragData {
 	type: "media";
 	mediaType: "image" | "video" | "audio";
 	targetElementTypes?: MaskableElement["type"][];
+	/** Opening / Ending sting. Land on the main video track instead of replacing a clip. */
+	placeOnMainTrack?: boolean;
+	/** Used when the sting has not finished downloading into the media library yet. */
+	bookend?: {
+		url: string;
+		posterUrl?: string;
+		editorVideoId: string;
+	};
 }
 
 export interface TextDragData extends BaseDragData {

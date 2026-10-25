@@ -7,7 +7,16 @@ import { useRafLoop } from "@/opencut/hooks/use-raf-loop";
 import { useContainerSize } from "@/opencut/hooks/use-container-size";
 import { useFullscreen } from "@/opencut/hooks/use-fullscreen";
 import { CanvasRenderer } from "@/opencut/services/renderer/canvas-renderer";
-import { TICKS_PER_SECOND } from "@/opencut/wasm";
+import { getSourceTimeAtClipTime } from "@/opencut/retime/resolve";
+import type { RetimeConfig } from "@/opencut/timeline";
+import {
+	mediaTimeToSeconds,
+	roundMediaTime,
+	subMediaTime,
+	TICKS_PER_SECOND,
+	type MediaTime,
+} from "@/opencut/wasm";
+import { videoCache } from "@/opencut/services/video-cache/service";
 import type { RootNode } from "@/opencut/services/renderer/nodes/root-node";
 import type { AnyBaseNode } from "@/opencut/services/renderer/nodes/base-node";
 import { VideoNode } from "@/opencut/services/renderer/nodes/video-node";
@@ -25,6 +34,7 @@ import { PreviewToolbar } from "./toolbar";
 import { MediaLoadingMark } from "@/opencut/components/loading-media-image";
 import { ScroPreviewGenerateButton } from "@/opencut/embed/scro-preview-generate-button";
 import {
+	previewClipHandoff,
 	previewLoadDecision,
 	previewSampleRects,
 	rgbaRegionIsPainted,
@@ -65,15 +75,125 @@ function normalizeWheelDelta({
 	return delta;
 }
 
-/** Media under the playhead. A change means a different clip may still be decoding. */
-function previewMediaId(editor: EditorCore): string | null {
+type PreviewVisual = {
+	type: "image" | "video";
+	mediaId: string;
+	startTime: MediaTime;
+	duration: MediaTime;
+	trimStart: MediaTime;
+	retime?: RetimeConfig;
+};
+
+/** Main-track pictures, in timeline order. */
+function previewVisuals(editor: EditorCore): PreviewVisual[] {
+	return editor.scenes
+		.getActiveScene()
+		.tracks.main.elements.flatMap((item) => {
+			if ((item.type !== "image" && item.type !== "video") || !("mediaId" in item)) {
+				return [];
+			}
+			return [
+				{
+					type: item.type,
+					mediaId: item.mediaId,
+					startTime: item.startTime,
+					duration: item.duration,
+					trimStart: item.trimStart,
+					retime: item.type === "video" ? item.retime : undefined,
+				},
+			];
+		})
+		.sort((a, b) => a.startTime - b.startTime);
+}
+
+/** Media under the playhead, and how long until the next picture if this is a gap. */
+function previewCoverage(editor: EditorCore): {
+	mediaId: string | null;
+	gapSeconds: number;
+	active: PreviewVisual | null;
+} {
 	const time = editor.playback.getCurrentTime();
-	const element = editor.scenes.getActiveScene().tracks.main.elements.find((item) => {
-		if (item.type !== "image" && item.type !== "video") return false;
-		return time >= item.startTime && time < item.startTime + item.duration;
+	const visuals = previewVisuals(editor);
+	const active = visuals.find(
+		(item) => time >= item.startTime && time < item.startTime + item.duration,
+	);
+	if (active) return { mediaId: active.mediaId, gapSeconds: 0, active };
+	const next = visuals.find((item) => item.startTime > time);
+	if (!next) {
+		return { mediaId: null, gapSeconds: Number.POSITIVE_INFINITY, active: null };
+	}
+	return {
+		mediaId: null,
+		gapSeconds: mediaTimeToSeconds({
+			time: subMediaTime({ a: next.startTime, b: time }),
+		}),
+		active: null,
+	};
+}
+
+/** Source time of the frame the playhead should show for this clip. */
+function previewSourceSeconds({
+	visual,
+	time,
+}: {
+	visual: PreviewVisual;
+	time: MediaTime;
+}): number {
+	const clipTime = subMediaTime({ a: time, b: visual.startTime });
+	const sourceTicks =
+		visual.trimStart +
+		getSourceTimeAtClipTime({ clipTime, retime: visual.retime });
+	return mediaTimeToSeconds({ time: roundMediaTime({ time: sourceTicks }) });
+}
+
+/** True once the incoming clip's frame is decoded. A miss keeps the previous picture. */
+async function previewVideoFrameReady({
+	editor,
+	visual,
+	time,
+}: {
+	editor: EditorCore;
+	visual: PreviewVisual;
+	time: number;
+}): Promise<boolean> {
+	const asset = editor.media.getAssets().find((item) => item.id === visual.mediaId);
+	if (!asset?.file) return false;
+	const frame = await videoCache.getFrameAt({
+		mediaId: asset.id,
+		file: asset.file,
+		url: asset.url,
+		time: previewSourceSeconds({
+			visual,
+			time: roundMediaTime({ time }),
+		}),
 	});
-	if (!element || !("mediaId" in element)) return null;
-	return element.mediaId;
+	return frame != null;
+}
+
+/** Start decoding the following clip before the playhead arrives. */
+function warmUpcomingPreview(editor: EditorCore, warmedMediaId: string | null): string | null {
+	const time = editor.playback.getCurrentTime();
+	const next = previewVisuals(editor).find(
+		(item) => item.type === "video" && item.startTime > time,
+	);
+	if (!next || next.mediaId === warmedMediaId) return warmedMediaId;
+	// The same file is already decoding for the clip on screen. Don't seek it away.
+	const playing = previewVisuals(editor).find(
+		(item) => time >= item.startTime && time < item.startTime + item.duration,
+	);
+	if (playing?.mediaId === next.mediaId) return next.mediaId;
+	const asset = editor.media.getAssets().find((item) => item.id === next.mediaId);
+	if (!asset?.file) return warmedMediaId;
+	videoCache.warm({
+		mediaId: asset.id,
+		file: asset.file,
+		url: asset.url,
+		time: previewSourceSeconds({
+			visual: next,
+			time: next.startTime,
+		}),
+	});
+	return next.mediaId;
 }
 
 /** True when any VideoNode or ImageNode in the tree resolved a decoded frame/image for this render. */
@@ -213,6 +333,8 @@ function PreviewCanvas({
 	const emptySinceRef = useRef(0);
 	const seenFrameRef = useRef(false);
 	const mediaIdRef = useRef<string | null | undefined>(undefined);
+	const warmedMediaIdRef = useRef<string | null>(null);
+	const decodedMediaIdRef = useRef<string | null>(null);
 	const [previewLoading, setPreviewLoading] = useState(true);
 	const waitingForStill = useEditor((editor) => {
 		const time = editor.playback.getCurrentTime();
@@ -278,14 +400,25 @@ function PreviewCanvas({
 			(TICKS_PER_SECOND * renderer.fps.denominator) / renderer.fps.numerator,
 		);
 		const frame = Math.floor(renderTime / ticksPerFrame);
-		// A new clip may still be decoding. The previous clip's dark frames must not count.
-		const mediaId = previewMediaId(editor);
-		if (mediaId !== mediaIdRef.current) {
-			mediaIdRef.current = mediaId;
-			seenFrameRef.current = false;
-			emptySinceRef.current = 0;
+		const coverage = previewCoverage(editor);
+		const mediaChanged = coverage.mediaId !== mediaIdRef.current;
+		const handoff = previewClipHandoff({
+			seenFrame: seenFrameRef.current,
+			mediaChanged,
+			inGap: coverage.mediaId == null,
+			gapSeconds: coverage.gapSeconds,
+		});
+		if (mediaChanged) {
+			mediaIdRef.current = coverage.mediaId;
+			if (handoff.resetSeenFrame) {
+				seenFrameRef.current = false;
+				emptySinceRef.current = 0;
+			}
 			lastFrameRef.current = -1;
 		}
+		warmedMediaIdRef.current = warmUpcomingPreview(editor, warmedMediaIdRef.current);
+		// A packed breath has no picture. Keep the last frame instead of clearing to black.
+		if (handoff.holdLastFrame) return;
 
 		if (
 			frame === lastFrameRef.current &&
@@ -297,21 +430,61 @@ function PreviewCanvas({
 		renderingRef.current = true;
 		lastSceneRef.current = renderTree;
 		lastFrameRef.current = frame;
-		// A fast cached frame stays clear. A slow image or video decode shows loading.
+		// A fast cached frame stays clear. A slow first image or video decode shows loading.
 		window.clearTimeout(slowTimerRef.current);
 		slowTimerRef.current = window.setTimeout(() => {
 			if (previewLoadingRef.current || seenFrameRef.current) return;
 			previewLoadingRef.current = true;
 			setPreviewLoading(true);
 		}, 200);
-		renderer
-			.render({ node: renderTree, time: renderTime })
+		const incoming =
+			seenFrameRef.current &&
+			coverage.active?.type === "video" &&
+			decodedMediaIdRef.current !== coverage.active.mediaId
+				? coverage.active
+				: null;
+		let heldForDecode = false;
+		const paint = async () => {
+			// Don't replace the canvas until the next clip's frame is decoded.
+			if (incoming) {
+				const ready = await previewVideoFrameReady({
+					editor,
+					visual: incoming,
+					time: editor.playback.getCurrentTime(),
+				});
+				if (!ready) {
+					heldForDecode = true;
+					return;
+				}
+			}
+			const time = Math.min(
+				editor.playback.getCurrentTime(),
+				editor.timeline.getLastFrameTime(),
+			);
+			const now = previewCoverage(editor);
+			const slippedIntoGap = previewClipHandoff({
+				seenFrame: seenFrameRef.current,
+				mediaChanged: now.mediaId !== coverage.mediaId,
+				inGap: now.mediaId == null,
+				gapSeconds: now.gapSeconds,
+			}).holdLastFrame;
+			if (slippedIntoGap) {
+				heldForDecode = true;
+				return;
+			}
+			await renderer.render({ node: renderTree, time });
+		};
+		paint()
 			.catch((error) => {
 				console.error("Preview frame failed:", error);
 			})
 			.finally(() => {
 				renderingRef.current = false;
 				window.clearTimeout(slowTimerRef.current);
+				if (heldForDecode) {
+					lastFrameRef.current = -1;
+					return;
+				}
 				const painted =
 					seenFrameRef.current ||
 					hasResolvedVisualFrame(renderTree) ||
@@ -323,6 +496,9 @@ function PreviewCanvas({
 					emptyForMs: emptySinceRef.current === 0 ? 0 : performance.now() - emptySinceRef.current,
 				});
 				seenFrameRef.current = decision.seenFrame;
+				if (decision.seenFrame && coverage.mediaId) {
+					decodedMediaIdRef.current = coverage.mediaId;
+				}
 				if (decision.retry) lastFrameRef.current = -1;
 				if (decision.showLoading) {
 					if (!previewLoadingRef.current) {

@@ -163,6 +163,7 @@ export const briefEn = {
   submit: {
     submitting: "Submitting…",
     regenerate: "Generate again",
+    createNew: "Create a new one",
     saveAndRegenerateStoryboard: "Save & regenerate storyboard",
     start: "Start",
   },

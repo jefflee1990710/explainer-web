@@ -3,9 +3,11 @@ import { ObjectId } from "mongodb";
 import { requireAppUser } from "@/service/auth";
 import {
   assertCanSpendCredits,
+  assertFreeTrialClipAllowed,
   consumeCredits,
   refundCredits,
 } from "@/service/billing/credits";
+import { logServerUxEvent } from "@/service/analytics/ux-tracker";
 import { videosCollection } from "@/dao";
 import { claimAndStartClipVideo } from "@/service/clip/auto-video";
 import { cancelPendingClipVideo, markUnsentClipVideos } from "@/service/clip/cancel-pending-video";
@@ -156,7 +158,52 @@ export async function generateClipVideoAction(
     const row = project.phaseA.clips.find((clip) => clip.clipNumber === clipNumber);
     if (!row) return { ok: false, error: "找不到這段分鏡" };
 
-    await assertCanSpendCredits(user, clipVideoCost(project, clipNumber));
+    const cost = clipVideoCost(project, clipNumber);
+    const sub = await assertCanSpendCredits(user, cost);
+    try {
+      assertFreeTrialClipAllowed({
+        email: user.email,
+        sub,
+        clipNumber,
+      });
+    } catch (gateError) {
+      logServerUxEvent(
+        "ux_blocker_free_preview_second_clip_locked",
+        {
+          videoId: projectId,
+          clipNumber,
+          cost,
+          remainingCredits: user.credits,
+          error: gateError instanceof Error ? gateError.message : "請先訂閱方案",
+        },
+        {
+          category: "blocker",
+          clerkUserId: user.clerkUserId,
+          userEmail: user.email,
+        },
+      );
+      throw gateError;
+    }
+
+    if (!sub && clipNumber === 1) {
+      logServerUxEvent(
+        "free_preview_clip_submitted",
+        {
+          videoId: projectId,
+          clipNumber,
+          durationSeconds: row.durationSeconds,
+          styleId: project.styleId,
+          cost,
+          creditsBefore: user.credits,
+        },
+        {
+          category: "onboarding",
+          clerkUserId: user.clerkUserId,
+          userEmail: user.email,
+        },
+      );
+    }
+
     const started = await claimAndStartClipVideo(user.clerkUserId, project, clipNumber);
     if (!started.ok) return { ok: false, error: started.error };
 

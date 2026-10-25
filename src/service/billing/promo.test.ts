@@ -88,8 +88,9 @@ test("a 5 percent pack bonus lowers margin and stays profitable", () => {
   }
 });
 
-test("welcome credits spent only on images cost less than one dollar", () => {
+test("welcome credits allow a first-time user to draw frames and preview one 5s clip under one dollar of image COGS", () => {
   const images = WELCOME_CREDITS / FRAME_COST;
-  assert.equal(images * IMAGE_COGS_USD < 1, true);
-  assert.equal(typicalCogsUsd(WELCOME_CREDITS) < 1, true);
+  assert.equal(WELCOME_CREDITS, 80);
+  assert.equal(images * IMAGE_COGS_USD <= 1.5, true);
+  assert.equal(typicalCogsUsd(WELCOME_CREDITS) < 1.25, true);
 });

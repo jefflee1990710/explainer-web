@@ -10,6 +10,7 @@ import {
 } from "@/presentation/components/app/projects/new/editor-tab-memory";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { StudioPanel } from "@/presentation/studio/studio-panel";
+import { track } from "@/presentation/components/analytics/track";
 import { currentStepFor } from "@/presentation/components/project/project-stepper";
 import { Spinner } from "@/presentation/components/spinner";
 import { StylePicker } from "@/presentation/components/style-picker";
@@ -301,6 +302,7 @@ export function NewProjectForm({
   // Flow state. The stepper can jump back to 題材 after a video exists.
   const [project, setProject] = useState<PublicVideo | null>(initialVideo);
   const [submitting, setSubmitting] = useState(false);
+  const [creatingNew, setCreatingNew] = useState(false);
   // "" | "retry" | "remaining" | "reel"
   // | frames:{n} | frame:{n}:{pos} | video:{n} | clip:{n}[:regen]
   const [pending, setPending] = useState("");
@@ -348,6 +350,10 @@ export function NewProjectForm({
   const settledRef = useRef(false);
   const tRef = useRef(t);
   tRef.current = t;
+  const walletSubscribedRef = useRef(walletSubscribed);
+  useEffect(() => {
+    walletSubscribedRef.current = walletSubscribed;
+  }, [walletSubscribed]);
   const onVideoCreatedRef = useRef(onVideoCreated);
   onVideoCreatedRef.current = onVideoCreated;
   const projectRef = useRef(project);
@@ -372,6 +378,18 @@ export function NewProjectForm({
         const body = merged.phaseA?.localizedTitle || merged.phaseA?.englishTitle || "";
         const translate = tRef.current;
         for (const item of settled) {
+          if (item.kind === "video" && item.outcome === "completed") {
+            track(
+              !walletSubscribedRef.current && item.clipNumber === 1
+                ? "free_preview_clip_completed"
+                : "video_clip_completed",
+              {
+                video_id: merged.id,
+                clip_number: item.clipNumber,
+                subscribed: walletSubscribedRef.current,
+              },
+            );
+          }
           const detail = translate(
             item.kind === "video"
               ? "tasksPage.detail.clipVideo"
@@ -507,6 +525,12 @@ export function NewProjectForm({
 
   function goToWizardStep(nextStep: BriefWizardStepIndex) {
     setError("");
+    track("wizard_step_changed", {
+      from_step: wizardStep,
+      to_step: nextStep,
+      style_id: styleId,
+      skill_slug: skillSlug,
+    });
     setWizardStep(nextStep);
   }
 
@@ -619,6 +643,23 @@ export function NewProjectForm({
     setProject(result.project);
     onVideoCreated?.(result.project);
     router.refresh();
+  }
+
+  // Keep this video and start a separate one from the same start-over brief.
+  async function submitCreateNew() {
+    if (!project) return;
+    setCreatingNew(true);
+    setError("");
+    const formData = briefFormData();
+    formData.delete("videoId");
+    const result = await createVideoAction(formData);
+    setCreatingNew(false);
+    if (!result.ok) {
+      setError(translateAppError(result.error, t));
+      return;
+    }
+    onVideoCreated?.(result.project);
+    router.replace(folderVideoPath(projectId, result.project.id));
   }
 
   // Put the form back to this video's saved brief.
@@ -762,9 +803,28 @@ export function NewProjectForm({
     if (!project) return;
     // Billed per second of this clip's storyboard duration.
     const cost = clipVideoCost(project, clipNumber);
+    // Free-trial accounts may preview Clip 1 (5s), while Clip 2+ triggers the subscription paywall.
+    if (!walletSubscribed && clipNumber > 1) {
+      track("ux_blocker_free_preview_second_clip_locked", {
+        video_id: project.id,
+        clip_number: clipNumber,
+        cost,
+        remaining_credits: walletCredits,
+      });
+      openCreditGate(cost, () => onGenerateVideo(clipNumber));
+      return;
+    }
     if (needsVideoUpgrade(walletCredits, cost)) {
       openCreditGate(cost, () => onGenerateVideo(clipNumber));
       return;
+    }
+    if (!walletSubscribed && clipNumber === 1) {
+      track("free_preview_clip_clicked", {
+        video_id: project.id,
+        clip_number: clipNumber,
+        cost,
+        remaining_credits: walletCredits,
+      });
     }
     void runPaid(`video:${clipNumber}`, () => generateClipVideoAction(project.id, clipNumber), cost);
   }
@@ -891,6 +951,11 @@ export function NewProjectForm({
   ]);
 
   function onStyleChange(id: string) {
+    track("wizard_style_changed", {
+      from_style: styleId,
+      to_style: id,
+      skill_slug: skillSlug,
+    });
     setStyleId(id);
     setCharacterSelections({});
     setCharacterIds((ids) => {
@@ -958,6 +1023,7 @@ export function NewProjectForm({
   const restartBlocked = Boolean(project && restartBlockReason(project));
   const briefBusy =
     submitting ||
+    creatingNew ||
     (restarting
       ? restartBlocked
       : Boolean(project && (isProjectBusy(project) || isReelBusy(project.reelStatus))));
@@ -1429,7 +1495,7 @@ export function NewProjectForm({
                     <button
                       type="button"
                       onClick={cancelRestart}
-                      disabled={submitting}
+                      disabled={submitting || creatingNew}
                       className="inline-flex min-h-[48px] cursor-pointer items-center rounded-full px-4 text-sm font-semibold text-muted transition hover:text-foreground disabled:opacity-60"
                     >
                       {t("common.cancel")}
@@ -1465,22 +1531,35 @@ export function NewProjectForm({
                       {t("brief.wizard.next")} →
                     </motion.button>
                   ) : (
-                    <motion.button
-                      key="wizard-submit-button"
-                      type="submit"
-                      disabled={!canSubmit}
-                      whileTap={{ scale: 0.98 }}
-                      className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-                    >
-                      {submitting ? <Spinner /> : null}
-                      {submitting
-                        ? t("brief.submit.submitting")
-                        : restarting
-                          ? t("brief.submit.regenerate")
-                          : project
-                            ? t("brief.submit.saveAndRegenerateStoryboard")
-                            : t("brief.submit.start")}
-                    </motion.button>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {restarting ? (
+                        <button
+                          type="button"
+                          onClick={() => void submitCreateNew()}
+                          disabled={!canSubmit}
+                          className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/20 bg-paper px-5 py-3 text-sm font-semibold text-foreground transition hover:border-accent-ink/40 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                        >
+                          {creatingNew ? <Spinner /> : null}
+                          {creatingNew ? t("brief.submit.submitting") : t("brief.submit.createNew")}
+                        </button>
+                      ) : null}
+                      <motion.button
+                        key="wizard-submit-button"
+                        type="submit"
+                        disabled={!canSubmit}
+                        whileTap={{ scale: 0.98 }}
+                        className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                      >
+                        {submitting ? <Spinner /> : null}
+                        {submitting
+                          ? t("brief.submit.submitting")
+                          : restarting
+                            ? t("brief.submit.regenerate")
+                            : project
+                              ? t("brief.submit.saveAndRegenerateStoryboard")
+                              : t("brief.submit.start")}
+                      </motion.button>
+                    </div>
                   )}
                 </div>
               </div>
