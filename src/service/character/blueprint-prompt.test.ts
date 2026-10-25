@@ -383,9 +383,7 @@ test("realistic portrait keeps face geometry and the photo spec within the promp
   // Likeness comes before the style and light lines, so trimming never cuts it.
   assert.ok(prompt.indexOf("Face geometry") < prompt.indexOf("Realistic texture"));
   assert.ok(prompt.indexOf("Sheet ground") > 0, "light sheet ground survives");
-  // A forced smile changes mouth width and eye shape.
-  assert.doesNotMatch(prompt, /warm, gentle little smile/);
-  assert.match(prompt, /at most a faint closed-lip smile/);
+  assert.match(prompt, /keeps the reference person's authentic smile/);
 });
 
 test("realistic full body keeps face geometry within the prompt budget", () => {

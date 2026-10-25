@@ -84,15 +84,15 @@ function hairFromReference(style: RenderableStyle) {
   return shape;
 }
 
-// A forced smile widens the mouth and narrows the eyes, which reads as a different person.
+// Keep a natural, warm expression that preserves the reference person's eye shape, apple cheeks, and smile charm without forcing a blank stare.
 const EXPRESSION =
-  "a relaxed natural expression with at most a faint closed-lip smile that does not widen the mouth or narrow the eyes";
+  "a warm natural expression that keeps the reference person's authentic smile and eye curvature";
 
 // "Copy the face" alone lets the model drift to a stock face; name the measurements it must match.
 const FACE_GEOMETRY_LOCK = [
-  "五官比例: the same person, not a look-alike. Match the face geometry, each part measured against the face: face length vs width, forehead, eye size, the gap between the eyes compared with one eye's width, eye tilt, eyelid type, brows, nose bridge and width, philtrum, mouth width compared with the pupils, lip fullness, cheekbones, jaw, chin, plus moles, scars, and marks.",
+  "五官比例: the same person from the reference photo, not a look-alike. Match the face geometry, each part measured against the face: face length vs width, forehead, eye size, the gap between the eyes compared with one eye's width, eye tilt and smiling eye curvature, eyelid type, brows, nose bridge and width, philtrum, mouth width compared with the pupils, lip fullness, apple cheeks, cheekbones, jaw, chin, plus moles, scars, and marks.",
   "Keep ethnicity, age, and natural asymmetry. Do not beautify, slim the face, enlarge the eyes, raise the nose bridge, westernise, or use a generic model face.",
-  "If a photo shows the face small or with eyes closed, still read every feature; draw open eyes in the same shape.",
+  "Keep the reference photo's natural eye shape and smile warmth so the face stays recognisable.",
 ].join(" ");
 
 // Board images only. The full realistic rule plus catalog lines used to push the likeness lines past the budget.
