@@ -19,9 +19,8 @@ export type ImageRoute = {
 
 /**
  * 畫面文字語系 → 產圖模型。生成時只讀呢張表。
- * 分鏡、場景鎖、封面與生活照用 Nano Banana Pro（`google/gemini-3-pro-image`），
- * 打 Google AI Studio（`GOOGLE_API_KEY`），1K / 2K，最多 14 張參考圖。
- * 所有角色藍圖（含寫實角色 Board）用 Seedream 5.0 Pro，走 OpenRouter。
+ * 分鏡、場景鎖、封面與生活照用 Seedream 5.0 Pro（`bytedance-seed/seedream-5-0-pro`），走 OpenRouter。
+ * 角色藍圖也用同一模型。最多 14 張參考圖。
  */
 export const NANO_BANANA_PRO_IMAGE_MODEL = OPENROUTER_NANO_BANANA_PRO_IMAGE_MODEL;
 export const SEEDREAM_5_PRO_IMAGE_MODEL = OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL;
@@ -33,18 +32,18 @@ export const IDEOGRAM_PROMPT_MAX = 2048;
 export const IMAGE_ROUTE_BY_SCENE_TEXT: Record<SceneTextLanguage, ImageRoute> = {
   en: {
     backend: "openrouter",
-    model: NANO_BANANA_PRO_IMAGE_MODEL,
-    editModel: NANO_BANANA_PRO_IMAGE_MODEL,
+    model: SEEDREAM_5_PRO_IMAGE_MODEL,
+    editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
   },
   "zh-Hant": {
     backend: "openrouter",
-    model: NANO_BANANA_PRO_IMAGE_MODEL,
-    editModel: NANO_BANANA_PRO_IMAGE_MODEL,
+    model: SEEDREAM_5_PRO_IMAGE_MODEL,
+    editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
   },
   "zh-Hans": {
     backend: "openrouter",
-    model: NANO_BANANA_PRO_IMAGE_MODEL,
-    editModel: NANO_BANANA_PRO_IMAGE_MODEL,
+    model: SEEDREAM_5_PRO_IMAGE_MODEL,
+    editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
   },
 };
 
@@ -72,7 +71,7 @@ export function imageModelForSubmit(route: ImageRoute, hasReferenceImages: boole
   return hasReferenceImages ? route.editModel : route.model;
 }
 
-// Cinematic realistic stills use Nano Banana Pro. Illustrated styles stay on Seedream.
+// Scene stills, realistic or illustrated, use Seedream 5.0 Pro.
 export function imageModelForRealism(realistic: boolean) {
-  return realistic ? NANO_BANANA_PRO_IMAGE_MODEL : SEEDREAM_5_PRO_IMAGE_MODEL;
+  return realistic ? SEEDREAM_5_PRO_IMAGE_MODEL : SEEDREAM_5_PRO_IMAGE_MODEL;
 }

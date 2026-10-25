@@ -38,7 +38,7 @@ import { searchPlaceScenes } from "@/service/character/life-search";
 import { FRAME_COST } from "@/service/credit-costs";
 import { directorModel } from "@/service/director/model";
 import { persistMedia } from "@/service/higgsfield/persist";
-import { NANO_BANANA_PRO_IMAGE_MODEL } from "@/service/generation/image-backend";
+import { SEEDREAM_5_PRO_IMAGE_MODEL } from "@/service/generation/image-backend";
 import { submitOpenRouterImage } from "@/service/openrouter/generate";
 
 const STALE_LIFE_GENERATING_MS = 10 * 60_000;
@@ -264,7 +264,7 @@ export async function runLifeShotJob(
 ) {
   try {
     const submitted = await deps.submitImage({
-      model: NANO_BANANA_PRO_IMAGE_MODEL,
+      model: SEEDREAM_5_PRO_IMAGE_MODEL,
       prompt: input.prompt,
       aspectRatio: "9:16",
       resolution: "2k",

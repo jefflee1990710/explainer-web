@@ -10,7 +10,7 @@ export const OPENROUTER_VIDEOS_URL = `${OPENROUTER_BASE_URL}/api/v1/videos`;
 
 export const OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL = "bytedance-seed/seedream-5-0-pro";
 export const OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL = "bytedance-seed/seedream-5-0-lite";
-// Google Nano Banana Pro. Scene stills use this; character boards stay on Seedream.
+// Google Nano Banana Pro. Pose edits still call this; scene stills use Seedream.
 export const OPENROUTER_NANO_BANANA_PRO_IMAGE_MODEL = "google/gemini-3-pro-image";
 export const OPENROUTER_GPT_5_IMAGE_MODEL = "openai/gpt-5-image";
 export const OPENROUTER_HAILUO_3_VIDEO_MODEL = "minimax/hailuo-3";
