@@ -11,8 +11,10 @@ import {
   listPublishedAcademySummaries,
 } from "@/service/academy/courses";
 import { AcademyCourseLock } from "@/app/academy/[slug]/academy-course-lock";
+import { AcademyLessonVideo } from "@/app/academy/[slug]/academy-lesson-video";
 import { AcademyOutline } from "@/app/academy/academy-outline";
 import { AcademyShell } from "@/app/academy/academy-shell";
+import { liftAcademyLessonVideo } from "@/service/academy/lift-video";
 import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY } from "@/util/i18n";
 
 export const dynamic = "force-dynamic";
@@ -72,6 +74,8 @@ export default async function AcademyCoursePage({ params }: AcademyCoursePagePro
     : await getPublishedAcademySummary(slug);
   if (!course) notFound();
 
+  const lifted = signedIn ? liftAcademyLessonVideo(course.content) : null;
+
   return (
     <PolicyLayout>
       <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -99,7 +103,9 @@ export default async function AcademyCoursePage({ params }: AcademyCoursePagePro
           {course.excerpt ? (
             <p className="mt-3 text-base leading-7 text-zinc-600">{course.excerpt}</p>
           ) : null}
-          {course.coverImage ? (
+          {lifted?.src ? (
+            <AcademyLessonVideo src={lifted.src} title={course.title} />
+          ) : course.coverImage ? (
             <img
               src={course.coverImage}
               alt={course.title}
@@ -111,7 +117,7 @@ export default async function AcademyCoursePage({ params }: AcademyCoursePagePro
               <p className="mb-6 text-xs font-semibold uppercase tracking-wider text-[#5c6170]">
                 {copy.memberHint}
               </p>
-              <MarkdownContent content={course.content} />
+              <MarkdownContent content={lifted?.body ?? course.content} />
             </div>
           ) : (
             <AcademyCourseLock course={course} />

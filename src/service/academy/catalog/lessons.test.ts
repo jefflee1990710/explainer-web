@@ -23,7 +23,8 @@ test("the academy syllabus has 26 English lessons in order", () => {
       (lesson) =>
         lesson.markdown.includes("{{image1}}") &&
         lesson.markdown.includes("{{image2}}") &&
-        lesson.markdown.includes("{{video}}"),
+        lesson.markdown.includes("{{video}}") &&
+        lesson.markdown.indexOf("{{video}}") < lesson.markdown.indexOf("{{image1}}"),
     ),
   );
 });
@@ -36,9 +37,11 @@ test("assembleLessonMarkdown inserts two images and one video", () => {
     video: "https://cdn.example/c.mp4",
   });
   assert.equal(markdown.includes("{{image1}}"), false);
+  assert.equal(markdown.includes("Watch the idea"), false);
   assert.match(markdown, /!\[[^\]]+\]\(https:\/\/cdn\.example\/a\.png\)/);
   assert.match(markdown, /!\[[^\]]+\]\(https:\/\/cdn\.example\/b\.png\)/);
   assert.match(markdown, /!\[[^\]]+\]\(https:\/\/cdn\.example\/c\.mp4\)/);
+  assert.ok(markdown.indexOf("c.mp4") < markdown.indexOf("a.png"));
 });
 
 test("media prompts stay specific and short enough to send", () => {
