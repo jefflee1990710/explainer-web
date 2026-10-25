@@ -6,7 +6,16 @@ import {
   type AcademyCourse,
   type PublicAcademyCourse,
 } from "@/model/academy-course";
+import {
+  assembleLessonMarkdown,
+  lessonMediaReady,
+  type LessonMediaUrls,
+} from "@/service/academy/catalog/assemble";
+import { ACADEMY_LESSONS } from "@/service/academy/catalog/lessons";
+import lessonMediaJson from "@/service/academy/catalog/lesson-media.json";
 import { deriveCourseExcerpt, slugifyAcademyCourse } from "@/service/academy/slug";
+
+const lessonMedia = lessonMediaJson as Record<string, LessonMediaUrls>;
 
 const STARTER_SLUG = "create-reels-that-grow-your-business";
 
@@ -75,6 +84,7 @@ export function toPublicAcademyCourse(doc: AcademyCourse): PublicAcademyCourse {
     slug: doc.slug,
     title: doc.title,
     excerpt: doc.excerpt?.trim() || deriveCourseExcerpt(doc.content),
+    module: doc.module,
     content: doc.content,
     coverImage: doc.coverImage,
     published: doc.published,
@@ -108,6 +118,36 @@ async function ensureUniqueSlug(baseSlug: string, excludeId?: ObjectId): Promise
   return candidate;
 }
 
+// Insert any catalog lesson that already has its two diagrams and clip.
+export async function ensureAcademyLessons(): Promise<void> {
+  const ready = ACADEMY_LESSONS.filter((lesson) => lessonMediaReady(lessonMedia[lesson.slug]));
+  if (ready.length === 0) return;
+  const collection = await academyCoursesCollection();
+  const existing = await collection
+    .find({ slug: { $in: ready.map((lesson) => lesson.slug) } }, { projection: { slug: 1 } })
+    .toArray();
+  const have = new Set(existing.map((doc) => doc.slug));
+  for (const lesson of ready) {
+    if (have.has(lesson.slug)) continue;
+    const media = lessonMedia[lesson.slug];
+    if (!lessonMediaReady(media)) continue;
+    try {
+      await createAcademyCourse({
+        title: lesson.title,
+        slug: lesson.slug,
+        excerpt: lesson.excerpt,
+        module: lesson.module,
+        content: assembleLessonMarkdown(lesson, media),
+        coverImage: media.image1,
+        published: true,
+        sortOrder: lesson.sortOrder,
+      });
+    } catch {
+      // Another request may have inserted this slug first.
+    }
+  }
+}
+
 // Insert a starter reel-growth lesson when the catalog is still empty.
 export async function ensureStarterAcademyCourse(): Promise<void> {
   const collection = await academyCoursesCollection();
@@ -139,6 +179,7 @@ export type CreateAcademyCourseParams = {
   title: string;
   slug?: string;
   excerpt?: string;
+  module?: string;
   content: string;
   coverImage?: string;
   published?: boolean;
@@ -161,6 +202,7 @@ export async function createAcademyCourse(
     slug,
     title: data.title,
     excerpt: data.excerpt || deriveCourseExcerpt(data.content),
+    module: data.module || undefined,
     content: data.content,
     coverImage: data.coverImage || undefined,
     published: data.published ?? false,
@@ -180,6 +222,7 @@ export type ListAcademyCoursesOptions = {
 export async function listAcademyCourses(
   options: ListAcademyCoursesOptions = {},
 ): Promise<PublicAcademyCourse[]> {
+  await ensureAcademyLessons();
   await ensureStarterAcademyCourse();
   const filter: Filter<AcademyCourse> = {};
   if (!options.includeUnpublished) filter.published = true;
@@ -238,6 +281,7 @@ export type UpdateAcademyCourseParams = {
   title?: string;
   slug?: string;
   excerpt?: string;
+  module?: string;
   content?: string;
   coverImage?: string;
   published?: boolean;
@@ -275,6 +319,7 @@ export async function updateAcademyCourseBySlugOrId(
     slug: nextSlug,
     title: nextTitle,
     excerpt: nextExcerpt,
+    module: data.module !== undefined ? data.module || undefined : existing.module,
     content: nextContent,
     coverImage: data.coverImage !== undefined ? data.coverImage || undefined : existing.coverImage,
     published: data.published ?? existing.published,
@@ -289,6 +334,7 @@ export async function updateAcademyCourseBySlugOrId(
         slug: updatedDoc.slug,
         title: updatedDoc.title,
         excerpt: updatedDoc.excerpt,
+        module: updatedDoc.module,
         content: updatedDoc.content,
         coverImage: updatedDoc.coverImage,
         published: updatedDoc.published,

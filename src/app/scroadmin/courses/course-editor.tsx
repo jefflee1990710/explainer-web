@@ -16,6 +16,7 @@ type EditorState = {
   title: string;
   slug: string;
   excerpt: string;
+  module: string;
   content: string;
   coverImage: string;
   published: boolean;
@@ -27,6 +28,7 @@ function emptyState(): EditorState {
     title: "",
     slug: "",
     excerpt: "",
+    module: "",
     content: "# New lesson\n\nWrite the markdown here.\n",
     coverImage: "",
     published: false,
@@ -39,6 +41,7 @@ function fromCourse(course: PublicAcademyCourse): EditorState {
     title: course.title,
     slug: course.slug,
     excerpt: course.excerpt,
+    module: course.module || "",
     content: course.content,
     coverImage: course.coverImage || "",
     published: course.published,
@@ -92,6 +95,7 @@ export function CourseEditor({ course }: { course?: PublicAcademyCourse }) {
       title: state.title,
       slug: state.slug || undefined,
       excerpt: state.excerpt || undefined,
+      module: state.module || undefined,
       content: state.content,
       coverImage: state.coverImage || undefined,
       published: state.published,
@@ -165,6 +169,14 @@ export function CourseEditor({ course }: { course?: PublicAcademyCourse }) {
           <input
             value={state.slug}
             onChange={(event) => patch({ slug: event.target.value })}
+            className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-[#12141c]"
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="font-semibold">{t("scroAdmin.moduleLabel")}</span>
+          <input
+            value={state.module}
+            onChange={(event) => patch({ module: event.target.value })}
             className="mt-1.5 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-[#12141c]"
           />
         </label>

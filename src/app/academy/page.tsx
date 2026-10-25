@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { listPublishedAcademySummaries } from "@/service/academy/courses";
 import { AcademyCourseGrid } from "@/app/academy/academy-course-grid";
+import { AcademyOutline } from "@/app/academy/academy-outline";
 import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY } from "@/util/i18n";
 
 export const dynamic = "force-dynamic";
@@ -63,7 +64,10 @@ export default async function AcademyPage() {
             <p className="mt-2 text-sm text-zinc-600">{copy.emptyBody}</p>
           </div>
         ) : (
-          <AcademyCourseGrid courses={courses} />
+          <>
+            <AcademyOutline courses={courses} heading={copy.contents} />
+            <AcademyCourseGrid courses={courses} />
+          </>
         )}
       </main>
     </PolicyLayout>

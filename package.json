@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed:styles": "tsx scripts/seed-style-previews.ts",
+    "seed:academy": "tsx scripts/seed-academy-lessons.ts",
     "backfill:profiles": "tsx scripts/backfill-character-profiles.ts",
     "seed:director-previews": "tsx scripts/seed-director-previews.ts",
     "seed:character-looks": "tsx scripts/seed-character-look-previews.ts",

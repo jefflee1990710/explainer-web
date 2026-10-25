@@ -8,6 +8,8 @@ export type AcademyCourse = {
   slug: string;
   title: string;
   excerpt?: string;
+  /** Syllabus group, e.g. "A reel people finish". */
+  module?: string;
   content: string;
   coverImage?: string;
   published: boolean;
@@ -22,6 +24,7 @@ export type PublicAcademyCourse = {
   slug: string;
   title: string;
   excerpt: string;
+  module?: string;
   content: string;
   coverImage?: string;
   published: boolean;
@@ -35,6 +38,7 @@ export const academyCourseSchema: z.ZodType<AcademyCourse> = z.object({
   slug: z.string().min(1),
   title: z.string().min(1),
   excerpt: z.string().optional(),
+  module: z.string().optional(),
   content: z.string().min(1),
   coverImage: z.string().optional(),
   published: z.boolean(),
@@ -48,6 +52,7 @@ export const createAcademyCourseInputSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
   slug: z.string().trim().optional(),
   excerpt: z.string().trim().optional(),
+  module: z.string().trim().optional(),
   content: z.string().trim().min(1, "Content is required"),
   coverImage: z.string().trim().optional(),
   published: z.boolean().optional().default(false),
@@ -59,6 +64,7 @@ export const updateAcademyCourseInputSchema = z.object({
   title: z.string().trim().min(1, "Title cannot be empty").optional(),
   slug: z.string().trim().min(1, "Slug cannot be empty").optional(),
   excerpt: z.string().trim().optional(),
+  module: z.string().trim().optional(),
   content: z.string().trim().min(1, "Content cannot be empty").optional(),
   coverImage: z.string().trim().optional(),
   published: z.boolean().optional(),

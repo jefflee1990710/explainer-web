@@ -1171,6 +1171,7 @@ export type Messages = {
     subtitle: string;
     emptyTitle: string;
     emptyBody: string;
+    contents: string;
     openCourse: string;
     freeForMembers: string;
     lockTitle: string;
@@ -1203,6 +1204,7 @@ export type Messages = {
     titleLabel: string;
     slugLabel: string;
     excerptLabel: string;
+    moduleLabel: string;
     contentLabel: string;
     coverLabel: string;
     publishedLabel: string;
