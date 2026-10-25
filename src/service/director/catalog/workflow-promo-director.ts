@@ -10,7 +10,7 @@ const raw = {
   sortOrder: 17,
   isActive: true,
   previewUrl:
-    "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/product-demo-director-preview-8c340b71f3.webp",
+    "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/workflow-promo-director-preview-9a9521bcc6.webp",
   inputSchema: {
     requiresSource: true,
     aspectRatios: ["16:9", "9:16", "1:1"],

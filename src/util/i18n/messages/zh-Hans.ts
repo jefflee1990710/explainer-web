@@ -137,6 +137,8 @@ export const zhHans: Partial<Messages> = {
       },
     },
     steps: {
+      eyebrow: "运作流程",
+      title: "从身体到灵魂，再到可发布内容。",
       step1Title: "创建角色与衣柜",
       step1Body: "选五官、发型、衣服与配件。上传多段你的声音，再用这把声生成视频。",
       step2Title: "生成日常生活照",
@@ -145,6 +147,7 @@ export const zhHans: Partial<Messages> = {
       step3Body: "用同一灵魂拍口播、explainer 与带货短视频，直接发布 Reels 与 TikTok。",
     },
     pricing: {
+      eyebrow: "方案价格",
       title: "订阅方案，规模化产出 AI 网红短片",
       subtitle: "按照你的账号更新频率与矩阵规模选择方案。",
       clipsApprox: "段 clips",
@@ -154,6 +157,9 @@ export const zhHans: Partial<Messages> = {
       title: "运营多账号矩阵或代运营团队？",
       body: "自定义 credits、发票请款、专人支持与企业级用量合约。",
       cta: "联系我们",
+      cardLabel: "Enterprise",
+      nameLine: "{nameLocal} / {name}",
+      quote: "报价",
     },
     showcase: {
       title: "看看 AI 网红实拍成果",

@@ -7,12 +7,14 @@ export const fr: Partial<Messages> = {
   landing: {
     hero: { kicker: "Studio d’AI Influencers", title: "Votre AI Influencer. Des Shorts chaque jour, sans filmer.", subtitle: "Choisissez un personnage et une pose, puis générez vos Reels et TikToks 9:16 en quelques minutes.", ctaStart: "Créer mon AI Influencer", ctaWorkspace: "Ouvrir le studio", ctaUseCases: "Voir les cas d’usage", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Sélection de personnages à gauche et smartphone générant une vidéo courte AI KOL à droite" },
     steps: {
+      eyebrow: "Comment ça marche",
+      title: "Trois étapes, du corps à l’âme, puis au contenu publié.",
       step1Title: "Choisissez un style", step1Body: "Choisissez un style de réalisation adapté aux vidéos courtes, au marketing, aux présentations et plus encore.",
       step2Title: "Validez les storyboards", step2Body: "L’IA propose des titres, des accroches, des scènes et une voix off. Modifiez-les jusqu’à obtenir le résultat souhaité.",
       step3Title: "Exportez la vidéo", step3Body: "Après validation, nous générons des images fixes des personnages et des clips pour vos Reels, publicités et présentations.",
     },
-    pricing: { title: "Abonnez-vous pour générer des vidéos", subtitle: "Choisissez l’offre qui correspond à votre usage de Scro.", clipsApprox: "clips", subscribePlan: "S’abonner à {plan}" },
-    enterprise: { title: "Besoin de plus que Scale ?", body: "Credits, facturation et contrat sur mesure pour les équipes qui dépassent les offres affichées.", cta: "Nous contacter" },
+    pricing: { eyebrow: "Tarifs", title: "Abonnez-vous pour générer des vidéos", subtitle: "Choisissez l’offre qui correspond à votre usage de Scro.", clipsApprox: "clips", subscribePlan: "S’abonner à {plan}" },
+    enterprise: { title: "Besoin de plus que Scale ?", body: "Credits, facturation et contrat sur mesure pour les équipes qui dépassent les offres affichées.", cta: "Nous contacter", cardLabel: "Enterprise", nameLine: "{nameLocal} / {name}", quote: "Devis sur mesure" },
     showcase: { title: "Voir les résultats", subtitle: "Quatre combinaisons sur la même plateforme : sujet, style et format.", reel: "Reel", deck: "Présentation", marketing: "Marketing", scro: "Comment marche Scro", product: "Démo produit", story: "Courte histoire" },
     cast: { eyebrow: "Personnages", title: "Créez le personnage une fois. Gardez-le dans chaque vidéo.", body: "Définissez d’abord un personnage et un style. Ensuite, enchaînez Reels, clips marketing et vidéos explicatives avec le même visage — pour un produit, une fonctionnalité, ou un savoir.", product: "Produit", service: "Service", knowledge: "Savoir", cta: "Créer un personnage" },
     director: { eyebrow: "Coût de génération", title: "Ce qui coûte cher, ce sont les essais.", body: "La vidéo IA s’additionne parce que chaque raté est un nouveau rendu. Le directeur IA de Scro transforme votre idée en storyboard à valider d’abord. La vidéo tombe juste en quelques prises, et le coût de génération reste bas.", idea: "Votre idée", takes: "Peu de prises", cost: "Coût plus bas", cta: "Écrire le storyboard" },

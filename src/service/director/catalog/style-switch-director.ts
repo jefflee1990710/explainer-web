@@ -10,7 +10,7 @@ const raw = {
   sortOrder: 18,
   isActive: true,
   previewUrl:
-    "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/surprise-interview-director-preview-29f21f99a3.webp",
+    "https://9he1njomuxtmv8tb.public.blob.vercel-storage.com/explainer/directors/style-switch-director-preview-e91f3bd4ee.webp",
   inputSchema: {
     requiresSource: true,
     aspectRatios: ["16:9", "9:16", "1:1"],

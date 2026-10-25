@@ -7,12 +7,14 @@ export const id: Partial<Messages> = {
   landing: {
     hero: { kicker: "Studio AI Influencer", title: "AI Influencer Anda. Shorts Harian Tanpa Syuting.", subtitle: "Pilih karakter dan pose, lalu buat Reels & TikTok 9:16 dalam hitungan menit.", ctaStart: "Buat AI Influencer saya", ctaWorkspace: "Buka studio", ctaUseCases: "Lihat contoh penggunaan", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Pilihan karakter di kiri dan ponsel yang membuat video pendek AI KOL di kanan" },
     steps: {
+      eyebrow: "Cara kerja",
+      title: "Tiga langkah: dari tubuh, ke jiwa, lalu konten yang siap terbit.",
       step1Title: "Pilih gaya", step1Body: "Pilih gaya penyutradaraan untuk video pendek, pemasaran, presentasi, dan lainnya.",
       step2Title: "Setujui storyboard", step2Body: "AI mengusulkan judul, kalimat pembuka, adegan, dan sulih suara. Sunting hingga Anda puas.",
       step3Title: "Ekspor video", step3Body: "Setelah disetujui, kami membuat gambar diam karakter dan clips untuk Reels, iklan, dan presentasi.",
     },
-    pricing: { title: "Berlangganan untuk merender video", subtitle: "Pilih paket sesuai cara Anda memakai Scro.", clipsApprox: "clips", subscribePlan: "Berlangganan {plan}" },
-    enterprise: { title: "Butuh lebih dari Scale?", body: "Credits, faktur, dan kontrak khusus untuk tim yang melebihi paket yang tercantum.", cta: "Hubungi kami" },
+    pricing: { eyebrow: "Harga", title: "Berlangganan untuk merender video", subtitle: "Pilih paket sesuai cara Anda memakai Scro.", clipsApprox: "clips", subscribePlan: "Berlangganan {plan}" },
+    enterprise: { title: "Butuh lebih dari Scale?", body: "Credits, faktur, dan kontrak khusus untuk tim yang melebihi paket yang tercantum.", cta: "Hubungi kami", cardLabel: "Enterprise", nameLine: "{nameLocal} / {name}", quote: "Penawaran khusus" },
     showcase: { title: "Lihat hasil", subtitle: "Empat kombinasi di platform yang sama: topik, gaya, dan rasio.", reel: "Reel", deck: "Presentasi", marketing: "Pemasaran", scro: "Cara kerja Scro", product: "Demo produk", story: "Cerita pendek" },
     cast: { eyebrow: "Karakter", title: "Buat karakternya sekali. Pakai wajah yang sama di setiap video.", body: "Tentukan karakter dan gaya dulu. Lalu buat Reel, klip pemasaran, dan video penjelasan yang konsisten — untuk produk, fitur layanan, atau pengetahuan.", product: "Produk", service: "Layanan", knowledge: "Pengetahuan", cta: "Buat karakter" },
     director: { eyebrow: "Biaya generasi", title: "Yang mahal adalah percobaan ulang.", body: "Video AI membengkak karena setiap meleset berarti render lagi. Sutradara AI Scro mengubah idemu menjadi storyboard yang kamu setujui dulu. Videonya tepat dalam beberapa take, dan biaya generasi tetap rendah.", idea: "Idemu", takes: "Sedikit take", cost: "Biaya lebih rendah", cta: "Tulis storyboard" },

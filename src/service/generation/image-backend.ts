@@ -2,6 +2,7 @@ import { hasAlicloudKey } from "@/service/alicloud/dashscope";
 import {
   hasOpenRouterKey,
   OPENROUTER_GPT_5_IMAGE_MODEL,
+  OPENROUTER_NANO_BANANA_PRO_IMAGE_MODEL,
   OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL,
 } from "@/service/openrouter/generate";
 import type { SceneTextLanguage } from "@/model/project";
@@ -18,9 +19,10 @@ export type ImageRoute = {
 
 /**
  * 畫面文字語系 → OpenRouter 產圖模型。生成時只讀呢張表。
- * en / zh-Hant / zh-Hans 的分鏡圖，以及角色藍圖（Blueprint），都用
- * OpenRouter `bytedance-seed/seedream-5-0-pro`（1K / 2K，最多 14 張參考圖）。
+ * 分鏡、場景鎖、封面用 Nano Banana Pro（`google/gemini-3-pro-image`，1K / 2K，最多 14 張參考圖）。
+ * 寫實角色藍圖與生活照也用 Nano Banana Pro；其他畫風的角色藍圖用 Seedream 5.0 Pro。
  */
+export const NANO_BANANA_PRO_IMAGE_MODEL = OPENROUTER_NANO_BANANA_PRO_IMAGE_MODEL;
 export const SEEDREAM_5_PRO_IMAGE_MODEL = OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL;
 export const GPT_5_IMAGE_MODEL = OPENROUTER_GPT_5_IMAGE_MODEL;
 export const GROK_IMAGE_MODEL = "xai/grok-imagine-image-2.0";
@@ -30,18 +32,18 @@ export const IDEOGRAM_PROMPT_MAX = 2048;
 export const IMAGE_ROUTE_BY_SCENE_TEXT: Record<SceneTextLanguage, ImageRoute> = {
   en: {
     backend: "openrouter",
-    model: SEEDREAM_5_PRO_IMAGE_MODEL,
-    editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
+    model: NANO_BANANA_PRO_IMAGE_MODEL,
+    editModel: NANO_BANANA_PRO_IMAGE_MODEL,
   },
   "zh-Hant": {
     backend: "openrouter",
-    model: SEEDREAM_5_PRO_IMAGE_MODEL,
-    editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
+    model: NANO_BANANA_PRO_IMAGE_MODEL,
+    editModel: NANO_BANANA_PRO_IMAGE_MODEL,
   },
   "zh-Hans": {
     backend: "openrouter",
-    model: SEEDREAM_5_PRO_IMAGE_MODEL,
-    editModel: SEEDREAM_5_PRO_IMAGE_MODEL,
+    model: NANO_BANANA_PRO_IMAGE_MODEL,
+    editModel: NANO_BANANA_PRO_IMAGE_MODEL,
   },
 };
 
@@ -67,4 +69,9 @@ export function resolveImageRoute(language?: SceneTextLanguage): ImageRoute {
 
 export function imageModelForSubmit(route: ImageRoute, hasReferenceImages: boolean) {
   return hasReferenceImages ? route.editModel : route.model;
+}
+
+// Cinematic realistic stills use Nano Banana Pro. Illustrated styles stay on Seedream.
+export function imageModelForRealism(realistic: boolean) {
+  return realistic ? NANO_BANANA_PRO_IMAGE_MODEL : SEEDREAM_5_PRO_IMAGE_MODEL;
 }

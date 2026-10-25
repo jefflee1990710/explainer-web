@@ -61,6 +61,25 @@ test("openRouterImageBody formats /api/v1/images payload with input_references",
 
   assert.deepEqual(
     openRouterImageBody({
+      model: "google/gemini-3-pro-image",
+      prompt: "draw a scene",
+      aspectRatio: "16:9",
+      resolution: "2k",
+      referenceImageUrls: ["https://blob/ref.png"],
+    }),
+    {
+      model: "google/gemini-3-pro-image",
+      prompt: "draw a scene",
+      aspect_ratio: "16:9",
+      resolution: "2K",
+      input_references: [
+        { type: "image_url", image_url: { url: "https://blob/ref.png" } },
+      ],
+    },
+  );
+
+  assert.deepEqual(
+    openRouterImageBody({
       model: "bytedance-seed/seedream-5-0-pro",
       prompt: "draw a blueprint",
       aspectRatio: "1:1",
