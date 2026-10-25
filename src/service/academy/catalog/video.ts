@@ -57,7 +57,7 @@ export function academyLessonVoiceoverWordCount(
 }
 
 export function academyLessonMotion(videoPrompt: string) {
-  const match = videoPrompt.match(/Motion:\s*(.+)$/s);
+  const match = videoPrompt.match(/Motion:\s*([\s\S]+)$/);
   return (match?.[1] || videoPrompt).trim();
 }
 
