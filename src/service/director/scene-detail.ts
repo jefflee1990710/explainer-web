@@ -48,7 +48,7 @@ export function sceneDetailDirectorBlock(options: { realistic?: boolean; selfSho
   return [
     "Scene detail: write every explainerScene (and startScene / endScene when used) as four concrete parts, in this order:",
     options.realistic
-      ? "1) Character: expression, pose, action, and eyeline of each on-screen character — whenever a character is present, give them a natural, calm, believable real-person facial expression matching the beat (subtle eyebrow and eye focus; never exaggerated cartoon grimaces, wide saucer eyes, or puffed cheeks)."
+      ? "1) Character: expression, pose, action, and eyeline of each on-screen character — whenever a character is present, give them a normal, alive, engaged real-person facial expression matching the beat (living brows, warm focused eyes, and a hint of life at the mouth corners; never a blank, deadpan, or expressionless stare; never exaggerated cartoon grimaces, wide saucer eyes, or puffed cheeks)."
       : "1) Character: expression, pose, action, and eyeline of each on-screen character — whenever a character is present, give them a vivid, specific facial expression (active eyebrows, expressive eyes, and a clear mouth/cheek emotion matching the beat, never a blank or neutral face).",
     "2) Set: location, set dressing, props, foreground / midground / background.",
     "3) Light: light direction, colour temperature, mood.",
@@ -69,7 +69,7 @@ export function motionTransitionContract(options: { realistic?: boolean } = {}) 
   return [
     "motionCamera is the transition script from the start still to the end still, written as timed beats across the clip (e.g. 0–2s …; 2–5s …).",
     options.realistic
-      ? "Each beat states: time window → who or what moves → from where to where → how (picked up, set down, slid in from the frame edge, written on, wiped off) → the natural, understated facial expression shift (calm real-person brow and eye focus when a character is present; never exaggerated cartoon faces) and the camera framing."
+      ? "Each beat states: time window → who or what moves → from where to where → how (picked up, set down, slid in from the frame edge, written on, wiped off) → the normal, alive facial expression shift (engaged real-person brow and eye focus when a character is present; never a blank or deadpan stare; never exaggerated cartoon faces) and the camera framing."
       : "Each beat states: time window → who or what moves → from where to where → how (picked up, set down, slid in from the frame edge, written on, wiped off) → the expression change (vivid brow, eye, and mouth shifts when a character is present) and the camera framing.",
     "Every difference between the start and end still gets a beat that shows its cause on camera: pose, each hand, eyeline, expression, and every prop or label that moves, appears, disappears, or changes state.",
     "A prop that is in the end still but not in the start still is either added to the start still, or enters on camera in a beat (placed by a hand, slides in from the frame edge).",
@@ -85,7 +85,7 @@ export const FRAME_RENDER_DETAIL =
   "Render detail: follow the Scene's shot size, angle, and composition exactly; give any on-screen character a vivid, expressive facial expression matching the Scene; give props and surfaces clear material and texture; keep light direction, shadows, and depth consistent with the Scene; never copy a scene reference's person, face, or hairstyle — those stay on the character blueprint.";
 
 export const REALISTIC_FRAME_RENDER_DETAIL_BASE =
-  "Render detail: follow the Scene's shot size, angle, and composition exactly; give any on-screen character a natural, calm, believable real-person facial expression matching the Scene (never exaggerated cartoon faces); give props and surfaces clear material and texture; keep light direction, shadows, and depth consistent with the Scene; never copy a scene reference's person, face, or hairstyle — those stay on the character blueprint.";
+  "Render detail: follow the Scene's shot size, angle, and composition exactly; give any on-screen character a normal, alive, engaged real-person facial expression matching the Scene (never a blank or deadpan stare; never exaggerated cartoon faces); give props and surfaces clear material and texture; keep light direction, shadows, and depth consistent with the Scene; never copy a scene reference's person, face, or hairstyle — those stay on the character blueprint.";
 
 export function frameRenderDetail(options: { realistic?: boolean; selfShot?: boolean } = {}) {
   if (!options.realistic) return FRAME_RENDER_DETAIL;
@@ -98,7 +98,7 @@ export const PHASE_B_DETAIL_RULES =
   "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, the expression change, and the camera start and end framing. Whenever a character is on screen, animate rich, expressive facial changes across the beats (lively eyebrows, expressive eyes, cheek and mouth reactions synced to the beat, never a frozen or deadpan face). Name which hand, which direction, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
 
 export const PHASE_B_REALISTIC_NARRATOR_DETAIL_RULES =
-  "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, a calm natural real-person facial expression (lips firmly closed with zero mouth or jaw speech articulation, natural blinks and subtle eye focus only; never exaggerated cartoon grimaces), and the camera start and end framing. Name which hand, which direction, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
+  "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, a normal alive real-person facial expression (lips firmly closed with zero mouth or jaw speech articulation, natural blinks, living eye focus, and a hint of life at the mouth corners; never a blank or deadpan stare; never exaggerated cartoon grimaces), and the camera start and end framing. Name which hand, which direction, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
 
 export function phaseBDetailRules(
   options: { realistic?: boolean; selfShot?: boolean; narratorOnly?: boolean } = {},
