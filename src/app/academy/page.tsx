@@ -4,6 +4,7 @@ import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { listPublishedAcademySummaries } from "@/service/academy/courses";
 import { AcademyCourseGrid } from "@/app/academy/academy-course-grid";
 import { AcademyOutline } from "@/app/academy/academy-outline";
+import { AcademyShell } from "@/app/academy/academy-shell";
 import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY } from "@/util/i18n";
 
 export const dynamic = "force-dynamic";
@@ -49,25 +50,24 @@ export default async function AcademyPage() {
   return (
     <PolicyLayout>
       <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <header className="mb-10 max-w-2xl">
-          <p className="text-xs font-semibold tracking-wider text-zinc-500 uppercase">
-            {copy.eyebrow}
-          </p>
-          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
-            {copy.title}
-          </h1>
-          <p className="mt-3 text-base text-zinc-600">{copy.subtitle}</p>
-        </header>
         {courses.length === 0 ? (
           <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-6 py-16 text-center">
             <h2 className="text-lg font-semibold text-zinc-900">{copy.emptyTitle}</h2>
             <p className="mt-2 text-sm text-zinc-600">{copy.emptyBody}</p>
           </div>
         ) : (
-          <>
-            <AcademyOutline courses={courses} heading={copy.contents} />
+          <AcademyShell aside={<AcademyOutline courses={courses} heading={copy.contents} />}>
+            <header className="mb-8 max-w-2xl">
+              <p className="text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+                {copy.eyebrow}
+              </p>
+              <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
+                {copy.title}
+              </h1>
+              <p className="mt-3 text-base text-zinc-600">{copy.subtitle}</p>
+            </header>
             <AcademyCourseGrid courses={courses} />
-          </>
+          </AcademyShell>
         )}
       </main>
     </PolicyLayout>

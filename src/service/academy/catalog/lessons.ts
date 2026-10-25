@@ -10,6 +10,9 @@ export type AcademyLessonDraft = {
   module: string;
   sortOrder: number;
   markdown: string;
+  idea: string;
+  steps: string[];
+  practice: string;
   images: [AcademyLessonImage, AcademyLessonImage];
   videoPrompt: string;
 };
@@ -40,6 +43,8 @@ function lesson(input: {
     "",
     input.excerpt,
     "",
+    "{{video}}",
+    "",
     "{{image1}}",
     "",
     "## The idea",
@@ -51,10 +56,6 @@ function lesson(input: {
     steps,
     "",
     "{{image2}}",
-    "",
-    "## Watch the idea",
-    "",
-    "{{video}}",
     "",
     "## Practice in Scro",
     "",
