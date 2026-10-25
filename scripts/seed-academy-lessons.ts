@@ -10,9 +10,16 @@ import {
   assembleLessonMarkdown,
   lessonMediaReady,
   type LessonMediaUrls,
+  type ReadyLessonMedia,
 } from "@/service/academy/catalog/assemble";
 import { ACADEMY_LESSONS } from "@/service/academy/catalog/lessons";
-import { academyImagePrompt, academyVideoPrompt } from "@/service/academy/catalog/prompts";
+import { academyImagePrompt } from "@/service/academy/catalog/prompts";
+import {
+  ACADEMY_LESSON_VIDEO_VERSION,
+  ACADEMY_VIDEO_BEAT_SECONDS,
+  academyLessonNeedsVideo,
+  academyLessonVideoBeats,
+} from "@/service/academy/catalog/video";
 import {
   fetchOpenRouterStatus,
   OPENROUTER_HEYGEN_VIDEO_1_MODEL,
@@ -22,6 +29,7 @@ import {
   capOpenRouterVideoPrompt,
 } from "@/service/openrouter/generate";
 import { persistMedia } from "@/service/higgsfield/persist";
+import { concatMp4Urls } from "@/service/reel/concat";
 
 loadEnvConfig(process.cwd());
 
@@ -113,7 +121,28 @@ async function generateImage(prompt: string) {
   throw new Error(lastError);
 }
 
-async function submitVideo(prompt: string, firstFrameUrl: string, resolution: "768p" | "480p") {
+async function storeBuffer(buffer: Buffer, pathname: string, contentType: string) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error("BLOB_READ_WRITE_TOKEN is not configured");
+  }
+  const target = uniquePath(pathname);
+  const ext = extensionFor(contentType, target.split(".").pop() || "bin");
+  const named = target.replace(/\.[a-z0-9]+$/i, `.${ext}`);
+  const blob = await put(named, buffer, {
+    access: "public",
+    contentType,
+    addRandomSuffix: false,
+    allowOverwrite: true,
+  });
+  return blob.url;
+}
+
+async function submitVideo(
+  prompt: string,
+  firstFrameUrl: string,
+  resolution: "768p" | "480p",
+  durationSeconds = ACADEMY_VIDEO_BEAT_SECONDS,
+) {
   const key = assertOpenRouterKey();
   const response = await fetch(OPENROUTER_VIDEOS_URL, {
     method: "POST",
@@ -125,7 +154,7 @@ async function submitVideo(prompt: string, firstFrameUrl: string, resolution: "7
       model: OPENROUTER_HEYGEN_VIDEO_1_MODEL,
       prompt: capOpenRouterVideoPrompt(prompt),
       aspect_ratio: "16:9",
-      duration: 5,
+      duration: durationSeconds,
       resolution,
       generate_audio: true,
       frame_images: [
@@ -166,15 +195,40 @@ async function waitForVideo(statusUrl: string) {
   throw new Error("video timed out");
 }
 
-async function generateVideo(prompt: string, firstFrameUrl: string) {
+async function generateVideo(
+  prompt: string,
+  firstFrameUrl: string,
+  durationSeconds = ACADEMY_VIDEO_BEAT_SECONDS,
+) {
   try {
-    const statusUrl = await submitVideo(prompt, firstFrameUrl, "768p");
+    const statusUrl = await submitVideo(prompt, firstFrameUrl, "768p", durationSeconds);
     return await waitForVideo(statusUrl);
   } catch (error) {
     console.warn("768p video failed, retrying 480p", error instanceof Error ? error.message : error);
-    const statusUrl = await submitVideo(prompt, firstFrameUrl, "480p");
+    const statusUrl = await submitVideo(prompt, firstFrameUrl, "480p", durationSeconds);
     return await waitForVideo(statusUrl);
   }
+}
+
+// Four 15s OpenRouter beats, then ffmpeg concat into one ~60s lesson video.
+async function generateLessonVideo(slug: string, image1: string, image2: string) {
+  const lesson = ACADEMY_LESSONS.find((item) => item.slug === slug);
+  if (!lesson) throw new Error(`missing lesson ${slug}`);
+  const frames = { image1, image2 };
+  const clipUrls: string[] = [];
+  for (const beat of academyLessonVideoBeats(lesson)) {
+    console.log(`video ${slug} beat ${beat.beatIndex + 1}/${beat.beatCount}`);
+    const raw = await generateVideo(beat.prompt, frames[beat.frame], beat.durationSeconds);
+    clipUrls.push(
+      await storeGenerated(
+        raw,
+        `explainer/academy/lessons/${slug}-beat${beat.beatIndex + 1}.mp4`,
+        "video/mp4",
+      ),
+    );
+  }
+  const joined = await concatMp4Urls(clipUrls, 5 * 60 * 1000);
+  return storeBuffer(joined, `explainer/academy/lessons/${slug}.mp4`, "video/mp4");
 }
 
 async function pool<T>(items: T[], limit: number, worker: (item: T) => Promise<void>) {
@@ -189,7 +243,7 @@ async function pool<T>(items: T[], limit: number, worker: (item: T) => Promise<v
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => run()));
 }
 
-async function upsertLesson(slug: string, media: Required<LessonMediaUrls>) {
+async function upsertLesson(slug: string, media: ReadyLessonMedia) {
   const lesson = ACADEMY_LESSONS.find((item) => item.slug === slug);
   if (!lesson) throw new Error(`missing lesson ${slug}`);
   const content = assembleLessonMarkdown(lesson, media);
@@ -244,18 +298,14 @@ async function main() {
           await remember(lesson.slug, { image2 });
         }
       }
-      let video = !force && current.video ? current.video : "";
-      if (!video) {
-        console.log(`video ${lesson.slug}`);
-        const raw = await generateVideo(academyVideoPrompt(lesson.videoPrompt), image1);
-        video = await storeGenerated(
-          raw,
-          `explainer/academy/lessons/${lesson.slug}.mp4`,
-          "video/mp4",
-        );
-        await remember(lesson.slug, { video });
+      let video = current.video || "";
+      let videoVersion = current.videoVersion;
+      if (academyLessonNeedsVideo(current, force)) {
+        video = await generateLessonVideo(lesson.slug, image1, image2);
+        videoVersion = ACADEMY_LESSON_VIDEO_VERSION;
+        await remember(lesson.slug, { video, videoVersion });
       }
-      const media = { image1, image2, video };
+      const media = { image1, image2, video, videoVersion };
       if (!lessonMediaReady(media)) throw new Error("media incomplete");
       const saved = await upsertLesson(lesson.slug, media);
       console.log(`saved ${saved}`);

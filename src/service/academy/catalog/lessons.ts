@@ -10,6 +10,9 @@ export type AcademyLessonDraft = {
   module: string;
   sortOrder: number;
   markdown: string;
+  idea: string;
+  steps: string[];
+  practice: string;
   images: [AcademyLessonImage, AcademyLessonImage];
   videoPrompt: string;
 };

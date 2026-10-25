@@ -4,17 +4,26 @@ export type LessonMediaUrls = {
   image1?: string;
   image2?: string;
   video?: string;
+  /** Bump when the lesson video format changes so seed regenerates stale clips. */
+  videoVersion?: number;
+};
+
+export type ReadyLessonMedia = {
+  image1: string;
+  image2: string;
+  video: string;
+  videoVersion?: number;
 };
 
 // True when a lesson has the two diagrams and the one explainer clip.
-export function lessonMediaReady(media?: LessonMediaUrls): media is Required<LessonMediaUrls> {
+export function lessonMediaReady(media?: LessonMediaUrls): media is ReadyLessonMedia {
   return Boolean(media?.image1 && media.image2 && media.video);
 }
 
 // Drop the media placeholders into the lesson markdown.
 export function assembleLessonMarkdown(
   lesson: AcademyLessonDraft,
-  media: Required<LessonMediaUrls>,
+  media: ReadyLessonMedia,
 ): string {
   return lesson.markdown
     .replaceAll("{{image1}}", `![${lesson.images[0].alt}](${media.image1})`)

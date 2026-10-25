@@ -18,12 +18,21 @@ export function academyImagePrompt(subject: string): string {
   ].join("\n");
 }
 
-export function academyVideoPrompt(direction: string): string {
+export function academyVideoPrompt(input: {
+  motion: string;
+  spoken: string;
+  beatIndex: number;
+  beatCount: number;
+}): string {
+  const beat = input.beatIndex + 1;
   return [
-    "Educational 5-second 16:9 motion graphic for a business course.",
+    `Educational 15-second beat ${beat} of ${input.beatCount} in a 60-second 16:9 lesson video.`,
     "Keep the first-frame diagram's layout and labels. Do not redesign the frame.",
-    "No music. No extra logos. A calm narrator speaks the one line below, then stops.",
+    "No music. No extra logos.",
+    `A calm narrator speaks only this beat's lines, then stops. The full lesson voiceover is about one minute.`,
     "",
-    direction.trim(),
+    `Motion this beat: ${input.motion.trim()}`,
+    "",
+    `Spoken line, exactly: "${input.spoken.trim()}"`,
   ].join("\n");
 }

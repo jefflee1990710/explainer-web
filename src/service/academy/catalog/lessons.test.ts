@@ -3,6 +3,10 @@ import test from "node:test";
 import { assembleLessonMarkdown } from "@/service/academy/catalog/assemble";
 import { ACADEMY_LESSONS } from "@/service/academy/catalog/lessons";
 import { academyImagePrompt, academyVideoPrompt } from "@/service/academy/catalog/prompts";
+import {
+  ACADEMY_VIDEO_BEAT_COUNT,
+  academyLessonVideoBeats,
+} from "@/service/academy/catalog/video";
 
 test("the academy syllabus has 26 English lessons in order", () => {
   assert.equal(ACADEMY_LESSONS.length, 26);
@@ -40,9 +44,16 @@ test("assembleLessonMarkdown inserts two images and one video", () => {
 test("media prompts stay specific and short enough to send", () => {
   const lesson = ACADEMY_LESSONS[2];
   const imagePrompt = academyImagePrompt(lesson.images[0].prompt);
-  const videoPrompt = academyVideoPrompt(lesson.videoPrompt);
+  const [firstBeat] = academyLessonVideoBeats(lesson);
+  const videoPrompt = academyVideoPrompt({
+    motion: firstBeat.motion,
+    spoken: firstBeat.spoken,
+    beatIndex: 0,
+    beatCount: ACADEMY_VIDEO_BEAT_COUNT,
+  });
   assert.match(imagePrompt, /HOOK/);
   assert.match(videoPrompt, /Spoken line/);
+  assert.match(videoPrompt, /60-second/);
   assert.ok(imagePrompt.length < 2000);
   assert.ok(videoPrompt.length < 2000);
 });
