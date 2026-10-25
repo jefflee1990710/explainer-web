@@ -2,7 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ObjectId } from "mongodb";
 import { toPoseEditDto } from "@/service/pose-edit/dto";
-import { poseEditFailureFilter, poseEditShouldRefund } from "@/service/pose-edit/fail";
+import {
+  poseEditFailedSpendFilter,
+  poseEditFailedSpendQuery,
+  poseEditFailureFilter,
+  poseEditRefundRestoreFilter,
+  poseEditShouldRefund,
+  poseEditStillNeedsRefund,
+} from "@/service/pose-edit/fail";
 import type { PoseEdit } from "@/model/pose-edit";
 
 test("toPoseEditDto hides the spend key and uses the result only when completed", () => {
@@ -36,4 +43,24 @@ test("poseEditShouldRefund is true only for the update that cleared spendKey", (
     status: "pending",
     spendKey: { $type: "string" },
   });
+  assert.deepEqual(poseEditFailedSpendQuery(id), {
+    _id: id,
+    status: "failed",
+    spendKey: { $type: "string" },
+  });
+  assert.deepEqual(poseEditFailedSpendFilter(id, "spend-1"), {
+    _id: id,
+    status: "failed",
+    spendKey: "spend-1",
+  });
+  assert.deepEqual(poseEditRefundRestoreFilter(id), {
+    _id: id,
+    status: "failed",
+    spendKey: { $exists: false },
+  });
+  assert.equal(poseEditStillNeedsRefund({ status: "failed", spendKey: "spend-1" }), true);
+  assert.equal(poseEditStillNeedsRefund({ status: "failed" }), false);
+  assert.equal(poseEditStillNeedsRefund({ status: "failed", spendKey: "" }), false);
+  assert.equal(poseEditStillNeedsRefund({ status: "pending", spendKey: "spend-1" }), false);
+  assert.equal(poseEditStillNeedsRefund({ status: "completed", spendKey: "spend-1" }), false);
 });

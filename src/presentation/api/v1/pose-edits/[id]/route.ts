@@ -4,6 +4,8 @@ import type { PoseEdit } from "@/model/pose-edit";
 import { apiError, apiJson, withApiUser } from "@/service/api/respond";
 import { toPoseEditDto } from "@/service/pose-edit/dto";
 import { POSE_EDIT_ERRORS } from "@/service/pose-edit/errors";
+import { poseEditStillNeedsRefund } from "@/service/pose-edit/fail";
+import { refundFailedPoseEdit } from "@/service/pose-edit/sync";
 
 type Params = { id: string };
 
@@ -16,5 +18,7 @@ export const GET = withApiUser<Params>(async ({ auth, params }) => {
     clerkUserId: auth.user.clerkUserId,
   });
   if (!edit) return apiError(POSE_EDIT_ERRORS.missing, 404);
+  // One refund when this failed edit still has its spend key, then the DTO.
+  if (poseEditStillNeedsRefund(edit)) await refundFailedPoseEdit(edit._id);
   return apiJson(toPoseEditDto(edit as PoseEdit));
 });

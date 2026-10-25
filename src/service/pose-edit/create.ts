@@ -153,9 +153,16 @@ export async function createPoseEdit(input: {
       status: "pending",
       spendKey,
     });
-  } catch (error) {
-    await deps.refund(input.user.clerkUserId, FRAME_COST, spendKey);
-    throw error;
+  } catch (insertError) {
+    try {
+      await deps.refund(input.user.clerkUserId, FRAME_COST, spendKey);
+    } catch (refundError) {
+      // Insert threw before a pose_edits row existed, so there is nothing to mark failed.
+      console.error("[pose-edit] insert refund failed", { spendKey, insertError, refundError });
+      const insertMessage = insertError instanceof Error ? insertError.message : String(insertError);
+      throw new Error(`pose edit insert failed (${spendKey}): ${insertMessage}`);
+    }
+    throw insertError;
   }
 
   try {

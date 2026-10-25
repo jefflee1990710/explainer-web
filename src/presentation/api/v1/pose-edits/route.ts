@@ -4,6 +4,8 @@ import { apiError, apiJson, withApiUser } from "@/service/api/respond";
 import { createPoseEdit } from "@/service/pose-edit/create";
 import { toPoseEditDto } from "@/service/pose-edit/dto";
 import { POSE_EDIT_ERRORS } from "@/service/pose-edit/errors";
+import { poseEditStillNeedsRefund } from "@/service/pose-edit/fail";
+import { refundFailedPoseEdit } from "@/service/pose-edit/sync";
 
 function fieldText(form: FormData, key: string) {
   const value = form.get(key);
@@ -18,6 +20,10 @@ export const GET = withApiUser(async ({ auth }) => {
     .sort({ createdAt: -1 })
     .limit(30)
     .toArray();
+  // Failed rows that still hold a spend key get one refund, then the same DTO.
+  for (const doc of docs) {
+    if (poseEditStillNeedsRefund(doc)) await refundFailedPoseEdit(doc._id);
+  }
   return apiJson(docs.map((doc) => toPoseEditDto(doc as PoseEdit)));
 });
 

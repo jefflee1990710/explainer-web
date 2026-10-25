@@ -161,10 +161,18 @@ export async function submitGoogleStudioImage(
   });
   const body = asRecord(await response.json().catch(() => ({})));
   const error = googleError(body);
+  const imageUrl = response.ok ? googleStudioImageUrl(body) : undefined;
+  // Safety blocks often come back as a non-OK body or a body with no image. Return nsfw instead of throwing.
+  if ((!response.ok || !imageUrl) && nsfwFrom(error)) {
+    return {
+      request_id: crypto.randomUUID(),
+      status: "nsfw",
+      images: [],
+    };
+  }
   if (!response.ok) {
     throw new Error(error || `Google 圖片產生失敗（${response.status}）`);
   }
-  const imageUrl = googleStudioImageUrl(body);
   if (!imageUrl) throw new Error(error || "Google 未回傳圖片");
   return {
     request_id: crypto.randomUUID(),
