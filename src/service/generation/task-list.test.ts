@@ -32,6 +32,10 @@ test("detail names the clip and slot", () => {
     detailKey: "tasksPage.detail.clipSubtitlePlate",
     detailParams: { n: 2 },
   });
+  assert.equal(taskDetail({ kind: "poseEdit", clipIndex: -1 }), "改圖");
+  assert.deepEqual(taskDetailI18n({ kind: "poseEdit", clipIndex: -1 }), {
+    detailKey: "tasksPage.detail.poseEdit",
+  });
 });
 
 test("a reel in progress is a 成片合成 background task", () => {

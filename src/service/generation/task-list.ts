@@ -67,6 +67,7 @@ export function taskDetail(
   if (job.kind === "objectSheet") return "道具參考表";
   if (job.kind === "backgroundPlate") return "場景背景參考";
   if (job.kind === "reelCover") return "影片封面";
+  if (job.kind === "poseEdit") return "改圖";
   const clip = `Clip ${job.clipIndex + 1}`;
   if (job.kind === "video") return `${clip} · 影片`;
   if (job.kind === "subtitlePlate") return `${clip} · 字幕圖`;
@@ -93,6 +94,7 @@ export function taskDetailI18n(
   if (job.kind === "objectSheet") return { detailKey: "tasksPage.detail.objectSheet" as const };
   if (job.kind === "backgroundPlate") return { detailKey: "tasksPage.detail.backgroundPlate" as const };
   if (job.kind === "reelCover") return { detailKey: "tasksPage.detail.reelCover" as const };
+  if (job.kind === "poseEdit") return { detailKey: "tasksPage.detail.poseEdit" as const };
   if (job.kind === "video") return { detailKey: "tasksPage.detail.clipVideo" as const, detailParams: { n } };
   if (job.kind === "subtitlePlate") {
     return { detailKey: "tasksPage.detail.clipSubtitlePlate" as const, detailParams: { n } };

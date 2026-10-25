@@ -100,7 +100,7 @@ export function googleStudioImageUrl(body: Record<string, unknown>) {
 
 export function googleStudioImageBody(input: {
   prompt: string;
-  aspectRatio: AspectRatio | "2:3";
+  aspectRatio: AspectRatio | "2:3" | "3:4";
   resolution?: "1k" | "2k" | "4k";
   inlineImages?: Array<{ inline_data: { mime_type: string; data: string } }>;
 }) {
@@ -127,7 +127,7 @@ export function googleStudioImageBody(input: {
 export async function submitGoogleStudioImage(
   input: {
     prompt: string;
-    aspectRatio: AspectRatio | "2:3";
+    aspectRatio: AspectRatio | "2:3" | "3:4";
     resolution?: "1k" | "2k" | "4k";
     referenceImageUrls?: Array<string | undefined>;
   },
