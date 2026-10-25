@@ -23,6 +23,7 @@ export async function createAcademyCourseAction(input: {
   title: string;
   slug?: string;
   excerpt?: string;
+  module?: string;
   content: string;
   coverImage?: string;
   published?: boolean;
@@ -41,6 +42,7 @@ export async function updateAcademyCourseAction(
     title?: string;
     slug?: string;
     excerpt?: string;
+    module?: string;
     content?: string;
     coverImage?: string;
     published?: boolean;
