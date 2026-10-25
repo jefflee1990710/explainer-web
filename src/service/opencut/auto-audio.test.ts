@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+	AI_BGM_VOLUME_DB,
+	AI_SFX_VOLUME_DB,
 	computeSfxStartSeconds,
 	isAiBgmElementName,
 	isAiSfxElementName,
@@ -26,6 +28,12 @@ test("computeSfxStartSeconds keeps end beat from going before clip start on shor
 		computeSfxStartSeconds({ clipStartSec: 1, clipDurSec: 0.3, beat: "end" }),
 		1,
 	);
+});
+
+test("auto BGM sits under speech but stays loud enough to hear", () => {
+	assert.ok(AI_BGM_VOLUME_DB < 0);
+	assert.ok(AI_BGM_VOLUME_DB < AI_SFX_VOLUME_DB);
+	assert.equal(AI_BGM_VOLUME_DB, -8);
 });
 
 test("isAiSfxElementName / isAiBgmElementName match auto-insert prefixes", () => {

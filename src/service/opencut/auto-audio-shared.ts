@@ -38,8 +38,8 @@ export const AI_SFX_NAME_PREFIX = "SFX";
 export const AI_BGM_NAME_PREFIX = "BGM";
 /** Short Foley hits — a bit under speech (0 dB = unity). */
 export const AI_SFX_VOLUME_DB = -6;
-/** Underscore bed — sit well under VO. */
-export const AI_BGM_VOLUME_DB = -18;
+/** Underscore bed — audible under VO, still quieter than speech and SFX. */
+export const AI_BGM_VOLUME_DB = -8;
 
 export function isAiSfxElementName(name: string) {
   return /^SFX\b/i.test(name.trim());
