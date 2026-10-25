@@ -28,6 +28,7 @@ export { opencutEditsCollection } from "@/dao/opencut-edits";
 export { soundEffectsCollection } from "@/dao/sound-effects";
 export { freesoundGrantsCollection } from "@/dao/freesound-grants";
 export { blogPostsCollection } from "@/dao/blog-posts";
+export { academyCoursesCollection } from "@/dao/academy-courses";
 export { customWardrobeItemsCollection } from "@/dao/custom-wardrobe-items";
 export { wardrobeCombinationsCollection } from "@/dao/wardrobe-combinations";
 

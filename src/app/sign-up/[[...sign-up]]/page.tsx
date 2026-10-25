@@ -18,11 +18,16 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function SignUpPage() {
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const params = await searchParams;
   return (
     <PolicyLayout>
       <div className="flex flex-1 items-center justify-center px-6 py-16">
-        <AuthForm mode="sign-up" />
+        <AuthForm mode="sign-up" nextPath={params.next} />
       </div>
     </PolicyLayout>
   );

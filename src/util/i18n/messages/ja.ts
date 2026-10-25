@@ -43,6 +43,7 @@ export const ja: Partial<Messages> = {
     featuresExplainer: "ホワイトボード Explainer で概念を説明",
     featuresAiInfluencer: "あなたの経験が、その魂になる",
     featuresProductPromo: "商品をアップロード。どこでも宣伝。",
+    academy: "Scro Academy",
   },
   common: {
     credits: "credits",
@@ -69,6 +70,24 @@ export const ja: Partial<Messages> = {
       platformTiktok: "TikTok",
       artLabel:
         "左にキャラクターと衣装、右に Explainer 動画と Life 投稿カードのあるステージ",
+    },
+    academy: {
+      eyebrow: "Scro Academy",
+      title: "リールで事業とフォロワーを一緒に伸ばす。",
+      body: "Scro に登録すれば全コース無料。フック、証明、着地、CTA。同じ顔の AI Influencer で毎週出す。",
+      point1: "最初の1秒で止まるフックを書く",
+      point2: "同じ型を繰り返し、見知らぬ人がフォローする",
+      point3: "一つのCTAで視聴者を客にする",
+      ctaBrowse: "無料コースを見る",
+      ctaRegister: "登録して無料で学ぶ",
+      ctaContinue: "続きを学ぶ",
+      freeBadge: "登録後は全コース無料",
+      card1Title: "フック",
+      card1Body: "痛みか結果を先に。挨拶もロゴもいらない。",
+      card2Title: "毎週の型",
+      card2Body: "意見、UGC、チュートリアル。一つ選んで出す。",
+      card3Title: "CTA",
+      card3Body: "フォロー、保存、クリック。一度に一つ。",
     },
     steps: {
       eyebrow: "使い方",

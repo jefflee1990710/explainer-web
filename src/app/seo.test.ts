@@ -15,6 +15,7 @@ test("robots() returns sitemap URL, host, and disallows private workspace paths"
   assert.ok(Array.isArray(starRule.disallow));
   assert.ok(starRule.disallow.includes("/app/"));
   assert.ok(starRule.disallow.includes("/api/"));
+  assert.ok(starRule.disallow.includes("/scroadmin"));
 });
 
 test("buildSitemapEntries includes all static public pages and published blog posts", () => {
@@ -25,6 +26,7 @@ test("buildSitemapEntries includes all static public pages and published blog po
   assert.equal(entries[0]?.url, "https://scro.io");
   assert.ok(entries.some((e) => e.url === "https://scro.io/ai-influencer"));
   assert.ok(entries.some((e) => e.url === "https://scro.io/pricing"));
+  assert.ok(entries.some((e) => e.url === "https://scro.io/academy"));
   assert.ok(
     entries.some((e) => e.url === "https://scro.io/posts/ai-influencer-guide"),
   );

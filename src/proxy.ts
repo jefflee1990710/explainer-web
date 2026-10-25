@@ -6,7 +6,10 @@ import { SESSION_COOKIE } from "@/service/firebase/session";
 // Send unsigned visitors to sign-in. The session itself is verified in the app layout.
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const needsAuth = pathname.startsWith("/app") || pathname === "/legal/accept";
+  const needsAuth =
+    pathname.startsWith("/app") ||
+    pathname.startsWith("/scroadmin") ||
+    pathname === "/legal/accept";
   if (!needsAuth || request.cookies.get(SESSION_COOKIE)?.value) {
     return NextResponse.next();
   }
@@ -18,5 +21,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/legal/accept"],
+  matcher: ["/app/:path*", "/scroadmin", "/scroadmin/:path*", "/legal/accept"],
 };

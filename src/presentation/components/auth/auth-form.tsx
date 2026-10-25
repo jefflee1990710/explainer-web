@@ -145,11 +145,17 @@ export function AuthForm({
       </form>
       <p className="mt-6 text-sm text-zinc-600">
         {register ? (
-          <Link href="/sign-in" className="font-semibold text-[#12141c] underline">
+          <Link
+            href={nextPath ? `/sign-in?next=${encodeURIComponent(nextPath)}` : "/sign-in"}
+            className="font-semibold text-[#12141c] underline"
+          >
             {t("auth.haveAccount")}
           </Link>
         ) : (
-          <Link href="/sign-up" className="font-semibold text-[#12141c] underline">
+          <Link
+            href={nextPath ? `/sign-up?next=${encodeURIComponent(nextPath)}` : "/sign-up"}
+            className="font-semibold text-[#12141c] underline"
+          >
             {t("auth.needAccount")}
           </Link>
         )}

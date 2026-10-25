@@ -5,6 +5,7 @@ import { getAuthSession } from "@/service/auth";
 import { LandingCast } from "@/presentation/components/landing-cast";
 import { LandingCatalog } from "@/presentation/components/landing-catalog";
 import { LandingFreeCredit } from "@/presentation/components/landing-free-credit";
+import { LandingAcademy } from "@/presentation/components/landing-academy";
 import { LandingHero } from "@/presentation/components/landing-hero";
 import { LandingDirector } from "@/presentation/components/landing-director";
 import { LandingIp } from "@/presentation/components/landing-ip";
@@ -43,7 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// Plans live on /pricing. Landing leads with soul injection for virtual KOLs, then identity lock, brand IP wardrobe/posts, Life feed, catalog depth, use cases, steps, studio powertools, cost control, and free credits.
+// Plans live on /pricing. Landing leads with soul injection, then Scro Academy, identity lock, brand IP, catalog, use cases, steps, studio powertools, cost control, and free credits.
 export default async function HomePage() {
   const [session, jar] = await Promise.all([getAuthSession(), cookies()]);
   const stored = jar.get(LOCALE_STORAGE_KEY)?.value;
@@ -97,6 +98,7 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <LandingHero signedIn={Boolean(session)} />
+      <LandingAcademy signedIn={Boolean(session)} />
       <LandingCast />
       <LandingIp />
       <LandingCatalog stats={catalogStats} signedIn={Boolean(session)} />

@@ -92,6 +92,12 @@ export function SiteHeader({
             >
               {t("nav.blog")}
             </Link>
+            <Link
+              href="/academy"
+              className="shrink-0 rounded-full bg-[#c6f24b] px-3 py-1.5 text-xs font-semibold text-[#12141c] transition-colors hover:bg-[#b6e23a] lg:px-3.5 lg:text-sm"
+            >
+              {t("nav.academy")}
+            </Link>
           </nav>
 
           {/* Right Actions + Mobile Menu Trigger */}
@@ -161,6 +167,13 @@ export function SiteHeader({
                 className="rounded-xl px-3 py-2.5 text-sm font-semibold text-[#12141c] transition-colors hover:bg-zinc-100"
               >
                 {t("nav.blog")}
+              </Link>
+              <Link
+                href="/academy"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-xl bg-[#c6f24b] px-3 py-2.5 text-sm font-semibold text-[#12141c] transition-colors hover:bg-[#b6e23a]"
+              >
+                {t("nav.academy")}
               </Link>
               {showAffiliate ? (
                 <Link
