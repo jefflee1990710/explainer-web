@@ -4,7 +4,7 @@ import sharp from "sharp";
 import { poseEditsCollection } from "@/dao";
 import type { PoseEdit } from "@/model/pose-edit";
 import type { AppUser } from "@/model/user";
-import { assertCanSpendCredits, consumeCredits } from "@/service/billing/credits";
+import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/billing/credits";
 import { FRAME_COST } from "@/service/credit-costs";
 import { poseEditAspect, type PoseEditAspect } from "@/service/pose-edit/aspect";
 import { toPoseEditDto, type PoseEditDto } from "@/service/pose-edit/dto";
@@ -45,6 +45,7 @@ export type PoseEditCreateDeps = {
   insert: (draft: PoseEditDraft) => Promise<PoseEdit>;
   enqueue: (id: ObjectId) => Promise<unknown>;
   fail: (id: ObjectId, error: string) => Promise<void>;
+  refund: (clerkUserId: string, cost: number, spendKey: string) => Promise<void>;
   readSize: (bytes: Uint8Array) => Promise<{ width?: number; height?: number }>;
 };
 
@@ -92,11 +93,12 @@ const defaultDeps: PoseEditCreateDeps = {
   insert: insertPoseEdit,
   enqueue: enqueuePoseEdit,
   fail: failPoseEdit,
+  refund: refundCredits,
   readSize: readPoseEditSize,
 };
 
-// Validate, charge, store the photo, then queue. Enqueue failure is marked failed
-// once; failPoseEdit refunds, so this function does not call refundCredits.
+// Validate, charge, store the photo, then queue. A failed insert refunds once
+// because there is no row yet. Enqueue failure only calls failPoseEdit.
 export async function createPoseEdit(input: {
   user: AppUser;
   bytes: Uint8Array;
@@ -140,15 +142,21 @@ export async function createPoseEdit(input: {
 
   const spendKey = await deps.consume(input.user.clerkUserId, FRAME_COST);
   const poseId = "poseId" in selection ? selection.poseId : undefined;
-  const edit = await deps.insert({
-    clerkUserId: input.user.clerkUserId,
-    sourceUrl,
-    ...(poseId ? { poseId } : {}),
-    wardrobe: selection.wardrobe,
-    aspect,
-    status: "pending",
-    spendKey,
-  });
+  let edit: PoseEdit;
+  try {
+    edit = await deps.insert({
+      clerkUserId: input.user.clerkUserId,
+      sourceUrl,
+      ...(poseId ? { poseId } : {}),
+      wardrobe: selection.wardrobe,
+      aspect,
+      status: "pending",
+      spendKey,
+    });
+  } catch (error) {
+    await deps.refund(input.user.clerkUserId, FRAME_COST, spendKey);
+    throw error;
+  }
 
   try {
     await deps.enqueue(edit._id);
