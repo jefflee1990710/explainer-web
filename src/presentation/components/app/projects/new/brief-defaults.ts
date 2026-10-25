@@ -132,3 +132,30 @@ export function writeBriefDefaults(projectId: string, defaults: BriefDefaults) {
     // Private mode or a full quota should not block the form.
   }
 }
+
+// Auto-pick matching ready characters when a new video starts or changes style so Step 01 is immediately actionable.
+export function defaultCastIdsForStyle(
+  characters: ReadonlyArray<{
+    id: string;
+    styleId: string;
+    styleIds?: string[];
+    previewUrl?: string | null;
+  }>,
+  styleId: string,
+  requiredCount: number,
+): string[] {
+  if (requiredCount <= 0) return [];
+  const matching = characters.filter((character) => {
+    if ("previewUrl" in character && !character.previewUrl) return false;
+    const styles = character.styleIds?.length ? character.styleIds : [character.styleId];
+    return styles.includes(styleId);
+  });
+  if (matching.length < requiredCount) return [];
+  return matching.slice(0, requiredCount).map((character) => character.id);
+}
+
+// If a user typed a script or sentence (>= 12 chars) into the Create Folder dialog, pre-fill the video source script with it.
+export function initialSourceFromFolderName(folderName?: string): string {
+  const trimmed = (folderName ?? "").trim();
+  return trimmed.length >= 12 ? trimmed : "";
+}

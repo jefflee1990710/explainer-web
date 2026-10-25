@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { createFolderAction } from "@/presentation/actions/projects";
 import { Spinner } from "@/presentation/components/spinner";
+import { folderVideoPath } from "@/service/folder-video-path";
 
 const NAME_MAX = 80;
 
@@ -71,7 +72,8 @@ export function CreateFolderModal({ onClose }: { onClose: () => void }) {
       return;
     }
     onClose();
-    router.push(`/app/projects/${result.folder.id}`);
+    // Navigate directly into the new-video wizard so users don't get stranded on an empty folder table.
+    router.push(folderVideoPath(result.folder.id));
   }
 
   return (

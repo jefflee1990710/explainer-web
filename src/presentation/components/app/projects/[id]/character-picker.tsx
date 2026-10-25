@@ -11,6 +11,7 @@ import {
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicCharacter } from "@/presentation/serialize";
 import type { CharacterSelectionMap } from "@/service/character/character-presets";
+import { localizedStyleName } from "@/util/style-i18n";
 
 // Clickable trigger that opens the Character & Preset Selection Dialog.
 export function CharacterPicker({
@@ -18,6 +19,7 @@ export function CharacterPicker({
   styleId,
   value,
   onChange,
+  onSelectStyle,
   selections: controlledSelections,
   onSelectionsChange,
   disabled,
@@ -28,13 +30,14 @@ export function CharacterPicker({
   styleId?: string;
   value: string[];
   onChange: (ids: string[]) => void;
+  onSelectStyle?: (styleId: string) => void;
   selections?: CharacterSelectionMap;
   onSelectionsChange?: (next: CharacterSelectionMap) => void;
   disabled?: boolean;
   max?: number;
   required?: number;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
   const [overrides, setOverrides] = useState<Record<string, PublicCharacter>>(
     {},
@@ -63,23 +66,68 @@ export function CharacterPicker({
   const pick = castPickStatus(value.length, required, max, t);
 
   if (required > 0 && ready.length < required) {
+    // Collect styles where the user already has enough ready characters so they can unblock Step 01 in one click.
+    const countByStyle = new Map<string, number>();
+    for (const character of characters) {
+      if (!character.previewUrl) continue;
+      const styles = character.styleIds?.length
+        ? character.styleIds
+        : [character.styleId];
+      for (const sid of styles) {
+        if (blueprintForStyle(character, sid)) {
+          countByStyle.set(sid, (countByStyle.get(sid) ?? 0) + 1);
+        }
+      }
+    }
+    const availableStyleIds = Array.from(countByStyle.entries())
+      .filter(([sid, count]) => sid !== styleId && count >= required)
+      .map(([sid]) => sid)
+      .slice(0, 5);
+
+    const switchHint =
+      locale === "zh-Hant"
+        ? "或一鍵切換至已有現成角色的風格："
+        : locale === "zh-Hans"
+          ? "或一键切换至已有现成角色的风格："
+          : "Or switch to a style with ready characters:";
+
     return (
-      <p className="text-sm font-medium text-accent">
-        {ready.length === 0
-          ? anyReady
-            ? t("brief.castPicker.errorNoStyleCharacters")
-            : t("brief.castPicker.errorNone")
-          : t("brief.castPicker.errorRequiredCount", {
-              required,
-              ready: ready.length,
-            })}
-        <Link
-          href="/app/characters"
-          className="ml-1 font-semibold underline underline-offset-4"
-        >
-          {t("brief.castPicker.linkCreate")}
-        </Link>
-      </p>
+      <div className="space-y-2.5">
+        <p className="text-sm font-medium text-accent">
+          {ready.length === 0
+            ? anyReady
+              ? t("brief.castPicker.errorNoStyleCharacters")
+              : t("brief.castPicker.errorNone")
+            : t("brief.castPicker.errorRequiredCount", {
+                required,
+                ready: ready.length,
+              })}
+          <Link
+            href="/app/characters"
+            className="ml-1 font-semibold underline underline-offset-4"
+          >
+            {t("brief.castPicker.linkCreate")}
+          </Link>
+        </p>
+        {onSelectStyle && availableStyleIds.length > 0 ? (
+          <div className="rounded-xl border border-accent-ink/10 bg-paper/70 p-2.5">
+            <p className="text-xs text-muted">{switchHint}</p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {availableStyleIds.map((sid) => (
+                <button
+                  key={sid}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onSelectStyle(sid)}
+                  className="inline-flex cursor-pointer items-center rounded-full border border-accent-ink/15 bg-white px-2.5 py-1 text-xs font-semibold text-foreground transition hover:border-accent-ink/40 hover:bg-accent-ink/5 disabled:opacity-50"
+                >
+                  {localizedStyleName(sid)}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
     );
   }
 

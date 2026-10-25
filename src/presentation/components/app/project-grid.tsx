@@ -7,6 +7,7 @@ import type { PublicFolder } from "@/presentation/serialize";
 import { CreateFolderButton } from "@/presentation/components/app/create-folder-modal";
 import { ProjectCard } from "@/presentation/components/app/project-card";
 import { ProjectFilters } from "@/presentation/components/app/project-filters";
+import { StartFirstVideoButton } from "@/presentation/components/app/start-first-video-button";
 
 // Dashboard project cards. Search matches the project name only.
 export function ProjectGrid({ folders }: { folders: PublicFolder[] }) {
@@ -24,7 +25,10 @@ export function ProjectGrid({ folders }: { folders: PublicFolder[] }) {
       <div className="rounded-[1.5rem] border border-dashed border-accent-ink/20 bg-paper/60 p-10 text-center">
         <p className="font-display text-lg font-bold">{t("folder.emptyTitle")}</p>
         <p className="mt-2 text-sm text-muted">{t("folder.emptyBody")}</p>
-        <CreateFolderButton className="mt-5 inline-flex min-h-[44px] cursor-pointer items-center rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5" />
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <StartFirstVideoButton />
+          <CreateFolderButton className="inline-flex min-h-[44px] cursor-pointer items-center rounded-full border border-accent-ink/20 bg-paper px-5 text-sm font-semibold text-foreground transition hover:-translate-y-0.5" />
+        </div>
       </div>
     );
   }

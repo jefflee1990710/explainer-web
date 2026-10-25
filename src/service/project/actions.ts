@@ -460,6 +460,48 @@ export async function createFolderAction(name: string): Promise<FolderResult> {
   }
 }
 
+// Reuse the user's most recent folder or create a default one so new users can jump straight to creating their first video.
+export async function ensureDefaultFolderAction(
+  defaultName = "我的第一個專案",
+): Promise<FolderResult> {
+  try {
+    const user = await requireAppUser();
+    const folders = await projectsCollection();
+    const existing = await folders.findOne(
+      { clerkUserId: user.clerkUserId, name: { $exists: true } },
+      { sort: { updatedAt: -1 } },
+    );
+    if (existing && existing._id) {
+      return {
+        ok: true as const,
+        folder: {
+          id: existing._id.toHexString(),
+          name: existing.name || defaultName,
+        },
+      };
+    }
+    const trimmed = sanitizeFolderName(defaultName) || "我的第一個專案";
+    const now = new Date();
+    const insert = await folders.insertOne({
+      userId: user._id,
+      clerkUserId: user.clerkUserId,
+      name: trimmed,
+      createdAt: now,
+      updatedAt: now,
+    });
+    revalidatePath("/app");
+    return {
+      ok: true as const,
+      folder: { id: insert.insertedId.toHexString(), name: trimmed },
+    };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "建立專案失敗",
+    };
+  }
+}
+
 // Rename a folder the signed-in user owns.
 export async function renameFolderAction(
   folderId: string,

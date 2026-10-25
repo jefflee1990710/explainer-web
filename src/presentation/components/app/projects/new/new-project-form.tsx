@@ -117,9 +117,12 @@ import { LanguagePicker } from "@/presentation/components/app/projects/new/langu
 import { VoicePicker } from "@/presentation/components/app/projects/new/voice-picker";
 import { SpeechPacePicker } from "@/presentation/components/app/projects/new/speech-pace-picker";
 import {
+  defaultCastIdsForStyle,
+  initialSourceFromFolderName,
   readBriefDefaults,
   writeBriefDefaults,
 } from "@/presentation/components/app/projects/new/brief-defaults";
+import { SampleScriptBar } from "@/presentation/components/app/projects/new/sample-script-bar";
 import { DEFAULT_SPEECH_PACE, SPEECH_PACE_PRESETS } from "@/service/director/speech-pace";
 import { SceneTextPicker } from "@/presentation/components/app/projects/new/scene-text-picker";
 import { OpenCutVideoDesk } from "@/presentation/components/app/projects/new/opencut-video-desk";
@@ -169,6 +172,7 @@ function chosenTextStyleId(
 
 export function NewProjectForm({
   projectId,
+  folderName,
   skills,
   styles,
   characters,
@@ -181,6 +185,7 @@ export function NewProjectForm({
   onStepNav,
 }: {
   projectId: string;
+  folderName?: string;
   skills: PublicSkill[];
   styles: PublicStyle[];
   characters: PublicCharacter[];
@@ -214,7 +219,9 @@ export function NewProjectForm({
   const [styleId, setStyleId] = useState<string>(
     initialVideo?.styleId || lastBrief?.styleId || pickerDefaultStyleId(styles),
   );
-  const [source, setSource] = useState(initialVideo?.source || "");
+  const [source, setSource] = useState(
+    initialVideo?.source || initialSourceFromFolderName(folderName),
+  );
   const [spokenScript, setSpokenScript] = useState(
     initialVideo?.spokenScript ||
       (isTalkingHeadSkill(initialVideo?.skillSlug)
@@ -237,15 +244,25 @@ export function NewProjectForm({
     chosenTextStyleId(initialVideo, lastBrief?.textStyleId, textStyles),
   );
   const [aspectRatio, setAspectRatio] = useState<AspectRatio | "">(
-    initialVideo?.aspectRatio || lastBrief?.aspectRatio || "",
+    initialVideo?.aspectRatio || lastBrief?.aspectRatio || "9:16",
   );
   // New videos start on Auto. A saved video keeps the length it was created with.
   const [durationPreset, setDurationPreset] = useState<DurationPreset>(
     initialVideo?.durationPreset || "auto",
   );
-  const [characterIds, setCharacterIds] = useState<string[]>(
-    initialVideo?.cast.map((member) => member.characterId) || lastBrief?.characterIds || [],
-  );
+  const [characterIds, setCharacterIds] = useState<string[]>(() => {
+    if (initialVideo) {
+      return initialVideo.cast.map((member) => member.characterId);
+    }
+    if (lastBrief?.characterIds?.length) {
+      return lastBrief.characterIds;
+    }
+    return defaultCastIdsForStyle(
+      characters,
+      lastBrief?.styleId || pickerDefaultStyleId(styles),
+      requiredCastCount(ruleSlug),
+    );
+  });
   const [characterSelections, setCharacterSelections] = useState<CharacterSelectionMap>(() => {
     const initialMap: CharacterSelectionMap = {};
     for (const member of initialVideo?.cast || []) {
@@ -829,11 +846,20 @@ export function NewProjectForm({
   const forceSceneText = skillForcesSceneText(ruleSlug);
   const dialogueOnly = skillBansNarration(ruleSlug);
 
-  useEffect(() => {
-    if (castNeed > 0) {
-      setCharacterIds((ids) => (ids.length > castNeed ? ids.slice(0, castNeed) : ids));
+  function onSkillChange(nextSlug: string) {
+    setSkillSlug(nextSlug);
+    const nextRuleSlug = ruleSlugFor(nextSlug, skills);
+    const nextNeed = requiredCastCount(nextRuleSlug);
+    if (nextNeed > 0) {
+      setCharacterIds((ids) => {
+        if (ids.length > nextNeed) return ids.slice(0, nextNeed);
+        if (ids.length < nextNeed) {
+          return defaultCastIdsForStyle(characters, styleId, nextNeed);
+        }
+        return ids;
+      });
     }
-  }, [castNeed]);
+  }
 
   useEffect(() => {
     if (!skillSlug || !aspectRatio) return;
@@ -867,13 +893,15 @@ export function NewProjectForm({
   function onStyleChange(id: string) {
     setStyleId(id);
     setCharacterSelections({});
-    setCharacterIds((ids) =>
-      ids.filter((cid) => {
+    setCharacterIds((ids) => {
+      const kept = ids.filter((cid) => {
         const character = characters.find((c) => c.id === cid);
         const styles = character?.styleIds?.length ? character.styleIds : [character?.styleId];
         return styles.includes(id);
-      }),
-    );
+      });
+      if (kept.length >= castNeed) return kept;
+      return defaultCastIdsForStyle(characters, id, castNeed);
+    });
   }
 
   const summarySkill = skills.find((item) => item.id === project?.skillId) ?? selectedSkill;
@@ -1062,7 +1090,7 @@ export function NewProjectForm({
                         <SkillPicker
                           skills={skills}
                           value={skillSlug}
-                          onChange={setSkillSlug}
+                          onChange={onSkillChange}
                           disabled={briefBusy}
                           sideBySideGuide
                         />
@@ -1117,6 +1145,7 @@ export function NewProjectForm({
                             styleId={styleId}
                             value={characterIds}
                             onChange={setCharacterIds}
+                            onSelectStyle={onStyleChange}
                             selections={characterSelections}
                             onSelectionsChange={setCharacterSelections}
                             disabled={briefBusy}
@@ -1191,7 +1220,17 @@ export function NewProjectForm({
                           }`}
                           placeholder={t("brief.source.placeholder")}
                         />
-                        <div className="mt-2 flex items-center justify-end gap-2">
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                          <SampleScriptBar
+                            disabled={briefBusy}
+                            talkingHead={talkingHead}
+                            onApply={(text) => {
+                              setSource(text);
+                              if (talkingHead && !spokenScript.trim()) {
+                                setSpokenScript(text);
+                              }
+                            }}
+                          />
                           <span className="rounded-full bg-accent-ink/5 px-2.5 py-0.5 text-xs font-medium tabular-nums text-muted">
                             {t("brief.source.charCount", { n: source.length.toLocaleString() })}
                           </span>

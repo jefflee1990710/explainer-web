@@ -18,6 +18,18 @@ export async function createFolderAction(
   return res;
 }
 
+export async function ensureDefaultFolderAction(
+  ...args: Parameters<typeof service.ensureDefaultFolderAction>
+) {
+  const res = await service.ensureDefaultFolderAction(...args);
+  if (res.ok) {
+    logServerUxEvent("onboarding_first_video_started", {
+      folderId: res.folder.id,
+    });
+  }
+  return res;
+}
+
 export async function renameFolderAction(
   ...args: Parameters<typeof service.renameFolderAction>
 ) {

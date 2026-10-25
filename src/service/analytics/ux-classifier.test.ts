@@ -74,6 +74,26 @@ describe("User Stuck Stage Classifier & Funnel", () => {
     assert.equal(res.stageId, "stuck_no_first_action");
   });
 
+  it("distinguishes users who created a folder (or opened /videos/new) from users with zero actions", () => {
+    const folderOnly = classifyUserStuckStage({
+      ...baseSnapshot,
+      hasAcceptedLegal: true,
+      folderCount: 1,
+      lastPath: "/app/projects/abc123",
+    });
+    assert.equal(folderOnly.stageId, "stuck_folder_created_no_video");
+    assert.match(folderOnly.title, /Folder Created/);
+
+    const abandonedWizard = classifyUserStuckStage({
+      ...baseSnapshot,
+      hasAcceptedLegal: true,
+      folderCount: 1,
+      lastPath: "/app/projects/abc123/videos/new",
+    });
+    assert.equal(abandonedWizard.stageId, "stuck_folder_created_no_video");
+    assert.match(abandonedWizard.title, /Abandoned Video Wizard/);
+  });
+
   it("detects users who created a character or video brief but stopped before storyboard/blueprint completed", () => {
     const res = classifyUserStuckStage({
       ...baseSnapshot,

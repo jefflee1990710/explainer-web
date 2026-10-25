@@ -5,6 +5,7 @@ import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicFolder } from "@/presentation/serialize";
 import { CreateFolderButton } from "@/presentation/components/app/create-folder-modal";
 import { ProjectGrid } from "@/presentation/components/app/project-grid";
+import { StartFirstVideoButton } from "@/presentation/components/app/start-first-video-button";
 
 // Client shell for the dashboard so copy follows the UI locale.
 export function DashboardView({
@@ -16,7 +17,9 @@ export function DashboardView({
   credits: number;
   subscribed: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const totalVideos = folders.reduce((sum, folder) => sum + folder.videoCount, 0);
+  const firstFolderId = folders[0]?.id;
 
   return (
     <div>
@@ -26,10 +29,21 @@ export function DashboardView({
           <p className="mt-2 text-sm text-muted">
             {subscribed
               ? t("dashboard.subscribed", { credits })
-              : t("dashboard.notSubscribed")}
+              : credits > 0
+                ? locale === "zh-Hant"
+                  ? `目前已領取 ${credits} 免費體驗 credits（可直接用於免費寫分鏡、建立角色、拍 Life 日常照與產生場景圖）。`
+                  : locale === "zh-Hans"
+                    ? `目前已领取 ${credits} 免费体验 credits（可直接用于免费写分镜、创建角色、拍 Life 日常照与生成场景图）。`
+                    : `You have ${credits} free trial credits ready to draft storyboards, create characters, snap Life photos, and generate scene frames.`
+                : t("dashboard.notSubscribed")}
           </p>
         </div>
-        <CreateFolderButton>{t("folder.create")}</CreateFolderButton>
+        <div className="flex flex-wrap items-center gap-3">
+          {totalVideos === 0 ? (
+            <StartFirstVideoButton existingFolderId={firstFolderId} />
+          ) : null}
+          <CreateFolderButton>{t("folder.create")}</CreateFolderButton>
+        </div>
       </div>
 
       {!subscribed ? (

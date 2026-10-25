@@ -1,8 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { ObjectId } from "mongodb";
 import { creditGrantLanded, isCreditGateError } from "@/service/billing/credit-gate";
+import { evaluateCreditSpendGate } from "@/service/billing/credits";
+import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
 import { checkoutUrls } from "@/service/billing/checkout-urls";
 import { upgradeablePlans } from "@/service/billing/plans";
+import {
+  FRAME_COST,
+  FRAMES_COST,
+  MIN_VIDEO_COST,
+} from "@/service/production-plan";
 
 test("isCreditGateError matches subscribe and short-wallet copy", () => {
   assert.equal(isCreditGateError("請先訂閱方案才能產片"), true);
@@ -54,4 +62,64 @@ test("checkoutUrls send popup returns to the done page", () => {
   const page = checkoutUrls({ packId: "pack90" });
   assert.match(page.success_url, /\/app\/billing\?checkout=success&pack=pack90/);
   assert.match(page.cancel_url, /\/app\/billing\?checkout=cancel/);
+});
+
+test("evaluateCreditSpendGate allows unsubscribed users to spend welcome credits on images/characters/life photos, and prompts subscription for video clips", () => {
+  // Unsubscribed user with 20 welcome credits can create a character (8 cr) or life photo (4 cr)
+  assert.equal(
+    evaluateCreditSpendGate({
+      email: "newuser@example.com",
+      credits: WELCOME_CREDITS,
+      cost: FRAMES_COST,
+      sub: null,
+    }),
+    null,
+  );
+  assert.equal(
+    evaluateCreditSpendGate({
+      email: "newuser@example.com",
+      credits: WELCOME_CREDITS,
+      cost: FRAME_COST,
+      sub: null,
+    }),
+    null,
+  );
+
+  // Unsubscribed user trying to render a video clip (45 cr > 20 cr) gets subscription prompt
+  assert.throws(
+    () =>
+      evaluateCreditSpendGate({
+        email: "newuser@example.com",
+        credits: WELCOME_CREDITS,
+        cost: MIN_VIDEO_COST,
+        sub: null,
+      }),
+    /請先訂閱方案才能產片/,
+  );
+
+  // Subscribed user with insufficient credits gets top-up prompt
+  assert.throws(
+    () =>
+      evaluateCreditSpendGate({
+        email: "pro@example.com",
+        credits: 2,
+        cost: FRAME_COST,
+        sub: {
+          _id: new ObjectId(),
+          userId: new ObjectId(),
+          clerkUserId: "u1",
+          stripeCustomerId: "cus_1",
+          stripeSubscriptionId: "sub_1",
+          stripePriceId: "price_1",
+          planId: "pro",
+          status: "active",
+          monthlyCredits: 3333,
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      }),
+    /credits 不足，請加購或升級方案/,
+  );
 });

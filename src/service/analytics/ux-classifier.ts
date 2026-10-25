@@ -28,6 +28,7 @@ export type StuckStageId =
   | "blocked_insufficient_credits"
   | "blocked_generation_failed"
   | "stuck_no_first_action"
+  | "stuck_folder_created_no_video"
   | "stuck_character_not_completed"
   | "stuck_character_only_no_video_or_life"
   | "stuck_before_storyboard"
@@ -101,12 +102,28 @@ export function classifyUserStuckStage(
   const totalActions =
     snapshot.characterCount + snapshot.videoCount + snapshot.lifeShotCount;
 
+  if (totalActions === 0 && snapshot.folderCount > 0) {
+    const reachedWizard = Boolean(snapshot.lastPath?.includes("/videos/new"));
+    return {
+      stageId: "stuck_folder_created_no_video",
+      title: reachedWizard
+        ? "已建立專案並打開新增影片表單，但未送出分鏡 (Abandoned Video Wizard)"
+        : "已建立專案資料夾，但未建立任何影片 (Folder Created, 0 Videos)",
+      reason: reachedWizard
+        ? `已建立 ${snapshot.folderCount} 個專案資料夾並進入新增影片精靈 (${snapshot.lastPath})，但在完成 4 步設定前離開（0 個自訂角色、0 支影片、0 張 Life 照片）。`
+        : `已建立 ${snapshot.folderCount} 個專案資料夾，但停留在空白專案列表，尚未進入新增影片（0 個自訂角色、0 支影片、0 張 Life 照片）。`,
+      recommendation:
+        "建立專案後直接導向新增影片精靈，並在 Step 01 自動預選匹配角色、Step 02 提供一鍵範例劇本。",
+      severity: "high",
+    };
+  }
+
   if (totalActions === 0) {
     return {
       stageId: "stuck_no_first_action",
       title: "進入工作台但未建立角色或影片 (No First Action)",
-      reason: "已完成註冊與條款，但 0 個自訂角色、0 支影片、0 張 Life 照片。",
-      recommendation: "首頁工作台缺乏明確的單一「一鍵體驗範例」引導，建議加入預設腳本一鍵生成。",
+      reason: "已完成註冊與條款，但 0 個專案資料夾、0 個自訂角色、0 支影片、0 張 Life 照片。",
+      recommendation: "首頁工作台提供明確的「✨ 立即製作第一支短片」一鍵引導，跳過先建空資料夾步驟。",
       severity: "high",
     };
   }

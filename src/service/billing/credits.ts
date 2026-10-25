@@ -29,18 +29,43 @@ export async function getActiveSubscription(
   });
 }
 
-export async function assertCanSpendCredits(
-  user: AppUser,
-  cost: number,
-): Promise<Subscription> {
-  const sub = await getActiveSubscription(user.clerkUserId);
+// Pure credit & subscription gate check so unit tests can verify free welcome-credit behavior without DB calls.
+export function evaluateCreditSpendGate({
+  email,
+  credits,
+  cost,
+  sub,
+}: {
+  email?: string | null;
+  credits: number;
+  cost: number;
+  sub: Subscription | null;
+}): Subscription | null {
+  if (hasUnlimitedCredits(email)) {
+    return sub;
+  }
+  // Users who have enough credits in their wallet (including free 20 welcome credits)
+  // can spend them on affordable actions (e.g. character blueprint = 8, life photo = 4, scene frame = 4).
+  if (credits >= cost) {
+    return sub;
+  }
   if (!sub || !isSubscriptionActive(sub)) {
     throw new Error("請先訂閱方案才能產片");
   }
-  if (!hasUnlimitedCredits(user.email) && user.credits < cost) {
-    throw new Error("credits 不足，請加購或升級方案");
-  }
-  return sub;
+  throw new Error("credits 不足，請加購或升級方案");
+}
+
+export async function assertCanSpendCredits(
+  user: AppUser,
+  cost: number,
+): Promise<Subscription | null> {
+  const sub = await getActiveSubscription(user.clerkUserId);
+  return evaluateCreditSpendGate({
+    email: user.email,
+    credits: user.credits,
+    cost,
+    sub,
+  });
 }
 
 function balanceOf(user: Pick<AppUser, "credits" | "bonusCredits" | "creditLimit">) {
