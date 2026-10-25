@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AcademyInstagramPreview } from "@/app/academy/academy-instagram-preview";
 import { ACADEMY_HOOKS, HOOK_SHAPES, type HookShape } from "@/service/academy/hook-database";
 
 // Public reference of first-second lines with real Instagram Reel/Post examples.
@@ -27,6 +28,10 @@ export function AcademyHookDatabase({
 }) {
   const [shape, setShape] = useState<HookShape | "all">("all");
   const [copiedId, setCopiedId] = useState("");
+  const shapesInUse = useMemo(
+    () => HOOK_SHAPES.filter((item) => ACADEMY_HOOKS.some((hook) => hook.shape === item)),
+    [],
+  );
   const hooks = useMemo(
     () => (shape === "all" ? ACADEMY_HOOKS : ACADEMY_HOOKS.filter((hook) => hook.shape === shape)),
     [shape],
@@ -48,17 +53,19 @@ export function AcademyHookDatabase({
         {title}
       </h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-600">{subtitle}</p>
-      <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label={title}>
-        <ShapeChip active={shape === "all"} label={allLabel} onSelect={() => setShape("all")} />
-        {HOOK_SHAPES.map((item) => (
-          <ShapeChip
-            key={item}
-            active={shape === item}
-            label={shapeLabels[item]}
-            onSelect={() => setShape(item)}
-          />
-        ))}
-      </div>
+      {shapesInUse.length > 1 ? (
+        <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label={title}>
+          <ShapeChip active={shape === "all"} label={allLabel} onSelect={() => setShape("all")} />
+          {shapesInUse.map((item) => (
+            <ShapeChip
+              key={item}
+              active={shape === item}
+              label={shapeLabels[item]}
+              onSelect={() => setShape(item)}
+            />
+          ))}
+        </div>
+      ) : null}
       <ul className="mt-5 grid gap-3 sm:grid-cols-2">
         {hooks.map((hook) => (
           <li key={hook.id} className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-4 shadow-xs">
@@ -71,7 +78,11 @@ export function AcademyHookDatabase({
             <p className="mt-2 font-display text-lg font-semibold leading-snug text-[#12141c]">
               {hook.line}
             </p>
-            <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-600">{hook.note}</p>
+            <p className="mt-2 text-sm leading-relaxed text-zinc-600">{hook.note}</p>
+            <AcademyInstagramPreview
+              url={hook.exampleUrl}
+              title={`${exampleLabel} ${hook.exampleHandle}`}
+            />
             <div className="mt-3 rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2.5">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
                 {exampleLabel} · {hook.exampleHandle}

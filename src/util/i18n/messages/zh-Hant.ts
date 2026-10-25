@@ -1698,7 +1698,7 @@ export const zhHant: Messages = {
     backToAcademy: "← 全部課程",
     memberHint: "你已登入——呢堂課免費。",
     tabCourse: "創作者課程",
-    tabDatabase: "資料庫",
+    tabDatabase: "Hooks",
     menuHook: "Hook",
     menuPostType: "貼文類型",
     menuCreator: "創作者",

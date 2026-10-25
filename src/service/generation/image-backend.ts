@@ -18,10 +18,10 @@ export type ImageRoute = {
 };
 
 /**
- * 畫面文字語系 → OpenRouter 產圖模型。生成時只讀呢張表。
- * 分鏡、場景鎖、封面、寫實角色藍圖與生活照用 Nano Banana Pro（`google/gemini-3-pro-image`）。
- * 這顆模型打 Google AI Studio（`GOOGLE_API_KEY`），1K / 2K，最多 14 張參考圖。
- * 其他畫風的角色藍圖用 Seedream 5.0 Pro，仍走 OpenRouter。
+ * 畫面文字語系 → 產圖模型。生成時只讀呢張表。
+ * 分鏡、場景鎖、封面與生活照用 Nano Banana Pro（`google/gemini-3-pro-image`），
+ * 打 Google AI Studio（`GOOGLE_API_KEY`），1K / 2K，最多 14 張參考圖。
+ * 所有角色藍圖（含寫實角色 Board）用 Seedream 5.0 Pro，走 OpenRouter。
  */
 export const NANO_BANANA_PRO_IMAGE_MODEL = OPENROUTER_NANO_BANANA_PRO_IMAGE_MODEL;
 export const SEEDREAM_5_PRO_IMAGE_MODEL = OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL;

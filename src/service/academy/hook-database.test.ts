@@ -3,32 +3,16 @@ import test from "node:test";
 import { ACADEMY_CREATORS, CREATOR_CATEGORIES } from "@/service/academy/creator-database";
 import { ACADEMY_HOOKS, HOOK_SHAPES } from "@/service/academy/hook-database";
 
-test("the hook database starts with the speed hook example and covers all 10 hook types with Instagram examples", () => {
-  assert.equal(HOOK_SHAPES.length, 10);
+test("the hook database lists only the Scro speed hook", () => {
+  assert.equal(HOOK_SHAPES[0], "speed");
+  assert.equal(ACADEMY_HOOKS.length, 1);
+  assert.equal(ACADEMY_HOOKS[0]?.id, "speed-downhill-coastal");
   assert.equal(ACADEMY_HOOKS[0]?.shape, "speed");
+  assert.equal(ACADEMY_HOOKS[0]?.exampleHandle, "@scro.io");
   assert.equal(ACADEMY_HOOKS[0]?.exampleUrl, "https://www.instagram.com/p/De5rxgaxSYn/");
-
-  const ids = ACADEMY_HOOKS.map((hook) => hook.id);
-  const lines = ACADEMY_HOOKS.map((hook) => hook.line);
-  const urls = ACADEMY_HOOKS.map((hook) => hook.exampleUrl);
-  assert.equal(new Set(ids).size, ids.length);
-  assert.equal(new Set(lines).size, lines.length);
-  assert.equal(new Set(urls).size, urls.length);
-
-  for (const shape of HOOK_SHAPES) {
-    const rows = ACADEMY_HOOKS.filter((hook) => hook.shape === shape);
-    assert.ok(rows.length >= 3, shape);
-    assert.ok(
-      rows.every(
-        (hook) =>
-          hook.line.trim().length > 0 &&
-          hook.note.trim().length > 0 &&
-          hook.exampleHandle.startsWith("@") &&
-          hook.exampleCaption.trim().length > 0 &&
-          /^https:\/\/www\.instagram\.com\/(p|reel)\//.test(hook.exampleUrl),
-      ),
-    );
-  }
+  assert.ok((ACADEMY_HOOKS[0]?.line.length ?? 0) > 0);
+  assert.ok((ACADEMY_HOOKS[0]?.note.length ?? 0) > 0);
+  assert.ok((ACADEMY_HOOKS[0]?.exampleCaption.length ?? 0) > 0);
 });
 
 test("the creator database covers every creator category with Instagram profile and reel links", () => {

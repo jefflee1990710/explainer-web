@@ -263,10 +263,10 @@ export function buildPortraitPrompt(input: BoardPromptInput) {
   ];
   // Light and style come after the likeness lines so budget trimming only ever cuts style.
   const styleTail = [
+    ...(lightGround ? [BOARD_SHEET_GROUND] : []),
     realistic
       ? REALISTIC_BOARD_RENDER_RULE
       : "Even soft front light so every facial feature reads clearly: eye shape, brows, nose, lips, jaw, natural skin texture from the source image, hair line, and any marks.",
-    ...(lightGround ? [BOARD_SHEET_GROUND] : []),
     ...boardStyleLines(input.style, lightGround),
   ];
   if (description) lines.push(`Character: ${description}`);
@@ -322,10 +322,10 @@ export function buildFullBodyPrompt(input: BoardPromptInput) {
   ];
   // Light and style come after the likeness lines so budget trimming only ever cuts style.
   const styleTail = [
-    ...(realistic ? [REALISTIC_BOARD_RENDER_RULE] : []),
     lightGround
       ? BOARD_SHEET_GROUND
       : "The figure stands on the same drawing surface as the portrait.",
+    ...(realistic ? [REALISTIC_BOARD_RENDER_RULE] : []),
     ...boardStyleLines(input.style, lightGround),
   ];
   if (description) lines.push(`Character: ${description}`);

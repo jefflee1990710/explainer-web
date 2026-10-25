@@ -1,7 +1,7 @@
 import type { ObjectId } from "mongodb";
 import { charactersCollection, generationJobsCollection } from "@/dao";
 import { submitImage } from "@/service/higgsfield/generate";
-import { imageModelForRealism } from "@/service/generation/image-backend";
+import { SEEDREAM_5_PRO_IMAGE_MODEL } from "@/service/generation/image-backend";
 import {
   buildBlueprintPrompt,
   buildFullBodyPrompt,
@@ -18,8 +18,9 @@ import { PermanentJobError } from "@/service/generation/task-policy";
 import { insertPendingJob, kickJob } from "@/service/generation/task-store";
 import type { Character, CharacterVersion } from "@/model/character";
 
-// Illustrated character boards. Realistic styles use Nano Banana Pro at send time.
-export const BLUEPRINT_MODEL = imageModelForRealism(false);
+// All character boards (including realistic) use Seedream 5.0 Pro for clean studio lighting,
+// crisp hair/skin fidelity, and zero false-positive portrait safety blocks.
+export const BLUEPRINT_MODEL = SEEDREAM_5_PRO_IMAGE_MODEL;
 
 // Board images carry the face every scene copies, so they run at the top tier.
 const BOARD_QUALITY = "high" as const;
@@ -58,7 +59,6 @@ export async function sendCharacterVersion(
     styleId: versionStyleId(character, version),
     ownerClerkUserId: character.clerkUserId,
   });
-  const model = imageModelForRealism(isRealisticStyle(style));
   if (isBoardVersion(version)) {
     const photos = characterReferenceUrls(version);
     const immediateParentPortrait = parentBoardImages(character, version)[0];
@@ -72,7 +72,7 @@ export async function sendCharacterVersion(
       return {
         requestId: `reuse-portrait-${version.id.toHexString()}`,
         status: "completed",
-        model,
+        model: BLUEPRINT_MODEL,
         images: [{ url: immediateParentPortrait }],
       };
     }
@@ -81,7 +81,7 @@ export async function sendCharacterVersion(
       ? cumulativeWardrobeEdit(character.versions, version) || version.editInstruction
       : undefined;
     const submitted = await submitImage({
-      model,
+      model: BLUEPRINT_MODEL,
       prompt: buildPortraitPrompt({
         style,
         description: version.prompt,
@@ -95,11 +95,12 @@ export async function sendCharacterVersion(
       resolution: BOARD_RESOLUTION,
       referenceImageUrls: [...baseImages, ...photos],
     });
-    return toSent(model, submitted);
+    return toSent(BLUEPRINT_MODEL, submitted);
   }
   const refs = characterReferenceUrls(version);
+  const realistic = isRealisticStyle(style);
   const submitted = await submitImage({
-    model,
+    model: BLUEPRINT_MODEL,
     prompt: buildBlueprintPrompt({
       style,
       description: version.prompt,
@@ -107,11 +108,11 @@ export async function sendCharacterVersion(
       editInstruction: version.editInstruction,
     }),
     aspectRatio: "16:9",
-    quality: isRealisticStyle(style) ? BOARD_QUALITY : "medium",
-    resolution: isRealisticStyle(style) ? BOARD_RESOLUTION : "1k",
+    quality: realistic ? BOARD_QUALITY : "medium",
+    resolution: realistic ? BOARD_RESOLUTION : "1k",
     referenceImageUrls: refs,
   });
-  return toSent(model, submitted);
+  return toSent(BLUEPRINT_MODEL, submitted);
 }
 
 // Board stage two: the standing figure drawn from the finished portrait.
@@ -124,7 +125,6 @@ export async function sendCharacterFullBody(
     styleId: versionStyleId(character, version),
     ownerClerkUserId: character.clerkUserId,
   });
-  const model = imageModelForRealism(isRealisticStyle(style));
   const photos = characterReferenceUrls(version);
   // Edit: anchor to the root v1 full body so multi-version edits keep the original body/pose without generational drift.
   const baseFullBody = version.editInstruction ? rootBoardImages(character, version)[1] : undefined;
@@ -133,7 +133,7 @@ export async function sendCharacterFullBody(
     ? cumulativeWardrobeEdit(character.versions, version) || version.editInstruction
     : undefined;
   const submitted = await submitImage({
-    model,
+    model: BLUEPRINT_MODEL,
     prompt: buildFullBodyPrompt({
       style,
       description: version.prompt,
@@ -147,7 +147,7 @@ export async function sendCharacterFullBody(
     resolution: BOARD_RESOLUTION,
     referenceImageUrls: [...parentImages, ...photos],
   });
-  return toSent(model, submitted);
+  return toSent(BLUEPRINT_MODEL, submitted);
 }
 
 // Legacy sheet follow-up: standing preview from the finished sheet. A failure here must not refund the blueprint.
@@ -162,10 +162,9 @@ export async function sendCharacterProfile(
     ownerClerkUserId: character.clerkUserId,
   });
   const realistic = isRealisticStyle(style);
-  const model = imageModelForRealism(realistic);
   const submitted = await submitImage(
     {
-      model,
+      model: BLUEPRINT_MODEL,
       prompt: buildProfilePrompt({ style, description: version.prompt }),
       aspectRatio: "16:9",
       quality: realistic ? BOARD_QUALITY : "medium",
@@ -174,7 +173,7 @@ export async function sendCharacterProfile(
     },
     options,
   );
-  return toSent(model, submitted);
+  return toSent(BLUEPRINT_MODEL, submitted);
 }
 
 // Queue the portrait after the sheet is saved. Skips when one is already stored or in flight.

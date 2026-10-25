@@ -1713,7 +1713,7 @@ export const en: Messages = {
     backToAcademy: "← All courses",
     memberHint: "You are signed in — this lesson is free.",
     tabCourse: "Creator Course",
-    tabDatabase: "Database",
+    tabDatabase: "Hooks",
     menuHook: "Hook",
     menuPostType: "Post Type",
     menuCreator: "Creator",
