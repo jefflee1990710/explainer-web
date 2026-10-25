@@ -84,6 +84,8 @@ export default async function AcademyCoursePage({ params }: AcademyCoursePagePro
             <AcademyOutline
               courses={courses}
               heading={copy.contents}
+              hooksLabel={copy.hookNav}
+              creatorsLabel={copy.creatorNav}
               currentSlug={course.slug}
             />
           }

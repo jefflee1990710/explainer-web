@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { PolicyLayout } from "@/presentation/components/legal/policy-layout";
 import { listPublishedAcademySummaries } from "@/service/academy/courses";
 import { AcademyCourseGrid } from "@/app/academy/academy-course-grid";
+import { AcademyCreatorDatabase } from "@/app/academy/academy-creator-database";
+import { AcademyHookDatabase } from "@/app/academy/academy-hook-database";
 import { AcademyOutline } from "@/app/academy/academy-outline";
 import { AcademyShell } from "@/app/academy/academy-shell";
 import { DEFAULT_LOCALE, getMessages, isLocaleId, LOCALE_STORAGE_KEY } from "@/util/i18n";
@@ -56,7 +58,16 @@ export default async function AcademyPage() {
             <p className="mt-2 text-sm text-zinc-600">{copy.emptyBody}</p>
           </div>
         ) : (
-          <AcademyShell aside={<AcademyOutline courses={courses} heading={copy.contents} />}>
+          <AcademyShell
+            aside={
+              <AcademyOutline
+                courses={courses}
+                heading={copy.contents}
+                hooksLabel={copy.hookNav}
+                creatorsLabel={copy.creatorNav}
+              />
+            }
+          >
             <header className="mb-8 max-w-2xl">
               <p className="text-xs font-semibold tracking-wider text-zinc-500 uppercase">
                 {copy.eyebrow}
@@ -67,6 +78,49 @@ export default async function AcademyPage() {
               <p className="mt-3 text-base text-zinc-600">{copy.subtitle}</p>
             </header>
             <AcademyCourseGrid courses={courses} />
+            <div className="mt-16 border-t border-zinc-200 pt-12">
+              <AcademyHookDatabase
+                eyebrow={copy.hookEyebrow}
+                title={copy.hookTitle}
+                subtitle={copy.hookSubtitle}
+                allLabel={copy.hookAll}
+                copyLabel={copy.hookCopy}
+                copiedLabel={copy.hookCopied}
+                exampleLabel={copy.hookExample}
+                watchLabel={copy.hookWatchExample}
+                shapeLabels={{
+                  speed: copy.hookSpeed,
+                  result: copy.hookResult,
+                  mistake: copy.hookMistake,
+                  contrast: copy.hookContrast,
+                  pain: copy.hookPain,
+                  curiosity: copy.hookCuriosity,
+                  hotTake: copy.hookHotTake,
+                  pov: copy.hookPov,
+                  listicle: copy.hookListicle,
+                  series: copy.hookSeries,
+                }}
+              />
+            </div>
+            <div className="mt-16 border-t border-zinc-200 pt-12">
+              <AcademyCreatorDatabase
+                eyebrow={copy.creatorEyebrow}
+                title={copy.creatorTitle}
+                subtitle={copy.creatorSubtitle}
+                allLabel={copy.creatorAll}
+                signatureHookLabel={copy.creatorSignatureHook}
+                stealThisLabel={copy.creatorStealThis}
+                profileLabel={copy.creatorProfile}
+                exampleLabel={copy.creatorExample}
+                categoryLabels={{
+                  aiSpokesperson: copy.creatorAiSpokesperson,
+                  hookStrategy: copy.creatorHookStrategy,
+                  visualHooks: copy.creatorVisualHooks,
+                  ugcProduct: copy.creatorUgcProduct,
+                  storySeries: copy.creatorStorySeries,
+                }}
+              />
+            </div>
           </AcademyShell>
         )}
       </main>
