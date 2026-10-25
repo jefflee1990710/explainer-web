@@ -39,6 +39,7 @@ import {
   sendObjectSheet,
 } from "@/service/higgsfield/video-locks-pipeline";
 import { sendPostPreview } from "@/service/post/send-preview";
+import { sendPoseEdit } from "@/service/pose-edit/send";
 import { loadProduct, sendProductBlueprint } from "@/service/product/generate";
 import { IMAGE_ROUTE_BY_SCENE_TEXT } from "@/service/generation/image-backend";
 import { PermanentJobError } from "@/service/generation/task-policy";
@@ -59,6 +60,8 @@ export async function sendJob(job: GenerationJob): Promise<Sent> {
   if (job.kind === "stylePreview") return sendStylePreview(job);
   if (job.kind === "textStylePreview") return sendTextStylePreview(job);
   if (job.kind === "directorPreview") return sendDirectorPreview(job);
+  // Pose edits have no project id, so they must leave before the video guard.
+  if (job.kind === "poseEdit") return sendPoseEdit(job);
   await hydrateStyles();
   if (job.kind === "character") return sendCharacter(job);
 

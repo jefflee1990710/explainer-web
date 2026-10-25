@@ -9,6 +9,8 @@ import { syncPostPreviewJob } from "@/service/post/sync-preview";
 import { failProduct, syncProductJob } from "@/service/product/sync";
 import { syncStylePreviewJob } from "@/service/style/user-style-preview";
 import { syncTextStylePreviewJob } from "@/service/text-style/preview";
+import { POSE_EDIT_ERRORS } from "@/service/pose-edit/errors";
+import { failPoseEdit, syncPoseEditJob } from "@/service/pose-edit/sync";
 import { syncReelCoverJob } from "@/service/video-edit/reel-cover";
 import type {
   GenerationJob,
@@ -27,6 +29,7 @@ export const SELF_SYNCING_JOB_KINDS = [
   "textStylePreview",
   "subtitlePlate",
   "character",
+  "poseEdit",
 ] as const satisfies readonly GenerationKind[];
 
 export type SelfSyncingJobKind = (typeof SELF_SYNCING_JOB_KINDS)[number];
@@ -124,6 +127,14 @@ const SELF_SYNC_HANDLERS: Record<SelfSyncingJobKind, SelfSyncHandler> = {
         return;
       }
       await failCharacterVersion(job.characterId, job.versionId, error);
+    },
+  },
+  poseEdit: {
+    syncStatus: (job, status, outputUrl) => syncPoseEditJob(job, status, outputUrl),
+    // Queue failures keep the short sentence. The provider's raw error stays off the document.
+    failClaimed: (job) => {
+      if (!job.poseEditId) return Promise.resolve();
+      return failPoseEdit(job.poseEditId, POSE_EDIT_ERRORS.failed);
     },
   },
 };

@@ -100,7 +100,7 @@ export function googleStudioImageUrl(body: Record<string, unknown>) {
 
 export function googleStudioImageBody(input: {
   prompt: string;
-  aspectRatio: AspectRatio | "2:3";
+  aspectRatio: AspectRatio | "2:3" | "3:4";
   resolution?: "1k" | "2k" | "4k";
   inlineImages?: Array<{ inline_data: { mime_type: string; data: string } }>;
 }) {
@@ -127,7 +127,7 @@ export function googleStudioImageBody(input: {
 export async function submitGoogleStudioImage(
   input: {
     prompt: string;
-    aspectRatio: AspectRatio | "2:3";
+    aspectRatio: AspectRatio | "2:3" | "3:4";
     resolution?: "1k" | "2k" | "4k";
     referenceImageUrls?: Array<string | undefined>;
   },
@@ -161,10 +161,18 @@ export async function submitGoogleStudioImage(
   });
   const body = asRecord(await response.json().catch(() => ({})));
   const error = googleError(body);
+  const imageUrl = response.ok ? googleStudioImageUrl(body) : undefined;
+  // Safety blocks often come back as a non-OK body or a body with no image. Return nsfw instead of throwing.
+  if ((!response.ok || !imageUrl) && nsfwFrom(error)) {
+    return {
+      request_id: crypto.randomUUID(),
+      status: "nsfw",
+      images: [],
+    };
+  }
   if (!response.ok) {
     throw new Error(error || `Google 圖片產生失敗（${response.status}）`);
   }
-  const imageUrl = googleStudioImageUrl(body);
   if (!imageUrl) throw new Error(error || "Google 未回傳圖片");
   return {
     request_id: crypto.randomUUID(),

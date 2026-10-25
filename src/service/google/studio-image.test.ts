@@ -99,24 +99,85 @@ test("submitGoogleStudioImage posts to Google AI Studio with GOOGLE_API_KEY", as
   }
 });
 
-test("submitGoogleStudioImage surfaces a provider Terms of Service rejection", async () => {
+test("submitGoogleStudioImage returns nsfw when a non-OK response is blocked", async () => {
+  const previous = process.env.GOOGLE_API_KEY;
+  process.env.GOOGLE_API_KEY = "studio-test-key";
+  const providerError = "The request is prohibited due to a violation of provider Terms Of Service.";
+  const fakeFetch: typeof fetch = async () =>
+    new Response(JSON.stringify({ error: { message: providerError } }), {
+      status: 400,
+      headers: { "content-type": "application/json" },
+    });
+  try {
+    const result = await submitGoogleStudioImage(
+      { prompt: "portrait", aspectRatio: "1:1" },
+      { fetch: fakeFetch },
+    );
+    assert.equal(result.status, "nsfw");
+    assert.deepEqual(result.images, []);
+    assert.equal("error" in result, false);
+    assert.equal(JSON.stringify(result).includes(providerError), false);
+    assert.equal(typeof result.request_id, "string");
+  } finally {
+    if (previous === undefined) delete process.env.GOOGLE_API_KEY;
+    else process.env.GOOGLE_API_KEY = previous;
+  }
+});
+
+test("submitGoogleStudioImage returns nsfw when a blocked response has no image", async () => {
   const previous = process.env.GOOGLE_API_KEY;
   process.env.GOOGLE_API_KEY = "studio-test-key";
   const fakeFetch: typeof fetch = async () =>
-    new Response(
-      JSON.stringify({
-        error: { message: "The request is prohibited due to a violation of provider Terms Of Service." },
-      }),
-      { status: 400, headers: { "content-type": "application/json" } },
-    );
+    new Response(JSON.stringify({ promptFeedback: { blockReason: "SAFETY" } }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
   try {
+    const result = await submitGoogleStudioImage(
+      { prompt: "portrait", aspectRatio: "1:1" },
+      { fetch: fakeFetch },
+    );
+    assert.equal(result.status, "nsfw");
+    assert.deepEqual(result.images, []);
+    assert.equal("error" in result, false);
+    assert.equal(JSON.stringify(result).includes("SAFETY"), false);
+  } finally {
+    if (previous === undefined) delete process.env.GOOGLE_API_KEY;
+    else process.env.GOOGLE_API_KEY = previous;
+  }
+});
+
+test("submitGoogleStudioImage still throws when the provider error is not a safety block", async () => {
+  const previous = process.env.GOOGLE_API_KEY;
+  process.env.GOOGLE_API_KEY = "studio-test-key";
+  const fakeFetch: typeof fetch = async (input) => {
+    const url = String(input);
+    if (url === GOOGLE_STUDIO_IMAGE_URL) {
+      return new Response(JSON.stringify({ error: { message: "quota exceeded" } }), {
+        status: 429,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    await assert.rejects(
+      () => submitGoogleStudioImage({ prompt: "portrait", aspectRatio: "1:1" }, { fetch: fakeFetch }),
+      /quota exceeded/,
+    );
     await assert.rejects(
       () =>
         submitGoogleStudioImage(
           { prompt: "portrait", aspectRatio: "1:1" },
-          { fetch: fakeFetch },
+          {
+            fetch: async () =>
+              new Response(JSON.stringify({ candidates: [] }), {
+                status: 200,
+                headers: { "content-type": "application/json" },
+              }),
+          },
         ),
-      /Terms Of Service/,
+      /未回傳圖片/,
     );
   } finally {
     if (previous === undefined) delete process.env.GOOGLE_API_KEY;
