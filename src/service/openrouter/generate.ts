@@ -1,6 +1,7 @@
 import type { GenerationStatus } from "@/model/generation-job";
 import type { AspectRatio } from "@/model/project";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
+import { submitGoogleStudioImage } from "@/service/google/studio-image";
 import { openRouterVideoCallbackUrl } from "@/service/openrouter/callback-url";
 
 export const OPENROUTER_BASE_URL = "https://openrouter.ai";
@@ -155,6 +156,10 @@ export async function submitOpenRouterImage(
   },
   options?: FetchOptions,
 ): Promise<GenerationSubmitResult> {
+  // Nano Banana Pro bills the Google AI Studio key, not OpenRouter.
+  if (input.model === OPENROUTER_NANO_BANANA_PRO_IMAGE_MODEL) {
+    return submitGoogleStudioImage(input, options);
+  }
   const key = assertOpenRouterKey();
   const fetchFn = options?.fetch ?? fetch;
   const payload = JSON.stringify(openRouterImageBody(input));

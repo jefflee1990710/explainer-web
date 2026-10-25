@@ -1180,6 +1180,11 @@ export type Messages = {
     lockSignIn: string;
     backToAcademy: string;
     memberHint: string;
+    tabCourse: string;
+    tabDatabase: string;
+    menuHook: string;
+    menuPostType: string;
+    menuCreator: string;
     hookNav: string;
     hookEyebrow: string;
     hookTitle: string;
@@ -1199,6 +1204,16 @@ export type Messages = {
     hookPov: string;
     hookListicle: string;
     hookSeries: string;
+    postTypeEyebrow: string;
+    postTypeTitle: string;
+    postTypeSubtitle: string;
+    postTypeAll: string;
+    postTypeBeats: string;
+    postTypeTalk: string;
+    postTypeTeach: string;
+    postTypeSell: string;
+    postTypeBrand: string;
+    postTypeLook: string;
     creatorNav: string;
     creatorEyebrow: string;
     creatorTitle: string;

@@ -16,14 +16,10 @@ function groupAcademyModules(courses: PublicAcademyCourse[]) {
 export function AcademyOutline({
   courses,
   heading,
-  hooksLabel,
-  creatorsLabel,
   currentSlug,
 }: {
   courses: PublicAcademyCourse[];
   heading: string;
-  hooksLabel: string;
-  creatorsLabel: string;
   currentSlug?: string;
 }) {
   const modules = groupAcademyModules(courses);
@@ -31,20 +27,6 @@ export function AcademyOutline({
   return (
     <nav aria-label={heading} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
       <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">{heading}</h2>
-      <div className="mt-4 space-y-1">
-        <Link
-          href="/academy#hooks"
-          className="block rounded-xl px-2 py-1.5 text-sm font-semibold text-[#12141c] transition-colors hover:bg-white"
-        >
-          {hooksLabel}
-        </Link>
-        <Link
-          href="/academy#creators"
-          className="block rounded-xl px-2 py-1.5 text-sm font-semibold text-[#12141c] transition-colors hover:bg-white"
-        >
-          {creatorsLabel}
-        </Link>
-      </div>
       <ol className="mt-4 space-y-5">
         {modules.map((group) => (
           <li key={group.name}>
