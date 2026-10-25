@@ -2,6 +2,7 @@ import { LIFE_POSES, lifePoseImagePath, lifePosePreviewSrc } from "@/model/life-
 import { LIFE_POSE_NAMES_ZH } from "@/util/i18n/messages/life-poses.names";
 import {
   characterLookPreviewSrc,
+  isFullBodyTop,
   optionsForLookPart,
   type CharacterLookOption,
 } from "@/service/character/character-look";
@@ -29,13 +30,26 @@ export function listPoseCatalog(appUrl: string) {
 }
 
 export function listOutfitCatalog(appUrl: string) {
-  const rows: Array<{ id: string; part: PoseEditPart; label: string; previewUrl: string }> = [];
+  const rows: Array<{
+    id: string;
+    part: PoseEditPart;
+    label: string;
+    previewUrl: string;
+    coversLegs: boolean;
+  }> = [];
   for (const part of POSE_EDIT_PARTS) {
     for (const option of optionsForLookPart(part)) {
       if (option.id === "none") continue;
       const preview = characterLookPreviewSrc(part, option.id);
       if (!preview) continue;
-      rows.push({ id: option.id, part, label: outfitLabel(option), previewUrl: absolute(appUrl, preview) });
+      rows.push({
+        id: option.id,
+        part,
+        label: outfitLabel(option),
+        previewUrl: absolute(appUrl, preview),
+        // 連身上衣蓋住下身；其他部位一律 false。
+        coversLegs: part === "top" && isFullBodyTop(option.id),
+      });
     }
   }
   return rows;

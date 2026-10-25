@@ -20,4 +20,7 @@ test("listOutfitCatalog is tops, pants, shoes, and accessories with pictures", (
   assert.equal(rows.every((row) => row.previewUrl.startsWith("https://www.scro.io/character-looks/")), true);
   const jeans = rows.find((row) => row.id === "jeans");
   assert.equal(jeans?.label, "jeans");
+  const dress = rows.find((row) => row.id === "alredscoopdress");
+  assert.equal(dress?.coversLegs, true);
+  assert.notEqual(jeans?.coversLegs, true);
 });
