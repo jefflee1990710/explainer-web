@@ -44,8 +44,8 @@ export function evaluateCreditSpendGate({
   if (hasUnlimitedCredits(email)) {
     return sub;
   }
-  // Users who have enough credits in their wallet (including free 80 welcome credits)
-  // can spend them on affordable actions (e.g. character blueprint = 8, life photo = 4, scene frame = 4, first 5s clip preview = 45).
+  // Users who have enough credits in their wallet (including the free welcome grant)
+  // can spend them on affordable actions (e.g. character blueprint = 8, life photo = 4, scene frame = 4, one preview clip).
   if (credits >= cost) {
     return sub;
   }

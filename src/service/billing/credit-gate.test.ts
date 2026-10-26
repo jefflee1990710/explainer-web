@@ -68,7 +68,7 @@ test("checkoutUrls send popup returns to the done page", () => {
 });
 
 test("evaluateCreditSpendGate and assertFreeTrialClipAllowed allow unsubscribed users to spend welcome credits on images and Clip 1 preview, then prompt subscription on Clip 2+", () => {
-  // Unsubscribed user with 80 welcome credits can create a character (8 cr), life photo (4 cr), or 1st 5s clip (45 cr)
+  // Unsubscribed user with welcome credits can create a character (8 cr), life photo (4 cr), or Clip 1 preview
   assert.equal(
     evaluateCreditSpendGate({
       email: "newuser@example.com",

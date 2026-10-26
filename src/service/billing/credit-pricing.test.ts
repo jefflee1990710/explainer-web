@@ -62,10 +62,14 @@ test("cinematic realistic video costs 15 credits per second", () => {
   assert.equal(videoCost(3, "doodle"), 45);
 });
 
-test("a new account can draw images and preview one 5s clip, but cannot render a full multi-clip 15s video", () => {
-  assert.equal(WELCOME_CREDITS, 80);
+test("a new account can draw a 10-clip board and one realistic preview, but not a second clip", () => {
+  assert.equal(WELCOME_CREDITS, 145);
+  assert.equal(WELCOME_CREDITS >= 10 * FRAME_COST + videoCost(7, "realistic"), true);
+  assert.equal(
+    WELCOME_CREDITS < 10 * FRAME_COST + videoCost(7, "realistic") + videoCost(5, "realistic"),
+    true,
+  );
   assert.equal(WELCOME_CREDITS >= FRAMES_COST + MIN_VIDEO_COST, true);
-  assert.equal(WELCOME_CREDITS < 3 * (FRAMES_COST + MIN_VIDEO_COST), true);
 });
 
 test("upgrade is offered only when the wallet cannot pay for the video", () => {

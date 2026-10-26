@@ -13,7 +13,7 @@ import {
 loadEnvConfig(process.cwd());
 
 // CLI flags:
-//   --target=80   Target credit balance (defaults to WELCOME_CREDITS = 80)
+//   --target=145  Target credit balance (defaults to WELCOME_CREDITS)
 //   --apply       Update MongoDB users with credits === 20 to targetCredits
 //   --send        Send the HTML notification email from noreply@scro.io to upgraded users
 async function main() {
@@ -76,20 +76,22 @@ async function main() {
     }
 
     if (send && u.email) {
+      // Already-upgraded accounts keep the balance they have. A new apply announces the target.
+      const announcedCredits = apply && u.credits === 20 ? targetCredits : u.credits;
       const sent = await sendMail({
         fromEmail: CREDIT_UPGRADE_FROM_EMAIL,
         to: u.email,
-        subject: creditUpgradeEmailSubject(targetCredits),
+        subject: creditUpgradeEmailSubject(announcedCredits),
         text: creditUpgradeEmailText({
           recipientName: u.name,
           previousCredits: 20,
-          newCredits: targetCredits,
+          newCredits: announcedCredits,
           studioHref: "https://www.scro.io/app",
         }),
         html: creditUpgradeEmailHtml({
           recipientName: u.name,
           previousCredits: 20,
-          newCredits: targetCredits,
+          newCredits: announcedCredits,
           studioHref: "https://www.scro.io/app",
         }),
       });
