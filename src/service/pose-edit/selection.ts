@@ -5,16 +5,35 @@ import { POSE_EDIT_ERRORS } from "@/service/pose-edit/errors";
 export const POSE_EDIT_PARTS = ["top", "pants", "shoes", "accessory"] as const;
 export type PoseEditPart = (typeof POSE_EDIT_PARTS)[number];
 export type PoseEditWardrobe = Partial<Record<PoseEditPart, string>>;
+export const POSE_EDIT_TEXT_MAX_CHARS = 200;
+
+function trimFreeText(value?: string) {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  return trimmed.slice(0, POSE_EDIT_TEXT_MAX_CHARS);
+}
 
 export function parsePoseEditSelection(input: {
   poseId?: string;
+  poseText?: string;
+  outfitText?: string;
   top?: string;
   pants?: string;
   shoes?: string;
   accessory?: string;
-}): { ok: true; poseId?: string; wardrobe: PoseEditWardrobe } | { ok: false; error: string } {
+}):
+  | {
+      ok: true;
+      poseId?: string;
+      poseText?: string;
+      outfitText?: string;
+      wardrobe: PoseEditWardrobe;
+    }
+  | { ok: false; error: string } {
   const poseId = input.poseId?.trim() || undefined;
   if (poseId && !lifePoseById(poseId)) return { ok: false, error: POSE_EDIT_ERRORS.pose };
+  const poseText = trimFreeText(input.poseText);
+  const outfitText = trimFreeText(input.outfitText);
   const wardrobe: PoseEditWardrobe = {};
   for (const part of POSE_EDIT_PARTS) {
     const id = input[part]?.trim();
@@ -25,11 +44,14 @@ export function parsePoseEditSelection(input: {
     wardrobe[part] = id;
   }
   if (isFullBodyTop(wardrobe.top)) delete wardrobe.pants;
-  if (!poseId && Object.keys(wardrobe).length === 0) {
+  if (!poseId && !poseText && !outfitText && Object.keys(wardrobe).length === 0) {
     return { ok: false, error: POSE_EDIT_ERRORS.empty };
   }
-  if (poseId) {
-    return { ok: true, poseId, wardrobe };
-  }
-  return { ok: true, wardrobe };
+  return {
+    ok: true,
+    ...(poseId ? { poseId } : {}),
+    ...(poseText ? { poseText } : {}),
+    ...(outfitText ? { outfitText } : {}),
+    wardrobe,
+  };
 }

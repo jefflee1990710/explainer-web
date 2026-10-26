@@ -7,6 +7,8 @@ export type PoseEditDto = {
   sourceUrl: string;
   resultUrl?: string;
   poseId?: string;
+  poseText?: string;
+  outfitText?: string;
   wardrobe: PoseEditWardrobe;
   error?: string;
   createdAt: string;
@@ -19,6 +21,8 @@ export function toPoseEditDto(edit: PoseEdit): PoseEditDto {
     sourceUrl: edit.sourceUrl,
     ...(edit.resultUrl ? { resultUrl: edit.resultUrl } : {}),
     ...(edit.poseId ? { poseId: edit.poseId } : {}),
+    ...(edit.poseText ? { poseText: edit.poseText } : {}),
+    ...(edit.outfitText ? { outfitText: edit.outfitText } : {}),
     wardrobe: edit.wardrobe,
     ...(edit.error ? { error: edit.error } : {}),
     createdAt: edit.createdAt.toISOString(),

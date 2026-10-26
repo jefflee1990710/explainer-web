@@ -39,6 +39,8 @@ export const POST = withApiUser(async ({ auth, request }) => {
     bytes: new Uint8Array(await file.arrayBuffer()),
     fields: {
       poseId: fieldText(form, "poseId"),
+      poseText: fieldText(form, "poseText"),
+      outfitText: fieldText(form, "outfitText"),
       top: fieldText(form, "top"),
       pants: fieldText(form, "pants"),
       shoes: fieldText(form, "shoes"),

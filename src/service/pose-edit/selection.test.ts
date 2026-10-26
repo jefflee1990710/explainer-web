@@ -31,3 +31,19 @@ test("parsePoseEditSelection keeps a real pose and jeans, and drops pants on a f
   const dress = parsePoseEditSelection({ top: "alredscoopdress", pants: "jeans" });
   assert.deepEqual(dress, { ok: true, wardrobe: { top: "alredscoopdress" } });
 });
+
+test("parsePoseEditSelection accepts free-text pose or outfit and trims to 200 chars", () => {
+  const onlyPoseText = parsePoseEditSelection({ poseText: "  雙手插口袋看向鏡頭  " });
+  assert.deepEqual(onlyPoseText, {
+    ok: true,
+    poseText: "雙手插口袋看向鏡頭",
+    wardrobe: {},
+  });
+  const longText = "a".repeat(250);
+  const onlyOutfitText = parsePoseEditSelection({ outfitText: longText });
+  assert.deepEqual(onlyOutfitText, {
+    ok: true,
+    outfitText: "a".repeat(200),
+    wardrobe: {},
+  });
+});

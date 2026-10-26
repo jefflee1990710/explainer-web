@@ -10,7 +10,7 @@ export const OPENROUTER_VIDEOS_URL = `${OPENROUTER_BASE_URL}/api/v1/videos`;
 
 export const OPENROUTER_SEEDREAM_5_PRO_IMAGE_MODEL = "bytedance-seed/seedream-5-0-pro";
 export const OPENROUTER_SEEDREAM_5_LITE_IMAGE_MODEL = "bytedance-seed/seedream-5-0-lite";
-// Google Nano Banana Pro. Pose edits still call this; scene stills use Seedream.
+// Google Nano Banana Pro (legacy image model). Scene stills and pose edits use Seedream.
 export const OPENROUTER_NANO_BANANA_PRO_IMAGE_MODEL = "google/gemini-3-pro-image";
 export const OPENROUTER_GPT_5_IMAGE_MODEL = "openai/gpt-5-image";
 export const OPENROUTER_HAILUO_3_VIDEO_MODEL = "minimax/hailuo-3";
@@ -52,15 +52,14 @@ export function openRouterAuthHeaders(url?: string | null): Record<string, strin
 }
 
 // OpenAI GPT Image models on OpenRouter accept 1:1 / 3:2 / 2:3 / auto.
-// Map 16:9 -> 3:2 and 9:16 -> 2:3; video keeps the true 16:9 / 9:16 ratio.
+// Map 16:9 -> 3:2 and 9:16 / 3:4 -> 2:3; Seedream and video keep the exact ratio.
 export function openRouterImageAspectRatio(
   model: string,
-  ratio: AspectRatio | "2:3",
+  ratio: AspectRatio | "2:3" | "3:4",
 ): string {
-  if (ratio === "2:3") return "2:3";
   if (!/gpt-5-image|gpt-image-1/i.test(model)) return ratio;
   if (ratio === "16:9") return "3:2";
-  if (ratio === "9:16") return "2:3";
+  if (ratio === "9:16" || ratio === "2:3" || ratio === "3:4") return "2:3";
   return "1:1";
 }
 
@@ -106,7 +105,7 @@ function nsfwFrom(error?: string): GenerationStatus | undefined {
 export function openRouterImageBody(input: {
   model: string;
   prompt: string;
-  aspectRatio: AspectRatio | "2:3";
+  aspectRatio: AspectRatio | "2:3" | "3:4";
   quality?: "low" | "medium" | "high";
   resolution?: "1k" | "2k" | "4k";
   referenceImageUrls?: Array<string | undefined>;
@@ -149,7 +148,7 @@ export async function submitOpenRouterImage(
   input: {
     model: string;
     prompt: string;
-    aspectRatio: AspectRatio | "2:3";
+    aspectRatio: AspectRatio | "2:3" | "3:4";
     quality?: "low" | "medium" | "high";
     resolution?: "1k" | "2k" | "4k";
     referenceImageUrls?: Array<string | undefined>;

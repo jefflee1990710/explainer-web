@@ -5,13 +5,15 @@ import { poseEditPrompt, poseEditReferenceUrls } from "@/service/pose-edit/promp
 
 // Prompt, aspect, and reference order sent to the still generator.
 export function poseEditSubmitInput(
-  edit: Pick<PoseEdit, "sourceUrl" | "poseId" | "wardrobe" | "aspect">,
+  edit: Pick<PoseEdit, "sourceUrl" | "poseId" | "poseText" | "outfitText" | "wardrobe" | "aspect">,
   poseReferenceUrl?: string,
 ) {
   const prompts = wardrobePickPrompts(edit.wardrobe);
   return {
     prompt: poseEditPrompt({
       posePrompt: lifePoseById(edit.poseId)?.promptText,
+      poseText: edit.poseText,
+      outfitText: edit.outfitText,
       wardrobePrompts: {
         top: prompts.top,
         pants: prompts.pants,

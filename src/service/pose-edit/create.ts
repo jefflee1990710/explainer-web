@@ -32,6 +32,8 @@ export type PoseEditDraft = {
   clerkUserId: string;
   sourceUrl: string;
   poseId?: string;
+  poseText?: string;
+  outfitText?: string;
   wardrobe: PoseEditWardrobe;
   aspect: PoseEditAspect;
   status: "pending";
@@ -104,6 +106,8 @@ export async function createPoseEdit(input: {
   bytes: Uint8Array;
   fields: {
     poseId?: string;
+    poseText?: string;
+    outfitText?: string;
     top?: string;
     pants?: string;
     shoes?: string;
@@ -141,13 +145,17 @@ export async function createPoseEdit(input: {
   }
 
   const spendKey = await deps.consume(input.user.clerkUserId, FRAME_COST);
-  const poseId = "poseId" in selection ? selection.poseId : undefined;
+  const poseId = selection.poseId;
+  const poseText = selection.poseText;
+  const outfitText = selection.outfitText;
   let edit: PoseEdit;
   try {
     edit = await deps.insert({
       clerkUserId: input.user.clerkUserId,
       sourceUrl,
       ...(poseId ? { poseId } : {}),
+      ...(poseText ? { poseText } : {}),
+      ...(outfitText ? { outfitText } : {}),
       wardrobe: selection.wardrobe,
       aspect,
       status: "pending",

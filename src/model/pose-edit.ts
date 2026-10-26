@@ -11,6 +11,8 @@ export type PoseEdit = {
   clerkUserId: string;
   sourceUrl: string;
   poseId?: string;
+  poseText?: string;
+  outfitText?: string;
   wardrobe: PoseEditWardrobe;
   aspect: PoseEditAspect;
   status: PoseEditStatus;
