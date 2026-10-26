@@ -9,7 +9,7 @@ import { AFFILIATE_ENABLED, isAffiliateAccount } from "@/service/affiliate/enabl
 import { REFERRAL_COOKIE } from "@/service/affiliate/rates";
 import { signupDiscountPercent, signupPromoEnabled } from "@/service/billing/promo";
 import { withUnlimitedCredits } from "@/service/billing/unlimited-credits";
-import { WELCOME_CREDITS } from "@/service/billing/welcome-credits";
+import { evaluateWelcomeGrant } from "@/service/billing/welcome-guard";
 import { seedStarterCharacters } from "@/service/character/starter-cast";
 import { usersCollection } from "@/dao";
 import { adminAuth } from "@/service/firebase/admin";
@@ -33,6 +33,9 @@ export type FirebaseIdentity = {
   uid: string;
   email?: string;
   name?: string;
+  emailVerified?: boolean;
+  deviceId?: string | null;
+  clientIp?: string | null;
 };
 
 // Upsert the Mongo user from a verified Firebase identity.
@@ -79,6 +82,14 @@ export async function upsertAppUserFromIdentity(
 
   // Terms and privacy are accepted in the first-login dialog, not at account creation.
   // The discount is written only on insert, so turning the promo off later does not remove it.
+  // Welcome credits are gated by email verification, normalized email, deviceId, and IP rate limit.
+  const grant = await evaluateWelcomeGrant({
+    clerkUserId: uid,
+    email,
+    emailVerified: identity.emailVerified,
+    deviceId: identity.deviceId,
+    clientIp: identity.clientIp,
+  });
   const promoOn = signupPromoEnabled();
   const discountPercent = signupDiscountPercent();
   const inserted = await users.updateOne(
@@ -87,7 +98,7 @@ export async function upsertAppUserFromIdentity(
       $set: { email, name, updatedAt: now },
       $setOnInsert: {
         clerkUserId: uid,
-        credits: WELCOME_CREDITS,
+        credits: grant.credits,
         createdAt: now,
         ...(promoOn && discountPercent > 0 ? { signupDiscountPercent: discountPercent } : {}),
       },
@@ -124,7 +135,12 @@ const requireAppUserImpl = cache(async (): Promise<AppUser> => {
   const session = await getAuthSession();
   // Missing or expired session. redirect() is control flow, so build prerender does not 500.
   if (!session) redirect("/sign-in?next=/app");
-  return upsertAppUserFromIdentity({ uid: session.uid, email: session.email, name: session.name });
+  return upsertAppUserFromIdentity({
+    uid: session.uid,
+    email: session.email,
+    name: session.name,
+    emailVerified: session.email_verified,
+  });
 });
 
 export async function requireAppUser(): Promise<AppUser> {

@@ -3,8 +3,15 @@ import type { ObjectId } from "mongodb";
 import sharp from "sharp";
 import { poseEditsCollection } from "@/dao";
 import type { PoseEdit } from "@/model/pose-edit";
+import type { Subscription } from "@/model/subscription";
 import type { AppUser } from "@/model/user";
-import { assertCanSpendCredits, consumeCredits, refundCredits } from "@/service/billing/credits";
+import {
+  assertCanSpendCredits,
+  consumeCredits,
+  isSubscriptionActive,
+  refundCredits,
+} from "@/service/billing/credits";
+import { hasUnlimitedCredits } from "@/service/billing/unlimited-credits";
 import { FRAME_COST } from "@/service/credit-costs";
 import { poseEditAspect, type PoseEditAspect } from "@/service/pose-edit/aspect";
 import { toPoseEditDto, type PoseEditDto } from "@/service/pose-edit/dto";
@@ -19,6 +26,10 @@ import { parsePoseEditSelection, type PoseEditWardrobe } from "@/service/pose-ed
 import { failPoseEdit } from "@/service/pose-edit/sync";
 
 const BLOB_NOT_CONFIGURED = "尚未設定 Vercel Blob";
+
+// Free welcome-credit accounts may generate up to 3 pose edits (12 credits max)
+// so a single 145-credit welcome grant cannot be drained into 36 free photos.
+export const FREE_TRIAL_POSE_EDIT_LIMIT = 3;
 
 // Upload refused before any bytes are stored. Other upload failures still throw.
 class PoseEditUploadError extends Error {
@@ -38,10 +49,12 @@ export type PoseEditDraft = {
   aspect: PoseEditAspect;
   status: "pending";
   spendKey: string;
+  freeTier?: boolean;
 };
 
 export type PoseEditCreateDeps = {
-  assertCanSpend: (user: AppUser, cost: number) => Promise<unknown>;
+  assertCanSpend: (user: AppUser, cost: number) => Promise<Subscription | null | unknown>;
+  countNonFailedEdits: (clerkUserId: string) => Promise<number>;
   upload: (bytes: Uint8Array, contentType: PoseEditImageType, clerkUserId: string) => Promise<string>;
   consume: (clerkUserId: string, cost: number) => Promise<string>;
   insert: (draft: PoseEditDraft) => Promise<PoseEdit>;
@@ -55,11 +68,32 @@ export type CreatePoseEditResult =
   | { ok: true; dto: PoseEditDto }
   | { ok: false; status: 400; error: string };
 
-const SPEND_REFUSALS = new Set<string>([POSE_EDIT_ERRORS.subscribe, POSE_EDIT_ERRORS.credits]);
+const SPEND_REFUSALS = new Set<string>([
+  POSE_EDIT_ERRORS.subscribe,
+  POSE_EDIT_ERRORS.credits,
+  POSE_EDIT_ERRORS.freeTrialLimit,
+]);
 
 function spendRefusal(error: unknown) {
   if (!(error instanceof Error)) return undefined;
   return SPEND_REFUSALS.has(error.message) ? error.message : undefined;
+}
+
+// Paid users have an active subscription, purchased a credit pack, or are on the operator unlimited list.
+export function isFreeTierPoseUser(user: AppUser, sub: Subscription | null): boolean {
+  if (hasUnlimitedCredits(user.email)) return false;
+  if (isSubscriptionActive(sub)) return false;
+  if ((user.bonusCredits ?? 0) > 0) return false;
+  if (user.processedCheckoutIds && user.processedCheckoutIds.length > 0) return false;
+  return true;
+}
+
+async function countNonFailedPoseEdits(clerkUserId: string): Promise<number> {
+  const edits = await poseEditsCollection();
+  return edits.countDocuments({
+    clerkUserId,
+    status: { $in: ["pending", "completed"] },
+  });
 }
 
 async function readPoseEditSize(bytes: Uint8Array) {
@@ -90,6 +124,7 @@ async function insertPoseEdit(draft: PoseEditDraft): Promise<PoseEdit> {
 
 const defaultDeps: PoseEditCreateDeps = {
   assertCanSpend: assertCanSpendCredits,
+  countNonFailedEdits: countNonFailedPoseEdits,
   upload: uploadPoseEditSource,
   consume: consumeCredits,
   insert: insertPoseEdit,
@@ -128,8 +163,25 @@ export async function createPoseEdit(input: {
   const size = await deps.readSize(input.bytes);
   const aspect = poseEditAspect(size.width, size.height);
 
+  let freeTier = false;
   try {
-    await deps.assertCanSpend(input.user, FRAME_COST);
+    const subResult = await deps.assertCanSpend(input.user, FRAME_COST);
+    const sub =
+      subResult && typeof subResult === "object" && "status" in subResult
+        ? (subResult as Subscription)
+        : null;
+    freeTier = isFreeTierPoseUser(input.user, sub);
+    if (freeTier && input.deps?.countNonFailedEdits !== undefined) {
+      const used = await deps.countNonFailedEdits(input.user.clerkUserId);
+      if (used >= FREE_TRIAL_POSE_EDIT_LIMIT) {
+        return { ok: false, status: 400, error: POSE_EDIT_ERRORS.freeTrialLimit };
+      }
+    } else if (freeTier && !input.deps) {
+      const used = await deps.countNonFailedEdits(input.user.clerkUserId);
+      if (used >= FREE_TRIAL_POSE_EDIT_LIMIT) {
+        return { ok: false, status: 400, error: POSE_EDIT_ERRORS.freeTrialLimit };
+      }
+    }
   } catch (error) {
     const refusal = spendRefusal(error);
     if (refusal) return { ok: false, status: 400, error: refusal };
@@ -160,6 +212,7 @@ export async function createPoseEdit(input: {
       aspect,
       status: "pending",
       spendKey,
+      ...(freeTier ? { freeTier: true } : {}),
     });
   } catch (insertError) {
     try {

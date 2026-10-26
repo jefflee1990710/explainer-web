@@ -6,6 +6,7 @@ import { refundCredits } from "@/service/billing/credits";
 import { FRAME_COST } from "@/service/credit-costs";
 import { persistMedia } from "@/service/higgsfield/persist";
 import { POSE_EDIT_ERRORS } from "@/service/pose-edit/errors";
+import { applyPoseWatermark } from "@/service/pose-edit/watermark";
 import {
   poseEditFailedSpendFilter,
   poseEditFailedSpendQuery,
@@ -107,15 +108,26 @@ export async function syncPoseEditJob(
   }
   if (status !== "completed" || !outputUrl) return;
 
+  const edits = await poseEditsCollection();
+  const existing = await edits.findOne({ _id: id }, { projection: { freeTier: 1 } });
+
   let resultUrl: string;
   try {
-    resultUrl = await persistMedia(outputUrl, `explainer/pose-edits/${id.toHexString()}/result`);
+    resultUrl = await persistMedia(
+      outputUrl,
+      `explainer/pose-edits/${id.toHexString()}/result`,
+      existing?.freeTier
+        ? {
+            transform: applyPoseWatermark,
+            contentType: "image/jpeg",
+          }
+        : undefined,
+    );
   } catch {
     await failPoseEdit(id, POSE_EDIT_ERRORS.failed);
     return;
   }
 
-  const edits = await poseEditsCollection();
   // Only a still-pending edit can complete. A refunded failure stays failed.
   await edits.updateOne(
     { _id: id, status: "pending" },

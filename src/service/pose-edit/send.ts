@@ -17,10 +17,12 @@ export async function sendPoseEdit(job: GenerationJob): Promise<Sent> {
   const edit = await edits.findOne({ _id: job.poseEditId });
   if (!edit) throw new PermanentJobError(POSE_EDIT_ERRORS.missing);
   const poseReferenceUrl = edit.poseId ? await lifePoseReferenceUrl(edit.poseId) : undefined;
+  // Free welcome-tier pose edits render at 1k; paid subscribers / pack buyers get 2k.
+  const resolution = edit.freeTier ? "1k" : "2k";
   const submitted = await submitOpenRouterImage({
     model: SEEDREAM_5_PRO_IMAGE_MODEL,
     ...poseEditSubmitInput(edit, poseReferenceUrl),
-    resolution: "2k",
+    resolution,
   });
   return toSent(SEEDREAM_5_PRO_IMAGE_MODEL, submitted);
 }

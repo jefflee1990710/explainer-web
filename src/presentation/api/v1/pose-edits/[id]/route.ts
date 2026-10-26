@@ -22,3 +22,15 @@ export const GET = withApiUser<Params>(async ({ auth, params }) => {
   if (poseEditStillNeedsRefund(edit)) await refundFailedPoseEdit(edit._id);
   return apiJson(toPoseEditDto(edit as PoseEdit));
 });
+
+// Delete one edit owned by the caller.
+export const DELETE = withApiUser<Params>(async ({ auth, params }) => {
+  if (!ObjectId.isValid(params.id)) return apiError(POSE_EDIT_ERRORS.missing, 404);
+  const edits = await poseEditsCollection();
+  const result = await edits.deleteOne({
+    _id: new ObjectId(params.id),
+    clerkUserId: auth.user.clerkUserId,
+  });
+  if (result.deletedCount === 0) return apiError(POSE_EDIT_ERRORS.missing, 404);
+  return apiJson({ deleted: true });
+});

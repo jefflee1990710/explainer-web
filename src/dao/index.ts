@@ -33,5 +33,7 @@ export { customWardrobeItemsCollection } from "@/dao/custom-wardrobe-items";
 export { wardrobeCombinationsCollection } from "@/dao/wardrobe-combinations";
 export { uxEventsCollection } from "@/dao/ux-events";
 export { poseEditsCollection } from "@/dao/pose-edits";
+export { welcomeCreditGrantsCollection } from "@/dao/welcome-credit-grants";
+
 
 

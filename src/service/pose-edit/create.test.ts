@@ -188,3 +188,93 @@ test("createPoseEdit rejects an empty selection before the credit check", async 
   assert.deepEqual(result, { ok: false, status: 400, error: "請選姿勢或至少一件衣服" });
   assert.equal(checked, false);
 });
+
+test("createPoseEdit blocks free-tier user after 3 non-failed pose edits", async () => {
+  let uploaded = false;
+  const result = await createPoseEdit({
+    user: { clerkUserId: "free-uid", email: "user@gmail.com", credits: 100 } as AppUser,
+    bytes: Uint8Array.of(0xff, 0xd8, 0xff, 0x00),
+    fields: { poseId: "standing-arms-relaxed" },
+    deps: {
+      assertCanSpend: async () => null,
+      countNonFailedEdits: async () => 3,
+      upload: async () => {
+        uploaded = true;
+        return "https://cdn.example/source.jpg";
+      },
+      consume: async () => "spend-1",
+      insert: async () => {
+        throw new Error("insert should not run");
+      },
+      enqueue: async () => undefined,
+      fail: async () => undefined,
+      readSize: async () => ({ width: 300, height: 400 }),
+    },
+  });
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.match(result.error, /免費體驗最多可生成 3 張/);
+  }
+  assert.equal(uploaded, false);
+});
+
+test("createPoseEdit marks freeTier true for free users and false for pack buyers", async () => {
+  let freeInsertedDraftFreeTier: boolean | undefined;
+  let paidInsertedDraftFreeTier: boolean | undefined;
+
+  await createPoseEdit({
+    user: { clerkUserId: "free-uid", email: "user@gmail.com", credits: 20 } as AppUser,
+    bytes: Uint8Array.of(0xff, 0xd8, 0xff, 0x00),
+    fields: { poseId: "standing-arms-relaxed" },
+    deps: {
+      assertCanSpend: async () => null,
+      countNonFailedEdits: async () => 1,
+      upload: async () => "https://cdn.example/source.jpg",
+      consume: async () => "spend-1",
+      insert: async (draft) => {
+        freeInsertedDraftFreeTier = draft.freeTier;
+        return {
+          ...draft,
+          _id: new ObjectId(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      },
+      enqueue: async () => undefined,
+      fail: async () => undefined,
+      readSize: async () => ({ width: 300, height: 400 }),
+    },
+  });
+
+  await createPoseEdit({
+    user: {
+      clerkUserId: "paid-uid",
+      email: "paid@gmail.com",
+      credits: 100,
+      bonusCredits: 50,
+    } as AppUser,
+    bytes: Uint8Array.of(0xff, 0xd8, 0xff, 0x00),
+    fields: { poseId: "standing-arms-relaxed" },
+    deps: {
+      assertCanSpend: async () => null,
+      countNonFailedEdits: async () => 99,
+      upload: async () => "https://cdn.example/source.jpg",
+      consume: async () => "spend-2",
+      insert: async (draft) => {
+        paidInsertedDraftFreeTier = draft.freeTier;
+        return {
+          ...draft,
+          _id: new ObjectId(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      },
+      enqueue: async () => undefined,
+      fail: async () => undefined,
+      readSize: async () => ({ width: 300, height: 400 }),
+    },
+  });
+
+  assert.equal(freeInsertedDraftFreeTier, true);
+  assert.equal(paidInsertedDraftFreeTier, undefined);
+});

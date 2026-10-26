@@ -27,8 +27,18 @@ export async function authenticateApiRequest(request: Request): Promise<ApiAuth 
 
   try {
     const decoded = await adminAuth().verifyIdToken(token, true);
+    const deviceId = request.headers.get("x-device-id");
+    const clientIp =
+      request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip");
     const user = await upsertAppUserFromIdentity(
-      { uid: decoded.uid, email: decoded.email, name: decoded.name },
+      {
+        uid: decoded.uid,
+        email: decoded.email,
+        name: decoded.name,
+        emailVerified: decoded.email_verified,
+        deviceId,
+        clientIp,
+      },
       { readReferralCookie: false },
     );
     return { user, picture: decoded.picture, via: "firebase" };
