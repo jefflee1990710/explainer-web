@@ -27,6 +27,7 @@ import { Spinner } from "@/presentation/components/spinner";
 import { isCreditGateError } from "@/service/billing/credit-gate";
 import {
   ALL_CHARACTER_LOOK_PARTS,
+  CHARACTER_WARDROBE_PARTS,
   CHARACTER_VIRAL_PRESETS,
   characterLookPrompt,
   defaultCharacterLook,
@@ -40,7 +41,9 @@ import {
   type CharacterGender,
   type CharacterLookCategory,
   type CharacterLookSelection,
+  type CharacterWardrobePart,
 } from "@/service/character/character-look";
+import { WardrobePartColorPicker } from "@/presentation/components/app/characters/wardrobe-part-color-picker";
 import { emptyPersonaDraft, personaFromFields, type PersonaDraft } from "@/service/character/persona";
 import { BLUEPRINT_COST } from "@/service/production-plan";
 import type { PublicStyle } from "@/presentation/serialize";
@@ -137,7 +140,15 @@ export function CharacterGeneratorForm({
 
   function setPart(part: AnyCharacterLookPart, id: string) {
     if (!isCharacterLookId(part, id) && !/^cw_[a-f0-9]{24}$/i.test(id)) return;
-    setLook((current) => ({ ...current, [part]: id }));
+    setLook((current) => {
+      const next: CharacterLookSelection = { ...current, [part]: id };
+      if (CHARACTER_WARDROBE_PARTS.includes(part as CharacterWardrobePart) && next.wardrobeColors?.[part as CharacterWardrobePart]) {
+        const wardrobeColors = { ...next.wardrobeColors };
+        delete wardrobeColors[part as CharacterWardrobePart];
+        next.wardrobeColors = wardrobeColors;
+      }
+      return next;
+    });
   }
 
   function toggleLock(part: AnyCharacterLookPart) {
@@ -498,6 +509,16 @@ export function CharacterGeneratorForm({
                 </Link>
               ) : null}
             </div>
+            {CHARACTER_WARDROBE_PARTS.includes(activePart as CharacterWardrobePart) ? (
+              <WardrobePartColorPicker
+                part={activePart as CharacterWardrobePart}
+                optionId={activeValue}
+                customPrompt={byOptionId.get(activeValue)?.prompt}
+                value={look.wardrobeColors ?? {}}
+                disabled={blocked}
+                onChange={(wardrobeColors) => setLook((current) => ({ ...current, wardrobeColors }))}
+              />
+            ) : null}
             <div className="flex flex-wrap items-center gap-1" role="tablist">
                 {CATEGORIES.map((category) => {
                   const active = categoryTab === category;

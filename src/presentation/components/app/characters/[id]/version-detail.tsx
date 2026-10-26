@@ -19,6 +19,13 @@ import {
   type CharacterWardrobePart,
   type CharacterWardrobePicks,
 } from "@/service/character/character-look";
+import {
+  detectCharacterWardrobeColors,
+  mergeWardrobePicksForColorEdits,
+  type CharacterWardrobeColorPicks,
+} from "@/service/character/wardrobe-colors";
+import { WardrobePartColorPicker } from "@/presentation/components/app/characters/wardrobe-part-color-picker";
+import { useCustomWardrobeItems } from "@/presentation/components/app/characters/use-custom-wardrobe-items";
 import type { PublicCharacter, PublicCharacterVersion } from "@/presentation/serialize";
 import { BLUEPRINT_COST, FRAME_COST } from "@/service/production-plan";
 import { translateAppError } from "@/util/i18n/translate-app-error";
@@ -69,10 +76,12 @@ export function VersionDetail({
   const editFormId = useId();
   const [showSpec, setShowSpec] = useState(false);
   const [instruction, setInstruction] = useState("");
-  const currentWardrobe = detectCharacterWardrobePicks(
-    [version.prompt, version.editInstruction].filter(Boolean).join("\n"),
-  );
+  const versionText = [version.prompt, version.editInstruction].filter(Boolean).join("\n");
+  const currentWardrobe = detectCharacterWardrobePicks(versionText);
+  const wornColors = detectCharacterWardrobeColors(versionText);
   const [wardrobePicks, setWardrobePicks] = useState<CharacterWardrobePicks>({});
+  const [wardrobeColors, setWardrobeColors] = useState<CharacterWardrobeColorPicks>({});
+  const { byOptionId, promptMap } = useCustomWardrobeItems();
   const [dialogPart, setDialogPart] = useState<CharacterWardrobePart | null>(null);
   const [previewImage, setPreviewImage] = useState<{
     src: string;
@@ -90,7 +99,19 @@ export function VersionDetail({
   const hasDetails = Boolean(
     version.spec || version.editInstruction || version.prompt || version.referenceImageUrl,
   );
-  const composedEdit = characterWardrobeEditInstruction(wardrobePicks, instruction, currentWardrobe.top);
+  const mergedWardrobePicks = mergeWardrobePicksForColorEdits(
+    wardrobePicks,
+    wardrobeColors,
+    currentWardrobe,
+    promptMap,
+  );
+  const composedEdit = characterWardrobeEditInstruction(
+    mergedWardrobePicks,
+    instruction,
+    currentWardrobe.top,
+    promptMap,
+    wardrobeColors,
+  );
 
   function submitEdit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -99,6 +120,7 @@ export function VersionDetail({
     onEdit(composedEdit);
     setInstruction("");
     setWardrobePicks({});
+    setWardrobeColors({});
   }
 
   return (
@@ -262,9 +284,14 @@ export function VersionDetail({
             defaultCharacterLook()[dialogPart] ??
             ""
           }
-          onChange={(id) =>
-            setWardrobePicks((current) => applyWardrobePick(current, dialogPart, id, currentWardrobe))
-          }
+          onChange={(id) => {
+            setWardrobePicks((current) => applyWardrobePick(current, dialogPart, id, currentWardrobe));
+            setWardrobeColors((current) => {
+              const next = { ...current };
+              delete next[dialogPart];
+              return next;
+            });
+          }}
           onClose={() => setDialogPart(null)}
         />
       ) : null}
@@ -300,12 +327,19 @@ export function VersionDetail({
               const activeId = pickedId ?? currentWardrobe[part];
               const thumbId = activeId ?? defaultCharacterLook()[part] ?? "";
               const partLabel = t(`characters.look.${part}`);
-              const optionName = activeId
-                ? t(`characters.look.options.${part}.${activeId}`)
-                : "—";
-              const extreme = activeId ? isExaggeratedLookOption(part, activeId) : false;
+              const customOption = activeId?.startsWith("cw_") ? byOptionId.get(activeId) : undefined;
+              const optionName = customOption
+                ? locale === "en"
+                  ? customOption.name
+                  : customOption.nameZh || customOption.name
+                : activeId
+                  ? t(`characters.look.options.${part}.${activeId}`)
+                  : "—";
+              const extreme = activeId && !customOption ? isExaggeratedLookOption(part, activeId) : false;
+              const colorActiveId = activeId ?? defaultCharacterLook()[part];
               return (
-                <div key={part} className="relative flex items-center">
+                <div key={part} className="space-y-1 sm:col-span-1">
+                <div className="relative flex items-center">
                   <button
                     type="button"
                     disabled={pending !== ""}
@@ -350,6 +384,24 @@ export function VersionDetail({
                       ×
                     </button>
                   ) : null}
+                </div>
+                {colorActiveId ? (
+                  <WardrobePartColorPicker
+                    compact
+                    part={part}
+                    optionId={colorActiveId}
+                    customPrompt={customOption?.prompt}
+                    inheritedColor={wornColors[part]}
+                    value={wardrobeColors}
+                    disabled={pending !== ""}
+                    onChange={(next) => {
+                      setWardrobeColors(next);
+                      if (next[part] && activeId && !wardrobePicks[part]) {
+                        setWardrobePicks((prev) => ({ ...prev, [part]: activeId }));
+                      }
+                    }}
+                  />
+                ) : null}
                 </div>
               );
             })}

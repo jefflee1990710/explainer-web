@@ -43,4 +43,8 @@ export const wardrobeZhHant = {
   keepDefault: "沿用預設",
   pickedSummary: "已選 {count} 項，未選的部位沿用角色預設造型",
   clearAll: "全部清除",
+  partColorLabel: "顏色",
+  partColorDefault: "預設",
+  partColorReset: "重設",
+  partColorPickerAria: "選擇{part}顏色",
 } satisfies WardrobeMessages;
