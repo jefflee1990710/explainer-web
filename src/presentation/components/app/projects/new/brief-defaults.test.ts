@@ -103,6 +103,7 @@ test("defaultCastIdsForStyle auto-selects matching ready characters for Step 01"
 test("initialSourceFromFolderName rescues prompt-like folder names typed during onboarding", () => {
   assert.equal(initialSourceFromFolderName("Testing 1"), "");
   assert.equal(initialSourceFromFolderName("新項目"), "");
+  assert.equal(initialSourceFromFolderName("My First Project"), "");
   assert.equal(
     initialSourceFromFolderName("10年前我的媽媽可以看到一萬厘米的高山高樹和九千萬厘米的人。"),
     "10年前我的媽媽可以看到一萬厘米的高山高樹和九千萬厘米的人。",

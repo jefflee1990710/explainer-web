@@ -124,6 +124,7 @@ import {
   writeBriefDefaults,
 } from "@/presentation/components/app/projects/new/brief-defaults";
 import { SampleScriptBar } from "@/presentation/components/app/projects/new/sample-script-bar";
+import { QuickScriptCard } from "@/presentation/components/app/projects/new/quick-script-card";
 import { DEFAULT_SPEECH_PACE, SPEECH_PACE_PRESETS } from "@/service/director/speech-pace";
 import { SceneTextPicker } from "@/presentation/components/app/projects/new/scene-text-picker";
 import { OpenCutVideoDesk } from "@/presentation/components/app/projects/new/opencut-video-desk";
@@ -579,16 +580,33 @@ export function NewProjectForm({
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (wizardStep < 3) {
-      onNextWizardStep();
+    if (!source.trim()) {
+      setError(t("brief.error.sourceRequired"));
+      if (wizardStep === 0) {
+        document.getElementById("quick-source")?.focus();
+      } else if (wizardStep !== 1) {
+        goToWizardStep(1);
+      }
+      return;
+    }
+    if (talkingHead && !spokenScript.trim()) {
+      setError(t("brief.error.spokenScriptRequired"));
+      if (wizardStep !== 0 && wizardStep !== 1) goToWizardStep(1);
+      return;
+    }
+    if (referenceImages.some((item) => !item.description.trim())) {
+      setError(t("brief.references.descriptionRequired"));
+      if (wizardStep !== 1) goToWizardStep(1);
       return;
     }
     if (!aspectRatio) {
       setError(t("brief.error.aspectRatioRequired"));
+      if (wizardStep !== 2) goToWizardStep(2);
       return;
     }
     if (castNeed > 0 && characterIds.length !== castNeed) {
       setError(t("brief.error.castCount", { n: castNeed }));
+      if (wizardStep !== 0) goToWizardStep(0);
       return;
     }
     if (restarting) {
@@ -1150,6 +1168,22 @@ export function NewProjectForm({
                     transition={{ duration: 0.25, ease }}
                     className="space-y-4"
                   >
+                    <QuickScriptCard
+                      source={source}
+                      onSourceChange={(val) => {
+                        setSource(val);
+                        if (error) setError("");
+                      }}
+                      talkingHead={talkingHead}
+                      spokenScript={spokenScript}
+                      onSpokenScriptChange={(val) => {
+                        setSpokenScript(val);
+                        if (error) setError("");
+                      }}
+                      prefilledFromFolder={Boolean(initialSourceFromFolderName(folderName))}
+                      disabled={briefBusy}
+                    />
+
                     {/* Row 1: Full-width Director Banner Card (Dropdown left, 4-point Director Spec right) */}
                     <div className="rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
                       <Section step="01" title={t("brief.section01.title")} hint={t("brief.section01.hint")}>
@@ -1516,51 +1550,52 @@ export function NewProjectForm({
                         : t("brief.wizard.stepCount", { current: wizardStep + 1, total: 4 })}
                   </p>
 
-                  {wizardStep < 3 ? (
-                    <motion.button
-                      key="wizard-next-button"
-                      type="button"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        onNextWizardStep();
-                      }}
-                      disabled={!canAdvanceStep}
-                      whileTap={{ scale: 0.98 }}
-                      className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent-ink px-6 py-3 text-sm font-semibold text-lime shadow-[4px_4px_0_0_rgba(255,77,46,0.9)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-                    >
-                      {t("brief.wizard.next")} →
-                    </motion.button>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-3">
-                      {restarting ? (
-                        <button
-                          type="button"
-                          onClick={() => void submitCreateNew()}
-                          disabled={!canSubmit}
-                          className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/20 bg-paper px-5 py-3 text-sm font-semibold text-foreground transition hover:border-accent-ink/40 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-                        >
-                          {creatingNew ? <Spinner /> : null}
-                          {creatingNew ? t("brief.submit.submitting") : t("brief.submit.createNew")}
-                        </button>
-                      ) : null}
+                  <div className="flex flex-wrap items-center gap-3">
+                    {wizardStep < 3 ? (
                       <motion.button
-                        key="wizard-submit-button"
-                        type="submit"
-                        disabled={!canSubmit}
+                        key="wizard-next-button"
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          onNextWizardStep();
+                        }}
+                        disabled={!canAdvanceStep}
                         whileTap={{ scale: 0.98 }}
-                        className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                        className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/20 bg-paper px-5 py-2.5 text-sm font-semibold text-foreground transition hover:border-accent-ink/40 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                       >
-                        {submitting ? <Spinner /> : null}
-                        {submitting
-                          ? t("brief.submit.submitting")
-                          : restarting
-                            ? t("brief.submit.regenerate")
-                            : project
-                              ? t("brief.submit.saveAndRegenerateStoryboard")
-                              : t("brief.submit.start")}
+                        {t("brief.wizard.next")} →
                       </motion.button>
-                    </div>
-                  )}
+                    ) : null}
+
+                    {restarting ? (
+                      <button
+                        type="button"
+                        onClick={() => void submitCreateNew()}
+                        disabled={!canSubmit}
+                        className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border border-accent-ink/20 bg-paper px-5 py-3 text-sm font-semibold text-foreground transition hover:border-accent-ink/40 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                      >
+                        {creatingNew ? <Spinner /> : null}
+                        {creatingNew ? t("brief.submit.submitting") : t("brief.submit.createNew")}
+                      </button>
+                    ) : null}
+
+                    <motion.button
+                      key="wizard-submit-button"
+                      type="submit"
+                      disabled={briefBusy}
+                      whileTap={{ scale: 0.98 }}
+                      className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                    >
+                      {submitting ? <Spinner /> : null}
+                      {submitting
+                        ? t("brief.submit.submitting")
+                        : restarting
+                          ? t("brief.submit.regenerate")
+                          : project
+                            ? t("brief.submit.saveAndRegenerateStoryboard")
+                            : t("brief.submit.start")}
+                    </motion.button>
+                  </div>
                 </div>
               </div>
             </motion.form>

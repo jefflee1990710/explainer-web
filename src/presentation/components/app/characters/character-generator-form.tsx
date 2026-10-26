@@ -47,6 +47,7 @@ import type { PublicStyle } from "@/presentation/serialize";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 const NAME_MAX = 40;
+const AUTO_RANDOM_NAMES = ["Nova", "Aria", "Mila", "Zoe", "Luna", "Kai", "Leo", "Max"] as const;
 const EXAGGERATION_LEVELS: readonly CharacterExaggerationLevel[] = ["1x", "3x", "10x"];
 const GENDERS: readonly CharacterGender[] = ["female", "male"];
 const CATEGORIES: readonly CharacterLookCategory[] = ["all", "extreme", "stylized", "classic"];
@@ -93,6 +94,7 @@ export function CharacterGeneratorForm({
   const [creditGate, setCreditGate] = useState(false);
   const [paidSnap, setPaidSnap] = useState<{ credits: number; subscribed: boolean } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const walletCredits = paidSnap?.credits ?? credits;
   const walletSubscribed = paidSnap?.subscribed ?? subscribed;
   const blocked = atCharacterLimit || submitting || busy !== "";
@@ -149,9 +151,13 @@ export function CharacterGeneratorForm({
         extremeOnly,
       }),
     );
+    if (!name.trim()) {
+      const pick = AUTO_RANDOM_NAMES[Math.floor(Math.random() * AUTO_RANDOM_NAMES.length)] ?? "Nova";
+      setName(pick);
+    }
   }
 
-  function applyPreset(presetSelection: CharacterLookSelection) {
+  function applyPreset(presetSelection: CharacterLookSelection, presetLabel?: string) {
     setLook((current) => {
       const next: CharacterLookSelection = { ...presetSelection };
       for (const part of ALL_CHARACTER_LOOK_PARTS) {
@@ -161,11 +167,25 @@ export function CharacterGeneratorForm({
       }
       return next;
     });
+    if (!name.trim() && presetLabel) {
+      setName(presetLabel.slice(0, NAME_MAX));
+    }
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (atCharacterLimit) return;
+    if (!name.trim()) {
+      setError(
+        locale === "zh-Hant"
+          ? "請先輸入角色名稱"
+          : locale === "zh-Hans"
+            ? "请先输入角色名称"
+            : "Please enter a character name first",
+      );
+      nameInputRef.current?.focus();
+      return;
+    }
     setError("");
     setSubmitting(true);
     const data = new FormData();
@@ -261,11 +281,13 @@ export function CharacterGeneratorForm({
           <h1 className="font-display text-lg font-bold">{t("characters.generatorTitle")}</h1>
           <input
             type="text"
-            required
             form="character-generator-form"
             maxLength={NAME_MAX}
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={(event) => {
+              setName(event.target.value);
+              if (error) setError("");
+            }}
             disabled={blocked}
             placeholder={t("characters.namePlaceholder")}
             aria-label={t("characters.nameLabel")}
@@ -361,7 +383,7 @@ export function CharacterGeneratorForm({
             key={preset.id}
             type="button"
             disabled={blocked}
-            onClick={() => applyPreset(preset.selection)}
+            onClick={() => applyPreset(preset.selection, t(`characters.look.presets.${preset.id}`))}
             className="shrink-0 cursor-pointer rounded-full border border-accent-ink/15 bg-paper px-3 py-1 text-xs font-semibold text-foreground transition hover:border-accent-ink/40 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {t(`characters.look.presets.${preset.id}`)}
@@ -576,14 +598,28 @@ export function CharacterGeneratorForm({
           ) : null}
 
           <div className="shrink-0 space-y-2 border-t border-accent-ink/10 pt-2.5">
+            <input
+              ref={nameInputRef}
+              type="text"
+              maxLength={NAME_MAX}
+              value={name}
+              onChange={(event) => {
+                setName(event.target.value);
+                if (error) setError("");
+              }}
+              disabled={blocked}
+              placeholder={t("characters.namePlaceholder")}
+              aria-label={t("characters.nameLabel")}
+              className="h-9 w-full rounded-full border border-accent-ink/20 bg-white px-3.5 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+            />
             <p className="text-[11px] text-muted">
-              {walletSubscribed
+              {walletSubscribed || walletCredits >= BLUEPRINT_COST
                 ? t("characters.costLine", { cost: BLUEPRINT_COST, remaining: walletCredits })
                 : t("characters.subscribeRequired")}
             </p>
             <button
               type="submit"
-              disabled={blocked || name.trim().length === 0}
+              disabled={blocked}
               className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-[3px_3px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
             >
               {submitting ? <Spinner className="mr-2 h-4 w-4" /> : null}

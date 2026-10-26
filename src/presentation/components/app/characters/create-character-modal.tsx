@@ -224,7 +224,7 @@ export function CreateCharacterModal({
           ) : null}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-muted">
-              {walletSubscribed
+              {walletSubscribed || walletCredits >= BLUEPRINT_COST
                 ? t("characters.costLine", { cost: BLUEPRINT_COST, remaining: walletCredits })
                 : t("characters.subscribeRequired")}
             </p>

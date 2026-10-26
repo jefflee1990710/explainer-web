@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import type { PublicFolder } from "@/presentation/serialize";
 import { CreateFolderButton } from "@/presentation/components/app/create-folder-modal";
+import { OnboardingHeroCards } from "@/presentation/components/app/onboarding-hero-cards";
 import { ProjectGrid } from "@/presentation/components/app/project-grid";
 import { StartFirstVideoButton } from "@/presentation/components/app/start-first-video-button";
 
@@ -46,13 +47,17 @@ export function DashboardView({
         </div>
       </div>
 
-      {!subscribed ? (
+      {!subscribed && credits <= 0 ? (
         <div className="mt-6 rounded-lg bg-[var(--studio-cyan-soft)] px-4 py-3 text-sm">
           {t("dashboard.noSubscriptionBanner")}
           <Link href="/app/billing" className="ml-2 font-semibold underline">
             {t("dashboard.goBilling")}
           </Link>
         </div>
+      ) : null}
+
+      {totalVideos === 0 ? (
+        <OnboardingHeroCards existingFolderId={firstFolderId} />
       ) : null}
 
       <div className="mt-8">

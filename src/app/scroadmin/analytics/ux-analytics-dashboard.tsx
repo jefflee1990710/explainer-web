@@ -336,53 +336,57 @@ export function UxAnalyticsDashboard({
           </div>
 
           <div className="mt-5 overflow-x-auto">
-            <table className="w-full min-w-[920px] border-collapse text-left text-xs">
+            <table className="w-full border-collapse whitespace-nowrap text-left text-xs">
               <thead>
                 <tr className="border-b border-zinc-200 bg-zinc-50 font-semibold uppercase tracking-wider text-zinc-500">
-                  <th className="px-3 py-3">用戶 (Email / 名稱)</th>
-                  <th className="px-3 py-3">診斷卡關階段</th>
-                  <th className="px-3 py-3">剩餘點數</th>
-                  <th className="px-3 py-3">角色 (完成/總數)</th>
-                  <th className="px-3 py-3">影片進度 (草稿→分鏡→圖→片)</th>
-                  <th className="px-3 py-3">Life 照片</th>
-                  <th className="px-3 py-3">失敗任務</th>
-                  <th className="px-3 py-3">最後頁面 / 活躍時間</th>
+                  <th className="whitespace-nowrap px-3 py-3">用戶 (Email / 名稱)</th>
+                  <th className="whitespace-nowrap px-3 py-3">診斷卡關階段</th>
+                  <th className="whitespace-nowrap px-3 py-3">剩餘點數</th>
+                  <th className="whitespace-nowrap px-3 py-3">角色 (完成/總數)</th>
+                  <th className="whitespace-nowrap px-3 py-3">影片進度 (草稿→分鏡→圖→片)</th>
+                  <th className="whitespace-nowrap px-3 py-3">Life 照片</th>
+                  <th className="whitespace-nowrap px-3 py-3">失敗任務</th>
+                  <th className="whitespace-nowrap px-3 py-3">最後頁面 / 活躍時間</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {filteredUsers.map((u) => (
                   <tr key={u.clerkUserId} className="hover:bg-zinc-50/80">
-                    <td className="px-3 py-3">
-                      <p className="font-semibold text-[#12141c]">{u.email}</p>
-                      <p className="text-[11px] text-zinc-500">{u.name}</p>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <span className="font-semibold text-[#12141c]">{u.email}</span>
+                      {u.name ? (
+                        <span className="ml-2 text-[11px] text-zinc-500">
+                          ({u.name})
+                        </span>
+                      ) : null}
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="whitespace-nowrap px-3 py-3">
                       <span
                         className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${severityBadgeClass(u.diagnosis.severity)}`}
                       >
                         {u.diagnosis.title}
                       </span>
-                      <p className="mt-1 max-w-xs text-[11px] text-zinc-500">
+                      <span className="ml-2 text-[11px] text-zinc-500">
                         {u.diagnosis.reason}
-                      </p>
+                      </span>
                     </td>
-                    <td className="px-3 py-3 font-mono font-semibold text-zinc-800">
+                    <td className="whitespace-nowrap px-3 py-3 font-mono font-semibold text-zinc-800">
                       {u.credits}
                     </td>
-                    <td className="px-3 py-3 font-mono text-zinc-700">
+                    <td className="whitespace-nowrap px-3 py-3 font-mono text-zinc-700">
                       {u.completedCharacterCount} / {u.characterCount}
                     </td>
-                    <td className="px-3 py-3 font-mono text-zinc-700">
+                    <td className="whitespace-nowrap px-3 py-3 font-mono text-zinc-700">
                       {u.videoCount} → {u.storyboardReadyCount} →{" "}
                       {u.keyframeReadyCount} →{" "}
                       <strong className="text-emerald-700">
                         {u.clipVideoReadyCount}
                       </strong>
                     </td>
-                    <td className="px-3 py-3 font-mono text-zinc-700">
+                    <td className="whitespace-nowrap px-3 py-3 font-mono text-zinc-700">
                       {u.lifeShotCount}
                     </td>
-                    <td className="px-3 py-3 font-mono">
+                    <td className="whitespace-nowrap px-3 py-3 font-mono">
                       {u.failedJobCount > 0 ? (
                         <span className="font-bold text-rose-600">
                           {u.failedJobCount}
@@ -391,15 +395,15 @@ export function UxAnalyticsDashboard({
                         <span className="text-zinc-400">0</span>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-zinc-600">
-                      {u.lastPath ? (
-                        <p className="font-mono text-[11px] text-zinc-800">
-                          {u.lastPath} ({u.lastEvent})
-                        </p>
-                      ) : null}
-                      <p className="text-[11px] text-zinc-500">
+                    <td className="whitespace-nowrap px-3 py-3 text-zinc-600">
+                      <span className="text-[11px] text-zinc-500">
                         {formatShortTime(u.lastActiveAt)}
-                      </p>
+                      </span>
+                      {u.lastPath ? (
+                        <span className="ml-2 font-mono text-[11px] text-zinc-800">
+                          {u.lastPath} ({u.lastEvent})
+                        </span>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -423,15 +427,15 @@ export function UxAnalyticsDashboard({
             </p>
           ) : (
             <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[820px] border-collapse text-left text-xs">
+              <table className="w-full border-collapse whitespace-nowrap text-left text-xs">
                 <thead>
                   <tr className="border-b border-zinc-200 bg-zinc-50 font-semibold uppercase tracking-wider text-zinc-500">
-                    <th className="px-3 py-2.5">時間</th>
-                    <th className="px-3 py-2.5">分類 / 來源</th>
-                    <th className="px-3 py-2.5">事件名稱 (Event)</th>
-                    <th className="px-3 py-2.5">用戶</th>
-                    <th className="px-3 py-2.5">路徑 (Path)</th>
-                    <th className="px-3 py-2.5">詳細參數 (Params)</th>
+                    <th className="whitespace-nowrap px-3 py-2.5">時間</th>
+                    <th className="whitespace-nowrap px-3 py-2.5">分類 / 來源</th>
+                    <th className="whitespace-nowrap px-3 py-2.5">事件名稱 (Event)</th>
+                    <th className="whitespace-nowrap px-3 py-2.5">用戶</th>
+                    <th className="whitespace-nowrap px-3 py-2.5">路徑 (Path)</th>
+                    <th className="whitespace-nowrap px-3 py-2.5">詳細參數 (Params)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
@@ -440,21 +444,21 @@ export function UxAnalyticsDashboard({
                       <td className="whitespace-nowrap px-3 py-2.5 font-mono text-zinc-500">
                         {formatShortTime(ev.createdAtIso)}
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="whitespace-nowrap px-3 py-2.5">
                         <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-mono text-[11px] text-zinc-700">
                           {ev.category} · {ev.source}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 font-mono font-semibold text-[#12141c]">
+                      <td className="whitespace-nowrap px-3 py-2.5 font-mono font-semibold text-[#12141c]">
                         {ev.event}
                       </td>
-                      <td className="px-3 py-2.5 text-zinc-700">
+                      <td className="whitespace-nowrap px-3 py-2.5 text-zinc-700">
                         {ev.userEmail || ev.clerkUserId || "訪客 (Anon)"}
                       </td>
-                      <td className="px-3 py-2.5 font-mono text-zinc-600">
+                      <td className="whitespace-nowrap px-3 py-2.5 font-mono text-zinc-600">
                         {ev.path || "—"}
                       </td>
-                      <td className="max-w-sm truncate px-3 py-2.5 font-mono text-[11px] text-zinc-500">
+                      <td className="whitespace-nowrap px-3 py-2.5 font-mono text-[11px] text-zinc-500">
                         {ev.paramsSummary || "—"}
                       </td>
                     </tr>

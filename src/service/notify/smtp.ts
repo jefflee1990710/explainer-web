@@ -20,8 +20,10 @@ export async function sendMail(input: {
   text: string;
   html: string;
   replyTo?: string;
+  fromEmail?: string;
 }) {
   if (!isSmtpConfigured()) return false;
+  const fromAddress = (input.fromEmail || smtpFrom()).trim();
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT || 587),
@@ -35,7 +37,7 @@ export async function sendMail(input: {
     socketTimeout: 20_000,
   });
   await transporter.sendMail({
-    from: `Scro <${smtpFrom()}>`,
+    from: `Scro <${fromAddress}>`,
     to: input.to,
     subject: input.subject,
     text: input.text,

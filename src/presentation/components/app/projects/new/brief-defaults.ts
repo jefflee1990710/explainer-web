@@ -154,8 +154,15 @@ export function defaultCastIdsForStyle(
   return matching.slice(0, requiredCount).map((character) => character.id);
 }
 
+const DEFAULT_FOLDER_NAMES = new Set([
+  "my first project",
+  "我的第一個專案",
+  "我的第一个项目",
+]);
+
 // If a user typed a script or sentence (>= 12 chars) into the Create Folder dialog, pre-fill the video source script with it.
 export function initialSourceFromFolderName(folderName?: string): string {
   const trimmed = (folderName ?? "").trim();
+  if (DEFAULT_FOLDER_NAMES.has(trimmed.toLowerCase())) return "";
   return trimmed.length >= 12 ? trimmed : "";
 }

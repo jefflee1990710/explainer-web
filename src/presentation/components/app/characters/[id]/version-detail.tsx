@@ -82,7 +82,7 @@ export function VersionDetail({
   const busy = version.status === "queued" || version.status === "in_progress";
   const board = version.blueprintKind === "board";
   const cost = board ? BLUEPRINT_COST : FRAME_COST;
-  const short = !subscribed || credits < cost;
+  const short = credits < cost;
   const blueprintAlt = t("characters.versionBlueprintAlt", {
     name: character.name,
     n: version.number,

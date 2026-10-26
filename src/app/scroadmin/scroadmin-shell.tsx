@@ -22,10 +22,18 @@ export function ScroAdminShell({
     { href: "/scroadmin/courses", label: t("scroAdmin.courses"), exact: false },
   ];
 
+  const isFullWidth =
+    pathname === "/scroadmin/analytics" ||
+    pathname.startsWith("/scroadmin/analytics/");
+
   return (
     <div className="min-h-dvh bg-[#f4f4f5] text-[#12141c]">
       <header className="border-b border-zinc-200 bg-[#12141c] text-white">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+        <div
+          className={`mx-auto flex h-16 items-center justify-between gap-4 px-4 sm:px-6 ${
+            isFullWidth ? "w-full max-w-none" : "max-w-6xl"
+          }`}
+        >
           <div className="flex items-center gap-6">
             <BrandMark wordClassName="text-lg font-bold tracking-tight text-white" />
             <p className="hidden text-xs font-semibold uppercase tracking-[0.16em] text-[#c6f24b] sm:block">
@@ -55,7 +63,13 @@ export function ScroAdminShell({
           <p className="truncate text-xs text-white/50">{email}</p>
         </div>
       </header>
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</div>
+      <div
+        className={`mx-auto px-4 py-8 sm:px-6 ${
+          isFullWidth ? "w-full max-w-none" : "max-w-6xl"
+        }`}
+      >
+        {children}
+      </div>
     </div>
   );
 }

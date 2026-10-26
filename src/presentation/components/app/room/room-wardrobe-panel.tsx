@@ -43,7 +43,7 @@ export function RoomWardrobePanel({
   const { byOptionId, promptMap } = useCustomWardrobeItems();
   const ready = version.status === "completed";
   const locked = !ready || pending !== "";
-  const short = !subscribed || credits < cost;
+  const short = credits < cost;
   const current = detectCharacterWardrobePicks(
     [version.prompt, version.editInstruction].filter(Boolean).join("\n"),
   );
