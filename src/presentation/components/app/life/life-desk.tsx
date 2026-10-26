@@ -48,6 +48,7 @@ import type {
 } from "@/service/character/life";
 import type { LifeSceneHit } from "@/service/character/life-prompt";
 import type { CharacterWardrobePicks } from "@/service/character/character-look";
+import type { CharacterWardrobeColorPicks } from "@/service/character/wardrobe-colors";
 import { translateAppError } from "@/util/i18n/translate-app-error";
 
 const REMARK_PALETTE = [
@@ -210,6 +211,7 @@ export function LifeDesk({
   const [poseDialogOpen, setPoseDialogOpen] = useState(false);
   // Optional hair / clothes overrides shared by all 3 creation modes.
   const [wardrobe, setWardrobe] = useState<CharacterWardrobePicks>({});
+  const [wardrobeColors, setWardrobeColors] = useState<CharacterWardrobeColorPicks>({});
   const kind: LifeShotKind = lifePostTemplateById(templateId)?.kind ?? "selfie";
   const [mode, setMode] = useState<"search" | "upload">("upload");
   const [hits, setHits] = useState<LifeSceneHit[]>([]);
@@ -552,6 +554,7 @@ export function LifeDesk({
             : undefined,
         poseId: poseId || undefined,
         wardrobe,
+        wardrobeColors,
         versionId: look.versionId || undefined,
       });
       setPending("");
@@ -690,7 +693,13 @@ export function LifeDesk({
       required={false}
       hint="可選填更換髮型、上衣、褲子、鞋子或配件；未選的部位沿用上方所選造型。"
     >
-      <LifeWardrobePicker value={wardrobe} disabled={pending !== ""} onChange={setWardrobe} />
+      <LifeWardrobePicker
+        value={wardrobe}
+        colors={wardrobeColors}
+        disabled={pending !== ""}
+        onChange={setWardrobe}
+        onColorsChange={setWardrobeColors}
+      />
     </LifeFormField>
   );
 

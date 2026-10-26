@@ -18,6 +18,12 @@ import {
   type CharacterWardrobePart,
   type CharacterWardrobePicks,
 } from "@/service/character/character-look";
+import {
+  detectCharacterWardrobeColors,
+  mergeWardrobePicksForColorEdits,
+  type CharacterWardrobeColorPicks,
+} from "@/service/character/wardrobe-colors";
+import { WardrobePartColorPicker } from "@/presentation/components/app/characters/wardrobe-part-color-picker";
 
 // Left column: hair / top / pants / shoes / accessory pickers stacked top to bottom, a free-text note, and Generate at the bottom.
 export function RoomWardrobePanel({
@@ -39,15 +45,23 @@ export function RoomWardrobePanel({
   const formId = useId();
   const [instruction, setInstruction] = useState("");
   const [picks, setPicks] = useState<CharacterWardrobePicks>({});
+  const [colors, setColors] = useState<CharacterWardrobeColorPicks>({});
   const [dialogPart, setDialogPart] = useState<CharacterWardrobePart | null>(null);
   const { byOptionId, promptMap } = useCustomWardrobeItems();
   const ready = version.status === "completed";
   const locked = !ready || pending !== "";
   const short = credits < cost;
-  const current = detectCharacterWardrobePicks(
-    [version.prompt, version.editInstruction].filter(Boolean).join("\n"),
+  const versionText = [version.prompt, version.editInstruction].filter(Boolean).join("\n");
+  const current = detectCharacterWardrobePicks(versionText);
+  const wornColors = detectCharacterWardrobeColors(versionText);
+  const mergedPicks = mergeWardrobePicksForColorEdits(picks, colors, current, promptMap);
+  const composedEdit = characterWardrobeEditInstruction(
+    mergedPicks,
+    instruction,
+    current.top,
+    promptMap,
+    colors,
   );
-  const composedEdit = characterWardrobeEditInstruction(picks, instruction, current.top, promptMap);
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -56,6 +70,7 @@ export function RoomWardrobePanel({
     onEdit(composedEdit);
     setInstruction("");
     setPicks({});
+    setColors({});
   }
 
   return (
@@ -92,8 +107,10 @@ export function RoomWardrobePanel({
               ? t(`characters.look.options.${part}.${activeId}`)
               : "—";
           const extreme = activeId && !customOption ? isExaggeratedLookOption(part, activeId) : false;
+          const colorActiveId = activeId ?? defaultCharacterLook()[part];
           return (
-            <div key={part} className="relative flex items-center">
+            <div key={part} className="space-y-1">
+            <div className="relative flex items-center">
               <button
                 type="button"
                 disabled={locked}
@@ -132,6 +149,24 @@ export function RoomWardrobePanel({
                   ×
                 </button>
               ) : null}
+            </div>
+            {colorActiveId ? (
+              <WardrobePartColorPicker
+                compact
+                part={part}
+                optionId={colorActiveId}
+                customPrompt={customOption?.prompt}
+                inheritedColor={wornColors[part]}
+                value={colors}
+                disabled={locked}
+                onChange={(next) => {
+                  setColors(next);
+                  if (next[part] && activeId && !picks[part]) {
+                    setPicks((prev) => ({ ...prev, [part]: activeId }));
+                  }
+                }}
+              />
+            ) : null}
             </div>
           );
         })}
@@ -175,7 +210,14 @@ export function RoomWardrobePanel({
         <CharacterLookDialog
           part={dialogPart}
           value={picks[dialogPart] ?? current[dialogPart] ?? defaultCharacterLook()[dialogPart] ?? ""}
-          onChange={(id) => setPicks((prev) => applyWardrobePick(prev, dialogPart, id, current))}
+          onChange={(id) => {
+            setPicks((prev) => applyWardrobePick(prev, dialogPart, id, current));
+            setColors((prev) => {
+              const next = { ...prev };
+              delete next[dialogPart];
+              return next;
+            });
+          }}
           onClose={() => setDialogPart(null)}
         />
       ) : null}

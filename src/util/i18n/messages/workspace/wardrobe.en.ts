@@ -42,6 +42,10 @@ export const wardrobeEn = {
   keepDefault: "Keep default",
   pickedSummary: "{count} selected; unpicked parts keep the character's default look",
   clearAll: "Clear all",
+  partColorLabel: "Color",
+  partColorDefault: "Default",
+  partColorReset: "Reset",
+  partColorPickerAria: "Pick color for {part}",
 };
 
 export type WardrobeMessages = typeof wardrobeEn;

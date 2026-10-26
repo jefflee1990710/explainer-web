@@ -12,16 +12,22 @@ import {
   type CharacterWardrobePart,
   type CharacterWardrobePicks,
 } from "@/service/character/character-look";
+import type { CharacterWardrobeColorPicks } from "@/service/character/wardrobe-colors";
+import { WardrobePartColorPicker } from "@/presentation/components/app/characters/wardrobe-part-color-picker";
 
 // Optional hair / top / pants / shoes / accessory picks for one life photo. Unpicked parts keep the preset look.
 export function LifeWardrobePicker({
   value,
+  colors,
   disabled,
   onChange,
+  onColorsChange,
 }: {
   value: CharacterWardrobePicks;
+  colors: CharacterWardrobeColorPicks;
   disabled?: boolean;
   onChange: (next: CharacterWardrobePicks) => void;
+  onColorsChange: (next: CharacterWardrobeColorPicks) => void;
 }) {
   const { t, locale } = useI18n();
   const [dialogPart, setDialogPart] = useState<CharacterWardrobePart | null>(null);
@@ -33,6 +39,11 @@ export function LifeWardrobePicker({
     const next = { ...value };
     delete next[part];
     onChange(next);
+    onColorsChange((() => {
+      const nextColors = { ...colors };
+      delete nextColors[part];
+      return nextColors;
+    })());
   }
 
   return (
@@ -52,7 +63,8 @@ export function LifeWardrobePicker({
               : t("wardrobe.keepDefault");
           const extreme = pickedId && !customOption ? isExaggeratedLookOption(part, pickedId) : false;
           return (
-            <div key={part} className="relative flex items-center">
+            <div key={part} className="space-y-1">
+            <div className="relative flex items-center">
               <button
                 type="button"
                 disabled={disabled}
@@ -94,6 +106,18 @@ export function LifeWardrobePicker({
                 </button>
               ) : null}
             </div>
+            {pickedId ? (
+              <WardrobePartColorPicker
+                compact
+                part={part}
+                optionId={pickedId}
+                customPrompt={customOption?.prompt}
+                value={colors}
+                disabled={disabled}
+                onChange={onColorsChange}
+              />
+            ) : null}
+            </div>
           );
         })}
       </div>
@@ -104,7 +128,10 @@ export function LifeWardrobePicker({
           <button
             type="button"
             disabled={disabled}
-            onClick={() => onChange({})}
+            onClick={() => {
+              onChange({});
+              onColorsChange({});
+            }}
             className="cursor-pointer rounded-full border border-accent-ink/15 px-2.5 py-0.5 font-semibold hover:text-foreground disabled:cursor-not-allowed"
           >
             {t("wardrobe.clearAll")}
@@ -116,7 +143,14 @@ export function LifeWardrobePicker({
         <CharacterLookDialog
           part={dialogPart}
           value={value[dialogPart] ?? defaultCharacterLook()[dialogPart] ?? ""}
-          onChange={(id) => onChange({ ...value, [dialogPart]: id })}
+          onChange={(id) => {
+            onChange({ ...value, [dialogPart]: id });
+            onColorsChange((() => {
+              const next = { ...colors };
+              delete next[dialogPart];
+              return next;
+            })());
+          }}
           onClose={() => setDialogPart(null)}
         />
       ) : null}

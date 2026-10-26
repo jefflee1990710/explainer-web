@@ -1,6 +1,10 @@
 // Picture picks for the character generator. Prompts stay in English for image generation.
 import { REALISTIC_CHARACTER_RENDER_RULE } from "@/service/style/realistic-light";
 import {
+  wardrobePromptWithColor,
+  type CharacterWardrobeColorPicks,
+} from "@/service/character/wardrobe-colors";
+import {
   EXTRA_ACCESSORIES,
   EXTRA_HAIR,
   EXTRA_HERITAGE_ACCESSORY_IDS,
@@ -208,7 +212,11 @@ export type CharacterLookSelection = Record<CharacterLookPart, string> &
   Partial<Record<CharacterExtraPart, string>> & {
     gender?: CharacterGender;
     exaggeration?: CharacterExaggerationLevel;
+    /** Optional hex overrides for wardrobe parts at blueprint creation. */
+    wardrobeColors?: CharacterWardrobeColorPicks;
   };
+
+export type { CharacterWardrobeColorPicks } from "@/service/character/wardrobe-colors";
 
 const PART_LABEL: Record<AnyCharacterLookPart, string> = {
   hair: "Hair",
@@ -632,7 +640,19 @@ const EXAGGERATION_PROMPT: Record<CharacterExaggerationLevel, string> = {
 };
 
 // One description for the blueprint. Every selected part is named so the image model keeps the combination.
+function wardrobePartPromptLine(
+  part: CharacterWardrobePart,
+  optionId: string,
+  basePrompt: string,
+  colors?: CharacterWardrobeColorPicks,
+  customPrompt?: string,
+): string {
+  const prompt = wardrobePromptWithColor(basePrompt, part, optionId, colors, customPrompt);
+  return `${PART_LABEL[part]}: ${prompt}.`;
+}
+
 export function characterLookPrompt(selection: CharacterLookSelection) {
+  const colors = selection.wardrobeColors;
   const lines: string[] = [];
   if (selection.gender === "male") {
     lines.push("Gender: adult man (male).");
@@ -644,7 +664,19 @@ export function characterLookPrompt(selection: CharacterLookSelection) {
     if (!option) throw new Error(`Unknown ${part} look: ${selection[part]}`);
     if (part === "pants") {
       const pants = pantsPromptFor(option.id, selection.top);
-      if (pants) lines.push(`${PART_LABEL[part]}: ${pants}.`);
+      if (pants) {
+        lines.push(
+          wardrobePartPromptLine("pants", option.id, pants, colors),
+        );
+      }
+      continue;
+    }
+    if (part === "hair") {
+      lines.push(wardrobePartPromptLine("hair", option.id, option.prompt, colors));
+      continue;
+    }
+    if (part === "shoes") {
+      lines.push(wardrobePartPromptLine("shoes", option.id, option.prompt, colors));
       continue;
     }
     lines.push(`${PART_LABEL[part]}: ${option.prompt}.`);
@@ -657,7 +689,13 @@ export function characterLookPrompt(selection: CharacterLookSelection) {
       continue;
     }
     const option = CHARACTER_EXTRA_LOOKS[part].find((item) => item.id === id);
-    if (option) lines.push(`${PART_LABEL[part]}: ${option.prompt}.`);
+    if (option) {
+      if (part === "top" || part === "accessory") {
+        lines.push(wardrobePartPromptLine(part, id, option.prompt, colors));
+      } else {
+        lines.push(`${PART_LABEL[part]}: ${option.prompt}.`);
+      }
+    }
   }
   const ex = selection.exaggeration && selection.exaggeration !== "1x" ? EXAGGERATION_PROMPT[selection.exaggeration] : "";
   if (ex) lines.push(ex);
@@ -752,18 +790,21 @@ export function sanitizeWardrobePicks(raw: unknown): CharacterWardrobePicks {
 export function wardrobePickPrompts(
   picks: CharacterWardrobePicks,
   customPromptMap?: ReadonlyMap<string, string>,
+  colors?: CharacterWardrobeColorPicks,
 ): Partial<Record<CharacterWardrobePart, string>> {
   const prompts: Partial<Record<CharacterWardrobePart, string>> = {};
   for (const part of CHARACTER_WARDROBE_PARTS) {
     const id = picks[part];
     if (!id) continue;
     const customPrompt = customPromptMap?.get(id);
-    const prompt =
+    const base =
       customPrompt ??
       (part === "pants"
         ? pantsPromptFor(id, picks.top)
         : characterLookOption(part, id)?.prompt);
-    if (prompt) prompts[part] = prompt;
+    if (base) {
+      prompts[part] = wardrobePromptWithColor(base, part, id, colors, customPrompt);
+    }
   }
   return prompts;
 }
@@ -775,18 +816,20 @@ export function characterWardrobeEditInstruction(
   customNote = "",
   wornTop?: string,
   customPromptMap?: ReadonlyMap<string, string>,
+  colors?: CharacterWardrobeColorPicks,
 ): string {
   const parts: string[] = [];
   for (const part of CHARACTER_WARDROBE_PARTS) {
     const id = picks[part];
     if (!id) continue;
     const customPrompt = customPromptMap?.get(id);
-    const prompt =
+    const base =
       customPrompt ??
       (part === "pants"
         ? pantsPromptFor(id, picks.top ?? wornTop)
         : characterLookOption(part, id)?.prompt);
-    if (prompt) {
+    if (base) {
+      const prompt = wardrobePromptWithColor(base, part, id, colors, customPrompt);
       parts.push(`${PART_LABEL[part]}: ${prompt}`);
     }
   }

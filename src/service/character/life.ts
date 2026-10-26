@@ -24,8 +24,10 @@ import { characterIdentityUrl } from "@/service/character/identity";
 import {
   sanitizeWardrobePicks,
   wardrobePickPrompts,
+  type CharacterWardrobePart,
   type CharacterWardrobePicks,
 } from "@/service/character/character-look";
+import { sanitizeWardrobeColors, type CharacterWardrobeColorPicks } from "@/service/character/wardrobe-colors";
 import { resolveCustomWardrobePickPrompts } from "@/service/character/custom-wardrobe";
 import { lifeVersionFaceUrl, resolveLifeShotVersion } from "@/service/character/life-version";
 import {
@@ -324,20 +326,24 @@ export async function generateLifeShotAction(input: {
   compositionRefUrl?: string;
   poseId?: string;
   wardrobe?: CharacterWardrobePicks;
+  wardrobeColors?: CharacterWardrobeColorPicks;
   // Saved preset or history look. Omitted uses the character's newest completed blueprint.
   versionId?: string;
 }) {
   const user = await requireAppUser();
   // Optional hair / top / pants / shoes / accessory picks that override the preset look.
   const sanitizedPicks = sanitizeWardrobePicks(input.wardrobe);
+  const sanitizedColors = sanitizeWardrobeColors(input.wardrobeColors);
   const customPrompts = await resolveCustomWardrobePickPrompts(
     user.clerkUserId,
     sanitizedPicks,
   );
-  const wardrobe = {
-    ...wardrobePickPrompts(sanitizedPicks),
-    ...customPrompts,
-  };
+  const customPromptMap = new Map(
+    Object.entries(customPrompts).flatMap(([part, prompt]) =>
+      typeof prompt === "string" ? [[part as CharacterWardrobePart, prompt] as const] : [],
+    ),
+  );
+  const wardrobe = wardrobePickPrompts(sanitizedPicks, customPromptMap, sanitizedColors);
   const place = (input.place ?? "").trim().slice(0, 60);
   const template = lifePostTemplateById(input.templateId);
   const pose = lifePoseById(input.poseId);
