@@ -1663,4 +1663,28 @@ test("multi-style director resolves per-clip styleId for frame prompts", async (
   assert.match(clip2Start.prompt, /pixel/i);
 });
 
+// Break this catches: an invented clip styleId is preferred over the project style,
+// then collapsed to doodle, so the still leaves the attached character blueprint.
+test("invented clip style follows the project style in the frame prompt", async () => {
+  const video = project("realistic");
+  video.skillSlug = "cartoon-explainer-video-director";
+  video.phaseA!.clips[0].styleId = "cinematic-realistic";
+  video.cast = [
+    {
+      characterId: new ObjectId(),
+      versionId: new ObjectId(),
+      name: "Scro",
+      blueprintUrl: "https://blob/scro-realistic-board.png",
+      prompt: "photoreal standing board",
+    },
+  ];
+  const frames = await framesWithClipsReady(video, [1], async () => {});
+  const start = frames.find((frame) => frame.clipNumber === 1 && frame.position === "start");
+  assert.ok(start);
+  assert.match(start.prompt, /Single storyboard still for a realistic name short video/);
+  assert.match(start.prompt, /Look: realistic look/);
+  assert.doesNotMatch(start.prompt, /doodle name/);
+  assert.doesNotMatch(start.prompt, /doodle look/);
+});
+
 

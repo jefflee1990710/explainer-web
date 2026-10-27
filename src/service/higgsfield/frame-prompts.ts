@@ -481,12 +481,21 @@ function fitFramePrompt(
   return prompt;
 }
 
+// A saved user style is a 24-hex id. An invented label such as "cinematic-realistic" is not.
+const USER_STYLE_ID = /^[a-f0-9]{24}$/i;
+
+function chosenStyleId(id: string | undefined): id is string {
+  return Boolean(id && (isStyleId(id) || USER_STYLE_ID.test(id)));
+}
+
 export function resolveClipStyleId(
   project: Pick<Project, "styleId" | "styleIds" | "phaseA">,
   clipNumber: number,
 ): string | undefined {
   const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
-  if (row?.styleId) return row.styleId;
+  // Only a real catalog or user style may override the project. An invented id
+  // would otherwise collapse to doodle and leave the character blueprint.
+  if (chosenStyleId(row?.styleId)) return row.styleId;
   if (project.styleIds && project.styleIds.length > 0) {
     return project.styleIds[(clipNumber - 1) % project.styleIds.length];
   }
