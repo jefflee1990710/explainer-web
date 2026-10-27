@@ -1,16 +1,99 @@
-/* Looping runner video shown while the director writes the storyboard. */
+/* Wide SVG wait mark while the director writes the storyboard. */
 
-.planning-runner {
+.planning-load {
 	overflow: hidden;
 	border-radius: 12px;
 	background: #fff;
 	aspect-ratio: 21 / 9;
 }
 
-.planning-runner__video {
+.planning-load__svg {
 	display: block;
 	width: 100%;
 	height: 100%;
-	object-fit: contain;
-	background: #fff;
+}
+
+.planning-load__rail {
+	opacity: 0.22;
+}
+
+.planning-load__orbit,
+.planning-load__mark,
+.planning-load__sticker {
+	transform-box: fill-box;
+	transform-origin: center;
+}
+
+.planning-load__orbit {
+	animation: planning-load-spin 9s linear infinite;
+}
+
+.planning-load__orbit--reverse {
+	animation-duration: 6.5s;
+	animation-direction: reverse;
+}
+
+.planning-load__mark {
+	animation: planning-load-float 2.4s ease-in-out infinite;
+}
+
+.planning-load__sticker {
+	animation: planning-load-stamp 2.4s ease-in-out infinite;
+}
+
+.planning-load__s {
+	stroke-dasharray: 100;
+	stroke-dashoffset: 100;
+	animation: planning-load-draw 2.6s ease-in-out infinite;
+}
+
+@keyframes planning-load-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes planning-load-float {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-6px);
+	}
+}
+
+@keyframes planning-load-stamp {
+	0%,
+	100% {
+		transform: translate(0, 0);
+	}
+	50% {
+		transform: translate(4px, 4px);
+	}
+}
+
+@keyframes planning-load-draw {
+	0% {
+		stroke-dashoffset: 100;
+	}
+	58% {
+		stroke-dashoffset: 0;
+	}
+	100% {
+		stroke-dashoffset: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.planning-load__orbit,
+	.planning-load__mark,
+	.planning-load__sticker,
+	.planning-load__s {
+		animation: none;
+	}
+
+	.planning-load__s {
+		stroke-dashoffset: 0;
+	}
 }
