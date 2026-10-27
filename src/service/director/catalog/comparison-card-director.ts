@@ -33,7 +33,7 @@ const raw = {
   "references": [
     {
       "path": "references/comparison-prompt-contract.md",
-      "content": "# Comparison Card Clip Prompt Contract (Phase B)\n\nOne prompt per approved clip.\n\n1. Duration 3–8 seconds, aspect ratio, the split (left/right or top/bottom).\n2. Style lock from the Visual style block.\n3. Both panel titles spelled exactly from `narrativeJob`. They are the only writing.\n4. Scene at t=0: both halves already visible.\n5. Timed beats: one half changes, then the other. The divider stays. No cut to a single picture.\n6. Narrator line quoted once as audio. No voiceover caption.\n7. Last clip rests on both halves. No loop.\n\nColours in ordinary words only.\n"
+      "content": "# Comparison Card Clip Prompt Contract (Phase B)\n\nOne prompt per approved clip.\n\n1. Duration 5–12 seconds, from the spoken line and pace, aspect ratio, the split (left/right or top/bottom).\n2. Style lock from the Visual style block.\n3. Both panel titles spelled exactly from `narrativeJob`. They are the only writing.\n4. Scene at t=0: both halves already visible.\n5. Timed beats: one half changes, then the other. The divider stays. No cut to a single picture.\n6. Narrator line quoted once as audio. No voiceover caption.\n7. Last clip rests on both halves. No loop.\n\nColours in ordinary words only.\n"
     },
     {
       "path": "references/comparison-proposal-contract.md",
@@ -42,7 +42,7 @@ const raw = {
   ],
   "profile": {
     "bestFor": "One idea shown as two views at once — what you see vs what they see, before vs after, myth vs fact — for Reels and Shorts.",
-    "structure": "Each clip is 3–8 seconds and is one split frame. About 1–2 clips for micro, 2–4 for 15–20s, 4–6 for 30–45s, and 6–8 for 50–60s. The last clip rests with both halves visible.",
+    "structure": "Each clip is 5–12 seconds, set by the spoken line and pace and is one split frame. About 1–2 clips for micro, 2–4 for 15–20s, 4–6 for 30–45s, and 6–8 for 50–60s. The last clip rests with both halves visible.",
     "hook": "Opens on the split already in frame and names the contrast in the first two seconds. No greeting, no empty title card.",
     "arc": "Hook states the two sides. Middle clips change what each half shows while the split stays. The last clip lands the point with both halves still on screen.",
     "narrator": "An unseen narrator names the contrast. The only on-canvas writing is the two short panel titles.",

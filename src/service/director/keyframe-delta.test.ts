@@ -20,13 +20,18 @@ test("duration maps onto a change-budget band", () => {
   assert.equal(keyframeDeltaBand(4), "4s");
   assert.equal(keyframeDeltaBand(6), "5-6s");
   assert.equal(keyframeDeltaBand(8), "7-8s");
+  assert.equal(keyframeDeltaBand(10), "9-12s");
+  assert.equal(keyframeDeltaBand(12), "9-12s");
 });
 
 test("director block asks for start and end states scaled by seconds", () => {
   const block = keyframeDeltaDirectorBlock();
-  assert.match(block, /起始：/);
+  assert.match(block, /Start:/);
   assert.match(block, /3s:/);
   assert.match(block, /7–8s:/);
+  assert.match(block, /9–12s:/);
+  const cantonese = keyframeDeltaDirectorBlock({ language: "yue" });
+  assert.match(cantonese, /起始：/);
   assert.match(block, /must NOT look almost identical/);
   assert.match(block, /exactly ONE instance of each named character/);
   assert.match(block, /never two bodies in one frame/);

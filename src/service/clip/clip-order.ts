@@ -1,11 +1,7 @@
 import type { PhaseAProposal, StoryboardRow, VoLanguage } from "@/model/project";
+import { CLIP_MAX_SECONDS, CLIP_MIN_SECONDS } from "@/service/director/clip-seconds";
 import { spokenUnits } from "@/service/director/phase-a-edit";
 import { clipNumberFromTimelineId, clipTimelineId } from "@/service/video-edit/edit-timeline";
-
-const NORMAL_MIN_SECONDS = 3;
-const NORMAL_MAX_SECONDS = 8;
-const TALKING_MIN_SECONDS = 1;
-const TALKING_MAX_SECONDS = 12;
 
 type Numbered = { clipNumber: number };
 
@@ -43,12 +39,12 @@ export function moveClipIds(ids: string[], fromId: string, toId: string) {
   return next;
 }
 
+// Storyboard edits stay inside 5–12s. Talking-head used to allow 1s; it shares this range.
 export function clampClipDuration(seconds: number, talkingHead = false) {
-  const min = talkingHead ? TALKING_MIN_SECONDS : NORMAL_MIN_SECONDS;
-  const max = talkingHead ? TALKING_MAX_SECONDS : NORMAL_MAX_SECONDS;
+  void talkingHead;
   const rounded = Math.round(seconds);
-  if (!Number.isFinite(rounded)) return min;
-  return Math.min(max, Math.max(min, rounded));
+  if (!Number.isFinite(rounded)) return CLIP_MIN_SECONDS;
+  return Math.min(CLIP_MAX_SECONDS, Math.max(CLIP_MIN_SECONDS, rounded));
 }
 
 // Append one storyboard row and give it the next number and time range.

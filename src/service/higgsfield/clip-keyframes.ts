@@ -195,7 +195,7 @@ export function assertClipKeyframes(
   return { start, end };
 }
 
-// MiniMax H3 duration is 5–15s; Explainer clips are 3–8s so short ones lift to 5.
+// MiniMax H3 duration is 5–15s; Explainer clips are 5–12s.
 function h3DurationSeconds(seconds: number) {
   return Math.min(15, Math.max(5, Math.round(seconds)));
 }

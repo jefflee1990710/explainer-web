@@ -32,7 +32,7 @@ description: Use when turning SaaS pitches, product workflows, tool launches, or
 
 ## Core contract
 
-Turn one product or workflow brief into a confirmed director's proposal (Phase A) and then standalone clip prompts (Phase B). Each clip runs 5–8 seconds with two distinct beats per clip (\`startScene\` / \`endScene\` and \`startVo\` / \`endVo\`). Preserve the source's factual workflow and value proposition while engineering a high-retention promo arc — pattern-interrupt hook, problem/solution contrast, step-by-step workflow pipeline, tangible ROI / analytics payoff, and a clean brand sign-off.
+Turn one product or workflow brief into a confirmed director's proposal (Phase A) and then standalone clip prompts (Phase B). Each clip is 5–12 seconds, set by the spoken line and pace with two distinct beats per clip (\`startScene\` / \`endScene\` and \`startVo\` / \`endVo\`). Preserve the source's factual workflow and value proposition while engineering a high-retention promo arc — pattern-interrupt hook, problem/solution contrast, step-by-step workflow pipeline, tangible ROI / analytics payoff, and a clean brand sign-off.
 
 ## Style-agnostic visual rule
 
@@ -102,7 +102,7 @@ Write one standalone video prompt per approved clip:
     bestFor:
       "SaaS launches, product workflow explainers, agency promos, and conversion reels that turn a messy problem into a 3-step workflow and ROI payoff.",
     structure:
-      "Dual-beat clips (5–8s each): Clip 1 hooks and states the thesis, middle clips walk through the 3-step workflow, and the final clip lands the ROI showcase and brand outro.",
+      "Dual-beat clips (5–12s each, set by the spoken lines and pace): Clip 1 hooks and states the thesis, middle clips walk through the 3-step workflow, and the final clip lands the ROI showcase and brand outro.",
     hook: "Opens with a pattern-interrupt alert or friction moment in Beat 1, then snaps into a bold thesis in Beat 2.",
     arc: "Pattern-Interrupt Hook → Problem vs. Thesis → Step 1 → Step 2 → Step 3 Workflow → Device & Analytics ROI Payoff → Brand Outro.",
     narrator:

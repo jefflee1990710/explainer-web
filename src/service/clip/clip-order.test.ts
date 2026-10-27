@@ -56,9 +56,9 @@ test("placeAppendedClip numbers the new row after the last clip", () => {
   const next = placeAppendedClip(proposal(), row(9, 4), { language: "en" });
   assert.equal(next.clipCount, 3);
   assert.equal(next.clips[2].clipNumber, 3);
-  assert.equal(next.clips[2].timeRange, "10–14s");
-  assert.equal(next.clips[2].durationSeconds, 4);
-  assert.equal(next.targetDuration, "14s");
+  assert.equal(next.clips[2].timeRange, "10–15s");
+  assert.equal(next.clips[2].durationSeconds, 5);
+  assert.equal(next.targetDuration, "15s");
   assert.equal(next.clips[0].clipNumber, 1);
 });
 
@@ -185,8 +185,8 @@ test("insertClips puts a row between clips and shifts the rest", () => {
     result.project.phaseA?.clips.map((clip) => [clip.clipNumber, clip.narrativeJob, clip.timeRange]),
     [
       [1, "job 1", "0–5s"],
-      [2, "job 9", "5–9s"],
-      [3, "job 2", "9–14s"],
+      [2, "job 9", "5–10s"],
+      [3, "job 2", "10–15s"],
     ],
   );
   assert.equal(result.project.phaseA?.clips[1].backgroundSetId, "room");

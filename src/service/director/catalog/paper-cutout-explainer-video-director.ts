@@ -32,7 +32,7 @@ description: Use when turning copy, notes, articles, product briefs, or topics i
 
 ## Core contract
 
-Turn one source into a confirmed director's proposal (Phase A) and then standalone prompts (Phase B). Each clip runs approximately 3–8 seconds (maximum 8 seconds per clip). Clip count follows the narrative (e.g. 2–4 clips for 15s, 4–6 for 30s, 7–10 for 60s, or 1–2 for micro). Preserve the source's meaning while engineering high retention, dual hook stacking, and a delayed clean payoff — never a seamless loop.
+Turn one source into a confirmed director's proposal (Phase A) and then standalone prompts (Phase B). Each clip is 5–12 seconds. Set durationSeconds from that clip's spoken line and the chosen speaking pace. A short line stays 5 seconds. A longer line is 6–12 seconds. Do not pad or cut the line to force 5 seconds. Clip count follows the narrative (e.g. 2–4 clips for 15s, 4–6 for 30s, 7–10 for 60s, or 1–2 for micro). Preserve the source's meaning while engineering high retention, dual hook stacking, and a delayed clean payoff — never a seamless loop.
 
 ## Setup gate
 
@@ -63,7 +63,7 @@ If required items are missing, ask once and stop. Never pick an aspect ratio sil
 
 ## Output rules
 
-- Each clip 3–8 seconds (max 8). About 7–20 English VO words per clip at medium pace (~2.5 words/s).
+- Each clip is 5–12 seconds from its spoken line (about 2.4 English words per second). A short line stays 5 seconds at medium pace (~2.5 words/s).
 - 2-Second Visual Rule: a noticeable paste / slide / flip / punch-in every 1.5–2.5 seconds.
 - Clip 1 stacks at least 2 hook types and uses one exaggerated camera move (snap zoom, orbit, overhead drop, crash push, or dutch snap) — sharp and fast. Later clips do not repeat that hook camera.
 - Delayed payoff: do not reveal the core punchline in the opening clip.
@@ -101,7 +101,7 @@ Create one natural narration scaled to duration (~2.2–2.5 words/s medium). Hoo
 ## Header
 
 1. English + reference-language titles
-2. Duration, clip count N (each 3–8s), loop: Linear
+2. Duration, clip count N (each 5–12s, from the spoken line and pace), loop: Linear
 3. Core message + hook stack
 4. Aspect ratio + locked paper-cutout collage world
 5. Narrator identity + word count
@@ -133,7 +133,7 @@ Use only after Phase A approval. One self-contained prompt per clip.
 
 ## Prompt order
 
-1. Output: 3–8s (max 8), aspect ratio, 720p, 24 FPS, synced audio
+1. Output: 5–12s from the spoken line, aspect ratio, 720p, 24 FPS, synced audio
 2. Collage lock: dark craft board / black paper, thick white scissor borders on every piece, colour hero on mono/kraft background layers, soft shadows, stop-motion paste feel
 3. Character lock: colour paper cutout following the guideline (or locked host); silent, closed mouth
 4. Palette in ordinary colour names
@@ -156,7 +156,7 @@ Start and end stills are one continuous paste-motion shot. Animate the one actio
     bestFor:
       "Turning a concept, product, or set of notes into a paper-cutout collage explainer — ideas taught by pasting cut-out objects, products, and diagram pieces onto a craft board.",
     structure:
-      "Each clip runs 3–8 seconds; count follows content (about 1–2 micro, 2–4 for 15–20s, 4–6 for 30–45s, 7–10 for 50–60s).",
+      "Each clip is 5–12 seconds, set by the spoken line and pace; count follows content (about 1–2 micro, 2–4 for 15–20s, 4–6 for 30–45s, 7–10 for 50–60s).",
     hook: "Clip 1 opens with a punchy spoken line plus one exaggerated camera move (snap zoom, orbit, overhead drop, crash push, or dutch snap), while a bold cutout piece pastes into frame.",
     arc: "Surprise → setup → how it works (pasted diagram) → consequence → takeaway, or pain → product reveal as a colour cutout → proof → CTA. Hold the main answer until near the end.",
     narrator:

@@ -14,33 +14,34 @@ export const DURATION_PRESETS: Record<
     label: "Auto",
     hint: "Director decides",
     skillHint:
-      "AUTO length: Choose targetDuration, clipCount, and each clip's durationSeconds from the source and this director's planning. Do not assume a fixed total length or a fixed clip count. Stay inside this skill's per-clip duration limits. End on a clean resting payoff — never a seamless loop.",
+      "AUTO length: Choose targetDuration and clipCount from the source. Each clip's durationSeconds is 5–12 and follows that clip's spoken line at the chosen pace. A short line stays 5 seconds. A clip with no spoken line is 5 seconds. Do not force every clip to 5 seconds. End on a clean resting payoff — never a seamless loop.",
   },
   micro: {
     id: "micro",
     label: "4–8 秒微短片",
     hint: "1–2 段 clips",
-    skillHint: "4–8s Micro short: ~10–20 English words (1–2 clips). End on a clean resting payoff — never a seamless loop.",
+    skillHint:
+      "4–8s Micro short: ~10–20 English words (1–2 clips). Each clip is 5–12 seconds from its own spoken line and pace. A short line stays 5. Do not pad or cut a line to force 5 seconds. End on a clean resting payoff — never a seamless loop.",
   },
   short: {
     id: "short",
     label: "15–20 秒短片",
     hint: "2–4 段 clips",
     skillHint:
-      "15–20s Short / Listicle: ~35–50 English words (~2–4 clips).",
+      "15–20s Short / Listicle: ~35–50 English words (~2–4 clips). Each clip is 5–12 seconds from its own spoken line and pace. A short line stays 5. Do not pad or cut a line to force 5 seconds.",
   },
   punchy: {
     id: "punchy",
     label: "30–45 秒拆解",
     hint: "4–6 段 clips",
     skillHint:
-      "30–45s Punchy Breakdown: ~70–110 English words (~4–6 clips).",
+      "30–45s Punchy Breakdown: ~70–110 English words (~4–6 clips). Each clip is 5–12 seconds from its own spoken line and pace. A short line stays 5. Do not pad or cut a line to force 5 seconds.",
   },
   full: {
     id: "full",
     label: "50–60 秒完整 explainer",
     hint: "7–10 段 clips",
     skillHint:
-      "50–60s Full Explainer: ~120–150 English words (~7–10 clips).",
+      "50–60s Full Explainer: ~120–150 English words (~7–10 clips). Each clip is 5–12 seconds from its own spoken line and pace. A short line stays 5. Do not pad or cut a line to force 5 seconds.",
   },
 };

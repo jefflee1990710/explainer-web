@@ -50,12 +50,17 @@ export function speechPaceDelivery(value?: string) {
   return SPEECH_PACE_PRESETS[resolveSpeechPace(value)].delivery;
 }
 
-// Phase A: the duration preset's word budget assumes medium pace; scale it.
+// Phase A: duration follows the line at this pace. Do not stretch the line to fill 5s.
 export function speechPaceSkillHint(value?: string) {
   const preset = SPEECH_PACE_PRESETS[resolveSpeechPace(value)];
-  const scale =
-    preset.budget === 1
-      ? "Use the duration preset's spoken-word budget as written."
-      : `Multiply the duration preset's spoken-word budget (and every clip's spoken units) by about ${preset.budget}.`;
-  return `Speaking pace: ${preset.id} — ${preset.delivery}. ${scale} Every clip MUST be at least 5 seconds long (up to 12s max) and its englishVo MUST contain enough spoken words/characters to fill the entire clip duration without dead silence at the start or end (~22–28 Chinese/Cantonese characters or ~12–16 English words per 5 seconds at medium pace). Expand or combine short phrases so no clip has an under-filled VO.`;
+  return [
+    `Speaking pace: ${preset.id} — ${preset.delivery}.`,
+    "Set every clip's durationSeconds from its own spoken line.",
+    "Count about 4 Chinese or Cantonese characters, or 2.4 English words, per second,",
+    `then divide by ${preset.budget} (slow 0.8 is longer, medium 1 stays, fast 1.2 is shorter).`,
+    "Clamp every clip to 5–12 seconds.",
+    "A short line stays 5 seconds. A longer line is 6–12 seconds.",
+    "Do not pad, expand, or cut the line to force a 5-second clip.",
+    "A clip with no spoken line is 5 seconds.",
+  ].join(" ");
 }

@@ -67,6 +67,7 @@ import {
 } from "@/service/director/explainer-family";
 import { loadReferenceImageContent } from "@/service/director/reference-image-content";
 import { rewriteEndScenes } from "@/service/director/end-scene-rewrite";
+import { withSpokenClipDurations } from "@/service/director/clip-seconds";
 import { storyboardModel, storyboardProviderOptions } from "@/service/director/model";
 import {
   instructionFollowsReferenceClothes,
@@ -502,7 +503,7 @@ Produce a complete Phase A director proposal now.`,
       references.attached,
     ),
   };
-  // Auto bookends stay one 3–4s clip. A chosen length is left as the model planned it.
+  // Auto bookends stay one clip. Spoken length is applied to every non-talking-head clip below.
   if (lockBookendLength) {
     const clips = normalizeBookendClips(next.clips);
     next = {
@@ -603,6 +604,13 @@ Produce a complete Phase A director proposal now.`,
         return { ...clip, styleId: validStyleId };
       }),
     };
+  }
+  // Talking-head seconds already follow the spoken script. Every other director
+  // gets duration from the line and pace here, so a model that always writes 5 is corrected.
+  if (!talkingHead) {
+    const clips = withSpokenClipDurations(next.clips, input.speechPace);
+    const totalSeconds = clips.reduce((sum, clip) => sum + clip.durationSeconds, 0);
+    next = { ...next, clips, targetDuration: `${totalSeconds}s` };
   }
   return next;
 }

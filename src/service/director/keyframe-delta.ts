@@ -4,7 +4,7 @@ import { sceneStateLabels } from "@/service/director/languages";
 // How far start → end may travel on the same locked camera, scaled by clip seconds.
 // Too little delta and I2V has nothing to animate; too much and it looks like a cut.
 
-export type KeyframeDeltaBand = "3s" | "4s" | "5-6s" | "7-8s";
+export type KeyframeDeltaBand = "3s" | "4s" | "5-6s" | "7-8s" | "9-12s";
 
 export function clampClipSeconds(durationSeconds: number) {
   return Math.min(12, Math.max(5, Math.round(durationSeconds)));
@@ -15,7 +15,8 @@ export function keyframeDeltaBand(durationSeconds: number): KeyframeDeltaBand {
   if (seconds <= 3) return "3s";
   if (seconds <= 4) return "4s";
   if (seconds <= 6) return "5-6s";
-  return "7-8s";
+  if (seconds <= 8) return "7-8s";
+  return "9-12s";
 }
 
 const BUDGET: Record<KeyframeDeltaBand, { director: string; start: string; end: string }> = {
@@ -42,6 +43,12 @@ const BUDGET: Record<KeyframeDeltaBand, { director: string; start: string; end: 
       "7–8s: two stronger beats — a step or a prop crossing much of the frame, plus a completed morph. Character stays in-frame at similar size; still no new camera.",
     start: "Opening at t=0s of a 7–8s clip, before the longer travel.",
     end: "After 7–8s, the camera motion has landed. Same place and light. Shot size and angle are where that motion stops, with a clear spatial change so I2V can animate the full duration; no jump cut or teleport.",
+  },
+  "9-12s": {
+    director:
+      "9–12s: the same two beats stretched across the longer spoken line. A prop may cross most of the frame. Character stays in-frame at similar size; still no new camera and no third action.",
+    start: "Opening at t=0s of a 9–12s clip, before the longer travel.",
+    end: "After 9–12s, the camera motion has landed. Same place and light. Shot size and angle are where that motion stops, with a clear spatial change so I2V can animate the full duration; no jump cut or teleport.",
   },
 };
 
@@ -82,6 +89,7 @@ export function keyframeDeltaDirectorBlock(options?: {
           "- 4s: that same action lands with a brief follow-through while they stay on the same side. The drawn element has moved.",
           "- 5–6s: anticipation, the full action, then follow-through as the graph responds. A full left-to-right or right-to-left cross only if this clip is one of the rare lateral clips. Extra drawings appear.",
           "- 7–8s: the same one primary action, with follow-through, or rarely one full lateral cross. One figure, still in frame. No cut. Do not add a second unrelated action.",
+          "- 9–12s: that same one primary action across the longer spoken line, with follow-through. One figure, still in frame. No cut. Do not add a second unrelated action.",
           steady
             ? "Keep the camera where the start still has it. A jump lifts the feet; never slide the body upward or across the frame. Do not repeat the previous clip's action. Do not use a walk between two standing poses."
             : "Change the camera angle. A jump lifts the feet; never slide the body upward or across the frame unless this clip is a lateral cross. Do not repeat the previous clip's action. Do not use a walk between two standing poses.",
@@ -91,6 +99,7 @@ export function keyframeDeltaDirectorBlock(options?: {
           `- ${BUDGET["4s"].director}`,
           `- ${BUDGET["5-6s"].director}`,
           `- ${BUDGET["7-8s"].director}`,
+          `- ${BUDGET["9-12s"].director}`,
           "Never invent a new camera, a jump cut, or a character teleporting across the frame.",
         ]),
   ].join("\n");

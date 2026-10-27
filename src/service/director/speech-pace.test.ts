@@ -19,11 +19,13 @@ test("speech pace accepts slow / medium / fast and defaults to medium", () => {
   assert.equal(resolveSpeechPace("fast"), "fast");
 });
 
-test("Phase A hint scales the spoken-word budget by pace", () => {
+test("Phase A hint sets clip length from the spoken line and pace", () => {
   assert.match(speechPaceSkillHint("slow"), /0\.8/);
   assert.match(speechPaceSkillHint("slow"), /every clip/i);
-  assert.match(speechPaceSkillHint("medium"), /as written/i);
+  assert.match(speechPaceSkillHint("medium"), /medium 1 stays/);
   assert.match(speechPaceSkillHint("fast"), /1\.2/);
+  assert.match(speechPaceSkillHint("fast"), /5–12/);
+  assert.match(speechPaceSkillHint("medium"), /Do not pad/);
 });
 
 test("Phase B lock carries the chosen delivery pace for narrator and dialogue", () => {

@@ -33,7 +33,7 @@ const raw = {
   "references": [
     {
       "path": "references/broll-prompt-contract.md",
-      "content": "# Talking-Head B-roll Clip Prompt Contract (Phase B)\n\nOne prompt per approved clip.\n\n1. Duration 3–8 seconds and aspect ratio.\n2. Style lock from the Visual style block.\n3. If `narrativeJob` is `on-camera`: the attached character, medium close-up, eyes to the lens, the locked background. They speak the line once.\n4. If `narrativeJob` is `b-roll`: no character. Show the subject. Quote an off-screen line once, or state no dialogue.\n5. Timed beats inside the shot. Name the cut at the boundary: from the face, or back to the face.\n6. No background music.\n7. The last prompt rests on the face. No loop.\n\nColours in ordinary words only. Do not restyle the character.\n"
+      "content": "# Talking-Head B-roll Clip Prompt Contract (Phase B)\n\nOne prompt per approved clip.\n\n1. Duration 5–12 seconds, from the spoken line and pace and aspect ratio.\n2. Style lock from the Visual style block.\n3. If `narrativeJob` is `on-camera`: the attached character, medium close-up, eyes to the lens, the locked background. They speak the line once.\n4. If `narrativeJob` is `b-roll`: no character. Show the subject. Quote an off-screen line once, or state no dialogue.\n5. Timed beats inside the shot. Name the cut at the boundary: from the face, or back to the face.\n6. No background music.\n7. The last prompt rests on the face. No loop.\n\nColours in ordinary words only. Do not restyle the character.\n"
     },
     {
       "path": "references/broll-proposal-contract.md",
@@ -42,7 +42,7 @@ const raw = {
   ],
   "profile": {
     "bestFor": "A person speaking to camera who cuts away to the thing they just named, then comes back — explainers that should not stay on a face.",
-    "structure": "Fixed rhythm: two on-camera lines, one B-roll cutaway, then back. Repeat. Each clip is 3–8 seconds. Micro can be one cycle (talk, talk, cutaway, return).",
+    "structure": "Fixed rhythm: two on-camera lines, one B-roll cutaway, then back. Repeat. Each clip is 5–12 seconds, set by the spoken line and pace. Micro can be one cycle (talk, talk, cutaway, return).",
     "hook": "Opens on the face saying the strongest line. Never opens on B-roll or a title card.",
     "arc": "Pairs of spoken lines, each pair paid off by one cutaway of what they named, then the same close-up returns. The last clip is on-camera and rests.",
     "narrator": "The attached character speaks the on-camera lines to the lens. A B-roll clip may carry one short off-screen line or stay silent.",

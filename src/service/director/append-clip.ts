@@ -1,6 +1,7 @@
 import { generateText, Output } from "ai";
 import { dualBeatStoryboardRowSchema, storyboardRowSchema } from "@/model/director";
 import type { PhaseAProposal, ReferenceImage, StoryboardRow, VoLanguage } from "@/model/project";
+import { withSpokenClipDuration } from "@/service/director/clip-seconds";
 import { chainsClipStarts } from "@/service/director/clip-continuity";
 import { clearEndStillChoice } from "@/service/director/camera-move";
 import { isDualBeatSkill, normalizeDualBeatRow } from "@/service/director/dual-beat";
@@ -161,7 +162,7 @@ ${appendClipPlacement(input.phaseA, insertAt)}
 ${language.planningSkillHint}
 ${sceneDetailDirectorBlock({ realistic: isRealisticStyle(input.style) })}
 ${sceneDescriptionLanguageLock(input.language)}
-durationSeconds is ${dualBeat ? "5 to 8" : "3 to 8"}.
+durationSeconds is 5 to 12, set from this clip's spoken line at the chosen pace. A short line stays 5. A clip with no spoken line is 5. Do not pad or cut the line to force 5 seconds.
 The englishVo field is the spoken line in ${language.label}. Leave referenceTranslation empty.
 ${dualBeat ? "Write startScene, endScene, startVo, and endVo. motionCamera is the move between the two stills." : "motionCamera is the camera move through this clip."}
 ${steadyStills ? "Both stills share the same Camera line and the same whole subtitle (startVo then endVo). Only the one action differs between them. motionCamera starts, accelerates through the one action, then decelerates into the landing. No wipe or rewrite of the lettering." : ""}
@@ -190,5 +191,5 @@ The next clip's start inherits the previous clip's end environment.`,
     skillSlug,
     lockedCamera: steadyStills,
   });
-  return [rewritten ?? row];
+  return [withSpokenClipDuration(rewritten ?? row, input.speechPace)];
 }

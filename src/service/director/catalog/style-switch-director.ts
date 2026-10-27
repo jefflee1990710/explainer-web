@@ -91,7 +91,7 @@ Write one video prompt per approved clip:
     bestFor:
       "Character consistency showcases, AI workflow demos, creative brand reels, and dimension-hopping promos where one character jumps across up to 4 visual styles.",
     structure:
-      "5–8s clips. Clip 1 hooks in Style #1; middle clips hard-cut across Styles #2–#4; the final clip lands the payoff and brand sign-off.",
+      "5–12s clips, with durationSeconds set by the spoken line and pace. Clip 1 hooks in Style #1; middle clips hard-cut across Styles #2–#4; the final clip lands the payoff and brand sign-off.",
     hook: "Opens in Style #1 with an expressive creator hook or bold question before hard-cutting into a completely different art style on Clip 2.",
     arc: "Style #1 Hook → Style #2 World Jump → Style #3 World Jump → Style #4 Climax & Brand Outro.",
     narrator:

@@ -45,10 +45,10 @@ export {
   isWardrobeBuildSkill,
 };
 
-// Opening / Ending bookends. Auto keeps the skill's 1×5–8s sting; a chosen length does not.
+// Opening / Ending bookends. Auto keeps the skill's 1×5–12s sting; a chosen length does not.
 const BOOKEND_SKILLS = new Set([OPENING_SKILL_SLUG, ENDING_SKILL_SLUG]);
 export const BOOKEND_MIN_SECONDS = 5;
-export const BOOKEND_MAX_SECONDS = 8;
+export const BOOKEND_MAX_SECONDS = 12;
 
 export function isBookendSkill(skillSlug?: string) {
   const director = getDirectorBySlug(skillSlug);
@@ -91,7 +91,7 @@ export function bookendDurationHint(skillSlug: string) {
   return `Bookend ${role}: EXACTLY 1 clip, clipCount 1, durationSeconds ${BOOKEND_MIN_SECONDS}–${BOOKEND_MAX_SECONDS}. At most one short spoken line (≤ 6 English words / ≤ 10 Chinese characters), or "(no dialogue)".`;
 }
 
-// Clamp a bookend storyboard to its single 3–4s clip.
+// Clamp a bookend storyboard to one clip inside 5–12s. Speech sets the number later.
 export function normalizeBookendClips<
   T extends { clipNumber: number; durationSeconds: number; timeRange: string },
 >(clips: T[]): T[] {
@@ -115,10 +115,10 @@ export function bookendDirectorBlock(
   return [
     opening
       ? lockLength
-        ? "This is an OPENING bookend: a 3–4 second brand sting that plays before the main video. The logo arrives and settles."
+        ? "This is an OPENING bookend: a 5–12 second brand sting that plays before the main video. Set durationSeconds from the spoken line. The logo arrives and settles."
         : "This is an OPENING bookend: a brand sting that plays before the main video. The logo arrives and settles."
       : lockLength
-        ? "This is an ENDING bookend: a 3–4 second brand sting that closes the video. The scene resolves onto the logo as the final resting card."
+        ? "This is an ENDING bookend: a 5–12 second brand sting that closes the video. Set durationSeconds from the spoken line. The scene resolves onto the logo as the final resting card."
         : "This is an ENDING bookend: a brand sting that closes the video. The scene resolves onto the logo as the final resting card.",
     lockLength
       ? "Produce exactly ONE clip. Never add a second clip, a story, or an explainer beat."
@@ -130,7 +130,7 @@ export function bookendDirectorBlock(
       ? "startScene: the logo is hidden, small, or forming (drawn on, assembled from shapes, revealed behind a prop). endScene: the full logo, crisp and readable, centered. If a character is on screen, give them a vivid, expressive facial expression reacting to the reveal."
       : "startScene: the closing beat of the world (character with a warm, expressive facial expression or props wrapping up). endScene: the full logo centered on a calm canvas as the final card.",
     lockLength
-      ? "motionCamera is one simple move that fits 3–4 seconds (reveal, pop, settle, or slow push-in). No cuts."
+      ? "motionCamera is one simple move that fits this clip's 5–12 seconds (reveal, pop, settle, or slow push-in). No cuts."
       : "motionCamera is one simple move that fits the clip length (reveal, pop, settle, or slow push-in). No cuts.",
   ].join(" ");
 }
@@ -903,7 +903,7 @@ export function comparisonCardDirectorBlock(aspectRatio: AspectRatio) {
 export function surpriseInterviewDirectorBlock() {
   return [
     "This is a SURPRISE INTERVIEW. Exactly one attached character. They speak every line to the camera. No second character and no screen recording.",
-    "Clip 1 is the hook, 3–4 seconds. The person stays right-side up. The camera starts above the head, looking down, then drops downward while it snaps a zoom-in onto the surprised face. Sharp and clear: no blur, no slow glide, and do not flip the picture. The eyes and eyebrows move into a clear surprise while the mouth speaks one short hook with precise, restrained lip articulation and small natural jaw movement (no exaggerated wide-open mouth or excessive jaw swing). If the user pasted a script, that hook is the first sentence verbatim. If they gave only a concept, write the hook.",
+    "Clip 1 is the hook. Its length is 5–12 seconds from the spoken line, and at least 5 seconds. The person stays right-side up. The camera starts above the head, looking down, then drops downward while it snaps a zoom-in onto the surprised face. Sharp and clear: no blur, no slow glide, and do not flip the picture. The eyes and eyebrows move into a clear surprise while the mouth speaks one short hook with precise, restrained lip articulation and small natural jaw movement (no exaggerated wide-open mouth or excessive jaw swing). If the user pasted a script, that hook is the first sentence verbatim. If they gave only a concept, write the hook.",
     "Clip 2 and after: startScene copies the previous endScene. Same place, same camera angle, same crop, same body pose. Do not hard-cut to a new angle, and do not repeat the overhead zoom. Only the mouth (precise, restrained lip-sync with small natural jaw movement — no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks) and expressive upper-face reactions (animated eyebrows and expressive eyes) move.",
     "One idea per interview clip. The last clip rests. Each clip pins the spoken line in one place: top, middle, or bottom. Neighbouring clips do not share the place. Not a white subtitle bar. Letters stay upright. Lettering follows the selected text style. Do not invent a font, and do not copy typography from the visual style. No background music.",
   ].join(" ");
@@ -915,7 +915,7 @@ export function outfitReelDirectorBlock() {
     "This is an OUTFIT REEL. Exactly one attached character. She is already fully dressed in clip 1 and stays in that same outfit for every clip. Do not write her putting clothes on, taking clothes off, or changing garments.",
     "Clothes must follow the clothing reference images 100 percent: same style, cut, colour, pattern, and details. Copy every piece the photos show. Do not redesign, recolor, drop, or add a piece. If no clothing reference is attached, ask for the photos and stop. Do not invent clothes from the brief sentence.",
     "The person in a clothing photo is not the character. Never copy their face, hair, hair length, haircut, skin, age, body, tattoos, pose, or room. Face, hair length, skin, age, and body stay on the character blueprint. Only the clothes change. She is energetic and happy in every clip: bright smile, lively expressive eyes, radiant facial expression, feet planted, no bounce.",
-    "Do not add one clip per garment. Clip count follows the duration preset. Every clip shows the complete outfit. One room. Each clip is 3–4 seconds and one camera rotation. Inside a clip the camera is one slow gimbal move on a single axis. Same pose, same distance, same subject size, and no handheld shake. The next clip is a hard cut to a different rotation.",
+    "Do not add one clip per garment. Clip count follows the duration preset. Every clip shows the complete outfit. One room. Each clip is 5–12 seconds and one camera rotation. With no spoken line, durationSeconds is 5. Inside a clip the camera is one slow gimbal move on a single axis. Same pose, same distance, same subject size, and no handheld shake. The next clip is a hard cut to a different rotation.",
     "Default order is left to right, then top to bottom, then right to left, then bottom to top. Use a shuffle of that list each time you plan, and do not give two clips in a row the same rotation. Do not push, zoom, rise, or change the lens inside a clip. She stays planted. Head and shoes stay in frame.",
     "englishVo is \"(no dialogue)\" on every clip. No voiceover, no spoken line, no narrator. No background music. bgmDirection and every bgmSfx are one sound effect only.",
   ].join(" ");
@@ -937,7 +937,7 @@ export function outfitChangeDirectorBlock() {
 export function followShotDirectorBlock() {
   return [
     "This is a FOLLOW SHOT. Exactly one attached character, filmed third-person, already in motion. This is not an interview.",
-    "Each clip is 3–6 seconds and contains one beat: a few steps, one turn, or one gesture, with a vivid, expressive facial expression matching the beat. The character stays a similar size. The background shifts only a little. Do not scroll a whole street past the lens.",
+    "Each clip is 5–12 seconds, set by any spoken line and the pace, or 5 seconds when there is no dialogue. It contains one beat: a few steps, one turn, or one gesture, with a vivid, expressive facial expression matching the beat. The character stays a similar size. The background shifts only a little. Do not scroll a whole street past the lens.",
     "Clip 2 and after: startScene copies the previous endScene. Same place, same clothes, same camera angle, same body position. Do not change angle between clips.",
     "Clothes stay as they are. No whip pan, no new setup, and no required crowd.",
     "No narrator. Default englishVo is \"(no dialogue)\". Use one short line only if the user wrote one. The last clip stops and rests.",
