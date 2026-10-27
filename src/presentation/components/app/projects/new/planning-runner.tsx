@@ -1,6 +1,6 @@
 import "./planning-runner.css";
 
-// MiniMax loop of the lime runner. Muted so the storyboard wait can autoplay.
+// MiniMax loop of a realistic runner on white. Muted so the storyboard wait can autoplay.
 export function PlanningRunner() {
 	return (
 		<div className="planning-runner" aria-hidden>
