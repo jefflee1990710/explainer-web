@@ -3,9 +3,11 @@ import test from "node:test";
 import {
   isMinimaxVideoStatusUrl,
   mapMinimaxVideoStatus,
-  talkingHeadReferenceBody,
+  talkingHeadBridgeBody,
+  talkingHeadBridgePrompt,
+  talkingHeadFollowBody,
+  talkingHeadFollowPrompt,
   talkingHeadReferenceDurationSeconds,
-  talkingHeadReferencePrompt,
 } from "@/service/minimax/talking-head-reference";
 
 test("talkingHeadReferenceDurationSeconds follows the voice and stays inside 4–15s", () => {
@@ -15,11 +17,11 @@ test("talkingHeadReferenceDurationSeconds follows the voice and stays inside 4�
   assert.equal(talkingHeadReferenceDurationSeconds(0), 5);
 });
 
-test("talkingHeadReferenceBody sends a closed-mouth still and the voice, without keyframes", () => {
-  const body = talkingHeadReferenceBody({
-    prompt: "speaks the reference audio",
-    imageUrl: "https://cdn.example/start.jpg",
-    audioUrl: "https://cdn.example/line.mp3",
+test("talkingHeadBridgeBody sends first and last frames and no audio", () => {
+  const body = talkingHeadBridgeBody({
+    prompt: "lands on the end image",
+    startImageUrl: "https://cdn.example/start.jpg",
+    endImageUrl: "https://cdn.example/next-start.jpg",
     durationSeconds: 5.2,
     aspectRatio: "9:16",
   });
@@ -29,19 +31,41 @@ test("talkingHeadReferenceBody sends a closed-mouth still and the voice, without
   assert.equal(body.resolution, "2K");
   assert.deepEqual(
     body.content.map((item) => ("role" in item ? item.role : item.type)),
-    ["text", "reference_image", "reference_audio"],
+    ["text", "first_frame", "last_frame"],
+  );
+  const encoded = JSON.stringify(body.content);
+  assert.equal(encoded.includes("reference_audio"), false);
+  assert.equal(encoded.includes("reference_video"), false);
+});
+
+test("talkingHeadFollowBody sends the bridge video and the voice, without keyframes", () => {
+  const body = talkingHeadFollowBody({
+    prompt: "mouth follows audio 1",
+    videoUrl: "https://cdn.example/bridge.mp4",
+    audioUrl: "https://cdn.example/line.mp3",
+    durationSeconds: 6,
+    aspectRatio: "9:16",
+  });
+  assert.deepEqual(
+    body.content.map((item) => ("role" in item ? item.role : item.type)),
+    ["text", "reference_video", "reference_audio"],
   );
   const encoded = JSON.stringify(body.content);
   assert.equal(encoded.includes("first_frame"), false);
   assert.equal(encoded.includes("last_frame"), false);
 });
 
-test("talkingHeadReferencePrompt asks the mouth to follow the audio and then close", () => {
-  const prompt = talkingHeadReferencePrompt("有無諗過你個Instagram都可以變成你嘅生財工具？");
-  assert.match(prompt, /reference audio/);
-  assert.match(prompt, /有無諗過你個Instagram/);
-  assert.match(prompt, /settles closed/);
-  assert.doesNotMatch(prompt, /\bstill\b|\bstatic\b/i);
+test("talking head prompts keep the cut on the bridge and the mouth on the follow", () => {
+  const line = "有無諗過你個Instagram都可以變成你嘅生財工具？";
+  const bridge = talkingHeadBridgePrompt(line);
+  const follow = talkingHeadFollowPrompt(line);
+  assert.match(bridge, /end image/);
+  assert.match(bridge, /有無諗過你個Instagram/);
+  assert.match(follow, /Video 1/);
+  assert.match(follow, /Audio 1/);
+  assert.match(follow, /settles closed/);
+  assert.doesNotMatch(bridge, /\bstill\b|\bstatic\b/i);
+  assert.doesNotMatch(follow, /\bstill\b|\bstatic\b/i);
 });
 
 test("mapMinimaxVideoStatus maps the official task states", () => {

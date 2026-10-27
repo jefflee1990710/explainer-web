@@ -9,6 +9,8 @@ export type Sent = {
   video?: { url: string };
   // Provider's reason when the submit response itself reports a failure.
   error?: string;
+  // Seated talking-head records which MiniMax pass this request is.
+  talkingHeadStage?: "bridge" | "follow";
 };
 
 type SubmitResponse = {

@@ -126,7 +126,13 @@ function claimFence(job: Pick<GenerationJob, "_id" | "attempts">) {
 // Provider accepted the request. False when the claim was lost to another runner.
 export async function markSubmitted(
   job: Pick<GenerationJob, "_id" | "attempts">,
-  sent: { requestId: string; statusUrl?: string; status?: string; model: string },
+  sent: {
+    requestId: string;
+    statusUrl?: string;
+    status?: string;
+    model: string;
+    talkingHeadStage?: "bridge" | "follow";
+  },
 ) {
   const jobs = await generationJobsCollection();
   const now = new Date();
@@ -138,8 +144,14 @@ export async function markSubmitted(
       status: submittedJobStatus(sent.status),
       submittedAt: now,
       updatedAt: now,
+      ...(sent.talkingHeadStage ? { talkingHeadStage: sent.talkingHeadStage } : {}),
     },
-    $unset: { lockedUntil: "", nextAttemptAt: "", error: "" },
+    $unset: {
+      lockedUntil: "",
+      nextAttemptAt: "",
+      error: "",
+      ...(sent.talkingHeadStage ? {} : { talkingHeadStage: "", bridgeVideoUrl: "" }),
+    },
   });
   return result.matchedCount === 1;
 }

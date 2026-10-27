@@ -89,9 +89,11 @@ import { resolveRunSkill } from "@/service/director/run-skill";
 import { talkingShotForSkill } from "@/service/director/talking-performance";
 import {
   MINIMAX_H3_REFERENCE_MODEL,
-  submitTalkingHeadReferenceVideo,
+  submitTalkingHeadBridgeVideo,
+  submitTalkingHeadFollowVideo,
+  talkingHeadBridgePrompt,
+  talkingHeadFollowPrompt,
   talkingHeadReferenceDurationSeconds,
-  talkingHeadReferencePrompt,
 } from "@/service/minimax/talking-head-reference";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { chainsClipStarts } from "@/service/director/clip-continuity";
@@ -102,6 +104,7 @@ import {
   withInheritedTalkingHeadStarts,
 } from "@/service/director/talking-head";
 import { chargedVideoCredits, FRAME_COST, STUCK_CLAIM_MS } from "@/service/production-plan";
+import { SUBMIT_LOCK_MS } from "@/service/generation/task-policy";
 import { lockDialogueSpeech } from "@/service/director/spoken-line";
 import { withCantonesePronunciation } from "@/service/voice/cantonese-pronunciation";
 import { toSent, type Sent } from "@/service/generation/sent";
@@ -645,16 +648,16 @@ export async function sendClipVideo(
   prompt: PhaseBPrompt,
 ): Promise<Sent> {
   // Cinematic realistic whiteboard sends the start image only. An old end file stays unused.
-  // Seated talking-head follows the voice: one closed-mouth still, no last-frame lock.
+  // Seated talking-head sends start plus the next clip's start, then a second pass for the mouth.
   const skill = await loadSkill(project);
   const audioFirstTalkingHead = skill.slug === TALKING_HEAD_SKILL_SLUG;
-  const startOnly = clipSkipsEndStill(project) || audioFirstTalkingHead;
+  const startOnly = clipSkipsEndStill(project);
   const merged = usesTalkingHeadSubtitleOverlay({
     skillSlug: project.skillSlug,
     styleId: project.styleId,
   });
-  // Other talking skills: clip N runs from its own start still to clip N+1's start still.
-  const endFromNextStart = !audioFirstTalkingHead && clipEndIsNextStart(project, clipNumber);
+  // Clip N runs from its own start still to clip N+1's start still.
+  const endFromNextStart = clipEndIsNextStart(project, clipNumber);
   const { start, end } = videoKeyframeUrls(project.frames, clipNumber, { merged, endFromNextStart });
   if (!start || (!startOnly && !end)) {
     throw new Error(
@@ -734,7 +737,7 @@ export async function sendClipVideo(
         {
           $set: {
             "clips.$[clip].prompt": audioFirstTalkingHead
-              ? talkingHeadReferencePrompt(spokenLine)
+              ? talkingHeadBridgePrompt(spokenLine)
               : videoPrompt,
             "clips.$[clip].voUrl": preGeneratedVoUrl,
             "clips.$[clip].voOnsetSeconds": voOnsetSeconds,
@@ -760,14 +763,20 @@ export async function sendClipVideo(
     if (!referenceAudioUrl || !spokenLine?.trim()) {
       throw new Error("坐定對嘴需要角色語音同呢句對白");
     }
-    const submitted = await submitTalkingHeadReferenceVideo({
-      prompt: talkingHeadReferencePrompt(spokenLine),
-      imageUrl: start,
-      audioUrl: referenceAudioUrl,
+    if (!endUrlForVideo) {
+      throw new Error("這段的終點畫格還沒有檔案，無法接上下一段");
+    }
+    const submitted = await submitTalkingHeadBridgeVideo({
+      prompt: talkingHeadBridgePrompt(spokenLine),
+      startImageUrl: start,
+      endImageUrl: endUrlForVideo,
       durationSeconds,
       aspectRatio: project.aspectRatio,
     });
-    return toSent(MINIMAX_H3_REFERENCE_MODEL, submitted);
+    return {
+      ...toSent(MINIMAX_H3_REFERENCE_MODEL, submitted),
+      talkingHeadStage: "bridge" as const,
+    };
   }
 
   const targetModel = clipVideoModel(style ?? clipStyleId);
@@ -782,6 +791,86 @@ export async function sendClipVideo(
     style,
   });
   return toSent(targetModel, submitted);
+}
+
+// Bridge video finished. Keep the clip in progress and submit the mouth pass.
+async function advanceTalkingHeadBridge(job: GenerationJob, project: Project, bridgeUrl: string) {
+  const jobs = await generationJobsCollection();
+  const now = new Date();
+  const claimed = await jobs.findOneAndUpdate(
+    {
+      _id: job._id,
+      requestId: job.requestId,
+      talkingHeadStage: "bridge",
+      status: { $in: ["queued", "in_progress"] },
+    },
+    {
+      $set: {
+        status: "submitting" as const,
+        lockedUntil: new Date(now.getTime() + SUBMIT_LOCK_MS),
+        updatedAt: now,
+      },
+    },
+  );
+  if (!claimed) return;
+
+  const clipNumber = job.clipIndex + 1;
+  const clip = project.clips.find((item) => item.clipNumber === clipNumber);
+  const spokenLine = project.phaseA?.clips
+    .find((item) => item.clipNumber === clipNumber)
+    ?.englishVo?.trim();
+  try {
+    if (!clip?.voUrl || !spokenLine) {
+      throw new Error("坐定對嘴缺少對白或語音，無法接上口型");
+    }
+    const bridgeBlob = await persistMedia(
+      bridgeUrl,
+      `explainer/${project._id.toHexString()}/clips/bridge-${job.requestId}.mp4`,
+    );
+    const submitted = await submitTalkingHeadFollowVideo({
+      prompt: talkingHeadFollowPrompt(spokenLine),
+      videoUrl: bridgeBlob,
+      audioUrl: clip.voUrl,
+      durationSeconds: clip.durationSeconds,
+      aspectRatio: project.aspectRatio,
+    });
+    const saved = await jobs.updateOne(
+      {
+        _id: job._id,
+        requestId: job.requestId,
+        status: "submitting",
+        talkingHeadStage: "bridge",
+      },
+      {
+        $set: {
+          requestId: submitted.request_id,
+          statusUrl: submitted.status_url,
+          status: "queued" as const,
+          talkingHeadStage: "follow" as const,
+          bridgeVideoUrl: bridgeBlob,
+          model: MINIMAX_H3_REFERENCE_MODEL,
+          submittedAt: new Date(),
+          updatedAt: new Date(),
+        },
+        $unset: { outputUrl: "", blobUrl: "", error: "", lockedUntil: "" },
+      },
+    );
+    if (saved.matchedCount !== 1) {
+      console.error("[higgsfield] talking-head follow lost the job claim", {
+        requestId: submitted.request_id,
+      });
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "對嘴第二段提交失敗";
+    const failed = await claimFailure(job._id, message, "failed", {
+      status: "submitting",
+      requestId: job.requestId,
+    });
+    if (failed) {
+      await refundClaimedFailure(job, project, message);
+      await syncProjectFromJobs(project._id);
+    }
+  }
 }
 
 // ---------- status sync ----------
@@ -918,6 +1007,19 @@ export async function applyJobStatus(input: {
   const project = await projects.findOne({ _id: projectId });
   if (project) await hydrateStyles();
 
+  // Seated talking-head: the first MiniMax file only connects the stills.
+  // The mouth pass replaces this job's provider id before the clip is saved.
+  if (
+    project &&
+    job.kind === "video" &&
+    job.talkingHeadStage === "bridge" &&
+    status === "completed" &&
+    outputUrl
+  ) {
+    await advanceTalkingHeadBridge(job, project, outputUrl);
+    return;
+  }
+
   let blobUrl = job.blobUrl;
   // Persist successful files only. NSFW is a rejection even if a URL sneaks through.
   if (outputUrl && status === "completed") {
@@ -980,8 +1082,9 @@ export async function applyJobStatus(input: {
         : Promise.resolve(buffer);
     // Lip-sync clips lose leading/trailing dead air here, after the voice is locked
     // to the mouth and before the film grade re-encodes the kept frames.
+    // The follow pass must keep the closed-mouth landing, so do not trim its tail.
     const smoothSilence = (buffer: Buffer) =>
-      usesLipSync
+      usesLipSync && !audioFirstTalkingHead
         ? trimClipSmoothSilence(buffer).catch((error: unknown) => {
             console.error("[higgsfield] smooth silence trim failed; keeping clip bytes", {
               requestId: job.requestId,

@@ -2,10 +2,13 @@ import type { GenerationStatus } from "@/model/generation-job";
 import type { AspectRatio } from "@/model/project";
 import type { GenerationSubmitResult } from "@/service/alicloud/generate";
 
-// Official MiniMax video V2. Reference audio cannot be combined with first/last frames.
+// Official MiniMax video V2. First/last frames and reference audio are separate calls.
 const MINIMAX_VIDEO_API = "https://api.minimax.io/v2/video_generation";
 
 export const MINIMAX_H3_REFERENCE_MODEL = "MiniMax-H3";
+
+// Bridge lands the clip on the next still. Follow redraws the mouth on that video.
+export type TalkingHeadStage = "bridge" | "follow";
 
 type FetchOptions = { fetch?: typeof fetch };
 
@@ -27,35 +30,85 @@ export function talkingHeadReferenceDurationSeconds(audioSeconds: number): numbe
   return Math.min(15, Math.max(4, Math.ceil(audioSeconds)));
 }
 
-// Performance only. The mp3 is the timing; the still is a closed-mouth identity reference.
-export function talkingHeadReferencePrompt(line: string): string {
+// Pass 1. Motion runs from this clip's start still to the next clip's start still.
+export function talkingHeadBridgePrompt(line: string): string {
   const spoken = line.trim();
   return [
     "Seated medium close-up, eyes locked on the camera lens, camera locked.",
     spoken
-      ? `The person speaks the reference audio word for word, with continuous syllable-by-syllable lip-sync: "${spoken}".`
-      : "The person speaks the reference audio word for word, with continuous syllable-by-syllable lip-sync.",
-    "The mouth opens and closes for every spoken word, then settles closed when the line ends.",
+      ? `The person speaks this line, mouth moving for every word, then the mouth settles closed: "${spoken}".`
+      : "The person speaks, mouth moving, then the mouth settles closed.",
     "One small nod and one calm hand gesture. Natural blinks.",
+    "The last frame lands on the end image: same crop, same posture, same closed mouth.",
     "No on-screen text, no subtitles, no extra voice.",
   ].join(" ");
 }
 
-export function talkingHeadReferenceBody(input: {
+// Pass 2. The bridge video is the motion; the mp3 is the mouth.
+export function talkingHeadFollowPrompt(line: string): string {
+  const spoken = line.trim();
+  return [
+    "Video 1 is the performance. Keep its camera, body, hands, and ending posture.",
+    "Audio 1 is the only voice. The mouth follows Audio 1 word for word, then settles closed when the line ends.",
+    spoken ? `The spoken line is: "${spoken}".` : "",
+    "No on-screen text, no subtitles, no extra voice.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function talkingHeadVideoFields(durationSeconds: number, aspectRatio: AspectRatio) {
+  return {
+    model: MINIMAX_H3_REFERENCE_MODEL,
+    resolution: "2K" as const,
+    duration: talkingHeadReferenceDurationSeconds(durationSeconds),
+    ratio: aspectRatio,
+    aigc_watermark: false,
+  };
+}
+
+// First frame plus last frame. No audio: this call only locks the cut.
+export function talkingHeadBridgeBody(input: {
   prompt: string;
-  imageUrl: string;
+  startImageUrl: string;
+  endImageUrl: string;
+  durationSeconds: number;
+  aspectRatio: AspectRatio;
+}) {
+  return {
+    ...talkingHeadVideoFields(input.durationSeconds, input.aspectRatio),
+    content: [
+      { type: "text" as const, text: input.prompt },
+      {
+        type: "image_url" as const,
+        image_url: { url: input.startImageUrl },
+        role: "first_frame" as const,
+      },
+      {
+        type: "image_url" as const,
+        image_url: { url: input.endImageUrl },
+        role: "last_frame" as const,
+      },
+    ],
+  };
+}
+
+// Reference video plus reference audio. Official H3 cannot add a last frame here.
+export function talkingHeadFollowBody(input: {
+  prompt: string;
+  videoUrl: string;
   audioUrl: string;
   durationSeconds: number;
   aspectRatio: AspectRatio;
 }) {
   return {
-    model: MINIMAX_H3_REFERENCE_MODEL,
+    ...talkingHeadVideoFields(input.durationSeconds, input.aspectRatio),
     content: [
       { type: "text" as const, text: input.prompt },
       {
-        type: "image_url" as const,
-        image_url: { url: input.imageUrl },
-        role: "reference_image" as const,
+        type: "video_url" as const,
+        video_url: { url: input.videoUrl },
+        role: "reference_video" as const,
       },
       {
         type: "audio_url" as const,
@@ -63,10 +116,6 @@ export function talkingHeadReferenceBody(input: {
         role: "reference_audio" as const,
       },
     ],
-    resolution: "2K" as const,
-    duration: talkingHeadReferenceDurationSeconds(input.durationSeconds),
-    ratio: input.aspectRatio,
-    aigc_watermark: false,
   };
 }
 
@@ -88,15 +137,8 @@ function minimaxError(body: unknown) {
   return typeof error?.message === "string" && error.message ? error.message : undefined;
 }
 
-// Submit a seated talking-head clip: closed-mouth still + the character's voice.
-export async function submitTalkingHeadReferenceVideo(
-  input: {
-    prompt: string;
-    imageUrl: string;
-    audioUrl: string;
-    durationSeconds: number;
-    aspectRatio: AspectRatio;
-  },
+async function submitMinimaxVideo(
+  body: unknown,
   options?: FetchOptions,
 ): Promise<GenerationSubmitResult> {
   const key = minimaxApiKey();
@@ -108,17 +150,45 @@ export async function submitTalkingHeadReferenceVideo(
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(talkingHeadReferenceBody(input)),
+    body: JSON.stringify(body),
   });
-  const body = (await response.json().catch(() => ({}))) as { task_id?: string };
-  if (!response.ok || !body.task_id) {
-    throw new Error(minimaxError(body) || `MiniMax 對嘴提交失敗（${response.status}）`);
+  const payload = (await response.json().catch(() => ({}))) as { task_id?: string };
+  if (!response.ok || !payload.task_id) {
+    throw new Error(minimaxError(payload) || `MiniMax 對嘴提交失敗（${response.status}）`);
   }
   return {
-    request_id: body.task_id,
-    status_url: minimaxVideoStatusUrl(body.task_id),
+    request_id: payload.task_id,
+    status_url: minimaxVideoStatusUrl(payload.task_id),
     status: "queued",
   };
+}
+
+// Pass 1 submit: start still to the next clip's start still.
+export function submitTalkingHeadBridgeVideo(
+  input: {
+    prompt: string;
+    startImageUrl: string;
+    endImageUrl: string;
+    durationSeconds: number;
+    aspectRatio: AspectRatio;
+  },
+  options?: FetchOptions,
+) {
+  return submitMinimaxVideo(talkingHeadBridgeBody(input), options);
+}
+
+// Pass 2 submit: bridge video plus the ElevenLabs mp3.
+export function submitTalkingHeadFollowVideo(
+  input: {
+    prompt: string;
+    videoUrl: string;
+    audioUrl: string;
+    durationSeconds: number;
+    aspectRatio: AspectRatio;
+  },
+  options?: FetchOptions,
+) {
+  return submitMinimaxVideo(talkingHeadFollowBody(input), options);
 }
 
 // Poll shape matches the rest of the clip pipeline: status + video.url.

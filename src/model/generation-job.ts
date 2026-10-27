@@ -77,6 +77,10 @@ export type GenerationJob = {
   submittedAt?: Date;
   outputUrl?: string;
   blobUrl?: string;
+  // Seated talking-head: bridge is first+last frame; follow is that video plus the mp3.
+  talkingHeadStage?: "bridge" | "follow";
+  // Public copy of the bridge video, sent as reference_video on the follow pass.
+  bridgeVideoUrl?: string;
   error?: string;
   // Set after the finish email is claimed so webhook + poller send once.
   notifiedAt?: Date;
@@ -134,6 +138,8 @@ export const generationJobSchema: z.ZodType<GenerationJob> = z.object({
   submittedAt: z.date().optional(),
   outputUrl: z.string().optional(),
   blobUrl: z.string().optional(),
+  talkingHeadStage: z.enum(["bridge", "follow"]).optional(),
+  bridgeVideoUrl: z.string().optional(),
   error: z.string().optional(),
   notifiedAt: z.date().optional(),
   createdAt: z.date(),
