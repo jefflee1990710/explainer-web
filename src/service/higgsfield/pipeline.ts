@@ -75,6 +75,7 @@ import {
   collectFrameBlobUrls,
 } from "@/service/video/storage";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
+import { trimClipSmoothSilence } from "@/service/voice/smooth-silence";
 import { probeAudioSeconds, swapClipVoice } from "@/service/voice/voice-swap";
 import { whiteboardSubmitDurationSeconds } from "@/service/voice/voice-swap-args";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
@@ -86,11 +87,18 @@ import { withSceneCharacterLocks } from "@/service/higgsfield/scene-character-lo
 import { resolvePerformance } from "@/service/director/performance";
 import { resolveRunSkill } from "@/service/director/run-skill";
 import { talkingShotForSkill } from "@/service/director/talking-performance";
+import {
+  MINIMAX_H3_REFERENCE_MODEL,
+  submitTalkingHeadReferenceVideo,
+  talkingHeadReferenceDurationSeconds,
+  talkingHeadReferencePrompt,
+} from "@/service/minimax/talking-head-reference";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { chainsClipStarts } from "@/service/director/clip-continuity";
 import {
   isInheritedTalkingHeadStart,
   isTalkingHeadSkill,
+  TALKING_HEAD_SKILL_SLUG,
   withInheritedTalkingHeadStarts,
 } from "@/service/director/talking-head";
 import { chargedVideoCredits, FRAME_COST, STUCK_CLAIM_MS } from "@/service/production-plan";
@@ -637,13 +645,16 @@ export async function sendClipVideo(
   prompt: PhaseBPrompt,
 ): Promise<Sent> {
   // Cinematic realistic whiteboard sends the start image only. An old end file stays unused.
-  const startOnly = clipSkipsEndStill(project);
+  // Seated talking-head follows the voice: one closed-mouth still, no last-frame lock.
+  const skill = await loadSkill(project);
+  const audioFirstTalkingHead = skill.slug === TALKING_HEAD_SKILL_SLUG;
+  const startOnly = clipSkipsEndStill(project) || audioFirstTalkingHead;
   const merged = usesTalkingHeadSubtitleOverlay({
     skillSlug: project.skillSlug,
     styleId: project.styleId,
   });
-  // Talking-head: clip N runs from its own start still to clip N+1's start still.
-  const endFromNextStart = clipEndIsNextStart(project, clipNumber);
+  // Other talking skills: clip N runs from its own start still to clip N+1's start still.
+  const endFromNextStart = !audioFirstTalkingHead && clipEndIsNextStart(project, clipNumber);
   const { start, end } = videoKeyframeUrls(project.frames, clipNumber, { merged, endFromNextStart });
   if (!start || (!startOnly && !end)) {
     throw new Error(
@@ -652,8 +663,8 @@ export async function sendClipVideo(
   }
   const endUrlForVideo = startOnly ? undefined : end;
   // Talking-head locks must match the director's (possibly customised) performance slots.
-  const talkingShot = talkingShotForSkill(project.skillSlug);
-  const performance = talkingShot ? resolvePerformance(await loadSkill(project), talkingShot, "en") : undefined;
+  const talkingShot = talkingShotForSkill(skill.slug);
+  const performance = talkingShot ? resolvePerformance(skill, talkingShot, "en") : undefined;
   const spokenLine = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber)?.englishVo;
   const subtitlePrompt = prompt.prompt;
   // Stored prompts skip Phase B, so the realistic light lock is added here at send time.
@@ -685,20 +696,23 @@ export async function sendClipVideo(
     spokenLine,
   );
 
-  // Pre-synthesize ElevenLabs VO so it is ready to merge onto the finished video.
-  // Only talking-head and surprise-interview inject the per-character lip-sync schedule;
-  // all other directors use off-screen narration with character mouths closed.
+  // Seated talking-head sends this mp3 as the lip-sync driver. Other directors
+  // keep it for a later voice swap.
+  let referenceAudioUrl: string | undefined;
   const voiceId =
     project.narrationEnabled !== false && (project.language === "yue" || !isBookendSkill(project.skillSlug))
       ? resolveVoiceSwapId({ ...project, cast: currentCast })
       : null;
-  const voOnsetSeconds = usesLipSync ? DEFAULT_SPEECH_ONSET_SECONDS : 0;
+  const voOnsetSeconds = usesLipSync && !audioFirstTalkingHead ? DEFAULT_SPEECH_ONSET_SECONDS : 0;
   const expandVideoToVo = isDualBeatSkill(project.skillSlug);
   let durationSeconds = prompt.durationSeconds;
   if (voiceId && spokenLine?.trim() && isElevenLabsConfigured()) {
     try {
       const { audio, alignment } = await synthesizeSpeechWithTimestamps(voiceId, spokenLine);
-      if (usesLipSync) {
+      if (audioFirstTalkingHead) {
+        const voicedSeconds = (await probeAudioSeconds(audio, "mp3")) ?? prompt.durationSeconds;
+        durationSeconds = talkingHeadReferenceDurationSeconds(voicedSeconds);
+      } else if (usesLipSync) {
         videoPrompt = withTimedLipSyncPrompt(videoPrompt, alignment, {
           onsetSeconds: voOnsetSeconds,
           clipDurationSeconds: prompt.durationSeconds,
@@ -713,15 +727,18 @@ export async function sendClipVideo(
         `explainer/${project._id.toHexString()}/vo/clip-${clipNumber}-${Date.now()}.mp3`,
         "audio/mpeg",
       );
+      referenceAudioUrl = preGeneratedVoUrl;
       const projects = await videosCollection();
       await projects.updateOne(
         { _id: project._id },
         {
           $set: {
-            "clips.$[clip].prompt": videoPrompt,
+            "clips.$[clip].prompt": audioFirstTalkingHead
+              ? talkingHeadReferencePrompt(spokenLine)
+              : videoPrompt,
             "clips.$[clip].voUrl": preGeneratedVoUrl,
             "clips.$[clip].voOnsetSeconds": voOnsetSeconds,
-            ...(expandVideoToVo && durationSeconds !== prompt.durationSeconds
+            ...(durationSeconds !== prompt.durationSeconds
               ? { "clips.$[clip].durationSeconds": durationSeconds }
               : {}),
             updatedAt: new Date(),
@@ -730,12 +747,27 @@ export async function sendClipVideo(
         { arrayFilters: [{ "clip.clipNumber": clipNumber }] },
       );
     } catch (error) {
+      if (audioFirstTalkingHead) throw error;
       console.error("[higgsfield] pre-video ElevenLabs with-timestamps failed; continuing", {
         projectId: project._id.toHexString(),
         clipNumber,
         error,
       });
     }
+  }
+
+  if (audioFirstTalkingHead) {
+    if (!referenceAudioUrl || !spokenLine?.trim()) {
+      throw new Error("坐定對嘴需要角色語音同呢句對白");
+    }
+    const submitted = await submitTalkingHeadReferenceVideo({
+      prompt: talkingHeadReferencePrompt(spokenLine),
+      imageUrl: start,
+      audioUrl: referenceAudioUrl,
+      durationSeconds,
+      aspectRatio: project.aspectRatio,
+    });
+    return toSent(MINIMAX_H3_REFERENCE_MODEL, submitted);
   }
 
   const targetModel = clipVideoModel(style ?? clipStyleId);
@@ -898,9 +930,9 @@ export async function applyJobStatus(input: {
         })
       : undefined;
     const realistic = isRealisticStyle(renderableStyle);
-    // Self-shot creator skills (Talking Head & Surprise Hook) use clean modern smartphone/mirrorless
-    // sensor capture without heavy post-process 35mm film grain or cinema LUT grading.
-    const applyFilmGrade = realistic && !isSelfShotCreatorSkill(project?.skillSlug);
+    // Apply de-plastic tone curve, specular skin matting, micro-detail recovery, and subtle sensor grain
+    // across all realistic styles (including self-shot Talking Head & Surprise Hook).
+    const applyFilmGrade = realistic;
     const canvasColor =
       renderableStyle && (job.kind === "still" || job.kind === "frame")
         ? renderableStyle.canvasColor
@@ -922,13 +954,21 @@ export async function applyJobStatus(input: {
       project && job.kind === "video"
         ? project.clips.find((clip) => clip.clipNumber === job.clipIndex + 1)
         : undefined;
+    const usesLipSync = Boolean(project && skillUsesOnScreenLipSync(project.skillSlug));
+    // Seated talking-head already speaks with the reference mp3. Swapping it
+    // would replace the mouth's timing with a second take.
+    const audioFirstTalkingHead =
+      project && job.kind === "video"
+        ? project.skillSlug === TALKING_HEAD_SKILL_SLUG ||
+          (await loadSkill(project).catch(() => undefined))?.slug === TALKING_HEAD_SKILL_SLUG
+        : false;
     const swapVoice = (buffer: Buffer) =>
-      voiceId
+      voiceId && !audioFirstTalkingHead
         ? swapClipVoice(buffer, voiceId, {
             text: spokenLine,
             voUrl: storedClip?.voUrl,
             onsetSeconds: storedClip?.voOnsetSeconds,
-            lipSync: Boolean(project && skillUsesOnScreenLipSync(project.skillSlug)),
+            lipSync: usesLipSync,
             expandVideoToVo: Boolean(project && isDualBeatSkill(project.skillSlug)),
           }).catch((error: unknown) => {
             console.error("[higgsfield] voice swap failed; keeping clip audio", {
@@ -938,17 +978,30 @@ export async function applyJobStatus(input: {
             return buffer;
           })
         : Promise.resolve(buffer);
+    // Lip-sync clips lose leading/trailing dead air here, after the voice is locked
+    // to the mouth and before the film grade re-encodes the kept frames.
+    const smoothSilence = (buffer: Buffer) =>
+      usesLipSync
+        ? trimClipSmoothSilence(buffer).catch((error: unknown) => {
+            console.error("[higgsfield] smooth silence trim failed; keeping clip bytes", {
+              requestId: job.requestId,
+              error,
+            });
+            return buffer;
+          })
+        : Promise.resolve(buffer);
     const transformVideo =
-      job.kind === "video" && (voiceId || applyFilmGrade)
+      job.kind === "video" && (voiceId || applyFilmGrade || usesLipSync)
         ? async (buffer: Buffer) => {
             const voiced = await swapVoice(buffer);
-            if (!applyFilmGrade) return voiced;
-            return gradeRealisticVideoBuffer(voiced).catch((error: unknown) => {
+            const silenced = await smoothSilence(voiced);
+            if (!applyFilmGrade) return silenced;
+            return gradeRealisticVideoBuffer(silenced).catch((error: unknown) => {
               console.error(
                 "[higgsfield] realistic video grade failed; keeping clip bytes",
                 { requestId: job.requestId, error },
               );
-              return voiced;
+              return silenced;
             });
           }
         : undefined;

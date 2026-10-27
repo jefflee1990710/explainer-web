@@ -483,9 +483,9 @@ function endPoseVariationEn(
   if (anchored) {
     const headMoves = [
       "facing the camera with eyes on the lens, mouth just closed into a small real smile, eyebrows relaxed, head tilted gently 5 degrees to the left and torso leaning slightly forward",
-      "facing the camera straight-on with head tilted gently 5 degrees to the right and eyes locked on the lens in a thoughtful pause, mouth in a soft half-smile, seated weight shifted slightly right",
+      "facing the camera straight-on with head tilted gently 5 degrees to the right and eyes locked on the lens in a thoughtful pause, mouth just closed into a soft half-smile, seated weight shifted slightly right",
       "facing the camera with eyes on the lens, mouth just closed into an engaged warm smile, torso settled back into the cushion with head tilted gently to the right",
-      "facing the camera with chin slightly lifted, head tilted gently left, eyes locked on the lens with a lively knowing smile",
+      "facing the camera with chin slightly lifted, head tilted gently left, eyes locked on the lens, mouth just closed into a lively knowing smile",
       "facing the camera with eyes locked on the lens, mouth just closed into a confident smile, eyebrows softly lifted, seated weight shifted slightly left with head upright",
       "facing the camera with eyes locked on the lens, mouth just closed into a warm conversational smile, leaning in closer toward the camera with head tilted slightly left",
     ];
@@ -501,11 +501,11 @@ function endPoseVariationEn(
   }
   const rawHeadMoves = [
     "seated centered and relaxed on the sofa, facing the camera with head tilted gently 1–2 degrees to the right, both pupils centered and eyes on the lens, mouth just closed into a warm engaged smile, eyebrows relaxed",
-    "seated centered on the sofa, facing the camera straight-on with head tilted gently 1–2 degrees to the left and both eyes locked on the lens, mouth in a thoughtful half-smile",
-    "seated centered on the sofa, facing the camera with head tilted gently 1–2 degrees to the left, eyes locked on the lens, eyebrows lifted with a lively confident smile",
-    "seated comfortably and centered on the sofa facing the camera straight-on, head tilted gently 1–2 degrees right with both eyes locked on the lens, a natural soft smile on her lips",
-    "seated centered on the cushion, facing the camera with head tilted gently 1–2 degrees to the left, eyes locked on the lens, mouth in a knowing smile",
-    "seated upright and centered, facing the camera with head tilted gently 1–2 degrees right and a warm expressive smile, eyes locked on the lens",
+    "seated centered on the sofa, facing the camera straight-on with head tilted gently 1–2 degrees to the left and both eyes locked on the lens, mouth just closed into a thoughtful half-smile",
+    "seated centered on the sofa, facing the camera with head tilted gently 1–2 degrees to the left, eyes locked on the lens, eyebrows lifted, mouth just closed into a lively confident smile",
+    "seated comfortably and centered on the sofa facing the camera straight-on, head tilted gently 1–2 degrees right with both eyes locked on the lens, mouth just closed into a natural soft smile",
+    "seated centered on the cushion, facing the camera with head tilted gently 1–2 degrees to the left, eyes locked on the lens, mouth just closed into a knowing smile",
+    "seated upright and centered, facing the camera with head tilted gently 1–2 degrees right, mouth just closed into a warm expressive smile, eyes locked on the lens",
   ];
   const headMoves = omitDefaultSofa
     ? rawHeadMoves.map((move) => move.replace(/\s+on the (?:sofa|cushion)/g, ""))
@@ -537,7 +537,7 @@ function endPoseVariationYue(clipIndex: number, fullBody: boolean, anchored: boo
       "正面直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，坐姿保持置中、頭向左邊微傾 1–2 度",
       "正面對住鏡頭、頭向右微傾 1–2 度，雙眼直望鏡頭帶住思考神情，口部合上帶住淺笑，坐姿保持置中",
       "正面直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，坐姿保持置中放鬆、頭向右邊微傾 1–2 度",
-      "正面對住鏡頭，雙眼直望鏡頭、帶住親切笑容",
+      "正面對住鏡頭，呢句講完、口部合上變成親切淺笑，雙眼直望鏡頭、頭向左微傾 1–2 度",
       "正面直望鏡頭，呢句講完、口部合上帶住自信微笑，坐姿保持置中",
       "正面直望鏡頭，呢句講完、口部合上變成溫柔淺笑，上身微微傾近鏡頭",
     ];
@@ -555,7 +555,7 @@ function endPoseVariationYue(clipIndex: number, fullBody: boolean, anchored: boo
     "正面直望鏡頭，呢句講完、口部合上變成自然淺笑，眉毛放鬆，坐姿保持置中、頭向左邊微傾 1–2 度",
     "正面對住鏡頭、頭向右微傾 1–2 度，雙眼直望鏡頭，口部合上帶住思考淺笑，坐姿保持置中穩定",
     "正面直望鏡頭，呢句講完、口部合上變成有神嘅淺笑，坐姿保持置中放鬆、頭向右邊微傾 1–2 度",
-    "正面對住鏡頭、頭向左微傾 1–2 度，雙眼直望鏡頭，嘴角帶住親切笑容",
+    "正面對住鏡頭，呢句講完、口部合上變成親切淺笑，頭向左微傾 1–2 度，雙眼直望鏡頭，坐姿保持置中穩定",
     "正面直望鏡頭，呢句講完、口部合上帶住自信微笑，坐姿保持置中穩定",
     "正面直望鏡頭，呢句講完、口部合上變成溫柔淺笑，上身微微傾近鏡頭好似講緊秘密",
   ];

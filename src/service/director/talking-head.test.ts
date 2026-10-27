@@ -381,3 +381,28 @@ test("talking-head honours a custom background instruction in directorInstructio
     assert.doesNotMatch(clip.endScene, /on the sofa/);
   }
 });
+
+test("every talking-head clip endScene (including clip 4) explicitly closes the mouth so next-clip keyframes never lock a static toothy grin", () => {
+  const yueSource = [
+    "有無諗過你個Instagram都可以變成你嘅生財工具？",
+    "我係下星期一有一個Webinar就係教大家點樣做。",
+    "係呢個市況唔好嘅大環境下單靠打份工真係好難有安全感。",
+    "所以大家更加要趁早學多一個技能幫自己增加收入啦。",
+    "呢個直播課堂仲要係完全免費㗎大家快啲DM留言報名啦！",
+  ].join("\n");
+  const yueClips = planTalkingHeadClips({
+    source: yueSource,
+    pace: "fast",
+    language: "yue",
+    aspectRatio: "9:16",
+    realistic: true,
+  });
+  assert.equal(yueClips.length, 5);
+  for (const clip of yueClips) {
+    assert.match(clip.endScene, /口部合上/, `clip ${clip.clipNumber} endScene must specify 口部合上`);
+    assert.match(clip.motionCamera, /每個字都有清晰明顯嘅嘴唇同下巴開合對嘴動作/);
+  }
+  for (let i = 1; i < yueClips.length; i++) {
+    assert.match(yueClips[i].startScene, /口部合上/, `clip ${i + 1} startScene must inherit 口部合上`);
+  }
+});

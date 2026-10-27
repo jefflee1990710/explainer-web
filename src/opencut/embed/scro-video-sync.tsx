@@ -19,6 +19,8 @@ import {
 	fitFullLengthPlacements,
 	storyboardPlacement,
 } from "@/opencut/embed/scro-clip-duration";
+import { getScroSmoothSilenceEnabled } from "@/opencut/embed/scro-smooth-silence-pack";
+import { runSmoothSilenceGapsOnTimeline } from "@/opencut/embed/scro-smooth-silence";
 import { stillPlaceholderFile } from "@/opencut/embed/scro-still-placeholder";
 import { staleTimelineElementIds } from "@/service/scro-video/timeline-seed";
 import {
@@ -108,6 +110,7 @@ function buildScroTimelineElement({
 		fileSeconds: mediaType === "video" ? fileSeconds : undefined,
 		speechTrimStart: mediaType === "video" ? speechTrimStart : undefined,
 		speechTrimEnd: mediaType === "video" ? speechTrimEnd : undefined,
+		smoothSilence: getScroSmoothSilenceEnabled(),
 	});
 	const built = buildElementFromMedia({
 		mediaId,
@@ -293,6 +296,7 @@ export function ScroVideoSync() {
 						fileSeconds: created.type === "video" ? created.duration : undefined,
 						speechTrimStart: created.type === "video" ? created.speechTrimStart : undefined,
 						speechTrimEnd: created.type === "video" ? created.speechTrimEnd : undefined,
+						smoothSilence: getScroSmoothSilenceEnabled(),
 					});
 					editor.timeline.insertElement({
 						placement: { mode: "explicit", trackId: freshScene.tracks.main.id },
@@ -499,6 +503,7 @@ export function ScroVideoSync() {
 							fileSeconds: created.type === "video" ? created.duration : undefined,
 							speechTrimStart: created.type === "video" ? created.speechTrimStart : undefined,
 							speechTrimEnd: created.type === "video" ? created.speechTrimEnd : undefined,
+							smoothSilence: getScroSmoothSilenceEnabled(),
 						}).packAdvanceSeconds;
 					}
 					return;
@@ -533,6 +538,7 @@ export function ScroVideoSync() {
 						fileSeconds: created.type === "video" ? created.duration : undefined,
 						speechTrimStart: created.type === "video" ? created.speechTrimStart : undefined,
 						speechTrimEnd: created.type === "video" ? created.speechTrimEnd : undefined,
+						smoothSilence: getScroSmoothSilenceEnabled(),
 					}).packAdvanceSeconds;
 				}
 			} finally {
@@ -650,6 +656,7 @@ export function ScroVideoSync() {
 					fileSeconds: created.type === "video" ? created.duration : undefined,
 					speechTrimStart: created.type === "video" ? created.speechTrimStart : undefined,
 					speechTrimEnd: created.type === "video" ? created.speechTrimEnd : undefined,
+					smoothSilence: getScroSmoothSilenceEnabled(),
 				});
 				const nextDuration = toElementDurationTicks({ seconds: place.visibleSeconds });
 				const nextSourceDuration =
@@ -746,6 +753,7 @@ export function ScroVideoSync() {
 					clipNumber: clip.clipNumber,
 					durationSeconds: clip.durationSeconds,
 				})),
+				smoothSilence: getScroSmoothSilenceEnabled(),
 			});
 			if (patches.length === 0) return;
 			editor.timeline.updateElements({

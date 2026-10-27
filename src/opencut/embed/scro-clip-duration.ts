@@ -7,20 +7,22 @@ import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 
 /**
  * Before video is generated (`fileSeconds` absent), use the storyboard duration.
- * Once the generated video is ready (`fileSeconds > 0`), use the real video length,
- * automatically applying a natural speech trim (`speechTrimStart` / `speechTrimEnd`)
- * so Talking-Head / VO clips keep a spoken pause without a manual Smooth Silence click.
+ * Once the generated video is ready (`fileSeconds > 0`), use the real video length.
+ * Lip-sync clips are trimmed on the server when they finish generating. Speech bounds
+ * still apply a natural trim for clips that were generated before that.
  */
 export function storyboardPlacement({
 	storyboardSeconds,
 	fileSeconds,
 	speechTrimStart = 0,
 	speechTrimEnd = 0,
+	smoothSilence = true,
 }: {
 	storyboardSeconds: number;
 	fileSeconds?: number;
 	speechTrimStart?: number;
 	speechTrimEnd?: number;
+	smoothSilence?: boolean;
 }): {
 	visibleSeconds: number;
 	sourceSeconds: number;
@@ -39,20 +41,23 @@ export function storyboardPlacement({
 		};
 	}
 	const file = fileSeconds;
-	const rawStart = speechTrimStart || 0;
-	const rawEnd = speechTrimEnd || 0;
+	const rawStart = smoothSilence ? speechTrimStart || 0 : 0;
+	const rawEnd = smoothSilence ? speechTrimEnd || 0 : 0;
 	if (rawStart > 0 || rawEnd > 0) {
 		const natural = naturalSpeechTrim({
 			duration: file,
 			trimStart: rawStart,
 			trimEnd: rawEnd,
 		});
+		const cut = natural.trimStart > 0.04 || natural.trimEnd > 0.04;
 		return {
 			visibleSeconds: natural.visible,
 			sourceSeconds: file,
 			trimStartSeconds: natural.trimStart,
 			trimEndSeconds: natural.trimEnd,
-			packAdvanceSeconds: natural.visible + SMOOTH_SILENCE_GAP_SECONDS,
+			// Server-trimmed lip-sync files already keep a breath, so a near-zero
+			// client cut must not insert another pause between clips.
+			packAdvanceSeconds: natural.visible + (cut ? SMOOTH_SILENCE_GAP_SECONDS : 0),
 		};
 	}
 	return {
@@ -77,9 +82,11 @@ type ScroMediaLike = {
 export function placementForScroMedia({
 	asset,
 	clips,
+	smoothSilence = true,
 }: {
 	asset: ScroMediaLike;
 	clips: ScroVideoSeedClip[] | undefined;
+	smoothSilence?: boolean;
 }) {
 	if (asset.type !== "video" || !clips?.length) return null;
 	const clipNumber = resolveScroClipNumber({ asset, clips });
@@ -93,6 +100,7 @@ export function placementForScroMedia({
 			fileSeconds: asset.duration,
 			speechTrimStart: asset.speechTrimStart,
 			speechTrimEnd: asset.speechTrimEnd,
+			smoothSilence,
 		}),
 	};
 }
@@ -129,9 +137,11 @@ export type FitPatch = {
 export function fitFullLengthPlacements({
 	elements,
 	storyboard,
+	smoothSilence = true,
 }: {
 	elements: FitElement[];
 	storyboard: Array<{ clipNumber: number; durationSeconds: number }>;
+	smoothSilence?: boolean;
 }): FitPatch[] {
 	if (elements.length === 0) return [];
 	const byNumber = new Map(storyboard.map((clip) => [clip.clipNumber, clip.durationSeconds]));
@@ -172,12 +182,20 @@ export function fitFullLengthPlacements({
 			fileSeconds,
 			speechTrimStart: element.speechTrimStart,
 			speechTrimEnd: element.speechTrimEnd,
+			smoothSilence,
+		});
+		const trimmedPlace = storyboardPlacement({
+			storyboardSeconds,
+			fileSeconds,
+			speechTrimStart: element.speechTrimStart,
+			speechTrimEnd: element.speechTrimEnd,
+			smoothSilence: true,
 		});
 		const isUntrimmed =
 			element.trimStartSeconds <= 0.05 && element.trimEndSeconds <= 0.05;
 		const matchesAutoSpeechTrim =
-			Math.abs(element.trimStartSeconds - place.trimStartSeconds) <= 0.05 &&
-			Math.abs(element.trimEndSeconds - place.trimEndSeconds) <= 0.05;
+			Math.abs(element.trimStartSeconds - trimmedPlace.trimStartSeconds) <= 0.05 &&
+			Math.abs(element.trimEndSeconds - trimmedPlace.trimEndSeconds) <= 0.05;
 		// Older auto-trims used the raw detector bounds; still treat them as auto so
 		// talking-head clips pick up the natural keep + inter-clip gap.
 		const matchesRawSpeechTrim =
@@ -199,7 +217,7 @@ export function fitFullLengthPlacements({
 			!matchesAutoSpeechTrim &&
 			Math.abs(element.durationSeconds - storyboardSeconds) > 0.3 &&
 			Math.abs(element.durationSeconds - fileSeconds) > 0.3 &&
-			Math.abs(element.durationSeconds - place.visibleSeconds) > 0.3
+			Math.abs(element.durationSeconds - trimmedPlace.visibleSeconds) > 0.3
 		) {
 			continue;
 		}
@@ -241,7 +259,9 @@ export function fitFullLengthPlacements({
 			});
 		}
 		const speechGap =
-			(element.speechTrimStart ?? 0) > 0.02 || (element.speechTrimEnd ?? 0) > 0.02
+			smoothSilence &&
+			((next?.trimStart ?? element.trimStartSeconds) > 0.04 ||
+				(next?.trimEnd ?? element.trimEndSeconds) > 0.04)
 				? SMOOTH_SILENCE_GAP_SECONDS
 				: 0;
 		previousNewEnd = start + duration + (index < sorted.length - 1 ? speechGap : 0);

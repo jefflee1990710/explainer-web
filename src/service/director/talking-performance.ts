@@ -47,7 +47,9 @@ function talkingBodyRules(shot: TalkingShot, perf: PerformanceSlots) {
         `One hand holds ${perf.anchorProp} the whole time. That hand barely moves and never swaps hands. Never a greeting wave. Never a finger jab at the lens.`,
         `The other hand rests on the lap ~90% of the time and makes one brief ~0.5s co-speech gesture excursion on the single main key word (preparation lift from the lap, stroke on the stressed word, brief hold, then smooth retraction back to the lap): ${perf.gestureLibrary}. Never float aimlessly in mid-air.`,
       ].join(" ")
-    : `Hands rest calmly on the lap ~90% of the time in a neutral rest position; only on the single main key word of the sentence, one dominant hand makes a brief ~0.5s co-speech gesture excursion (preparation lift from the lap, stroke on the stressed word, brief hold, then smooth retraction back to rest on the lap) while the other hand stays completely still — ${perf.gestureLibrary}. Never alternate right then left hands in mid-air, never float aimlessly, and never a greeting wave or finger jab.`;
+    : /rest calmly on the lap/i.test(perf.gestureLibrary)
+      ? `Hands: ${perf.gestureLibrary}. Never alternate right then left hands in mid-air, never float aimlessly, and never a greeting wave or finger jab.`
+      : `Hands rest calmly on the lap ~90% of the time in a neutral rest position; only on the single main key word of the sentence, one dominant hand makes a brief ~0.5s co-speech gesture excursion (preparation lift from the lap, stroke on the stressed word, brief hold, then smooth retraction back to rest on the lap) while the other hand stays completely still — ${perf.gestureLibrary}. Never alternate right then left hands in mid-air, never float aimlessly, and never a greeting wave or finger jab.`;
   if (shot === "full-body") {
     return [
       head,
@@ -185,7 +187,7 @@ function clipHeadMotionYue(clipNumber: number | undefined, baseHeadMotion: strin
     `坐姿同雙肩保持置中穩定、頭向左微傾 1–2 度同喺重音位輕輕點頭，雙眼全程直望鏡頭（${coreHead}）`,
     `坐姿同雙肩保持置中穩定、頭向右微傾 1–2 度同喺重音位輕輕點頭，雙眼全程穩定直望鏡頭中心、唔好望向側邊或上方（${coreHead}）`,
     `上身同雙肩保持自然穩定、頭向右微傾 1–2 度同輕輕點頭，雙眼直望鏡頭（${coreHead}）`,
-    `坐姿同雙肩保持置中穩定、喺重音位輕輕點頭，正面對住鏡頭微笑、雙眼全程直望鏡頭（${coreHead}）`,
+    `坐姿同雙肩保持置中穩定、頭向左微傾 1–2 度同喺重音位輕輕點頭，正面對住鏡頭、雙眼全程直望鏡頭（${coreHead}）`,
     `坐姿同雙肩保持置中穩定，頭向左微傾 1–2 度再向鏡頭輕輕點頭，雙眼直望鏡頭（${coreHead}）`,
     `上身微微傾向鏡頭好似同朋友傾偈，頭擺正溫柔點頭，雙眼直望鏡頭（${coreHead}）`,
   ];
@@ -291,8 +293,8 @@ export function talkingMotionLine(input: {
       ? `the ${hand} hand holding ${p.anchorProp} as a fixed anchor while the ${other} hand makes one brief ~0.5s co-speech gesture excursion on the key word (${gestureBeat})`
       : `the ${hand} hand makes one brief ~0.5s co-speech gesture excursion on the key word (${gestureBeat})`;
     const body = seated
-      ? `speaks "${input.line}" with continuous lip-sync and restrained, natural small jaw movement at natural 1.0x real-time human speed (never slow-motion, no exaggerated mouth opening or excessive jaw swing), ${face}, seated the whole time, ${head}, ${hands}`
-      : `speaks "${input.line}" with continuous lip-sync and restrained, natural small jaw movement at natural 1.0x real-time human speed (never slow-motion, no exaggerated mouth opening or excessive jaw swing), ${face}, ${head}, ${hands}, and weight shifting hip to hip; feet stay in frame`;
+      ? `speaks "${input.line}" with continuous lip-sync and active syllable-by-syllable visible mouth and jaw movement at natural 1.0x real-time human speed (every word clearly articulated with visible mouth opening and closing — never hold a frozen smile or closed mouth while speaking, never slow-motion, no exaggerated mouth opening or excessive jaw swing), ${face}, seated the whole time, ${head}, ${hands}`
+      : `speaks "${input.line}" with continuous lip-sync and active syllable-by-syllable visible mouth and jaw movement at natural 1.0x real-time human speed (every word clearly articulated with visible mouth opening and closing — never hold a frozen smile or closed mouth while speaking, never slow-motion, no exaggerated mouth opening or excessive jaw swing), ${face}, ${head}, ${hands}, and weight shifting hip to hip; feet stay in frame`;
     const hook = first ? `${p.hookBeat} as the hook` : "eyebrows lifting into a warm half-smile";
     const propReady = anchored ? `, the ${hand} hand already holding ${p.anchorProp}` : "";
     const fadeIn = `the large subtitle fades and slides up into place ${place}`;
@@ -339,8 +341,8 @@ export function talkingMotionLine(input: {
     ? `${zhHand}拎住${p.anchorProp}作為固定錨點幾乎唔郁，${zhOther}只喺核心重點詞做一次約 0.5 秒嘅自然拍點手勢（${gestureBeat}）`
     : `${zhHand}只喺核心重點詞做一次約 0.5 秒嘅自然拍點手勢（${gestureBeat}）`;
   const body = seated
-    ? `坐住唔起身，以自然 1.0x 真人說話速度（唔好慢動作）口型跟住講「${input.line}」（口型精準克制、下巴同唇部開合細緻自然、無誇張大嘴或歪嘴變形），${face}，${head}，${hands}`
-    : `以自然 1.0x 真人說話速度（唔好慢動作）口型跟住講「${input.line}」（口型精準克制、下巴同唇部開合細緻自然、無誇張大嘴或歪嘴變形），${face}，${head}，${hands}，重心左右移；頭到腳留喺畫面`;
+    ? `坐住唔起身，以自然 1.0x 真人說話速度（唔好慢動作）全程持續清晰口型跟住講「${input.line}」（每個字都有清晰明顯嘅嘴唇同下巴開合對嘴動作，絕對唔好合埋口唔郁或者定格露齒微笑；口型精準克制、下巴同唇部開合細緻自然、無誇張大嘴或歪嘴變形），${face}，${head}，${hands}`
+    : `以自然 1.0x 真人說話速度（唔好慢動作）全程持續清晰口型跟住講「${input.line}」（每個字都有清晰明顯嘅嘴唇同下巴開合對嘴動作，絕對唔好合埋口唔郁或者定格露齒微笑；口型精準克制、下巴同唇部開合細緻自然、無誇張大嘴或歪嘴變形），${face}，${head}，${hands}，重心左右移；頭到腳留喺畫面`;
   const hook = first ? `${p.hookBeat}做 hook` : "眉毛揚起、帶住半笑";
   const propReady = anchored ? `、${p.anchorProp}已經喺${zhHand}` : "";
   const fadeIn = `大字幕由下向上淡入到${place}`;

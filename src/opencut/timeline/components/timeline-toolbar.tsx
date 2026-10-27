@@ -299,14 +299,6 @@ function ToolbarLeftSection() {
 					onClick={() => void handleSmoothSilenceGaps()}
 				/>
 
-				<ToolbarButton
-					icon={<HugeiconsIcon icon={Image02Icon} />}
-					isActive={insertingBroll}
-					disabled={insertingBroll}
-					tooltip="自動加入中間 B-Roll 插圖 · Auto insert B-Roll overlays"
-					onClick={() => void handleAutoInsertBroll()}
-				/>
-
 				<GraphEditorPopover
 					open={graphEditor.open}
 					onOpenChange={graphEditor.onOpenChange}

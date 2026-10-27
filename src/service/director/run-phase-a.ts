@@ -67,7 +67,7 @@ import {
 } from "@/service/director/explainer-family";
 import { loadReferenceImageContent } from "@/service/director/reference-image-content";
 import { rewriteEndScenes } from "@/service/director/end-scene-rewrite";
-import { directorModel } from "@/service/director/model";
+import { storyboardModel, storyboardProviderOptions } from "@/service/director/model";
 import {
   instructionFollowsReferenceClothes,
   phaseAReferenceImageRules,
@@ -293,7 +293,8 @@ export async function runPhaseA(input: {
   });
 
   const generated = await generateText({
-    model: directorModel(),
+    model: storyboardModel(),
+    providerOptions: storyboardProviderOptions(),
     output: Output.object({
       schema: dualBeat ? cartoonPhaseASchema : talkingHead ? talkingHeadPhaseASchema : phaseASchema,
     }),

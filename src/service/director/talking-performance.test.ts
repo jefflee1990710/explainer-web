@@ -190,5 +190,6 @@ test("every clip variant locks gaze straight on the lens center and moves at nat
     assert.doesNotMatch(yue, /望一望右上|低頭望一望比畫緊嘅雙手|三七面|15 度|12 度/);
     assert.match(en, /no exaggerated mouth opening or excessive jaw swing/);
     assert.match(yue, /口型精準克制、下巴同唇部開合細緻自然、無誇張大嘴/);
+    assert.doesNotMatch(yue, /正面對住鏡頭微笑、雙眼全程直望鏡頭/);
   }
 });

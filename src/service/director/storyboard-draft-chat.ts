@@ -1,7 +1,7 @@
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import type { StoryboardClipDraft, VoLanguage } from "@/model/project";
-import { directorModel } from "@/service/director/model";
+import { storyboardModel, storyboardProviderOptions } from "@/service/director/model";
 import { persistBuffer } from "@/service/higgsfield/persist";
 
 export const MAX_CLIP_DRAFTS = 12;
@@ -187,7 +187,8 @@ export async function draftStoryboardClipsWithAi(input: {
       : "(none)";
 
   const generated = await generateText({
-    model: directorModel(),
+    model: storyboardModel(),
+    providerOptions: storyboardProviderOptions(),
     output: Output.object({ schema: draftChatOutputSchema }),
     system: `You are an expert AI Storyboard Draft Assistant helping a creator plan clip-by-clip visual explanations and voiceover lines before full storyboard generation.
 Director mode: ${input.skillSlug || "cartoon-explainer-video-director"}

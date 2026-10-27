@@ -123,7 +123,7 @@ export function OpenCutScroToolbar({
           <VideoStageStepper project={project} onOpenTasks={() => setTasksOpen(true)} />
           <ScroVideoQueue {...queue} onOpen={() => setTasksOpen(true)} />
         </div>
-        <OpenCutAiToolbarActions />
+        <OpenCutAiToolbarActions project={project} />
         {tasksOpen ? (
           <TaskListDialog videoId={project.id} onClose={() => setTasksOpen(false)} />
         ) : null}

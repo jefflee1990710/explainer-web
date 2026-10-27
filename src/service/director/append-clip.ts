@@ -8,7 +8,7 @@ import { rewriteEndScenes } from "@/service/director/end-scene-rewrite";
 import { usesSteadyStills } from "@/service/director/steady-stills";
 import { LANGUAGE_PRESETS, sceneDescriptionLanguageLock } from "@/service/director/languages";
 import { skillPromptForPhaseA } from "@/service/director/load-skill-prompt";
-import { directorModel } from "@/service/director/model";
+import { storyboardModel, storyboardProviderOptions } from "@/service/director/model";
 import { resolvePerformance } from "@/service/director/performance";
 import { sceneDetailDirectorBlock } from "@/service/director/scene-detail";
 import {
@@ -152,7 +152,8 @@ export async function draftAppendedClips(input: AppendInput): Promise<Storyboard
   // Cinematic realistic whiteboard: same camera and one subtitle on both stills.
   const steadyStills = usesSteadyStills(skillSlug, input.style);
   const generated = await generateText({
-    model: directorModel(),
+    model: storyboardModel(),
+    providerOptions: storyboardProviderOptions(),
     output: Output.object({ schema: dualBeat ? dualClipDraftSchema : clipDraftSchema }),
     system: `${skillPromptForPhaseA(input.skill, input.style)}
 

@@ -4,22 +4,17 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   HeadphonesIcon,
-  Image02Icon,
-  MagicWand05Icon,
   MusicNote03Icon,
-  SubtitleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import { useI18n } from "@/presentation/components/i18n-provider";
 import { StudioHint } from "@/presentation/studio/studio-hint";
-import {
-  setScroSubtitleOpen,
-  useScroSubtitleCatalog,
-  useScroSubtitleVideoId,
-} from "@/opencut/embed/scro-subtitle-store";
+import { useScroSubtitleCatalog } from "@/opencut/embed/scro-subtitle-store";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
+import { SmoothSilenceAuto } from "@/presentation/components/app/projects/new/smooth-silence-auto";
+import type { PublicVideo } from "@/presentation/serialize";
 
-type ToolBusyKey = "broll" | "sfx" | "bgm" | "silence" | null;
+type ToolBusyKey = "sfx" | "bgm" | null;
 
 // Single icon + text button with a hover-only tooltip for the OpenCut top toolbar.
 function AiToolbarButton({
@@ -58,17 +53,16 @@ function AiToolbarButton({
   );
 }
 
-// Compact AI automation actions (Subtitles, B-Roll, SFX, BGM, Smooth Silence) on the right of the OpenCut status bar.
-export function OpenCutAiToolbarActions() {
+// Compact AI automation actions (SFX, BGM) on the right of the OpenCut status bar.
+// Smooth Silence is applied on the server when a lip-sync clip finishes.
+export function OpenCutAiToolbarActions({ project }: { project?: PublicVideo }) {
   const { t } = useI18n();
   const catalog = useScroSubtitleCatalog();
-  const subtitleVideoId = useScroSubtitleVideoId();
   const scroVideos = useScroVideos();
   const [busy, setBusy] = useState<ToolBusyKey>(null);
 
   const lines = catalog?.lines ?? [];
   const hasLines = lines.length > 0;
-  const videoId = subtitleVideoId ?? scroVideos?.videoId;
   const noDialogueHint = t("production.toolbar.aiTools.noDialogueHint");
 
   async function runTool(key: Exclude<ToolBusyKey, null>, fn: () => Promise<void>) {
@@ -83,46 +77,6 @@ export function OpenCutAiToolbarActions() {
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <AiToolbarButton
-        icon={SubtitleIcon}
-        label={t("production.toolbar.aiTools.subtitlesLabel")}
-        hint={t("production.toolbar.aiTools.subtitlesHint")}
-        onClick={() => setScroSubtitleOpen(true)}
-      />
-
-      <AiToolbarButton
-        icon={Image02Icon}
-        label={
-          busy === "broll"
-            ? t("production.toolbar.aiTools.brollBusy")
-            : t("production.toolbar.aiTools.brollLabel")
-        }
-        hint={hasLines ? t("production.toolbar.aiTools.brollHint") : noDialogueHint}
-        busy={busy === "broll"}
-        disabled={!hasLines}
-        onClick={() =>
-          void runTool("broll", async () => {
-            const [{ EditorCore }, { runAutoInsertBrollOnTimeline }] = await Promise.all([
-              import("@/opencut/core"),
-              import("@/opencut/components/editor/panels/assets/views/stock-media-view"),
-            ]);
-            const editor = EditorCore.getInstance();
-            const res = await runAutoInsertBrollOnTimeline({
-              editor,
-              lines,
-              videoId,
-              mediaType: "image",
-            });
-            if (res.error) toast.error(res.error);
-            else {
-              toast.success(
-                t("production.toolbar.aiTools.brollDone", { n: res.insertedCount }),
-              );
-            }
-          })
-        }
-      />
-
       <AiToolbarButton
         icon={HeadphonesIcon}
         label={
@@ -184,38 +138,7 @@ export function OpenCutAiToolbarActions() {
         }
       />
 
-      <AiToolbarButton
-        icon={MagicWand05Icon}
-        label={
-          busy === "silence"
-            ? t("production.toolbar.aiTools.silenceBusy")
-            : t("production.toolbar.aiTools.silenceLabel")
-        }
-        hint={t("production.toolbar.aiTools.silenceHint")}
-        align="end"
-        busy={busy === "silence"}
-        onClick={() =>
-          void runTool("silence", async () => {
-            const [{ EditorCore }, { runSmoothSilenceGapsOnTimeline }] = await Promise.all([
-              import("@/opencut/core"),
-              import("@/opencut/embed/scro-smooth-silence"),
-            ]);
-            const editor = EditorCore.getInstance();
-            const res = await runSmoothSilenceGapsOnTimeline({ editor });
-            if (res.error) {
-              toast.info(res.error);
-              return;
-            }
-            toast.success(
-              res.trimmedClipsCount > 0
-                ? t("production.toolbar.aiTools.silenceDone", {
-                    n: res.trimmedClipsCount,
-                  })
-                : t("production.toolbar.aiTools.silenceNone"),
-            );
-          })
-        }
-      />
+      <SmoothSilenceAuto project={project} />
     </div>
   );
 }

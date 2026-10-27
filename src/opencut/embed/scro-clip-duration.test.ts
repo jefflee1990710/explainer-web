@@ -28,6 +28,33 @@ describe("storyboard placement", () => {
 		assert.equal(place.packAdvanceSeconds, 4.52);
 	});
 
+	it("does not add a pack gap when the file is already inside the breath keep", () => {
+		const place = storyboardPlacement({
+			storyboardSeconds: 5,
+			fileSeconds: 4.2,
+			speechTrimStart: 0.1,
+			speechTrimEnd: 0.12,
+		});
+		assert.equal(place.trimStartSeconds, 0);
+		assert.equal(place.trimEndSeconds, 0);
+		assert.equal(place.visibleSeconds, 4.2);
+		assert.equal(place.packAdvanceSeconds, 4.2);
+	});
+
+	it("keeps full untrimmed video duration when smoothSilence is toggled off", () => {
+		const place = storyboardPlacement({
+			storyboardSeconds: 5,
+			fileSeconds: 5,
+			speechTrimStart: 0.4,
+			speechTrimEnd: 0.8,
+			smoothSilence: false,
+		});
+		assert.equal(place.trimStartSeconds, 0);
+		assert.equal(place.trimEndSeconds, 0);
+		assert.equal(place.visibleSeconds, 5);
+		assert.equal(place.packAdvanceSeconds, 5);
+	});
+
 	it("uses the confirmed real video length after video is generated", () => {
 		const longer = storyboardPlacement({ storyboardSeconds: 4, fileSeconds: 5.05 });
 		assert.equal(longer.visibleSeconds, 5.05);

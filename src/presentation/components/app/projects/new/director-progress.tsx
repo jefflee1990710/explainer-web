@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/presentation/components/i18n-provider";
-import { Spinner } from "@/presentation/components/spinner";
+import { PlanningRunner } from "@/presentation/components/app/projects/new/planning-runner";
 
 /** Storyboard usually lands within a minute. The bar follows elapsed time and holds here until the job finishes. */
 const EXPECTED_MS = 60_000;
@@ -11,10 +11,11 @@ const PROGRESS_CAP = 0.9;
 // Phase A is one job with no intermediate percent, so the fill is elapsed time, not a rotating stage list.
 export function DirectorProgress() {
   const { t } = useI18n();
-  const startedAt = useRef(Date.now());
+  const startedAt = useRef(0);
   const [percent, setPercent] = useState(2);
 
   useEffect(() => {
+    startedAt.current = Date.now();
     const tick = () => {
       const elapsed = Date.now() - startedAt.current;
       const ratio = Math.min(PROGRESS_CAP, Math.max(0.02, elapsed / EXPECTED_MS));
@@ -31,12 +32,10 @@ export function DirectorProgress() {
     <section
       role="status"
       aria-live="polite"
-      className="w-full max-w-lg rounded-[1.5rem] border border-accent-ink/10 bg-paper px-5 py-4 text-foreground shadow-[8px_8px_0_0_rgba(18,20,28,0.12)]"
+      className="w-full max-w-2xl rounded-[1.5rem] border border-accent-ink/10 bg-paper px-4 py-4 text-foreground shadow-[8px_8px_0_0_rgba(18,20,28,0.12)] sm:px-5"
     >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-accent-ink/10 bg-lime/50 text-accent-ink">
-          <Spinner className="h-4 w-4" />
-        </span>
+      <PlanningRunner />
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="inline-flex items-center rounded-full bg-accent-ink px-2 py-0.5 text-xs font-bold text-lime tabular-nums">
           1/5
         </span>

@@ -222,30 +222,74 @@ export async function gradeRealisticImageBuffer(
     .raw()
     .toBuffer({ resolveWithObject: true });
 
+  // Fine high-frequency detail layer (sigma=0.85) to recover micro-relief on AI-smoothed skin and fabrics.
+  const fineBlurred = await sharp(buffer)
+    .removeAlpha()
+    .blur(0.85)
+    .raw()
+    .toBuffer();
+
   const out = Buffer.allocUnsafe(data.length);
   const minClamp = Math.max(4, blackFloor - 2);
   const maxClamp = Math.min(232, whiteCeiling + 6);
 
   for (let offset = 0; offset < data.length; offset += 3) {
-    let r = lut[data[offset]];
-    let g = lut[data[offset + 1]];
-    let b = lut[data[offset + 2]];
+    const rawR = data[offset];
+    const rawG = data[offset + 1];
+    const rawB = data[offset + 2];
 
-    const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    // High-frequency residual from the 0.85-sigma blur for crisp pore & fabric micro-contrast.
+    const hfR = rawR - fineBlurred[offset];
+    const hfG = rawG - fineBlurred[offset + 1];
+    const hfB = rawB - fineBlurred[offset + 2];
+
+    let r = lut[rawR];
+    let g = lut[rawG];
+    let b = lut[rawB];
+
+    let y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+    // Detect warm human skin tones to suppress waxy specular glare and boost pore micro-relief.
+    const isWarmSkin =
+      rawR > rawG &&
+      rawG >= rawB &&
+      rawR - rawB >= 12 &&
+      rawR - rawG >= 4 &&
+      y >= 48 &&
+      y <= 228;
+
+    // Matte down waxy/oily specular hot-spots on forehead, nose bridge, and cheekbones (y > 172).
+    if (isWarmSkin && y > 172) {
+      const targetY = 172 + (y - 172) * 0.58;
+      const scale = targetY / Math.max(1, y);
+      r = Math.round(r * scale);
+      g = Math.round(g * scale);
+      b = Math.round(b * scale);
+      y = targetY;
+    }
+
+    // Restore crisp micro-detail in midtones (stronger on skin so AI denoising doesn't look like plastic).
+    if (y >= 36 && y <= 215) {
+      const detailGain = isWarmSkin ? 0.38 : 0.22;
+      r = Math.round(r + hfR * detailGain);
+      g = Math.round(g + hfG * detailGain);
+      b = Math.round(b + hfB * detailGain);
+    }
 
     // Rule 05: gently desaturate deep shadow pixels toward neutral luma.
     if (y < 28) {
       const keep = Math.max(0.35, (y - blackFloor) / Math.max(1, 28 - blackFloor));
       r = Math.round(y + (r - y) * keep);
       g = Math.round(y + (g - y) * keep);
-      b = Math.round(y + (b - y) * keep);
+      b = Math.round(b + (b - y) * keep);
     }
 
-    // Rule 07: luminance-weighted 35mm film grain (preserved in lifted blacks, never clipping highlights).
+    // Rule 07: luminance-weighted 35mm / CMOS sensor micro-grain (preserved in lifted blacks, never clipping highlights).
     if (grainStrength > 0) {
       const shadowWeight = Math.min(1, Math.max(0.45, (y - minClamp) / 24));
       const highlightWeight = Math.min(1, Math.max(0.4, (maxClamp - y) / 28));
-      const grain = randn() * grainStrength * shadowWeight * highlightWeight;
+      const skinMicroBoost = isWarmSkin ? 1.12 : 1.0;
+      const grain = randn() * grainStrength * shadowWeight * highlightWeight * skinMicroBoost;
       r = Math.round(r + grain);
       g = Math.round(g + grain);
       b = Math.round(b + grain * 0.95);
@@ -282,7 +326,7 @@ const VIDEO_KNEE_LUT_EXPR =
   "clip(if(lte(val,180),5+val*0.975,180+(val-180)*0.6),4,228)";
 
 export const REALISTIC_VIDEO_GRADE_FILTER =
-  `lutrgb=r='${VIDEO_KNEE_LUT_EXPR}':g='${VIDEO_KNEE_LUT_EXPR}':b='${VIDEO_KNEE_LUT_EXPR}',noise=c0s=4:c0f=t+u`;
+  `unsharp=3:3:0.35:3:3:0.0,lutrgb=r='${VIDEO_KNEE_LUT_EXPR}':g='${VIDEO_KNEE_LUT_EXPR}':b='${VIDEO_KNEE_LUT_EXPR}',noise=c0s=4:c0f=t+u,setsar=1`;
 
 export function realisticVideoGradeArgs(inPath: string, outPath: string): string[] {
   return [

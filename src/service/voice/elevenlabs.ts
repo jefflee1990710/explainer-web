@@ -240,17 +240,40 @@ export function groupAlignmentTokens(
   return tokens;
 }
 
+function fitTokensToClipDuration(
+  tokens: TimedLipSyncToken[],
+  onsetSeconds: number,
+  clipDurationSeconds: number,
+): TimedLipSyncToken[] {
+  if (tokens.length === 0) return [];
+  const rawEnd = tokens[tokens.length - 1].end;
+  const maxSpeechEnd = Math.max(onsetSeconds + 0.5, Number((clipDurationSeconds - 0.25).toFixed(2)));
+  if (rawEnd <= maxSpeechEnd) return tokens;
+  const rawSpan = Math.max(0.1, rawEnd - onsetSeconds);
+  const targetSpan = maxSpeechEnd - onsetSeconds;
+  const scale = targetSpan / rawSpan;
+  return tokens.map((item) => ({
+    token: item.token,
+    start: Number((onsetSeconds + (item.start - onsetSeconds) * scale).toFixed(3)),
+    end: Number((onsetSeconds + (item.end - onsetSeconds) * scale).toFixed(3)),
+  }));
+}
+
 export function buildTimedLipSyncPromptBlock(
   alignment?: ElevenLabsAlignment | null,
   options?: { onsetSeconds?: number; clipDurationSeconds?: number },
 ): string {
   const onset = options?.onsetSeconds ?? DEFAULT_SPEECH_ONSET_SECONDS;
   const clipDur = options?.clipDurationSeconds ?? 5;
-  const tokens = groupAlignmentTokens(alignment, onset);
+  const tokens = fitTokensToClipDuration(
+    groupAlignmentTokens(alignment, onset),
+    onset,
+    clipDur,
+  );
   if (tokens.length === 0) return "";
   const speechEnd = tokens[tokens.length - 1].end;
   const lines = [
-    `EXACT LIP-SYNC TIMING SCHEDULE (the on-screen speaker's mouth MUST articulate each syllable/word at these exact timestamps with restrained, natural small jaw and lip opening — ~30–40% conversational mouth opening, clean lip closure on bilabial m/b/p consonants, never exaggerated wide-open mouth or excessive jaw swing — and stay completely closed after ${speechEnd.toFixed(2)}s):`,
+    `EXACT LIP-SYNC TIMING SCHEDULE (the on-screen speaker's mouth MUST actively open and close to articulate each syllable/word at these exact timestamps — never freeze in a static smile or closed mouth during speech; use natural ~30–40% conversational mouth opening with clean lip closure on bilabial m/b/p consonants, never exaggerated wide-open mouth or excessive jaw swing — and close into a natural smile after ${speechEnd.toFixed(2)}s):`,
     `- 0.00s–${onset.toFixed(2)}s: mouth closed, brief inhale before speaking`,
     ...tokens.map(
       (item) => `- ${item.start.toFixed(2)}s–${item.end.toFixed(2)}s: "${item.token}"`,
@@ -266,14 +289,19 @@ export function withTimedLipSyncPrompt(
   options?: { onsetSeconds?: number; clipDurationSeconds?: number },
 ): string {
   const onset = options?.onsetSeconds ?? DEFAULT_SPEECH_ONSET_SECONDS;
-  const tokens = groupAlignmentTokens(alignment, onset);
+  const clipDur = options?.clipDurationSeconds ?? 5;
+  const tokens = fitTokensToClipDuration(
+    groupAlignmentTokens(alignment, onset),
+    onset,
+    clipDur,
+  );
   if (tokens.length === 0) return prompt;
   const speechEnd = tokens[tokens.length - 1].end;
   const onsetStr = onset.toFixed(2);
   const endStr = speechEnd.toFixed(2);
 
   let updated = prompt
-    .replace(/0\.[24][–-]4\.[27]s/g, `${onsetStr}–${endStr}s`)
+    .replace(/0(?:\.[24])?[–-]4\.[27]s/g, `${onsetStr}–${endStr}s`)
     .replace(/4\.[27][–-](\d+(?:\.\d+)?)s/g, `${endStr}–$1s`);
 
   const block = buildTimedLipSyncPromptBlock(alignment, options);

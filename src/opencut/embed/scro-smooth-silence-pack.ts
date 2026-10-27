@@ -45,3 +45,95 @@ export function nextPackedStartSeconds(
 ): number {
 	return cursorSeconds + visibleSeconds + (isLast ? 0 : SMOOTH_SILENCE_GAP_SECONDS);
 }
+
+// Pure decision rule: talking-head videos auto-enable Smooth Silence once a clip video is generated,
+// unless the user has manually toggled the switch on or off for this video.
+export function shouldAutoEnableSmoothSilence({
+	isTalkingHead,
+	hasGeneratedVideo,
+	userOverride,
+}: {
+	isTalkingHead: boolean;
+	hasGeneratedVideo: boolean;
+	userOverride?: boolean;
+}): boolean {
+	if (userOverride !== undefined) return userOverride;
+	if (!hasGeneratedVideo) return false;
+	return isTalkingHead;
+}
+
+let currentVideoId: string | null = null;
+let smoothSilenceEnabled = false;
+const userOverridesByVideoId = new Map<string, boolean>();
+const listeners = new Set<() => void>();
+
+function emitSmoothSilence() {
+	for (const listener of listeners) listener();
+}
+
+export function subscribeScroSmoothSilence(listener: () => void): () => void {
+	listeners.add(listener);
+	return () => listeners.delete(listener);
+}
+
+export function getScroSmoothSilenceEnabled(): boolean {
+	return smoothSilenceEnabled;
+}
+
+export function getScroSmoothSilenceUserOverride(
+	videoId?: string | null,
+): boolean | undefined {
+	if (!videoId) return undefined;
+	return userOverridesByVideoId.get(videoId);
+}
+
+// Update Smooth Silence state. When userInitiated is true, record the manual choice for this videoId.
+export function setScroSmoothSilenceEnabled(
+	next: boolean,
+	options?: { videoId?: string | null; userInitiated?: boolean },
+): void {
+	const targetVideoId = options?.videoId ?? currentVideoId;
+	if (targetVideoId) {
+		currentVideoId = targetVideoId;
+		if (options?.userInitiated) {
+			userOverridesByVideoId.set(targetVideoId, next);
+		}
+	}
+	if (smoothSilenceEnabled === next) return;
+	smoothSilenceEnabled = next;
+	emitSmoothSilence();
+}
+
+// Sync Smooth Silence state for the active project and report whether it just auto-turned on.
+export function syncAutoSmoothSilence({
+	videoId,
+	isTalkingHead,
+	hasGeneratedVideo,
+}: {
+	videoId?: string | null;
+	isTalkingHead: boolean;
+	hasGeneratedVideo: boolean;
+}): { enabled: boolean; autoTurnedOn: boolean } {
+	if (videoId) currentVideoId = videoId;
+	const userOverride = videoId ? userOverridesByVideoId.get(videoId) : undefined;
+	const next = shouldAutoEnableSmoothSilence({
+		isTalkingHead,
+		hasGeneratedVideo,
+		userOverride,
+	});
+	const autoTurnedOn =
+		userOverride === undefined && isTalkingHead && hasGeneratedVideo && !smoothSilenceEnabled && next;
+	if (smoothSilenceEnabled !== next) {
+		smoothSilenceEnabled = next;
+		emitSmoothSilence();
+	}
+	return { enabled: next, autoTurnedOn };
+}
+
+export function resetScroSmoothSilenceForTest(): void {
+	currentVideoId = null;
+	smoothSilenceEnabled = false;
+	userOverridesByVideoId.clear();
+	emitSmoothSilence();
+}
+

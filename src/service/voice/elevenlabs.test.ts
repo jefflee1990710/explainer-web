@@ -200,6 +200,22 @@ test("synthesizeSpeechWithTimestamps retrieves audio and character timestamps an
   assert.match(updated, /0\.40–1\.20s 口型跟住講/);
   assert.match(updated, /1\.20–5s 口部合上/);
   assert.match(updated, /EXACT LIP-SYNC TIMING SCHEDULE/);
+
+  // Continued clips (clip 2+) use "0–4.7s" and long TTS alignments must clamp inside clipDurationSeconds.
+  const longAlignment = {
+    characters: ["呢", "個", "直", "播", "啦"],
+    character_start_times_seconds: [0.0, 1.2, 2.4, 3.6, 4.6],
+    character_end_times_seconds: [1.2, 2.4, 3.6, 4.6, 5.1],
+  };
+  const continuedPrompt = "0–0.4s 保持第一幀嘅構圖；0–4.7s 坐住唔起身口型跟住講；4.7–5s 口部合上。";
+  const clamped = withTimedLipSyncPrompt(continuedPrompt, longAlignment, {
+    onsetSeconds: 0.4,
+    clipDurationSeconds: 5,
+  });
+  assert.match(clamped, /0\.40–4\.75s 坐住唔起身口型跟住講/);
+  assert.match(clamped, /4\.75–5s 口部合上/);
+  assert.match(clamped, /4\.75s–5\.00s: speech finished, mouth closed/);
+  assert.doesNotMatch(clamped, /5\.\d+–5s/);
 });
 
 test("fetchForcedAlignment and matchClauseWindows align Eleven v4 TTS clauses to source video mouth timing", async () => {

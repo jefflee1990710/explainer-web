@@ -1,6 +1,7 @@
 import { getAppUrl, isPublicHttpUrl } from "@/util/app-url";
 import { isAlicloudStatusUrl } from "@/service/alicloud/dashscope";
 import { fetchAlicloudStatus, submitAlicloudImage } from "@/service/alicloud/generate";
+import { fetchMinimaxVideoStatus, isMinimaxVideoStatusUrl } from "@/service/minimax/talking-head-reference";
 import {
   fetchOpenRouterStatus,
   isOpenRouterStatusUrl,
@@ -279,6 +280,9 @@ export async function submitClipVideo(input: {
 }
 
 export async function fetchHiggsfieldStatus(statusUrl: string) {
+  if (isMinimaxVideoStatusUrl(statusUrl)) {
+    return fetchMinimaxVideoStatus(statusUrl);
+  }
   if (isOpenRouterStatusUrl(statusUrl)) {
     return fetchOpenRouterStatus(statusUrl);
   }

@@ -5,7 +5,11 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 const DEFAULT_MODEL = "gemini-3.8-flash";
 // Gemini 4 Argon is called through the Interactions API. Thinking defaults to medium.
 const ARGON_MODEL = "gemini-4-argon";
-// End-still rewrite uses the same fast model as the storyboard.
+// Storyboard planning. Argon rejects thinking off and `minimal` (HTTP 400).
+// `low` is the fastest level the API accepts.
+export const STORYBOARD_MODEL = ARGON_MODEL;
+export const STORYBOARD_THINKING_LEVEL = "low" as const;
+// End-still rewrite stays on the fast model. It only rewrites a scene line.
 const END_SCENE_MODEL = "gemini-3.8-flash";
 
 function googleClient() {
@@ -23,6 +27,21 @@ export function directorModel() {
     return client.interactions(modelId);
   }
   return client(modelId);
+}
+
+// Phase A, added clips, and the draft chat. Smarter than Flash, thinking at low.
+export function storyboardModel() {
+  return googleClient().interactions(STORYBOARD_MODEL);
+}
+
+export function storyboardProviderOptions() {
+  return {
+    google: {
+      thinkingLevel: STORYBOARD_THINKING_LEVEL,
+      // Skip thought summaries so the call does not wait on extra reasoning text.
+      thinkingSummaries: "none" as const,
+    },
+  };
 }
 
 export function endSceneModel() {
