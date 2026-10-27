@@ -27,6 +27,7 @@ import { persistMedia } from "@/service/higgsfield/persist";
 import { resolveSceneText } from "@/service/director/scene-text";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
 import { isRealisticStyle } from "@/service/style/realistic-light";
+import { gradeRealisticImageBuffer } from "@/service/style/realistic-grade";
 
 // Drop prior lock jobs so a new inventory can re-queue. Refund anything still unpaid.
 async function invalidateVideoLockJobs(projectId: ObjectId, clerkUserId: string) {
@@ -327,7 +328,18 @@ export async function syncVideoLockJob(
       job.backgroundSetId,
       project.lockRevision,
     );
-    blobUrl = await persistMedia(outputUrl, `explainer/${job.projectId.toHexString()}/locks/${suffix}`);
+    const style = await loadRenderableStyle({
+      styleId: project.styleId,
+      ownerClerkUserId: project.clerkUserId,
+    }).catch(() => undefined);
+    const realistic = isRealisticStyle(style) || project.styleId === "realistic";
+    blobUrl = await persistMedia(
+      outputUrl,
+      `explainer/${job.projectId.toHexString()}/locks/${suffix}`,
+      realistic
+        ? { transform: (buf) => gradeRealisticImageBuffer(buf).catch(() => buf) }
+        : undefined,
+    );
   } catch (error) {
     console.error("[video-locks] persist failed", { jobId: job._id, error });
   }

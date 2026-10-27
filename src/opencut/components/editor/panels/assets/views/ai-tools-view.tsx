@@ -30,7 +30,7 @@ import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { runAutoInsertBrollOnTimeline } from "@/opencut/components/editor/panels/assets/views/stock-media-view";
 import { cn } from "@/opencut/utils/ui";
 
-type ToolBusyKey = "broll" | "sfx" | "bgm" | "silence" | null;
+type ToolBusyKey = "sfx" | "bgm" | "silence" | null;
 
 type AiToolCardProps = {
 	icon: IconSvgElement;
@@ -128,28 +128,6 @@ export function AiToolsView() {
 							onClick={() => setScroSubtitleOpen(true)}
 						/>
 					) : null}
-
-					<AiToolCard
-						icon={Image02Icon}
-						title="B-Roll 插圖"
-						description="AI 分析對白，自動在主軌上方加插免費插圖／短片"
-						actionLabel="自動加入 B-Roll"
-						busyLabel="AI 正在規劃並加插 B-Roll…"
-						busy={busy === "broll"}
-						disabled={!hasLines}
-						onClick={() =>
-							void runTool("broll", async () => {
-								const res = await runAutoInsertBrollOnTimeline({
-									editor,
-									lines,
-									videoId,
-									mediaType: "image",
-								});
-								if (res.error) toast.error(res.error);
-								else toast.success(`已自動加插 ${res.insertedCount} 段 B-Roll`);
-							})
-						}
-					/>
 
 					<AiToolCard
 						icon={HeadphonesIcon}

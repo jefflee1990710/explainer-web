@@ -398,23 +398,10 @@ export function StockMediaView() {
 					<div>
 						<h2 className="text-sm font-medium">免費插圖與影片素材 · B-Roll</h2>
 						<p className="text-muted-foreground text-[11px]">
-							輸入關鍵字搜尋免費圖片／影片，或一鍵自動加插到主軌上方
+							輸入關鍵字搜尋免費圖片／影片，加插到主軌上方
 						</p>
 					</div>
 				</div>
-
-				<Button
-					type="button"
-					variant="secondary"
-					size="sm"
-					disabled={autoInserting || (catalog?.lines.length ?? 0) === 0}
-					onClick={() => void handleAutoBroll()}
-					className="w-full justify-center gap-1.5 text-xs font-semibold"
-				>
-					{autoInserting
-						? "AI 正在分析對白並自動加插 B-Roll…"
-						: "✨ 自動加入中間 B-Roll 插圖 (Auto Insert)"}
-				</Button>
 
 				<form
 					onSubmit={(event) => {

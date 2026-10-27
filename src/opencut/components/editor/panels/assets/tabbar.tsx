@@ -13,14 +13,18 @@ import {
 	tabs,
 	useAssetsPanelStore,
 } from "@/opencut/components/editor/panels/assets/assets-panel-store";
+import { ScroSubtitleRailButton } from "@/opencut/components/editor/panels/assets/scro-subtitle-rail-button";
 import {
 	setScroSubtitleOpen,
 	useScroSubtitleOpen,
 } from "@/opencut/embed/scro-subtitle-store";
+import { isScroEmbed } from "@/opencut/embed/scro-transport";
+import { useSearchParams } from "next/navigation";
 
 export function TabBar() {
 	const { activeTab, setActiveTab } = useAssetsPanelStore();
 	const subtitleOpen = useScroSubtitleOpen();
+	const embedded = isScroEmbed(useSearchParams().get("embed"));
 	const [showTopFade, setShowTopFade] = useState(false);
 	const [showBottomFade, setShowBottomFade] = useState(false);
 	const scrollRef = useRef<HTMLDivElement>(null);
@@ -97,6 +101,7 @@ export function TabBar() {
 								</Tooltip>
 							);
 						})}
+						{embedded && sectionIndex === 0 ? <ScroSubtitleRailButton /> : null}
 					</Fragment>
 				))}
 			</div>

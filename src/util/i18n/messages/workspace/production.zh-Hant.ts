@@ -178,7 +178,8 @@ export const productionZhHant = {
       silenceHint: "裁掉片段前後多餘靜音，讓分鏡接軌更緊",
       silenceDone: "已平滑 {n} 段影片接口靜音停頓",
       silenceNone: "已完成片段接口對齊（未偵測到多餘前後靜音）",
-      noDialogueHint: "載入分鏡對白後即可使用 AI B-Roll、聲效與背景音樂",
+      silenceOff: "已關閉平滑靜音並還原片段原始長度",
+      noDialogueHint: "載入分鏡對白後即可使用 AI 聲效與背景音樂",
     },
     pipeline: {
       stepBadge: "步驟 {step}/5",

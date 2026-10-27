@@ -198,7 +198,7 @@ function compositionLockLines(
       `COMPOSITION LOCK: ${source}.`,
       "Keep the exact same camera distance, focal length, crop, head-and-body scale, set, lighting, and character identity.",
       "Do not zoom in, zoom out, or reframe the camera. No jump.",
-      "Preserve the attached frame's exact room architecture, window and background layout, furniture/seat, floor/rug visibility, natural window lighting, shadow falloff, exposure, color tone, and skin texture — never add or remove foreground plants/leaves/objects, never flip left/right, move furniture, or change the background.",
+      "Preserve the attached frame's exact room architecture, window and background layout, furniture/seat, floor/rug visibility, natural window lighting, shadow falloff, exposure, color tone, and skin texture (keep unfiltered matte-natural skin pores and dimensional shadow falloff; never smooth or airbrush the face) — never add or remove foreground plants/leaves/objects, never flip left/right, move furniture, or change the background.",
       keepAttachedSubtitle
         ? "ZERO-DISPLACEMENT CONTINUITY: Keep the background, camera crop, head size, seated torso and shoulder position, and resting hand position on the lap locked to the attached frame, adjusting only a subtle 1–2 degree natural head angle and facial expression to match the Scene above. Do NOT zoom in or crop closer. A handheld prop stays in the same hand."
         : "ZERO-DISPLACEMENT CONTINUITY: Keep the background, camera crop, character scale, seated torso and shoulder position, and resting hand position on the lap locked to the attached frame, adjusting only a subtle 1–2 degree natural head angle and facial expression to match the Scene above. Never lift hands into mid-air on the still, and do NOT add any new foreground plant or object in the corners. A handheld prop stays in the same hand.",
@@ -365,28 +365,7 @@ function fitFramePrompt(
     (p) => ({ ...p, motion: "" }),
     // Realistic catalog style lines repeat REALISTIC_FRAME_RENDER_RULE; trim them before touching locks.
     (p) => ({ ...p, styleBody: clipAt(p.styleBody, 360) }),
-    ...(keepLight ? [(p: FrameTrimmable) => ({ ...p, styleBody: "" })] : []),
-    (p) => ({
-      ...p,
-      scene: p.scene
-        .replace(
-          /\s*(?:Realism:|真實感：)\s*[\s\S]*?(?=\s*(?:Subtitle:|字幕：)|$)/,
-          " Realism: natural available window daylight and soft rim light from the window side (camera-right) mixed with indoor room light for a clean, bright 1.2:1–1.5:1 facial shading on the far cheek and nose bridge (no flat beauty-ring light, no dark moody cinema shadows, neutral/cool highlights unless a warm practical lamp is in frame, soft overcast window below clipping); modern creator camera (iPhone 16 Pro 24mm f/1.8 / Sony ZV-E1 CMOS sensor — clean digital color, no heavy 35mm film grain), unfiltered skin pores, fine peach-fuzz, matte-natural human skin with zero oily or plastic sheen, soft background bokeh (no foreground obstructions).",
-        )
-        .trim(),
-    }),
-    (p) => ({
-      ...p,
-      renderDetail: p.renderDetail.replace(/^Render detail:[\s\S]*?(?=(?:Realistic light & camera|Real human camera capture):)/, "").trim(),
-    }),
-    (p) => ({
-      ...p,
-      renderDetail: p.renderDetail
-        ? p.renderDetail.startsWith("Real human camera capture:")
-          ? "Real human camera capture: shot on modern creator camera equipment (iPhone 16 Pro 24mm f/1.8 / Sony ZV-E1 / DJI Osmo Pocket 3 CMOS sensor; no heavy 35mm film grain or retro LUT). Light faces with natural available window daylight and indoor room light (clean 1.2:1–1.5:1 facial shading, neutral/cool highlights unless a warm lamp is visible, below pure-white clipping) and unfiltered matte-natural skin pores (zero oily sheen) with soft background bokeh."
-          : "Realistic light & camera: keep daytime and indoor scenes brightly well-exposed with clear midtones (never dim or underexposed unless explicitly night); sculpt faces and surfaces with grazing directional light, negative fill on the shadow side, and concrete light/shadow colour contrast (soft neutral daylight with gently cooler shadows, no amber vintage cast; neutral or cool by default unless a warm practical lamp, fire, or sunset is visible; in dark scenes keep 90% of shadows neutral; lift black point in underwater/fog/smoke). Match real camera optics from the Scene (24mm / 35mm / 50mm / 85mm portrait lens; deep focus f/11 for environment or f/4 to f/1.4 creamy bokeh background) with a light natural film feel, matte-natural skin pores (zero oily sheen), very faint fine grain, keep shadow blacks clean and neutral, and keep glowing objects below pure-white clipping."
-        : "",
-    }),
+    // Compact verbose scene camera boilerplate and lock paragraphs BEFORE dropping realistic styleBody or renderDetail.
     (p) => ({
       ...p,
       scene: p.scene
@@ -427,7 +406,6 @@ function fitFramePrompt(
       moment: firstSentence(p.moment),
       palette: "",
     }),
-    (p) => (/(?:\bRealism:|真實感：)/.test(p.scene) ? { ...p, renderDetail: "" } : p),
     // When cast + prop sheet + background plate + logo + realistic light push the prompt past the
     // budget, compact the verbose lock boilerplate while keeping every lock header and rule intact.
     (p) => ({
@@ -447,7 +425,7 @@ function fitFramePrompt(
       sightline:
         "Sightline: show only what this camera can see. Keep faces, screens, pages, and labels aimed at whoever uses them; if facing away from the camera, draw the blank back.",
       safeArea: p.safeArea
-        ? "9:16 IG Reel safe area: fill 100% of the 9:16 vertical frame from top edge to bottom edge with the scene (NO top/bottom letterbox bars or padding bands); keep text and faces in the middle 60%."
+        ? "9:16 IG Reel safe area: fill 100% of the 9:16 vertical frame edge-to-edge from top edge to bottom edge with the scene (NO top or bottom letterbox bars or padding bands); keep text and faces in the middle 60%."
         : "",
       castLines: p.castLines.map((line) =>
         line
@@ -461,6 +439,36 @@ function fitFramePrompt(
           ),
       ),
     }),
+    (p) => ({
+      ...p,
+      scene: p.scene
+        .replace(
+          /\s*(?:Realism:|真實感：)\s*[\s\S]*?(?=\s*(?:Subtitle:|字幕：)|$)/,
+          " Realism: directional available window daylight and soft rim light from the window side (camera-right) with negative fill on the opposite interior side for a dimensional 1.4:1–1.8:1 facial shading (25–40% natural shadow falloff on the far cheek and nose bridge; override flat blueprint lighting, no flat beauty-ring light, no dark moody cinema shadows, neutral/cool highlights unless a warm practical lamp is in frame, soft overcast window below clipping); modern creator camera (iPhone 16 Pro 24mm f/1.8 / Sony ZV-E1 CMOS sensor — clean digital color, no heavy 35mm film grain), raw unretouched human skin with visible pores across cheeks/nose/forehead, fine peach-fuzz, subtle under-eye and laugh-line texture, natural tooth detail, matte-natural skin with zero oily, waxy, porcelain, or plastic sheen, real fabric weave and lap contact shadows, soft background bokeh (no foreground obstructions).",
+        )
+        .trim(),
+    }),
+    (p) => ({
+      ...p,
+      renderDetail: p.renderDetail.replace(/^Render detail:[\s\S]*?(?=(?:Realistic light & camera|Real human camera capture):)/, "").trim(),
+    }),
+    (p) => ({
+      ...p,
+      renderDetail: p.renderDetail
+        ? p.renderDetail.startsWith("Real human camera capture:")
+          ? "Real human camera capture: shot on modern creator camera equipment (iPhone 16 Pro 24mm f/1.8 / Sony ZV-E1 / DJI Osmo Pocket 3 CMOS sensor; no heavy 35mm film grain or retro LUT). Light faces with directional available window daylight and negative fill on the shadow side (dimensional 1.4:1–1.8:1 facial shading, neutral/cool highlights unless a warm lamp is visible, below pure-white clipping) and raw unretouched matte-natural skin pores, peach-fuzz, under-eye micro-texture (override smooth blueprint; zero oily, waxy, or plastic sheen) with soft background bokeh."
+          : "Realistic light & camera: keep daytime and indoor scenes brightly well-exposed with clear midtones (never dim or underexposed unless explicitly night); sculpt faces and surfaces with grazing directional light, negative fill on the shadow side, and concrete light/shadow colour contrast (soft neutral daylight with gently cooler shadows, no amber vintage cast; neutral or cool by default unless a warm practical lamp, fire, or sunset is visible; in dark scenes keep 90% of shadows neutral; lift black point in underwater/fog/smoke). Match real camera optics from the Scene (24mm / 35mm / 50mm / 85mm portrait lens; deep focus f/11 for environment or f/4 to f/1.4 creamy bokeh background) with a light natural film feel, matte-natural skin pores (zero oily sheen), very faint fine grain, keep shadow blacks clean and neutral, and keep glowing objects below pure-white clipping."
+        : "",
+    }),
+    ...(keepLight
+      ? [
+          (p: FrameTrimmable) => ({
+            ...p,
+            styleBody: "Never: waxy airbrushed plastic skin, beauty-filter smoothing, porcelain doll skin, oily specular forehead sheen, flat front beauty-ring light, sterile CGI surfaces.",
+          }),
+        ]
+      : []),
+    (p) => (/(?:\bRealism:|真實感：)/.test(p.scene) ? { ...p, renderDetail: "" } : p),
     (p) => ({ ...p, styleBody: "" }),
   ];
   let current = parts;

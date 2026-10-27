@@ -181,7 +181,8 @@ export const productionEn = {
       silenceHint: "Trim leading and trailing dead air on clips for tighter transitions",
       silenceDone: "Smoothed silence gaps on {n} clips",
       silenceNone: "Clips aligned (no extra leading/trailing silence detected)",
-      noDialogueHint: "Load storyboard dialogue first to use AI B-Roll, SFX, and BGM",
+      silenceOff: "Smooth Silence off (restored full clip lengths)",
+      noDialogueHint: "Load storyboard dialogue first to use AI SFX and BGM",
     },
     pipeline: {
       stepBadge: "Step {step}/5",
