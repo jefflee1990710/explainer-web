@@ -98,9 +98,10 @@ export const productionEn = {
   },
   shell: {
     mainNavAria: "Main menu",
-    navGeneration: "Generation",
-    navSetup: "Setup",
-    navOther: "Other",
+    navCreate: "Create",
+    navCharacter: "Character",
+    navAssets: "Assets",
+    navAccount: "Account",
     clipInfoAria: "Clip info",
     clipInfoResize: "Resize clip info",
     previewAria: "Preview",
@@ -108,6 +109,9 @@ export const productionEn = {
     timelineResize: "Resize clip previews",
     chatAria: "AI scene chat",
     chatResize: "Resize AI scene chat",
+    roomLeftResize: "Resize outfit column",
+    roomRightResize: "Resize history column",
+    roomHistoryAria: "History",
   },
   annotation: {
     textPlaceholder: "Note",

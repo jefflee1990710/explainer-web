@@ -11,6 +11,7 @@ export function ColumnResizeHandle({
   grow,
   onDrag,
   onCommit,
+  track = "pill",
 }: {
   label: string;
   value: number;
@@ -19,6 +20,8 @@ export function ColumnResizeHandle({
   grow: "left" | "right";
   onDrag: (width: number) => void;
   onCommit: (width: number) => void;
+  // `edge` draws a full-height divider. `pill` keeps the short editor grip.
+  track?: "pill" | "edge";
 }) {
   const dragRef = useRef<{ x: number; width: number } | null>(null);
 
@@ -79,9 +82,15 @@ export function ColumnResizeHandle({
       onPointerUp={finish}
       onPointerCancel={finish}
       onKeyDown={onKeyDown}
-      className="hidden w-3 shrink-0 cursor-ew-resize touch-none items-center justify-center lg:flex"
+      className="hidden h-full w-3 shrink-0 cursor-ew-resize touch-none items-center justify-center lg:flex"
     >
-      <span className="h-10 w-1 rounded-full bg-accent-ink/25" />
+      <span
+        className={
+          track === "edge"
+            ? "h-full w-px bg-[var(--studio-line)]"
+            : "h-10 w-1 rounded-full bg-accent-ink/25"
+        }
+      />
     </button>
   );
 }

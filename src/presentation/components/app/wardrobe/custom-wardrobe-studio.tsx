@@ -150,8 +150,9 @@ export function CustomWardrobeStudio({
       ? items
       : items.filter((item) => item.part === filterPart);
 
+  // Wardrobe studio fills the main pane on wide screens.
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 pb-10">
+    <div className="flex w-full max-w-none flex-col gap-6 pb-10">
       {/* Header Bar */}
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-ink/10 bg-paper/90 px-5 py-4">
         <div>
@@ -422,7 +423,7 @@ export function CustomWardrobeStudio({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
               {filteredItems.map((item) => {
                 const primaryName = displayItemName(item);
                 const secondaryName =

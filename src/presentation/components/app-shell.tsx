@@ -37,23 +37,22 @@ export function AppShell({
 }) {
   const { t } = useI18n();
   const items: StudioNavItem[] = [
-    { href: "/app", label: t("nav.projects"), icon: "projects", section: "generation" },
-    { href: "/app/characters", label: t("nav.characters"), icon: "characters", section: "generation" },
-    { href: "/app/life", label: t("nav.life"), icon: "life", section: "generation" },
-    { href: "/app/room", label: t("nav.room"), icon: "room", section: "generation" },
-    { href: "/app/wardrobe", label: t("nav.wardrobe"), icon: "styles", section: "generation" },
+    { href: "/app", label: t("nav.projects"), icon: "projects", section: "create" },
+    { href: "/app/life", label: t("nav.life"), icon: "life", section: "create" },
     ...(POSTS_FEATURE_ENABLED
-      ? [{ href: "/app/posts", label: t("nav.posts"), icon: "posts" as const, section: "generation" as const }]
+      ? [{ href: "/app/posts", label: t("nav.posts"), icon: "posts" as const, section: "create" as const }]
       : []),
-    { href: "/app/text-styles", label: t("nav.textStyles"), icon: "text", section: "setup" },
-    { href: "/app/products", label: t("nav.products"), icon: "products", section: "setup" },
-    { href: "/app/mcp", label: t("nav.mcp"), icon: "mcp", section: "other" },
-    { href: "/app/billing", label: t("nav.billing"), icon: "billing", section: "other" },
+    { href: "/app/characters", label: t("nav.characters"), icon: "characters", section: "character" },
+    { href: "/app/room", label: t("nav.room"), icon: "room", section: "character" },
+    { href: "/app/wardrobe", label: t("nav.wardrobe"), icon: "wardrobe", section: "character" },
+    { href: "/app/text-styles", label: t("nav.textStyles"), icon: "text", section: "assets" },
+    { href: "/app/products", label: t("nav.products"), icon: "products", section: "assets" },
+    { href: "/app/billing", label: t("nav.billing"), icon: "billing", section: "account" },
+    { href: "/app/mcp", label: t("nav.mcp"), icon: "mcp", section: "account" },
+    ...(affiliateEnabled
+      ? [{ href: "/app/affiliate", label: t("nav.affiliate"), icon: "affiliate" as const, section: "account" as const }]
+      : []),
   ];
-  if (affiliateEnabled) {
-    const mcpIndex = items.findIndex((item) => item.href === "/app/mcp");
-    items.splice(mcpIndex, 0, { href: "/app/affiliate", label: t("nav.affiliate"), icon: "affiliate", section: "other" });
-  }
 
   return (
     <StudioShell

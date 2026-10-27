@@ -6,13 +6,13 @@ import { RouteTransitionProvider, useRouteTransition } from "@/presentation/stud
 import { StudioNav } from "@/presentation/studio/studio-nav";
 import { StudioRouteSkeleton } from "@/presentation/studio/studio-route-skeleton";
 
-export type StudioNavSection = "generation" | "setup" | "other";
+export type StudioNavSection = "create" | "character" | "assets" | "account";
 
 export type StudioNavItem = {
   href: string;
   label: string;
   section: StudioNavSection;
-  icon: "projects" | "posts" | "directors" | "styles" | "characters" | "life" | "room" | "text" | "products" | "mcp" | "affiliate" | "billing" | "settings";
+  icon: "projects" | "posts" | "directors" | "styles" | "wardrobe" | "characters" | "life" | "room" | "text" | "products" | "mcp" | "affiliate" | "billing" | "settings";
 };
 
 // Logged-in frame: full-height icon rail and a scrolling main slot.
@@ -55,10 +55,16 @@ export function StudioShell({
 
 // Swaps to the skeleton immediately when an /app link is clicked so the user is never stuck on the old page.
 function StudioMainSlot({ children }: { children: React.ReactNode }) {
-  const { pendingHref } = useRouteTransition();
+  const { pendingHref, activePathname } = useRouteTransition();
   const isVideoEditorRoute = Boolean(pendingHref && /^\/app\/projects\/[^/]+\/videos\/[^/]+$/.test(pendingHref));
+  // Fitting room fills the pane. Other pages keep the studio inset.
+  const fullBleed = /^\/app\/room(\/|$)/.test(activePathname);
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-6">
+    <div
+      className={`flex min-h-0 flex-1 flex-col ${
+        fullBleed ? "overflow-hidden" : "overflow-y-auto px-6 py-6"
+      }`}
+    >
       {pendingHref ? (
         isVideoEditorRoute ? (
           <EditorLoadingOverlay />

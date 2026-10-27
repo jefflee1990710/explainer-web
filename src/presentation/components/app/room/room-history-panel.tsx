@@ -49,7 +49,7 @@ export function RoomHistoryPanel({
   const canSaveActive = activeVersion.status === "completed" && Boolean(activeVersion.blueprintUrl);
 
   return (
-    <aside className="flex min-h-[20rem] flex-col overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90 p-3 lg:min-h-0">
+    <aside className="flex min-h-[20rem] flex-col overflow-hidden bg-[var(--studio-panel)] p-3 lg:h-full lg:min-h-0">
       <div role="tablist" className="flex shrink-0 items-center gap-1 rounded-full bg-accent-ink/5 p-1">
         {(["presets", "history"] as const).map((id) => {
           const active = tab === id;

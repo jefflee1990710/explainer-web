@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { runSmoothSilenceGapsOnTimeline } from "@/opencut/embed/scro-smooth-silence";
 import { syncAutoSmoothSilence } from "@/opencut/embed/scro-smooth-silence-pack";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import {
@@ -50,7 +49,11 @@ export function SmoothSilenceAuto({ project }: { project?: PublicVideo }) {
     const timer = window.setTimeout(async () => {
       if (cancelled) return;
       try {
-        const { EditorCore } = await import("@/opencut/core");
+        const [{ EditorCore }, { runSmoothSilenceGapsOnTimeline }] = await Promise.all([
+          import("@/opencut/core"),
+          // Wasm time helpers must stay behind this async split so the page chunk can build.
+          import("@/opencut/embed/scro-smooth-silence"),
+        ]);
         const editor = EditorCore.getInstance();
         await runSmoothSilenceGapsOnTimeline({
           editor,

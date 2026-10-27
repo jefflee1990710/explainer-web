@@ -78,7 +78,7 @@ export function RoomWardrobePanel({
       id={formId}
       onSubmit={submit}
       aria-label={t("characters.roomWardrobeHeading")}
-      className="flex min-h-0 flex-col gap-2 overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90 p-3"
+      className="flex min-h-0 flex-col gap-2 overflow-hidden bg-[var(--studio-panel)] p-3 lg:h-full"
     >
       <div className="flex shrink-0 items-center justify-between gap-2 px-1">
         <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
@@ -92,7 +92,7 @@ export function RoomWardrobePanel({
         </Link>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-0.5">
+      <div className="min-h-0 min-w-0 flex-1 space-y-1.5 overflow-x-hidden overflow-y-auto pr-0.5">
         {CHARACTER_WARDROBE_PARTS.map((part) => {
           const pickedId = picks[part];
           const activeId = pickedId ?? current[part];

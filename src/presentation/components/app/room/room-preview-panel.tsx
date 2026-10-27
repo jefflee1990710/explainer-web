@@ -34,7 +34,7 @@ export function RoomPreviewPanel({
   const hasDetails = Boolean(version.spec || version.editInstruction || version.prompt || version.referenceImageUrl);
 
   return (
-    <section className="flex min-h-[28rem] flex-col overflow-hidden rounded-2xl border border-accent-ink/10 bg-paper/90 p-3 lg:min-h-0">
+    <section className="flex min-h-[24rem] flex-col overflow-hidden bg-[var(--studio-canvas)] p-3 lg:h-full lg:min-h-0">
       {previewImage ? (
         <CharacterImagePreviewDialog
           src={previewImage.src}

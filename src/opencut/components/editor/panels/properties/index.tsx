@@ -18,7 +18,6 @@ export function PropertiesPanel() {
 	const editor = useEditor();
 	useEditor((e) => e.scenes.getActiveSceneOrNull());
 	useEditor((e) => e.media.getAssets());
-	const totalDuration = useEditor((e) => e.timeline.getTotalDuration());
 	const { selectedElements } = useElementSelection();
 	const { activeTabPerType, setActiveTab } = usePropertiesStore();
 	const scroStore = useScroVideos();
@@ -114,20 +113,9 @@ export function PropertiesPanel() {
 
 	if (!activeTab) return null;
 
-	const scroClipMeta =
-		timelineScroClip != null
-			? scroStore?.clips.find((c) => c.clipNumber === timelineScroClip)
-			: undefined;
-
 	return (
 		<div className="panel bg-background flex h-full min-h-0 flex-col overflow-hidden rounded-none border">
-			<InspectorHeader
-				element={element}
-				totalDuration={totalDuration}
-				subtitleOverride={
-					scroClipMeta ? "talking head / scene" : undefined
-				}
-			/>
+			<InspectorHeader element={element} />
 
 			{/* Horizontal segmented pill tab bar */}
 			{visibleTabs.length > 1 ? (

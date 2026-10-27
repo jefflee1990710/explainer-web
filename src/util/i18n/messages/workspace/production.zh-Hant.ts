@@ -98,9 +98,10 @@ export const productionZhHant = {
   },
   shell: {
     mainNavAria: "主選單",
-    navGeneration: "製作",
-    navSetup: "準備",
-    navOther: "其他",
+    navCreate: "創作",
+    navCharacter: "角色",
+    navAssets: "素材",
+    navAccount: "帳戶",
     clipInfoAria: "片段資訊",
     clipInfoResize: "調整片段資訊寬度",
     previewAria: "預覽",
@@ -108,6 +109,9 @@ export const productionZhHant = {
     timelineResize: "調整片段預覽高度",
     chatAria: "AI 改提示",
     chatResize: "調整 AI 改提示寬度",
+    roomLeftResize: "調整穿搭欄寬度",
+    roomRightResize: "調整紀錄欄寬度",
+    roomHistoryAria: "紀錄",
   },
   annotation: {
     textPlaceholder: "備註",

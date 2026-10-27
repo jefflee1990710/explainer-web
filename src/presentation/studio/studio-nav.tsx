@@ -6,17 +6,18 @@ import { useRouteTransition } from "@/presentation/studio/route-transition";
 import type { StudioNavItem, StudioNavSection } from "@/presentation/studio/studio-shell";
 import { isStudioNavActive } from "@/presentation/studio/studio-nav-active";
 
-const SECTIONS: StudioNavSection[] = ["generation", "setup", "other"];
+const SECTIONS: StudioNavSection[] = ["create", "character", "assets", "account"];
 
-// Grouped rail: project links, then Setup, then account-style links.
-// The Generation heading stays for screen readers and is not shown on the rail.
+// Rail groups follow the work: make something, dress the character, pick assets, then the account.
+// Headings stay for screen readers and appear when the rail expands.
 export function StudioNav({ items }: { items: StudioNavItem[] }) {
   const { t } = useI18n();
   const { activePathname } = useRouteTransition();
   const labels: Record<StudioNavSection, string> = {
-    generation: t("production.shell.navGeneration"),
-    setup: t("production.shell.navSetup"),
-    other: t("production.shell.navOther"),
+    create: t("production.shell.navCreate"),
+    character: t("production.shell.navCharacter"),
+    assets: t("production.shell.navAssets"),
+    account: t("production.shell.navAccount"),
   };
 
   return (
@@ -38,11 +39,7 @@ export function StudioNav({ items }: { items: StudioNavItem[] }) {
             ) : null}
             <p
               id={labelId}
-              className={
-                section === "generation"
-                  ? "sr-only"
-                  : "sr-only px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)] group-hover/rail:not-sr-only group-focus-within/rail:not-sr-only"
-              }
+              className="sr-only px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--studio-muted)] group-hover/rail:not-sr-only group-focus-within/rail:not-sr-only"
             >
               {labels[section]}
             </p>
@@ -118,6 +115,14 @@ function RailIcon({ name }: { name: StudioNavItem["icon"] }) {
         <path d="M4 10h16v8.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5V10Z" />
         <path d="m4 10-.6-2.9a1.5 1.5 0 0 1 1.2-1.8l12.7-2.4a1.5 1.5 0 0 1 1.8 1.2l.5 2.4L4 10Z" />
         <path d="m8.5 5.6 2 3.4M13.5 4.7l2 3.4" />
+      </svg>
+    );
+  }
+  if (name === "wardrobe") {
+    return (
+      <svg viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+        <path d="M12 4.5 7.5 7.2v2.1h9V7.2L12 4.5Z" />
+        <path d="M8.2 9.3h7.6l.7 10.2H7.5l.7-10.2Z" />
       </svg>
     );
   }

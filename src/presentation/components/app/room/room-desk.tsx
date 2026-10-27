@@ -13,6 +13,7 @@ import {
 import { InsufficientCreditsDialog } from "@/presentation/components/app/billing/insufficient-credits-dialog";
 import { useCharacterPoll } from "@/presentation/components/app/characters/[id]/use-character-poll";
 import { RoomCharacterSwitcher } from "@/presentation/components/app/room/room-character-switcher";
+import { RoomColumns } from "@/presentation/components/app/room/room-columns";
 import { RoomHistoryPanel } from "@/presentation/components/app/room/room-history-panel";
 import { RoomPreviewPanel } from "@/presentation/components/app/room/room-preview-panel";
 import { RoomWardrobePanel } from "@/presentation/components/app/room/room-wardrobe-panel";
@@ -78,8 +79,8 @@ export function RoomDesk({
 
   if (!character) {
     return (
-      <div className="flex flex-col gap-3 lg:h-[calc(100dvh-4.5rem)] lg:overflow-hidden">
-        <header className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-accent-ink/10 bg-paper/90 px-4 py-2.5">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 border-b border-[var(--studio-line)] px-3 py-2">
           <div>
             <h1 className="font-display text-lg font-bold">{t("characters.roomTitle")}</h1>
             <p className="text-xs text-muted">{t("characters.roomSubtitle")}</p>
@@ -91,7 +92,7 @@ export function RoomDesk({
             {t("characters.create")}
           </Link>
         </header>
-        <div className="grid flex-1 place-items-center rounded-2xl border border-accent-ink/10 bg-paper/80 p-6">
+        <div className="grid min-h-0 flex-1 place-items-center p-6">
           <p className="text-sm text-muted">{t("life.emptyCharacters")}</p>
         </div>
       </div>
@@ -215,8 +216,8 @@ function RoomStudio({
   }
 
   return (
-    <div className="flex flex-col gap-3 lg:h-[calc(100dvh-4.5rem)] lg:overflow-hidden">
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2.5">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 border-b border-[var(--studio-line)] px-3 py-2">
         <RoomCharacterSwitcher characters={characters} current={character} />
         {character.styleIds.length > 1 ? (
           <div className="flex flex-wrap items-center gap-1.5">
@@ -239,40 +240,46 @@ function RoomStudio({
       </header>
 
       {version ? (
-        <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[16rem_minmax(0,1fr)_18rem]">
-          <RoomWardrobePanel
-            key={version.id}
-            version={version}
-            cost={cost}
-            credits={credits}
-            subscribed={subscribed}
-            pending={pending}
-            onEdit={(instruction) => void onEdit(instruction)}
-          />
-          <RoomPreviewPanel
-            character={character}
-            version={version}
-            cost={cost}
-            pending={pending}
-            error={error}
-            onRetry={() => void run("retry", () => retryCharacterVersionAction(character.id, version.id))}
-          />
-          <RoomHistoryPanel
-            character={character}
-            activeVersion={version}
-            styleVersions={styleVersions}
-            pending={pending}
-            onSelectVersion={onSelectVersion}
-            onSavePreset={async (versionId, name) =>
-              Boolean(await run("save-preset", () => saveCharacterPresetAction(character.id, versionId, name)))
-            }
-            onDeletePreset={(presetId) =>
-              void run("delete-preset", () => deleteCharacterPresetAction(character.id, presetId))
-            }
-          />
-        </div>
+        <RoomColumns
+          left={
+            <RoomWardrobePanel
+              key={version.id}
+              version={version}
+              cost={cost}
+              credits={credits}
+              subscribed={subscribed}
+              pending={pending}
+              onEdit={(instruction) => void onEdit(instruction)}
+            />
+          }
+          center={
+            <RoomPreviewPanel
+              character={character}
+              version={version}
+              cost={cost}
+              pending={pending}
+              error={error}
+              onRetry={() => void run("retry", () => retryCharacterVersionAction(character.id, version.id))}
+            />
+          }
+          right={
+            <RoomHistoryPanel
+              character={character}
+              activeVersion={version}
+              styleVersions={styleVersions}
+              pending={pending}
+              onSelectVersion={onSelectVersion}
+              onSavePreset={async (versionId, name) =>
+                Boolean(await run("save-preset", () => saveCharacterPresetAction(character.id, versionId, name)))
+              }
+              onDeletePreset={(presetId) =>
+                void run("delete-preset", () => deleteCharacterPresetAction(character.id, presetId))
+              }
+            />
+          }
+        />
       ) : (
-        <div className="grid flex-1 place-items-center rounded-2xl border border-accent-ink/10 bg-paper/90 p-6">
+        <div className="grid min-h-0 flex-1 place-items-center p-6">
           <p className="text-sm text-muted">{t("characters.noVersions")}</p>
         </div>
       )}

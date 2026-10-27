@@ -57,7 +57,7 @@ export function WardrobePartColorPicker({
 
   return (
     <div
-      className={`rounded-xl border border-accent-ink/10 bg-paper/80 ${compact ? "px-2 py-1.5" : "px-2.5 py-2"}`}
+      className={`min-w-0 max-w-full rounded-xl border border-accent-ink/10 bg-paper/80 ${compact ? "px-2 py-1.5" : "px-2.5 py-2"}`}
     >
       <div className="flex flex-wrap items-center gap-2">
         <label htmlFor={inputId} className="text-[10px] font-semibold text-muted">
@@ -77,7 +77,8 @@ export function WardrobePartColorPicker({
           <span className="text-[10px] text-muted">{t("wardrobe.partColorDefault")}</span>
         )}
       </div>
-      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+      {/* Suggested swatches stay on one line. A narrow column scrolls sideways. */}
+      <div className="mt-1.5 flex flex-nowrap items-center gap-1.5 overflow-x-auto overflow-y-hidden">
         <input
           id={inputId}
           type="color"
