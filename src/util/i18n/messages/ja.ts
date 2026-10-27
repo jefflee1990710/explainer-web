@@ -29,7 +29,7 @@ export const ja: Partial<Messages> = {
     textStyles: "文字スタイル",
     life: "Life",
     room: "マイルーム",
-    wardrobe: "カスタム衣装",
+    wardrobe: "衣装",
     rightTool: "正しいツール",
     talkingHead: "トーキングヘッド",
     cantonese: "広東語",

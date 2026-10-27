@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const fr: Partial<Messages> = {
   meta: { title: "Scro — Studio d’AI Influencers pour Reels et Shorts", description: "Créez votre propre AI Influencer avec le même visage, la même tenue et la même voix. Publiez des Reels, Shorts et TikToks chaque jour sans filmer." },
-  nav: { projects: "Vidéo", characters: "AI Influencer", tasks: "Tâches", mcp: "MCP", affiliate: "Affiliate", billing: "Facturation", examples: "Exemples", pricing: "Tarifs", signIn: "Se connecter", workspace: "Espace de travail", language: "Langue", posts: "Affiche", blog: "Articles", wardrobe: "Garde-robe sur mesure" },
+  nav: { projects: "Vidéo", characters: "AI Influencer", tasks: "Tâches", mcp: "MCP", affiliate: "Affiliate", billing: "Facturation", examples: "Exemples", pricing: "Tarifs", signIn: "Se connecter", workspace: "Espace de travail", language: "Langue", posts: "Affiche", blog: "Articles", wardrobe: "Garde-robe" },
   common: { credits: "credits", pending: "en cours", perMonth: "/ mois", cancel: "Annuler", save: "Enregistrer", close: "Fermer", create: "Créer", loading: "Chargement…", popular: "Le plus populaire", subscribe: "S’abonner" },
   landing: {
     hero: { kicker: "Studio d’AI Influencers", title: "Votre AI Influencer. Des Shorts chaque jour, sans filmer.", subtitle: "Choisissez un personnage et une pose, puis générez vos Reels et TikToks 9:16 en quelques minutes.", ctaStart: "Créer mon AI Influencer", ctaWorkspace: "Ouvrir le studio", ctaUseCases: "Voir les cas d’usage", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Sélection de personnages à gauche et smartphone générant une vidéo courte AI KOL à droite" },

@@ -2,7 +2,7 @@ import type { Messages } from "@/util/i18n/messages/types";
 
 export const ru: Partial<Messages> = {
   meta: { title: "Scro — Студия ИИ-инфлюенсеров для Reels и Shorts", description: "Создайте собственного ИИ-инфлюенсера с постоянным лицом, образом и голосом. Публикуйте Reels, Shorts и TikTok каждый день без съёмок." },
-  nav: { projects: "Видео", characters: "AI Influencer", tasks: "Задачи", mcp: "MCP", affiliate: "Affiliate", billing: "Оплата", examples: "Примеры", pricing: "Тарифы", signIn: "Войти", workspace: "Рабочая область", language: "Язык", posts: "Постер", blog: "Статьи", wardrobe: "Свой гардероб" },
+  nav: { projects: "Видео", characters: "AI Influencer", tasks: "Задачи", mcp: "MCP", affiliate: "Affiliate", billing: "Оплата", examples: "Примеры", pricing: "Тарифы", signIn: "Войти", workspace: "Рабочая область", language: "Язык", posts: "Постер", blog: "Статьи", wardrobe: "Гардероб" },
   common: { credits: "credits", pending: "в очереди", perMonth: "/ мес.", cancel: "Отмена", save: "Сохранить", close: "Закрыть", create: "Создать", loading: "Загрузка…", popular: "Самый популярный", subscribe: "Оформить подписку" },
   landing: {
     hero: { kicker: "Студия ИИ-инфлюенсеров", title: "Ваш ИИ-инфлюенсер. Ежедневные Shorts без съёмок.", subtitle: "Выберите персонажа и позу — создавайте вертикальные Reels и TikTok 9:16 за минуты.", ctaStart: "Создать ИИ-инфлюенсера", ctaWorkspace: "Открыть студию", ctaUseCases: "Посмотреть сценарии", platformReels: "Instagram Reels", platformShorts: "YouTube Shorts", platformTiktok: "TikTok", artLabel: "Выбор персонажей слева и смартфон с генерацией короткого видео ИИ-KOL справа" },

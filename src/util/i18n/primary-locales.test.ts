@@ -33,18 +33,18 @@ test("Japanese and Korean cover Features nav and AI Influencer marketing SEO", (
   assert.ok(ko.landing.ip?.title);
 });
 
-test("all primary locales translate Custom Wardrobe (自訂衣櫥) and Post", () => {
+test("all primary locales translate Wardrobe (衣櫥) and Post", () => {
   const en = getMessages("en");
   const zhHant = getMessages("zh-Hant");
   const zhHans = getMessages("zh-Hans");
   const ja = getMessages("ja");
   const ko = getMessages("ko");
 
-  assert.equal(en.nav.wardrobe, "Custom Wardrobe");
-  assert.equal(zhHant.nav.wardrobe, "自訂衣櫥");
-  assert.equal(zhHans.nav.wardrobe, "自定义衣橱");
-  assert.equal(ja.nav.wardrobe, "カスタム衣装");
-  assert.equal(ko.nav.wardrobe, "커스텀 옷장");
+  assert.equal(en.nav.wardrobe, "Wardrobe");
+  assert.equal(zhHant.nav.wardrobe, "衣櫥");
+  assert.equal(zhHans.nav.wardrobe, "衣橱");
+  assert.equal(ja.nav.wardrobe, "衣装");
+  assert.equal(ko.nav.wardrobe, "옷장");
 
   assert.equal(en.nav.blog, "Post");
   assert.equal(zhHant.nav.blog, "文章");

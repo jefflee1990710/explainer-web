@@ -29,7 +29,7 @@ export const ko: Partial<Messages> = {
     textStyles: "텍스트 스타일",
     life: "Life",
     room: "마이룸",
-    wardrobe: "커스텀 옷장",
+    wardrobe: "옷장",
     rightTool: "올바른 도구",
     talkingHead: "토킹헤드",
     cantonese: "광둥어",

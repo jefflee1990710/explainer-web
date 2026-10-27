@@ -27,7 +27,7 @@ export const zhHans: Partial<Messages> = {
     textStyles: "文字样式",
     life: "生活",
     room: "更衣室",
-    wardrobe: "自定义衣橱",
+    wardrobe: "衣橱",
     rightTool: "选对工具",
     talkingHead: "口播",
     cantonese: "粤语",

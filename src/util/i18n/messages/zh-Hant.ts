@@ -45,7 +45,7 @@ export const zhHant: Messages = {
     textStyles: "文字樣式",
     life: "生活",
     room: "更衣室",
-    wardrobe: "自訂衣櫥",
+    wardrobe: "衣櫥",
     rightTool: "揀對工具",
     talkingHead: "口播",
     cantonese: "粵語",

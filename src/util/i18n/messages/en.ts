@@ -45,7 +45,7 @@ export const en: Messages = {
     textStyles: "Text style",
     life: "Life",
     room: "My Room",
-    wardrobe: "Custom Wardrobe",
+    wardrobe: "Wardrobe",
     rightTool: "Right tool",
     talkingHead: "Talking head",
     cantonese: "Cantonese",
