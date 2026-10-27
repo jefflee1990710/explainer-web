@@ -32,10 +32,10 @@ export type RealisticGradeOptions = {
   seed?: number;
 };
 
-// Light film feel: faint grain, near-true blacks, and highlights only gently rolled off.
+// Near-true blacks and a gentle highlight roll-off. No film grain.
 const DEFAULT_BLACK_FLOOR = 6;
 const DEFAULT_WHITE_CEILING = 226;
-const DEFAULT_GRAIN_STRENGTH = 5.5;
+const DEFAULT_GRAIN_STRENGTH = 0;
 
 // Soft filmic toe + knee-shoulder tone curve mapping 0..255 -> blackFloor..whiteCeiling.
 // Keeps shadows/midtones (0..170, faces/skin/room) near 1:1 original brightness while
@@ -321,12 +321,12 @@ export async function gradeRealisticImageBuffer(
 // - Preserves natural midtone brightness (0..180 stays ~1:1 with a near-true black floor at 5)
 //   so faces, skin, and indoor rooms never look darkened or faded
 // - Gently rolls off only highlights above 180 (180..255 -> 180..225, never > 235)
-// - Adds faint temporal grain (noise=c0s=4:c0f=t+u) that video diffusion models smooth away.
+// Highlight knee only. No film grain.
 const VIDEO_KNEE_LUT_EXPR =
   "clip(if(lte(val,180),5+val*0.975,180+(val-180)*0.6),4,228)";
 
 export const REALISTIC_VIDEO_GRADE_FILTER =
-  `unsharp=3:3:0.35:3:3:0.0,lutrgb=r='${VIDEO_KNEE_LUT_EXPR}':g='${VIDEO_KNEE_LUT_EXPR}':b='${VIDEO_KNEE_LUT_EXPR}',noise=c0s=4:c0f=t+u,setsar=1`;
+  `unsharp=3:3:0.35:3:3:0.0,lutrgb=r='${VIDEO_KNEE_LUT_EXPR}':g='${VIDEO_KNEE_LUT_EXPR}':b='${VIDEO_KNEE_LUT_EXPR}',setsar=1`;
 
 export function realisticVideoGradeArgs(inPath: string, outPath: string): string[] {
   return [

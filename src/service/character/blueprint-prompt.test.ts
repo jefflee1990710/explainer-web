@@ -163,7 +163,7 @@ test("blueprint ground stays light and contrasts with the outfit", () => {
   assert.match(portrait, /25–40% (?:natural )?shadow falloff/);
   assert.match(portrait, /85mm portrait lens at f\/1\.8/);
   assert.match(portrait, /skin pores/);
-  assert.match(portrait, /subtle film grain/);
+  assert.match(portrait, /no film grain/);
   assert.doesNotMatch(portrait, /Even soft front light/);
 
   for (const prompt of [
@@ -197,7 +197,7 @@ test("blueprint ground stays light and contrasts with the outfit", () => {
   });
   assert.ok(fitted.length <= 4200, `${fitted.length} chars`);
   assert.match(fitted, /85mm portrait lens at f\/1\.8/);
-  assert.match(fitted, /subtle film grain/);
+  assert.match(fitted, /no film grain/);
 });
 
 test("editing a sheet replaces a scenic ground with the light sheet colour", () => {

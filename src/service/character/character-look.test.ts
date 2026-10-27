@@ -219,7 +219,8 @@ test("viral presets, extra parts, gender, styling vibe dial, and global fashion 
   assert.match(malePrompt, /Gender: adult man \(male\)\./);
   const femaleSheet = characterPoseSheetPrompt(defaultCharacterLook());
   assert.match(femaleSheet, /Gender: adult woman \(female\)\./);
-  assert.match(femaleSheet, /Kodak Portra-style colour/);
+  assert.match(femaleSheet, /no film grain/);
+  assert.doesNotMatch(femaleSheet, /Portra-style|film feel/);
   const locked = randomizeCharacterLook(
     { ...defaultCharacterLook(), hair: "bob" },
     { locked: { hair: true }, extremeOnly: true, rand: () => 0 },

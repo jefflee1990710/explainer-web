@@ -40,7 +40,8 @@ test("realistic prop sheet and empty set carry camera, grain, and directional li
   });
   assert.match(props, /grazing directional key light/);
   assert.match(props, /50mm lens at f\/8/);
-  assert.match(props, /subtle film grain/);
+  assert.match(props, /no film grain/);
+  assert.doesNotMatch(props, /Portra-style|subtle film grain/);
   assert.match(props, /plain white background/);
   assert.doesNotMatch(props, /Even light, no cast shadow/);
 

@@ -6,6 +6,7 @@ import { sceneDetailDirectorBlock, phaseBDetailRules } from "@/service/director/
 import {
   isRealisticStyle,
   lockRealisticVideoLight,
+  REALISTIC_CHARACTER_RENDER_RULE,
   REALISTIC_FRAME_RENDER_RULE,
   REALISTIC_LIGHT_DIRECTOR_RULE,
   REALISTIC_PRODUCT_RENDER_RULE,
@@ -62,14 +63,22 @@ test("realistic style fields and rules enforce the 12 de-plastic rules across Ph
   assert.match(REALISTIC_FRAME_RENDER_RULE, /keep glowing objects below pure-white clipping/);
   assert.match(REALISTIC_VIDEO_LIGHT_LOCK, /highlights stay below pure-white clipping/);
 
-  // Rule 07: only a light film feel — faint grain, clean neutral blacks (never faded or crushed), no vintage film optics
-  assert.match(REALISTIC_STYLE_FIELDS.look, /very faint fine film grain/);
+  // Clean digital capture: no film stock, Portra, or grain. Blacks stay neutral, never faded or crushed.
+  assert.match(REALISTIC_STYLE_FIELDS.look, /no film grain/);
+  assert.doesNotMatch(REALISTIC_STYLE_FIELDS.look, /film feel|fine film grain|Portra-style/);
   assert.match(REALISTIC_STYLE_FIELDS.look, /clean neutral shadow blacks with full shadow detail, never faded, milky, or crushed/);
   assert.match(REALISTIC_LIGHT_DIRECTOR_RULE, /keep shadow blacks clean and neutral with full detail \(never faded, milky, or crushed\)/);
   assert.match(REALISTIC_FRAME_RENDER_RULE, /keep shadow blacks clean and neutral with full detail \(never faded, milky, or crushed\)/);
-  assert.match(REALISTIC_VIDEO_LIGHT_LOCK, /very faint fine grain with clean neutral shadow blacks/);
-  for (const text of [REALISTIC_STYLE_FIELDS.look, REALISTIC_STYLE_FIELDS.palette, REALISTIC_LIGHT_DIRECTOR_RULE, REALISTIC_FRAME_RENDER_RULE]) {
-    assert.doesNotMatch(text, /Kodak Gold 200|Ektachrome|Canon AE-1|Ricoh GR III|slight chromatic aberration|gentle vignetting|subtle halation/);
+  assert.match(REALISTIC_VIDEO_LIGHT_LOCK, /no film grain and clean neutral shadow blacks/);
+  for (const text of [
+    REALISTIC_STYLE_FIELDS.look,
+    REALISTIC_STYLE_FIELDS.palette,
+    REALISTIC_LIGHT_DIRECTOR_RULE,
+    REALISTIC_FRAME_RENDER_RULE,
+    REALISTIC_CHARACTER_RENDER_RULE,
+    REALISTIC_PROP_RENDER_RULE,
+  ]) {
+    assert.doesNotMatch(text, /film feel|fine film grain|subtle film grain|Portra-style/);
   }
 
   // Rule 09: per-shot contrast and black point from each shot's own scene light

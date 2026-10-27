@@ -78,10 +78,10 @@ test("gradeRealisticImageBuffer fixes blown highlights (Rule 06), crushed blacks
     `expected graded blackPoint in [4, 10], got ${after.blackPoint.toFixed(2)}`,
   );
 
-  // Rule 07 & 12: Faint film grain sigma in the 2.5 - 5.5 range
+  // Realistic grade does not add film grain.
   assert.ok(
-    after.grainSigma >= 2.5 && after.grainSigma <= 5.5,
-    `expected graded grainSigma in [2.5, 5.5], got ${after.grainSigma.toFixed(2)}`,
+    after.grainSigma < 2,
+    `expected graded grainSigma < 2, got ${after.grainSigma.toFixed(2)}`,
   );
 });
 
@@ -92,5 +92,5 @@ test("realisticVideoGradeArgs applies knee LUT (preserving midtones <=180 and ro
   assert.match(REALISTIC_VIDEO_GRADE_FILTER, /lutrgb=/);
   assert.match(REALISTIC_VIDEO_GRADE_FILTER, /lte\(val,180\)/);
   assert.doesNotMatch(REALISTIC_VIDEO_GRADE_FILTER, /val\*0\.72/);
-  assert.match(REALISTIC_VIDEO_GRADE_FILTER, /noise=c0s=4:c0f=t\+u/);
+  assert.doesNotMatch(REALISTIC_VIDEO_GRADE_FILTER, /noise=/);
 });
