@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { scroPreviewCanStartVideo } from "@/opencut/embed/scro-preview-generate";
+import {
+	scroClipPrimaryKind,
+	scroPreviewCanStartVideo,
+	scroVideoActionLabel,
+} from "@/opencut/embed/scro-preview-generate";
 
 describe("scro preview generate button", () => {
 	it("shows when the start still is ready and no video exists", () => {
@@ -40,5 +44,58 @@ describe("scro preview generate button", () => {
 			false,
 		);
 		assert.equal(scroPreviewCanStartVideo(null), false);
+	});
+
+	it("offers another video when the render failed and the still is still current", () => {
+		assert.equal(
+			scroPreviewCanStartVideo({
+				stage: "failed",
+				posterUrl: "https://cdn.example/start.webp",
+				hasStartFrame: true,
+				retryVideo: true,
+			}),
+			true,
+		);
+		assert.equal(
+			scroClipPrimaryKind({
+				stage: "failed",
+				hasStartFrame: true,
+				retryVideo: true,
+			}),
+			"video",
+		);
+		assert.equal(
+			scroVideoActionLabel({ stage: "failed", retryVideo: true, videoCost: 75 }),
+			"Regenerate video · 75",
+		);
+	});
+
+	it("keeps a failed frame on redraw, and a stale still ahead of a failed video", () => {
+		assert.equal(
+			scroClipPrimaryKind({
+				stage: "failed",
+				hasStartFrame: false,
+			}),
+			"frames",
+		);
+		assert.equal(
+			scroPreviewCanStartVideo({
+				stage: "failed",
+				hasStartFrame: true,
+				retryVideo: true,
+				staleFrames: true,
+				posterUrl: "https://cdn.example/start.webp",
+			}),
+			false,
+		);
+		assert.equal(
+			scroClipPrimaryKind({
+				stage: "failed",
+				hasStartFrame: true,
+				retryVideo: true,
+				staleFrames: true,
+			}),
+			"frames",
+		);
 	});
 });

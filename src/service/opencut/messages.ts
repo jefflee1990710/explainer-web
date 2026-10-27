@@ -36,6 +36,8 @@ export type ScroVideoSeedClip = {
   videoUnsent?: boolean;
   staleFrames?: boolean;
   staleVideo?: boolean;
+  /** The clip video failed after its stills were ready, so the user can send it again. */
+  retryVideo?: boolean;
   wait?: "queued" | "running";
 };
 

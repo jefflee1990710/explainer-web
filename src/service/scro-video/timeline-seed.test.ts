@@ -32,6 +32,34 @@ describe("buildSeedClips", () => {
     assert.equal(rows[0].name, "Clip 1");
   });
 
+  it("marks a failed video for retry when the start still is done", () => {
+    const rows = buildSeedClips({
+      ...sampleProject,
+      frames: [
+        {
+          clipNumber: 1,
+          position: "start",
+          status: "completed",
+          prompt: "",
+          blobUrl: "https://cdn.example/start.webp",
+        },
+      ],
+      clips: [
+        {
+          clipNumber: 1,
+          durationSeconds: 5,
+          prompt: "",
+          status: "failed",
+          error: "render failed",
+        },
+      ],
+    });
+    assert.equal(rows[0].stage, "failed");
+    assert.equal(rows[0].retryVideo, true);
+    assert.equal(rows[0].hasStartFrame, true);
+    assert.equal(rows[1].retryVideo, false);
+  });
+
   it("keeps a completed end still so it can be added on its own", () => {
     const rows = buildSeedClips({
       ...sampleProject,

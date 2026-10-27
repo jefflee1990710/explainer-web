@@ -64,6 +64,8 @@ export function buildSeedClips(project: SeedSource): ScroVideoSeedClip[] {
       videoUnsent: state.videoUnsent,
       staleFrames: state.stale.frames,
       staleVideo: state.stale.video,
+      // Stills are done and the video failed. The inspector offers another render.
+      retryVideo: state.stage === "video_failed",
       wait: state.wait,
     };
   });
@@ -145,6 +147,7 @@ export function diffScroSeedClips({
       before.explainerScene !== clip.explainerScene ||
       before.staleFrames !== clip.staleFrames ||
       before.staleVideo !== clip.staleVideo ||
+      before.retryVideo !== clip.retryVideo ||
       before.videoUnsent !== clip.videoUnsent ||
       before.wait !== clip.wait
     ) {

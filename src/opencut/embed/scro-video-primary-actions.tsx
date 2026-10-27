@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/opencut/components/ui/button";
+import { scroClipPrimaryKind, scroVideoActionLabel } from "@/opencut/embed/scro-preview-generate";
 import { requestScroClipAction } from "@/opencut/embed/scro-video-actions";
 import type { ScroVideoSeedClip } from "@/opencut/embed/scro-video-types";
 
@@ -15,16 +16,9 @@ export function ScroVideoPrimaryActions({
 	const busy =
 		clip.stage === "frames_generating" || clip.stage === "video_generating";
 	const canCancel = Boolean(clip.videoUnsent && clip.stage === "video_generating");
-	const needsFrames =
-		clip.stage === "awaiting_frames" ||
-		clip.stage === "failed" ||
-		clip.staleFrames ||
-		(!clip.hasStartFrame && clip.stage !== "video_ready");
-	const canVideo =
-		clip.stage === "frames_ready" ||
-		clip.stage === "video_ready" ||
-		(clip.stage === "failed" && clip.hasStartFrame) ||
-		clip.staleVideo;
+	const primary = scroClipPrimaryKind(clip);
+	const needsFrames = primary === "frames";
+	const canVideo = primary === "video";
 	const showRedraw =
 		Boolean(clip.hasStartFrame) &&
 		clip.stage !== "awaiting_frames" &&
@@ -33,10 +27,7 @@ export function ScroVideoPrimaryActions({
 	const framesLabel = clip.hasStartFrame
 		? `Redraw frames${clip.frameCost ? ` · ${clip.frameCost}` : ""}`
 		: `Generate frames${clip.frameCost ? ` · ${clip.frameCost}` : ""}`;
-	const videoLabel =
-		clip.stage === "video_ready" || clip.staleVideo
-			? `Regenerate video${clip.videoCost ? ` · ${clip.videoCost}` : ""}`
-			: `Generate video${clip.videoCost ? ` · ${clip.videoCost}` : ""}`;
+	const videoLabel = scroVideoActionLabel(clip);
 
 	return (
 		<div className="space-y-2">

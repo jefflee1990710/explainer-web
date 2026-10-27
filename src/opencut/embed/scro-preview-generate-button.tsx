@@ -4,7 +4,10 @@ import { Button } from "@/opencut/components/ui/button";
 import { useEditor } from "@/opencut/editor/use-editor";
 import { resolveElementScroClipNumber } from "@/opencut/embed/scro-clip-number";
 import { requestScroClipAction } from "@/opencut/embed/scro-video-actions";
-import { scroPreviewCanStartVideo } from "@/opencut/embed/scro-preview-generate";
+import {
+	scroPreviewCanStartVideo,
+	scroVideoActionLabel,
+} from "@/opencut/embed/scro-preview-generate";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 
 type PreviewSceneBox = {
@@ -45,9 +48,7 @@ export function ScroPreviewGenerateButton({ scene }: { scene: PreviewSceneBox })
 	}
 	if (scene.width < 1 || scene.height < 1) return null;
 
-	const label = clip.videoCost
-		? `Generate video · ${clip.videoCost}`
-		: "Generate video";
+	const label = scroVideoActionLabel(clip);
 
 	return (
 		<div
