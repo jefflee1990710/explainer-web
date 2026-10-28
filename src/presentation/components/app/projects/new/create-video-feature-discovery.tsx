@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useI18n } from "@/presentation/components/i18n-provider";
 
-const TUTORIAL_STORAGE_KEY = "scro:create-video-feature-discovery:v1";
+const TUTORIAL_DONT_SHOW_KEY = "scro:create-video-feature-discovery:dont-show:v1";
 
 export type FeatureDiscoveryStep = {
   id: string;
@@ -25,30 +25,31 @@ type TargetRect = {
   spotlightR: number;
 };
 
+// Returns true ONLY if the user explicitly checked "Don't show again" and saved it.
 export function hasSeenCreateVideoTutorial(): boolean {
   if (typeof window === "undefined") return true;
   try {
-    return window.localStorage.getItem(TUTORIAL_STORAGE_KEY) === "1";
+    return window.localStorage.getItem(TUTORIAL_DONT_SHOW_KEY) === "1";
   } catch {
-    return true;
+    return false;
   }
 }
 
-export function markCreateVideoTutorialSeen(): void {
+export function setCreateVideoTutorialDontShow(dontShow: boolean): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(TUTORIAL_STORAGE_KEY, "1");
+    if (dontShow) {
+      window.localStorage.setItem(TUTORIAL_DONT_SHOW_KEY, "1");
+    } else {
+      window.localStorage.removeItem(TUTORIAL_DONT_SHOW_KEY);
+    }
   } catch {
     // Ignore storage quota errors.
   }
 }
 
 // Flutter `feature_discovery`-style concentric circle spotlight tutorial overlay for the Create Video page.
-// Guides the user step-by-step through:
-// 1. Quick Setup & Full Details mode toggle
-// 2. Instruction field (content & director requirements)
-// 3. Visual style selection
-// 4. Character selection & inline character creation
+// Shows every time the user opens the Create Video form unless they check "Don't show again".
 export function CreateVideoFeatureDiscovery({
   open,
   onClose,
@@ -59,6 +60,9 @@ export function CreateVideoFeatureDiscovery({
   const { locale } = useI18n();
   const maskId = useId();
   const [stepIndex, setStepIndex] = useState(0);
+  const [dontShowAgain, setDontShowAgain] = useState<boolean>(() =>
+    typeof window !== "undefined" ? hasSeenCreateVideoTutorial() : false,
+  );
   const [rect, setRect] = useState<TargetRect | null>(null);
   const [viewport, setViewport] = useState({ width: 1280, height: 800 });
 
@@ -206,14 +210,14 @@ export function CreateVideoFeatureDiscovery({
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setStepIndex(0);
-        markCreateVideoTutorialSeen();
+        setCreateVideoTutorialDontShow(dontShowAgain);
         onClose();
       } else if (event.key === "ArrowRight" || event.key === "Enter") {
         if (stepIndex < steps.length - 1) {
           setStepIndex((i) => i + 1);
         } else {
           setStepIndex(0);
-          markCreateVideoTutorialSeen();
+          setCreateVideoTutorialDontShow(dontShowAgain);
           onClose();
         }
       } else if (event.key === "ArrowLeft" && stepIndex > 0) {
@@ -222,13 +226,13 @@ export function CreateVideoFeatureDiscovery({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, stepIndex, steps.length, onClose]);
+  }, [open, stepIndex, steps.length, dontShowAgain, onClose]);
 
   if (!open || typeof document === "undefined") return null;
 
   const finish = () => {
     setStepIndex(0);
-    markCreateVideoTutorialSeen();
+    setCreateVideoTutorialDontShow(dontShowAgain);
     onClose();
   };
 
@@ -248,16 +252,16 @@ export function CreateVideoFeatureDiscovery({
   const cy = rect ? rect.cy : viewport.height / 2;
   const outerRadius = 460;
   const placeBelow = cy < viewport.height * 0.52;
-  const cardWidth = Math.min(380, viewport.width - 32);
+  const cardWidth = Math.min(390, viewport.width - 32);
   const cardLeft = Math.max(
     16,
     Math.min(cx - cardWidth / 2, viewport.width - cardWidth - 16),
   );
   const cardTop = rect
     ? placeBelow
-      ? Math.min(rect.top + rect.height + 24, viewport.height - 250)
-      : Math.max(24, rect.top - 230)
-    : viewport.height / 2 - 110;
+      ? Math.min(rect.top + rect.height + 24, viewport.height - 280)
+      : Math.max(24, rect.top - 260)
+    : viewport.height / 2 - 125;
 
   const skipLabel =
     locale === "zh-Hant" ? "跳過導覽" : locale === "zh-Hans" ? "跳过导览" : "Skip";
@@ -275,6 +279,12 @@ export function CreateVideoFeatureDiscovery({
         : locale === "zh-Hans"
           ? "开始使用 ✓"
           : "Got it ✓";
+  const dontShowLabel =
+    locale === "zh-Hant"
+      ? "不再顯示 · Don't show again"
+      : locale === "zh-Hans"
+        ? "不再显示 · Don't show again"
+        : "Don't show again";
 
   return createPortal(
     <AnimatePresence>
@@ -397,7 +407,22 @@ export function CreateVideoFeatureDiscovery({
             {activeStep.body}
           </p>
 
-          <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/15 pt-3.5">
+          {/* Don't show again checkbox */}
+          <label className="mt-3.5 inline-flex cursor-pointer items-center gap-2 text-xs text-white/80 transition hover:text-white">
+            <input
+              type="checkbox"
+              checked={dontShowAgain}
+              onChange={(e) => {
+                const checked = e.currentTarget.checked;
+                setDontShowAgain(checked);
+                setCreateVideoTutorialDontShow(checked);
+              }}
+              className="h-3.5 w-3.5 cursor-pointer rounded border-white/40 accent-[#c6f24b]"
+            />
+            <span>{dontShowLabel}</span>
+          </label>
+
+          <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/15 pt-3">
             <button
               type="button"
               onClick={finish}
