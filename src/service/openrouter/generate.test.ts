@@ -350,3 +350,54 @@ test("submitOpenRouterClipVideo and fetchOpenRouterStatus handle async video lif
     else process.env.OPENROUTER_API_KEY = prevKey;
   }
 });
+
+test("submitOpenRouterClipVideo falls back from Seedance to alibaba/wan-3.0 when ByteDance rejects a frame face as real person", async () => {
+  const prevKey = process.env.OPENROUTER_API_KEY;
+  process.env.OPENROUTER_API_KEY = "sk-or-test";
+  const postedModels: string[] = [];
+  const postedResolutions: string[] = [];
+  const fakeFetch: typeof fetch = async (_input, init) => {
+    const payload = JSON.parse(String(init?.body)) as { model: string; resolution: string };
+    postedModels.push(payload.model);
+    postedResolutions.push(payload.resolution);
+    if (postedModels.length === 1) {
+      return new Response(
+        JSON.stringify({
+          error: {
+            message:
+              'HTTP 400: {"error":{"code":"InputImageSensitiveContentDetected.PrivacyInformation","message":"The request failed because the input image \'content[1]\' may contain real person."}}',
+          },
+        }),
+        { status: 400, headers: { "content-type": "application/json" } },
+      );
+    }
+    return new Response(
+      JSON.stringify({
+        id: "vid-wan-fallback",
+        polling_url: "/api/v1/videos/vid-wan-fallback",
+        status: "pending",
+      }),
+      { status: 202, headers: { "content-type": "application/json" } },
+    );
+  };
+
+  try {
+    const submitted = await submitOpenRouterClipVideo(
+      {
+        model: "bytedance/seedance-2.0-fast",
+        prompt: "paper cutout clip",
+        aspectRatio: "9:16",
+        durationSeconds: 11,
+        startImageUrl: "https://blob/start.png",
+      },
+      { fetch: fakeFetch, callbackUrl: null },
+    );
+    assert.deepEqual(postedModels, ["bytedance/seedance-2.0-fast", "alibaba/wan-3.0"]);
+    assert.deepEqual(postedResolutions, ["720p", "720p"]);
+    assert.equal(submitted.request_id, "vid-wan-fallback");
+    assert.equal(submitted.model, "alibaba/wan-3.0");
+  } finally {
+    if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = prevKey;
+  }
+});

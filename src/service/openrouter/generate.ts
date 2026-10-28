@@ -19,6 +19,7 @@ export const OPENROUTER_HEYGEN_VIDEO_1_MODEL = "heygen/heygen-video-1";
 export const OPENROUTER_SEEDANCE_2_VIDEO_MODEL = "bytedance/seedance-2.0";
 export const OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL = "bytedance/seedance-2.0-fast";
 export const OPENROUTER_SEEDANCE_2_MINI_VIDEO_MODEL = "bytedance/seedance-2.0-mini";
+export const OPENROUTER_WAN_3_VIDEO_MODEL = "alibaba/wan-3.0";
 
 type FetchOptions = {
   fetch?: typeof fetch;
@@ -100,6 +101,13 @@ function nsfwFrom(error?: string): GenerationStatus | undefined {
     return "nsfw";
   }
   return undefined;
+}
+
+// ByteDance Seedance rejects input frames whose character face triggers its
+// real-person privacy filter (`InputImageSensitiveContentDetected.PrivacyInformation`).
+export function isSeedanceRealPersonRejection(error?: string): boolean {
+  if (!error) return false;
+  return /InputImageSensitiveContentDetected|PrivacyInformation|may contain real person/i.test(error);
 }
 
 export function openRouterImageBody(input: {
@@ -342,14 +350,16 @@ export function openRouterClipVideoBody(input: {
   // Public HTTPS receiver. Omitted for localhost; the refresh cron still polls.
   callbackUrl?: string;
 }) {
-  const model = input.model || OPENROUTER_SEEDANCE_2_FAST_VIDEO_MODEL;
+  const model = input.model || OPENROUTER_WAN_3_VIDEO_MODEL;
   const configured = clipVideoResolution();
   // OpenRouter's minimax/hailuo-3 endpoint only accepts "2K" in supported_resolutions;
-  // Seedance models and Higgsfield endpoints use clipVideoResolution() (default "720p").
+  // Wan 3.0 accepts "480p", "720p", or "1080p" (default "720p").
   const resolution =
     model === OPENROUTER_HAILUO_3_VIDEO_MODEL && configured !== "2K"
       ? "2K"
-      : configured;
+      : model === OPENROUTER_WAN_3_VIDEO_MODEL && configured === "2K"
+        ? "1080p"
+        : configured;
   return {
     model,
     prompt: capOpenRouterVideoPrompt(input.prompt),
@@ -409,6 +419,7 @@ function firstStringUrl(list: unknown): string | undefined {
 function resultFromVideoJob(
   body: Record<string, unknown>,
   fallbackStatusUrl?: string,
+  model?: string,
 ): GenerationSubmitResult {
   const id =
     (typeof body.id === "string" && body.id) ||
@@ -434,6 +445,7 @@ function resultFromVideoJob(
     request_id: id,
     status_url: statusUrl,
     status,
+    ...(model ? { model } : {}),
     ...(videoUrl ? { video: { url: videoUrl } } : {}),
     ...(error ? { error } : {}),
   };
@@ -473,7 +485,7 @@ export async function submitOpenRouterClipVideo(
           callbackUrl,
         })
       : openRouterClipVideoBody({ ...input, callbackUrl });
-  const response = await fetchFn(OPENROUTER_VIDEOS_URL, {
+  let response = await fetchFn(OPENROUTER_VIDEOS_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${key}`,
@@ -482,14 +494,41 @@ export async function submitOpenRouterClipVideo(
     body: JSON.stringify(reqBody),
   });
 
-  const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  let body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  let fallbackUsed = false;
+  if (
+    !response.ok &&
+    !useHeyGenAudio &&
+    /^bytedance\/seedance/i.test(reqBody.model) &&
+    isSeedanceRealPersonRejection(openRouterError(body))
+  ) {
+    const fallbackBody = openRouterClipVideoBody({
+      ...input,
+      model: OPENROUTER_WAN_3_VIDEO_MODEL,
+      callbackUrl,
+    });
+    fallbackUsed = true;
+    response = await fetchFn(OPENROUTER_VIDEOS_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(fallbackBody),
+    });
+    body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  }
   if (!response.ok) {
     throw new Error(openRouterError(body) || `OpenRouter 影片產生送出失敗（${response.status}）`);
   }
   if (typeof body.id !== "string" || !body.id) {
     throw new Error(openRouterError(body) || "OpenRouter 未回傳影片任務 id");
   }
-  return resultFromVideoJob(body);
+  return resultFromVideoJob(
+    body,
+    undefined,
+    fallbackUsed ? OPENROUTER_WAN_3_VIDEO_MODEL : undefined,
+  );
 }
 
 export async function fetchOpenRouterStatus(

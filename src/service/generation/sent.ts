@@ -17,6 +17,7 @@ type SubmitResponse = {
   request_id: string;
   status_url?: string;
   status?: string;
+  model?: string;
   images?: Array<{ url: string }>;
   video?: { url: string };
 };
@@ -34,7 +35,7 @@ export function toSent(model: string, submitted: SubmitResponse): Sent {
     requestId: submitted.request_id,
     statusUrl: submitted.status_url,
     status: submitted.status,
-    model,
+    model: submitted.model || model,
     images: submitted.images,
     video: submitted.video,
     error: responseError(submitted),

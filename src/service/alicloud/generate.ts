@@ -17,6 +17,7 @@ export type GenerationSubmitResult = {
   request_id: string;
   status_url?: string;
   status: GenerationStatus;
+  model?: string;
   images?: Array<{ url: string }>;
   video?: { url: string };
   error?: string;
