@@ -547,15 +547,15 @@ function endPoseVariationEn(
     return { head: headMoves[variant], hand: handMoves[variant] };
   }
   const rawHeadMoves = [
-    "seated centered and relaxed on the sofa, facing the camera with head tilted gently 1–2 degrees to the right, both pupils centered and eyes on the lens, mouth just closed into a warm engaged smile, eyebrows relaxed",
-    "seated centered on the sofa, facing the camera straight-on with head tilted gently 1–2 degrees to the left and both eyes locked on the lens, mouth just closed into a thoughtful half-smile",
-    "seated centered on the sofa, facing the camera with head tilted gently 1–2 degrees to the left, eyes locked on the lens, eyebrows lifted, mouth just closed into a lively confident smile",
-    "seated comfortably and centered on the sofa facing the camera straight-on, head tilted gently 1–2 degrees right with both eyes locked on the lens, mouth just closed into a natural soft smile",
-    "seated centered on the cushion, facing the camera with head tilted gently 1–2 degrees to the left, eyes locked on the lens, mouth just closed into a knowing smile",
-    "seated upright and centered, facing the camera with head tilted gently 1–2 degrees right, mouth just closed into a warm expressive smile, eyes locked on the lens",
+    "collarbone-up selfie close-up, face filling 60–65% of frame, facing the camera with head tilted gently 1–2 degrees to the right, both pupils centered and eyes on the lens, mouth just closed into a warm engaged smile, eyebrows relaxed",
+    "collarbone-up selfie close-up, face filling 60–65% of frame, facing the camera straight-on with head tilted gently 1–2 degrees to the left and both eyes locked on the lens, mouth just closed into a thoughtful half-smile",
+    "collarbone-up selfie close-up, face filling 60–65% of frame, facing the camera with head tilted gently 1–2 degrees to the left, eyes locked on the lens, eyebrows lifted, mouth just closed into a lively confident smile",
+    "collarbone-up selfie close-up, face filling 60–65% of frame, facing the camera straight-on, head tilted gently 1–2 degrees right with both eyes locked on the lens, mouth just closed into a natural soft smile",
+    "collarbone-up selfie close-up, face filling 60–65% of frame, facing the camera with head tilted gently 1–2 degrees to the left, eyes locked on the lens, mouth just closed into a knowing smile",
+    "collarbone-up selfie close-up, face filling 60–65% of frame, facing the camera with head tilted gently 1–2 degrees right, mouth just closed into a warm expressive smile, eyes locked on the lens",
   ];
   const headMoves = omitDefaultSofa
-    ? rawHeadMoves.map((move) => move.replace(/\s+on the (?:sofa|cushion)/g, ""))
+    ? rawHeadMoves
     : rawHeadMoves;
   const handMoves = fullBody
     ? [
@@ -567,12 +567,12 @@ function endPoseVariationEn(
         "One hand offers a calm open palm at chest height toward the lens while the other arm relaxes at the side",
       ]
     : [
-        "Both hands resting calmly on the lap in a natural neutral rest position, shoulders relaxed",
-        "Both hands resting calmly on the lap in a natural neutral rest position, posture steady",
-        "Both hands resting calmly on the lap in a natural neutral rest position, torso centered",
-        "Both hands resting calmly on the lap in a natural neutral rest position, facing the camera",
-        "Both hands resting calmly on the lap in a natural neutral rest position, shoulders anchored",
-        "Both hands resting calmly on the lap in a natural neutral rest position, relaxed and unposed",
+        "No hands, waist, lap, or thighs visible in frame — crop ends at collarbone/upper chest",
+        "No hands, waist, lap, or thighs visible in frame — crop ends at collarbone/upper chest",
+        "No hands, waist, lap, or thighs visible in frame — crop ends at collarbone/upper chest",
+        "No hands, waist, lap, or thighs visible in frame — crop ends at collarbone/upper chest",
+        "No hands, waist, lap, or thighs visible in frame — crop ends at collarbone/upper chest",
+        "No hands, waist, lap, or thighs visible in frame — crop ends at collarbone/upper chest",
       ];
   return { head: headMoves[variant], hand: handMoves[variant] };
 }
@@ -668,7 +668,9 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
     const prop = anchored ? ` One hand holds ${p.anchorProp}.` : "";
     const propEnd = anchored ? ` The same hand still holds ${p.anchorProp}.` : "";
     const freeHand = anchored ? "The other hand" : "One hand";
-    const sameFrame = " Same camera, seated torso position, and resting hand position on the lap as the opening still: same crop, same distance, with only a subtle 1–2 degree natural head and facial expression transition. No zoom, no reframe, no jump.";
+    const sameFrame = fullBody
+      ? " Same camera, seated torso position, and resting hand position on the lap as the opening still: same crop, same distance, with only a subtle 1–2 degree natural head and facial expression transition. No zoom, no reframe, no jump."
+      : " Same camera and collarbone-up selfie crop as the opening still: face still fills 60–65% of frame, same distance, with only a subtle 1–2 degree natural head and facial expression transition. No zoom, no reframe, no jump, no hands entering frame.";
     const endVar = endPoseVariationEn(
       clipIndex,
       fullBody,
@@ -682,12 +684,12 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
           ? selectedPose.startPoseEn
           : fullBody
             ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, lips gently closed or barely parted ready to speak, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture${anchored ? "" : ", the other arm relaxed at the side"}.`
-            : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), ${p.hookBeat}, head tilted 1–2 degrees, a live unposed expression.${prop} ${anchored ? `${freeHand} is resting calmly on the lap` : "both hands resting calmly on the lap in a natural neutral rest position"}.`
+            : `Character: intimate collarbone-up selfie close-up of the only person in the frame (face fills 60–65% of the vertical 9:16 frame; NO waist, NO lap, NO thighs, NO hands visible), eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), ${p.hookBeat}, head tilted 1–2 degrees, a live unposed expression.${prop}`
         : selectedPose
           ? `${selectedPose.endPoseEn}${sameFrame}`
           : fullBody
             ? `Character: still the only person in the frame, ${endVar.head}.${propEnd} ${anchored ? `${endVar.hand}, weight on the other hip` : endVar.hand}, feet in the same place.${sameFrame}`
-            : `Character: still the only person in the frame, still seated, ${endVar.head}.${propEnd} ${endVar.hand}.${sameFrame}`;
+            : `Character: still an intimate collarbone-up selfie close-up, ${endVar.head}. ${endVar.hand}.${propEnd}${sameFrame}`;
     const still = withStillRealism(`${pose} ${setClause("en", scene)}${camera}`, language, scene);
     // Overlay subtitles are composited later, so the still is pose, set, and camera only.
     if (scene.overlay) return still.trim();
@@ -696,24 +698,26 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
   const prop = anchored ? `一隻手拎住${p.anchorProp}。` : "";
   const propEnd = anchored ? `同一隻手仍然拎住${p.anchorProp}。` : "";
   const freeHand = anchored ? "另一隻手" : "一隻手";
-  const sameFrame = "鏡頭、軀幹坐姿同雙手放喺大髀嘅休息位置同開頭畫面一致：同一個裁切、同一距離，只有 1–2 度極細微嘅頭部與表情自然過渡。唔好變焦，唔好跳鏡。";
+  const sameFrame = fullBody
+    ? "鏡頭、軀幹坐姿同雙手放喺大髀嘅休息位置同開頭畫面一致：同一個裁切、同一距離，只有 1–2 度極細微嘅頭部與表情自然過渡。唔好變焦，唔好跳鏡。"
+    : "鏡頭同鎖骨以上自拍裁切同開頭畫面一致：塊臉仍然佔畫面 60–65%，同一距離，只有 1–2 度極細微嘅頭部與表情自然過渡。唔好變焦，唔好跳鏡，雙手唔入鏡。";
   const endVarYue = endPoseVariationYue(clipIndex, fullBody, anchored, freeHand);
   const lensPlaceYue =
     scene.customSet || scene.background || hasNonDefaultBg
-      ? "直望鏡頭好似用手機實拍"
-      : "直望鏡頭好似喺屋企用手機實拍";
+      ? "直望鏡頭好似用手持手機自拍"
+      : "直望鏡頭好似喺屋企用手持手機自拍";
   const pose =
     moment === "start"
       ? selectedPose
         ? selectedPose.startPoseYue
         : fullBody
           ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢${anchored ? "" : "，另一隻手自然垂低"}。`
-          : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，${lensPlaceYue}，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），${p.hookBeat}，頭微傾 1–2 度，神情自然唔擺拍。${prop}${anchored ? `${freeHand}自然放鬆放喺大髀休息位` : "雙手自然放鬆放喺大髀休息位置"}。`
+          : `角色：鎖骨以上自拍大特寫，畫面只有呢一個人（塊臉佔 9:16 直式畫面 60–65%；唔好見到腰、大髀或雙手），${lensPlaceYue}，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），${p.hookBeat}，頭微傾 1–2 度，神情自然唔擺拍。${prop}`
       : selectedPose
         ? `${selectedPose.endPoseYue}${sameFrame}`
         : fullBody
           ? `角色：畫面仍然只有呢一個人，${endVarYue.head}。${propEnd}${anchored ? `${endVarYue.hand}，重心輕輕換咗少少，腳留喺同一個位置` : endVarYue.hand}。${sameFrame}`
-          : `角色：畫面仍然只有呢一個人，仍然坐住，${endVarYue.head}。${propEnd}${endVarYue.hand}。${sameFrame}`;
+          : `角色：仍然係鎖骨以上自拍大特寫，${endVarYue.head}。雙手唔入鏡。${propEnd}${sameFrame}`;
   const still = withStillRealism(`${pose}${setClause("yue", scene)}${camera}`, language, scene);
   if (scene.overlay) return still.trim();
   return `${still}${subtitleSentence("yue", toWrittenChinese(line), scene.belowCenter)}`;
@@ -791,8 +795,8 @@ function cameraClause(language: VoLanguage | undefined, shot: string | undefined
   if (!isChineseScaffolding(language)) {
     if (fullBody) return " Camera: locked full-body, character centered, head to feet in frame.";
     const inFrame = anchored
-      ? "Head and torso stay in frame, and the handheld prop stays in frame."
-      : "Head and torso stay in frame.";
+      ? "The handheld prop stays in frame."
+      : "Crop ends at collarbone/upper chest.";
     if (!size) {
       return ` Camera: handheld iPhone front-camera selfie at 30–40cm, 24mm f/1.8, cropped collarbone/upper-chest up so the face fills 60–65% of vertical 9:16 (subtle 10° high-angle; no waist, lap, thighs, or hands). ${inFrame} Organic 1–2° handheld micro-sway. Do not stand up. No microphone.`;
     }

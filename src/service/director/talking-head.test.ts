@@ -114,7 +114,7 @@ test("talking-head-director keeps a script up to 120s in a single clip and split
   assert.match(clips[0].englishVo, /大家好，我係 Jeff/);
   assert.match(clips[0].englishVo, /如果一句太長，系統會叫你改短/);
   assert.ok(clips[0].durationSeconds >= 10 && clips[0].durationSeconds <= 120);
-  assert.match(clips[0].startScene, /坐住/);
+  assert.match(clips[0].startScene, /鎖骨以上自拍大特寫|60–65%/);
   assert.match(clips[0].startScene, /24mm f\/1\.8/);
   assert.match(clips[0].startScene, /手持 iPhone 前置自拍|微晃/);
   assert.doesNotMatch(clips[0].startScene, /中近景|medium close-up/);
@@ -256,7 +256,7 @@ test("talking-head keeps a full English word inside a Cantonese line", () => {
   assert.ok(clips[0].durationSeconds >= 5 && clips[0].durationSeconds <= 120);
 });
 
-test("a talking-head script under 120s stays in one clip, and both hands stay free", () => {
+test("a talking-head script under 120s stays in one clip, and the selfie crop hides hands", () => {
   const source = [
     "What if you have zero budget for marketing?",
     "Stop overthinking ads.",
@@ -281,8 +281,8 @@ test("a talking-head script under 120s stays in one clip, and both hands stay fr
   for (const clip of clips) {
     assert.match(clip.startScene, /eyes (?:locked (?:into|on)|on) the lens/);
     assert.match(clip.endScene, /eyes (?:locked (?:into|on)|on) the lens/);
-    assert.match(clip.startScene, /both hands resting calmly on the lap/i);
-    assert.match(clip.endScene, /both hands resting calmly on the lap/i);
+    assert.match(clip.startScene, /NO hands visible|no hands/i);
+    assert.match(clip.endScene, /No hands|no hands/i);
     assert.doesNotMatch(clip.startScene, /index finger raised mid-gesture|looking down at her gesturing hands|glancing upward-left|looking off-camera|two fingers|two-handed open-palm shrug/);
     assert.doesNotMatch(clip.endScene, /index finger raised mid-gesture|looking down at her gesturing hands|glancing upward-left|looking off-camera|two fingers|two-handed open-palm shrug/);
   }
