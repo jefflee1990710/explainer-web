@@ -73,15 +73,15 @@ test("talking-head keeps instruction and spoken script as separate fields", () =
   assert.match(clips[0].englishVo, /Show the problem, then the fix/);
   assert.equal(clips[0].durationSeconds, 5);
   assert.match(talkingHeadDirectorBlock(), /spoken script is locked/i);
-  assert.match(talkingHeadDirectorBlock(), /phone tripod/);
+  assert.match(talkingHeadDirectorBlock(), /handheld iPhone/);
   assert.match(talkingHeadDirectorBlock(), /24mm at f\/1\.8/);
-  assert.match(talkingHeadDirectorBlock(), /Do not shoot at arm's length/);
-  assert.match(clips[0].startScene, /seated/);
-  assert.match(clips[0].startScene, /24mm at f\/1\.8/);
-  assert.match(clips[0].startScene, /bookshelf behind the head/);
-  assert.match(clips[0].startScene, /Do not send an arm out of the frame/);
+  assert.match(talkingHeadDirectorBlock(), /60–65%/);
+  assert.match(clips[0].startScene, /seated|selfie|collarbone/i);
+  assert.match(clips[0].startScene, /24mm at f\/1\.8|24mm f\/1\.8/);
+  assert.match(clips[0].startScene, /lived-in bedroom corner|bedhead or door frame/);
+  assert.match(clips[0].startScene, /handheld|micro-sway|60–65%/);
   assert.doesNotMatch(clips[0].startScene, /unseen phone/);
-  assert.doesNotMatch(clips[0].startScene, /\bbed\b/);
+  assert.doesNotMatch(clips[0].startScene, /\bsofa at home\b/);
   const withRoom = planTalkingHeadClips({
     source: script,
     pace: "medium",
@@ -116,7 +116,7 @@ test("talking-head-director keeps a script up to 120s in a single clip and split
   assert.ok(clips[0].durationSeconds >= 10 && clips[0].durationSeconds <= 120);
   assert.match(clips[0].startScene, /坐住/);
   assert.match(clips[0].startScene, /24mm f\/1\.8/);
-  assert.match(clips[0].startScene, /手機腳架/);
+  assert.match(clips[0].startScene, /手持 iPhone 前置自拍|微晃/);
   assert.doesNotMatch(clips[0].startScene, /中近景|medium close-up/);
 
   // A 150s script (> 120s) splits into 2 clips, each <= 120s, and clip 2 chains from clip 1.

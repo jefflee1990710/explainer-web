@@ -45,8 +45,8 @@ test("face talking motion still uses the hands and head, eyes on the lens", () =
   });
   assert.match(motion, /continuous lip-sync/);
   assert.match(motion, /head tilting and nodding/);
-  assert.match(motion, /24mm at f\/1\.8/);
-  assert.match(motion, /phone tripod/);
+  assert.match(motion, /24mm(?: at)? f\/1\.8/);
+  assert.match(motion, /handheld 1–2° micro-sway|collarbone-up selfie/);
   assert.match(motion, /seated/);
   assert.doesNotMatch(motion, /unseen phone/);
   assert.match(motion, /eyes locked on the lens/);

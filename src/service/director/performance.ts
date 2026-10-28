@@ -25,8 +25,8 @@ const FACE_EN: PerformanceSlots = {
   headMotion:
     "proximal torso, pelvis, and shoulders stay anchored and stable in the exact same spot with only subtle breathing movement; the head stays facing the camera with a subtle 1–2 degree prosodic nod on stressed words and both eyes locked directly on the lens center the whole time",
   anchorProp: "",
-  set: "the same sofa at home in every clip, a bookshelf behind the head",
-  light: "ordinary daylight from a window to one side, no studio light",
+  set: "the same lived-in bedroom corner in every clip, a soft bedhead or door frame and a side window softly blurred behind the head",
+  light: "directional soft window daylight from one side with natural 1.4:1–1.8:1 cheek-to-cheek shadow falloff, bright eye catchlights, and moist lip highlight — no flat beauty-ring fill, no studio light",
 };
 
 const FACE_YUE: PerformanceSlots = {
@@ -39,8 +39,8 @@ const FACE_YUE: PerformanceSlots = {
   headMotion:
     "腰部、軀幹同雙肩保持固定喺同一位置（僅有自然呼吸微幅起伏，唔好左右挪動或前後搖晃）；頭部正對鏡頭，只喺重音字有 1–2 度嘅微幅點頭，雙眼全程穩定直望鏡頭中心",
   anchorProp: "",
-  set: "全程同一張屋企沙發，書架喺頭後面",
-  light: "一邊窗嘅普通日光，冇影樓燈",
+  set: "全程同一個有生活感嘅睡房角落，頭後面係柔和虛化嘅床頭或門框同側窗",
+  light: "單側窗邊柔和定向日光，臉頰光比約 1.4:1–1.8:1、眼神光清楚、唇有水潤高光——唔好正面美顏環形燈，冇影樓燈",
 };
 
 const FULL_BODY_EN: PerformanceSlots = {

@@ -33,7 +33,7 @@ function slots(shot: TalkingShot, perf?: PerformanceSlots) {
 // Phone-front-camera reel: look straight at the lens and stay alive.
 // Expression pattern (resting face, emphasis beat) comes from the performance slots.
 export function talkingFaceLock(perf: PerformanceSlots) {
-  return `On-camera speech like a real person filming a vertical reel on a phone at natural 1.0x real-time conversational speed: eyes stay locked on the lens the whole time (both pupils centered on the camera lens, never glancing off-camera, upward, sideways, or down at the hands), talking to one friend, never a news-anchor statue and never in slow-motion. The mouth articulates every syllable of the spoken line with visible lip-sync, precise restrained lip articulation, and small natural jaw movement (~30–40% conversational mouth opening, clean lip closure on bilabial m/b/p sounds, and natural upper-face eyebrow and eye micro-expressions — no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks, no changing teeth). Natural blinks. Resting face: ${perf.restingFace}. Emphasis: ${perf.emphasisBeat} — a resting, emphasis, resting cycle on every sentence. Between sentences a brief lip press, a sideways head tilt, or a blink marks the pause so the face never holds one shape. After the last syllable the mouth closes cleanly but the face stays engaged.`;
+  return `On-camera speech like a real person filming a vertical reel on a handheld phone at natural 1.0x real-time conversational speed: eyes stay locked on the lens the whole time (both pupils centered on the camera lens, never glancing off-camera, upward, sideways, or down at the hands), talking to one friend, never a news-anchor statue and never in slow-motion. The mouth articulates every syllable of the spoken line with visible lip-sync driven by speech energy (stronger syllables open a bit more; quieter syllables and pauses close with moist lip highlight and slight left/right smile asymmetry — never a frozen presenter half-smile while talking), precise restrained lip articulation, and small natural jaw movement (~30–40% conversational mouth opening, clean lip closure on bilabial m/b/p sounds, and natural upper-face eyebrow and eye micro-expressions — no exaggerated mouth opening, no excessive jaw swing, no rubbery cheeks, no changing teeth). Natural blinks. Resting face: ${perf.restingFace}. Emphasis: ${perf.emphasisBeat} — a resting, emphasis, resting cycle on every sentence. Between sentences a brief lip press, a sideways head tilt, or a blink marks the pause so the face never holds one shape. After the last syllable the mouth closes cleanly but the face stays engaged.`;
 }
 
 // Kept for callers that want the default face lock without a skill in hand.
@@ -71,7 +71,7 @@ export function talkingVideoMotionRules(shot: TalkingShot, perf?: PerformanceSlo
     "This clip is on-camera speech, like a real person recording a reel at natural 1.0x real-time speed, not a snap action, not slow-motion, and not a frozen pose.",
     talkingFaceLock(p),
     talkingBodyRules(shot, p),
-    "Do not write snaps, flicks, whips, or pops for the face or body. Move at natural real-time conversational pace — never slow-motion or drifting hands. Speech is conversational and sustained through the line. Camera locked.",
+    "Do not write snaps, flicks, whips, or pops for the face or body. Move at natural real-time conversational pace — never slow-motion or drifting hands. Speech is conversational and sustained through the line. Camera: organic handheld iPhone selfie micro-sway of about 1–2 degrees (tiny irregular drift and settle — never a locked tripod statue).",
   ].join(" ");
 }
 
@@ -315,8 +315,8 @@ export function talkingMotionLine(input: {
     );
     const fadeOut = `the large subtitle fades and slides down out`;
     const cameraTail = seated
-      ? "camera stays locked on the phone tripod, 24mm at f/1.8, from the first frame to the last frame, no zoom, no reframe, no jump."
-      : "camera stays locked on the same framing from the first frame to the last frame, no zoom, no reframe, no jump.";
+      ? "camera holds the same 30–40cm collarbone-up selfie framing at 24mm f/1.8 from the first frame to the last frame with organic handheld 1–2° micro-sway, no zoom, no reframe, no jump."
+      : "camera holds the same framing from the first frame to the last frame with organic handheld 1–2° micro-sway, no zoom, no reframe, no jump.";
     const hold = hideSubtitle ? "" : ", and the large subtitle holds still";
     const fadeOutClause = hideSubtitle ? "" : `, ${fadeOut}`;
     const subtitleTail = hideSubtitle ? "" : ` ${subtitle}`;
@@ -362,8 +362,8 @@ export function talkingMotionLine(input: {
     p.anchorProp,
   );
   const cameraTail = seated
-    ? "鏡頭由第一幀到最後一幀鎖喺手機腳架，24mm f/1.8，唔好變焦、唔好換鏡、唔好跳鏡。"
-    : "鏡頭由第一幀到最後一幀鎖定同一構圖，唔好變焦、唔好換鏡、唔好跳鏡。";
+    ? "鏡頭由第一幀到最後一幀保持 30–40cm 鎖骨以上自拍構圖，24mm f/1.8，有機手持微晃 1–2 度，唔好變焦、唔好換鏡、唔好跳鏡。"
+    : "鏡頭由第一幀到最後一幀保持同一構圖，有機手持微晃 1–2 度，唔好變焦、唔好換鏡、唔好跳鏡。";
   const hold = hideSubtitle ? "" : "，大字幕保持唔郁";
   const fadeOutClause = hideSubtitle ? "" : "，大字幕向下淡出";
   const subtitleTail = hideSubtitle ? "" : subtitle;

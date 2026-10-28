@@ -18,7 +18,8 @@ test("realistic talking-head stills carry light source, skin detail, and foregro
       assert.match(scene, /Depth: natural shallow depth of field/);
       assert.doesNotMatch(scene, /Subtitle:/);
     }
-    assert.match(clip.motionCamera, /Realism: natural blinks/);
+    assert.match(clip.motionCamera, /Realism: organic handheld iPhone selfie micro-sway/);
+    assert.match(clip.motionCamera, /natural blinks/);
     assert.match(clip.motionCamera, /no heavy vintage film grain/);
   }
 });
@@ -49,7 +50,8 @@ test("an opening photo keeps its own light and framing; only skin detail is adde
 test("Cantonese realistic stills use the Cantonese realism clause", () => {
   const clips = planTalkingHeadClips({ source: "今日教你一招。記住試下。", language: "yue", realistic: true });
   assert.match(clips[0].startScene, /真實感：光源：.*皮膚與相機質感：.*睇到毛孔.*景深：/);
-  assert.match(clips[0].motionCamera, /真實感：每幾秒自然眨眼/);
+  assert.match(clips[0].motionCamera, /真實感：有機手持 iPhone 自拍微晃/);
+  assert.match(clips[0].motionCamera, /每幾秒自然眨眼/);
 });
 
 test("full-body realism keeps the foreground off the body", () => {

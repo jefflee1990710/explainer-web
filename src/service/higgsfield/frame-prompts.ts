@@ -374,16 +374,16 @@ function fitFramePrompt(
         .replace(/\s*No pictures pasted on the frame,[^.]*\./, "")
         .replace(/\s*Do not stand up\.\s*No microphone\.\s*Do not shoot at arm's length\.\s*Do not send an arm out of the frame\.\s*Do not crop to a face-only close-up\./, "")
         .replace(
-          /\s*Camera: a phone fixed on a phone tripod, locked\.\s*Lens is 24mm at f\/1\.8, the face sharp and the background a little soft\.\s*Head and torso stay in frame\.\s*Both hands stay inside the frame\./,
-          " Camera: intimate 35–40cm iPhone front-camera selfie close-up cropped from collarbone/upper-chest up (the face fills 55–60% of the vertical 9:16 frame, top of hair touching/cropped by top edge, subtle 10-degree high-angle selfie perspective; NO waist, NO lap, NO thighs, NO hands in frame).",
+          /\s*Camera: (?:a phone fixed on a phone tripod, locked\. Lens is 24mm at f\/1\.8, the face sharp and the background a little soft\. Head and torso stay in frame\. Both hands stay inside the frame\.|handheld iPhone front-camera selfie at 30–40cm, 24mm f\/1\.8, cropped collarbone\/upper-chest up so the face fills 60–65% of vertical 9:16 \(subtle 10° high-angle; no waist, lap, thighs, or hands\)\.[^.]*\.)/,
+          " Camera: intimate 30–40cm handheld iPhone selfie close-up cropped from collarbone/upper-chest up (the face fills 60–65% of the vertical 9:16 frame, top of hair touching/cropped by top edge, subtle 10-degree high-angle selfie perspective; NO waist, NO lap, NO thighs, NO hands in frame).",
         )
         .replace(
           /Character: (?:still )?the only person in the frame, (?:seated and centered, head and torso in frame|still seated),\s*/,
-          "Character: intimate collarbone-up selfie close-up (face fills 55–60% of frame, no hands/lap visible), ",
+          "Character: intimate collarbone-up selfie close-up (face fills 60–65% of frame, no hands/lap visible), ",
         )
         .replace(
-          /Set: the same sofa at home in every clip, a bookshelf behind the head\.\s*Light: ordinary daylight from a window to one side, no studio light\./,
-          "Set: simple plain off-white/warm-cream indoor wall corner (no bookshelf, no sofa, no clutter). Light: bright even iPhone Smart HDR indoor ambient daylight.",
+          /Set: the same (?:sofa at home in every clip, a bookshelf behind the head|lived-in bedroom corner in every clip, a soft bedhead or door frame and a side window softly blurred behind the head)\.\s*Light: (?:ordinary daylight from a window to one side, no studio light|directional soft window daylight from one side with natural 1\.4:1–1\.8:1 cheek-to-cheek shadow falloff, bright eye catchlights, and moist lip highlight — no flat beauty-ring fill, no studio light)\./,
+          "Set: lived-in bedroom/window corner with soft bedhead or door frame depth behind the head. Light: directional soft window daylight from one side (1.4:1–1.8:1 cheek contrast, eye catchlights, moist lips; no flat beauty-ring fill).",
         )
         .replace(
           /Subtitle: one LARGE phone-readable subtitle, a little below the vertical center, clear of the face and the bottom edge, exactly /,
@@ -445,7 +445,7 @@ function fitFramePrompt(
       scene: p.scene
         .replace(
           /\s*(?:Realism:|真實感：)\s*[\s\S]*?(?=\s*(?:Subtitle:|字幕：)|$)/,
-          " Realism: bright, even iPhone Smart HDR indoor ambient daylight from the window side (both cheeks and neck brightly and evenly lit with soft natural falloff, circular eye catchlights, subtle subsurface scattering, and natural glossy lip moisture; no harsh dark half-face cinema shadows, no flat beauty-ring light, soft window below clipping); authentic 35–40cm iPhone 16 Pro / Sony ZV-E1 selfie close-up cropped from collarbone/upper-chest up so the face fills 55–60% of the vertical 9:16 frame (top of hair near/cropped at top edge, subtle 10° high-angle selfie perspective, no waist, no lap, no thighs, no hands in frame, zero vertical elongation or horizontal compression) against a simple plain off-white/cream indoor wall corner; faithfully preserve the character portrait's raw unretouched human skin with visible pores across cheeks/nose/forehead, fine peach-fuzz, wispy bangs and loose flyaway hair strands, and real collar fabric weave.",
+          " Realism: directional soft window daylight from one side with iPhone Smart HDR and soft rim light (1.4:1–1.8:1 cheek-to-cheek contrast, clear nose-bridge shadow, circular eye catchlights, subsurface scattering, natural glossy lip moisture; no flat beauty-ring fill, no harsh cinema blackouts, soft window below clipping); authentic 30–40cm handheld iPhone 16 Pro / Sony ZV-E1 selfie close-up cropped from collarbone/upper-chest up so the face fills 60–65% of the vertical 9:16 frame (top of hair near/cropped at top edge, subtle 10° high-angle selfie perspective, no waist, no lap, no thighs, no hands in frame, zero vertical elongation or horizontal compression) against a lived-in indoor room corner with soft bedhead/door/window depth; faithfully preserve the character portrait's raw unretouched human skin with visible pores across cheeks/nose/forehead, fine peach-fuzz, wispy bangs and loose flyaway hair strands, and real collar fabric weave.",
         )
         .trim(),
     }),
