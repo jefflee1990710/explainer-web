@@ -315,6 +315,6 @@ test("conversational synthesizeSpeechWithTimestamps uses expressive voice settin
 
   assert.equal(capturedBody?.text, "Hello there! ... Welcome to Scro.");
   assert.deepEqual(capturedBody?.voice_settings, TALKING_HEAD_TTS_VOICE_SETTINGS);
-  assert.equal(TALKING_HEAD_TTS_VOICE_SETTINGS.stability, 0.42);
+  assert.equal(TALKING_HEAD_TTS_VOICE_SETTINGS.stability, 0.28);
   assert.equal(TALKING_HEAD_TTS_VOICE_SETTINGS.style, 0.35);
 });
