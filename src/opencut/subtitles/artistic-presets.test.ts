@@ -58,6 +58,10 @@ test("every artistic subtitle preset defines a bilingual Google Font stack and s
 	});
 	assert.equal(overridden.fontFamily, "Caveat, LXGW WenKai TC, Noto Sans TC");
 	assert.equal(overridden.shadowColor, "#FF00A0");
+	assert.equal(ARTISTIC_SUBTITLE_PRESETS.clean.style.background?.style, "torn");
+	assert.equal(ARTISTIC_SUBTITLE_PRESETS.clean.style.background?.color, "#151515");
+	assert.equal(ARTISTIC_SUBTITLE_PRESETS.clean.style.background?.secondaryColor, "#64E338");
+	assert.equal(ARTISTIC_SUBTITLE_PRESETS.clean.style.background?.secondaryTextColor, "#141414");
 	assert.ok(TEXT_FONT_PRESETS.length >= 15);
 });
 

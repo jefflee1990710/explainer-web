@@ -488,10 +488,26 @@ export class PreviewInteractionController {
 			selectedElements: pending.selectedElements,
 			dragTarget,
 		});
+		let trackedElements = this.deps.timeline.getElementsWithTracks({
+			elements: dragSelection,
+		});
+
+		// When dragging a Subtitle element on a Subtitle track, move the entire subtitle track
+		// up/down/left/right together so all subtitle cues stay aligned at the same position.
+		if (
+			trackedElements.length === 1 &&
+			trackedElements[0].track.type === "text" &&
+			/^Subtitle \d+(?:[.-]\d+)?$/.test(trackedElements[0].element.name)
+		) {
+			const subtitleTrack = trackedElements[0].track;
+			trackedElements = subtitleTrack.elements.map((element) => ({
+				track: subtitleTrack,
+				element,
+			}));
+		}
+
 		const draggableElements = toDragElementSnapshots({
-			elementsWithTracks: this.deps.timeline.getElementsWithTracks({
-				elements: dragSelection,
-			}),
+			elementsWithTracks: trackedElements,
 		});
 
 		if (draggableElements.length === 0) {

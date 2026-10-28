@@ -13,6 +13,9 @@ import { getPropertiesConfig, type PropertiesTabDef } from "./registry";
 import { cn } from "@/opencut/utils/ui";
 import { EmptyView } from "./empty-view";
 import { InspectorHeader } from "./components/inspector-header";
+import { SubtitleTrackStyleControls } from "@/opencut/components/editor/panels/assets/subtitle-track-style-controls";
+import { isScroSubtitleName } from "@/opencut/embed/scro-subtitle-slots";
+import { isSubtitleTrack } from "@/opencut/subtitles/insert";
 
 export function PropertiesPanel() {
 	const editor = useEditor();
@@ -63,6 +66,35 @@ export function PropertiesPanel() {
 	}
 
 	if (selectedElements.length > 1) {
+		const multiElementsWithTracks = editor.timeline.getElementsWithTracks({
+			elements: selectedElements,
+		});
+		const firstTrack = multiElementsWithTracks[0]?.track;
+		const allSameSubtitleTrack =
+			firstTrack?.type === "text" &&
+			multiElementsWithTracks.every(
+				(item) =>
+					item.track.id === firstTrack.id &&
+					(isScroSubtitleName({ name: item.element.name }) ||
+						isSubtitleTrack({
+							name: firstTrack.name,
+							elements: firstTrack.elements,
+						})),
+			);
+
+		if (allSameSubtitleTrack && firstTrack) {
+			return (
+				<div className="panel bg-background flex h-full min-h-0 flex-col overflow-hidden rounded-none border">
+					<InspectorHeader />
+					<ScrollArea className="min-h-0 flex-1 scrollbar-hidden">
+						<div className="p-3">
+							<SubtitleTrackStyleControls trackId={firstTrack.id} />
+						</div>
+					</ScrollArea>
+				</div>
+			);
+		}
+
 		return (
 			<div className="panel bg-background flex h-full flex-col overflow-hidden rounded-none border">
 				<InspectorHeader />
@@ -153,6 +185,13 @@ export function PropertiesPanel() {
 				</div>
 			) : (
 				<ScrollArea className="min-h-0 flex-1 scrollbar-hidden">
+					{track.type === "text" &&
+					(isScroSubtitleName({ name: element.name }) ||
+						isSubtitleTrack({ name: track.name, elements: track.elements })) ? (
+						<div className="border-b p-3">
+							<SubtitleTrackStyleControls trackId={track.id} compact />
+						</div>
+					) : null}
 					{activeTab.content({ trackId: track.id })}
 				</ScrollArea>
 			)}

@@ -220,6 +220,20 @@ export function buildTextBackgroundFromElement({
 }: {
 	element: TextElement;
 }): TextBackground {
+	const rawStyle = readStringParam({
+		params: element.params,
+		key: "background.style",
+		fallback: DEFAULTS.text.background.style,
+	});
+	const style =
+		rawStyle === "torn" ||
+		rawStyle === "brush" ||
+		rawStyle === "brutalist" ||
+		rawStyle === "skew" ||
+		rawStyle === "neon" ||
+		rawStyle === "gold"
+			? rawStyle
+			: "rounded";
 	return {
 		enabled: readBooleanParam({
 			params: element.params,
@@ -231,6 +245,17 @@ export function buildTextBackgroundFromElement({
 			key: "background.color",
 			fallback: DEFAULTS.text.background.color,
 		}),
+		secondaryColor: readStringParam({
+			params: element.params,
+			key: "background.secondaryColor",
+			fallback: DEFAULTS.text.background.secondaryColor,
+		}),
+		secondaryTextColor: readStringParam({
+			params: element.params,
+			key: "background.secondaryTextColor",
+			fallback: DEFAULTS.text.background.secondaryTextColor,
+		}),
+		style,
 		cornerRadius: readNumberParam({
 			params: element.params,
 			key: "background.cornerRadius",

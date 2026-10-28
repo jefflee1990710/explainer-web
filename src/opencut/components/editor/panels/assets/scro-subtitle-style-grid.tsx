@@ -20,8 +20,9 @@ function buildCardTextStyle({
 	fontFamilyOverride?: string | null;
 }): {
 	containerStyle: CSSProperties;
-	badgeStyle: CSSProperties;
-	sampleText: string;
+	line1Style: CSSProperties;
+	line2Style: CSSProperties;
+	lines: string[];
 } {
 	const preset = resolveArtisticSubtitlePreset(lookId);
 	const { style } = preset;
@@ -52,21 +53,63 @@ function buildCardTextStyle({
 	}
 
 	const bgEnabled = Boolean(style.background?.enabled);
-	const badgeStyle: CSSProperties = {
+	const bgStyle = style.background?.style ?? "rounded";
+	const radiusPx =
+		bgStyle === "rounded"
+			? `${Math.round((style.background?.cornerRadius ?? 30) * 0.25)}px`
+			: bgStyle === "torn" || bgStyle === "brush"
+				? "2px"
+				: "3px";
+
+	const baseBadge: CSSProperties = {
 		fontFamily: `${quoteFontFamily({ fontFamily: family })}, sans-serif`,
 		fontWeight: style.fontWeight === "bold" ? 800 : 500,
 		fontStyle: style.fontStyle ?? "normal",
-		color: style.color ?? "#FFFFFF",
 		textShadow: shadows.length > 0 ? shadows.join(", ") : undefined,
-		backgroundColor: bgEnabled ? style.background?.color : undefined,
-		padding: bgEnabled ? "2px 8px" : undefined,
-		borderRadius: bgEnabled ? `${Math.round((style.background?.cornerRadius ?? 16) * 0.35)}px` : undefined,
+		padding: bgEnabled ? "1px 6px" : undefined,
+		borderRadius: bgEnabled ? radiusPx : undefined,
+		border:
+			bgEnabled && (bgStyle === "brutalist" || bgStyle === "skew")
+				? "1.5px solid #111111"
+				: bgEnabled && bgStyle === "neon"
+					? `1px solid ${style.color ?? "#00F5FF"}`
+					: bgEnabled && bgStyle === "gold"
+						? "1px solid rgba(255,213,79,0.55)"
+						: undefined,
+		boxShadow:
+			bgEnabled && bgStyle === "brutalist"
+				? "2px 2px 0 #111111"
+				: bgEnabled && bgStyle === "torn"
+					? "0 1px 3px rgba(0,0,0,0.28)"
+					: undefined,
+		transform: bgEnabled && bgStyle === "skew" ? "skewX(-10deg)" : undefined,
 	};
+
+	const line1Style: CSSProperties = {
+		...baseBadge,
+		color: style.color ?? "#FFFFFF",
+		backgroundColor: bgEnabled ? style.background?.color : undefined,
+	};
+
+	const line2Style: CSSProperties = {
+		...baseBadge,
+		color: style.background?.secondaryTextColor ?? style.color ?? "#FFFFFF",
+		backgroundColor: bgEnabled
+			? (style.background?.secondaryColor ?? style.background?.color)
+			: undefined,
+		border:
+			bgEnabled && bgStyle === "neon"
+				? `1px solid ${style.background?.secondaryTextColor ?? "#FF2E93"}`
+				: baseBadge.border,
+	};
+
+	const lines = preset.sampleText.split("\n").filter(Boolean);
 
 	return {
 		containerStyle: { background: preset.cardBg },
-		badgeStyle,
-		sampleText: preset.sampleText,
+		line1Style,
+		line2Style,
+		lines: lines.length > 0 ? lines : [preset.sampleText],
 	};
 }
 
@@ -109,14 +152,17 @@ export function ScroSubtitleStyleGrid({
 					>
 						<div
 							style={preview.containerStyle}
-							className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-sm px-1.5"
+							className="flex aspect-video w-full flex-col items-center justify-center gap-0.5 overflow-hidden rounded-sm px-1.5"
 						>
-							<span
-								style={preview.badgeStyle}
-								className="truncate text-center text-xs leading-tight select-none"
-							>
-								{preview.sampleText}
-							</span>
+							{preview.lines.map((lineText, idx) => (
+								<span
+									key={idx}
+									style={idx % 2 === 1 ? preview.line2Style : preview.line1Style}
+									className="max-w-full truncate text-center text-[10px] leading-tight select-none"
+								>
+									{lineText}
+								</span>
+							))}
 						</div>
 						<span className="truncate px-0.5 text-xs font-medium">{style.name}</span>
 					</button>

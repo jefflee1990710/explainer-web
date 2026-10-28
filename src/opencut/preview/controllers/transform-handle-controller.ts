@@ -201,13 +201,14 @@ function buildSelectedWithBounds({
 	selectedElements: readonly ElementRef[];
 	elementsWithBounds: readonly ElementWithBounds[];
 }): ElementWithBounds | null {
-	if (selectedElements.length !== 1) return null;
+	if (selectedElements.length === 0) return null;
 
 	return (
-		elementsWithBounds.find(
-			(entry) =>
-				entry.trackId === selectedElements[0].trackId &&
-				entry.elementId === selectedElements[0].elementId,
+		elementsWithBounds.find((entry) =>
+			selectedElements.some(
+				(sel) =>
+					entry.trackId === sel.trackId && entry.elementId === sel.elementId,
+			),
 		) ?? null
 	);
 }

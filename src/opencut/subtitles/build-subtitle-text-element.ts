@@ -56,16 +56,61 @@ function wrapSubtitleText({
 	ctx,
 	text,
 	maxWidth,
+	preferTwoLines,
 }: {
 	ctx: CanvasRenderingContext2D;
 	text: string;
 	maxWidth: number;
+	preferTwoLines?: boolean;
 }): string {
-	return wrapSubtitleTextWithMeasure({
+	const wrapped = wrapSubtitleTextWithMeasure({
 		text,
 		maxWidth,
 		measure: (value) => measureLineWidth({ ctx, text: value }),
 	});
+	if (!preferTwoLines || wrapped.includes("\n")) {
+		return wrapped;
+	}
+	const trimmed = wrapped.trim();
+	const tokens = tokenizeMixedSubtitleLine(trimmed);
+	const nonSpaceTokens = tokens.filter((t) => !/^\s+$/.test(t));
+	if (nonSpaceTokens.length < 3) {
+		return wrapped;
+	}
+	// Balance into 2 lines near the visual midpoint so dual-color strip styles showcase both strips.
+	const totalWidth = measureLineWidth({ ctx, text: trimmed });
+	let acc = "";
+	let bestSplitIndex = -1;
+	let bestDiff = Number.POSITIVE_INFINITY;
+	for (let i = 0; i < tokens.length - 1; i++) {
+		acc += tokens[i];
+		const left = acc.trim();
+		const right = tokens
+			.slice(i + 1)
+			.join("")
+			.trim();
+		if (!left || !right) continue;
+		const wLeft = measureLineWidth({ ctx, text: left });
+		const diff = Math.abs(wLeft - totalWidth / 2);
+		if (diff < bestDiff) {
+			bestDiff = diff;
+			bestSplitIndex = i;
+		}
+	}
+	if (bestSplitIndex >= 0) {
+		const line1 = tokens
+			.slice(0, bestSplitIndex + 1)
+			.join("")
+			.trim();
+		const line2 = tokens
+			.slice(bestSplitIndex + 1)
+			.join("")
+			.trim();
+		if (line1 && line2) {
+			return `${line1}\n${line2}`;
+		}
+	}
+	return wrapped;
 }
 
 function measureWrappedTextBlock({
@@ -293,10 +338,14 @@ export function buildSubtitleTextElement({
 	if (ctx) {
 		ctx.font = fontString;
 		setCanvasLetterSpacing({ ctx, letterSpacingPx: style.letterSpacing });
+		const hasDuoColors = Boolean(
+			style.background.secondaryColor || style.background.secondaryTextColor,
+		);
 		content = wrapSubtitleText({
 			ctx,
 			text: caption.text,
 			maxWidth,
+			preferTwoLines: hasDuoColors,
 		});
 		const measurement = measureWrappedTextBlock({
 			ctx,
@@ -345,6 +394,14 @@ export function buildSubtitleTextElement({
 			shadowBlur: style.shadowBlur,
 			"background.enabled": style.background.enabled,
 			"background.color": style.background.color,
+			"background.secondaryColor":
+				style.background.secondaryColor ??
+				DEFAULTS.text.background.secondaryColor,
+			"background.secondaryTextColor":
+				style.background.secondaryTextColor ??
+				DEFAULTS.text.background.secondaryTextColor,
+			"background.style":
+				style.background.style ?? DEFAULTS.text.background.style,
 			"background.cornerRadius":
 				style.background.cornerRadius ?? DEFAULTS.text.background.cornerRadius,
 			"background.paddingX":

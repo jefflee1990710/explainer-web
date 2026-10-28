@@ -93,6 +93,7 @@ import {
 	visibleTimelineTracks,
 } from "@/opencut/effects/transition-layout";
 import { resolveTimelineElementIntersections } from "./selection-hit-testing";
+import { isSubtitleTrack } from "@/opencut/subtitles/insert";
 import { cn } from "@/opencut/utils/ui";
 
 const TRACKS_CONTAINER_MAX_HEIGHT = 800;
@@ -652,7 +653,7 @@ function TrackLabelsPanel({
 			),
 		[scene],
 	);
-	const { selectedElements } = useElementSelection();
+	const { selectedElements, setElementSelection } = useElementSelection();
 	const tracksWithSelection = useMemo(
 		() => new Set(selectedElements.map((el) => el.trackId)),
 		[selectedElements],
@@ -703,9 +704,32 @@ function TrackLabelsPanel({
 											className="flex shrink-0 items-center justify-between gap-1.5 px-3"
 											style={{ height: `${baseHeight}px` }}
 										>
-											<span className="text-muted-foreground truncate text-xs font-medium">
-												{TRACK_TYPE_LABELS[track.type] ?? "Track"}
-											</span>
+											{track.type === "text" &&
+											isSubtitleTrack({
+												name: track.name,
+												elements: track.elements,
+											}) ? (
+												<button
+													type="button"
+													title="點擊選擇成條字幕圖層 (一次過上下移動或改顏色)"
+													onClick={() => {
+														if (track.elements.length === 0) return;
+														setElementSelection({
+															elements: track.elements.map((el) => ({
+																trackId: track.id,
+																elementId: el.id,
+															})),
+														});
+													}}
+													className="bg-primary/15 text-primary hover:bg-primary/25 inline-flex min-w-0 cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold transition-colors"
+												>
+													<span className="truncate">字幕圖層</span>
+												</button>
+											) : (
+												<span className="text-muted-foreground truncate text-xs font-medium">
+													{TRACK_TYPE_LABELS[track.type] ?? "Track"}
+												</span>
+											)}
 											<div className="flex items-center gap-1.5">
 												{canTrackHaveAudio(track) && (
 													<TrackToggleIcon
