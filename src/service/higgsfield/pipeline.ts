@@ -243,10 +243,13 @@ export async function sendFrame(
       )
       .catch(() => {});
   }
-  // A turnaround sheet shows the same person many times. Send one standing figure per character.
+  // A turnaround sheet shows the same person many times. Send one standing figure per character
+  // (or the 1:1 close-up portrait for seated talking-head so the model never zooms out to draw full-body legs/shorts).
   const locked =
     project.cast && project.cast.length > 0
-      ? await withSceneCharacterLocks(project.cast, plan.refs)
+      ? await withSceneCharacterLocks(project.cast, plan.refs, {
+          preferPortrait: project.skillSlug === TALKING_HEAD_SKILL_SLUG,
+        })
       : plan.refs;
   // The previous still's caption is what Grok copies. Keep the character
   // blueprint and drop that still so the quoted line is drawn fresh.
@@ -1107,11 +1110,11 @@ export async function applyJobStatus(input: {
           })
         : Promise.resolve(buffer);
     const transformVideo =
-      job.kind === "video" && (voiceId || applyFilmGrade || usesLipSync)
+      job.kind === "video" && (voiceId || (applyFilmGrade && !audioFirstTalkingHead) || usesLipSync)
         ? async (buffer: Buffer) => {
             const voiced = await swapVoice(buffer);
             const silenced = await smoothSilence(voiced);
-            if (!applyFilmGrade) return silenced;
+            if (!applyFilmGrade || audioFirstTalkingHead) return silenced;
             return gradeRealisticVideoBuffer(silenced).catch((error: unknown) => {
               console.error(
                 "[higgsfield] realistic video grade failed; keeping clip bytes",

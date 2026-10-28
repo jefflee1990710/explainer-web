@@ -27,8 +27,14 @@ async function download(url: string) {
   return Buffer.from(await response.arrayBuffer());
 }
 
-// One board or one standing figure. A multi-pose sheet makes the scene draw that person again.
-async function resolveLockUrl(member: CastMember) {
+// One board, portrait close-up, or standing figure. A multi-pose sheet makes the scene draw that person again.
+async function resolveLockUrl(member: CastMember, options?: { preferPortrait?: boolean }) {
+  if (options?.preferPortrait) {
+    const characters = await charactersCollection();
+    const character = await characters.findOne({ _id: member.characterId });
+    const version = character?.versions.find((item) => item.id.equals(member.versionId));
+    if (version?.portraitUrl) return version.portraitUrl;
+  }
   if (member.blueprintKind === "board") return member.blueprintUrl;
   const characters = await charactersCollection();
   const character = await characters.findOne({ _id: member.characterId });
@@ -51,16 +57,22 @@ async function resolveLockUrl(member: CastMember) {
   return persistBuffer(front, `explainer/scene-character-lock/${hash}.png`, "image/png");
 }
 
-// Swap each blueprint sheet in the reference list for that character's single standing lock.
-export async function withSceneCharacterLocks(cast: CastMember[], refs: string[]) {
+// Swap each blueprint sheet in the reference list for that character's single standing lock
+// (or their 1:1 close-up portrait when `preferPortrait: true` for seated talking-head).
+export async function withSceneCharacterLocks(
+  cast: CastMember[],
+  refs: string[],
+  options?: { preferPortrait?: boolean },
+) {
   const replacements = new Map<string, string>();
+  const modeKey = options?.preferPortrait ? "portrait" : "default";
   await Promise.all(
     cast.map(async (member) => {
       if (!refs.includes(member.blueprintUrl) || replacements.has(member.blueprintUrl)) return;
-      const key = `${String(member.characterId)}:${String(member.versionId)}:${member.blueprintUrl}`;
+      const key = `${modeKey}:${String(member.characterId)}:${String(member.versionId)}:${member.blueprintUrl}`;
       let pending = lockUrlCache.get(key);
       if (!pending) {
-        pending = resolveLockUrl(member).catch((error) => {
+        pending = resolveLockUrl(member, options).catch((error) => {
           lockUrlCache.delete(key);
           throw error;
         });

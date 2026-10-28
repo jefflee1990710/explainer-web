@@ -375,15 +375,15 @@ function fitFramePrompt(
         .replace(/\s*Do not stand up\.\s*No microphone\.\s*Do not shoot at arm's length\.\s*Do not send an arm out of the frame\.\s*Do not crop to a face-only close-up\./, "")
         .replace(
           /\s*Camera: a phone fixed on a phone tripod, locked\.\s*Lens is 24mm at f\/1\.8, the face sharp and the background a little soft\.\s*Head and torso stay in frame\.\s*Both hands stay inside the frame\./,
-          " Camera: locked 50mm/24mm f/1.8 tripod medium close-up portrait from chest/upper-torso up (head, shoulders, and upper chest fill the frame at natural un-squeezed portrait proportions so facial pores are large and sharp; zero vertical stretching or horizontal compression; thighs/legs off-screen below).",
+          " Camera: intimate 35–40cm iPhone front-camera selfie close-up cropped from collarbone/upper-chest up (the face fills 55–60% of the vertical 9:16 frame, top of hair touching/cropped by top edge, subtle 10-degree high-angle selfie perspective; NO waist, NO lap, NO thighs, NO hands in frame).",
         )
         .replace(
           /Character: (?:still )?the only person in the frame, (?:seated and centered, head and torso in frame|still seated),\s*/,
-          "Character: seated chest-up medium close-up, ",
+          "Character: intimate collarbone-up selfie close-up (face fills 55–60% of frame, no hands/lap visible), ",
         )
         .replace(
           /Set: the same sofa at home in every clip, a bookshelf behind the head\.\s*Light: ordinary daylight from a window to one side, no studio light\./,
-          "Set: same home sofa, bookshelf behind. Light: side window daylight, no studio light.",
+          "Set: simple plain off-white/warm-cream indoor wall corner (no bookshelf, no sofa, no clutter). Light: bright even iPhone Smart HDR indoor ambient daylight.",
         )
         .replace(
           /Subtitle: one LARGE phone-readable subtitle, a little below the vertical center, clear of the face and the bottom edge, exactly /,
@@ -445,7 +445,7 @@ function fitFramePrompt(
       scene: p.scene
         .replace(
           /\s*(?:Realism:|真實感：)\s*[\s\S]*?(?=\s*(?:Subtitle:|字幕：)|$)/,
-          " Realism: directional available window daylight and soft rim light from the window side (camera-right) with warm indoor bounce fill on the shadow cheek and negative fill on the far edge for a dimensional 1.4:1–1.8:1 facial shading (25–40% natural shadow falloff on the far cheek and nose bridge, natural eye catchlights, subtle subsurface scattering; no flat beauty-ring light, no dark moody cinema shadows, neutral/cool highlights unless a warm practical lamp is in frame, soft overcast window below clipping); modern creator camera (Sony ZV-E1 50mm f/1.8 / iPhone 16 Pro 24mm f/1.8 CMOS sensor — clean digital color, no heavy 35mm film grain), faithfully preserve the character portrait's raw unretouched human skin with visible pores across cheeks/nose/forehead, fine peach-fuzz, subtle under-eye and laugh-line texture, natural tooth detail, matte-natural skin with zero oily, waxy, porcelain, or plastic sheen, loose flyaway hair strands, real fabric weave, creamy optical background bokeh, natural un-squeezed portrait proportions (zero vertical elongation or horizontal compression).",
+          " Realism: bright, even iPhone Smart HDR indoor ambient daylight from the window side (both cheeks and neck brightly and evenly lit with soft natural falloff, circular eye catchlights, subtle subsurface scattering, and natural glossy lip moisture; no harsh dark half-face cinema shadows, no flat beauty-ring light, soft window below clipping); authentic 35–40cm iPhone 16 Pro / Sony ZV-E1 selfie close-up cropped from collarbone/upper-chest up so the face fills 55–60% of the vertical 9:16 frame (top of hair near/cropped at top edge, subtle 10° high-angle selfie perspective, no waist, no lap, no thighs, no hands in frame, zero vertical elongation or horizontal compression) against a simple plain off-white/cream indoor wall corner; faithfully preserve the character portrait's raw unretouched human skin with visible pores across cheeks/nose/forehead, fine peach-fuzz, wispy bangs and loose flyaway hair strands, and real collar fabric weave.",
         )
         .trim(),
     }),
