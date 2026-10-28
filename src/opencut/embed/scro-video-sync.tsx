@@ -14,6 +14,8 @@ import {
 	resolveElementScroClipNumber,
 	resolveScroClipNumber,
 } from "@/opencut/embed/scro-clip-number";
+import { isScroSubtitleName, matchSubtitleSlots } from "@/opencut/embed/scro-subtitle-slots";
+import { getScroSubtitleCatalog } from "@/opencut/embed/scro-subtitle-store";
 import { collectStaleScroAssetIds } from "@/opencut/embed/scro-video-assets";
 import {
 	fitFullLengthPlacements,
@@ -22,6 +24,12 @@ import {
 import { getScroSmoothSilenceEnabled } from "@/opencut/embed/scro-smooth-silence-pack";
 import { runSmoothSilenceGapsOnTimeline } from "@/opencut/embed/scro-smooth-silence";
 import { stillPlaceholderFile } from "@/opencut/embed/scro-still-placeholder";
+import {
+	resolveSubtitleStyleOverrides,
+	splitVoIntoSubtitleSegments,
+} from "@/opencut/subtitles/artistic-presets";
+import { insertCaptionChunksAsTextTrack, isSubtitleTrack } from "@/opencut/subtitles/insert";
+import type { SubtitleCue } from "@/opencut/subtitles/types";
 import { staleTimelineElementIds } from "@/service/scro-video/timeline-seed";
 import {
 	createStreamingVideoAsset,
@@ -225,6 +233,180 @@ export function ScroVideoSync() {
 			sendToScro({ type: "scro-seed-done", videoId }, parentOrigin);
 		}
 
+		/**
+		 * Remove all existing subtitle elements from the timeline and re-add them
+		 * matched to the current main-track clips (used when recreating a video or when
+		 * clip video durations update).
+		 */
+		function rebuildSubtitleTrackForClips({
+			clips,
+			onlyIfSubtitlesExist = false,
+		}: {
+			clips: ScroVideoSeedClip[];
+			onlyIfSubtitlesExist?: boolean;
+		}) {
+			const scene = editor.scenes.getActiveScene();
+			const existingSubtitleElements = [scene.tracks.main, ...scene.tracks.overlay].flatMap(
+				(track) =>
+					track.elements
+						.filter((element) => isScroSubtitleName({ name: element.name }))
+						.map((element) => ({
+							trackId: track.id,
+							elementId: element.id,
+							element,
+						})),
+			);
+
+			if (onlyIfSubtitlesExist && existingSubtitleElements.length === 0) {
+				return;
+			}
+
+			// Preserve the user's current subtitle styling (font, colors, strip shape, Y position) if subtitles already existed.
+			const sampleEl = existingSubtitleElements[0]?.element;
+			const catalog = getScroSubtitleCatalog();
+			const lookId = catalog?.selectedId ?? "clean";
+			const baseStyle = resolveSubtitleStyleOverrides({ lookId });
+			const preservedStyle = sampleEl
+				? {
+						...baseStyle,
+						fontFamily:
+							typeof sampleEl.params.fontFamily === "string"
+								? sampleEl.params.fontFamily
+								: baseStyle.fontFamily,
+						fontSize:
+							typeof sampleEl.params.fontSize === "number"
+								? sampleEl.params.fontSize
+								: baseStyle.fontSize,
+						color:
+							typeof sampleEl.params.color === "string"
+								? sampleEl.params.color
+								: baseStyle.color,
+						background: {
+							enabled:
+								typeof sampleEl.params["background.enabled"] === "boolean"
+									? sampleEl.params["background.enabled"]
+									: (baseStyle.background?.enabled ?? true),
+							color:
+								typeof sampleEl.params["background.color"] === "string"
+									? sampleEl.params["background.color"]
+									: (baseStyle.background?.color ?? "#151515"),
+							secondaryColor:
+								typeof sampleEl.params["background.secondaryColor"] === "string"
+									? sampleEl.params["background.secondaryColor"]
+									: baseStyle.background?.secondaryColor,
+							secondaryTextColor:
+								typeof sampleEl.params["background.secondaryTextColor"] === "string"
+									? sampleEl.params["background.secondaryTextColor"]
+									: baseStyle.background?.secondaryTextColor,
+							style:
+								typeof sampleEl.params["background.style"] === "string"
+									? (sampleEl.params["background.style"] as NonNullable<
+											typeof baseStyle.background
+										>["style"])
+									: baseStyle.background?.style,
+							cornerRadius:
+								typeof sampleEl.params["background.cornerRadius"] === "number"
+									? sampleEl.params["background.cornerRadius"]
+									: baseStyle.background?.cornerRadius,
+							paddingX:
+								typeof sampleEl.params["background.paddingX"] === "number"
+									? sampleEl.params["background.paddingX"]
+									: baseStyle.background?.paddingX,
+							paddingY:
+								typeof sampleEl.params["background.paddingY"] === "number"
+									? sampleEl.params["background.paddingY"]
+									: baseStyle.background?.paddingY,
+						},
+					}
+				: baseStyle;
+			const preservedPositionY =
+				sampleEl && typeof sampleEl.params["transform.positionY"] === "number"
+					? sampleEl.params["transform.positionY"]
+					: null;
+
+			// 1. Remove all old subtitle elements from the track
+			if (existingSubtitleElements.length > 0) {
+				editor.timeline.deleteElements({
+					elements: existingSubtitleElements.map(({ trackId, elementId }) => ({
+						trackId,
+						elementId,
+					})),
+				});
+			}
+
+			// 2. Build fresh subtitle cues from the current storyboard/clip VO lines and main-track slots
+			const afterDeleteScene = editor.scenes.getActiveScene();
+			const voLines = clips
+				.map((c) => ({
+					clipNumber: c.clipNumber,
+					line: (c.englishVo || c.startVo || "").trim(),
+				}))
+				.filter((item) => item.line.length > 0);
+			if (voLines.length === 0) return;
+
+			const slots = matchSubtitleSlots({
+				elements: afterDeleteScene.tracks.main.elements,
+				clipNumbers: voLines.map((l) => l.clipNumber),
+			});
+
+			const captions: SubtitleCue[] = [];
+			for (const item of voLines) {
+				const slot = slots.get(item.clipNumber);
+				if (!slot) continue;
+				const startSeconds = mediaTimeToSeconds({ time: slot.startTime });
+				const durationSeconds = mediaTimeToSeconds({ time: slot.duration });
+				const segments = splitVoIntoSubtitleSegments({
+					line: item.line,
+					startTime: startSeconds,
+					duration: durationSeconds,
+				});
+				segments.forEach((seg, segIndex) => {
+					captions.push({
+						name:
+							segments.length > 1
+								? `Subtitle ${item.clipNumber}-${segIndex + 1}`
+								: `Subtitle ${item.clipNumber}`,
+						text: seg.text,
+						startTime: seg.startTime,
+						duration: seg.duration,
+						style: preservedStyle,
+					});
+				});
+			}
+
+			if (captions.length === 0) return;
+
+			const insertedTrackId = insertCaptionChunksAsTextTrack({
+				editor,
+				captions,
+			});
+
+			if (preservedPositionY !== null && insertedTrackId) {
+				const finalScene = editor.scenes.getActiveScene();
+				const nextOverlay = finalScene.tracks.overlay.map((track) => {
+					if (track.id !== insertedTrackId || track.type !== "text") return track;
+					return {
+						...track,
+						elements: track.elements.map((el) =>
+							isScroSubtitleName({ name: el.name })
+								? {
+										...el,
+										params: {
+											...el.params,
+											"transform.positionY": preservedPositionY,
+										},
+									}
+								: el,
+						),
+					};
+				});
+				editor.timeline.updateTracks({
+					...finalScene.tracks,
+					overlay: nextOverlay,
+				});
+			}
+		}
+
 		async function seedClips(data: ScroSeedMessage) {
 			if (busy.current) {
 				if (data.replace) pendingSeed.current = data;
@@ -246,6 +428,10 @@ export function ScroVideoSync() {
 				// the new stills and renders take their place.
 				await retireStaleCut(data);
 				fitStoryboardLengths(data.clips);
+				rebuildSubtitleTrackForClips({
+					clips: data.clips,
+					onlyIfSubtitlesExist: true,
+				});
 				armScroSync();
 				seedDone(data.videoId);
 				return;
@@ -256,7 +442,7 @@ export function ScroVideoSync() {
 			busy.current = true;
 			try {
 				if (data.replace) {
-					const victims = scene.tracks.main.elements
+					const mainVictims = scene.tracks.main.elements
 						.filter(
 							(element) => element.type === "video" || element.type === "image",
 						)
@@ -264,6 +450,19 @@ export function ScroVideoSync() {
 							trackId: scene.tracks.main.id,
 							elementId: element.id,
 						}));
+					const subtitleVictims = scene.tracks.overlay.flatMap((track) =>
+						track.elements
+							.filter(
+								(element) =>
+									isScroSubtitleName({ name: element.name }) ||
+									isSubtitleTrack({ name: track.name }),
+							)
+							.map((element) => ({
+								trackId: track.id,
+								elementId: element.id,
+							})),
+					);
+					const victims = [...mainVictims, ...subtitleVictims];
 					if (victims.length > 0) {
 						editor.timeline.deleteElements({ elements: victims });
 					}
@@ -312,6 +511,12 @@ export function ScroVideoSync() {
 						}),
 					});
 					cursor += place.packAdvanceSeconds;
+				}
+				if (data.replace) {
+					rebuildSubtitleTrackForClips({
+						clips: ordered,
+						onlyIfSubtitlesExist: false,
+					});
 				}
 				sendToScro(
 					{
@@ -698,6 +903,10 @@ export function ScroVideoSync() {
 						],
 					});
 				}
+				rebuildSubtitleTrackForClips({
+					clips: getScroVideos()?.clips ?? [data.clip],
+					onlyIfSubtitlesExist: true,
+				});
 				fitStoryboardLengths(getScroVideos()?.clips ?? [data.clip]);
 				armScroSync();
 				return;
@@ -720,6 +929,10 @@ export function ScroVideoSync() {
 				}),
 			});
 			fitStoryboardLengths(getScroVideos()?.clips ?? [data.clip]);
+			rebuildSubtitleTrackForClips({
+				clips: getScroVideos()?.clips ?? [data.clip],
+				onlyIfSubtitlesExist: true,
+			});
 			armScroSync();
 		}
 

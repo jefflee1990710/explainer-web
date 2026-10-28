@@ -77,6 +77,10 @@ export function setScroSubtitleOpen(next: boolean) {
 	emit();
 }
 
+export function getScroSubtitleCatalog(): ScroSubtitleCatalog | null {
+	return catalog;
+}
+
 export function setScroSubtitleCatalog(next: ScroSubtitleCatalog) {
 	catalog = next;
 	emit();
