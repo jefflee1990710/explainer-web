@@ -30,12 +30,14 @@ export function OpenCutExportButton({
   disabled,
   idle = true,
   saving = false,
+  onOpenTutorial,
 }: {
   project: PublicVideo;
   host: ScroOpenCutHost;
   disabled: boolean;
   idle?: boolean;
   saving?: boolean;
+  onOpenTutorial?: () => void;
 }) {
   const { t } = useI18n();
   const [phase, setPhase] = useState<"idle" | "exporting" | "error">("idle");
@@ -92,13 +94,16 @@ export function OpenCutExportButton({
   return (
     <VideoEditorHeaderExport>
       <div className="flex items-center gap-1.5 sm:gap-2">
-        <OpenCutSaveIndicator saving={saving} />
+        <span data-opencut-tour="header-save" className="inline-flex">
+          <OpenCutSaveIndicator saving={saving} />
+        </span>
         <StudioHint hint={remainingLabel}>
           <StudioButton
             variant="ghost"
             className="w-9 !px-0"
             disabled={!idle}
             aria-label={remainingLabel}
+            data-opencut-tour="header-finish-missing"
             onClick={() => runClipAction("remaining")}
           >
             <FinishMissingIcon className="h-4 w-4" />
@@ -110,6 +115,7 @@ export function OpenCutExportButton({
             className="w-9 !px-0"
             disabled={!videosEnabled}
             aria-label={allVideosLabel}
+            data-opencut-tour="header-all-videos"
             onClick={() => runClipAction("clips")}
           >
             <AllFramesVideoIcon />
@@ -121,6 +127,7 @@ export function OpenCutExportButton({
             className="w-9 !px-0"
             disabled={!idle}
             aria-label={addClipLabel}
+            data-opencut-tour="header-add-clip"
             onClick={() => runClipAction("add")}
           >
             <AddClipIcon className="h-4 w-4" />
@@ -131,12 +138,25 @@ export function OpenCutExportButton({
             type="button"
             onClick={startExport}
             disabled={disabled || phase === "exporting"}
+            data-opencut-tour="header-export-video"
             className="inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-full bg-[#12141c] px-3.5 text-sm font-semibold text-[#c6f24b] transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
           >
             {phase === "exporting" ? <Spinner className="h-3.5 w-3.5" /> : <DownloadIcon />}
             {label}
           </button>
         </StudioHint>
+        {onOpenTutorial ? (
+          <StudioHint hint="查看編輯器操作導覽 · Editor Tour">
+            <button
+              type="button"
+              onClick={onOpenTutorial}
+              aria-label="OpenCut Editor Tour"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-[var(--studio-line)] bg-[var(--studio-fill)] font-display text-xs font-bold text-[var(--studio-muted)] transition hover:border-[var(--studio-ink)] hover:text-[var(--studio-ink)]"
+            >
+              ?
+            </button>
+          </StudioHint>
+        ) : null}
       </div>
     </VideoEditorHeaderExport>
   );

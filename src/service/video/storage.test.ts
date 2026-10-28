@@ -53,10 +53,15 @@ test("collectVideoBlobUrls includes frame mergedUrl and opencut edit media urls"
     ],
   });
 
+  const otherVideoId = new ObjectId().toHexString();
   const urls = collectVideoBlobUrls(
     project,
     [{ blobUrl: "https://blob/job1.png" }],
-    [{ sourceUrl: "https://blob/explainer/v1/opencut/m1.mp4" }],
+    [
+      { sourceUrl: "https://blob/explainer/v1/opencut/m1.mp4" },
+      { sourceUrl: `https://blob/explainer/${project._id.toHexString()}/clips/own.mp4` },
+      { sourceUrl: `https://blob/explainer/${otherVideoId}/clips/shared-bookend.mp4` },
+    ],
   );
 
   assert.deepEqual(
@@ -68,6 +73,7 @@ test("collectVideoBlobUrls includes frame mergedUrl and opencut edit media urls"
       "https://blob/c1.mp4",
       "https://blob/job1.png",
       "https://blob/explainer/v1/opencut/m1.mp4",
+      `https://blob/explainer/${project._id.toHexString()}/clips/own.mp4`,
     ]),
   );
 });

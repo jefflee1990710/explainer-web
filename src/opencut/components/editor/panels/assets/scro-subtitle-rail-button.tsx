@@ -29,6 +29,7 @@ export function ScroSubtitleRailButton() {
 					size="icon"
 					aria-label={label}
 					aria-pressed={open}
+					data-opencut-tour="rail-subtitles"
 					className={cn("h-8 w-8 shrink-0", !open && "text-muted-foreground")}
 					onClick={() => setScroSubtitleOpen(!open)}
 				>

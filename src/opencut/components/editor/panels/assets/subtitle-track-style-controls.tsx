@@ -5,6 +5,7 @@ import { useEditor } from "@/opencut/editor/use-editor";
 import { armScroSync } from "@/opencut/embed/scro-media-sources";
 import { isScroSubtitleName } from "@/opencut/embed/scro-subtitle-slots";
 import { isSubtitleTrack } from "@/opencut/subtitles/insert";
+import { SectionField } from "@/opencut/components/section";
 import { ColorPicker } from "@/opencut/components/ui/color-picker";
 import { Button } from "@/opencut/components/ui/button";
 import { Slider } from "@/opencut/components/ui/slider";
@@ -242,8 +243,8 @@ export function findSubtitleTrack(
 	return null;
 }
 
-// Batch controls for the dedicated Subtitle Track: font family with preview, font size,
-// vertical Y position, visual strip shape preview cards, and dual-color customization.
+// Native OpenCut Inspector layout (`divide-border flex flex-col divide-y` + `px-3.5 py-3` + `SectionField`)
+// for batch-editing the entire Subtitle Track at once.
 export function SubtitleTrackStyleControls({
 	trackId,
 	compact = false,
@@ -350,121 +351,133 @@ export function SubtitleTrackStyleControls({
 	const inFontPresets = TEXT_FONT_PRESETS.some((item) => item.family === fontFamily);
 
 	return (
-		<div className="bg-muted/30 space-y-3 rounded-md border p-3">
-			<div className="flex items-center justify-between gap-2">
-				<div>
-					<h3 className="text-xs font-semibold">
-						字幕圖層全軌控制 · Subtitle Track ({targetElements.length})
-					</h3>
-					<p className="text-muted-foreground text-[11px]">
-						一次過調整全部字幕嘅字體、大小、底條形狀、位置與雙色
-					</p>
+		<div className="divide-border flex flex-col divide-y">
+			{/* Section 1: Track Summary & Typography (Font Type + Font Size) */}
+			<div className="space-y-3 px-3.5 py-3">
+				<div className="flex items-center justify-between gap-2">
+					<div>
+						<p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+							Subtitle Track · 字幕圖層全軌 ({targetElements.length})
+						</p>
+						<p className="text-muted-foreground mt-0.5 text-[11px]">
+							同步套用至成條字幕軌嘅所有片段
+						</p>
+					</div>
+					{compact ? (
+						<Button
+							type="button"
+							variant="secondary"
+							size="sm"
+							className="h-6 px-2.5 text-[11px]"
+							onClick={selectAllOnTrack}
+						>
+							全選圖層
+						</Button>
+					) : null}
 				</div>
-				{compact ? (
-					<Button
-						type="button"
-						variant="secondary"
-						size="sm"
-						className="h-6 px-2 text-[11px]"
-						onClick={selectAllOnTrack}
-					>
-						全選圖層
-					</Button>
-				) : null}
-			</div>
 
-			{/* Font Family with Live Preview */}
-			<div className="space-y-1.5">
-				<span className="block text-xs font-medium">字體類型 · Font Type</span>
-				<Select
-					value={fontFamily}
-					onValueChange={(selected) => {
-						const preset = TEXT_FONT_PRESETS.find((item) => item.family === selected);
-						void loadFullFont({ family: selected, weights: preset?.weights }).finally(
-							() => {
+				<SectionField label="Font Family · 字體類型">
+					<Select
+						value={fontFamily}
+						onValueChange={(selected) => {
+							const preset = TEXT_FONT_PRESETS.find(
+								(item) => item.family === selected,
+							);
+							void loadFullFont({
+								family: selected,
+								weights: preset?.weights,
+							}).finally(() => {
 								applyPatchToAllSubtitles({ fontFamily: selected });
-							},
-						);
-					}}
-				>
-					<SelectTrigger className="h-8 w-full text-xs">
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						{!inFontPresets && fontFamily ? (
-							<SelectItem value={fontFamily}>{fontFamily}</SelectItem>
-						) : null}
-						{TEXT_FONT_PRESETS.map((preset) => (
-							<SelectItem key={preset.id} value={preset.family}>
-								<span className="flex items-center gap-2">
-									<span className="text-muted-foreground text-[11px]">
-										{preset.label ?? preset.family}
-									</span>
-									<span
-										className="text-xs font-bold"
-										style={{
-											fontFamily: `${quoteFontFamily({ fontFamily: preset.family })}, sans-serif`,
-										}}
-									>
-										{preset.sample}
-									</span>
-								</span>
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
-			</div>
-
-			{/* Font Size Slider */}
-			<div className="space-y-1.5">
-				<div className="flex items-center justify-between text-xs">
-					<span className="font-medium">字體大小 · Font Size</span>
-					<span className="text-muted-foreground font-mono text-[11px]">
-						{fontSize.toFixed(1)}
-					</span>
-				</div>
-				<Slider
-					min={1.5}
-					max={8.5}
-					step={0.1}
-					value={[fontSize]}
-					onValueChange={(vals) => {
-						const nextSize = vals[0];
-						if (typeof nextSize === "number") {
-							applyPatchToAllSubtitles({
-								fontSize: Math.round(nextSize * 10) / 10,
 							});
-						}
-					}}
-				/>
+						}}
+					>
+						<SelectTrigger className="w-full text-xs">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{!inFontPresets && fontFamily ? (
+								<SelectItem value={fontFamily}>{fontFamily}</SelectItem>
+							) : null}
+							{TEXT_FONT_PRESETS.map((preset) => (
+								<SelectItem key={preset.id} value={preset.family}>
+									<span className="flex items-center gap-2">
+										<span className="text-muted-foreground text-[11px]">
+											{preset.label ?? preset.family}
+										</span>
+										<span
+											className="text-xs font-bold"
+											style={{
+												fontFamily: `${quoteFontFamily({ fontFamily: preset.family })}, sans-serif`,
+											}}
+										>
+											{preset.sample}
+										</span>
+									</span>
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</SectionField>
+
+				<SectionField
+					label="Font Size · 字體大小"
+					beforeLabel={
+						<span className="bg-muted text-foreground ml-auto rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums">
+							{fontSize.toFixed(1)}
+						</span>
+					}
+				>
+					<Slider
+						min={1.5}
+						max={8.5}
+						step={0.1}
+						value={[fontSize]}
+						onValueChange={(vals) => {
+							const nextSize = vals[0];
+							if (typeof nextSize === "number") {
+								applyPatchToAllSubtitles({
+									fontSize: Math.round(nextSize * 10) / 10,
+								});
+							}
+						}}
+					/>
+				</SectionField>
 			</div>
 
-			{/* Vertical Position Y */}
-			<div className="space-y-1.5">
-				<div className="flex items-center justify-between text-xs">
-					<span className="font-medium">上下位置 · Vertical Y</span>
-					<span className="text-muted-foreground font-mono text-[11px]">
-						{Math.round(posY)}px
-					</span>
-				</div>
-				<Slider
-					min={-halfHeight + 60}
-					max={halfHeight - 60}
-					step={2}
-					value={[posY]}
-					onValueChange={(vals) => {
-						const nextY = vals[0];
-						if (typeof nextY === "number") {
-							applyPatchToAllSubtitles({ "transform.positionY": nextY });
-						}
-					}}
-				/>
-				<div className="grid grid-cols-3 gap-1.5 pt-0.5">
+			{/* Section 2: Vertical Position Y */}
+			<div className="space-y-3 px-3.5 py-3">
+				<p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+					Position · 上下位置
+				</p>
+
+				<SectionField
+					label="Vertical Y · 垂直座標"
+					beforeLabel={
+						<span className="bg-muted text-foreground ml-auto rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums">
+							{Math.round(posY)}px
+						</span>
+					}
+				>
+					<Slider
+						min={-halfHeight + 60}
+						max={halfHeight - 60}
+						step={2}
+						value={[posY]}
+						onValueChange={(vals) => {
+							const nextY = vals[0];
+							if (typeof nextY === "number") {
+								applyPatchToAllSubtitles({ "transform.positionY": nextY });
+							}
+						}}
+					/>
+				</SectionField>
+
+				<div className="grid grid-cols-3 gap-2">
 					<Button
 						type="button"
 						variant="outline"
 						size="sm"
-						className="h-6 text-[11px]"
+						className="h-7 text-[11px]"
 						onClick={() =>
 							applyPatchToAllSubtitles({
 								"transform.positionY": Math.round(-canvasHeight * 0.32),
@@ -477,7 +490,7 @@ export function SubtitleTrackStyleControls({
 						type="button"
 						variant="outline"
 						size="sm"
-						className="h-6 text-[11px]"
+						className="h-7 text-[11px]"
 						onClick={() =>
 							applyPatchToAllSubtitles({
 								"transform.positionY": Math.round(canvasHeight * 0.08),
@@ -490,7 +503,7 @@ export function SubtitleTrackStyleControls({
 						type="button"
 						variant="outline"
 						size="sm"
-						className="h-6 text-[11px]"
+						className="h-7 text-[11px]"
 						onClick={() =>
 							applyPatchToAllSubtitles({
 								"transform.positionY": Math.round(canvasHeight * 0.32),
@@ -502,12 +515,13 @@ export function SubtitleTrackStyleControls({
 				</div>
 			</div>
 
-			{/* Strip shape visual preview selector */}
-			<div className="space-y-1.5">
-				<span className="block text-xs font-medium">
-					字卡底條形狀 · Strip Shape
-				</span>
-				<div className="grid grid-cols-2 gap-1.5" role="listbox" aria-label="Strip Shape">
+			{/* Section 3: Strip Shape Visual Preview Grid */}
+			<div className="space-y-2.5 px-3.5 py-3">
+				<p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+					Strip Shape · 字卡底條形狀
+				</p>
+
+				<div className="grid grid-cols-2 gap-2" role="listbox" aria-label="Strip Shape">
 					{STRIP_STYLE_OPTIONS.map((opt) => {
 						const active = activeStripOption === opt.value;
 						const topPreviewStyle = buildStripBadgePreviewStyle({
@@ -541,11 +555,11 @@ export function SubtitleTrackStyleControls({
 								className={cn(
 									"flex cursor-pointer flex-col gap-1 rounded-md border p-1.5 text-left transition",
 									active
-										? "border-foreground bg-secondary ring-foreground/15 ring-2"
-										: "border-border/70 bg-background hover:border-foreground/40",
+										? "border-foreground bg-secondary shadow-xs"
+										: "border-border bg-background hover:bg-muted/50",
 								)}
 							>
-								<div className="flex h-11 w-full flex-col items-center justify-center gap-0.5 overflow-hidden rounded bg-zinc-800 px-1.5 py-1">
+								<div className="flex h-11 w-full flex-col items-center justify-center gap-0.5 overflow-hidden rounded-sm bg-zinc-800 px-1.5 py-1">
 									<span
 										style={topPreviewStyle}
 										className="max-w-full truncate text-[9px] leading-tight select-none"
@@ -559,7 +573,7 @@ export function SubtitleTrackStyleControls({
 										{opt.sampleBottom}
 									</span>
 								</div>
-								<span className="truncate px-0.5 text-[10px] font-semibold">
+								<span className="truncate px-0.5 text-[11px] font-medium">
 									{opt.label}
 								</span>
 							</button>
@@ -568,9 +582,12 @@ export function SubtitleTrackStyleControls({
 				</div>
 			</div>
 
-			{/* Quick Duo-Color Theme Swatches */}
-			<div className="space-y-1.5">
-				<span className="text-xs font-medium">一鍵雙色主題 · Quick Duo Colors</span>
+			{/* Section 4: Duo Colors & Color Pickers */}
+			<div className="space-y-3 px-3.5 py-3">
+				<p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+					Duo Colors · 雙色主題與配色
+				</p>
+
 				<div className="grid grid-cols-3 gap-1.5">
 					{DUO_COLOR_THEMES.map((theme) => (
 						<button
@@ -584,7 +601,7 @@ export function SubtitleTrackStyleControls({
 									"background.secondaryTextColor": theme.text2,
 								})
 							}
-							className="hover:border-foreground/50 bg-background flex cursor-pointer items-center gap-1.5 rounded border px-1.5 py-1 text-[11px] font-medium transition"
+							className="border-border bg-background hover:bg-muted/60 flex h-7 cursor-pointer items-center gap-1.5 rounded-md border px-2 text-[11px] font-medium transition"
 						>
 							<span className="flex shrink-0 items-center -space-x-1">
 								<span
@@ -600,16 +617,10 @@ export function SubtitleTrackStyleControls({
 						</button>
 					))}
 				</div>
-			</div>
 
-			{/* Batch Dual Colors */}
-			<div className="grid grid-cols-2 gap-2">
 				{bgEnabled ? (
-					<>
-						<div className="space-y-1">
-							<span className="text-muted-foreground block text-[11px] font-medium">
-								上行底色 (例如黑)
-							</span>
+					<div className="grid grid-cols-2 gap-2.5">
+						<SectionField label="上行底色 · Strip 1">
 							<ColorPicker
 								value={line1Bg.replace(/^#/, "").toUpperCase()}
 								onChange={(c) =>
@@ -619,11 +630,8 @@ export function SubtitleTrackStyleControls({
 									applyPatchToAllSubtitles({ "background.color": `#${c}` })
 								}
 							/>
-						</div>
-						<div className="space-y-1">
-							<span className="text-muted-foreground block text-[11px] font-medium">
-								下行底色 (例如綠)
-							</span>
+						</SectionField>
+						<SectionField label="下行底色 · Strip 2">
 							<ColorPicker
 								value={line2Bg.replace(/^#/, "").toUpperCase()}
 								onChange={(c) =>
@@ -637,36 +645,33 @@ export function SubtitleTrackStyleControls({
 									})
 								}
 							/>
-						</div>
-					</>
+						</SectionField>
+					</div>
 				) : null}
-				<div className="space-y-1">
-					<span className="text-muted-foreground block text-[11px] font-medium">
-						上行字色 · Line 1 Text
-					</span>
-					<ColorPicker
-						value={line1Text.replace(/^#/, "").toUpperCase()}
-						onChange={(c) => applyPatchToAllSubtitles({ color: `#${c}` })}
-						onChangeEnd={(c) => applyPatchToAllSubtitles({ color: `#${c}` })}
-					/>
-				</div>
-				<div className="space-y-1">
-					<span className="text-muted-foreground block text-[11px] font-medium">
-						下行字色 · Line 2 Text
-					</span>
-					<ColorPicker
-						value={line2Text.replace(/^#/, "").toUpperCase()}
-						onChange={(c) =>
-							applyPatchToAllSubtitles({
-								"background.secondaryTextColor": `#${c}`,
-							})
-						}
-						onChangeEnd={(c) =>
-							applyPatchToAllSubtitles({
-								"background.secondaryTextColor": `#${c}`,
-							})
-						}
-					/>
+
+				<div className="grid grid-cols-2 gap-2.5">
+					<SectionField label="上行字色 · Text 1">
+						<ColorPicker
+							value={line1Text.replace(/^#/, "").toUpperCase()}
+							onChange={(c) => applyPatchToAllSubtitles({ color: `#${c}` })}
+							onChangeEnd={(c) => applyPatchToAllSubtitles({ color: `#${c}` })}
+						/>
+					</SectionField>
+					<SectionField label="下行字色 · Text 2">
+						<ColorPicker
+							value={line2Text.replace(/^#/, "").toUpperCase()}
+							onChange={(c) =>
+								applyPatchToAllSubtitles({
+									"background.secondaryTextColor": `#${c}`,
+								})
+							}
+							onChangeEnd={(c) =>
+								applyPatchToAllSubtitles({
+									"background.secondaryTextColor": `#${c}`,
+								})
+							}
+						/>
+					</SectionField>
 				</div>
 			</div>
 		</div>

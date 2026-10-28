@@ -40,8 +40,16 @@ export function collectVideoBlobUrls(
   for (const job of jobs) {
     add(job.blobUrl);
   }
+  const ownId = video._id.toHexString().toLowerCase();
   for (const item of opencutMedia) {
-    add(item.sourceUrl);
+    const url = item.sourceUrl;
+    if (!url) continue;
+    // Never delete shared bookend / clip / frame blobs that belong to another video document.
+    const match = url.match(/\/explainer\/([a-f0-9]{24})\//i);
+    if (match && match[1].toLowerCase() !== ownId) {
+      continue;
+    }
+    add(url);
   }
   return [...urls];
 }

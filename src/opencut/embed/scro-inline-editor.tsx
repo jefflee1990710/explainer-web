@@ -139,11 +139,22 @@ function EditorLayout() {
 						setPanel({ panel: "properties", size: sizes[2] ?? panels.properties });
 					}}
 				>
-					<ResizablePanel defaultSize={panels.tools} minSize={15} maxSize={40} className="min-w-0">
+					<ResizablePanel
+						defaultSize={panels.tools}
+						minSize={15}
+						maxSize={40}
+						className="min-w-0"
+						data-opencut-tour="section-left-assets"
+					>
 						<AssetsPanel />
 					</ResizablePanel>
 					<ResizableHandle withHandle className="bg-[#f3f3f5]" />
-					<ResizablePanel defaultSize={panels.preview} minSize={30} className="min-h-0 min-w-0 flex-1">
+					<ResizablePanel
+						defaultSize={panels.preview}
+						minSize={30}
+						className="min-h-0 min-w-0 flex-1"
+						data-opencut-tour="section-middle-preview"
+					>
 						<PreviewPanel
 							overlayControls={overlayControls}
 							overlayInstances={overlaySource.instances}
@@ -156,6 +167,7 @@ function EditorLayout() {
 						minSize={15}
 						maxSize={40}
 						className="min-w-0"
+						data-opencut-tour="section-right-inspector"
 					>
 						<PropertiesPanel />
 					</ResizablePanel>
@@ -167,6 +179,7 @@ function EditorLayout() {
 				minSize={15}
 				maxSize={70}
 				className="min-h-0"
+				data-opencut-tour="section-bottom-timeline"
 			>
 				<Timeline />
 			</ResizablePanel>

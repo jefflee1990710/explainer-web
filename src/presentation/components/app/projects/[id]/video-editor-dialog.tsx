@@ -70,14 +70,27 @@ export function VideoEditorDialog({
               titleId={titleId}
             />
           </div>
-          <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2">
-          {videoId ? <VideoEditorHeaderStatus videoId={videoId} /> : null}
-          <VideoLocksReferenceButton
-            objectSheetUrl={objectSheetUrl}
-            objectSheetItems={objectSheetItems}
-            backgroundPlates={backgroundPlates}
-          />
-          {videoId ? <VideoShareCaptionsButton videoId={videoId} /> : null}
+          <div
+            data-opencut-tour="top-right-bar"
+            className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2"
+          >
+          {videoId ? (
+            <span data-opencut-tour="header-tasks" className="inline-flex">
+              <VideoEditorHeaderStatus videoId={videoId} />
+            </span>
+          ) : null}
+          <span data-opencut-tour="header-locks" className="inline-flex">
+            <VideoLocksReferenceButton
+              objectSheetUrl={objectSheetUrl}
+              objectSheetItems={objectSheetItems}
+              backgroundPlates={backgroundPlates}
+            />
+          </span>
+          {videoId ? (
+            <span data-opencut-tour="header-captions" className="inline-flex">
+              <VideoShareCaptionsButton videoId={videoId} />
+            </span>
+          ) : null}
           {onRestart ? (
             <StudioHint hint={`${t("video.editor.restart")} · ${t("video.editor.restartHint")}`}>
               <StudioButton
@@ -85,6 +98,7 @@ export function VideoEditorDialog({
                 className="w-9 !px-0"
                 onClick={onRestart}
                 aria-label={t("video.editor.restart")}
+                data-opencut-tour="header-restart"
               >
                 <RefreshIcon className="h-4 w-4" />
               </StudioButton>
@@ -100,7 +114,11 @@ export function VideoEditorDialog({
               {t("video.editor.syncing")}
             </p>
           ) : null}
-          {canDelete && onDelete ? <VideoEditorMoreMenu onDelete={onDelete} /> : null}
+          {canDelete && onDelete ? (
+            <span data-opencut-tour="header-more" className="inline-flex">
+              <VideoEditorMoreMenu onDelete={onDelete} />
+            </span>
+          ) : null}
           </div>
         </div>
       </header>

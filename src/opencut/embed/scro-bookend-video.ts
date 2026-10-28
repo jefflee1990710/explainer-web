@@ -1,6 +1,8 @@
 import type { EditorCore } from "@/opencut/core";
 import { createStreamingVideoAsset } from "@/opencut/embed/scro-media-load";
 import type { MediaAsset } from "@/opencut/media/types";
+import { storageService } from "@/opencut/services/storage/service";
+import { videoCache } from "@/opencut/services/video-cache/service";
 import { armScroSync, rememberClipSource } from "@/opencut/embed/scro-media-sources";
 import { buildElementFromMedia } from "@/opencut/timeline/element-utils";
 import { findNonOverlappingMainTrackStartTime } from "@/opencut/timeline/placement";
@@ -58,7 +60,32 @@ async function downloadBookendVideo({
 			asset.type === "video" &&
 			(asset.scroPosterUrl === url || asset.name === name),
 	);
-	if (existing) return existing;
+	if (existing) {
+		if (existing.file.size === 0 && existing.url !== url) {
+			videoCache.clearVideo({ mediaId: existing.id });
+			const updated: MediaAsset = {
+				...existing,
+				url,
+				scroPosterUrl: url,
+				thumbnailUrl: posterUrl ?? existing.thumbnailUrl,
+			};
+			editor.media.setAssets({
+				assets: editor.media
+					.getAssets()
+					.map((item) => (item.id === existing.id ? updated : item)),
+			});
+			await storageService
+				.saveMediaAsset({
+					projectId: project.metadata.id,
+					mediaAsset: updated,
+				})
+				.catch(() => undefined);
+			rememberClipSource(editorVideoId, updated.id, url);
+			return updated;
+		}
+		rememberClipSource(editorVideoId, existing.id, url);
+		return existing;
+	}
 	const asset = await createStreamingVideoAsset({
 		url,
 		name,

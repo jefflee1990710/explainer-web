@@ -46,6 +46,10 @@ import type { FramePosition, FrameRevisionInput } from "@/model/project";
 import type { PublicTextStyle, PublicVideo } from "@/presentation/serialize";
 import { EditorLoadingOverlay } from "@/presentation/components/app/projects/new/editor-loading-overlay";
 import { OpenCutEditorLoading } from "@/presentation/components/app/projects/new/opencut-editor-loading";
+import {
+  OpenCutFeatureDiscovery,
+  hasSeenOpenCutTutorial,
+} from "@/presentation/components/app/projects/new/opencut-feature-discovery";
 import "./opencut-direct-host.css";
 
 const OpenCutInlineEditor = dynamic(() => import("@/opencut/embed/scro-inline-editor"), {
@@ -110,6 +114,7 @@ export function OpenCutDirectDesk({
   const aiRef = useRef(ai);
   const [saving, setSaving] = useState(false);
   const [booting, setBooting] = useState(true);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   const [loadProgress, setLoadProgress] = useState<OpenCutLoadProgress | null>(null);
   const [editorEpoch, setEditorEpoch] = useState(0);
   const [selectedClipNumber, setSelectedClipNumber] = useState<number | null>(null);
@@ -422,6 +427,15 @@ export function OpenCutDirectDesk({
     }
   }, [seedClips, project.id, project.aspectRatio, host, editorEpoch]);
 
+  // Automatically open the OpenCut Feature Discovery tutorial once the editor finishes booting (unless user checked "Don't show again").
+  useEffect(() => {
+    if (booting) return;
+    if (!hasSeenOpenCutTutorial()) {
+      const timer = window.setTimeout(() => setTutorialOpen(true), 450);
+      return () => window.clearTimeout(timer);
+    }
+  }, [booting]);
+
   // Assets ⋮ menu reads this so Finish / All frames / All videos stay in sync.
   useEffect(() => {
     if (!production) return;
@@ -467,6 +481,7 @@ export function OpenCutDirectDesk({
         disabled={readyVideos.length === 0}
         idle={(production?.pending ?? "") === ""}
         saving={saving}
+        onOpenTutorial={() => setTutorialOpen(true)}
       />
       {production ? (
         <OpenCutScroToolbar
@@ -506,6 +521,10 @@ export function OpenCutDirectDesk({
           onRegenerateFrame={production.onRegenerateFrame}
         />
       ) : null}
+      <OpenCutFeatureDiscovery
+        open={tutorialOpen && !booting}
+        onClose={() => setTutorialOpen(false)}
+      />
     </div>
   );
 }

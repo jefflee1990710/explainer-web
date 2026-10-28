@@ -1,6 +1,6 @@
 "use client";
 
-import { SparklesIcon } from "@hugeicons/core-free-icons";
+import { SparklesIcon, SubtitleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ScrollArea } from "@/opencut/components/ui/scroll-area";
 import { useEditor } from "@/opencut/editor/use-editor";
@@ -87,9 +87,7 @@ export function PropertiesPanel() {
 				<div className="panel bg-background flex h-full min-h-0 flex-col overflow-hidden rounded-none border">
 					<InspectorHeader />
 					<ScrollArea className="min-h-0 flex-1 scrollbar-hidden">
-						<div className="p-3">
-							<SubtitleTrackStyleControls trackId={firstTrack.id} />
-						</div>
+						<SubtitleTrackStyleControls trackId={firstTrack.id} />
 					</ScrollArea>
 				</div>
 			);
@@ -132,11 +130,33 @@ export function PropertiesPanel() {
 				}
 			: null;
 
-	const visibleTabs: PropertiesTabDef[] = scroTab
-		? [scroTab, ...config.tabs]
-		: config.tabs;
+	const isSubtitleElement =
+		track.type === "text" &&
+		(isScroSubtitleName({ name: element.name }) ||
+			isSubtitleTrack({ name: track.name, elements: track.elements }));
 
-	const defaultTabId = scroTab ? scroTab.id : config.defaultTab;
+	const subtitleTrackTab: PropertiesTabDef | null = isSubtitleElement
+		? {
+				id: "subtitle-track",
+				label: "Subtitle Track · 全軌",
+				icon: <HugeiconsIcon icon={SubtitleIcon} size={14} />,
+				content: ({ trackId: tId }) => (
+					<SubtitleTrackStyleControls trackId={tId} compact />
+				),
+			}
+		: null;
+
+	const visibleTabs: PropertiesTabDef[] = [
+		...(scroTab ? [scroTab] : []),
+		...(subtitleTrackTab ? [subtitleTrackTab] : []),
+		...config.tabs,
+	];
+
+	const defaultTabId = scroTab
+		? scroTab.id
+		: subtitleTrackTab
+			? subtitleTrackTab.id
+			: config.defaultTab;
 	const storedTabId = activeTabPerType[element.type];
 	const isStoredTabVisible = visibleTabs.some((t) => t.id === storedTabId);
 	const activeTabId = isStoredTabVisible ? storedTabId : defaultTabId;
@@ -185,13 +205,6 @@ export function PropertiesPanel() {
 				</div>
 			) : (
 				<ScrollArea className="min-h-0 flex-1 scrollbar-hidden">
-					{track.type === "text" &&
-					(isScroSubtitleName({ name: element.name }) ||
-						isSubtitleTrack({ name: track.name, elements: track.elements })) ? (
-						<div className="border-b p-3">
-							<SubtitleTrackStyleControls trackId={track.id} compact />
-						</div>
-					) : null}
 					{activeTab.content({ trackId: track.id })}
 				</ScrollArea>
 			)}

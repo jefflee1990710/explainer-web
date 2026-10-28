@@ -55,7 +55,7 @@ export function TabBar() {
 	}, [checkScrollPosition]);
 
 	return (
-		<div className="relative flex">
+		<div className="relative flex" data-opencut-tour="left-rail">
 			<div
 				ref={scrollRef}
 				className="scrollbar-hidden relative flex size-full p-1 flex-col items-center justify-start gap-0.5 overflow-y-auto"
@@ -75,6 +75,7 @@ export function TabBar() {
 											variant={active ? "secondary" : "ghost"}
 											size="icon"
 											aria-label={tab.label}
+											data-opencut-tour={`rail-${tabKey}`}
 											className={cn(
 												"shrink-0",
 												"h-8 w-8",
