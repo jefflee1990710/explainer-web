@@ -6,13 +6,10 @@ import { LandingUseCaseRow, type LandingUseCase } from "@/presentation/component
 
 const ART = "/landing/use-cases";
 
-// Five AI Influencer workflows on Scro. Leads with Virtual You & Product UGC; rows alternate art left and right.
+// Two jobs on the homepage: whiteboard explainer videos, then the AI Influencer who hosts them.
 const USE_CASES = [
-  { id: "virtual-you", key: "virtualYou", appHref: "/app/characters" },
-  { id: "product", key: "product", appHref: "/app/products" },
-  { id: "tutorial", key: "tutorial", appHref: "/app" },
   { id: "explain", key: "explain", appHref: "/app" },
-  { id: "saas", key: "saas", appHref: "/app" },
+  { id: "virtual-you", key: "virtualYou", appHref: "/app/characters" },
 ] as const;
 
 export function LandingUseCases({ signedIn = false }: { signedIn?: boolean }) {

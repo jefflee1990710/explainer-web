@@ -57,6 +57,7 @@ import {
   cartoonClipAction,
   cartoonNarratorFrameLock,
   isBookendSkill,
+  PAPER_CUTOUT_FULL_BLEED,
   VERTICAL_FRAME_SAFE_AREA,
   isComparisonCardSkill,
   isOutfitChangeSkill,
@@ -987,6 +988,10 @@ export function buildFramePrompt(
         ]
       : []),
     ...(parts.safeArea ? [parts.safeArea] : []),
+    ...(style.id === "paper-cutout" ||
+    ("baseStyleId" in style && style.baseStyleId === "paper-cutout")
+      ? [PAPER_CUTOUT_FULL_BLEED]
+      : []),
     `Aspect ratio ${project.aspectRatio}.`,
   ].join("\n");
 

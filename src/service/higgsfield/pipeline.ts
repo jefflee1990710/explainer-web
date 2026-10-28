@@ -30,10 +30,7 @@ import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt";
 import { hydrateStyles } from "@/service/style/load-style";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
-import {
-  gradeRealisticImageBuffer,
-  gradeRealisticVideoBuffer,
-} from "@/service/style/realistic-grade";
+import { gradeRealisticVideoBuffer } from "@/service/style/realistic-grade";
 import { isRealisticStyle, isSelfShotCreatorSkill, lockRealisticVideoLight } from "@/service/style/realistic-light";
 import type { StylePromptSlice } from "@/service/style";
 import { withoutOnScreenTextInstructions } from "@/service/style/prompts";
@@ -1032,8 +1029,7 @@ export async function applyJobStatus(input: {
         })
       : undefined;
     const realistic = isRealisticStyle(renderableStyle);
-    // Apply de-plastic tone curve, specular skin matting, micro-detail recovery, and subtle sensor grain
-    // across all realistic styles (including self-shot Talking Head & Surprise Hook).
+    // Realistic clips still get the highlight roll-off. Stills are stored as returned.
     const applyFilmGrade = realistic;
     const canvasColor =
       renderableStyle && (job.kind === "still" || job.kind === "frame")
@@ -1109,33 +1105,24 @@ export async function applyJobStatus(input: {
           }
         : undefined;
     const transformImage =
-      (job.kind === "still" || job.kind === "frame") && (canvasColor || applyFilmGrade)
+      job.kind === "frame" || (job.kind === "still" && canvasColor)
         ? async (buffer: Buffer) => {
             const unboxed =
               job.kind === "frame"
                 ? await stripLetterboxBars(buffer).catch(() => buffer)
                 : buffer;
-            const flat = canvasColor
-              ? await flattenToCanvas(unboxed, canvasColor).catch(
-                  (error: unknown) => {
-                    // Keep the original bytes rather than failing the job, but
-                    // leave a trace so a broken flatten is not invisible.
-                    console.error(
-                      "[higgsfield] flatten failed; persisting original bytes",
-                      { requestId: job.requestId, error },
-                    );
-                    return unboxed;
-                  },
-                )
-              : unboxed;
-            if (!applyFilmGrade) return flat;
-            return gradeRealisticImageBuffer(flat).catch((error: unknown) => {
-              console.error(
-                "[higgsfield] realistic image grade failed; keeping flattened bytes",
-                { requestId: job.requestId, error },
-              );
-              return flat;
-            });
+            if (!canvasColor) return unboxed;
+            return flattenToCanvas(unboxed, canvasColor).catch(
+              (error: unknown) => {
+                // Keep the original bytes rather than failing the job, but
+                // leave a trace so a broken flatten is not invisible.
+                console.error(
+                  "[higgsfield] flatten failed; persisting original bytes",
+                  { requestId: job.requestId, error },
+                );
+                return unboxed;
+              },
+            );
           }
         : undefined;
     const transformOptions = transformVideo

@@ -15,29 +15,9 @@ import {
 } from "@/service/character/generate";
 import { versionStyleId } from "@/service/character/character-styles";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
-import { isRealisticStyle } from "@/service/style/realistic-light";
-import { gradeRealisticImageBuffer } from "@/service/style/realistic-grade";
 import { FRAME_COST } from "@/service/credit-costs";
 import type { Character, CharacterVersion } from "@/model/character";
 import type { GenerationJob, GenerationStatus } from "@/model/generation-job";
-
-async function isRealisticCharacterVersion(
-  character: Character,
-  version: CharacterVersion,
-): Promise<boolean> {
-  const styleId = versionStyleId(character, version);
-  if (styleId === "realistic") return true;
-  try {
-    await hydrateStyles();
-    const style = await loadRenderableStyle({
-      styleId,
-      ownerClerkUserId: character.clerkUserId,
-    });
-    return isRealisticStyle(style);
-  } catch {
-    return false;
-  }
-}
 
 // What this version was charged. Rows from before boards carried one sheet at FRAME_COST.
 export function versionCreditsCost(version: Pick<CharacterVersion, "creditsCost">) {
@@ -132,16 +112,9 @@ async function syncCharacterProfile(
   const filter = { _id: job.characterId, "versions.id": job.versionId };
   if (status === "completed" && outputUrl) {
     try {
-      const character = await characters.findOne(filter);
-      const version = character?.versions.find((item) => item.id.equals(job.versionId!));
-      const realistic =
-        character && version ? await isRealisticCharacterVersion(character, version) : false;
       const profileUrl = await persistMedia(
         outputUrl,
         `explainer/characters/${job.characterId.toHexString()}/${job.versionId.toHexString()}-standing`,
-        realistic
-          ? { transform: (buf) => gradeRealisticImageBuffer(buf).catch(() => buf) }
-          : undefined,
       );
       await characters.updateOne(filter, {
         $set: { "versions.$.profileUrl": profileUrl, updatedAt: new Date() },
@@ -179,13 +152,9 @@ async function completeBoardPortrait(
     failCharacterVersion(job.characterId!, job.versionId!, message);
   let portraitUrl: string;
   try {
-    const realistic = await isRealisticCharacterVersion(character, version);
     portraitUrl = await persistMedia(
       outputUrl,
       `explainer/characters/${job.characterId!.toHexString()}/${job.versionId!.toHexString()}-portrait`,
-      realistic
-        ? { transform: (buf) => gradeRealisticImageBuffer(buf).catch(() => buf) }
-        : undefined,
     );
   } catch {
     await failVersion("肖像保存失敗");
@@ -228,26 +197,21 @@ async function completeBoardFullBody(
   let profileUrl: string;
   let blueprintUrl: string;
   try {
-    const [rawFullBodyBuffer, portraitBuffer] = await Promise.all([
+    const [fullBodyBuffer, portraitBuffer] = await Promise.all([
       downloadBuffer(outputUrl),
       downloadBuffer(version.portraitUrl),
     ]);
     await hydrateStyles();
     let background: string | undefined;
-    let realistic = versionStyleId(character, version) === "realistic";
     try {
       const style = await loadRenderableStyle({
         styleId: versionStyleId(character, version),
         ownerClerkUserId: character.clerkUserId,
       });
       background = style.canvasColor;
-      realistic = isRealisticStyle(style);
     } catch {
       background = undefined;
     }
-    const fullBodyBuffer = realistic
-      ? await gradeRealisticImageBuffer(rawFullBodyBuffer).catch(() => rawFullBodyBuffer)
-      : rawFullBodyBuffer;
     const board = await composeBlueprintBoard({
       portrait: portraitBuffer,
       fullBody: fullBodyBuffer,
@@ -362,26 +326,20 @@ export async function syncCharacterJob(
     await hydrateStyles();
     // Crop with the selected style's canvas, including a custom style.
     let canvasColor: string;
-    let realistic = false;
     try {
       const loaded = await loadRenderableStyle({
         styleId: versionStyleId(character, version),
         ownerClerkUserId: character.clerkUserId,
       });
       canvasColor = loaded.canvasColor;
-      realistic = isRealisticStyle(loaded);
     } catch (error) {
       await failVersion(error instanceof Error ? error.message : "藍圖保存失敗");
       return;
     }
     const reframe = canReframeOnCanvas(canvasColor);
-    const transform =
-      reframe || realistic
-        ? async (buffer: Buffer) => {
-            const framed = reframe ? await reframeBlueprintBuffer(buffer, canvasColor) : buffer;
-            return realistic ? gradeRealisticImageBuffer(framed).catch(() => framed) : framed;
-          }
-        : undefined;
+    const transform = reframe
+      ? async (buffer: Buffer) => reframeBlueprintBuffer(buffer, canvasColor)
+      : undefined;
     let blueprintUrl: string;
     try {
       blueprintUrl = await persistMedia(

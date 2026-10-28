@@ -24,6 +24,11 @@ export type FeatureLink = {
 
 export const SITE_FEATURE_LINKS: readonly FeatureLink[] = [
   {
+    href: "/explainer",
+    labelKey: "nav.explainer",
+    blurbKey: "nav.featuresExplainer",
+  },
+  {
     href: "/ai-influencer",
     labelKey: "nav.aiInfluencer",
     blurbKey: "nav.featuresAiInfluencer",
@@ -47,11 +52,6 @@ export const SITE_FEATURE_LINKS: readonly FeatureLink[] = [
     href: "/cantonese",
     labelKey: "nav.cantonese",
     blurbKey: "nav.featuresCantonese",
-  },
-  {
-    href: "/explainer",
-    labelKey: "nav.explainer",
-    blurbKey: "nav.featuresExplainer",
   },
 ];
 

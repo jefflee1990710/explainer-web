@@ -8,29 +8,29 @@ import { zhHans } from "@/util/i18n/messages/zh-Hans";
 
 const ROOT = process.cwd();
 
-test("landing messages reposition Scro around AI Influencers in English and Chinese", () => {
-  assert.match(en.meta.title, /AI Influencer|soul/i);
-  assert.match(en.landing.hero.kicker, /AI Influencer/i);
-  assert.match(en.landing.hero.title, /soul|AI Influencer/i);
+test("landing messages focus Scro on explainer videos and AI Influencers", () => {
+  assert.match(en.meta.title, /Explainer|AI Influencer/i);
+  assert.match(en.landing.hero.kicker, /Explainer|AI Influencer/i);
+  assert.match(en.landing.hero.title, /Explainer|AI Influencer/i);
   assert.ok(en.landing.hero.title.length <= 60, "en hero title should stay concise");
   assert.ok(en.landing.hero.subtitle.length <= 100, "en hero subtitle should stay concise");
-  assert.match(en.landing.cast.title, /AI Influencer|soul/i);
+  assert.match(en.landing.cast.title, /AI Influencer|explainer/i);
   assert.match(en.landing.steps.step1Title, /character|wardrobe/i);
-  assert.match(en.landing.steps.step2Title, /Life/i);
+  assert.match(en.landing.steps.step2Title, /explainer/i);
 
-  assert.match(zhHant.meta.title, /AI 網紅|靈魂|KOL/);
-  assert.match(zhHant.landing.hero.kicker, /AI 網紅|AI Influencer|靈魂/);
-  assert.match(zhHant.landing.hero.title, /靈魂|KOL/);
+  assert.match(zhHant.meta.title, /Explainer|AI 網紅/);
+  assert.match(zhHant.landing.hero.kicker, /Explainer|AI Influencer|AI 網紅/);
+  assert.match(zhHant.landing.hero.title, /Explainer|AI 網紅/);
   assert.ok(zhHant.landing.hero.title.length <= 24, "zhHant hero title should stay concise");
   assert.ok(zhHant.landing.hero.subtitle.length <= 45, "zhHant hero subtitle should stay concise");
-  assert.match(zhHant.landing.cast.title, /AI 網紅|靈魂/);
+  assert.match(zhHant.landing.cast.title, /AI 網紅|Explainer/);
   assert.match(zhHant.landing.steps.step1Title, /角色|衣櫃/);
 
-  assert.match(zhHans.meta?.title ?? "", /AI 网红|灵魂|KOL/);
-  assert.match(zhHans.landing?.hero?.kicker ?? "", /AI 网红|AI Influencer|灵魂/);
+  assert.match(zhHans.meta?.title ?? "", /Explainer|AI 网红/);
+  assert.match(zhHans.landing?.hero?.kicker ?? "", /Explainer|AI Influencer|AI 网红/);
 });
 
-test("HomePage puts LandingCast then LandingIp after LandingHero and LandingUseCases leads with virtual-you", () => {
+test("HomePage use cases lead with explainer videos, then the AI Influencer", () => {
   const homePage = fs.readFileSync(path.join(ROOT, "src/app/page.tsx"), "utf8");
   const heroIdx = homePage.indexOf("<LandingHero");
   const castIdx = homePage.indexOf("<LandingCast");
@@ -49,9 +49,10 @@ test("HomePage puts LandingCast then LandingIp after LandingHero and LandingUseC
     path.join(ROOT, "src/presentation/components/landing-use-cases.tsx"),
     "utf8",
   );
+  const explainIdx = useCases.indexOf('"explain"');
   const virtualYouIdx = useCases.indexOf('"virtual-you"');
-  const productIdx = useCases.indexOf('"product"');
-  assert.ok(virtualYouIdx >= 0 && productIdx > virtualYouIdx);
+  assert.ok(explainIdx >= 0 && virtualYouIdx > explainIdx);
+  assert.equal(useCases.includes('"product"'), false);
 });
 
 test("landing and feature page components use the clean Studio / Editor design style and dedicated character assets", () => {

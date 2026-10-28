@@ -58,6 +58,10 @@ export function isBookendSkill(skillSlug?: string) {
 
 // IG Reel stills (9:16). Top 20% and bottom 20% stay free of text/UI overlays for every director,
 // while the character/subject and background fill 100% of the vertical frame edge-to-edge.
+// Paper-cutout stills. A dark mat or torn outer sheet is padding, not the collage.
+export const PAPER_CUTOUT_FULL_BLEED =
+  "Full-bleed collage: the scene paper reaches every edge of the frame. No dark mat, no outer torn-paper border, no floating sheet, no padding. White scissor borders stay on each cutout, not around the picture.";
+
 export const VERTICAL_FRAME_SAFE_AREA =
   "9:16 IG Reel safe area: the photograph or scene must fill 100% of the 9:16 vertical frame edge-to-edge from the very top edge to the very bottom edge (strictly NO top or bottom letterbox bars, NO solid white/grey padding bands, and NO square/4:5 inner frame). Keep text, characters, or the main subject focal points in the middle 60% vertical safe zone so Reel UI overlays at the top 20% and the bottom 20% do not cover them.";
 

@@ -44,7 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// Plans live on /pricing. Landing leads with soul injection, then Scro Academy, identity lock, brand IP, catalog, use cases, steps, studio powertools, cost control, and free credits.
+// Plans live on /pricing. Landing leads with explainer videos and the AI Influencer who hosts them.
 export default async function HomePage() {
   const [session, jar] = await Promise.all([getAuthSession(), cookies()]);
   const stored = jar.get(LOCALE_STORAGE_KEY)?.value;

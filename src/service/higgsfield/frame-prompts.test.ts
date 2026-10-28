@@ -1555,6 +1555,17 @@ test("later surprise clips keep the previous end without painting spoken subtitl
   assert.doesNotMatch(end.prompt, /hand-lettered/);
 });
 
+test("paper-cutout story stills fill the frame and forbid a dark mat", () => {
+  const video = project("paper-cutout");
+  video.skillSlug = "story-short-director";
+  video.aspectRatio = "9:16";
+  video.phaseA!.aspectRatio = "9:16";
+  const prompt = buildFramePrompt(video, 1, "start");
+  assert.match(prompt, /Full-bleed collage/);
+  assert.match(prompt, /No dark mat/);
+  assert.match(prompt, /no outer torn-paper border/);
+});
+
 test("9:16 whiteboard stills rewrite middle-60%-canvas phrasing into full-bleed canvas and enforce 2D whiteboard in any style", () => {
   for (const styleId of ["doodle", "realistic"] as const) {
     const video = project(styleId);
