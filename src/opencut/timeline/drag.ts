@@ -17,6 +17,8 @@ export interface MediaDragData extends BaseDragData {
 		url: string;
 		posterUrl?: string;
 		editorVideoId: string;
+		role?: "opening" | "ending";
+		durationSeconds?: number;
 	};
 }
 

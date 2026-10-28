@@ -7,6 +7,7 @@ import { MediaView } from "./views/assets";
 import { StockMediaView } from "./views/stock-media-view";
 import { SettingsView } from "./views/settings";
 import { SoundsView } from "@/opencut/sounds/components/assets-view";
+import { BgmView } from "@/opencut/sounds/components/bgm-view";
 import { StickersView } from "@/opencut/stickers/components/assets-view";
 import { AdjustmentsView, EffectsView, TransitionsView } from "@/opencut/effects/components/assets-view";
 import { useSearchParams } from "next/navigation";
@@ -23,6 +24,7 @@ export function AssetsPanel() {
 		media: <MediaView />,
 		stock: <StockMediaView />,
 		sounds: <SoundsView />,
+		bgm: <BgmView />,
 		stickers: <StickersView />,
 		effects: <EffectsView />,
 		transitions: <TransitionsView />,

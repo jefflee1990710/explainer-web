@@ -81,6 +81,45 @@ export async function listSoundEffectsAction(input: {
   }
 }
 
+// Freesound background music (BGM) search filtered to longer instrumental beds.
+export async function listBgmTracksAction(input: {
+  page?: number;
+  query?: string;
+  moodQuery?: string;
+  commercialOnly?: boolean;
+}) {
+  try {
+    await requireClerkUserId();
+    const pageNum = input.page ?? 1;
+    const rawQuery = input.query?.trim() || "";
+    const moodQuery = input.moodQuery?.trim() || "ambient instrumental background music";
+    const combinedQuery = rawQuery
+      ? `${rawQuery} instrumental music`
+      : moodQuery;
+
+    const freesoundPage = await searchFreesoundSounds({
+      page: pageNum,
+      query: combinedQuery,
+      commercialOnly: input.commercialOnly ?? true,
+      durationMinSec: 15,
+      durationMaxSec: 300,
+    }).catch(() => ({ count: 0, hasNext: false, results: [] }));
+
+    return {
+      ok: true as const,
+      count: freesoundPage.count,
+      hasNext: freesoundPage.hasNext,
+      results: freesoundPage.results,
+    };
+  } catch (error) {
+    rethrowRedirect(error);
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "無法讀取背景音樂",
+    };
+  }
+}
+
 export async function generateElevenLabsSoundEffectAction(input: {
   text: string;
   category?: SoundEffectCategoryId;

@@ -14,6 +14,7 @@ import {
   STS_VOICE_SETTINGS,
   synthesizeSpeech,
   synthesizeSpeechWithTimestamps,
+  TTS_WITH_TIMESTAMPS_VOICE_SETTINGS,
   withTimedLipSyncPrompt,
 } from "@/service/voice/elevenlabs";
 import {
@@ -157,8 +158,10 @@ test("synthesizeSpeechWithTimestamps retrieves audio and character timestamps an
     character_end_times_seconds: [0.16, 0.32, 0.5, 0.65, 0.8, 0.85],
   };
   let capturedUrl = "";
-  const fakeFetch: typeof fetch = async (input) => {
+  let capturedBody: Record<string, unknown> | undefined;
+  const fakeFetch: typeof fetch = async (input, init) => {
     capturedUrl = typeof input === "string" ? input : input.toString();
+    capturedBody = JSON.parse(String(init?.body));
     return new Response(
       JSON.stringify({
         audio_base64: Buffer.from("mp3-bytes").toString("base64"),
@@ -174,6 +177,9 @@ test("synthesizeSpeechWithTimestamps retrieves audio and character timestamps an
   });
 
   assert.match(capturedUrl, /\/v1\/text-to-speech\/AlY88XuxqPLuBzrEimDn\/with-timestamps\?output_format=mp3_44100_128$/);
+  assert.deepEqual(capturedBody?.voice_settings, TTS_WITH_TIMESTAMPS_VOICE_SETTINGS);
+  assert.equal(TTS_WITH_TIMESTAMPS_VOICE_SETTINGS.stability, 0.7);
+  assert.equal(TTS_WITH_TIMESTAMPS_VOICE_SETTINGS.similarity_boost, 1);
   assert.equal(res.audio.toString(), "mp3-bytes");
   const tokens = groupAlignmentTokens(res.alignment, 0.4);
   assert.deepEqual(tokens, [

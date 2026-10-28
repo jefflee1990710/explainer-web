@@ -1,10 +1,17 @@
 import type { EditorCore } from "@/opencut/core";
-import { processMediaAssets } from "@/opencut/media/processing";
+import { createStreamingVideoAsset } from "@/opencut/embed/scro-media-load";
 import type { MediaAsset } from "@/opencut/media/types";
-import { rememberClipSource } from "@/opencut/embed/scro-media-sources";
+import { armScroSync, rememberClipSource } from "@/opencut/embed/scro-media-sources";
 import { buildElementFromMedia } from "@/opencut/timeline/element-utils";
 import { findNonOverlappingMainTrackStartTime } from "@/opencut/timeline/placement";
-import { mediaTimeFromSeconds, type MediaTime } from "@/opencut/wasm";
+import {
+	mediaTimeFromSeconds,
+	mediaTimeToSeconds,
+	type MediaTime,
+	ZERO_MEDIA_TIME,
+} from "@/opencut/wasm";
+
+export type BookendPlacementRole = "opening" | "ending";
 
 const bookendDownloads = new Map<string, Promise<MediaAsset | null>>();
 
@@ -16,6 +23,7 @@ export function ensureBookendVideo(
 		url: string;
 		name: string;
 		posterUrl?: string;
+		fallbackDuration?: number;
 	},
 ): Promise<MediaAsset | null> {
 	const key = `${args.editorVideoId}:${args.url}`;
@@ -34,12 +42,14 @@ async function downloadBookendVideo({
 	url,
 	name,
 	posterUrl,
+	fallbackDuration,
 }: {
 	editor: EditorCore;
 	editorVideoId: string;
 	url: string;
 	name: string;
 	posterUrl?: string;
+	fallbackDuration?: number;
 }): Promise<MediaAsset | null> {
 	const project = editor.project.getActiveOrNull();
 	if (!project) return null;
@@ -49,13 +59,12 @@ async function downloadBookendVideo({
 			(asset.scroPosterUrl === url || asset.name === name),
 	);
 	if (existing) return existing;
-	const response = await fetch(url);
-	if (!response.ok) return null;
-	const blob = await response.blob();
-	const file = new File([blob], `${name}.mp4`, { type: blob.type || "video/mp4" });
-	const processed = await processMediaAssets({ files: [file] });
-	const asset = processed[0];
-	if (!asset) return null;
+	const asset = await createStreamingVideoAsset({
+		url,
+		name,
+		posterUrl,
+		fallbackDuration: fallbackDuration && fallbackDuration > 0 ? fallbackDuration : 4,
+	});
 	const created = await editor.media.addMediaAsset({
 		projectId: project.metadata.id,
 		asset: {
@@ -69,7 +78,7 @@ async function downloadBookendVideo({
 	return created;
 }
 
-/** Place an Opening or Ending on the main video track, after any clip it would overlap. */
+/** Place an Opening or Ending on the main video track (Opening prepends at 0s and ripples main-track clips; Ending appends or drops without overlap). */
 export async function addBookendVideoToTimeline({
 	editor,
 	editorVideoId,
@@ -77,6 +86,8 @@ export async function addBookendVideoToTimeline({
 	name,
 	posterUrl,
 	startTime,
+	role,
+	durationSeconds,
 }: {
 	editor: EditorCore;
 	editorVideoId: string;
@@ -84,22 +95,73 @@ export async function addBookendVideoToTimeline({
 	name: string;
 	posterUrl?: string;
 	startTime: MediaTime;
+	role?: BookendPlacementRole;
+	durationSeconds?: number;
 }): Promise<MediaAsset | null> {
-	const asset = await ensureBookendVideo({ editor, editorVideoId, url, name, posterUrl });
+	const asset = await ensureBookendVideo({
+		editor,
+		editorVideoId,
+		url,
+		name,
+		posterUrl,
+		fallbackDuration: durationSeconds,
+	});
 	if (!asset) return null;
 	const scene = editor.scenes.getActiveSceneOrNull();
 	if (!scene) return null;
-	const seconds = asset.duration && asset.duration > 0 ? asset.duration : 4;
+	const seconds =
+		asset.duration && asset.duration > 0
+			? asset.duration
+			: durationSeconds && durationSeconds > 0
+				? durationSeconds
+				: 4;
 	const duration = mediaTimeFromSeconds({ seconds });
-	// The video row is already full of storyboard clips. Sit after them
-	// instead of opening a second track or overlapping a clip.
+
+	const startSec = mediaTimeToSeconds({ time: startTime });
+	const prependOpening =
+		role === "opening" &&
+		(startSec <= 0.5 ||
+			scene.tracks.main.elements.some(
+				(el) =>
+					el.startTime < startTime + duration &&
+					el.startTime + el.duration > startTime,
+			));
+
+	if (prependOpening && scene.tracks.main.elements.length > 0) {
+		editor.timeline.updateElements({
+			updates: scene.tracks.main.elements.map((el) => ({
+				trackId: scene.tracks.main.id,
+				elementId: el.id,
+				patch: {
+					startTime: mediaTimeFromSeconds({
+						seconds: mediaTimeToSeconds({ time: el.startTime }) + seconds,
+					}),
+				},
+			})),
+		});
+		editor.timeline.insertElement({
+			placement: { mode: "explicit", trackId: scene.tracks.main.id },
+			element: buildElementFromMedia({
+				mediaId: asset.id,
+				mediaType: "video",
+				name,
+				duration,
+				startTime: ZERO_MEDIA_TIME,
+			}),
+		});
+		editor.playback.seek({ time: ZERO_MEDIA_TIME });
+		armScroSync();
+		return asset;
+	}
+
+	const freshScene = editor.scenes.getActiveScene();
 	const resolvedStart = findNonOverlappingMainTrackStartTime({
-		mainTrack: scene.tracks.main,
+		mainTrack: freshScene.tracks.main,
 		requestedStartTime: startTime,
 		duration,
 	});
 	editor.timeline.insertElement({
-		placement: { mode: "explicit", trackId: scene.tracks.main.id },
+		placement: { mode: "explicit", trackId: freshScene.tracks.main.id },
 		element: buildElementFromMedia({
 			mediaId: asset.id,
 			mediaType: "video",
@@ -109,5 +171,6 @@ export async function addBookendVideoToTimeline({
 		}),
 	});
 	editor.playback.seek({ time: resolvedStart });
+	armScroSync();
 	return asset;
 }

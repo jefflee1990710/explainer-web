@@ -5,10 +5,9 @@ import { videoEndFrame } from "@/service/higgsfield/clip-keyframes";
 
 import {
   FRAME_COST,
-  MAX_VIDEO_SECONDS,
   MIN_VIDEO_COST,
   MIN_VIDEO_SECONDS,
-  TALKING_HEAD_MAX_VIDEO_SECONDS,
+  talkingHeadVideoCost,
   videoCost,
 } from "@/service/credit-costs";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
@@ -20,16 +19,9 @@ export * from "@/service/credit-costs";
 // Video credits for one storyboard clip, from its planned duration.
 export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
   const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
-  const maxSeconds =
-    project.skillSlug === TALKING_HEAD_SKILL_SLUG
-      ? TALKING_HEAD_MAX_VIDEO_SECONDS
-      : MAX_VIDEO_SECONDS;
-  return videoCost(
-    row?.durationSeconds ?? MIN_VIDEO_SECONDS,
-    project.styleId,
-    Boolean(resolveVoiceSwapId(project)),
-    maxSeconds,
-  );
+  const seconds = row?.durationSeconds ?? MIN_VIDEO_SECONDS;
+  if (project.skillSlug === TALKING_HEAD_SKILL_SLUG) return talkingHeadVideoCost(seconds);
+  return videoCost(seconds, project.styleId, Boolean(resolveVoiceSwapId(project)));
 }
 
 // Scene-image credits. Talking-head clips pay for their start; the last clip pays for its end too.

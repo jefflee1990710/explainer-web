@@ -48,8 +48,8 @@ export function SoundsView() {
 			<Tabs defaultValue="sound-effects" className="flex h-full flex-col">
 				<div className="px-3 pt-4 pb-0">
 					<TabsList>
-						<TabsTrigger value="sound-effects">Sound effects</TabsTrigger>
-						<TabsTrigger value="saved">Saved</TabsTrigger>
+						<TabsTrigger value="sound-effects">SFX 聲效</TabsTrigger>
+						<TabsTrigger value="saved">Saved 收藏</TabsTrigger>
 					</TabsList>
 				</div>
 				<Separator className="my-4" />

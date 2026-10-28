@@ -1080,7 +1080,7 @@ export const en: Messages = {
     voiceFillNeedsBlueprint: "Finish a blueprint first.",
     voiceSampleTitle: "Demo voice",
     voiceSampleHint:
-      "Upload 5–120 seconds of clean speech (MP3, WAV or M4A, up to 10MB). Videos with only this character re-voice every clip to match it, for +1 credit per second. Applies to videos created after the upload.",
+      "Upload 5–120 seconds of clean speech (MP3, WAV or M4A, up to 10MB). Videos with only this character re-voice every clip to match it, for +1 credit per second. Sitting talking-head already includes the voice in its per-second price. Applies to videos created after the upload.",
     voiceSampleUpload: "Upload demo voice",
     voiceSampleReplace: "Replace",
     voiceSampleRemove: "Remove",

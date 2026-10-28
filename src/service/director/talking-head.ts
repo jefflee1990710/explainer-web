@@ -633,8 +633,8 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
     const pose =
       moment === "start"
         ? fullBody
-          ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, mouth just opening, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture${anchored ? "" : ", the other arm relaxed at the side"}.`
-          : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, mouth just opening, ${p.hookBeat}, head tilted 1–2 degrees, a live unposed expression.${prop} ${anchored ? `${freeHand} is resting calmly on the lap` : "both hands resting calmly on the lap in a natural neutral rest position"}.`
+          ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, lips gently closed or barely parted ready to speak, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture${anchored ? "" : ", the other arm relaxed at the side"}.`
+          : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), ${p.hookBeat}, head tilted 1–2 degrees, a live unposed expression.${prop} ${anchored ? `${freeHand} is resting calmly on the lap` : "both hands resting calmly on the lap in a natural neutral rest position"}.`
         : fullBody
           ? `Character: still the only person in the frame, ${endVar.head}.${propEnd} ${anchored ? `${endVar.hand}, weight on the other hip` : endVar.hand}, feet in the same place.${sameFrame}`
           : `Character: still the only person in the frame, still seated, ${endVar.head}.${propEnd} ${endVar.hand}.${sameFrame}`;
@@ -652,8 +652,8 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
   const pose =
     moment === "start"
       ? fullBody
-        ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，準備開口，${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢${anchored ? "" : "，另一隻手自然垂低"}。`
-        : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，${lensPlaceYue}，準備開口，${p.hookBeat}，頭微傾 1–2 度，神情自然唔擺拍。${prop}${anchored ? `${freeHand}自然放鬆放喺大髀休息位` : "雙手自然放鬆放喺大髀休息位置"}。`
+        ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢${anchored ? "" : "，另一隻手自然垂低"}。`
+        : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，${lensPlaceYue}，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），${p.hookBeat}，頭微傾 1–2 度，神情自然唔擺拍。${prop}${anchored ? `${freeHand}自然放鬆放喺大髀休息位` : "雙手自然放鬆放喺大髀休息位置"}。`
       : fullBody
         ? `角色：畫面仍然只有呢一個人，${endVarYue.head}。${propEnd}${anchored ? `${endVarYue.hand}，重心輕輕換咗少少，腳留喺同一個位置` : endVarYue.hand}。${sameFrame}`
         : `角色：畫面仍然只有呢一個人，仍然坐住，${endVarYue.head}。${propEnd}${endVarYue.hand}。${sameFrame}`;

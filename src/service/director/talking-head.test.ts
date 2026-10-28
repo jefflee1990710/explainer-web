@@ -310,7 +310,7 @@ test("talking-head evens word count and keeps a named shot", () => {
   assert.ok(Math.max(...durations) - Math.min(...durations) <= 3);
   assert.ok(durations.every((seconds) => seconds >= 5 && seconds <= 12));
   assert.match(clips[0].startScene, /locked full-body/);
-  assert.match(clips[0].startScene, /mouth just opening/);
+  assert.match(clips[0].startScene, /lips gently closed or barely parted ready to speak/);
   assert.match(clips[0].startScene, /eyes locked into the lens/);
   assert.match(clips[0].endScene || "", /chest height/);
   assert.match(clips[0].endScene || "", /weight on the other hip/);

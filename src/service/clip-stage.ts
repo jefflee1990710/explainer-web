@@ -1,8 +1,8 @@
 import { mediaSrc } from "@/util/media-src";
 import { normalizeProjectStatus } from "@/service/project-status";
-import { MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
+import { MIN_VIDEO_SECONDS, talkingHeadVideoCost, videoCost } from "@/service/credit-costs";
 import { inheritsPreviousEnd } from "@/service/director/clip-continuity";
-import { talkingHeadFramesCost } from "@/service/director/talking-head";
+import { TALKING_HEAD_SKILL_SLUG, talkingHeadFramesCost } from "@/service/director/talking-head";
 import {
   clipDrawsNoEndStill,
   clipEndIsNextStart,
@@ -153,12 +153,14 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
     stage,
     stale,
     wait: waitKind(waitItems),
-    videoCost: videoCost(
-      row?.durationSeconds ?? MIN_VIDEO_SECONDS,
-      project.styleId,
-      Boolean(resolveVoiceSwapId(project)),
-      project.skillSlug === "talking-head-director" ? 120 : undefined,
-    ),
+    videoCost:
+      project.skillSlug === TALKING_HEAD_SKILL_SLUG
+        ? talkingHeadVideoCost(row?.durationSeconds ?? MIN_VIDEO_SECONDS)
+        : videoCost(
+            row?.durationSeconds ?? MIN_VIDEO_SECONDS,
+            project.styleId,
+            Boolean(resolveVoiceSwapId(project)),
+          ),
     frameCost: clipFrameCost(project, clipNumber),
     // Cancel is only offered before the provider has the request.
     videoUnsent: stage === "video_generating" && clip?.status === "queued" && clip.unsent === true,

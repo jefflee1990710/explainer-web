@@ -262,8 +262,9 @@ test("clipVideoCost bills up to 120 seconds for talking-head-director and caps o
     frames: [],
     clips: [],
   };
-  // realistic (15) + voiceSwap (1) = 16 credits/s * 60s = 960
-  assert.equal(planGenerateAllVideos({ ...talkingHead60s, frames: [frame(1, "start", "completed"), frame(1, "end", "completed")] }).cost, 960);
+  // HeyGen Avatar IV is $0.05/s. 4 credits/s * 60s = 240, about a 70% Studio margin.
+  // Realistic style and Cantonese voice do not add a surcharge.
+  assert.equal(planGenerateAllVideos({ ...talkingHead60s, frames: [frame(1, "start", "completed"), frame(1, "end", "completed")] }).cost, 240);
 
   const cartoon60s: ClipStageSource = {
     status: "production",

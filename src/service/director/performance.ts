@@ -15,10 +15,10 @@ export const PERFORMANCE_FIELD_MAX = 600;
 // Mirrors skills/<dir>/performance.json — the seeded copy is the editable source.
 const FACE_EN: PerformanceSlots = {
   restingFace:
-    "a warm, chatty smile with a hint of teeth and relaxed lips, eyebrows relaxed and slightly lifted, eyes locked on the lens like talking to one friend",
+    "a relaxed, friendly half-smile with lips gently closed or softly parted (no wide toothy grin), eyebrows relaxed and slightly lifted, eyes locked on the lens like talking to one friend",
   emphasisBeat:
-    "a subtle brow lift and restrained, phoneme-accurate lip articulation with small natural jaw movement (no exaggerated mouth opening or wide jaw drop), relaxing smoothly back into a warm smile",
-  hookBeat: "eyebrows already lifting into a big warm smile",
+    "a subtle brow lift and restrained, phoneme-accurate lip articulation with small natural jaw movement (no exaggerated mouth opening or wide jaw drop), relaxing smoothly back into a warm half-smile",
+  hookBeat: "eyebrows softly lifted, a relaxed warm half-smile with lips gently closed or barely parted ready to speak (no wide toothy grin)",
   ctaBeat: "a softer, closer smile, eyebrows settling, the torso leaning a little toward the lens like sharing a secret",
   gestureLibrary:
     "most of the time (~90%) both hands rest calmly on the lap in a neutral rest position; only on the single main key word of the sentence, one dominant hand makes a brief ~0.5s co-speech gesture excursion (preparation lift from the lap, a soft open-palm stroke at lower-chest height on the stressed word, a brief hold, then smooth retraction back to rest on the lap) while the other hand stays completely still",
@@ -30,9 +30,9 @@ const FACE_EN: PerformanceSlots = {
 };
 
 const FACE_YUE: PerformanceSlots = {
-  restingFace: "露少少牙嘅親切笑容、唇部同下巴自然放鬆，眉毛放鬆微微揚起，直望鏡頭好似同一個朋友傾偈",
+  restingFace: "自然放鬆嘅柔和淺笑、雙唇輕合或自然微啟（唔好張開口露晒牙大笑）、下巴自然放鬆，眉毛放鬆微微揚起，直望鏡頭好似同一個朋友傾偈",
   emphasisBeat: "講到重點字眼時眉毛自然微揚、眼神專注有神，口型精準克制、下巴同嘴部開合幅度自然細緻（無誇張張大嘴），語氣過渡平順自然",
-  hookBeat: "眉毛已經揚起、展開一個親切笑容",
+  hookBeat: "眉毛微微揚起、神情自然放鬆帶柔和淺笑、雙唇輕合或微啟準備講嘢（唔好張開口露齒大笑）",
   ctaBeat: "更柔和、更親近嘅淺笑，眉毛放鬆，上身微微傾向鏡頭好似講緊秘密",
   gestureLibrary:
     "近九成時間雙手自然放鬆放喺大髀休息位（Neutral Rest）；只喺整句最核心嗰一個重點詞出現時，單一慣用手由大髀輕輕抬起做一個約 0.5 秒嘅自然拍點手勢（起手 → 重音拍點 → 短暫停留 → 自然收返落大髀原位），另一隻手全程放喺大髀唔郁，絕對唔好雙手輪流喺半空比畫",

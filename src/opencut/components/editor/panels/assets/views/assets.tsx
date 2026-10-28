@@ -532,9 +532,13 @@ function MediaItemList({
 					})
 				: shown.map((item) => renderLibraryItem(item))}
 			{storyboard.length > 0 ? otherItems.map((item) => renderLibraryItem(item)) : null}
-			{isGrid
-				? bookends.map((video) => <BookendVideoCard key={video.id} video={video} />)
-				: null}
+			{bookends.map((video) => (
+				<BookendVideoCard
+					key={video.id}
+					video={video}
+					variant={variant === "grid" ? "card" : "compact"}
+				/>
+			))}
 		</div>
 	);
 }

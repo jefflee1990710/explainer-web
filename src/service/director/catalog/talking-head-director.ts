@@ -49,9 +49,9 @@ const raw = {
   },
   "performance": {
     "en": {
-      "restingFace": "a warm, chatty smile with a hint of teeth, eyebrows relaxed and slightly lifted, eyes locked on the lens like talking to one friend",
-      "emphasisBeat": "on every stressed word or number the eyes widen, the eyebrows pop up, and the mouth opens bigger for about half a second, then the face relaxes back into the smile",
-      "hookBeat": "eyebrows already lifting into a big warm smile",
+      "restingFace": "a relaxed, friendly half-smile with lips gently closed or softly parted (no wide toothy grin), eyebrows relaxed and slightly lifted, eyes locked on the lens like talking to one friend",
+      "emphasisBeat": "on every stressed word or number a subtle brow lift and restrained, natural lip articulation with small jaw movement (no exaggerated mouth opening), relaxing back into a calm half-smile",
+      "hookBeat": "eyebrows softly lifted, a relaxed warm half-smile with lips gently closed or barely parted ready to speak (no wide toothy grin)",
       "ctaBeat": "a softer, closer smile, eyebrows settling, the torso leaning a little toward the lens like sharing a secret",
       "gestureLibrary": "a raised index finger or a small finger count on a list or a number, an open palm pushed out toward the lens on 'look at this', a two-handed open-palm shrug, a hand touching the chest or chin in thought, a palm facing the lens swaying side to side on a negative, fingers spread beside the face on a big claim, a palm turned up and offered to the lens on an invitation",
       "headMotion": "a constant small side-to-side sway of a few degrees, distinct head turns and tilts left and right, brief thoughtful glances slightly off-camera or down at the hands before looking back into the lens, nods on stressed words, a chin drop then lift, leaning forward toward the lens on a key point then settling back or shifting seated weight slightly left and right on the sofa; shoulders rock",
@@ -60,9 +60,9 @@ const raw = {
       "light": "ordinary daylight from a window to one side, no studio light"
     },
     "yue": {
-      "restingFace": "露少少牙嘅親切笑容，眉毛放鬆微微揚起，直望鏡頭好似同一個朋友傾偈",
-      "emphasisBeat": "每到重音字或者數字，眼睛睜大、眉毛快速上挑、口張大約半秒，然後放鬆返落笑容",
-      "hookBeat": "眉毛已經揚起、展開一個大笑容",
+      "restingFace": "自然放鬆嘅柔和淺笑、雙唇輕合或自然微啟（唔好張開口露晒牙大笑）、下巴自然放鬆，眉毛放鬆微微揚起，直望鏡頭好似同一個朋友傾偈",
+      "emphasisBeat": "講到重點字眼時眉毛自然微揚、眼神專注有神，口型精準克制、下巴同嘴部開合幅度自然細緻（無誇張張大嘴），語氣過渡平順自然",
+      "hookBeat": "眉毛微微揚起、神情自然放鬆帶柔和淺笑、雙唇輕合或微啟準備講嘢（唔好張開口露齒大笑）",
       "ctaBeat": "更柔和、更親近嘅淺笑，眉毛放鬆，上身微微傾向鏡頭好似講緊秘密",
       "gestureLibrary": "數數或者講數字時豎食指、「睇呢個」時掌心向鏡頭推出、雙手攤開聳肩、思考時手指輕觸下巴或心口、否定時掌心對鏡頭左右擺、誇張強調時五指張開喺臉旁、邀請時掌心向上遞向鏡頭",
       "headMotion": "全程有幾度嘅細幅左右搖擺，頭部明顯左右轉向同傾斜、思考時眼神短暫望向側邊或者望一望雙手再望返鏡頭、重音位點頭、下巴跌一跌再抬起，講到重點時上身明顯前傾靠近鏡頭、再坐返後或者喺沙發微移重心；膊頭自然郁動",

@@ -5,7 +5,10 @@ import {
 	resolvePreferredNewTrackPlacement,
 } from "./insert-index";
 import { getTrackTypeForElementType } from "./compatibility";
-import { enforceMainTrackStart } from "./main-track";
+import {
+	enforceMainTrackStart,
+	findNonOverlappingMainTrackStartTime,
+} from "./main-track";
 import { canPlaceTimeSpansOnTrack } from "./overlap";
 import type {
 	PlacementResult,
@@ -34,12 +37,29 @@ function buildExistingTrackResult({
 }): PlacementResult {
 	const firstSpan = timeSpans[0];
 	const requestedStartTime = firstSpan?.startTime ?? ZERO_MEDIA_TIME;
-	const adjustedStartTime = enforceMainTrackStart({
-		tracks,
-		targetTrackId: track.id,
-		requestedStartTime,
-		excludeElementId: firstSpan?.excludeElementId,
-	});
+	const adjustedStartTime =
+		tracks.main.id === track.id &&
+		!canPlaceTimeSpansOnTrack({
+			track: tracks.main,
+			timeSpans: [
+				{
+					startTime: requestedStartTime,
+					duration: firstSpan?.duration ?? ZERO_MEDIA_TIME,
+					excludeElementId: firstSpan?.excludeElementId,
+				},
+			],
+		})
+			? findNonOverlappingMainTrackStartTime({
+					mainTrack: tracks.main,
+					requestedStartTime,
+					duration: firstSpan?.duration ?? ZERO_MEDIA_TIME,
+				})
+			: enforceMainTrackStart({
+					tracks,
+					targetTrackId: track.id,
+					requestedStartTime,
+					excludeElementId: firstSpan?.excludeElementId,
+				});
 	return {
 		kind: "existingTrack",
 		trackId: track.id,

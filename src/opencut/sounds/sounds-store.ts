@@ -9,6 +9,8 @@ import { storageService } from "@/opencut/services/storage/service";
 import { toast } from "sonner";
 import { EditorCore } from "@/opencut/core";
 import { buildLibraryAudioElement } from "@/opencut/timeline/element-utils";
+import { armScroSync } from "@/opencut/embed/scro-media-sources";
+import { AI_SFX_VOLUME_DB } from "@/service/opencut/auto-audio-shared";
 import { mediaTimeFromSeconds } from "@/opencut/wasm";
 
 interface SoundsStore {
@@ -244,21 +246,39 @@ export const useSoundsStore = create<SoundsStore>((set, get) => ({
 
 			const arrayBuffer = await response.arrayBuffer();
 			const audioContext = new AudioContext();
-			const buffer = await audioContext.decodeAudioData(arrayBuffer);
+			try {
+				const buffer = await audioContext.decodeAudioData(arrayBuffer);
+				const durationSec =
+					sound.duration > 0
+						? sound.duration
+						: buffer.duration > 0
+							? buffer.duration
+							: 1;
 
-			const element = buildLibraryAudioElement({
-				sourceUrl: audioUrl,
-				name: sound.name,
-				duration: mediaTimeFromSeconds({ seconds: sound.duration }),
-				startTime: currentTime,
-				buffer,
-			});
+				const base = buildLibraryAudioElement({
+					sourceUrl: audioUrl,
+					name: `SFX · ${sound.name.slice(0, 32)}`,
+					duration: mediaTimeFromSeconds({ seconds: Math.max(0.2, durationSec) }),
+					startTime: currentTime,
+					buffer,
+				});
+				const element = {
+					...base,
+					params: {
+						...base.params,
+						volume: AI_SFX_VOLUME_DB,
+					},
+				};
 
-			editor.timeline.insertElement({
-				placement: { mode: "auto", trackType: "audio" },
-				element,
-			});
-			return true;
+				editor.timeline.insertElement({
+					placement: { mode: "auto", trackType: "audio" },
+					element,
+				});
+				armScroSync();
+				return true;
+			} finally {
+				void audioContext.close();
+			}
 		} catch (error) {
 			console.error("Failed to add sound to timeline:", error);
 			toast.error(

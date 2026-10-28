@@ -13,6 +13,10 @@ export const VOICE_SWAP_CREDITS_PER_SECOND = 1;
 export const MIN_VIDEO_SECONDS = 5;
 export const MAX_VIDEO_SECONDS = 15;
 export const TALKING_HEAD_MAX_VIDEO_SECONDS = 120;
+// HeyGen Avatar IV costs $0.05/s. 4 credits/s is about a 70% gross margin
+// at the Studio list price ($249 / 5,938 credits ≈ $0.042 per credit).
+// The ElevenLabs track is the video's own audio, so voice is included.
+export const TALKING_HEAD_CREDITS_PER_SECOND = 4;
 export const MIN_VIDEO_COST = VIDEO_CREDITS_PER_SECOND * MIN_VIDEO_SECONDS;
 
 // Seconds the provider renders (and we bill) for a clip of this length.
@@ -33,6 +37,11 @@ export function videoCost(
 ) {
   const perSecond = videoCreditsPerSecond(styleId) + (voiceSwap ? VOICE_SWAP_CREDITS_PER_SECOND : 0);
   return perSecond * billedVideoSeconds(seconds, maxSeconds);
+}
+
+// Sitting talking-head only. Flat rate up to 120s, with no style or voice surcharge.
+export function talkingHeadVideoCost(seconds: number) {
+  return TALKING_HEAD_CREDITS_PER_SECOND * billedVideoSeconds(seconds, TALKING_HEAD_MAX_VIDEO_SECONDS);
 }
 
 // What a clip video attempt was charged. Older clips predate `creditsCharged`.

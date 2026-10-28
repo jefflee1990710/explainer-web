@@ -163,6 +163,12 @@ export function DraggableItem({
 							{name}
 						</span>
 					</button>
+					{!isDragging && onAddToTimeline ? (
+						<PlusButton
+							className="top-1.5 right-1 bottom-auto opacity-0 group-hover:opacity-100"
+							onClick={handleAddToTimeline}
+						/>
+					) : null}
 				</div>
 			)}
 

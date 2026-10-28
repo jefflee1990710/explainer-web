@@ -10,17 +10,13 @@ import { submitDeferredEndIfNeeded } from "@/service/higgsfield/pipeline";
 import {
   autoVideoDecision,
   chargedVideoCredits,
-  MAX_VIDEO_SECONDS,
+  clipVideoCost,
   STUCK_CLAIM_MS,
-  TALKING_HEAD_MAX_VIDEO_SECONDS,
-  videoCost,
 } from "@/service/production-plan";
 import { clipEndIsNextStart, clipSkipsEndStill } from "@/service/director/steady-stills";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
-import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 import type { Project, ProjectClip } from "@/model/project";
 import { collectClipVideoBlobUrls } from "@/service/video/storage";
-import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 
 const IN_FLIGHT = new Set<ProjectClip["status"]>(["queued", "in_progress"]);
@@ -83,16 +79,7 @@ export async function claimAndStartClipVideo(
 
   const submittedAt = new Date().toISOString();
   // Billed per second of the storyboard duration; stored on the clip for refunds.
-  const maxSeconds =
-    project.skillSlug === TALKING_HEAD_SKILL_SLUG
-      ? TALKING_HEAD_MAX_VIDEO_SECONDS
-      : MAX_VIDEO_SECONDS;
-  const cost = videoCost(
-    row.durationSeconds,
-    project.styleId,
-    Boolean(resolveVoiceSwapId(project)),
-    maxSeconds,
-  );
+  const cost = clipVideoCost(project, clipNumber);
   const existing = project.clips.find((clip) => clip.clipNumber === clipNumber);
   const stuck = existing ? await isStuckClaim(project._id, clipNumber, existing) : false;
   if (existing && !stuck && IN_FLIGHT.has(existing.status)) {

@@ -261,7 +261,7 @@ export type OpenRouterClipVideoRequestBody = {
 };
 
 export const HEYGEN_AVATAR_IV_MOTION_PROMPT =
-  "Keep the exact framing, lighting, background, and the on-screen subtitle card from the reference image completely fixed and visible from 0.0s through the final frame — never erase, hide, fade, or alter the on-screen subtitle text. The speaker talks directly to the camera in sync with the audio, with natural blinks, warm facial expressions, subtle head nods, and natural hand gestures.";
+  "Keep the exact framing, lighting, background, and the on-screen subtitle card from the reference image completely fixed and visible from 0.0s through the final frame — never erase, hide, fade, or alter the on-screen subtitle text. The speaker talks directly to the camera at natural conversational speed in sync with the audio, maintaining steady eye contact with the lens, natural gentle blinks, and a calm, relaxed facial expression. Use restrained, natural lip and jaw articulation (~30–40% conversational mouth opening) with clean lip closure during pauses and bilabial (m/b/p) sounds; never exaggerate wide rounded O-mouth shapes, never grimace, and never squint the eyes shut into an exaggerated laugh or grin. Keep shoulders and seated posture grounded and steady, with hands resting calmly on the lap and only brief, subtle co-speech hand motion on key emphasis.";
 
 export function openRouterVideoAudioLipSyncBody(input: {
   model?: string;
@@ -318,9 +318,9 @@ export function openRouterHeyGenAudioVideoBody(input: {
       ? {}
       : { duration: clampVideoDurationSeconds(input.durationSeconds ?? 5) }),
     resolution: isAvatarIv
-      ? configured === "2K" || configured === "1080p"
-        ? "1080p"
-        : "720p"
+      ? configured === "720p" && process.env.VIDEO_GENERATION_RESOLUTION === "720p"
+        ? "720p"
+        : "1080p"
       : configured === "480p"
         ? "480p"
         : configured === "720p"

@@ -136,7 +136,12 @@ function getDurationForDrag({
 	const placed = media
 		? placementForScroMedia({ asset: media, clips: getScroVideos()?.clips })
 		: null;
-	return toElementDurationTicks({ seconds: placed?.visibleSeconds ?? media?.duration });
+	return toElementDurationTicks({
+		seconds:
+			placed?.visibleSeconds ??
+			media?.duration ??
+			dragData.bookend?.durationSeconds,
+	});
 }
 
 /** Keep a newly placed Opening or Ending inside the timeline viewport. */
@@ -341,11 +346,15 @@ export class DragDropController {
 			target.trackIndex = sceneTracks.overlay.length;
 			target.isNewTrack = false;
 			target.targetElement = null;
-			target.xPosition = findNonOverlappingMainTrackStartTime({
-				mainTrack: sceneTracks.main,
-				requestedStartTime: target.xPosition,
-				duration,
-			});
+			const isOpeningBookend =
+				dragData.type === "media" && dragData.bookend?.role === "opening";
+			if (!isOpeningBookend) {
+				target.xPosition = findNonOverlappingMainTrackStartTime({
+					mainTrack: sceneTracks.main,
+					requestedStartTime: target.xPosition,
+					duration,
+				});
+			}
 		}
 		target.xPosition = fps
 			? roundFrameTime({ time: target.xPosition, fps })
@@ -388,15 +397,18 @@ export class DragDropController {
 						dragData,
 						mediaAssets: this.config.getMediaAssets(),
 					});
+					const isOpeningBookend = dragData.bookend?.role === "opening";
 					currentTarget = {
 						trackIndex: sceneTracks.overlay.length,
 						isNewTrack: false,
 						insertPosition: null,
-						xPosition: findNonOverlappingMainTrackStartTime({
-							mainTrack: sceneTracks.main,
-							requestedStartTime: this.config.getCurrentPlayheadTime(),
-							duration,
-						}),
+						xPosition: isOpeningBookend
+							? this.config.getCurrentPlayheadTime()
+							: findNonOverlappingMainTrackStartTime({
+									mainTrack: sceneTracks.main,
+									requestedStartTime: this.config.getCurrentPlayheadTime(),
+									duration,
+								}),
 						targetElement: null,
 					};
 				}
@@ -578,21 +590,31 @@ export class DragDropController {
 		target: DropTarget;
 		dragData: Extract<TimelineDragData, { type: "media" }>;
 	}): void {
+		if (dragData.placeOnMainTrack && dragData.bookend) {
+			void addBookendVideoToTimeline({
+				editor: EditorCore.getInstance(),
+				editorVideoId: dragData.bookend.editorVideoId,
+				url: dragData.bookend.url,
+				name: dragData.name,
+				posterUrl: dragData.bookend.posterUrl,
+				startTime: target.xPosition,
+				role: dragData.bookend.role,
+				durationSeconds: dragData.bookend.durationSeconds,
+			}).then((placedAsset) => {
+				if (!placedAsset) return;
+				const currentTime = EditorCore.getInstance().playback.getCurrentTime();
+				revealTimelineTime({
+					time: currentTime,
+					scrollEl: this.config.getTracksScrollEl(),
+					zoomLevel: this.config.zoomLevel,
+				});
+			});
+			return;
+		}
 		const mediaAsset = this.config
 			.getMediaAssets()
 			.find((asset) => asset.id === dragData.id);
 		if (!mediaAsset) {
-			// The sting card is visible from its poster before the mp4 is in the library.
-			if (dragData.placeOnMainTrack && dragData.bookend) {
-				void addBookendVideoToTimeline({
-					editor: EditorCore.getInstance(),
-					editorVideoId: dragData.bookend.editorVideoId,
-					url: dragData.bookend.url,
-					name: dragData.name,
-					posterUrl: dragData.bookend.posterUrl,
-					startTime: target.xPosition,
-				});
-			}
 			return;
 		}
 		const scroClips = getScroVideos()?.clips;

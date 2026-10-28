@@ -7,11 +7,18 @@ import { addBookendVideoToTimeline, ensureBookendVideo } from "@/opencut/embed/s
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import { LoadingMediaImage } from "@/opencut/components/loading-media-image";
 import { useI18n } from "@/presentation/components/i18n-provider";
+import { OPENING_SKILL_SLUG } from "@/service/director/skill-rules";
 import type { FolderBookendVideo } from "@/service/video-edit/edit-state";
 import { localizedVideoType } from "@/util/video-type-i18n";
 
 /** Opening or Ending video the user can drop onto this project's timeline. */
-export function BookendVideoCard({ video }: { video: FolderBookendVideo }) {
+export function BookendVideoCard({
+	video,
+	variant = "card",
+}: {
+	video: FolderBookendVideo;
+	variant?: "card" | "compact";
+}) {
 	const { t } = useI18n();
 	const editor = useEditor();
 	const scroVideos = useScroVideos();
@@ -22,6 +29,7 @@ export function BookendVideoCard({ video }: { video: FolderBookendVideo }) {
 	const aspectRatio =
 		canvas && canvas.width > 1 && canvas.height > 1 ? canvas.width / canvas.height : 9 / 16;
 	const editorVideoId = scroVideos?.videoId ?? "";
+	const role = video.skillSlug === OPENING_SKILL_SLUG ? "opening" : "ending";
 
 	useEffect(() => {
 		if (!editorVideoId) return;
@@ -32,13 +40,14 @@ export function BookendVideoCard({ video }: { video: FolderBookendVideo }) {
 			url: video.videoUrl,
 			name,
 			posterUrl: video.posterUrl,
+			fallbackDuration: video.durationSeconds,
 		}).then((asset) => {
 			if (!cancelled && asset) setAssetId(asset.id);
 		});
 		return () => {
 			cancelled = true;
 		};
-	}, [editor, editorVideoId, name, video.posterUrl, video.videoUrl]);
+	}, [editor, editorVideoId, name, video.durationSeconds, video.posterUrl, video.videoUrl]);
 
 	const minutes = Math.floor(video.durationSeconds / 60);
 	const seconds = Math.floor(video.durationSeconds % 60);
@@ -59,6 +68,8 @@ export function BookendVideoCard({ video }: { video: FolderBookendVideo }) {
 					url: video.videoUrl,
 					posterUrl: video.posterUrl,
 					editorVideoId,
+					role,
+					durationSeconds: video.durationSeconds,
 				},
 			}}
 			onAddToTimeline={({ currentTime }) => {
@@ -70,10 +81,12 @@ export function BookendVideoCard({ video }: { video: FolderBookendVideo }) {
 					name,
 					posterUrl: video.posterUrl,
 					startTime: currentTime,
+					role,
+					durationSeconds: video.durationSeconds,
 				});
 			}}
-			variant="card"
-			isRounded={false}
+			variant={variant}
+			isRounded={variant === "card" ? false : undefined}
 			preview={
 				<div className="relative size-full bg-muted">
 					{video.posterUrl ? (

@@ -1070,7 +1070,7 @@ export const zhHant: Messages = {
     voiceFillNeedsBlueprint: "請先完成一張藍圖。",
     voiceSampleTitle: "示範聲音",
     voiceSampleHint:
-      "上傳 5–120 秒、背景乾淨的說話錄音（MP3、WAV 或 M4A，10MB 以內）。只有這個角色的影片，每段都會換成這把聲音，每秒多收 1 credit。只套用在上傳之後建立的影片。",
+      "上傳 5–120 秒、背景乾淨的說話錄音（MP3、WAV 或 M4A，10MB 以內）。只有這個角色的影片，每段都會換成這把聲音，每秒多收 1 credit。坐定對嘴的語音已包含在每秒扣點裡，不再另加。只套用在上傳之後建立的影片。",
     voiceSampleUpload: "上傳示範聲音",
     voiceSampleReplace: "更換",
     voiceSampleRemove: "移除",

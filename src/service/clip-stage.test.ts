@@ -72,6 +72,16 @@ test("cinematic realistic bills the Seedance video rate", () => {
   assert.equal(clipStateFor(project({ styleId: "realistic" }), 1).videoCost, 75);
 });
 
+test("sitting talking-head bills 4 credits per second with no voice surcharge", () => {
+  const talking = project({
+    skillSlug: "talking-head-director",
+    styleId: "realistic",
+    language: "yue",
+    phaseA: { clips: [{ clipNumber: 1, durationSeconds: 60 }] },
+  });
+  assert.equal(clipStateFor(talking, 1).videoCost, 240);
+});
+
 test("one frame in flight → frames_generating", () => {
   const p = project({ frames: [frame(1, "start", "in_progress")] });
   assert.equal(clipStateFor(p, 1).stage, "frames_generating");

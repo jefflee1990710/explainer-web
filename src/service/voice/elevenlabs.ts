@@ -3,10 +3,20 @@ const BASE_URL = "https://api.elevenlabs.io/v1";
 const STS_MODEL = "eleven_multilingual_sts_v2";
 export const ELEVENLABS_TTS_MODEL = "eleven_v4";
 
-// Lock stability and similarity to 1.0 (100%) so ElevenLabs TTS and STS
-// preserve Cantonese 9-tone contours and cloned voice fidelity verbatim.
+// Lock stability and similarity to 1.0 (100%) so ElevenLabs STS
+// preserves Cantonese 9-tone contours and cloned voice fidelity verbatim.
 export const STS_VOICE_SETTINGS = {
   stability: 1,
+  similarity_boost: 1,
+  style: 0,
+  use_speaker_boost: true,
+} as const;
+
+// Pre-video TTS (`with-timestamps`) uses 0.70 stability so spoken lines keep
+// natural conversational prosody and breathing rhythm for lip-sync models
+// while 1.0 similarity_boost locks the cloned voice timbre and Cantonese tones.
+export const TTS_WITH_TIMESTAMPS_VOICE_SETTINGS = {
+  stability: 0.7,
   similarity_boost: 1,
   style: 0,
   use_speaker_boost: true,
@@ -335,7 +345,7 @@ async function fetchWithRateLimitRetry(
   return fetchFn(url, init);
 }
 
-// Text-to-speech with character-level timestamps using Eleven v4 (100% stability & similarity).
+// Text-to-speech with character-level timestamps using Eleven v4 (0.70 stability & 1.0 similarity).
 export async function synthesizeSpeechWithTimestamps(
   voiceId: string,
   text: string,
@@ -356,7 +366,7 @@ export async function synthesizeSpeechWithTimestamps(
       body: JSON.stringify({
         text: cleaned,
         model_id: options?.modelId || ELEVENLABS_TTS_MODEL,
-        voice_settings: STS_VOICE_SETTINGS,
+        voice_settings: TTS_WITH_TIMESTAMPS_VOICE_SETTINGS,
       }),
       signal: AbortSignal.timeout(120_000),
     },
