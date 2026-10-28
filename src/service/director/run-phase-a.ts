@@ -192,6 +192,9 @@ export async function runPhaseA(input: {
   clipDrafts?: StoryboardClipDraft[];
   // Talking-head room photos. When present, the bookshelf set is not used.
   backgroundImageUrls?: string[];
+  // Talking-head preset background & pose ids.
+  talkingHeadBackgroundId?: string;
+  talkingHeadPoseId?: string;
   // Talking-head read + Cinematic realistic. Clip 1's start matches this photo.
   startImageUrl?: string;
   // Existing user-edited draft; regenerate from this instead of inventing anew.
@@ -536,6 +539,8 @@ Produce a complete Phase A director proposal now.`,
       aspectRatio: input.aspectRatio,
       shot: talkingHeadShot(input.skill.customProfile?.visual || input.skill.profile?.visual),
       background: Boolean(input.backgroundImageUrls?.length),
+      talkingHeadBackgroundId: input.talkingHeadBackgroundId,
+      talkingHeadPoseId: input.talkingHeadPoseId,
       openingPhoto:
         input.skill.slug === TALKING_HEAD_SKILL_SLUG && Boolean(input.startImageUrl),
       // Custom directors override template slots per key; see resolvePerformance.

@@ -1,6 +1,7 @@
-/* Wide SVG wait mark while the director writes the storyboard. */
+/* Wide storyboard creation loading animation using the official Scro platform logo (/logo-mark.png). */
 
 .planning-load {
+	position: relative;
 	overflow: hidden;
 	border-radius: 12px;
 	background: #fff;
@@ -18,8 +19,7 @@
 }
 
 .planning-load__orbit,
-.planning-load__mark,
-.planning-load__sticker {
+.planning-load__pulse {
 	transform-box: fill-box;
 	transform-origin: center;
 }
@@ -33,18 +33,57 @@
 	animation-direction: reverse;
 }
 
-.planning-load__mark {
-	animation: planning-load-float 2.4s ease-in-out infinite;
+.planning-load__pulse {
+	animation: planning-load-pulse 2.2s ease-in-out infinite;
 }
 
-.planning-load__sticker {
+.planning-load__logo-wrap {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	pointer-events: none;
+}
+
+.planning-load__logo-glow {
+	position: absolute;
+	width: 7.5rem;
+	height: 7.5rem;
+	border-radius: 9999px;
+	background: radial-gradient(
+		circle,
+		rgba(198, 242, 75, 0.5) 0%,
+		rgba(198, 242, 75, 0) 70%
+	);
+	animation: planning-load-glow 2.2s ease-in-out infinite;
+}
+
+.planning-load__logo-shadow {
+	position: absolute;
+	width: 5.5rem;
+	height: 5.5rem;
+	border-radius: 1.35rem;
+	background: #c6f24b;
+	transform: translate(6px, 6px);
 	animation: planning-load-stamp 2.4s ease-in-out infinite;
 }
 
-.planning-load__s {
-	stroke-dasharray: 100;
-	stroke-dashoffset: 100;
-	animation: planning-load-draw 2.6s ease-in-out infinite;
+.planning-load__logo-card {
+	position: relative;
+	display: grid;
+	place-items: center;
+	width: 5.5rem;
+	height: 5.5rem;
+	border-radius: 1.35rem;
+	overflow: hidden;
+	box-shadow: 0 10px 24px -8px rgba(18, 20, 28, 0.35);
+	animation: planning-load-float 2.4s ease-in-out infinite;
+}
+
+.planning-load__logo-img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
 }
 
 @keyframes planning-load-spin {
@@ -56,44 +95,53 @@
 @keyframes planning-load-float {
 	0%,
 	100% {
-		transform: translateY(0);
+		transform: translateY(0) scale(1);
 	}
 	50% {
-		transform: translateY(-6px);
+		transform: translateY(-6px) scale(1.03);
 	}
 }
 
 @keyframes planning-load-stamp {
 	0%,
 	100% {
-		transform: translate(0, 0);
+		transform: translate(6px, 6px) scale(1);
 	}
 	50% {
-		transform: translate(4px, 4px);
+		transform: translate(9px, 3px) scale(1.03);
 	}
 }
 
-@keyframes planning-load-draw {
-	0% {
-		stroke-dashoffset: 100;
-	}
-	58% {
-		stroke-dashoffset: 0;
-	}
+@keyframes planning-load-pulse {
+	0%,
 	100% {
-		stroke-dashoffset: 0;
+		opacity: 0.25;
+		transform: scale(0.94);
+	}
+	50% {
+		opacity: 0.7;
+		transform: scale(1.08);
+	}
+}
+
+@keyframes planning-load-glow {
+	0%,
+	100% {
+		opacity: 0.45;
+		transform: scale(0.92);
+	}
+	50% {
+		opacity: 0.9;
+		transform: scale(1.12);
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
 	.planning-load__orbit,
-	.planning-load__mark,
-	.planning-load__sticker,
-	.planning-load__s {
+	.planning-load__pulse,
+	.planning-load__logo-glow,
+	.planning-load__logo-shadow,
+	.planning-load__logo-card {
 		animation: none;
-	}
-
-	.planning-load__s {
-		stroke-dashoffset: 0;
 	}
 }

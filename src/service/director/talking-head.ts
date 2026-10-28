@@ -1,5 +1,11 @@
 import type { PerformanceSlots } from "@/model/director-performance";
 import type { FramePosition, SpeechPace, VoLanguage } from "@/model/project";
+import {
+  DEFAULT_TALKING_HEAD_BACKGROUND_ID,
+  DEFAULT_TALKING_HEAD_POSE_ID,
+  getTalkingHeadBackground,
+  getTalkingHeadPose,
+} from "@/model/talking-head-options";
 import { FRAME_COST, FRAMES_COST } from "@/service/credit-costs";
 import { chainsClipStarts, inheritsPreviousEnd } from "@/service/director/clip-continuity";
 import { DEFAULT_PERFORMANCE, performanceLanguage } from "@/service/director/performance";
@@ -269,6 +275,10 @@ export function planTalkingHeadClips(input: {
   shot?: string;
   // Uploaded room photos replace the set sentence.
   background?: boolean;
+  // Preset background id from TALKING_HEAD_BACKGROUNDS.
+  talkingHeadBackgroundId?: string;
+  // Preset pose id from TALKING_HEAD_POSES.
+  talkingHeadPoseId?: string;
   // User's own photo. Clip 1's start matches it; later clips keep that person.
   openingPhoto?: boolean;
   // Resolved performance slots in the prompt language. Defaults to the shot's built-in set.
@@ -292,7 +302,25 @@ export function planTalkingHeadClips(input: {
   });
   const total = lines.length;
   const clips: TalkingHeadClipPlan[] = [];
-  const perf = input.performance ?? DEFAULT_PERFORMANCE[talkingShot][performanceLanguage(input.language)];
+  const basePerf =
+    input.performance ?? DEFAULT_PERFORMANCE[talkingShot][performanceLanguage(input.language)];
+  const selectedBg = getTalkingHeadBackground(input.talkingHeadBackgroundId);
+  const selectedPose = getTalkingHeadPose(input.talkingHeadPoseId);
+  const isZh = isChineseScaffolding(input.language);
+  const perf: PerformanceSlots = {
+    ...basePerf,
+    ...(selectedBg
+      ? {
+          set: isZh ? selectedBg.setYue : selectedBg.setEn,
+          light: isZh ? selectedBg.lightYue : selectedBg.lightEn,
+        }
+      : {}),
+    ...(selectedPose
+      ? {
+          gestureLibrary: isZh ? selectedPose.gestureYue : selectedPose.gestureEn,
+        }
+      : {}),
+  };
   const customSet = extractCustomTalkingHeadSet(input.directorInstruction, input.visualWorld);
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
@@ -302,6 +330,8 @@ export function planTalkingHeadClips(input: {
       shot: input.shot,
       belowCenter,
       background: input.background,
+      talkingHeadBackgroundId: input.talkingHeadBackgroundId,
+      talkingHeadPoseId: input.talkingHeadPoseId,
       openingPhoto: input.openingPhoto,
       customSet,
       perf,
@@ -462,6 +492,8 @@ type SceneInput = {
   shot?: string;
   belowCenter?: boolean;
   background?: boolean;
+  talkingHeadBackgroundId?: string;
+  talkingHeadPoseId?: string;
   openingPhoto?: boolean;
   customSet?: string;
   perf: PerformanceSlots;
@@ -595,12 +627,20 @@ function endPoseVariationYue(clipIndex: number, fullBody: boolean, anchored: boo
 
 // Start still: hook face, free hand mid-gesture. End still: smile relaxed, head tilted the other way.
 function shotLine(language: VoLanguage | undefined, moment: "start" | "end", line: string, scene: SceneInput) {
-  const camera = cameraClause(language, scene.shot, scene.perf);
+  const selectedPose =
+    scene.talkingHeadPoseId && scene.talkingHeadPoseId !== DEFAULT_TALKING_HEAD_POSE_ID
+      ? getTalkingHeadPose(scene.talkingHeadPoseId)
+      : undefined;
+  const useEn = !isChineseScaffolding(language);
+  const camera = selectedPose
+    ? useEn
+      ? ` ${selectedPose.cameraEn}`
+      : selectedPose.cameraYue
+    : cameraClause(language, scene.shot, scene.perf);
   const fullBody = scene.shot === "full-body";
   const anchored = hasAnchorProp(scene.perf);
   const p = scene.perf;
   const clipIndex = scene.clipIndex ?? 0;
-  const useEn = !isChineseScaffolding(language);
   if (scene.openingPhoto && moment === "start") {
     const pose = useEn
       ? "Character: the only person in the frame. Match the attached opening photo exactly: same face, hair, clothes, body, and pose. They look into the lens, mouth just opening."
@@ -618,6 +658,11 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
       ? `${still} ${subtitleSentence("en", painted, scene.belowCenter)}`
       : `${still}${subtitleSentence("yue", painted, scene.belowCenter)}`;
   }
+  const hasNonDefaultBg = Boolean(
+    scene.talkingHeadBackgroundId &&
+      scene.talkingHeadBackgroundId !== DEFAULT_TALKING_HEAD_BACKGROUND_ID &&
+      getTalkingHeadBackground(scene.talkingHeadBackgroundId),
+  );
   if (useEn) {
     const prop = anchored ? ` One hand holds ${p.anchorProp}.` : "";
     const propEnd = anchored ? ` The same hand still holds ${p.anchorProp}.` : "";
@@ -628,16 +673,20 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
       fullBody,
       anchored,
       freeHand,
-      Boolean(scene.customSet || scene.background || scene.openingPhoto),
+      Boolean(scene.customSet || scene.background || scene.openingPhoto || hasNonDefaultBg),
     );
     const pose =
       moment === "start"
-        ? fullBody
-          ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, lips gently closed or barely parted ready to speak, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture${anchored ? "" : ", the other arm relaxed at the side"}.`
-          : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), ${p.hookBeat}, head tilted 1–2 degrees, a live unposed expression.${prop} ${anchored ? `${freeHand} is resting calmly on the lap` : "both hands resting calmly on the lap in a natural neutral rest position"}.`
-        : fullBody
-          ? `Character: still the only person in the frame, ${endVar.head}.${propEnd} ${anchored ? `${endVar.hand}, weight on the other hip` : endVar.hand}, feet in the same place.${sameFrame}`
-          : `Character: still the only person in the frame, still seated, ${endVar.head}.${propEnd} ${endVar.hand}.${sameFrame}`;
+        ? selectedPose
+          ? selectedPose.startPoseEn
+          : fullBody
+            ? `Character: the only person in the frame, centered, eyes locked into the lens as if talking into a phone, lips gently closed or barely parted ready to speak, ${p.hookBeat}, head tilted a few degrees, a live thinking expression.${prop} ${freeHand} is already up at chest height with the index finger raised mid-gesture${anchored ? "" : ", the other arm relaxed at the side"}.`
+            : `Character: the only person in the frame, seated and centered, head and torso in frame, eyes locked into the lens, lips gently closed or barely parted ready to speak (no wide toothy grin), ${p.hookBeat}, head tilted 1–2 degrees, a live unposed expression.${prop} ${anchored ? `${freeHand} is resting calmly on the lap` : "both hands resting calmly on the lap in a natural neutral rest position"}.`
+        : selectedPose
+          ? `${selectedPose.endPoseEn}${sameFrame}`
+          : fullBody
+            ? `Character: still the only person in the frame, ${endVar.head}.${propEnd} ${anchored ? `${endVar.hand}, weight on the other hip` : endVar.hand}, feet in the same place.${sameFrame}`
+            : `Character: still the only person in the frame, still seated, ${endVar.head}.${propEnd} ${endVar.hand}.${sameFrame}`;
     const still = withStillRealism(`${pose} ${setClause("en", scene)}${camera}`, language, scene);
     // Overlay subtitles are composited later, so the still is pose, set, and camera only.
     if (scene.overlay) return still.trim();
@@ -648,15 +697,22 @@ function shotLine(language: VoLanguage | undefined, moment: "start" | "end", lin
   const freeHand = anchored ? "另一隻手" : "一隻手";
   const sameFrame = "鏡頭、軀幹坐姿同雙手放喺大髀嘅休息位置同開頭畫面一致：同一個裁切、同一距離，只有 1–2 度極細微嘅頭部與表情自然過渡。唔好變焦，唔好跳鏡。";
   const endVarYue = endPoseVariationYue(clipIndex, fullBody, anchored, freeHand);
-  const lensPlaceYue = scene.customSet || scene.background ? "直望鏡頭好似用手機實拍" : "直望鏡頭好似喺屋企用手機實拍";
+  const lensPlaceYue =
+    scene.customSet || scene.background || hasNonDefaultBg
+      ? "直望鏡頭好似用手機實拍"
+      : "直望鏡頭好似喺屋企用手機實拍";
   const pose =
     moment === "start"
-      ? fullBody
-        ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢${anchored ? "" : "，另一隻手自然垂低"}。`
-        : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，${lensPlaceYue}，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），${p.hookBeat}，頭微傾 1–2 度，神情自然唔擺拍。${prop}${anchored ? `${freeHand}自然放鬆放喺大髀休息位` : "雙手自然放鬆放喺大髀休息位置"}。`
-      : fullBody
-        ? `角色：畫面仍然只有呢一個人，${endVarYue.head}。${propEnd}${anchored ? `${endVarYue.hand}，重心輕輕換咗少少，腳留喺同一個位置` : endVarYue.hand}。${sameFrame}`
-        : `角色：畫面仍然只有呢一個人，仍然坐住，${endVarYue.head}。${propEnd}${endVarYue.hand}。${sameFrame}`;
+      ? selectedPose
+        ? selectedPose.startPoseYue
+        : fullBody
+          ? `角色：畫面只有呢一個人，置中，直望鏡頭好似對住手機講，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），${p.hookBeat}，頭微傾，神情有生氣。${prop}${freeHand}已經提到胸前豎起食指做緊手勢${anchored ? "" : "，另一隻手自然垂低"}。`
+          : `角色：畫面只有呢一個人，坐住置中，頭同上身喺畫面，${lensPlaceYue}，雙唇輕合或微啟準備開口（唔好張開口露齒大笑），${p.hookBeat}，頭微傾 1–2 度，神情自然唔擺拍。${prop}${anchored ? `${freeHand}自然放鬆放喺大髀休息位` : "雙手自然放鬆放喺大髀休息位置"}。`
+      : selectedPose
+        ? `${selectedPose.endPoseYue}${sameFrame}`
+        : fullBody
+          ? `角色：畫面仍然只有呢一個人，${endVarYue.head}。${propEnd}${anchored ? `${endVarYue.hand}，重心輕輕換咗少少，腳留喺同一個位置` : endVarYue.hand}。${sameFrame}`
+          : `角色：畫面仍然只有呢一個人，仍然坐住，${endVarYue.head}。${propEnd}${endVarYue.hand}。${sameFrame}`;
   const still = withStillRealism(`${pose}${setClause("yue", scene)}${camera}`, language, scene);
   if (scene.overlay) return still.trim();
   return `${still}${subtitleSentence("yue", toWrittenChinese(line), scene.belowCenter)}`;
@@ -711,6 +767,16 @@ function setClause(language: "en" | "yue", scene: SceneInput) {
     return language === "en"
       ? `Set: the same setting in every clip (${scene.customSet}). Do not draw a bookshelf, a home sofa, a bed, or a different room. No pictures pasted on the frame, no extra writing, ${noProps}. Light: ${p.light}.`
       : `場景：全程同一個場景（${scene.customSet}），唔好再畫書架、屋企沙發、床或者其他房間。畫面上面唔好貼圖、唔好加字，${noProps}。光：${p.light}。`;
+  }
+  const hasNonDefaultBg = Boolean(
+    scene.talkingHeadBackgroundId &&
+      scene.talkingHeadBackgroundId !== DEFAULT_TALKING_HEAD_BACKGROUND_ID &&
+      getTalkingHeadBackground(scene.talkingHeadBackgroundId),
+  );
+  if (hasNonDefaultBg) {
+    return language === "en"
+      ? `Set: ${p.set}. Do not draw a home sofa, a bookshelf, a bed, or a different room unless named in the Set. No pictures pasted on the frame, no extra writing, ${noProps}. Light: ${p.light}.`
+      : `場景：${p.set}。除咗場景提及嘅佈置之外，唔好再畫屋企沙發、床或者其他房間。畫面上面唔好貼圖、唔好加字，${noProps}。光：${p.light}。`;
   }
   return language === "en"
     ? `Set: ${p.set}. No pictures pasted on the frame, no extra writing, ${noProps}. Light: ${p.light}.`

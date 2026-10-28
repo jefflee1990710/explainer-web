@@ -109,6 +109,8 @@ type AppendInput = {
   phaseA: PhaseAProposal;
   referenceImages?: ReferenceImage[];
   backgroundImageUrls?: string[];
+  talkingHeadBackgroundId?: string;
+  talkingHeadPoseId?: string;
   startImageUrl?: string;
   cast?: CastMember[];
   content: string;
@@ -135,6 +137,8 @@ export async function draftAppendedClips(input: AppendInput): Promise<Storyboard
       aspectRatio: input.aspectRatio,
       shot: talkingHeadShot(input.skill.customProfile?.visual || input.skill.profile?.visual),
       background: Boolean(input.backgroundImageUrls?.length),
+      talkingHeadBackgroundId: input.talkingHeadBackgroundId,
+      talkingHeadPoseId: input.talkingHeadPoseId,
       openingPhoto: skillSlug === TALKING_HEAD_SKILL_SLUG && Boolean(input.startImageUrl),
       performance: resolvePerformance(
         input.skill,

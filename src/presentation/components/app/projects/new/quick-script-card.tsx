@@ -39,7 +39,10 @@ export function QuickScriptCard({
         : "✨ Pre-filled from your project title! You can click “Generate Storyboard” right away or add more detail.";
 
   return (
-    <div className="rounded-2xl border-2 border-accent-ink bg-white p-5 shadow-[4px_4px_0_0_#12141c] sm:p-6">
+    <div
+      data-tour-id="instruction-card"
+      className="rounded-2xl border-2 border-accent-ink bg-white p-5 shadow-[4px_4px_0_0_#12141c] sm:p-6"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <span className="rounded-full bg-accent-ink px-2.5 py-0.5 font-display text-xs font-bold text-lime">

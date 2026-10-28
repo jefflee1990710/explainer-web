@@ -11,12 +11,14 @@ export function BriefSetupModeBar({
   onChange,
   defaultsSummary,
   onOpenDetailsStep,
+  onOpenTutorial,
   disabled,
 }: {
   mode: BriefSetupMode;
   onChange: (next: BriefSetupMode) => void;
   defaultsSummary: string;
   onOpenDetailsStep?: () => void;
+  onOpenTutorial?: () => void;
   disabled?: boolean;
 }) {
   const { locale } = useI18n();
@@ -57,7 +59,10 @@ export function BriefSetupModeBar({
         : "Customize full setup →";
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-ink/12 bg-white px-4 py-3 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:px-5">
+    <div
+      data-tour-id="setup-mode-bar"
+      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-ink/12 bg-white px-4 py-3 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:px-5"
+    >
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium text-foreground sm:text-sm">
           {mode === "quick" ? quickSub : detailsSub}
@@ -79,11 +84,29 @@ export function BriefSetupModeBar({
         ) : null}
       </div>
 
-      <div
-        role="tablist"
-        aria-label="Setup mode"
-        className="inline-flex shrink-0 items-center rounded-full border border-accent-ink/15 bg-paper p-1"
-      >
+      <div className="flex shrink-0 items-center gap-2">
+        {onOpenTutorial ? (
+          <button
+            type="button"
+            onClick={onOpenTutorial}
+            title={
+              locale === "zh-Hant"
+                ? "查看操作教學導覽"
+                : locale === "zh-Hans"
+                  ? "查看操作教学导览"
+                  : "Show guided tour"
+            }
+            aria-label="Show guided tour"
+            className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-accent-ink/15 bg-paper font-display text-xs font-bold text-muted transition hover:border-accent-ink hover:text-foreground"
+          >
+            ?
+          </button>
+        ) : null}
+        <div
+          role="tablist"
+          aria-label="Setup mode"
+          className="inline-flex shrink-0 items-center rounded-full border border-accent-ink/15 bg-paper p-1"
+        >
         <button
           type="button"
           role="tab"
@@ -112,6 +135,7 @@ export function BriefSetupModeBar({
         >
           {detailsLabel}
         </button>
+        </div>
       </div>
     </div>
   );

@@ -2,36 +2,41 @@
 
 import { useI18n } from "@/presentation/components/i18n-provider";
 import {
-  BRIEF_WIZARD_STEPS,
+  visibleBriefWizardSteps,
   type BriefWizardStepIndex,
 } from "@/presentation/components/app/projects/new/brief-wizard-steps";
 
-// Top 3-step progress bar for the create-video brief wizard.
+// Top progress bar for the create-video brief wizard (3 steps for talking-head, 4 steps for other directors).
 export function BriefWizardStepper({
   currentStep,
   maxReachableStep,
+  talkingHead,
   disabled,
   summaries,
   onSelectStep,
 }: {
   currentStep: BriefWizardStepIndex;
   maxReachableStep: BriefWizardStepIndex;
+  talkingHead?: boolean;
   disabled?: boolean;
   summaries?: Partial<Record<BriefWizardStepIndex, string>>;
   onSelectStep: (step: BriefWizardStepIndex) => void;
 }) {
   const { t } = useI18n();
+  const steps = visibleBriefWizardSteps(talkingHead);
 
   return (
     <div className="border-b border-accent-ink/10 pb-5">
       <ol
-        className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3"
+        className={`grid grid-cols-2 gap-2 ${
+          steps.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-4"
+        } sm:gap-3`}
         aria-label={t("brief.wizard.stepCount", {
           current: currentStep + 1,
-          total: BRIEF_WIZARD_STEPS.length,
+          total: steps.length,
         })}
       >
-        {BRIEF_WIZARD_STEPS.map((step) => {
+        {steps.map((step) => {
           const isCurrent = step.index === currentStep;
           const isDone = step.index < currentStep;
           const clickable = !disabled && step.index <= maxReachableStep;

@@ -7,6 +7,7 @@ import {
   isStep2Valid,
   isStep3Valid,
   maxReachableWizardStep,
+  visibleBriefWizardSteps,
   type BriefWizardValidationState,
 } from "@/presentation/components/app/projects/new/brief-wizard-steps";
 
@@ -94,8 +95,21 @@ test("step 3 requires aspectRatio and maxReachableWizardStep unlocks progressive
   );
   // Step 1 & Step 2 valid, Step 3 (aspectRatio) incomplete -> unlocks up to step 2 (specs)
   assert.equal(maxReachableWizardStep(baseState({ aspectRatio: "" })), 2);
-  // Step 1, Step 2 & Step 3 valid -> unlocks step 3 (storyboard drafts)
+  // Step 1, Step 2 & Step 3 valid -> unlocks step 3 (storyboard drafts) for non-talking-head
   assert.equal(maxReachableWizardStep(baseState({ aspectRatio: "9:16" })), 3);
+  // Talking-head director omits Step 04 (Storyboard Drafts) and stops at step 2
+  assert.equal(
+    maxReachableWizardStep(
+      baseState({ talkingHead: true, spokenScript: "Hi there.", aspectRatio: "9:16" }),
+    ),
+    2,
+  );
+  assert.equal(visibleBriefWizardSteps(false).length, 4);
+  assert.equal(visibleBriefWizardSteps(true).length, 3);
+  assert.deepEqual(
+    visibleBriefWizardSteps(true).map((s) => s.id),
+    ["style", "script", "specs"],
+  );
 
   assert.equal(canAdvanceFromWizardStep(0, baseState({ source: "" })), true);
   assert.equal(canAdvanceFromWizardStep(1, baseState({ source: "" })), false);

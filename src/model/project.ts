@@ -368,6 +368,10 @@ export type Project = {
   clipDrafts?: StoryboardClipDraft[];
   // Talking-head only: up to 2 room photos. They replace the bookshelf set.
   backgroundImageUrls?: string[];
+  // Talking-head only: preset background id from TALKING_HEAD_BACKGROUNDS.
+  talkingHeadBackgroundId?: string;
+  // Talking-head only: preset pose id from TALKING_HEAD_POSES.
+  talkingHeadPoseId?: string;
   // Talking-head read + Cinematic realistic: one optional photo for the opening still.
   startImageUrl?: string;
   // Characters chosen at creation; snapshot of each default blueprint.
@@ -573,6 +577,8 @@ export const projectSchema: z.ZodType<Project> = z.object({
     )
     .optional(),
   backgroundImageUrls: z.array(z.string()).max(2).optional(),
+  talkingHeadBackgroundId: z.string().optional(),
+  talkingHeadPoseId: z.string().optional(),
   startImageUrl: z.string().optional(),
   cast: z.array(castMemberSchema).optional(),
   products: z.array(productShotSchema).optional(),

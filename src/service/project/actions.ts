@@ -29,6 +29,10 @@ import { isSpeechPace } from "@/service/director/speech-pace";
 import { isSceneTextChoice, SCENE_TEXT_OFF } from "@/service/director/scene-text";
 import { isSubtitleLook, resolveSubtitleLook } from "@/service/director/subtitle-look";
 import { isDurationPreset } from "@/service/director/duration-presets";
+import {
+  isTalkingHeadBackgroundId,
+  isTalkingHeadPoseId,
+} from "@/model/talking-head-options";
 import { isTalkingHeadSkill, TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 import { parseBackgroundImageUrls } from "@/service/project/background-images";
 import {
@@ -122,6 +126,9 @@ type BriefFields = {
   clipDrafts: StoryboardClipDraft[];
   // Talking-head read only. Up to 2 room photos that replace the bookshelf.
   backgroundImageUrls: string[];
+  // Talking-head read only. Preset background & pose ids.
+  talkingHeadBackgroundId?: string;
+  talkingHeadPoseId?: string;
   // Talking-head read. One optional opening photo, on any visual style.
   startImageUrl?: string;
 };
@@ -255,6 +262,16 @@ async function readVideoBrief(
     (url) => isBrandAssetUrl(url, clerkUserId, storeHost),
   );
   if (!backgrounds.ok) return backgrounds;
+  const rawThBg = String(formData.get("talkingHeadBackgroundId") || "").trim();
+  const talkingHeadBackgroundId =
+    ruleSlug === TALKING_HEAD_SKILL_SLUG && isTalkingHeadBackgroundId(rawThBg)
+      ? rawThBg
+      : undefined;
+  const rawThPose = String(formData.get("talkingHeadPoseId") || "").trim();
+  const talkingHeadPoseId =
+    ruleSlug === TALKING_HEAD_SKILL_SLUG && isTalkingHeadPoseId(rawThPose)
+      ? rawThPose
+      : undefined;
   const startImage = talkingHeadOpeningPhotoAllowed({ skillSlug: ruleSlug })
     ? parseStartImageUrl(String(formData.get("startImageUrl") || ""), (url) =>
         isBrandAssetUrl(url, clerkUserId, storeHost),
@@ -288,6 +305,8 @@ async function readVideoBrief(
       referenceImages: references.images,
       clipDrafts,
       backgroundImageUrls: backgrounds.urls,
+      ...(talkingHeadBackgroundId ? { talkingHeadBackgroundId } : {}),
+      ...(talkingHeadPoseId ? { talkingHeadPoseId } : {}),
       startImageUrl: startImage.url,
       language,
       narrationEnabled,
@@ -336,25 +355,41 @@ async function buildCast(
       styleId,
       characterSelections[id],
     );
-    if (!version?.blueprintUrl) {
+    const pendingStyleVersion =
+      version ??
+      character.versions
+        .filter(
+          (v) =>
+            (v.styleId || character.styleId) === styleId &&
+            (v.status === "queued" || v.status === "in_progress"),
+        )
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] ??
+      null;
+    const activeVersion = version ?? pendingStyleVersion;
+    const blueprintOrRefUrl =
+      activeVersion?.blueprintUrl ||
+      activeVersion?.portraitUrl ||
+      activeVersion?.referenceImageUrl ||
+      "";
+    if (!activeVersion || (!blueprintOrRefUrl && activeVersion.status !== "queued" && activeVersion.status !== "in_progress")) {
       return { ok: false, error: `角色 ${character.name} 尚未有可用藍圖` };
     }
     const persona = parseCharacterPersona(character.persona);
     const resolvedVoice = isCharacterVoice(character.voice)
       ? character.voice
       : inferFallbackCharacterVoice(
-          [character.name, version.spec?.identity, version.prompt].filter(Boolean).join("\n"),
+          [character.name, activeVersion.spec?.identity, activeVersion.prompt].filter(Boolean).join("\n"),
         );
     cast.push({
       characterId: character._id,
-      versionId: version.id,
+      versionId: activeVersion.id,
       ...(preset ? { presetId: preset.id, presetName: preset.name } : {}),
       name: character.name,
-      blueprintUrl: version.blueprintUrl,
-      blueprintKind: version.blueprintKind ?? "sheet",
-      prompt: version.prompt,
+      blueprintUrl: blueprintOrRefUrl,
+      blueprintKind: activeVersion.blueprintKind ?? "sheet",
+      prompt: activeVersion.prompt,
       // Appearance notes travel with the video so prompts stay stable after later edits.
-      ...(version.spec ? { spec: version.spec } : {}),
+      ...(activeVersion.spec ? { spec: activeVersion.spec } : {}),
       voice: resolvedVoice,
       ...(persona ? { persona } : {}),
       // Snapshot so a later sample change does not re-voice this video.
@@ -611,6 +646,8 @@ export async function createVideoAction(
       ...(brief.referenceImages.length ? { referenceImages: brief.referenceImages } : {}),
       ...(brief.clipDrafts.length ? { clipDrafts: brief.clipDrafts } : {}),
       ...(brief.backgroundImageUrls.length ? { backgroundImageUrls: brief.backgroundImageUrls } : {}),
+      ...(brief.talkingHeadBackgroundId ? { talkingHeadBackgroundId: brief.talkingHeadBackgroundId } : {}),
+      ...(brief.talkingHeadPoseId ? { talkingHeadPoseId: brief.talkingHeadPoseId } : {}),
       ...(brief.startImageUrl ? { startImageUrl: brief.startImageUrl } : {}),
       cast,
       ...(productResult.products.length ? { products: productResult.products } : {}),
@@ -801,6 +838,10 @@ async function rewriteVideoBrief(
           ...(brief.backgroundImageUrls.length
             ? { backgroundImageUrls: brief.backgroundImageUrls }
             : {}),
+          ...(brief.talkingHeadBackgroundId
+            ? { talkingHeadBackgroundId: brief.talkingHeadBackgroundId }
+            : {}),
+          ...(brief.talkingHeadPoseId ? { talkingHeadPoseId: brief.talkingHeadPoseId } : {}),
           ...(brief.startImageUrl ? { startImageUrl: brief.startImageUrl } : {}),
           status: "phase_a",
           updatedAt: new Date(),
@@ -811,6 +852,8 @@ async function rewriteVideoBrief(
           ...(brief.referenceImages.length ? {} : { referenceImages: "" }),
           ...(brief.clipDrafts.length ? {} : { clipDrafts: "" }),
           ...(brief.backgroundImageUrls.length ? {} : { backgroundImageUrls: "" }),
+          ...(brief.talkingHeadBackgroundId ? {} : { talkingHeadBackgroundId: "" }),
+          ...(brief.talkingHeadPoseId ? {} : { talkingHeadPoseId: "" }),
           ...(brief.startImageUrl ? {} : { startImageUrl: "" }),
           ...(brief.spokenScript ? {} : { spokenScript: "" }),
           ...(brief.textStyleImageUrl ? {} : { textStyleImageUrl: "" }),

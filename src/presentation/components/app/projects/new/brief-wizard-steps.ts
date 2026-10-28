@@ -11,7 +11,7 @@ export type BriefWizardStepMeta = {
   subtitleKey: string;
 };
 
-// Ordered 4-step structure for the create-video brief wizard (Step 04 Storyboard Drafts is optional and uses the aspect ratio chosen in Step 03).
+// Ordered 4-step structure for the create-video brief wizard (Step 04 Storyboard Drafts is optional and hidden for talking-head directors).
 export const BRIEF_WIZARD_STEPS: readonly BriefWizardStepMeta[] = [
   {
     index: 0,
@@ -42,6 +42,12 @@ export const BRIEF_WIZARD_STEPS: readonly BriefWizardStepMeta[] = [
     subtitleKey: "brief.wizard.step3DraftsSubtitle",
   },
 ] as const;
+
+export function visibleBriefWizardSteps(talkingHead?: boolean): readonly BriefWizardStepMeta[] {
+  return talkingHead
+    ? BRIEF_WIZARD_STEPS.filter((step) => step.id !== "drafts")
+    : BRIEF_WIZARD_STEPS;
+}
 
 export type BriefWizardValidationState = {
   skillSlug: string;
@@ -77,14 +83,14 @@ export function isStep3Valid(state: BriefWizardValidationState): boolean {
 }
 
 // Highest wizard step index unlocked by the user's current form state.
-// Step 3 (04 Storyboard Drafts) unlocks once Step 1, Step 2, and Step 3 (aspect ratio) are valid.
+// Talking-head directors stop at Step 2 (03 Voice & Specs) since Storyboard Drafts are excluded for talking-head.
 export function maxReachableWizardStep(
   state: BriefWizardValidationState,
 ): BriefWizardStepIndex {
   if (!isStep1Valid(state)) return 0;
   if (!isStep2Valid(state)) return 1;
   if (!isStep3Valid(state)) return 2;
-  return 3;
+  return state.talkingHead ? 2 : 3;
 }
 
 // Whether the user can advance from the given wizard step (or submit on the final step).

@@ -117,6 +117,8 @@ export async function appendDirectorClipAction(input: {
       phaseA: project.phaseA,
       referenceImages: project.referenceImages,
       backgroundImageUrls: project.backgroundImageUrls,
+      talkingHeadBackgroundId: project.talkingHeadBackgroundId,
+      talkingHeadPoseId: project.talkingHeadPoseId,
       startImageUrl: project.startImageUrl,
       cast: project.cast,
       content,

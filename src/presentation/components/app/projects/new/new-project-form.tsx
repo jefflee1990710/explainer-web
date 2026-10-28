@@ -84,7 +84,6 @@ import {
 } from "@/service/director/talking-head";
 import { TalkingHeadScriptField } from "@/presentation/components/app/projects/new/talking-head-script-field";
 import { TalkingHeadBackgroundField } from "@/presentation/components/app/projects/new/talking-head-background-field";
-import { TalkingHeadStartImageField } from "@/presentation/components/app/projects/new/talking-head-start-image-field";
 import { failedStepFor, isProductionLike } from "@/service/project-status";
 import type {
   PublicCharacter,
@@ -149,6 +148,10 @@ import {
   BriefSetupModeBar,
   type BriefSetupMode,
 } from "@/presentation/components/app/projects/new/brief-setup-mode-bar";
+import {
+  CreateVideoFeatureDiscovery,
+  hasSeenCreateVideoTutorial,
+} from "@/presentation/components/app/projects/new/create-video-feature-discovery";
 import {
   canAdvanceFromWizardStep,
   maxReachableWizardStep,
@@ -297,12 +300,9 @@ export function NewProjectForm({
   const [backgroundImageUrls, setBackgroundImageUrls] = useState<string[]>(
     initialVideo?.backgroundImageUrls || [],
   );
-  const [startImageUrl, setStartImageUrl] = useState(initialVideo?.startImageUrl || "");
   const bookend = isBookendSkill(ruleSlug);
   const talkingHead = isTalkingHeadSkill(ruleSlug);
   const talkingHeadBackground = ruleSlug === TALKING_HEAD_SKILL_SLUG;
-  // Opening photo belongs to this director, on every visual style.
-  const talkingHeadStartImage = talkingHeadBackground;
 
   // Flow state. The stepper can jump back to 題材 after a video exists.
   const [project, setProject] = useState<PublicVideo | null>(initialVideo);
@@ -330,6 +330,7 @@ export function NewProjectForm({
   const [confirmBrief, setConfirmBrief] = useState(false);
   // Setup mode: "quick" (Simple & Fast: Content + Style + Character) vs "details" (Full 4-Step Wizard).
   const [setupMode, setSetupMode] = useState<BriefSetupMode>("quick");
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   // 4-step brief wizard state (0: Style & Cast, 1: Script & Assets, 2: Voice & Specs, 3: Storyboard Drafts).
   const [wizardStep, setWizardStep] = useState<BriefWizardStepIndex>(0);
   // 重新開始: brief form shown again for an existing video; submit wipes and reruns Phase A.
@@ -351,6 +352,15 @@ export function NewProjectForm({
   useEffect(() => {
     setWalletCredits(credits);
   }, [credits]);
+
+  // Automatically open the 4-step Feature Discovery spotlight tour the first time a user opens the Create Video form.
+  useEffect(() => {
+    if (initialVideo) return;
+    if (!hasSeenCreateVideoTutorial()) {
+      const timer = window.setTimeout(() => setTutorialOpen(true), 350);
+      return () => window.clearTimeout(timer);
+    }
+  }, [initialVideo]);
 
   // A settled frame or clip should refresh the task list immediately so the
   // browser notification can fire without waiting for the next 5s tick.
@@ -477,10 +487,10 @@ export function NewProjectForm({
       (project.logoUrl || "") === (bookend ? logoUrl : "") &&
       JSON.stringify(toReferenceDrafts(project.referenceImages)) ===
         JSON.stringify(referenceImages.map((item) => ({ ...item, description: item.description.trim() }))) &&
-      JSON.stringify(project.clipDrafts || []) === JSON.stringify(clipDrafts) &&
+      JSON.stringify(project.clipDrafts || []) ===
+        JSON.stringify(talkingHead ? [] : clipDrafts) &&
       JSON.stringify(project.backgroundImageUrls || []) ===
         JSON.stringify(talkingHeadBackground ? backgroundImageUrls : []) &&
-      (project.startImageUrl || "") === (talkingHeadStartImage ? startImageUrl : "") &&
       currentIds.length === nextIds.length &&
       currentIds.every((id, index) => id === nextIds[index]) &&
       project.cast.every((member) => {
@@ -513,14 +523,11 @@ export function NewProjectForm({
     formData.set("durationPreset", durationPreset);
     if (bookend && logoUrl) formData.set("logoUrl", logoUrl);
     formData.set("referenceImages", JSON.stringify(referenceImages));
-    if (clipDrafts.length > 0) {
+    if (!talkingHead && clipDrafts.length > 0) {
       formData.set("clipDrafts", JSON.stringify(clipDrafts));
     }
     if (talkingHeadBackground) {
       formData.set("backgroundImageUrls", JSON.stringify(backgroundImageUrls));
-    }
-    if (talkingHeadStartImage && startImageUrl) {
-      formData.set("startImageUrl", startImageUrl);
     }
     for (const id of characterIds) formData.append("characterIds", id);
     if (Object.keys(characterSelections).length > 0) {
@@ -566,7 +573,7 @@ export function NewProjectForm({
       goToWizardStep(2);
       return;
     }
-    if (wizardStep === 2) {
+    if (wizardStep === 2 && !talkingHead) {
       if (!aspectRatio) {
         setError(t("brief.error.aspectRatioRequired"));
         return;
@@ -716,7 +723,6 @@ export function NewProjectForm({
     setReferenceImages(toReferenceDrafts(video.referenceImages));
     setClipDrafts(video.clipDrafts || []);
     setBackgroundImageUrls(video.backgroundImageUrls || []);
-    setStartImageUrl(video.startImageUrl || "");
   }
 
   const onRestart = useCallback(() => {
@@ -939,6 +945,9 @@ export function NewProjectForm({
   function onSkillChange(nextSlug: string) {
     setSkillSlug(nextSlug);
     const nextRuleSlug = ruleSlugFor(nextSlug, skills);
+    if (isTalkingHeadSkill(nextRuleSlug) && wizardStep === 3) {
+      setWizardStep(2);
+    }
     const nextNeed = requiredCastCount(nextRuleSlug);
     if (nextNeed > 0) {
       setCharacterIds((ids) => {
@@ -1180,6 +1189,10 @@ export function NewProjectForm({
                   setError("");
                   setSetupMode("details");
                 }}
+                onOpenTutorial={() => {
+                  setSetupMode("quick");
+                  setTutorialOpen(true);
+                }}
                 disabled={briefBusy}
               />
 
@@ -1211,7 +1224,10 @@ export function NewProjectForm({
 
                   {/* 02 Visual Style & 03 Characters */}
                   <div className="grid gap-4 md:grid-cols-2 lg:items-stretch">
-                    <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                    <div
+                      data-tour-id="visual-style-card"
+                      className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6"
+                    >
                       <Section
                         step="02"
                         title={t("brief.visualStyle.title")}
@@ -1230,7 +1246,10 @@ export function NewProjectForm({
                       </Section>
                     </div>
 
-                    <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                    <div
+                      data-tour-id="character-card"
+                      className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6"
+                    >
                       <Section
                         step="03"
                         title={t("brief.cast.title")}
@@ -1245,12 +1264,15 @@ export function NewProjectForm({
                       >
                         <CharacterPicker
                           characters={characters}
+                          styles={styles}
                           styleId={styleId}
                           value={characterIds}
                           onChange={setCharacterIds}
                           onSelectStyle={onStyleChange}
                           selections={characterSelections}
                           onSelectionsChange={setCharacterSelections}
+                          credits={walletCredits}
+                          subscribed={walletSubscribed}
                           disabled={briefBusy}
                           max={castNeed > 0 ? castNeed : 4}
                           required={castNeed}
@@ -1264,6 +1286,7 @@ export function NewProjectForm({
                   <BriefWizardStepper
                     currentStep={wizardStep}
                     maxReachableStep={maxWizardStep}
+                    talkingHead={talkingHead}
                     disabled={briefBusy}
                     summaries={wizardSummaries}
                     onSelectStep={goToWizardStep}
@@ -1303,7 +1326,10 @@ export function NewProjectForm({
                               : "md:grid-cols-2 lg:grid-cols-3"
                           }`}
                         >
-                          <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                          <div
+                            data-tour-id="visual-style-card"
+                            className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6"
+                          >
                             <Section
                               step="02"
                               title={t("brief.visualStyle.title")}
@@ -1322,7 +1348,10 @@ export function NewProjectForm({
                             </Section>
                           </div>
 
-                          <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                          <div
+                            data-tour-id="character-card"
+                            className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6"
+                          >
                             <Section
                               step="03"
                               title={t("brief.cast.title")}
@@ -1337,12 +1366,15 @@ export function NewProjectForm({
                             >
                               <CharacterPicker
                                 characters={characters}
+                                styles={styles}
                                 styleId={styleId}
                                 value={characterIds}
                                 onChange={setCharacterIds}
                                 onSelectStyle={onStyleChange}
                                 selections={characterSelections}
                                 onSelectionsChange={setCharacterSelections}
+                                credits={walletCredits}
+                                subscribed={walletSubscribed}
                                 disabled={briefBusy}
                                 max={castNeed > 0 ? castNeed : 4}
                                 required={castNeed}
@@ -1465,16 +1497,6 @@ export function NewProjectForm({
                           <TalkingHeadBackgroundField
                             value={backgroundImageUrls}
                             onChange={setBackgroundImageUrls}
-                            onError={setError}
-                            disabled={briefBusy}
-                          />
-                        </div>
-                      ) : null}
-                      {talkingHeadStartImage ? (
-                        <div className="border-t border-accent-ink/10 pt-4">
-                          <TalkingHeadStartImageField
-                            value={startImageUrl}
-                            onChange={setStartImageUrl}
                             onError={setError}
                             disabled={briefBusy}
                           />
@@ -1638,17 +1660,20 @@ export function NewProjectForm({
                   <p className="text-xs text-muted">
                     {castNeed > 0 && characterIds.length !== castNeed
                       ? t("brief.footer.castRequired", { n: castNeed })
-                      : setupMode === "quick" || wizardStep === 3
+                      : setupMode === "quick" || wizardStep === (talkingHead ? 2 : 3)
                         ? restarting
                           ? t("brief.footer.restartWarning")
                           : project
                             ? t("brief.footer.editBriefWarning")
                             : t("brief.footer.noCharge")
-                        : t("brief.wizard.stepCount", { current: wizardStep + 1, total: 4 })}
+                        : t("brief.wizard.stepCount", {
+                            current: wizardStep + 1,
+                            total: talkingHead ? 3 : 4,
+                          })}
                   </p>
 
                   <div className="flex flex-wrap items-center gap-3">
-                    {setupMode === "details" && wizardStep < 3 ? (
+                    {setupMode === "details" && wizardStep < (talkingHead ? 2 : 3) ? (
                       <motion.button
                         key="wizard-next-button"
                         type="button"
@@ -1664,7 +1689,7 @@ export function NewProjectForm({
                       </motion.button>
                     ) : null}
 
-                    {restarting && (setupMode === "quick" || wizardStep === 3) ? (
+                    {restarting && (setupMode === "quick" || wizardStep === (talkingHead ? 2 : 3)) ? (
                       <button
                         type="button"
                         onClick={() => void submitCreateNew()}
@@ -1847,6 +1872,10 @@ export function NewProjectForm({
             }}
           />
         ) : null}
+        <CreateVideoFeatureDiscovery
+          open={tutorialOpen && viewing === 0}
+          onClose={() => setTutorialOpen(false)}
+        />
       </div>
     </MotionConfig>
   );
