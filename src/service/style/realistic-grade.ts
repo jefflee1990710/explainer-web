@@ -23,6 +23,8 @@ export function realisticVideoGradeArgs(inPath: string, outPath: string): string
     REALISTIC_VIDEO_GRADE_FILTER,
     "-c:v",
     "libx264",
+    "-pix_fmt",
+    "yuv420p",
     "-preset",
     "fast",
     "-crf",
