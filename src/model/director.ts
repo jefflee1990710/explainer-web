@@ -67,16 +67,15 @@ export const startOnlyPhaseASchema = phaseASchema.extend({
   clips: z.array(startOnlyStoryboardRowSchema).min(1),
 });
 
-// Talking-head clips share the script evenly: 5–12s, at most 20 (enforced in talkingHeadPlanError, not
-// on this schema — Gemini structured output rejects maxItems on nested arrays).
+// Talking-head clips can run up to 120s on HeyGen Avatar IV (total script <= 240s enforced in talkingHeadPlanError).
 export const talkingHeadPhaseASchema = phaseASchema.extend({
-  clips: z.array(storyboardRowSchema.extend({ durationSeconds: z.number().min(5).max(12) })).min(1),
+  clips: z.array(storyboardRowSchema.extend({ durationSeconds: z.number().min(5).max(120) })).min(1),
 });
 
 // One clip's video prompt (per-clip Phase B).
 export const phaseBClipSchema = z.object({
   clipNumber: z.number().int().min(1),
-  durationSeconds: z.number().min(5).max(12),
+  durationSeconds: z.number().min(5).max(120),
   prompt: z.string(),
 });
 

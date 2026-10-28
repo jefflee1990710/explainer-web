@@ -251,3 +251,28 @@ test("overlay video waits until the subtitle is burned onto both stills", () => 
   frames[1] = { ...frames[1], mergedUrl: "m-end" };
   assert.equal(autoVideoDecision(frames, [], 1, { merged: true }), "start");
 });
+
+test("clipVideoCost bills up to 120 seconds for talking-head-director and caps other directors at 15 seconds", () => {
+  const talkingHead60s: ClipStageSource = {
+    status: "production",
+    skillSlug: "talking-head-director",
+    styleId: "realistic",
+    language: "yue",
+    phaseA: { clips: [{ clipNumber: 1, durationSeconds: 60 }] },
+    frames: [],
+    clips: [],
+  };
+  // realistic (15) + voiceSwap (1) = 16 credits/s * 60s = 960
+  assert.equal(planGenerateAllVideos({ ...talkingHead60s, frames: [frame(1, "start", "completed"), frame(1, "end", "completed")] }).cost, 960);
+
+  const cartoon60s: ClipStageSource = {
+    status: "production",
+    skillSlug: "cartoon-explainer-video-director",
+    styleId: "doodle",
+    phaseA: { clips: [{ clipNumber: 1, durationSeconds: 60 }] },
+    frames: [frame(1, "start", "completed"), frame(1, "end", "completed")],
+    clips: [],
+  };
+  // non-talking-head remains capped at 15s: 9 credits/s * 15s = 135
+  assert.equal(planGenerateAllVideos(cartoon60s).cost, 135);
+});

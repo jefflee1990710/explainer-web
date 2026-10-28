@@ -12,21 +12,27 @@ export const CINEMATIC_VIDEO_CREDITS_PER_SECOND = 15;
 export const VOICE_SWAP_CREDITS_PER_SECOND = 1;
 export const MIN_VIDEO_SECONDS = 5;
 export const MAX_VIDEO_SECONDS = 15;
+export const TALKING_HEAD_MAX_VIDEO_SECONDS = 120;
 export const MIN_VIDEO_COST = VIDEO_CREDITS_PER_SECOND * MIN_VIDEO_SECONDS;
 
 // Seconds the provider renders (and we bill) for a clip of this length.
-export function billedVideoSeconds(seconds: number) {
+export function billedVideoSeconds(seconds: number, maxSeconds = MAX_VIDEO_SECONDS) {
   const rounded = Number.isFinite(seconds) ? Math.round(seconds) : MIN_VIDEO_SECONDS;
-  return Math.min(MAX_VIDEO_SECONDS, Math.max(MIN_VIDEO_SECONDS, rounded));
+  return Math.min(maxSeconds, Math.max(MIN_VIDEO_SECONDS, rounded));
 }
 
 export function videoCreditsPerSecond(styleId?: string) {
   return styleId === "realistic" ? CINEMATIC_VIDEO_CREDITS_PER_SECOND : VIDEO_CREDITS_PER_SECOND;
 }
 
-export function videoCost(seconds: number, styleId?: string, voiceSwap = false) {
+export function videoCost(
+  seconds: number,
+  styleId?: string,
+  voiceSwap = false,
+  maxSeconds = MAX_VIDEO_SECONDS,
+) {
   const perSecond = videoCreditsPerSecond(styleId) + (voiceSwap ? VOICE_SWAP_CREDITS_PER_SECOND : 0);
-  return perSecond * billedVideoSeconds(seconds);
+  return perSecond * billedVideoSeconds(seconds, maxSeconds);
 }
 
 // What a clip video attempt was charged. Older clips predate `creditsCharged`.

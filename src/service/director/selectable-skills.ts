@@ -2,10 +2,18 @@ import type { Skill } from "@/model/skill";
 import { isCustomSkill } from "@/service/director/behavior-slug";
 import { DIRECTORS, getDirectorBySlug } from "@/service/director/catalog";
 import { directorAsSkill } from "@/service/director/catalog-skill";
-import { OUTFIT_REEL_SKILL_SLUG } from "@/service/director/clip-continuity";
+import {
+  OUTFIT_REEL_SKILL_SLUG,
+  SURPRISE_INTERVIEW_SKILL_SLUG,
+} from "@/service/director/clip-continuity";
+import { FULL_BODY_TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 
-// 試衫 stays in the codebase. New videos and the director list do not offer it.
-const HIDDEN_PICKER_SLUGS = new Set([OUTFIT_REEL_SKILL_SLUG]);
+// Retired directors stay in the codebase for existing videos; new videos and the director list do not offer them.
+const HIDDEN_PICKER_SLUGS = new Set([
+  OUTFIT_REEL_SKILL_SLUG,
+  FULL_BODY_TALKING_HEAD_SKILL_SLUG,
+  SURPRISE_INTERVIEW_SKILL_SLUG,
+]);
 
 export function isHiddenPickerSkill(skill: {
   slug: string;

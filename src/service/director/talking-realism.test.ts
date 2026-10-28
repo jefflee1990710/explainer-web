@@ -8,7 +8,7 @@ const SCRIPT =
 
 test("realistic talking-head stills carry light source, skin detail, and foreground depth", () => {
   const clips = planTalkingHeadClips({ source: SCRIPT, language: "en", aspectRatio: "9:16", realistic: true });
-  assert.ok(clips.length >= 2);
+  assert.equal(clips.length, 1);
   for (const clip of clips) {
     for (const scene of [clip.startScene, clip.endScene]) {
       assert.match(scene, /Light source: .*rim light/);
@@ -21,8 +21,6 @@ test("realistic talking-head stills carry light source, skin detail, and foregro
     assert.match(clip.motionCamera, /Realism: natural blinks/);
     assert.match(clip.motionCamera, /no heavy vintage film grain/);
   }
-  // Clip 2 still opens on clip 1's end without any embedded subtitle.
-  assert.equal(clips[1].startScene, clips[0].endScene);
 });
 
 test("non-realistic styles keep the old talking-head prompts", () => {

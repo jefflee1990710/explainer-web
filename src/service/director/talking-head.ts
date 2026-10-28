@@ -12,8 +12,10 @@ import { mediaSrc } from "@/util/media-src";
 export const TALKING_HEAD_SKILL_SLUG = "talking-head-director";
 export const FULL_BODY_TALKING_HEAD_SKILL_SLUG = "full-body-talking-head-director";
 export const TALKING_HEAD_MAX_CLIPS = 20;
-export const TALKING_HEAD_MAX_SECONDS = 12;
-// Minimum 5s speech target per clip, expandable up to TALKING_HEAD_MAX_SECONDS (12s).
+export const TALKING_HEAD_MAX_SECONDS = 120;
+const FULL_BODY_MAX_SECONDS = 12;
+const TALKING_HEAD_MAX_TOTAL_SECONDS = 240;
+// Legacy full-body speech target per clip (5–8s, expandable to 12s).
 const SPEECH_TARGET_SECONDS = 5;
 const SPEECH_MAX_SECONDS = 8;
 
@@ -175,7 +177,7 @@ export function talkingHeadPlanError(source: string, pace?: SpeechPace) {
   const sentences = splitTalkingHeadSentences(source);
   if (sentences.length === 0) return "請輸入角色要讀的講稿。";
   const total = Math.ceil(rawSpokenSeconds(source, pace));
-  const limit = TALKING_HEAD_MAX_CLIPS * TALKING_HEAD_MAX_SECONDS;
+  const limit = TALKING_HEAD_MAX_TOTAL_SECONDS;
   if (total > limit) {
     return `呢段稿大約 ${total} 秒，對鏡讀稿最多 ${limit} 秒。請刪短講稿後再試。`;
   }
@@ -278,15 +280,23 @@ export function planTalkingHeadClips(input: {
   // Cinematic realistic style: add light source, skin detail, and foreground depth.
   realistic?: boolean;
 }): TalkingHeadClipPlan[] {
-  const lines = balanceTalkingHeadLines(input.source, input.pace);
+  const talkingShot: TalkingShot = input.shot === "full-body" ? "full-body" : "face";
+  const maxClipSeconds =
+    talkingShot === "full-body" ? FULL_BODY_MAX_SECONDS : TALKING_HEAD_MAX_SECONDS;
+  const lines = balanceTalkingHeadLines(input.source, input.pace, {
+    maxClipSeconds,
+    speechMaxSeconds:
+      talkingShot === "full-body" ? SPEECH_MAX_SECONDS : TALKING_HEAD_MAX_SECONDS,
+    speechTargetSeconds:
+      talkingShot === "full-body" ? SPEECH_TARGET_SECONDS : TALKING_HEAD_MAX_SECONDS,
+  });
   const total = lines.length;
   const clips: TalkingHeadClipPlan[] = [];
-  const talkingShot: TalkingShot = input.shot === "full-body" ? "full-body" : "face";
   const perf = input.performance ?? DEFAULT_PERFORMANCE[talkingShot][performanceLanguage(input.language)];
   const customSet = extractCustomTalkingHeadSet(input.directorInstruction, input.visualWorld);
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
-    const seconds = plannedClipSeconds(line, input.pace);
+    const seconds = plannedClipSeconds(line, input.pace, maxClipSeconds);
     const belowCenter = talkingHeadSubtitleBelowCenter(input.aspectRatio);
     const scene = {
       shot: input.shot,
@@ -440,8 +450,12 @@ function jobLine(language: VoLanguage | undefined, index: number, total: number)
 }
 
 // At least the provider minimum, so a short line is not sped up after render.
-function plannedClipSeconds(text: string, pace?: SpeechPace) {
-  return Math.min(TALKING_HEAD_MAX_SECONDS, Math.max(PROVIDER_MIN_SECONDS, talkingHeadSeconds(text, pace)));
+function plannedClipSeconds(
+  text: string,
+  pace?: SpeechPace,
+  maxSeconds = TALKING_HEAD_MAX_SECONDS,
+) {
+  return Math.min(maxSeconds, Math.max(PROVIDER_MIN_SECONDS, talkingHeadSeconds(text, pace)));
 }
 
 type SceneInput = {
@@ -734,20 +748,42 @@ function shotLabel(shot: string) {
   return shot;
 }
 
+type BalanceOptions = {
+  maxClipSeconds?: number;
+  speechMaxSeconds?: number;
+  speechTargetSeconds?: number;
+};
+
 // Clauses, then word groups, packed so each clip carries a similar amount of speech.
-function balanceTalkingHeadLines(source: string, pace?: SpeechPace) {
-  const pieces = spokenPieces(source, pace);
+function balanceTalkingHeadLines(
+  source: string,
+  pace?: SpeechPace,
+  options?: BalanceOptions,
+) {
+  const maxClipSeconds = options?.maxClipSeconds ?? TALKING_HEAD_MAX_SECONDS;
+  const speechMaxSeconds = options?.speechMaxSeconds ?? TALKING_HEAD_MAX_SECONDS;
+  const speechTargetSeconds = options?.speechTargetSeconds ?? TALKING_HEAD_MAX_SECONDS;
+  const pieces = spokenPieces(source, pace, speechMaxSeconds, speechTargetSeconds);
   if (pieces.length <= 1) return pieces;
   const weights = pieces.map((piece) => rawSpokenSeconds(piece, pace));
   const total = weights.reduce((sum, weight) => sum + weight, 0);
-  return evenRanges(weights, total).map(([start, end]) => joinSpoken(pieces.slice(start, end)));
+  return evenRanges(weights, total, {
+    maxClipSeconds,
+    speechMaxSeconds,
+    speechTargetSeconds,
+  }).map(([start, end]) => joinSpoken(pieces.slice(start, end)));
 }
 
-function spokenPieces(source: string, pace?: SpeechPace) {
+function spokenPieces(
+  source: string,
+  pace?: SpeechPace,
+  speechMaxSeconds = SPEECH_MAX_SECONDS,
+  speechTargetSeconds = SPEECH_TARGET_SECONDS,
+) {
   const pieces: string[] = [];
   for (const sentence of splitTalkingHeadSentences(source)) {
     for (const clause of splitClauses(sentence)) {
-      for (const piece of splitLongPiece(clause, pace)) {
+      for (const piece of splitLongPiece(clause, pace, speechMaxSeconds, speechTargetSeconds)) {
         pushSpoken(pieces, piece);
       }
     }
@@ -781,12 +817,17 @@ function speechAtoms(text: string): string[] {
   return atoms;
 }
 
-function splitLongPiece(text: string, pace?: SpeechPace) {
+function splitLongPiece(
+  text: string,
+  pace?: SpeechPace,
+  speechMaxSeconds = SPEECH_MAX_SECONDS,
+  speechTargetSeconds = SPEECH_TARGET_SECONDS,
+) {
   const trimmed = text.trim();
-  if (rawSpokenSeconds(trimmed, pace) <= SPEECH_MAX_SECONDS) return [trimmed];
+  if (rawSpokenSeconds(trimmed, pace) <= speechMaxSeconds) return [trimmed];
   const atoms = speechAtoms(trimmed);
   if (atoms.length <= 1) return [trimmed];
-  const parts = Math.max(2, Math.ceil(rawSpokenSeconds(trimmed, pace) / SPEECH_TARGET_SECONDS));
+  const parts = Math.max(2, Math.ceil(rawSpokenSeconds(trimmed, pace) / speechTargetSeconds));
   const weights = atoms.map((atom) => Math.max(rawSpokenSeconds(atom.trim(), pace), 0.01));
   const total = weights.reduce((sum, weight) => sum + weight, 0);
   const target = total / parts;
@@ -810,21 +851,29 @@ function splitLongPiece(text: string, pace?: SpeechPace) {
 
 // Prefer short slices so each subtitle is one large line. Pack longer only when
 // 20 clips cannot hold the script.
-function evenRanges(weights: number[], total: number): Array<[number, number]> {
-  if (weights.length <= 1 || total <= SPEECH_MAX_SECONDS) return [[0, weights.length]];
+function evenRanges(
+  weights: number[],
+  total: number,
+  options?: BalanceOptions,
+): Array<[number, number]> {
+  const maxClipSeconds = options?.maxClipSeconds ?? TALKING_HEAD_MAX_SECONDS;
+  const speechMaxSeconds = options?.speechMaxSeconds ?? TALKING_HEAD_MAX_SECONDS;
+  const speechTargetSeconds = options?.speechTargetSeconds ?? TALKING_HEAD_MAX_SECONDS;
+  if (weights.length <= 1 || total <= speechMaxSeconds) return [[0, weights.length]];
   const sliceMax = Math.min(
-    TALKING_HEAD_MAX_SECONDS,
-    Math.max(SPEECH_MAX_SECONDS, total / TALKING_HEAD_MAX_CLIPS),
+    maxClipSeconds,
+    Math.max(speechMaxSeconds, total / TALKING_HEAD_MAX_CLIPS),
   );
   const minClips = Math.max(1, Math.ceil(total / sliceMax));
   const maxClips = Math.min(TALKING_HEAD_MAX_CLIPS, weights.length);
-  const target = Math.min(SPEECH_TARGET_SECONDS, sliceMax);
+  const target = Math.min(speechTargetSeconds, sliceMax);
   let best: Array<[number, number]> | undefined;
   let bestCost = Number.POSITIVE_INFINITY;
   for (let groups = minClips; groups <= Math.max(minClips, maxClips); groups += 1) {
     const ranges = partitionEven(weights, groups);
     const seconds = ranges.map(([start, end]) => weightSum(weights, start, end));
     if (seconds.some((value) => value > sliceMax + 0.05)) continue;
+    if (speechTargetSeconds >= maxClipSeconds) return ranges;
     const mean = total / groups;
     const spread = Math.max(...seconds) - Math.min(...seconds);
     const cost = spread * 4 + Math.abs(mean - target);

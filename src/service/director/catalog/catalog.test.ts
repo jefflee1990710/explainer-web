@@ -9,6 +9,7 @@ import {
   getDirectorBySlug,
   resolveDirector,
 } from "@/service/director/catalog";
+import { isHiddenPickerSkill, listSelectableSkills } from "@/service/director/selectable-skills";
 
 test("all 18 DIRECTOR_SLUGS exist in hardcoded catalog and satisfy IDirector", () => {
   assert.equal(DIRECTORS.length, DIRECTOR_SLUGS.length);
@@ -43,6 +44,9 @@ test("IDirector.behavior encodes keyframeMode, continuity, cast count, speechMod
   assert.equal(DIRECTORS_BY_SLUG["surprise-interview-director"].behavior.bansNarration, true);
   assert.equal(DIRECTORS_BY_SLUG["outfit-reel-director"].behavior.speechMode, "silent");
   assert.equal(DIRECTORS_BY_SLUG["outfit-reel-director"].behavior.hiddenInPicker, true);
+  assert.equal(DIRECTORS_BY_SLUG["full-body-talking-head-director"].behavior.hiddenInPicker, true);
+  assert.equal(DIRECTORS_BY_SLUG["surprise-interview-director"].behavior.hiddenInPicker, true);
+  assert.equal(DIRECTORS_BY_SLUG["talking-head-director"].behavior.hiddenInPicker, false);
   assert.equal(DIRECTORS_BY_SLUG["outfit-change-director"].behavior.speechMode, "silent");
   assert.equal(DIRECTORS_BY_SLUG["outfit-change-director"].behavior.hiddenInPicker, false);
   assert.equal(DIRECTORS_BY_SLUG["outfit-change-director"].behavior.chainsClipStarts, false);
@@ -50,6 +54,17 @@ test("IDirector.behavior encodes keyframeMode, continuity, cast count, speechMod
   assert.equal(DIRECTORS_BY_SLUG["workflow-promo-director"].behavior.dualBeat, true);
   assert.equal(DIRECTORS_BY_SLUG["workflow-promo-director"].behavior.maxStyleCount, 1);
   assert.equal(DIRECTORS_BY_SLUG["style-switch-director"].behavior.maxStyleCount, 4);
+});
+
+test("listSelectableSkills excludes surprise-interview-director and full-body-talking-head-director while keeping talking-head-director", async () => {
+  assert.equal(isHiddenPickerSkill({ slug: "full-body-talking-head-director" }), true);
+  assert.equal(isHiddenPickerSkill({ slug: "surprise-interview-director" }), true);
+  assert.equal(isHiddenPickerSkill({ slug: "talking-head-director" }), false);
+  const selectable = await listSelectableSkills();
+  const slugs = selectable.map((s) => s.slug);
+  assert.equal(slugs.includes("talking-head-director"), true);
+  assert.equal(slugs.includes("full-body-talking-head-director"), false);
+  assert.equal(slugs.includes("surprise-interview-director"), false);
 });
 
 test("resolveDirector falls back unknown or legacy custom IDs to cartoon-explainer-video-director", () => {

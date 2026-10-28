@@ -3,8 +3,16 @@ import { canQueueFrames, clipFrameCost, clipStatesFor, type ClipStageSource } fr
 import type { ClipFrame, ProjectClip } from "@/model/project";
 import { videoEndFrame } from "@/service/higgsfield/clip-keyframes";
 
-import { FRAME_COST, MIN_VIDEO_COST, MIN_VIDEO_SECONDS, videoCost } from "@/service/credit-costs";
+import {
+  FRAME_COST,
+  MAX_VIDEO_SECONDS,
+  MIN_VIDEO_COST,
+  MIN_VIDEO_SECONDS,
+  TALKING_HEAD_MAX_VIDEO_SECONDS,
+  videoCost,
+} from "@/service/credit-costs";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
+import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 
 export * from "@/service/credit-costs";
@@ -12,10 +20,15 @@ export * from "@/service/credit-costs";
 // Video credits for one storyboard clip, from its planned duration.
 export function clipVideoCost(project: ClipStageSource, clipNumber: number) {
   const row = project.phaseA?.clips.find((clip) => clip.clipNumber === clipNumber);
+  const maxSeconds =
+    project.skillSlug === TALKING_HEAD_SKILL_SLUG
+      ? TALKING_HEAD_MAX_VIDEO_SECONDS
+      : MAX_VIDEO_SECONDS;
   return videoCost(
     row?.durationSeconds ?? MIN_VIDEO_SECONDS,
     project.styleId,
     Boolean(resolveVoiceSwapId(project)),
+    maxSeconds,
   );
 }
 

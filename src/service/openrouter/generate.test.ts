@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   fetchOpenRouterStatus,
+  HEYGEN_AVATAR_IV_MOTION_PROMPT,
   isOpenRouterStatusUrl,
   OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
   openRouterClipVideoBody,
@@ -11,6 +12,7 @@ import {
   submitOpenRouterClipVideo,
   submitOpenRouterImage,
 } from "@/service/openrouter/generate";
+import { submitClipVideo } from "@/service/higgsfield/generate";
 
 test("isOpenRouterStatusUrl detects OpenRouter video polling and content URLs", () => {
   assert.equal(
@@ -393,9 +395,49 @@ test("submitOpenRouterClipVideo falls back from Seedance to alibaba/wan-3.0 when
       { fetch: fakeFetch, callbackUrl: null },
     );
     assert.deepEqual(postedModels, ["bytedance/seedance-2.0-fast", "alibaba/wan-3.0"]);
-    assert.deepEqual(postedResolutions, ["720p", "720p"]);
+    assert.deepEqual(postedResolutions, ["720p", "480p"]);
     assert.equal(submitted.request_id, "vid-wan-fallback");
     assert.equal(submitted.model, "alibaba/wan-3.0");
+  } finally {
+    if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = prevKey;
+  }
+});
+
+test("submitClipVideo with audioUrl sends talking-head-director clips (up to 120s) to heygen/avatar-iv without clamping duration to 15s", async () => {
+  const prevKey = process.env.OPENROUTER_API_KEY;
+  process.env.OPENROUTER_API_KEY = "sk-or-test";
+  let postedBody: Record<string, unknown> | undefined;
+  const fakeFetch: typeof fetch = async (_input, init) => {
+    postedBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    return new Response(
+      JSON.stringify({
+        id: "vid-heygen-120s",
+        polling_url: "/api/v1/videos/vid-heygen-120s",
+        status: "pending",
+      }),
+      { status: 202, headers: { "content-type": "application/json" } },
+    );
+  };
+
+  try {
+    const submitted = await submitClipVideo(
+      {
+        prompt: HEYGEN_AVATAR_IV_MOTION_PROMPT,
+        aspectRatio: "9:16",
+        durationSeconds: 120,
+        startImageUrl: "https://blob/start.png",
+        audioUrl: "https://blob/vo-120s.mp3",
+      },
+      { fetch: fakeFetch },
+    );
+    assert.equal(postedBody?.model, "heygen/avatar-iv");
+    assert.equal("duration" in (postedBody || {}), false);
+    assert.deepEqual(postedBody?.input_references, [
+      { type: "image_url", image_url: { url: "https://blob/start.png" } },
+      { type: "audio_url", audio_url: { url: "https://blob/vo-120s.mp3" } },
+    ]);
+    assert.equal(submitted.request_id, "vid-heygen-120s");
   } finally {
     if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY;
     else process.env.OPENROUTER_API_KEY = prevKey;

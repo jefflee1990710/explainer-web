@@ -7,10 +7,17 @@ import { hasJobSince } from "@/service/higgsfield/job-attempts";
 import { videoKeyframeUrls } from "@/service/higgsfield/clip-keyframes";
 import { mergeReadySubtitleFrames } from "@/service/higgsfield/merge-subtitle-frames";
 import { submitDeferredEndIfNeeded } from "@/service/higgsfield/pipeline";
-import { autoVideoDecision } from "@/service/production-plan";
+import {
+  autoVideoDecision,
+  chargedVideoCredits,
+  MAX_VIDEO_SECONDS,
+  STUCK_CLAIM_MS,
+  TALKING_HEAD_MAX_VIDEO_SECONDS,
+  videoCost,
+} from "@/service/production-plan";
 import { clipEndIsNextStart, clipSkipsEndStill } from "@/service/director/steady-stills";
 import { usesTalkingHeadSubtitleOverlay } from "@/service/director/subtitle-plate";
-import { chargedVideoCredits, STUCK_CLAIM_MS, videoCost } from "@/service/production-plan";
+import { TALKING_HEAD_SKILL_SLUG } from "@/service/director/talking-head";
 import type { Project, ProjectClip } from "@/model/project";
 import { collectClipVideoBlobUrls } from "@/service/video/storage";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
@@ -76,10 +83,15 @@ export async function claimAndStartClipVideo(
 
   const submittedAt = new Date().toISOString();
   // Billed per second of the storyboard duration; stored on the clip for refunds.
+  const maxSeconds =
+    project.skillSlug === TALKING_HEAD_SKILL_SLUG
+      ? TALKING_HEAD_MAX_VIDEO_SECONDS
+      : MAX_VIDEO_SECONDS;
   const cost = videoCost(
     row.durationSeconds,
     project.styleId,
     Boolean(resolveVoiceSwapId(project)),
+    maxSeconds,
   );
   const existing = project.clips.find((clip) => clip.clipNumber === clipNumber);
   const stuck = existing ? await isStuckClaim(project._id, clipNumber, existing) : false;

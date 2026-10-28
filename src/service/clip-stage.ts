@@ -157,6 +157,7 @@ export function clipStateFor(project: ClipStageSource, clipNumber: number): Clip
       row?.durationSeconds ?? MIN_VIDEO_SECONDS,
       project.styleId,
       Boolean(resolveVoiceSwapId(project)),
+      project.skillSlug === "talking-head-director" ? 120 : undefined,
     ),
     frameCost: clipFrameCost(project, clipNumber),
     // Cancel is only offered before the provider has the request.

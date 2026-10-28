@@ -1,0 +1,16 @@
+---
+description: Keep pipeline-models.md and AGENTS.md synchronized whenever any model, resolution, provider, or director pipeline changes
+alwaysApply: true
+---
+
+# Sync `pipeline-models.md` with system design
+
+`pipeline-models.md` is the canonical reference for all models, providers, resolutions, unit costs, and post-processing steps across `talking-head-director`, all other directors, and peripheral features.
+
+Whenever you change any of the following in the codebase:
+- Director LLM models (`src/service/director/model.ts`)
+- Image generation models or resolutions (`src/service/generation/image-backend.ts`, `src/service/openrouter/generate.ts`, `src/service/pose-edit/`)
+- Video generation models, passes, resolutions, or fallbacks (`src/service/higgsfield/clip-keyframes.ts`, `src/service/openrouter/generate.ts`, `src/service/minimax/talking-head-reference.ts`, `src/service/higgsfield/pipeline.ts`)
+- Voice synthesis, cloning, forced alignment, or Smooth Silence (`src/service/voice/`, `src/service/sound-effect/`)
+
+You **MUST** update `pipeline-models.md` (and the model summary in `AGENTS.md`) in the same turn so `pipeline-models.md` always stays 100% in sync with the system design.

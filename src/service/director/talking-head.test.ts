@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  TALKING_HEAD_MAX_SECONDS,
   planTalkingHeadClips,
   splitTalkingHeadSentences,
   talkingHeadDirectorBlock,
@@ -14,6 +15,7 @@ import {
   talkingHeadPhaseBPrompt,
   withInheritedTalkingHeadStarts,
 } from "@/service/director/talking-head";
+import { talkingHeadPhaseASchema, phaseBClipSchema } from "@/model/director";
 import { FRAMES_COST } from "@/service/credit-costs";
 
 const TALKING_HEAD_TOO_LONG = 20 * 12 * 4 + 8;
@@ -95,35 +97,53 @@ test("talking-head keeps instruction and spoken script as separate fields", () =
     language: "en",
     openingPhoto: true,
   });
-  assert.ok(withPhoto.length >= 2);
+  assert.equal(withPhoto.length, 1);
   assert.match(withPhoto[0].startScene, /attached opening photo/);
   assert.match(withPhoto[0].endScene, /user's opening photo/);
   assert.doesNotMatch(withPhoto[0].startScene, /beside a bookshelf/);
-  assert.match(withPhoto[1].startScene, /opening photo/);
 });
 
-test("clip 2 keeps clip 1's pose, speaks only its own line, and never embeds subtitles", () => {
+test("talking-head-director keeps a script up to 120s in a single clip and splits only over 120s", () => {
+  assert.equal(TALKING_HEAD_MAX_SECONDS, 120);
   const clips = planTalkingHeadClips({ source: SCRIPT, pace: "medium", language: "yue" });
-  assert.ok(clips.length >= 2);
-  assert.match(clips[1].startScene, /口部合上/);
+  assert.equal(clips.length, 1);
   assert.doesNotMatch(clips[0].startScene, /字幕：|Subtitle:/);
   assert.doesNotMatch(clips[0].endScene, /字幕：|Subtitle:/);
-  assert.doesNotMatch(clips[1].startScene, /字幕：|Subtitle:/);
-  assert.doesNotMatch(clips[1].endScene, /字幕：|Subtitle:/);
-  assert.doesNotMatch(clips[1].motionCamera, /由「/);
-  assert.doesNotMatch(clips[1].motionCamera, /大字幕|底部字幕|中線下面少少嘅字幕/);
-  assert.match(clips[1].motionCamera, /唔好跳鏡/);
-  assert.match(clips[1].endScene, /唔好跳鏡/);
-  assert.doesNotMatch(clips[1].motionCamera, /左手拎住/);
-  assert.equal(clips[1].motionCamera.includes(clips[0].englishVo), false);
   assert.doesNotMatch(clips[0].motionCamera, /底部字幕|大字幕|中線下面少少嘅字幕/);
   assert.match(clips[0].motionCamera, /口型跟住講/);
-  assert.match(clips.map((clip) => clip.englishVo).join(""), /大家好，我係 Jeff/);
-  assert.ok(clips.every((clip) => clip.durationSeconds >= 5 && clip.durationSeconds <= 12));
+  assert.match(clips[0].englishVo, /大家好，我係 Jeff/);
+  assert.match(clips[0].englishVo, /如果一句太長，系統會叫你改短/);
+  assert.ok(clips[0].durationSeconds >= 10 && clips[0].durationSeconds <= 120);
   assert.match(clips[0].startScene, /坐住/);
   assert.match(clips[0].startScene, /24mm f\/1\.8/);
   assert.match(clips[0].startScene, /手機腳架/);
   assert.doesNotMatch(clips[0].startScene, /中近景|medium close-up/);
+
+  // A 150s script (> 120s) splits into 2 clips, each <= 120s, and clip 2 chains from clip 1.
+  const over120s = Array.from({ length: 15 }, (_, i) => `第${i + 1}段，${"甲".repeat(38)}。`).join("");
+  const multiClips = planTalkingHeadClips({ source: over120s, pace: "medium", language: "yue" });
+  assert.equal(multiClips.length, 2);
+  assert.ok(multiClips.every((c) => c.durationSeconds >= 5 && c.durationSeconds <= 120));
+  assert.match(multiClips[1].startScene, /口部合上/);
+  assert.match(multiClips[1].motionCamera, /唔好跳鏡/);
+
+  // Schemas accept up to 120s durationSeconds.
+  assert.equal(phaseBClipSchema.safeParse({ clipNumber: 1, durationSeconds: 120, prompt: "ok" }).success, true);
+  assert.equal(
+    talkingHeadPhaseASchema.shape.clips.safeParse([
+      {
+        clipNumber: 1,
+        timeRange: "0–120s",
+        durationSeconds: 120,
+        narrativeJob: "clip 1 of 1",
+        explainerScene: "s",
+        motionCamera: "m",
+        englishVo: "v",
+        bgmSfx: "none",
+      },
+    ]).success,
+    true,
+  );
 });
 
 const FULL_BODY_VISUAL =
@@ -232,10 +252,11 @@ test("talking-head keeps a full English word inside a Cantonese line", () => {
   assert.doesNotMatch(voiced.startScene, /逐字係「/);
   assert.doesNotMatch(spoken, /Instagra\s/);
   assert.doesNotMatch(spoken, /Webi\s/);
-  assert.ok(clips.every((clip) => clip.durationSeconds >= 5 && clip.durationSeconds <= 12));
+  assert.equal(clips.length, 1);
+  assert.ok(clips[0].durationSeconds >= 5 && clips[0].durationSeconds <= 120);
 });
 
-test("a long talking-head line becomes short clips, and both hands stay free", () => {
+test("a talking-head script under 120s stays in one clip, and both hands stay free", () => {
   const source = [
     "What if you have zero budget for marketing?",
     "Stop overthinking ads.",
@@ -250,17 +271,13 @@ test("a long talking-head line becomes short clips, and both hands stay free", (
     language: "en",
     aspectRatio: "9:16",
   });
-  const words = clips.map((clip) => clip.englishVo.split(/\s+/).filter(Boolean).length);
-  assert.ok(clips.length >= 5);
-  assert.ok(Math.max(...words) <= 14);
-  assert.ok(clips[1]);
-  assert.match(clips[1].motionCamera, /no jump/);
-  assert.match(clips[1].motionCamera, /left hand makes one brief ~0\.5s co-speech gesture excursion/);
-  assert.doesNotMatch(clips[1].motionCamera, /left then right hand|right then left hand/);
-  assert.doesNotMatch(clips[1].motionCamera, /hand holding/);
-  assert.match(clips[1].endScene, /No zoom, no reframe, no jump/);
-  assert.doesNotMatch(clips[1].startScene, /Subtitle:/);
-  assert.doesNotMatch(clips[1].motionCamera, /fades and slides/);
+  assert.equal(clips.length, 1);
+  assert.ok(clips[0].durationSeconds >= 15 && clips[0].durationSeconds <= 120);
+  assert.doesNotMatch(clips[0].motionCamera, /left then right hand|right then left hand/);
+  assert.doesNotMatch(clips[0].motionCamera, /hand holding/);
+  assert.match(clips[0].endScene, /No zoom, no reframe, no jump/);
+  assert.doesNotMatch(clips[0].startScene, /Subtitle:/);
+  assert.doesNotMatch(clips[0].motionCamera, /fades and slides/);
   for (const clip of clips) {
     assert.match(clip.startScene, /eyes (?:locked (?:into|on)|on) the lens/);
     assert.match(clip.endScene, /eyes (?:locked (?:into|on)|on) the lens/);
@@ -357,7 +374,7 @@ test("talking-head honours a custom background instruction in directorInstructio
     aspectRatio: "9:16",
     realistic: true,
   });
-  assert.ok(yueClips.length >= 2);
+  assert.equal(yueClips.length, 1);
   for (const clip of yueClips) {
     assert.match(clip.startScene, /現代寫字樓室內自然光環境/);
     assert.match(clip.startScene, /office, with HK sea view/);
@@ -382,7 +399,7 @@ test("talking-head honours a custom background instruction in directorInstructio
   }
 });
 
-test("every talking-head clip endScene (including clip 4) explicitly closes the mouth so next-clip keyframes never lock a static toothy grin", () => {
+test("every talking-head clip endScene explicitly closes the mouth so next-clip keyframes never lock a static toothy grin", () => {
   const yueSource = [
     "有無諗過你個Instagram都可以變成你嘅生財工具？",
     "我係下星期一有一個Webinar就係教大家點樣做。",
@@ -397,7 +414,7 @@ test("every talking-head clip endScene (including clip 4) explicitly closes the 
     aspectRatio: "9:16",
     realistic: true,
   });
-  assert.equal(yueClips.length, 5);
+  assert.equal(yueClips.length, 1);
   for (const clip of yueClips) {
     assert.match(clip.endScene, /口部合上/, `clip ${clip.clipNumber} endScene must specify 口部合上`);
     assert.match(clip.motionCamera, /每個字都有清晰明顯嘅嘴唇同下巴開合對嘴動作/);

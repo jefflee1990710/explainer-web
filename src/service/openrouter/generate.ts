@@ -353,12 +353,12 @@ export function openRouterClipVideoBody(input: {
   const model = input.model || OPENROUTER_WAN_3_VIDEO_MODEL;
   const configured = clipVideoResolution();
   // OpenRouter's minimax/hailuo-3 endpoint only accepts "2K" in supported_resolutions;
-  // Wan 3.0 accepts "480p", "720p", or "1080p" (default "720p").
+  // Wan 3.0 uses "480p" ($0.05/s).
   const resolution =
     model === OPENROUTER_HAILUO_3_VIDEO_MODEL && configured !== "2K"
       ? "2K"
-      : model === OPENROUTER_WAN_3_VIDEO_MODEL && configured === "2K"
-        ? "1080p"
+      : model === OPENROUTER_WAN_3_VIDEO_MODEL
+        ? "480p"
         : configured;
   return {
     model,

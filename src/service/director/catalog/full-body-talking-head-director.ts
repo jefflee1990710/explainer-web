@@ -90,7 +90,7 @@ const raw = {
     "allowsOpeningPhotoUpload": false,
     "allowsBrandLogoUpload": false,
     "maxStyleCount": 1,
-    "hiddenInPicker": false
+    "hiddenInPicker": true
   }
 } as const;
 

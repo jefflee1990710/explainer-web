@@ -73,9 +73,14 @@ import {
 } from "@/service/video/storage";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { trimClipSmoothSilence } from "@/service/voice/smooth-silence";
+import { voiceSwapVoiceId } from "@/model/character-voice-sample";
 import { probeAudioSeconds, stripVideoAudio, swapClipVoice } from "@/service/voice/voice-swap";
 import { whiteboardSubmitDurationSeconds } from "@/service/voice/voice-swap-args";
-import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
+import { CANTONESE_VOICE_ID, resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
+import {
+  HEYGEN_AVATAR_IV_MOTION_PROMPT,
+  OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
+} from "@/service/openrouter/generate";
 import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
 import { mediaSrc } from "@/util/media-src";
 import { isDualBeatSkill } from "@/service/director/dual-beat";
@@ -86,21 +91,19 @@ import { resolveRunSkill } from "@/service/director/run-skill";
 import { talkingShotForSkill } from "@/service/director/talking-performance";
 import {
   MINIMAX_H3_REFERENCE_MODEL,
-  submitTalkingHeadBridgeVideo,
   submitTalkingHeadFollowVideo,
-  talkingHeadBridgePrompt,
   talkingHeadFollowPrompt,
-  talkingHeadReferenceDurationSeconds,
 } from "@/service/minimax/talking-head-reference";
 import { loadStoredSkill } from "@/service/director/load-skill";
 import { chainsClipStarts } from "@/service/director/clip-continuity";
 import {
   isInheritedTalkingHeadStart,
   isTalkingHeadSkill,
+  TALKING_HEAD_MAX_SECONDS,
   TALKING_HEAD_SKILL_SLUG,
   withInheritedTalkingHeadStarts,
 } from "@/service/director/talking-head";
-import { chargedVideoCredits, FRAME_COST, STUCK_CLAIM_MS } from "@/service/production-plan";
+import { chargedVideoCredits, FRAME_COST, MIN_VIDEO_SECONDS, STUCK_CLAIM_MS } from "@/service/production-plan";
 import { SUBMIT_LOCK_MS } from "@/service/generation/task-policy";
 import { isSilentSpokenLine, lockDialogueSpeech } from "@/service/director/spoken-line";
 import { withCantonesePronunciation } from "@/service/voice/cantonese-pronunciation";
@@ -645,16 +648,16 @@ export async function sendClipVideo(
   prompt: PhaseBPrompt,
 ): Promise<Sent> {
   // Cinematic realistic whiteboard sends the start image only. An old end file stays unused.
-  // Seated talking-head sends start plus the next clip's start, then a second pass for the mouth.
+  // Seated talking-head sends the start still plus the ElevenLabs mp3 to HeyGen Avatar IV (up to 120s).
   const skill = await loadSkill(project);
   const audioFirstTalkingHead = skill.slug === TALKING_HEAD_SKILL_SLUG;
-  const startOnly = clipSkipsEndStill(project);
+  const startOnly = clipSkipsEndStill(project) || audioFirstTalkingHead;
   const merged = usesTalkingHeadSubtitleOverlay({
     skillSlug: project.skillSlug,
     styleId: project.styleId,
   });
-  // Clip N runs from its own start still to clip N+1's start still.
-  const endFromNextStart = clipEndIsNextStart(project, clipNumber);
+  // Other talking skills: clip N runs from its own start still to clip N+1's start still.
+  const endFromNextStart = !audioFirstTalkingHead && clipEndIsNextStart(project, clipNumber);
   const { start, end } = videoKeyframeUrls(project.frames, clipNumber, { merged, endFromNextStart });
   if (!start || (!startOnly && !end)) {
     throw new Error(
@@ -696,12 +699,15 @@ export async function sendClipVideo(
     spokenLine,
   );
 
-  // Seated talking-head sends this mp3 as the lip-sync driver. Other directors
-  // keep it for a later voice swap.
+  // Seated talking-head sends this mp3 as the lip-sync driver to HeyGen Avatar IV.
+  // Other directors keep it for a later voice swap.
   let referenceAudioUrl: string | undefined;
   const voiceId =
     project.narrationEnabled !== false && (project.language === "yue" || !isBookendSkill(project.skillSlug))
-      ? resolveVoiceSwapId({ ...project, cast: currentCast })
+      ? resolveVoiceSwapId({ ...project, cast: currentCast }) ||
+        (audioFirstTalkingHead
+          ? voiceSwapVoiceId(currentCast, project.language) || CANTONESE_VOICE_ID
+          : null)
       : null;
   const voOnsetSeconds = usesLipSync && !audioFirstTalkingHead ? DEFAULT_SPEECH_ONSET_SECONDS : 0;
   const expandVideoToVo = isDualBeatSkill(project.skillSlug);
@@ -711,7 +717,10 @@ export async function sendClipVideo(
       const { audio, alignment } = await synthesizeSpeechWithTimestamps(voiceId, spokenLine);
       if (audioFirstTalkingHead) {
         const voicedSeconds = (await probeAudioSeconds(audio, "mp3")) ?? prompt.durationSeconds;
-        durationSeconds = talkingHeadReferenceDurationSeconds(voicedSeconds);
+        durationSeconds = Math.min(
+          TALKING_HEAD_MAX_SECONDS,
+          Math.max(MIN_VIDEO_SECONDS, Math.ceil(voicedSeconds)),
+        );
       } else if (usesLipSync) {
         videoPrompt = withTimedLipSyncPrompt(videoPrompt, alignment, {
           onsetSeconds: voOnsetSeconds,
@@ -734,7 +743,7 @@ export async function sendClipVideo(
         {
           $set: {
             "clips.$[clip].prompt": audioFirstTalkingHead
-              ? talkingHeadBridgePrompt(spokenLine, project.language)
+              ? HEYGEN_AVATAR_IV_MOTION_PROMPT
               : videoPrompt,
             "clips.$[clip].voUrl": preGeneratedVoUrl,
             "clips.$[clip].voOnsetSeconds": voOnsetSeconds,
@@ -760,20 +769,17 @@ export async function sendClipVideo(
     if (!referenceAudioUrl || !spokenLine?.trim()) {
       throw new Error("坐定對嘴需要角色語音同呢句對白");
     }
-    if (!endUrlForVideo) {
-      throw new Error("這段的終點畫格還沒有檔案，無法接上下一段");
-    }
-    const submitted = await submitTalkingHeadBridgeVideo({
-      prompt: talkingHeadBridgePrompt(spokenLine, project.language),
-      startImageUrl: start,
-      endImageUrl: endUrlForVideo,
-      durationSeconds,
+    const submitted = await submitClipVideo({
+      model: OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL,
+      prompt: HEYGEN_AVATAR_IV_MOTION_PROMPT,
       aspectRatio: project.aspectRatio,
+      durationSeconds,
+      startImageUrl: start,
+      audioUrl: referenceAudioUrl,
+      styleId: clipStyleId,
+      style,
     });
-    return {
-      ...toSent(MINIMAX_H3_REFERENCE_MODEL, submitted),
-      talkingHeadStage: "bridge" as const,
-    };
+    return toSent(OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL, submitted);
   }
 
   const targetModel = clipVideoModel(style ?? clipStyleId);
@@ -1056,8 +1062,16 @@ export async function applyJobStatus(input: {
         ? project.clips.find((clip) => clip.clipNumber === job.clipIndex + 1)
         : undefined;
     const usesLipSync = Boolean(project && skillUsesOnScreenLipSync(project.skillSlug));
+    const audioFirstTalkingHead =
+      job.model === OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL ||
+      Boolean(
+        project &&
+          job.kind === "video" &&
+          project.skillSlug === TALKING_HEAD_SKILL_SLUG &&
+          !job.talkingHeadStage,
+      );
     const swapVoice = (buffer: Buffer) =>
-      voiceId
+      voiceId && !audioFirstTalkingHead
         ? swapClipVoice(buffer, voiceId, {
             text: spokenLine,
             voUrl: storedClip?.voUrl,

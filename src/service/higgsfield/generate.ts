@@ -234,17 +234,20 @@ export async function submitImage(input: {
 // Backwards-compatible alias.
 export const submitCharacterStill = submitImage;
 
-export async function submitClipVideo(input: {
-  prompt: string;
-  aspectRatio: AspectRatio;
-  durationSeconds: number;
-  startImageUrl: string;
-  endImageUrl?: string;
-  audioUrl?: string;
-  model?: string;
-  styleId?: string;
-  style?: { id?: string; baseStyleId?: string } | null;
-}) {
+export async function submitClipVideo(
+  input: {
+    prompt: string;
+    aspectRatio: AspectRatio;
+    durationSeconds: number;
+    startImageUrl: string;
+    endImageUrl?: string;
+    audioUrl?: string;
+    model?: string;
+    styleId?: string;
+    style?: { id?: string; baseStyleId?: string } | null;
+  },
+  options?: { fetch?: typeof fetch; callbackUrl?: string | null },
+) {
   const provider = clipVideoProvider();
   const model =
     input.model ||
@@ -252,15 +255,18 @@ export async function submitClipVideo(input: {
       ? OPENROUTER_HEYGEN_AVATAR_IV_VIDEO_MODEL
       : clipVideoModel(input.style ?? input.styleId));
   if (provider === "openrouter") {
-    return submitOpenRouterClipVideo({
-      model,
-      prompt: input.prompt,
-      aspectRatio: input.aspectRatio,
-      durationSeconds: input.durationSeconds,
-      startImageUrl: input.startImageUrl,
-      endImageUrl: input.endImageUrl,
-      audioUrl: input.audioUrl,
-    });
+    return submitOpenRouterClipVideo(
+      {
+        model,
+        prompt: input.prompt,
+        aspectRatio: input.aspectRatio,
+        durationSeconds: input.durationSeconds,
+        startImageUrl: input.startImageUrl,
+        endImageUrl: input.endImageUrl,
+        audioUrl: input.audioUrl,
+      },
+      options,
+    );
   }
   if (provider !== "higgsfield") {
     throw new Error("clip video must use OpenRouter or Higgsfield first and last frames");
