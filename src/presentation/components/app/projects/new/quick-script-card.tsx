@@ -26,10 +26,10 @@ export function QuickScriptCard({
 
   const quickHint =
     locale === "zh-Hant"
-      ? "輸入一句話主題或完整腳本（或點下方「範例腳本」一鍵填入），下方導演、角色與 9:16 規格已預設好，可直接按右下角「產生分鏡（不扣 Credits）」！"
+      ? "輸入一句話主題或完整腳本（或點下方「範例腳本」一鍵填入），再揀埋下方視覺風格與角色，即可直接按右下角「開始製作」！"
       : locale === "zh-Hans"
-        ? "输入一句话主题或完整脚本（或点下方“示例脚本”一键填入），下方导演、角色与 9:16 规格已预设好，可直接按右下角“生成分镜（不扣 Credits）”！"
-        : "Type a one-line topic or full script (or click a sample script below). Director, character, and 9:16 specs are pre-selected—click “Generate Storyboard (0 Credits)” anytime!";
+        ? "输入一句话主题或完整脚本（或点下方“示例脚本”一键填入），再选好下方视觉风格与角色，即可直接按右下角“开始制作”！"
+        : "Enter your topic or full script (or click a sample script below), pick your visual style and character below, and click “Start” right away!";
 
   const prefilledBanner =
     locale === "zh-Hant"
@@ -43,7 +43,7 @@ export function QuickScriptCard({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <span className="rounded-full bg-accent-ink px-2.5 py-0.5 font-display text-xs font-bold text-lime">
-            START
+            01
           </span>
           <h3 className="font-display text-base font-bold text-foreground">
             {t("brief.section02.title")}

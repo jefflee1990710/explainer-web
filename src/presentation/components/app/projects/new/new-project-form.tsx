@@ -146,6 +146,10 @@ import {
 import { StoryboardDraftsStep } from "@/presentation/components/app/projects/new/storyboard-drafts-step";
 import { BriefWizardStepper } from "@/presentation/components/app/projects/new/brief-wizard-stepper";
 import {
+  BriefSetupModeBar,
+  type BriefSetupMode,
+} from "@/presentation/components/app/projects/new/brief-setup-mode-bar";
+import {
   canAdvanceFromWizardStep,
   maxReachableWizardStep,
   type BriefWizardStepIndex,
@@ -324,7 +328,9 @@ export function NewProjectForm({
   );
   const restoredEditorTab = useRef<string | null>(null);
   const [confirmBrief, setConfirmBrief] = useState(false);
-  // 3-step brief wizard state (0: Style & Cast, 1: Script & Assets, 2: Voice & Specs).
+  // Setup mode: "quick" (Simple & Fast: Content + Style + Character) vs "details" (Full 4-Step Wizard).
+  const [setupMode, setSetupMode] = useState<BriefSetupMode>("quick");
+  // 4-step brief wizard state (0: Style & Cast, 1: Script & Assets, 2: Voice & Specs, 3: Storyboard Drafts).
   const [wizardStep, setWizardStep] = useState<BriefWizardStepIndex>(0);
   // 重新開始: brief form shown again for an existing video; submit wipes and reruns Phase A.
   const [restarting, setRestarting] = useState(false);
@@ -582,7 +588,7 @@ export function NewProjectForm({
     event.preventDefault();
     if (!source.trim()) {
       setError(t("brief.error.sourceRequired"));
-      if (wizardStep === 0) {
+      if (setupMode === "quick") {
         document.getElementById("quick-source")?.focus();
       } else if (wizardStep !== 1) {
         goToWizardStep(1);
@@ -591,22 +597,28 @@ export function NewProjectForm({
     }
     if (talkingHead && !spokenScript.trim()) {
       setError(t("brief.error.spokenScriptRequired"));
-      if (wizardStep !== 0 && wizardStep !== 1) goToWizardStep(1);
+      if (setupMode === "details" && wizardStep !== 1) goToWizardStep(1);
       return;
     }
     if (referenceImages.some((item) => !item.description.trim())) {
       setError(t("brief.references.descriptionRequired"));
+      if (setupMode === "quick") {
+        setSetupMode("details");
+      }
       if (wizardStep !== 1) goToWizardStep(1);
       return;
     }
     if (!aspectRatio) {
       setError(t("brief.error.aspectRatioRequired"));
+      if (setupMode === "quick") {
+        setSetupMode("details");
+      }
       if (wizardStep !== 2) goToWizardStep(2);
       return;
     }
     if (castNeed > 0 && characterIds.length !== castNeed) {
       setError(t("brief.error.castCount", { n: castNeed }));
-      if (wizardStep !== 0) goToWizardStep(0);
+      if (setupMode === "details" && wizardStep !== 0) goToWizardStep(0);
       return;
     }
     if (restarting) {
@@ -1150,150 +1162,233 @@ export function NewProjectForm({
               <div className="space-y-6">
               <input type="hidden" name="projectId" value={projectId} />
 
-              <BriefWizardStepper
-                currentStep={wizardStep}
-                maxReachableStep={maxWizardStep}
+              <BriefSetupModeBar
+                mode={setupMode}
+                onChange={(nextMode) => {
+                  setError("");
+                  setSetupMode(nextMode);
+                }}
+                defaultsSummary={[
+                  skillTitle,
+                  LANGUAGE_PRESETS[language].label,
+                  aspectRatio || "9:16",
+                  durationPresetLabel(t, durationPreset).label,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+                onOpenDetailsStep={() => {
+                  setError("");
+                  setSetupMode("details");
+                }}
                 disabled={briefBusy}
-                summaries={wizardSummaries}
-                onSelectStep={goToWizardStep}
               />
 
-              <AnimatePresence mode="wait" initial={false}>
-                {wizardStep === 0 ? (
-                  <motion.div
-                    key="wizard-step-0"
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
-                    transition={{ duration: 0.25, ease }}
-                    className="space-y-4"
-                  >
-                    <QuickScriptCard
-                      source={source}
-                      onSourceChange={(val) => {
-                        setSource(val);
-                        if (error) setError("");
-                      }}
-                      talkingHead={talkingHead}
-                      spokenScript={spokenScript}
-                      onSpokenScriptChange={(val) => {
-                        setSpokenScript(val);
-                        if (error) setError("");
-                      }}
-                      prefilledFromFolder={Boolean(initialSourceFromFolderName(folderName))}
-                      disabled={briefBusy}
-                    />
+              {setupMode === "quick" ? (
+                <motion.div
+                  key="quick-setup-view"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8, transition: { duration: 0.15 } }}
+                  transition={{ duration: 0.25, ease }}
+                  className="space-y-4"
+                >
+                  {/* 01 Content / Script */}
+                  <QuickScriptCard
+                    source={source}
+                    onSourceChange={(val) => {
+                      setSource(val);
+                      if (error) setError("");
+                    }}
+                    talkingHead={talkingHead}
+                    spokenScript={spokenScript}
+                    onSpokenScriptChange={(val) => {
+                      setSpokenScript(val);
+                      if (error) setError("");
+                    }}
+                    prefilledFromFolder={Boolean(initialSourceFromFolderName(folderName))}
+                    disabled={briefBusy}
+                  />
 
-                    {/* Row 1: Full-width Director Banner Card (Dropdown left, 4-point Director Spec right) */}
-                    <div className="rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
-                      <Section step="01" title={t("brief.section01.title")} hint={t("brief.section01.hint")}>
-                        <SkillPicker
-                          skills={skills}
-                          value={skillSlug}
-                          onChange={onSkillChange}
+                  {/* 02 Visual Style & 03 Characters */}
+                  <div className="grid gap-4 md:grid-cols-2 lg:items-stretch">
+                    <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                      <Section
+                        step="02"
+                        title={t("brief.visualStyle.title")}
+                        hint={t("brief.visualStyle.hint")}
+                        equalHeaderHeight
+                      >
+                        <StylePicker
+                          styles={styles}
+                          value={styleId}
+                          onChange={onStyleChange}
                           disabled={briefBusy}
-                          sideBySideGuide
                         />
-                        {talkingHead ? (
-                          <p className="mt-3 text-xs text-muted">{t("brief.talkingHead.hint")}</p>
-                        ) : null}
+                        <p className="mt-2 text-xs text-muted">
+                          {styleName}
+                        </p>
                       </Section>
                     </div>
 
-                    {/* Row 2: Equal-height 3-column Studio Cards (02 Visual Style · 03 Characters · 04 Products) */}
-                    <div
-                      className={`grid gap-4 lg:items-stretch ${
-                        bookend
-                          ? "md:grid-cols-2 xl:grid-cols-4"
-                          : "md:grid-cols-2 lg:grid-cols-3"
-                      }`}
-                    >
-                      <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
-                        <Section
-                          step="02"
-                          title={t("brief.visualStyle.title")}
-                          hint={t("brief.visualStyle.hint")}
-                          equalHeaderHeight
-                        >
-                          <StylePicker
-                            styles={styles}
-                            value={styleId}
-                            onChange={onStyleChange}
-                            disabled={briefBusy}
-                          />
-                          <p className="mt-2 text-xs text-muted">
-                            {styleName}
-                          </p>
-                        </Section>
-                      </div>
+                    <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                      <Section
+                        step="03"
+                        title={t("brief.cast.title")}
+                        hint={
+                          castNeed === 2
+                            ? t("brief.cast.hintRequiredTwo")
+                            : castNeed === 1
+                              ? t("brief.cast.hintRequiredOne")
+                              : t("brief.cast.hintOptional")
+                        }
+                        equalHeaderHeight
+                      >
+                        <CharacterPicker
+                          characters={characters}
+                          styleId={styleId}
+                          value={characterIds}
+                          onChange={setCharacterIds}
+                          onSelectStyle={onStyleChange}
+                          selections={characterSelections}
+                          onSelectionsChange={setCharacterSelections}
+                          disabled={briefBusy}
+                          max={castNeed > 0 ? castNeed : 4}
+                          required={castNeed}
+                        />
+                      </Section>
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                <>
+                  <BriefWizardStepper
+                    currentStep={wizardStep}
+                    maxReachableStep={maxWizardStep}
+                    disabled={briefBusy}
+                    summaries={wizardSummaries}
+                    onSelectStep={goToWizardStep}
+                  />
 
-                      <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
-                        <Section
-                          step="03"
-                          title={t("brief.cast.title")}
-                          hint={
-                            castNeed === 2
-                              ? t("brief.cast.hintRequiredTwo")
-                              : castNeed === 1
-                                ? t("brief.cast.hintRequiredOne")
-                                : t("brief.cast.hintOptional")
-                          }
-                          equalHeaderHeight
-                        >
-                          <CharacterPicker
-                            characters={characters}
-                            styleId={styleId}
-                            value={characterIds}
-                            onChange={setCharacterIds}
-                            onSelectStyle={onStyleChange}
-                            selections={characterSelections}
-                            onSelectionsChange={setCharacterSelections}
-                            disabled={briefBusy}
-                            max={castNeed > 0 ? castNeed : 4}
-                            required={castNeed}
-                          />
-                        </Section>
-                      </div>
-
-                      <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
-                        <Section
-                          step="04"
-                          title={t("brief.products.title")}
-                          hint={t("brief.products.hint")}
-                          equalHeaderHeight
-                        >
-                          <ProductDropdown
-                            products={products}
-                            value={productIds}
-                            onChange={setProductIds}
-                            disabled={briefBusy}
-                          />
-                        </Section>
-                      </div>
-
-                      {bookend ? (
-                        <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
-                          <Section
-                            step="05"
-                            title={t("brief.logo.title")}
-                            hint={t("brief.logo.hint")}
-                            equalHeaderHeight
-                          >
-                            <LogoPicker
-                              value={logoUrl}
-                              onChange={setLogoUrl}
-                              onError={setError}
+                  <AnimatePresence mode="wait" initial={false}>
+                    {wizardStep === 0 ? (
+                      <motion.div
+                        key="wizard-step-0"
+                        initial={{ opacity: 0, x: -12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
+                        transition={{ duration: 0.25, ease }}
+                        className="space-y-4"
+                      >
+                        {/* Row 1: Full-width Director Banner Card (Dropdown left, 4-point Director Spec right) — NO Instruction field here in Step 1 */}
+                        <div className="rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                          <Section step="01" title={t("brief.section01.title")} hint={t("brief.section01.hint")}>
+                            <SkillPicker
+                              skills={skills}
+                              value={skillSlug}
+                              onChange={onSkillChange}
                               disabled={briefBusy}
+                              sideBySideGuide
                             />
-                            {durationPreset === "auto" ? (
-                              <p className="mt-2 text-xs text-muted">{t("brief.logo.fixedLength")}</p>
+                            {talkingHead ? (
+                              <p className="mt-3 text-xs text-muted">{t("brief.talkingHead.hint")}</p>
                             ) : null}
                           </Section>
                         </div>
-                      ) : null}
-                    </div>
-                  </motion.div>
-                ) : wizardStep === 1 ? (
+
+                        {/* Row 2: Equal-height 3-column Studio Cards (02 Visual Style · 03 Characters · 04 Products) */}
+                        <div
+                          className={`grid gap-4 lg:items-stretch ${
+                            bookend
+                              ? "md:grid-cols-2 xl:grid-cols-4"
+                              : "md:grid-cols-2 lg:grid-cols-3"
+                          }`}
+                        >
+                          <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                            <Section
+                              step="02"
+                              title={t("brief.visualStyle.title")}
+                              hint={t("brief.visualStyle.hint")}
+                              equalHeaderHeight
+                            >
+                              <StylePicker
+                                styles={styles}
+                                value={styleId}
+                                onChange={onStyleChange}
+                                disabled={briefBusy}
+                              />
+                              <p className="mt-2 text-xs text-muted">
+                                {styleName}
+                              </p>
+                            </Section>
+                          </div>
+
+                          <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                            <Section
+                              step="03"
+                              title={t("brief.cast.title")}
+                              hint={
+                                castNeed === 2
+                                  ? t("brief.cast.hintRequiredTwo")
+                                  : castNeed === 1
+                                    ? t("brief.cast.hintRequiredOne")
+                                    : t("brief.cast.hintOptional")
+                              }
+                              equalHeaderHeight
+                            >
+                              <CharacterPicker
+                                characters={characters}
+                                styleId={styleId}
+                                value={characterIds}
+                                onChange={setCharacterIds}
+                                onSelectStyle={onStyleChange}
+                                selections={characterSelections}
+                                onSelectionsChange={setCharacterSelections}
+                                disabled={briefBusy}
+                                max={castNeed > 0 ? castNeed : 4}
+                                required={castNeed}
+                              />
+                            </Section>
+                          </div>
+
+                          <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                            <Section
+                              step="04"
+                              title={t("brief.products.title")}
+                              hint={t("brief.products.hint")}
+                              equalHeaderHeight
+                            >
+                              <ProductDropdown
+                                products={products}
+                                value={productIds}
+                                onChange={setProductIds}
+                                disabled={briefBusy}
+                              />
+                            </Section>
+                          </div>
+
+                          {bookend ? (
+                            <div className="flex flex-col justify-between rounded-2xl border border-accent-ink/12 bg-white p-5 shadow-[0_2px_10px_rgba(18,20,28,0.03)] sm:p-6">
+                              <Section
+                                step="05"
+                                title={t("brief.logo.title")}
+                                hint={t("brief.logo.hint")}
+                                equalHeaderHeight
+                              >
+                                <LogoPicker
+                                  value={logoUrl}
+                                  onChange={setLogoUrl}
+                                  onError={setError}
+                                  disabled={briefBusy}
+                                />
+                                {durationPreset === "auto" ? (
+                                  <p className="mt-2 text-xs text-muted">{t("brief.logo.fixedLength")}</p>
+                                ) : null}
+                              </Section>
+                            </div>
+                          ) : null}
+                        </div>
+                      </motion.div>
+                    ) : wizardStep === 1 ? (
                   <motion.div
                     key="wizard-step-1"
                     initial={{ opacity: 0, x: -12 }}
@@ -1502,8 +1597,10 @@ export function NewProjectForm({
                       onChange={setClipDrafts}
                     />
                   </motion.div>
-                )}
-              </AnimatePresence>
+                    )}
+                  </AnimatePresence>
+                </>
+              )}
 
               {error ? (
                 <p role="alert" className="text-sm font-medium text-accent">
@@ -1514,7 +1611,7 @@ export function NewProjectForm({
 
               <div className="sticky bottom-0 z-20 -mx-6 -mb-6 mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-accent-ink/10 bg-[var(--studio-panel)]/95 px-6 py-4 backdrop-blur-sm sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10">
                 <div className="flex flex-wrap items-center gap-3">
-                  {wizardStep > 0 ? (
+                  {setupMode === "details" && wizardStep > 0 ? (
                     <button
                       type="button"
                       onClick={() => goToWizardStep((wizardStep - 1) as BriefWizardStepIndex)}
@@ -1541,7 +1638,7 @@ export function NewProjectForm({
                   <p className="text-xs text-muted">
                     {castNeed > 0 && characterIds.length !== castNeed
                       ? t("brief.footer.castRequired", { n: castNeed })
-                      : wizardStep === 3
+                      : setupMode === "quick" || wizardStep === 3
                         ? restarting
                           ? t("brief.footer.restartWarning")
                           : project
@@ -1551,7 +1648,7 @@ export function NewProjectForm({
                   </p>
 
                   <div className="flex flex-wrap items-center gap-3">
-                    {wizardStep < 3 ? (
+                    {setupMode === "details" && wizardStep < 3 ? (
                       <motion.button
                         key="wizard-next-button"
                         type="button"
@@ -1567,7 +1664,7 @@ export function NewProjectForm({
                       </motion.button>
                     ) : null}
 
-                    {restarting ? (
+                    {restarting && (setupMode === "quick" || wizardStep === 3) ? (
                       <button
                         type="button"
                         onClick={() => void submitCreateNew()}
@@ -1579,22 +1676,24 @@ export function NewProjectForm({
                       </button>
                     ) : null}
 
-                    <motion.button
-                      key="wizard-submit-button"
-                      type="submit"
-                      disabled={briefBusy}
-                      whileTap={{ scale: 0.98 }}
-                      className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-                    >
-                      {submitting ? <Spinner /> : null}
-                      {submitting
-                        ? t("brief.submit.submitting")
-                        : restarting
-                          ? t("brief.submit.regenerate")
-                          : project
-                            ? t("brief.submit.saveAndRegenerateStoryboard")
-                            : t("brief.submit.start")}
-                    </motion.button>
+                    {setupMode === "quick" || wizardStep > 0 ? (
+                      <motion.button
+                        key="wizard-submit-button"
+                        type="submit"
+                        disabled={briefBusy}
+                        whileTap={{ scale: 0.98 }}
+                        className="inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-[4px_4px_0_0_#12141c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                      >
+                        {submitting ? <Spinner /> : null}
+                        {submitting
+                          ? t("brief.submit.submitting")
+                          : restarting
+                            ? t("brief.submit.regenerate")
+                            : project
+                              ? t("brief.submit.saveAndRegenerateStoryboard")
+                              : t("brief.submit.start")}
+                      </motion.button>
+                    ) : null}
                   </div>
                 </div>
               </div>
