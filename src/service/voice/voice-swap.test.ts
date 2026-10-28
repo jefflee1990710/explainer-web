@@ -10,6 +10,7 @@ import {
   fitOffscreenVoiceDuration,
   mixVoiceArgs,
   padAudioLeadingSilenceArgs,
+  stripVideoAudioArgs,
   trimLeadingVideoArgs,
   videoPadSeconds,
   VOICE_SWAP_FILTER,
@@ -175,4 +176,10 @@ test("HeyGen warmup helpers pad leading VO silence and trim leading warmup video
   assert.ok(padArgs.includes("adelay=450|450"));
   const trimArgs = trimLeadingVideoArgs("in.mp4", "out.mp4", 0.4);
   assert.equal(trimArgs[trimArgs.indexOf("-ss") + 1], "0.40");
+});
+
+test("stripVideoAudioArgs copies the video stream and removes any audio track", () => {
+  const args = stripVideoAudioArgs("bridge.mp4", "silent.mp4");
+  assert.equal(args[args.indexOf("-c:v") + 1], "copy");
+  assert.ok(args.includes("-an"));
 });

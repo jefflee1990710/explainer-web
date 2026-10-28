@@ -405,30 +405,106 @@ export async function fetchForcedAlignment(
     );
 }
 
+// Normalize word bounds when Forced Alignment collapses a pre-pause or final syllable to 0ms,
+// or when character timestamps without punctuation glue trailing silence onto one CJK character.
+function normalizeAlignmentBounds<T extends { start: number; end: number }>(
+  items: T[],
+  getText: (item: T) => string,
+): T[] {
+  return items.map((item, idx) => {
+    const next = items[idx + 1];
+    const span = item.end - item.start;
+    if (span < 0.08) {
+      if (next && next.start - item.start >= 0.12) {
+        const restored = Math.min(0.22, (next.start - item.start) * 0.45);
+        return { ...item, end: Number((item.start + restored).toFixed(3)) };
+      }
+      if (!next && items.length > 1) {
+        return { ...item, end: Number((item.start + 0.24).toFixed(3)) };
+      }
+    }
+    const text = getText(item);
+    if (
+      text.length === 1 &&
+      /[\u4e00-\u9fff\u3400-\u4dbf]/.test(text) &&
+      span >= 0.36 &&
+      next &&
+      next.start - item.end < 0.04
+    ) {
+      return { ...item, end: Number((item.start + 0.22).toFixed(3)) };
+    }
+    return item;
+  });
+}
+
 // Group matched TTS tokens and source forced-alignment words into continuous clauses,
-// breaking ONLY at genuine sentence pauses (>= 120ms in both tracks) so words like
-// "生財工具" are never sliced mid-phrase.
+// breaking at genuine sentence pauses (>= 120ms in both tracks) and seamless abutting
+// subphrase checkpoints when cumulative drift exceeds 90ms or after embedded English words.
 export function matchClauseWindows(
-  ttsTokens: TimedLipSyncToken[],
-  faWords: ForcedAlignmentWord[],
+  rawTtsTokens: TimedLipSyncToken[],
+  rawFaWords: ForcedAlignmentWord[],
 ): ClauseAlignmentWindow[] {
+  const ttsTokens = normalizeAlignmentBounds(rawTtsTokens, (item) => item.token);
+  const faWords = normalizeAlignmentBounds(rawFaWords, (item) => item.text);
   const count = Math.min(ttsTokens.length, faWords.length);
   if (count === 0) return [];
   const clauses: ClauseAlignmentWindow[] = [];
   let startIdx = 0;
 
+  const hasPauseAfter = (idx: number) => {
+    if (idx >= count - 1) return false;
+    const nextFaGap = faWords[idx + 1].start - faWords[idx].end;
+    const nextTtsGap = ttsTokens[idx + 1].start - ttsTokens[idx].end;
+    return nextFaGap >= 0.12 && nextTtsGap >= 0.08;
+  };
+
   for (let i = 0; i < count; i++) {
     const isLast = i === count - 1;
-    const nextFaGap = !isLast ? faWords[i + 1].start - faWords[i].end : 0;
-    const nextTtsGap = !isLast ? ttsTokens[i + 1].start - ttsTokens[i].end : 0;
-    const hasNaturalPause = nextFaGap >= 0.12 && nextTtsGap >= 0.08;
-    const shouldBreak = isLast || (hasNaturalPause && i - startIdx + 1 >= 3 && count - (i + 1) >= 3);
+    const hasNaturalPause = hasPauseAfter(i);
+    const spanLen = i - startIdx + 1;
+    const remLen = count - (i + 1);
+
+    let shouldSeamlessSplit = false;
+    if (
+      !isLast &&
+      !hasNaturalPause &&
+      !hasPauseAfter(i + 1) &&
+      !hasPauseAfter(i + 2) &&
+      spanLen >= 5 &&
+      remLen >= 5
+    ) {
+      const nextFaGap = faWords[i + 1].start - faWords[i].end;
+      const nextTtsGap = ttsTokens[i + 1].start - ttsTokens[i].end;
+      if (nextFaGap < 0.02 && nextTtsGap < 0.02) {
+        let clauseEndIdx = count - 1;
+        for (let k = i + 1; k < count - 1; k++) {
+          if (hasPauseAfter(k)) {
+            clauseEndIdx = k;
+            break;
+          }
+        }
+        const cTtsStart = ttsTokens[startIdx].start;
+        const cFaStart = faWords[startIdx].start;
+        const cTtsSpan = Math.max(0.1, ttsTokens[clauseEndIdx].end - cTtsStart);
+        const cFaSpan = Math.max(0.1, faWords[clauseEndIdx].end - cFaStart);
+        const linearTarget =
+          cFaStart + (ttsTokens[i + 1].start - cTtsStart) * (cFaSpan / cTtsSpan);
+        const drift = Math.abs(linearTarget - faWords[i + 1].start);
+        const isAsciiWord = /^[A-Za-z0-9]+$/.test(ttsTokens[i].token);
+        if (drift >= 0.09 || (isAsciiWord && drift >= 0.04)) {
+          shouldSeamlessSplit = true;
+        }
+      }
+    }
+
+    const shouldBreak =
+      isLast || (hasNaturalPause && spanLen >= 3 && remLen >= 3) || shouldSeamlessSplit;
 
     if (shouldBreak) {
       const ttsStart = ttsTokens[startIdx].start;
-      const ttsEnd = ttsTokens[i].end;
+      const ttsEnd = shouldSeamlessSplit ? ttsTokens[i + 1].start : ttsTokens[i].end;
       const targetStart = faWords[startIdx].start;
-      const targetEnd = faWords[i].end;
+      const targetEnd = shouldSeamlessSplit ? faWords[i + 1].start : faWords[i].end;
       if (ttsEnd > ttsStart && targetEnd > targetStart) {
         clauses.push({ ttsStart, ttsEnd, targetStart, targetEnd });
       }

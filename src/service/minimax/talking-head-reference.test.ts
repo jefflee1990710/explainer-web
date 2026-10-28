@@ -66,6 +66,13 @@ test("talking head prompts keep the cut on the bridge and the mouth on the follo
   assert.match(follow, /settles closed/);
   assert.doesNotMatch(bridge, /\bstill\b|\bstatic\b/i);
   assert.doesNotMatch(follow, /\bstill\b|\bstatic\b/i);
+
+  const yueBridge = talkingHeadBridgePrompt(line, "yue");
+  const yueFollow = talkingHeadFollowPrompt(line, "yue");
+  assert.match(yueBridge, /Hong Kong Cantonese \(廣東話/);
+  assert.match(yueBridge, /Pronunciation \(Jyutping\)/);
+  assert.match(yueFollow, /Audio 1 is the only voice, spoken in Hong Kong Cantonese \(廣東話/);
+  assert.match(yueFollow, /Pronunciation \(Jyutping\)/);
 });
 
 test("mapMinimaxVideoStatus maps the official task states", () => {

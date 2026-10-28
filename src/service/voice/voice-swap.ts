@@ -19,8 +19,21 @@ import {
   HEYGEN_WARMUP_TRIM_SECONDS,
   mixVoiceArgs,
   padAudioLeadingSilenceArgs,
+  stripVideoAudioArgs,
   trimLeadingVideoArgs,
 } from "@/service/voice/voice-swap-args";
+
+// Remove the audio stream from an MP4 buffer while copying the video stream untouched.
+export async function stripVideoAudio(videoBuffer: Buffer): Promise<Buffer> {
+  const dir = await mkdtemp(join(tmpdir(), "video-mute-"));
+  try {
+    await writeFile(join(dir, "in.mp4"), videoBuffer);
+    await runFfmpeg(dir, stripVideoAudioArgs("in.mp4", "out.mp4"));
+    return await readFile(join(dir, "out.mp4"));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
 
 export async function padVoForHeyGenWarmup(
   audio: Buffer,
@@ -99,12 +112,32 @@ export async function swapClipVoice(
     if (options?.lipSync && spokenText && /Audio:/.test(probe)) {
       await runFfmpeg(dir, extractSpeechArgs("in.mp4", "speech.wav"));
       const speechWav = await readFile(join(dir, "speech.wav"));
-      const [{ audio, alignment }, faWords] = await Promise.all([
-        synthesizeSpeechWithTimestamps(voiceId, spokenText),
-        fetchForcedAlignment(speechWav, spokenText).catch(() => []),
-      ]);
-      await writeFile(join(dir, "voice.mp3"), audio);
-      const ttsTokens = groupAlignmentTokens(alignment, 0);
+      const preGenerated = await fetchPreGeneratedVo(options?.voUrl);
+      let ttsTokens: ReturnType<typeof groupAlignmentTokens>;
+      let faWords: Awaited<ReturnType<typeof fetchForcedAlignment>>;
+      if (preGenerated) {
+        await writeFile(join(dir, "voice.mp3"), preGenerated);
+        await runFfmpeg(dir, extractSpeechArgs("voice.mp3", "voice.wav"));
+        const voiceWav = await readFile(join(dir, "voice.wav"));
+        const [voWords, videoWords] = await Promise.all([
+          fetchForcedAlignment(voiceWav, spokenText).catch(() => []),
+          fetchForcedAlignment(speechWav, spokenText).catch(() => []),
+        ]);
+        ttsTokens = voWords.map((item) => ({
+          token: item.text,
+          start: item.start,
+          end: item.end,
+        }));
+        faWords = videoWords;
+      } else {
+        const [{ audio, alignment }, videoWords] = await Promise.all([
+          synthesizeSpeechWithTimestamps(voiceId, spokenText),
+          fetchForcedAlignment(speechWav, spokenText).catch(() => []),
+        ]);
+        await writeFile(join(dir, "voice.mp3"), audio);
+        ttsTokens = groupAlignmentTokens(alignment, 0);
+        faWords = videoWords;
+      }
       const clauses = matchClauseWindows(ttsTokens, faWords);
       if (clauses.length > 0) {
         await runFfmpeg(

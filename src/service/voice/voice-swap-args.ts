@@ -52,6 +52,12 @@ export function extractSpeechArgs(source: string, out: string) {
   return ["-y", "-i", source, "-vn", "-ac", "1", "-ar", "44100", "-c:a", "pcm_s16le", out];
 }
 
+// Copy the video stream without any audio track so a bridge reference video
+// never overrides the reference audio in the lip-sync follow pass.
+export function stripVideoAudioArgs(inPath: string, outPath: string) {
+  return ["-y", "-i", inPath, "-c:v", "copy", "-an", "-movflags", "+faststart", outPath];
+}
+
 // Directly replace the clip's audio with the ElevenLabs voice track.
 export const VOICE_SWAP_FILTER =
   "[1:a]aresample=44100,aformat=channel_layouts=stereo[a]";

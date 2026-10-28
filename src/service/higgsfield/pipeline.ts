@@ -73,7 +73,7 @@ import {
 } from "@/service/video/storage";
 import { deleteExplainerBlobUrls } from "@/util/blob/delete-urls";
 import { trimClipSmoothSilence } from "@/service/voice/smooth-silence";
-import { probeAudioSeconds, swapClipVoice } from "@/service/voice/voice-swap";
+import { probeAudioSeconds, stripVideoAudio, swapClipVoice } from "@/service/voice/voice-swap";
 import { whiteboardSubmitDurationSeconds } from "@/service/voice/voice-swap-args";
 import { resolveVoiceSwapId } from "@/service/voice/voice-swap-target";
 import { withCurrentCharacterVoices } from "@/service/character/voice-cast";
@@ -734,7 +734,7 @@ export async function sendClipVideo(
         {
           $set: {
             "clips.$[clip].prompt": audioFirstTalkingHead
-              ? talkingHeadBridgePrompt(spokenLine)
+              ? talkingHeadBridgePrompt(spokenLine, project.language)
               : videoPrompt,
             "clips.$[clip].voUrl": preGeneratedVoUrl,
             "clips.$[clip].voOnsetSeconds": voOnsetSeconds,
@@ -764,7 +764,7 @@ export async function sendClipVideo(
       throw new Error("這段的終點畫格還沒有檔案，無法接上下一段");
     }
     const submitted = await submitTalkingHeadBridgeVideo({
-      prompt: talkingHeadBridgePrompt(spokenLine),
+      prompt: talkingHeadBridgePrompt(spokenLine, project.language),
       startImageUrl: start,
       endImageUrl: endUrlForVideo,
       durationSeconds,
@@ -823,9 +823,12 @@ async function advanceTalkingHeadBridge(job: GenerationJob, project: Project, br
     const bridgeBlob = await persistMedia(
       bridgeUrl,
       `explainer/${project._id.toHexString()}/clips/bridge-${job.requestId}.mp4`,
+      {
+        transform: (buffer) => stripVideoAudio(buffer).catch(() => buffer),
+      },
     );
     const submitted = await submitTalkingHeadFollowVideo({
-      prompt: talkingHeadFollowPrompt(spokenLine),
+      prompt: talkingHeadFollowPrompt(spokenLine, project.language),
       videoUrl: bridgeBlob,
       audioUrl: clip.voUrl,
       durationSeconds: clip.durationSeconds,
@@ -1053,15 +1056,8 @@ export async function applyJobStatus(input: {
         ? project.clips.find((clip) => clip.clipNumber === job.clipIndex + 1)
         : undefined;
     const usesLipSync = Boolean(project && skillUsesOnScreenLipSync(project.skillSlug));
-    // Seated talking-head already speaks with the reference mp3. Swapping it
-    // would replace the mouth's timing with a second take.
-    const audioFirstTalkingHead =
-      project && job.kind === "video"
-        ? project.skillSlug === TALKING_HEAD_SKILL_SLUG ||
-          (await loadSkill(project).catch(() => undefined))?.slug === TALKING_HEAD_SKILL_SLUG
-        : false;
     const swapVoice = (buffer: Buffer) =>
-      voiceId && !audioFirstTalkingHead
+      voiceId
         ? swapClipVoice(buffer, voiceId, {
             text: spokenLine,
             voUrl: storedClip?.voUrl,
@@ -1078,9 +1074,8 @@ export async function applyJobStatus(input: {
         : Promise.resolve(buffer);
     // Lip-sync clips lose leading/trailing dead air here, after the voice is locked
     // to the mouth and before the film grade re-encodes the kept frames.
-    // The follow pass must keep the closed-mouth landing, so do not trim its tail.
     const smoothSilence = (buffer: Buffer) =>
-      usesLipSync && !audioFirstTalkingHead
+      usesLipSync
         ? trimClipSmoothSilence(buffer).catch((error: unknown) => {
             console.error("[higgsfield] smooth silence trim failed; keeping clip bytes", {
               requestId: job.requestId,
