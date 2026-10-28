@@ -17,6 +17,9 @@ test("landing messages focus Scro on explainer videos and AI Influencers", () =>
   assert.match(en.landing.cast.title, /AI Influencer|explainer/i);
   assert.match(en.landing.steps.step1Title, /character|wardrobe/i);
   assert.match(en.landing.steps.step2Title, /explainer/i);
+  assert.match(en.landing.academy.title, /reel/i);
+  assert.doesNotMatch(en.landing.academy.title, /course/i);
+  assert.match(zhHant.landing.academy.title, /Reel|白板/);
 
   assert.match(zhHant.meta.title, /Explainer|AI 網紅/);
   assert.match(zhHant.landing.hero.kicker, /Explainer|AI Influencer|AI 網紅/);
@@ -33,13 +36,16 @@ test("landing messages focus Scro on explainer videos and AI Influencers", () =>
 test("HomePage use cases lead with explainer videos, then the AI Influencer", () => {
   const homePage = fs.readFileSync(path.join(ROOT, "src/app/page.tsx"), "utf8");
   const heroIdx = homePage.indexOf("<LandingHero");
+  const reelIdx = homePage.indexOf("<LandingExplainerReel");
   const castIdx = homePage.indexOf("<LandingCast");
   const ipIdx = homePage.indexOf("<LandingIp");
   const useCasesIdx = homePage.indexOf("<LandingUseCases");
   const kolIdx = homePage.indexOf("<LandingKol");
   assert.ok(
     heroIdx >= 0 &&
-      castIdx > heroIdx &&
+      reelIdx > heroIdx &&
+      castIdx > reelIdx &&
+      !homePage.includes("LandingAcademy") &&
       ipIdx > castIdx &&
       kolIdx > ipIdx &&
       useCasesIdx > kolIdx,
@@ -57,6 +63,7 @@ test("HomePage use cases lead with explainer videos, then the AI Influencer", ()
 
 test("landing and feature page components use the clean Studio / Editor design style and dedicated character assets", () => {
   const files = [
+    "src/presentation/components/landing-explainer-reel.tsx",
     "src/presentation/components/landing-hero.tsx",
     "src/presentation/components/landing-hero-art.tsx",
     "src/presentation/components/landing-hero-cast-rail.tsx",

@@ -5,7 +5,7 @@ import { getAuthSession } from "@/service/auth";
 import { LandingCast } from "@/presentation/components/landing-cast";
 import { LandingCatalog } from "@/presentation/components/landing-catalog";
 import { LandingFreeCredit } from "@/presentation/components/landing-free-credit";
-import { LandingAcademy } from "@/presentation/components/landing-academy";
+import { LandingExplainerReel } from "@/presentation/components/landing-explainer-reel";
 import { LandingHero } from "@/presentation/components/landing-hero";
 import { LandingDirector } from "@/presentation/components/landing-director";
 import { LandingIp } from "@/presentation/components/landing-ip";
@@ -98,7 +98,7 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <LandingHero signedIn={Boolean(session)} />
-      <LandingAcademy signedIn={Boolean(session)} />
+      <LandingExplainerReel signedIn={Boolean(session)} />
       <LandingCast />
       <LandingIp />
       <LandingCatalog stats={catalogStats} signedIn={Boolean(session)} />
