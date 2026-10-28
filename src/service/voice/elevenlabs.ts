@@ -22,6 +22,29 @@ export const TTS_WITH_TIMESTAMPS_VOICE_SETTINGS = {
   use_speaker_boost: true,
 } as const;
 
+// Talking-head creator videos use lower stability (0.42) and expressive style (0.35)
+// so speech has authentic human pitch variation, emphasis, and natural breath pauses
+// instead of a flat newsreader cadence.
+export const TALKING_HEAD_TTS_VOICE_SETTINGS = {
+  stability: 0.42,
+  similarity_boost: 0.95,
+  style: 0.35,
+  use_speaker_boost: true,
+} as const;
+
+// Inserts natural human breathing pauses (`... `) at sentence boundaries when a
+// talking-head script contains multiple sentences, so the avatar briefly closes its
+// mouth, blinks, and takes a breath between sentences instead of reading nonstop.
+export function formatConversationalBreathPauses(text: string): string {
+  const cleaned = cleanSpokenDialogueLine(text);
+  if (!cleaned) return "";
+  return cleaned
+    .replace(/([A-Za-z0-9'")\]])([.!?])\s+(?=[A-Z0-9"'])/g, "$1$2 ... ")
+    .replace(/([。！？!?])\s*(?=[^\s。！？!?])/gu, "$1 ... ")
+    .replace(/(?:\s*\.\.\.\s*){2,}/g, " ... ")
+    .trim();
+}
+
 type FetchOptions = {
   apiKey?: string;
   fetch?: typeof fetch;
@@ -345,15 +368,22 @@ async function fetchWithRateLimitRetry(
   return fetchFn(url, init);
 }
 
-// Text-to-speech with character-level timestamps using Eleven v4 (0.70 stability & 1.0 similarity).
+// Text-to-speech with character-level timestamps using Eleven v4.
+// When `conversational: true` (talking-head), uses expressive prosody (stability 0.42, style 0.35)
+// and natural inter-sentence breath pauses.
 export async function synthesizeSpeechWithTimestamps(
   voiceId: string,
   text: string,
-  options?: FetchOptions & { modelId?: string },
+  options?: FetchOptions & { modelId?: string; conversational?: boolean },
 ): Promise<{ audio: Buffer; alignment?: ElevenLabsAlignment }> {
   const fetchFn = options?.fetch ?? fetch;
-  const cleaned = cleanSpokenDialogueLine(text);
+  const cleaned = options?.conversational
+    ? formatConversationalBreathPauses(text)
+    : cleanSpokenDialogueLine(text);
   if (!cleaned) throw new Error("語音合成缺少台詞文字");
+  const voiceSettings = options?.conversational
+    ? TALKING_HEAD_TTS_VOICE_SETTINGS
+    : TTS_WITH_TIMESTAMPS_VOICE_SETTINGS;
   const response = await fetchWithRateLimitRetry(
     fetchFn,
     `${BASE_URL}/text-to-speech/${encodeURIComponent(voiceId)}/with-timestamps?output_format=mp3_44100_128`,
@@ -366,7 +396,7 @@ export async function synthesizeSpeechWithTimestamps(
       body: JSON.stringify({
         text: cleaned,
         model_id: options?.modelId || ELEVENLABS_TTS_MODEL,
-        voice_settings: TTS_WITH_TIMESTAMPS_VOICE_SETTINGS,
+        voice_settings: voiceSettings,
       }),
       signal: AbortSignal.timeout(120_000),
     },

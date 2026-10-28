@@ -30,7 +30,10 @@ import { withWrittenCanvas } from "@/service/director/written-chinese";
 import { ensureFramePromptFits } from "@/service/higgsfield/shorten-frame-prompt";
 import { hydrateStyles } from "@/service/style/load-style";
 import { loadRenderableStyle } from "@/service/style/renderable-style";
-import { gradeRealisticVideoBuffer } from "@/service/style/realistic-grade";
+import {
+  gradeRealisticVideoBuffer,
+  gradeTalkingHeadSensorTextureBuffer,
+} from "@/service/style/realistic-grade";
 import { isRealisticStyle, isSelfShotCreatorSkill, lockRealisticVideoLight } from "@/service/style/realistic-light";
 import type { StylePromptSlice } from "@/service/style";
 import { withoutOnScreenTextInstructions } from "@/service/style/prompts";
@@ -717,7 +720,9 @@ export async function sendClipVideo(
   let durationSeconds = prompt.durationSeconds;
   if (voiceId && spokenLine?.trim() && isElevenLabsConfigured()) {
     try {
-      const { audio, alignment } = await synthesizeSpeechWithTimestamps(voiceId, spokenLine);
+      const { audio, alignment } = await synthesizeSpeechWithTimestamps(voiceId, spokenLine, {
+        conversational: audioFirstTalkingHead,
+      });
       if (audioFirstTalkingHead) {
         const voicedSeconds = (await probeAudioSeconds(audio, "mp3")) ?? prompt.durationSeconds;
         durationSeconds = Math.min(
@@ -1110,11 +1115,20 @@ export async function applyJobStatus(input: {
           })
         : Promise.resolve(buffer);
     const transformVideo =
-      job.kind === "video" && (voiceId || (applyFilmGrade && !audioFirstTalkingHead) || usesLipSync)
+      job.kind === "video" && (voiceId || applyFilmGrade || usesLipSync)
         ? async (buffer: Buffer) => {
             const voiced = await swapVoice(buffer);
             const silenced = await smoothSilence(voiced);
-            if (!applyFilmGrade || audioFirstTalkingHead) return silenced;
+            if (!applyFilmGrade) return silenced;
+            if (audioFirstTalkingHead) {
+              return gradeTalkingHeadSensorTextureBuffer(silenced).catch((error: unknown) => {
+                console.error(
+                  "[higgsfield] talking-head sensor grain failed; keeping clip bytes",
+                  { requestId: job.requestId, error },
+                );
+                return silenced;
+              });
+            }
             return gradeRealisticVideoBuffer(silenced).catch((error: unknown) => {
               console.error(
                 "[higgsfield] realistic video grade failed; keeping clip bytes",

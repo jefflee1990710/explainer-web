@@ -14,6 +14,13 @@ const VIDEO_KNEE_LUT_EXPR =
 export const REALISTIC_VIDEO_GRADE_FILTER =
   `unsharp=3:3:0.35:3:3:0.0,lutrgb=r='${VIDEO_KNEE_LUT_EXPR}':g='${VIDEO_KNEE_LUT_EXPR}':b='${VIDEO_KNEE_LUT_EXPR}',setsar=1`;
 
+// Subtle iPhone CMOS sensor micro-texture filter for Talking-Head / Avatar IV videos:
+// - Restores natural high-frequency skin pore micro-texture (`unsharp` + luma-only temporal CMOS noise `c0s=1.8:c0f=t+u`)
+//   to break up neural lip-sync temporal skin smoothing
+// - Does NOT apply the darkening highlight LUT so iPhone Smart HDR skin tones, eye catchlights, and lip moisture stay bright
+export const TALKING_HEAD_SENSOR_GRAIN_FILTER =
+  "unsharp=3:3:0.25:3:3:0.0,noise=c0s=1.8:c0f=t+u,setsar=1";
+
 export function realisticVideoGradeArgs(inPath: string, outPath: string): string[] {
   return [
     "-y",
@@ -37,12 +44,47 @@ export function realisticVideoGradeArgs(inPath: string, outPath: string): string
   ];
 }
 
+export function talkingHeadSensorGrainArgs(inPath: string, outPath: string): string[] {
+  return [
+    "-y",
+    "-i",
+    inPath,
+    "-vf",
+    TALKING_HEAD_SENSOR_GRAIN_FILTER,
+    "-c:v",
+    "libx264",
+    "-pix_fmt",
+    "yuv420p",
+    "-preset",
+    "fast",
+    "-crf",
+    "17",
+    "-c:a",
+    "copy",
+    "-movflags",
+    "+faststart",
+    outPath,
+  ];
+}
+
 // Apply the realistic highlight roll-off to a finished MP4 buffer.
 export async function gradeRealisticVideoBuffer(buffer: Buffer): Promise<Buffer> {
   const dir = await mkdtemp(join(tmpdir(), "realistic-grade-"));
   try {
     await writeFile(join(dir, "in.mp4"), buffer);
     await runFfmpeg(dir, realisticVideoGradeArgs("in.mp4", "out.mp4"));
+    return await readFile(join(dir, "out.mp4"));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+// Apply subtle iPhone CMOS sensor micro-grain to a finished Talking-Head MP4 buffer without darkening highlights.
+export async function gradeTalkingHeadSensorTextureBuffer(buffer: Buffer): Promise<Buffer> {
+  const dir = await mkdtemp(join(tmpdir(), "th-sensor-grain-"));
+  try {
+    await writeFile(join(dir, "in.mp4"), buffer);
+    await runFfmpeg(dir, talkingHeadSensorGrainArgs("in.mp4", "out.mp4"));
     return await readFile(join(dir, "out.mp4"));
   } finally {
     await rm(dir, { recursive: true, force: true });

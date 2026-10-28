@@ -8,12 +8,14 @@ import {
   ELEVENLABS_TTS_MODEL,
   elevenLabsVoiceLabels,
   fetchForcedAlignment,
+  formatConversationalBreathPauses,
   groupAlignmentTokens,
   matchClauseWindows,
   parseSpeechWindowFromStderr,
   STS_VOICE_SETTINGS,
   synthesizeSpeech,
   synthesizeSpeechWithTimestamps,
+  TALKING_HEAD_TTS_VOICE_SETTINGS,
   TTS_WITH_TIMESTAMPS_VOICE_SETTINGS,
   withTimedLipSyncPrompt,
 } from "@/service/voice/elevenlabs";
@@ -286,4 +288,33 @@ test("elevenLabsVoiceLabels maps yue, zh, and en to their ElevenLabs language an
     language: "en",
     accent: "american",
   });
+});
+
+test("conversational synthesizeSpeechWithTimestamps uses expressive voice settings and inserts inter-sentence breath pauses", async () => {
+  assert.equal(
+    formatConversationalBreathPauses("Stop wasting money on ads for your SaaS! If you are running a business, try Scro.io. It saves time!"),
+    "Stop wasting money on ads for your SaaS! ... If you are running a business, try Scro.io. ... It saves time!",
+  );
+
+  let capturedBody: Record<string, unknown> | undefined;
+  const fakeFetch: typeof fetch = async (_input, init) => {
+    capturedBody = JSON.parse(String(init?.body));
+    return new Response(
+      JSON.stringify({
+        audio_base64: Buffer.from("mp3-bytes").toString("base64"),
+      }),
+      { status: 200 },
+    );
+  };
+
+  await synthesizeSpeechWithTimestamps("voice123", "Hello there! Welcome to Scro.", {
+    apiKey: "test-xi-key",
+    fetch: fakeFetch,
+    conversational: true,
+  });
+
+  assert.equal(capturedBody?.text, "Hello there! ... Welcome to Scro.");
+  assert.deepEqual(capturedBody?.voice_settings, TALKING_HEAD_TTS_VOICE_SETTINGS);
+  assert.equal(TALKING_HEAD_TTS_VOICE_SETTINGS.stability, 0.42);
+  assert.equal(TALKING_HEAD_TTS_VOICE_SETTINGS.style, 0.35);
 });
