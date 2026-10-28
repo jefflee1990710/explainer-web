@@ -103,6 +103,11 @@ export function parseSpeechWindowFromStderr(stderr: string): {
 
   const starts = [...stderr.matchAll(/silence_start:\s*([0-9.]+)/g)].map((m) => Number(m[1]));
   const ends = [...stderr.matchAll(/silence_end:\s*([0-9.]+)/g)].map((m) => Number(m[1]));
+  const timeMatches = [...stderr.matchAll(/time=(\d+):(\d+):(\d+(?:\.\d+)?)/g)];
+  const lastTime = timeMatches[timeMatches.length - 1];
+  const streamEnd = lastTime
+    ? Number(lastTime[1]) * 3600 + Number(lastTime[2]) * 60 + Number(lastTime[3])
+    : duration;
 
   let speechStart = 0;
   for (let i = 0; i < Math.min(starts.length, ends.length); i++) {
@@ -113,11 +118,14 @@ export function parseSpeechWindowFromStderr(stderr: string): {
     }
   }
 
-  let speechEnd = duration;
+  const audioTrackEnd =
+    streamEnd > speechStart + 0.5 && streamEnd < duration ? streamEnd : duration;
+  const eofFlushedSilence = /\[out#0\/[^\]]*\][\s\S]*silence_end:\s*[0-9.]+/.test(stderr);
+  let speechEnd = audioTrackEnd;
   if (starts.length > 0) {
     const lastStart = starts[starts.length - 1];
-    const lastEnd = ends[ends.length - 1] ?? duration;
-    if (lastEnd >= duration - 0.08 && lastStart > speechStart + 0.5) {
+    const lastEnd = ends[ends.length - 1] ?? audioTrackEnd;
+    if ((eofFlushedSilence || lastEnd >= audioTrackEnd - 0.08) && lastStart > speechStart + 0.5) {
       speechEnd = lastStart;
     }
   }

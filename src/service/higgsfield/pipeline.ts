@@ -102,7 +102,7 @@ import {
 } from "@/service/director/talking-head";
 import { chargedVideoCredits, FRAME_COST, STUCK_CLAIM_MS } from "@/service/production-plan";
 import { SUBMIT_LOCK_MS } from "@/service/generation/task-policy";
-import { lockDialogueSpeech } from "@/service/director/spoken-line";
+import { isSilentSpokenLine, lockDialogueSpeech } from "@/service/director/spoken-line";
 import { withCantonesePronunciation } from "@/service/voice/cantonese-pronunciation";
 import { toSent, type Sent } from "@/service/generation/sent";
 import { frameJobDocs } from "@/service/generation/frame-jobs";
@@ -1072,10 +1072,18 @@ export async function applyJobStatus(input: {
             return buffer;
           })
         : Promise.resolve(buffer);
-    // Lip-sync clips lose leading/trailing dead air here, after the voice is locked
-    // to the mouth and before the film grade re-encodes the kept frames.
+    // Voiced clips (both on-screen lip-sync and off-screen narration) lose leading
+    // and trailing dead air here, after the voice is muxed and before any film grade.
+    const hasSpokenAudio =
+      usesLipSync ||
+      Boolean(
+        voiceId &&
+          project?.narrationEnabled !== false &&
+          spokenLine &&
+          !isSilentSpokenLine(spokenLine),
+      );
     const smoothSilence = (buffer: Buffer) =>
-      usesLipSync
+      hasSpokenAudio
         ? trimClipSmoothSilence(buffer).catch((error: unknown) => {
             console.error("[higgsfield] smooth silence trim failed; keeping clip bytes", {
               requestId: job.requestId,

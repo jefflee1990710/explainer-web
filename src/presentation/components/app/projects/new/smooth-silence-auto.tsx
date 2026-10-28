@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { syncAutoSmoothSilence } from "@/opencut/embed/scro-smooth-silence-pack";
 import { useScroVideos } from "@/opencut/embed/scro-video-store";
 import {
+  isSilentOutfitSkill,
   isTalkingBrollSkill,
   skillUsesOnScreenLipSync,
 } from "@/service/director/skill-rules";
@@ -11,7 +12,7 @@ import { isTalkingHeadSkill } from "@/service/director/talking-head";
 import type { PublicVideo } from "@/presentation/serialize";
 
 // Applies Smooth Silence on the timeline for clips the server has not already
-// trimmed. Lip-sync videos generated after the server trim land with almost no
+// trimmed. Voiced videos generated after the server trim land with almost no
 // dead air, so this pass leaves them at full length. There is no toolbar switch.
 export function SmoothSilenceAuto({ project }: { project?: PublicVideo }) {
   const videos = useScroVideos();
@@ -22,7 +23,8 @@ export function SmoothSilenceAuto({ project }: { project?: PublicVideo }) {
     project?.skillSlug &&
       (isTalkingHeadSkill(project.skillSlug) ||
         isTalkingBrollSkill(project.skillSlug) ||
-        skillUsesOnScreenLipSync(project.skillSlug)),
+        skillUsesOnScreenLipSync(project.skillSlug) ||
+        (project.narrationEnabled !== false && !isSilentOutfitSkill(project.skillSlug))),
   );
   const storeVideoUrls = (videos?.clips ?? [])
     .filter((clip) => Boolean(clip.videoUrl && !clip.staleVideo))

@@ -70,7 +70,7 @@ export function smoothSilenceTrimArgs(
     "-vf",
     `trim=start=${start}:end=${end},setpts=PTS-STARTPTS,setsar=1`,
     "-af",
-    `atrim=start=${start}:end=${end},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=${fmtSeconds(EDGE_FADE_SECONDS)},afade=t=out:st=${fadeOutAt}:d=${fmtSeconds(EDGE_FADE_SECONDS)}`,
+    `apad,atrim=start=${start}:end=${end},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=${fmtSeconds(EDGE_FADE_SECONDS)},afade=t=out:st=${fadeOutAt}:d=${fmtSeconds(EDGE_FADE_SECONDS)}`,
     "-c:v",
     "libx264",
     "-preset",
@@ -96,6 +96,7 @@ export async function trimClipSmoothSilence(buffer: Buffer): Promise<Buffer> {
     const probe = await ffmpegStderr(dir, [
       "-i",
       "in.mp4",
+      "-vn",
       "-af",
       "silencedetect=noise=-32dB:d=0.08",
       "-f",

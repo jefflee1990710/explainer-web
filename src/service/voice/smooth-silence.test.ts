@@ -41,3 +41,22 @@ test("smoothSilenceTrimArgs fades the kept span so the cut does not click", () =
   assert.match(args.join(" "), /afade=t=in:st=0:d=0\.015/);
   assert.match(args.join(" "), /afade=t=out:st=4\.125:d=0\.015/);
 });
+
+test("parseSpeechWindowFromStderr detects trailing dead air when an off-screen VO track is shorter than the video container", () => {
+  const stderr = `
+  Duration: 00:00:09.04, start: 0.000000, bitrate: 4022 kb/s
+  [silencedetect @ 0x1] silence_start: 2.181179
+  [silencedetect @ 0x1] silence_end: 2.537415 | silence_duration: 0.356236
+  [silencedetect @ 0x1] silence_start: 7.441678
+  [silencedetect @ 0x1] silence_end: 7.685805 | silence_duration: 0.244127
+  frame=  217 fps=0.0 q=-0.0 Lsize=N/A time=00:00:07.68 bitrate=N/A speed=25.8x
+  `;
+  const win = parseSpeechWindowFromStderr(stderr);
+  assert.equal(win.duration, 9.04);
+  assert.equal(win.start, 0);
+  assert.equal(win.end, 7.441678);
+  const cut = smoothSilenceCut(win);
+  assert.ok(cut);
+  assert.equal(cut.startSeconds, 0);
+  assert.equal(cut.durationSeconds, 7.762);
+});
