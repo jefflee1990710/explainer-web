@@ -14,6 +14,7 @@ const DISALLOWED_PATHS = [
   "/_freesound/",
   "/scroadmin",
   "/scroadmin/",
+  "/academy",
 ];
 
 const AI_CRAWLER_AGENTS = [

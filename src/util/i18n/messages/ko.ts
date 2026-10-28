@@ -36,7 +36,7 @@ export const ko: Partial<Messages> = {
     explainer: "Explainer",
     aiInfluencer: "AI Influencer",
     productPromo: "상품 프로모",
-    features: "기능",
+    features: "영상",
     featuresRightTool: "올바른 도구로 한 번에 완성",
     featuresTalkingHead: "자막 포함 토킹헤드를 몇 분 만에",
     featuresCantonese: "홍콩 광둥어 · 중소기업",

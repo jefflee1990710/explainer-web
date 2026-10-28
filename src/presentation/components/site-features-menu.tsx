@@ -55,7 +55,7 @@ export const SITE_FEATURE_LINKS: readonly FeatureLink[] = [
   },
 ];
 
-// Marketing feature pages — hover/focus submenu (tap toggles on touch).
+// Videos opens the use-case page. Hover still lists each video type.
 export function SiteFeaturesMenu() {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -108,23 +108,35 @@ export function SiteFeaturesMenu() {
         if (!rootRef.current?.contains(event.relatedTarget as Node)) closeSoon();
       }}
     >
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onPointerDown={(event) => {
-          pointerType.current = event.pointerType;
-        }}
-        onClick={() => {
-          // Touch / click: toggle. Mouse hover already opens.
-          if (pointerType.current === "mouse") return;
-          setOpen((v) => !v);
-        }}
-        className="inline-flex shrink-0 cursor-pointer items-center gap-1 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
-      >
-        {t("nav.features")}
-        <Chevron open={open} />
-      </button>
+      <span className="inline-flex items-center gap-1">
+        <Link
+          href="/examples"
+          onClick={() => setOpen(false)}
+          className="font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
+        >
+          {t("nav.features")}
+        </Link>
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-label={t("nav.features")}
+          onPointerDown={(event) => {
+            pointerType.current = event.pointerType;
+          }}
+          onClick={() => {
+            // The label goes to use cases. The chevron keeps the video list on touch.
+            if (pointerType.current === "mouse" && open) {
+              setOpen(false);
+              return;
+            }
+            setOpen((v) => !v);
+          }}
+          className="inline-flex cursor-pointer text-zinc-600 transition-colors hover:text-[#12141c]"
+        >
+          <Chevron open={open} />
+        </button>
+      </span>
       {open ? (
         <div
           role="menu"

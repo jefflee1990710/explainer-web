@@ -65,12 +65,6 @@ export function SiteHeader({
             >
               {t("nav.home")}
             </Link>
-            <Link
-              href="/examples"
-              className="shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
-            >
-              {t("nav.examples")}
-            </Link>
             <SiteFeaturesMenu />
             {showAffiliate ? (
               <Link
@@ -91,12 +85,6 @@ export function SiteHeader({
               className="shrink-0 font-medium text-zinc-600 transition-colors hover:text-[#12141c]"
             >
               {t("nav.blog")}
-            </Link>
-            <Link
-              href="/academy"
-              className="shrink-0 rounded-full bg-[#c6f24b] px-3 py-1.5 text-xs font-semibold text-[#12141c] transition-colors hover:bg-[#b6e23a] lg:px-3.5 lg:text-sm"
-            >
-              {t("nav.academy")}
             </Link>
           </nav>
 
@@ -152,7 +140,7 @@ export function SiteHeader({
                 onClick={() => setMobileMenuOpen(false)}
                 className="rounded-xl px-3 py-2.5 text-sm font-semibold text-[#12141c] transition-colors hover:bg-zinc-100"
               >
-                {t("nav.examples")}
+                {t("nav.features")}
               </Link>
               <Link
                 href="/pricing"
@@ -168,13 +156,6 @@ export function SiteHeader({
               >
                 {t("nav.blog")}
               </Link>
-              <Link
-                href="/academy"
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-xl bg-[#c6f24b] px-3 py-2.5 text-sm font-semibold text-[#12141c] transition-colors hover:bg-[#b6e23a]"
-              >
-                {t("nav.academy")}
-              </Link>
               {showAffiliate ? (
                 <Link
                   href="/affiliate"
@@ -187,10 +168,7 @@ export function SiteHeader({
             </div>
 
             <div className="mt-3 border-t border-zinc-200 pt-3">
-              <p className="px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-400">
-                {t("nav.features")}
-              </p>
-              <div className="mt-1.5 grid grid-cols-1 gap-1 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                 {SITE_FEATURE_LINKS.map((item) => (
                   <Link
                     key={item.href}

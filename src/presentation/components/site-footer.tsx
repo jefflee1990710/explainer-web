@@ -31,14 +31,11 @@ export function SiteFooter({ showAffiliate = false }: { showAffiliate?: boolean 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-zinc-500">{t("legal.rights")}</p>
           <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-zinc-600">
-            <Link href="/academy" className="hover:text-[#12141c]">
-              {t("nav.academy")}
-            </Link>
             <Link href="/posts" className="hover:text-[#12141c]">
               {t("nav.blog")}
             </Link>
             <Link href="/examples" className="hover:text-[#12141c]">
-              {t("nav.examples")}
+              {t("nav.features")}
             </Link>
             {showAffiliate ? (
               <Link href="/affiliate" className="hover:text-[#12141c]">

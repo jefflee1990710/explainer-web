@@ -16,6 +16,7 @@ test("robots() returns sitemap URL, host, and disallows private workspace paths"
   assert.ok(starRule.disallow.includes("/app/"));
   assert.ok(starRule.disallow.includes("/api/"));
   assert.ok(starRule.disallow.includes("/scroadmin"));
+  assert.ok(starRule.disallow.includes("/academy"));
 });
 
 test("buildSitemapEntries includes all static public pages and published blog posts", () => {
@@ -26,7 +27,7 @@ test("buildSitemapEntries includes all static public pages and published blog po
   assert.equal(entries[0]?.url, "https://scro.io");
   assert.ok(entries.some((e) => e.url === "https://scro.io/ai-influencer"));
   assert.ok(entries.some((e) => e.url === "https://scro.io/pricing"));
-  assert.ok(entries.some((e) => e.url === "https://scro.io/academy"));
+  assert.equal(entries.some((e) => e.url === "https://scro.io/academy"), false);
   assert.ok(
     entries.some((e) => e.url === "https://scro.io/posts/ai-influencer-guide"),
   );
@@ -46,9 +47,11 @@ test("buildLlmsTxt and buildLlmsFullTxt output valid markdown with core URLs and
   assert.ok(shortTxt.includes("https://scro.io/llms-full.txt"));
   assert.ok(shortTxt.includes("[AI Influencer Studio](https://scro.io/ai-influencer)"));
   assert.ok(shortTxt.includes("[Cantonese Reel Tips](https://scro.io/posts/cantonese-reel-tips)"));
+  assert.equal(shortTxt.includes("/academy"), false);
 
   const fullTxt = buildLlmsFullTxt("https://scro.io", samplePosts);
   assert.ok(fullTxt.startsWith("# Scro — Full Documentation for LLMs & AI Agents"));
   assert.ok(fullTxt.includes("POST https://scro.io/api/mcp"));
   assert.ok(fullTxt.includes("https://scro.io/posts/cantonese-reel-tips"));
+  assert.equal(fullTxt.includes("/academy"), false);
 });

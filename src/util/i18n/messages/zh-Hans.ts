@@ -34,7 +34,7 @@ export const zhHans: Partial<Messages> = {
     explainer: "Explainer",
     aiInfluencer: "AI Influencer",
     productPromo: "产品宣传",
-    features: "功能",
+    features: "影片",
     featuresRightTool: "选对工具，一次出片",
     featuresTalkingHead: "连字幕口播，几分钟出片",
     featuresCantonese: "香港粤语 · 中小企",

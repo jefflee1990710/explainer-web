@@ -52,7 +52,7 @@ export const en: Messages = {
     explainer: "Explainer",
     aiInfluencer: "AI Influencer",
     productPromo: "Product promo",
-    features: "Features",
+    features: "Videos",
     featuresRightTool: "Pick the right tool — ship once",
     featuresTalkingHead: "Captioned talking-head in minutes",
     featuresCantonese: "HK Cantonese for SMEs",

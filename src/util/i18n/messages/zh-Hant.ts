@@ -52,7 +52,7 @@ export const zhHant: Messages = {
     explainer: "Explainer",
     aiInfluencer: "AI Influencer",
     productPromo: "產品宣傳",
-    features: "功能",
+    features: "影片",
     featuresRightTool: "揀對工具，一次出片",
     featuresTalkingHead: "連字幕口播，幾分鐘出片",
     featuresCantonese: "香港粵語 · 中小企",

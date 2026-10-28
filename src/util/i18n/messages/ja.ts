@@ -36,7 +36,7 @@ export const ja: Partial<Messages> = {
     explainer: "Explainer",
     aiInfluencer: "AI Influencer",
     productPromo: "商品プロモ",
-    features: "機能",
+    features: "動画",
     featuresRightTool: "正しいツールで、一度で仕上げる",
     featuresTalkingHead: "字幕付きトーキングヘッドを数分で",
     featuresCantonese: "香港広東語 · 中小企業向け",
