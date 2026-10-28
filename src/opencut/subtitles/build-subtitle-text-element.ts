@@ -63,54 +63,12 @@ function wrapSubtitleText({
 	maxWidth: number;
 	preferTwoLines?: boolean;
 }): string {
-	const wrapped = wrapSubtitleTextWithMeasure({
+	return wrapSubtitleTextWithMeasure({
 		text,
 		maxWidth,
 		measure: (value) => measureLineWidth({ ctx, text: value }),
+		preferTwoLines,
 	});
-	if (!preferTwoLines || wrapped.includes("\n")) {
-		return wrapped;
-	}
-	const trimmed = wrapped.trim();
-	const tokens = tokenizeMixedSubtitleLine(trimmed);
-	const nonSpaceTokens = tokens.filter((t) => !/^\s+$/.test(t));
-	if (nonSpaceTokens.length < 3) {
-		return wrapped;
-	}
-	// Balance into 2 lines near the visual midpoint so dual-color strip styles showcase both strips.
-	const totalWidth = measureLineWidth({ ctx, text: trimmed });
-	let acc = "";
-	let bestSplitIndex = -1;
-	let bestDiff = Number.POSITIVE_INFINITY;
-	for (let i = 0; i < tokens.length - 1; i++) {
-		acc += tokens[i];
-		const left = acc.trim();
-		const right = tokens
-			.slice(i + 1)
-			.join("")
-			.trim();
-		if (!left || !right) continue;
-		const wLeft = measureLineWidth({ ctx, text: left });
-		const diff = Math.abs(wLeft - totalWidth / 2);
-		if (diff < bestDiff) {
-			bestDiff = diff;
-			bestSplitIndex = i;
-		}
-	}
-	if (bestSplitIndex >= 0) {
-		const line1 = tokens
-			.slice(0, bestSplitIndex + 1)
-			.join("")
-			.trim();
-		const line2 = tokens
-			.slice(bestSplitIndex + 1)
-			.join("")
-			.trim();
-		if (line1 && line2) {
-			return `${line1}\n${line2}`;
-		}
-	}
-	return wrapped;
 }
 
 function measureWrappedTextBlock({

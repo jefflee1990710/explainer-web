@@ -46,7 +46,12 @@ export function tokenizeMixedSubtitleLine(text: string): string[] {
 	return tokens;
 }
 
-export function wrapSubtitleTextWithMeasure({
+/**
+ * Balances a single paragraph into 2 lines with near-equal word/token count and width
+ * when the text fits within 2 lines, preventing top-heavy 2-line captions like
+ * "Watch how this rooftop chart changes / everything".
+ */
+export function balanceTwoLineSubtitle({
 	text,
 	maxWidth,
 	measure,
@@ -54,6 +59,73 @@ export function wrapSubtitleTextWithMeasure({
 	text: string;
 	maxWidth: number;
 	measure: (value: string) => number;
+}): string | null {
+	const trimmed = text.trim().replace(/\s+/g, " ");
+	if (!trimmed) return null;
+	const tokens = tokenizeMixedSubtitleLine(trimmed);
+	const nonSpaceIndices: number[] = [];
+	for (let i = 0; i < tokens.length; i++) {
+		if (!/^\s+$/.test(tokens[i])) nonSpaceIndices.push(i);
+	}
+	if (nonSpaceIndices.length < 2) return null;
+
+	const totalUnits = nonSpaceIndices.length;
+	const totalWidth = measure(trimmed);
+	let bestSplitTokenIdx = -1;
+	let bestScore = Number.POSITIVE_INFINITY;
+
+	for (let k = 0; k < nonSpaceIndices.length - 1; k++) {
+		const splitIdx = nonSpaceIndices[k];
+		const line1 = tokens
+			.slice(0, splitIdx + 1)
+			.join("")
+			.trim();
+		const line2 = tokens
+			.slice(splitIdx + 1)
+			.join("")
+			.trim();
+		if (!line1 || !line2) continue;
+
+		const w1 = measure(line1);
+		const w2 = measure(line2);
+		if (w1 > maxWidth || w2 > maxWidth) continue;
+
+		const leftUnits = k + 1;
+		const rightUnits = totalUnits - leftUnits;
+		// Balance word/token count first, with visual width ratio as tie-breaker
+		const unitDiffRatio = Math.abs(leftUnits - rightUnits) / totalUnits;
+		const widthDiffRatio =
+			totalWidth > 0 ? Math.abs(w1 - w2) / totalWidth : 0;
+		const score = unitDiffRatio * 0.65 + widthDiffRatio * 0.35;
+
+		if (score < bestScore) {
+			bestScore = score;
+			bestSplitTokenIdx = splitIdx;
+		}
+	}
+
+	if (bestSplitTokenIdx < 0) return null;
+	const line1 = tokens
+		.slice(0, bestSplitTokenIdx + 1)
+		.join("")
+		.trim();
+	const line2 = tokens
+		.slice(bestSplitTokenIdx + 1)
+		.join("")
+		.trim();
+	return line1 && line2 ? `${line1}\n${line2}` : null;
+}
+
+export function wrapSubtitleTextWithMeasure({
+	text,
+	maxWidth,
+	measure,
+	preferTwoLines = false,
+}: {
+	text: string;
+	maxWidth: number;
+	measure: (value: string) => number;
+	preferTwoLines?: boolean;
 }): string {
 	const normalized = text.trim().replace(/\r\n/g, "\n");
 	const paragraphs = normalized.split("\n");
@@ -87,6 +159,21 @@ export function wrapSubtitleTextWithMeasure({
 		if (currentLine.trim()) {
 			lines.push(currentLine.trimEnd());
 		}
+
+		// Whenever greedy wrapping produced 2 lines (e.g. 6 words on line 1 + 1 orphan word on line 2),
+		// or when preferTwoLines is requested on a 1-line caption, rebalance into 2 equal lines.
+		if (lines.length === 2 || (preferTwoLines && lines.length === 1)) {
+			const balanced = balanceTwoLineSubtitle({
+				text: trimmedParagraph,
+				maxWidth,
+				measure,
+			});
+			if (balanced) {
+				wrappedParagraphs.push(balanced);
+				continue;
+			}
+		}
+
 		wrappedParagraphs.push(lines.join("\n"));
 	}
 

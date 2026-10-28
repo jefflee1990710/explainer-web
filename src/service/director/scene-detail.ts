@@ -48,7 +48,7 @@ export function sceneDetailDirectorBlock(options: { realistic?: boolean; selfSho
   return [
     "Scene detail: write every explainerScene (and startScene / endScene when used) as four concrete parts, in this order:",
     options.realistic
-      ? "1) Character: expression, pose, action, and eyeline of each on-screen character — whenever a character is present, give them a normal, alive, engaged real-person facial expression matching the beat (living brows, warm focused eyes, and a hint of life at the mouth corners; never a blank, deadpan, or expressionless stare; never exaggerated cartoon grimaces, wide saucer eyes, or puffed cheeks)."
+      ? "1) Character: expression, pose, action, and eyeline of each on-screen character — whenever a character is present, give them a calm, relaxed, unforced real-person facial expression matching the beat (attentive focused eyes and softly closed lips at natural rest; never write a forced closed-lip smile or smirk; never a blank, deadpan, or expressionless stare; never exaggerated cartoon grimaces, wide saucer eyes, or puffed cheeks)."
       : "1) Character: expression, pose, action, and eyeline of each on-screen character — whenever a character is present, give them a vivid, specific facial expression (active eyebrows, expressive eyes, and a clear mouth/cheek emotion matching the beat, never a blank or neutral face).",
     "2) Set: location, set dressing, props, foreground / midground / background.",
     "3) Light: light direction, colour temperature, mood.",
@@ -98,7 +98,7 @@ export const PHASE_B_DETAIL_RULES =
   "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, the expression change, and the camera start and end framing. Whenever a character is on screen, animate rich, expressive facial changes across the beats (lively eyebrows, expressive eyes, cheek and mouth reactions synced to the beat, never a frozen or deadpan face). Name which hand, which direction, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
 
 export const PHASE_B_REALISTIC_NARRATOR_DETAIL_RULES =
-  "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, a normal alive real-person facial expression (lips firmly closed with zero mouth or jaw speech articulation, natural blinks, living eye focus, and a hint of life at the mouth corners; never a blank or deadpan stare; never exaggerated cartoon grimaces), and the camera start and end framing. Name which hand, which direction, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
+  "Detail: describe the motion as timed beats across the clip (e.g. 0–2s …; 2–5s …), each naming the action, a calm, relaxed, unforced real-person facial expression (lips softly closed at natural rest with zero mouth or jaw speech articulation, natural blinks, and attentive eye focus; never write a forced closed-lip smile or tight smirk; never a blank or deadpan stare; never exaggerated cartoon grimaces), and the camera start and end framing. Name which hand, which direction, and which prop. The lighting stays constant and matches both keyframes. Never re-describe a character's appearance or outfit; it follows the keyframes.";
 
 export function phaseBDetailRules(
   options: { realistic?: boolean; selfShot?: boolean; narratorOnly?: boolean } = {},

@@ -148,3 +148,19 @@ test("scaleSubtitleFontSizeForCanvas keeps 9:16 vertical subtitle pixel height c
 	assert.ok(englishSegments.length >= 3, `expected >= 3 short cues, got ${englishSegments.length}`);
 	assert.ok(englishSegments.some((seg) => seg.text.includes("Scro.io")));
 });
+
+test("wrapSubtitleTextWithMeasure balances 2-line subtitles so word counts are even instead of leaving 1 orphan word", () => {
+	// "Watch how this rooftop chart changes everything" (47 chars, 7 words)
+	// With maxWidth = 380 (10px per char), greedy wrapping would put 6 words ("Watch how this rooftop chart changes", 360px)
+	// on line 1 and 1 orphan word ("everything", 100px) on line 2.
+	const line = "Watch how this rooftop chart changes everything";
+	const balanced = wrapSubtitleTextWithMeasure({
+		text: line,
+		maxWidth: 380,
+		measure: (val) => val.length * 10,
+	});
+	assert.equal(balanced, "Watch how this rooftop\nchart changes everything");
+	const [line1, line2] = balanced.split("\n");
+	assert.equal(line1.split(/\s+/).length, 4);
+	assert.equal(line2.split(/\s+/).length, 3);
+});
